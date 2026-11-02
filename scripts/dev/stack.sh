@@ -24,6 +24,10 @@ PASSFILE="$DEV/admin-password"
 ADMIN_PASSWORD="$(cat "$PASSFILE")"
 export HARNESS_HOME="$DEV/home" HARNESS_KEYRING=0
 
+# Resolve the real node binary: version-manager shims (volta, asdf) do not forward signals, so
+# killing the shim would orphan the actual server process.
+NODE_BIN="$(node -p process.execPath)"
+
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }
 
@@ -43,7 +47,7 @@ if ! curl -fsS "$URL/api/health" >/dev/null 2>&1; then
     cd "$ROOT/packages/core"
     PORT="$PORT" HARNESS_DATA_DIR="$DATA" HARNESS_PUBLIC_URL="$URL" \
       HARNESS_ADMIN_EMAIL="$ADMIN_EMAIL" HARNESS_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
-      nohup node .output/server/index.mjs >"$DEV/core.log" 2>&1 &
+      nohup "$NODE_BIN" .output/server/index.mjs >"$DEV/core.log" 2>&1 &
     echo $! >"$DEV/core.pid"
   )
   for _ in $(seq 1 60); do curl -fsS "$URL/api/health" >/dev/null 2>&1 && break; sleep 0.5; done
