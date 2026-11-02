@@ -52,6 +52,13 @@ type Tool interface {
 	Run(ctx context.Context, env *Env, call Call) Result
 }
 
+// AlwaysAsker is implemented by tools whose every call needs an explicit
+// user confirmation, whatever the permission rules and mode say (MCP servers
+// with requires_user_interaction).
+type AlwaysAsker interface {
+	AlwaysAsk() bool
+}
+
 // Call identifies one tool invocation.
 type Call struct {
 	ID    string

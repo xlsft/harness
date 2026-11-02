@@ -74,6 +74,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `compacted` | — | first message after a compaction summary |
 | `attribution` | `commit`, `pr` | commit / PR attribution lines |
 | `output_style` | `name`, `content` | the active output style, at session start and when it changes |
+| `deferred_tools` | `tools` | MCP tools are deferred behind ToolSearch: their names, one per line, at session start |
 
 Each placeholder appears once per reminder (the tests compare the list of placeholders). `interrupted` must stay
 exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start with
@@ -90,6 +91,8 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `AskUserQuestion` | `questions: [{question, header (≤12), options: [{label, description}] (2–4), multiSelect}] (1–4)` | |
 | `EnterPlanMode` | `{}` | |
 | `ExitPlanMode` | `plan` (Markdown) | the client writes it to the plan file and asks the user to approve |
+| `ToolSearch` | `query`, `max_results` | offered only while MCP tools are deferred; `select:a,b` or keywords; returns full definitions and makes those tools callable |
+| `McpAuthenticate` | `{}` | template of `mcp__<server>__authenticate` for a remote MCP server that needs authorization; `{{server}}` in the description is filled by the client |
 
 The execution semantics are implemented by the client and must match these descriptions.
 
