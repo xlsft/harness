@@ -1,10 +1,30 @@
 <script setup lang="ts">
 // Session view (Main.dc.html and the Main* screens): sidebar · header + transcript + composer · right panes (several can be open side by side).
+import { SplitterGroup, SplitterPanel } from 'reka-ui'
 import { MAIN_SESSION } from '~/lib/transport/scenario'
+import { PANE_WIDTH } from '~/composables/usePanes'
+import { panesOf } from '~/composables/usePaneLayout'
 
 const store = useSessionStore()
 const route = useRoute()
 const { panes } = usePanes()
+const { tree } = usePaneLayout()
+
+// Desktop arranges the panes beside the transcript; below lg the last opened pane covers the screen.
+const wide = ref(true)
+onMounted(() => {
+  const mq = window.matchMedia('(min-width: 1024px)')
+  wide.value = mq.matches
+  mq.addEventListener('change', e => wide.value = e.matches)
+})
+
+// Initial share of the pane area: the natural width of the outer row's panes, within 25-70%.
+const paneShare = computed(() => {
+  if (!tree.value || !import.meta.client) return 40
+  const row = tree.value.kind === 'split' && tree.value.dir === 'row' ? tree.value.children : [tree.value]
+  const px = row.reduce((s, n) => s + Math.max(...panesOf(n).map(p => PANE_WIDTH[p])), 0)
+  return Math.min(70, Math.max(25, (px / Math.max(window.innerWidth - 260, 1)) * 100))
+})
 
 const requested = computed(() => typeof route.query.session === 'string' ? route.query.session : '')
 watchEffect(() => {
@@ -25,17 +45,21 @@ useShortcuts()
   >
     <AppSidebar />
 
-    <UDashboardPanel
-      id="main"
-      :ui="{ root: 'min-h-0 h-svh min-w-0 lg:min-w-[420px] flex-[999_1_480px] lg:not-last:border-e-0', body: 'p-0 sm:p-0 gap-0 overflow-hidden' }"
+    <SplitterGroup
+      direction="horizontal"
+      auto-save-id="harness-main-split"
+      class="h-svh min-w-0 flex-1"
     >
-      <template #header>
+      <SplitterPanel
+        id="main"
+        :order="0"
+        :min-size="10"
+        class="@container flex min-h-0 min-w-0 flex-col"
+      >
         <SessionHeader
           v-if="session"
           :session="session"
         />
-      </template>
-      <template #body>
         <template v-if="session">
           <Transcript
             :session="session"
@@ -53,16 +77,33 @@ useShortcuts()
         >
           {{ store.error || 'Connecting to the harness client…' }}
         </div>
-      </template>
-    </UDashboardPanel>
+      </SplitterPanel>
 
-    <template v-if="session">
+      <template v-if="session && tree && wide">
+        <HSplitHandle dir="row" />
+        <SplitterPanel
+          id="panes"
+          :order="1"
+          :default-size="paneShare"
+          :min-size="15"
+          class="min-h-0 min-w-0"
+        >
+          <PaneLayout
+            :node="tree"
+            :session="session"
+          />
+        </SplitterPanel>
+      </template>
+    </SplitterGroup>
+
+    <div
+      v-if="session && !wide && panes.length"
+      class="fixed inset-0 z-40 bg-default"
+    >
       <RightPane
-        v-for="p in panes"
-        :key="p"
-        :pane="p"
+        :pane="panes[panes.length - 1]!"
         :session="session"
       />
-    </template>
+    </div>
   </UDashboardGroup>
 </template>

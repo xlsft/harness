@@ -119,11 +119,19 @@ function autosize() {
   const el = input.value
   if (!el) return
   el.style.height = 'auto'
-  // Grows up to 8 lines (8 × 20.8px), then scrolls.
-  el.style.height = `${Math.min(el.scrollHeight, 167)}px`
+  // Empty: one line (a narrow composer would otherwise grow to fit the wrapped placeholder).
+  // Otherwise grows up to 8 lines (8 × 20.8px), then scrolls.
+  el.style.height = text.value ? `${Math.min(el.scrollHeight, 167)}px` : ''
 }
 watch(text, () => nextTick(autosize))
+// Re-measure when the composer is resized (window, sidebar or pane splits).
+let resizeObserver: ResizeObserver | undefined
+onBeforeUnmount(() => resizeObserver?.disconnect())
 onMounted(() => {
+  if (input.value) {
+    resizeObserver = new ResizeObserver(() => autosize())
+    resizeObserver.observe(input.value)
+  }
   autosize()
   if (props.preset?.focused) input.value?.focus()
 })
@@ -276,11 +284,15 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       <template v-if="pending && pending.kind === 'permission'">
         · Allow {{ pending.toolName }}?
       </template>
-      <span class="flex-1" /><span class="max-sm:hidden">1 allow · 2 always · esc deny</span>
+      <span class="flex-1" /><span class="flex shrink-0 items-center gap-2.5 max-sm:hidden @max-[560px]:hidden">
+        <span class="inline-flex items-center gap-1"><HKeys keys="1" />allow</span>
+        <span class="inline-flex items-center gap-1"><HKeys keys="2" />always</span>
+        <span class="inline-flex items-center gap-1"><HKeys keys="escape" />deny</span>
+      </span>
     </div>
     <div
       v-else-if="busy"
-      class="flex items-center gap-[9px] text-[12px] text-muted"
+      class="flex items-center gap-[9px] text-[12px] whitespace-nowrap text-muted"
     >
       <HIcon
         name="loading"
@@ -288,9 +300,9 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         spin
         class="text-accent"
       />
-      <span class="text-white">{{ activity }}</span>
-      · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok
-      <span class="flex-1" /><span class="max-sm:hidden">esc to interrupt</span>
+      <span class="min-w-0 truncate"><span class="text-white">{{ activity }}</span>
+        · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
+      <span class="flex-1" /><span class="inline-flex shrink-0 items-center gap-1 max-sm:hidden @max-[480px]:hidden"><HKeys keys="escape" />to interrupt</span>
     </div>
 
     <!-- queued messages -->
@@ -540,8 +552,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           rows="1"
           :placeholder="placeholder"
           aria-label="Message"
-          class="min-w-0 flex-1 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:text-muted"
-          :class="menu === 'slash' ? 'text-accent' : 'text-white'"
+          class="min-w-0 flex-1 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:truncate placeholder:text-muted"
+          :class="[menu === 'slash' ? 'text-accent' : 'text-white', !text && 'overflow-hidden']"
           @input="onInput"
           @keydown="onKeydown"
           @focus="focused = true"

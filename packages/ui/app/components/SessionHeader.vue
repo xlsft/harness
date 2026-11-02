@@ -21,7 +21,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
 </script>
 
 <template>
-  <header class="relative flex h-11 shrink-0 flex-wrap items-center gap-1.5 border-b border-default px-4">
+  <header class="relative flex h-11 shrink-0 flex-nowrap items-center gap-1.5 border-b border-default px-4">
     <HIconBtn
       v-if="collapsed"
       icon="sidebar"
@@ -40,7 +40,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
     </h1>
     <HIcon
       name="down"
-      class="text-muted"
+      class="shrink-0 text-muted"
     />
     <span class="flex-1" />
     <HIconBtn
@@ -50,7 +50,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
       :label="b.label"
       :kbd="b.kbd"
       :active="isOpen(b.pane)"
-      :class="b.pane !== 'details' && b.pane !== 'terminal' ? 'max-sm:hidden' : ''"
+      :class="b.pane !== 'details' && b.pane !== 'terminal' ? 'max-sm:hidden @max-[640px]:hidden' : ''"
       @click="togglePane(b.pane)"
     />
     <UPopover

@@ -53,16 +53,19 @@ const nav = [
     v-model:collapsed="collapsed"
     v-model:open="open"
     collapsible
+    resizable
     :collapsed-size="0"
     :default-size="264"
-    :min-size="264"
-    :max-size="264"
+    :min-size="0"
+    :max-size="440"
     :toggle="false"
     :ui="{
-      root: 'bg-surface border-e border-default min-w-0 data-[collapsed=true]:hidden',
+      root: 'bg-surface border-e border-(--ui-divider) min-w-0 data-[collapsed=true]:hidden',
       body: 'p-0 gap-0 overflow-hidden',
       footer: 'h-[46px] gap-[9px] border-t border-default py-0 pr-2.5 pl-3.5 sm:px-3.5',
-      content: 'bg-surface rounded-none max-w-[264px]'
+      content: 'bg-surface rounded-none max-w-[264px]',
+      // The border is the divider; the handle only widens the grab area and lights up while used.
+      handle: 'relative z-10 -ml-px w-px bg-transparent transition-colors hover:bg-primary data-[dragging=true]:bg-primary'
     }"
     aria-label="Sessions"
   >
@@ -77,11 +80,6 @@ const nav = [
         kbd="meta+b"
         @click="collapsed = !collapsed; open = false"
       />
-    </div>
-
-    <div class="flex items-center gap-2.5 border-b border-default px-3.5 py-3">
-      <AppLogo />
-      <span class="font-display text-[16px] tracking-[-0.01em] text-white">xlsft`s harness</span>
     </div>
 
     <div class="flex flex-col border-b border-default px-[5px] py-1.5">
