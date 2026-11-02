@@ -12,8 +12,12 @@ The bundle `version` is a content hash: it changes exactly when the resolved tex
 | `reminders/<id>.md` | `reminders[<id>]` |
 | `compaction/instruction.md` | `compaction_instruction` |
 | `title/instruction.md` | `title_instruction` |
+| `output-styles/<id>.md` | `output_styles[<id>]` (see below) |
 
 Trailing whitespace of each file is trimmed. This README is not part of the bundle.
+
+The behavior every file must implement is specified in `docs/design/prompt-requirements.md`; change the spec
+first, then the prompt.
 
 Server-side prompts live next to the bundle files but are never sent to clients:
 
@@ -25,6 +29,26 @@ Server-side prompts live next to the bundle files but are never sent to clients:
 They follow the same per-model override rules as everything else (e.g. `overrides/qwen-*/decision/system.md`).
 
 All texts are written from scratch (clean-room); never copy Claude Code's prompts.
+
+## Output styles
+
+`output-styles/<id>.md` defines a built-in style. The file starts with frontmatter, followed by the style text:
+
+```markdown
+---
+name: Explanatory
+description: Does the task and explains the implementation choices along the way
+keep-coding-instructions: true
+---
+Style instructions in Markdown...
+```
+
+`name` defaults to the capitalized id, `description` to empty, `keep-coding-instructions` to `true` (when `false`,
+the client drops the `doing_tasks` and `tool_policy` sections while the style is active). Built-ins: `default`
+(no text, adds nothing), `proactive`, `concise`, `explanatory`, `learning`. The client sends the active style's
+text through the `output_style` reminder, so switching styles keeps the prompt cache. User and project styles
+(sync, `.claude/output-styles/*.md`) use the same frontmatter but are resolved by the client, not here. Styles
+follow the per-model override rules (an empty override file removes the style for that model).
 
 ## Placeholders
 
@@ -49,6 +73,11 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `background_task_done` | `task_id`, `exit_code`, `output_path` | a background Bash command finished |
 | `compacted` | — | first message after a compaction summary |
 | `attribution` | `commit`, `pr` | commit / PR attribution lines |
+| `output_style` | `name`, `content` | the active output style, at session start and when it changes |
+
+Each placeholder appears once per reminder (the tests compare the list of placeholders). `interrupted` must stay
+exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start with
+`[Request interrupted by user for tool use]`.
 
 ## Tools
 

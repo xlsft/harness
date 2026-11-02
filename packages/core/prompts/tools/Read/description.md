@@ -1,11 +1,11 @@
-Reads a file from the local filesystem and returns its contents.
+Returns the contents of a file on the local machine. It can read any file on the machine that the permissions allow; if the user gives you a path, assume it is valid and read it. Reading a path that does not exist just returns an error.
 
-- `file_path` must be an absolute path. Relative paths are rejected.
-- By default up to 2000 lines are returned, starting at the first line. For long files, pass `offset` (1-based line number to start at) and `limit` (number of lines) to read a window; prefer reading the whole file when it is small.
-- Output uses `cat -n` style: each line is prefixed with its line number and a tab. Line numbers start at 1. The prefix is not part of the file; never include it in `old_string` or `content` for other tools.
-- Lines longer than 2000 characters are truncated.
-- Image files (PNG, JPEG, GIF, WebP) are returned as images you can look at. PDF files are returned as documents when the model supports them.
-- Reading an empty file succeeds and returns a notice that the file is empty.
-- This tool reads files, not directories. To list a directory use Bash with `ls`, or Glob.
-- Call Read on several files in one response when you need more than one.
-- You must Read a file before you Edit it or overwrite it with Write.
+- `file_path` must be absolute. Relative paths are rejected.
+- Returns up to 2000 lines from the start by default. For large files, pass `offset` (1-based first line) and `limit` (number of lines). Read small files whole instead of in pieces.
+- Each output line starts with its line number and a tab. That prefix is not part of the file: never copy it into Edit's `old_string` or into Write's `content`.
+- Lines longer than 2000 characters are cut.
+- Images (PNG, JPEG, GIF, WebP) come back as images you can see, so use Read for screenshots the user points to. PDFs come back as documents when the model supports them. Other binary files are refused.
+- An empty file returns a notice saying it is empty.
+- It reads files only. To list a directory, use Glob or `ls` through Bash.
+- When you need several files, read them in parallel in one response.
+- You must read a file before you change it with Edit or overwrite it with Write.

@@ -21,6 +21,15 @@ export interface PromptBundle {
   reminders: Record<string, string>;
   compaction: { instruction: string };
   title: { instruction: string };
+  output_styles: Record<string, OutputStyle>;
+}
+
+export interface OutputStyle {
+  id: string;
+  name: string;
+  description: string;
+  text: string;
+  keep_coding_instructions: boolean;
 }
 
 /** Reads every file under `dir` into a map keyed by POSIX relative path. */
@@ -83,6 +92,31 @@ function sectionsFrom(files: Map<string, string>, prefix: string) {
     .map((k) => ({ id: SECTION_RE.exec(k.slice(prefix.length))![1]!, text: files.get(k)!.trimEnd() }));
 }
 
+const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+
+/**
+ * Parses an output style file: `---` frontmatter with `name`, `description` and
+ * `keep-coding-instructions` (default true), then the style text.
+ */
+export function parseOutputStyle(id: string, content: string): OutputStyle {
+  const m = FRONTMATTER_RE.exec(content);
+  const meta: Record<string, string> = {};
+  if (m) {
+    for (const line of m[1]!.split(/\r?\n/)) {
+      const kv = /^([\w-]+)\s*:\s*(.*)$/.exec(line.trim());
+      if (kv) meta[kv[1]!.toLowerCase()] = kv[2]!.trim().replace(/^(["'])(.*)\1$/, "$2");
+    }
+  }
+  const keep = (meta["keep-coding-instructions"] ?? "true").toLowerCase();
+  return {
+    id,
+    name: meta.name || id.charAt(0).toUpperCase() + id.slice(1),
+    description: meta.description ?? "",
+    text: (m ? content.slice(m[0].length) : content).trim(),
+    keep_coding_instructions: keep !== "false" && keep !== "no",
+  };
+}
+
 export function buildBundle(files: Map<string, string>, modelId: string): PromptBundle {
   const tools: PromptBundle["tools"] = {};
   const toolNames = new Set(
@@ -104,6 +138,12 @@ export function buildBundle(files: Map<string, string>, modelId: string): Prompt
   const reminders: Record<string, string> = {};
   for (const s of sectionsFrom(files, "reminders/")) reminders[s.id] = s.text;
 
+  const output_styles: Record<string, OutputStyle> = {};
+  for (const k of [...files.keys()].sort()) {
+    const m = /^output-styles\/([^/]+)\.md$/.exec(k);
+    if (m) output_styles[m[1]!] = parseOutputStyle(m[1]!, files.get(k)!);
+  }
+
   const body = {
     model: modelId,
     system: [
@@ -115,6 +155,7 @@ export function buildBundle(files: Map<string, string>, modelId: string): Prompt
     reminders,
     compaction: { instruction: (files.get("compaction/instruction.md") ?? "").trimEnd() },
     title: { instruction: (files.get("title/instruction.md") ?? "").trimEnd() },
+    output_styles,
   };
   const version = createHash("sha256").update(JSON.stringify(body)).digest("hex").slice(0, 16);
   return { version, ...body };

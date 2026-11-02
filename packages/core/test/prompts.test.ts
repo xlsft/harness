@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildBundle, DYNAMIC_BOUNDARY, resolvePromptFiles } from "../src/services/prompts.ts";
+import { buildBundle, DYNAMIC_BOUNDARY, parseOutputStyle, resolvePromptFiles } from "../src/services/prompts.ts";
 import { adminApi, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";
 
 const PROMPTS = resolve(import.meta.dirname, "../prompts");
@@ -37,6 +37,7 @@ describe("bundle builder", () => {
       background_task_done: ["task_id", "exit_code", "output_path"],
       compacted: [],
       attribution: ["commit", "pr"],
+      output_style: ["name", "content"],
     };
     expect(Object.keys(b.reminders).sort()).toEqual(Object.keys(reminders).sort());
     for (const [id, phs] of Object.entries(reminders)) {
@@ -49,6 +50,38 @@ describe("bundle builder", () => {
     expect(b.title.instruction).toMatch(/title/);
     const env = b.system.find((s) => s.id === "env") as { text: string };
     for (const ph of ["cwd", "platform", "shell", "os_version", "date", "is_git", "git_status", "model_display_name", "model_id", "additional_directories", "scratchpad_dir"]) expect(env.text).toContain(`{{${ph}}}`);
+    // built-in output styles
+    expect(Object.keys(b.output_styles).sort()).toEqual(["concise", "default", "explanatory", "learning", "proactive"]);
+    for (const [id, s] of Object.entries(b.output_styles)) {
+      expect(s.id).toBe(id);
+      expect(s.name, id).not.toBe("");
+      expect(s.description, id).not.toBe("");
+      expect(s.keep_coding_instructions, id).toBe(true);
+      expect(s.text, id).not.toMatch(/^---/);
+      if (id !== "default") expect(s.text, id).not.toBe("");
+    }
+    expect(b.output_styles.default!.text).toBe("");
+    expect(b.output_styles.learning!.text).toContain("TODO(human)");
+  });
+
+  it("parses output style frontmatter and applies overrides to styles", () => {
+    expect(parseOutputStyle("plain", "Just text\n")).toEqual({ id: "plain", name: "Plain", description: "", text: "Just text", keep_coding_instructions: true });
+    expect(parseOutputStyle("x", '---\nname: "Pirate"\ndescription: Talks like a pirate\nkeep-coding-instructions: false\n---\n\nArr.\n')).toEqual({
+      id: "x", name: "Pirate", description: "Talks like a pirate", text: "Arr.", keep_coding_instructions: false,
+    });
+    const dir = tree({
+      "output-styles/default.md": "---\nname: Default\ndescription: d\n---\n",
+      "output-styles/terse.md": "---\nname: Terse\ndescription: t\n---\nBe terse.",
+      "overrides/qwen-*/output-styles/terse.md": "---\nname: Terse\ndescription: t\n---\nBe very terse.",
+      "overrides/qwen-*/output-styles/default.md": "",
+    });
+    const base = buildBundle(resolvePromptFiles(dir, ["gpt-x"]), "gpt-x");
+    expect(Object.keys(base.output_styles)).toEqual(["default", "terse"]);
+    expect(base.output_styles.terse!.text).toBe("Be terse.");
+    const qwen = buildBundle(resolvePromptFiles(dir, ["qwen-flash"]), "qwen-flash");
+    expect(Object.keys(qwen.output_styles)).toEqual(["terse"]);
+    expect(qwen.output_styles.terse!.text).toBe("Be very terse.");
+    expect(qwen.version).not.toBe(base.version);
   });
 
   it("ships draft-07 tool schemas with additionalProperties:false and Claude Code parameter names", () => {
@@ -139,6 +172,9 @@ describe("PromptService", () => {
     expect(b.system.find((s) => s.id === "tool_policy")!.text).toMatch(/function-calling interface/); // gpt-* override
     expect(JSON.parse(b.tools.Edit!.inputSchemaJson).required).toEqual(["file_path", "old_string", "new_string"]);
     expect(b.compactionInstruction).not.toBe("");
+    expect(Object.keys(b.outputStyles).sort()).toEqual(["concise", "default", "explanatory", "learning", "proactive"]);
+    expect(b.outputStyles.explanatory).toMatchObject({ id: "explanatory", name: "Explanatory", keepCodingInstructions: true });
+    expect(b.reminders.output_style).toContain("{{content}}");
 
     const again = await prompts.getBundle({ model: "gpt-x", ifNoneMatch: b.version });
     expect(again.notModified).toBe(true);

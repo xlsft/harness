@@ -1,7 +1,8 @@
-Replaces exact text in an existing file.
+Replaces exact text in a file.
 
-- `file_path` must be an absolute path to a file you have already read with Read in this conversation; editing an unread file fails.
-- `old_string` must match the file byte for byte, including whitespace and indentation. Copy it from the Read output without the line-number prefix (everything up to and including the first tab on each line).
-- `old_string` must occur exactly once in the file, otherwise the edit fails. Include enough surrounding lines to make it unique, or set `replace_all` to true to replace every occurrence (useful for renaming).
-- `new_string` must differ from `old_string`. Keep the file's existing indentation style.
-- To create a file use Write. To make several changes to one file, call Edit several times or use a larger `old_string` that covers them.
+- `file_path` must be absolute, and you must have read the file with Read in this session. The edit fails if you have not, or if the file changed on disk since you read it; read it again in that case.
+- `old_string` has to be identical to the text in the file, character for character, including indentation and blank lines. Copy it from the Read output without the line-number prefix (the number and the tab before the content).
+- `old_string` must appear exactly once. Keep it small: usually one to three lines, just enough to be unique. If it matches several places, add a nearby line, or set `replace_all` to true to change every occurrence (useful for renames).
+- `new_string` must differ from `old_string`. Keep the file's indentation style.
+- An empty `old_string` on a path that does not exist creates the file with `new_string` as its content.
+- For several changes in one file, make several Edit calls one after another.

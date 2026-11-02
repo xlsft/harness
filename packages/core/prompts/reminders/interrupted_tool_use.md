@@ -1,1 +1,1 @@
-[Request interrupted by user for tool use] The user stopped this tool call before it finished, so it may have had no effect or only a partial one. Do not assume it succeeded and do not run it again unless the user asks.
+[Request interrupted by user for tool use] The user stopped this call before it finished. It may have done nothing or only part of its work. Do not assume it succeeded, and do not run it again or try a variant unless the user asks. Wait for their next message.
