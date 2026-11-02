@@ -1,0 +1,353 @@
+// Package session persists conversations as append-only JSONL transcripts
+// compatible in shape with Claude Code
+// (~/.harness/projects/<cwd-slug>/<session-id>.jsonl).
+package session
+
+import (
+	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/xlsft/harness/packages/client/llm"
+)
+
+// Entry types.
+const (
+	TypeUser      = "user"
+	TypeAssistant = "assistant"
+	TypeSystem    = "system"
+	// TypeMeta is a bookkeeping record (no uuid) holding session metadata such
+	// as the frozen prompt bundle version.
+	TypeMeta = "harness-meta"
+)
+
+// Message is the persisted message. Content is kept raw so user prompts can be
+// stored as a plain string (as Claude Code does) and blocks as an array.
+type Message struct {
+	ID           string          `json:"id,omitempty"`
+	Type         string          `json:"type,omitempty"` // "message" for assistant
+	Role         string          `json:"role"`
+	Model        string          `json:"model,omitempty"`
+	Content      json.RawMessage `json:"content"`
+	StopReason   *string         `json:"stop_reason,omitempty"`
+	StopSequence *string         `json:"stop_sequence,omitempty"`
+	Usage        *llm.Usage      `json:"usage,omitempty"`
+}
+
+// Entry is one JSONL line.
+type Entry struct {
+	ParentUUID              *string  `json:"parentUuid"`
+	IsSidechain             bool     `json:"isSidechain"`
+	UserType                string   `json:"userType,omitempty"`
+	Cwd                     string   `json:"cwd,omitempty"`
+	SessionID               string   `json:"sessionId"`
+	Version                 string   `json:"version,omitempty"`
+	GitBranch               string   `json:"gitBranch,omitempty"`
+	Entrypoint              string   `json:"entrypoint,omitempty"`
+	Type                    string   `json:"type"`
+	Subtype                 string   `json:"subtype,omitempty"`
+	Message                 *Message `json:"message,omitempty"`
+	Content                 string   `json:"content,omitempty"`
+	Level                   string   `json:"level,omitempty"`
+	IsMeta                  bool     `json:"isMeta,omitempty"`
+	PromptID                string   `json:"promptId,omitempty"`
+	PermissionMode          string   `json:"permissionMode,omitempty"`
+	RequestID               string   `json:"requestId,omitempty"`
+	ToolUseResult           any      `json:"toolUseResult,omitempty"`
+	SourceToolAssistantUUID string   `json:"sourceToolAssistantUUID,omitempty"`
+	IsAPIErrorMessage       bool     `json:"isApiErrorMessage,omitempty"`
+	UUID                    string   `json:"uuid,omitempty"`
+	Timestamp               string   `json:"timestamp"`
+
+	// harness-meta fields
+	PromptBundleVersion string `json:"promptBundleVersion,omitempty"`
+	Model               string `json:"model,omitempty"`
+}
+
+// Blocks decodes the message content.
+func (e *Entry) Blocks() []llm.ContentBlock {
+	if e.Message == nil {
+		return nil
+	}
+	b, _ := llm.DecodeContent(e.Message.Content)
+	return b
+}
+
+// Slug converts a cwd to a project directory name: every non-alphanumeric
+// character becomes '-'; names over 200 chars are cut and suffixed with a hash.
+func Slug(cwd string) string {
+	var b strings.Builder
+	for _, r := range cwd {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		} else {
+			b.WriteByte('-')
+		}
+	}
+	s := b.String()
+	if len(s) > 200 {
+		h := sha256.Sum256([]byte(cwd))
+		s = s[:200] + "-" + hex.EncodeToString(h[:])[:16]
+	}
+	return s
+}
+
+// NewID returns a new session id (UUID v4, as Claude Code).
+func NewID() string { return uuid.NewString() }
+
+// Store locates transcripts under a projects root.
+type Store struct {
+	Root string // e.g. ~/.harness/projects
+}
+
+// ProjectDir returns the directory for cwd.
+func (s Store) ProjectDir(cwd string) string { return filepath.Join(s.Root, Slug(cwd)) }
+
+// Path returns the transcript path of a session for cwd.
+func (s Store) Path(cwd, id string) string {
+	return filepath.Join(s.ProjectDir(cwd), id+".jsonl")
+}
+
+// Latest returns the most recently modified session id for cwd.
+func (s Store) Latest(cwd string) (string, error) {
+	files, _ := filepath.Glob(filepath.Join(s.ProjectDir(cwd), "*.jsonl"))
+	if len(files) == 0 {
+		return "", errors.New("no previous session found in this directory")
+	}
+	sort.Slice(files, func(i, j int) bool {
+		a, _ := os.Stat(files[i])
+		b, _ := os.Stat(files[j])
+		return a.ModTime().After(b.ModTime())
+	})
+	return strings.TrimSuffix(filepath.Base(files[0]), ".jsonl"), nil
+}
+
+// Find returns the transcript path for id, preferring cwd's project dir and
+// falling back to any project.
+func (s Store) Find(cwd, id string) (string, error) {
+	p := s.Path(cwd, id)
+	if _, err := os.Stat(p); err == nil {
+		return p, nil
+	}
+	matches, _ := filepath.Glob(filepath.Join(s.Root, "*", id+".jsonl"))
+	if len(matches) > 0 {
+		return matches[0], nil
+	}
+	return "", fmt.Errorf("session %s not found", id)
+}
+
+// Load reads all entries of a transcript. Malformed lines are skipped.
+func Load(path string) ([]Entry, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var out []Entry
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 1024*1024), 256*1024*1024)
+	for sc.Scan() {
+		line := sc.Bytes()
+		if len(strings.TrimSpace(string(line))) == 0 {
+			continue
+		}
+		var e Entry
+		if err := json.Unmarshal(line, &e); err != nil {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out, sc.Err()
+}
+
+// Conversation is the state rebuilt from a transcript.
+type Conversation struct {
+	Messages []llm.Message
+	// ContextInjected is true when the first user message starts with the
+	// project-context meta block.
+	ContextInjected     bool
+	LastUUID            string
+	PromptBundleVersion string
+	Model               string
+}
+
+// Rebuild converts entries into API messages. Consecutive entries of the same
+// role are merged (Claude Code writes one tool_result or block per line).
+func Rebuild(entries []Entry) Conversation {
+	var c Conversation
+	first := true
+	for _, e := range entries {
+		switch e.Type {
+		case TypeMeta:
+			if e.PromptBundleVersion != "" {
+				c.PromptBundleVersion = e.PromptBundleVersion
+			}
+			if e.Model != "" {
+				c.Model = e.Model
+			}
+			continue
+		case TypeUser, TypeAssistant:
+		default:
+			continue
+		}
+		if e.Message == nil {
+			continue
+		}
+		if e.UUID != "" {
+			c.LastUUID = e.UUID
+		}
+		blocks := e.Blocks()
+		if len(blocks) == 0 {
+			continue
+		}
+		if first && e.Type == TypeUser && e.IsMeta {
+			c.ContextInjected = true
+		}
+		first = false
+		role := e.Message.Role
+		if role == "" {
+			role = e.Type
+		}
+		n := len(c.Messages)
+		if n > 0 && c.Messages[n-1].Role == role {
+			c.Messages[n-1].Content = append(c.Messages[n-1].Content, blocks...)
+			continue
+		}
+		c.Messages = append(c.Messages, llm.Message{Role: role, Content: blocks})
+	}
+	return c
+}
+
+// Writer appends entries to one transcript.
+type Writer struct {
+	mu        sync.Mutex
+	path      string
+	f         *os.File
+	sessionID string
+	cwd       string
+	gitBranch string
+	version   string
+	entry     string
+	last      string
+	disabled  bool
+}
+
+// WriterOptions configure common fields.
+type WriterOptions struct {
+	SessionID  string
+	Cwd        string
+	GitBranch  string
+	Version    string
+	Entrypoint string // "sdk-cli" | "cli"
+	LastUUID   string // continue the parent chain on resume
+	Disabled   bool   // --no-session-persistence
+}
+
+// OpenWriter opens (creating if needed) the transcript at path for appending.
+func OpenWriter(path string, o WriterOptions) (*Writer, error) {
+	w := &Writer{path: path, sessionID: o.SessionID, cwd: o.Cwd, gitBranch: o.GitBranch, version: o.Version, entry: o.Entrypoint, last: o.LastUUID, disabled: o.Disabled}
+	if o.Disabled {
+		return w, nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	w.f = f
+	return w, nil
+}
+
+// Path returns the transcript path.
+func (w *Writer) Path() string { return w.path }
+
+// SessionID returns the session id.
+func (w *Writer) SessionID() string { return w.sessionID }
+
+// LastUUID returns the uuid of the last chained entry.
+func (w *Writer) LastUUID() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.last
+}
+
+// Append fills common fields, chains parentUuid and writes the entry. It
+// returns the entry's uuid.
+func (w *Writer) Append(e Entry) (string, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	e.SessionID = w.sessionID
+	if e.Timestamp == "" {
+		e.Timestamp = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+	}
+	if e.Type != TypeMeta {
+		if e.UUID == "" {
+			e.UUID = uuid.NewString()
+		}
+		if w.last != "" {
+			p := w.last
+			e.ParentUUID = &p
+		}
+		e.Cwd, e.GitBranch, e.Version, e.Entrypoint = w.cwd, w.gitBranch, w.version, w.entry
+		e.UserType = "external"
+		w.last = e.UUID
+	}
+	if w.disabled {
+		return e.UUID, nil
+	}
+	data, err := json.Marshal(e)
+	if err != nil {
+		return "", err
+	}
+	data = append(data, '\n')
+	if _, err := w.f.Write(data); err != nil {
+		return "", err
+	}
+	return e.UUID, nil
+}
+
+// Close closes the file.
+func (w *Writer) Close() error {
+	if w.f == nil {
+		return nil
+	}
+	return w.f.Close()
+}
+
+// UserText builds a user entry message whose content is a plain string.
+func UserText(text string) *Message {
+	raw, _ := json.Marshal(text)
+	return &Message{Role: llm.RoleUser, Content: raw}
+}
+
+// UserBlocks builds a user entry message with block content.
+func UserBlocks(blocks []llm.ContentBlock) *Message {
+	raw, _ := json.Marshal(blocks)
+	return &Message{Role: llm.RoleUser, Content: raw}
+}
+
+// AssistantMessage builds an assistant entry message from a response.
+func AssistantMessage(r llm.Response) *Message {
+	raw, _ := json.Marshal(r.Message.Content)
+	m := &Message{ID: r.ID, Type: "message", Role: llm.RoleAssistant, Model: r.Model, Content: raw}
+	if r.StopReason != "" {
+		sr := r.StopReason
+		m.StopReason = &sr
+	}
+	u := r.Usage
+	m.Usage = &u
+	return m
+}
