@@ -45,7 +45,25 @@ type Bundle struct {
 	Reminders  map[string]string     `json:"reminders"`
 	Compaction *Instruction          `json:"compaction,omitempty"`
 	Title      *Instruction          `json:"title,omitempty"`
+	// OutputStyles are the built-in output styles keyed by id (may be empty
+	// for older servers).
+	OutputStyles map[string]OutputStyle `json:"output_styles,omitempty"`
 }
+
+// OutputStyle is a built-in output style from the bundle.
+type OutputStyle struct {
+	ID          string `json:"id"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Text        string `json:"text,omitempty"`
+	// KeepCodingInstructions keeps the coding system sections (CodingSections)
+	// when the style is active.
+	KeepCodingInstructions bool `json:"keep_coding_instructions,omitempty"`
+}
+
+// CodingSections are the system section ids omitted while an output style
+// with keep_coding_instructions=false is applied to the system prompt.
+var CodingSections = []string{"doing_tasks", "tool_policy"}
 
 // Reminder returns the reminder template by key, or fallback when missing.
 func (b *Bundle) Reminder(key, fallback string) string {
@@ -242,6 +260,16 @@ func (b *Bundle) UsesPlaceholder(name string) bool {
 // dynamic sections are rendered with vars and are not cached. Without a
 // boundary all sections are static (and also rendered).
 func (b *Bundle) BuildSystem(vars map[string]string, warn func(string)) []llm.SystemBlock {
+	return b.BuildSystemWithout(vars, warn)
+}
+
+// BuildSystemWithout is BuildSystem with the sections whose ids are listed in
+// omit left out (output styles without coding instructions).
+func (b *Bundle) BuildSystemWithout(vars map[string]string, warn func(string), omit ...string) []llm.SystemBlock {
+	skip := map[string]bool{}
+	for _, id := range omit {
+		skip[id] = true
+	}
 	boundary := -1
 	for i, s := range b.System {
 		if s.ID == DynamicBoundary {
@@ -252,7 +280,7 @@ func (b *Bundle) BuildSystem(vars map[string]string, warn func(string)) []llm.Sy
 	var out []llm.SystemBlock
 	lastStatic := -1
 	for i, s := range b.System {
-		if s.ID == DynamicBoundary || s.Text == "" {
+		if s.ID == DynamicBoundary || s.Text == "" || skip[s.ID] {
 			continue
 		}
 		text := s.Text
