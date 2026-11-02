@@ -104,13 +104,23 @@ func (s *Server) ServeUnix(ctx context.Context, socket string) error {
 
 // Serve serves AgentService over h2c (and HTTP/1.1 for Connect) on ln.
 func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
+	return s.serveHandler(ctx, ln, s.mux())
+}
+
+func (s *Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	path, h := s.Handler()
 	mux.Handle(path, h)
+	return mux
+}
+
+// serveHandler serves h over HTTP/1.1 and h2c on ln until ctx ends, then
+// closes all sessions.
+func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handler) error {
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
 	p.SetUnencryptedHTTP2(true)
-	srv := &http.Server{Handler: mux, Protocols: p, ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Handler: h, Protocols: p, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		<-ctx.Done()
 		sctx, c := context.WithTimeout(context.Background(), 5*time.Second)
