@@ -71,15 +71,17 @@ const SIGN_IN = { heading: "Sign in to connect a device", text: "A device asked 
 
 function signInForm(code: string): string {
   return `${code ? `<div class="code small">${esc(code)}</div>` : ""}
-<form id="f"><label>Email<input name="email" type="email" autocomplete="username" required></label>
+<form id="f"><label>Email or username<input name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
 <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
 <p class="err" id="err"></p><button class="primary">Sign in</button></form>
 <script>
 document.getElementById('f').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
-  const r = await fetch('/api/auth/sign-in/email', {method:'POST', headers:{'content-type':'application/json'},
-    body: JSON.stringify({email: fd.get('email'), password: fd.get('password')})});
+  const login = String(fd.get('login')).trim(), password = fd.get('password');
+  const byEmail = login.includes('@');
+  const r = await fetch(byEmail ? '/api/auth/sign-in/email' : '/api/auth/sign-in/username', {method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify(byEmail ? {email: login, password} : {username: login, password})});
   if (r.ok) location.href = '/device' + (${JSON.stringify(code)} ? '?code=' + encodeURIComponent(${JSON.stringify(code)}) : '');
   else document.getElementById('err').textContent = 'Sign-in failed';
 });
@@ -91,7 +93,8 @@ const SETUP = { heading: "Create the first account", text: "This server has no a
 function setupForm(code: string): string {
   return `${code ? `<div class="code small">${esc(code)}</div>` : ""}
 <form id="f"><label>Name<input name="name" autocomplete="name" required></label>
-<label>Email<input name="email" type="email" autocomplete="username" required></label>
+<label>Username<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="30" pattern="[a-zA-Z0-9_.]+" title="3-30 letters, digits, _ or ." required></label>
+<label>Email<input name="email" type="email" autocomplete="email" required></label>
 <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
 <p class="err" id="err"></p><button class="primary">Create account</button></form>
 <script>
@@ -99,7 +102,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const r = await fetch('/api/auth/sign-up/email', {method:'POST', headers:{'content-type':'application/json'},
-    body: JSON.stringify({name: fd.get('name'), email: fd.get('email'), password: fd.get('password')})});
+    body: JSON.stringify({name: fd.get('name'), username: fd.get('username'), email: fd.get('email'), password: fd.get('password')})});
   if (r.ok) location.href = '/device' + (${JSON.stringify(code)} ? '?code=' + encodeURIComponent(${JSON.stringify(code)}) : '');
   else document.getElementById('err').textContent = (await r.json().catch(() => ({}))).message || 'Could not create the account';
 });
