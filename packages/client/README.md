@@ -28,7 +28,7 @@ It ships in two forms:
 | `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`), branch-aware rebuild, file checkpoints (`~/.harness/file-history/<id>/`), fork |
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
-| `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) |
+| `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
 | `gen` | Code generated from `/proto` (do not edit) |
@@ -49,6 +49,7 @@ harness-client -p --permission-mode plan "plan the refactor"
 harness-client -p --output-style explanatory "walk me through the parser"
 harness-client -p --permission-mode auto "run the tests and fix what fails"
 harness-client serve --socket /tmp/harness.sock     # AgentService for frontends
+harness-client serve --listen 127.0.0.1:7801       # ... for browsers (see packages/ui/README.md)
 harness-client import claude --dry-run              # preview the ~/.claude import (add --sessions for transcripts)
 harness-client sync --watch                         # catch up the sync cache, upload sessions, follow changes
 ```

@@ -67,6 +67,9 @@ export default defineNuxtConfig({
     public: {
       // AgentService base URL for the Connect transport (NUXT_PUBLIC_AGENT_URL).
       agentUrl: '',
+      // Bearer token of `harness-client serve --listen` (NUXT_PUBLIC_AGENT_TOKEN). An `?agentToken=` query
+      // parameter overrides it for the tab (kept in sessionStorage).
+      agentToken: '',
       // "mock" (default) replays scripted harness.agent.v1 events; "connect" talks to agentUrl.
       transport: 'mock'
     }

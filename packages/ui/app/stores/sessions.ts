@@ -11,7 +11,7 @@ import {
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { createSessionState, reduce, sessionMeta } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, SessionState } from '~/lib/session/types'
-import { createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
+import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 
 const MODE_TO_PB: Record<PermissionModeName, PermissionMode> = {
   default: PermissionMode.DEFAULT,
@@ -70,7 +70,11 @@ export const useSessionStore = defineStore('sessions', {
     async init(transport?: SessionTransport) {
       if (this.ready) return
       const config = useRuntimeConfig()
-      this.transport = markRaw(transport ?? createTransport(String(config.public.transport), String(config.public.agentUrl)))
+      this.transport = markRaw(transport ?? createTransport(
+        String(config.public.transport),
+        String(config.public.agentUrl),
+        browserAgentToken(String(config.public.agentToken ?? ''))
+      ))
       try {
         const init = await this.transport.initialize()
         this.userEmail = init.userEmail
