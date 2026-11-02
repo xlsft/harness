@@ -89,6 +89,11 @@ type Request struct {
 	Command  string
 	// Cwd is the shell working directory for Bash (defaults to the engine cwd).
 	Cwd string
+	// AlwaysAsk marks a tool that needs an explicit user confirmation for
+	// every call (MCP servers with requires_user_interaction): only deny
+	// rules apply, allow rules and permissive modes do not, and the auto-mode
+	// Decider is never consulted.
+	AlwaysAsk bool
 
 	// Intent context for the auto-mode Decider (filled by the agent loop):
 	// the session id, the latest user prompts (newest last) and the
@@ -522,6 +527,9 @@ func (e *Engine) Evaluate(req Request) Decision {
 		if r.matchesCall(req, input, mc, false) {
 			return Decision{Behavior: Deny, Rule: r.String(), ResolvedBy: "rule", Message: fmt.Sprintf("Permission to use %s has been denied by rule %s.", req.ToolName, r)}
 		}
+	}
+	if req.AlwaysAsk {
+		return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s requires the user's confirmation for every call.", req.ToolName)}
 	}
 	for _, r := range e.ask {
 		if r.matchesCall(req, input, mc, false) {

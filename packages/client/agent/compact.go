@@ -105,7 +105,7 @@ func (a *Agent) EstimateTokens() int {
 	for _, s := range a.systemBlocks(model, display) {
 		n += len(s.Text)
 	}
-	for _, t := range a.Bundle().ToolDefs(a.toolNames()) {
+	for _, t := range a.toolDefs(a.Bundle()) {
 		n += len(t.Description) + len(t.InputSchema) + len(t.Name)
 	}
 	return n / 4
@@ -247,7 +247,7 @@ func (a *Agent) summarize(ctx context.Context, msgs []llm.Message, instructions 
 		MaxTokens:  maxTokens,
 		System:     a.systemBlocks(model, display),
 		Messages:   conv,
-		Tools:      bundle.ToolDefs(a.toolNames()),
+		Tools:      a.toolDefs(bundle),
 		ToolChoice: &llm.ToolChoice{Type: "none"},
 		Stream:     true,
 		Metadata:   &llm.Metadata{SessionID: a.cfg.SessionID, RequestClass: "compaction", PromptBundleVersion: bundle.Version},

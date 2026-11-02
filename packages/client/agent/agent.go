@@ -235,6 +235,10 @@ type Config struct {
 	Todos []tools.Todo
 	// DisabledTools are not offered to the model.
 	DisabledTools map[string]bool
+	// ExtraTools returns definitions of tools offered in addition to the
+	// bundle's (MCP tools, which have no bundle entry). Called for every
+	// request; the result must be stable to keep the prompt cache. May be nil.
+	ExtraTools func() []llm.ToolDef
 	// PermissionMode is recorded on user transcript entries.
 	PermissionMode func() string
 	// OutputStyle is the initial output style (nil = default). Its text is
@@ -844,6 +848,15 @@ func (a *Agent) toolNames() []string {
 	return names
 }
 
+// toolDefs returns the bundle tool definitions followed by ExtraTools.
+func (a *Agent) toolDefs(bundle *prompts.Bundle) []llm.ToolDef {
+	defs := bundle.ToolDefs(a.toolNames())
+	if a.cfg.ExtraTools != nil {
+		defs = append(defs, a.cfg.ExtraTools()...)
+	}
+	return defs
+}
+
 func (a *Agent) systemBlocks(model, display string) []llm.SystemBlock {
 	vars := map[string]string{}
 	for k, v := range a.cfg.Vars {
@@ -906,7 +919,7 @@ func (a *Agent) buildRequest() *llm.Request {
 		MaxTokens: a.cfg.MaxTokens,
 		System:    system,
 		Messages:  msgs,
-		Tools:     bundle.ToolDefs(a.toolNames()),
+		Tools:     a.toolDefs(bundle),
 		Thinking:  a.cfg.Thinking,
 		Effort:    effort,
 		Stream:    true,
@@ -1002,6 +1015,9 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			}
 			req := permissions.Request{ToolName: u.Name, ToolUseID: u.ID, Input: u.Input, ReadOnly: t.ReadOnly(u.Input)}
 			req.FilePath = tools.FilePath(u.Input)
+			if aa, ok := t.(tools.AlwaysAsker); ok && aa.AlwaysAsk() {
+				req.AlwaysAsk = true
+			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
 				if a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
