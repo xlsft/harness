@@ -13,12 +13,14 @@ const VISIBLE = 5
 const groups = computed(() => {
   const map = new Map<string, SessionState[]>()
   for (const s of store.sessionList) {
-    const name = basename(s.meta.repo || s.meta.cwd) || 'other'
+    const name = basename(s.meta.repo || s.meta.worktree?.repositoryPath || s.meta.cwd) || 'other'
     if (!map.has(name)) map.set(name, [])
     map.get(name)!.push(s)
   }
   return [...map.entries()].map(([name, sessions]) => ({
     name,
+    // Folder for "+": the latest session's, or its main checkout when it ran in a worktree.
+    cwd: sessions[0]!.meta.worktree?.repositoryPath || sessions[0]!.meta.cwd,
     sessions: expanded.value[name] ? sessions : sessions.slice(0, VISIBLE),
     more: sessions.length > VISIBLE && !expanded.value[name]
   }))
@@ -40,9 +42,10 @@ function openSession(id: string) {
   if (route.path !== '/' || route.query.new) navigateTo({ path: '/', query: route.query.panes ? { panes: route.query.panes } : {} })
 }
 
-function newSession() {
+// The new-session screen; `cwd` preselects a folder (the "+" next to a group).
+function newSession(cwd?: string) {
   open.value = false
-  navigateTo({ path: '/', query: { ...(route.query.panes ? { panes: route.query.panes } : {}), new: '1' } })
+  navigateTo({ path: '/', query: { ...(route.query.panes ? { panes: route.query.panes } : {}), new: '1', ...(cwd ? { cwd } : {}) } })
 }
 
 const nav = [
@@ -91,7 +94,7 @@ const nav = [
       <a
         href="#"
         class="nav-row px-[9px] hover:bg-hover text-white"
-        @click.prevent="newSession"
+        @click.prevent="newSession()"
       >
         <HIcon name="plus" />New session<span class="flex-1" /><HKeys keys="meta+n" />
       </a>
@@ -115,12 +118,27 @@ const nav = [
         :key="g.name"
         class="flex flex-col"
       >
-        <div class="flex items-center gap-1 px-[9px] pb-1 text-muted">
-          <span class="text-[12px]">{{ g.name }}</span>
+        <div class="group/head flex items-center gap-1 px-[9px] pb-1 text-muted">
+          <span class="truncate text-[12px]">{{ g.name }}</span>
           <HIcon
             name="down"
             :size="11"
+            class="shrink-0"
           />
+          <span class="flex-1" />
+          <button
+            v-if="g.cwd"
+            type="button"
+            :aria-label="`New session in ${g.name}`"
+            :title="`New session in ${g.cwd}`"
+            class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-white"
+            @click="newSession(g.cwd)"
+          >
+            <HIcon
+              name="plus"
+              :size="13"
+            />
+          </button>
         </div>
         <a
           v-for="s in g.sessions"

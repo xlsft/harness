@@ -79,8 +79,15 @@ onMounted(async () => {
   effort.value = prefs.effort ?? 'medium'
   mode.value = prefs.mode ?? 'default'
   await loadFolders()
-  cwd.value = prefs.cwd || folders.value[0]?.path || ''
+  const asked = typeof route.query.cwd === 'string' ? route.query.cwd : ''
+  cwd.value = asked || prefs.cwd || folders.value[0]?.path || ''
+  if (asked && !folders.value.some(f => f.path === asked)) folders.value.unshift({ path: asked, name: name(asked), exists: true } as RecentFolder)
   input.value?.focus()
+})
+
+// "+" next to a sidebar group while this screen is already open.
+watch(() => route.query.cwd, (asked) => {
+  if (typeof asked === 'string' && asked) pickFolder(asked)
 })
 
 watch(cwd, () => {
@@ -113,7 +120,7 @@ async function start() {
     writeJSON(PREFS, { cwd: cwd.value, worktree: worktree.value, model: model.value, effort: effort.value, mode: mode.value })
     writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
-    const { new: _new, ...rest } = route.query
+    const { new: _new, cwd: _cwd, ...rest } = route.query
     await router.replace({ query: { ...rest, session: id } })
     await store.send(id, msg)
   } catch (err) {

@@ -107,7 +107,7 @@ export const useSessionStore = defineStore('sessions', {
       return info.id
     },
 
-    open(id: string) {
+    open(id: string, resumed = false) {
       if (!this.sessions[id]) return
       this.currentId = id
       if (this.unsubscribers[id] || !this.transport) return
@@ -120,11 +120,29 @@ export const useSessionStore = defineStore('sessions', {
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
         },
         onError: (err) => {
-          this.sessions[id]!.meta.status = 'waiting_for_connection'
-          this.error = err instanceof Error ? err.message : String(err)
           Reflect.deleteProperty(this.unsubscribers, id)
+          const msg = err instanceof Error ? err.message : String(err)
+          // A listed session that is not live on the client (closed, or the client restarted): resume it
+          // from its transcript, then subscribe again. Tried once per open.
+          if (!resumed && /not open|not_found|not found/i.test(msg)) {
+            this.resume(id).catch((e) => {
+              this.sessions[id]!.meta.status = 'waiting_for_connection'
+              this.error = e instanceof Error ? e.message : String(e)
+            })
+            return
+          }
+          this.sessions[id]!.meta.status = 'waiting_for_connection'
+          this.error = msg
         }
       })
+    },
+
+    async resume(id: string) {
+      const s = this.sessions[id]
+      if (!s || !this.transport) return
+      const info = await this.transport.createSession({ cwd: s.meta.cwd, resumeSessionId: id })
+      Object.assign(s.meta, sessionMeta(info))
+      if (this.currentId === id) this.open(id, true)
     },
 
     isBusy(id: string) {

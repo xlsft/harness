@@ -213,6 +213,8 @@ export interface SessionMeta {
   status: Status
   updatedAt: string
   repo: string
+  // Set when the session runs in a worktree the client created: its worktree, and the main checkout.
+  worktree: { path: string, branch: string, baseRef: string, repositoryPath: string } | null
   deviceName: string
   additions: number
   deletions: number

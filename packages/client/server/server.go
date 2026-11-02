@@ -257,6 +257,18 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 			out[id] = &agentv1.SessionInfo{Id: id, Cwd: cwd, Title: sessionTitle(f), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
 				UpdatedAt: st.ModTime().UTC().Format(time.RFC3339), ParentSessionId: forkedFrom(f), Worktree: transcriptWorktree(f)}
 		}
+	} else {
+		// No cwd: the most recent sessions of every project, so a frontend's session list survives a
+		// client restart. Each transcript records its own cwd.
+		for _, f := range recentTranscripts(maxListedSessions) {
+			tcwd, wt := transcriptHead(f.path, false)
+			if tcwd == "" {
+				continue // never used: no message, no folder
+			}
+			id := strings.TrimSuffix(filepath.Base(f.path), ".jsonl")
+			out[id] = &agentv1.SessionInfo{Id: id, Cwd: tcwd, Title: sessionTitle(f.path), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
+				UpdatedAt: f.mod.UTC().Format(time.RFC3339), ParentSessionId: forkedFrom(f.path), Worktree: worktreeToProto(wt)}
+		}
 	}
 	s.mu.Lock()
 	for id, ls := range s.live {

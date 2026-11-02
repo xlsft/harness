@@ -56,19 +56,7 @@ func (s *Server) ListRecentFolders(ctx context.Context, req *connect.Request[age
 	}
 	s.mu.Unlock()
 
-	type transcript struct {
-		path string
-		mod  time.Time
-	}
-	var files []transcript
-	matches, _ := filepath.Glob(filepath.Join(config.ProjectsDir(), "*", "*.jsonl"))
-	for _, f := range matches {
-		if st, err := os.Stat(f); err == nil && st.Mode().IsRegular() {
-			files = append(files, transcript{f, st.ModTime()})
-		}
-	}
-	sort.Slice(files, func(i, j int) bool { return files[i].mod.After(files[j].mod) })
-	for _, f := range files {
+	for _, f := range recentTranscripts(0) {
 		if len(last) >= limit {
 			break
 		}
@@ -110,6 +98,30 @@ func (s *Server) ListRecentFolders(ctx context.Context, req *connect.Request[age
 	}
 	wg.Wait()
 	return connect.NewResponse(&agentv1.ListRecentFoldersResponse{Folders: out}), nil
+}
+
+// maxListedSessions caps ListSessions without a cwd (all projects).
+const maxListedSessions = 200
+
+type transcriptFile struct {
+	path string
+	mod  time.Time
+}
+
+// recentTranscripts returns the local transcripts of all projects, newest first (at most limit; 0 = all).
+func recentTranscripts(limit int) []transcriptFile {
+	var files []transcriptFile
+	matches, _ := filepath.Glob(filepath.Join(config.ProjectsDir(), "*", "*.jsonl"))
+	for _, f := range matches {
+		if st, err := os.Stat(f); err == nil && st.Mode().IsRegular() {
+			files = append(files, transcriptFile{f, st.ModTime()})
+		}
+	}
+	sort.Slice(files, func(i, j int) bool { return files[i].mod.After(files[j].mod) })
+	if limit > 0 && len(files) > limit {
+		files = files[:limit]
+	}
+	return files
 }
 
 // recentFolder maps a session directory to the folder a user picked: inside

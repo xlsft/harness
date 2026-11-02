@@ -31,6 +31,8 @@ export interface NewSessionOptions {
   model?: string
   effort?: Effort
   permissionMode?: PermissionMode
+  // Resume this closed session (from its transcript) instead of starting a new one.
+  resumeSessionId?: string
   // Run in a new git worktree of the repository containing cwd.
   worktree?: { name?: string, branch?: string, baseRef?: string }
 }

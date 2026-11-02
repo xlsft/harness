@@ -38,6 +38,7 @@ export class ConnectTransport implements SessionTransport {
       model: opts.model ?? '',
       effort: opts.effort,
       permissionMode: opts.permissionMode,
+      resumeSessionId: opts.resumeSessionId ?? '',
       worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined
     })
     if (!res.session) throw new Error('the client returned no session')

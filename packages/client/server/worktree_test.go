@@ -63,6 +63,12 @@ func TestCreateSessionInWorktree(t *testing.T) {
 		t.Fatal(err)
 	}
 	check("closed")
+	// Without a cwd, ListSessions scans every project, so the closed session is still listed.
+	all, err := h.client.ListSessions(h.ctx, connect.NewRequest(&agentv1.ListSessionsRequest{}))
+	if err != nil || len(all.Msg.Sessions) != 1 || all.Msg.Sessions[0].GetId() != info.Id || all.Msg.Sessions[0].GetCwd() != info.Cwd ||
+		all.Msg.Sessions[0].GetWorktree().GetPath() != wt.Path {
+		t.Fatalf("list all: %v %+v", err, all)
+	}
 	if _, err := os.Stat(wt.Path); err != nil {
 		t.Fatalf("worktree removed on close: %v", err)
 	}
