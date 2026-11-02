@@ -126,10 +126,26 @@ type Entry struct {
 	// McpCatalogVersion is the MCP tool catalog snapshot the session uses
 	// (frozen per session; the last one on record wins on resume).
 	McpCatalogVersion string `json:"mcpCatalogVersion,omitempty"`
+	// Worktree is the git worktree the session runs in (written once when
+	// the client creates it; the last one on record wins).
+	Worktree *Worktree `json:"worktree,omitempty"`
 
 	// AutoDecision is set on a tool_result entry when the auto permission
 	// mode decided (or deferred to the user on) that tool call.
 	AutoDecision *AutoDecision `json:"autoDecision,omitempty"`
+}
+
+// Worktree describes a git worktree the client created for a session.
+type Worktree struct {
+	// Path is the absolute path of the worktree checkout.
+	Path string `json:"path"`
+	// Branch is the branch checked out in the worktree.
+	Branch string `json:"branch"`
+	// BaseRef is the ref the branch was created from (a branch name or a
+	// commit).
+	BaseRef string `json:"baseRef,omitempty"`
+	// RepositoryPath is the main checkout of the repository.
+	RepositoryPath string `json:"repositoryPath"`
 }
 
 // AutoDecision records an auto-mode verdict on a tool call.
@@ -259,6 +275,9 @@ type Conversation struct {
 	OutputStyle string
 	// McpCatalogVersion is the last recorded MCP tool catalog snapshot.
 	McpCatalogVersion string
+	// Worktree is the last recorded worktree (nil when the session does not
+	// run in one).
+	Worktree *Worktree
 	// Todos is the input of the last TodoWrite call on the active branch
 	// (followed across compactions); nil when there is none.
 	Todos json.RawMessage
@@ -338,6 +357,10 @@ func Rebuild(entries []Entry) Conversation {
 			}
 			if e.McpCatalogVersion != "" {
 				c.McpCatalogVersion = e.McpCatalogVersion
+			}
+			if e.Worktree != nil {
+				w := *e.Worktree
+				c.Worktree = &w
 			}
 		case TypeFileHistorySnapshot:
 			if e.Snapshot == nil {
