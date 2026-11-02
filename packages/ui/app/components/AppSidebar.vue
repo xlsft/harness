@@ -39,13 +39,13 @@ function mark(s: SessionState) {
 function openSession(id: string) {
   store.open(id)
   open.value = false
-  if (route.path !== '/' || route.query.new) navigateTo({ path: '/', query: route.query.panes ? { panes: route.query.panes } : {} })
+  if (route.path !== '/' || route.query.new) navigateTo({ path: '/' })
 }
 
 // The new-session screen; `cwd` preselects a folder (the "+" next to a group).
 function newSession(cwd?: string) {
   open.value = false
-  navigateTo({ path: '/', query: { ...(route.query.panes ? { panes: route.query.panes } : {}), new: '1', ...(cwd ? { cwd } : {}) } })
+  navigateTo({ path: '/', query: { new: '1', ...(cwd ? { cwd } : {}) } })
 }
 
 const nav = [

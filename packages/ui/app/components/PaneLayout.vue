@@ -28,7 +28,7 @@ function share(n: LayoutNode): number {
   <SplitterGroup
     v-else
     :direction="node.dir === 'row' ? 'horizontal' : 'vertical'"
-    :auto-save-id="`harness-split-${node.dir}-${nodeKey(node)}`"
+    :auto-save-id="`harness-split-${session.meta.id}-${node.dir}-${nodeKey(node)}`"
     class="size-full"
   >
     <template

@@ -1,6 +1,6 @@
-// Which right panes are open, kept in the URL (?panes=terminal,browser) so every screen of the design is
-// linkable. Several panes can be open at once; they sit side by side in the order they were opened, with
-// session details always last. `?pane=<name>` (a single pane) is still accepted.
+// Which right panes are open, per session (each session keeps its own set, remembered in this browser).
+// Several panes can be open at once; session details is always the last column. An old ?panes= / ?pane=
+// link is applied once to the session it opens.
 // `?menu=<name>` opens a pane's menu on load (used to reach the menu states of the artboards).
 
 export const PANES = ['details', 'terminal', 'diff', 'browser', 'files', 'artifact', 'sidechat', 'tasks', 'agents'] as const
@@ -26,31 +26,59 @@ function normalize(list: PaneName[]): PaneName[] {
   return uniq.includes('details') ? [...uniq.filter(p => p !== 'details'), 'details'] : uniq
 }
 
+const STORAGE_KEY = 'harness-panes'
+
+function loadAll(): Record<string, PaneName[]> {
+  if (!import.meta.client) return {}
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Record<string, string[]>
+    return Object.fromEntries(Object.entries(raw).map(([id, list]) => [id, normalize(list.filter(isPane))]))
+  } catch {
+    return {}
+  }
+}
+
+function saveAll(all: Record<string, PaneName[]>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+  } catch {
+    // Storage unavailable: panes reset on reload.
+  }
+}
+
 export function usePanes() {
   const route = useRoute()
   const router = useRouter()
+  const store = useSessionStore()
 
   // Phones open panes on demand only (they cover the transcript); desktop shows session details by default.
   const desktop = useState('layout-desktop', () => import.meta.client ? window.matchMedia('(min-width: 1024px)').matches : true)
 
-  const panes = computed<PaneName[]>(() => {
-    const raw = route.query.panes ?? route.query.pane
-    if (raw === 'none' || raw === '') return []
-    if (typeof raw === 'string') return normalize(raw.split(',').filter(isPane))
-    return desktop.value ? ['details'] : []
-  })
+  // Open panes per session (each session keeps its own set), remembered in this browser.
+  const bySession = useState<Record<string, PaneName[]>>('panes-by-session', loadAll)
+  const sid = computed(() => store.currentId || '_')
+
+  const panes = computed<PaneName[]>(() => bySession.value[sid.value] ?? (desktop.value ? ['details'] : []))
 
   const menu = computed(() => typeof route.query.menu === 'string' ? route.query.menu : '')
 
   function setPanes(next: PaneName[]) {
-    const query = { ...route.query }
-    delete query.menu
-    delete query.pane
-    const list = normalize(next)
-    const fallback = desktop.value ? ['details'] : []
-    if (list.join(',') === fallback.join(',')) delete query.panes
-    else query.panes = list.length ? list.join(',') : 'none'
-    router.replace({ query })
+    bySession.value = { ...bySession.value, [sid.value]: normalize(next) }
+    saveAll(bySession.value)
+    if (route.query.menu) {
+      const { menu: _menu, ...query } = route.query
+      router.replace({ query })
+    }
+  }
+
+  // Old links (?panes=terminal,browser or ?pane=terminal) apply once to the session they open, then leave the URL.
+  if (import.meta.client) {
+    watch([() => route.query.panes ?? route.query.pane, sid], ([raw]) => {
+      if (typeof raw !== 'string' || !store.currentId) return
+      setPanes(raw === 'none' ? [] : raw.split(',').filter(isPane))
+      const { panes: _p, pane: _q, ...query } = route.query
+      router.replace({ query })
+    }, { immediate: true })
   }
 
   const isOpen = (p: PaneName) => panes.value.includes(p)

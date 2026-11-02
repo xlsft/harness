@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { movePane, panesOf, reconcile, regionAt, type LayoutNode } from '~/composables/usePaneLayout'
+import { fitToWidth, minWidth, movePane, panesOf, placeNew, reconcile, regionAt, type LayoutNode } from '~/composables/usePaneLayout'
 
 const row = (...children: LayoutNode[]): LayoutNode => ({ kind: 'split', dir: 'row', children })
 const col = (...children: LayoutNode[]): LayoutNode => ({ kind: 'split', dir: 'col', children })
-const p = (pane: 'terminal' | 'browser' | 'files' | 'details'): LayoutNode => ({ kind: 'pane', pane })
+const p = (pane: 'terminal' | 'browser' | 'files' | 'details' | 'diff'): LayoutNode => ({ kind: 'pane', pane })
 
 describe('reconcile', () => {
   it('appends newly opened panes to the outer row and drops closed ones', () => {
@@ -49,5 +49,41 @@ describe('regionAt', () => {
     expect(regionAt(r, 50, 10)).toBe('top')
     expect(regionAt(r, 50, 90)).toBe('bottom')
     expect(regionAt(r, 50, 50)).toBe('center')
+  })
+})
+
+describe('placeNew', () => {
+  it('adds a column before details when there is room', () => {
+    expect(placeNew(row(p('terminal'), p('details')), 'browser', 1200)).toEqual(row(p('terminal'), p('browser'), p('details')))
+    expect(placeNew(null, 'diff', 0)).toEqual(p('diff'))
+  })
+
+  it('stacks under the last content column when a column does not fit', () => {
+    // terminal 320 + details 240 = 560; one more column needs 880
+    expect(placeNew(row(p('terminal'), p('details')), 'browser', 700)).toEqual(row(col(p('terminal'), p('browser')), p('details')))
+    expect(placeNew(row(col(p('terminal'), p('browser')), p('details')), 'files', 700))
+      .toEqual(row(col(p('terminal'), p('browser'), p('files')), p('details')))
+  })
+
+  it('keeps details as the last column', () => {
+    expect(placeNew(row(p('terminal'), p('browser')), 'details', 300)).toEqual(row(p('terminal'), p('browser'), p('details')))
+  })
+})
+
+describe('fitToWidth', () => {
+  const t = row(p('terminal'), p('browser'), p('details'))
+  it('hides details when the panes do not fit, and shows it again when they do', () => {
+    expect(minWidth(t)).toBe(880)
+    expect(fitToWidth(t, 800)).toEqual(row(p('terminal'), p('browser')))
+    expect(fitToWidth(t, 900)).toEqual(t)
+    expect(fitToWidth(t, 0)).toEqual(t)
+  })
+
+  it('keeps details when it is the only pane', () => {
+    expect(fitToWidth(p('details'), 100)).toEqual(p('details'))
+  })
+
+  it('counts stacked panes once', () => {
+    expect(minWidth(row(col(p('terminal'), p('browser')), p('details')))).toBe(560)
   })
 })

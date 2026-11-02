@@ -8,7 +8,18 @@ import { panesOf } from '~/composables/usePaneLayout'
 const store = useSessionStore()
 const route = useRoute()
 const { panes } = usePanes()
-const { tree } = usePaneLayout()
+const { tree, width: paneAreaWidth } = usePaneLayout()
+
+// The pane area reports its width so the layout can hide session details or stack new panes when tight.
+const paneArea = ref<HTMLElement | null>(null)
+let paneObserver: ResizeObserver | undefined
+watch(paneArea, (el) => {
+  paneObserver?.disconnect()
+  if (!el) return
+  paneObserver = new ResizeObserver(([e]) => paneAreaWidth.value = Math.round(e!.contentRect.width))
+  paneObserver.observe(el)
+})
+onBeforeUnmount(() => paneObserver?.disconnect())
 
 // Desktop arranges the panes beside the transcript; below lg the last opened pane covers the screen.
 const wide = ref(true)
@@ -48,8 +59,9 @@ useShortcuts()
     <AppSidebar />
 
     <SplitterGroup
+      :key="session?.meta.id ?? 'none'"
       direction="horizontal"
-      auto-save-id="harness-main-split"
+      :auto-save-id="`harness-main-split-${session?.meta.id ?? 'none'}`"
       class="h-svh min-w-0 flex-1"
     >
       <SplitterPanel
@@ -91,10 +103,15 @@ useShortcuts()
           :min-size="8"
           class="min-h-0 min-w-0"
         >
-          <PaneLayout
-            :node="tree"
-            :session="session"
-          />
+          <div
+            ref="paneArea"
+            class="size-full"
+          >
+            <PaneLayout
+              :node="tree"
+              :session="session"
+            />
+          </div>
         </SplitterPanel>
       </template>
     </SplitterGroup>
