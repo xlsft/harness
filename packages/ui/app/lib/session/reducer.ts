@@ -592,7 +592,8 @@ function applyDelta(s: SessionState, messageId: string, index: number, delta: As
     if (started && thinking && !thinking.durationMs) thinking.durationMs = Math.max(0, at - started)
   }
   block.text += delta.value
-  setStatus(s, blockingStatus(s))
+  // A reply outside a turn (the model answering a Stop) streams without making the session busy.
+  if (s.turnStartedAt) setStatus(s, blockingStatus(s))
 }
 
 // ── tool ownership (which assistant message asked for a tool call) ───────────

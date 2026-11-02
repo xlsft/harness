@@ -96,6 +96,14 @@ func TestInterruptReplyAppendedAndReplayed(t *testing.T) {
 		t.Fatalf("streamed %q", deltas.String())
 	}
 
+	// The interrupt marker reports activity after the turn ended; the session still settles to idle.
+	deadline := time.Now().Add(2 * time.Second)
+	for h.listed(h.proj, sid).Status != agentv1.SessionStatus_SESSION_STATUS_IDLE {
+		if time.Now().After(deadline) {
+			t.Fatalf("status after the reply: %v", h.listed(h.proj, sid).Status)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 	reqs := h.gw.Requests()
 	if len(reqs) != 2 || !isReplyRequest(reqs[1]) {
 		t.Fatalf("reply request missing: %d requests", len(reqs))
