@@ -12,6 +12,7 @@ import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
 import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
+import { createTempDatabase, type TempDatabase } from "./pg.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 
@@ -35,6 +36,14 @@ export interface TestServer {
 
 export async function startTestServer(env: Record<string, string> = {}): Promise<TestServer> {
   process.env.HARNESS_DATA_DIR = mkdtempSync(join(tmpdir(), "harness-test-"));
+  // In-memory PGlite unless the caller passes DATABASE_URL (test/postgres.test.ts); never a shell DATABASE_URL.
+  // TEST_ALL_ON_POSTGRES=1 with TEST_DATABASE_URL runs every suite on a throwaway database on that server.
+  process.env.DATABASE_URL = "memory://";
+  let tempDb: TempDatabase | undefined;
+  if (!env.DATABASE_URL && process.env.TEST_ALL_ON_POSTGRES === "1" && process.env.TEST_DATABASE_URL) {
+    tempDb = await createTempDatabase(process.env.TEST_DATABASE_URL);
+    process.env.DATABASE_URL = tempDb.url;
+  }
   process.env.HARNESS_SECRET = "test-secret-test-secret-test-secret-0123456789";
   process.env.HARNESS_ADMIN_EMAIL = ADMIN.email;
   process.env.HARNESS_ADMIN_PASSWORD = ADMIN.password;
@@ -85,6 +94,11 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
     as: (token) => clients(token),
     close: async () => {
       await server.close(true);
+      const { closeDb } = await import("../../src/db/index.ts");
+      const { resetAuth } = await import("../../src/auth/better-auth.ts");
+      await closeDb();
+      resetAuth();
+      await tempDb?.drop();
     },
   };
 }

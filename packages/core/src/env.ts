@@ -8,7 +8,7 @@ import { resolve } from "node:path";
  */
 export interface Config {
   dataDir: string;
-  dbUrl: string;
+  db: DbConfig;
   secret: string;
   publicUrl: string;
   promptsDir: string;
@@ -20,6 +20,13 @@ export interface Config {
   pingIntervalMs: number;
 }
 
+/**
+ * Where the database lives. `postgres`: a real server (DATABASE_URL, a normal URL or a unix socket such as
+ * postgres:///harness?host=/run/postgresql). `pglite`: embedded Postgres (WASM) in `dataDir`, or in memory
+ * when dataDir is "memory://".
+ */
+export type DbConfig = { driver: "postgres"; url: string } | { driver: "pglite"; dataDir: string };
+
 let cached: Config | undefined;
 
 export function config(): Config {
@@ -29,7 +36,7 @@ export function config(): Config {
   mkdirSync(dataDir, { recursive: true });
   cached = {
     dataDir,
-    dbUrl: env.HARNESS_DB_URL || `file:${resolve(dataDir, "harness.db")}`,
+    db: dbConfig(env.DATABASE_URL, dataDir),
     secret: loadSecret(dataDir, env.HARNESS_SECRET),
     publicUrl: (env.HARNESS_PUBLIC_URL || `http://localhost:${env.PORT || 3000}`).replace(/\/+$/, ""),
     promptsDir: resolve(env.HARNESS_PROMPTS_DIR || "./prompts"),
@@ -45,6 +52,14 @@ export function config(): Config {
 
 export function resetConfig(): void {
   cached = undefined;
+}
+
+/** DATABASE_URL unset: PGlite persisted to $HARNESS_DATA_DIR/pglite. "memory://": in-memory PGlite (tests). */
+function dbConfig(url: string | undefined, dataDir: string): DbConfig {
+  if (!url) return { driver: "pglite", dataDir: resolve(dataDir, "pglite") };
+  if (url === "memory://" || url === "memory:") return { driver: "pglite", dataDir: "memory://" };
+  if (/^postgres(ql)?:\/\//.test(url)) return { driver: "postgres", url };
+  throw new Error("DATABASE_URL must be a postgres:// or postgresql:// URL (or memory:// for an in-memory PGlite)");
 }
 
 function intEnv(v: string | undefined, def: number): number {

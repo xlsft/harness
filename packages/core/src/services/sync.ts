@@ -5,6 +5,8 @@
  *   a document's `version` is the counter value of its last write and the CAS token.
  * - Writes are serialized in-process (writeMutex) and each runs in a DB transaction (counter + row +
  *   revision), so versions are committed in order and live events are published in version order.
+ *   The counter row lock and SELECT ... FOR UPDATE on the document also keep CAS correct if several
+ *   processes ever share one database (live events would then only reach the writer's own subscribers).
  * - Deletes keep the row as a tombstone (deleted_at). Tombstones older than the retention (>= 30 days)
  *   are purged; the highest purged version is remembered and cursors older than it get resync_required.
  * - Visibility: a caller's feed is its own user/project documents plus org documents. Org documents
@@ -79,8 +81,17 @@ const writeMutex = new Mutex();
 // --- version counter -------------------------------------------------------------------
 
 /**
- * Takes the next global sync version inside `tx`. The only place that touches the counter, so a
- * Postgres port can swap it for a sequence (keeping the commit-order guarantee of writeMutex).
+ * Takes the next global sync version inside `tx`; the only place that touches the counter.
+ *
+ * It is a row upsert, not a Postgres sequence, on purpose:
+ * - the increment belongs to the writing transaction, so `readHead()` never returns a version whose row
+ *   is not committed yet (with nextval() a reader could see head = N while N is still in flight, page
+ *   past it and never deliver it); a rolled-back write also gives its number back;
+ * - the upsert takes a row lock held until commit, so writers that reach this point commit in version
+ *   order even across processes.
+ * writeMutex stays: live events are published in-process right after commit, and publishing in version
+ * order needs the whole "commit, then publish" step serialized, which a DB lock alone cannot give. It
+ * also keeps waiting writers queued in memory instead of each holding a pooled connection on the lock.
  */
 export async function nextSyncVersion(tx: Tx): Promise<number> {
   const [r] = await tx
@@ -230,6 +241,8 @@ function validateFiles(kind: DocumentKind, files: FileInput[]): StoredFile[] {
 
 function validateContent(kind: DocumentKind, content: string): void {
   if (Buffer.byteLength(content, "utf8") > MAX_CONTENT_BYTES) throw new ApiError("invalid_request", `content exceeds ${MAX_CONTENT_BYTES} bytes`);
+  // Postgres text cannot store U+0000 (binary belongs in `files`).
+  if (content.includes("\0")) throw new ApiError("invalid_request", "content must not contain NUL characters");
   if (JSON_KINDS.has(kind)) {
     let v: unknown;
     try {
@@ -311,7 +324,7 @@ export async function purgeTombstones(now = Date.now(), retentionMs = tombstoneR
     const db = getDb();
     const cutoff = new Date(now - retentionMs);
     const old = and(isNotNull(schema.syncDocument.deletedAt), lt(schema.syncDocument.deletedAt, cutoff));
-    const top = await db.select({ v: max(schema.syncDocument.version) }).from(schema.syncDocument).where(old).get();
+    const [top] = await db.select({ v: max(schema.syncDocument.version) }).from(schema.syncDocument).where(old);
     if (!top?.v) return 0;
     const prev = await purgedThrough();
     return db.transaction(async (tx) => {
@@ -461,11 +474,11 @@ export async function putDocument(p: Principal, input: PutInput): Promise<PutRes
     lastPublished ??= await readHead();
     const d = schema.syncDocument;
     return getDb().transaction(async (tx): Promise<PutResult & { changed?: boolean }> => {
-      const cur = await tx
+      const [cur] = await tx
         .select()
         .from(d)
         .where(and(eq(d.ownerId, ownerId), eq(d.scope, ref.scope), eq(d.projectKey, ref.projectKey), eq(d.kind, ref.kind), eq(d.key, ref.key)))
-        .get();
+        .for("update");
       const live = cur && !cur.deletedAt ? cur : undefined;
       if (input.baseVersion === 0 && live) return { conflict: live };
       if (input.baseVersion !== undefined && input.baseVersion > 0 && (!live || live.version !== input.baseVersion)) {
@@ -532,7 +545,7 @@ export async function deleteDocument(p: Principal, id: string, baseVersion?: num
     const d = schema.syncDocument;
     let published: DocRow | undefined;
     const r = await getDb().transaction(async (tx): Promise<DeleteResult> => {
-      const cur = await tx.select().from(d).where(eq(d.id, id)).get();
+      const [cur] = await tx.select().from(d).where(eq(d.id, id)).for("update");
       if (!cur || !canRead(cur, p.user)) throw new ApiError("not_found", "Document not found");
       if (cur.scope === Scope.ORG && p.user.role !== "admin") throw new ApiError("permission", "Only admins can delete org documents");
       if (cur.kind === DocumentKind.MCP_SERVER) throw new ApiError("invalid_request", "MCP_SERVER entries are managed by McpService");
