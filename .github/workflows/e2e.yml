@@ -1,0 +1,29 @@
+name: e2e
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['packages/core/**', 'packages/client/**', 'scripts/e2e/**', '.github/workflows/e2e.yml']
+  pull_request:
+    paths: ['packages/core/**', 'packages/client/**', 'scripts/e2e/**', '.github/workflows/e2e.yml']
+
+jobs:
+  e2e:
+    # core + client against a scripted upstream: device login, admin setup, one tool-using turn.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: packages/core/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: packages/core/pnpm-lock.yaml
+      - name: Run end-to-end test
+        run: scripts/e2e/run.sh

@@ -1,0 +1,40 @@
+     24
+     25
+     26
+     27
+     28
+     29
+     30
+
+⏺ Got it — you ran seq 1 30 and got the sequence 1 through 30. What would you like to do next?
+
+⟨done⟩ ⟨past-verb⟩ for 2s
+
+❯ als.
+
+⏺ I'm not sure what you mean by "als." Could you clarify what you'd like me to do?
+
+⟨done⟩ ⟨past-verb⟩ for 2s
+
+❯ and then a haiku
+
+⏺ Code fixed with one change
+  Tests pass now, all errors gone
+  Darkness flees the light
+
+⟨done⟩ ⟨past-verb⟩ for 12s
+
+❯ No tools. Write a 400-word essay about terminals.
+
+⏺ The Terminal: A Window Into Computing
+
+  The terminal stands as one of computing's most enduring and essential interfaces, representing a direct line of
+  communication between humans and machines. Despite the rise of graphical user interfaces, terminals remain
+  ❯ then a haiku
+  ❯ then a haiku
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Press up to edit queued messages
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ← for agents

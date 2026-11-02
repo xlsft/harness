@@ -50,7 +50,7 @@
 | A7 | UI | One Nuxt app `packages/ui` for desktop and mobile (and web) with a `SessionTransport`: `ipc` (desktop → local Go client over stdio), `relay` (web/mobile → server → client on the machine) | All GUI clients look the same, as in CC |
 | A8 | Canonical message model | **Anthropic-like content blocks** (`text`, `thinking`+`signature`, `tool_use`, `tool_result`, `image`) — in both the client and the gateway API | Reducing rich to poor is easier. tool_use/tool_result pairs and thinking signatures are respected |
 | A9 | Auth | **Better Auth** on the server (login, password, optional OAuth and 2FA, roles). `harness login` — device-flow → device token (revocable) + short-lived access token with refresh | Ordinary client login, like `claude login` |
-| A10 | Storage | **Server:** SQLite by default / Postgres optionally (Drizzle) + a directory for attachments. **Client:** cache in `~/.harness/` + local CC-format JSONL (offline writes, synced to the server) | `docker compose up` with no dependencies. A session is not lost when the connection drops |
+| A10 | Storage | **Server:** Postgres (Drizzle, pg dialect) running inside the single harness container, data in the `/data` volume; an external `DATABASE_URL` is optional; tests use PGlite. Attachments in `/data`. M0–M1 use SQLite and move to Postgres right after M1. **Client:** cache in `~/.harness/` + local CC-format JSONL (offline writes, synced to the server) | One container, nothing to configure, a real Postgres under the hood. A session is not lost when the connection drops |
 | A11 | CC compatibility | Project `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json` are read from the repository. User-level `~/.claude` — a one-time **import to the server** (`harness import claude`) | The project is portable. After import, the user level lives on the server |
 | A12 | Languages and distribution | **Server** — TypeScript on Nitro v3. **Client and CLI** — Go: a single static binary for all OSes and architectures (cross-compile without CGO). The CLI imports the client as a Go package. Desktop and mobile use the client as a sidecar binary | One file is easy to install and push over SSH, fast startup, solid process/pty primitives. The charm.land toolchain gives a CC-level TUI |
 | A13 | Legal | Clean-room: compatible formats and protocols — yes, CC code and prompts verbatim — no | See feature-parity §17–18 |
@@ -165,16 +165,25 @@ Goal: connect an MCP once — it works on all devices, on the web and on SSH hos
 - **Push:** Web Push on permission, question and turn completion, suppressed on activity (presence).
 - Attachments from the web: upload to the server → the client downloads → `@` reference.
 
-```yaml
-# docker-compose.yml
-services:
-  harness:
-    image: harness/server
-    ports: ["3000:3000"]
-    volumes: ["harness-data:/data"]
-    environment:
-      HARNESS_PUBLIC_URL: https://harness.example.com
-      HARNESS_SECRET: ...
+### 1.7 Deployment: one container
+
+Everything runs in **one image** under the [s6-overlay](https://github.com/just-containers/s6-overlay) process supervisor. No sidecars, no Docker-in-Docker, no privileged mode:
+
+| Process | Role | Listens on |
+|---|---|---|
+| `core` | Nitro server: API (Connect), web UI, relay | `:3000` (public); optional h2c gRPC port |
+| `postgres` | Database; `initdb` into `/data/postgres` on first start, migrations applied by core | unix socket only |
+| `searxng` | Default web search provider | `127.0.0.1` only |
+
+- s6 starts Postgres first, waits for readiness, then core. SearXNG is independent: search reports itself unhealthy until it is up. Every process restarts on crash. On SIGTERM, core drains, then Postgres shuts down cleanly.
+- All state lives in one volume: `/data/{postgres,attachments,secret}`. A backup is the volume, or `pg_dump` via `docker exec`.
+- Overrides: set `DATABASE_URL` to use an external Postgres (the internal one is then not started), and `HARNESS_SEARXNG_URL` to point at an external SearXNG.
+
+```bash
+docker run -d --name harness -p 3000:3000 -v harness-data:/data \
+  -e HARNESS_PUBLIC_URL=https://harness.example.com \
+  -e HARNESS_ADMIN_EMAIL=you@example.com -e HARNESS_ADMIN_PASSWORD=... \
+  harness/server
 ```
 
 ---
@@ -300,7 +309,7 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 - Admin screens: providers, models, prompt registry, users, policies, usage.
 
 ### M4 — Deployment and advanced
-- Core Docker image, compose, backups, client updates (binary self-update, auto-update on SSH hosts).
+- Single-container image (s6-overlay: core + Postgres + SearXNG, see §1.7), backups, client updates (binary self-update, auto-update on SSH hosts).
 - Git panels and PR/CI, worktrees, sandbox runtime, auto mode, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
 
 ---
@@ -322,7 +331,7 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 ## 7. Open questions (defaults chosen)
 
 1. ~~Local provider bypassing the server~~ — **decided: no, all LLM calls go only through the server gateway.** The client cannot talk to providers directly. Local models (vLLM/Ollama) connect as a provider on the server: they must be reachable from the server's network, and the admin explicitly allows private addresses.
-2. Always store full transcripts on the server (default) or only metadata + optional content.
+2. ~~Transcript storage~~ — **decided: the server stores full transcripts and metadata.**
 3. Desktop + mobile shell: **Tauri 2** (default: one shell for desktop and iOS/Android, Go client as a sidecar) or Electron + Capacitor.
-4. OpenAI Responses API in M0 or later.
-5. WebSearch backend on the server (Brave, Tavily, SearXNG, provider-native).
+4. ~~OpenAI Responses API~~ — **decided: implemented in M1, before the first real-model tests.**
+5. ~~WebSearch backend~~ — **decided: pluggable search providers on the server (`SearchService`); SearXNG is the default and only provider for now (free, no API key). Brave, Tavily, Exa and provider-native search can be added as providers later.**

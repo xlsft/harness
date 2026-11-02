@@ -1,0 +1,100 @@
+  ⎿  1
+     2
+     3
+     4
+     5
+     6
+     7
+     8
+     9
+     10
+     11
+     12
+     13
+     14
+     15
+     16
+     17
+     18
+     19
+     20
+     21
+     22
+     23
+     24
+     25
+     26
+     27
+     28
+     29
+     30
+
+⏺ Got it — you ran seq 1 30 and got the sequence 1 through 30. What would you like to do next?
+
+⟨done⟩ ⟨past-verb⟩ for 2s
+
+❯ als.
+
+⏺ I'm not sure what you mean by "als." Could you clarify what you'd like me to do?
+
+⟨done⟩ ⟨past-verb⟩ for 2s
+
+❯ and then a haiku
+
+⏺ Code fixed with one change
+  Tests pass now, all errors gone
+  Darkness flees the light
+
+⟨done⟩ ⟨past-verb⟩ for 12s
+
+❯ No tools. Write a 400-word essay about terminals.
+
+⏺ The Terminal: A Window Into Computing
+
+  The terminal stands as one of computing's most enduring and essential interfaces, representing a direct line of
+  communication between humans and machines. Despite the rise of graphical user interfaces, terminals remain
+  indispensable tools for developers, system administrators, and power users worldwide.
+
+  At its core, a terminal is a text-based interface that accepts commands and displays results. It traces its lineage to
+  the physical terminals of the 1960s and 70s—hardware devices that connected to mainframe computers. As computing
+  evolved, software terminals emerged, emulating those physical devices and preserving the command-line paradigm that
+  proved remarkably resilient.
+
+  The power of terminals lies in their efficiency and precision. While graphical interfaces excel at discoverability and
+  intuitive interaction, terminals enable rapid task execution through keyboard-driven commands. A developer can
+  navigate file systems, manage versions, deploy applications, and automate complex workflows far faster through
+  terminal commands than through graphical menus. This efficiency compounds over time: muscle memory and scripting
+  capabilities transform terminals into extensions of the user's intent.
+
+  Terminals come in various forms, each suited to different environments. Local terminals run on individual machines,
+  providing direct system access. Remote terminals, accessed through SSH, allow users to manage distant servers as if
+  they were local. Container terminals enable interaction with isolated computing environments. Web-based terminals
+  extend accessibility further, allowing terminal access through browsers. This versatility has made terminals
+  fundamental to cloud computing and distributed systems.
+
+  Beyond raw functionality, terminals foster a particular computing culture. The command-line interface encourages
+  modular, composable tools—the Unix philosophy of doing one thing well and combining tools through pipes and scripts.
+  This approach has generated countless powerful utilities that remain relevant decades after their creation. The
+  terminal becomes not just a tool but a community and way of thinking about computing.
+
+  Modern terminals have evolved significantly from their predecessors. Today's terminals offer syntax highlighting,
+  autocomplete, integration with development tools, and aesthetic customization. They run scripts in multiple languages,
+  manage containers, orchestrate cloud infrastructure, and coordinate version control systems. Terminal multiplexers
+  like tmux and screen enable managing multiple sessions within a single window.
+
+  The terminal's persistence speaks to its fundamental design. It addresses a core computing need: translating human
+  intent into machine instruction with minimal abstraction. While graphical interfaces have democratized computing and
+  made it more accessible, terminals have remained the preferred tool for professionals who demand speed, precision, and
+  control.
+
+  As artificial intelligence and new computing paradigms emerge, the terminal's role continues evolving. Yet its
+  essential value—providing direct, scriptable access to computational power—ensures its relevance for generations to
+  come.
+
+⟨done⟩ ⟨past-verb⟩ for 8s
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ then a haiku
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on

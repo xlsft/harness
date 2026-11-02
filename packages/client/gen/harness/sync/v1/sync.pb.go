@@ -27,14 +27,18 @@ type DocumentKind int32
 
 const (
 	DocumentKind_DOCUMENT_KIND_UNSPECIFIED DocumentKind = 0
-	// key: "user". content: settings JSON (CC settings.json shape, minus `permissions` and `hooks`).
+	// key: "user". content: settings JSON (CC settings.json shape, minus `hooks`). Its `permissions` object
+	// carries only the scalar/list keys that are not rules: defaultMode, additionalDirectories,
+	// disableBypassPermissionsMode; allow/ask/deny rules live in PERMISSION_RULES.
 	// At org scope: org defaults, overridable by the user (enforced settings go into POLICY).
+	// Project-scope SETTINGS are not used (project settings come from the repository's .claude/).
 	DocumentKind_DOCUMENT_KIND_SETTINGS DocumentKind = 1
 	// key: "user". content: JSON {"allow": [...], "ask": [...], "deny": [...]} of `Tool(spec)` rules.
 	// "Don't ask again" at user level is written here.
 	DocumentKind_DOCUMENT_KIND_PERMISSION_RULES DocumentKind = 2
 	// key: "user". SCOPE_USER: analogue of ~/.claude/CLAUDE.md; SCOPE_PROJECT: auto memory for project_key.
-	// content: markdown. Conflicts on memory are resolved last-write-wins by clients (PLAN §6);
+	// content: markdown (for auto memory: the MEMORY.md index); `files` carries imported files (user scope)
+	// or auto-memory topic files (project scope), keyed by their relative path. Conflicts on memory are resolved last-write-wins by clients (PLAN §6);
 	// the server keeps version history.
 	DocumentKind_DOCUMENT_KIND_MEMORY DocumentKind = 3
 	// key: skill name. content: SKILL.md (frontmatter + markdown); `files` carries the rest of the skill directory.
@@ -56,7 +60,12 @@ const (
 	// Org scope only (other scopes -> INVALID_ARGUMENT); admin-written. key: policy name ("default" or a
 	// role-targeted one). content: JSON managed settings: deny rules, allowed models, forced settings,
 	// prohibitions. Always wins over every other source, including CLI flags (PLAN §2.3).
+	// Several policies merge in this order (later wins for scalars, lists are unioned): "default", then
+	// role-targeted policies matching the caller's role, sorted by key.
 	DocumentKind_DOCUMENT_KIND_POLICY DocumentKind = 11
+	// key: rule file path relative to the rules root (e.g. "frontend/react.md"). content: rule markdown with
+	// optional `paths:` frontmatter. SCOPE_USER: analogue of ~/.claude/rules/**.
+	DocumentKind_DOCUMENT_KIND_RULE DocumentKind = 12
 )
 
 // Enum value maps for DocumentKind.
@@ -74,6 +83,7 @@ var (
 		9:  "DOCUMENT_KIND_SSH_HOST",
 		10: "DOCUMENT_KIND_MCP_SERVER",
 		11: "DOCUMENT_KIND_POLICY",
+		12: "DOCUMENT_KIND_RULE",
 	}
 	DocumentKind_value = map[string]int32{
 		"DOCUMENT_KIND_UNSPECIFIED":      0,
@@ -88,6 +98,7 @@ var (
 		"DOCUMENT_KIND_SSH_HOST":         9,
 		"DOCUMENT_KIND_MCP_SERVER":       10,
 		"DOCUMENT_KIND_POLICY":           11,
+		"DOCUMENT_KIND_RULE":             12,
 	}
 )
 
@@ -521,7 +532,10 @@ type ListChangesRequest struct {
 	// Empty means all kinds.
 	Kinds []DocumentKind `protobuf:"varint,2,rep,packed,name=kinds,proto3,enum=harness.sync.v1.DocumentKind" json:"kinds,omitempty"`
 	// Default 200, max 1000. A page may be cut short to bound its size.
-	PageSize      int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// Continuation token from the previous page's next_page_token. When set, since_version is ignored and the
+	// scan continues from where it stopped; continuations never return resync_required.
+	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -577,6 +591,13 @@ func (x *ListChangesRequest) GetPageSize() int32 {
 	return 0
 }
 
+func (x *ListChangesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type ListChangesResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Changes []*Change              `protobuf:"bytes,1,rep,name=changes,proto3" json:"changes,omitempty"`
@@ -586,8 +607,10 @@ type ListChangesResponse struct {
 	// since_version is older than the oldest kept tombstone: restart from 0 and treat the result as a full
 	// snapshot (drop cached documents not present in it). `changes` is empty when this is set.
 	ResyncRequired bool `protobuf:"varint,4,opt,name=resync_required,json=resyncRequired,proto3" json:"resync_required,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Set together with has_more; pass it as page_token to continue this scan.
+	NextPageToken string `protobuf:"bytes,5,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListChangesResponse) Reset() {
@@ -646,6 +669,13 @@ func (x *ListChangesResponse) GetResyncRequired() bool {
 		return x.ResyncRequired
 	}
 	return false
+}
+
+func (x *ListChangesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type WatchChangesRequest struct {
@@ -1772,7 +1802,8 @@ func (*DeleteDocumentResponse_Tombstone) isDeleteDocumentResponse_Result() {}
 func (*DeleteDocumentResponse_Conflict) isDeleteDocumentResponse_Result() {}
 
 // Server view of a session: the shared harness.agent.v1.SessionInfo plus sync-only fields.
-// SessionInfo.id (ses_...) is generated by the client that created the session, so it works offline.
+// SessionInfo.id (a UUID v4, also the local JSONL file name) is generated by the client that created the
+// session, so it works offline.
 type SessionMetadata struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Info                *v11.SessionInfo       `protobuf:"bytes,1,opt,name=info,proto3" json:"info,omitempty"`
@@ -1856,7 +1887,8 @@ type UpsertSessionRequest struct {
 	Session *SessionMetadata       `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
 	// Field paths to update, e.g. "info.title", "info.archived", "prompt_bundle_version";
 	// empty means "all client-writable fields".
-	// Frontends send e.g. ["title"] or ["archived"] so they do not clobber fields owned by the client.
+	// Paths always use the "info." prefix for SessionInfo fields, e.g. ["info.title"] or ["info.archived"],
+	// so frontends do not clobber fields owned by the client.
 	UpdatePaths   []string `protobuf:"bytes,2,rep,name=update_paths,json=updatePaths,proto3" json:"update_paths,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1954,6 +1986,8 @@ func (x *UpsertSessionResponse) GetSession() *SessionMetadata {
 type TranscriptEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The entry's own uuid (the JSONL `uuid` field); idempotency key, unique within the session.
+	// Lines without a uuid (summary, custom-title, file-history-snapshot, ...) get a UUIDv5 derived by the
+	// client from (session id, byte offset of the line, sha256 of the line), so re-uploads stay idempotent.
 	Uuid       string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	ParentUuid string `protobuf:"bytes,2,opt,name=parent_uuid,json=parentUuid,proto3" json:"parent_uuid,omitempty"`
 	// JSONL `type`: "user", "assistant", "system", "summary", ...
@@ -1964,7 +1998,10 @@ type TranscriptEntry struct {
 	// and indexes text content for search.
 	EntryJson string `protobuf:"bytes,5,opt,name=entry_json,json=entryJson,proto3" json:"entry_json,omitempty"`
 	// Server-assigned position in the session (1, 2, 3, ...). Ignored on upload.
-	Seq           int64 `protobuf:"varint,6,opt,name=seq,proto3" json:"seq,omitempty"`
+	Seq int64 `protobuf:"varint,6,opt,name=seq,proto3" json:"seq,omitempty"`
+	// Subagent transcripts (<session>/subagents/agent-<id>.jsonl): the agent id; empty for the main thread.
+	// Entries of a subagent are stored and paged separately from the main thread but share the session.
+	AgentId       string `protobuf:"bytes,7,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2039,6 +2076,13 @@ func (x *TranscriptEntry) GetSeq() int64 {
 		return x.Seq
 	}
 	return 0
+}
+
+func (x *TranscriptEntry) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
 }
 
 type AppendSessionEventsRequest struct {
@@ -2406,7 +2450,8 @@ type GetSessionTranscriptRequest struct {
 	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	AfterSeq  int64                  `protobuf:"varint,2,opt,name=after_seq,json=afterSeq,proto3" json:"after_seq,omitempty"`
 	// Default 500, max 2000.
-	PageSize      int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageSize      int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"` // Subagent transcript to page through; empty means the main thread.
+	AgentId       string `protobuf:"bytes,4,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2460,6 +2505,13 @@ func (x *GetSessionTranscriptRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *GetSessionTranscriptRequest) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
 }
 
 type GetSessionTranscriptResponse struct {
@@ -2558,16 +2610,19 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\x06Change\x127\n" +
 	"\bdocument\x18\x01 \x01(\v2\x19.harness.sync.v1.DocumentH\x00R\bdocument\x12:\n" +
 	"\ttombstone\x18\x02 \x01(\v2\x1a.harness.sync.v1.TombstoneH\x00R\ttombstoneB\b\n" +
-	"\x06change\"\x8b\x01\n" +
+	"\x06change\"\xaa\x01\n" +
 	"\x12ListChangesRequest\x12#\n" +
 	"\rsince_version\x18\x01 \x01(\x03R\fsinceVersion\x123\n" +
 	"\x05kinds\x18\x02 \x03(\x0e2\x1d.harness.sync.v1.DocumentKindR\x05kinds\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"\xaf\x01\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\"\xd7\x01\n" +
 	"\x13ListChangesResponse\x121\n" +
 	"\achanges\x18\x01 \x03(\v2\x17.harness.sync.v1.ChangeR\achanges\x12!\n" +
 	"\fnext_version\x18\x02 \x01(\x03R\vnextVersion\x12\x19\n" +
 	"\bhas_more\x18\x03 \x01(\bR\ahasMore\x12'\n" +
-	"\x0fresync_required\x18\x04 \x01(\bR\x0eresyncRequired\"o\n" +
+	"\x0fresync_required\x18\x04 \x01(\bR\x0eresyncRequired\x12&\n" +
+	"\x0fnext_page_token\x18\x05 \x01(\tR\rnextPageToken\"o\n" +
 	"\x13WatchChangesRequest\x12#\n" +
 	"\rsince_version\x18\x01 \x01(\x03R\fsinceVersion\x123\n" +
 	"\x05kinds\x18\x02 \x03(\x0e2\x1d.harness.sync.v1.DocumentKindR\x05kinds\"\x94\x02\n" +
@@ -2642,7 +2697,7 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\asession\x18\x01 \x01(\v2 .harness.sync.v1.SessionMetadataR\asession\x12!\n" +
 	"\fupdate_paths\x18\x02 \x03(\tR\vupdatePaths\"S\n" +
 	"\x15UpsertSessionResponse\x12:\n" +
-	"\asession\x18\x01 \x01(\v2 .harness.sync.v1.SessionMetadataR\asession\"\xa9\x01\n" +
+	"\asession\x18\x01 \x01(\v2 .harness.sync.v1.SessionMetadataR\asession\"\xc4\x01\n" +
 	"\x0fTranscriptEntry\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x1f\n" +
 	"\vparent_uuid\x18\x02 \x01(\tR\n" +
@@ -2651,7 +2706,8 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\ttimestamp\x18\x04 \x01(\tR\ttimestamp\x12\x1d\n" +
 	"\n" +
 	"entry_json\x18\x05 \x01(\tR\tentryJson\x12\x10\n" +
-	"\x03seq\x18\x06 \x01(\x03R\x03seq\"w\n" +
+	"\x03seq\x18\x06 \x01(\x03R\x03seq\x12\x19\n" +
+	"\bagent_id\x18\a \x01(\tR\aagentId\"w\n" +
 	"\x1aAppendSessionEventsRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12:\n" +
@@ -2679,15 +2735,16 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"page_token\x18\b \x01(\tR\tpageToken\"|\n" +
 	"\x14ListSessionsResponse\x12<\n" +
 	"\bsessions\x18\x01 \x03(\v2 .harness.sync.v1.SessionMetadataR\bsessions\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"v\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x91\x01\n" +
 	"\x1bGetSessionTranscriptRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
 	"\tafter_seq\x18\x02 \x01(\x03R\bafterSeq\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"u\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x19\n" +
+	"\bagent_id\x18\x04 \x01(\tR\aagentId\"u\n" +
 	"\x1cGetSessionTranscriptResponse\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .harness.sync.v1.TranscriptEntryR\aentries\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore*\xe0\x02\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore*\xf8\x02\n" +
 	"\fDocumentKind\x12\x1d\n" +
 	"\x19DOCUMENT_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16DOCUMENT_KIND_SETTINGS\x10\x01\x12\"\n" +
@@ -2701,7 +2758,8 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\x16DOCUMENT_KIND_SSH_HOST\x10\t\x12\x1c\n" +
 	"\x18DOCUMENT_KIND_MCP_SERVER\x10\n" +
 	"\x12\x18\n" +
-	"\x14DOCUMENT_KIND_POLICY\x10\v2\xc4\b\n" +
+	"\x14DOCUMENT_KIND_POLICY\x10\v\x12\x16\n" +
+	"\x12DOCUMENT_KIND_RULE\x10\f2\xc4\b\n" +
 	"\vSyncService\x12X\n" +
 	"\vListChanges\x12#.harness.sync.v1.ListChangesRequest\x1a$.harness.sync.v1.ListChangesResponse\x12]\n" +
 	"\fWatchChanges\x12$.harness.sync.v1.WatchChangesRequest\x1a%.harness.sync.v1.WatchChangesResponse0\x01\x12X\n" +

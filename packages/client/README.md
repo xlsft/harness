@@ -15,7 +15,11 @@ It ships in two forms:
 | `gateway/connectgw` | Connect/gRPC adapter for `harness.llm.v1.GatewayService` |
 | `auth` | `Service` interface, Connect adapter, device-flow `Login`, `Manager` (token refresh), keychain/file credential `Store` |
 | `prompts` | `Source` interface, Connect adapter, bundle cache (`~/.harness/cache/prompts`), placeholder rendering, system assembly with cache markers |
-| `workspace` | Env placeholders, git snapshot, CLAUDE.md / AGENTS.md discovery |
+| `workspace` | Env placeholders, git snapshot, project_key (normalized git remote) |
+| `memory` | Project instructions with Claude Code semantics: managed / user / project CLAUDE.md, AGENTS.md fallback, `@imports`, lazy subdirectory files, path-scoped rules, auto memory |
+| `settings` | Settings hierarchy (policy → CLI → local → project → user → org) with per-rule sources and the workspace trust gate |
+| `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
+| `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
 | `tools` | Read, Write, Edit, Bash, Glob, Grep |
 | `permissions` | `Checker` / `Asker` interfaces and the M0 engine (modes, allow/deny rules) |
 | `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`) |
@@ -37,6 +41,8 @@ harness-client whoami
 harness-client -p "fix the failing test" --allowedTools "Edit Bash(go test *)" --output-format json
 harness-client -p -c "and now the README"           # continue the latest session in this directory
 harness-client serve --socket /tmp/harness.sock     # AgentService for frontends
+harness-client import claude --dry-run              # preview the ~/.claude import (add --sessions for transcripts)
+harness-client sync --watch                         # catch up the sync cache, upload sessions, follow changes
 ```
 
 Environment variables:

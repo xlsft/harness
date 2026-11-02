@@ -1,0 +1,40 @@
+  essential value—providing direct, scriptable access to computational power—ensures its relevance for generations to
+  come.
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Settings  Status   Config   Usage   Stats
+
+   Session
+
+   Total cost:            $0.2355
+   Total duration (API):  2m 2s
+   Total duration (wall): 8m 18s
+   Total code changes:    32 lines added, 1 line removed
+   Usage by model:
+       claude-haiku-4-5:  3.5k input, 8.5k output, 1.1m cache read, 41.3k cache write ($0.2355)
+
+   Current session
+   ⟨logo⟩                                             28% used
+   Resets 6:50pm (Europe/Moscow)
+
+   Current week (all models)
+   ⟨logo⟩                                              10% used
+   Resets Nov 6 at 3pm (Europe/Moscow)
+
+   Current week (Fable)
+                                                      0% used
+   Resets Nov 6 at 3pm (Europe/Moscow)
+
+   What's contributing to your limits usage?
+   Approximate, based on local sessions on this machine — does not include other devices or claude.ai
+
+   Last 24h · these are independent characteristics of your usage, not a breakdown
+
+   92% of your usage came from subagent-heavy sessions
+    Each subagent runs its own requests. Be deliberate about spawning them — and
+    consider configuring a cheaper model for simpler subagents.
+
+   69% of your usage was at >150k context
+    Longer sessions are more expensive even when cached. /compact mid-task, /clear
+    when switching to new tasks.
+
+   58% of your usage came from subagents under "general-purpose"                                                      ↓

@@ -1,0 +1,40 @@
+
+╭─── Claude Code v2.1.220 ─────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting started                                        │
+│                 Welcome back <user>!                │ Run /init to create a CLAUDE.md file with instructions for Cla… │
+│                                                    │ ─────────────────────────────────────────────────────────────── │
+│                       ⟨logo⟩                       │ What's new                                                      │
+│                      ⟨logo⟩                        │ Bug fixes and reliability improvements                          │
+│                        ⟨logo⟩                       │ Added gateway spend-limit support to Claude Code's usage warni… │
+│    Sonnet 5 · Claude Max · <email>'s    │ Added a workspace trust prompt to `claude agents` for untruste… │
+│    Organization                                    │ /release-notes for more                                         │
+│                 /…/scratchpad/proj                 │                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ⚠ 2 MCP servers need authentication · run /mcp
+
+❯ Plan adding a sub(a, b) function to calc.py with a test. Before planning, use the AskUserQuestion tool once to ask me
+  whether the test should use unittest or pytest. Keep the plan short.
+
+⏺ User answered Claude's questions:
+  ⎿  · Should the test for sub(a, b) use unittest or pytest? → unittest
+
+
+
+
+
+
+
+
+
+
+
+
+
+⟨spin⟩ ⟨verb⟩… (6s · ↓ 331 tokens)
+                                                                                                       ● high · /effort
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ plan mode on (shift+tab to cycle) · ← for agents
