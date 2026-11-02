@@ -1,6 +1,6 @@
 // Package fakegateway is a scripted harness server for tests and local
-// end-to-end runs. It serves GatewayService, PromptService and
-// DeviceAuthService and DecisionService from the generated Connect handlers
+// end-to-end runs. It serves GatewayService, PromptService,
+// DeviceAuthService, DecisionService and SearchService from the generated Connect handlers
 // over h2c.
 package fakegateway
 
@@ -27,6 +27,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	promptsv1 "github.com/xlsft/harness/packages/client/gen/harness/prompts/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/prompts/v1/promptsv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/search/v1/searchv1connect"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/prompts"
@@ -62,7 +63,7 @@ type Server struct {
 	Bundle *prompts.Bundle
 	// Respond scripts the model; defaults to a single "ok" text reply.
 	Respond Responder
-	// Model ids in the catalog; the first is the main slot.
+	// Model ids in the catalog; the first is the main slot, the second the small slot.
 	Models []string
 
 	// RejectTokens makes the next N authenticated calls fail with UNAUTHENTICATED.
@@ -78,6 +79,7 @@ type Server struct {
 	polls    int
 
 	decision decisionState
+	search   searchState
 }
 
 // New returns a server with the default bundle.
@@ -106,6 +108,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle(promptsv1connect.NewPromptServiceHandler(promptHandler{s: s}))
 	mux.Handle(authv1connect.NewDeviceAuthServiceHandler(authHandler{s: s}))
 	mux.Handle(decisionv1connect.NewDecisionServiceHandler(decisionHandler{s: s}))
+	mux.Handle(searchv1connect.NewSearchServiceHandler(searchHandler{s: s}))
 	return mux
 }
 
@@ -154,8 +157,11 @@ func (g gatewayHandler) ListModels(ctx context.Context, req *connect.Request[llm
 	for i, id := range g.s.Models {
 		resp.Models = append(resp.Models, &llmv1.Model{Id: id, DisplayName: "Fake " + id, ContextWindow: 200000, MaxOutputTokens: 16000,
 			Capabilities: &llmv1.Capabilities{ParallelToolCalls: true, PromptCache: true}})
-		if i == 0 {
+		switch i {
+		case 0:
 			resp.Slots.Main = id
+		case 1:
+			resp.Slots.Small = id
 		}
 	}
 	return connect.NewResponse(resp), nil
