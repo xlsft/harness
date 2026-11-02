@@ -11,7 +11,6 @@ import (
 // whole tree can be killed on timeout or interrupt.
 func setProcessGroup(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error { return killProcessGroup(cmd) }
 }
 
 func killProcessGroup(cmd *exec.Cmd) error {
