@@ -105,6 +105,9 @@ type Permissions struct {
 	AdditionalDirectories []Dir
 	// DisableBypass is set by policy (permissions.disableBypassPermissionsMode: "disable").
 	DisableBypass bool
+	// DisableAutoMode is set by permissions.disableAutoMode: "disable" (or a
+	// top-level disableAutoMode) at any level.
+	DisableAutoMode bool
 }
 
 // Attribution is the commit / PR attribution text ("" disables it).
@@ -213,9 +216,10 @@ type layer struct {
 	attrCommit, attrPR                                    *string
 	env                                                   map[string]string
 	allow, ask, deny, addDirs                             []string
-	disableBypass                                         bool
-	availableModels                                       []string
-	managedRulesOnly                                      bool
+	disableBypass, disableAuto                            bool
+
+	availableModels  []string
+	managedRulesOnly bool
 	// extra are further layers of the same level (permission rule documents).
 	extra []*layer
 }
