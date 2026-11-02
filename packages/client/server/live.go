@@ -204,8 +204,29 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
 	case agent.EventNotice:
 		lv := map[string]agentv1.Notice_Level{"info": agentv1.Notice_LEVEL_INFO, "warning": agentv1.Notice_LEVEL_WARNING, "error": agentv1.Notice_LEVEL_ERROR}
-		ls.notice(lv[e.Notice.Level], e.Notice.Kind, e.Notice.Text)
+		ls.notice(lv[e.Notice.Level], e.Notice.Kind, NoticeText(e.Notice))
 	}
+}
+
+// AutoDecisionNotice is the JSON carried in Notice.text for kind
+// "auto_decision" (Notice has no structured payload field): the verdict
+// plus "text", the human-readable line.
+type AutoDecisionNotice struct {
+	agent.AutoDecision
+	Text string `json:"text"`
+}
+
+// NoticeText renders a Notice for the wire: plain text, or the
+// AutoDecisionNotice JSON for auto_decision notices.
+func NoticeText(n *agent.Notice) string {
+	if n.Kind != agent.NoticeAutoDecision || n.Auto == nil {
+		return n.Text
+	}
+	b, err := json.Marshal(AutoDecisionNotice{AutoDecision: *n.Auto, Text: n.Text})
+	if err != nil {
+		return n.Text
+	}
+	return string(b)
 }
 
 func (ls *liveSession) onTask(e *tools.TaskEvent) {
