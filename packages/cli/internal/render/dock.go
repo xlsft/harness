@@ -154,6 +154,7 @@ const (
 	ModePlan
 	ModeBypass
 	ModeDontAsk
+	ModeAuto
 )
 
 // Footer is the status row under the input.
@@ -184,6 +185,8 @@ func (s *Styles) ModeLabel(m Mode) string {
 		return s.Error.Render(play+" bypass permissions on") + cycle
 	case ModeDontAsk:
 		return s.Warning.Render(pause+" don't ask mode on") + cycle
+	case ModeAuto:
+		return s.Warning.Render(play+" auto mode on") + cycle
 	}
 	return s.Sec.Render(pause + " manual mode on")
 }

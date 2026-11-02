@@ -377,6 +377,8 @@ func (m *Model) footerMode() render.Mode {
 		return render.ModeBypass
 	case agentv1.PermissionMode_PERMISSION_MODE_DONT_ASK:
 		return render.ModeDontAsk
+	case agentv1.PermissionMode_PERMISSION_MODE_AUTO:
+		return render.ModeAuto
 	}
 	return render.ModeDefault
 }

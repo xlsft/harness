@@ -156,7 +156,7 @@ func (m *Model) cmdStatus(string) tea.Cmd {
 	mode := map[agentv1.PermissionMode]string{
 		agentv1.PermissionMode_PERMISSION_MODE_DEFAULT: "manual", agentv1.PermissionMode_PERMISSION_MODE_ACCEPT_EDITS: "accept edits",
 		agentv1.PermissionMode_PERMISSION_MODE_PLAN: "plan", agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS: "bypass permissions",
-		agentv1.PermissionMode_PERMISSION_MODE_DONT_ASK: "don't ask",
+		agentv1.PermissionMode_PERMISSION_MODE_DONT_ASK: "don't ask", agentv1.PermissionMode_PERMISSION_MODE_AUTO: "auto",
 	}[m.mode]
 	rows := [][2]string{
 		{"Version", m.conn.Version},

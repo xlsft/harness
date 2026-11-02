@@ -369,8 +369,8 @@ func (m *Model) interrupt() tea.Cmd {
 	}
 }
 
-// modeCycle is the shift+tab order (reference §6a). The client has no "auto" mode; bypass is not
-// offered by cycling.
+// modeCycle is the fallback shift+tab order (reference §6a) when the client does not report its
+// modes in InitializeResponse.permission_modes.
 var modeCycle = []agentv1.PermissionMode{
 	agentv1.PermissionMode_PERMISSION_MODE_DEFAULT,
 	agentv1.PermissionMode_PERMISSION_MODE_ACCEPT_EDITS,
@@ -378,10 +378,14 @@ var modeCycle = []agentv1.PermissionMode{
 }
 
 func (m *Model) cycleMode() tea.Cmd {
-	next := modeCycle[0]
-	for i, md := range modeCycle {
+	cycle := modeCycle
+	if len(m.conn.Modes) > 0 {
+		cycle = m.conn.Modes // the client's own order (includes auto when available)
+	}
+	next := cycle[0]
+	for i, md := range cycle {
 		if md == m.mode || (m.mode == agentv1.PermissionMode_PERMISSION_MODE_UNSPECIFIED && i == 0) {
-			next = modeCycle[(i+1)%len(modeCycle)]
+			next = cycle[(i+1)%len(cycle)]
 		}
 	}
 	m.mode = next

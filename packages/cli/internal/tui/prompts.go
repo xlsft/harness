@@ -8,6 +8,7 @@ import (
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 
+	"github.com/xlsft/harness/packages/cli/internal/client"
 	"github.com/xlsft/harness/packages/cli/internal/render"
 )
 
@@ -87,6 +88,9 @@ func (m *Model) addPermission(r *agentv1.PermissionRequest) {
 		m.addCall(c)
 	}
 	p := &permPrompt{req: r, call: c, opts: optionList{n: 3}}
+	if r.GetOneTimeOnly() {
+		p.opts.n = 2
+	}
 	if isEditTool(r.GetToolName()) {
 		p.diff = previewDiff(c, r.GetInputJson())
 		c.Diff = p.diff
@@ -167,6 +171,12 @@ func (m *Model) permView(p *permPrompt, width int) render.Prompt {
 		{Label: "No, and tell harness what to do differently", Key: "(esc)", Placeholder: "tell harness what to do differently"},
 	}
 	pr.Options[1].Placeholder = "and tell harness what to do next"
+	if p.req.GetOneTimeOnly() {
+		pr.Options = []render.Option{pr.Options[0], pr.Options[2]}
+	}
+	if rc := p.req.GetRiskCategories(); len(rc) > 0 {
+		pr.Question = s.Warning.Render("Risk: "+strings.Join(rc, ", ")) + "\n" + pr.Question
+	}
 	pr.Hint = "Esc to cancel · Tab to add a comment"
 	if p.opts.commenting {
 		pr.Hint = "Enter to confirm · Esc to discard the comment"
@@ -176,7 +186,7 @@ func (m *Model) permView(p *permPrompt, width int) render.Prompt {
 }
 
 func (m *Model) permKey(p *permPrompt, k tea.KeyPressMsg) tea.Cmd {
-	if k.String() == "shift+tab" && isEditTool(p.call.Name) && !p.opts.commenting {
+	if k.String() == "shift+tab" && isEditTool(p.call.Name) && !p.opts.commenting && !p.req.GetOneTimeOnly() {
 		return m.answerPerm(p, 1)
 	}
 	chosen, esc := p.opts.key(k, true)
@@ -190,6 +200,9 @@ func (m *Model) permKey(p *permPrompt, k tea.KeyPressMsg) tea.Cmd {
 }
 
 func (m *Model) answerPerm(p *permPrompt, choice int) tea.Cmd {
+	if p.req.GetOneTimeOnly() && choice == 1 {
+		choice = 2 // the list is Yes / No
+	}
 	m.dropPermission(p.req.GetRequestId())
 	comment := strings.TrimSpace(p.opts.comment.String())
 	id := p.req.GetRequestId()
@@ -229,7 +242,7 @@ func (m *Model) answerPerm(p *permPrompt, choice int) tea.Cmd {
 type questionPrompt struct {
 	req     *agentv1.Question
 	idx     int // current question
-	answers [][]string
+	answers []client.Answer
 	checked []bool
 	opts    optionList
 	typing  bool
@@ -284,7 +297,7 @@ func (m *Model) questionKey(p *questionPrompt, k tea.KeyPressMsg) tea.Cmd {
 	if p.typing {
 		switch k.String() {
 		case "enter":
-			return m.answerQuestion(p, []string{strings.TrimSpace(p.free.String())})
+			return m.answerQuestion(p, client.Answer{Text: strings.TrimSpace(p.free.String())})
 		case "esc":
 			p.typing = false
 			return nil
@@ -320,13 +333,13 @@ func (m *Model) questionKey(p *questionPrompt, k tea.KeyPressMsg) tea.Cmd {
 		if len(sel) == 0 {
 			sel = []string{it.GetOptions()[chosen].GetLabel()}
 		}
-		return m.answerQuestion(p, sel)
+		return m.answerQuestion(p, client.Answer{Selected: sel})
 	}
-	return m.answerQuestion(p, []string{it.GetOptions()[chosen].GetLabel()})
+	return m.answerQuestion(p, client.Answer{Selected: []string{it.GetOptions()[chosen].GetLabel()}})
 }
 
-func (m *Model) answerQuestion(p *questionPrompt, sel []string) tea.Cmd {
-	p.answers = append(p.answers, sel)
+func (m *Model) answerQuestion(p *questionPrompt, a client.Answer) tea.Cmd {
+	p.answers = append(p.answers, a)
 	if p.idx+1 < len(p.req.GetItems()) {
 		p.idx++
 		p.reset()
@@ -336,7 +349,8 @@ func (m *Model) answerQuestion(p *questionPrompt, sel []string) tea.Cmd {
 	// Record the answers in the transcript like the reference (§8b).
 	var lines []string
 	for i, q := range p.req.GetItems() {
-		lines = append(lines, "· "+q.GetQuestion()+" → "+strings.Join(p.answers[i], ", "))
+		ans := append(append([]string(nil), p.answers[i].Selected...), p.answers[i].Text)
+		lines = append(lines, "· "+q.GetQuestion()+" → "+strings.Trim(strings.Join(ans, ", "), ", "))
 	}
 	m.closeOpen()
 	m.push(&item{kind: itemNotice, text: "You answered:\n" + strings.Join(lines, "\n")})

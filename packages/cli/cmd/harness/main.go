@@ -25,8 +25,11 @@ import (
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/sdk"
 
+	"github.com/charmbracelet/x/term"
 	"github.com/xlsft/harness/packages/cli/brand"
+
 	"github.com/xlsft/harness/packages/cli/internal/client"
+	"github.com/xlsft/harness/packages/cli/internal/render"
 	"github.com/xlsft/harness/packages/cli/internal/tui"
 )
 
@@ -201,8 +204,12 @@ func cmdMain(ctx context.Context, args []string) int {
 	conn, err := client.Open(ctx, client.Options{
 		Cwd: cwd, Model: *model, PermissionMode: protoMode(pm), AllowedTools: allowed, DisallowedTools: disallowed,
 		AddDirs: addDirs, Resume: *resume, ServerURL: *serverURL, Logger: logger,
+		Trust: func(tr *agentv1.GetWorkspaceTrustResponse) bool { return askTrust(env, cwd, tr) },
 	})
 	fmt.Fprint(os.Stderr, "\x1b[2K\r")
+	if errors.Is(err, client.ErrUntrusted) {
+		return 1
+	}
 	if err != nil {
 		return fail(err)
 	}
@@ -211,4 +218,42 @@ func cmdMain(ctx context.Context, args []string) int {
 		return fail(err)
 	}
 	return 0
+}
+
+// askTrust is the workspace trust prompt shown before the first session in a folder (reference
+// §1a). It runs before the TUI starts, on the plain terminal.
+func askTrust(env brand.Env, cwd string, tr *agentv1.GetWorkspaceTrustResponse) bool {
+	fmt.Fprint(os.Stderr, "\x1b[2K\r")
+	s := render.New(env)
+	width := 80
+	if w, _, err := term.GetSize(os.Stdout.Fd()); err == nil && w > 20 {
+		width = w
+	}
+	var enables []string
+	if tr.GetHasProjectHooks() {
+		enables = append(enables, "project hooks")
+	}
+	if tr.GetHasProjectMcpServers() {
+		enables = append(enables, "MCP servers from .mcp.json")
+	}
+	if tr.GetHasCommittedAllowRules() {
+		enables = append(enables, "allow rules from committed settings")
+	}
+	body := []string{s.Bold.Render(cwd), "", "Quick safety check: is this a project you created or one you trust? If not, review what is in this folder first.", "", "harness will be able to read, edit, and execute files here."}
+	if len(enables) > 0 {
+		body = append(body, "Trusting it also enables "+strings.Join(enables, ", ")+".")
+	}
+	var wrapped []string
+	for _, b := range body {
+		wrapped = append(wrapped, render.Wrap(b, width-4)...)
+	}
+	fmt.Println(s.PromptBox(render.Prompt{
+		Title: "Accessing workspace", Body: wrapped,
+		Options: []render.Option{{Label: "Yes, I trust this folder"}, {Label: "No, exit"}},
+		Hint:    "Type 1 or 2, then Enter",
+	}, width))
+	fmt.Print(s.Accent.Render("❯") + " ")
+	var answer string
+	_, _ = fmt.Scanln(&answer)
+	return strings.TrimSpace(answer) == "1" || strings.EqualFold(strings.TrimSpace(answer), "y")
 }

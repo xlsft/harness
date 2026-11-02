@@ -96,6 +96,9 @@ type Options struct {
 	ServerURL       string
 	// Logger receives client logs; nil discards them (stderr belongs to the TUI).
 	Logger *slog.Logger
+	// Trust is asked before the first session in an untrusted folder (reference §1a); false
+	// aborts Open with ErrUntrusted. nil skips the check.
+	Trust func(*agentv1.GetWorkspaceTrustResponse) bool
 }
 
 // Conn is a live in-process AgentService plus one open session.
@@ -104,6 +107,8 @@ type Conn struct {
 	Email    string
 	ModelIDs []string
 	Catalog  *llm.Catalog
+	// Modes are the permission modes the client supports, in Shift+Tab cycle order.
+	Modes []agentv1.PermissionMode
 
 	api    agentv1connect.AgentServiceClient
 	srv    *server.Server
@@ -115,6 +120,9 @@ type Conn struct {
 	session *agentv1.SessionInfo
 	subStop context.CancelFunc
 }
+
+// ErrUntrusted is returned by Open when the user declines to trust the workspace.
+var ErrUntrusted = errors.New("workspace not trusted")
 
 // ErrNotLoggedIn is returned by Open when no credentials are stored.
 var ErrNotLoggedIn = errors.New("not signed in: run `harness login <server-url>`")
@@ -187,6 +195,20 @@ func Open(ctx context.Context, o Options) (*Conn, error) {
 		return nil, err
 	}
 	c.ModelIDs, c.Version = init.Msg.GetModelIds(), init.Msg.GetClientVersion()
+	c.Modes = init.Msg.GetPermissionModes()
+	if o.Trust != nil {
+		tr, err := c.api.GetWorkspaceTrust(ctx, connect.NewRequest(&agentv1.GetWorkspaceTrustRequest{Path: o.Cwd}))
+		if err == nil && !tr.Msg.GetTrusted() {
+			if !o.Trust(tr.Msg) {
+				c.Close()
+				return nil, ErrUntrusted
+			}
+			if _, err := c.api.SetWorkspaceTrust(ctx, connect.NewRequest(&agentv1.SetWorkspaceTrustRequest{Path: o.Cwd, Trusted: true})); err != nil {
+				c.Close()
+				return nil, err
+			}
+		}
+	}
 	if err := c.NewSession(ctx, o.Resume); err != nil {
 		c.Close()
 		return nil, err
@@ -303,13 +325,20 @@ func (c *Conn) RespondToPermission(ctx context.Context, requestID string, d agen
 }
 
 // AnswerQuestion answers an AskUserQuestion prompt.
-func (c *Conn) AnswerQuestion(ctx context.Context, requestID string, answers [][]string) error {
+// Each answer is the chosen option labels plus an optional free-text answer.
+func (c *Conn) AnswerQuestion(ctx context.Context, requestID string, answers []Answer) error {
 	req := &agentv1.AnswerQuestionRequest{SessionId: c.sid(), RequestId: requestID}
 	for _, a := range answers {
-		req.Answers = append(req.Answers, &agentv1.QuestionAnswer{Selected: a})
+		req.Answers = append(req.Answers, &agentv1.QuestionAnswer{Selected: a.Selected, Text: a.Text})
 	}
 	_, err := c.api.AnswerQuestion(ctx, connect.NewRequest(req))
 	return err
+}
+
+// Answer is the answer to one question of an AskUserQuestion prompt.
+type Answer struct {
+	Selected []string
+	Text     string
 }
 
 // RespondToPlan answers a PlanProposed prompt.
