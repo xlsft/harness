@@ -76,6 +76,8 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_MCP_CATALOG_FETCH_TIMEOUT_MS` | `10000` | Per-server timeout of that refetch (on failure the last list is served) |
 | `HARNESS_MCP_CATALOG_RETENTION_DAYS` | `7` | Catalog snapshots stay fetchable this long after their last use (minimum 7) |
 | `HARNESS_MCP_LAUNCH_RATE_PER_MIN` | `30` | Per-device token bucket for `IssueStdioLaunch` |
+| `HARNESS_VCS_HEARTBEAT_MS` | `20000` | `VcsService.WatchEvents` heartbeat interval (max 20 s) |
+| `HARNESS_VCS_CONFLICT_RECHECK_MS` | `10000` | Delay before open PRs targeting a pushed branch are re-read for conflicts |
 
 ## Endpoints
 
@@ -90,6 +92,7 @@ See [`.env.example`](.env.example). The important ones:
 | `harness.search.v1.SearchService` | `Search`, `ListProviders` |
 | `harness.decision.v1.DecisionService` | `Decide`, `ListProviders` (see Decisions) |
 | `harness.mcp.v1.McpService` | Registry (`List/Get/Create/Update/DeleteServer`), OAuth (`StartOAuth`, `GetOAuthFlow`, `GetAuthStatus`, `RevokeAuth`), devices (`ReportDeviceStatus`, `ListDeviceStatus`, `IssueStdioLaunch`), proxy (`ListTools`, `ListPrompts`, `ListResources`, `CallTool` (server streaming), `GetPrompt`, `ReadResource`), `GetToolCatalog` (see MCP) |
+| `harness.vcs.v1.VcsService` | Connections (admin: `ListConnections`, `GetGitHubAppManifest`, `CompleteGitHubAppManifest`, `PutConnection`, `DeleteConnection`), user auth (`StartUserAuth`, `GetUserAuthStatus`, `RevokeUserAuth`), PRs / CI (`ListRepositories`, `List/Get/Create/MergePullRequest`, `SetAutoMerge`, `ListReviewComments`, `PostComment`, `ListChecks`, `GetCheckLog`), sessions (`LinkSession`, `SetAutoFix`), `WatchEvents` (server streaming), device providers (`ReportDeviceProviders`, `ReportDeviceSnapshot`) (see Code hosts) |
 
 Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`.
 Errors carry a `harness.common.v1.ErrorInfo` detail.
@@ -113,6 +116,12 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 |---|---|
 | `/device` | Device approval page (sign in, enter or confirm the user code, approve/deny) |
 | `GET /api/mcp/oauth/callback` | Redirect target of MCP OAuth flows (`<HARNESS_PUBLIC_URL>/api/mcp/oauth/callback`); result page or 303 to the flow's `return_url` |
+| `POST /api/vcs/github/webhook` | GitHub App webhooks (`X-Hub-Signature-256`) |
+| `POST /api/vcs/gitlab/webhook` | GitLab webhooks (`X-Gitlab-Token`; optional `?connection_id=`) |
+| `GET /api/vcs/oauth/callback` | Redirect target of per-user code host authorization (`StartUserAuth`) |
+| `GET /api/vcs/github/manifest/callback` | Redirect target of the GitHub App manifest flow; registers the app and redirects to its install page |
+| `GET /api/vcs/github/setup` | GitHub App setup URL (after installation) |
+| `GET /api/vcs/sessions/:id/autofix-jobs` | Auto-fix jobs of a session (owner), newest first |
 | `/api/auth/**` | Better Auth (email + password sessions, admin plugin: `/api/auth/admin/create-user`, …) |
 | `/api/admin/providers[/:id]` | Provider CRUD (`GET`, `POST`, `PATCH`, `DELETE`) |
 | `POST /api/admin/providers/:id/discover` | Candidate models from the upstream's `/v1/models` (through the SSRF guard): `upstream_model`, `display_name`, `context_window` / `max_output_tokens` when reported, `catalog_ids` already using it |
@@ -122,7 +131,7 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | `/api/admin/quotas` | Spend limits: `GET` (`?user_id=` adds current spend + effective limits), `PUT` (replace), `PATCH` (merge, `null` removes) |
 | `/api/admin/decision` | Auto-mode decision chain: `GET` (`{config, configured}`, secrets redacted), `PUT` (replace) |
 | `GET /api/admin/decision/log` | Decision audit log, newest first (`?limit=&session_id=&user_id=`) |
-| `PATCH /api/admin/mcp/servers/:id` | `{allow_private_network: bool}`: let the MCP proxy reach private / loopback addresses for this server (reset when its URL moves to another origin) |
+| `PATCH /api/admin/mcp/servers/:id` | `{allow_private_network: bool}`: let the MCP proxy reach private / loopback addresses for this server (reset when its URL moves to another origin; also `Server.allow_private_network`) |
 | `/api/health` | Liveness |
 
 Admin routes accept an admin's Better Auth session cookie or an admin's device access token.
@@ -209,9 +218,13 @@ server. Code in `src/mcp/`.
   re-created on connection loss. Headers, URL secrets and bearer tokens are injected server-side; every connection
   (including OAuth endpoints) goes through the SSRF guard unless an admin set `allow_private_network`. After three
   consecutive failures new connections back off (1 s doubling, max 60 s). `CallTool` streams progress, then one
-  result; cancelling the RPC sends `notifications/cancelled` upstream. Tools of servers with
-  `requires_user_interaction` carry `"requiresUserInteraction": true` in `annotations_json`; upstream annotations
-  are passed through unchanged otherwise.
+  result; cancelling the RPC sends `notifications/cancelled` upstream. `ListTools` of servers with
+  `requires_user_interaction` adds `"requiresUserInteraction": true` to `annotations_json`; the catalog carries it
+  as `CatalogServer.requires_user_interaction` and passes upstream annotations through unchanged.
+- **Private networks.** `Server.allow_private_network` (admins only may turn it on; anyone who may write the server
+  may turn it off) lifts the SSRF address checks; moving `remote.url` to another origin resets it.
+- **Errors.** A server that needs (re)authorization fails with `FAILED_PRECONDITION` + `ERROR_TYPE_NEEDS_AUTH`;
+  other state preconditions (disabled server, stale config hash) with `ERROR_TYPE_FAILED_PRECONDITION`.
 - **stdio.** Devices report availability, approval (bound to `config_hash`), last error and discovered tools.
   `IssueStdioLaunch` requires a device access token, the current hash and an APPROVED report for it; it applies
   per-device / per-OS overrides, substitutes secrets, expires after 60 s, is audit-logged (`mcp_audit`, no values)
@@ -220,6 +233,43 @@ server. Code in `src/mcp/`.
   user with `HARNESS_MCP_TOOLS_TTL_MS`; stdio: latest device report). The version is content-addressed
   (`cat_` + SHA-256 of user, project key and tool lists), each version is stored once and served unchanged, and
   snapshots are kept `HARNESS_MCP_CATALOG_RETENTION_DAYS` (>= 7) after their last use.
+
+## Code hosts
+
+`VcsService` (proto/harness/vcs/v1/vcs.proto, PLAN M4) connects GitHub (github.com, GHES) and GitLab (gitlab.com,
+self-managed). Code in `src/vcs/`.
+
+- **Connections** (admin): one per host. Secrets (private key, client secret, webhook secret, access token) are
+  write-only and stored as one AES-256-GCM blob (HKDF purpose `vcs-secrets`). Base URLs pass the SSRF guard unless
+  `allow_private_network` is set. `ListConnections` re-checks health at most once a minute (GitHub: `GET /app`
+  with the app JWT; GitLab: `GET /user` with the access token, else OIDC metadata); `webhooks_ok` = a verified
+  webhook within 24 h.
+- **GitHub App manifest**: `GetGitHubAppManifest` returns the manifest (checks / statuses / actions read,
+  pull requests / issues write, contents write — needed to merge —, metadata; the PR, check, status, review,
+  comment and push events) and the post URL with a state. GitHub redirects to
+  `/api/vcs/github/manifest/callback`, which exchanges the code (`POST /app-manifests/{code}/conversions`) and
+  redirects to the install page; `CompleteGitHubAppManifest` does the same exchange (idempotent per state).
+- **User auth**: GitHub App user-to-server OAuth (refresh tokens when the app has expiring tokens), GitLab OAuth
+  applications; both with PKCE. Tokens are encrypted per (user, connection) and refreshed 5 min before expiry.
+- **Token choice**: with the caller's token everything runs as the user (writes are attributed to them).
+  Without it, reads use the installation token (GitHub) or access token (GitLab) for admins and for users who
+  own a session on the repository; writes need the user's token on GitHub, and may use the access token on
+  GitLab. Otherwise `FAILED_PRECONDITION` + `ERROR_TYPE_NEEDS_AUTH`.
+- **Normalization**: `repository_key` = host/owner/repo lowercased (as `project_key`); check ids `cr:<id>`
+  (check run), `st:<id>` (status), `job:<id>` (GitLab job); comment ids `r:<id>` / `c:<id>` (GitHub review /
+  conversation), `<discussion>/<note>` (GitLab). Log tails follow the Actions redirect to blob storage through
+  the SSRF guard without credentials.
+- **Events**: webhooks (verified, idempotent by delivery id) and device snapshots become `VcsEvent`s stored for
+  7 days (`vcs_event`, id `vev_<seq>`). Sessions are linked by repository + head branch (synced session metadata
+  `repo` + `git_branch`, or `LinkSession`), and their `pull_request` badge is updated in the session store. A
+  client upsert without `pull_request` keeps the stored badge. `WatchEvents` catches up after `after_id` (empty:
+  from now), sends `CaughtUp`, then live events and heartbeats; users see events of repos their token can
+  access, of their sessions and their own device reports; admins see all.
+- **Auto-fix**: with `SetAutoFix` flags, CHECK_FAILED / REVIEW_COMMENT / CONFLICT_DETECTED on a linked session
+  records a job (`vcs_autofix_job`: failed checks with a 16 KiB log excerpt, comment ids, branches) and emits a
+  follow-up event with `detail_json.auto_fix`. Delivery through the relay is a TODO (`onAutoFixJob` hook).
+- **Device providers** (gh, glab): snapshots are diffed against the stored PR state; repositories on a host with
+  a server connection are ignored (server wins).
 
 ## Quotas
 
@@ -292,6 +342,8 @@ src/
   decision/              DecisionService: rules engine, llm / http providers, chain, config, cache
   search/                SearchService providers (SearXNG)
   mcp/                   McpService: registry + secrets, OAuth, proxy (SDK client, pool), stdio devices, catalog
+  vcs/                   VcsService: connections, GitHub App / user OAuth, github + gitlab clients, webhooks,
+                         events + session linking, auto-fix jobs, device snapshots
   gateway/               canonical types, upstream adapters (anthropic, openai-chat), errors, cost
   rpc/                   Connect layer: proto <-> canonical conversion, service impls, error mapping,
                          fetch handler (Nitro) and h2c listener
@@ -300,7 +352,8 @@ src/
   gen/                   generated protobuf code (do not edit)
 prompts/                 prompt files (see prompts/README.md)
 drizzle/                 SQL migrations (drizzle-kit, pg dialect)
-test/                    vitest; helpers/ (in-process server, mock upstream, MCP + OAuth fixture), fixtures/ (upstream SSE)
+test/                    vitest; helpers/ (in-process server, mock upstream, MCP + OAuth fixture, fake GitHub /
+                         GitLab), fixtures/ (upstream SSE)
 ```
 
 ## Gateway behavior notes
