@@ -191,7 +191,39 @@ function regex(p: unknown, field: string): string {
   } catch (e) {
     throw bad(`${field} is not a valid regular expression: ${(e as Error).message}`);
   }
+  const js = jsOnlySyntax(p);
+  if (js) throw bad(`${field} uses ${js}, which RE2 does not support (clients evaluate rules with RE2)`);
   return p;
+}
+
+/** Names the first JavaScript-only construct in p that RE2 rejects (lookaround, backreference), or "". */
+export function jsOnlySyntax(p: string): string {
+  let inClass = false;
+  for (let i = 0; i < p.length; i++) {
+    const c = p[i];
+    if (c === "\\") {
+      const n = p[i + 1] ?? "";
+      if (!inClass && /[1-9]/.test(n)) return "a backreference";
+      if (!inClass && n === "k" && p[i + 2] === "<") return "a named backreference";
+      i++;
+      continue;
+    }
+    if (inClass) {
+      if (c === "]") inClass = false;
+      continue;
+    }
+    if (c === "[") {
+      inClass = true;
+      if (p[i + 1] === "]" || (p[i + 1] === "^" && p[i + 2] === "]")) i += p[i + 1] === "^" ? 2 : 1;
+      continue;
+    }
+    if (c === "(" && p[i + 1] === "?") {
+      const a = p.slice(i + 2, i + 4);
+      if (a[0] === "=" || a[0] === "!") return "a lookahead";
+      if (a === "<=" || a === "<!") return "a lookbehind";
+    }
+  }
+  return "";
 }
 
 function categories(v: unknown, field: string): RuleCategory[] {

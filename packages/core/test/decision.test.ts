@@ -10,7 +10,7 @@ import { Code, ConnectError, createClient, type Client } from "@connectrpc/conne
 import { createConnectTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { clearDecisionCaches } from "../src/decision/cache.ts";
-import { invalidateDecisionConfig } from "../src/decision/config.ts";
+import { invalidateDecisionConfig, jsOnlySyntax } from "../src/decision/config.ts";
 import { Decision, DecisionService, OnError, RiskCategory, type DecideRequest } from "../src/gen/harness/decision/v1/decision_pb.ts";
 import { MockUpstream, sse } from "./helpers/mock-upstream.ts";
 import { adminApi, createUserAndLogin, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";
@@ -310,6 +310,8 @@ describe("admin config", () => {
     await bad({ classifier_model: "nope" });
     await bad({ on_error: "explode" });
     await bad({ rules: { extra_deny: [{ pattern: "(" }] } });
+    await bad({ rules: { extra_deny: [{ pattern: "git push(?! --dry-run)" }] } });
+    await bad({ rules: { extra_allow: ["(a)\\1"] } });
     await bad({ rules: { extra_deny: [{ pattern: "x", categories: ["scary"] }] } });
     await bad({ providers: [{ type: "http", id: "x", settings: {} }] });
     await bad({ providers: [{ type: "rules" }, { type: "rules" }] });
@@ -365,5 +367,21 @@ describe("forced provider, audit log and rate limit", () => {
     expect(err).toBeInstanceOf(ConnectError);
     expect((err as ConnectError).code).toBe(Code.ResourceExhausted);
     await putConfig({});
+  });
+});
+
+describe("jsOnlySyntax", () => {
+  it("flags constructs RE2 rejects", () => {
+    expect(jsOnlySyntax("a(?=b)")).toBe("a lookahead");
+    expect(jsOnlySyntax("a(?!b)")).toBe("a lookahead");
+    expect(jsOnlySyntax("(?<=a)b")).toBe("a lookbehind");
+    expect(jsOnlySyntax("(?<!a)b")).toBe("a lookbehind");
+    expect(jsOnlySyntax("(a)\\1")).toBe("a backreference");
+    expect(jsOnlySyntax("(?<x>a)\\k<x>")).toBe("a named backreference");
+  });
+  it("accepts RE2-compatible patterns", () => {
+    for (const p of ["\\bnpm publish\\b", "^make docs$", "(?<name>x)", "(?:a|b)", "[(?=]", "\\(\\?=", "[\\]1]", "x{2,3}"]) {
+      expect(jsOnlySyntax(p), p).toBe("");
+    }
   });
 });
