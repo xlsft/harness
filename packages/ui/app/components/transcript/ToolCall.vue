@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // Tool call card (Tool.dc.html): bash (output, running, error), read / glob rows, grep matches, web results,
-// MCP input / output, edits as diffs (DiffView) and subagents (AgentCard).
+// MCP input / output, edits as diffs (DiffView) and subagents (AgentCard). Output bodies scroll past 320px.
 import type { ToolItem } from '~/lib/session/types'
 
-const props = defineProps<{ tool: ToolItem, sessionId: string }>()
+// `headless`: just the body, under a row drawn by the parent (an expanded item of a ToolGroup).
+const props = withDefaults(defineProps<{ tool: ToolItem, sessionId: string, headless?: boolean }>(), { headless: false })
 const store = useSessionStore()
 const now = useNow()
 const open = ref(true)
@@ -83,10 +84,10 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
 
   <div
     v-else
-    class="border border-default"
-    :class="tool.status === 'error' ? 'border-l-2 border-l-bad' : ''"
+    :class="headless ? '' : ['border border-default', tool.status === 'error' ? 'border-l-2 border-l-bad' : '']"
   >
     <div
+      v-if="!headless"
       class="flex items-center gap-[9px] px-3 py-[7px] text-[12.5px] text-muted"
       :class="hasBody ? 'border-b border-default' : ''"
     >
@@ -133,13 +134,13 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
     <!-- error of a non-shell tool (bash shows its errors in its own output) -->
     <pre
       v-if="tool.status === 'error' && kind !== 'bash' && open && errorText"
-      class="m-0 overflow-x-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap text-bad"
+      class="m-0 max-h-80 overflow-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap text-bad"
     >{{ errorText }}</pre>
 
     <!-- bash output -->
     <pre
       v-else-if="kind === 'bash' && open && outputLines.some(l => l.length)"
-      class="m-0 overflow-x-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6]"
+      class="m-0 max-h-80 overflow-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6]"
       :class="tool.status === 'running' ? 'text-muted' : 'text-toned'"
     ><template
 v-for="(line, i) in outputLines"
@@ -156,7 +157,7 @@ v-for="(line, i) in outputLines"
     <!-- grep matches -->
     <div
       v-else-if="kind === 'grep' && open"
-      class="bg-surface py-1.5 text-[12px] leading-[1.65]"
+      class="max-h-80 overflow-y-auto bg-surface py-1.5 text-[12px] leading-[1.65]"
     >
       <template
         v-for="(f, i) in grep"
@@ -188,7 +189,7 @@ v-for="(line, i) in outputLines"
     <!-- web results -->
     <div
       v-else-if="kind === 'web' && open"
-      class="flex flex-col gap-px bg-surface px-1.5 py-1 text-[12px]"
+      class="flex max-h-80 flex-col gap-px overflow-y-auto bg-surface px-1.5 py-1 text-[12px]"
     >
       <!-- WebFetch: the answer from the page (no result list) -->
       <p
@@ -227,7 +228,7 @@ v-for="(line, i) in outputLines"
     <!-- MCP input / output -->
     <div
       v-else-if="kind === 'mcp' && open"
-      class="grid grid-cols-2 bg-surface text-[11.5px] leading-[1.6]"
+      class="grid max-h-80 grid-cols-2 overflow-y-auto bg-surface text-[11.5px] leading-[1.6]"
     >
       <div class="min-w-0 border-r border-default px-3 py-2">
         <div class="pb-1 text-muted">

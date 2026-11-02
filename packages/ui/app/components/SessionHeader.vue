@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // Session header (Main.dc.html): title, pane toggles and the tools menu (HeaderMenu.dc.html).
+import { isDesktop } from '~/lib/desktop'
 import type { SessionState } from '~/lib/session/types'
 import type { IconName } from '~/utils/icons'
 import type { PaneName } from '~/composables/usePanes'
@@ -8,6 +9,8 @@ defineProps<{ session: SessionState }>()
 
 const { isOpen, menu, togglePane } = usePanes()
 const collapsed = useState('sidebar-collapsed', () => false)
+// In the desktop app the header drags the window and, with the sidebar collapsed, makes room for the window buttons.
+const desktop = isDesktop()
 const sidebarOpen = useState('sidebar-open', () => false)
 const toolsOpen = ref(menu.value === 'tools')
 
@@ -21,7 +24,11 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
 </script>
 
 <template>
-  <header class="relative flex h-11 shrink-0 flex-nowrap items-center gap-1.5 border-b border-default px-4">
+  <header
+    data-tauri-drag-region
+    class="relative flex h-11 shrink-0 flex-nowrap items-center gap-1.5 border-b border-default pr-4"
+    :class="desktop ? (collapsed ? 'pl-[92px]' : 'pl-4 max-lg:pl-[92px]') : 'pl-4'"
+  >
     <HIconBtn
       v-if="collapsed"
       icon="sidebar"
@@ -35,14 +42,20 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
       class="-ml-2 lg:hidden"
       @click="sidebarOpen = true"
     />
-    <h1 class="m-0 min-w-0 truncate font-display text-[13.5px] font-semibold text-white">
+    <h1
+      data-tauri-drag-region
+      class="m-0 min-w-0 truncate font-display text-[13.5px] font-semibold text-white"
+    >
       {{ session.meta.title }}
     </h1>
     <HIcon
       name="down"
       class="shrink-0 text-muted"
     />
-    <span class="flex-1" />
+    <span
+      data-tauri-drag-region
+      class="flex-1 self-stretch"
+    />
     <HIconBtn
       v-for="b in buttons"
       :key="b.pane"

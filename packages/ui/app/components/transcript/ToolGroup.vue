@@ -56,11 +56,13 @@ const open = ref<Record<string, boolean>>({})
       </button>
       <div
         v-if="open[t.id]"
-        class="border-t border-default p-2"
+        class="border-t border-default"
+        :class="['Edit', 'MultiEdit', 'Write', 'Task', 'Agent'].includes(t.name) && 'p-2'"
       >
         <ToolCall
           :tool="t"
           :session-id="sessionId"
+          headless
         />
       </div>
     </template>

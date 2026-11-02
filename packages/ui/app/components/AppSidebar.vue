@@ -87,11 +87,16 @@ const nav = [
     }"
     aria-label="Sessions"
   >
-    <div class="flex h-11 shrink-0 items-center gap-[7px] border-b border-default px-3">
-      <span class="size-[11px] bg-line" />
-      <span class="size-[11px] bg-line" />
-      <span class="size-[11px] bg-line" />
-      <span class="flex-1" />
+    <!-- Top row: drags the window in the desktop app, and leaves room for the macOS window buttons there. -->
+    <div
+      data-tauri-drag-region
+      class="flex h-11 shrink-0 items-center gap-[7px] border-b border-default pr-3"
+      :class="desktop ? 'pl-[92px]' : 'pl-3'"
+    >
+      <span
+        data-tauri-drag-region
+        class="flex-1 self-stretch"
+      />
       <HIconBtn
         icon="sidebar"
         label="Toggle sidebar"

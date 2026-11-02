@@ -114,7 +114,7 @@ if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
   model '{"id":"deepseek-flash","display_name":"DeepSeek V4.1 Flash","provider_id":"openrouter-chat","upstream_model":"deepseek/deepseek-v4.1-flash","context_window":1000000,"max_output_tokens":32000,"capabilities":{"images":false,"pdf":false,"parallel_tool_calls":true,"thinking":true,"prompt_cache":true,"effort":[]},"pricing":{"input":0.045,"output":0.50}}'
   model '{"id":"qwen-flash","display_name":"Qwen 3.7 Flash","provider_id":"openrouter-chat","upstream_model":"qwen/qwen3.7-flash","context_window":1000000,"max_output_tokens":32000,"capabilities":{"images":false,"pdf":false,"parallel_tool_calls":true,"thinking":false,"prompt_cache":false,"effort":[]},"pricing":{"input":0.03,"output":0.13}}'
   model '{"id":"glm-flash","display_name":"GLM 5.3 Flash","provider_id":"openrouter-chat","upstream_model":"z-ai/glm-5.3-flash","context_window":1000000,"max_output_tokens":32000,"capabilities":{"images":false,"pdf":false,"parallel_tool_calls":true,"thinking":false,"prompt_cache":false,"effort":[]},"pricing":{"input":0.029,"output":0.092}}'
-  "${CURL[@]}" "${JSON[@]}" -X PUT -d '{"main":"claude-haiku","small":"glm-flash","plan":"claude-haiku"}' \
+  "${CURL[@]}" "${JSON[@]}" -X PUT -d '{"main":"claude-haiku","small":"glm-flash","plan":"claude-haiku","classifier":"claude-haiku"}' \
     "$URL/api/admin/slots" >/dev/null || warn "slots not set"
 fi
 

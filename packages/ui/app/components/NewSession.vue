@@ -8,6 +8,7 @@ import type { EffortName, PermissionModeName } from '~/lib/session/types'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 
 const store = useSessionStore()
+const collapsed = useState('sidebar-collapsed', () => false)
 const route = useRoute()
 const router = useRouter()
 
@@ -154,8 +155,15 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <header class="flex h-11 shrink-0 items-center border-b border-default px-4">
-      <h1 class="m-0 truncate text-[13.5px] font-semibold text-white">
+    <header
+      data-tauri-drag-region
+      class="flex h-11 shrink-0 items-center border-b border-default pr-4"
+      :class="isDesktop() ? (collapsed ? 'pl-[92px]' : 'pl-4 max-lg:pl-[92px]') : 'pl-4'"
+    >
+      <h1
+        data-tauri-drag-region
+        class="m-0 flex-1 truncate text-[13.5px] font-semibold text-white"
+      >
         New session
       </h1>
     </header>
