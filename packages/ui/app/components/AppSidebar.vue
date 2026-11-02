@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // Sessions sidebar (Main.dc.html): window row, wordmark, primary nav, sessions grouped by project, account footer.
+import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
 import type { SessionState } from '~/lib/session/types'
 
 const store = useSessionStore()
@@ -46,6 +47,15 @@ function openSession(id: string) {
 function newSession(cwd?: string) {
   open.value = false
   navigateTo({ path: '/', query: { new: '1', ...(cwd ? { cwd } : {}) } })
+}
+
+// Account menu (settings button): who is signed in; the desktop app can sign out here.
+const accountOpen = ref(false)
+const desktop = isDesktop()
+async function signOut() {
+  accountOpen.value = false
+  await desktopLogout()
+  window.location.reload()
 }
 
 const nav = [
@@ -175,10 +185,41 @@ const nav = [
       <span class="flex size-[22px] items-center justify-center bg-accent text-[10.5px] font-bold text-white">X</span>
       <span class="text-[12px] whitespace-nowrap text-white">xlsft</span><span class="text-[10.5px] whitespace-nowrap text-muted">· self-hosted</span>
       <span class="flex-1" />
-      <HIconBtn
-        icon="settings"
-        label="Settings"
-      />
+      <UPopover
+        v-model:open="accountOpen"
+        :content="{ side: 'top', align: 'end', sideOffset: 6 }"
+      >
+        <HIconBtn
+          icon="settings"
+          label="Settings"
+          :pressed="accountOpen"
+        />
+        <template #content>
+          <div
+            role="menu"
+            aria-label="Account"
+            class="w-[240px] border border-accented bg-hover py-1 text-[12.5px]"
+          >
+            <div class="px-2.5 py-1.5">
+              <div class="truncate text-white">
+                {{ store.userEmail || 'Not signed in' }}
+              </div>
+              <div class="text-[11px] text-muted">
+                {{ desktop ? 'This computer · harness desktop' : 'Web' }}
+              </div>
+            </div>
+            <template v-if="desktop">
+              <div class="my-1 h-px bg-line" />
+              <PaneMenuItem
+                danger
+                @click="signOut"
+              >
+                Sign out
+              </PaneMenuItem>
+            </template>
+          </div>
+        </template>
+      </UPopover>
       <HIconBtn
         icon="search"
         label="Search"

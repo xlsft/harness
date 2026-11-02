@@ -1,0 +1,15 @@
+{
+  "name": "harness-desktop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sidecar": "bash scripts/build-sidecar.sh",
+    "dev": "bash scripts/build-sidecar.sh && tauri dev",
+    "build": "bash scripts/build-sidecar.sh && tauri build",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4"
+  },
+  "packageManager": "pnpm@12.15.0"
+}

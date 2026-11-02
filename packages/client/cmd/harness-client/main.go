@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -69,7 +70,7 @@ func run(args []string) int {
 		case "logout":
 			return cmdLogout(ctx)
 		case "whoami":
-			return cmdWhoami(ctx)
+			return cmdWhoami(ctx, args[1:])
 		case "serve":
 			return cmdServe(ctx, args[1:])
 		case "import":
@@ -89,17 +90,42 @@ func fail(err error) int {
 	return 1
 }
 
+// jsonLine prints one JSON object per line (the --json output of login and whoami, read by the desktop app).
+func jsonLine(v any) {
+	b, _ := json.Marshal(v)
+	fmt.Println(string(b))
+}
+
 func cmdLogin(ctx context.Context, args []string) int {
+	asJSON := len(args) > 0 && args[0] == "--json"
+	if asJSON {
+		args = args[1:]
+	}
 	if len(args) != 1 {
-		return fail(errors.New("usage: harness-client login <server-url>"))
+		return fail(errors.New("usage: harness-client login [--json] <server-url>"))
 	}
 	url := strings.TrimRight(args[0], "/")
 	host, _ := os.Hostname()
 	svc := auth.NewConnectService(url, nil)
 	store := auth.DefaultStore(config.CredentialsFile())
-	_, grant, err := auth.Login(ctx, svc, store, url, auth.DeviceInfo{ClientName: "harness-client", DeviceName: host, OS: runtime.GOOS, Arch: runtime.GOARCH}, os.Stdout)
+	info := auth.DeviceInfo{ClientName: "harness-client", DeviceName: host, OS: runtime.GOOS, Arch: runtime.GOARCH}
+	prompt := func(uri, code string) { fmt.Printf("To sign in, open %s\nand confirm the code: %s\n", uri, code) }
+	if asJSON {
+		prompt = func(uri, code string) {
+			jsonLine(map[string]string{"event": "code", "verification_uri": uri, "user_code": code})
+		}
+	}
+	_, grant, err := auth.LoginWith(ctx, svc, store, url, info, prompt)
 	if err != nil {
+		if asJSON {
+			jsonLine(map[string]string{"event": "error", "message": err.Error()})
+			return 1
+		}
 		return fail(err)
+	}
+	if asJSON {
+		jsonLine(map[string]string{"event": "signed_in", "server": url, "email": grant.User.Email, "device_id": grant.DeviceID})
+		return 0
 	}
 	fmt.Printf("Signed in to %s as %s (device %s)\n", url, grant.User.Email, grant.DeviceID)
 	return 0
@@ -129,17 +155,26 @@ func cmdLogout(ctx context.Context) int {
 	return 0
 }
 
-func cmdWhoami(ctx context.Context) int {
+func cmdWhoami(ctx context.Context, args []string) int {
+	asJSON := len(args) > 0 && args[0] == "--json"
 	m, err := manager()
-	if err != nil {
-		return fail(err)
+	if err == nil {
+		var me *auth.Me
+		if me, err = m.Me(ctx); err == nil && asJSON {
+			jsonLine(map[string]any{"signed_in": true, "server": m.Credentials().Server, "email": me.User.Email, "name": me.User.Name, "role": me.User.Role, "device": me.Device.Name})
+			return 0
+		}
+		if err == nil {
+			fmt.Printf("%s <%s> role=%s\nserver: %s\ndevice: %s %s\n", me.User.Name, me.User.Email, me.User.Role, m.Credentials().Server, me.Device.ID, me.Device.Name)
+			return 0
+		}
 	}
-	me, err := m.Me(ctx)
-	if err != nil {
-		return fail(err)
+	if asJSON {
+		// Not signed in (or the session is no longer valid): a normal answer, not a failure.
+		jsonLine(map[string]any{"signed_in": false, "error": err.Error()})
+		return 0
 	}
-	fmt.Printf("%s <%s> role=%s\nserver: %s\ndevice: %s %s\n", me.User.Name, me.User.Email, me.User.Role, m.Credentials().Server, me.Device.ID, me.Device.Name)
-	return 0
+	return fail(err)
 }
 
 // sharedAdapters creates one gateway and prompt source for all sessions.

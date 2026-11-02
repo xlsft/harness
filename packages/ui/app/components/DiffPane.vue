@@ -5,6 +5,7 @@
 // a turn runs) and stays on its line marked as sent.
 import type { SessionState, ToolItem } from '~/lib/session/types'
 import type { DiffComment, ThreadEntry } from '~/components/transcript/DiffView.vue'
+import { isDesktop, openWithDefaultApp, revealInFolder } from '~/lib/desktop'
 
 const props = defineProps<{ session: SessionState }>()
 const { closePane } = usePanes()
@@ -96,6 +97,7 @@ const summary = computed(() => groups.value.map(g => ({ kind: kindOf(g.path), pa
 const collapsed = useState<Record<string, boolean>>(`diff-collapsed-${props.session.meta.id}`, () => ({}))
 const viewed = useState<Record<string, boolean>>(`diff-viewed-${props.session.meta.id}`, () => ({}))
 const fileMenu = ref('')
+const desktop = isDesktop()
 const copyMenu = ref(false)
 const { openPane } = usePanes()
 const filesOpen = useState<string>('files-open-path', () => '')
@@ -308,14 +310,16 @@ async function copy(text: string) {
                     Open file
                   </PaneMenuItem>
                   <PaneMenuItem
-                    sub
-                    disabled
+                    :disabled="!desktop"
+                    :value="desktop ? '' : 'desktop'"
+                    @click="desktop && (openWithDefaultApp(g.path), fileMenu = '')"
                   >
-                    Open in
+                    Open in default app
                   </PaneMenuItem>
                   <PaneMenuItem
-                    disabled
-                    value="desktop"
+                    :disabled="!desktop"
+                    :value="desktop ? '' : 'desktop'"
+                    @click="desktop && (revealInFolder(g.path), fileMenu = '')"
                   >
                     Show in Finder
                   </PaneMenuItem>

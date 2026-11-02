@@ -5,6 +5,7 @@
 // client with the first message. Shown for ?new=1 (sidebar New session, ⌘N) and on a client with no sessions.
 import type { Branch, RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
+import { isDesktop, pickFolder } from '~/lib/desktop'
 
 const store = useSessionStore()
 const route = useRoute()
@@ -87,7 +88,7 @@ onMounted(async () => {
 
 // "+" next to a sidebar group while this screen is already open.
 watch(() => route.query.cwd, (asked) => {
-  if (typeof asked === 'string' && asked) pickFolder(asked)
+  if (typeof asked === 'string' && asked) choose(asked)
 })
 
 watch(cwd, () => {
@@ -95,7 +96,18 @@ watch(cwd, () => {
   loadBranches()
 })
 
-function pickFolder(path: string) {
+// "Open folder…": the native picker in the desktop app, the client's directory browser on the web.
+async function browse() {
+  menu.value = ''
+  if (!isDesktop()) {
+    browsing.value = true
+    return
+  }
+  const path = await pickFolder(cwd.value)
+  if (path) choose(path)
+}
+
+function choose(path: string) {
   cwd.value = path
   menu.value = ''
   browsing.value = false
@@ -156,7 +168,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           :title="f.path"
           class="flex cursor-default items-center gap-2.5 border-l-2 px-3 py-2"
           :class="f.path === cwd ? 'border-accent bg-raised text-white' : 'border-transparent text-toned hover:bg-raised hover:text-white'"
-          @click="pickFolder(f.path)"
+          @click="choose(f.path)"
         >
           <HIcon
             name="folder"
@@ -295,8 +307,8 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
                 :current="current"
                 :base-ref="baseRef"
                 :worktree="worktree"
-                @select="pickFolder"
-                @browse="menu = ''; browsing = true"
+                @select="choose"
+                @browse="browse"
                 @branch="baseRef = $event"
               />
             </template>
@@ -405,7 +417,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
       <template #content>
         <NewDirectoryBrowser
           :start="cwd"
-          @pick="pickFolder"
+          @pick="choose"
           @close="browsing = false"
         />
       </template>

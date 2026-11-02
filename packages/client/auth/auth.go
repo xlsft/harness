@@ -188,6 +188,14 @@ func (m *Manager) Refresh(ctx context.Context) (string, error) {
 // Login runs the device flow against svc, prints instructions to out and
 // stores the resulting credentials. It returns a ready Manager.
 func Login(ctx context.Context, svc Service, store Store, server string, info DeviceInfo, out io.Writer) (*Manager, *DeviceGrant, error) {
+	return LoginWith(ctx, svc, store, server, info, func(uri, userCode string) {
+		fmt.Fprintf(out, "To sign in, open %s\nand confirm the code: %s\n", uri, userCode)
+	})
+}
+
+// LoginWith is Login with the instructions handed to prompt (the URL to open
+// and the code to confirm) instead of printed, for frontends that show them.
+func LoginWith(ctx context.Context, svc Service, store Store, server string, info DeviceInfo, prompt func(uri, userCode string)) (*Manager, *DeviceGrant, error) {
 	code, err := svc.RequestDeviceCode(ctx, info)
 	if err != nil {
 		return nil, nil, fmt.Errorf("request device code: %w", err)
@@ -196,7 +204,7 @@ func Login(ctx context.Context, svc Service, store Store, server string, info De
 	if uri == "" {
 		uri = code.VerificationURI
 	}
-	fmt.Fprintf(out, "To sign in, open %s\nand confirm the code: %s\n", uri, code.UserCode)
+	prompt(uri, code.UserCode)
 	interval := time.Duration(code.Interval) * time.Second
 	if interval <= 0 {
 		interval = 5 * time.Second
