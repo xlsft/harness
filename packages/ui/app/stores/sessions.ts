@@ -30,6 +30,27 @@ const EFFORT_TO_PB: Record<EffortName, Effort> = {
   max: Effort.MAX
 }
 
+interface Marks { pinned: string[], unread: string[], archived: string[], titles: Record<string, string> }
+const MARKS = 'harness-session-marks'
+
+function loadMarks(): Marks {
+  const empty: Marks = { pinned: [], unread: [], archived: [], titles: {} }
+  if (!import.meta.client) return empty
+  try {
+    return { ...empty, ...JSON.parse(localStorage.getItem(MARKS) ?? '{}') as Partial<Marks> }
+  } catch {
+    return empty
+  }
+}
+
+function saveMarks(m: Marks) {
+  try {
+    localStorage.setItem(MARKS, JSON.stringify(m))
+  } catch {
+    // Not remembered.
+  }
+}
+
 // Errors that mean the client is unreachable rather than that a call was refused.
 export const isNetworkError = (msg: string) => /unavailable|failed to fetch|load failed|networkerror|network error|connection (refused|reset|lost)/i.test(msg)
 
@@ -64,6 +85,8 @@ export const useSessionStore = defineStore('sessions', {
     // Messages typed while a turn runs; sent one by one when the session becomes idle (✕ removes one).
     localQueue: {} as Record<string, LocalQueued[]>,
     effort: {} as Record<string, EffortName>,
+    // Per-session sidebar state kept in this browser: pinned, marked unread, renamed, archived.
+    marks: loadMarks(),
     unsubscribers: {} as Record<string, () => void>
   }),
 
@@ -72,7 +95,10 @@ export const useSessionStore = defineStore('sessions', {
       return state.sessions[state.currentId]
     },
     sessionList(state): SessionState[] {
-      return state.order.map(id => state.sessions[id]!).filter(Boolean)
+      return state.order.map(id => state.sessions[id]!).filter(s => s && !state.marks.archived.includes(s.meta.id))
+    },
+    titleOf(state) {
+      return (s: SessionState) => state.marks.titles[s.meta.id] || s.meta.title
     }
   },
 
@@ -122,6 +148,7 @@ export const useSessionStore = defineStore('sessions', {
     open(id: string, resumed = false) {
       if (!this.sessions[id]) return
       this.currentId = id
+      if (this.marks.unread.includes(id)) this.setMark('unread', id, false)
       if (this.unsubscribers[id] || !this.transport) return
       const state = this.sessions[id]!
       this.unsubscribers[id] = this.transport.subscribe(id, state.lastSeq, {
@@ -148,6 +175,45 @@ export const useSessionStore = defineStore('sessions', {
           if (isNetworkError(msg)) this.connectionLost = true
         }
       })
+    },
+
+    // A new session continuing from a copy of this one's transcript.
+    async fork(id: string) {
+      const s = this.sessions[id]
+      if (!s || !this.transport) return
+      const info = await this.transport.createSession({ cwd: s.meta.cwd, resumeSessionId: id, fork: true })
+      this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
+      this.order = [info.id, ...this.order.filter(x => x !== info.id)]
+      this.open(info.id)
+      return info.id
+    },
+
+    setMark(kind: 'pinned' | 'unread' | 'archived', id: string, on: boolean) {
+      const list = this.marks[kind].filter(x => x !== id)
+      this.marks[kind] = on ? [id, ...list] : list
+      saveMarks(this.marks)
+    },
+
+    rename(id: string, title: string) {
+      const t = title.trim()
+      const { [id]: _, ...titles } = this.marks.titles
+      this.marks.titles = t && t !== this.sessions[id]?.meta.title ? { ...titles, [id]: t } : titles
+      saveMarks(this.marks)
+    },
+
+    // Hides the session from the sidebar and stops it on the client; its transcript stays and it can be resumed.
+    async archive(id: string) {
+      this.setMark('archived', id, true)
+      this.setMark('pinned', id, false)
+      const { [id]: stop, ...rest } = this.unsubscribers
+      stop?.()
+      this.unsubscribers = rest
+      if (this.currentId === id) this.currentId = ''
+      try {
+        await this.transport?.closeSession?.(id)
+      } catch {
+        // Not live on the client; nothing to stop.
+      }
     },
 
     async resume(id: string) {

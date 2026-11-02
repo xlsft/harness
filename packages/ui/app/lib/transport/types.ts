@@ -37,6 +37,8 @@ export interface NewSessionOptions {
   permissionMode?: PermissionMode
   // Resume this closed session (from its transcript) instead of starting a new one.
   resumeSessionId?: string
+  // With resumeSessionId: start a new session from a copy of that transcript.
+  fork?: boolean
   // Run in a new git worktree of the repository containing cwd.
   worktree?: { name?: string, branch?: string, baseRef?: string }
 }
@@ -63,6 +65,8 @@ export interface SessionTransport {
 
   sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery): Promise<void>
   interrupt(sessionId: string): Promise<void>
+  // Stops a live session on the client (its transcript stays, so it can be resumed).
+  closeSession?(sessionId: string): Promise<void>
   respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision, rule?: string, comment?: string): Promise<void>
   answerQuestion(sessionId: string, requestId: string, answers: string[][]): Promise<void>
   respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback?: string): Promise<void>

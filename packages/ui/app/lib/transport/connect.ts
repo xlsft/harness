@@ -48,6 +48,7 @@ export class ConnectTransport implements SessionTransport {
       effort: opts.effort,
       permissionMode: opts.permissionMode,
       resumeSessionId: opts.resumeSessionId ?? '',
+      fork: opts.fork ?? false,
       worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined
     })
     if (!res.session) throw new Error('the client returned no session')
@@ -84,6 +85,10 @@ export class ConnectTransport implements SessionTransport {
   async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
     const content = [create(ContentBlockSchema, { block: { case: 'text', value: { text } } })]
     await this.client.sendUserMessage({ sessionId, uuid, content, delivery })
+  }
+
+  async closeSession(sessionId: string) {
+    await this.client.closeSession({ sessionId })
   }
 
   async interrupt(sessionId: string) {

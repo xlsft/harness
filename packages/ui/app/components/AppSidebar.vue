@@ -11,9 +11,12 @@ const expanded = ref<Record<string, boolean>>({})
 
 const VISIBLE = 5
 
+const pinned = computed(() => store.marks.pinned.map(id => store.sessionList.find(s => s.meta.id === id)).filter((s): s is SessionState => !!s))
+
 const groups = computed(() => {
   const map = new Map<string, SessionState[]>()
   for (const s of store.sessionList) {
+    if (store.marks.pinned.includes(s.meta.id)) continue
     const name = basename(s.meta.repo || s.meta.worktree?.repositoryPath || s.meta.cwd) || 'other'
     if (!map.has(name)) map.set(name, [])
     map.get(name)!.push(s)
@@ -38,6 +41,20 @@ function mark(s: SessionState) {
   if (s.meta.pullRequest) return { text: `PR ${s.meta.pullRequest.number}`, cls: 'text-muted' }
   if (s.meta.additions) return { text: `+${s.meta.additions}`, cls: 'text-ok' }
   return null
+}
+
+// The session whose menu is open (the "…" or a right click) and the one being renamed in place.
+const menuFor = ref('')
+const renaming = ref('')
+const draft = ref('')
+function startRename(s: SessionState) {
+  draft.value = store.titleOf(s)
+  renaming.value = s.meta.id
+  nextTick(() => (document.querySelector('[data-rename]') as HTMLInputElement | null)?.select())
+}
+function finishRename(save: boolean) {
+  if (save && renaming.value) store.rename(renaming.value, draft.value)
+  renaming.value = ''
 }
 
 function openSession(id: string) {
@@ -135,13 +152,20 @@ const nav = [
 
     <div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[5px] py-[11px]">
       <section
-        v-for="g in groups"
+        v-for="g in [...(pinned.length ? [{ name: 'Pinned', cwd: '', sessions: pinned, more: false, pin: true }] : []), ...groups]"
         :key="g.name"
         class="flex flex-col"
       >
         <div class="group/head flex items-center gap-1 px-[9px] pb-1 text-muted">
+          <HIcon
+            v-if="'pin' in g"
+            name="pin"
+            :size="11"
+            class="shrink-0"
+          />
           <span class="truncate text-[12px]">{{ g.name }}</span>
           <HIcon
+            v-if="!('pin' in g)"
             name="down"
             :size="11"
             class="shrink-0"
@@ -161,28 +185,59 @@ const nav = [
             />
           </button>
         </div>
-        <a
+        <template
           v-for="s in g.sessions"
           :key="s.meta.id"
-          href="#"
-          class="nav-row px-[9px] hover:bg-hover"
-          :class="!onPage && s.meta.id === store.currentId ? 'nav-row-current' : ''"
-          @click.prevent="openSession(s.meta.id)"
         >
-          <span class="truncate">{{ s.meta.title }}</span>
-          <span class="flex-1" />
-          <template v-if="mark(s)">
+          <input
+            v-if="renaming === s.meta.id"
+            v-model="draft"
+            data-rename
+            aria-label="Session title"
+            class="mx-[2px] h-7 border border-accent bg-default px-[7px] text-[12.5px] text-white outline-none"
+            @keydown.enter.prevent="finishRename(true)"
+            @keydown.esc.prevent="finishRename(false)"
+            @blur="finishRename(true)"
+          >
+          <a
+            v-else
+            href="#"
+            class="group/row nav-row px-[9px] hover:bg-hover"
+            :class="[!onPage && s.meta.id === store.currentId ? 'nav-row-current' : '', menuFor === s.meta.id ? 'bg-hover' : '']"
+            @click.prevent="openSession(s.meta.id)"
+            @contextmenu.prevent="menuFor = s.meta.id"
+            @dblclick.prevent="startRename(s)"
+          >
             <span
-              v-if="mark(s)!.dot"
-              class="size-1.5 shrink-0 bg-accent"
+              class="truncate"
+              :class="store.marks.unread.includes(s.meta.id) && 'font-semibold text-white'"
+            >{{ store.titleOf(s) }}</span>
+            <span class="flex-1" />
+            <SessionMenu
+              :session="s"
+              :open="menuFor === s.meta.id"
+              @update:open="menuFor = $event ? s.meta.id : ''"
+              @rename="startRename(s)"
             />
-            <span
-              v-else
-              class="text-[10.5px]"
-              :class="mark(s)!.cls"
-            >{{ mark(s)!.text }}</span>
-          </template>
-        </a>
+            <template v-if="menuFor !== s.meta.id">
+              <span
+                v-if="store.marks.unread.includes(s.meta.id)"
+                class="size-1.5 shrink-0 rounded-full bg-accent group-hover/row:hidden"
+              />
+              <template v-else-if="mark(s)">
+                <span
+                  v-if="mark(s)!.dot"
+                  class="size-1.5 shrink-0 bg-accent group-hover/row:hidden"
+                />
+                <span
+                  v-else
+                  class="text-[10.5px] group-hover/row:hidden"
+                  :class="mark(s)!.cls"
+                >{{ mark(s)!.text }}</span>
+              </template>
+            </template>
+          </a>
+        </template>
         <a
           v-if="g.more"
           href="#"

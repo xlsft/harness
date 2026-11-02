@@ -5,6 +5,8 @@ import type { SessionState } from '~/lib/session/types'
 import type { IconName } from '~/utils/icons'
 import type { PaneName } from '~/composables/usePanes'
 
+const store = useSessionStore()
+
 defineProps<{ session: SessionState }>()
 
 const { isOpen, menu, togglePane } = usePanes()
@@ -46,7 +48,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
       data-tauri-drag-region
       class="m-0 min-w-0 truncate font-display text-[13.5px] font-semibold text-white"
     >
-      {{ session.meta.title }}
+      {{ store.titleOf(session) }}
     </h1>
     <HIcon
       name="down"
