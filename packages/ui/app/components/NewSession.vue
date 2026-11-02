@@ -25,7 +25,8 @@ const mode = ref<PermissionModeName>('default')
 const text = ref('')
 const busy = ref(false)
 const error = ref('')
-const menu = ref<'' | 'env' | 'folder' | 'model' | 'mode'>('')
+// One open menu at a time; the environment menu has two triggers (centre card and footer chip).
+const menu = ref<'' | 'env' | 'env-centre' | 'folder' | 'model' | 'mode'>('')
 const browsing = ref(false)
 const input = ref<HTMLTextAreaElement | null>(null)
 
@@ -168,9 +169,9 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           No recent folders: pick one below.
         </div>
         <UPopover
-          :open="menu === 'env'"
+          :open="menu === 'env-centre'"
           :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
-          @update:open="menu = $event ? 'env' : ''"
+          @update:open="menu = $event ? 'env-centre' : ''"
         >
           <button
             type="button"
