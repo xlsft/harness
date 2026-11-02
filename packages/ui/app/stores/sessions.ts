@@ -91,9 +91,16 @@ export const useSessionStore = defineStore('sessions', {
     },
 
     // Starts a session on the client and opens it; it goes to the top of the list.
-    async createSession(cwd: string, model = '') {
+    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string } }) {
       if (!this.transport) throw new Error('not connected')
-      const info = await this.transport.createSession(cwd, model)
+      const info = await this.transport.createSession({
+        cwd: opts.cwd,
+        model: opts.model,
+        effort: opts.effort ? EFFORT_TO_PB[opts.effort] : undefined,
+        permissionMode: opts.mode ? MODE_TO_PB[opts.mode] : undefined,
+        worktree: opts.worktree
+      })
+      if (opts.effort) this.effort[info.id] = opts.effort
       this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
       this.order = [info.id, ...this.order.filter(id => id !== info.id)]
       this.open(info.id)

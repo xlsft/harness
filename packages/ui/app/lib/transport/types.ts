@@ -3,6 +3,9 @@
 
 import type {
   InitializeResponse,
+  ListBranchesResponse,
+  ListDirectoryResponse,
+  RecentFolder,
   PermissionMode,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
@@ -22,6 +25,16 @@ export interface ModelInfo {
   offline?: boolean
 }
 
+// What a new session starts with (the new-session screen's chips).
+export interface NewSessionOptions {
+  cwd: string
+  model?: string
+  effort?: Effort
+  permissionMode?: PermissionMode
+  // Run in a new git worktree of the repository containing cwd.
+  worktree?: { name?: string, branch?: string, baseRef?: string }
+}
+
 export interface SubscribeHandlers {
   onEvent: (event: SessionEvent) => void
   onError?: (err: unknown) => void
@@ -33,8 +46,12 @@ export interface SessionTransport {
 
   initialize(): Promise<InitializeResponse>
   listSessions(): Promise<SessionInfo[]>
-  // Starts a session in `cwd` on the client's machine (model: the client's default when empty).
-  createSession(cwd: string, model?: string): Promise<SessionInfo>
+  // Starts a session on the client's machine (model: the client's default when empty).
+  createSession(opts: NewSessionOptions): Promise<SessionInfo>
+  // New-session pickers: recent folders, a directory browser and the branches of a repository.
+  listRecentFolders(): Promise<RecentFolder[]>
+  listDirectory(path: string): Promise<ListDirectoryResponse>
+  listBranches(cwd: string): Promise<ListBranchesResponse>
   // Replays events after `afterSeq`, then streams live ones. Returns an unsubscribe function.
   subscribe(sessionId: string, afterSeq: number, handlers: SubscribeHandlers): () => void
 

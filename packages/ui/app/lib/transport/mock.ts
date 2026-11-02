@@ -9,6 +9,9 @@
 
 import {
   InitializeResponseSchema,
+  ListBranchesResponseSchema,
+  ListDirectoryResponseSchema,
+  RecentFolderSchema,
   SessionInfoSchema,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
@@ -21,7 +24,35 @@ import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
-import type { SessionTransport, SubscribeHandlers } from './types'
+import type { NewSessionOptions, SessionTransport, SubscribeHandlers } from './types'
+
+// Folders and a small directory tree for the new-session pickers.
+const MOCK_HOME = '/Users/xlsft'
+const MOCK_FOLDERS = [
+  { path: '/Users/xlsft/Projects/xlsft/harness', branch: 'main', repo: 'github.com/xlsft/harness' },
+  { path: '/Users/xlsft/Projects/xlsft/proxy.xlsft.ru', branch: 'main', repo: 'github.com/xlsft/proxy.xlsft.ru' },
+  { path: '/Users/xlsft/Projects/xlsft/dashboard', branch: 'develop', repo: 'github.com/xlsft/dashboard' },
+  { path: '/Users/xlsft/Projects/xlsft/youtrack-mcp', branch: 'main', repo: 'github.com/xlsft/youtrack-mcp' },
+  { path: '/Users/xlsft/Projects/beget/auth', branch: 'main', repo: 'gitlab.beget.ru/web/auth' },
+  { path: '/Users/xlsft/Projects/beget/landing', branch: 'main', repo: 'gitlab.beget.ru/web/landing' }
+]
+const MOCK_TREE: Record<string, string[]> = {
+  '/': ['Users'],
+  '/Users': ['xlsft'],
+  '/Users/xlsft': ['Desktop', 'Documents', 'Downloads', 'Projects'],
+  '/Users/xlsft/Desktop': [],
+  '/Users/xlsft/Documents': [],
+  '/Users/xlsft/Downloads': [],
+  '/Users/xlsft/Projects': ['beget', 'xlsft'],
+  '/Users/xlsft/Projects/beget': ['auth', 'landing'],
+  '/Users/xlsft/Projects/xlsft': ['dashboard', 'harness', 'proxy.xlsft.ru', 'youtrack-mcp'],
+  '/Users/xlsft/Projects/beget/auth': [],
+  '/Users/xlsft/Projects/beget/landing': [],
+  '/Users/xlsft/Projects/xlsft/dashboard': [],
+  '/Users/xlsft/Projects/xlsft/harness': ['deploy', 'docs', 'packages', 'proto', 'scripts'],
+  '/Users/xlsft/Projects/xlsft/proxy.xlsft.ru': [],
+  '/Users/xlsft/Projects/xlsft/youtrack-mcp': []
+}
 
 interface MockSession {
   info: SessionInfo
@@ -85,16 +116,59 @@ export class MockTransport implements SessionTransport {
     return [...this.sessions.values()].map(s => s.info)
   }
 
-  async createSession(cwd: string, model = '') {
+  async createSession(opts: NewSessionOptions) {
+    const name = opts.worktree ? (opts.worktree.name || `brisk-otter-${(this.sessions.size + 1).toString(16).padStart(4, '0')}`) : ''
+    const repo = opts.cwd
     const info = create(SessionInfoSchema, {
       id: `ses_mock_${this.sessions.size + 1}`,
       title: 'New session',
-      cwd,
-      model: model || MODELS[0]!.id,
+      cwd: opts.worktree ? `${repo}/.harness/worktrees/${name}` : opts.cwd,
+      gitBranch: opts.worktree ? (opts.worktree.branch || `harness/${name}`) : 'main',
+      model: opts.model || MODELS[0]!.id,
+      permissionMode: opts.permissionMode,
+      worktree: opts.worktree ? { path: `${repo}/.harness/worktrees/${name}`, branch: opts.worktree.branch || `harness/${name}`, baseRef: opts.worktree.baseRef || 'main', repositoryPath: repo } : undefined,
       updatedAt: new Date(this.now()).toISOString()
     })
     this.sessions.set(info.id, { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null })
     return info
+  }
+
+  async listRecentFolders() {
+    return MOCK_FOLDERS.map((f, i) => create(RecentFolderSchema, {
+      path: f.path,
+      name: f.path.split('/').pop()!,
+      gitBranch: f.branch,
+      repo: f.repo,
+      exists: true,
+      lastUsedAt: new Date(this.now() - i * 3_600_000).toISOString()
+    }))
+  }
+
+  async listDirectory(path: string) {
+    const dir = (path || MOCK_HOME).replace(/^~(?=\/|$)/, MOCK_HOME).replace(/\/+$/, '') || '/'
+    const children = MOCK_TREE[dir]
+    if (!children) throw new Error(`${dir}: no such directory`)
+    const parent = dir === '/' ? '' : dir.slice(0, dir.lastIndexOf('/')) || '/'
+    return create(ListDirectoryResponseSchema, {
+      path: dir,
+      parent,
+      home: MOCK_HOME,
+      entries: children.map(name => ({ name, gitRepository: MOCK_FOLDERS.some(f => f.path === `${dir}/${name}`) }))
+    })
+  }
+
+  async listBranches(cwd: string) {
+    const folder = MOCK_FOLDERS.find(f => cwd === f.path || cwd.startsWith(`${f.path}/`))
+    if (!folder) return create(ListBranchesResponseSchema, {})
+    return create(ListBranchesResponseSchema, {
+      repositoryPath: folder.path,
+      current: folder.branch,
+      branches: [folder.branch, 'feat/relay', 'fix/composer-height', 'release/0.1'].map((name, i) => ({
+        name,
+        checkedOut: i === 0,
+        committedAt: new Date(this.now() - i * 86_400_000).toISOString()
+      }))
+    })
   }
 
   async listModels() {

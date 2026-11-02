@@ -13,7 +13,7 @@ import {
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { ContentBlockSchema, type Effort } from '~/gen/harness/llm/v1/content_pb'
-import type { ModelInfo, SessionTransport, SubscribeHandlers } from './types'
+import type { ModelInfo, NewSessionOptions, SessionTransport, SubscribeHandlers } from './types'
 
 export class ConnectTransport implements SessionTransport {
   readonly kind = 'connect' as const
@@ -32,10 +32,28 @@ export class ConnectTransport implements SessionTransport {
     return (await this.client.listSessions({})).sessions
   }
 
-  async createSession(cwd: string, model = '') {
-    const res = await this.client.createSession({ cwd, model })
+  async createSession(opts: NewSessionOptions) {
+    const res = await this.client.createSession({
+      cwd: opts.cwd,
+      model: opts.model ?? '',
+      effort: opts.effort,
+      permissionMode: opts.permissionMode,
+      worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined
+    })
     if (!res.session) throw new Error('the client returned no session')
     return res.session
+  }
+
+  async listRecentFolders() {
+    return (await this.client.listRecentFolders({})).folders
+  }
+
+  async listDirectory(path: string) {
+    return this.client.listDirectory({ path })
+  }
+
+  async listBranches(cwd: string) {
+    return this.client.listBranches({ cwd })
   }
 
   subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {

@@ -73,12 +73,7 @@ useShortcuts()
             </div>
           </div>
         </template>
-        <div
-          v-else-if="composing"
-          class="flex flex-1 items-center"
-        >
-          <NewSession />
-        </div>
+        <NewSession v-else-if="composing" />
         <div
           v-else
           class="flex flex-1 items-center justify-center text-[12.5px] text-muted"
