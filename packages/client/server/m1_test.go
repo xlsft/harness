@@ -35,10 +35,25 @@ type harness struct {
 
 func startHarness(t *testing.T, respond fg.Responder, mod func(*bootstrap.Options)) *harness {
 	t.Helper()
+	return startHarnessGW(t, respond, nil, mod)
+}
+
+// startHarnessGW is startHarness with a hook to configure the fake gateway
+// before it serves.
+func startHarnessGW(t *testing.T, respond fg.Responder, gwmod func(*fg.Server), mod func(*bootstrap.Options)) *harness {
+	t.Helper()
 	t.Setenv("HARNESS_HOME", t.TempDir())
 	t.Setenv("HARNESS_TMPDIR", t.TempDir())
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
-	gw, url := fg.Start(t, respond)
+	gw := fg.New(respond)
+	if gwmod != nil {
+		gwmod(gw)
+	}
+	url, stop, err := gw.Listen("127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stop)
 	tok := auth.StaticToken("hat_test")
 	base := bootstrap.Options{Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok), DecisionService: decision.NewClient(url, nil, tok)}
 	if mod != nil {

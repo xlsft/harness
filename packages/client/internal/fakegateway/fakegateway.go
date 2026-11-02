@@ -64,6 +64,12 @@ type Server struct {
 	Respond Responder
 	// Model ids in the catalog; the first is the main slot.
 	Models []string
+	// SmallModel is the catalog's small slot ("" leaves it unset).
+	SmallModel string
+	// Title scripts session title requests (see IsTitleRequest). They are
+	// recorded apart (TitleRequests) and do not advance Respond's request
+	// number. When nil, title requests fail.
+	Title func(req *llm.Request) Reply
 
 	// RejectTokens makes the next N authenticated calls fail with UNAUTHENTICATED.
 	RejectTokens atomic.Int32
@@ -72,6 +78,7 @@ type Server struct {
 
 	mu       sync.Mutex
 	requests []*llm.Request
+	titles   []*llm.Request
 	bundleN  int
 	notMod   int
 	refreshN int
@@ -90,6 +97,44 @@ func (s *Server) Requests() []*llm.Request {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([]*llm.Request(nil), s.requests...)
+}
+
+// TitleRequests returns the recorded title requests.
+func (s *Server) TitleRequests() []*llm.Request {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]*llm.Request(nil), s.titles...)
+}
+
+// IsTitleRequest reports whether req asks for a session title: an
+// auxiliary request whose system prompt is the bundle's title instruction.
+func (s *Server) IsTitleRequest(req *llm.Request) bool {
+	if req.Metadata == nil || req.Metadata.RequestClass != "auxiliary" || s.Bundle == nil || s.Bundle.Title == nil || s.Bundle.Title.Instruction == "" {
+		return false
+	}
+	for _, b := range req.System {
+		if strings.Contains(b.Text, s.Bundle.Title.Instruction) {
+			return true
+		}
+	}
+	return false
+}
+
+// EchoTitle is a Title script that names the session after the first words
+// of the conversation it is given.
+func EchoTitle(req *llm.Request) Reply {
+	text := ""
+	if len(req.Messages) > 0 {
+		for _, b := range req.Messages[0].Content {
+			text += b.Text
+		}
+	}
+	text = strings.TrimPrefix(strings.TrimSpace(strings.TrimPrefix(text, "<conversation>")), "User:")
+	w := strings.Fields(strings.SplitN(strings.TrimSpace(text), "\n", 2)[0])
+	if len(w) > 5 {
+		w = w[:5]
+	}
+	return Reply{Events: Message("msg_title", Text(strings.Join(w, " ")))}
 }
 
 // Stats returns (bundle fetches, not-modified answers, refreshes).
@@ -158,6 +203,7 @@ func (g gatewayHandler) ListModels(ctx context.Context, req *connect.Request[llm
 			resp.Slots.Main = id
 		}
 	}
+	resp.Slots.Small = g.s.SmallModel
 	return connect.NewResponse(resp), nil
 }
 
@@ -186,6 +232,16 @@ func (g gatewayHandler) StreamMessage(ctx context.Context, req *connect.Request[
 		modes := map[llmv1.ToolChoice_Mode]string{llmv1.ToolChoice_MODE_AUTO: "auto", llmv1.ToolChoice_MODE_ANY: "any", llmv1.ToolChoice_MODE_TOOL: "tool", llmv1.ToolChoice_MODE_NONE: "none"}
 		r.ToolChoice = &llm.ToolChoice{Type: modes[tc.GetMode()], Name: tc.GetToolName()}
 	}
+	if g.s.IsTitleRequest(r) {
+		g.s.mu.Lock()
+		g.s.titles = append(g.s.titles, r)
+		title := g.s.Title
+		g.s.mu.Unlock()
+		if title == nil {
+			return rpc.NewError(connect.CodeInvalidArgument, commonv1.ErrorType_ERROR_TYPE_INVALID_ARGUMENT, "no title scripted", 0)
+		}
+		return g.s.play(ctx, stream, title(r))
+	}
 	g.s.mu.Lock()
 	n := len(g.s.requests)
 	g.s.requests = append(g.s.requests, r)
@@ -194,7 +250,10 @@ func (g gatewayHandler) StreamMessage(ctx context.Context, req *connect.Request[
 	if respond == nil {
 		respond = func(int, *llm.Request) Reply { return Reply{Events: Message("msg_ok", Text("ok"))} }
 	}
-	reply := respond(n, r)
+	return g.s.play(ctx, stream, respond(n, r))
+}
+
+func (s *Server) play(ctx context.Context, stream *connect.ServerStream[llmv1.StreamMessageResponse], reply Reply) error {
 	for _, ev := range reply.Events {
 		if err := stream.Send(ev); err != nil {
 			return err

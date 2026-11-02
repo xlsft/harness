@@ -71,7 +71,15 @@ func (hs *hostSession) rebase(epoch, acked int64) int64 {
 	switch {
 	case !hs.baseSet:
 		// First registration from this process: local seq 1 follows the stored history.
-		hs.base, hs.baseSet = acked, true
+		// A resumed session's log starts with the history replayed from its transcript;
+		// when the server already stores events for the session it has that history, so
+		// the replay is skipped and the first live event follows acked_seq.
+		var skip int64
+		if hf, ok := hs.feed.(historyFeed); ok && acked > 0 {
+			skip = hf.HistoryLen()
+		}
+		hs.base, hs.baseSet = acked-skip, true
+		hs.lastLocal = max(hs.lastLocal, skip)
 	case acked > hs.base+hs.lastLocal:
 		// Another host published meanwhile: continue after its events.
 		hs.base = acked - hs.lastLocal

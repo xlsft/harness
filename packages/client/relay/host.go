@@ -41,6 +41,13 @@ type Feed interface {
 	RemoteControl() bool
 }
 
+// historyFeed is implemented by feeds whose log starts with replayed
+// history (server.Feed of a resumed session).
+type historyFeed interface {
+	// HistoryLen is the number of leading events replayed from the transcript.
+	HistoryLen() int64
+}
+
 // Backend is the local agent: AgentService commands plus session feeds.
 // server.Server implements it through Attach.
 type Backend interface {
