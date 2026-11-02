@@ -31,6 +31,7 @@ describe("bundle builder", () => {
       empty_file: ["path"],
       interrupted: [],
       interrupted_tool_use: [],
+      interrupt_reply: [],
       todo_nudge: [],
       plan_mode: ["plan_file_path"],
       auto_mode: [],

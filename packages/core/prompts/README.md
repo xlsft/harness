@@ -69,6 +69,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `empty_file` | `path` | Read of an empty file |
 | `interrupted` | — | user message after an interruption |
 | `interrupted_tool_use` | — | tool_result of a call cancelled by an interruption |
+| `interrupt_reply` | — | not stored: appended to the last user message of one extra request (session model, no thinking, `tool_choice: none`, `auxiliary`, ~150 tokens) right after an interruption; the reply becomes the assistant message that answers the stop |
 | `todo_nudge` | — | several turns without TodoWrite on a multi-step task |
 | `plan_mode` | `plan_file_path` | plan mode is active |
 | `auto_mode` | — | auto mode is active: once per stretch of auto mode and again after a compaction; allows shell reading, searching and mechanical edits, with Read/Edit/Write as the fallback |
