@@ -19,6 +19,7 @@ It ships in two forms:
 | `memory` | Project instructions with Claude Code semantics: managed / user / project CLAUDE.md, AGENTS.md fallback, `@imports`, lazy subdirectory files, path-scoped rules, auto memory |
 | `settings` | Settings hierarchy (policy → CLI → local → project → user → org) with per-rule sources and the workspace trust gate |
 | `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
+| `vcs` | Device providers `gh` and `glab`: CLI detection (version, logged-in hosts), PR/MR and CI polling for the session branch, `ReportDeviceProviders` / `ReportDeviceSnapshot` uploads; `vcstest` is a fake `VcsService` |
 | `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
 | `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop |
 | `outputstyle` | Output style discovery: bundle built-ins, user styles (sync or `~/.claude`/`~/.harness/output-styles`), project styles (`.claude`/`.harness/output-styles`), frontmatter parsing |
@@ -57,6 +58,7 @@ Environment variables:
 - `HARNESS_KEYRING=0` stores credentials only in `~/.harness/credentials.json`.
 - `HARNESS_SERVER_URL` + `HARNESS_ACCESS_TOKEN` use a fixed access token (for example on SSH runners).
 - `HARNESS_TMPDIR` sets the root of the per-session scratch directories.
+- `HARNESS_NO_VCS=1` stops the session from polling PR/CI state through `gh`/`glab`.
 - `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` set the Bash timeouts.
 - `HARNESS_RG` sets the ripgrep path (`-` forces the Go fallback).
 - `HARNESS_AUTOCOMPACT_PCT` sets the auto-compaction threshold as a share of the context window (`92` or `0.92`, default 92%).
