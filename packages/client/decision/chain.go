@@ -17,9 +17,19 @@ import (
 type Chain struct {
 	Local  *Rules
 	Remote permissions.Decider
+	// Sync, when set, keeps Local's options in line with the server's (see
+	// RulesSync): it runs before every local decision and sees the
+	// rules_version of every remote verdict.
+	Sync *RulesSync
 	// Git supplies the git facts (default DefaultGitInfo).
 	Git    GitInfo
 	Logger *slog.Logger
+}
+
+// versionedDecider is a remote decider that reports the rules_version of its
+// verdicts (Client).
+type versionedDecider interface {
+	DecideWithRulesVersion(ctx context.Context, req permissions.AutoRequest) (permissions.AutoResult, string, error)
 }
 
 // Decide implements permissions.Decider.
@@ -34,6 +44,10 @@ func (c *Chain) Decide(ctx context.Context, req permissions.AutoRequest) (permis
 	if local == nil {
 		local = LocalRules()
 	}
+	if c.Sync != nil {
+		// No local fast ALLOW before the admin's extra denies are known.
+		c.Sync.Ensure(ctx)
+	}
 	res := local.Evaluate(req, f)
 	if res.Behavior != permissions.Ask {
 		return res, nil
@@ -42,7 +56,17 @@ func (c *Chain) Decide(ctx context.Context, req permissions.AutoRequest) (permis
 		res.Reason = "No decision service is configured and no local rule covers this action."
 		return res, nil
 	}
-	rr, err := c.Remote.Decide(ctx, req)
+	var rr permissions.AutoResult
+	var err error
+	if vd, ok := c.Remote.(versionedDecider); ok && c.Sync != nil {
+		var version string
+		rr, version, err = vd.DecideWithRulesVersion(ctx, req)
+		if err == nil {
+			c.Sync.Observe(ctx, version)
+		}
+	} else {
+		rr, err = c.Remote.Decide(ctx, req)
+	}
 	if err != nil {
 		if ctx.Err() != nil {
 			return permissions.AutoResult{}, ctx.Err()
@@ -136,5 +160,27 @@ func CacheKey(req permissions.AutoRequest) string {
 // New returns the auto-mode decider of a session: a Cache over a Chain of
 // the local rules and remote (which may be nil).
 func New(remote permissions.Decider, log *slog.Logger) *Cache {
-	return NewCache(&Chain{Local: LocalRules(), Remote: remote, Logger: log})
+	return NewWithRulesSync(remote, nil, log)
+}
+
+// NewWithRulesSync is New with the local rules kept in line with the
+// server's rule options by sync (nil: the default options). New options
+// clear the session cache. The caller starts sync (RulesSync.Start).
+func NewWithRulesSync(remote permissions.Decider, sync *RulesSync, log *slog.Logger) *Cache {
+	chain := &Chain{Local: LocalRules(), Remote: remote, Logger: log}
+	cache := NewCache(chain)
+	if sync != nil {
+		if sync.Rules == nil {
+			sync.Rules = NewRules(RulesOptions{})
+		}
+		chain.Local, chain.Sync = sync.Rules, sync
+		prev := sync.OnChange
+		sync.OnChange = func() {
+			cache.Reset()
+			if prev != nil {
+				prev()
+			}
+		}
+	}
+	return cache
 }
