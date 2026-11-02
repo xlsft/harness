@@ -61,6 +61,12 @@ const (
 	// AgentServiceSetPermissionModeProcedure is the fully-qualified name of the AgentService's
 	// SetPermissionMode RPC.
 	AgentServiceSetPermissionModeProcedure = "/harness.agent.v1.AgentService/SetPermissionMode"
+	// AgentServiceSetOutputStyleProcedure is the fully-qualified name of the AgentService's
+	// SetOutputStyle RPC.
+	AgentServiceSetOutputStyleProcedure = "/harness.agent.v1.AgentService/SetOutputStyle"
+	// AgentServiceListOutputStylesProcedure is the fully-qualified name of the AgentService's
+	// ListOutputStyles RPC.
+	AgentServiceListOutputStylesProcedure = "/harness.agent.v1.AgentService/ListOutputStyles"
 	// AgentServiceSuggestFilesProcedure is the fully-qualified name of the AgentService's SuggestFiles
 	// RPC.
 	AgentServiceSuggestFilesProcedure = "/harness.agent.v1.AgentService/SuggestFiles"
@@ -106,6 +112,10 @@ type AgentServiceClient interface {
 	SetModel(context.Context, *connect.Request[v1.SetModelRequest]) (*connect.Response[v1.SetModelResponse], error)
 	SetEffort(context.Context, *connect.Request[v1.SetEffortRequest]) (*connect.Response[v1.SetEffortResponse], error)
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
+	// Switches the output style (built-in id, or a user/project style name); "default" clears it.
+	SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error)
+	// Built-in, user and project output styles available to this session.
+	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	// Fuzzy file paths for @-mentions.
 	SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error)
 	// Approves or rejects a plan proposed with ExitPlanMode (see PlanProposed).
@@ -204,6 +214,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetPermissionMode")),
 			connect.WithClientOptions(opts...),
 		),
+		setOutputStyle: connect.NewClient[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse](
+			httpClient,
+			baseURL+AgentServiceSetOutputStyleProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetOutputStyle")),
+			connect.WithClientOptions(opts...),
+		),
+		listOutputStyles: connect.NewClient[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse](
+			httpClient,
+			baseURL+AgentServiceListOutputStylesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListOutputStyles")),
+			connect.WithClientOptions(opts...),
+		),
 		suggestFiles: connect.NewClient[v1.SuggestFilesRequest, v1.SuggestFilesResponse](
 			httpClient,
 			baseURL+AgentServiceSuggestFilesProcedure,
@@ -280,6 +302,8 @@ type agentServiceClient struct {
 	setModel            *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
 	setEffort           *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
 	setPermissionMode   *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
+	setOutputStyle      *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
+	listOutputStyles    *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
 	suggestFiles        *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
 	respondToPlan       *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
 	listCheckpoints     *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
@@ -345,6 +369,16 @@ func (c *agentServiceClient) SetEffort(ctx context.Context, req *connect.Request
 // SetPermissionMode calls harness.agent.v1.AgentService.SetPermissionMode.
 func (c *agentServiceClient) SetPermissionMode(ctx context.Context, req *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error) {
 	return c.setPermissionMode.CallUnary(ctx, req)
+}
+
+// SetOutputStyle calls harness.agent.v1.AgentService.SetOutputStyle.
+func (c *agentServiceClient) SetOutputStyle(ctx context.Context, req *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error) {
+	return c.setOutputStyle.CallUnary(ctx, req)
+}
+
+// ListOutputStyles calls harness.agent.v1.AgentService.ListOutputStyles.
+func (c *agentServiceClient) ListOutputStyles(ctx context.Context, req *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error) {
+	return c.listOutputStyles.CallUnary(ctx, req)
 }
 
 // SuggestFiles calls harness.agent.v1.AgentService.SuggestFiles.
@@ -414,6 +448,10 @@ type AgentServiceHandler interface {
 	SetModel(context.Context, *connect.Request[v1.SetModelRequest]) (*connect.Response[v1.SetModelResponse], error)
 	SetEffort(context.Context, *connect.Request[v1.SetEffortRequest]) (*connect.Response[v1.SetEffortResponse], error)
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
+	// Switches the output style (built-in id, or a user/project style name); "default" clears it.
+	SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error)
+	// Built-in, user and project output styles available to this session.
+	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	// Fuzzy file paths for @-mentions.
 	SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error)
 	// Approves or rejects a plan proposed with ExitPlanMode (see PlanProposed).
@@ -508,6 +546,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetPermissionMode")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceSetOutputStyleHandler := connect.NewUnaryHandler(
+		AgentServiceSetOutputStyleProcedure,
+		svc.SetOutputStyle,
+		connect.WithSchema(agentServiceMethods.ByName("SetOutputStyle")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListOutputStylesHandler := connect.NewUnaryHandler(
+		AgentServiceListOutputStylesProcedure,
+		svc.ListOutputStyles,
+		connect.WithSchema(agentServiceMethods.ByName("ListOutputStyles")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceSuggestFilesHandler := connect.NewUnaryHandler(
 		AgentServiceSuggestFilesProcedure,
 		svc.SuggestFiles,
@@ -592,6 +642,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetEffortHandler.ServeHTTP(w, r)
 		case AgentServiceSetPermissionModeProcedure:
 			agentServiceSetPermissionModeHandler.ServeHTTP(w, r)
+		case AgentServiceSetOutputStyleProcedure:
+			agentServiceSetOutputStyleHandler.ServeHTTP(w, r)
+		case AgentServiceListOutputStylesProcedure:
+			agentServiceListOutputStylesHandler.ServeHTTP(w, r)
 		case AgentServiceSuggestFilesProcedure:
 			agentServiceSuggestFilesHandler.ServeHTTP(w, r)
 		case AgentServiceRespondToPlanProcedure:
@@ -663,6 +717,14 @@ func (UnimplementedAgentServiceHandler) SetEffort(context.Context, *connect.Requ
 
 func (UnimplementedAgentServiceHandler) SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetPermissionMode is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetOutputStyle is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListOutputStyles is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error) {

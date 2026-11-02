@@ -158,11 +158,16 @@ type PromptBundle struct {
 	//	background_task_done  {{task_id}} {{exit_code}} {{output_path}}
 	//	compacted                                    first message after a compaction summary
 	//	attribution           {{commit}} {{pr}}      commit / PR attribution lines
+	//	output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
 	Reminders             map[string]string `protobuf:"bytes,5,rep,name=reminders,proto3" json:"reminders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CompactionInstruction string            `protobuf:"bytes,6,opt,name=compaction_instruction,json=compactionInstruction,proto3" json:"compaction_instruction,omitempty"`
 	TitleInstruction      string            `protobuf:"bytes,7,opt,name=title_instruction,json=titleInstruction,proto3" json:"title_instruction,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Built-in output styles keyed by id (default, proactive, concise, explanatory, learning). User and
+	// project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .claude/output-styles/*.md with the
+	// same fields in their frontmatter. "default" adds nothing.
+	OutputStyles  map[string]*OutputStyle `protobuf:"bytes,8,rep,name=output_styles,json=outputStyles,proto3" json:"output_styles,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PromptBundle) Reset() {
@@ -244,6 +249,97 @@ func (x *PromptBundle) GetTitleInstruction() string {
 	return ""
 }
 
+func (x *PromptBundle) GetOutputStyles() map[string]*OutputStyle {
+	if x != nil {
+		return x.OutputStyles
+	}
+	return nil
+}
+
+// An output style changes how the assistant communicates (tone, verbosity, teaching) without changing
+// the tools. The client delivers the active style's text through the `output_style` reminder, so
+// switching styles never invalidates the prompt cache.
+type OutputStyle struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Shown in pickers, e.g. "Explanatory".
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// One line for the picker.
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// The style instructions (markdown).
+	Text string `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
+	// When false, the coding-specific system sections (doing_tasks, tool_policy) are replaced by the
+	// style: the client sends the system sections without them. Default true for built-ins.
+	KeepCodingInstructions bool `protobuf:"varint,5,opt,name=keep_coding_instructions,json=keepCodingInstructions,proto3" json:"keep_coding_instructions,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *OutputStyle) Reset() {
+	*x = OutputStyle{}
+	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OutputStyle) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OutputStyle) ProtoMessage() {}
+
+func (x *OutputStyle) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OutputStyle.ProtoReflect.Descriptor instead.
+func (*OutputStyle) Descriptor() ([]byte, []int) {
+	return file_harness_prompts_v1_prompts_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *OutputStyle) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *OutputStyle) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OutputStyle) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *OutputStyle) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *OutputStyle) GetKeepCodingInstructions() bool {
+	if x != nil {
+		return x.KeepCodingInstructions
+	}
+	return false
+}
+
 type SystemSection struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// identity, safety, style, doing_tasks, tool_policy, env, ...
@@ -257,7 +353,7 @@ type SystemSection struct {
 
 func (x *SystemSection) Reset() {
 	*x = SystemSection{}
-	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[3]
+	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -269,7 +365,7 @@ func (x *SystemSection) String() string {
 func (*SystemSection) ProtoMessage() {}
 
 func (x *SystemSection) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[3]
+	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -282,7 +378,7 @@ func (x *SystemSection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemSection.ProtoReflect.Descriptor instead.
 func (*SystemSection) Descriptor() ([]byte, []int) {
-	return file_harness_prompts_v1_prompts_proto_rawDescGZIP(), []int{3}
+	return file_harness_prompts_v1_prompts_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SystemSection) GetId() string {
@@ -317,7 +413,7 @@ type ToolDefinition struct {
 
 func (x *ToolDefinition) Reset() {
 	*x = ToolDefinition{}
-	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[4]
+	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -329,7 +425,7 @@ func (x *ToolDefinition) String() string {
 func (*ToolDefinition) ProtoMessage() {}
 
 func (x *ToolDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[4]
+	mi := &file_harness_prompts_v1_prompts_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -342,7 +438,7 @@ func (x *ToolDefinition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolDefinition.ProtoReflect.Descriptor instead.
 func (*ToolDefinition) Descriptor() ([]byte, []int) {
-	return file_harness_prompts_v1_prompts_proto_rawDescGZIP(), []int{4}
+	return file_harness_prompts_v1_prompts_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ToolDefinition) GetDescription() string {
@@ -369,7 +465,7 @@ const file_harness_prompts_v1_prompts_proto_rawDesc = "" +
 	"\rif_none_match\x18\x02 \x01(\tR\vifNoneMatch\"p\n" +
 	"\x11GetBundleResponse\x12!\n" +
 	"\fnot_modified\x18\x01 \x01(\bR\vnotModified\x128\n" +
-	"\x06bundle\x18\x02 \x01(\v2 .harness.prompts.v1.PromptBundleR\x06bundle\"\x8b\x04\n" +
+	"\x06bundle\x18\x02 \x01(\v2 .harness.prompts.v1.PromptBundleR\x06bundle\"\xc6\x05\n" +
 	"\fPromptBundle\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x129\n" +
@@ -377,14 +473,24 @@ const file_harness_prompts_v1_prompts_proto_rawDesc = "" +
 	"\x05tools\x18\x04 \x03(\v2+.harness.prompts.v1.PromptBundle.ToolsEntryR\x05tools\x12M\n" +
 	"\treminders\x18\x05 \x03(\v2/.harness.prompts.v1.PromptBundle.RemindersEntryR\treminders\x125\n" +
 	"\x16compaction_instruction\x18\x06 \x01(\tR\x15compactionInstruction\x12+\n" +
-	"\x11title_instruction\x18\a \x01(\tR\x10titleInstruction\x1a\\\n" +
+	"\x11title_instruction\x18\a \x01(\tR\x10titleInstruction\x12W\n" +
+	"\routput_styles\x18\b \x03(\v22.harness.prompts.v1.PromptBundle.OutputStylesEntryR\foutputStyles\x1a\\\n" +
 	"\n" +
 	"ToolsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x128\n" +
 	"\x05value\x18\x02 \x01(\v2\".harness.prompts.v1.ToolDefinitionR\x05value:\x028\x01\x1a<\n" +
 	"\x0eRemindersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"^\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a`\n" +
+	"\x11OutputStylesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x125\n" +
+	"\x05value\x18\x02 \x01(\v2\x1f.harness.prompts.v1.OutputStyleR\x05value:\x028\x01\"\xa1\x01\n" +
+	"\vOutputStyle\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
+	"\x04text\x18\x04 \x01(\tR\x04text\x128\n" +
+	"\x18keep_coding_instructions\x18\x05 \x01(\bR\x16keepCodingInstructions\"^\n" +
 	"\rSystemSection\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x12)\n" +
@@ -408,29 +514,33 @@ func file_harness_prompts_v1_prompts_proto_rawDescGZIP() []byte {
 	return file_harness_prompts_v1_prompts_proto_rawDescData
 }
 
-var file_harness_prompts_v1_prompts_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_harness_prompts_v1_prompts_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_harness_prompts_v1_prompts_proto_goTypes = []any{
 	(*GetBundleRequest)(nil),  // 0: harness.prompts.v1.GetBundleRequest
 	(*GetBundleResponse)(nil), // 1: harness.prompts.v1.GetBundleResponse
 	(*PromptBundle)(nil),      // 2: harness.prompts.v1.PromptBundle
-	(*SystemSection)(nil),     // 3: harness.prompts.v1.SystemSection
-	(*ToolDefinition)(nil),    // 4: harness.prompts.v1.ToolDefinition
-	nil,                       // 5: harness.prompts.v1.PromptBundle.ToolsEntry
-	nil,                       // 6: harness.prompts.v1.PromptBundle.RemindersEntry
+	(*OutputStyle)(nil),       // 3: harness.prompts.v1.OutputStyle
+	(*SystemSection)(nil),     // 4: harness.prompts.v1.SystemSection
+	(*ToolDefinition)(nil),    // 5: harness.prompts.v1.ToolDefinition
+	nil,                       // 6: harness.prompts.v1.PromptBundle.ToolsEntry
+	nil,                       // 7: harness.prompts.v1.PromptBundle.RemindersEntry
+	nil,                       // 8: harness.prompts.v1.PromptBundle.OutputStylesEntry
 }
 var file_harness_prompts_v1_prompts_proto_depIdxs = []int32{
 	2, // 0: harness.prompts.v1.GetBundleResponse.bundle:type_name -> harness.prompts.v1.PromptBundle
-	3, // 1: harness.prompts.v1.PromptBundle.system:type_name -> harness.prompts.v1.SystemSection
-	5, // 2: harness.prompts.v1.PromptBundle.tools:type_name -> harness.prompts.v1.PromptBundle.ToolsEntry
-	6, // 3: harness.prompts.v1.PromptBundle.reminders:type_name -> harness.prompts.v1.PromptBundle.RemindersEntry
-	4, // 4: harness.prompts.v1.PromptBundle.ToolsEntry.value:type_name -> harness.prompts.v1.ToolDefinition
-	0, // 5: harness.prompts.v1.PromptService.GetBundle:input_type -> harness.prompts.v1.GetBundleRequest
-	1, // 6: harness.prompts.v1.PromptService.GetBundle:output_type -> harness.prompts.v1.GetBundleResponse
-	6, // [6:7] is the sub-list for method output_type
-	5, // [5:6] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 1: harness.prompts.v1.PromptBundle.system:type_name -> harness.prompts.v1.SystemSection
+	6, // 2: harness.prompts.v1.PromptBundle.tools:type_name -> harness.prompts.v1.PromptBundle.ToolsEntry
+	7, // 3: harness.prompts.v1.PromptBundle.reminders:type_name -> harness.prompts.v1.PromptBundle.RemindersEntry
+	8, // 4: harness.prompts.v1.PromptBundle.output_styles:type_name -> harness.prompts.v1.PromptBundle.OutputStylesEntry
+	5, // 5: harness.prompts.v1.PromptBundle.ToolsEntry.value:type_name -> harness.prompts.v1.ToolDefinition
+	3, // 6: harness.prompts.v1.PromptBundle.OutputStylesEntry.value:type_name -> harness.prompts.v1.OutputStyle
+	0, // 7: harness.prompts.v1.PromptService.GetBundle:input_type -> harness.prompts.v1.GetBundleRequest
+	1, // 8: harness.prompts.v1.PromptService.GetBundle:output_type -> harness.prompts.v1.GetBundleResponse
+	8, // [8:9] is the sub-list for method output_type
+	7, // [7:8] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_harness_prompts_v1_prompts_proto_init() }
@@ -444,7 +554,7 @@ func file_harness_prompts_v1_prompts_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_prompts_v1_prompts_proto_rawDesc), len(file_harness_prompts_v1_prompts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

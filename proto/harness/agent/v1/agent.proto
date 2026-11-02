@@ -29,6 +29,10 @@ service AgentService {
   rpc SetModel(SetModelRequest) returns (SetModelResponse);
   rpc SetEffort(SetEffortRequest) returns (SetEffortResponse);
   rpc SetPermissionMode(SetPermissionModeRequest) returns (SetPermissionModeResponse);
+  // Switches the output style (built-in id, or a user/project style name); "default" clears it.
+  rpc SetOutputStyle(SetOutputStyleRequest) returns (SetOutputStyleResponse);
+  // Built-in, user and project output styles available to this session.
+  rpc ListOutputStyles(ListOutputStylesRequest) returns (ListOutputStylesResponse);
 
   // Fuzzy file paths for @-mentions.
   rpc SuggestFiles(SuggestFilesRequest) returns (SuggestFilesResponse);
@@ -113,6 +117,8 @@ message SessionInfo {
   bool pinned = 15;
   // Set for forks and /branch.
   string parent_session_id = 16;
+  // Active output style id or name ("default" when none).
+  string output_style = 17;
 }
 
 message DiffStats {
@@ -660,3 +666,27 @@ message SetWorkspaceTrustRequest {
 }
 
 message SetWorkspaceTrustResponse {}
+
+message SetOutputStyleRequest {
+  string session_id = 1;
+  string style = 2;
+}
+
+message SetOutputStyleResponse {}
+
+message ListOutputStylesRequest {
+  string session_id = 1;
+}
+
+message ListOutputStylesResponse {
+  repeated OutputStyleInfo styles = 1;
+  string active = 2;
+}
+
+message OutputStyleInfo {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  // builtin | user | project
+  string source = 4;
+}

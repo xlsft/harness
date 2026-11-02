@@ -50,9 +50,30 @@ message PromptBundle {
   //   background_task_done  {{task_id}} {{exit_code}} {{output_path}}
   //   compacted                                    first message after a compaction summary
   //   attribution           {{commit}} {{pr}}      commit / PR attribution lines
+  //   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
   map<string, string> reminders = 5;
   string compaction_instruction = 6;
   string title_instruction = 7;
+  // Built-in output styles keyed by id (default, proactive, concise, explanatory, learning). User and
+  // project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .claude/output-styles/*.md with the
+  // same fields in their frontmatter. "default" adds nothing.
+  map<string, OutputStyle> output_styles = 8;
+}
+
+// An output style changes how the assistant communicates (tone, verbosity, teaching) without changing
+// the tools. The client delivers the active style's text through the `output_style` reminder, so
+// switching styles never invalidates the prompt cache.
+message OutputStyle {
+  string id = 1;
+  // Shown in pickers, e.g. "Explanatory".
+  string name = 2;
+  // One line for the picker.
+  string description = 3;
+  // The style instructions (markdown).
+  string text = 4;
+  // When false, the coding-specific system sections (doing_tasks, tool_policy) are replaced by the
+  // style: the client sends the system sections without them. Default true for built-ins.
+  bool keep_coding_instructions = 5;
 }
 
 message SystemSection {
