@@ -69,12 +69,7 @@ if (desktop) {
       :error="signInError"
       @signed-in="connectDesktop"
     />
-    <div
-      v-else-if="phase === 'checking'"
-      class="flex h-svh items-center justify-center bg-default text-[12.5px] text-muted"
-    >
-      Starting harness…
-    </div>
+    <HLoader v-else-if="phase === 'checking'" />
     <NuxtPage v-else />
   </UApp>
 </template>

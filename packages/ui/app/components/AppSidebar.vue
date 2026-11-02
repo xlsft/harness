@@ -253,10 +253,11 @@ const nav = [
         class="flex min-w-0 items-baseline gap-1.5"
         :title="store.userEmail"
       >
-        <span class="truncate text-[12px] text-white">{{ displayName }}</span>
+        <!-- The host gives way first, then the name. -->
+        <span class="min-w-[4ch] truncate text-[12px] text-white">{{ displayName }}</span>
         <span
           v-if="host"
-          class="truncate text-[10.5px] text-muted"
+          class="min-w-0 shrink-[9999] truncate text-[10.5px] text-muted"
         >{{ host }}</span>
       </span>
       <span class="flex-1" />
