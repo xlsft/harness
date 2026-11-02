@@ -1,0 +1,15 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Fake fake-model · test@example.com
+  ▄█████▀ ▄███████   /…/scratchpad/demo
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+                                                                                                \ + enter for a new line
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ first line
+  second line via backslash
+  third
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on                                                                                          fake-model

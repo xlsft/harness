@@ -1,0 +1,13 @@
+«b|████▄      ▄████▀»
+«b|▀█████▄  ▄████▀   »   «b|harness» v0.0.0-dev
+«b|  ▀█████▄███▀     »   Fake fake-model · test@example.com
+«b|  ▄█████▀ ▄███████»   /…/scratchpad/demo
+«b|▄█████▀ ▄████████▀»   /help for commands · shift+tab to switch modes
+«b|████▀ ▄████████▀»
+
+«b|❯» «b,rev,u|/st»«b,rev|atus    Show session, model, account and context usage»
+────────────────────────────────────────────────────────────────────────────────
+«b|❯» /st«rev| »
+────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · tab to complete · enter to select · esc to close

@@ -1,0 +1,21 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Qwen 3.7 Flash · admin@harness.local
+  ▄█████▀ ▄███████   /…/scratchpad/realproj
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+❯ No tools. Write about 250 words on the history of terminals, in plain paragraphs.
+
+▰ The story of the terminal begins long before graphical interfaces existed. In the 1960s,
+  └  Interrupted · What should harness do instead?
+
+❯ then one haiku
+
+❯ ▱▱▰▰  Thinking · 0s · esc to interrupt
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts                                                           qwen-flash · 0% context

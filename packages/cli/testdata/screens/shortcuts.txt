@@ -1,0 +1,15 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Fake fake-model · test@example.com
+  ▄█████▀ ▄███████   /…/scratchpad/demo
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+                                                                                            Ctrl+Y to paste deleted text
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  / for commands          shift + tab to cycle modes         esc to interrupt
+  @ for file paths        ctrl + o for verbose output        esc esc to rewind
+  \ + enter for newline   ctrl + t to toggle tasks           ctrl + c twice to exit

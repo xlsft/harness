@@ -1,0 +1,33 @@
+
+▰ The story of the terminal begins long before graphical interfaces existed. In the 1960s,
+  └  Interrupted · What should harness do instead?
+
+❯ then one haiku
+
+▰ The story of the terminal begins long before graphical interfaces existed. In the 1960s, teletypewriters like the
+  Teletype Model 33 served as the primary interface between humans and expensive mainframe computers. These devices used
+  noisy electromechanical print heads and paper roll feeders — far from silent or sleek, but revolutionary in their
+  ability to let users interact with computing machines remotely. By the late 1960s, the VT100 emerged from DEC and
+  became an enduring standard, introducing escape codes and a character grid that shaped how generations of programmers
+  thought about screen-based interaction. The term "terminal" originally described dedicated hardware boxes connected to
+  mainframes via serial cables; users typed commands and received text output in real time.
+
+  With the advent of personal computing in the 1970s and 1980s, terminals evolved into software emulators running on
+  individual machines. Unix systems popularized the terminal emulator as a window within a windowing system, while the
+  rise of Linux gave millions their first command-line experience through xterm and similar programs. The terminal
+  endured even as mouse-driven desktop environments took over, because its text-based paradigm remained unmatched for
+  scripting, remote server administration, and direct machine communication. Modern terminals carry this legacy forward,
+  supporting rich color palettes, ligatures, and GPU-accelerated rendering while still operating on decades-old
+  foundations. Projects like tmux, zsh plugins, and Neovim prove that developers still find profound value in that
+  original text-in, text-out loop — a workflow refined over sixty years, from clanking teletypes to the sleek terminal
+  windows we open every day.
+
+  teletype keys click down screens glow in darkened rooms code flows, text remains
+
+▰ Done in 10s
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts                                                 qwen-flash · 0% context · $0.0002

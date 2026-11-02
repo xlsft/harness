@@ -1,0 +1,34 @@
+  teletype keys click down screens glow in darkened rooms code flows, text remains
+
+▰ Done in 10s
+
+❯ Use tools: run `ls` with Bash, read calc.go and README.md, and grep for 'func ' in the project. Then reply with one
+  sentence.
+
+▰ Searched for 1 pattern, read 2 files, ran 1 shell command
+
+▰ This is a minimal Go calculator package in the demo module, containing only calc.go with two exported functions (Add
+  and Sub), along with go.mod and a one-line README.
+
+▰ Done in 13s
+
+❯ Use the Edit tool to change the comment above Sub in calc.go to '// Sub subtracts b from a.' Nothing else.
+
+▰ Update(calc.go)
+  └  Added 1 line, removed 1 line
+       5      return a + b
+       6  }
+       7
+       8 -// Sub returns a minus b.
+       8 +// Sub subtracts b from a.
+       9  func Sub(a, b int) int {
+      10      return a - b
+      11  }
+
+❯ ▱▱▱▱  Thinking · 11s · ↓ 245 tokens · esc to interrupt
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts                                                 qwen-flash · 0% context · $0.0008

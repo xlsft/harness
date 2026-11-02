@@ -1,0 +1,17 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Fake fake-model · test@example.com
+  ▄█████▀ ▄███████   /…/scratchpad/demo
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+❯ /help       Show commands and keyboard shortcuts
+  /clear      Clear the conversation and start a new session
+  /compact    Compact the conversation (optional focus instructions)
+  /model      Switch the model for this session
+  /rewind     Restore the code and/or conversation to an earlier point
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ /
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · tab to complete · enter to select · esc to close                                       fake-model

@@ -1,0 +1,36 @@
+
+«fg=blue|❯» fix the failing test
+
+«fg=blue|▰» Let me look at the code and find the Add function.
+
+«fg=blue|▰» Searched for «b|1» pattern, read «b|1» file
+
+«fg=blue|▰» Add subtracts instead of adding. Fixing it.
+
+«fg=blue|▰» «b|Update»(calc.go)
+  «fg=brightblack|└»  Added «b|1» line, removed «b|1» line
+     «fg=brightblack| 2»
+     «fg=brightblack| 3»  // Add returns the sum of a and b.
+     «fg=brightblack| 4»  func Add(a, b int) int {
+     «fg=red| 5 -    return a - b»
+     «fg=green| 5 +    return a + b»
+     «fg=brightblack| 6»  }
+
+«fg=blue|❯» Running «b|1» shell command…
+  «fg=brightblack|└»  $ go test ./...
+
+«fg=blue|❯» «fg=blue|▰»«fg=brightblue|▰»«fg=brightblack|▱▱»  Waiting for approval«fg=brightblack| · 0s · ↓ 60 tokens · esc to interrupt»
+
+«fg=brightblack|╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮»
+«fg=brightblack|│» «fg=blue,b|Bash command»                                                                                                         «fg=brightblack|│»
+«fg=brightblack|│»                                                                                                                      «fg=brightblack|│»
+«fg=brightblack|│»   go test ./...                                                                                                      «fg=brightblack|│»
+«fg=brightblack|│»   Run the tests                                                                                                      «fg=brightblack|│»
+«fg=brightblack|│»                                                                                                                      «fg=brightblack|│»
+«fg=brightblack|│» Do you want to proceed?                                                                                              «fg=brightblack|│»
+«fg=brightblack|│» «fg=blue|❯» 1. «fg=brightblue|Yes»                                                                                                             «fg=brightblack|│»
+«fg=brightblack|│»   2. Yes, and don’t ask again for Bash(go test *)                                                                    «fg=brightblack|│»
+«fg=brightblack|│»   3. No, and tell harness what to do differently «b|(esc)»                                                               «fg=brightblack|│»
+«fg=brightblack|│»                                                                                                                      «fg=brightblack|│»
+«fg=brightblack|│» Esc to cancel · Tab to add a comment                                                                                 «fg=brightblack|│»
+«fg=brightblack|╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯»

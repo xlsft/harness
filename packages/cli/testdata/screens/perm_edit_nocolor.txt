@@ -1,0 +1,24 @@
+▰ Add subtracts instead of adding. Fixing it.
+
+❯ Update(calc.go)
+
+❯ ▱▱▱▱  Waiting for approval · 0s · ↓ 40 tokens · esc to interrupt
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Edit file                                                                    │
+│ calc.go                                                                      │
+│ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ │
+│  2                                                                           │
+│  3  // Add returns the sum of a and b.                                       │
+│  4  func Add(a, b int) int {                                                 │
+│  5 -    return a - b                                                         │
+│  5 +    return a + b                                                         │
+│  6  }                                                                        │
+│ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ │
+│ Do you want to make this edit to calc.go?                                    │
+│ ❯ 1. Yes                                                                     │
+│   2. Yes, allow all edits during this session (shift+tab)                    │
+│   3. No, and tell harness what to do differently (esc)                       │
+│                                                                              │
+│ Esc to cancel · Tab to add a comment                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯

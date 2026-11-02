@@ -1,0 +1,32 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        GLM 5.3 Flash · admin@harness.local
+  ▄█████▀ ▄███████   /…/scratchpad/realproj
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+❯ Plan adding a Mul(a, b int) int function to ./calc.go. Do not read files; call ExitPlanMode right away with a 3-step
+  plan.
+
+❯ ▰▱▱▱  Waiting for plan approval · 3s · ↓ 191 tokens · esc to interrupt
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Ready to code?                                                                                                       │
+│ Here is harness's plan:                                                                                              │
+│ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ │
+│ Add Mul(a, b int) int to ./calc.go                                                                                   │
+│                                                                                                                      │
+│ 1. Open ./calc.go and add a Mul(a, b int) int function that returns a * b, following the file's existing style       │
+│ (naming, comments, placement next to the other operations).                                                          │
+│ 2. Build/vet the package (go build ./...) to confirm it compiles.                                                    │
+│ 3. If the project has tests for calc.go, add a Mul test case and run the test suite (go test ./...); report          │
+│ results.                                                                                                             │
+│ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ │
+│ harness has written up a plan and is ready to execute. Would you like to proceed?                                    │
+│ ❯ 1. Yes, and auto-accept edits                                                                                      │
+│   2. Yes, manually approve edits                                                                                     │
+│   3. No, keep planning                                                                                               │
+│                                                                                                                      │
+│ Enter to select · Tab to add feedback · pgup/pgdn to scroll · ~/Projects/user/harness/.dev/home/plans/bbba0f6f-     │
+│ ec09-4f7c-9130-6cd457215340/1.md                                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

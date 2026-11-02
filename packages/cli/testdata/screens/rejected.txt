@@ -1,0 +1,26 @@
+
+▰ Let me look at the code and find the Add function.
+
+▰ Searched for 1 pattern, read 1 file
+
+▰ Add subtracts instead of adding. Fixing it.
+
+▰ Update(calc.go)
+  └  Added 1 line, removed 1 line
+      2
+      3  // Add returns the sum of a and b.
+      4  func Add(a, b int) int {
+      5 -    return a - b
+      5 +    return a + b
+      6  }
+
+❯ also keep the comment
+
+▰ Ran 1 shell command · 1 rejected
+  └  Interrupted · What should harness do instead?
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts                                                 fake-model · 1% context · $0.0030

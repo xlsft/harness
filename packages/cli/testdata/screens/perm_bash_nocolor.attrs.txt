@@ -1,0 +1,24 @@
+      3  // Add returns the sum of a and b.
+      4  func Add(a, b int) int {
+      5 -    return a - b
+      5 +    return a + b
+      6  }
+
+«b|›» Running «b|1» shell command…
+  └  $ go test ./...
+
+«b|❯» «b,rev|▰»▱▱▱  Waiting for approval · 0s · ↓ 60 tokens · esc to interrupt
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ «b|Bash command»                                                                 │
+│                                                                              │
+│   go test ./...                                                              │
+│   Run the tests                                                              │
+│                                                                              │
+│ Do you want to proceed?                                                      │
+│ «b|❯» 1. «b,rev|Yes»                                                                     │
+│   2. Yes, and don’t ask again for Bash(go test *)                            │
+│   3. No, and tell harness what to do differently «b|(esc)»                       │
+│                                                                              │
+│ Esc to cancel · Tab to add a comment                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯

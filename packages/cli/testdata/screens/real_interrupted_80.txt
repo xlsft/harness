@@ -1,0 +1,18 @@
+❯ No tools. Write about 200 words on the history of terminals, in plain
+  paragraphs.
+
+▰ The modern computer terminal traces its origins to teletypewriters (TTYs),
+  mechanical printers that telegraphists used to send and receive messages over
+  telephone lines. In the 1950s and 1960s, mainframe computing adopted these
+  devices
+  └  Interrupted · What should harness do instead?
+
+❯ then one haiku
+
+❯ ▰▰▰▱  Thinking · 0s · esc to interrupt
+
+────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts                   qwen-flash · 0% context

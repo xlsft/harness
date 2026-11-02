@@ -1,0 +1,37 @@
+«fg=2b7fff|████▄      ▄████▀»
+«fg=2b7fff|▀█████▄  ▄████▀   »   «fg=2b7fff,b|harness»«fg=71717a| v0.0.0-dev»
+«fg=2b7fff|  ▀█████▄███▀     »   «fg=a1a1aa|Fake fake-model · test@example.com»
+«fg=2b7fff|  ▄█████▀ ▄███████»   «fg=a1a1aa|/…/scratchpad/demo»
+«fg=2b7fff|▄█████▀ ▄████████▀»   «fg=71717a|/help for commands · shift+tab to switch modes»
+«fg=2b7fff|████▀ ▄████████▀»
+
+«fg=71717a,bg=27272a|❯»«bg=27272a| fix the failing test                                                                                                  »
+
+«fg=2b7fff|▰» Let me look at the code and find the Add function.
+
+«fg=2b7fff|▰» «fg=a1a1aa|Searched for »«fg=a1a1aa,b|1»«fg=a1a1aa| pattern, read »«fg=a1a1aa,b|1»«fg=a1a1aa| file»
+
+«fg=2b7fff|▰» Add subtracts instead of adding. Fixing it.
+
+«fg=155dfc|❯» «b|Update»(calc.go)
+
+«fg=2b7fff|❯» «fg=3f3f46|▱▱▱▱»  Waiting for approval«fg=71717a| · 0s · ↓ 40 tokens · esc to interrupt»
+
+«fg=3f3f46|╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮»
+«fg=3f3f46|│» «fg=2b7fff,b|Edit file»                                                                                                            «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=a1a1aa|calc.go»                                                                                                              «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=3f3f46|╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌» «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=71717a| 2»                                                                                                                   «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=71717a| 3»  // Add returns the sum of a and b.                                                                               «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=71717a| 4»  func Add(a, b int) int {                                                                                         «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=ffa1ad,bg=4d0218| 5 -    return a - b                                                                                                » «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=5ee9b5,bg=002c22| 5 +    return a + b                                                                                                » «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=71717a| 6»  }                                                                                                                «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=3f3f46|╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌» «fg=3f3f46|│»
+«fg=3f3f46|│» Do you want to make this edit to «b|calc.go»?                                                                            «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=2b7fff|❯» «fg=a1a1aa|1. »«fg=8ec5ff|Yes»                                                                                                             «fg=3f3f46|│»
+«fg=3f3f46|│»   «fg=a1a1aa|2. »Yes, allow all edits during this session «b|(shift+tab)»                                                            «fg=3f3f46|│»
+«fg=3f3f46|│»   «fg=a1a1aa|3. »No, and tell harness what to do differently «b|(esc)»                                                               «fg=3f3f46|│»
+«fg=3f3f46|│»                                                                                                                      «fg=3f3f46|│»
+«fg=3f3f46|│» «fg=a1a1aa|Esc to cancel · Tab to add a comment»                                                                                 «fg=3f3f46|│»
+«fg=3f3f46|╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯»

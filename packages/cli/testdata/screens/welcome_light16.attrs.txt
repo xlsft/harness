@@ -1,0 +1,12 @@
+«fg=blue|████▄      ▄████▀»
+«fg=blue|▀█████▄  ▄████▀   »   «fg=blue,b|harness»«fg=brightblack| v0.0.0-dev»
+«fg=blue|  ▀█████▄███▀     »   Fake fake-model · test@example.com
+«fg=blue|  ▄█████▀ ▄███████»   /…/scratchpad/demo
+«fg=blue|▄█████▀ ▄████████▀»   «fg=brightblack|/help for commands · shift+tab to switch modes»
+«fg=blue|████▀ ▄████████▀»
+«u|                                                                                                                        »
+«fg=brightblack,u|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+«fg=blue|❯» «rev| »
+«fg=brightblack|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+
+  ⏸ manual mode on · ? for shortcuts                                                                        «fg=brightblack|fake-model»

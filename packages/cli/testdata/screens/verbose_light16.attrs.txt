@@ -1,0 +1,39 @@
+  8d4e-56048dcba80a-34f8dad9-4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-468a-8ec0-
+  ef81b6d80eb4/scratchpad/demo/calc.go)
+  «fg=brightblack|└»       1  package demo
+          2
+          3  // Add returns the sum of a and b.
+          4  func Add(a, b int) int {
+          5      return a - b
+          6  }
+
+«fg=blue|▰» «b|Grep»(pattern: "func Add")
+  «fg=brightblack|└»  /private/tmp/claude-501/-Users-user-Library-Application-Support-Claude-scratch-workspaces-205973d5-f813-435f-8d4e-
+     56048dcba80a-34f8dad9-4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-468a-8ec0-
+     ef81b6d80eb4/scratchpad/demo/calc.go:4:func Add(a, b int) int {
+
+«fg=blue|▰» Add subtracts instead of adding. Fixing it.
+
+«fg=blue|▰» «b|Update»(/private/tmp/claude-501/-Users-user-Library-Application-Support-Claude-scratch-workspaces-205973d5-f813-435f-
+  8d4e-56048dcba80a-34f8dad9-4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-468a-8ec0-
+  ef81b6d80eb4/scratchpad/demo/calc.go)
+  «fg=brightblack|└»  Added «b|1» line, removed «b|1» line
+     «fg=brightblack| 2»
+     «fg=brightblack| 3»  // Add returns the sum of a and b.
+     «fg=brightblack| 4»  func Add(a, b int) int {
+     «fg=red| 5 -    return a - b»
+     «fg=green| 5 +    return a + b»
+     «fg=brightblack| 6»  }
+
+«fg=blue|▰» «b|Bash»(go test ./...)
+  «fg=brightblack|└»  ok      demo    (cached)
+
+«fg=blue|▰» Fixed Add in calc.go. Tests pass: ok    demo    (cached)
+
+«fg=green|▰» Done in 0s
+
+«fg=brightblack|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+«fg=blue|❯» «rev| »
+«fg=brightblack|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+
+  ⏸ manual mode on · ? for shortcuts                                                 «fg=brightblack|fake-model · 1% context · $0.0040»

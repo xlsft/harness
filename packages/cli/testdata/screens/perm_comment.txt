@@ -1,0 +1,37 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Fake fake-model · test@example.com
+  ▄█████▀ ▄███████   /…/scratchpad/demo
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+❯ fix the failing test
+
+▰ Let me look at the code and find the Add function.
+
+▰ Searched for 1 pattern, read 1 file
+
+▰ Add subtracts instead of adding. Fixing it.
+
+❯ Update(calc.go)
+
+❯ ▰▰▰▱  Waiting for approval · 1s · ↓ 40 tokens · esc to interrupt
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Edit file                                                                                                            │
+│ calc.go                                                                                                              │
+│ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ │
+│  2                                                                                                                   │
+│  3  // Add returns the sum of a and b.                                                                               │
+│  4  func Add(a, b int) int {                                                                                         │
+│  5 -    return a - b                                                                                                 │
+│  5 +    return a + b                                                                                                 │
+│  6  }                                                                                                                │
+│ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ │
+│ Do you want to make this edit to calc.go?                                                                            │
+│ ❯ 1. Yes, also keep the comment                                                                                      │
+│   2. Yes, allow all edits during this session (shift+tab)                                                            │
+│   3. No, and tell harness what to do differently (esc)                                                               │
+│                                                                                                                      │
+│ Enter to confirm · Esc to discard the comment                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
