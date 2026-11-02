@@ -37,6 +37,7 @@ describe("bundle builder", () => {
       background_task_done: ["task_id", "exit_code", "output_path"],
       compacted: [],
       attribution: ["commit", "pr"],
+      output_style: ["name", "content"],
     };
     expect(Object.keys(b.reminders).sort()).toEqual(Object.keys(reminders).sort());
     for (const [id, phs] of Object.entries(reminders)) {
