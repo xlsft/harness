@@ -33,6 +33,7 @@ describe("bundle builder", () => {
       interrupted_tool_use: [],
       todo_nudge: [],
       plan_mode: ["plan_file_path"],
+      auto_mode: [],
       plan_approved: ["plan_file_path"],
       plan_rejected: ["feedback"],
       background_task_done: ["task_id", "exit_code", "output_path"],

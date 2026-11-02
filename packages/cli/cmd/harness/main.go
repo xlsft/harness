@@ -131,6 +131,8 @@ func cmdWhoami(ctx context.Context) int {
 
 func protoMode(m permissions.Mode) agentv1.PermissionMode {
 	switch m {
+	case "":
+		return agentv1.PermissionMode_PERMISSION_MODE_UNSPECIFIED
 	case permissions.ModeAcceptEdits:
 		return agentv1.PermissionMode_PERMISSION_MODE_ACCEPT_EDITS
 	case permissions.ModePlan:
@@ -151,7 +153,7 @@ func cmdMain(ctx context.Context, args []string) int {
 	printMode := fs.BoolP("print", "p", false, "run one headless turn and print the result")
 	outputFormat := fs.String("output-format", "text", "with -p: text | json | stream-json")
 	model := fs.String("model", "", "model id (default: the server's main slot)")
-	mode := fs.String("permission-mode", "default", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions")
+	mode := fs.String("permission-mode", "", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions (unset: settings, else auto)")
 	outputStyle := fs.String("output-style", "", "output style: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name (default: settings outputStyle)")
 	var allowed, disallowed, addDirs []string
 	fs.StringArrayVar(&allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
@@ -172,9 +174,13 @@ func cmdMain(ctx context.Context, args []string) int {
 		fmt.Print(usage + fs.FlagUsages())
 		return 0
 	}
-	pm, err := permissions.ParseMode(*mode)
-	if err != nil {
-		return fail(err)
+	// Unset leaves the mode to settings (permissions.defaultMode), else auto.
+	var pm permissions.Mode
+	if *mode != "" {
+		var err error
+		if pm, err = permissions.ParseMode(*mode); err != nil {
+			return fail(err)
+		}
 	}
 	if *printMode {
 		level := slog.LevelWarn

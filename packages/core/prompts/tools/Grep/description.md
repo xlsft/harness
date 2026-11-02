@@ -1,4 +1,4 @@
-Searches file contents with a regular expression, using ripgrep. Use it for every content search; do not run `grep` or `rg` through Bash.
+Searches file contents with a regular expression, using ripgrep. Prefer it to running `grep` or `rg` through Bash.
 
 - `pattern` uses ripgrep (Rust regex) syntax. Escape regex characters you mean literally, for example `\{\{name\}\}` to find `{{name}}` or `\.then\(` to find `.then(`.
 - `path`: absolute file or directory to search; defaults to the working directory.

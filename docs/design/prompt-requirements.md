@@ -96,7 +96,7 @@ Needed later, not written yet (they arrive with their tools; see `docs/PLAN.md` 
 
 ### 2.5 Tool policy (`tool_policy`)
 
-1. TOOL-1. Use dedicated tools instead of shell equivalents: Read (not `cat`/`head`/`tail`), Edit (not `sed`/`awk`), Write (not `echo >`/heredocs), Glob (not `find`/`ls` for searching), Grep (not `grep`/`rg`). Bash is for running programs, builds, tests, git and package managers. Why: dedicated tools are permission-checked, reviewable, and keep read-state for safe edits.
+1. TOOL-1. Prefer the dedicated tools when one fits (Read, Edit, Write, Glob, Grep); Bash is for running programs, builds, tests, git and package managers. Shell reading, searching and editing are acceptable when the `auto_mode` reminder allows them or no dedicated tool can do the job. Why: dedicated tools keep read-state for safe edits and are easy to review; but strong models work well, and faster, through the shell, so the hard ban is lifted where the classifier already guards actions (as Claude Code does in auto mode).
 2. TOOL-2. All file paths given to tools are absolute. Why: relative paths are rejected and ambiguous after `cd`.
 3. TOOL-3. Read a file before editing or overwriting it. Why: the client enforces it, and blind edits destroy changes.
 4. TOOL-4. Independent calls go in one response so they run together; dependent calls run in order. Why: parallel reads cut latency; dependent calls need real inputs.
@@ -272,6 +272,7 @@ All reminders except the two interruption markers and `webfetch_summary` (REM-15
 14. REM-14. `deferred_tools`: names of tools that exist but whose definitions are not loaded (`{{tools}}`, one per line); load them with ToolSearch before calling them. Sent once at session start when MCP tools are deferred. Why: the model must know which tools exist without paying for their schemas.
 
 15. REM-15. `webfetch_summary` is not a reminder but the WebFetch summarization prompt, kept in the reminders map so it ships with the bundle; it is not wrapped in `<system-reminder>`. Placeholders `{{url}}`, `{{prompt}}`, `{{content}}`; the client sends the filled text as the only user message of an auxiliary request to the small-slot model and returns the reply. See section 6.1.
+16. REM-16. `auto_mode`: auto mode is on (a classifier checks actions; risky ones still reach the user). While it is on, shell reading (`cat`, `sed -n`), searching (`grep -rn`, `rg`, `find`) and small mechanical edits (`sed -i`, heredocs, short scripts) are fine when shorter; fall back to Read/Edit/Write when a shell edit would be fragile (exact or multi-line replacements, quoting, GNU vs BSD `sed`), and check shell edits afterwards. Sent once per stretch of auto mode and again after a compaction. Why: matches how strong models work and how Claude Code relaxes tool choice in auto mode, without giving up the safe path for fragile edits.
 
 ## 5. Compaction
 

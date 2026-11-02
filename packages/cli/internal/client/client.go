@@ -29,6 +29,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/relay"
 	"github.com/xlsft/harness/packages/client/rpc"
@@ -158,6 +159,10 @@ func Open(ctx context.Context, o Options) (*Conn, error) {
 	}
 	if cat, err := base.Gateway.Models(ctx); err == nil {
 		c.Catalog = cat
+	}
+	// Sessions start in auto mode unless a flag or settings choose another.
+	if base.FallbackPermissionMode == "" {
+		base.FallbackPermissionMode = permissions.ModeAuto
 	}
 	c.srv = server.New(base)
 	c.srv.UserEmail = c.Email

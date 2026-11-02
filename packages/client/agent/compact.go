@@ -302,6 +302,7 @@ func (a *Agent) compact(ctx context.Context, instructions, trigger string) (Comp
 	a.contextInjected = injected
 	a.lastUsage = 0
 	a.afterCompactStyle()
+	a.autoReminded = false
 	a.mu.Unlock()
 	info := CompactInfo{Trigger: trigger, TokensBefore: before, TokensAfter: a.EstimateTokens()}
 	a.refreshBundle(ctx)

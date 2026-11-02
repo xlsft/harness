@@ -68,6 +68,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `interrupted_tool_use` | — | tool_result of a call cancelled by an interruption |
 | `todo_nudge` | — | several turns without TodoWrite on a multi-step task |
 | `plan_mode` | `plan_file_path` | plan mode is active |
+| `auto_mode` | — | auto mode is active: once per stretch of auto mode and again after a compaction; allows shell reading, searching and mechanical edits, with Read/Edit/Write as the fallback |
 | `plan_approved` | `plan_file_path` | the user approved the plan (ExitPlanMode) |
 | `plan_rejected` | `feedback` | the user asked to keep planning |
 | `background_task_done` | `task_id`, `exit_code`, `output_path` | a background Bash command finished |

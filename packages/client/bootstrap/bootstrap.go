@@ -61,7 +61,11 @@ type Options struct {
 	// Permissions. AllowedTools/DisallowedTools/AskTools are CLI-level rules
 	// (source "cliArg"); PermissionSources carries the settings hierarchy
 	// (policy, local, project, user) filled by the settings loader.
-	PermissionMode           permissions.Mode
+	PermissionMode permissions.Mode
+	// FallbackPermissionMode applies when neither PermissionMode nor settings
+	// (permissions.defaultMode) choose a mode. Interactive frontends set auto;
+	// empty keeps default (headless runs and the SDK, as in Claude Code).
+	FallbackPermissionMode   permissions.Mode
 	AllowedTools             []string
 	DisallowedTools          []string
 	AskTools                 []string
@@ -444,6 +448,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 
 	// Permissions.
 	trusted := s.Trusted
+	if o.PermissionMode == "" {
+		o.PermissionMode = o.FallbackPermissionMode
+	}
 	if o.PermissionMode == permissions.ModeAuto && o.DisableAutoMode {
 		log.Warn("auto permission mode is disabled by settings (disableAutoMode); using default")
 	}

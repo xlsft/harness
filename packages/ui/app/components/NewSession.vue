@@ -21,7 +21,7 @@ const branches = ref<Branch[]>([])
 const current = ref('')
 const model = ref('')
 const effort = ref<EffortName>('medium')
-const mode = ref<PermissionModeName>('default')
+const mode = ref<PermissionModeName>('auto')
 const text = ref('')
 const busy = ref(false)
 const error = ref('')
@@ -77,7 +77,7 @@ onMounted(async () => {
   worktree.value = prefs.worktree ?? false
   model.value = prefs.model ?? ''
   effort.value = prefs.effort ?? 'medium'
-  mode.value = prefs.mode ?? 'default'
+  mode.value = prefs.mode ?? 'auto'
   await loadFolders()
   const asked = typeof route.query.cwd === 'string' ? route.query.cwd : ''
   cwd.value = asked || prefs.cwd || folders.value[0]?.path || ''

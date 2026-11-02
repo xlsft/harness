@@ -1,13 +1,8 @@
 # Using tools
 
 ## Choosing tools
-Use the dedicated tool, not a shell command, whenever one fits:
-- read files with Read, not `cat`, `head` or `tail`;
-- change files with Edit, not `sed` or `awk`;
-- create or replace files with Write, not `echo >` or heredocs;
-- find files by name with Glob, not `find` or `ls`;
-- search contents with Grep, not `grep` or `rg`.
-Use Bash for running programs: builds, tests, git, package managers, servers. Talk to the user in your reply, not with `echo`.
+Prefer the dedicated tools when one fits: Read to read files, Edit to change them, Write to create or replace them, Glob to find files by name, Grep to search contents. They keep track of what you have read, so edits are checked against the current file, and the user can review them easily.
+Use Bash for running programs: builds, tests, git, package managers, servers. Shell commands for reading, searching or editing are acceptable when a reminder says so (auto mode) or when no dedicated tool can do the job. Talk to the user in your reply, not with `echo`.
 
 ## Rules
 - Every file path you pass to a tool must be absolute.

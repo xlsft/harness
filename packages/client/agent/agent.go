@@ -292,6 +292,9 @@ type Agent struct {
 	styleDelivered bool
 	// thinkingCapable follows the current model (Config.ThinkingCapable, then SetModelThinking).
 	thinkingCapable bool
+	// autoReminded: the auto_mode reminder was delivered since auto mode was entered (or since the last
+	// compaction, which drops it from the conversation).
+	autoReminded bool
 }
 
 // New creates an agent.
@@ -347,6 +350,19 @@ func (a *Agent) SetModel(id, display string, contextWindow int) {
 		a.contextWindow = contextWindow
 	}
 	a.mu.Unlock()
+}
+
+// remindAutoMode delivers the auto_mode reminder once per stretch of auto mode: what auto mode means and
+// that the shell is an acceptable route for reading, searching and mechanical edits.
+func (a *Agent) remindAutoMode() {
+	auto := a.permissionMode() == string(permissions.ModeAuto)
+	a.mu.Lock()
+	send := auto && !a.autoReminded
+	a.autoReminded = auto
+	a.mu.Unlock()
+	if send {
+		a.Remind("auto_mode", nil)
+	}
 }
 
 // SetModelThinking records whether the current model supports thinking (after SetModel).
@@ -636,6 +652,7 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 		if a.permissionMode() == string(permissions.ModePlan) && a.cfg.ToolEnv != nil {
 			a.Remind("plan_mode", map[string]string{"plan_file_path": tools.NextPlanPath(a.cfg.ToolEnv)})
 		}
+		a.remindAutoMode()
 	}
 	a.appendMessage(llm.RoleUser, append(first, input...))
 

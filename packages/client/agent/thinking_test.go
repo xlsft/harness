@@ -23,3 +23,38 @@ func TestThinkingRequest(t *testing.T) {
 		t.Fatalf("explicit config ignored: %+v", th)
 	}
 }
+
+func TestAutoModeReminder(t *testing.T) {
+	mode := "auto"
+	a := New(Config{PermissionMode: func() string { return mode }})
+	pending := func() int {
+		n := 0
+		for _, r := range a.reminders {
+			if r.id == "auto_mode" {
+				n++
+			}
+		}
+		a.reminders = nil // delivered with the next request
+		return n
+	}
+	a.remindAutoMode()
+	if n := pending(); n != 1 {
+		t.Fatalf("entering auto: %d reminders", n)
+	}
+	a.remindAutoMode()
+	if n := pending(); n != 0 {
+		t.Fatalf("still auto: %d reminders", n)
+	}
+	mode = "default"
+	a.remindAutoMode()
+	mode = "auto"
+	a.remindAutoMode()
+	if n := pending(); n != 1 {
+		t.Fatalf("auto again after default: %d reminders", n)
+	}
+	a.autoReminded = false // what a compaction does
+	a.remindAutoMode()
+	if n := pending(); n != 1 {
+		t.Fatalf("after compaction: %d reminders", n)
+	}
+}

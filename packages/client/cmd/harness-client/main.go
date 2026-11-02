@@ -186,6 +186,8 @@ func cmdServe(ctx context.Context, args []string) int {
 	}
 	base.AllowedTools, base.DisallowedTools, base.AdditionalDirs, base.Logger = *allowed, *disallowed, *addDirs, log
 	base.OutputStyle = *outputStyle
+	// Interactive frontends start sessions in auto mode unless the request or settings say otherwise.
+	base.FallbackPermissionMode = permissions.ModeAuto
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
