@@ -56,7 +56,7 @@ const open = ref<Record<string, boolean>>({})
       </button>
       <div
         v-if="open[t.id]"
-        class="border-t border-default"
+        class="border-t border-default empty:hidden"
         :class="['Edit', 'MultiEdit', 'Write', 'Task', 'Agent'].includes(t.name) && 'p-2'"
       >
         <ToolCall

@@ -82,8 +82,9 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
     :verb="tool.name === 'Write' ? 'Write' : 'Edit'"
   />
 
+  <!-- Headless with nothing to show renders nothing, so the group drops the empty body and its border. -->
   <div
-    v-else
+    v-else-if="!headless || hasBody"
     :class="headless ? '' : ['border border-default', tool.status === 'error' ? 'border-l-2 border-l-bad' : '']"
   >
     <div
