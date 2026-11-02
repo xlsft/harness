@@ -80,7 +80,7 @@ func newFixture(t *testing.T) fixture {
 		doc("doc_ur", commonv1.Scope_SCOPE_USER, syncv1.DocumentKind_DOCUMENT_KIND_PERMISSION_RULES, "user",
 			`{"allow": ["Bash(go test *)"], "deny": ["Bash(curl *)"]}`),
 		doc("doc_os", commonv1.Scope_SCOPE_ORG, syncv1.DocumentKind_DOCUMENT_KIND_SETTINGS, "user",
-			`{"model": "org-model", "includeGitInstructions": false, "claudeMdMode": "claude-md"}`),
+			`{"model": "org-model", "includeGitInstructions": false, "interruptReply": false, "claudeMdMode": "claude-md"}`),
 		doc("doc_or", commonv1.Scope_SCOPE_ORG, syncv1.DocumentKind_DOCUMENT_KIND_PERMISSION_RULES, "user",
 			`{"ask": ["Bash(docker *)"]}`),
 		doc("doc_pol", commonv1.Scope_SCOPE_ORG, syncv1.DocumentKind_DOCUMENT_KIND_POLICY, "default",
@@ -111,8 +111,8 @@ func TestPrecedenceTrusted(t *testing.T) {
 	if s.CleanupPeriodDays != 14 || s.AutoCompactWindow != 150000 {
 		t.Errorf("user doc scalars: %d %d (local ~/.claude must be ignored after sync)", s.CleanupPeriodDays, s.AutoCompactWindow)
 	}
-	if s.IncludeGitInstructions || s.ClaudeMdMode != "claude-md" {
-		t.Errorf("org defaults: %v %q", s.IncludeGitInstructions, s.ClaudeMdMode)
+	if s.IncludeGitInstructions || s.InterruptReply || s.ClaudeMdMode != "claude-md" {
+		t.Errorf("org defaults: %v %v %q", s.IncludeGitInstructions, s.InterruptReply, s.ClaudeMdMode)
 	}
 	if *s.Attribution.Commit != "project commit" || *s.Attribution.PR != "user pr" {
 		t.Errorf("attribution %q %q", *s.Attribution.Commit, *s.Attribution.PR)
@@ -263,7 +263,7 @@ func TestValidationCollected(t *testing.T) {
 	if s.Env["A"] != "1" || s.OutputStyle != "cli-style" || s.Permissions.DefaultMode != "plan" || ruleTexts(s.Permissions.Allow)[0] != "Read" {
 		t.Errorf("valid values must survive: env %v style %q mode %q", s.Env, s.OutputStyle, s.Permissions.DefaultMode)
 	}
-	if s.CleanupPeriodDays != DefaultCleanupPeriodDays || !s.IncludeGitInstructions {
-		t.Errorf("defaults: %d %v", s.CleanupPeriodDays, s.IncludeGitInstructions)
+	if s.CleanupPeriodDays != DefaultCleanupPeriodDays || !s.IncludeGitInstructions || !s.InterruptReply {
+		t.Errorf("defaults: %d %v %v", s.CleanupPeriodDays, s.IncludeGitInstructions, s.InterruptReply)
 	}
 }

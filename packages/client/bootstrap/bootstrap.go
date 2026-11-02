@@ -528,7 +528,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
 		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.mcpExtraTools(),
-		OnEvent: onEvent, Logger: log,
+		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
+		OnEvent:               onEvent, Logger: log,
 	})
 	s.Permissions.OnModeChange(func(m permissions.Mode) {
 		s.Agent.Emit(agent.Event{Kind: agent.EventModeChanged, Mode: string(m)})

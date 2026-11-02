@@ -318,6 +318,7 @@
     "empty_file": "<system-reminder>The file exists but is empty.</system-reminder>",
     "interrupted": "[Request interrupted by user]",
     "interrupted_tool_use": "[Request interrupted by user for tool use]",
+    "interrupt_reply": "<system-reminder>\nThe user stopped you. Reply briefly and ask what to change.\n</system-reminder>",
     "file_changed": "<system-reminder>{{path}} was modified outside of your tools:\n{{diff}}</system-reminder>",
     "todo_nudge": "<system-reminder>Consider updating the todo list with TodoWrite.</system-reminder>",
     "plan_mode": "<system-reminder>Plan mode is active. Use read-only tools only, then call ExitPlanMode. Plan file: {{plan_file_path}}</system-reminder>",
