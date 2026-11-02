@@ -1,0 +1,2 @@
+load_config() sets retries to MAX_RETRIES + 1 = 4 and the policy to "standard", which retries timeouts, so get() makes 1 + 4 attempts.
+ANSWER: 5

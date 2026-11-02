@@ -1,0 +1,16 @@
+id: py-answer-question
+title: Answer a question about retry behavior (read-only)
+language: python
+tags: [read-only]
+timeout: 4m
+max_turns: 20
+prompt: |
+  Question about this codebase (do NOT modify any files):
+
+  When `HttpClient()` is constructed with no arguments, with none of the
+  FETCHER_* environment variables set, how many times in total does
+  `HttpClient.get()` call the transport for a URL whose every request times
+  out, before it gives up?
+
+  Explain briefly, then end your reply with a final line of exactly the form
+  `ANSWER: <number>`.

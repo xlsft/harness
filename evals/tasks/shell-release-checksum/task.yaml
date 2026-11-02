@@ -1,0 +1,11 @@
+id: shell-release-checksum
+title: Fill in release notes with a checksum discovered via the shell
+language: shell
+tags: [shell, docs]
+timeout: 4m
+max_turns: 15
+prompt: |
+  Finish the 1.4.2 entry in RELEASE.md: replace each TODO placeholder with the
+  real value for the release artifact listed there, namely its SHA-256
+  checksum (lowercase hex) and its exact size in bytes. Do not change anything
+  else in the file.

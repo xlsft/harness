@@ -2,9 +2,9 @@ name: proto
 
 on:
   push:
-    paths: ['proto/**', 'buf.gen.yaml', '.github/workflows/proto.yml']
+    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', '.github/workflows/proto.yml']
   pull_request:
-    paths: ['proto/**', 'buf.gen.yaml', '.github/workflows/proto.yml']
+    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', '.github/workflows/proto.yml']
 
 jobs:
   buf:
@@ -19,3 +19,40 @@ jobs:
           breaking: ${{ github.event_name == 'pull_request' }}
           breaking_against: ${{ github.event.repository.clone_url }}#branch=main,subdir=proto
           push: false
+
+  generated:
+    # Generated code is committed into each package; fail if it is stale.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: packages/client/go.mod
+      - name: Install Go plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+          go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: packages/core/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: packages/core/pnpm-lock.yaml
+      - name: Install protoc-gen-es
+        working-directory: packages/core
+        run: pnpm install --frozen-lockfile
+      - name: Generate
+        run: buf generate
+      - name: Check generated code is up to date
+        run: |
+          git add -N packages/client/gen packages/core/src/gen
+          if ! git diff --exit-code --stat -- packages/client/gen packages/core/src/gen; then
+            echo "::error::Generated code is stale. Run 'buf generate' from the repository root and commit the result."
+            exit 1
+          fi

@@ -1,0 +1,11 @@
+id: ts-rename-across-files
+title: Rename a function across a TypeScript codebase
+language: typescript
+tags: [refactor]
+timeout: 5m
+max_turns: 25
+prompt: |
+  Rename the function `calcTotal` to `computeOrderTotal` everywhere in this
+  TypeScript project: its definition, every import and call site, and any
+  comments that mention it. Behavior must not change, and `npm test` must still
+  pass.

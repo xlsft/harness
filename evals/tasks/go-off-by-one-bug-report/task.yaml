@@ -1,0 +1,10 @@
+id: go-off-by-one-bug-report
+title: Fix a pagination off-by-one from a user bug report
+language: go
+tags: [bugfix]
+timeout: 6m
+max_turns: 30
+prompt: |
+  A user filed the bug report in BUG_REPORT.md. Reproduce it, find the root
+  cause in the code and fix it. Add a regression test that would have caught
+  the bug. Make sure `go test ./...` passes.

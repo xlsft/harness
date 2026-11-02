@@ -1,0 +1,9 @@
+id: ts-implement-lru-cache
+title: Implement an LRU cache from its doc comment
+language: typescript
+tags: [feature]
+timeout: 6m
+max_turns: 25
+prompt: |
+  Implement the `LRUCache` class in src/lru.ts exactly as described by its doc
+  comment. Keep the public API unchanged. Run `npm test` to check your work.

@@ -1,0 +1,10 @@
+id: go-fix-failing-test
+title: Fix a failing Go test (rune-aware string reversal)
+language: go
+tags: [bugfix]
+timeout: 5m
+max_turns: 25
+prompt: |
+  The test suite of this Go module fails (`go test ./...`). Find the bug in the
+  library code and fix it so that all tests pass. Do not modify or delete any
+  tests.

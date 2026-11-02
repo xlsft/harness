@@ -1,0 +1,6 @@
+# Eval run outputs (per-run logs, results.json, results.md)
+/results/
+
+# Task snapshots are fixtures: keep everything in them, including paths that
+# the root .gitignore excludes (such as dist/).
+!/tasks/*/repo/**

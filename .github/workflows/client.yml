@@ -1,0 +1,72 @@
+name: client
+
+on:
+  push:
+    paths: ['packages/client/**', '.github/workflows/client.yml']
+  pull_request:
+    paths: ['packages/client/**', '.github/workflows/client.yml']
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: packages/client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+  build:
+    needs: ci
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+
+    defaults:
+      run:
+        working-directory: packages/client
+
+    env:
+      CGO_ENABLED: '0'
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      BIN: harness-client-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+
+      - name: Build
+        run: go build -trimpath -ldflags='-s -w' -o "dist/$BIN" ./cmd/harness-client
+
+      - name: Upload artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BIN }}
+          path: packages/client/dist/${{ env.BIN }}
+          if-no-files-found: error

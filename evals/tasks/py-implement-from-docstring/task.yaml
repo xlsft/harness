@@ -1,0 +1,10 @@
+id: py-implement-from-docstring
+title: Implement slugify() from its docstring
+language: python
+tags: [feature]
+timeout: 5m
+max_turns: 25
+prompt: |
+  `slugify` in textutils/slug.py is only a stub. Implement it so it follows its
+  docstring exactly, using only the Python standard library. Run the tests with
+  `python3 -m unittest discover -s tests`.
