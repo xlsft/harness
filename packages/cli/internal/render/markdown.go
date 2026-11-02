@@ -15,10 +15,11 @@ import (
 
 // markdown caches glamour renderers per wrap width.
 type markdown struct {
-	mu   sync.Mutex
-	byW  map[int]*glamour.TermRenderer
-	conf gansi.StyleConfig
-	opts []glamour.TermRendererOption
+	mu      sync.Mutex
+	byW     map[int]*glamour.TermRenderer
+	conf    gansi.StyleConfig
+	opts    []glamour.TermRendererOption
+	unicode bool
 }
 
 // emptySGR matches a style that is reset before any text is printed.
@@ -88,7 +89,6 @@ func newMarkdown(e brand.Env) *markdown {
 		ImageText:      gansi.StylePrimitive{Format: "Image: {{.text}} →"},
 		Code:           gansi.StyleBlock{StylePrimitive: gansi.StylePrimitive{Color: color(accent)}},
 		CodeBlock:      gansi.StyleCodeBlock{StyleBlock: gansi.StyleBlock{Margin: up(0)}},
-		Table:          gansi.StyleTable{},
 	}
 	if accent == "" {
 		c.Code.Bold = bp(true)
@@ -108,25 +108,52 @@ func newMarkdown(e brand.Env) *markdown {
 			c.CodeBlock.Theme = "harness-light"
 		}
 	}
-	return &markdown{byW: map[int]*glamour.TermRenderer{}, conf: c, opts: opts}
+	return &markdown{byW: map[int]*glamour.TermRenderer{}, conf: c, opts: opts, unicode: e.Unicode}
 }
 
 func (m *markdown) render(src string, width int) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	r := m.renderer(width)
+	if r == nil {
+		return src
+	}
+	body, blocks := extractBlocks(expandTabs(src))
+	out := m.clean(r, body)
+	if out == "" && body != "" {
+		return src
+	}
+	out = hangLists(stripOSC8(out), width)
+	out = restoreBlocks(out, blocks, func(b block) string {
+		if b.rows != nil {
+			return renderTable(b.rows, width, m.unicode)
+		}
+		return m.clean(r, b.code)
+	})
+	out = blankRuns.ReplaceAllString(out, "\n\n")
+	return strings.Trim(out, "\n")
+}
+
+// renderer returns the cached glamour renderer for width, or nil if it cannot be built.
+func (m *markdown) renderer(width int) *glamour.TermRenderer {
 	r := m.byW[width]
 	if r == nil {
 		opts := append([]glamour.TermRendererOption{glamour.WithStyles(m.conf), glamour.WithWordWrap(width)}, m.opts...)
 		var err error
 		r, err = glamour.NewTermRenderer(opts...)
 		if err != nil {
-			return src
+			return nil
 		}
 		m.byW[width] = r
 	}
-	out, err := r.Render(expandTabs(src))
+	return r
+}
+
+// clean renders src with r and strips glamour's empty styles, trailing padding and blank runs.
+func (m *markdown) clean(r *glamour.TermRenderer, src string) string {
+	out, err := r.Render(src)
 	if err != nil {
-		return src
+		return ""
 	}
 	out = emptySGR.ReplaceAllString(out, "")
 	out = TrimRight(out)

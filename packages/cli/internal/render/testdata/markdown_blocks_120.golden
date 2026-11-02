@@ -1,0 +1,24 @@
+Steps:
+
+- A first item that is long enough to wrap across the terminal width when it is rendered at eighty columns.
+- Second item
+  - A nested item that also wraps, because it keeps going on and on past the end of the line.
+
+1. A numbered item that wraps around the limit too, since this sentence is deliberately long enough.
+2. Short one
+
+┌─────────┬────────┬─────────────────────────────────────────┐
+│ Feature │ Status │ Notes                                   │
+├─────────┼────────┼─────────────────────────────────────────┤
+│ Tables  │ done   │ box drawing, a rule between every row   │
+├─────────┼────────┼─────────────────────────────────────────┤
+│ Links   │ done   │ see the docs (https://example.com/docs) │
+└─────────┴────────┴─────────────────────────────────────────┘
+
+▎ [3mQuoted text stays[m[3m italic.[m
+
+See the docs (https://example.com/docs) for more.
+
+- removed line that must not be re-wrapped
+  continuation
++ added line
