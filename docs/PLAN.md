@@ -215,8 +215,8 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
 |---|---|
 | **M0** | `Read`, `Write`, `Edit`, `Bash` (cwd survives calls, env does not; shell snapshot; 2/10 min; output over 30K characters → file + preview; exit 1 for `grep/rg/find/diff/test/git diff` is not an error), `Glob`, `Grep` |
 | **M1** | `AskUserQuestion`, `EnterPlanMode`/`ExitPlanMode`, `TodoWrite`, background Bash + `TaskStop` |
-| **M3** | `Agent` (subagents, `model` — any model from the server catalog), `Skill`, `WebFetch` (fetch locally, summarization via the gateway), `WebSearch` (via the server), `ToolSearch`, MCP tools, `NotebookEdit` |
-| **M4** | `EnterWorktree`/`ExitWorktree`, `Monitor`, `Cron*`/`ScheduleWakeup`, `SendMessage`/`ListAgents`, `LSP`, `PushNotification`, `SendUserFile` |
+| **M2** | `Agent` (subagents, `model` — any model from the server catalog), `Skill`, `WebFetch` (fetch locally, summarization via the gateway), `WebSearch` (via the server), `ToolSearch`, MCP tools, `NotebookEdit` |
+| **M3–M4** | `EnterWorktree`/`ExitWorktree`, `Monitor`, `Cron*`/`ScheduleWakeup`, `SendMessage`/`ListAgents`, `LSP`, `PushNotification`, `SendUserFile` |
 
 ### 2.3 Permissions (decided by the client; the server cannot bypass them)
 - Modes `default`, `acceptEdits`, `plan`, `dontAsk`, `bypassPermissions`. Later `auto` (classifier via the gateway).
