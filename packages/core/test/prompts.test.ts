@@ -22,7 +22,7 @@ describe("bundle builder", () => {
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
       "AskUserQuestion", "Bash", "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "TaskStop",
-      "TodoWrite", "ToolSearch", "Write",
+      "TodoWrite", "ToolSearch", "WebFetch", "WebSearch", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
     const reminders: Record<string, string[]> = {
@@ -40,6 +40,8 @@ describe("bundle builder", () => {
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],
       deferred_tools: ["tools"],
+      // the WebFetch summarization prompt, filled by the client for the small-slot model
+      webfetch_summary: ["url", "prompt", "content"],
     };
     expect(Object.keys(b.reminders).sort()).toEqual(Object.keys(reminders).sort());
     for (const [id, phs] of Object.entries(reminders)) {
@@ -126,6 +128,12 @@ describe("bundle builder", () => {
     expect(props("Grep")).toEqual(["pattern", "path", "glob", "type", "output_mode", "-i", "-n", "-A", "-B", "-C", "multiline", "head_limit"]);
     expect(b.tools.Bash!.description).toMatch(/30000 characters/);
     expect(b.tools.Bash!.description).toMatch(/600000/);
+    expect(props("WebSearch")).toEqual(["query", "allowed_domains", "blocked_domains"]);
+    expect(b.tools.WebSearch!.input_schema.required).toEqual(["query"]);
+    expect(props("WebFetch")).toEqual(["url", "prompt"]);
+    expect(b.tools.WebFetch!.input_schema.required).toEqual(["url", "prompt"]);
+    expect(b.tools.WebFetch!.description).toMatch(/15 minutes/);
+    expect(b.tools.WebFetch!.description).toMatch(/10 MB/);
   });
 
   it("applies overrides by specificity; empty files delete; version tracks content", () => {
