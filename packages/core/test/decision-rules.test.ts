@@ -121,3 +121,14 @@ describe("shell parser and paths", () => {
     expect(resolvePath("rel", undefined)).toBeUndefined();
   });
 });
+
+describe("prototype-named programs", () => {
+  it("never fast-allows names that exist on Object.prototype", () => {
+    for (const name of ["toString", "valueOf", "constructor", "toLocaleString", "__proto__", "__defineGetter__", "hasOwnProperty"]) {
+      for (const command of [name, `./${name}`, `${name} build`]) {
+        const r = evaluateRules({ tool_name: "Bash", input: { command }, cwd: "/work/proj" });
+        expect(r.decision, command).toBe("ask");
+      }
+    }
+  });
+});

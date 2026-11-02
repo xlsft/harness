@@ -1590,9 +1590,12 @@ function isSafeTool(argv: string[], c: Cmd, ctx: Ctx): boolean {
     if (args.length === 1 && ["--version", "-V"].includes(args[0]!)) return true;
     return false;
   }
-  if (TEST_TOOLS[tool]) {
-    if (tool === "tsc" || tool === "vue-tsc") return TEST_TOOLS[tool]!(args) && outputInside(c, ctx, ["--outDir", "--outFile", "--declarationDir"]);
-    return TEST_TOOLS[tool]!(args);
+  // Own properties only: a plain-object lookup would also find Object.prototype members
+  // (`toString`, `constructor`, `__proto__`, ...) and fast-allow programs with those names.
+  const testTool = Object.hasOwn(TEST_TOOLS, tool) ? TEST_TOOLS[tool] : undefined;
+  if (testTool) {
+    if (tool === "tsc" || tool === "vue-tsc") return testTool(args) && outputInside(c, ctx, ["--outDir", "--outFile", "--declarationDir"]);
+    return testTool(args);
   }
   if (tool === "go") {
     const sub = args[0];
