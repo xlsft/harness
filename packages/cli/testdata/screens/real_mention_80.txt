@@ -1,0 +1,21 @@
+
+  The rise of graphical user interfaces in the 1990s pushed terminals out of
+  sight, but developers never stopped using them. SSH encrypted remote access,
+  Putty carried terminals across Windows networks, and today web-based shells
+  let anyone run Linux commands from a browser. Terminals remain fundamental:
+  they are still how systems administrators manage servers, how developers
+  deploy code, and how curious people explore computing beyond what icons
+  provide.
+
+  Light clicks keys, A screen fills with ghosts of letters, Time flows in
+  silence.
+
+▰ Done in 6s
+
+❯ + calc.go
+  + calc_test.go
+────────────────────────────────────────────────────────────────────────────────
+❯ look at @ca
+────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · tab to complete · enter to select · esc to close

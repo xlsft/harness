@@ -1,0 +1,27 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Fake fake-model · test@example.com
+  ▄█████▀ ▄███████   /…/scratchpad/demo
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+❯ /status
+  └  Version:  0.0.0-dev
+     Session:  9898ee8d-c157-47ea-8779-b2fadfaa8eee
+     cwd:      /private/tmp/claude-501/-Users-user-Library-Application-Support-Claude-scratch-workspaces-205973d5-f813-
+               435f-8d4e-56048dcba80a-34f8dad9-4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-468a-
+               8ec0-ef81b6d80eb4/scratchpad/demo
+     Model:    Fake fake-model (fake-model)
+     Mode:     manual
+     Account:  test@example.com
+     Context:  unknown
+     Cost:     $0
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Select model                                                                                                         │
+│ Switch the model for this session. Pass an id to /model to skip this list.                                           │
+│ ❯ 1. fake-model ✔                                                                                                    │
+│      Fake fake-model · 200k context                                                                                  │
+│                                                                                                                      │
+│ Enter to select · ↑/↓ to navigate · Esc to cancel                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -1,0 +1,23 @@
+  Claude-scratch-workspaces-205973d5-f813-435f-8d4e-56048dcba80a-34f8dad9-
+  4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-
+  468a-8ec0-ef81b6d80eb4/scratchpad/demo/calc.go)
+  └  Added 1 line, removed 1 line
+      2
+      3  // Add returns the sum of a and b.
+      4  func Add(a, b int) int {
+      5 -    return a - b
+      5 +    return a + b
+      6  }
+
+▰ Bash(go test ./...)
+  └  ok      demo    (cached)
+
+▰ Fixed Add in calc.go. Tests pass: ok    demo    (cached)
+
+▰ Done in 0s
+
+────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts         fake-model · 1% context · $0.0040

@@ -1,0 +1,39 @@
+  8d4e-56048dcba80a-34f8dad9-4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-468a-8ec0-
+  ef81b6d80eb4/scratchpad/demo/calc.go)
+  «fg=3f3f46|└»  «fg=a1a1aa|     1  package demo»
+     «fg=a1a1aa|     2  »
+     «fg=a1a1aa|     3  // Add returns the sum of a and b.»
+     «fg=a1a1aa|     4  func Add(a, b int) int {»
+     «fg=a1a1aa|     5      return a - b»
+     «fg=a1a1aa|     6  }»
+
+«fg=2b7fff|▰» «b|Grep»(pattern: "func Add")
+  «fg=3f3f46|└»  «fg=a1a1aa|/private/tmp/claude-501/-Users-user-Library-Application-Support-Claude-scratch-workspaces-205973d5-f813-435f-8d4e-»
+     «fg=a1a1aa|56048dcba80a-34f8dad9-4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-468a-8ec0-»
+     «fg=a1a1aa|ef81b6d80eb4/scratchpad/demo/calc.go:4:func Add(a, b int) int {»
+
+«fg=2b7fff|▰» Add subtracts instead of adding. Fixing it.
+
+«fg=2b7fff|▰» «b|Update»(/private/tmp/claude-501/-Users-user-Library-Application-Support-Claude-scratch-workspaces-205973d5-f813-435f-
+  8d4e-56048dcba80a-34f8dad9-4f4e-4084-970e-88ef7fe69bca-scratch-2026-11-02-1b866f/ceb608b0-98ef-468a-8ec0-
+  ef81b6d80eb4/scratchpad/demo/calc.go)
+  «fg=3f3f46|└»  «fg=a1a1aa|Added »«b|1»«fg=a1a1aa| line, removed »«b|1»«fg=a1a1aa| line»
+     «fg=71717a| 2»
+     «fg=71717a| 3»  // Add returns the sum of a and b.
+     «fg=71717a| 4»  func Add(a, b int) int {
+     «fg=ffa1ad,bg=4d0218| 5 -    return a - b                                                                                               »
+     «fg=5ee9b5,bg=002c22| 5 +    return a + b                                                                                               »
+     «fg=71717a| 6»  }
+
+«fg=2b7fff|▰» «b|Bash»(go test ./...)
+  «fg=3f3f46|└»  «fg=a1a1aa|ok      demo    (cached)»
+
+«fg=2b7fff|▰» Fixed Add in calc.go. Tests pass: ok    demo    (cached)
+
+«fg=00d492|▰» «fg=a1a1aa|Done in 1s»
+
+«fg=3f3f46|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+«fg=2b7fff|❯» «rev| »
+«fg=3f3f46|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+
+  «fg=a1a1aa|⏸ manual mode on · ? for shortcuts»                                                 «fg=71717a|fake-model · 1% context · $0.0040»

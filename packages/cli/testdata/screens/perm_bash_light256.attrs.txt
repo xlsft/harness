@@ -1,0 +1,36 @@
+
+«fg=767676,bg=eeeeee|❯»«bg=eeeeee| fix the failing test                                                                                                  »
+
+«fg=005fd7|▰» Let me look at the code and find the Add function.
+
+«fg=005fd7|▰» «fg=585858|Searched for »«fg=585858,b|1»«fg=585858| pattern, read »«fg=585858,b|1»«fg=585858| file»
+
+«fg=005fd7|▰» Add subtracts instead of adding. Fixing it.
+
+«fg=005fd7|▰» «b|Update»(calc.go)
+  «fg=d0d0d0|└»  «fg=585858|Added »«b|1»«fg=585858| line, removed »«b|1»«fg=585858| line»
+     «fg=767676| 2»
+     «fg=767676| 3»  // Add returns the sum of a and b.
+     «fg=767676| 4»  func Add(a, b int) int {
+     «fg=870000,bg=ffd7d7| 5 -    return a - b                                                                                               »
+     «fg=005f00,bg=d7ffd7| 5 +    return a + b                                                                                               »
+     «fg=767676| 6»  }
+
+«fg=005fd7|❯» «fg=585858|Running »«fg=585858,b|1»«fg=585858| shell command…»
+  «fg=d0d0d0|└»  «fg=585858|$ go test ./...»
+
+«fg=005fd7|❯» «fg=005fd7|▰»«fg=d0d0d0|▱▱▱»  Waiting for approval«fg=767676| · 0s · ↓ 60 tokens · esc to interrupt»
+
+«fg=d0d0d0|╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮»
+«fg=d0d0d0|│» «fg=005fd7,b|Bash command»                                                                                                         «fg=d0d0d0|│»
+«fg=d0d0d0|│»                                                                                                                      «fg=d0d0d0|│»
+«fg=d0d0d0|│»   go test ./...                                                                                                      «fg=d0d0d0|│»
+«fg=d0d0d0|│»   «fg=585858|Run the tests»                                                                                                      «fg=d0d0d0|│»
+«fg=d0d0d0|│»                                                                                                                      «fg=d0d0d0|│»
+«fg=d0d0d0|│» Do you want to proceed?                                                                                              «fg=d0d0d0|│»
+«fg=d0d0d0|│» «fg=005fd7|❯» «fg=585858|1. »«fg=005fd7|Yes»                                                                                                             «fg=d0d0d0|│»
+«fg=d0d0d0|│»   «fg=585858|2. »Yes, and don’t ask again for Bash(go test *)                                                                    «fg=d0d0d0|│»
+«fg=d0d0d0|│»   «fg=585858|3. »No, and tell harness what to do differently «b|(esc)»                                                               «fg=d0d0d0|│»
+«fg=d0d0d0|│»                                                                                                                      «fg=d0d0d0|│»
+«fg=d0d0d0|│» «fg=585858|Esc to cancel · Tab to add a comment»                                                                                 «fg=d0d0d0|│»
+«fg=d0d0d0|╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯»

@@ -1,0 +1,37 @@
+«fg=blue|████▄      ▄████▀»
+«fg=blue|▀█████▄  ▄████▀   »   «fg=blue,b|harness»«fg=brightblack| v0.0.0-dev»
+«fg=blue|  ▀█████▄███▀     »   Fake fake-model · test@example.com
+«fg=blue|  ▄█████▀ ▄███████»   /…/scratchpad/demo
+«fg=blue|▄█████▀ ▄████████▀»   «fg=brightblack|/help for commands · shift+tab to switch modes»
+«fg=blue|████▀ ▄████████▀»
+
+«fg=blue|❯» fix the failing test
+
+«fg=blue|▰» Let me look at the code and find the Add function.
+
+«fg=blue|▰» Searched for «b|1» pattern, read «b|1» file
+
+«fg=blue|▰» Add subtracts instead of adding. Fixing it.
+
+«fg=blue|❯» «b|Update»(calc.go)
+
+«fg=blue|❯» «fg=brightblack|▱▱▱▱»  Waiting for approval«fg=brightblack| · 0s · ↓ 40 tokens · esc to interrupt»
+
+«fg=brightblack|╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮»
+«fg=brightblack|│» «fg=blue,b|Edit file»                                                                                                            «fg=brightblack|│»
+«fg=brightblack|│» calc.go                                                                                                              «fg=brightblack|│»
+«fg=brightblack|│» «fg=brightblack|╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌» «fg=brightblack|│»
+«fg=brightblack|│» «fg=brightblack| 2»                                                                                                                   «fg=brightblack|│»
+«fg=brightblack|│» «fg=brightblack| 3»  // Add returns the sum of a and b.                                                                               «fg=brightblack|│»
+«fg=brightblack|│» «fg=brightblack| 4»  func Add(a, b int) int {                                                                                         «fg=brightblack|│»
+«fg=brightblack|│» «fg=red| 5 -    return a - b»                                                                                                 «fg=brightblack|│»
+«fg=brightblack|│» «fg=green| 5 +    return a + b»                                                                                                 «fg=brightblack|│»
+«fg=brightblack|│» «fg=brightblack| 6»  }                                                                                                                «fg=brightblack|│»
+«fg=brightblack|│» «fg=brightblack|╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌» «fg=brightblack|│»
+«fg=brightblack|│» Do you want to make this edit to «b|calc.go»?                                                                            «fg=brightblack|│»
+«fg=brightblack|│» «fg=blue|❯» 1. «fg=brightblue|Yes»                                                                                                             «fg=brightblack|│»
+«fg=brightblack|│»   2. Yes, allow all edits during this session «b|(shift+tab)»                                                            «fg=brightblack|│»
+«fg=brightblack|│»   3. No, and tell harness what to do differently «b|(esc)»                                                               «fg=brightblack|│»
+«fg=brightblack|│»                                                                                                                      «fg=brightblack|│»
+«fg=brightblack|│» Esc to cancel · Tab to add a comment                                                                                 «fg=brightblack|│»
+«fg=brightblack|╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯»

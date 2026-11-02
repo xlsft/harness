@@ -1,0 +1,13 @@
+«fg=2b7fff|████▄      ▄████▀»
+«fg=2b7fff|▀█████▄  ▄████▀   »   «fg=2b7fff,b|harness»«fg=71717a| v0.0.0-dev»
+«fg=2b7fff|  ▀█████▄███▀     »   «fg=a1a1aa|Fake fake-model · test@example.com»
+«fg=2b7fff|  ▄█████▀ ▄███████»   «fg=a1a1aa|/…/scratchpad/demo»
+«fg=2b7fff|▄█████▀ ▄████████▀»   «fg=71717a|/help for commands · shift+tab to switch modes»
+«fg=2b7fff|████▀ ▄████████▀»
+
+«fg=2b7fff|❯» «fg=8ec5ff,u|/st»«fg=8ec5ff|atus    Show session, model, account and context usage»
+«fg=3f3f46|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+«fg=2b7fff|❯» /st«rev| »
+«fg=3f3f46|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+
+  «fg=a1a1aa|⏸ manual mode on · tab to complete · enter to select · esc to close»                                       «fg=71717a|fake-model»

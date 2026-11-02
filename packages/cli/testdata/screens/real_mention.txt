@@ -1,0 +1,32 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Qwen 3.7 Flash · admin@harness.local
+  ▄█████▀ ▄███████   /…/scratchpad/realproj
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+❯ Reply with a short markdown note about Go: an H1 heading, a two-sentence paragraph, three bullets, and a 3-line Go
+  code block. No tools.
+
+▰ Go
+
+  Go is a compiled, statically typed language designed for simplicity and efficiency. It excels at building concurrent
+  systems thanks to its lightweight goroutines and channels.
+
+  - Fast compilation and clean syntax
+  - Built-in concurrency primitives
+  - Excellent standard library
+
+  package main
+  import "fmt"
+  func main() { fmt.Println("Hello") }
+
+▰ Done in 16s
+
+❯ + calc.go
+  + calc_test.go
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ look at @ca
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · tab to complete · enter to select · esc to close                qwen-flash · 1% context · $0.0002

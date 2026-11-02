@@ -1,0 +1,5 @@
+  [1m/[mhelp       Show commands and keyboard shortcuts
+[1m❯[m [1;4;7;4m/[m[1;7mclear[m[1;7m      [m[1;7mClear the conversation and start a new session[m
+  [1m/[mcompact    Compact the conversation (optional focus instructions)
+  [1m/[mmodel      Switch the model for this session
+  [1m/[mrewind     Restore the code and/or conversation to an earlier point

@@ -1,0 +1,23 @@
+████▄      ▄████▀
+▀█████▄  ▄████▀      harness v0.0.0-dev
+  ▀█████▄███▀        Qwen 3.7 Flash · admin@harness.local
+  ▄█████▀ ▄███████   /…/scratchpad/realproj
+▄█████▀ ▄████████▀   /help for commands · shift+tab to switch modes
+████▀ ▄████████▀
+
+❯ No tools. Write about 200 words on the history of terminals, in plain
+  paragraphs.
+
+▰ The modern computer terminal traces its origins to teletypewriters (TTYs),
+  mechanical printers that telegraphists used to send and receive messages over
+  telephone lines. In the 1950s and 1960s, mainframe computing adopted these
+  devices
+
+❯ ▱▱▱▰  Writing · 3s · ↓ 111 tokens · esc to interrupt
+  ❯ then one haiku (queued)
+
+────────────────────────────────────────────────────────────────────────────────
+❯ Messages are sent after the current tool calls
+────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts                                qwen-flash

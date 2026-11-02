@@ -1,0 +1,17 @@
+«b|████▄      ▄████▀»
+«b|▀█████▄  ▄████▀   »   «b|harness» v0.0.0-dev
+«b|  ▀█████▄███▀     »   Fake fake-model · test@example.com
+«b|  ▄█████▀ ▄███████»   /…/scratchpad/demo
+«b|▄█████▀ ▄████████▀»   /help for commands · shift+tab to switch modes
+«b|████▀ ▄████████▀»
+
+«b|❯» «b,rev,u|/»«b,rev|help       Show commands and keyboard shortcuts»
+  «b|/»clear      Clear the conversation and start a new session
+  «b|/»compact    Compact the conversation (optional focus instructions)
+  «b|/»model      Switch the model for this session
+  «b|/»rewind     Restore the code and/or conversation to an earlier point
+────────────────────────────────────────────────────────────────────────────────
+«b|❯» /«rev| »
+────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · tab to complete · enter to select · esc to close

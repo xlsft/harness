@@ -1,0 +1,13 @@
+[2m╭──────────────────────────────────────────────────────────────────────────────╮[m
+[2m│[m [1mBash command[m                                                                 [2m│[m
+[2m│[m                                                                              [2m│[m
+[2m│[m   python3 -m pytest test_calc.py -v                                          [2m│[m
+[2m│[m   Run the tests to verify the fix                                            [2m│[m
+[2m│[m                                                                              [2m│[m
+[2m│[m Do you want to proceed?                                                      [2m│[m
+[2m│[m [1m❯[m 1. [1;7mYes[m                                                                     [2m│[m
+[2m│[m   2. Yes, and don’t ask again for Bash(python3 *)                            [2m│[m
+[2m│[m   3. No, and tell harness what to do differently [1m(esc)[m                       [2m│[m
+[2m│[m                                                                              [2m│[m
+[2m│[m Esc to cancel · Tab to add a comment                                         [2m│[m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[m

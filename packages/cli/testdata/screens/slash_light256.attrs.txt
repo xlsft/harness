@@ -1,0 +1,17 @@
+«fg=005fd7|████▄      ▄████▀»
+«fg=005fd7|▀█████▄  ▄████▀   »   «fg=005fd7,b|harness»«fg=767676| v0.0.0-dev»
+«fg=005fd7|  ▀█████▄███▀     »   «fg=585858|Fake fake-model · test@example.com»
+«fg=005fd7|  ▄█████▀ ▄███████»   «fg=585858|/…/scratchpad/demo»
+«fg=005fd7|▄█████▀ ▄████████▀»   «fg=767676|/help for commands · shift+tab to switch modes»
+«fg=005fd7|████▀ ▄████████▀»
+
+«fg=005fd7|❯» «fg=005fd7,u|/»«fg=005fd7|help       Show commands and keyboard shortcuts»
+  «fg=005fd7,b|/»«fg=585858|clear      Clear the conversation and start a new session»
+  «fg=005fd7,b|/»«fg=585858|compact    Compact the conversation (optional focus instructions)»
+  «fg=005fd7,b|/»«fg=585858|model      Switch the model for this session»
+  «fg=005fd7,b|/»«fg=585858|rewind     Restore the code and/or conversation to an earlier point»
+«fg=d0d0d0|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+«fg=005fd7|❯» /«rev| »
+«fg=d0d0d0|────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────»
+
+  «fg=585858|⏸ manual mode on · tab to complete · enter to select · esc to close»                                       «fg=767676|fake-model»

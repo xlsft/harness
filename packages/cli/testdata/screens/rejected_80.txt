@@ -1,0 +1,11 @@
+      5 +    return a + b
+      6  }
+
+▰ Ran 1 shell command · 1 rejected
+  └  Interrupted · What should harness do instead?
+
+────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ? for shortcuts         fake-model · 1% context · $0.0030
