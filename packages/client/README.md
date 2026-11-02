@@ -25,6 +25,7 @@ It ships in two forms:
 | `permissions` | Rule engine with Claude Code semantics (deny → ask → allow, compound Bash, wrappers, gitignore paths, read-only allowlist, protected paths, modes), workspace trust (`~/.harness/trust.json`), allow-always persistence |
 | `decision` | Deciders of the `auto` permission mode: local rules (Go port of the server's `rules` provider, `packages/core/src/decision/rules.ts`), `harness.decision.v1.DecisionService` client, chain with fallback, session cache |
 | `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`), branch-aware rebuild, file checkpoints (`~/.harness/file-history/<id>/`), fork |
+| `mcp` | MCP servers from `harness.mcp.v1.McpService`: remote tools through the core proxy, stdio servers via `IssueStdioLaunch` and the Go MCP SDK with per-device approval (`~/.harness/mcp-approvals.json`), `mcp__<server>__<tool>` tools, deferred tools and `ToolSearch` |
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) |
@@ -32,6 +33,7 @@ It ships in two forms:
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
 | `gen` | Code generated from `/proto` (do not edit) |
 | `internal/fakegateway` | Scripted fake harness server for tests and local end-to-end runs |
+| `internal/fakemcp` | Fake `McpService` and a fake stdio MCP server (also as `cmd/fake-mcp-server`) for tests and e2e |
 
 ## Usage
 
@@ -61,6 +63,9 @@ Environment variables:
 - `HARNESS_RG` sets the ripgrep path (`-` forces the Go fallback).
 - `HARNESS_AUTOCOMPACT_PCT` sets the auto-compaction threshold as a share of the context window (`92` or `0.92`, default 92%).
 - `HARNESS_DISABLE_BACKGROUND_TASKS=1` disables `run_in_background` and auto-backgrounding.
+- `HARNESS_NO_MCP=1` disables MCP servers.
+- `HARNESS_MCP_APPROVE=name1,name2` (or `*`) approves those stdio MCP servers for this run without asking (not remembered). Otherwise a stdio server asks on first use through the interactive frontend and the answer is stored per config hash.
+- `HARNESS_TOOL_SEARCH`: `auto` (default; defer MCP tools behind `ToolSearch` when their definitions exceed 10% of the context window, `auto:<percent>` to change the share), `always`, `never`.
 
 ## Auto permission mode
 
