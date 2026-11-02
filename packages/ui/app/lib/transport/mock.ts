@@ -1,0 +1,389 @@
+// MockTransport: replays scripted harness.agent.v1 histories (./scenario.ts) and answers commands with
+// scripted live turns, so every screen and card of the design can be reached without a client.
+//
+// Live behavior:
+// - a message sent while idle starts a turn: thinking and text deltas, then a tool call;
+//   "plan" in the text proposes a plan, "ask"/"question" asks a question, otherwise a Bash call asks for permission;
+// - a message sent while a turn runs is queued (QueueChanged) and starts the next turn;
+// - Interrupt ends the turn as interrupted; permission, question and plan answers resume it.
+
+import {
+  InitializeResponseSchema,
+  RespondToPermissionRequest_Decision,
+  RespondToPlanRequest_Decision,
+  SendUserMessageRequest_Delivery,
+  type PermissionMode,
+  type SessionEvent,
+  type SessionInfo
+} from '~/gen/harness/agent/v1/agent_pb'
+import { create } from '@bufbuild/protobuf'
+import type { Effort } from '~/gen/harness/llm/v1/content_pb'
+import { EventBuilder } from './events'
+import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
+import type { SessionTransport, SubscribeHandlers } from './types'
+
+interface MockSession {
+  info: SessionInfo
+  history: SessionEvent[]
+  seq: number
+  listeners: Set<SubscribeHandlers>
+  working: boolean
+  queue: { uuid: string, text: string }[]
+  timers: ReturnType<typeof setTimeout>[]
+  // Continuation after a permission / question / plan answer.
+  waiting: { requestId: string, resume: (b: EventBuilder, decision: number) => number } | null
+  turn: number
+  afterResume: ((ok: boolean) => void) | null
+}
+
+export interface MockOptions {
+  // Delay between streamed deltas (ms); 0 makes live turns synchronous-ish (tests).
+  tick?: number
+  now?: () => number
+}
+
+export class MockTransport implements SessionTransport {
+  readonly kind = 'mock' as const
+  private sessions = new Map<string, MockSession>()
+  private tick: number
+  private now: () => number
+
+  constructor(opts: MockOptions = {}) {
+    this.tick = opts.tick ?? 28
+    this.now = opts.now ?? (() => Date.now())
+    const now = this.now()
+    for (const info of sessionList()) {
+      const history = info.id === MAIN_SESSION ? mainHistory(now) : otherHistory(info, now)
+      const durable = history.filter(e => e.event.case !== 'assistantDelta')
+      this.sessions.set(info.id, {
+        info,
+        history,
+        seq: Number(durable[durable.length - 1]?.seq ?? 0),
+        listeners: new Set(),
+        working: info.id === MAIN_SESSION,
+        queue: [],
+        timers: [],
+        waiting: null,
+        turn: 0,
+        afterResume: null
+      })
+    }
+  }
+
+  private get(id: string) {
+    const s = this.sessions.get(id)
+    if (!s) throw new Error(`unknown session ${id}`)
+    return s
+  }
+
+  async initialize() {
+    return create(InitializeResponseSchema, { clientVersion: '0.1.0-mock', userEmail: 'xlsft@self-hosted', modelIds: MODELS.map(m => m.id) })
+  }
+
+  async listSessions() {
+    return [...this.sessions.values()].map(s => s.info)
+  }
+
+  async listModels() {
+    return MODELS
+  }
+
+  subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {
+    const s = this.get(sessionId)
+    let live = true
+    queueMicrotask(() => {
+      if (!live) return
+      for (const ev of s.history) {
+        // History replay yields durable events only; deltas of the in-flight turn are part of the live stream.
+        if (ev.event.case === 'assistantDelta' || Number(ev.seq) > afterSeq) h.onEvent(ev)
+      }
+      s.listeners.add(h)
+    })
+    return () => {
+      live = false
+      s.listeners.delete(h)
+    }
+  }
+
+  // Emits events built by `fn` on the session clock, appending durable ones to the history.
+  private emit(s: MockSession, fn: (b: EventBuilder) => void) {
+    const b = new EventBuilder(s.info.id, this.now(), s.seq)
+    fn(b)
+    s.seq = b.seq
+    for (const ev of b.events) {
+      if (ev.event.case !== 'assistantDelta') s.history.push(ev)
+      for (const l of s.listeners) l.onEvent(ev)
+    }
+  }
+
+  private later(s: MockSession, ms: number, fn: () => void) {
+    if (this.tick === 0) {
+      fn()
+      return
+    }
+    s.timers.push(setTimeout(fn, ms))
+  }
+
+  private stream(s: MockSession, messageId: string, index: number, kind: 'text' | 'thinking', body: string, done: () => void) {
+    const words = body.split(/(?<=\s)/)
+    let i = 0
+    const step = () => {
+      if (i >= words.length) return done()
+      const chunk = words.slice(i, i + 2).join('')
+      i += 2
+      this.emit(s, b => b.delta(messageId, index, kind, chunk))
+      this.later(s, this.tick, step)
+    }
+    step()
+  }
+
+  async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
+    const s = this.get(sessionId)
+    if (s.working && delivery !== SendUserMessageRequest_Delivery.NOW) {
+      s.queue.push({ uuid, text })
+      this.emit(s, b => b.queue(s.queue))
+      return
+    }
+    this.startTurn(s, uuid, text)
+  }
+
+  private startTurn(s: MockSession, uuid: string, body: string) {
+    s.working = true
+    s.turn += 1
+    const n = s.turn
+    const startedAt = this.now()
+    const msg = `live-${n}`
+    this.emit(s, (b) => {
+      b.user(uuid, body)
+      b.turnStarted(uuid, s.info.model)
+    })
+
+    if (body.trim().startsWith('/compact')) {
+      this.later(s, 600, () => this.emit(s, (b) => {
+        b.compacted(182_000, 24_000)
+        b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.01, usage: { input: 2000, output: 300 } })
+        this.finishTurn(s)
+      }))
+      return
+    }
+
+    const lower = body.toLowerCase()
+    const thinking = 'The user wants this done now. Check the current state first, then make the smallest change that works.'
+    this.stream(s, msg, 0, 'thinking', thinking, () => {
+      const intro = lower.includes('plan')
+        ? 'Here is how I would approach it. Nothing changes until you approve the plan.'
+        : lower.includes('ask') || lower.includes('question')
+          ? 'One decision first, it changes the shape of the change.'
+          : 'Rebuilding core from a clean output directory, then running the gateway tests.'
+      this.stream(s, msg, 1, 'text', intro, () => {
+        if (lower.includes('plan')) return this.planFlow(s, msg, thinking, intro, startedAt)
+        if (lower.includes('ask') || lower.includes('question')) return this.questionFlow(s, msg, thinking, intro, startedAt)
+        this.permissionFlow(s, msg, thinking, intro, startedAt)
+      })
+    })
+  }
+
+  private permissionFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
+    const tool = `${msg}-bash`
+    const req = `${msg}-perm`
+    const command = 'rm -rf packages/core/.output && pnpm --filter core build'
+    this.emit(s, (b) => {
+      b.assistant(msg, s.info.model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'Bash', input: { command } } }], { input: 31_000, output: 800 })
+      b.toolStarted(tool, 'Bash', { command }, command)
+      b.permissionRequest(req, tool, 'Bash', { command, description: 'Remove the old core build before rebuilding.' }, ['Bash(rm -rf packages/core/.output)'], 'Remove the old core build before rebuilding.')
+    })
+    s.waiting = {
+      requestId: req,
+      resume: (b, decision) => {
+        b.permissionResolved(req, decision)
+        if (decision === RespondToPermissionRequest_Decision.DENY) {
+          b.toolFinished(tool, { output: 'The user denied this command.', isError: true, summary: 'denied' })
+          b.turnFinished('interrupted', { durationMs: this.now() - startedAt, costUsd: 0.01, usage: { input: 31_000, output: 800 } })
+          return 0
+        }
+        b.wait(2400).toolFinished(tool, {
+          output: '> core@0.1.0 build\n> nitro build\n\n✔ Generated public .output/public\n✔ Nitro server built in 3.1s',
+          result: { stdout: '✔ Nitro server built in 3.1s', stderr: '', exitCode: 0 },
+          summary: 'exit 0',
+          durationMs: 2400
+        })
+        return 1
+      }
+    }
+    s.afterResume = (decisionOk) => {
+      if (!decisionOk) return this.finishTurn(s)
+      const msg2 = `${msg}-done`
+      const body = 'Core rebuilt from a clean `.output` in 3.1s. The gateway tests still pass; usage now arrives before **message_stop** on every provider.'
+      this.stream(s, msg2, 0, 'text', body, () => this.emit(s, (b) => {
+        b.assistant(msg2, s.info.model, [{ text: body }], { input: 33_000, output: 400 })
+        b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.03, usage: { input: 12_400, output: 2100 } })
+        this.finishTurn(s)
+      }))
+    }
+  }
+
+  private questionFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
+    const tool = `${msg}-ask`
+    const req = `${msg}-q`
+    this.emit(s, (b) => {
+      b.assistant(msg, s.info.model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'AskUserQuestion', input: {} } }], { input: 30_000, output: 300 })
+      b.toolStarted(tool, 'AskUserQuestion', {}, 'Where should provider keys live?')
+      b.question(req, tool, [{
+        question: 'Where should provider keys live?',
+        header: 'Keys',
+        options: [
+          { label: 'Postgres, encrypted (recommended)', description: 'Master key in env, rotation without restart' },
+          { label: 'Container env', description: 'Simpler, but rotating a key means a redeploy' },
+          { label: 'External Vault', description: 'One more service in docker-compose' }
+        ]
+      }])
+    })
+    s.waiting = {
+      requestId: req,
+      resume: (b) => {
+        b.questionResolved(req)
+        b.toolFinished(tool, { output: 'Answered', summary: 'answered' })
+        return 1
+      }
+    }
+    s.afterResume = () => {
+      const msg2 = `${msg}-done`
+      const body = 'Going with encrypted Postgres: the master key stays in env and keys rotate without a restart.'
+      this.stream(s, msg2, 0, 'text', body, () => this.emit(s, (b) => {
+        b.assistant(msg2, s.info.model, [{ text: body }], { output: 120 })
+        b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.02, usage: { input: 8000, output: 420 } })
+        this.finishTurn(s)
+      }))
+    }
+  }
+
+  private planFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
+    const tool = `${msg}-plan`
+    const req = `${msg}-p`
+    const plan = [
+      '## Provider retries',
+      '',
+      '1. Retry only 429 and 5xx, with exponential backoff (base 500 ms, factor 2, at most 5 attempts).',
+      '2. Surface each retry as a `retry` notice so the UI can show **Retry now** and **Switch model**.',
+      '3. Add `gateway/retry.test.ts` with a fake provider that fails twice, then succeeds.',
+      '',
+      'Files: `packages/core/server/gateway/retry.ts`, `translate.ts`, `retry.test.ts`.'
+    ].join('\n')
+    this.emit(s, (b) => {
+      b.assistant(msg, s.info.model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'ExitPlanMode', input: { plan } } }], { input: 30_000, output: 600 })
+      b.toolStarted(tool, 'ExitPlanMode', { plan }, 'Plan')
+      b.planProposed(req, tool, plan, '~/.harness/plans/provider-retries.md')
+    })
+    s.waiting = {
+      requestId: req,
+      resume: (b, decision) => {
+        b.planResolved(req, decision)
+        b.toolFinished(tool, { output: 'Plan resolved', summary: 'resolved' })
+        return decision === RespondToPlanRequest_Decision.KEEP_PLANNING ? 0 : 1
+      }
+    }
+    s.afterResume = (ok) => {
+      const msg2 = `${msg}-done`
+      const body = ok ? 'Plan approved. Starting with `retry.ts`.' : 'Keeping the plan open; tell me what to change.'
+      this.stream(s, msg2, 0, 'text', body, () => this.emit(s, (b) => {
+        b.assistant(msg2, s.info.model, [{ text: body }], { output: 80 })
+        b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.02, usage: { input: 9000, output: 680 } })
+        this.finishTurn(s)
+      }))
+    }
+  }
+
+  private resume(sessionId: string, requestId: string, decision: number) {
+    const s = this.get(sessionId)
+    if (!s.waiting || s.waiting.requestId !== requestId) return
+    const w = s.waiting
+    s.waiting = null
+    let ok = 0
+    this.emit(s, (b) => {
+      ok = w.resume(b, decision)
+    })
+    const next = s.afterResume
+    s.afterResume = null
+    this.later(s, 300, () => next?.(ok === 1))
+  }
+
+  private finishTurn(s: MockSession) {
+    s.working = false
+    const next = s.queue.shift()
+    if (next) {
+      this.emit(s, b => b.queue(s.queue))
+      this.later(s, 400, () => this.startTurn(s, next.uuid, next.text))
+    }
+  }
+
+  async interrupt(sessionId: string) {
+    const s = this.get(sessionId)
+    if (!s.working) return
+    for (const t of s.timers) clearTimeout(t)
+    s.timers = []
+    const pending = s.waiting
+    s.waiting = null
+    s.afterResume = null
+    this.emit(s, (b) => {
+      if (pending) b.permissionResolved(pending.requestId, RespondToPermissionRequest_Decision.DENY, 'interrupt')
+      b.turnFinished('interrupted', { durationMs: 0 })
+    })
+    s.working = false
+    s.queue = []
+    this.emit(s, b => b.queue([]))
+  }
+
+  async respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision) {
+    this.resume(sessionId, requestId, decision)
+  }
+
+  async answerQuestion(sessionId: string, requestId: string) {
+    this.resume(sessionId, requestId, 1)
+  }
+
+  async respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision) {
+    this.resume(sessionId, requestId, decision)
+  }
+
+  async setModel(sessionId: string, model: string) {
+    const s = this.get(sessionId)
+    s.info = { ...s.info, model }
+    this.emit(s, b => b.sessionUpdated(s.info))
+  }
+
+  async setEffort(_sessionId: string, _effort: Effort) {}
+
+  async setPermissionMode(sessionId: string, mode: PermissionMode) {
+    const s = this.get(sessionId)
+    s.info = { ...s.info, permissionMode: mode }
+    this.emit(s, b => b.permissionModeChanged(mode))
+  }
+
+  async suggestFiles(_sessionId: string, query: string, limit: number) {
+    const files = [
+      'packages/core/server/gateway/translate.ts',
+      'packages/core/server/gateway/',
+      'packages/core/server/routes/gateway.ts',
+      'packages/core/server/gateway/providers/openrouter.ts',
+      'packages/core/server/gateway/providers/ollama.ts',
+      'proto/gateway/v1/gateway.proto',
+      'docs/PLAN.md'
+    ]
+    const q = query.toLowerCase()
+    return files.filter(f => f.toLowerCase().includes(q)).slice(0, limit)
+  }
+
+  async compact(sessionId: string) {
+    const s = this.get(sessionId)
+    this.emit(s, b => b.compacted(182_000, 24_000))
+  }
+
+  async listTasks() {
+    return []
+  }
+
+  async stopTask(sessionId: string, taskId: string) {
+    const s = this.get(sessionId)
+    this.emit(s, b => b.taskFinished(taskId, 143, 0, true))
+  }
+}

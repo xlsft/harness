@@ -1,0 +1,163 @@
+<script setup lang="ts">
+// Chat events and notices (Event.dc.html): hook output, provider error with retry, context compaction,
+// interruption, turn usage footer, and plain info / warning notices.
+import type { CompactItem, NoticeItem, TurnItem } from '~/lib/session/types'
+
+const props = defineProps<{
+  notice?: NoticeItem
+  compact?: CompactItem
+  turn?: TurnItem
+}>()
+const emit = defineEmits<{ retry: [], switchModel: [], copy: [], fork: [] }>()
+
+const hook = computed(() => {
+  if (props.notice?.noticeKind !== 'hook') return null
+  try {
+    const j = JSON.parse(props.notice.text)
+    return { event: String(j.event ?? ''), command: String(j.command ?? ''), result: String(j.result ?? ''), ok: j.ok !== false, ms: Number(j.duration_ms ?? 0) }
+  } catch {
+    return { event: 'Hook', command: props.notice.text, result: '', ok: true, ms: 0 }
+  }
+})
+
+// Provider errors: "title|detail" (the detail line is optional).
+const error = computed(() => {
+  if (!props.notice || props.notice.level !== 'error') return null
+  const [title, detail] = props.notice.text.split('|')
+  return { title: title ?? '', detail: detail ?? '' }
+})
+
+const usageLine = computed(() => {
+  const t = props.turn
+  if (!t) return ''
+  return [t.model, `${formatTokens(t.usage.inputTokens + t.usage.cacheReadTokens)} in`, `${formatTokens(t.usage.outputTokens)} out`, formatCost(t.costUsd), formatDuration(t.durationMs)].filter(Boolean).join(' · ')
+})
+</script>
+
+<template>
+  <!-- hook output -->
+  <div
+    v-if="hook"
+    class="flex flex-wrap items-center gap-[9px] border border-dashed border-default px-3 py-1.5 text-[12px] text-muted"
+  >
+    <HIcon
+      name="hook"
+      :size="14"
+      class="text-warn"
+    />
+    {{ hook.event }}<span class="text-toned">{{ hook.command }}</span><span :class="hook.ok ? 'text-ok' : 'text-bad'">{{ hook.result }}</span>
+    <span class="flex-1" />{{ hook.ms ? formatSeconds(hook.ms) : '' }}
+  </div>
+
+  <!-- provider error with retry -->
+  <div
+    v-else-if="error"
+    class="flex flex-col gap-2 border border-l-2 border-default border-l-bad px-3 py-[9px] text-[12.5px]"
+  >
+    <span class="flex items-center gap-[9px]"><HIcon
+      name="warn"
+      class="text-bad"
+    /><span class="text-white">{{ error.title }}</span></span>
+    <span
+      v-if="error.detail"
+      class="text-[12px] text-muted"
+    >{{ error.detail }}</span>
+    <div class="flex gap-2">
+      <HBtn
+        size="sm"
+        @click="emit('retry')"
+      >
+        Retry now
+      </HBtn>
+      <HBtn
+        size="sm"
+        @click="emit('switchModel')"
+      >
+        Switch model
+      </HBtn>
+    </div>
+  </div>
+
+  <!-- info / warning notice -->
+  <div
+    v-else-if="notice"
+    class="flex items-center gap-2 text-[12px]"
+    :class="notice.level === 'warning' ? 'text-warn' : 'text-muted'"
+  >
+    <HIcon
+      :name="notice.level === 'warning' ? 'alert' : 'info'"
+      :size="14"
+    />{{ notice.text }}
+  </div>
+
+  <!-- compaction -->
+  <div
+    v-else-if="compact"
+    class="flex items-center gap-3 text-[11.5px] text-muted"
+  >
+    <span class="h-px flex-1 bg-line" />
+    Context compacted · {{ formatTokens(compact.tokensBefore) }} → {{ formatTokens(compact.tokensAfter) }} tokens
+    <a
+      href="#"
+      class="link"
+    >summary</a>
+    <span class="h-px flex-1 bg-line" />
+  </div>
+
+  <!-- interrupted turn -->
+  <div
+    v-else-if="turn && turn.result === 'interrupted'"
+    class="flex items-center gap-2 text-[12px] text-muted"
+  >
+    <HIcon
+      name="interrupt"
+      :size="14"
+    />Interrupted by user · what should I do instead?
+  </div>
+
+  <!-- turn usage footer -->
+  <div
+    v-else-if="turn"
+    class="flex flex-wrap items-center gap-1 text-[11px] text-muted"
+  >
+    <button
+      type="button"
+      aria-label="Copy"
+      class="flex size-[26px] items-center justify-center hover:text-highlighted"
+      @click="emit('copy')"
+    >
+      <HIcon
+        name="clipboard"
+        :size="14"
+      />
+    </button>
+    <button
+      type="button"
+      aria-label="Retry"
+      class="flex size-[26px] items-center justify-center hover:text-highlighted"
+      @click="emit('retry')"
+    >
+      <HIcon
+        name="retry"
+        :size="14"
+      />
+    </button>
+    <button
+      type="button"
+      aria-label="Fork from here"
+      class="flex size-[26px] items-center justify-center hover:text-highlighted"
+      @click="emit('fork')"
+    >
+      <HIcon
+        name="branch"
+        :size="14"
+      />
+    </button>
+    <span class="flex-1" />
+    <span
+      v-if="turn.result === 'error' || turn.result === 'max_turns'"
+      class="text-bad"
+    >{{ turn.errorMessage || 'turn failed' }} ·</span>
+    {{ usageLine }}
+  </div>
+</template>

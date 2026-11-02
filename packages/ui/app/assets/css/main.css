@@ -1,18 +1,361 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-@theme static {
-  --font-sans: 'Public Sans', sans-serif;
+@source "../../../app";
 
-  --color-green-50: #EFFDF5;
-  --color-green-100: #D9FBE8;
-  --color-green-200: #B3F5D1;
-  --color-green-300: #75EDAE;
-  --color-green-400: #00DC82;
-  --color-green-500: #00C16A;
-  --color-green-600: #00A155;
-  --color-green-700: #007F45;
-  --color-green-800: #016538;
-  --color-green-900: #0A5331;
-  --color-green-950: #052E16;
+/*
+ * harness desktop design tokens (docs/design/ui/README.md).
+ * Terminal-native: pure black, hairline #2b2b2b borders, square corners, monospace everywhere.
+ */
+@theme static {
+  --font-sans: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Neutral scale built from the design greys (used as Nuxt UI `neutral`). */
+  --color-graphite-50: #ffffff;
+  --color-graphite-100: #f2f2f2;
+  --color-graphite-200: #d4d4d4;
+  --color-graphite-300: #b0b0b0;
+  --color-graphite-400: #8f8f8f;
+  --color-graphite-500: #737373;
+  --color-graphite-600: #5c5c5c;
+  --color-graphite-700: #454545;
+  --color-graphite-800: #2b2b2b;
+  --color-graphite-900: #131313;
+  --color-graphite-950: #0a0a0a;
+
+  /* Raw design tokens, for the few places where a semantic Nuxt UI utility does not exist. */
+  --color-ground: #000000;
+  --color-surface: #0a0a0a;
+  --color-hover: #131313;
+  --color-raised: #1c1c1c;
+  --color-line: #2b2b2b;
+  --color-line-strong: #454545;
+  --color-accent: #2b7fff;
+  --color-accent-hover: #8ec5ff;
+  --color-ok: #00bc7d;
+  --color-bad: #ff2056;
+  --color-warn: #fe9a00;
+  --color-orange: #fe6e00;
+  --color-cyan: #00b8db;
+  --color-pink: #f6339a;
+  --color-violet: #8e51ff;
+  --color-disabled: #5c5c5c;
+}
+
+/* Dark-only for now: the same values in both modes. */
+:root,
+.dark {
+  --ui-radius: 0rem;
+  --ui-header-height: 44px;
+
+  --ui-bg: #000000;
+  --ui-bg-muted: #0a0a0a;
+  --ui-bg-elevated: #131313;
+  --ui-bg-accented: #1c1c1c;
+  --ui-bg-inverted: #ffffff;
+
+  --ui-border: #2b2b2b;
+  --ui-border-muted: #1c1c1c;
+  --ui-border-accented: #454545;
+  --ui-border-inverted: #ffffff;
+
+  --ui-text: #d4d4d4;
+  --ui-text-toned: #d4d4d4;
+  --ui-text-muted: #8f8f8f;
+  --ui-text-dimmed: #737373;
+  --ui-text-highlighted: #ffffff;
+  --ui-text-inverted: #000000;
+
+  --ui-primary: #2b7fff;
+  --ui-success: #00bc7d;
+  --ui-error: #ff2056;
+  --ui-warning: #fe9a00;
+  --ui-info: #00b8db;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  /* The root font size stays 16px so the Tailwind spacing scale is 4px per step. */
+  html,
+  body {
+    background: #000;
+    color: var(--ui-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-size: 13px;
+  }
+
+  ::selection {
+    color: #fff;
+    background: #2b7fff;
+  }
+
+  button,
+  a {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: default;
+  }
+
+  /* Links are accent only where the design says so (`.link`); bare anchors are rows and cards. */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+
+  /* Thin, square scrollbars in the border-strong tone. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #454545 transparent;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+}
+
+/* `.row` of the artboards: 28px rows with a 9px icon gap (add `px-[9px] hover:bg-hover` for nav rows). */
+@utility nav-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 28px;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The current item: selected background, white text, 2px accent rule on the left. */
+@utility nav-row-current {
+  background: #131313;
+  color: #fff;
+  border-left: 2px solid #2b7fff;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
+/* Popup menus (tools menu, pane settings, pickers): #131313 on a #454545 hairline. */
+@utility menu-panel {
+  background: #131313;
+  border: 1px solid #454545;
+  padding: 4px;
+  font-size: 12.5px;
+  color: #d4d4d4;
+}
+
+/* Blinking block cursor used by streaming text, the terminal and the composer. */
+@keyframes h-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@utility h-caret {
+  animation: h-blink 1.06s steps(1) infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Running-state spinner for the `loading` icon. */
+@keyframes h-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility h-spin {
+  animation: h-spin 0.9s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Accent links (accent-hover on hover). */
+@utility link {
+  color: #2b7fff;
+
+  &:hover {
+    color: #8ec5ff;
+  }
+}
+
+/* Assistant markdown (Md.dc.html): 13px / 1.62 body, white headings in Cascadia Code, hairline tables. */
+@utility md-body {
+  font-size: 13px;
+  line-height: 1.62;
+  color: #d4d4d4;
+  overflow-wrap: anywhere;
+
+  & > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  & :is(p, ul, ol, blockquote, table, pre, h1, h2, h3, h4) {
+    margin: 0;
+  }
+
+  & :where(h1, h2, h3) {
+    font-family: 'Cascadia Code', 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  & h1 {
+    font-size: 22px;
+    line-height: 1.3;
+  }
+
+  & h2 {
+    font-size: 18px;
+    line-height: 1.35;
+    margin-top: 4px;
+  }
+
+  & h3 {
+    font-size: 15px;
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+
+  & h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  & :where(strong, b) {
+    color: #fff;
+  }
+
+  & a {
+    color: #2b7fff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  & a:hover {
+    color: #8ec5ff;
+  }
+
+  & :not(pre) > code {
+    color: #fff;
+    background: #131313;
+    border: 1px solid #2b2b2b;
+    padding: 1px 5px;
+  }
+
+  & kbd {
+    font-family: inherit;
+    font-size: 11px;
+    color: #fff;
+    border: 1px solid #454545;
+    border-bottom-width: 2px;
+    padding: 0 5px;
+  }
+
+  & ul {
+    padding-left: 18px;
+    list-style: square;
+  }
+
+  & ul ul {
+    margin: 2px 0;
+    list-style: circle;
+    color: #8f8f8f;
+  }
+
+  & ol {
+    padding-left: 22px;
+    list-style: decimal;
+  }
+
+  & li.task-list-item {
+    list-style: none;
+    margin-left: -18px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  & li.task-list-item:has(> input:checked) {
+    color: #8f8f8f;
+    text-decoration: line-through;
+  }
+
+  & li.task-list-item > input {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    flex-shrink: 0;
+    border: 1px solid #454545;
+  }
+
+  & li.task-list-item > input:checked {
+    border: 0;
+    background: #2b7fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z'/%3E%3C/svg%3E") center / 11px no-repeat;
+  }
+
+  & blockquote {
+    padding: 2px 0 2px 14px;
+    border-left: 2px solid #454545;
+    color: #8f8f8f;
+    font-style: italic;
+  }
+
+  & hr {
+    border: 0;
+    border-top: 1px solid #2b2b2b;
+    margin: 4px 0;
+  }
+
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #2b2b2b;
+    font-size: 12.5px;
+  }
+
+  & th {
+    background: #0a0a0a;
+    color: #fff;
+    font-weight: 400;
+    text-align: left;
+    padding: 7px 12px;
+    border-bottom: 1px solid #2b2b2b;
+  }
+
+  & td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #1c1c1c;
+  }
+
+  & tr:last-child td {
+    border-bottom: 0;
+  }
+
+  & sup {
+    color: #2b7fff;
+    font-size: 10px;
+  }
 }

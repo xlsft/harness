@@ -23,5 +23,9 @@ plugins:
   - local: packages/core/node_modules/.bin/protoc-gen-es
     out: packages/core/src/gen
     opt: target=ts
+  # TypeScript for packages/ui (the AgentService client over connect-web). Needs `(cd packages/ui && pnpm install)`.
+  - local: packages/ui/node_modules/.bin/protoc-gen-es
+    out: packages/ui/app/gen
+    opt: target=ts
 inputs:
   - directory: proto
