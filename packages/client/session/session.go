@@ -33,6 +33,12 @@ const (
 	// TypeFileHistorySnapshot points at the file backups of a checkpoint
 	// (no uuid, Claude Code shape).
 	TypeFileHistorySnapshot = "file-history-snapshot"
+	// TypeAITitle holds a model-generated session title (aiTitle, Claude
+	// Code shape, no uuid). The last one wins.
+	TypeAITitle = "ai-title"
+	// TypeCustomTitle holds a title the user set (customTitle, no uuid). It
+	// always wins over an AI title.
+	TypeCustomTitle = "custom-title"
 )
 
 // System entry subtypes written by the client.
@@ -44,7 +50,9 @@ const (
 )
 
 // unchained entry types carry no uuid/parentUuid.
-func unchained(t string) bool { return t == TypeMeta || t == TypeFileHistorySnapshot }
+func unchained(t string) bool {
+	return t == TypeMeta || t == TypeFileHistorySnapshot || t == TypeAITitle || t == TypeCustomTitle
+}
 
 // CompactMetadata is attached to compact_boundary entries.
 type CompactMetadata struct {
@@ -133,6 +141,58 @@ type Entry struct {
 	// AutoDecision is set on a tool_result entry when the auto permission
 	// mode decided (or deferred to the user on) that tool call.
 	AutoDecision *AutoDecision `json:"autoDecision,omitempty"`
+
+	// ai-title / custom-title fields
+	AITitle     string `json:"aiTitle,omitempty"`
+	CustomTitle string `json:"customTitle,omitempty"`
+}
+
+// Titles are the session titles on record in a transcript (the last entry
+// of each kind wins).
+type Titles struct {
+	Custom string
+	AI     string
+	// FirstPrompt is the text of the first user prompt (not meta, not a
+	// tool result, not a compaction summary), untrimmed.
+	FirstPrompt string
+}
+
+// Best returns the title to show: the custom title, else the AI title,
+// else "".
+func (t Titles) Best() string {
+	if t.Custom != "" {
+		return t.Custom
+	}
+	return t.AI
+}
+
+// ReadTitles extracts the recorded titles from entries.
+func ReadTitles(entries []Entry) Titles {
+	var t Titles
+	for i := range entries {
+		e := &entries[i]
+		switch e.Type {
+		case TypeCustomTitle:
+			if s := strings.TrimSpace(e.CustomTitle); s != "" {
+				t.Custom = s
+			}
+		case TypeAITitle:
+			if s := strings.TrimSpace(e.AITitle); s != "" {
+				t.AI = s
+			}
+		case TypeUser:
+			if t.FirstPrompt != "" || e.IsMeta || e.IsCompactSummary || e.Message == nil || e.ToolUseResult != nil {
+				continue
+			}
+			for _, b := range e.Blocks() {
+				if b.Type == llm.BlockText && strings.TrimSpace(b.Text) != "" {
+					t.FirstPrompt = b.Text
+					break
+				}
+			}
+		}
+	}
+	return t
 }
 
 // Worktree describes a git worktree the client created for a session.
