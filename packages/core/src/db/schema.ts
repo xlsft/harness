@@ -830,3 +830,106 @@ export const vcsDeviceProvider = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.deviceId, t.type] })],
 );
+
+// ---------------------------------------------------------------------------
+// Relay (proto/harness/relay/v1): remote control hosts, live sessions, durable events, commands
+// ---------------------------------------------------------------------------
+
+/** A client process registered as a relay host (RegisterHost). One row per (device, instance id). */
+export const relayHost = pgTable(
+  "relay_host",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    deviceId: text("device_id")
+      .notNull()
+      .references(() => device.id, { onDelete: "cascade" }),
+    instanceId: text("instance_id").notNull(),
+    clientVersion: text("client_version").notNull().default(""),
+    daemon: boolean("daemon").notNull().default(false),
+    allowedRoots: jsonb("allowed_roots").notNull().default([]),
+    tunnels: boolean("tunnels").notNull().default(false),
+    pty: boolean("pty").notNull().default(false),
+    lastSeenAt: ts("last_seen_at").notNull(),
+    lastLocalActivityAt: ts("last_local_activity_at"),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [uniqueIndex("relay_host_instance_idx").on(t.deviceId, t.instanceId), index("relay_host_user_idx").on(t.userId)],
+);
+
+/**
+ * A remote-controllable session and its current owner. `epoch` grows with every RegisterSession; the host of
+ * the newest epoch owns the session. `acked_seq` is the highest contiguous durable seq stored in relay_event.
+ * `info` is the protobuf JSON of harness.agent.v1.SessionInfo.
+ */
+export const relaySession = pgTable(
+  "relay_session",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    hostId: text("host_id").notNull(),
+    deviceId: text("device_id").notNull(),
+    epoch: int8("epoch").notNull(),
+    ackedSeq: int8("acked_seq").notNull().default(0),
+    info: jsonb("info").notNull(),
+    status: integer("status").notNull().default(0),
+    /** False after UnregisterSession: history stays readable, commands are refused. */
+    active: boolean("active").notNull().default(true),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("relay_session_host_idx").on(t.hostId), index("relay_session_user_idx").on(t.userId)],
+);
+
+/** Durable live events (harness.agent.v1.SessionEvent as base64 binary protobuf) by session-local seq. */
+export const relayEvent = pgTable(
+  "relay_event",
+  {
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => relaySession.id, { onDelete: "cascade" }),
+    seq: int8("seq").notNull(),
+    uuid: text("uuid").notNull(),
+    epoch: int8("epoch").notNull(),
+    event: text("event").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.seq] }), uniqueIndex("relay_event_uuid_idx").on(t.sessionId, t.uuid)],
+);
+
+/**
+ * Downstream commands (harness.relay.v1.Command as base64 binary protobuf), delivered in `ord` order until
+ * acked or expired. `session_id` is "" for host-level commands (spawn); `ack` is the base64 CommandAck.
+ */
+export const relayCommand = pgTable(
+  "relay_command",
+  {
+    id: text("id").primaryKey(),
+    ord: bigserial("ord", { mode: "number" }).notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Target host for host-level commands; "" for session commands (routed to the session owner). */
+    hostId: text("host_id").notNull().default(""),
+    sessionId: text("session_id").notNull().default(""),
+    kind: text("kind").notNull(),
+    command: text("command").notNull(),
+    /** CommandOptions.idempotency_key; null when not given (nulls never collide). */
+    idempotencyKey: text("idempotency_key"),
+    /** queued | acked */
+    state: text("state").notNull().default("queued"),
+    ack: text("ack"),
+    createdAt: ts("created_at").notNull(),
+    expiresAt: ts("expires_at").notNull(),
+    ackedAt: ts("acked_at"),
+  },
+  (t) => [
+    uniqueIndex("relay_command_idem_idx").on(t.userId, t.idempotencyKey),
+    index("relay_command_session_idx").on(t.sessionId, t.state),
+    index("relay_command_host_idx").on(t.hostId, t.state),
+  ],
+);

@@ -30,6 +30,7 @@ import (
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/relay"
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/server"
 	"github.com/xlsft/harness/packages/client/tools"
@@ -173,6 +174,10 @@ func Open(ctx context.Context, o Options) (*Conn, error) {
 	socket := filepath.Join(c.dir, "agent.sock")
 	sctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
+	// Remote control: mirror the session to the server (HARNESS_REMOTE_CONTROL=0 or the remoteControl setting turn it off).
+	if relay.Enabled(true, url, tokens != nil) {
+		relay.Attach(sctx, c.srv, relay.Options{ServerURL: url, HTTP: hc, Tokens: tokens, Logger: log})
+	}
 	ready := make(chan error, 1)
 	go func() { ready <- c.srv.ServeUnix(sctx, socket) }()
 	c.api = agentv1connect.NewAgentServiceClient(rpc.UnixHTTPClient(socket), "http://agent", connect.WithGRPC())

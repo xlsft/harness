@@ -49,6 +49,8 @@ type Server struct {
 	mu     sync.Mutex
 	live   map[string]*liveSession
 	cancel context.CancelFunc
+	// observer is told about opened sessions (SetSessionObserver).
+	observer func(sessionID string)
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -225,6 +227,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if todos := sess.Agent.Todos(); len(todos) > 0 {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TodosUpdated{TodosUpdated: &agentv1.TodosUpdated{Todos: todosToProto(todos)}}})
 	}
+	s.sessionOpened(sess.ID)
 	return connect.NewResponse(&agentv1.CreateSessionResponse{Session: ls.info()}), nil
 }
 

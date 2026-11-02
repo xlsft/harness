@@ -114,5 +114,27 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"vcs_oauth_flow_user_idx\" ON \"vcs_oauth_flow\" USING btree (\"user_id\");",
       "CREATE INDEX \"vcs_pull_request_branch_idx\" ON \"vcs_pull_request\" USING btree (\"repository_key\",\"head_branch\");"
     ]
+  },
+  {
+    "id": "0004_relay",
+    "statements": [
+      "CREATE TABLE \"relay_command\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"ord\" bigserial NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"host_id\" text DEFAULT '' NOT NULL,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"kind\" text NOT NULL,\n\t\"command\" text NOT NULL,\n\t\"idempotency_key\" text,\n\t\"state\" text DEFAULT 'queued' NOT NULL,\n\t\"ack\" text,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"expires_at\" timestamp with time zone NOT NULL,\n\t\"acked_at\" timestamp with time zone\n);",
+      "CREATE TABLE \"relay_event\" (\n\t\"session_id\" text NOT NULL,\n\t\"seq\" bigint NOT NULL,\n\t\"uuid\" text NOT NULL,\n\t\"epoch\" bigint NOT NULL,\n\t\"event\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"relay_event_session_id_seq_pk\" PRIMARY KEY(\"session_id\",\"seq\")\n);",
+      "CREATE TABLE \"relay_host\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"device_id\" text NOT NULL,\n\t\"instance_id\" text NOT NULL,\n\t\"client_version\" text DEFAULT '' NOT NULL,\n\t\"daemon\" boolean DEFAULT false NOT NULL,\n\t\"allowed_roots\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"tunnels\" boolean DEFAULT false NOT NULL,\n\t\"pty\" boolean DEFAULT false NOT NULL,\n\t\"last_seen_at\" timestamp with time zone NOT NULL,\n\t\"last_local_activity_at\" timestamp with time zone,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"relay_session\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"host_id\" text NOT NULL,\n\t\"device_id\" text NOT NULL,\n\t\"epoch\" bigint NOT NULL,\n\t\"acked_seq\" bigint DEFAULT 0 NOT NULL,\n\t\"info\" jsonb NOT NULL,\n\t\"status\" integer DEFAULT 0 NOT NULL,\n\t\"active\" boolean DEFAULT true NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"relay_command\" ADD CONSTRAINT \"relay_command_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"relay_event\" ADD CONSTRAINT \"relay_event_session_id_relay_session_id_fk\" FOREIGN KEY (\"session_id\") REFERENCES \"public\".\"relay_session\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"relay_host\" ADD CONSTRAINT \"relay_host_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"relay_host\" ADD CONSTRAINT \"relay_host_device_id_device_id_fk\" FOREIGN KEY (\"device_id\") REFERENCES \"public\".\"device\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"relay_session\" ADD CONSTRAINT \"relay_session_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE UNIQUE INDEX \"relay_command_idem_idx\" ON \"relay_command\" USING btree (\"user_id\",\"idempotency_key\");",
+      "CREATE INDEX \"relay_command_session_idx\" ON \"relay_command\" USING btree (\"session_id\",\"state\");",
+      "CREATE INDEX \"relay_command_host_idx\" ON \"relay_command\" USING btree (\"host_id\",\"state\");",
+      "CREATE UNIQUE INDEX \"relay_event_uuid_idx\" ON \"relay_event\" USING btree (\"session_id\",\"uuid\");",
+      "CREATE UNIQUE INDEX \"relay_host_instance_idx\" ON \"relay_host\" USING btree (\"device_id\",\"instance_id\");",
+      "CREATE INDEX \"relay_host_user_idx\" ON \"relay_host\" USING btree (\"user_id\");",
+      "CREATE INDEX \"relay_session_host_idx\" ON \"relay_session\" USING btree (\"host_id\");",
+      "CREATE INDEX \"relay_session_user_idx\" ON \"relay_session\" USING btree (\"user_id\");"
+    ]
   }
 ];

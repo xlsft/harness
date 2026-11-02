@@ -30,6 +30,7 @@ It ships in two forms:
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
+| `relay` | Host side of `harness.relay.v1.RelayService` (remote control): mirrors live sessions to the server and runs viewer commands |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
 | `gen` | Code generated from `/proto` (do not edit) |
@@ -97,6 +98,15 @@ A style file is markdown with optional frontmatter `name` (default: the file ste
 Selection: `--output-style` (on `-p` and `serve`), else the style recorded in a resumed transcript, else the `outputStyle` setting (policy settings still win over the flag). `SetOutputStyle` switches mid-session; `default` or empty clears the style. An unknown name is an error from `SetOutputStyle` and a warning (plus a `session_warning` notice) with the default style at startup. Every change is recorded as a `harness-meta` entry (`outputStyle`), so resume keeps it; `SessionInfo.output_style` and `ListOutputStyles.active` report it, and the stream-json `init` message carries it as `output_style`.
 
 Delivery keeps the prompt cache: the style text goes to the model through the bundle's `output_style` reminder (`{{name}}`, `{{content}}`; without the template the text is sent as is), injected into the next user message at session start, on every change (switching back to `default` sends the default style), after a compaction and after a rewind that removed it. A resumed session whose history already carries the text does not resend it. The system prompt and the tool list never change on a switch, with one exception: while a style with `keep_coding_instructions = false` is applied, the system sections `doing_tasks` and `tool_policy` are omitted. That changes the cache prefix, so it is applied only while the conversation is empty (session start, or `SetOutputStyle` before the first message) and after a compaction. A mid-session switch to (or away from) such a style delivers the text right away and changes the sections at the next compaction; `SetOutputStyle` then emits an `output_style_deferred` notice.
+
+## Remote control
+
+When the client is signed in to a server, `harness-client serve` and the TUI register the process as a relay host (`relay.Attach`) and mirror every session through `RelayService`, so the web can watch and control it. Opt out with `serve --remote-control=false`, `HARNESS_REMOTE_CONTROL=0`, or per project with the setting `"remoteControl": false`.
+
+- Events: the session's live log (the same `SessionEvent`s `Subscribe` serves) goes up in batches every 100 ms or 64 events. The server's seq continues the stored history of a resumed session (`acked_seq` from `RegisterSession`); after a failure the host resends from `acked_seq`, never resending `AssistantDelta`s. A lost epoch (`FAILED_PRECONDITION`) re-registers the session.
+- Commands: run through the same `AgentService` methods local frontends call, in order per session (Compact and Rewind do not block later commands), deduplicated by `command_id` (a redelivered command is re-acked with its first outcome). Expired commands and `bypassPermissions` (as a mode or a spawn mode) are acked `OUTCOME_REJECTED`; an answer to a prompt that was already answered is `OUTCOME_ALREADY_RESOLVED`.
+- Liveness: heartbeats at the server's interval (~20 s), reconnect with exponential backoff and jitter. On `SessionSuperseded` (another device took the session over) the host stops mirroring that session.
+- Spawn: only with `Options.Daemon` and under `AllowedRoots` (no `harness daemon` command yet). Tunnels are not implemented.
 
 ## Local end-to-end run without the real server
 

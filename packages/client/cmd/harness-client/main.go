@@ -24,6 +24,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/relay"
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/sdk"
 	"github.com/xlsft/harness/packages/client/server"
@@ -167,6 +168,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	disallowed := fs.StringArray("disallowedTools", nil, "permission rules that are always denied")
 	addDirs := fs.StringArray("add-dir", nil, "additional working directories for every session")
 	outputStyle := fs.String("output-style", "", "output style for every session: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name")
+	remote := fs.Bool("remote-control", true, "mirror sessions to the harness server so they can be watched and controlled from the web (HARNESS_REMOTE_CONTROL=0 disables)")
 	verbose := fs.Bool("verbose", false, "debug logging")
 	tcp := addTCPFlags(fs)
 	if err := fs.Parse(args); err != nil {
@@ -185,6 +187,9 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
+	if tokens, url, _, err := bootstrap.Tokens(*serverURL); err == nil && relay.Enabled(*remote, url, tokens != nil) {
+		relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
+	}
 	if err := serveListeners(ctx, srv, *socket, tcp); err != nil {
 		return fail(err)
 	}
