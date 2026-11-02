@@ -32,6 +32,7 @@ import (
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -128,10 +129,14 @@ type Session struct {
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
 	Sync     *syncclient.Syncer
 	Uploader *syncclient.Uploader
+	// VCS polls PR/CI state through gh/glab and uploads it (nil without sync or HARNESS_NO_VCS=1).
+	// Poke it after a push or PR creation for an immediate poll.
+	VCS *vcs.Watcher
 	// Warnings are problems found while opening (e.g. an unknown output
 	// style); frontends show them as notices.
 	Warnings  []string
 	stopSync  context.CancelFunc
+	stopVCS   context.CancelFunc
 	styleOpts outputstyle.Options
 }
 
@@ -152,6 +157,9 @@ func (s *Session) Close() error {
 	}
 	if s.stopSync != nil {
 		s.stopSync()
+	}
+	if s.stopVCS != nil {
+		s.stopVCS()
 	}
 	return err
 }
@@ -226,6 +234,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s := &Session{Cwd: cwd}
 
 	gw, src := o.Gateway, o.Prompts
+	var startVCSPoller func()
 	if gw == nil || src == nil {
 		tokens, url, user, err := Tokens(o.ServerURL)
 		if err != nil {
@@ -237,6 +246,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			hc = rpc.HTTPClient(url)
 		}
 		s.Sync, s.Uploader, s.stopSync = startSync(ctx, o, url, hc, tokens, user, log)
+		// Started once Open succeeds, so a failed Open leaves no poller behind.
+		startVCSPoller = func() { s.VCS, s.stopVCS = startVCS(s, url, hc, tokens, log) }
 		if gw == nil {
 			gw = connectgw.New(url, hc, tokens)
 		}
@@ -476,6 +487,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ToolEnv.Reminders = func(k string) string { return s.Agent.Bundle().Reminder(k, "") }
 	if s.Tasks != nil {
 		s.Tasks.OnEvent = s.Agent.OnTaskEvent
+	}
+	if startVCSPoller != nil {
+		startVCSPoller()
 	}
 	return s, nil
 }
