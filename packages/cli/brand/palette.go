@@ -41,6 +41,9 @@ const (
 	AttrBoldReverse
 )
 
+// TermDefault as a C16 value means "the terminal's default foreground" in 16-color mode.
+const TermDefault uint8 = 255
+
 // Swatch is one palette role with its value at every depth and theme.
 type Swatch struct {
 	Dark, Light string // truecolor hex
@@ -55,7 +58,7 @@ var (
 	Accent     = Swatch{Dark: "#2B7FFF", Light: "#155DFC", C256: 33, Light256: 26, C16: 4, NoColor: AttrBold}
 	AccentHigh = Swatch{Dark: "#8EC5FF", Light: "#1447E6", C256: 117, Light256: 26, C16: 12, NoColor: AttrBoldReverse}
 	AccentLow  = Swatch{Dark: "#155DFC", Light: "#51A2FF", C256: 26, Light256: 75, C16: 4, NoColor: AttrDim}
-	Secondary  = Swatch{Dark: "#A1A1AA", Light: "#52525B", C256: 248, Light256: 240, C16: 7, NoColor: AttrNone}
+	Secondary  = Swatch{Dark: "#A1A1AA", Light: "#52525B", C256: 248, Light256: 240, C16: TermDefault, NoColor: AttrNone}
 	Dim        = Swatch{Dark: "#71717A", Light: "#71717A", C256: 243, Light256: 243, C16: 8, NoColor: AttrDim}
 	Line       = Swatch{Dark: "#3F3F46", Light: "#D4D4D8", C256: 238, Light256: 252, C16: 8, NoColor: AttrDim}
 	Success    = Swatch{Dark: "#00D492", Light: "#009966", C256: 42, Light256: 29, C16: 2, NoColor: AttrBold}
@@ -149,6 +152,9 @@ func (e Env) Color(s Swatch) color.Color {
 		}
 		return lipgloss.ANSIColor(s.C256)
 	case Depth16:
+		if s.C16 == TermDefault {
+			return nil
+		}
 		// Basic SGR (30–37 / 90–97) so 16-color themes remap it, unlike the 38;5;n form.
 		return ansi.BasicColor(s.C16)
 	}
