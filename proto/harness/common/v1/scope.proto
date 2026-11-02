@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package harness.common.v1;
+
+// Ownership scope of server-held user data (sync documents, MCP servers).
+//
+// project_key (used with SCOPE_PROJECT and per-project documents) identifies a repository across machines:
+//   - the normalized git remote URL of `origin` (or the first remote): "host/owner/repo", lowercased, without
+//     scheme, user info, port and a trailing ".git" — e.g. "github.com/xlsft/harness";
+//   - fallback when there is no remote: "path:" + lowercase hex SHA-256 of the absolute repository root path
+//     (or of the cwd outside a repository). Such keys only match on the same machine.
+enum Scope {
+  SCOPE_UNSPECIFIED = 0;
+  // Personal; only the owner reads and writes it.
+  SCOPE_USER = 1;
+  // Distributed by admins to everyone or to target roles; read-only for non-admins.
+  SCOPE_ORG = 2;
+  // Tied to a repository (project_key). The config lives in the repository; the server stores what must not
+  // be committed (secrets, approvals) and per-project data (auto memory).
+  SCOPE_PROJECT = 3;
+}

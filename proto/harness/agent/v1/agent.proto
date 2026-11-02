@@ -74,6 +74,38 @@ message SessionInfo {
   SessionStatus status = 7;
   // RFC 3339, UTC.
   string updated_at = 8;
+  // Normalized git remote ("github.com/xlsft/harness", see harness.common.v1.Scope for the rules);
+  // empty outside a repository.
+  string repo = 9;
+  // dev_... of the machine running the session, and its display name.
+  string device_id = 10;
+  string device_name = 11;
+  DiffStats diff_stats = 12;
+  // Absent when no PR is linked.
+  optional PullRequest pull_request = 13;
+  bool archived = 14;
+  bool pinned = 15;
+  // Set for forks and /branch.
+  string parent_session_id = 16;
+}
+
+message DiffStats {
+  int32 files_changed = 1;
+  int32 additions = 2;
+  int32 deletions = 3;
+}
+
+message PullRequest {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_OPEN = 1;
+    STATE_DRAFT = 2;
+    STATE_MERGED = 3;
+    STATE_CLOSED = 4;
+  }
+  string url = 1;
+  int32 number = 2;
+  State state = 3;
 }
 
 message CreateSessionRequest {
@@ -124,6 +156,9 @@ message SessionEvent {
     QueueChanged queue_changed = 12;
     TurnFinished turn_finished = 13;
     Notice notice = 14;
+    PermissionResolved permission_resolved = 15;
+    QuestionResolved question_resolved = 16;
+    SessionEnded session_ended = 17;
   }
 }
 
@@ -133,6 +168,10 @@ message UserMessage {
 }
 
 // Streaming fragment of the assistant message `message_id`.
+// Deltas are ephemeral: they are never persisted (neither in the local log nor on the relay) and never
+// replayed. A delta does not consume a seq; its SessionEvent.seq is the seq of the last durable event
+// emitted before it, so it sorts after that event and before the next durable one. Consumers must not use
+// seq to deduplicate deltas. History replay yields only the final AssistantMessage.
 message AssistantDelta {
   string message_id = 1;
   int32 index = 2;
@@ -176,6 +215,26 @@ message PermissionRequest {
   // Rule the user may choose to always allow, e.g. "Bash(npm run test *)".
   repeated string suggested_rules = 5;
   string reason = 6;
+}
+
+// A pending PermissionRequest was answered (by any client, or by a hook / rule). Frontends dismiss the card.
+message PermissionResolved {
+  string request_id = 1;
+  RespondToPermissionRequest.Decision decision = 2;
+  // Who answered: "local", "relay:<frontend>", "hook", "rule", "interrupt".
+  string resolved_by = 3;
+}
+
+// A pending Question was answered (or cancelled). Frontends dismiss the card.
+message QuestionResolved {
+  string request_id = 1;
+  string resolved_by = 2;
+}
+
+// The session ended on its host; no more events follow (a resume creates a new subscription).
+message SessionEnded {
+  // e.g. "exit", "killed", "host_shutdown", "superseded".
+  string reason = 1;
 }
 
 message Question {

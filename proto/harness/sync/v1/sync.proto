@@ -1,0 +1,394 @@
+syntax = "proto3";
+
+package harness.sync.v1;
+
+import "harness/agent/v1/agent.proto";
+import "harness/common/v1/scope.proto";
+
+// SyncService is served by core. The server is the source of truth for all user data (docs/PLAN.md §1.4);
+// the client keeps a cache in ~/.harness/cache/sync/ and pushes local changes back.
+// Called by the client (cache + push), by frontends (account screens, session list) and by `harness import claude`.
+//
+// Status: DRAFT (M1/M2). Unary + server streaming only.
+//
+// Two independent parts:
+//
+// 1. Versioned documents (settings, rules, memory, skills, agents, ...).
+//    - Every write gets a new `version` from a single server-wide, strictly increasing int64 counter.
+//      Versions are not dense: a caller sees gaps for changes it is not allowed to see.
+//    - A document's `version` is the counter value of its last write; it doubles as the optimistic
+//      concurrency token (`base_version`) for PutDocument / DeleteDocument.
+//    - Scope is harness.common.v1.Scope. The change feed of a caller = all its user- and project-scope
+//      documents + all org-scope documents visible to it (org documents can be targeted at roles).
+//      ListChanges / WatchChanges page through that feed.
+//    - Precedence for the same (kind, key): POLICY (org only) always wins; otherwise project > user > org.
+//    - Deletes leave tombstones. Tombstones are kept for at least 30 days; a cursor older than the oldest
+//      kept tombstone gets `resync_required` and the client must do a full resync (ListChanges from 0)
+//      and drop cached documents that are not returned.
+//    - Writes to org-scope documents require the admin role (PERMISSION_DENIED otherwise).
+//
+// 2. Session sync (metadata + transcript). The client writes its local CC-format JSONL first and then
+//    uploads entries in batches; the server copy powers the session list, search, the web transcript and
+//    resume on another machine. Uploads are idempotent by entry uuid, so the client may retry blindly.
+//
+//    Two representations of a session, on purpose:
+//    - the DURABLE transcript = CC-format JSONL lines (TranscriptEntry, this service). Source for resume,
+//      search, export and the full web transcript; written by the client, uploaded possibly much later
+//      (offline-first);
+//    - the LIVE stream = harness.agent.v1.SessionEvent (AgentService locally, RelayService remotely). Typed
+//      UI events incl. ephemeral deltas, permission cards and status; not a storage format.
+//    A frontend opening a session renders the durable transcript and then follows the live stream.
+service SyncService {
+  // Changes in the caller's feed with version > since_version, ordered by version ascending.
+  // Each document appears at most once per page (its latest state). since_version = 0 is a full snapshot.
+  rpc ListChanges(ListChangesRequest) returns (ListChangesResponse);
+  // Same feed as ListChanges, but first catches up from since_version and then streams live changes.
+  // The server sends a Heartbeat at least every 20 s; clients reconnect with jitter from the last
+  // version they applied. Live changes made by the caller's own PutDocument calls are echoed too.
+  rpc WatchChanges(WatchChangesRequest) returns (stream WatchChangesResponse);
+
+  rpc GetDocument(GetDocumentRequest) returns (GetDocumentResponse);
+  // Create or replace a document identified by (scope, kind, key). Conflicts are NOT errors: they come
+  // back as PutDocumentResponse.conflict so that the client can merge (or ask the user) and retry.
+  rpc PutDocument(PutDocumentRequest) returns (PutDocumentResponse);
+  // Non-atomic batch of PutDocument; used by `harness import claude`. Each item has its own result.
+  rpc BatchPutDocuments(BatchPutDocumentsRequest) returns (BatchPutDocumentsResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+
+  // Creates or updates session metadata. Called by the client when a session starts and whenever
+  // metadata changes; by frontends to rename / archive / pin.
+  rpc UpsertSession(UpsertSessionRequest) returns (UpsertSessionResponse);
+  // Uploads transcript entries. Entries already stored (same uuid) are skipped and reported as duplicates.
+  rpc AppendSessionEvents(AppendSessionEventsRequest) returns (AppendSessionEventsResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  // Sessions of the caller, most recently active first.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  // Transcript entries in server order (`seq`), paged forward from after_seq.
+  rpc GetSessionTranscript(GetSessionTranscriptRequest) returns (GetSessionTranscriptResponse);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Documents
+// ---------------------------------------------------------------------------------------------------------
+
+enum DocumentKind {
+  DOCUMENT_KIND_UNSPECIFIED = 0;
+  // key: "user". content: settings JSON (CC settings.json shape, minus `permissions` and `hooks`).
+  // At org scope: org defaults, overridable by the user (enforced settings go into POLICY).
+  DOCUMENT_KIND_SETTINGS = 1;
+  // key: "user". content: JSON {"allow": [...], "ask": [...], "deny": [...]} of `Tool(spec)` rules.
+  // "Don't ask again" at user level is written here.
+  DOCUMENT_KIND_PERMISSION_RULES = 2;
+  // key: "user". SCOPE_USER: analogue of ~/.claude/CLAUDE.md; SCOPE_PROJECT: auto memory for project_key.
+  // content: markdown. Conflicts on memory are resolved last-write-wins by clients (PLAN §6);
+  // the server keeps version history.
+  DOCUMENT_KIND_MEMORY = 3;
+  // key: skill name. content: SKILL.md (frontmatter + markdown); `files` carries the rest of the skill directory.
+  DOCUMENT_KIND_SKILL = 4;
+  // key: agent name. content: agent markdown with frontmatter.
+  DOCUMENT_KIND_AGENT = 5;
+  // key: command name (may contain ":" for namespaces). content: command markdown with frontmatter.
+  DOCUMENT_KIND_COMMAND = 6;
+  // key: style name. content: output style markdown with frontmatter.
+  DOCUMENT_KIND_OUTPUT_STYLE = 7;
+  // key: "user". content: JSON of the CC `hooks` settings object.
+  // Hooks run locally only after the user trusted this exact `content_hash` on the device.
+  DOCUMENT_KIND_HOOK = 8;
+  // key: alias. content: JSON {"host", "user", "port", "path", "label"}. Never contains keys or passwords.
+  DOCUMENT_KIND_SSH_HOST = 9;
+  // Notification-only entry: the MCP registry (harness.mcp.v1.McpService) changed. key: MCP server id.
+  // content is empty; clients refetch the server via McpService. Writes through SyncService are rejected.
+  DOCUMENT_KIND_MCP_SERVER = 10;
+  // Org scope only (other scopes -> INVALID_ARGUMENT); admin-written. key: policy name ("default" or a
+  // role-targeted one). content: JSON managed settings: deny rules, allowed models, forced settings,
+  // prohibitions. Always wins over every other source, including CLI flags (PLAN §2.3).
+  DOCUMENT_KIND_POLICY = 11;
+}
+
+message Document {
+  // doc_...; server-assigned, stable for the lifetime of (scope, kind, key).
+  string id = 1;
+  harness.common.v1.Scope scope = 2;
+  DocumentKind kind = 3;
+  // Unique within (owner, scope, project_key, kind). Format per kind, see DocumentKind.
+  string key = 4;
+  // Server change counter of the last write; the concurrency token for base_version.
+  int64 version = 5;
+  // Main body: JSON or markdown depending on kind. JSON content is stored and returned byte-exact.
+  string content = 6;
+  // Additional files for directory-shaped documents (skills). Empty for other kinds.
+  repeated DocumentFile files = 7;
+  // Lowercase hex SHA-256 over content and files (canonical order, computed by the server).
+  // Clients key local trust decisions (hooks) on this hash.
+  string content_hash = 8;
+  // Free-form origin label, e.g. "import:claude", "web", "client:dev_123".
+  string source = 9;
+  // Org scope only: roles the document targets; empty means everyone.
+  repeated string target_roles = 10;
+  // RFC 3339, UTC.
+  string created_at = 11;
+  string updated_at = 12;
+  // usr_... of the last writer.
+  string updated_by = 13;
+  // SCOPE_PROJECT only; see harness.common.v1.Scope for the format.
+  string project_key = 14;
+}
+
+message DocumentFile {
+  // Relative path inside the document directory, "/"-separated, no "..". e.g. "scripts/run.sh".
+  string path = 1;
+  bytes content = 2;
+  bool executable = 3;
+}
+
+message Tombstone {
+  string id = 1;
+  harness.common.v1.Scope scope = 2;
+  DocumentKind kind = 3;
+  string key = 4;
+  // Version of the delete.
+  int64 version = 5;
+  // RFC 3339, UTC.
+  string deleted_at = 6;
+  string project_key = 7;
+}
+
+message Change {
+  oneof change {
+    Document document = 1;
+    Tombstone tombstone = 2;
+  }
+}
+
+message ListChangesRequest {
+  int64 since_version = 1;
+  // Empty means all kinds.
+  repeated DocumentKind kinds = 2;
+  // Default 200, max 1000. A page may be cut short to bound its size.
+  int32 page_size = 3;
+}
+
+message ListChangesResponse {
+  repeated Change changes = 1;
+  // Cursor for the next call: the highest version covered by this page (>= since_version).
+  int64 next_version = 2;
+  bool has_more = 3;
+  // since_version is older than the oldest kept tombstone: restart from 0 and treat the result as a full
+  // snapshot (drop cached documents not present in it). `changes` is empty when this is set.
+  bool resync_required = 4;
+}
+
+message WatchChangesRequest {
+  int64 since_version = 1;
+  repeated DocumentKind kinds = 2;
+}
+
+message WatchChangesResponse {
+  oneof event {
+    Change change = 1;
+    // Catch-up is done; everything after this is live.
+    CaughtUp caught_up = 2;
+    Heartbeat heartbeat = 3;
+    // Same meaning as ListChangesResponse.resync_required; the stream ends after this message.
+    ResyncRequired resync_required = 4;
+  }
+}
+
+message CaughtUp {
+  int64 version = 1;
+}
+
+message Heartbeat {
+  // Current head of the caller's feed; lets idle clients advance their cursor.
+  int64 version = 1;
+}
+
+message ResyncRequired {}
+
+message GetDocumentRequest {
+  oneof selector {
+    string id = 1;
+    DocumentRef ref = 2;
+  }
+}
+
+message DocumentRef {
+  harness.common.v1.Scope scope = 1;
+  DocumentKind kind = 2;
+  string key = 3;
+  // SCOPE_PROJECT only.
+  string project_key = 4;
+}
+
+message GetDocumentResponse {
+  Document document = 1;
+}
+
+message PutDocumentRequest {
+  DocumentRef ref = 1;
+  string content = 2;
+  repeated DocumentFile files = 3;
+  // Concurrency check:
+  //   unset -> unconditional write (last write wins; used by `import claude --force`);
+  //   0     -> create only; conflict if the document exists;
+  //   N     -> write only if the current version is N; conflict otherwise
+  //            (also when the document was deleted after version N).
+  optional int64 base_version = 4;
+  string source = 5;
+  // Org scope only.
+  repeated string target_roles = 6;
+}
+
+message PutDocumentResponse {
+  oneof result {
+    // The stored document with its new version.
+    Document document = 1;
+    Conflict conflict = 2;
+  }
+}
+
+// The write was rejected because base_version did not match. The client merges against `current`
+// (or asks the user) and retries with base_version = current.version (or 0 if current is a tombstone).
+message Conflict {
+  oneof current {
+    Document document = 1;
+    Tombstone tombstone = 2;
+  }
+}
+
+message BatchPutDocumentsRequest {
+  // At most 500 items per call.
+  repeated PutDocumentRequest items = 1;
+}
+
+message BatchPutDocumentsResponse {
+  // Same order and length as the request items.
+  repeated BatchPutResult results = 1;
+}
+
+message BatchPutResult {
+  oneof result {
+    Document document = 1;
+    Conflict conflict = 2;
+    // Validation or permission error for this item only.
+    ItemError error = 3;
+  }
+}
+
+message ItemError {
+  // Connect code name, e.g. "invalid_argument", "permission_denied".
+  string code = 1;
+  string message = 2;
+}
+
+message DeleteDocumentRequest {
+  string id = 1;
+  // Same semantics as PutDocumentRequest.base_version (0 is not meaningful here and is rejected).
+  optional int64 base_version = 2;
+}
+
+message DeleteDocumentResponse {
+  oneof result {
+    Tombstone tombstone = 1;
+    Conflict conflict = 2;
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Sessions
+// ---------------------------------------------------------------------------------------------------------
+
+// Server view of a session: the shared harness.agent.v1.SessionInfo plus sync-only fields.
+// SessionInfo.id (ses_...) is generated by the client that created the session, so it works offline.
+message SessionMetadata {
+  harness.agent.v1.SessionInfo info = 1;
+  string prompt_bundle_version = 2;
+  // Highest transcript seq stored on the server (server-maintained, ignored on upsert).
+  int64 last_seq = 3;
+  // RFC 3339, UTC. created_at is set on first upsert; last_activity_at is advanced by AppendSessionEvents.
+  string created_at = 4;
+  string last_activity_at = 5;
+}
+
+message UpsertSessionRequest {
+  SessionMetadata session = 1;
+  // Field paths to update, e.g. "info.title", "info.archived", "prompt_bundle_version";
+  // empty means "all client-writable fields".
+  // Frontends send e.g. ["title"] or ["archived"] so they do not clobber fields owned by the client.
+  repeated string update_paths = 2;
+}
+
+message UpsertSessionResponse {
+  SessionMetadata session = 1;
+}
+
+// One line of the local CC-format JSONL transcript.
+message TranscriptEntry {
+  // The entry's own uuid (the JSONL `uuid` field); idempotency key, unique within the session.
+  string uuid = 1;
+  string parent_uuid = 2;
+  // JSONL `type`: "user", "assistant", "system", "summary", ...
+  string type = 3;
+  // RFC 3339, UTC.
+  string timestamp = 4;
+  // The exact JSONL line (without the trailing newline). The server stores it byte-exact
+  // and indexes text content for search.
+  string entry_json = 5;
+  // Server-assigned position in the session (1, 2, 3, ...). Ignored on upload.
+  int64 seq = 6;
+}
+
+message AppendSessionEventsRequest {
+  string session_id = 1;
+  // In local file order. At most 500 entries / 4 MiB per call. Unknown session -> NOT_FOUND
+  // (call UpsertSession first).
+  repeated TranscriptEntry entries = 2;
+}
+
+message AppendSessionEventsResponse {
+  int32 accepted = 1;
+  // Entries skipped because their uuid was already stored.
+  int32 duplicates = 2;
+  // Highest seq of the session after this call.
+  int64 last_seq = 3;
+}
+
+message GetSessionRequest {
+  string session_id = 1;
+}
+
+message GetSessionResponse {
+  SessionMetadata session = 1;
+}
+
+message ListSessionsRequest {
+  // All filters are optional and combined with AND.
+  string repo = 1;
+  string cwd = 2;
+  string device_id = 3;
+  repeated harness.agent.v1.SessionStatus statuses = 4;
+  // Full-text search over titles and transcript text.
+  string query = 5;
+  bool include_archived = 6;
+  // Default 50, max 200.
+  int32 page_size = 7;
+  string page_token = 8;
+}
+
+message ListSessionsResponse {
+  repeated SessionMetadata sessions = 1;
+  // Empty when there are no more results.
+  string next_page_token = 2;
+}
+
+message GetSessionTranscriptRequest {
+  string session_id = 1;
+  int64 after_seq = 2;
+  // Default 500, max 2000.
+  int32 page_size = 3;
+}
+
+message GetSessionTranscriptResponse {
+  repeated TranscriptEntry entries = 1;
+  bool has_more = 2;
+}

@@ -1,0 +1,545 @@
+syntax = "proto3";
+
+package harness.mcp.v1;
+
+import "harness/common/v1/scope.proto";
+
+// McpService is served by core: the MCP registry, MCP authorization and the proxy for remote MCP servers
+// (docs/PLAN.md §1.5, §2.5). Called by the client and by frontends (account / admin MCP screens).
+//
+// Status: DRAFT (M1/M2). Unary + server streaming only.
+//
+// Rules:
+// - Connect once, works everywhere: configs and authorization live on the server and are pulled by every device.
+// - Secrets are write-only. Read responses carry only secret names and whether a value is set.
+//   The only RPC that ever returns secret values is IssueStdioLaunch, and only to a device token.
+// - Remote servers (streamable_http / sse / ws) are always called through this service's proxy RPCs;
+//   their tokens never reach devices.
+// - stdio servers run on the device next to the code. Starting one requires local confirmation on each
+//   device for the exact config hash (the server can never start a process on a machine by itself).
+// - Registry changes are announced through harness.sync.v1.SyncService.WatchChanges as
+//   DOCUMENT_KIND_MCP_SERVER notifications; clients then refetch via ListServers.
+// - Project servers from a repository's `.mcp.json` stay in the repository. The client registers them with
+//   SCOPE_PROJECT + project_key (config as read from the file) so that their secrets, authorization and
+//   per-device approvals are stored on the server like everything else (all MCP config and auth go through
+//   the server).
+// - Concurrency: UpdateServer / DeleteServer take base_version; a mismatch is returned as a Conflict in the
+//   response (not an error), as in harness.sync.v1. ERROR_TYPE_CONFLICT (ABORTED) is used only for non-CAS
+//   conflicts, e.g. a server name already taken in that scope.
+// - TODO(M3+): server-initiated MCP requests through the proxy (elicitation, sampling, roots) are out of
+//   scope for M2. Supporting them needs a round-trip to a host / viewer, similar to relay commands.
+service McpService {
+  // --- Registry ---------------------------------------------------------------------------------------
+  rpc ListServers(ListServersRequest) returns (ListServersResponse);
+  rpc GetServer(GetServerRequest) returns (GetServerResponse);
+  // Org scope requires the admin role.
+  rpc CreateServer(CreateServerRequest) returns (CreateServerResponse);
+  // Optimistic concurrency via base_version: on mismatch the response carries a Conflict with the current
+  // server; the caller reapplies its change and retries. Changing launch-relevant fields changes
+  // config_hash, which invalidates local stdio approvals on every device.
+  rpc UpdateServer(UpdateServerRequest) returns (UpdateServerResponse);
+  // Optimistic concurrency like UpdateServer.
+  rpc DeleteServer(DeleteServerRequest) returns (DeleteServerResponse);
+
+  // --- Authorization (remote servers) -----------------------------------------------------------------
+  // Starts an OAuth authorization (discovery, dynamic client registration, PKCE) for the caller.
+  // The user opens authorization_url in a browser; the provider redirects to
+  // <HARNESS_PUBLIC_URL>/api/mcp/oauth/callback (plain HTTP, not RPC), where the server finishes the flow.
+  rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse);
+  // Polled by the initiating frontend (every ~2 s) until the flow leaves PENDING.
+  rpc GetOAuthFlow(GetOAuthFlowRequest) returns (GetOAuthFlowResponse);
+  // Current authorization state of servers for the caller (all servers when server_ids is empty).
+  rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
+  // Deletes the caller's stored tokens for a server ("disconnect"). The server becomes NEEDS_AUTH.
+  rpc RevokeAuth(RevokeAuthRequest) returns (RevokeAuthResponse);
+
+  // --- Devices ----------------------------------------------------------------------------------------
+  // The calling device reports availability and local approval per server; full snapshot for the listed
+  // servers (servers not listed keep their previous state). Called at startup and on every change.
+  rpc ReportDeviceStatus(ReportDeviceStatusRequest) returns (ReportDeviceStatusResponse);
+  // Per-device state for the UI ("unavailable on laptop: npx not found").
+  rpc ListDeviceStatus(ListDeviceStatusRequest) returns (ListDeviceStatusResponse);
+  // Returns the fully resolved command, args and env (secrets substituted) to launch a stdio server.
+  // Rules for clients:
+  //   - call it only after the user approved this server's config_hash on this device;
+  //   - call it right before spawning, once per process launch;
+  //   - keep the result in memory only: never write it to disk, logs, transcripts, crash reports or
+  //     child-process command lines visible to other users when avoidable (prefer env over args);
+  //   - discard it once the process is spawned.
+  // Server checks: device-token caller only (web sessions and relay viewers get PERMISSION_DENIED),
+  // device not revoked, server is stdio and enabled, config_hash matches the current config
+  // (FAILED_PRECONDITION otherwise: the config changed and needs re-approval), and the device has reported
+  // APPROVED for that hash. Every issuance is audit-logged (without values) and rate-limited.
+  rpc IssueStdioLaunch(IssueStdioLaunchRequest) returns (IssueStdioLaunchResponse);
+
+  // --- Proxy for remote servers -------------------------------------------------------------------------
+  // The server keeps the upstream MCP session, injects tokens (refreshing them as needed) and forwards.
+  // NEEDS_AUTH servers fail with FAILED_PRECONDITION (+ ErrorInfo); stdio servers with INVALID_ARGUMENT.
+  rpc ListTools(ListToolsRequest) returns (ListToolsResponse);
+  rpc ListPrompts(ListPromptsRequest) returns (ListPromptsResponse);
+  rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse);
+  // Streams progress notifications, then exactly one result, then ends. Cancelling the RPC sends
+  // notifications/cancelled upstream.
+  rpc CallTool(CallToolRequest) returns (stream CallToolResponse);
+  rpc GetPrompt(GetPromptRequest) returns (GetPromptResponse);
+  rpc ReadResource(ReadResourceRequest) returns (ReadResourceResponse);
+
+  // --- Tool schema cache (ToolSearch) -----------------------------------------------------------------
+  // Tool names, descriptions and schemas of all servers visible to the caller, as a versioned snapshot.
+  // A session records catalog.version at start and keeps using that snapshot (freeze per session, for the
+  // prompt cache); it can refetch the same snapshot with `version` (kept for at least 7 days).
+  rpc GetToolCatalog(GetToolCatalogRequest) returns (GetToolCatalogResponse);
+}
+
+enum Transport {
+  TRANSPORT_UNSPECIFIED = 0;
+  TRANSPORT_STDIO = 1;
+  TRANSPORT_STREAMABLE_HTTP = 2;
+  TRANSPORT_SSE = 3;
+  TRANSPORT_WS = 4;
+}
+
+enum AuthState {
+  AUTH_STATE_UNSPECIFIED = 0;
+  // The server needs no authorization (or only static secrets, which are set).
+  AUTH_STATE_NOT_REQUIRED = 1;
+  AUTH_STATE_NEEDS_AUTH = 2;
+  AUTH_STATE_CONNECTED = 3;
+  AUTH_STATE_ERROR = 4;
+}
+
+enum Availability {
+  AVAILABILITY_UNSPECIFIED = 0;
+  AVAILABILITY_AVAILABLE = 1;
+  // e.g. the command (npx, uvx, a binary) is missing, or the OS is not supported.
+  AVAILABILITY_UNAVAILABLE_ON_DEVICE = 2;
+}
+
+enum ApprovalState {
+  APPROVAL_STATE_UNSPECIFIED = 0;
+  // Not yet asked on this device (or the config hash changed since the last decision).
+  APPROVAL_STATE_PENDING = 1;
+  APPROVAL_STATE_APPROVED = 2;
+  APPROVAL_STATE_DENIED = 3;
+}
+
+// Secret values are referenced from env values, args, header values and URLs as `${secret:NAME}`.
+// The server substitutes them when proxying (remote) or in IssueStdioLaunch (stdio).
+// Plain `${VAR}` references (no "secret:" prefix) are expanded by the client from its local environment.
+message Server {
+  // mcp_...
+  string id = 1;
+  // Unique per (owner, scope); the tool prefix is mcp__<name>__.
+  string name = 2;
+  harness.common.v1.Scope scope = 3;
+  Transport transport = 4;
+  bool enabled = 5;
+  // Load all tools up front instead of deferring them behind ToolSearch.
+  bool always_load = 6;
+  // Set for TRANSPORT_STDIO.
+  StdioConfig stdio = 7;
+  // Set for the remote transports.
+  RemoteConfig remote = 8;
+  // Names of stored secrets and whether each has a value. Values are never returned here.
+  repeated SecretInfo secrets = 9;
+  // Per-device / per-OS overrides of the stdio config.
+  repeated StdioOverride overrides = 10;
+  // Org scope: roles the server targets; empty means everyone.
+  repeated string target_roles = 11;
+  // SCOPE_PROJECT: the repository the `.mcp.json` belongs to (format in harness.common.v1.Scope).
+  string project_key = 12;
+  // Change counter (same space as harness.sync.v1 versions); concurrency token for UpdateServer.
+  int64 version = 13;
+  // Lowercase hex SHA-256 of the launch-relevant config (transport, command, args, env, url, headers, overrides;
+  // secret names but not values). Local stdio approvals are bound to this hash.
+  string config_hash = 14;
+  // Caller's authorization state (remote servers).
+  AuthStatus auth = 15;
+  // RFC 3339, UTC.
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message StdioConfig {
+  string command = 1;
+  repeated string args = 2;
+  // Non-secret env. Values may reference `${secret:NAME}`.
+  map<string, string> env = 3;
+  // Working directory; empty means the session's project root.
+  string cwd = 4;
+}
+
+message RemoteConfig {
+  string url = 1;
+  // Non-secret headers. Values may reference `${secret:NAME}`, e.g. "Bearer ${secret:TOKEN}".
+  map<string, string> headers = 2;
+  // OAuth hints; empty fields are discovered (RFC 9728 / RFC 8414).
+  OAuthConfig oauth = 3;
+  // Tools of this server always require a user confirmation, regardless of permission rules.
+  bool requires_user_interaction = 4;
+}
+
+message OAuthConfig {
+  // Pre-registered client id, when the provider does not support dynamic client registration.
+  string client_id = 1;
+  repeated string scopes = 2;
+  // Authorization server metadata URL override.
+  string authorization_server = 3;
+}
+
+message StdioOverride {
+  // Matches when set: dev_... id, and/or GOOS value ("darwin", "linux", "windows").
+  string device_id = 1;
+  string os = 2;
+  // Replaces the corresponding fields when non-empty; env entries are merged.
+  string command = 3;
+  repeated string args = 4;
+  map<string, string> env = 5;
+}
+
+message SecretInfo {
+  string name = 1;
+  bool has_value = 2;
+  // RFC 3339, UTC.
+  string updated_at = 3;
+}
+
+// Write-only secret changes.
+message SecretChanges {
+  // Sets or replaces values. Names: [A-Za-z_][A-Za-z0-9_]*.
+  map<string, string> set = 1;
+  repeated string remove = 2;
+}
+
+message ListServersRequest {
+  // Empty means all scopes.
+  repeated harness.common.v1.Scope scopes = 1;
+  bool include_disabled = 2;
+  // Project scope filter.
+  string project_key = 3;
+}
+
+message ListServersResponse {
+  repeated Server servers = 1;
+}
+
+message GetServerRequest {
+  string server_id = 1;
+}
+
+message GetServerResponse {
+  Server server = 1;
+}
+
+message CreateServerRequest {
+  // id, version, config_hash, secrets, auth and timestamps are ignored.
+  Server server = 1;
+  SecretChanges secrets = 2;
+}
+
+message CreateServerResponse {
+  Server server = 1;
+}
+
+message UpdateServerRequest {
+  // Full replacement of the config fields (id identifies the server; read-only fields are ignored).
+  Server server = 1;
+  SecretChanges secrets = 2;
+  // Must equal the current version; a Conflict is returned otherwise.
+  int64 base_version = 3;
+}
+
+message UpdateServerResponse {
+  oneof result {
+    Server server = 1;
+    Conflict conflict = 2;
+  }
+}
+
+// base_version did not match. A server deleted in the meantime yields NOT_FOUND instead.
+message Conflict {
+  Server current = 1;
+}
+
+message DeleteServerRequest {
+  string server_id = 1;
+  // unset -> unconditional delete; N -> delete only if the current version is N.
+  optional int64 base_version = 2;
+}
+
+message DeleteServerResponse {
+  // Unset on success.
+  Conflict conflict = 1;
+}
+
+message AuthStatus {
+  AuthState state = 1;
+  // Human-readable detail for ERROR (and why NEEDS_AUTH, e.g. "new scopes requested").
+  string message = 2;
+  repeated string granted_scopes = 3;
+  // Account label from the provider, if known (e.g. user email).
+  string account = 4;
+  // RFC 3339, UTC; access token expiry (the server refreshes before it).
+  string expires_at = 5;
+}
+
+message StartOAuthRequest {
+  string server_id = 1;
+  // Where the browser lands after the callback (must be on HARNESS_PUBLIC_URL); empty -> default page.
+  string return_url = 2;
+}
+
+message StartOAuthResponse {
+  // mfl_...
+  string flow_id = 1;
+  string authorization_url = 2;
+  // RFC 3339, UTC.
+  string expires_at = 3;
+}
+
+message GetOAuthFlowRequest {
+  string flow_id = 1;
+}
+
+message GetOAuthFlowResponse {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_PENDING = 1;
+    STATE_COMPLETED = 2;
+    STATE_FAILED = 3;
+    STATE_EXPIRED = 4;
+  }
+  State state = 1;
+  string error_message = 2;
+  // The server's resulting auth status (set when COMPLETED).
+  AuthStatus auth = 3;
+}
+
+message GetAuthStatusRequest {
+  repeated string server_ids = 1;
+}
+
+message GetAuthStatusResponse {
+  // Keyed by server id.
+  map<string, AuthStatus> statuses = 1;
+}
+
+message RevokeAuthRequest {
+  string server_id = 1;
+}
+
+message RevokeAuthResponse {}
+
+message DeviceServerStatus {
+  string server_id = 1;
+  // config_hash the client evaluated.
+  string config_hash = 2;
+  Availability availability = 3;
+  // For UNAVAILABLE_ON_DEVICE, e.g. "command not found: uvx".
+  string reason = 4;
+  ApprovalState approval = 5;
+  // Last connection / launch error, if any.
+  string last_error = 6;
+  // Tools discovered by the last successful launch (stdio). Feeds the catalog for this server.
+  repeated Tool tools = 7;
+  // RFC 3339, UTC (server-set on report).
+  string reported_at = 8;
+}
+
+message ReportDeviceStatusRequest {
+  repeated DeviceServerStatus statuses = 1;
+}
+
+message ReportDeviceStatusResponse {}
+
+message ListDeviceStatusRequest {
+  // Optional filters.
+  string server_id = 1;
+  string device_id = 2;
+}
+
+message ListDeviceStatusResponse {
+  repeated DeviceStatusEntry entries = 1;
+}
+
+message DeviceStatusEntry {
+  string device_id = 1;
+  string device_name = 2;
+  DeviceServerStatus status = 3;
+}
+
+message IssueStdioLaunchRequest {
+  string server_id = 1;
+  // The hash the user approved locally.
+  string config_hash = 2;
+}
+
+message IssueStdioLaunchResponse {
+  // After overrides for this device / OS and with secrets substituted.
+  string command = 1;
+  repeated string args = 2;
+  map<string, string> env = 3;
+  string cwd = 4;
+  // RFC 3339, UTC. Do not launch with this data after expiry (~60 s); request again.
+  string expires_at = 5;
+}
+
+message Tool {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // JSON Schema of the input, exact upstream JSON.
+  string input_schema_json = 4;
+  // Optional JSON Schema of structured output.
+  string output_schema_json = 5;
+  // MCP tool annotations (readOnlyHint, destructiveHint, ...), exact upstream JSON.
+  string annotations_json = 6;
+}
+
+message Prompt {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // MCP prompt arguments, exact upstream JSON array.
+  string arguments_json = 4;
+}
+
+message Resource {
+  string uri = 1;
+  string name = 2;
+  string title = 3;
+  string description = 4;
+  string mime_type = 5;
+  int64 size = 6;
+}
+
+message ResourceTemplate {
+  string uri_template = 1;
+  string name = 2;
+  string title = 3;
+  string description = 4;
+  string mime_type = 5;
+}
+
+message ListToolsRequest {
+  string server_id = 1;
+  // MCP pagination cursor; empty for the first page.
+  string cursor = 2;
+}
+
+message ListToolsResponse {
+  repeated Tool tools = 1;
+  string next_cursor = 2;
+}
+
+message ListPromptsRequest {
+  string server_id = 1;
+  string cursor = 2;
+}
+
+message ListPromptsResponse {
+  repeated Prompt prompts = 1;
+  string next_cursor = 2;
+}
+
+message ListResourcesRequest {
+  string server_id = 1;
+  string cursor = 2;
+}
+
+message ListResourcesResponse {
+  repeated Resource resources = 1;
+  // Returned on the first page only.
+  repeated ResourceTemplate templates = 2;
+  string next_cursor = 3;
+}
+
+message CallToolRequest {
+  string server_id = 1;
+  string tool_name = 2;
+  // Tool arguments, exact JSON object.
+  string arguments_json = 3;
+  // For audit and usage attribution.
+  string session_id = 4;
+  string tool_use_id = 5;
+  // 0 -> server default (10 minutes).
+  int64 timeout_ms = 6;
+}
+
+message CallToolResponse {
+  oneof event {
+    Progress progress = 1;
+    CallToolResult result = 2;
+  }
+}
+
+message Progress {
+  double progress = 1;
+  // 0 when unknown.
+  double total = 2;
+  string message = 3;
+}
+
+message CallToolResult {
+  // Convenience copy of result_json.isError.
+  bool is_error = 1;
+  // The MCP CallToolResult (content, structuredContent, isError), exact upstream JSON.
+  // The client maps it to tool_result content blocks.
+  string result_json = 2;
+}
+
+message GetPromptRequest {
+  string server_id = 1;
+  string name = 2;
+  map<string, string> arguments = 3;
+}
+
+message GetPromptResponse {
+  // The MCP GetPromptResult (description, messages), exact upstream JSON.
+  string result_json = 1;
+}
+
+message ReadResourceRequest {
+  string server_id = 1;
+  string uri = 2;
+}
+
+message ReadResourceResponse {
+  // The MCP ReadResourceResult (contents), exact upstream JSON.
+  string result_json = 1;
+}
+
+message GetToolCatalogRequest {
+  // Fetch a specific frozen snapshot; empty -> current. Unknown/expired -> NOT_FOUND (start from current).
+  string version = 1;
+  // Current version the client already has; answered with not_modified if unchanged. Ignored with `version`.
+  string if_none_match = 2;
+  // Project servers to include (the session's project); user and org servers are always included.
+  string project_key = 3;
+}
+
+message GetToolCatalogResponse {
+  bool not_modified = 1;
+  // Empty when not_modified = true.
+  ToolCatalog catalog = 2;
+}
+
+message ToolCatalog {
+  // Opaque; changes whenever any included server's tool list changes.
+  string version = 1;
+  repeated CatalogServer servers = 2;
+  // RFC 3339, UTC.
+  string created_at = 3;
+}
+
+message CatalogServer {
+  string server_id = 1;
+  string name = 2;
+  Transport transport = 3;
+  bool always_load = 4;
+  // Remote: fetched by the server. stdio: last list reported by any of the caller's devices
+  // (may be empty until a device launched the server once).
+  repeated Tool tools = 5;
+  // RFC 3339, UTC; when this server's tool list was last refreshed.
+  string tools_updated_at = 6;
+}

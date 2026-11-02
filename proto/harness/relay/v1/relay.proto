@@ -1,0 +1,576 @@
+syntax = "proto3";
+
+package harness.relay.v1;
+
+import "harness/agent/v1/agent.proto";
+import "harness/common/v1/errors.proto";
+
+// RelayService is served by core and implements remote control without bidirectional streaming
+// (docs/PLAN.md §1.6, decision A6). Two kinds of callers:
+//
+//   host   - the client on a machine (a running session, `harness-client serve`, or `harness daemon`).
+//            It connects outbound: one server stream (OpenHostStream) for downstream commands and unary
+//            RPCs (PublishEvents, AckCommands, Heartbeat) for upstream data. Works behind NAT.
+//   viewer - web / mobile / another desktop. It reads a session with SubscribeSession and sends unary
+//            commands that map 1:1 to harness.agent.v1.AgentService commands.
+//
+// Status: DRAFT (M1/M2). Unary + server streaming only.
+//
+// Semantics:
+// - Epoch. Every RegisterSession returns a new, strictly increasing epoch for that session. The newest epoch
+//   owns the session: the previous owner gets SessionSuperseded on its host stream, and any PublishEvents /
+//   AckCommands / UnregisterSession call carrying an older epoch fails with FAILED_PRECONDITION. A superseded
+//   host stops publishing for that session (it may re-register if the user resumes there).
+// - Live stream only. The relay carries the LIVE representation of a session (harness.agent.v1.SessionEvent).
+//   The durable transcript (CC-format JSONL) is uploaded separately via harness.sync.v1.SyncService.
+// - Sequence numbers. Durable events are harness.agent.v1.SessionEvent with the session-local `seq` assigned
+//   by the host (1, 2, 3, ... without gaps). The server stores them by seq and acknowledges the highest
+//   contiguous seq it has (acked_seq). After a reconnect the host resends everything after acked_seq.
+// - Ephemeral deltas. AssistantDelta events are not durable: the server fans them out to live subscribers and
+//   never stores or replays them. A delta does not consume a seq; it carries the seq of the last durable event
+//   published before it, so viewers order it after that event and before the next durable one. Deltas lost
+//   on a reconnect are not resent: the final AssistantMessage (durable) supersedes them.
+// - At-least-once + dedup, both directions. Upstream: durable events are deduplicated by envelope uuid and
+//   seq; deltas by uuid only.
+//   Downstream: commands are redelivered until acked; hosts deduplicate by command_id and must make every
+//   command idempotent (SendUserMessage additionally carries its own uuid).
+// - History-then-live (FlushGate). SubscribeSession first replays stored events after after_seq, then sends
+//   FlushComplete, then live events. Live events published during the replay are buffered and delivered
+//   after the replay, so the viewer sees durable seq in increasing order with no gaps and no duplicates.
+//   The replay contains no AssistantDelta events, only the final AssistantMessage; live deltas start after
+//   FlushComplete.
+// - Heartbeats. The server sends Heartbeat on every stream at least every 20 s; hosts call Heartbeat every
+//   ~20 s. A host that misses 3 heartbeats (and has no open host stream) is offline: its sessions are shown
+//   as SESSION_STATUS_WAITING_FOR_CONNECTION and commands for them stay queued. Clients reconnect with
+//   exponential backoff plus jitter.
+// - Permissions stay on the host (PLAN §2.3). The server forwards commands but never decides; the host applies
+//   its own rules. PERMISSION_MODE_BYPASS_PERMISSIONS can never be set remotely: the server rejects it with
+//   PERMISSION_DENIED and hosts must reject it too. Permission prompts and questions go to every viewer;
+//   the first answer that reaches the host wins, later answers are acked with ALREADY_RESOLVED, and the host
+//   publishes PermissionResolved / QuestionResolved so every viewer dismisses the card.
+// - Presence. An open SubscribeSession stream plus the latest UpdatePresence state tells the server whether a
+//   human is looking at the session; Web Push for permission / question / turn completion is suppressed while
+//   a viewer is FOCUSED (or the host reports local terminal activity).
+service RelayService {
+  // --- Host side --------------------------------------------------------------------------------------
+  // Registers the calling device process as a host. Returns a host id used by the other host RPCs.
+  // One host per client process; `harness daemon` registers with daemon = true and its allowed roots.
+  rpc RegisterHost(RegisterHostRequest) returns (RegisterHostResponse);
+  // Downstream channel for a host: commands for its registered sessions, spawn requests, tunnel requests and
+  // heartbeats. One stream per host id: opening a new one closes the previous (ABORTED). On open, the server
+  // first redelivers all unacked commands of the host's sessions (in command order), then live ones.
+  rpc OpenHostStream(OpenHostStreamRequest) returns (stream OpenHostStreamResponse);
+  // Registers (or takes over) a session on this host and returns its new epoch.
+  rpc RegisterSession(RegisterSessionRequest) returns (RegisterSessionResponse);
+  // The session ended or is no longer remote-controllable from this host.
+  rpc UnregisterSession(UnregisterSessionRequest) returns (UnregisterSessionResponse);
+  // Upstream batch of events for one session. Recommended batching: flush every 100 ms or 64 events.
+  rpc PublishEvents(PublishEventsRequest) returns (PublishEventsResponse);
+  // Acknowledges commands (with their outcome). Unacked commands are redelivered.
+  rpc AckCommands(AckCommandsRequest) returns (AckCommandsResponse);
+  // Host liveness, session status summary and local activity (for presence).
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  // Registers a tunnel to a local port (preview) or a PTY on this host.
+  rpc RegisterTunnel(RegisterTunnelRequest) returns (RegisterTunnelResponse);
+  rpc CloseTunnel(CloseTunnelRequest) returns (CloseTunnelResponse);
+
+  // --- Viewer side ------------------------------------------------------------------------------------
+  // Hosts of the caller with their online state and remote-controllable sessions.
+  rpc ListHosts(ListHostsRequest) returns (ListHostsResponse);
+  // History after after_seq, FlushComplete, then live events (see FlushGate above). Opening the stream marks
+  // the viewer present (UNFOCUSED until UpdatePresence says otherwise).
+  rpc SubscribeSession(SubscribeSessionRequest) returns (stream SubscribeSessionResponse);
+  rpc UpdatePresence(UpdatePresenceRequest) returns (UpdatePresenceResponse);
+
+  // Commands. Each wraps the matching harness.agent.v1 request and returns once the command is queued
+  // (or, with wait_for_ack, once the host acked it or the wait timed out). Effects are observed as events.
+  rpc SendUserMessage(SendUserMessageRequest) returns (SendUserMessageResponse);
+  rpc Interrupt(InterruptRequest) returns (InterruptResponse);
+  // RespondToPermission and AnswerQuestion always wait for the host ack (wait_for_ack is implied, max ~10 s)
+  // so the UI can show "already answered" (OUTCOME_ALREADY_RESOLVED) right away. If the host does not ack in
+  // time, delivery = QUEUED and the outcome arrives as a PermissionResolved / QuestionResolved event.
+  rpc RespondToPermission(RespondToPermissionRequest) returns (RespondToPermissionResponse);
+  rpc AnswerQuestion(AnswerQuestionRequest) returns (AnswerQuestionResponse);
+  rpc SetModel(SetModelRequest) returns (SetModelResponse);
+  rpc SetEffort(SetEffortRequest) returns (SetEffortResponse);
+  rpc SetPermissionMode(SetPermissionModeRequest) returns (SetPermissionModeResponse);
+  // Query commands: the server holds the call until the host acks with a result (max ~10 s), otherwise
+  // UNAVAILABLE (host offline or slow).
+  rpc SuggestFiles(SuggestFilesRequest) returns (SuggestFilesResponse);
+  // "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
+  // the server and again by the host). Held until the host acks with the created session (max ~30 s).
+  rpc SpawnSession(SpawnSessionRequest) returns (SpawnSessionResponse);
+
+  // Tunnels from the viewer's side.
+  // Asks a host to open a tunnel (preview port or PTY); held until the host registered it (max ~10 s).
+  rpc RequestTunnel(RequestTunnelRequest) returns (RequestTunnelResponse);
+  rpc ListTunnels(ListTunnelsRequest) returns (ListTunnelsResponse);
+  // Issues a short-lived, single-use access URL for the browser (sets an owner-only cookie on the preview
+  // origin). Only the tunnel owner may call it.
+  rpc AuthorizeTunnel(AuthorizeTunnelRequest) returns (AuthorizeTunnelResponse);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Host side
+// ---------------------------------------------------------------------------------------------------------
+
+message RegisterHostRequest {
+  // Random per process start; re-registering with the same instance id returns the same host id
+  // (used after a brief network drop).
+  string instance_id = 1;
+  string client_version = 2;
+  // `harness daemon`: accepts SpawnSession.
+  bool daemon = 3;
+  // Absolute directories under which spawn is allowed (daemon only). Empty -> spawn disabled.
+  repeated string allowed_roots = 4;
+  // The host can open preview tunnels / PTYs.
+  bool tunnels = 5;
+  bool pty = 6;
+}
+
+message RegisterHostResponse {
+  // hst_...
+  string host_id = 1;
+  // Server-recommended heartbeat interval.
+  int32 heartbeat_interval_seconds = 2;
+}
+
+message OpenHostStreamRequest {
+  string host_id = 1;
+}
+
+message OpenHostStreamResponse {
+  oneof event {
+    Command command = 1;
+    SessionSuperseded session_superseded = 2;
+    Heartbeat heartbeat = 3;
+  }
+}
+
+// A unit of work for a host. Delivered at least once; deduplicate by command_id.
+message Command {
+  // cmd_...; server-assigned, unique.
+  string command_id = 1;
+  // Empty for host-level commands (spawn, tunnel without session).
+  string session_id = 2;
+  // The epoch the command was routed to; ignore commands for an epoch the host no longer owns.
+  int64 epoch = 3;
+  // Who sent it (usr_..., and the viewer's frontend label), for display and audit.
+  string sender_user_id = 4;
+  string sender_frontend = 5;
+  // RFC 3339, UTC.
+  string created_at = 6;
+  oneof payload {
+    harness.agent.v1.SendUserMessageRequest send_user_message = 10;
+    harness.agent.v1.InterruptRequest interrupt = 11;
+    harness.agent.v1.RespondToPermissionRequest respond_to_permission = 12;
+    harness.agent.v1.AnswerQuestionRequest answer_question = 13;
+    harness.agent.v1.SetModelRequest set_model = 14;
+    harness.agent.v1.SetEffortRequest set_effort = 15;
+    harness.agent.v1.SetPermissionModeRequest set_permission_mode = 16;
+    harness.agent.v1.SuggestFilesRequest suggest_files = 17;
+    SpawnSessionCommand spawn_session = 18;
+    OpenTunnelCommand open_tunnel = 19;
+  }
+}
+
+message SpawnSessionCommand {
+  // cwd must be under one of the host's allowed roots; resume_session_id / fork are honored.
+  harness.agent.v1.CreateSessionRequest create = 1;
+  // Optional first message, sent right after the session is created.
+  harness.agent.v1.SendUserMessageRequest initial_message = 2;
+  // Create a git worktree under cwd for the session.
+  bool worktree = 3;
+}
+
+message OpenTunnelCommand {
+  TunnelKind kind = 1;
+  // PREVIEW: local port on the host.
+  int32 port = 2;
+  // PTY: shell working directory (must be a session cwd or under allowed roots).
+  string cwd = 3;
+  int32 cols = 4;
+  int32 rows = 5;
+}
+
+message SessionSuperseded {
+  string session_id = 1;
+  int64 old_epoch = 2;
+  int64 new_epoch = 3;
+  // dev_... that took over.
+  string new_device_id = 4;
+}
+
+message Heartbeat {
+  // RFC 3339, UTC.
+  string server_time = 1;
+}
+
+message RegisterSessionRequest {
+  string host_id = 1;
+  harness.agent.v1.SessionInfo session = 2;
+}
+
+message RegisterSessionResponse {
+  int64 epoch = 1;
+  // Highest contiguous seq the server already stores for this session (0 if none);
+  // the host publishes from acked_seq + 1.
+  int64 acked_seq = 2;
+}
+
+message UnregisterSessionRequest {
+  string host_id = 1;
+  string session_id = 2;
+  int64 epoch = 3;
+}
+
+message UnregisterSessionResponse {}
+
+message EventEnvelope {
+  // Unique per event (client-generated); dedup key.
+  string uuid = 1;
+  // event.seq and event.session_id must match the request.
+  harness.agent.v1.SessionEvent event = 2;
+}
+
+message PublishEventsRequest {
+  string host_id = 1;
+  string session_id = 2;
+  int64 epoch = 3;
+  // In order of emission (durable seq ascending; deltas interleaved, see the ephemeral rule above).
+  // At most 500 events / 4 MiB per call. A batch may overlap already stored events (they are skipped);
+  // a batch starting after acked_seq + 1 is accepted but acked_seq does not advance past the gap until the
+  // missing events arrive. Hosts should not resend deltas on retry.
+  repeated EventEnvelope events = 4;
+}
+
+message PublishEventsResponse {
+  int64 acked_seq = 1;
+  int32 duplicates = 2;
+}
+
+message CommandAck {
+  enum Outcome {
+    OUTCOME_UNSPECIFIED = 0;
+    OUTCOME_OK = 1;
+    // Permission / question was already answered by another client (first answer wins).
+    OUTCOME_ALREADY_RESOLVED = 2;
+    // Rejected by the host (e.g. bypass mode requested, spawn outside allowed roots); see error.
+    OUTCOME_REJECTED = 3;
+    OUTCOME_FAILED = 4;
+  }
+  string command_id = 1;
+  Outcome outcome = 2;
+  string error_message = 3;
+  harness.common.v1.ErrorInfo error = 4;
+  // Results of query-style commands.
+  oneof result {
+    harness.agent.v1.SuggestFilesResponse suggest_files = 10;
+    harness.agent.v1.CreateSessionResponse spawn_session = 11;
+    Tunnel open_tunnel = 12;
+  }
+}
+
+message AckCommandsRequest {
+  string host_id = 1;
+  repeated CommandAck acks = 2;
+}
+
+message AckCommandsResponse {}
+
+message HeartbeatRequest {
+  string host_id = 1;
+  repeated HostSessionState sessions = 2;
+  // RFC 3339, UTC; last keyboard / mouse activity in a local frontend (TUI, desktop) for any session.
+  // Used to suppress push while the user works locally.
+  string last_local_activity_at = 3;
+}
+
+message HostSessionState {
+  string session_id = 1;
+  int64 epoch = 2;
+  harness.agent.v1.SessionStatus status = 3;
+}
+
+message HeartbeatResponse {
+  // Sessions whose epoch the host no longer owns (missed SessionSuperseded).
+  repeated SessionSuperseded superseded = 1;
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Tunnels
+// ---------------------------------------------------------------------------------------------------------
+
+enum TunnelKind {
+  TUNNEL_KIND_UNSPECIFIED = 0;
+  // HTTP(S)/WebSocket preview of a local port: https://<id>.preview.<host>.
+  TUNNEL_KIND_PREVIEW = 1;
+  // Terminal: the client's PTY, bytes over the data plane.
+  TUNNEL_KIND_PTY = 2;
+}
+
+// Only registration and authorization are RPCs. The bytes flow over a separate HTTP data-plane endpoint:
+// the host opens outbound connections to data_plane_url with data_plane_token (one per proxied request or a
+// multiplexed connection; open points listed in docs/protocol/tunnels.md), and browsers reach the tunnel at public_url.
+// Tunnels are owner-only: the server serves public_url only to requests carrying the owner's tunnel cookie.
+message Tunnel {
+  // tun_...
+  string id = 1;
+  TunnelKind kind = 2;
+  string host_id = 3;
+  string session_id = 4;
+  int32 port = 5;
+  string label = 6;
+  // PREVIEW: https://<id>.preview.<host>; PTY: wss URL for the web terminal.
+  string public_url = 7;
+  // RFC 3339, UTC.
+  string created_at = 8;
+  string expires_at = 9;
+}
+
+message RegisterTunnelRequest {
+  string host_id = 1;
+  TunnelKind kind = 2;
+  // Optional: ties the tunnel to a session (closed when the session ends).
+  string session_id = 3;
+  // PREVIEW: local port (bound to loopback on the host).
+  int32 port = 4;
+  string label = 5;
+  // Set when this answers an OpenTunnelCommand.
+  string command_id = 6;
+}
+
+message RegisterTunnelResponse {
+  Tunnel tunnel = 1;
+  // Host-only credentials for the data plane; never shown to viewers.
+  string data_plane_url = 2;
+  string data_plane_token = 3;
+}
+
+message CloseTunnelRequest {
+  string tunnel_id = 1;
+}
+
+message CloseTunnelResponse {}
+
+// ---------------------------------------------------------------------------------------------------------
+// Viewer side
+// ---------------------------------------------------------------------------------------------------------
+
+message ListHostsRequest {}
+
+message ListHostsResponse {
+  repeated Host hosts = 1;
+}
+
+message Host {
+  string host_id = 1;
+  string device_id = 2;
+  string device_name = 3;
+  bool online = 4;
+  bool daemon = 5;
+  repeated string allowed_roots = 6;
+  bool tunnels = 7;
+  bool pty = 8;
+  repeated harness.agent.v1.SessionInfo sessions = 9;
+  // RFC 3339, UTC.
+  string last_seen_at = 10;
+}
+
+message SubscribeSessionRequest {
+  string session_id = 1;
+  // 0 replays the whole stored history.
+  int64 after_seq = 2;
+  // Random per viewer tab / app instance; identifies the viewer for presence.
+  string viewer_id = 3;
+}
+
+message SubscribeSessionResponse {
+  oneof event {
+    harness.agent.v1.SessionEvent session_event = 1;
+    // Replay is done; everything after this is live.
+    FlushComplete flush_complete = 2;
+    HostState host_state = 3;
+    Presence presence = 4;
+    Heartbeat heartbeat = 5;
+  }
+}
+
+message FlushComplete {
+  // Highest seq delivered by the replay.
+  int64 last_seq = 1;
+}
+
+// Sent after FlushComplete and on every change of the owning host.
+message HostState {
+  string host_id = 1;
+  string device_name = 2;
+  bool online = 3;
+  int64 epoch = 4;
+}
+
+enum PresenceState {
+  PRESENCE_STATE_UNSPECIFIED = 0;
+  // Visible and focused: suppress push.
+  PRESENCE_STATE_FOCUSED = 1;
+  // Stream open but the tab / app is in the background: push allowed.
+  PRESENCE_STATE_UNFOCUSED = 2;
+}
+
+// Who is watching the session (for "also viewing" UI).
+message Presence {
+  repeated Viewer viewers = 1;
+}
+
+message Viewer {
+  string viewer_id = 1;
+  string frontend = 2;
+  PresenceState state = 3;
+}
+
+message UpdatePresenceRequest {
+  string session_id = 1;
+  string viewer_id = 2;
+  PresenceState state = 3;
+}
+
+message UpdatePresenceResponse {}
+
+// Shared command options.
+message CommandOptions {
+  // Client-generated idempotency key; retries with the same key do not enqueue twice.
+  string idempotency_key = 1;
+  // Hold the call until the host acks (or ~10 s pass). Implied for RespondToPermission / AnswerQuestion.
+  bool wait_for_ack = 2;
+  // Frontend label for display / audit ("web", "mobile", ...).
+  string frontend = 3;
+}
+
+enum DeliveryState {
+  DELIVERY_STATE_UNSPECIFIED = 0;
+  // Stored; the host is offline or has not acked yet.
+  DELIVERY_STATE_QUEUED = 1;
+  DELIVERY_STATE_ACKED = 2;
+}
+
+// Common result of fire-and-forget commands.
+message CommandResult {
+  string command_id = 1;
+  DeliveryState delivery = 2;
+  // Set when delivery = ACKED.
+  CommandAck ack = 3;
+}
+
+message SendUserMessageRequest {
+  harness.agent.v1.SendUserMessageRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SendUserMessageResponse {
+  CommandResult result = 1;
+}
+
+message InterruptRequest {
+  harness.agent.v1.InterruptRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message InterruptResponse {
+  CommandResult result = 1;
+}
+
+message RespondToPermissionRequest {
+  harness.agent.v1.RespondToPermissionRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message RespondToPermissionResponse {
+  CommandResult result = 1;
+}
+
+message AnswerQuestionRequest {
+  harness.agent.v1.AnswerQuestionRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message AnswerQuestionResponse {
+  CommandResult result = 1;
+}
+
+message SetModelRequest {
+  harness.agent.v1.SetModelRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SetModelResponse {
+  CommandResult result = 1;
+}
+
+message SetEffortRequest {
+  harness.agent.v1.SetEffortRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SetEffortResponse {
+  CommandResult result = 1;
+}
+
+message SetPermissionModeRequest {
+  // PERMISSION_MODE_BYPASS_PERMISSIONS -> PERMISSION_DENIED.
+  harness.agent.v1.SetPermissionModeRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SetPermissionModeResponse {
+  CommandResult result = 1;
+}
+
+message SuggestFilesRequest {
+  harness.agent.v1.SuggestFilesRequest request = 1;
+}
+
+message SuggestFilesResponse {
+  harness.agent.v1.SuggestFilesResponse response = 1;
+}
+
+message SpawnSessionRequest {
+  string host_id = 1;
+  SpawnSessionCommand spawn = 2;
+  CommandOptions options = 3;
+}
+
+message SpawnSessionResponse {
+  // The created session; subscribe to it with SubscribeSession.
+  harness.agent.v1.SessionInfo session = 1;
+}
+
+message RequestTunnelRequest {
+  string host_id = 1;
+  string session_id = 2;
+  OpenTunnelCommand open = 3;
+}
+
+message RequestTunnelResponse {
+  Tunnel tunnel = 1;
+}
+
+message ListTunnelsRequest {
+  // Optional filters.
+  string host_id = 1;
+  string session_id = 2;
+}
+
+message ListTunnelsResponse {
+  repeated Tunnel tunnels = 1;
+}
+
+message AuthorizeTunnelRequest {
+  string tunnel_id = 1;
+}
+
+message AuthorizeTunnelResponse {
+  // Open this URL in the browser; it sets the access cookie on the tunnel origin and redirects to public_url.
+  string access_url = 1;
+  // RFC 3339, UTC; the access_url itself expires quickly (~60 s), the cookie lives until expires_at.
+  string expires_at = 2;
+}

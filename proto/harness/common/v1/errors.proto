@@ -14,6 +14,9 @@ package harness.common.v1;
 //   overloaded         -> UNAVAILABLE
 //   upstream           -> UNAVAILABLE         (model provider failed after server-side retries)
 //   unsupported_client -> FAILED_PRECONDITION (client is older than the server's minimum version)
+//   conflict           -> ABORTED             (concurrent modification outside a base_version check, e.g.
+//                                             a unique name taken; refetch and retry. Version mismatches
+//                                             on CAS writes are returned as a Conflict response instead)
 //   internal           -> INTERNAL
 message ErrorInfo {
   ErrorType type = 1;
@@ -35,4 +38,5 @@ enum ErrorType {
   ERROR_TYPE_UPSTREAM = 8;
   ERROR_TYPE_UNSUPPORTED_CLIENT = 9;
   ERROR_TYPE_INTERNAL = 10;
+  ERROR_TYPE_CONFLICT = 11;
 }
