@@ -45,6 +45,7 @@ func main() {
 		os.Exit(2)
 	}
 	s := fakegateway.New(r)
+	s.Title = fakegateway.EchoTitle
 	url, stop, err := s.Listen(*addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
