@@ -13,7 +13,8 @@ let ready: Promise<void> | undefined;
 /** Drizzle instance (libSQL driver over a local SQLite file by default). */
 export function getDb(): Db {
   if (!db) {
-    client = createClient({ url: config().dbUrl });
+    // timeout: busy wait for pooled connections (transactions get their own connection).
+    client = createClient({ url: config().dbUrl, timeout: 5000 });
     db = drizzle(client, { schema });
   }
   return db;

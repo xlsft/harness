@@ -15,7 +15,14 @@ const MAP: Record<string, [ErrorType, Code]> = {
   unsupported_client: [ErrorType.UNSUPPORTED_CLIENT, Code.FailedPrecondition],
   protocol_version: [ErrorType.UNSUPPORTED_CLIENT, Code.FailedPrecondition],
   internal: [ErrorType.INTERNAL, Code.Internal],
+  conflict: [ErrorType.CONFLICT, Code.Aborted],
 };
+
+/** Connect code name ("invalid_argument", "permission_denied", ...) for a service error type. */
+export function errorCode(type: string): string {
+  const code = MAP[type]?.[1] ?? Code.Internal;
+  return Code[code].replace(/[A-Z]/g, (c, i) => (i ? "_" : "") + c.toLowerCase());
+}
 
 export function errorType(type: string): ErrorType {
   return MAP[type]?.[0] ?? ErrorType.INTERNAL;

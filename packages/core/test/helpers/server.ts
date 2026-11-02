@@ -11,6 +11,7 @@ import { H3, serve } from "h3";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
+import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 
@@ -21,8 +22,14 @@ export interface TestServer {
   auth: Client<typeof DeviceAuthService>;
   gateway: Client<typeof GatewayService>;
   prompts: Client<typeof PromptService>;
+  sync: Client<typeof SyncService>;
   /** Connect clients authenticated with the given access token. */
-  as(token: string): { auth: Client<typeof DeviceAuthService>; gateway: Client<typeof GatewayService>; prompts: Client<typeof PromptService> };
+  as(token: string): {
+    auth: Client<typeof DeviceAuthService>;
+    gateway: Client<typeof GatewayService>;
+    prompts: Client<typeof PromptService>;
+    sync: Client<typeof SyncService>;
+  };
   close(): Promise<void>;
 }
 
@@ -68,6 +75,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       auth: createClient(DeviceAuthService, transport),
       gateway: createClient(GatewayService, transport),
       prompts: createClient(PromptService, transport),
+      sync: createClient(SyncService, transport),
     };
   };
 

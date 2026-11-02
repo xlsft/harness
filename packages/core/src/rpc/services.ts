@@ -6,6 +6,7 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { DeviceAuthService, PollDeviceAuthResponse_Status, User_Role } from "../gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService, type StreamMessageResponse } from "../gen/harness/llm/v1/gateway_pb.ts";
 import { PromptService } from "../gen/harness/prompts/v1/prompts_pb.ts";
+import { SyncService } from "../gen/harness/sync/v1/sync_pb.ts";
 import { config } from "../env.ts";
 import type { GatewayEvent } from "../gateway/types.ts";
 import { ApiError } from "../lib/errors.ts";
@@ -26,6 +27,7 @@ import { getPromptBundle } from "../services/prompts.ts";
 import { checkClientVersion, rateLimitByIp, requirePrincipal } from "./context.ts";
 import { bundleToProto, eventToProto, messagesFromProto, modelsToProto, streamRequestToCanonical, toolsFromProto } from "./convert.ts";
 import { guard, toConnectError } from "./errors.ts";
+import { registerSyncService } from "./sync.ts";
 
 const POLL_STATUS = {
   pending: PollDeviceAuthResponse_Status.PENDING,
@@ -189,8 +191,10 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
     }),
   });
 
+  registerSyncService(router);
+
   return router;
 }
 
 /** Fully-qualified service names, used to mount the Connect handlers in Nitro. */
-export const SERVICE_NAMES = [DeviceAuthService.typeName, GatewayService.typeName, PromptService.typeName];
+export const SERVICE_NAMES = [DeviceAuthService.typeName, GatewayService.typeName, PromptService.typeName, SyncService.typeName];
