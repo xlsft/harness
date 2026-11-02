@@ -147,11 +147,11 @@ export function periodStarts(now = new Date()): { day: Date; month: Date } {
 }
 
 async function sumCost(...conds: ReturnType<typeof eq>[]): Promise<number> {
-  const r = await getDb()
+  // sum(double precision) is double precision; Number() also covers drivers that return it as a string.
+  const [r] = await getDb()
     .select({ total: sql<number>`coalesce(sum(${schema.usageRecord.costUsd}), 0)` })
     .from(schema.usageRecord)
-    .where(and(...conds))
-    .get();
+    .where(and(...conds));
   return Number(r?.total ?? 0);
 }
 

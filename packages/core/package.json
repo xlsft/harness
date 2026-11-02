@@ -22,16 +22,18 @@
     "@bufbuild/protobuf": "^2.16.0",
     "@connectrpc/connect": "^2.3.0",
     "@connectrpc/connect-node": "^2.3.0",
-    "@libsql/client": "^0.18.0",
+    "@electric-sql/pglite": "^0.5.14",
     "better-auth": "1.7.15",
     "drizzle-orm": "0.45.4",
     "h3": "^2.0.8",
     "nitro": "3.0.261029-rc",
+    "pg": "^8.23.1",
     "undici": "^8.12.3"
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.16.0",
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "drizzle-kit": "0.31.11",
     "typescript": "6.0.3",
     "vitest": "^4.1.12"

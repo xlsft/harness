@@ -1,26 +1,28 @@
-import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { bigint, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
-const ts = (name: string) => integer(name, { mode: "timestamp_ms" });
+const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
+/** int8 read back as a JS number: safe up to 2^53, far beyond any version or seq we will reach. */
+const int8 = (name: string) => bigint(name, { mode: "number" });
 
 // ---------------------------------------------------------------------------
 // Better Auth tables (core + admin plugin). JS keys must match Better Auth field names.
 // ---------------------------------------------------------------------------
 
-export const user = sqliteTable("user", {
+export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
+  emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   createdAt: ts("created_at").notNull(),
   updatedAt: ts("updated_at").notNull(),
   role: text("role"),
-  banned: integer("banned", { mode: "boolean" }).default(false),
+  banned: boolean("banned").default(false),
   banReason: text("ban_reason"),
   banExpires: ts("ban_expires"),
 });
 
-export const session = sqliteTable(
+export const session = pgTable(
   "session",
   {
     id: text("id").primaryKey(),
@@ -38,7 +40,7 @@ export const session = sqliteTable(
   (t) => [index("session_user_idx").on(t.userId)],
 );
 
-export const account = sqliteTable(
+export const account = pgTable(
   "account",
   {
     id: text("id").primaryKey(),
@@ -60,7 +62,7 @@ export const account = sqliteTable(
   (t) => [index("account_user_idx").on(t.userId)],
 );
 
-export const verification = sqliteTable("verification", {
+export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
@@ -74,7 +76,7 @@ export const verification = sqliteTable("verification", {
 // ---------------------------------------------------------------------------
 
 /** Pending device-flow authorization requests. Codes are stored hashed. */
-export const deviceCode = sqliteTable("device_code", {
+export const deviceCode = pgTable("device_code", {
   deviceCodeHash: text("device_code_hash").primaryKey(),
   userCode: text("user_code").notNull().unique(),
   clientName: text("client_name"),
@@ -90,7 +92,7 @@ export const deviceCode = sqliteTable("device_code", {
   createdAt: ts("created_at").notNull(),
 });
 
-export const device = sqliteTable(
+export const device = pgTable(
   "device",
   {
     id: text("id").primaryKey(),
@@ -110,7 +112,7 @@ export const device = sqliteTable(
   (t) => [index("device_user_idx").on(t.userId)],
 );
 
-export const accessToken = sqliteTable(
+export const accessToken = pgTable(
   "access_token",
   {
     tokenHash: text("token_hash").primaryKey(),
@@ -130,7 +132,7 @@ export const accessToken = sqliteTable(
 // Providers, model catalog, settings
 // ---------------------------------------------------------------------------
 
-export const provider = sqliteTable("provider", {
+export const provider = pgTable("provider", {
   id: text("id").primaryKey(),
   /** anthropic | openai-chat */
   type: text("type").notNull(),
@@ -141,13 +143,13 @@ export const provider = sqliteTable("provider", {
   apiKeyHint: text("api_key_hint"),
   /** Encrypted JSON object of extra headers. */
   headersEnc: text("headers_enc"),
-  allowPrivateNetwork: integer("allow_private_network", { mode: "boolean" }).notNull().default(false),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+  enabled: boolean("enabled").notNull().default(true),
   createdAt: ts("created_at").notNull(),
   updatedAt: ts("updated_at").notNull(),
 });
 
-export const model = sqliteTable("model", {
+export const model = pgTable("model", {
   /** Alias the client sends in `model`. */
   id: text("id").primaryKey(),
   displayName: text("display_name").notNull(),
@@ -158,23 +160,23 @@ export const model = sqliteTable("model", {
   contextWindow: integer("context_window").notNull(),
   maxOutputTokens: integer("max_output_tokens").notNull(),
   /** JSON: ModelCapabilities */
-  capabilities: text("capabilities", { mode: "json" }).notNull(),
+  capabilities: jsonb("capabilities").notNull(),
   /** JSON: ModelPricing | null */
-  pricing: text("pricing", { mode: "json" }),
+  pricing: jsonb("pricing"),
   /** JSON: string[] of model aliases tried on overloaded/unavailable. */
-  fallbacks: text("fallbacks", { mode: "json" }).notNull().default("[]"),
+  fallbacks: jsonb("fallbacks").notNull().default([]),
   /** JSON object merged into the upstream request body (e.g. vLLM/Qwen switches). */
-  extraBody: text("extra_body", { mode: "json" }),
+  extraBody: jsonb("extra_body"),
   /** JSON: string[] of roles allowed to see the model; null = everyone. */
-  roles: text("roles", { mode: "json" }),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  roles: jsonb("roles"),
+  enabled: boolean("enabled").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: ts("created_at").notNull(),
   updatedAt: ts("updated_at").notNull(),
 });
 
 /** Features an upstream rejected for a model (capability negotiation memory). */
-export const modelNegotiation = sqliteTable(
+export const modelNegotiation = pgTable(
   "model_negotiation",
   {
     modelId: text("model_id")
@@ -187,9 +189,9 @@ export const modelNegotiation = sqliteTable(
   (t) => [primaryKey({ columns: [t.modelId, t.feature] })],
 );
 
-export const setting = sqliteTable("setting", {
+export const setting = pgTable("setting", {
   key: text("key").primaryKey(),
-  value: text("value", { mode: "json" }).notNull(),
+  value: jsonb("value").notNull(),
   updatedAt: ts("updated_at").notNull(),
 });
 
@@ -197,7 +199,7 @@ export const setting = sqliteTable("setting", {
 // Usage
 // ---------------------------------------------------------------------------
 
-export const usageRecord = sqliteTable(
+export const usageRecord = pgTable(
   "usage_record",
   {
     id: text("id").primaryKey(),
@@ -215,7 +217,7 @@ export const usageRecord = sqliteTable(
     outputTokens: integer("output_tokens").notNull().default(0),
     cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
     cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
-    costUsd: real("cost_usd").notNull().default(0),
+    costUsd: doublePrecision("cost_usd").notNull().default(0),
     retries: integer("retries").notNull().default(0),
     /** ok | error | aborted */
     status: text("status").notNull(),
@@ -233,15 +235,17 @@ export const usageRecord = sqliteTable(
 
 /**
  * Named monotonically increasing counters. "documents" is the global sync version counter
- * (see services/sync.ts nextSyncVersion); a Postgres port can replace it with a sequence.
+ * (see services/sync.ts nextSyncVersion). A row (not a sequence) on purpose: the increment is part of
+ * the writing transaction, so the counter only ever shows committed versions and its row lock orders
+ * concurrent writers.
  */
-export const syncCounter = sqliteTable("sync_counter", {
+export const syncCounter = pgTable("sync_counter", {
   name: text("name").primaryKey(),
-  value: integer("value").notNull(),
+  value: int8("value").notNull(),
 });
 
 /** Current state of every document; deleted documents stay as tombstones (deleted_at set). */
-export const syncDocument = sqliteTable(
+export const syncDocument = pgTable(
   "sync_document",
   {
     id: text("id").primaryKey(),
@@ -255,14 +259,14 @@ export const syncDocument = sqliteTable(
     kind: integer("kind").notNull(),
     key: text("key").notNull(),
     /** Global sync version of the last write (or of the delete). */
-    version: integer("version").notNull(),
+    version: int8("version").notNull(),
     content: text("content").notNull().default(""),
     /** JSON: {path, data (base64), executable}[] */
-    files: text("files", { mode: "json" }).notNull().default("[]"),
+    files: jsonb("files").notNull().default([]),
     contentHash: text("content_hash").notNull(),
     source: text("source").notNull().default(""),
     /** JSON: string[]; org scope only. */
-    targetRoles: text("target_roles", { mode: "json" }).notNull().default("[]"),
+    targetRoles: jsonb("target_roles").notNull().default([]),
     createdAt: ts("created_at").notNull(),
     updatedAt: ts("updated_at").notNull(),
     updatedBy: text("updated_by").notNull(),
@@ -275,15 +279,15 @@ export const syncDocument = sqliteTable(
 );
 
 /** Version history of documents (every write and delete). */
-export const syncDocumentRevision = sqliteTable(
+export const syncDocumentRevision = pgTable(
   "sync_document_revision",
   {
     documentId: text("document_id").notNull(),
-    version: integer("version").notNull(),
+    version: int8("version").notNull(),
     content: text("content").notNull(),
-    files: text("files", { mode: "json" }).notNull(),
+    files: jsonb("files").notNull(),
     contentHash: text("content_hash").notNull(),
-    deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+    deleted: boolean("deleted").notNull().default(false),
     updatedBy: text("updated_by").notNull(),
     createdAt: ts("created_at").notNull(),
   },
@@ -291,23 +295,23 @@ export const syncDocumentRevision = sqliteTable(
 );
 
 /** Session metadata (SessionMetadata). `info` is the protobuf JSON of harness.agent.v1.SessionInfo. */
-export const syncSession = sqliteTable(
+export const syncSession = pgTable(
   "sync_session",
   {
     id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    info: text("info", { mode: "json" }).notNull(),
+    info: jsonb("info").notNull(),
     // Columns copied out of `info` for filtering and search.
     title: text("title").notNull().default(""),
     cwd: text("cwd").notNull().default(""),
     repo: text("repo").notNull().default(""),
     deviceId: text("device_id").notNull().default(""),
     status: integer("status").notNull().default(0),
-    archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+    archived: boolean("archived").notNull().default(false),
     promptBundleVersion: text("prompt_bundle_version").notNull().default(""),
-    lastSeq: integer("last_seq").notNull().default(0),
+    lastSeq: int8("last_seq").notNull().default(0),
     createdAt: ts("created_at").notNull(),
     lastActivityAt: ts("last_activity_at").notNull(),
   },
@@ -318,13 +322,13 @@ export const syncSession = sqliteTable(
  * Durable transcript: CC-format JSONL lines, byte-exact. `seq` is one counter per session shared by the
  * main thread and its subagents, so each thread's entries are increasing (not dense) when paged by agent_id.
  */
-export const syncSessionEntry = sqliteTable(
+export const syncSessionEntry = pgTable(
   "sync_session_entry",
   {
     sessionId: text("session_id")
       .notNull()
       .references(() => syncSession.id, { onDelete: "cascade" }),
-    seq: integer("seq").notNull(),
+    seq: int8("seq").notNull(),
     uuid: text("uuid").notNull(),
     /** Subagent id; "" for the main thread. Subagent transcripts are paged separately. */
     agentId: text("agent_id").notNull().default(""),
