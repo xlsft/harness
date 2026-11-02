@@ -15,7 +15,9 @@ import (
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
+	"google.golang.org/protobuf/proto"
 )
 
 type permissionAnswer struct {
@@ -51,15 +53,31 @@ type liveSession struct {
 	messageID   string
 	branch      string
 	title       string
-	updatedAt   time.Time
-	closed      bool
+	titleSource titleSource
+	// titleTurns counts finished turns while the title is provisional;
+	// titleTried is set once the AI title request started.
+	titleTurns int
+	titleTried bool
+	diff       *agentv1.DiffStats
+	// history is the number of events replayed from the transcript at open.
+	history   int64
+	updatedAt time.Time
+	closed    bool
+
+	// ctx ends when the session closes; bg tracks its background work
+	// (title, diff stats), which close waits for.
+	ctx    context.Context
+	cancel context.CancelFunc
+	bg     sync.WaitGroup
 }
 
 var _ tools.Interactor = (*liveSession)(nil)
 
 func newLiveSession(s *Server) *liveSession {
+	ctx, cancel := context.WithCancel(s.ctx)
 	return &liveSession{srv: s, hub: newHub(), seen: map[string]bool{}, status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
-		pendingPerm: map[string]*pendingPermission{}, pendingQ: map[string]chan [][]string{}, pendingPlan: map[string]chan planAnswer{}}
+		pendingPerm: map[string]*pendingPermission{}, pendingQ: map[string]chan [][]string{}, pendingPlan: map[string]chan planAnswer{},
+		ctx: ctx, cancel: cancel}
 }
 
 func (ls *liveSession) info() *agentv1.SessionInfo {
@@ -73,7 +91,7 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		Id: ls.sess.ID, Cwd: ls.sess.Cwd, Model: ls.sess.Agent.Model(), GitBranch: ls.branch, Title: ls.title,
 		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.status,
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
-		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree),
+		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
 	}
 }
 
@@ -126,8 +144,10 @@ func (ls *liveSession) close(reason string) {
 	}
 	ls.closed = true
 	ls.mu.Unlock()
+	ls.cancel()
 	ls.driver.Interrupt()
 	ls.driver.Wait()
+	ls.bg.Wait()
 	ls.sess.Agent.SetInteractor(nil)
 	ls.sess.Close()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionEnded{SessionEnded: &agentv1.SessionEnded{Reason: reason}}})
@@ -267,6 +287,44 @@ func (ls *liveSession) onResult(res agent.TurnResult) {
 	if ls.srv.ctx.Err() == nil && ls.sess.Agent.QueueLen() == 0 {
 		ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_IDLE)
 	}
+	ls.refreshDiffStats()
+	ls.afterTurn()
+}
+
+// refreshDiffStats measures the working tree changes in the background and
+// publishes SessionUpdated when they changed.
+func (ls *liveSession) refreshDiffStats() {
+	ls.mu.Lock()
+	if ls.closed {
+		ls.mu.Unlock()
+		return
+	}
+	ls.bg.Add(1)
+	ls.mu.Unlock()
+	go func() {
+		defer ls.bg.Done()
+		ds := diffStats(ls.ctx, ls.sess.Cwd, ls.sess.Worktree)
+		if ls.ctx.Err() != nil {
+			return
+		}
+		ls.mu.Lock()
+		changed := !proto.Equal(ds, ls.diff)
+		ls.diff = ds
+		ls.mu.Unlock()
+		if changed {
+			ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+			ls.syncDiffStats(ds)
+		}
+	}()
+}
+
+func (ls *liveSession) syncDiffStats(ds *agentv1.DiffStats) {
+	if ds == nil {
+		return
+	}
+	ls.syncMeta(func(m *syncclient.SessionMeta) {
+		m.DiffStats = &syncclient.DiffStats{FilesChanged: ds.FilesChanged, Additions: ds.Additions, Deletions: ds.Deletions}
+	})
 }
 
 // Ask implements permissions.Asker: it publishes a PermissionRequest and

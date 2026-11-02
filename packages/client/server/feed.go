@@ -59,6 +59,10 @@ func (f Feed) Subscribe(after int64) ([]*agentv1.SessionEvent, <-chan *agentv1.S
 	return f.ls.hub.subscribe(after)
 }
 
+// HistoryLen is the number of events at the start of the log that were
+// replayed from the transcript of a resumed session (0 for a new session).
+func (f Feed) HistoryLen() int64 { return f.ls.history }
+
 // Closed reports whether the session ended.
 func (f Feed) Closed() bool { return f.ls.hub.isClosed() }
 

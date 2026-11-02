@@ -30,6 +30,7 @@ import (
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
@@ -44,6 +45,12 @@ type Server struct {
 	// UserEmail is reported by Initialize.
 	UserEmail string
 	Logger    *slog.Logger
+	// NoAITitles keeps the provisional titles (first prompt) instead of
+	// asking the small-slot model for a title after the first turn.
+	NoAITitles bool
+	// HistoryTurns and HistoryEvents cap the history replayed into the
+	// event log of a resumed session (0: defaults).
+	HistoryTurns, HistoryEvents int
 
 	ctx    context.Context
 	mu     sync.Mutex
@@ -224,7 +231,23 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls.sess = sess
 	ls.branch = workspace.GitBranch(ctx, sess.Cwd)
 	ls.hub.sessionID = sess.ID
-	ls.title = sessionTitle(sess.Transcript.Path())
+	entries := sess.Transcript.Entries()
+	ls.initTitle(session.ReadTitles(entries))
+	ls.diff = diffStats(ctx, sess.Cwd, sess.Worktree)
+	if sess.Resumed {
+		// The history goes first (seq 1..n), so Subscribe(after_seq=0) shows the conversation so far.
+		bundle := sess.Agent.Bundle()
+		interrupts := []string{agent.InterruptedFallback, bundle.Reminder("interrupted", ""), bundle.Reminder("interrupted_tool_use", "")}
+		for _, ev := range replayHistory(entries, replayOptions{Cwd: sess.Cwd, Interrupts: interrupts, MaxTurns: s.HistoryTurns, MaxEvents: s.HistoryEvents}) {
+			ls.hub.publish(ev)
+			ls.history++
+		}
+		// Track (at open) replaced the synced metadata; restore what the transcript knows.
+		if t := ls.info().Title; t != "" {
+			ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = t })
+		}
+	}
+	ls.syncDiffStats(ls.diff)
 	sess.Permissions.SetAsker(ls)
 	sess.Agent.SetInteractor(ls)
 	ls.driver = agent.NewDriver(s.ctx, sess.Agent, ls.onResult)
@@ -289,31 +312,25 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 	return connect.NewResponse(resp), nil
 }
 
-// sessionTitle returns the first user prompt (truncated) as a provisional title.
+// sessionTitle returns the recorded custom or AI title of a transcript, else
+// the first user prompt (truncated) as a provisional title.
 func sessionTitle(path string) string {
 	entries, err := session.Load(path)
 	if err != nil {
 		return ""
 	}
-	for _, e := range entries {
-		if e.Type != session.TypeUser || e.IsMeta || e.IsCompactSummary || e.Message == nil || e.ToolUseResult != nil {
-			continue
-		}
-		if t := titleOf(e.Blocks()); t != "" {
-			return t
-		}
+	t := session.ReadTitles(entries)
+	if b := t.Best(); b != "" {
+		return b
 	}
-	return ""
+	return provisionalTitle(t.FirstPrompt)
 }
 
+// titleOf is the provisional title of a prompt.
 func titleOf(blocks []llm.ContentBlock) string {
 	for _, b := range blocks {
 		if b.Type == llm.BlockText && strings.TrimSpace(b.Text) != "" {
-			t := strings.TrimSpace(strings.SplitN(strings.TrimSpace(b.Text), "\n", 2)[0])
-			if len(t) > 80 {
-				t = t[:80] + "…"
-			}
-			return t
+			return provisionalTitle(b.Text)
 		}
 	}
 	return ""
@@ -393,10 +410,15 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		}
 	}
 	ls.mu.Lock()
+	provisional := ""
 	if ls.title == "" {
 		ls.title = titleOf(content)
+		provisional = ls.title
 	}
 	ls.mu.Unlock()
+	if provisional != "" {
+		ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = provisional })
+	}
 	id := req.Msg.GetUuid()
 	if id == "" {
 		id = uuid.NewString()
