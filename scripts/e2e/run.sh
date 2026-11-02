@@ -11,8 +11,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CORE_PORT="${E2E_CORE_PORT:-38080}"
-UPSTREAM_PORT="${E2E_UPSTREAM_PORT:-38081}"
+free_port() { node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'; }
+# Random free ports by default, so parallel runs (CI matrix, several checkouts) never collide.
+CORE_PORT="${E2E_CORE_PORT:-$(free_port)}"
+UPSTREAM_PORT="${E2E_UPSTREAM_PORT:-$(free_port)}"
 CORE_URL="http://localhost:${CORE_PORT}"
 ADMIN_EMAIL="admin@e2e.test"
 ADMIN_PASSWORD="e2e-password-$(date +%s)"

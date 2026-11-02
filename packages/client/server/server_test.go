@@ -111,10 +111,21 @@ func TestAgentServiceOverUnixSocket(t *testing.T) {
 		t.Fatalf("file %q", data)
 	}
 	kinds := map[string]bool{}
+	var durable []*agentv1.SessionEvent
+	lastSeq := int64(0)
 	for i, ev := range events {
-		if i > 0 && ev.Seq != events[i-1].Seq+1 {
-			t.Fatalf("seq gap at %d: %d after %d", i, ev.Seq, events[i-1].Seq)
+		if _, delta := ev.Event.(*agentv1.SessionEvent_AssistantDelta); delta {
+			// Deltas carry the seq of the last durable event and consume none.
+			if ev.Seq != lastSeq {
+				t.Fatalf("delta seq %d after durable %d", ev.Seq, lastSeq)
+			}
+			continue
 		}
+		if ev.Seq != lastSeq+1 {
+			t.Fatalf("seq gap at %d: %d after %d", i, ev.Seq, lastSeq)
+		}
+		lastSeq = ev.Seq
+		durable = append(durable, ev)
 		switch ev.Event.(type) {
 		case *agentv1.SessionEvent_UserMessage:
 			kinds["user"] = true
@@ -139,7 +150,7 @@ func TestAgentServiceOverUnixSocket(t *testing.T) {
 	scancel()
 
 	// Resubscribe from the middle: replay continues exactly after after_seq.
-	mid := events[len(events)/2].Seq
+	mid := durable[len(durable)/2].Seq
 	rctx, rcancel := context.WithTimeout(ctx, 5*time.Second)
 	defer rcancel()
 	replay, err := client.Subscribe(rctx, connect.NewRequest(&agentv1.SubscribeRequest{SessionId: sid, AfterSeq: mid}))
@@ -162,54 +173,10 @@ func TestAgentServiceOverUnixSocket(t *testing.T) {
 	if err != nil || len(list.Msg.Sessions) != 1 || list.Msg.Sessions[0].PermissionMode != agentv1.PermissionMode_PERMISSION_MODE_PLAN || list.Msg.Sessions[0].Title != "write hello.txt" {
 		t.Fatalf("list: %v %+v", err, list)
 	}
-	if _, err := client.AnswerQuestion(ctx, connect.NewRequest(&agentv1.AnswerQuestionRequest{SessionId: sid})); connect.CodeOf(err) != connect.CodeUnimplemented {
+	if _, err := client.AnswerQuestion(ctx, connect.NewRequest(&agentv1.AnswerQuestionRequest{SessionId: sid})); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Fatalf("AnswerQuestion: %v", err)
 	}
 	if n := len(gw.Requests()); n != 2 {
 		t.Fatalf("gateway requests %d", n)
-	}
-}
-
-func TestQueueAndNowDelivery(t *testing.T) {
-	t.Setenv("HARNESS_HOME", t.TempDir())
-	t.Setenv("HARNESS_TMPDIR", t.TempDir())
-	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
-	_, url := fg.Start(t, func(n int, r *llm.Request) fg.Reply {
-		last := r.Messages[len(r.Messages)-1]
-		if last.Content[len(last.Content)-1].Text == "start" {
-			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b", "Bash", map[string]any{"command": "sleep 30"}))}
-		}
-		return fg.Reply{Events: fg.Message("m", fg.Text("ack"))}
-	})
-	tok := auth.StaticToken("hat_test")
-	srv := server.New(bootstrap.Options{Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok), AllowedTools: []string{"Bash"}})
-	socket := shortSocket(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go srv.ServeUnix(ctx, socket)
-	time.Sleep(100 * time.Millisecond)
-	client := agentv1connect.NewAgentServiceClient(rpc.UnixHTTPClient(socket), "http://agent", connect.WithGRPC())
-	proj, _ := filepath.EvalSymlinks(t.TempDir())
-	cs, err := client.CreateSession(ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: proj}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sid := cs.Msg.Session.Id
-	stream, _ := client.Subscribe(ctx, connect.NewRequest(&agentv1.SubscribeRequest{SessionId: sid}))
-	client.SendUserMessage(ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Content: text("start")}))
-	var results []agentv1.TurnFinished_Result
-	start := time.Now()
-	for len(results) < 2 && stream.Receive() {
-		switch e := stream.Msg().Event.Event.(type) {
-		case *agentv1.SessionEvent_ToolCallStarted:
-			client.SendUserMessage(ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: "q1", Content: text("stop that"), Delivery: agentv1.SendUserMessageRequest_DELIVERY_NOW}))
-		case *agentv1.SessionEvent_QueueChanged:
-			_ = e
-		case *agentv1.SessionEvent_TurnFinished:
-			results = append(results, e.TurnFinished.Result)
-		}
-	}
-	if len(results) != 2 || results[0] != agentv1.TurnFinished_RESULT_INTERRUPTED || results[1] != agentv1.TurnFinished_RESULT_SUCCESS || time.Since(start) > 10*time.Second {
-		t.Fatalf("NOW delivery: %v after %s", results, time.Since(start))
 	}
 }

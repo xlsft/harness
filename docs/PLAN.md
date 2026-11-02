@@ -285,6 +285,16 @@ The skeleton is `UDashboardGroup` + `UDashboardSidebar` + resizable `UDashboardP
 
 Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** Until the frontends exist, everything is verified by tests and the headless `harness-client -p` mode.
 
+**Status (2026-11-02):**
+
+| Milestone | State |
+|---|---|
+| M0 — skeleton | done: device login, gateway (Anthropic, OpenAI-chat), prompt bundle, agent loop with 6 tools, Connect transport, e2e test |
+| M1 — core parity + sync | done: permissions engine and modes, plan mode, AskUserQuestion, todos, background tasks, checkpoints/rewind, compaction, settings hierarchy, CLAUDE.md/AGENTS.md memory, SyncService + client sync, `import claude`, quotas, OpenAI Responses adapter; real-model evals in [docs/evals](evals). In progress: Postgres |
+| M2 — extensibility + relay | not started (contracts drafted: sync, MCP, relay, search; SearXNG provider done) |
+| M3 — frontends | started: CLI brand primitives; first TUI iteration in progress |
+| M4 — deployment | started: single-container image (s6) in progress |
+
 ### M0 — Skeleton of core + client (≈3 weeks)
 1. Contracts in `/proto` (done): `DeviceAuthService`, `GatewayService`, `PromptService`, draft `AgentService`; codegen via buf.
 2. **core (Nitro v3):** Better Auth (admin + users), device-flow, providers with key encryption, model catalog, Connect services for auth, gateway (`StreamMessage` server streaming) and prompts, with Anthropic and OpenAI-chat adapters. **Contract tests on fixtures** (Anthropic, OpenAI, DeepSeek, OpenRouter, vLLM/Ollama). Prompt registry v0: bundle from files, served by ETag.

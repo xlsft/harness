@@ -1,0 +1,12 @@
+id: ts-options-object-refactor
+title: Change a function to take an options object and update every caller
+language: typescript
+tags: [refactor, multi-file]
+timeout: 6m
+max_turns: 30
+prompt: |
+  Change createUser in src/users.ts to take a single options object
+  `{ name, email, role? }` instead of positional arguments, where `role` is
+  "member" | "admin" and defaults to "member". Remove the isAdmin flag.
+  Update every caller in the repository (including tests) so behavior stays
+  the same, and make sure `node --test` passes.

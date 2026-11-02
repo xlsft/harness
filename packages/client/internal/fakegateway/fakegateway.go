@@ -172,6 +172,15 @@ func (g gatewayHandler) StreamMessage(ctx context.Context, req *connect.Request[
 		return err
 	}
 	r := pbconv.FromStreamRequest(req.Msg)
+	if md := req.Msg.GetMetadata(); md != nil && r.Metadata != nil {
+		classes := map[llmv1.RequestClass]string{llmv1.RequestClass_REQUEST_CLASS_MAIN: "main", llmv1.RequestClass_REQUEST_CLASS_SUBAGENT: "subagent",
+			llmv1.RequestClass_REQUEST_CLASS_COMPACTION: "compaction", llmv1.RequestClass_REQUEST_CLASS_AUXILIARY: "auxiliary"}
+		r.Metadata.RequestClass = classes[md.GetRequestClass()]
+	}
+	if tc := req.Msg.GetToolChoice(); tc != nil {
+		modes := map[llmv1.ToolChoice_Mode]string{llmv1.ToolChoice_MODE_AUTO: "auto", llmv1.ToolChoice_MODE_ANY: "any", llmv1.ToolChoice_MODE_TOOL: "tool", llmv1.ToolChoice_MODE_NONE: "none"}
+		r.ToolChoice = &llm.ToolChoice{Type: modes[tc.GetMode()], Name: tc.GetToolName()}
+	}
 	g.s.mu.Lock()
 	n := len(g.s.requests)
 	g.s.requests = append(g.s.requests, r)
@@ -361,6 +370,25 @@ func Partial(id string, complete bool, blocks ...BlockSpec) []*llmv1.StreamMessa
 		&llmv1.StreamMessageResponse{Event: &llmv1.StreamMessageResponse_MessageStop{MessageStop: &llmv1.MessageStop{CostUsd: 0.001, UpstreamModel: "fake-upstream"}}},
 	)
 	return ev
+}
+
+// WithInputTokens sets the reported input tokens of a scripted message
+// (message_start and message_delta usage; cache reads are cleared).
+func WithInputTokens(events []*llmv1.StreamMessageResponse, n int) []*llmv1.StreamMessageResponse {
+	for _, ev := range events {
+		switch e := ev.Event.(type) {
+		case *llmv1.StreamMessageResponse_MessageStart:
+			if e.MessageStart.Usage != nil {
+				e.MessageStart.Usage.InputTokens = int64(n)
+			}
+		case *llmv1.StreamMessageResponse_MessageDelta:
+			if e.MessageDelta.Usage != nil {
+				e.MessageDelta.Usage.InputTokens = int64(n)
+				e.MessageDelta.Usage.CacheReadInputTokens = 0
+			}
+		}
+	}
+	return events
 }
 
 // ErrOverloaded is a retryable gateway error.

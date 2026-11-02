@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -65,6 +66,10 @@ func run(args []string) int {
 			return cmdWhoami(ctx)
 		case "serve":
 			return cmdServe(ctx, args[1:])
+		case "import":
+			return runImport(args[1:])
+		case "sync":
+			return runSync(args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0
@@ -153,8 +158,9 @@ func cmdServe(ctx context.Context, args []string) int {
 	fs := pflag.NewFlagSet("serve", pflag.ContinueOnError)
 	socket := fs.String("socket", "", "unix socket path to listen on")
 	serverURL := fs.String("server", "", "harness server URL (overrides stored credentials)")
-	allowed := fs.StringArray("allowedTools", nil, "tools allowed without asking")
-	disallowed := fs.StringArray("disallowedTools", nil, "tools that are always denied")
+	allowed := fs.StringArray("allowedTools", nil, `permission rules allowed without asking, e.g. "Bash(npm test *) Edit"`)
+	disallowed := fs.StringArray("disallowedTools", nil, "permission rules that are always denied")
+	addDirs := fs.StringArray("add-dir", nil, "additional working directories for every session")
 	verbose := fs.Bool("verbose", false, "debug logging")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -167,7 +173,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	base.AllowedTools, base.DisallowedTools, base.Logger = *allowed, *disallowed, log
+	base.AllowedTools, base.DisallowedTools, base.AdditionalDirs, base.Logger = *allowed, *disallowed, *addDirs, log
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
@@ -196,6 +202,8 @@ func cmdPrint(ctx context.Context, args []string) int {
 	fs.StringArrayVar(&addDirs, "add-dir", nil, "additional working directories")
 	cont := fs.BoolP("continue", "c", false, "continue the most recent session in this directory")
 	resume := fs.StringP("resume", "r", "", "resume a session by id")
+	forkSession := fs.Bool("fork-session", false, "with --continue/--resume: copy the session into a new id instead of appending to it")
+	skipPerms := fs.Bool("dangerously-skip-permissions", false, "same as --permission-mode bypassPermissions")
 	sessionID := fs.String("session-id", "", "use this id for a new session")
 	noPersist := fs.Bool("no-session-persistence", false, "do not write a transcript")
 	serverURL := fs.String("server", "", "harness server URL (overrides stored credentials)")
@@ -218,6 +226,27 @@ func cmdPrint(ctx context.Context, args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	if *skipPerms {
+		pm = permissions.ModeBypassPermissions
+	}
+	if *forkSession && !*cont && *resume == "" {
+		return fail(errors.New("--fork-session requires --continue or --resume"))
+	}
+	for _, r := range permissions.ParseRules(append(append([]string(nil), allowed...), disallowed...)) {
+		if err := permissions.ValidateRule(r.String()); err != nil {
+			return fail(err)
+		}
+	}
+	for i, d := range addDirs {
+		abs, err := filepath.Abs(d)
+		if err != nil {
+			return fail(err)
+		}
+		if st, err := os.Stat(abs); err != nil || !st.IsDir() {
+			return fail(fmt.Errorf("--add-dir %s: not a directory", d))
+		}
+		addDirs[i] = abs
+	}
 	switch *outputFormat {
 	case sdk.FormatText, sdk.FormatJSON, sdk.FormatStreamJSON:
 	default:
@@ -230,7 +259,7 @@ func cmdPrint(ctx context.Context, args []string) int {
 		Bootstrap: bootstrap.Options{
 			ServerURL: *serverURL, Model: *model, Effort: *effort, MaxTurns: *maxTurns,
 			PermissionMode: pm, AllowedTools: allowed, DisallowedTools: disallowed, AdditionalDirs: addDirs,
-			Continue: *cont, Resume: *resume, SessionID: *sessionID, NoPersistence: *noPersist,
+			Continue: *cont, Resume: *resume, SessionID: *sessionID, NoPersistence: *noPersist, Fork: *forkSession,
 			Logger: newLogger(*verbose),
 		},
 	})

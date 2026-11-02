@@ -1,0 +1,12 @@
+id: go-count-critical-audits
+title: Count real call sites across a large repository (read-only)
+language: go
+tags: [read-only, search]
+timeout: 6m
+max_turns: 25
+prompt: |
+  How many call sites in this repository call audit.Record with the level
+  audit.Critical? Count only real Go calls: ignore comments and string
+  literals, include calls that span several lines and calls through an
+  import alias of the audit package. Do not modify any file. End your answer
+  with a line of the form `ANSWER: <number>`.

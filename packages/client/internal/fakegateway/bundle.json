@@ -1,25 +1,335 @@
 {
-  "version": "test-2026-11-02.1",
+  "version": "test-2026-11-02.2",
   "model": "fake-model",
   "system": [
-    {"id": "identity", "text": "You are a test agent running inside the harness fake gateway."},
-    {"id": "tool_policy", "text": "Use the tools to inspect and change files."},
-    {"id": "__dynamic_boundary__"},
-    {"id": "env", "text": "Working directory: {{cwd}}\nPlatform: {{platform}}\nShell: {{shell}}\nOS Version: {{os_version}}\nToday's date: {{date}}\nIs a git repository: {{is_git}}\nModel: {{model_display_name}} ({{model_id}})"}
+    {
+      "id": "identity",
+      "text": "You are a test agent running inside the harness fake gateway."
+    },
+    {
+      "id": "tool_policy",
+      "text": "Use the tools to inspect and change files."
+    },
+    {
+      "id": "__dynamic_boundary__"
+    },
+    {
+      "id": "env",
+      "text": "Working directory: {{cwd}}\nPlatform: {{platform}}\nShell: {{shell}}\nOS Version: {{os_version}}\nToday's date: {{date}}\nIs a git repository: {{is_git}}\nModel: {{model_display_name}} ({{model_id}})"
+    }
   ],
   "tools": {
-    "Read": {"description": "Read a file from the local filesystem.", "input_schema": {"type": "object", "properties": {"file_path": {"type": "string"}, "offset": {"type": "integer"}, "limit": {"type": "integer"}, "pages": {"type": "string"}}, "required": ["file_path"]}},
-    "Write": {"description": "Write a file to the local filesystem.", "input_schema": {"type": "object", "properties": {"file_path": {"type": "string"}, "content": {"type": "string"}}, "required": ["file_path", "content"]}},
-    "Edit": {"description": "Replace an exact string in a file.", "input_schema": {"type": "object", "properties": {"file_path": {"type": "string"}, "old_string": {"type": "string"}, "new_string": {"type": "string"}, "replace_all": {"type": "boolean"}}, "required": ["file_path", "old_string", "new_string"]}},
-    "Bash": {"description": "Run a shell command.", "input_schema": {"type": "object", "properties": {"command": {"type": "string"}, "description": {"type": "string"}, "timeout": {"type": "number"}, "run_in_background": {"type": "boolean"}}, "required": ["command"]}},
-    "Glob": {"description": "Find files by glob pattern.", "input_schema": {"type": "object", "properties": {"pattern": {"type": "string"}, "path": {"type": "string"}}, "required": ["pattern"]}},
-    "Grep": {"description": "Search file contents with a regular expression.", "input_schema": {"type": "object", "properties": {"pattern": {"type": "string"}, "path": {"type": "string"}, "glob": {"type": "string"}, "type": {"type": "string"}, "output_mode": {"type": "string", "enum": ["content", "files_with_matches", "count"]}, "-i": {"type": "boolean"}, "-n": {"type": "boolean"}, "-A": {"type": "number"}, "-B": {"type": "number"}, "-C": {"type": "number"}, "context": {"type": "number"}, "multiline": {"type": "boolean"}, "head_limit": {"type": "number"}, "offset": {"type": "number"}}, "required": ["pattern"]}}
+    "Read": {
+      "description": "Read a file from the local filesystem.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      }
+    },
+    "Write": {
+      "description": "Write a file to the local filesystem.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path",
+          "content"
+        ]
+      }
+    },
+    "Edit": {
+      "description": "Replace an exact string in a file.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "old_string": {
+            "type": "string"
+          },
+          "new_string": {
+            "type": "string"
+          },
+          "replace_all": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_path",
+          "old_string",
+          "new_string"
+        ]
+      }
+    },
+    "Bash": {
+      "description": "Run a shell command.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "number"
+          },
+          "run_in_background": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      }
+    },
+    "Glob": {
+      "description": "Find files by glob pattern.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern"
+        ]
+      }
+    },
+    "Grep": {
+      "description": "Search file contents with a regular expression.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "glob": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "output_mode": {
+            "type": "string",
+            "enum": [
+              "content",
+              "files_with_matches",
+              "count"
+            ]
+          },
+          "-i": {
+            "type": "boolean"
+          },
+          "-n": {
+            "type": "boolean"
+          },
+          "-A": {
+            "type": "number"
+          },
+          "-B": {
+            "type": "number"
+          },
+          "-C": {
+            "type": "number"
+          },
+          "context": {
+            "type": "number"
+          },
+          "multiline": {
+            "type": "boolean"
+          },
+          "head_limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pattern"
+        ]
+      }
+    },
+    "AskUserQuestion": {
+      "description": "Ask the user multiple-choice questions.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "questions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string"
+                },
+                "header": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "description"
+                    ]
+                  }
+                },
+                "multiSelect": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "question",
+                "header",
+                "options",
+                "multiSelect"
+              ]
+            }
+          }
+        },
+        "required": [
+          "questions"
+        ]
+      }
+    },
+    "EnterPlanMode": {
+      "description": "Switch to plan mode.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    "ExitPlanMode": {
+      "description": "Present the plan for approval.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan"
+        ]
+      }
+    },
+    "TodoWrite": {
+      "description": "Replace the todo list.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "todos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "activeForm": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed"
+                  ]
+                }
+              },
+              "required": [
+                "content",
+                "activeForm",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "todos"
+        ]
+      }
+    },
+    "TaskStop": {
+      "description": "Stop a background task.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    }
   },
   "reminders": {
     "project_instructions": "<system-reminder>\nProject context:\n{{content}}\n</system-reminder>",
     "empty_file": "<system-reminder>The file exists but is empty.</system-reminder>",
-    "interrupted": "[Request interrupted by user]"
+    "interrupted": "[Request interrupted by user]",
+    "interrupted_tool_use": "[Request interrupted by user for tool use]",
+    "file_changed": "<system-reminder>{{path}} was modified outside of your tools:\n{{diff}}</system-reminder>",
+    "todo_nudge": "<system-reminder>Consider updating the todo list with TodoWrite.</system-reminder>",
+    "plan_mode": "<system-reminder>Plan mode is active. Use read-only tools only, then call ExitPlanMode. Plan file: {{plan_file_path}}</system-reminder>",
+    "plan_approved": "<system-reminder>The plan in {{plan_file_path}} was approved.</system-reminder>",
+    "plan_rejected": "The user wants to keep planning: {{feedback}}",
+    "background_task_done": "<system-reminder>Background task {{task_id}} finished with exit code {{exit_code}}. Output: {{output_path}}</system-reminder>",
+    "compacted": "<system-reminder>The conversation above was compacted into a summary.</system-reminder>"
   },
-  "compaction": {"instruction": "Summarize the conversation."},
-  "title": {"instruction": "Write a short title."}
+  "compaction": {
+    "instruction": "Summarize the conversation."
+  },
+  "title": {
+    "instruction": "Write a short title."
+  }
 }

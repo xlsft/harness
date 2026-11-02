@@ -4,11 +4,15 @@
 package tools
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +27,8 @@ type Result struct {
 	IsError bool
 	// Structured is persisted as toolUseResult in the session transcript.
 	Structured any
+	// Summary is a short human-readable outcome ("Read 42 lines").
+	Summary string
 }
 
 // TextResult builds a successful text result.
@@ -40,7 +46,7 @@ func ErrorResult(format string, args ...any) Result {
 type Tool interface {
 	Name() string
 	// ReadOnly reports whether this call has no side effects; read-only calls
-	// may run in parallel and are always permitted.
+	// may run in parallel and are permitted in plan mode.
 	ReadOnly(input json.RawMessage) bool
 	// Run executes the call. Implementations must honor ctx cancellation.
 	Run(ctx context.Context, env *Env, call Call) Result
@@ -60,14 +66,25 @@ type Env struct {
 	AdditionalDirs []string
 	// ScratchDir holds per-session temporary files (large outputs, shell state).
 	ScratchDir string
+	// SessionID identifies the session.
+	SessionID string
+	// PlansDir receives plans written by ExitPlanMode.
+	PlansDir string
 	// Files tracks read state for read-before-write checks.
 	Files *FileState
 	// Shell keeps the persistent Bash cwd.
 	Shell *Shell
+	// Tasks runs background shell commands (nil disables backgrounding).
+	Tasks *TaskManager
 	// Reminders gives access to bundle reminder templates (may be nil).
 	Reminders func(key string) string
 	// RipgrepPath overrides ripgrep lookup; "-" disables ripgrep.
 	RipgrepPath string
+	// BeforeEdit is called before a file tool modifies path (checkpoints).
+	BeforeEdit func(path string)
+
+	mu   sync.Mutex
+	host Host
 }
 
 // NewEnv creates an Env with fresh state.
@@ -75,6 +92,20 @@ func NewEnv(cwd, scratch string) *Env {
 	e := &Env{Cwd: cwd, ScratchDir: scratch, Files: NewFileState()}
 	e.Shell = NewShell(e)
 	return e
+}
+
+// SetHost installs the session host (the agent).
+func (e *Env) SetHost(h Host) {
+	e.mu.Lock()
+	e.host = h
+	e.mu.Unlock()
+}
+
+// Host returns the session host or nil.
+func (e *Env) Host() Host {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.host
 }
 
 // WorkingDirs returns Cwd plus AdditionalDirs.
@@ -85,6 +116,54 @@ func (e *Env) reminder(key string) string {
 		return ""
 	}
 	return e.Reminders(key)
+}
+
+func (e *Env) beforeEdit(path string) {
+	if e.BeforeEdit != nil {
+		e.BeforeEdit(path)
+	}
+}
+
+// Host is the session side of tools that change session state: permission
+// mode, reminders for the next model request, the todo list and user
+// interaction. The agent implements it.
+type Host interface {
+	PermissionMode() string
+	SetPermissionMode(mode string) error
+	// Remind queues a bundle reminder for the next model request.
+	Remind(id string, vars map[string]string)
+	Todos() []Todo
+	SetTodos(todos []Todo)
+	// Interactor returns the interactive frontend, or nil in non-interactive mode.
+	Interactor() Interactor
+}
+
+// ErrNonInteractive is returned by an Interactor that cannot ask the user.
+var ErrNonInteractive = errors.New("no interactive user is attached to this session")
+
+// Interactor asks the user questions and plan approvals (AgentService).
+type Interactor interface {
+	// AskQuestions blocks until the user answers: one []string of selected
+	// labels (or free text) per question.
+	AskQuestions(ctx context.Context, toolUseID string, qs []Question) ([][]string, error)
+	// ProposePlan blocks until the user approves or rejects the plan.
+	ProposePlan(ctx context.Context, toolUseID, plan, path string) (PlanResponse, error)
+}
+
+// PlanDecision is the user's answer to a proposed plan.
+type PlanDecision int
+
+// Plan decisions.
+const (
+	PlanApproveAcceptEdits PlanDecision = iota + 1
+	PlanApproveManual
+	PlanKeepPlanning
+)
+
+// PlanResponse is the answer to ProposePlan.
+type PlanResponse struct {
+	Decision PlanDecision
+	Feedback string
 }
 
 // Registry holds tools by name.
@@ -102,9 +181,11 @@ func NewRegistry(ts ...Tool) *Registry {
 	return r
 }
 
-// Default returns the M0 tool set.
+// Default returns the built-in tool set. Only tools the prompt bundle
+// defines are exposed to the model.
 func Default() *Registry {
-	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{})
+	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &TaskStop{})
 }
 
 // Register adds or replaces a tool.
@@ -135,30 +216,58 @@ func (r *Registry) Get(name string) (Tool, bool) {
 // Names returns tool names in registration order.
 func (r *Registry) Names() []string { return append([]string(nil), r.order...) }
 
-// FileState records which files were read and their modification time, for
-// the read-before-write and modified-since-read checks.
+// FileState records which files were read, their modification time and
+// content, for the read-before-write, modified-since-read and file_changed
+// checks.
 type FileState struct {
 	mu    sync.Mutex
-	files map[string]fileRecord
+	files map[string]*fileRecord
 }
 
+// maxTrackedContent is the largest file whose content is kept for diffs.
+const maxTrackedContent = 256 * 1024
+
 type fileRecord struct {
-	mtime time.Time
-	size  int64
+	mtime   time.Time
+	size    int64
+	hash    [32]byte
+	content string
+	hasText bool
 }
 
 // NewFileState returns an empty tracker.
-func NewFileState() *FileState { return &FileState{files: map[string]fileRecord{}} }
+func NewFileState() *FileState { return &FileState{files: map[string]*fileRecord{}} }
 
-// MarkRead records the current mtime of path.
+// MarkRead records the current state of path (reading it from disk).
 func (f *FileState) MarkRead(path string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	f.MarkReadContent(path, data)
+}
+
+// MarkReadContent records path with content data already read.
+func (f *FileState) MarkReadContent(path string, data []byte) {
 	st, err := os.Stat(path)
 	if err != nil {
 		return
 	}
+	rec := &fileRecord{mtime: st.ModTime(), size: st.Size(), hash: sha256.Sum256(data)}
+	if len(data) <= maxTrackedContent && !bytes.Contains(data[:min(len(data), 8192)], []byte{0}) {
+		rec.content, rec.hasText = string(data), true
+	}
 	f.mu.Lock()
-	f.files[filepath.Clean(path)] = fileRecord{mtime: st.ModTime(), size: st.Size()}
+	f.files[filepath.Clean(path)] = rec
 	f.mu.Unlock()
+}
+
+// WasRead reports whether path is tracked.
+func (f *FileState) WasRead(path string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	_, ok := f.files[filepath.Clean(path)]
+	return ok
 }
 
 // Forget removes a record.
@@ -185,6 +294,60 @@ func (f *FileState) CheckWritable(path string) string {
 		return "File has been modified since read, either by the user or by a linter. Read it again before attempting to write it."
 	}
 	return ""
+}
+
+// FileChange describes a tracked file that changed on disk.
+type FileChange struct {
+	Path string
+	// Diff is a short unified diff (empty when the old content is unknown).
+	Diff string
+}
+
+// Changes detects tracked files modified on disk since a tool last read or
+// wrote them, updates their records (the reminder counts as a read) and
+// returns short diffs. Deleted files are forgotten.
+func (f *FileState) Changes(maxDiffLines int) []FileChange {
+	f.mu.Lock()
+	paths := make([]string, 0, len(f.files))
+	for p := range f.files {
+		paths = append(paths, p)
+	}
+	f.mu.Unlock()
+	sort.Strings(paths)
+	var out []FileChange
+	for _, p := range paths {
+		f.mu.Lock()
+		rec := f.files[p]
+		f.mu.Unlock()
+		if rec == nil {
+			continue
+		}
+		st, err := os.Stat(p)
+		if err != nil {
+			f.Forget(p)
+			continue
+		}
+		if st.ModTime().Equal(rec.mtime) && st.Size() == rec.size {
+			continue
+		}
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		if sha256.Sum256(data) == rec.hash {
+			f.mu.Lock()
+			rec.mtime, rec.size = st.ModTime(), st.Size()
+			f.mu.Unlock()
+			continue
+		}
+		ch := FileChange{Path: p}
+		if rec.hasText && len(data) <= maxTrackedContent {
+			ch.Diff = UnifiedDiff(DiffLines(rec.content, string(data), 2), maxDiffLines)
+		}
+		f.MarkReadContent(p, data)
+		out = append(out, ch)
+	}
+	return out
 }
 
 // decode unmarshals input into v and reports input errors uniformly.
