@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/prompts/v1/prompts.proto.
  */
 export const file_harness_prompts_v1_prompts: GenFile = /*@__PURE__*/
-  fileDesc("CiBoYXJuZXNzL3Byb21wdHMvdjEvcHJvbXB0cy5wcm90bxISaGFybmVzcy5wcm9tcHRzLnYxIjgKEEdldEJ1bmRsZVJlcXVlc3QSDQoFbW9kZWwYASABKAkSFQoNaWZfbm9uZV9tYXRjaBgCIAEoCSJbChFHZXRCdW5kbGVSZXNwb25zZRIUCgxub3RfbW9kaWZpZWQYASABKAgSMAoGYnVuZGxlGAIgASgLMiAuaGFybmVzcy5wcm9tcHRzLnYxLlByb21wdEJ1bmRsZSKgAwoMUHJvbXB0QnVuZGxlEg8KB3ZlcnNpb24YASABKAkSDQoFbW9kZWwYAiABKAkSMQoGc3lzdGVtGAMgAygLMiEuaGFybmVzcy5wcm9tcHRzLnYxLlN5c3RlbVNlY3Rpb24SOgoFdG9vbHMYBCADKAsyKy5oYXJuZXNzLnByb21wdHMudjEuUHJvbXB0QnVuZGxlLlRvb2xzRW50cnkSQgoJcmVtaW5kZXJzGAUgAygLMi8uaGFybmVzcy5wcm9tcHRzLnYxLlByb21wdEJ1bmRsZS5SZW1pbmRlcnNFbnRyeRIeChZjb21wYWN0aW9uX2luc3RydWN0aW9uGAYgASgJEhkKEXRpdGxlX2luc3RydWN0aW9uGAcgASgJGlAKClRvb2xzRW50cnkSCwoDa2V5GAEgASgJEjEKBXZhbHVlGAIgASgLMiIuaGFybmVzcy5wcm9tcHRzLnYxLlRvb2xEZWZpbml0aW9uOgI4ARowCg5SZW1pbmRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkMKDVN5c3RlbVNlY3Rpb24SCgoCaWQYASABKAkSDAoEdGV4dBgCIAEoCRIYChBkeW5hbWljX2JvdW5kYXJ5GAMgASgIIkAKDlRvb2xEZWZpbml0aW9uEhMKC2Rlc2NyaXB0aW9uGAEgASgJEhkKEWlucHV0X3NjaGVtYV9qc29uGAIgASgJMmkKDVByb21wdFNlcnZpY2USWAoJR2V0QnVuZGxlEiQuaGFybmVzcy5wcm9tcHRzLnYxLkdldEJ1bmRsZVJlcXVlc3QaJS5oYXJuZXNzLnByb21wdHMudjEuR2V0QnVuZGxlUmVzcG9uc2ViBnByb3RvMw");
+  fileDesc("CiBoYXJuZXNzL3Byb21wdHMvdjEvcHJvbXB0cy5wcm90bxISaGFybmVzcy5wcm9tcHRzLnYxIjgKEEdldEJ1bmRsZVJlcXVlc3QSDQoFbW9kZWwYASABKAkSFQoNaWZfbm9uZV9tYXRjaBgCIAEoCSJbChFHZXRCdW5kbGVSZXNwb25zZRIUCgxub3RfbW9kaWZpZWQYASABKAgSMAoGYnVuZGxlGAIgASgLMiAuaGFybmVzcy5wcm9tcHRzLnYxLlByb21wdEJ1bmRsZSLBBAoMUHJvbXB0QnVuZGxlEg8KB3ZlcnNpb24YASABKAkSDQoFbW9kZWwYAiABKAkSMQoGc3lzdGVtGAMgAygLMiEuaGFybmVzcy5wcm9tcHRzLnYxLlN5c3RlbVNlY3Rpb24SOgoFdG9vbHMYBCADKAsyKy5oYXJuZXNzLnByb21wdHMudjEuUHJvbXB0QnVuZGxlLlRvb2xzRW50cnkSQgoJcmVtaW5kZXJzGAUgAygLMi8uaGFybmVzcy5wcm9tcHRzLnYxLlByb21wdEJ1bmRsZS5SZW1pbmRlcnNFbnRyeRIeChZjb21wYWN0aW9uX2luc3RydWN0aW9uGAYgASgJEhkKEXRpdGxlX2luc3RydWN0aW9uGAcgASgJEkkKDW91dHB1dF9zdHlsZXMYCCADKAsyMi5oYXJuZXNzLnByb21wdHMudjEuUHJvbXB0QnVuZGxlLk91dHB1dFN0eWxlc0VudHJ5GlAKClRvb2xzRW50cnkSCwoDa2V5GAEgASgJEjEKBXZhbHVlGAIgASgLMiIuaGFybmVzcy5wcm9tcHRzLnYxLlRvb2xEZWZpbml0aW9uOgI4ARowCg5SZW1pbmRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGlQKEU91dHB1dFN0eWxlc0VudHJ5EgsKA2tleRgBIAEoCRIuCgV2YWx1ZRgCIAEoCzIfLmhhcm5lc3MucHJvbXB0cy52MS5PdXRwdXRTdHlsZToCOAEibAoLT3V0cHV0U3R5bGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgR0ZXh0GAQgASgJEiAKGGtlZXBfY29kaW5nX2luc3RydWN0aW9ucxgFIAEoCCJDCg1TeXN0ZW1TZWN0aW9uEgoKAmlkGAEgASgJEgwKBHRleHQYAiABKAkSGAoQZHluYW1pY19ib3VuZGFyeRgDIAEoCCJACg5Ub29sRGVmaW5pdGlvbhITCgtkZXNjcmlwdGlvbhgBIAEoCRIZChFpbnB1dF9zY2hlbWFfanNvbhgCIAEoCTJpCg1Qcm9tcHRTZXJ2aWNlElgKCUdldEJ1bmRsZRIkLmhhcm5lc3MucHJvbXB0cy52MS5HZXRCdW5kbGVSZXF1ZXN0GiUuaGFybmVzcy5wcm9tcHRzLnYxLkdldEJ1bmRsZVJlc3BvbnNlQtsBChZjb20uaGFybmVzcy5wcm9tcHRzLnYxQgxQcm9tcHRzUHJvdG9QAVpJZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9wcm9tcHRzL3YxO3Byb21wdHN2MaICA0hQWKoCEkhhcm5lc3MuUHJvbXB0cy5WMcoCEkhhcm5lc3NcUHJvbXB0c1xWMeICHkhhcm5lc3NcUHJvbXB0c1xWMVxHUEJNZXRhZGF0YeoCFEhhcm5lc3M6OlByb21wdHM6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message harness.prompts.v1.GetBundleRequest
@@ -111,6 +111,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   background_task_done  {{task_id}} {{exit_code}} {{output_path}}
    *   compacted                                    first message after a compaction summary
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
+   *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
    *
    * @generated from field: map<string, string> reminders = 5;
    */
@@ -125,6 +126,15 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    * @generated from field: string title_instruction = 7;
    */
   titleInstruction: string;
+
+  /**
+   * Built-in output styles keyed by id (default, proactive, concise, explanatory, learning). User and
+   * project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .claude/output-styles/*.md with the
+   * same fields in their frontmatter. "default" adds nothing.
+   *
+   * @generated from field: map<string, harness.prompts.v1.OutputStyle> output_styles = 8;
+   */
+  outputStyles: { [key: string]: OutputStyle };
 };
 
 /**
@@ -133,6 +143,56 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
  */
 export const PromptBundleSchema: GenMessage<PromptBundle> = /*@__PURE__*/
   messageDesc(file_harness_prompts_v1_prompts, 2);
+
+/**
+ * An output style changes how the assistant communicates (tone, verbosity, teaching) without changing
+ * the tools. The client delivers the active style's text through the `output_style` reminder, so
+ * switching styles never invalidates the prompt cache.
+ *
+ * @generated from message harness.prompts.v1.OutputStyle
+ */
+export type OutputStyle = Message<"harness.prompts.v1.OutputStyle"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * Shown in pickers, e.g. "Explanatory".
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * One line for the picker.
+   *
+   * @generated from field: string description = 3;
+   */
+  description: string;
+
+  /**
+   * The style instructions (markdown).
+   *
+   * @generated from field: string text = 4;
+   */
+  text: string;
+
+  /**
+   * When false, the coding-specific system sections (doing_tasks, tool_policy) are replaced by the
+   * style: the client sends the system sections without them. Default true for built-ins.
+   *
+   * @generated from field: bool keep_coding_instructions = 5;
+   */
+  keepCodingInstructions: boolean;
+};
+
+/**
+ * Describes the message harness.prompts.v1.OutputStyle.
+ * Use `create(OutputStyleSchema)` to create a new message.
+ */
+export const OutputStyleSchema: GenMessage<OutputStyle> = /*@__PURE__*/
+  messageDesc(file_harness_prompts_v1_prompts, 3);
 
 /**
  * @generated from message harness.prompts.v1.SystemSection
@@ -163,7 +223,7 @@ export type SystemSection = Message<"harness.prompts.v1.SystemSection"> & {
  * Use `create(SystemSectionSchema)` to create a new message.
  */
 export const SystemSectionSchema: GenMessage<SystemSection> = /*@__PURE__*/
-  messageDesc(file_harness_prompts_v1_prompts, 3);
+  messageDesc(file_harness_prompts_v1_prompts, 4);
 
 /**
  * @generated from message harness.prompts.v1.ToolDefinition
@@ -187,7 +247,7 @@ export type ToolDefinition = Message<"harness.prompts.v1.ToolDefinition"> & {
  * Use `create(ToolDefinitionSchema)` to create a new message.
  */
 export const ToolDefinitionSchema: GenMessage<ToolDefinition> = /*@__PURE__*/
-  messageDesc(file_harness_prompts_v1_prompts, 4);
+  messageDesc(file_harness_prompts_v1_prompts, 5);
 
 /**
  * Prompts live on the server (prompt registry). Clients have no prompt texts of their own,

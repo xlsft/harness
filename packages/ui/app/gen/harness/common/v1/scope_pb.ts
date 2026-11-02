@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv2";
  * Describes the file harness/common/v1/scope.proto.
  */
 export const file_harness_common_v1_scope: GenFile = /*@__PURE__*/
-  fileDesc("Ch1oYXJuZXNzL2NvbW1vbi92MS9zY29wZS5wcm90bxIRaGFybmVzcy5jb21tb24udjEqUAoFU2NvcGUSFQoRU0NPUEVfVU5TUEVDSUZJRUQQABIOCgpTQ09QRV9VU0VSEAESDQoJU0NPUEVfT1JHEAISEQoNU0NPUEVfUFJPSkVDVBADYgZwcm90bzM");
+  fileDesc("Ch1oYXJuZXNzL2NvbW1vbi92MS9zY29wZS5wcm90bxIRaGFybmVzcy5jb21tb24udjEqUAoFU2NvcGUSFQoRU0NPUEVfVU5TUEVDSUZJRUQQABIOCgpTQ09QRV9VU0VSEAESDQoJU0NPUEVfT1JHEAISEQoNU0NPUEVfUFJPSkVDVBADQtIBChVjb20uaGFybmVzcy5jb21tb24udjFCClNjb3BlUHJvdG9QAVpHZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9jb21tb24vdjE7Y29tbW9udjGiAgNIQ1iqAhFIYXJuZXNzLkNvbW1vbi5WMcoCEUhhcm5lc3NcQ29tbW9uXFYx4gIdSGFybmVzc1xDb21tb25cVjFcR1BCTWV0YWRhdGHqAhNIYXJuZXNzOjpDb21tb246OlYxYgZwcm90bzM");
 
 /**
  * Ownership scope of server-held user data (sync documents, MCP servers).

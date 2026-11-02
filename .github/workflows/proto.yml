@@ -3,9 +3,9 @@ name: proto
 on:
   workflow_dispatch:
   push:
-    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', 'packages/core/package.json', '.github/workflows/proto.yml']
+    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', 'packages/ui/app/gen/**', 'packages/core/package.json', 'packages/ui/package.json', '.github/workflows/proto.yml']
   pull_request:
-    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', '.github/workflows/proto.yml']
+    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', 'packages/ui/app/gen/**', '.github/workflows/proto.yml']
 
 jobs:
   buf:
@@ -44,16 +44,22 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: packages/core/pnpm-lock.yaml
-      - name: Install protoc-gen-es
+          cache-dependency-path: |
+            packages/core/pnpm-lock.yaml
+            packages/ui/pnpm-lock.yaml
+      - name: Install protoc-gen-es (core)
         working-directory: packages/core
         run: pnpm install --frozen-lockfile
+      - name: Install protoc-gen-es (ui)
+        # packages/ui pins a newer pnpm (different lockfile format); run that version.
+        working-directory: packages/ui
+        run: npx --yes "$(node -p "require('./package.json').packageManager")" install --frozen-lockfile
       - name: Generate
         run: buf generate
       - name: Check generated code is up to date
         run: |
-          git add -N packages/client/gen packages/core/src/gen
-          if ! git diff --exit-code --stat -- packages/client/gen packages/core/src/gen; then
+          git add -N packages/client/gen packages/core/src/gen packages/ui/app/gen
+          if ! git diff --exit-code --stat -- packages/client/gen packages/core/src/gen packages/ui/app/gen; then
             echo "::error::Generated code is stale. Run 'buf generate' from the repository root and commit the result."
             exit 1
           fi
