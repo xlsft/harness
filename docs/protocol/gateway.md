@@ -1,46 +1,49 @@
-# LLM-gateway
+# LLM gateway
 
-Клиент **никогда** не говорит с провайдерами напрямую. Все вызовы моделей идут через core. Ключи провайдеров есть только на сервере.
+The client **never** talks to model providers directly. Every model call goes through core, and provider keys exist only on the server.
 
-Канонический формат — **Anthropic Messages API** (content blocks, tools, SSE-события). Сервер транслирует его в upstream: Anthropic, OpenAI Chat Completions, позже OpenAI Responses. Клиент видит один формат для любой модели.
+The canonical format is the **Anthropic Messages API**: content blocks, tools and SSE events. The server translates it to the upstream API (Anthropic, OpenAI Chat Completions, later OpenAI Responses), so the client sees one format for every model.
 
-Все запросы требуют `Authorization: Bearer hat_…`.
+Every request requires `Authorization: Bearer hat_…`.
 
 ## `GET /api/llm/models`
-Каталог моделей, доступных пользователю.
+
+Catalog of models available to the user.
+
 ```json
 {
   "models": [
     {
-      "id": "claude-sonnet",                 // id, который клиент передаёт в `model` (алиас на сервере)
+      "id": "claude-sonnet",                 // the value the client sends as `model` (a server-side alias)
       "display_name": "Claude Sonnet 5.5",
-      "provider": "anthropic-main",          // id провайдера, информационно
+      "provider": "anthropic-main",          // provider id, informational
       "context_window": 1000000,
       "max_output_tokens": 64000,
       "capabilities": {
-        "thinking": true,                    // принимает поле `thinking`
-        "effort": ["low", "medium", "high", "xhigh", "max"],   // [] — effort не поддерживается
+        "thinking": true,                    // accepts the `thinking` field
+        "effort": ["low", "medium", "high", "xhigh", "max"],   // [] means effort is not supported
         "images": true, "pdf": true,
         "parallel_tool_calls": true,
         "prompt_cache": true
       },
-      "pricing": { "input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75 }   // USD за 1M токенов, может отсутствовать
+      "pricing": { "input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75 }   // USD per 1M tokens, optional
     }
   ],
-  "slots": { "main": "claude-sonnet", "small": "gpt-mini", "plan": "claude-opus" }   // значения по умолчанию для пользователя
+  "slots": { "main": "claude-sonnet", "small": "gpt-mini", "plan": "claude-opus" }   // per-user defaults
 }
 ```
 
 ## `POST /api/llm/messages`
-Тело — подмножество Anthropic Messages API плюс поля harness:
+
+The body is a subset of the Anthropic Messages API plus harness fields:
 
 ```json
 {
   "model": "claude-sonnet",
   "max_tokens": 32000,
-  "system": [                                   // всегда массив текстовых блоков
-    { "type": "text", "text": "…статика…", "cache": true },   // cache: true — точка кэша (см. ниже)
-    { "type": "text", "text": "…динамика…" }
+  "system": [                                   // always an array of text blocks
+    { "type": "text", "text": "…static…", "cache": true },   // cache: true marks a cache breakpoint (see below)
+    { "type": "text", "text": "…dynamic…" }
   ],
   "messages": [
     { "role": "user", "content": [ { "type": "text", "text": "…" } ] },
@@ -54,31 +57,32 @@
   ],
   "tools": [ { "name": "Read", "description": "…", "input_schema": { "type": "object", "properties": {}, "required": [] } } ],
   "tool_choice": { "type": "auto" },           // auto | any | tool{name} | none
-  "thinking": { "type": "enabled", "budget_tokens": 8000 },   // или {"type":"adaptive"} / отсутствует
-  "effort": "high",                             // опционально; сервер понижает до поддерживаемого или отбрасывает
-  "stream": true,                               // M0: только true
+  "thinking": { "type": "enabled", "budget_tokens": 8000 },   // or {"type":"adaptive"}, or omitted
+  "effort": "high",                             // optional; the server lowers it to a supported level or drops it
+  "stream": true,                               // M0: must be true
   "metadata": {
     "session_id": "ses_…",
     "request_class": "main | subagent | compaction | auxiliary",
-    "agent_id": "…",                            // для субагентов
+    "agent_id": "…",                            // set for subagents
     "prompt_bundle_version": "2026-11-02.3"
   }
 }
 ```
 
-**Поддерживаемые типы блоков:**
-- `text`, `image` (`source: {type:"base64", media_type, data}`), `document` (PDF, base64);
+**Supported block types:**
+- `text`, `image` (`source: {type: "base64", media_type, data}`), `document` (PDF, base64);
 - `thinking`, `redacted_thinking`;
-- `tool_use`, `tool_result` (`content` — массив `text`/`image` или строка).
+- `tool_use`, `tool_result` (`content` is an array of `text` / `image` blocks, or a string).
 
-**Правила для клиента:**
-- Каждому `tool_use` в истории должен соответствовать `tool_result` в следующем user-сообщении. При прерывании клиент сам вставляет синтетический результат с `is_error: true`.
-- `thinking`/`redacted_thinking` возвращаются в историю **без изменений** (подпись важна для Anthropic). Если upstream их не поддерживает, сервер выбросит их сам.
-- System-reminders — это `text`-блоки внутри user-сообщений. Сервер их не интерпретирует.
-- `cache: true` ставится на последний блок стабильного префикса: статика system, затем project context, затем последний блок последнего сообщения. Не больше 4 точек. Сервер переводит их в `cache_control` для Anthropic, для остальных провайдеров игнорирует. Порядок и содержимое префикса между запросами должны быть стабильны.
+**Client rules:**
+- Every `tool_use` in history must have a matching `tool_result` in the next user message. When a turn is interrupted, the client inserts a synthetic result with `is_error: true`.
+- `thinking` and `redacted_thinking` blocks go back into history **unchanged** — Anthropic validates the signature. If the upstream does not support them, the server drops them.
+- System reminders are `text` blocks inside user messages. The server does not interpret them.
+- Put `cache: true` on the last block of each stable prefix: the static system part, the project context, and the last block of the last message. Use at most 4 breakpoints. The server turns them into `cache_control` for Anthropic and ignores them for other providers. Keep the order and content of the prefix stable between requests.
 
-### Ответ: `text/event-stream`
-События и их порядок — как в Anthropic streaming:
+### Response: `text/event-stream`
+
+Events and their order match Anthropic streaming:
 
 ```
 event: message_start
@@ -101,30 +105,34 @@ event: message_stop
 data: {"type":"message_stop","harness":{"cost_usd":0.0042,"upstream_model":"claude-sonnet-5-5","retries":0}}
 ```
 
-Дополнительно:
-- `event: ping` — не реже раза в 15 с. Клиент рвёт стрим, если 5 минут не пришло ни одного байта.
-- `event: harness_retry` — `{"attempt":2,"max_retries":10,"retry_delay_ms":4000,"error":{"type":"overloaded"}}`. Сервер ретраит upstream **до** первого content-блока. Клиент только показывает это пользователю.
-- `event: error` — `{"type":"error","error":{…}}` (формат ошибки из README). После него стрим закрывается.
+Additional events:
+- `event: ping` at least every 15 s. The client drops the stream after 5 minutes without a single byte.
+- `event: harness_retry` — `{"attempt":2,"max_retries":10,"retry_delay_ms":4000,"error":{"type":"overloaded"}}`. The server retries the upstream only **before** the first content block; the client just shows it to the user.
+- `event: error` — `{"type":"error","error":{…}}` (error format from [README.md](README.md)). The stream closes after it.
 
-`stop_reason` ∈ `end_turn | tool_use | max_tokens | stop_sequence | refusal | pause_turn`. Сервер маппит `finish_reason` OpenAI: `stop→end_turn`, `tool_calls→tool_use`, `length→max_tokens`, `content_filter→refusal`.
+`stop_reason` is one of `end_turn | tool_use | max_tokens | stop_sequence | refusal | pause_turn`. OpenAI `finish_reason` maps as `stop → end_turn`, `tool_calls → tool_use`, `length → max_tokens`, `content_filter → refusal`.
 
-`usage` нормализован для всех провайдеров:
-- `input_tokens` — некэшированные входные токены;
-- `cache_read_input_tokens` — у OpenAI это `prompt_tokens_details.cached_tokens`;
+`usage` is normalized across providers:
+- `input_tokens` — uncached input tokens;
+- `cache_read_input_tokens` — for OpenAI, `prompt_tokens_details.cached_tokens`;
 - `cache_creation_input_tokens`;
-- `output_tokens`, включая reasoning.
+- `output_tokens`, including reasoning tokens.
 
-### Что делает сервер (клиенту знать не нужно, но это контракт поведения)
-- Трансляция в OpenAI Chat:
-  - `system` → system-сообщение;
-  - `tool_result` → сообщения роли `tool`, картинки из них — отдельным user-сообщением;
-  - `thinking` → `reasoning_content` или отбрасывание;
+### Server behavior
+
+The client doesn't need to know these details, but they are part of the behavioral contract.
+
+- **Translation to OpenAI Chat:**
+  - `system` → a system message;
+  - `tool_result` → `tool` role messages, with images moved into a separate user message;
+  - `thinking` → `reasoning_content`, or dropped;
   - `tools` → `functions`;
-  - стрим `tool_calls` → `content_block_*` с `input_json_delta`.
-- `effort` → `output_config.effort` (Anthropic) / `reasoning_effort` (OpenAI), понижение до поддерживаемого уровня.
-- **Capability negotiation:** если upstream отверг `thinking`, `cache_control`, system-блоки или effort, сервер повторяет запрос без этой фичи и запоминает решение для модели.
-- **Fallback-цепочка** моделей (настраивается admin) включается только на overloaded/unavailable и только до первого content-блока.
-- Учёт usage и стоимости, квоты: при превышении `429 {type:"quota_exceeded"}`.
+  - streamed `tool_calls` → `content_block_*` events with `input_json_delta`.
+- **Effort.** `effort` maps to `output_config.effort` (Anthropic) or `reasoning_effort` (OpenAI), lowered to the nearest supported level.
+- **Capability negotiation.** If the upstream rejects `thinking`, `cache_control`, system blocks or effort, the server retries without that feature and remembers the decision for the model.
+- **Fallback chain.** A per-model chain configured by the admin; it triggers only on overloaded / unavailable errors and only before the first content block.
+- **Usage and quotas.** Usage and cost are recorded per user. When a quota is exceeded the server returns `429 {type: "quota_exceeded"}`.
 
 ## `POST /api/llm/count_tokens`
-Тело как у `/messages`, без `stream` и `max_tokens`. Ответ: `{ "input_tokens": 12345, "estimated": false }`. Если точный подсчёт недоступен, возвращается оценка с `estimated: true`.
+
+Same body as `/messages` without `stream` and `max_tokens`. Response: `{ "input_tokens": 12345, "estimated": false }`. When an exact count is unavailable, the server returns an estimate with `estimated: true`.

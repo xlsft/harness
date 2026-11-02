@@ -1,167 +1,167 @@
-# harness — план реализации
+# harness — implementation plan
 
-> Харнесс на замену Claude Code: те же инструменты, тот же UX, та же архитектура, любые модели через OpenAI- и Anthropic-совместимые эндпоинты.
-> Стек UI: Nuxt 4 + Nuxt UI v4. Основа: 16 документов из `docs/research` репозитория xlsft/edualc (данные на октябрь 2026, CC 2.1.289).
+> A harness to replace Claude Code: the same tools, the same UX, the same architecture, any model via OpenAI- and Anthropic-compatible endpoints.
+> UI stack: Nuxt 4 + Nuxt UI v4. Based on the 16 documents in `docs/research` of the xlsft/edualc repository (data as of October 2026, CC 2.1.289).
 
-## Модель продукта: как Claude Code + свой бэкенд вместо Anthropic
+## Product model: like Claude Code + your own backend instead of Anthropic
 
 | Claude Code | harness |
 |---|---|
-| `claude` локально: агентный цикл, исполнение инструментов, permissions, hooks, stdio-MCP | **`harness` (клиент-раннер)** локально: то же самое. Исполняет tool calls в своей ФС |
-| Логин через claude.ai, модели через API Anthropic, ключей у пользователя нет | Логин на **harness server**. Модели — через **LLM-gateway сервера**, ключи провайдеров только на сервере |
-| Системный промпт и описания инструментов приходят с релизами CLI | **Промпты живут на сервере** (версионируемый prompt bundle) и синхронизируются на машины |
-| Аккаунт-данные, managed settings, сессии на claude.ai | **Все пользовательские данные на сервере** (настройки, memory, skills, agents, сессии…), клиент подтягивает и кэширует |
-| Remote Control: CLI → relay → claude.ai/code и мобильный | Тот же relay в harness server + Web UI + туннели |
-| Desktop запускает CLI подпроцессом, SSH ставит CLI на remote | То же самое |
+| `claude` runs locally: agent loop, tool execution, permissions, hooks, stdio-MCP | **`harness` (client runner)** runs locally: the same. Executes tool calls in its own filesystem |
+| Login via claude.ai, models via the Anthropic API, the user has no keys | Login to the **harness server**. Models go through the server's **LLM gateway**; provider keys live only on the server |
+| System prompt and tool descriptions ship with CLI releases | **Prompts live on the server** (a versioned prompt bundle) and are synced to machines |
+| Account data, managed settings, sessions on claude.ai | **All user data lives on the server** (settings, memory, skills, agents, sessions…); the client pulls and caches it |
+| Remote Control: CLI → relay → claude.ai/code and mobile | The same relay in the harness server + Web UI + tunnels |
+| Desktop launches the CLI as a subprocess, SSH installs the CLI on the remote | The same |
 
-**Принцип:** клиент остаётся клиентом. Локально живут только исполнение (shell, ФС, git, stdio-MCP) и кэш. Всё «бизнесовое» — auth, ключи, модели, промпты, данные пользователя, история, usage — на сервере. Docker-контейнер сервера — единая точка входа к этой части.
+**Principle:** the client stays a client. Only execution (shell, filesystem, git, stdio-MCP) and the cache live locally. Everything "business" — auth, keys, models, prompts, user data, history, usage — lives on the server. The server's Docker container is the single entry point to that part.
 
 ```
 ┌────────────────────────── harness server (Docker) ──────────────────────────┐
-│ auth · LLM-gateway (ключи, роутинг, адаптеры провайдеров, usage, квоты)     │
-│ prompt registry · user data (settings, memory, skills, agents, MCP, сессии)  │
-│ relay / remote control · туннели · Web UI (Nuxt)                             │
+│ auth · LLM gateway (keys, routing, provider adapters, usage, quotas)        │
+│ prompt registry · user data (settings, memory, skills, agents, MCP, sessions)│
+│ relay / remote control · tunnels · Web UI (Nuxt)                            │
 └──────▲──────────────────────▲───────────────────────────▲───────────────────┘
-       │ HTTPS: gateway API,  │ relay (исходящее          │ WS/SSE
-       │ sync API             │ от клиента)               │
-┌──────┴──────── машина пользователя ─────────────────────┐   Browser/телефон
-│ harness: агентный цикл · исполнение tools · permissions │   (Web UI на сервере,
-│         hooks · stdio-MCP · кэш данных и промптов      │    управляет сессиями
-│   ▲ TUI (тот же процесс)     ▲ stdio NDJSON              │    через relay)
-│   терминал             Desktop UI (Nuxt UI в оболочке)   │
-│                              │ ssh (ключи клиента)        │
+       │ HTTPS: gateway API,  │ relay (outbound           │ WS/SSE
+       │ sync API             │ from the client)          │
+┌──────┴──────── user's machine ──────────────────────────┐   Browser/phone
+│ harness: agent loop · tool execution · permissions      │   (Web UI on the server,
+│         hooks · stdio-MCP · data and prompt cache       │    controls sessions
+│   ▲ TUI (same process)       ▲ stdio NDJSON             │    via relay)
+│   terminal             Desktop UI (Nuxt UI in a shell)  │
+│                              │ ssh (client's keys)      │
 └──────────────────────────────┼───────────────────────────┘
                                ▼
-                    remote: harness по stdio через SSH
+                    remote: harness over stdio via SSH
 ```
 
 ---
 
-## 0. Ключевые решения
+## 0. Key decisions
 
-| # | Решение | Выбор | Почему |
+| # | Decision | Choice | Why |
 |---|---|---|---|
-| A1 | Разделение | **Клиент:** цикл, исполнение tools, permissions, hooks, stdio-MCP, кэш. **Сервер:** auth, LLM-gateway с ключами, промпты, все пользовательские данные, relay, туннели, Web UI | Как CC + Anthropic-бэкенд. Ключи и бизнес-логика никогда не попадают на машины |
-| A2 | LLM-gateway | Клиент говорит с сервером **одним каноническим API** (Anthropic-Messages-подобный, стрим SSE). Сервер транслирует в upstream: Anthropic / OpenAI-chat / OpenAI-responses | Адаптеры, capability negotiation, кэш-брейкпоинты, ретраи и fallback живут в одном месте. Новый провайдер или модель не требуют обновления клиентов |
-| A3 | Промпты | **Prompt registry на сервере:** системный промпт по секциям, описания инструментов, шаблоны reminders, промпт компактора, bundled skills, **оверрайды под модель**. Версионируются, клиент кэширует по ETag | Промпт-инжиниринг под разные модели без релиза клиента. Можно A/B и откаты. В кэше клиент работает при кратком офлайне |
-| A4 | Пользовательские данные | **Сервер — источник правды**, клиент — кэш с синхронизацией (версии документов, push локальных изменений) | «Клиент подтягивает всё с сервера». Одинаковое окружение на любой машине |
-| A5 | Протокол клиент-раннера | **SDK-протокол CC-формы** (NDJSON): `system/assistant/user/stream_event/result` + `control_request/control_response` | Один протокол для desktop (stdio), headless, SDK и как payload поверх relay |
-| A6 | Relay | Исходящее соединение клиента к серверу (SSE + POST либо WS), envelope `{seq, sessionId, epoch, uuid, type, payload}` | Работает за NAT. Паттерны CC Remote Control: epoch, dedup, FlushGate, heartbeat |
-| A7 | UI | Одно Nuxt-приложение `packages/ui` для desktop и mobile (и веба) с `SessionTransport`: `ipc` (desktop → локальный Go-клиент по stdio), `relay` (web/mobile → сервер → клиент на машине) | Все GUI-клиенты выглядят одинаково, как у CC |
-| A8 | Каноническая модель сообщений | **Anthropic-подобные content blocks** (`text`, `thinking`+`signature`, `tool_use`, `tool_result`, `image`) — и в клиенте, и в gateway API | Сводить богатое к бедному проще. Пары tool_use/tool_result и подписи thinking соблюдаются |
-| A9 | Auth | **Better Auth** на сервере (логин, пароль, опционально OAuth и 2FA, роли). `harness login` — device-flow → токен устройства (отзывается) + короткоживущий access-токен с refresh | Обычный клиентский логин, как `claude login` |
-| A10 | Хранение | **Сервер:** SQLite по умолчанию / Postgres опционально (Drizzle) + каталог для вложений. **Клиент:** кэш в `~/.harness/` + локальный JSONL CC-формата (запись офлайн, синк на сервер) | `docker compose up` без зависимостей. Сессия не теряется при обрыве связи |
-| A11 | Совместимость с CC | Проектные `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json` читаются из репозитория. Пользовательский `~/.claude` — разовый **импорт на сервер** (`harness import claude`) | Проект переносим. Пользовательский уровень после импорта живёт на сервере |
-| A12 | Языки и дистрибуция | **Сервер** — TypeScript на Nitro v3. **Клиент и CLI** — Go: один статический бинарь под все ОС и архитектуры (cross-compile без CGO). CLI импортирует клиент как Go-пакет. Desktop и mobile используют клиент как sidecar-бинарь | Один файл легко ставить и заливать по SSH, быстрый старт, нормальные process/pty-примитивы. тулчейн charm.land даёт TUI уровня CC |
-| A13 | Право | Clean-room: совместимые форматы и протоколы — да, код и промпты CC дословно — нет | См. feature-parity §17–18 |
+| A1 | Separation | **Client:** loop, tool execution, permissions, hooks, stdio-MCP, cache. **Server:** auth, LLM gateway with keys, prompts, all user data, relay, tunnels, Web UI | Like CC + an Anthropic backend. Keys and business logic never reach the machines |
+| A2 | LLM gateway | The client talks to the server through **one canonical API** (Anthropic-Messages-like, SSE streaming). The server translates to upstream: Anthropic / OpenAI-chat / OpenAI-responses | Adapters, capability negotiation, cache breakpoints, retries and fallback live in one place. A new provider or model requires no client updates |
+| A3 | Prompts | **Prompt registry on the server:** system prompt by section, tool descriptions, reminder templates, compactor prompt, bundled skills, **per-model overrides**. Versioned; the client caches by ETag | Prompt engineering for different models without a client release. A/B tests and rollbacks are possible. The client keeps working from cache during a brief offline period |
+| A4 | User data | **The server is the source of truth**, the client is a cache with sync (document versions, push of local changes) | "The client pulls everything from the server." The same environment on any machine |
+| A5 | Client-runner protocol | **CC-shaped SDK protocol** (NDJSON): `system/assistant/user/stream_event/result` + `control_request/control_response` | One protocol for desktop (stdio), headless, the SDK, and as a payload over relay |
+| A6 | Relay | Outbound client connection to the server (SSE + POST or WS), envelope `{seq, sessionId, epoch, uuid, type, payload}` | Works behind NAT. CC Remote Control patterns: epoch, dedup, FlushGate, heartbeat |
+| A7 | UI | One Nuxt app `packages/ui` for desktop and mobile (and web) with a `SessionTransport`: `ipc` (desktop → local Go client over stdio), `relay` (web/mobile → server → client on the machine) | All GUI clients look the same, as in CC |
+| A8 | Canonical message model | **Anthropic-like content blocks** (`text`, `thinking`+`signature`, `tool_use`, `tool_result`, `image`) — in both the client and the gateway API | Reducing rich to poor is easier. tool_use/tool_result pairs and thinking signatures are respected |
+| A9 | Auth | **Better Auth** on the server (login, password, optional OAuth and 2FA, roles). `harness login` — device-flow → device token (revocable) + short-lived access token with refresh | Ordinary client login, like `claude login` |
+| A10 | Storage | **Server:** SQLite by default / Postgres optionally (Drizzle) + a directory for attachments. **Client:** cache in `~/.harness/` + local CC-format JSONL (offline writes, synced to the server) | `docker compose up` with no dependencies. A session is not lost when the connection drops |
+| A11 | CC compatibility | Project `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json` are read from the repository. User-level `~/.claude` — a one-time **import to the server** (`harness import claude`) | The project is portable. After import, the user level lives on the server |
+| A12 | Languages and distribution | **Server** — TypeScript on Nitro v3. **Client and CLI** — Go: a single static binary for all OSes and architectures (cross-compile without CGO). The CLI imports the client as a Go package. Desktop and mobile use the client as a sidecar binary | One file is easy to install and push over SSH, fast startup, solid process/pty primitives. The charm.land toolchain gives a CC-level TUI |
+| A13 | Legal | Clean-room: compatible formats and protocols — yes, CC code and prompts verbatim — no | See feature-parity §17–18 |
 
-### Структура репозитория
+### Repository structure
 
-Монорепо **без монорепо-тулинга**: нет pnpm workspaces, turbo и общих lock-файлов. Каждый пакет самостоятельный, со своим `package.json` или `go.mod`, своей сборкой и своим CI-джобом. Общий контракт между TS и Go — **спецификация в `docs/protocol/`** (markdown + JSON Schema), а не общий код.
+A monorepo **without monorepo tooling**: no pnpm workspaces, turbo or shared lock files. Each package is self-contained, with its own `package.json` or `go.mod`, its own build and its own CI job. The shared contract between TS and Go is a **specification in `docs/protocol/`** (markdown + JSON Schema), not shared code.
 
 ```
 docs/
-  research/        # исследования (копия из xlsft/edualc при необходимости)
-  protocol/        # контракты: gateway API, sync API, SDK-протокол (stdio NDJSON), relay-envelope
+  research/        # research (copy from xlsft/edualc if needed)
+  protocol/        # contracts: gateway API, sync API, SDK protocol (stdio NDJSON), relay envelope
   PLAN.md
 packages/
-  core/            # сервер: Nitro v3 (nitro.build), TypeScript. Auth, LLM-gateway + адаптеры провайдеров,
-                   #   prompt registry, user data + sync, MCP-реестр и прокси, relay, туннели. Dockerfile
-  client/          # универсальный клиент для фронтендов, Go. Агентный цикл, исполнение tools, permissions,
-                   #   hooks, stdio-MCP, сессии (JSONL, checkpoints), sync-кэш, gateway- и relay-клиент.
-                   #   Отдаётся как Go-пакет (для cli) и как бинарь `harness-client` со stdio NDJSON (для ui/desktop, SSH)
-  ui/              # фронтенд для desktop и mobile: Nuxt 4 + Nuxt UI v4 (дизайн будет отдельно)
-  cli/             # CLI-фронтенд, Go: весь тулчейн charm.land (Bubble Tea, Bubbles, Lip Gloss, Glamour,
-                   #   Huh, Harmonica, Log…). Truecolor с fallback на ANSI-16/256
-                   #   для эмуляторов без поддержки. Дизайн 1:1 с Claude Code. Бинарь `harness`
+  core/            # server: Nitro v3 (nitro.build), TypeScript. Auth, LLM gateway + provider adapters,
+                   #   prompt registry, user data + sync, MCP registry and proxy, relay, tunnels. Dockerfile
+  client/          # universal client for frontends, Go. Agent loop, tool execution, permissions,
+                   #   hooks, stdio-MCP, sessions (JSONL, checkpoints), sync cache, gateway and relay client.
+                   #   Shipped as a Go package (for cli) and as the `harness-client` binary with stdio NDJSON (for ui/desktop, SSH)
+  ui/              # frontend for desktop and mobile: Nuxt 4 + Nuxt UI v4 (design to come separately)
+  cli/             # CLI frontend, Go: the full charm.land toolchain (Bubble Tea, Bubbles, Lip Gloss, Glamour,
+                   #   Huh, Harmonica, Log…). Truecolor with fallback to ANSI-16/256
+                   #   for emulators without support. Design 1:1 with Claude Code. The `harness` binary
 ```
 
-**Порядок работ:** сначала `core` + `client` (весь харнесс работает headless, проверяется тестами и `harness-client -p`), затем фронтенды `cli` и `ui`, деплой — в последнюю очередь.
+**Order of work:** first `core` + `client` (the whole harness works headless, verified by tests and `harness-client -p`), then the `cli` and `ui` frontends, deployment last.
 
 ---
 
-## 1. Сервер (`packages/core`, Nitro v3, Docker) — «бизнесовая часть»
+## 1. Server (`packages/core`, Nitro v3, Docker) — the "business part"
 
-### 1.1 Auth и устройства
-- Better Auth: пользователи, роли (admin/user), пароль + опционально OAuth/2FA.
-- **Device-flow:** `harness login https://harness.example.com` → код в браузере → токен устройства. Отзыв в UI, список устройств (ОС, версия, последний онлайн).
-- Короткоживущий access-токен для gateway и relay, refresh без разрыва стрима (401 → refresh → retry).
+### 1.1 Auth and devices
+- Better Auth: users, roles (admin/user), password + optional OAuth/2FA.
+- **Device-flow:** `harness login https://harness.example.com` → code in the browser → device token. Revocation in the UI, device list (OS, version, last online).
+- Short-lived access token for the gateway and relay, refresh without breaking the stream (401 → refresh → retry).
 
-### 1.2 LLM-gateway
-- **Провайдеры** (admin): `{type: anthropic|openai-chat|openai-responses, baseUrl, apiKey, headers}`. Ключи зашифрованы мастер-ключом `HARNESS_SECRET`.
-- **Каталог моделей:** discovery через `GET /v1/models` плюс ручные записи. Поля: `contextWindow`, `maxOutput`, `capabilities`, цены, видимость по пользователям и ролям. Алиасы и **слоты** (`main`, `small`, `plan`) настраиваются на сервере.
-- **Канонический API для клиента:** `POST /api/llm/messages` (стрим), `POST /api/llm/count_tokens`, `GET /api/llm/models`. Запрос — content blocks + tools + system по секциям + effort/thinking + `request-class` (main | subagent | compaction | auxiliary).
-- **Трансляция upstream:**
-  - `tool_result` → роль `tool`, картинки — в user-сообщение.
-  - `thinking` ↔ `reasoning_content` или Responses reasoning.
+### 1.2 LLM gateway
+- **Providers** (admin): `{type: anthropic|openai-chat|openai-responses, baseUrl, apiKey, headers}`. Keys are encrypted with the master key `HARNESS_SECRET`.
+- **Model catalog:** discovery via `GET /v1/models` plus manual entries. Fields: `contextWindow`, `maxOutput`, `capabilities`, prices, visibility by user and role. Aliases and **slots** (`main`, `small`, `plan`) are configured on the server.
+- **Canonical API for the client:** `POST /api/llm/messages` (stream), `POST /api/llm/count_tokens`, `GET /api/llm/models`. Request — content blocks + tools + system by section + effort/thinking + `request-class` (main | subagent | compaction | auxiliary).
+- **Upstream translation:**
+  - `tool_result` → `tool` role, images → into a user message.
+  - `thinking` ↔ `reasoning_content` or Responses reasoning.
   - `stop_reason` ↔ `finish_reason`.
   - effort → `output_config.effort` / `reasoning_effort`.
-  - reminders → user-контент.
-  - `cache_control`-брейкпоинты для Anthropic, стабильный префикс для OpenAI.
-- **Capability negotiation** (повтор без отвергнутой фичи, память на модель), ретраи с backoff (`retry-after`, `x-should-retry`), stream idle watchdog и ping до клиента, **fallback-цепочка** (только overloaded/unavailable).
-- **Usage и квоты:** нормализованный usage (`input/output/cacheRead/cacheWrite`) → стоимость → лимиты на пользователя и роль, бюджет на сессию. Дашборд usage.
-- Роутинг по `request-class`: compaction и auxiliary — на дешёвую модель.
-- SSRF-фильтр для upstream baseUrl. Приватные адреса — явным разрешением admin (локальный vLLM/Ollama).
+  - reminders → user content.
+  - `cache_control` breakpoints for Anthropic, stable prefix for OpenAI.
+- **Capability negotiation** (retry without the rejected feature, remembered per model), retries with backoff (`retry-after`, `x-should-retry`), stream idle watchdog and ping to the client, **fallback chain** (only overloaded/unavailable).
+- **Usage and quotas:** normalized usage (`input/output/cacheRead/cacheWrite`) → cost → limits per user and role, per-session budget. Usage dashboard.
+- Routing by `request-class`: compaction and auxiliary go to a cheap model.
+- SSRF filter for the upstream baseUrl. Private addresses require explicit admin permission (local vLLM/Ollama).
 
 ### 1.3 Prompt registry
-- Бандл: системный промпт по секциям (идентичность, безопасность, стиль, doing tasks, tool policy, env-шаблон), **описания и схемы всех инструментов**, шаблоны system-reminders, промпт компактора, промпт заголовков, WebFetch-суммаризация, классификатор auto mode, bundled skills (`/init`, `/review`, `/security-review`, `/simplify`), встроенные агенты (`Explore`, `Plan`, `general-purpose`), output styles.
-- **Оверрайды под модель или семейство** (у слабых моделей другие формулировки и примеры). Версии, changelog, откат. Позже — A/B по пользователям.
-- Клиент получает бандл по ETag на старте и при новых сессиях. **Внутри сессии бандл заморожен** (ради prompt cache), обновление — на новой сессии или после compact. Версия бандла пишется в сессию.
-- Редактор в Web UI для admin с предпросмотром собранного промпта под выбранную модель.
+- Bundle: system prompt by section (identity, safety, style, doing tasks, tool policy, env template), **descriptions and schemas of all tools**, system-reminder templates, compactor prompt, title prompt, WebFetch summarization, auto mode classifier, bundled skills (`/init`, `/review`, `/security-review`, `/simplify`), built-in agents (`Explore`, `Plan`, `general-purpose`), output styles.
+- **Overrides per model or family** (weaker models need different wording and examples). Versions, changelog, rollback. Later — A/B by user.
+- The client fetches the bundle by ETag at startup and on new sessions. **Within a session the bundle is frozen** (for the prompt cache); it updates on a new session or after compact. The bundle version is written into the session.
+- Editor in the Web UI for admins with a preview of the assembled prompt for a chosen model.
 
-### 1.4 Пользовательские данные (источник правды)
-| Данные | Как используется клиентом |
+### 1.4 User data (source of truth)
+| Data | How the client uses it |
 |---|---|
-| Settings пользователя (модель по умолчанию, effort, режим, output style, attribution, UI) | Кэш, применяется как user-уровень settings |
-| Permission-правила user-уровня | Применяются вместе с проектными. «Don't ask again» на user-уровне пишется на сервер |
-| User memory (аналог `~/.claude/CLAUDE.md`), auto memory per проект | Инжектится в project context |
-| Skills, agents, commands, output styles (личные + общие от admin) | Синк в кэш, загрузка по progressive disclosure |
-| Hooks user-уровня | Синк, исполнение локально — только после подтверждения на этой машине (trust) |
-| **MCP-серверы — все конфиги и вся авторизация** (см. 1.5) | Подтягиваются на любое устройство. Перетаскивать `.mcp.json` и `~/.claude.json` не нужно |
-| Сессии: метаданные + транскрипт | Клиент пишет локальный JSONL и стримит события на сервер. Список сессий, resume и поиск — с сервера на любой машине |
-| SSH-хосты (только адреса и алиасы, **без ключей**) | Подсказки в UI |
-| Политики admin (managed settings): deny-правила, разрешённые модели, запреты | Высший приоритет |
+| User settings (default model, effort, mode, output style, attribution, UI) | Cached, applied as the user-level settings |
+| User-level permission rules | Applied together with project rules. "Don't ask again" at user level is written to the server |
+| User memory (analogue of `~/.claude/CLAUDE.md`), auto memory per project | Injected into project context |
+| Skills, agents, commands, output styles (personal + shared by admin) | Synced to cache, loaded via progressive disclosure |
+| User-level hooks | Synced, executed locally — only after confirmation on this machine (trust) |
+| **MCP servers — all configs and all authorization** (see 1.5) | Pulled onto any device. No need to carry `.mcp.json` and `~/.claude.json` around |
+| Sessions: metadata + transcript | The client writes local JSONL and streams events to the server. Session list, resume and search — from the server on any machine |
+| SSH hosts (addresses and aliases only, **no keys**) | UI hints |
+| Admin policies (managed settings): deny rules, allowed models, prohibitions | Highest priority |
 
-- **Sync API:** `GET /api/sync?since=<version>` → изменённые документы, `PUT` документа с `baseVersion` (конфликт → 409 → клиент мержит или переспрашивает). Live-обновления через тот же канал, что relay.
-- Импорт `~/.claude` (CLAUDE.md, skills, agents, commands, output styles, settings) и CC-сессий: `harness import claude`.
+- **Sync API:** `GET /api/sync?since=<version>` → changed documents, `PUT` of a document with `baseVersion` (conflict → 409 → the client merges or asks again). Live updates through the same channel as the relay.
+- Import of `~/.claude` (CLAUDE.md, skills, agents, commands, output styles, settings) and CC sessions: `harness import claude`.
 
-### 1.5 MCP через сервер
-Цель: подключил MCP один раз — он работает на всех устройствах, в вебе и на SSH-хостах, без переноса конфигов и повторной авторизации.
+### 1.5 MCP via the server
+Goal: connect an MCP once — it works on all devices, on the web and on SSH hosts, with no config transfer and no repeated authorization.
 
-- **Реестр MCP на сервере:**
-  - Scopes `user` (личные) и `org` (admin раздаёт всем или ролям). Проектный `.mcp.json` из репозитория остаётся как есть, но его одобрение и секреты тоже хранятся на сервере.
-  - Поля: имя, транспорт (stdio / Streamable HTTP / SSE / WS), команда или URL, args, env, headers, `alwaysLoad`, enable/disable.
-  - Импорт из `~/.claude.json` и `.mcp.json` через `harness import claude`.
-- **Авторизация на сервере:**
-  - OAuth-флоу проходит через сервер: discovery, callback на `HARNESS_PUBLIC_URL`, refresh до истечения, re-auth при новых scopes.
-  - Статические токены, headers и env-секреты шифруются мастер-ключом.
-  - Статус «needs auth» виден во всех клиентах. Авторизовался один раз в вебе или desktop — работает везде.
-- **Исполнение remote MCP (HTTP/SSE)** — **через сервер.** Клиент вызывает инструменты через сервер, тот подставляет токены и проксирует. Токены никогда не попадают на устройства. Бонус: такие MCP доступны даже сессиям, запущенным из веба.
-- **Исполнение stdio MCP** — процесс должен работать локально, рядом с кодом:
-  - Конфиг синкается.
-  - Секреты (env/args) клиент получает от сервера **в момент запуска** процесса: короткоживущий запрос, только в память, на диск не пишутся, не логируются.
-  - Опция `secretsMode: proxy` — для серверов, которым секрет нужен только для исходящих HTTP. Позже.
-- **Per-device применимость:**
-  - stdio-сервер может требовать `npx`/`uvx`/бинарь, которого на машине нет. Клиент проверяет зависимости и помечает сервер `unavailable on this device` с причиной.
-  - Возможны оверрайды под устройство или ОС (другой путь к бинарю), они тоже хранятся на сервере.
-- **Безопасность:**
-  - Новый stdio-сервер (это исполнение команды на машине) требует **локального подтверждения на каждом устройстве** при первом запуске. Сервер не может молча запустить процесс на машине.
-  - Remote MCP с `requiresUserInteraction` всегда спрашивает.
-  - Изменения org-MCP видны в UI с diff.
-- **Tool search:** список MCP-инструментов и их схемы кэшируются на сервере и раздаются клиентам. `ToolSearch` работает поверх этого кэша, набор замораживается на сессию.
-- MCP prompts → slash-команды, resources → `@server:resource` — одинаково во всех клиентах.
+- **MCP registry on the server:**
+  - Scopes `user` (personal) and `org` (admin distributes to everyone or to roles). The project `.mcp.json` from the repository stays as is, but its approval and secrets are also stored on the server.
+  - Fields: name, transport (stdio / Streamable HTTP / SSE / WS), command or URL, args, env, headers, `alwaysLoad`, enable/disable.
+  - Import from `~/.claude.json` and `.mcp.json` via `harness import claude`.
+- **Authorization on the server:**
+  - The OAuth flow goes through the server: discovery, callback to `HARNESS_PUBLIC_URL`, refresh before expiry, re-auth on new scopes.
+  - Static tokens, headers and env secrets are encrypted with the master key.
+  - The "needs auth" status is visible in all clients. Authorize once on the web or desktop — it works everywhere.
+- **Remote MCP (HTTP/SSE) execution** — **via the server.** The client calls tools through the server, which injects tokens and proxies. Tokens never reach devices. Bonus: such MCPs are available even to sessions started from the web.
+- **stdio MCP execution** — the process must run locally, next to the code:
+  - The config is synced.
+  - The client receives secrets (env/args) from the server **at process launch**: a short-lived request, memory only, never written to disk, never logged.
+  - Option `secretsMode: proxy` — for servers that need the secret only for outgoing HTTP. Later.
+- **Per-device applicability:**
+  - A stdio server may require `npx`/`uvx`/a binary that is missing on the machine. The client checks dependencies and marks the server `unavailable on this device` with a reason.
+  - Per-device or per-OS overrides are possible (a different binary path); they are also stored on the server.
+- **Security:**
+  - A new stdio server (which means executing a command on the machine) requires **local confirmation on each device** at first launch. The server cannot silently start a process on a machine.
+  - Remote MCP with `requiresUserInteraction` always asks.
+  - Org-MCP changes are shown in the UI with a diff.
+- **Tool search:** the list of MCP tools and their schemas is cached on the server and served to clients. `ToolSearch` works on top of this cache; the set is frozen per session.
+- MCP prompts → slash commands, resources → `@server:resource` — the same in all clients.
 
-### 1.6 Relay, Remote Control, туннели
-- **Relay:** клиент открывает исходящее SSE + POST (или WS). Envelope `{seq, sessionId, epoch, uuid, type, payload}`, payload — SDK-протокол.
-  - Heartbeat ~20 с, reconnect с jitter, dedup по UUID.
-  - **Epoch** вытесняет старое подключение.
-  - **FlushGate:** при подключении сначала история, потом live.
-  - Батчинг, коды закрытия.
-- **Remote control:** по умолчанию включён для всех сессий залогиненного клиента (настраивается). Сессия видна в вебе, управляется оттуда. Permission-промпты и вопросы — в любой клиент, побеждает первый ответ.
-- **Spawn:** `harness daemon` регистрирует машину. Из веба: «новая сессия на машине X в папке Y» (только разрешённые корни).
-- **Туннели:** preview `https://<id>.preview.<host>` → порт на машине клиента через relay, доступ только владельцу. Терминал в вебе — PTY клиента через relay.
-- **Push:** Web Push на permission, вопрос и завершение хода, с подавлением при активности (presence).
-- Вложения из веба: upload на сервер → клиент скачивает → `@`-ссылка.
+### 1.6 Relay, Remote Control, tunnels
+- **Relay:** the client opens an outbound SSE + POST (or WS). Envelope `{seq, sessionId, epoch, uuid, type, payload}`, payload is the SDK protocol.
+  - Heartbeat ~20 s, reconnect with jitter, dedup by UUID.
+  - **Epoch** displaces the old connection.
+  - **FlushGate:** on connect, history first, then live.
+  - Batching, close codes.
+- **Remote control:** enabled by default for all sessions of a logged-in client (configurable). The session is visible on the web and controlled from there. Permission prompts and questions go to every client; the first answer wins.
+- **Spawn:** `harness daemon` registers the machine. From the web: "new session on machine X in folder Y" (allowed roots only).
+- **Tunnels:** preview `https://<id>.preview.<host>` → a port on the client's machine via relay, accessible to the owner only. Terminal on the web — the client's PTY via relay.
+- **Push:** Web Push on permission, question and turn completion, suppressed on activity (presence).
+- Attachments from the web: upload to the server → the client downloads → `@` reference.
 
 ```yaml
 # docker-compose.yml
@@ -177,149 +177,149 @@ services:
 
 ---
 
-## 2. Клиент (`packages/client`, Go)
+## 2. Client (`packages/client`, Go)
 
-### 2.1 Агентный цикл
-- prompt → `gateway.messages` (стрим) → tool_use → permission → **локальное исполнение** → tool_result → повтор.
-- Read-only инструменты выполняются параллельно, мутирующие — последовательно. Пара tool_use/tool_result обязательна. `maxTurns`, бюджет (лимиты проверяет и сервер).
-- **Очередь и прерывания**, семантика 1:1 из interaction-flows:
-  - Enter во время хода ставит сообщение в очередь, оно вливается после tool calls.
-  - Ctrl+Enter — «сейчас».
-  - Esc отменяет инструмент (kill) и пишет `[Request interrupted by user]`.
-  - Немедленные команды (`/model`, `/effort`, `/status`, `/usage`, `/tasks`, `/rename`, `/btw`) идут вне очереди.
-- **Сборка контекста:**
-  - Prompt bundle (с сервера) + tools.
-  - Project context: CLAUDE.md/AGENTS.md из репо + user memory с сервера.
+### 2.1 Agent loop
+- prompt → `gateway.messages` (stream) → tool_use → permission → **local execution** → tool_result → repeat.
+- Read-only tools run in parallel, mutating ones sequentially. The tool_use/tool_result pair is mandatory. `maxTurns`, budget (limits are also checked by the server).
+- **Queue and interrupts**, 1:1 semantics from interaction-flows:
+  - Enter during a turn queues the message; it is merged in after tool calls.
+  - Ctrl+Enter — "now".
+  - Esc cancels the tool (kill) and writes `[Request interrupted by user]`.
+  - Immediate commands (`/model`, `/effort`, `/status`, `/usage`, `/tasks`, `/rename`, `/btw`) bypass the queue.
+- **Context assembly:**
+  - Prompt bundle (from the server) + tools.
+  - Project context: CLAUDE.md/AGENTS.md from the repo + user memory from the server.
   - Conversation.
-  - `DYNAMIC_BOUNDARY`: env машины и git-snapshot идут в первое user-сообщение.
-- **Compaction:** сначала обрезка tool outputs, затем суммаризация через gateway (`request-class: compaction`), анти-thrashing.
-- **Reminders** по шаблонам из бандла: CLAUDE.md, skills, agents, todo, file-changed, attribution, hooks, output style.
-- **Офлайн:** без сервера нет LLM, поэтому нового хода нет. История, `/resume`, просмотр и rewind кода работают из локального кэша. Обрыв посреди хода → ретраи gateway-клиента, затем сессия переходит в «ожидание соединения».
+  - `DYNAMIC_BOUNDARY`: machine env and the git snapshot go into the first user message.
+- **Compaction:** first trimming tool outputs, then summarization via the gateway (`request-class: compaction`), anti-thrashing.
+- **Reminders** from bundle templates: CLAUDE.md, skills, agents, todo, file-changed, attribution, hooks, output style.
+- **Offline:** without the server there is no LLM, so no new turn. History, `/resume`, viewing and code rewind work from the local cache. A drop mid-turn → gateway-client retries, then the session goes into "waiting for connection".
 
-### 2.2 Инструменты (исполняются локально; описания — из prompt bundle)
+### 2.2 Tools (executed locally; descriptions come from the prompt bundle)
 
-| Волна | Инструменты |
+| Wave | Tools |
 |---|---|
-| **M0** | `Read`, `Write`, `Edit`, `Bash` (cwd переживает вызовы, env — нет; shell-snapshot; 2/10 мин; вывод больше 30K символов → файл + превью; exit 1 для `grep/rg/find/diff/test/git diff` не ошибка), `Glob`, `Grep` |
-| **M1** | `AskUserQuestion`, `EnterPlanMode`/`ExitPlanMode`, `TodoWrite`, фоновый Bash + `TaskStop` |
-| **M3** | `Agent` (субагенты, `model` — любая модель из каталога сервера), `Skill`, `WebFetch` (fetch локально, суммаризация через gateway), `WebSearch` (через сервер), `ToolSearch`, MCP-инструменты, `NotebookEdit` |
+| **M0** | `Read`, `Write`, `Edit`, `Bash` (cwd survives calls, env does not; shell snapshot; 2/10 min; output over 30K characters → file + preview; exit 1 for `grep/rg/find/diff/test/git diff` is not an error), `Glob`, `Grep` |
+| **M1** | `AskUserQuestion`, `EnterPlanMode`/`ExitPlanMode`, `TodoWrite`, background Bash + `TaskStop` |
+| **M3** | `Agent` (subagents, `model` — any model from the server catalog), `Skill`, `WebFetch` (fetch locally, summarization via the gateway), `WebSearch` (via the server), `ToolSearch`, MCP tools, `NotebookEdit` |
 | **M4** | `EnterWorktree`/`ExitWorktree`, `Monitor`, `Cron*`/`ScheduleWakeup`, `SendMessage`/`ListAgents`, `LSP`, `PushNotification`, `SendUserFile` |
 
-### 2.3 Permissions (решает клиент, сервер обойти не может)
-- Режимы `default`, `acceptEdits`, `plan`, `dontAsk`, `bypassPermissions`. Позже `auto` (классификатор через gateway).
-- Движок правил `Tool(spec)`: deny → ask → allow, разбор составных Bash, снятие обёрток, gitignore-глобы.
-- Источники по приоритету: **политики admin (сервер)** → CLI-флаги → `.claude/settings.local.json` → `.claude/settings.json` → **user-правила (сервер)**.
-- Read-only allowlist, protected paths, workspace trust (проектные hooks и `.mcp.json` применяются только после подтверждения на этой машине).
-- Remote control и spawn из веба не обходят permissions. Режим bypass не включается удалённо.
+### 2.3 Permissions (decided by the client; the server cannot bypass them)
+- Modes `default`, `acceptEdits`, `plan`, `dontAsk`, `bypassPermissions`. Later `auto` (classifier via the gateway).
+- `Tool(spec)` rule engine: deny → ask → allow, parsing compound Bash, stripping wrappers, gitignore globs.
+- Sources by priority: **admin policies (server)** → CLI flags → `.claude/settings.local.json` → `.claude/settings.json` → **user rules (server)**.
+- Read-only allowlist, protected paths, workspace trust (project hooks and `.mcp.json` apply only after confirmation on this machine).
+- Remote control and spawn from the web do not bypass permissions. Bypass mode cannot be enabled remotely.
 
-### 2.4 Сессии
-- Локальный JSONL CC-формата (`~/.harness/projects/<slug>/<id>.jsonl`) + стрим событий на сервер. Сервер хранит копию для списка, поиска, веба и resume на другой машине (если тот же репозиторий доступен).
+### 2.4 Sessions
+- Local CC-format JSONL (`~/.harness/projects/<slug>/<id>.jsonl`) + event stream to the server. The server keeps a copy for the list, search, the web and resume on another machine (if the same repository is available).
 - `--continue`/`--resume`, `/branch`, fork.
-- `/rewind`: code+conv / conv / code / summarize. Checkpoints файлов **локально** (`~/.harness/file-history/`) — это данные о ФС машины.
-- AI-заголовки через gateway (`request-class: auxiliary`).
+- `/rewind`: code+conv / conv / code / summarize. File checkpoints are **local** (`~/.harness/file-history/`) — this is data about the machine's filesystem.
+- AI titles via the gateway (`request-class: auxiliary`).
 
-### 2.5 Расширяемость
-- Memory, skills, agents, commands, output styles, hooks: **user-уровень с сервера**, **проектный уровень из репозитория** (`.claude/`, `.harness/`, CLAUDE.md, AGENTS.md, rules с `paths`, `@import`).
-- **Hooks:** `command` исполняются локально, `http` — с клиента.
-- **MCP:** конфиги и авторизация — с сервера (раздел 1.5). Remote MCP вызываются через серверный прокси. stdio запускается локально с секретами, выданными в момент запуска, после локального подтверждения на устройстве. Свой `ToolSearch` поверх серверного кэша схем.
-- **Plugins/marketplace** — M4, каталог на сервере.
+### 2.5 Extensibility
+- Memory, skills, agents, commands, output styles, hooks: **user level from the server**, **project level from the repository** (`.claude/`, `.harness/`, CLAUDE.md, AGENTS.md, rules with `paths`, `@import`).
+- **Hooks:** `command` ones run locally, `http` ones from the client.
+- **MCP:** configs and authorization — from the server (section 1.5). Remote MCPs are called through the server proxy. stdio runs locally with secrets issued at launch, after local confirmation on the device. Own `ToolSearch` on top of the server schema cache.
+- **Plugins/marketplace** — M4, catalog on the server.
 
-### 2.6 Входы
-Бинарь `harness-client` (из `packages/client`) — headless-ядро. Бинарь `harness` (из `packages/cli`) — TUI поверх того же Go-пакета и те же подкоманды.
+### 2.6 Entry points
+The `harness-client` binary (from `packages/client`) is the headless core. The `harness` binary (from `packages/cli`) is the TUI on top of the same Go package and the same subcommands.
 - `harness login <url>` / `logout` / `whoami`.
-- `harness` — TUI в cwd. `harness -p … --output-format stream-json [--input-format stream-json]` (или `harness-client -p …`) — headless и SDK. Через него с клиентом говорит desktop.
-- `harness daemon` — машина доступна для spawn из веба.
-- `harness ssh user@host:/path` — залить или обновить бинарь, сессия по stdio через SSH. Токен для remote выдаётся отдельный, короткоживущий, привязанный к сессии.
+- `harness` — TUI in cwd. `harness -p … --output-format stream-json [--input-format stream-json]` (or `harness-client -p …`) — headless and SDK. Desktop talks to the client through it.
+- `harness daemon` — the machine is available for spawn from the web.
+- `harness ssh user@host:/path` — upload or update the binary, session over stdio via SSH. The remote gets a separate, short-lived token bound to the session.
 - `harness import claude`, `harness mcp …`, `harness doctor`.
 
 ---
 
-## 3. Desktop и mobile (оболочки вокруг `packages/ui`)
-- **Desktop:** нативная оболочка (Tauri 2 или Electron) + `packages/ui` с транспортом `ipc`. Go-клиент поставляется как sidecar-бинарь. Логин тот же (device-flow или встроенный браузер).
-- **Mobile:** тот же `packages/ui`. Локального исполнения нет, только транспорт `relay`: просмотр и управление сессиями, ответы на permission и вопросы, push.
-- **Подпроцесс на сессию:** `harness-client -p --input-format stream-json --output-format stream-json --resume <id>`. Health-check, единый реестр stdio-MCP на хост.
-- **SSH:** ключи клиента (`~/.ssh/config`, agent, ProxyJump) → bootstrap бинаря на remote → stdio по SSH-каналу. Remote-раннер ходит в gateway с выданным desktop'ом токеном сессии.
-- Нативное: выбор папки, уведомления, трей, deep links, автообновление, open in editor.
+## 3. Desktop and mobile (shells around `packages/ui`)
+- **Desktop:** a native shell (Tauri 2 or Electron) + `packages/ui` with the `ipc` transport. The Go client ships as a sidecar binary. Same login (device-flow or embedded browser).
+- **Mobile:** the same `packages/ui`. No local execution, only the `relay` transport: viewing and controlling sessions, answering permissions and questions, push.
+- **Subprocess per session:** `harness-client -p --input-format stream-json --output-format stream-json --resume <id>`. Health check, a single stdio-MCP registry per host.
+- **SSH:** client keys (`~/.ssh/config`, agent, ProxyJump) → bootstrap the binary on the remote → stdio over the SSH channel. The remote runner reaches the gateway with the session token issued by desktop.
+- Native: folder picker, notifications, tray, deep links, auto-update, open in editor.
 
-## 4. UI (`packages/ui`, Nuxt 4 + Nuxt UI v4) — общий для desktop, mobile и web (дизайн будет предоставлен отдельно)
+## 4. UI (`packages/ui`, Nuxt 4 + Nuxt UI v4) — shared by desktop, mobile and web (design to be provided separately)
 
-Каркас — `UDashboardGroup` + `UDashboardSidebar` + resizable `UDashboardPanel`. Чат — `UChatMessages` / `UChatPrompt`, markdown — MDC + Shiki.
+The skeleton is `UDashboardGroup` + `UDashboardSidebar` + resizable `UDashboardPanel`. Chat — `UChatMessages` / `UChatPrompt`, markdown — MDC + Shiki.
 
-- **Сайдбар** (данные с сервера, на любой машине одни и те же):
-  - `+ New session`, Pinned/Recents, фильтры по проекту, машине и статусу.
-  - Строка: `repo / заголовок`, статус, машина, `+N −M`, PR-бейдж, unread.
-- **New session:** где (эта машина / SSH-хост / машина с daemon) → папка (+ worktree) → модель (каталог сервера) → режим.
-- **Транскрипт:**
-  - Свёрнутые tool calls, Normal/Thinking/Verbose (Ctrl+O), «Run in background».
-  - Inline-диффы, кликабельные пути, hover: copy/rewind/fork.
-- **Карточки:**
-  - permission («Yes / Yes, don't ask again for `<pattern>` / No» + комментарий, «2 of 5»);
+- **Sidebar** (data from the server, the same on any machine):
+  - `+ New session`, Pinned/Recents, filters by project, machine and status.
+  - Row: `repo / title`, status, machine, `+N −M`, PR badge, unread.
+- **New session:** where (this machine / SSH host / machine with daemon) → folder (+ worktree) → model (server catalog) → mode.
+- **Transcript:**
+  - Collapsed tool calls, Normal/Thinking/Verbose (Ctrl+O), "Run in background".
+  - Inline diffs, clickable paths, hover: copy/rewind/fork.
+- **Cards:**
+  - permission ("Yes / Yes, don't ask again for `<pattern>` / No" + comment, "2 of 5");
   - AskUserQuestion;
-  - план;
-  - лимит, квота или ретрай;
-  - машина офлайн;
-  - межсессионное сообщение.
+  - plan;
+  - limit, quota or retry;
+  - machine offline;
+  - inter-session message.
 - **Pinned task list. Prompt:**
-  - Очередь с ✕, Stop.
-  - `@`-файлы, `/`-меню, вложения.
-  - Пикеры Model/Effort/Mode, кольцо контекста, usage и квота.
-- **Панели:** Tasks, Diff (комментарии, Review, Create PR), Plan, Subagent, Terminal (PTY открывает Go-клиент; desktop — через ipc, web/mobile — через relay), File, Preview (туннель), split view, side chat, status footer.
-- **Аккаунт (пользователь):** профиль, устройства и токены, settings, memory, skills, agents, commands, output styles, MCP-коннекторы, usage.
-- **Admin:** пользователи и роли, провайдеры и ключи, каталог моделей и слоты, **prompt registry** (редактор, версии, оверрайды под модель, предпросмотр), политики, квоты, usage по пользователям.
+  - Queue with ✕, Stop.
+  - `@` files, `/` menu, attachments.
+  - Model/Effort/Mode pickers, context ring, usage and quota.
+- **Panels:** Tasks, Diff (comments, Review, Create PR), Plan, Subagent, Terminal (the PTY is opened by the Go client; desktop — via ipc, web/mobile — via relay), File, Preview (tunnel), split view, side chat, status footer.
+- **Account (user):** profile, devices and tokens, settings, memory, skills, agents, commands, output styles, MCP connectors, usage.
+- **Admin:** users and roles, providers and keys, model catalog and slots, **prompt registry** (editor, versions, per-model overrides, preview), policies, quotas, usage by user.
 
 ---
 
-## 5. Дорожная карта
+## 5. Roadmap
 
-Порядок: **ядро (`core` + `client`) → фронтенды (`cli`, `ui`) → деплой.** До фронтендов всё проверяется тестами и headless-режимом `harness-client -p`.
+Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** Until the frontends exist, everything is verified by tests and the headless `harness-client -p` mode.
 
-### M0 — Скелет core + client (≈3 нед.)
-1. `docs/protocol/`: gateway API, формат событий стрима, SDK-протокол (stdio NDJSON), auth/device-flow.
-2. **core (Nitro v3):** Better Auth (admin + пользователи), device-flow, провайдеры с шифрованием ключей, каталог моделей, gateway `POST /api/llm/messages` (SSE) с адаптерами Anthropic и OpenAI-chat. **Контрактные тесты на фикстурах** (Anthropic, OpenAI, DeepSeek, OpenRouter, vLLM/Ollama). Prompt registry v0: бандл из файлов, отдача по ETag.
-3. **client (Go):** `login` (device-flow), загрузка prompt bundle, агентный цикл через gateway, `Read/Write/Edit/Bash/Glob/Grep`, простые permissions, локальный JSONL, headless `-p` со stream-json in/out.
+### M0 — Skeleton of core + client (≈3 weeks)
+1. `docs/protocol/`: gateway API, stream event format, SDK protocol (stdio NDJSON), auth/device-flow.
+2. **core (Nitro v3):** Better Auth (admin + users), device-flow, providers with key encryption, model catalog, gateway `POST /api/llm/messages` (SSE) with Anthropic and OpenAI-chat adapters. **Contract tests on fixtures** (Anthropic, OpenAI, DeepSeek, OpenRouter, vLLM/Ollama). Prompt registry v0: bundle from files, served by ETag.
+3. **client (Go):** `login` (device-flow), prompt bundle loading, agent loop via the gateway, `Read/Write/Edit/Bash/Glob/Grep`, simple permissions, local JSONL, headless `-p` with stream-json in/out.
 
-**Готово, когда** core запущен локально (`pnpm dev`), admin добавил ключи Claude и любого OpenAI-совместимого провайдера, а `harness-client -p "почини тест" --output-format stream-json` в папке проекта чинит тест на обеих моделях. Ключей на машине при этом нет.
+**Done when** core runs locally (`pnpm dev`), an admin has added Claude keys and keys for any OpenAI-compatible provider, and `harness-client -p "fix the test" --output-format stream-json` in a project folder fixes the test on both models. No keys are on the machine.
 
-### M1 — Паритет ядра + sync (≈4 нед.)
-- client: permissions-движок, режимы, trust, plan mode, AskUserQuestion, TodoWrite, очередь и прерывания (через control-запросы), фоновый Bash.
-- client: сборка контекста, reminders, compaction, checkpoints/rewind, resume/fork.
-- core: слоты, effort, capability negotiation, fallback, usage и квоты.
-- core + client: **sync API** (settings, user memory, user-правила, сессии), `import claude`.
+### M1 — Core parity + sync (≈4 weeks)
+- client: permissions engine, modes, trust, plan mode, AskUserQuestion, TodoWrite, queue and interrupts (via control requests), background Bash.
+- client: context assembly, reminders, compaction, checkpoints/rewind, resume/fork.
+- core: slots, effort, capability negotiation, fallback, usage and quotas.
+- core + client: **sync API** (settings, user memory, user rules, sessions), `import claude`.
 
-### M2 — Расширяемость + relay (≈4 нед.)
-- Skills, agents/subagents, commands, output styles (сервер + репо), hooks, WebFetch/WebSearch.
-- **MCP через сервер:** реестр, OAuth и секреты, прокси для remote, выдача секретов для stdio, per-device подтверждение, кэш схем + ToolSearch.
-- Relay и remote control в core и client: зеркало сессий, ответы на permission из любого подключения, spawn через `daemon`, туннели (preview, PTY).
+### M2 — Extensibility + relay (≈4 weeks)
+- Skills, agents/subagents, commands, output styles (server + repo), hooks, WebFetch/WebSearch.
+- **MCP via the server:** registry, OAuth and secrets, proxy for remote, secret issuance for stdio, per-device confirmation, schema cache + ToolSearch.
+- Relay and remote control in core and client: session mirroring, permission answers from any connection, spawn via `daemon`, tunnels (preview, PTY).
 
-### M3 — Фронтенды
-- **cli (Go, тулчейн charm.land):** TUI 1:1 с Claude Code. Перед разработкой — визуальный ресёрч: живые сессии `claude` в терминале, снимки всех состояний (стрим, tool calls, permission-промпты, очередь, `/`-меню, статус-строка, диффы, спиннеры), truecolor и ANSI-fallback.
-- **ui (Nuxt UI):** по присланному дизайну. Сайдбар, транскрипт, карточки, prompt, панели. Desktop-оболочка с sidecar-клиентом, mobile.
-- Admin-экраны: провайдеры, модели, prompt registry, пользователи, политики, usage.
+### M3 — Frontends
+- **cli (Go, charm.land toolchain):** TUI 1:1 with Claude Code. Before development — visual research: live `claude` sessions in a terminal, snapshots of all states (stream, tool calls, permission prompts, queue, `/` menu, status line, diffs, spinners), truecolor and ANSI fallback.
+- **ui (Nuxt UI):** per the supplied design. Sidebar, transcript, cards, prompt, panels. Desktop shell with the sidecar client, mobile.
+- Admin screens: providers, models, prompt registry, users, policies, usage.
 
-### M4 — Деплой и продвинутое
-- Docker-образ core, compose, бэкапы, обновления клиентов (self-update бинарей, авто-обновление на SSH-хостах).
-- Git-панели и PR/CI, worktrees, sandbox-runtime, auto mode, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, A/B промптов.
+### M4 — Deployment and advanced
+- Core Docker image, compose, backups, client updates (binary self-update, auto-update on SSH hosts).
+- Git panels and PR/CI, worktrees, sandbox runtime, auto mode, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
 
 ---
 
-## 6. Риски
+## 6. Risks
 
-| Риск | Митигация |
+| Risk | Mitigation |
 |---|---|
-| Сервер — единая точка отказа (без него нет LLM) | Простой деплой и бэкапы volume. Клиент переживает короткие обрывы (ретраи, ожидание соединения). Локальная история доступна офлайн |
-| Латентность и стрим через gateway | Gateway — тонкий стрим-прокси без буферизации, ping, сервер рядом с провайдерами |
-| Компрометация сервера → управление машинами | Permissions решает клиент. Bypass удалённо не включается. Spawn — только в разрешённых корнях. Hooks и MCP с сервера требуют локального trust. Отзыв устройств |
-| Обновление промптов ломает поведение | Версии, бандл заморожен в сессии, откат, предпросмотр, eval-набор задач перед публикацией |
-| Зоопарк «OpenAI-совместимых» эндпоинтов | Capability-профили на сервере, контрактные тесты, negotiation, оверрайды промптов под модель |
-| Секреты stdio-MCP на устройстве (процессу они нужны в открытом виде) | Выдача только в момент запуска, только в память, не на диск. Отзыв устройства → отзыв выдачи. Где возможно — remote MCP через серверный прокси вместо stdio |
-| Конфликты синка (правка с двух машин) | Версии документов, 409 + merge, для memory — последняя запись с историей версий |
-| Prompt cache ломается → дорого | Бандл заморожен на сессию, стабильный префикс, deferred MCP, метрика cache hit |
-| Юридический | Clean-room, свои промпты, совместимость только форматов и протоколов |
+| The server is a single point of failure (no LLM without it) | Simple deployment and volume backups. The client survives short drops (retries, waiting for connection). Local history is available offline |
+| Latency and streaming through the gateway | The gateway is a thin streaming proxy with no buffering, with ping, and the server sits close to the providers |
+| Server compromise → control of machines | Permissions are decided by the client. Bypass cannot be enabled remotely. Spawn — only in allowed roots. Hooks and MCP from the server require local trust. Device revocation |
+| A prompt update breaks behavior | Versions, bundle frozen within a session, rollback, preview, an eval task set before publishing |
+| Zoo of "OpenAI-compatible" endpoints | Capability profiles on the server, contract tests, negotiation, per-model prompt overrides |
+| stdio-MCP secrets on the device (the process needs them in plaintext) | Issued only at launch, memory only, never to disk. Device revocation → revocation of issuance. Where possible, remote MCP through the server proxy instead of stdio |
+| Sync conflicts (edits from two machines) | Document versions, 409 + merge; for memory — last write wins with version history |
+| Prompt cache breaks → expensive | Bundle frozen per session, stable prefix, deferred MCP, cache-hit metric |
+| Legal | Clean-room, own prompts, compatibility of formats and protocols only |
 
-## 7. Открытые вопросы (выбраны дефолты)
+## 7. Open questions (defaults chosen)
 
-1. ~~Локальный провайдер в обход сервера~~ — **решено: нет, все LLM-вызовы только через gateway сервера.** Клиент не умеет говорить с провайдерами напрямую. Локальные модели (vLLM/Ollama) подключаются как провайдер на сервере: они должны быть доступны из сети сервера, admin явно разрешает приватные адреса.
-2. Хранить полные транскрипты на сервере всегда (дефолт) или только метаданные + опционально контент.
-3. Оболочка desktop + mobile: **Tauri 2** (дефолт: одна оболочка на desktop и iOS/Android, Go-клиент как sidecar) или Electron + Capacitor.
-4. OpenAI Responses API в M0 или позже.
-5. Бэкенд WebSearch на сервере (Brave, Tavily, SearXNG, нативный у провайдера).
+1. ~~Local provider bypassing the server~~ — **decided: no, all LLM calls go only through the server gateway.** The client cannot talk to providers directly. Local models (vLLM/Ollama) connect as a provider on the server: they must be reachable from the server's network, and the admin explicitly allows private addresses.
+2. Always store full transcripts on the server (default) or only metadata + optional content.
+3. Desktop + mobile shell: **Tauri 2** (default: one shell for desktop and iOS/Android, Go client as a sidecar) or Electron + Capacitor.
+4. OpenAI Responses API in M0 or later.
+5. WebSearch backend on the server (Brave, Tavily, SearXNG, provider-native).

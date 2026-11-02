@@ -1,12 +1,13 @@
 # Prompt bundle
 
-Промпты живут на сервере (prompt registry). Клиент собирает из них запрос к модели. Своих текстов промптов у клиента нет, кроме аварийного минимального fallback на случай первого запуска без сети.
+Prompts live on the server in the prompt registry, and the client assembles model requests from them. The client has no prompt texts of its own, except a minimal emergency fallback for a first run without network access.
 
 ## `GET /api/prompts/bundle?model=<model_id>`
-- Требует `Authorization`.
-- Поддерживает `If-None-Match`: ответ `304`, если бандл не менялся.
-- Ответ содержит `ETag` с версией.
-- Сервер уже применил оверрайды под модель: клиент получает готовые тексты для конкретной модели.
+
+- Requires `Authorization`.
+- Supports `If-None-Match` and returns `304` when the bundle hasn't changed.
+- The `ETag` carries the bundle version.
+- Model overrides are already applied: the client receives final texts for the requested model.
 
 ```json
 {
@@ -40,12 +41,12 @@
 }
 ```
 
-## Правила
+## Rules
 
-- Секции `system` до `__dynamic_boundary__` — статика: клиент кладёт её в `system` с `cache: true` на последнем блоке. Секции после маркера — динамика, клиент подставляет плейсхолдеры.
-- Плейсхолдеры: `{{name}}`. Неизвестный плейсхолдер клиент оставляет пустым и пишет предупреждение в лог.
-- `tools` задаёт описание и схему каждого инструмента. **Семантику исполнения** реализует клиент, она описана в `docs/PLAN.md` §2.2 и должна совпадать с текстом описания. Инструменты, которых нет в бандле, клиент модели не отдаёт.
-- **Внутри сессии бандл заморожен.** Клиент запоминает `version` при старте сессии и использует ту же версию до конца сессии или до compaction. Иначе ломается prompt cache.
-- Кэш на клиенте: `~/.harness/cache/prompts/<model>/<version>.json`. Если сервер недоступен, берётся последний закэшированный бандл. Нового хода без сервера всё равно нет: LLM тоже за сервером.
-- M0: сервер отдаёт бандл, собранный из файлов `packages/core/prompts/**`. Редактор и версии в БД появятся в M2.
-- Тексты промптов пишем сами (clean-room). Дословно из Claude Code не копируем.
+- **Static and dynamic parts.** `system` sections before `__dynamic_boundary__` are static: the client puts them into `system` with `cache: true` on the last block. Sections after the marker are dynamic; the client fills in their placeholders.
+- **Placeholders** use `{{name}}`. The client leaves an unknown placeholder empty and logs a warning.
+- **Tools.** `tools` defines the description and schema of each tool. The client implements the **execution semantics**, which are specified in [`docs/PLAN.md`](../PLAN.md) §2.2 and must match the description text. The client doesn't expose a tool to the model unless the bundle defines it.
+- **Frozen per session.** The client records `version` when a session starts and keeps using it until the session ends or is compacted. Switching mid-session breaks the prompt cache.
+- **Client cache.** Bundles are cached at `~/.harness/cache/prompts/<model>/<version>.json`. If the server is unreachable, the client uses the last cached bundle. A new turn still can't run without the server, because the LLM is behind it too.
+- **M0 source.** The server builds the bundle from files under `packages/core/prompts/**`. An editor and DB-backed versions arrive in M2.
+- **Clean-room.** We write prompt texts ourselves and never copy Claude Code's prompts verbatim.

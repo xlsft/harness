@@ -1,53 +1,54 @@
-# Auth: device-flow и токены
+# Auth: device flow and tokens
 
-Веб-логин — обычная сессия Better Auth (cookie). Клиенты (CLI, desktop, SSH-раннеры) получают **токен устройства** через device-flow по образцу RFC 8628.
+Web sign-in is a regular Better Auth session (cookie). Clients — CLI, desktop and SSH runners — get a **device token** through a device flow modeled on RFC 8628.
 
-## Device-flow
+## Device flow
 
 ### 1. `POST /api/auth/device/code`
 ```json
-// запрос
+// request
 { "client_name": "harness-client", "device_name": "macbook-pro", "os": "darwin", "arch": "arm64" }
-// ответ 200
+// 200 response
 { "device_code": "…", "user_code": "WDJB-MJHT", "verification_uri": "https://host/device",
   "verification_uri_complete": "https://host/device?code=WDJB-MJHT", "expires_in": 600, "interval": 5 }
 ```
 
-### 2. Пользователь открывает `verification_uri` в браузере
-Логинится, видит имя устройства и подтверждает.
+### 2. The user opens `verification_uri` in a browser
+They sign in, see the device name and approve it.
 
-### 3. `POST /api/auth/device/token`, клиент опрашивает каждые `interval` секунд
+### 3. `POST /api/auth/device/token`, polled by the client every `interval` seconds
 ```json
-// запрос
+// request
 { "device_code": "…" }
-// ответ 400, пока не подтверждено
-{ "error": { "type": "authorization_pending" } }   // также: "slow_down" (+5 с к интервалу), "expired_token", "access_denied"
-// ответ 200
+// 400 while not yet approved
+{ "error": { "type": "authorization_pending" } }   // also: "slow_down" (add 5 s to the interval), "expired_token", "access_denied"
+// 200 response
 { "device_id": "dev_…", "device_token": "hdt_…", "access_token": "hat_…", "access_expires_in": 3600,
   "user": { "id": "usr_…", "email": "…", "name": "…", "role": "admin | user" } }
 ```
 
-## Токены
+## Tokens
 
-| Токен | Назначение | Срок | Хранение на клиенте |
+| Token | Purpose | Lifetime | Client-side storage |
 |---|---|---|---|
-| `device_token` (`hdt_…`) | Только обмен на access-токен | До отзыва | OS keychain, fallback `~/.harness/credentials.json` (0600) |
-| `access_token` (`hat_…`) | Все API-запросы: `Authorization: Bearer hat_…` | 1 час | В памяти |
+| `device_token` (`hdt_…`) | Only exchanged for access tokens | Until revoked | OS keychain; fallback `~/.harness/credentials.json` (mode 0600) |
+| `access_token` (`hat_…`) | All API requests: `Authorization: Bearer hat_…` | 1 hour | Memory only |
 
 ### `POST /api/auth/device/refresh`
 ```json
-// запрос
+// request
 { "device_token": "hdt_…" }
-// ответ 200
+// 200 response
 { "access_token": "hat_…", "access_expires_in": 3600 }
-// ответ 401 → устройство отозвано, клиент удаляет credentials и просит `harness login`
+// 401 → the device was revoked: the client deletes its credentials and asks the user to run `harness login`
 ```
 
-Правила для клиента:
-- Обновлять токен заранее, за 5 минут до истечения.
-- На любой `401` делать один refresh и повторять запрос. Активный SSE-стрим при этом не рвётся.
+Client rules:
+- Refresh proactively, 5 minutes before expiry.
+- On any `401`, refresh once and retry the request. An open SSE stream is not interrupted.
 
-## Прочее
+## Other endpoints
+
 - `GET /api/auth/me` → `{ user, device: { id, name, created_at, last_seen_at } }`.
-- `POST /api/auth/device/logout` — отзыв текущего устройства.
-- Управление устройствами (список, отзыв) — в веб-UI. API для него будет описан позже.
+- `POST /api/auth/device/logout` revokes the current device.
+- Device management (list, revoke) lives in the web UI; its API will be specified later.
