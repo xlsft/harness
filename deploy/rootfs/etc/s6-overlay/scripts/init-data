@@ -1,0 +1,49 @@
+#!/command/with-contenv sh
+# One-shot, runs as root once per container start, before any long-running service:
+# lays out /data, fixes ownership, initializes the Postgres cluster and the SearXNG secret.
+set -eu
+LOG_TAG=init
+. /etc/s6-overlay/scripts/lib.sh
+
+mkdir -p /data
+chmod 0755 /data
+ensure_dir /data/core harness:harness 0750
+ensure_dir /data/searxng harness:harness 0750
+
+if internal_postgres; then
+  ensure_dir "$PGDATA" postgres:postgres 0700
+  mkdir -p "$PG_SOCKET_DIR"
+  chown postgres:postgres "$PG_SOCKET_DIR"
+  chmod 0755 "$PG_SOCKET_DIR"
+
+  if [ ! -s "$PGDATA/PG_VERSION" ]; then
+    log "initializing a new Postgres $PG_MAJOR cluster in $PGDATA"
+    s6-setuidgid postgres initdb -D "$PGDATA" --username=postgres --encoding=UTF8 \
+      --locale-provider=builtin --builtin-locale=C.UTF-8 \
+      --auth-local=peer --auth-host=scram-sha-256 >/dev/null
+  fi
+
+  found="$(cat "$PGDATA/PG_VERSION")"
+  if [ "$found" != "$PG_MAJOR" ]; then
+    log "ERROR: $PGDATA holds a Postgres $found cluster, this image runs Postgres $PG_MAJOR."
+    log "Upgrade the data first (see deploy/README.md, 'Upgrading'). Stopping the container."
+    exit 1
+  fi
+
+  # Nothing can be running at container start. A leftover pid file (after a SIGKILL) could name a
+  # PID that another process in this new container now holds, and Postgres would refuse to start.
+  rm -f "$PGDATA/postmaster.pid"
+else
+  log "DATABASE_URL points at an external database; the internal Postgres stays down"
+fi
+
+if internal_searxng; then
+  if [ ! -s /data/searxng/secret_key ]; then
+    log "generating the SearXNG secret key"
+    umask 077
+    od -An -tx1 -N32 /dev/urandom | tr -d ' \n' >/data/searxng/secret_key
+    chown harness:harness /data/searxng/secret_key
+  fi
+else
+  log "HARNESS_SEARXNG_URL points at an external SearXNG; the internal one stays down"
+fi
