@@ -1117,13 +1117,13 @@ export type GetSessionTranscriptRequest = Message<"harness.sync.v1.GetSessionTra
   /**
    * Default 500, max 2000.
    *
-   * Subagent transcript to page through; empty means the main thread.
-   *
    * @generated from field: int32 page_size = 3;
    */
   pageSize: number;
 
   /**
+   * Subagent transcript to page through; empty means the main thread.
+   *
    * @generated from field: string agent_id = 4;
    */
   agentId: string;

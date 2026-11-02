@@ -406,7 +406,8 @@ message GetSessionTranscriptRequest {
   string session_id = 1;
   int64 after_seq = 2;
   // Default 500, max 2000.
-  int32 page_size = 3; // Subagent transcript to page through; empty means the main thread.
+  int32 page_size = 3;
+  // Subagent transcript to page through; empty means the main thread.
   string agent_id = 4;
 }
 

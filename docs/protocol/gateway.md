@@ -19,7 +19,13 @@ The canonical model follows the Anthropic Messages API. Per upstream type:
   - `effort` → `reasoning_effort`;
   - `finish_reason`: `stop → END_TURN`, `tool_calls → TOOL_USE`, `length → MAX_TOKENS`, `content_filter → REFUSAL`;
   - `prompt_tokens_details.cached_tokens` → `cache_read_input_tokens`.
-- **OpenAI Responses:** later.
+- **OpenAI Responses** (provider type `openai-responses`):
+  - system blocks → `instructions`;
+  - tool_use / tool_result → `function_call` / `function_call_output` items;
+  - `effort` → `reasoning.effort`;
+  - requests use `store: false` and `include: ["reasoning.encrypted_content"]`, so no state is kept upstream;
+  - reasoning items become thinking blocks whose `signature` (prefix `oair1.`) encodes the encrypted item; it is replayed unchanged before the related function calls;
+  - signatures from other providers are dropped.
 
 ## Reliability
 
@@ -33,6 +39,15 @@ The canonical model follows the Anthropic Messages API. Per upstream type:
 - Usage is normalized (see `Usage` in content.proto), priced from the model catalog and recorded per user, device and session. `MessageStop.cost_usd` reports the cost of the message.
 - When a quota is exceeded, the server returns `RESOURCE_EXHAUSTED` with `ERROR_TYPE_QUOTA_EXCEEDED`.
 - `RequestMetadata.request_class` allows routing and accounting per class, for example sending compaction to a cheaper model.
+
+## Model discovery
+
+`POST /api/admin/providers/:id/discover` (admin JSON API) lists the upstream's models through the SSRF guard: Anthropic `/v1/models` (paginated), OpenAI-compatible `/models`. It returns candidates the admin can add to the catalog.
+
+## Limits
+
+- **Spend limits:** daily and monthly USD per role, with per-user overrides, plus a per-session budget (`/api/admin/quotas`; session default from `HARNESS_SESSION_BUDGET_USD`). They are checked before the upstream call. A request that started under the limit may overshoot it; the next one is rejected.
+- **Device endpoints:** the unauthenticated device-flow RPCs are rate-limited per client IP (`HARNESS_DEVICE_RATE_LIMIT_PER_MIN`, default 30; `HARNESS_TRUST_PROXY` to use the proxy-supplied address).
 
 ## Network safety
 
