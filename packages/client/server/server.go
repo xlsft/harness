@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -29,6 +30,7 @@ import (
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -74,11 +76,11 @@ func (s *Server) Handler() (string, http.Handler) {
 func (s *Server) Close() {
 	s.cancel()
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	for _, ls := range s.live {
-		ls.driver.Interrupt()
-		ls.driver.Wait()
-		ls.sess.Close()
+	live := s.live
+	s.live = map[string]*liveSession{}
+	s.mu.Unlock()
+	for _, ls := range live {
+		ls.close("host_shutdown")
 	}
 }
 
@@ -139,10 +141,10 @@ func (s *Server) Initialize(ctx context.Context, req *connect.Request[agentv1.In
 
 func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1.CreateSessionRequest]) (*connect.Response[agentv1.CreateSessionResponse], error) {
 	m := req.Msg
-	if m.GetFork() {
-		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("fork is not implemented yet"))
+	if m.GetFork() && m.GetResumeSessionId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("fork requires resume_session_id"))
 	}
-	if id := m.GetResumeSessionId(); id != "" {
+	if id := m.GetResumeSessionId(); id != "" && !m.GetFork() {
 		s.mu.Lock()
 		ls := s.live[id]
 		s.mu.Unlock()
@@ -165,11 +167,27 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if m.GetPermissionMode() != agentv1.PermissionMode_PERMISSION_MODE_UNSPECIFIED || opts.PermissionMode == "" {
 		opts.PermissionMode = mode
 	}
+	if e := pbconv.FromEffort(m.GetEffort()); e != "" {
+		opts.Effort = e
+	}
+	if n := m.GetMaxTurns(); n > 0 {
+		opts.MaxTurns = int(n)
+	}
+	for _, r := range append(append([]string(nil), m.GetAllowedTools()...), m.GetDisallowedTools()...) {
+		if err := permissions.ValidateRule(r); err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+	}
+	opts.AllowedTools = append(append([]string(nil), opts.AllowedTools...), m.GetAllowedTools()...)
+	opts.DisallowedTools = append(append([]string(nil), opts.DisallowedTools...), m.GetDisallowedTools()...)
+	opts.AdditionalDirs = append(append([]string(nil), opts.AdditionalDirs...), m.GetAdditionalDirectories()...)
 	opts.Resume = m.GetResumeSessionId()
+	opts.Fork = m.GetFork()
+	opts.ForkAtCheckpoint = m.GetForkAtCheckpointId()
 	if opts.Entrypoint == "" {
 		opts.Entrypoint = "agent-service"
 	}
-	ls := &liveSession{srv: s, hub: newHub(), pending: map[string]chan permissions.Decision{}, seen: map[string]bool{}, status: agentv1.SessionStatus_SESSION_STATUS_IDLE}
+	ls := newLiveSession(s)
 	opts.OnEvent = ls.onEvent
 	opts.Logger = s.log()
 	sess, err := bootstrap.Open(ctx, opts)
@@ -179,12 +197,17 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls.sess = sess
 	ls.branch = workspace.GitBranch(ctx, sess.Cwd)
 	ls.hub.sessionID = sess.ID
+	ls.title = sessionTitle(sess.Transcript.Path())
 	sess.Permissions.SetAsker(ls)
+	sess.Agent.SetInteractor(ls)
 	ls.driver = agent.NewDriver(s.ctx, sess.Agent, ls.onResult)
 	s.mu.Lock()
 	s.live[sess.ID] = ls
 	s.mu.Unlock()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+	if todos := sess.Agent.Todos(); len(todos) > 0 {
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TodosUpdated{TodosUpdated: &agentv1.TodosUpdated{Todos: todosToProto(todos)}}})
+	}
 	return connect.NewResponse(&agentv1.CreateSessionResponse{Session: ls.info()}), nil
 }
 
@@ -200,14 +223,15 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 				continue
 			}
 			id := strings.TrimSuffix(filepath.Base(f), ".jsonl")
-			out[id] = &agentv1.SessionInfo{Id: id, Cwd: cwd, Title: sessionTitle(f), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE, UpdatedAt: st.ModTime().UTC().Format(time.RFC3339)}
+			out[id] = &agentv1.SessionInfo{Id: id, Cwd: cwd, Title: sessionTitle(f), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
+				UpdatedAt: st.ModTime().UTC().Format(time.RFC3339), ParentSessionId: forkedFrom(f)}
 		}
 	}
 	s.mu.Lock()
 	for id, ls := range s.live {
 		if cwd == "" || ls.sess.Cwd == cwd {
 			info := ls.info()
-			if old, ok := out[id]; ok {
+			if old, ok := out[id]; ok && info.Title == "" {
 				info.Title = old.Title
 			}
 			out[id] = info
@@ -229,17 +253,37 @@ func sessionTitle(path string) string {
 		return ""
 	}
 	for _, e := range entries {
-		if e.Type != session.TypeUser || e.IsMeta || e.Message == nil {
+		if e.Type != session.TypeUser || e.IsMeta || e.IsCompactSummary || e.Message == nil || e.ToolUseResult != nil {
 			continue
 		}
-		for _, b := range e.Blocks() {
-			if b.Type == llm.BlockText && b.Text != "" {
-				t := strings.TrimSpace(strings.SplitN(b.Text, "\n", 2)[0])
-				if len(t) > 80 {
-					t = t[:80] + "…"
-				}
-				return t
+		if t := titleOf(e.Blocks()); t != "" {
+			return t
+		}
+	}
+	return ""
+}
+
+func titleOf(blocks []llm.ContentBlock) string {
+	for _, b := range blocks {
+		if b.Type == llm.BlockText && strings.TrimSpace(b.Text) != "" {
+			t := strings.TrimSpace(strings.SplitN(strings.TrimSpace(b.Text), "\n", 2)[0])
+			if len(t) > 80 {
+				t = t[:80] + "…"
 			}
+			return t
+		}
+	}
+	return ""
+}
+
+func forkedFrom(path string) string {
+	entries, err := session.Load(path)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if e.Type == session.TypeMeta && e.ForkedFrom != "" {
+			return e.ForkedFrom
 		}
 	}
 	return ""
@@ -275,6 +319,9 @@ func (s *Server) Subscribe(ctx context.Context, req *connect.Request[agentv1.Sub
 			return nil
 		case ev, ok := <-ch:
 			if !ok {
+				if ls.hub.isClosed() {
+					return nil
+				}
 				return connect.NewError(connect.CodeResourceExhausted, errors.New("subscriber too slow; resubscribe with after_seq"))
 			}
 			if err := stream.Send(&agentv1.SubscribeResponse{Event: ev}); err != nil {
@@ -302,6 +349,11 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
 		}
 	}
+	ls.mu.Lock()
+	if ls.title == "" {
+		ls.title = titleOf(content)
+	}
+	ls.mu.Unlock()
 	queued := ls.driver.Submit(content)
 	if queued {
 		ls.mu.Lock()
@@ -310,9 +362,12 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})
 		if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW {
-			// Interrupt so the queued message starts the next turn right away.
-			// TODO(M1): background running Bash instead of killing it.
-			ls.driver.Interrupt()
+			// Running shell commands move to the background so the message is
+			// read in this turn right after the tool calls; otherwise the turn
+			// is interrupted and the message starts the next one.
+			if !ls.sess.ToolEnv.Shell.BackgroundRunning() {
+				ls.driver.Interrupt()
+			}
 		}
 	}
 	return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
@@ -333,37 +388,95 @@ func (s *Server) RespondToPermission(ctx context.Context, req *connect.Request[a
 		return nil, err
 	}
 	m := req.Msg
+	if m.GetDecision() == agentv1.RespondToPermissionRequest_DECISION_UNSPECIFIED {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("decision is required"))
+	}
 	ls.mu.Lock()
-	ch := ls.pending[m.GetRequestId()]
-	delete(ls.pending, m.GetRequestId())
+	p := ls.pendingPerm[m.GetRequestId()]
+	delete(ls.pendingPerm, m.GetRequestId())
 	ls.mu.Unlock()
-	if ch == nil {
+	if p == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no pending permission request %s", m.GetRequestId()))
 	}
 	var d permissions.Decision
 	switch m.GetDecision() {
 	case agentv1.RespondToPermissionRequest_DECISION_ALLOW, agentv1.RespondToPermissionRequest_DECISION_ALLOW_ALWAYS:
 		d.Behavior = permissions.Allow
+		d.Comment = m.GetComment()
 		if j := m.GetUpdatedInputJson(); j != "" {
+			if !json.Valid([]byte(j)) {
+				ls.mu.Lock()
+				ls.pendingPerm[m.GetRequestId()] = p
+				ls.mu.Unlock()
+				return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("updated_input_json is not valid JSON"))
+			}
 			d.UpdatedInput = []byte(j)
 		}
-		if m.GetDecision() == agentv1.RespondToPermissionRequest_DECISION_ALLOW_ALWAYS && m.GetRule() != "" {
-			// TODO(M1): persist the rule to .claude/settings.local.json.
-			_ = ls.sess.Permissions.AllowAlways([]string{m.GetRule()})
+		if m.GetDecision() == agentv1.RespondToPermissionRequest_DECISION_ALLOW_ALWAYS {
+			rules := p.suggestions
+			if r := strings.TrimSpace(m.GetRule()); r != "" {
+				rules = []string{r}
+			}
+			if err := ls.sess.Permissions.AllowAlways(rules); err != nil {
+				ls.notice(agentv1.Notice_LEVEL_WARNING, "permission_rule_not_saved", err.Error())
+			}
 		}
 	case agentv1.RespondToPermissionRequest_DECISION_DENY:
 		d.Behavior = permissions.Deny
 		d.Message = m.GetComment()
 		// Without a comment the turn stops; with one the model continues.
 		d.Interrupt = m.GetComment() == ""
+	}
+	d.ResolvedBy = "user"
+	p.ch <- permissionAnswer{d: d, decision: m.GetDecision()}
+	return connect.NewResponse(&agentv1.RespondToPermissionResponse{}), nil
+}
+
+func (s *Server) AnswerQuestion(ctx context.Context, req *connect.Request[agentv1.AnswerQuestionRequest]) (*connect.Response[agentv1.AnswerQuestionResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	ls.mu.Lock()
+	ch := ls.pendingQ[req.Msg.GetRequestId()]
+	delete(ls.pendingQ, req.Msg.GetRequestId())
+	ls.mu.Unlock()
+	if ch == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no pending question %s", req.Msg.GetRequestId()))
+	}
+	var answers [][]string
+	for _, a := range req.Msg.GetAnswers() {
+		answers = append(answers, a.GetSelected())
+	}
+	ch <- answers
+	return connect.NewResponse(&agentv1.AnswerQuestionResponse{}), nil
+}
+
+func (s *Server) RespondToPlan(ctx context.Context, req *connect.Request[agentv1.RespondToPlanRequest]) (*connect.Response[agentv1.RespondToPlanResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	var d tools.PlanDecision
+	switch req.Msg.GetDecision() {
+	case agentv1.RespondToPlanRequest_DECISION_APPROVE_ACCEPT_EDITS:
+		d = tools.PlanApproveAcceptEdits
+	case agentv1.RespondToPlanRequest_DECISION_APPROVE_MANUAL:
+		d = tools.PlanApproveManual
+	case agentv1.RespondToPlanRequest_DECISION_KEEP_PLANNING:
+		d = tools.PlanKeepPlanning
 	default:
-		ls.mu.Lock()
-		ls.pending[m.GetRequestId()] = ch
-		ls.mu.Unlock()
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("decision is required"))
 	}
-	ch <- d
-	return connect.NewResponse(&agentv1.RespondToPermissionResponse{}), nil
+	ls.mu.Lock()
+	ch := ls.pendingPlan[req.Msg.GetRequestId()]
+	delete(ls.pendingPlan, req.Msg.GetRequestId())
+	ls.mu.Unlock()
+	if ch == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no pending plan %s", req.Msg.GetRequestId()))
+	}
+	ch <- planAnswer{resp: tools.PlanResponse{Decision: d, Feedback: req.Msg.GetFeedback()}, decision: req.Msg.GetDecision()}
+	return connect.NewResponse(&agentv1.RespondToPlanResponse{}), nil
 }
 
 func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetModelRequest]) (*connect.Response[agentv1.SetModelResponse], error) {
@@ -375,16 +488,16 @@ func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetM
 	if id == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("model is required"))
 	}
-	display := id
+	display, window := id, 0
 	if ls.sess.Catalog != nil {
 		m, ok := ls.sess.Catalog.Find(id)
 		if !ok {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown model %s", id))
 		}
-		display = m.DisplayName
+		display, window = m.DisplayName, m.ContextWindow
 	}
-	// TODO(M1): the prompt bundle is per model; the session keeps its frozen bundle.
-	ls.sess.Agent.SetModel(id, display)
+	// The session keeps its frozen prompt bundle until the next compaction.
+	ls.sess.Agent.SetModel(id, display, window)
 	ls.mu.Lock()
 	ls.sess.Model = id
 	ls.mu.Unlock()
@@ -413,8 +526,127 @@ func (s *Server) SetPermissionMode(ctx context.Context, req *connect.Request[age
 	if err := ls.sess.Permissions.SetMode(mode); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
 	return connect.NewResponse(&agentv1.SetPermissionModeResponse{}), nil
+}
+
+func (s *Server) SuggestFiles(ctx context.Context, req *connect.Request[agentv1.SuggestFilesRequest]) (*connect.Response[agentv1.SuggestFilesResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	limit := int(req.Msg.GetLimit())
+	if limit <= 0 {
+		limit = 20
+	}
+	files := ls.files.list(ctx, ls.sess.Cwd)
+	return connect.NewResponse(&agentv1.SuggestFilesResponse{Paths: FuzzyFilter(files, req.Msg.GetQuery(), limit)}), nil
+}
+
+func (s *Server) ListCheckpoints(ctx context.Context, req *connect.Request[agentv1.ListCheckpointsRequest]) (*connect.Response[agentv1.ListCheckpointsResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	resp := &agentv1.ListCheckpointsResponse{}
+	for _, c := range ls.sess.Agent.Checkpoints() {
+		resp.Checkpoints = append(resp.Checkpoints, checkpointToProto(c))
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *Server) Rewind(ctx context.Context, req *connect.Request[agentv1.RewindRequest]) (*connect.Response[agentv1.RewindResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	var mode agent.RewindMode
+	switch req.Msg.GetMode() {
+	case agentv1.RewindRequest_MODE_CODE_AND_CONVERSATION:
+		mode = agent.RewindCodeAndConversation
+	case agentv1.RewindRequest_MODE_CONVERSATION:
+		mode = agent.RewindConversation
+	case agentv1.RewindRequest_MODE_CODE:
+		mode = agent.RewindCode
+	case agentv1.RewindRequest_MODE_SUMMARIZE_FROM:
+		mode = agent.RewindSummarizeFrom
+	case agentv1.RewindRequest_MODE_SUMMARIZE_UP_TO:
+		mode = agent.RewindSummarizeUpTo
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("mode is required"))
+	}
+	var res agent.RewindResult
+	var rerr error
+	if err := ls.driver.Exclusive(func() {
+		res, rerr = ls.sess.Agent.Rewind(ctx, req.Msg.GetCheckpointId(), mode, req.Msg.GetSummaryInstructions())
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if rerr != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, rerr)
+	}
+	return connect.NewResponse(&agentv1.RewindResponse{Result: rewoundToProto(res)}), nil
+}
+
+func (s *Server) Compact(ctx context.Context, req *connect.Request[agentv1.CompactRequest]) (*connect.Response[agentv1.CompactResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	var cerr error
+	if err := ls.driver.Exclusive(func() {
+		_, cerr = ls.sess.Agent.Compact(ctx, req.Msg.GetInstructions())
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if cerr != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, cerr)
+	}
+	return connect.NewResponse(&agentv1.CompactResponse{}), nil
+}
+
+func (s *Server) ListTasks(ctx context.Context, req *connect.Request[agentv1.ListTasksRequest]) (*connect.Response[agentv1.ListTasksResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	resp := &agentv1.ListTasksResponse{}
+	if ls.sess.Tasks != nil {
+		for _, t := range ls.sess.Tasks.List() {
+			resp.Tasks = append(resp.Tasks, &agentv1.BackgroundTask{TaskId: t.ID, Command: t.Command, Description: t.Description,
+				OutputPath: t.OutputPath, Running: t.Running, ExitCode: int32(t.ExitCode), StartedAt: t.StartedAt.UTC().Format(time.RFC3339)})
+		}
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *Server) StopTask(ctx context.Context, req *connect.Request[agentv1.StopTaskRequest]) (*connect.Response[agentv1.StopTaskResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	if ls.sess.Tasks == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("no background tasks in this session"))
+	}
+	if _, err := ls.sess.Tasks.Stop(req.Msg.GetTaskId()); err != nil {
+		code := connect.CodeFailedPrecondition
+		if _, ok := ls.sess.Tasks.Get(req.Msg.GetTaskId()); !ok {
+			code = connect.CodeNotFound
+		}
+		return nil, connect.NewError(code, err)
+	}
+	return connect.NewResponse(&agentv1.StopTaskResponse{}), nil
+}
+
+func (s *Server) CloseSession(ctx context.Context, req *connect.Request[agentv1.CloseSessionRequest]) (*connect.Response[agentv1.CloseSessionResponse], error) {
+	s.mu.Lock()
+	ls := s.live[req.Msg.GetSessionId()]
+	delete(s.live, req.Msg.GetSessionId())
+	s.mu.Unlock()
+	if ls == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open", req.Msg.GetSessionId()))
+	}
+	ls.close("closed")
+	return connect.NewResponse(&agentv1.CloseSessionResponse{}), nil
 }
 
 func modeFromProto(m agentv1.PermissionMode) (permissions.Mode, error) {
@@ -447,174 +679,37 @@ func modeToProto(m permissions.Mode) agentv1.PermissionMode {
 	return agentv1.PermissionMode_PERMISSION_MODE_DEFAULT
 }
 
-// ---- live session ----
-
-type liveSession struct {
-	srv    *Server
-	sess   *bootstrap.Session
-	driver *agent.Driver
-	hub    *hub
-
-	mu        sync.Mutex
-	status    agentv1.SessionStatus
-	pending   map[string]chan permissions.Decision
-	queue     []*agentv1.UserMessage
-	seen      map[string]bool
-	messageID string
-	branch    string
-	updatedAt time.Time
-}
-
-func (ls *liveSession) info() *agentv1.SessionInfo {
-	ls.mu.Lock()
-	defer ls.mu.Unlock()
-	updated := ls.updatedAt
-	if updated.IsZero() {
-		updated = time.Now()
-	}
-	return &agentv1.SessionInfo{
-		Id: ls.sess.ID, Cwd: ls.sess.Cwd, Model: ls.sess.Agent.Model(), GitBranch: ls.branch,
-		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.status,
-		UpdatedAt: updated.UTC().Format(time.RFC3339),
-	}
-}
-
-func (ls *liveSession) publish(ev *agentv1.SessionEvent) {
-	ls.mu.Lock()
-	ls.updatedAt = time.Now()
-	ls.mu.Unlock()
-	ls.hub.publish(ev)
-}
-
-func (ls *liveSession) setStatus(st agentv1.SessionStatus) {
-	ls.mu.Lock()
-	changed := ls.status != st
-	ls.status = st
-	ls.mu.Unlock()
-	if changed {
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
-	}
-}
-
-// onEvent maps agent events to session events.
-func (ls *liveSession) onEvent(e agent.Event) {
-	switch e.Kind {
-	case agent.EventUser:
-		ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_WORKING)
-		// Tool results are reported through ToolCallFinished; only plain user
-		// content (prompts, injected queued messages, interrupt markers) is sent.
-		var content []llm.ContentBlock
-		for _, b := range e.Message.Content {
-			if b.Type != llm.BlockToolResult {
-				content = append(content, b)
-			}
+func todosToProto(ts []tools.Todo) []*agentv1.Todo {
+	out := make([]*agentv1.Todo, 0, len(ts))
+	for _, t := range ts {
+		st := agentv1.Todo_STATUS_PENDING
+		switch t.Status {
+		case "in_progress":
+			st = agentv1.Todo_STATUS_IN_PROGRESS
+		case "completed":
+			st = agentv1.Todo_STATUS_COMPLETED
 		}
-		if len(content) == 0 {
-			return
-		}
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(content)}}})
-	case agent.EventStream:
-		ls.onStream(e.Raw)
-	case agent.EventAssistant:
-		am := &agentv1.AssistantMessage{Content: pbconv.Blocks(e.Message.Content)}
-		if r := e.Response; r != nil {
-			am.MessageId, am.Model, am.StopReason, am.Usage = r.ID, r.Model, pbconv.StopReason(r.StopReason), pbconv.Usage(r.Usage)
-		}
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_AssistantMessage{AssistantMessage: am}})
-	case agent.EventToolStart:
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallStarted{ToolCallStarted: &agentv1.ToolCallStarted{
-			ToolUseId: e.ToolUseID, Name: e.ToolName, InputJson: string(e.Input), Summary: toolSummary(e.ToolName, e.Input, ls.sess.Cwd),
-		}}})
-	case agent.EventToolEnd:
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallFinished{ToolCallFinished: &agentv1.ToolCallFinished{
-			ToolUseId: e.ToolUseID, IsError: e.IsError, Interrupted: e.Interrupted, Content: pbconv.Blocks(e.Content), DurationMs: e.Duration.Milliseconds(),
-		}}})
-	case agent.EventQueueDrained:
-		ls.mu.Lock()
-		ls.queue = nil
-		ls.mu.Unlock()
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{}}})
-	case agent.EventRetry:
-		text := fmt.Sprintf("Retrying (attempt %d of %d) in %d ms", e.Retry.Attempt, e.Retry.MaxRetries, e.Retry.RetryDelayMs)
-		if e.Retry.Error != nil {
-			text += ": " + e.Retry.Error.Type
-		}
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_Notice{Notice: &agentv1.Notice{Level: agentv1.Notice_LEVEL_WARNING, Kind: "retry", Text: text}}})
+		out = append(out, &agentv1.Todo{Content: t.Content, ActiveForm: t.ActiveForm, Status: st})
 	}
+	return out
 }
 
-func (ls *liveSession) onResult(res agent.TurnResult) {
-	tf := &agentv1.TurnFinished{
-		NumTurns: int32(res.NumTurns), Usage: pbconv.Usage(res.Usage), CostUsd: res.CostUSD,
-		DurationMs: res.Duration.Milliseconds(), ErrorMessage: strings.Join(res.Errors, "; "),
-	}
-	switch {
-	case res.Interrupted:
-		tf.Result = agentv1.TurnFinished_RESULT_INTERRUPTED
-	case res.Subtype == agent.SubtypeSuccess:
-		tf.Result = agentv1.TurnFinished_RESULT_SUCCESS
-	case res.Subtype == agent.SubtypeErrorMaxTurns:
-		tf.Result = agentv1.TurnFinished_RESULT_ERROR_MAX_TURNS
-	default:
-		tf.Result = agentv1.TurnFinished_RESULT_ERROR_DURING_EXECUTION
-	}
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnFinished{TurnFinished: tf}})
-	if ls.srv.ctx.Err() == nil && ls.sess.Agent.QueueLen() == 0 {
-		ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_IDLE)
-	}
+func checkpointToProto(c agent.Checkpoint) *agentv1.Checkpoint {
+	return &agentv1.Checkpoint{Id: c.ID, UserMessageUuid: c.UserMessageUUID, PromptPreview: c.PromptPreview,
+		CreatedAt: c.CreatedAt.UTC().Format(time.RFC3339), HasCodeChanges: c.HasCodeChanges}
 }
 
-// Ask implements permissions.Asker: it publishes a PermissionRequest and
-// waits for RespondToPermission.
-func (ls *liveSession) Ask(ctx context.Context, req permissions.Request) (permissions.Decision, error) {
-	id := "perm_" + uuid.NewString()
-	ch := make(chan permissions.Decision, 1)
-	ls.mu.Lock()
-	ls.pending[id] = ch
-	ls.mu.Unlock()
-	defer func() {
-		ls.mu.Lock()
-		delete(ls.pending, id)
-		ls.mu.Unlock()
-	}()
-	pr := &agentv1.PermissionRequest{RequestId: id, ToolUseId: req.ToolUseID, ToolName: req.ToolName, InputJson: string(req.Input)}
-	if req.ToolName == "Bash" && req.Command != "" {
-		if f := strings.Fields(req.Command); len(f) > 0 {
-			pr.SuggestedRules = []string{"Bash(" + f[0] + " *)"}
-		}
-	} else {
-		pr.SuggestedRules = []string{req.ToolName}
+func rewoundToProto(r agent.RewindResult) *agentv1.Rewound {
+	modes := map[agent.RewindMode]agentv1.RewindRequest_Mode{
+		agent.RewindCodeAndConversation: agentv1.RewindRequest_MODE_CODE_AND_CONVERSATION,
+		agent.RewindConversation:        agentv1.RewindRequest_MODE_CONVERSATION,
+		agent.RewindCode:                agentv1.RewindRequest_MODE_CODE,
+		agent.RewindSummarizeFrom:       agentv1.RewindRequest_MODE_SUMMARIZE_FROM,
+		agent.RewindSummarizeUpTo:       agentv1.RewindRequest_MODE_SUMMARIZE_UP_TO,
 	}
-	ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_NEEDS_INPUT)
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionRequest{PermissionRequest: pr}})
-	defer ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_WORKING)
-	select {
-	case <-ctx.Done():
-		return permissions.Decision{}, ctx.Err()
-	case d := <-ch:
-		return d, nil
-	}
+	return &agentv1.Rewound{CheckpointId: r.CheckpointID, Mode: modes[r.Mode], FilesRestored: int32(r.FilesRestored),
+		FilesSkipped: int32(r.FilesSkipped), RestoredPrompt: r.RestoredPrompt}
 }
 
-// toolSummary renders a short label such as "Read src/main.go".
-func toolSummary(name string, input []byte, cwd string) string {
-	rel := func(p string) string {
-		if r, err := filepath.Rel(cwd, p); err == nil && !strings.HasPrefix(r, "..") {
-			return r
-		}
-		return p
-	}
-	switch name {
-	case "Read", "Write", "Edit":
-		return name + " " + rel(toolsFilePath(input))
-	case "Bash":
-		c := toolsBashCommand(input)
-		if len(c) > 80 {
-			c = c[:80] + "…"
-		}
-		return "Bash " + c
-	case "Glob", "Grep":
-		return name + " " + jsonField(input, "pattern")
-	}
-	return name
-}
+// newUUID returns a request id with a prefix.
+func newUUID(prefix string) string { return prefix + uuid.NewString() }
