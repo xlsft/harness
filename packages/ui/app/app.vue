@@ -22,6 +22,7 @@ async function connectDesktop() {
       phase.value = 'signin'
       return
     }
+    store.account = { name: status.name ?? '', server: status.server ?? '', role: status.role ?? '' }
     const ep = await agentEndpoint()
     await store.init(new ConnectTransport(ep.url, ep.token))
     endpointUrl = ep.url

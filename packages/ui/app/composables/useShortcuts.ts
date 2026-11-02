@@ -1,5 +1,5 @@
 // Global keyboard shortcuts (PLAN.md §4), where the browser lets us have them:
-// ⌘J terminal · ⌘⇧B browser · ⌘⇧E files · ⌘; side chat · ⌘B sidebar · ⌘N new session ·
+// ⌘J terminal · ⌘⇧B browser · ⌘⇧E files · ⌘; side chat · ⌘B sidebar · ⌘N new session · ⌘, settings ·
 // Esc interrupts the running turn (when no card or menu takes it) · ⇧Tab cycles the permission mode · Ctrl+O verbose transcript.
 import type { PermissionModeName } from '~/lib/session/types'
 
@@ -20,6 +20,7 @@ export function useShortcuts() {
     'meta_b': () => {
       collapsed.value = !collapsed.value
     },
+    'meta_,': () => navigateTo('/settings'),
     'meta_n': () => {
       navigateTo({ path: '/', query: { ...route.query, new: '1' } })
     },

@@ -52,6 +52,9 @@ export const useSessionStore = defineStore('sessions', {
     // The client stopped answering (network error, process gone); the desktop app reconnects on this.
     connectionLost: false,
     userEmail: '',
+    clientVersion: '',
+    // The signed-in account as the desktop shell reports it (whoami); empty on the web.
+    account: { name: '', server: '', role: '' },
     models: [] as ModelInfo[],
     order: [] as string[],
     sessions: {} as Record<string, SessionState>,
@@ -83,6 +86,7 @@ export const useSessionStore = defineStore('sessions', {
       try {
         const init = await this.transport.initialize()
         this.userEmail = init.userEmail
+        this.clientVersion = init.clientVersion
         this.models = await this.transport.listModels()
         const list = await this.transport.listSessions()
         for (const info of list) {

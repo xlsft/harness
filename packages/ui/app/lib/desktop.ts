@@ -7,6 +7,7 @@ export interface AuthStatus {
   email?: string
   name?: string
   server?: string
+  role?: string
   error?: string
 }
 
