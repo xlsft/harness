@@ -30,6 +30,9 @@ const EFFORT_TO_PB: Record<EffortName, Effort> = {
   max: Effort.MAX
 }
 
+// Errors that mean the client is unreachable rather than that a call was refused.
+export const isNetworkError = (msg: string) => /unavailable|failed to fetch|load failed|networkerror|network error|connection (refused|reset|lost)/i.test(msg)
+
 let uid = 0
 export function newUuid() {
   uid += 1
@@ -46,6 +49,8 @@ export const useSessionStore = defineStore('sessions', {
     transport: null as SessionTransport | null,
     ready: false,
     error: '',
+    // The client stopped answering (network error, process gone); the desktop app reconnects on this.
+    connectionLost: false,
     userEmail: '',
     models: [] as ModelInfo[],
     order: [] as string[],
@@ -133,6 +138,7 @@ export const useSessionStore = defineStore('sessions', {
           }
           this.sessions[id]!.meta.status = 'waiting_for_connection'
           this.error = msg
+          if (isNetworkError(msg)) this.connectionLost = true
         }
       })
     },
@@ -174,7 +180,13 @@ export const useSessionStore = defineStore('sessions', {
     },
 
     async interrupt(id: string) {
-      await this.transport?.interrupt(id)
+      try {
+        await this.transport?.interrupt(id)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        this.error = msg
+        if (isNetworkError(msg)) this.connectionLost = true
+      }
     },
 
     async respondToPermission(id: string, requestId: string, decision: 'allow' | 'always' | 'deny', rule = '', comment = '') {

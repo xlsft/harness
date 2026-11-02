@@ -24,6 +24,7 @@ async function connectDesktop() {
     }
     const ep = await agentEndpoint()
     await store.init(new ConnectTransport(ep.url, ep.token))
+    endpointUrl = ep.url
     phase.value = 'ready'
   } catch (err) {
     signInError.value = err instanceof Error ? err.message : String(err)
@@ -31,8 +32,33 @@ async function connectDesktop() {
   }
 }
 
-if (desktop) onMounted(connectDesktop)
-else await store.init()
+// Desktop: the sidecar can go away (app restart in dev, crash). When the store sees a network error, or the
+// periodic ping finds the endpoint gone, reload: the shell starts a new sidecar and sessions resume from history.
+let endpointUrl = ''
+let reloading = false
+function reconnect() {
+  if (reloading) return
+  reloading = true
+  window.location.reload()
+}
+
+if (desktop) {
+  onMounted(async () => {
+    await connectDesktop()
+    const timer = setInterval(async () => {
+      if (!endpointUrl) return
+      try {
+        await fetch(endpointUrl, { mode: 'no-cors', cache: 'no-store' })
+      } catch {
+        reconnect()
+      }
+    }, 5000)
+    onBeforeUnmount(() => clearInterval(timer))
+  })
+  watch(() => store.connectionLost, lost => lost && reconnect())
+} else {
+  await store.init()
+}
 </script>
 
 <template>

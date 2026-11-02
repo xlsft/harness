@@ -607,7 +607,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             type="button"
             aria-label="Stop"
             :class="ICON_BTN"
-            class="bg-white text-black"
+            class="bg-warn text-black"
             @click="store.interrupt(id)"
           >
             <HIcon
