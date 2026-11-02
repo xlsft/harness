@@ -136,5 +136,13 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"relay_session_host_idx\" ON \"relay_session\" USING btree (\"host_id\");",
       "CREATE INDEX \"relay_session_user_idx\" ON \"relay_session\" USING btree (\"user_id\");"
     ]
+  },
+  {
+    "id": "0005_username",
+    "statements": [
+      "ALTER TABLE \"user\" ADD COLUMN \"username\" text;",
+      "ALTER TABLE \"user\" ADD COLUMN \"display_username\" text;",
+      "ALTER TABLE \"user\" ADD CONSTRAINT \"user_username_unique\" UNIQUE(\"username\");"
+    ]
   }
 ];
