@@ -203,6 +203,9 @@ func TestWatcherIdle(t *testing.T) {
 		h := newHarness(t, true, false)
 		h.git.set("", "main")
 		h.tick(t, testSchedule.Idle)
+		if h.gh.calls() != nil || len(h.srv.Providers()) != 0 {
+			t.Fatalf("CLIs started without a remote: %v", h.gh.calls())
+		}
 	})
 	t.Run("detached head", func(t *testing.T) {
 		h := newHarness(t, true, false)

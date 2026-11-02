@@ -201,11 +201,6 @@ func (w *Watcher) jitter(d time.Duration) time.Duration {
 
 // Tick runs one poll and returns the delay until the next one.
 func (w *Watcher) Tick(ctx context.Context) time.Duration {
-	detected, err := w.detectAndReport(ctx)
-	if err != nil {
-		return w.failed(err)
-	}
-
 	remote := w.o.Remote(ctx, w.o.Dir)
 	branch := w.o.Branch(ctx, w.o.Dir)
 	if remote != w.lastRemote || branch != w.lastBranch {
@@ -214,7 +209,16 @@ func (w *Watcher) Tick(ctx context.Context) time.Duration {
 	}
 	w.lastRemote, w.lastBranch = remote, branch
 	repo, ok := ParseRemote(remote)
-	if !ok || branch == "" || branch == "HEAD" {
+	if !ok {
+		// Outside a repository with a code-host remote the CLIs are not even started.
+		return w.sched.Idle
+	}
+
+	detected, err := w.detectAndReport(ctx)
+	if err != nil {
+		return w.failed(err)
+	}
+	if branch == "" || branch == "HEAD" {
 		return w.sched.Idle
 	}
 	var prov Provider
