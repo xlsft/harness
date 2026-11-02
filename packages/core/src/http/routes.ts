@@ -12,7 +12,7 @@ export const routes: RouteDef[] = [
   { route: "/api/health", method: "get", handler: "./src/http/routes/health.ts" },
 
   // Connect services (proto/harness/**): DeviceAuthService, GatewayService, PromptService, SyncService,
-  // SearchService, DecisionService, McpService
+  // SearchService, DecisionService, McpService, RelayService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
@@ -20,6 +20,7 @@ export const routes: RouteDef[] = [
   { route: "/harness.search.v1.SearchService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.decision.v1.DecisionService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.mcp.v1.McpService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.relay.v1.RelayService/**", handler: "./src/http/routes/rpc.ts" },
 
   // Better Auth (web sessions, admin plugin) and the device approval page stay plain HTTP
   { route: "/api/auth/**", handler: "./src/http/routes/better-auth.ts" },

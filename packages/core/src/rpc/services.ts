@@ -30,6 +30,7 @@ import { bundleToProto, eventToProto, messagesFromProto, modelsToProto, streamRe
 import { guard, toConnectError } from "./errors.ts";
 import { registerDecisionService } from "./decision.ts";
 import { registerMcpService } from "./mcp.ts";
+import { registerRelayService } from "./relay.ts";
 import { registerSearchService } from "./search.ts";
 import { registerSyncService } from "./sync.ts";
 
@@ -199,6 +200,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerSearchService(router);
   registerDecisionService(router);
   registerMcpService(router);
+  registerRelayService(router);
 
   return router;
 }
