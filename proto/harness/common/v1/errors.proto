@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package harness.common.v1;
+
+// ErrorInfo is attached as a detail to every Connect/gRPC error returned by harness services.
+//
+// Code mapping:
+//   invalid_argument   -> INVALID_ARGUMENT
+//   unauthenticated    -> UNAUTHENTICATED     (client refreshes the access token once and retries)
+//   permission_denied  -> PERMISSION_DENIED
+//   not_found          -> NOT_FOUND
+//   rate_limited       -> RESOURCE_EXHAUSTED  (retry after retry_after_ms)
+//   quota_exceeded     -> RESOURCE_EXHAUSTED  (do not retry)
+//   overloaded         -> UNAVAILABLE
+//   upstream           -> UNAVAILABLE         (model provider failed after server-side retries)
+//   unsupported_client -> FAILED_PRECONDITION (client is older than the server's minimum version)
+//   internal           -> INTERNAL
+message ErrorInfo {
+  ErrorType type = 1;
+  // Suggested delay before retrying; 0 means "do not retry".
+  int64 retry_after_ms = 2;
+  // Upstream provider status code, when the error came from a provider.
+  int32 upstream_status = 3;
+}
+
+enum ErrorType {
+  ERROR_TYPE_UNSPECIFIED = 0;
+  ERROR_TYPE_INVALID_ARGUMENT = 1;
+  ERROR_TYPE_UNAUTHENTICATED = 2;
+  ERROR_TYPE_PERMISSION_DENIED = 3;
+  ERROR_TYPE_NOT_FOUND = 4;
+  ERROR_TYPE_RATE_LIMITED = 5;
+  ERROR_TYPE_QUOTA_EXCEEDED = 6;
+  ERROR_TYPE_OVERLOADED = 7;
+  ERROR_TYPE_UPSTREAM = 8;
+  ERROR_TYPE_UNSUPPORTED_CLIENT = 9;
+  ERROR_TYPE_INTERNAL = 10;
+}

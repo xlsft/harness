@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package harness.llm.v1;
+
+// Canonical conversation model, shaped after the Anthropic Messages API.
+// The server translates it to each upstream provider; clients see one format for every model.
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_USER = 1;
+  ROLE_ASSISTANT = 2;
+}
+
+message Message {
+  Role role = 1;
+  repeated ContentBlock content = 2;
+}
+
+message ContentBlock {
+  oneof block {
+    TextBlock text = 1;
+    ImageBlock image = 2;
+    DocumentBlock document = 3;
+    ThinkingBlock thinking = 4;
+    RedactedThinkingBlock redacted_thinking = 5;
+    ToolUseBlock tool_use = 6;
+    ToolResultBlock tool_result = 7;
+  }
+}
+
+// `cache` marks a prompt-cache breakpoint: put it on the last block of each stable prefix
+// (static system part, project context, last block of the last message). At most 4 per request.
+// The server maps it to `cache_control` for Anthropic and ignores it for other providers.
+
+message TextBlock {
+  string text = 1;
+  bool cache = 2;
+}
+
+message ImageBlock {
+  // image/png, image/jpeg, image/gif or image/webp.
+  string media_type = 1;
+  bytes data = 2;
+  bool cache = 3;
+}
+
+message DocumentBlock {
+  // application/pdf (M0).
+  string media_type = 1;
+  bytes data = 2;
+  string title = 3;
+  bool cache = 4;
+}
+
+// Thinking blocks must be sent back in history unchanged: Anthropic validates the signature.
+// For upstreams without thinking support the server drops them.
+message ThinkingBlock {
+  string thinking = 1;
+  string signature = 2;
+}
+
+message RedactedThinkingBlock {
+  string data = 1;
+}
+
+message ToolUseBlock {
+  string id = 1;
+  string name = 2;
+  // Tool input as a JSON object (kept as JSON to round-trip exactly).
+  string input_json = 3;
+}
+
+// Every tool_use in history must be answered by a tool_result in the next user message.
+// On interruption the client inserts a synthetic result with is_error = true.
+message ToolResultBlock {
+  string tool_use_id = 1;
+  bool is_error = 2;
+  // Only text and image blocks are allowed here.
+  repeated ContentBlock content = 3;
+  bool cache = 4;
+}
+
+message Tool {
+  string name = 1;
+  string description = 2;
+  // JSON Schema (draft-07) of the tool input.
+  string input_schema_json = 3;
+}
+
+message ToolChoice {
+  enum Mode {
+    MODE_UNSPECIFIED = 0; // same as AUTO
+    MODE_AUTO = 1;
+    MODE_ANY = 2;
+    MODE_TOOL = 3;
+    MODE_NONE = 4;
+  }
+  Mode mode = 1;
+  // Required when mode = MODE_TOOL.
+  string tool_name = 2;
+  bool disable_parallel_tool_use = 3;
+}
+
+message Thinking {
+  enum Mode {
+    MODE_UNSPECIFIED = 0; // same as DISABLED
+    MODE_DISABLED = 1;
+    MODE_ENABLED = 2;
+    MODE_ADAPTIVE = 3;
+  }
+  Mode mode = 1;
+  // Used with MODE_ENABLED.
+  int32 budget_tokens = 2;
+}
+
+enum Effort {
+  EFFORT_UNSPECIFIED = 0;
+  EFFORT_LOW = 1;
+  EFFORT_MEDIUM = 2;
+  EFFORT_HIGH = 3;
+  EFFORT_XHIGH = 4;
+  EFFORT_MAX = 5;
+}
+
+enum StopReason {
+  STOP_REASON_UNSPECIFIED = 0;
+  STOP_REASON_END_TURN = 1;
+  STOP_REASON_TOOL_USE = 2;
+  STOP_REASON_MAX_TOKENS = 3;
+  STOP_REASON_STOP_SEQUENCE = 4;
+  STOP_REASON_REFUSAL = 5;
+  STOP_REASON_PAUSE_TURN = 6;
+}
+
+// Normalized across providers.
+message Usage {
+  // Uncached input tokens.
+  int64 input_tokens = 1;
+  // Output tokens, including reasoning tokens.
+  int64 output_tokens = 2;
+  // OpenAI: prompt_tokens_details.cached_tokens.
+  int64 cache_read_input_tokens = 3;
+  int64 cache_creation_input_tokens = 4;
+}

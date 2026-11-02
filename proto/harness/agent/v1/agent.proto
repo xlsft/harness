@@ -1,0 +1,316 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/llm/v1/content.proto";
+
+// AgentService is served by the local client (packages/client) to frontends:
+// the desktop UI over a local socket, SSH sessions over the forwarded stdio stream, and the relay in M2.
+// The Go CLI may use the client as a library instead, but it exposes the same semantics.
+//
+// Status: DRAFT (M0). It uses server streaming plus unary commands only (no bidi), so browsers can use it via Connect.
+service AgentService {
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+
+  // Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
+  rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse);
+
+  // Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
+  // or the turn is interrupted / backgrounded so it is read right away (NOW).
+  rpc SendUserMessage(SendUserMessageRequest) returns (SendUserMessageResponse);
+  // Cancels in-flight tools and generation; already completed work is kept.
+  rpc Interrupt(InterruptRequest) returns (InterruptResponse);
+  rpc RespondToPermission(RespondToPermissionRequest) returns (RespondToPermissionResponse);
+  rpc AnswerQuestion(AnswerQuestionRequest) returns (AnswerQuestionResponse);
+
+  rpc SetModel(SetModelRequest) returns (SetModelResponse);
+  rpc SetEffort(SetEffortRequest) returns (SetEffortResponse);
+  rpc SetPermissionMode(SetPermissionModeRequest) returns (SetPermissionModeResponse);
+
+  // Fuzzy file paths for @-mentions.
+  rpc SuggestFiles(SuggestFilesRequest) returns (SuggestFilesResponse);
+}
+
+enum PermissionMode {
+  PERMISSION_MODE_UNSPECIFIED = 0; // same as DEFAULT
+  PERMISSION_MODE_DEFAULT = 1;
+  PERMISSION_MODE_ACCEPT_EDITS = 2;
+  PERMISSION_MODE_PLAN = 3;
+  PERMISSION_MODE_DONT_ASK = 4;
+  PERMISSION_MODE_BYPASS_PERMISSIONS = 5;
+}
+
+enum SessionStatus {
+  SESSION_STATUS_UNSPECIFIED = 0;
+  SESSION_STATUS_IDLE = 1;
+  SESSION_STATUS_WORKING = 2;
+  // Waiting for a permission decision or a question answer.
+  SESSION_STATUS_NEEDS_INPUT = 3;
+  SESSION_STATUS_WAITING_FOR_CONNECTION = 4;
+  SESSION_STATUS_ERROR = 5;
+}
+
+message InitializeRequest {
+  string frontend = 1; // "cli", "desktop", "web", ...
+  string frontend_version = 2;
+}
+
+message InitializeResponse {
+  string client_version = 1;
+  string user_email = 2;
+  repeated string model_ids = 3;
+}
+
+message SessionInfo {
+  string id = 1;
+  string title = 2;
+  string cwd = 3;
+  string git_branch = 4;
+  string model = 5;
+  PermissionMode permission_mode = 6;
+  SessionStatus status = 7;
+  // RFC 3339, UTC.
+  string updated_at = 8;
+}
+
+message CreateSessionRequest {
+  string cwd = 1;
+  string model = 2;
+  PermissionMode permission_mode = 3;
+  // Resume an existing session instead of starting a new one.
+  string resume_session_id = 4;
+  // With resume_session_id: copy the transcript into a new session.
+  bool fork = 5;
+}
+
+message CreateSessionResponse {
+  SessionInfo session = 1;
+}
+
+message ListSessionsRequest {
+  string cwd = 1;
+}
+
+message ListSessionsResponse {
+  repeated SessionInfo sessions = 1;
+}
+
+message SubscribeRequest {
+  string session_id = 1;
+  int64 after_seq = 2;
+}
+
+message SubscribeResponse {
+  SessionEvent event = 1;
+}
+
+message SessionEvent {
+  int64 seq = 1;
+  string session_id = 2;
+  // RFC 3339, UTC.
+  string timestamp = 3;
+  oneof event {
+    SessionInfo session_updated = 4;
+    UserMessage user_message = 5;
+    AssistantDelta assistant_delta = 6;
+    AssistantMessage assistant_message = 7;
+    ToolCallStarted tool_call_started = 8;
+    ToolCallFinished tool_call_finished = 9;
+    PermissionRequest permission_request = 10;
+    Question question = 11;
+    QueueChanged queue_changed = 12;
+    TurnFinished turn_finished = 13;
+    Notice notice = 14;
+  }
+}
+
+message UserMessage {
+  string uuid = 1;
+  repeated harness.llm.v1.ContentBlock content = 2;
+}
+
+// Streaming fragment of the assistant message `message_id`.
+message AssistantDelta {
+  string message_id = 1;
+  int32 index = 2;
+  oneof delta {
+    string text = 3;
+    string thinking = 4;
+    string input_json = 5;
+  }
+}
+
+// The complete assistant message, emitted once its stream ends.
+message AssistantMessage {
+  string message_id = 1;
+  string model = 2;
+  repeated harness.llm.v1.ContentBlock content = 3;
+  harness.llm.v1.StopReason stop_reason = 4;
+  harness.llm.v1.Usage usage = 5;
+}
+
+message ToolCallStarted {
+  string tool_use_id = 1;
+  string name = 2;
+  string input_json = 3;
+  // Short human-readable summary for collapsed rendering, e.g. "Read src/main.go".
+  string summary = 4;
+}
+
+message ToolCallFinished {
+  string tool_use_id = 1;
+  bool is_error = 2;
+  bool interrupted = 3;
+  repeated harness.llm.v1.ContentBlock content = 4;
+  int64 duration_ms = 5;
+}
+
+message PermissionRequest {
+  string request_id = 1;
+  string tool_use_id = 2;
+  string tool_name = 3;
+  string input_json = 4;
+  // Rule the user may choose to always allow, e.g. "Bash(npm run test *)".
+  repeated string suggested_rules = 5;
+  string reason = 6;
+}
+
+message Question {
+  string request_id = 1;
+  string tool_use_id = 2;
+  repeated QuestionItem items = 3;
+}
+
+message QuestionItem {
+  string question = 1;
+  string header = 2;
+  bool multi_select = 3;
+  repeated QuestionOption options = 4;
+}
+
+message QuestionOption {
+  string label = 1;
+  string description = 2;
+}
+
+message QueueChanged {
+  repeated UserMessage queued = 1;
+}
+
+message TurnFinished {
+  enum Result {
+    RESULT_UNSPECIFIED = 0;
+    RESULT_SUCCESS = 1;
+    RESULT_INTERRUPTED = 2;
+    RESULT_ERROR_MAX_TURNS = 3;
+    RESULT_ERROR_DURING_EXECUTION = 4;
+  }
+  Result result = 1;
+  int32 num_turns = 2;
+  harness.llm.v1.Usage usage = 3;
+  double cost_usd = 4;
+  int64 duration_ms = 5;
+  string error_message = 6;
+}
+
+message Notice {
+  enum Level {
+    LEVEL_UNSPECIFIED = 0;
+    LEVEL_INFO = 1;
+    LEVEL_WARNING = 2;
+    LEVEL_ERROR = 3;
+  }
+  Level level = 1;
+  // e.g. "retry", "compacted", "connection_lost".
+  string kind = 2;
+  string text = 3;
+}
+
+message SendUserMessageRequest {
+  enum Delivery {
+    DELIVERY_UNSPECIFIED = 0; // same as QUEUE
+    DELIVERY_QUEUE = 1;
+    DELIVERY_NOW = 2;
+  }
+  string session_id = 1;
+  // Client-generated id used for deduplication.
+  string uuid = 2;
+  repeated harness.llm.v1.ContentBlock content = 3;
+  Delivery delivery = 4;
+}
+
+message SendUserMessageResponse {}
+
+message InterruptRequest {
+  string session_id = 1;
+}
+
+message InterruptResponse {}
+
+message RespondToPermissionRequest {
+  enum Decision {
+    DECISION_UNSPECIFIED = 0;
+    DECISION_ALLOW = 1;
+    // Allow and persist `rule` to .claude/settings.local.json.
+    DECISION_ALLOW_ALWAYS = 2;
+    // With a comment the model continues; without one the turn stops.
+    DECISION_DENY = 3;
+  }
+  string session_id = 1;
+  string request_id = 2;
+  Decision decision = 3;
+  string rule = 4;
+  // Passed to the model with the result (allow) or as the denial reason (deny).
+  string comment = 5;
+  // Optional user-edited tool input.
+  string updated_input_json = 6;
+}
+
+message RespondToPermissionResponse {}
+
+message AnswerQuestionRequest {
+  string session_id = 1;
+  string request_id = 2;
+  // One entry per question, in order; labels of the chosen options or free text.
+  repeated QuestionAnswer answers = 3;
+}
+
+message QuestionAnswer {
+  repeated string selected = 1;
+}
+
+message AnswerQuestionResponse {}
+
+message SetModelRequest {
+  string session_id = 1;
+  string model = 2;
+}
+
+message SetModelResponse {}
+
+message SetEffortRequest {
+  string session_id = 1;
+  harness.llm.v1.Effort effort = 2;
+}
+
+message SetEffortResponse {}
+
+message SetPermissionModeRequest {
+  string session_id = 1;
+  PermissionMode mode = 2;
+}
+
+message SetPermissionModeResponse {}
+
+message SuggestFilesRequest {
+  string session_id = 1;
+  string query = 2;
+  int32 limit = 3;
+}
+
+message SuggestFilesResponse {
+  repeated string paths = 1;
+}

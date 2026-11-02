@@ -22,12 +22,12 @@
 │ prompt registry · user data (settings, memory, skills, agents, MCP, sessions)│
 │ relay / remote control · tunnels · Web UI (Nuxt)                            │
 └──────▲──────────────────────▲───────────────────────────▲───────────────────┘
-       │ HTTPS: gateway API,  │ relay (outbound           │ WS/SSE
+       │ gRPC: gateway, auth, │ relay (outbound           │ Connect
        │ sync API             │ from the client)          │
 ┌──────┴──────── user's machine ──────────────────────────┐   Browser/phone
 │ harness: agent loop · tool execution · permissions      │   (Web UI on the server,
 │         hooks · stdio-MCP · data and prompt cache       │    controls sessions
-│   ▲ TUI (same process)       ▲ stdio NDJSON             │    via relay)
+│   ▲ TUI (same process)       ▲ gRPC (local socket)      │    via relay)
 │   terminal             Desktop UI (Nuxt UI in a shell)  │
 │                              │ ssh (client's keys)      │
 └──────────────────────────────┼───────────────────────────┘
@@ -42,11 +42,11 @@
 | # | Decision | Choice | Why |
 |---|---|---|---|
 | A1 | Separation | **Client:** loop, tool execution, permissions, hooks, stdio-MCP, cache. **Server:** auth, LLM gateway with keys, prompts, all user data, relay, tunnels, Web UI | Like CC + an Anthropic backend. Keys and business logic never reach the machines |
-| A2 | LLM gateway | The client talks to the server through **one canonical API** (Anthropic-Messages-like, SSE streaming). The server translates to upstream: Anthropic / OpenAI-chat / OpenAI-responses | Adapters, capability negotiation, cache breakpoints, retries and fallback live in one place. A new provider or model requires no client updates |
+| A2 | LLM gateway | The client talks to the server through **one canonical API** (`GatewayService`, Anthropic-Messages-shaped, server-streaming RPC). The server translates to upstream: Anthropic / OpenAI-chat / OpenAI-responses | Adapters, capability negotiation, cache breakpoints, retries and fallback live in one place. A new provider or model requires no client updates |
 | A3 | Prompts | **Prompt registry on the server:** system prompt by section, tool descriptions, reminder templates, compactor prompt, bundled skills, **per-model overrides**. Versioned; the client caches by ETag | Prompt engineering for different models without a client release. A/B tests and rollbacks are possible. The client keeps working from cache during a brief offline period |
 | A4 | User data | **The server is the source of truth**, the client is a cache with sync (document versions, push of local changes) | "The client pulls everything from the server." The same environment on any machine |
-| A5 | Client-runner protocol | **CC-shaped SDK protocol** (NDJSON): `system/assistant/user/stream_event/result` + `control_request/control_response` | One protocol for desktop (stdio), headless, the SDK, and as a payload over relay |
-| A6 | Relay | Outbound client connection to the server (SSE + POST or WS), envelope `{seq, sessionId, epoch, uuid, type, payload}` | Works behind NAT. CC Remote Control patterns: epoch, dedup, FlushGate, heartbeat |
+| A5 | Contracts and transport | **All interaction is gRPC-compatible RPC defined in protobuf** (`/proto`, buf). Transport is **ConnectRPC**: one endpoint speaks gRPC, gRPC-Web and Connect, so Go uses plain gRPC and browsers use Connect over HTTP/1.1. Only unary + server-streaming RPCs (no bidi) so every method works from a browser. Frontend ↔ client uses `AgentService` over a local socket (or the SSH stdio stream); headless `-p` text/json stays for scripting | Strict typed contracts with codegen for TS and Go, compatibility checks via `buf breaking`, one schema for server, client, CLI, desktop and web |
+| A6 | Relay | Outbound client connection to the server (server-streaming RPC for downstream + unary RPCs for upstream), envelope `{seq, session_id, epoch, uuid, payload}` with `AgentService` events as the payload | Works behind NAT. CC Remote Control patterns: epoch, dedup, FlushGate, heartbeat |
 | A7 | UI | One Nuxt app `packages/ui` for desktop and mobile (and web) with a `SessionTransport`: `ipc` (desktop → local Go client over stdio), `relay` (web/mobile → server → client on the machine) | All GUI clients look the same, as in CC |
 | A8 | Canonical message model | **Anthropic-like content blocks** (`text`, `thinking`+`signature`, `tool_use`, `tool_result`, `image`) — in both the client and the gateway API | Reducing rich to poor is easier. tool_use/tool_result pairs and thinking signatures are respected |
 | A9 | Auth | **Better Auth** on the server (login, password, optional OAuth and 2FA, roles). `harness login` — device-flow → device token (revocable) + short-lived access token with refresh | Ordinary client login, like `claude login` |
@@ -57,19 +57,21 @@
 
 ### Repository structure
 
-A monorepo **without monorepo tooling**: no pnpm workspaces, turbo or shared lock files. Each package is self-contained, with its own `package.json` or `go.mod`, its own build and its own CI job. The shared contract between TS and Go is a **specification in `docs/protocol/`** (markdown + JSON Schema), not shared code.
+A monorepo **without monorepo tooling**: no pnpm workspaces, turbo or shared lock files. Each package is self-contained, with its own `package.json` or `go.mod`, its own build and its own CI job. The shared contract between TS and Go is **protobuf in `/proto`**. Generated code is committed into each package (`buf generate` from the root), so there is no shared runtime code and every package builds on its own.
 
 ```
 docs/
   research/        # research (copy from xlsft/edualc if needed)
-  protocol/        # contracts: gateway API, sync API, SDK protocol (stdio NDJSON), relay envelope
+  protocol/        # transport conventions and behavior that is not visible in the schema
   PLAN.md
+proto/             # protobuf contracts (buf module): harness.{auth,llm,prompts,agent,common}.v1
+buf.gen.yaml       # codegen: Go -> packages/client/gen, TypeScript -> packages/core/src/gen
 packages/
   core/            # server: Nitro v3 (nitro.build), TypeScript. Auth, LLM gateway + provider adapters,
                    #   prompt registry, user data + sync, MCP registry and proxy, relay, tunnels. Dockerfile
   client/          # universal client for frontends, Go. Agent loop, tool execution, permissions,
                    #   hooks, stdio-MCP, sessions (JSONL, checkpoints), sync cache, gateway and relay client.
-                   #   Shipped as a Go package (for cli) and as the `harness-client` binary with stdio NDJSON (for ui/desktop, SSH)
+                   #   Shipped as a Go package (for cli) and as the `harness-client` binary serving AgentService (for ui/desktop, SSH)
   ui/              # frontend for desktop and mobile: Nuxt 4 + Nuxt UI v4 (design to come separately)
   cli/             # CLI frontend, Go: the full charm.land toolchain (Bubble Tea, Bubbles, Lip Gloss, Glamour,
                    #   Huh, Harmonica, Log…). Truecolor with fallback to ANSI-16/256
@@ -152,7 +154,7 @@ Goal: connect an MCP once — it works on all devices, on the web and on SSH hos
 - MCP prompts → slash commands, resources → `@server:resource` — the same in all clients.
 
 ### 1.6 Relay, Remote Control, tunnels
-- **Relay:** the client opens an outbound SSE + POST (or WS). Envelope `{seq, sessionId, epoch, uuid, type, payload}`, payload is the SDK protocol.
+- **Relay:** the client opens an outbound server-streaming RPC and sends upstream data with unary RPCs. Envelope `{seq, session_id, epoch, uuid, payload}`, payload is `AgentService` events and commands.
   - Heartbeat ~20 s, reconnect with jitter, dedup by UUID.
   - **Epoch** displaces the old connection.
   - **FlushGate:** on connect, history first, then live.
@@ -227,7 +229,8 @@ services:
 ### 2.6 Entry points
 The `harness-client` binary (from `packages/client`) is the headless core. The `harness` binary (from `packages/cli`) is the TUI on top of the same Go package and the same subcommands.
 - `harness login <url>` / `logout` / `whoami`.
-- `harness` — TUI in cwd. `harness -p … --output-format stream-json [--input-format stream-json]` (or `harness-client -p …`) — headless and SDK. Desktop talks to the client through it.
+- `harness` — TUI in cwd. `harness -p … [--output-format text|json]` (or `harness-client -p …`) — headless mode for scripts.
+- `harness-client serve [--socket path | --stdio]` — serves `AgentService` for frontends: desktop over a local socket, SSH sessions over stdio.
 - `harness daemon` — the machine is available for spawn from the web.
 - `harness ssh user@host:/path` — upload or update the binary, session over stdio via SSH. The remote gets a separate, short-lived token bound to the session.
 - `harness import claude`, `harness mcp …`, `harness doctor`.
@@ -237,7 +240,7 @@ The `harness-client` binary (from `packages/client`) is the headless core. The `
 ## 3. Desktop and mobile (shells around `packages/ui`)
 - **Desktop:** a native shell (Tauri 2 or Electron) + `packages/ui` with the `ipc` transport. The Go client ships as a sidecar binary. Same login (device-flow or embedded browser).
 - **Mobile:** the same `packages/ui`. No local execution, only the `relay` transport: viewing and controlling sessions, answering permissions and questions, push.
-- **Subprocess per session:** `harness-client -p --input-format stream-json --output-format stream-json --resume <id>`. Health check, a single stdio-MCP registry per host.
+- **Client process:** the shell runs `harness-client serve --socket …` (one process with a session per subprocess-like worker, or a process per session) and the UI talks `AgentService` to it. Health check, a single stdio-MCP registry per host.
 - **SSH:** client keys (`~/.ssh/config`, agent, ProxyJump) → bootstrap the binary on the remote → stdio over the SSH channel. The remote runner reaches the gateway with the session token issued by desktop.
 - Native: folder picker, notifications, tray, deep links, auto-update, open in editor.
 
@@ -274,11 +277,11 @@ The skeleton is `UDashboardGroup` + `UDashboardSidebar` + resizable `UDashboardP
 Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** Until the frontends exist, everything is verified by tests and the headless `harness-client -p` mode.
 
 ### M0 — Skeleton of core + client (≈3 weeks)
-1. `docs/protocol/`: gateway API, stream event format, SDK protocol (stdio NDJSON), auth/device-flow.
-2. **core (Nitro v3):** Better Auth (admin + users), device-flow, providers with key encryption, model catalog, gateway `POST /api/llm/messages` (SSE) with Anthropic and OpenAI-chat adapters. **Contract tests on fixtures** (Anthropic, OpenAI, DeepSeek, OpenRouter, vLLM/Ollama). Prompt registry v0: bundle from files, served by ETag.
-3. **client (Go):** `login` (device-flow), prompt bundle loading, agent loop via the gateway, `Read/Write/Edit/Bash/Glob/Grep`, simple permissions, local JSONL, headless `-p` with stream-json in/out.
+1. Contracts in `/proto` (done): `DeviceAuthService`, `GatewayService`, `PromptService`, draft `AgentService`; codegen via buf.
+2. **core (Nitro v3):** Better Auth (admin + users), device-flow, providers with key encryption, model catalog, Connect services for auth, gateway (`StreamMessage` server streaming) and prompts, with Anthropic and OpenAI-chat adapters. **Contract tests on fixtures** (Anthropic, OpenAI, DeepSeek, OpenRouter, vLLM/Ollama). Prompt registry v0: bundle from files, served by ETag.
+3. **client (Go):** `login` (device-flow), prompt bundle loading, agent loop via the gateway, `Read/Write/Edit/Bash/Glob/Grep`, simple permissions, local JSONL, headless `-p` (text/json), `serve` exposing `AgentService`.
 
-**Done when** core runs locally (`pnpm dev`), an admin has added Claude keys and keys for any OpenAI-compatible provider, and `harness-client -p "fix the test" --output-format stream-json` in a project folder fixes the test on both models. No keys are on the machine.
+**Done when** core runs locally (`pnpm dev`), an admin has added Claude keys and keys for any OpenAI-compatible provider, and `harness-client -p "fix the test"` in a project folder fixes the test on both models. No keys are on the machine.
 
 ### M1 — Core parity + sync (≈4 weeks)
 - client: permissions engine, modes, trust, plan mode, AskUserQuestion, TodoWrite, queue and interrupts (via control requests), background Bash.

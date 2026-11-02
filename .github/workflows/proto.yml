@@ -1,0 +1,21 @@
+name: proto
+
+on:
+  push:
+    paths: ['proto/**', 'buf.gen.yaml', '.github/workflows/proto.yml']
+  pull_request:
+    paths: ['proto/**', 'buf.gen.yaml', '.github/workflows/proto.yml']
+
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: bufbuild/buf-action@v1
+        with:
+          input: proto
+          lint: true
+          format: true
+          breaking: ${{ github.event_name == 'pull_request' }}
+          breaking_against: ${{ github.event.repository.clone_url }}#branch=main,subdir=proto
+          push: false

@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package harness.llm.v1;
+
+import "harness/common/v1/errors.proto";
+import "harness/llm/v1/content.proto";
+
+// GatewayService is the only way clients reach models. Provider keys never leave the server.
+// All methods require `Authorization: Bearer <access token>`.
+service GatewayService {
+  // Models available to the caller, plus their default slots.
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+
+  // Streams one assistant message. Event order follows Anthropic streaming:
+  // message_start, (content_block_start, content_block_delta*, content_block_stop)*, message_delta, message_stop.
+  // ping and retry may appear anywhere before message_stop.
+  // Errors end the stream with a Connect error carrying harness.common.v1.ErrorInfo.
+  rpc StreamMessage(StreamMessageRequest) returns (stream StreamMessageResponse);
+
+  rpc CountTokens(CountTokensRequest) returns (CountTokensResponse);
+}
+
+message ListModelsRequest {}
+
+message ListModelsResponse {
+  repeated Model models = 1;
+  Slots slots = 2;
+}
+
+message Model {
+  // Server-side alias; the value clients send as `model`.
+  string id = 1;
+  string display_name = 2;
+  // Provider id, informational.
+  string provider = 3;
+  int64 context_window = 4;
+  int64 max_output_tokens = 5;
+  Capabilities capabilities = 6;
+  // Absent when the admin did not configure prices.
+  optional Pricing pricing = 7;
+}
+
+message Capabilities {
+  bool thinking = 1;
+  // Empty means effort is not supported.
+  repeated Effort effort = 2;
+  bool images = 3;
+  bool pdf = 4;
+  bool parallel_tool_calls = 5;
+  bool prompt_cache = 6;
+}
+
+// USD per 1M tokens.
+message Pricing {
+  double input = 1;
+  double output = 2;
+  double cache_read = 3;
+  double cache_write = 4;
+}
+
+// Default model per role, configured on the server.
+message Slots {
+  string main = 1;
+  // Titles, summaries, WebFetch, compaction.
+  string small = 2;
+  string plan = 3;
+}
+
+enum RequestClass {
+  REQUEST_CLASS_UNSPECIFIED = 0;
+  REQUEST_CLASS_MAIN = 1;
+  REQUEST_CLASS_SUBAGENT = 2;
+  REQUEST_CLASS_COMPACTION = 3;
+  REQUEST_CLASS_AUXILIARY = 4;
+}
+
+message RequestMetadata {
+  string session_id = 1;
+  RequestClass request_class = 2;
+  // Set for subagent requests.
+  string agent_id = 3;
+  string prompt_bundle_version = 4;
+}
+
+message StreamMessageRequest {
+  string model = 1;
+  int32 max_tokens = 2;
+  // Static sections first (last static block has cache = true), then dynamic sections.
+  repeated TextBlock system = 3;
+  repeated Message messages = 4;
+  repeated Tool tools = 5;
+  ToolChoice tool_choice = 6;
+  Thinking thinking = 7;
+  // Lowered by the server to the nearest supported level, or dropped.
+  Effort effort = 8;
+  repeated string stop_sequences = 9;
+  optional double temperature = 10;
+  RequestMetadata metadata = 11;
+}
+
+message StreamMessageResponse {
+  oneof event {
+    MessageStart message_start = 1;
+    ContentBlockStart content_block_start = 2;
+    ContentBlockDelta content_block_delta = 3;
+    ContentBlockStop content_block_stop = 4;
+    MessageDelta message_delta = 5;
+    MessageStop message_stop = 6;
+    Ping ping = 7;
+    Retry retry = 8;
+  }
+}
+
+message MessageStart {
+  string id = 1;
+  string model = 2;
+  Usage usage = 3;
+}
+
+message ContentBlockStart {
+  int32 index = 1;
+  // The block's initial (usually empty) state.
+  ContentBlock block = 2;
+}
+
+message ContentBlockDelta {
+  int32 index = 1;
+  oneof delta {
+    string text = 2;
+    string thinking = 3;
+    string signature = 4;
+    // Partial JSON of a tool_use input; concatenate until content_block_stop.
+    string input_json = 5;
+  }
+}
+
+message ContentBlockStop {
+  int32 index = 1;
+}
+
+message MessageDelta {
+  StopReason stop_reason = 1;
+  string stop_sequence = 2;
+  // Final usage for the message.
+  Usage usage = 3;
+}
+
+message MessageStop {
+  double cost_usd = 1;
+  string upstream_model = 2;
+  int32 retries = 3;
+}
+
+// Sent at least every 15 s. Clients drop the stream after 5 minutes without any event.
+message Ping {}
+
+// The server retries the upstream only before the first content block; clients just display this.
+message Retry {
+  int32 attempt = 1;
+  int32 max_retries = 2;
+  int64 retry_delay_ms = 3;
+  harness.common.v1.ErrorInfo error = 4;
+}
+
+message CountTokensRequest {
+  string model = 1;
+  repeated TextBlock system = 2;
+  repeated Message messages = 3;
+  repeated Tool tools = 4;
+}
+
+message CountTokensResponse {
+  int64 input_tokens = 1;
+  // True when the upstream has no exact counter and the server estimated.
+  bool estimated = 2;
+}

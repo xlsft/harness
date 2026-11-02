@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package harness.prompts.v1;
+
+// Prompts live on the server (prompt registry). Clients have no prompt texts of their own,
+// apart from a minimal emergency fallback for a first run without network access.
+service PromptService {
+  // Returns the bundle for a model with model-specific overrides already applied.
+  rpc GetBundle(GetBundleRequest) returns (GetBundleResponse);
+}
+
+message GetBundleRequest {
+  string model = 1;
+  // Version the client already has; the server answers not_modified if it is current.
+  string if_none_match = 2;
+}
+
+message GetBundleResponse {
+  bool not_modified = 1;
+  // Empty when not_modified = true.
+  PromptBundle bundle = 2;
+}
+
+// Rules for clients:
+// - Sections before the dynamic boundary are static: send them as system blocks, cache = true on the last one.
+//   Sections after it are dynamic; fill their {{placeholders}} (unknown placeholders become empty + a warning).
+// - Only tools defined here are exposed to the model. Their execution semantics are implemented by the client
+//   and must match the description text (see docs/PLAN.md, section 2.2).
+// - A bundle is frozen for the whole session (until it ends or is compacted); switching breaks the prompt cache.
+// - Clients cache bundles at ~/.harness/cache/prompts/<model>/<version>.json.
+// - Prompt texts are written from scratch (clean-room); never copied from Claude Code.
+message PromptBundle {
+  string version = 1;
+  string model = 2;
+  repeated SystemSection system = 3;
+  // Keyed by tool name (Read, Write, Edit, Bash, Glob, Grep, ...).
+  map<string, ToolDefinition> tools = 4;
+  // Keyed by reminder id: project_instructions, file_changed, empty_file, interrupted, ...
+  map<string, string> reminders = 5;
+  string compaction_instruction = 6;
+  string title_instruction = 7;
+}
+
+message SystemSection {
+  // identity, safety, style, doing_tasks, tool_policy, env, ...
+  string id = 1;
+  string text = 2;
+  // Marks the boundary between static and dynamic sections; text is empty.
+  bool dynamic_boundary = 3;
+}
+
+message ToolDefinition {
+  string description = 1;
+  // JSON Schema (draft-07) of the tool input.
+  string input_schema_json = 2;
+}

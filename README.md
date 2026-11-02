@@ -17,11 +17,11 @@ harness follows Claude Code's architecture, with a self-hosted backend in place 
  │ auth · LLM gateway + provider keys · prompt registry · user data   │
  │ MCP registry & proxy · session relay · tunnels                     │
  └──────────▲───────────────────────▲─────────────────────▲──────────┘
-            │ gateway / sync API    │ relay               │
+            │ gRPC (Connect)        │ relay               │
  ┌──────────┴───────────────────────┴───────┐       web / mobile UI
  │ harness client — agent loop, tool         │
  │ execution, permissions, hooks, sessions   │
- │   ▲ Go API               ▲ stdio NDJSON   │
+ │   ▲ Go API               ▲ gRPC (local)   │
  │   cli (terminal UI)      desktop UI       │
  └──────────────────────────┬────────────────┘
                             │ ssh (your keys)
@@ -31,7 +31,7 @@ harness follows Claude Code's architecture, with a self-hosted backend in place 
 
 ## Packages
 
-The repository is a monorepo **without monorepo tooling**. Each package is self-contained, with its own `package.json` or `go.mod`, build and CI job. Packages share no code: they talk only through the contracts in [`docs/protocol`](docs/protocol).
+The repository is a monorepo **without monorepo tooling**. Each package is self-contained, with its own `package.json` or `go.mod`, build and CI job. Packages share no runtime code: all interaction is gRPC-compatible RPC ([ConnectRPC](https://connectrpc.com)) defined in protobuf under [`proto/`](proto), with generated code committed into each package.
 
 | Package | Role | Stack | Status |
 |---|---|---|---|
@@ -45,11 +45,8 @@ Build order: `core` + `client` first, then the `cli` and `ui` frontends, deploym
 ## Documentation
 
 - [Implementation plan](docs/PLAN.md): architecture, decisions, roadmap, risks.
-- [Protocols](docs/protocol):
-  - [auth](docs/protocol/auth.md) — device flow and tokens;
-  - [LLM gateway](docs/protocol/gateway.md);
-  - [prompt bundle](docs/protocol/prompts.md);
-  - [client SDK stream](docs/protocol/sdk-stream.md).
+- [Protocol contracts](proto): protobuf services for auth, the LLM gateway, prompts and the agent API.
+- [Protocol conventions](docs/protocol): transport, errors, versioning, codegen, and [gateway behavior](docs/protocol/gateway.md).
 
 ## Compatibility with Claude Code
 

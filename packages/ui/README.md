@@ -7,9 +7,9 @@ The desktop and mobile frontend for harness, built with [Nuxt 4](https://nuxt.co
 ## What it will be
 
 - A single app for desktop, mobile and web that renders harness sessions. It includes the session sidebar, the transcript with collapsible tool calls, cards for permissions, questions and plans, the prompt box, and panes for diff, tasks, plan, terminal and preview.
-- Sessions arrive through a pluggable transport:
-  - `ipc` on desktop, where the native shell runs the Go client as a sidecar over stdio NDJSON ([protocol](../../docs/protocol/sdk-stream.md));
-  - `relay` on web and mobile, which connects through the harness server to a client running on the user's machine.
+- Sessions come from `harness.agent.v1.AgentService` ([proto](../../proto/harness/agent/v1/agent.proto)) over Connect:
+  - on desktop, the native shell runs the Go client as a sidecar and the UI talks to it over a local socket;
+  - on web and mobile, the UI goes through the harness server's relay to a client running on the user's machine.
 
 ## Development
 

@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+// Device authorization for clients (CLI, desktop, SSH runners), modeled on RFC 8628.
+// Web sign-in uses regular Better Auth sessions and is not part of this service.
+//
+// Tokens:
+//   device_token (hdt_...) - only exchanged for access tokens; lives until revoked.
+//                            Stored in the OS keychain, fallback ~/.harness/credentials.json (0600).
+//   access_token (hat_...) - sent as `Authorization: Bearer` on every other call; ~1 hour; memory only.
+// Clients refresh proactively 5 minutes before expiry, and once on UNAUTHENTICATED before retrying.
+service DeviceAuthService {
+  // Unauthenticated. Starts a device authorization.
+  rpc StartDeviceAuth(StartDeviceAuthRequest) returns (StartDeviceAuthResponse);
+  // Unauthenticated. Polled every `interval_seconds` until approved, denied or expired.
+  rpc PollDeviceAuth(PollDeviceAuthRequest) returns (PollDeviceAuthResponse);
+  // Unauthenticated (uses the device token). UNAUTHENTICATED means the device was revoked:
+  // the client deletes its credentials and asks the user to sign in again.
+  rpc RefreshAccessToken(RefreshAccessTokenRequest) returns (RefreshAccessTokenResponse);
+  rpc GetMe(GetMeRequest) returns (GetMeResponse);
+  // Revokes the calling device.
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+message StartDeviceAuthRequest {
+  string client_name = 1;
+  string device_name = 2;
+  string os = 3;
+  string arch = 4;
+  string client_version = 5;
+}
+
+message StartDeviceAuthResponse {
+  string device_code = 1;
+  // Short code the user confirms in the browser, e.g. "WDJB-MJHT".
+  string user_code = 2;
+  string verification_uri = 3;
+  string verification_uri_complete = 4;
+  int32 expires_in_seconds = 5;
+  int32 interval_seconds = 6;
+}
+
+message PollDeviceAuthRequest {
+  string device_code = 1;
+}
+
+message PollDeviceAuthResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    // Increase the polling interval by 5 seconds.
+    STATUS_SLOW_DOWN = 2;
+    STATUS_APPROVED = 3;
+    STATUS_DENIED = 4;
+    STATUS_EXPIRED = 5;
+  }
+  Status status = 1;
+  // Set only when status = STATUS_APPROVED.
+  DeviceCredentials credentials = 2;
+}
+
+message DeviceCredentials {
+  string device_id = 1;
+  string device_token = 2;
+  string access_token = 3;
+  int32 access_expires_in_seconds = 4;
+  User user = 5;
+}
+
+message RefreshAccessTokenRequest {
+  string device_token = 1;
+}
+
+message RefreshAccessTokenResponse {
+  string access_token = 1;
+  int32 access_expires_in_seconds = 2;
+}
+
+message GetMeRequest {}
+
+message GetMeResponse {
+  User user = 1;
+  Device device = 2;
+}
+
+message LogoutRequest {}
+
+message LogoutResponse {}
+
+message User {
+  enum Role {
+    ROLE_UNSPECIFIED = 0;
+    ROLE_USER = 1;
+    ROLE_ADMIN = 2;
+  }
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  Role role = 4;
+}
+
+message Device {
+  string id = 1;
+  string name = 2;
+  string os = 3;
+  string arch = 4;
+  // RFC 3339, UTC.
+  string created_at = 5;
+  string last_seen_at = 6;
+}
