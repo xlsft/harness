@@ -568,3 +568,38 @@ func TestDeriveMetaFallbackTitle(t *testing.T) {
 		t.Fatalf("title %q", m.Title)
 	}
 }
+
+func TestUploaderWorktreeMeta(t *testing.T) {
+	fs := synctest.New()
+	srv := fs.Start()
+	defer srv.Close()
+	dir := t.TempDir()
+	transcript := filepath.Join(dir, "s1.jsonl")
+	appendFile(t, transcript, line("u1", "", "user", `,"message":{"role":"user","content":"hi"}`))
+	u := NewUploader(UploaderOptions{API: NewClient(srv.URL, nil, nil), StateDir: filepath.Join(dir, "state"), Logger: quiet,
+		ResolveRepo: func(context.Context, string) string { return "" }})
+	wt := &Worktree{Path: "/r/.harness/worktrees/x", Branch: "harness/x", BaseRef: "main", RepositoryPath: "/r"}
+	if err := u.Track("s1", transcript, SessionMeta{Cwd: wt.Path, Worktree: wt}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	got := fs.Session("s1").Meta.GetInfo().GetWorktree()
+	if got.GetPath() != wt.Path || got.GetBranch() != wt.Branch || got.GetBaseRef() != "main" || got.GetRepositoryPath() != "/r" {
+		t.Fatalf("worktree %v", got)
+	}
+	if err := u.UpdateMeta("s1", func(m *SessionMeta) {
+		m.Worktree = &Worktree{Path: "/r/.harness/worktrees/y", Branch: "harness/y", RepositoryPath: "/r"}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	ss := fs.Session("s1")
+	if last := ss.Upserts[len(ss.Upserts)-1]; strings.Join(last, ",") != "info.updated_at,info.worktree" {
+		t.Fatalf("paths %v", last)
+	}
+}

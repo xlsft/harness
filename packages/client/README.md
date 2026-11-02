@@ -29,12 +29,14 @@ It ships in two forms:
 | `mcp` | MCP servers from `harness.mcp.v1.McpService`: remote tools through the core proxy, stdio servers via `IssueStdioLaunch` and the Go MCP SDK with per-device approval (`~/.harness/mcp-approvals.json`), `mcp__<server>__<tool>` tools, deferred tools and `ToolSearch` |
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
+| `worktree` | Session worktrees (`<repo>/.harness/worktrees/<name>`) and local branch listing for the new-session pickers |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
 | `relay` | Host side of `harness.relay.v1.RelayService` (remote control): mirrors live sessions to the server and runs viewer commands |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
 | `gen` | Code generated from `/proto` (do not edit) |
 | `internal/fakegateway` | Scripted fake harness server for tests and local end-to-end runs |
+| `internal/gittest` | Throwaway git repositories for tests |
 | `internal/fakemcp` | Fake `McpService` and a fake stdio MCP server (also as `cmd/fake-mcp-server`) for tests and e2e |
 
 ## Usage
@@ -107,6 +109,19 @@ When the client is signed in to a server, `harness-client serve` and the TUI reg
 - Commands: run through the same `AgentService` methods local frontends call, in order per session (Compact and Rewind do not block later commands), deduplicated by `command_id` (a redelivered command is re-acked with its first outcome). Expired commands and `bypassPermissions` (as a mode or a spawn mode) are acked `OUTCOME_REJECTED`; an answer to a prompt that was already answered is `OUTCOME_ALREADY_RESOLVED`.
 - Liveness: heartbeats at the server's interval (~20 s), reconnect with exponential backoff and jitter. On `SessionSuperseded` (another device took the session over) the host stops mirroring that session.
 - Spawn: only with `Options.Daemon` and under `AllowedRoots` (no `harness daemon` command yet). Tunnels are not implemented.
+
+## Worktree sessions and new-session pickers
+
+`CreateSession` with `worktree` runs the session in a new git worktree of the repository containing `cwd` (`FAILED_PRECONDITION` outside a repository or before the first commit):
+
+- path `<main checkout>/.harness/worktrees/<name>`, also when `cwd` is inside another worktree; `/.harness/worktrees/` is appended to `.git/info/exclude` once (the `.gitignore` is never edited);
+- `name` defaults to `adjective-noun-xxxx` and must be one path segment (1-64 of `A-Za-z0-9._-`, starting with a letter or digit; `INVALID_ARGUMENT` otherwise); a taken name (existing directory or default branch) becomes `name-2`, `name-3`, ...;
+- branch `harness/<name>` (or `branch`) is created with `--no-track` from `base_ref`, default the current branch (the commit when detached); an existing `branch` is checked out instead unless a worktree has it (`FAILED_PRECONDITION`), and `base_ref` then records its tip commit;
+- the session cwd is the same subdirectory inside the worktree (created when it is untracked);
+- the worktree is recorded as a `harness-meta` entry (`worktree`, with `cwd`), so `SessionInfo.worktree` survives resume and `ListSessions`, and the synced metadata carries it as `info.worktree`. `worktree` with `resume_session_id` needs `fork` (the fork moves into the new worktree);
+- worktrees are never removed automatically; only a worktree whose session failed to start is rolled back.
+
+`ListRecentFolders` scans the local transcripts of all projects (newest first) plus the open sessions; a session in a harness worktree counts for the matching folder of the main checkout. `ListDirectory` lists subdirectories (symlinks to directories included, dot entries only with `include_hidden`, at most 500, case-insensitive order). `ListBranches` lists local branches with `checked_out` (in any worktree) and the tip's commit time, newest first. git always runs without a shell, with a timeout and `GIT_TERMINAL_PROMPT=0`.
 
 ## Local end-to-end run without the real server
 

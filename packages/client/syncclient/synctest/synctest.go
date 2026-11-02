@@ -585,6 +585,9 @@ func applyPaths(dst, src *syncv1.SessionMetadata, paths []string) {
 	if has("info.parent_session_id") {
 		d.ParentSessionId = si.GetParentSessionId()
 	}
+	if has("info.worktree") {
+		d.Worktree = si.GetWorktree()
+	}
 	if has("prompt_bundle_version") {
 		dst.PromptBundleVersion = src.GetPromptBundleVersion()
 	}

@@ -173,9 +173,13 @@ func trackUpload(ctx context.Context, up *syncclient.Uploader, s *Session, path,
 		return
 	}
 	mode := agentv1.PermissionMode_PERMISSION_MODE_DEFAULT
-	_ = up.Track(s.ID, path, syncclient.SessionMeta{
+	meta := syncclient.SessionMeta{
 		Cwd: s.Cwd, Repo: workspace.Repo(ctx, s.Cwd), Branch: branch, Model: s.Model,
 		PermissionMode: mode, Status: agentv1.SessionStatus_SESSION_STATUS_WORKING,
 		ParentSessionID: s.ParentSessionID, PromptBundleVersion: s.Bundle.Version,
-	})
+	}
+	if w := s.Worktree; w != nil {
+		meta.Worktree = &syncclient.Worktree{Path: w.Path, Branch: w.Branch, BaseRef: w.BaseRef, RepositoryPath: w.RepositoryPath}
+	}
+	_ = up.Track(s.ID, path, meta)
 }

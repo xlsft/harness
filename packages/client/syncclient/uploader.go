@@ -52,6 +52,9 @@ type SessionMeta struct {
 	ParentSessionID     string                 `json:"parent_session_id,omitempty"`
 	PromptBundleVersion string                 `json:"prompt_bundle_version,omitempty"`
 	DiffStats           *DiffStats             `json:"diff_stats,omitempty"`
+	// Worktree is set when the session runs in a git worktree the client
+	// created for it.
+	Worktree *Worktree `json:"worktree,omitempty"`
 	// UpdatedAt is RFC 3339 UTC; filled automatically when empty.
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
@@ -78,7 +81,21 @@ var fieldPaths = []struct {
 		}
 		return *m.DiffStats
 	}},
+	{"info.worktree", func(m *SessionMeta) any {
+		if m.Worktree == nil {
+			return Worktree{}
+		}
+		return *m.Worktree
+	}},
 	{"info.updated_at", func(m *SessionMeta) any { return m.UpdatedAt }},
+}
+
+// Worktree mirrors harness.agent.v1.Worktree.
+type Worktree struct {
+	Path           string `json:"path,omitempty"`
+	Branch         string `json:"branch,omitempty"`
+	BaseRef        string `json:"base_ref,omitempty"`
+	RepositoryPath string `json:"repository_path,omitempty"`
 }
 
 func isZero(v any) bool {
@@ -91,6 +108,8 @@ func isZero(v any) bool {
 		return x == 0
 	case DiffStats:
 		return x == DiffStats{}
+	case Worktree:
+		return x == Worktree{}
 	}
 	return false
 }
@@ -103,6 +122,9 @@ func (m *SessionMeta) toProto(id string) *syncv1.SessionMetadata {
 	}
 	if m.DiffStats != nil {
 		info.DiffStats = &agentv1.DiffStats{FilesChanged: m.DiffStats.FilesChanged, Additions: m.DiffStats.Additions, Deletions: m.DiffStats.Deletions}
+	}
+	if w := m.Worktree; w != nil && *w != (Worktree{}) {
+		info.Worktree = &agentv1.Worktree{Path: w.Path, Branch: w.Branch, BaseRef: w.BaseRef, RepositoryPath: w.RepositoryPath}
 	}
 	return &syncv1.SessionMetadata{Info: info, PromptBundleVersion: m.PromptBundleVersion}
 }

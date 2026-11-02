@@ -159,6 +159,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if m.GetFork() && m.GetResumeSessionId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("fork requires resume_session_id"))
 	}
+	if m.Worktree != nil && m.GetResumeSessionId() != "" && !m.GetFork() {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("worktree cannot be combined with resume_session_id unless fork is set"))
+	}
 	if id := m.GetResumeSessionId(); id != "" && !m.GetFork() {
 		s.mu.Lock()
 		ls := s.live[id]
@@ -203,11 +206,19 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if opts.Entrypoint == "" {
 		opts.Entrypoint = "agent-service"
 	}
+	wt, wtMeta, err := createWorktree(ctx, m)
+	if err != nil {
+		return nil, err
+	}
+	if wt != nil {
+		opts.Cwd, opts.Worktree = wt.Cwd, wtMeta
+	}
 	ls := newLiveSession(s)
 	opts.OnEvent = ls.onEvent
 	opts.Logger = s.log()
 	sess, err := bootstrap.Open(ctx, opts)
 	if err != nil {
+		s.rollbackWorktree(wt)
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	ls.sess = sess
@@ -244,7 +255,7 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 			}
 			id := strings.TrimSuffix(filepath.Base(f), ".jsonl")
 			out[id] = &agentv1.SessionInfo{Id: id, Cwd: cwd, Title: sessionTitle(f), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
-				UpdatedAt: st.ModTime().UTC().Format(time.RFC3339), ParentSessionId: forkedFrom(f)}
+				UpdatedAt: st.ModTime().UTC().Format(time.RFC3339), ParentSessionId: forkedFrom(f), Worktree: transcriptWorktree(f)}
 		}
 	}
 	s.mu.Lock()
@@ -723,6 +734,8 @@ func (s *Server) CloseSession(ctx context.Context, req *connect.Request[agentv1.
 	if ls == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open", req.Msg.GetSessionId()))
 	}
+	// TODO(worktree): offer to remove the session's worktree (ls.sess.Worktree) here when it is clean and its
+	// branch has no commits beyond base_ref; worktrees are never removed automatically today.
 	ls.close("closed")
 	return connect.NewResponse(&agentv1.CloseSessionResponse{}), nil
 }

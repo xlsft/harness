@@ -86,6 +86,10 @@ type Options struct {
 	// Fork copies the resumed session into a new one (optionally at a checkpoint).
 	Fork             bool
 	ForkAtCheckpoint string
+	// Worktree records that Cwd is inside a git worktree created for this
+	// session (AgentService CreateSession with worktree options). It is
+	// written to the transcript; a resumed session reports the recorded one.
+	Worktree *session.Worktree
 
 	// Unattended applies the background task time limit (headless runs).
 	Unattended bool
@@ -127,6 +131,8 @@ type Session struct {
 	Resumed     bool
 	// ParentSessionID is set for forks.
 	ParentSessionID string
+	// Worktree is the git worktree the session runs in (nil when none).
+	Worktree *session.Worktree
 	// Trusted reports whether the workspace was trusted at open.
 	Trusted bool
 	// Settings is the merged settings hierarchy (nil if it could not be loaded).
@@ -324,6 +330,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	conv := session.Rebuild(entries)
 	s.ParentSessionID = conv.ForkedFrom
+	s.Worktree = conv.Worktree
+	if o.Worktree != nil {
+		w := *o.Worktree
+		s.Worktree = &w
+	}
 
 	// Workspace trust and the settings hierarchy (policy > CLI > local > project > user > org).
 	if o.Trusted != nil {
@@ -460,6 +471,10 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	if recorded := conv.OutputStyle; styleID != recorded && (recorded != "" || styleID != outputstyle.Default) {
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, OutputStyle: styleID})
+	}
+	if o.Worktree != nil && (conv.Worktree == nil || *conv.Worktree != *o.Worktree) {
+		// The cwd lets readers map the session to its folder before any message is written.
+		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, Cwd: cwd, Worktree: s.Worktree})
 	}
 	trackUpload(ctx, s.Uploader, s, path, branch)
 	onEvent := o.OnEvent
