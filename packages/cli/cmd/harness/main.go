@@ -139,6 +139,8 @@ func protoMode(m permissions.Mode) agentv1.PermissionMode {
 		return agentv1.PermissionMode_PERMISSION_MODE_DONT_ASK
 	case permissions.ModeBypassPermissions:
 		return agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS
+	case permissions.ModeAuto:
+		return agentv1.PermissionMode_PERMISSION_MODE_AUTO
 	}
 	return agentv1.PermissionMode_PERMISSION_MODE_DEFAULT
 }
@@ -149,7 +151,7 @@ func cmdMain(ctx context.Context, args []string) int {
 	printMode := fs.BoolP("print", "p", false, "run one headless turn and print the result")
 	outputFormat := fs.String("output-format", "text", "with -p: text | json | stream-json")
 	model := fs.String("model", "", "model id (default: the server's main slot)")
-	mode := fs.String("permission-mode", "default", "default | acceptEdits | plan | dontAsk | bypassPermissions")
+	mode := fs.String("permission-mode", "default", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions")
 	var allowed, disallowed, addDirs []string
 	fs.StringArrayVar(&allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
 	fs.StringArrayVar(&disallowed, "disallowedTools", nil, "tools that are always denied")
