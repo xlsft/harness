@@ -15,10 +15,20 @@ export interface DiffComment {
   side: 'new' | 'old'
   // Index of the hunk in this diff: line numbers repeat when several edits of one file are shown together.
   hunk: number
+  // The line's diff sign: '+' added, '-' removed, ' ' context.
+  sign: '+' | '-' | ' '
   code: string
   text: string
   // Posted to the agent (the diff pane sends each comment as soon as it is saved).
   sent?: boolean
+  // The conversation on this line: what the user wrote and the exact message that carried it.
+  thread?: { text: string, message: string }[]
+}
+
+export interface ThreadEntry {
+  text: string
+  // The agent's answer to that message; null while it has not been delivered yet (queued).
+  reply: { text: string, streaming: boolean } | null
 }
 
 const props = withDefaults(defineProps<{
@@ -31,9 +41,27 @@ const props = withDefaults(defineProps<{
   // No header (the diff pane draws one continuous diff with its own file separators and view menu).
   bare?: boolean
   commentable?: boolean
+  // Thread of a sent comment, with the agent's replies (the diff pane reads them from the transcript).
+  threadOf?: (c: DiffComment) => ThreadEntry[]
 }>(), { verb: 'Edit', mode: 'unified', icon: true, flush: false, bare: false, commentable: false })
 
 const comments = defineModel<DiffComment[]>('comments', { default: () => [] })
+const emit = defineEmits<{ reply: [comment: DiffComment, text: string] }>()
+
+// Reply boxes under sent comments, by comment id.
+const replyText = reactive<Record<string, string>>({})
+function sendReply(c: DiffComment) {
+  const text = (replyText[c.id] ?? '').trim()
+  if (!text) return
+  emit('reply', c, text)
+  replyText[c.id] = ''
+}
+function onReplyKey(e: KeyboardEvent, c: DiffComment) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    e.preventDefault()
+    sendReply(c)
+  }
+}
 
 const view = ref(props.mode)
 watch(() => props.mode, m => view.value = m)
@@ -54,6 +82,11 @@ const commentsAt = (r: LRow) => comments.value.filter(c => c.path === props.path
 const root = ref<HTMLElement | null>(null)
 
 function startComment(r: LRow, c?: DiffComment) {
+  // A second click on the same line closes an empty box.
+  if (!c && draft.value?.key === rowKey(r) && !draft.value.text.trim()) {
+    draft.value = null
+    return
+  }
   draft.value = { key: rowKey(r), text: c?.text ?? '', id: c?.id }
   // autofocus does not fire on a field inserted later.
   nextTick(() => root.value?.querySelector<HTMLTextAreaElement>('textarea[data-draft]')?.focus())
@@ -69,7 +102,7 @@ function saveComment(r: LRow) {
       : comments.value.filter(c => c.id !== d.id)
   } else if (text) {
     const side = r.b ? 'new' : 'old'
-    comments.value = [...comments.value, { id: `${props.path}:${rowKey(r)}:${Date.now()}`, path: props.path, line: Number(side === 'new' ? r.b : r.a), side, hunk: r.h, code: r.t, text }]
+    comments.value = [...comments.value, { id: `${props.path}:${rowKey(r)}:${Date.now()}`, path: props.path, line: Number(side === 'new' ? r.b : r.a), side, hunk: r.h, sign: r.s === '+' ? '+' : r.s === ' ' ? ' ' : '-', code: r.t, text }]
   }
   draft.value = null
 }
@@ -171,111 +204,153 @@ const split = computed(() => {
     </div>
     <div
       v-if="view === 'unified'"
-      class="overflow-x-auto text-[12px] leading-[1.7]"
+      class="@container overflow-x-auto text-[12px] leading-[1.7]"
     >
-      <template
-        v-for="(r, i) in unified"
-        :key="i"
-      >
-        <div
-          v-if="r.kind === 'hunk'"
-          class="bg-[#071a20] px-3 py-0.5 text-cyan"
+      <!-- Rows are as wide as the longest line, so backgrounds span the whole scroll width. -->
+      <div class="w-max min-w-full">
+        <template
+          v-for="(r, i) in unified"
+          :key="i"
         >
-          {{ r.text }}
-        </div>
-        <template v-else>
           <div
-            class="group/line relative flex whitespace-pre"
-            :style="{ background: r.bg }"
+            v-if="r.kind === 'hunk'"
+            class="bg-[#071a20] px-3 py-0.5 text-cyan"
           >
-            <button
-              v-if="commentable"
-              type="button"
-              :aria-label="`Comment on line ${r.b || r.a}`"
-              class="absolute top-1/2 left-0.5 hidden size-4 -translate-y-1/2 items-center justify-center bg-accent text-white group-hover/line:flex"
-              @click="startComment(r)"
-            >
-              <HIcon
-                name="plus"
-                :size="11"
-              />
-            </button>
-            <span class="w-[38px] shrink-0 pr-1.5 text-right text-dimmed">{{ r.a }}</span>
-            <span class="w-[38px] shrink-0 pr-2.5 text-right text-dimmed">{{ r.b }}</span>
-            <span
-              class="w-3.5 shrink-0"
-              :style="{ color: r.sc }"
-            >{{ r.s }}</span>
-            <span :style="{ color: r.tc }">{{ r.t }}</span>
+            {{ r.text }}
           </div>
-          <template v-if="commentable">
+          <template v-else>
             <div
-              v-for="c in commentsAt(r)"
-              v-show="draft?.id !== c.id"
-              :key="c.id"
-              class="group/comment mx-2 my-1 flex items-start gap-2 border border-l-2 border-default border-l-accent bg-raised px-2.5 py-1.5 whitespace-pre-wrap text-toned"
+              class="group/line relative flex whitespace-pre"
+              :style="{ background: r.bg }"
             >
-              <span class="min-w-0 flex-1">{{ c.text }}</span>
+              <button
+                v-if="commentable"
+                type="button"
+                :aria-label="`Comment on line ${r.b || r.a}`"
+                class="absolute top-1/2 left-0.5 hidden size-4 -translate-y-1/2 items-center justify-center bg-accent text-white group-hover/line:flex"
+                @click="startComment(r)"
+              >
+                <HIcon
+                  name="plus"
+                  :size="11"
+                />
+              </button>
+              <span class="w-[38px] shrink-0 pr-1.5 text-right text-dimmed">{{ r.a }}</span>
+              <span class="w-[38px] shrink-0 pr-2.5 text-right text-dimmed">{{ r.b }}</span>
               <span
-                v-if="c.sent"
-                class="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted"
-              ><HIcon
-                name="check"
-                :size="11"
-              />sent</span>
-              <template v-else>
-                <button
-                  type="button"
-                  class="text-[11px] text-muted hover:text-white"
-                  @click="startComment(r, c)"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  class="text-[11px] text-muted hover:text-bad"
-                  @click="comments = comments.filter(x => x.id !== c.id)"
-                >
-                  Delete
-                </button>
-              </template>
+                class="w-3.5 shrink-0"
+                :style="{ color: r.sc }"
+              >{{ r.s }}</span>
+              <span :style="{ color: r.tc }">{{ r.t }}</span>
             </div>
-            <div
-              v-if="draft?.key === rowKey(r)"
-              class="mx-2 my-1 flex flex-col gap-1.5 border border-accent bg-raised p-2"
-            >
-              <textarea
-                v-model="draft.text"
-                rows="3"
-                placeholder="What should change here?"
-                aria-label="Comment"
-                data-draft
-                class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-white outline-none placeholder:text-muted"
-                @keydown="onDraftKey($event, r)"
-              />
-              <div class="flex items-center gap-2 text-[11.5px]">
-                <span class="inline-flex items-center gap-1 text-muted"><HKeys keys="meta+enter" />save<HKeys keys="escape" />cancel</span>
-                <span class="flex-1" />
-                <button
-                  type="button"
-                  class="border border-default px-2 py-0.5 text-toned hover:text-white"
-                  @click="draft = null"
+            <template v-if="commentable">
+              <div
+                v-for="c in commentsAt(r)"
+                v-show="draft?.id !== c.id"
+                :key="c.id"
+                class="sticky left-0 flex w-[100cqw] flex-col gap-1.5 border-y border-l-2 border-default border-l-accent bg-raised px-3 py-1.5 whitespace-pre-wrap text-toned"
+              >
+                <template v-if="c.sent && threadOf">
+                  <template
+                    v-for="(e, ei) in threadOf(c)"
+                    :key="ei"
+                  >
+                    <div class="flex items-start gap-2">
+                      <span class="w-10 shrink-0 text-[11px] text-muted">you</span>
+                      <span class="min-w-0 flex-1 text-white">{{ e.text }}</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                      <span class="w-10 shrink-0 text-[11px] text-accent">agent</span>
+                      <span
+                        v-if="e.reply?.text"
+                        class="max-h-60 min-w-0 flex-1 overflow-y-auto"
+                      >{{ e.reply.text }}</span>
+                      <span
+                        v-else
+                        class="inline-flex items-center gap-1.5 text-muted"
+                      ><HIcon
+                        name="loading"
+                        :size="12"
+                        spin
+                      />{{ e.reply ? 'working' : 'queued' }}</span>
+                    </div>
+                  </template>
+                  <textarea
+                    v-model="replyText[c.id]"
+                    rows="1"
+                    placeholder="Reply…"
+                    aria-label="Reply"
+                    class="ml-12 resize-none border border-default bg-surface px-2 py-1 text-[12px] leading-[1.6] text-white outline-none placeholder:text-muted focus:border-accent"
+                    @keydown="onReplyKey($event, c)"
+                  />
+                </template>
+                <div
+                  v-else
+                  class="flex items-start gap-2"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  class="bg-accent px-2 py-0.5 text-white disabled:opacity-50"
-                  :disabled="!draft.text.trim() && !draft.id"
-                  @click="saveComment(r)"
-                >
-                  {{ draft.id ? 'Save' : 'Comment' }}
-                </button>
+                  <span class="min-w-0 flex-1">{{ c.text }}</span>
+                  <span
+                    v-if="c.sent"
+                    class="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted"
+                  ><HIcon
+                    name="check"
+                    :size="11"
+                  />sent</span>
+                  <template v-else>
+                    <button
+                      type="button"
+                      class="text-[11px] text-muted hover:text-white"
+                      @click="startComment(r, c)"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="text-[11px] text-muted hover:text-bad"
+                      @click="comments = comments.filter(x => x.id !== c.id)"
+                    >
+                      Delete
+                    </button>
+                  </template>
+                </div>
               </div>
-            </div>
+              <div
+                v-if="draft?.key === rowKey(r)"
+                class="sticky left-0 flex w-[100cqw] flex-col gap-1.5 border border-accent bg-raised px-3 py-2"
+              >
+                <textarea
+                  v-model="draft.text"
+                  rows="3"
+                  placeholder="What should change here?"
+                  aria-label="Comment"
+                  data-draft
+                  class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-white outline-none placeholder:text-muted"
+                  @keydown="onDraftKey($event, r)"
+                />
+                <div class="flex items-center gap-2 text-[11.5px]">
+                  <span class="inline-flex items-center gap-1 text-muted"><HKeys keys="meta+enter" />save<HKeys keys="escape" />cancel</span>
+                  <span class="flex-1" />
+                  <button
+                    type="button"
+                    class="border border-default px-2 py-0.5 text-toned hover:text-white"
+                    @click="draft = null"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="bg-accent px-2 py-0.5 text-white disabled:opacity-50"
+                    :disabled="!draft.text.trim() && !draft.id"
+                    @click="saveComment(r)"
+                  >
+                    {{ draft.id ? 'Save' : 'Comment' }}
+                  </button>
+                </div>
+              </div>
+            </template>
           </template>
         </template>
-      </template>
+      </div>
     </div>
     <div
       v-else

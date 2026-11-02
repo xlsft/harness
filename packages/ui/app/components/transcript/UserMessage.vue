@@ -9,6 +9,9 @@ const props = withDefaults(defineProps<{
   queued?: boolean
 }>(), { attachments: () => [], queued: false })
 
+// Review comments from the diff pane get their own card.
+const review = computed(() => parseReview(props.text))
+
 const parsed = computed(() => {
   const lines = props.text.split('\n')
   const quote = lines[0]?.startsWith('> ') ? lines[0].slice(2) : ''
@@ -41,6 +44,10 @@ const parsed = computed(() => {
       <span class="text-[11px] text-muted">queued · sends after this turn</span>
       <span class="whitespace-pre-wrap">{{ text }}</span>
     </div>
+    <ReviewMessage
+      v-else-if="review"
+      :items="review"
+    />
     <div
       v-else
       class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default bg-hover px-3 py-[9px] whitespace-pre-wrap text-white"

@@ -4,7 +4,7 @@
 // Review comments: hover a line, add a comment; it goes to the agent as soon as it is saved (queued while
 // a turn runs) and stays on its line marked as sent.
 import type { SessionState, ToolItem } from '~/lib/session/types'
-import type { DiffComment } from '~/components/transcript/DiffView.vue'
+import type { DiffComment, ThreadEntry } from '~/components/transcript/DiffView.vue'
 
 const props = defineProps<{ session: SessionState }>()
 const { closePane } = usePanes()
@@ -13,22 +13,42 @@ const store = useSessionStore()
 // Comments survive closing and reopening the pane within the session (not a reload).
 const comments = useState<DiffComment[]>(`diff-comments-${props.session.meta.id}`, () => [])
 function reviewMessage(list: DiffComment[]) {
-  const lines = [list.length === 1 ? 'Review comment on your changes:' : 'Review comments on your changes. Address each one:', '']
-  for (const c of [...list].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line)) {
-    lines.push(`- ${c.path}:${c.line}${c.side === 'old' ? ' (removed line)' : ''}`)
-    if (c.code.trim()) lines.push(`  \`${c.code.trim()}\``)
-    lines.push(...c.text.split('\n').map(l => `  ${l}`))
-  }
-  return lines.join('\n')
+  return formatReview(list.map(c => ({ path: relative(c.path), line: c.line, sign: c.sign ?? (c.side === 'old' ? '-' : '+'), code: c.code, text: c.text })))
 }
 
-// Saved comments that have not gone out yet are sent right away, then marked.
+// Saved comments that have not gone out yet are sent right away, then marked; each keeps the message
+// that carried it, to find the agent's answer.
 watch(comments, async (list) => {
   const fresh = list.filter(c => !c.sent)
   if (!fresh.length) return
-  comments.value = list.map(c => c.sent ? c : { ...c, sent: true })
-  await store.send(props.session.meta.id, reviewMessage(fresh))
+  const message = reviewMessage(fresh)
+  comments.value = list.map(c => c.sent ? c : { ...c, sent: true, thread: [{ text: c.text, message }] })
+  await store.send(props.session.meta.id, message)
 })
+
+// The agent's answer to a message: the last text it wrote between that message and the next user message.
+function replyTo(message: string): ThreadEntry['reply'] {
+  const items = props.session.items
+  const at = items.findLastIndex(i => i.kind === 'user' && i.text.trim() === message.trim())
+  if (at < 0) return null
+  let reply: ThreadEntry['reply'] = { text: '', streaming: true }
+  for (const it of items.slice(at + 1)) {
+    if (it.kind === 'user') break
+    if (it.kind !== 'assistant') continue
+    const text = it.blocks.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
+    if (text) reply = { text, streaming: it.streaming }
+  }
+  return reply
+}
+
+const threadOf = (c: DiffComment): ThreadEntry[] => (c.thread ?? []).map(e => ({ text: e.text, reply: replyTo(e.message) }))
+
+// A reply continues the thread: same line, the user's new words.
+async function onReply(c: DiffComment, text: string) {
+  const message = reviewMessage([{ ...c, text }])
+  comments.value = comments.value.map(x => x.id === c.id ? { ...x, thread: [...(x.thread ?? []), { text, message }] } : x)
+  await store.send(props.session.meta.id, message)
+}
 
 const edits = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool' && ['Edit', 'MultiEdit', 'Write'].includes(i.name) && i.status === 'ok' && patchOf(i).length > 0))
 const files = computed(() => fileChanges(edits.value))
@@ -310,8 +330,10 @@ async function copy(text: string) {
           :path="g.label"
           :hunks="g.hunks"
           :mode="view"
+          :thread-of="threadOf"
           bare
           commentable
+          @reply="onReply"
         />
       </section>
     </div>
