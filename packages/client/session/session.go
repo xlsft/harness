@@ -30,7 +30,42 @@ const (
 	// TypeMeta is a bookkeeping record (no uuid) holding session metadata such
 	// as the frozen prompt bundle version.
 	TypeMeta = "harness-meta"
+	// TypeFileHistorySnapshot points at the file backups of a checkpoint
+	// (no uuid, Claude Code shape).
+	TypeFileHistorySnapshot = "file-history-snapshot"
 )
+
+// System entry subtypes written by the client.
+const (
+	SubtypeCompactBoundary = "compact_boundary"
+	// SubtypeRewind marks a conversation rewind: the entry branches from the
+	// message before the rewound turn, so it becomes the new leaf.
+	SubtypeRewind = "rewind"
+)
+
+// unchained entry types carry no uuid/parentUuid.
+func unchained(t string) bool { return t == TypeMeta || t == TypeFileHistorySnapshot }
+
+// CompactMetadata is attached to compact_boundary entries.
+type CompactMetadata struct {
+	Trigger   string `json:"trigger"` // manual | auto | rewind
+	PreTokens int    `json:"preTokens"`
+}
+
+// FileBackup is one file of a file-history snapshot.
+type FileBackup struct {
+	// BackupFileName is nil when the file did not exist at that point.
+	BackupFileName *string `json:"backupFileName"`
+	Version        int     `json:"version"`
+	BackupTime     string  `json:"backupTime"`
+}
+
+// FileSnapshot is the payload of a file-history-snapshot entry.
+type FileSnapshot struct {
+	MessageID          string                `json:"messageId"`
+	TrackedFileBackups map[string]FileBackup `json:"trackedFileBackups"`
+	Timestamp          string                `json:"timestamp"`
+}
 
 // Message is the persisted message. Content is kept raw so user prompts can be
 // stored as a plain string (as Claude Code does) and blocks as an array.
@@ -70,9 +105,21 @@ type Entry struct {
 	UUID                    string   `json:"uuid,omitempty"`
 	Timestamp               string   `json:"timestamp"`
 
+	// compaction
+	LogicalParentUUID         string           `json:"logicalParentUuid,omitempty"`
+	CompactMetadata           *CompactMetadata `json:"compactMetadata,omitempty"`
+	IsCompactSummary          bool             `json:"isCompactSummary,omitempty"`
+	IsVisibleInTranscriptOnly bool             `json:"isVisibleInTranscriptOnly,omitempty"`
+
+	// file-history-snapshot fields
+	MessageID        string        `json:"messageId,omitempty"`
+	Snapshot         *FileSnapshot `json:"snapshot,omitempty"`
+	IsSnapshotUpdate bool          `json:"isSnapshotUpdate,omitempty"`
+
 	// harness-meta fields
 	PromptBundleVersion string `json:"promptBundleVersion,omitempty"`
 	Model               string `json:"model,omitempty"`
+	ForkedFrom          string `json:"forkedFrom,omitempty"`
 }
 
 // Blocks decodes the message content.
@@ -180,13 +227,69 @@ type Conversation struct {
 	LastUUID            string
 	PromptBundleVersion string
 	Model               string
+	ForkedFrom          string
+	// Todos is the input of the last TodoWrite call on the active branch
+	// (followed across compactions); nil when there is none.
+	Todos json.RawMessage
+	// Snapshots are the file-history snapshots (last record per message id),
+	// in creation order.
+	Snapshots []FileSnapshot
+	// Chain holds the uuids of the active branch, followed across compaction
+	// boundaries (oldest first).
+	Chain []string
 }
 
-// Rebuild converts entries into API messages. Consecutive entries of the same
-// role are merged (Claude Code writes one tool_result or block per line).
+// ActiveChain returns the entries of the active branch: from the last
+// chained entry back through parentUuid links, oldest first. The walk stops
+// at a compact boundary (parentUuid null); with logical set it continues
+// through logicalParentUuid.
+func ActiveChain(entries []Entry, logical bool) []Entry {
+	byUUID := map[string]int{}
+	leaf := -1
+	for i, e := range entries {
+		if unchained(e.Type) || e.UUID == "" {
+			continue
+		}
+		byUUID[e.UUID] = i
+		leaf = i
+	}
+	if leaf < 0 {
+		return nil
+	}
+	var chain []Entry
+	seen := map[string]bool{}
+	for i := leaf; i >= 0; {
+		e := entries[i]
+		if seen[e.UUID] {
+			break
+		}
+		seen[e.UUID] = true
+		chain = append(chain, e)
+		next := ""
+		switch {
+		case e.ParentUUID != nil:
+			next = *e.ParentUUID
+		case logical && e.LogicalParentUUID != "":
+			next = e.LogicalParentUUID
+		}
+		j, ok := byUUID[next]
+		if next == "" || !ok {
+			break
+		}
+		i = j
+	}
+	for l, r := 0, len(chain)-1; l < r; l, r = l+1, r-1 {
+		chain[l], chain[r] = chain[r], chain[l]
+	}
+	return chain
+}
+
+// Rebuild converts entries into API messages along the active branch.
+// Consecutive entries of the same role are merged (Claude Code writes one
+// tool_result or block per line).
 func Rebuild(entries []Entry) Conversation {
 	var c Conversation
-	first := true
+	snaps := map[string]int{}
 	for _, e := range entries {
 		switch e.Type {
 		case TypeMeta:
@@ -196,16 +299,47 @@ func Rebuild(entries []Entry) Conversation {
 			if e.Model != "" {
 				c.Model = e.Model
 			}
-			continue
-		case TypeUser, TypeAssistant:
-		default:
+			if e.ForkedFrom != "" {
+				c.ForkedFrom = e.ForkedFrom
+			}
+		case TypeFileHistorySnapshot:
+			if e.Snapshot == nil {
+				continue
+			}
+			if i, ok := snaps[e.Snapshot.MessageID]; ok {
+				c.Snapshots[i] = *e.Snapshot
+			} else {
+				snaps[e.Snapshot.MessageID] = len(c.Snapshots)
+				c.Snapshots = append(c.Snapshots, *e.Snapshot)
+			}
+		}
+	}
+	extended := ActiveChain(entries, true)
+	for _, e := range extended {
+		c.Chain = append(c.Chain, e.UUID)
+		if e.Type == TypeAssistant {
+			for _, b := range e.Blocks() {
+				if b.Type == llm.BlockToolUse && b.Name == "TodoWrite" {
+					var in struct {
+						Todos json.RawMessage `json:"todos"`
+					}
+					if json.Unmarshal(b.Input, &in) == nil && len(in.Todos) > 0 {
+						c.Todos = in.Todos
+					}
+				}
+			}
+		}
+	}
+	if n := len(extended); n > 0 {
+		c.LastUUID = extended[n-1].UUID
+	}
+	first := true
+	for _, e := range ActiveChain(entries, false) {
+		if e.Type != TypeUser && e.Type != TypeAssistant {
 			continue
 		}
 		if e.Message == nil {
 			continue
-		}
-		if e.UUID != "" {
-			c.LastUUID = e.UUID
 		}
 		blocks := e.Blocks()
 		if len(blocks) == 0 {
@@ -229,6 +363,39 @@ func Rebuild(entries []Entry) Conversation {
 	return c
 }
 
+// TurnParent returns the parent of the turn started by the user message
+// uuid (skipping that turn's project-context meta entry): the point a
+// conversation rewind branches from. nil means the start of the session.
+func TurnParent(entries []Entry, uuid string) (*string, bool) {
+	byUUID := map[string]Entry{}
+	for _, e := range entries {
+		if e.UUID != "" && !unchained(e.Type) {
+			byUUID[e.UUID] = e
+		}
+	}
+	e, ok := byUUID[uuid]
+	if !ok {
+		return nil, false
+	}
+	p := e.ParentUUID
+	if p != nil {
+		if pe, ok := byUUID[*p]; ok && pe.Type == TypeUser && pe.IsMeta && pe.PromptID != "" && pe.PromptID == e.PromptID {
+			p = pe.ParentUUID
+		}
+	}
+	return p, true
+}
+
+// FirstText returns the first text of an entry's message.
+func (e *Entry) FirstText() string {
+	for _, b := range e.Blocks() {
+		if b.Type == llm.BlockText && b.Text != "" {
+			return b.Text
+		}
+	}
+	return ""
+}
+
 // Writer appends entries to one transcript.
 type Writer struct {
 	mu        sync.Mutex
@@ -241,6 +408,7 @@ type Writer struct {
 	entry     string
 	last      string
 	disabled  bool
+	entries   []Entry
 }
 
 // WriterOptions configure common fields.
@@ -252,11 +420,15 @@ type WriterOptions struct {
 	Entrypoint string // "sdk-cli" | "cli"
 	LastUUID   string // continue the parent chain on resume
 	Disabled   bool   // --no-session-persistence
+	// Initial are the entries already in the transcript (resume), kept in
+	// memory with every appended entry for rewinds and rebuilds.
+	Initial []Entry
 }
 
 // OpenWriter opens (creating if needed) the transcript at path for appending.
 func OpenWriter(path string, o WriterOptions) (*Writer, error) {
-	w := &Writer{path: path, sessionID: o.SessionID, cwd: o.Cwd, gitBranch: o.GitBranch, version: o.Version, entry: o.Entrypoint, last: o.LastUUID, disabled: o.Disabled}
+	w := &Writer{path: path, sessionID: o.SessionID, cwd: o.Cwd, gitBranch: o.GitBranch, version: o.Version, entry: o.Entrypoint, last: o.LastUUID, disabled: o.Disabled,
+		entries: append([]Entry(nil), o.Initial...)}
 	if o.Disabled {
 		return w, nil
 	}
@@ -284,27 +456,43 @@ func (w *Writer) LastUUID() string {
 	return w.last
 }
 
-// Append fills common fields, chains parentUuid and writes the entry. It
-// returns the entry's uuid.
+// Append fills common fields, chains parentUuid to the previous entry and
+// writes the entry. It returns the entry's uuid.
 func (w *Writer) Append(e Entry) (string, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	var parent *string
+	if w.last != "" {
+		p := w.last
+		parent = &p
+	}
+	return w.appendLocked(e, parent)
+}
+
+// AppendBranch writes a chained entry whose parent is set explicitly (nil:
+// no parent, e.g. a compact boundary or a rewind to the session start). The
+// entry becomes the new leaf.
+func (w *Writer) AppendBranch(e Entry, parent *string) (string, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.appendLocked(e, parent)
+}
+
+func (w *Writer) appendLocked(e Entry, parent *string) (string, error) {
 	e.SessionID = w.sessionID
 	if e.Timestamp == "" {
 		e.Timestamp = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	}
-	if e.Type != TypeMeta {
+	if !unchained(e.Type) {
 		if e.UUID == "" {
 			e.UUID = uuid.NewString()
 		}
-		if w.last != "" {
-			p := w.last
-			e.ParentUUID = &p
-		}
+		e.ParentUUID = parent
 		e.Cwd, e.GitBranch, e.Version, e.Entrypoint = w.cwd, w.gitBranch, w.version, w.entry
 		e.UserType = "external"
 		w.last = e.UUID
 	}
+	w.entries = append(w.entries, e)
 	if w.disabled {
 		return e.UUID, nil
 	}
@@ -317,6 +505,14 @@ func (w *Writer) Append(e Entry) (string, error) {
 		return "", err
 	}
 	return e.UUID, nil
+}
+
+// Entries returns a copy of all entries of the transcript (loaded and
+// appended).
+func (w *Writer) Entries() []Entry {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return append([]Entry(nil), w.entries...)
 }
 
 // Close closes the file.
