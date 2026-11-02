@@ -21,7 +21,7 @@ Server-side behavior that is not visible in the schema, such as provider transla
 ## Transport
 
 - **[ConnectRPC](https://connectrpc.com).** Servers accept the gRPC, gRPC-Web and Connect protocols on the same endpoints. That gives:
-  - Go clients use plain gRPC over HTTP/2;
+  - Go clients use the Connect protocol by default over HTTP/1.1 or HTTP/2, on core's main port. Plain gRPC (`HARNESS_RPC_PROTOCOL=grpc`) needs HTTP/2 trailers, so core serves it on a separate h2c listener (`HARNESS_GRPC_PORT`), because Nitro's fetch-based responses cannot carry trailers;
   - browsers (web, mobile, the desktop webview) use Connect or gRPC-Web over HTTP/1.1 or HTTP/2;
   - everything works behind ordinary reverse proxies.
 - **Libraries:**

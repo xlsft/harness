@@ -10,6 +10,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -26,8 +27,11 @@ type Tokens interface {
 	Refresh(ctx context.Context) (string, error)
 }
 
-// HTTPClient returns an HTTP/2 client for baseURL: TLS for https://, h2c
-// (prior knowledge) for http://.
+// HTTPClient returns an HTTP client for baseURL. With the default Connect
+// protocol it speaks HTTP/1.1 or HTTP/2 (negotiated over TLS), which works on
+// the server's main port and behind ordinary reverse proxies. With the gRPC
+// protocol (HARNESS_RPC_PROTOCOL=grpc) it requires HTTP/2: TLS for https://,
+// h2c with prior knowledge for http://.
 func HTTPClient(baseURL string) *http.Client {
 	t := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
@@ -37,13 +41,24 @@ func HTTPClient(baseURL string) *http.Client {
 		TLSClientConfig:     &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 	p := new(http.Protocols)
-	if strings.HasPrefix(baseURL, "http://") {
+	switch {
+	case useGRPC() && strings.HasPrefix(baseURL, "http://"):
 		p.SetUnencryptedHTTP2(true)
-	} else {
+	case useGRPC():
+		p.SetHTTP2(true)
+	default:
+		p.SetHTTP1(true)
 		p.SetHTTP2(true)
 	}
 	t.Protocols = p
 	return &http.Client{Transport: t}
+}
+
+// useGRPC reports whether HARNESS_RPC_PROTOCOL selects plain gRPC instead of
+// the default Connect protocol. Plain gRPC needs the server's h2c listener
+// (HARNESS_GRPC_PORT on core); the main port serves Connect and gRPC-Web only.
+func useGRPC() bool {
+	return strings.EqualFold(os.Getenv("HARNESS_RPC_PROTOCOL"), "grpc")
 }
 
 // UnixHTTPClient returns an h2c client that dials a unix socket for any URL.
@@ -60,13 +75,15 @@ func UnixHTTPClient(socket string) *http.Client {
 	return &http.Client{Transport: t}
 }
 
-// ClientOptions are the Connect options used for all server calls: the gRPC
-// protocol over HTTP/2 and the harness User-Agent.
+// ClientOptions are the Connect options used for all server calls: the
+// Connect protocol (or gRPC when HARNESS_RPC_PROTOCOL=grpc) and the harness
+// User-Agent.
 func ClientOptions() []connect.ClientOption {
-	return []connect.ClientOption{
-		connect.WithGRPC(),
-		connect.WithInterceptors(userAgent{}),
+	opts := []connect.ClientOption{connect.WithInterceptors(userAgent{})}
+	if useGRPC() {
+		opts = append(opts, connect.WithGRPC())
 	}
+	return opts
 }
 
 type userAgent struct{}
@@ -134,6 +151,7 @@ var errorTypeNames = map[commonv1.ErrorType]string{
 	commonv1.ErrorType_ERROR_TYPE_UPSTREAM:           "upstream",
 	commonv1.ErrorType_ERROR_TYPE_UNSUPPORTED_CLIENT: "unsupported_client",
 	commonv1.ErrorType_ERROR_TYPE_INTERNAL:           "internal",
+	commonv1.ErrorType_ERROR_TYPE_CONFLICT:           "conflict",
 }
 
 var codeTypeNames = map[connect.Code]string{
@@ -144,6 +162,7 @@ var codeTypeNames = map[connect.Code]string{
 	connect.CodeResourceExhausted:  "rate_limit",
 	connect.CodeUnavailable:        "overloaded",
 	connect.CodeFailedPrecondition: "unsupported_client",
+	connect.CodeAborted:            "conflict",
 	connect.CodeInternal:           "internal",
 	connect.CodeUnknown:            "internal",
 	connect.CodeDeadlineExceeded:   "internal",
