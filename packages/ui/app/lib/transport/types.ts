@@ -15,6 +15,7 @@ import type {
   BackgroundTask
 } from '~/gen/harness/agent/v1/agent_pb'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
+import type { EffortName } from '~/lib/session/types'
 
 export interface ModelInfo {
   id: string
@@ -23,6 +24,9 @@ export interface ModelInfo {
   // e.g. "$0.60/M"; empty when unknown.
   price: string
   offline?: boolean
+  // Effort levels the model supports, lowest first; empty when it has none.
+  efforts?: EffortName[]
+  thinking?: boolean
 }
 
 // What a new session starts with (the new-session screen's chips).

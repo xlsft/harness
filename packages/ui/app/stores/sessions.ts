@@ -53,6 +53,8 @@ export const useSessionStore = defineStore('sessions', {
     connectionLost: false,
     userEmail: '',
     clientVersion: '',
+    // The server's default session model (its main slot); empty when unknown.
+    defaultModel: '',
     // The signed-in account as the desktop shell reports it (whoami); empty on the web.
     account: { name: '', server: '', role: '' },
     models: [] as ModelInfo[],
@@ -87,6 +89,7 @@ export const useSessionStore = defineStore('sessions', {
         const init = await this.transport.initialize()
         this.userEmail = init.userEmail
         this.clientVersion = init.clientVersion
+        this.defaultModel = init.defaultModel
         this.models = await this.transport.listModels()
         const list = await this.transport.listSessions()
         for (const info of list) {

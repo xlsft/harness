@@ -103,6 +103,26 @@ message InitializeResponse {
   repeated string model_ids = 3;
   // Permission modes this client supports, in Shift+Tab cycle order.
   repeated PermissionMode permission_modes = 4;
+  // The server's model catalog, in its order (model_ids lists the same ids).
+  repeated ModelInfo models = 5;
+  // The server's default model for sessions (its "main" slot); empty when not configured.
+  string default_model = 6;
+}
+
+// A model from the server's catalog, with what frontends need to offer it.
+message ModelInfo {
+  string id = 1;
+  string display_name = 2;
+  // Provider id, for grouping.
+  string provider = 3;
+  int64 context_window = 4;
+  bool thinking = 5;
+  // Effort levels the model supports, lowest first; empty means effort is not supported.
+  repeated harness.llm.v1.Effort efforts = 6;
+  bool images = 7;
+  // USD per 1M tokens; absent when the server has no prices configured.
+  optional double input_price = 8;
+  optional double output_price = 9;
 }
 
 message SessionInfo {

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -26,6 +27,7 @@ import (
 	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
+	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
@@ -155,10 +157,34 @@ func (s *Server) Initialize(ctx context.Context, req *connect.Request[agentv1.In
 		if cat, err := s.Base.Gateway.Models(ctx); err == nil {
 			for _, m := range cat.Models {
 				resp.ModelIds = append(resp.ModelIds, m.ID)
+				resp.Models = append(resp.Models, modelInfo(m))
 			}
+			resp.DefaultModel = cat.Slots["main"]
 		}
 	}
 	return connect.NewResponse(resp), nil
+}
+
+// modelInfo converts a catalog entry for frontends.
+func modelInfo(m llm.Model) *agentv1.ModelInfo {
+	mi := &agentv1.ModelInfo{
+		Id:            m.ID,
+		DisplayName:   m.DisplayName,
+		Provider:      m.Provider,
+		ContextWindow: int64(m.ContextWindow),
+		Thinking:      m.Capabilities.Thinking,
+		Images:        m.Capabilities.Images,
+	}
+	for _, e := range m.Capabilities.Effort {
+		if pe := pbconv.Effort(e); pe != llmv1.Effort_EFFORT_UNSPECIFIED {
+			mi.Efforts = append(mi.Efforts, pe)
+		}
+	}
+	slices.Sort(mi.Efforts)
+	if p := m.Pricing; p != nil {
+		mi.InputPrice, mi.OutputPrice = &p.Input, &p.Output
+	}
+	return mi
 }
 
 func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1.CreateSessionRequest]) (*connect.Response[agentv1.CreateSessionResponse], error) {

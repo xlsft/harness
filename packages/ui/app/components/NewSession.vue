@@ -116,6 +116,12 @@ function choose(path: string) {
 }
 
 const modelLabel = computed(() => model.value || store.models[0]?.id || 'default model')
+const efforts = computed(() => modelEfforts(store.models.find(m => m.id === (model.value || store.models[0]?.id))))
+// Each model starts at its own remembered effort (Settings → Models), else the nearest level it offers.
+watch([model, efforts], () => {
+  const own = readJSON<{ effortByModel?: Record<string, EffortName> }>(PREFS, {}).effortByModel?.[model.value || store.models[0]?.id || '']
+  effort.value = fitEffort(own ?? effort.value, efforts.value) ?? effort.value
+})
 
 async function start() {
   const msg = text.value.trim()
@@ -126,11 +132,11 @@ async function start() {
     const id = await store.createSession({
       cwd: cwd.value,
       model: model.value,
-      effort: effort.value,
+      effort: efforts.value.length ? effort.value : undefined,
       mode: mode.value,
       worktree: worktree.value ? { baseRef: baseRef.value } : undefined
     })
-    writeJSON(PREFS, { cwd: cwd.value, worktree: worktree.value, model: model.value, effort: effort.value, mode: mode.value })
+    writeJSON(PREFS, { ...readJSON<object>(PREFS, {}), cwd: cwd.value, worktree: worktree.value, model: model.value, effort: effort.value, mode: mode.value })
     writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
     const { new: _new, cwd: _cwd, ...rest } = route.query
@@ -347,7 +353,10 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               type="button"
               :class="[CHIP, menu === 'model' ? 'border-accent' : 'border-transparent']"
             >
-              <span class="text-white">{{ modelLabel }}</span><span class="@max-[560px]:hidden">{{ effort }}</span>
+              <span class="text-white">{{ modelLabel }}</span><span
+                v-if="efforts.length"
+                class="@max-[560px]:hidden"
+              >{{ effort }}</span>
             </button>
             <template #content>
               <div
@@ -366,10 +375,13 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
                 >
                   <span class="flex-1">{{ m.id }}</span><span class="text-[11px] text-muted">{{ m.provider }}</span>
                 </div>
-                <div class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted">
+                <div
+                  v-if="efforts.length"
+                  class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted"
+                >
                   <span>effort</span>
                   <button
-                    v-for="e in EFFORTS"
+                    v-for="e in efforts"
                     :key="e"
                     type="button"
                     class="border px-1.5"

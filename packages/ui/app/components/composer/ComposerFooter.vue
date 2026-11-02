@@ -16,7 +16,8 @@ const query = ref('')
 
 const id = computed(() => props.session.meta.id)
 const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
-const effort = computed(() => store.effort[id.value] ?? 'medium')
+const efforts = computed(() => modelEfforts(model.value))
+const effort = computed(() => fitEffort(store.effort[id.value] ?? 'medium', efforts.value))
 const contextWindow = computed(() => model.value?.contextWindow || 200_000)
 const pct = computed(() => Math.min(100, Math.round((props.session.contextTokens / contextWindow.value) * 100)))
 const groups = computed(() => {
@@ -115,10 +116,13 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
               >{{ ctx(m.contextWindow) }}{{ m.price ? ` · ${m.price}` : '' }}</span>
             </div>
           </template>
-          <div class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted">
+          <div
+            v-if="efforts.length"
+            class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted"
+          >
             <span>effort</span>
             <button
-              v-for="e in EFFORTS"
+              v-for="e in efforts"
               :key="e"
               type="button"
               class="border px-1.5"
@@ -133,6 +137,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
     </UPopover>
 
     <button
+      v-if="effort"
       type="button"
       aria-label="Effort"
       :class="[BTN, 'border-transparent max-sm:hidden']"

@@ -44,6 +44,19 @@ export const MODE_LABEL: Record<PermissionModeName, string> = {
 }
 
 export const EFFORTS: EffortName[] = ['low', 'medium', 'high']
+const ALL_EFFORTS: EffortName[] = ['low', 'medium', 'high', 'xhigh', 'max']
+
+/** The effort levels a model offers; an older client without capabilities gets the basic three. */
+export function modelEfforts(m?: { efforts?: EffortName[] }): EffortName[] {
+  return m?.efforts ?? EFFORTS
+}
+
+/** `e` if the model offers it, else its nearest level; undefined for a model without effort. */
+export function fitEffort(e: EffortName, levels: EffortName[]): EffortName | undefined {
+  if (!levels.length || levels.includes(e)) return levels.length ? e : undefined
+  const at = ALL_EFFORTS.indexOf(e)
+  return [...levels].sort((a, b) => Math.abs(ALL_EFFORTS.indexOf(a) - at) - Math.abs(ALL_EFFORTS.indexOf(b) - at))[0]
+}
 
 // Initial state for the component kit (/kit) and tests: reaches each state of Composer.dc.html directly.
 export interface ComposerPreset {

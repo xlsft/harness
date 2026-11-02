@@ -24,7 +24,15 @@ const section = computed<Section>({
 
 // New-session defaults, shared with NewSession.vue.
 const PREFS = 'harness-new-session'
-interface Prefs { cwd?: string, worktree?: boolean, model?: string, effort?: EffortName, mode?: PermissionModeName }
+interface Prefs {
+  cwd?: string
+  worktree?: boolean
+  model?: string
+  effort?: EffortName
+  mode?: PermissionModeName
+  // Default effort per model; levels differ between models.
+  effortByModel?: Record<string, EffortName>
+}
 const prefs = reactive<Prefs>({})
 onMounted(() => {
   try {
@@ -42,6 +50,28 @@ function save<K extends keyof Prefs>(key: K, value: Prefs[K]) {
   }
 }
 const worktree = computed({ get: () => prefs.worktree ?? false, set: v => save('worktree', v) })
+
+const serverDefault = computed(() => store.defaultModel || store.models[0]?.id || '')
+const providers = computed(() => {
+  const map = new Map<string, typeof store.models>()
+  for (const m of store.models) {
+    const p = m.provider || 'Other'
+    if (!map.has(p)) map.set(p, [])
+    map.get(p)!.push(m)
+  }
+  return [...map.entries()].map(([name, models]) => ({ name, models }))
+})
+const defaultModel = computed(() => store.models.find(m => m.id === (prefs.model || serverDefault.value)))
+
+function effortOf(m: { id: string, efforts?: EffortName[] }) {
+  return fitEffort(prefs.effortByModel?.[m.id] ?? prefs.effort ?? 'medium', modelEfforts(m))
+}
+function setEffort(id: string, e: EffortName) {
+  save('effortByModel', { ...prefs.effortByModel, [id]: e })
+}
+function ctx(n: number) {
+  return n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}k`
+}
 
 const host = computed(() => {
   try {
@@ -126,7 +156,7 @@ async function signOut() {
           <div class="set-row">
             <div class="set-label">
               <span>Model</span>
-              <span class="set-desc">The server's catalog; the first one is used when none is chosen.</span>
+              <span class="set-desc">Per-model effort is set under Models.</span>
             </div>
             <select
               :value="prefs.model ?? ''"
@@ -135,21 +165,30 @@ async function signOut() {
               @change="save('model', ($event.target as HTMLSelectElement).value)"
             >
               <option value="">
-                Server default{{ store.models[0] ? ` (${store.models[0].id})` : '' }}
+                Server default{{ serverDefault ? ` (${serverDefault})` : '' }}
               </option>
-              <option
-                v-for="m in store.models"
-                :key="m.id"
-                :value="m.id"
+              <optgroup
+                v-for="p in providers"
+                :key="p.name"
+                :label="p.name"
               >
-                {{ m.id }}
-              </option>
+                <option
+                  v-for="m in p.models"
+                  :key="m.id"
+                  :value="m.id"
+                >
+                  {{ m.id }}
+                </option>
+              </optgroup>
             </select>
           </div>
-          <div class="set-row">
+          <div
+            v-if="defaultModel && modelEfforts(defaultModel).length"
+            class="set-row"
+          >
             <div class="set-label">
               <span>Effort</span>
-              <span class="set-desc">How long the model thinks before answering.</span>
+              <span class="set-desc">How long {{ defaultModel.id }} thinks before answering.</span>
             </div>
             <div
               role="radiogroup"
@@ -157,14 +196,14 @@ async function signOut() {
               class="flex gap-[2px]"
             >
               <button
-                v-for="e in EFFORTS"
+                v-for="e in modelEfforts(defaultModel)"
                 :key="e"
                 type="button"
                 role="radio"
-                :aria-checked="(prefs.effort ?? 'medium') === e"
-                class="border px-3 py-[5px] text-[12.5px] capitalize"
-                :class="(prefs.effort ?? 'medium') === e ? 'border-line bg-raised text-white' : 'border-transparent text-toned hover:text-white'"
-                @click="save('effort', e)"
+                :aria-checked="effortOf(defaultModel) === e"
+                class="border px-3 py-[5px] text-[12.5px]"
+                :class="effortOf(defaultModel) === e ? 'border-line bg-raised text-white' : 'border-transparent text-toned hover:text-white'"
+                @click="setEffort(defaultModel.id, e)"
               >
                 {{ e }}
               </button>
@@ -187,25 +226,66 @@ async function signOut() {
             Models
           </h2>
           <p class="set-sub">
-            The models your server offers. Providers and keys are managed on the server.
+            What your server offers, by provider. Each model keeps its own effort; providers and keys are managed on the server.
           </p>
-          <div class="border border-default">
-            <div
-              v-for="m in store.models"
-              :key="m.id"
-              class="flex items-center gap-3 border-b border-default px-3 py-2.5 text-[12.5px] last:border-b-0"
+          <div class="flex flex-col gap-6">
+            <section
+              v-for="p in providers"
+              :key="p.name"
+              :aria-label="p.name"
+              class="flex flex-col"
             >
-              <span class="min-w-0 flex-1 truncate text-white">{{ m.id }}</span>
-              <span class="text-[11.5px] text-muted">{{ m.provider }}</span>
-              <span
-                v-if="m.contextWindow"
-                class="w-14 text-right text-[11.5px] text-muted"
-              >{{ Math.round(m.contextWindow / 1000) }}k</span>
-              <span class="w-16 text-right text-[11.5px] text-muted">{{ m.price || '—' }}</span>
-            </div>
+              <div class="flex items-center gap-2 pb-2 text-[12px] text-muted">
+                <span class="text-white">{{ p.name }}</span>
+                <span>{{ p.models.length }} {{ p.models.length === 1 ? 'model' : 'models' }}</span>
+              </div>
+              <div class="border border-default">
+                <div
+                  v-for="m in p.models"
+                  :key="m.id"
+                  class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-default px-3 py-2.5 text-[12.5px] last:border-b-0"
+                >
+                  <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span class="flex items-center gap-2 truncate text-white">
+                      {{ m.id }}
+                      <span
+                        v-if="m.id === serverDefault"
+                        class="border border-default px-1 text-[10.5px] text-muted"
+                      >default</span>
+                    </span>
+                    <span class="text-[11.5px] text-muted">
+                      {{ [m.contextWindow ? `${ctx(m.contextWindow)} context` : '', m.price ? `${m.price} per 1M` : '', m.thinking ? 'thinking' : ''].filter(Boolean).join(' · ') || '—' }}
+                    </span>
+                  </span>
+                  <div
+                    v-if="modelEfforts(m).length"
+                    role="radiogroup"
+                    :aria-label="`Effort for ${m.id}`"
+                    class="flex gap-[2px]"
+                  >
+                    <button
+                      v-for="e in modelEfforts(m)"
+                      :key="e"
+                      type="button"
+                      role="radio"
+                      :aria-checked="effortOf(m) === e"
+                      class="border px-2 py-[3px] text-[11.5px]"
+                      :class="effortOf(m) === e ? 'border-line bg-raised text-white' : 'border-transparent text-muted hover:text-white'"
+                      @click="setEffort(m.id, e)"
+                    >
+                      {{ e }}
+                    </button>
+                  </div>
+                  <span
+                    v-else
+                    class="text-[11.5px] text-dimmed"
+                  >no effort levels</span>
+                </div>
+              </div>
+            </section>
             <p
               v-if="!store.models.length"
-              class="m-0 px-3 py-6 text-center text-[12.5px] text-muted"
+              class="m-0 border border-default px-3 py-6 text-center text-[12.5px] text-muted"
             >
               No models yet.
             </p>

@@ -12,8 +12,17 @@ import {
   type RespondToPlanRequest_Decision,
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
-import { ContentBlockSchema, type Effort } from '~/gen/harness/llm/v1/content_pb'
+import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { ModelInfo, NewSessionOptions, SessionTransport, SubscribeHandlers } from './types'
+import type { EffortName } from '~/lib/session/types'
+
+const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
+  [Effort.LOW]: 'low',
+  [Effort.MEDIUM]: 'medium',
+  [Effort.HIGH]: 'high',
+  [Effort.XHIGH]: 'xhigh',
+  [Effort.MAX]: 'max'
+}
 
 export class ConnectTransport implements SessionTransport {
   readonly kind = 'connect' as const
@@ -123,7 +132,17 @@ export class ConnectTransport implements SessionTransport {
 
   async listModels(): Promise<ModelInfo[]> {
     const init = await this.initialize()
-    return init.modelIds.map(id => ({ id, provider: '', contextWindow: 0, price: '' }))
+    // An older client sends ids only.
+    if (!init.models.length) return init.modelIds.map(id => ({ id, provider: '', contextWindow: 0, price: '' }))
+    const fmt = (n: number) => `$${Number(n.toFixed(2))}`
+    return init.models.map(m => ({
+      id: m.id,
+      provider: m.provider,
+      contextWindow: Number(m.contextWindow),
+      price: m.inputPrice !== undefined && m.outputPrice !== undefined ? `${fmt(m.inputPrice)} / ${fmt(m.outputPrice)}` : '',
+      efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e),
+      thinking: m.thinking
+    }))
   }
 }
 
