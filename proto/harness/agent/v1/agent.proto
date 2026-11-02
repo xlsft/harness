@@ -58,6 +58,8 @@ enum PermissionMode {
   PERMISSION_MODE_PLAN = 3;
   PERMISSION_MODE_DONT_ASK = 4;
   PERMISSION_MODE_BYPASS_PERMISSIONS = 5;
+  // Tool calls that would prompt are decided by harness.decision.v1.DecisionService (local rules as fallback).
+  PERMISSION_MODE_AUTO = 6;
 }
 
 enum SessionStatus {

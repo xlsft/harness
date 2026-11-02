@@ -31,6 +31,8 @@ const (
 	PermissionMode_PERMISSION_MODE_PLAN               PermissionMode = 3
 	PermissionMode_PERMISSION_MODE_DONT_ASK           PermissionMode = 4
 	PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS PermissionMode = 5
+	// Tool calls that would prompt are decided by harness.decision.v1.DecisionService (local rules as fallback).
+	PermissionMode_PERMISSION_MODE_AUTO PermissionMode = 6
 )
 
 // Enum value maps for PermissionMode.
@@ -42,6 +44,7 @@ var (
 		3: "PERMISSION_MODE_PLAN",
 		4: "PERMISSION_MODE_DONT_ASK",
 		5: "PERMISSION_MODE_BYPASS_PERMISSIONS",
+		6: "PERMISSION_MODE_AUTO",
 	}
 	PermissionMode_value = map[string]int32{
 		"PERMISSION_MODE_UNSPECIFIED":        0,
@@ -50,6 +53,7 @@ var (
 		"PERMISSION_MODE_PLAN":               3,
 		"PERMISSION_MODE_DONT_ASK":           4,
 		"PERMISSION_MODE_BYPASS_PERMISSIONS": 5,
+		"PERMISSION_MODE_AUTO":               6,
 	}
 )
 
@@ -5700,14 +5704,15 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x13CloseSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x16\n" +
-	"\x14CloseSessionResponse*\xd0\x01\n" +
+	"\x14CloseSessionResponse*\xea\x01\n" +
 	"\x0ePermissionMode\x12\x1f\n" +
 	"\x1bPERMISSION_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17PERMISSION_MODE_DEFAULT\x10\x01\x12 \n" +
 	"\x1cPERMISSION_MODE_ACCEPT_EDITS\x10\x02\x12\x18\n" +
 	"\x14PERMISSION_MODE_PLAN\x10\x03\x12\x1c\n" +
 	"\x18PERMISSION_MODE_DONT_ASK\x10\x04\x12&\n" +
-	"\"PERMISSION_MODE_BYPASS_PERMISSIONS\x10\x05*\xc9\x01\n" +
+	"\"PERMISSION_MODE_BYPASS_PERMISSIONS\x10\x05\x12\x18\n" +
+	"\x14PERMISSION_MODE_AUTO\x10\x06*\xc9\x01\n" +
 	"\rSessionStatus\x12\x1e\n" +
 	"\x1aSESSION_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13SESSION_STATUS_IDLE\x10\x01\x12\x1a\n" +
