@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Diff</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 14px">
+
+<sc-if value="{{show.unified}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">variant="unified"</div></sc-if>
+  <div style="border: 1px solid #2b2b2b; background: #0a0a0a">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 8px 7px 12px; border-bottom: 1px solid #2b2b2b; font-size: 12px; flex-wrap: wrap">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: #8f8f8f" aria-hidden="true"><path d="M3.738 20.967c-.454-.122-.712-.516-.742-.966v-5.243c.015-.43.137-.84.395-1.189l.191-.225L13.896 3.03c.69-.638 1.714-.781 2.515-.25l.313.25l4.243 4.243c.771.834.771 1.994 0 2.828l-2.433 2.433l-7.881 7.881c-.396.37-.872.567-1.414.586H3.996Zm1.263-6.207l-.005 4.241l4.241-.005l7.176-7.169l-4.243-4.242Zm8.583-8.59l4.243 4.243l1.714-1.726l-4.231-4.231Z"></path></svg>
+      <span style="color: #8f8f8f">Edit</span><span style="color: #fff">packages/core/server/gateway/translate.ts</span>
+      <span style="flex: 1"></span>
+      <span style="color: #00bc7d">+7</span><span style="color: #ff2056">−2</span>
+      <div style="display: flex; border: 1px solid #2b2b2b; font-size: 11px"><span style="padding: 1px 7px; background: #1c1c1c; color: #fff">Unified</span><span style="padding: 1px 7px; color: #8f8f8f">Split</span></div>
+    </div>
+    <div style="overflow-x: auto; font-size: 12px; line-height: 1.7">
+      <div style="padding: 2px 12px; color: #00b8db; background: #071a20">@@ -38,9 +38,14 @@ export function* toAnthropicEvents(</div>
+      <sc-for list="{{uni}}" as="l" hint-placeholder-count="12">
+        <div style="display: flex; background: {{l.bg}}; white-space: pre">
+          <span style="width: 38px; flex-shrink: 0; text-align: right; color: #737373; padding-right: 6px">{{l.a}}</span>
+          <span style="width: 38px; flex-shrink: 0; text-align: right; color: #737373; padding-right: 10px">{{l.b}}</span>
+          <span style="width: 14px; flex-shrink: 0; color: {{l.sc}}">{{l.s}}</span>
+          <span style="color: {{l.tc}}">{{l.t}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.split}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="split"</div></sc-if>
+  <div style="border: 1px solid #2b2b2b; background: #0a0a0a">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 8px 7px 12px; border-bottom: 1px solid #2b2b2b; font-size: 12px; flex-wrap: wrap">
+      <span style="color: #8f8f8f">Edit</span><span style="color: #fff">packages/client/loop/retry.go</span>
+      <span style="flex: 1"></span>
+      <span style="color: #00bc7d">+3</span><span style="color: #ff2056">−3</span>
+      <div style="display: flex; border: 1px solid #2b2b2b; font-size: 11px"><span style="padding: 1px 7px; color: #8f8f8f">Unified</span><span style="padding: 1px 7px; background: #1c1c1c; color: #fff">Split</span></div>
+    </div>
+    <div style="overflow-x: auto; font-size: 12px; line-height: 1.7">
+      <sc-for list="{{split}}" as="r" hint-placeholder-count="6">
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); white-space: pre">
+          <div style="display: flex; background: {{r.lb}}; border-right: 1px solid #2b2b2b; overflow: hidden"><span style="width: 36px; flex-shrink: 0; text-align: right; color: #737373; padding-right: 10px">{{r.ln}}</span><span style="color: {{r.lc}}">{{r.lt}}</span></div>
+          <div style="display: flex; background: {{r.rb}}; overflow: hidden"><span style="width: 36px; flex-shrink: 0; text-align: right; color: #737373; padding-right: 10px">{{r.rn}}</span><span style="color: {{r.rc}}">{{r.rt}}</span></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.summary}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="summary" · changes in this turn</div></sc-if>
+  <div style="border: 1px solid #2b2b2b; background: #0a0a0a">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; border-bottom: 1px solid #2b2b2b; font-size: 12px">
+      <span style="color: #fff">4 files changed</span><span style="flex: 1"></span><span style="color: #00bc7d">+186</span><span style="color: #ff2056">−11</span>
+      <button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 11px; padding: 1px 8px">Review</button>
+    </div>
+    <sc-for list="{{files}}" as="f" hint-placeholder-count="4">
+      <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 5px 12px; font-size: 12px; color: #d4d4d4; text-decoration: none; border-bottom: 1px solid #1c1c1c">
+        <span style="width: 12px; color: {{f.kc}}">{{f.k}}</span>
+        <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.p}}</span>
+        <span style="color: #00bc7d">{{f.add}}</span><span style="color: #ff2056">{{f.del}}</span>
+        <span style="display: flex; gap: 2px"><span style="width: 7px; height: 7px; background: {{f.b1}}"></span><span style="width: 7px; height: 7px; background: {{f.b2}}"></span><span style="width: 7px; height: 7px; background: {{f.b3}}"></span><span style="width: 7px; height: 7px; background: {{f.b4}}"></span><span style="width: 7px; height: 7px; background: {{f.b5}}"></span></span>
+      </a>
+    </sc-for>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","unified","split","summary"],"default":"all"},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":840,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const s = (k) => v === 'all' || v === k;
+    const ADD = { bg: '#00bc7d1f', s: '+', sc: '#00bc7d', tc: '#fff' };
+    const DEL = { bg: '#ff20561f', s: '−', sc: '#ff2056', tc: '#fff' };
+    const CTX = { bg: 'transparent', s: ' ', sc: '#8f8f8f', tc: '#d4d4d4' };
+    const L = (k, a, b, t) => ({ ...k, a, b, t });
+    const uni = [
+      L(CTX, '38', '38', '  for await (const chunk of upstream) {'),
+      L(CTX, '39', '39', '    const delta = chunk.choices[0]?.delta'),
+      L(DEL, '40', '', '    if (chunk.usage) yield usageEvent(chunk.usage)'),
+      L(DEL, '41', '', '    if (chunk.done) return yield stopEvent()'),
+      L(ADD, '', '40', '    if (chunk.usage) usage = chunk.usage'),
+      L(ADD, '', '41', '    if (chunk.done) {'),
+      L(ADD, '', '42', '      if (opts.holdStopUntilUsage && !usage) { pending = true; continue }'),
+      L(ADD, '', '43', '      yield messageDelta(usage)'),
+      L(ADD, '', '44', '      return yield stopEvent()'),
+      L(ADD, '', '45', '    }'),
+      L(ADD, '', '46', '    if (pending && usage) return yield* flush(usage)'),
+      L(CTX, '42', '47', '    if (delta?.content) yield textDelta(delta.content)'),
+      L(CTX, '43', '48', '  }')
+    ];
+    const C = (n, t) => ({ n, t, b: 'transparent', c: '#d4d4d4' });
+    const D = (n, t) => ({ n, t, b: '#ff20561f', c: '#fff' });
+    const A = (n, t) => ({ n, t, b: '#00bc7d1f', c: '#fff' });
+    const E = { n: '', t: '', b: '#131313', c: '#d4d4d4' };
+    const row = (l, r) => ({ ln: l.n, lt: l.t, lb: l.b, lc: l.c, rn: r.n, rt: r.t, rb: r.b, rc: r.c });
+    const split = [
+      row(C('12', 'func Retry(ctx context.Context, f Call) error {'), C('12', 'func Retry(ctx context.Context, f Call) error {')),
+      row(D('13', '  delay := 200 * time.Millisecond'), A('13', '  delay := 500 * time.Millisecond')),
+      row(D('14', '  for i := 0; i < 3; i++ {'), A('14', '  for i := 0; i < maxAttempts; i++ {')),
+      row(C('15', '    err := f(ctx)'), C('15', '    err := f(ctx)')),
+      row(D('16', '    if err == nil { return nil }'), A('16', '    if !retryable(err) { return err }')),
+      row(E, A('17', '    time.Sleep(delay); delay *= 2')),
+      row(C('17', '  }'), C('18', '  }'))
+    ];
+    const bars = (a, d) => { const t = a + d, g = Math.round((a / t) * 5); const r = []; for (let i = 0; i < 5; i++) r.push(i < g ? '#00bc7d' : '#ff2056'); return r; };
+    const F = (k, p, a, d) => { const b = bars(a, d); return { k, kc: k === 'A' ? '#00bc7d' : '#fe9a00', p, add: '+' + a, del: '−' + d, b1: b[0], b2: b[1], b3: b[2], b4: b[3], b5: b[4] }; };
+    return {
+      accent: this.props.accent ?? '#2b7fff',
+      pad: this.props.inset === false ? '0' : '24px',
+      all: v === 'all',
+      show: { unified: s('unified'), split: s('split'), summary: s('summary') },
+      uni, split,
+      files: [
+        F('M', 'packages/core/server/gateway/translate.ts', 7, 2),
+        F('A', 'packages/core/server/gateway/translate.test.ts', 148, 0),
+        F('M', 'packages/client/loop/retry.go', 3, 3),
+        F('M', 'proto/gateway/v1/gateway.proto', 28, 6)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

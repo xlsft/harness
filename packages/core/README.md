@@ -4,7 +4,7 @@ The harness server: authentication and devices, the LLM gateway (provider keys n
 the model catalog and the prompt registry. It never executes user code; clients run the agent loop and tools.
 
 Stack: Nitro v3, TypeScript (strict), Connect RPC (`@connectrpc/connect` v2 + protobuf-es v2), Better Auth,
-Drizzle ORM on SQLite (libSQL driver), Vitest.
+Drizzle ORM on Postgres (node-postgres, or embedded PGlite when no server is configured), Vitest.
 
 Contracts: [`/proto`](../../proto) (source of truth) and [`docs/protocol`](../../docs/protocol).
 
@@ -27,13 +27,30 @@ Other scripts:
 
 | Script | What |
 |---|---|
-| `pnpm test` | Vitest: unit, translation and contract tests (in-process server + mock upstream) |
+| `pnpm test` | Vitest: unit, translation and contract tests (in-process server + mock upstream) on in-memory PGlite. With `TEST_DATABASE_URL` set, `test/postgres.test.ts` also runs against that server (throwaway databases; the role needs `CREATEDB`); add `TEST_ALL_ON_POSTGRES=1` to run every suite there |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm admin:create <email> <password> [name]` | Create or promote an admin without restarting |
+| `pnpm admin:create <email> <password> [name]` | Create or promote an admin without restarting (with PGlite, stop the server first: the embedded database is single-process) |
 | `pnpm db:generate` | After editing `src/db/schema.ts`: drizzle-kit SQL migration + embed it into `src/db/migrations.generated.ts` |
 | `pnpm gen` | Regenerate `src/gen` from `/proto` with the local `protoc-gen-es` (needs `buf`); equivalent to the TS part of the root `buf.gen.yaml` |
 
 Migrations are applied automatically on startup.
+
+## Database
+
+Postgres, in one of two forms; the code (`src/db/index.ts`, `getDb()`) is the same for both:
+
+- **`DATABASE_URL` set:** a real Postgres through a node-postgres pool. A normal URL
+  (`postgres://user:pass@host:5432/harness`) or a unix socket (`postgres:///harness?host=/run/postgresql`), which
+  is how the single-container image reaches the Postgres it runs next to core.
+- **`DATABASE_URL` unset:** embedded [PGlite](https://pglite.dev) (Postgres compiled to WASM, in-process),
+  persisted to `$HARNESS_DATA_DIR/pglite`. Nothing to install, for local development and quick trials. It is
+  single-process: a second process on the same directory fails fast (`pglite.lock`). `DATABASE_URL=memory://`
+  keeps it in memory (tests).
+
+Migrations are drizzle-kit SQL (`drizzle/`, pg dialect) embedded into `src/db/migrations.generated.ts`, so the
+bundle needs no migration files. At startup `ensureDb()` applies the pending ones in a single transaction under
+`pg_advisory_xact_lock`, recorded in `__harness_migrations`; concurrent startups wait for each other, and a
+failed migration rolls back completely.
 
 ## Environment
 
@@ -43,7 +60,8 @@ See [`.env.example`](.env.example). The important ones:
 |---|---|---|
 | `HARNESS_SECRET` | generated into the data dir | Master key: Better Auth secret and AES-256-GCM key for provider secrets (HKDF-derived) |
 | `HARNESS_PUBLIC_URL` | `http://localhost:$PORT` | Base for `verification_uri`, Better Auth base URL / trusted origin |
-| `HARNESS_DATA_DIR` | `./.data` | SQLite database and generated secret |
+| `DATABASE_URL` | unset: PGlite in `$HARNESS_DATA_DIR/pglite` | Postgres URL (TCP or unix socket); see Database |
+| `HARNESS_DATA_DIR` | `./.data` | Generated secret, embedded PGlite database |
 | `HARNESS_ADMIN_EMAIL`, `HARNESS_ADMIN_PASSWORD` | — | Admin bootstrap on start |
 | `HARNESS_GRPC_PORT` | off | Extra h2c listener with plain gRPC (see Transport) |
 | `HARNESS_PROMPTS_DIR` | `./prompts` | Prompt files (see [`prompts/README.md`](prompts/README.md)) |
@@ -129,8 +147,9 @@ Model fields: `id` (alias clients send), `provider_id`, `upstream_model`, `conte
 
 ## Sync
 
-- **Versions.** One global counter (`sync_counter`, taken in `nextSyncVersion`); document writes are serialized
-  in-process and run in a transaction, so versions commit in order and live events go out in version order.
+- **Versions.** One global counter (`sync_counter`, an int8 row upserted in `nextSyncVersion` inside the writing
+  transaction, so readers only ever see committed versions and its row lock orders writers); document writes are
+  also serialized in-process, so versions commit in order and live events go out in version order.
 - **Documents** are unique per (owner, scope, project_key, kind, key); org documents have no owner. CAS per
   `base_version` (unset / 0 = create only / N); mismatches come back as `Conflict`, not as errors. Writing identical
   content is a no-op. Every write is kept in `sync_document_revision` (no read API yet).
@@ -173,7 +192,7 @@ Checked before the upstream is called; a used-up limit fails `StreamMessage` wit
 src/
   env.ts                 config from env
   bootstrap.ts           migrations + admin bootstrap
-  db/                    Drizzle schema, embedded migrations, libSQL client
+  db/                    Drizzle schema (pg), embedded migrations + runner, node-postgres / PGlite driver
   auth/better-auth.ts    Better Auth instance (email+password, admin plugin), ensureAdmin()
   services/              transport-agnostic domain logic
     devices.ts           device flow, device/access tokens
@@ -189,7 +208,7 @@ src/
   lib/                   crypto, SSRF guard, SSE parser, ids, errors
   gen/                   generated protobuf code (do not edit)
 prompts/                 prompt files (see prompts/README.md)
-drizzle/                 SQL migrations (drizzle-kit)
+drizzle/                 SQL migrations (drizzle-kit, pg dialect)
 test/                    vitest; helpers/ (in-process server, mock upstream), fixtures/ (upstream SSE)
 ```
 

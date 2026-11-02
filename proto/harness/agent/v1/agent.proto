@@ -49,6 +49,11 @@ service AgentService {
 
   // Ends the session process-side (kills background tasks, flushes the transcript).
   rpc CloseSession(CloseSessionRequest) returns (CloseSessionResponse);
+
+  // Workspace trust (~/.harness/trust.json): project hooks, .mcp.json servers and allow rules from
+  // committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
+  rpc GetWorkspaceTrust(GetWorkspaceTrustRequest) returns (GetWorkspaceTrustResponse);
+  rpc SetWorkspaceTrust(SetWorkspaceTrustRequest) returns (SetWorkspaceTrustResponse);
 }
 
 enum PermissionMode {
@@ -58,6 +63,8 @@ enum PermissionMode {
   PERMISSION_MODE_PLAN = 3;
   PERMISSION_MODE_DONT_ASK = 4;
   PERMISSION_MODE_BYPASS_PERMISSIONS = 5;
+  // Tool calls that would prompt are decided by harness.decision.v1.DecisionService (local rules as fallback).
+  PERMISSION_MODE_AUTO = 6;
 }
 
 enum SessionStatus {
@@ -79,6 +86,8 @@ message InitializeResponse {
   string client_version = 1;
   string user_email = 2;
   repeated string model_ids = 3;
+  // Permission modes this client supports, in Shift+Tab cycle order.
+  repeated PermissionMode permission_modes = 4;
 }
 
 message SessionInfo {
@@ -238,6 +247,8 @@ message PlanResolved {
   string request_id = 1;
   RespondToPlanRequest.Decision decision = 2;
   string resolved_by = 3;
+  // Feedback sent with DECISION_KEEP_PLANNING (or a note with an approval).
+  string feedback = 4;
 }
 
 message TaskStarted {
@@ -371,6 +382,10 @@ message PermissionRequest {
   // Rule the user may choose to always allow, e.g. "Bash(npm run test *)".
   repeated string suggested_rules = 5;
   string reason = 6;
+  // Only a one-time approval is possible (protected paths, policy): frontends hide "always allow".
+  bool one_time_only = 7;
+  // Risk categories from the auto-mode decider when this prompt is an ASK fall-back.
+  repeated string risk_categories = 8;
 }
 
 // A pending PermissionRequest was answered (by any client, or by a hook / rule). Frontends dismiss the card.
@@ -495,6 +510,8 @@ message AnswerQuestionRequest {
 
 message QuestionAnswer {
   repeated string selected = 1;
+  // Free-text answer ("Other"), used instead of or in addition to selected options.
+  string text = 2;
 }
 
 message AnswerQuestionResponse {}
@@ -583,7 +600,10 @@ message CompactRequest {
   string instructions = 2;
 }
 
-message CompactResponse {}
+message CompactResponse {
+  int64 tokens_before = 1;
+  int64 tokens_after = 2;
+}
 
 message BackgroundTask {
   string task_id = 1;
@@ -594,6 +614,9 @@ message BackgroundTask {
   int32 exit_code = 6;
   // RFC 3339, UTC.
   string started_at = 7;
+  // Set once the task finished.
+  TaskFinished.Reason finish_reason = 8;
+  int64 duration_ms = 9;
 }
 
 message ListTasksRequest {
@@ -616,3 +639,24 @@ message CloseSessionRequest {
 }
 
 message CloseSessionResponse {}
+
+message GetWorkspaceTrustRequest {
+  string path = 1;
+}
+
+message GetWorkspaceTrustResponse {
+  bool trusted = 1;
+  // The trusted ancestor that covers path, when trust is inherited.
+  string trusted_root = 2;
+  // What trusting would enable, for the confirmation dialog.
+  bool has_project_hooks = 3;
+  bool has_project_mcp_servers = 4;
+  bool has_committed_allow_rules = 5;
+}
+
+message SetWorkspaceTrustRequest {
+  string path = 1;
+  bool trusted = 2;
+}
+
+message SetWorkspaceTrustResponse {}

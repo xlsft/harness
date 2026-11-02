@@ -81,6 +81,12 @@ const (
 	// AgentServiceCloseSessionProcedure is the fully-qualified name of the AgentService's CloseSession
 	// RPC.
 	AgentServiceCloseSessionProcedure = "/harness.agent.v1.AgentService/CloseSession"
+	// AgentServiceGetWorkspaceTrustProcedure is the fully-qualified name of the AgentService's
+	// GetWorkspaceTrust RPC.
+	AgentServiceGetWorkspaceTrustProcedure = "/harness.agent.v1.AgentService/GetWorkspaceTrust"
+	// AgentServiceSetWorkspaceTrustProcedure is the fully-qualified name of the AgentService's
+	// SetWorkspaceTrust RPC.
+	AgentServiceSetWorkspaceTrustProcedure = "/harness.agent.v1.AgentService/SetWorkspaceTrust"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -115,6 +121,10 @@ type AgentServiceClient interface {
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
 	// Ends the session process-side (kills background tasks, flushes the transcript).
 	CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error)
+	// Workspace trust (~/.harness/trust.json): project hooks, .mcp.json servers and allow rules from
+	// committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
+	GetWorkspaceTrust(context.Context, *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error)
+	SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -242,6 +252,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("CloseSession")),
 			connect.WithClientOptions(opts...),
 		),
+		getWorkspaceTrust: connect.NewClient[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse](
+			httpClient,
+			baseURL+AgentServiceGetWorkspaceTrustProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetWorkspaceTrust")),
+			connect.WithClientOptions(opts...),
+		),
+		setWorkspaceTrust: connect.NewClient[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse](
+			httpClient,
+			baseURL+AgentServiceSetWorkspaceTrustProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetWorkspaceTrust")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -266,6 +288,8 @@ type agentServiceClient struct {
 	listTasks           *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
 	stopTask            *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
 	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
+	getWorkspaceTrust   *connect.Client[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse]
+	setWorkspaceTrust   *connect.Client[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -363,6 +387,16 @@ func (c *agentServiceClient) CloseSession(ctx context.Context, req *connect.Requ
 	return c.closeSession.CallUnary(ctx, req)
 }
 
+// GetWorkspaceTrust calls harness.agent.v1.AgentService.GetWorkspaceTrust.
+func (c *agentServiceClient) GetWorkspaceTrust(ctx context.Context, req *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error) {
+	return c.getWorkspaceTrust.CallUnary(ctx, req)
+}
+
+// SetWorkspaceTrust calls harness.agent.v1.AgentService.SetWorkspaceTrust.
+func (c *agentServiceClient) SetWorkspaceTrust(ctx context.Context, req *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error) {
+	return c.setWorkspaceTrust.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -395,6 +429,10 @@ type AgentServiceHandler interface {
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
 	// Ends the session process-side (kills background tasks, flushes the transcript).
 	CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error)
+	// Workspace trust (~/.harness/trust.json): project hooks, .mcp.json servers and allow rules from
+	// committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
+	GetWorkspaceTrust(context.Context, *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error)
+	SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -518,6 +556,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("CloseSession")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetWorkspaceTrustHandler := connect.NewUnaryHandler(
+		AgentServiceGetWorkspaceTrustProcedure,
+		svc.GetWorkspaceTrust,
+		connect.WithSchema(agentServiceMethods.ByName("GetWorkspaceTrust")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetWorkspaceTrustHandler := connect.NewUnaryHandler(
+		AgentServiceSetWorkspaceTrustProcedure,
+		svc.SetWorkspaceTrust,
+		connect.WithSchema(agentServiceMethods.ByName("SetWorkspaceTrust")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -558,6 +608,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceStopTaskHandler.ServeHTTP(w, r)
 		case AgentServiceCloseSessionProcedure:
 			agentServiceCloseSessionHandler.ServeHTTP(w, r)
+		case AgentServiceGetWorkspaceTrustProcedure:
+			agentServiceGetWorkspaceTrustHandler.ServeHTTP(w, r)
+		case AgentServiceSetWorkspaceTrustProcedure:
+			agentServiceSetWorkspaceTrustHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -641,4 +695,12 @@ func (UnimplementedAgentServiceHandler) StopTask(context.Context, *connect.Reque
 
 func (UnimplementedAgentServiceHandler) CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CloseSession is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetWorkspaceTrust(context.Context, *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetWorkspaceTrust is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetWorkspaceTrust is not implemented"))
 }

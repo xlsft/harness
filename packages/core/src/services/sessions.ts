@@ -3,7 +3,7 @@
  * Transcript entries are stored byte-exact, deduplicated by uuid, with a server-assigned seq.
  */
 import { clone, fromJson, toJson, type JsonValue } from "@bufbuild/protobuf";
-import { and, asc, desc, eq, exists, gt, inArray, lt, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, ilike, inArray, lt, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { SessionInfoSchema, type SessionInfo, type SessionStatus } from "../gen/harness/agent/v1/agent_pb.ts";
 import { Mutex } from "../lib/async.ts";
@@ -111,11 +111,11 @@ export async function upsertSession(
       if (dev && !info.deviceName) info.deviceName = dev.name;
     }
     const cols = {
-      info: toJson(SessionInfoSchema, info) as object,
-      title: info.title,
-      cwd: info.cwd,
-      repo: info.repo,
-      deviceId: info.deviceId,
+      info: stripNul(toJson(SessionInfoSchema, info)) as object,
+      title: stripNul(info.title),
+      cwd: stripNul(info.cwd),
+      repo: stripNul(info.repo),
+      deviceId: stripNul(info.deviceId),
       status: info.status,
       archived: info.archived,
       promptBundleVersion: bundle,
@@ -156,7 +156,15 @@ export function extractSearchText(entryJson: string): string {
       }
     }
   }
-  return parts.join("\n").slice(0, SEARCH_TEXT_MAX);
+  return stripNul(parts.join("\n")).slice(0, SEARCH_TEXT_MAX);
+}
+
+/** Postgres text and jsonb cannot hold U+0000; drop it from strings copied out of client data. */
+function stripNul<T>(v: T): T {
+  if (typeof v === "string") return (v.includes("\0") ? v.replaceAll("\0", "") : v) as T;
+  if (Array.isArray(v)) return v.map(stripNul) as T;
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [stripNul(k), stripNul(x)])) as T;
+  return v;
 }
 
 export async function appendSessionEvents(p: Principal, sessionId: string, entries: EntryInput[]) {
@@ -167,6 +175,7 @@ export async function appendSessionEvents(p: Principal, sessionId: string, entri
     if (!e.uuid || e.uuid.length > 128) throw new ApiError("invalid_request", "Every entry needs a uuid (max 128 chars)");
     if (!e.entryJson) throw new ApiError("invalid_request", `Entry ${e.uuid} has no entry_json`);
     if ((e.agentId ?? "").length > 128) throw new ApiError("invalid_request", "agent_id is too long");
+    if (e.entryJson.includes("\0")) throw new ApiError("invalid_request", `Entry ${e.uuid} contains a NUL character`);
     bytes += Buffer.byteLength(e.entryJson, "utf8");
   }
   if (bytes > MAX_APPEND_BYTES) throw new ApiError("invalid_request", `Entries exceed ${MAX_APPEND_BYTES} bytes per call`);
@@ -177,7 +186,8 @@ export async function appendSessionEvents(p: Principal, sessionId: string, entri
     return getDb().transaction(async (tx) => {
       const s = schema.syncSession;
       const e = schema.syncSessionEntry;
-      const cur = (await tx.select().from(s).where(eq(s.id, sessionId)).get())!;
+      // Row lock: lastSeq is read-modify-write (sessionMutex already serializes this process).
+      const [cur] = (await tx.select().from(s).where(eq(s.id, sessionId)).for("update")) as [SessionRow];
       // Dedup key: (agent_id, uuid) within the session.
       const keyOf = (agentId: string, uuid: string) => JSON.stringify([agentId, uuid]);
       const uuids = [...new Set(entries.map((x) => x.uuid))];
@@ -239,8 +249,9 @@ export interface ListSessionsInput {
   pageToken?: string;
 }
 
+/** ILIKE pattern matching `q` as a literal substring (backslash is the default LIKE escape in Postgres). */
 function likePattern(q: string): string {
-  return `%${q.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  return `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
 function decodeToken(token: string): { t: number; id: string } {
@@ -266,9 +277,10 @@ export async function listSessions(p: Principal, f: ListSessionsInput): Promise<
   if (!f.includeArchived) conds.push(eq(s.archived, false));
   const q = f.query?.trim();
   if (q) {
-    // Portable case-insensitive substring search (LIKE ... ESCAPE works on SQLite and Postgres).
+    // Case-insensitive substring search. ILIKE cannot use a btree index; a pg_trgm GIN index can be added
+    // when transcripts get large.
     const pat = likePattern(q);
-    const like = (col: AnyColumn) => sql`lower(${col}) like ${pat} escape '\\'`;
+    const like = (col: AnyColumn) => ilike(col, pat);
     conds.push(
       or(
         like(s.title),

@@ -66,6 +66,10 @@ func run(args []string) int {
 			return cmdWhoami(ctx)
 		case "serve":
 			return cmdServe(ctx, args[1:])
+		case "import":
+			return runImport(args[1:])
+		case "sync":
+			return runSync(args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0

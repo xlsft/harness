@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tool call</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 14px">
+
+<sc-if value="{{show.bash}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">variant="bash" · expanded, with output</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f; border-bottom: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="M11.741 18.966c-1.098-.294-.945-1.887.259-1.966h8c.543.036 1 .428 1 1s-.457.964-1 1h-8ZM8.586 12l-4.95-4.95c-.574-.654-.22-1.707.707-1.707c.278 0 .503.114.707.293l5.657 5.657c.179.204.293.429.293.707s-.114.503-.293.707L5.05 18.364c-.339.298-.8.394-1.207.159c-.588-.34-.629-1.092-.207-1.573Z"></path></svg>
+      Bash<span style="color: #fff">pnpm vitest run gateway</span><span style="flex: 1"></span><span style="font-size: 11px; color: #00bc7d">exit 0 · 3.8s</span>
+      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor" aria-hidden="true"><path d="m12 13.586l4.95-4.95c.481-.422 1.233-.381 1.573.207c.235.407.139.868-.159 1.207l-5.657 5.657c-.204.179-.429.293-.707.293s-.503-.114-.707-.293L5.636 10.05c-.179-.204-.293-.429-.293-.707c0-.927 1.053-1.281 1.707-.707Z"></path></svg>
+    </div>
+    <pre style="margin: 0; padding: 9px 12px; background: #0a0a0a; font-family: inherit; font-size: 12px; line-height: 1.6; color: #d4d4d4; overflow-x: auto"><span style="color: #00bc7d">✓</span> gateway/translate.test.ts <span style="color: #8f8f8f">(14)</span>
+<span style="color: #00bc7d">✓</span> gateway/stream.test.ts <span style="color: #8f8f8f">(6)</span>
+<span style="color: #fe9a00">↓</span> gateway/retry.test.ts <span style="color: #8f8f8f">(3) [skipped]</span>
+
+<span style="color: #8f8f8f"> Test Files</span>  <span style="color: #00bc7d">2 passed</span> | <span style="color: #fe9a00">1 skipped</span> (3)
+<span style="color: #8f8f8f">      Tests</span>  <span style="color: #00bc7d">20 passed</span> | <span style="color: #fe9a00">3 skipped</span> (23)</pre>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.read}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="read" · collapsed rows: Read / Glob / LS</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="M20 20.057c-.063 1.1-.843 1.88-1.943 1.943H5.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435h7.692c.514.025.949.205 1.33.551l4.484 4.484c.346.381.526.816.551 1.33ZM12 4l-5.994.006v15.988h11.988L18 10h-4.58c-.808-.065-1.355-.612-1.42-1.42Zm2 4h3.586L14 4.414Z"></path></svg>
+      Read<span style="color: #fff">proto/gateway/v1/gateway.proto</span><span style="flex: 1"></span><span style="font-size: 11px">212 lines</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f; border-top: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="m12.484 5.494l.053.006h7.52c.445.026.846.153 1.198.435c.47.377.711.915.745 1.508v11.614c-.034.593-.275 1.131-.745 1.508c-.352.282-.753.409-1.198.435H3.943c-.326-.019-.524-.051-.825-.198c-.683-.334-1.075-1-1.118-1.745V4.943c.063-1.1.843-1.88 1.943-1.943h5.633a2.04 2.04 0 0 1 1.47.707c.51.569.938 1.208 1.438 1.787m-2.968-.488h-5.51v13.988h15.988V7.506l-.051-.006h-7.519a2.04 2.04 0 0 1-1.47-.707c-.51-.569-.938-1.208-1.438-1.787"></path></svg>
+      Glob<span style="color: #fff">packages/core/**/*.proto</span><span style="flex: 1"></span><span style="font-size: 11px">4 files</span>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.grep}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="grep" · highlighted matches</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f; border-bottom: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="m17.176 15.762l3.652 3.652c.359.41.405 1.01 0 1.414c-.404.405-1.004.359-1.414 0l-3.652-3.652c-1.145.85-2.399 1.459-3.814 1.702C5.871 19.921.72 14.327 2.272 8.355a8.5 8.5 0 0 1 1.979-3.618A8.55 8.55 0 0 1 7.68 2.478c6.112-2.146 12.292 3.095 11.198 9.47c-.243 1.415-.852 2.669-1.702 3.814M9.938 4.025a6.5 6.5 0 0 0-3.844 1.697a6.5 6.5 0 0 0-1.727 2.622c-1.558 4.436 2.021 9.03 6.695 8.631a6.5 6.5 0 0 0 3.844-1.697a6.5 6.5 0 0 0 1.727-2.622c1.558-4.436-2.021-9.03-6.695-8.631"></path></svg>
+      Grep<span style="color: #fff">"holdStopUntilUsage"</span>in packages/<span style="flex: 1"></span><span style="font-size: 11px">3 matches · 2 files</span>
+    </div>
+    <div style="background: #0a0a0a; padding: 6px 0; font-size: 12px; line-height: 1.65">
+      <div style="padding: 0 12px; color: #fff">core/server/routes/gateway.ts</div>
+      <div style="padding: 0 12px; display: flex; gap: 12px; white-space: pre; overflow: hidden"><span style="color: #737373; width: 22px; text-align: right">8</span><span>  return toAnthropicEvents(upstream, { <span style="background: {{accent}}; color: #fff">holdStopUntilUsage</span>: true })</span></div>
+      <div style="padding: 4px 12px 0; color: #fff">core/server/gateway/translate.ts</div>
+      <div style="padding: 0 12px; display: flex; gap: 12px; white-space: pre; overflow: hidden"><span style="color: #737373; width: 22px; text-align: right">12</span><span>  <span style="background: {{accent}}; color: #fff">holdStopUntilUsage</span>?: boolean</span></div>
+      <div style="padding: 0 12px; display: flex; gap: 12px; white-space: pre; overflow: hidden"><span style="color: #737373; width: 22px; text-align: right">42</span><span>      if (opts.<span style="background: {{accent}}; color: #fff">holdStopUntilUsage</span> &amp;&amp; !usage) {</span></div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.web}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="web" · WebFetch / WebSearch</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f; border-bottom: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="M13 18.946V20h3l.259.034c.625.168.931.906.607 1.466c-.186.322-.506.477-.866.5H8c-.755-.049-1.269-.802-.866-1.5c.088-.152.214-.278.366-.366c.175-.101.302-.121.5-.134h3v-1.054c-2.513-.297-4.711-1.351-6.42-3.24l-.478-.57c-.412-.53-.904-1.146-.376-1.792c.166-.204.412-.336.674-.362c.689-.069.92.459 1.282.925a8 8 0 0 0 2.22 1.965c3.414 2.041 7.855 1.228 10.34-1.869c1.937-2.413 2.299-5.831.907-8.596a8 8 0 0 0-.986-1.507l-.399-.446c-.263-.274-.614-.5-.725-.886c-.209-.726.469-1.429 1.202-1.246c.389.096.713.482.965.744a10 10 0 0 1 2.67 5.353c.73 4.596-1.834 9.134-6.155 10.867c-.879.352-1.783.551-2.721.66m4.169-14.668a7.02 7.02 0 0 1 1.8 4.049c.495 5.192-4.687 9.107-9.545 7.185a7 7 0 0 1-2.593-1.79a7.02 7.02 0 0 1-1.8-4.049C4.536 4.481 9.718.566 14.576 2.489a7 7 0 0 1 2.593 1.789m-5.652-.254a5 5 0 0 0-2.888 1.285c-3.532 3.228-.905 9.121 3.854 8.667a5 5 0 0 0 2.888-1.285c3.532-3.228.904-9.12-3.854-8.667"></path></svg>
+      WebSearch<span style="color: #fff">"connectrpc nitro fetch handler"</span><span style="flex: 1"></span><span style="font-size: 11px">8 results</span>
+    </div>
+    <div style="background: #0a0a0a; padding: 6px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px">
+      <a href="#" style="display: flex; gap: 8px; color: #d4d4d4; text-decoration: none"><span style="width: 16px; height: 16px; background: #1c1c1c; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">C</span><span style="color: #fff">Connect for Node.js — fetch adapters</span><span style="color: #8f8f8f">connectrpc.com</span></a>
+      <a href="#" style="display: flex; gap: 8px; color: #d4d4d4; text-decoration: none"><span style="width: 16px; height: 16px; background: #1c1c1c; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">N</span><span style="color: #fff">Nitro — custom handlers with web Request</span><span style="color: #8f8f8f">nitro.build</span></a>
+      <a href="#" style="display: flex; gap: 8px; color: #d4d4d4; text-decoration: none"><span style="width: 16px; height: 16px; background: #1c1c1c; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">G</span><span style="color: #fff">connectrpc/connect-es · issues</span><span style="color: #8f8f8f">github.com</span></a>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.mcp}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="mcp" · MCP tool call, input and output</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f; border-bottom: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="M20.766 16.012c-.117.765-.576 1.381-1.222 1.787l-6.294 3.634c-.814.43-1.686.43-2.5 0l-6.294-3.634a2.59 2.59 0 0 1-1.25-2.165V8.366c.014-.382.081-.74.248-1.086c.223-.462.572-.809 1.002-1.079l6.294-3.634a2.58 2.58 0 0 1 2.5 0l6.294 3.634c.324.203.6.44.817.758c.288.424.414.9.433 1.407v7.268ZM11 19.268v-6.715l-.25-.12l-5.544-3.198v6.399a.54.54 0 0 0 .25.433ZM6.203 7.501l5.546 3.2a.53.53 0 0 0 .5-.001l5.539-3.203l-5.538-3.198a.53.53 0 0 0-.5 0ZM13 19.268l5.544-3.201a.54.54 0 0 0 .25-.433V9.225l-5.543 3.207l-.251.12Z"></path></svg>
+      <span style="border: 1px solid #2b2b2b; padding: 0 5px; font-size: 11px">youtrack</span><span style="color: #fff">create_issue</span><span style="flex: 1"></span><span style="font-size: 11px; color: #00bc7d">ok · 640ms</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #0a0a0a; font-size: 11.5px; line-height: 1.6">
+      <div style="padding: 8px 12px; border-right: 1px solid #2b2b2b; min-width: 0"><div style="color: #8f8f8f; padding-bottom: 4px">Input</div><pre style="margin: 0; font-family: inherit; white-space: pre-wrap; color: #d4d4d4">{
+  <span style="color: #00b8db">"project"</span>: <span style="color: #00bc7d">"HRN"</span>,
+  <span style="color: #00b8db">"summary"</span>: <span style="color: #00bc7d">"Provider retries"</span>,
+  <span style="color: #00b8db">"priority"</span>: <span style="color: #00bc7d">"Major"</span>
+}</pre></div>
+      <div style="padding: 8px 12px; min-width: 0"><div style="color: #8f8f8f; padding-bottom: 4px">Output</div><pre style="margin: 0; font-family: inherit; white-space: pre-wrap; color: #d4d4d4">{
+  <span style="color: #00b8db">"id"</span>: <span style="color: #00bc7d">"HRN-42"</span>,
+  <span style="color: #00b8db">"url"</span>: <span style="color: #00bc7d">"…/issue/HRN-42"</span>
+}</pre></div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.running}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="running" · running, live output</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f; border-bottom: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: {{accent}}" aria-hidden="true"><path d="M2 12c0 5.523 4.477 10 10 10v-2a8 8 0 1 1 0-16a1 1 0 1 0 0-2q-.563 0-1.11.06C5.889 2.615 2 6.853 2 12 M20 12a8 8 0 0 1-8 8v2c5.523 0 10-4.477 10-10a9.97 9.97 0 0 0-2.778-6.917a1 1 0 0 0-1.444 1.384A7.97 7.97 0 0 1 20 12"></path></svg>
+      Bash<span style="color: #fff">go build ./... &amp;&amp; go test ./loop</span><span style="flex: 1"></span><span style="font-size: 11px; color: {{accent}}">running · 12s</span>
+      <button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 11px; padding: 1px 8px">Stop</button>
+    </div>
+    <pre style="margin: 0; padding: 9px 12px; background: #0a0a0a; font-family: inherit; font-size: 12px; line-height: 1.6; color: #8f8f8f">go: downloading connectrpc.com/connect v1.18.1
+=== RUN   TestLoopToolCalls
+=== RUN   TestLoopToolCalls/parallel_reads<span style="display: inline-block; width: 7px; height: 13px; background: #d4d4d4; vertical-align: -2px; margin-left: 2px"></span></pre>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.error}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="error" · non-zero exit, stderr</div></sc-if>
+  <div style="border: 1px solid #2b2b2b; border-left: 2px solid #ff2056">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 7px 12px; font-size: 12.5px; color: #8f8f8f; border-bottom: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: #ff2056" aria-hidden="true"><path d="M10.586 12.001L4.929 6.344c-.359-.41-.404-1.01 0-1.414c.404-.405 1.005-.359 1.414 0L12 10.586l5.657-5.656c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414l-5.657 5.657l5.657 5.656c.359.41.404 1.011 0 1.415s-1.005.359-1.414 0L12 13.415l-5.657 5.657c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z"></path></svg>
+      Bash<span style="color: #fff">go test ./loop</span><span style="flex: 1"></span><span style="font-size: 11px; color: #ff2056">exit 1 · 0.4s</span>
+    </div>
+    <pre style="margin: 0; padding: 9px 12px; background: #0a0a0a; font-family: inherit; font-size: 12px; line-height: 1.6; color: #d4d4d4">--- <span style="color: #ff2056">FAIL</span>: TestLoopToolCalls (0.02s)
+    loop_test.go:41: expected 3 tool calls, got 2
+<span style="color: #ff2056">FAIL</span>  harness/client/loop  0.214s</pre>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.permission}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="permission" · permission request</div></sc-if>
+  <div style="border: 1px solid {{accent}}; background: #0a0a0a">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 12.5px; border-bottom: 1px solid #2b2b2b">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: {{accent}}" aria-hidden="true"><path d="M13 15.727V17l-.034.259c-.226.842-1.396.996-1.832.241c-.101-.175-.121-.302-.134-.5v-1.273c-.895-.569-1.287-1.617-.802-2.609A2.02 2.02 0 0 1 12 11.993a2.020 2.020 0 0 1 1.802 1.125c.485.992.093 2.04-.802 2.609M6 8c.026-.614.085-1.194.269-1.784c.911-2.932 3.932-4.71 6.939-4.095a6 6 0 0 1 3.035 1.636C17.432 4.945 17.93 6.347 18 8c.196 0 1.087-.04 1.458.046c.9.21 1.49.995 1.542 1.897v10.114c-.063 1.1-.843 1.88-1.943 1.943H4.943c-.445-.026-.846-.153-1.198-.435c-.47-.377-.711-.915-.745-1.508V9.943c.052-.902.642-1.687 1.542-1.897C4.913 7.96 5.804 8 6 8m-.994 2.006v9.988h13.988v-9.988ZM8.001 8h7.998c-.018-.361-.009-.454-.082-.807a4 4 0 0 0-1.089-2.021c-1.882-1.881-5.076-1.414-6.345.922c-.326.601-.448 1.23-.482 1.906"></path></svg>
+      <span style="color: #fff">Allow Bash?</span><span style="flex: 1"></span><span style="font-size: 11px; color: #8f8f8f">waiting</span>
+    </div>
+    <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; font-size: 12.5px">
+      <code style="display: block; background: #000; border: 1px solid #2b2b2b; padding: 7px 10px; color: #fff; font-family: inherit">rm -rf packages/core/.output &amp;&amp; pnpm --filter core build</code>
+      <span style="color: #8f8f8f">Remove the old core build before rebuilding.</span>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button style="background: {{accent}}; border: 0; color: #fff; font: inherit; font-size: 12px; padding: 6px 12px">Allow <span style="opacity: .7">1</span></button>
+        <button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12px; padding: 6px 12px">Always for rm -rf packages/core/.output <span style="color: #8f8f8f">2</span></button>
+        <button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12px; padding: 6px 12px">Deny <span style="color: #8f8f8f">esc</span></button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","bash","read","grep","web","mcp","running","error","permission"],"default":"all"},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":840,"height":1620}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const s = (k) => v === 'all' || v === k;
+    return {
+      accent: this.props.accent ?? '#2b7fff',
+      pad: this.props.inset === false ? '0' : '24px',
+      all: v === 'all',
+      show: { bash: s('bash'), read: s('read'), grep: s('grep'), web: s('web'), mcp: s('mcp'), running: s('running'), error: s('error'), permission: s('permission') }
+    };
+  }
+}
+</script>
+</body>
+</html>

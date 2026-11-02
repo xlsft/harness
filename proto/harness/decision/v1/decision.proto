@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package harness.decision.v1;
+
+// DecisionService backs the `auto` permission mode: instead of asking the user, the client asks the
+// server whether a tool call (mostly Bash commands, also file writes outside the usual paths and
+// network fetches) is safe to run in the context of the user's request.
+//
+// Decisions come from a chain of pluggable providers configured by the admin (see Provider):
+//   - rules: deterministic hard-deny and fast-allow lists; runs first, and its DENY cannot be overridden;
+//   - llm:   a classifier on any catalog model (including local vLLM / Ollama registered as providers),
+//            prompted from the prompt registry and answering through a forced tool call;
+//   - http:  an external policy webhook (OPA, a company service, ...).
+// The first provider that returns ALLOW or DENY decides; ASK (or an error, depending on the chain's
+// on_error policy) falls through to the next one; if nobody decides, the result is ASK.
+//
+// Clients keep a local copy of the `rules` provider so `auto` degrades safely when the server is
+// unreachable: hard denies still apply and everything ambiguous is asked.
+//
+// Requires `Authorization: Bearer <access token>`. Status: DRAFT (M1.5).
+service DecisionService {
+  rpc Decide(DecideRequest) returns (DecideResponse);
+  // Configured providers and their health, for status pages and the admin UI.
+  rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+}
+
+message DecideRequest {
+  string session_id = 1;
+  // Tool name as exposed to the model, e.g. "Bash", "Write", "WebFetch", "mcp__github__create_issue".
+  string tool_name = 2;
+  // Tool input as a JSON object.
+  string input_json = 3;
+  // Session working directory and extra working directories.
+  string cwd = 4;
+  repeated string additional_directories = 5;
+  // The user's recent intent, so the classifier can judge whether the action fits the request:
+  // the latest user prompts (newest last, truncated by the client) and the model's stated reason
+  // (the assistant text right before the tool call, if any).
+  repeated string recent_user_messages = 6;
+  string assistant_rationale = 7;
+  // Facts the client already knows, to save the classifier work.
+  ClientFacts facts = 8;
+  // Optional provider id to force (admin debugging); empty means the configured chain.
+  string provider = 9;
+}
+
+message ClientFacts {
+  // For Bash: the command split into simple commands (wrappers stripped), as the client's rule engine
+  // sees them.
+  repeated string subcommands = 1;
+  // Paths the call writes to, resolved and absolute (Write/Edit targets, redirections, mv/cp targets).
+  repeated string write_paths = 2;
+  // Network hosts the call contacts, when the client can tell (WebFetch URL, curl/wget/git remotes).
+  repeated string network_hosts = 3;
+  bool inside_git_repo = 4;
+  string git_branch = 5;
+}
+
+enum Decision {
+  DECISION_UNSPECIFIED = 0;
+  DECISION_ALLOW = 1;
+  DECISION_DENY = 2;
+  // Not confident or out of policy scope: ask the user (headless clients deny).
+  DECISION_ASK = 3;
+}
+
+// Why an action is risky. Used for UI badges, audit and per-category policy.
+enum RiskCategory {
+  RISK_CATEGORY_UNSPECIFIED = 0;
+  RISK_CATEGORY_DESTRUCTIVE = 1; // deletes or overwrites data outside the working tree, rm -rf, dd, mkfs
+  RISK_CATEGORY_REMOTE_CODE_EXECUTION = 2; // curl | sh, running downloaded binaries
+  RISK_CATEGORY_SECRET_EXFILTRATION = 3; // reading credentials and sending them out
+  RISK_CATEGORY_PRODUCTION_CHANGE = 4; // deploys, migrations, infra changes against production
+  RISK_CATEGORY_GIT_HISTORY_REWRITE = 5; // force push, reset of shared branches
+  RISK_CATEGORY_PRIVILEGE_ESCALATION = 6; // sudo, chmod 777 on system paths, editing shell rc / ssh config
+  RISK_CATEGORY_NETWORK_EGRESS = 7; // contacting unexpected hosts
+  RISK_CATEGORY_OUT_OF_SCOPE = 8; // unrelated to what the user asked for
+  RISK_CATEGORY_PACKAGE_INSTALL = 9; // installing global packages or modifying the system
+}
+
+message DecideResponse {
+  Decision decision = 1;
+  // One sentence, shown to the user and, for DENY, returned to the model as the denial reason.
+  string reason = 2;
+  repeated RiskCategory categories = 3;
+  // Provider that decided ("rules", "llm", "http:<id>", or "none" when the chain fell through to ASK).
+  string provider = 4;
+  // 0..1 when the provider reports it.
+  double confidence = 5;
+  // True when served from the server's decision cache.
+  bool cached = 6;
+  int64 latency_ms = 7;
+  // Cost of the classifier call in USD (0 for rules and cache hits); also counted in usage and quotas.
+  double cost_usd = 8;
+}
+
+message ListProvidersRequest {}
+
+message ListProvidersResponse {
+  // In chain order.
+  repeated Provider providers = 1;
+  // What an erroring provider means: ASK (default, safe) or fall through to the next provider.
+  OnError on_error = 2;
+}
+
+enum OnError {
+  ON_ERROR_UNSPECIFIED = 0; // same as ASK
+  ON_ERROR_ASK = 1;
+  ON_ERROR_NEXT = 2;
+}
+
+message Provider {
+  // e.g. "rules", "llm", "http:opa".
+  string id = 1;
+  string type = 2; // rules | llm | http
+  string display_name = 3;
+  bool healthy = 4;
+  // For llm providers: the catalog model id used.
+  string model = 5;
+}

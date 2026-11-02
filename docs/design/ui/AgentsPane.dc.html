@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agents pane</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 24px">
+
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 6px">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">{{p.label}}</div></sc-if>
+  <section aria-label="Agents" style="height: {{p.h}}; display: flex; flex-direction: column; background: #000; border: {{p.frame}}; overflow: hidden">
+
+    <div style="height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #2b2b2b; padding: 0 6px 0 14px">
+      <span style="font-family: 'Cascadia Code', monospace; color: #fff; font-size: 13px">Agents</span>
+      <span style="flex: 1"></span>
+      <button aria-label="Clear finished" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.trash}}"></path></svg></button>
+      <button aria-label="Maximize" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.full}}"></path></svg></button>
+      <button aria-label="Close" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.close}}"></path></svg></button>
+    </div>
+
+    <sc-if value="{{p.empty}}" hint-placeholder-val="{{false}}">
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center">
+        <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: #8f8f8f" aria-hidden="true"><path d="{{ic.ai}}"></path></svg>
+        <span style="color: #fff">No agents running</span>
+        <span style="color: #8f8f8f; font-size: 12px; max-width: 320px; line-height: 1.55">Subagents and parallel sessions started from this session show up here with their own tasks.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{p.list}}" hint-placeholder-val="{{true}}">
+      <div style="flex: 1; min-height: 0; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 12px; color: #8f8f8f; padding: 2px 2px 4px">Running <span style="color: #fff">{{p.runCount}}</span></div>
+        <sc-for list="{{p.running}}" as="g" hint-placeholder-count="5">
+          <div style="border: 1px solid #2b2b2b; background: #0a0a0a">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; height: 38px; font-size: 12.5px">
+              <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; flex-shrink: 0; fill: #8f8f8f" aria-hidden="true"><path d="{{g.lead}}"></path></svg>
+              <svg viewBox="0 0 24 24" style="width: 13px; height: 13px; flex-shrink: 0; fill: {{accent}}" aria-hidden="true"><path d="{{ic.ai}}"></path></svg>
+              <span style="min-width: 0; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{g.title}}</span>
+              <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; flex-shrink: 0; fill: {{g.openFill}}" aria-hidden="true"><path d="{{ic.right}}"></path></svg>
+              <span style="flex: 1"></span>
+              <span style="color: #8f8f8f; font-size: 11px; white-space: nowrap">{{g.model}}</span>
+              <span style="color: #8f8f8f; font-size: 11.5px; white-space: nowrap">{{g.t}}</span>
+              <button aria-label="Stop agent" style="width: 24px; height: 24px; flex-shrink: 0; background: #1c1c1c; border: 1px solid #2b2b2b; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; background: #fff"></span></button>
+            </div>
+            <sc-if value="{{g.group}}" hint-placeholder-val="{{false}}">
+              <div style="border-top: 1px solid #1c1c1c; padding: 0 10px; height: 32px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8f8f8f">
+                <svg viewBox="0 0 24 24" style="width: 11px; height: 11px; fill: currentColor" aria-hidden="true"><path d="{{g.chev}}"></path></svg>{{g.count}} tasks<span style="flex: 1"></span><span style="color: {{accent}}">{{g.active}}</span>
+              </div>
+              <sc-if value="{{g.open}}" hint-placeholder-val="{{false}}">
+                <div style="padding: 0 10px 8px 29px; display: flex; flex-direction: column">
+                  <sc-for list="{{g.subs}}" as="s" hint-placeholder-count="4">
+                    <div style="display: flex; align-items: center; gap: 8px; height: 26px; font-size: 12px; border-left: 1px solid #2b2b2b; padding-left: 10px">
+                      <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; flex-shrink: 0; fill: {{s.c}}" aria-hidden="true"><path d="{{s.icon}}"></path></svg>
+                      <span style="color: {{s.fg}}; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{s.t}}</span>
+                      <span style="color: #8f8f8f; font-size: 11px; white-space: nowrap">{{s.d}}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8f8f8f; padding: 14px 2px 4px"><svg viewBox="0 0 24 24" style="width: 11px; height: 11px; fill: currentColor" aria-hidden="true"><path d="{{ic.down}}"></path></svg>Finished <span style="color: #fff">56</span></div>
+        <sc-for list="{{finished}}" as="f" hint-placeholder-count="6">
+          <div style="border: 1px solid #1c1c1c; background: #0a0a0a">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 34px; font-size: 12.5px">
+              <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; flex-shrink: 0; fill: #8f8f8f" aria-hidden="true"><path d="{{f.lead}}"></path></svg>
+              <svg viewBox="0 0 24 24" style="width: 13px; height: 13px; flex-shrink: 0; fill: {{f.sc}}" aria-hidden="true"><path d="{{f.icon}}"></path></svg>
+              <span style="flex: 1; min-width: 0; color: #d4d4d4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.title}}</span>
+              <span style="color: #8f8f8f; font-size: 11.5px; white-space: nowrap">{{f.t}}</span>
+            </div>
+            <sc-if value="{{f.group}}" hint-placeholder-val="{{false}}">
+              <div style="border-top: 1px solid #1c1c1c; padding: 0 10px; height: 30px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 11px; height: 11px; fill: currentColor" aria-hidden="true"><path d="{{ic.right}}"></path></svg>{{f.count}} tasks</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </section>
+</div>
+</sc-for>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","list","empty"],"default":"all"},"height":{"editor":null,"default":"900px"},"framed":{"editor":"boolean","default":true},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":640,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const all = v === 'all';
+    const a = this.props.accent ?? '#2b7fff';
+    const ic = {
+      trash: 'M13.034 10.741c.226-.842 1.396-.996 1.832-.241c.101.175.121.302.134.5v5c-.03.451-.288.844-.741.966c-.656.176-1.217-.327-1.259-.966v-5Zm-4 0c.226-.842 1.396-.996 1.832-.241c.101.175.121.302.134.5v5c-.03.451-.288.844-.741.966c-.656.176-1.217-.327-1.259-.966v-5ZM19.936 7l-.816 12.238c-.079.749-.384 1.435-.94 1.955s-1.259.778-2.013.807H7.833c-1.058-.041-2.027-.57-2.563-1.499a3.1 3.1 0 0 1-.39-1.263L4.064 7c-.209-.016-.376-.025-.564-.134c-.655-.378-.655-1.354 0-1.732c.175-.101.302-.121.5-.134h3.279l.561-1.683A2.025 2.025 0 0 1 9.668 2h4.664a2.03 2.03 0 0 1 1.828 1.317L16.721 5H20c.198.013.325.033.5.134c.655.378.655 1.354 0 1.732c-.188.109-.355.118-.564.134M6.069 7l.802 12.028c.013.13.025.218.072.337c.161.41.543.619.967.635h8.18c.322-.012.615-.121.82-.38c.139-.175.196-.373.219-.592L17.931 7Zm3.656-2.995L9.387 5h5.226l-.338-.995Z',
+      full: 'm5 17.586l4.793-4.793c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414L6.414 19H9c1.204.079 1.357 1.672.259 1.966L9 21H4c-.271-.018-.511-.096-.707-.293c-.197-.196-.275-.436-.293-.707v-5l.034-.259C3.328 13.643 4.921 13.796 5 15ZM17.586 5H15c-1.204-.079-1.357-1.672-.259-1.966L15 3h5c.271.018.511.096.707.293c.197.196.275.436.293.707v5l-.034.259c-.294 1.098-1.887.945-1.966-.259V6.414l-4.793 4.793c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z',
+      close: 'M10.586 12.001L4.929 6.344c-.359-.41-.404-1.01 0-1.414c.404-.405 1.005-.359 1.414 0L12 10.586l5.657-5.656c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414l-5.657 5.657l5.657 5.656c.359.41.404 1.011 0 1.415s-1.005.359-1.414 0L12 13.415l-5.657 5.657c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z',
+      ai: 'M11.114 4.101c.827.047 1.486.587 1.779 1.347l.797 2.336c.146.395.323.762.573 1.102c.4.542.936.98 1.548 1.262c.879.404 1.837.612 2.741.959c.206.08.404.179.579.314c1.292.989.89 2.906-.579 3.472c-1.402.539-2.984.748-4.034 1.909c-.375.415-.634.892-.828 1.414l-.797 2.336c-.322.835-1.097 1.399-2.007 1.347c-.827-.047-1.486-.587-1.779-1.347l-.797-2.336a4.4 4.4 0 0 0-.573-1.102c-.4-.542-.936-.98-1.548-1.262c-.879-.404-1.837-.612-2.741-.959a2.3 2.3 0 0 1-.579-.314c-1.292-.989-.89-2.906.579-3.472c1.402-.539 2.984-.748 4.034-1.909c.375-.415.634-.892.828-1.414l.797-2.336c.322-.835 1.097-1.399 2.007-1.347',
+      loading: 'M2 12c0 5.523 4.477 10 10 10v-2a8 8 0 1 1 0-16a1 1 0 1 0 0-2q-.563 0-1.11.06C5.889 2.615 2 6.853 2 12 M20 12a8 8 0 0 1-8 8v2c5.523 0 10-4.477 10-10a9.97 9.97 0 0 0-2.778-6.917a1 1 0 0 0-1.444 1.384A7.97 7.97 0 0 1 20 12',
+      right: 'm13.586 12l-4.95-4.95c-.574-.654-.22-1.707.707-1.707c.278 0 .503.114.707.293l5.657 5.657c.179.204.293.429.293.707s-.114.503-.293.707l-5.657 5.657c-.339.298-.8.394-1.207.159c-.588-.34-.629-1.092-.207-1.573Z',
+      down: 'm12 13.586l4.95-4.95c.481-.422 1.233-.381 1.573.207c.235.407.139.868-.159 1.207l-5.657 5.657c-.204.179-.429.293-.707.293s-.503-.114-.707-.293L5.636 10.05c-.179-.204-.293-.429-.293-.707c0-.927 1.053-1.281 1.707-.707Z',
+      check: 'M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z',
+      x: 'M10.586 12.001L4.929 6.344c-.359-.41-.404-1.01 0-1.414c.404-.405 1.005-.359 1.414 0L12 10.586l5.657-5.656c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414l-5.657 5.657l5.657 5.656c.359.41.404 1.011 0 1.415s-1.005.359-1.414 0L12 13.415l-5.657 5.657c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z',
+      dot: 'M12 8a4 4 0 1 1 0 8a4 4 0 0 1 0-8'
+    };
+    const S = (t, d, st) => {
+      const m = { done: [ic.check, '#00bc7d', '#8f8f8f'], run: [ic.loading, a, '#fff'], wait: [ic.dot, '#454545', '#8f8f8f'], fail: [ic.x, '#ff2056', '#d4d4d4'] }[st];
+      return { t, d, icon: m[0], c: m[1], fg: m[2] };
+    };
+    const G = (title, model, t, count, open, subs, active) => ({ title, model, t, group: true, count: String(count), open, subs: subs ?? [], active: active ?? '', lead: '', openFill: '#8f8f8f', chev: open ? ic.down : ic.right });
+    const One = (title, model, t) => ({ title, model, t, group: false, open: false, subs: [], lead: ic.right, openFill: 'transparent', chev: '', count: '', active: '' });
+    const running = [
+      G('Move core from SQLite to Postgres', 'qwen3-coder', '17m 23s', 18, true, [
+        S('Explore: find SQLite usages in core', '41s', 'done'),
+        S('Plan the 0003 migration', '1m 12s', 'done'),
+        S('Write migration 0003_postgres.sql', '2m 40s', 'run'),
+        S('Port store tests to testcontainers', '', 'wait'),
+        S('Update docker-compose and docs', '', 'wait')
+      ], '3 running'),
+      G('Single-container s6 image', 'glm-4.6', '13m 01s', 4, false, [], '1 running'),
+      G('CLI TUI skeleton on charm.land', 'claude-sonnet-5-5', '13m 01s', 3, false, [], '1 running'),
+      One('Run evals on 11 tasks across five models', 'glm-4.6', '1m 04s'),
+      One('Fill scratchpad and additional dirs placeholders', 'qwen3-coder', '6s')
+    ];
+    const ok = { icon: ic.check, sc: '#00bc7d' };
+    const bad = { icon: ic.x, sc: '#ff2056' };
+    const F = (title, t, st, count) => ({ title, t, ...st, group: !!count, count: count ? String(count) : '', lead: count ? '' : ic.right });
+    const finished = [
+      F('Use random free ports in e2e and rerun', '12s', ok),
+      F('Rerun e2e and show full failure output', '5s', ok),
+      F('Run e2e, commit and push bootstrap wiring', '12s', ok),
+      F('Live check: settings, memory, sync upload on device', '19s', bad),
+      F('Add import/sync commands, run full client tests', '27s', ok),
+      F('Commit merge, push, clean merged worktrees', '5s', ok),
+      F('M1 client: loop, tools, permissions, rewind', '52m 59s', ok, 26)
+    ];
+    const h = all ? '900px' : (this.props.height ?? '900px');
+    const frame = all || this.props.framed !== false ? '1px solid #2b2b2b' : '0';
+    const panels = [
+      { key: 'list', label: 'variant="list" · subagents and parallel sessions', h, frame, list: true, empty: false, running, runCount: String(running.length) },
+      { key: 'empty', label: 'variant="empty"', h: all ? '320px' : h, frame, list: false, empty: true, running: [], runCount: '0' }
+    ].filter((p) => all || p.key === v);
+    return {
+      accent: a,
+      pad: this.props.inset === false ? '0' : '24px',
+      all, panels, ic, finished
+    };
+  }
+}
+</script>
+</body>
+</html>

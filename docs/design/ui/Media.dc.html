@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Attachments</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 14px; align-items: {{align}}">
+
+<sc-if value="{{show.file}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; align-self: stretch">variant="file" · files</div></sc-if>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: {{justify}}">
+    <a href="#" style="display: flex; align-items: center; gap: 10px; border: 1px solid #2b2b2b; background: #0a0a0a; padding: 7px 10px; color: #d4d4d4; text-decoration: none; min-width: 200px">
+      <span style="width: 30px; height: 30px; background: #1c1c1c; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: #fff" aria-hidden="true"><path d="M20 20.057c-.063 1.1-.843 1.88-1.943 1.943H5.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435h7.692c.514.025.949.205 1.33.551l4.484 4.484c.346.381.526.816.551 1.33ZM12 4l-5.994.006v15.988h11.988L18 10h-4.58c-.808-.065-1.355-.612-1.42-1.42Zm2 4h3.586L14 4.414Z"></path></svg></span>
+      <span style="display: flex; flex-direction: column"><span style="color: #fff; font-size: 12.5px">PLAN.md</span><span style="font-size: 11px; color: #8f8f8f">Markdown · 12 KB</span></span>
+    </a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; border: 1px solid #2b2b2b; background: #0a0a0a; padding: 7px 10px; color: #d4d4d4; text-decoration: none; min-width: 200px">
+      <span style="width: 30px; height: 30px; background: #1c1c1c; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: #fe9a00" aria-hidden="true"><path d="M9.771 14.974c-.797-.186-1.033-1.244-.396-1.754A1.04 1.04 0 0 1 10 13h1c.307.018.583.129.78.375c.192.238.263.557.194.854c-.109.466-.514.745-.974.771h-1Zm3-2c-.797-.186-1.033-1.244-.396-1.754A1.04 1.04 0 0 1 13 11h1c.307.018.583.129.78.375c.192.238.263.557.194.854c-.109.466-.514.745-.974.771h-1Zm-3-2c-.797-.186-1.033-1.244-.396-1.754A1.04 1.04 0 0 1 10 9h1c.307.018.583.129.78.375c.192.238.263.557.194.854c-.109.466-.514.745-.974.771h-1Zm3-2c-.797-.186-1.033-1.244-.396-1.754A1.04 1.04 0 0 1 13 7h1c.307.018.583.129.78.375c.192.238.263.557.194.854c-.109.466-.514.745-.974.771h-1Zm1.434-6.876c.307.1.56.27.795.488L19.414 7c.374.404.564.864.586 1.414V20c-.026.641-.293 1.229-.819 1.614c-.351.257-.751.369-1.181.386H6a2.1 2.1 0 0 1-.919-.223C4.403 21.426 4.030 20.748 4 20V4c.046-1.146.854-1.954 2-2h7.586c.239.009.39.024.619.098M15 20h3V8.414L13.586 4H6v16h3v-2.5c.012-.271.066-.52.205-.757c.276-.472.76-.719 1.295-.743h3c.204.009.331.023.523.094c.601.223.949.782.977 1.406Zm-4-2v2h2v-2Z"></path></svg></span>
+      <span style="display: flex; flex-direction: column"><span style="color: #fff; font-size: 12.5px">provider-logs.zip</span><span style="font-size: 11px; color: #8f8f8f">Archive · 4.2 MB</span></span>
+    </a>
+    <a href="#" style="display: flex; align-items: center; gap: 10px; border: 1px solid #2b2b2b; background: #0a0a0a; padding: 7px 10px; color: #d4d4d4; text-decoration: none; min-width: 200px">
+      <span style="width: 30px; height: 30px; background: #1c1c1c; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: #00b8db" aria-hidden="true"><path d="M14.486 3.144c.551.154.805.7.693 1.233l-4.431 15.787c-.181.514-.683.847-1.233.693c-.551-.155-.805-.701-.693-1.233l4.431-15.788c.181-.513.683-.847 1.233-.692M20.329 12l-3.536-3.536c-.422-.481-.381-1.233.208-1.573c.406-.235.867-.139 1.207.159l4.242 4.243c.179.204.293.429.293.707s-.114.503-.293.707l-4.242 4.243c-.205.179-.43.293-.708.293c-.755 0-1.243-.846-.866-1.5l.159-.208ZM3.672 12l3.536 3.535l.158.208c.378.654-.11 1.5-.866 1.5c-.277 0-.503-.114-.707-.293l-4.242-4.243c-.179-.204-.293-.429-.293-.707s.114-.503.293-.707L5.793 7.05c.34-.298.801-.394 1.207-.159c.589.34.63 1.092.208 1.573Z"></path></svg></span>
+      <span style="display: flex; flex-direction: column"><span style="color: #fff; font-size: 12.5px">openrouter.json</span><span style="font-size: 11px; color: #8f8f8f">JSON · 3 KB</span></span>
+    </a>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.image}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; align-self: stretch; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="image" · single image</div></sc-if>
+  <figure style="margin: 0; width: 440px; max-width: 100%; display: flex; flex-direction: column; gap: 5px">
+    <div role="img" aria-label="Screenshot: 529 error in the console" style="aspect-ratio: 16 / 9; border: 1px solid #2b2b2b; background: #0a0a0a repeating-linear-gradient(135deg, #131313 0 1px, transparent 1px 14px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #8f8f8f; font-size: 11px">
+      <svg viewBox="0 0 24 24" style="width: 26px; height: 26px; fill: #454545" aria-hidden="true"><path d="M15.77 7.024a1.516 1.516 0 0 1 1.206 1.746a1.516 1.516 0 0 1-1.746 1.206a1.516 1.516 0 0 1-1.206-1.746a1.516 1.516 0 0 1 1.746-1.206m4.554-3.998C21.308 3.186 21.961 4.031 22 5v14c-.022.535-.202 1.03-.586 1.414s-.879.564-1.414.586H4c-.535-.022-1.03-.202-1.414-.586S2.022 19.535 2 19V5c.046-1.146.854-1.954 2-2h16ZM4 17.929V19h16v-1.071l-3.05-3.05l-.707.707c.198.198.393.378.467.66c.22.837-.709 1.554-1.461 1.124l-.213-.163l-5.157-5.157ZM4 5v10.1l5.171-5.171c.432-.378.983-.378 1.415 0l4.242 4.243l1.415-1.415c.432-.378.982-.378 1.414 0L20 15.101V5Z"></path></svg>
+      [screenshot 2880×1620]
+    </div>
+    <figcaption style="font-size: 11px; color: #8f8f8f; display: flex; gap: 8px">screenshot-529.png<span style="flex: 1"></span>1.2 MB</figcaption>
+  </figure>
+</sc-if>
+
+<sc-if value="{{show.gallery}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; align-self: stretch; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="gallery" · several images</div></sc-if>
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; width: 440px; max-width: 100%">
+    <div role="img" aria-label="Screenshot 1" style="aspect-ratio: 1; border: 1px solid #2b2b2b; background: #0a0a0a repeating-linear-gradient(135deg, #131313 0 1px, transparent 1px 10px); display: flex; align-items: flex-end; padding: 5px; box-sizing: border-box; font-size: 10px; color: #8f8f8f">01.png</div>
+    <div role="img" aria-label="Screenshot 2" style="aspect-ratio: 1; border: 1px solid #2b2b2b; background: #0a0a0a repeating-linear-gradient(135deg, #131313 0 1px, transparent 1px 10px); display: flex; align-items: flex-end; padding: 5px; box-sizing: border-box; font-size: 10px; color: #8f8f8f">02.png</div>
+    <div role="img" aria-label="Screenshot 3" style="aspect-ratio: 1; border: 1px solid #2b2b2b; background: #0a0a0a repeating-linear-gradient(135deg, #131313 0 1px, transparent 1px 10px); display: flex; align-items: flex-end; padding: 5px; box-sizing: border-box; font-size: 10px; color: #8f8f8f">03.png</div>
+    <a href="#" style="aspect-ratio: 1; border: 1px solid #2b2b2b; background: #131313; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; text-decoration: none">+3</a>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.video}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; align-self: stretch; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="video" · player</div></sc-if>
+  <figure style="margin: 0; width: 440px; max-width: 100%; display: flex; flex-direction: column; gap: 5px">
+    <div style="aspect-ratio: 16 / 9; border: 1px solid #2b2b2b; background: #0a0a0a; position: relative; display: flex; align-items: center; justify-content: center">
+      <span style="position: absolute; top: 8px; left: 10px; font-size: 11px; color: #8f8f8f">[screen recording]</span>
+      <button aria-label="Play" style="width: 46px; height: 46px; background: {{accent}}; border: 0; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: #fff" aria-hidden="true"><path d="M7.436 3.495c.337.073.668.257.979.397l1.495.701a68 68 0 0 1 8.355 4.823l1.354.945c.544.392 1.131.755 1.205 1.486c.02.195.001.395-.057.583c-.176.567-.686.867-1.141 1.195l-.842.594a68 68 0 0 1-5.43 3.374a65 65 0 0 1-4.508 2.309c-.473.219-1.158.614-1.687.626a1.47 1.47 0 0 1-.766-.196c-.721-.417-.734-1.125-.809-1.864l-.095-1.032a67 67 0 0 1-.047-10.27l.142-1.642c.085-.833.133-1.649 1.05-1.977a1.47 1.47 0 0 1 .802-.052"></path></svg></button>
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 7px 10px; font-size: 11px; color: #d4d4d4">
+        0:12<span style="flex: 1; height: 3px; background: #2b2b2b; display: flex"><span style="width: 11%; background: {{accent}}"></span></span>1:48
+        <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor" aria-hidden="true"><path d="M6.678 16.005L6.628 16H4c-.645-.024-1.244-.307-1.624-.838A2.1 2.1 0 0 1 2 14v-4c.021-.569.239-1.103.667-1.487C3.039 8.18 3.506 8.018 4 8h2.628c.135-.029-.033.025.094-.03l6.697-4.784c.322-.198.691-.254 1.039-.075c.347.179.516.512.542.889v16c-.019.284-.105.534-.319.732c-.362.337-.859.33-1.262.082L6.722 16.03Zm-2.672-5.999v3.988c.888.033 1.786-.025 2.674.006a2.2 2.2 0 0 1 1.162.373L13 18.057V5.943L7.842 9.627A2.2 2.2 0 0 1 6.68 10c-.888.031-1.786-.027-2.674.006"></path></svg>
+      </div>
+    </div>
+    <figcaption style="font-size: 11px; color: #8f8f8f; display: flex; gap: 8px">repro-stream-hang.mp4<span style="flex: 1"></span>1:48 · 18 MB</figcaption>
+  </figure>
+</sc-if>
+
+<sc-if value="{{show.audio}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; align-self: stretch; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="audio" · voice message with transcript</div></sc-if>
+  <div style="width: 440px; max-width: 100%; border: 1px solid #2b2b2b; background: #0a0a0a">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px">
+      <button aria-label="Play voice message" style="width: 32px; height: 32px; flex-shrink: 0; background: {{accent}}; border: 0; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: #fff" aria-hidden="true"><path d="M7.436 3.495c.337.073.668.257.979.397l1.495.701a68 68 0 0 1 8.355 4.823l1.354.945c.544.392 1.131.755 1.205 1.486c.02.195.001.395-.057.583c-.176.567-.686.867-1.141 1.195l-.842.594a68 68 0 0 1-5.43 3.374a65 65 0 0 1-4.508 2.309c-.473.219-1.158.614-1.687.626a1.47 1.47 0 0 1-.766-.196c-.721-.417-.734-1.125-.809-1.864l-.095-1.032a67 67 0 0 1-.047-10.27l.142-1.642c.085-.833.133-1.649 1.05-1.977a1.47 1.47 0 0 1 .802-.052"></path></svg></button>
+      <div style="flex: 1; display: flex; align-items: center; gap: 2px; height: 28px; min-width: 0; overflow: hidden">
+        <sc-for list="{{wave}}" as="w" hint-placeholder-count="44"><span style="width: 3px; flex-shrink: 0; height: {{w.h}}; background: {{w.c}}"></span></sc-for>
+      </div>
+      <span style="font-size: 11px; color: #8f8f8f">0:14 / 0:42</span>
+    </div>
+    <div style="padding: 7px 10px; border-top: 1px solid #2b2b2b; font-size: 12px; line-height: 1.55; color: #8f8f8f"><span style="color: #d4d4d4">Transcript:</span> “Check why the stream hangs on Ollama when the model takes more than a minute.”</div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","file","image","gallery","video","audio"],"default":"all"},"side":{"editor":"enum","options":["left","right"],"default":"left"},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":840,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const s = (k) => v === 'all' || v === k;
+    const a = this.props.accent ?? '#2b7fff';
+    const right = this.props.side === 'right';
+    const hs = [6,10,16,22,14,8,12,20,26,18,10,6,9,15,24,28,20,12,8,14,22,16,10,7,12,18,24,20,14,9,6,11,17,23,19,13,8,6,10,15,12,8,6,5];
+    return {
+      accent: a,
+      pad: this.props.inset === false ? '0' : '24px',
+      align: right ? 'flex-end' : 'flex-start',
+      justify: right ? 'flex-end' : 'flex-start',
+      all: v === 'all',
+      show: { file: s('file'), image: s('image'), gallery: s('gallery'), video: s('video'), audio: s('audio') },
+      wave: hs.map((h, i) => ({ h: h + 'px', c: i < 14 ? a : '#454545' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

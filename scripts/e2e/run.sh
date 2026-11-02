@@ -11,13 +11,19 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CORE_PORT="${E2E_CORE_PORT:-38080}"
-UPSTREAM_PORT="${E2E_UPSTREAM_PORT:-38081}"
+free_port() { node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'; }
+# Random free ports by default, so parallel runs (CI matrix, several checkouts) never collide.
+CORE_PORT="${E2E_CORE_PORT:-$(free_port)}"
+UPSTREAM_PORT="${E2E_UPSTREAM_PORT:-$(free_port)}"
 CORE_URL="http://localhost:${CORE_PORT}"
 ADMIN_EMAIL="admin@e2e.test"
 ADMIN_PASSWORD="e2e-password-$(date +%s)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/harness-e2e.XXXXXX")"
 PIDS=()
+
+# Resolve the real node binary: version-manager shims (volta, asdf) do not forward signals, so
+# killing the shim would orphan the actual server process.
+NODE_BIN="$(node -p process.execPath)"
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31mFAIL:\033[0m %s\n' "$*" >&2; for f in "$WORK"/*.log; do echo "--- $f"; tail -n 40 "$f"; done >&2; exit 1; }
@@ -40,7 +46,7 @@ log "building client"
 (cd "$ROOT/packages/client" && go build -o "$WORK/harness-client" ./cmd/harness-client)
 
 log "starting mock upstream on :$UPSTREAM_PORT"
-node "$ROOT/scripts/e2e/upstream.mjs" "$UPSTREAM_PORT" >"$WORK/upstream.log" 2>&1 &
+"$NODE_BIN" "$ROOT/scripts/e2e/upstream.mjs" "$UPSTREAM_PORT" >"$WORK/upstream.log" 2>&1 &
 PIDS+=($!)
 
 log "starting core on :$CORE_PORT"
@@ -48,7 +54,7 @@ log "starting core on :$CORE_PORT"
   cd "$ROOT/packages/core"
   PORT="$CORE_PORT" HARNESS_DATA_DIR="$WORK/data" HARNESS_PUBLIC_URL="$CORE_URL" \
     HARNESS_ADMIN_EMAIL="$ADMIN_EMAIL" HARNESS_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
-    exec node .output/server/index.mjs
+    exec "$NODE_BIN" .output/server/index.mjs
 ) >"$WORK/core.log" 2>&1 &
 PIDS+=($!)
 wait_for "$CORE_URL/api/health" "core"

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Browser pane</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 24px">
+
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 6px">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">{{p.label}}</div></sc-if>
+  <section aria-label="Browser" style="height: {{p.h}}; display: flex; flex-direction: column; background: #000; border: {{p.frame}}; position: relative; overflow: hidden">
+
+    <div style="height: 44px; flex-shrink: 0; display: flex; align-items: stretch; border-bottom: 1px solid #2b2b2b; padding: 0 6px 0 0">
+      <div role="tablist" aria-label="Browser tabs" style="display: flex; align-items: stretch; min-width: 0; overflow: hidden">
+        <sc-for list="{{p.tabs}}" as="t" hint-placeholder-count="2">
+          <button role="tab" aria-selected="{{t.sel}}" style="display: flex; align-items: center; gap: 8px; padding: 0 12px; max-width: 200px; background: {{t.bg}}; color: {{t.fg}}; border: 0; border-right: 1px solid #2b2b2b; border-bottom: 2px solid {{t.line}}; font: inherit; font-size: 12px; white-space: nowrap">
+            <span style="width: 14px; height: 14px; flex-shrink: 0; background: {{t.favBg}}; color: {{t.favFg}}; font-size: 9px; display: flex; align-items: center; justify-content: center">{{t.fav}}</span>
+            <span style="overflow: hidden; text-overflow: ellipsis">{{t.n}}</span>
+            <svg viewBox="0 0 24 24" style="width: 11px; height: 11px; flex-shrink: 0; fill: {{t.xc}}" aria-hidden="true"><path d="{{ic.close}}"></path></svg>
+          </button>
+        </sc-for>
+        <button aria-label="New browser tab" style="width: 36px; display: flex; align-items: center; justify-content: center; background: none; border: 0; border-right: 1px solid #2b2b2b; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.plus}}"></path></svg></button>
+      </div>
+      <span style="flex: 1"></span>
+      <div style="display: flex; align-items: center; gap: 2px">
+        <button aria-label="Toggle layout" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.layout}}"></path></svg></button>
+        <button aria-label="Browser settings" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: {{p.moreBg}}; border: 0; color: #fff"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.more}}"></path></svg></button>
+        <button aria-label="Maximize" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.full}}"></path></svg></button>
+        <button aria-label="Close browser" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.close}}"></path></svg></button>
+      </div>
+    </div>
+
+    <div style="height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid #2b2b2b">
+      <button aria-label="Back" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: {{p.navFg}}"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.left}}"></path></svg></button>
+      <button aria-label="Forward" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #5c5c5c"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.rightArrow}}"></path></svg></button>
+      <button aria-label="Reload" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.reload}}"></path></svg></button>
+      <label style="flex: 1; min-width: 0; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: #0a0a0a; border: 1px solid #2b2b2b">
+        <svg viewBox="0 0 24 24" style="width: 13px; height: 13px; flex-shrink: 0; fill: #8f8f8f" aria-hidden="true"><path d="{{ic.globe}}"></path></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Address</span>
+        <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: {{p.urlFg}}">{{p.url}}</span>
+      </label>
+      <button aria-label="Viewport" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: {{p.vpBg}}; border: 0; color: {{p.vpFg}}"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.phone}}"></path></svg></button>
+      <button aria-label="Pick an element for the agent" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.cursor}}"></path></svg></button>
+    </div>
+
+    <sc-if value="{{p.agent}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; align-items: center; gap: 9px; padding: 6px 12px; border-bottom: 1px solid #2b2b2b; background: #0a0a0a; font-size: 12px; color: #8f8f8f">
+        <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: {{accent}}" aria-hidden="true"><path d="{{ic.ai}}"></path></svg>
+        <span style="color: #fff">The agent is using this tab</span>· step 3 of 5<span style="flex: 1"></span>
+        <button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 11px; padding: 1px 8px">Take over</button>
+        <button style="background: none; border: 1px solid #2b2b2b; color: #ff2056; font: inherit; font-size: 11px; padding: 1px 8px">Stop</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{p.vp}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 5px 12px; border-bottom: 1px solid #2b2b2b; font-size: 11.5px; color: #8f8f8f">
+        <span style="border: 1px solid {{accent}}; color: #fff; padding: 0 6px">Mobile</span><span>Tablet</span><span>Desktop</span><span style="color: #2b2b2b">│</span>375 × 812 · touch
+      </div>
+    </sc-if>
+
+    <div style="flex: 1; min-height: 0; position: relative; background: {{p.stage}}; overflow: hidden">
+
+      <sc-if value="{{p.empty}}" hint-placeholder-val="{{false}}">
+        <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; box-sizing: border-box; text-align: center">
+          <svg viewBox="0 0 24 24" style="width: 30px; height: 30px; fill: #8f8f8f" aria-hidden="true"><path d="{{ic.globe}}"></path></svg>
+          <span style="font-family: 'Cascadia Code', monospace; color: #fff; font-size: 15px">Browse with the agent</span>
+          <span style="color: #8f8f8f; font-size: 12.5px; max-width: 340px; line-height: 1.55">Type a URL, or ask the agent to open, click and fill in pages for you.</span>
+          <span style="height: 8px"></span>
+          <span style="color: #8f8f8f; font-size: 12px">Preview your app instead</span>
+          <a href="#" style="display: flex; align-items: center; gap: 10px; border: 1px solid #2b2b2b; background: #0a0a0a; padding: 7px 12px; color: #fff; text-decoration: none; font-size: 12.5px">core<span style="color: #8f8f8f">pnpm dev · :3000</span><svg viewBox="0 0 24 24" style="width: 12px; height: 12px; fill: {{accent}}" aria-hidden="true"><path d="{{ic.right}}"></path></svg></a>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{p.page}}" hint-placeholder-val="{{false}}">
+        <div style="width: {{p.pw}}; max-width: 100%; height: 100%; margin: 0 auto; background: #0a0a0a; border-left: {{p.pb}}; border-right: {{p.pb}}; box-sizing: border-box; display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #2b2b2b; font-size: 12px; flex-wrap: wrap">
+            <span style="color: #fff; font-family: 'Cascadia Code', monospace; font-weight: 700; font-size: 13px">harness core</span>
+            <span style="color: #fff; border-bottom: 1px solid {{accent}}">Providers</span><span style="color: #8f8f8f">Keys</span><span style="color: #8f8f8f">Usage</span>
+          </div>
+          <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <span style="font-family: 'Cascadia Code', monospace; color: #fff; font-size: 17px; font-weight: 700; flex: 1">Providers</span>
+              <span style="position: relative; display: inline-flex">
+                <button style="background: {{accent}}; border: 0; color: #fff; font: inherit; font-size: 12px; padding: 6px 12px; outline: {{p.hl}}; outline-offset: 3px">+ Add provider</button>
+                <sc-if value="{{p.agent}}" hint-placeholder-val="{{false}}"><span style="position: absolute; bottom: calc(100% + 8px); right: -3px; background: {{accent}}; color: #fff; font-size: 10.5px; padding: 1px 6px; white-space: nowrap">click · Add provider</span></sc-if>
+              </span>
+            </div>
+            <div style="border: 1px solid #2b2b2b; font-size: 12px">
+              <div style="display: flex; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #1c1c1c"><span style="color: #fff; flex: 1">OpenRouter</span><span style="color: #8f8f8f">sk-or-…41f2</span><span style="color: #00bc7d">active</span></div>
+              <div style="display: flex; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #1c1c1c"><span style="color: #fff; flex: 1">Anthropic</span><span style="color: #8f8f8f">sk-ant-…9c0d</span><span style="color: #8f8f8f">ready</span></div>
+              <div style="display: flex; gap: 10px; padding: 8px 12px"><span style="color: #fff; flex: 1">Ollama</span><span style="color: #8f8f8f">localhost:11434</span><span style="color: #fe6e00">offline</span></div>
+            </div>
+            <div style="border: 1px solid #2b2b2b; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px">
+              <span style="color: #8f8f8f">Requests, last hour</span>
+              <div style="display: flex; align-items: flex-end; gap: 3px; height: 48px">
+                <sc-for list="{{bars}}" as="b" hint-placeholder-count="24"><span style="flex: 1; height: {{b}}; background: {{accent}}"></span></sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{p.approval}}" hint-placeholder-val="{{false}}">
+        <div style="position: absolute; inset: 0; background: #000000b3; display: flex; align-items: center; justify-content: center; padding: 20px">
+          <div role="dialog" aria-label="Site permission" style="width: 340px; max-width: 100%; background: #131313; border: 1px solid #454545; display: flex; flex-direction: column">
+            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #2b2b2b">
+              <span style="color: #fff; font-size: 13px">Allow the agent to use github.com?</span>
+              <span style="color: #8f8f8f; font-size: 12px; line-height: 1.5">It wants to open the PR page and read its checks. Sign-ins in this browser stay yours.</span>
+            </div>
+            <div style="padding: 10px 14px; display: flex; gap: 8px; flex-wrap: wrap">
+              <button style="background: {{accent}}; border: 0; color: #fff; font: inherit; font-size: 12px; padding: 5px 12px">Allow once</button>
+              <button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12px; padding: 5px 12px">Always allow</button>
+              <button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12px; padding: 5px 12px">Deny</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{p.menu}}" hint-placeholder-val="{{false}}">
+      <div role="menu" aria-label="Browser settings" style="position: absolute; top: 46px; right: 74px; width: 300px; background: #131313; border: 1px solid #454545; padding: 4px; font-size: 12.5px">
+        <div role="menuitem" aria-disabled="true" style="padding: 6px 9px; color: #8f8f8f">Open in system browser</div>
+        <div role="menuitem" aria-disabled="true" style="padding: 6px 9px; color: #8f8f8f">Copy URL</div>
+        <div role="menuitem" aria-disabled="true" style="padding: 6px 9px; color: #8f8f8f">Save screenshot</div>
+        <div role="menuitem" aria-disabled="true" style="padding: 6px 9px; color: #8f8f8f">Show annotation tools</div>
+        <div role="menuitem" style="padding: 6px 9px; color: #fff; background: #1c1c1c; border-left: 2px solid {{accent}}">Open HTML file…</div>
+        <div style="height: 1px; background: #2b2b2b; margin: 4px 0"></div>
+        <div role="menuitem" aria-disabled="true" style="display: flex; padding: 6px 9px; color: #8f8f8f">Viewport<span style="flex: 1"></span>Responsive</div>
+        <div style="height: 1px; background: #2b2b2b; margin: 4px 0"></div>
+        <div role="menuitemcheckbox" aria-checked="false" style="padding: 6px 9px; color: #d4d4d4">Open links in built-in browser</div>
+        <div role="menuitemcheckbox" aria-checked="true" style="display: flex; align-items: center; padding: 6px 9px; color: #d4d4d4">Auto-open files the agent writes<span style="flex: 1"></span><svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: {{accent}}" aria-hidden="true"><path d="{{ic.check}}"></path></svg></div>
+        <div role="menuitemcheckbox" aria-checked="false" style="padding: 6px 9px; color: #d4d4d4">Auto-verify changes</div>
+        <div role="menuitem" style="padding: 6px 9px; color: #d4d4d4">Manage allowed sites…</div>
+        <div style="height: 1px; background: #2b2b2b; margin: 4px 0"></div>
+        <div style="padding: 6px 9px 2px; color: #8f8f8f; font-size: 11.5px">Cookies</div>
+        <div role="menuitem" style="padding: 6px 9px; color: #d4d4d4">Import cookies…</div>
+        <div role="menuitem" style="display: flex; align-items: center; gap: 8px; padding: 6px 9px; color: #d4d4d4">Keep cookies<span style="flex: 1"></span><span style="color: #8f8f8f">Until quit</span><svg viewBox="0 0 24 24" style="width: 12px; height: 12px; fill: #8f8f8f" aria-hidden="true"><path d="{{ic.right}}"></path></svg></div>
+        <div role="menuitem" style="padding: 6px 9px; color: #ff2056">Clear browsing data</div>
+      </div>
+    </sc-if>
+  </section>
+</div>
+</sc-for>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","menu","empty","page","agent","viewport","approval"],"default":"all"},"height":{"editor":null,"default":"900px"},"framed":{"editor":"boolean","default":true},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":640,"height":3700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const all = v === 'all';
+    const a = this.props.accent ?? '#2b7fff';
+    const G = '#8f8f8f', W = '#fff';
+    const tab = (n, fav, favBg, favFg) => ({ n, fav, favBg, favFg });
+    const NEW = [tab('New tab', '', '#1c1c1c', W)];
+    const DEV = [tab('harness core · providers', 'h', a, W), tab('xlsft/harness · PR 14', 'G', W, '#000')];
+    const mark = (list, sel) => list.map((t, i) => ({ ...t, sel: i === sel ? 'true' : 'false', bg: i === sel ? '#0a0a0a' : 'transparent', fg: i === sel ? W : G, line: i === sel ? a : 'transparent', xc: i === sel ? G : 'transparent' }));
+    const h = all ? '560px' : (this.props.height ?? '900px');
+    const frame = all || this.props.framed !== false ? '1px solid #2b2b2b' : '0';
+    const base = { h, frame, menu: false, empty: false, page: false, agent: false, vp: false, approval: false, moreBg: 'transparent', navFg: '#5c5c5c', vpBg: 'transparent', vpFg: G, url: 'Type a URL', urlFg: G, stage: '#000', pw: '100%', pb: '0', hl: 'none' };
+    const P = (key, label, tabs, extra) => ({ ...base, key, label, tabs, ...extra });
+    const dev = { tabs: mark(DEV, 0), page: true, navFg: G, url: 'localhost:3000/providers', urlFg: W };
+    const panels = [
+      P('menu', 'variant="menu" · settings menu', mark(NEW, 0), { empty: true, menu: true, moreBg: '#1c1c1c' }),
+      P('empty', 'variant="empty" · new tab', mark(NEW, 0), { empty: true }),
+      P('page', 'variant="page" · previewing the dev server', dev.tabs, dev),
+      P('agent', 'variant="agent" · the agent is clicking in this tab', dev.tabs, { ...dev, agent: true, hl: '2px solid ' + a }),
+      P('viewport', 'variant="viewport" · mobile viewport emulation', dev.tabs, { ...dev, vp: true, vpBg: '#1c1c1c', vpFg: W, stage: '#131313', pw: '375px', pb: '1px solid #2b2b2b' }),
+      P('approval', 'variant="approval" · site needs permission', mark(DEV, 1), { ...dev, tabs: mark(DEV, 1), url: 'github.com/xlsft/harness/pull/14', approval: true })
+    ].filter((p) => all || p.key === v);
+    return {
+      accent: a,
+      pad: this.props.inset === false ? '0' : '24px',
+      all,
+      panels,
+      bars: [8,12,10,18,22,16,14,26,30,24,20,28,34,40,32,28,36,44,38,30,26,34,42,48].map((n) => n + 'px'),
+      ic: {
+        close: 'M10.586 12.001L4.929 6.344c-.359-.41-.404-1.01 0-1.414c.404-.405 1.005-.359 1.414 0L12 10.586l5.657-5.656c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414l-5.657 5.657l5.657 5.656c.359.41.404 1.011 0 1.415s-1.005.359-1.414 0L12 13.415l-5.657 5.657c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z',
+        plus: 'M13 13v6c-.036.543-.428 1-1 1s-.964-.457-1-1v-6H5c-.543-.036-1-.428-1-1s.457-.964 1-1h6V5c.036-.543.428-1 1-1s.964.457 1 1v6h6c.543.036 1 .428 1 1s-.457.964-1 1Z',
+        more: 'm18.475 10.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm-6 0l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm-6 0l.418.216c.985.72.742 2.274-.418 2.656L6 13.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L6 10.487Z',
+        full: 'm5 17.586l4.793-4.793c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414L6.414 19H9c1.204.079 1.357 1.672.259 1.966L9 21H4c-.271-.018-.511-.096-.707-.293c-.197-.196-.275-.436-.293-.707v-5l.034-.259C3.328 13.643 4.921 13.796 5 15ZM17.586 5H15c-1.204-.079-1.357-1.672-.259-1.966L15 3h5c.271.018.511.096.707.293c.197.196.275.436.293.707v5l-.034.259c-.294 1.098-1.887.945-1.966-.259V6.414l-4.793 4.793c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z',
+        layout: 'M21 19.057c-.063 1.1-.843 1.88-1.943 1.943H4.943c-.445-.026-.846-.153-1.198-.435c-.47-.377-.711-.915-.745-1.508V4.943c.026-.445.153-.846.435-1.198c.377-.47.915-.711 1.508-.745h14.114c.593.034 1.131.275 1.508.745c.282.352.409.753.435 1.198ZM5 10l.006 8.994L11 19v-9Zm8 6v3l5.994-.006L19 16Zm0-11v9h6l-.006-8.994Zm-7.994.006L5 8h6V5Z',
+        left: 'm6.757 13l3.95 3.95c.423.481.381 1.233-.207 1.573c-.407.235-.867.139-1.207-.159l-5.657-5.657c-.131-.149-.207-.254-.259-.448c-.096-.359.021-.695.259-.966l5.657-5.657c.34-.298.8-.394 1.207-.159c.588.34.63 1.092.207 1.573L6.757 11H20c.543.036 1 .428 1 1s-.457.964-1 1Z',
+        rightArrow: 'M17.242 13H4c-.543-.036-1-.428-1-1s.457-.964 1-1h13.243l-3.95-3.95c-.423-.481-.381-1.233.207-1.573c.407-.235.867-.139 1.207.159l5.657 5.657c.238.271.355.607.259.966c-.053.194-.128.299-.259.448l-5.657 5.657c-.34.298-.8.394-1.207.159c-.588-.34-.63-1.092-.207-1.573Z',
+        reload: 'M19.521 9.287c-.488-1.415-1.427-2.683-2.605-3.6a8.04 8.04 0 0 0-3.457-1.553c-5.27-.985-10.043 3.493-9.404 8.818c.53 4.412 4.622 7.581 9.031 6.975a8.07 8.07 0 0 0 4.802-2.509l.401-.47c.096-.123.372-.566.568-.725c.587-.476 1.498-.126 1.617.62c.083.521-.297.931-.59 1.311l-.5.591a9.94 9.94 0 0 1-4.555 2.847a10.034 10.034 0 0 1-12.242-6.216C.395 9.368 4.496 2.771 10.846 2.065a10 10 0 0 1 3.781.287a10.05 10.05 0 0 1 6.937 6.726c.219.701.351 1.429.409 2.161c.057.72.076 1.533-.799 1.752c-.319.08-.608.009-.885-.151l-2.673-1.802l-.246-.232c-.249-.3-.303-.73-.157-1.089c.42-1.037 1.502-.61 2.308-.43',
+        globe: 'M12.038 21.999L12 21l-.038.999c-.766-.029-1.505-.087-2.254-.262c-3.651-.856-6.589-3.794-7.445-7.445c-.175-.749-.233-1.488-.262-2.254L3 12l-.999-.038c.029-.766.087-1.505.262-2.254c.856-3.651 3.794-6.589 7.445-7.445c.749-.175 1.488-.233 2.254-.262L12 3l.038-.999c.766.029 1.505.087 2.254.262c3.651.856 6.589 3.794 7.445 7.445c.175.749.233 1.488.262 2.254L21 12l.999.038c-.029.766-.087 1.505-.262 2.254c-.856 3.651-3.794 6.589-7.445 7.445c-.749.175-1.488.233-2.254.262M10.32 15.95c.2 1.131.458 2.316 1.035 3.324c.125.219.278.469.482.627c.211.163.285.064.466-.136c.221-.244.383-.544.523-.84a8 8 0 0 0 .347-.878c.228-.684.381-1.388.507-2.097a37 37 0 0 1-3.36 0m9.188-1.197c-1.196.515-2.485.804-3.77.985c-.181 1.285-.47 2.574-.985 3.77a7.98 7.98 0 0 0 4.755-4.755m-11.246.985c-1.285-.181-2.574-.47-3.77-.985a7.98 7.98 0 0 0 4.755 4.755c-.515-1.196-.804-2.485-.985-3.77m1.813-5.663a25 25 0 0 0 0 3.85q1.925.147 3.85 0a25 25 0 0 0 0-3.85a25 25 0 0 0-3.85 0m5.875 3.605a15 15 0 0 0 2.097-.507a8 8 0 0 0 .878-.347c.337-.16.741-.359.976-.663c.163-.211.064-.285-.136-.466a3 3 0 0 0-.491-.342c-1.008-.577-2.193-.835-3.324-1.035a37 37 0 0 1 0 3.36m-7.9-3.36c-1.131.2-2.316.458-3.324 1.035c-.219.125-.469.278-.627.482c-.163.211-.064.285.136.466c.244.221.544.383.84.523c.28.132.585.249.878.347c.684.228 1.388.381 2.097.507a37 37 0 0 1 0-3.36M4.492 9.247c1.196-.515 2.485-.804 3.77-.985c.181-1.285.47-2.574.985-3.77a7.98 7.98 0 0 0-4.755 4.755m10.261-4.755c.515 1.196.804 2.485.985 3.77c1.285.181 2.574.47 3.77.985a7.98 7.98 0 0 0-4.755-4.755M10.32 8.05a37 37 0 0 1 3.36 0c-.2-1.131-.458-2.316-1.035-3.324c-.125-.219-.278-.469-.482-.627c-.211-.163-.285-.064-.466.136c-.221.244-.383.544-.523.84a8 8 0 0 0-.347.878a15 15 0 0 0-.507 2.097',
+        phone: 'M11.741 17.966a1 1 0 0 1-.607-.466c-.442-.765.297-1.691 1.135-1.466c.254.068.475.238.607.466c.442.765-.297 1.691-1.135 1.466M19 20.057c-.063 1.1-.843 1.88-1.943 1.943H6.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435h10.114c1.1.063 1.88.843 1.943 1.943ZM7.006 4.006v15.988h9.988V4.006Z',
+        cursor: 'm15.102 13.688l4.676 4.676c.359.41.404 1.01 0 1.415c-.404.404-1.005.359-1.414 0l-4.676-4.676l-1.959 3.918c-.332.577-1.021.866-1.646.569a1.32 1.32 0 0 1-.632-.664L4.217 5.842c-.161-.47-.083-.988.277-1.348s.878-.438 1.348-.277l13.084 5.234c.292.137.523.337.663.633c.298.625.009 1.313-.569 1.646Zm-4.415 2.944l1.833-3.665c.11-.194.252-.336.447-.447l3.665-1.832l-9.908-3.964Z',
+        check: 'M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z',
+        right: 'm13.586 12l-4.95-4.95c-.574-.654-.22-1.707.707-1.707c.278 0 .503.114.707.293l5.657 5.657c.179.204.293.429.293.707s-.114.503-.293.707l-5.657 5.657c-.339.298-.8.394-1.207.159c-.588-.34-.629-1.092-.207-1.573Z',
+        ai: 'M11.114 4.101c.827.047 1.486.587 1.779 1.347l.797 2.336c.146.395.323.762.573 1.102c.4.542.936.98 1.548 1.262c.879.404 1.837.612 2.741.959c.206.08.404.179.579.314c1.292.989.89 2.906-.579 3.472c-1.402.539-2.984.748-4.034 1.909c-.375.415-.634.892-.828 1.414l-.797 2.336c-.322.835-1.097 1.399-2.007 1.347c-.827-.047-1.486-.587-1.779-1.347l-.797-2.336a4.4 4.4 0 0 0-.573-1.102c-.4-.542-.936-.98-1.548-1.262c-.879-.404-1.837-.612-2.741-.959a2.3 2.3 0 0 1-.579-.314c-1.292-.989-.89-2.906.579-3.472c1.402-.539 2.984-.748 4.034-1.909c.375-.415.634-.892.828-1.414l.797-2.336c.322-.835 1.097-1.399 2.007-1.347'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

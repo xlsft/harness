@@ -208,7 +208,7 @@ export async function authenticateAccessToken(token: string): Promise<Principal 
   await ensureDb();
   const db = getDb();
   const now = Date.now();
-  const row = await db
+  const [row] = await db
     .select({ device: schema.device, user: schema.user, expiresAt: schema.accessToken.expiresAt })
     .from(schema.accessToken)
     .innerJoin(schema.device, eq(schema.device.id, schema.accessToken.deviceId))
@@ -220,7 +220,7 @@ export async function authenticateAccessToken(token: string): Promise<Principal 
         isNull(schema.device.revokedAt),
       ),
     )
-    .get();
+    .limit(1);
   if (!row || row.user.banned) return undefined;
   // Throttle last_seen_at writes to once a minute per device.
   if ((lastSeenWrites.get(row.device.id) ?? 0) < now - 60_000) {

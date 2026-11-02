@@ -13,17 +13,22 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/gateway"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
+	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/settings"
+	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
@@ -71,6 +76,9 @@ type Options struct {
 	Unattended bool
 	// AutoCompactPct overrides the auto-compaction threshold (0 = default).
 	AutoCompactPct float64
+	// NoSync disables the server sync client (settings, memory and transcripts then come from local
+	// files only). HARNESS_NO_SYNC=1 has the same effect.
+	NoSync bool
 
 	OnEvent func(agent.Event)
 	Logger  *slog.Logger
@@ -97,17 +105,35 @@ type Session struct {
 	ParentSessionID string
 	// Trusted reports whether the workspace was trusted at open.
 	Trusted bool
+	// Settings is the merged settings hierarchy (nil if it could not be loaded).
+	Settings *settings.Settings
+	// Memory loads project instructions; ForPath returns subdirectory files lazily.
+	Memory *memory.Loader
+	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
+	Sync     *syncclient.Syncer
+	Uploader *syncclient.Uploader
+	stopSync context.CancelFunc
 }
 
-// Close kills background tasks and closes the transcript.
+// Close kills background tasks, closes the transcript and flushes the transcript upload.
 func (s *Session) Close() error {
 	if s.Tasks != nil {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
 	}
+	var err error
 	if s.Transcript != nil {
-		return s.Transcript.Close()
+		err = s.Transcript.Close()
 	}
-	return nil
+	if s.Uploader != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = s.Uploader.UpdateMeta(s.ID, func(m *syncclient.SessionMeta) { m.Status = agentv1.SessionStatus_SESSION_STATUS_IDLE })
+		_ = s.Uploader.Flush(ctx, s.ID)
+		cancel()
+	}
+	if s.stopSync != nil {
+		s.stopSync()
+	}
+	return err
 }
 
 // ToolNames returns the tools offered to the model.
@@ -190,6 +216,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		if hc == nil {
 			hc = rpc.HTTPClient(url)
 		}
+		s.Sync, s.Uploader, s.stopSync = startSync(ctx, o, url, hc, tokens, user, log)
 		if gw == nil {
 			gw = connectgw.New(url, hc, tokens)
 		}
@@ -248,6 +275,38 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	conv := session.Rebuild(entries)
 	s.ParentSessionID = conv.ForkedFrom
 
+	// Workspace trust and the settings hierarchy (policy > CLI > local > project > user > org).
+	if o.Trusted != nil {
+		s.Trusted = *o.Trusted
+	} else {
+		s.Trusted = permissions.IsTrusted(cwd)
+	}
+	var docs settings.DocSource
+	var memDocs memory.DocSource
+	if s.Sync != nil {
+		docs, memDocs = s.Sync.Cache(), s.Sync.Cache()
+	}
+	st, settingsSources := loadSettings(ctx, o, cwd, s.Trusted, docs, log)
+	s.Settings = st
+	applySettingsEnv(st)
+	if st != nil {
+		if o.Model == "" {
+			o.Model = st.Model
+		}
+		if o.Effort == "" {
+			o.Effort = st.EffortLevel
+		}
+		in := st.PermissionInputs()
+		if o.PermissionMode == "" && in.DefaultMode != "" {
+			o.PermissionMode = permissions.Mode(in.DefaultMode)
+		}
+		o.AdditionalDirs = mergeDirs(o.AdditionalDirs, in.AdditionalDirectories)
+		o.DisableBypassPermissions = o.DisableBypassPermissions || in.DisableBypass
+		if len(o.PermissionSources) == 0 {
+			o.PermissionSources = settingsSources
+		}
+	}
+
 	// Model.
 	catalog, err := gw.Models(ctx)
 	if err != nil {
@@ -283,11 +342,14 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	// Workspace context.
 	env := workspace.Detect(ctx, cwd)
 	env.ModelID, env.ModelDisplayName = s.Model, info.DisplayName
+	env.AdditionalDirs = o.AdditionalDirs
+	env.ScratchpadDir = filepath.Join(config.TempRoot(), session.Slug(cwd), s.ID, "scratchpad")
 	gitForContext := ""
 	if !s.Bundle.UsesPlaceholder("git_status") {
 		gitForContext = env.GitStatus
 	}
-	projectContext := workspace.FormatInstructions(workspace.ProjectInstructions(cwd), gitForContext)
+	s.Memory = projectMemory(ctx, cwd, o.AdditionalDirs, st, memDocs)
+	projectContext := memory.ProjectContext(s.Memory.Initial(), gitForContext)
 
 	// Tools.
 	scratch := filepath.Join(config.TempRoot(), session.Slug(cwd), s.ID, "scratchpad")
@@ -304,13 +366,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.Tools = tools.Default()
 
 	// Permissions.
-	trusted := false
-	if o.Trusted != nil {
-		trusted = *o.Trusted
-	} else {
-		trusted = permissions.IsTrusted(cwd)
-	}
-	s.Trusted = trusted
+	trusted := s.Trusted
 	s.Permissions = permissions.New(permissions.Config{
 		Cwd: cwd, AdditionalDirectories: o.AdditionalDirs, DefaultMode: o.PermissionMode,
 		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,
@@ -339,6 +395,19 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if !s.Resumed || conv.PromptBundleVersion != s.Bundle.Version || conv.Model != s.Model {
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, PromptBundleVersion: s.Bundle.Version, Model: s.Model})
 	}
+	trackUpload(ctx, s.Uploader, s, path, branch)
+	onEvent := o.OnEvent
+	if s.Uploader != nil {
+		up, id := s.Uploader, s.ID
+		onEvent = func(e agent.Event) {
+			if o.OnEvent != nil {
+				o.OnEvent(e)
+			}
+			if e.Kind == agent.EventAssistant || e.Kind == agent.EventCompacted || e.Kind == agent.EventRewound {
+				up.Notify(id)
+			}
+		}
+	}
 	s.FileHistory = session.NewFileHistory(FileHistoryDir(s.ID), s.Transcript, conv.Snapshots)
 	s.ToolEnv.BeforeEdit = s.FileHistory.TrackEdit
 
@@ -361,7 +430,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		MaxTurns:       o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
 		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
 		DisabledTools: disabled,
-		OnEvent:       o.OnEvent, Logger: log,
+		OnEvent:       onEvent, Logger: log,
 	})
 	s.Permissions.OnModeChange(func(m permissions.Mode) {
 		s.Agent.Emit(agent.Event{Kind: agent.EventModeChanged, Mode: string(m)})
@@ -371,4 +440,17 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		s.Tasks.OnEvent = s.Agent.OnTaskEvent
 	}
 	return s, nil
+}
+
+func mergeDirs(a, b []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, d := range append(append([]string{}, a...), b...) {
+		if d == "" || seen[d] {
+			continue
+		}
+		seen[d] = true
+		out = append(out, d)
+	}
+	return out
 }

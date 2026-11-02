@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Artifacts page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 24px">
+
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 6px">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">{{p.label}}</div></sc-if>
+  <section aria-label="Artifacts" style="height: {{p.h}}; overflow: hidden; background: #000; border: {{p.frame}}">
+    <div style="max-width: 1080px; margin: 0 auto; padding: 40px 40px 0; display: flex; flex-direction: column; gap: 22px">
+
+      <h1 style="margin: 0; font-family: 'Cascadia Code', monospace; font-size: 26px; font-weight: 700; color: #fff">Artifacts</h1>
+
+      <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap">
+        <div role="tablist" aria-label="Filter" style="display: flex; gap: 2px">
+          <button role="tab" aria-selected="true" style="background: #1c1c1c; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12.5px; padding: 5px 12px">All</button>
+          <button role="tab" aria-selected="false" style="background: none; border: 1px solid transparent; color: #d4d4d4; font: inherit; font-size: 12.5px; padding: 5px 12px">Yours</button>
+          <button role="tab" aria-selected="false" style="background: none; border: 1px solid transparent; color: #d4d4d4; font: inherit; font-size: 12.5px; padding: 5px 12px">Shared with you</button>
+        </div>
+        <span style="flex: 1"></span>
+        <button aria-label="Search" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #d4d4d4"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor" aria-hidden="true"><path d="{{ic.search}}"></path></svg></button>
+        <button aria-label="Filter and sort" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #d4d4d4"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor" aria-hidden="true"><path d="{{ic.filter}}"></path></svg></button>
+        <button aria-label="{{p.viewLabel}}" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #d4d4d4"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor" aria-hidden="true"><path d="{{p.viewIcon}}"></path></svg></button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 12px; color: #8f8f8f">Make something new</span>
+        <div style="display: flex; gap: 14px; flex-wrap: wrap">
+          <sc-for list="{{kinds}}" as="k" hint-placeholder-count="4">
+            <a href="#" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #fff; width: 150px">
+              <span style="height: 92px; background: {{k.tint}}; border: 1px solid {{k.c}}; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 34px; height: 34px; fill: {{k.c}}" aria-hidden="true"><path d="{{k.icon}}"></path></svg></span>
+              <span style="display: flex; align-items: center; gap: 8px; font-size: 12.5px">{{k.n}}<span style="font-size: 10px; color: {{k.bc}}; border: 1px solid {{k.bc}}; padding: 0 5px">{{k.b}}</span></span>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{p.grid}}" hint-placeholder-val="{{true}}">
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-top: 8px">
+          <sc-for list="{{gridItems}}" as="it" hint-placeholder-count="6">
+            <a href="#" style="display: flex; flex-direction: column; border: 1px solid #2b2b2b; background: #0a0a0a; text-decoration: none; color: #d4d4d4">
+              <div style="height: 150px; background: {{it.tint}}; display: flex; align-items: flex-end; justify-content: center; padding: 20px 28px 0; overflow: hidden; border-bottom: 1px solid #2b2b2b">
+                <div style="width: 100%; height: 112px; background: {{it.paper}}; border: 1px solid #2b2b2b; border-bottom: 0; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 7px">
+                  <sc-if value="{{it.isDesign}}" hint-placeholder-val="{{false}}">
+                    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; flex: 1"><span style="background: #1c1c1c"></span><span style="background: #1c1c1c"></span><span style="background: #1c1c1c"></span><span style="background: #131313"></span><span style="background: #131313"></span><span style="background: #131313"></span></div>
+                  </sc-if>
+                  <sc-if value="{{it.isPage}}" hint-placeholder-val="{{false}}">
+                    <span style="height: 8px; width: 40%; background: {{it.c}}"></span><span style="height: 14px; width: 70%; background: #2b2b2b"></span><span style="height: 5px; width: 90%; background: #1c1c1c"></span><span style="height: 5px; width: 80%; background: #1c1c1c"></span><span style="height: 5px; width: 85%; background: #1c1c1c"></span>
+                  </sc-if>
+                  <sc-if value="{{it.isDoc}}" hint-placeholder-val="{{false}}">
+                    <span style="font-family: 'Cascadia Code', monospace; font-size: 12px; color: #fff; line-height: 1.3">{{it.title}}</span><span style="height: 4px; width: 92%; background: #1c1c1c"></span><span style="height: 4px; width: 86%; background: #1c1c1c"></span><span style="height: 4px; width: 90%; background: #1c1c1c"></span>
+                  </sc-if>
+                  <sc-if value="{{it.isDash}}" hint-placeholder-val="{{false}}">
+                    <div style="flex: 1; display: flex; align-items: flex-end; gap: 6px"><span style="flex: 1; height: 40%; background: {{it.c}}"></span><span style="flex: 1; height: 70%; background: {{it.c}}"></span><span style="flex: 1; height: 55%; background: {{it.c}}"></span><span style="flex: 1; height: 90%; background: {{it.c}}"></span><span style="flex: 1; height: 65%; background: {{it.c}}"></span></div>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+                <span style="width: 32px; height: 32px; flex-shrink: 0; background: {{it.tint}}; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: {{it.c}}" aria-hidden="true"><path d="{{it.icon}}"></path></svg></span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="color: #fff; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{it.title}}</span><span style="color: #8f8f8f; font-size: 11.5px">{{it.when}}</span></span>
+                <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; flex-shrink: 0; fill: {{it.globeFill}}" aria-label="{{it.sharedLabel}}"><path d="{{ic.globe}}"></path></svg>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{p.list}}" hint-placeholder-val="{{false}}">
+        <div role="list" style="display: flex; flex-direction: column; padding-top: 8px">
+          <sc-for list="{{items}}" as="it" hint-placeholder-count="12">
+            <div role="listitem" style="display: flex; align-items: center; gap: 12px; height: 46px; border-bottom: 1px solid #1c1c1c">
+              <span style="width: 28px; height: 28px; flex-shrink: 0; background: {{it.tint}}; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: {{it.c}}" aria-hidden="true"><path d="{{it.icon}}"></path></svg></span>
+              <a href="#" style="flex: 1; min-width: 0; color: #fff; text-decoration: none; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{it.title}}</a>
+              <span style="color: #8f8f8f; font-size: 12px; white-space: nowrap">{{it.when}}</span>
+              <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; flex-shrink: 0; fill: {{it.globeFill}}" aria-label="{{it.sharedLabel}}"><path d="{{ic.globe}}"></path></svg>
+              <button aria-label="More actions" style="width: 30px; height: 30px; margin-left: 12px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.more}}"></path></svg></button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+</div>
+</sc-for>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","grid","list"],"default":"all"},"height":{"editor":null,"default":"900px"},"framed":{"editor":"boolean","default":true},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":1176,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const all = v === 'all';
+    const a = this.props.accent ?? '#2b7fff';
+    const ic = {
+      search: 'm17.176 15.762l3.652 3.652c.359.41.405 1.01 0 1.414c-.404.405-1.004.359-1.414 0l-3.652-3.652c-1.145.85-2.399 1.459-3.814 1.702C5.871 19.921.72 14.327 2.272 8.355a8.5 8.5 0 0 1 1.979-3.618A8.55 8.55 0 0 1 7.68 2.478c6.112-2.146 12.292 3.095 11.198 9.47c-.243 1.415-.852 2.669-1.702 3.814M9.938 4.025a6.5 6.5 0 0 0-3.844 1.697a6.5 6.5 0 0 0-1.727 2.622c-1.558 4.436 2.021 9.03 6.695 8.631a6.5 6.5 0 0 0 3.844-1.697a6.5 6.5 0 0 0 1.727-2.622c1.558-4.436-2.021-9.03-6.695-8.631',
+      filter: 'M9 13.414L3.586 8l-.3-.388A2.1 2.1 0 0 1 3 6.586V4.5c.021-.529.277-1.025.745-1.292c.236-.134.485-.197.755-.208h15c.156.006.322.027.471.076c.621.205 1.003.786 1.029 1.424v2.086A2.12 2.12 0 0 1 20.414 8L15 13.414V21l-.032.252c-.165.635-.843.884-1.415.642l-3.724-1.861a1.7 1.7 0 0 1-.438-.337c-.255-.274-.376-.636-.391-1.005ZM5 5l.005 1.584l.03.037l5.672 5.672c.189.215.274.422.293.707v5.382l2 1V13c.019-.285.104-.492.293-.707l5.672-5.672l.03-.037L19 5Z',
+      list: 'm4.975 17.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm15.284.47c1.098.294.945 1.887-.259 1.966H9c-.543-.036-1-.428-1-1s.457-.964 1-1h11Zm-15.284-7.47l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm15.284.47c1.098.294.945 1.887-.259 1.966H9c-.543-.036-1-.428-1-1s.457-.964 1-1h11ZM4.975 3.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm15.284.47c1.098.294.945 1.887-.259 1.966H9c-.543-.036-1-.428-1-1s.457-.964 1-1h11Z',
+      grid: 'M21 19.057c-.063 1.1-.843 1.88-1.943 1.943H4.943c-.445-.026-.846-.153-1.198-.435c-.47-.377-.711-.915-.745-1.508V4.943c.026-.445.153-.846.435-1.198c.377-.47.915-.711 1.508-.745h14.114c.593.034 1.131.275 1.508.745c.282.352.409.753.435 1.198ZM5 13l.006 5.994L11 19v-6Zm8 0v6l5.994-.006L19 13ZM5.006 5.006L5 11h6V5ZM13 5v6h6l-.006-5.994Z',
+      globe: 'M12.038 21.999L12 21l-.038.999c-.766-.029-1.505-.087-2.254-.262c-3.651-.856-6.589-3.794-7.445-7.445c-.175-.749-.233-1.488-.262-2.254L3 12l-.999-.038c.029-.766.087-1.505.262-2.254c.856-3.651 3.794-6.589 7.445-7.445c.749-.175 1.488-.233 2.254-.262L12 3l.038-.999c.766.029 1.505.087 2.254.262c3.651.856 6.589 3.794 7.445 7.445c.175.749.233 1.488.262 2.254L21 12l.999.038c-.029.766-.087 1.505-.262 2.254c-.856 3.651-3.794 6.589-7.445 7.445c-.749.175-1.488.233-2.254.262M10.32 15.95c.2 1.131.458 2.316 1.035 3.324c.125.219.278.469.482.627c.211.163.285.064.466-.136c.221-.244.383-.544.523-.84a8 8 0 0 0 .347-.878c.228-.684.381-1.388.507-2.097a37 37 0 0 1-3.36 0m-6.07-6.703c1.196-.515 2.485-.804 3.77-.985c.181-1.285.47-2.574.985-3.77a7.98 7.98 0 0 0-4.755 4.755m10.261-4.755c.515 1.196.804 2.485.985 3.77c1.285.181 2.574.47 3.77.985a7.98 7.98 0 0 0-4.755-4.755',
+      more: 'm18.475 10.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm-6 0l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm-6 0l.418.216c.985.72.742 2.274-.418 2.656L6 13.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L6 10.487Z',
+      doc: 'M20 20.057c-.063 1.1-.843 1.88-1.943 1.943H5.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435h7.692c.514.025.949.205 1.33.551l4.484 4.484c.346.381.526.816.551 1.33ZM12 4l-5.994.006v15.988h11.988L18 10h-4.58c-.808-.065-1.355-.612-1.42-1.42Zm2 4h3.586L14 4.414Z',
+      slides: 'm12.707 10.707l3.536-3.535c.569-.499 1.464-.33 1.673.448c.096.359-.021.695-.259.966l-4.243 4.243c-.43.377-.983.377-1.414 0l-2.12-2.12l-2.121 2.121c-.15.131-.254.206-.449.259a1.01 1.01 0 0 1-1.258-.966c0-.278.113-.503.292-.707l2.829-2.829c.43-.377.983-.377 1.414 0Zm-.712 8.172l-2.828 2.828c-.569.499-1.464.33-1.673-.448a1 1 0 0 1 0-.518c.052-.194.128-.299.259-.448L10.046 18H5c-1.135-.042-1.958-.865-2-2V5c-.227-.03-.296-.016-.5-.134a1 1 0 0 1-.466-.607C1.858 3.603 2.361 3.042 3 3h18c.755.05 1.269.802.866 1.5a1 1 0 0 1-.366.366c-.204.118-.273.104-.5.134v11c-.042 1.135-.865 1.958-2 2h-5.055l2.293 2.293c.131.149.207.254.259.448c.068.255.032.531-.1.759c-.34.588-1.092.629-1.573.207ZM5 5l.006 10.994h13.988L19 5Z',
+      design: 'm7.975 11.064l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm7-4l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm-5 0l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm2.805-5.035c4.591.355 8.396 3.875 9.102 8.426c.217 1.4.249 3.652-.697 4.817c-.825 1.016-2.16 1.374-3.418 1.203l-1.73-.288c-.455-.058-.859.057-1.191.381c-.318.311-.471.748-.334 1.182l.244.597c.093.288.144.589.149.891c.021 1.239-.766 2.41-2.004 2.693c-.528.121-1.153.08-1.681.04a10 10 0 0 1-4.888-1.73C.822 16.445.525 8.385 5.745 4.197a10 10 0 0 1 3.237-1.734a10.1 10.1 0 0 1 3.798-.434m-1.406 1.996a8 8 0 0 0-3.411 1.067C2.241 8.443 2.867 16.959 9.024 19.428c.995.399 2.193.647 3.269.566c.541-.041.709-.554.555-1.027l-.093-.227l-.156-.387l-.11-.476a3.16 3.16 0 0 1 .999-2.779a3.38 3.38 0 0 1 2.799-.897l1.75.291c.563.077 1.21-.016 1.591-.485c.225-.277.263-.64.307-.982a8.1 8.1 0 0 0-.147-2.86c-.897-3.829-4.5-6.442-8.414-6.14',
+      dash: 'M8 11V5a2.1 2.1 0 0 1 .376-1.162c.38-.531.979-.814 1.624-.838h4c1.135.042 1.958.865 2 2v3h4c1.135.042 1.958.865 2 2v9c-.029.799-.474 1.524-1.224 1.84c-.247.104-.509.15-.776.16H4c-1.135-.042-1.958-.865-2-2v-6a2.1 2.1 0 0 1 .376-1.162c.38-.531.979-.814 1.624-.838Zm8-1v9l3.994-.006v-8.988Zm-2.006-4.994h-3.988L10 19h4Zm-9.988 8v5.988L8 19v-6Z',
+      page: 'M17 20.057c-.063 1.1-.843 1.88-1.943 1.943H3.943c-.445-.026-.846-.153-1.198-.435c-.47-.377-.711-.915-.745-1.508V8.943c.026-.445.153-.846.435-1.198c.377-.47.915-.711 1.508-.745h11.114c1.1.063 1.88.843 1.943 1.943ZM4.006 9.006v10.988h10.988V9.006ZM18 17v-2l1.994-.006V4.006H9.006L9 6H7V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435h11.114c.445.026.846.153 1.198.435c.47.377.711.915.745 1.508v11.114c-.026.445-.153.846-.435 1.198c-.377.47-.915.711-1.508.745Z'
+    };
+    const T = {
+      doc: { c: a, tint: '#2b7fff1f', icon: ic.doc },
+      slides: { c: '#fe6e00', tint: '#fe6e001f', icon: ic.slides },
+      design: { c: '#8e51ff', tint: '#8e51ff26', icon: ic.design },
+      dash: { c: '#ff2056', tint: '#ff20561f', icon: ic.dash },
+      page: { c: '#8f8f8f', tint: '#1c1c1c', icon: ic.page }
+    };
+    const kinds = [
+      { n: 'Docs', b: 'New', bc: a, ...T.doc },
+      { n: 'Slides', b: 'New', bc: a, ...T.slides },
+      { n: 'Design', b: 'New', bc: a, ...T.design },
+      { n: 'Dashboard', b: 'Beta', bc: '#8f8f8f', ...T.dash }
+    ];
+    const I = (title, type, when, shared) => ({
+      title, when, ...T[type], isDesign: type === 'design', isPage: type === 'page', isDoc: type === 'doc' || type === 'slides', isDash: type === 'dash',
+      paper: type === 'doc' ? '#000' : '#0a0a0a',
+      globeFill: shared ? '#d4d4d4' : 'transparent', sharedLabel: shared ? 'Shared by link' : ''
+    });
+    const items = [
+      I('harness desktop', 'design', 'Opened 3m ago'),
+      I('ymcp pipeline', 'page', 'Opened 29m ago', true),
+      I('harness CLI identity', 'page', 'Opened 1h ago'),
+      I('Registry layout verdicts', 'page', 'Opened Oct 29', true),
+      I('ymcp: promo video storyboard', 'doc', 'Opened Oct 28'),
+      I('ymcp', 'page', 'Opened Oct 28'),
+      I('Binrobi Model 1: a free smartphone, review outline', 'doc', 'Opened Oct 27'),
+      I('Companion screens', 'design', 'Opened Oct 25'),
+      I('Ore completeness audit vs JavaScript/TypeScript', 'doc', 'Opened Oct 16'),
+      I('Open LLMs vs Claude', 'dash', 'Opened Oct 14'),
+      I('Crumble auth panel', 'page', 'Opened Oct 12'),
+      I('Native TypeScript compiler', 'doc', 'Opened Oct 10'),
+      I('Crumble auth variants', 'page', 'Opened Oct 8'),
+      I('Crumble action log', 'page', 'Opened Oct 8')
+    ];
+    const h = this.props.height ?? '900px';
+    const frame = all || this.props.framed !== false ? '1px solid #2b2b2b' : '0';
+    const panels = [
+      { key: 'grid', label: 'variant="grid"', h, frame, grid: true, list: false, viewIcon: ic.list, viewLabel: 'Show as list' },
+      { key: 'list', label: 'variant="list"', h, frame, grid: false, list: true, viewIcon: ic.grid, viewLabel: 'Show as grid' }
+    ].filter((p) => all || p.key === v);
+    return {
+      accent: a,
+      pad: this.props.inset === false ? '0' : '24px',
+      all, panels, ic, kinds, items,
+      gridItems: items.slice(0, 9)
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -23,7 +23,7 @@ function createAuth() {
     secret: deriveKey("better-auth").toString("base64url"),
     trustedOrigins: [cfg.publicUrl],
     database: drizzleAdapter(getDb(), {
-      provider: "sqlite",
+      provider: "pg",
       schema: {
         user: schema.user,
         session: schema.session,
