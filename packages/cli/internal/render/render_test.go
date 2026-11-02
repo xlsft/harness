@@ -157,6 +157,7 @@ func TestFooter(t *testing.T) {
 		check(t, "footer_default"+sfx, s.FooterLine(Footer{Mode: ModeDefault, Model: "qwen-flash", ContextPct: 12, Cost: 0.0123}, w), w)
 		check(t, "footer_accept"+sfx, s.FooterLine(Footer{Mode: ModeAcceptEdits, Model: "qwen-flash", ContextPct: -1, HasText: true}, w), w)
 		check(t, "footer_plan_tasks"+sfx, s.FooterLine(Footer{Mode: ModePlan, Model: "glm-flash", ContextPct: 3, Tasks: 2}, w), w)
+		check(t, "footer_output_style"+sfx, s.FooterLine(Footer{Mode: ModeDefault, Style: "explanatory", Model: "qwen-flash", ContextPct: 12}, w), w)
 	}
 	check(t, "shortcuts_120", s.Shortcuts(120), 120)
 }

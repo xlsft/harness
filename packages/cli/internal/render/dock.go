@@ -159,9 +159,11 @@ const (
 
 // Footer is the status row under the input.
 type Footer struct {
-	Mode       Mode
-	Hint       string // contextual hint replacing the default ("? for shortcuts")
-	Model      string
+	Mode  Mode
+	Hint  string // contextual hint replacing the default ("? for shortcuts")
+	Model string
+	// Style is the active output style; empty for the default (not shown).
+	Style      string
 	ContextPct int // -1 when unknown
 	Cost       float64
 	Tasks      int // running background tasks
@@ -205,6 +207,9 @@ func (s *Styles) FooterLine(f Footer, width int) string {
 		left += d + s.Sec.Render("? for shortcuts")
 	}
 	var right []string
+	if f.Style != "" {
+		right = append(right, f.Style+" style")
+	}
 	if f.Model != "" {
 		right = append(right, f.Model)
 	}
@@ -214,8 +219,13 @@ func (s *Styles) FooterLine(f Footer, width int) string {
 	if f.Cost > 0 {
 		right = append(right, Cost(f.Cost))
 	}
-	r := s.Dim.Render(strings.Join(right, " "+s.dot()+" "))
 	left = "  " + left
+	// Too narrow with a style shown: drop the trailing items (cost, context, model) before the
+	// style, so a non-default style stays visible.
+	for f.Style != "" && len(right) > 1 && width-ansi.StringWidth(left)-ansi.StringWidth(strings.Join(right, " "+s.dot()+" "))-2 < 2 {
+		right = right[:len(right)-1]
+	}
+	r := s.Dim.Render(strings.Join(right, " "+s.dot()+" "))
 	gap := width - ansi.StringWidth(left) - ansi.StringWidth(r) - 2
 	if gap < 2 || len(right) == 0 {
 		return s.Truncate(left, width)
