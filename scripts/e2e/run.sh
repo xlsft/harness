@@ -4,7 +4,8 @@
 # It builds both packages, starts a mock OpenAI-compatible upstream and the core server with a
 # throwaway data dir, signs the client in through the device flow (approving it the way the
 # browser page does), configures a provider and a model through the admin API, then runs one
-# headless agent turn that must call the Bash tool and create a file. It also checks remote
+# headless agent turn that must call the Bash tool and create a file, and one that calls WebSearch
+# (core's SearXNG provider pointed at the mock) and WebFetch (summarized by the small slot). It also checks remote
 # control: `harness-client serve` mirrors a session through RelayService, and a viewer that only
 # talks to the server sends the prompt, answers the permission prompt and watches the turn.
 #
@@ -58,6 +59,7 @@ log "starting core on :$CORE_PORT"
   cd "$ROOT/packages/core"
   PORT="$CORE_PORT" HARNESS_DATA_DIR="$WORK/data" HARNESS_PUBLIC_URL="$CORE_URL" \
     HARNESS_ADMIN_EMAIL="$ADMIN_EMAIL" HARNESS_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+    HARNESS_SEARXNG_URL="http://127.0.0.1:${UPSTREAM_PORT}" \
     exec "$NODE_BIN" .output/server/index.mjs
 ) >"$WORK/core.log" 2>&1 &
 PIDS+=($!)
@@ -111,6 +113,17 @@ echo "$RESULT" >"$WORK/result.json"
 [[ "$(cat "$PROJ/out.txt" 2>/dev/null)" == "harness-e2e" ]] || fail "out.txt missing or wrong"
 [[ "$(jq -r .total_cost_usd <<<"$RESULT")" != "0" ]] || fail "cost was not reported"
 grep -q 'tools=.*Bash' "$WORK/upstream.log" || fail "upstream did not receive the Bash tool definition"
+
+log "WebSearch through SearchService and WebFetch with the small slot"
+# Default permission mode: only the rules below approve the calls (127.0.0.1 is a private host,
+# so it needs a rule that names it exactly).
+WEB_RESULT="$(cd "$PROJ" && "$WORK/harness-client" -p "websearch-e2e: find the marker" --model mock-model \
+  --allowedTools WebSearch --allowedTools "WebFetch(domain:127.0.0.1)" --output-format json)" || fail "web agent turn"
+echo "$WEB_RESULT" >"$WORK/web-result.json"
+[[ "$(jq -r .result <<<"$WEB_RESULT")" == "Web said: search ok; marker=harness-e2e-web" ]] \
+  || fail "web result: $(jq -r .result <<<"$WEB_RESULT")"
+grep -q 'searxng /search?q=harness' "$WORK/upstream.log" || fail "core did not query the search provider"
+grep -q 'page /page' "$WORK/upstream.log" || fail "the client did not fetch the page"
 
 log "remote control through the relay"
 PROJ2="$WORK/proj2"

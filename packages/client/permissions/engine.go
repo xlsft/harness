@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/xlsft/harness/packages/client/netguard"
 )
 
 // Mode is a permission mode.
@@ -183,6 +185,8 @@ type Config struct {
 	ReadableDirs []string
 	// Home overrides the home directory (tests).
 	Home string
+	// NetGuard classifies WebFetch targets as private (default netguard.Default).
+	NetGuard *netguard.Guard
 }
 
 // Engine is the rule engine. It implements Checker.
@@ -206,6 +210,7 @@ type Engine struct {
 	deny          []Rule
 	asker         Asker
 	onMode        func(Mode)
+	netGuard      *netguard.Guard
 }
 
 // New builds an engine from cfg.
@@ -213,7 +218,7 @@ func New(cfg Config) *Engine {
 	e := &Engine{
 		mode: cfg.DefaultMode, cwd: cfg.Cwd, home: cfg.Home, trusted: cfg.Trusted,
 		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, readable: cfg.ReadableDirs,
-		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider,
+		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider, netGuard: cfg.NetGuard,
 	}
 	if e.mode == "" || (e.mode == ModeBypassPermissions && e.disableBypass) || (e.mode == ModeAuto && e.disableAuto) {
 		e.mode = ModeDefault
@@ -563,6 +568,8 @@ func (e *Engine) Evaluate(req Request) Decision {
 	}
 
 	switch {
+	case isWebTool(req.ToolName):
+		return e.evalWeb(req, input, mc)
 	case readTools[req.ToolName]:
 		if inAny(path, e.workDirs) || inAny(path, e.scratch) || inAny(path, e.readable) {
 			return Decision{Behavior: Allow, ResolvedBy: "mode"}
@@ -780,6 +787,8 @@ func (e *Engine) Suggest(req Request) []string {
 			return []string{tool + "(/" + filepath.ToSlash(rel) + "/**)"}
 		}
 		return []string{tool + "(/" + filepath.ToSlash(dir) + "/**)"}
+	case isWebTool(req.ToolName):
+		return suggestWeb(req)
 	}
 	return []string{req.ToolName}
 }

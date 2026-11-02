@@ -34,6 +34,7 @@ import (
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/vcs"
+	"github.com/xlsft/harness/packages/client/web"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -73,6 +74,10 @@ type Options struct {
 	// server adapters are created here, it is the DecisionService client of
 	// the same server; otherwise auto mode runs on the local rules only.
 	DecisionService permissions.Decider
+	// Search backs the WebSearch tool. When nil and the server adapters are
+	// created here, it is the SearchService client of the same server;
+	// otherwise WebSearch reports that search is not configured.
+	Search web.Searcher
 	// Trusted overrides the workspace trust lookup (~/.harness/trust.json).
 	Trusted *bool
 	// LocalSettingsPath overrides where "allow always" rules are written.
@@ -276,6 +281,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		if o.DecisionService == nil {
 			o.DecisionService = decision.NewClient(url, hc, tokens)
 		}
+		if o.Search == nil {
+			o.Search = web.NewSearchClient(url, hc, tokens)
+		}
 		if o.MCP == nil {
 			o.MCP = mcp.NewClient(url, hc, tokens)
 		}
@@ -432,6 +440,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		s.ToolEnv.Tasks = s.Tasks
 	}
 	s.Tools = tools.Default()
+	s.registerWebTools(o)
 
 	// Permissions.
 	trusted := s.Trusted

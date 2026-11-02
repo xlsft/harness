@@ -75,6 +75,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `attribution` | `commit`, `pr` | commit / PR attribution lines |
 | `output_style` | `name`, `content` | the active output style, at session start and when it changes |
 | `deferred_tools` | `tools` | MCP tools are deferred behind ToolSearch: their names, one per line, at session start |
+| `webfetch_summary` | `url`, `prompt`, `content` | not a reminder: the WebFetch summarization prompt. The client fills it with the fetched page (as Markdown) and the tool's `prompt`, sends it as the only user message of an `auxiliary` request to the small-slot model and returns the reply as the tool result. Not wrapped in `<system-reminder>` |
 
 Each placeholder appears once per reminder (the tests compare the list of placeholders). `interrupted` must stay
 exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start with
@@ -92,6 +93,8 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `EnterPlanMode` | `{}` | |
 | `ExitPlanMode` | `plan` (Markdown) | the client writes it to the plan file and asks the user to approve |
 | `ToolSearch` | `query`, `max_results` | offered only while MCP tools are deferred; `select:a,b` or keywords; returns full definitions and makes those tools callable |
+| `WebSearch` | `query`, `allowed_domains`, `blocked_domains` | runs on the server (`harness.search.v1.SearchService`); the client formats title, URL, snippet and date and adds a reminder to cite sources; the domain lists cannot be combined |
+| `WebFetch` | `url`, `prompt` | fetched locally (http upgraded to https except for private hosts, same-host redirects followed, a cross-host redirect returned as a notice, 10 MB / 60 s limits, HTML converted to Markdown, binary refused, 15-minute cache per URL); the answer comes from the small-slot model with `reminders/webfetch_summary.md` |
 | `McpAuthenticate` | `{}` | template of `mcp__<server>__authenticate` for a remote MCP server that needs authorization; `{{server}}` in the description is filled by the client |
 
 The execution semantics are implemented by the client and must match these descriptions.
