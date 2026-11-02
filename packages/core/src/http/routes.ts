@@ -16,6 +16,7 @@ export const routes: RouteDef[] = [
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.sync.v1.SyncService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.search.v1.SearchService/**", handler: "./src/http/routes/rpc.ts" },
 
   // Better Auth (web sessions, admin plugin) and the device approval page stay plain HTTP
   { route: "/api/auth/**", handler: "./src/http/routes/better-auth.ts" },
