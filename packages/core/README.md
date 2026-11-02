@@ -81,6 +81,7 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | `/device` | Device approval page (sign in, enter or confirm the user code, approve/deny) |
 | `/api/auth/**` | Better Auth (email + password sessions, admin plugin: `/api/auth/admin/create-user`, …) |
 | `/api/admin/providers[/:id]` | Provider CRUD (`GET`, `POST`, `PATCH`, `DELETE`) |
+| `POST /api/admin/providers/:id/discover` | Candidate models from the upstream's `/v1/models` (through the SSRF guard): `upstream_model`, `display_name`, `context_window` / `max_output_tokens` when reported, `catalog_ids` already using it |
 | `/api/admin/models[/:id]` | Model catalog CRUD; `GET /:id` also lists features turned off by negotiation, `PATCH {reset_negotiation:true}` clears them |
 | `/api/admin/slots` | `GET` / `PUT {main, small, plan}` |
 | `/api/admin/usage` | Recent usage records (`?user_id=&limit=`) |
@@ -155,5 +156,8 @@ test/                    vitest; helpers/ (in-process server, mock upstream), fi
 - Fallback: on `overloaded`, after 2 retries on the current model the next model from `fallbacks` is tried
   (models with a smaller context window are skipped).
 - `Ping` every `HARNESS_PING_INTERVAL_MS` (10 s) while nothing else was sent.
+- `MessageStop.served_model` is the catalog alias that answered (differs from the requested model after a fallback).
+- OpenAI tool calls whose deltas interleave across `index` are buffered per index: one call streams live, the others are
+  emitted (in index order) once the live call's arguments are complete JSON or at the end of the stream.
 - SSRF guard: the address actually connected to is checked (custom DNS lookup in the undici connector),
   IP-literal hosts are checked up front, redirects are only followed within the same origin.

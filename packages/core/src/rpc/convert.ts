@@ -271,7 +271,12 @@ export function eventToProto(ev: GatewayEvent): StreamMessageResponse | undefine
       return create(StreamMessageResponseSchema, {
         event: {
           case: "messageStop",
-          value: { costUsd: d.harness?.cost_usd ?? 0, upstreamModel: d.harness?.upstream_model ?? "", retries: d.harness?.retries ?? 0 },
+          value: {
+            costUsd: d.harness?.cost_usd ?? 0,
+            upstreamModel: d.harness?.upstream_model ?? "",
+            retries: d.harness?.retries ?? 0,
+            servedModel: d.harness?.served_model ?? "",
+          },
         },
       });
     case "harness_retry":

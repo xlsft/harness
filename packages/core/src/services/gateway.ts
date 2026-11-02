@@ -170,8 +170,9 @@ export async function* runMessages(
             cost_usd: computeCost(usage, model.pricing),
             upstream_model: model.upstreamModel,
             retries,
+            // Catalog alias that answered; differs from req.model after a fallback.
+            served_model: model.id,
           };
-          if (model.id !== req.model) harness.served_model = model.id;
           yield { event: "message_stop", data: { type: "message_stop", harness } };
           return { ok: true, stopReason: ev.stop_reason };
         }

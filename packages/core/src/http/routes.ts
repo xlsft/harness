@@ -23,6 +23,7 @@ export const routes: RouteDef[] = [
   // admin JSON API (web UI; not part of the client protocol)
   { route: "/api/admin/providers", handler: "./src/http/routes/admin-providers.ts" },
   { route: "/api/admin/providers/:id", handler: "./src/http/routes/admin-provider.ts" },
+  { route: "/api/admin/providers/:id/discover", method: "post", handler: "./src/http/routes/admin-provider-discover.ts" },
   { route: "/api/admin/models", handler: "./src/http/routes/admin-models.ts" },
   { route: "/api/admin/models/:id", handler: "./src/http/routes/admin-model.ts" },
   { route: "/api/admin/slots", handler: "./src/http/routes/admin-slots.ts" },
