@@ -80,6 +80,9 @@ message RequestMetadata {
   // Set for subagent requests.
   string agent_id = 3;
   string prompt_bundle_version = 4;
+  // Optional per-session spend cap in USD requested by the client; the server applies the lower of
+  // this and its configured session budget.
+  double session_budget_usd = 5;
 }
 
 message StreamMessageRequest {

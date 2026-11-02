@@ -483,8 +483,11 @@ type RequestMetadata struct {
 	// Set for subagent requests.
 	AgentId             string `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	PromptBundleVersion string `protobuf:"bytes,4,opt,name=prompt_bundle_version,json=promptBundleVersion,proto3" json:"prompt_bundle_version,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Optional per-session spend cap in USD requested by the client; the server applies the lower of
+	// this and its configured session budget.
+	SessionBudgetUsd float64 `protobuf:"fixed64,5,opt,name=session_budget_usd,json=sessionBudgetUsd,proto3" json:"session_budget_usd,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *RequestMetadata) Reset() {
@@ -543,6 +546,13 @@ func (x *RequestMetadata) GetPromptBundleVersion() string {
 		return x.PromptBundleVersion
 	}
 	return ""
+}
+
+func (x *RequestMetadata) GetSessionBudgetUsd() float64 {
+	if x != nil {
+		return x.SessionBudgetUsd
+	}
+	return 0
 }
 
 type StreamMessageRequest struct {
@@ -1522,13 +1532,14 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\x05Slots\x12\x12\n" +
 	"\x04main\x18\x01 \x01(\tR\x04main\x12\x14\n" +
 	"\x05small\x18\x02 \x01(\tR\x05small\x12\x12\n" +
-	"\x04plan\x18\x03 \x01(\tR\x04plan\"\xc2\x01\n" +
+	"\x04plan\x18\x03 \x01(\tR\x04plan\"\xf0\x01\n" +
 	"\x0fRequestMetadata\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12A\n" +
 	"\rrequest_class\x18\x02 \x01(\x0e2\x1c.harness.llm.v1.RequestClassR\frequestClass\x12\x19\n" +
 	"\bagent_id\x18\x03 \x01(\tR\aagentId\x122\n" +
-	"\x15prompt_bundle_version\x18\x04 \x01(\tR\x13promptBundleVersion\"\x9d\x04\n" +
+	"\x15prompt_bundle_version\x18\x04 \x01(\tR\x13promptBundleVersion\x12,\n" +
+	"\x12session_budget_usd\x18\x05 \x01(\x01R\x10sessionBudgetUsd\"\x9d\x04\n" +
 	"\x14StreamMessageRequest\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12\x1d\n" +
 	"\n" +
