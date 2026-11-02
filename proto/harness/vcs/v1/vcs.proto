@@ -1,0 +1,500 @@
+syntax = "proto3";
+
+package harness.vcs.v1;
+
+import "harness/agent/v1/agent.proto";
+
+// VcsService connects the server to code hosts (GitHub, GitLab; Gitea later) through pluggable
+// providers. Tokens, app keys and webhook secrets live only on the server. It gives every client and
+// device the same view of pull/merge requests and CI, pushes events (CI finished, review submitted,
+// merged) to sessions and notifications, and drives auto-fix even when no client is open.
+//
+// Providers:
+//   - github: a GitHub App (installation tokens for repos, optional user-to-server tokens to act as the
+//     user). Admins register it in one click from a manifest (GetGitHubAppManifest /
+//     CompleteGitHubAppManifest). Webhooks: POST /api/vcs/github/webhook (plain HTTP, signature-checked).
+//   - gitlab: gitlab.com or self-managed; an OAuth application for user tokens plus group/project webhooks
+//     (POST /api/vcs/gitlab/webhook, secret token-checked). Group access tokens as an alternative.
+//   - gh, glab: device providers. They run on a client device through the local `gh` / `glab` CLIs and the
+//     user's own CLI login, for users or hosts without a server connection. The client implements the same
+//     operations locally (PR list/create/merge, checks, logs, comments), polls PR and CI state for linked
+//     sessions and uploads snapshots with ReportDeviceSnapshot, so every device and the web see them.
+//     Server-side features that need the server to reach the host (webhooks, auto-fix with no client
+//     online) are not available through device providers.
+// When a server provider and a device provider cover the same repository, the server provider wins.
+//
+// Requires `Authorization: Bearer <access token>`; connection management is admin-only.
+// Status: DRAFT (M2–M4).
+service VcsService {
+  // --- Admin: provider connections ---
+  rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse);
+  // Returns the GitHub App manifest and the URL to post it to (github.com or a GHES host, user or org).
+  rpc GetGitHubAppManifest(GetGitHubAppManifestRequest) returns (GetGitHubAppManifestResponse);
+  // Exchanges the manifest flow `code` for the app credentials and stores the connection.
+  rpc CompleteGitHubAppManifest(CompleteGitHubAppManifestRequest) returns (CompleteGitHubAppManifestResponse);
+  // Creates or updates a connection with explicit credentials (GitLab, or a manually created GitHub App).
+  rpc PutConnection(PutConnectionRequest) returns (PutConnectionResponse);
+  rpc DeleteConnection(DeleteConnectionRequest) returns (DeleteConnectionResponse);
+
+  // --- Per-user authorization (act as the user: open PRs, comment, merge) ---
+  rpc StartUserAuth(StartUserAuthRequest) returns (StartUserAuthResponse);
+  rpc GetUserAuthStatus(GetUserAuthStatusRequest) returns (GetUserAuthStatusResponse);
+  rpc RevokeUserAuth(RevokeUserAuthRequest) returns (RevokeUserAuthResponse);
+
+  // --- Repositories and pull/merge requests ---
+  rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
+  rpc ListPullRequests(ListPullRequestsRequest) returns (ListPullRequestsResponse);
+  rpc GetPullRequest(GetPullRequestRequest) returns (GetPullRequestResponse);
+  rpc CreatePullRequest(CreatePullRequestRequest) returns (CreatePullRequestResponse);
+  rpc MergePullRequest(MergePullRequestRequest) returns (MergePullRequestResponse);
+  rpc SetAutoMerge(SetAutoMergeRequest) returns (SetAutoMergeResponse);
+  rpc ListReviewComments(ListReviewCommentsRequest) returns (ListReviewCommentsResponse);
+  rpc PostComment(PostCommentRequest) returns (PostCommentResponse);
+
+  // --- CI ---
+  rpc ListChecks(ListChecksRequest) returns (ListChecksResponse);
+  // Log of a failed check/job, tail-truncated, for auto-fix and the UI.
+  rpc GetCheckLog(GetCheckLogRequest) returns (GetCheckLogResponse);
+
+  // --- Sessions ---
+  // Links a session to a repo + branch (and the PR once it exists). The server derives the link from
+  // synced session metadata (repo, branch) automatically; this is for explicit linking.
+  rpc LinkSession(LinkSessionRequest) returns (LinkSessionResponse);
+  // Auto-fix: on CI failure or new review comments, the server delivers the failure (logs, comments) to
+  // the linked session through the relay, or spawns one on a daemon host if none is live.
+  rpc SetAutoFix(SetAutoFixRequest) returns (SetAutoFixResponse);
+
+  // Live events for the caller's repos/sessions: catch-up after `after_id`, then live; heartbeat 20 s.
+  rpc WatchEvents(WatchEventsRequest) returns (stream WatchEventsResponse);
+
+  // --- Device providers (gh, glab) ---
+  // A client reports which device providers it has (CLI installed, logged in, hosts covered).
+  rpc ReportDeviceProviders(ReportDeviceProvidersRequest) returns (ReportDeviceProvidersResponse);
+  // A client uploads PR and CI state it polled through gh/glab; the server stores it, links it to sessions
+  // and emits the same VcsEvents (source = device) as webhooks would.
+  rpc ReportDeviceSnapshot(ReportDeviceSnapshotRequest) returns (ReportDeviceSnapshotResponse);
+}
+
+message DeviceProvider {
+  ProviderType type = 1;
+  // CLI version, e.g. "gh version 2.80.0".
+  string version = 2;
+  // Hosts the CLI is logged in to (github.com, a GHES host, gitlab.com, ...), with the login.
+  repeated DeviceProviderHost hosts = 3;
+}
+
+message DeviceProviderHost {
+  string host = 1;
+  string login = 2;
+}
+
+message ReportDeviceProvidersRequest {
+  repeated DeviceProvider providers = 1;
+}
+
+message ReportDeviceProvidersResponse {}
+
+message ReportDeviceSnapshotRequest {
+  ProviderType provider = 1;
+  repeated PullRequest pull_requests = 2;
+  // Checks per PR, keyed by "repository_key#number".
+  map<string, ChecksList> checks = 3;
+  // RFC 3339, UTC, when the client polled.
+  string observed_at = 4;
+}
+
+message ChecksList {
+  repeated Check checks = 1;
+}
+
+message ReportDeviceSnapshotResponse {
+  // Events the snapshot produced (state transitions since the previous snapshot).
+  int32 events_emitted = 1;
+}
+
+enum ProviderType {
+  PROVIDER_TYPE_UNSPECIFIED = 0;
+  // Server providers.
+  PROVIDER_TYPE_GITHUB = 1;
+  PROVIDER_TYPE_GITLAB = 2;
+  // Device providers (local CLIs on a client device).
+  PROVIDER_TYPE_GH = 3;
+  PROVIDER_TYPE_GLAB = 4;
+}
+
+// A server provider connection (github, gitlab). Device providers are not connections; see
+// ReportDeviceProviders.
+message Connection {
+  // vcs_...
+  string id = 1;
+  ProviderType type = 2;
+  string display_name = 3;
+  // https://github.com, a GHES URL, https://gitlab.com or a self-managed GitLab URL.
+  string base_url = 4;
+  // GitHub App slug / id, or the GitLab OAuth application id. Secrets are write-only.
+  string app_slug = 5;
+  string app_id = 6;
+  bool healthy = 7;
+  string last_error = 8;
+  // Where users install the app (GitHub) or authorize the OAuth app (GitLab).
+  string install_url = 9;
+  // Whether incoming webhooks have been seen recently.
+  bool webhooks_ok = 10;
+  // RFC 3339, UTC.
+  string last_webhook_at = 11;
+}
+
+message ListConnectionsRequest {}
+
+message ListConnectionsResponse {
+  repeated Connection connections = 1;
+}
+
+message GetGitHubAppManifestRequest {
+  // https://github.com (default) or a GHES base URL.
+  string base_url = 1;
+  // Register under this organization; empty registers under the admin's user account.
+  string organization = 2;
+  string app_name = 3;
+}
+
+message GetGitHubAppManifestResponse {
+  string manifest_json = 1;
+  // POST target for the manifest form (…/settings/apps/new or …/organizations/<org>/settings/apps/new).
+  string post_url = 2;
+  // Opaque state to pass back with the code.
+  string state = 3;
+}
+
+message CompleteGitHubAppManifestRequest {
+  string code = 1;
+  string state = 2;
+}
+
+message CompleteGitHubAppManifestResponse {
+  Connection connection = 1;
+}
+
+message PutConnectionRequest {
+  // Empty creates.
+  string id = 1;
+  ProviderType type = 2;
+  string display_name = 3;
+  string base_url = 4;
+  string app_id = 5;
+  // Write-only secrets; unset keeps the stored value, empty string removes it.
+  optional string private_key_pem = 6;
+  optional string client_id = 7;
+  optional string client_secret = 8;
+  optional string webhook_secret = 9;
+  // GitLab group/project access token alternative to OAuth.
+  optional string access_token = 10;
+  // Self-managed hosts on private networks.
+  bool allow_private_network = 11;
+}
+
+message PutConnectionResponse {
+  Connection connection = 1;
+}
+
+message DeleteConnectionRequest {
+  string id = 1;
+}
+
+message DeleteConnectionResponse {}
+
+message StartUserAuthRequest {
+  string connection_id = 1;
+}
+
+message StartUserAuthResponse {
+  string authorization_url = 1;
+  // Poll GetUserAuthStatus with it.
+  string flow_id = 2;
+}
+
+message GetUserAuthStatusRequest {
+  string connection_id = 1;
+  string flow_id = 2;
+}
+
+message GetUserAuthStatusResponse {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_NOT_CONNECTED = 1;
+    STATE_PENDING = 2;
+    STATE_CONNECTED = 3;
+    STATE_ERROR = 4;
+  }
+  State state = 1;
+  // Login on the code host.
+  string login = 2;
+  string error = 3;
+}
+
+message RevokeUserAuthRequest {
+  string connection_id = 1;
+}
+
+message RevokeUserAuthResponse {}
+
+message Repository {
+  string connection_id = 1;
+  // host/owner/repo, lowercased (same normalization as project_key).
+  string key = 2;
+  string full_name = 3;
+  string default_branch = 4;
+  string url = 5;
+  bool private = 6;
+}
+
+message ListRepositoriesRequest {
+  string connection_id = 1;
+  string query = 2;
+  string page_token = 3;
+}
+
+message ListRepositoriesResponse {
+  repeated Repository repositories = 1;
+  string next_page_token = 2;
+}
+
+enum CheckState {
+  CHECK_STATE_UNSPECIFIED = 0;
+  CHECK_STATE_QUEUED = 1;
+  CHECK_STATE_RUNNING = 2;
+  CHECK_STATE_SUCCESS = 3;
+  CHECK_STATE_FAILURE = 4;
+  CHECK_STATE_CANCELLED = 5;
+  CHECK_STATE_SKIPPED = 6;
+  CHECK_STATE_NEUTRAL = 7;
+}
+
+message ChecksSummary {
+  CheckState state = 1;
+  int32 total = 2;
+  int32 passed = 3;
+  int32 failed = 4;
+  int32 running = 5;
+}
+
+message PullRequest {
+  string repository_key = 1;
+  // PR number or MR iid.
+  int64 number = 2;
+  string title = 3;
+  string url = 4;
+  string head_branch = 5;
+  string base_branch = 6;
+  string author = 7;
+  // The same state enum the UI already renders for sessions.
+  harness.agent.v1.PullRequest.State state = 8;
+  // approved | changes_requested | review_required | none
+  string review_state = 9;
+  ChecksSummary checks = 10;
+  bool mergeable = 11;
+  bool has_conflicts = 12;
+  bool auto_merge_enabled = 13;
+  bool draft = 14;
+  // RFC 3339, UTC.
+  string updated_at = 15;
+}
+
+message ListPullRequestsRequest {
+  string repository_key = 1;
+  // Filter by head branch.
+  string head_branch = 2;
+  bool include_closed = 3;
+}
+
+message ListPullRequestsResponse {
+  repeated PullRequest pull_requests = 1;
+}
+
+message GetPullRequestRequest {
+  string repository_key = 1;
+  int64 number = 2;
+}
+
+message GetPullRequestResponse {
+  PullRequest pull_request = 1;
+}
+
+message CreatePullRequestRequest {
+  string repository_key = 1;
+  string head_branch = 2;
+  string base_branch = 3;
+  string title = 4;
+  // Markdown; the client adds the attribution line from settings.
+  string body = 5;
+  bool draft = 6;
+  // Link the new PR to this session.
+  string session_id = 7;
+}
+
+message CreatePullRequestResponse {
+  PullRequest pull_request = 1;
+}
+
+message MergePullRequestRequest {
+  string repository_key = 1;
+  int64 number = 2;
+  // merge | squash | rebase
+  string method = 3;
+}
+
+message MergePullRequestResponse {
+  PullRequest pull_request = 1;
+}
+
+message SetAutoMergeRequest {
+  string repository_key = 1;
+  int64 number = 2;
+  bool enabled = 3;
+  string method = 4;
+}
+
+message SetAutoMergeResponse {}
+
+message ReviewComment {
+  string id = 1;
+  string author = 2;
+  string body = 3;
+  // File and line for inline comments; empty for conversation comments.
+  string path = 4;
+  int32 line = 5;
+  bool resolved = 6;
+  string url = 7;
+  // RFC 3339, UTC.
+  string created_at = 8;
+}
+
+message ListReviewCommentsRequest {
+  string repository_key = 1;
+  int64 number = 2;
+  bool unresolved_only = 3;
+}
+
+message ListReviewCommentsResponse {
+  repeated ReviewComment comments = 1;
+}
+
+message PostCommentRequest {
+  string repository_key = 1;
+  int64 number = 2;
+  string body = 3;
+  // Reply in this review thread; empty posts a conversation comment.
+  string in_reply_to = 4;
+}
+
+message PostCommentResponse {
+  ReviewComment comment = 1;
+}
+
+message Check {
+  string id = 1;
+  string name = 2;
+  CheckState state = 3;
+  string url = 4;
+  // Workflow / pipeline name and job.
+  string workflow = 5;
+  int64 duration_ms = 6;
+  // Short failure summary from annotations when available.
+  string summary = 7;
+}
+
+message ListChecksRequest {
+  string repository_key = 1;
+  // Either a PR number or a commit SHA.
+  int64 number = 2;
+  string sha = 3;
+}
+
+message ListChecksResponse {
+  repeated Check checks = 1;
+  ChecksSummary summary = 2;
+}
+
+message GetCheckLogRequest {
+  string repository_key = 1;
+  string check_id = 2;
+  // Default 64 KiB, max 1 MiB; the tail of the log is kept.
+  int32 max_bytes = 3;
+}
+
+message GetCheckLogResponse {
+  string log = 1;
+  bool truncated = 2;
+}
+
+message LinkSessionRequest {
+  string session_id = 1;
+  string repository_key = 2;
+  string branch = 3;
+  // Optional explicit PR.
+  int64 number = 4;
+}
+
+message LinkSessionResponse {
+  // The PR found for the branch, if any.
+  PullRequest pull_request = 1;
+}
+
+message SetAutoFixRequest {
+  string session_id = 1;
+  bool ci_failures = 2;
+  bool review_comments = 3;
+  // Merge conflicts with the base branch (detected on push/merge events).
+  bool conflicts = 4;
+}
+
+message SetAutoFixResponse {}
+
+message WatchEventsRequest {
+  // Empty means every repo the caller can see.
+  repeated string repository_keys = 1;
+  repeated string session_ids = 2;
+  // Resume after this event id (events are kept 7 days).
+  string after_id = 3;
+}
+
+message WatchEventsResponse {
+  oneof event {
+    VcsEvent vcs_event = 1;
+    // Catch-up done.
+    CaughtUp caught_up = 2;
+    Heartbeat heartbeat = 3;
+  }
+}
+
+message CaughtUp {}
+
+message Heartbeat {}
+
+message VcsEvent {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_PR_OPENED = 1;
+    KIND_PR_UPDATED = 2;
+    KIND_PR_MERGED = 3;
+    KIND_PR_CLOSED = 4;
+    KIND_CHECKS_COMPLETED = 5;
+    KIND_CHECK_FAILED = 6;
+    KIND_REVIEW_SUBMITTED = 7;
+    KIND_REVIEW_COMMENT = 8;
+    KIND_CONFLICT_DETECTED = 9;
+    KIND_PUSH = 10;
+  }
+  string id = 1;
+  Kind kind = 2;
+  string repository_key = 3;
+  PullRequest pull_request = 4;
+  // Sessions linked to this repo/branch/PR.
+  repeated string session_ids = 5;
+  // RFC 3339, UTC.
+  string occurred_at = 6;
+  // Kind-specific details (failed checks, review state, comment ids) as JSON.
+  string detail_json = 7;
+  // Which provider observed it (a server webhook or a device snapshot).
+  ProviderType source = 8;
+}
