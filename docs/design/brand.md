@@ -7,6 +7,7 @@ Live preview: the "harness CLI identity" artifact. Logo files are in [`docs/asse
 ## Logo
 
 - **Mark:** a chevron plus two parallelogram bars, filled with `#2B7FFF`. Source: [`logo.svg`](../assets/logo.svg).
+- **Animated mark:** [`logo-animated.svg`](../assets/logo-animated.svg). The pieces assemble once (chevron from the left, top bar from the top right, bottom bar from the right, 22 px travel, ~0.9 s), then a blue-400 rail flash loops through them every 1.2 s. Pure SVG + CSS; static under `prefers-reduced-motion`.
 - **Wordmark:** "xlsft's harness". Use [`logo-full-dark.svg`](../assets/logo-full-dark.svg) (white text) on dark backgrounds and [`logo-full-light.svg`](../assets/logo-full-light.svg) (zinc-950 text) on light ones.
 - **Terminal mark:** the SVG polygons rasterized into half-block cells (`▀ ▄ █`), drawn in the accent color.
 
