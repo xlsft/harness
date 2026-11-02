@@ -1,0 +1,40 @@
+
+  1. Clone the repo
+  2. Open in editor
+  3. Begin
+
+  def hello(name):
+      return f"Hi {name}"
+
+  Use const x = 5 for variables. Make text bold, italic, or ~~strike~~ through.
+
+  Visit Claude (https://claude.ai)
+
+  ┌──────────┬────────┐
+  │ Feature  │ Status │
+  ├──────────┼────────┤
+  │ Complete │ ✓      │
+  ├──────────┼────────┤
+  │ Pending  │ ✗      │
+  └──────────┴────────┘
+
+  ▎ This is important information to remember.
+
+  ---
+
+⟨done⟩ ⟨past-verb⟩ for 3s
+
+❯ Do these tool calls one at a time, sequentially, not in parallel: 1) Bash: seq 1 40  2) Grep pattern "def" 3) Glob
+  "*.py" 4) Read README.md. Then say done.
+
+  Searched for 1 pattern, read 1 file, listed 1 directory, ran 2 shell commands
+
+⏺ Done.
+
+⟨done⟩ ⟨past-verb⟩ for 10s
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ← for agents

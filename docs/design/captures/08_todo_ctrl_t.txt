@@ -1,0 +1,40 @@
+       7 +
+       8 +
+       9 +def sub(a, b):
+      10 +    return a - b
+
+⏺ Update(test_calc.py)
+  ⎿  Added 4 lines, removed 1 line
+      1  import unittest
+      2 -from calc import add, mul
+      2 +from calc import add, mul, sub
+      3
+      4
+      5  class TestCalc(unittest.TestCase):
+     ...
+       9      def test_mul(self):
+      10          self.assertEqual(mul(2, 3), 6)
+      11
+      12 +    def test_sub(self):
+      13 +        self.assertEqual(sub(5, 3), 2)
+      14
+      15 +
+      16  if __name__ == "__main__":
+      17      unittest.main()
+
+  Ran 1 shell command
+
+⟨done⟩ ⟨past-verb⟩ for 2m 1s
+
+❯ Create a task list with exactly 3 tasks: "Fix add bug" (mark in progress), "Run tests" (pending), "Update README"
+  (completed). Then stop and reply "ok". Do nothing else.
+
+⏺ ok
+
+⟨done⟩ ⟨past-verb⟩ for 12s
+
+──────────────────────────────────────────────────────────────────────────────────────────────────── add-sub-function ──
+❯ run the tests
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏵⏵ accept edits on (shift+tab to cycle) · ← for agents

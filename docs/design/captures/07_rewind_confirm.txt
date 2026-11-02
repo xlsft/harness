@@ -1,0 +1,40 @@
+
+  As artificial intelligence and new computing paradigms emerge, the terminal's role continues evolving. Yet its
+  essential value—providing direct, scriptable access to computational power—ensures its relevance for generations to
+  come.
+
+⟨done⟩ ⟨past-verb⟩ for 8s
+
+❯ No tools. Write a 2000-word story about a lighthouse.
+
+⏺ The Lighthouse Keeper's Secret
+
+  The storm had been building for three days, and Thomas Whitmore could taste the salt in the air as he climbed the 127
+  steps of the Beacon Point lighthouse for what he believed would be the last time. At seventy-three years old, his legs
+  protested each step, but his mind remained sharp—sharper than it had been in decades, which was precisely the
+  problem.
+
+  For forty-seven years, Thomas had tended this light. He had climbed these stairs through hurricanes and blizzards,
+  through the seasons of his marriage and the seasons of his grief. He had learned every crack in the white-painted
+  stone, every groan of the iron railings, every peculiar way
+  ⎿  Interrupted · What should Claude do instead?
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Rewind
+
+  Confirm you want to restore to the point before you sent this message:
+
+  │ Use the Write tool to create notes.txt containing lines "line 1" through "line 30". Then run with Bash: python3 -c
+  │ "for i in range(60): print(i)"
+  │ (2m ago)
+
+  The conversation will be forked.
+  The code will be restored -30 in notes.txt.
+
+  ❯ 1. Restore code and conversation
+    2. Restore conversation
+    3. Restore code
+    4. Summarize from here
+  ↓ 5. Summarize up to here
+
+  ⚠ Rewinding does not affect files edited manually or via bash.

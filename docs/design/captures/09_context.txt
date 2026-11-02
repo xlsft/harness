@@ -1,0 +1,40 @@
+
+⏺ The Lighthouse Keeper's Secret
+
+  The storm had been building for three days, and Thomas Whitmore could taste the salt in the air as he climbed the 127
+  steps of the Beacon Point lighthouse for what he believed would be the last time. At seventy-three years old, his legs
+  protested each step, but his mind remained sharp—sharper than it had been in decades, which was precisely the
+  problem.
+
+  For forty-seven years, Thomas had tended this light. He had climbed these stairs through hurricanes and blizzards,
+  through the seasons of his marriage and the seasons of his grief. He had learned every crack in the white-painted
+  stone, every groan of the iron railings, every peculiar way
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ /context
+  ⎿  Context Usage
+     ⛁ ⛁ ⛁ ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   Haiku 4.5
+     ⛁ ⛁ ⛁ ⛀ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁   claude-haiku-4-5-20251001
+     ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   42k/200k tokens (21%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 7.1k tokens (3.5%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System tools: 18.6k tokens (9.3%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ MCP tools: 480 tokens (0.2%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Skills: 2k tokens (1.0%)
+     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ Messages: 14k tokens (7.0%)
+                           ⛶ Free space: 157.9k (78.9%)
+
+     MCP tools · /mcp (loaded on-demand)
+     └ 141 tools · 480 tokens
+
+     Skills · /skills
+     └ 32 skills · 2k tokens
+
+     /context all to expand
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ← for agents
