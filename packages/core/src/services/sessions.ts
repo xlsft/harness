@@ -27,12 +27,15 @@ export interface EntryInput {
   type: string;
   timestamp: string;
   entryJson: string;
+  /** Subagent id; "" for the main thread. */
+  agentId: string;
 }
 
 export const MAX_ENTRIES = 500;
 export const MAX_APPEND_BYTES = 4 << 20;
 const SEARCH_TEXT_MAX = 16_384;
-const SESSION_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+/** Session ids are UUID v4 (they double as the local JSONL file name). */
+const SESSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const sessionMutex = new Mutex();
 
@@ -46,13 +49,15 @@ export function sessionView(row: SessionRow): SessionView {
   };
 }
 
-/** Resolves an update path ("info.title", "title", "prompt_bundle_version", "info") to what it changes. */
+/** Resolves an update path ("info.title", "prompt_bundle_version", "info") to what it changes. */
 function resolvePath(path: string): { kind: "info" } | { kind: "field"; localName: string } | { kind: "bundle" } | { kind: "ignored" } {
   const p = path.trim();
   if (p === "prompt_bundle_version" || p === "promptBundleVersion") return { kind: "bundle" };
   if (p === "info") return { kind: "info" };
   if (["last_seq", "lastSeq", "created_at", "createdAt", "last_activity_at", "lastActivityAt"].includes(p)) return { kind: "ignored" };
-  const name = p.startsWith("info.") ? p.slice(5) : p;
+  // SessionInfo fields always carry the "info." prefix.
+  if (!p.startsWith("info.")) throw new ApiError("invalid_request", `Unknown update path ${path} (SessionInfo fields use the "info." prefix)`);
+  const name = p.slice(5);
   const f = SessionInfoSchema.fields.find((x) => x.name === name || x.localName === name || x.jsonName === name);
   if (!f) throw new ApiError("invalid_request", `Unknown update path ${path}`);
   if (f.localName === "id") return { kind: "ignored" };
@@ -72,7 +77,7 @@ export async function upsertSession(
 ): Promise<SessionView> {
   const incoming = input.info;
   if (!incoming?.id) throw new ApiError("invalid_request", "session.info.id is required");
-  if (!SESSION_ID_RE.test(incoming.id)) throw new ApiError("invalid_request", "Invalid session id");
+  if (!SESSION_ID_RE.test(incoming.id)) throw new ApiError("invalid_request", "Session id must be a UUID v4");
   const resolved = updatePaths.map(resolvePath);
   await ensureDb();
 
@@ -161,6 +166,7 @@ export async function appendSessionEvents(p: Principal, sessionId: string, entri
   for (const e of entries) {
     if (!e.uuid || e.uuid.length > 128) throw new ApiError("invalid_request", "Every entry needs a uuid (max 128 chars)");
     if (!e.entryJson) throw new ApiError("invalid_request", `Entry ${e.uuid} has no entry_json`);
+    if ((e.agentId ?? "").length > 128) throw new ApiError("invalid_request", "agent_id is too long");
     bytes += Buffer.byteLength(e.entryJson, "utf8");
   }
   if (bytes > MAX_APPEND_BYTES) throw new ApiError("invalid_request", `Entries exceed ${MAX_APPEND_BYTES} bytes per call`);
@@ -172,29 +178,36 @@ export async function appendSessionEvents(p: Principal, sessionId: string, entri
       const s = schema.syncSession;
       const e = schema.syncSessionEntry;
       const cur = (await tx.select().from(s).where(eq(s.id, sessionId)).get())!;
+      // Dedup key: (agent_id, uuid) within the session.
+      const keyOf = (agentId: string, uuid: string) => JSON.stringify([agentId, uuid]);
       const uuids = [...new Set(entries.map((x) => x.uuid))];
       const existing = new Set<string>();
       for (let i = 0; i < uuids.length; i += 200) {
         const chunk = uuids.slice(i, i + 200);
-        const rows = await tx.select({ uuid: e.uuid }).from(e).where(and(eq(e.sessionId, sessionId), inArray(e.uuid, chunk)));
-        for (const r of rows) existing.add(r.uuid);
+        const rows = await tx
+          .select({ uuid: e.uuid, agentId: e.agentId })
+          .from(e)
+          .where(and(eq(e.sessionId, sessionId), inArray(e.uuid, chunk)));
+        for (const r of rows) existing.add(keyOf(r.agentId, r.uuid));
       }
       let seq = cur.lastSeq;
       let accepted = 0;
       let duplicates = 0;
       const values: (typeof e.$inferInsert)[] = [];
       for (const x of entries) {
-        if (existing.has(x.uuid)) {
+        const k = keyOf(x.agentId ?? "", x.uuid);
+        if (existing.has(k)) {
           duplicates++;
           continue;
         }
-        existing.add(x.uuid);
+        existing.add(k);
         seq++;
         accepted++;
         values.push({
           sessionId,
           seq,
           uuid: x.uuid,
+          agentId: x.agentId ?? "",
           parentUuid: x.parentUuid ?? "",
           type: x.type ?? "",
           timestamp: x.timestamp ?? "",
@@ -289,7 +302,8 @@ export async function listSessions(p: Principal, f: ListSessionsInput): Promise<
   };
 }
 
-export async function getSessionTranscript(p: Principal, sessionId: string, afterSeq: number, pageSize?: number) {
+/** Entries of one thread (the main thread for agentId "", otherwise that subagent), in seq order. */
+export async function getSessionTranscript(p: Principal, sessionId: string, afterSeq: number, pageSize?: number, agentId = "") {
   if (!sessionId) throw new ApiError("invalid_request", "session_id is required");
   await ensureDb();
   await ownedSession(p, sessionId);
@@ -298,7 +312,7 @@ export async function getSessionTranscript(p: Principal, sessionId: string, afte
   const rows = await getDb()
     .select()
     .from(e)
-    .where(and(eq(e.sessionId, sessionId), gt(e.seq, Math.max(0, Math.floor(afterSeq)))))
+    .where(and(eq(e.sessionId, sessionId), eq(e.agentId, agentId), gt(e.seq, Math.max(0, Math.floor(afterSeq)))))
     .orderBy(asc(e.seq))
     .limit(size + 1);
   return { entries: rows.slice(0, size), hasMore: rows.length > size };

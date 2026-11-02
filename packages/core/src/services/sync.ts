@@ -69,6 +69,8 @@ const PURGED_SETTING = "sync_tombstones_purged_through";
 
 /** Kinds whose key is always "user". */
 const SINGLETON_KINDS = new Set([DocumentKind.SETTINGS, DocumentKind.PERMISSION_RULES, DocumentKind.MEMORY, DocumentKind.HOOK]);
+/** Keys allowed in SETTINGS.permissions; allow/ask/deny rules live in PERMISSION_RULES. */
+const SETTINGS_PERMISSION_KEYS = new Set(["defaultMode", "additionalDirectories", "disableBypassPermissionsMode"]);
 /** Kinds whose content must be a JSON object. */
 const JSON_KINDS = new Set([DocumentKind.SETTINGS, DocumentKind.PERMISSION_RULES, DocumentKind.HOOK, DocumentKind.SSH_HOST, DocumentKind.POLICY]);
 
@@ -183,6 +185,12 @@ function validateRef(p: Principal, ref: DocRef | undefined): { ownerId: string }
     throw new ApiError("invalid_request", "key must be 1-200 printable characters");
   }
   if (SINGLETON_KINDS.has(ref.kind) && ref.key !== "user") throw new ApiError("invalid_request", 'key must be "user" for this kind');
+  if (ref.kind === DocumentKind.RULE && (!validRelativePath(ref.key) || !ref.key.endsWith(".md"))) {
+    throw new ApiError("invalid_request", 'RULE keys are relative .md paths under the rules root, e.g. "frontend/react.md"');
+  }
+  if (ref.kind === DocumentKind.SETTINGS && ref.scope === Scope.PROJECT) {
+    throw new ApiError("invalid_request", "Project-scope SETTINGS are not used (project settings live in the repository)");
+  }
   if (ref.scope === Scope.ORG) {
     if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can write org documents");
     return { ownerId: "" };
@@ -190,23 +198,25 @@ function validateRef(p: Principal, ref: DocRef | undefined): { ownerId: string }
   return { ownerId: p.user.id };
 }
 
+/** Kinds that may carry `files`: skill directories, memory imports / auto-memory topic files. */
+const FILE_KINDS = new Set([DocumentKind.SKILL, DocumentKind.MEMORY]);
+
+/** Relative "/"-separated path without empty, "." or ".." segments. */
+function validRelativePath(path: string): boolean {
+  if (!path || path.length > 300 || path.startsWith("/") || path.includes("\\") || path.includes("\0")) return false;
+  return !path.split("/").some((seg) => seg === "" || seg === "." || seg === "..");
+}
+
 function validateFiles(kind: DocumentKind, files: FileInput[]): StoredFile[] {
   if (files.length === 0) return [];
-  if (kind !== DocumentKind.SKILL) throw new ApiError("invalid_request", "files are only allowed for SKILL documents");
+  if (!FILE_KINDS.has(kind)) throw new ApiError("invalid_request", "files are only allowed for SKILL and MEMORY documents");
   if (files.length > MAX_FILES) throw new ApiError("invalid_request", `At most ${MAX_FILES} files per document`);
   const seen = new Set<string>();
   let total = 0;
   const out: StoredFile[] = [];
   for (const f of files) {
     const path = f.path;
-    if (
-      !path ||
-      path.length > 300 ||
-      path.startsWith("/") ||
-      path.includes("\\") ||
-      path.includes("\0") ||
-      path.split("/").some((seg) => seg === "" || seg === "." || seg === "..")
-    ) {
+    if (!validRelativePath(path)) {
       throw new ApiError("invalid_request", `Invalid file path ${JSON.stringify(path)}`);
     }
     if (seen.has(path)) throw new ApiError("invalid_request", `Duplicate file path ${path}`);
@@ -228,6 +238,19 @@ function validateContent(kind: DocumentKind, content: string): void {
       throw new ApiError("invalid_request", "content must be valid JSON for this kind");
     }
     if (!v || typeof v !== "object" || Array.isArray(v)) throw new ApiError("invalid_request", "content must be a JSON object for this kind");
+    if (kind === DocumentKind.SETTINGS) {
+      const perms = (v as Record<string, unknown>).permissions;
+      if (perms !== undefined) {
+        if (!perms || typeof perms !== "object" || Array.isArray(perms)) throw new ApiError("invalid_request", "permissions must be an object");
+        const extra = Object.keys(perms).filter((k) => !SETTINGS_PERMISSION_KEYS.has(k));
+        if (extra.length) {
+          throw new ApiError(
+            "invalid_request",
+            `settings.permissions may only contain ${[...SETTINGS_PERMISSION_KEYS].join(", ")}; rules belong in PERMISSION_RULES (got ${extra.join(", ")})`,
+          );
+        }
+      }
+    }
     if (kind === DocumentKind.PERMISSION_RULES) {
       for (const k of ["allow", "ask", "deny"]) {
         const list = (v as Record<string, unknown>)[k];
@@ -321,16 +344,42 @@ export interface ChangesPage {
   nextVersion: number;
   hasMore: boolean;
   resyncRequired: boolean;
+  /** Continuation of this scan when hasMore (opaque to clients). */
+  nextPageToken: string;
 }
 
-export async function listChanges(p: Principal, sinceVersion: number, kinds: DocumentKind[], pageSize?: number): Promise<ChangesPage> {
+function encodePageToken(version: number, userId: string): string {
+  return Buffer.from(JSON.stringify({ v: version, u: userId })).toString("base64url");
+}
+
+function decodePageToken(token: string, userId: string): number {
+  try {
+    const t = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+    if (typeof t.v === "number" && Number.isInteger(t.v) && t.v >= 0 && t.u === userId) return t.v;
+  } catch {
+    // fall through
+  }
+  throw new ApiError("invalid_request", "Invalid page_token");
+}
+
+/**
+ * One page of the caller's feed after `sinceVersion`, or after the position in `pageToken` (a
+ * continuation, which never answers resync_required so a long scan from 0 can always finish).
+ */
+export async function listChanges(
+  p: Principal,
+  sinceVersion: number,
+  kinds: DocumentKind[],
+  pageSize?: number,
+  pageToken?: string,
+): Promise<ChangesPage> {
   await ensureDb();
-  const since = Math.max(0, Math.floor(sinceVersion));
+  const since = pageToken ? decodePageToken(pageToken, p.user.id) : Math.max(0, Math.floor(sinceVersion));
   const size = Math.min(Math.max(pageSize || 200, 1), 1000);
   const head = await readHead();
   // A cursor older than purged tombstones, or ahead of the server (database restored), needs a full resync.
-  if (since > 0 && (since < (await purgedThrough()) || since > head)) {
-    return { changes: [], nextVersion: since, hasMore: false, resyncRequired: true };
+  if (!pageToken && since > 0 && (since < (await purgedThrough()) || since > head)) {
+    return { changes: [], nextVersion: since, hasMore: false, resyncRequired: true, nextPageToken: "" };
   }
   const d = schema.syncDocument;
   const rows = await getDb()
@@ -362,11 +411,13 @@ export async function listChanges(p: Principal, sinceVersion: number, kinds: Doc
     changes.push(ch);
   }
   const last = changes.length ? ("document" in changes[changes.length - 1]! ? (changes.at(-1) as { document: DocRow }).document : (changes.at(-1) as { tombstone: DocRow }).tombstone) : undefined;
+  const nextVersion = cut ? last!.version : Math.max(since, head);
   return {
     changes,
-    nextVersion: cut ? last!.version : Math.max(since, head),
+    nextVersion,
     hasMore: cut,
     resyncRequired: false,
+    nextPageToken: cut ? encodePageToken(nextVersion, p.user.id) : "",
   };
 }
 

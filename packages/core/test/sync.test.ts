@@ -126,6 +126,30 @@ describe("documents: CAS writes", () => {
     expect(ok.scope).toBe(Scope.PROJECT);
   });
 
+  it("supports RULE documents, MEMORY files and the restricted SETTINGS permissions object", async () => {
+    const rule = await putDoc(A, { ref: userRef(DocumentKind.RULE, "frontend/react.md"), content: "---\npaths: [\"src/**/*.tsx\"]\n---\nUse hooks.\n" });
+    expect(rule.kind).toBe(DocumentKind.RULE);
+    for (const key of ["../x.md", "/abs.md", "notes.txt"]) {
+      await expectError(A.putDocument({ ref: userRef(DocumentKind.RULE, key), content: "x" }), Code.InvalidArgument);
+    }
+    const mem = await putDoc(A, {
+      ref: { scope: Scope.PROJECT, kind: DocumentKind.MEMORY, key: "user", projectKey: "github.com/xlsft/memtest" },
+      content: "# MEMORY\n- [build](build.md)\n",
+      files: [{ path: "build.md", content: new TextEncoder().encode("run pnpm build"), executable: false }],
+    });
+    expect(mem.files.map((f) => f.path)).toEqual(["build.md"]);
+    const settings = await putDoc(A, {
+      ref: userRef(DocumentKind.SETTINGS),
+      content: '{"permissions":{"defaultMode":"acceptEdits","additionalDirectories":["/tmp"],"disableBypassPermissionsMode":"disable"}}',
+    });
+    expect(settings.content).toContain("acceptEdits");
+    await expectError(A.putDocument({ ref: userRef(DocumentKind.SETTINGS), content: '{"permissions":{"allow":["Bash(ls)"]}}' }), Code.InvalidArgument);
+    await expectError(
+      A.putDocument({ ref: { scope: Scope.PROJECT, kind: DocumentKind.SETTINGS, key: "user", projectKey: "github.com/x/y" }, content: "{}" }),
+      Code.InvalidArgument,
+    );
+  });
+
   it("stores skill files and hashes them in canonical order", async () => {
     const f1 = { path: "scripts/run.sh", content: new TextEncoder().encode("#!/bin/sh\necho hi\n"), executable: true };
     const f2 = { path: "README.txt", content: new Uint8Array([0, 255, 10]), executable: false };
@@ -241,6 +265,32 @@ describe("documents: deletes and tombstones", () => {
     expect(again.id).toBe(d.id);
     await expectError(B.deleteDocument({ id: d.id }), Code.NotFound);
     await expectError(A.deleteDocument({ id: "doc_missing" }), Code.NotFound);
+  });
+
+  it("continues has_more scans with page tokens that never require a resync", async () => {
+    const cursor = await head(A);
+    for (let i = 0; i < 3; i++) await putDoc(A, { ref: userRef(DocumentKind.AGENT, `scan-${i}`), content: `${i}` });
+    const p1 = await A.listChanges({ sinceVersion: cursor, pageSize: 1 });
+    expect(p1.hasMore).toBe(true);
+    expect(p1.nextPageToken).not.toBe("");
+    // tombstones below the continuation point get purged mid-scan
+    const t = await putDoc(A, { ref: userRef(DocumentKind.AGENT, "scan-tomb"), content: "t" });
+    await A.deleteDocument({ id: t.id });
+    expect(await purgeTombstones(Date.now() + 40 * 86_400_000)).toBeGreaterThan(0);
+    expect((await A.listChanges({ sinceVersion: p1.nextVersion, pageSize: 1 })).resyncRequired).toBe(true);
+    const seen = [...p1.changes.map((c) => c.change.value!.key)];
+    let token = p1.nextPageToken;
+    while (token) {
+      const p = await A.listChanges({ pageToken: token, pageSize: 1 });
+      expect(p.resyncRequired).toBe(false);
+      seen.push(...p.changes.map((c) => c.change.value!.key));
+      token = p.hasMore ? p.nextPageToken : "";
+      if (!p.hasMore) expect(p.nextPageToken).toBe("");
+    }
+    expect(seen).toEqual(["scan-0", "scan-1", "scan-2"]);
+    await expectError(A.listChanges({ pageToken: "bogus" }), Code.InvalidArgument);
+    // tokens are bound to the caller
+    await expectError(B.listChanges({ pageToken: p1.nextPageToken }), Code.InvalidArgument);
   });
 
   it("purges old tombstones and requires a resync for older cursors", async () => {
@@ -363,6 +413,10 @@ describe("WatchChanges", () => {
 
 describe("sessions", () => {
   const sid = "6f1c3c2e-7d1b-4b8a-9a43-0d5a4b0e2f11";
+  const S_API = "a0000000-0000-4000-8000-000000000001";
+  const S_WEB = "a0000000-0000-4000-8000-000000000002";
+  const S_OLD = "a0000000-0000-4000-8000-000000000003";
+  const S_BOB = "b0000000-0000-4000-8000-000000000004";
   const info = (over: Record<string, unknown> = {}) =>
     create(SessionInfoSchema, { id: sid, title: "Fix login test", cwd: "/home/alice/app", repo: "github.com/alice/app", model: "claude-t", status: SessionStatus.WORKING, gitBranch: "main", ...over });
 
@@ -377,22 +431,25 @@ describe("sessions", () => {
     expect(s.createdAt).toMatch(/Z$/);
 
     // a frontend renames without clobbering client-owned fields
-    const renamed = await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: sid, title: "Renamed" }) }, updatePaths: ["title"] });
+    const renamed = await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: sid, title: "Renamed" }) }, updatePaths: ["info.title"] });
     expect(renamed.session!.info).toMatchObject({ title: "Renamed", cwd: "/home/alice/app", model: "claude-t", status: SessionStatus.WORKING });
     expect(renamed.session!.promptBundleVersion).toBe("pb1");
     const archived = await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: sid, archived: true }), promptBundleVersion: "pb2" }, updatePaths: ["info.archived", "prompt_bundle_version"] });
     expect(archived.session!.info).toMatchObject({ title: "Renamed", archived: true });
     expect(archived.session!.promptBundleVersion).toBe("pb2");
-    await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: sid }) }, updatePaths: ["archived"] });
+    await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: sid }) }, updatePaths: ["info.archived"] });
 
     await expectError(A.upsertSession({ session: { info: info() }, updatePaths: ["info.nope"] }), Code.InvalidArgument);
+    // SessionInfo paths need the "info." prefix; ids must be UUID v4
+    await expectError(A.upsertSession({ session: { info: info() }, updatePaths: ["title"] }), Code.InvalidArgument);
+    await expectError(A.upsertSession({ session: { info: info({ id: "ses_123" }) } }), Code.InvalidArgument);
     await expectError(B.upsertSession({ session: { info: info() } }), Code.PermissionDenied);
     await expectError(B.getSession({ sessionId: sid }), Code.NotFound);
     expect((await A.getSession({ sessionId: sid })).session!.info!.title).toBe("Renamed");
   });
 
   it("appends transcript entries idempotently and byte-exact, with server seq", async () => {
-    await expectError(A.appendSessionEvents({ sessionId: "unknown-session", entries: [] }), Code.NotFound);
+    await expectError(A.appendSessionEvents({ sessionId: "0b5a2c1e-1111-4222-8333-444455556666", entries: [] }), Code.NotFound);
     const line = (uuid: string, text: string) => `{"type":"user","uuid":"${uuid}","message":{"role":"user","content":[{"type":"text","text":"${text}"}]},  "pad":"ü"}`;
     const before = (await A.getSession({ sessionId: sid })).session!.lastActivityAt;
     await new Promise((r) => setTimeout(r, 5));
@@ -426,40 +483,59 @@ describe("sessions", () => {
     expect(p1.entries.map((e) => e.uuid)).toEqual(["u2"]);
     expect(p1.hasMore).toBe(true);
     await expectError(B.getSessionTranscript({ sessionId: sid }), Code.NotFound);
+
+    // subagent transcripts share the session but are deduplicated and paged separately
+    const sub = await A.appendSessionEvents({
+      sessionId: sid,
+      entries: [
+        { uuid: "u1", agentId: "agent-7", type: "user", entryJson: '{"uuid":"u1","agent":"7"}' },
+        { uuid: "s2", agentId: "agent-7", type: "assistant", entryJson: '{"uuid":"s2"}' },
+        { uuid: "u1", agentId: "agent-7", entryJson: "dup" },
+      ],
+    });
+    expect(sub).toMatchObject({ accepted: 2, duplicates: 1, lastSeq: 5n });
+    const subT = await A.getSessionTranscript({ sessionId: sid, agentId: "agent-7" });
+    expect(subT.entries.map((x) => [x.seq, x.uuid, x.agentId])).toEqual([
+      [4n, "u1", "agent-7"],
+      [5n, "s2", "agent-7"],
+    ]);
+    expect(subT.entries[0]!.entryJson).toBe('{"uuid":"u1","agent":"7"}');
+    expect((await A.getSessionTranscript({ sessionId: sid })).entries.map((x) => x.uuid)).toEqual(["u1", "u2", "u3"]);
+    expect((await A.getSessionTranscript({ sessionId: sid, agentId: "agent-7", afterSeq: 4n })).entries.map((x) => x.uuid)).toEqual(["s2"]);
     await expectError(A.appendSessionEvents({ sessionId: sid, entries: [{ uuid: "", entryJson: "{}" }] }), Code.InvalidArgument);
     await expectError(B.appendSessionEvents({ sessionId: sid, entries: [{ uuid: "x", entryJson: "{}" }] }), Code.NotFound);
   });
 
   it("lists sessions with filters, search and paging", async () => {
     const mk = async (id: string, over: Record<string, unknown>) => A.upsertSession({ session: { info: create(SessionInfoSchema, { id, ...over }) } });
-    await mk("s-api", { title: "Add API rate limits", cwd: "/srv/api", repo: "github.com/alice/api", status: SessionStatus.IDLE, deviceId: "dev_other" });
-    await mk("s-web", { title: "Polish 100% layout", cwd: "/srv/web", repo: "github.com/alice/web", status: SessionStatus.NEEDS_INPUT });
-    await mk("s-old", { title: "Archived thing", cwd: "/srv/web", repo: "github.com/alice/web", archived: true });
-    await B.upsertSession({ session: { info: create(SessionInfoSchema, { id: "s-bob", title: "Bob's frobnicator" }) } });
+    await mk(S_API, { title: "Add API rate limits", cwd: "/srv/api", repo: "github.com/alice/api", status: SessionStatus.IDLE, deviceId: "dev_other" });
+    await mk(S_WEB, { title: "Polish 100% layout", cwd: "/srv/web", repo: "github.com/alice/web", status: SessionStatus.NEEDS_INPUT });
+    await mk(S_OLD, { title: "Archived thing", cwd: "/srv/web", repo: "github.com/alice/web", archived: true });
+    await B.upsertSession({ session: { info: create(SessionInfoSchema, { id: S_BOB, title: "Bob's frobnicator" }) } });
 
     const ids = async (req: Parameters<typeof A.listSessions>[0]) => (await A.listSessions(req)).sessions.map((s) => s.info!.id);
     // most recently active first (sid got transcript entries most recently -> but s-* were created after)
-    expect((await ids({})).sort()).toEqual([sid, "s-api", "s-web"].sort());
-    expect(await ids({ includeArchived: true })).toContain("s-old");
-    expect(await ids({ repo: "github.com/alice/web" })).toEqual(["s-web"]);
-    expect(await ids({ cwd: "/srv/api" })).toEqual(["s-api"]);
-    expect(await ids({ deviceId: "dev_other" })).toEqual(["s-api"]);
-    expect(await ids({ statuses: [SessionStatus.IDLE, SessionStatus.NEEDS_INPUT] })).toEqual(expect.arrayContaining(["s-api", "s-web"]));
+    expect((await ids({})).sort()).toEqual([sid, S_API, S_WEB].sort());
+    expect(await ids({ includeArchived: true })).toContain(S_OLD);
+    expect(await ids({ repo: "github.com/alice/web" })).toEqual([S_WEB]);
+    expect(await ids({ cwd: "/srv/api" })).toEqual([S_API]);
+    expect(await ids({ deviceId: "dev_other" })).toEqual([S_API]);
+    expect(await ids({ statuses: [SessionStatus.IDLE, SessionStatus.NEEDS_INPUT] })).toEqual(expect.arrayContaining([S_API, S_WEB]));
     expect(await ids({ statuses: [SessionStatus.ERROR] })).toEqual([]);
-    expect(await ids({ query: "RATE limits" })).toEqual(["s-api"]);
-    expect(await ids({ query: "/srv/web" })).toEqual(["s-web"]);
+    expect(await ids({ query: "RATE limits" })).toEqual([S_API]);
+    expect(await ids({ query: "/srv/web" })).toEqual([S_WEB]);
     expect(await ids({ query: "frobnicator" })).toEqual([sid]); // transcript text; Bob's session is not visible
-    expect(await ids({ query: "100%" })).toEqual(["s-web"]); // LIKE wildcards are escaped
-    expect(await ids({ query: "%" })).toEqual(["s-web"]);
+    expect(await ids({ query: "100%" })).toEqual([S_WEB]); // LIKE wildcards are escaped
+    expect(await ids({ query: "%" })).toEqual([S_WEB]);
 
     // activity order + paging
-    await A.appendSessionEvents({ sessionId: "s-api", entries: [{ uuid: "a1", entryJson: "{}" }] });
+    await A.appendSessionEvents({ sessionId: S_API, entries: [{ uuid: "a1", entryJson: "{}" }] });
     const p1 = await A.listSessions({ pageSize: 2 });
-    expect(p1.sessions[0]!.info!.id).toBe("s-api");
+    expect(p1.sessions[0]!.info!.id).toBe(S_API);
     expect(p1.nextPageToken).not.toBe("");
     const p2 = await A.listSessions({ pageSize: 2, pageToken: p1.nextPageToken });
     expect(p2.nextPageToken).toBe("");
-    expect([...p1.sessions, ...p2.sessions].map((s) => s.info!.id).sort()).toEqual([sid, "s-api", "s-web"].sort());
+    expect([...p1.sessions, ...p2.sessions].map((s) => s.info!.id).sort()).toEqual([sid, S_API, S_WEB].sort());
     await expectError(A.listSessions({ pageToken: "garbage" }), Code.InvalidArgument);
   });
 });

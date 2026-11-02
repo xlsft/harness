@@ -314,7 +314,10 @@ export const syncSession = sqliteTable(
   (t) => [index("sync_session_user_activity_idx").on(t.userId, t.lastActivityAt)],
 );
 
-/** Durable transcript: CC-format JSONL lines, byte-exact, in server order. */
+/**
+ * Durable transcript: CC-format JSONL lines, byte-exact. `seq` is one counter per session shared by the
+ * main thread and its subagents, so each thread's entries are increasing (not dense) when paged by agent_id.
+ */
 export const syncSessionEntry = sqliteTable(
   "sync_session_entry",
   {
@@ -323,6 +326,8 @@ export const syncSessionEntry = sqliteTable(
       .references(() => syncSession.id, { onDelete: "cascade" }),
     seq: integer("seq").notNull(),
     uuid: text("uuid").notNull(),
+    /** Subagent id; "" for the main thread. Subagent transcripts are paged separately. */
+    agentId: text("agent_id").notNull().default(""),
     parentUuid: text("parent_uuid").notNull().default(""),
     type: text("type").notNull().default(""),
     timestamp: text("timestamp").notNull().default(""),
@@ -330,5 +335,5 @@ export const syncSessionEntry = sqliteTable(
     /** Text content extracted for search. */
     searchText: text("search_text").notNull().default(""),
   },
-  (t) => [primaryKey({ columns: [t.sessionId, t.seq] }), uniqueIndex("sync_session_entry_uuid_idx").on(t.sessionId, t.uuid)],
+  (t) => [primaryKey({ columns: [t.sessionId, t.seq] }), uniqueIndex("sync_session_entry_uuid_idx").on(t.sessionId, t.agentId, t.uuid)],
 );

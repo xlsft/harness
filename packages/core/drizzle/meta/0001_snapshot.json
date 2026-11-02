@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1f6f279e-6a33-440e-ad2e-2ff334e649f6",
+  "id": "c190fc4b-62c5-4e61-a69f-3f6749af99e3",
   "prevId": "2c112a62-9663-4dd6-8f3c-86bceaac4a65",
   "tables": {
     "access_token": {
@@ -1255,6 +1255,14 @@
           "notNull": true,
           "autoincrement": false
         },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
         "parent_uuid": {
           "name": "parent_uuid",
           "type": "text",
@@ -1300,6 +1308,7 @@
           "name": "sync_session_entry_uuid_idx",
           "columns": [
             "session_id",
+            "agent_id",
             "uuid"
           ],
           "isUnique": true

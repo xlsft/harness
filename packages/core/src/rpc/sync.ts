@@ -122,7 +122,7 @@ function sessionToProto(s: SessionView): Init<typeof SessionMetadataSchema> {
 }
 
 function entryToProto(e: EntryRow): Init<typeof TranscriptEntrySchema> {
-  return { uuid: e.uuid, parentUuid: e.parentUuid, type: e.type, timestamp: e.timestamp, entryJson: e.entryJson, seq: BigInt(e.seq) };
+  return { uuid: e.uuid, parentUuid: e.parentUuid, type: e.type, timestamp: e.timestamp, entryJson: e.entryJson, seq: BigInt(e.seq), agentId: e.agentId };
 }
 
 /** Heartbeat interval of WatchChanges (HARNESS_SYNC_HEARTBEAT_MS, default 20 s). */
@@ -138,14 +138,17 @@ async function* watch(p: Principal, sinceVersion: number, kinds: number[], signa
   try {
     await publishedHead();
     let cursor = sinceVersion;
+    let token: string | undefined;
     for (;;) {
-      const page = await listChanges(p, cursor, kinds, 1000);
+      // Continuations never ask for a resync, so a long catch-up cannot fail half-way.
+      const page = await listChanges(p, cursor, kinds, 1000, token);
       if (page.resyncRequired) {
         yield { event: { case: "resyncRequired", value: {} } };
         return;
       }
       for (const c of page.changes) yield { event: { case: "change", value: changeToProto(c) } };
       cursor = page.nextVersion;
+      token = page.nextPageToken || undefined;
       if (!page.hasMore) break;
     }
     yield { event: { case: "caughtUp", value: { version: BigInt(cursor) } } };
@@ -178,12 +181,13 @@ export function registerSyncService(router: ConnectRouter): void {
   router.service(SyncService, {
     listChanges: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const page = await listChanges(p, Number(req.sinceVersion), req.kinds, req.pageSize);
+      const page = await listChanges(p, Number(req.sinceVersion), req.kinds, req.pageSize, req.pageToken || undefined);
       return {
         changes: page.changes.map(changeToProto),
         nextVersion: BigInt(page.nextVersion),
         hasMore: page.hasMore,
         resyncRequired: page.resyncRequired,
+        nextPageToken: page.nextPageToken,
       };
     }),
 
@@ -245,7 +249,7 @@ export function registerSyncService(router: ConnectRouter): void {
       const r = await appendSessionEvents(
         p,
         req.sessionId,
-        req.entries.map((e) => ({ uuid: e.uuid, parentUuid: e.parentUuid, type: e.type, timestamp: e.timestamp, entryJson: e.entryJson })),
+        req.entries.map((e) => ({ uuid: e.uuid, parentUuid: e.parentUuid, type: e.type, timestamp: e.timestamp, entryJson: e.entryJson, agentId: e.agentId })),
       );
       return { accepted: r.accepted, duplicates: r.duplicates, lastSeq: BigInt(r.lastSeq) };
     }),
@@ -272,7 +276,7 @@ export function registerSyncService(router: ConnectRouter): void {
 
     getSessionTranscript: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const r = await getSessionTranscript(p, req.sessionId, Number(req.afterSeq), req.pageSize);
+      const r = await getSessionTranscript(p, req.sessionId, Number(req.afterSeq), req.pageSize, req.agentId);
       return { entries: r.entries.map(entryToProto), hasMore: r.hasMore };
     }),
   });

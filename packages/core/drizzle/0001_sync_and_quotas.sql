@@ -58,6 +58,7 @@ CREATE TABLE `sync_session_entry` (
 	`session_id` text NOT NULL,
 	`seq` integer NOT NULL,
 	`uuid` text NOT NULL,
+	`agent_id` text DEFAULT '' NOT NULL,
 	`parent_uuid` text DEFAULT '' NOT NULL,
 	`type` text DEFAULT '' NOT NULL,
 	`timestamp` text DEFAULT '' NOT NULL,
@@ -67,5 +68,5 @@ CREATE TABLE `sync_session_entry` (
 	FOREIGN KEY (`session_id`) REFERENCES `sync_session`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `sync_session_entry_uuid_idx` ON `sync_session_entry` (`session_id`,`uuid`);--> statement-breakpoint
+CREATE UNIQUE INDEX `sync_session_entry_uuid_idx` ON `sync_session_entry` (`session_id`,`agent_id`,`uuid`);--> statement-breakpoint
 CREATE INDEX `usage_session_idx` ON `usage_record` (`session_id`);

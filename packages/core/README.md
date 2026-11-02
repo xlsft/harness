@@ -49,6 +49,8 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_PROMPTS_DIR` | `./prompts` | Prompt files (see [`prompts/README.md`](prompts/README.md)) |
 | `HARNESS_DEVICE_RATE_LIMIT_PER_MIN` | `30` | Per-IP token bucket (burst and refill per minute) for `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, each limited separately; `0` disables |
 | `HARNESS_TRUST_PROXY` | `false` | Take the client IP from the rightmost `X-Forwarded-For` entry (set when behind a reverse proxy) |
+| `HARNESS_SYNC_TOMBSTONE_DAYS` | `30` | Tombstone retention (minimum 30) |
+| `HARNESS_SYNC_HEARTBEAT_MS` | `20000` | `WatchChanges` heartbeat interval (max 20 s) |
 | `HARNESS_SESSION_BUDGET_USD` | — | Default per-session budget when the quota config has no `session_usd` |
 
 ## Endpoints
@@ -60,6 +62,7 @@ See [`.env.example`](.env.example). The important ones:
 | `harness.auth.v1.DeviceAuthService` | `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, `GetMe`, `Logout`, `ListDevices`, `RevokeDevice` |
 | `harness.llm.v1.GatewayService` | `ListModels`, `StreamMessage` (server streaming), `CountTokens` |
 | `harness.prompts.v1.PromptService` | `GetBundle` |
+| `harness.sync.v1.SyncService` | `ListChanges`, `WatchChanges` (server streaming), `GetDocument`, `PutDocument`, `BatchPutDocuments`, `DeleteDocument`, `UpsertSession`, `AppendSessionEvents`, `GetSession`, `ListSessions`, `GetSessionTranscript` |
 
 Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`.
 Errors carry a `harness.common.v1.ErrorInfo` detail.
@@ -123,6 +126,29 @@ Keys and headers are encrypted at rest and never returned (only `api_key_hint` a
 Model fields: `id` (alias clients send), `provider_id`, `upstream_model`, `context_window`, `max_output_tokens`,
 `capabilities`, `pricing` (USD / 1M tokens), `fallbacks` (aliases tried on overload), `extra_body`
 (merged into the upstream request, e.g. vLLM/Qwen switches), `roles` (visibility), `enabled`, `sort_order`.
+
+## Sync
+
+- **Versions.** One global counter (`sync_counter`, taken in `nextSyncVersion`); document writes are serialized
+  in-process and run in a transaction, so versions commit in order and live events go out in version order.
+- **Documents** are unique per (owner, scope, project_key, kind, key); org documents have no owner. CAS per
+  `base_version` (unset / 0 = create only / N); mismatches come back as `Conflict`, not as errors. Writing identical
+  content is a no-op. Every write is kept in `sync_document_revision` (no read API yet).
+- **Authorization.** Users read and write their own user/project documents; org documents are admin-written.
+  The feed contains org documents targeted at the caller's role (or at everyone); other org documents appear as
+  tombstones, so caches drop documents re-targeted away from a role. Admins can `GetDocument` any org document.
+- **Validation.** JSON kinds (settings, permission rules, hooks, SSH hosts, policies) must be JSON objects and are
+  stored byte-exact; `SETTINGS.permissions` only takes `defaultMode`, `additionalDirectories`,
+  `disableBypassPermissionsMode`; project-scope SETTINGS are rejected; `files` only on SKILL and MEMORY;
+  RULE keys are relative `.md` paths; POLICY is org-only; MCP_SERVER cannot be written here.
+- **Tombstones** are purged after `HARNESS_SYNC_TOMBSTONE_DAYS` (hourly, opportunistically); cursors older than the
+  highest purged version, or newer than the head, get `resync_required`. `next_page_token` continuations never do.
+- **WatchChanges**: subscribe, catch up through `ListChanges` pages, `CaughtUp`, then live changes from the
+  in-process bus; a `Heartbeat` with the head after 20 s of silence.
+- **Sessions**: ids are UUID v4; `update_paths` use `info.<field>` and `prompt_bundle_version`. Transcript lines are
+  stored byte-exact, deduplicated per (session, agent_id, uuid); `seq` is one counter per session shared by the main
+  thread and subagents (each thread pages by `agent_id`). `ListSessions` searches titles, cwd, repo and transcript
+  text (case-insensitive substring).
 
 ## Quotas
 
