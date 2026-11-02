@@ -47,6 +47,9 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_ADMIN_EMAIL`, `HARNESS_ADMIN_PASSWORD` | — | Admin bootstrap on start |
 | `HARNESS_GRPC_PORT` | off | Extra h2c listener with plain gRPC (see Transport) |
 | `HARNESS_PROMPTS_DIR` | `./prompts` | Prompt files (see [`prompts/README.md`](prompts/README.md)) |
+| `HARNESS_DEVICE_RATE_LIMIT_PER_MIN` | `30` | Per-IP token bucket (burst and refill per minute) for `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, each limited separately; `0` disables |
+| `HARNESS_TRUST_PROXY` | `false` | Take the client IP from the rightmost `X-Forwarded-For` entry (set when behind a reverse proxy) |
+| `HARNESS_SESSION_BUDGET_USD` | — | Default per-session budget when the quota config has no `session_usd` |
 
 ## Endpoints
 
@@ -54,7 +57,7 @@ See [`.env.example`](.env.example). The important ones:
 
 | Service | Methods |
 |---|---|
-| `harness.auth.v1.DeviceAuthService` | `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, `GetMe`, `Logout` |
+| `harness.auth.v1.DeviceAuthService` | `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, `GetMe`, `Logout`, `ListDevices`, `RevokeDevice` |
 | `harness.llm.v1.GatewayService` | `ListModels`, `StreamMessage` (server streaming), `CountTokens` |
 | `harness.prompts.v1.PromptService` | `GetBundle` |
 
@@ -85,6 +88,7 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | `/api/admin/models[/:id]` | Model catalog CRUD; `GET /:id` also lists features turned off by negotiation, `PATCH {reset_negotiation:true}` clears them |
 | `/api/admin/slots` | `GET` / `PUT {main, small, plan}` |
 | `/api/admin/usage` | Recent usage records (`?user_id=&limit=`) |
+| `/api/admin/quotas` | Spend limits: `GET` (`?user_id=` adds current spend + effective limits), `PUT` (replace), `PATCH` (merge, `null` removes) |
 | `/api/health` | Liveness |
 
 Admin routes accept an admin's Better Auth session cookie or an admin's device access token.
@@ -118,6 +122,23 @@ Keys and headers are encrypted at rest and never returned (only `api_key_hint` a
 Model fields: `id` (alias clients send), `provider_id`, `upstream_model`, `context_window`, `max_output_tokens`,
 `capabilities`, `pricing` (USD / 1M tokens), `fallbacks` (aliases tried on overload), `extra_body`
 (merged into the upstream request, e.g. vLLM/Qwen switches), `roles` (visibility), `enabled`, `sort_order`.
+
+## Quotas
+
+Checked before the upstream is called; a used-up limit fails `StreamMessage` with `RESOURCE_EXHAUSTED` +
+`ERROR_TYPE_QUOTA_EXCEEDED` (do not retry). Spend is the recorded usage cost (model pricing).
+
+```json
+{
+  "roles": { "user": { "daily_usd": 5, "monthly_usd": 50 } },
+  "users": { "usr_...": { "daily_usd": 20 } },
+  "session_usd": 2
+}
+```
+
+- Periods are UTC calendar days / months. Per period, a user's own value replaces the role value.
+- `session_usd` (fallback `HARNESS_SESSION_BUDGET_USD`) caps the spend per `RequestMetadata.session_id`.
+- `0` blocks; absent = unlimited. A request that starts under a limit may overshoot it; the next one is rejected.
 
 ## Layout
 

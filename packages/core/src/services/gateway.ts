@@ -23,6 +23,7 @@ import { guardedFetch } from "../lib/ssrf.ts";
 import type { Principal } from "./devices.ts";
 import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEntry } from "./models.ts";
 import { loadProviderRuntime, type ProviderType } from "./providers.ts";
+import { enforceQuotas } from "./quotas.ts";
 
 const ADAPTERS: Record<ProviderType, Adapter> = {
   anthropic: anthropicAdapter,
@@ -43,7 +44,8 @@ export interface PreparedMessages {
 export async function prepareMessages(principal: Principal, body: unknown): Promise<PreparedMessages> {
   const req = normalizeRequest(body, { requireStream: true });
   const model = await resolveModelForUser(req.model, principal.user);
-  // TODO(M1): quotas -> throw new ApiError("quota_exceeded", ...)
+  // Spend limits are checked before any upstream call (RESOURCE_EXHAUSTED + QUOTA_EXCEEDED).
+  await enforceQuotas(principal.user, req.metadata?.session_id || undefined);
   return { req, model };
 }
 

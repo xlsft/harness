@@ -28,4 +28,5 @@ export const routes: RouteDef[] = [
   { route: "/api/admin/models/:id", handler: "./src/http/routes/admin-model.ts" },
   { route: "/api/admin/slots", handler: "./src/http/routes/admin-slots.ts" },
   { route: "/api/admin/usage", method: "get", handler: "./src/http/routes/admin-usage.ts" },
+  { route: "/api/admin/quotas", handler: "./src/http/routes/admin-quotas.ts" },
 ];
