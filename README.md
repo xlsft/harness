@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-full-dark.svg">
+    <img alt="xlsft's harness" src="docs/assets/logo-full-light.svg" width="520">
+  </picture>
+</p>
+
 # harness
 
 An agentic coding harness that replaces Claude Code. It keeps the same tools, the same UX and the same architecture, and runs with **any model** behind an OpenAI- or Anthropic-compatible endpoint.
