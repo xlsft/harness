@@ -42,6 +42,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		l.cleanupPeriodDays = nil
 	}
 	l.includeGit = s.boolean(src, raw, "includeGitInstructions")
+	l.interruptReply = s.boolean(src, raw, "interruptReply")
 	if v, ok := raw["attribution"]; ok {
 		var a map[string]json.RawMessage
 		if err := json.Unmarshal(v, &a); err != nil {
@@ -244,6 +245,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.includeGit != nil {
 			s.IncludeGitInstructions = *l.includeGit
+		}
+		if l.interruptReply != nil {
+			s.InterruptReply = *l.interruptReply
 		}
 		if l.attrCommit != nil {
 			v := *l.attrCommit

@@ -247,6 +247,9 @@ type Config struct {
 	// OutputStyle is the initial output style (nil = default). Its text is
 	// sent with the first request unless History already carries it.
 	OutputStyle *OutputStyle
+	// DisableInterruptReply turns off the short model reply after an
+	// interrupted turn (ReplyToInterrupt, run by Driver).
+	DisableInterruptReply bool
 
 	OnEvent func(Event)
 	Retry   *gateway.RetryPolicy

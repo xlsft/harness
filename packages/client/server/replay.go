@@ -127,6 +127,11 @@ func (r *replayer) entry(e session.Entry) {
 			return
 		}
 		r.compact = nil
+		if r.asst == nil && r.cur != nil && r.cur.interrupted && !r.cur.lastAsst && !r.cur.lastResult {
+			// An answer right after the interrupt marker is the reply to the
+			// interruption, published live after TurnFinished.
+			r.endTurn()
+		}
 		if r.asst == nil {
 			ec := e
 			r.asst = &ec

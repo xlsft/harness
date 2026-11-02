@@ -145,7 +145,7 @@ func (ls *liveSession) close(reason string) {
 	ls.closed = true
 	ls.mu.Unlock()
 	ls.cancel()
-	ls.driver.Interrupt()
+	ls.driver.Stop()
 	ls.driver.Wait()
 	ls.bg.Wait()
 	ls.sess.Agent.SetInteractor(nil)
