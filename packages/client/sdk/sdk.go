@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/tools"
 )
 
 // Output and input formats.
@@ -93,6 +95,9 @@ func Run(ctx context.Context, o Options) int {
 	if o.Bootstrap.Entrypoint == "" {
 		o.Bootstrap.Entrypoint = "sdk-cli"
 	}
+	// Headless runs are unattended: background commands get a time limit
+	// and are stopped when the run ends.
+	o.Bootstrap.Unattended = true
 	sess, err := bootstrap.Open(ctx, o.Bootstrap)
 	if err != nil {
 		return r.fatal(err)
@@ -112,10 +117,41 @@ func Run(ctx context.Context, o Options) int {
 	if prompt == "" {
 		return r.fatal(errors.New("no prompt given: pass it as an argument or on stdin"))
 	}
+	if focus, ok := compactCommand(prompt); ok {
+		return r.compact(ctx, focus)
+	}
 	res := sess.Agent.RunTurn(ctx, []llm.ContentBlock{llm.TextBlock(prompt)})
 	r.emitResult(res)
 	if res.IsError {
 		return 1
+	}
+	return 0
+}
+
+// compactCommand recognizes "/compact [focus instructions]".
+func compactCommand(prompt string) (string, bool) {
+	p := strings.TrimSpace(prompt)
+	if p == "/compact" {
+		return "", true
+	}
+	if strings.HasPrefix(p, "/compact ") || strings.HasPrefix(p, "/compact\n") {
+		return strings.TrimSpace(p[len("/compact"):]), true
+	}
+	return "", false
+}
+
+func (r *runner) compact(ctx context.Context, focus string) int {
+	start := time.Now()
+	info, err := r.sess.Agent.Compact(ctx, focus)
+	if err != nil {
+		return r.fatal(fmt.Errorf("compaction failed: %w", err))
+	}
+	text := fmt.Sprintf("Compacted the conversation (%d → %d tokens).", info.TokensBefore, info.TokensAfter)
+	switch r.o.OutputFormat {
+	case FormatText:
+		fmt.Fprintln(r.o.Stdout, text)
+	default:
+		r.out.send(ResultMessage(r.sessionID(), agent.TurnResult{Subtype: agent.SubtypeSuccess, Result: text, Duration: time.Since(start), ModelUsage: map[string]*agent.ModelUsage{}}))
 	}
 	return 0
 }
@@ -169,6 +205,30 @@ func (r *runner) onEvent(e agent.Event) {
 			return
 		}
 		base["type"], base["event"] = "stream_event", e.Raw
+	case agent.EventCompacted:
+		base["type"], base["subtype"] = "system", "compact_boundary"
+		base["compact_metadata"] = map[string]any{"trigger": e.Compaction.Trigger, "pre_tokens": e.Compaction.TokensBefore, "post_tokens": e.Compaction.TokensAfter}
+		delete(base, "parent_tool_use_id")
+	case agent.EventTodos:
+		base["type"], base["subtype"], base["todos"] = "system", "todos", e.Todos
+		delete(base, "parent_tool_use_id")
+	case agent.EventTask:
+		if e.Task.Kind == tools.TaskEventOutput {
+			return
+		}
+		kind := "task_started"
+		if e.Task.Kind == tools.TaskEventFinished {
+			kind = "task_finished"
+		}
+		base["type"], base["subtype"] = "system", kind
+		base["task_id"], base["command"], base["output_file"] = e.Task.Task.ID, e.Task.Task.Command, e.Task.Task.OutputPath
+		if e.Task.Kind == tools.TaskEventFinished {
+			base["exit_code"], base["reason"] = e.Task.Task.ExitCode, e.Task.Task.Reason
+		}
+		delete(base, "parent_tool_use_id")
+	case agent.EventModeChanged:
+		base["type"], base["subtype"], base["permissionMode"] = "system", "permission_mode", e.Mode
+		delete(base, "parent_tool_use_id")
 	case agent.EventRetry:
 		base["type"], base["subtype"] = "system", "api_retry"
 		base["attempt"], base["max_retries"], base["retry_delay_ms"] = e.Retry.Attempt, e.Retry.MaxRetries, e.Retry.RetryDelayMs

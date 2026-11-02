@@ -2,6 +2,10 @@
 // permission check → local execution → tool_result → repeat until the model
 // stops calling tools.
 //
+// Around the loop it keeps the session state that tools and frontends rely
+// on: bundle reminders injected before model requests, the todo list, file
+// checkpoints, compaction and rewind.
+//
 // Agent is single-turn-at-a-time and not safe for concurrent RunTurn calls;
 // Driver adds the message queue and background execution used by frontends.
 package agent
@@ -12,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,6 +38,9 @@ const (
 	SubtypeErrorDuringExecution = "error_during_execution"
 )
 
+// ErrBusy is returned by operations that need an idle session.
+var ErrBusy = errors.New("a turn is in progress")
+
 // EventKind enumerates agent events.
 type EventKind int
 
@@ -53,7 +61,47 @@ const (
 	EventToolEnd
 	// EventQueueDrained is emitted when queued messages were consumed.
 	EventQueueDrained
+	// EventTurnStarted is emitted when a turn starts from a user prompt
+	// (UUID is the prompt's uuid).
+	EventTurnStarted
+	// EventTodos carries the new todo list (Todos).
+	EventTodos
+	// EventCheckpoint carries a checkpoint taken before a turn.
+	EventCheckpoint
+	// EventCompacted reports a compaction (Compaction).
+	EventCompacted
+	// EventRewound reports a rewind (Rewind).
+	EventRewound
+	// EventTask carries a background task event (Task).
+	EventTask
+	// EventModeChanged reports a permission mode change (Mode).
+	EventModeChanged
+	// EventNotice is an informational message for frontends (Notice).
+	EventNotice
 )
+
+// Notice is an informational event.
+type Notice struct {
+	Level string // info | warning | error
+	Kind  string
+	Text  string
+}
+
+// Checkpoint is a rewind point: the state before a turn started by a prompt.
+type Checkpoint struct {
+	ID              string
+	UserMessageUUID string
+	PromptPreview   string
+	CreatedAt       time.Time
+	HasCodeChanges  bool
+}
+
+// CompactInfo describes a finished compaction.
+type CompactInfo struct {
+	Trigger      string // manual | auto | rewind
+	TokensBefore int
+	TokensAfter  int
+}
 
 // Event is emitted while a turn runs.
 type Event struct {
@@ -75,6 +123,18 @@ type Event struct {
 	Interrupted bool
 	Content     []llm.ContentBlock
 	Duration    time.Duration
+	// Structured is the toolUseResult (EventToolEnd); Summary its short form.
+	Structured any
+	Summary    string
+
+	Model      string
+	Todos      []tools.Todo
+	Checkpoint *Checkpoint
+	Compaction *CompactInfo
+	Rewind     *RewindResult
+	Task       *tools.TaskEvent
+	Mode       string
+	Notice     *Notice
 }
 
 // ModelUsage aggregates usage per model.
@@ -110,6 +170,12 @@ type TurnResult struct {
 	Interrupted       bool
 }
 
+// ModeController reads and switches the permission mode (permissions.Engine).
+type ModeController interface {
+	Mode() permissions.Mode
+	SetMode(permissions.Mode) error
+}
+
 // Config configures an Agent.
 type Config struct {
 	Gateway     gateway.Gateway
@@ -117,8 +183,12 @@ type Config struct {
 	Tools       *tools.Registry
 	ToolEnv     *tools.Env
 	Permissions permissions.Checker
+	// Modes is the permission mode controller (may be nil).
+	Modes ModeController
 	// Transcript may be nil (no persistence).
 	Transcript *session.Writer
+	// FileHistory takes checkpoints (may be nil).
+	FileHistory *session.FileHistory
 
 	Model            string
 	ModelDisplayName string
@@ -127,6 +197,17 @@ type Config struct {
 	MaxTurns int
 	Effort   string
 	Thinking *llm.Thinking
+	// ContextWindow of the model in tokens (0 disables auto-compaction).
+	ContextWindow int
+	// AutoCompactPct is the share of the context window that triggers
+	// auto-compaction (default 0.92, env HARNESS_AUTOCOMPACT_PCT).
+	AutoCompactPct float64
+	// TodoNudgeRounds is how many tool rounds without TodoWrite trigger the
+	// todo_nudge reminder (default 10).
+	TodoNudgeRounds int
+	// RefreshBundle re-fetches the prompt bundle after a compaction (the
+	// only point where the frozen bundle may change). May be nil.
+	RefreshBundle func(ctx context.Context) (*prompts.Bundle, error)
 
 	SessionID string
 	// Vars are the placeholder values for dynamic system sections.
@@ -136,6 +217,8 @@ type Config struct {
 	ProjectContext string
 	// History is the conversation restored from a transcript.
 	History session.Conversation
+	// Todos restored from the transcript.
+	Todos []tools.Todo
 	// DisabledTools are not offered to the model.
 	DisabledTools map[string]bool
 	// PermissionMode is recorded on user transcript entries.
@@ -146,6 +229,11 @@ type Config struct {
 	Logger  *slog.Logger
 }
 
+type pendingReminder struct {
+	id   string
+	vars map[string]string
+}
+
 // Agent holds the conversation and runs turns.
 type Agent struct {
 	cfg Config
@@ -153,20 +241,41 @@ type Agent struct {
 	mu              sync.Mutex
 	model           string
 	modelDisplay    string
+	bundle          *prompts.Bundle
 	messages        []llm.Message
 	contextInjected bool
 	queue           [][]llm.ContentBlock
 	cancel          context.CancelFunc
 	warned          map[string]bool
+	todos           []tools.Todo
+	reminders       []pendingReminder
+	interactor      tools.Interactor
+	contextWindow   int
+
+	// token estimate: usage of the last response and the message count it covered
+	lastUsage    int
+	lastMsgCount int
+	// auto-compaction anti-thrashing
+	compactFailures     int
+	autoCompactDisabled bool
+	// todo nudge
+	roundsSinceTodo int
 }
 
 // New creates an agent.
 func New(cfg Config) *Agent {
-	a := &Agent{cfg: cfg, model: cfg.Model, modelDisplay: cfg.ModelDisplayName, warned: map[string]bool{}}
+	a := &Agent{cfg: cfg, model: cfg.Model, modelDisplay: cfg.ModelDisplayName, warned: map[string]bool{},
+		bundle: cfg.Bundle, todos: cfg.Todos, contextWindow: cfg.ContextWindow}
 	a.messages = append(a.messages, cfg.History.Messages...)
 	a.contextInjected = cfg.History.ContextInjected
 	if cfg.MaxTokens <= 0 {
 		a.cfg.MaxTokens = 32000
+	}
+	if a.cfg.TodoNudgeRounds <= 0 {
+		a.cfg.TodoNudgeRounds = 10
+	}
+	if cfg.ToolEnv != nil {
+		cfg.ToolEnv.SetHost(a)
 	}
 	return a
 }
@@ -178,6 +287,13 @@ func (a *Agent) log() *slog.Logger {
 	return slog.Default()
 }
 
+// Bundle returns the current prompt bundle.
+func (a *Agent) Bundle() *prompts.Bundle {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.bundle
+}
+
 // Messages returns a copy of the conversation.
 func (a *Agent) Messages() []llm.Message {
 	a.mu.Lock()
@@ -186,9 +302,12 @@ func (a *Agent) Messages() []llm.Message {
 }
 
 // SetModel switches the model for subsequent requests (also mid-turn).
-func (a *Agent) SetModel(id, display string) {
+func (a *Agent) SetModel(id, display string, contextWindow int) {
 	a.mu.Lock()
 	a.model, a.modelDisplay = id, display
+	if contextWindow > 0 {
+		a.contextWindow = contextWindow
+	}
 	a.mu.Unlock()
 }
 
@@ -197,6 +316,13 @@ func (a *Agent) Model() string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return a.model
+}
+
+// SetMaxTurns changes the per-turn tool round limit (0 = unlimited).
+func (a *Agent) SetMaxTurns(n int) {
+	a.mu.Lock()
+	a.cfg.MaxTurns = n
+	a.mu.Unlock()
 }
 
 // Enqueue adds a user message to be injected after the current tool calls.
@@ -235,6 +361,13 @@ func (a *Agent) QueueLen() int {
 	return len(a.queue)
 }
 
+// Busy reports whether a turn is running.
+func (a *Agent) Busy() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.cancel != nil
+}
+
 // Interrupt cancels the running turn: in-flight tools are killed and the
 // conversation records the interrupt marker.
 func (a *Agent) Interrupt() {
@@ -252,13 +385,25 @@ func (a *Agent) emit(e Event) {
 	}
 }
 
+// Emit publishes an event through the agent's event callback (used by the
+// session wiring for task and mode events).
+func (a *Agent) Emit(e Event) { a.emit(e) }
+
 func (a *Agent) interruptedText() string {
-	return a.cfg.Bundle.Reminder("interrupted", InterruptedFallback)
+	return a.Bundle().Reminder("interrupted", InterruptedFallback)
+}
+
+func (a *Agent) interruptedToolText() string {
+	b := a.Bundle()
+	return b.Reminder("interrupted_tool_use", b.Reminder("interrupted", InterruptedFallback))
 }
 
 func (a *Agent) permissionMode() string {
 	if a.cfg.PermissionMode != nil {
 		return a.cfg.PermissionMode()
+	}
+	if a.cfg.Modes != nil {
+		return string(a.cfg.Modes.Mode())
 	}
 	return ""
 }
@@ -266,7 +411,7 @@ func (a *Agent) permissionMode() string {
 // record appends a transcript entry (no-op without transcript).
 func (a *Agent) record(e session.Entry) string {
 	if a.cfg.Transcript == nil {
-		return ""
+		return e.UUID
 	}
 	id, err := a.cfg.Transcript.Append(e)
 	if err != nil {
@@ -295,6 +440,11 @@ func userEntryMessage(blocks []llm.ContentBlock) *session.Message {
 	return session.UserBlocks(blocks)
 }
 
+func (a *Agent) projectContextBlock() llm.ContentBlock {
+	tmpl := a.Bundle().Reminder("project_instructions", "{{content}}")
+	return llm.TextBlock(prompts.Render(tmpl, map[string]string{"content": a.cfg.ProjectContext}, nil))
+}
+
 // RunTurn runs one turn for the given user input and blocks until the model
 // stops calling tools, the turn is interrupted, max turns is reached or an
 // error occurs. The tool_use/tool_result pairing invariant always holds when
@@ -303,6 +453,7 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 	ctx, cancel := context.WithCancel(parent)
 	a.mu.Lock()
 	a.cancel = cancel
+	maxTurns := a.cfg.MaxTurns
 	a.mu.Unlock()
 	defer func() {
 		a.mu.Lock()
@@ -324,14 +475,23 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 	}
 	a.mu.Unlock()
 	if inject {
-		tmpl := a.cfg.Bundle.Reminder("project_instructions", "{{content}}")
-		block := llm.TextBlock(prompts.Render(tmpl, map[string]string{"content": a.cfg.ProjectContext}, nil))
+		block := a.projectContextBlock()
 		first = append(first, block)
 		a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks([]llm.ContentBlock{block}), IsMeta: true, PromptID: promptID})
 	}
 	if len(input) > 0 {
-		id := a.record(session.Entry{Type: session.TypeUser, Message: userEntryMessage(input), PromptID: promptID, PermissionMode: a.permissionMode()})
-		a.emit(Event{Kind: EventUser, UUID: id, Message: &llm.Message{Role: llm.RoleUser, Content: input}})
+		uid := session.NewID()
+		if a.cfg.FileHistory != nil {
+			snap := a.cfg.FileHistory.MakeCheckpoint(uid)
+			created, _ := time.Parse("2006-01-02T15:04:05.000Z", snap.Timestamp)
+			a.emit(Event{Kind: EventCheckpoint, Checkpoint: &Checkpoint{ID: uid, UserMessageUUID: uid, PromptPreview: preview(input), CreatedAt: created}})
+		}
+		a.record(session.Entry{Type: session.TypeUser, UUID: uid, Message: userEntryMessage(input), PromptID: promptID, PermissionMode: a.permissionMode()})
+		a.emit(Event{Kind: EventUser, UUID: uid, Message: &llm.Message{Role: llm.RoleUser, Content: input}})
+		a.emit(Event{Kind: EventTurnStarted, UUID: uid, Model: a.Model()})
+		if a.permissionMode() == string(permissions.ModePlan) && a.cfg.ToolEnv != nil {
+			a.Remind("plan_mode", map[string]string{"plan_file_path": tools.NextPlanPath(a.cfg.ToolEnv)})
+		}
 	}
 	a.appendMessage(llm.RoleUser, append(first, input...))
 
@@ -341,6 +501,10 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 			a.markInterrupted(nil)
 			res.Subtype, res.IsError, res.Interrupted = SubtypeErrorDuringExecution, true, true
 			return finish()
+		}
+		a.beforeRequest(ctx, promptID)
+		if ctx.Err() != nil {
+			continue
 		}
 		req := a.buildRequest()
 		apiStart := time.Now()
@@ -368,6 +532,7 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 		}
 		resp.Message.Content = content
 		a.appendMessage(llm.RoleAssistant, content)
+		a.noteUsage(resp.Usage)
 		asstUUID := a.record(session.Entry{Type: session.TypeAssistant, Message: session.AssistantMessage(resp), RequestID: resp.ID})
 		msg := resp.Message
 		a.emit(Event{Kind: EventAssistant, UUID: asstUUID, Message: &msg, Response: &resp})
@@ -382,17 +547,23 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 
 		outcomes, interrupted := a.executeTools(ctx, uses, &res)
 		var blocks []llm.ContentBlock
+		var comments []llm.ContentBlock
 		for i, o := range outcomes {
 			blocks = append(blocks, o.block)
 			ub := []llm.ContentBlock{o.block}
 			id := a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks(ub), ToolUseResult: o.structured, SourceToolAssistantUUID: asstUUID, PromptID: promptID})
 			a.emit(Event{Kind: EventUser, UUID: id, Message: &llm.Message{Role: llm.RoleUser, Content: ub}, Raw: rawStructured(outcomes[i].structured)})
+			if o.comment != "" {
+				comments = append(comments, llm.TextBlock(o.comment))
+			}
 		}
+		a.noteToolRound(uses)
 		var tail []llm.ContentBlock
+		tail = append(tail, comments...)
 		if interrupted {
-			tail = []llm.ContentBlock{llm.TextBlock(a.interruptedText())}
+			tail = append(tail, llm.TextBlock(a.interruptedText()))
 		} else if q := a.DrainQueue(); len(q) > 0 {
-			tail = q
+			tail = append(tail, q...)
 		}
 		if len(tail) > 0 {
 			blocks = append(blocks, tail...)
@@ -406,12 +577,25 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 			res.Subtype, res.IsError, res.Interrupted = SubtypeErrorDuringExecution, true, true
 			return finish()
 		}
-		if a.cfg.MaxTurns > 0 && toolTurns >= a.cfg.MaxTurns {
+		if maxTurns > 0 && toolTurns >= maxTurns {
 			res.Subtype, res.IsError = SubtypeErrorMaxTurns, true
-			res.Errors = append(res.Errors, fmt.Sprintf("Reached maximum number of turns (%d)", a.cfg.MaxTurns))
+			res.Errors = append(res.Errors, fmt.Sprintf("Reached maximum number of turns (%d)", maxTurns))
 			return finish()
 		}
 	}
+}
+
+func preview(blocks []llm.ContentBlock) string {
+	for _, b := range blocks {
+		if b.Type == llm.BlockText && strings.TrimSpace(b.Text) != "" {
+			line := strings.TrimSpace(strings.SplitN(strings.TrimSpace(b.Text), "\n", 2)[0])
+			if len(line) > 120 {
+				line = line[:120] + "…"
+			}
+			return line
+		}
+	}
+	return ""
 }
 
 func rawStructured(v any) json.RawMessage {
@@ -534,6 +718,38 @@ func (a *Agent) markInterrupted(acc *llm.Accumulator) {
 	a.emit(Event{Kind: EventUser, UUID: id, Message: &llm.Message{Role: llm.RoleUser, Content: marker}})
 }
 
+// toolNames returns the tools offered to the model.
+func (a *Agent) toolNames() []string {
+	var names []string
+	for _, n := range a.cfg.Tools.Names() {
+		if !a.cfg.DisabledTools[n] {
+			names = append(names, n)
+		}
+	}
+	return names
+}
+
+func (a *Agent) systemBlocks(model, display string) []llm.SystemBlock {
+	vars := map[string]string{}
+	for k, v := range a.cfg.Vars {
+		vars[k] = v
+	}
+	vars["model"], vars["model_id"] = model, model
+	if display == "" {
+		display = model
+	}
+	vars["model_display_name"] = display
+	return a.Bundle().BuildSystem(vars, func(name string) {
+		a.mu.Lock()
+		seen := a.warned[name]
+		a.warned[name] = true
+		a.mu.Unlock()
+		if !seen {
+			a.log().Warn("unknown prompt placeholder", "name", name)
+		}
+	})
+}
+
 // buildRequest assembles the gateway request with cache markers: the last
 // static system block (from the bundle), the project-context block and the
 // last block of the last message — at most 3 of the 4 allowed points.
@@ -544,27 +760,10 @@ func (a *Agent) buildRequest() *llm.Request {
 	copy(msgs, a.messages)
 	injected := a.contextInjected
 	effort := a.cfg.Effort
+	bundle := a.bundle
 	a.mu.Unlock()
 
-	vars := map[string]string{}
-	for k, v := range a.cfg.Vars {
-		vars[k] = v
-	}
-	vars["model"], vars["model_id"] = model, model
-	if display == "" {
-		display = model
-	}
-	vars["model_display_name"] = display
-	system := a.cfg.Bundle.BuildSystem(vars, func(name string) {
-		a.mu.Lock()
-		seen := a.warned[name]
-		a.warned[name] = true
-		a.mu.Unlock()
-		if !seen {
-			a.log().Warn("unknown prompt placeholder", "name", name)
-		}
-	})
-
+	system := a.systemBlocks(model, display)
 	mark := func(mi, bi int) {
 		if mi < 0 || mi >= len(msgs) || bi < 0 || bi >= len(msgs[mi].Content) {
 			return
@@ -580,33 +779,27 @@ func (a *Agent) buildRequest() *llm.Request {
 		mark(n-1, len(msgs[n-1].Content)-1)
 	}
 
-	var names []string
-	for _, n := range a.cfg.Tools.Names() {
-		if !a.cfg.DisabledTools[n] {
-			names = append(names, n)
-		}
-	}
-	req := &llm.Request{
+	return &llm.Request{
 		Model:     model,
 		MaxTokens: a.cfg.MaxTokens,
 		System:    system,
 		Messages:  msgs,
-		Tools:     a.cfg.Bundle.ToolDefs(names),
+		Tools:     bundle.ToolDefs(a.toolNames()),
 		Thinking:  a.cfg.Thinking,
 		Effort:    effort,
 		Stream:    true,
 		Metadata: &llm.Metadata{
 			SessionID:           a.cfg.SessionID,
 			RequestClass:        "main",
-			PromptBundleVersion: a.cfg.Bundle.Version,
+			PromptBundleVersion: bundle.Version,
 		},
 	}
-	return req
 }
 
 type outcome struct {
 	block      llm.ContentBlock
 	structured any
+	comment    string
 }
 
 // executeTools runs tool calls: consecutive read-only calls in parallel,
@@ -615,25 +808,26 @@ type outcome struct {
 func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *TurnResult) ([]outcome, bool) {
 	outcomes := make([]outcome, len(uses))
 	done := make([]bool, len(uses))
-	interruptedText := a.interruptedText()
+	interruptedText := a.interruptedToolText()
 	started := make([]time.Time, len(uses))
-	end := func(i int, interrupted bool) {
+	end := func(i int, interrupted bool, summary string) {
 		var d time.Duration
 		if !started[i].IsZero() {
 			d = time.Since(started[i])
 		}
 		b := outcomes[i].block
-		a.emit(Event{Kind: EventToolEnd, ToolUseID: uses[i].ID, ToolName: uses[i].Name, IsError: b.IsError, Interrupted: interrupted, Content: b.Content, Duration: d})
+		a.emit(Event{Kind: EventToolEnd, ToolUseID: uses[i].ID, ToolName: uses[i].Name, IsError: b.IsError, Interrupted: interrupted,
+			Content: b.Content, Duration: d, Structured: outcomes[i].structured, Summary: summary})
 	}
 	synthetic := func(i int) {
 		outcomes[i] = outcome{block: llm.ContentBlock{Type: llm.BlockToolResult, ToolUseID: uses[i].ID, IsError: true, Content: []llm.ContentBlock{llm.TextBlock(interruptedText)}}, structured: interruptedText}
 		done[i] = true
-		end(i, true)
+		end(i, true, "Interrupted")
 	}
-	setResult := func(i int, r tools.Result) {
-		outcomes[i] = outcome{block: llm.ContentBlock{Type: llm.BlockToolResult, ToolUseID: uses[i].ID, IsError: r.IsError, Content: r.Content}, structured: r.Structured}
+	setResult := func(i int, r tools.Result, comment string) {
+		outcomes[i] = outcome{block: llm.ContentBlock{Type: llm.BlockToolResult, ToolUseID: uses[i].ID, IsError: r.IsError, Content: r.Content}, structured: r.Structured, comment: comment}
 		done[i] = true
-		end(i, false)
+		end(i, false, r.Summary)
 	}
 	start := func(i int, input json.RawMessage) {
 		started[i] = time.Now()
@@ -641,9 +835,10 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *
 	}
 
 	type call struct {
-		idx   int
-		tool  tools.Tool
-		input json.RawMessage
+		idx     int
+		tool    tools.Tool
+		input   json.RawMessage
+		comment string
 	}
 	readOnly := func(u llm.ContentBlock) bool {
 		t, ok := a.cfg.Tools.Get(u.Name)
@@ -672,13 +867,16 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *
 			idx := base + k
 			t, ok := a.cfg.Tools.Get(u.Name)
 			if !ok || a.cfg.DisabledTools[u.Name] {
-				setResult(idx, tools.ErrorResult("No such tool available: %s", u.Name))
+				setResult(idx, tools.ErrorResult("No such tool available: %s", u.Name), "")
 				continue
 			}
 			req := permissions.Request{ToolName: u.Name, ToolUseID: u.ID, Input: u.Input, ReadOnly: t.ReadOnly(u.Input)}
 			req.FilePath = tools.FilePath(u.Input)
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
+				if a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
+					req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
+				}
 			}
 			d := a.cfg.Permissions.Check(ctx, req)
 			if ctx.Err() != nil {
@@ -687,7 +885,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *
 			}
 			if d.Behavior != permissions.Allow {
 				res.PermissionDenials = append(res.PermissionDenials, PermissionDenial{ToolName: u.Name, ToolUseID: u.ID, ToolInput: u.Input})
-				setResult(idx, tools.Result{Content: []llm.ContentBlock{llm.TextBlock(d.Message)}, IsError: true, Structured: "Error: " + d.Message})
+				setResult(idx, tools.Result{Content: []llm.ContentBlock{llm.TextBlock(d.Message)}, IsError: true, Structured: "Error: " + d.Message, Summary: "Denied"}, "")
 				if d.Interrupt {
 					a.Interrupt()
 				}
@@ -697,7 +895,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *
 			if len(d.UpdatedInput) > 0 {
 				in = d.UpdatedInput
 			}
-			runnable = append(runnable, call{idx: idx, tool: t, input: in})
+			runnable = append(runnable, call{idx: idx, tool: t, input: in, comment: d.Comment})
 		}
 		if len(runnable) == 1 || (len(runnable) > 0 && !readOnly(uses[runnable[0].idx])) {
 			for _, c := range runnable {
@@ -710,7 +908,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *
 				if ctx.Err() != nil {
 					synthetic(c.idx)
 				} else {
-					setResult(c.idx, r)
+					setResult(c.idx, r, c.comment)
 				}
 			}
 			continue
@@ -730,7 +928,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *
 				if ctx.Err() != nil {
 					synthetic(c.idx)
 				} else {
-					setResult(c.idx, r)
+					setResult(c.idx, r, c.comment)
 				}
 			}(c)
 		}

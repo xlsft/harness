@@ -207,8 +207,8 @@ func (m *TaskManager) adopt(id, path string, f *os.File, cmd *exec.Cmd, done <-c
 		t.info.Duration = time.Since(t.info.StartedAt)
 		info := t.info
 		m.mu.Unlock()
-		close(t.done)
 		m.emit(TaskEvent{Kind: TaskEventFinished, Task: info})
+		close(t.done)
 	}()
 	return t.info
 }

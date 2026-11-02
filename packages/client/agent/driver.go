@@ -72,6 +72,31 @@ func (d *Driver) Busy() bool {
 // Interrupt cancels the running turn (no-op when idle).
 func (d *Driver) Interrupt() { d.Agent.Interrupt() }
 
+// Exclusive runs f while no turn is running (compaction, rewind). Messages
+// submitted meanwhile are queued and start a turn when f returns. It
+// returns ErrBusy when a turn is running.
+func (d *Driver) Exclusive(f func()) error {
+	d.mu.Lock()
+	if d.running {
+		d.mu.Unlock()
+		return ErrBusy
+	}
+	d.running = true
+	d.mu.Unlock()
+	f()
+	d.mu.Lock()
+	next := d.Agent.DrainQueue()
+	if len(next) == 0 || d.ctx.Err() != nil {
+		d.running = false
+		d.idle.Broadcast()
+		d.mu.Unlock()
+		return nil
+	}
+	d.mu.Unlock()
+	go d.loop(next)
+	return nil
+}
+
 // Wait blocks until no turn is running.
 func (d *Driver) Wait() {
 	d.mu.Lock()

@@ -1,0 +1,163 @@
+package agent
+
+import (
+	"context"
+	"strconv"
+
+	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/tools"
+)
+
+// Limits for injected reminders.
+const (
+	maxFileChangedReminders = 5
+	fileChangedDiffLines    = 40
+)
+
+var _ tools.Host = (*Agent)(nil)
+
+// PermissionMode implements tools.Host.
+func (a *Agent) PermissionMode() string { return a.permissionMode() }
+
+// SetPermissionMode implements tools.Host.
+func (a *Agent) SetPermissionMode(mode string) error {
+	if a.cfg.Modes == nil {
+		return nil
+	}
+	m, err := permissions.ParseMode(mode)
+	if err != nil {
+		return err
+	}
+	return a.cfg.Modes.SetMode(m)
+}
+
+// Remind implements tools.Host: the reminder is injected into the next
+// model request (skipped when the bundle lacks the id).
+func (a *Agent) Remind(id string, vars map[string]string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, r := range a.reminders {
+		if r.id == id && id != "file_changed" && id != "background_task_done" {
+			return // one pending instance is enough
+		}
+	}
+	a.reminders = append(a.reminders, pendingReminder{id: id, vars: vars})
+}
+
+// Todos implements tools.Host.
+func (a *Agent) Todos() []tools.Todo {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]tools.Todo(nil), a.todos...)
+}
+
+// SetTodos implements tools.Host.
+func (a *Agent) SetTodos(t []tools.Todo) {
+	a.mu.Lock()
+	a.todos = append([]tools.Todo(nil), t...)
+	a.roundsSinceTodo = 0
+	a.mu.Unlock()
+	a.emit(Event{Kind: EventTodos, Todos: append([]tools.Todo(nil), t...)})
+}
+
+// Interactor implements tools.Host.
+func (a *Agent) Interactor() tools.Interactor {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.interactor
+}
+
+// SetInteractor attaches the interactive frontend (nil detaches).
+func (a *Agent) SetInteractor(ia tools.Interactor) {
+	a.mu.Lock()
+	a.interactor = ia
+	a.mu.Unlock()
+}
+
+// OnTaskEvent forwards a background task event and queues the
+// background_task_done reminder when a task ends.
+func (a *Agent) OnTaskEvent(e tools.TaskEvent) {
+	ev := e
+	a.emit(Event{Kind: EventTask, Task: &ev})
+	if e.Kind == tools.TaskEventFinished && e.Task.Reason != tools.TaskSessionClosed {
+		a.Remind("background_task_done", map[string]string{
+			"task_id": e.Task.ID, "exit_code": strconv.Itoa(e.Task.ExitCode), "output_path": e.Task.OutputPath,
+			"command": e.Task.Command, "reason": string(e.Task.Reason),
+		})
+	}
+}
+
+func (a *Agent) noteToolRound(uses []llm.ContentBlock) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, u := range uses {
+		if u.Name == "TodoWrite" {
+			a.roundsSinceTodo = 0
+			return
+		}
+	}
+	a.roundsSinceTodo++
+}
+
+func (a *Agent) todoToolAvailable() bool {
+	if a.cfg.DisabledTools["TodoWrite"] {
+		return false
+	}
+	if _, ok := a.cfg.Tools.Get("TodoWrite"); !ok {
+		return false
+	}
+	_, ok := a.Bundle().Tools["TodoWrite"]
+	return ok
+}
+
+// beforeRequest runs the checks due before every model request: changed
+// files, the todo nudge, auto-compaction, then pending reminders are
+// injected into the last user message.
+func (a *Agent) beforeRequest(ctx context.Context, promptID string) {
+	if env := a.cfg.ToolEnv; env != nil && env.Files != nil {
+		changes := env.Files.Changes(fileChangedDiffLines)
+		for i, ch := range changes {
+			if i == maxFileChangedReminders {
+				break
+			}
+			a.Remind("file_changed", map[string]string{"path": ch.Path, "diff": ch.Diff})
+		}
+	}
+	a.mu.Lock()
+	nudge := a.roundsSinceTodo >= a.cfg.TodoNudgeRounds
+	if nudge {
+		a.roundsSinceTodo = 0
+	}
+	a.mu.Unlock()
+	if nudge && a.todoToolAvailable() {
+		a.Remind("todo_nudge", nil)
+	}
+	a.maybeAutoCompact(ctx)
+	a.injectReminders(promptID)
+}
+
+// injectReminders renders pending reminders and appends them to the last
+// user message (and the transcript as a meta entry).
+func (a *Agent) injectReminders(promptID string) {
+	a.mu.Lock()
+	pending := a.reminders
+	a.reminders = nil
+	bundle := a.bundle
+	a.mu.Unlock()
+	var blocks []llm.ContentBlock
+	for _, r := range pending {
+		tmpl, ok := bundle.Reminders[r.id]
+		if !ok || tmpl == "" {
+			continue
+		}
+		blocks = append(blocks, llm.TextBlock(prompts.Render(tmpl, r.vars, nil)))
+	}
+	if len(blocks) == 0 {
+		return
+	}
+	a.appendMessage(llm.RoleUser, blocks)
+	a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks(blocks), IsMeta: true, PromptID: promptID})
+}

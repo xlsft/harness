@@ -1,7 +1,8 @@
 // Package bootstrap wires the client together for one session: credentials,
 // gateway and prompt adapters, model selection, the frozen prompt bundle,
-// workspace context, tools, permissions, transcript and the agent. Frontends
-// (headless SDK mode, the TUI in packages/cli) start here.
+// workspace context, tools, permissions, transcript, file checkpoints,
+// background tasks and the agent. Frontends (headless SDK mode, the TUI in
+// packages/cli, AgentService) start here.
 package bootstrap
 
 import (
@@ -39,18 +40,37 @@ type Options struct {
 	Prompts   prompts.Source
 	HTTP      *http.Client
 
-	Model           string
-	Effort          string
-	MaxTurns        int
-	PermissionMode  permissions.Mode
-	AllowedTools    []string
-	DisallowedTools []string
+	Model    string
+	Effort   string
+	MaxTurns int
+
+	// Permissions. AllowedTools/DisallowedTools/AskTools are CLI-level rules
+	// (source "cliArg"); PermissionSources carries the settings hierarchy
+	// (policy, local, project, user) filled by the settings loader.
+	PermissionMode           permissions.Mode
+	AllowedTools             []string
+	DisallowedTools          []string
+	AskTools                 []string
+	PermissionSources        []permissions.Source
+	DisableBypassPermissions bool
+	// Trusted overrides the workspace trust lookup (~/.harness/trust.json).
+	Trusted *bool
+	// LocalSettingsPath overrides where "allow always" rules are written.
+	LocalSettingsPath string
 
 	Continue      bool
 	Resume        string
 	SessionID     string
 	NoPersistence bool
 	Entrypoint    string
+	// Fork copies the resumed session into a new one (optionally at a checkpoint).
+	Fork             bool
+	ForkAtCheckpoint string
+
+	// Unattended applies the background task time limit (headless runs).
+	Unattended bool
+	// AutoCompactPct overrides the auto-compaction threshold (0 = default).
+	AutoCompactPct float64
 
 	OnEvent func(agent.Event)
 	Logger  *slog.Logger
@@ -68,13 +88,22 @@ type Session struct {
 	Tools       *tools.Registry
 	ToolEnv     *tools.Env
 	Transcript  *session.Writer
+	FileHistory *session.FileHistory
+	Tasks       *tools.TaskManager
 	Gateway     gateway.Gateway
 	User        *auth.User
 	Resumed     bool
+	// ParentSessionID is set for forks.
+	ParentSessionID string
+	// Trusted reports whether the workspace was trusted at open.
+	Trusted bool
 }
 
-// Close releases resources.
+// Close kills background tasks and closes the transcript.
 func (s *Session) Close() error {
+	if s.Tasks != nil {
+		s.Tasks.StopAll(tools.TaskSessionClosed)
+	}
 	if s.Transcript != nil {
 		return s.Transcript.Close()
 	}
@@ -84,8 +113,9 @@ func (s *Session) Close() error {
 // ToolNames returns the tools offered to the model.
 func (s *Session) ToolNames() []string {
 	var out []string
+	b := s.Agent.Bundle()
 	for _, n := range s.Tools.Names() {
-		if _, ok := s.Bundle.Tools[n]; ok {
+		if _, ok := b.Tools[n]; ok && !s.Permissions.IsDisabled(n) {
 			out = append(out, n)
 		}
 	}
@@ -123,6 +153,14 @@ func Tokens(serverOverride string) (auth.TokenSource, string, *auth.User, error)
 	}
 	u := creds.User
 	return m, url, &u, nil
+}
+
+// PlansDir is where ExitPlanMode writes the plans of a session.
+func PlansDir(sessionID string) string { return filepath.Join(config.Home(), "plans", sessionID) }
+
+// FileHistoryDir holds the file checkpoints of a session.
+func FileHistoryDir(sessionID string) string {
+	return filepath.Join(config.Home(), "file-history", sessionID)
 }
 
 // Open builds a session.
@@ -163,7 +201,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 
 	// Session identity and history.
 	store := session.Store{Root: config.ProjectsDir()}
-	var conv session.Conversation
+	var entries []session.Entry
 	var path string
 	switch {
 	case o.Resume != "" || o.Continue:
@@ -178,11 +216,24 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries, err := session.Load(p)
+		if o.Fork {
+			newID := o.SessionID
+			if newID == "" {
+				newID = session.NewID()
+			}
+			dst := store.Path(cwd, newID)
+			if err := session.Fork(p, dst, id, newID, o.ForkAtCheckpoint); err != nil {
+				return nil, fmt.Errorf("fork session: %w", err)
+			}
+			if err := session.CopyDir(FileHistoryDir(id), FileHistoryDir(newID)); err != nil {
+				log.Warn("copy file history failed", "err", err)
+			}
+			id, p = newID, dst
+		}
+		entries, err = session.Load(p)
 		if err != nil {
 			return nil, fmt.Errorf("load session: %w", err)
 		}
-		conv = session.Rebuild(entries)
 		s.ID, path, s.Resumed = id, p, true
 	default:
 		s.ID = o.SessionID
@@ -194,6 +245,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			return nil, fmt.Errorf("session %s already exists; use --resume", s.ID)
 		}
 	}
+	conv := session.Rebuild(entries)
+	s.ParentSessionID = conv.ForkedFrom
 
 	// Model.
 	catalog, err := gw.Models(ctx)
@@ -236,15 +289,33 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	projectContext := workspace.FormatInstructions(workspace.ProjectInstructions(cwd), gitForContext)
 
-	// Tools and permissions.
+	// Tools.
 	scratch := filepath.Join(config.TempRoot(), session.Slug(cwd), s.ID, "scratchpad")
+	plans := PlansDir(s.ID)
 	s.ToolEnv = tools.NewEnv(cwd, scratch)
 	s.ToolEnv.AdditionalDirs = o.AdditionalDirs
-	s.ToolEnv.Reminders = func(k string) string { return s.Bundle.Reminder(k, "") }
+	s.ToolEnv.SessionID = s.ID
+	s.ToolEnv.PlansDir = plans
+	if os.Getenv("HARNESS_DISABLE_BACKGROUND_TASKS") != "1" {
+		s.Tasks = tools.NewTaskManager(filepath.Join(scratch, "tasks"))
+		s.Tasks.Unattended = o.Unattended
+		s.ToolEnv.Tasks = s.Tasks
+	}
 	s.Tools = tools.Default()
+
+	// Permissions.
+	trusted := false
+	if o.Trusted != nil {
+		trusted = *o.Trusted
+	} else {
+		trusted = permissions.IsTrusted(cwd)
+	}
+	s.Trusted = trusted
 	s.Permissions = permissions.New(permissions.Config{
 		Cwd: cwd, AdditionalDirectories: o.AdditionalDirs, DefaultMode: o.PermissionMode,
-		Allow: o.AllowedTools, Deny: o.DisallowedTools, ScratchDirs: []string{scratch},
+		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,
+		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, LocalSettingsPath: o.LocalSettingsPath,
+		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
 	})
 	disabled := map[string]bool{}
 	for _, n := range s.Tools.Names() {
@@ -260,7 +331,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Transcript, err = session.OpenWriter(path, session.WriterOptions{
 		SessionID: s.ID, Cwd: cwd, GitBranch: branch, Version: config.Version,
-		Entrypoint: o.Entrypoint, LastUUID: conv.LastUUID, Disabled: o.NoPersistence,
+		Entrypoint: o.Entrypoint, LastUUID: conv.LastUUID, Disabled: o.NoPersistence, Initial: entries,
 	})
 	if err != nil {
 		return nil, err
@@ -268,20 +339,36 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if !s.Resumed || conv.PromptBundleVersion != s.Bundle.Version || conv.Model != s.Model {
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, PromptBundleVersion: s.Bundle.Version, Model: s.Model})
 	}
+	s.FileHistory = session.NewFileHistory(FileHistoryDir(s.ID), s.Transcript, conv.Snapshots)
+	s.ToolEnv.BeforeEdit = s.FileHistory.TrackEdit
+
+	var todos []tools.Todo
+	if len(conv.Todos) > 0 {
+		todos, _ = tools.ParseTodos([]byte(`{"todos":` + string(conv.Todos) + `}`))
+	}
 
 	maxTokens := 32000
 	if info.MaxOutputTokens > 0 && info.MaxOutputTokens < maxTokens {
 		maxTokens = info.MaxOutputTokens
 	}
+	model := s.Model
 	s.Agent = agent.New(agent.Config{
 		Gateway: gw, Bundle: s.Bundle, Tools: s.Tools, ToolEnv: s.ToolEnv,
-		Permissions: s.Permissions, Transcript: s.Transcript,
-		Model: s.Model, ModelDisplayName: info.DisplayName, MaxTokens: maxTokens,
-		MaxTurns: o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
-		Vars: env.Vars(), ProjectContext: projectContext, History: conv,
-		DisabledTools:  disabled,
-		PermissionMode: func() string { return string(s.Permissions.Mode()) },
-		OnEvent:        o.OnEvent, Logger: log,
+		Permissions: s.Permissions, Modes: s.Permissions, Transcript: s.Transcript, FileHistory: s.FileHistory,
+		Model: s.Model, ModelDisplayName: info.DisplayName, MaxTokens: maxTokens, ContextWindow: info.ContextWindow,
+		AutoCompactPct: o.AutoCompactPct,
+		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
+		MaxTurns:       o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
+		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
+		DisabledTools: disabled,
+		OnEvent:       o.OnEvent, Logger: log,
 	})
+	s.Permissions.OnModeChange(func(m permissions.Mode) {
+		s.Agent.Emit(agent.Event{Kind: agent.EventModeChanged, Mode: string(m)})
+	})
+	s.ToolEnv.Reminders = func(k string) string { return s.Agent.Bundle().Reminder(k, "") }
+	if s.Tasks != nil {
+		s.Tasks.OnEvent = s.Agent.OnTaskEvent
+	}
 	return s, nil
 }
