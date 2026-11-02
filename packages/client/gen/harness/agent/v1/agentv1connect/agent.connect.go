@@ -41,6 +41,15 @@ const (
 	// AgentServiceListSessionsProcedure is the fully-qualified name of the AgentService's ListSessions
 	// RPC.
 	AgentServiceListSessionsProcedure = "/harness.agent.v1.AgentService/ListSessions"
+	// AgentServiceListRecentFoldersProcedure is the fully-qualified name of the AgentService's
+	// ListRecentFolders RPC.
+	AgentServiceListRecentFoldersProcedure = "/harness.agent.v1.AgentService/ListRecentFolders"
+	// AgentServiceListDirectoryProcedure is the fully-qualified name of the AgentService's
+	// ListDirectory RPC.
+	AgentServiceListDirectoryProcedure = "/harness.agent.v1.AgentService/ListDirectory"
+	// AgentServiceListBranchesProcedure is the fully-qualified name of the AgentService's ListBranches
+	// RPC.
+	AgentServiceListBranchesProcedure = "/harness.agent.v1.AgentService/ListBranches"
 	// AgentServiceSubscribeProcedure is the fully-qualified name of the AgentService's Subscribe RPC.
 	AgentServiceSubscribeProcedure = "/harness.agent.v1.AgentService/Subscribe"
 	// AgentServiceSendUserMessageProcedure is the fully-qualified name of the AgentService's
@@ -103,6 +112,13 @@ type AgentServiceClient interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
+	// --- New-session pickers (folder, branch, worktree) ---
+	// Folders recently used for sessions on this machine, most recent first.
+	ListRecentFolders(context.Context, *connect.Request[v1.ListRecentFoldersRequest]) (*connect.Response[v1.ListRecentFoldersResponse], error)
+	// Subdirectories of a folder, for an "Open folder…" browser. Hidden entries are left out unless asked.
+	ListDirectory(context.Context, *connect.Request[v1.ListDirectoryRequest]) (*connect.Response[v1.ListDirectoryResponse], error)
+	// Local branches of the repository containing `cwd` (empty outside a repository).
+	ListBranches(context.Context, *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error)
 	// Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
 	Subscribe(context.Context, *connect.Request[v1.SubscribeRequest]) (*connect.ServerStreamForClient[v1.SubscribeResponse], error)
 	// Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
@@ -170,6 +186,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+AgentServiceListSessionsProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("ListSessions")),
+			connect.WithClientOptions(opts...),
+		),
+		listRecentFolders: connect.NewClient[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse](
+			httpClient,
+			baseURL+AgentServiceListRecentFoldersProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListRecentFolders")),
+			connect.WithClientOptions(opts...),
+		),
+		listDirectory: connect.NewClient[v1.ListDirectoryRequest, v1.ListDirectoryResponse](
+			httpClient,
+			baseURL+AgentServiceListDirectoryProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListDirectory")),
+			connect.WithClientOptions(opts...),
+		),
+		listBranches: connect.NewClient[v1.ListBranchesRequest, v1.ListBranchesResponse](
+			httpClient,
+			baseURL+AgentServiceListBranchesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListBranches")),
 			connect.WithClientOptions(opts...),
 		),
 		subscribe: connect.NewClient[v1.SubscribeRequest, v1.SubscribeResponse](
@@ -306,6 +340,9 @@ type agentServiceClient struct {
 	initialize          *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
 	createSession       *connect.Client[v1.CreateSessionRequest, v1.CreateSessionResponse]
 	listSessions        *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	listRecentFolders   *connect.Client[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse]
+	listDirectory       *connect.Client[v1.ListDirectoryRequest, v1.ListDirectoryResponse]
+	listBranches        *connect.Client[v1.ListBranchesRequest, v1.ListBranchesResponse]
 	subscribe           *connect.Client[v1.SubscribeRequest, v1.SubscribeResponse]
 	sendUserMessage     *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
 	removeQueuedMessage *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
@@ -342,6 +379,21 @@ func (c *agentServiceClient) CreateSession(ctx context.Context, req *connect.Req
 // ListSessions calls harness.agent.v1.AgentService.ListSessions.
 func (c *agentServiceClient) ListSessions(ctx context.Context, req *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error) {
 	return c.listSessions.CallUnary(ctx, req)
+}
+
+// ListRecentFolders calls harness.agent.v1.AgentService.ListRecentFolders.
+func (c *agentServiceClient) ListRecentFolders(ctx context.Context, req *connect.Request[v1.ListRecentFoldersRequest]) (*connect.Response[v1.ListRecentFoldersResponse], error) {
+	return c.listRecentFolders.CallUnary(ctx, req)
+}
+
+// ListDirectory calls harness.agent.v1.AgentService.ListDirectory.
+func (c *agentServiceClient) ListDirectory(ctx context.Context, req *connect.Request[v1.ListDirectoryRequest]) (*connect.Response[v1.ListDirectoryResponse], error) {
+	return c.listDirectory.CallUnary(ctx, req)
+}
+
+// ListBranches calls harness.agent.v1.AgentService.ListBranches.
+func (c *agentServiceClient) ListBranches(ctx context.Context, req *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error) {
+	return c.listBranches.CallUnary(ctx, req)
 }
 
 // Subscribe calls harness.agent.v1.AgentService.Subscribe.
@@ -454,6 +506,13 @@ type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
+	// --- New-session pickers (folder, branch, worktree) ---
+	// Folders recently used for sessions on this machine, most recent first.
+	ListRecentFolders(context.Context, *connect.Request[v1.ListRecentFoldersRequest]) (*connect.Response[v1.ListRecentFoldersResponse], error)
+	// Subdirectories of a folder, for an "Open folder…" browser. Hidden entries are left out unless asked.
+	ListDirectory(context.Context, *connect.Request[v1.ListDirectoryRequest]) (*connect.Response[v1.ListDirectoryResponse], error)
+	// Local branches of the repository containing `cwd` (empty outside a repository).
+	ListBranches(context.Context, *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error)
 	// Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
 	Subscribe(context.Context, *connect.Request[v1.SubscribeRequest], *connect.ServerStream[v1.SubscribeResponse]) error
 	// Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
@@ -517,6 +576,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceListSessionsProcedure,
 		svc.ListSessions,
 		connect.WithSchema(agentServiceMethods.ByName("ListSessions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListRecentFoldersHandler := connect.NewUnaryHandler(
+		AgentServiceListRecentFoldersProcedure,
+		svc.ListRecentFolders,
+		connect.WithSchema(agentServiceMethods.ByName("ListRecentFolders")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListDirectoryHandler := connect.NewUnaryHandler(
+		AgentServiceListDirectoryProcedure,
+		svc.ListDirectory,
+		connect.WithSchema(agentServiceMethods.ByName("ListDirectory")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListBranchesHandler := connect.NewUnaryHandler(
+		AgentServiceListBranchesProcedure,
+		svc.ListBranches,
+		connect.WithSchema(agentServiceMethods.ByName("ListBranches")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceSubscribeHandler := connect.NewServerStreamHandler(
@@ -653,6 +730,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceCreateSessionHandler.ServeHTTP(w, r)
 		case AgentServiceListSessionsProcedure:
 			agentServiceListSessionsHandler.ServeHTTP(w, r)
+		case AgentServiceListRecentFoldersProcedure:
+			agentServiceListRecentFoldersHandler.ServeHTTP(w, r)
+		case AgentServiceListDirectoryProcedure:
+			agentServiceListDirectoryHandler.ServeHTTP(w, r)
+		case AgentServiceListBranchesProcedure:
+			agentServiceListBranchesHandler.ServeHTTP(w, r)
 		case AgentServiceSubscribeProcedure:
 			agentServiceSubscribeHandler.ServeHTTP(w, r)
 		case AgentServiceSendUserMessageProcedure:
@@ -714,6 +797,18 @@ func (UnimplementedAgentServiceHandler) CreateSession(context.Context, *connect.
 
 func (UnimplementedAgentServiceHandler) ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSessions is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListRecentFolders(context.Context, *connect.Request[v1.ListRecentFoldersRequest]) (*connect.Response[v1.ListRecentFoldersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListRecentFolders is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListDirectory(context.Context, *connect.Request[v1.ListDirectoryRequest]) (*connect.Response[v1.ListDirectoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListDirectory is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListBranches(context.Context, *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListBranches is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) Subscribe(context.Context, *connect.Request[v1.SubscribeRequest], *connect.ServerStream[v1.SubscribeResponse]) error {
