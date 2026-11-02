@@ -105,7 +105,7 @@ func TestClientFillsRequestAndMapsResponse(t *testing.T) {
 		t.Fatalf("recent messages %d %q", len(msgs), msgs[0])
 	}
 	f := r.GetFacts()
-	if strings.Join(f.GetSubcommands(), "|") != "./deploy.sh --env prod|curl -s https://hooks.example.com/x > out.txt" ||
+	if strings.Join(f.GetSubcommands(), "|") != "FOO=1 ./deploy.sh --env prod|curl -s https://hooks.example.com/x > out.txt" ||
 		strings.Join(f.GetWritePaths(), ",") != testCwd+"/out.txt" || strings.Join(f.GetNetworkHosts(), ",") != "hooks.example.com" ||
 		!f.GetInsideGitRepo() || f.GetGitBranch() != "feature/auto" {
 		t.Fatalf("facts %+v", f)

@@ -116,7 +116,9 @@ func (c *Client) Decide(ctx context.Context, req permissions.AutoRequest) (permi
 		return c.rpc.Decide(ctx, r)
 	})
 	if err != nil {
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		// The server gets the timeout too (Connect-Timeout-Ms, rounded down)
+		// and may give up a moment before the client's own timer fires.
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) || pastDeadline(ctx, 10*time.Millisecond) {
 			return permissions.AutoResult{}, errors.New("decision service timed out after " + timeout.String())
 		}
 		return permissions.AutoResult{}, err
@@ -126,6 +128,12 @@ func (c *Client) Decide(ctx context.Context, req permissions.AutoRequest) (permi
 		res.LatencyMs = time.Since(start).Milliseconds()
 	}
 	return res, nil
+}
+
+// pastDeadline reports whether ctx's deadline is less than grace away.
+func pastDeadline(ctx context.Context, grace time.Duration) bool {
+	dl, ok := ctx.Deadline()
+	return ok && time.Until(dl) < grace
 }
 
 // ListProviders returns the server's provider chain.

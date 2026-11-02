@@ -23,7 +23,7 @@ It ships in two forms:
 | `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop |
 | `outputstyle` | Output style discovery: bundle built-ins, user styles (sync or `~/.claude`/`~/.harness/output-styles`), project styles (`.claude`/`.harness/output-styles`), frontmatter parsing |
 | `permissions` | Rule engine with Claude Code semantics (deny → ask → allow, compound Bash, wrappers, gitignore paths, read-only allowlist, protected paths, modes), workspace trust (`~/.harness/trust.json`), allow-always persistence |
-| `decision` | Deciders of the `auto` permission mode: local rules table (port of the server's `rules` provider), `harness.decision.v1.DecisionService` client, chain with fallback, session cache |
+| `decision` | Deciders of the `auto` permission mode: local rules (Go port of the server's `rules` provider, `packages/core/src/decision/rules.ts`), `harness.decision.v1.DecisionService` client, chain with fallback, session cache |
 | `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`), branch-aware rebuild, file checkpoints (`~/.harness/file-history/<id>/`), fork |
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
@@ -69,7 +69,7 @@ Environment variables:
 For each tool call the rule engine runs first: deny rules deny; allow rules, read-only calls and scratch paths allow; protected paths (also as Bash write targets) and explicit ask rules always prompt the user. Only what would otherwise prompt goes to the decider:
 
 1. the session cache (ALLOW/DENY by tool, cwd and normalized input; cleared on every mode change);
-2. the local rules (`decision/rules.go`): a hard deny is final, a fast allow (tests, builds, linters, version queries, read-only commands, edits inside the working directories) runs without a network call;
+2. the local rules (`decision/rulesengine.go`, a port of the server's `rules.ts` checked against its test table `packages/core/test/fixtures/decision-rules.json`): a hard deny is final, a fast allow (tests, builds, linters, version queries, read-only commands, edits inside the working directories) runs without a network call;
 3. `DecisionService.Decide` (10 s timeout) with the tool input, cwd, additional directories, the last 3 user prompts (2000 characters each), the assistant text before the call and client facts (subcommands, write paths, network hosts, git branch). If the server fails, the local verdict (ASK) stands.
 
 ALLOW runs the tool, DENY returns the reason to the model (the turn continues), ASK prompts the user with the reason; headless runs deny it instead and list it in `permission_denials` with `reason` and `decided_by`. Every verdict emits a `Notice` of kind `auto_decision` (over AgentService its text is JSON: `decision`, `provider`, `reason`, `categories`, `tool_use_id`, `tool_name`, `cached`, `text`) and is recorded as `autoDecision` on the tool_result transcript entry.
