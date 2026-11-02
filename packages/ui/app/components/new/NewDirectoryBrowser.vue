@@ -19,7 +19,10 @@ async function go(path: string) {
     listing.value = await store.transport!.listDirectory(path)
     typed.value = listing.value.path
   } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+    const msg = err instanceof Error ? err.message : String(err)
+    error.value = /unimplemented/i.test(msg)
+      ? 'This harness-client cannot browse folders yet. Update it, or type a path above.'
+      : msg
   } finally {
     loading.value = false
   }
@@ -97,9 +100,9 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
       </button>
       <button
         type="button"
-        :disabled="!listing || loading"
+        :disabled="(!listing && !typed.trim()) || loading"
         class="h-7 bg-accent px-2.5 text-white disabled:opacity-50"
-        @click="listing && emit('pick', listing.path)"
+        @click="emit('pick', listing?.path ?? typed.trim())"
       >
         Use this folder
       </button>

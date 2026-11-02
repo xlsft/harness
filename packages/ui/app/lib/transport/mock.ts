@@ -474,3 +474,7 @@ export class MockTransport implements SessionTransport {
     this.emit(s, b => b.taskFinished(taskId, 143, 0, true))
   }
 }
+
+// The store keeps the transport instance across hot updates, so a changed transport would keep running the
+// old code (missing methods). Reload the page instead of hot-swapping this module.
+if (import.meta.hot) import.meta.hot.accept(() => window.location.reload())

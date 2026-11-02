@@ -133,3 +133,7 @@ export function bearer(token: string): Interceptor {
     return next(req)
   }
 }
+
+// The store keeps the transport instance across hot updates, so a changed transport would keep running the
+// old code (missing methods). Reload the page instead of hot-swapping this module.
+if (import.meta.hot) import.meta.hot.accept(() => window.location.reload())
