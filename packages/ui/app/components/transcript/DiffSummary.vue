@@ -19,7 +19,10 @@ function bars(f: FileChange) {
     class="bg-surface"
     :class="flush ? 'border-b border-default' : 'border border-default'"
   >
-    <div class="flex items-center gap-[9px] border-b border-default px-3 py-[7px] text-[12px]">
+    <div
+      class="flex items-center gap-[9px] px-3 py-[7px] text-[12px]"
+      :class="totalOnly ? '' : 'border-b border-default'"
+    >
       <span class="text-white">{{ files.length }} files changed</span>
       <span class="flex-1" />
       <span class="text-ok">+{{ total.add }}</span><span class="text-bad">−{{ total.del }}</span>

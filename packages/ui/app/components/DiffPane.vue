@@ -186,7 +186,7 @@ async function copy(text: string) {
         v-for="g in groups"
         :id="`diff-${g.path}`"
         :key="g.path"
-        class="border-b border-default"
+        class="not-first-of-type:border-t not-first-of-type:border-default"
       >
         <div
           :title="g.path"
