@@ -9,7 +9,7 @@
 
 An agentic coding harness that replaces Claude Code. It keeps the same tools, the same UX and the same architecture, and runs with **any model** behind an OpenAI- or Anthropic-compatible endpoint.
 
-> **Status:** early development (milestone M0). Nothing is usable yet. See the [plan](docs/PLAN.md).
+> **Status:** early development. The core harness works headless (`harness-client -p`) against real models; frontends and the deployable image are in progress. See the [plan](docs/PLAN.md#5-roadmap).
 
 ## How it works
 
@@ -44,12 +44,16 @@ The repository is a monorepo **without monorepo tooling**. Each package is self-
 |---|---|---|---|
 | [`packages/core`](packages/core) | Server: auth, LLM gateway, prompts, user data, MCP, relay | [Nitro v3](https://nitro.build), TypeScript | in progress |
 | [`packages/client`](packages/client) | Universal client: agent loop and tool execution; a Go library and a headless binary | Go | in progress |
-| [`packages/cli`](packages/cli) | Terminal frontend, designed to match Claude Code one-to-one | Go, [charm.land](https://charm.land) | planned |
+| [`packages/cli`](packages/cli) | Terminal frontend, designed to match Claude Code one-to-one | Go, [charm.land](https://charm.land) | brand primitives |
 | [`packages/ui`](packages/ui) | Desktop and mobile frontend | [Nuxt 4](https://nuxt.com), [Nuxt UI](https://ui.nuxt.com) | template only |
 
 Build order: `core` + `client` first, then the `cli` and `ui` frontends, deployment last.
 
 ## Documentation
+
+- [Contributing](CONTRIBUTING.md): setup, commands, dev stack, evals.
+- [Design](docs/design): [visual identity](docs/design/brand.md) and the [terminal UI reference](docs/design/cli-reference.md).
+- [Eval baselines](docs/evals).
 
 - [Implementation plan](docs/PLAN.md): architecture, decisions, roadmap, risks.
 - [Protocol contracts](proto): protobuf services for auth, the LLM gateway, prompts and the agent API.
