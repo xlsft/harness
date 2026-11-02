@@ -322,7 +322,7 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 ## 7. Open questions (defaults chosen)
 
 1. ~~Local provider bypassing the server~~ — **decided: no, all LLM calls go only through the server gateway.** The client cannot talk to providers directly. Local models (vLLM/Ollama) connect as a provider on the server: they must be reachable from the server's network, and the admin explicitly allows private addresses.
-2. Always store full transcripts on the server (default) or only metadata + optional content.
+2. ~~Transcript storage~~ — **decided: the server stores full transcripts and metadata.**
 3. Desktop + mobile shell: **Tauri 2** (default: one shell for desktop and iOS/Android, Go client as a sidecar) or Electron + Capacitor.
-4. OpenAI Responses API in M0 or later.
+4. ~~OpenAI Responses API~~ — **decided: implemented in M1, before the first real-model tests.**
 5. WebSearch backend on the server (Brave, Tavily, SearXNG, provider-native).
