@@ -25,3 +25,7 @@ logs
 
 # Agent worktrees
 .claude/worktrees/
+
+# Local dev stack (scripts/dev/stack.sh)
+.dev/
+.data-dev/
