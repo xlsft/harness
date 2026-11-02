@@ -4,16 +4,18 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { evaluateRules, normalizePath, parseShell, resolvePath, type RulesInput } from "../src/decision/rules.ts";
+import { BUILTIN_RULES_VERSION, evaluateRules, normalizePath, parseShell, resolvePath, type RulesInput } from "../src/decision/rules.ts";
 
 interface Case {
   name: string;
   input: RulesInput;
   expected: "allow" | "deny" | "ask";
   categories: string[];
+  rule: string;
 }
 
 const table = JSON.parse(readFileSync(new URL("./fixtures/decision-rules.json", import.meta.url), "utf8")) as {
+  rules_version: number;
   defaults: { cwd: string; additional_directories: string[] };
   cases: Case[];
 };
@@ -30,13 +32,19 @@ describe("rules table (test/fixtures/decision-rules.json)", () => {
     expect(by("deny")).toBeGreaterThanOrEqual(30);
     expect(by("ask")).toBeGreaterThanOrEqual(15);
     expect(new Set(table.cases.map((c) => c.name)).size).toBe(table.cases.length);
+    expect(table.cases.every((c) => typeof c.rule === "string" && c.rule.length > 0)).toBe(true);
+  });
+
+  it("describes the current built-in rule set", () => {
+    expect(table.rules_version).toBe(BUILTIN_RULES_VERSION);
   });
 
   it.each(table.cases.map((c) => [c.name, c] as const))("%s", (_name, c) => {
     const r = evaluateRules(withDefaults(c.input));
-    expect({ decision: r.decision, categories: [...r.categories].sort() }, `${r.rule}: ${r.reason}`).toEqual({
+    expect({ decision: r.decision, categories: [...r.categories].sort(), rule: r.rule }, r.reason).toEqual({
       decision: c.expected,
       categories: [...c.categories].sort(),
+      rule: c.rule,
     });
     expect(r.reason.length).toBeGreaterThan(0);
   });

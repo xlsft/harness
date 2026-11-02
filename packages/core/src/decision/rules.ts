@@ -95,6 +95,13 @@ export interface RulesResult {
 
 export const DEFAULT_PROTECTED_BRANCHES = ["main", "master", "release*"];
 
+/**
+ * Version of the built-in rule set. Bump it whenever a rule changes (the Go port in
+ * packages/client/decision/rulesengine.go carries the same number, and test/fixtures/decision-rules.json
+ * records it); it is part of the rules_version clients use to notice changed rules.
+ */
+export const BUILTIN_RULES_VERSION = 2;
+
 const MAX_COMMAND_LENGTH = 100_000;
 const MAX_DEPTH = 6;
 
@@ -1123,6 +1130,9 @@ function checkDevices(c: Cmd): Hit | undefined {
 
 function checkPrivilegedWrites(c: Cmd): Hit | undefined {
   if (c.name === "crontab") {
+    if (parseArgs(c.argv.slice(1), ["-u"]).shorts.has("r")) {
+      return { rule: "destructive.crontab_remove", reason: "Removes the whole crontab (crontab -r)", categories: DESTRUCTIVE };
+    }
     const args = c.argv.slice(1).filter((a) => !["-u"].includes(a));
     if (!(args.length === 1 && args[0] === "-l")) {
       return { rule: "privilege.crontab", reason: "Installs or edits a crontab", categories: ["privilege_escalation"] };
@@ -1138,6 +1148,13 @@ function checkPrivilegedWrites(c: Cmd): Hit | undefined {
     }
   }
   return undefined;
+}
+
+/** Modes that set the setuid or setgid bit: u+s, g+s, +s, 4xxx, 2xxx, 6xxx. */
+function isSetidMode(mode: string): boolean {
+  const num = /^0*([0-7]{3,4})$/.exec(mode)?.[1];
+  if (num) return num.length === 4 && (Number(num[0]) & 6) !== 0;
+  return mode.split(",").some((part) => /^[ugoa]*[+=][rwxXt]*s/.test(part));
 }
 
 /** World-writable or setuid/setgid modes. */
@@ -1157,6 +1174,10 @@ function checkChmod(c: Cmd, ctx: Ctx): Hit | undefined {
   const recursive = p.shorts.has("R") || p.longs.has("--recursive");
   const [mode, ...targets] = p.positionals;
   if (!mode) return undefined;
+  // setuid/setgid binaries are an escalation path wherever they live, the workspace included.
+  if (c.name === "chmod" && targets.length && isSetidMode(mode)) {
+    return { rule: "privilege.chmod_setuid", reason: `Sets the setuid or setgid bit (chmod ${mode})`, categories: ["privilege_escalation"] };
+  }
   const wide = c.name === "chmod" && isWideMode(mode);
   const safeRoots = ctx.roots.filter((r) => !isCriticalPath(r));
   for (const t of targets) {
@@ -1277,6 +1298,35 @@ function firstPositional(args: string[], withValue: Set<string>): { sub: string;
   return { sub: "", rest: [] };
 }
 
+const LOCAL_KUBE_SERVER = /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/;
+
+/** The target cluster is clearly local: a local --context, or (without one) a loopback --server. */
+function isLocalKube(kctx: string | undefined, server: string | undefined): boolean {
+  if (kctx !== undefined) return isLocalKubeContext(kctx);
+  return server !== undefined && LOCAL_KUBE_SERVER.test(server);
+}
+
+function isKubeDryRun(args: string[]): boolean {
+  return args.some((a) => a === "--dry-run" || (a.startsWith("--dry-run=") && !["none", "false"].includes(a.slice(10))));
+}
+
+/** kubectl operations that take workloads or nodes out of service (undefined when the call is none of them). */
+function kubeDisruptive(sub: string, rest: string[], args: string[]): string | undefined {
+  if (isKubeDryRun(args)) return undefined;
+  if (sub === "drain" || sub === "cordon" || sub === "taint") return sub;
+  if (sub === "scale") {
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i]!;
+      const v = a === "--replicas" ? args[i + 1] : a.startsWith("--replicas=") ? a.slice(11) : undefined;
+      if (v !== undefined && /^0+$/.test(v)) return "scale --replicas=0";
+    }
+  }
+  if (sub === "replace" && hasFlag(args, "--force")) return "replace --force";
+  if (sub === "delete" && (hasFlag(args, "--all", "--all-namespaces") || args.includes("-A"))) return "delete --all";
+  if (sub === "rollout" && firstPositional(rest, KUBECTL_WITH_VALUE).sub === "undo") return "rollout undo";
+  return undefined;
+}
+
 const KUBE_MUTATING = new Set(["apply", "create", "replace", "patch", "scale", "rollout", "set", "edit", "drain", "cordon", "label", "annotate", "delete", "expose", "autoscale", "taint"]);
 
 function checkInfra(c: Cmd): Hit | undefined {
@@ -1299,7 +1349,7 @@ function checkInfra(c: Cmd): Hit | undefined {
     }
   }
   if (n === "kubectl" || n === "oc") {
-    const { sub } = firstPositional(args, KUBECTL_WITH_VALUE);
+    const { sub, rest } = firstPositional(args, KUBECTL_WITH_VALUE);
     const kctx = kubeContext(args);
     const ns = (() => {
       const i = args.findIndex((a) => a === "-n" || a === "--namespace");
@@ -1310,10 +1360,19 @@ function checkInfra(c: Cmd): Hit | undefined {
       return i >= 0 ? args[i + 1] : args.find((a) => a.startsWith("--server="))?.slice(9);
     })();
     if (sub === "delete") {
-      const remoteServer = server !== undefined && !/^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(server);
+      const remoteServer = server !== undefined && !LOCAL_KUBE_SERVER.test(server);
       if ((kctx !== undefined && !isLocalKubeContext(kctx)) || remoteServer) {
         return { rule: "production.kubectl_delete", reason: `Deletes Kubernetes resources in the non-local context ${kctx ?? server}`, categories: ["destructive", "production_change"] };
       }
+    }
+    const disruptive = kubeDisruptive(sub, rest, args);
+    if (disruptive && !isLocalKube(kctx, server)) {
+      const where = kctx !== undefined ? `the context ${kctx}` : server !== undefined ? `the server ${server}` : "the current context";
+      return {
+        rule: "production.kubectl_disruptive",
+        reason: `Runs kubectl ${disruptive} against ${where}, which is not a local cluster`,
+        categories: sub === "delete" ? ["destructive", "production_change"] : ["production_change"],
+      };
     }
     if (KUBE_MUTATING.has(sub) && ((kctx && PROD_RE.test(kctx)) || (ns && PROD_RE.test(ns)))) {
       return { rule: "production.kubectl_prod", reason: `Changes Kubernetes resources in production (${kctx ?? ns})`, categories: ["production_change"] };
@@ -1326,6 +1385,111 @@ function checkInfra(c: Cmd): Hit | undefined {
     }
   }
   return undefined;
+}
+
+const AWS_WITH_VALUE = new Set(["--profile", "--region", "--output", "--endpoint-url", "--query", "--color", "--ca-bundle", "--cli-read-timeout", "--cli-connect-timeout", "--cli-binary-format"]);
+const AWS_DELETE_OPS = new Set([
+  "terminate-instances", "delete-db-instance", "delete-db-cluster", "delete-stack", "delete-table", "delete-function", "delete-cluster",
+  "delete-nodegroup", "delete-bucket", "delete-repository", "delete-hosted-zone", "delete-secret", "delete-file-system",
+  "delete-load-balancer", "delete-vpc", "delete-log-group", "delete-queue", "delete-topic", "delete-service", "schedule-key-deletion",
+]);
+/** gcloud / az command groups that only touch local configuration. */
+const GCLOUD_LOCAL_GROUPS = new Set(["config", "auth", "components", "topic", "help", "info"]);
+const AZ_LOCAL_GROUPS = new Set(["config", "extension", "cache", "account", "login", "logout", "cloud"]);
+const GSUTIL_WITH_VALUE = new Set(["-o", "-h", "-p", "-u"]);
+const HEROKU_WITH_VALUE = new Set(["-a", "--app", "-r", "--remote"]);
+const VERCEL_WITH_VALUE = new Set(["--token", "-t", "--scope", "-S", "--cwd", "-A", "--local-config", "-Q", "--global-config"]);
+const NETLIFY_WITH_VALUE = new Set(["--auth"]);
+
+/** Deletes of cloud resources through the providers' CLIs (read and list verbs are not affected). */
+function checkCloudDelete(c: Cmd): Hit | undefined {
+  const n = c.name;
+  const args = c.argv.slice(1);
+  const pos = args.filter((a) => !a.startsWith("-"));
+  const verbAt = (limit: number, verbs: string[]) => pos.slice(0, limit).findIndex((x) => verbs.includes(x));
+  let what: string | undefined;
+  if (n === "aws") {
+    const { sub: service, rest } = firstPositional(args, AWS_WITH_VALUE);
+    const { sub: op } = firstPositional(rest, AWS_WITH_VALUE);
+    if (service === "s3" && ((op === "rm" && hasFlag(rest, "--recursive")) || (op === "rb" && hasFlag(rest, "--force")))) what = `aws s3 ${op}`;
+    else if (AWS_DELETE_OPS.has(op) || (service === "iam" && op.startsWith("delete-"))) what = `aws ${service} ${op}`;
+  } else if (n === "gcloud") {
+    const i = verbAt(5, ["delete"]);
+    if (i > 0 && !GCLOUD_LOCAL_GROUPS.has(pos[0]!)) what = `gcloud ${pos.slice(0, i + 1).join(" ")}`;
+    else if (pos[0] === "storage" && pos[1] === "rm" && hasFlag(args, "-r", "-R", "--recursive")) what = "gcloud storage rm --recursive";
+  } else if (n === "gsutil") {
+    const { sub, rest } = firstPositional(args, GSUTIL_WITH_VALUE);
+    const p = parseArgs(rest);
+    if (sub === "rb") what = "gsutil rb";
+    else if (sub === "rm" && (p.shorts.has("r") || p.shorts.has("R") || p.longs.has("--recursive"))) what = "gsutil rm -r";
+  } else if (n === "az") {
+    const i = verbAt(4, ["delete", "delete-batch", "purge"]);
+    if (i > 0 && !AZ_LOCAL_GROUPS.has(pos[0]!)) what = `az ${pos.slice(0, i + 1).join(" ")}`;
+  } else if (n === "doctl") {
+    const i = verbAt(4, ["delete", "rm"]);
+    if (i > 0 && pos[0] !== "auth") what = `doctl ${pos.slice(0, i + 1).join(" ")}`;
+  } else if (n === "fly" || n === "flyctl") {
+    const i = verbAt(3, ["destroy", "delete"]);
+    if (i >= 0) what = `${n} ${pos.slice(0, i + 1).join(" ")}`;
+  } else if (n === "heroku") {
+    const { sub } = firstPositional(args, HEROKU_WITH_VALUE);
+    if (/(^|:)destroy$/.test(sub) || sub === "pg:reset") what = `heroku ${sub}`;
+  } else if (n === "vercel") {
+    const { sub, rest } = firstPositional(args, VERCEL_WITH_VALUE);
+    if (sub === "remove" || sub === "rm") what = `vercel ${sub}`;
+    else if ((sub === "project" || sub === "projects") && ["rm", "remove"].includes(firstPositional(rest, VERCEL_WITH_VALUE).sub)) what = `vercel ${sub} remove`;
+  } else if (n === "netlify") {
+    if (firstPositional(args, NETLIFY_WITH_VALUE).sub === "sites:delete") what = "netlify sites:delete";
+  }
+  if (what === undefined) return undefined;
+  return { rule: "production.cloud_delete", reason: `Deletes cloud resources (${what})`, categories: ["destructive", "production_change"] };
+}
+
+const SYSTEMCTL_WITH_VALUE = new Set(["-H", "--host", "-M", "--machine"]);
+const SYSTEMCTL_POWER = new Set(["poweroff", "reboot", "halt", "kexec"]);
+
+function checkShutdown(c: Cmd): Hit | undefined {
+  const n = c.name;
+  const args = c.argv.slice(1);
+  if (args.length === 1 && ["--help", "-h", "--version"].includes(args[0]!)) return undefined;
+  let what: string | undefined;
+  if (n === "shutdown" || n === "reboot" || n === "halt" || n === "poweroff") {
+    if (!(n === "shutdown" && args.includes("-c"))) what = n; // shutdown -c cancels a pending shutdown
+  } else if ((n === "init" || n === "telinit") && (args[0] === "0" || args[0] === "6")) {
+    what = `${n} ${args[0]}`;
+  } else if (n === "systemctl") {
+    const { sub } = firstPositional(args, SYSTEMCTL_WITH_VALUE);
+    if (SYSTEMCTL_POWER.has(sub)) what = `systemctl ${sub}`;
+  }
+  if (what === undefined) return undefined;
+  return { rule: "destructive.shutdown", reason: `Shuts down or reboots the machine (${what})`, categories: DESTRUCTIVE };
+}
+
+/**
+ * Cloud instance metadata endpoints (AWS, Azure, GCP, Alibaba, Oracle, ECS task credentials), also the
+ * decimal and hex forms of 169.254.169.254. They hand out instance credentials to anything that asks.
+ */
+const METADATA_RE =
+  /(^|[^0-9a-z.-])(169\.254\.169\.254|169\.254\.170\.2|100\.100\.100\.200|192\.0\.0\.192|fd00:ec2::254|2852039166|0xa9fea9fe|metadata\.google\.internal|metadata\.goog)($|[^0-9a-z-])|:\/\/metadata($|[/:?#])/i;
+const METADATA_TOOLS = new Set([...NETWORK_TOOLS, "git"]);
+const DEV_NET_RE = /\/dev\/(tcp|udp)\//;
+const METADATA_HIT: Hit = {
+  rule: "exfiltration.cloud_metadata",
+  reason: "Contacts a cloud metadata endpoint, which hands out instance credentials",
+  categories: ["secret_exfiltration", "network_egress"],
+};
+
+/** A network tool or interpreter names a metadata endpoint, or a /dev/tcp redirection opens one. */
+function checkMetadata(c: Cmd): Hit | undefined {
+  const args = c.argv.slice(1);
+  if ((METADATA_TOOLS.has(c.name) || isInterpreter(c.name)) && args.some((a) => METADATA_RE.test(a))) return METADATA_HIT;
+  const dev = (t: string) => DEV_NET_RE.test(t) && METADATA_RE.test(t);
+  if (c.redirects.some((r) => dev(r.target.text)) || c.argv.some(dev)) return METADATA_HIT;
+  return undefined;
+}
+
+function metadataHostIn(hosts: string[] | undefined): boolean {
+  return !!hosts?.some((h) => METADATA_RE.test(h));
 }
 
 const DB_CLIENTS = new Set(["psql", "mysql", "mariadb", "sqlite3", "sqlcmd", "mongo", "mongosh", "redis-cli", "clickhouse-client", "clickhouse", "cockroach", "cqlsh", "duckdb", "snowsql", "bq", "pgcli", "mycli", "litecli", "usql"]);
@@ -1824,6 +1988,7 @@ export function evaluateRules(req: RulesInput, opts: RulesOptions = {}): RulesRe
     const subject = `${tool} ${typeof req.input === "string" ? req.input : JSON.stringify(req.input)}`;
     const extra = extraDeny.find(({ re }) => re.test(subject));
     if (extra) return { decision: "deny", reason: extra.r.reason || "Blocked by an administrator rule", categories: sortCategories(extra.r.categories ?? []), rule: "admin.deny" };
+    if ((tool === "WebFetch" && typeof input.url === "string" && METADATA_RE.test(input.url)) || metadataHostIn(facts.network_hosts)) return denyFrom([METADATA_HIT]);
     return evaluateTool(tool, input, ctx, facts, extraAllow.some((re) => re.test(subject)));
   }
 
@@ -1851,7 +2016,7 @@ export function evaluateRules(req: RulesInput, opts: RulesOptions = {}): RulesRe
       continue;
     }
     for (const c of cmds) {
-      for (const check of [checkEscalation, checkRm, checkFindDelete, checkDevices, checkPrivilegedWrites, checkChmod, checkGit, checkInfra, checkDeploy] as ((c: Cmd, ctx: Ctx) => Hit | undefined)[]) {
+      for (const check of [checkEscalation, checkRm, checkFindDelete, checkDevices, checkPrivilegedWrites, checkChmod, checkGit, checkInfra, checkDeploy, checkShutdown, checkCloudDelete, checkMetadata] as ((c: Cmd, ctx: Ctx) => Hit | undefined)[]) {
         const h = check(c, ctx);
         if (h) hits.push(h);
       }
@@ -1867,6 +2032,7 @@ export function evaluateRules(req: RulesInput, opts: RulesOptions = {}): RulesRe
   }
   const exfil = checkExfiltration(allCmds, facts);
   if (exfil) hits.push(exfil);
+  if (metadataHostIn(facts.network_hosts)) hits.push(METADATA_HIT);
   // Paths the client resolved for the whole call.
   for (const p of facts.write_paths ?? []) {
     const r = resolvePath(p, undefined);
