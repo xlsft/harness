@@ -11,16 +11,19 @@ import type { GatewayEvent } from "../gateway/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import {
   describePrincipal,
+  listDevices,
   pollDeviceToken,
   refreshAccessToken,
   revokeDevice,
+  revokeDeviceFor,
   startDeviceAuthorization,
+  type DeviceInfo,
   type PublicUser,
 } from "../services/devices.ts";
 import { countTokens, prepareMessages, runMessages } from "../services/gateway.ts";
 import { listModelsForUser } from "../services/models.ts";
 import { getPromptBundle } from "../services/prompts.ts";
-import { checkClientVersion, requirePrincipal } from "./context.ts";
+import { checkClientVersion, rateLimitByIp, requirePrincipal } from "./context.ts";
 import { bundleToProto, eventToProto, messagesFromProto, modelsToProto, streamRequestToCanonical, toolsFromProto } from "./convert.ts";
 import { guard, toConnectError } from "./errors.ts";
 
@@ -31,6 +34,10 @@ const POLL_STATUS = {
   denied: PollDeviceAuthResponse_Status.DENIED,
   expired: PollDeviceAuthResponse_Status.EXPIRED,
 } as const;
+
+function deviceToProto(d: DeviceInfo) {
+  return { id: d.id, name: d.name, os: d.os, arch: d.arch, createdAt: d.created_at, lastSeenAt: d.last_seen_at ?? "" };
+}
 
 function userToProto(u: PublicUser) {
   return { id: u.id, email: u.email, name: u.name, role: u.role === "admin" ? User_Role.ADMIN : User_Role.USER };
@@ -68,6 +75,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   router.service(DeviceAuthService, {
     startDeviceAuth: guard(async (req, ctx: HandlerContext) => {
       checkClientVersion(ctx);
+      rateLimitByIp(ctx, "device_start");
       const r = await startDeviceAuthorization({
         client_name: req.clientName,
         device_name: req.deviceName,
@@ -86,6 +94,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
     }),
 
     pollDeviceAuth: guard(async (req, ctx: HandlerContext) => {
+      rateLimitByIp(ctx, "device_poll");
       const r = await pollDeviceToken(req.deviceCode, ctx.requestHeader.get("user-agent") ?? undefined);
       if (r.status !== "approved") return { status: POLL_STATUS[r.status] };
       const c = r.credentials;
@@ -101,7 +110,8 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
       };
     }),
 
-    refreshAccessToken: guard(async (req) => {
+    refreshAccessToken: guard(async (req, ctx: HandlerContext) => {
+      rateLimitByIp(ctx, "device_refresh");
       const r = await refreshAccessToken(req.deviceToken);
       return { accessToken: r.access_token, accessExpiresInSeconds: r.access_expires_in };
     }),
@@ -110,16 +120,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
       const me = await describePrincipal(await requirePrincipal(ctx));
       return {
         user: userToProto(me.user),
-        device: me.device
-          ? {
-              id: me.device.id,
-              name: me.device.name,
-              os: me.device.os,
-              arch: me.device.arch,
-              createdAt: me.device.created_at,
-              lastSeenAt: me.device.last_seen_at ?? "",
-            }
-          : undefined,
+        device: me.device ? deviceToProto(me.device) : undefined,
       };
     }),
 
@@ -127,6 +128,17 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
       const p = await requirePrincipal(ctx);
       if (!p.deviceId) throw new ApiError("invalid_request", "Not authenticated with a device token");
       await revokeDevice(p.deviceId);
+      return {};
+    }),
+
+    listDevices: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      return { devices: (await listDevices(p, req.userId || undefined)).map(deviceToProto) };
+    }),
+
+    revokeDevice: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      await revokeDeviceFor(p, req.deviceId);
       return {};
     }),
   });

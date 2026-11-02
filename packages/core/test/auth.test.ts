@@ -2,7 +2,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PollDeviceAuthResponse_Status, User_Role } from "../src/gen/harness/auth/v1/auth_pb.ts";
 import { ErrorInfoSchema, ErrorType } from "../src/gen/harness/common/v1/errors_pb.ts";
-import { ADMIN, adminApi, decideOnDevicePage, deviceLogin, signIn, startTestServer, type TestServer } from "./helpers/server.ts";
+import { resetRateLimits, TokenBucketLimiter } from "../src/lib/rate-limit.ts";
+import { ADMIN, adminApi, createUserAndLogin, decideOnDevicePage, deviceLogin, signIn, startTestServer, type TestServer } from "./helpers/server.ts";
 
 let ts: TestServer;
 
@@ -179,5 +180,88 @@ describe("auth guards", () => {
       body: JSON.stringify({ email: "x@test.local", password: "password-123", name: "X" }),
     });
     expect(res.ok).toBe(false);
+  });
+});
+
+describe("devices", () => {
+  it("lists and revokes the caller's devices; admins can manage any device", async () => {
+    const admin = await deviceLogin(ts);
+    const u1 = await createUserAndLogin(ts, admin.cookie, "dev-owner@test.local");
+    const u1b = await deviceLogin(ts, "dev-owner@test.local", "user-password-1");
+    const u2 = await createUserAndLogin(ts, admin.cookie, "dev-other@test.local");
+
+    const mine = await ts.as(u1.accessToken).auth.listDevices({});
+    expect(mine.devices.map((d) => d.id).sort()).toEqual([u1.deviceId, u1b.deviceId].sort());
+    const d = mine.devices.find((x) => x.id === u1.deviceId)!;
+    expect(d).toMatchObject({ name: "test-box", os: "linux", arch: "amd64" });
+    expect(d.createdAt).toMatch(/Z$/);
+    expect(d.lastSeenAt).toMatch(/Z$/);
+
+    // a user cannot list or revoke someone else's devices
+    await expectConnectError(ts.as(u2.accessToken).auth.listDevices({ userId: u1.user!.id }), Code.PermissionDenied, ErrorType.PERMISSION_DENIED);
+    await expectConnectError(ts.as(u2.accessToken).auth.revokeDevice({ deviceId: u1.deviceId }), Code.NotFound, ErrorType.NOT_FOUND);
+    await expectConnectError(ts.as(u2.accessToken).auth.revokeDevice({ deviceId: "" }), Code.InvalidArgument, ErrorType.INVALID_ARGUMENT);
+
+    // the owner revokes their second device: its access token and refresh stop working
+    await ts.as(u1.accessToken).auth.revokeDevice({ deviceId: u1b.deviceId });
+    await expectConnectError(ts.as(u1b.accessToken).auth.getMe({}), Code.Unauthenticated, ErrorType.UNAUTHENTICATED);
+    await expectConnectError(ts.auth.refreshAccessToken({ deviceToken: u1b.deviceToken }), Code.Unauthenticated, ErrorType.UNAUTHENTICATED);
+    expect((await ts.as(u1.accessToken).auth.listDevices({})).devices.map((x) => x.id)).toEqual([u1.deviceId]);
+
+    // the admin lists and revokes another user's device
+    const listed = await ts.as(admin.accessToken).auth.listDevices({ userId: u2.user!.id });
+    expect(listed.devices.map((x) => x.id)).toEqual([u2.deviceId]);
+    await ts.as(admin.accessToken).auth.revokeDevice({ deviceId: u2.deviceId });
+    await expectConnectError(ts.as(u2.accessToken).auth.getMe({}), Code.Unauthenticated, ErrorType.UNAUTHENTICATED);
+    // revoking again is a no-op
+    await ts.as(admin.accessToken).auth.revokeDevice({ deviceId: u2.deviceId });
+  });
+
+  it("advances last_seen_at on refresh", async () => {
+    const c = await deviceLogin(ts);
+    const before = (await ts.as(c.accessToken).auth.getMe({})).device!.lastSeenAt;
+    await new Promise((r) => setTimeout(r, 15));
+    const r = await ts.auth.refreshAccessToken({ deviceToken: c.deviceToken });
+    const after = (await ts.as(r.accessToken).auth.getMe({})).device!.lastSeenAt;
+    expect(Date.parse(after)).toBeGreaterThan(Date.parse(before));
+  });
+});
+
+describe("rate limiting", () => {
+  it("limits the unauthenticated device endpoints per IP with a token bucket", async () => {
+    resetRateLimits();
+    process.env.HARNESS_DEVICE_RATE_LIMIT_PER_MIN = "3";
+    try {
+      for (let i = 0; i < 3; i++) await ts.auth.startDeviceAuth({ deviceName: `burst-${i}` });
+      const err = await expectConnectError(ts.auth.startDeviceAuth({ deviceName: "one-too-many" }), Code.ResourceExhausted, ErrorType.RATE_LIMITED);
+      const [info] = err.findDetails(ErrorInfoSchema);
+      expect(Number(info!.retryAfterMs)).toBeGreaterThan(0);
+      expect(Number(info!.retryAfterMs)).toBeLessThanOrEqual(20_000);
+      // buckets are per endpoint group: polling still works
+      await ts.auth.pollDeviceAuth({ deviceCode: "hdc_unknown" });
+      // a spoofed peer header does not escape the limit
+      const res = await fetch(`${ts.url}/harness.auth.v1.DeviceAuthService/StartDeviceAuth`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-harness-peer-ip": "203.0.113.9" },
+        body: "{}",
+      });
+      expect(res.status).toBe(429);
+    } finally {
+      process.env.HARNESS_DEVICE_RATE_LIMIT_PER_MIN = "10000";
+      resetRateLimits();
+    }
+  });
+
+  it("token bucket refills over time", () => {
+    let now = 0;
+    const l = new TokenBucketLimiter(2, 1, () => now);
+    expect(l.take("a")).toBe(0);
+    expect(l.take("a")).toBe(0);
+    expect(l.take("a")).toBe(1000);
+    expect(l.take("b")).toBe(0);
+    now = 500;
+    expect(l.take("a")).toBe(500);
+    now = 1000;
+    expect(l.take("a")).toBe(0);
   });
 });

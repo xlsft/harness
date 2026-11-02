@@ -232,22 +232,64 @@ export async function authenticateAccessToken(token: string): Promise<Principal 
 
 // --- GET /api/auth/me, POST /api/auth/device/logout -----------------------------------
 
+export interface DeviceInfo {
+  id: string;
+  name: string;
+  os: string;
+  arch: string;
+  client_name: string | null;
+  created_at: string;
+  last_seen_at: string | null;
+}
+
+function deviceInfo(d: typeof schema.device.$inferSelect): DeviceInfo {
+  return {
+    id: d.id,
+    name: d.name,
+    os: d.os ?? "",
+    arch: d.arch ?? "",
+    client_name: d.clientName ?? null,
+    created_at: d.createdAt.toISOString(),
+    last_seen_at: d.lastSeenAt ? d.lastSeenAt.toISOString() : null,
+  };
+}
+
 export async function describePrincipal(p: Principal) {
-  let deviceInfo = null;
+  let info: DeviceInfo | null = null;
   if (p.deviceId) {
     const d = await getDb().query.device.findFirst({ where: eq(schema.device.id, p.deviceId) });
-    if (d) {
-      deviceInfo = {
-        id: d.id,
-        name: d.name,
-        os: d.os ?? "",
-        arch: d.arch ?? "",
-        created_at: d.createdAt.toISOString(),
-        last_seen_at: d.lastSeenAt ? d.lastSeenAt.toISOString() : null,
-      };
-    }
+    if (d) info = deviceInfo(d);
   }
-  return { user: p.user, device: deviceInfo };
+  return { user: p.user, device: info };
+}
+
+/**
+ * Active (not revoked) devices of `userId` (default: the caller), most recently seen first.
+ * Only admins may list another user's devices.
+ */
+export async function listDevices(p: Principal, userId?: string): Promise<DeviceInfo[]> {
+  const target = userId || p.user.id;
+  if (target !== p.user.id && p.user.role !== "admin") {
+    throw new ApiError("permission", "Only admins can list other users' devices");
+  }
+  await ensureDb();
+  const rows = await getDb().query.device.findMany({
+    where: and(eq(schema.device.userId, target), isNull(schema.device.revokedAt)),
+  });
+  const seen = (d: typeof schema.device.$inferSelect) => (d.lastSeenAt ?? d.createdAt).getTime();
+  return rows.sort((a, b) => seen(b) - seen(a)).map(deviceInfo);
+}
+
+/**
+ * Revokes a device of the caller (admins: any device). Unknown devices and devices of other
+ * users (for non-admins) are NOT_FOUND, so device ids of other users do not leak.
+ */
+export async function revokeDeviceFor(p: Principal, deviceId: string): Promise<void> {
+  if (!deviceId) throw new ApiError("invalid_request", "device_id is required");
+  await ensureDb();
+  const d = await getDb().query.device.findFirst({ where: eq(schema.device.id, deviceId) });
+  if (!d || (d.userId !== p.user.id && p.user.role !== "admin")) throw new ApiError("not_found", "Device not found");
+  if (!d.revokedAt) await revokeDevice(deviceId);
 }
 
 export async function revokeDevice(deviceId: string): Promise<void> {
