@@ -5,7 +5,7 @@ import type { TaskVM } from '~/lib/session/types'
 
 const props = defineProps<{ task: TaskVM, sessionId: string }>()
 const store = useSessionStore()
-const { setPane } = usePanes()
+const { openPane } = usePanes()
 const now = useNow()
 
 const elapsed = computed(() => now.value - props.task.startedAt)
@@ -52,7 +52,7 @@ v-if="j % 2"
     <div class="flex items-center gap-2 border-t border-default px-3 py-1.5 text-[11px] text-muted">
       {{ task.outputPath ? basename(task.outputPath) : '' }}
       <span class="flex-1" />
-      <HBtn @click="setPane('terminal')">
+      <HBtn @click="openPane('terminal')">
         Open in terminal
       </HBtn>
       <HBtn
@@ -99,7 +99,7 @@ v-if="j % 2"
       class="m-0 border-t border-default bg-surface px-3 py-[7px] text-[12px] leading-[1.6] text-toned"
     >{{ lastLine }}</pre>
     <div class="flex gap-2 border-t border-default px-3 py-1.5">
-      <HBtn @click="setPane('tasks')">
+      <HBtn @click="openPane('tasks')">
         Full output
       </HBtn>
       <HBtn>Restart</HBtn>

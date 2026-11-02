@@ -220,8 +220,14 @@ async function assertNameFree(tx: Tx, row: { ownerId: string; scope: number; pro
   if (clash && clash.id !== exceptId) throw new ApiError("conflict", `An MCP server named ${row.name} already exists in this scope`);
 }
 
+function assertMaySetPrivate(user: PublicUser): void {
+  if (user.role !== "admin") throw new ApiError("permission", "Only admins can set allow_private_network");
+}
+
 export async function createServer(p: Principal, input: ServerInput | undefined, secretChanges?: SecretChangesInput): Promise<ServerView> {
   const v = validateServer(input, p.user.role === "admin");
+  const allowPrivateNetwork = !!input?.allowPrivateNetwork;
+  if (allowPrivateNetwork) assertMaySetPrivate(p.user);
   const ch = validateSecretChanges(secretChanges);
   if (ch.remove.length) throw new ApiError("invalid_request", "secrets.remove is not allowed on create");
   const id = newId("mcp");
@@ -243,6 +249,7 @@ export async function createServer(p: Principal, input: ServerInput | undefined,
         alwaysLoad: v.alwaysLoad,
         config: v.config,
         targetRoles: v.targetRoles,
+        allowPrivateNetwork,
         version,
         configHash: "",
         createdAt: now,
@@ -286,8 +293,15 @@ export async function updateServer(
     const names = await applySecrets(tx, cur.id, ch, now);
     const hash = configHash(v.transport, v.config, [...names, ...secretRefs(v.config)]);
     const secretsChanged = Object.keys(ch.set).length > 0 || ch.remove.length > 0;
+    // allow_private_network: only admins may turn it on; anyone who may write the server may turn it off.
+    // Pointing a server at another origin always drops it (re-enable with a separate update).
+    const wantPrivate = !!input.allowPrivateNetwork;
+    if (wantPrivate && !cur.allowPrivateNetwork) assertMaySetPrivate(p.user);
+    const sameOrigin = urlOrigin(rowConfig(cur).remote?.url) === urlOrigin(v.config.remote?.url);
+    const allowPrivateNetwork = wantPrivate && (sameOrigin || !cur.allowPrivateNetwork);
     const same =
       !secretsChanged &&
+      allowPrivateNetwork === cur.allowPrivateNetwork &&
       hash === cur.configHash &&
       cur.name === v.name &&
       cur.enabled === v.enabled &&
@@ -296,8 +310,6 @@ export async function updateServer(
       JSON.stringify(roles(cur)) === JSON.stringify(v.targetRoles);
     if (same) return { value: { row: cur, conflict: false, changed: false }, publish: [] };
     const version = await nextSyncVersion(tx);
-    // Pointing a server somewhere else drops the admin's private-network exemption.
-    const keepPrivate = cur.allowPrivateNetwork && urlOrigin(rowConfig(cur).remote?.url) === urlOrigin(v.config.remote?.url);
     const [row] = await tx
       .update(s)
       .set({
@@ -307,7 +319,7 @@ export async function updateServer(
         alwaysLoad: v.alwaysLoad,
         config: v.config,
         targetRoles: v.targetRoles,
-        allowPrivateNetwork: keepPrivate,
+        allowPrivateNetwork,
         version,
         configHash: hash,
         updatedAt: now,
@@ -358,15 +370,22 @@ export async function announceServer(serverId: string, userId: string): Promise<
   });
 }
 
-/** Admin-only flag outside the RPC contract: allow the proxy to reach private / loopback addresses. */
-export async function setAllowPrivateNetwork(id: string, allow: boolean): Promise<ServerRow> {
-  await ensureDb();
-  const [row] = await getDb()
-    .update(schema.mcpServer)
-    .set({ allowPrivateNetwork: allow })
-    .where(eq(schema.mcpServer.id, id))
-    .returning();
-  if (!row) throw new ApiError("not_found", "MCP server not found");
+/**
+ * Admin-only switch (also settable through Server.allow_private_network): allow the proxy to reach private /
+ * loopback addresses. A change takes a new version, so clients refetch the server.
+ */
+export async function setAllowPrivateNetwork(id: string, allow: boolean, userId = ""): Promise<ServerRow> {
+  const row = await runSyncWrite(async (tx): Promise<{ value: ServerRow; publish: DocRow[] }> => {
+    const s = schema.mcpServer;
+    const [cur] = await tx.select().from(s).where(eq(s.id, id)).for("update");
+    if (!cur) throw new ApiError("not_found", "MCP server not found");
+    if (cur.allowPrivateNetwork === allow) return { value: cur, publish: [] };
+    const version = await nextSyncVersion(tx);
+    const by = userId || cur.updatedBy;
+    const [r] = await tx.update(s).set({ allowPrivateNetwork: allow, version, updatedAt: new Date(), updatedBy: by }).where(eq(s.id, id)).returning();
+    const doc = await writeNotification(tx, version, notification(r!, by, false));
+    return { value: r!, publish: [doc] };
+  });
   fireChanged(id);
   return row;
 }

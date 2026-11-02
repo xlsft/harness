@@ -265,7 +265,7 @@ async function mapError(err: unknown, user: PublicUser, row: ServerRow, entry?: 
   if (err instanceof ApiError) return err;
   if (entry?.unauthorized || isUnauthorized(err)) {
     await markNeedsAuth(user.id, row, "The server requires authorization");
-    return new ApiError("failed_precondition", `MCP server ${row.name} needs authorization`);
+    return new ApiError("needs_auth", `MCP server ${row.name} needs authorization`);
   }
   if (err instanceof McpError) {
     if (err.code === ErrorCode.MethodNotFound) return new ApiError("invalid_request", `MCP server ${row.name} does not support this: ${err.message}`);
@@ -298,7 +298,7 @@ async function acquire(user: PublicUser, row: ServerRow): Promise<Entry> {
     return e;
   } catch (err) {
     if (pool.get(key) === fresh) pool.delete(key);
-    if (!(err instanceof ApiError && (err.type === "failed_precondition" || err.type === "permission"))) recordFailure(key, err);
+    if (!(err instanceof ApiError && (err.type === "failed_precondition" || err.type === "needs_auth" || err.type === "permission"))) recordFailure(key, err);
     throw err;
   }
 }

@@ -1,9 +1,9 @@
 // ConnectTransport: AgentService over connect-web (server streaming for Subscribe, unary for commands).
-// The base URL comes from runtime config (NUXT_PUBLIC_AGENT_URL). Note: `harness-client serve` listens on a
-// unix socket today; a TCP listener for browsers comes later, so this is built against the contract.
+// The base URL comes from runtime config (NUXT_PUBLIC_AGENT_URL): `harness-client serve --listen 127.0.0.1:<port>`
+// serves it. Every call carries `Authorization: Bearer <token>` when a token is given (see token.ts).
 
 import { create } from '@bufbuild/protobuf'
-import { createClient, type Client } from '@connectrpc/connect'
+import { createClient, type Client, type Interceptor } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
   AgentService,
@@ -19,8 +19,9 @@ export class ConnectTransport implements SessionTransport {
   readonly kind = 'connect' as const
   private client: Client<typeof AgentService>
 
-  constructor(baseUrl: string) {
-    this.client = createClient(AgentService, createConnectTransport({ baseUrl }))
+  constructor(baseUrl: string, token = '') {
+    const interceptors: Interceptor[] = token ? [bearer(token)] : []
+    this.client = createClient(AgentService, createConnectTransport({ baseUrl, interceptors }))
   }
 
   async initialize() {
@@ -29,6 +30,12 @@ export class ConnectTransport implements SessionTransport {
 
   async listSessions() {
     return (await this.client.listSessions({})).sessions
+  }
+
+  async createSession(cwd: string, model = '') {
+    const res = await this.client.createSession({ cwd, model })
+    if (!res.session) throw new Error('the client returned no session')
+    return res.session
   }
 
   subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {
@@ -98,5 +105,13 @@ export class ConnectTransport implements SessionTransport {
   async listModels(): Promise<ModelInfo[]> {
     const init = await this.initialize()
     return init.modelIds.map(id => ({ id, provider: '', contextWindow: 0, price: '' }))
+  }
+}
+
+/** Adds the client's bearer token to every request (unary and streaming). */
+export function bearer(token: string): Interceptor {
+  return next => (req) => {
+    req.header.set('Authorization', `Bearer ${token}`)
+    return next(req)
   }
 }

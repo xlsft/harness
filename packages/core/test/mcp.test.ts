@@ -282,7 +282,7 @@ describe("stdio devices", () => {
     await A.reportDeviceStatus({ statuses: [{ serverId: server.id, configHash: "0".repeat(64), availability: Availability.AVAILABLE, approval: ApprovalState.APPROVED }] });
     await expectError(A.issueStdioLaunch({ serverId: server.id, configHash: server.configHash }), Code.FailedPrecondition);
     // the hash the device asks for must match the current config
-    await expectError(A.issueStdioLaunch({ serverId: server.id, configHash: "0".repeat(64) }), Code.FailedPrecondition);
+    await expectError(A.issueStdioLaunch({ serverId: server.id, configHash: "0".repeat(64) }), Code.FailedPrecondition, ErrorType.FAILED_PRECONDITION);
     // pending / denied
     await A.reportDeviceStatus({ statuses: [{ serverId: server.id, configHash: server.configHash, availability: Availability.AVAILABLE, approval: ApprovalState.DENIED }] });
     await expectError(A.issueStdioLaunch({ serverId: server.id, configHash: server.configHash }), Code.FailedPrecondition);

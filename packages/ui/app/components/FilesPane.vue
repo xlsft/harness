@@ -14,7 +14,7 @@ import type { IconName } from '~/utils/icons'
 
 const props = defineProps<{ session: SessionState, menu: string }>()
 
-const { setPane } = usePanes()
+const { openPane, closePane } = usePanes()
 
 const initial = props.menu === 'settings' || props.menu === 'markdown' ? MD_FILE : props.menu === 'folder' ? 'evals/results' : CODE_FILE
 const selectedPath = ref(initial)
@@ -162,7 +162,7 @@ function toggleSetting(key: string) {
         <PaneBtn
           icon="close"
           label="Close files"
-          @click="setPane(null)"
+          @click="closePane('files')"
         />
       </div>
     </div>
@@ -212,7 +212,7 @@ function toggleSetting(key: string) {
             <button
               type="button"
               class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-white hover:bg-raised"
-              @click="setPane('terminal')"
+              @click="openPane('terminal')"
             >
               Open in terminal
             </button>
@@ -511,6 +511,7 @@ function toggleSetting(key: string) {
             v-else
             :role="m.check ? 'menuitemcheckbox' : 'menuitem'"
             :value="m.value"
+            :kbd="m.kbd"
             value-class="text-[11.5px] text-muted"
             :sub="m.sub"
             :sub-size="14"

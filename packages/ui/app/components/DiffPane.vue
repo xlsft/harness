@@ -4,7 +4,7 @@
 import type { SessionState, ToolItem } from '~/lib/session/types'
 
 const props = defineProps<{ session: SessionState }>()
-const { setPane } = usePanes()
+const { closePane } = usePanes()
 
 const edits = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool' && ['Edit', 'MultiEdit', 'Write'].includes(i.name) && i.status === 'ok' && patchOf(i).length > 0))
 const files = computed(() => fileChanges(edits.value))
@@ -31,7 +31,7 @@ function scrollTo(path: string) {
         icon="close"
         label="Close"
         :size="30"
-        @click="setPane(null)"
+        @click="closePane('diff')"
       />
     </div>
     <div

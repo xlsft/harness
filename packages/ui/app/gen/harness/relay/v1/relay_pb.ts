@@ -2438,7 +2438,7 @@ export const DeliveryStateSchema: GenEnum<DeliveryState> = /*@__PURE__*/
  * - Command expiry. A command not acked by expires_at (default: created_at + 10 min, CommandOptions.ttl_seconds
  *   overrides, max 24 h) is dropped by the server and never redelivered; hosts also ignore a command whose
  *   expires_at has passed (ack it OUTCOME_REJECTED). A message typed on a phone while the laptop sleeps is not
- *   executed hours later. The viewer learns it from delivery = EXPIRED on a held call or from ListCommands.
+ *   executed hours later. A held call (wait_for_ack) that outlives it returns delivery = EXPIRED.
  * - Presence. An open SubscribeSession stream plus the latest UpdatePresence state tells the server whether a
  *   human is looking at the session; Web Push for permission / question / turn completion is suppressed while
  *   a viewer is FOCUSED (or the host reports local terminal activity).

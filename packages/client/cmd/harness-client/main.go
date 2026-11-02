@@ -37,6 +37,9 @@ Usage:
   harness-client logout                 Revoke this device and delete credentials
   harness-client whoami                 Show the signed-in user
   harness-client serve --socket <path>  Serve AgentService (gRPC/Connect, h2c) on a unix socket
+  harness-client serve --listen 127.0.0.1:<port>
+                                        Serve AgentService to browsers (Connect over HTTP/1.1 and h2c,
+                                        bearer token, CORS allowlist); combinable with --socket
   harness-client -p "<prompt>" [flags]  Run one headless turn
   harness-client version
 
@@ -167,11 +170,12 @@ func cmdServe(ctx context.Context, args []string) int {
 	outputStyle := fs.String("output-style", "", "output style for every session: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name")
 	remote := fs.Bool("remote-control", true, "mirror sessions to the harness server so they can be watched and controlled from the web (HARNESS_REMOTE_CONTROL=0 disables)")
 	verbose := fs.Bool("verbose", false, "debug logging")
+	tcp := addTCPFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
-	if *socket == "" {
-		return fail(errors.New("--socket is required"))
+	if err := tcp.validate(*socket); err != nil {
+		return fail(err)
 	}
 	log := newLogger(*verbose)
 	base, email, err := sharedAdapters(*serverURL)
@@ -186,8 +190,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	if tokens, url, _, err := bootstrap.Tokens(*serverURL); err == nil && relay.Enabled(*remote, url, tokens != nil) {
 		relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
 	}
-	fmt.Fprintf(os.Stderr, "harness-client: serving AgentService on unix://%s\n", *socket)
-	if err := srv.ServeUnix(ctx, *socket); err != nil {
+	if err := serveListeners(ctx, srv, *socket, tcp); err != nil {
 		return fail(err)
 	}
 	return 0

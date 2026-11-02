@@ -1,5 +1,5 @@
 /**
- * Admin JSON API for MCP server settings outside the RPC contract.
+ * Admin JSON API for MCP server settings (the same flag is Server.allow_private_network in McpService).
  * PATCH /api/admin/mcp/servers/:id {"allow_private_network": bool} — lets the proxy reach private and
  * loopback addresses for this server (reset automatically when its URL moves to another origin).
  */
@@ -8,11 +8,11 @@ import { setAllowPrivateNetwork } from "../../mcp/registry.ts";
 import { api, param, readJson, requireAdmin } from "../util.ts";
 
 export default api(async (event) => {
-  await requireAdmin(event);
+  const p = await requireAdmin(event);
   const id = param(event, "id");
   if (event.req.method !== "PATCH") throw new ApiError("invalid_request", "Method not allowed", { status: 405 });
   const body = await readJson<{ allow_private_network?: unknown }>(event);
   if (typeof body.allow_private_network !== "boolean") throw new ApiError("invalid_request", "allow_private_network must be a boolean");
-  const row = await setAllowPrivateNetwork(id, body.allow_private_network);
+  const row = await setAllowPrivateNetwork(id, body.allow_private_network, p.user.id);
   return { id: row.id, name: row.name, allow_private_network: row.allowPrivateNetwork };
 });

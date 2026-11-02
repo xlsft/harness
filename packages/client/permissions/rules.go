@@ -14,6 +14,7 @@ import (
 //	Tool                 every call of Tool
 //	Tool(specifier)      Bash command pattern, gitignore-style path, ...
 //	Tool(param:value)    input parameter match, e.g. Bash(run_in_background:true)
+//	mcp__server          every tool of an MCP server
 //	mcp__server__*, *    tool name globs
 type Rule struct {
 	Tool string
@@ -91,7 +92,7 @@ func IsReadTool(name string) bool { return readTools[name] }
 // toolMatches reports whether the rule's tool part covers name. allowImplied
 // makes Edit rules cover read tools too (an allowed edit implies reading).
 func (r Rule) toolMatches(name string, allowImplied bool) bool {
-	if r.Tool == name || globName(r.Tool, name) {
+	if r.Tool == name || globName(r.Tool, name) || mcpServerMatches(r.Tool, name) {
 		return true
 	}
 	switch {
@@ -103,6 +104,16 @@ func (r Rule) toolMatches(name string, allowImplied bool) bool {
 		return true
 	}
 	return false
+}
+
+// mcpServerMatches reports whether rule tool "mcp__<server>" (no tool part)
+// covers name "mcp__<server>__<tool>".
+func mcpServerMatches(rule, name string) bool {
+	server, ok := strings.CutPrefix(rule, "mcp__")
+	if !ok || server == "" || strings.Contains(server, "__") || strings.Contains(server, "*") {
+		return false
+	}
+	return strings.HasPrefix(name, rule+"__") && len(name) > len(rule)+2
 }
 
 func globName(pattern, name string) bool {

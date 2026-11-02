@@ -7,6 +7,7 @@ const MODE_CYCLE: PermissionModeName[] = ['default', 'accept_edits', 'auto', 'pl
 
 export function useShortcuts() {
   const store = useSessionStore()
+  const route = useRoute()
   const { togglePane } = usePanes()
   const collapsed = useState('sidebar-collapsed', () => false)
   const verbose = useState('transcript-verbose', () => false)
@@ -20,7 +21,7 @@ export function useShortcuts() {
       collapsed.value = !collapsed.value
     },
     'meta_n': () => {
-      if (store.order[0]) store.open(store.order[0])
+      navigateTo({ path: '/', query: { ...route.query, new: '1' } })
     },
     'ctrl_o': () => {
       verbose.value = !verbose.value

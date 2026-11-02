@@ -14,6 +14,7 @@ import { McpService } from "../../src/gen/harness/mcp/v1/mcp_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
 import { RelayService } from "../../src/gen/harness/relay/v1/relay_pb.ts";
 import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
+import { VcsService } from "../../src/gen/harness/vcs/v1/vcs_pb.ts";
 import { createTempDatabase, type TempDatabase } from "./pg.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
@@ -28,6 +29,7 @@ export interface TestServer {
   sync: Client<typeof SyncService>;
   mcp: Client<typeof McpService>;
   relay: Client<typeof RelayService>;
+  vcs: Client<typeof VcsService>;
   /** Connect clients authenticated with the given access token. */
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
@@ -36,6 +38,7 @@ export interface TestServer {
     sync: Client<typeof SyncService>;
     mcp: Client<typeof McpService>;
     relay: Client<typeof RelayService>;
+    vcs: Client<typeof VcsService>;
   };
   close(): Promise<void>;
 }
@@ -93,6 +96,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       sync: createClient(SyncService, transport),
       mcp: createClient(McpService, transport),
       relay: createClient(RelayService, transport),
+      vcs: createClient(VcsService, transport),
     };
   };
 

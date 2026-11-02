@@ -9,7 +9,7 @@ import { CURSOR_STYLES, promptLines, terminalTabs, type CursorStyle, type TermTa
 
 const props = defineProps<{ session: SessionState, menu: string }>()
 
-const { setPane } = usePanes()
+const { closePane } = usePanes()
 const now = useNow()
 
 const tabs = ref<TermTab[]>(terminalTabs())
@@ -57,7 +57,7 @@ function closeTab(id: string) {
   if (i < 0) return
   tabs.value.splice(i, 1)
   if (!tabs.value.length) {
-    setPane(null)
+    closePane('terminal')
     return
   }
   if (selected.value === id) selected.value = tabs.value[Math.max(0, i - 1)]!.id
@@ -135,7 +135,7 @@ function restart() {
         <PaneBtn
           icon="close"
           label="Close terminal"
-          @click="setPane(null)"
+          @click="closePane('terminal')"
         />
       </div>
     </div>
@@ -254,8 +254,7 @@ function restart() {
         </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
-          value="⌘K"
-          value-class="text-[11px] text-muted"
+          kbd="meta+k"
           @click="clearTab"
           @mouseenter="cursorMenu = false"
         >

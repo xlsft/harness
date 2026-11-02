@@ -1,6 +1,8 @@
 // Scripted OpenAI-compatible upstream for the end-to-end test.
 // Turn 1: the model replies with text and a Bash tool call that writes a marker file.
 // Turn 2 (once a tool result is present): the model replies with a final text answer.
+// When the prompt mentions "mcp", turn 1 calls the MCP tool mcp__e2e__echo instead and turn 2
+// repeats its result.
 // Usage: node upstream.mjs <port>
 import { createServer } from "node:http";
 
@@ -22,7 +24,25 @@ createServer(async (req, res) => {
   console.log(`upstream ${req.method} ${req.url} messages=${roles} tools=${tools}`);
 
   const base = { id: "c1", object: "chat.completion.chunk", model: "mock" };
-  const hasToolResult = (j.messages ?? []).some((m) => m.role === "tool");
+  const toolMsg = (j.messages ?? []).find((m) => m.role === "tool");
+  const hasToolResult = !!toolMsg;
+  const text = (c) => (typeof c === "string" ? c : (c ?? []).map((p) => p.text ?? "").join(""));
+  const wantsMcp = (j.messages ?? []).some((m) => m.role === "user" && text(m.content).includes("mcp"));
+  if (wantsMcp) {
+    if (!hasToolResult) {
+      const args = JSON.stringify({ text: MARKER, reveal: true });
+      sse(res, [
+        { ...base, choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: "call_m", type: "function", function: { name: "mcp__e2e__echo", arguments: args } }] } }] },
+        { ...base, choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }], usage: { prompt_tokens: 100, completion_tokens: 20 } },
+      ]);
+    } else {
+      sse(res, [
+        { ...base, choices: [{ index: 0, delta: { role: "assistant", content: `MCP said: ${text(toolMsg.content)}` } }] },
+        { ...base, choices: [{ index: 0, delta: {}, finish_reason: "stop" }], usage: { prompt_tokens: 150, completion_tokens: 10 } },
+      ]);
+    }
+    return;
+  }
   if (!hasToolResult) {
     const args = JSON.stringify({ command: `echo ${MARKER} > out.txt && cat out.txt`, description: "Write marker file" });
     sse(res, [

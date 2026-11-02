@@ -9,6 +9,7 @@
 
 import {
   InitializeResponseSchema,
+  SessionInfoSchema,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
   SendUserMessageRequest_Delivery,
@@ -82,6 +83,18 @@ export class MockTransport implements SessionTransport {
 
   async listSessions() {
     return [...this.sessions.values()].map(s => s.info)
+  }
+
+  async createSession(cwd: string, model = '') {
+    const info = create(SessionInfoSchema, {
+      id: `ses_mock_${this.sessions.size + 1}`,
+      title: 'New session',
+      cwd,
+      model: model || MODELS[0]!.id,
+      updatedAt: new Date(this.now()).toISOString()
+    })
+    this.sessions.set(info.id, { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null })
+    return info
   }
 
   async listModels() {

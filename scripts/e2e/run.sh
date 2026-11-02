@@ -4,7 +4,7 @@
 # It builds both packages, starts a mock OpenAI-compatible upstream and the core server with a
 # throwaway data dir, signs the client in through the device flow (approving it the way the
 # browser page does), configures a provider and a model through the admin API, then runs one
-# headless agent turn that must call the Bash tool and create a file. Finally it checks remote
+# headless agent turn that must call the Bash tool and create a file. It also checks remote
 # control: `harness-client serve` mirrors a session through RelayService, and a viewer that only
 # talks to the server sends the prompt, answers the permission prompt and watches the turn.
 #
@@ -45,7 +45,9 @@ wait_for() { # url, name
 log "building core"
 (cd "$ROOT/packages/core" && pnpm install --frozen-lockfile >/dev/null && pnpm build >/dev/null)
 log "building client"
-(cd "$ROOT/packages/client" && go build -o "$WORK/harness-client" ./cmd/harness-client && go build -o "$WORK/relayviewer" ./internal/e2e/relayviewer)
+(cd "$ROOT/packages/client" && go build -o "$WORK/harness-client" ./cmd/harness-client \
+  && go build -o "$WORK/fake-mcp-server" ./internal/fakemcp/cmd/fake-mcp-server \
+  && go build -o "$WORK/relayviewer" ./internal/e2e/relayviewer)
 
 log "starting mock upstream on :$UPSTREAM_PORT"
 "$NODE_BIN" "$ROOT/scripts/e2e/upstream.mjs" "$UPSTREAM_PORT" >"$WORK/upstream.log" 2>&1 &
@@ -123,4 +125,21 @@ for _ in $(seq 1 40); do [[ -S "$SOCK" ]] && break; sleep 0.25; done
   || fail "relay viewer: $(tail -n 5 "$WORK/relay.log")"
 cat "$WORK/relay.log"
 
-log "e2e passed:$(jq -c '{subtype,num_turns,total_cost_usd,result}' <<<"$RESULT")"
+log "stdio MCP server through McpService"
+TOKEN="$(curl -fsS -H 'content-type: application/json' \
+  -d "$(jq -n --arg t "$(jq -r .device_token "$HARNESS_HOME/credentials.json")" '{deviceToken:$t}')" \
+  "$CORE_URL/harness.auth.v1.DeviceAuthService/RefreshAccessToken" | jq -r .accessToken)"
+[[ -n "$TOKEN" && "$TOKEN" != "null" ]] || fail "access token for McpService"
+curl -fsS -H 'content-type: application/json' -H "authorization: Bearer $TOKEN" \
+  -d "$(jq -n --arg c "$WORK/fake-mcp-server" '{server:{name:"e2e",scope:"SCOPE_USER",transport:"TRANSPORT_STDIO",enabled:true,
+      stdio:{command:$c,env:{FAKE_MCP_SECRET:"${secret:TOKEN}"}}},secrets:{set:{TOKEN:"e2e-secret"}}}')" \
+  "$CORE_URL/harness.mcp.v1.McpService/CreateServer" >/dev/null || fail "create MCP server"
+MCP_RESULT="$(cd "$PROJ" && HARNESS_MCP_APPROVE=e2e "$WORK/harness-client" -p "use mcp to echo" \
+  --model mock-model --permission-mode bypassPermissions --output-format json)" || fail "MCP agent turn"
+echo "$MCP_RESULT" >"$WORK/mcp-result.json"
+[[ "$(jq -r .result <<<"$MCP_RESULT")" == "MCP said: echo: harness-e2e secret=e2e-secret" ]] \
+  || fail "MCP result: $(jq -r .result <<<"$MCP_RESULT")"
+grep -q 'tools=.*mcp__e2e__echo' "$WORK/upstream.log" || fail "upstream did not receive the MCP tool definition"
+[[ ! -e "$HARNESS_HOME/mcp-approvals.json" ]] || fail "an approval given through HARNESS_MCP_APPROVE must not be persisted"
+
+log "e2e passed: $(jq -c '{subtype,num_turns,total_cost_usd,result}' <<<"$RESULT")"

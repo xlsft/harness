@@ -4,6 +4,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDb, schema } from "../src/db/index.ts";
+import { ErrorInfoSchema, ErrorType } from "../src/gen/harness/common/v1/errors_pb.ts";
 import { Scope } from "../src/gen/harness/common/v1/scope_pb.ts";
 import {
   AuthState,
@@ -45,13 +46,14 @@ afterAll(async () => {
   await oauth.close();
 });
 
-async function expectError(p: Promise<unknown>, code: Code) {
+async function expectError(p: Promise<unknown>, code: Code, type?: ErrorType) {
   const err = await p.then(
     () => undefined,
     (e) => e,
   );
   expect(err).toBeInstanceOf(ConnectError);
   expect((err as ConnectError).code).toBe(code);
+  if (type !== undefined) expect((err as ConnectError).findDetails(ErrorInfoSchema)[0]?.type).toBe(type);
   return err as ConnectError;
 }
 
@@ -99,10 +101,32 @@ describe("SSRF guard", () => {
     expect(denied.status).toBe(403);
     await allowPrivate(s.id);
     expect((await A.listTools({ serverId: s.id })).tools.length).toBeGreaterThan(0);
+    // the flag is part of Server and took a new version
+    const cur = (await A.getServer({ serverId: s.id })).server!;
+    expect(cur.allowPrivateNetwork).toBe(true);
+    expect(cur.version).toBeGreaterThan(s.version);
+
+    // through the RPC as well: non-admins cannot turn it on, admins can
+    await expectError(
+      A.createServer({ server: { name: "sneaky", scope: Scope.USER, transport: Transport.STREAMABLE_HTTP, enabled: true, remote: { url: `${plain.url}/mcp` }, allowPrivateNetwork: true } }),
+      Code.PermissionDenied,
+    );
+    const other = await remote(A, "other-local", `${plain.url}/mcp`);
+    await expectError(A.updateServer({ server: { ...other, allowPrivateNetwork: true }, baseVersion: other.version }), Code.PermissionDenied);
+    const byAdmin = await ts.as(admin.accessToken).mcp.createServer({
+      server: { name: "admin-local", scope: Scope.USER, transport: Transport.STREAMABLE_HTTP, enabled: true, remote: { url: `${plain.url}/mcp` }, allowPrivateNetwork: true },
+    });
+    expect(byAdmin.server!.allowPrivateNetwork).toBe(true);
+    // a non-admin round-tripping the flag on an unrelated edit keeps it
+    const renamed = await A.updateServer({ server: { ...cur, alwaysLoad: true }, baseVersion: cur.version });
+    if (renamed.result.case !== "server") throw new Error("expected server");
+    expect(renamed.result.value.allowPrivateNetwork).toBe(true);
 
     // moving the server to another origin drops the exemption
-    const u = await A.updateServer({ server: { ...s, remote: create(RemoteConfigSchema, { url: `${oauth.url}/mcp` }) }, baseVersion: s.version });
+    const moved = renamed.result.value;
+    const u = await A.updateServer({ server: { ...moved, remote: create(RemoteConfigSchema, { url: `${oauth.url}/mcp` }) }, baseVersion: moved.version });
     expect(u.result.case).toBe("server");
+    if (u.result.case === "server") expect(u.result.value.allowPrivateNetwork).toBe(false);
     await expectError(A.listTools({ serverId: s.id }), Code.PermissionDenied);
   });
 });
@@ -218,14 +242,18 @@ describe("proxy", () => {
     const cat = await A.getToolCatalog({});
     const entry = cat.catalog!.servers.find((x) => x.serverId === sse.server!.id)!;
     expect(entry.tools.map((t) => t.name).sort()).toEqual(["echo", "fail", "peek", "slow"]);
-    expect(JSON.parse(entry.tools[0]!.annotationsJson).requiresUserInteraction).toBe(true);
+    // the catalog carries the flag on the server, not merged into the tool annotations
+    expect(entry.requiresUserInteraction).toBe(true);
+    for (const t of entry.tools) expect(t.annotationsJson ? JSON.parse(t.annotationsJson).requiresUserInteraction : undefined).toBeUndefined();
+    const plainEntry = cat.catalog!.servers.find((x) => x.serverId === s.id);
+    if (plainEntry) expect(plainEntry.requiresUserInteraction).toBe(false);
   });
 
   it("rejects stdio servers and disabled servers", async () => {
     const st = await A.createServer({ server: { name: "local-cli", scope: Scope.USER, transport: Transport.STDIO, enabled: true, stdio: { command: "x" } } });
     await expectError(A.listTools({ serverId: st.server!.id }), Code.InvalidArgument);
     const off = await remote(A, "off", `${plain.url}/mcp`, { enabled: false });
-    await expectError(A.listTools({ serverId: off.id }), Code.FailedPrecondition);
+    await expectError(A.listTools({ serverId: off.id }), Code.FailedPrecondition, ErrorType.FAILED_PRECONDITION);
   });
 });
 
@@ -253,12 +281,12 @@ describe("OAuth", () => {
 
   it("needs authorization before use", async () => {
     expect((await A.getServer({ serverId: s.id })).server!.auth?.state).toBe(AuthState.NEEDS_AUTH);
-    await expectError(A.listTools({ serverId: s.id }), Code.FailedPrecondition);
+    await expectError(A.listTools({ serverId: s.id }), Code.FailedPrecondition, ErrorType.NEEDS_AUTH);
     // a server without OAuth hints learns it from the upstream 401
     const learned = await remote(A, "learned", `${oauth.url}/mcp`);
     await allowPrivate(learned.id);
     expect((await A.getAuthStatus({ serverIds: [learned.id] })).statuses[learned.id]!.state).toBe(AuthState.NOT_REQUIRED);
-    await expectError(A.listTools({ serverId: learned.id }), Code.FailedPrecondition);
+    await expectError(A.listTools({ serverId: learned.id }), Code.FailedPrecondition, ErrorType.NEEDS_AUTH);
     expect((await A.getAuthStatus({ serverIds: [learned.id] })).statuses[learned.id]!.state).toBe(AuthState.NEEDS_AUTH);
   });
 

@@ -11,7 +11,7 @@ import {
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { createSessionState, reduce, sessionMeta } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, SessionState } from '~/lib/session/types'
-import { createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
+import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 
 const MODE_TO_PB: Record<PermissionModeName, PermissionMode> = {
   default: PermissionMode.DEFAULT,
@@ -70,7 +70,11 @@ export const useSessionStore = defineStore('sessions', {
     async init(transport?: SessionTransport) {
       if (this.ready) return
       const config = useRuntimeConfig()
-      this.transport = markRaw(transport ?? createTransport(String(config.public.transport), String(config.public.agentUrl)))
+      this.transport = markRaw(transport ?? createTransport(
+        String(config.public.transport),
+        String(config.public.agentUrl),
+        browserAgentToken(String(config.public.agentToken ?? ''))
+      ))
       try {
         const init = await this.transport.initialize()
         this.userEmail = init.userEmail
@@ -84,6 +88,16 @@ export const useSessionStore = defineStore('sessions', {
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err)
       }
+    },
+
+    // Starts a session on the client and opens it; it goes to the top of the list.
+    async createSession(cwd: string, model = '') {
+      if (!this.transport) throw new Error('not connected')
+      const info = await this.transport.createSession(cwd, model)
+      this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
+      this.order = [info.id, ...this.order.filter(id => id !== info.id)]
+      this.open(info.id)
+      return info.id
     },
 
     open(id: string) {

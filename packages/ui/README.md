@@ -2,7 +2,7 @@
 
 The desktop and mobile frontend for harness, built with [Nuxt 4](https://nuxt.com) and [Nuxt UI v4](https://ui.nuxt.com). It implements the "harness desktop" design in [`docs/design/ui`](../../docs/design/ui).
 
-> **Status:** first iteration. Every desktop screen of the design renders on scripted data (the mock transport); the Connect transport is built against the contract but `harness-client serve` has no TCP listener for browsers yet.
+> **Status:** first iteration. Every desktop screen of the design renders on scripted data (the mock transport); the Connect transport talks to a real `harness-client serve --listen` (see [Running against a real client](#running-against-a-real-client)).
 
 ## Development
 
@@ -21,8 +21,40 @@ Transport, from runtime config:
 |---|---|---|
 | `NUXT_PUBLIC_TRANSPORT` | `mock` | `mock` replays scripted `harness.agent.v1` events; `connect` talks to a client |
 | `NUXT_PUBLIC_AGENT_URL` | — | AgentService base URL for `connect` |
+| `NUXT_PUBLIC_AGENT_TOKEN` | — | Bearer token of the client; an `?agentToken=` query parameter overrides it for the tab |
 
 Generated code (`app/gen`) comes from the root `buf.gen.yaml` (`buf generate` at the repository root, after `pnpm install` here for `protoc-gen-es`).
+
+## Running against a real client
+
+`harness-client serve --listen` serves AgentService to browsers: the Connect protocol over HTTP/1.1 and h2c, with server streaming for `Subscribe`.
+
+```bash
+# 1. Start the client (signed in with `harness-client login`, or HARNESS_SERVER_URL + HARNESS_ACCESS_TOKEN).
+#    Pick any free port; the listener binds loopback only.
+harness-client serve --listen 127.0.0.1:7801
+#   harness-client: serving AgentService on http://127.0.0.1:7801 (Connect over HTTP/1.1 and h2c)
+#   harness-client: bearer token (also in ~/.harness/agent-token, mode 0600): 3f9c…
+
+# 2. Start the UI with the connect transport and the token.
+NUXT_PUBLIC_TRANSPORT=connect \
+NUXT_PUBLIC_AGENT_URL=http://127.0.0.1:7801 \
+NUXT_PUBLIC_AGENT_TOKEN="$(cat "${HARNESS_HOME:-$HOME/.harness}/agent-token")" \
+pnpm dev --port 3210
+```
+
+Instead of `NUXT_PUBLIC_AGENT_TOKEN` you can open `http://localhost:3210/?agentToken=<token>` once: the UI keeps the token in `sessionStorage` for that tab and removes it from the address bar.
+
+The listener is not an open door. Every request needs `Authorization: Bearer <token>` (compared in constant time; 401 otherwise). Requests with an `Origin` outside the allowlist get 403, as do requests whose `Host` is not loopback or the bind address (DNS rebinding). The generated token is random per start and its file is removed on exit, so after restarting the client pass the new token. Client flags:
+
+| Flag | Env | Default | |
+|---|---|---|---|
+| `--listen host:port` | `HARNESS_AGENT_LISTEN` | — | TCP address; combinable with `--socket` |
+| `--token` | `HARNESS_AGENT_TOKEN` | random per start | At least 16 characters; prefer the env var (flags show up in `ps`) |
+| `--cors-origin` (repeatable) | `HARNESS_AGENT_CORS_ORIGINS` (comma-separated) | `http://localhost:3210`, `http://127.0.0.1:3210` | Exact browser origins allowed to call the client; add yours when the UI runs on another port |
+| `--allow-non-loopback` | — | off | Allows a non-loopback `--listen` address, with a loud warning: plain HTTP, the token is the only protection |
+
+`scripts/e2e/ui-connect.sh` checks all of this end to end with the fake gateway: it starts a client, probes the access rules with curl, then runs `test/connect.live.test.ts` (this package's `ConnectTransport` streaming a turn).
 
 ## Screens
 

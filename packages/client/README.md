@@ -19,20 +19,23 @@ It ships in two forms:
 | `memory` | Project instructions with Claude Code semantics: managed / user / project CLAUDE.md, AGENTS.md fallback, `@imports`, lazy subdirectory files, path-scoped rules, auto memory |
 | `settings` | Settings hierarchy (policy → CLI → local → project → user → org) with per-rule sources and the workspace trust gate |
 | `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
+| `vcs` | Device providers `gh` and `glab`: CLI detection (version, logged-in hosts), PR/MR and CI polling for the session branch, `ReportDeviceProviders` / `ReportDeviceSnapshot` uploads; `vcstest` is a fake `VcsService` |
 | `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
 | `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop |
 | `outputstyle` | Output style discovery: bundle built-ins, user styles (sync or `~/.claude`/`~/.harness/output-styles`), project styles (`.claude`/`.harness/output-styles`), frontmatter parsing |
 | `permissions` | Rule engine with Claude Code semantics (deny → ask → allow, compound Bash, wrappers, gitignore paths, read-only allowlist, protected paths, modes), workspace trust (`~/.harness/trust.json`), allow-always persistence |
 | `decision` | Deciders of the `auto` permission mode: local rules (Go port of the server's `rules` provider, `packages/core/src/decision/rules.ts`), `harness.decision.v1.DecisionService` client, chain with fallback, session cache |
 | `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`), branch-aware rebuild, file checkpoints (`~/.harness/file-history/<id>/`), fork |
+| `mcp` | MCP servers from `harness.mcp.v1.McpService`: remote tools through the core proxy, stdio servers via `IssueStdioLaunch` and the Go MCP SDK with per-device approval (`~/.harness/mcp-approvals.json`), `mcp__<server>__<tool>` tools, deferred tools and `ToolSearch` |
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
-| `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) |
+| `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
 | `relay` | Host side of `harness.relay.v1.RelayService` (remote control): mirrors live sessions to the server and runs viewer commands |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
 | `gen` | Code generated from `/proto` (do not edit) |
 | `internal/fakegateway` | Scripted fake harness server for tests and local end-to-end runs |
+| `internal/fakemcp` | Fake `McpService` and a fake stdio MCP server (also as `cmd/fake-mcp-server`) for tests and e2e |
 
 ## Usage
 
@@ -49,6 +52,7 @@ harness-client -p --permission-mode plan "plan the refactor"
 harness-client -p --output-style explanatory "walk me through the parser"
 harness-client -p --permission-mode auto "run the tests and fix what fails"
 harness-client serve --socket /tmp/harness.sock     # AgentService for frontends
+harness-client serve --listen 127.0.0.1:7801       # ... for browsers (see packages/ui/README.md)
 harness-client import claude --dry-run              # preview the ~/.claude import (add --sessions for transcripts)
 harness-client sync --watch                         # catch up the sync cache, upload sessions, follow changes
 ```
@@ -58,10 +62,14 @@ Environment variables:
 - `HARNESS_KEYRING=0` stores credentials only in `~/.harness/credentials.json`.
 - `HARNESS_SERVER_URL` + `HARNESS_ACCESS_TOKEN` use a fixed access token (for example on SSH runners).
 - `HARNESS_TMPDIR` sets the root of the per-session scratch directories.
+- `HARNESS_NO_VCS=1` stops the session from polling PR/CI state through `gh`/`glab`.
 - `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` set the Bash timeouts.
 - `HARNESS_RG` sets the ripgrep path (`-` forces the Go fallback).
 - `HARNESS_AUTOCOMPACT_PCT` sets the auto-compaction threshold as a share of the context window (`92` or `0.92`, default 92%).
 - `HARNESS_DISABLE_BACKGROUND_TASKS=1` disables `run_in_background` and auto-backgrounding.
+- `HARNESS_NO_MCP=1` disables MCP servers.
+- `HARNESS_MCP_APPROVE=name1,name2` (or `*`) approves those stdio MCP servers for this run without asking (not remembered). Otherwise a stdio server asks on first use through the interactive frontend and the answer is stored per config hash.
+- `HARNESS_TOOL_SEARCH`: `auto` (default; defer MCP tools behind `ToolSearch` when their definitions exceed 10% of the context window, `auto:<percent>` to change the share), `always`, `never`.
 
 ## Auto permission mode
 

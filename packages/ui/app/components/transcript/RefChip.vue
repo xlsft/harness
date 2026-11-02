@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
   tone?: 'accent' | 'ok'
 }>(), { kind: 'file', detail: '', status: '', add: 0, del: 0, sha: '', branch: '', checks: '', tone: 'accent' })
 
-const { setPane } = usePanes()
+const { openPane } = usePanes()
 const fileName = computed(() => props.label)
 </script>
 
@@ -23,7 +23,7 @@ const fileName = computed(() => props.label)
     v-if="kind === 'file'"
     href="#"
     class="border border-default bg-surface px-1.5 py-px text-[12px] whitespace-nowrap text-accent hover:bg-hover"
-    @click.prevent="setPane('files')"
+    @click.prevent="openPane('files')"
   >{{ fileName }}<span
     v-if="detail"
     class="text-muted"
@@ -33,7 +33,7 @@ const fileName = computed(() => props.label)
     v-else-if="kind === 'artifact'"
     href="#"
     class="flex w-[480px] max-w-full items-center gap-3 border border-default bg-surface px-3 py-2.5 text-toned hover:bg-hover"
-    @click.prevent="setPane('artifact')"
+    @click.prevent="openPane('artifact')"
   >
     <span class="flex size-10 shrink-0 items-center justify-center border border-default bg-hover">
       <HIcon

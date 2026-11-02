@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// Composer (Composer.dc.html): ↵ sends, ⇧↵ new line, ⌘↵ queues; while a turn runs, messages queue (✕ removes one)
+// Composer (Composer.dc.html): Enter sends, Shift+Enter new line, Cmd/Ctrl+Enter queues; while a turn runs, messages queue (✕ removes one)
 // and Stop interrupts. `/` and `@` open menus, `!` runs a shell command, `#` saves to memory. Status line, queue,
 // attachments, drop, voice, context warning, permission waiting, offline and ended states.
+import type { Hint } from '~/components/composer/ComposerFooter.vue'
 import type { SessionState } from '~/lib/session/types'
 import type { ComposerPreset, MenuOption } from '~/utils/composer'
 
@@ -88,19 +89,20 @@ const placeholder = computed(() => {
   if (mode.value === 'shell') return 'Run a command'
   if (mode.value === 'memory') return 'Something to remember'
   if (planMode.value && !busy.value) return 'Describe what to plan. Nothing will be changed.'
-  if (queue.value.length) return `${queue.value.length} queued · ⌘↵ to add another`
+  if (queue.value.length) return `${queue.value.length} queued · type to add another`
   if (busy.value) return 'Type to queue a message for after this turn'
-  if (contextPct.value >= 90) return '↵ to send, ⌘↵ to queue for later'
-  return '↵ to send, ⌘↵ to queue · / commands · @ files · ! shell'
+  return 'Message harness · / commands · @ files · ! shell'
 })
 
-const hint = computed(() => {
-  if (mode.value === 'shell') return 'output goes to context · ⌫ on empty to exit'
-  if (uploading.value) return `waiting for ${uploading.value} upload${uploading.value > 1 ? 's' : ''}`
-  if (multiline.value) return '⇧↵ new line'
-  if (planMode.value) return '⇧⇥ cycle mode'
-  if (busy.value && !queue.value.length) return '⌘↵ queues a message'
-  return ''
+// Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.
+const hint = computed<Hint>(() => {
+  if (mode.value === 'shell') return [{ text: 'output goes to context ·' }, { keys: 'backspace', text: 'on empty to exit' }]
+  if (uploading.value) return [{ text: `waiting for ${uploading.value} upload${uploading.value > 1 ? 's' : ''}` }]
+  if (multiline.value) return [{ keys: 'shift+enter', text: 'new line' }]
+  if (planMode.value) return [{ keys: 'shift+tab', text: 'cycle mode' }]
+  if (busy.value || queue.value.length) return [{ keys: 'meta+enter', text: 'queues a message' }]
+  if (contextPct.value >= 90) return [{ keys: 'enter', text: 'send' }, { keys: 'meta+enter', text: 'queue for later' }]
+  return [{ keys: 'enter', text: 'send' }, { keys: 'meta+enter', text: 'queue' }]
 })
 
 const frame = computed(() => {
@@ -117,11 +119,19 @@ function autosize() {
   const el = input.value
   if (!el) return
   el.style.height = 'auto'
-  // Grows up to 8 lines (8 × 20.8px), then scrolls.
-  el.style.height = `${Math.min(el.scrollHeight, 167)}px`
+  // Empty: one line (a narrow composer would otherwise grow to fit the wrapped placeholder).
+  // Otherwise grows up to 8 lines (8 × 20.8px), then scrolls.
+  el.style.height = text.value ? `${Math.min(el.scrollHeight, 167)}px` : ''
 }
 watch(text, () => nextTick(autosize))
+// Re-measure when the composer is resized (window, sidebar or pane splits).
+let resizeObserver: ResizeObserver | undefined
+onBeforeUnmount(() => resizeObserver?.disconnect())
 onMounted(() => {
+  if (input.value) {
+    resizeObserver = new ResizeObserver(() => autosize())
+    resizeObserver.observe(input.value)
+  }
   autosize()
   if (props.preset?.focused) input.value?.focus()
 })
@@ -274,11 +284,15 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       <template v-if="pending && pending.kind === 'permission'">
         · Allow {{ pending.toolName }}?
       </template>
-      <span class="flex-1" /><span class="max-sm:hidden">1 allow · 2 always · esc deny</span>
+      <span class="flex-1" /><span class="flex shrink-0 items-center gap-2.5 max-sm:hidden @max-[560px]:hidden">
+        <span class="inline-flex items-center gap-1"><HKeys keys="1" />allow</span>
+        <span class="inline-flex items-center gap-1"><HKeys keys="2" />always</span>
+        <span class="inline-flex items-center gap-1"><HKeys keys="escape" />deny</span>
+      </span>
     </div>
     <div
       v-else-if="busy"
-      class="flex items-center gap-[9px] text-[12px] text-muted"
+      class="flex items-center gap-[9px] text-[12px] whitespace-nowrap text-muted"
     >
       <HIcon
         name="loading"
@@ -286,9 +300,9 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         spin
         class="text-accent"
       />
-      <span class="text-white">{{ activity }}</span>
-      · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok
-      <span class="flex-1" /><span class="max-sm:hidden">esc to interrupt</span>
+      <span class="min-w-0 truncate"><span class="text-white">{{ activity }}</span>
+        · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
+      <span class="flex-1" /><span class="inline-flex shrink-0 items-center gap-1 max-sm:hidden @max-[480px]:hidden"><HKeys keys="escape" />to interrupt</span>
     </div>
 
     <!-- queued messages -->
@@ -538,8 +552,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           rows="1"
           :placeholder="placeholder"
           aria-label="Message"
-          class="min-w-0 flex-1 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:text-muted"
-          :class="menu === 'slash' ? 'text-accent' : 'text-white'"
+          class="min-w-0 flex-1 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:truncate placeholder:text-muted"
+          :class="[menu === 'slash' ? 'text-accent' : 'text-white', !text && 'overflow-hidden']"
           @input="onInput"
           @keydown="onKeydown"
           @focus="focused = true"

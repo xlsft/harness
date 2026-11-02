@@ -37,14 +37,18 @@ function mark(s: SessionState) {
 function openSession(id: string) {
   store.open(id)
   open.value = false
-  if (route.path !== '/') navigateTo({ path: '/', query: route.query.pane ? { pane: route.query.pane } : {} })
+  if (route.path !== '/' || route.query.new) navigateTo({ path: '/', query: route.query.panes ? { panes: route.query.panes } : {} })
+}
+
+function newSession() {
+  open.value = false
+  navigateTo({ path: '/', query: { ...(route.query.panes ? { panes: route.query.panes } : {}), new: '1' } })
 }
 
 const nav = [
   { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts' },
   { label: 'Scheduled', icon: 'clock' as const },
-  { label: 'Customize', icon: 'sliders' as const },
-  { label: 'More', icon: 'more' as const }
+  { label: 'Customize', icon: 'sliders' as const }
 ]
 </script>
 
@@ -54,16 +58,19 @@ const nav = [
     v-model:collapsed="collapsed"
     v-model:open="open"
     collapsible
+    resizable
     :collapsed-size="0"
     :default-size="264"
-    :min-size="264"
-    :max-size="264"
+    :min-size="0"
+    :max-size="440"
     :toggle="false"
     :ui="{
-      root: 'bg-surface border-e border-default min-w-0 data-[collapsed=true]:hidden',
+      root: 'bg-surface border-e border-(--ui-divider) min-w-0 data-[collapsed=true]:hidden',
       body: 'p-0 gap-0 overflow-hidden',
       footer: 'h-[46px] gap-[9px] border-t border-default py-0 pr-2.5 pl-3.5 sm:px-3.5',
-      content: 'bg-surface rounded-none max-w-[264px]'
+      content: 'bg-surface rounded-none max-w-[264px]',
+      // The border is the divider; the handle only widens the grab area and lights up while used.
+      handle: 'relative z-10 -ml-px w-px bg-transparent transition-colors hover:bg-primary data-[dragging=true]:bg-primary'
     }"
     aria-label="Sessions"
   >
@@ -80,18 +87,13 @@ const nav = [
       />
     </div>
 
-    <div class="flex items-center gap-2.5 border-b border-default px-3.5 py-3">
-      <AppLogo />
-      <span class="font-display text-[16px] tracking-[-0.01em] text-white">xlsft`s harness</span>
-    </div>
-
     <div class="flex flex-col border-b border-default px-[5px] py-1.5">
       <a
         href="#"
         class="nav-row px-[9px] hover:bg-hover text-white"
-        @click.prevent="openSession(store.order[0]!)"
+        @click.prevent="newSession"
       >
-        <HIcon name="plus" />New session<span class="flex-1" /><span class="text-[10.5px] text-muted">⌘N</span>
+        <HIcon name="plus" />New session<span class="flex-1" /><HKeys keys="meta+n" />
       </a>
       <component
         :is="item.to ? 'NuxtLink' : 'a'"
