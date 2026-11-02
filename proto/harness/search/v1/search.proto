@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package harness.search.v1;
+
+// SearchService backs the WebSearch tool. The client calls it; the server runs the query on the
+// configured search provider and returns plain results. Providers are pluggable on the server
+// (SearXNG is the default and needs no API key; others such as Brave, Tavily, Exa or a model
+// provider's native search can be added later). Requires `Authorization: Bearer <access token>`.
+//
+// Status: DRAFT (M2).
+service SearchService {
+  rpc Search(SearchRequest) returns (SearchResponse);
+  // Providers configured on the server, for status pages and admin UIs.
+  rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+}
+
+message SearchRequest {
+  string query = 1;
+  // Only return results from these domains (suffix match). Cannot be combined with blocked_domains.
+  repeated string allowed_domains = 2;
+  // Never return results from these domains (suffix match).
+  repeated string blocked_domains = 3;
+  // 0 means the provider default (10). The server caps it.
+  int32 max_results = 4;
+  // Optional provider id; empty means the server default.
+  string provider = 5;
+  // Session id, for accounting and per-session limits.
+  string session_id = 6;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+  // Provider that served the query.
+  string provider = 2;
+}
+
+message SearchResult {
+  string title = 1;
+  string url = 2;
+  string snippet = 3;
+  // RFC 3339, UTC, when the provider knows it.
+  string published_at = 4;
+}
+
+message ListProvidersRequest {}
+
+message ListProvidersResponse {
+  repeated SearchProvider providers = 1;
+  string default_provider = 2;
+}
+
+message SearchProvider {
+  // e.g. "searxng".
+  string id = 1;
+  string display_name = 2;
+  bool healthy = 3;
+}

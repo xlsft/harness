@@ -325,4 +325,4 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 2. ~~Transcript storage~~ — **decided: the server stores full transcripts and metadata.**
 3. Desktop + mobile shell: **Tauri 2** (default: one shell for desktop and iOS/Android, Go client as a sidecar) or Electron + Capacitor.
 4. ~~OpenAI Responses API~~ — **decided: implemented in M1, before the first real-model tests.**
-5. WebSearch backend on the server (Brave, Tavily, SearXNG, provider-native).
+5. ~~WebSearch backend~~ — **decided: pluggable search providers on the server (`SearchService`); SearXNG is the default and only provider for now (free, no API key). Brave, Tavily, Exa and provider-native search can be added as providers later.**
