@@ -161,6 +161,78 @@ describe("OpenAI stream translation", () => {
     expect(starts[1]!.data.content_block.id).toMatch(/^toolu_/);
   });
 
+  /** Rebuilds tool_use blocks from block events, asserting sequential start/stop. */
+  const toolBlocks = (evs: AdapterEvent[]) => {
+    const blocks: { index: number; id: string; name: string; json: string }[] = [];
+    let open: number | null = null;
+    for (const e of evs) {
+      if (e.kind !== "block") continue;
+      const d = e.data as any;
+      if (e.event === "content_block_start") {
+        expect(open).toBeNull();
+        open = d.index;
+        if (d.content_block.type === "tool_use") blocks.push({ index: d.index, id: d.content_block.id, name: d.content_block.name, json: "" });
+      } else if (e.event === "content_block_delta") {
+        expect(d.index).toBe(open);
+        if (d.delta.type === "input_json_delta") blocks.find((b) => b.index === d.index)!.json += d.delta.partial_json;
+      } else if (e.event === "content_block_stop") {
+        expect(d.index).toBe(open);
+        open = null;
+      }
+    }
+    expect(open).toBeNull();
+    return blocks;
+  };
+
+  it("keeps interleaved tool-call deltas across indices and emits blocks in index order", () => {
+    const tc = (index: number, args: string, extra: Record<string, unknown> = {}) => ch({ tool_calls: [{ index, ...extra, function: { arguments: args, ...(extra.name ? { name: extra.name } : {}) } }] });
+    const evs = run([
+      ch({ content: "Doing three things." }),
+      tc(0, "", { id: "call_0", name: "Read" }),
+      tc(1, '{"pat', { id: "call_1", name: "Glob" }),
+      tc(0, '{"file_path":'),
+      tc(2, '{"command":"ls"}', { id: "call_2", name: "Bash" }),
+      tc(1, 'tern":"*.ts"}'),
+      tc(0, '"/a"}'),
+      ch({}, "tool_calls"),
+    ]);
+    const blocks = toolBlocks(evs);
+    expect(blocks.map((b) => [b.id, b.name, JSON.parse(b.json)])).toEqual([
+      ["call_0", "Read", { file_path: "/a" }],
+      ["call_1", "Glob", { pattern: "*.ts" }],
+      ["call_2", "Bash", { command: "ls" }],
+    ]);
+    expect(blocks.map((b) => b.index)).toEqual([1, 2, 3]);
+    expect((evs.at(-1) as { stop_reason: string }).stop_reason).toBe("tool_use");
+  });
+
+  it("several deltas in one chunk and late promotion of buffered calls", () => {
+    const evs = run([
+      ch({
+        tool_calls: [
+          { index: 0, id: "a", function: { name: "A", arguments: '{"x":' } },
+          { index: 1, id: "b", function: { name: "B", arguments: '{"y":2}' } },
+        ],
+      }),
+      ch({ tool_calls: [{ index: 0, function: { arguments: "1}" } }, { index: 2, id: "c", function: { name: "C", arguments: "{}" } }] }, "tool_calls"),
+    ]);
+    expect(toolBlocks(evs).map((b) => [b.id, b.json])).toEqual([
+      ["a", '{"x":1}'],
+      ["b", '{"y":2}'],
+      ["c", "{}"],
+    ]);
+  });
+
+  it("streams sequential tool calls live (no buffering when calls do not interleave)", () => {
+    const evs = run([
+      ch({ tool_calls: [{ index: 0, id: "a", function: { name: "A", arguments: '{"x"' } }] }),
+      ch({ tool_calls: [{ index: 0, function: { arguments: ":1}" } }] }),
+      ch({ tool_calls: [{ index: 1, id: "b", function: { name: "B", arguments: "{}" } }] }, "tool_calls"),
+    ]);
+    const deltas = evs.flatMap((e) => (e.kind === "block" && e.event === "content_block_delta" ? [(e.data as any).delta.partial_json] : []));
+    expect(deltas).toEqual(['{"x"', ":1}", "{}"]);
+  });
+
   it("normalizes usage across providers", () => {
     expect(normalizeOpenAIUsage({ prompt_tokens: 100, completion_tokens: 5, prompt_tokens_details: { cached_tokens: 60 } })).toEqual({
       input_tokens: 40,

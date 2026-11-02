@@ -10,7 +10,8 @@ export type ApiErrorType =
   | "upstream"
   | "internal"
   | "protocol_version"
-  | "unsupported_client";
+  | "unsupported_client"
+  | "conflict";
 
 const STATUS: Record<ApiErrorType, number> = {
   invalid_request: 400,
@@ -24,6 +25,7 @@ const STATUS: Record<ApiErrorType, number> = {
   internal: 500,
   protocol_version: 426,
   unsupported_client: 426,
+  conflict: 409,
 };
 
 /** Transport-agnostic service error. Mapped to Connect codes in src/rpc/errors.ts and to JSON in src/http/util.ts. */

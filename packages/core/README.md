@@ -47,6 +47,11 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_ADMIN_EMAIL`, `HARNESS_ADMIN_PASSWORD` | — | Admin bootstrap on start |
 | `HARNESS_GRPC_PORT` | off | Extra h2c listener with plain gRPC (see Transport) |
 | `HARNESS_PROMPTS_DIR` | `./prompts` | Prompt files (see [`prompts/README.md`](prompts/README.md)) |
+| `HARNESS_DEVICE_RATE_LIMIT_PER_MIN` | `30` | Per-IP token bucket (burst and refill per minute) for `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, each limited separately; `0` disables |
+| `HARNESS_TRUST_PROXY` | `false` | Take the client IP from the rightmost `X-Forwarded-For` entry (set when behind a reverse proxy) |
+| `HARNESS_SYNC_TOMBSTONE_DAYS` | `30` | Tombstone retention (minimum 30) |
+| `HARNESS_SYNC_HEARTBEAT_MS` | `20000` | `WatchChanges` heartbeat interval (max 20 s) |
+| `HARNESS_SESSION_BUDGET_USD` | — | Default per-session budget when the quota config has no `session_usd` |
 
 ## Endpoints
 
@@ -54,9 +59,10 @@ See [`.env.example`](.env.example). The important ones:
 
 | Service | Methods |
 |---|---|
-| `harness.auth.v1.DeviceAuthService` | `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, `GetMe`, `Logout` |
+| `harness.auth.v1.DeviceAuthService` | `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, `GetMe`, `Logout`, `ListDevices`, `RevokeDevice` |
 | `harness.llm.v1.GatewayService` | `ListModels`, `StreamMessage` (server streaming), `CountTokens` |
 | `harness.prompts.v1.PromptService` | `GetBundle` |
+| `harness.sync.v1.SyncService` | `ListChanges`, `WatchChanges` (server streaming), `GetDocument`, `PutDocument`, `BatchPutDocuments`, `DeleteDocument`, `UpsertSession`, `AppendSessionEvents`, `GetSession`, `ListSessions`, `GetSessionTranscript` |
 
 Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`.
 Errors carry a `harness.common.v1.ErrorInfo` detail.
@@ -81,9 +87,11 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | `/device` | Device approval page (sign in, enter or confirm the user code, approve/deny) |
 | `/api/auth/**` | Better Auth (email + password sessions, admin plugin: `/api/auth/admin/create-user`, …) |
 | `/api/admin/providers[/:id]` | Provider CRUD (`GET`, `POST`, `PATCH`, `DELETE`) |
+| `POST /api/admin/providers/:id/discover` | Candidate models from the upstream's `/v1/models` (through the SSRF guard): `upstream_model`, `display_name`, `context_window` / `max_output_tokens` when reported, `catalog_ids` already using it |
 | `/api/admin/models[/:id]` | Model catalog CRUD; `GET /:id` also lists features turned off by negotiation, `PATCH {reset_negotiation:true}` clears them |
 | `/api/admin/slots` | `GET` / `PUT {main, small, plan}` |
 | `/api/admin/usage` | Recent usage records (`?user_id=&limit=`) |
+| `/api/admin/quotas` | Spend limits: `GET` (`?user_id=` adds current spend + effective limits), `PUT` (replace), `PATCH` (merge, `null` removes) |
 | `/api/health` | Liveness |
 
 Admin routes accept an admin's Better Auth session cookie or an admin's device access token.
@@ -109,14 +117,55 @@ curl -s localhost:3000/api/admin/models "${H[@]}" -d '{
 curl -s -X PUT localhost:3000/api/admin/slots "${H[@]}" -d '{"main": "claude-sonnet", "small": "claude-sonnet"}'
 ```
 
-Provider fields: `type` (`anthropic` | `openai-chat`), `base_url`, `api_key`, `headers` (extra request headers),
+Provider fields: `type` (`anthropic` | `openai-chat` | `openai-responses`), `base_url`, `api_key`, `headers` (extra request headers),
 `allow_private_network`, `enabled`. Base URL conventions: Anthropic — host root (`/v1/messages` is appended;
-a trailing `/v1` is tolerated); OpenAI-compatible — up to and including `/v1` (`/chat/completions` is appended).
+a trailing `/v1` is tolerated); OpenAI-compatible — up to and including `/v1` (`/chat/completions` or `/responses` is appended; works for
+OpenAI and Responses-compatible endpoints such as OpenRouter).
 Keys and headers are encrypted at rest and never returned (only `api_key_hint` and `header_names`).
 
 Model fields: `id` (alias clients send), `provider_id`, `upstream_model`, `context_window`, `max_output_tokens`,
 `capabilities`, `pricing` (USD / 1M tokens), `fallbacks` (aliases tried on overload), `extra_body`
 (merged into the upstream request, e.g. vLLM/Qwen switches), `roles` (visibility), `enabled`, `sort_order`.
+
+## Sync
+
+- **Versions.** One global counter (`sync_counter`, taken in `nextSyncVersion`); document writes are serialized
+  in-process and run in a transaction, so versions commit in order and live events go out in version order.
+- **Documents** are unique per (owner, scope, project_key, kind, key); org documents have no owner. CAS per
+  `base_version` (unset / 0 = create only / N); mismatches come back as `Conflict`, not as errors. Writing identical
+  content is a no-op. Every write is kept in `sync_document_revision` (no read API yet).
+- **Authorization.** Users read and write their own user/project documents; org documents are admin-written.
+  The feed contains org documents targeted at the caller's role (or at everyone); other org documents appear as
+  tombstones, so caches drop documents re-targeted away from a role. Admins can `GetDocument` any org document.
+- **Validation.** JSON kinds (settings, permission rules, hooks, SSH hosts, policies) must be JSON objects and are
+  stored byte-exact; `SETTINGS.permissions` only takes `defaultMode`, `additionalDirectories`,
+  `disableBypassPermissionsMode`; project-scope SETTINGS are rejected; `files` only on SKILL and MEMORY;
+  RULE keys are relative `.md` paths; POLICY is org-only; MCP_SERVER cannot be written here.
+- **Tombstones** are purged after `HARNESS_SYNC_TOMBSTONE_DAYS` (hourly, opportunistically); cursors older than the
+  highest purged version, or newer than the head, get `resync_required`. `next_page_token` continuations never do.
+- **WatchChanges**: subscribe, catch up through `ListChanges` pages, `CaughtUp`, then live changes from the
+  in-process bus; a `Heartbeat` with the head after 20 s of silence.
+- **Sessions**: ids are UUID v4; `update_paths` use `info.<field>` and `prompt_bundle_version`. Transcript lines are
+  stored byte-exact, deduplicated per (session, agent_id, uuid); `seq` is one counter per session shared by the main
+  thread and subagents (each thread pages by `agent_id`). `ListSessions` searches titles, cwd, repo and transcript
+  text (case-insensitive substring).
+
+## Quotas
+
+Checked before the upstream is called; a used-up limit fails `StreamMessage` with `RESOURCE_EXHAUSTED` +
+`ERROR_TYPE_QUOTA_EXCEEDED` (do not retry). Spend is the recorded usage cost (model pricing).
+
+```json
+{
+  "roles": { "user": { "daily_usd": 5, "monthly_usd": 50 } },
+  "users": { "usr_...": { "daily_usd": 20 } },
+  "session_usd": 2
+}
+```
+
+- Periods are UTC calendar days / months. Per period, a user's own value replaces the role value.
+- `session_usd` (fallback `HARNESS_SESSION_BUDGET_USD`) caps the spend per `RequestMetadata.session_id`.
+- `0` blocks; absent = unlimited. A request that starts under a limit may overshoot it; the next one is rejected.
 
 ## Layout
 
@@ -146,6 +195,13 @@ test/                    vitest; helpers/ (in-process server, mock upstream), fi
 
 ## Gateway behavior notes
 
+- **OpenAI Responses** (`openai-responses`): system -> `instructions`, tool_use/tool_result -> `function_call` /
+  `function_call_output` items, effort -> `reasoning.effort`, max_tokens -> `max_output_tokens`. Reasoning is stateless:
+  `store: false` + `include: ["reasoning.encrypted_content"]`; a reasoning item becomes a thinking block (summary text)
+  whose `signature` encodes the item (`oair1.` prefix) so it is replayed verbatim before the related function calls.
+  Foreign signatures are dropped (and the Anthropic adapter drops `oair1.` ones). Stop sequences are not supported
+  upstream and are dropped. `reasoning` and `include` are negotiable features.
+
 - Canonical model inside the server is Anthropic-shaped JSON; `src/rpc/convert.ts` maps it to/from protobuf.
 - Retries (exponential backoff with jitter, `retry-after(-ms)`, `x-should-retry`; give up if retry-after > 60 s)
   happen only before the first content block; each emits a `Retry` event. 401/402/403 and TLS errors are not retried.
@@ -155,5 +211,8 @@ test/                    vitest; helpers/ (in-process server, mock upstream), fi
 - Fallback: on `overloaded`, after 2 retries on the current model the next model from `fallbacks` is tried
   (models with a smaller context window are skipped).
 - `Ping` every `HARNESS_PING_INTERVAL_MS` (10 s) while nothing else was sent.
+- `MessageStop.served_model` is the catalog alias that answered (differs from the requested model after a fallback).
+- OpenAI tool calls whose deltas interleave across `index` are buffered per index: one call streams live, the others are
+  emitted (in index order) once the live call's arguments are complete JSON or at the end of the stream.
 - SSRF guard: the address actually connected to is checked (custom DNS lookup in the undici connector),
   IP-literal hosts are checked up front, redirects are only followed within the same origin.

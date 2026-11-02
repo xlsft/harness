@@ -12,6 +12,8 @@ export const NEGOTIABLE_FEATURES = [
   "stream_usage",
   "max_tokens_param",
   "parallel_tool_calls",
+  "reasoning",
+  "include",
 ] as const;
 export type FeatureName = (typeof NEGOTIABLE_FEATURES)[number];
 
@@ -28,6 +30,10 @@ export interface Features {
   maxTokensParam: boolean;
   /** OpenAI: allow sending `parallel_tool_calls`. */
   parallelToolCalls: boolean;
+  /** OpenAI Responses: send the `reasoning` object (summary request; effort is governed by `effort`). */
+  reasoning: boolean;
+  /** OpenAI Responses: send `include: ["reasoning.encrypted_content"]` (stateless reasoning round-trip). */
+  include: boolean;
   images: boolean;
   pdf: boolean;
 }
@@ -42,6 +48,8 @@ export function computeFeatures(req: CanonicalRequest, model: ModelEntry, disabl
     streamUsage: !disabled.has("stream_usage"),
     maxTokensParam: !disabled.has("max_tokens_param"),
     parallelToolCalls: caps.parallel_tool_calls && !disabled.has("parallel_tool_calls"),
+    reasoning: !disabled.has("reasoning"),
+    include: !disabled.has("include"),
     images: caps.images,
     pdf: caps.pdf,
   };

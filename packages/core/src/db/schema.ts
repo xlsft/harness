@@ -1,4 +1,4 @@
-import { index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const ts = (name: string) => integer(name, { mode: "timestamp_ms" });
 
@@ -224,5 +224,116 @@ export const usageRecord = sqliteTable(
     durationMs: integer("duration_ms"),
     createdAt: ts("created_at").notNull(),
   },
-  (t) => [index("usage_user_created_idx").on(t.userId, t.createdAt)],
+  (t) => [index("usage_user_created_idx").on(t.userId, t.createdAt), index("usage_session_idx").on(t.sessionId)],
+);
+
+// ---------------------------------------------------------------------------
+// Sync (proto/harness/sync/v1): versioned documents and session transcripts
+// ---------------------------------------------------------------------------
+
+/**
+ * Named monotonically increasing counters. "documents" is the global sync version counter
+ * (see services/sync.ts nextSyncVersion); a Postgres port can replace it with a sequence.
+ */
+export const syncCounter = sqliteTable("sync_counter", {
+  name: text("name").primaryKey(),
+  value: integer("value").notNull(),
+});
+
+/** Current state of every document; deleted documents stay as tombstones (deleted_at set). */
+export const syncDocument = sqliteTable(
+  "sync_document",
+  {
+    id: text("id").primaryKey(),
+    /** usr_... for user and project scope; "" for org scope (keeps the unique key non-null). */
+    ownerId: text("owner_id").notNull(),
+    /** harness.common.v1.Scope */
+    scope: integer("scope").notNull(),
+    /** "" unless scope = project. */
+    projectKey: text("project_key").notNull().default(""),
+    /** harness.sync.v1.DocumentKind */
+    kind: integer("kind").notNull(),
+    key: text("key").notNull(),
+    /** Global sync version of the last write (or of the delete). */
+    version: integer("version").notNull(),
+    content: text("content").notNull().default(""),
+    /** JSON: {path, data (base64), executable}[] */
+    files: text("files", { mode: "json" }).notNull().default("[]"),
+    contentHash: text("content_hash").notNull(),
+    source: text("source").notNull().default(""),
+    /** JSON: string[]; org scope only. */
+    targetRoles: text("target_roles", { mode: "json" }).notNull().default("[]"),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+    updatedBy: text("updated_by").notNull(),
+    deletedAt: ts("deleted_at"),
+  },
+  (t) => [
+    uniqueIndex("sync_document_key_idx").on(t.ownerId, t.scope, t.projectKey, t.kind, t.key),
+    index("sync_document_version_idx").on(t.version),
+  ],
+);
+
+/** Version history of documents (every write and delete). */
+export const syncDocumentRevision = sqliteTable(
+  "sync_document_revision",
+  {
+    documentId: text("document_id").notNull(),
+    version: integer("version").notNull(),
+    content: text("content").notNull(),
+    files: text("files", { mode: "json" }).notNull(),
+    contentHash: text("content_hash").notNull(),
+    deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+    updatedBy: text("updated_by").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.documentId, t.version] })],
+);
+
+/** Session metadata (SessionMetadata). `info` is the protobuf JSON of harness.agent.v1.SessionInfo. */
+export const syncSession = sqliteTable(
+  "sync_session",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    info: text("info", { mode: "json" }).notNull(),
+    // Columns copied out of `info` for filtering and search.
+    title: text("title").notNull().default(""),
+    cwd: text("cwd").notNull().default(""),
+    repo: text("repo").notNull().default(""),
+    deviceId: text("device_id").notNull().default(""),
+    status: integer("status").notNull().default(0),
+    archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+    promptBundleVersion: text("prompt_bundle_version").notNull().default(""),
+    lastSeq: integer("last_seq").notNull().default(0),
+    createdAt: ts("created_at").notNull(),
+    lastActivityAt: ts("last_activity_at").notNull(),
+  },
+  (t) => [index("sync_session_user_activity_idx").on(t.userId, t.lastActivityAt)],
+);
+
+/**
+ * Durable transcript: CC-format JSONL lines, byte-exact. `seq` is one counter per session shared by the
+ * main thread and its subagents, so each thread's entries are increasing (not dense) when paged by agent_id.
+ */
+export const syncSessionEntry = sqliteTable(
+  "sync_session_entry",
+  {
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => syncSession.id, { onDelete: "cascade" }),
+    seq: integer("seq").notNull(),
+    uuid: text("uuid").notNull(),
+    /** Subagent id; "" for the main thread. Subagent transcripts are paged separately. */
+    agentId: text("agent_id").notNull().default(""),
+    parentUuid: text("parent_uuid").notNull().default(""),
+    type: text("type").notNull().default(""),
+    timestamp: text("timestamp").notNull().default(""),
+    entryJson: text("entry_json").notNull(),
+    /** Text content extracted for search. */
+    searchText: text("search_text").notNull().default(""),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.seq] }), uniqueIndex("sync_session_entry_uuid_idx").on(t.sessionId, t.agentId, t.uuid)],
 );

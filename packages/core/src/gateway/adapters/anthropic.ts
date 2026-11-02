@@ -7,6 +7,7 @@ import { parseSse } from "../../lib/sse.ts";
 import { classifyStreamError } from "../errors.ts";
 import { blocksOf, type FeatureName, type Features } from "../features.ts";
 import type { AdapterEvent, CanonicalRequest, ContentBlock, StopReason, Usage, UpstreamFailure } from "../types.ts";
+import { RESPONSES_SIGNATURE_PREFIX } from "./openai-responses.ts";
 import { joinUrl, type Adapter, type AdapterTarget, type UpstreamRequest } from "./types.ts";
 
 export const ANTHROPIC_VERSION = "2023-06-01";
@@ -42,6 +43,8 @@ export function toAnthropicBody(req: CanonicalRequest, target: AdapterTarget): R
       case "thinking":
         // Unsigned thinking (e.g. from an OpenAI-compatible model) is rejected by Anthropic.
         if (!f.thinking || !blk.signature) return undefined;
+        // Signatures minted for OpenAI Responses reasoning items are meaningless to Anthropic.
+        if (blk.signature.startsWith(RESPONSES_SIGNATURE_PREFIX)) return undefined;
         return { ...rest };
       case "redacted_thinking":
         if (!f.thinking) return undefined;

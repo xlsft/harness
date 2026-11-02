@@ -25,5 +25,20 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE UNIQUE INDEX `user_email_unique` ON `user` (`email`);",
       "CREATE TABLE `verification` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`identifier` text NOT NULL,\n\t`value` text NOT NULL,\n\t`expires_at` integer NOT NULL,\n\t`created_at` integer NOT NULL,\n\t`updated_at` integer NOT NULL\n);"
     ]
+  },
+  {
+    "id": "0001_sync_and_quotas",
+    "statements": [
+      "CREATE TABLE `sync_counter` (\n\t`name` text PRIMARY KEY NOT NULL,\n\t`value` integer NOT NULL\n);",
+      "CREATE TABLE `sync_document` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`owner_id` text NOT NULL,\n\t`scope` integer NOT NULL,\n\t`project_key` text DEFAULT '' NOT NULL,\n\t`kind` integer NOT NULL,\n\t`key` text NOT NULL,\n\t`version` integer NOT NULL,\n\t`content` text DEFAULT '' NOT NULL,\n\t`files` text DEFAULT '[]' NOT NULL,\n\t`content_hash` text NOT NULL,\n\t`source` text DEFAULT '' NOT NULL,\n\t`target_roles` text DEFAULT '[]' NOT NULL,\n\t`created_at` integer NOT NULL,\n\t`updated_at` integer NOT NULL,\n\t`updated_by` text NOT NULL,\n\t`deleted_at` integer\n);",
+      "CREATE UNIQUE INDEX `sync_document_key_idx` ON `sync_document` (`owner_id`,`scope`,`project_key`,`kind`,`key`);",
+      "CREATE INDEX `sync_document_version_idx` ON `sync_document` (`version`);",
+      "CREATE TABLE `sync_document_revision` (\n\t`document_id` text NOT NULL,\n\t`version` integer NOT NULL,\n\t`content` text NOT NULL,\n\t`files` text NOT NULL,\n\t`content_hash` text NOT NULL,\n\t`deleted` integer DEFAULT false NOT NULL,\n\t`updated_by` text NOT NULL,\n\t`created_at` integer NOT NULL,\n\tPRIMARY KEY(`document_id`, `version`)\n);",
+      "CREATE TABLE `sync_session` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`user_id` text NOT NULL,\n\t`info` text NOT NULL,\n\t`title` text DEFAULT '' NOT NULL,\n\t`cwd` text DEFAULT '' NOT NULL,\n\t`repo` text DEFAULT '' NOT NULL,\n\t`device_id` text DEFAULT '' NOT NULL,\n\t`status` integer DEFAULT 0 NOT NULL,\n\t`archived` integer DEFAULT false NOT NULL,\n\t`prompt_bundle_version` text DEFAULT '' NOT NULL,\n\t`last_seq` integer DEFAULT 0 NOT NULL,\n\t`created_at` integer NOT NULL,\n\t`last_activity_at` integer NOT NULL,\n\tFOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade\n);",
+      "CREATE INDEX `sync_session_user_activity_idx` ON `sync_session` (`user_id`,`last_activity_at`);",
+      "CREATE TABLE `sync_session_entry` (\n\t`session_id` text NOT NULL,\n\t`seq` integer NOT NULL,\n\t`uuid` text NOT NULL,\n\t`agent_id` text DEFAULT '' NOT NULL,\n\t`parent_uuid` text DEFAULT '' NOT NULL,\n\t`type` text DEFAULT '' NOT NULL,\n\t`timestamp` text DEFAULT '' NOT NULL,\n\t`entry_json` text NOT NULL,\n\t`search_text` text DEFAULT '' NOT NULL,\n\tPRIMARY KEY(`session_id`, `seq`),\n\tFOREIGN KEY (`session_id`) REFERENCES `sync_session`(`id`) ON UPDATE no action ON DELETE cascade\n);",
+      "CREATE UNIQUE INDEX `sync_session_entry_uuid_idx` ON `sync_session_entry` (`session_id`,`agent_id`,`uuid`);",
+      "CREATE INDEX `usage_session_idx` ON `usage_record` (`session_id`);"
+    ]
   }
 ];

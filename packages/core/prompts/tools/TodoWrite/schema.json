@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "todos": {
+      "type": "array",
+      "description": "The complete, updated task list (replaces the previous one)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "content": { "type": "string", "minLength": 1, "description": "The task in imperative form, e.g. \"Fix the failing test\"" },
+          "activeForm": { "type": "string", "minLength": 1, "description": "The task in present continuous form, e.g. \"Fixing the failing test\"" },
+          "status": { "type": "string", "enum": ["pending", "in_progress", "completed"], "description": "Current status of the task" }
+        },
+        "required": ["content", "activeForm", "status"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["todos"],
+  "additionalProperties": false
+}

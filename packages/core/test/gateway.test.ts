@@ -162,6 +162,7 @@ describe("Anthropic adapter", () => {
     expect(md.usage).toMatchObject({ inputTokens: 120n, outputTokens: 42n, cacheReadInputTokens: 1000n, cacheCreationInputTokens: 50n });
     const stop = ofCase(evs, "messageStop")[0]!.value;
     expect(stop.upstreamModel).toBe("claude-up");
+    expect(stop.servedModel).toBe("claude-t");
     expect(stop.retries).toBe(0);
     expect(stop.costUsd).toBeCloseTo((120 * 3 + 42 * 15 + 1000 * 0.3 + 50 * 3.75) / 1e6, 10);
   });
@@ -397,6 +398,7 @@ describe("reliability", () => {
       expect(ofCase(events, "retry")).toHaveLength(3);
       const stop = ofCase(events, "messageStop")[0]!.value;
       expect(stop.upstreamModel).toBe("gpt-up");
+      expect(stop.servedModel).toBe("gpt-t");
       expect(stop.retries).toBe(3);
       expect(ofCase(events, "messageStart")[0]!.value.model).toBe("claude-fb");
     } finally {
@@ -425,6 +427,61 @@ describe("reliability", () => {
     );
     expect(badJson.error!.code).toBe(Code.InvalidArgument);
     expect(up.requests).toHaveLength(0);
+  });
+});
+
+describe("model discovery", () => {
+  const api = (method: string, path: string, body?: unknown) => adminApi(ts.url, token, method, path, body);
+
+  it("lists Anthropic models across pages with auth headers", async () => {
+    up.enqueue(
+      { json: { data: [{ id: "claude-up", display_name: "Claude Up", created_at: "2026-01-01T00:00:00Z", type: "model" }], has_more: true, last_id: "claude-up" } },
+      { json: { data: [{ id: "claude-new", display_name: "Claude New", type: "model" }], has_more: false, last_id: "claude-new" } },
+    );
+    const r = await api("POST", "/api/admin/providers/anthropic-mock/discover");
+    expect(r.status).toBe(200);
+    expect(r.body.provider_id).toBe("anthropic-mock");
+    expect(r.body.models).toEqual([
+      { upstream_model: "claude-new", display_name: "Claude New", catalog_ids: [] },
+      { upstream_model: "claude-up", display_name: "Claude Up", created_at: "2026-01-01T00:00:00Z", catalog_ids: ["claude-t"] },
+    ]);
+    expect(up.requests.map((q) => [q.method, q.url])).toEqual([
+      ["GET", "/v1/models?limit=1000"],
+      ["GET", "/v1/models?limit=1000&after_id=claude-up"],
+    ]);
+    expect(up.requests[0]!.headers["x-api-key"]).toBe("sk-ant-secret-1234");
+    expect(up.requests[0]!.headers["anthropic-version"]).toBe("2023-06-01");
+    expect(up.requests[0]!.headers["anthropic-beta"]).toBe("test-beta");
+  });
+
+  it("lists OpenAI-compatible models with context lengths when reported", async () => {
+    up.enqueue({
+      json: {
+        object: "list",
+        data: [
+          { id: "gpt-up", object: "model", owned_by: "openai", created: 1700000000 },
+          { id: "qwen", object: "model", max_model_len: 32768 },
+          { id: "or/model", name: "OR Model", context_length: 131072, top_provider: { max_completion_tokens: 8192 } },
+        ],
+      },
+    });
+    const r = await api("POST", "/api/admin/providers/openai-mock/discover");
+    expect(r.status).toBe(200);
+    expect(up.requests[0]!.url).toBe("/v1/models");
+    expect(up.requests[0]!.headers.authorization).toBe("Bearer sk-oai-secret-5678");
+    const byId = Object.fromEntries(r.body.models.map((m: { upstream_model: string }) => [m.upstream_model, m]));
+    expect(byId["gpt-up"]).toMatchObject({ owned_by: "openai", created_at: "2023-11-14T22:13:20.000Z", catalog_ids: ["gpt-t"] });
+    expect(byId.qwen).toMatchObject({ context_window: 32768 });
+    expect(byId["or/model"]).toMatchObject({ display_name: "OR Model", context_window: 131072, max_output_tokens: 8192 });
+  });
+
+  it("reports upstream failures, unknown providers and requires admin", async () => {
+    up.enqueue({ status: 401, json: { error: { message: "bad key" } } });
+    const r = await api("POST", "/api/admin/providers/openai-mock/discover");
+    expect(r.status).toBe(502);
+    expect(r.body.error.type).toBe("upstream");
+    expect((await api("POST", "/api/admin/providers/nope/discover")).status).toBe(404);
+    expect((await adminApi(ts.url, "hat_bogus", "POST", "/api/admin/providers/openai-mock/discover")).status).toBe(401);
   });
 });
 

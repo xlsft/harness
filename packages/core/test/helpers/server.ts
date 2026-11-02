@@ -11,6 +11,7 @@ import { H3, serve } from "h3";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
+import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 
@@ -21,8 +22,14 @@ export interface TestServer {
   auth: Client<typeof DeviceAuthService>;
   gateway: Client<typeof GatewayService>;
   prompts: Client<typeof PromptService>;
+  sync: Client<typeof SyncService>;
   /** Connect clients authenticated with the given access token. */
-  as(token: string): { auth: Client<typeof DeviceAuthService>; gateway: Client<typeof GatewayService>; prompts: Client<typeof PromptService> };
+  as(token: string): {
+    auth: Client<typeof DeviceAuthService>;
+    gateway: Client<typeof GatewayService>;
+    prompts: Client<typeof PromptService>;
+    sync: Client<typeof SyncService>;
+  };
   close(): Promise<void>;
 }
 
@@ -33,6 +40,8 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
   process.env.HARNESS_ADMIN_PASSWORD = ADMIN.password;
   process.env.HARNESS_UPSTREAM_RETRY_BASE_MS = "5";
   process.env.HARNESS_PROMPTS_DIR = join(ROOT, "prompts");
+  // device-flow endpoints are rate limited per IP; every test client is 127.0.0.1
+  process.env.HARNESS_DEVICE_RATE_LIMIT_PER_MIN = "10000";
   Object.assign(process.env, env);
 
   const { routes } = await import("../../src/http/routes.ts");
@@ -66,6 +75,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       auth: createClient(DeviceAuthService, transport),
       gateway: createClient(GatewayService, transport),
       prompts: createClient(PromptService, transport),
+      sync: createClient(SyncService, transport),
     };
   };
 
@@ -111,6 +121,17 @@ export async function deviceLogin(ts: TestServer, email = ADMIN.email, password 
   const poll = await ts.auth.pollDeviceAuth({ deviceCode: start.deviceCode });
   if (poll.status !== PollDeviceAuthResponse_Status.APPROVED || !poll.credentials) throw new Error(`poll status ${poll.status}`);
   return { ...poll.credentials, cookie };
+}
+
+/** Creates a user through the Better Auth admin plugin (admin session cookie) and logs a device in. */
+export async function createUserAndLogin(ts: TestServer, adminCookie: string, email: string, password = "user-password-1", role = "user") {
+  const res = await fetch(`${ts.url}/api/auth/admin/create-user`, {
+    method: "POST",
+    headers: { cookie: adminCookie, origin: ts.url, "content-type": "application/json" },
+    body: JSON.stringify({ email, password, name: email.split("@")[0], role }),
+  });
+  if (!res.ok) throw new Error(`create-user failed: ${res.status} ${await res.text()}`);
+  return deviceLogin(ts, email, password);
 }
 
 /** JSON call to the admin HTTP API with a bearer token. */

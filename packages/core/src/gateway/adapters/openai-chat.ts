@@ -200,11 +200,37 @@ function toolId(): string {
   return `toolu_${randomBytes(12).toString("base64url")}`;
 }
 
-/** Stateful translator from OpenAI chat chunks to Anthropic-shaped block events. Exported for unit tests. */
+interface ToolCallState {
+  id: string;
+  name: string;
+  args: string;
+  /** buffered: not emitted yet; live: its block is open and streams; done: its block is closed. */
+  status: "buffered" | "live" | "done";
+}
+
+function isCompleteJson(s: string): boolean {
+  if (!s.trim()) return false;
+  try {
+    JSON.parse(s);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Stateful translator from OpenAI chat chunks to Anthropic-shaped block events. Exported for unit tests.
+ *
+ * Tool calls: OpenAI streams them by `index` and some upstreams interleave deltas of several calls.
+ * Anthropic blocks are sequential (one open block at a time), so one call streams live and the others
+ * are buffered per index. A buffered call is promoted (start + buffered arguments in one delta) once
+ * the live call's arguments form complete JSON; whatever is still buffered at the end is emitted in
+ * index order.
+ */
 export class OpenAIStreamTranslator {
   private index = -1;
   private open: { kind: "text" | "thinking" | "tool"; toolIndex?: number } | null = null;
-  private tools = new Map<number, { block: number; closed: boolean }>();
+  private tools = new Map<number, ToolCallState>();
   private sawTool = false;
   started = false;
   finish: string | null = null;
@@ -215,7 +241,7 @@ export class OpenAIStreamTranslator {
     out.push({ kind: "block", event: "content_block_stop", data: { type: "content_block_stop", index: this.index } });
     if (this.open.kind === "tool" && this.open.toolIndex !== undefined) {
       const t = this.tools.get(this.open.toolIndex);
-      if (t) t.closed = true;
+      if (t) t.status = "done";
     }
     this.open = null;
   }
@@ -225,6 +251,81 @@ export class OpenAIStreamTranslator {
     this.index++;
     this.open = { kind };
     out.push({ kind: "block", event: "content_block_start", data: { type: "content_block_start", index: this.index, content_block: block } });
+  }
+
+  private argsDelta(out: AdapterEvent[], args: string) {
+    out.push({
+      kind: "block",
+      event: "content_block_delta",
+      data: { type: "content_block_delta", index: this.index, delta: { type: "input_json_delta", partial_json: args } },
+    });
+  }
+
+  /** Opens the block of a buffered tool call and emits everything buffered for it so far. */
+  private startTool(out: AdapterEvent[], ti: number, t: ToolCallState) {
+    this.close(out);
+    this.index++;
+    this.open = { kind: "tool", toolIndex: ti };
+    t.status = "live";
+    if (!t.id) t.id = toolId();
+    out.push({
+      kind: "block",
+      event: "content_block_start",
+      data: { type: "content_block_start", index: this.index, content_block: { type: "tool_use", id: t.id, name: t.name, input: {} } },
+    });
+    if (t.args) this.argsDelta(out, t.args);
+  }
+
+  /** Lowest-index buffered tool call. */
+  private nextBuffered(): [number, ToolCallState] | undefined {
+    let best: [number, ToolCallState] | undefined;
+    for (const [i, t] of this.tools) if (t.status === "buffered" && (!best || i < best[0])) best = [i, t];
+    return best;
+  }
+
+  /** Promotes buffered calls in index order while no call is live or the live one is complete. */
+  private promote(out: AdapterEvent[]) {
+    for (;;) {
+      const live = this.open?.kind === "tool" ? this.tools.get(this.open.toolIndex!) : undefined;
+      if (live && !isCompleteJson(live.args)) return;
+      const next = this.nextBuffered();
+      if (!next) return;
+      this.startTool(out, next[0], next[1]);
+    }
+  }
+
+  private pushToolDelta(out: AdapterEvent[], tc: Record<string, any>) {
+    const ti: number = typeof tc.index === "number" ? tc.index : 0;
+    const args = typeof tc.function?.arguments === "string" ? tc.function.arguments : "";
+    let t = this.tools.get(ti);
+    if (!t) {
+      t = { id: "", name: "", args: "", status: "buffered" };
+      this.tools.set(ti, t);
+      this.sawTool = true;
+    }
+    if (typeof tc.id === "string" && tc.id && !t.id) t.id = tc.id;
+    if (typeof tc.function?.name === "string" && tc.function.name && !t.name) t.name = tc.function.name;
+    switch (t.status) {
+      case "live":
+        t.args += args;
+        if (args) this.argsDelta(out, args);
+        // As soon as the live call is complete, buffered calls can stream instead of waiting for the end.
+        if (args && this.nextBuffered()) this.promote(out);
+        return;
+      case "done":
+        // Only reachable after the call's block was closed by text/thinking or because its arguments
+        // were already complete JSON; more arguments cannot be appended to a closed block.
+        if (args) console.warn(`[harness] dropped arguments for closed tool call ${t.id}`);
+        return;
+      case "buffered":
+        t.args += args;
+        if (this.open?.kind !== "tool") {
+          // No call is streaming: start this one now (text/thinking before it gets closed).
+          this.startTool(out, ti, t);
+          return;
+        }
+        this.promote(out);
+    }
   }
 
   /** Processes one parsed chunk; returns events to emit. */
@@ -259,38 +360,7 @@ export class OpenAIStreamTranslator {
     }
 
     if (Array.isArray(delta.tool_calls)) {
-      for (const tc of delta.tool_calls) {
-        const ti: number = typeof tc.index === "number" ? tc.index : 0;
-        let entry = this.tools.get(ti);
-        if (!entry) {
-          this.close(out);
-          this.index++;
-          entry = { block: this.index, closed: false };
-          this.tools.set(ti, entry);
-          this.open = { kind: "tool", toolIndex: ti };
-          this.sawTool = true;
-          out.push({
-            kind: "block",
-            event: "content_block_start",
-            data: {
-              type: "content_block_start",
-              index: this.index,
-              content_block: { type: "tool_use", id: tc.id || toolId(), name: tc.function?.name ?? "", input: {} },
-            },
-          });
-        } else if (entry.closed || this.open?.toolIndex !== ti) {
-          // Interleaved deltas for an already-closed tool call cannot be represented sequentially.
-          continue;
-        }
-        const args = tc.function?.arguments;
-        if (typeof args === "string" && args) {
-          out.push({
-            kind: "block",
-            event: "content_block_delta",
-            data: { type: "content_block_delta", index: entry.block, delta: { type: "input_json_delta", partial_json: args } },
-          });
-        }
-      }
+      for (const tc of delta.tool_calls) if (tc && typeof tc === "object") this.pushToolDelta(out, tc);
     }
 
     if (choice.finish_reason) this.finish = choice.finish_reason;
@@ -301,6 +371,11 @@ export class OpenAIStreamTranslator {
   end(): AdapterEvent[] {
     const out: AdapterEvent[] = [];
     this.close(out);
+    // Flush calls that were still buffered (interleaved with the live one), in index order.
+    for (let next = this.nextBuffered(); next; next = this.nextBuffered()) {
+      this.startTool(out, next[0], next[1]);
+      this.close(out);
+    }
     let stop: StopReason = FINISH_REASON_MAP[this.finish ?? "stop"] ?? "end_turn";
     if (this.sawTool && stop === "end_turn") stop = "tool_use";
     out.push({ kind: "stop", stop_reason: stop, stop_sequence: null, usage: this.usage });

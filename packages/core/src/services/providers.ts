@@ -6,7 +6,7 @@ import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
 
-export const PROVIDER_TYPES = ["anthropic", "openai-chat"] as const;
+export const PROVIDER_TYPES = ["anthropic", "openai-chat", "openai-responses"] as const;
 export type ProviderType = (typeof PROVIDER_TYPES)[number];
 
 /** Decrypted provider, only for use inside the gateway. Never serialize. */

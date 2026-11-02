@@ -12,6 +12,7 @@ import { ensureDb, getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { anthropicAdapter } from "../gateway/adapters/anthropic.ts";
 import { openaiChatAdapter } from "../gateway/adapters/openai-chat.ts";
+import { openaiResponsesAdapter } from "../gateway/adapters/openai-responses.ts";
 import type { Adapter, AdapterTarget, UpstreamRequest } from "../gateway/adapters/types.ts";
 import { computeCost, emptyUsage, estimateTokens, mergeUsage } from "../gateway/cost.ts";
 import { classifyHttpFailure, networkFailure } from "../gateway/errors.ts";
@@ -23,10 +24,12 @@ import { guardedFetch } from "../lib/ssrf.ts";
 import type { Principal } from "./devices.ts";
 import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEntry } from "./models.ts";
 import { loadProviderRuntime, type ProviderType } from "./providers.ts";
+import { enforceQuotas } from "./quotas.ts";
 
 const ADAPTERS: Record<ProviderType, Adapter> = {
   anthropic: anthropicAdapter,
   "openai-chat": openaiChatAdapter,
+  "openai-responses": openaiResponsesAdapter,
 };
 
 /** Retry-after values above this are surfaced to the client instead of waited out. */
@@ -43,7 +46,8 @@ export interface PreparedMessages {
 export async function prepareMessages(principal: Principal, body: unknown): Promise<PreparedMessages> {
   const req = normalizeRequest(body, { requireStream: true });
   const model = await resolveModelForUser(req.model, principal.user);
-  // TODO(M1): quotas -> throw new ApiError("quota_exceeded", ...)
+  // Spend limits are checked before any upstream call (RESOURCE_EXHAUSTED + QUOTA_EXCEEDED).
+  await enforceQuotas(principal.user, req.metadata?.session_id || undefined);
   return { req, model };
 }
 
@@ -170,8 +174,9 @@ export async function* runMessages(
             cost_usd: computeCost(usage, model.pricing),
             upstream_model: model.upstreamModel,
             retries,
+            // Catalog alias that answered; differs from req.model after a fallback.
+            served_model: model.id,
           };
-          if (model.id !== req.model) harness.served_model = model.id;
           yield { event: "message_stop", data: { type: "message_stop", harness } };
           return { ok: true, stopReason: ev.stop_reason };
         }
