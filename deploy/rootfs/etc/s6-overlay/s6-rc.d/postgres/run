@@ -1,0 +1,17 @@
+#!/command/with-contenv sh
+# Postgres on the unix socket only. Config files that matter for access (hba, ident) come from the
+# image, so they change with it; everything else is the cluster's own postgresql.conf.
+# Stop: s6 sends SIGINT (down-signal), which is Postgres' "fast" shutdown.
+LOG_TAG=postgres
+. /etc/s6-overlay/scripts/lib.sh
+
+if ! internal_postgres; then
+  s6-svc -O .
+  exit 0
+fi
+
+exec s6-setuidgid postgres postgres -D "$PGDATA" \
+  -c listen_addresses='' \
+  -c unix_socket_directories="$PG_SOCKET_DIR" \
+  -c hba_file=/etc/harness/postgres/pg_hba.conf \
+  -c ident_file=/etc/harness/postgres/pg_ident.conf

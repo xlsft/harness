@@ -1,0 +1,24 @@
+#!/command/with-contenv sh
+# SearXNG under granian (the server upstream's own image uses), on 127.0.0.1:8888 only.
+# Settings: /data/searxng/settings.yml when present (operator override), else the image's.
+LOG_TAG=searxng
+. /etc/s6-overlay/scripts/lib.sh
+
+if ! internal_searxng; then
+  s6-svc -O .
+  exit 0
+fi
+
+if [ -f /data/searxng/settings.yml ]; then
+  export SEARXNG_SETTINGS_PATH=/data/searxng/settings.yml
+else
+  export SEARXNG_SETTINGS_PATH=/etc/harness/searxng/settings.yml
+fi
+SEARXNG_SECRET="$(cat /data/searxng/secret_key)"
+export SEARXNG_SECRET
+
+cd /opt/searxng || exit 1
+exec s6-setuidgid harness /opt/searxng/.venv/bin/granian \
+  --interface wsgi --host 127.0.0.1 --port 8888 \
+  --blocking-threads 4 --workers-kill-timeout 10 \
+  searx.webapp:app

@@ -1,0 +1,24 @@
+# SearXNG settings for the harness image. Only deviations from SearXNG's defaults are listed
+# (use_default_settings). The secret comes from SEARXNG_SECRET, read from /data/searxng/secret_key.
+# To customize, copy this file to /data/searxng/settings.yml; that file then takes precedence.
+use_default_settings: true
+
+general:
+  instance_name: "harness search"
+  enable_metrics: false
+
+server:
+  # Bound to 127.0.0.1 and used only by core: no bot limiter, no public-instance checks.
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  method: "GET"
+
+search:
+  # core queries /search?format=json.
+  formats:
+    - html
+    - json
+
+valkey:
+  url: false

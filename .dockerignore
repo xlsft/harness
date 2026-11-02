@@ -1,0 +1,16 @@
+# The image (deploy/Dockerfile) needs only the core sources and deploy/. Everything else stays out
+# of the build context.
+*
+!packages/core/
+!deploy/
+
+packages/core/node_modules
+packages/core/.output
+packages/core/.nitro
+packages/core/.data
+packages/core/.cache
+packages/core/test
+**/.DS_Store
+**/*.log
+**/.env
+**/.env.*

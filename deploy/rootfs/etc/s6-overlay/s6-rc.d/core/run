@@ -1,0 +1,5 @@
+#!/command/with-contenv sh
+# The Nitro server. On SIGTERM it closes the listener and drains in-flight requests (srvx graceful
+# shutdown); s6 SIGKILLs it after timeout-kill ms. s6-rc stops core before postgres.
+cd /app || exit 1
+exec s6-setuidgid harness node /app/server/index.mjs
