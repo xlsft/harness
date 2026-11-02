@@ -2,7 +2,7 @@
 // mode (permissions.Decider):
 //
 //   - Rules: a Go port of the server's deterministic `rules` provider
-//     (hard-deny and fast-allow tables, rules.go);
+//     (packages/core/src/decision/rules.ts, ported in rulesengine.go);
 //   - Client: the Connect client of harness.decision.v1.DecisionService;
 //   - Chain: local rules first (a local DENY or fast ALLOW is final and
 //     skips the network), then the server; when the server is unreachable or
@@ -18,16 +18,20 @@ import (
 	"encoding/json"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
-// Facts are what the client already knows about a call (ClientFacts).
+// Facts are what the client already knows about a call (ClientFacts). They
+// are sent to the server and fed to the local rules exactly as sent.
 type Facts struct {
-	// Subcommands are the normalized simple commands of a Bash call
-	// (wrappers stripped, substitutions and `sh -c` scripts included).
+	// Subcommands are the simple commands of a Bash call as the rules see
+	// them (wrappers stripped; substitutions, `sh -c` / eval bodies and
+	// `find -exec` commands included), rendered as shell text that parses
+	// back to the same words.
 	Subcommands []string
 	// WritePaths are the absolute paths the call writes to.
 	WritePaths []string
@@ -35,9 +39,6 @@ type Facts struct {
 	NetworkHosts  []string
 	InsideGitRepo bool
 	GitBranch     string
-	// Unsafe is set when the command contains constructs whose effect
-	// cannot be determined statically (command substitution, eval, ...).
-	Unsafe bool
 }
 
 // GitInfo reports whether dir is inside a git work tree and its branch.
@@ -65,26 +66,32 @@ func factsFrom(ctx context.Context) (Facts, bool) {
 }
 
 // ComputeFacts derives the facts of a call. git may be nil (no git facts).
+// Bash commands are read with the rules' own parser (rulesengine.go), so the
+// facts describe the same simple commands the rules check.
 func ComputeFacts(ctx context.Context, req permissions.AutoRequest, git GitInfo) Facts {
 	if f, ok := factsFrom(ctx); ok {
 		return f
 	}
 	var f Facts
 	input := decode(req.Input)
+	cwd := normRoot(req.Cwd)
 	switch {
 	case req.ToolName == "Bash":
-		cmd := req.Command
-		if cmd == "" {
-			cmd, _ = input["command"].(string)
+		cmd, ok := input["command"].(string)
+		if !ok {
+			cmd = req.Command
 		}
-		for _, c := range expand(cmd, 0) {
-			f.Subcommands = append(f.Subcommands, c.text)
-			if c.unsafe {
-				f.Unsafe = true
+		cmds, err := flattenCommand(cmd, cwd)
+		if err != nil {
+			break // unparsable: the rules ask (or deny through their raw fallback)
+		}
+		for _, c := range cmds {
+			if s := renderSubcommand(c); s != "" {
+				f.Subcommands = append(f.Subcommands, s)
 			}
-			f.NetworkHosts = appendUnique(f.NetworkHosts, commandHosts(c.cmd)...)
+			f.NetworkHosts = appendUnique(f.NetworkHosts, commandHosts(c)...)
 		}
-		f.WritePaths = permissions.CommandWritePaths(cmd, req.Cwd, req.Home)
+		f.WritePaths = commandWritePaths(cmds, req.Home)
 	case permissions.IsEditTool(req.ToolName):
 		p := req.FilePath
 		if p == "" {
@@ -94,10 +101,9 @@ func ComputeFacts(ctx context.Context, req permissions.AutoRequest, git GitInfo)
 			p, _ = input["notebook_path"].(string)
 		}
 		if p != "" {
-			if !filepath.IsAbs(p) {
-				p = filepath.Join(req.Cwd, p)
+			if r := resolvePath(p, cwd); r != "" {
+				f.WritePaths = []string{absolutePath(r, req.Home)}
 			}
-			f.WritePaths = []string{filepath.Clean(p)}
 		}
 	case req.ToolName == "WebFetch":
 		if u, _ := input["url"].(string); u != "" {
@@ -110,72 +116,98 @@ func ComputeFacts(ctx context.Context, req permissions.AutoRequest, git GitInfo)
 	return f
 }
 
-// subcommand is one normalized simple command with its rule text.
-type subcommand struct {
-	cmd    permissions.SimpleCommand
-	text   string
-	unsafe bool
+// absolutePath writes a resolved path ("~/x" or "/x") with the home
+// directory expanded; "~" paths stay as they are when home is unknown.
+func absolutePath(p, home string) string {
+	home = strings.TrimSuffix(filepath.ToSlash(home), "/")
+	if home == "" || !strings.HasPrefix(p, "~") {
+		return p
+	}
+	return home + p[1:]
 }
 
-// shells run their `-c` argument as a script.
-var shells = map[string]bool{"sh": true, "bash": true, "zsh": true, "dash": true, "ksh": true, "fish": true}
-
-// expand splits a command line into normalized simple commands, descending
-// into substitutions and `sh -c` scripts (depth-limited).
-func expand(cmd string, depth int) []subcommand {
-	var out []subcommand
-	for _, raw := range permissions.SplitCommand(cmd) {
-		c := raw.Normalize()
-		sc := subcommand{cmd: c, text: ruleText(c), unsafe: raw.Unsafe}
-		if n := filepath.Base(c.Name()); n == "eval" || n == "source" || n == "." {
-			sc.unsafe = true
-		}
-		out = append(out, sc)
-		if depth >= 3 {
+// renderSubcommand writes a simple command (assignments, argv after wrapper
+// stripping, redirections other than heredocs) as shell text whose words
+// parse back to the same values.
+func renderSubcommand(c *Cmd) string {
+	var parts []string
+	for _, a := range c.assigns {
+		parts = append(parts, shellQuote(a))
+	}
+	for _, a := range c.argv {
+		parts = append(parts, shellQuote(a))
+	}
+	for _, r := range c.redirects {
+		if r.Op == "<<" || r.Op == "<<-" {
 			continue
 		}
-		for _, s := range raw.Substitutions {
-			out = append(out, expand(s, depth+1)...)
+		sep := " "
+		if strings.HasSuffix(r.Op, "&") {
+			sep = "" // 2>&1
 		}
-		if shells[filepath.Base(c.Name())] {
-			args := c.Args()
-			for i, a := range args {
-				if a == "-c" && i+1 < len(args) {
-					out = append(out, expand(args[i+1], depth+1)...)
-					break
-				}
+		parts = append(parts, r.Fd+r.Op+sep+shellQuote(r.Target.Text))
+	}
+	return strings.Join(parts, " ")
+}
+
+// shellSafeWord matches words the rules' parser reads literally.
+var shellSafeWord = regexp.MustCompile(`^[A-Za-z0-9_@%+=:,./~^-]+$`)
+
+func shellQuote(s string) string {
+	if shellSafeWord.MatchString(s) {
+		return s
+	}
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// commandWritePaths returns the absolute paths the simple commands write to:
+// output redirections and the write targets the rules know (cp/mv/ln/install/
+// rsync destinations, tee/touch/truncate operands, sed -i files, dd of=,
+// chmod/chown targets) plus mkdir operands; deletions (rm, unlink, shred)
+// are not included. Words with
+// unknown expansions and commands with unknown arguments (xargs, find -exec)
+// are skipped.
+func commandWritePaths(cmds []*Cmd, home string) []string {
+	var out []string
+	for _, c := range cmds {
+		if c.unknownArgs {
+			continue
+		}
+		var targets []string
+		// Deletions are not writes: the rules judge rm targets themselves
+		// (as destructive), and a privileged path among the write paths would
+		// add privilege_escalation to that verdict.
+		if c.name != "rm" && c.name != "unlink" && c.name != "shred" {
+			targets = append(targets, writeTargets(c)...)
+		}
+		if c.name == "mkdir" {
+			targets = append(targets, parseArgs(tail(c.argv), "-m", "--mode").positionals...)
+		}
+		targets = append(targets, redirectTargets(redirectWrites(c))...)
+		for _, t := range targets {
+			if t == "" || t == "-" {
+				continue
 			}
+			p := resolvePath(t, c.cwd)
+			if p == "" || p == "/dev/null" {
+				continue
+			}
+			out = appendUnique(out, absolutePath(p, home))
 		}
 	}
 	return out
 }
 
-// ruleText renders a simple command for the rule patterns: unquoted word
-// values joined by single spaces, then redirections ("> target").
-func ruleText(c permissions.SimpleCommand) string {
-	parts := make([]string, 0, len(c.Words)+len(c.Redirects))
-	for _, w := range c.Words {
-		parts = append(parts, w.Value)
-	}
-	for _, r := range c.Redirects {
-		parts = append(parts, r.FD+r.Op+" "+r.Target)
-	}
-	return strings.Join(parts, " ")
-}
+// hostTools contact the hosts named in their URL or user@host arguments.
+var hostTools = setOf("curl", "wget", "http", "https", "xh", "aria2c", "git", "ssh", "scp", "sftp", "rsync", "nc", "ncat", "telnet", "ftp")
 
-// networkTools contact the hosts named in their URL or user@host arguments.
-var networkTools = map[string]bool{
-	"curl": true, "wget": true, "http": true, "https": true, "xh": true, "aria2c": true, "git": true,
-	"ssh": true, "scp": true, "sftp": true, "rsync": true, "nc": true, "ncat": true, "telnet": true, "ftp": true,
-}
-
-func commandHosts(c permissions.SimpleCommand) []string {
-	name := filepath.Base(c.Name())
-	if !networkTools[name] {
+func commandHosts(c *Cmd) []string {
+	name := c.name
+	if !hostTools[name] {
 		return nil
 	}
 	var hosts []string
-	for _, a := range c.Args() {
+	for _, a := range tail(c.argv) {
 		if strings.HasPrefix(a, "-") {
 			continue
 		}
@@ -216,19 +248,10 @@ func urlHost(s string) string {
 
 func appendUnique(dst []string, items ...string) []string {
 	for _, it := range items {
-		if it == "" {
+		if it == "" || contains(dst, it) {
 			continue
 		}
-		dup := false
-		for _, d := range dst {
-			if d == it {
-				dup = true
-				break
-			}
-		}
-		if !dup {
-			dst = append(dst, it)
-		}
+		dst = append(dst, it)
 	}
 	return dst
 }
