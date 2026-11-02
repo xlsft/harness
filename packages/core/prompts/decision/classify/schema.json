@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "deny", "ask"],
+      "description": "allow: run without asking; deny: block it; ask: let the developer decide."
+    },
+    "reason": {
+      "type": "string",
+      "description": "One short sentence explaining the decision, shown to the developer (and to the agent for deny)."
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "destructive",
+          "remote_code_execution",
+          "secret_exfiltration",
+          "production_change",
+          "git_history_rewrite",
+          "privilege_escalation",
+          "network_egress",
+          "out_of_scope",
+          "package_install"
+        ]
+      },
+      "description": "Risk categories that apply; empty when there is no notable risk."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "How sure you are of the decision."
+    }
+  },
+  "required": ["decision", "reason", "categories", "confidence"],
+  "additionalProperties": false
+}

@@ -42,5 +42,16 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"usage_user_created_idx\" ON \"usage_record\" USING btree (\"user_id\",\"created_at\");",
       "CREATE INDEX \"usage_session_idx\" ON \"usage_record\" USING btree (\"session_id\");"
     ]
+  },
+  {
+    "id": "0001_decisions",
+    "statements": [
+      "CREATE TABLE \"decision_config\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"config\" jsonb NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\t\"updated_by\" text\n);",
+      "CREATE TABLE \"decision_log\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"device_id\" text,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"tool_name\" text NOT NULL,\n\t\"input_hash\" text NOT NULL,\n\t\"input_preview\" text DEFAULT '' NOT NULL,\n\t\"decision\" text NOT NULL,\n\t\"provider\" text NOT NULL,\n\t\"categories\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"reason\" text DEFAULT '' NOT NULL,\n\t\"confidence\" double precision,\n\t\"latency_ms\" integer NOT NULL,\n\t\"cost_usd\" double precision DEFAULT 0 NOT NULL,\n\t\"cached\" boolean DEFAULT false NOT NULL,\n\t\"error\" text,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"decision_log\" ADD CONSTRAINT \"decision_log_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"decision_log_session_idx\" ON \"decision_log\" USING btree (\"session_id\",\"created_at\");",
+      "CREATE INDEX \"decision_log_user_idx\" ON \"decision_log\" USING btree (\"user_id\",\"created_at\");",
+      "CREATE INDEX \"decision_log_created_idx\" ON \"decision_log\" USING btree (\"created_at\");"
+    ]
   }
 ];

@@ -15,6 +15,15 @@ The bundle `version` is a content hash: it changes exactly when the resolved tex
 
 Trailing whitespace of each file is trimmed. This README is not part of the bundle.
 
+Server-side prompts live next to the bundle files but are never sent to clients:
+
+| Path | Used by |
+|---|---|
+| `decision/system.md` | system prompt of the `llm` decision provider (`harness.decision.v1.DecisionService`, the client's `auto` mode) |
+| `decision/classify/description.md` + `decision/classify/schema.json` | the `classify` tool the classifier must call (`{decision: allow\|deny\|ask, reason, categories[], confidence}`) |
+
+They follow the same per-model override rules as everything else (e.g. `overrides/qwen-*/decision/system.md`).
+
 All texts are written from scratch (clean-room); never copy Claude Code's prompts.
 
 ## Placeholders

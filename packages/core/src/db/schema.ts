@@ -341,3 +341,55 @@ export const syncSessionEntry = pgTable(
   },
   (t) => [primaryKey({ columns: [t.sessionId, t.seq] }), uniqueIndex("sync_session_entry_uuid_idx").on(t.sessionId, t.agentId, t.uuid)],
 );
+
+// ---------------------------------------------------------------------------
+// Decisions (proto/harness/decision/v1): auto-mode provider chain and audit log
+// ---------------------------------------------------------------------------
+
+/**
+ * Provider chain configuration of DecisionService (admin JSON API /api/admin/decision). One row, id
+ * "default". `config` is the stored form of src/decision/config.ts DecisionConfig; webhook secrets inside
+ * it are encrypted (lib/crypto.ts).
+ */
+export const decisionConfig = pgTable("decision_config", {
+  id: text("id").primaryKey(),
+  config: jsonb("config").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+  updatedBy: text("updated_by"),
+});
+
+/** Every Decide call: who asked, what was judged (hash + truncated preview) and what came out. */
+export const decisionLog = pgTable(
+  "decision_log",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    deviceId: text("device_id"),
+    sessionId: text("session_id").notNull().default(""),
+    toolName: text("tool_name").notNull(),
+    /** sha256 of input_json. */
+    inputHash: text("input_hash").notNull(),
+    inputPreview: text("input_preview").notNull().default(""),
+    /** allow | deny | ask */
+    decision: text("decision").notNull(),
+    /** Provider id that decided, or "none". */
+    provider: text("provider").notNull(),
+    /** JSON: RiskCategory names. */
+    categories: jsonb("categories").notNull().default([]),
+    reason: text("reason").notNull().default(""),
+    confidence: doublePrecision("confidence"),
+    latencyMs: integer("latency_ms").notNull(),
+    costUsd: doublePrecision("cost_usd").notNull().default(0),
+    cached: boolean("cached").notNull().default(false),
+    /** Set when a provider failed and on_error turned the failure into the answer or a fall-through. */
+    error: text("error"),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [
+    index("decision_log_session_idx").on(t.sessionId, t.createdAt),
+    index("decision_log_user_idx").on(t.userId, t.createdAt),
+    index("decision_log_created_idx").on(t.createdAt),
+  ],
+);

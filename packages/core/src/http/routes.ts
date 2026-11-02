@@ -11,12 +11,14 @@ export interface RouteDef {
 export const routes: RouteDef[] = [
   { route: "/api/health", method: "get", handler: "./src/http/routes/health.ts" },
 
-  // Connect services (proto/harness/**): DeviceAuthService, GatewayService, PromptService, SyncService
+  // Connect services (proto/harness/**): DeviceAuthService, GatewayService, PromptService, SyncService,
+  // SearchService, DecisionService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.sync.v1.SyncService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.search.v1.SearchService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.decision.v1.DecisionService/**", handler: "./src/http/routes/rpc.ts" },
 
   // Better Auth (web sessions, admin plugin) and the device approval page stay plain HTTP
   { route: "/api/auth/**", handler: "./src/http/routes/better-auth.ts" },
@@ -31,4 +33,6 @@ export const routes: RouteDef[] = [
   { route: "/api/admin/slots", handler: "./src/http/routes/admin-slots.ts" },
   { route: "/api/admin/usage", method: "get", handler: "./src/http/routes/admin-usage.ts" },
   { route: "/api/admin/quotas", handler: "./src/http/routes/admin-quotas.ts" },
+  { route: "/api/admin/decision", handler: "./src/http/routes/admin-decision.ts" },
+  { route: "/api/admin/decision/log", method: "get", handler: "./src/http/routes/admin-decision-log.ts" },
 ];

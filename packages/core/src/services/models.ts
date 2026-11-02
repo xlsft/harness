@@ -39,7 +39,8 @@ export interface ModelEntry {
   enabled: boolean;
 }
 
-export const SLOT_NAMES = ["main", "small", "plan"] as const;
+/** `classifier`: model of the auto-mode decision classifier (src/decision/llm.ts); falls back to `small`. */
+export const SLOT_NAMES = ["main", "small", "plan", "classifier"] as const;
 export type Slots = Partial<Record<(typeof SLOT_NAMES)[number], string>>;
 
 const DEFAULT_CAPS: ModelCapabilities = {

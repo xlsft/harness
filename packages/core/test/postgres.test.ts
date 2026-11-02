@@ -9,6 +9,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { migrations } from "../src/db/migrations.generated.ts";
 import { SessionInfoSchema } from "../src/gen/harness/agent/v1/agent_pb.ts";
 import { Scope } from "../src/gen/harness/common/v1/scope_pb.ts";
 import { DocumentKind } from "../src/gen/harness/sync/v1/sync_pb.ts";
@@ -43,7 +44,7 @@ describe.skipIf(!SERVER)("real Postgres (TEST_DATABASE_URL)", () => {
     try {
       const results = await Promise.all(handles.map((h) => runMigrations(h.inTransaction)));
       expect(results.filter((r) => r.length > 0)).toHaveLength(1);
-      expect(results.flat()).toEqual(["0000_init"]);
+      expect(results.flat()).toEqual(migrations.map((m) => m.id));
       expect(await runMigrations(handles[0]!.inTransaction)).toEqual([]);
     } finally {
       await Promise.all(handles.map((h) => h.close()));

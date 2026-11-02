@@ -81,6 +81,8 @@ See [`.env.example`](.env.example). The important ones:
 | `harness.llm.v1.GatewayService` | `ListModels`, `StreamMessage` (server streaming), `CountTokens` |
 | `harness.prompts.v1.PromptService` | `GetBundle` |
 | `harness.sync.v1.SyncService` | `ListChanges`, `WatchChanges` (server streaming), `GetDocument`, `PutDocument`, `BatchPutDocuments`, `DeleteDocument`, `UpsertSession`, `AppendSessionEvents`, `GetSession`, `ListSessions`, `GetSessionTranscript` |
+| `harness.search.v1.SearchService` | `Search`, `ListProviders` |
+| `harness.decision.v1.DecisionService` | `Decide`, `ListProviders` (see Decisions) |
 
 Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`.
 Errors carry a `harness.common.v1.ErrorInfo` detail.
@@ -107,9 +109,11 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | `/api/admin/providers[/:id]` | Provider CRUD (`GET`, `POST`, `PATCH`, `DELETE`) |
 | `POST /api/admin/providers/:id/discover` | Candidate models from the upstream's `/v1/models` (through the SSRF guard): `upstream_model`, `display_name`, `context_window` / `max_output_tokens` when reported, `catalog_ids` already using it |
 | `/api/admin/models[/:id]` | Model catalog CRUD; `GET /:id` also lists features turned off by negotiation, `PATCH {reset_negotiation:true}` clears them |
-| `/api/admin/slots` | `GET` / `PUT {main, small, plan}` |
+| `/api/admin/slots` | `GET` / `PUT {main, small, plan, classifier}` (`classifier`: auto-mode classifier model, falls back to `small`) |
 | `/api/admin/usage` | Recent usage records (`?user_id=&limit=`) |
 | `/api/admin/quotas` | Spend limits: `GET` (`?user_id=` adds current spend + effective limits), `PUT` (replace), `PATCH` (merge, `null` removes) |
+| `/api/admin/decision` | Auto-mode decision chain: `GET` (`{config, configured}`, secrets redacted), `PUT` (replace) |
+| `GET /api/admin/decision/log` | Decision audit log, newest first (`?limit=&session_id=&user_id=`) |
 | `/api/health` | Liveness |
 
 Admin routes accept an admin's Better Auth session cookie or an admin's device access token.
@@ -186,6 +190,42 @@ Checked before the upstream is called; a used-up limit fails `StreamMessage` wit
 - `session_usd` (fallback `HARNESS_SESSION_BUDGET_USD`) caps the spend per `RequestMetadata.session_id`.
 - `0` blocks; absent = unlimited. A request that starts under a limit may overshoot it; the next one is rejected.
 
+## Decisions
+
+`DecisionService` backs the client's `auto` permission mode: the client asks whether a tool call may run
+without a prompt. A chain of providers answers, configured with `PUT /api/admin/decision`:
+
+```json
+{
+  "providers": [
+    { "type": "rules" },
+    { "type": "http", "id": "opa", "settings": { "url": "https://opa.corp/v1/decide", "bearer_token": "…", "timeout_ms": 5000 } },
+    { "type": "llm", "settings": { "timeout_ms": 8000 } }
+  ],
+  "on_error": "ask",
+  "cache_ttl_seconds": 600,
+  "classifier_model": null,
+  "rate_limit_per_min": 120,
+  "rules": { "extra_deny": [{ "pattern": "\\bnpm publish\\b", "reason": "CI publishes", "categories": ["production_change"] }],
+             "extra_allow": ["^make docs$"], "protected_branches": ["main", "master", "release*"], "deny_all_force_push": false }
+}
+```
+
+- Unconfigured default: `[rules, llm]`, `on_error: ask`.
+- `rules` (src/decision/rules.ts) is deterministic and dependency-free: hard denies (pipe-to-shell, destructive
+  `rm`, force pushes to protected branches, infra teardown, DB drops, production deploys, secret exfiltration,
+  sudo / persistence, raw disk writes) and a fast-allow list (read-only commands, in-workspace test / lint /
+  build runs, edits inside the working directories). Its DENY is final. The Go client ports the same table:
+  `test/fixtures/decision-rules.json`.
+- `llm` calls a catalog model through the gateway (`request_class: auxiliary`, charged to the user, quotas
+  apply) with the prompts in `prompts/decision/` and a forced `classify` tool call; malformed output is ASK;
+  a timeout is an error. ALLOW / DENY are cached in memory per user + input + cwd + recent intent.
+- `http` POSTs the request (snake_case, plus `user_id`, `user_role`, `device_id`) to a policy webhook through
+  the SSRF guard (`allow_private_network` for internal hosts) and expects `{decision, reason, categories?, confidence?}`.
+- The first ALLOW / DENY wins, ASK falls through, errors answer ASK (`on_error: ask`) or fall through (`next`);
+  nobody deciding gives ASK from provider `none`. `Decide` is rate-limited per user. Every decision is logged
+  in `decision_log`.
+
 ## Layout
 
 ```
@@ -201,6 +241,8 @@ src/
     gateway.ts           prepareMessages / runMessages (retries, negotiation, fallback, usage), countTokens
     prompts.ts           prompt bundle builder (files + overrides)
     usage.ts             usage listing
+  decision/              DecisionService: rules engine, llm / http providers, chain, config, cache
+  search/                SearchService providers (SearXNG)
   gateway/               canonical types, upstream adapters (anthropic, openai-chat), errors, cost
   rpc/                   Connect layer: proto <-> canonical conversion, service impls, error mapping,
                          fetch handler (Nitro) and h2c listener
