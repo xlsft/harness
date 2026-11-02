@@ -50,7 +50,7 @@ message Capabilities {
   bool prompt_cache = 6;
 }
 
-// USD per 1M tokens.
+// USD per 1M tokens. A zero cache price means "same as input".
 message Pricing {
   double input = 1;
   double output = 2;
@@ -149,6 +149,8 @@ message MessageStop {
   double cost_usd = 1;
   string upstream_model = 2;
   int32 retries = 3;
+  // Catalog alias that actually answered; differs from the requested model after a fallback.
+  string served_model = 4;
 }
 
 // Sent at least every 15 s. Clients drop the stream after 5 minutes without any event.

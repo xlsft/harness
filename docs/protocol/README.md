@@ -36,7 +36,7 @@ Server-side behavior that is not visible in the schema, such as provider transla
 - **Client identity.** Clients send `User-Agent: harness-client/<version> (<os>; <arch>)`. The server rejects clients below its minimum version with `FAILED_PRECONDITION` + `ERROR_TYPE_UNSUPPORTED_CLIENT`.
 - **Errors** are Connect/gRPC status codes with a `harness.common.v1.ErrorInfo` detail. The code mapping is in [errors.proto](../../proto/harness/common/v1/errors.proto).
 - **Versioning.** The package version (`v1`) is the protocol version. Changes inside a version must stay backward compatible; `buf breaking` enforces this. Incompatible changes go to `v2`.
-- **IDs** are opaque strings with a type prefix: `usr_`, `dev_`, `prv_`, `ses_`, `msg_`, `doc_`, `mcp_`, `mfl_` (MCP OAuth flow), `hst_` (relay host), `cmd_` (relay command), `tun_`. Timestamps are RFC 3339 strings in UTC.
+- **IDs** are opaque strings with a type prefix: `usr_`, `dev_`, `prv_`, `msg_`, `doc_`, `mcp_`, `mfl_` (MCP OAuth flow), `hst_` (relay host), `cmd_` (relay command), `tun_`. Session ids are UUID v4 (they double as Claude Code-compatible JSONL file names). Timestamps are RFC 3339 strings in UTC.
 - **JSON payloads** that must round-trip exactly — tool inputs and JSON Schemas — are carried as JSON strings (`*_json` fields).
 
 ## Code generation

@@ -345,7 +345,7 @@ func (x *Capabilities) GetPromptCache() bool {
 	return false
 }
 
-// USD per 1M tokens.
+// USD per 1M tokens. A zero cache price means "same as input".
 type Pricing struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Input         float64                `protobuf:"fixed64,1,opt,name=input,proto3" json:"input,omitempty"`
@@ -1195,6 +1195,8 @@ type MessageStop struct {
 	CostUsd       float64                `protobuf:"fixed64,1,opt,name=cost_usd,json=costUsd,proto3" json:"cost_usd,omitempty"`
 	UpstreamModel string                 `protobuf:"bytes,2,opt,name=upstream_model,json=upstreamModel,proto3" json:"upstream_model,omitempty"`
 	Retries       int32                  `protobuf:"varint,3,opt,name=retries,proto3" json:"retries,omitempty"`
+	// Catalog alias that actually answered; differs from the requested model after a fallback.
+	ServedModel   string `protobuf:"bytes,4,opt,name=served_model,json=servedModel,proto3" json:"served_model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1248,6 +1250,13 @@ func (x *MessageStop) GetRetries() int32 {
 		return x.Retries
 	}
 	return 0
+}
+
+func (x *MessageStop) GetServedModel() string {
+	if x != nil {
+		return x.ServedModel
+	}
+	return ""
 }
 
 // Sent at least every 15 s. Clients drop the stream after 5 minutes without any event.
@@ -1567,11 +1576,12 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\vstop_reason\x18\x01 \x01(\x0e2\x1a.harness.llm.v1.StopReasonR\n" +
 	"stopReason\x12#\n" +
 	"\rstop_sequence\x18\x02 \x01(\tR\fstopSequence\x12+\n" +
-	"\x05usage\x18\x03 \x01(\v2\x15.harness.llm.v1.UsageR\x05usage\"i\n" +
+	"\x05usage\x18\x03 \x01(\v2\x15.harness.llm.v1.UsageR\x05usage\"\x8c\x01\n" +
 	"\vMessageStop\x12\x19\n" +
 	"\bcost_usd\x18\x01 \x01(\x01R\acostUsd\x12%\n" +
 	"\x0eupstream_model\x18\x02 \x01(\tR\rupstreamModel\x12\x18\n" +
-	"\aretries\x18\x03 \x01(\x05R\aretries\"\x06\n" +
+	"\aretries\x18\x03 \x01(\x05R\aretries\x12!\n" +
+	"\fserved_model\x18\x04 \x01(\tR\vservedModel\"\x06\n" +
 	"\x04Ping\"\x9c\x01\n" +
 	"\x05Retry\x12\x18\n" +
 	"\aattempt\x18\x01 \x01(\x05R\aattempt\x12\x1f\n" +

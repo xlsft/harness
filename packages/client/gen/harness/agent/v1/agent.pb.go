@@ -194,6 +194,165 @@ func (PullRequest_State) EnumDescriptor() ([]byte, []int) {
 	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{4, 0}
 }
 
+type Todo_Status int32
+
+const (
+	Todo_STATUS_UNSPECIFIED Todo_Status = 0
+	Todo_STATUS_PENDING     Todo_Status = 1
+	Todo_STATUS_IN_PROGRESS Todo_Status = 2
+	Todo_STATUS_COMPLETED   Todo_Status = 3
+)
+
+// Enum value maps for Todo_Status.
+var (
+	Todo_Status_name = map[int32]string{
+		0: "STATUS_UNSPECIFIED",
+		1: "STATUS_PENDING",
+		2: "STATUS_IN_PROGRESS",
+		3: "STATUS_COMPLETED",
+	}
+	Todo_Status_value = map[string]int32{
+		"STATUS_UNSPECIFIED": 0,
+		"STATUS_PENDING":     1,
+		"STATUS_IN_PROGRESS": 2,
+		"STATUS_COMPLETED":   3,
+	}
+)
+
+func (x Todo_Status) Enum() *Todo_Status {
+	p := new(Todo_Status)
+	*p = x
+	return p
+}
+
+func (x Todo_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Todo_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_agent_proto_enumTypes[3].Descriptor()
+}
+
+func (Todo_Status) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_agent_proto_enumTypes[3]
+}
+
+func (x Todo_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Todo_Status.Descriptor instead.
+func (Todo_Status) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{14, 0}
+}
+
+type TaskFinished_Reason int32
+
+const (
+	TaskFinished_REASON_UNSPECIFIED    TaskFinished_Reason = 0
+	TaskFinished_REASON_EXITED         TaskFinished_Reason = 1
+	TaskFinished_REASON_STOPPED        TaskFinished_Reason = 2
+	TaskFinished_REASON_TIME_LIMIT     TaskFinished_Reason = 3
+	TaskFinished_REASON_SESSION_CLOSED TaskFinished_Reason = 4
+)
+
+// Enum value maps for TaskFinished_Reason.
+var (
+	TaskFinished_Reason_name = map[int32]string{
+		0: "REASON_UNSPECIFIED",
+		1: "REASON_EXITED",
+		2: "REASON_STOPPED",
+		3: "REASON_TIME_LIMIT",
+		4: "REASON_SESSION_CLOSED",
+	}
+	TaskFinished_Reason_value = map[string]int32{
+		"REASON_UNSPECIFIED":    0,
+		"REASON_EXITED":         1,
+		"REASON_STOPPED":        2,
+		"REASON_TIME_LIMIT":     3,
+		"REASON_SESSION_CLOSED": 4,
+	}
+)
+
+func (x TaskFinished_Reason) Enum() *TaskFinished_Reason {
+	p := new(TaskFinished_Reason)
+	*p = x
+	return p
+}
+
+func (x TaskFinished_Reason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskFinished_Reason) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_agent_proto_enumTypes[4].Descriptor()
+}
+
+func (TaskFinished_Reason) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_agent_proto_enumTypes[4]
+}
+
+func (x TaskFinished_Reason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskFinished_Reason.Descriptor instead.
+func (TaskFinished_Reason) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{19, 0}
+}
+
+type Compacted_Trigger int32
+
+const (
+	Compacted_TRIGGER_UNSPECIFIED Compacted_Trigger = 0
+	Compacted_TRIGGER_MANUAL      Compacted_Trigger = 1
+	Compacted_TRIGGER_AUTO        Compacted_Trigger = 2
+	Compacted_TRIGGER_REWIND      Compacted_Trigger = 3
+)
+
+// Enum value maps for Compacted_Trigger.
+var (
+	Compacted_Trigger_name = map[int32]string{
+		0: "TRIGGER_UNSPECIFIED",
+		1: "TRIGGER_MANUAL",
+		2: "TRIGGER_AUTO",
+		3: "TRIGGER_REWIND",
+	}
+	Compacted_Trigger_value = map[string]int32{
+		"TRIGGER_UNSPECIFIED": 0,
+		"TRIGGER_MANUAL":      1,
+		"TRIGGER_AUTO":        2,
+		"TRIGGER_REWIND":      3,
+	}
+)
+
+func (x Compacted_Trigger) Enum() *Compacted_Trigger {
+	p := new(Compacted_Trigger)
+	*p = x
+	return p
+}
+
+func (x Compacted_Trigger) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Compacted_Trigger) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_agent_proto_enumTypes[5].Descriptor()
+}
+
+func (Compacted_Trigger) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_agent_proto_enumTypes[5]
+}
+
+func (x Compacted_Trigger) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Compacted_Trigger.Descriptor instead.
+func (Compacted_Trigger) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{23, 0}
+}
+
 type TurnFinished_Result int32
 
 const (
@@ -233,11 +392,11 @@ func (x TurnFinished_Result) String() string {
 }
 
 func (TurnFinished_Result) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[3].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[6].Descriptor()
 }
 
 func (TurnFinished_Result) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[3]
+	return &file_harness_agent_v1_agent_proto_enumTypes[6]
 }
 
 func (x TurnFinished_Result) Number() protoreflect.EnumNumber {
@@ -246,7 +405,7 @@ func (x TurnFinished_Result) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TurnFinished_Result.Descriptor instead.
 func (TurnFinished_Result) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{25, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{38, 0}
 }
 
 type Notice_Level int32
@@ -285,11 +444,11 @@ func (x Notice_Level) String() string {
 }
 
 func (Notice_Level) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[4].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[7].Descriptor()
 }
 
 func (Notice_Level) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[4]
+	return &file_harness_agent_v1_agent_proto_enumTypes[7]
 }
 
 func (x Notice_Level) Number() protoreflect.EnumNumber {
@@ -298,7 +457,7 @@ func (x Notice_Level) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Notice_Level.Descriptor instead.
 func (Notice_Level) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{26, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{39, 0}
 }
 
 type SendUserMessageRequest_Delivery int32
@@ -334,11 +493,11 @@ func (x SendUserMessageRequest_Delivery) String() string {
 }
 
 func (SendUserMessageRequest_Delivery) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[5].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[8].Descriptor()
 }
 
 func (SendUserMessageRequest_Delivery) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[5]
+	return &file_harness_agent_v1_agent_proto_enumTypes[8]
 }
 
 func (x SendUserMessageRequest_Delivery) Number() protoreflect.EnumNumber {
@@ -347,7 +506,7 @@ func (x SendUserMessageRequest_Delivery) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SendUserMessageRequest_Delivery.Descriptor instead.
 func (SendUserMessageRequest_Delivery) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{27, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{40, 0}
 }
 
 type RespondToPermissionRequest_Decision int32
@@ -388,11 +547,11 @@ func (x RespondToPermissionRequest_Decision) String() string {
 }
 
 func (RespondToPermissionRequest_Decision) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[6].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[9].Descriptor()
 }
 
 func (RespondToPermissionRequest_Decision) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[6]
+	return &file_harness_agent_v1_agent_proto_enumTypes[9]
 }
 
 func (x RespondToPermissionRequest_Decision) Number() protoreflect.EnumNumber {
@@ -401,7 +560,122 @@ func (x RespondToPermissionRequest_Decision) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RespondToPermissionRequest_Decision.Descriptor instead.
 func (RespondToPermissionRequest_Decision) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{31, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{44, 0}
+}
+
+type RespondToPlanRequest_Decision int32
+
+const (
+	RespondToPlanRequest_DECISION_UNSPECIFIED RespondToPlanRequest_Decision = 0
+	// Approve and switch to acceptEdits.
+	RespondToPlanRequest_DECISION_APPROVE_ACCEPT_EDITS RespondToPlanRequest_Decision = 1
+	// Approve and keep asking for each edit (default mode).
+	RespondToPlanRequest_DECISION_APPROVE_MANUAL RespondToPlanRequest_Decision = 2
+	// Keep planning; feedback is sent to the model.
+	RespondToPlanRequest_DECISION_KEEP_PLANNING RespondToPlanRequest_Decision = 3
+)
+
+// Enum value maps for RespondToPlanRequest_Decision.
+var (
+	RespondToPlanRequest_Decision_name = map[int32]string{
+		0: "DECISION_UNSPECIFIED",
+		1: "DECISION_APPROVE_ACCEPT_EDITS",
+		2: "DECISION_APPROVE_MANUAL",
+		3: "DECISION_KEEP_PLANNING",
+	}
+	RespondToPlanRequest_Decision_value = map[string]int32{
+		"DECISION_UNSPECIFIED":          0,
+		"DECISION_APPROVE_ACCEPT_EDITS": 1,
+		"DECISION_APPROVE_MANUAL":       2,
+		"DECISION_KEEP_PLANNING":        3,
+	}
+)
+
+func (x RespondToPlanRequest_Decision) Enum() *RespondToPlanRequest_Decision {
+	p := new(RespondToPlanRequest_Decision)
+	*p = x
+	return p
+}
+
+func (x RespondToPlanRequest_Decision) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RespondToPlanRequest_Decision) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_agent_proto_enumTypes[10].Descriptor()
+}
+
+func (RespondToPlanRequest_Decision) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_agent_proto_enumTypes[10]
+}
+
+func (x RespondToPlanRequest_Decision) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RespondToPlanRequest_Decision.Descriptor instead.
+func (RespondToPlanRequest_Decision) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{57, 0}
+}
+
+type RewindRequest_Mode int32
+
+const (
+	RewindRequest_MODE_UNSPECIFIED           RewindRequest_Mode = 0
+	RewindRequest_MODE_CODE_AND_CONVERSATION RewindRequest_Mode = 1
+	RewindRequest_MODE_CONVERSATION          RewindRequest_Mode = 2
+	RewindRequest_MODE_CODE                  RewindRequest_Mode = 3
+	// Targeted compaction of everything after the checkpoint; files untouched.
+	RewindRequest_MODE_SUMMARIZE_FROM RewindRequest_Mode = 4
+	// Targeted compaction of everything before the checkpoint; files untouched.
+	RewindRequest_MODE_SUMMARIZE_UP_TO RewindRequest_Mode = 5
+)
+
+// Enum value maps for RewindRequest_Mode.
+var (
+	RewindRequest_Mode_name = map[int32]string{
+		0: "MODE_UNSPECIFIED",
+		1: "MODE_CODE_AND_CONVERSATION",
+		2: "MODE_CONVERSATION",
+		3: "MODE_CODE",
+		4: "MODE_SUMMARIZE_FROM",
+		5: "MODE_SUMMARIZE_UP_TO",
+	}
+	RewindRequest_Mode_value = map[string]int32{
+		"MODE_UNSPECIFIED":           0,
+		"MODE_CODE_AND_CONVERSATION": 1,
+		"MODE_CONVERSATION":          2,
+		"MODE_CODE":                  3,
+		"MODE_SUMMARIZE_FROM":        4,
+		"MODE_SUMMARIZE_UP_TO":       5,
+	}
+)
+
+func (x RewindRequest_Mode) Enum() *RewindRequest_Mode {
+	p := new(RewindRequest_Mode)
+	*p = x
+	return p
+}
+
+func (x RewindRequest_Mode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RewindRequest_Mode) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_agent_proto_enumTypes[11].Descriptor()
+}
+
+func (RewindRequest_Mode) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_agent_proto_enumTypes[11]
+}
+
+func (x RewindRequest_Mode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RewindRequest_Mode.Descriptor instead.
+func (RewindRequest_Mode) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{61, 0}
 }
 
 type InitializeRequest struct {
@@ -814,9 +1088,19 @@ type CreateSessionRequest struct {
 	// Resume an existing session instead of starting a new one.
 	ResumeSessionId string `protobuf:"bytes,4,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
 	// With resume_session_id: copy the transcript into a new session.
-	Fork          bool `protobuf:"varint,5,opt,name=fork,proto3" json:"fork,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Fork   bool      `protobuf:"varint,5,opt,name=fork,proto3" json:"fork,omitempty"`
+	Effort v1.Effort `protobuf:"varint,6,opt,name=effort,proto3,enum=harness.llm.v1.Effort" json:"effort,omitempty"`
+	// Permission rules in Claude Code syntax, e.g. "Bash(npm run test *)", "Edit(/src/**)".
+	AllowedTools    []string `protobuf:"bytes,7,rep,name=allowed_tools,json=allowedTools,proto3" json:"allowed_tools,omitempty"`
+	DisallowedTools []string `protobuf:"bytes,8,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
+	// Maximum tool-use round trips per turn; 0 means unlimited.
+	MaxTurns int32 `protobuf:"varint,9,opt,name=max_turns,json=maxTurns,proto3" json:"max_turns,omitempty"`
+	// Extra working directories (like --add-dir).
+	AdditionalDirectories []string `protobuf:"bytes,10,rep,name=additional_directories,json=additionalDirectories,proto3" json:"additional_directories,omitempty"`
+	// With fork: fork at this checkpoint instead of the end of the transcript.
+	ForkAtCheckpointId string `protobuf:"bytes,11,opt,name=fork_at_checkpoint_id,json=forkAtCheckpointId,proto3" json:"fork_at_checkpoint_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CreateSessionRequest) Reset() {
@@ -882,6 +1166,48 @@ func (x *CreateSessionRequest) GetFork() bool {
 		return x.Fork
 	}
 	return false
+}
+
+func (x *CreateSessionRequest) GetEffort() v1.Effort {
+	if x != nil {
+		return x.Effort
+	}
+	return v1.Effort(0)
+}
+
+func (x *CreateSessionRequest) GetAllowedTools() []string {
+	if x != nil {
+		return x.AllowedTools
+	}
+	return nil
+}
+
+func (x *CreateSessionRequest) GetDisallowedTools() []string {
+	if x != nil {
+		return x.DisallowedTools
+	}
+	return nil
+}
+
+func (x *CreateSessionRequest) GetMaxTurns() int32 {
+	if x != nil {
+		return x.MaxTurns
+	}
+	return 0
+}
+
+func (x *CreateSessionRequest) GetAdditionalDirectories() []string {
+	if x != nil {
+		return x.AdditionalDirectories
+	}
+	return nil
+}
+
+func (x *CreateSessionRequest) GetForkAtCheckpointId() string {
+	if x != nil {
+		return x.ForkAtCheckpointId
+	}
+	return ""
 }
 
 type CreateSessionResponse struct {
@@ -1134,6 +1460,17 @@ type SessionEvent struct {
 	//	*SessionEvent_PermissionResolved
 	//	*SessionEvent_QuestionResolved
 	//	*SessionEvent_SessionEnded
+	//	*SessionEvent_TurnStarted
+	//	*SessionEvent_TodosUpdated
+	//	*SessionEvent_PlanProposed
+	//	*SessionEvent_PlanResolved
+	//	*SessionEvent_TaskStarted
+	//	*SessionEvent_TaskOutput
+	//	*SessionEvent_TaskFinished
+	//	*SessionEvent_CheckpointCreated
+	//	*SessionEvent_Rewound
+	//	*SessionEvent_Compacted
+	//	*SessionEvent_PermissionModeChanged
 	Event         isSessionEvent_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1323,6 +1660,105 @@ func (x *SessionEvent) GetSessionEnded() *SessionEnded {
 	return nil
 }
 
+func (x *SessionEvent) GetTurnStarted() *TurnStarted {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_TurnStarted); ok {
+			return x.TurnStarted
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetTodosUpdated() *TodosUpdated {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_TodosUpdated); ok {
+			return x.TodosUpdated
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetPlanProposed() *PlanProposed {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_PlanProposed); ok {
+			return x.PlanProposed
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetPlanResolved() *PlanResolved {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_PlanResolved); ok {
+			return x.PlanResolved
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetTaskStarted() *TaskStarted {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_TaskStarted); ok {
+			return x.TaskStarted
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetTaskOutput() *TaskOutput {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_TaskOutput); ok {
+			return x.TaskOutput
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetTaskFinished() *TaskFinished {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_TaskFinished); ok {
+			return x.TaskFinished
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetCheckpointCreated() *CheckpointCreated {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_CheckpointCreated); ok {
+			return x.CheckpointCreated
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetRewound() *Rewound {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_Rewound); ok {
+			return x.Rewound
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetCompacted() *Compacted {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_Compacted); ok {
+			return x.Compacted
+		}
+	}
+	return nil
+}
+
+func (x *SessionEvent) GetPermissionModeChanged() *PermissionModeChanged {
+	if x != nil {
+		if x, ok := x.Event.(*SessionEvent_PermissionModeChanged); ok {
+			return x.PermissionModeChanged
+		}
+	}
+	return nil
+}
+
 type isSessionEvent_Event interface {
 	isSessionEvent_Event()
 }
@@ -1383,6 +1819,50 @@ type SessionEvent_SessionEnded struct {
 	SessionEnded *SessionEnded `protobuf:"bytes,17,opt,name=session_ended,json=sessionEnded,proto3,oneof"`
 }
 
+type SessionEvent_TurnStarted struct {
+	TurnStarted *TurnStarted `protobuf:"bytes,18,opt,name=turn_started,json=turnStarted,proto3,oneof"`
+}
+
+type SessionEvent_TodosUpdated struct {
+	TodosUpdated *TodosUpdated `protobuf:"bytes,19,opt,name=todos_updated,json=todosUpdated,proto3,oneof"`
+}
+
+type SessionEvent_PlanProposed struct {
+	PlanProposed *PlanProposed `protobuf:"bytes,20,opt,name=plan_proposed,json=planProposed,proto3,oneof"`
+}
+
+type SessionEvent_PlanResolved struct {
+	PlanResolved *PlanResolved `protobuf:"bytes,21,opt,name=plan_resolved,json=planResolved,proto3,oneof"`
+}
+
+type SessionEvent_TaskStarted struct {
+	TaskStarted *TaskStarted `protobuf:"bytes,22,opt,name=task_started,json=taskStarted,proto3,oneof"`
+}
+
+type SessionEvent_TaskOutput struct {
+	TaskOutput *TaskOutput `protobuf:"bytes,23,opt,name=task_output,json=taskOutput,proto3,oneof"`
+}
+
+type SessionEvent_TaskFinished struct {
+	TaskFinished *TaskFinished `protobuf:"bytes,24,opt,name=task_finished,json=taskFinished,proto3,oneof"`
+}
+
+type SessionEvent_CheckpointCreated struct {
+	CheckpointCreated *CheckpointCreated `protobuf:"bytes,25,opt,name=checkpoint_created,json=checkpointCreated,proto3,oneof"`
+}
+
+type SessionEvent_Rewound struct {
+	Rewound *Rewound `protobuf:"bytes,26,opt,name=rewound,proto3,oneof"`
+}
+
+type SessionEvent_Compacted struct {
+	Compacted *Compacted `protobuf:"bytes,27,opt,name=compacted,proto3,oneof"`
+}
+
+type SessionEvent_PermissionModeChanged struct {
+	PermissionModeChanged *PermissionModeChanged `protobuf:"bytes,28,opt,name=permission_mode_changed,json=permissionModeChanged,proto3,oneof"`
+}
+
 func (*SessionEvent_SessionUpdated) isSessionEvent_Event() {}
 
 func (*SessionEvent_UserMessage) isSessionEvent_Event() {}
@@ -1411,6 +1891,823 @@ func (*SessionEvent_QuestionResolved) isSessionEvent_Event() {}
 
 func (*SessionEvent_SessionEnded) isSessionEvent_Event() {}
 
+func (*SessionEvent_TurnStarted) isSessionEvent_Event() {}
+
+func (*SessionEvent_TodosUpdated) isSessionEvent_Event() {}
+
+func (*SessionEvent_PlanProposed) isSessionEvent_Event() {}
+
+func (*SessionEvent_PlanResolved) isSessionEvent_Event() {}
+
+func (*SessionEvent_TaskStarted) isSessionEvent_Event() {}
+
+func (*SessionEvent_TaskOutput) isSessionEvent_Event() {}
+
+func (*SessionEvent_TaskFinished) isSessionEvent_Event() {}
+
+func (*SessionEvent_CheckpointCreated) isSessionEvent_Event() {}
+
+func (*SessionEvent_Rewound) isSessionEvent_Event() {}
+
+func (*SessionEvent_Compacted) isSessionEvent_Event() {}
+
+func (*SessionEvent_PermissionModeChanged) isSessionEvent_Event() {}
+
+type TurnStarted struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// UUID of the user message that started the turn.
+	UserMessageUuid string `protobuf:"bytes,1,opt,name=user_message_uuid,json=userMessageUuid,proto3" json:"user_message_uuid,omitempty"`
+	Model           string `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TurnStarted) Reset() {
+	*x = TurnStarted{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TurnStarted) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TurnStarted) ProtoMessage() {}
+
+func (x *TurnStarted) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TurnStarted.ProtoReflect.Descriptor instead.
+func (*TurnStarted) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *TurnStarted) GetUserMessageUuid() string {
+	if x != nil {
+		return x.UserMessageUuid
+	}
+	return ""
+}
+
+func (x *TurnStarted) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+// Full replacement of the session's todo list (TodoWrite semantics).
+type TodosUpdated struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Todos         []*Todo                `protobuf:"bytes,1,rep,name=todos,proto3" json:"todos,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TodosUpdated) Reset() {
+	*x = TodosUpdated{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TodosUpdated) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TodosUpdated) ProtoMessage() {}
+
+func (x *TodosUpdated) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TodosUpdated.ProtoReflect.Descriptor instead.
+func (*TodosUpdated) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *TodosUpdated) GetTodos() []*Todo {
+	if x != nil {
+		return x.Todos
+	}
+	return nil
+}
+
+type Todo struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Content string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	// Present-tense form shown while in progress, e.g. "Running tests".
+	ActiveForm    string      `protobuf:"bytes,2,opt,name=active_form,json=activeForm,proto3" json:"active_form,omitempty"`
+	Status        Todo_Status `protobuf:"varint,3,opt,name=status,proto3,enum=harness.agent.v1.Todo_Status" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Todo) Reset() {
+	*x = Todo{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Todo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Todo) ProtoMessage() {}
+
+func (x *Todo) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Todo.ProtoReflect.Descriptor instead.
+func (*Todo) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Todo) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *Todo) GetActiveForm() string {
+	if x != nil {
+		return x.ActiveForm
+	}
+	return ""
+}
+
+func (x *Todo) GetStatus() Todo_Status {
+	if x != nil {
+		return x.Status
+	}
+	return Todo_STATUS_UNSPECIFIED
+}
+
+// Emitted when the model calls ExitPlanMode. The turn waits for RespondToPlan.
+type PlanProposed struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	RequestId string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	ToolUseId string                 `protobuf:"bytes,2,opt,name=tool_use_id,json=toolUseId,proto3" json:"tool_use_id,omitempty"`
+	// Markdown.
+	Plan string `protobuf:"bytes,3,opt,name=plan,proto3" json:"plan,omitempty"`
+	// Where the plan was written (inside the session's plans directory).
+	PlanFilePath  string `protobuf:"bytes,4,opt,name=plan_file_path,json=planFilePath,proto3" json:"plan_file_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanProposed) Reset() {
+	*x = PlanProposed{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanProposed) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanProposed) ProtoMessage() {}
+
+func (x *PlanProposed) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanProposed.ProtoReflect.Descriptor instead.
+func (*PlanProposed) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *PlanProposed) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *PlanProposed) GetToolUseId() string {
+	if x != nil {
+		return x.ToolUseId
+	}
+	return ""
+}
+
+func (x *PlanProposed) GetPlan() string {
+	if x != nil {
+		return x.Plan
+	}
+	return ""
+}
+
+func (x *PlanProposed) GetPlanFilePath() string {
+	if x != nil {
+		return x.PlanFilePath
+	}
+	return ""
+}
+
+type PlanResolved struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	RequestId     string                        `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Decision      RespondToPlanRequest_Decision `protobuf:"varint,2,opt,name=decision,proto3,enum=harness.agent.v1.RespondToPlanRequest_Decision" json:"decision,omitempty"`
+	ResolvedBy    string                        `protobuf:"bytes,3,opt,name=resolved_by,json=resolvedBy,proto3" json:"resolved_by,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanResolved) Reset() {
+	*x = PlanResolved{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanResolved) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanResolved) ProtoMessage() {}
+
+func (x *PlanResolved) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanResolved.ProtoReflect.Descriptor instead.
+func (*PlanResolved) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *PlanResolved) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *PlanResolved) GetDecision() RespondToPlanRequest_Decision {
+	if x != nil {
+		return x.Decision
+	}
+	return RespondToPlanRequest_DECISION_UNSPECIFIED
+}
+
+func (x *PlanResolved) GetResolvedBy() string {
+	if x != nil {
+		return x.ResolvedBy
+	}
+	return ""
+}
+
+type TaskStarted struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// Tool use that started it.
+	ToolUseId   string `protobuf:"bytes,2,opt,name=tool_use_id,json=toolUseId,proto3" json:"tool_use_id,omitempty"`
+	Command     string `protobuf:"bytes,3,opt,name=command,proto3" json:"command,omitempty"`
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	// File the output is streamed to; the model reads it with Read.
+	OutputPath    string `protobuf:"bytes,5,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskStarted) Reset() {
+	*x = TaskStarted{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskStarted) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskStarted) ProtoMessage() {}
+
+func (x *TaskStarted) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskStarted.ProtoReflect.Descriptor instead.
+func (*TaskStarted) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *TaskStarted) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskStarted) GetToolUseId() string {
+	if x != nil {
+		return x.ToolUseId
+	}
+	return ""
+}
+
+func (x *TaskStarted) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *TaskStarted) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *TaskStarted) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
+// Throttled tail of a background task's output (for the tasks pane); the full output is in output_path.
+type TaskOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskOutput) Reset() {
+	*x = TaskOutput{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskOutput) ProtoMessage() {}
+
+func (x *TaskOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskOutput.ProtoReflect.Descriptor instead.
+func (*TaskOutput) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *TaskOutput) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskOutput) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+type TaskFinished struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Reason        TaskFinished_Reason    `protobuf:"varint,2,opt,name=reason,proto3,enum=harness.agent.v1.TaskFinished_Reason" json:"reason,omitempty"`
+	ExitCode      int32                  `protobuf:"varint,3,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	DurationMs    int64                  `protobuf:"varint,4,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskFinished) Reset() {
+	*x = TaskFinished{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskFinished) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskFinished) ProtoMessage() {}
+
+func (x *TaskFinished) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskFinished.ProtoReflect.Descriptor instead.
+func (*TaskFinished) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *TaskFinished) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskFinished) GetReason() TaskFinished_Reason {
+	if x != nil {
+		return x.Reason
+	}
+	return TaskFinished_REASON_UNSPECIFIED
+}
+
+func (x *TaskFinished) GetExitCode() int32 {
+	if x != nil {
+		return x.ExitCode
+	}
+	return 0
+}
+
+func (x *TaskFinished) GetDurationMs() int64 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+type Checkpoint struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// UUID of the user message that started the turn.
+	UserMessageUuid string `protobuf:"bytes,2,opt,name=user_message_uuid,json=userMessageUuid,proto3" json:"user_message_uuid,omitempty"`
+	// First line of that prompt, for the rewind menu.
+	PromptPreview string `protobuf:"bytes,3,opt,name=prompt_preview,json=promptPreview,proto3" json:"prompt_preview,omitempty"`
+	// RFC 3339, UTC.
+	CreatedAt string `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Whether any tracked file changed after this checkpoint (controls "restore code" options).
+	HasCodeChanges bool `protobuf:"varint,5,opt,name=has_code_changes,json=hasCodeChanges,proto3" json:"has_code_changes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Checkpoint) Reset() {
+	*x = Checkpoint{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Checkpoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Checkpoint) ProtoMessage() {}
+
+func (x *Checkpoint) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Checkpoint.ProtoReflect.Descriptor instead.
+func (*Checkpoint) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *Checkpoint) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Checkpoint) GetUserMessageUuid() string {
+	if x != nil {
+		return x.UserMessageUuid
+	}
+	return ""
+}
+
+func (x *Checkpoint) GetPromptPreview() string {
+	if x != nil {
+		return x.PromptPreview
+	}
+	return ""
+}
+
+func (x *Checkpoint) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Checkpoint) GetHasCodeChanges() bool {
+	if x != nil {
+		return x.HasCodeChanges
+	}
+	return false
+}
+
+type CheckpointCreated struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Checkpoint    *Checkpoint            `protobuf:"bytes,1,opt,name=checkpoint,proto3" json:"checkpoint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckpointCreated) Reset() {
+	*x = CheckpointCreated{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckpointCreated) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckpointCreated) ProtoMessage() {}
+
+func (x *CheckpointCreated) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckpointCreated.ProtoReflect.Descriptor instead.
+func (*CheckpointCreated) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CheckpointCreated) GetCheckpoint() *Checkpoint {
+	if x != nil {
+		return x.Checkpoint
+	}
+	return nil
+}
+
+type Rewound struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	CheckpointId string                 `protobuf:"bytes,1,opt,name=checkpoint_id,json=checkpointId,proto3" json:"checkpoint_id,omitempty"`
+	Mode         RewindRequest_Mode     `protobuf:"varint,2,opt,name=mode,proto3,enum=harness.agent.v1.RewindRequest_Mode" json:"mode,omitempty"`
+	// Files restored and files skipped (symlinks, hardlinks, missing snapshots).
+	FilesRestored int32 `protobuf:"varint,3,opt,name=files_restored,json=filesRestored,proto3" json:"files_restored,omitempty"`
+	FilesSkipped  int32 `protobuf:"varint,4,opt,name=files_skipped,json=filesSkipped,proto3" json:"files_skipped,omitempty"`
+	// Prompt to put back into the input box (Restore conversation / Summarize from here).
+	RestoredPrompt string `protobuf:"bytes,5,opt,name=restored_prompt,json=restoredPrompt,proto3" json:"restored_prompt,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Rewound) Reset() {
+	*x = Rewound{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Rewound) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Rewound) ProtoMessage() {}
+
+func (x *Rewound) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Rewound.ProtoReflect.Descriptor instead.
+func (*Rewound) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *Rewound) GetCheckpointId() string {
+	if x != nil {
+		return x.CheckpointId
+	}
+	return ""
+}
+
+func (x *Rewound) GetMode() RewindRequest_Mode {
+	if x != nil {
+		return x.Mode
+	}
+	return RewindRequest_MODE_UNSPECIFIED
+}
+
+func (x *Rewound) GetFilesRestored() int32 {
+	if x != nil {
+		return x.FilesRestored
+	}
+	return 0
+}
+
+func (x *Rewound) GetFilesSkipped() int32 {
+	if x != nil {
+		return x.FilesSkipped
+	}
+	return 0
+}
+
+func (x *Rewound) GetRestoredPrompt() string {
+	if x != nil {
+		return x.RestoredPrompt
+	}
+	return ""
+}
+
+type Compacted struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Trigger       Compacted_Trigger      `protobuf:"varint,1,opt,name=trigger,proto3,enum=harness.agent.v1.Compacted_Trigger" json:"trigger,omitempty"`
+	TokensBefore  int64                  `protobuf:"varint,2,opt,name=tokens_before,json=tokensBefore,proto3" json:"tokens_before,omitempty"`
+	TokensAfter   int64                  `protobuf:"varint,3,opt,name=tokens_after,json=tokensAfter,proto3" json:"tokens_after,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Compacted) Reset() {
+	*x = Compacted{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Compacted) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Compacted) ProtoMessage() {}
+
+func (x *Compacted) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Compacted.ProtoReflect.Descriptor instead.
+func (*Compacted) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *Compacted) GetTrigger() Compacted_Trigger {
+	if x != nil {
+		return x.Trigger
+	}
+	return Compacted_TRIGGER_UNSPECIFIED
+}
+
+func (x *Compacted) GetTokensBefore() int64 {
+	if x != nil {
+		return x.TokensBefore
+	}
+	return 0
+}
+
+func (x *Compacted) GetTokensAfter() int64 {
+	if x != nil {
+		return x.TokensAfter
+	}
+	return 0
+}
+
+type PermissionModeChanged struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mode          PermissionMode         `protobuf:"varint,1,opt,name=mode,proto3,enum=harness.agent.v1.PermissionMode" json:"mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PermissionModeChanged) Reset() {
+	*x = PermissionModeChanged{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PermissionModeChanged) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PermissionModeChanged) ProtoMessage() {}
+
+func (x *PermissionModeChanged) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PermissionModeChanged.ProtoReflect.Descriptor instead.
+func (*PermissionModeChanged) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *PermissionModeChanged) GetMode() PermissionMode {
+	if x != nil {
+		return x.Mode
+	}
+	return PermissionMode_PERMISSION_MODE_UNSPECIFIED
+}
+
 type UserMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
@@ -1421,7 +2718,7 @@ type UserMessage struct {
 
 func (x *UserMessage) Reset() {
 	*x = UserMessage{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1433,7 +2730,7 @@ func (x *UserMessage) String() string {
 func (*UserMessage) ProtoMessage() {}
 
 func (x *UserMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1446,7 +2743,7 @@ func (x *UserMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserMessage.ProtoReflect.Descriptor instead.
 func (*UserMessage) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{12}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *UserMessage) GetUuid() string {
@@ -1484,7 +2781,7 @@ type AssistantDelta struct {
 
 func (x *AssistantDelta) Reset() {
 	*x = AssistantDelta{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1496,7 +2793,7 @@ func (x *AssistantDelta) String() string {
 func (*AssistantDelta) ProtoMessage() {}
 
 func (x *AssistantDelta) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1509,7 +2806,7 @@ func (x *AssistantDelta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssistantDelta.ProtoReflect.Descriptor instead.
 func (*AssistantDelta) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{13}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AssistantDelta) GetMessageId() string {
@@ -1596,7 +2893,7 @@ type AssistantMessage struct {
 
 func (x *AssistantMessage) Reset() {
 	*x = AssistantMessage{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1608,7 +2905,7 @@ func (x *AssistantMessage) String() string {
 func (*AssistantMessage) ProtoMessage() {}
 
 func (x *AssistantMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1621,7 +2918,7 @@ func (x *AssistantMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssistantMessage.ProtoReflect.Descriptor instead.
 func (*AssistantMessage) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{14}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AssistantMessage) GetMessageId() string {
@@ -1672,7 +2969,7 @@ type ToolCallStarted struct {
 
 func (x *ToolCallStarted) Reset() {
 	*x = ToolCallStarted{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1684,7 +2981,7 @@ func (x *ToolCallStarted) String() string {
 func (*ToolCallStarted) ProtoMessage() {}
 
 func (x *ToolCallStarted) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1697,7 +2994,7 @@ func (x *ToolCallStarted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCallStarted.ProtoReflect.Descriptor instead.
 func (*ToolCallStarted) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{15}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ToolCallStarted) GetToolUseId() string {
@@ -1729,19 +3026,25 @@ func (x *ToolCallStarted) GetSummary() string {
 }
 
 type ToolCallFinished struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ToolUseId     string                 `protobuf:"bytes,1,opt,name=tool_use_id,json=toolUseId,proto3" json:"tool_use_id,omitempty"`
-	IsError       bool                   `protobuf:"varint,2,opt,name=is_error,json=isError,proto3" json:"is_error,omitempty"`
-	Interrupted   bool                   `protobuf:"varint,3,opt,name=interrupted,proto3" json:"interrupted,omitempty"`
-	Content       []*v1.ContentBlock     `protobuf:"bytes,4,rep,name=content,proto3" json:"content,omitempty"`
-	DurationMs    int64                  `protobuf:"varint,5,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ToolUseId   string                 `protobuf:"bytes,1,opt,name=tool_use_id,json=toolUseId,proto3" json:"tool_use_id,omitempty"`
+	IsError     bool                   `protobuf:"varint,2,opt,name=is_error,json=isError,proto3" json:"is_error,omitempty"`
+	Interrupted bool                   `protobuf:"varint,3,opt,name=interrupted,proto3" json:"interrupted,omitempty"`
+	Content     []*v1.ContentBlock     `protobuf:"bytes,4,rep,name=content,proto3" json:"content,omitempty"`
+	DurationMs  int64                  `protobuf:"varint,5,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	// Structured result for rich rendering (Claude Code's toolUseResult shape), e.g.
+	// Read: {"file":{"filePath","numLines","totalLines"}}, Bash: {"stdout","stderr","interrupted"},
+	// Edit/Write: {"filePath","structuredPatch":[...]}.
+	StructuredResultJson string `protobuf:"bytes,6,opt,name=structured_result_json,json=structuredResultJson,proto3" json:"structured_result_json,omitempty"`
+	// Short human-readable summary for collapsed rendering, e.g. "Read 42 lines".
+	Summary       string `protobuf:"bytes,7,opt,name=summary,proto3" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ToolCallFinished) Reset() {
 	*x = ToolCallFinished{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1753,7 +3056,7 @@ func (x *ToolCallFinished) String() string {
 func (*ToolCallFinished) ProtoMessage() {}
 
 func (x *ToolCallFinished) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1766,7 +3069,7 @@ func (x *ToolCallFinished) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCallFinished.ProtoReflect.Descriptor instead.
 func (*ToolCallFinished) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{16}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ToolCallFinished) GetToolUseId() string {
@@ -1804,6 +3107,20 @@ func (x *ToolCallFinished) GetDurationMs() int64 {
 	return 0
 }
 
+func (x *ToolCallFinished) GetStructuredResultJson() string {
+	if x != nil {
+		return x.StructuredResultJson
+	}
+	return ""
+}
+
+func (x *ToolCallFinished) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
 type PermissionRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	RequestId string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
@@ -1819,7 +3136,7 @@ type PermissionRequest struct {
 
 func (x *PermissionRequest) Reset() {
 	*x = PermissionRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1831,7 +3148,7 @@ func (x *PermissionRequest) String() string {
 func (*PermissionRequest) ProtoMessage() {}
 
 func (x *PermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1844,7 +3161,7 @@ func (x *PermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PermissionRequest.ProtoReflect.Descriptor instead.
 func (*PermissionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{17}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *PermissionRequest) GetRequestId() string {
@@ -1902,7 +3219,7 @@ type PermissionResolved struct {
 
 func (x *PermissionResolved) Reset() {
 	*x = PermissionResolved{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1914,7 +3231,7 @@ func (x *PermissionResolved) String() string {
 func (*PermissionResolved) ProtoMessage() {}
 
 func (x *PermissionResolved) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1927,7 +3244,7 @@ func (x *PermissionResolved) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PermissionResolved.ProtoReflect.Descriptor instead.
 func (*PermissionResolved) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{18}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *PermissionResolved) GetRequestId() string {
@@ -1962,7 +3279,7 @@ type QuestionResolved struct {
 
 func (x *QuestionResolved) Reset() {
 	*x = QuestionResolved{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1974,7 +3291,7 @@ func (x *QuestionResolved) String() string {
 func (*QuestionResolved) ProtoMessage() {}
 
 func (x *QuestionResolved) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1987,7 +3304,7 @@ func (x *QuestionResolved) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuestionResolved.ProtoReflect.Descriptor instead.
 func (*QuestionResolved) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{19}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *QuestionResolved) GetRequestId() string {
@@ -2015,7 +3332,7 @@ type SessionEnded struct {
 
 func (x *SessionEnded) Reset() {
 	*x = SessionEnded{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2027,7 +3344,7 @@ func (x *SessionEnded) String() string {
 func (*SessionEnded) ProtoMessage() {}
 
 func (x *SessionEnded) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2040,7 +3357,7 @@ func (x *SessionEnded) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEnded.ProtoReflect.Descriptor instead.
 func (*SessionEnded) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{20}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *SessionEnded) GetReason() string {
@@ -2061,7 +3378,7 @@ type Question struct {
 
 func (x *Question) Reset() {
 	*x = Question{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2073,7 +3390,7 @@ func (x *Question) String() string {
 func (*Question) ProtoMessage() {}
 
 func (x *Question) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2086,7 +3403,7 @@ func (x *Question) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Question.ProtoReflect.Descriptor instead.
 func (*Question) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{21}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *Question) GetRequestId() string {
@@ -2122,7 +3439,7 @@ type QuestionItem struct {
 
 func (x *QuestionItem) Reset() {
 	*x = QuestionItem{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2134,7 +3451,7 @@ func (x *QuestionItem) String() string {
 func (*QuestionItem) ProtoMessage() {}
 
 func (x *QuestionItem) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2147,7 +3464,7 @@ func (x *QuestionItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuestionItem.ProtoReflect.Descriptor instead.
 func (*QuestionItem) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{22}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *QuestionItem) GetQuestion() string {
@@ -2188,7 +3505,7 @@ type QuestionOption struct {
 
 func (x *QuestionOption) Reset() {
 	*x = QuestionOption{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2200,7 +3517,7 @@ func (x *QuestionOption) String() string {
 func (*QuestionOption) ProtoMessage() {}
 
 func (x *QuestionOption) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2213,7 +3530,7 @@ func (x *QuestionOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuestionOption.ProtoReflect.Descriptor instead.
 func (*QuestionOption) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{23}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *QuestionOption) GetLabel() string {
@@ -2239,7 +3556,7 @@ type QueueChanged struct {
 
 func (x *QueueChanged) Reset() {
 	*x = QueueChanged{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2251,7 +3568,7 @@ func (x *QueueChanged) String() string {
 func (*QueueChanged) ProtoMessage() {}
 
 func (x *QueueChanged) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2264,7 +3581,7 @@ func (x *QueueChanged) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueChanged.ProtoReflect.Descriptor instead.
 func (*QueueChanged) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{24}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *QueueChanged) GetQueued() []*UserMessage {
@@ -2288,7 +3605,7 @@ type TurnFinished struct {
 
 func (x *TurnFinished) Reset() {
 	*x = TurnFinished{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2300,7 +3617,7 @@ func (x *TurnFinished) String() string {
 func (*TurnFinished) ProtoMessage() {}
 
 func (x *TurnFinished) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2313,7 +3630,7 @@ func (x *TurnFinished) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TurnFinished.ProtoReflect.Descriptor instead.
 func (*TurnFinished) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{25}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *TurnFinished) GetResult() TurnFinished_Result {
@@ -2370,7 +3687,7 @@ type Notice struct {
 
 func (x *Notice) Reset() {
 	*x = Notice{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[26]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2382,7 +3699,7 @@ func (x *Notice) String() string {
 func (*Notice) ProtoMessage() {}
 
 func (x *Notice) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[26]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2395,7 +3712,7 @@ func (x *Notice) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Notice.ProtoReflect.Descriptor instead.
 func (*Notice) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{26}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *Notice) GetLevel() Notice_Level {
@@ -2432,7 +3749,7 @@ type SendUserMessageRequest struct {
 
 func (x *SendUserMessageRequest) Reset() {
 	*x = SendUserMessageRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[27]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2444,7 +3761,7 @@ func (x *SendUserMessageRequest) String() string {
 func (*SendUserMessageRequest) ProtoMessage() {}
 
 func (x *SendUserMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[27]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2457,7 +3774,7 @@ func (x *SendUserMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendUserMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendUserMessageRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{27}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SendUserMessageRequest) GetSessionId() string {
@@ -2496,7 +3813,7 @@ type SendUserMessageResponse struct {
 
 func (x *SendUserMessageResponse) Reset() {
 	*x = SendUserMessageResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[28]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2508,7 +3825,7 @@ func (x *SendUserMessageResponse) String() string {
 func (*SendUserMessageResponse) ProtoMessage() {}
 
 func (x *SendUserMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[28]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2521,7 +3838,7 @@ func (x *SendUserMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendUserMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendUserMessageResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{28}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{41}
 }
 
 type InterruptRequest struct {
@@ -2533,7 +3850,7 @@ type InterruptRequest struct {
 
 func (x *InterruptRequest) Reset() {
 	*x = InterruptRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[29]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2545,7 +3862,7 @@ func (x *InterruptRequest) String() string {
 func (*InterruptRequest) ProtoMessage() {}
 
 func (x *InterruptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[29]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2558,7 +3875,7 @@ func (x *InterruptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InterruptRequest.ProtoReflect.Descriptor instead.
 func (*InterruptRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{29}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *InterruptRequest) GetSessionId() string {
@@ -2576,7 +3893,7 @@ type InterruptResponse struct {
 
 func (x *InterruptResponse) Reset() {
 	*x = InterruptResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[30]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2588,7 +3905,7 @@ func (x *InterruptResponse) String() string {
 func (*InterruptResponse) ProtoMessage() {}
 
 func (x *InterruptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[30]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2601,7 +3918,7 @@ func (x *InterruptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InterruptResponse.ProtoReflect.Descriptor instead.
 func (*InterruptResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{30}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{43}
 }
 
 type RespondToPermissionRequest struct {
@@ -2620,7 +3937,7 @@ type RespondToPermissionRequest struct {
 
 func (x *RespondToPermissionRequest) Reset() {
 	*x = RespondToPermissionRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[31]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2632,7 +3949,7 @@ func (x *RespondToPermissionRequest) String() string {
 func (*RespondToPermissionRequest) ProtoMessage() {}
 
 func (x *RespondToPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[31]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2645,7 +3962,7 @@ func (x *RespondToPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondToPermissionRequest.ProtoReflect.Descriptor instead.
 func (*RespondToPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{31}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *RespondToPermissionRequest) GetSessionId() string {
@@ -2698,7 +4015,7 @@ type RespondToPermissionResponse struct {
 
 func (x *RespondToPermissionResponse) Reset() {
 	*x = RespondToPermissionResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[32]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2710,7 +4027,7 @@ func (x *RespondToPermissionResponse) String() string {
 func (*RespondToPermissionResponse) ProtoMessage() {}
 
 func (x *RespondToPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[32]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2723,7 +4040,7 @@ func (x *RespondToPermissionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondToPermissionResponse.ProtoReflect.Descriptor instead.
 func (*RespondToPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{32}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{45}
 }
 
 type AnswerQuestionRequest struct {
@@ -2738,7 +4055,7 @@ type AnswerQuestionRequest struct {
 
 func (x *AnswerQuestionRequest) Reset() {
 	*x = AnswerQuestionRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[33]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2750,7 +4067,7 @@ func (x *AnswerQuestionRequest) String() string {
 func (*AnswerQuestionRequest) ProtoMessage() {}
 
 func (x *AnswerQuestionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[33]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2763,7 +4080,7 @@ func (x *AnswerQuestionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnswerQuestionRequest.ProtoReflect.Descriptor instead.
 func (*AnswerQuestionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{33}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *AnswerQuestionRequest) GetSessionId() string {
@@ -2796,7 +4113,7 @@ type QuestionAnswer struct {
 
 func (x *QuestionAnswer) Reset() {
 	*x = QuestionAnswer{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[34]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2808,7 +4125,7 @@ func (x *QuestionAnswer) String() string {
 func (*QuestionAnswer) ProtoMessage() {}
 
 func (x *QuestionAnswer) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[34]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2821,7 +4138,7 @@ func (x *QuestionAnswer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuestionAnswer.ProtoReflect.Descriptor instead.
 func (*QuestionAnswer) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{34}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *QuestionAnswer) GetSelected() []string {
@@ -2839,7 +4156,7 @@ type AnswerQuestionResponse struct {
 
 func (x *AnswerQuestionResponse) Reset() {
 	*x = AnswerQuestionResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[35]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2851,7 +4168,7 @@ func (x *AnswerQuestionResponse) String() string {
 func (*AnswerQuestionResponse) ProtoMessage() {}
 
 func (x *AnswerQuestionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[35]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2864,7 +4181,7 @@ func (x *AnswerQuestionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnswerQuestionResponse.ProtoReflect.Descriptor instead.
 func (*AnswerQuestionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{35}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{48}
 }
 
 type SetModelRequest struct {
@@ -2877,7 +4194,7 @@ type SetModelRequest struct {
 
 func (x *SetModelRequest) Reset() {
 	*x = SetModelRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[36]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2889,7 +4206,7 @@ func (x *SetModelRequest) String() string {
 func (*SetModelRequest) ProtoMessage() {}
 
 func (x *SetModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[36]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2902,7 +4219,7 @@ func (x *SetModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetModelRequest.ProtoReflect.Descriptor instead.
 func (*SetModelRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{36}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *SetModelRequest) GetSessionId() string {
@@ -2927,7 +4244,7 @@ type SetModelResponse struct {
 
 func (x *SetModelResponse) Reset() {
 	*x = SetModelResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[37]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2939,7 +4256,7 @@ func (x *SetModelResponse) String() string {
 func (*SetModelResponse) ProtoMessage() {}
 
 func (x *SetModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[37]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2952,7 +4269,7 @@ func (x *SetModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetModelResponse.ProtoReflect.Descriptor instead.
 func (*SetModelResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{37}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{50}
 }
 
 type SetEffortRequest struct {
@@ -2965,7 +4282,7 @@ type SetEffortRequest struct {
 
 func (x *SetEffortRequest) Reset() {
 	*x = SetEffortRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[38]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2977,7 +4294,7 @@ func (x *SetEffortRequest) String() string {
 func (*SetEffortRequest) ProtoMessage() {}
 
 func (x *SetEffortRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[38]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2990,7 +4307,7 @@ func (x *SetEffortRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEffortRequest.ProtoReflect.Descriptor instead.
 func (*SetEffortRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{38}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *SetEffortRequest) GetSessionId() string {
@@ -3015,7 +4332,7 @@ type SetEffortResponse struct {
 
 func (x *SetEffortResponse) Reset() {
 	*x = SetEffortResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[39]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3027,7 +4344,7 @@ func (x *SetEffortResponse) String() string {
 func (*SetEffortResponse) ProtoMessage() {}
 
 func (x *SetEffortResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[39]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3040,7 +4357,7 @@ func (x *SetEffortResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEffortResponse.ProtoReflect.Descriptor instead.
 func (*SetEffortResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{39}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{52}
 }
 
 type SetPermissionModeRequest struct {
@@ -3053,7 +4370,7 @@ type SetPermissionModeRequest struct {
 
 func (x *SetPermissionModeRequest) Reset() {
 	*x = SetPermissionModeRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[40]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3065,7 +4382,7 @@ func (x *SetPermissionModeRequest) String() string {
 func (*SetPermissionModeRequest) ProtoMessage() {}
 
 func (x *SetPermissionModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[40]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3078,7 +4395,7 @@ func (x *SetPermissionModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPermissionModeRequest.ProtoReflect.Descriptor instead.
 func (*SetPermissionModeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{40}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *SetPermissionModeRequest) GetSessionId() string {
@@ -3103,7 +4420,7 @@ type SetPermissionModeResponse struct {
 
 func (x *SetPermissionModeResponse) Reset() {
 	*x = SetPermissionModeResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[41]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3115,7 +4432,7 @@ func (x *SetPermissionModeResponse) String() string {
 func (*SetPermissionModeResponse) ProtoMessage() {}
 
 func (x *SetPermissionModeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[41]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3128,7 +4445,7 @@ func (x *SetPermissionModeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPermissionModeResponse.ProtoReflect.Descriptor instead.
 func (*SetPermissionModeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{41}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{54}
 }
 
 type SuggestFilesRequest struct {
@@ -3142,7 +4459,7 @@ type SuggestFilesRequest struct {
 
 func (x *SuggestFilesRequest) Reset() {
 	*x = SuggestFilesRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[42]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3154,7 +4471,7 @@ func (x *SuggestFilesRequest) String() string {
 func (*SuggestFilesRequest) ProtoMessage() {}
 
 func (x *SuggestFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[42]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3167,7 +4484,7 @@ func (x *SuggestFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuggestFilesRequest.ProtoReflect.Descriptor instead.
 func (*SuggestFilesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{42}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *SuggestFilesRequest) GetSessionId() string {
@@ -3200,7 +4517,7 @@ type SuggestFilesResponse struct {
 
 func (x *SuggestFilesResponse) Reset() {
 	*x = SuggestFilesResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[43]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3212,7 +4529,7 @@ func (x *SuggestFilesResponse) String() string {
 func (*SuggestFilesResponse) ProtoMessage() {}
 
 func (x *SuggestFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[43]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3225,7 +4542,7 @@ func (x *SuggestFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuggestFilesResponse.ProtoReflect.Descriptor instead.
 func (*SuggestFilesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{43}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *SuggestFilesResponse) GetPaths() []string {
@@ -3233,6 +4550,748 @@ func (x *SuggestFilesResponse) GetPaths() []string {
 		return x.Paths
 	}
 	return nil
+}
+
+type RespondToPlanRequest struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	SessionId     string                        `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	RequestId     string                        `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Decision      RespondToPlanRequest_Decision `protobuf:"varint,3,opt,name=decision,proto3,enum=harness.agent.v1.RespondToPlanRequest_Decision" json:"decision,omitempty"`
+	Feedback      string                        `protobuf:"bytes,4,opt,name=feedback,proto3" json:"feedback,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RespondToPlanRequest) Reset() {
+	*x = RespondToPlanRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RespondToPlanRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RespondToPlanRequest) ProtoMessage() {}
+
+func (x *RespondToPlanRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RespondToPlanRequest.ProtoReflect.Descriptor instead.
+func (*RespondToPlanRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *RespondToPlanRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *RespondToPlanRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *RespondToPlanRequest) GetDecision() RespondToPlanRequest_Decision {
+	if x != nil {
+		return x.Decision
+	}
+	return RespondToPlanRequest_DECISION_UNSPECIFIED
+}
+
+func (x *RespondToPlanRequest) GetFeedback() string {
+	if x != nil {
+		return x.Feedback
+	}
+	return ""
+}
+
+type RespondToPlanResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RespondToPlanResponse) Reset() {
+	*x = RespondToPlanResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RespondToPlanResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RespondToPlanResponse) ProtoMessage() {}
+
+func (x *RespondToPlanResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RespondToPlanResponse.ProtoReflect.Descriptor instead.
+func (*RespondToPlanResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{58}
+}
+
+type ListCheckpointsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCheckpointsRequest) Reset() {
+	*x = ListCheckpointsRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCheckpointsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCheckpointsRequest) ProtoMessage() {}
+
+func (x *ListCheckpointsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCheckpointsRequest.ProtoReflect.Descriptor instead.
+func (*ListCheckpointsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *ListCheckpointsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type ListCheckpointsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Checkpoints   []*Checkpoint          `protobuf:"bytes,1,rep,name=checkpoints,proto3" json:"checkpoints,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCheckpointsResponse) Reset() {
+	*x = ListCheckpointsResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCheckpointsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCheckpointsResponse) ProtoMessage() {}
+
+func (x *ListCheckpointsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCheckpointsResponse.ProtoReflect.Descriptor instead.
+func (*ListCheckpointsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *ListCheckpointsResponse) GetCheckpoints() []*Checkpoint {
+	if x != nil {
+		return x.Checkpoints
+	}
+	return nil
+}
+
+type RewindRequest struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	SessionId    string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	CheckpointId string                 `protobuf:"bytes,2,opt,name=checkpoint_id,json=checkpointId,proto3" json:"checkpoint_id,omitempty"`
+	Mode         RewindRequest_Mode     `protobuf:"varint,3,opt,name=mode,proto3,enum=harness.agent.v1.RewindRequest_Mode" json:"mode,omitempty"`
+	// Optional extra instructions for the summary modes.
+	SummaryInstructions string `protobuf:"bytes,4,opt,name=summary_instructions,json=summaryInstructions,proto3" json:"summary_instructions,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RewindRequest) Reset() {
+	*x = RewindRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RewindRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RewindRequest) ProtoMessage() {}
+
+func (x *RewindRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RewindRequest.ProtoReflect.Descriptor instead.
+func (*RewindRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *RewindRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *RewindRequest) GetCheckpointId() string {
+	if x != nil {
+		return x.CheckpointId
+	}
+	return ""
+}
+
+func (x *RewindRequest) GetMode() RewindRequest_Mode {
+	if x != nil {
+		return x.Mode
+	}
+	return RewindRequest_MODE_UNSPECIFIED
+}
+
+func (x *RewindRequest) GetSummaryInstructions() string {
+	if x != nil {
+		return x.SummaryInstructions
+	}
+	return ""
+}
+
+type RewindResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *Rewound               `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RewindResponse) Reset() {
+	*x = RewindResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RewindResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RewindResponse) ProtoMessage() {}
+
+func (x *RewindResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RewindResponse.ProtoReflect.Descriptor instead.
+func (*RewindResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *RewindResponse) GetResult() *Rewound {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type CompactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Instructions  string                 `protobuf:"bytes,2,opt,name=instructions,proto3" json:"instructions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompactRequest) Reset() {
+	*x = CompactRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompactRequest) ProtoMessage() {}
+
+func (x *CompactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompactRequest.ProtoReflect.Descriptor instead.
+func (*CompactRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *CompactRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *CompactRequest) GetInstructions() string {
+	if x != nil {
+		return x.Instructions
+	}
+	return ""
+}
+
+type CompactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompactResponse) Reset() {
+	*x = CompactResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompactResponse) ProtoMessage() {}
+
+func (x *CompactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompactResponse.ProtoReflect.Descriptor instead.
+func (*CompactResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{64}
+}
+
+type BackgroundTask struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	TaskId      string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Command     string                 `protobuf:"bytes,2,opt,name=command,proto3" json:"command,omitempty"`
+	Description string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	OutputPath  string                 `protobuf:"bytes,4,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	Running     bool                   `protobuf:"varint,5,opt,name=running,proto3" json:"running,omitempty"`
+	ExitCode    int32                  `protobuf:"varint,6,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	// RFC 3339, UTC.
+	StartedAt     string `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackgroundTask) Reset() {
+	*x = BackgroundTask{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackgroundTask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackgroundTask) ProtoMessage() {}
+
+func (x *BackgroundTask) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackgroundTask.ProtoReflect.Descriptor instead.
+func (*BackgroundTask) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *BackgroundTask) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *BackgroundTask) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *BackgroundTask) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *BackgroundTask) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
+func (x *BackgroundTask) GetRunning() bool {
+	if x != nil {
+		return x.Running
+	}
+	return false
+}
+
+func (x *BackgroundTask) GetExitCode() int32 {
+	if x != nil {
+		return x.ExitCode
+	}
+	return 0
+}
+
+func (x *BackgroundTask) GetStartedAt() string {
+	if x != nil {
+		return x.StartedAt
+	}
+	return ""
+}
+
+type ListTasksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTasksRequest) Reset() {
+	*x = ListTasksRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTasksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTasksRequest) ProtoMessage() {}
+
+func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
+func (*ListTasksRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *ListTasksRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type ListTasksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tasks         []*BackgroundTask      `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTasksResponse) Reset() {
+	*x = ListTasksResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTasksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTasksResponse) ProtoMessage() {}
+
+func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
+func (*ListTasksResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *ListTasksResponse) GetTasks() []*BackgroundTask {
+	if x != nil {
+		return x.Tasks
+	}
+	return nil
+}
+
+type StopTaskRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopTaskRequest) Reset() {
+	*x = StopTaskRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopTaskRequest) ProtoMessage() {}
+
+func (x *StopTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopTaskRequest.ProtoReflect.Descriptor instead.
+func (*StopTaskRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *StopTaskRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *StopTaskRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+type StopTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopTaskResponse) Reset() {
+	*x = StopTaskResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopTaskResponse) ProtoMessage() {}
+
+func (x *StopTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopTaskResponse.ProtoReflect.Descriptor instead.
+func (*StopTaskResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{69}
+}
+
+type CloseSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseSessionRequest) Reset() {
+	*x = CloseSessionRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseSessionRequest) ProtoMessage() {}
+
+func (x *CloseSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseSessionRequest.ProtoReflect.Descriptor instead.
+func (*CloseSessionRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *CloseSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type CloseSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseSessionResponse) Reset() {
+	*x = CloseSessionResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseSessionResponse) ProtoMessage() {}
+
+func (x *CloseSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseSessionResponse.ProtoReflect.Descriptor instead.
+func (*CloseSessionResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{71}
 }
 
 var File_harness_agent_v1_agent_proto protoreflect.FileDescriptor
@@ -3285,13 +5344,20 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"STATE_OPEN\x10\x01\x12\x0f\n" +
 	"\vSTATE_DRAFT\x10\x02\x12\x10\n" +
 	"\fSTATE_MERGED\x10\x03\x12\x10\n" +
-	"\fSTATE_CLOSED\x10\x04\"\xc9\x01\n" +
+	"\fSTATE_CLOSED\x10\x04\"\xd0\x03\n" +
 	"\x14CreateSessionRequest\x12\x10\n" +
 	"\x03cwd\x18\x01 \x01(\tR\x03cwd\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12I\n" +
 	"\x0fpermission_mode\x18\x03 \x01(\x0e2 .harness.agent.v1.PermissionModeR\x0epermissionMode\x12*\n" +
 	"\x11resume_session_id\x18\x04 \x01(\tR\x0fresumeSessionId\x12\x12\n" +
-	"\x04fork\x18\x05 \x01(\bR\x04fork\"P\n" +
+	"\x04fork\x18\x05 \x01(\bR\x04fork\x12.\n" +
+	"\x06effort\x18\x06 \x01(\x0e2\x16.harness.llm.v1.EffortR\x06effort\x12#\n" +
+	"\rallowed_tools\x18\a \x03(\tR\fallowedTools\x12)\n" +
+	"\x10disallowed_tools\x18\b \x03(\tR\x0fdisallowedTools\x12\x1b\n" +
+	"\tmax_turns\x18\t \x01(\x05R\bmaxTurns\x125\n" +
+	"\x16additional_directories\x18\n" +
+	" \x03(\tR\x15additionalDirectories\x121\n" +
+	"\x15fork_at_checkpoint_id\x18\v \x01(\tR\x12forkAtCheckpointId\"P\n" +
 	"\x15CreateSessionResponse\x127\n" +
 	"\asession\x18\x01 \x01(\v2\x1d.harness.agent.v1.SessionInfoR\asession\"'\n" +
 	"\x13ListSessionsRequest\x12\x10\n" +
@@ -3303,7 +5369,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
 	"\tafter_seq\x18\x02 \x01(\x03R\bafterSeq\"I\n" +
 	"\x11SubscribeResponse\x124\n" +
-	"\x05event\x18\x01 \x01(\v2\x1e.harness.agent.v1.SessionEventR\x05event\"\xfe\b\n" +
+	"\x05event\x18\x01 \x01(\v2\x1e.harness.agent.v1.SessionEventR\x05event\"\x90\x0f\n" +
 	"\fSessionEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x03R\x03seq\x12\x1d\n" +
 	"\n" +
@@ -3323,8 +5389,99 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x06notice\x18\x0e \x01(\v2\x18.harness.agent.v1.NoticeH\x00R\x06notice\x12W\n" +
 	"\x13permission_resolved\x18\x0f \x01(\v2$.harness.agent.v1.PermissionResolvedH\x00R\x12permissionResolved\x12Q\n" +
 	"\x11question_resolved\x18\x10 \x01(\v2\".harness.agent.v1.QuestionResolvedH\x00R\x10questionResolved\x12E\n" +
-	"\rsession_ended\x18\x11 \x01(\v2\x1e.harness.agent.v1.SessionEndedH\x00R\fsessionEndedB\a\n" +
-	"\x05event\"Y\n" +
+	"\rsession_ended\x18\x11 \x01(\v2\x1e.harness.agent.v1.SessionEndedH\x00R\fsessionEnded\x12B\n" +
+	"\fturn_started\x18\x12 \x01(\v2\x1d.harness.agent.v1.TurnStartedH\x00R\vturnStarted\x12E\n" +
+	"\rtodos_updated\x18\x13 \x01(\v2\x1e.harness.agent.v1.TodosUpdatedH\x00R\ftodosUpdated\x12E\n" +
+	"\rplan_proposed\x18\x14 \x01(\v2\x1e.harness.agent.v1.PlanProposedH\x00R\fplanProposed\x12E\n" +
+	"\rplan_resolved\x18\x15 \x01(\v2\x1e.harness.agent.v1.PlanResolvedH\x00R\fplanResolved\x12B\n" +
+	"\ftask_started\x18\x16 \x01(\v2\x1d.harness.agent.v1.TaskStartedH\x00R\vtaskStarted\x12?\n" +
+	"\vtask_output\x18\x17 \x01(\v2\x1c.harness.agent.v1.TaskOutputH\x00R\n" +
+	"taskOutput\x12E\n" +
+	"\rtask_finished\x18\x18 \x01(\v2\x1e.harness.agent.v1.TaskFinishedH\x00R\ftaskFinished\x12T\n" +
+	"\x12checkpoint_created\x18\x19 \x01(\v2#.harness.agent.v1.CheckpointCreatedH\x00R\x11checkpointCreated\x125\n" +
+	"\arewound\x18\x1a \x01(\v2\x19.harness.agent.v1.RewoundH\x00R\arewound\x12;\n" +
+	"\tcompacted\x18\x1b \x01(\v2\x1b.harness.agent.v1.CompactedH\x00R\tcompacted\x12a\n" +
+	"\x17permission_mode_changed\x18\x1c \x01(\v2'.harness.agent.v1.PermissionModeChangedH\x00R\x15permissionModeChangedB\a\n" +
+	"\x05event\"O\n" +
+	"\vTurnStarted\x12*\n" +
+	"\x11user_message_uuid\x18\x01 \x01(\tR\x0fuserMessageUuid\x12\x14\n" +
+	"\x05model\x18\x02 \x01(\tR\x05model\"<\n" +
+	"\fTodosUpdated\x12,\n" +
+	"\x05todos\x18\x01 \x03(\v2\x16.harness.agent.v1.TodoR\x05todos\"\xdc\x01\n" +
+	"\x04Todo\x12\x18\n" +
+	"\acontent\x18\x01 \x01(\tR\acontent\x12\x1f\n" +
+	"\vactive_form\x18\x02 \x01(\tR\n" +
+	"activeForm\x125\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1d.harness.agent.v1.Todo.StatusR\x06status\"b\n" +
+	"\x06Status\x12\x16\n" +
+	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eSTATUS_PENDING\x10\x01\x12\x16\n" +
+	"\x12STATUS_IN_PROGRESS\x10\x02\x12\x14\n" +
+	"\x10STATUS_COMPLETED\x10\x03\"\x87\x01\n" +
+	"\fPlanProposed\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\x1e\n" +
+	"\vtool_use_id\x18\x02 \x01(\tR\ttoolUseId\x12\x12\n" +
+	"\x04plan\x18\x03 \x01(\tR\x04plan\x12$\n" +
+	"\x0eplan_file_path\x18\x04 \x01(\tR\fplanFilePath\"\x9b\x01\n" +
+	"\fPlanResolved\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12K\n" +
+	"\bdecision\x18\x02 \x01(\x0e2/.harness.agent.v1.RespondToPlanRequest.DecisionR\bdecision\x12\x1f\n" +
+	"\vresolved_by\x18\x03 \x01(\tR\n" +
+	"resolvedBy\"\xa3\x01\n" +
+	"\vTaskStarted\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1e\n" +
+	"\vtool_use_id\x18\x02 \x01(\tR\ttoolUseId\x12\x18\n" +
+	"\acommand\x18\x03 \x01(\tR\acommand\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1f\n" +
+	"\voutput_path\x18\x05 \x01(\tR\n" +
+	"outputPath\"9\n" +
+	"\n" +
+	"TaskOutput\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\"\x9f\x02\n" +
+	"\fTaskFinished\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12=\n" +
+	"\x06reason\x18\x02 \x01(\x0e2%.harness.agent.v1.TaskFinished.ReasonR\x06reason\x12\x1b\n" +
+	"\texit_code\x18\x03 \x01(\x05R\bexitCode\x12\x1f\n" +
+	"\vduration_ms\x18\x04 \x01(\x03R\n" +
+	"durationMs\"y\n" +
+	"\x06Reason\x12\x16\n" +
+	"\x12REASON_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rREASON_EXITED\x10\x01\x12\x12\n" +
+	"\x0eREASON_STOPPED\x10\x02\x12\x15\n" +
+	"\x11REASON_TIME_LIMIT\x10\x03\x12\x19\n" +
+	"\x15REASON_SESSION_CLOSED\x10\x04\"\xb8\x01\n" +
+	"\n" +
+	"Checkpoint\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12*\n" +
+	"\x11user_message_uuid\x18\x02 \x01(\tR\x0fuserMessageUuid\x12%\n" +
+	"\x0eprompt_preview\x18\x03 \x01(\tR\rpromptPreview\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12(\n" +
+	"\x10has_code_changes\x18\x05 \x01(\bR\x0ehasCodeChanges\"Q\n" +
+	"\x11CheckpointCreated\x12<\n" +
+	"\n" +
+	"checkpoint\x18\x01 \x01(\v2\x1c.harness.agent.v1.CheckpointR\n" +
+	"checkpoint\"\xdd\x01\n" +
+	"\aRewound\x12#\n" +
+	"\rcheckpoint_id\x18\x01 \x01(\tR\fcheckpointId\x128\n" +
+	"\x04mode\x18\x02 \x01(\x0e2$.harness.agent.v1.RewindRequest.ModeR\x04mode\x12%\n" +
+	"\x0efiles_restored\x18\x03 \x01(\x05R\rfilesRestored\x12#\n" +
+	"\rfiles_skipped\x18\x04 \x01(\x05R\ffilesSkipped\x12'\n" +
+	"\x0frestored_prompt\x18\x05 \x01(\tR\x0erestoredPrompt\"\xf0\x01\n" +
+	"\tCompacted\x12=\n" +
+	"\atrigger\x18\x01 \x01(\x0e2#.harness.agent.v1.Compacted.TriggerR\atrigger\x12#\n" +
+	"\rtokens_before\x18\x02 \x01(\x03R\ftokensBefore\x12!\n" +
+	"\ftokens_after\x18\x03 \x01(\x03R\vtokensAfter\"\\\n" +
+	"\aTrigger\x12\x17\n" +
+	"\x13TRIGGER_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eTRIGGER_MANUAL\x10\x01\x12\x10\n" +
+	"\fTRIGGER_AUTO\x10\x02\x12\x12\n" +
+	"\x0eTRIGGER_REWIND\x10\x03\"M\n" +
+	"\x15PermissionModeChanged\x124\n" +
+	"\x04mode\x18\x01 \x01(\x0e2 .harness.agent.v1.PermissionModeR\x04mode\"Y\n" +
 	"\vUserMessage\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x126\n" +
 	"\acontent\x18\x02 \x03(\v2\x1c.harness.llm.v1.ContentBlockR\acontent\"\xa3\x01\n" +
@@ -3350,14 +5507,16 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
 	"input_json\x18\x03 \x01(\tR\tinputJson\x12\x18\n" +
-	"\asummary\x18\x04 \x01(\tR\asummary\"\xc8\x01\n" +
+	"\asummary\x18\x04 \x01(\tR\asummary\"\x98\x02\n" +
 	"\x10ToolCallFinished\x12\x1e\n" +
 	"\vtool_use_id\x18\x01 \x01(\tR\ttoolUseId\x12\x19\n" +
 	"\bis_error\x18\x02 \x01(\bR\aisError\x12 \n" +
 	"\vinterrupted\x18\x03 \x01(\bR\vinterrupted\x126\n" +
 	"\acontent\x18\x04 \x03(\v2\x1c.harness.llm.v1.ContentBlockR\acontent\x12\x1f\n" +
 	"\vduration_ms\x18\x05 \x01(\x03R\n" +
-	"durationMs\"\xcf\x01\n" +
+	"durationMs\x124\n" +
+	"\x16structured_result_json\x18\x06 \x01(\tR\x14structuredResultJson\x12\x18\n" +
+	"\asummary\x18\a \x01(\tR\asummary\"\xcf\x01\n" +
 	"\x11PermissionRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x1e\n" +
@@ -3479,7 +5638,69 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x05query\x18\x02 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\",\n" +
 	"\x14SuggestFilesResponse\x12\x14\n" +
-	"\x05paths\x18\x01 \x03(\tR\x05paths*\xd0\x01\n" +
+	"\x05paths\x18\x01 \x03(\tR\x05paths\"\xc0\x02\n" +
+	"\x14RespondToPlanRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x02 \x01(\tR\trequestId\x12K\n" +
+	"\bdecision\x18\x03 \x01(\x0e2/.harness.agent.v1.RespondToPlanRequest.DecisionR\bdecision\x12\x1a\n" +
+	"\bfeedback\x18\x04 \x01(\tR\bfeedback\"\x80\x01\n" +
+	"\bDecision\x12\x18\n" +
+	"\x14DECISION_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dDECISION_APPROVE_ACCEPT_EDITS\x10\x01\x12\x1b\n" +
+	"\x17DECISION_APPROVE_MANUAL\x10\x02\x12\x1a\n" +
+	"\x16DECISION_KEEP_PLANNING\x10\x03\"\x17\n" +
+	"\x15RespondToPlanResponse\"7\n" +
+	"\x16ListCheckpointsRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"Y\n" +
+	"\x17ListCheckpointsResponse\x12>\n" +
+	"\vcheckpoints\x18\x01 \x03(\v2\x1c.harness.agent.v1.CheckpointR\vcheckpoints\"\xd8\x02\n" +
+	"\rRewindRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12#\n" +
+	"\rcheckpoint_id\x18\x02 \x01(\tR\fcheckpointId\x128\n" +
+	"\x04mode\x18\x03 \x01(\x0e2$.harness.agent.v1.RewindRequest.ModeR\x04mode\x121\n" +
+	"\x14summary_instructions\x18\x04 \x01(\tR\x13summaryInstructions\"\x95\x01\n" +
+	"\x04Mode\x12\x14\n" +
+	"\x10MODE_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aMODE_CODE_AND_CONVERSATION\x10\x01\x12\x15\n" +
+	"\x11MODE_CONVERSATION\x10\x02\x12\r\n" +
+	"\tMODE_CODE\x10\x03\x12\x17\n" +
+	"\x13MODE_SUMMARIZE_FROM\x10\x04\x12\x18\n" +
+	"\x14MODE_SUMMARIZE_UP_TO\x10\x05\"C\n" +
+	"\x0eRewindResponse\x121\n" +
+	"\x06result\x18\x01 \x01(\v2\x19.harness.agent.v1.RewoundR\x06result\"S\n" +
+	"\x0eCompactRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\"\n" +
+	"\finstructions\x18\x02 \x01(\tR\finstructions\"\x11\n" +
+	"\x0fCompactResponse\"\xdc\x01\n" +
+	"\x0eBackgroundTask\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x18\n" +
+	"\acommand\x18\x02 \x01(\tR\acommand\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1f\n" +
+	"\voutput_path\x18\x04 \x01(\tR\n" +
+	"outputPath\x12\x18\n" +
+	"\arunning\x18\x05 \x01(\bR\arunning\x12\x1b\n" +
+	"\texit_code\x18\x06 \x01(\x05R\bexitCode\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\a \x01(\tR\tstartedAt\"1\n" +
+	"\x10ListTasksRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"K\n" +
+	"\x11ListTasksResponse\x126\n" +
+	"\x05tasks\x18\x01 \x03(\v2 .harness.agent.v1.BackgroundTaskR\x05tasks\"I\n" +
+	"\x0fStopTaskRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\"\x12\n" +
+	"\x10StopTaskResponse\"4\n" +
+	"\x13CloseSessionRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\x16\n" +
+	"\x14CloseSessionResponse*\xd0\x01\n" +
 	"\x0ePermissionMode\x12\x1f\n" +
 	"\x1bPERMISSION_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17PERMISSION_MODE_DEFAULT\x10\x01\x12 \n" +
@@ -3493,7 +5714,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x16SESSION_STATUS_WORKING\x10\x02\x12\x1e\n" +
 	"\x1aSESSION_STATUS_NEEDS_INPUT\x10\x03\x12)\n" +
 	"%SESSION_STATUS_WAITING_FOR_CONNECTION\x10\x04\x12\x18\n" +
-	"\x14SESSION_STATUS_ERROR\x10\x052\x8d\t\n" +
+	"\x14SESSION_STATUS_ERROR\x10\x052\xfc\r\n" +
 	"\fAgentService\x12W\n" +
 	"\n" +
 	"Initialize\x12#.harness.agent.v1.InitializeRequest\x1a$.harness.agent.v1.InitializeResponse\x12`\n" +
@@ -3507,7 +5728,14 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\bSetModel\x12!.harness.agent.v1.SetModelRequest\x1a\".harness.agent.v1.SetModelResponse\x12T\n" +
 	"\tSetEffort\x12\".harness.agent.v1.SetEffortRequest\x1a#.harness.agent.v1.SetEffortResponse\x12l\n" +
 	"\x11SetPermissionMode\x12*.harness.agent.v1.SetPermissionModeRequest\x1a+.harness.agent.v1.SetPermissionModeResponse\x12]\n" +
-	"\fSuggestFiles\x12%.harness.agent.v1.SuggestFilesRequest\x1a&.harness.agent.v1.SuggestFilesResponseB\xcb\x01\n" +
+	"\fSuggestFiles\x12%.harness.agent.v1.SuggestFilesRequest\x1a&.harness.agent.v1.SuggestFilesResponse\x12`\n" +
+	"\rRespondToPlan\x12&.harness.agent.v1.RespondToPlanRequest\x1a'.harness.agent.v1.RespondToPlanResponse\x12f\n" +
+	"\x0fListCheckpoints\x12(.harness.agent.v1.ListCheckpointsRequest\x1a).harness.agent.v1.ListCheckpointsResponse\x12K\n" +
+	"\x06Rewind\x12\x1f.harness.agent.v1.RewindRequest\x1a .harness.agent.v1.RewindResponse\x12N\n" +
+	"\aCompact\x12 .harness.agent.v1.CompactRequest\x1a!.harness.agent.v1.CompactResponse\x12T\n" +
+	"\tListTasks\x12\".harness.agent.v1.ListTasksRequest\x1a#.harness.agent.v1.ListTasksResponse\x12Q\n" +
+	"\bStopTask\x12!.harness.agent.v1.StopTaskRequest\x1a\".harness.agent.v1.StopTaskResponse\x12]\n" +
+	"\fCloseSession\x12%.harness.agent.v1.CloseSessionRequest\x1a&.harness.agent.v1.CloseSessionResponseB\xcb\x01\n" +
 	"\x14com.harness.agent.v1B\n" +
 	"AgentProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
@@ -3523,136 +5751,208 @@ func file_harness_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_harness_agent_v1_agent_proto_rawDescData
 }
 
-var file_harness_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_harness_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_harness_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
+var file_harness_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 72)
 var file_harness_agent_v1_agent_proto_goTypes = []any{
 	(PermissionMode)(0),                      // 0: harness.agent.v1.PermissionMode
 	(SessionStatus)(0),                       // 1: harness.agent.v1.SessionStatus
 	(PullRequest_State)(0),                   // 2: harness.agent.v1.PullRequest.State
-	(TurnFinished_Result)(0),                 // 3: harness.agent.v1.TurnFinished.Result
-	(Notice_Level)(0),                        // 4: harness.agent.v1.Notice.Level
-	(SendUserMessageRequest_Delivery)(0),     // 5: harness.agent.v1.SendUserMessageRequest.Delivery
-	(RespondToPermissionRequest_Decision)(0), // 6: harness.agent.v1.RespondToPermissionRequest.Decision
-	(*InitializeRequest)(nil),                // 7: harness.agent.v1.InitializeRequest
-	(*InitializeResponse)(nil),               // 8: harness.agent.v1.InitializeResponse
-	(*SessionInfo)(nil),                      // 9: harness.agent.v1.SessionInfo
-	(*DiffStats)(nil),                        // 10: harness.agent.v1.DiffStats
-	(*PullRequest)(nil),                      // 11: harness.agent.v1.PullRequest
-	(*CreateSessionRequest)(nil),             // 12: harness.agent.v1.CreateSessionRequest
-	(*CreateSessionResponse)(nil),            // 13: harness.agent.v1.CreateSessionResponse
-	(*ListSessionsRequest)(nil),              // 14: harness.agent.v1.ListSessionsRequest
-	(*ListSessionsResponse)(nil),             // 15: harness.agent.v1.ListSessionsResponse
-	(*SubscribeRequest)(nil),                 // 16: harness.agent.v1.SubscribeRequest
-	(*SubscribeResponse)(nil),                // 17: harness.agent.v1.SubscribeResponse
-	(*SessionEvent)(nil),                     // 18: harness.agent.v1.SessionEvent
-	(*UserMessage)(nil),                      // 19: harness.agent.v1.UserMessage
-	(*AssistantDelta)(nil),                   // 20: harness.agent.v1.AssistantDelta
-	(*AssistantMessage)(nil),                 // 21: harness.agent.v1.AssistantMessage
-	(*ToolCallStarted)(nil),                  // 22: harness.agent.v1.ToolCallStarted
-	(*ToolCallFinished)(nil),                 // 23: harness.agent.v1.ToolCallFinished
-	(*PermissionRequest)(nil),                // 24: harness.agent.v1.PermissionRequest
-	(*PermissionResolved)(nil),               // 25: harness.agent.v1.PermissionResolved
-	(*QuestionResolved)(nil),                 // 26: harness.agent.v1.QuestionResolved
-	(*SessionEnded)(nil),                     // 27: harness.agent.v1.SessionEnded
-	(*Question)(nil),                         // 28: harness.agent.v1.Question
-	(*QuestionItem)(nil),                     // 29: harness.agent.v1.QuestionItem
-	(*QuestionOption)(nil),                   // 30: harness.agent.v1.QuestionOption
-	(*QueueChanged)(nil),                     // 31: harness.agent.v1.QueueChanged
-	(*TurnFinished)(nil),                     // 32: harness.agent.v1.TurnFinished
-	(*Notice)(nil),                           // 33: harness.agent.v1.Notice
-	(*SendUserMessageRequest)(nil),           // 34: harness.agent.v1.SendUserMessageRequest
-	(*SendUserMessageResponse)(nil),          // 35: harness.agent.v1.SendUserMessageResponse
-	(*InterruptRequest)(nil),                 // 36: harness.agent.v1.InterruptRequest
-	(*InterruptResponse)(nil),                // 37: harness.agent.v1.InterruptResponse
-	(*RespondToPermissionRequest)(nil),       // 38: harness.agent.v1.RespondToPermissionRequest
-	(*RespondToPermissionResponse)(nil),      // 39: harness.agent.v1.RespondToPermissionResponse
-	(*AnswerQuestionRequest)(nil),            // 40: harness.agent.v1.AnswerQuestionRequest
-	(*QuestionAnswer)(nil),                   // 41: harness.agent.v1.QuestionAnswer
-	(*AnswerQuestionResponse)(nil),           // 42: harness.agent.v1.AnswerQuestionResponse
-	(*SetModelRequest)(nil),                  // 43: harness.agent.v1.SetModelRequest
-	(*SetModelResponse)(nil),                 // 44: harness.agent.v1.SetModelResponse
-	(*SetEffortRequest)(nil),                 // 45: harness.agent.v1.SetEffortRequest
-	(*SetEffortResponse)(nil),                // 46: harness.agent.v1.SetEffortResponse
-	(*SetPermissionModeRequest)(nil),         // 47: harness.agent.v1.SetPermissionModeRequest
-	(*SetPermissionModeResponse)(nil),        // 48: harness.agent.v1.SetPermissionModeResponse
-	(*SuggestFilesRequest)(nil),              // 49: harness.agent.v1.SuggestFilesRequest
-	(*SuggestFilesResponse)(nil),             // 50: harness.agent.v1.SuggestFilesResponse
-	(*v1.ContentBlock)(nil),                  // 51: harness.llm.v1.ContentBlock
-	(v1.StopReason)(0),                       // 52: harness.llm.v1.StopReason
-	(*v1.Usage)(nil),                         // 53: harness.llm.v1.Usage
-	(v1.Effort)(0),                           // 54: harness.llm.v1.Effort
+	(Todo_Status)(0),                         // 3: harness.agent.v1.Todo.Status
+	(TaskFinished_Reason)(0),                 // 4: harness.agent.v1.TaskFinished.Reason
+	(Compacted_Trigger)(0),                   // 5: harness.agent.v1.Compacted.Trigger
+	(TurnFinished_Result)(0),                 // 6: harness.agent.v1.TurnFinished.Result
+	(Notice_Level)(0),                        // 7: harness.agent.v1.Notice.Level
+	(SendUserMessageRequest_Delivery)(0),     // 8: harness.agent.v1.SendUserMessageRequest.Delivery
+	(RespondToPermissionRequest_Decision)(0), // 9: harness.agent.v1.RespondToPermissionRequest.Decision
+	(RespondToPlanRequest_Decision)(0),       // 10: harness.agent.v1.RespondToPlanRequest.Decision
+	(RewindRequest_Mode)(0),                  // 11: harness.agent.v1.RewindRequest.Mode
+	(*InitializeRequest)(nil),                // 12: harness.agent.v1.InitializeRequest
+	(*InitializeResponse)(nil),               // 13: harness.agent.v1.InitializeResponse
+	(*SessionInfo)(nil),                      // 14: harness.agent.v1.SessionInfo
+	(*DiffStats)(nil),                        // 15: harness.agent.v1.DiffStats
+	(*PullRequest)(nil),                      // 16: harness.agent.v1.PullRequest
+	(*CreateSessionRequest)(nil),             // 17: harness.agent.v1.CreateSessionRequest
+	(*CreateSessionResponse)(nil),            // 18: harness.agent.v1.CreateSessionResponse
+	(*ListSessionsRequest)(nil),              // 19: harness.agent.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),             // 20: harness.agent.v1.ListSessionsResponse
+	(*SubscribeRequest)(nil),                 // 21: harness.agent.v1.SubscribeRequest
+	(*SubscribeResponse)(nil),                // 22: harness.agent.v1.SubscribeResponse
+	(*SessionEvent)(nil),                     // 23: harness.agent.v1.SessionEvent
+	(*TurnStarted)(nil),                      // 24: harness.agent.v1.TurnStarted
+	(*TodosUpdated)(nil),                     // 25: harness.agent.v1.TodosUpdated
+	(*Todo)(nil),                             // 26: harness.agent.v1.Todo
+	(*PlanProposed)(nil),                     // 27: harness.agent.v1.PlanProposed
+	(*PlanResolved)(nil),                     // 28: harness.agent.v1.PlanResolved
+	(*TaskStarted)(nil),                      // 29: harness.agent.v1.TaskStarted
+	(*TaskOutput)(nil),                       // 30: harness.agent.v1.TaskOutput
+	(*TaskFinished)(nil),                     // 31: harness.agent.v1.TaskFinished
+	(*Checkpoint)(nil),                       // 32: harness.agent.v1.Checkpoint
+	(*CheckpointCreated)(nil),                // 33: harness.agent.v1.CheckpointCreated
+	(*Rewound)(nil),                          // 34: harness.agent.v1.Rewound
+	(*Compacted)(nil),                        // 35: harness.agent.v1.Compacted
+	(*PermissionModeChanged)(nil),            // 36: harness.agent.v1.PermissionModeChanged
+	(*UserMessage)(nil),                      // 37: harness.agent.v1.UserMessage
+	(*AssistantDelta)(nil),                   // 38: harness.agent.v1.AssistantDelta
+	(*AssistantMessage)(nil),                 // 39: harness.agent.v1.AssistantMessage
+	(*ToolCallStarted)(nil),                  // 40: harness.agent.v1.ToolCallStarted
+	(*ToolCallFinished)(nil),                 // 41: harness.agent.v1.ToolCallFinished
+	(*PermissionRequest)(nil),                // 42: harness.agent.v1.PermissionRequest
+	(*PermissionResolved)(nil),               // 43: harness.agent.v1.PermissionResolved
+	(*QuestionResolved)(nil),                 // 44: harness.agent.v1.QuestionResolved
+	(*SessionEnded)(nil),                     // 45: harness.agent.v1.SessionEnded
+	(*Question)(nil),                         // 46: harness.agent.v1.Question
+	(*QuestionItem)(nil),                     // 47: harness.agent.v1.QuestionItem
+	(*QuestionOption)(nil),                   // 48: harness.agent.v1.QuestionOption
+	(*QueueChanged)(nil),                     // 49: harness.agent.v1.QueueChanged
+	(*TurnFinished)(nil),                     // 50: harness.agent.v1.TurnFinished
+	(*Notice)(nil),                           // 51: harness.agent.v1.Notice
+	(*SendUserMessageRequest)(nil),           // 52: harness.agent.v1.SendUserMessageRequest
+	(*SendUserMessageResponse)(nil),          // 53: harness.agent.v1.SendUserMessageResponse
+	(*InterruptRequest)(nil),                 // 54: harness.agent.v1.InterruptRequest
+	(*InterruptResponse)(nil),                // 55: harness.agent.v1.InterruptResponse
+	(*RespondToPermissionRequest)(nil),       // 56: harness.agent.v1.RespondToPermissionRequest
+	(*RespondToPermissionResponse)(nil),      // 57: harness.agent.v1.RespondToPermissionResponse
+	(*AnswerQuestionRequest)(nil),            // 58: harness.agent.v1.AnswerQuestionRequest
+	(*QuestionAnswer)(nil),                   // 59: harness.agent.v1.QuestionAnswer
+	(*AnswerQuestionResponse)(nil),           // 60: harness.agent.v1.AnswerQuestionResponse
+	(*SetModelRequest)(nil),                  // 61: harness.agent.v1.SetModelRequest
+	(*SetModelResponse)(nil),                 // 62: harness.agent.v1.SetModelResponse
+	(*SetEffortRequest)(nil),                 // 63: harness.agent.v1.SetEffortRequest
+	(*SetEffortResponse)(nil),                // 64: harness.agent.v1.SetEffortResponse
+	(*SetPermissionModeRequest)(nil),         // 65: harness.agent.v1.SetPermissionModeRequest
+	(*SetPermissionModeResponse)(nil),        // 66: harness.agent.v1.SetPermissionModeResponse
+	(*SuggestFilesRequest)(nil),              // 67: harness.agent.v1.SuggestFilesRequest
+	(*SuggestFilesResponse)(nil),             // 68: harness.agent.v1.SuggestFilesResponse
+	(*RespondToPlanRequest)(nil),             // 69: harness.agent.v1.RespondToPlanRequest
+	(*RespondToPlanResponse)(nil),            // 70: harness.agent.v1.RespondToPlanResponse
+	(*ListCheckpointsRequest)(nil),           // 71: harness.agent.v1.ListCheckpointsRequest
+	(*ListCheckpointsResponse)(nil),          // 72: harness.agent.v1.ListCheckpointsResponse
+	(*RewindRequest)(nil),                    // 73: harness.agent.v1.RewindRequest
+	(*RewindResponse)(nil),                   // 74: harness.agent.v1.RewindResponse
+	(*CompactRequest)(nil),                   // 75: harness.agent.v1.CompactRequest
+	(*CompactResponse)(nil),                  // 76: harness.agent.v1.CompactResponse
+	(*BackgroundTask)(nil),                   // 77: harness.agent.v1.BackgroundTask
+	(*ListTasksRequest)(nil),                 // 78: harness.agent.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),                // 79: harness.agent.v1.ListTasksResponse
+	(*StopTaskRequest)(nil),                  // 80: harness.agent.v1.StopTaskRequest
+	(*StopTaskResponse)(nil),                 // 81: harness.agent.v1.StopTaskResponse
+	(*CloseSessionRequest)(nil),              // 82: harness.agent.v1.CloseSessionRequest
+	(*CloseSessionResponse)(nil),             // 83: harness.agent.v1.CloseSessionResponse
+	(v1.Effort)(0),                           // 84: harness.llm.v1.Effort
+	(*v1.ContentBlock)(nil),                  // 85: harness.llm.v1.ContentBlock
+	(v1.StopReason)(0),                       // 86: harness.llm.v1.StopReason
+	(*v1.Usage)(nil),                         // 87: harness.llm.v1.Usage
 }
 var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	0,  // 0: harness.agent.v1.SessionInfo.permission_mode:type_name -> harness.agent.v1.PermissionMode
 	1,  // 1: harness.agent.v1.SessionInfo.status:type_name -> harness.agent.v1.SessionStatus
-	10, // 2: harness.agent.v1.SessionInfo.diff_stats:type_name -> harness.agent.v1.DiffStats
-	11, // 3: harness.agent.v1.SessionInfo.pull_request:type_name -> harness.agent.v1.PullRequest
+	15, // 2: harness.agent.v1.SessionInfo.diff_stats:type_name -> harness.agent.v1.DiffStats
+	16, // 3: harness.agent.v1.SessionInfo.pull_request:type_name -> harness.agent.v1.PullRequest
 	2,  // 4: harness.agent.v1.PullRequest.state:type_name -> harness.agent.v1.PullRequest.State
 	0,  // 5: harness.agent.v1.CreateSessionRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	9,  // 6: harness.agent.v1.CreateSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
-	9,  // 7: harness.agent.v1.ListSessionsResponse.sessions:type_name -> harness.agent.v1.SessionInfo
-	18, // 8: harness.agent.v1.SubscribeResponse.event:type_name -> harness.agent.v1.SessionEvent
-	9,  // 9: harness.agent.v1.SessionEvent.session_updated:type_name -> harness.agent.v1.SessionInfo
-	19, // 10: harness.agent.v1.SessionEvent.user_message:type_name -> harness.agent.v1.UserMessage
-	20, // 11: harness.agent.v1.SessionEvent.assistant_delta:type_name -> harness.agent.v1.AssistantDelta
-	21, // 12: harness.agent.v1.SessionEvent.assistant_message:type_name -> harness.agent.v1.AssistantMessage
-	22, // 13: harness.agent.v1.SessionEvent.tool_call_started:type_name -> harness.agent.v1.ToolCallStarted
-	23, // 14: harness.agent.v1.SessionEvent.tool_call_finished:type_name -> harness.agent.v1.ToolCallFinished
-	24, // 15: harness.agent.v1.SessionEvent.permission_request:type_name -> harness.agent.v1.PermissionRequest
-	28, // 16: harness.agent.v1.SessionEvent.question:type_name -> harness.agent.v1.Question
-	31, // 17: harness.agent.v1.SessionEvent.queue_changed:type_name -> harness.agent.v1.QueueChanged
-	32, // 18: harness.agent.v1.SessionEvent.turn_finished:type_name -> harness.agent.v1.TurnFinished
-	33, // 19: harness.agent.v1.SessionEvent.notice:type_name -> harness.agent.v1.Notice
-	25, // 20: harness.agent.v1.SessionEvent.permission_resolved:type_name -> harness.agent.v1.PermissionResolved
-	26, // 21: harness.agent.v1.SessionEvent.question_resolved:type_name -> harness.agent.v1.QuestionResolved
-	27, // 22: harness.agent.v1.SessionEvent.session_ended:type_name -> harness.agent.v1.SessionEnded
-	51, // 23: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
-	51, // 24: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
-	52, // 25: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
-	53, // 26: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
-	51, // 27: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
-	6,  // 28: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
-	29, // 29: harness.agent.v1.Question.items:type_name -> harness.agent.v1.QuestionItem
-	30, // 30: harness.agent.v1.QuestionItem.options:type_name -> harness.agent.v1.QuestionOption
-	19, // 31: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
-	3,  // 32: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
-	53, // 33: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
-	4,  // 34: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
-	51, // 35: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
-	5,  // 36: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
-	6,  // 37: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
-	41, // 38: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
-	54, // 39: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
-	0,  // 40: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
-	7,  // 41: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
-	12, // 42: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
-	14, // 43: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
-	16, // 44: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
-	34, // 45: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
-	36, // 46: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
-	38, // 47: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
-	40, // 48: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
-	43, // 49: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
-	45, // 50: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
-	47, // 51: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
-	49, // 52: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
-	8,  // 53: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
-	13, // 54: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
-	15, // 55: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
-	17, // 56: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
-	35, // 57: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
-	37, // 58: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
-	39, // 59: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
-	42, // 60: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
-	44, // 61: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
-	46, // 62: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
-	48, // 63: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
-	50, // 64: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
-	53, // [53:65] is the sub-list for method output_type
-	41, // [41:53] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	84, // 6: harness.agent.v1.CreateSessionRequest.effort:type_name -> harness.llm.v1.Effort
+	14, // 7: harness.agent.v1.CreateSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
+	14, // 8: harness.agent.v1.ListSessionsResponse.sessions:type_name -> harness.agent.v1.SessionInfo
+	23, // 9: harness.agent.v1.SubscribeResponse.event:type_name -> harness.agent.v1.SessionEvent
+	14, // 10: harness.agent.v1.SessionEvent.session_updated:type_name -> harness.agent.v1.SessionInfo
+	37, // 11: harness.agent.v1.SessionEvent.user_message:type_name -> harness.agent.v1.UserMessage
+	38, // 12: harness.agent.v1.SessionEvent.assistant_delta:type_name -> harness.agent.v1.AssistantDelta
+	39, // 13: harness.agent.v1.SessionEvent.assistant_message:type_name -> harness.agent.v1.AssistantMessage
+	40, // 14: harness.agent.v1.SessionEvent.tool_call_started:type_name -> harness.agent.v1.ToolCallStarted
+	41, // 15: harness.agent.v1.SessionEvent.tool_call_finished:type_name -> harness.agent.v1.ToolCallFinished
+	42, // 16: harness.agent.v1.SessionEvent.permission_request:type_name -> harness.agent.v1.PermissionRequest
+	46, // 17: harness.agent.v1.SessionEvent.question:type_name -> harness.agent.v1.Question
+	49, // 18: harness.agent.v1.SessionEvent.queue_changed:type_name -> harness.agent.v1.QueueChanged
+	50, // 19: harness.agent.v1.SessionEvent.turn_finished:type_name -> harness.agent.v1.TurnFinished
+	51, // 20: harness.agent.v1.SessionEvent.notice:type_name -> harness.agent.v1.Notice
+	43, // 21: harness.agent.v1.SessionEvent.permission_resolved:type_name -> harness.agent.v1.PermissionResolved
+	44, // 22: harness.agent.v1.SessionEvent.question_resolved:type_name -> harness.agent.v1.QuestionResolved
+	45, // 23: harness.agent.v1.SessionEvent.session_ended:type_name -> harness.agent.v1.SessionEnded
+	24, // 24: harness.agent.v1.SessionEvent.turn_started:type_name -> harness.agent.v1.TurnStarted
+	25, // 25: harness.agent.v1.SessionEvent.todos_updated:type_name -> harness.agent.v1.TodosUpdated
+	27, // 26: harness.agent.v1.SessionEvent.plan_proposed:type_name -> harness.agent.v1.PlanProposed
+	28, // 27: harness.agent.v1.SessionEvent.plan_resolved:type_name -> harness.agent.v1.PlanResolved
+	29, // 28: harness.agent.v1.SessionEvent.task_started:type_name -> harness.agent.v1.TaskStarted
+	30, // 29: harness.agent.v1.SessionEvent.task_output:type_name -> harness.agent.v1.TaskOutput
+	31, // 30: harness.agent.v1.SessionEvent.task_finished:type_name -> harness.agent.v1.TaskFinished
+	33, // 31: harness.agent.v1.SessionEvent.checkpoint_created:type_name -> harness.agent.v1.CheckpointCreated
+	34, // 32: harness.agent.v1.SessionEvent.rewound:type_name -> harness.agent.v1.Rewound
+	35, // 33: harness.agent.v1.SessionEvent.compacted:type_name -> harness.agent.v1.Compacted
+	36, // 34: harness.agent.v1.SessionEvent.permission_mode_changed:type_name -> harness.agent.v1.PermissionModeChanged
+	26, // 35: harness.agent.v1.TodosUpdated.todos:type_name -> harness.agent.v1.Todo
+	3,  // 36: harness.agent.v1.Todo.status:type_name -> harness.agent.v1.Todo.Status
+	10, // 37: harness.agent.v1.PlanResolved.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
+	4,  // 38: harness.agent.v1.TaskFinished.reason:type_name -> harness.agent.v1.TaskFinished.Reason
+	32, // 39: harness.agent.v1.CheckpointCreated.checkpoint:type_name -> harness.agent.v1.Checkpoint
+	11, // 40: harness.agent.v1.Rewound.mode:type_name -> harness.agent.v1.RewindRequest.Mode
+	5,  // 41: harness.agent.v1.Compacted.trigger:type_name -> harness.agent.v1.Compacted.Trigger
+	0,  // 42: harness.agent.v1.PermissionModeChanged.mode:type_name -> harness.agent.v1.PermissionMode
+	85, // 43: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
+	85, // 44: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
+	86, // 45: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
+	87, // 46: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
+	85, // 47: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
+	9,  // 48: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
+	47, // 49: harness.agent.v1.Question.items:type_name -> harness.agent.v1.QuestionItem
+	48, // 50: harness.agent.v1.QuestionItem.options:type_name -> harness.agent.v1.QuestionOption
+	37, // 51: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
+	6,  // 52: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
+	87, // 53: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
+	7,  // 54: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
+	85, // 55: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
+	8,  // 56: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
+	9,  // 57: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
+	59, // 58: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
+	84, // 59: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
+	0,  // 60: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
+	10, // 61: harness.agent.v1.RespondToPlanRequest.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
+	32, // 62: harness.agent.v1.ListCheckpointsResponse.checkpoints:type_name -> harness.agent.v1.Checkpoint
+	11, // 63: harness.agent.v1.RewindRequest.mode:type_name -> harness.agent.v1.RewindRequest.Mode
+	34, // 64: harness.agent.v1.RewindResponse.result:type_name -> harness.agent.v1.Rewound
+	77, // 65: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
+	12, // 66: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
+	17, // 67: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
+	19, // 68: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
+	21, // 69: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
+	52, // 70: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
+	54, // 71: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
+	56, // 72: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
+	58, // 73: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
+	61, // 74: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
+	63, // 75: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
+	65, // 76: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
+	67, // 77: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
+	69, // 78: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
+	71, // 79: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
+	73, // 80: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
+	75, // 81: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
+	78, // 82: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
+	80, // 83: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
+	82, // 84: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
+	13, // 85: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
+	18, // 86: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
+	20, // 87: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
+	22, // 88: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
+	53, // 89: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
+	55, // 90: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
+	57, // 91: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
+	60, // 92: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
+	62, // 93: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
+	64, // 94: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
+	66, // 95: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
+	68, // 96: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
+	70, // 97: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
+	72, // 98: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
+	74, // 99: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
+	76, // 100: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
+	79, // 101: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
+	81, // 102: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
+	83, // 103: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
+	85, // [85:104] is the sub-list for method output_type
+	66, // [66:85] is the sub-list for method input_type
+	66, // [66:66] is the sub-list for extension type_name
+	66, // [66:66] is the sub-list for extension extendee
+	0,  // [0:66] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_agent_proto_init() }
@@ -3676,8 +5976,19 @@ func file_harness_agent_v1_agent_proto_init() {
 		(*SessionEvent_PermissionResolved)(nil),
 		(*SessionEvent_QuestionResolved)(nil),
 		(*SessionEvent_SessionEnded)(nil),
+		(*SessionEvent_TurnStarted)(nil),
+		(*SessionEvent_TodosUpdated)(nil),
+		(*SessionEvent_PlanProposed)(nil),
+		(*SessionEvent_PlanResolved)(nil),
+		(*SessionEvent_TaskStarted)(nil),
+		(*SessionEvent_TaskOutput)(nil),
+		(*SessionEvent_TaskFinished)(nil),
+		(*SessionEvent_CheckpointCreated)(nil),
+		(*SessionEvent_Rewound)(nil),
+		(*SessionEvent_Compacted)(nil),
+		(*SessionEvent_PermissionModeChanged)(nil),
 	}
-	file_harness_agent_v1_agent_proto_msgTypes[13].OneofWrappers = []any{
+	file_harness_agent_v1_agent_proto_msgTypes[26].OneofWrappers = []any{
 		(*AssistantDelta_Text)(nil),
 		(*AssistantDelta_Thinking)(nil),
 		(*AssistantDelta_InputJson)(nil),
@@ -3687,8 +5998,8 @@ func file_harness_agent_v1_agent_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_agent_proto_rawDesc), len(file_harness_agent_v1_agent_proto_rawDesc)),
-			NumEnums:      7,
-			NumMessages:   44,
+			NumEnums:      12,
+			NumMessages:   72,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

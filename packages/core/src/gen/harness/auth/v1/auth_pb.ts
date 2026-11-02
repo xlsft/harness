@@ -10,7 +10,71 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/auth/v1/auth.proto.
  */
 export const file_harness_auth_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChpoYXJuZXNzL2F1dGgvdjEvYXV0aC5wcm90bxIPaGFybmVzcy5hdXRoLnYxInQKFlN0YXJ0RGV2aWNlQXV0aFJlcXVlc3QSEwoLY2xpZW50X25hbWUYASABKAkSEwoLZGV2aWNlX25hbWUYAiABKAkSCgoCb3MYAyABKAkSDAoEYXJjaBgEIAEoCRIWCg5jbGllbnRfdmVyc2lvbhgFIAEoCSK0AQoXU3RhcnREZXZpY2VBdXRoUmVzcG9uc2USEwoLZGV2aWNlX2NvZGUYASABKAkSEQoJdXNlcl9jb2RlGAIgASgJEhgKEHZlcmlmaWNhdGlvbl91cmkYAyABKAkSIQoZdmVyaWZpY2F0aW9uX3VyaV9jb21wbGV0ZRgEIAEoCRIaChJleHBpcmVzX2luX3NlY29uZHMYBSABKAUSGAoQaW50ZXJ2YWxfc2Vjb25kcxgGIAEoBSIsChVQb2xsRGV2aWNlQXV0aFJlcXVlc3QSEwoLZGV2aWNlX2NvZGUYASABKAkimgIKFlBvbGxEZXZpY2VBdXRoUmVzcG9uc2USPgoGc3RhdHVzGAEgASgOMi4uaGFybmVzcy5hdXRoLnYxLlBvbGxEZXZpY2VBdXRoUmVzcG9uc2UuU3RhdHVzEjcKC2NyZWRlbnRpYWxzGAIgASgLMiIuaGFybmVzcy5hdXRoLnYxLkRldmljZUNyZWRlbnRpYWxzIoYBCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARIUChBTVEFUVVNfU0xPV19ET1dOEAISEwoPU1RBVFVTX0FQUFJPVkVEEAMSEQoNU1RBVFVTX0RFTklFRBAEEhIKDlNUQVRVU19FWFBJUkVEEAUimgEKEURldmljZUNyZWRlbnRpYWxzEhEKCWRldmljZV9pZBgBIAEoCRIUCgxkZXZpY2VfdG9rZW4YAiABKAkSFAoMYWNjZXNzX3Rva2VuGAMgASgJEiEKGWFjY2Vzc19leHBpcmVzX2luX3NlY29uZHMYBCABKAUSIwoEdXNlchgFIAEoCzIVLmhhcm5lc3MuYXV0aC52MS5Vc2VyIjEKGVJlZnJlc2hBY2Nlc3NUb2tlblJlcXVlc3QSFAoMZGV2aWNlX3Rva2VuGAEgASgJIlUKGlJlZnJlc2hBY2Nlc3NUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRIhChlhY2Nlc3NfZXhwaXJlc19pbl9zZWNvbmRzGAIgASgFIg4KDEdldE1lUmVxdWVzdCJdCg1HZXRNZVJlc3BvbnNlEiMKBHVzZXIYASABKAsyFS5oYXJuZXNzLmF1dGgudjEuVXNlchInCgZkZXZpY2UYAiABKAsyFy5oYXJuZXNzLmF1dGgudjEuRGV2aWNlIg8KDUxvZ291dFJlcXVlc3QiEAoOTG9nb3V0UmVzcG9uc2UilgEKBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIoCgRyb2xlGAQgASgOMhouaGFybmVzcy5hdXRoLnYxLlVzZXIuUm9sZSI7CgRSb2xlEhQKEFJPTEVfVU5TUEVDSUZJRUQQABINCglST0xFX1VTRVIQARIOCgpST0xFX0FETUlOEAIiZgoGRGV2aWNlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCgoCb3MYAyABKAkSDAoEYXJjaBgEIAEoCRISCgpjcmVhdGVkX2F0GAUgASgJEhQKDGxhc3Rfc2Vlbl9hdBgGIAEoCTLeAwoRRGV2aWNlQXV0aFNlcnZpY2USZAoPU3RhcnREZXZpY2VBdXRoEicuaGFybmVzcy5hdXRoLnYxLlN0YXJ0RGV2aWNlQXV0aFJlcXVlc3QaKC5oYXJuZXNzLmF1dGgudjEuU3RhcnREZXZpY2VBdXRoUmVzcG9uc2USYQoOUG9sbERldmljZUF1dGgSJi5oYXJuZXNzLmF1dGgudjEuUG9sbERldmljZUF1dGhSZXF1ZXN0GicuaGFybmVzcy5hdXRoLnYxLlBvbGxEZXZpY2VBdXRoUmVzcG9uc2USbQoSUmVmcmVzaEFjY2Vzc1Rva2VuEiouaGFybmVzcy5hdXRoLnYxLlJlZnJlc2hBY2Nlc3NUb2tlblJlcXVlc3QaKy5oYXJuZXNzLmF1dGgudjEuUmVmcmVzaEFjY2Vzc1Rva2VuUmVzcG9uc2USRgoFR2V0TWUSHS5oYXJuZXNzLmF1dGgudjEuR2V0TWVSZXF1ZXN0Gh4uaGFybmVzcy5hdXRoLnYxLkdldE1lUmVzcG9uc2USSQoGTG9nb3V0Eh4uaGFybmVzcy5hdXRoLnYxLkxvZ291dFJlcXVlc3QaHy5oYXJuZXNzLmF1dGgudjEuTG9nb3V0UmVzcG9uc2VCwwEKE2NvbS5oYXJuZXNzLmF1dGgudjFCCUF1dGhQcm90b1ABWkNnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2F1dGgvdjE7YXV0aHYxogIDSEFYqgIPSGFybmVzcy5BdXRoLlYxygIPSGFybmVzc1xBdXRoXFYx4gIbSGFybmVzc1xBdXRoXFYxXEdQQk1ldGFkYXRh6gIRSGFybmVzczo6QXV0aDo6VjFiBnByb3RvMw");
+  fileDesc("ChpoYXJuZXNzL2F1dGgvdjEvYXV0aC5wcm90bxIPaGFybmVzcy5hdXRoLnYxIiUKEkxpc3REZXZpY2VzUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIj8KE0xpc3REZXZpY2VzUmVzcG9uc2USKAoHZGV2aWNlcxgBIAMoCzIXLmhhcm5lc3MuYXV0aC52MS5EZXZpY2UiKAoTUmV2b2tlRGV2aWNlUmVxdWVzdBIRCglkZXZpY2VfaWQYASABKAkiFgoUUmV2b2tlRGV2aWNlUmVzcG9uc2UidAoWU3RhcnREZXZpY2VBdXRoUmVxdWVzdBITCgtjbGllbnRfbmFtZRgBIAEoCRITCgtkZXZpY2VfbmFtZRgCIAEoCRIKCgJvcxgDIAEoCRIMCgRhcmNoGAQgASgJEhYKDmNsaWVudF92ZXJzaW9uGAUgASgJIrQBChdTdGFydERldmljZUF1dGhSZXNwb25zZRITCgtkZXZpY2VfY29kZRgBIAEoCRIRCgl1c2VyX2NvZGUYAiABKAkSGAoQdmVyaWZpY2F0aW9uX3VyaRgDIAEoCRIhChl2ZXJpZmljYXRpb25fdXJpX2NvbXBsZXRlGAQgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIYChBpbnRlcnZhbF9zZWNvbmRzGAYgASgFIiwKFVBvbGxEZXZpY2VBdXRoUmVxdWVzdBITCgtkZXZpY2VfY29kZRgBIAEoCSKaAgoWUG9sbERldmljZUF1dGhSZXNwb25zZRI+CgZzdGF0dXMYASABKA4yLi5oYXJuZXNzLmF1dGgudjEuUG9sbERldmljZUF1dGhSZXNwb25zZS5TdGF0dXMSNwoLY3JlZGVudGlhbHMYAiABKAsyIi5oYXJuZXNzLmF1dGgudjEuRGV2aWNlQ3JlZGVudGlhbHMihgEKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfUEVORElORxABEhQKEFNUQVRVU19TTE9XX0RPV04QAhITCg9TVEFUVVNfQVBQUk9WRUQQAxIRCg1TVEFUVVNfREVOSUVEEAQSEgoOU1RBVFVTX0VYUElSRUQQBSKaAQoRRGV2aWNlQ3JlZGVudGlhbHMSEQoJZGV2aWNlX2lkGAEgASgJEhQKDGRldmljZV90b2tlbhgCIAEoCRIUCgxhY2Nlc3NfdG9rZW4YAyABKAkSIQoZYWNjZXNzX2V4cGlyZXNfaW5fc2Vjb25kcxgEIAEoBRIjCgR1c2VyGAUgASgLMhUuaGFybmVzcy5hdXRoLnYxLlVzZXIiMQoZUmVmcmVzaEFjY2Vzc1Rva2VuUmVxdWVzdBIUCgxkZXZpY2VfdG9rZW4YASABKAkiVQoaUmVmcmVzaEFjY2Vzc1Rva2VuUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEiEKGWFjY2Vzc19leHBpcmVzX2luX3NlY29uZHMYAiABKAUiDgoMR2V0TWVSZXF1ZXN0Il0KDUdldE1lUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLmhhcm5lc3MuYXV0aC52MS5Vc2VyEicKBmRldmljZRgCIAEoCzIXLmhhcm5lc3MuYXV0aC52MS5EZXZpY2UiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSKWAQoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRuYW1lGAMgASgJEigKBHJvbGUYBCABKA4yGi5oYXJuZXNzLmF1dGgudjEuVXNlci5Sb2xlIjsKBFJvbGUSFAoQUk9MRV9VTlNQRUNJRklFRBAAEg0KCVJPTEVfVVNFUhABEg4KClJPTEVfQURNSU4QAiJmCgZEZXZpY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIKCgJvcxgDIAEoCRIMCgRhcmNoGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkSFAoMbGFzdF9zZWVuX2F0GAYgASgJMpUFChFEZXZpY2VBdXRoU2VydmljZRJkCg9TdGFydERldmljZUF1dGgSJy5oYXJuZXNzLmF1dGgudjEuU3RhcnREZXZpY2VBdXRoUmVxdWVzdBooLmhhcm5lc3MuYXV0aC52MS5TdGFydERldmljZUF1dGhSZXNwb25zZRJhCg5Qb2xsRGV2aWNlQXV0aBImLmhhcm5lc3MuYXV0aC52MS5Qb2xsRGV2aWNlQXV0aFJlcXVlc3QaJy5oYXJuZXNzLmF1dGgudjEuUG9sbERldmljZUF1dGhSZXNwb25zZRJtChJSZWZyZXNoQWNjZXNzVG9rZW4SKi5oYXJuZXNzLmF1dGgudjEuUmVmcmVzaEFjY2Vzc1Rva2VuUmVxdWVzdBorLmhhcm5lc3MuYXV0aC52MS5SZWZyZXNoQWNjZXNzVG9rZW5SZXNwb25zZRJGCgVHZXRNZRIdLmhhcm5lc3MuYXV0aC52MS5HZXRNZVJlcXVlc3QaHi5oYXJuZXNzLmF1dGgudjEuR2V0TWVSZXNwb25zZRJJCgZMb2dvdXQSHi5oYXJuZXNzLmF1dGgudjEuTG9nb3V0UmVxdWVzdBofLmhhcm5lc3MuYXV0aC52MS5Mb2dvdXRSZXNwb25zZRJYCgtMaXN0RGV2aWNlcxIjLmhhcm5lc3MuYXV0aC52MS5MaXN0RGV2aWNlc1JlcXVlc3QaJC5oYXJuZXNzLmF1dGgudjEuTGlzdERldmljZXNSZXNwb25zZRJbCgxSZXZva2VEZXZpY2USJC5oYXJuZXNzLmF1dGgudjEuUmV2b2tlRGV2aWNlUmVxdWVzdBolLmhhcm5lc3MuYXV0aC52MS5SZXZva2VEZXZpY2VSZXNwb25zZULDAQoTY29tLmhhcm5lc3MuYXV0aC52MUIJQXV0aFByb3RvUAFaQ2dpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYXV0aC92MTthdXRodjGiAgNIQViqAg9IYXJuZXNzLkF1dGguVjHKAg9IYXJuZXNzXEF1dGhcVjHiAhtIYXJuZXNzXEF1dGhcVjFcR1BCTWV0YWRhdGHqAhFIYXJuZXNzOjpBdXRoOjpWMWIGcHJvdG8z");
+
+/**
+ * @generated from message harness.auth.v1.ListDevicesRequest
+ */
+export type ListDevicesRequest = Message<"harness.auth.v1.ListDevicesRequest"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+};
+
+/**
+ * Describes the message harness.auth.v1.ListDevicesRequest.
+ * Use `create(ListDevicesRequestSchema)` to create a new message.
+ */
+export const ListDevicesRequestSchema: GenMessage<ListDevicesRequest> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 0);
+
+/**
+ * @generated from message harness.auth.v1.ListDevicesResponse
+ */
+export type ListDevicesResponse = Message<"harness.auth.v1.ListDevicesResponse"> & {
+  /**
+   * @generated from field: repeated harness.auth.v1.Device devices = 1;
+   */
+  devices: Device[];
+};
+
+/**
+ * Describes the message harness.auth.v1.ListDevicesResponse.
+ * Use `create(ListDevicesResponseSchema)` to create a new message.
+ */
+export const ListDevicesResponseSchema: GenMessage<ListDevicesResponse> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 1);
+
+/**
+ * @generated from message harness.auth.v1.RevokeDeviceRequest
+ */
+export type RevokeDeviceRequest = Message<"harness.auth.v1.RevokeDeviceRequest"> & {
+  /**
+   * @generated from field: string device_id = 1;
+   */
+  deviceId: string;
+};
+
+/**
+ * Describes the message harness.auth.v1.RevokeDeviceRequest.
+ * Use `create(RevokeDeviceRequestSchema)` to create a new message.
+ */
+export const RevokeDeviceRequestSchema: GenMessage<RevokeDeviceRequest> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 2);
+
+/**
+ * @generated from message harness.auth.v1.RevokeDeviceResponse
+ */
+export type RevokeDeviceResponse = Message<"harness.auth.v1.RevokeDeviceResponse"> & {
+};
+
+/**
+ * Describes the message harness.auth.v1.RevokeDeviceResponse.
+ * Use `create(RevokeDeviceResponseSchema)` to create a new message.
+ */
+export const RevokeDeviceResponseSchema: GenMessage<RevokeDeviceResponse> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 3);
 
 /**
  * @generated from message harness.auth.v1.StartDeviceAuthRequest
@@ -47,7 +111,7 @@ export type StartDeviceAuthRequest = Message<"harness.auth.v1.StartDeviceAuthReq
  * Use `create(StartDeviceAuthRequestSchema)` to create a new message.
  */
 export const StartDeviceAuthRequestSchema: GenMessage<StartDeviceAuthRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 0);
+  messageDesc(file_harness_auth_v1_auth, 4);
 
 /**
  * @generated from message harness.auth.v1.StartDeviceAuthResponse
@@ -91,7 +155,7 @@ export type StartDeviceAuthResponse = Message<"harness.auth.v1.StartDeviceAuthRe
  * Use `create(StartDeviceAuthResponseSchema)` to create a new message.
  */
 export const StartDeviceAuthResponseSchema: GenMessage<StartDeviceAuthResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 1);
+  messageDesc(file_harness_auth_v1_auth, 5);
 
 /**
  * @generated from message harness.auth.v1.PollDeviceAuthRequest
@@ -108,7 +172,7 @@ export type PollDeviceAuthRequest = Message<"harness.auth.v1.PollDeviceAuthReque
  * Use `create(PollDeviceAuthRequestSchema)` to create a new message.
  */
 export const PollDeviceAuthRequestSchema: GenMessage<PollDeviceAuthRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 2);
+  messageDesc(file_harness_auth_v1_auth, 6);
 
 /**
  * @generated from message harness.auth.v1.PollDeviceAuthResponse
@@ -132,7 +196,7 @@ export type PollDeviceAuthResponse = Message<"harness.auth.v1.PollDeviceAuthResp
  * Use `create(PollDeviceAuthResponseSchema)` to create a new message.
  */
 export const PollDeviceAuthResponseSchema: GenMessage<PollDeviceAuthResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 3);
+  messageDesc(file_harness_auth_v1_auth, 7);
 
 /**
  * @generated from enum harness.auth.v1.PollDeviceAuthResponse.Status
@@ -175,7 +239,7 @@ export enum PollDeviceAuthResponse_Status {
  * Describes the enum harness.auth.v1.PollDeviceAuthResponse.Status.
  */
 export const PollDeviceAuthResponse_StatusSchema: GenEnum<PollDeviceAuthResponse_Status> = /*@__PURE__*/
-  enumDesc(file_harness_auth_v1_auth, 3, 0);
+  enumDesc(file_harness_auth_v1_auth, 7, 0);
 
 /**
  * @generated from message harness.auth.v1.DeviceCredentials
@@ -212,7 +276,7 @@ export type DeviceCredentials = Message<"harness.auth.v1.DeviceCredentials"> & {
  * Use `create(DeviceCredentialsSchema)` to create a new message.
  */
 export const DeviceCredentialsSchema: GenMessage<DeviceCredentials> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 4);
+  messageDesc(file_harness_auth_v1_auth, 8);
 
 /**
  * @generated from message harness.auth.v1.RefreshAccessTokenRequest
@@ -229,7 +293,7 @@ export type RefreshAccessTokenRequest = Message<"harness.auth.v1.RefreshAccessTo
  * Use `create(RefreshAccessTokenRequestSchema)` to create a new message.
  */
 export const RefreshAccessTokenRequestSchema: GenMessage<RefreshAccessTokenRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 5);
+  messageDesc(file_harness_auth_v1_auth, 9);
 
 /**
  * @generated from message harness.auth.v1.RefreshAccessTokenResponse
@@ -251,7 +315,7 @@ export type RefreshAccessTokenResponse = Message<"harness.auth.v1.RefreshAccessT
  * Use `create(RefreshAccessTokenResponseSchema)` to create a new message.
  */
 export const RefreshAccessTokenResponseSchema: GenMessage<RefreshAccessTokenResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 6);
+  messageDesc(file_harness_auth_v1_auth, 10);
 
 /**
  * @generated from message harness.auth.v1.GetMeRequest
@@ -264,7 +328,7 @@ export type GetMeRequest = Message<"harness.auth.v1.GetMeRequest"> & {
  * Use `create(GetMeRequestSchema)` to create a new message.
  */
 export const GetMeRequestSchema: GenMessage<GetMeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 7);
+  messageDesc(file_harness_auth_v1_auth, 11);
 
 /**
  * @generated from message harness.auth.v1.GetMeResponse
@@ -286,7 +350,7 @@ export type GetMeResponse = Message<"harness.auth.v1.GetMeResponse"> & {
  * Use `create(GetMeResponseSchema)` to create a new message.
  */
 export const GetMeResponseSchema: GenMessage<GetMeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 8);
+  messageDesc(file_harness_auth_v1_auth, 12);
 
 /**
  * @generated from message harness.auth.v1.LogoutRequest
@@ -299,7 +363,7 @@ export type LogoutRequest = Message<"harness.auth.v1.LogoutRequest"> & {
  * Use `create(LogoutRequestSchema)` to create a new message.
  */
 export const LogoutRequestSchema: GenMessage<LogoutRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 9);
+  messageDesc(file_harness_auth_v1_auth, 13);
 
 /**
  * @generated from message harness.auth.v1.LogoutResponse
@@ -312,7 +376,7 @@ export type LogoutResponse = Message<"harness.auth.v1.LogoutResponse"> & {
  * Use `create(LogoutResponseSchema)` to create a new message.
  */
 export const LogoutResponseSchema: GenMessage<LogoutResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 10);
+  messageDesc(file_harness_auth_v1_auth, 14);
 
 /**
  * @generated from message harness.auth.v1.User
@@ -344,7 +408,7 @@ export type User = Message<"harness.auth.v1.User"> & {
  * Use `create(UserSchema)` to create a new message.
  */
 export const UserSchema: GenMessage<User> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 11);
+  messageDesc(file_harness_auth_v1_auth, 15);
 
 /**
  * @generated from enum harness.auth.v1.User.Role
@@ -370,7 +434,7 @@ export enum User_Role {
  * Describes the enum harness.auth.v1.User.Role.
  */
 export const User_RoleSchema: GenEnum<User_Role> = /*@__PURE__*/
-  enumDesc(file_harness_auth_v1_auth, 11, 0);
+  enumDesc(file_harness_auth_v1_auth, 15, 0);
 
 /**
  * @generated from message harness.auth.v1.Device
@@ -414,7 +478,7 @@ export type Device = Message<"harness.auth.v1.Device"> & {
  * Use `create(DeviceSchema)` to create a new message.
  */
 export const DeviceSchema: GenMessage<Device> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 12);
+  messageDesc(file_harness_auth_v1_auth, 16);
 
 /**
  * Device authorization for clients (CLI, desktop, SSH runners), modeled on RFC 8628.
@@ -477,6 +541,26 @@ export const DeviceAuthService: GenService<{
     methodKind: "unary";
     input: typeof LogoutRequestSchema;
     output: typeof LogoutResponseSchema;
+  },
+  /**
+   * Devices of the calling user (admins may pass user_id to list another user's devices).
+   *
+   * @generated from rpc harness.auth.v1.DeviceAuthService.ListDevices
+   */
+  listDevices: {
+    methodKind: "unary";
+    input: typeof ListDevicesRequestSchema;
+    output: typeof ListDevicesResponseSchema;
+  },
+  /**
+   * Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+   *
+   * @generated from rpc harness.auth.v1.DeviceAuthService.RevokeDevice
+   */
+  revokeDevice: {
+    methodKind: "unary";
+    input: typeof RevokeDeviceRequestSchema;
+    output: typeof RevokeDeviceResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_auth_v1_auth, 0);

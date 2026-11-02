@@ -64,6 +64,23 @@ const (
 	// AgentServiceSuggestFilesProcedure is the fully-qualified name of the AgentService's SuggestFiles
 	// RPC.
 	AgentServiceSuggestFilesProcedure = "/harness.agent.v1.AgentService/SuggestFiles"
+	// AgentServiceRespondToPlanProcedure is the fully-qualified name of the AgentService's
+	// RespondToPlan RPC.
+	AgentServiceRespondToPlanProcedure = "/harness.agent.v1.AgentService/RespondToPlan"
+	// AgentServiceListCheckpointsProcedure is the fully-qualified name of the AgentService's
+	// ListCheckpoints RPC.
+	AgentServiceListCheckpointsProcedure = "/harness.agent.v1.AgentService/ListCheckpoints"
+	// AgentServiceRewindProcedure is the fully-qualified name of the AgentService's Rewind RPC.
+	AgentServiceRewindProcedure = "/harness.agent.v1.AgentService/Rewind"
+	// AgentServiceCompactProcedure is the fully-qualified name of the AgentService's Compact RPC.
+	AgentServiceCompactProcedure = "/harness.agent.v1.AgentService/Compact"
+	// AgentServiceListTasksProcedure is the fully-qualified name of the AgentService's ListTasks RPC.
+	AgentServiceListTasksProcedure = "/harness.agent.v1.AgentService/ListTasks"
+	// AgentServiceStopTaskProcedure is the fully-qualified name of the AgentService's StopTask RPC.
+	AgentServiceStopTaskProcedure = "/harness.agent.v1.AgentService/StopTask"
+	// AgentServiceCloseSessionProcedure is the fully-qualified name of the AgentService's CloseSession
+	// RPC.
+	AgentServiceCloseSessionProcedure = "/harness.agent.v1.AgentService/CloseSession"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -85,6 +102,19 @@ type AgentServiceClient interface {
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
 	// Fuzzy file paths for @-mentions.
 	SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error)
+	// Approves or rejects a plan proposed with ExitPlanMode (see PlanProposed).
+	RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error)
+	// Checkpoints are taken before every turn that starts from a user prompt (file tools only).
+	ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error)
+	// Restores code and/or conversation to a checkpoint, or summarizes from / up to it.
+	Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error)
+	// Compacts the conversation now (same as /compact), with optional focus instructions.
+	Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error)
+	// Background tasks: shell commands started with run_in_background or moved to the background.
+	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
+	// Ends the session process-side (kills background tasks, flushes the transcript).
+	CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -170,6 +200,48 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SuggestFiles")),
 			connect.WithClientOptions(opts...),
 		),
+		respondToPlan: connect.NewClient[v1.RespondToPlanRequest, v1.RespondToPlanResponse](
+			httpClient,
+			baseURL+AgentServiceRespondToPlanProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RespondToPlan")),
+			connect.WithClientOptions(opts...),
+		),
+		listCheckpoints: connect.NewClient[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse](
+			httpClient,
+			baseURL+AgentServiceListCheckpointsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListCheckpoints")),
+			connect.WithClientOptions(opts...),
+		),
+		rewind: connect.NewClient[v1.RewindRequest, v1.RewindResponse](
+			httpClient,
+			baseURL+AgentServiceRewindProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("Rewind")),
+			connect.WithClientOptions(opts...),
+		),
+		compact: connect.NewClient[v1.CompactRequest, v1.CompactResponse](
+			httpClient,
+			baseURL+AgentServiceCompactProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("Compact")),
+			connect.WithClientOptions(opts...),
+		),
+		listTasks: connect.NewClient[v1.ListTasksRequest, v1.ListTasksResponse](
+			httpClient,
+			baseURL+AgentServiceListTasksProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListTasks")),
+			connect.WithClientOptions(opts...),
+		),
+		stopTask: connect.NewClient[v1.StopTaskRequest, v1.StopTaskResponse](
+			httpClient,
+			baseURL+AgentServiceStopTaskProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopTask")),
+			connect.WithClientOptions(opts...),
+		),
+		closeSession: connect.NewClient[v1.CloseSessionRequest, v1.CloseSessionResponse](
+			httpClient,
+			baseURL+AgentServiceCloseSessionProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CloseSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -187,6 +259,13 @@ type agentServiceClient struct {
 	setEffort           *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
 	setPermissionMode   *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
 	suggestFiles        *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
+	respondToPlan       *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
+	listCheckpoints     *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
+	rewind              *connect.Client[v1.RewindRequest, v1.RewindResponse]
+	compact             *connect.Client[v1.CompactRequest, v1.CompactResponse]
+	listTasks           *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	stopTask            *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
+	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -249,6 +328,41 @@ func (c *agentServiceClient) SuggestFiles(ctx context.Context, req *connect.Requ
 	return c.suggestFiles.CallUnary(ctx, req)
 }
 
+// RespondToPlan calls harness.agent.v1.AgentService.RespondToPlan.
+func (c *agentServiceClient) RespondToPlan(ctx context.Context, req *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error) {
+	return c.respondToPlan.CallUnary(ctx, req)
+}
+
+// ListCheckpoints calls harness.agent.v1.AgentService.ListCheckpoints.
+func (c *agentServiceClient) ListCheckpoints(ctx context.Context, req *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error) {
+	return c.listCheckpoints.CallUnary(ctx, req)
+}
+
+// Rewind calls harness.agent.v1.AgentService.Rewind.
+func (c *agentServiceClient) Rewind(ctx context.Context, req *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error) {
+	return c.rewind.CallUnary(ctx, req)
+}
+
+// Compact calls harness.agent.v1.AgentService.Compact.
+func (c *agentServiceClient) Compact(ctx context.Context, req *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error) {
+	return c.compact.CallUnary(ctx, req)
+}
+
+// ListTasks calls harness.agent.v1.AgentService.ListTasks.
+func (c *agentServiceClient) ListTasks(ctx context.Context, req *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
+	return c.listTasks.CallUnary(ctx, req)
+}
+
+// StopTask calls harness.agent.v1.AgentService.StopTask.
+func (c *agentServiceClient) StopTask(ctx context.Context, req *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error) {
+	return c.stopTask.CallUnary(ctx, req)
+}
+
+// CloseSession calls harness.agent.v1.AgentService.CloseSession.
+func (c *agentServiceClient) CloseSession(ctx context.Context, req *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error) {
+	return c.closeSession.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -268,6 +382,19 @@ type AgentServiceHandler interface {
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
 	// Fuzzy file paths for @-mentions.
 	SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error)
+	// Approves or rejects a plan proposed with ExitPlanMode (see PlanProposed).
+	RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error)
+	// Checkpoints are taken before every turn that starts from a user prompt (file tools only).
+	ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error)
+	// Restores code and/or conversation to a checkpoint, or summarizes from / up to it.
+	Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error)
+	// Compacts the conversation now (same as /compact), with optional focus instructions.
+	Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error)
+	// Background tasks: shell commands started with run_in_background or moved to the background.
+	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
+	// Ends the session process-side (kills background tasks, flushes the transcript).
+	CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -349,6 +476,48 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SuggestFiles")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceRespondToPlanHandler := connect.NewUnaryHandler(
+		AgentServiceRespondToPlanProcedure,
+		svc.RespondToPlan,
+		connect.WithSchema(agentServiceMethods.ByName("RespondToPlan")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListCheckpointsHandler := connect.NewUnaryHandler(
+		AgentServiceListCheckpointsProcedure,
+		svc.ListCheckpoints,
+		connect.WithSchema(agentServiceMethods.ByName("ListCheckpoints")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRewindHandler := connect.NewUnaryHandler(
+		AgentServiceRewindProcedure,
+		svc.Rewind,
+		connect.WithSchema(agentServiceMethods.ByName("Rewind")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCompactHandler := connect.NewUnaryHandler(
+		AgentServiceCompactProcedure,
+		svc.Compact,
+		connect.WithSchema(agentServiceMethods.ByName("Compact")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListTasksHandler := connect.NewUnaryHandler(
+		AgentServiceListTasksProcedure,
+		svc.ListTasks,
+		connect.WithSchema(agentServiceMethods.ByName("ListTasks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceStopTaskHandler := connect.NewUnaryHandler(
+		AgentServiceStopTaskProcedure,
+		svc.StopTask,
+		connect.WithSchema(agentServiceMethods.ByName("StopTask")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCloseSessionHandler := connect.NewUnaryHandler(
+		AgentServiceCloseSessionProcedure,
+		svc.CloseSession,
+		connect.WithSchema(agentServiceMethods.ByName("CloseSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -375,6 +544,20 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetPermissionModeHandler.ServeHTTP(w, r)
 		case AgentServiceSuggestFilesProcedure:
 			agentServiceSuggestFilesHandler.ServeHTTP(w, r)
+		case AgentServiceRespondToPlanProcedure:
+			agentServiceRespondToPlanHandler.ServeHTTP(w, r)
+		case AgentServiceListCheckpointsProcedure:
+			agentServiceListCheckpointsHandler.ServeHTTP(w, r)
+		case AgentServiceRewindProcedure:
+			agentServiceRewindHandler.ServeHTTP(w, r)
+		case AgentServiceCompactProcedure:
+			agentServiceCompactHandler.ServeHTTP(w, r)
+		case AgentServiceListTasksProcedure:
+			agentServiceListTasksHandler.ServeHTTP(w, r)
+		case AgentServiceStopTaskProcedure:
+			agentServiceStopTaskHandler.ServeHTTP(w, r)
+		case AgentServiceCloseSessionProcedure:
+			agentServiceCloseSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -430,4 +613,32 @@ func (UnimplementedAgentServiceHandler) SetPermissionMode(context.Context, *conn
 
 func (UnimplementedAgentServiceHandler) SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SuggestFiles is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RespondToPlan is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListCheckpoints is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.Rewind is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.Compact is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListTasks is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopTask is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CloseSession is not implemented"))
 }

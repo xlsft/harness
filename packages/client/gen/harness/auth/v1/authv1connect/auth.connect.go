@@ -47,6 +47,12 @@ const (
 	// DeviceAuthServiceLogoutProcedure is the fully-qualified name of the DeviceAuthService's Logout
 	// RPC.
 	DeviceAuthServiceLogoutProcedure = "/harness.auth.v1.DeviceAuthService/Logout"
+	// DeviceAuthServiceListDevicesProcedure is the fully-qualified name of the DeviceAuthService's
+	// ListDevices RPC.
+	DeviceAuthServiceListDevicesProcedure = "/harness.auth.v1.DeviceAuthService/ListDevices"
+	// DeviceAuthServiceRevokeDeviceProcedure is the fully-qualified name of the DeviceAuthService's
+	// RevokeDevice RPC.
+	DeviceAuthServiceRevokeDeviceProcedure = "/harness.auth.v1.DeviceAuthService/RevokeDevice"
 )
 
 // DeviceAuthServiceClient is a client for the harness.auth.v1.DeviceAuthService service.
@@ -61,6 +67,10 @@ type DeviceAuthServiceClient interface {
 	GetMe(context.Context, *connect.Request[v1.GetMeRequest]) (*connect.Response[v1.GetMeResponse], error)
 	// Revokes the calling device.
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
+	// Devices of the calling user (admins may pass user_id to list another user's devices).
+	ListDevices(context.Context, *connect.Request[v1.ListDevicesRequest]) (*connect.Response[v1.ListDevicesResponse], error)
+	// Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+	RevokeDevice(context.Context, *connect.Request[v1.RevokeDeviceRequest]) (*connect.Response[v1.RevokeDeviceResponse], error)
 }
 
 // NewDeviceAuthServiceClient constructs a client for the harness.auth.v1.DeviceAuthService service.
@@ -104,6 +114,18 @@ func NewDeviceAuthServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(deviceAuthServiceMethods.ByName("Logout")),
 			connect.WithClientOptions(opts...),
 		),
+		listDevices: connect.NewClient[v1.ListDevicesRequest, v1.ListDevicesResponse](
+			httpClient,
+			baseURL+DeviceAuthServiceListDevicesProcedure,
+			connect.WithSchema(deviceAuthServiceMethods.ByName("ListDevices")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeDevice: connect.NewClient[v1.RevokeDeviceRequest, v1.RevokeDeviceResponse](
+			httpClient,
+			baseURL+DeviceAuthServiceRevokeDeviceProcedure,
+			connect.WithSchema(deviceAuthServiceMethods.ByName("RevokeDevice")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -114,6 +136,8 @@ type deviceAuthServiceClient struct {
 	refreshAccessToken *connect.Client[v1.RefreshAccessTokenRequest, v1.RefreshAccessTokenResponse]
 	getMe              *connect.Client[v1.GetMeRequest, v1.GetMeResponse]
 	logout             *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	listDevices        *connect.Client[v1.ListDevicesRequest, v1.ListDevicesResponse]
+	revokeDevice       *connect.Client[v1.RevokeDeviceRequest, v1.RevokeDeviceResponse]
 }
 
 // StartDeviceAuth calls harness.auth.v1.DeviceAuthService.StartDeviceAuth.
@@ -141,6 +165,16 @@ func (c *deviceAuthServiceClient) Logout(ctx context.Context, req *connect.Reque
 	return c.logout.CallUnary(ctx, req)
 }
 
+// ListDevices calls harness.auth.v1.DeviceAuthService.ListDevices.
+func (c *deviceAuthServiceClient) ListDevices(ctx context.Context, req *connect.Request[v1.ListDevicesRequest]) (*connect.Response[v1.ListDevicesResponse], error) {
+	return c.listDevices.CallUnary(ctx, req)
+}
+
+// RevokeDevice calls harness.auth.v1.DeviceAuthService.RevokeDevice.
+func (c *deviceAuthServiceClient) RevokeDevice(ctx context.Context, req *connect.Request[v1.RevokeDeviceRequest]) (*connect.Response[v1.RevokeDeviceResponse], error) {
+	return c.revokeDevice.CallUnary(ctx, req)
+}
+
 // DeviceAuthServiceHandler is an implementation of the harness.auth.v1.DeviceAuthService service.
 type DeviceAuthServiceHandler interface {
 	// Unauthenticated. Starts a device authorization.
@@ -153,6 +187,10 @@ type DeviceAuthServiceHandler interface {
 	GetMe(context.Context, *connect.Request[v1.GetMeRequest]) (*connect.Response[v1.GetMeResponse], error)
 	// Revokes the calling device.
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
+	// Devices of the calling user (admins may pass user_id to list another user's devices).
+	ListDevices(context.Context, *connect.Request[v1.ListDevicesRequest]) (*connect.Response[v1.ListDevicesResponse], error)
+	// Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+	RevokeDevice(context.Context, *connect.Request[v1.RevokeDeviceRequest]) (*connect.Response[v1.RevokeDeviceResponse], error)
 }
 
 // NewDeviceAuthServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -192,6 +230,18 @@ func NewDeviceAuthServiceHandler(svc DeviceAuthServiceHandler, opts ...connect.H
 		connect.WithSchema(deviceAuthServiceMethods.ByName("Logout")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deviceAuthServiceListDevicesHandler := connect.NewUnaryHandler(
+		DeviceAuthServiceListDevicesProcedure,
+		svc.ListDevices,
+		connect.WithSchema(deviceAuthServiceMethods.ByName("ListDevices")),
+		connect.WithHandlerOptions(opts...),
+	)
+	deviceAuthServiceRevokeDeviceHandler := connect.NewUnaryHandler(
+		DeviceAuthServiceRevokeDeviceProcedure,
+		svc.RevokeDevice,
+		connect.WithSchema(deviceAuthServiceMethods.ByName("RevokeDevice")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.auth.v1.DeviceAuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeviceAuthServiceStartDeviceAuthProcedure:
@@ -204,6 +254,10 @@ func NewDeviceAuthServiceHandler(svc DeviceAuthServiceHandler, opts ...connect.H
 			deviceAuthServiceGetMeHandler.ServeHTTP(w, r)
 		case DeviceAuthServiceLogoutProcedure:
 			deviceAuthServiceLogoutHandler.ServeHTTP(w, r)
+		case DeviceAuthServiceListDevicesProcedure:
+			deviceAuthServiceListDevicesHandler.ServeHTTP(w, r)
+		case DeviceAuthServiceRevokeDeviceProcedure:
+			deviceAuthServiceRevokeDeviceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -231,4 +285,12 @@ func (UnimplementedDeviceAuthServiceHandler) GetMe(context.Context, *connect.Req
 
 func (UnimplementedDeviceAuthServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.DeviceAuthService.Logout is not implemented"))
+}
+
+func (UnimplementedDeviceAuthServiceHandler) ListDevices(context.Context, *connect.Request[v1.ListDevicesRequest]) (*connect.Response[v1.ListDevicesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.DeviceAuthService.ListDevices is not implemented"))
+}
+
+func (UnimplementedDeviceAuthServiceHandler) RevokeDevice(context.Context, *connect.Request[v1.RevokeDeviceRequest]) (*connect.Response[v1.RevokeDeviceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.DeviceAuthService.RevokeDevice is not implemented"))
 }

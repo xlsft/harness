@@ -21,7 +21,25 @@ service DeviceAuthService {
   rpc GetMe(GetMeRequest) returns (GetMeResponse);
   // Revokes the calling device.
   rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // Devices of the calling user (admins may pass user_id to list another user's devices).
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+  // Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+  rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
 }
+
+message ListDevicesRequest {
+  string user_id = 1;
+}
+
+message ListDevicesResponse {
+  repeated Device devices = 1;
+}
+
+message RevokeDeviceRequest {
+  string device_id = 1;
+}
+
+message RevokeDeviceResponse {}
 
 message StartDeviceAuthRequest {
   string client_name = 1;

@@ -32,6 +32,23 @@ service AgentService {
 
   // Fuzzy file paths for @-mentions.
   rpc SuggestFiles(SuggestFilesRequest) returns (SuggestFilesResponse);
+
+  // Approves or rejects a plan proposed with ExitPlanMode (see PlanProposed).
+  rpc RespondToPlan(RespondToPlanRequest) returns (RespondToPlanResponse);
+
+  // Checkpoints are taken before every turn that starts from a user prompt (file tools only).
+  rpc ListCheckpoints(ListCheckpointsRequest) returns (ListCheckpointsResponse);
+  // Restores code and/or conversation to a checkpoint, or summarizes from / up to it.
+  rpc Rewind(RewindRequest) returns (RewindResponse);
+  // Compacts the conversation now (same as /compact), with optional focus instructions.
+  rpc Compact(CompactRequest) returns (CompactResponse);
+
+  // Background tasks: shell commands started with run_in_background or moved to the background.
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc StopTask(StopTaskRequest) returns (StopTaskResponse);
+
+  // Ends the session process-side (kills background tasks, flushes the transcript).
+  rpc CloseSession(CloseSessionRequest) returns (CloseSessionResponse);
 }
 
 enum PermissionMode {
@@ -116,6 +133,16 @@ message CreateSessionRequest {
   string resume_session_id = 4;
   // With resume_session_id: copy the transcript into a new session.
   bool fork = 5;
+  harness.llm.v1.Effort effort = 6;
+  // Permission rules in Claude Code syntax, e.g. "Bash(npm run test *)", "Edit(/src/**)".
+  repeated string allowed_tools = 7;
+  repeated string disallowed_tools = 8;
+  // Maximum tool-use round trips per turn; 0 means unlimited.
+  int32 max_turns = 9;
+  // Extra working directories (like --add-dir).
+  repeated string additional_directories = 10;
+  // With fork: fork at this checkpoint instead of the end of the transcript.
+  string fork_at_checkpoint_id = 11;
 }
 
 message CreateSessionResponse {
@@ -159,7 +186,130 @@ message SessionEvent {
     PermissionResolved permission_resolved = 15;
     QuestionResolved question_resolved = 16;
     SessionEnded session_ended = 17;
+    TurnStarted turn_started = 18;
+    TodosUpdated todos_updated = 19;
+    PlanProposed plan_proposed = 20;
+    PlanResolved plan_resolved = 21;
+    TaskStarted task_started = 22;
+    TaskOutput task_output = 23;
+    TaskFinished task_finished = 24;
+    CheckpointCreated checkpoint_created = 25;
+    Rewound rewound = 26;
+    Compacted compacted = 27;
+    PermissionModeChanged permission_mode_changed = 28;
   }
+}
+
+message TurnStarted {
+  // UUID of the user message that started the turn.
+  string user_message_uuid = 1;
+  string model = 2;
+}
+
+// Full replacement of the session's todo list (TodoWrite semantics).
+message TodosUpdated {
+  repeated Todo todos = 1;
+}
+
+message Todo {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_IN_PROGRESS = 2;
+    STATUS_COMPLETED = 3;
+  }
+  string content = 1;
+  // Present-tense form shown while in progress, e.g. "Running tests".
+  string active_form = 2;
+  Status status = 3;
+}
+
+// Emitted when the model calls ExitPlanMode. The turn waits for RespondToPlan.
+message PlanProposed {
+  string request_id = 1;
+  string tool_use_id = 2;
+  // Markdown.
+  string plan = 3;
+  // Where the plan was written (inside the session's plans directory).
+  string plan_file_path = 4;
+}
+
+message PlanResolved {
+  string request_id = 1;
+  RespondToPlanRequest.Decision decision = 2;
+  string resolved_by = 3;
+}
+
+message TaskStarted {
+  string task_id = 1;
+  // Tool use that started it.
+  string tool_use_id = 2;
+  string command = 3;
+  string description = 4;
+  // File the output is streamed to; the model reads it with Read.
+  string output_path = 5;
+}
+
+// Throttled tail of a background task's output (for the tasks pane); the full output is in output_path.
+message TaskOutput {
+  string task_id = 1;
+  string text = 2;
+}
+
+message TaskFinished {
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    REASON_EXITED = 1;
+    REASON_STOPPED = 2;
+    REASON_TIME_LIMIT = 3;
+    REASON_SESSION_CLOSED = 4;
+  }
+  string task_id = 1;
+  Reason reason = 2;
+  int32 exit_code = 3;
+  int64 duration_ms = 4;
+}
+
+message Checkpoint {
+  string id = 1;
+  // UUID of the user message that started the turn.
+  string user_message_uuid = 2;
+  // First line of that prompt, for the rewind menu.
+  string prompt_preview = 3;
+  // RFC 3339, UTC.
+  string created_at = 4;
+  // Whether any tracked file changed after this checkpoint (controls "restore code" options).
+  bool has_code_changes = 5;
+}
+
+message CheckpointCreated {
+  Checkpoint checkpoint = 1;
+}
+
+message Rewound {
+  string checkpoint_id = 1;
+  RewindRequest.Mode mode = 2;
+  // Files restored and files skipped (symlinks, hardlinks, missing snapshots).
+  int32 files_restored = 3;
+  int32 files_skipped = 4;
+  // Prompt to put back into the input box (Restore conversation / Summarize from here).
+  string restored_prompt = 5;
+}
+
+message Compacted {
+  enum Trigger {
+    TRIGGER_UNSPECIFIED = 0;
+    TRIGGER_MANUAL = 1;
+    TRIGGER_AUTO = 2;
+    TRIGGER_REWIND = 3;
+  }
+  Trigger trigger = 1;
+  int64 tokens_before = 2;
+  int64 tokens_after = 3;
+}
+
+message PermissionModeChanged {
+  PermissionMode mode = 1;
 }
 
 message UserMessage {
@@ -205,6 +355,12 @@ message ToolCallFinished {
   bool interrupted = 3;
   repeated harness.llm.v1.ContentBlock content = 4;
   int64 duration_ms = 5;
+  // Structured result for rich rendering (Claude Code's toolUseResult shape), e.g.
+  // Read: {"file":{"filePath","numLines","totalLines"}}, Bash: {"stdout","stderr","interrupted"},
+  // Edit/Write: {"filePath","structuredPatch":[...]}.
+  string structured_result_json = 6;
+  // Short human-readable summary for collapsed rendering, e.g. "Read 42 lines".
+  string summary = 7;
 }
 
 message PermissionRequest {
@@ -373,3 +529,90 @@ message SuggestFilesRequest {
 message SuggestFilesResponse {
   repeated string paths = 1;
 }
+
+message RespondToPlanRequest {
+  enum Decision {
+    DECISION_UNSPECIFIED = 0;
+    // Approve and switch to acceptEdits.
+    DECISION_APPROVE_ACCEPT_EDITS = 1;
+    // Approve and keep asking for each edit (default mode).
+    DECISION_APPROVE_MANUAL = 2;
+    // Keep planning; feedback is sent to the model.
+    DECISION_KEEP_PLANNING = 3;
+  }
+  string session_id = 1;
+  string request_id = 2;
+  Decision decision = 3;
+  string feedback = 4;
+}
+
+message RespondToPlanResponse {}
+
+message ListCheckpointsRequest {
+  string session_id = 1;
+}
+
+message ListCheckpointsResponse {
+  repeated Checkpoint checkpoints = 1;
+}
+
+message RewindRequest {
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+    MODE_CODE_AND_CONVERSATION = 1;
+    MODE_CONVERSATION = 2;
+    MODE_CODE = 3;
+    // Targeted compaction of everything after the checkpoint; files untouched.
+    MODE_SUMMARIZE_FROM = 4;
+    // Targeted compaction of everything before the checkpoint; files untouched.
+    MODE_SUMMARIZE_UP_TO = 5;
+  }
+  string session_id = 1;
+  string checkpoint_id = 2;
+  Mode mode = 3;
+  // Optional extra instructions for the summary modes.
+  string summary_instructions = 4;
+}
+
+message RewindResponse {
+  Rewound result = 1;
+}
+
+message CompactRequest {
+  string session_id = 1;
+  string instructions = 2;
+}
+
+message CompactResponse {}
+
+message BackgroundTask {
+  string task_id = 1;
+  string command = 2;
+  string description = 3;
+  string output_path = 4;
+  bool running = 5;
+  int32 exit_code = 6;
+  // RFC 3339, UTC.
+  string started_at = 7;
+}
+
+message ListTasksRequest {
+  string session_id = 1;
+}
+
+message ListTasksResponse {
+  repeated BackgroundTask tasks = 1;
+}
+
+message StopTaskRequest {
+  string session_id = 1;
+  string task_id = 2;
+}
+
+message StopTaskResponse {}
+
+message CloseSessionRequest {
+  string session_id = 1;
+}
+
+message CloseSessionResponse {}

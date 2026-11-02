@@ -64,6 +64,8 @@ export const GetBundleResponseSchema: GenMessage<GetBundleResponse> = /*@__PURE_
  * Rules for clients:
  * - Sections before the dynamic boundary are static: send them as system blocks, cache = true on the last one.
  *   Sections after it are dynamic; fill their {{placeholders}} (unknown placeholders become empty + a warning).
+ *   Supported placeholders: cwd, platform, shell, os_version, date, is_git, git_status, model_id,
+ *   model_display_name, additional_directories, scratchpad_dir.
  * - Only tools defined here are exposed to the model. Their execution semantics are implemented by the client
  *   and must match the description text (see docs/PLAN.md, section 2.2).
  * - A bundle is frozen for the whole session (until it ends or is compacted); switching breaks the prompt cache.
@@ -96,7 +98,19 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
   tools: { [key: string]: ToolDefinition };
 
   /**
-   * Keyed by reminder id: project_instructions, file_changed, empty_file, interrupted, ...
+   * Keyed by reminder id. Known ids (clients skip a reminder whose id is missing):
+   *   project_instructions  {{content}}            CLAUDE.md / AGENTS.md / user memory, first user message
+   *   file_changed          {{path}} {{diff}}      a file the model read changed on disk
+   *   empty_file            {{path}}               Read of an empty file
+   *   interrupted                                  user message after an interruption
+   *   interrupted_tool_use                         tool_result of a call cancelled by an interruption
+   *   todo_nudge                                   several turns without TodoWrite on a multi-step task
+   *   plan_mode             {{plan_file_path}}     plan mode is active: read-only, write the plan, call ExitPlanMode
+   *   plan_approved         {{plan_file_path}}     the user approved the plan
+   *   plan_rejected         {{feedback}}           the user asked to keep planning
+   *   background_task_done  {{task_id}} {{exit_code}} {{output_path}}
+   *   compacted                                    first message after a compaction summary
+   *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *
    * @generated from field: map<string, string> reminders = 5;
    */

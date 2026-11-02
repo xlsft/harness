@@ -98,9 +98,9 @@ func (s *Server) Stats() (bundles, notModified, refreshes int) {
 // Handler returns the HTTP handler for all services.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle(llmv1connect.NewGatewayServiceHandler(gatewayHandler{s}))
-	mux.Handle(promptsv1connect.NewPromptServiceHandler(promptHandler{s}))
-	mux.Handle(authv1connect.NewDeviceAuthServiceHandler(authHandler{s}))
+	mux.Handle(llmv1connect.NewGatewayServiceHandler(gatewayHandler{s: s}))
+	mux.Handle(promptsv1connect.NewPromptServiceHandler(promptHandler{s: s}))
+	mux.Handle(authv1connect.NewDeviceAuthServiceHandler(authHandler{s: s}))
 	return mux
 }
 
@@ -136,7 +136,10 @@ func (s *Server) checkAuth(h http.Header) error {
 
 // ---- GatewayService ----
 
-type gatewayHandler struct{ s *Server }
+type gatewayHandler struct {
+	llmv1connect.UnimplementedGatewayServiceHandler
+	s *Server
+}
 
 func (g gatewayHandler) ListModels(ctx context.Context, req *connect.Request[llmv1.ListModelsRequest]) (*connect.Response[llmv1.ListModelsResponse], error) {
 	if err := g.s.checkAuth(req.Header()); err != nil {
@@ -192,7 +195,10 @@ func (g gatewayHandler) StreamMessage(ctx context.Context, req *connect.Request[
 
 // ---- PromptService ----
 
-type promptHandler struct{ s *Server }
+type promptHandler struct {
+	promptsv1connect.UnimplementedPromptServiceHandler
+	s *Server
+}
 
 func (p promptHandler) GetBundle(ctx context.Context, req *connect.Request[promptsv1.GetBundleRequest]) (*connect.Response[promptsv1.GetBundleResponse], error) {
 	if err := p.s.checkAuth(req.Header()); err != nil {
@@ -212,7 +218,10 @@ func (p promptHandler) GetBundle(ctx context.Context, req *connect.Request[promp
 
 // ---- DeviceAuthService ----
 
-type authHandler struct{ s *Server }
+type authHandler struct {
+	authv1connect.UnimplementedDeviceAuthServiceHandler
+	s *Server
+}
 
 func (a authHandler) StartDeviceAuth(ctx context.Context, req *connect.Request[authv1.StartDeviceAuthRequest]) (*connect.Response[authv1.StartDeviceAuthResponse], error) {
 	return connect.NewResponse(&authv1.StartDeviceAuthResponse{DeviceCode: "dc_test", UserCode: "TEST-CODE",
