@@ -21,8 +21,8 @@ import type { Principal } from "../services/devices.ts";
 import { canonicalJson, REMOTE_TRANSPORTS } from "./config.ts";
 import { reportedTools } from "./devices.ts";
 import { authStatuses } from "./oauth.ts";
-import { fetchAllTools, presentTools, type ToolData } from "./proxy.ts";
-import { listServers, type ServerView } from "./registry.ts";
+import { fetchAllTools, type ToolData } from "./proxy.ts";
+import { listServers, rowConfig, type ServerView } from "./registry.ts";
 
 export interface CatalogServerData {
   serverId: string;
@@ -31,6 +31,8 @@ export interface CatalogServerData {
   alwaysLoad: boolean;
   tools: ToolData[];
   toolsUpdatedAt: string;
+  /** remote.requires_user_interaction: every call needs an explicit approval. */
+  requiresUserInteraction: boolean;
 }
 
 export interface CatalogData {
@@ -113,7 +115,7 @@ async function buildCurrent(p: Principal, projectKey: string): Promise<{ version
     let at: Date | undefined;
     if (REMOTE_TRANSPORTS.has(v.row.transport)) {
       const r = remote.get(v.row.id);
-      tools = presentTools(v.row, r?.tools ?? []);
+      tools = r?.tools ?? [];
       at = r?.at;
     } else {
       const reports = (reported.get(v.row.id) ?? []).sort((a, b) => b.at.getTime() - a.at.getTime());
@@ -128,6 +130,7 @@ async function buildCurrent(p: Principal, projectKey: string): Promise<{ version
       alwaysLoad: v.row.alwaysLoad,
       tools,
       toolsUpdatedAt: at?.toISOString() ?? "",
+      requiresUserInteraction: !!rowConfig(v.row).remote?.requiresUserInteraction,
     };
   });
   servers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.serverId < b.serverId ? -1 : 1));
@@ -136,6 +139,11 @@ async function buildCurrent(p: Principal, projectKey: string): Promise<{ version
     .update(`harness-mcp-catalog-v1\0${p.user.id}\0${projectKey}\0${canonicalJson(identity)}`)
     .digest("hex");
   return { version: `cat_${digest.slice(0, 40)}`, servers };
+}
+
+/** Stored snapshot servers (older snapshots predate requiresUserInteraction). */
+function snapshotServers(v: unknown): CatalogServerData[] {
+  return (Array.isArray(v) ? (v as CatalogServerData[]) : []).map((s) => ({ ...s, requiresUserInteraction: !!s.requiresUserInteraction }));
 }
 
 export async function getToolCatalog(
@@ -153,7 +161,7 @@ export async function getToolCatalog(
     });
     if (!snap) throw new ApiError("not_found", "Unknown or expired catalog version; fetch the current catalog");
     if (now.getTime() - snap.lastUsedAt.getTime() > TOUCH_EVERY_MS) await db.update(cs).set({ lastUsedAt: now }).where(eq(cs.version, snap.version));
-    return { notModified: false, catalog: { version: snap.version, servers: snap.servers as CatalogServerData[], createdAt: snap.createdAt.toISOString() } };
+    return { notModified: false, catalog: { version: snap.version, servers: snapshotServers(snap.servers), createdAt: snap.createdAt.toISOString() } };
   }
   if (req.projectKey && req.projectKey.length > 300) throw new ApiError("invalid_request", "project_key is too long");
   const cur = await buildCurrent(p, req.projectKey);
@@ -163,5 +171,5 @@ export async function getToolCatalog(
     .onConflictDoUpdate({ target: cs.version, set: { lastUsedAt: now } })
     .returning();
   if (req.ifNoneMatch && req.ifNoneMatch === cur.version) return { notModified: true };
-  return { notModified: false, catalog: { version: snap!.version, servers: snap!.servers as CatalogServerData[], createdAt: snap!.createdAt.toISOString() } };
+  return { notModified: false, catalog: { version: snap!.version, servers: snapshotServers(snap!.servers), createdAt: snap!.createdAt.toISOString() } };
 }
