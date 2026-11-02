@@ -14,6 +14,7 @@ import (
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/decision"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
@@ -39,7 +40,7 @@ func startHarness(t *testing.T, respond fg.Responder, mod func(*bootstrap.Option
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
 	gw, url := fg.Start(t, respond)
 	tok := auth.StaticToken("hat_test")
-	base := bootstrap.Options{Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok)}
+	base := bootstrap.Options{Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok), DecisionService: decision.NewClient(url, nil, tok)}
 	if mod != nil {
 		mod(&base)
 	}

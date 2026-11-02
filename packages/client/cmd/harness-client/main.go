@@ -20,6 +20,7 @@ import (
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/decision"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
@@ -148,9 +149,10 @@ func sharedAdapters(serverURL string) (bootstrap.Options, string, error) {
 		email = user.Email
 	}
 	return bootstrap.Options{
-		ServerURL: url,
-		Gateway:   connectgw.New(url, hc, tokens),
-		Prompts:   prompts.NewConnectSource(url, hc, tokens),
+		ServerURL:       url,
+		Gateway:         connectgw.New(url, hc, tokens),
+		Prompts:         prompts.NewConnectSource(url, hc, tokens),
+		DecisionService: decision.NewClient(url, hc, tokens),
 	}, email, nil
 }
 
@@ -192,7 +194,7 @@ func cmdPrint(ctx context.Context, args []string) int {
 	partial := fs.Bool("include-partial-messages", false, "with stream-json: include raw stream events")
 	model := fs.String("model", "", "model id (default: the server's main slot)")
 	effort := fs.String("effort", "", "low | medium | high | xhigh | max")
-	mode := fs.String("permission-mode", "default", "default | acceptEdits | plan | dontAsk | bypassPermissions")
+	mode := fs.String("permission-mode", "", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions (default: settings, else default)")
 	maxTurns := fs.Int("max-turns", 0, "maximum tool-use round trips (0 = unlimited)")
 	var allowed, disallowed, addDirs []string
 	fs.StringArrayVar(&allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
@@ -222,9 +224,13 @@ func cmdPrint(ctx context.Context, args []string) int {
 		}
 		return 2
 	}
-	pm, err := permissions.ParseMode(*mode)
-	if err != nil {
-		return fail(err)
+	// An unset flag leaves the mode to settings (permissions.defaultMode).
+	var pm permissions.Mode
+	if *mode != "" {
+		var err error
+		if pm, err = permissions.ParseMode(*mode); err != nil {
+			return fail(err)
+		}
 	}
 	if *skipPerms {
 		pm = permissions.ModeBypassPermissions

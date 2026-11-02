@@ -87,7 +87,13 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 			if d := s.str(src, p, "disableBypassPermissionsMode"); d != nil && *d == "disable" {
 				l.disableBypass = true
 			}
+			if disableFlag(p["disableAutoMode"]) {
+				l.disableAuto = true
+			}
 		}
+	}
+	if disableFlag(raw["disableAutoMode"]) {
+		l.disableAuto = true
 	}
 	if src.Level == LevelPolicy {
 		l.availableModels = s.stringList(src, "availableModels", raw["availableModels"])
@@ -207,6 +213,10 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 				s.Permissions.DisableBypass = true
 			}
 		}
+		// Turning auto mode off only restricts, so every level may do it.
+		if l.disableAuto {
+			s.Permissions.DisableAutoMode = true
+		}
 		if l.src.Level == LevelPolicy && len(l.availableModels) > 0 && len(s.AvailableModels) == 0 {
 			s.AvailableModels = l.availableModels
 		}
@@ -244,7 +254,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 			s.Attribution.PR = &v
 		}
 		if l.defaultMode != nil {
-			if gated(l) && wideningModes[*l.defaultMode] {
+			if *l.defaultMode == "auto" && !autoModeLevels[l.src.Level] {
+				s.ignored(l.src, "permissions.defaultMode", "auto mode can only be enabled by the user, the command line or policy settings")
+			} else if gated(l) && wideningModes[*l.defaultMode] {
 				s.ignored(l.src, "permissions.defaultMode", "ignored until the workspace is trusted")
 			} else {
 				s.Permissions.DefaultMode = *l.defaultMode
@@ -268,6 +280,11 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 	// Policy enforcement after the merge.
 	if s.Permissions.DisableBypass && s.Permissions.DefaultMode == "bypassPermissions" {
 		s.ignored(s.Permissions.DefaultModeSource, "permissions.defaultMode", "bypassPermissions is disabled by policy")
+		s.Permissions.DefaultMode = "default"
+		s.Permissions.DefaultModeSource = Source{Level: LevelPolicy}
+	}
+	if s.Permissions.DisableAutoMode && s.Permissions.DefaultMode == "auto" {
+		s.ignored(s.Permissions.DefaultModeSource, "permissions.defaultMode", "auto mode is disabled by settings (disableAutoMode)")
 		s.Permissions.DefaultMode = "default"
 		s.Permissions.DefaultModeSource = Source{Level: LevelPolicy}
 	}
@@ -315,17 +332,35 @@ type PermissionInputs struct {
 	// AdditionalDirectories are absolute paths.
 	AdditionalDirectories []string
 	DisableBypass         bool
+	// DisableAutoMode refuses auto mode (disableAutoMode at any level).
+	DisableAutoMode bool
+}
+
+// autoModeLevels may switch auto mode on through defaultMode; committed and
+// local project files may not (a repository must not opt its users in).
+var autoModeLevels = map[Level]bool{LevelPolicy: true, LevelCLI: true, LevelUser: true, LevelOrg: true}
+
+// disableFlag reads a disable switch: "disable" (Claude Code form) or true.
+func disableFlag(v json.RawMessage) bool {
+	var s string
+	if json.Unmarshal(v, &s) == nil {
+		return s == "disable"
+	}
+	var b bool
+	return json.Unmarshal(v, &b) == nil && b
 }
 
 // PermissionInputs returns the permission engine inputs.
 func (s *Settings) PermissionInputs() PermissionInputs {
 	in := PermissionInputs{
-		Allow:         slices.Clone(s.Permissions.Allow),
-		Ask:           slices.Clone(s.Permissions.Ask),
-		Deny:          slices.Clone(s.Permissions.Deny),
-		DefaultMode:   s.Permissions.DefaultMode,
-		DisableBypass: s.Permissions.DisableBypass,
+		Allow:           slices.Clone(s.Permissions.Allow),
+		Ask:             slices.Clone(s.Permissions.Ask),
+		Deny:            slices.Clone(s.Permissions.Deny),
+		DefaultMode:     s.Permissions.DefaultMode,
+		DisableBypass:   s.Permissions.DisableBypass,
+		DisableAutoMode: s.Permissions.DisableAutoMode,
 	}
+
 	for _, d := range s.Permissions.AdditionalDirectories {
 		in.AdditionalDirectories = append(in.AdditionalDirectories, d.Abs)
 	}

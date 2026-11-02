@@ -229,6 +229,15 @@ func (r *runner) onEvent(e agent.Event) {
 	case agent.EventModeChanged:
 		base["type"], base["subtype"], base["permissionMode"] = "system", "permission_mode", e.Mode
 		delete(base, "parent_tool_use_id")
+	case agent.EventNotice:
+		if e.Notice.Kind != agent.NoticeAutoDecision || e.Notice.Auto == nil {
+			return
+		}
+		ad := e.Notice.Auto
+		base["type"], base["subtype"] = "system", agent.NoticeAutoDecision
+		base["tool_use_id"], base["tool_name"], base["decision"], base["provider"] = ad.ToolUseID, ad.ToolName, ad.Decision, ad.Provider
+		base["reason"], base["categories"], base["cached"], base["text"] = ad.Reason, nonNilS(ad.Categories), ad.Cached, e.Notice.Text
+		delete(base, "parent_tool_use_id")
 	case agent.EventRetry:
 		base["type"], base["subtype"] = "system", "api_retry"
 		base["attempt"], base["max_retries"], base["retry_delay_ms"] = e.Retry.Attempt, e.Retry.MaxRetries, e.Retry.RetryDelayMs

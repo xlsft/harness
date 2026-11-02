@@ -164,7 +164,8 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if m.GetModel() != "" {
 		opts.Model = m.GetModel()
 	}
-	if m.GetPermissionMode() != agentv1.PermissionMode_PERMISSION_MODE_UNSPECIFIED || opts.PermissionMode == "" {
+	// UNSPECIFIED keeps the base mode, or leaves it to settings (permissions.defaultMode).
+	if m.GetPermissionMode() != agentv1.PermissionMode_PERMISSION_MODE_UNSPECIFIED {
 		opts.PermissionMode = mode
 	}
 	if e := pbconv.FromEffort(m.GetEffort()); e != "" {
@@ -661,12 +662,16 @@ func modeFromProto(m agentv1.PermissionMode) (permissions.Mode, error) {
 		return permissions.ModeDontAsk, nil
 	case agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS:
 		return permissions.ModeBypassPermissions, nil
+	case agentv1.PermissionMode_PERMISSION_MODE_AUTO:
+		return permissions.ModeAuto, nil
 	}
 	return "", fmt.Errorf("unknown permission mode %v", m)
 }
 
 func modeToProto(m permissions.Mode) agentv1.PermissionMode {
 	switch m {
+	case permissions.ModeAuto:
+		return agentv1.PermissionMode_PERMISSION_MODE_AUTO
 	case permissions.ModeAcceptEdits:
 		return agentv1.PermissionMode_PERMISSION_MODE_ACCEPT_EDITS
 	case permissions.ModePlan:

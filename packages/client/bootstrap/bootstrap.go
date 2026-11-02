@@ -18,6 +18,7 @@ import (
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/decision"
 	"github.com/xlsft/harness/packages/client/gateway"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
@@ -58,6 +59,13 @@ type Options struct {
 	AskTools                 []string
 	PermissionSources        []permissions.Source
 	DisableBypassPermissions bool
+	// DisableAutoMode refuses the auto permission mode (also set by the
+	// disableAutoMode setting).
+	DisableAutoMode bool
+	// DecisionService is the remote auto-mode decider. When nil and the
+	// server adapters are created here, it is the DecisionService client of
+	// the same server; otherwise auto mode runs on the local rules only.
+	DecisionService permissions.Decider
 	// Trusted overrides the workspace trust lookup (~/.harness/trust.json).
 	Trusted *bool
 	// LocalSettingsPath overrides where "allow always" rules are written.
@@ -93,6 +101,9 @@ type Session struct {
 	Bundle      *prompts.Bundle
 	Agent       *agent.Agent
 	Permissions *permissions.Engine
+	// Decider is the auto-mode decider (local rules, then DecisionService;
+	// session cache cleared on mode changes).
+	Decider     *decision.Cache
 	Tools       *tools.Registry
 	ToolEnv     *tools.Env
 	Transcript  *session.Writer
@@ -223,6 +234,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		if src == nil {
 			src = prompts.NewConnectSource(url, hc, tokens)
 		}
+		if o.DecisionService == nil {
+			o.DecisionService = decision.NewClient(url, hc, tokens)
+		}
 	}
 	s.Gateway = gw
 
@@ -302,6 +316,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		}
 		o.AdditionalDirs = mergeDirs(o.AdditionalDirs, in.AdditionalDirectories)
 		o.DisableBypassPermissions = o.DisableBypassPermissions || in.DisableBypass
+		o.DisableAutoMode = o.DisableAutoMode || in.DisableAutoMode
 		if len(o.PermissionSources) == 0 {
 			o.PermissionSources = settingsSources
 		}
@@ -367,10 +382,15 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 
 	// Permissions.
 	trusted := s.Trusted
+	if o.PermissionMode == permissions.ModeAuto && o.DisableAutoMode {
+		log.Warn("auto permission mode is disabled by settings (disableAutoMode); using default")
+	}
+	s.Decider = decision.New(o.DecisionService, log)
 	s.Permissions = permissions.New(permissions.Config{
 		Cwd: cwd, AdditionalDirectories: o.AdditionalDirs, DefaultMode: o.PermissionMode,
 		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,
-		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, LocalSettingsPath: o.LocalSettingsPath,
+		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, DisableAutoMode: o.DisableAutoMode,
+		Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
 		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
 	})
 	disabled := map[string]bool{}

@@ -30,6 +30,9 @@ const (
 	ModePlan              Mode = "plan"
 	// ModeDontAsk denies everything that would otherwise prompt.
 	ModeDontAsk Mode = "dontAsk"
+	// ModeAuto sends everything that would otherwise prompt to the Decider
+	// (harness.decision.v1.DecisionService with local rules as fallback).
+	ModeAuto Mode = "auto"
 )
 
 // ParseMode validates a mode name ("manual" is an alias of default).
@@ -37,10 +40,31 @@ func ParseMode(s string) (Mode, error) {
 	switch Mode(s) {
 	case "", "manual":
 		return ModeDefault, nil
-	case ModeDefault, ModeAcceptEdits, ModeBypassPermissions, ModePlan, ModeDontAsk:
+	case ModeDefault, ModeAcceptEdits, ModeBypassPermissions, ModePlan, ModeDontAsk, ModeAuto:
 		return Mode(s), nil
 	}
-	return "", fmt.Errorf("unknown permission mode %q (want default, acceptEdits, plan, dontAsk or bypassPermissions)", s)
+	return "", fmt.Errorf("unknown permission mode %q (want default, acceptEdits, plan, auto, dontAsk or bypassPermissions)", s)
+}
+
+// ModeCycle is the order frontends cycle through with Shift+Tab.
+func ModeCycle() []Mode { return []Mode{ModeDefault, ModeAcceptEdits, ModePlan, ModeAuto} }
+
+// NextMode returns the mode after cur in ModeCycle, skipping auto when it is
+// not available. Modes outside the cycle (dontAsk, bypassPermissions) go
+// back to default.
+func NextMode(cur Mode, autoAvailable bool) Mode {
+	cycle := ModeCycle()
+	for i, m := range cycle {
+		if m != cur {
+			continue
+		}
+		next := cycle[(i+1)%len(cycle)]
+		if next == ModeAuto && !autoAvailable {
+			next = cycle[0]
+		}
+		return next
+	}
+	return ModeDefault
 }
 
 // Behavior is the outcome of a check.
@@ -66,6 +90,13 @@ type Request struct {
 	// Cwd is the shell working directory for Bash (defaults to the engine cwd).
 	Cwd string
 
+	// Intent context for the auto-mode Decider (filled by the agent loop):
+	// the session id, the latest user prompts (newest last) and the
+	// assistant text right before the tool call.
+	SessionID          string
+	RecentUserMessages []string
+	Rationale          string
+
 	// Set by the engine before calling the Asker.
 	// Suggestions are rules the user may choose to always allow.
 	Suggestions []string
@@ -86,8 +117,14 @@ type Decision struct {
 	Comment string
 	// Rule is the rule that decided, when one did.
 	Rule string
-	// ResolvedBy is "rule", "mode", "user", ... (informational).
+	// ResolvedBy is "rule", "mode", "user", "auto", ... (informational).
 	ResolvedBy string
+	// Auto is the auto-mode Decider's verdict when it was consulted
+	// (also set when its ASK fell back to the user).
+	Auto *AutoResult
+	// UserOnly marks an Ask that must go to the user and never to the
+	// auto-mode Decider (protected paths, explicit ask rules).
+	UserOnly bool
 }
 
 // Checker decides on tool calls. It must be safe for concurrent use.
@@ -127,6 +164,11 @@ type Config struct {
 	Trusted bool
 	// DisableBypassPermissions refuses switching to bypassPermissions.
 	DisableBypassPermissions bool
+	// DisableAutoMode refuses switching to auto (settings disableAutoMode).
+	DisableAutoMode bool
+	// Decider decides what would otherwise prompt in auto mode (may be nil:
+	// auto then behaves like default).
+	Decider Decider
 	// LocalSettingsPath is where "allow always" rules are persisted;
 	// default <repo root>/.claude/settings.local.json.
 	LocalSettingsPath string
@@ -149,6 +191,8 @@ type Engine struct {
 	home          string
 	trusted       bool
 	disableBypass bool
+	disableAuto   bool
+	decider       Decider
 	localPath     string
 	localRoot     string
 	sources       []Source
@@ -164,8 +208,9 @@ func New(cfg Config) *Engine {
 	e := &Engine{
 		mode: cfg.DefaultMode, cwd: cfg.Cwd, home: cfg.Home, trusted: cfg.Trusted,
 		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, readable: cfg.ReadableDirs,
+		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider,
 	}
-	if e.mode == "" {
+	if e.mode == "" || (e.mode == ModeBypassPermissions && e.disableBypass) || (e.mode == ModeAuto && e.disableAuto) {
 		e.mode = ModeDefault
 	}
 	if e.home == "" {
@@ -224,19 +269,46 @@ func (e *Engine) OnModeChange(f func(Mode)) {
 	e.mu.Unlock()
 }
 
-// SetMode changes the mode at runtime.
+// SetDecider installs the auto-mode Decider (nil removes it).
+func (e *Engine) SetDecider(d Decider) {
+	e.mu.Lock()
+	e.decider = d
+	e.mu.Unlock()
+}
+
+// AutoModeAvailable reports whether auto mode may be switched on.
+func (e *Engine) AutoModeAvailable() bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return !e.disableAuto
+}
+
+// NextMode returns the next mode of the Shift+Tab cycle from the current one.
+func (e *Engine) NextMode() Mode { return NextMode(e.Mode(), e.AutoModeAvailable()) }
+
+// SetMode changes the mode at runtime. A change clears the Decider's
+// session cache.
 func (e *Engine) SetMode(m Mode) error {
 	e.mu.Lock()
 	if m == ModeBypassPermissions && e.disableBypass {
 		e.mu.Unlock()
 		return errors.New("bypassPermissions mode is disabled by policy")
 	}
+	if m == ModeAuto && e.disableAuto {
+		e.mu.Unlock()
+		return errors.New("auto mode is disabled by settings (disableAutoMode)")
+	}
 	changed := e.mode != m
 	e.mode = m
-	f := e.onMode
+	f, d := e.onMode, e.decider
 	e.mu.Unlock()
-	if changed && f != nil {
-		f(m)
+	if changed {
+		if r, ok := d.(Resetter); ok {
+			r.Reset()
+		}
+		if f != nil {
+			f(m)
+		}
 	}
 	return nil
 }
@@ -336,16 +408,39 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 		return d
 	}
 	e.mu.RLock()
-	asker, mode := e.asker, e.mode
+	asker, mode, decider := e.asker, e.mode, e.decider
 	e.mu.RUnlock()
 	if mode == ModeDontAsk {
 		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission to use %s was not granted (dontAsk mode denies anything not pre-approved).", req.ToolName), ResolvedBy: "mode"}
+	}
+	reason := d.Message
+	var auto *AutoResult
+	if mode == ModeAuto && decider != nil && !d.UserOnly {
+		res := e.decide(ctx, decider, req)
+		auto = &res
+		switch res.Behavior {
+		case Allow:
+			return Decision{Behavior: Allow, ResolvedBy: "auto", Auto: auto}
+		case Deny:
+			return Decision{Behavior: Deny, ResolvedBy: "auto", Auto: auto, Message: fmt.Sprintf(
+				"Permission to use %s was denied by auto mode (%s): %s Do not retry it; find a safer way to reach the goal, or ask the user to run it themselves.",
+				req.ToolName, res.Provider, sentence(res.Reason))}
+		}
+		if asker == nil {
+			return Decision{Behavior: Deny, ResolvedBy: "auto", Auto: auto, Message: fmt.Sprintf(
+				"Permission to use %s was not granted: auto mode could not approve it (%s: %s) and nobody can be asked in this non-interactive session. Allow it with --allowedTools if it is expected.",
+				req.ToolName, res.Provider, strings.TrimSuffix(strings.TrimSpace(res.Reason), "."))}
+		}
+		reason = "Auto mode could not approve this action (" + res.Provider + "): " + sentence(res.Reason)
+		if d.Message != "" {
+			reason += " " + d.Message
+		}
 	}
 	if asker == nil {
 		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission to use %s was not granted (non-interactive mode). Allow it with --allowedTools or --permission-mode.", req.ToolName), ResolvedBy: "mode"}
 	}
 	req.Suggestions = e.Suggest(req)
-	req.Reason = d.Message
+	req.Reason = reason
 	ad, err := asker.Ask(ctx, req)
 	if err != nil {
 		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission request for %s failed: %v", req.ToolName, err), Interrupt: ctx.Err() != nil}
@@ -362,7 +457,52 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 	if ad.ResolvedBy == "" {
 		ad.ResolvedBy = "user"
 	}
+	ad.Auto = auto
 	return ad
+}
+
+// decide consults the Decider; an error becomes ASK with the error as reason.
+func (e *Engine) decide(ctx context.Context, d Decider, req Request) AutoResult {
+	e.mu.RLock()
+	ar := AutoRequest{Request: req, Cwd: req.Cwd, Home: e.home}
+	if ar.Cwd == "" {
+		ar.Cwd = e.cwd
+	}
+	ar.WorkDirs = append([]string(nil), e.workDirs...)
+	ar.AdditionalDirs = append([]string(nil), e.workDirs[1:]...)
+	e.mu.RUnlock()
+	res, err := d.Decide(ctx, ar)
+	if err != nil {
+		return AutoResult{Behavior: Ask, Provider: "none", Reason: "the auto-mode decision failed: " + err.Error()}
+	}
+	switch res.Behavior {
+	case Allow, Deny, Ask:
+	default:
+		res.Behavior = Ask
+	}
+	if res.Provider == "" {
+		res.Provider = "none"
+	}
+	if strings.TrimSpace(res.Reason) == "" {
+		switch res.Behavior {
+		case Allow:
+			res.Reason = "Judged safe."
+		case Deny:
+			res.Reason = "Judged unsafe."
+		default:
+			res.Reason = "No provider was confident enough to decide."
+		}
+	}
+	return res
+}
+
+// sentence trims s and makes sure it ends with a period.
+func sentence(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" || strings.HasSuffix(s, ".") || strings.HasSuffix(s, "!") || strings.HasSuffix(s, "?") {
+		return s
+	}
+	return s + "."
 }
 
 func (e *Engine) planDenial(tool string) Decision {
@@ -388,7 +528,7 @@ func (e *Engine) Evaluate(req Request) Decision {
 			if e.mode == ModeBypassPermissions {
 				break
 			}
-			return Decision{Behavior: Ask, Rule: r.String(), Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
+			return Decision{Behavior: Ask, Rule: r.String(), UserOnly: true, Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
 		}
 	}
 	if e.mode == ModeBypassPermissions {
@@ -428,7 +568,7 @@ func (e *Engine) Evaluate(req Request) Decision {
 	}
 	if editTools[req.ToolName] {
 		if isProtected(path, e.workDirs, e.home) {
-			return Decision{Behavior: Ask, Message: fmt.Sprintf("%s is a protected path; edits always need approval.", path)}
+			return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s is a protected path; edits always need approval.", path)}
 		}
 		if inAny(path, e.scratch) {
 			return Decision{Behavior: Allow, ResolvedBy: "mode"}
@@ -503,11 +643,11 @@ func (e *Engine) evalBash(req Request, input map[string]any) Decision {
 	if e.mode != ModeBypassPermissions {
 		for _, r := range e.ask {
 			if wholeBashRule(r, input) {
-				return Decision{Behavior: Ask, Rule: r.String(), Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
+				return Decision{Behavior: Ask, Rule: r.String(), UserOnly: true, Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
 			}
 			for _, c := range all {
 				if bashRuleMatches(r, c) {
-					return Decision{Behavior: Ask, Rule: r.String(), Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
+					return Decision{Behavior: Ask, Rule: r.String(), UserOnly: true, Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
 				}
 			}
 		}
@@ -516,6 +656,22 @@ func (e *Engine) evalBash(req Request, input map[string]any) Decision {
 		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
 	if len(top) == 0 {
+		return Decision{Behavior: Ask}
+	}
+	cwd := req.Cwd
+	if cwd == "" {
+		cwd = e.cwd
+	}
+	// ask is the fall-through Ask; in auto mode writes to protected paths
+	// (redirections, cp/mv/tee/sed -i targets) are reserved for the user.
+	ask := func() Decision {
+		if e.mode == ModeAuto {
+			for _, p := range CommandWritePaths(req.Command, cwd, e.home) {
+				if isProtected(p, e.workDirs, e.home) {
+					return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s is a protected path; writes always need approval.", p)}
+				}
+			}
+		}
 		return Decision{Behavior: Ask}
 	}
 	readOnly := true
@@ -536,17 +692,14 @@ func (e *Engine) evalBash(req Request, input map[string]any) Decision {
 			return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
 		}
 	}
-	cwd := req.Cwd
-	if cwd == "" {
-		cwd = e.cwd
-	}
 	var rule string
 	for _, c := range top {
 		if e.subcommandAllowed(c, cwd, &rule) {
 			continue
 		}
-		return Decision{Behavior: Ask}
+		return ask()
 	}
+
 	return Decision{Behavior: Allow, Rule: rule, ResolvedBy: "rule"}
 }
 

@@ -1,6 +1,7 @@
 // Package fakegateway is a scripted harness server for tests and local
 // end-to-end runs. It serves GatewayService, PromptService and
-// DeviceAuthService from the generated Connect handlers over h2c.
+// DeviceAuthService and DecisionService from the generated Connect handlers
+// over h2c.
 package fakegateway
 
 import (
@@ -21,6 +22,7 @@ import (
 	authv1 "github.com/xlsft/harness/packages/client/gen/harness/auth/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/auth/v1/authv1connect"
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
+	"github.com/xlsft/harness/packages/client/gen/harness/decision/v1/decisionv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	promptsv1 "github.com/xlsft/harness/packages/client/gen/harness/prompts/v1"
@@ -74,6 +76,8 @@ type Server struct {
 	notMod   int
 	refreshN int
 	polls    int
+
+	decision decisionState
 }
 
 // New returns a server with the default bundle.
@@ -101,6 +105,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle(llmv1connect.NewGatewayServiceHandler(gatewayHandler{s: s}))
 	mux.Handle(promptsv1connect.NewPromptServiceHandler(promptHandler{s: s}))
 	mux.Handle(authv1connect.NewDeviceAuthServiceHandler(authHandler{s: s}))
+	mux.Handle(decisionv1connect.NewDecisionServiceHandler(decisionHandler{s: s}))
 	return mux
 }
 

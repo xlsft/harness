@@ -120,6 +120,27 @@ type Entry struct {
 	PromptBundleVersion string `json:"promptBundleVersion,omitempty"`
 	Model               string `json:"model,omitempty"`
 	ForkedFrom          string `json:"forkedFrom,omitempty"`
+
+	// AutoDecision is set on a tool_result entry when the auto permission
+	// mode decided (or deferred to the user on) that tool call.
+	AutoDecision *AutoDecision `json:"autoDecision,omitempty"`
+}
+
+// AutoDecision records an auto-mode verdict on a tool call.
+type AutoDecision struct {
+	ToolUseID string `json:"toolUseId,omitempty"`
+	ToolName  string `json:"toolName,omitempty"`
+	// Decision is "allow", "deny" or "ask" (deferred to the user, or denied
+	// for lack of a user in non-interactive sessions).
+	Decision string `json:"decision"`
+	// Provider is "rules", "llm", "http:<id>", "local-rules" or "none".
+	Provider   string   `json:"provider"`
+	Reason     string   `json:"reason,omitempty"`
+	Categories []string `json:"categories,omitempty"`
+	Cached     bool     `json:"cached,omitempty"`
+	Confidence float64  `json:"confidence,omitempty"`
+	LatencyMs  int64    `json:"latencyMs,omitempty"`
+	CostUSD    float64  `json:"costUSD,omitempty"`
 }
 
 // Blocks decodes the message content.
