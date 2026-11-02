@@ -17,16 +17,38 @@ function tree(files: Record<string, string>): string {
 }
 
 describe("bundle builder", () => {
-  it("builds the shipped bundle with all M0 sections and tools", () => {
+  it("builds the shipped bundle with all M0 + M1 sections and tools", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
-    expect(Object.keys(b.tools).sort()).toEqual(["Bash", "Edit", "Glob", "Grep", "Read", "Write"]);
-    expect(Object.keys(b.reminders).sort()).toEqual(["empty_file", "file_changed", "interrupted", "project_instructions"]);
+    expect(Object.keys(b.tools).sort()).toEqual([
+      "AskUserQuestion", "Bash", "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "Read", "TaskStop", "TodoWrite", "Write",
+    ]);
+    // every reminder id listed in prompts.proto, with its placeholders
+    const reminders: Record<string, string[]> = {
+      project_instructions: ["content"],
+      file_changed: ["path", "diff"],
+      empty_file: ["path"],
+      interrupted: [],
+      interrupted_tool_use: [],
+      todo_nudge: [],
+      plan_mode: ["plan_file_path"],
+      plan_approved: ["plan_file_path"],
+      plan_rejected: ["feedback"],
+      background_task_done: ["task_id", "exit_code", "output_path"],
+      compacted: [],
+      attribution: ["commit", "pr"],
+    };
+    expect(Object.keys(b.reminders).sort()).toEqual(Object.keys(reminders).sort());
+    for (const [id, phs] of Object.entries(reminders)) {
+      const used = [...b.reminders[id]!.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]).sort();
+      expect(used, id).toEqual([...phs].sort());
+    }
     expect(b.reminders.interrupted).toBe("[Request interrupted by user]");
     expect(b.compaction.instruction).toMatch(/summary/);
+    for (const h of ["User intent", "Decisions", "Files touched", "Current state", "Next steps", "Pending todos"]) expect(b.compaction.instruction).toContain(`## ${h}`);
     expect(b.title.instruction).toMatch(/title/);
     const env = b.system.find((s) => s.id === "env") as { text: string };
-    for (const ph of ["cwd", "platform", "shell", "os_version", "date", "is_git", "model_display_name", "model_id"]) expect(env.text).toContain(`{{${ph}}}`);
+    for (const ph of ["cwd", "platform", "shell", "os_version", "date", "is_git", "git_status", "model_display_name", "model_id", "additional_directories", "scratchpad_dir"]) expect(env.text).toContain(`{{${ph}}}`);
   });
 
   it("ships draft-07 tool schemas with additionalProperties:false and Claude Code parameter names", () => {
@@ -40,7 +62,27 @@ describe("bundle builder", () => {
     expect(props("Read")).toEqual(["file_path", "offset", "limit"]);
     expect(props("Write")).toEqual(["file_path", "content"]);
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all"]);
-    expect(props("Bash")).toEqual(["command", "timeout", "description"]);
+    expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background"]);
+    expect(props("TaskStop")).toEqual(["task_id"]);
+    expect(props("EnterPlanMode")).toEqual([]);
+    expect(props("ExitPlanMode")).toEqual(["plan"]);
+    expect(b.tools.ExitPlanMode!.input_schema.required).toEqual(["plan"]);
+    expect(props("TodoWrite")).toEqual(["todos"]);
+    const todo = (b.tools.TodoWrite!.input_schema.properties as any).todos.items;
+    expect(Object.keys(todo.properties)).toEqual(["content", "activeForm", "status"]);
+    expect(todo.properties.status.enum).toEqual(["pending", "in_progress", "completed"]);
+    expect(todo.additionalProperties).toBe(false);
+    const qs = (b.tools.AskUserQuestion!.input_schema.properties as any).questions;
+    expect([qs.minItems, qs.maxItems]).toEqual([1, 4]);
+    expect(Object.keys(qs.items.properties)).toEqual(["question", "header", "options", "multiSelect"]);
+    expect(qs.items.required).toEqual(["question", "header", "options", "multiSelect"]);
+    expect(qs.items.properties.header.maxLength).toBe(12);
+    expect([qs.items.properties.options.minItems, qs.items.properties.options.maxItems]).toEqual([2, 4]);
+    expect(Object.keys(qs.items.properties.options.items.properties)).toEqual(["label", "description"]);
+    expect(qs.items.additionalProperties).toBe(false);
+    expect(qs.items.properties.options.items.additionalProperties).toBe(false);
+    expect(b.tools.Bash!.description).toMatch(/run_in_background/);
+    expect(b.tools.Bash!.description).toMatch(/TaskStop/);
     expect(props("Glob")).toEqual(["pattern", "path"]);
     expect(props("Grep")).toEqual(["pattern", "path", "glob", "type", "output_mode", "-i", "-n", "-A", "-B", "-C", "multiline", "head_limit"]);
     expect(b.tools.Bash!.description).toMatch(/30000 characters/);

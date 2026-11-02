@@ -5,8 +5,15 @@ Session behaviour:
 - The shell starts from the user's profile and project environment.
 
 Timeouts and output:
-- The default timeout is 2 minutes (120000 ms). Pass `timeout` in milliseconds to change it, up to 10 minutes (600000 ms). Commands that exceed it are killed.
+- The default timeout is 2 minutes (120000 ms). Pass `timeout` in milliseconds to change it, up to 10 minutes (600000 ms). See below for what happens when a command exceeds it.
 - If the output is longer than 30000 characters, the full output is saved to a file and you receive its path plus a 2000-character preview. Read that file if you need more.
+
+Background commands:
+- Set `run_in_background` to true for long-running commands whose result you do not need right away (dev servers, watchers, long builds or test suites). The call returns immediately with a task id and the path of the file the output is written to; the command keeps running.
+- Read the output file with Read whenever you want to check progress. Do not poll it in a tight loop and do not use `sleep` to wait; continue with other work instead.
+- When a background command finishes, you are told in a system reminder with its task id, exit code and output file. Stop a background command you no longer need with TaskStop.
+- A foreground command that reaches its timeout is not killed: it is moved to the background automatically and you get its task id and output file, as if you had set `run_in_background`.
+- Do not append `&` to run something in the background; use `run_in_background` instead.
 - Exit code 1 from `grep`, `rg`, `find`, `diff`, `test` / `[` and `git diff` means "no match" or "differences found" and is not treated as an error.
 
 Usage rules:
