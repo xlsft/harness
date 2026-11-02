@@ -1,0 +1,18 @@
+[1m▰[m [4;1;3mRelease[m[4;1;3m notes[m[m
+
+  The [1mparser[m now handles [1m--flag=value[m forms.[m
+
+  - Faster startup
+  - Fewer allocations
+    - in the lexer
+
+  1. Build
+  2. Test
+
+  func main() {
+      fmt.Println("hi")
+  }
+
+  ▎ [3mBreaking: the old API is[m[3m gone.[m
+
+  See ]8;id=1552451803;https://example.com/docsthe docs]8;; (]8;id=1552451803;https://example.com/docshttps://example.com/docs]8;;).

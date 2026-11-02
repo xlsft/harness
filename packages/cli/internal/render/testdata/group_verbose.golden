@@ -1,0 +1,13 @@
+[1m▰[m [1mGrep[m(pattern: "func Add")
+  [2m└[m  calc.go:4:func Add(a, b int) int {
+
+[1m▰[m [1mRead[m(/w/calc.go)
+  [2m└[m  1   package demo
+     2   
+     3   func Add() {}
+
+[1m▰[m [1mRead[m(/w/README.md)
+  [2m└[m  # demo
+
+[1m▰[m [1mBash[m(go test ./...)
+  [2m└[m  ok      demo    0.4s

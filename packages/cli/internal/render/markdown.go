@@ -24,6 +24,9 @@ type markdown struct {
 // emptySGR matches a style that is reset before any text is printed.
 var emptySGR = regexp.MustCompile(`\x1b\[[0-9;]+m(\x1b\[0?m)+`)
 
+// blankRuns collapses runs of blank lines (glamour doubles them between some blocks).
+var blankRuns = regexp.MustCompile(`\n(\x1b\[0?m)?\n(\x1b\[0?m|\n)+`)
+
 func sp(s string) *string { return &s }
 func bp(b bool) *bool     { return &b }
 func up(u uint) *uint     { return &u }
@@ -61,17 +64,17 @@ func newMarkdown(e brand.Env) *markdown {
 		quote, hr = "| ", "--------"
 	}
 	c := gansi.StyleConfig{
-		Document:   gansi.StyleBlock{Margin: up(0)},
-		Paragraph:  gansi.StyleBlock{},
-		BlockQuote: gansi.StyleBlock{Indent: up(1), IndentToken: sp(quote), StylePrimitive: gansi.StylePrimitive{Italic: bp(true)}},
-		List:       gansi.StyleList{LevelIndent: 2},
-		Heading:    gansi.StyleBlock{StylePrimitive: gansi.StylePrimitive{BlockSuffix: "\n", Bold: bp(true)}},
-		H1:         gansi.StyleBlock{StylePrimitive: gansi.StylePrimitive{Bold: bp(true), Italic: bp(true), Underline: bp(true)}},
-		H2:         gansi.StyleBlock{},
-		H3:         gansi.StyleBlock{},
-		H4:         gansi.StyleBlock{},
-		H5:         gansi.StyleBlock{},
-		H6:         gansi.StyleBlock{},
+		Document:       gansi.StyleBlock{Margin: up(0)},
+		Paragraph:      gansi.StyleBlock{},
+		BlockQuote:     gansi.StyleBlock{Indent: up(1), IndentToken: sp(quote), StylePrimitive: gansi.StylePrimitive{Italic: bp(true)}},
+		List:           gansi.StyleList{LevelIndent: 2},
+		Heading:        gansi.StyleBlock{StylePrimitive: gansi.StylePrimitive{BlockSuffix: "\n", Bold: bp(true)}},
+		H1:             gansi.StyleBlock{StylePrimitive: gansi.StylePrimitive{Bold: bp(true), Italic: bp(true), Underline: bp(true)}},
+		H2:             gansi.StyleBlock{},
+		H3:             gansi.StyleBlock{},
+		H4:             gansi.StyleBlock{},
+		H5:             gansi.StyleBlock{},
+		H6:             gansi.StyleBlock{},
 		Strikethrough:  gansi.StylePrimitive{CrossedOut: bp(true)},
 		Emph:           gansi.StylePrimitive{Italic: bp(true)},
 		Strong:         gansi.StylePrimitive{Bold: bp(true)},
@@ -121,12 +124,14 @@ func (m *markdown) render(src string, width int) string {
 		}
 		m.byW[width] = r
 	}
-	out, err := r.Render(src)
+	out, err := r.Render(expandTabs(src))
 	if err != nil {
 		return src
 	}
 	out = emptySGR.ReplaceAllString(out, "")
 	out = TrimRight(out)
+	out = emptySGR.ReplaceAllString(out, "")
+	out = blankRuns.ReplaceAllString(out, "\n\n")
 	return strings.Trim(out, "\n")
 }
 

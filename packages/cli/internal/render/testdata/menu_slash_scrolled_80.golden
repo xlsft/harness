@@ -1,0 +1,5 @@
+  [1m/[mclear      Clear the conversation and start a new session
+  [1m/[mcompact    Compact the conversation (optional focus instructions)
+  [1m/[mmodel      Switch the model for this session
+  [1m/[mrewind     Restore the code and/or conversation to an earlier point
+[1m❯[m [1;4;7;4m/[m[1;7mstatus[m[1;7m     [m[1;7mShow session, model, account and context usage[m

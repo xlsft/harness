@@ -1,0 +1,8 @@
+[1m▰[m [1mUpdate[m(calc.go)
+  [2m└[m  User rejected update to calc.go
+     [2m 2[m[m
+     [2m 3[m  // Add returns the sum of a and b.
+     [2m 4[m  func Add(a, b int) int {
+      5 -    return a - b
+      5 +    return a + b
+     [2m 6[m  }

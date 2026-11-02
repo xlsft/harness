@@ -117,6 +117,21 @@ func (s *Styles) GroupSummary(calls []*ToolCall, running bool) string {
 		parts = append(parts, s.Sec.Render(verb+" ")+s.Sec.Bold(true).Render(itoa(n))+s.Sec.Render(" "+noun))
 	}
 	out := strings.Join(parts, s.Sec.Render(", "))
+	failed, rejected := 0, 0
+	for _, c := range calls {
+		switch c.State {
+		case ToolError:
+			failed++
+		case ToolRejected:
+			rejected++
+		}
+	}
+	if failed > 0 {
+		out += s.Sec.Render(" "+s.dot()+" ") + s.Error.Render(itoa(failed)+" failed")
+	}
+	if rejected > 0 {
+		out += s.Sec.Render(" "+s.dot()+" ") + s.Error.Render(itoa(rejected)+" rejected")
+	}
 	if running {
 		out += s.Sec.Render(s.ellipsis())
 	}
@@ -141,7 +156,7 @@ func groupState(calls []*ToolCall) (state ToolState) {
 		if !c.State.Done() {
 			return ToolRunning
 		}
-		if c.State == ToolError {
+		if c.State == ToolError || c.State == ToolRejected {
 			state = ToolError
 		}
 	}

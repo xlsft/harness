@@ -171,7 +171,7 @@ func (m *Model) cmdStatus(string) tea.Cmd {
 	if m.branch != "" {
 		rows = append(rows[:3], append([][2]string{{"Branch", m.branch}}, rows[3:]...)...)
 	}
-	return m.command("/status", m.st.Info(rows))
+	return m.command("/status", m.st.Info(rows, m.width-5))
 }
 
 func (m *Model) cmdTasks(string) tea.Cmd {

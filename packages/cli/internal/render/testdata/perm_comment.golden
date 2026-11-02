@@ -1,0 +1,12 @@
+[2m╭──────────────────────────────────────────────────────────────────────────────╮[m
+[2m│[m [1mBash command[m                                                                 [2m│[m
+[2m│[m                                                                              [2m│[m
+[2m│[m   rm -rf build                                                               [2m│[m
+[2m│[m                                                                              [2m│[m
+[2m│[m Do you want to proceed?                                                      [2m│[m
+[2m│[m   1. Yes                                                                     [2m│[m
+[2m│[m   2. Yes, and don’t ask again for Bash(rm *)                                 [2m│[m
+[2m│[m [1m❯[m 3. [1;7mNo,[m keep the build dir[7m [m                                                 [2m│[m
+[2m│[m                                                                              [2m│[m
+[2m│[m Enter to confirm · Esc to discard the comment                                [2m│[m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[m

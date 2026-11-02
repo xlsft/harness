@@ -77,7 +77,7 @@ func (m *Model) onEvent(ev *agentv1.SessionEvent) tea.Cmd {
 			m.turnTokens += int(u.GetOutputTokens())
 			if w := m.conn.ContextWindow(m.model); w > 0 {
 				used := u.GetInputTokens() + u.GetCacheReadInputTokens() + u.GetCacheCreationInputTokens() + u.GetOutputTokens()
-				m.ctxPct = int(used * 100 / int64(w))
+				m.ctxPct = int((used*100 + int64(w) - 1) / int64(w)) // round up: 0% only when empty
 			}
 		}
 		// The streamed text is authoritative for display; close it. If nothing streamed (no
@@ -360,6 +360,22 @@ func (m *Model) finishTurn(t *agentv1.TurnFinished) tea.Cmd {
 	}
 	switch t.GetResult() {
 	case agentv1.TurnFinished_RESULT_INTERRUPTED:
+		// Interrupted before any output (e.g. during retries): remove the prompt from the
+		// transcript and put it back into the input (reference §7b, §9a).
+		if n := len(m.pending); n > 0 && m.pending[n-1].kind == itemUser {
+			text := m.pending[n-1].text
+			m.pending = m.pending[:n-1]
+			m.restore(text)
+			break
+		}
+		if n := len(m.printed); len(m.pending) == 0 && n > 0 && m.printed[n-1].kind == itemUser {
+			text := m.printed[n-1].text
+			m.printed = m.printed[:n-1]
+			m.restore(text)
+			m.busy, m.retry, m.status = false, nil, ""
+			m.calls = map[string]*render.ToolCall{}
+			return m.reprint()
+		}
 		m.push(&item{kind: itemInterrupted})
 	case agentv1.TurnFinished_RESULT_SUCCESS:
 		m.push(&item{kind: itemDone, dur: dur})
@@ -375,6 +391,13 @@ func (m *Model) finishTurn(t *agentv1.TurnFinished) tea.Cmd {
 	m.calls = map[string]*render.ToolCall{}
 	m.rejected = map[string]bool{}
 	return nil
+}
+
+// restore puts an unanswered prompt back into the input (when the input is empty).
+func (m *Model) restore(text string) {
+	if m.input.Empty() {
+		m.input.Set(text)
+	}
 }
 
 // friendlyError shortens gateway errors to one readable sentence.

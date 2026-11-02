@@ -134,6 +134,13 @@ func (m *Model) permView(p *permPrompt, width int) render.Prompt {
 				pr.Body, pr.More = pr.Body[:16], true
 			}
 		}
+	case c.Path != "":
+		pr.Title = map[string]string{"Read": "Read file", "NotebookRead": "Read notebook"}[c.Name]
+		if pr.Title == "" {
+			pr.Title = render.DisplayName(c.Name)
+		}
+		pr.Subtitle = c.AbsPath
+		pr.Question = "Do you want to allow " + s.Bold.Render(render.DisplayName(c.Name)) + " on " + s.Bold.Render(name) + "?"
 	default:
 		pr.Title = "Tool use"
 		pr.Subtitle = render.DisplayName(c.Name)

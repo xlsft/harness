@@ -381,7 +381,7 @@ func (s *Styles) TodoList(todos []Todo, width int) string {
 		case 1:
 			lines = append(lines, "  "+s.Accent.Render(glyphs[1])+" "+s.Bold.Render(text))
 		case 2:
-			lines = append(lines, "  "+s.Success.Render(glyphs[2])+" "+s.Sec.Strikethrough(true).Render(text))
+			lines = append(lines, "  "+s.Success.Render(glyphs[2])+" "+s.Sec.Render("\x1b[9m"+text+"\x1b[29m"))
 		default:
 			lines = append(lines, "  "+glyphs[0]+" "+text)
 		}

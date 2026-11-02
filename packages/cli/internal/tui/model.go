@@ -102,7 +102,7 @@ func (m *Model) renderItem(it *item, width, frame int) string {
 
 // joinItem reports whether it hangs directly under the previous item without a blank line.
 func joinItem(it *item) bool {
-	return it.kind == itemInterrupted || (it.kind == itemText && !it.first)
+	return it.kind == itemInterrupted
 }
 
 // Options configure the TUI.

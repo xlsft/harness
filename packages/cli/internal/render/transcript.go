@@ -140,20 +140,23 @@ func (s *Styles) CommandOutput(cmd, output string, width int) string {
 	}
 	var lines []string
 	for _, l := range strings.Split(strings.TrimRight(output, "\n"), "\n") {
-		lines = append(lines, l)
+		lines = append(lines, Wrap(l, width-5)...)
 	}
 	return head + "\n" + s.result(lines)
 }
 
-// Info renders "key: value" rows with the keys padded to one column (the /status layout).
-func (s *Styles) Info(rows [][2]string) string {
+// Info renders "key: value" rows with the keys padded to one column (the /status layout); long
+// values wrap with a hanging indent at the value column. width is the space available for the
+// rows (the command output column).
+func (s *Styles) Info(rows [][2]string, width int) string {
 	w := 0
 	for _, r := range rows {
 		w = max(w, ansi.StringWidth(r[0])+1)
 	}
 	var out []string
 	for _, r := range rows {
-		out = append(out, s.Bold.Render(PadRight(r[0]+":", w+1))+" "+r[1])
+		key := s.Bold.Render(PadRight(r[0]+":", w+1)) + " "
+		out = append(out, Hang(key, strings.Repeat(" ", w+2), r[1], width))
 	}
 	return strings.Join(out, "\n")
 }

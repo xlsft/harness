@@ -53,6 +53,11 @@ func New(e brand.Env) *Styles {
 		Bold:       lipgloss.NewStyle().Bold(true),
 		Band:       e.Bg(brand.Surface),
 	}
+	if e.Depth == brand.Depth16 {
+		// brand.md: secondary text is the terminal default in 16 colors (the swatch's white
+		// would vanish on light terminals).
+		s.Sec = lipgloss.NewStyle()
+	}
 	s.Selected = s.AccentHigh
 	if e.Depth == brand.DepthNone {
 		s.Selected = lipgloss.NewStyle().Bold(true).Reverse(true)

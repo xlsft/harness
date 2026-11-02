@@ -1,0 +1,3 @@
+  / for commands          shift + tab to cycle modes         esc to interrupt
+  @ for file paths        ctrl + o for verbose output        esc esc to rewind
+  \ + enter for newline   ctrl + t to toggle tasks           ctrl + c twice to exit
