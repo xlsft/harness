@@ -1,0 +1,11 @@
+id: shell-background-server
+title: Run a long-lived dev server in the background, query it, then stop it
+language: shell
+tags: [shell, background]
+timeout: 5m
+max_turns: 20
+prompt: |
+  Start the dev server in this repository (see README.md). Once it is up,
+  request its /version endpoint and write the `build` value it returns to
+  VERSION.txt (just the value). Then stop the server. Do not modify the
+  server files.

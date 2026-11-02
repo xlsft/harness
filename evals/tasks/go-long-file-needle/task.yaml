@@ -1,0 +1,9 @@
+id: go-long-file-needle
+title: Fix one bad entry in a 10,000-line generated file without rewriting it
+language: go
+tags: [bugfix, long-file]
+timeout: 6m
+max_turns: 25
+prompt: |
+  `go test ./...` fails. Find the cause and fix it with the smallest possible
+  change. Do not regenerate or rewrite codes/codes.go; edit only what is wrong.
