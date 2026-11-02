@@ -557,16 +557,17 @@ func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetM
 	if id == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("model is required"))
 	}
-	display, window := id, 0
+	display, window, thinking := id, 0, false
 	if ls.sess.Catalog != nil {
 		m, ok := ls.sess.Catalog.Find(id)
 		if !ok {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown model %s", id))
 		}
-		display, window = m.DisplayName, m.ContextWindow
+		display, window, thinking = m.DisplayName, m.ContextWindow, m.Capabilities.Thinking
 	}
 	// The session keeps its frozen prompt bundle until the next compaction.
 	ls.sess.Agent.SetModel(id, display, window)
+	ls.sess.Agent.SetModelThinking(thinking)
 	ls.mu.Lock()
 	ls.sess.Model = id
 	ls.mu.Unlock()

@@ -210,7 +210,10 @@ type Config struct {
 	// MaxTurns limits tool-use round trips per turn; 0 = unlimited.
 	MaxTurns int
 	Effort   string
-	Thinking *llm.Thinking
+	// Thinking overrides the thinking request; nil means adaptive thinking when the model supports it
+	// (ThinkingCapable). Models that think by default otherwise return their reasoning without text.
+	Thinking        *llm.Thinking
+	ThinkingCapable bool
 	// ContextWindow of the model in tokens (0 disables auto-compaction).
 	ContextWindow int
 	// AutoCompactPct is the share of the context window that triggers
@@ -287,12 +290,14 @@ type Agent struct {
 	style          *OutputStyle
 	omitCoding     bool
 	styleDelivered bool
+	// thinkingCapable follows the current model (Config.ThinkingCapable, then SetModelThinking).
+	thinkingCapable bool
 }
 
 // New creates an agent.
 func New(cfg Config) *Agent {
 	a := &Agent{cfg: cfg, model: cfg.Model, modelDisplay: cfg.ModelDisplayName, warned: map[string]bool{},
-		bundle: cfg.Bundle, todos: cfg.Todos, contextWindow: cfg.ContextWindow}
+		bundle: cfg.Bundle, todos: cfg.Todos, contextWindow: cfg.ContextWindow, thinkingCapable: cfg.ThinkingCapable}
 	a.messages = append(a.messages, cfg.History.Messages...)
 	for _, m := range cfg.History.Messages {
 		if m.Role == llm.RoleUser {
@@ -342,6 +347,26 @@ func (a *Agent) SetModel(id, display string, contextWindow int) {
 		a.contextWindow = contextWindow
 	}
 	a.mu.Unlock()
+}
+
+// SetModelThinking records whether the current model supports thinking (after SetModel).
+func (a *Agent) SetModelThinking(capable bool) {
+	a.mu.Lock()
+	a.thinkingCapable = capable
+	a.mu.Unlock()
+}
+
+// thinking is the thinking request for a main-loop call.
+func (a *Agent) thinking() *llm.Thinking {
+	if a.cfg.Thinking != nil {
+		return a.cfg.Thinking
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.thinkingCapable {
+		return &llm.Thinking{Type: "adaptive"}
+	}
+	return nil
 }
 
 // Model returns the current model id.
@@ -920,7 +945,7 @@ func (a *Agent) buildRequest() *llm.Request {
 		System:    system,
 		Messages:  msgs,
 		Tools:     a.toolDefs(bundle),
-		Thinking:  a.cfg.Thinking,
+		Thinking:  a.thinking(),
 		Effort:    effort,
 		Stream:    true,
 		Metadata: &llm.Metadata{

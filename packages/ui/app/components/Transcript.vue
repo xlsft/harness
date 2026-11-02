@@ -64,8 +64,9 @@ const lastIsStreaming = computed(() => {
               v-for="(blk, i) in b.item.blocks"
               :key="i"
             >
+              <!-- Reasoning the model kept to itself (signature only) has nothing to show. -->
               <ThinkingBlock
-                v-if="blk.type === 'thinking'"
+                v-if="blk.type === 'thinking' && (blk.text || (b.item.streaming && i === b.item.blocks.length - 1))"
                 :text="blk.text"
                 :duration-ms="blk.durationMs"
                 :streaming="b.item.streaming && i === b.item.blocks.length - 1"

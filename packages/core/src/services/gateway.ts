@@ -20,6 +20,7 @@ import { computeFeatures, normalizeRequest } from "../gateway/features.ts";
 import type { CanonicalRequest, GatewayEvent, StopReason, UpstreamFailure, Usage } from "../gateway/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
+import { appendFileSync } from "node:fs";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { Principal } from "./devices.ts";
 import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEntry } from "./models.ts";
@@ -41,6 +42,18 @@ const MAX_NEGOTIATION_ROUNDS = 5;
 export interface PreparedMessages {
   req: CanonicalRequest;
   model: ModelEntry;
+}
+
+// Dev aid: HARNESS_DEBUG_UPSTREAM=<file> appends every upstream request (URL and body, never headers, so no
+// keys) as one JSON line.
+function debugUpstream(url: string, body: unknown) {
+  const file = process.env.HARNESS_DEBUG_UPSTREAM;
+  if (!file) return;
+  try {
+    appendFileSync(file, JSON.stringify({ at: new Date().toISOString(), url, body }) + "\n");
+  } catch {
+    // Debug output only.
+  }
 }
 
 export async function prepareMessages(principal: Principal, body: unknown): Promise<PreparedMessages> {
@@ -109,6 +122,7 @@ export async function* runMessages(
     const target: AdapterTarget = { model, provider, features };
     const sent = adapter.buildRequest(req, target);
     usage = emptyUsage();
+    debugUpstream(sent.url, sent.body);
 
     let res;
     try {
