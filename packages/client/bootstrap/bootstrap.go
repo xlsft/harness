@@ -23,6 +23,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/outputstyle"
 	"github.com/xlsft/harness/packages/client/permissions"
@@ -92,6 +93,12 @@ type Options struct {
 	// NoSync disables the server sync client (settings, memory and transcripts then come from local
 	// files only). HARNESS_NO_SYNC=1 has the same effect.
 	NoSync bool
+	// MCP is the McpService client. When nil and the server adapters are
+	// created here, it is the McpService client of the same server; with
+	// injected adapters (tests) MCP stays off unless set. NoMCP (or
+	// HARNESS_NO_MCP=1) disables MCP servers.
+	MCP   *mcp.Client
+	NoMCP bool
 
 	OnEvent func(agent.Event)
 	Logger  *slog.Logger
@@ -125,6 +132,8 @@ type Session struct {
 	Settings *settings.Settings
 	// Memory loads project instructions; ForPath returns subdirectory files lazily.
 	Memory *memory.Loader
+	// MCP holds the session's MCP servers and tools (nil when MCP is off).
+	MCP *mcp.Manager
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
 	Sync     *syncclient.Syncer
 	Uploader *syncclient.Uploader
@@ -140,6 +149,7 @@ func (s *Session) Close() error {
 	if s.Tasks != nil {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
 	}
+	s.MCP.Close()
 	var err error
 	if s.Transcript != nil {
 		err = s.Transcript.Close()
@@ -164,6 +174,9 @@ func (s *Session) ToolNames() []string {
 		if _, ok := b.Tools[n]; ok && !s.Permissions.IsDisabled(n) {
 			out = append(out, n)
 		}
+	}
+	for _, d := range s.MCP.ToolDefs() {
+		out = append(out, d.Name)
 	}
 	return out
 }
@@ -245,6 +258,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		}
 		if o.DecisionService == nil {
 			o.DecisionService = decision.NewClient(url, hc, tokens)
+		}
+		if o.MCP == nil {
+			o.MCP = mcp.NewClient(url, hc, tokens)
 		}
 	}
 	s.Gateway = gw
@@ -408,6 +424,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
 		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
 	})
+	s.openMCP(ctx, o, info.ContextWindow, conv, log)
 	disabled := map[string]bool{}
 	for _, n := range s.Tools.Names() {
 		if s.Permissions.IsDisabled(n) {
@@ -467,7 +484,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
 		MaxTurns:       o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
 		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
-		DisabledTools: disabled, OutputStyle: style,
+		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.mcpExtraTools(),
 		OnEvent: onEvent, Logger: log,
 	})
 	s.Permissions.OnModeChange(func(m permissions.Mode) {
@@ -477,6 +494,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if s.Tasks != nil {
 		s.Tasks.OnEvent = s.Agent.OnTaskEvent
 	}
+	s.startMCP(conv)
 	return s, nil
 }
 
