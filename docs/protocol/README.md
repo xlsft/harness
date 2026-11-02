@@ -14,6 +14,7 @@ All interaction between harness components goes over **gRPC-compatible RPC defin
 | `harness.mcp.v1.McpService` | [mcp.proto](../../proto/harness/mcp/v1/mcp.proto) | core | client, frontends | draft (M2) |
 | `harness.relay.v1.RelayService` | [relay.proto](../../proto/harness/relay/v1/relay.proto) | core | client (host side), web / mobile (viewer side) | draft (M2) |
 | `harness.search.v1.SearchService` | [search.proto](../../proto/harness/search/v1/search.proto) | core | client (WebSearch tool) | draft (M2) |
+| `harness.decision.v1.DecisionService` | [decision.proto](../../proto/harness/decision/v1/decision.proto) | core | client (`auto` permission mode) | draft (M1.5) |
 
 Shared types: [errors.proto](../../proto/harness/common/v1/errors.proto), [scope.proto](../../proto/harness/common/v1/scope.proto) (`Scope` and the `project_key` format).
 
