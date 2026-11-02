@@ -212,6 +212,14 @@ func QueueFile(stateDir, sessionID, path string) error {
 	return saveState(stateDir, &uploadState{SessionID: sessionID, Path: path, Derive: true})
 }
 
+// Queue registers a transcript for upload like QueueFile, using the
+// uploader's state directory (importer.SessionQueue).
+func (u *Uploader) Queue(sessionID, path string) error {
+	u.flushMu.Lock()
+	defer u.flushMu.Unlock()
+	return QueueFile(u.o.StateDir, sessionID, path)
+}
+
 // Track registers a live session for upload and schedules a metadata
 // upsert. Call it when a session opens (also on resume).
 func (u *Uploader) Track(sessionID, path string, meta SessionMeta) error {
