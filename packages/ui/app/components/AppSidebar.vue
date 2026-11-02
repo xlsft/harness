@@ -81,10 +81,13 @@ const host = computed(() => {
   }
 })
 
+// `soon`: not built yet; the row shows a badge (Artifacts keeps its preview page, the others do nothing).
 const nav = [
-  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts' },
+  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
   { label: 'Scheduled', icon: 'clock' as const },
-  { label: 'Customize', icon: 'sliders' as const }
+  { label: 'Customize', icon: 'sliders' as const, soon: true },
+  { label: 'Knowledge base', icon: 'page' as const, soon: true },
+  { label: 'Task tracker', icon: 'tasks' as const, soon: true }
 ]
 </script>
 
@@ -143,10 +146,15 @@ const nav = [
         :to="item.to"
         :href="item.to ? undefined : '#'"
         class="nav-row px-[9px] hover:bg-hover"
+        :aria-disabled="item.soon && !item.to ? true : undefined"
         :class="item.to === '/artifacts' && onArtifacts ? 'nav-row-current' : ''"
         :aria-current="item.to === '/artifacts' && onArtifacts ? 'page' : undefined"
+        @click="item.soon && !item.to && $event.preventDefault()"
       >
-        <HIcon :name="item.icon" />{{ item.label }}
+        <HIcon :name="item.icon" />{{ item.label }}<span
+          v-if="item.soon"
+          class="ml-auto border border-default px-1 text-[10px] leading-[14px] text-muted"
+        >soon</span>
       </component>
     </div>
 
