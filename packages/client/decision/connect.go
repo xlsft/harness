@@ -27,8 +27,9 @@ const (
 // Client is the Connect client of harness.decision.v1.DecisionService.
 // It implements permissions.Decider.
 type Client struct {
-	rpc    decisionv1connect.DecisionServiceClient
-	tokens rpc.Tokens
+	rpc     decisionv1connect.DecisionServiceClient
+	tokens  rpc.Tokens
+	baseURL string
 	// Timeout bounds one Decide call (default 10 s).
 	Timeout time.Duration
 	// Provider forces a provider id (admin debugging; "" = configured chain).
@@ -42,11 +43,15 @@ func NewClient(baseURL string, httpClient *http.Client, tokens rpc.Tokens) *Clie
 	if httpClient == nil {
 		httpClient = rpc.HTTPClient(baseURL)
 	}
+	baseURL = strings.TrimRight(baseURL, "/")
 	return &Client{
-		rpc:    decisionv1connect.NewDecisionServiceClient(httpClient, strings.TrimRight(baseURL, "/"), rpc.ClientOptions()...),
-		tokens: tokens, Timeout: DefaultTimeout, Git: DefaultGitInfo,
+		rpc:    decisionv1connect.NewDecisionServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		tokens: tokens, baseURL: baseURL, Timeout: DefaultTimeout, Git: DefaultGitInfo,
 	}
 }
+
+// BaseURL returns the server URL the client talks to.
+func (c *Client) BaseURL() string { return c.baseURL }
 
 // BuildRequest fills a DecideRequest for a call.
 func BuildRequest(req permissions.AutoRequest, f Facts, provider string) *decisionv1.DecideRequest {
@@ -101,6 +106,13 @@ func truncate(s string, n int) string {
 
 // Decide implements permissions.Decider.
 func (c *Client) Decide(ctx context.Context, req permissions.AutoRequest) (permissions.AutoResult, error) {
+	res, _, err := c.DecideWithRulesVersion(ctx, req)
+	return res, err
+}
+
+// DecideWithRulesVersion is Decide that also returns the rules_version the
+// server decided with ("" from servers that do not report it).
+func (c *Client) DecideWithRulesVersion(ctx context.Context, req permissions.AutoRequest) (permissions.AutoResult, string, error) {
 	f := ComputeFacts(ctx, req, c.Git)
 	timeout := c.Timeout
 	if timeout <= 0 {
@@ -119,15 +131,49 @@ func (c *Client) Decide(ctx context.Context, req permissions.AutoRequest) (permi
 		// The server gets the timeout too (Connect-Timeout-Ms, rounded down)
 		// and may give up a moment before the client's own timer fires.
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) || pastDeadline(ctx, 10*time.Millisecond) {
-			return permissions.AutoResult{}, errors.New("decision service timed out after " + timeout.String())
+			return permissions.AutoResult{}, "", errors.New("decision service timed out after " + timeout.String())
 		}
-		return permissions.AutoResult{}, err
+		return permissions.AutoResult{}, "", err
 	}
 	res := FromProto(resp.Msg)
 	if res.LatencyMs == 0 {
 		res.LatencyMs = time.Since(start).Milliseconds()
 	}
-	return res, nil
+	return res, resp.Msg.GetRulesVersion(), nil
+}
+
+// GetRulesOptions implements RulesOptionsFetcher: the administrator's rule
+// options for the local rules, and their rules_version.
+func (c *Client) GetRulesOptions(ctx context.Context) (string, RulesOptions, error) {
+	resp, err := rpc.WithAuth(ctx, c.tokens, func(token string) (*connect.Response[decisionv1.GetRulesOptionsResponse], error) {
+		r := connect.NewRequest(&decisionv1.GetRulesOptionsRequest{})
+		rpc.SetBearer(r.Header(), token)
+		return c.rpc.GetRulesOptions(ctx, r)
+	})
+	if err != nil {
+		return "", RulesOptions{}, err
+	}
+	return resp.Msg.GetRulesVersion(), OptionsFromProto(resp.Msg.GetOptions()), nil
+}
+
+// OptionsFromProto converts the server's RulesOptions.
+func OptionsFromProto(o *decisionv1.RulesOptions) RulesOptions {
+	var out RulesOptions
+	for _, d := range o.GetExtraDeny() {
+		r := ExtraDenyRule{Pattern: d.GetPattern(), Reason: d.GetReason()}
+		for _, c := range d.GetCategories() {
+			if c != decisionv1.RiskCategory_RISK_CATEGORY_UNSPECIFIED {
+				r.Categories = append(r.Categories, CategoryName(c))
+			}
+		}
+		out.ExtraDeny = append(out.ExtraDeny, r)
+	}
+	for _, a := range o.GetExtraAllow() {
+		out.ExtraAllow = append(out.ExtraAllow, a.GetPattern())
+	}
+	out.ProtectedBranches = append(out.ProtectedBranches, o.GetProtectedBranches()...)
+	out.DenyAllForcePush = o.GetDenyAllForcePush()
+	return out
 }
 
 // pastDeadline reports whether ctx's deadline is less than grace away.

@@ -29,10 +29,27 @@ const (
 // server's rules.ts in rulesengine.go) fed exactly what the server's rules
 // provider receives for the same call (see Input).
 type Rules struct {
-	// Options are the rule options (zero value: the server's defaults).
+	// Options are the rule options (zero value: the server's defaults). Set
+	// the field before use, or call SetOptions while the rules are in use.
 	Options RulesOptions
 	// Git supplies the git facts (default DefaultGitInfo).
 	Git GitInfo
+
+	mu sync.RWMutex
+}
+
+// SetOptions replaces the rule options (safe while the rules are in use).
+func (r *Rules) SetOptions(opts RulesOptions) {
+	r.mu.Lock()
+	r.Options = opts
+	r.mu.Unlock()
+}
+
+// CurrentOptions returns the rule options in effect.
+func (r *Rules) CurrentOptions() RulesOptions {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.Options
 }
 
 // NewRules returns a rules provider with the given options.
@@ -77,7 +94,7 @@ func (r *Rules) Result(req permissions.AutoRequest, f Facts) RulesResult {
 	if !ok {
 		return ask("Tool call is not a valid decision request", "ask.bad_input")
 	}
-	return EvaluateRules(in, r.Options)
+	return EvaluateRules(in, r.CurrentOptions())
 }
 
 // RuleFor returns the id of the rule that decides the call (as the server

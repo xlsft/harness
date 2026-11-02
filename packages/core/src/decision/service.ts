@@ -15,10 +15,11 @@ import { newId, sha256 } from "../lib/ids.ts";
 import { TokenBucketLimiter } from "../lib/rate-limit.ts";
 import type { Principal } from "../services/devices.ts";
 import { cacheFor } from "./cache.ts";
-import { httpSecrets, loadDecisionConfig, type DecisionConfig, type OnErrorPolicy } from "./config.ts";
+import { httpSecrets, loadDecisionConfig, type DecisionConfig, type OnErrorPolicy, type RulesExtras } from "./config.ts";
 import { HttpProvider } from "./http.ts";
 import { LlmProvider } from "./llm.ts";
 import { RulesProvider } from "./rules-provider.ts";
+import { BUILTIN_RULES_VERSION, DEFAULT_PROTECTED_BRANCHES } from "./rules.ts";
 import {
   ProviderError,
   type ClientFactsInput,
@@ -238,7 +239,7 @@ export function resetDecisionRateLimit(): void {
   limiter = undefined;
 }
 
-export async function decide(principal: Principal, req: DecideRequestInput, signal?: AbortSignal): Promise<ChainResult> {
+export async function decide(principal: Principal, req: DecideRequestInput, signal?: AbortSignal): Promise<ChainResult & { rulesVersion: string }> {
   const input = validateDecideRequest(req);
   const { chain: configured, config } = await decisionChain();
   let chain = configured;
@@ -249,7 +250,40 @@ export async function decide(principal: Principal, req: DecideRequestInput, sign
   enforceRateLimit(principal.user.id, config.rate_limit_per_min);
   const result = await chain.decide(input, { principal, signal });
   await recordDecision(principal, input, result).catch((e) => console.error("[harness] failed to record decision", e));
-  return result;
+  return { ...result, rulesVersion: rulesVersion(config.rules) };
+}
+
+// --- rule options for clients ------------------------------------------------------------------
+
+/** The admin's rule options with every field present (older stored configs may lack some). */
+export function normalizeRulesOptions(rules: Partial<RulesExtras> | undefined): RulesExtras {
+  return {
+    extra_deny: (rules?.extra_deny ?? []).map((d) => ({ pattern: d.pattern, ...(d.reason ? { reason: d.reason } : {}), categories: [...(d.categories ?? [])] })),
+    extra_allow: [...(rules?.extra_allow ?? [])],
+    protected_branches: rules?.protected_branches?.length ? [...rules.protected_branches] : [...DEFAULT_PROTECTED_BRANCHES],
+    deny_all_force_push: !!rules?.deny_all_force_push,
+  };
+}
+
+/**
+ * Version of the rules a client should apply: the built-in rule set version plus a stable hash of the
+ * admin's options. Changes whenever either changes; equal options give equal versions on every replica.
+ */
+export function rulesVersion(rules: Partial<RulesExtras> | undefined): string {
+  const o = normalizeRulesOptions(rules);
+  const canonical = JSON.stringify([
+    o.extra_deny.map((d) => [d.pattern, d.reason ?? "", d.categories ?? []]),
+    o.extra_allow,
+    o.protected_branches,
+    o.deny_all_force_push,
+  ]);
+  return `${BUILTIN_RULES_VERSION}.${sha256(canonical).slice(0, 16)}`;
+}
+
+/** GetRulesOptions: the configured rule options and their version (any authenticated user). */
+export async function getRulesOptions(): Promise<{ rulesVersion: string; options: RulesExtras }> {
+  const { config } = await loadDecisionConfig();
+  return { rulesVersion: rulesVersion(config.rules), options: normalizeRulesOptions(config.rules) };
 }
 
 export interface ProviderStatus {

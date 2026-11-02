@@ -26,6 +26,9 @@ type fakeDecisionService struct {
 	auth    []string
 	delay   time.Duration
 	respond func(*decisionv1.DecideRequest) (*decisionv1.DecideResponse, error)
+	// options answers GetRulesOptions; optionCalls counts the calls.
+	options     func() (*decisionv1.GetRulesOptionsResponse, error)
+	optionCalls int
 }
 
 func (f *fakeDecisionService) Decide(ctx context.Context, req *connect.Request[decisionv1.DecideRequest]) (*connect.Response[decisionv1.DecideResponse], error) {
@@ -49,6 +52,29 @@ func (f *fakeDecisionService) Decide(ctx context.Context, req *connect.Request[d
 		return nil, err
 	}
 	return connect.NewResponse(resp), nil
+}
+
+// GetRulesOptions serves f.options (Unimplemented when nil).
+func (f *fakeDecisionService) GetRulesOptions(_ context.Context, req *connect.Request[decisionv1.GetRulesOptionsRequest]) (*connect.Response[decisionv1.GetRulesOptionsResponse], error) {
+	f.mu.Lock()
+	f.optionCalls++
+	f.auth = append(f.auth, req.Header().Get("Authorization"))
+	options := f.options
+	f.mu.Unlock()
+	if options == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("GetRulesOptions is not implemented"))
+	}
+	resp, err := options()
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (f *fakeDecisionService) optionsCalls() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.optionCalls
 }
 
 func (f *fakeDecisionService) requests() []*decisionv1.DecideRequest {

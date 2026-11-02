@@ -400,7 +400,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if o.PermissionMode == permissions.ModeAuto && o.DisableAutoMode {
 		log.Warn("auto permission mode is disabled by settings (disableAutoMode); using default")
 	}
-	s.Decider = decision.New(o.DecisionService, log)
+	s.Decider = newDecider(ctx, o, s.User, log)
 	s.Permissions = permissions.New(permissions.Config{
 		Cwd: cwd, AdditionalDirectories: o.AdditionalDirs, DefaultMode: o.PermissionMode,
 		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,

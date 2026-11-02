@@ -8,9 +8,13 @@
 //     skips the network), then the server; when the server is unreachable or
 //     errors the local verdict stands and anything not fast-allowed is ASK;
 //   - Cache: a session-level cache of ALLOW/DENY verdicts keyed by tool and
-//     normalized input, cleared when the permission mode changes.
+//     normalized input, cleared when the permission mode changes;
+//   - RulesSync: keeps the local rules on the administrator's rule options
+//     (GetRulesOptions), cached on disk per server and user and refetched
+//     when a verdict reports a different rules_version.
 //
-// New wires them together: Cache(Chain(Rules, Client)).
+// New wires them together: Cache(Chain(Rules, Client)); NewWithRulesSync
+// adds a RulesSync.
 package decision
 
 import (

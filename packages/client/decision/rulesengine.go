@@ -102,6 +102,11 @@ type RulesResult struct {
 // DefaultProtectedBranches are the branch globs force pushes may not target.
 var DefaultProtectedBranches = []string{"main", "master", "release*"}
 
+// BuiltinRulesVersion is the server's BUILTIN_RULES_VERSION: the version of
+// the built-in rule set this port implements (bumped with every rule change on
+// both sides; the shared fixture records it).
+const BuiltinRulesVersion = 2
+
 const (
 	maxCommandLength = 100_000
 	maxDepth         = 6
@@ -1809,6 +1814,9 @@ func checkDevices(c *Cmd, _ *rulesCtx) *hit {
 
 func checkPrivilegedWrites(c *Cmd, _ *rulesCtx) *hit {
 	if c.name == "crontab" {
+		if parseArgs(tail(c.argv), "-u").shorts["r"] {
+			return &hit{"destructive.crontab_remove", "Removes the whole crontab (crontab -r)", destructive}
+		}
 		args := filter(tail(c.argv), func(a string) bool { return a != "-u" })
 		if !(len(args) == 1 && args[0] == "-l") {
 			return &hit{"privilege.crontab", "Installs or edits a crontab", []string{CatPrivilegeEscalation}}
@@ -1833,6 +1841,17 @@ var (
 	numericModeRe = jsRe(`^0*([0-7]{3,4})$`)
 	wideModeRes   = []*regexp.Regexp{jsRe(`^[ugoa]*[oa][ugoa]*[+=][rwxXst]*w`), jsRe(`^[+=][rwxXst]*w`), jsRe(`^[ugoa]*[+=][rwxXt]*s`)}
 )
+
+var setidModeRe = jsRe(`^[ugoa]*[+=][rwxXt]*s`)
+
+// isSetidMode: modes that set the setuid or setgid bit (u+s, g+s, +s, 4xxx, 2xxx, 6xxx).
+func isSetidMode(mode string) bool {
+	if m := numericModeRe.FindStringSubmatch(mode); m != nil {
+		num := m[1]
+		return len(num) == 4 && int(num[0]-'0')&6 != 0
+	}
+	return anyOf(strings.Split(mode, ","), setidModeRe.MatchString)
+}
 
 // isWideMode: world-writable or setuid/setgid modes.
 func isWideMode(mode string) bool {
@@ -1865,6 +1884,10 @@ func checkChmod(c *Cmd, ctx *rulesCtx) *hit {
 		return nil
 	}
 	mode, targets := p.positionals[0], p.positionals[1:]
+	// setuid/setgid binaries are an escalation path wherever they live, the workspace included.
+	if c.name == "chmod" && len(targets) > 0 && isSetidMode(mode) {
+		return &hit{"privilege.chmod_setuid", "Sets the setuid or setgid bit (chmod " + mode + ")", []string{CatPrivilegeEscalation}}
+	}
 	wide := c.name == "chmod" && isWideMode(mode)
 	safeRoots := filter(ctx.roots, func(r string) bool { return !isCriticalPath(r) })
 	for _, t := range targets {
@@ -2075,6 +2098,59 @@ var (
 	helmOpts          = setOf("-n", "--namespace", "--kube-context", "--kubeconfig")
 )
 
+// isLocalKube: the target cluster is clearly local: a local --context, or (without one) a loopback --server.
+func isLocalKube(kctx string, hasKctx bool, server string, hasServer bool) bool {
+	if hasKctx {
+		return isLocalKubeContext(kctx)
+	}
+	return hasServer && localKubeServerRe.MatchString(server)
+}
+
+var zerosRe = jsRe(`^0+$`)
+
+func isKubeDryRun(args []string) bool {
+	return anyOf(args, func(a string) bool {
+		return a == "--dry-run" || (strings.HasPrefix(a, "--dry-run=") && a[10:] != "none" && a[10:] != "false")
+	})
+}
+
+// kubeDisruptive names the kubectl operation that takes workloads or nodes
+// out of service ("" when the call is none of them).
+func kubeDisruptive(sub string, rest, args []string) string {
+	if isKubeDryRun(args) {
+		return ""
+	}
+	switch sub {
+	case "drain", "cordon", "taint":
+		return sub
+	case "scale":
+		for i, a := range args {
+			v, ok := "", false
+			if a == "--replicas" {
+				v, ok = at(args, i+1)
+			} else if strings.HasPrefix(a, "--replicas=") {
+				v, ok = a[11:], true
+			}
+			if ok && zerosRe.MatchString(v) {
+				return "scale --replicas=0"
+			}
+		}
+	case "replace":
+		if hasFlag(args, "--force") {
+			return "replace --force"
+		}
+	case "delete":
+		if hasFlag(args, "--all", "--all-namespaces") || contains(args, "-A") {
+			return "delete --all"
+		}
+	case "rollout":
+		if undo, _ := firstPositional(rest, kubectlWithValue); undo == "undo" {
+			return "rollout undo"
+		}
+	}
+	return ""
+}
+
 func checkInfra(c *Cmd, _ *rulesCtx) *hit {
 	n := c.name
 	args := tail(c.argv)
@@ -2097,7 +2173,7 @@ func checkInfra(c *Cmd, _ *rulesCtx) *hit {
 		}
 	}
 	if n == "kubectl" || n == "oc" {
-		sub, _ := firstPositional(args, kubectlWithValue)
+		sub, rest := firstPositional(args, kubectlWithValue)
 		kctx, hasKctx := kubeContext(args)
 		optValue := func(short, long string) (string, bool) {
 			for i, a := range args {
@@ -2124,6 +2200,19 @@ func checkInfra(c *Cmd, _ *rulesCtx) *hit {
 				return &hit{"production.kubectl_delete", "Deletes Kubernetes resources in the non-local context " + where, []string{CatDestructive, CatProductionChange}}
 			}
 		}
+		if disruptive := kubeDisruptive(sub, rest, args); disruptive != "" && !isLocalKube(kctx, hasKctx, server, hasServer) {
+			where := "the current context"
+			if hasKctx {
+				where = "the context " + kctx
+			} else if hasServer {
+				where = "the server " + server
+			}
+			cats := []string{CatProductionChange}
+			if sub == "delete" {
+				cats = []string{CatDestructive, CatProductionChange}
+			}
+			return &hit{"production.kubectl_disruptive", "Runs kubectl " + disruptive + " against " + where + ", which is not a local cluster", cats}
+		}
 		if kubeMutating[sub] && ((kctx != "" && prodRe.MatchString(kctx)) || (ns != "" && prodRe.MatchString(ns))) {
 			where := ns
 			if hasKctx {
@@ -2139,6 +2228,166 @@ func checkInfra(c *Cmd, _ *rulesCtx) *hit {
 		}
 	}
 	return nil
+}
+
+var (
+	awsWithValue = setOf("--profile", "--region", "--output", "--endpoint-url", "--query", "--color", "--ca-bundle", "--cli-read-timeout", "--cli-connect-timeout", "--cli-binary-format")
+	awsDeleteOps = setOf(
+		"terminate-instances", "delete-db-instance", "delete-db-cluster", "delete-stack", "delete-table", "delete-function", "delete-cluster",
+		"delete-nodegroup", "delete-bucket", "delete-repository", "delete-hosted-zone", "delete-secret", "delete-file-system",
+		"delete-load-balancer", "delete-vpc", "delete-log-group", "delete-queue", "delete-topic", "delete-service", "schedule-key-deletion",
+	)
+	// gcloud / az command groups that only touch local configuration.
+	gcloudLocalGroups = setOf("config", "auth", "components", "topic", "help", "info")
+	azLocalGroups     = setOf("config", "extension", "cache", "account", "login", "logout", "cloud")
+	gsutilWithValue   = setOf("-o", "-h", "-p", "-u")
+	herokuWithValue   = setOf("-a", "--app", "-r", "--remote")
+	vercelWithValue   = setOf("--token", "-t", "--scope", "-S", "--cwd", "-A", "--local-config", "-Q", "--global-config")
+	netlifyWithValue  = setOf("--auth")
+	herokuDestroyRe   = jsRe(`(^|:)destroy$`)
+)
+
+// checkCloudDelete: deletes of cloud resources through the providers' CLIs
+// (read and list verbs are not affected).
+func checkCloudDelete(c *Cmd, _ *rulesCtx) *hit {
+	n := c.name
+	args := tail(c.argv)
+	pos := filter(args, func(a string) bool { return !strings.HasPrefix(a, "-") })
+	verbAt := func(limit int, verbs ...string) int {
+		for i, x := range pos {
+			if i >= limit {
+				break
+			}
+			if contains(verbs, x) {
+				return i
+			}
+		}
+		return -1
+	}
+	upTo := func(i int) string { return strings.Join(pos[:i+1], " ") }
+	what := ""
+	switch n {
+	case "aws":
+		service, rest := firstPositional(args, awsWithValue)
+		op, _ := firstPositional(rest, awsWithValue)
+		if service == "s3" && ((op == "rm" && hasFlag(rest, "--recursive")) || (op == "rb" && hasFlag(rest, "--force"))) {
+			what = "aws s3 " + op
+		} else if awsDeleteOps[op] || (service == "iam" && strings.HasPrefix(op, "delete-")) {
+			what = "aws " + service + " " + op
+		}
+	case "gcloud":
+		if i := verbAt(5, "delete"); i > 0 && !gcloudLocalGroups[pos[0]] {
+			what = "gcloud " + upTo(i)
+		} else if atOr(pos, 0) == "storage" && atOr(pos, 1) == "rm" && hasFlag(args, "-r", "-R", "--recursive") {
+			what = "gcloud storage rm --recursive"
+		}
+	case "gsutil":
+		sub, rest := firstPositional(args, gsutilWithValue)
+		p := parseArgs(rest)
+		if sub == "rb" {
+			what = "gsutil rb"
+		} else if sub == "rm" && (p.shorts["r"] || p.shorts["R"] || p.longs["--recursive"]) {
+			what = "gsutil rm -r"
+		}
+	case "az":
+		if i := verbAt(4, "delete", "delete-batch", "purge"); i > 0 && !azLocalGroups[pos[0]] {
+			what = "az " + upTo(i)
+		}
+	case "doctl":
+		if i := verbAt(4, "delete", "rm"); i > 0 && pos[0] != "auth" {
+			what = "doctl " + upTo(i)
+		}
+	case "fly", "flyctl":
+		if i := verbAt(3, "destroy", "delete"); i >= 0 {
+			what = n + " " + upTo(i)
+		}
+	case "heroku":
+		if sub, _ := firstPositional(args, herokuWithValue); herokuDestroyRe.MatchString(sub) || sub == "pg:reset" {
+			what = "heroku " + sub
+		}
+	case "vercel":
+		sub, rest := firstPositional(args, vercelWithValue)
+		if sub == "remove" || sub == "rm" {
+			what = "vercel " + sub
+		} else if sub == "project" || sub == "projects" {
+			if verb, _ := firstPositional(rest, vercelWithValue); verb == "rm" || verb == "remove" {
+				what = "vercel " + sub + " remove"
+			}
+		}
+	case "netlify":
+		if sub, _ := firstPositional(args, netlifyWithValue); sub == "sites:delete" {
+			what = "netlify sites:delete"
+		}
+	}
+	if what == "" {
+		return nil
+	}
+	return &hit{"production.cloud_delete", "Deletes cloud resources (" + what + ")", []string{CatDestructive, CatProductionChange}}
+}
+
+var (
+	systemctlWithValue = setOf("-H", "--host", "-M", "--machine")
+	systemctlPower     = setOf("poweroff", "reboot", "halt", "kexec")
+)
+
+func checkShutdown(c *Cmd, _ *rulesCtx) *hit {
+	n := c.name
+	args := tail(c.argv)
+	if len(args) == 1 && contains([]string{"--help", "-h", "--version"}, args[0]) {
+		return nil
+	}
+	what := ""
+	switch {
+	case n == "shutdown" || n == "reboot" || n == "halt" || n == "poweroff":
+		if !(n == "shutdown" && contains(args, "-c")) { // shutdown -c cancels a pending shutdown
+			what = n
+		}
+	case (n == "init" || n == "telinit") && (atOr(args, 0) == "0" || atOr(args, 0) == "6"):
+		what = n + " " + args[0]
+	case n == "systemctl":
+		if sub, _ := firstPositional(args, systemctlWithValue); systemctlPower[sub] {
+			what = "systemctl " + sub
+		}
+	}
+	if what == "" {
+		return nil
+	}
+	return &hit{"destructive.shutdown", "Shuts down or reboots the machine (" + what + ")", destructive}
+}
+
+var (
+	// metadataRe matches cloud instance metadata endpoints (AWS, Azure, GCP,
+	// Alibaba, Oracle, ECS task credentials), also the decimal and hex forms
+	// of 169.254.169.254. They hand out instance credentials to anything that asks.
+	metadataRe    = jsReI(`(^|[^0-9a-z.-])(169\.254\.169\.254|169\.254\.170\.2|100\.100\.100\.200|192\.0\.0\.192|fd00:ec2::254|2852039166|0xa9fea9fe|metadata\.google\.internal|metadata\.goog)($|[^0-9a-z-])|:\/\/metadata($|[/:?#])`)
+	metadataTools = func() map[string]bool {
+		m := setOf("git")
+		for k := range networkTools {
+			m[k] = true
+		}
+		return m
+	}()
+	devNetRe    = jsRe(`\/dev\/(tcp|udp)\/`)
+	metadataHit = hit{"exfiltration.cloud_metadata", "Contacts a cloud metadata endpoint, which hands out instance credentials", []string{CatSecretExfiltration, CatNetworkEgress}}
+)
+
+// checkMetadata: a network tool or interpreter names a metadata endpoint, or
+// a /dev/tcp redirection opens one.
+func checkMetadata(c *Cmd, _ *rulesCtx) *hit {
+	if (metadataTools[c.name] || isInterpreter(c.name)) && anyOf(tail(c.argv), metadataRe.MatchString) {
+		h := metadataHit
+		return &h
+	}
+	dev := func(t string) bool { return devNetRe.MatchString(t) && metadataRe.MatchString(t) }
+	if anyOf(redirectTargets(c.redirects), dev) || anyOf(c.argv, dev) {
+		h := metadataHit
+		return &h
+	}
+	return nil
+}
+
+func metadataHostIn(hosts []string) bool {
+	return anyOf(hosts, metadataRe.MatchString)
 }
 
 var (
@@ -3077,6 +3326,9 @@ func EvaluateRules(req RulesInput, opts RulesOptions) RulesResult {
 				return RulesResult{Decision: RuleDeny, Reason: adminReason(x.r), Categories: sortCategories(x.r.Categories), Rule: "admin.deny"}
 			}
 		}
+		if url, ok := input["url"].(string); (tool == "WebFetch" && ok && metadataRe.MatchString(url)) || metadataHostIn(facts.NetworkHosts) {
+			return denyFrom([]hit{metadataHit})
+		}
 		adminAllowed := false
 		for _, re := range extraAllow {
 			if re.MatchString(subject) {
@@ -3109,7 +3361,7 @@ func EvaluateRules(req RulesInput, opts RulesOptions) RulesResult {
 	}
 	var allCmds []*Cmd
 	parsedMain := true
-	checks := []func(*Cmd, *rulesCtx) *hit{checkEscalation, checkRm, checkFindDelete, checkDevices, checkPrivilegedWrites, checkChmod, checkGit, checkInfra, checkDeploy}
+	checks := []func(*Cmd, *rulesCtx) *hit{checkEscalation, checkRm, checkFindDelete, checkDevices, checkPrivilegedWrites, checkChmod, checkGit, checkInfra, checkDeploy, checkShutdown, checkCloudDelete, checkMetadata}
 	for idx, src := range sources {
 		cmds, err := flattenCommand(src, cwd)
 		if err != nil {
@@ -3143,6 +3395,9 @@ func EvaluateRules(req RulesInput, opts RulesOptions) RulesResult {
 	}
 	if exfil := checkExfiltration(allCmds, facts); exfil != nil {
 		hits = append(hits, *exfil)
+	}
+	if metadataHostIn(facts.NetworkHosts) {
+		hits = append(hits, metadataHit)
 	}
 	// Paths the client resolved for the whole call.
 	for _, p := range facts.WritePaths {

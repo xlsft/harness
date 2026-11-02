@@ -1,7 +1,7 @@
 /** Connect implementation of harness.decision.v1.DecisionService: proto <-> src/decision/service.ts. */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { Decision, DecisionService, OnError, RiskCategory } from "../gen/harness/decision/v1/decision_pb.ts";
-import { decide, listDecisionProviders } from "../decision/service.ts";
+import { decide, getRulesOptions, listDecisionProviders } from "../decision/service.ts";
 import type { DecisionValue, RiskCategoryName } from "../decision/types.ts";
 import { checkClientVersion, requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
@@ -53,6 +53,21 @@ export function registerDecisionService(router: ConnectRouter): void {
         cached: r.cached,
         latencyMs: BigInt(r.latencyMs),
         costUsd: r.costUsd,
+        rulesVersion: r.rulesVersion,
+      };
+    }),
+    getRulesOptions: guard(async (_req, ctx: HandlerContext) => {
+      checkClientVersion(ctx);
+      await requirePrincipal(ctx);
+      const r = await getRulesOptions();
+      return {
+        rulesVersion: r.rulesVersion,
+        options: {
+          extraDeny: r.options.extra_deny.map((d) => ({ pattern: d.pattern, reason: d.reason ?? "", categories: (d.categories ?? []).map(categoryToProto) })),
+          extraAllow: r.options.extra_allow.map((pattern) => ({ pattern, reason: "", categories: [] })),
+          protectedBranches: r.options.protected_branches,
+          denyAllForcePush: r.options.deny_all_force_push,
+        },
       };
     }),
     listProviders: guard(async (_req, ctx: HandlerContext) => {
