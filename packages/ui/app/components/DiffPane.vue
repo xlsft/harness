@@ -33,15 +33,19 @@ watch(comments, async (list) => {
 const edits = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool' && ['Edit', 'MultiEdit', 'Write'].includes(i.name) && i.status === 'ok' && patchOf(i).length > 0))
 const files = computed(() => fileChanges(edits.value))
 
-// One continuous diff: the hunks of every edit, grouped by file in first-edit order.
+// One continuous diff: one net diff per file, files in first-edit order.
 const groups = computed(() => {
-  const map = new Map<string, { path: string, label: string, hunks: ReturnType<typeof patchOf> }>()
+  const map = new Map<string, { path: string, label: string, tools: ToolItem[] }>()
   for (const t of edits.value) {
     const path = String(t.input.file_path ?? '')
-    if (!map.has(path)) map.set(path, { path, label: toolTarget(t), hunks: [] })
-    map.get(path)!.hunks.push(...patchOf(t))
+    if (!map.has(path)) map.set(path, { path, label: toolTarget(t), tools: [] })
+    map.get(path)!.tools.push(t)
   }
-  return [...map.values()].map(g => ({ ...g, stats: patchStats(g.hunks) }))
+  // The file's net change when the edits can be replayed from the recorded original, else each edit's hunks.
+  return [...map.values()].map(({ tools, ...g }) => {
+    const hunks = netPatch(tools) ?? tools.flatMap(patchOf)
+    return { ...g, hunks, stats: patchStats(hunks) }
+  }).filter(g => g.hunks.length)
 })
 
 const VIEW_KEY = 'harness-diff-view'
@@ -65,6 +69,8 @@ function setView(v: 'unified' | 'split') {
 }
 
 const kindOf = (path: string) => files.value.find(f => f.path === path)?.kind ?? 'M'
+// Totals from the net diffs, not the sum of every edit.
+const summary = computed(() => groups.value.map(g => ({ kind: kindOf(g.path), path: g.path, add: g.stats.add, del: g.stats.del })))
 
 // Per-file state for this session: collapsed, and viewed (which also collapses it).
 const collapsed = useState<Record<string, boolean>>(`diff-collapsed-${props.session.meta.id}`, () => ({}))
@@ -174,7 +180,7 @@ async function copy(text: string) {
       class="flex min-h-0 flex-1 flex-col overflow-y-auto"
     >
       <DiffSummary
-        :files="files"
+        :files="summary"
         flush
         total-only
       />

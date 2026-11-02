@@ -1,4 +1,5 @@
 // How a tool call is labeled: icon, the white "target" and the right-hand meta (Tool.dc.html, Main.dc.html rows).
+import { structuredPatch } from 'diff'
 import type { ToolItem } from '~/lib/session/types'
 import type { IconName } from './icons'
 
@@ -63,6 +64,54 @@ export interface PatchHunk {
 export function patchOf(t: ToolItem): PatchHunk[] {
   const p = t.result?.structuredPatch
   return Array.isArray(p) ? p as PatchHunk[] : []
+}
+
+// File content after one Edit / MultiEdit / Write applied to `before`; null when it cannot be replayed
+// (the old text is not there, or the call has no usable input).
+function applyEdit(t: ToolItem, before: string): string | null {
+  const replace = (text: string, oldS: unknown, newS: unknown, all: unknown) => {
+    if (typeof oldS !== 'string' || typeof newS !== 'string' || !text.includes(oldS)) return null
+    return all ? text.split(oldS).join(newS) : text.replace(oldS, () => newS)
+  }
+  if (t.name === 'Write') return typeof t.input.content === 'string' ? t.input.content : null
+  if (t.name === 'Edit') return replace(before, t.input.old_string, t.input.new_string, t.input.replace_all)
+  if (t.name === 'MultiEdit' && Array.isArray(t.input.edits)) {
+    let text: string | null = before
+    for (const e of t.input.edits as Record<string, unknown>[]) {
+      text = text === null ? null : replace(text, e.old_string, e.new_string, e.replace_all)
+    }
+    return text
+  }
+  return null
+}
+
+/**
+ * The net change of one file across several edits (in order): the content before the first edit against
+ * the content after the last, as one diff. Null when the edits cannot be replayed (no recorded original);
+ * callers then show each edit's own hunks.
+ */
+export function netPatch(edits: ToolItem[]): PatchHunk[] | null {
+  if (!edits.length) return null
+  const first = edits[0]!.result?.originalFile
+  if (first !== null && typeof first !== 'string') return null
+  const start = first ?? ''
+  let text = start
+  for (const t of edits) {
+    // Each call records the file as it found it; that wins over our replay (the user may have edited too).
+    const before = t.result?.originalFile
+    if (typeof before === 'string') text = before
+    const after = applyEdit(t, text)
+    if (after === null) return null
+    text = after
+  }
+  if (text === start) return []
+  return structuredPatch('a', 'b', start, text, '', '', { context: 3 }).hunks.map(h => ({
+    oldStart: h.oldStart,
+    oldLines: h.oldLines,
+    newStart: h.newStart,
+    newLines: h.newLines,
+    lines: h.lines.filter(l => !l.startsWith('\\'))
+  }))
 }
 
 export function patchStats(hunks: PatchHunk[]) {
