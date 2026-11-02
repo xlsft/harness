@@ -65,7 +65,7 @@ type Server struct {
 	Respond Responder
 	// Model ids in the catalog; the first is the main slot, the second the small slot.
 	Models []string
-	// SmallModel is the catalog's small slot ("" leaves it unset).
+	// SmallModel overrides the catalog's small slot ("" keeps the second model, if any).
 	SmallModel string
 	// Title scripts session title requests (see IsTitleRequest). They are
 	// recorded apart (TitleRequests) and do not advance Respond's request
@@ -209,7 +209,9 @@ func (g gatewayHandler) ListModels(ctx context.Context, req *connect.Request[llm
 			resp.Slots.Small = id
 		}
 	}
-	resp.Slots.Small = g.s.SmallModel
+	if g.s.SmallModel != "" {
+		resp.Slots.Small = g.s.SmallModel
+	}
 	return connect.NewResponse(resp), nil
 }
 
