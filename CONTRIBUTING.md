@@ -49,7 +49,7 @@ scripts/e2e/run.sh                                 # core + client end to end, s
 ## Local dev stack and real models
 
 ```bash
-OPENROUTER_API_KEY=sk-or-... scripts/dev/stack.sh  # build, start core, sign in, configure cheap models
+OPENROUTER_API_KEY=sk-or-... scripts/dev/stack.sh  # build, start core on :3737, sign in, configure cheap models
 HARNESS_HOME=.dev/home HARNESS_KEYRING=0 .dev/harness-client -p "..." --model qwen-flash
 scripts/dev/evals.sh                               # eval suite against the stack
 scripts/dev/stack.sh stop

@@ -13,7 +13,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PORT="${HARNESS_DEV_PORT:-3000}"
+PORT="${HARNESS_DEV_PORT:-3737}"
 URL="http://localhost:${PORT}"
 DATA="$ROOT/packages/core/.data-dev"
 DEV="$ROOT/.dev"
