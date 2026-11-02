@@ -255,6 +255,12 @@ func frontmatterString(fm, key string) string {
 	return ""
 }
 
+// SplitFrontmatter splits a leading YAML frontmatter block from the body of
+// markdown; ok is false (and body is markdown) when there is none.
+func SplitFrontmatter(markdown string) (fm, body string, ok bool) {
+	return frontmatter(markdown)
+}
+
 // FrontmatterString is the exported form of frontmatterString for other
 // packages reading markdown with frontmatter (agents, output styles).
 func FrontmatterString(markdown, key string) string {

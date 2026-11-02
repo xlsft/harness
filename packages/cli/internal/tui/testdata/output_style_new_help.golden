@@ -1,0 +1,14 @@
+[1m❯[m /output-style
+  [2m└[m  Create [1m.claude/output-styles/<name>.md[m in the project (or ~/.claude/output-
+     styles/ for all projects):
+     
+       ---
+       name: <name>
+       description: One line shown in this picker
+       keep-coding-instructions: false
+       ---
+       
+       How harness should communicate: tone, length, structure.
+     
+     Then run /output-style <name>. keep-coding-instructions: true keeps the
+     built-in coding guidance.

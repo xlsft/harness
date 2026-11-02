@@ -86,8 +86,11 @@ func EditPreview(toolName, inputJSON string) (path string, patch []render.PatchH
 
 // Options configure the connection and the first session.
 type Options struct {
-	Cwd             string
-	Model           string
+	Cwd   string
+	Model string
+	// OutputStyle is --output-style: applied to every session this connection creates (a resumed
+	// session keeps its recorded style unless this is set).
+	OutputStyle     string
 	PermissionMode  agentv1.PermissionMode
 	AllowedTools    []string
 	DisallowedTools []string
@@ -145,7 +148,7 @@ func Open(ctx context.Context, o Options) (*Conn, error) {
 		ServerURL: url,
 		Gateway:   connectgw.New(url, hc, tokens),
 		Prompts:   prompts.NewConnectSource(url, hc, tokens),
-		Logger:    log, Entrypoint: "cli",
+		Logger:    log, Entrypoint: "cli", OutputStyle: o.OutputStyle,
 		AllowedTools: o.AllowedTools, DisallowedTools: o.DisallowedTools,
 	}
 	c := &Conn{Version: config.Version, opts: o}
@@ -228,8 +231,9 @@ func (c *Conn) NewSession(ctx context.Context, resume string) error {
 	o := c.opts
 	mode := o.PermissionMode
 	model := o.Model
+	style := ""
 	if cur := c.Session(); cur != nil {
-		mode, model = cur.GetPermissionMode(), cur.GetModel()
+		mode, model, style = cur.GetPermissionMode(), cur.GetModel(), cur.GetOutputStyle()
 		_, _ = c.api.CloseSession(ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: cur.GetId()}))
 	}
 	resp, err := c.api.CreateSession(ctx, connect.NewRequest(&agentv1.CreateSessionRequest{
@@ -238,8 +242,15 @@ func (c *Conn) NewSession(ctx context.Context, resume string) error {
 	if err != nil {
 		return err
 	}
+	info := resp.Msg.GetSession()
+	// /clear keeps the style picked with /output-style (a fresh session applies it at its start).
+	if resume == "" && style != "" && style != info.GetOutputStyle() {
+		if _, err := c.api.SetOutputStyle(ctx, connect.NewRequest(&agentv1.SetOutputStyleRequest{SessionId: info.GetId(), Style: style})); err == nil {
+			info.OutputStyle = style
+		}
+	}
 	c.mu.Lock()
-	c.session = resp.Msg.GetSession()
+	c.session = info
 	c.mu.Unlock()
 	return nil
 }
@@ -359,6 +370,21 @@ func (c *Conn) SetPermissionMode(ctx context.Context, m agentv1.PermissionMode) 
 func (c *Conn) SetModel(ctx context.Context, model string) error {
 	_, err := c.api.SetModel(ctx, connect.NewRequest(&agentv1.SetModelRequest{SessionId: c.sid(), Model: model}))
 	return err
+}
+
+// SetOutputStyle switches the session's output style ("default" clears it).
+func (c *Conn) SetOutputStyle(ctx context.Context, style string) error {
+	_, err := c.api.SetOutputStyle(ctx, connect.NewRequest(&agentv1.SetOutputStyleRequest{SessionId: c.sid(), Style: style}))
+	return err
+}
+
+// OutputStyles lists the built-in, user and project output styles and the active one.
+func (c *Conn) OutputStyles(ctx context.Context) ([]*agentv1.OutputStyleInfo, string, error) {
+	resp, err := c.api.ListOutputStyles(ctx, connect.NewRequest(&agentv1.ListOutputStylesRequest{SessionId: c.sid()}))
+	if err != nil {
+		return nil, "", err
+	}
+	return resp.Msg.GetStyles(), resp.Msg.GetActive(), nil
 }
 
 // SuggestFiles returns fuzzy file matches for an @-mention.

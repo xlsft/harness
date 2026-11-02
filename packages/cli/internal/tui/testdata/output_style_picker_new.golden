@@ -1,0 +1,22 @@
+[2m╭──────────────────────────────────────────────────────────────────────────────╮[m
+[2m│[m [1mSelect output style[m                                                          [2m│[m
+[2m│[m How harness communicates. Pass a name to /output-style to skip this list.    [2m│[m
+[2m│[m   1. Default ✔                                                               [2m│[m
+[2m│[m      Completes coding tasks efficiently with concise responses               [2m│[m
+[2m│[m   2. Proactive                                                               [2m│[m
+[2m│[m      Takes initiative on obvious next steps                                  [2m│[m
+[2m│[m   3. Concise                                                                 [2m│[m
+[2m│[m      Short answers, no preamble                                              [2m│[m
+[2m│[m   4. Explanatory                                                             [2m│[m
+[2m│[m      Explains implementation choices and codebase patterns                   [2m│[m
+[2m│[m   5. Learning                                                                [2m│[m
+[2m│[m      Pauses and asks you to write small pieces of code                       [2m│[m
+[2m│[m   6. Terse                                                                   [2m│[m
+[2m│[m      One-line answers · project                                              [2m│[m
+[2m│[m   7. pirate                                                                  [2m│[m
+[2m│[m      user                                                                    [2m│[m
+[2m│[m [1m❯[m 8. [1;7mNew style…[m                                                              [2m│[m
+[2m│[m      Create a style file in .claude/output-styles                            [2m│[m
+[2m│[m                                                                              [2m│[m
+[2m│[m Enter to select · ↑/↓ to navigate · Esc to cancel                            [2m│[m
+[2m╰──────────────────────────────────────────────────────────────────────────────╯[m

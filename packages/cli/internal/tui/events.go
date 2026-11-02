@@ -37,7 +37,7 @@ func (m *Model) onEvent(ev *agentv1.SessionEvent) tea.Cmd {
 	case *agentv1.SessionEvent_SessionUpdated:
 		s := e.SessionUpdated
 		m.conn.SetSession(s)
-		m.mode, m.model = s.GetPermissionMode(), s.GetModel()
+		m.mode, m.model, m.style = s.GetPermissionMode(), s.GetModel(), s.GetOutputStyle()
 		if s.GetGitBranch() != "" {
 			m.branch = s.GetGitBranch()
 		}

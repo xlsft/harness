@@ -107,7 +107,7 @@ func (m *Model) working() render.Working {
 
 func (m *Model) footer() render.Footer {
 	f := render.Footer{
-		Mode: m.footerMode(), Model: m.model, ContextPct: m.ctxPct, Cost: m.cost,
+		Mode: m.footerMode(), Model: m.model, ContextPct: m.ctxPct, Cost: m.cost, Style: footerStyle(m.style),
 		Tasks: m.runningTasks(), HasText: !m.input.Empty(),
 	}
 	if m.menu != nil {

@@ -21,6 +21,7 @@ It ships in two forms:
 | `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
 | `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
 | `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop |
+| `outputstyle` | Output style discovery: bundle built-ins, user styles (sync or `~/.claude`/`~/.harness/output-styles`), project styles (`.claude`/`.harness/output-styles`), frontmatter parsing |
 | `permissions` | Rule engine with Claude Code semantics (deny → ask → allow, compound Bash, wrappers, gitignore paths, read-only allowlist, protected paths, modes), workspace trust (`~/.harness/trust.json`), allow-always persistence |
 | `decision` | Deciders of the `auto` permission mode: local rules table (port of the server's `rules` provider), `harness.decision.v1.DecisionService` client, chain with fallback, session cache |
 | `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`), branch-aware rebuild, file checkpoints (`~/.harness/file-history/<id>/`), fork |
@@ -44,6 +45,7 @@ harness-client -p -c "and now the README"           # continue the latest sessio
 harness-client -p -c --fork-session "try another way"  # copy the latest session into a new one
 harness-client -p -c "/compact keep the API notes"   # compact the latest session
 harness-client -p --permission-mode plan "plan the refactor"
+harness-client -p --output-style explanatory "walk me through the parser"
 harness-client -p --permission-mode auto "run the tests and fix what fails"
 harness-client serve --socket /tmp/harness.sock     # AgentService for frontends
 harness-client import claude --dry-run              # preview the ~/.claude import (add --sessions for transcripts)
@@ -73,6 +75,20 @@ For each tool call the rule engine runs first: deny rules deny; allow rules, rea
 ALLOW runs the tool, DENY returns the reason to the model (the turn continues), ASK prompts the user with the reason; headless runs deny it instead and list it in `permission_denials` with `reason` and `decided_by`. Every verdict emits a `Notice` of kind `auto_decision` (over AgentService its text is JSON: `decision`, `provider`, `reason`, `categories`, `tool_use_id`, `tool_name`, `cached`, `text`) and is recorded as `autoDecision` on the tool_result transcript entry.
 
 Project and local settings files cannot turn auto on; `permissions.disableAutoMode: "disable"` (or `"disableAutoMode": true`) at any level turns it off.
+
+## Output styles
+
+An output style changes how the assistant communicates without changing the tools. Sources, later wins on the same name (id or display name, case-insensitive):
+
+1. built-ins from the prompt bundle (`output_styles`; an empty map leaves only `default`);
+2. user styles: sync documents of kind `OUTPUT_STYLE` in scope `USER`, or, before the first full sync, `~/.claude/output-styles/*.md` then `~/.harness/output-styles/*.md`;
+3. project styles: `.claude/output-styles/*.md` then `.harness/output-styles/*.md`, in the git root and then the cwd.
+
+A style file is markdown with optional frontmatter `name` (default: the file stem), `description` and `keep-coding-instructions` (default `false`, as in Claude Code); the body is the style text.
+
+Selection: `--output-style` (on `-p` and `serve`), else the style recorded in a resumed transcript, else the `outputStyle` setting (policy settings still win over the flag). `SetOutputStyle` switches mid-session; `default` or empty clears the style. An unknown name is an error from `SetOutputStyle` and a warning (plus a `session_warning` notice) with the default style at startup. Every change is recorded as a `harness-meta` entry (`outputStyle`), so resume keeps it; `SessionInfo.output_style` and `ListOutputStyles.active` report it, and the stream-json `init` message carries it as `output_style`.
+
+Delivery keeps the prompt cache: the style text goes to the model through the bundle's `output_style` reminder (`{{name}}`, `{{content}}`; without the template the text is sent as is), injected into the next user message at session start, on every change (switching back to `default` sends the default style), after a compaction and after a rewind that removed it. A resumed session whose history already carries the text does not resend it. The system prompt and the tool list never change on a switch, with one exception: while a style with `keep_coding_instructions = false` is applied, the system sections `doing_tasks` and `tool_policy` are omitted. That changes the cache prefix, so it is applied only while the conversation is empty (session start, or `SetOutputStyle` before the first message) and after a compaction. A mid-session switch to (or away from) such a style delivers the text right away and changes the sections at the next compaction; `SetOutputStyle` then emits an `output_style_deferred` notice.
 
 ## Local end-to-end run without the real server
 

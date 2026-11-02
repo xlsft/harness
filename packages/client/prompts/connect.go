@@ -71,6 +71,16 @@ func FromProto(p *promptsv1.PromptBundle) *Bundle {
 	if p.GetTitleInstruction() != "" {
 		b.Title = &Instruction{Instruction: p.GetTitleInstruction()}
 	}
+	for id, st := range p.GetOutputStyles() {
+		if b.OutputStyles == nil {
+			b.OutputStyles = map[string]OutputStyle{}
+		}
+		if st.GetId() != "" {
+			id = st.GetId()
+		}
+		b.OutputStyles[id] = OutputStyle{ID: id, Name: st.GetName(), Description: st.GetDescription(), Text: st.GetText(),
+			KeepCodingInstructions: st.GetKeepCodingInstructions()}
+	}
 	return b
 }
 
@@ -95,6 +105,13 @@ func ToProto(b *Bundle) *promptsv1.PromptBundle {
 	}
 	if b.Title != nil {
 		p.TitleInstruction = b.Title.Instruction
+	}
+	for id, st := range b.OutputStyles {
+		if p.OutputStyles == nil {
+			p.OutputStyles = map[string]*promptsv1.OutputStyle{}
+		}
+		p.OutputStyles[id] = &promptsv1.OutputStyle{Id: id, Name: st.Name, Description: st.Description, Text: st.Text,
+			KeepCodingInstructions: st.KeepCodingInstructions}
 	}
 	return p
 }

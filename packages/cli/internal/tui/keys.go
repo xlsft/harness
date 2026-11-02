@@ -64,6 +64,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.openRewind(msg.cps)
 		return m, nil
 
+	case stylesMsg:
+		m.openOutputStyles(msg.styles, msg.active)
+		return m, nil
+
 	case repaintMsg:
 		return m, tea.ClearScreen
 

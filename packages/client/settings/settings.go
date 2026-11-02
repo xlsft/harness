@@ -172,6 +172,7 @@ type CLI struct {
 	Model                 string
 	EffortLevel           string
 	PermissionMode        string
+	OutputStyle           string
 	Allow, Ask, Deny      []string
 	AdditionalDirectories []string
 	// Settings is the content of --settings (a JSON object), if any;
@@ -378,6 +379,7 @@ func (s *Settings) cliLayer(c CLI, cwd string) *layer {
 		}
 	}
 	setStr(&l.model, c.Model, "model")
+	setStr(&l.outputStyle, c.OutputStyle, "outputStyle")
 	if c.EffortLevel != "" {
 		if effortLevels[c.EffortLevel] {
 			setStr(&l.effort, c.EffortLevel, "effortLevel")
@@ -396,7 +398,7 @@ func (s *Settings) cliLayer(c CLI, cwd string) *layer {
 	l.ask = append(l.ask, c.Ask...)
 	l.deny = append(l.deny, c.Deny...)
 	l.addDirs = append(l.addDirs, c.AdditionalDirectories...)
-	if l.raw == nil && l.model == nil && l.effort == nil && l.defaultMode == nil && len(l.allow)+len(l.ask)+len(l.deny)+len(l.addDirs) == 0 {
+	if l.raw == nil && l.model == nil && l.outputStyle == nil && l.effort == nil && l.defaultMode == nil && len(l.allow)+len(l.ask)+len(l.deny)+len(l.addDirs) == 0 {
 		return nil
 	}
 	return l

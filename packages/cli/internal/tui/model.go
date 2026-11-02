@@ -166,6 +166,7 @@ type Model struct {
 	// Session info.
 	mode      agentv1.PermissionMode
 	model     string
+	style     string // active output style id ("" or "default" for none)
 	branch    string
 	ctxPct    int
 	cost      float64
@@ -185,6 +186,7 @@ func New(o Options) *Model {
 	}
 	if s := o.Conn.Session(); s != nil {
 		m.mode, m.model, m.branch = s.GetPermissionMode(), s.GetModel(), s.GetGitBranch()
+		m.style = s.GetOutputStyle()
 	}
 	m.history = loadHistory()
 	m.histIdx = len(m.history)

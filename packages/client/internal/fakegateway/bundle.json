@@ -324,12 +324,35 @@
     "plan_approved": "<system-reminder>The plan in {{plan_file_path}} was approved.</system-reminder>",
     "plan_rejected": "The user wants to keep planning: {{feedback}}",
     "background_task_done": "<system-reminder>Background task {{task_id}} finished with exit code {{exit_code}}. Output: {{output_path}}</system-reminder>",
-    "compacted": "<system-reminder>The conversation above was compacted into a summary.</system-reminder>"
+    "compacted": "<system-reminder>The conversation above was compacted into a summary.</system-reminder>",
+    "output_style": "<system-reminder>\nOutput style: {{name}}\n{{content}}\n</system-reminder>"
   },
   "compaction": {
     "instruction": "Summarize the conversation."
   },
   "title": {
     "instruction": "Write a short title."
+  },
+  "output_styles": {
+    "default": {
+      "id": "default",
+      "name": "Default",
+      "description": "Claude completes coding tasks efficiently and provides concise responses",
+      "keep_coding_instructions": true
+    },
+    "explanatory": {
+      "id": "explanatory",
+      "name": "Explanatory",
+      "description": "Claude explains its implementation choices and codebase patterns",
+      "text": "Explain your choices with short insights.",
+      "keep_coding_instructions": true
+    },
+    "learning": {
+      "id": "learning",
+      "name": "Learning",
+      "description": "Claude pauses and asks you to write small pieces of code for hands-on practice",
+      "text": "Ask the user to write small pieces of code.",
+      "keep_coding_instructions": true
+    }
   }
 }

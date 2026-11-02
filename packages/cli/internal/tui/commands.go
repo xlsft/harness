@@ -28,6 +28,7 @@ func init() {
 		{"/clear", "Clear the conversation and start a new session", (*Model).cmdClear},
 		{"/compact", "Compact the conversation (optional focus instructions)", (*Model).cmdCompact},
 		{"/model", "Switch the model for this session", (*Model).cmdModel},
+		{"/output-style", "Set the output style (how harness communicates)", (*Model).cmdOutputStyle},
 		{"/rewind", "Restore the code and/or conversation to an earlier point", func(m *Model, _ string) tea.Cmd { return m.rewindCmd() }},
 		{"/status", "Show session, model, account and context usage", (*Model).cmdStatus},
 		{"/tasks", "List background tasks", (*Model).cmdTasks},
@@ -59,7 +60,7 @@ func (m *Model) cmdHelp(string) tea.Cmd {
 	var b strings.Builder
 	b.WriteString(m.st.Bold.Render("Commands") + "\n")
 	for _, c := range commands {
-		b.WriteString(render.PadRight(m.st.Accent.Render(c.name), 12) + "  " + m.st.Sec.Render(c.desc) + "\n")
+		b.WriteString(render.PadRight(m.st.Accent.Render(c.name), 14) + "  " + m.st.Sec.Render(c.desc) + "\n")
 	}
 	b.WriteString("\n" + m.st.Bold.Render("Shortcuts") + "\n")
 	for _, kv := range [][2]string{
@@ -164,6 +165,7 @@ func (m *Model) cmdStatus(string) tea.Cmd {
 		{"cwd", m.cwd},
 		{"Model", m.conn.DisplayName(m.model) + " (" + m.model + ")"},
 		{"Mode", mode},
+		{"Output style", outputStyleLabel(m.style)},
 		{"Account", m.conn.Email},
 		{"Context", ctxText},
 		{"Cost", render.Cost(m.cost)},

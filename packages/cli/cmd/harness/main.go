@@ -152,6 +152,7 @@ func cmdMain(ctx context.Context, args []string) int {
 	outputFormat := fs.String("output-format", "text", "with -p: text | json | stream-json")
 	model := fs.String("model", "", "model id (default: the server's main slot)")
 	mode := fs.String("permission-mode", "default", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions")
+	outputStyle := fs.String("output-style", "", "output style: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name (default: settings outputStyle)")
 	var allowed, disallowed, addDirs []string
 	fs.StringArrayVar(&allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
 	fs.StringArrayVar(&disallowed, "disallowedTools", nil, "tools that are always denied")
@@ -183,7 +184,7 @@ func cmdMain(ctx context.Context, args []string) int {
 		return sdk.Run(ctx, sdk.Options{
 			Prompt: strings.Join(fs.Args(), " "), OutputFormat: *outputFormat,
 			Bootstrap: bootstrap.Options{
-				ServerURL: *serverURL, Model: *model, PermissionMode: pm, AllowedTools: allowed, DisallowedTools: disallowed,
+				ServerURL: *serverURL, Model: *model, OutputStyle: *outputStyle, PermissionMode: pm, AllowedTools: allowed, DisallowedTools: disallowed,
 				AdditionalDirs: addDirs, Continue: *cont, Resume: *resume, Entrypoint: "cli",
 				Logger: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})),
 			},
@@ -204,7 +205,7 @@ func cmdMain(ctx context.Context, args []string) int {
 	env := brand.Detect()
 	fmt.Fprint(os.Stderr, "Starting harness…\r")
 	conn, err := client.Open(ctx, client.Options{
-		Cwd: cwd, Model: *model, PermissionMode: protoMode(pm), AllowedTools: allowed, DisallowedTools: disallowed,
+		Cwd: cwd, Model: *model, OutputStyle: *outputStyle, PermissionMode: protoMode(pm), AllowedTools: allowed, DisallowedTools: disallowed,
 		AddDirs: addDirs, Resume: *resume, ServerURL: *serverURL, Logger: logger,
 		Trust: func(tr *agentv1.GetWorkspaceTrustResponse) bool { return askTrust(env, cwd, tr) },
 	})
