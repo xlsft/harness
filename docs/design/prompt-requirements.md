@@ -312,6 +312,7 @@ All reminders except the two interruption markers and `webfetch_summary` (REM-15
 9. DEC-9. Judge by effect, not by whether an exact command name appears in the lists. Why: lists are examples.
 10. DEC-10. Never-allow list (download-and-execute, deletion outside the working directories, force push or remote deletion of shared branches, production changes, credential reads with network access, privilege escalation and persistence, raw disk writes). Why: catastrophic and irreversible.
 11. DEC-11. Prefer `ask` when unsure; the reason is one specific sentence, and for `deny` it should tell the agent what safer path exists. Why: cheap questions, actionable denials.
+12. DEC-12. `decision/typed/question.json` (the `decision_model` provider's `choice` question) states the same policy in compact form: the instructions carry DEC-2, DEC-4 to DEC-7, the criteria carry DEC-3 (`allow`), DEC-8 and DEC-11 (`ask`) and DEC-10 (`deny`). Typed models return only a label and probabilities, so there is no reason text and no categories. Why: one policy, whichever provider judges the call.
 
 ## 8. Output styles (`output-styles/`)
 

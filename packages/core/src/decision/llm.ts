@@ -198,8 +198,16 @@ function quote(s: string, max: number): string {
   return t.replace(/<\//g, "<\\/");
 }
 
-/** The user message: the tool call and its context, as tagged data. */
+/** The user message: the tool call and its context, as tagged data, and the instruction to classify it. */
 export function renderRequest(input: DecideInput): string {
+  return `${renderContext(input)}\n\nClassify this tool call by calling the ${CLASSIFY_TOOL} tool.`;
+}
+
+/**
+ * The tool call and its context as tagged data: deterministic (equal inputs give equal text) and with
+ * every untrusted field truncated. Shared by the `llm` and `decision_model` providers.
+ */
+export function renderContext(input: DecideInput): string {
   const lines: string[] = [];
   lines.push("<tool_call>");
   lines.push(`tool_name: ${quote(input.toolName, 200)}`);
@@ -226,7 +234,5 @@ export function renderRequest(input: DecideInput): string {
   lines.push("<assistant_rationale>");
   lines.push(input.assistantRationale ? quote(input.assistantRationale, MAX_MESSAGE_CHARS) : "(none provided)");
   lines.push("</assistant_rationale>");
-  lines.push("");
-  lines.push(`Classify this tool call by calling the ${CLASSIFY_TOOL} tool.`);
   return lines.join("\n");
 }

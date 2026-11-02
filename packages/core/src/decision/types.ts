@@ -2,15 +2,15 @@
  * Decision providers behind harness.decision.v1.DecisionService (the client's `auto` permission mode).
  *
  * A provider judges one tool call and answers ALLOW, DENY or ASK. Providers are chained by
- * src/decision/service.ts in the admin-configured order: the first ALLOW or DENY wins, ASK falls through,
- * errors follow the chain's on_error policy, and a `rules` DENY is final.
+ * src/decision/service.ts in the admin-configured order: the first ALLOW or DENY wins, ASK falls through
+ * (unless the provider marks it final), errors follow the chain's on_error policy, and a `rules` DENY is final.
  */
 import type { Principal } from "../services/devices.ts";
 import type { RuleCategory, RuleDecision } from "./rules.ts";
 
 export type DecisionValue = RuleDecision;
 export type RiskCategoryName = RuleCategory;
-export type ProviderType = "rules" | "llm" | "http";
+export type ProviderType = "rules" | "llm" | "http" | "decision_model";
 
 /** What the client told us; the fields of harness.decision.v1.ClientFacts. */
 export interface ClientFactsInput {
@@ -51,10 +51,12 @@ export interface ProviderDecision {
   costUsd?: number;
   /** Served from the decision cache. */
   cached?: boolean;
+  /** An ASK that ends the chain instead of falling through (a `decision_model` that is sure the user should decide). */
+  final?: boolean;
 }
 
 export interface DecisionProvider {
-  /** "rules", "llm", "llm:<id>" or "http:<id>". */
+  /** "rules", "llm", "llm:<id>", "http:<id>", "decision_model" or "decision_model:<id>". */
   readonly id: string;
   readonly type: ProviderType;
   readonly displayName: string;

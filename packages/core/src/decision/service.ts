@@ -4,7 +4,8 @@
  *
  * Chain semantics (DecisionChain.decide):
  *   1. every `rules` provider runs first; a rules DENY is final, even if a later provider would allow;
- *   2. then providers run in the configured order: the first ALLOW or DENY decides, ASK falls through;
+ *   2. then providers run in the configured order: the first ALLOW or DENY decides, ASK falls through
+ *      unless the provider marks it final (a `decision_model` sure that the user should decide);
  *   3. a provider error follows on_error: "ask" (default) answers ASK at once, "next" falls through;
  *   4. when nobody decides the answer is ASK from provider "none".
  */
@@ -15,7 +16,8 @@ import { newId, sha256 } from "../lib/ids.ts";
 import { TokenBucketLimiter } from "../lib/rate-limit.ts";
 import type { Principal } from "../services/devices.ts";
 import { cacheFor } from "./cache.ts";
-import { httpSecrets, loadDecisionConfig, type DecisionConfig, type OnErrorPolicy, type RulesExtras } from "./config.ts";
+import { decisionModelKeyResolver, httpSecrets, loadDecisionConfig, type DecisionConfig, type OnErrorPolicy, type RulesExtras } from "./config.ts";
+import { DecisionModelProvider, decisionEndpointUrl } from "./decision-model.ts";
 import { HttpProvider } from "./http.ts";
 import { LlmProvider } from "./llm.ts";
 import { RulesProvider } from "./rules-provider.ts";
@@ -98,7 +100,7 @@ export class DecisionChain {
         if (this.onError === "next") continue;
         return finish(p.id, { decision: "ask", reason: `${p.displayName} could not decide: ${r.message}`, categories: [] });
       }
-      if (r.decision !== "ask") return finish(p.id, r);
+      if (r.decision !== "ask" || r.final) return finish(p.id, r);
       lastAsk = r;
     }
     return finish("none", {
@@ -147,6 +149,21 @@ export function buildProviders(cfg: DecisionConfig): DecisionProvider[] {
           healthUrl: p.settings.health_url,
         });
       }
+      case "decision_model":
+        return new DecisionModelProvider({
+          id: p.id,
+          displayName: p.display_name,
+          url: decisionEndpointUrl(p.settings.endpoint),
+          model: p.settings.model,
+          apiKey: decisionModelKeyResolver(p),
+          allowPrivateNetwork: p.settings.allow_private_network,
+          timeoutMs: p.settings.timeout_ms,
+          minProbability: p.settings.min_probability,
+          minMargin: p.settings.min_margin,
+          onUncertain: p.settings.on_uncertain,
+          cache: cacheFor(p.id),
+          cacheTtlMs: cfg.cache_ttl_seconds * 1000,
+        });
     }
   });
 }
