@@ -10,7 +10,109 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/decision/v1/decision.proto.
  */
 export const file_harness_decision_v1_decision: GenFile = /*@__PURE__*/
-  fileDesc("CiJoYXJuZXNzL2RlY2lzaW9uL3YxL2RlY2lzaW9uLnByb3RvEhNoYXJuZXNzLmRlY2lzaW9uLnYxIvUBCg1EZWNpZGVSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSEQoJdG9vbF9uYW1lGAIgASgJEhIKCmlucHV0X2pzb24YAyABKAkSCwoDY3dkGAQgASgJEh4KFmFkZGl0aW9uYWxfZGlyZWN0b3JpZXMYBSADKAkSHAoUcmVjZW50X3VzZXJfbWVzc2FnZXMYBiADKAkSGwoTYXNzaXN0YW50X3JhdGlvbmFsZRgHIAEoCRIvCgVmYWN0cxgIIAEoCzIgLmhhcm5lc3MuZGVjaXNpb24udjEuQ2xpZW50RmFjdHMSEAoIcHJvdmlkZXIYCSABKAkiewoLQ2xpZW50RmFjdHMSEwoLc3ViY29tbWFuZHMYASADKAkSEwoLd3JpdGVfcGF0aHMYAiADKAkSFQoNbmV0d29ya19ob3N0cxgDIAMoCRIXCg9pbnNpZGVfZ2l0X3JlcG8YBCABKAgSEgoKZ2l0X2JyYW5jaBgFIAEoCSLkAQoORGVjaWRlUmVzcG9uc2USLwoIZGVjaXNpb24YASABKA4yHS5oYXJuZXNzLmRlY2lzaW9uLnYxLkRlY2lzaW9uEg4KBnJlYXNvbhgCIAEoCRI1CgpjYXRlZ29yaWVzGAMgAygOMiEuaGFybmVzcy5kZWNpc2lvbi52MS5SaXNrQ2F0ZWdvcnkSEAoIcHJvdmlkZXIYBCABKAkSEgoKY29uZmlkZW5jZRgFIAEoARIOCgZjYWNoZWQYBiABKAgSEgoKbGF0ZW5jeV9tcxgHIAEoAxIQCghjb3N0X3VzZBgIIAEoASIWChRMaXN0UHJvdmlkZXJzUmVxdWVzdCJ5ChVMaXN0UHJvdmlkZXJzUmVzcG9uc2USMAoJcHJvdmlkZXJzGAEgAygLMh0uaGFybmVzcy5kZWNpc2lvbi52MS5Qcm92aWRlchIuCghvbl9lcnJvchgCIAEoDjIcLmhhcm5lc3MuZGVjaXNpb24udjEuT25FcnJvciJaCghQcm92aWRlchIKCgJpZBgBIAEoCRIMCgR0eXBlGAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRIPCgdoZWFsdGh5GAQgASgIEg0KBW1vZGVsGAUgASgJKl0KCERlY2lzaW9uEhgKFERFQ0lTSU9OX1VOU1BFQ0lGSUVEEAASEgoOREVDSVNJT05fQUxMT1cQARIRCg1ERUNJU0lPTl9ERU5ZEAISEAoMREVDSVNJT05fQVNLEAMq9QIKDFJpc2tDYXRlZ29yeRIdChlSSVNLX0NBVEVHT1JZX1VOU1BFQ0lGSUVEEAASHQoZUklTS19DQVRFR09SWV9ERVNUUlVDVElWRRABEicKI1JJU0tfQ0FURUdPUllfUkVNT1RFX0NPREVfRVhFQ1VUSU9OEAISJQohUklTS19DQVRFR09SWV9TRUNSRVRfRVhGSUxUUkFUSU9OEAMSIwofUklTS19DQVRFR09SWV9QUk9EVUNUSU9OX0NIQU5HRRAEEiUKIVJJU0tfQ0FURUdPUllfR0lUX0hJU1RPUllfUkVXUklURRAFEiYKIlJJU0tfQ0FURUdPUllfUFJJVklMRUdFX0VTQ0FMQVRJT04QBhIgChxSSVNLX0NBVEVHT1JZX05FVFdPUktfRUdSRVNTEAcSHgoaUklTS19DQVRFR09SWV9PVVRfT0ZfU0NPUEUQCBIhCh1SSVNLX0NBVEVHT1JZX1BBQ0tBR0VfSU5TVEFMTBAJKkgKB09uRXJyb3ISGAoUT05fRVJST1JfVU5TUEVDSUZJRUQQABIQCgxPTl9FUlJPUl9BU0sQARIRCg1PTl9FUlJPUl9ORVhUEAIyzAEKD0RlY2lzaW9uU2VydmljZRJRCgZEZWNpZGUSIi5oYXJuZXNzLmRlY2lzaW9uLnYxLkRlY2lkZVJlcXVlc3QaIy5oYXJuZXNzLmRlY2lzaW9uLnYxLkRlY2lkZVJlc3BvbnNlEmYKDUxpc3RQcm92aWRlcnMSKS5oYXJuZXNzLmRlY2lzaW9uLnYxLkxpc3RQcm92aWRlcnNSZXF1ZXN0GiouaGFybmVzcy5kZWNpc2lvbi52MS5MaXN0UHJvdmlkZXJzUmVzcG9uc2VC4wEKF2NvbS5oYXJuZXNzLmRlY2lzaW9uLnYxQg1EZWNpc2lvblByb3RvUAFaS2dpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvZGVjaXNpb24vdjE7ZGVjaXNpb252MaICA0hEWKoCE0hhcm5lc3MuRGVjaXNpb24uVjHKAhNIYXJuZXNzXERlY2lzaW9uXFYx4gIfSGFybmVzc1xEZWNpc2lvblxWMVxHUEJNZXRhZGF0YeoCFUhhcm5lc3M6OkRlY2lzaW9uOjpWMWIGcHJvdG8z");
+  fileDesc("CiJoYXJuZXNzL2RlY2lzaW9uL3YxL2RlY2lzaW9uLnByb3RvEhNoYXJuZXNzLmRlY2lzaW9uLnYxIhgKFkdldFJ1bGVzT3B0aW9uc1JlcXVlc3QiZAoXR2V0UnVsZXNPcHRpb25zUmVzcG9uc2USFQoNcnVsZXNfdmVyc2lvbhgBIAEoCRIyCgdvcHRpb25zGAIgASgLMiEuaGFybmVzcy5kZWNpc2lvbi52MS5SdWxlc09wdGlvbnMitAEKDFJ1bGVzT3B0aW9ucxI0CgpleHRyYV9kZW55GAEgAygLMiAuaGFybmVzcy5kZWNpc2lvbi52MS5SdWxlUGF0dGVybhI1CgtleHRyYV9hbGxvdxgCIAMoCzIgLmhhcm5lc3MuZGVjaXNpb24udjEuUnVsZVBhdHRlcm4SGgoScHJvdGVjdGVkX2JyYW5jaGVzGAMgAygJEhsKE2RlbnlfYWxsX2ZvcmNlX3B1c2gYBCABKAgiZQoLUnVsZVBhdHRlcm4SDwoHcGF0dGVybhgBIAEoCRIOCgZyZWFzb24YAiABKAkSNQoKY2F0ZWdvcmllcxgDIAMoDjIhLmhhcm5lc3MuZGVjaXNpb24udjEuUmlza0NhdGVnb3J5IvUBCg1EZWNpZGVSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSEQoJdG9vbF9uYW1lGAIgASgJEhIKCmlucHV0X2pzb24YAyABKAkSCwoDY3dkGAQgASgJEh4KFmFkZGl0aW9uYWxfZGlyZWN0b3JpZXMYBSADKAkSHAoUcmVjZW50X3VzZXJfbWVzc2FnZXMYBiADKAkSGwoTYXNzaXN0YW50X3JhdGlvbmFsZRgHIAEoCRIvCgVmYWN0cxgIIAEoCzIgLmhhcm5lc3MuZGVjaXNpb24udjEuQ2xpZW50RmFjdHMSEAoIcHJvdmlkZXIYCSABKAkiewoLQ2xpZW50RmFjdHMSEwoLc3ViY29tbWFuZHMYASADKAkSEwoLd3JpdGVfcGF0aHMYAiADKAkSFQoNbmV0d29ya19ob3N0cxgDIAMoCRIXCg9pbnNpZGVfZ2l0X3JlcG8YBCABKAgSEgoKZ2l0X2JyYW5jaBgFIAEoCSL7AQoORGVjaWRlUmVzcG9uc2USLwoIZGVjaXNpb24YASABKA4yHS5oYXJuZXNzLmRlY2lzaW9uLnYxLkRlY2lzaW9uEg4KBnJlYXNvbhgCIAEoCRI1CgpjYXRlZ29yaWVzGAMgAygOMiEuaGFybmVzcy5kZWNpc2lvbi52MS5SaXNrQ2F0ZWdvcnkSEAoIcHJvdmlkZXIYBCABKAkSEgoKY29uZmlkZW5jZRgFIAEoARIOCgZjYWNoZWQYBiABKAgSEgoKbGF0ZW5jeV9tcxgHIAEoAxIQCghjb3N0X3VzZBgIIAEoARIVCg1ydWxlc192ZXJzaW9uGAkgASgJIhYKFExpc3RQcm92aWRlcnNSZXF1ZXN0InkKFUxpc3RQcm92aWRlcnNSZXNwb25zZRIwCglwcm92aWRlcnMYASADKAsyHS5oYXJuZXNzLmRlY2lzaW9uLnYxLlByb3ZpZGVyEi4KCG9uX2Vycm9yGAIgASgOMhwuaGFybmVzcy5kZWNpc2lvbi52MS5PbkVycm9yIloKCFByb3ZpZGVyEgoKAmlkGAEgASgJEgwKBHR5cGUYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJEg8KB2hlYWx0aHkYBCABKAgSDQoFbW9kZWwYBSABKAkqXQoIRGVjaXNpb24SGAoUREVDSVNJT05fVU5TUEVDSUZJRUQQABISCg5ERUNJU0lPTl9BTExPVxABEhEKDURFQ0lTSU9OX0RFTlkQAhIQCgxERUNJU0lPTl9BU0sQAyr1AgoMUmlza0NhdGVnb3J5Eh0KGVJJU0tfQ0FURUdPUllfVU5TUEVDSUZJRUQQABIdChlSSVNLX0NBVEVHT1JZX0RFU1RSVUNUSVZFEAESJwojUklTS19DQVRFR09SWV9SRU1PVEVfQ09ERV9FWEVDVVRJT04QAhIlCiFSSVNLX0NBVEVHT1JZX1NFQ1JFVF9FWEZJTFRSQVRJT04QAxIjCh9SSVNLX0NBVEVHT1JZX1BST0RVQ1RJT05fQ0hBTkdFEAQSJQohUklTS19DQVRFR09SWV9HSVRfSElTVE9SWV9SRVdSSVRFEAUSJgoiUklTS19DQVRFR09SWV9QUklWSUxFR0VfRVNDQUxBVElPThAGEiAKHFJJU0tfQ0FURUdPUllfTkVUV09SS19FR1JFU1MQBxIeChpSSVNLX0NBVEVHT1JZX09VVF9PRl9TQ09QRRAIEiEKHVJJU0tfQ0FURUdPUllfUEFDS0FHRV9JTlNUQUxMEAkqSAoHT25FcnJvchIYChRPTl9FUlJPUl9VTlNQRUNJRklFRBAAEhAKDE9OX0VSUk9SX0FTSxABEhEKDU9OX0VSUk9SX05FWFQQAjK6AgoPRGVjaXNpb25TZXJ2aWNlElEKBkRlY2lkZRIiLmhhcm5lc3MuZGVjaXNpb24udjEuRGVjaWRlUmVxdWVzdBojLmhhcm5lc3MuZGVjaXNpb24udjEuRGVjaWRlUmVzcG9uc2USZgoNTGlzdFByb3ZpZGVycxIpLmhhcm5lc3MuZGVjaXNpb24udjEuTGlzdFByb3ZpZGVyc1JlcXVlc3QaKi5oYXJuZXNzLmRlY2lzaW9uLnYxLkxpc3RQcm92aWRlcnNSZXNwb25zZRJsCg9HZXRSdWxlc09wdGlvbnMSKy5oYXJuZXNzLmRlY2lzaW9uLnYxLkdldFJ1bGVzT3B0aW9uc1JlcXVlc3QaLC5oYXJuZXNzLmRlY2lzaW9uLnYxLkdldFJ1bGVzT3B0aW9uc1Jlc3BvbnNlQuMBChdjb20uaGFybmVzcy5kZWNpc2lvbi52MUINRGVjaXNpb25Qcm90b1ABWktnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2RlY2lzaW9uL3YxO2RlY2lzaW9udjGiAgNIRFiqAhNIYXJuZXNzLkRlY2lzaW9uLlYxygITSGFybmVzc1xEZWNpc2lvblxWMeICH0hhcm5lc3NcRGVjaXNpb25cVjFcR1BCTWV0YWRhdGHqAhVIYXJuZXNzOjpEZWNpc2lvbjo6VjFiBnByb3RvMw");
+
+/**
+ * @generated from message harness.decision.v1.GetRulesOptionsRequest
+ */
+export type GetRulesOptionsRequest = Message<"harness.decision.v1.GetRulesOptionsRequest"> & {
+};
+
+/**
+ * Describes the message harness.decision.v1.GetRulesOptionsRequest.
+ * Use `create(GetRulesOptionsRequestSchema)` to create a new message.
+ */
+export const GetRulesOptionsRequestSchema: GenMessage<GetRulesOptionsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_decision_v1_decision, 0);
+
+/**
+ * @generated from message harness.decision.v1.GetRulesOptionsResponse
+ */
+export type GetRulesOptionsResponse = Message<"harness.decision.v1.GetRulesOptionsResponse"> & {
+  /**
+   * Changes whenever the options or the server's built-in rule set change.
+   *
+   * @generated from field: string rules_version = 1;
+   */
+  rulesVersion: string;
+
+  /**
+   * @generated from field: harness.decision.v1.RulesOptions options = 2;
+   */
+  options?: RulesOptions | undefined;
+};
+
+/**
+ * Describes the message harness.decision.v1.GetRulesOptionsResponse.
+ * Use `create(GetRulesOptionsResponseSchema)` to create a new message.
+ */
+export const GetRulesOptionsResponseSchema: GenMessage<GetRulesOptionsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_decision_v1_decision, 1);
+
+/**
+ * @generated from message harness.decision.v1.RulesOptions
+ */
+export type RulesOptions = Message<"harness.decision.v1.RulesOptions"> & {
+  /**
+   * @generated from field: repeated harness.decision.v1.RulePattern extra_deny = 1;
+   */
+  extraDeny: RulePattern[];
+
+  /**
+   * @generated from field: repeated harness.decision.v1.RulePattern extra_allow = 2;
+   */
+  extraAllow: RulePattern[];
+
+  /**
+   * Branch globs that force pushes, deletes and hard resets must not touch (default: main, master, release*).
+   *
+   * @generated from field: repeated string protected_branches = 3;
+   */
+  protectedBranches: string[];
+
+  /**
+   * Deny force pushes to any branch.
+   *
+   * @generated from field: bool deny_all_force_push = 4;
+   */
+  denyAllForcePush: boolean;
+};
+
+/**
+ * Describes the message harness.decision.v1.RulesOptions.
+ * Use `create(RulesOptionsSchema)` to create a new message.
+ */
+export const RulesOptionsSchema: GenMessage<RulesOptions> = /*@__PURE__*/
+  messageDesc(file_harness_decision_v1_decision, 2);
+
+/**
+ * @generated from message harness.decision.v1.RulePattern
+ */
+export type RulePattern = Message<"harness.decision.v1.RulePattern"> & {
+  /**
+   * RE2-compatible regular expression, matched against the whole command and each simple command.
+   *
+   * @generated from field: string pattern = 1;
+   */
+  pattern: string;
+
+  /**
+   * @generated from field: string reason = 2;
+   */
+  reason: string;
+
+  /**
+   * @generated from field: repeated harness.decision.v1.RiskCategory categories = 3;
+   */
+  categories: RiskCategory[];
+};
+
+/**
+ * Describes the message harness.decision.v1.RulePattern.
+ * Use `create(RulePatternSchema)` to create a new message.
+ */
+export const RulePatternSchema: GenMessage<RulePattern> = /*@__PURE__*/
+  messageDesc(file_harness_decision_v1_decision, 3);
 
 /**
  * @generated from message harness.decision.v1.DecideRequest
@@ -81,7 +183,7 @@ export type DecideRequest = Message<"harness.decision.v1.DecideRequest"> & {
  * Use `create(DecideRequestSchema)` to create a new message.
  */
 export const DecideRequestSchema: GenMessage<DecideRequest> = /*@__PURE__*/
-  messageDesc(file_harness_decision_v1_decision, 0);
+  messageDesc(file_harness_decision_v1_decision, 4);
 
 /**
  * @generated from message harness.decision.v1.ClientFacts
@@ -125,7 +227,7 @@ export type ClientFacts = Message<"harness.decision.v1.ClientFacts"> & {
  * Use `create(ClientFactsSchema)` to create a new message.
  */
 export const ClientFactsSchema: GenMessage<ClientFacts> = /*@__PURE__*/
-  messageDesc(file_harness_decision_v1_decision, 1);
+  messageDesc(file_harness_decision_v1_decision, 5);
 
 /**
  * @generated from message harness.decision.v1.DecideResponse
@@ -180,6 +282,13 @@ export type DecideResponse = Message<"harness.decision.v1.DecideResponse"> & {
    * @generated from field: double cost_usd = 8;
    */
   costUsd: number;
+
+  /**
+   * Version of the rules options the server used (see GetRulesOptions).
+   *
+   * @generated from field: string rules_version = 9;
+   */
+  rulesVersion: string;
 };
 
 /**
@@ -187,7 +296,7 @@ export type DecideResponse = Message<"harness.decision.v1.DecideResponse"> & {
  * Use `create(DecideResponseSchema)` to create a new message.
  */
 export const DecideResponseSchema: GenMessage<DecideResponse> = /*@__PURE__*/
-  messageDesc(file_harness_decision_v1_decision, 2);
+  messageDesc(file_harness_decision_v1_decision, 6);
 
 /**
  * @generated from message harness.decision.v1.ListProvidersRequest
@@ -200,7 +309,7 @@ export type ListProvidersRequest = Message<"harness.decision.v1.ListProvidersReq
  * Use `create(ListProvidersRequestSchema)` to create a new message.
  */
 export const ListProvidersRequestSchema: GenMessage<ListProvidersRequest> = /*@__PURE__*/
-  messageDesc(file_harness_decision_v1_decision, 3);
+  messageDesc(file_harness_decision_v1_decision, 7);
 
 /**
  * @generated from message harness.decision.v1.ListProvidersResponse
@@ -226,7 +335,7 @@ export type ListProvidersResponse = Message<"harness.decision.v1.ListProvidersRe
  * Use `create(ListProvidersResponseSchema)` to create a new message.
  */
 export const ListProvidersResponseSchema: GenMessage<ListProvidersResponse> = /*@__PURE__*/
-  messageDesc(file_harness_decision_v1_decision, 4);
+  messageDesc(file_harness_decision_v1_decision, 8);
 
 /**
  * @generated from message harness.decision.v1.Provider
@@ -269,7 +378,7 @@ export type Provider = Message<"harness.decision.v1.Provider"> & {
  * Use `create(ProviderSchema)` to create a new message.
  */
 export const ProviderSchema: GenMessage<Provider> = /*@__PURE__*/
-  messageDesc(file_harness_decision_v1_decision, 5);
+  messageDesc(file_harness_decision_v1_decision, 9);
 
 /**
  * @generated from enum harness.decision.v1.Decision
@@ -451,6 +560,18 @@ export const DecisionService: GenService<{
     methodKind: "unary";
     input: typeof ListProvidersRequestSchema;
     output: typeof ListProvidersResponseSchema;
+  },
+  /**
+   * The admin's options for the deterministic rules (extra deny/allow patterns, protected branches, ...),
+   * so the client's local copy of the `rules` provider applies them too. Clients fetch it at session
+   * start, cache it, and refetch when a DecideResponse reports a different rules_version.
+   *
+   * @generated from rpc harness.decision.v1.DecisionService.GetRulesOptions
+   */
+  getRulesOptions: {
+    methodKind: "unary";
+    input: typeof GetRulesOptionsRequestSchema;
+    output: typeof GetRulesOptionsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_decision_v1_decision, 0);

@@ -194,6 +194,226 @@ func (OnError) EnumDescriptor() ([]byte, []int) {
 	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{2}
 }
 
+type GetRulesOptionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRulesOptionsRequest) Reset() {
+	*x = GetRulesOptionsRequest{}
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRulesOptionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRulesOptionsRequest) ProtoMessage() {}
+
+func (x *GetRulesOptionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRulesOptionsRequest.ProtoReflect.Descriptor instead.
+func (*GetRulesOptionsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{0}
+}
+
+type GetRulesOptionsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Changes whenever the options or the server's built-in rule set change.
+	RulesVersion  string        `protobuf:"bytes,1,opt,name=rules_version,json=rulesVersion,proto3" json:"rules_version,omitempty"`
+	Options       *RulesOptions `protobuf:"bytes,2,opt,name=options,proto3" json:"options,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRulesOptionsResponse) Reset() {
+	*x = GetRulesOptionsResponse{}
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRulesOptionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRulesOptionsResponse) ProtoMessage() {}
+
+func (x *GetRulesOptionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRulesOptionsResponse.ProtoReflect.Descriptor instead.
+func (*GetRulesOptionsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetRulesOptionsResponse) GetRulesVersion() string {
+	if x != nil {
+		return x.RulesVersion
+	}
+	return ""
+}
+
+func (x *GetRulesOptionsResponse) GetOptions() *RulesOptions {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+type RulesOptions struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ExtraDeny  []*RulePattern         `protobuf:"bytes,1,rep,name=extra_deny,json=extraDeny,proto3" json:"extra_deny,omitempty"`
+	ExtraAllow []*RulePattern         `protobuf:"bytes,2,rep,name=extra_allow,json=extraAllow,proto3" json:"extra_allow,omitempty"`
+	// Branch globs that force pushes, deletes and hard resets must not touch (default: main, master, release*).
+	ProtectedBranches []string `protobuf:"bytes,3,rep,name=protected_branches,json=protectedBranches,proto3" json:"protected_branches,omitempty"`
+	// Deny force pushes to any branch.
+	DenyAllForcePush bool `protobuf:"varint,4,opt,name=deny_all_force_push,json=denyAllForcePush,proto3" json:"deny_all_force_push,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RulesOptions) Reset() {
+	*x = RulesOptions{}
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RulesOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RulesOptions) ProtoMessage() {}
+
+func (x *RulesOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RulesOptions.ProtoReflect.Descriptor instead.
+func (*RulesOptions) Descriptor() ([]byte, []int) {
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RulesOptions) GetExtraDeny() []*RulePattern {
+	if x != nil {
+		return x.ExtraDeny
+	}
+	return nil
+}
+
+func (x *RulesOptions) GetExtraAllow() []*RulePattern {
+	if x != nil {
+		return x.ExtraAllow
+	}
+	return nil
+}
+
+func (x *RulesOptions) GetProtectedBranches() []string {
+	if x != nil {
+		return x.ProtectedBranches
+	}
+	return nil
+}
+
+func (x *RulesOptions) GetDenyAllForcePush() bool {
+	if x != nil {
+		return x.DenyAllForcePush
+	}
+	return false
+}
+
+type RulePattern struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// RE2-compatible regular expression, matched against the whole command and each simple command.
+	Pattern       string         `protobuf:"bytes,1,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Reason        string         `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	Categories    []RiskCategory `protobuf:"varint,3,rep,packed,name=categories,proto3,enum=harness.decision.v1.RiskCategory" json:"categories,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RulePattern) Reset() {
+	*x = RulePattern{}
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RulePattern) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RulePattern) ProtoMessage() {}
+
+func (x *RulePattern) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RulePattern.ProtoReflect.Descriptor instead.
+func (*RulePattern) Descriptor() ([]byte, []int) {
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RulePattern) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *RulePattern) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *RulePattern) GetCategories() []RiskCategory {
+	if x != nil {
+		return x.Categories
+	}
+	return nil
+}
+
 type DecideRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -219,7 +439,7 @@ type DecideRequest struct {
 
 func (x *DecideRequest) Reset() {
 	*x = DecideRequest{}
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[0]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -231,7 +451,7 @@ func (x *DecideRequest) String() string {
 func (*DecideRequest) ProtoMessage() {}
 
 func (x *DecideRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[0]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -244,7 +464,7 @@ func (x *DecideRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideRequest.ProtoReflect.Descriptor instead.
 func (*DecideRequest) Descriptor() ([]byte, []int) {
-	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{0}
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DecideRequest) GetSessionId() string {
@@ -327,7 +547,7 @@ type ClientFacts struct {
 
 func (x *ClientFacts) Reset() {
 	*x = ClientFacts{}
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[1]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +559,7 @@ func (x *ClientFacts) String() string {
 func (*ClientFacts) ProtoMessage() {}
 
 func (x *ClientFacts) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[1]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +572,7 @@ func (x *ClientFacts) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClientFacts.ProtoReflect.Descriptor instead.
 func (*ClientFacts) Descriptor() ([]byte, []int) {
-	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{1}
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ClientFacts) GetSubcommands() []string {
@@ -404,14 +624,16 @@ type DecideResponse struct {
 	Cached    bool  `protobuf:"varint,6,opt,name=cached,proto3" json:"cached,omitempty"`
 	LatencyMs int64 `protobuf:"varint,7,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
 	// Cost of the classifier call in USD (0 for rules and cache hits); also counted in usage and quotas.
-	CostUsd       float64 `protobuf:"fixed64,8,opt,name=cost_usd,json=costUsd,proto3" json:"cost_usd,omitempty"`
+	CostUsd float64 `protobuf:"fixed64,8,opt,name=cost_usd,json=costUsd,proto3" json:"cost_usd,omitempty"`
+	// Version of the rules options the server used (see GetRulesOptions).
+	RulesVersion  string `protobuf:"bytes,9,opt,name=rules_version,json=rulesVersion,proto3" json:"rules_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DecideResponse) Reset() {
 	*x = DecideResponse{}
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[2]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -423,7 +645,7 @@ func (x *DecideResponse) String() string {
 func (*DecideResponse) ProtoMessage() {}
 
 func (x *DecideResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[2]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +658,7 @@ func (x *DecideResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideResponse.ProtoReflect.Descriptor instead.
 func (*DecideResponse) Descriptor() ([]byte, []int) {
-	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{2}
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DecideResponse) GetDecision() Decision {
@@ -495,6 +717,13 @@ func (x *DecideResponse) GetCostUsd() float64 {
 	return 0
 }
 
+func (x *DecideResponse) GetRulesVersion() string {
+	if x != nil {
+		return x.RulesVersion
+	}
+	return ""
+}
+
 type ListProvidersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -503,7 +732,7 @@ type ListProvidersRequest struct {
 
 func (x *ListProvidersRequest) Reset() {
 	*x = ListProvidersRequest{}
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[3]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +744,7 @@ func (x *ListProvidersRequest) String() string {
 func (*ListProvidersRequest) ProtoMessage() {}
 
 func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[3]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +757,7 @@ func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{3}
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{7}
 }
 
 type ListProvidersResponse struct {
@@ -543,7 +772,7 @@ type ListProvidersResponse struct {
 
 func (x *ListProvidersResponse) Reset() {
 	*x = ListProvidersResponse{}
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[4]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -555,7 +784,7 @@ func (x *ListProvidersResponse) String() string {
 func (*ListProvidersResponse) ProtoMessage() {}
 
 func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[4]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -568,7 +797,7 @@ func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersResponse.ProtoReflect.Descriptor instead.
 func (*ListProvidersResponse) Descriptor() ([]byte, []int) {
-	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{4}
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListProvidersResponse) GetProviders() []*Provider {
@@ -600,7 +829,7 @@ type Provider struct {
 
 func (x *Provider) Reset() {
 	*x = Provider{}
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[5]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -612,7 +841,7 @@ func (x *Provider) String() string {
 func (*Provider) ProtoMessage() {}
 
 func (x *Provider) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_decision_v1_decision_proto_msgTypes[5]
+	mi := &file_harness_decision_v1_decision_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -625,7 +854,7 @@ func (x *Provider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Provider.ProtoReflect.Descriptor instead.
 func (*Provider) Descriptor() ([]byte, []int) {
-	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{5}
+	return file_harness_decision_v1_decision_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Provider) GetId() string {
@@ -667,7 +896,24 @@ var File_harness_decision_v1_decision_proto protoreflect.FileDescriptor
 
 const file_harness_decision_v1_decision_proto_rawDesc = "" +
 	"\n" +
-	"\"harness/decision/v1/decision.proto\x12\x13harness.decision.v1\"\xea\x02\n" +
+	"\"harness/decision/v1/decision.proto\x12\x13harness.decision.v1\"\x18\n" +
+	"\x16GetRulesOptionsRequest\"{\n" +
+	"\x17GetRulesOptionsResponse\x12#\n" +
+	"\rrules_version\x18\x01 \x01(\tR\frulesVersion\x12;\n" +
+	"\aoptions\x18\x02 \x01(\v2!.harness.decision.v1.RulesOptionsR\aoptions\"\xf0\x01\n" +
+	"\fRulesOptions\x12?\n" +
+	"\n" +
+	"extra_deny\x18\x01 \x03(\v2 .harness.decision.v1.RulePatternR\textraDeny\x12A\n" +
+	"\vextra_allow\x18\x02 \x03(\v2 .harness.decision.v1.RulePatternR\n" +
+	"extraAllow\x12-\n" +
+	"\x12protected_branches\x18\x03 \x03(\tR\x11protectedBranches\x12-\n" +
+	"\x13deny_all_force_push\x18\x04 \x01(\bR\x10denyAllForcePush\"\x82\x01\n" +
+	"\vRulePattern\x12\x18\n" +
+	"\apattern\x18\x01 \x01(\tR\apattern\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12A\n" +
+	"\n" +
+	"categories\x18\x03 \x03(\x0e2!.harness.decision.v1.RiskCategoryR\n" +
+	"categories\"\xea\x02\n" +
 	"\rDecideRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
@@ -687,7 +933,7 @@ const file_harness_decision_v1_decision_proto_rawDesc = "" +
 	"\rnetwork_hosts\x18\x03 \x03(\tR\fnetworkHosts\x12&\n" +
 	"\x0finside_git_repo\x18\x04 \x01(\bR\rinsideGitRepo\x12\x1d\n" +
 	"\n" +
-	"git_branch\x18\x05 \x01(\tR\tgitBranch\"\xb4\x02\n" +
+	"git_branch\x18\x05 \x01(\tR\tgitBranch\"\xd9\x02\n" +
 	"\x0eDecideResponse\x129\n" +
 	"\bdecision\x18\x01 \x01(\x0e2\x1d.harness.decision.v1.DecisionR\bdecision\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12A\n" +
@@ -701,7 +947,8 @@ const file_harness_decision_v1_decision_proto_rawDesc = "" +
 	"\x06cached\x18\x06 \x01(\bR\x06cached\x12\x1d\n" +
 	"\n" +
 	"latency_ms\x18\a \x01(\x03R\tlatencyMs\x12\x19\n" +
-	"\bcost_usd\x18\b \x01(\x01R\acostUsd\"\x16\n" +
+	"\bcost_usd\x18\b \x01(\x01R\acostUsd\x12#\n" +
+	"\rrules_version\x18\t \x01(\tR\frulesVersion\"\x16\n" +
 	"\x14ListProvidersRequest\"\x8d\x01\n" +
 	"\x15ListProvidersResponse\x12;\n" +
 	"\tproviders\x18\x01 \x03(\v2\x1d.harness.decision.v1.ProviderR\tproviders\x127\n" +
@@ -731,10 +978,11 @@ const file_harness_decision_v1_decision_proto_rawDesc = "" +
 	"\aOnError\x12\x18\n" +
 	"\x14ON_ERROR_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fON_ERROR_ASK\x10\x01\x12\x11\n" +
-	"\rON_ERROR_NEXT\x10\x022\xcc\x01\n" +
+	"\rON_ERROR_NEXT\x10\x022\xba\x02\n" +
 	"\x0fDecisionService\x12Q\n" +
 	"\x06Decide\x12\".harness.decision.v1.DecideRequest\x1a#.harness.decision.v1.DecideResponse\x12f\n" +
-	"\rListProviders\x12).harness.decision.v1.ListProvidersRequest\x1a*.harness.decision.v1.ListProvidersResponseB\xe3\x01\n" +
+	"\rListProviders\x12).harness.decision.v1.ListProvidersRequest\x1a*.harness.decision.v1.ListProvidersResponse\x12l\n" +
+	"\x0fGetRulesOptions\x12+.harness.decision.v1.GetRulesOptionsRequest\x1a,.harness.decision.v1.GetRulesOptionsResponseB\xe3\x01\n" +
 	"\x17com.harness.decision.v1B\rDecisionProtoP\x01ZKgithub.com/xlsft/harness/packages/client/gen/harness/decision/v1;decisionv1\xa2\x02\x03HDX\xaa\x02\x13Harness.Decision.V1\xca\x02\x13Harness\\Decision\\V1\xe2\x02\x1fHarness\\Decision\\V1\\GPBMetadata\xea\x02\x15Harness::Decision::V1b\x06proto3"
 
 var (
@@ -750,33 +998,43 @@ func file_harness_decision_v1_decision_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_decision_v1_decision_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_harness_decision_v1_decision_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_harness_decision_v1_decision_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_harness_decision_v1_decision_proto_goTypes = []any{
-	(Decision)(0),                 // 0: harness.decision.v1.Decision
-	(RiskCategory)(0),             // 1: harness.decision.v1.RiskCategory
-	(OnError)(0),                  // 2: harness.decision.v1.OnError
-	(*DecideRequest)(nil),         // 3: harness.decision.v1.DecideRequest
-	(*ClientFacts)(nil),           // 4: harness.decision.v1.ClientFacts
-	(*DecideResponse)(nil),        // 5: harness.decision.v1.DecideResponse
-	(*ListProvidersRequest)(nil),  // 6: harness.decision.v1.ListProvidersRequest
-	(*ListProvidersResponse)(nil), // 7: harness.decision.v1.ListProvidersResponse
-	(*Provider)(nil),              // 8: harness.decision.v1.Provider
+	(Decision)(0),                   // 0: harness.decision.v1.Decision
+	(RiskCategory)(0),               // 1: harness.decision.v1.RiskCategory
+	(OnError)(0),                    // 2: harness.decision.v1.OnError
+	(*GetRulesOptionsRequest)(nil),  // 3: harness.decision.v1.GetRulesOptionsRequest
+	(*GetRulesOptionsResponse)(nil), // 4: harness.decision.v1.GetRulesOptionsResponse
+	(*RulesOptions)(nil),            // 5: harness.decision.v1.RulesOptions
+	(*RulePattern)(nil),             // 6: harness.decision.v1.RulePattern
+	(*DecideRequest)(nil),           // 7: harness.decision.v1.DecideRequest
+	(*ClientFacts)(nil),             // 8: harness.decision.v1.ClientFacts
+	(*DecideResponse)(nil),          // 9: harness.decision.v1.DecideResponse
+	(*ListProvidersRequest)(nil),    // 10: harness.decision.v1.ListProvidersRequest
+	(*ListProvidersResponse)(nil),   // 11: harness.decision.v1.ListProvidersResponse
+	(*Provider)(nil),                // 12: harness.decision.v1.Provider
 }
 var file_harness_decision_v1_decision_proto_depIdxs = []int32{
-	4, // 0: harness.decision.v1.DecideRequest.facts:type_name -> harness.decision.v1.ClientFacts
-	0, // 1: harness.decision.v1.DecideResponse.decision:type_name -> harness.decision.v1.Decision
-	1, // 2: harness.decision.v1.DecideResponse.categories:type_name -> harness.decision.v1.RiskCategory
-	8, // 3: harness.decision.v1.ListProvidersResponse.providers:type_name -> harness.decision.v1.Provider
-	2, // 4: harness.decision.v1.ListProvidersResponse.on_error:type_name -> harness.decision.v1.OnError
-	3, // 5: harness.decision.v1.DecisionService.Decide:input_type -> harness.decision.v1.DecideRequest
-	6, // 6: harness.decision.v1.DecisionService.ListProviders:input_type -> harness.decision.v1.ListProvidersRequest
-	5, // 7: harness.decision.v1.DecisionService.Decide:output_type -> harness.decision.v1.DecideResponse
-	7, // 8: harness.decision.v1.DecisionService.ListProviders:output_type -> harness.decision.v1.ListProvidersResponse
-	7, // [7:9] is the sub-list for method output_type
-	5, // [5:7] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5,  // 0: harness.decision.v1.GetRulesOptionsResponse.options:type_name -> harness.decision.v1.RulesOptions
+	6,  // 1: harness.decision.v1.RulesOptions.extra_deny:type_name -> harness.decision.v1.RulePattern
+	6,  // 2: harness.decision.v1.RulesOptions.extra_allow:type_name -> harness.decision.v1.RulePattern
+	1,  // 3: harness.decision.v1.RulePattern.categories:type_name -> harness.decision.v1.RiskCategory
+	8,  // 4: harness.decision.v1.DecideRequest.facts:type_name -> harness.decision.v1.ClientFacts
+	0,  // 5: harness.decision.v1.DecideResponse.decision:type_name -> harness.decision.v1.Decision
+	1,  // 6: harness.decision.v1.DecideResponse.categories:type_name -> harness.decision.v1.RiskCategory
+	12, // 7: harness.decision.v1.ListProvidersResponse.providers:type_name -> harness.decision.v1.Provider
+	2,  // 8: harness.decision.v1.ListProvidersResponse.on_error:type_name -> harness.decision.v1.OnError
+	7,  // 9: harness.decision.v1.DecisionService.Decide:input_type -> harness.decision.v1.DecideRequest
+	10, // 10: harness.decision.v1.DecisionService.ListProviders:input_type -> harness.decision.v1.ListProvidersRequest
+	3,  // 11: harness.decision.v1.DecisionService.GetRulesOptions:input_type -> harness.decision.v1.GetRulesOptionsRequest
+	9,  // 12: harness.decision.v1.DecisionService.Decide:output_type -> harness.decision.v1.DecideResponse
+	11, // 13: harness.decision.v1.DecisionService.ListProviders:output_type -> harness.decision.v1.ListProvidersResponse
+	4,  // 14: harness.decision.v1.DecisionService.GetRulesOptions:output_type -> harness.decision.v1.GetRulesOptionsResponse
+	12, // [12:15] is the sub-list for method output_type
+	9,  // [9:12] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_harness_decision_v1_decision_proto_init() }
@@ -790,7 +1048,7 @@ func file_harness_decision_v1_decision_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_decision_v1_decision_proto_rawDesc), len(file_harness_decision_v1_decision_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   6,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

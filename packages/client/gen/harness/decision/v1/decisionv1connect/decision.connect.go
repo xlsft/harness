@@ -38,6 +38,9 @@ const (
 	// DecisionServiceListProvidersProcedure is the fully-qualified name of the DecisionService's
 	// ListProviders RPC.
 	DecisionServiceListProvidersProcedure = "/harness.decision.v1.DecisionService/ListProviders"
+	// DecisionServiceGetRulesOptionsProcedure is the fully-qualified name of the DecisionService's
+	// GetRulesOptions RPC.
+	DecisionServiceGetRulesOptionsProcedure = "/harness.decision.v1.DecisionService/GetRulesOptions"
 )
 
 // DecisionServiceClient is a client for the harness.decision.v1.DecisionService service.
@@ -45,6 +48,10 @@ type DecisionServiceClient interface {
 	Decide(context.Context, *connect.Request[v1.DecideRequest]) (*connect.Response[v1.DecideResponse], error)
 	// Configured providers and their health, for status pages and the admin UI.
 	ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error)
+	// The admin's options for the deterministic rules (extra deny/allow patterns, protected branches, ...),
+	// so the client's local copy of the `rules` provider applies them too. Clients fetch it at session
+	// start, cache it, and refetch when a DecideResponse reports a different rules_version.
+	GetRulesOptions(context.Context, *connect.Request[v1.GetRulesOptionsRequest]) (*connect.Response[v1.GetRulesOptionsResponse], error)
 }
 
 // NewDecisionServiceClient constructs a client for the harness.decision.v1.DecisionService service.
@@ -70,13 +77,20 @@ func NewDecisionServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(decisionServiceMethods.ByName("ListProviders")),
 			connect.WithClientOptions(opts...),
 		),
+		getRulesOptions: connect.NewClient[v1.GetRulesOptionsRequest, v1.GetRulesOptionsResponse](
+			httpClient,
+			baseURL+DecisionServiceGetRulesOptionsProcedure,
+			connect.WithSchema(decisionServiceMethods.ByName("GetRulesOptions")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // decisionServiceClient implements DecisionServiceClient.
 type decisionServiceClient struct {
-	decide        *connect.Client[v1.DecideRequest, v1.DecideResponse]
-	listProviders *connect.Client[v1.ListProvidersRequest, v1.ListProvidersResponse]
+	decide          *connect.Client[v1.DecideRequest, v1.DecideResponse]
+	listProviders   *connect.Client[v1.ListProvidersRequest, v1.ListProvidersResponse]
+	getRulesOptions *connect.Client[v1.GetRulesOptionsRequest, v1.GetRulesOptionsResponse]
 }
 
 // Decide calls harness.decision.v1.DecisionService.Decide.
@@ -89,11 +103,20 @@ func (c *decisionServiceClient) ListProviders(ctx context.Context, req *connect.
 	return c.listProviders.CallUnary(ctx, req)
 }
 
+// GetRulesOptions calls harness.decision.v1.DecisionService.GetRulesOptions.
+func (c *decisionServiceClient) GetRulesOptions(ctx context.Context, req *connect.Request[v1.GetRulesOptionsRequest]) (*connect.Response[v1.GetRulesOptionsResponse], error) {
+	return c.getRulesOptions.CallUnary(ctx, req)
+}
+
 // DecisionServiceHandler is an implementation of the harness.decision.v1.DecisionService service.
 type DecisionServiceHandler interface {
 	Decide(context.Context, *connect.Request[v1.DecideRequest]) (*connect.Response[v1.DecideResponse], error)
 	// Configured providers and their health, for status pages and the admin UI.
 	ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error)
+	// The admin's options for the deterministic rules (extra deny/allow patterns, protected branches, ...),
+	// so the client's local copy of the `rules` provider applies them too. Clients fetch it at session
+	// start, cache it, and refetch when a DecideResponse reports a different rules_version.
+	GetRulesOptions(context.Context, *connect.Request[v1.GetRulesOptionsRequest]) (*connect.Response[v1.GetRulesOptionsResponse], error)
 }
 
 // NewDecisionServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -115,12 +138,20 @@ func NewDecisionServiceHandler(svc DecisionServiceHandler, opts ...connect.Handl
 		connect.WithSchema(decisionServiceMethods.ByName("ListProviders")),
 		connect.WithHandlerOptions(opts...),
 	)
+	decisionServiceGetRulesOptionsHandler := connect.NewUnaryHandler(
+		DecisionServiceGetRulesOptionsProcedure,
+		svc.GetRulesOptions,
+		connect.WithSchema(decisionServiceMethods.ByName("GetRulesOptions")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.decision.v1.DecisionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DecisionServiceDecideProcedure:
 			decisionServiceDecideHandler.ServeHTTP(w, r)
 		case DecisionServiceListProvidersProcedure:
 			decisionServiceListProvidersHandler.ServeHTTP(w, r)
+		case DecisionServiceGetRulesOptionsProcedure:
+			decisionServiceGetRulesOptionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -136,4 +167,8 @@ func (UnimplementedDecisionServiceHandler) Decide(context.Context, *connect.Requ
 
 func (UnimplementedDecisionServiceHandler) ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.decision.v1.DecisionService.ListProviders is not implemented"))
+}
+
+func (UnimplementedDecisionServiceHandler) GetRulesOptions(context.Context, *connect.Request[v1.GetRulesOptionsRequest]) (*connect.Response[v1.GetRulesOptionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.decision.v1.DecisionService.GetRulesOptions is not implemented"))
 }

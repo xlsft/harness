@@ -22,6 +22,34 @@ service DecisionService {
   rpc Decide(DecideRequest) returns (DecideResponse);
   // Configured providers and their health, for status pages and the admin UI.
   rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+  // The admin's options for the deterministic rules (extra deny/allow patterns, protected branches, ...),
+  // so the client's local copy of the `rules` provider applies them too. Clients fetch it at session
+  // start, cache it, and refetch when a DecideResponse reports a different rules_version.
+  rpc GetRulesOptions(GetRulesOptionsRequest) returns (GetRulesOptionsResponse);
+}
+
+message GetRulesOptionsRequest {}
+
+message GetRulesOptionsResponse {
+  // Changes whenever the options or the server's built-in rule set change.
+  string rules_version = 1;
+  RulesOptions options = 2;
+}
+
+message RulesOptions {
+  repeated RulePattern extra_deny = 1;
+  repeated RulePattern extra_allow = 2;
+  // Branch globs that force pushes, deletes and hard resets must not touch (default: main, master, release*).
+  repeated string protected_branches = 3;
+  // Deny force pushes to any branch.
+  bool deny_all_force_push = 4;
+}
+
+message RulePattern {
+  // RE2-compatible regular expression, matched against the whole command and each simple command.
+  string pattern = 1;
+  string reason = 2;
+  repeated RiskCategory categories = 3;
 }
 
 message DecideRequest {
@@ -92,6 +120,8 @@ message DecideResponse {
   int64 latency_ms = 7;
   // Cost of the classifier call in USD (0 for rules and cache hits); also counted in usage and quotas.
   double cost_usd = 8;
+  // Version of the rules options the server used (see GetRulesOptions).
+  string rules_version = 9;
 }
 
 message ListProvidersRequest {}
