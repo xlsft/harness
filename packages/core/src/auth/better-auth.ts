@@ -1,7 +1,8 @@
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins/admin";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { deriveKey } from "../lib/crypto.ts";
@@ -33,9 +34,25 @@ function createAuth() {
     }),
     emailAndPassword: {
       enabled: true,
-      // Users are created by an admin unless HARNESS_ALLOW_SIGNUP=true.
-      disableSignUp: !cfg.allowSignup,
+      // Open sign-up is decided per request (hooks.before): the first account may always sign up, later
+      // ones only with HARNESS_ALLOW_SIGNUP=true; otherwise an admin creates users.
+      disableSignUp: false,
       minPasswordLength: 8,
+    },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/sign-up/email" && !cfg.allowSignup && (await hasUsers())) {
+          throw new APIError("FORBIDDEN", { message: "Sign-up is closed. Ask an administrator to create your account." });
+        }
+      }),
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          // The first account on a fresh server is its administrator.
+          before: async (user) => ((await hasUsers()) ? undefined : { data: { ...user, role: "admin" } }),
+        },
+      },
     },
     plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] })],
     advanced: {
@@ -48,6 +65,12 @@ function createAuth() {
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+
+/** Whether any account exists yet (a fresh server lets the first visitor create the admin account). */
+export async function hasUsers(): Promise<boolean> {
+  const [row] = await getDb().select({ n: count() }).from(schema.user);
+  return (row?.n ?? 0) > 0;
+}
 
 let instance: Auth | undefined;
 

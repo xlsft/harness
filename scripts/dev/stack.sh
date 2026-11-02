@@ -31,9 +31,22 @@ NODE_BIN="$(node -p process.execPath)"
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }
 
-if [[ "${1:-}" == "stop" ]]; then
-  [[ -f "$DEV/core.pid" ]] && kill "$(cat "$DEV/core.pid")" 2>/dev/null && log "core stopped"
+# Stops core and waits until it has exited: it holds the embedded database lock until then, and a core
+# started too early fails with "database in use".
+stop_core() {
+  [[ -f "$DEV/core.pid" ]] || return 0
+  local pid
+  pid="$(cat "$DEV/core.pid")"
+  if kill "$pid" 2>/dev/null; then
+    for _ in $(seq 1 100); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+    kill -9 "$pid" 2>/dev/null || true
+    log "core stopped"
+  fi
   rm -f "$DEV/core.pid"
+}
+
+if [[ "${1:-}" == "stop" ]]; then
+  stop_core
   exit 0
 fi
 
