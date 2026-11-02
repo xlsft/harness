@@ -4,7 +4,9 @@
 # It builds both packages, starts a mock OpenAI-compatible upstream and the core server with a
 # throwaway data dir, signs the client in through the device flow (approving it the way the
 # browser page does), configures a provider and a model through the admin API, then runs one
-# headless agent turn that must call the Bash tool and create a file.
+# headless agent turn that must call the Bash tool and create a file. Finally it checks remote
+# control: `harness-client serve` mirrors a session through RelayService, and a viewer that only
+# talks to the server sends the prompt, answers the permission prompt and watches the turn.
 #
 # Usage: scripts/e2e/run.sh            (from anywhere; needs node 24, pnpm, go, curl, jq)
 # Env:   E2E_KEEP=1 keeps the temp dir; E2E_CORE_PORT / E2E_UPSTREAM_PORT override ports.
@@ -43,7 +45,7 @@ wait_for() { # url, name
 log "building core"
 (cd "$ROOT/packages/core" && pnpm install --frozen-lockfile >/dev/null && pnpm build >/dev/null)
 log "building client"
-(cd "$ROOT/packages/client" && go build -o "$WORK/harness-client" ./cmd/harness-client)
+(cd "$ROOT/packages/client" && go build -o "$WORK/harness-client" ./cmd/harness-client && go build -o "$WORK/relayviewer" ./internal/e2e/relayviewer)
 
 log "starting mock upstream on :$UPSTREAM_PORT"
 "$NODE_BIN" "$ROOT/scripts/e2e/upstream.mjs" "$UPSTREAM_PORT" >"$WORK/upstream.log" 2>&1 &
@@ -108,4 +110,17 @@ echo "$RESULT" >"$WORK/result.json"
 [[ "$(jq -r .total_cost_usd <<<"$RESULT")" != "0" ]] || fail "cost was not reported"
 grep -q 'tools=.*Bash' "$WORK/upstream.log" || fail "upstream did not receive the Bash tool definition"
 
-log "e2e passed: $(jq -c '{subtype,num_turns,total_cost_usd,result}' <<<"$RESULT")"
+log "remote control through the relay"
+PROJ2="$WORK/proj2"
+mkdir -p "$PROJ2"
+git -C "$PROJ2" init -q
+SOCK="$WORK/agent.sock"
+"$WORK/harness-client" serve --socket "$SOCK" >"$WORK/serve.log" 2>&1 &
+PIDS+=($!)
+for _ in $(seq 1 40); do [[ -S "$SOCK" ]] && break; sleep 0.25; done
+[[ -S "$SOCK" ]] || fail "serve did not create its socket"
+"$WORK/relayviewer" --socket "$SOCK" --cwd "$PROJ2" --model mock-model >"$WORK/relay.log" 2>&1 \
+  || fail "relay viewer: $(tail -n 5 "$WORK/relay.log")"
+cat "$WORK/relay.log"
+
+log "e2e passed:$(jq -c '{subtype,num_turns,total_cost_usd,result}' <<<"$RESULT")"
