@@ -21,7 +21,7 @@ func TestLoaderCachingAndNotModified(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if b.Version != srv.Bundle.Version || len(b.Tools) != 6 {
+	if b.Version != srv.Bundle.Version || len(b.Tools) != len(srv.Bundle.Tools) {
 		t.Fatalf("bundle %s tools=%d", b.Version, len(b.Tools))
 	}
 	if _, err := os.Stat(filepath.Join(dir, "fake-model", b.Version+".json")); err != nil {

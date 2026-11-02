@@ -85,7 +85,7 @@ func TestTextTurnAndCacheMarkers(t *testing.T) {
 		t.Fatalf("result %+v", res)
 	}
 	r := e.srv.Requests()[0]
-	if len(r.Tools) != 6 || r.Metadata.SessionID != s.ID || r.Metadata.PromptBundleVersion != e.srv.Bundle.Version {
+	if len(r.Tools) != len(e.srv.Bundle.Tools) || r.Metadata.SessionID != s.ID || r.Metadata.PromptBundleVersion != e.srv.Bundle.Version {
 		t.Fatalf("request tools/metadata: %d %+v", len(r.Tools), r.Metadata)
 	}
 	if !r.System[1].Cache || r.System[2].Cache || !strings.Contains(r.System[2].Text, "Working directory: "+e.proj) {
@@ -197,7 +197,7 @@ func TestInterruptMidTool(t *testing.T) {
 	}
 	msgs := s.Agent.Messages()
 	last := msgs[len(msgs)-1]
-	if last.Content[0].Type != llm.BlockToolResult || !last.Content[0].IsError || fg.ResultText(last.Content[0]) != "[Request interrupted by user]" {
+	if last.Content[0].Type != llm.BlockToolResult || !last.Content[0].IsError || fg.ResultText(last.Content[0]) != "[Request interrupted by user for tool use]" {
 		t.Fatalf("synthetic result %+v", last.Content)
 	}
 	if last.Content[1].Text != "[Request interrupted by user]" {

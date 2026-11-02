@@ -167,7 +167,7 @@ func TestBash(t *testing.T) {
 		t.Fatalf("timeout: %q after %s", text(r), time.Since(start))
 	}
 	if r := call(t, env, &Bash{}, map[string]any{"command": "true", "run_in_background": true}); !r.IsError {
-		t.Fatal("background is not supported yet")
+		t.Fatal("background needs a task manager")
 	}
 }
 

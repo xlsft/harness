@@ -20,10 +20,10 @@ It ships in two forms:
 | `settings` | Settings hierarchy (policy → CLI → local → project → user → org) with per-rule sources and the workspace trust gate |
 | `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
 | `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
-| `tools` | Read, Write, Edit, Bash, Glob, Grep |
-| `permissions` | `Checker` / `Asker` interfaces and the M0 engine (modes, allow/deny rules) |
-| `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`) |
-| `agent` | The loop (`Agent.RunTurn`) and `Driver` (message queue, background turns) |
+| `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop |
+| `permissions` | Rule engine with Claude Code semantics (deny → ask → allow, compound Bash, wrappers, gitignore paths, read-only allowlist, protected paths, modes), workspace trust (`~/.harness/trust.json`), allow-always persistence |
+| `session` | Append-only JSONL transcripts in Claude Code shape (`~/.harness/projects/<slug>/<id>.jsonl`), branch-aware rebuild, file checkpoints (`~/.harness/file-history/<id>/`), fork |
+| `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
@@ -40,6 +40,9 @@ harness-client login https://harness.example.com
 harness-client whoami
 harness-client -p "fix the failing test" --allowedTools "Edit Bash(go test *)" --output-format json
 harness-client -p -c "and now the README"           # continue the latest session in this directory
+harness-client -p -c --fork-session "try another way"  # copy the latest session into a new one
+harness-client -p -c "/compact keep the API notes"   # compact the latest session
+harness-client -p --permission-mode plan "plan the refactor"
 harness-client serve --socket /tmp/harness.sock     # AgentService for frontends
 harness-client import claude --dry-run              # preview the ~/.claude import (add --sessions for transcripts)
 harness-client sync --watch                         # catch up the sync cache, upload sessions, follow changes
@@ -52,6 +55,8 @@ Environment variables:
 - `HARNESS_TMPDIR` sets the root of the per-session scratch directories.
 - `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` set the Bash timeouts.
 - `HARNESS_RG` sets the ripgrep path (`-` forces the Go fallback).
+- `HARNESS_AUTOCOMPACT_PCT` sets the auto-compaction threshold as a share of the context window (`92` or `0.92`, default 92%).
+- `HARNESS_DISABLE_BACKGROUND_TASKS=1` disables `run_in_background` and auto-backgrounding.
 
 ## Local end-to-end run without the real server
 

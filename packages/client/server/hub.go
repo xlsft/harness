@@ -6,7 +6,6 @@ import (
 	"time"
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
-	"github.com/xlsft/harness/packages/client/tools"
 )
 
 // subscriberBuffer is the per-subscriber backlog; a subscriber that falls
@@ -23,6 +22,7 @@ type hub struct {
 	seq    int64
 	events []*agentv1.SessionEvent
 	subs   map[chan *agentv1.SessionEvent]struct{}
+	closed bool
 }
 
 func newHub() *hub { return &hub{subs: map[chan *agentv1.SessionEvent]struct{}{}} }
@@ -30,6 +30,9 @@ func newHub() *hub { return &hub{subs: map[chan *agentv1.SessionEvent]struct{}{}
 func (h *hub) publish(ev *agentv1.SessionEvent) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.closed {
+		return
+	}
 	h.seq++
 	ev.Seq = h.seq
 	ev.SessionId = h.sessionID
@@ -47,6 +50,47 @@ func (h *hub) publish(ev *agentv1.SessionEvent) {
 	}
 }
 
+// publishEphemeral fans out an event that is neither stored nor replayed
+// and does not consume a seq (AssistantDelta): it carries the seq of the
+// last durable event.
+func (h *hub) publishEphemeral(ev *agentv1.SessionEvent) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.closed {
+		return
+	}
+	ev.Seq = h.seq
+	ev.SessionId = h.sessionID
+	if ev.Timestamp == "" {
+		ev.Timestamp = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	for ch := range h.subs {
+		select {
+		case ch <- ev:
+		default:
+			delete(h.subs, ch)
+			close(ch)
+		}
+	}
+}
+
+// close ends all subscriptions (after SessionEnded).
+func (h *hub) close() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.closed = true
+	for ch := range h.subs {
+		delete(h.subs, ch)
+		close(ch)
+	}
+}
+
+func (h *hub) isClosed() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.closed
+}
+
 func (h *hub) subscribe(after int64) ([]*agentv1.SessionEvent, <-chan *agentv1.SessionEvent, func()) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -57,6 +101,10 @@ func (h *hub) subscribe(after int64) ([]*agentv1.SessionEvent, <-chan *agentv1.S
 		}
 	}
 	ch := make(chan *agentv1.SessionEvent, subscriberBuffer)
+	if h.closed {
+		close(ch)
+		return replay, ch, func() {}
+	}
 	h.subs[ch] = struct{}{}
 	return replay, ch, func() {
 		h.mu.Lock()
@@ -111,12 +159,9 @@ func (ls *liveSession) onStream(raw json.RawMessage) {
 		default:
 			return
 		}
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_AssistantDelta{AssistantDelta: d}})
+		ls.hub.publishEphemeral(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_AssistantDelta{AssistantDelta: d}})
 	}
 }
-
-func toolsFilePath(input []byte) string    { return tools.FilePath(input) }
-func toolsBashCommand(input []byte) string { return tools.BashCommand(input) }
 
 func jsonField(input []byte, key string) string {
 	var m map[string]any

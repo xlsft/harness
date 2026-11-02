@@ -9,11 +9,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/xlsft/harness/packages/client/permissions"
 )
 
 // Bash limits (overridable with BASH_DEFAULT_TIMEOUT_MS / BASH_MAX_TIMEOUT_MS).
@@ -39,6 +42,9 @@ type Shell struct {
 
 	snapOnce sync.Once
 	snapPath string
+
+	// running foreground commands that may be moved to the background
+	running map[*fgExec]struct{}
 }
 
 // NewShell creates shell state rooted at env.Cwd.
@@ -121,48 +127,89 @@ type ExecResult struct {
 	Interrupted    bool
 	Truncated      bool
 	CwdReset       string
+	// StartCwd is the directory the command started in.
+	StartCwd string
+	// Background is set when the command was moved to the background.
+	Background *TaskInfo
+	// BackgroundReason is "timeout" or "user".
+	BackgroundReason string
 }
 
-type capBuffer struct {
-	mu  sync.Mutex
-	buf bytes.Buffer
-	cut bool
+// ExecOptions configure Shell.Run.
+type ExecOptions struct {
+	Timeout time.Duration
+	// Tasks enables moving the command to the background (on timeout when
+	// AutoBackground is set, or when the user asks via BackgroundRunning).
+	Tasks          *TaskManager
+	AutoBackground bool
+	Description    string
+	ToolUseID      string
 }
 
-func (c *capBuffer) Write(p []byte) (int, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if room := bashMaxCaptureBytes - c.buf.Len(); room < len(p) {
+// switchWriter captures stdout/stderr in memory until the command is moved
+// to the background, then redirects both into the task output file.
+type switchWriter struct {
+	mu   sync.Mutex
+	bufs [2]bytes.Buffer
+	cut  bool
+	file *os.File
+}
+
+type swStream struct {
+	w *switchWriter
+	i int
+}
+
+func (s swStream) Write(p []byte) (int, error) {
+	s.w.mu.Lock()
+	defer s.w.mu.Unlock()
+	if s.w.file != nil {
+		return s.w.file.Write(p)
+	}
+	b := &s.w.bufs[s.i]
+	if room := bashMaxCaptureBytes - b.Len(); room < len(p) {
 		if room > 0 {
-			c.buf.Write(p[:room])
+			b.Write(p[:room])
 		}
-		c.cut = true
+		s.w.cut = true
 		return len(p), nil
 	}
-	return c.buf.Write(p)
+	return b.Write(p)
 }
 
-// Exec runs command in the persistent cwd.
-func (s *Shell) Exec(ctx context.Context, command string, timeout time.Duration) (ExecResult, error) {
+func (w *switchWriter) snapshot() (string, string, bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.bufs[0].String(), w.bufs[1].String(), w.cut
+}
+
+func (w *switchWriter) switchTo(f *os.File) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	f.Write(w.bufs[0].Bytes())
+	f.Write(w.bufs[1].Bytes())
+	w.file = f
+}
+
+type fgExec struct {
+	once sync.Once
+	bg   chan struct{}
+}
+
+// BackgroundRunning asks every running foreground command that can be
+// backgrounded to move to the background. It reports whether there was one.
+func (s *Shell) BackgroundRunning() bool {
 	s.mu.Lock()
-	cwd := s.cwd
-	s.mu.Unlock()
-	if st, err := os.Stat(cwd); err != nil || !st.IsDir() {
-		cwd = s.env.Cwd
+	defer s.mu.Unlock()
+	for fg := range s.running {
+		fg.once.Do(func() { close(fg.bg) })
 	}
+	return len(s.running) > 0
+}
+
+// command builds the shell process for a command line (not started).
+func (s *Shell) command(command, cwdFile, cwd string) *exec.Cmd {
 	snap := s.snapshot()
-
-	cwdFile := ""
-	if s.env.ScratchDir != "" {
-		_ = os.MkdirAll(s.env.ScratchDir, 0o700)
-		f, err := os.CreateTemp(s.env.ScratchDir, "cwd-*")
-		if err == nil {
-			cwdFile = f.Name()
-			f.Close()
-			defer os.Remove(cwdFile)
-		}
-	}
-
 	var script strings.Builder
 	if snap != "" {
 		script.WriteString(". " + shellQuote(snap) + " >/dev/null 2>&1\n")
@@ -173,10 +220,7 @@ func (s *Shell) Exec(ctx context.Context, command string, timeout time.Duration)
 	script.WriteString(`__harness_cmd=$__HARNESS_CMD; __harness_cwd=$__HARNESS_CWD_FILE; unset __HARNESS_CMD __HARNESS_CWD_FILE` + "\n")
 	script.WriteString(`if [ -n "$__harness_cwd" ]; then trap 'pwd -P > "$__harness_cwd" 2>/dev/null' EXIT; fi` + "\n")
 	script.WriteString(`eval "$__harness_cmd"` + "\n")
-
-	tctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	cmd := exec.CommandContext(tctx, s.path, "-c", script.String())
+	cmd := exec.Command(s.path, "-c", script.String())
 	cmd.Dir = cwd
 	cmd.Env = append(os.Environ(),
 		"__HARNESS_CMD="+command,
@@ -184,20 +228,119 @@ func (s *Shell) Exec(ctx context.Context, command string, timeout time.Duration)
 		"HARNESS=1",
 		"GIT_EDITOR=true",
 	)
-	var stdout, stderr capBuffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	setProcessGroup(cmd)
 	cmd.WaitDelay = 2 * time.Second
+	return cmd
+}
 
-	err := cmd.Run()
-	res := ExecResult{Stdout: stdout.buf.String(), Stderr: stderr.buf.String(), Truncated: stdout.cut || stderr.cut}
+// Exec runs command in the persistent cwd and kills it on timeout.
+func (s *Shell) Exec(ctx context.Context, command string, timeout time.Duration) (ExecResult, error) {
+	return s.Run(ctx, command, ExecOptions{Timeout: timeout})
+}
+
+// Run runs command in the persistent cwd. With o.Tasks set the command can
+// move to the background instead of being killed.
+func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecResult, error) {
+	s.mu.Lock()
+	cwd := s.cwd
+	s.mu.Unlock()
+	if st, err := os.Stat(cwd); err != nil || !st.IsDir() {
+		cwd = s.env.Cwd
+	}
+	cwdFile := ""
+	if s.env.ScratchDir != "" {
+		_ = os.MkdirAll(s.env.ScratchDir, 0o700)
+		f, err := os.CreateTemp(s.env.ScratchDir, "cwd-*")
+		if err == nil {
+			cwdFile = f.Name()
+			f.Close()
+		}
+	}
+	handedOff := false
+	defer func() {
+		if cwdFile != "" && !handedOff {
+			os.Remove(cwdFile)
+		}
+	}()
+
+	cmd := s.command(command, cwdFile, cwd)
+	sw := &switchWriter{}
+	cmd.Stdout, cmd.Stderr = swStream{sw, 0}, swStream{sw, 1}
+	if err := cmd.Start(); err != nil {
+		return ExecResult{StartCwd: cwd}, err
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+
+	var bgReq chan struct{}
+	if o.Tasks != nil {
+		fg := &fgExec{bg: make(chan struct{})}
+		bgReq = fg.bg
+		s.mu.Lock()
+		if s.running == nil {
+			s.running = map[*fgExec]struct{}{}
+		}
+		s.running[fg] = struct{}{}
+		s.mu.Unlock()
+		defer func() {
+			s.mu.Lock()
+			delete(s.running, fg)
+			s.mu.Unlock()
+		}()
+	}
+	timeout := o.Timeout
+	if timeout <= 0 {
+		timeout = BashDefaultTimeout
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	res := ExecResult{StartCwd: cwd}
+	handoff := func(reason string) (ExecResult, error) {
+		id := newTaskID()
+		f, path, err := o.Tasks.outputFile(id)
+		if err != nil {
+			_ = killProcessGroup(cmd)
+			<-done
+			res.TimedOut = true
+			res.ExitCode = -1
+			return res, nil
+		}
+		res.Stdout, res.Stderr, res.Truncated = sw.snapshot()
+		sw.switchTo(f)
+		handedOff = true
+		cleanup := func() {
+			if cwdFile != "" {
+				os.Remove(cwdFile)
+			}
+		}
+		info := o.Tasks.adopt(id, path, f, cmd, done, command, o.Description, o.ToolUseID, 0, cleanup)
+		res.Background = &info
+		res.BackgroundReason = reason
+		return res, nil
+	}
+
+	var err error
+	select {
+	case err = <-done:
+	case <-ctx.Done():
+		_ = killProcessGroup(cmd)
+		err = <-done
+		res.Interrupted = true
+	case <-timer.C:
+		if o.Tasks != nil && o.AutoBackground && !startsWithSleep(command) {
+			return handoff("timeout")
+		}
+		_ = killProcessGroup(cmd)
+		err = <-done
+		res.TimedOut = true
+	case <-bgReq:
+		return handoff("user")
+	}
+	res.Stdout, res.Stderr, res.Truncated = sw.snapshot()
 	var exitErr *exec.ExitError
 	switch {
-	case ctx.Err() != nil:
-		res.Interrupted = true
-		res.ExitCode = -1
-	case errors.Is(tctx.Err(), context.DeadlineExceeded):
-		res.TimedOut = true
+	case res.Interrupted, res.TimedOut:
 		res.ExitCode = -1
 	case errors.As(err, &exitErr):
 		res.ExitCode = exitErr.ExitCode()
@@ -205,7 +348,7 @@ func (s *Shell) Exec(ctx context.Context, command string, timeout time.Duration)
 		return res, err
 	}
 
-	if cwdFile != "" {
+	if cwdFile != "" && !res.Interrupted && !res.TimedOut {
 		if data, err := os.ReadFile(cwdFile); err == nil {
 			if nd := strings.TrimSpace(string(data)); nd != "" {
 				if within(nd, s.env.WorkingDirs()) {
@@ -224,6 +367,13 @@ func (s *Shell) Exec(ctx context.Context, command string, timeout time.Duration)
 	return res, nil
 }
 
+// startsWithSleep reports whether the command line starts with sleep (such
+// commands are not auto-backgrounded on timeout).
+func startsWithSleep(command string) bool {
+	cmds := permissions.SplitCommand(command)
+	return len(cmds) > 0 && cmds[0].Normalize().Name() == "sleep"
+}
+
 // shellQuote single-quotes s for POSIX shells.
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'"'"'`) + "'"
@@ -239,8 +389,22 @@ type bashInput struct {
 	RunInBackground bool     `json:"run_in_background"`
 }
 
-func (*Bash) Name() string                  { return "Bash" }
-func (*Bash) ReadOnly(json.RawMessage) bool { return false }
+func (*Bash) Name() string { return "Bash" }
+
+// ReadOnly reports read-only command lines (built-in allowlist) that do not
+// change directory, so they may run in parallel.
+func (*Bash) ReadOnly(input json.RawMessage) bool {
+	var in bashInput
+	if json.Unmarshal(input, &in) != nil || in.RunInBackground || !permissions.IsReadOnlyCommandLine(in.Command) {
+		return false
+	}
+	for _, c := range permissions.SplitCommand(in.Command) {
+		if n := c.Normalize().Name(); n == "cd" || n == "pushd" || n == "popd" {
+			return false
+		}
+	}
+	return true
+}
 
 // BashCommand extracts the command from a Bash input (used by permissions).
 func BashCommand(input json.RawMessage) string {
@@ -258,6 +422,15 @@ func envDuration(name string, def time.Duration) time.Duration {
 	return def
 }
 
+func changesDir(command string) bool {
+	for _, c := range permissions.SplitCommand(command) {
+		if n := c.Normalize().Name(); n == "cd" || n == "pushd" || n == "popd" || n == "chdir" {
+			return true
+		}
+	}
+	return false
+}
+
 func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	var in bashInput
 	if err := decode(call.Input, &in); err != nil {
@@ -266,21 +439,50 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	if strings.TrimSpace(in.Command) == "" {
 		return ErrorResult("InputValidationError: command is required")
 	}
-	if in.RunInBackground {
-		// TODO(M1): background tasks with output files and TaskStop.
-		return ErrorResult("run_in_background is not supported by this client yet. Run the command in the foreground.")
-	}
 	maxT := envDuration("BASH_MAX_TIMEOUT_MS", BashMaxTimeout)
-	timeout := envDuration("BASH_DEFAULT_TIMEOUT_MS", BashDefaultTimeout)
+	defT := envDuration("BASH_DEFAULT_TIMEOUT_MS", BashDefaultTimeout)
+	if defT > maxT {
+		maxT = defT
+	}
+	timeout := defT
+	var requested time.Duration
 	if in.Timeout != nil && *in.Timeout > 0 {
-		timeout = time.Duration(*in.Timeout) * time.Millisecond
+		requested = time.Duration(*in.Timeout) * time.Millisecond
+		timeout = requested
 	}
 	if timeout > maxT {
 		timeout = maxT
 	}
-	res, err := env.Shell.Exec(ctx, in.Command, timeout)
+	if in.RunInBackground {
+		if env.Tasks == nil {
+			return ErrorResult("Background commands are not available in this session. Run the command in the foreground.")
+		}
+		info, err := env.Tasks.Start(env.Shell, in.Command, in.Description, call.ID, requested)
+		if err != nil {
+			return ErrorResult("failed to start background command: %v", err)
+		}
+		r := TextResult(fmt.Sprintf("Command running in background with ID: %s. Output is being written to: %s", info.ID, info.OutputPath),
+			map[string]any{"stdout": "", "stderr": "", "interrupted": false, "backgroundTaskId": info.ID, "outputFile": info.OutputPath})
+		r.Summary = "Started background task " + info.ID
+		return r
+	}
+	res, err := env.Shell.Run(ctx, in.Command, ExecOptions{Timeout: timeout, Tasks: env.Tasks, AutoBackground: true, Description: in.Description, ToolUseID: call.ID})
 	if err != nil {
 		return ErrorResult("failed to run command: %v", err)
+	}
+	if bg := res.Background; bg != nil {
+		var msg string
+		if res.BackgroundReason == "timeout" {
+			msg = fmt.Sprintf("Command did not complete within its %s timeout and was moved to the background with ID: %s. Output is being written to: %s", formatDuration(timeout), bg.ID, bg.OutputPath)
+		} else {
+			msg = fmt.Sprintf("The user moved this command to the background with ID: %s. Output is being written to: %s", bg.ID, bg.OutputPath)
+		}
+		if changesDir(in.Command) {
+			msg += fmt.Sprintf("\nSession cwd remains %s; directory changes made by the backgrounded command do not apply to subsequent commands.", res.StartCwd)
+		}
+		r := TextResult(msg, map[string]any{"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": false, "backgroundTaskId": bg.ID, "outputFile": bg.OutputPath})
+		r.Summary = "Moved to background task " + bg.ID
+		return r
 	}
 	structured := map[string]any{
 		"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": res.Interrupted,
@@ -308,6 +510,9 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 			isErr = true
 			notes = append(notes, fmt.Sprintf("Exit code %d", res.ExitCode))
 		}
+	}
+	if !isErr && res.ExitCode == 0 {
+		trackBashReads(env, res.StartCwd, in.Command)
 	}
 	if res.Truncated {
 		notes = append(notes, "[output exceeded capture limit and was cut]")
@@ -338,7 +543,115 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	r := TextResult(out, structured)
 	r.IsError = isErr
+	switch {
+	case res.Interrupted:
+		r.Summary = "Interrupted"
+	case res.TimedOut:
+		r.Summary = "Timed out"
+	default:
+		r.Summary = fmt.Sprintf("Exit code %d", res.ExitCode)
+	}
 	return r
+}
+
+func formatDuration(d time.Duration) string {
+	if d%time.Second == 0 {
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	}
+	return d.String()
+}
+
+var sedPrintRe = regexp.MustCompile(`^[0-9]+(,[0-9]+)?p$`)
+
+// trackBashReads marks files read by cat/head/tail/nl/bat, sed -n 'x,yp' and
+// single-file grep/rg as read, satisfying read-before-edit.
+func trackBashReads(env *Env, cwd, command string) {
+	resolve := func(p string) string {
+		if strings.ContainsAny(p, "$`*?[") {
+			return ""
+		}
+		p = resolvePath(cwd, p)
+		if st, err := os.Stat(p); err != nil || !st.Mode().IsRegular() {
+			return ""
+		}
+		return p
+	}
+	for _, c := range permissions.SplitCommand(command) {
+		c = c.Normalize()
+		if c.Unsafe {
+			continue
+		}
+		args := c.Args()
+		var files []string
+		switch c.Name() {
+		case "cat", "nl", "bat", "batcat":
+			for _, a := range args {
+				if !strings.HasPrefix(a, "-") {
+					files = append(files, a)
+				}
+			}
+		case "head", "tail":
+			for i := 0; i < len(args); i++ {
+				a := args[i]
+				if a == "-n" || a == "-c" || a == "--lines" || a == "--bytes" {
+					i++
+					continue
+				}
+				if !strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "+") {
+					files = append(files, a)
+				}
+			}
+		case "sed":
+			quiet := false
+			var ops []string
+			for _, a := range args {
+				switch {
+				case a == "-n" || a == "--quiet" || a == "--silent":
+					quiet = true
+				case strings.HasPrefix(a, "-"):
+					quiet = quiet || strings.Contains(strings.TrimPrefix(a, "-"), "n") && !strings.HasPrefix(a, "--")
+					if strings.Contains(a, "i") && !strings.HasPrefix(a, "--") {
+						ops = nil
+						quiet = false
+					}
+				default:
+					ops = append(ops, a)
+				}
+			}
+			if quiet && len(ops) == 2 && sedPrintRe.MatchString(ops[0]) {
+				files = append(files, ops[1])
+			}
+		case "grep", "egrep", "fgrep", "rg":
+			var ops []string
+			patternGiven, recursive := false, false
+			for i := 0; i < len(args); i++ {
+				a := args[i]
+				switch {
+				case a == "-e" || a == "--regexp" || a == "-f":
+					patternGiven = true
+					i++
+				case a == "-A" || a == "-B" || a == "-C" || a == "-m" || a == "--max-count" || a == "-g" || a == "--glob" || a == "-t" || a == "--type":
+					i++
+				case a == "--recursive" || a == "-r" || a == "-R" || (c.Name() != "rg" && strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") && strings.ContainsAny(a, "rR")):
+					recursive = true
+				case strings.HasPrefix(a, "-") && a != "-":
+				default:
+					ops = append(ops, a)
+				}
+			}
+			if !patternGiven && len(ops) > 0 {
+				ops = ops[1:]
+			}
+			if len(ops) == 1 && !recursive {
+				files = append(files, ops[0])
+			}
+		}
+		for _, f := range files {
+			if p := resolve(f); p != "" {
+				env.Files.MarkRead(p)
+			}
+		}
+	}
 }
 
 func saveOutput(env *Env, id, out string) (string, error) {

@@ -57,23 +57,40 @@ func (*Write) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("interrupted")
 	}
 	mode := os.FileMode(0o644)
+	var original *string
 	if exists {
 		mode = st.Mode().Perm()
+		if data, err := os.ReadFile(path); err == nil {
+			o := string(data)
+			original = &o
+		}
 	}
+	env.beforeEdit(path)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return ErrorResult("%v", err)
 	}
 	if err := os.WriteFile(path, []byte(*in.Content), mode); err != nil {
 		return ErrorResult("%v", err)
 	}
-	env.Files.MarkRead(path)
+	env.Files.MarkReadContent(path, []byte(*in.Content))
 	kind := "create"
 	msg := fmt.Sprintf("File created successfully at: %s", path)
+	oldText := ""
 	if exists {
 		kind = "update"
 		msg = fmt.Sprintf("The file %s has been updated successfully.", path)
+		if original != nil {
+			oldText = *original
+		}
 	}
-	return TextResult(msg, map[string]any{"type": kind, "filePath": path, "content": *in.Content})
+	patch := DiffLines(oldText, *in.Content, 3)
+	r := TextResult(msg, map[string]any{"type": kind, "filePath": path, "content": *in.Content, "structuredPatch": nonNilHunks(patch), "originalFile": original})
+	add, del := DiffStats(patch)
+	r.Summary = fmt.Sprintf("Wrote %d lines", len(diffSplit(*in.Content)))
+	if kind == "update" {
+		r.Summary = fmt.Sprintf("Updated (+%d -%d)", add, del)
+	}
+	return r
 }
 
 // Edit performs exact string replacement in a file.
@@ -109,14 +126,18 @@ func (*Edit) Run(ctx context.Context, env *Env, call Call) Result {
 	if os.IsNotExist(err) {
 		if oldS == "" {
 			// Creating a new file via Edit with empty old_string.
+			env.beforeEdit(path)
 			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 				return ErrorResult("%v", err)
 			}
 			if err := os.WriteFile(path, []byte(newS), 0o644); err != nil {
 				return ErrorResult("%v", err)
 			}
-			env.Files.MarkRead(path)
-			return TextResult(fmt.Sprintf("File created successfully at: %s", path), map[string]any{"filePath": path, "oldString": "", "newString": newS})
+			env.Files.MarkReadContent(path, []byte(newS))
+			r := TextResult(fmt.Sprintf("File created successfully at: %s", path), map[string]any{"filePath": path, "oldString": "", "newString": newS,
+				"originalFile": nil, "structuredPatch": nonNilHunks(DiffLines("", newS, 3)), "userModified": false, "replaceAll": false})
+			r.Summary = "Created file"
+			return r
 		}
 		return ErrorResult("File does not exist. Current working directory: %s", env.Cwd)
 	}
@@ -161,17 +182,30 @@ func (*Edit) Run(ctx context.Context, env *Env, call Call) Result {
 	if ctx.Err() != nil {
 		return ErrorResult("interrupted")
 	}
+	env.beforeEdit(path)
 	if err := os.WriteFile(path, []byte(updated), st.Mode().Perm()); err != nil {
 		return ErrorResult("%v", err)
 	}
-	env.Files.MarkRead(path)
+	env.Files.MarkReadContent(path, []byte(updated))
 	msg := fmt.Sprintf("The file %s has been updated successfully.", path)
 	if in.ReplaceAll {
 		msg = fmt.Sprintf("The file %s has been updated. All occurrences were successfully replaced.", path)
 	} else if snip := snippet(updated, newS); snip != "" {
 		msg += " Here's the result of running `cat -n` on a snippet of the edited file:\n" + snip
 	}
-	return TextResult(msg, map[string]any{"filePath": path, "oldString": *in.OldString, "newString": newS, "replaceAll": in.ReplaceAll})
+	patch := DiffLines(string(data), updated, 3)
+	r := TextResult(msg, map[string]any{"filePath": path, "oldString": *in.OldString, "newString": newS, "replaceAll": in.ReplaceAll,
+		"originalFile": string(data), "structuredPatch": nonNilHunks(patch), "userModified": false})
+	add, del := DiffStats(patch)
+	r.Summary = fmt.Sprintf("Updated (+%d -%d)", add, del)
+	return r
+}
+
+func nonNilHunks(h []Hunk) []Hunk {
+	if h == nil {
+		return []Hunk{}
+	}
+	return h
 }
 
 // snippet returns numbered lines around the first occurrence of s.

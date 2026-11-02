@@ -87,7 +87,7 @@ func (*Read) Run(ctx context.Context, env *Env, call Call) Result {
 	if bytes.IndexByte(head, 0) >= 0 {
 		return ErrorResult("%s appears to be a binary file and cannot be read as text.", path)
 	}
-	env.Files.MarkRead(path)
+	env.Files.MarkReadContent(path, data)
 	if len(data) == 0 {
 		msg := env.reminder("empty_file")
 		if msg == "" {
@@ -130,9 +130,11 @@ func (*Read) Run(ctx context.Context, env *Env, call Call) Result {
 	if len(out) > ReadMaxOutputBytes {
 		return ErrorResult("File content (%d KB) exceeds the maximum allowed size (%d KB). Use the offset and limit parameters to read specific portions of the file, or search for specific content with Grep.", len(out)/1024, ReadMaxOutputBytes/1024)
 	}
-	return TextResult(out, map[string]any{"type": "text", "file": map[string]any{
+	r := TextResult(out, map[string]any{"type": "text", "file": map[string]any{
 		"filePath": path, "numLines": end - offset + 1, "startLine": offset, "totalLines": total,
 	}})
+	r.Summary = fmt.Sprintf("Read %d lines", end-offset+1)
+	return r
 }
 
 func readBinaryBlock(env *Env, path string, size int64, blockType, mediaType string, max int64) Result {

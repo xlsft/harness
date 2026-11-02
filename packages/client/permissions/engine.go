@@ -1,0 +1,660 @@
+// Package permissions decides whether a tool call may run, with Claude Code
+// semantics: rules in `Tool(specifier)` syntax evaluated deny → ask → allow
+// (first match wins), compound Bash commands checked per subcommand with
+// wrappers stripped, gitignore-style path rules, a built-in read-only Bash
+// allowlist, protected paths, permission modes, workspace trust and "allow
+// always" persistence to .claude/settings.local.json.
+//
+// The engine takes its rule lists and default mode as plain inputs (Config);
+// loading the settings hierarchy is the caller's job.
+package permissions
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"path/filepath"
+	"strings"
+	"sync"
+)
+
+// Mode is a permission mode.
+type Mode string
+
+// Supported modes.
+const (
+	ModeDefault           Mode = "default"
+	ModeAcceptEdits       Mode = "acceptEdits"
+	ModeBypassPermissions Mode = "bypassPermissions"
+	ModePlan              Mode = "plan"
+	// ModeDontAsk denies everything that would otherwise prompt.
+	ModeDontAsk Mode = "dontAsk"
+)
+
+// ParseMode validates a mode name ("manual" is an alias of default).
+func ParseMode(s string) (Mode, error) {
+	switch Mode(s) {
+	case "", "manual":
+		return ModeDefault, nil
+	case ModeDefault, ModeAcceptEdits, ModeBypassPermissions, ModePlan, ModeDontAsk:
+		return Mode(s), nil
+	}
+	return "", fmt.Errorf("unknown permission mode %q (want default, acceptEdits, plan, dontAsk or bypassPermissions)", s)
+}
+
+// Behavior is the outcome of a check.
+type Behavior string
+
+// Behaviors.
+const (
+	Allow Behavior = "allow"
+	Deny  Behavior = "deny"
+	Ask   Behavior = "ask"
+)
+
+// Request describes a pending tool call.
+type Request struct {
+	ToolName  string
+	ToolUseID string
+	Input     json.RawMessage
+	// ReadOnly is the tool's own classification of this call.
+	ReadOnly bool
+	// FilePath / Command are pre-extracted for matching (may be empty).
+	FilePath string
+	Command  string
+	// Cwd is the shell working directory for Bash (defaults to the engine cwd).
+	Cwd string
+
+	// Set by the engine before calling the Asker.
+	// Suggestions are rules the user may choose to always allow.
+	Suggestions []string
+	// Reason explains why the call needs approval.
+	Reason string
+}
+
+// Decision is the result of a permission check.
+type Decision struct {
+	Behavior Behavior
+	// Message explains a denial (sent to the model).
+	Message string
+	// UpdatedInput replaces the tool input when set (from an interactive approver).
+	UpdatedInput json.RawMessage
+	// Interrupt asks the loop to stop the turn after denying (deny without comment).
+	Interrupt bool
+	// Comment is user feedback sent to the model after the tool result (allow).
+	Comment string
+	// Rule is the rule that decided, when one did.
+	Rule string
+	// ResolvedBy is "rule", "mode", "user", ... (informational).
+	ResolvedBy string
+}
+
+// Checker decides on tool calls. It must be safe for concurrent use.
+type Checker interface {
+	Check(ctx context.Context, req Request) Decision
+}
+
+// Asker resolves Ask decisions interactively (AgentService, TUI prompt).
+type Asker interface {
+	Ask(ctx context.Context, req Request) (Decision, error)
+}
+
+// Source is one origin of permission rules, in priority order:
+// policySettings, cliArg, session, localSettings, projectSettings, userSettings.
+type Source struct {
+	// Name identifies the source ("cliArg", "localSettings", ...).
+	Name string
+	// Root is the base directory for "/path" specifiers. For
+	// .claude/settings*.json this is the directory that contains .claude/;
+	// for user settings the home directory; for CLI flags the cwd.
+	Root             string
+	Allow, Ask, Deny []string
+	// RequiresTrust marks committed project settings: their allow rules
+	// apply only once the workspace is trusted (deny and ask always apply).
+	RequiresTrust bool
+}
+
+// Config is the engine input. Settings loaders fill Sources; Allow/Ask/Deny
+// are shorthand for a "cliArg" source rooted at Cwd.
+type Config struct {
+	Cwd                   string
+	AdditionalDirectories []string
+	DefaultMode           Mode
+	Allow, Ask, Deny      []string
+	Sources               []Source
+	// Trusted reports whether the workspace is trusted (see TrustStore).
+	Trusted bool
+	// DisableBypassPermissions refuses switching to bypassPermissions.
+	DisableBypassPermissions bool
+	// LocalSettingsPath is where "allow always" rules are persisted;
+	// default <repo root>/.claude/settings.local.json.
+	LocalSettingsPath string
+	// ScratchDirs may be read and written without asking (session scratch).
+	ScratchDirs []string
+	// ReadableDirs may be read without asking (plans, task output).
+	ReadableDirs []string
+	// Home overrides the home directory (tests).
+	Home string
+}
+
+// Engine is the rule engine. It implements Checker.
+type Engine struct {
+	mu            sync.RWMutex
+	mode          Mode
+	cwd           string
+	workDirs      []string
+	scratch       []string
+	readable      []string
+	home          string
+	trusted       bool
+	disableBypass bool
+	localPath     string
+	localRoot     string
+	sources       []Source
+	allow         []Rule
+	ask           []Rule
+	deny          []Rule
+	asker         Asker
+	onMode        func(Mode)
+}
+
+// New builds an engine from cfg.
+func New(cfg Config) *Engine {
+	e := &Engine{
+		mode: cfg.DefaultMode, cwd: cfg.Cwd, home: cfg.Home, trusted: cfg.Trusted,
+		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, readable: cfg.ReadableDirs,
+	}
+	if e.mode == "" {
+		e.mode = ModeDefault
+	}
+	if e.home == "" {
+		e.home = homeDir()
+	}
+	if e.cwd == "" {
+		e.cwd, _ = filepath.Abs(".")
+	}
+	e.workDirs = append([]string{e.cwd}, cfg.AdditionalDirectories...)
+	e.localPath = cfg.LocalSettingsPath
+	if e.localPath == "" {
+		e.localPath = filepath.Join(RepoRoot(e.cwd), ".claude", "settings.local.json")
+	}
+	e.localRoot = filepath.Dir(filepath.Dir(e.localPath))
+	if len(cfg.Allow)+len(cfg.Ask)+len(cfg.Deny) > 0 {
+		e.sources = append(e.sources, Source{Name: "cliArg", Root: e.cwd, Allow: cfg.Allow, Ask: cfg.Ask, Deny: cfg.Deny})
+	}
+	e.sources = append(e.sources, cfg.Sources...)
+	e.rebuild()
+	return e
+}
+
+func (e *Engine) rebuild() {
+	e.allow, e.ask, e.deny = nil, nil, nil
+	for _, s := range e.sources {
+		root := s.Root
+		if root == "" {
+			root = e.cwd
+		}
+		tag := func(items []string) []Rule {
+			rs := ParseRules(items)
+			for i := range rs {
+				rs[i].Source, rs[i].Root = s.Name, root
+			}
+			return rs
+		}
+		e.deny = append(e.deny, tag(s.Deny)...)
+		e.ask = append(e.ask, tag(s.Ask)...)
+		if !s.RequiresTrust || e.trusted {
+			e.allow = append(e.allow, tag(s.Allow)...)
+		}
+	}
+}
+
+// SetAsker installs an interactive approver; without it Ask becomes Deny.
+func (e *Engine) SetAsker(a Asker) {
+	e.mu.Lock()
+	e.asker = a
+	e.mu.Unlock()
+}
+
+// OnModeChange registers a listener called after every mode change.
+func (e *Engine) OnModeChange(f func(Mode)) {
+	e.mu.Lock()
+	e.onMode = f
+	e.mu.Unlock()
+}
+
+// SetMode changes the mode at runtime.
+func (e *Engine) SetMode(m Mode) error {
+	e.mu.Lock()
+	if m == ModeBypassPermissions && e.disableBypass {
+		e.mu.Unlock()
+		return errors.New("bypassPermissions mode is disabled by policy")
+	}
+	changed := e.mode != m
+	e.mode = m
+	f := e.onMode
+	e.mu.Unlock()
+	if changed && f != nil {
+		f(m)
+	}
+	return nil
+}
+
+// Mode returns the current mode.
+func (e *Engine) Mode() Mode {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.mode
+}
+
+// SetTrusted applies or withdraws trust-gated allow rules.
+func (e *Engine) SetTrusted(t bool) {
+	e.mu.Lock()
+	e.trusted = t
+	e.rebuild()
+	e.mu.Unlock()
+}
+
+// WorkingDirs returns the cwd plus additional directories.
+func (e *Engine) WorkingDirs() []string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return append([]string(nil), e.workDirs...)
+}
+
+// AddReadableDir lets the model read dir without asking.
+func (e *Engine) AddReadableDir(dir string) {
+	e.mu.Lock()
+	e.readable = append(e.readable, dir)
+	e.mu.Unlock()
+}
+
+// AddAllow appends session-only allow rules.
+func (e *Engine) AddAllow(rules ...string) {
+	e.mu.Lock()
+	e.addSourceRules("session", e.cwd, rules)
+	e.mu.Unlock()
+}
+
+func (e *Engine) addSourceRules(name, root string, rules []string) {
+	for i := range e.sources {
+		if e.sources[i].Name == name && e.sources[i].Root == root {
+			e.sources[i].Allow = append(e.sources[i].Allow, rules...)
+			e.rebuild()
+			return
+		}
+	}
+	e.sources = append(e.sources, Source{Name: name, Root: root, Allow: rules})
+	e.rebuild()
+}
+
+// AllowAlways adds rules for the rest of the session and persists them to
+// the local settings file (merging with its other keys).
+func (e *Engine) AllowAlways(rules []string) error {
+	var valid []string
+	for _, r := range rules {
+		if err := ValidateRule(r); err != nil {
+			return err
+		}
+		valid = append(valid, strings.TrimSpace(r))
+	}
+	if len(valid) == 0 {
+		return nil
+	}
+	e.mu.Lock()
+	e.addSourceRules("localSettings", e.localRoot, valid)
+	path := e.localPath
+	e.mu.Unlock()
+	return PersistAllowRules(path, valid)
+}
+
+// LocalSettingsPath returns where AllowAlways persists rules.
+func (e *Engine) LocalSettingsPath() string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.localPath
+}
+
+// IsDisabled reports whether a bare deny rule removes the tool from the
+// model's tool list.
+func (e *Engine) IsDisabled(tool string) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	for _, r := range e.deny {
+		if r.Spec == "" && r.toolMatches(tool, false) {
+			return true
+		}
+	}
+	return false
+}
+
+// Check implements Checker.
+func (e *Engine) Check(ctx context.Context, req Request) Decision {
+	d := e.Evaluate(req)
+	if d.Behavior != Ask {
+		return d
+	}
+	e.mu.RLock()
+	asker, mode := e.asker, e.mode
+	e.mu.RUnlock()
+	if mode == ModeDontAsk {
+		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission to use %s was not granted (dontAsk mode denies anything not pre-approved).", req.ToolName), ResolvedBy: "mode"}
+	}
+	if asker == nil {
+		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission to use %s was not granted (non-interactive mode). Allow it with --allowedTools or --permission-mode.", req.ToolName), ResolvedBy: "mode"}
+	}
+	req.Suggestions = e.Suggest(req)
+	req.Reason = d.Message
+	ad, err := asker.Ask(ctx, req)
+	if err != nil {
+		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission request for %s failed: %v", req.ToolName, err), Interrupt: ctx.Err() != nil}
+	}
+	if ad.Behavior != Allow {
+		ad.Behavior = Deny
+		if ad.Message == "" {
+			ad.Message = fmt.Sprintf("The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed.")
+			ad.Interrupt = true
+		} else {
+			ad.Message = "The user doesn't want to proceed with this tool use. The tool use was rejected. The user said:\n" + ad.Message
+		}
+	}
+	if ad.ResolvedBy == "" {
+		ad.ResolvedBy = "user"
+	}
+	return ad
+}
+
+func (e *Engine) planDenial(tool string) Decision {
+	return Decision{Behavior: Deny, ResolvedBy: "mode", Message: fmt.Sprintf("Plan mode is active: %s is not allowed. Only read-only tools may be used until the user approves a plan (call ExitPlanMode with the plan).", tool)}
+}
+
+// Evaluate returns the static decision without consulting the asker.
+func (e *Engine) Evaluate(req Request) Decision {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	input := decodeInput(req.Input)
+	if req.ToolName == "Bash" {
+		return e.evalBash(req, input)
+	}
+	mc := matchContext{cwd: e.cwd, home: e.home}
+	for _, r := range e.deny {
+		if r.matchesCall(req, input, mc, false) {
+			return Decision{Behavior: Deny, Rule: r.String(), ResolvedBy: "rule", Message: fmt.Sprintf("Permission to use %s has been denied by rule %s.", req.ToolName, r)}
+		}
+	}
+	for _, r := range e.ask {
+		if r.matchesCall(req, input, mc, false) {
+			if e.mode == ModeBypassPermissions {
+				break
+			}
+			return Decision{Behavior: Ask, Rule: r.String(), Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
+		}
+	}
+	if e.mode == ModeBypassPermissions {
+		return Decision{Behavior: Allow, ResolvedBy: "mode"}
+	}
+	path := req.FilePath
+	if path == "" {
+		path = e.cwd
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(e.cwd, path)
+	}
+	path = filepath.Clean(path)
+	allowRule := func(implied bool) (Rule, bool) {
+		for _, r := range e.allow {
+			if r.matchesCall(req, input, mc, implied) {
+				return r, true
+			}
+		}
+		return Rule{}, false
+	}
+
+	switch {
+	case readTools[req.ToolName]:
+		if inAny(path, e.workDirs) || inAny(path, e.scratch) || inAny(path, e.readable) {
+			return Decision{Behavior: Allow, ResolvedBy: "mode"}
+		}
+		if r, ok := allowRule(true); ok {
+			return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
+		}
+		return Decision{Behavior: Ask, Message: fmt.Sprintf("%s is outside the working directories.", path)}
+	case req.ReadOnly:
+		return Decision{Behavior: Allow, ResolvedBy: "mode"}
+	}
+	if e.mode == ModePlan {
+		return e.planDenial(req.ToolName)
+	}
+	if editTools[req.ToolName] {
+		if isProtected(path, e.workDirs, e.home) {
+			return Decision{Behavior: Ask, Message: fmt.Sprintf("%s is a protected path; edits always need approval.", path)}
+		}
+		if inAny(path, e.scratch) {
+			return Decision{Behavior: Allow, ResolvedBy: "mode"}
+		}
+		if r, ok := allowRule(false); ok {
+			return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
+		}
+		if e.mode == ModeAcceptEdits && inAny(path, e.workDirs) {
+			return Decision{Behavior: Allow, ResolvedBy: "mode"}
+		}
+		return Decision{Behavior: Ask}
+	}
+	if r, ok := allowRule(false); ok {
+		return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
+	}
+	return Decision{Behavior: Ask}
+}
+
+// bashCommands returns the normalized subcommands of a command line plus
+// those inside substitutions (for deny / ask matching).
+func bashCommands(cmd string, depth int) (top []SimpleCommand, all []SimpleCommand) {
+	for _, c := range SplitCommand(cmd) {
+		n := c.Normalize()
+		top = append(top, n)
+		all = append(all, n, c)
+		if depth < 3 {
+			for _, s := range c.Substitutions {
+				_, inner := bashCommands(s, depth+1)
+				all = append(all, inner...)
+			}
+		}
+	}
+	return
+}
+
+// bashRuleMatches matches a Bash rule against one subcommand. Bare and
+// param rules are matched by wholeBashRule.
+func bashRuleMatches(r Rule, c SimpleCommand) bool {
+	if r.Spec == "" || !r.toolMatches("Bash", false) {
+		return false
+	}
+	return matchBashSpec(r.Spec, c.Text())
+}
+
+// wholeBashRule reports whether a rule covers the whole call: a bare Bash
+// rule, a tool glob or a param:value rule.
+func wholeBashRule(r Rule, input map[string]any) bool {
+	if !r.toolMatches("Bash", false) {
+		return false
+	}
+	if r.Spec == "" {
+		return true
+	}
+	if k, v, ok := paramSpec("Bash", r.Spec, input); ok && k != "command" {
+		return globMatch(v, valueString(input[k]))
+	}
+	return false
+}
+
+func (e *Engine) evalBash(req Request, input map[string]any) Decision {
+	top, all := bashCommands(req.Command, 0)
+	for _, r := range e.deny {
+		if wholeBashRule(r, input) {
+			return Decision{Behavior: Deny, Rule: r.String(), ResolvedBy: "rule", Message: fmt.Sprintf("Permission to use Bash has been denied by rule %s.", r)}
+		}
+		for _, c := range all {
+			if bashRuleMatches(r, c) {
+				return Decision{Behavior: Deny, Rule: r.String(), ResolvedBy: "rule", Message: fmt.Sprintf("Permission to use Bash with command %s has been denied by rule %s.", c.Text(), r)}
+			}
+		}
+	}
+	if e.mode != ModeBypassPermissions {
+		for _, r := range e.ask {
+			if wholeBashRule(r, input) {
+				return Decision{Behavior: Ask, Rule: r.String(), Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
+			}
+			for _, c := range all {
+				if bashRuleMatches(r, c) {
+					return Decision{Behavior: Ask, Rule: r.String(), Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
+				}
+			}
+		}
+	}
+	if e.mode == ModeBypassPermissions {
+		return Decision{Behavior: Allow, ResolvedBy: "mode"}
+	}
+	if len(top) == 0 {
+		return Decision{Behavior: Ask}
+	}
+	readOnly := true
+	for _, c := range top {
+		if !isReadOnlyCommand(c) {
+			readOnly = false
+			break
+		}
+	}
+	if readOnly {
+		return Decision{Behavior: Allow, ResolvedBy: "mode"}
+	}
+	if e.mode == ModePlan {
+		return e.planDenial("Bash (" + req.Command + ")")
+	}
+	for _, r := range e.allow {
+		if wholeBashRule(r, input) {
+			return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
+		}
+	}
+	cwd := req.Cwd
+	if cwd == "" {
+		cwd = e.cwd
+	}
+	var rule string
+	for _, c := range top {
+		if e.subcommandAllowed(c, cwd, &rule) {
+			continue
+		}
+		return Decision{Behavior: Ask}
+	}
+	return Decision{Behavior: Allow, Rule: rule, ResolvedBy: "rule"}
+}
+
+func (e *Engine) subcommandAllowed(c SimpleCommand, cwd string, rule *string) bool {
+	if isReadOnlyCommand(c) {
+		return true
+	}
+	if c.Unsafe {
+		return false
+	}
+	for _, r := range e.allow {
+		if bashRuleMatches(r, c) {
+			*rule = r.String()
+			return true
+		}
+	}
+	return e.mode == ModeAcceptEdits && e.acceptEditsCommand(c, cwd, e.workDirs)
+}
+
+// Suggest returns the rules offered for "always allow" (up to 5 for
+// compound Bash commands).
+func (e *Engine) Suggest(req Request) []string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	switch {
+	case req.ToolName == "Bash":
+		top, _ := bashCommands(req.Command, 0)
+		cwd := req.Cwd
+		if cwd == "" {
+			cwd = e.cwd
+		}
+		var out []string
+		seen := map[string]bool{}
+		for _, c := range top {
+			var r string
+			if c.Unsafe || e.subcommandAllowed(c, cwd, &r) {
+				continue
+			}
+			s := "Bash(" + commandPrefix(c) + ")"
+			if !seen[s] {
+				seen[s] = true
+				out = append(out, s)
+			}
+			if len(out) == 5 {
+				break
+			}
+		}
+		return out
+	case editTools[req.ToolName] || readTools[req.ToolName]:
+		p := req.FilePath
+		if p == "" {
+			return []string{req.ToolName}
+		}
+		if !filepath.IsAbs(p) {
+			p = filepath.Join(e.cwd, p)
+		}
+		dir := filepath.Dir(filepath.Clean(p))
+		tool := "Read"
+		if editTools[req.ToolName] {
+			tool = "Edit"
+		}
+		if within(dir, e.localRoot) {
+			rel, _ := filepath.Rel(e.localRoot, dir)
+			if rel == "." {
+				return []string{tool + "(/**)"}
+			}
+			return []string{tool + "(/" + filepath.ToSlash(rel) + "/**)"}
+		}
+		return []string{tool + "(/" + filepath.ToSlash(dir) + "/**)"}
+	}
+	return []string{req.ToolName}
+}
+
+// subcommandTools take a subcommand that belongs in the rule prefix.
+var subcommandTools = map[string]bool{
+	"git": true, "npm": true, "pnpm": true, "yarn": true, "bun": true, "go": true, "cargo": true,
+	"docker": true, "kubectl": true, "gh": true, "make": true, "pip": true, "pip3": true, "uv": true,
+	"poetry": true, "dotnet": true, "mvn": true, "gradle": true, "brew": true, "npx": true, "bunx": true,
+	"deno": true, "terraform": true, "helm": true, "rustup": true, "composer": true, "mix": true,
+}
+
+var runSubcommands = map[string]bool{"run": true, "exec": true, "x": true, "dlx": true, "compose": true}
+
+var interpreters = map[string]bool{"python": true, "python3": true, "node": true, "ruby": true, "bash": true, "sh": true, "zsh": true, "perl": true, "php": true}
+
+// commandPrefix proposes a prefix rule such as "npm run test *".
+func commandPrefix(c SimpleCommand) string {
+	ws := c.Words
+	if len(ws) == 0 {
+		return ""
+	}
+	parts := []string{ws[0].Raw}
+	rest := ws[1:]
+	name := filepath.Base(ws[0].Value)
+	switch {
+	case subcommandTools[name]:
+		if len(rest) > 0 && !strings.HasPrefix(rest[0].Value, "-") {
+			parts = append(parts, rest[0].Raw)
+			if runSubcommands[rest[0].Value] && len(rest) > 1 && !strings.HasPrefix(rest[1].Value, "-") {
+				parts = append(parts, rest[1].Raw)
+			}
+		}
+	case interpreters[name]:
+		if len(rest) > 1 && rest[0].Value == "-m" {
+			parts = append(parts, rest[0].Raw, rest[1].Raw)
+		} else if len(rest) > 0 && !strings.HasPrefix(rest[0].Value, "-") {
+			parts = append(parts, rest[0].Raw)
+		}
+	}
+	return strings.Join(parts, " ") + " *"
+}
