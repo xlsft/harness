@@ -122,7 +122,7 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | `GET /api/vcs/github/manifest/callback` | Redirect target of the GitHub App manifest flow; registers the app and redirects to its install page |
 | `GET /api/vcs/github/setup` | GitHub App setup URL (after installation) |
 | `GET /api/vcs/sessions/:id/autofix-jobs` | Auto-fix jobs of a session (owner), newest first |
-| `/api/auth/**` | Better Auth (email + password sessions, admin plugin: `/api/auth/admin/create-user`, …) |
+| `/api/auth/**` | Better Auth (email or username + password sessions: `/sign-in/email`, `/sign-in/username`; admin plugin: `/api/auth/admin/create-user`, which takes `data: {username}`, …) |
 | `/api/admin/providers[/:id]` | Provider CRUD (`GET`, `POST`, `PATCH`, `DELETE`) |
 | `POST /api/admin/providers/:id/discover` | Candidate models from the upstream's `/v1/models` (through the SSRF guard): `upstream_model`, `display_name`, `context_window` / `max_output_tokens` when reported, `catalog_ids` already using it |
 | `/api/admin/models[/:id]` | Model catalog CRUD; `GET /:id` also lists features turned off by negotiation, `PATCH {reset_negotiation:true}` clears them |
