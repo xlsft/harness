@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins/admin";
+import { username } from "better-auth/plugins/username";
 import { count, eq } from "drizzle-orm";
 import { getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
@@ -41,7 +42,8 @@ function createAuth() {
     },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        if (ctx.path === "/sign-up/email" && !cfg.allowSignup && (await hasUsers())) {
+        // Covers every sign-up method (today only /sign-up/email, which also takes a username).
+        if (ctx.path.startsWith("/sign-up/") && !cfg.allowSignup && (await hasUsers())) {
           throw new APIError("FORBIDDEN", { message: "Sign-up is closed. Ask an administrator to create your account." });
         }
       }),
@@ -54,7 +56,9 @@ function createAuth() {
         },
       },
     },
-    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] })],
+    // username: optional unique handle (3-30 chars of [a-zA-Z0-9_.], stored lowercased) usable at
+    // /sign-in/username instead of the email; set at sign-up or by an admin (create-user `data.username`).
+    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), username()],
     advanced: {
       database: {
         generateId: ({ model }) => newId(ID_PREFIX[model] ?? model.slice(0, 4)),
