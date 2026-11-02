@@ -55,6 +55,8 @@ export interface ServerInput {
   overrides: Partial<OverrideCfg>[];
   targetRoles: string[];
   projectKey: string;
+  /** Admin-only: let the proxy reach private / loopback addresses (remote servers). */
+  allowPrivateNetwork?: boolean;
 }
 
 export interface SecretChangesInput {

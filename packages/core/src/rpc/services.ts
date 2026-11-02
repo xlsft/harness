@@ -8,6 +8,7 @@ import { GatewayService, type StreamMessageResponse } from "../gen/harness/llm/v
 import { PromptService } from "../gen/harness/prompts/v1/prompts_pb.ts";
 import { McpService } from "../gen/harness/mcp/v1/mcp_pb.ts";
 import { SyncService } from "../gen/harness/sync/v1/sync_pb.ts";
+import { VcsService } from "../gen/harness/vcs/v1/vcs_pb.ts";
 import { config } from "../env.ts";
 import type { GatewayEvent } from "../gateway/types.ts";
 import { ApiError } from "../lib/errors.ts";
@@ -32,6 +33,7 @@ import { registerDecisionService } from "./decision.ts";
 import { registerMcpService } from "./mcp.ts";
 import { registerSearchService } from "./search.ts";
 import { registerSyncService } from "./sync.ts";
+import { registerVcsService } from "./vcs.ts";
 
 const POLL_STATUS = {
   pending: PollDeviceAuthResponse_Status.PENDING,
@@ -199,9 +201,10 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerSearchService(router);
   registerDecisionService(router);
   registerMcpService(router);
+  registerVcsService(router);
 
   return router;
 }
 
 /** Fully-qualified service names, used to mount the Connect handlers in Nitro. */
-export const SERVICE_NAMES = [DeviceAuthService.typeName, GatewayService.typeName, PromptService.typeName, SyncService.typeName, McpService.typeName];
+export const SERVICE_NAMES = [DeviceAuthService.typeName, GatewayService.typeName, PromptService.typeName, SyncService.typeName, McpService.typeName, VcsService.typeName];

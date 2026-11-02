@@ -12,7 +12,7 @@ export const routes: RouteDef[] = [
   { route: "/api/health", method: "get", handler: "./src/http/routes/health.ts" },
 
   // Connect services (proto/harness/**): DeviceAuthService, GatewayService, PromptService, SyncService,
-  // SearchService, DecisionService, McpService
+  // SearchService, DecisionService, McpService, VcsService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
@@ -20,12 +20,20 @@ export const routes: RouteDef[] = [
   { route: "/harness.search.v1.SearchService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.decision.v1.DecisionService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.mcp.v1.McpService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.vcs.v1.VcsService/**", handler: "./src/http/routes/rpc.ts" },
 
   // Better Auth (web sessions, admin plugin) and the device approval page stay plain HTTP
   { route: "/api/auth/**", handler: "./src/http/routes/better-auth.ts" },
   { route: "/device", handler: "./src/http/routes/device-page.ts" },
   // OAuth redirect target for remote MCP servers (McpService.StartOAuth)
   { route: "/api/mcp/oauth/callback", method: "get", handler: "./src/http/routes/mcp-oauth-callback.ts" },
+  // Code hosts (VcsService): webhooks, per-user OAuth redirect, GitHub App manifest / setup redirects
+  { route: "/api/vcs/github/webhook", method: "post", handler: "./src/http/routes/vcs-github-webhook.ts" },
+  { route: "/api/vcs/gitlab/webhook", method: "post", handler: "./src/http/routes/vcs-gitlab-webhook.ts" },
+  { route: "/api/vcs/oauth/callback", method: "get", handler: "./src/http/routes/vcs-oauth-callback.ts" },
+  { route: "/api/vcs/github/manifest/callback", method: "get", handler: "./src/http/routes/vcs-github-manifest-callback.ts" },
+  { route: "/api/vcs/github/setup", method: "get", handler: "./src/http/routes/vcs-github-setup.ts" },
+  { route: "/api/vcs/sessions/:id/autofix-jobs", method: "get", handler: "./src/http/routes/vcs-session-autofix.ts" },
 
   // admin JSON API (web UI; not part of the client protocol)
   { route: "/api/admin/providers", handler: "./src/http/routes/admin-providers.ts" },

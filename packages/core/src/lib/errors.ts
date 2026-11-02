@@ -12,6 +12,7 @@ export type ApiErrorType =
   | "protocol_version"
   | "unsupported_client"
   | "conflict"
+  | "needs_auth"
   | "failed_precondition";
 
 const STATUS: Record<ApiErrorType, number> = {
@@ -27,6 +28,7 @@ const STATUS: Record<ApiErrorType, number> = {
   protocol_version: 426,
   unsupported_client: 426,
   conflict: 409,
+  needs_auth: 412,
   failed_precondition: 412,
 };
 

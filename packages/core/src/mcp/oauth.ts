@@ -555,10 +555,10 @@ export function expectsOAuth(row: ServerRow): boolean {
   return !!rowConfig(row).remote?.oauth;
 }
 
-/** Throws FAILED_PRECONDITION when the caller's state for the server is NEEDS_AUTH. */
+/** Throws needs_auth (FAILED_PRECONDITION / ERROR_TYPE_NEEDS_AUTH) when the caller's state for the server is NEEDS_AUTH. */
 export async function assertAuthorized(user: PublicUser, view: Pick<ServerView, "row" | "secrets">): Promise<void> {
   const st = (await authStatuses(user, [view])).get(view.row.id)!;
   if (st.state === AuthState.NEEDS_AUTH) {
-    throw new ApiError("failed_precondition", `MCP server ${view.row.name} needs authorization: ${st.message || "authorize it first"}`);
+    throw new ApiError("needs_auth", `MCP server ${view.row.name} needs authorization: ${st.message || "authorize it first"}`);
   }
 }

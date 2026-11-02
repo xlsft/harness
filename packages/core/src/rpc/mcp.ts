@@ -52,6 +52,7 @@ function serverToProto(v: ServerView, auth?: AuthStatusView): Init<typeof Server
     overrides: c.overrides,
     targetRoles: Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [],
     projectKey: r.projectKey,
+    allowPrivateNetwork: r.allowPrivateNetwork,
     version: BigInt(r.version),
     configHash: r.configHash,
     auth: authToProto(auth),
@@ -332,6 +333,7 @@ export function registerMcpService(router: ConnectRouter): void {
             alwaysLoad: s.alwaysLoad,
             tools: s.tools.map(toolToProto),
             toolsUpdatedAt: s.toolsUpdatedAt,
+            requiresUserInteraction: s.requiresUserInteraction,
           })),
         },
       };
