@@ -200,6 +200,16 @@ function blockingStatus(s: SessionState): Status {
   return s.pendingPermission || s.pendingQuestion || s.pendingPlan ? 'needs_input' : 'working'
 }
 
+// A reply streamed outside a turn (the model's answer to a Stop) that was cancelled leaves deltas with no final
+// message; they are dropped when the conversation moves on.
+function dropUnfinished(s: SessionState) {
+  if (s.turnStartedAt) return
+  const kept = s.items.filter(it => !(it.kind === 'assistant' && it.streaming))
+  if (kept.length === s.items.length) return
+  s.items = kept
+  reindex(s)
+}
+
 // ── reducer ──────────────────────────────────────────────────────────────────
 
 export function reduce(s: SessionState, ev: SessionEvent): SessionState {
@@ -220,6 +230,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
 
     case 'userMessage': {
+      dropUnfinished(s)
       const id = e.value.uuid || 'u' + seq
       if (!find(s, 'user', id)) push(s, userItem(id, e.value))
       s.queue = s.queue.filter(q => q.id !== id)
@@ -227,6 +238,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     }
 
     case 'turnStarted':
+      dropUnfinished(s)
       s.turnStartedAt = at
       s.turnModel = e.value.model
       s.turnTokens = 0

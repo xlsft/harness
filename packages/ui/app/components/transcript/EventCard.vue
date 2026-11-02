@@ -105,12 +105,8 @@ const usageLine = computed(() => {
   </div>
 
   <!-- interrupted turn -->
-  <p
-    v-else-if="turn && turn.result === 'interrupted'"
-    class="m-0 leading-[1.6] text-toned"
-  >
-    Stopped. Want to clarify something or have me do it differently?
-  </p>
+  <!-- interrupted turn: the model answers the Stop itself, in a message of its own -->
+  <template v-else-if="turn && turn.result === 'interrupted'" />
 
   <!-- turn usage footer -->
   <div
