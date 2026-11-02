@@ -87,6 +87,8 @@
     color: var(--ui-text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    /* An app, not a page: no rubber-band bounce (the desktop WebView bounces even with nothing to scroll). */
+    overscroll-behavior: none;
   }
 
   body {
