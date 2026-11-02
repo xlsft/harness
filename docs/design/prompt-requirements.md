@@ -30,7 +30,7 @@ What the bundle covers today, and what it deliberately leaves out.
 
 Dropped on purpose, because harness does not have these features: browser automation, desktop control, IDE integration (selected lines, diagnostics), feedback commands, plans and billing, remote control branding, hosted artifacts, team and coordinator messaging, memory files written by the agent, scheduled loops and wake-ups, sandbox-specific failure guidance, cross-session messaging, the product's own help agent, notebook reading in Read (the client does not support it yet).
 
-Needed later, not written yet (arrive with the tools in M3/M4, see `docs/PLAN.md` section 2.2):
+Needed later, not written yet (they arrive with their tools; see `docs/PLAN.md` and the milestone column in `docs/design/prompt-flow.md`):
 
 - `Agent` (subagents): when to delegate, how to brief a subagent, not duplicating its work, trusting but checking its results.
 - `Skill`, `ToolSearch`: loading skills and deferred tools before use.
