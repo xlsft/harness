@@ -11,6 +11,16 @@ const store = useSessionStore()
 const now = useNow()
 
 const text = ref(props.preset?.text ?? '')
+
+// "Attach as context" from other panes: each path becomes an @mention at the end of the draft.
+const attach = useState<string[]>('composer-attach', () => [])
+watch(attach, (paths) => {
+  if (!paths.length) return
+  const mentions = paths.map(p => `@${p}`).join(' ')
+  text.value = text.value && !text.value.endsWith(' ') ? `${text.value} ${mentions} ` : `${text.value}${mentions} `
+  attach.value = []
+  nextTick(() => input.value?.focus())
+}, { deep: true })
 const mode = ref<'normal' | 'shell' | 'memory'>('normal')
 const focused = ref(!!props.preset?.focused)
 const error = ref(props.preset?.error ?? '')

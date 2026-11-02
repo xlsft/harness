@@ -2,8 +2,9 @@
 // Changes in this turn (Diff.dc.html "summary"): one row per file with +/− and a five-square bar.
 import type { FileChange } from '~/utils/tools'
 
-const props = defineProps<{ files: FileChange[] }>()
-defineEmits<{ review: [], open: [path: string] }>()
+// `totalOnly`: just the totals row (the diff pane draws the file rows as separators inside the diff).
+const props = withDefaults(defineProps<{ files: FileChange[], flush?: boolean, totalOnly?: boolean }>(), { flush: false, totalOnly: false })
+defineEmits<{ open: [path: string] }>()
 
 const total = computed(() => props.files.reduce((a, f) => ({ add: a.add + f.add, del: a.del + f.del }), { add: 0, del: 0 }))
 
@@ -14,17 +15,17 @@ function bars(f: FileChange) {
 </script>
 
 <template>
-  <div class="border border-default bg-surface">
+  <div
+    class="bg-surface"
+    :class="flush ? 'border-b border-default' : 'border border-default'"
+  >
     <div class="flex items-center gap-[9px] border-b border-default px-3 py-[7px] text-[12px]">
       <span class="text-white">{{ files.length }} files changed</span>
       <span class="flex-1" />
       <span class="text-ok">+{{ total.add }}</span><span class="text-bad">−{{ total.del }}</span>
-      <HBtn @click="$emit('review')">
-        Review
-      </HBtn>
     </div>
     <a
-      v-for="f in files"
+      v-for="f in totalOnly ? [] : files"
       :key="f.path"
       href="#"
       class="flex items-center gap-2.5 border-b border-muted px-3 py-[5px] text-[12px] text-toned last:border-b-0 hover:bg-hover"

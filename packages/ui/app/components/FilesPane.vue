@@ -105,6 +105,15 @@ function openHit(path: string) {
   if (FILE_TREE.some(n => n.path === path)) selectedPath.value = path
 }
 
+// "Open file" from other panes (diff): select it when the tree has it (absolute paths match by suffix).
+const filesOpen = useState<string>('files-open-path', () => '')
+watch(filesOpen, (p) => {
+  if (!p) return
+  const hit = FILE_TREE.find(n => n.kind !== 'dir' && (n.path === p || p.endsWith(`/${n.path}`)))
+  if (hit) selectedPath.value = hit.path
+  filesOpen.value = ''
+}, { immediate: true })
+
 function toggleSetting(key: string) {
   settings[key] = !settings[key]
 }
