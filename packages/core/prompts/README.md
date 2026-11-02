@@ -25,8 +25,11 @@ Server-side prompts live next to the bundle files but are never sent to clients:
 |---|---|
 | `decision/system.md` | system prompt of the `llm` decision provider (`harness.decision.v1.DecisionService`, the client's `auto` mode) |
 | `decision/classify/description.md` + `decision/classify/schema.json` | the `classify` tool the classifier must call (`{decision: allow\|deny\|ask, reason, categories[], confidence}`) |
+| `decision/typed/question.json` | the question the `decision_model` provider (typed decision models such as TypeSafe's Jev) sends as `questions.decision`: `{type: "choice", instructions, criteria: {allow, ask, deny}}`; the labels must be exactly allow, ask and deny |
 
 They follow the same per-model override rules as everything else (e.g. `overrides/qwen-*/decision/system.md`).
+The typed question is matched against the configured decision model id, which may contain a slash, so use a
+wildcard such as `overrides/*jev-1.13*/decision/typed/question.json`.
 
 All texts are written from scratch (clean-room); never copy Claude Code's prompts.
 

@@ -7,7 +7,14 @@
  *       {"type": "rules", "id": "rules"},
  *       {"type": "llm", "id": "llm", "settings": {"model"?, "timeout_ms"?, "max_tokens"?, "min_confidence"?}},
  *       {"type": "http", "id": "opa", "display_name"?, "settings": {"url", "bearer_token"?, "headers"?,
- *                                                                  "allow_private_network"?, "timeout_ms"?, "health_url"?}}
+ *                                                                  "allow_private_network"?, "timeout_ms"?, "health_url"?}},
+ *       {"type": "decision_model", "id": "decision_model", "display_name"?,     // typed decision model (decision-model.ts)
+ *        "settings": {"endpoint"?: "openrouter" | "typesafe" | "<https URL>",  // default "openrouter"
+ *                     "model"?,                // default "typesafe/jev-1.13" (openrouter), "jev-1.13.0" (typesafe)
+ *                     "api_key"?,              // write-only
+ *                     "api_key_provider"?,     // or: reuse the key of this gateway provider (same host only)
+ *                     "allow_private_network"?, "timeout_ms"?: 3000,
+ *                     "min_probability"?: 0.8, "min_margin"?: 0.15, "on_uncertain"?: "next" | "ask"}}
  *     ],
  *     "on_error": "ask" | "next",                      // default "ask"
  *     "cache_ttl_seconds": 600,                        // classifier decision cache; 0 disables
@@ -17,9 +24,13 @@
  *               "protected_branches": ["main", "master", "release*"], "deny_all_force_push": false}
  *   }
  *
- * Provider ids: "rules"; "llm" or "llm:<name>"; "http:<name>" (a bare name is prefixed with the type).
+ * Provider ids: "rules"; "llm" or "llm:<name>"; "http:<name>"; "decision_model" or "decision_model:<name>"
+ * (a bare name is prefixed with the type).
  * Webhook secrets (`bearer_token`, `headers`) are write-only: stored encrypted, shown as `bearer_token_set`
- * and `header_names`; omitting them on PUT keeps the stored values, null clears them.
+ * and `header_names`; omitting them on PUT keeps the stored values, null clears them. The same holds for a
+ * decision model's `api_key` (shown as `api_key_set`). `api_key_provider` names a gateway provider
+ * (/api/admin/providers) whose key is used instead, read when deciding; its base URL must have the same
+ * host as the decision endpoint, so the key never goes to another service.
  */
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
@@ -28,10 +39,19 @@ import { ApiError } from "../lib/errors.ts";
 import { sha256 } from "../lib/ids.ts";
 import { assertUrlAllowed } from "../lib/ssrf.ts";
 import { findModel } from "../services/models.ts";
+import { loadProviderRuntime } from "../services/providers.ts";
+import {
+  DECISION_MODEL_ENDPOINTS,
+  DEFAULT_DECISION_MODEL_TIMEOUT_MS,
+  DEFAULT_MIN_MARGIN,
+  DEFAULT_MIN_PROBABILITY,
+  decisionEndpointUrl,
+  type OnUncertain,
+} from "./decision-model.ts";
 import { DEFAULT_HTTP_TIMEOUT_MS } from "./http.ts";
 import { DEFAULT_LLM_TIMEOUT_MS, type LlmSettings } from "./llm.ts";
 import { DEFAULT_PROTECTED_BRANCHES, RULE_CATEGORIES, type ExtraDenyRule, type RuleCategory } from "./rules.ts";
-import type { ProviderType } from "./types.ts";
+import { ProviderError, type ProviderType } from "./types.ts";
 
 export type OnErrorPolicy = "ask" | "next";
 
@@ -52,10 +72,26 @@ export interface HttpSettingsStored {
   headers_enc?: string;
 }
 
+/** Stored decision_model settings: the API key encrypted. */
+export interface DecisionModelSettingsStored {
+  /** "openrouter", "typesafe" or a full URL. */
+  endpoint: string;
+  model: string;
+  allow_private_network: boolean;
+  timeout_ms: number;
+  min_probability: number;
+  min_margin: number;
+  on_uncertain: OnUncertain;
+  /** Gateway provider whose API key is used (instead of api_key_enc). */
+  api_key_provider?: string;
+  api_key_enc?: string;
+}
+
 export type StoredProvider =
   | { type: "rules"; id: string; display_name?: string; settings: Record<string, never> }
   | { type: "llm"; id: string; display_name?: string; settings: LlmSettings }
-  | { type: "http"; id: string; display_name?: string; settings: HttpSettingsStored };
+  | { type: "http"; id: string; display_name?: string; settings: HttpSettingsStored }
+  | { type: "decision_model"; id: string; display_name?: string; settings: DecisionModelSettingsStored };
 
 export interface DecisionConfig {
   providers: StoredProvider[];
@@ -123,11 +159,49 @@ export function httpSecrets(p: Extract<StoredProvider, { type: "http" }>): { bea
   };
 }
 
+/**
+ * The API key of a gateway provider, for a decision endpoint on the same host. Throws ProviderError("config")
+ * when the provider is gone, has no key or lives on another host.
+ */
+export async function gatewayProviderKey(providerId: string, endpointUrl: string): Promise<string> {
+  let rt: Awaited<ReturnType<typeof loadProviderRuntime>>;
+  try {
+    rt = await loadProviderRuntime(providerId);
+  } catch {
+    throw new ProviderError(`Gateway provider ${providerId} does not exist`, "config");
+  }
+  if (!rt.apiKey) throw new ProviderError(`Gateway provider ${providerId} has no API key`, "config");
+  let same = false;
+  try {
+    same = new URL(rt.baseUrl).hostname.toLowerCase() === new URL(endpointUrl).hostname.toLowerCase();
+  } catch {
+    same = false;
+  }
+  if (!same) throw new ProviderError(`Gateway provider ${providerId} is on another host than the decision endpoint; its key is not sent there`, "config");
+  return rt.apiKey;
+}
+
+/** Resolves a decision model's API key when deciding (decrypted secret or a gateway provider's key). */
+export function decisionModelKeyResolver(p: Extract<StoredProvider, { type: "decision_model" }>): () => Promise<string | undefined> {
+  const s = p.settings;
+  if (s.api_key_provider) {
+    const providerId = s.api_key_provider;
+    const url = decisionEndpointUrl(s.endpoint);
+    return () => gatewayProviderKey(providerId, url);
+  }
+  const key = s.api_key_enc ? decryptSecret(s.api_key_enc, `decision:${p.id}:api_key`) : undefined;
+  return async () => key;
+}
+
 // --- public view -----------------------------------------------------------------------------
 
 export function publicConfig(c: DecisionConfig) {
   return {
     providers: c.providers.map((p) => {
+      if (p.type === "decision_model") {
+        const { api_key_enc, ...rest } = p.settings;
+        return { type: p.type, id: p.id, ...(p.display_name ? { display_name: p.display_name } : {}), settings: { ...rest, api_key_set: !!api_key_enc } };
+      }
       if (p.type !== "http") return { type: p.type, id: p.id, ...(p.display_name ? { display_name: p.display_name } : {}), settings: p.settings };
       const { bearer_token_enc, headers_enc, ...rest } = p.settings;
       let headerNames: string[] = [];
@@ -268,11 +342,13 @@ function normalizeId(type: ProviderType, raw: unknown, index: number): string {
     if (raw !== undefined && raw !== null && raw !== "rules") throw bad(`${field} must be "rules"`);
     return "rules";
   }
-  const given = raw === undefined || raw === null || raw === "" ? (type === "llm" ? "llm" : undefined) : raw;
+  // llm and decision_model may use the bare type as id (one of each is the common case).
+  const bareOk = type === "llm" || type === "decision_model";
+  const given = raw === undefined || raw === null || raw === "" ? (bareOk ? type : undefined) : raw;
   if (typeof given !== "string") throw bad(`${field} is required`);
   let name: string = given;
   if (name.startsWith(`${type}:`)) name = name.slice(type.length + 1);
-  if (type === "llm" && name === "llm") return "llm";
+  if (bareOk && name === type) return type;
   if (!NAME_RE.test(name)) throw bad(`${field} must match [a-z0-9][a-z0-9._-]*`);
   return `${type}:${name}`;
 }
@@ -282,7 +358,9 @@ async function validateProvider(raw: unknown, index: number, previous: DecisionC
   const o = obj(raw, field);
   onlyKeys(o, ["type", "id", "display_name", "settings"], field);
   const type = o.type;
-  if (type !== "rules" && type !== "llm" && type !== "http") throw bad(`${field}.type must be rules, llm or http`);
+  if (type !== "rules" && type !== "llm" && type !== "http" && type !== "decision_model") {
+    throw bad(`${field}.type must be rules, llm, http or decision_model`);
+  }
   const id = normalizeId(type, o.id, index);
   const display_name = str(o.display_name, `${field}.display_name`);
   const settings = obj(o.settings, `${field}.settings`);
@@ -307,6 +385,7 @@ async function validateProvider(raw: unknown, index: number, previous: DecisionC
     }
     return { type, ...base, settings: s };
   }
+  if (type === "decision_model") return { type, ...base, settings: await validateDecisionModel(settings, field, id, previous) };
   onlyKeys(settings, ["url", "bearer_token", "headers", "allow_private_network", "timeout_ms", "health_url"], `${field}.settings`);
   const allowPrivate = bool(settings.allow_private_network, `${field}.settings.allow_private_network`, false);
   const url = str(settings.url, `${field}.settings.url`);
@@ -337,6 +416,67 @@ async function validateProvider(raw: unknown, index: number, previous: DecisionC
     if (Object.keys(h).length) s.headers_enc = encryptSecret(JSON.stringify(h), `decision:${id}:headers`);
   }
   return { type, ...base, settings: s };
+}
+
+function prob(v: unknown, field: string, def: number): number {
+  if (v === undefined || v === null) return def;
+  if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1) throw bad(`${field} must be a number between 0 and 1`);
+  return v;
+}
+
+async function validateDecisionModel(
+  settings: Record<string, unknown>,
+  field: string,
+  id: string,
+  previous: DecisionConfig | undefined,
+): Promise<DecisionModelSettingsStored> {
+  const f = `${field}.settings`;
+  onlyKeys(
+    settings,
+    ["endpoint", "model", "api_key", "api_key_provider", "allow_private_network", "timeout_ms", "min_probability", "min_margin", "on_uncertain"],
+    f,
+  );
+  const allowPrivate = bool(settings.allow_private_network, `${f}.allow_private_network`, false);
+  const endpoint = str(settings.endpoint, `${f}.endpoint`) ?? "openrouter";
+  const named = endpoint in DECISION_MODEL_ENDPOINTS ? DECISION_MODEL_ENDPOINTS[endpoint as keyof typeof DECISION_MODEL_ENDPOINTS] : undefined;
+  if (!named) {
+    if (!/^https?:\/\//i.test(endpoint)) throw bad(`${f}.endpoint must be "openrouter", "typesafe" or an https URL`);
+    const url = assertUrlAllowed(endpoint, allowPrivate);
+    if (url.protocol !== "https:" && !allowPrivate) throw bad(`${f}.endpoint must use https (plain http needs allow_private_network)`);
+  }
+  const model = str(settings.model, `${f}.model`) ?? named?.defaultModel;
+  if (!model) throw bad(`${f}.model is required for a custom endpoint`);
+  if (model.length > 200) throw bad(`${f}.model is too long`);
+  const onUncertain = settings.on_uncertain ?? "next";
+  if (onUncertain !== "next" && onUncertain !== "ask") throw bad(`${f}.on_uncertain must be "next" or "ask"`);
+  const s: DecisionModelSettingsStored = {
+    endpoint,
+    model,
+    allow_private_network: allowPrivate,
+    timeout_ms: int(settings.timeout_ms, `${f}.timeout_ms`, 100, 60_000, DEFAULT_DECISION_MODEL_TIMEOUT_MS),
+    min_probability: prob(settings.min_probability, `${f}.min_probability`, DEFAULT_MIN_PROBABILITY),
+    min_margin: prob(settings.min_margin, `${f}.min_margin`, DEFAULT_MIN_MARGIN),
+    on_uncertain: onUncertain,
+  };
+  const keyProvider = str(settings.api_key_provider, `${f}.api_key_provider`);
+  const keyGiven = settings.api_key !== undefined && settings.api_key !== null && settings.api_key !== "";
+  if (keyProvider) {
+    if (keyGiven) throw bad(`${f}: set api_key or api_key_provider, not both`);
+    try {
+      await gatewayProviderKey(keyProvider, decisionEndpointUrl(endpoint));
+    } catch (e) {
+      throw bad(`${f}.api_key_provider: ${(e as Error).message}`);
+    }
+    s.api_key_provider = keyProvider;
+  } else if (keyGiven) {
+    if (typeof settings.api_key !== "string") throw bad(`${f}.api_key must be a string`);
+    s.api_key_enc = encryptSecret(settings.api_key, `decision:${id}:api_key`);
+  } else if (settings.api_key === undefined) {
+    const prev = previous?.providers.find((p): p is Extract<StoredProvider, { type: "decision_model" }> => p.type === "decision_model" && p.id === id);
+    if (prev?.settings.api_key_enc) s.api_key_enc = prev.settings.api_key_enc;
+  }
+  if (named && !s.api_key_enc && !s.api_key_provider) throw bad(`${f}: api_key or api_key_provider is required for the ${endpoint} endpoint`);
+  return s;
 }
 
 export async function validateDecisionConfig(input: unknown, previous?: DecisionConfig): Promise<DecisionConfig> {
