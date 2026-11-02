@@ -116,19 +116,38 @@ func (s TrustStore) load() trustFile {
 }
 
 // IsTrusted reports whether dir or one of its ancestors was trusted.
-func (s TrustStore) IsTrusted(dir string) bool {
+func (s TrustStore) IsTrusted(dir string) bool { return s.TrustedRoot(dir) != "" }
+
+// TrustedRoot returns the trusted directory that covers dir (dir itself or an ancestor), or "".
+func (s TrustStore) TrustedRoot(dir string) string {
 	f := s.load()
 	d := evalPath(dir)
 	for {
 		if _, ok := f.Trusted[d]; ok {
-			return true
+			return d
 		}
 		parent := filepath.Dir(d)
 		if parent == d {
-			return false
+			return ""
 		}
 		d = parent
 	}
+}
+
+// Untrust removes the trust entry for dir (trust inherited from an ancestor stays).
+func (s TrustStore) Untrust(dir string) error {
+	persistMu.Lock()
+	defer persistMu.Unlock()
+	f := s.load()
+	delete(f.Trusted, evalPath(dir))
+	data, err := json.MarshalIndent(f, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(s.Path), 0o700); err != nil {
+		return err
+	}
+	return writeFileAtomic(s.Path, append(data, '\n'), 0o600)
 }
 
 // Trust marks dir as trusted.

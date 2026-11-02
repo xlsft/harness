@@ -129,6 +129,9 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 
 func (s *Server) Initialize(ctx context.Context, req *connect.Request[agentv1.InitializeRequest]) (*connect.Response[agentv1.InitializeResponse], error) {
 	resp := &agentv1.InitializeResponse{ClientVersion: config.Version, UserEmail: s.UserEmail}
+	for _, m := range permissions.ModeCycle() {
+		resp.PermissionModes = append(resp.PermissionModes, modeToProto(m))
+	}
 	if s.Base.Gateway != nil {
 		if cat, err := s.Base.Gateway.Models(ctx); err == nil {
 			for _, m := range cat.Models {
