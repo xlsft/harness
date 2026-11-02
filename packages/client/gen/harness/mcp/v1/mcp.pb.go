@@ -325,10 +325,12 @@ type Server struct {
 	// Caller's authorization state (remote servers).
 	Auth *AuthStatus `protobuf:"bytes,15,opt,name=auth,proto3" json:"auth,omitempty"`
 	// RFC 3339, UTC.
-	CreatedAt     string `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	CreatedAt string `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt string `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Remote servers on private networks (admin-only to set; reset when the URL moves to another origin).
+	AllowPrivateNetwork bool `protobuf:"varint,18,opt,name=allow_private_network,json=allowPrivateNetwork,proto3" json:"allow_private_network,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Server) Reset() {
@@ -478,6 +480,13 @@ func (x *Server) GetUpdatedAt() string {
 		return x.UpdatedAt
 	}
 	return ""
+}
+
+func (x *Server) GetAllowPrivateNetwork() bool {
+	if x != nil {
+		return x.AllowPrivateNetwork
+	}
+	return false
 }
 
 type StdioConfig struct {
@@ -3709,8 +3718,10 @@ type CatalogServer struct {
 	Tools []*Tool `protobuf:"bytes,5,rep,name=tools,proto3" json:"tools,omitempty"`
 	// RFC 3339, UTC; when this server's tool list was last refreshed.
 	ToolsUpdatedAt string `protobuf:"bytes,6,opt,name=tools_updated_at,json=toolsUpdatedAt,proto3" json:"tools_updated_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Every call to this server needs an explicit user approval, whatever the permission mode.
+	RequiresUserInteraction bool `protobuf:"varint,7,opt,name=requires_user_interaction,json=requiresUserInteraction,proto3" json:"requires_user_interaction,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *CatalogServer) Reset() {
@@ -3785,11 +3796,18 @@ func (x *CatalogServer) GetToolsUpdatedAt() string {
 	return ""
 }
 
+func (x *CatalogServer) GetRequiresUserInteraction() bool {
+	if x != nil {
+		return x.RequiresUserInteraction
+	}
+	return false
+}
+
 var File_harness_mcp_v1_mcp_proto protoreflect.FileDescriptor
 
 const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\n" +
-	"\x18harness/mcp/v1/mcp.proto\x12\x0eharness.mcp.v1\x1a\x1dharness/common/v1/scope.proto\"\x99\x05\n" +
+	"\x18harness/mcp/v1/mcp.proto\x12\x0eharness.mcp.v1\x1a\x1dharness/common/v1/scope.proto\"\xcd\x05\n" +
 	"\x06Server\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12.\n" +
@@ -3813,7 +3831,8 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x10 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x11 \x01(\tR\tupdatedAt\"\xbd\x01\n" +
+	"updated_at\x18\x11 \x01(\tR\tupdatedAt\x122\n" +
+	"\x15allow_private_network\x18\x12 \x01(\bR\x13allowPrivateNetwork\"\xbd\x01\n" +
 	"\vStdioConfig\x12\x18\n" +
 	"\acommand\x18\x01 \x01(\tR\acommand\x12\x12\n" +
 	"\x04args\x18\x02 \x03(\tR\x04args\x126\n" +
@@ -4062,7 +4081,7 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x127\n" +
 	"\aservers\x18\x02 \x03(\v2\x1d.harness.mcp.v1.CatalogServerR\aservers\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\tR\tcreatedAt\"\xf0\x01\n" +
+	"created_at\x18\x03 \x01(\tR\tcreatedAt\"\xac\x02\n" +
 	"\rCatalogServer\x12\x1b\n" +
 	"\tserver_id\x18\x01 \x01(\tR\bserverId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x127\n" +
@@ -4070,7 +4089,8 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\valways_load\x18\x04 \x01(\bR\n" +
 	"alwaysLoad\x12*\n" +
 	"\x05tools\x18\x05 \x03(\v2\x14.harness.mcp.v1.ToolR\x05tools\x12(\n" +
-	"\x10tools_updated_at\x18\x06 \x01(\tR\x0etoolsUpdatedAt*\x7f\n" +
+	"\x10tools_updated_at\x18\x06 \x01(\tR\x0etoolsUpdatedAt\x12:\n" +
+	"\x19requires_user_interaction\x18\a \x01(\bR\x17requiresUserInteraction*\x7f\n" +
 	"\tTransport\x12\x19\n" +
 	"\x15TRANSPORT_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fTRANSPORT_STDIO\x10\x01\x12\x1d\n" +

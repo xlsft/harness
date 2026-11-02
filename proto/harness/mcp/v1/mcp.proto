@@ -158,6 +158,8 @@ message Server {
   // RFC 3339, UTC.
   string created_at = 16;
   string updated_at = 17;
+  // Remote servers on private networks (admin-only to set; reset when the URL moves to another origin).
+  bool allow_private_network = 18;
 }
 
 message StdioConfig {
@@ -542,4 +544,6 @@ message CatalogServer {
   repeated Tool tools = 5;
   // RFC 3339, UTC; when this server's tool list was last refreshed.
   string tools_updated_at = 6;
+  // Every call to this server needs an explicit user approval, whatever the permission mode.
+  bool requires_user_interaction = 7;
 }

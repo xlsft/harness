@@ -24,18 +24,20 @@ const (
 type ErrorType int32
 
 const (
-	ErrorType_ERROR_TYPE_UNSPECIFIED        ErrorType = 0
-	ErrorType_ERROR_TYPE_INVALID_ARGUMENT   ErrorType = 1
-	ErrorType_ERROR_TYPE_UNAUTHENTICATED    ErrorType = 2
-	ErrorType_ERROR_TYPE_PERMISSION_DENIED  ErrorType = 3
-	ErrorType_ERROR_TYPE_NOT_FOUND          ErrorType = 4
-	ErrorType_ERROR_TYPE_RATE_LIMITED       ErrorType = 5
-	ErrorType_ERROR_TYPE_QUOTA_EXCEEDED     ErrorType = 6
-	ErrorType_ERROR_TYPE_OVERLOADED         ErrorType = 7
-	ErrorType_ERROR_TYPE_UPSTREAM           ErrorType = 8
-	ErrorType_ERROR_TYPE_UNSUPPORTED_CLIENT ErrorType = 9
-	ErrorType_ERROR_TYPE_INTERNAL           ErrorType = 10
-	ErrorType_ERROR_TYPE_CONFLICT           ErrorType = 11
+	ErrorType_ERROR_TYPE_UNSPECIFIED         ErrorType = 0
+	ErrorType_ERROR_TYPE_INVALID_ARGUMENT    ErrorType = 1
+	ErrorType_ERROR_TYPE_UNAUTHENTICATED     ErrorType = 2
+	ErrorType_ERROR_TYPE_PERMISSION_DENIED   ErrorType = 3
+	ErrorType_ERROR_TYPE_NOT_FOUND           ErrorType = 4
+	ErrorType_ERROR_TYPE_RATE_LIMITED        ErrorType = 5
+	ErrorType_ERROR_TYPE_QUOTA_EXCEEDED      ErrorType = 6
+	ErrorType_ERROR_TYPE_OVERLOADED          ErrorType = 7
+	ErrorType_ERROR_TYPE_UPSTREAM            ErrorType = 8
+	ErrorType_ERROR_TYPE_UNSUPPORTED_CLIENT  ErrorType = 9
+	ErrorType_ERROR_TYPE_INTERNAL            ErrorType = 10
+	ErrorType_ERROR_TYPE_CONFLICT            ErrorType = 11
+	ErrorType_ERROR_TYPE_NEEDS_AUTH          ErrorType = 12
+	ErrorType_ERROR_TYPE_FAILED_PRECONDITION ErrorType = 13
 )
 
 // Enum value maps for ErrorType.
@@ -53,20 +55,24 @@ var (
 		9:  "ERROR_TYPE_UNSUPPORTED_CLIENT",
 		10: "ERROR_TYPE_INTERNAL",
 		11: "ERROR_TYPE_CONFLICT",
+		12: "ERROR_TYPE_NEEDS_AUTH",
+		13: "ERROR_TYPE_FAILED_PRECONDITION",
 	}
 	ErrorType_value = map[string]int32{
-		"ERROR_TYPE_UNSPECIFIED":        0,
-		"ERROR_TYPE_INVALID_ARGUMENT":   1,
-		"ERROR_TYPE_UNAUTHENTICATED":    2,
-		"ERROR_TYPE_PERMISSION_DENIED":  3,
-		"ERROR_TYPE_NOT_FOUND":          4,
-		"ERROR_TYPE_RATE_LIMITED":       5,
-		"ERROR_TYPE_QUOTA_EXCEEDED":     6,
-		"ERROR_TYPE_OVERLOADED":         7,
-		"ERROR_TYPE_UPSTREAM":           8,
-		"ERROR_TYPE_UNSUPPORTED_CLIENT": 9,
-		"ERROR_TYPE_INTERNAL":           10,
-		"ERROR_TYPE_CONFLICT":           11,
+		"ERROR_TYPE_UNSPECIFIED":         0,
+		"ERROR_TYPE_INVALID_ARGUMENT":    1,
+		"ERROR_TYPE_UNAUTHENTICATED":     2,
+		"ERROR_TYPE_PERMISSION_DENIED":   3,
+		"ERROR_TYPE_NOT_FOUND":           4,
+		"ERROR_TYPE_RATE_LIMITED":        5,
+		"ERROR_TYPE_QUOTA_EXCEEDED":      6,
+		"ERROR_TYPE_OVERLOADED":          7,
+		"ERROR_TYPE_UPSTREAM":            8,
+		"ERROR_TYPE_UNSUPPORTED_CLIENT":  9,
+		"ERROR_TYPE_INTERNAL":            10,
+		"ERROR_TYPE_CONFLICT":            11,
+		"ERROR_TYPE_NEEDS_AUTH":          12,
+		"ERROR_TYPE_FAILED_PRECONDITION": 13,
 	}
 )
 
@@ -113,6 +119,8 @@ func (ErrorType) EnumDescriptor() ([]byte, []int) {
 //	conflict           -> ABORTED             (concurrent modification outside a base_version check, e.g.
 //	                                          a unique name taken; refetch and retry. Version mismatches
 //	                                          on CAS writes are returned as a Conflict response instead)
+//	needs_auth         -> FAILED_PRECONDITION (the user must (re)authorize, e.g. an MCP server's OAuth)
+//	failed_precondition-> FAILED_PRECONDITION (state does not allow the call, e.g. a config hash mismatch)
 //	internal           -> INTERNAL
 type ErrorInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -184,7 +192,7 @@ const file_harness_common_v1_errors_proto_rawDesc = "" +
 	"\tErrorInfo\x120\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1c.harness.common.v1.ErrorTypeR\x04type\x12$\n" +
 	"\x0eretry_after_ms\x18\x02 \x01(\x03R\fretryAfterMs\x12'\n" +
-	"\x0fupstream_status\x18\x03 \x01(\x05R\x0eupstreamStatus*\xe9\x02\n" +
+	"\x0fupstream_status\x18\x03 \x01(\x05R\x0eupstreamStatus*\xa8\x03\n" +
 	"\tErrorType\x12\x1a\n" +
 	"\x16ERROR_TYPE_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bERROR_TYPE_INVALID_ARGUMENT\x10\x01\x12\x1e\n" +
@@ -198,7 +206,9 @@ const file_harness_common_v1_errors_proto_rawDesc = "" +
 	"\x1dERROR_TYPE_UNSUPPORTED_CLIENT\x10\t\x12\x17\n" +
 	"\x13ERROR_TYPE_INTERNAL\x10\n" +
 	"\x12\x17\n" +
-	"\x13ERROR_TYPE_CONFLICT\x10\vB\xd3\x01\n" +
+	"\x13ERROR_TYPE_CONFLICT\x10\v\x12\x19\n" +
+	"\x15ERROR_TYPE_NEEDS_AUTH\x10\f\x12\"\n" +
+	"\x1eERROR_TYPE_FAILED_PRECONDITION\x10\rB\xd3\x01\n" +
 	"\x15com.harness.common.v1B\vErrorsProtoP\x01ZGgithub.com/xlsft/harness/packages/client/gen/harness/common/v1;commonv1\xa2\x02\x03HCX\xaa\x02\x11Harness.Common.V1\xca\x02\x11Harness\\Common\\V1\xe2\x02\x1dHarness\\Common\\V1\\GPBMetadata\xea\x02\x13Harness::Common::V1b\x06proto3"
 
 var (

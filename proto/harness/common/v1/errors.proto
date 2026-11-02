@@ -17,6 +17,8 @@ package harness.common.v1;
 //   conflict           -> ABORTED             (concurrent modification outside a base_version check, e.g.
 //                                             a unique name taken; refetch and retry. Version mismatches
 //                                             on CAS writes are returned as a Conflict response instead)
+//   needs_auth         -> FAILED_PRECONDITION (the user must (re)authorize, e.g. an MCP server's OAuth)
+//   failed_precondition-> FAILED_PRECONDITION (state does not allow the call, e.g. a config hash mismatch)
 //   internal           -> INTERNAL
 message ErrorInfo {
   ErrorType type = 1;
@@ -39,4 +41,6 @@ enum ErrorType {
   ERROR_TYPE_UNSUPPORTED_CLIENT = 9;
   ERROR_TYPE_INTERNAL = 10;
   ERROR_TYPE_CONFLICT = 11;
+  ERROR_TYPE_NEEDS_AUTH = 12;
+  ERROR_TYPE_FAILED_PRECONDITION = 13;
 }
