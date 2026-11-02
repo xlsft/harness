@@ -22,7 +22,8 @@ What the bundle covers today, and what it deliberately leaves out.
 | Tool policy (choice of tools, parallelism, background work, reminders) | `system/static/50-tool_policy.md`, `overrides/gpt-*/...` | written |
 | Environment | `system/dynamic/10-env.md` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode | `tools/<Name>/` | written |
-| 13 reminders (12 core ids plus `output_style`) | `reminders/` | written |
+| MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
+| 14 reminders (12 core ids plus `output_style` and `deferred_tools`) | `reminders/` | written |
 | Compaction | `compaction/instruction.md` | written |
 | Session title | `title/instruction.md` | written |
 | Auto-mode decision classifier | `decision/` | written |
@@ -33,9 +34,9 @@ Dropped on purpose, because harness does not have these features: browser automa
 Needed later, not written yet (they arrive with their tools; see `docs/PLAN.md` and the milestone column in `docs/design/prompt-flow.md`):
 
 - `Agent` (subagents): when to delegate, how to brief a subagent, not duplicating its work, trusting but checking its results.
-- `Skill`, `ToolSearch`: loading skills and deferred tools before use.
+- `Skill`: loading skills before use.
 - `WebFetch`, `WebSearch`: fetched content is untrusted, cite sources, no guessed URLs, private-address warnings.
-- MCP tools and resources: server instructions, authentication notices.
+- MCP resources and prompts, MCP server instructions.
 - `NotebookEdit`, notebook support in Read.
 - `EnterWorktree` / `ExitWorktree`, `Monitor`, scheduling tools, `SendMessage`.
 - Hooks: hook output is user feedback; a blocking hook means adjust or ask the user to check their hook config.
@@ -206,6 +207,23 @@ Parameter names and schemas stay compatible with the client (`packages/client/to
 4. XPM-4. Only for implementation tasks, not research. Why: research needs an answer, not a plan.
 5. XPM-5. Approved: plan mode ends. Rejected: stay, revise from feedback, call again. Non-interactive: stop and present the plan. Why: matches client.
 
+### 3.12 ToolSearch
+
+The client offers it only when MCP tools are deferred (their full definitions would take too much of the context window); the `deferred_tools` reminder lists their names.
+
+1. TS-1. A deferred tool's name is known but its parameters are not; it cannot be called until ToolSearch loaded it. Why: the client rejects calls to unloaded deferred tools.
+2. TS-2. `select:<name>[,<name>...]` loads exact names; other queries are keywords matched against names and descriptions, and `+word` requires the word in the tool name. `max_results` limits keyword results (default 5). Why: matches client.
+3. TS-3. Loaded tools come back as full definitions and stay callable for the rest of the session; do not search again for a tool already loaded. Load all the tools a step needs in one call. Why: each search is a round trip.
+4. TS-4. If nothing matches, try other keywords or check the names in the list; do not invent tool names. Why: guessed names fail.
+
+### 3.13 McpAuthenticate (`mcp__<server>__authenticate`)
+
+Offered for a remote MCP server that needs authorization and has no known tools. The description names the server through `{{server}}`.
+
+1. AUTH-1. Calling it starts the authorization on the harness server and returns a link; the agent gives the link to the user and does not open it itself. Why: only the user can sign in to the provider.
+2. AUTH-2. The authorization is stored on the harness server and works on every device; the server's tools appear in a later session. Why: the tool set is frozen per session.
+3. AUTH-3. Use it when the user's request needs that server, not proactively. Why: avoids pointless sign-in prompts.
+
 ## 4. Reminders
 
 All reminders except the two interruption markers are wrapped in `<system-reminder>` so the model can tell them from user text.
@@ -223,6 +241,7 @@ All reminders except the two interruption markers are wrapped in `<system-remind
 11. REM-11. `compacted`: earlier messages were summarized; continue without asking the user to repeat or recapping; re-read files instead of trusting remembered contents; re-check background tasks if needed. Why: smooth continuation.
 12. REM-12. `attribution`: lines to end commit messages and PR bodies with, when not empty; does not license commits. Why: admin-configurable attribution.
 13. REM-13. `output_style`: names the active style and carries its text; it changes how to communicate, never the safety rules or tool rules. Why: styles switch without breaking the prompt cache.
+14. REM-14. `deferred_tools`: names of tools that exist but whose definitions are not loaded (`{{tools}}`, one per line); load them with ToolSearch before calling them. Sent once at session start when MCP tools are deferred. Why: the model must know which tools exist without paying for their schemas.
 
 ## 5. Compaction
 
