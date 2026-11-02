@@ -85,7 +85,17 @@ type Notice struct {
 	Level string // info | warning | error
 	Kind  string
 	Text  string
+	// Auto is set for Kind NoticeAutoDecision.
+	Auto *AutoDecision
 }
+
+// NoticeAutoDecision is the Notice kind emitted for every tool call the
+// auto permission mode decided or deferred to the user.
+const NoticeAutoDecision = "auto_decision"
+
+// AutoDecision is an auto-mode verdict on one tool call (also recorded on
+// the tool_result transcript entry).
+type AutoDecision = session.AutoDecision
 
 // Checkpoint is a rewind point: the state before a turn started by a prompt.
 type Checkpoint struct {
@@ -151,6 +161,10 @@ type PermissionDenial struct {
 	ToolName  string          `json:"tool_name"`
 	ToolUseID string          `json:"tool_use_id"`
 	ToolInput json.RawMessage `json:"tool_input"`
+	// Reason and DecidedBy are set for auto-mode denials (DecidedBy is
+	// "auto:<provider>").
+	Reason    string `json:"reason,omitempty"`
+	DecidedBy string `json:"decided_by,omitempty"`
 }
 
 // TurnResult summarizes one turn.
@@ -260,6 +274,8 @@ type Agent struct {
 	autoCompactDisabled bool
 	// todo nudge
 	roundsSinceTodo int
+	// prompts are the latest user prompts (newest last) for the auto-mode decider.
+	prompts []string
 }
 
 // New creates an agent.
@@ -267,6 +283,11 @@ func New(cfg Config) *Agent {
 	a := &Agent{cfg: cfg, model: cfg.Model, modelDisplay: cfg.ModelDisplayName, warned: map[string]bool{},
 		bundle: cfg.Bundle, todos: cfg.Todos, contextWindow: cfg.ContextWindow}
 	a.messages = append(a.messages, cfg.History.Messages...)
+	for _, m := range cfg.History.Messages {
+		if m.Role == llm.RoleUser {
+			a.notePrompt(m.Content)
+		}
+	}
 	a.contextInjected = cfg.History.ContextInjected
 	if cfg.MaxTokens <= 0 {
 		a.cfg.MaxTokens = 32000
@@ -342,7 +363,68 @@ func (a *Agent) DrainQueue() []llm.ContentBlock {
 	a.queue = nil
 	a.mu.Unlock()
 	if len(out) > 0 {
+		a.notePrompt(out)
 		a.emit(Event{Kind: EventQueueDrained})
+	}
+	return out
+}
+
+// maxPrompts is how many recent user prompts are kept for the auto-mode decider.
+const maxPrompts = 3
+
+// notePrompt remembers the text of a user prompt. Tool results, injected
+// reminders and context blocks (text starting with "<") and interrupt
+// markers are not prompts.
+func (a *Agent) notePrompt(blocks []llm.ContentBlock) {
+	var parts []string
+	for _, b := range blocks {
+		if b.Type != llm.BlockText {
+			continue
+		}
+		t := strings.TrimSpace(b.Text)
+		if t == "" || strings.HasPrefix(t, "<") || strings.HasPrefix(t, "[Request interrupted") {
+			continue
+		}
+		parts = append(parts, t)
+	}
+	if len(parts) == 0 {
+		return
+	}
+	a.mu.Lock()
+	a.prompts = append(a.prompts, strings.Join(parts, "\n"))
+	if len(a.prompts) > maxPrompts {
+		a.prompts = append([]string(nil), a.prompts[len(a.prompts)-maxPrompts:]...)
+	}
+	a.mu.Unlock()
+}
+
+// recentPrompts returns the latest user prompts, newest last.
+func (a *Agent) recentPrompts() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.prompts...)
+}
+
+// rationales maps each tool_use id to the assistant text that precedes it
+// in the message (the text since the previous tool_use, or all text before
+// the first one).
+func rationales(content []llm.ContentBlock) map[string]string {
+	out := map[string]string{}
+	var text []string
+	last := ""
+	for _, b := range content {
+		switch b.Type {
+		case llm.BlockText:
+			if t := strings.TrimSpace(b.Text); t != "" {
+				text = append(text, t)
+			}
+		case llm.BlockToolUse:
+			if len(text) > 0 {
+				last = strings.Join(text, "\n")
+				text = nil
+			}
+			out[b.ID] = last
+		}
 	}
 	return out
 }
@@ -487,6 +569,7 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 			a.emit(Event{Kind: EventCheckpoint, Checkpoint: &Checkpoint{ID: uid, UserMessageUUID: uid, PromptPreview: preview(input), CreatedAt: created}})
 		}
 		a.record(session.Entry{Type: session.TypeUser, UUID: uid, Message: userEntryMessage(input), PromptID: promptID, PermissionMode: a.permissionMode()})
+		a.notePrompt(input)
 		a.emit(Event{Kind: EventUser, UUID: uid, Message: &llm.Message{Role: llm.RoleUser, Content: input}})
 		a.emit(Event{Kind: EventTurnStarted, UUID: uid, Model: a.Model()})
 		if a.permissionMode() == string(permissions.ModePlan) && a.cfg.ToolEnv != nil {
@@ -545,13 +628,13 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 			return finish()
 		}
 
-		outcomes, interrupted := a.executeTools(ctx, uses, &res)
+		outcomes, interrupted := a.executeTools(ctx, uses, rationales(msg.Content), &res)
 		var blocks []llm.ContentBlock
 		var comments []llm.ContentBlock
 		for i, o := range outcomes {
 			blocks = append(blocks, o.block)
 			ub := []llm.ContentBlock{o.block}
-			id := a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks(ub), ToolUseResult: o.structured, SourceToolAssistantUUID: asstUUID, PromptID: promptID})
+			id := a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks(ub), ToolUseResult: o.structured, SourceToolAssistantUUID: asstUUID, PromptID: promptID, AutoDecision: o.auto})
 			a.emit(Event{Kind: EventUser, UUID: id, Message: &llm.Message{Role: llm.RoleUser, Content: ub}, Raw: rawStructured(outcomes[i].structured)})
 			if o.comment != "" {
 				comments = append(comments, llm.TextBlock(o.comment))
@@ -800,13 +883,21 @@ type outcome struct {
 	block      llm.ContentBlock
 	structured any
 	comment    string
+	auto       *AutoDecision
 }
 
 // executeTools runs tool calls: consecutive read-only calls in parallel,
 // mutating calls one at a time, in model order. Every tool_use gets exactly
 // one tool_result; on interrupt unfinished calls get a synthetic error.
-func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *TurnResult) ([]outcome, bool) {
+// rationale maps tool_use ids to the assistant text before them.
+func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, rationale map[string]string, res *TurnResult) ([]outcome, bool) {
 	outcomes := make([]outcome, len(uses))
+	autos := make([]*AutoDecision, len(uses))
+	defer func() {
+		for k := range outcomes {
+			outcomes[k].auto = autos[k]
+		}
+	}()
 	done := make([]bool, len(uses))
 	interruptedText := a.interruptedToolText()
 	started := make([]time.Time, len(uses))
@@ -878,13 +969,21 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, res *
 					req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
 				}
 			}
+			req.SessionID, req.RecentUserMessages, req.Rationale = a.cfg.SessionID, a.recentPrompts(), rationale[u.ID]
 			d := a.cfg.Permissions.Check(ctx, req)
 			if ctx.Err() != nil {
 				synthetic(idx)
 				continue
 			}
+			if d.Auto != nil {
+				autos[idx] = a.noteAutoDecision(u, d)
+			}
 			if d.Behavior != permissions.Allow {
-				res.PermissionDenials = append(res.PermissionDenials, PermissionDenial{ToolName: u.Name, ToolUseID: u.ID, ToolInput: u.Input})
+				denial := PermissionDenial{ToolName: u.Name, ToolUseID: u.ID, ToolInput: u.Input}
+				if d.Auto != nil && d.ResolvedBy == "auto" {
+					denial.Reason, denial.DecidedBy = d.Auto.Reason, "auto:"+d.Auto.Provider
+				}
+				res.PermissionDenials = append(res.PermissionDenials, denial)
 				setResult(idx, tools.Result{Content: []llm.ContentBlock{llm.TextBlock(d.Message)}, IsError: true, Structured: "Error: " + d.Message, Summary: "Denied"}, "")
 				if d.Interrupt {
 					a.Interrupt()
