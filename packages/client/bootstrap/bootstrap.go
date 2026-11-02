@@ -473,7 +473,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, OutputStyle: styleID})
 	}
 	if o.Worktree != nil && (conv.Worktree == nil || *conv.Worktree != *o.Worktree) {
-		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, Worktree: s.Worktree})
+		// The cwd lets readers map the session to its folder before any message is written.
+		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, Cwd: cwd, Worktree: s.Worktree})
 	}
 	trackUpload(ctx, s.Uploader, s, path, branch)
 	onEvent := o.OnEvent
