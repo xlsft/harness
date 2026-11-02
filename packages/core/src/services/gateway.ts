@@ -12,6 +12,7 @@ import { ensureDb, getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { anthropicAdapter } from "../gateway/adapters/anthropic.ts";
 import { openaiChatAdapter } from "../gateway/adapters/openai-chat.ts";
+import { openaiResponsesAdapter } from "../gateway/adapters/openai-responses.ts";
 import type { Adapter, AdapterTarget, UpstreamRequest } from "../gateway/adapters/types.ts";
 import { computeCost, emptyUsage, estimateTokens, mergeUsage } from "../gateway/cost.ts";
 import { classifyHttpFailure, networkFailure } from "../gateway/errors.ts";
@@ -28,6 +29,7 @@ import { enforceQuotas } from "./quotas.ts";
 const ADAPTERS: Record<ProviderType, Adapter> = {
   anthropic: anthropicAdapter,
   "openai-chat": openaiChatAdapter,
+  "openai-responses": openaiResponsesAdapter,
 };
 
 /** Retry-after values above this are surfaced to the client instead of waited out. */

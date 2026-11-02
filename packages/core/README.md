@@ -114,9 +114,10 @@ curl -s localhost:3000/api/admin/models "${H[@]}" -d '{
 curl -s -X PUT localhost:3000/api/admin/slots "${H[@]}" -d '{"main": "claude-sonnet", "small": "claude-sonnet"}'
 ```
 
-Provider fields: `type` (`anthropic` | `openai-chat`), `base_url`, `api_key`, `headers` (extra request headers),
+Provider fields: `type` (`anthropic` | `openai-chat` | `openai-responses`), `base_url`, `api_key`, `headers` (extra request headers),
 `allow_private_network`, `enabled`. Base URL conventions: Anthropic — host root (`/v1/messages` is appended;
-a trailing `/v1` is tolerated); OpenAI-compatible — up to and including `/v1` (`/chat/completions` is appended).
+a trailing `/v1` is tolerated); OpenAI-compatible — up to and including `/v1` (`/chat/completions` or `/responses` is appended; works for
+OpenAI and Responses-compatible endpoints such as OpenRouter).
 Keys and headers are encrypted at rest and never returned (only `api_key_hint` and `header_names`).
 
 Model fields: `id` (alias clients send), `provider_id`, `upstream_model`, `context_window`, `max_output_tokens`,
@@ -167,6 +168,13 @@ test/                    vitest; helpers/ (in-process server, mock upstream), fi
 ```
 
 ## Gateway behavior notes
+
+- **OpenAI Responses** (`openai-responses`): system -> `instructions`, tool_use/tool_result -> `function_call` /
+  `function_call_output` items, effort -> `reasoning.effort`, max_tokens -> `max_output_tokens`. Reasoning is stateless:
+  `store: false` + `include: ["reasoning.encrypted_content"]`; a reasoning item becomes a thinking block (summary text)
+  whose `signature` encodes the item (`oair1.` prefix) so it is replayed verbatim before the related function calls.
+  Foreign signatures are dropped (and the Anthropic adapter drops `oair1.` ones). Stop sequences are not supported
+  upstream and are dropped. `reasoning` and `include` are negotiable features.
 
 - Canonical model inside the server is Anthropic-shaped JSON; `src/rpc/convert.ts` maps it to/from protobuf.
 - Retries (exponential backoff with jitter, `retry-after(-ms)`, `x-should-retry`; give up if retry-after > 60 s)
