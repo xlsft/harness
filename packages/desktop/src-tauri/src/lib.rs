@@ -133,6 +133,8 @@ fn agent_endpoint(shell: State<'_, Shell>) -> Result<Endpoint, String> {
         .args(["serve", "--listen", &addr])
         .env("HARNESS_AGENT_TOKEN", &token)
         .env("HARNESS_AGENT_CORS_ORIGINS", ORIGINS)
+        // Exit when this app goes away without stopping it (crash, dev rebuild).
+        .env("HARNESS_EXIT_WITH_PARENT", "1")
         .stdin(Stdio::null())
         .spawn()
         .map_err(|e| e.to_string())?;

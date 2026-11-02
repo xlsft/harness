@@ -89,6 +89,7 @@ func tokenFile() string { return filepath.Join(config.Home(), "agent-token") }
 func serveListeners(ctx context.Context, srv *server.Server, socket string, t *tcpFlags) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	exitWithParent(ctx, cancel)
 	var (
 		wg       sync.WaitGroup
 		mu       sync.Mutex
