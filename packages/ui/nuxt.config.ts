@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // The Connect transport is loaded lazily; pre-bundle its deps so the first dev load does not reload.
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',
@@ -72,6 +73,11 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: '2026-06-30',
+  vite: {
+    optimizeDeps: {
+      include: ['@bufbuild/protobuf', '@bufbuild/protobuf/codegenv2', '@connectrpc/connect', '@connectrpc/connect-web']
+    }
+  },
 
   eslint: {
     config: {
