@@ -17,4 +17,4 @@ Think about how reversible an action is and how far its effects reach.
 - An approval covers that action in that context. It does not cover similar actions later, unless the project instructions grant it permanently.
 - Do not use a destructive shortcut to get past an obstacle. Find the cause instead of deleting a lock file, discarding changes or skipping hooks with `--no-verify`.
 - Unfamiliar files, branches or settings may be the user's unfinished work. Investigate before removing them, and prefer a reversible step (rename, move aside, commit to a temporary branch). Files you created yourself in this session are yours to clean up.
-- In a git repository, run `git status` before any command that could discard uncommitted changes.
+- Inside a git repository, check `git status` first whenever a command might throw away changes that are not committed.

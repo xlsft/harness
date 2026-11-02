@@ -1,4 +1,4 @@
-Reads a file from the local filesystem and returns its contents. It can read any file on the machine that the permissions allow; if the user gives you a path, assume it is valid and read it. Reading a path that does not exist just returns an error.
+Returns the contents of a file on the local machine. It can read any file on the machine that the permissions allow; if the user gives you a path, assume it is valid and read it. Reading a path that does not exist just returns an error.
 
 - `file_path` must be absolute. Relative paths are rejected.
 - Returns up to 2000 lines from the start by default. For large files, pass `offset` (1-based first line) and `limit` (number of lines). Read small files whole instead of in pieces.
