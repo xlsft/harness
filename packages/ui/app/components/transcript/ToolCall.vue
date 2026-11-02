@@ -62,6 +62,9 @@ const hasBody = computed(() => open.value && (
     : kind.value === 'bash' ? outputLines.value.some(l => l.length) : kind.value === 'web' ? webResults.value.length > 0 || !!webText.value : kind.value !== 'row'
 ))
 
+// Favicons load straight from each site (no third-party icon service); a host without one shows its letter.
+const noIcon = reactive<Record<string, boolean>>({})
+
 const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
 </script>
 
@@ -185,12 +188,12 @@ v-for="(line, i) in outputLines"
     <!-- web results -->
     <div
       v-else-if="kind === 'web' && open"
-      class="flex flex-col gap-1 bg-surface px-3 py-1.5 text-[12px]"
+      class="flex flex-col gap-px bg-surface px-1.5 py-1 text-[12px]"
     >
       <!-- WebFetch: the answer from the page (no result list) -->
       <p
         v-if="!webResults.length && webText"
-        class="m-0 line-clamp-6 whitespace-pre-wrap text-toned"
+        class="m-0 line-clamp-6 px-1.5 py-[3px] whitespace-pre-wrap text-toned"
       >
         {{ webText }}
       </p>
@@ -200,10 +203,24 @@ v-for="(line, i) in outputLines"
         :href="r.url"
         target="_blank"
         rel="noopener"
-        class="flex gap-2 text-toned"
+        class="group flex min-w-0 items-center gap-2 px-1.5 py-[3px] text-toned hover:bg-raised"
       >
-        <span class="flex size-4 shrink-0 items-center justify-center bg-raised text-[10px] text-white">{{ (host(r.url) ?? '?')[0]!.toUpperCase() }}</span>
-        <span class="text-white">{{ r.title }}</span><span class="text-muted">{{ host(r.url) }}</span>
+        <img
+          v-if="!noIcon[host(r.url) ?? '']"
+          :src="`https://${host(r.url)}/favicon.ico`"
+          alt=""
+          width="16"
+          height="16"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          class="size-4 shrink-0 bg-raised object-contain"
+          @error="noIcon[host(r.url) ?? ''] = true"
+        >
+        <span
+          v-else
+          class="flex size-4 shrink-0 items-center justify-center bg-raised text-[10px] text-white"
+        >{{ (host(r.url) ?? '?')[0]!.toUpperCase() }}</span>
+        <span class="min-w-0 truncate text-white group-hover:underline">{{ r.title }}</span><span class="shrink-0 text-muted group-hover:text-toned">{{ host(r.url) }}</span>
       </a>
     </div>
 
