@@ -1,8 +1,9 @@
 name: proto
 
 on:
+  workflow_dispatch:
   push:
-    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', '.github/workflows/proto.yml']
+    paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', 'packages/core/package.json', '.github/workflows/proto.yml']
   pull_request:
     paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', '.github/workflows/proto.yml']
 
