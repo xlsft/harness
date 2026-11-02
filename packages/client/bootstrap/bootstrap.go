@@ -242,14 +242,16 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ToolEnv.AdditionalDirs = o.AdditionalDirs
 	s.ToolEnv.Reminders = func(k string) string { return s.Bundle.Reminder(k, "") }
 	s.Tools = tools.Default()
-	deny := permissions.ParseRules(o.DisallowedTools)
+	s.Permissions = permissions.New(permissions.Config{
+		Cwd: cwd, AdditionalDirectories: o.AdditionalDirs, DefaultMode: o.PermissionMode,
+		Allow: o.AllowedTools, Deny: o.DisallowedTools, ScratchDirs: []string{scratch},
+	})
 	disabled := map[string]bool{}
-	for _, r := range deny {
-		if r.Spec == "" {
-			disabled[r.Tool] = true
+	for _, n := range s.Tools.Names() {
+		if s.Permissions.IsDisabled(n) {
+			disabled[n] = true
 		}
 	}
-	s.Permissions = permissions.NewEngine(o.PermissionMode, permissions.ParseRules(o.AllowedTools), deny, s.ToolEnv.WorkingDirs())
 
 	// Transcript.
 	branch := ""

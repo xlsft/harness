@@ -349,7 +349,7 @@ func (s *Server) RespondToPermission(ctx context.Context, req *connect.Request[a
 		}
 		if m.GetDecision() == agentv1.RespondToPermissionRequest_DECISION_ALLOW_ALWAYS && m.GetRule() != "" {
 			// TODO(M1): persist the rule to .claude/settings.local.json.
-			ls.sess.Permissions.AddAllow(permissions.ParseRules([]string{m.GetRule()})...)
+			_ = ls.sess.Permissions.AllowAlways([]string{m.GetRule()})
 		}
 	case agentv1.RespondToPermissionRequest_DECISION_DENY:
 		d.Behavior = permissions.Deny
@@ -410,7 +410,9 @@ func (s *Server) SetPermissionMode(ctx context.Context, req *connect.Request[age
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	ls.sess.Permissions.SetMode(mode)
+	if err := ls.sess.Permissions.SetMode(mode); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
 	return connect.NewResponse(&agentv1.SetPermissionModeResponse{}), nil
 }
