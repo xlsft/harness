@@ -8,7 +8,7 @@ LOG_TAG=postgres-ready
 internal_postgres || exit 0
 
 i=0
-until pg_isready -q -h "$PG_SOCKET_DIR" -U postgres -d postgres; do
+until s6-setuidgid postgres pg_isready -q -h "$PG_SOCKET_DIR" -U postgres -d postgres; do
   i=$((i + 1))
   if [ "$i" -ge 240 ]; then
     log "ERROR: Postgres did not become ready within 120 s"

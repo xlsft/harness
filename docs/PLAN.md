@@ -295,7 +295,7 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 | M1 — core parity + sync | done: auto permission mode (DecisionService: rules, llm, http providers; client local rules + decider), permissions engine and modes, plan mode, AskUserQuestion, todos, background tasks, checkpoints/rewind, compaction, settings hierarchy, CLAUDE.md/AGENTS.md memory, SyncService + client sync, `import claude`, quotas, OpenAI Responses adapter; real-model evals in [docs/evals](evals); Postgres (node-postgres, PGlite for dev/tests) |
 | M2 — extensibility + relay | started: SearXNG search provider, output styles (contract, built-ins, client), McpService (server) in progress; contracts drafted: sync, MCP, relay, search |
 | M3 — frontends | started: CLI TUI (Bubble Tea v2) working — transcript, tools, diffs, permission/plan/question prompts, queue, rewind, todos, modes incl. auto; desktop UI (Nuxt) in progress from the design in docs/design/ui |
-| M4 — deployment | started: single-container image (s6) in progress |
+| M4 — deployment | started: single-container image (s6) built and verified on arm64 ([deploy/README.md](../deploy/README.md)); size reductions and the Postgres move in core pending |
 
 ### M0 — Skeleton of core + client (≈3 weeks)
 1. Contracts in `/proto` (done): `DeviceAuthService`, `GatewayService`, `PromptService`, draft `AgentService`; codegen via buf.
