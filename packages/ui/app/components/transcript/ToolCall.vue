@@ -51,8 +51,15 @@ const webResults = computed(() => {
   return Array.isArray(r) ? r as { title: string, url: string }[] : []
 })
 
+// Text of a failed call: the tool_result content (results of other kinds are JSON).
+const errorText = computed(() => String(t.value.output || t.value.result?.error || t.value.result?.message || '').trim())
+
+const webText = computed(() => String(t.value.result?.result ?? t.value.output ?? '').trim())
+
 const hasBody = computed(() => open.value && (
-  kind.value === 'bash' ? outputLines.value.some(l => l.length) : kind.value !== 'row'
+  t.value.status === 'error' && kind.value !== 'bash'
+    ? !!errorText.value
+    : kind.value === 'bash' ? outputLines.value.some(l => l.length) : kind.value === 'web' ? webResults.value.length > 0 || !!webText.value : kind.value !== 'row'
 ))
 
 const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
@@ -120,9 +127,15 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
       </button>
     </div>
 
+    <!-- error of a non-shell tool (bash shows its errors in its own output) -->
+    <pre
+      v-if="tool.status === 'error' && kind !== 'bash' && open && errorText"
+      class="m-0 overflow-x-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap text-bad"
+    >{{ errorText }}</pre>
+
     <!-- bash output -->
     <pre
-      v-if="kind === 'bash' && open && outputLines.some(l => l.length)"
+      v-else-if="kind === 'bash' && open && outputLines.some(l => l.length)"
       class="m-0 overflow-x-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6]"
       :class="tool.status === 'running' ? 'text-muted' : 'text-toned'"
     ><template
@@ -174,6 +187,13 @@ v-for="(line, i) in outputLines"
       v-else-if="kind === 'web' && open"
       class="flex flex-col gap-1 bg-surface px-3 py-1.5 text-[12px]"
     >
+      <!-- WebFetch: the answer from the page (no result list) -->
+      <p
+        v-if="!webResults.length && webText"
+        class="m-0 line-clamp-6 whitespace-pre-wrap text-toned"
+      >
+        {{ webText }}
+      </p>
       <a
         v-for="r in webResults"
         :key="r.url"
