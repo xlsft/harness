@@ -91,6 +91,7 @@ func (a *Agent) reload() session.Conversation {
 	a.messages = append([]llm.Message(nil), conv.Messages...)
 	a.contextInjected = conv.ContextInjected
 	a.lastUsage = 0
+	a.afterReloadStyle()
 	a.mu.Unlock()
 	return conv
 }

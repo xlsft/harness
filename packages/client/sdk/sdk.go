@@ -176,7 +176,7 @@ func (r *runner) initMessage() map[string]any {
 		"type": "system", "subtype": "init", "uuid": uuid.NewString(),
 		"session_id": s.ID, "cwd": s.Cwd, "model": s.Model, "tools": s.ToolNames(),
 		"permissionMode": string(s.Permissions.Mode()), "mcp_servers": []any{}, "slash_commands": []string{},
-		"apiKeySource": "none", "output_style": "default", "version": config.Version,
+		"apiKeySource": "none", "output_style": s.ActiveOutputStyle(), "version": config.Version,
 		"prompt_bundle_version": s.Bundle.Version, "resumed": s.Resumed,
 	}
 }

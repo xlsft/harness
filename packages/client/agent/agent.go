@@ -237,6 +237,9 @@ type Config struct {
 	DisabledTools map[string]bool
 	// PermissionMode is recorded on user transcript entries.
 	PermissionMode func() string
+	// OutputStyle is the initial output style (nil = default). Its text is
+	// sent with the first request unless History already carries it.
+	OutputStyle *OutputStyle
 
 	OnEvent func(Event)
 	Retry   *gateway.RetryPolicy
@@ -276,6 +279,10 @@ type Agent struct {
 	roundsSinceTodo int
 	// prompts are the latest user prompts (newest last) for the auto-mode decider.
 	prompts []string
+	// output style (see OutputStyle)
+	style          *OutputStyle
+	omitCoding     bool
+	styleDelivered bool
 }
 
 // New creates an agent.
@@ -298,6 +305,7 @@ func New(cfg Config) *Agent {
 	if cfg.ToolEnv != nil {
 		cfg.ToolEnv.SetHost(a)
 	}
+	a.initOutputStyle(cfg.OutputStyle, cfg.History.OutputStyle)
 	return a
 }
 
@@ -822,7 +830,14 @@ func (a *Agent) systemBlocks(model, display string) []llm.SystemBlock {
 		display = model
 	}
 	vars["model_display_name"] = display
-	return a.Bundle().BuildSystem(vars, func(name string) {
+	a.mu.Lock()
+	var omit []string
+	if a.omitCoding {
+		omit = prompts.CodingSections
+	}
+	bundle := a.bundle
+	a.mu.Unlock()
+	return bundle.BuildSystemWithout(vars, func(name string) {
 		a.mu.Lock()
 		seen := a.warned[name]
 		a.warned[name] = true
@@ -830,7 +845,7 @@ func (a *Agent) systemBlocks(model, display string) []llm.SystemBlock {
 		if !seen {
 			a.log().Warn("unknown prompt placeholder", "name", name)
 		}
-	})
+	}, omit...)
 }
 
 // buildRequest assembles the gateway request with cache markers: the last

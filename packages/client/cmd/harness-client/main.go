@@ -163,6 +163,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	allowed := fs.StringArray("allowedTools", nil, `permission rules allowed without asking, e.g. "Bash(npm test *) Edit"`)
 	disallowed := fs.StringArray("disallowedTools", nil, "permission rules that are always denied")
 	addDirs := fs.StringArray("add-dir", nil, "additional working directories for every session")
+	outputStyle := fs.String("output-style", "", "output style for every session: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name")
 	verbose := fs.Bool("verbose", false, "debug logging")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -176,6 +177,7 @@ func cmdServe(ctx context.Context, args []string) int {
 		return fail(err)
 	}
 	base.AllowedTools, base.DisallowedTools, base.AdditionalDirs, base.Logger = *allowed, *disallowed, *addDirs, log
+	base.OutputStyle = *outputStyle
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
@@ -196,6 +198,7 @@ func cmdPrint(ctx context.Context, args []string) int {
 	effort := fs.String("effort", "", "low | medium | high | xhigh | max")
 	mode := fs.String("permission-mode", "", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions (default: settings, else default)")
 	maxTurns := fs.Int("max-turns", 0, "maximum tool-use round trips (0 = unlimited)")
+	outputStyle := fs.String("output-style", "", "output style: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name (default: settings outputStyle)")
 	var allowed, disallowed, addDirs []string
 	fs.StringArrayVar(&allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
 	fs.StringArrayVar(&allowed, "allowed-tools", nil, "alias of --allowedTools")
@@ -263,7 +266,7 @@ func cmdPrint(ctx context.Context, args []string) int {
 		OutputFormat:   *outputFormat,
 		IncludePartial: *partial,
 		Bootstrap: bootstrap.Options{
-			ServerURL: *serverURL, Model: *model, Effort: *effort, MaxTurns: *maxTurns,
+			ServerURL: *serverURL, Model: *model, Effort: *effort, MaxTurns: *maxTurns, OutputStyle: *outputStyle,
 			PermissionMode: pm, AllowedTools: allowed, DisallowedTools: disallowed, AdditionalDirs: addDirs,
 			Continue: *cont, Resume: *resume, SessionID: *sessionID, NoPersistence: *noPersist, Fork: *forkSession,
 			Logger: newLogger(*verbose),

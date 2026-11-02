@@ -120,6 +120,9 @@ type Entry struct {
 	PromptBundleVersion string `json:"promptBundleVersion,omitempty"`
 	Model               string `json:"model,omitempty"`
 	ForkedFrom          string `json:"forkedFrom,omitempty"`
+	// OutputStyle is the active output style id or name ("default" when
+	// cleared); the last one on record wins on resume.
+	OutputStyle string `json:"outputStyle,omitempty"`
 
 	// AutoDecision is set on a tool_result entry when the auto permission
 	// mode decided (or deferred to the user on) that tool call.
@@ -249,6 +252,8 @@ type Conversation struct {
 	PromptBundleVersion string
 	Model               string
 	ForkedFrom          string
+	// OutputStyle is the last recorded output style ("" when none was ever set).
+	OutputStyle string
 	// Todos is the input of the last TodoWrite call on the active branch
 	// (followed across compactions); nil when there is none.
 	Todos json.RawMessage
@@ -322,6 +327,9 @@ func Rebuild(entries []Entry) Conversation {
 			}
 			if e.ForkedFrom != "" {
 				c.ForkedFrom = e.ForkedFrom
+			}
+			if e.OutputStyle != "" {
+				c.OutputStyle = e.OutputStyle
 			}
 		case TypeFileHistorySnapshot:
 			if e.Snapshot == nil {

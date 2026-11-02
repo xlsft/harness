@@ -209,6 +209,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	s.live[sess.ID] = ls
 	s.mu.Unlock()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+	for _, w := range sess.Warnings {
+		ls.notice(agentv1.Notice_LEVEL_WARNING, "session_warning", w)
+	}
 	if todos := sess.Agent.Todos(); len(todos) > 0 {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TodosUpdated{TodosUpdated: &agentv1.TodosUpdated{Todos: todosToProto(todos)}}})
 	}
@@ -531,6 +534,38 @@ func (s *Server) SetPermissionMode(ctx context.Context, req *connect.Request[age
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	return connect.NewResponse(&agentv1.SetPermissionModeResponse{}), nil
+}
+
+// SetOutputStyle switches the session's output style; the text reaches the
+// model with the next request (see agent.OutputStyle).
+func (s *Server) SetOutputStyle(ctx context.Context, req *connect.Request[agentv1.SetOutputStyleRequest]) (*connect.Response[agentv1.SetOutputStyleResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	deferred, err := ls.sess.SetOutputStyle(req.Msg.GetStyle())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if deferred {
+		ls.notice(agentv1.Notice_LEVEL_INFO, "output_style_deferred",
+			"The style applies now; its change to the coding instructions in the system prompt takes effect at the next compaction.")
+	}
+	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+	return connect.NewResponse(&agentv1.SetOutputStyleResponse{}), nil
+}
+
+// ListOutputStyles returns the built-in, user and project styles and the active one.
+func (s *Server) ListOutputStyles(ctx context.Context, req *connect.Request[agentv1.ListOutputStylesRequest]) (*connect.Response[agentv1.ListOutputStylesResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	resp := &agentv1.ListOutputStylesResponse{Active: ls.sess.ActiveOutputStyle()}
+	for _, st := range ls.sess.OutputStyles().List() {
+		resp.Styles = append(resp.Styles, &agentv1.OutputStyleInfo{Id: st.ID, Name: st.Name, Description: st.Description, Source: st.Source})
+	}
+	return connect.NewResponse(resp), nil
 }
 
 func (s *Server) SuggestFiles(ctx context.Context, req *connect.Request[agentv1.SuggestFilesRequest]) (*connect.Response[agentv1.SuggestFilesResponse], error) {

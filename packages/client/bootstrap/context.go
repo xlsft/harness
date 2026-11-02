@@ -58,7 +58,7 @@ func deviceID() string {
 func loadSettings(ctx context.Context, o Options, cwd string, trusted bool, docs settings.DocSource, log *slog.Logger) (*settings.Settings, []permissions.Source) {
 	st, err := settings.Load(ctx, settings.Options{
 		Cwd: cwd, Docs: docs, Trusted: trusted,
-		CLI: settings.CLI{Model: o.Model, EffortLevel: o.Effort, PermissionMode: string(o.PermissionMode), AdditionalDirectories: o.AdditionalDirs},
+		CLI: settings.CLI{Model: o.Model, EffortLevel: o.Effort, OutputStyle: o.OutputStyle, PermissionMode: string(o.PermissionMode), AdditionalDirectories: o.AdditionalDirs},
 	})
 	if err != nil {
 		log.Warn("settings could not be loaded", "err", err)

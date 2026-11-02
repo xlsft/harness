@@ -24,6 +24,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/memory"
+	"github.com/xlsft/harness/packages/client/outputstyle"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/rpc"
@@ -49,6 +50,10 @@ type Options struct {
 	Model    string
 	Effort   string
 	MaxTurns int
+	// OutputStyle selects the output style (--output-style): a built-in id or
+	// a user/project style name; "default" clears it. Empty keeps the style
+	// recorded in a resumed transcript, else the outputStyle setting.
+	OutputStyle string
 
 	// Permissions. AllowedTools/DisallowedTools/AskTools are CLI-level rules
 	// (source "cliArg"); PermissionSources carries the settings hierarchy
@@ -123,7 +128,11 @@ type Session struct {
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
 	Sync     *syncclient.Syncer
 	Uploader *syncclient.Uploader
-	stopSync context.CancelFunc
+	// Warnings are problems found while opening (e.g. an unknown output
+	// style); frontends show them as notices.
+	Warnings  []string
+	stopSync  context.CancelFunc
+	styleOpts outputstyle.Options
 }
 
 // Close kills background tasks, closes the transcript and flushes the transcript upload.
@@ -364,6 +373,12 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		gitForContext = env.GitStatus
 	}
 	s.Memory = projectMemory(ctx, cwd, o.AdditionalDirs, st, memDocs)
+	var styleDocs outputstyle.DocSource
+	if s.Sync != nil {
+		styleDocs = s.Sync.Cache()
+	}
+	s.styleOpts = styleOptions(styleDocs, workspace.GitRoot(ctx, cwd), cwd)
+	style, styleID := s.resolveOutputStyle(o, st, conv, log)
 	projectContext := memory.ProjectContext(s.Memory.Initial(), gitForContext)
 
 	// Tools.
@@ -415,6 +430,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if !s.Resumed || conv.PromptBundleVersion != s.Bundle.Version || conv.Model != s.Model {
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, PromptBundleVersion: s.Bundle.Version, Model: s.Model})
 	}
+	if recorded := conv.OutputStyle; styleID != recorded && (recorded != "" || styleID != outputstyle.Default) {
+		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, OutputStyle: styleID})
+	}
 	trackUpload(ctx, s.Uploader, s, path, branch)
 	onEvent := o.OnEvent
 	if s.Uploader != nil {
@@ -449,8 +467,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
 		MaxTurns:       o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
 		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
-		DisabledTools: disabled,
-		OnEvent:       onEvent, Logger: log,
+		DisabledTools: disabled, OutputStyle: style,
+		OnEvent: onEvent, Logger: log,
 	})
 	s.Permissions.OnModeChange(func(m permissions.Mode) {
 		s.Agent.Emit(agent.Event{Kind: agent.EventModeChanged, Mode: string(m)})
@@ -460,6 +478,41 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		s.Tasks.OnEvent = s.Agent.OnTaskEvent
 	}
 	return s, nil
+}
+
+// resolveOutputStyle picks the initial output style: --output-style, else
+// the style recorded in a resumed transcript, else the outputStyle setting
+// (policy settings win over the flag, as for every setting). An unknown name
+// logs a warning and falls back to the default.
+func (s *Session) resolveOutputStyle(o Options, st *settings.Settings, conv session.Conversation, log *slog.Logger) (*agent.OutputStyle, string) {
+	want := ""
+	switch {
+	case o.OutputStyle != "":
+		want = o.OutputStyle
+		if st != nil && st.OutputStyle != "" {
+			want = st.OutputStyle
+		}
+	case s.Resumed && conv.OutputStyle != "":
+		want = conv.OutputStyle
+	case st != nil:
+		want = st.OutputStyle
+	}
+	if outputstyle.IsDefault(want) {
+		return nil, outputstyle.Default
+	}
+	o2 := s.styleOpts
+	o2.Bundle = s.Bundle
+	found, ok := outputstyle.Discover(o2).Lookup(want)
+	if !ok {
+		msg := fmt.Sprintf("unknown output style %q; using the default style", want)
+		log.Warn(msg)
+		s.Warnings = append(s.Warnings, msg)
+		return nil, outputstyle.Default
+	}
+	if outputstyle.IsDefault(found.ID) {
+		return nil, outputstyle.Default
+	}
+	return agentStyle(found), found.ID
 }
 
 func mergeDirs(a, b []string) []string {

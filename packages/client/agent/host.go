@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/permissions"
@@ -150,10 +151,20 @@ func (a *Agent) injectReminders(promptID string) {
 	var blocks []llm.ContentBlock
 	for _, r := range pending {
 		tmpl, ok := bundle.Reminders[r.id]
+		if r.id == ReminderOutputStyle {
+			tmpl, ok = styleTemplate(bundle), true
+			a.mu.Lock()
+			a.noteStyleInjected(r.vars)
+			a.mu.Unlock()
+		}
 		if !ok || tmpl == "" {
 			continue
 		}
-		blocks = append(blocks, llm.TextBlock(prompts.Render(tmpl, r.vars, nil)))
+		text := prompts.Render(tmpl, r.vars, nil)
+		if strings.TrimSpace(text) == "" {
+			continue
+		}
+		blocks = append(blocks, llm.TextBlock(text))
 	}
 	if len(blocks) == 0 {
 		return
