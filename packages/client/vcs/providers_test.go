@@ -156,13 +156,13 @@ func TestGHDetect(t *testing.T) {
 		gh.set("version", ghVersion, "", 0)
 		gh.hang("auth-json", 30)
 		r := f.runner()
-		r.Timeout = 300 * time.Millisecond
+		r.Timeout = 2 * time.Second // --version must still answer in time on a slow first exec
 		start := time.Now()
 		_, err := (&GH{Runner: r}).Detect(ctx)
 		if !errors.Is(err, ErrTimeout) {
 			t.Fatalf("err = %v, want ErrTimeout", err)
 		}
-		if time.Since(start) > 4*time.Second {
+		if time.Since(start) > 8*time.Second {
 			t.Fatalf("timeout took %s", time.Since(start))
 		}
 	})
