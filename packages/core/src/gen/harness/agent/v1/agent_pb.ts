@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/agent.proto.
  */
 export const file_harness_agent_v1_agent: GenFile = /*@__PURE__*/
-  fileDesc("ChxoYXJuZXNzL2FnZW50L3YxL2FnZW50LnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIj8KEUluaXRpYWxpemVSZXF1ZXN0EhAKCGZyb250ZW5kGAEgASgJEhgKEGZyb250ZW5kX3ZlcnNpb24YAiABKAkiUwoSSW5pdGlhbGl6ZVJlc3BvbnNlEhYKDmNsaWVudF92ZXJzaW9uGAEgASgJEhIKCnVzZXJfZW1haWwYAiABKAkSEQoJbW9kZWxfaWRzGAMgAygJItgBCgtTZXNzaW9uSW5mbxIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRILCgNjd2QYAyABKAkSEgoKZ2l0X2JyYW5jaBgEIAEoCRINCgVtb2RlbBgFIAEoCRI5Cg9wZXJtaXNzaW9uX21vZGUYBiABKA4yIC5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25Nb2RlEi8KBnN0YXR1cxgHIAEoDjIfLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvblN0YXR1cxISCgp1cGRhdGVkX2F0GAggASgJIpYBChRDcmVhdGVTZXNzaW9uUmVxdWVzdBILCgNjd2QYASABKAkSDQoFbW9kZWwYAiABKAkSOQoPcGVybWlzc2lvbl9tb2RlGAMgASgOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZRIZChFyZXN1bWVfc2Vzc2lvbl9pZBgEIAEoCRIMCgRmb3JrGAUgASgIIkcKFUNyZWF0ZVNlc3Npb25SZXNwb25zZRIuCgdzZXNzaW9uGAEgASgLMh0uaGFybmVzcy5hZ2VudC52MS5TZXNzaW9uSW5mbyIiChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EgsKA2N3ZBgBIAEoCSJHChRMaXN0U2Vzc2lvbnNSZXNwb25zZRIvCghzZXNzaW9ucxgBIAMoCzIdLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvbkluZm8iOQoQU3Vic2NyaWJlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEhEKCWFmdGVyX3NlcRgCIAEoAyJCChFTdWJzY3JpYmVSZXNwb25zZRItCgVldmVudBgBIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvbkV2ZW50Is0FCgxTZXNzaW9uRXZlbnQSCwoDc2VxGAEgASgDEhIKCnNlc3Npb25faWQYAiABKAkSEQoJdGltZXN0YW1wGAMgASgJEjgKD3Nlc3Npb25fdXBkYXRlZBgEIAEoCzIdLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvbkluZm9IABI1Cgx1c2VyX21lc3NhZ2UYBSABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlVzZXJNZXNzYWdlSAASOwoPYXNzaXN0YW50X2RlbHRhGAYgASgLMiAuaGFybmVzcy5hZ2VudC52MS5Bc3Npc3RhbnREZWx0YUgAEj8KEWFzc2lzdGFudF9tZXNzYWdlGAcgASgLMiIuaGFybmVzcy5hZ2VudC52MS5Bc3Npc3RhbnRNZXNzYWdlSAASPgoRdG9vbF9jYWxsX3N0YXJ0ZWQYCCABKAsyIS5oYXJuZXNzLmFnZW50LnYxLlRvb2xDYWxsU3RhcnRlZEgAEkAKEnRvb2xfY2FsbF9maW5pc2hlZBgJIAEoCzIiLmhhcm5lc3MuYWdlbnQudjEuVG9vbENhbGxGaW5pc2hlZEgAEkEKEnBlcm1pc3Npb25fcmVxdWVzdBgKIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuUGVybWlzc2lvblJlcXVlc3RIABIuCghxdWVzdGlvbhgLIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuUXVlc3Rpb25IABI3Cg1xdWV1ZV9jaGFuZ2VkGAwgASgLMh4uaGFybmVzcy5hZ2VudC52MS5RdWV1ZUNoYW5nZWRIABI3Cg10dXJuX2ZpbmlzaGVkGA0gASgLMh4uaGFybmVzcy5hZ2VudC52MS5UdXJuRmluaXNoZWRIABIqCgZub3RpY2UYDiABKAsyGC5oYXJuZXNzLmFnZW50LnYxLk5vdGljZUgAQgcKBWV2ZW50IkoKC1VzZXJNZXNzYWdlEgwKBHV1aWQYASABKAkSLQoHY29udGVudBgCIAMoCzIcLmhhcm5lc3MubGxtLnYxLkNvbnRlbnRCbG9jayJ2Cg5Bc3Npc3RhbnREZWx0YRISCgptZXNzYWdlX2lkGAEgASgJEg0KBWluZGV4GAIgASgFEg4KBHRleHQYAyABKAlIABISCgh0aGlua2luZxgEIAEoCUgAEhQKCmlucHV0X2pzb24YBSABKAlIAEIHCgVkZWx0YSK7AQoQQXNzaXN0YW50TWVzc2FnZRISCgptZXNzYWdlX2lkGAEgASgJEg0KBW1vZGVsGAIgASgJEi0KB2NvbnRlbnQYAyADKAsyHC5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2sSLwoLc3RvcF9yZWFzb24YBCABKA4yGi5oYXJuZXNzLmxsbS52MS5TdG9wUmVhc29uEiQKBXVzYWdlGAUgASgLMhUuaGFybmVzcy5sbG0udjEuVXNhZ2UiWQoPVG9vbENhbGxTdGFydGVkEhMKC3Rvb2xfdXNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSEgoKaW5wdXRfanNvbhgDIAEoCRIPCgdzdW1tYXJ5GAQgASgJIpIBChBUb29sQ2FsbEZpbmlzaGVkEhMKC3Rvb2xfdXNlX2lkGAEgASgJEhAKCGlzX2Vycm9yGAIgASgIEhMKC2ludGVycnVwdGVkGAMgASgIEi0KB2NvbnRlbnQYBCADKAsyHC5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2sSEwoLZHVyYXRpb25fbXMYBSABKAMijAEKEVBlcm1pc3Npb25SZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSEwoLdG9vbF91c2VfaWQYAiABKAkSEQoJdG9vbF9uYW1lGAMgASgJEhIKCmlucHV0X2pzb24YBCABKAkSFwoPc3VnZ2VzdGVkX3J1bGVzGAUgAygJEg4KBnJlYXNvbhgGIAEoCSJiCghRdWVzdGlvbhISCgpyZXF1ZXN0X2lkGAEgASgJEhMKC3Rvb2xfdXNlX2lkGAIgASgJEi0KBWl0ZW1zGAMgAygLMh4uaGFybmVzcy5hZ2VudC52MS5RdWVzdGlvbkl0ZW0ieQoMUXVlc3Rpb25JdGVtEhAKCHF1ZXN0aW9uGAEgASgJEg4KBmhlYWRlchgCIAEoCRIUCgxtdWx0aV9zZWxlY3QYAyABKAgSMQoHb3B0aW9ucxgEIAMoCzIgLmhhcm5lc3MuYWdlbnQudjEuUXVlc3Rpb25PcHRpb24iNAoOUXVlc3Rpb25PcHRpb24SDQoFbGFiZWwYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkiPQoMUXVldWVDaGFuZ2VkEi0KBnF1ZXVlZBgBIAMoCzIdLmhhcm5lc3MuYWdlbnQudjEuVXNlck1lc3NhZ2UiygIKDFR1cm5GaW5pc2hlZBI1CgZyZXN1bHQYASABKA4yJS5oYXJuZXNzLmFnZW50LnYxLlR1cm5GaW5pc2hlZC5SZXN1bHQSEQoJbnVtX3R1cm5zGAIgASgFEiQKBXVzYWdlGAMgASgLMhUuaGFybmVzcy5sbG0udjEuVXNhZ2USEAoIY29zdF91c2QYBCABKAESEwoLZHVyYXRpb25fbXMYBSABKAMSFQoNZXJyb3JfbWVzc2FnZRgGIAEoCSKLAQoGUmVzdWx0EhYKElJFU1VMVF9VTlNQRUNJRklFRBAAEhIKDlJFU1VMVF9TVUNDRVNTEAESFgoSUkVTVUxUX0lOVEVSUlVQVEVEEAISGgoWUkVTVUxUX0VSUk9SX01BWF9UVVJOUxADEiEKHVJFU1VMVF9FUlJPUl9EVVJJTkdfRVhFQ1VUSU9OEAQipwEKBk5vdGljZRItCgVsZXZlbBgBIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuTm90aWNlLkxldmVsEgwKBGtpbmQYAiABKAkSDAoEdGV4dBgDIAEoCSJSCgVMZXZlbBIVChFMRVZFTF9VTlNQRUNJRklFRBAAEg4KCkxFVkVMX0lORk8QARIRCg1MRVZFTF9XQVJOSU5HEAISDwoLTEVWRUxfRVJST1IQAyL6AQoWU2VuZFVzZXJNZXNzYWdlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEgwKBHV1aWQYAiABKAkSLQoHY29udGVudBgDIAMoCzIcLmhhcm5lc3MubGxtLnYxLkNvbnRlbnRCbG9jaxJDCghkZWxpdmVyeRgEIAEoDjIxLmhhcm5lc3MuYWdlbnQudjEuU2VuZFVzZXJNZXNzYWdlUmVxdWVzdC5EZWxpdmVyeSJKCghEZWxpdmVyeRIYChRERUxJVkVSWV9VTlNQRUNJRklFRBAAEhIKDkRFTElWRVJZX1FVRVVFEAESEAoMREVMSVZFUllfTk9XEAIiGQoXU2VuZFVzZXJNZXNzYWdlUmVzcG9uc2UiJgoQSW50ZXJydXB0UmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJIhMKEUludGVycnVwdFJlc3BvbnNlIrACChpSZXNwb25kVG9QZXJtaXNzaW9uUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEhIKCnJlcXVlc3RfaWQYAiABKAkSRwoIZGVjaXNpb24YAyABKA4yNS5oYXJuZXNzLmFnZW50LnYxLlJlc3BvbmRUb1Blcm1pc3Npb25SZXF1ZXN0LkRlY2lzaW9uEgwKBHJ1bGUYBCABKAkSDwoHY29tbWVudBgFIAEoCRIaChJ1cGRhdGVkX2lucHV0X2pzb24YBiABKAkiZgoIRGVjaXNpb24SGAoUREVDSVNJT05fVU5TUEVDSUZJRUQQABISCg5ERUNJU0lPTl9BTExPVxABEhkKFURFQ0lTSU9OX0FMTE9XX0FMV0FZUxACEhEKDURFQ0lTSU9OX0RFTlkQAyIdChtSZXNwb25kVG9QZXJtaXNzaW9uUmVzcG9uc2UicgoVQW5zd2VyUXVlc3Rpb25SZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSEgoKcmVxdWVzdF9pZBgCIAEoCRIxCgdhbnN3ZXJzGAMgAygLMiAuaGFybmVzcy5hZ2VudC52MS5RdWVzdGlvbkFuc3dlciIiCg5RdWVzdGlvbkFuc3dlchIQCghzZWxlY3RlZBgBIAMoCSIYChZBbnN3ZXJRdWVzdGlvblJlc3BvbnNlIjQKD1NldE1vZGVsUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEg0KBW1vZGVsGAIgASgJIhIKEFNldE1vZGVsUmVzcG9uc2UiTgoQU2V0RWZmb3J0UmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEiYKBmVmZm9ydBgCIAEoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydCITChFTZXRFZmZvcnRSZXNwb25zZSJeChhTZXRQZXJtaXNzaW9uTW9kZVJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRIuCgRtb2RlGAIgASgOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZSIbChlTZXRQZXJtaXNzaW9uTW9kZVJlc3BvbnNlIkcKE1N1Z2dlc3RGaWxlc1JlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRINCgVxdWVyeRgCIAEoCRINCgVsaW1pdBgDIAEoBSIlChRTdWdnZXN0RmlsZXNSZXNwb25zZRINCgVwYXRocxgBIAMoCSrQAQoOUGVybWlzc2lvbk1vZGUSHwobUEVSTUlTU0lPTl9NT0RFX1VOU1BFQ0lGSUVEEAASGwoXUEVSTUlTU0lPTl9NT0RFX0RFRkFVTFQQARIgChxQRVJNSVNTSU9OX01PREVfQUNDRVBUX0VESVRTEAISGAoUUEVSTUlTU0lPTl9NT0RFX1BMQU4QAxIcChhQRVJNSVNTSU9OX01PREVfRE9OVF9BU0sQBBImCiJQRVJNSVNTSU9OX01PREVfQllQQVNTX1BFUk1JU1NJT05TEAUqyQEKDVNlc3Npb25TdGF0dXMSHgoaU0VTU0lPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIXChNTRVNTSU9OX1NUQVRVU19JRExFEAESGgoWU0VTU0lPTl9TVEFUVVNfV09SS0lORxACEh4KGlNFU1NJT05fU1RBVFVTX05FRURTX0lOUFVUEAMSKQolU0VTU0lPTl9TVEFUVVNfV0FJVElOR19GT1JfQ09OTkVDVElPThAEEhgKFFNFU1NJT05fU1RBVFVTX0VSUk9SEAUyjQkKDEFnZW50U2VydmljZRJXCgpJbml0aWFsaXplEiMuaGFybmVzcy5hZ2VudC52MS5Jbml0aWFsaXplUmVxdWVzdBokLmhhcm5lc3MuYWdlbnQudjEuSW5pdGlhbGl6ZVJlc3BvbnNlEmAKDUNyZWF0ZVNlc3Npb24SJi5oYXJuZXNzLmFnZW50LnYxLkNyZWF0ZVNlc3Npb25SZXF1ZXN0GicuaGFybmVzcy5hZ2VudC52MS5DcmVhdGVTZXNzaW9uUmVzcG9uc2USXQoMTGlzdFNlc3Npb25zEiUuaGFybmVzcy5hZ2VudC52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiYuaGFybmVzcy5hZ2VudC52MS5MaXN0U2Vzc2lvbnNSZXNwb25zZRJWCglTdWJzY3JpYmUSIi5oYXJuZXNzLmFnZW50LnYxLlN1YnNjcmliZVJlcXVlc3QaIy5oYXJuZXNzLmFnZW50LnYxLlN1YnNjcmliZVJlc3BvbnNlMAESZgoPU2VuZFVzZXJNZXNzYWdlEiguaGFybmVzcy5hZ2VudC52MS5TZW5kVXNlck1lc3NhZ2VSZXF1ZXN0GikuaGFybmVzcy5hZ2VudC52MS5TZW5kVXNlck1lc3NhZ2VSZXNwb25zZRJUCglJbnRlcnJ1cHQSIi5oYXJuZXNzLmFnZW50LnYxLkludGVycnVwdFJlcXVlc3QaIy5oYXJuZXNzLmFnZW50LnYxLkludGVycnVwdFJlc3BvbnNlEnIKE1Jlc3BvbmRUb1Blcm1pc3Npb24SLC5oYXJuZXNzLmFnZW50LnYxLlJlc3BvbmRUb1Blcm1pc3Npb25SZXF1ZXN0Gi0uaGFybmVzcy5hZ2VudC52MS5SZXNwb25kVG9QZXJtaXNzaW9uUmVzcG9uc2USYwoOQW5zd2VyUXVlc3Rpb24SJy5oYXJuZXNzLmFnZW50LnYxLkFuc3dlclF1ZXN0aW9uUmVxdWVzdBooLmhhcm5lc3MuYWdlbnQudjEuQW5zd2VyUXVlc3Rpb25SZXNwb25zZRJRCghTZXRNb2RlbBIhLmhhcm5lc3MuYWdlbnQudjEuU2V0TW9kZWxSZXF1ZXN0GiIuaGFybmVzcy5hZ2VudC52MS5TZXRNb2RlbFJlc3BvbnNlElQKCVNldEVmZm9ydBIiLmhhcm5lc3MuYWdlbnQudjEuU2V0RWZmb3J0UmVxdWVzdBojLmhhcm5lc3MuYWdlbnQudjEuU2V0RWZmb3J0UmVzcG9uc2USbAoRU2V0UGVybWlzc2lvbk1vZGUSKi5oYXJuZXNzLmFnZW50LnYxLlNldFBlcm1pc3Npb25Nb2RlUmVxdWVzdBorLmhhcm5lc3MuYWdlbnQudjEuU2V0UGVybWlzc2lvbk1vZGVSZXNwb25zZRJdCgxTdWdnZXN0RmlsZXMSJS5oYXJuZXNzLmFnZW50LnYxLlN1Z2dlc3RGaWxlc1JlcXVlc3QaJi5oYXJuZXNzLmFnZW50LnYxLlN1Z2dlc3RGaWxlc1Jlc3BvbnNlYgZwcm90bzM", [file_harness_llm_v1_content]);
+  fileDesc("ChxoYXJuZXNzL2FnZW50L3YxL2FnZW50LnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIj8KEUluaXRpYWxpemVSZXF1ZXN0EhAKCGZyb250ZW5kGAEgASgJEhgKEGZyb250ZW5kX3ZlcnNpb24YAiABKAkiUwoSSW5pdGlhbGl6ZVJlc3BvbnNlEhYKDmNsaWVudF92ZXJzaW9uGAEgASgJEhIKCnVzZXJfZW1haWwYAiABKAkSEQoJbW9kZWxfaWRzGAMgAygJIscDCgtTZXNzaW9uSW5mbxIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRILCgNjd2QYAyABKAkSEgoKZ2l0X2JyYW5jaBgEIAEoCRINCgVtb2RlbBgFIAEoCRI5Cg9wZXJtaXNzaW9uX21vZGUYBiABKA4yIC5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25Nb2RlEi8KBnN0YXR1cxgHIAEoDjIfLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvblN0YXR1cxISCgp1cGRhdGVkX2F0GAggASgJEgwKBHJlcG8YCSABKAkSEQoJZGV2aWNlX2lkGAogASgJEhMKC2RldmljZV9uYW1lGAsgASgJEi8KCmRpZmZfc3RhdHMYDCABKAsyGy5oYXJuZXNzLmFnZW50LnYxLkRpZmZTdGF0cxI4CgxwdWxsX3JlcXVlc3QYDSABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlB1bGxSZXF1ZXN0SACIAQESEAoIYXJjaGl2ZWQYDiABKAgSDgoGcGlubmVkGA8gASgIEhkKEXBhcmVudF9zZXNzaW9uX2lkGBAgASgJQg8KDV9wdWxsX3JlcXVlc3QiSAoJRGlmZlN0YXRzEhUKDWZpbGVzX2NoYW5nZWQYASABKAUSEQoJYWRkaXRpb25zGAIgASgFEhEKCWRlbGV0aW9ucxgDIAEoBSLDAQoLUHVsbFJlcXVlc3QSCwoDdXJsGAEgASgJEg4KBm51bWJlchgCIAEoBRIyCgVzdGF0ZRgDIAEoDjIjLmhhcm5lc3MuYWdlbnQudjEuUHVsbFJlcXVlc3QuU3RhdGUiYwoFU3RhdGUSFQoRU1RBVEVfVU5TUEVDSUZJRUQQABIOCgpTVEFURV9PUEVOEAESDwoLU1RBVEVfRFJBRlQQAhIQCgxTVEFURV9NRVJHRUQQAxIQCgxTVEFURV9DTE9TRUQQBCKWAQoUQ3JlYXRlU2Vzc2lvblJlcXVlc3QSCwoDY3dkGAEgASgJEg0KBW1vZGVsGAIgASgJEjkKD3Blcm1pc3Npb25fbW9kZRgDIAEoDjIgLmhhcm5lc3MuYWdlbnQudjEuUGVybWlzc2lvbk1vZGUSGQoRcmVzdW1lX3Nlc3Npb25faWQYBCABKAkSDAoEZm9yaxgFIAEoCCJHChVDcmVhdGVTZXNzaW9uUmVzcG9uc2USLgoHc2Vzc2lvbhgBIAEoCzIdLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvbkluZm8iIgoTTGlzdFNlc3Npb25zUmVxdWVzdBILCgNjd2QYASABKAkiRwoUTGlzdFNlc3Npb25zUmVzcG9uc2USLwoIc2Vzc2lvbnMYASADKAsyHS5oYXJuZXNzLmFnZW50LnYxLlNlc3Npb25JbmZvIjkKEFN1YnNjcmliZVJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRIRCglhZnRlcl9zZXEYAiABKAMiQgoRU3Vic2NyaWJlUmVzcG9uc2USLQoFZXZlbnQYASABKAsyHi5oYXJuZXNzLmFnZW50LnYxLlNlc3Npb25FdmVudCKMBwoMU2Vzc2lvbkV2ZW50EgsKA3NlcRgBIAEoAxISCgpzZXNzaW9uX2lkGAIgASgJEhEKCXRpbWVzdGFtcBgDIAEoCRI4Cg9zZXNzaW9uX3VwZGF0ZWQYBCABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlNlc3Npb25JbmZvSAASNQoMdXNlcl9tZXNzYWdlGAUgASgLMh0uaGFybmVzcy5hZ2VudC52MS5Vc2VyTWVzc2FnZUgAEjsKD2Fzc2lzdGFudF9kZWx0YRgGIAEoCzIgLmhhcm5lc3MuYWdlbnQudjEuQXNzaXN0YW50RGVsdGFIABI/ChFhc3Npc3RhbnRfbWVzc2FnZRgHIAEoCzIiLmhhcm5lc3MuYWdlbnQudjEuQXNzaXN0YW50TWVzc2FnZUgAEj4KEXRvb2xfY2FsbF9zdGFydGVkGAggASgLMiEuaGFybmVzcy5hZ2VudC52MS5Ub29sQ2FsbFN0YXJ0ZWRIABJAChJ0b29sX2NhbGxfZmluaXNoZWQYCSABKAsyIi5oYXJuZXNzLmFnZW50LnYxLlRvb2xDYWxsRmluaXNoZWRIABJBChJwZXJtaXNzaW9uX3JlcXVlc3QYCiABKAsyIy5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25SZXF1ZXN0SAASLgoIcXVlc3Rpb24YCyABKAsyGi5oYXJuZXNzLmFnZW50LnYxLlF1ZXN0aW9uSAASNwoNcXVldWVfY2hhbmdlZBgMIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuUXVldWVDaGFuZ2VkSAASNwoNdHVybl9maW5pc2hlZBgNIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuVHVybkZpbmlzaGVkSAASKgoGbm90aWNlGA4gASgLMhguaGFybmVzcy5hZ2VudC52MS5Ob3RpY2VIABJDChNwZXJtaXNzaW9uX3Jlc29sdmVkGA8gASgLMiQuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uUmVzb2x2ZWRIABI/ChFxdWVzdGlvbl9yZXNvbHZlZBgQIAEoCzIiLmhhcm5lc3MuYWdlbnQudjEuUXVlc3Rpb25SZXNvbHZlZEgAEjcKDXNlc3Npb25fZW5kZWQYESABKAsyHi5oYXJuZXNzLmFnZW50LnYxLlNlc3Npb25FbmRlZEgAQgcKBWV2ZW50IkoKC1VzZXJNZXNzYWdlEgwKBHV1aWQYASABKAkSLQoHY29udGVudBgCIAMoCzIcLmhhcm5lc3MubGxtLnYxLkNvbnRlbnRCbG9jayJ2Cg5Bc3Npc3RhbnREZWx0YRISCgptZXNzYWdlX2lkGAEgASgJEg0KBWluZGV4GAIgASgFEg4KBHRleHQYAyABKAlIABISCgh0aGlua2luZxgEIAEoCUgAEhQKCmlucHV0X2pzb24YBSABKAlIAEIHCgVkZWx0YSK7AQoQQXNzaXN0YW50TWVzc2FnZRISCgptZXNzYWdlX2lkGAEgASgJEg0KBW1vZGVsGAIgASgJEi0KB2NvbnRlbnQYAyADKAsyHC5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2sSLwoLc3RvcF9yZWFzb24YBCABKA4yGi5oYXJuZXNzLmxsbS52MS5TdG9wUmVhc29uEiQKBXVzYWdlGAUgASgLMhUuaGFybmVzcy5sbG0udjEuVXNhZ2UiWQoPVG9vbENhbGxTdGFydGVkEhMKC3Rvb2xfdXNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSEgoKaW5wdXRfanNvbhgDIAEoCRIPCgdzdW1tYXJ5GAQgASgJIpIBChBUb29sQ2FsbEZpbmlzaGVkEhMKC3Rvb2xfdXNlX2lkGAEgASgJEhAKCGlzX2Vycm9yGAIgASgIEhMKC2ludGVycnVwdGVkGAMgASgIEi0KB2NvbnRlbnQYBCADKAsyHC5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2sSEwoLZHVyYXRpb25fbXMYBSABKAMijAEKEVBlcm1pc3Npb25SZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSEwoLdG9vbF91c2VfaWQYAiABKAkSEQoJdG9vbF9uYW1lGAMgASgJEhIKCmlucHV0X2pzb24YBCABKAkSFwoPc3VnZ2VzdGVkX3J1bGVzGAUgAygJEg4KBnJlYXNvbhgGIAEoCSKGAQoSUGVybWlzc2lvblJlc29sdmVkEhIKCnJlcXVlc3RfaWQYASABKAkSRwoIZGVjaXNpb24YAiABKA4yNS5oYXJuZXNzLmFnZW50LnYxLlJlc3BvbmRUb1Blcm1pc3Npb25SZXF1ZXN0LkRlY2lzaW9uEhMKC3Jlc29sdmVkX2J5GAMgASgJIjsKEFF1ZXN0aW9uUmVzb2x2ZWQSEgoKcmVxdWVzdF9pZBgBIAEoCRITCgtyZXNvbHZlZF9ieRgCIAEoCSIeCgxTZXNzaW9uRW5kZWQSDgoGcmVhc29uGAEgASgJImIKCFF1ZXN0aW9uEhIKCnJlcXVlc3RfaWQYASABKAkSEwoLdG9vbF91c2VfaWQYAiABKAkSLQoFaXRlbXMYAyADKAsyHi5oYXJuZXNzLmFnZW50LnYxLlF1ZXN0aW9uSXRlbSJ5CgxRdWVzdGlvbkl0ZW0SEAoIcXVlc3Rpb24YASABKAkSDgoGaGVhZGVyGAIgASgJEhQKDG11bHRpX3NlbGVjdBgDIAEoCBIxCgdvcHRpb25zGAQgAygLMiAuaGFybmVzcy5hZ2VudC52MS5RdWVzdGlvbk9wdGlvbiI0Cg5RdWVzdGlvbk9wdGlvbhINCgVsYWJlbBgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCSI9CgxRdWV1ZUNoYW5nZWQSLQoGcXVldWVkGAEgAygLMh0uaGFybmVzcy5hZ2VudC52MS5Vc2VyTWVzc2FnZSLKAgoMVHVybkZpbmlzaGVkEjUKBnJlc3VsdBgBIAEoDjIlLmhhcm5lc3MuYWdlbnQudjEuVHVybkZpbmlzaGVkLlJlc3VsdBIRCgludW1fdHVybnMYAiABKAUSJAoFdXNhZ2UYAyABKAsyFS5oYXJuZXNzLmxsbS52MS5Vc2FnZRIQCghjb3N0X3VzZBgEIAEoARITCgtkdXJhdGlvbl9tcxgFIAEoAxIVCg1lcnJvcl9tZXNzYWdlGAYgASgJIosBCgZSZXN1bHQSFgoSUkVTVUxUX1VOU1BFQ0lGSUVEEAASEgoOUkVTVUxUX1NVQ0NFU1MQARIWChJSRVNVTFRfSU5URVJSVVBURUQQAhIaChZSRVNVTFRfRVJST1JfTUFYX1RVUk5TEAMSIQodUkVTVUxUX0VSUk9SX0RVUklOR19FWEVDVVRJT04QBCKnAQoGTm90aWNlEi0KBWxldmVsGAEgASgOMh4uaGFybmVzcy5hZ2VudC52MS5Ob3RpY2UuTGV2ZWwSDAoEa2luZBgCIAEoCRIMCgR0ZXh0GAMgASgJIlIKBUxldmVsEhUKEUxFVkVMX1VOU1BFQ0lGSUVEEAASDgoKTEVWRUxfSU5GTxABEhEKDUxFVkVMX1dBUk5JTkcQAhIPCgtMRVZFTF9FUlJPUhADIvoBChZTZW5kVXNlck1lc3NhZ2VSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSDAoEdXVpZBgCIAEoCRItCgdjb250ZW50GAMgAygLMhwuaGFybmVzcy5sbG0udjEuQ29udGVudEJsb2NrEkMKCGRlbGl2ZXJ5GAQgASgOMjEuaGFybmVzcy5hZ2VudC52MS5TZW5kVXNlck1lc3NhZ2VSZXF1ZXN0LkRlbGl2ZXJ5IkoKCERlbGl2ZXJ5EhgKFERFTElWRVJZX1VOU1BFQ0lGSUVEEAASEgoOREVMSVZFUllfUVVFVUUQARIQCgxERUxJVkVSWV9OT1cQAiIZChdTZW5kVXNlck1lc3NhZ2VSZXNwb25zZSImChBJbnRlcnJ1cHRSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkiEwoRSW50ZXJydXB0UmVzcG9uc2UisAIKGlJlc3BvbmRUb1Blcm1pc3Npb25SZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSEgoKcmVxdWVzdF9pZBgCIAEoCRJHCghkZWNpc2lvbhgDIAEoDjI1Lmhhcm5lc3MuYWdlbnQudjEuUmVzcG9uZFRvUGVybWlzc2lvblJlcXVlc3QuRGVjaXNpb24SDAoEcnVsZRgEIAEoCRIPCgdjb21tZW50GAUgASgJEhoKEnVwZGF0ZWRfaW5wdXRfanNvbhgGIAEoCSJmCghEZWNpc2lvbhIYChRERUNJU0lPTl9VTlNQRUNJRklFRBAAEhIKDkRFQ0lTSU9OX0FMTE9XEAESGQoVREVDSVNJT05fQUxMT1dfQUxXQVlTEAISEQoNREVDSVNJT05fREVOWRADIh0KG1Jlc3BvbmRUb1Blcm1pc3Npb25SZXNwb25zZSJyChVBbnN3ZXJRdWVzdGlvblJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRISCgpyZXF1ZXN0X2lkGAIgASgJEjEKB2Fuc3dlcnMYAyADKAsyIC5oYXJuZXNzLmFnZW50LnYxLlF1ZXN0aW9uQW5zd2VyIiIKDlF1ZXN0aW9uQW5zd2VyEhAKCHNlbGVjdGVkGAEgAygJIhgKFkFuc3dlclF1ZXN0aW9uUmVzcG9uc2UiNAoPU2V0TW9kZWxSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSDQoFbW9kZWwYAiABKAkiEgoQU2V0TW9kZWxSZXNwb25zZSJOChBTZXRFZmZvcnRSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSJgoGZWZmb3J0GAIgASgOMhYuaGFybmVzcy5sbG0udjEuRWZmb3J0IhMKEVNldEVmZm9ydFJlc3BvbnNlIl4KGFNldFBlcm1pc3Npb25Nb2RlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEi4KBG1vZGUYAiABKA4yIC5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25Nb2RlIhsKGVNldFBlcm1pc3Npb25Nb2RlUmVzcG9uc2UiRwoTU3VnZ2VzdEZpbGVzUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEg0KBXF1ZXJ5GAIgASgJEg0KBWxpbWl0GAMgASgFIiUKFFN1Z2dlc3RGaWxlc1Jlc3BvbnNlEg0KBXBhdGhzGAEgAygJKtABCg5QZXJtaXNzaW9uTW9kZRIfChtQRVJNSVNTSU9OX01PREVfVU5TUEVDSUZJRUQQABIbChdQRVJNSVNTSU9OX01PREVfREVGQVVMVBABEiAKHFBFUk1JU1NJT05fTU9ERV9BQ0NFUFRfRURJVFMQAhIYChRQRVJNSVNTSU9OX01PREVfUExBThADEhwKGFBFUk1JU1NJT05fTU9ERV9ET05UX0FTSxAEEiYKIlBFUk1JU1NJT05fTU9ERV9CWVBBU1NfUEVSTUlTU0lPTlMQBSrJAQoNU2Vzc2lvblN0YXR1cxIeChpTRVNTSU9OX1NUQVRVU19VTlNQRUNJRklFRBAAEhcKE1NFU1NJT05fU1RBVFVTX0lETEUQARIaChZTRVNTSU9OX1NUQVRVU19XT1JLSU5HEAISHgoaU0VTU0lPTl9TVEFUVVNfTkVFRFNfSU5QVVQQAxIpCiVTRVNTSU9OX1NUQVRVU19XQUlUSU5HX0ZPUl9DT05ORUNUSU9OEAQSGAoUU0VTU0lPTl9TVEFUVVNfRVJST1IQBTKNCQoMQWdlbnRTZXJ2aWNlElcKCkluaXRpYWxpemUSIy5oYXJuZXNzLmFnZW50LnYxLkluaXRpYWxpemVSZXF1ZXN0GiQuaGFybmVzcy5hZ2VudC52MS5Jbml0aWFsaXplUmVzcG9uc2USYAoNQ3JlYXRlU2Vzc2lvbhImLmhhcm5lc3MuYWdlbnQudjEuQ3JlYXRlU2Vzc2lvblJlcXVlc3QaJy5oYXJuZXNzLmFnZW50LnYxLkNyZWF0ZVNlc3Npb25SZXNwb25zZRJdCgxMaXN0U2Vzc2lvbnMSJS5oYXJuZXNzLmFnZW50LnYxLkxpc3RTZXNzaW9uc1JlcXVlc3QaJi5oYXJuZXNzLmFnZW50LnYxLkxpc3RTZXNzaW9uc1Jlc3BvbnNlElYKCVN1YnNjcmliZRIiLmhhcm5lc3MuYWdlbnQudjEuU3Vic2NyaWJlUmVxdWVzdBojLmhhcm5lc3MuYWdlbnQudjEuU3Vic2NyaWJlUmVzcG9uc2UwARJmCg9TZW5kVXNlck1lc3NhZ2USKC5oYXJuZXNzLmFnZW50LnYxLlNlbmRVc2VyTWVzc2FnZVJlcXVlc3QaKS5oYXJuZXNzLmFnZW50LnYxLlNlbmRVc2VyTWVzc2FnZVJlc3BvbnNlElQKCUludGVycnVwdBIiLmhhcm5lc3MuYWdlbnQudjEuSW50ZXJydXB0UmVxdWVzdBojLmhhcm5lc3MuYWdlbnQudjEuSW50ZXJydXB0UmVzcG9uc2UScgoTUmVzcG9uZFRvUGVybWlzc2lvbhIsLmhhcm5lc3MuYWdlbnQudjEuUmVzcG9uZFRvUGVybWlzc2lvblJlcXVlc3QaLS5oYXJuZXNzLmFnZW50LnYxLlJlc3BvbmRUb1Blcm1pc3Npb25SZXNwb25zZRJjCg5BbnN3ZXJRdWVzdGlvbhInLmhhcm5lc3MuYWdlbnQudjEuQW5zd2VyUXVlc3Rpb25SZXF1ZXN0GiguaGFybmVzcy5hZ2VudC52MS5BbnN3ZXJRdWVzdGlvblJlc3BvbnNlElEKCFNldE1vZGVsEiEuaGFybmVzcy5hZ2VudC52MS5TZXRNb2RlbFJlcXVlc3QaIi5oYXJuZXNzLmFnZW50LnYxLlNldE1vZGVsUmVzcG9uc2USVAoJU2V0RWZmb3J0EiIuaGFybmVzcy5hZ2VudC52MS5TZXRFZmZvcnRSZXF1ZXN0GiMuaGFybmVzcy5hZ2VudC52MS5TZXRFZmZvcnRSZXNwb25zZRJsChFTZXRQZXJtaXNzaW9uTW9kZRIqLmhhcm5lc3MuYWdlbnQudjEuU2V0UGVybWlzc2lvbk1vZGVSZXF1ZXN0GisuaGFybmVzcy5hZ2VudC52MS5TZXRQZXJtaXNzaW9uTW9kZVJlc3BvbnNlEl0KDFN1Z2dlc3RGaWxlcxIlLmhhcm5lc3MuYWdlbnQudjEuU3VnZ2VzdEZpbGVzUmVxdWVzdBomLmhhcm5lc3MuYWdlbnQudjEuU3VnZ2VzdEZpbGVzUmVzcG9uc2VCywEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQgpBZ2VudFByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z", [file_harness_llm_v1_content]);
 
 /**
  * @generated from message harness.agent.v1.InitializeRequest
@@ -110,6 +110,55 @@ export type SessionInfo = Message<"harness.agent.v1.SessionInfo"> & {
    * @generated from field: string updated_at = 8;
    */
   updatedAt: string;
+
+  /**
+   * Normalized git remote ("github.com/xlsft/harness", see harness.common.v1.Scope for the rules);
+   * empty outside a repository.
+   *
+   * @generated from field: string repo = 9;
+   */
+  repo: string;
+
+  /**
+   * dev_... of the machine running the session, and its display name.
+   *
+   * @generated from field: string device_id = 10;
+   */
+  deviceId: string;
+
+  /**
+   * @generated from field: string device_name = 11;
+   */
+  deviceName: string;
+
+  /**
+   * @generated from field: harness.agent.v1.DiffStats diff_stats = 12;
+   */
+  diffStats?: DiffStats | undefined;
+
+  /**
+   * Absent when no PR is linked.
+   *
+   * @generated from field: optional harness.agent.v1.PullRequest pull_request = 13;
+   */
+  pullRequest?: PullRequest | undefined;
+
+  /**
+   * @generated from field: bool archived = 14;
+   */
+  archived: boolean;
+
+  /**
+   * @generated from field: bool pinned = 15;
+   */
+  pinned: boolean;
+
+  /**
+   * Set for forks and /branch.
+   *
+   * @generated from field: string parent_session_id = 16;
+   */
+  parentSessionId: string;
 };
 
 /**
@@ -118,6 +167,96 @@ export type SessionInfo = Message<"harness.agent.v1.SessionInfo"> & {
  */
 export const SessionInfoSchema: GenMessage<SessionInfo> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_agent, 2);
+
+/**
+ * @generated from message harness.agent.v1.DiffStats
+ */
+export type DiffStats = Message<"harness.agent.v1.DiffStats"> & {
+  /**
+   * @generated from field: int32 files_changed = 1;
+   */
+  filesChanged: number;
+
+  /**
+   * @generated from field: int32 additions = 2;
+   */
+  additions: number;
+
+  /**
+   * @generated from field: int32 deletions = 3;
+   */
+  deletions: number;
+};
+
+/**
+ * Describes the message harness.agent.v1.DiffStats.
+ * Use `create(DiffStatsSchema)` to create a new message.
+ */
+export const DiffStatsSchema: GenMessage<DiffStats> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_agent, 3);
+
+/**
+ * @generated from message harness.agent.v1.PullRequest
+ */
+export type PullRequest = Message<"harness.agent.v1.PullRequest"> & {
+  /**
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * @generated from field: int32 number = 2;
+   */
+  number: number;
+
+  /**
+   * @generated from field: harness.agent.v1.PullRequest.State state = 3;
+   */
+  state: PullRequest_State;
+};
+
+/**
+ * Describes the message harness.agent.v1.PullRequest.
+ * Use `create(PullRequestSchema)` to create a new message.
+ */
+export const PullRequestSchema: GenMessage<PullRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_agent, 4);
+
+/**
+ * @generated from enum harness.agent.v1.PullRequest.State
+ */
+export enum PullRequest_State {
+  /**
+   * @generated from enum value: STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: STATE_OPEN = 1;
+   */
+  OPEN = 1,
+
+  /**
+   * @generated from enum value: STATE_DRAFT = 2;
+   */
+  DRAFT = 2,
+
+  /**
+   * @generated from enum value: STATE_MERGED = 3;
+   */
+  MERGED = 3,
+
+  /**
+   * @generated from enum value: STATE_CLOSED = 4;
+   */
+  CLOSED = 4,
+}
+
+/**
+ * Describes the enum harness.agent.v1.PullRequest.State.
+ */
+export const PullRequest_StateSchema: GenEnum<PullRequest_State> = /*@__PURE__*/
+  enumDesc(file_harness_agent_v1_agent, 4, 0);
 
 /**
  * @generated from message harness.agent.v1.CreateSessionRequest
@@ -158,7 +297,7 @@ export type CreateSessionRequest = Message<"harness.agent.v1.CreateSessionReques
  * Use `create(CreateSessionRequestSchema)` to create a new message.
  */
 export const CreateSessionRequestSchema: GenMessage<CreateSessionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 3);
+  messageDesc(file_harness_agent_v1_agent, 5);
 
 /**
  * @generated from message harness.agent.v1.CreateSessionResponse
@@ -175,7 +314,7 @@ export type CreateSessionResponse = Message<"harness.agent.v1.CreateSessionRespo
  * Use `create(CreateSessionResponseSchema)` to create a new message.
  */
 export const CreateSessionResponseSchema: GenMessage<CreateSessionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 4);
+  messageDesc(file_harness_agent_v1_agent, 6);
 
 /**
  * @generated from message harness.agent.v1.ListSessionsRequest
@@ -192,7 +331,7 @@ export type ListSessionsRequest = Message<"harness.agent.v1.ListSessionsRequest"
  * Use `create(ListSessionsRequestSchema)` to create a new message.
  */
 export const ListSessionsRequestSchema: GenMessage<ListSessionsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 5);
+  messageDesc(file_harness_agent_v1_agent, 7);
 
 /**
  * @generated from message harness.agent.v1.ListSessionsResponse
@@ -209,7 +348,7 @@ export type ListSessionsResponse = Message<"harness.agent.v1.ListSessionsRespons
  * Use `create(ListSessionsResponseSchema)` to create a new message.
  */
 export const ListSessionsResponseSchema: GenMessage<ListSessionsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 6);
+  messageDesc(file_harness_agent_v1_agent, 8);
 
 /**
  * @generated from message harness.agent.v1.SubscribeRequest
@@ -231,7 +370,7 @@ export type SubscribeRequest = Message<"harness.agent.v1.SubscribeRequest"> & {
  * Use `create(SubscribeRequestSchema)` to create a new message.
  */
 export const SubscribeRequestSchema: GenMessage<SubscribeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 7);
+  messageDesc(file_harness_agent_v1_agent, 9);
 
 /**
  * @generated from message harness.agent.v1.SubscribeResponse
@@ -248,7 +387,7 @@ export type SubscribeResponse = Message<"harness.agent.v1.SubscribeResponse"> & 
  * Use `create(SubscribeResponseSchema)` to create a new message.
  */
 export const SubscribeResponseSchema: GenMessage<SubscribeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 8);
+  messageDesc(file_harness_agent_v1_agent, 10);
 
 /**
  * @generated from message harness.agent.v1.SessionEvent
@@ -340,6 +479,24 @@ export type SessionEvent = Message<"harness.agent.v1.SessionEvent"> & {
      */
     value: Notice;
     case: "notice";
+  } | {
+    /**
+     * @generated from field: harness.agent.v1.PermissionResolved permission_resolved = 15;
+     */
+    value: PermissionResolved;
+    case: "permissionResolved";
+  } | {
+    /**
+     * @generated from field: harness.agent.v1.QuestionResolved question_resolved = 16;
+     */
+    value: QuestionResolved;
+    case: "questionResolved";
+  } | {
+    /**
+     * @generated from field: harness.agent.v1.SessionEnded session_ended = 17;
+     */
+    value: SessionEnded;
+    case: "sessionEnded";
   } | { case: undefined; value?: undefined };
 };
 
@@ -348,7 +505,7 @@ export type SessionEvent = Message<"harness.agent.v1.SessionEvent"> & {
  * Use `create(SessionEventSchema)` to create a new message.
  */
 export const SessionEventSchema: GenMessage<SessionEvent> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 9);
+  messageDesc(file_harness_agent_v1_agent, 11);
 
 /**
  * @generated from message harness.agent.v1.UserMessage
@@ -370,10 +527,14 @@ export type UserMessage = Message<"harness.agent.v1.UserMessage"> & {
  * Use `create(UserMessageSchema)` to create a new message.
  */
 export const UserMessageSchema: GenMessage<UserMessage> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 10);
+  messageDesc(file_harness_agent_v1_agent, 12);
 
 /**
  * Streaming fragment of the assistant message `message_id`.
+ * Deltas are ephemeral: they are never persisted (neither in the local log nor on the relay) and never
+ * replayed. A delta does not consume a seq; its SessionEvent.seq is the seq of the last durable event
+ * emitted before it, so it sorts after that event and before the next durable one. Consumers must not use
+ * seq to deduplicate deltas. History replay yields only the final AssistantMessage.
  *
  * @generated from message harness.agent.v1.AssistantDelta
  */
@@ -417,7 +578,7 @@ export type AssistantDelta = Message<"harness.agent.v1.AssistantDelta"> & {
  * Use `create(AssistantDeltaSchema)` to create a new message.
  */
 export const AssistantDeltaSchema: GenMessage<AssistantDelta> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 11);
+  messageDesc(file_harness_agent_v1_agent, 13);
 
 /**
  * The complete assistant message, emitted once its stream ends.
@@ -456,7 +617,7 @@ export type AssistantMessage = Message<"harness.agent.v1.AssistantMessage"> & {
  * Use `create(AssistantMessageSchema)` to create a new message.
  */
 export const AssistantMessageSchema: GenMessage<AssistantMessage> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 12);
+  messageDesc(file_harness_agent_v1_agent, 14);
 
 /**
  * @generated from message harness.agent.v1.ToolCallStarted
@@ -490,7 +651,7 @@ export type ToolCallStarted = Message<"harness.agent.v1.ToolCallStarted"> & {
  * Use `create(ToolCallStartedSchema)` to create a new message.
  */
 export const ToolCallStartedSchema: GenMessage<ToolCallStarted> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 13);
+  messageDesc(file_harness_agent_v1_agent, 15);
 
 /**
  * @generated from message harness.agent.v1.ToolCallFinished
@@ -527,7 +688,7 @@ export type ToolCallFinished = Message<"harness.agent.v1.ToolCallFinished"> & {
  * Use `create(ToolCallFinishedSchema)` to create a new message.
  */
 export const ToolCallFinishedSchema: GenMessage<ToolCallFinished> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 14);
+  messageDesc(file_harness_agent_v1_agent, 16);
 
 /**
  * @generated from message harness.agent.v1.PermissionRequest
@@ -571,7 +732,83 @@ export type PermissionRequest = Message<"harness.agent.v1.PermissionRequest"> & 
  * Use `create(PermissionRequestSchema)` to create a new message.
  */
 export const PermissionRequestSchema: GenMessage<PermissionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 15);
+  messageDesc(file_harness_agent_v1_agent, 17);
+
+/**
+ * A pending PermissionRequest was answered (by any client, or by a hook / rule). Frontends dismiss the card.
+ *
+ * @generated from message harness.agent.v1.PermissionResolved
+ */
+export type PermissionResolved = Message<"harness.agent.v1.PermissionResolved"> & {
+  /**
+   * @generated from field: string request_id = 1;
+   */
+  requestId: string;
+
+  /**
+   * @generated from field: harness.agent.v1.RespondToPermissionRequest.Decision decision = 2;
+   */
+  decision: RespondToPermissionRequest_Decision;
+
+  /**
+   * Who answered: "local", "relay:<frontend>", "hook", "rule", "interrupt".
+   *
+   * @generated from field: string resolved_by = 3;
+   */
+  resolvedBy: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.PermissionResolved.
+ * Use `create(PermissionResolvedSchema)` to create a new message.
+ */
+export const PermissionResolvedSchema: GenMessage<PermissionResolved> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_agent, 18);
+
+/**
+ * A pending Question was answered (or cancelled). Frontends dismiss the card.
+ *
+ * @generated from message harness.agent.v1.QuestionResolved
+ */
+export type QuestionResolved = Message<"harness.agent.v1.QuestionResolved"> & {
+  /**
+   * @generated from field: string request_id = 1;
+   */
+  requestId: string;
+
+  /**
+   * @generated from field: string resolved_by = 2;
+   */
+  resolvedBy: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.QuestionResolved.
+ * Use `create(QuestionResolvedSchema)` to create a new message.
+ */
+export const QuestionResolvedSchema: GenMessage<QuestionResolved> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_agent, 19);
+
+/**
+ * The session ended on its host; no more events follow (a resume creates a new subscription).
+ *
+ * @generated from message harness.agent.v1.SessionEnded
+ */
+export type SessionEnded = Message<"harness.agent.v1.SessionEnded"> & {
+  /**
+   * e.g. "exit", "killed", "host_shutdown", "superseded".
+   *
+   * @generated from field: string reason = 1;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.SessionEnded.
+ * Use `create(SessionEndedSchema)` to create a new message.
+ */
+export const SessionEndedSchema: GenMessage<SessionEnded> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_agent, 20);
 
 /**
  * @generated from message harness.agent.v1.Question
@@ -598,7 +835,7 @@ export type Question = Message<"harness.agent.v1.Question"> & {
  * Use `create(QuestionSchema)` to create a new message.
  */
 export const QuestionSchema: GenMessage<Question> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 16);
+  messageDesc(file_harness_agent_v1_agent, 21);
 
 /**
  * @generated from message harness.agent.v1.QuestionItem
@@ -630,7 +867,7 @@ export type QuestionItem = Message<"harness.agent.v1.QuestionItem"> & {
  * Use `create(QuestionItemSchema)` to create a new message.
  */
 export const QuestionItemSchema: GenMessage<QuestionItem> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 17);
+  messageDesc(file_harness_agent_v1_agent, 22);
 
 /**
  * @generated from message harness.agent.v1.QuestionOption
@@ -652,7 +889,7 @@ export type QuestionOption = Message<"harness.agent.v1.QuestionOption"> & {
  * Use `create(QuestionOptionSchema)` to create a new message.
  */
 export const QuestionOptionSchema: GenMessage<QuestionOption> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 18);
+  messageDesc(file_harness_agent_v1_agent, 23);
 
 /**
  * @generated from message harness.agent.v1.QueueChanged
@@ -669,7 +906,7 @@ export type QueueChanged = Message<"harness.agent.v1.QueueChanged"> & {
  * Use `create(QueueChangedSchema)` to create a new message.
  */
 export const QueueChangedSchema: GenMessage<QueueChanged> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 19);
+  messageDesc(file_harness_agent_v1_agent, 24);
 
 /**
  * @generated from message harness.agent.v1.TurnFinished
@@ -711,7 +948,7 @@ export type TurnFinished = Message<"harness.agent.v1.TurnFinished"> & {
  * Use `create(TurnFinishedSchema)` to create a new message.
  */
 export const TurnFinishedSchema: GenMessage<TurnFinished> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 20);
+  messageDesc(file_harness_agent_v1_agent, 25);
 
 /**
  * @generated from enum harness.agent.v1.TurnFinished.Result
@@ -747,7 +984,7 @@ export enum TurnFinished_Result {
  * Describes the enum harness.agent.v1.TurnFinished.Result.
  */
 export const TurnFinished_ResultSchema: GenEnum<TurnFinished_Result> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_agent, 20, 0);
+  enumDesc(file_harness_agent_v1_agent, 25, 0);
 
 /**
  * @generated from message harness.agent.v1.Notice
@@ -776,7 +1013,7 @@ export type Notice = Message<"harness.agent.v1.Notice"> & {
  * Use `create(NoticeSchema)` to create a new message.
  */
 export const NoticeSchema: GenMessage<Notice> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 21);
+  messageDesc(file_harness_agent_v1_agent, 26);
 
 /**
  * @generated from enum harness.agent.v1.Notice.Level
@@ -807,7 +1044,7 @@ export enum Notice_Level {
  * Describes the enum harness.agent.v1.Notice.Level.
  */
 export const Notice_LevelSchema: GenEnum<Notice_Level> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_agent, 21, 0);
+  enumDesc(file_harness_agent_v1_agent, 26, 0);
 
 /**
  * @generated from message harness.agent.v1.SendUserMessageRequest
@@ -841,7 +1078,7 @@ export type SendUserMessageRequest = Message<"harness.agent.v1.SendUserMessageRe
  * Use `create(SendUserMessageRequestSchema)` to create a new message.
  */
 export const SendUserMessageRequestSchema: GenMessage<SendUserMessageRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 22);
+  messageDesc(file_harness_agent_v1_agent, 27);
 
 /**
  * @generated from enum harness.agent.v1.SendUserMessageRequest.Delivery
@@ -869,7 +1106,7 @@ export enum SendUserMessageRequest_Delivery {
  * Describes the enum harness.agent.v1.SendUserMessageRequest.Delivery.
  */
 export const SendUserMessageRequest_DeliverySchema: GenEnum<SendUserMessageRequest_Delivery> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_agent, 22, 0);
+  enumDesc(file_harness_agent_v1_agent, 27, 0);
 
 /**
  * @generated from message harness.agent.v1.SendUserMessageResponse
@@ -882,7 +1119,7 @@ export type SendUserMessageResponse = Message<"harness.agent.v1.SendUserMessageR
  * Use `create(SendUserMessageResponseSchema)` to create a new message.
  */
 export const SendUserMessageResponseSchema: GenMessage<SendUserMessageResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 23);
+  messageDesc(file_harness_agent_v1_agent, 28);
 
 /**
  * @generated from message harness.agent.v1.InterruptRequest
@@ -899,7 +1136,7 @@ export type InterruptRequest = Message<"harness.agent.v1.InterruptRequest"> & {
  * Use `create(InterruptRequestSchema)` to create a new message.
  */
 export const InterruptRequestSchema: GenMessage<InterruptRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 24);
+  messageDesc(file_harness_agent_v1_agent, 29);
 
 /**
  * @generated from message harness.agent.v1.InterruptResponse
@@ -912,7 +1149,7 @@ export type InterruptResponse = Message<"harness.agent.v1.InterruptResponse"> & 
  * Use `create(InterruptResponseSchema)` to create a new message.
  */
 export const InterruptResponseSchema: GenMessage<InterruptResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 25);
+  messageDesc(file_harness_agent_v1_agent, 30);
 
 /**
  * @generated from message harness.agent.v1.RespondToPermissionRequest
@@ -958,7 +1195,7 @@ export type RespondToPermissionRequest = Message<"harness.agent.v1.RespondToPerm
  * Use `create(RespondToPermissionRequestSchema)` to create a new message.
  */
 export const RespondToPermissionRequestSchema: GenMessage<RespondToPermissionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 26);
+  messageDesc(file_harness_agent_v1_agent, 31);
 
 /**
  * @generated from enum harness.agent.v1.RespondToPermissionRequest.Decision
@@ -993,7 +1230,7 @@ export enum RespondToPermissionRequest_Decision {
  * Describes the enum harness.agent.v1.RespondToPermissionRequest.Decision.
  */
 export const RespondToPermissionRequest_DecisionSchema: GenEnum<RespondToPermissionRequest_Decision> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_agent, 26, 0);
+  enumDesc(file_harness_agent_v1_agent, 31, 0);
 
 /**
  * @generated from message harness.agent.v1.RespondToPermissionResponse
@@ -1006,7 +1243,7 @@ export type RespondToPermissionResponse = Message<"harness.agent.v1.RespondToPer
  * Use `create(RespondToPermissionResponseSchema)` to create a new message.
  */
 export const RespondToPermissionResponseSchema: GenMessage<RespondToPermissionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 27);
+  messageDesc(file_harness_agent_v1_agent, 32);
 
 /**
  * @generated from message harness.agent.v1.AnswerQuestionRequest
@@ -1035,7 +1272,7 @@ export type AnswerQuestionRequest = Message<"harness.agent.v1.AnswerQuestionRequ
  * Use `create(AnswerQuestionRequestSchema)` to create a new message.
  */
 export const AnswerQuestionRequestSchema: GenMessage<AnswerQuestionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 28);
+  messageDesc(file_harness_agent_v1_agent, 33);
 
 /**
  * @generated from message harness.agent.v1.QuestionAnswer
@@ -1052,7 +1289,7 @@ export type QuestionAnswer = Message<"harness.agent.v1.QuestionAnswer"> & {
  * Use `create(QuestionAnswerSchema)` to create a new message.
  */
 export const QuestionAnswerSchema: GenMessage<QuestionAnswer> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 29);
+  messageDesc(file_harness_agent_v1_agent, 34);
 
 /**
  * @generated from message harness.agent.v1.AnswerQuestionResponse
@@ -1065,7 +1302,7 @@ export type AnswerQuestionResponse = Message<"harness.agent.v1.AnswerQuestionRes
  * Use `create(AnswerQuestionResponseSchema)` to create a new message.
  */
 export const AnswerQuestionResponseSchema: GenMessage<AnswerQuestionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 30);
+  messageDesc(file_harness_agent_v1_agent, 35);
 
 /**
  * @generated from message harness.agent.v1.SetModelRequest
@@ -1087,7 +1324,7 @@ export type SetModelRequest = Message<"harness.agent.v1.SetModelRequest"> & {
  * Use `create(SetModelRequestSchema)` to create a new message.
  */
 export const SetModelRequestSchema: GenMessage<SetModelRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 31);
+  messageDesc(file_harness_agent_v1_agent, 36);
 
 /**
  * @generated from message harness.agent.v1.SetModelResponse
@@ -1100,7 +1337,7 @@ export type SetModelResponse = Message<"harness.agent.v1.SetModelResponse"> & {
  * Use `create(SetModelResponseSchema)` to create a new message.
  */
 export const SetModelResponseSchema: GenMessage<SetModelResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 32);
+  messageDesc(file_harness_agent_v1_agent, 37);
 
 /**
  * @generated from message harness.agent.v1.SetEffortRequest
@@ -1122,7 +1359,7 @@ export type SetEffortRequest = Message<"harness.agent.v1.SetEffortRequest"> & {
  * Use `create(SetEffortRequestSchema)` to create a new message.
  */
 export const SetEffortRequestSchema: GenMessage<SetEffortRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 33);
+  messageDesc(file_harness_agent_v1_agent, 38);
 
 /**
  * @generated from message harness.agent.v1.SetEffortResponse
@@ -1135,7 +1372,7 @@ export type SetEffortResponse = Message<"harness.agent.v1.SetEffortResponse"> & 
  * Use `create(SetEffortResponseSchema)` to create a new message.
  */
 export const SetEffortResponseSchema: GenMessage<SetEffortResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 34);
+  messageDesc(file_harness_agent_v1_agent, 39);
 
 /**
  * @generated from message harness.agent.v1.SetPermissionModeRequest
@@ -1157,7 +1394,7 @@ export type SetPermissionModeRequest = Message<"harness.agent.v1.SetPermissionMo
  * Use `create(SetPermissionModeRequestSchema)` to create a new message.
  */
 export const SetPermissionModeRequestSchema: GenMessage<SetPermissionModeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 35);
+  messageDesc(file_harness_agent_v1_agent, 40);
 
 /**
  * @generated from message harness.agent.v1.SetPermissionModeResponse
@@ -1170,7 +1407,7 @@ export type SetPermissionModeResponse = Message<"harness.agent.v1.SetPermissionM
  * Use `create(SetPermissionModeResponseSchema)` to create a new message.
  */
 export const SetPermissionModeResponseSchema: GenMessage<SetPermissionModeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 36);
+  messageDesc(file_harness_agent_v1_agent, 41);
 
 /**
  * @generated from message harness.agent.v1.SuggestFilesRequest
@@ -1197,7 +1434,7 @@ export type SuggestFilesRequest = Message<"harness.agent.v1.SuggestFilesRequest"
  * Use `create(SuggestFilesRequestSchema)` to create a new message.
  */
 export const SuggestFilesRequestSchema: GenMessage<SuggestFilesRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 37);
+  messageDesc(file_harness_agent_v1_agent, 42);
 
 /**
  * @generated from message harness.agent.v1.SuggestFilesResponse
@@ -1214,7 +1451,7 @@ export type SuggestFilesResponse = Message<"harness.agent.v1.SuggestFilesRespons
  * Use `create(SuggestFilesResponseSchema)` to create a new message.
  */
 export const SuggestFilesResponseSchema: GenMessage<SuggestFilesResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_agent, 38);
+  messageDesc(file_harness_agent_v1_agent, 43);
 
 /**
  * @generated from enum harness.agent.v1.PermissionMode

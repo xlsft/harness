@@ -1,5 +1,10 @@
 # Code generation for all packages. Run from the repository root: `buf generate`.
 # Generated code is committed into each package, so packages stay self-contained.
+#
+# Plugins run locally (no BSR access needed):
+#   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+#   go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.1
+#   (cd packages/core && pnpm install)   # provides protoc-gen-es
 version: v2
 managed:
   enabled: true
@@ -8,14 +13,14 @@ managed:
       value: github.com/xlsft/harness/packages/client/gen
 plugins:
   # Go: messages + Connect handlers/clients for packages/client (and packages/cli, which imports it).
-  - remote: buf.build/protocolbuffers/go
+  - local: protoc-gen-go
     out: packages/client/gen
     opt: paths=source_relative
-  - remote: buf.build/connectrpc/go
+  - local: protoc-gen-connect-go
     out: packages/client/gen
     opt: paths=source_relative
   # TypeScript: messages + service descriptors (protobuf-es v2, used by connect-es v2) for packages/core.
-  - remote: buf.build/bufbuild/es
+  - local: packages/core/node_modules/.bin/protoc-gen-es
     out: packages/core/src/gen
     opt: target=ts
 inputs:

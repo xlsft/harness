@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/common/v1/errors.proto.
  */
 export const file_harness_common_v1_errors: GenFile = /*@__PURE__*/
-  fileDesc("Ch5oYXJuZXNzL2NvbW1vbi92MS9lcnJvcnMucHJvdG8SEWhhcm5lc3MuY29tbW9uLnYxImgKCUVycm9ySW5mbxIqCgR0eXBlGAEgASgOMhwuaGFybmVzcy5jb21tb24udjEuRXJyb3JUeXBlEhYKDnJldHJ5X2FmdGVyX21zGAIgASgDEhcKD3Vwc3RyZWFtX3N0YXR1cxgDIAEoBSrQAgoJRXJyb3JUeXBlEhoKFkVSUk9SX1RZUEVfVU5TUEVDSUZJRUQQABIfChtFUlJPUl9UWVBFX0lOVkFMSURfQVJHVU1FTlQQARIeChpFUlJPUl9UWVBFX1VOQVVUSEVOVElDQVRFRBACEiAKHEVSUk9SX1RZUEVfUEVSTUlTU0lPTl9ERU5JRUQQAxIYChRFUlJPUl9UWVBFX05PVF9GT1VORBAEEhsKF0VSUk9SX1RZUEVfUkFURV9MSU1JVEVEEAUSHQoZRVJST1JfVFlQRV9RVU9UQV9FWENFRURFRBAGEhkKFUVSUk9SX1RZUEVfT1ZFUkxPQURFRBAHEhcKE0VSUk9SX1RZUEVfVVBTVFJFQU0QCBIhCh1FUlJPUl9UWVBFX1VOU1VQUE9SVEVEX0NMSUVOVBAJEhcKE0VSUk9SX1RZUEVfSU5URVJOQUwQCmIGcHJvdG8z");
+  fileDesc("Ch5oYXJuZXNzL2NvbW1vbi92MS9lcnJvcnMucHJvdG8SEWhhcm5lc3MuY29tbW9uLnYxImgKCUVycm9ySW5mbxIqCgR0eXBlGAEgASgOMhwuaGFybmVzcy5jb21tb24udjEuRXJyb3JUeXBlEhYKDnJldHJ5X2FmdGVyX21zGAIgASgDEhcKD3Vwc3RyZWFtX3N0YXR1cxgDIAEoBSrpAgoJRXJyb3JUeXBlEhoKFkVSUk9SX1RZUEVfVU5TUEVDSUZJRUQQABIfChtFUlJPUl9UWVBFX0lOVkFMSURfQVJHVU1FTlQQARIeChpFUlJPUl9UWVBFX1VOQVVUSEVOVElDQVRFRBACEiAKHEVSUk9SX1RZUEVfUEVSTUlTU0lPTl9ERU5JRUQQAxIYChRFUlJPUl9UWVBFX05PVF9GT1VORBAEEhsKF0VSUk9SX1RZUEVfUkFURV9MSU1JVEVEEAUSHQoZRVJST1JfVFlQRV9RVU9UQV9FWENFRURFRBAGEhkKFUVSUk9SX1RZUEVfT1ZFUkxPQURFRBAHEhcKE0VSUk9SX1RZUEVfVVBTVFJFQU0QCBIhCh1FUlJPUl9UWVBFX1VOU1VQUE9SVEVEX0NMSUVOVBAJEhcKE0VSUk9SX1RZUEVfSU5URVJOQUwQChIXChNFUlJPUl9UWVBFX0NPTkZMSUNUEAtC0wEKFWNvbS5oYXJuZXNzLmNvbW1vbi52MUILRXJyb3JzUHJvdG9QAVpHZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9jb21tb24vdjE7Y29tbW9udjGiAgNIQ1iqAhFIYXJuZXNzLkNvbW1vbi5WMcoCEUhhcm5lc3NcQ29tbW9uXFYx4gIdSGFybmVzc1xDb21tb25cVjFcR1BCTWV0YWRhdGHqAhNIYXJuZXNzOjpDb21tb246OlYxYgZwcm90bzM");
 
 /**
  * ErrorInfo is attached as a detail to every Connect/gRPC error returned by harness services.
@@ -25,6 +25,9 @@ export const file_harness_common_v1_errors: GenFile = /*@__PURE__*/
  *   overloaded         -> UNAVAILABLE
  *   upstream           -> UNAVAILABLE         (model provider failed after server-side retries)
  *   unsupported_client -> FAILED_PRECONDITION (client is older than the server's minimum version)
+ *   conflict           -> ABORTED             (concurrent modification outside a base_version check, e.g.
+ *                                             a unique name taken; refetch and retry. Version mismatches
+ *                                             on CAS writes are returned as a Conflict response instead)
  *   internal           -> INTERNAL
  *
  * @generated from message harness.common.v1.ErrorInfo
@@ -115,6 +118,11 @@ export enum ErrorType {
    * @generated from enum value: ERROR_TYPE_INTERNAL = 10;
    */
   INTERNAL = 10,
+
+  /**
+   * @generated from enum value: ERROR_TYPE_CONFLICT = 11;
+   */
+  CONFLICT = 11,
 }
 
 /**
