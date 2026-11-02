@@ -70,9 +70,14 @@ async function cancel() {
       <div class="flex w-full max-w-[420px] flex-col gap-6">
         <div class="flex flex-col gap-4">
           <HWordmark class="h-[22px] w-auto self-start text-white" />
-          <p class="m-0 text-[13px] leading-[1.6] text-toned">
-            Your own coding agent. Any model you like, a server you run, your code on your machine.
-          </p>
+          <div class="flex flex-col gap-1.5">
+            <h1 class="m-0 text-[17px] font-semibold text-white">
+              Your workflow, unbounded.
+            </h1>
+            <p class="m-0 text-[13px] leading-[1.6] text-toned">
+              The coding agent you already know, with any model and a server you own.
+            </p>
+          </div>
         </div>
 
         <form

@@ -5,6 +5,11 @@
   </picture>
 </p>
 
+<p align="center">
+  <b>Your workflow, unbounded.</b><br>
+  The coding agent you already know, with any model and a server you own.
+</p>
+
 # harness
 
 An agentic coding harness that replaces Claude Code. It keeps the same tools, the same UX and the same architecture, and runs with **any model** behind an OpenAI- or Anthropic-compatible endpoint.
