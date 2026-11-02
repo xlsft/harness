@@ -322,7 +322,8 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 
 ### M4 — Deployment and advanced
 - Single-container image (s6-overlay: core + Postgres + SearXNG, see §1.7), backups, client updates (binary self-update, auto-update on SSH hosts).
-- Git panels and PR/CI, worktrees, sandbox runtime, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
+- **Code hosts (`VcsService`):** pluggable providers. Server providers: GitHub (GitHub App, one-click manifest registration, webhooks) and GitLab (gitlab.com and self-managed, OAuth app or access token, webhooks). Device providers: `gh` and `glab` on the client, polling PR/CI for linked sessions and uploading snapshots. PR/MR and CI status on sessions on every device, push on CI failure / review / merge, create/merge PRs through the server, auto-fix of CI failures and review comments via the relay or a daemon-spawned session.
+- Git panels, worktrees, sandbox runtime, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
 - **Artifacts (server-side):** publish/update pages from sessions, comments, artifact databases and assets, artifact types (including a design canvas); rendered in the UI's artifact pane and artifacts page.
 - **Browser extension client** (`packages/extension`): one WebExtensions codebase for Chromium-based (MV3) and Firefox-based browsers. Gives the agent browser tools (tabs, navigation, page reading and find, forms, clicks/screenshots, console/network/JS, recordings) with per-site permissions; prompts are browser-neutral rewrites of the corresponding Claude Code behavior. Connects to the local client (native messaging) or through the server relay.
 - **Team onboarding guide** (`ONBOARDING.md` generator and share link), statusline setup agent (CLI).
