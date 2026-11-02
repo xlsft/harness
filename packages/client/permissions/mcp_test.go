@@ -63,6 +63,10 @@ func TestAlwaysAsk(t *testing.T) {
 	if d := e.Evaluate(Request{ToolName: "mcp__bank__pay"}); d.Behavior != Allow {
 		t.Fatalf("without AlwaysAsk bypass allows: %+v", d)
 	}
+	plan := New(Config{Cwd: t.TempDir(), DefaultMode: ModePlan})
+	if d := plan.Evaluate(Request{ToolName: "mcp__bank__pay", AlwaysAsk: true}); d.Behavior != Deny {
+		t.Fatalf("plan mode = %+v", d)
+	}
 	// Non-interactive: an always-ask tool is denied.
 	if d := e.Check(context.Background(), Request{ToolName: "mcp__bank__pay", AlwaysAsk: true}); d.Behavior != Deny {
 		t.Fatalf("non-interactive = %+v", d)

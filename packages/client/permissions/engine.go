@@ -529,6 +529,9 @@ func (e *Engine) Evaluate(req Request) Decision {
 		}
 	}
 	if req.AlwaysAsk {
+		if e.mode == ModePlan && !req.ReadOnly {
+			return e.planDenial(req.ToolName)
+		}
 		return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s requires the user's confirmation for every call.", req.ToolName)}
 	}
 	for _, r := range e.ask {
