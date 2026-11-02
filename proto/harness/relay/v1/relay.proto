@@ -48,6 +48,13 @@ import "harness/common/v1/errors.proto";
 //   PERMISSION_DENIED and hosts must reject it too. Permission prompts and questions go to every viewer;
 //   the first answer that reaches the host wins, later answers are acked with ALREADY_RESOLVED, and the host
 //   publishes PermissionResolved / QuestionResolved so every viewer dismisses the card.
+// - Access. Hosts and viewers authenticate with their device tokens. A viewer sees only hosts and sessions
+//   of its own user (no sharing in v1); every viewer RPC on another user's host or session fails with
+//   NOT_FOUND, never PERMISSION_DENIED, so ids do not leak.
+// - Command expiry. A command not acked by expires_at (default: created_at + 10 min, CommandOptions.ttl_seconds
+//   overrides, max 24 h) is dropped by the server and never redelivered; hosts also ignore a command whose
+//   expires_at has passed (ack it OUTCOME_REJECTED). A message typed on a phone while the laptop sleeps is not
+//   executed hours later. A held call (wait_for_ack) that outlives it returns delivery = EXPIRED.
 // - Presence. An open SubscribeSession stream plus the latest UpdatePresence state tells the server whether a
 //   human is looking at the session; Web Push for permission / question / turn completion is suppressed while
 //   a viewer is FOCUSED (or the host reports local terminal activity).
@@ -94,9 +101,22 @@ service RelayService {
   rpc SetModel(SetModelRequest) returns (SetModelResponse);
   rpc SetEffort(SetEffortRequest) returns (SetEffortResponse);
   rpc SetPermissionMode(SetPermissionModeRequest) returns (SetPermissionModeResponse);
+  rpc SetOutputStyle(SetOutputStyleRequest) returns (SetOutputStyleResponse);
+  rpc RemoveQueuedMessage(RemoveQueuedMessageRequest) returns (RemoveQueuedMessageResponse);
+  // RespondToPlan waits for the host ack like RespondToPermission (first answer wins).
+  rpc RespondToPlan(RespondToPlanRequest) returns (RespondToPlanResponse);
+  rpc StopTask(StopTaskRequest) returns (StopTaskResponse);
+  rpc CloseSession(CloseSessionRequest) returns (CloseSessionResponse);
+  // Long-running: return once queued (or acked with wait_for_ack); progress and the result arrive as
+  // Compacted / Rewound events.
+  rpc Compact(CompactRequest) returns (CompactResponse);
+  rpc Rewind(RewindRequest) returns (RewindResponse);
   // Query commands: the server holds the call until the host acks with a result (max ~10 s), otherwise
   // UNAVAILABLE (host offline or slow).
   rpc SuggestFiles(SuggestFilesRequest) returns (SuggestFilesResponse);
+  rpc ListCheckpoints(ListCheckpointsRequest) returns (ListCheckpointsResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc ListOutputStyles(ListOutputStylesRequest) returns (ListOutputStylesResponse);
   // "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
   // the server and again by the host). Held until the host acks with the created session (max ~30 s).
   rpc SpawnSession(SpawnSessionRequest) returns (SpawnSessionResponse);
@@ -171,7 +191,19 @@ message Command {
     harness.agent.v1.SuggestFilesRequest suggest_files = 17;
     SpawnSessionCommand spawn_session = 18;
     OpenTunnelCommand open_tunnel = 19;
+    harness.agent.v1.SetOutputStyleRequest set_output_style = 20;
+    harness.agent.v1.RemoveQueuedMessageRequest remove_queued_message = 21;
+    harness.agent.v1.RespondToPlanRequest respond_to_plan = 22;
+    harness.agent.v1.StopTaskRequest stop_task = 23;
+    harness.agent.v1.CloseSessionRequest close_session = 24;
+    harness.agent.v1.CompactRequest compact = 25;
+    harness.agent.v1.RewindRequest rewind = 26;
+    harness.agent.v1.ListCheckpointsRequest list_checkpoints = 27;
+    harness.agent.v1.ListTasksRequest list_tasks = 28;
+    harness.agent.v1.ListOutputStylesRequest list_output_styles = 29;
   }
+  // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
+  string expires_at = 7;
 }
 
 message SpawnSessionCommand {
@@ -253,7 +285,7 @@ message CommandAck {
   enum Outcome {
     OUTCOME_UNSPECIFIED = 0;
     OUTCOME_OK = 1;
-    // Permission / question was already answered by another client (first answer wins).
+    // Permission / question / plan was already answered by another client (first answer wins).
     OUTCOME_ALREADY_RESOLVED = 2;
     // Rejected by the host (e.g. bypass mode requested, spawn outside allowed roots); see error.
     OUTCOME_REJECTED = 3;
@@ -268,6 +300,12 @@ message CommandAck {
     harness.agent.v1.SuggestFilesResponse suggest_files = 10;
     harness.agent.v1.CreateSessionResponse spawn_session = 11;
     Tunnel open_tunnel = 12;
+    harness.agent.v1.RemoveQueuedMessageResponse remove_queued_message = 13;
+    harness.agent.v1.CompactResponse compact = 14;
+    harness.agent.v1.RewindResponse rewind = 15;
+    harness.agent.v1.ListCheckpointsResponse list_checkpoints = 16;
+    harness.agent.v1.ListTasksResponse list_tasks = 17;
+    harness.agent.v1.ListOutputStylesResponse list_output_styles = 18;
   }
 }
 
@@ -444,6 +482,8 @@ message CommandOptions {
   bool wait_for_ack = 2;
   // Frontend label for display / audit ("web", "mobile", ...).
   string frontend = 3;
+  // How long the command may wait for an offline host; 0 = server default (10 min), max 24 h.
+  int32 ttl_seconds = 4;
 }
 
 enum DeliveryState {
@@ -451,6 +491,8 @@ enum DeliveryState {
   // Stored; the host is offline or has not acked yet.
   DELIVERY_STATE_QUEUED = 1;
   DELIVERY_STATE_ACKED = 2;
+  // Dropped unacked at expires_at.
+  DELIVERY_STATE_EXPIRED = 3;
 }
 
 // Common result of fire-and-forget commands.
@@ -531,6 +573,93 @@ message SuggestFilesRequest {
 
 message SuggestFilesResponse {
   harness.agent.v1.SuggestFilesResponse response = 1;
+}
+
+message SetOutputStyleRequest {
+  harness.agent.v1.SetOutputStyleRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SetOutputStyleResponse {
+  CommandResult result = 1;
+}
+
+message RemoveQueuedMessageRequest {
+  harness.agent.v1.RemoveQueuedMessageRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message RemoveQueuedMessageResponse {
+  CommandResult result = 1;
+}
+
+message RespondToPlanRequest {
+  harness.agent.v1.RespondToPlanRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message RespondToPlanResponse {
+  CommandResult result = 1;
+}
+
+message StopTaskRequest {
+  harness.agent.v1.StopTaskRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message StopTaskResponse {
+  CommandResult result = 1;
+}
+
+message CloseSessionRequest {
+  harness.agent.v1.CloseSessionRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message CloseSessionResponse {
+  CommandResult result = 1;
+}
+
+message CompactRequest {
+  harness.agent.v1.CompactRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message CompactResponse {
+  CommandResult result = 1;
+}
+
+message RewindRequest {
+  harness.agent.v1.RewindRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message RewindResponse {
+  CommandResult result = 1;
+}
+
+message ListCheckpointsRequest {
+  harness.agent.v1.ListCheckpointsRequest request = 1;
+}
+
+message ListCheckpointsResponse {
+  harness.agent.v1.ListCheckpointsResponse response = 1;
+}
+
+message ListTasksRequest {
+  harness.agent.v1.ListTasksRequest request = 1;
+}
+
+message ListTasksResponse {
+  harness.agent.v1.ListTasksResponse response = 1;
+}
+
+message ListOutputStylesRequest {
+  harness.agent.v1.ListOutputStylesRequest request = 1;
+}
+
+message ListOutputStylesResponse {
+  harness.agent.v1.ListOutputStylesResponse response = 1;
 }
 
 message SpawnSessionRequest {

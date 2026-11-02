@@ -247,14 +247,14 @@ func TestQueuedMessageInjectedAfterTools(t *testing.T) {
 		o.PermissionMode = permissions.ModeBypassPermissions
 		o.OnEvent = func(ev agent.Event) {
 			if ev.Kind == agent.EventToolStart {
-				if !drv.Submit(prompt("also check the README")) {
+				if !drv.Submit("", prompt("also check the README")) {
 					t.Error("message should be queued while a turn runs")
 				}
 			}
 		}
 	})
 	drv = agent.NewDriver(context.Background(), s.Agent, func(r agent.TurnResult) { mu.Lock(); results = append(results, r); mu.Unlock() })
-	drv.Submit(prompt("run it"))
+	drv.Submit("", prompt("run it"))
 	drv.Wait()
 	if len(results) != 1 || results[0].Subtype != agent.SubtypeSuccess {
 		t.Fatalf("expected one turn, got %+v", results)

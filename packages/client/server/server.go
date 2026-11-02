@@ -361,10 +361,14 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		ls.title = titleOf(content)
 	}
 	ls.mu.Unlock()
-	queued := ls.driver.Submit(content)
+	id := req.Msg.GetUuid()
+	if id == "" {
+		id = uuid.NewString()
+	}
+	queued := ls.driver.Submit(id, content)
 	if queued {
 		ls.mu.Lock()
-		ls.queue = append(ls.queue, &agentv1.UserMessage{Uuid: req.Msg.GetUuid(), Content: req.Msg.GetContent()})
+		ls.queue = append(ls.queue, &agentv1.UserMessage{Uuid: id, Content: req.Msg.GetContent()})
 		q := append([]*agentv1.UserMessage(nil), ls.queue...)
 		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})
@@ -378,6 +382,28 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		}
 	}
 	return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
+}
+
+func (s *Server) RemoveQueuedMessage(ctx context.Context, req *connect.Request[agentv1.RemoveQueuedMessageRequest]) (*connect.Response[agentv1.RemoveQueuedMessageResponse], error) {
+	ls, err := s.get(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
+	}
+	id := req.Msg.GetUuid()
+	if !ls.sess.Agent.RemoveQueued(id) {
+		return connect.NewResponse(&agentv1.RemoveQueuedMessageResponse{}), nil
+	}
+	ls.mu.Lock()
+	for i, m := range ls.queue {
+		if m.GetUuid() == id {
+			ls.queue = append(ls.queue[:i], ls.queue[i+1:]...)
+			break
+		}
+	}
+	q := append([]*agentv1.UserMessage(nil), ls.queue...)
+	ls.mu.Unlock()
+	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})
+	return connect.NewResponse(&agentv1.RemoveQueuedMessageResponse{Removed: true}), nil
 }
 
 func (s *Server) Interrupt(ctx context.Context, req *connect.Request[agentv1.InterruptRequest]) (*connect.Response[agentv1.InterruptResponse], error) {

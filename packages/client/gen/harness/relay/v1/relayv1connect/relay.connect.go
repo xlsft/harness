@@ -85,9 +85,35 @@ const (
 	// RelayServiceSetPermissionModeProcedure is the fully-qualified name of the RelayService's
 	// SetPermissionMode RPC.
 	RelayServiceSetPermissionModeProcedure = "/harness.relay.v1.RelayService/SetPermissionMode"
+	// RelayServiceSetOutputStyleProcedure is the fully-qualified name of the RelayService's
+	// SetOutputStyle RPC.
+	RelayServiceSetOutputStyleProcedure = "/harness.relay.v1.RelayService/SetOutputStyle"
+	// RelayServiceRemoveQueuedMessageProcedure is the fully-qualified name of the RelayService's
+	// RemoveQueuedMessage RPC.
+	RelayServiceRemoveQueuedMessageProcedure = "/harness.relay.v1.RelayService/RemoveQueuedMessage"
+	// RelayServiceRespondToPlanProcedure is the fully-qualified name of the RelayService's
+	// RespondToPlan RPC.
+	RelayServiceRespondToPlanProcedure = "/harness.relay.v1.RelayService/RespondToPlan"
+	// RelayServiceStopTaskProcedure is the fully-qualified name of the RelayService's StopTask RPC.
+	RelayServiceStopTaskProcedure = "/harness.relay.v1.RelayService/StopTask"
+	// RelayServiceCloseSessionProcedure is the fully-qualified name of the RelayService's CloseSession
+	// RPC.
+	RelayServiceCloseSessionProcedure = "/harness.relay.v1.RelayService/CloseSession"
+	// RelayServiceCompactProcedure is the fully-qualified name of the RelayService's Compact RPC.
+	RelayServiceCompactProcedure = "/harness.relay.v1.RelayService/Compact"
+	// RelayServiceRewindProcedure is the fully-qualified name of the RelayService's Rewind RPC.
+	RelayServiceRewindProcedure = "/harness.relay.v1.RelayService/Rewind"
 	// RelayServiceSuggestFilesProcedure is the fully-qualified name of the RelayService's SuggestFiles
 	// RPC.
 	RelayServiceSuggestFilesProcedure = "/harness.relay.v1.RelayService/SuggestFiles"
+	// RelayServiceListCheckpointsProcedure is the fully-qualified name of the RelayService's
+	// ListCheckpoints RPC.
+	RelayServiceListCheckpointsProcedure = "/harness.relay.v1.RelayService/ListCheckpoints"
+	// RelayServiceListTasksProcedure is the fully-qualified name of the RelayService's ListTasks RPC.
+	RelayServiceListTasksProcedure = "/harness.relay.v1.RelayService/ListTasks"
+	// RelayServiceListOutputStylesProcedure is the fully-qualified name of the RelayService's
+	// ListOutputStyles RPC.
+	RelayServiceListOutputStylesProcedure = "/harness.relay.v1.RelayService/ListOutputStyles"
 	// RelayServiceSpawnSessionProcedure is the fully-qualified name of the RelayService's SpawnSession
 	// RPC.
 	RelayServiceSpawnSessionProcedure = "/harness.relay.v1.RelayService/SpawnSession"
@@ -144,9 +170,22 @@ type RelayServiceClient interface {
 	SetModel(context.Context, *connect.Request[v1.SetModelRequest]) (*connect.Response[v1.SetModelResponse], error)
 	SetEffort(context.Context, *connect.Request[v1.SetEffortRequest]) (*connect.Response[v1.SetEffortResponse], error)
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
+	SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error)
+	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
+	// RespondToPlan waits for the host ack like RespondToPermission (first answer wins).
+	RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error)
+	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
+	CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error)
+	// Long-running: return once queued (or acked with wait_for_ack); progress and the result arrive as
+	// Compacted / Rewound events.
+	Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error)
+	Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error)
 	// Query commands: the server holds the call until the host acks with a result (max ~10 s), otherwise
 	// UNAVAILABLE (host offline or slow).
 	SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error)
+	ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error)
+	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	// "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
 	// the server and again by the host). Held until the host acks with the created session (max ~30 s).
 	SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error)
@@ -284,10 +323,70 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("SetPermissionMode")),
 			connect.WithClientOptions(opts...),
 		),
+		setOutputStyle: connect.NewClient[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse](
+			httpClient,
+			baseURL+RelayServiceSetOutputStyleProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("SetOutputStyle")),
+			connect.WithClientOptions(opts...),
+		),
+		removeQueuedMessage: connect.NewClient[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse](
+			httpClient,
+			baseURL+RelayServiceRemoveQueuedMessageProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("RemoveQueuedMessage")),
+			connect.WithClientOptions(opts...),
+		),
+		respondToPlan: connect.NewClient[v1.RespondToPlanRequest, v1.RespondToPlanResponse](
+			httpClient,
+			baseURL+RelayServiceRespondToPlanProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("RespondToPlan")),
+			connect.WithClientOptions(opts...),
+		),
+		stopTask: connect.NewClient[v1.StopTaskRequest, v1.StopTaskResponse](
+			httpClient,
+			baseURL+RelayServiceStopTaskProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("StopTask")),
+			connect.WithClientOptions(opts...),
+		),
+		closeSession: connect.NewClient[v1.CloseSessionRequest, v1.CloseSessionResponse](
+			httpClient,
+			baseURL+RelayServiceCloseSessionProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("CloseSession")),
+			connect.WithClientOptions(opts...),
+		),
+		compact: connect.NewClient[v1.CompactRequest, v1.CompactResponse](
+			httpClient,
+			baseURL+RelayServiceCompactProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("Compact")),
+			connect.WithClientOptions(opts...),
+		),
+		rewind: connect.NewClient[v1.RewindRequest, v1.RewindResponse](
+			httpClient,
+			baseURL+RelayServiceRewindProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("Rewind")),
+			connect.WithClientOptions(opts...),
+		),
 		suggestFiles: connect.NewClient[v1.SuggestFilesRequest, v1.SuggestFilesResponse](
 			httpClient,
 			baseURL+RelayServiceSuggestFilesProcedure,
 			connect.WithSchema(relayServiceMethods.ByName("SuggestFiles")),
+			connect.WithClientOptions(opts...),
+		),
+		listCheckpoints: connect.NewClient[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse](
+			httpClient,
+			baseURL+RelayServiceListCheckpointsProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("ListCheckpoints")),
+			connect.WithClientOptions(opts...),
+		),
+		listTasks: connect.NewClient[v1.ListTasksRequest, v1.ListTasksResponse](
+			httpClient,
+			baseURL+RelayServiceListTasksProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("ListTasks")),
+			connect.WithClientOptions(opts...),
+		),
+		listOutputStyles: connect.NewClient[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse](
+			httpClient,
+			baseURL+RelayServiceListOutputStylesProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("ListOutputStyles")),
 			connect.WithClientOptions(opts...),
 		),
 		spawnSession: connect.NewClient[v1.SpawnSessionRequest, v1.SpawnSessionResponse](
@@ -338,7 +437,17 @@ type relayServiceClient struct {
 	setModel            *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
 	setEffort           *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
 	setPermissionMode   *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
+	setOutputStyle      *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
+	removeQueuedMessage *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
+	respondToPlan       *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
+	stopTask            *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
+	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
+	compact             *connect.Client[v1.CompactRequest, v1.CompactResponse]
+	rewind              *connect.Client[v1.RewindRequest, v1.RewindResponse]
 	suggestFiles        *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
+	listCheckpoints     *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
+	listTasks           *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	listOutputStyles    *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
 	spawnSession        *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
 	requestTunnel       *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
 	listTunnels         *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
@@ -440,9 +549,59 @@ func (c *relayServiceClient) SetPermissionMode(ctx context.Context, req *connect
 	return c.setPermissionMode.CallUnary(ctx, req)
 }
 
+// SetOutputStyle calls harness.relay.v1.RelayService.SetOutputStyle.
+func (c *relayServiceClient) SetOutputStyle(ctx context.Context, req *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error) {
+	return c.setOutputStyle.CallUnary(ctx, req)
+}
+
+// RemoveQueuedMessage calls harness.relay.v1.RelayService.RemoveQueuedMessage.
+func (c *relayServiceClient) RemoveQueuedMessage(ctx context.Context, req *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error) {
+	return c.removeQueuedMessage.CallUnary(ctx, req)
+}
+
+// RespondToPlan calls harness.relay.v1.RelayService.RespondToPlan.
+func (c *relayServiceClient) RespondToPlan(ctx context.Context, req *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error) {
+	return c.respondToPlan.CallUnary(ctx, req)
+}
+
+// StopTask calls harness.relay.v1.RelayService.StopTask.
+func (c *relayServiceClient) StopTask(ctx context.Context, req *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error) {
+	return c.stopTask.CallUnary(ctx, req)
+}
+
+// CloseSession calls harness.relay.v1.RelayService.CloseSession.
+func (c *relayServiceClient) CloseSession(ctx context.Context, req *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error) {
+	return c.closeSession.CallUnary(ctx, req)
+}
+
+// Compact calls harness.relay.v1.RelayService.Compact.
+func (c *relayServiceClient) Compact(ctx context.Context, req *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error) {
+	return c.compact.CallUnary(ctx, req)
+}
+
+// Rewind calls harness.relay.v1.RelayService.Rewind.
+func (c *relayServiceClient) Rewind(ctx context.Context, req *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error) {
+	return c.rewind.CallUnary(ctx, req)
+}
+
 // SuggestFiles calls harness.relay.v1.RelayService.SuggestFiles.
 func (c *relayServiceClient) SuggestFiles(ctx context.Context, req *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error) {
 	return c.suggestFiles.CallUnary(ctx, req)
+}
+
+// ListCheckpoints calls harness.relay.v1.RelayService.ListCheckpoints.
+func (c *relayServiceClient) ListCheckpoints(ctx context.Context, req *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error) {
+	return c.listCheckpoints.CallUnary(ctx, req)
+}
+
+// ListTasks calls harness.relay.v1.RelayService.ListTasks.
+func (c *relayServiceClient) ListTasks(ctx context.Context, req *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
+	return c.listTasks.CallUnary(ctx, req)
+}
+
+// ListOutputStyles calls harness.relay.v1.RelayService.ListOutputStyles.
+func (c *relayServiceClient) ListOutputStyles(ctx context.Context, req *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error) {
+	return c.listOutputStyles.CallUnary(ctx, req)
 }
 
 // SpawnSession calls harness.relay.v1.RelayService.SpawnSession.
@@ -507,9 +666,22 @@ type RelayServiceHandler interface {
 	SetModel(context.Context, *connect.Request[v1.SetModelRequest]) (*connect.Response[v1.SetModelResponse], error)
 	SetEffort(context.Context, *connect.Request[v1.SetEffortRequest]) (*connect.Response[v1.SetEffortResponse], error)
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
+	SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error)
+	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
+	// RespondToPlan waits for the host ack like RespondToPermission (first answer wins).
+	RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error)
+	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
+	CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error)
+	// Long-running: return once queued (or acked with wait_for_ack); progress and the result arrive as
+	// Compacted / Rewound events.
+	Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error)
+	Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error)
 	// Query commands: the server holds the call until the host acks with a result (max ~10 s), otherwise
 	// UNAVAILABLE (host offline or slow).
 	SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error)
+	ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error)
+	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	// "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
 	// the server and again by the host). Held until the host acks with the created session (max ~30 s).
 	SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error)
@@ -643,10 +815,70 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("SetPermissionMode")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceSetOutputStyleHandler := connect.NewUnaryHandler(
+		RelayServiceSetOutputStyleProcedure,
+		svc.SetOutputStyle,
+		connect.WithSchema(relayServiceMethods.ByName("SetOutputStyle")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceRemoveQueuedMessageHandler := connect.NewUnaryHandler(
+		RelayServiceRemoveQueuedMessageProcedure,
+		svc.RemoveQueuedMessage,
+		connect.WithSchema(relayServiceMethods.ByName("RemoveQueuedMessage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceRespondToPlanHandler := connect.NewUnaryHandler(
+		RelayServiceRespondToPlanProcedure,
+		svc.RespondToPlan,
+		connect.WithSchema(relayServiceMethods.ByName("RespondToPlan")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceStopTaskHandler := connect.NewUnaryHandler(
+		RelayServiceStopTaskProcedure,
+		svc.StopTask,
+		connect.WithSchema(relayServiceMethods.ByName("StopTask")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceCloseSessionHandler := connect.NewUnaryHandler(
+		RelayServiceCloseSessionProcedure,
+		svc.CloseSession,
+		connect.WithSchema(relayServiceMethods.ByName("CloseSession")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceCompactHandler := connect.NewUnaryHandler(
+		RelayServiceCompactProcedure,
+		svc.Compact,
+		connect.WithSchema(relayServiceMethods.ByName("Compact")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceRewindHandler := connect.NewUnaryHandler(
+		RelayServiceRewindProcedure,
+		svc.Rewind,
+		connect.WithSchema(relayServiceMethods.ByName("Rewind")),
+		connect.WithHandlerOptions(opts...),
+	)
 	relayServiceSuggestFilesHandler := connect.NewUnaryHandler(
 		RelayServiceSuggestFilesProcedure,
 		svc.SuggestFiles,
 		connect.WithSchema(relayServiceMethods.ByName("SuggestFiles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceListCheckpointsHandler := connect.NewUnaryHandler(
+		RelayServiceListCheckpointsProcedure,
+		svc.ListCheckpoints,
+		connect.WithSchema(relayServiceMethods.ByName("ListCheckpoints")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceListTasksHandler := connect.NewUnaryHandler(
+		RelayServiceListTasksProcedure,
+		svc.ListTasks,
+		connect.WithSchema(relayServiceMethods.ByName("ListTasks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceListOutputStylesHandler := connect.NewUnaryHandler(
+		RelayServiceListOutputStylesProcedure,
+		svc.ListOutputStyles,
+		connect.WithSchema(relayServiceMethods.ByName("ListOutputStyles")),
 		connect.WithHandlerOptions(opts...),
 	)
 	relayServiceSpawnSessionHandler := connect.NewUnaryHandler(
@@ -713,8 +945,28 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceSetEffortHandler.ServeHTTP(w, r)
 		case RelayServiceSetPermissionModeProcedure:
 			relayServiceSetPermissionModeHandler.ServeHTTP(w, r)
+		case RelayServiceSetOutputStyleProcedure:
+			relayServiceSetOutputStyleHandler.ServeHTTP(w, r)
+		case RelayServiceRemoveQueuedMessageProcedure:
+			relayServiceRemoveQueuedMessageHandler.ServeHTTP(w, r)
+		case RelayServiceRespondToPlanProcedure:
+			relayServiceRespondToPlanHandler.ServeHTTP(w, r)
+		case RelayServiceStopTaskProcedure:
+			relayServiceStopTaskHandler.ServeHTTP(w, r)
+		case RelayServiceCloseSessionProcedure:
+			relayServiceCloseSessionHandler.ServeHTTP(w, r)
+		case RelayServiceCompactProcedure:
+			relayServiceCompactHandler.ServeHTTP(w, r)
+		case RelayServiceRewindProcedure:
+			relayServiceRewindHandler.ServeHTTP(w, r)
 		case RelayServiceSuggestFilesProcedure:
 			relayServiceSuggestFilesHandler.ServeHTTP(w, r)
+		case RelayServiceListCheckpointsProcedure:
+			relayServiceListCheckpointsHandler.ServeHTTP(w, r)
+		case RelayServiceListTasksProcedure:
+			relayServiceListTasksHandler.ServeHTTP(w, r)
+		case RelayServiceListOutputStylesProcedure:
+			relayServiceListOutputStylesHandler.ServeHTTP(w, r)
 		case RelayServiceSpawnSessionProcedure:
 			relayServiceSpawnSessionHandler.ServeHTTP(w, r)
 		case RelayServiceRequestTunnelProcedure:
@@ -808,8 +1060,48 @@ func (UnimplementedRelayServiceHandler) SetPermissionMode(context.Context, *conn
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SetPermissionMode is not implemented"))
 }
 
+func (UnimplementedRelayServiceHandler) SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SetOutputStyle is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.RemoveQueuedMessage is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.RespondToPlan is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.StopTask is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) CloseSession(context.Context, *connect.Request[v1.CloseSessionRequest]) (*connect.Response[v1.CloseSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.CloseSession is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.Compact is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.Rewind is not implemented"))
+}
+
 func (UnimplementedRelayServiceHandler) SuggestFiles(context.Context, *connect.Request[v1.SuggestFilesRequest]) (*connect.Response[v1.SuggestFilesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SuggestFiles is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ListCheckpoints is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ListTasks is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ListOutputStyles is not implemented"))
 }
 
 func (UnimplementedRelayServiceHandler) SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error) {

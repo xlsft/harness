@@ -21,6 +21,9 @@ service AgentService {
   // Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
   // or the turn is interrupted / backgrounded so it is read right away (NOW).
   rpc SendUserMessage(SendUserMessageRequest) returns (SendUserMessageResponse);
+  // Takes back a message that is still queued (by its uuid); a QueueChanged event follows.
+  // removed = false when it was already injected into the turn.
+  rpc RemoveQueuedMessage(RemoveQueuedMessageRequest) returns (RemoveQueuedMessageResponse);
   // Cancels in-flight tools and generation; already completed work is kept.
   rpc Interrupt(InterruptRequest) returns (InterruptResponse);
   rpc RespondToPermission(RespondToPermissionRequest) returns (RespondToPermissionResponse);
@@ -479,6 +482,16 @@ message SendUserMessageRequest {
 }
 
 message SendUserMessageResponse {}
+
+message RemoveQueuedMessageRequest {
+  string session_id = 1;
+  // UserMessage.uuid from QueueChanged.
+  string uuid = 2;
+}
+
+message RemoveQueuedMessageResponse {
+  bool removed = 1;
+}
 
 message InterruptRequest {
   string session_id = 1;

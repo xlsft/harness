@@ -46,6 +46,9 @@ const (
 	// AgentServiceSendUserMessageProcedure is the fully-qualified name of the AgentService's
 	// SendUserMessage RPC.
 	AgentServiceSendUserMessageProcedure = "/harness.agent.v1.AgentService/SendUserMessage"
+	// AgentServiceRemoveQueuedMessageProcedure is the fully-qualified name of the AgentService's
+	// RemoveQueuedMessage RPC.
+	AgentServiceRemoveQueuedMessageProcedure = "/harness.agent.v1.AgentService/RemoveQueuedMessage"
 	// AgentServiceInterruptProcedure is the fully-qualified name of the AgentService's Interrupt RPC.
 	AgentServiceInterruptProcedure = "/harness.agent.v1.AgentService/Interrupt"
 	// AgentServiceRespondToPermissionProcedure is the fully-qualified name of the AgentService's
@@ -105,6 +108,9 @@ type AgentServiceClient interface {
 	// Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
 	// or the turn is interrupted / backgrounded so it is read right away (NOW).
 	SendUserMessage(context.Context, *connect.Request[v1.SendUserMessageRequest]) (*connect.Response[v1.SendUserMessageResponse], error)
+	// Takes back a message that is still queued (by its uuid); a QueueChanged event follows.
+	// removed = false when it was already injected into the turn.
+	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
 	// Cancels in-flight tools and generation; already completed work is kept.
 	Interrupt(context.Context, *connect.Request[v1.InterruptRequest]) (*connect.Response[v1.InterruptResponse], error)
 	RespondToPermission(context.Context, *connect.Request[v1.RespondToPermissionRequest]) (*connect.Response[v1.RespondToPermissionResponse], error)
@@ -176,6 +182,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+AgentServiceSendUserMessageProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("SendUserMessage")),
+			connect.WithClientOptions(opts...),
+		),
+		removeQueuedMessage: connect.NewClient[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse](
+			httpClient,
+			baseURL+AgentServiceRemoveQueuedMessageProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RemoveQueuedMessage")),
 			connect.WithClientOptions(opts...),
 		),
 		interrupt: connect.NewClient[v1.InterruptRequest, v1.InterruptResponse](
@@ -296,6 +308,7 @@ type agentServiceClient struct {
 	listSessions        *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
 	subscribe           *connect.Client[v1.SubscribeRequest, v1.SubscribeResponse]
 	sendUserMessage     *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
+	removeQueuedMessage *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
 	interrupt           *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
 	respondToPermission *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
 	answerQuestion      *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
@@ -339,6 +352,11 @@ func (c *agentServiceClient) Subscribe(ctx context.Context, req *connect.Request
 // SendUserMessage calls harness.agent.v1.AgentService.SendUserMessage.
 func (c *agentServiceClient) SendUserMessage(ctx context.Context, req *connect.Request[v1.SendUserMessageRequest]) (*connect.Response[v1.SendUserMessageResponse], error) {
 	return c.sendUserMessage.CallUnary(ctx, req)
+}
+
+// RemoveQueuedMessage calls harness.agent.v1.AgentService.RemoveQueuedMessage.
+func (c *agentServiceClient) RemoveQueuedMessage(ctx context.Context, req *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error) {
+	return c.removeQueuedMessage.CallUnary(ctx, req)
 }
 
 // Interrupt calls harness.agent.v1.AgentService.Interrupt.
@@ -441,6 +459,9 @@ type AgentServiceHandler interface {
 	// Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
 	// or the turn is interrupted / backgrounded so it is read right away (NOW).
 	SendUserMessage(context.Context, *connect.Request[v1.SendUserMessageRequest]) (*connect.Response[v1.SendUserMessageResponse], error)
+	// Takes back a message that is still queued (by its uuid); a QueueChanged event follows.
+	// removed = false when it was already injected into the turn.
+	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
 	// Cancels in-flight tools and generation; already completed work is kept.
 	Interrupt(context.Context, *connect.Request[v1.InterruptRequest]) (*connect.Response[v1.InterruptResponse], error)
 	RespondToPermission(context.Context, *connect.Request[v1.RespondToPermissionRequest]) (*connect.Response[v1.RespondToPermissionResponse], error)
@@ -508,6 +529,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceSendUserMessageProcedure,
 		svc.SendUserMessage,
 		connect.WithSchema(agentServiceMethods.ByName("SendUserMessage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRemoveQueuedMessageHandler := connect.NewUnaryHandler(
+		AgentServiceRemoveQueuedMessageProcedure,
+		svc.RemoveQueuedMessage,
+		connect.WithSchema(agentServiceMethods.ByName("RemoveQueuedMessage")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceInterruptHandler := connect.NewUnaryHandler(
@@ -630,6 +657,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSubscribeHandler.ServeHTTP(w, r)
 		case AgentServiceSendUserMessageProcedure:
 			agentServiceSendUserMessageHandler.ServeHTTP(w, r)
+		case AgentServiceRemoveQueuedMessageProcedure:
+			agentServiceRemoveQueuedMessageHandler.ServeHTTP(w, r)
 		case AgentServiceInterruptProcedure:
 			agentServiceInterruptHandler.ServeHTTP(w, r)
 		case AgentServiceRespondToPermissionProcedure:
@@ -693,6 +722,10 @@ func (UnimplementedAgentServiceHandler) Subscribe(context.Context, *connect.Requ
 
 func (UnimplementedAgentServiceHandler) SendUserMessage(context.Context, *connect.Request[v1.SendUserMessageRequest]) (*connect.Response[v1.SendUserMessageResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SendUserMessage is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RemoveQueuedMessage is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) Interrupt(context.Context, *connect.Request[v1.InterruptRequest]) (*connect.Response[v1.InterruptResponse], error) {

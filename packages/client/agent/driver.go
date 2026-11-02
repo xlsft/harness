@@ -29,13 +29,13 @@ func NewDriver(ctx context.Context, a *Agent, onResult func(TurnResult)) *Driver
 	return d
 }
 
-// Submit starts a turn with blocks, or queues them if a turn is running.
+// Submit starts a turn with blocks, or queues them under id if a turn is running.
 // It reports whether the message was queued.
-func (d *Driver) Submit(blocks []llm.ContentBlock) (queued bool) {
+func (d *Driver) Submit(id string, blocks []llm.ContentBlock) (queued bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.running {
-		d.Agent.Enqueue(blocks)
+		d.Agent.Enqueue(id, blocks)
 		return true
 	}
 	d.running = true

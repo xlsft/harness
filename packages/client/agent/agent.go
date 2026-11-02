@@ -261,7 +261,7 @@ type Agent struct {
 	bundle          *prompts.Bundle
 	messages        []llm.Message
 	contextInjected bool
-	queue           [][]llm.ContentBlock
+	queue           []queuedMessage
 	cancel          context.CancelFunc
 	warned          map[string]bool
 	todos           []tools.Todo
@@ -354,11 +354,35 @@ func (a *Agent) SetMaxTurns(n int) {
 	a.mu.Unlock()
 }
 
-// Enqueue adds a user message to be injected after the current tool calls.
-func (a *Agent) Enqueue(blocks []llm.ContentBlock) {
+// queuedMessage is a user message waiting for the current tool calls to finish.
+type queuedMessage struct {
+	id     string
+	blocks []llm.ContentBlock
+}
+
+// Enqueue adds a user message to be injected after the current tool calls. id (optional)
+// lets RemoveQueued take it back.
+func (a *Agent) Enqueue(id string, blocks []llm.ContentBlock) {
 	a.mu.Lock()
-	a.queue = append(a.queue, blocks)
+	a.queue = append(a.queue, queuedMessage{id: id, blocks: blocks})
 	a.mu.Unlock()
+}
+
+// RemoveQueued drops the queued message with id. It reports false when no such message is
+// queued (it was never queued, or has already been injected).
+func (a *Agent) RemoveQueued(id string) bool {
+	if id == "" {
+		return false
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for i, q := range a.queue {
+		if q.id == id {
+			a.queue = append(a.queue[:i], a.queue[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 // DrainQueue removes and returns all queued content.
@@ -366,7 +390,7 @@ func (a *Agent) DrainQueue() []llm.ContentBlock {
 	a.mu.Lock()
 	var out []llm.ContentBlock
 	for _, q := range a.queue {
-		out = append(out, q...)
+		out = append(out, q.blocks...)
 	}
 	a.queue = nil
 	a.mu.Unlock()
