@@ -1,0 +1,57 @@
+// Composer data: slash commands, permission modes and efforts (Composer.dc.html).
+import type { EffortName, PermissionModeName } from '~/lib/session/types'
+import type { IconName } from './icons'
+
+export interface MenuOption {
+  key: string
+  label: string
+  detail: string
+  tag?: string
+  icon?: IconName
+  iconCls?: string
+}
+
+// Built-in commands; skills and project commands come from the client in M2.
+export const SLASH_COMMANDS: MenuOption[] = [
+  { key: '/code-review', label: '/code-review', detail: 'Review the current diff for bugs', tag: 'skill' },
+  { key: '/compact', label: '/compact', detail: 'Summarize and shrink the context', tag: 'built-in' },
+  { key: '/model', label: '/model', detail: 'Switch model or provider', tag: 'built-in' },
+  { key: '/deploy-core', label: '/deploy-core', detail: '.claude/commands/deploy-core.md', tag: 'project' },
+  { key: '/clear', label: '/clear', detail: 'Start a new session with an empty context', tag: 'built-in' },
+  { key: '/rewind', label: '/rewind', detail: 'Restore code or conversation to a checkpoint', tag: 'built-in' }
+]
+
+export const MENTION_EXTRAS: MenuOption[] = [
+  { key: 'agent:code-reviewer', label: 'code-reviewer', detail: 'agent', icon: 'ai', iconCls: 'text-accent' },
+  { key: 'mcp:youtrack:HRN-42', label: 'youtrack:HRN-42', detail: 'MCP resource', icon: 'box', iconCls: 'text-muted' }
+]
+
+export const MODES: { key: PermissionModeName, label: string, detail: string, cls: string, sep?: boolean }[] = [
+  { key: 'default', label: 'Ask', detail: 'Approve every edit and command', cls: 'text-white' },
+  { key: 'accept_edits', label: 'Accept edits', detail: 'File edits auto, commands ask', cls: 'text-white' },
+  { key: 'auto', label: 'Auto', detail: 'Safe actions auto, risky ones ask', cls: 'text-white' },
+  { key: 'plan', label: 'Plan', detail: 'Read only, produce a plan', cls: 'text-cyan' },
+  { key: 'bypass', label: 'Bypass', detail: 'No prompts. Sandboxed hosts only', cls: 'text-bad', sep: true }
+]
+
+export const MODE_LABEL: Record<PermissionModeName, string> = {
+  default: 'ask',
+  accept_edits: 'accept edits',
+  auto: 'auto',
+  plan: 'plan',
+  dont_ask: 'don\'t ask',
+  bypass: 'bypass'
+}
+
+export const EFFORTS: EffortName[] = ['low', 'medium', 'high']
+
+// Initial state for the component kit (/kit) and tests: reaches each state of Composer.dc.html directly.
+export interface ComposerPreset {
+  text?: string
+  menu?: 'slash' | 'mention' | 'mode' | 'model'
+  drop?: number
+  recording?: boolean
+  error?: string
+  focused?: boolean
+  files?: { name: string, size: number, progress?: number, error?: string, image?: boolean }[]
+}
