@@ -29,11 +29,13 @@ It ships in two forms:
 | `mcp` | MCP servers from `harness.mcp.v1.McpService`: remote tools through the core proxy, stdio servers via `IssueStdioLaunch` and the Go MCP SDK with per-device approval (`~/.harness/mcp-approvals.json`), `mcp__<server>__<tool>` tools, deferred tools and `ToolSearch` |
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
+| `worktree` | Session worktrees (`<repo>/.harness/worktrees/<name>`) and local branch listing for the new-session pickers |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
 | `gen` | Code generated from `/proto` (do not edit) |
 | `internal/fakegateway` | Scripted fake harness server for tests and local end-to-end runs |
+| `internal/gittest` | Throwaway git repositories for tests |
 | `internal/fakemcp` | Fake `McpService` and a fake stdio MCP server (also as `cmd/fake-mcp-server`) for tests and e2e |
 
 ## Usage
@@ -97,6 +99,19 @@ A style file is markdown with optional frontmatter `name` (default: the file ste
 Selection: `--output-style` (on `-p` and `serve`), else the style recorded in a resumed transcript, else the `outputStyle` setting (policy settings still win over the flag). `SetOutputStyle` switches mid-session; `default` or empty clears the style. An unknown name is an error from `SetOutputStyle` and a warning (plus a `session_warning` notice) with the default style at startup. Every change is recorded as a `harness-meta` entry (`outputStyle`), so resume keeps it; `SessionInfo.output_style` and `ListOutputStyles.active` report it, and the stream-json `init` message carries it as `output_style`.
 
 Delivery keeps the prompt cache: the style text goes to the model through the bundle's `output_style` reminder (`{{name}}`, `{{content}}`; without the template the text is sent as is), injected into the next user message at session start, on every change (switching back to `default` sends the default style), after a compaction and after a rewind that removed it. A resumed session whose history already carries the text does not resend it. The system prompt and the tool list never change on a switch, with one exception: while a style with `keep_coding_instructions = false` is applied, the system sections `doing_tasks` and `tool_policy` are omitted. That changes the cache prefix, so it is applied only while the conversation is empty (session start, or `SetOutputStyle` before the first message) and after a compaction. A mid-session switch to (or away from) such a style delivers the text right away and changes the sections at the next compaction; `SetOutputStyle` then emits an `output_style_deferred` notice.
+
+## Worktree sessions and new-session pickers
+
+`CreateSession` with `worktree` runs the session in a new git worktree of the repository containing `cwd` (`FAILED_PRECONDITION` outside a repository or before the first commit):
+
+- path `<main checkout>/.harness/worktrees/<name>`, also when `cwd` is inside another worktree; `/.harness/worktrees/` is appended to `.git/info/exclude` once (the `.gitignore` is never edited);
+- `name` defaults to `adjective-noun-xxxx` and must be one path segment (1-64 of `A-Za-z0-9._-`, starting with a letter or digit; `INVALID_ARGUMENT` otherwise); a taken name (existing directory or default branch) becomes `name-2`, `name-3`, ...;
+- branch `harness/<name>` (or `branch`) is created with `--no-track` from `base_ref`, default the current branch (the commit when detached); an existing `branch` is checked out instead unless a worktree has it (`FAILED_PRECONDITION`), and `base_ref` then records its tip commit;
+- the session cwd is the same subdirectory inside the worktree (created when it is untracked);
+- the worktree is recorded as a `harness-meta` entry (`worktree`, with `cwd`), so `SessionInfo.worktree` survives resume and `ListSessions`, and the synced metadata carries it as `info.worktree`. `worktree` with `resume_session_id` needs `fork` (the fork moves into the new worktree);
+- worktrees are never removed automatically; only a worktree whose session failed to start is rolled back.
+
+`ListRecentFolders` scans the local transcripts of all projects (newest first) plus the open sessions; a session in a harness worktree counts for the matching folder of the main checkout. `ListDirectory` lists subdirectories (symlinks to directories included, dot entries only with `include_hidden`, at most 500, case-insensitive order). `ListBranches` lists local branches with `checked_out` (in any worktree) and the tip's commit time, newest first. git always runs without a shell, with a timeout and `GIT_TERMINAL_PROMPT=0`.
 
 ## Local end-to-end run without the real server
 
