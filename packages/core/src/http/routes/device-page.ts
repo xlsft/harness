@@ -7,27 +7,45 @@ import { defineHandler, type H3Event } from "h3";
 import { config } from "../../env.ts";
 import { decideDeviceAuthorization, findPendingByUserCode } from "../../services/devices.ts";
 import { getPrincipal } from "../util.ts";
+import { WORDMARK_SVG } from "../wordmark.ts";
 
 function esc(s: string | null | undefined): string {
   return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
+// Styled like the apps (docs/design/brand.md): black, monospace, square, blue accent; no external assets.
 function page(title: string, body: string, status = 200): Response {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>${esc(title)} · harness</title>
 <style>
-:root{color-scheme:light dark;--fg:#1a1a1a;--bg:#fafafa;--muted:#666;--card:#fff;--line:#ddd;--accent:#c96442}
-@media (prefers-color-scheme:dark){:root{--fg:#eee;--bg:#161616;--muted:#999;--card:#202020;--line:#333}}
-body{font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg);margin:0;display:grid;place-items:center;min-height:100vh;padding:16px;box-sizing:border-box}
-main{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:28px;max-width:420px;width:100%}
-h1{font-size:20px;margin:0 0 16px}p{color:var(--muted)}label{display:block;margin:12px 0 4px}
-input{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit;font:inherit}
-.code{font:600 22px ui-monospace,monospace;letter-spacing:2px}
-button{margin-top:16px;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;cursor:pointer}
-button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px}dt{color:var(--muted)}dd{margin:0}.err{color:#d33}
-</style></head><body><main>${body}</main></body></html>`;
+:root{--bg:#000;--surface:#0a0a0a;--line:#2b2b2b;--line-strong:#454545;--text:#d4d4d4;--muted:#8f8f8f;--white:#fff;--accent:#2b7fff;--bad:#ff2056}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body{font:13px/1.6 "Cascadia Code","JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;min-height:100vh;display:flex;flex-direction:column;padding:0 20px}
+main{flex:1;display:flex;align-items:center;justify-content:center}
+.col{width:100%;max-width:420px;display:flex;flex-direction:column;gap:20px}
+.wordmark{height:22px;width:auto;align-self:flex-start;color:var(--white)}
+h1{margin:0;font-size:17px;font-weight:600;color:var(--white)}
+p{margin:0;color:var(--muted)}
+form{display:flex;flex-direction:column;gap:12px}
+label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+input{height:36px;padding:0 10px;border:1px solid var(--line-strong);border-radius:0;background:var(--surface);color:var(--white);font:inherit;font-size:12.5px;outline:none}
+input:focus{border-color:var(--accent)}
+button{height:36px;border:1px solid var(--line);border-radius:0;background:transparent;color:var(--text);font:inherit;font-size:12.5px;cursor:pointer}
+button:hover{color:var(--white)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--white)}
+.row{display:flex;gap:8px}.row button{flex:1}
+.code{font-size:24px;letter-spacing:.2em;color:var(--white);text-align:center;padding:14px;border:1px solid var(--line-strong);background:var(--surface)}
+.code.small{font-size:15px;padding:8px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0;font-size:12px}dt{color:var(--muted)}dd{margin:0;color:var(--white)}
+.err{color:var(--bad)}.err:empty{display:none}
+footer{display:flex;justify-content:center;gap:16px;padding:16px 0;font-size:11.5px}
+footer a{color:var(--muted);text-decoration:none}footer a:hover{color:var(--white)}
+</style></head><body><main><div class="col">${WORDMARK_SVG}${body}</div></main>
+<footer><a href="https://harness.xlsft.com">harness.xlsft.com ↗</a><a href="https://github.com/xlsft/harness">GitHub ↗</a></footer>
+</body></html>`;
   return new Response(html, {
     status,
     headers: {
@@ -40,8 +58,9 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px}dt{color:var(--muted
 }
 
 function signInForm(code: string): string {
-  return `<h1>Sign in to harness</h1>
-<p>Sign in to approve a device.</p>
+  return `<div><h1>Sign in to connect a device</h1></div>
+<p>A device asked to join your harness account. Sign in, then confirm it.</p>
+${code ? `<div class="code small">${esc(code)}</div>` : ""}
 <form id="f"><label>Email<input name="email" type="email" autocomplete="username" required></label>
 <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
 <p class="err" id="err"></p><button class="primary">Sign in</button></form>
@@ -58,8 +77,8 @@ document.getElementById('f').addEventListener('submit', async (e) => {
 }
 
 function codeForm(error?: string): string {
-  return `<h1>Connect a device</h1><p>Enter the code shown in your terminal.</p>
-<form method="get" action="/device"><label>Code<input class="code" name="code" placeholder="XXXX-XXXX" autocomplete="off" required></label>
+  return `<h1>Connect a device</h1><p>Enter the code the app or terminal shows you.</p>
+<form method="get" action="/device"><label>Code<input name="code" placeholder="XXXX-XXXX" autocomplete="off" required></label>
 ${error ? `<p class="err">${esc(error)}</p>` : ""}<button class="primary">Continue</button></form>`;
 }
 
@@ -89,7 +108,7 @@ export default defineHandler(async (event) => {
     return page(
       approve ? "Approved" : "Denied",
       approve
-        ? `<h1>Device connected</h1><p>You can close this window and return to your terminal.</p>`
+        ? `<h1>Device connected</h1><p>You can close this tab and go back to the app.</p>`
         : `<h1>Request denied</h1><p>The device was not connected.</p>`,
     );
   }
@@ -101,12 +120,12 @@ export default defineHandler(async (event) => {
   if (!pending) return page("Expired", codeForm("This code is invalid or has expired."), 400);
   return page(
     "Approve device",
-    `<h1>Approve this device?</h1>
-<p>Signed in as ${esc(session.user.email)}. Only approve if you started this sign-in yourself.</p>
-<p class="code">${esc(pending.userCode)}</p>
+    `<h1>Connect this device?</h1>
+<p>Signed in as ${esc(session.user.email)}. Check that the code matches the one in the app, and approve only if you started this yourself.</p>
+<div class="code">${esc(pending.userCode)}</div>
 <dl><dt>Device</dt><dd>${esc(pending.deviceName)}</dd><dt>Client</dt><dd>${esc(pending.clientName)}</dd>
 <dt>System</dt><dd>${esc([pending.os, pending.arch].filter(Boolean).join(" / "))}</dd></dl>
 <form method="post" action="/device"><input type="hidden" name="code" value="${esc(pending.userCode)}">
-<button class="primary" name="action" value="approve">Approve</button> <button name="action" value="deny">Deny</button></form>`,
+<div class="row"><button name="action" value="deny">Deny</button><button class="primary" name="action" value="approve">Approve</button></div></form>`,
   );
 });
