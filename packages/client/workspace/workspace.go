@@ -1,6 +1,6 @@
 // Package workspace gathers the machine and project context injected into
 // prompts: environment placeholders, git snapshot and project instructions
-// (CLAUDE.md / AGENTS.md).
+// (CLAUDE.md / AGENTS.md, see package memory) and the project_key.
 package workspace
 
 import (
@@ -8,11 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/xlsft/harness/packages/client/memory"
 )
 
 // Env holds the values for env placeholders of the prompt bundle.
@@ -158,59 +159,19 @@ type InstructionFile struct {
 }
 
 // MaxInstructionBytes skips larger instruction files.
-const MaxInstructionBytes = 4 << 20
+const MaxInstructionBytes = memory.MaxFileBytes
 
-var htmlComment = regexp.MustCompile(`(?s)<!--.*?-->`)
-
-// ProjectInstructions loads CLAUDE.md files (CLAUDE.md, .claude/CLAUDE.md,
-// CLAUDE.local.md) from the filesystem root down to cwd. When none exist,
-// AGENTS.md / .claude/AGENTS.md are loaded instead.
+// ProjectInstructions loads the project instruction files for cwd: CLAUDE.md,
+// .claude/CLAUDE.md and CLAUDE.local.md from the filesystem root down to cwd
+// (with @imports inside cwd and rules without paths: frontmatter), or
+// AGENTS.md / .claude/AGENTS.md when none exist. It is the project-only view
+// of memory.Loader; sessions should use memory.New directly to also get
+// managed files, user memory, auto memory and lazily loaded files.
 func ProjectInstructions(cwd string) []InstructionFile {
-	dirs := ancestors(cwd)
-	claude := collect(dirs, []string{"CLAUDE.md", filepath.Join(".claude", "CLAUDE.md"), "CLAUDE.local.md"})
-	if len(claude) > 0 {
-		return claude
-	}
-	return collect(dirs, []string{"AGENTS.md", filepath.Join(".claude", "AGENTS.md")})
-}
-
-// ancestors returns dirs from root to cwd.
-func ancestors(cwd string) []string {
-	var dirs []string
-	d := filepath.Clean(cwd)
-	for {
-		dirs = append(dirs, d)
-		parent := filepath.Dir(d)
-		if parent == d {
-			break
-		}
-		d = parent
-	}
-	for i, j := 0, len(dirs)-1; i < j; i, j = i+1, j-1 {
-		dirs[i], dirs[j] = dirs[j], dirs[i]
-	}
-	return dirs
-}
-
-func collect(dirs, names []string) []InstructionFile {
+	l := memory.New(memory.Options{Cwd: cwd, ProjectOnly: true})
 	var out []InstructionFile
-	for _, d := range dirs {
-		for _, n := range names {
-			p := filepath.Join(d, n)
-			st, err := os.Stat(p)
-			if err != nil || st.IsDir() || st.Size() > MaxInstructionBytes {
-				continue
-			}
-			data, err := os.ReadFile(p)
-			if err != nil {
-				continue
-			}
-			text := strings.TrimSpace(htmlComment.ReplaceAllString(string(data), ""))
-			if text == "" {
-				continue
-			}
-			out = append(out, InstructionFile{Path: p, Content: text})
-		}
+	for _, in := range l.Initial() {
+		out = append(out, InstructionFile{Path: in.Path, Content: in.Content})
 	}
 	return out
 }
