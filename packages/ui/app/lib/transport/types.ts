@@ -33,6 +33,8 @@ export interface SessionTransport {
 
   initialize(): Promise<InitializeResponse>
   listSessions(): Promise<SessionInfo[]>
+  // Starts a session in `cwd` on the client's machine (model: the client's default when empty).
+  createSession(cwd: string, model?: string): Promise<SessionInfo>
   // Replays events after `afterSeq`, then streams live ones. Returns an unsubscribe function.
   subscribe(sessionId: string, afterSeq: number, handlers: SubscribeHandlers): () => void
 

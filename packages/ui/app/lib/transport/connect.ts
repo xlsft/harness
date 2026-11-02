@@ -32,6 +32,12 @@ export class ConnectTransport implements SessionTransport {
     return (await this.client.listSessions({})).sessions
   }
 
+  async createSession(cwd: string, model = '') {
+    const res = await this.client.createSession({ cwd, model })
+    if (!res.session) throw new Error('the client returned no session')
+    return res.session
+  }
+
   subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {
     const abort = new AbortController()
     void (async () => {

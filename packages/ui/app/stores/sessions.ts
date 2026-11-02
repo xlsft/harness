@@ -90,6 +90,16 @@ export const useSessionStore = defineStore('sessions', {
       }
     },
 
+    // Starts a session on the client and opens it; it goes to the top of the list.
+    async createSession(cwd: string, model = '') {
+      if (!this.transport) throw new Error('not connected')
+      const info = await this.transport.createSession(cwd, model)
+      this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
+      this.order = [info.id, ...this.order.filter(id => id !== info.id)]
+      this.open(info.id)
+      return info.id
+    },
+
     open(id: string) {
       if (!this.sessions[id]) return
       this.currentId = id

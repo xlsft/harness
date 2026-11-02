@@ -18,22 +18,24 @@ onMounted(() => {
   mq.addEventListener('change', e => wide.value = e.matches)
 })
 
-// Initial share of the pane area: the natural width of the outer row's panes, within 25-70%.
+// Initial share of the pane area: the natural width of the outer row's panes, within 12-70%.
 const paneShare = computed(() => {
   if (!tree.value || !import.meta.client) return 40
   const row = tree.value.kind === 'split' && tree.value.dir === 'row' ? tree.value.children : [tree.value]
   const px = row.reduce((s, n) => s + Math.max(...panesOf(n).map(p => PANE_WIDTH[p])), 0)
-  return Math.min(70, Math.max(25, (px / Math.max(window.innerWidth - 260, 1)) * 100))
+  return Math.min(70, Math.max(12, (px / Math.max(window.innerWidth - 260, 1)) * 100))
 })
 
 const requested = computed(() => typeof route.query.session === 'string' ? route.query.session : '')
+// The new-session form: asked for (?new=1), or nothing to show yet on a client without sessions.
+const composing = computed(() => route.query.new === '1' || (store.ready && !store.order.length))
 watchEffect(() => {
-  if (!store.ready) return
+  if (!store.ready || route.query.new === '1') return
   const id = requested.value && store.sessions[requested.value] ? requested.value : store.currentId || (store.sessions[MAIN_SESSION] ? MAIN_SESSION : store.order[0])
   if (id && id !== store.currentId) store.open(id)
 })
 
-const session = computed(() => store.current)
+const session = computed(() => composing.value ? undefined : store.current)
 useShortcuts()
 </script>
 
@@ -72,6 +74,12 @@ useShortcuts()
           </div>
         </template>
         <div
+          v-else-if="composing"
+          class="flex flex-1 items-center"
+        >
+          <NewSession />
+        </div>
+        <div
           v-else
           class="flex flex-1 items-center justify-center text-[12.5px] text-muted"
         >
@@ -85,7 +93,7 @@ useShortcuts()
           id="panes"
           :order="1"
           :default-size="paneShare"
-          :min-size="15"
+          :min-size="8"
           class="min-h-0 min-w-0"
         >
           <PaneLayout
