@@ -76,6 +76,8 @@ packages/
   cli/             # CLI frontend, Go: the full charm.land toolchain (Bubble Tea, Bubbles, Lip Gloss, Glamour,
                    #   Huh, Harmonica, Log…). Truecolor with fallback to ANSI-16/256
                    #   for emulators without support. Design 1:1 with Claude Code. The `harness` binary
+  extension/       # browser extension client (M4): one WebExtensions codebase for Chromium (MV3) and Firefox;
+                   #   browser tools for the agent, talks to the local client or the server like other frontends
 ```
 
 **Order of work:** first `core` + `client` (the whole harness works headless, verified by tests and `harness-client -p`), then the `cli` and `ui` frontends, deployment last.
@@ -290,9 +292,9 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 | Milestone | State |
 |---|---|
 | M0 — skeleton | done: device login, gateway (Anthropic, OpenAI-chat), prompt bundle, agent loop with 6 tools, Connect transport, e2e test |
-| M1 — core parity + sync | done: permissions engine and modes, plan mode, AskUserQuestion, todos, background tasks, checkpoints/rewind, compaction, settings hierarchy, CLAUDE.md/AGENTS.md memory, SyncService + client sync, `import claude`, quotas, OpenAI Responses adapter; real-model evals in [docs/evals](evals); Postgres (node-postgres, PGlite for dev/tests) |
-| M2 — extensibility + relay | not started (contracts drafted: sync, MCP, relay, search; SearXNG provider done) |
-| M3 — frontends | started: CLI brand primitives; first TUI iteration in progress |
+| M1 — core parity + sync | done: auto permission mode (DecisionService: rules, llm, http providers; client local rules + decider), permissions engine and modes, plan mode, AskUserQuestion, todos, background tasks, checkpoints/rewind, compaction, settings hierarchy, CLAUDE.md/AGENTS.md memory, SyncService + client sync, `import claude`, quotas, OpenAI Responses adapter; real-model evals in [docs/evals](evals); Postgres (node-postgres, PGlite for dev/tests) |
+| M2 — extensibility + relay | started: SearXNG search provider, output styles (contract, built-ins, client), McpService (server) in progress; contracts drafted: sync, MCP, relay, search |
+| M3 — frontends | started: CLI TUI (Bubble Tea v2) working — transcript, tools, diffs, permission/plan/question prompts, queue, rewind, todos, modes incl. auto; desktop UI (Nuxt) in progress from the design in docs/design/ui |
 | M4 — deployment | started: single-container image (s6) in progress |
 
 ### M0 — Skeleton of core + client (≈3 weeks)
@@ -309,7 +311,7 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 - core + client: **sync API** (settings, user memory, user rules, sessions), `import claude`.
 
 ### M2 — Extensibility + relay (≈4 weeks)
-- Skills, agents/subagents, commands, output styles (server + repo), hooks, WebFetch/WebSearch.
+- Skills, agents/subagents, commands, output styles (built-ins on the server, user styles via sync, project styles in the repo), hooks, WebFetch/WebSearch, `/init` (repo setup), `/auto-mode-setup`.
 - **MCP via the server:** registry, OAuth and secrets, proxy for remote, secret issuance for stdio, per-device confirmation, schema cache + ToolSearch.
 - Relay and remote control in core and client: session mirroring, permission answers from any connection, spawn via `daemon`, tunnels (preview, PTY).
 
@@ -320,7 +322,10 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 
 ### M4 — Deployment and advanced
 - Single-container image (s6-overlay: core + Postgres + SearXNG, see §1.7), backups, client updates (binary self-update, auto-update on SSH hosts).
-- Git panels and PR/CI, worktrees, sandbox runtime, auto mode, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
+- Git panels and PR/CI, worktrees, sandbox runtime, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
+- **Artifacts (server-side):** publish/update pages from sessions, comments, artifact databases and assets, artifact types (including a design canvas); rendered in the UI's artifact pane and artifacts page.
+- **Browser extension client** (`packages/extension`): one WebExtensions codebase for Chromium-based (MV3) and Firefox-based browsers. Gives the agent browser tools (tabs, navigation, page reading and find, forms, clicks/screenshots, console/network/JS, recordings) with per-site permissions; prompts are browser-neutral rewrites of the corresponding Claude Code behavior. Connects to the local client (native messaging) or through the server relay.
+- **Team onboarding guide** (`ONBOARDING.md` generator and share link), statusline setup agent (CLI).
 
 ---
 
