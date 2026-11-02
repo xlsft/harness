@@ -2,10 +2,10 @@
  * Session sync (proto/harness/sync/v1/sync.proto, part 2): metadata + durable transcript.
  * Transcript entries are stored byte-exact, deduplicated by uuid, with a server-assigned seq.
  */
-import { clone, fromJson, toJson, type JsonValue } from "@bufbuild/protobuf";
+import { clone, create, equals, fromJson, toJson, type JsonValue } from "@bufbuild/protobuf";
 import { and, asc, desc, eq, exists, gt, ilike, inArray, lt, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
-import { SessionInfoSchema, type SessionInfo, type SessionStatus } from "../gen/harness/agent/v1/agent_pb.ts";
+import { PullRequestSchema, SessionInfoSchema, type PullRequest_State, type SessionInfo, type SessionStatus } from "../gen/harness/agent/v1/agent_pb.ts";
 import { Mutex } from "../lib/async.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { Principal } from "./devices.ts";
@@ -101,6 +101,11 @@ export async function upsertSession(
       }
     }
     info.id = incoming.id;
+    // pull_request is also written by the server (VcsService links PRs to sessions). A client upload without
+    // it keeps the stored one; clear it explicitly with the update path "info.pull_request".
+    if (cur && !info.pullRequest && !resolved.some((r) => r.kind === "field" && r.localName === "pullRequest")) {
+      info.pullRequest = sessionView(cur).info.pullRequest;
+    }
     const now = new Date();
     if (!incoming.updatedAt || (cur && resolved.length && !resolved.some((r) => r.kind === "info" || (r.kind === "field" && r.localName === "updatedAt")))) {
       info.updatedAt = now.toISOString();
@@ -330,4 +335,29 @@ export async function getSessionTranscript(p: Principal, sessionId: string, afte
   return { entries: rows.slice(0, size), hasMore: rows.length > size };
 }
 
+export interface SessionPullRequest {
+  url: string;
+  number: number;
+  state: PullRequest_State;
+}
 
+/**
+ * Sets info.pull_request of a session (server-side PR linking, VcsService). Returns true when it changed.
+ * Does not touch last_activity_at.
+ */
+export async function setSessionPullRequest(sessionId: string, pr: SessionPullRequest): Promise<boolean> {
+  await ensureDb();
+  return sessionMutex.run(async () => {
+    const db = getDb();
+    const s = schema.syncSession;
+    const cur = await db.query.syncSession.findFirst({ where: eq(s.id, sessionId) });
+    if (!cur) return false;
+    const info = sessionView(cur).info;
+    const next = create(PullRequestSchema, { url: pr.url, number: pr.number, state: pr.state });
+    if (info.pullRequest && equals(PullRequestSchema, info.pullRequest, next)) return false;
+    info.pullRequest = next;
+    info.updatedAt = new Date().toISOString();
+    await db.update(s).set({ info: stripNul(toJson(SessionInfoSchema, info)) as object }).where(eq(s.id, sessionId));
+    return true;
+  });
+}

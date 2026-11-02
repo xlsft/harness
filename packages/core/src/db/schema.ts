@@ -1,4 +1,4 @@
-import { bigint, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 /** int8 read back as a JS number: safe up to 2^53, far beyond any version or seq we will reach. */
@@ -602,4 +602,231 @@ export const mcpAudit = pgTable(
     createdAt: ts("created_at").notNull(),
   },
   (t) => [index("mcp_audit_server_idx").on(t.serverId, t.createdAt), index("mcp_audit_user_idx").on(t.userId, t.createdAt)],
+);
+
+// ---------------------------------------------------------------------------
+// Code hosts (proto/harness/vcs/v1): connections, per-user tokens, events, PR state, session links
+// ---------------------------------------------------------------------------
+
+/** Server provider connections (GitHub App, GitLab). Secrets are one encrypted JSON blob (AAD = id). */
+export const vcsConnection = pgTable("vcs_connection", {
+  id: text("id").primaryKey(),
+  /** harness.vcs.v1.ProviderType (GITHUB or GITLAB). */
+  type: integer("type").notNull(),
+  displayName: text("display_name").notNull().default(""),
+  /** Normalized origin + path, no trailing slash (https://github.com, a GHES URL, a GitLab URL). */
+  baseUrl: text("base_url").notNull(),
+  appId: text("app_id").notNull().default(""),
+  appSlug: text("app_slug").notNull().default(""),
+  /** OAuth client id (GitHub App client id / GitLab application id); public. */
+  clientId: text("client_id").notNull().default(""),
+  /** Encrypted JSON {privateKeyPem, clientSecret, webhookSecret, accessToken}; "" when none. */
+  secretsEnc: text("secrets_enc").notNull().default(""),
+  allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+  healthy: boolean("healthy").notNull().default(false),
+  lastError: text("last_error").notNull().default(""),
+  lastCheckedAt: ts("last_checked_at"),
+  lastWebhookAt: ts("last_webhook_at"),
+  createdAt: ts("created_at").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull().default(""),
+});
+
+/** GitHub App installations (from installation webhooks and lookups); maps an owner to an installation. */
+export const vcsInstallation = pgTable(
+  "vcs_installation",
+  {
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => vcsConnection.id, { onDelete: "cascade" }),
+    installationId: int8("installation_id").notNull(),
+    /** Lowercased account login (user or organization). */
+    accountLogin: text("account_login").notNull(),
+    accountType: text("account_type").notNull().default(""),
+    suspended: boolean("suspended").notNull().default(false),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.connectionId, t.installationId] }), index("vcs_installation_account_idx").on(t.connectionId, t.accountLogin)],
+);
+
+/** Pending GitHub App manifest registrations (GetGitHubAppManifest -> CompleteGitHubAppManifest). */
+export const vcsManifestFlow = pgTable("vcs_manifest_flow", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  stateHash: text("state_hash").notNull().unique(),
+  baseUrl: text("base_url").notNull(),
+  organization: text("organization").notNull().default(""),
+  appName: text("app_name").notNull().default(""),
+  allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+  /** pending | completed | failed */
+  status: text("status").notNull().default("pending"),
+  connectionId: text("connection_id").notNull().default(""),
+  error: text("error").notNull().default(""),
+  expiresAt: ts("expires_at").notNull(),
+  createdAt: ts("created_at").notNull(),
+});
+
+/** Per-user OAuth flows (StartUserAuth -> /api/vcs/oauth/callback). */
+export const vcsOauthFlow = pgTable(
+  "vcs_oauth_flow",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => vcsConnection.id, { onDelete: "cascade" }),
+    stateHash: text("state_hash").notNull().unique(),
+    /** Encrypted JSON {codeVerifier, redirectUri}. */
+    dataEnc: text("data_enc").notNull(),
+    /** pending | completed | failed */
+    status: text("status").notNull().default("pending"),
+    error: text("error").notNull().default(""),
+    expiresAt: ts("expires_at").notNull(),
+    createdAt: ts("created_at").notNull(),
+    completedAt: ts("completed_at"),
+  },
+  (t) => [index("vcs_oauth_flow_user_idx").on(t.userId)],
+);
+
+/** Per-user tokens on a connection (encrypted JSON, AAD "<user>:<connection>:tokens"). */
+export const vcsUserToken = pgTable(
+  "vcs_user_token",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => vcsConnection.id, { onDelete: "cascade" }),
+    /** connected | error */
+    state: text("state").notNull(),
+    error: text("error").notNull().default(""),
+    tokensEnc: text("tokens_enc"),
+    /** Login on the code host. */
+    login: text("login").notNull().default(""),
+    expiresAt: ts("expires_at"),
+    refreshExpiresAt: ts("refresh_expires_at"),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.connectionId] })],
+);
+
+/** VcsEvents (webhooks, device snapshots), kept 7 days. The public id is "vev_<seq>". */
+export const vcsEvent = pgTable(
+  "vcs_event",
+  {
+    seq: bigserial("seq", { mode: "number" }).primaryKey(),
+    /** harness.vcs.v1.VcsEvent.Kind */
+    kind: integer("kind").notNull(),
+    /** harness.vcs.v1.ProviderType that observed it. */
+    source: integer("source").notNull(),
+    connectionId: text("connection_id").notNull().default(""),
+    deliveryId: text("delivery_id").notNull().default(""),
+    repositoryKey: text("repository_key").notNull(),
+    prNumber: int8("pr_number").notNull().default(0),
+    headBranch: text("head_branch").notNull().default(""),
+    /** JSON PrData (src/vcs/types.ts) or null. */
+    pullRequest: jsonb("pull_request"),
+    /** JSON {sessionId, userId}[] of linked sessions. */
+    sessions: jsonb("sessions").notNull().default([]),
+    /** usr_... that reported it (device snapshots); "" for webhooks. */
+    actorUserId: text("actor_user_id").notNull().default(""),
+    detail: jsonb("detail").notNull().default({}),
+    occurredAt: ts("occurred_at").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [index("vcs_event_repo_idx").on(t.repositoryKey, t.seq), index("vcs_event_created_idx").on(t.createdAt)],
+);
+
+/** Processed webhook deliveries (idempotency), kept 7 days. key = "<connection id>:<delivery id>". */
+export const vcsDelivery = pgTable("vcs_delivery", {
+  key: text("key").primaryKey(),
+  createdAt: ts("created_at").notNull(),
+});
+
+/** Last known state of every PR/MR the server heard about (webhooks, API reads, device snapshots). */
+export const vcsPullRequest = pgTable(
+  "vcs_pull_request",
+  {
+    repositoryKey: text("repository_key").notNull(),
+    number: int8("number").notNull(),
+    connectionId: text("connection_id").notNull().default(""),
+    /** harness.vcs.v1.ProviderType of the last writer. */
+    source: integer("source").notNull(),
+    headBranch: text("head_branch").notNull().default(""),
+    headSha: text("head_sha").notNull().default(""),
+    baseBranch: text("base_branch").notNull().default(""),
+    /** JSON PrData. */
+    data: jsonb("data").notNull(),
+    /** JSON CheckData[] of the head commit (device snapshots, webhooks). */
+    checks: jsonb("checks").notNull().default([]),
+    reportedBy: text("reported_by").notNull().default(""),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.repositoryKey, t.number] }), index("vcs_pull_request_branch_idx").on(t.repositoryKey, t.headBranch)],
+);
+
+/** Explicit session links (LinkSession) and auto-fix flags (SetAutoFix). */
+export const vcsSessionLink = pgTable("vcs_session_link", {
+  sessionId: text("session_id")
+    .primaryKey()
+    .references(() => syncSession.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  /** "" when only auto-fix flags are set (the link then comes from synced session metadata). */
+  repositoryKey: text("repository_key").notNull().default(""),
+  branch: text("branch").notNull().default(""),
+  prNumber: int8("pr_number").notNull().default(0),
+  autoFixCi: boolean("auto_fix_ci").notNull().default(false),
+  autoFixReviews: boolean("auto_fix_reviews").notNull().default(false),
+  autoFixConflicts: boolean("auto_fix_conflicts").notNull().default(false),
+  updatedAt: ts("updated_at").notNull(),
+});
+
+/** Auto-fix work for a session (failed checks with a log excerpt, review comments, conflicts). */
+export const vcsAutofixJob = pgTable(
+  "vcs_autofix_job",
+  {
+    id: text("id").primaryKey(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => syncSession.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    /** seq of the VcsEvent that triggered it. */
+    eventSeq: int8("event_seq").notNull(),
+    /** harness.vcs.v1.VcsEvent.Kind of the trigger. */
+    kind: integer("kind").notNull(),
+    repositoryKey: text("repository_key").notNull(),
+    prNumber: int8("pr_number").notNull().default(0),
+    headSha: text("head_sha").notNull().default(""),
+    /** pending | delivered | failed */
+    status: text("status").notNull().default("pending"),
+    /** JSON {failed_checks, log_excerpts, comment_ids, comments, base_branch, ...}. */
+    payload: jsonb("payload").notNull().default({}),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("vcs_autofix_job_session_idx").on(t.sessionId, t.createdAt)],
+);
+
+/** Device providers (gh, glab) a client reported (ReportDeviceProviders). */
+export const vcsDeviceProvider = pgTable(
+  "vcs_device_provider",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** dev_... ("" for web sessions). */
+    deviceId: text("device_id").notNull().default(""),
+    /** harness.vcs.v1.ProviderType (GH or GLAB). */
+    type: integer("type").notNull(),
+    version: text("version").notNull().default(""),
+    /** JSON {host, login}[] */
+    hosts: jsonb("hosts").notNull().default([]),
+    reportedAt: ts("reported_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.deviceId, t.type] })],
 );

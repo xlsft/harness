@@ -145,9 +145,9 @@ const MAX_REDIRECTS = 3;
 /** fetch() for upstream providers with the SSRF policy applied to every hop. */
 export async function guardedFetch(
   url: string,
-  init: UndiciRequestInit & { allowPrivateNetwork: boolean },
+  init: UndiciRequestInit & { allowPrivateNetwork: boolean; followRedirects?: boolean },
 ): Promise<UndiciResponse> {
-  const { allowPrivateNetwork, ...rest } = init;
+  const { allowPrivateNetwork, followRedirects = true, ...rest } = init;
   let current = assertUrlAllowed(url, allowPrivateNetwork);
   let reqInit: UndiciRequestInit = rest;
   for (let hop = 0; ; hop++) {
@@ -165,7 +165,9 @@ export async function guardedFetch(
       }
       throw err;
     }
-    if (res.status < 300 || res.status >= 400 || res.status === 304) return res;
+    // followRedirects: false hands the 3xx back, e.g. a log download that redirects to blob storage on
+    // another origin, which the caller fetches again (through this guard) without its credentials.
+    if (res.status < 300 || res.status >= 400 || res.status === 304 || !followRedirects) return res;
     const location = res.headers.get("location");
     if (!location) return res;
     if (hop >= MAX_REDIRECTS) throw new ApiError("upstream", "Too many upstream redirects");
