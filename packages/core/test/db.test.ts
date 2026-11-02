@@ -6,13 +6,14 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { openDb, schema } from "../src/db/index.ts";
 import { runMigrations } from "../src/db/migrate.ts";
+import { migrations } from "../src/db/migrations.generated.ts";
 
 describe("PGlite on disk", () => {
   it("persists across reopen, migrates once and releases its lock", async () => {
     const dir = join(mkdtempSync(join(tmpdir(), "harness-pglite-")), "pglite");
     const a = openDb({ driver: "pglite", dataDir: dir });
     expect(existsSync(`${dir}.lock`)).toBe(true);
-    expect(await runMigrations(a.inTransaction)).toEqual(["0000_init"]);
+    expect(await runMigrations(a.inTransaction)).toEqual(migrations.map((m) => m.id));
     await a.db.insert(schema.setting).values({ key: "probe", value: { n: 1, s: "ü" }, updatedAt: new Date(1_700_000_000_123) });
     await a.close();
     expect(existsSync(`${dir}.lock`)).toBe(false);
