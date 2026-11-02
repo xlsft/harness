@@ -131,13 +131,15 @@ export interface FilesMenuItem {
   key: string
   label: string
   value?: string
+  // Shortcut as UKbd keys ("meta+shift+y").
+  kbd?: string
   // Checkable item (state lives in the pane); `sub` opens a submenu.
   check?: boolean
   sub?: boolean
 }
 
 export const FILES_MENU: (FilesMenuItem | 'sep')[] = [
-  { key: 'tree', label: 'Show file tree', value: '⇧⌘Y', check: true },
+  { key: 'tree', label: 'Show file tree', kbd: 'meta+shift+y', check: true },
   { key: 'treePos', label: 'File tree position', value: 'Automatic', sub: true },
   'sep',
   { key: 'previewTabs', label: 'Preview tabs', check: true },

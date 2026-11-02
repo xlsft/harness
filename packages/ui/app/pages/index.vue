@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// Session view (Main.dc.html and the Main* screens): sidebar · header + transcript + composer · right pane.
+// Session view (Main.dc.html and the Main* screens): sidebar · header + transcript + composer · right panes (several can be open side by side).
 import { MAIN_SESSION } from '~/lib/transport/scenario'
 
 const store = useSessionStore()
 const route = useRoute()
-const { pane } = usePanes()
+const { panes } = usePanes()
 
 const requested = computed(() => typeof route.query.session === 'string' ? route.query.session : '')
 watchEffect(() => {
@@ -27,7 +27,7 @@ useShortcuts()
 
     <UDashboardPanel
       id="main"
-      :ui="{ root: 'min-h-0 h-svh min-w-0 flex-[999_1_480px] lg:not-last:border-e-0', body: 'p-0 sm:p-0 gap-0 overflow-hidden' }"
+      :ui="{ root: 'min-h-0 h-svh min-w-0 lg:min-w-[420px] flex-[999_1_480px] lg:not-last:border-e-0', body: 'p-0 sm:p-0 gap-0 overflow-hidden' }"
     >
       <template #header>
         <SessionHeader
@@ -56,10 +56,13 @@ useShortcuts()
       </template>
     </UDashboardPanel>
 
-    <RightPane
-      v-if="session && pane"
-      :pane="pane"
-      :session="session"
-    />
+    <template v-if="session">
+      <RightPane
+        v-for="p in panes"
+        :key="p"
+        :pane="p"
+        :session="session"
+      />
+    </template>
   </UDashboardGroup>
 </template>

@@ -1,20 +1,20 @@
 <script setup lang="ts">
 // Tools menu (HeaderMenu.dc.html): opens a right pane; the check marks tools pinned for this session,
-// the highlighted row is the pane that is open now.
+// highlighted rows are the panes that are open now.
 import type { IconName } from '~/utils/icons'
 import type { PaneName } from '~/composables/usePanes'
 
 const emit = defineEmits<{ select: [] }>()
-const { pane, togglePane } = usePanes()
+const { isOpen, togglePane } = usePanes()
 const pinned = useState<string[]>('tools-pinned', () => ['artifact', 'tasks', 'agents'])
 const awake = useState('keep-awake', () => false)
 
 const items: { pane: PaneName | 'ios', label: string, icon: IconName, kbd?: string }[] = [
-  { pane: 'terminal', label: 'Terminal', icon: 'term', kbd: '⌘J' },
-  { pane: 'browser', label: 'Browser', icon: 'globe-stand', kbd: '⌘⇧B' },
-  { pane: 'files', label: 'Files', icon: 'folder', kbd: '⌘⇧E' },
+  { pane: 'terminal', label: 'Terminal', icon: 'term', kbd: 'meta+j' },
+  { pane: 'browser', label: 'Browser', icon: 'globe-stand', kbd: 'meta+shift+b' },
+  { pane: 'files', label: 'Files', icon: 'folder', kbd: 'meta+shift+e' },
   { pane: 'artifact', label: 'Artifacts', icon: 'copy' },
-  { pane: 'sidechat', label: 'Side chat', icon: 'chat', kbd: '⌘;' },
+  { pane: 'sidechat', label: 'Side chat', icon: 'chat', kbd: 'meta+;' },
   { pane: 'tasks', label: 'Background tasks', icon: 'diamond' },
   { pane: 'agents', label: 'Agents', icon: 'ai' },
   { pane: 'ios', label: 'iOS Simulator', icon: 'phone' }
@@ -39,12 +39,15 @@ function choose(p: PaneName | 'ios') {
       role="menuitemcheckbox"
       :aria-checked="pinned.includes(m.pane)"
       class="flex cursor-default items-center gap-2.5 border-l-2 px-[9px] py-[7px] hover:bg-raised"
-      :class="pane === m.pane ? 'border-accent bg-raised text-white' : 'border-transparent'"
+      :class="m.pane !== 'ios' && isOpen(m.pane) ? 'border-accent bg-raised text-white' : 'border-transparent'"
       @click="choose(m.pane)"
     >
       <HIcon :name="m.icon" />
       <span class="flex-1">{{ m.label }}</span>
-      <span class="text-[11.5px] text-muted">{{ m.kbd }}</span>
+      <HKeys
+        v-if="m.kbd"
+        :keys="m.kbd"
+      />
       <HIcon
         v-if="pinned.includes(m.pane)"
         name="check"

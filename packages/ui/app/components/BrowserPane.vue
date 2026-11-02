@@ -12,7 +12,7 @@ import {
 
 const props = defineProps<{ session: SessionState, menu: string }>()
 
-const { setPane } = usePanes()
+const { closePane } = usePanes()
 
 let counter = 0
 function makeTab(base: Omit<BrowserTab, 'id'>): BrowserTab {
@@ -71,7 +71,7 @@ function closeTab(id: string) {
   if (i < 0) return
   tabs.value.splice(i, 1)
   if (!tabs.value.length) {
-    setPane(null)
+    closePane('browser')
     return
   }
   if (selected.value === id) selected.value = tabs.value[Math.max(0, i - 1)]!.id
@@ -142,7 +142,7 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
         <PaneBtn
           icon="close"
           label="Close browser"
-          @click="setPane(null)"
+          @click="closePane('browser')"
         />
       </div>
     </div>

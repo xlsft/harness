@@ -16,7 +16,7 @@ useHead({
   }]
 })
 
-const { setPane } = usePanes()
+const { openPane, closePane } = usePanes()
 
 const menuOpen = ref(props.menu === 'title')
 const thread = ref(props.menu === 'comments')
@@ -74,7 +74,7 @@ const mono = '\'JetBrains Mono\', monospace'
       <button
         type="button"
         class="flex h-[30px] items-center gap-1.5 bg-raised px-[9px] text-[12px] text-white"
-        @click="setPane('sidechat')"
+        @click="openPane('sidechat')"
       >
         <HIcon
           name="ai"
@@ -117,7 +117,7 @@ const mono = '\'JetBrains Mono\', monospace'
       <PaneBtn
         icon="close"
         label="Close artifact"
-        @click="setPane(null)"
+        @click="closePane('artifact')"
       />
     </div>
 

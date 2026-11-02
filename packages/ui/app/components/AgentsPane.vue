@@ -8,7 +8,7 @@ import type { IconName } from '~/utils/icons'
 
 const props = defineProps<{ session: SessionState, menu: string }>()
 
-const { setPane } = usePanes()
+const { closePane } = usePanes()
 const now = useNow()
 
 const cleared = ref<string[]>([])
@@ -66,7 +66,7 @@ function clearFinished() {
       <PaneBtn
         icon="close"
         label="Close"
-        @click="setPane(null)"
+        @click="closePane('agents')"
       />
     </div>
 

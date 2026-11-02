@@ -17,8 +17,22 @@ export default defineAppConfig({
     },
     tooltip: {
       slots: {
-        content: 'rounded-none bg-elevated ring ring-accented text-[11px] text-highlighted h-auto px-2 py-1 shadow-none',
-        kbds: 'hidden'
+        content: 'rounded-none bg-elevated ring ring-accented text-[11px] text-highlighted h-auto px-2 py-1 shadow-none gap-1.5',
+        kbds: 'gap-0.5'
+      }
+    },
+    // Shortcuts everywhere (hints, menus, tooltips) are UKbd: square, hairline, monospace.
+    kbd: {
+      base: 'rounded-none font-mono font-normal',
+      variants: {
+        size: {
+          sm: 'h-4 min-w-4 px-1 text-[10px]',
+          md: 'h-5 min-w-5 px-1 text-[11px]'
+        }
+      },
+      defaultVariants: {
+        variant: 'outline',
+        color: 'neutral'
       }
     },
     popover: {

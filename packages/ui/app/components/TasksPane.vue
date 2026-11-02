@@ -7,7 +7,7 @@ import { taskPid } from '~/lib/fixtures/tasks'
 
 const props = defineProps<{ session: SessionState, menu: string }>()
 
-const { setPane } = usePanes()
+const { openPane, closePane } = usePanes()
 const store = useSessionStore()
 const now = useNow()
 
@@ -74,7 +74,7 @@ function clearFinished() {
       <PaneBtn
         icon="close"
         label="Close"
-        @click="setPane(null)"
+        @click="closePane('tasks')"
       />
     </div>
 
@@ -143,7 +143,7 @@ function clearFinished() {
             <button
               type="button"
               class="border border-line px-2 py-px text-[11px] text-white hover:bg-hover"
-              @click="setPane('terminal')"
+              @click="openPane('terminal')"
             >
               Open in terminal
             </button>

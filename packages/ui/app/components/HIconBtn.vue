@@ -26,7 +26,7 @@ const box = computed(() => ({ 26: 'size-[26px]', 28: 'size-7', 30: 'size-[30px]'
 <template>
   <UTooltip
     :text="tooltip || label"
-    :kbds="kbd ? [kbd] : undefined"
+    :kbds="kbd ? kbd.split('+') : undefined"
     :delay-duration="500"
     :content="{ side: 'bottom', sideOffset: 4 }"
   >

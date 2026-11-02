@@ -1,8 +1,13 @@
+<script lang="ts">
+</script>
+
 <script setup lang="ts">
 // Composer footer (Composer.dc.html): hint · model · effort · mode · usage ring, with the model and mode pickers.
 import type { SessionState } from '~/lib/session/types'
 
-const props = defineProps<{ session: SessionState, hint?: string, initialMenu?: 'mode' | 'model' | '' }>()
+export type Hint = { keys?: string, text: string }[]
+
+const props = defineProps<{ session: SessionState, hint?: Hint, initialMenu?: 'mode' | 'model' | '' }>()
 const store = useSessionStore()
 
 const modeOpen = ref(props.initialMenu === 'mode')
@@ -34,7 +39,18 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
 
 <template>
   <div class="flex min-w-0 flex-nowrap items-center gap-0.5 text-[11.5px] whitespace-nowrap text-muted">
-    <span class="min-w-0 flex-1 truncate">{{ hint }}</span>
+    <span class="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+      <span
+        v-for="(h, i) in hint"
+        :key="i"
+        class="inline-flex shrink-0 items-center gap-1"
+      >
+        <HKeys
+          v-if="h.keys"
+          :keys="h.keys"
+        />{{ h.text }}
+      </span>
+    </span>
 
     <UPopover
       v-model:open="modelOpen"

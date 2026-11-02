@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// Composer (Composer.dc.html): ↵ sends, ⇧↵ new line, ⌘↵ queues; while a turn runs, messages queue (✕ removes one)
+// Composer (Composer.dc.html): Enter sends, Shift+Enter new line, Cmd/Ctrl+Enter queues; while a turn runs, messages queue (✕ removes one)
 // and Stop interrupts. `/` and `@` open menus, `!` runs a shell command, `#` saves to memory. Status line, queue,
 // attachments, drop, voice, context warning, permission waiting, offline and ended states.
+import type { Hint } from '~/components/composer/ComposerFooter.vue'
 import type { SessionState } from '~/lib/session/types'
 import type { ComposerPreset, MenuOption } from '~/utils/composer'
 
@@ -88,19 +89,20 @@ const placeholder = computed(() => {
   if (mode.value === 'shell') return 'Run a command'
   if (mode.value === 'memory') return 'Something to remember'
   if (planMode.value && !busy.value) return 'Describe what to plan. Nothing will be changed.'
-  if (queue.value.length) return `${queue.value.length} queued · ⌘↵ to add another`
+  if (queue.value.length) return `${queue.value.length} queued · type to add another`
   if (busy.value) return 'Type to queue a message for after this turn'
-  if (contextPct.value >= 90) return '↵ to send, ⌘↵ to queue for later'
-  return '↵ to send, ⌘↵ to queue · / commands · @ files · ! shell'
+  return 'Message harness · / commands · @ files · ! shell'
 })
 
-const hint = computed(() => {
-  if (mode.value === 'shell') return 'output goes to context · ⌫ on empty to exit'
-  if (uploading.value) return `waiting for ${uploading.value} upload${uploading.value > 1 ? 's' : ''}`
-  if (multiline.value) return '⇧↵ new line'
-  if (planMode.value) return '⇧⇥ cycle mode'
-  if (busy.value && !queue.value.length) return '⌘↵ queues a message'
-  return ''
+// Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.
+const hint = computed<Hint>(() => {
+  if (mode.value === 'shell') return [{ text: 'output goes to context ·' }, { keys: 'backspace', text: 'on empty to exit' }]
+  if (uploading.value) return [{ text: `waiting for ${uploading.value} upload${uploading.value > 1 ? 's' : ''}` }]
+  if (multiline.value) return [{ keys: 'shift+enter', text: 'new line' }]
+  if (planMode.value) return [{ keys: 'shift+tab', text: 'cycle mode' }]
+  if (busy.value || queue.value.length) return [{ keys: 'meta+enter', text: 'queues a message' }]
+  if (contextPct.value >= 90) return [{ keys: 'enter', text: 'send' }, { keys: 'meta+enter', text: 'queue for later' }]
+  return [{ keys: 'enter', text: 'send' }, { keys: 'meta+enter', text: 'queue' }]
 })
 
 const frame = computed(() => {

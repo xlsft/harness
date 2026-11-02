@@ -7,6 +7,8 @@ withDefaults(defineProps<{
   role?: 'menuitem' | 'menuitemcheckbox' | 'menuitemradio'
   checked?: boolean
   value?: string
+  // Shortcut shown as UKbd keys ("meta+k"), in place of a value.
+  kbd?: string
   valueClass?: string
   sub?: boolean
   subSize?: number
@@ -22,6 +24,7 @@ withDefaults(defineProps<{
   role: 'menuitem',
   checked: false,
   value: '',
+  kbd: '',
   valueClass: 'text-muted',
   sub: false,
   subSize: 12,
@@ -54,8 +57,12 @@ withDefaults(defineProps<{
     />
     <slot />
     <span class="flex-1" />
+    <HKeys
+      v-if="kbd"
+      :keys="kbd"
+    />
     <span
-      v-if="value"
+      v-else-if="value"
       :class="valueClass"
     >{{ value }}</span>
     <HIcon

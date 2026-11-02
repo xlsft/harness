@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Listboxes above the composer (Composer.dc.html "slash" and "mention"): ↑↓ move, ↵ picks, esc closes.
+// Listboxes above the composer (Composer.dc.html "slash" and "mention"): arrows move, Enter picks, Esc closes.
 import type { MenuOption } from '~/utils/composer'
 
 defineProps<{ kind: 'slash' | 'mention', options: MenuOption[], active: number }>()
@@ -41,7 +41,9 @@ defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
       v-if="kind === 'slash'"
       class="flex gap-3.5 border-t border-default px-2.5 py-[5px] text-[11px] text-muted"
     >
-      <span>↑↓ navigate</span><span>↵ select</span><span>esc close</span>
+      <span class="inline-flex items-center gap-1"><HKeys keys="arrowup arrowdown" />navigate</span>
+      <span class="inline-flex items-center gap-1"><HKeys keys="enter" />select</span>
+      <span class="inline-flex items-center gap-1"><HKeys keys="escape" />close</span>
     </div>
     <div
       v-if="!options.length"

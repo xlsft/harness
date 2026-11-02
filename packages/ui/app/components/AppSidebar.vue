@@ -37,14 +37,13 @@ function mark(s: SessionState) {
 function openSession(id: string) {
   store.open(id)
   open.value = false
-  if (route.path !== '/') navigateTo({ path: '/', query: route.query.pane ? { pane: route.query.pane } : {} })
+  if (route.path !== '/') navigateTo({ path: '/', query: route.query.panes ? { panes: route.query.panes } : {} })
 }
 
 const nav = [
   { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts' },
   { label: 'Scheduled', icon: 'clock' as const },
-  { label: 'Customize', icon: 'sliders' as const },
-  { label: 'More', icon: 'more' as const }
+  { label: 'Customize', icon: 'sliders' as const }
 ]
 </script>
 
@@ -91,7 +90,7 @@ const nav = [
         class="nav-row px-[9px] hover:bg-hover text-white"
         @click.prevent="openSession(store.order[0]!)"
       >
-        <HIcon name="plus" />New session<span class="flex-1" /><span class="text-[10.5px] text-muted">⌘N</span>
+        <HIcon name="plus" />New session<span class="flex-1" /><HKeys keys="meta+n" />
       </a>
       <component
         :is="item.to ? 'NuxtLink' : 'a'"

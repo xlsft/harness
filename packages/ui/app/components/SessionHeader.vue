@@ -6,7 +6,7 @@ import type { PaneName } from '~/composables/usePanes'
 
 defineProps<{ session: SessionState }>()
 
-const { pane, menu, togglePane } = usePanes()
+const { isOpen, menu, togglePane } = usePanes()
 const collapsed = useState('sidebar-collapsed', () => false)
 const sidebarOpen = useState('sidebar-open', () => false)
 const toolsOpen = ref(menu.value === 'tools')
@@ -49,7 +49,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
       :icon="b.icon"
       :label="b.label"
       :kbd="b.kbd"
-      :active="pane === b.pane"
+      :active="isOpen(b.pane)"
       :class="b.pane !== 'details' && b.pane !== 'terminal' ? 'max-sm:hidden' : ''"
       @click="togglePane(b.pane)"
     />
