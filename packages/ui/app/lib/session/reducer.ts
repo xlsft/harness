@@ -453,6 +453,27 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         applySubagentProgress(s, n.text)
         break
       }
+      // Auto mode verdicts arrive as JSON in the text (client's AutoDecisionNotice). Allowed calls go on
+      // the tool item only; blocked or deferred ones become a readable notice.
+      if (n.kind === 'auto_decision') {
+        const d = parseJson(n.text) as { toolUseId?: string, toolName?: string, decision?: string, reason?: string, provider?: string, text?: string } | null
+        if (d) {
+          const tool = d.toolUseId ? find(s, 'tool', d.toolUseId) : undefined
+          if (tool) tool.autoDecision = { decision: d.decision ?? '', reason: d.reason ?? '', provider: d.provider ?? '' }
+          if (d.decision === 'allow') break
+          const what = d.toolName || 'a tool call'
+          push(s, {
+            kind: 'notice',
+            id: 'n' + seq,
+            level: d.decision === 'deny' ? 'warning' : 'info',
+            noticeKind: n.kind,
+            text: d.decision === 'deny'
+              ? `Auto mode blocked ${what}${d.reason ? `: ${d.reason}` : ''}`
+              : `Auto mode asked you about ${what}${d.reason ? `: ${d.reason}` : ''}`
+          })
+          break
+        }
+      }
       push(s, {
         kind: 'notice',
         id: 'n' + seq,

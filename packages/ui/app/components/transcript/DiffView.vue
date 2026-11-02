@@ -13,8 +13,12 @@ export interface DiffComment {
   // Line in the new file (old file for removed lines), and which side it is on.
   line: number
   side: 'new' | 'old'
+  // Index of the hunk in this diff: line numbers repeat when several edits of one file are shown together.
+  hunk: number
   code: string
   text: string
+  // Posted to the agent (the diff pane sends each comment as soon as it is saved).
+  sent?: boolean
 }
 
 const props = withDefaults(defineProps<{
@@ -40,12 +44,12 @@ const DEL = { bg: '#ff20561f', sc: '#ff2056', tc: '#fff', s: '−' }
 const CTX = { bg: 'transparent', sc: '#8f8f8f', tc: '#d4d4d4', s: ' ' }
 
 interface URow { kind: 'hunk', text: string }
-interface LRow { kind: 'line', a: string, b: string, t: string, bg: string, sc: string, tc: string, s: string }
+interface LRow { kind: 'line', h: number, a: string, b: string, t: string, bg: string, sc: string, tc: string, s: string }
 
 // Line comments: the row being commented on (draft) and the comments of this file by row key.
 const draft = ref<{ key: string, text: string, id?: string } | null>(null)
-const rowKey = (r: LRow) => r.b ? `new:${r.b}` : `old:${r.a}`
-const commentsAt = (r: LRow) => comments.value.filter(c => c.path === props.path && `${c.side}:${c.line}` === rowKey(r))
+const rowKey = (r: LRow) => `${r.h}:${r.b ? `new:${r.b}` : `old:${r.a}`}`
+const commentsAt = (r: LRow) => comments.value.filter(c => c.path === props.path && `${c.hunk}:${c.side}:${c.line}` === rowKey(r))
 
 const root = ref<HTMLElement | null>(null)
 
@@ -65,7 +69,7 @@ function saveComment(r: LRow) {
       : comments.value.filter(c => c.id !== d.id)
   } else if (text) {
     const side = r.b ? 'new' : 'old'
-    comments.value = [...comments.value, { id: `${props.path}:${rowKey(r)}:${Date.now()}`, path: props.path, line: Number(side === 'new' ? r.b : r.a), side, code: r.t, text }]
+    comments.value = [...comments.value, { id: `${props.path}:${rowKey(r)}:${Date.now()}`, path: props.path, line: Number(side === 'new' ? r.b : r.a), side, hunk: r.h, code: r.t, text }]
   }
   draft.value = null
 }
@@ -80,15 +84,15 @@ function onDraftKey(e: KeyboardEvent, r: LRow) {
 
 const unified = computed(() => {
   const rows: (URow | LRow)[] = []
-  for (const h of props.hunks) {
+  for (const [hi, h] of props.hunks.entries()) {
     rows.push({ kind: 'hunk', text: `@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@${h.header ? ' ' + h.header : ''}` })
     let a = h.oldStart
     let b = h.newStart
     for (const l of h.lines) {
       const t = l.slice(1)
-      if (l.startsWith('+')) rows.push({ kind: 'line', a: '', b: String(b++), t, ...ADD })
-      else if (l.startsWith('-')) rows.push({ kind: 'line', a: String(a++), b: '', t, ...DEL })
-      else rows.push({ kind: 'line', a: String(a++), b: String(b++), t, ...CTX })
+      if (l.startsWith('+')) rows.push({ kind: 'line', h: hi, a: '', b: String(b++), t, ...ADD })
+      else if (l.startsWith('-')) rows.push({ kind: 'line', h: hi, a: String(a++), b: '', t, ...DEL })
+      else rows.push({ kind: 'line', h: hi, a: String(a++), b: String(b++), t, ...CTX })
     }
   }
   return rows
@@ -212,20 +216,29 @@ const split = computed(() => {
               class="group/comment mx-2 my-1 flex items-start gap-2 border border-l-2 border-default border-l-accent bg-raised px-2.5 py-1.5 whitespace-pre-wrap text-toned"
             >
               <span class="min-w-0 flex-1">{{ c.text }}</span>
-              <button
-                type="button"
-                class="text-[11px] text-muted hover:text-white"
-                @click="startComment(r, c)"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                class="text-[11px] text-muted hover:text-bad"
-                @click="comments = comments.filter(x => x.id !== c.id)"
-              >
-                Delete
-              </button>
+              <span
+                v-if="c.sent"
+                class="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted"
+              ><HIcon
+                name="check"
+                :size="11"
+              />sent</span>
+              <template v-else>
+                <button
+                  type="button"
+                  class="text-[11px] text-muted hover:text-white"
+                  @click="startComment(r, c)"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  class="text-[11px] text-muted hover:text-bad"
+                  @click="comments = comments.filter(x => x.id !== c.id)"
+                >
+                  Delete
+                </button>
+              </template>
             </div>
             <div
               v-if="draft?.key === rowKey(r)"

@@ -56,6 +56,20 @@ describe('assistant deltas', () => {
 })
 
 describe('tool calls', () => {
+  it('reads auto mode verdicts: allowed ones stay on the tool, blocked ones become a readable notice', () => {
+    const { b, s } = setup()
+    b.assistant('m1', 'glm-4.6', [{ toolUse: { id: 't1', name: 'Edit', input: { file_path: 'a.go' } } }])
+    b.toolStarted('t1', 'Edit', { file_path: 'a.go' }, 'a.go')
+    b.notice('info', 'auto_decision', { toolUseId: 't1', toolName: 'Edit', decision: 'allow', provider: 'local-rules', reason: 'inside the workspace', text: 'x' })
+    b.notice('warning', 'auto_decision', { toolUseId: 't2', toolName: 'Bash', decision: 'deny', provider: 'rules', reason: 'shuts the machine down', text: 'y' })
+    reduceAll(s, b.events)
+
+    const tool = s.items.find(i => i.kind === 'tool') as ToolItem
+    expect(tool.autoDecision).toEqual({ decision: 'allow', reason: 'inside the workspace', provider: 'local-rules' })
+    const notices = s.items.filter(i => i.kind === 'notice') as { text: string }[]
+    expect(notices.map(n => n.text)).toEqual(['Auto mode blocked Bash: shuts the machine down'])
+  })
+
   it('pairs ToolCallStarted and ToolCallFinished by tool_use_id and groups parallel calls', () => {
     const { b, s } = setup()
     b.assistant('m1', 'glm-4.6', [

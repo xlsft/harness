@@ -73,6 +73,8 @@ export interface ToolItem {
   // The assistant message that requested it, and whether it shares that message with other calls.
   messageId: string
   grouped: boolean
+  // Auto mode verdict for this call, when the classifier decided it.
+  autoDecision?: { decision: string, reason: string, provider: string }
   // Subagents (Task / Agent tool): progress reported by the client.
   subagent?: { steps: SubagentStep[], tokens: number, toolCalls: number, model: string, active: number }
 }

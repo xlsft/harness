@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Diff pane (header "Diff" button). Not drawn as its own artboard: built from Diff.dc.html —
 // the turn summary on top, then every edit of the session as a unified / split diff, edge to edge.
-// Review comments: hover a line, add a comment; "Send to agent" posts them all as one message.
+// Review comments: hover a line, add a comment; it goes to the agent as soon as it is saved (queued while
+// a turn runs) and stays on its line marked as sent.
 import type { SessionState, ToolItem } from '~/lib/session/types'
 import type { DiffComment } from '~/components/transcript/DiffView.vue'
 
@@ -11,10 +12,8 @@ const store = useSessionStore()
 
 // Comments survive closing and reopening the pane within the session (not a reload).
 const comments = useState<DiffComment[]>(`diff-comments-${props.session.meta.id}`, () => [])
-const sending = ref(false)
-
 function reviewMessage(list: DiffComment[]) {
-  const lines = ['Review comments on your changes. Address each one:', '']
+  const lines = [list.length === 1 ? 'Review comment on your changes:' : 'Review comments on your changes. Address each one:', '']
   for (const c of [...list].sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line)) {
     lines.push(`- ${c.path}:${c.line}${c.side === 'old' ? ' (removed line)' : ''}`)
     if (c.code.trim()) lines.push(`  \`${c.code.trim()}\``)
@@ -23,16 +22,13 @@ function reviewMessage(list: DiffComment[]) {
   return lines.join('\n')
 }
 
-async function sendComments() {
-  if (!comments.value.length || sending.value) return
-  sending.value = true
-  try {
-    await store.send(props.session.meta.id, reviewMessage(comments.value))
-    comments.value = []
-  } finally {
-    sending.value = false
-  }
-}
+// Saved comments that have not gone out yet are sent right away, then marked.
+watch(comments, async (list) => {
+  const fresh = list.filter(c => !c.sent)
+  if (!fresh.length) return
+  comments.value = list.map(c => c.sent ? c : { ...c, sent: true })
+  await store.send(props.session.meta.id, reviewMessage(fresh))
+})
 
 const edits = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool' && ['Edit', 'MultiEdit', 'Write'].includes(i.name) && i.status === 'ok' && patchOf(i).length > 0))
 const files = computed(() => fileChanges(edits.value))
@@ -312,33 +308,6 @@ async function copy(text: string) {
           commentable
         />
       </section>
-    </div>
-    <div
-      v-if="comments.length"
-      class="flex shrink-0 items-center gap-2 border-t border-default bg-surface px-3 py-2 text-[12px]"
-    >
-      <HIcon
-        name="comment"
-        :size="13"
-        class="text-accent"
-      />
-      <span class="text-white">{{ comments.length }} comment{{ comments.length === 1 ? '' : 's' }}</span>
-      <span class="flex-1" />
-      <button
-        type="button"
-        class="border border-default px-2 py-0.5 text-toned hover:text-white"
-        @click="comments = []"
-      >
-        Discard
-      </button>
-      <button
-        type="button"
-        :disabled="sending"
-        class="bg-accent px-2.5 py-0.5 text-white disabled:opacity-50"
-        @click="sendComments"
-      >
-        {{ store.isBusy(session.meta.id) ? 'Queue for agent' : 'Send to agent' }}
-      </button>
     </div>
   </section>
 </template>
