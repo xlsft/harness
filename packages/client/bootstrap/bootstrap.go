@@ -342,6 +342,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	// Workspace context.
 	env := workspace.Detect(ctx, cwd)
 	env.ModelID, env.ModelDisplayName = s.Model, info.DisplayName
+	env.AdditionalDirs = o.AdditionalDirs
+	env.ScratchpadDir = filepath.Join(config.TempRoot(), session.Slug(cwd), s.ID, "scratchpad")
 	gitForContext := ""
 	if !s.Bundle.UsesPlaceholder("git_status") {
 		gitForContext = env.GitStatus

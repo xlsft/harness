@@ -27,21 +27,27 @@ type Env struct {
 	ModelID          string
 	ModelDisplayName string
 	GitStatus        string
+	// AdditionalDirs are extra working directories (--add-dir, settings additionalDirectories).
+	AdditionalDirs []string
+	// ScratchpadDir is the session's scratch directory (writes there never prompt).
+	ScratchpadDir string
 }
 
 // Vars returns placeholder values keyed by placeholder name.
 func (e Env) Vars() map[string]string {
 	return map[string]string{
-		"cwd":                e.Cwd,
-		"platform":           e.Platform,
-		"shell":              e.Shell,
-		"os_version":         e.OSVersion,
-		"date":               e.Date,
-		"is_git":             strconv.FormatBool(e.IsGit),
-		"model":              e.ModelID,
-		"model_id":           e.ModelID,
-		"model_display_name": e.ModelDisplayName,
-		"git_status":         e.GitStatus,
+		"cwd":                    e.Cwd,
+		"platform":               e.Platform,
+		"shell":                  e.Shell,
+		"os_version":             e.OSVersion,
+		"date":                   e.Date,
+		"is_git":                 strconv.FormatBool(e.IsGit),
+		"model":                  e.ModelID,
+		"model_id":               e.ModelID,
+		"model_display_name":     e.ModelDisplayName,
+		"git_status":             e.GitStatus,
+		"additional_directories": strings.Join(e.AdditionalDirs, ", "),
+		"scratchpad_dir":         e.ScratchpadDir,
 	}
 }
 
