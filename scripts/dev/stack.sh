@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Local development stack: builds and starts core, signs in the client, and (optionally) configures
-# OpenRouter as the model provider with a set of cheap, tool-capable models for testing.
+# OpenRouter as the model provider with a set of cheap, tool-capable models for testing, and the
+# auto-mode decision chain rules -> decision_model (TypeSafe Jev via OpenRouter) -> llm.
 #
 # Usage:
 #   OPENROUTER_API_KEY=sk-or-... scripts/dev/stack.sh      # start + configure OpenRouter models
@@ -116,6 +117,13 @@ if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
   model '{"id":"glm-flash","display_name":"GLM 5.3 Flash","provider_id":"openrouter-chat","upstream_model":"z-ai/glm-5.3-flash","context_window":1000000,"max_output_tokens":32000,"capabilities":{"images":false,"pdf":false,"parallel_tool_calls":true,"thinking":false,"prompt_cache":false,"effort":[]},"pricing":{"input":0.029,"output":0.092}}'
   "${CURL[@]}" "${JSON[@]}" -X PUT -d '{"main":"claude-haiku","small":"glm-flash","plan":"claude-haiku","classifier":"claude-haiku"}' \
     "$URL/api/admin/slots" >/dev/null || warn "slots not set"
+
+  # Auto mode: built-in rules, then TypeSafe's Jev through OpenRouter's decisions endpoint (reusing the
+  # openrouter-chat provider's key, so it is stored only once), then the classifier slot model when Jev
+  # is unsure. Replaces the whole decision config.
+  log "configuring the auto-mode decision chain (rules -> decision_model -> llm)"
+  "${CURL[@]}" "${JSON[@]}" -X PUT -d '{"providers":[{"type":"rules"},{"type":"decision_model","display_name":"Jev (OpenRouter)","settings":{"endpoint":"openrouter","model":"typesafe/jev-1.13","api_key_provider":"openrouter-chat"}},{"type":"llm"}]}' \
+    "$URL/api/admin/decision" >/dev/null || warn "decision chain not set (does this server know decision_model?)"
 fi
 
 log "ready"
