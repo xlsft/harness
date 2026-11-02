@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Markdown render</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.62; display: flex; flex-direction: column; gap: 14px">
+
+<sc-if value="{{show.text}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">variant="text" · headings, inline markup</div></sc-if>
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <h1 style="margin: 0; font-family: 'Cascadia Code', monospace; font-size: 22px; line-height: 1.3; font-weight: 700; color: #fff">Gateway: streaming responses</h1>
+    <p style="margin: 0">The gateway takes a request in <b style="color: #fff">Anthropic Messages</b> format, sends it to <i>any</i> OpenAI-compatible provider and streams it back with no <s>buffering</s> extra latency. The handler is <code style="color: #fff; background: #131313; border: 1px solid #2b2b2b; padding: 1px 5px; font-size: 12px">defineHandler</code> from Nitro, the contract lives in <a href="#" style="color: {{accent}}; text-decoration: underline; text-underline-offset: 3px">proto/gateway/v1</a>. Command palette: <kbd style="font-family: inherit; font-size: 11px; color: #fff; border: 1px solid #454545; border-bottom-width: 2px; padding: 0 5px">⌘</kbd> <kbd style="font-family: inherit; font-size: 11px; color: #fff; border: 1px solid #454545; border-bottom-width: 2px; padding: 0 5px">K</kbd>.</p>
+    <h2 style="margin: 4px 0 0; font-family: 'Cascadia Code', monospace; font-size: 18px; line-height: 1.35; font-weight: 700; color: #fff">Event order</h2>
+    <p style="margin: 0">The provider sends usage as a separate chunk after the text, so <code style="color: #fff; background: #131313; border: 1px solid #2b2b2b; padding: 1px 5px; font-size: 12px">message_stop</code> is held until it arrives.</p>
+    <h3 style="margin: 4px 0 0; font-family: 'Cascadia Code', monospace; font-size: 15px; line-height: 1.4; font-weight: 700; color: #fff">Timeouts</h3>
+    <h4 style="margin: 0; font-size: 13px; font-weight: 700; color: #fff">Provider retries</h4>
+    <p style="margin: 0">Only 429 and 5xx are retried, with exponential backoff<sup style="color: {{accent}}; font-size: 10px">[1]</sup>.</p>
+    <hr style="border: 0; border-top: 1px solid #2b2b2b; margin: 4px 0; width: 100%">
+    <div style="font-size: 11.5px; color: #8f8f8f"><sup style="color: {{accent}}">[1]</sup> Base delay 500 ms, factor 2, at most 5 attempts.</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.lists}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="lists" · lists, tasks</div></sc-if>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <ul style="margin: 0; padding-left: 18px; list-style: square">
+        <li>Transport: ConnectRPC over HTTP/1.1</li>
+        <li>Provider keys live only on the server
+          <ul style="margin: 2px 0; padding-left: 18px; list-style: circle; color: #8f8f8f">
+            <li>encrypted in Postgres</li>
+            <li>the client only sees ids</li>
+          </ul>
+        </li>
+        <li>Stream: SSE, unbuffered</li>
+      </ul>
+      <ol style="margin: 0; padding-left: 22px">
+        <li>Generate TS from proto</li>
+        <li>Bring up the Nitro handler</li>
+        <li>Run the retry tests</li>
+      </ol>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; gap: 9px; align-items: center"><span style="width: 14px; height: 14px; background: {{accent}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg viewBox="0 0 24 24" style="width: 11px; height: 11px; fill: #fff" aria-hidden="true"><path d="M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z"></path></svg></span><s style="color: #8f8f8f">gateway.proto contract</s></div>
+      <div style="display: flex; gap: 9px; align-items: center"><span style="width: 14px; height: 14px; background: {{accent}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg viewBox="0 0 24 24" style="width: 11px; height: 11px; fill: #fff" aria-hidden="true"><path d="M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z"></path></svg></span><s style="color: #8f8f8f">Stream handler</s></div>
+      <div style="display: flex; gap: 9px; align-items: center"><span style="width: 14px; height: 14px; border: 1px solid #454545; box-sizing: border-box; flex-shrink: 0"></span>Usage before message_stop</div>
+      <div style="display: flex; gap: 9px; align-items: center"><span style="width: 14px; height: 14px; border: 1px solid #454545; box-sizing: border-box; flex-shrink: 0"></span>Retry 429 / 5xx</div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.code}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="code" · highlighted code blocks</div></sc-if>
+  <div style="border: 1px solid #2b2b2b; background: #0a0a0a">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 12px; border-bottom: 1px solid #2b2b2b; font-size: 11.5px; color: #8f8f8f">
+      <span style="color: #fff; border: 1px solid #2b2b2b; padding: 0 5px">ts</span>packages/core/server/routes/gateway.ts<span style="flex: 1"></span>
+      <button aria-label="Copy code" style="background: none; border: 0; color: #8f8f8f; display: flex; align-items: center; gap: 6px; font: inherit; padding: 2px 4px"><svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor" aria-hidden="true"><path d="M7.771 16.974c-.895-.209-1.035-1.47-.211-1.872A1 1 0 0 1 8 15h2c.383.022.725.206.898.56c.339.693-.169 1.398-.898 1.44H8Zm0-4c-.895-.209-1.035-1.47-.211-1.872A1 1 0 0 1 8 11h4c.46.026.865.305.974.771c.15.645-.344 1.193-.974 1.229H8ZM17 18v2c-.026.641-.293 1.229-.819 1.614c-.351.257-.751.369-1.181.386H5c-.535-.022-1.03-.202-1.414-.586S3.022 20.535 3 20V8c.022-.535.202-1.03.586-1.414S4.465 6.022 5 6h2V4c.026-.641.293-1.229.819-1.614C8.17 2.129 8.57 2.017 9 2h10c.535.022 1.03.202 1.414.586S20.978 3.465 21 4v12c-.022.535-.202 1.03-.586 1.414s-.879.564-1.414.586Zm0-2h2V4H9v2h6c1.146.046 1.954.854 2 2ZM5 8v12h10V8Z"></path></svg>Copy</button>
+    </div>
+    <pre style="margin: 0; padding: 10px 0; overflow-x: auto; font-family: inherit; font-size: 12.5px; line-height: 1.65; color: #d4d4d4"><span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">1</span><span style="color: #f6339a">import</span> { defineHandler } <span style="color: #f6339a">from</span> <span style="color: #00bc7d">'nitro/h3'</span>
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">2</span><span style="color: #f6339a">import</span> { toAnthropicEvents } <span style="color: #f6339a">from</span> <span style="color: #00bc7d">'../gateway/translate'</span>
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">3</span>
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">4</span><span style="color: #8f8f8f">// usage arrives as a separate chunk — hold message_stop until then</span>
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">5</span><span style="color: #f6339a">export default</span> <span style="color: #fff">defineHandler</span>(<span style="color: #f6339a">async</span> (event) =&gt; {
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">6</span>  <span style="color: #f6339a">const</span> req = <span style="color: #f6339a">await</span> <span style="color: #fff">readValidatedBody</span>(event, <span style="color: #00b8db">StreamRequest</span>.parse)
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">7</span>  <span style="color: #f6339a">const</span> upstream = <span style="color: #f6339a">await</span> <span style="color: #fff">provider</span>(req.model).<span style="color: #fff">stream</span>(req, { timeout: <span style="color: #fe9a00">60_000</span> })
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">8</span>  <span style="color: #f6339a">return</span> <span style="color: #fff">toAnthropicEvents</span>(upstream, { holdStopUntilUsage: <span style="color: #fe9a00">true</span> })
+<span style="color: #737373; display: inline-block; width: 40px; text-align: right; padding-right: 14px">9</span>})</pre>
+  </div>
+  <div style="border: 1px solid #2b2b2b; background: #0a0a0a">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid #2b2b2b; font-size: 11.5px; color: #8f8f8f"><span style="color: #fff; border: 1px solid #2b2b2b; padding: 0 5px">bash</span><span style="flex: 1"></span>Copy</div>
+    <pre style="margin: 0; padding: 10px 14px; font-family: inherit; font-size: 12.5px; line-height: 1.65; color: #d4d4d4"><span style="color: #8f8f8f">$</span> buf generate &amp;&amp; pnpm --filter core dev
+<span style="color: #8f8f8f">$</span> curl -N localhost:3000/gateway.v1.Gateway/Stream</pre>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.table}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="table" · tables</div></sc-if>
+  <div style="overflow-x: auto; border: 1px solid #2b2b2b">
+    <table style="width: 100%; border-collapse: collapse; font-size: 12.5px">
+      <thead><tr style="background: #0a0a0a; color: #fff; text-align: left">
+        <th style="padding: 7px 12px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Provider</th>
+        <th style="padding: 7px 12px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Model</th>
+        <th style="padding: 7px 12px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Stream</th>
+        <th style="padding: 7px 12px; font-weight: 400; border-bottom: 1px solid #2b2b2b; text-align: right">p50 TTFT</th>
+        <th style="padding: 7px 12px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Status</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c">OpenRouter</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c; color: #fff">glm-4.6</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c">SSE</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c; text-align: right">410 ms</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c; color: #00bc7d">ok</td></tr>
+        <tr><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c">Anthropic</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c; color: #fff">claude-sonnet-5-5</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c">SSE</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c; text-align: right">380 ms</td><td style="padding: 7px 12px; border-bottom: 1px solid #1c1c1c; color: #00bc7d">ok</td></tr>
+        <tr><td style="padding: 7px 12px">Ollama</td><td style="padding: 7px 12px; color: #fff">qwen3-coder:30b</td><td style="padding: 7px 12px">NDJSON</td><td style="padding: 7px 12px; text-align: right">1.2 s</td><td style="padding: 7px 12px; color: #fe6e00">slow</td></tr>
+      </tbody>
+    </table>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.quote}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="quote" · quotes, callouts, collapsible</div></sc-if>
+  <blockquote style="margin: 0; padding: 2px 0 2px 14px; border-left: 2px solid #454545; color: #8f8f8f; font-style: italic">The server never executes code — it only stores data and proxies models.</blockquote>
+  <div style="border: 1px solid #2b2b2b; border-left: 2px solid {{accent}}; padding: 8px 12px; display: flex; gap: 10px">
+    <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; flex-shrink: 0; fill: {{accent}}; margin-top: 3px" aria-hidden="true"><path d="M10.741 21.966c-.842-.226-.996-1.396-.241-1.832c.175-.101.302-.121.5-.134h2c.36.024.68.178.866.5c.132.228.168.504.1.759c-.122.453-.515.711-.966.741h-2ZM9.757 19.47c-.252-.063-.435-.213-.589-.415l-.852-1.279l-.044-.053c-.114-.118-.293-.222-.42-.323c-2.277-1.809-3.884-4.547-3.851-7.51c.058-5.21 4.945-8.882 9.975-7.645c4.405 1.083 6.921 5.61 5.724 9.945c-.506 1.831-1.586 3.448-2.981 4.724c-.295.27-.622.495-.925.754l-.109.108l-.853 1.279A1.06 1.06 0 0 1 14 19.5h-4Zm.778-1.970h2.930c.207-.311.486-.797.778-1.120c.323-.357.761-.609 1.116-.933c.865-.787 1.598-1.739 2.069-2.814c.573-1.309.744-2.806.379-4.196c-.683-2.602-3.129-4.436-5.807-4.436S6.876 5.835 6.193 8.437c-.365 1.39-.194 2.887.379 4.196c.471 1.075 1.204 2.027 2.069 2.814c.355.324.793.576 1.115.933c.293.323.572.809.779 1.12"></path></svg>
+    <div><div style="color: #fff">Note</div>Keys can be rotated without a restart: the gateway rereads them every minute.</div>
+  </div>
+  <div style="border: 1px solid #2b2b2b; border-left: 2px solid #fe6e00; padding: 8px 12px; display: flex; gap: 10px">
+    <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; flex-shrink: 0; fill: #fe6e00; margin-top: 3px" aria-hidden="true"><path d="M11.741 16.966a1 1 0 0 1-.607-.466c-.439-.76.29-1.69 1.127-1.466c.254.068.475.238.607.466c.439.76-.29 1.690-1.127 1.466m-.707-10.225c.262-.978 1.67-.978 1.932 0L13 7v6c-.03.451-.288.844-.741.966c-.656.176-1.217-.327-1.259-.966V7Zm7.775 12.584a10 10 0 0 1-3.791 2.212a10.1 10.1 0 0 1-4.563.345a10 10 0 0 1-3.503-1.247C1.179 17.254.289 9.233 5.192 4.675a10 10 0 0 1 3.79-2.212a10.1 10.1 0 0 1 4.563-.345a10 10 0 0 1 3.503 1.247c5.773 3.381 6.663 11.402 1.761 15.96m-7.435-15.3a8 8 0 0 0-4.377 1.733C2.03 9.744 3.51 17.709 9.585 19.629a8 8 0 0 0 7.418-1.387c4.967-3.985 3.487-11.951-2.588-13.871a8.1 8.1 0 0 0-3.041-.346"></path></svg>
+    <div><div style="color: #fff">Warning</div>Ollama sends no usage while streaming — token counts will be estimates.</div>
+  </div>
+  <div style="border: 1px solid #2b2b2b; padding: 7px 12px; display: flex; align-items: center; gap: 9px; color: #8f8f8f">
+    <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor" aria-hidden="true"><path d="m13.586 12l-4.95-4.95c-.574-.654-.22-1.707.707-1.707c.278 0 .503.114.707.293l5.657 5.657c.179.204.293.429.293.707s-.114.503-.293.707l-5.657 5.657c-.339.298-.8.394-1.207.159c-.588-.34-.629-1.092-.207-1.573Z"></path></svg><span style="color: #d4d4d4">Full provider log</span><span style="flex: 1"></span>214 lines
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","text","lists","code","table","quote"],"default":"all"},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":840,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const s = (k) => v === 'all' || v === k;
+    return {
+      accent: this.props.accent ?? '#2b7fff',
+      pad: this.props.inset === false ? '0' : '24px',
+      all: v === 'all',
+      show: { text: s('text'), lists: s('lists'), code: s('code'), table: s('table'), quote: s('quote') }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>User message</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #fff; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 14px">
+
+<sc-if value="{{show.text}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">variant="text"</div></sc-if>
+  <div style="align-self: flex-end; max-width: 78%; border: 1px solid #2b2b2b; background: #131313; padding: 9px 12px; line-height: 1.55">Bring up the gateway in packages/core: Anthropic Messages streaming over an OpenAI-compatible provider, keys stay on the server.</div>
+</sc-if>
+
+<sc-if value="{{show.command}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="command" · slash command and mentions</div></sc-if>
+  <div style="align-self: flex-end; max-width: 78%; border: 1px solid #2b2b2b; background: #131313; padding: 9px 12px; line-height: 1.7"><span style="color: {{accent}}; border: 1px solid {{accent}}; padding: 0 5px">/code-review</span> high on <span style="color: {{accent}}; background: #2b7fff26; padding: 0 4px">@packages/core/server/gateway</span>, especially retries</div>
+</sc-if>
+
+<sc-if value="{{show.quote}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="quote" · reply to a fragment</div></sc-if>
+  <div style="align-self: flex-end; max-width: 78%; border: 1px solid #2b2b2b; background: #131313; padding: 9px 12px; display: flex; flex-direction: column; gap: 7px; line-height: 1.55">
+    <span style="border-left: 2px solid #454545; padding-left: 10px; color: #8f8f8f; font-size: 12px">…hold message_stop until usage arrives</span>
+    <span>What if the provider never sends usage? We need a timeout.</span>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.queued}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="queued" · queued message</div></sc-if>
+  <div style="align-self: flex-end; max-width: 78%; border: 1px dashed #454545; padding: 9px 12px; display: flex; flex-direction: column; gap: 5px; line-height: 1.55; color: #d4d4d4">
+    <span style="font-size: 11px; color: #8f8f8f">queued · sends after this turn</span>
+    <span>Also add a test for a dropped connection mid-stream.</span>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","text","command","quote","queued"],"default":"all"},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":840,"height":440}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const s = (k) => v === 'all' || v === k;
+    return {
+      accent: this.props.accent ?? '#2b7fff',
+      pad: this.props.inset === false ? '0' : '24px',
+      all: v === 'all',
+      show: { text: s('text'), command: s('command'), quote: s('quote'), queued: s('queued') }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Background task</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 14px">
+
+<sc-if value="{{show.running}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">variant="running" · background process</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 12.5px; border-bottom: 1px solid #2b2b2b; flex-wrap: wrap">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: #8f8f8f" aria-hidden="true"><path d="M13.741 15.966c-.842-.226-.996-1.396-.241-1.832c.175-.101.302-.121.5-.134h2c.36.024.68.178.866.5c.132.228.168.504.1.759c-.122.453-.515.711-.966.741h-2ZM9.757 12L7.636 9.879c-.422-.482-.381-1.234.207-1.573c.407-.235.868-.139 1.207.158l2.829 2.829c.377.43.377.984 0 1.414L9.05 15.536c-.149.13-.253.206-.448.258c-.73.196-1.42-.494-1.225-1.224c.052-.195.128-.3.259-.449Zm-4.871 8.993C3.798 20.894 3.04 20.092 3 19V5c.018-.494.18-.961.513-1.333C3.897 3.239 4.431 3.021 5 3h14c.494.018.961.18 1.333.513c.428.384.646.918.667 1.487v14c-.042 1.135-.865 1.958-2 2H5Zm.12-15.987v13.988h13.988V5.006Z"></path></svg>
+      <span style="color: #8f8f8f">Background</span><span style="color: #fff">pnpm --filter core dev</span>
+      <span style="flex: 1"></span><span style="font-size: 11px; color: {{accent}}">running · 2m 14s</span>
+    </div>
+    <pre style="margin: 0; padding: 8px 12px; background: #0a0a0a; font-family: inherit; font-size: 12px; line-height: 1.6; color: #8f8f8f">  ➜ Local:   <span style="color: {{accent}}">http://localhost:3000/</span>
+  ✔ Nitro built in 412 ms
+  ℹ POST /gateway.v1.Gateway/Stream 200 — 3.4s
+  ℹ POST /gateway.v1.Gateway/Stream 200 — 2.9s</pre>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 11px; color: #8f8f8f; border-top: 1px solid #2b2b2b">pid 48213<span style="flex: 1"></span><button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 11px; padding: 1px 8px">Open in terminal</button><button style="background: none; border: 1px solid #2b2b2b; color: #ff2056; font: inherit; font-size: 11px; padding: 1px 8px">Stop</button></div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.done}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="done" · completion notice</div></sc-if>
+  <div style="border: 1px solid #2b2b2b; display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 12.5px; flex-wrap: wrap">
+    <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: #00bc7d" aria-hidden="true"><path d="M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z"></path></svg>
+    <span style="color: #8f8f8f">Background finished</span><span style="color: #fff">pnpm vitest run</span>
+    <span style="color: #8f8f8f">— 20 passed, 3 skipped</span>
+    <span style="flex: 1"></span><span style="font-size: 11px; color: #00bc7d">exit 0 · 48s</span>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.failed}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="failed"</div></sc-if>
+  <div style="border: 1px solid #2b2b2b; border-left: 2px solid #ff2056">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 12.5px; flex-wrap: wrap">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: #ff2056" aria-hidden="true"><path d="M11.741 16.966a1 1 0 0 1-.607-.466c-.439-.76.29-1.69 1.127-1.466c.254.068.475.238.607.466c.439.76-.29 1.69-1.127 1.466m-.707-10.225c.262-.978 1.67-.978 1.932 0L13 7v6c-.03.451-.288.844-.741.966c-.656.176-1.217-.327-1.259-.966V7Zm7.775 12.584a10 10 0 0 1-3.791 2.212a10.1 10.1 0 0 1-4.563.345a10 10 0 0 1-3.503-1.247C1.179 17.254.289 9.233 5.192 4.675a10 10 0 0 1 3.79-2.212a10.1 10.1 0 0 1 4.563-.345a10 10 0 0 1 3.503 1.247c5.773 3.381 6.663 11.402 1.761 15.96m-7.435-15.3a8 8 0 0 0-4.377 1.733C2.03 9.744 3.51 17.709 9.585 19.629a8 8 0 0 0 7.418-1.387c4.967-3.985 3.487-11.951-2.588-13.871a8.1 8.1 0 0 0-3.041-.346"></path></svg>
+      <span style="color: #8f8f8f">Background failed</span><span style="color: #fff">docker compose up core</span>
+      <span style="flex: 1"></span><span style="font-size: 11px; color: #ff2056">exit 1 · 6s</span>
+    </div>
+    <pre style="margin: 0; padding: 7px 12px; background: #0a0a0a; font-family: inherit; font-size: 12px; line-height: 1.6; color: #d4d4d4; border-top: 1px solid #2b2b2b">core-1  | Error: listen EADDRINUSE: address already in use :::3000</pre>
+    <div style="display: flex; gap: 8px; padding: 6px 12px; border-top: 1px solid #2b2b2b"><button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 11px; padding: 1px 8px">Full output</button><button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 11px; padding: 1px 8px">Restart</button></div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","running","done","failed"],"default":"all"},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":840,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const s = (k) => v === 'all' || v === k;
+    return {
+      accent: this.props.accent ?? '#2b7fff',
+      pad: this.props.inset === false ? '0' : '24px',
+      all: v === 'all',
+      show: { running: s('running'), done: s('done'), failed: s('failed') }
+    };
+  }
+}
+</script>
+</body>
+</html>

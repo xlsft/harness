@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Files pane</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 24px">
+
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 6px">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">{{p.label}}</div></sc-if>
+  <section aria-label="Files" style="height: {{p.h}}; display: flex; flex-direction: column; background: #000; border: {{p.frame}}; position: relative; overflow: hidden">
+
+    <div style="height: 44px; flex-shrink: 0; display: flex; align-items: stretch; border-bottom: 1px solid #2b2b2b; padding: 0 6px 0 0">
+      <div role="tablist" aria-label="Open files" style="display: flex; align-items: stretch; min-width: 0; overflow: hidden">
+        <sc-for list="{{p.tabs}}" as="t" hint-placeholder-count="1">
+          <button role="tab" aria-selected="{{t.sel}}" style="display: flex; align-items: center; gap: 8px; padding: 0 12px; background: {{t.bg}}; color: {{t.fg}}; border: 0; border-right: 1px solid #2b2b2b; border-bottom: 2px solid {{t.line}}; font: inherit; font-size: 12px; font-style: {{t.st}}; white-space: nowrap">{{t.n}}<svg viewBox="0 0 24 24" style="width: 11px; height: 11px; fill: {{t.xc}}" aria-hidden="true"><path d="{{ic.close}}"></path></svg></button>
+        </sc-for>
+      </div>
+      <span style="flex: 1"></span>
+      <div style="display: flex; align-items: center; gap: 2px">
+        <button aria-label="Search in files" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: {{p.searchBg}}; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.search}}"></path></svg></button>
+        <button aria-label="Toggle file tree" aria-pressed="true" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #1c1c1c; border: 0; color: #fff"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.list}}"></path></svg></button>
+        <button aria-label="Files settings" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: {{p.moreBg}}; border: 0; color: #fff"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.more}}"></path></svg></button>
+        <button aria-label="Maximize" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.full}}"></path></svg></button>
+        <button aria-label="Close files" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #8f8f8f"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.close}}"></path></svg></button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; display: flex">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <div style="height: 38px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #2b2b2b; font-size: 12px; color: #8f8f8f">
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{p.crumbs}}</span>
+          <sc-if value="{{p.md}}" hint-placeholder-val="{{false}}"><button aria-label="Show source" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: none; border: 1px solid #2b2b2b; color: #fff"><svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor" aria-hidden="true"><path d="{{ic.code}}"></path></svg></button></sc-if>
+          <sc-if value="{{p.code}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px">Go · UTF-8 · LF</span></sc-if>
+        </div>
+
+        <sc-if value="{{p.folder}}" hint-placeholder-val="{{false}}">
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center">
+            <svg viewBox="0 0 24 24" style="width: 26px; height: 26px; fill: #8f8f8f" aria-hidden="true"><path d="{{ic.folder}}"></path></svg>
+            <span style="color: #fff; font-size: 13px">evals/results</span><span style="color: #8f8f8f; font-size: 12px">1 item · 48 KB</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; padding-top: 6px">
+              <button style="background: #131313; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12px; padding: 5px 10px">Attach as context</button>
+              <button style="background: #131313; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12px; padding: 5px 10px">Open in terminal</button>
+              <button style="background: #131313; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 12px; padding: 5px 10px">Show in Finder</button>
+              <button aria-label="More actions" style="width: 30px; background: none; border: 0; color: #8f8f8f; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: currentColor" aria-hidden="true"><path d="{{ic.more}}"></path></svg></button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{p.code}}" hint-placeholder-val="{{false}}">
+          <div style="flex: 1; min-height: 0; overflow: hidden; padding: 8px 0; font-size: 12px; line-height: 1.65">
+            <sc-for list="{{code}}" as="l" hint-placeholder-count="20">
+              <div style="display: flex; background: {{l.bg}}">
+                <span style="width: 38px; flex-shrink: 0; text-align: right; padding-right: 12px; color: {{l.nc}}">{{l.n}}</span>
+                <span style="flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; padding-right: 10px"><sc-for list="{{l.s}}" as="s" hint-placeholder-count="2"><span style="color: {{s.c}}">{{s.t}}</span></sc-for></span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{p.md}}" hint-placeholder-val="{{false}}">
+          <div style="flex: 1; min-height: 0; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; font-size: 12.5px; line-height: 1.6">
+            <h1 style="margin: 0; font-family: 'Cascadia Code', monospace; font-size: 20px; line-height: 1.3; color: #fff">Eval baseline: M1 (2026-11-02)</h1>
+            <p style="margin: 0">Client: M0 + M1 context packages. Server: M1 core (Anthropic, OpenAI-chat and Responses adapters). Models via OpenRouter. One attempt per task; total cost about $0.093.</p>
+            <div style="border: 1px solid #2b2b2b; overflow-x: auto; position: relative">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap">
+                <thead><tr style="background: #0a0a0a; color: #fff"><th style="text-align: left; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Model</th><th style="text-align: right; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Pass rate</th><th style="text-align: right; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Passed</th><th style="text-align: right; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Timeouts</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{evals}}" as="e" hint-placeholder-count="5"><tr><td style="padding: 6px 10px; border-bottom: 1px solid #1c1c1c">{{e.m}}</td><td style="padding: 6px 10px; border-bottom: 1px solid #1c1c1c; text-align: right; color: {{e.c}}">{{e.r}}</td><td style="padding: 6px 10px; border-bottom: 1px solid #1c1c1c; text-align: right">{{e.p}}</td><td style="padding: 6px 10px; border-bottom: 1px solid #1c1c1c; text-align: right">0</td></tr></sc-for>
+                </tbody>
+              </table>
+            </div>
+            <h2 style="margin: 4px 0 0; font-family: 'Cascadia Code', monospace; font-size: 16px; color: #fff">Failures</h2>
+            <div style="border: 1px solid #2b2b2b; overflow-x: auto">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px">
+                <thead><tr style="background: #0a0a0a; color: #fff"><th style="text-align: left; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Model</th><th style="text-align: left; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Task</th><th style="text-align: left; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Status</th><th style="text-align: right; padding: 6px 10px; font-weight: 400; border-bottom: 1px solid #2b2b2b">Turns</th></tr></thead>
+                <tbody><tr><td style="padding: 6px 10px">glm-flash</td><td style="padding: 6px 10px">py-implement-from-docstring</td><td style="padding: 6px 10px; color: #ff2056">fail</td><td style="padding: 6px 10px; text-align: right">7</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="width: 236px; flex-shrink: 0; border-left: 1px solid #2b2b2b; display: flex; flex-direction: column; min-height: 0">
+        <div style="padding: 8px; border-bottom: 1px solid #2b2b2b">
+          <label style="height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 9px; background: #0a0a0a; border: 1px solid {{p.filterBorder}}; font-size: 12px">
+            <svg viewBox="0 0 24 24" style="width: 13px; height: 13px; flex-shrink: 0; fill: #8f8f8f" aria-hidden="true"><path d="{{ic.search}}"></path></svg>
+            <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter files</span>
+            <span style="color: {{p.filterFg}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{p.filter}}</span>
+          </label>
+        </div>
+
+        <sc-if value="{{p.tree}}" hint-placeholder-val="{{true}}">
+          <div role="tree" aria-label="Project files" style="flex: 1; min-height: 0; overflow: hidden; padding: 4px; font-size: 12.5px">
+            <sc-for list="{{p.rows}}" as="r" hint-placeholder-count="20">
+              <div role="treeitem" aria-selected="{{r.selA}}" style="display: flex; align-items: center; gap: 7px; height: 26px; padding-left: {{r.pad}}; padding-right: 8px; background: {{r.bg}}; border-left: 2px solid {{r.line}}; color: {{r.fg}}; white-space: nowrap; overflow: hidden">
+                <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; flex-shrink: 0; fill: #8f8f8f" aria-hidden="true"><path d="{{r.chev}}"></path></svg>
+                <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; flex-shrink: 0; fill: {{r.ic}}" aria-hidden="true"><path d="{{r.icon}}"></path></svg>
+                <span style="overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+                <span style="flex: 1"></span><span style="font-size: 10.5px; color: {{r.gc}}">{{r.git}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{p.search}}" hint-placeholder-val="{{false}}">
+          <div style="flex: 1; min-height: 0; overflow: hidden; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; font-size: 12px">
+            <span style="color: #8f8f8f; font-size: 11px; padding-bottom: 4px">5 results in 3 files</span>
+            <sc-for list="{{hits}}" as="h" hint-placeholder-count="8">
+              <div style="display: flex; gap: 8px; padding: 3px 4px 3px {{h.pad}}; color: {{h.fg}}; background: {{h.bg}}; white-space: nowrap; overflow: hidden"><span style="color: #737373; font-size: 11px">{{h.n}}</span><span style="overflow: hidden; text-overflow: ellipsis">{{h.a}}<span style="background: {{h.mark}}; color: #fff">{{h.m}}</span>{{h.b}}</span></div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <sc-if value="{{p.menu}}" hint-placeholder-val="{{false}}">
+      <div role="menu" aria-label="Tab size" style="position: absolute; top: 368px; right: 324px; width: 110px; background: #131313; border: 1px solid #454545; padding: 4px; font-size: 12.5px">
+        <div role="menuitemradio" aria-checked="false" style="padding: 6px 9px; color: #d4d4d4">2</div>
+        <div role="menuitemradio" aria-checked="true" style="display: flex; align-items: center; padding: 6px 9px; color: #fff">4<span style="flex: 1"></span><svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: {{accent}}" aria-hidden="true"><path d="{{ic.check}}"></path></svg></div>
+        <div role="menuitemradio" aria-checked="false" style="padding: 6px 9px; color: #d4d4d4">8</div>
+      </div>
+      <div role="menu" aria-label="Files settings" style="position: absolute; top: 46px; right: 74px; width: 250px; background: #131313; border: 1px solid #454545; padding: 4px; font-size: 12.5px">
+        <sc-for list="{{menu}}" as="m" hint-placeholder-count="12">
+          <sc-if value="{{m.sep}}" hint-placeholder-val="{{false}}"><div style="height: 1px; background: #2b2b2b; margin: 4px 0"></div></sc-if>
+          <sc-if value="{{m.item}}" hint-placeholder-val="{{true}}">
+            <div role="menuitem" style="display: flex; align-items: center; gap: 8px; padding: 6px 9px; color: {{m.fg}}; background: {{m.bg}}; border-left: 2px solid {{m.line}}">{{m.t}}<span style="flex: 1"></span><span style="color: #8f8f8f; font-size: 11.5px">{{m.v}}</span><svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: {{m.cc}}" aria-hidden="true"><path d="{{m.icon}}"></path></svg></div>
+          </sc-if>
+        </sc-for>
+      </div>
+    </sc-if>
+  </section>
+</div>
+</sc-for>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","code","folder","markdown","menu","search"],"default":"all"},"height":{"editor":null,"default":"900px"},"framed":{"editor":"boolean","default":true},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":640,"height":3100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const all = v === 'all';
+    const a = this.props.accent ?? '#2b7fff';
+    const ic = {
+      close: 'M10.586 12.001L4.929 6.344c-.359-.41-.404-1.01 0-1.414c.404-.405 1.005-.359 1.414 0L12 10.586l5.657-5.656c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414l-5.657 5.657l5.657 5.656c.359.41.404 1.011 0 1.415s-1.005.359-1.414 0L12 13.415l-5.657 5.657c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z',
+      search: 'm17.176 15.762l3.652 3.652c.359.41.405 1.01 0 1.414c-.404.405-1.004.359-1.414 0l-3.652-3.652c-1.145.85-2.399 1.459-3.814 1.702C5.871 19.921.72 14.327 2.272 8.355a8.5 8.5 0 0 1 1.979-3.618A8.55 8.55 0 0 1 7.68 2.478c6.112-2.146 12.292 3.095 11.198 9.47c-.243 1.415-.852 2.669-1.702 3.814M9.938 4.025a6.5 6.5 0 0 0-3.844 1.697a6.5 6.5 0 0 0-1.727 2.622c-1.558 4.436 2.021 9.03 6.695 8.631a6.5 6.5 0 0 0 3.844-1.697a6.5 6.5 0 0 0 1.727-2.622c1.558-4.436-2.021-9.03-6.695-8.631',
+      list: 'm4.975 17.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm15.284.47c1.098.294.945 1.887-.259 1.966H9c-.543-.036-1-.428-1-1s.457-.964 1-1h11Zm-15.284-7.47l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm15.284.47c1.098.294.945 1.887-.259 1.966H9c-.543-.036-1-.428-1-1s.457-.964 1-1h11ZM4.975 3.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm15.284.47c1.098.294.945 1.887-.259 1.966H9c-.543-.036-1-.428-1-1s.457-.964 1-1h11Z',
+      more: 'm18.475 10.564l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm-6 0l.418.216c.985.72.742 2.274-.418 2.656l-.475.077l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm-6 0l.418.216c.985.72.742 2.274-.418 2.656L6 13.513l-.475-.077l-.418-.216c-.985-.72-.742-2.274.418-2.656L6 10.487Z',
+      full: 'm5 17.586l4.793-4.793c.409-.359 1.01-.404 1.414 0s.359 1.005 0 1.414L6.414 19H9c1.204.079 1.357 1.672.259 1.966L9 21H4c-.271-.018-.511-.096-.707-.293c-.197-.196-.275-.436-.293-.707v-5l.034-.259C3.328 13.643 4.921 13.796 5 15ZM17.586 5H15c-1.204-.079-1.357-1.672-.259-1.966L15 3h5c.271.018.511.096.707.293c.197.196.275.436.293.707v5l-.034.259c-.294 1.098-1.887.945-1.966-.259V6.414l-4.793 4.793c-.409.359-1.01.404-1.414 0s-.359-1.005 0-1.414Z',
+      folder: 'm12.484 5.494l.053.006h7.52c.445.026.846.153 1.198.435c.47.377.711.915.745 1.508v11.614c-.034.593-.275 1.131-.745 1.508c-.352.282-.753.409-1.198.435H3.943c-.326-.019-.524-.051-.825-.198c-.683-.334-1.075-1-1.118-1.745V4.943c.063-1.1.843-1.88 1.943-1.943h5.633a2.04 2.04 0 0 1 1.47.707c.51.569.938 1.208 1.438 1.787m-2.968-.488h-5.51v13.988h15.988V7.506l-.051-.006h-7.519a2.04 2.04 0 0 1-1.47-.707c-.51-.569-.938-1.208-1.438-1.787',
+      file: 'M20 20.057c-.063 1.1-.843 1.88-1.943 1.943H5.943c-.593-.034-1.131-.275-1.508-.745c-.282-.352-.409-.753-.435-1.198V3.943c.034-.593.275-1.131.745-1.508c.352-.282.753-.409 1.198-.435h7.692c.514.025.949.205 1.33.551l4.484 4.484c.346.381.526.816.551 1.33ZM12 4l-5.994.006v15.988h11.988L18 10h-4.58c-.808-.065-1.355-.612-1.42-1.42Zm2 4h3.586L14 4.414Z',
+      code: 'M14.486 3.144c.551.154.805.7.693 1.233l-4.431 15.787c-.181.514-.683.847-1.233.693c-.551-.155-.805-.701-.693-1.233l4.431-15.788c.181-.513.683-.847 1.233-.692M20.329 12l-3.536-3.536c-.422-.481-.381-1.233.208-1.573c.406-.235.867-.139 1.207.159l4.242 4.243c.179.204.293.429.293.707s-.114.503-.293.707l-4.242 4.243c-.205.179-.43.293-.708.293c-.755 0-1.243-.846-.866-1.5l.159-.208ZM3.672 12l3.536 3.535l.158.208c.378.654-.11 1.5-.866 1.5c-.277 0-.503-.114-.707-.293l-4.242-4.243c-.179-.204-.293-.429-.293-.707s.114-.503.293-.707L5.793 7.05c.34-.298.801-.394 1.207-.159c.589.34.63 1.092.208 1.573Z',
+      md: 'M15 11.634V10l.034-.259c.226-.842 1.396-.996 1.832-.241c.101.175.121.302.134.5v1.634c.212-.088.265-.134.5-.134c.647 0 1.133.634.966 1.259c-.052.194-.128.299-.259.448l-1.5 1.5c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-1.5-1.5c-.131-.149-.207-.254-.259-.448A1.01 1.01 0 0 1 14.5 11.5c.235 0 .288.046.5.134m-5 .725l-.626 1.127l-.158.212A1 1 0 0 1 8.5 14c-.378 0-.675-.206-.874-.514L7 12.359V14c-.013.198-.033.325-.134.5c-.436.755-1.606.601-1.832-.241L5 14v-4c.013-.198.033-.325.134-.5c.186-.322.506-.476.866-.5c.049-.003.836-.036 1.096.035c.273.074.462.248.611.479l.793 1.427l.793-1.427c.149-.231.338-.405.611-.479c.26-.071 1.047-.038 1.096-.035c.36.024.68.178.866.5c.101.175.121.302.134.5v4l-.034.259c-.226.842-1.396.996-1.832.241c-.101-.175-.121-.302-.134-.5Zm-6.114 6.634C2.798 18.894 2.04 18.092 2 17V7c.024-.645.307-1.244.838-1.624A2.1 2.1 0 0 1 4 5h16c.645.024 1.244.307 1.624.838c.246.343.361.743.376 1.162v10c-.042 1.135-.865 1.958-2 2H4Zm.12-11.987v9.988h15.988V7.006Z',
+      right: 'm13.586 12l-4.95-4.95c-.574-.654-.22-1.707.707-1.707c.278 0 .503.114.707.293l5.657 5.657c.179.204.293.429.293.707s-.114.503-.293.707l-5.657 5.657c-.339.298-.8.394-1.207.159c-.588-.34-.629-1.092-.207-1.573Z',
+      down: 'm12 13.586l4.95-4.95c.481-.422 1.233-.381 1.573.207c.235.407.139.868-.159 1.207l-5.657 5.657c-.204.179-.429.293-.707.293s-.503-.114-.707-.293L5.636 10.05c-.179-.204-.293-.429-.293-.707c0-.927 1.053-1.281 1.707-.707Z',
+      check: 'M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z'
+    };
+    const G = '#8f8f8f', W = '#fff', T = '#d4d4d4';
+    const N = (path, kind, git) => ({ path, kind, git: git ?? '' });
+    const nodes = [
+      N('docs', 'dir'), N('docs/assets', 'dir'), N('docs/design', 'dir'), N('docs/evals', 'dir'), N('docs/evals/baseline-m1.md', 'md', 'A'),
+      N('docs/protocol', 'dir'), N('docs/PLAN.md', 'md'),
+      N('evals', 'dir', '●'), N('evals/results', 'dir'), N('evals/run', 'dir'),
+      N('evals/run/client.go', 'go', 'M'), N('evals/run/main.go', 'go'), N('evals/run/proc_other.go', 'go'), N('evals/run/proc_unix.go', 'go'), N('evals/run/report.go', 'go'), N('evals/run/selftest.go', 'go', 'A'), N('evals/run/workspace.go', 'go'),
+      N('evals/task', 'dir'), N('evals/tasks', 'dir'), N('evals/.gitignore', 'file'), N('evals/go.mod', 'file'), N('evals/go.sum', 'file'), N('evals/README.md', 'md'),
+      N('packages', 'dir', '●'), N('proto', 'dir'), N('scripts', 'dir'), N('buf.gen.yaml', 'file'), N('LICENSE', 'file'), N('README.md', 'md')
+    ];
+    const rows = (open, sel) => nodes.filter((n) => {
+      const parts = n.path.split('/');
+      for (let i = 1; i < parts.length; i++) if (!open.includes(parts.slice(0, i).join('/'))) return false;
+      return true;
+    }).map((n) => {
+      const depth = n.path.split('/').length - 1;
+      const isDir = n.kind === 'dir', s = n.path === sel;
+      return {
+        name: n.path.split('/').pop(), pad: (6 + depth * 14) + 'px', selA: s ? 'true' : 'false',
+        bg: s ? '#1c1c1c' : 'transparent', line: s ? a : 'transparent', fg: s ? W : T,
+        chev: isDir ? (open.includes(n.path) ? ic.down : ic.right) : '',
+        icon: isDir ? ic.folder : n.kind === 'go' ? ic.code : n.kind === 'md' ? ic.md : ic.file,
+        ic: isDir ? G : n.kind === 'go' ? '#00b8db' : n.kind === 'md' ? T : G,
+        git: n.git, gc: n.git === 'M' ? '#fe9a00' : n.git === 'A' ? '#00bc7d' : G
+      };
+    });
+    const K = '#f6339a', S = '#00bc7d', C = G, F = a, Ty = '#00b8db', D = T;
+    const x = (t, c) => ({ t, c });
+    const src = [
+      [x('package', K), x(' main', D)], [],
+      [x('import', K), x(' (', D)], [x('    "bytes"', S)], [x('    "encoding/json"', S)], [x('    "github.com/xlsft/harness/evals/task"', S)], [x('    "strconv"', S)], [x('    "strings"', S)], [x(')', D)], [],
+      [x('// clientArgs builds the harness-client command line for one run.', C)],
+      [x('//', C)],
+      [x('// This is the single place that knows the headless CLI contract.', C)],
+      [x('// Adjust it here if the flags of `harness-client` change.', C)],
+      [x('func ', K), x('clientArgs', F), x('(cfg *', D), x('config', Ty), x(', model ', D), x('string', Ty), x(', t *', D), x('task.Task', Ty), x(') []', D), x('string', Ty), x(' {', D)],
+      [x('    args := []', D), x('string', Ty), x('{', D)],
+      [x('        "-p"', S), x(', t.Prompt,', D)],
+      [x('        "--model"', S), x(', model,', D)],
+      [x('        "--output-format"', S), x(', ', D), x('"json"', S), x(',', D)],
+      [x('        "--max-turns"', S), x(', strconv.', D), x('Itoa', F), x('(t.MaxTurns),', D)],
+      [x('        "--permission-mode"', S), x(', ', D), x('"bypassPermissions"', S), x(',', D)],
+      [x('        "--no-session-persistence"', S), x(',', D)],
+      [x('    }', D)],
+      [x('    if', K), x(' cfg.server != ', D), x('""', S), x(' {', D)],
+      [x('        args = ', D), x('append', F), x('(args, ', D), x('"--server"', S), x(', cfg.server)', D)],
+      [x('    }', D)],
+      [x('    return ', K), x('append', F), x('(args, cfg.extraArgs...)', D)],
+      [x('}', D)]
+    ];
+    const code = src.map((s, i) => ({ n: String(i + 1), s, bg: i === 15 ? '#131313' : 'transparent', nc: i === 15 ? W : '#737373' }));
+    const tabs = (n, italic) => [{ n, sel: 'true', bg: '#0a0a0a', fg: W, line: a, xc: G, st: italic ? 'italic' : 'normal' }];
+    const h = all ? '560px' : (this.props.height ?? '900px');
+    const frame = all || this.props.framed !== false ? '1px solid #2b2b2b' : '0';
+    const base = { h, frame, folder: false, code: false, md: false, menu: false, tree: true, search: false, moreBg: 'transparent', searchBg: 'transparent', filter: 'Filter, or ? to search in files', filterFg: G, filterBorder: '#2b2b2b' };
+    const openCode = ['docs', 'docs/evals', 'evals', 'evals/run'];
+    const P = (key, label, extra) => ({ ...base, key, label, ...extra });
+    const panels = [
+      P('code', 'variant="code" · source file, preview tab', { tabs: tabs('client.go', true), crumbs: 'evals / run / client.go', code: true, rows: rows(openCode, 'evals/run/client.go') }),
+      P('folder', 'variant="folder" · folder selected', { tabs: tabs('results', true), crumbs: 'evals / results', folder: true, rows: rows(['docs', 'docs/evals', 'evals'], 'evals/results') }),
+      P('markdown', 'variant="markdown" · rendered markdown, source toggle', { tabs: tabs('baseline-m1.md', false), crumbs: 'docs / evals / baseline-m1.md', md: true, rows: rows(openCode, 'docs/evals/baseline-m1.md') }),
+      P('menu', 'variant="menu" · settings with tab-size submenu', { tabs: tabs('baseline-m1.md', false), crumbs: 'docs / evals / baseline-m1.md', md: true, menu: true, moreBg: '#1c1c1c', rows: rows(openCode, 'docs/evals/baseline-m1.md') }),
+      P('search', 'variant="search" · ? searches inside files', { tabs: tabs('client.go', true), crumbs: 'evals / run / client.go', code: true, tree: false, search: true, searchBg: '#1c1c1c', filter: '?--server', filterFg: W, filterBorder: a, rows: [] })
+    ].filter((p) => all || p.key === v);
+    const hit = (pad, n, aa, m, b, file) => ({ pad, n, a: aa, m, b, fg: file ? W : T, bg: 'transparent', mark: file ? 'transparent' : a });
+    const menuItem = (t, v, check, sub, hl) => ({ item: true, sep: false, t, v: v ?? '', icon: sub ? ic.right : check ? ic.check : '', cc: sub ? G : a, fg: hl ? W : T, bg: hl ? '#1c1c1c' : 'transparent', line: hl ? a : 'transparent' });
+    const SEP = { item: false, sep: true };
+    return {
+      accent: a,
+      pad: this.props.inset === false ? '0' : '24px',
+      all, panels, code, ic,
+      evals: [
+        { m: 'claude-haiku', r: '100%', p: '7/7', c: '#00bc7d' },
+        { m: 'gpt-luna', r: '100%', p: '7/7', c: '#00bc7d' },
+        { m: 'deepseek-flash', r: '100%', p: '7/7', c: '#00bc7d' },
+        { m: 'qwen-flash', r: '100%', p: '7/7', c: '#00bc7d' },
+        { m: 'glm-flash', r: '86%', p: '6/7', c: '#fe9a00' }
+      ],
+      hits: [
+        hit('2px', '', 'evals/run/client.go', '', '', true),
+        hit('12px', '25', 'args = append(args, "', '--server', '", …', false),
+        hit('2px', '', 'evals/run/main.go', '', '', true),
+        hit('12px', '31', 'flag.StringVar(&cfg.server, "', '--server', '"', false),
+        hit('12px', '58', 'if cfg.server == "" && ', '--server', '…', false),
+        hit('2px', '', 'docs/cli-reference.md', '', '', true),
+        hit('12px', '112', '| `', '--server', ' <url>` | harness server…', false)
+      ],
+      menu: [
+        menuItem('Show file tree', '⇧⌘Y', true), menuItem('File tree position', 'Automatic', false, true), SEP,
+        menuItem('Preview tabs', '', true), menuItem('Auto save', '', true), menuItem('Tab key indents', '', true), SEP,
+        menuItem('Word wrap', '', true), menuItem('Indent guides', '', true), menuItem('Show whitespace'), menuItem('Scroll past end'), menuItem('Tab size', '4', false, true, true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

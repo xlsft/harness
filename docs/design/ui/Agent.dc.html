@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Subagent</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 100%; box-sizing: border-box; padding: {{pad}}; background: #000; color: #d4d4d4; font-family: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 14px">
+
+<sc-if value="{{show.running}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f">variant="running" · subagent working</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 12.5px; border-bottom: 1px solid #2b2b2b; flex-wrap: wrap">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: {{accent}}" aria-hidden="true"><path d="M11.114 4.101c.827.047 1.486.587 1.779 1.347l.797 2.336c.146.395.323.762.573 1.102c.4.542.936.98 1.548 1.262c.879.404 1.837.612 2.741.959c.206.08.404.179.579.314c1.292.989.89 2.906-.579 3.472c-1.402.539-2.984.748-4.034 1.909c-.375.415-.634.892-.828 1.414l-.797 2.336c-.322.835-1.097 1.399-2.007 1.347c-.827-.047-1.486-.587-1.779-1.347l-.797-2.336a4.4 4.4 0 0 0-.573-1.102c-.4-.542-.936-.98-1.548-1.262c-.879-.404-1.837-.612-2.741-.959a2.3 2.3 0 0 1-.579-.314c-1.292-.989-.89-2.906.579-3.472c1.402-.539 2.984-.748 4.034-1.909c.375-.415.634-.892.828-1.414l.797-2.336c.322-.835 1.097-1.399 2.007-1.347M4.113 13c.784.3 1.601.528 2.39.824c1.53.574 2.817 1.686 3.483 3.197c.407.924.658 1.938 1.014 2.866c.356-.928.607-1.942 1.014-2.866c.666-1.511 1.953-2.623 3.483-3.197c.789-.296 1.607-.524 2.39-.824c-.783-.3-1.601-.528-2.39-.824c-1.53-.574-2.817-1.686-3.483-3.197c-.407-.924-.658-1.938-1.014-2.866c-.356.928-.607 1.942-1.014 2.866c-.666 1.511-1.953 2.623-3.483 3.197c-.789.296-1.606.524-2.39.824"></path></svg>
+      <span style="color: #fff">Agent</span><span style="border: 1px solid #2b2b2b; padding: 0 5px; font-size: 11px; color: #8f8f8f">Explore</span>
+      <span style="color: #8f8f8f">Find where usage is collected</span>
+      <span style="flex: 1"></span><span style="font-size: 11px; color: #8f8f8f">qwen3-coder</span><span style="font-size: 11px; color: {{accent}}">running · 41s</span>
+    </div>
+    <div style="background: #0a0a0a; padding: 6px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #8f8f8f; border-left: 2px solid {{accent}}">
+      <div style="display: flex; gap: 8px; align-items: center"><span style="color: #00bc7d; width: 12px">✓</span>Grep<span style="color: #d4d4d4">"usage" in packages/core</span><span style="flex: 1"></span>12 matches</div>
+      <div style="display: flex; gap: 8px; align-items: center"><span style="color: #00bc7d; width: 12px">✓</span>Read<span style="color: #d4d4d4">server/gateway/translate.ts</span></div>
+      <div style="display: flex; gap: 8px; align-items: center"><span style="color: #00bc7d; width: 12px">✓</span>Read<span style="color: #d4d4d4">server/gateway/providers/openrouter.ts</span></div>
+      <div style="display: flex; gap: 8px; align-items: center; color: #fff"><span style="color: {{accent}}; width: 12px">›</span>Read<span>server/gateway/providers/ollama.ts</span></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 6px 12px; font-size: 11px; color: #8f8f8f; border-top: 1px solid #2b2b2b">4 tool calls · 18.2k tok<span style="flex: 1"></span><a href="#" style="color: {{accent}}; text-decoration: none">Open transcript</a><button style="background: none; border: 1px solid #2b2b2b; color: #fff; font: inherit; font-size: 11px; padding: 1px 8px">Stop</button></div>
+  </div>
+</sc-if>
+
+<sc-if value="{{show.done}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{all}}" hint-placeholder-val="{{true}}"><div style="font-size: 11px; color: #8f8f8f; border-top: 1px dashed #2b2b2b; padding-top: 10px">variant="done" · subagent report</div></sc-if>
+  <div style="border: 1px solid #2b2b2b">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 12.5px; border-bottom: 1px solid #2b2b2b; flex-wrap: wrap">
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; fill: #00bc7d" aria-hidden="true"><path d="M9.171 16.072L19.778 5.465c.409-.359 1.01-.404 1.414 0c.404.405.359 1.005 0 1.415L9.878 18.193c-.204.179-.429.293-.707.293s-.503-.114-.707-.293l-5.657-5.657c-.297-.339-.393-.8-.159-1.207c.34-.588 1.092-.629 1.574-.207Z"></path></svg>
+      <span style="color: #fff">Agent</span><span style="border: 1px solid #2b2b2b; padding: 0 5px; font-size: 11px; color: #8f8f8f">code-reviewer</span>
+      <span style="color: #8f8f8f">Review tool_use → function_call mapping</span>
+      <span style="flex: 1"></span><span style="font-size: 11px; color: #00bc7d">done · 1m 12s</span>
+    </div>
+    <div style="padding: 10px 12px 10px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; line-height: 1.6; border-left: 2px solid #2b2b2b; margin: 8px 12px">
+      <span style="color: #fff">Found 2 issues, both in argument conversion:</span>
+      <div style="display: flex; gap: 8px"><span style="color: #ff2056">high</span><span><a href="#" style="color: {{accent}}; text-decoration: none; border-bottom: 1px dotted {{accent}}">translate.ts:88</a> — <code style="color: #fff">arguments</code> is parsed before the stream ends, so long calls get truncated JSON.</span></div>
+      <div style="display: flex; gap: 8px"><span style="color: #fe9a00">med</span><span><a href="#" style="color: {{accent}}; text-decoration: none; border-bottom: 1px dotted {{accent}}">translate.ts:102</a> — the call id is regenerated, so the link to tool_result is lost.</span></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 6px 12px; font-size: 11px; color: #8f8f8f; border-top: 1px solid #2b2b2b">9 tool calls · 31.4k tok · $0.02<span style="flex: 1"></span><a href="#" style="color: {{accent}}; text-decoration: none">Open transcript</a></div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["all","running","done"],"default":"all"},"accent":{"editor":"color","default":"#2b7fff"},"inset":{"editor":"boolean","default":true},"$preview":{"width":840,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'all';
+    const s = (k) => v === 'all' || v === k;
+    return {
+      accent: this.props.accent ?? '#2b7fff',
+      pad: this.props.inset === false ? '0' : '24px',
+      all: v === 'all',
+      show: { running: s('running'), done: s('done') }
+    };
+  }
+}
+</script>
+</body>
+</html>
