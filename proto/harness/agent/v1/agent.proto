@@ -15,6 +15,14 @@ service AgentService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
 
+  // --- New-session pickers (folder, branch, worktree) ---
+  // Folders recently used for sessions on this machine, most recent first.
+  rpc ListRecentFolders(ListRecentFoldersRequest) returns (ListRecentFoldersResponse);
+  // Subdirectories of a folder, for an "Open folder…" browser. Hidden entries are left out unless asked.
+  rpc ListDirectory(ListDirectoryRequest) returns (ListDirectoryResponse);
+  // Local branches of the repository containing `cwd` (empty outside a repository).
+  rpc ListBranches(ListBranchesRequest) returns (ListBranchesResponse);
+
   // Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
   rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse);
 
@@ -122,6 +130,20 @@ message SessionInfo {
   string parent_session_id = 16;
   // Active output style id or name ("default" when none).
   string output_style = 17;
+  // Set when the session runs in a git worktree the client created for it (CreateSessionRequest.worktree).
+  optional Worktree worktree = 18;
+}
+
+// A git worktree a session runs in. `cwd` of the session is inside `path`.
+message Worktree {
+  // Absolute path of the worktree checkout.
+  string path = 1;
+  // Branch checked out in the worktree.
+  string branch = 2;
+  // The ref the branch was created from (a branch name or commit).
+  string base_ref = 3;
+  // The repository's main checkout the worktree belongs to.
+  string repository_path = 4;
 }
 
 message DiffStats {
@@ -161,6 +183,85 @@ message CreateSessionRequest {
   repeated string additional_directories = 10;
   // With fork: fork at this checkpoint instead of the end of the transcript.
   string fork_at_checkpoint_id = 11;
+  // Run the session in a new git worktree of the repository containing `cwd`. The client creates it under
+  // <repository>/.harness/worktrees/<name> (git-ignored) on a new branch, and the session's cwd becomes the
+  // matching directory inside it. Fails with FAILED_PRECONDITION outside a git repository.
+  optional WorktreeOptions worktree = 12;
+}
+
+message WorktreeOptions {
+  // Name of the worktree directory and of the branch suffix; the client derives one (adjective-noun-xxxx)
+  // when empty. Must be a single path segment.
+  string name = 1;
+  // New branch to create; default "harness/<name>". An existing branch is checked out instead when it is not
+  // checked out anywhere else.
+  string branch = 2;
+  // Where the new branch starts; default the current HEAD of the repository.
+  string base_ref = 3;
+}
+
+message ListRecentFoldersRequest {
+  // 0 = client default (20).
+  int32 limit = 1;
+}
+
+message ListRecentFoldersResponse {
+  repeated RecentFolder folders = 1;
+}
+
+message RecentFolder {
+  // Absolute path.
+  string path = 1;
+  // Display name (the last path segment, or the repository name).
+  string name = 2;
+  // Current branch, when a git repository.
+  string git_branch = 3;
+  // Normalized git remote, when known.
+  string repo = 4;
+  // RFC 3339, UTC: last session activity in this folder.
+  string last_used_at = 5;
+  // False when the folder no longer exists.
+  bool exists = 6;
+}
+
+message ListDirectoryRequest {
+  // Absolute path; empty = the user's home directory. "~" prefixes are expanded.
+  string path = 1;
+  bool include_hidden = 2;
+}
+
+message ListDirectoryResponse {
+  // The resolved absolute path that was listed.
+  string path = 1;
+  // Parent directory; empty at the filesystem root.
+  string parent = 2;
+  repeated DirectoryEntry entries = 3;
+  string home = 4;
+}
+
+message DirectoryEntry {
+  string name = 1;
+  // The entry is a git repository root (has .git).
+  bool git_repository = 2;
+}
+
+message ListBranchesRequest {
+  string cwd = 1;
+}
+
+message ListBranchesResponse {
+  // Root of the repository containing cwd; empty outside a repository.
+  string repository_path = 1;
+  string current = 2;
+  repeated Branch branches = 3;
+}
+
+message Branch {
+  string name = 1;
+  // Checked out in some worktree (cannot be checked out in a new one).
+  bool checked_out = 2;
+  // RFC 3339, UTC: last commit time.
+  string committed_at = 3;
 }
 
 message CreateSessionResponse {
