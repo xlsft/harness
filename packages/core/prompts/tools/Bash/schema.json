@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "command": { "type": "string", "description": "The shell command to run" },
+    "timeout": { "type": "integer", "minimum": 1, "maximum": 600000, "description": "Timeout in milliseconds (default 120000, max 600000)" },
+    "description": { "type": "string", "description": "Short description of what the command does, in 5-10 words" }
+  },
+  "required": ["command"],
+  "additionalProperties": false
+}

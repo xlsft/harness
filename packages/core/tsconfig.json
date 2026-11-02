@@ -1,0 +1,8 @@
+{
+  "extends": "nitro/tsconfig",
+  "compilerOptions": {
+    "types": ["node"],
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["src", "test", "scripts", "nitro.config.ts", "vitest.config.ts", "drizzle.config.ts"]
+}

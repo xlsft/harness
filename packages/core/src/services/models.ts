@@ -1,0 +1,356 @@
+/** Model catalog, default slots and capability-negotiation memory. */
+import { and, asc, eq } from "drizzle-orm";
+import { ensureDb, getDb, schema } from "../db/index.ts";
+import { ApiError } from "../lib/errors.ts";
+import type { PublicUser } from "./devices.ts";
+
+export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
+export type Effort = (typeof EFFORT_LEVELS)[number];
+
+export interface ModelCapabilities {
+  thinking: boolean;
+  effort: Effort[];
+  images: boolean;
+  pdf: boolean;
+  parallel_tool_calls: boolean;
+  prompt_cache: boolean;
+}
+
+/** USD per 1M tokens. */
+export interface ModelPricing {
+  input: number;
+  output: number;
+  cache_read?: number;
+  cache_write?: number;
+}
+
+export interface ModelEntry {
+  id: string;
+  displayName: string;
+  providerId: string;
+  upstreamModel: string;
+  contextWindow: number;
+  maxOutputTokens: number;
+  capabilities: ModelCapabilities;
+  pricing: ModelPricing | null;
+  fallbacks: string[];
+  extraBody: Record<string, unknown> | null;
+  roles: string[] | null;
+  enabled: boolean;
+}
+
+export const SLOT_NAMES = ["main", "small", "plan"] as const;
+export type Slots = Partial<Record<(typeof SLOT_NAMES)[number], string>>;
+
+const DEFAULT_CAPS: ModelCapabilities = {
+  thinking: false,
+  effort: [],
+  images: false,
+  pdf: false,
+  parallel_tool_calls: true,
+  prompt_cache: false,
+};
+
+type Row = typeof schema.model.$inferSelect;
+
+function toEntry(r: Row): ModelEntry {
+  return {
+    id: r.id,
+    displayName: r.displayName,
+    providerId: r.providerId,
+    upstreamModel: r.upstreamModel,
+    contextWindow: r.contextWindow,
+    maxOutputTokens: r.maxOutputTokens,
+    capabilities: { ...DEFAULT_CAPS, ...(r.capabilities as Partial<ModelCapabilities>) },
+    pricing: (r.pricing as ModelPricing | null) ?? null,
+    fallbacks: (r.fallbacks as string[]) ?? [],
+    extraBody: (r.extraBody as Record<string, unknown> | null) ?? null,
+    roles: (r.roles as string[] | null) ?? null,
+    enabled: r.enabled,
+  };
+}
+
+/** Shape of GET /api/llm/models entries (docs/protocol/gateway.md). */
+export function catalogEntry(m: ModelEntry) {
+  const out: Record<string, unknown> = {
+    id: m.id,
+    display_name: m.displayName,
+    provider: m.providerId,
+    context_window: m.contextWindow,
+    max_output_tokens: m.maxOutputTokens,
+    capabilities: m.capabilities,
+  };
+  if (m.pricing) out.pricing = m.pricing;
+  return out;
+}
+
+/** Admin view: catalog entry plus server-only fields. */
+export function adminEntry(m: ModelEntry) {
+  return {
+    ...catalogEntry(m),
+    provider_id: m.providerId,
+    upstream_model: m.upstreamModel,
+    fallbacks: m.fallbacks,
+    extra_body: m.extraBody,
+    roles: m.roles,
+    enabled: m.enabled,
+  };
+}
+
+function canSee(m: ModelEntry, user: PublicUser): boolean {
+  return m.enabled && (!m.roles || m.roles.includes(user.role));
+}
+
+// --- Client-facing ---------------------------------------------------------------
+
+export async function listModelsForUser(user: PublicUser) {
+  await ensureDb();
+  const rows = await getDb()
+    .select()
+    .from(schema.model)
+    .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
+    .where(eq(schema.provider.enabled, true))
+    .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
+  const visible = rows.map((r) => toEntry(r.model)).filter((m) => canSee(m, user));
+  const ids = new Set(visible.map((m) => m.id));
+  const slots = await getSlots();
+  const effective: Slots = {};
+  for (const name of SLOT_NAMES) {
+    const v = slots[name];
+    if (v && ids.has(v)) effective[name] = v;
+    else if (visible[0]) effective[name] = visible[0].id;
+  }
+  return { models: visible.map(catalogEntry), slots: effective };
+}
+
+/** Resolves a model alias for a request, enforcing visibility. */
+export async function resolveModelForUser(id: string, user: PublicUser): Promise<ModelEntry> {
+  const m = await findModel(id);
+  if (!m || !canSee(m, user)) throw new ApiError("not_found", `Model ${id} is not available`);
+  return m;
+}
+
+export async function findModel(id: string): Promise<ModelEntry | undefined> {
+  await ensureDb();
+  const r = await getDb().query.model.findFirst({ where: eq(schema.model.id, id) });
+  return r ? toEntry(r) : undefined;
+}
+
+// --- Admin CRUD --------------------------------------------------------------------
+
+export interface ModelInput {
+  id?: string;
+  display_name?: string;
+  provider_id?: string;
+  upstream_model?: string;
+  context_window?: number;
+  max_output_tokens?: number;
+  capabilities?: Partial<ModelCapabilities>;
+  pricing?: ModelPricing | null;
+  fallbacks?: string[];
+  extra_body?: Record<string, unknown> | null;
+  roles?: string[] | null;
+  enabled?: boolean;
+  sort_order?: number;
+}
+
+const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
+
+function validateCaps(c: unknown): Partial<ModelCapabilities> {
+  if (c === undefined) return {};
+  if (typeof c !== "object" || c === null) throw new ApiError("invalid_request", "capabilities must be an object");
+  const caps = c as Record<string, unknown>;
+  const out: Partial<ModelCapabilities> = {};
+  for (const k of ["thinking", "images", "pdf", "parallel_tool_calls", "prompt_cache"] as const) {
+    if (caps[k] !== undefined) {
+      if (typeof caps[k] !== "boolean") throw new ApiError("invalid_request", `capabilities.${k} must be boolean`);
+      out[k] = caps[k] as boolean;
+    }
+  }
+  if (caps.effort !== undefined) {
+    if (!Array.isArray(caps.effort) || caps.effort.some((e) => !EFFORT_LEVELS.includes(e))) {
+      throw new ApiError("invalid_request", `capabilities.effort must be a subset of ${EFFORT_LEVELS.join(", ")}`);
+    }
+    out.effort = EFFORT_LEVELS.filter((l) => (caps.effort as string[]).includes(l));
+  }
+  return out;
+}
+
+function validatePricing(p: unknown): ModelPricing | null {
+  if (p === null || p === undefined) return null;
+  const o = p as Record<string, unknown>;
+  for (const k of ["input", "output", "cache_read", "cache_write"]) {
+    if (o[k] !== undefined && (typeof o[k] !== "number" || (o[k] as number) < 0)) {
+      throw new ApiError("invalid_request", `pricing.${k} must be a non-negative number`);
+    }
+  }
+  if (typeof o.input !== "number" || typeof o.output !== "number") {
+    throw new ApiError("invalid_request", "pricing.input and pricing.output are required");
+  }
+  return o as unknown as ModelPricing;
+}
+
+function positiveInt(v: unknown, name: string): number {
+  if (typeof v !== "number" || !Number.isInteger(v) || v <= 0) throw new ApiError("invalid_request", `${name} must be a positive integer`);
+  return v;
+}
+
+async function assertProvider(id: string) {
+  const p = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, id) });
+  if (!p) throw new ApiError("invalid_request", `Unknown provider ${id}`);
+}
+
+export async function listModelsAdmin() {
+  await ensureDb();
+  const rows = await getDb().select().from(schema.model).orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
+  return rows.map((r) => adminEntry(toEntry(r)));
+}
+
+export async function getModelAdmin(id: string) {
+  const m = await findModel(id);
+  if (!m) throw new ApiError("not_found", `Model ${id} not found`);
+  return adminEntry(m);
+}
+
+export async function createModel(input: ModelInput) {
+  await ensureDb();
+  if (!input.id || !ID_RE.test(input.id)) throw new ApiError("invalid_request", "id is required ([A-Za-z0-9._:/-])");
+  if (!input.provider_id) throw new ApiError("invalid_request", "provider_id is required");
+  if (!input.upstream_model) throw new ApiError("invalid_request", "upstream_model is required");
+  await assertProvider(input.provider_id);
+  if (await findModel(input.id)) throw new ApiError("invalid_request", `Model ${input.id} already exists`, { status: 409 });
+  const now = new Date();
+  await getDb()
+    .insert(schema.model)
+    .values({
+      id: input.id,
+      displayName: input.display_name ?? input.id,
+      providerId: input.provider_id,
+      upstreamModel: input.upstream_model,
+      contextWindow: positiveInt(input.context_window ?? 128_000, "context_window"),
+      maxOutputTokens: positiveInt(input.max_output_tokens ?? 8192, "max_output_tokens"),
+      capabilities: { ...DEFAULT_CAPS, ...validateCaps(input.capabilities) },
+      pricing: validatePricing(input.pricing),
+      fallbacks: validateFallbacks(input.fallbacks, input.id),
+      extraBody: input.extra_body ?? null,
+      roles: input.roles ?? null,
+      enabled: input.enabled ?? true,
+      sortOrder: input.sort_order ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+  return getModelAdmin(input.id);
+}
+
+function validateFallbacks(f: unknown, self: string): string[] {
+  if (f === undefined || f === null) return [];
+  if (!Array.isArray(f) || f.some((x) => typeof x !== "string" || x === self)) {
+    throw new ApiError("invalid_request", "fallbacks must be an array of other model ids");
+  }
+  return f as string[];
+}
+
+export async function updateModel(id: string, input: ModelInput) {
+  const cur = await findModel(id);
+  if (!cur) throw new ApiError("not_found", `Model ${id} not found`);
+  const patch: Partial<Row> = { updatedAt: new Date() };
+  if (input.display_name !== undefined) patch.displayName = input.display_name;
+  if (input.provider_id !== undefined) {
+    await assertProvider(input.provider_id);
+    patch.providerId = input.provider_id;
+  }
+  if (input.upstream_model !== undefined) patch.upstreamModel = input.upstream_model;
+  if (input.context_window !== undefined) patch.contextWindow = positiveInt(input.context_window, "context_window");
+  if (input.max_output_tokens !== undefined) patch.maxOutputTokens = positiveInt(input.max_output_tokens, "max_output_tokens");
+  if (input.capabilities !== undefined) patch.capabilities = { ...cur.capabilities, ...validateCaps(input.capabilities) };
+  if (input.pricing !== undefined) patch.pricing = validatePricing(input.pricing);
+  if (input.fallbacks !== undefined) patch.fallbacks = validateFallbacks(input.fallbacks, id);
+  if (input.extra_body !== undefined) patch.extraBody = input.extra_body;
+  if (input.roles !== undefined) patch.roles = input.roles;
+  if (input.enabled !== undefined) patch.enabled = input.enabled;
+  if (input.sort_order !== undefined) patch.sortOrder = input.sort_order;
+  await getDb().update(schema.model).set(patch).where(eq(schema.model.id, id));
+  // Admin changed the model: forget negotiated feature removals so they are re-probed.
+  if (input.upstream_model !== undefined || input.provider_id !== undefined) await clearNegotiation(id);
+  return getModelAdmin(id);
+}
+
+export async function deleteModel(id: string) {
+  await ensureDb();
+  const res = await getDb().delete(schema.model).where(eq(schema.model.id, id)).returning();
+  if (res.length === 0) throw new ApiError("not_found", `Model ${id} not found`);
+  negotiationCache.delete(id);
+  return { deleted: true };
+}
+
+// --- Slots -------------------------------------------------------------------------
+
+export async function getSlots(): Promise<Slots> {
+  await ensureDb();
+  const r = await getDb().query.setting.findFirst({ where: eq(schema.setting.key, "slots") });
+  return (r?.value as Slots | undefined) ?? {};
+}
+
+export async function setSlots(input: Slots) {
+  await ensureDb();
+  const slots: Slots = {};
+  for (const name of SLOT_NAMES) {
+    const v = input[name];
+    if (v === undefined || v === null) continue;
+    if (!(await findModel(v))) throw new ApiError("invalid_request", `Unknown model ${v} for slot ${name}`);
+    slots[name] = v;
+  }
+  await getDb()
+    .insert(schema.setting)
+    .values({ key: "slots", value: slots, updatedAt: new Date() })
+    .onConflictDoUpdate({ target: schema.setting.key, set: { value: slots, updatedAt: new Date() } });
+  return slots;
+}
+
+// --- Capability negotiation memory ---------------------------------------------------
+
+const negotiationCache = new Map<string, Set<string>>();
+
+export async function getDisabledFeatures(modelId: string): Promise<Set<string>> {
+  const hit = negotiationCache.get(modelId);
+  if (hit) return hit;
+  await ensureDb();
+  const rows = await getDb().select().from(schema.modelNegotiation).where(eq(schema.modelNegotiation.modelId, modelId));
+  const set = new Set(rows.map((r) => r.feature));
+  negotiationCache.set(modelId, set);
+  return set;
+}
+
+export async function disableFeature(modelId: string, feature: string, reason: string): Promise<void> {
+  const set = await getDisabledFeatures(modelId);
+  if (set.has(feature)) return;
+  set.add(feature);
+  await getDb()
+    .insert(schema.modelNegotiation)
+    .values({ modelId, feature, reason: reason.slice(0, 500), createdAt: new Date() })
+    .onConflictDoNothing();
+}
+
+export async function clearNegotiation(modelId: string, feature?: string): Promise<void> {
+  await ensureDb();
+  const cond = feature
+    ? and(eq(schema.modelNegotiation.modelId, modelId), eq(schema.modelNegotiation.feature, feature))
+    : eq(schema.modelNegotiation.modelId, modelId);
+  await getDb().delete(schema.modelNegotiation).where(cond);
+  negotiationCache.delete(modelId);
+}
+
+export async function listNegotiation(modelId: string) {
+  await ensureDb();
+  const rows = await getDb().select().from(schema.modelNegotiation).where(eq(schema.modelNegotiation.modelId, modelId));
+  return rows.map((r) => ({ feature: r.feature, reason: r.reason, created_at: r.createdAt.toISOString() }));
+}
+
+/** Highest supported level <= requested; otherwise the lowest supported; undefined if none. */
+export function downgradeEffort(requested: string | undefined, supported: Effort[]): Effort | undefined {
+  if (!requested || supported.length === 0) return undefined;
+  const idx = EFFORT_LEVELS.indexOf(requested as Effort);
+  if (idx < 0) return undefined;
+  for (let i = idx; i >= 0; i--) if (supported.includes(EFFORT_LEVELS[i]!)) return EFFORT_LEVELS[i];
+  return supported[0];
+}

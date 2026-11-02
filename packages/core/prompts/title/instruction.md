@@ -1,0 +1,1 @@
+Write a short title for this coding session based on the user's first request. Use 3 to 7 words in sentence case, no quotes, no trailing punctuation. Describe the task, not the user (for example: "Fix flaky login test" or "Add CSV export to reports"). Reply with the title only.

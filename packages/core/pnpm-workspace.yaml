@@ -1,0 +1,3 @@
+# Standalone package (no workspaces). This file only carries pnpm settings.
+allowBuilds:
+  esbuild: true

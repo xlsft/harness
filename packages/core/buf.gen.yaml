@@ -1,0 +1,9 @@
+# Local TypeScript-only codegen for packages/core (uses the npm protoc-gen-es plugin, no BSR access needed).
+# Run from packages/core: `pnpm gen` (equivalent to the TS part of the root buf.gen.yaml).
+version: v2
+plugins:
+  - local: ./node_modules/.bin/protoc-gen-es
+    out: src/gen
+    opt: target=ts
+inputs:
+  - directory: ../../proto
