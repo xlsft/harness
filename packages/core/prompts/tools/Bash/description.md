@@ -13,7 +13,8 @@ Background commands:
 - Read the output file with Read whenever you want to check progress. Do not poll it in a tight loop and do not use `sleep` to wait; continue with other work instead.
 - When a background command finishes, you are told in a system reminder with its task id, exit code and output file. Stop a background command you no longer need with TaskStop.
 - A foreground command that reaches its timeout is not killed: it is moved to the background automatically and you get its task id and output file, as if you had set `run_in_background`.
-- Do not append `&` to run something in the background; use `run_in_background` instead.
+- Do not append `&`, `nohup` or `disown` to run something in the background; use `run_in_background` instead. Each call runs in a new shell process, so shell job control (`&`, `jobs`, `kill %1`, `fg`, `wait`) does not carry over between calls, and a process started with `&` is not tracked or stopped by TaskStop.
+- If the user asks you to stop a server or process when you are done, stop it before your final answer (TaskStop for background tasks) and confirm it is gone.
 - Exit code 1 from `grep`, `rg`, `find`, `diff`, `test` / `[` and `git diff` means "no match" or "differences found" and is not treated as an error.
 
 Usage rules:
