@@ -28,6 +28,7 @@ import (
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/sdk"
 	"github.com/xlsft/harness/packages/client/server"
+	"github.com/xlsft/harness/packages/client/web"
 )
 
 const usage = `harness-client — universal local client of harness
@@ -157,6 +158,7 @@ func sharedAdapters(serverURL string) (bootstrap.Options, string, error) {
 		Gateway:         connectgw.New(url, hc, tokens),
 		Prompts:         prompts.NewConnectSource(url, hc, tokens),
 		DecisionService: decision.NewClient(url, hc, tokens),
+		Search:          web.NewSearchClient(url, hc, tokens),
 	}, email, nil
 }
 
