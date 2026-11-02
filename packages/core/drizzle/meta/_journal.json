@@ -15,6 +15,13 @@
       "when": 1793634774313,
       "tag": "0001_decisions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793637564434,
+      "tag": "0002_mcp",
+      "breakpoints": true
     }
   ]
 }
