@@ -16,6 +16,9 @@ const MAP: Record<string, [ErrorType, Code]> = {
   protocol_version: [ErrorType.UNSUPPORTED_CLIENT, Code.FailedPrecondition],
   internal: [ErrorType.INTERNAL, Code.Internal],
   conflict: [ErrorType.CONFLICT, Code.Aborted],
+  // No dedicated ErrorType exists (e.g. an MCP server that needs authorization, a changed stdio config hash);
+  // clients branch on the FAILED_PRECONDITION code.
+  failed_precondition: [ErrorType.UNSPECIFIED, Code.FailedPrecondition],
 };
 
 /** Connect code name ("invalid_argument", "permission_denied", ...) for a service error type. */

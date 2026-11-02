@@ -70,6 +70,12 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_SYNC_TOMBSTONE_DAYS` | `30` | Tombstone retention (minimum 30) |
 | `HARNESS_SYNC_HEARTBEAT_MS` | `20000` | `WatchChanges` heartbeat interval (max 20 s) |
 | `HARNESS_SESSION_BUDGET_USD` | — | Default per-session budget when the quota config has no `session_usd` |
+| `HARNESS_MCP_IDLE_MS` | `300000` | Idle timeout of pooled upstream MCP sessions |
+| `HARNESS_MCP_REQUEST_TIMEOUT_MS` | `60000` | Timeout of proxied MCP requests other than `tools/call` (connect, list, get, read) |
+| `HARNESS_MCP_TOOLS_TTL_MS` | `300000` | Age after which `GetToolCatalog` refetches a remote server's tool list |
+| `HARNESS_MCP_CATALOG_FETCH_TIMEOUT_MS` | `10000` | Per-server timeout of that refetch (on failure the last list is served) |
+| `HARNESS_MCP_CATALOG_RETENTION_DAYS` | `7` | Catalog snapshots stay fetchable this long after their last use (minimum 7) |
+| `HARNESS_MCP_LAUNCH_RATE_PER_MIN` | `30` | Per-device token bucket for `IssueStdioLaunch` |
 
 ## Endpoints
 
@@ -83,6 +89,7 @@ See [`.env.example`](.env.example). The important ones:
 | `harness.sync.v1.SyncService` | `ListChanges`, `WatchChanges` (server streaming), `GetDocument`, `PutDocument`, `BatchPutDocuments`, `DeleteDocument`, `UpsertSession`, `AppendSessionEvents`, `GetSession`, `ListSessions`, `GetSessionTranscript` |
 | `harness.search.v1.SearchService` | `Search`, `ListProviders` |
 | `harness.decision.v1.DecisionService` | `Decide`, `ListProviders` (see Decisions) |
+| `harness.mcp.v1.McpService` | Registry (`List/Get/Create/Update/DeleteServer`), OAuth (`StartOAuth`, `GetOAuthFlow`, `GetAuthStatus`, `RevokeAuth`), devices (`ReportDeviceStatus`, `ListDeviceStatus`, `IssueStdioLaunch`), proxy (`ListTools`, `ListPrompts`, `ListResources`, `CallTool` (server streaming), `GetPrompt`, `ReadResource`), `GetToolCatalog` (see MCP) |
 
 Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`.
 Errors carry a `harness.common.v1.ErrorInfo` detail.
@@ -105,6 +112,7 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | Path | What |
 |---|---|
 | `/device` | Device approval page (sign in, enter or confirm the user code, approve/deny) |
+| `GET /api/mcp/oauth/callback` | Redirect target of MCP OAuth flows (`<HARNESS_PUBLIC_URL>/api/mcp/oauth/callback`); result page or 303 to the flow's `return_url` |
 | `/api/auth/**` | Better Auth (email + password sessions, admin plugin: `/api/auth/admin/create-user`, …) |
 | `/api/admin/providers[/:id]` | Provider CRUD (`GET`, `POST`, `PATCH`, `DELETE`) |
 | `POST /api/admin/providers/:id/discover` | Candidate models from the upstream's `/v1/models` (through the SSRF guard): `upstream_model`, `display_name`, `context_window` / `max_output_tokens` when reported, `catalog_ids` already using it |
@@ -114,6 +122,7 @@ curl -s localhost:3000/harness.auth.v1.DeviceAuthService/StartDeviceAuth \
 | `/api/admin/quotas` | Spend limits: `GET` (`?user_id=` adds current spend + effective limits), `PUT` (replace), `PATCH` (merge, `null` removes) |
 | `/api/admin/decision` | Auto-mode decision chain: `GET` (`{config, configured}`, secrets redacted), `PUT` (replace) |
 | `GET /api/admin/decision/log` | Decision audit log, newest first (`?limit=&session_id=&user_id=`) |
+| `PATCH /api/admin/mcp/servers/:id` | `{allow_private_network: bool}`: let the MCP proxy reach private / loopback addresses for this server (reset when its URL moves to another origin) |
 | `/api/health` | Liveness |
 
 Admin routes accept an admin's Better Auth session cookie or an admin's device access token.
@@ -172,6 +181,45 @@ Model fields: `id` (alias clients send), `provider_id`, `upstream_model`, `conte
   stored byte-exact, deduplicated per (session, agent_id, uuid); `seq` is one counter per session shared by the main
   thread and subagents (each thread pages by `agent_id`). `ListSessions` searches titles, cwd, repo and transcript
   text (case-insensitive substring).
+
+## MCP
+
+`McpService` (proto/harness/mcp/v1/mcp.proto, PLAN §1.5) keeps every MCP server config and authorization on the
+server. Code in `src/mcp/`.
+
+- **Registry.** Scopes USER and PROJECT (+ `project_key`) belong to their owner; ORG servers are admin-written and
+  visible to everyone or to `target_roles`. Names are unique per (owner, scope, project_key) — a clash is
+  `ABORTED`/`CONFLICT`. `UpdateServer`/`DeleteServer` are CAS on `base_version`; mismatches come back as `Conflict`.
+  Versions come from the global sync counter: each write also writes a `DOCUMENT_KIND_MCP_SERVER` notification
+  row (key = server id, empty content, same version) in the same transaction, so `WatchChanges` subscribers
+  refetch. Authorization changes of a user are announced the same way (new notification version, server version
+  unchanged).
+- **Secrets** are write-only (`SecretChanges`), AES-256-GCM encrypted per server and name (HKDF purpose
+  `mcp-secrets`, AAD `<server id>:secret:<name>`). Reads return `SecretInfo` for stored names and for names
+  referenced as `${secret:NAME}` but not set (`has_value=false`). `config_hash` = SHA-256 over the canonical JSON
+  of transport, stdio (command, args, env, cwd), remote (url, headers), overrides and secret names.
+- **OAuth** (remote servers): `StartOAuth` runs RFC 9728 / RFC 8414 discovery (or `remote.oauth.authorization_server`),
+  dynamic client registration when the provider has a registration endpoint (else `remote.oauth.client_id`, with an
+  optional `OAUTH_CLIENT_SECRET` secret), PKCE S256 and an RFC 8707 resource indicator. The callback stores the
+  tokens encrypted per (user, server). Tokens are refreshed when they expire within 60 s and once after an upstream
+  401; a failed refresh or a surviving 401 makes the server `NEEDS_AUTH`. Changing `remote.url` or adding
+  `remote.oauth.scopes` requires a new authorization. `RevokeAuth` drops the grant (best-effort RFC 7009).
+- **Proxy.** One pooled upstream MCP session per (server, user) via the official SDK client (Streamable HTTP, SSE;
+  WebSocket through an undici transport), closed after `HARNESS_MCP_IDLE_MS`, on config / grant changes, and
+  re-created on connection loss. Headers, URL secrets and bearer tokens are injected server-side; every connection
+  (including OAuth endpoints) goes through the SSRF guard unless an admin set `allow_private_network`. After three
+  consecutive failures new connections back off (1 s doubling, max 60 s). `CallTool` streams progress, then one
+  result; cancelling the RPC sends `notifications/cancelled` upstream. Tools of servers with
+  `requires_user_interaction` carry `"requiresUserInteraction": true` in `annotations_json`; upstream annotations
+  are passed through unchanged otherwise.
+- **stdio.** Devices report availability, approval (bound to `config_hash`), last error and discovered tools.
+  `IssueStdioLaunch` requires a device access token, the current hash and an APPROVED report for it; it applies
+  per-device / per-OS overrides, substitutes secrets, expires after 60 s, is audit-logged (`mcp_audit`, no values)
+  and rate-limited per device.
+- **Catalog.** `GetToolCatalog` snapshots tools of all enabled visible servers (remote: proxy-fetched, cached per
+  user with `HARNESS_MCP_TOOLS_TTL_MS`; stdio: latest device report). The version is content-addressed
+  (`cat_` + SHA-256 of user, project key and tool lists), each version is stored once and served unchanged, and
+  snapshots are kept `HARNESS_MCP_CATALOG_RETENTION_DAYS` (>= 7) after their last use.
 
 ## Quotas
 
@@ -243,6 +291,7 @@ src/
     usage.ts             usage listing
   decision/              DecisionService: rules engine, llm / http providers, chain, config, cache
   search/                SearchService providers (SearXNG)
+  mcp/                   McpService: registry + secrets, OAuth, proxy (SDK client, pool), stdio devices, catalog
   gateway/               canonical types, upstream adapters (anthropic, openai-chat), errors, cost
   rpc/                   Connect layer: proto <-> canonical conversion, service impls, error mapping,
                          fetch handler (Nitro) and h2c listener
@@ -251,7 +300,7 @@ src/
   gen/                   generated protobuf code (do not edit)
 prompts/                 prompt files (see prompts/README.md)
 drizzle/                 SQL migrations (drizzle-kit, pg dialect)
-test/                    vitest; helpers/ (in-process server, mock upstream), fixtures/ (upstream SSE)
+test/                    vitest; helpers/ (in-process server, mock upstream, MCP + OAuth fixture), fixtures/ (upstream SSE)
 ```
 
 ## Gateway behavior notes

@@ -393,3 +393,213 @@ export const decisionLog = pgTable(
     index("decision_log_created_idx").on(t.createdAt),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// MCP (proto/harness/mcp/v1): registry, secrets, OAuth, device status, tool catalog
+// ---------------------------------------------------------------------------
+
+/**
+ * MCP server registry. `version` lives in the global sync version space (services/sync.ts); every write
+ * also writes a DOCUMENT_KIND_MCP_SERVER notification row into sync_document in the same transaction.
+ */
+export const mcpServer = pgTable(
+  "mcp_server",
+  {
+    id: text("id").primaryKey(),
+    /** usr_... for user and project scope; "" for org scope. */
+    ownerId: text("owner_id").notNull(),
+    /** harness.common.v1.Scope */
+    scope: integer("scope").notNull(),
+    projectKey: text("project_key").notNull().default(""),
+    name: text("name").notNull(),
+    /** harness.mcp.v1.Transport */
+    transport: integer("transport").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    alwaysLoad: boolean("always_load").notNull().default(false),
+    /** JSON: StoredConfig (src/mcp/config.ts). Never contains secret values. */
+    config: jsonb("config").notNull(),
+    /** JSON: string[]; org scope only. */
+    targetRoles: jsonb("target_roles").notNull().default([]),
+    /** Admin-only switch (not part of the RPC contract): lets the proxy reach private / loopback addresses. */
+    allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+    version: int8("version").notNull(),
+    configHash: text("config_hash").notNull(),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+    updatedBy: text("updated_by").notNull(),
+  },
+  (t) => [uniqueIndex("mcp_server_name_idx").on(t.ownerId, t.scope, t.projectKey, t.name)],
+);
+
+/** Write-only secrets of a server; values AES-256-GCM encrypted with AAD "<server id>:secret:<name>". */
+export const mcpSecret = pgTable(
+  "mcp_secret",
+  {
+    serverId: text("server_id")
+      .notNull()
+      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    valueEnc: text("value_enc").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.serverId, t.name] })],
+);
+
+/**
+ * OAuth client per server, authorization server and redirect URI: the dynamic client registration result
+ * (or the configured client id) plus the discovered metadata needed for later refreshes.
+ */
+export const mcpOauthClient = pgTable(
+  "mcp_oauth_client",
+  {
+    serverId: text("server_id")
+      .notNull()
+      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    /** Authorization server URL. */
+    issuer: text("issuer").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    /** Encrypted JSON OAuthClientInformationFull. */
+    clientEnc: text("client_enc").notNull(),
+    /** JSON AuthorizationServerMetadata (or null when discovery found none). */
+    metadata: jsonb("metadata"),
+    dynamic: boolean("dynamic").notNull().default(false),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.serverId, t.issuer, t.redirectUri] })],
+);
+
+/** Pending and finished OAuth authorizations (StartOAuth -> /api/mcp/oauth/callback). */
+export const mcpOauthFlow = pgTable(
+  "mcp_oauth_flow",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    serverId: text("server_id")
+      .notNull()
+      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    /** sha256 of the `state` parameter. */
+    stateHash: text("state_hash").notNull().unique(),
+    /** Encrypted JSON FlowData (src/mcp/oauth.ts): PKCE verifier, issuer, redirect URI, resource, scopes. */
+    dataEnc: text("data_enc").notNull(),
+    returnUrl: text("return_url").notNull().default(""),
+    /** pending | completed | failed */
+    status: text("status").notNull().default("pending"),
+    error: text("error").notNull().default(""),
+    expiresAt: ts("expires_at").notNull(),
+    createdAt: ts("created_at").notNull(),
+    completedAt: ts("completed_at"),
+  },
+  (t) => [index("mcp_oauth_flow_user_idx").on(t.userId)],
+);
+
+/** Per-user authorization of a remote server: encrypted tokens and the last known state. */
+export const mcpAuth = pgTable(
+  "mcp_auth",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    serverId: text("server_id")
+      .notNull()
+      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    /** connected | needs_auth | error */
+    state: text("state").notNull(),
+    message: text("message").notNull().default(""),
+    /** Encrypted JSON OAuthTokens (AAD "<user id>:<server id>"); null when not connected. */
+    tokensEnc: text("tokens_enc"),
+    issuer: text("issuer").notNull().default(""),
+    redirectUri: text("redirect_uri").notNull().default(""),
+    /** RFC 8707 resource the tokens were issued for (sent again on refresh). */
+    resource: text("resource").notNull().default(""),
+    /** remote.url (as configured, unsubstituted) at authorization time; a URL change requires a new authorization. */
+    serverUrl: text("server_url").notNull().default(""),
+    /** JSON string[]: scopes asked for / granted. */
+    requestedScopes: jsonb("requested_scopes").notNull().default([]),
+    grantedScopes: jsonb("granted_scopes").notNull().default([]),
+    account: text("account").notNull().default(""),
+    expiresAt: ts("expires_at"),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.serverId] })],
+);
+
+/** Per-device availability / approval report (ReportDeviceStatus). */
+export const mcpDeviceStatus = pgTable(
+  "mcp_device_status",
+  {
+    deviceId: text("device_id")
+      .notNull()
+      .references(() => device.id, { onDelete: "cascade" }),
+    serverId: text("server_id")
+      .notNull()
+      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    configHash: text("config_hash").notNull().default(""),
+    /** harness.mcp.v1.Availability */
+    availability: integer("availability").notNull().default(0),
+    reason: text("reason").notNull().default(""),
+    /** harness.mcp.v1.ApprovalState */
+    approval: integer("approval").notNull().default(0),
+    lastError: text("last_error").notNull().default(""),
+    /** JSON ToolData[] discovered by the last launch. */
+    tools: jsonb("tools").notNull().default([]),
+    /** When `tools` was last replaced by a non-empty list. */
+    toolsReportedAt: ts("tools_reported_at"),
+    reportedAt: ts("reported_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.deviceId, t.serverId] }), index("mcp_device_status_server_idx").on(t.serverId)],
+);
+
+/** Tool lists of remote servers fetched through the proxy, per server and user (a list can depend on the grant). */
+export const mcpToolCache = pgTable(
+  "mcp_tool_cache",
+  {
+    serverId: text("server_id")
+      .notNull()
+      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    /** config_hash the list was fetched with. */
+    configHash: text("config_hash").notNull(),
+    /** JSON ToolData[] */
+    tools: jsonb("tools").notNull(),
+    fetchedAt: ts("fetched_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.serverId, t.userId] })],
+);
+
+/** Frozen tool catalog snapshots (GetToolCatalog). Kept >= 7 days after their last use. */
+export const mcpCatalogSnapshot = pgTable(
+  "mcp_catalog_snapshot",
+  {
+    version: text("version").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    projectKey: text("project_key").notNull().default(""),
+    /** JSON CatalogServerData[] */
+    servers: jsonb("servers").notNull(),
+    createdAt: ts("created_at").notNull(),
+    lastUsedAt: ts("last_used_at").notNull(),
+  },
+  (t) => [index("mcp_catalog_snapshot_used_idx").on(t.lastUsedAt)],
+);
+
+/** Audit log of sensitive MCP operations (stdio launches, tool calls, authorizations). Never stores secret values. */
+export const mcpAudit = pgTable(
+  "mcp_audit",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    deviceId: text("device_id"),
+    serverId: text("server_id").notNull(),
+    /** stdio_launch | call_tool | oauth_completed | oauth_revoked */
+    action: text("action").notNull(),
+    configHash: text("config_hash").notNull().default(""),
+    /** JSON detail (tool name, session id, outcome, ...). Never secret values or tool arguments. */
+    detail: jsonb("detail").notNull().default({}),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [index("mcp_audit_server_idx").on(t.serverId, t.createdAt), index("mcp_audit_user_idx").on(t.userId, t.createdAt)],
+);

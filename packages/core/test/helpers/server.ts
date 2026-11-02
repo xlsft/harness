@@ -10,6 +10,7 @@ import { createConnectTransport } from "@connectrpc/connect-node";
 import { H3, serve } from "h3";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
+import { McpService } from "../../src/gen/harness/mcp/v1/mcp_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
 import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
 import { createTempDatabase, type TempDatabase } from "./pg.ts";
@@ -24,12 +25,14 @@ export interface TestServer {
   gateway: Client<typeof GatewayService>;
   prompts: Client<typeof PromptService>;
   sync: Client<typeof SyncService>;
+  mcp: Client<typeof McpService>;
   /** Connect clients authenticated with the given access token. */
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
     gateway: Client<typeof GatewayService>;
     prompts: Client<typeof PromptService>;
     sync: Client<typeof SyncService>;
+    mcp: Client<typeof McpService>;
   };
   close(): Promise<void>;
 }
@@ -85,6 +88,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       gateway: createClient(GatewayService, transport),
       prompts: createClient(PromptService, transport),
       sync: createClient(SyncService, transport),
+      mcp: createClient(McpService, transport),
     };
   };
 
@@ -93,6 +97,8 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
     ...clients(),
     as: (token) => clients(token),
     close: async () => {
+      const { closeAllConnections } = await import("../../src/mcp/proxy.ts");
+      await closeAllConnections();
       await server.close(true);
       const { closeDb } = await import("../../src/db/index.ts");
       const { resetAuth } = await import("../../src/auth/better-auth.ts");

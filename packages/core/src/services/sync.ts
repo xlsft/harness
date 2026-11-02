@@ -24,7 +24,7 @@ import { newId } from "../lib/ids.ts";
 import type { Principal, PublicUser } from "./devices.ts";
 
 export type DocRow = typeof schema.syncDocument.$inferSelect;
-type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 export interface StoredFile {
   path: string;
@@ -175,7 +175,7 @@ export function feedChange(row: DocRow, user: PublicUser, kinds: DocumentKind[] 
 
 // --- validation ------------------------------------------------------------------------
 
-const PROJECT_KEY_RE = /^(path:[0-9a-f]{64}|[a-z0-9][a-z0-9.-]*(\/[^\s/]+)+)$/;
+export const PROJECT_KEY_RE = /^(path:[0-9a-f]{64}|[a-z0-9][a-z0-9.-]*(\/[^\s/]+)+)$/;
 
 function validateRef(p: Principal, ref: DocRef | undefined): { ownerId: string } {
   if (!ref) throw new ApiError("invalid_request", "ref is required");
@@ -580,4 +580,73 @@ export async function deleteDocument(p: Principal, id: string, baseVersion?: num
 export function rowFiles(row: DocRow): FileInput[] {
   const files = Array.isArray(row.files) ? (row.files as StoredFile[]) : [];
   return files.map((f) => ({ path: f.path, content: new Uint8Array(Buffer.from(f.data, "base64")), executable: f.executable }));
+}
+
+// --- notification entries written by other services (McpService) ----------------------------------
+
+export interface NotificationInput {
+  ownerId: string;
+  scope: Scope;
+  projectKey: string;
+  kind: DocumentKind;
+  key: string;
+  targetRoles: string[];
+  /** usr_... of the writer. */
+  userId: string;
+  deleted: boolean;
+  source?: string;
+}
+
+/**
+ * Runs a write of another service inside the sync write order: `fn` gets a transaction in which it may
+ * take versions (nextSyncVersion) and write notification rows (writeNotification); the rows it returns
+ * in `publish` are published to WatchChanges subscribers after commit, in version order.
+ */
+export async function runSyncWrite<T>(fn: (tx: Tx) => Promise<{ value: T; publish: DocRow[] }>): Promise<T> {
+  await ensureDb();
+  maybePurge();
+  return writeMutex.run(async () => {
+    lastPublished ??= await readHead();
+    const r = await getDb().transaction(fn);
+    for (const row of [...r.publish].sort((a, b) => a.version - b.version)) publish(row);
+    return r.value;
+  });
+}
+
+/**
+ * Upserts a notification-only document (empty content) with `version`, e.g. DOCUMENT_KIND_MCP_SERVER keyed
+ * by the MCP server id. A delete turns it into a tombstone. Call inside runSyncWrite.
+ */
+export async function writeNotification(tx: Tx, version: number, n: NotificationInput): Promise<DocRow> {
+  const d = schema.syncDocument;
+  const now = new Date();
+  const [cur] = await tx
+    .select()
+    .from(d)
+    .where(and(eq(d.ownerId, n.ownerId), eq(d.scope, n.scope), eq(d.projectKey, n.projectKey), eq(d.kind, n.kind), eq(d.key, n.key)))
+    .for("update");
+  const values = {
+    version,
+    content: "",
+    files: [],
+    contentHash: contentHash("", []),
+    source: n.source ?? "",
+    targetRoles: n.targetRoles,
+    updatedAt: now,
+    updatedBy: n.userId,
+    deletedAt: n.deleted ? now : null,
+  };
+  if (cur) {
+    const [row] = (await tx
+      .update(d)
+      .set({ ...values, createdAt: cur.deletedAt && !n.deleted ? now : cur.createdAt })
+      .where(eq(d.id, cur.id))
+      .returning()) as [DocRow];
+    return row;
+  }
+  const [row] = (await tx
+    .insert(d)
+    .values({ id: newId("doc"), ownerId: n.ownerId, scope: n.scope, projectKey: n.projectKey, kind: n.kind, key: n.key, createdAt: now, ...values })
+    .returning()) as [DocRow];
+  return row;
 }

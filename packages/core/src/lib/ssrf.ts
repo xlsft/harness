@@ -177,3 +177,23 @@ export async function guardedFetch(
     if (res.status === 303) reqInit = { ...reqInit, method: "GET", body: undefined };
   }
 }
+
+/** The undici dispatcher carrying the SSRF policy (address check at connect time), e.g. for WebSocket. */
+export function guardedDispatcher(allowPrivateNetwork: boolean): Agent {
+  return allowPrivateNetwork ? privateAgent : publicAgent;
+}
+
+/** Finds an SSRF rejection in an error chain and returns it as the same ApiError guardedFetch throws. */
+export function ssrfError(err: unknown): ApiError | undefined {
+  for (let e: unknown = err, i = 0; e && i < 6; e = (e as { cause?: unknown }).cause, i++) {
+    if (e instanceof BlockedAddressError) return new ApiError("permission", `${e.message} (enable allow_private_network)`);
+    if (e instanceof ApiError && e.type === "permission") return e;
+  }
+  return undefined;
+}
+
+/** guardedFetch with the WHATWG fetch signature, for libraries that accept a custom fetch (MCP SDK). */
+export function guardedFetchFn(allowPrivateNetwork: boolean): (url: string | URL, init?: RequestInit) => Promise<Response> {
+  return async (url, init) =>
+    (await guardedFetch(String(url), { ...(init as UndiciRequestInit), allowPrivateNetwork })) as unknown as Response;
+}
