@@ -105,15 +105,12 @@ const usageLine = computed(() => {
   </div>
 
   <!-- interrupted turn -->
-  <div
+  <p
     v-else-if="turn && turn.result === 'interrupted'"
-    class="flex items-center gap-2 text-[12px] text-muted"
+    class="m-0 leading-[1.6] text-toned"
   >
-    <HIcon
-      name="interrupt"
-      :size="14"
-    />Interrupted by user · what should I do instead?
-  </div>
+    Stopped. Want to clarify something or have me do it differently?
+  </p>
 
   <!-- turn usage footer -->
   <div

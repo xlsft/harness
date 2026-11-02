@@ -12,6 +12,9 @@ const props = withDefaults(defineProps<{
 // Review comments from the diff pane get their own card.
 const review = computed(() => parseReview(props.text))
 
+// The marker the client records when the user stops a turn: plain text, not a bubble.
+const interrupted = computed(() => /^\[Request interrupted by user[^\]]*\]$/.test(props.text.trim()))
+
 const parsed = computed(() => {
   const lines = props.text.split('\n')
   const quote = lines[0]?.startsWith('> ') ? lines[0].slice(2) : ''
@@ -44,6 +47,15 @@ const parsed = computed(() => {
       <span class="text-[11px] text-muted">queued · sends after this turn</span>
       <span class="whitespace-pre-wrap">{{ text }}</span>
     </div>
+    <span
+      v-else-if="interrupted"
+      class="inline-flex items-center gap-1.5 text-[12px] text-muted"
+    >
+      <HIcon
+        name="interrupt"
+        :size="13"
+      />Stopped
+    </span>
     <ReviewMessage
       v-else-if="review"
       :items="review"
