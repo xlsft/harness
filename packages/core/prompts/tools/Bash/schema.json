@@ -4,8 +4,8 @@
   "properties": {
     "command": { "type": "string", "description": "The shell command to run" },
     "timeout": { "type": "integer", "minimum": 1, "maximum": 600000, "description": "Timeout in milliseconds (default 120000, max 600000)" },
-    "description": { "type": "string", "description": "Short description of what the command does, in 5-10 words" },
-    "run_in_background": { "type": "boolean", "description": "Run the command in the background and return a task id and output file path immediately" }
+    "description": { "type": "string", "description": "What the command does, in active voice, about 5-10 words" },
+    "run_in_background": { "type": "boolean", "description": "Run in the background and return a task id and output file path at once. Use this instead of &; stop the task with TaskStop" }
   },
   "required": ["command"],
   "additionalProperties": false
