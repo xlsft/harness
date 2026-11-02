@@ -240,6 +240,7 @@ func (t *WebFetch) fetch(ctx context.Context, u *url.URL) (page, *redirectNotice
 	req.Header.Set("Accept", "text/markdown, text/html;q=0.9, application/xhtml+xml;q=0.9, text/plain;q=0.8, application/json;q=0.8, */*;q=0.5")
 
 	client := t.client(ctx, u)
+	defer client.CloseIdleConnections()
 	resp, err := client.Do(req)
 	if err != nil {
 		var ue *url.Error
