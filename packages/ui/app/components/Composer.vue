@@ -420,6 +420,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
     @dragenter.prevent="dragging = Math.max(1, dragging)"
     @dragover.prevent
   >
+    <UsageLimitBanner :session="session" />
+
     <!-- context almost full -->
     <div
       v-if="contextPct >= 90 && !busy"
