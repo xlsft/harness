@@ -41,6 +41,12 @@ const (
 	// AgentServiceListSessionsProcedure is the fully-qualified name of the AgentService's ListSessions
 	// RPC.
 	AgentServiceListSessionsProcedure = "/harness.agent.v1.AgentService/ListSessions"
+	// AgentServiceUpdateSessionProcedure is the fully-qualified name of the AgentService's
+	// UpdateSession RPC.
+	AgentServiceUpdateSessionProcedure = "/harness.agent.v1.AgentService/UpdateSession"
+	// AgentServiceDeleteSessionProcedure is the fully-qualified name of the AgentService's
+	// DeleteSession RPC.
+	AgentServiceDeleteSessionProcedure = "/harness.agent.v1.AgentService/DeleteSession"
 	// AgentServiceListRecentFoldersProcedure is the fully-qualified name of the AgentService's
 	// ListRecentFolders RPC.
 	AgentServiceListRecentFoldersProcedure = "/harness.agent.v1.AgentService/ListRecentFolders"
@@ -111,7 +117,16 @@ const (
 type AgentServiceClient interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
+	// Sessions on this machine (local transcripts and live sessions) with the per-user state stored on the harness
+	// server (pinned, unread, archived, renamed title). Archived sessions are left out unless include_archived.
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
+	// Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
+	// stored on the harness server (SyncService); without a server connection only a rename can be applied
+	// (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed (UNAVAILABLE).
+	UpdateSession(context.Context, *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error)
+	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files.
+	// When the server is unreachable nothing is deleted (UNAVAILABLE).
+	DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error)
 	// --- New-session pickers (folder, branch, worktree) ---
 	// Folders recently used for sessions on this machine, most recent first.
 	ListRecentFolders(context.Context, *connect.Request[v1.ListRecentFoldersRequest]) (*connect.Response[v1.ListRecentFoldersResponse], error)
@@ -186,6 +201,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+AgentServiceListSessionsProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("ListSessions")),
+			connect.WithClientOptions(opts...),
+		),
+		updateSession: connect.NewClient[v1.UpdateSessionRequest, v1.UpdateSessionResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateSessionProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateSession")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSession: connect.NewClient[v1.DeleteSessionRequest, v1.DeleteSessionResponse](
+			httpClient,
+			baseURL+AgentServiceDeleteSessionProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteSession")),
 			connect.WithClientOptions(opts...),
 		),
 		listRecentFolders: connect.NewClient[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse](
@@ -340,6 +367,8 @@ type agentServiceClient struct {
 	initialize          *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
 	createSession       *connect.Client[v1.CreateSessionRequest, v1.CreateSessionResponse]
 	listSessions        *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	updateSession       *connect.Client[v1.UpdateSessionRequest, v1.UpdateSessionResponse]
+	deleteSession       *connect.Client[v1.DeleteSessionRequest, v1.DeleteSessionResponse]
 	listRecentFolders   *connect.Client[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse]
 	listDirectory       *connect.Client[v1.ListDirectoryRequest, v1.ListDirectoryResponse]
 	listBranches        *connect.Client[v1.ListBranchesRequest, v1.ListBranchesResponse]
@@ -379,6 +408,16 @@ func (c *agentServiceClient) CreateSession(ctx context.Context, req *connect.Req
 // ListSessions calls harness.agent.v1.AgentService.ListSessions.
 func (c *agentServiceClient) ListSessions(ctx context.Context, req *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error) {
 	return c.listSessions.CallUnary(ctx, req)
+}
+
+// UpdateSession calls harness.agent.v1.AgentService.UpdateSession.
+func (c *agentServiceClient) UpdateSession(ctx context.Context, req *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error) {
+	return c.updateSession.CallUnary(ctx, req)
+}
+
+// DeleteSession calls harness.agent.v1.AgentService.DeleteSession.
+func (c *agentServiceClient) DeleteSession(ctx context.Context, req *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error) {
+	return c.deleteSession.CallUnary(ctx, req)
 }
 
 // ListRecentFolders calls harness.agent.v1.AgentService.ListRecentFolders.
@@ -505,7 +544,16 @@ func (c *agentServiceClient) SetWorkspaceTrust(ctx context.Context, req *connect
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
+	// Sessions on this machine (local transcripts and live sessions) with the per-user state stored on the harness
+	// server (pinned, unread, archived, renamed title). Archived sessions are left out unless include_archived.
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
+	// Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
+	// stored on the harness server (SyncService); without a server connection only a rename can be applied
+	// (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed (UNAVAILABLE).
+	UpdateSession(context.Context, *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error)
+	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files.
+	// When the server is unreachable nothing is deleted (UNAVAILABLE).
+	DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error)
 	// --- New-session pickers (folder, branch, worktree) ---
 	// Folders recently used for sessions on this machine, most recent first.
 	ListRecentFolders(context.Context, *connect.Request[v1.ListRecentFoldersRequest]) (*connect.Response[v1.ListRecentFoldersResponse], error)
@@ -576,6 +624,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceListSessionsProcedure,
 		svc.ListSessions,
 		connect.WithSchema(agentServiceMethods.ByName("ListSessions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateSessionHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateSessionProcedure,
+		svc.UpdateSession,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateSession")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteSessionHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteSessionProcedure,
+		svc.DeleteSession,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteSession")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceListRecentFoldersHandler := connect.NewUnaryHandler(
@@ -730,6 +790,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceCreateSessionHandler.ServeHTTP(w, r)
 		case AgentServiceListSessionsProcedure:
 			agentServiceListSessionsHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateSessionProcedure:
+			agentServiceUpdateSessionHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteSessionProcedure:
+			agentServiceDeleteSessionHandler.ServeHTTP(w, r)
 		case AgentServiceListRecentFoldersProcedure:
 			agentServiceListRecentFoldersHandler.ServeHTTP(w, r)
 		case AgentServiceListDirectoryProcedure:
@@ -797,6 +861,14 @@ func (UnimplementedAgentServiceHandler) CreateSession(context.Context, *connect.
 
 func (UnimplementedAgentServiceHandler) ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSessions is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateSession(context.Context, *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateSession is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteSession is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListRecentFolders(context.Context, *connect.Request[v1.ListRecentFoldersRequest]) (*connect.Response[v1.ListRecentFoldersResponse], error) {

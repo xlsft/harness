@@ -62,6 +62,9 @@ const (
 	// SyncServiceGetSessionTranscriptProcedure is the fully-qualified name of the SyncService's
 	// GetSessionTranscript RPC.
 	SyncServiceGetSessionTranscriptProcedure = "/harness.sync.v1.SyncService/GetSessionTranscript"
+	// SyncServiceDeleteSessionProcedure is the fully-qualified name of the SyncService's DeleteSession
+	// RPC.
+	SyncServiceDeleteSessionProcedure = "/harness.sync.v1.SyncService/DeleteSession"
 )
 
 // SyncServiceClient is a client for the harness.sync.v1.SyncService service.
@@ -81,7 +84,8 @@ type SyncServiceClient interface {
 	BatchPutDocuments(context.Context, *connect.Request[v1.BatchPutDocumentsRequest]) (*connect.Response[v1.BatchPutDocumentsResponse], error)
 	DeleteDocument(context.Context, *connect.Request[v1.DeleteDocumentRequest]) (*connect.Response[v1.DeleteDocumentResponse], error)
 	// Creates or updates session metadata. Called by the client when a session starts and whenever
-	// metadata changes; by frontends to rename / archive / pin.
+	// metadata changes, and for the per-user state (rename, pin, unread, archive: "info.title", "info.pinned",
+	// "info.unread", "info.archived").
 	UpsertSession(context.Context, *connect.Request[v1.UpsertSessionRequest]) (*connect.Response[v1.UpsertSessionResponse], error)
 	// Uploads transcript entries. Entries already stored (same uuid) are skipped and reported as duplicates.
 	AppendSessionEvents(context.Context, *connect.Request[v1.AppendSessionEventsRequest]) (*connect.Response[v1.AppendSessionEventsResponse], error)
@@ -90,6 +94,8 @@ type SyncServiceClient interface {
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	// Transcript entries in server order (`seq`), paged forward from after_seq.
 	GetSessionTranscript(context.Context, *connect.Request[v1.GetSessionTranscriptRequest]) (*connect.Response[v1.GetSessionTranscriptResponse], error)
+	// Deletes a session of the caller with its transcript. Unknown or foreign session -> NOT_FOUND.
+	DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error)
 }
 
 // NewSyncServiceClient constructs a client for the harness.sync.v1.SyncService service. By default,
@@ -169,6 +175,12 @@ func NewSyncServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(syncServiceMethods.ByName("GetSessionTranscript")),
 			connect.WithClientOptions(opts...),
 		),
+		deleteSession: connect.NewClient[v1.DeleteSessionRequest, v1.DeleteSessionResponse](
+			httpClient,
+			baseURL+SyncServiceDeleteSessionProcedure,
+			connect.WithSchema(syncServiceMethods.ByName("DeleteSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -185,6 +197,7 @@ type syncServiceClient struct {
 	getSession           *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
 	listSessions         *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
 	getSessionTranscript *connect.Client[v1.GetSessionTranscriptRequest, v1.GetSessionTranscriptResponse]
+	deleteSession        *connect.Client[v1.DeleteSessionRequest, v1.DeleteSessionResponse]
 }
 
 // ListChanges calls harness.sync.v1.SyncService.ListChanges.
@@ -242,6 +255,11 @@ func (c *syncServiceClient) GetSessionTranscript(ctx context.Context, req *conne
 	return c.getSessionTranscript.CallUnary(ctx, req)
 }
 
+// DeleteSession calls harness.sync.v1.SyncService.DeleteSession.
+func (c *syncServiceClient) DeleteSession(ctx context.Context, req *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error) {
+	return c.deleteSession.CallUnary(ctx, req)
+}
+
 // SyncServiceHandler is an implementation of the harness.sync.v1.SyncService service.
 type SyncServiceHandler interface {
 	// Changes in the caller's feed with version > since_version, ordered by version ascending.
@@ -259,7 +277,8 @@ type SyncServiceHandler interface {
 	BatchPutDocuments(context.Context, *connect.Request[v1.BatchPutDocumentsRequest]) (*connect.Response[v1.BatchPutDocumentsResponse], error)
 	DeleteDocument(context.Context, *connect.Request[v1.DeleteDocumentRequest]) (*connect.Response[v1.DeleteDocumentResponse], error)
 	// Creates or updates session metadata. Called by the client when a session starts and whenever
-	// metadata changes; by frontends to rename / archive / pin.
+	// metadata changes, and for the per-user state (rename, pin, unread, archive: "info.title", "info.pinned",
+	// "info.unread", "info.archived").
 	UpsertSession(context.Context, *connect.Request[v1.UpsertSessionRequest]) (*connect.Response[v1.UpsertSessionResponse], error)
 	// Uploads transcript entries. Entries already stored (same uuid) are skipped and reported as duplicates.
 	AppendSessionEvents(context.Context, *connect.Request[v1.AppendSessionEventsRequest]) (*connect.Response[v1.AppendSessionEventsResponse], error)
@@ -268,6 +287,8 @@ type SyncServiceHandler interface {
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	// Transcript entries in server order (`seq`), paged forward from after_seq.
 	GetSessionTranscript(context.Context, *connect.Request[v1.GetSessionTranscriptRequest]) (*connect.Response[v1.GetSessionTranscriptResponse], error)
+	// Deletes a session of the caller with its transcript. Unknown or foreign session -> NOT_FOUND.
+	DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error)
 }
 
 // NewSyncServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -343,6 +364,12 @@ func NewSyncServiceHandler(svc SyncServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(syncServiceMethods.ByName("GetSessionTranscript")),
 		connect.WithHandlerOptions(opts...),
 	)
+	syncServiceDeleteSessionHandler := connect.NewUnaryHandler(
+		SyncServiceDeleteSessionProcedure,
+		svc.DeleteSession,
+		connect.WithSchema(syncServiceMethods.ByName("DeleteSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.sync.v1.SyncService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SyncServiceListChangesProcedure:
@@ -367,6 +394,8 @@ func NewSyncServiceHandler(svc SyncServiceHandler, opts ...connect.HandlerOption
 			syncServiceListSessionsHandler.ServeHTTP(w, r)
 		case SyncServiceGetSessionTranscriptProcedure:
 			syncServiceGetSessionTranscriptHandler.ServeHTTP(w, r)
+		case SyncServiceDeleteSessionProcedure:
+			syncServiceDeleteSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -418,4 +447,8 @@ func (UnimplementedSyncServiceHandler) ListSessions(context.Context, *connect.Re
 
 func (UnimplementedSyncServiceHandler) GetSessionTranscript(context.Context, *connect.Request[v1.GetSessionTranscriptRequest]) (*connect.Response[v1.GetSessionTranscriptResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.sync.v1.SyncService.GetSessionTranscript is not implemented"))
+}
+
+func (UnimplementedSyncServiceHandler) DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.sync.v1.SyncService.DeleteSession is not implemented"))
 }

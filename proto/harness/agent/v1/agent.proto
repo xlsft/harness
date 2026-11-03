@@ -13,7 +13,16 @@ service AgentService {
   rpc Initialize(InitializeRequest) returns (InitializeResponse);
 
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  // Sessions on this machine (local transcripts and live sessions) with the per-user state stored on the harness
+  // server (pinned, unread, archived, renamed title). Archived sessions are left out unless include_archived.
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  // Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
+  // stored on the harness server (SyncService); without a server connection only a rename can be applied
+  // (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed (UNAVAILABLE).
+  rpc UpdateSession(UpdateSessionRequest) returns (UpdateSessionResponse);
+  // Deletes a session for good: stops it if live, deletes its server copy and its local transcript files.
+  // When the server is unreachable nothing is deleted (UNAVAILABLE).
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 
   // --- New-session pickers (folder, branch, worktree) ---
   // Folders recently used for sessions on this machine, most recent first.
@@ -144,6 +153,7 @@ message SessionInfo {
   DiffStats diff_stats = 12;
   // Absent when no PR is linked.
   optional PullRequest pull_request = 13;
+  // Per-user state, stored on the harness server: hidden from the default session list.
   bool archived = 14;
   bool pinned = 15;
   // Set for forks and /branch.
@@ -152,6 +162,8 @@ message SessionInfo {
   string output_style = 17;
   // Set when the session runs in a git worktree the client created for it (CreateSessionRequest.worktree).
   optional Worktree worktree = 18;
+  // Per-user state, stored on the harness server: a turn finished while the session was not open in a frontend.
+  bool unread = 19;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -290,11 +302,33 @@ message CreateSessionResponse {
 
 message ListSessionsRequest {
   string cwd = 1;
+  bool include_archived = 2;
 }
 
 message ListSessionsResponse {
   repeated SessionInfo sessions = 1;
 }
+
+// Unset fields are left as they are.
+message UpdateSessionRequest {
+  string session_id = 1;
+  optional bool pinned = 2;
+  optional bool unread = 3;
+  // true also stops the session if it is live; false brings it back to the list.
+  optional bool archived = 4;
+  // A rename (recorded as a custom-title transcript entry); it wins over the AI title. Must not be empty.
+  optional string title = 5;
+}
+
+message UpdateSessionResponse {
+  SessionInfo session = 1;
+}
+
+message DeleteSessionRequest {
+  string session_id = 1;
+}
+
+message DeleteSessionResponse {}
 
 message SubscribeRequest {
   string session_id = 1;

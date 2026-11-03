@@ -2567,6 +2567,86 @@ func (x *GetSessionTranscriptResponse) GetHasMore() bool {
 	return false
 }
 
+type DeleteSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSessionRequest) Reset() {
+	*x = DeleteSessionRequest{}
+	mi := &file_harness_sync_v1_sync_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSessionRequest) ProtoMessage() {}
+
+func (x *DeleteSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_sync_v1_sync_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSessionRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSessionRequest) Descriptor() ([]byte, []int) {
+	return file_harness_sync_v1_sync_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *DeleteSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type DeleteSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSessionResponse) Reset() {
+	*x = DeleteSessionResponse{}
+	mi := &file_harness_sync_v1_sync_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSessionResponse) ProtoMessage() {}
+
+func (x *DeleteSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_sync_v1_sync_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSessionResponse.ProtoReflect.Descriptor instead.
+func (*DeleteSessionResponse) Descriptor() ([]byte, []int) {
+	return file_harness_sync_v1_sync_proto_rawDescGZIP(), []int{36}
+}
+
 var File_harness_sync_v1_sync_proto protoreflect.FileDescriptor
 
 const file_harness_sync_v1_sync_proto_rawDesc = "" +
@@ -2745,7 +2825,11 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\bagent_id\x18\x04 \x01(\tR\aagentId\"u\n" +
 	"\x1cGetSessionTranscriptResponse\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .harness.sync.v1.TranscriptEntryR\aentries\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore*\xf8\x02\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"5\n" +
+	"\x14DeleteSessionRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
+	"\x15DeleteSessionResponse*\xf8\x02\n" +
 	"\fDocumentKind\x12\x1d\n" +
 	"\x19DOCUMENT_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16DOCUMENT_KIND_SETTINGS\x10\x01\x12\"\n" +
@@ -2760,7 +2844,7 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\x18DOCUMENT_KIND_MCP_SERVER\x10\n" +
 	"\x12\x18\n" +
 	"\x14DOCUMENT_KIND_POLICY\x10\v\x12\x16\n" +
-	"\x12DOCUMENT_KIND_RULE\x10\f2\xc4\b\n" +
+	"\x12DOCUMENT_KIND_RULE\x10\f2\xa4\t\n" +
 	"\vSyncService\x12X\n" +
 	"\vListChanges\x12#.harness.sync.v1.ListChangesRequest\x1a$.harness.sync.v1.ListChangesResponse\x12]\n" +
 	"\fWatchChanges\x12$.harness.sync.v1.WatchChangesRequest\x1a%.harness.sync.v1.WatchChangesResponse0\x01\x12X\n" +
@@ -2773,7 +2857,8 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\n" +
 	"GetSession\x12\".harness.sync.v1.GetSessionRequest\x1a#.harness.sync.v1.GetSessionResponse\x12[\n" +
 	"\fListSessions\x12$.harness.sync.v1.ListSessionsRequest\x1a%.harness.sync.v1.ListSessionsResponse\x12s\n" +
-	"\x14GetSessionTranscript\x12,.harness.sync.v1.GetSessionTranscriptRequest\x1a-.harness.sync.v1.GetSessionTranscriptResponseB\xc3\x01\n" +
+	"\x14GetSessionTranscript\x12,.harness.sync.v1.GetSessionTranscriptRequest\x1a-.harness.sync.v1.GetSessionTranscriptResponse\x12^\n" +
+	"\rDeleteSession\x12%.harness.sync.v1.DeleteSessionRequest\x1a&.harness.sync.v1.DeleteSessionResponseB\xc3\x01\n" +
 	"\x13com.harness.sync.v1B\tSyncProtoP\x01ZCgithub.com/xlsft/harness/packages/client/gen/harness/sync/v1;syncv1\xa2\x02\x03HSX\xaa\x02\x0fHarness.Sync.V1\xca\x02\x0fHarness\\Sync\\V1\xe2\x02\x1bHarness\\Sync\\V1\\GPBMetadata\xea\x02\x11Harness::Sync::V1b\x06proto3"
 
 var (
@@ -2789,7 +2874,7 @@ func file_harness_sync_v1_sync_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_sync_v1_sync_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_sync_v1_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_harness_sync_v1_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_harness_sync_v1_sync_proto_goTypes = []any{
 	(DocumentKind)(0),                    // 0: harness.sync.v1.DocumentKind
 	(*Document)(nil),                     // 1: harness.sync.v1.Document
@@ -2827,15 +2912,17 @@ var file_harness_sync_v1_sync_proto_goTypes = []any{
 	(*ListSessionsResponse)(nil),         // 33: harness.sync.v1.ListSessionsResponse
 	(*GetSessionTranscriptRequest)(nil),  // 34: harness.sync.v1.GetSessionTranscriptRequest
 	(*GetSessionTranscriptResponse)(nil), // 35: harness.sync.v1.GetSessionTranscriptResponse
-	(v1.Scope)(0),                        // 36: harness.common.v1.Scope
-	(*v11.SessionInfo)(nil),              // 37: harness.agent.v1.SessionInfo
-	(v11.SessionStatus)(0),               // 38: harness.agent.v1.SessionStatus
+	(*DeleteSessionRequest)(nil),         // 36: harness.sync.v1.DeleteSessionRequest
+	(*DeleteSessionResponse)(nil),        // 37: harness.sync.v1.DeleteSessionResponse
+	(v1.Scope)(0),                        // 38: harness.common.v1.Scope
+	(*v11.SessionInfo)(nil),              // 39: harness.agent.v1.SessionInfo
+	(v11.SessionStatus)(0),               // 40: harness.agent.v1.SessionStatus
 }
 var file_harness_sync_v1_sync_proto_depIdxs = []int32{
-	36, // 0: harness.sync.v1.Document.scope:type_name -> harness.common.v1.Scope
+	38, // 0: harness.sync.v1.Document.scope:type_name -> harness.common.v1.Scope
 	0,  // 1: harness.sync.v1.Document.kind:type_name -> harness.sync.v1.DocumentKind
 	2,  // 2: harness.sync.v1.Document.files:type_name -> harness.sync.v1.DocumentFile
-	36, // 3: harness.sync.v1.Tombstone.scope:type_name -> harness.common.v1.Scope
+	38, // 3: harness.sync.v1.Tombstone.scope:type_name -> harness.common.v1.Scope
 	0,  // 4: harness.sync.v1.Tombstone.kind:type_name -> harness.sync.v1.DocumentKind
 	1,  // 5: harness.sync.v1.Change.document:type_name -> harness.sync.v1.Document
 	3,  // 6: harness.sync.v1.Change.tombstone:type_name -> harness.sync.v1.Tombstone
@@ -2847,7 +2934,7 @@ var file_harness_sync_v1_sync_proto_depIdxs = []int32{
 	10, // 12: harness.sync.v1.WatchChangesResponse.heartbeat:type_name -> harness.sync.v1.Heartbeat
 	11, // 13: harness.sync.v1.WatchChangesResponse.resync_required:type_name -> harness.sync.v1.ResyncRequired
 	13, // 14: harness.sync.v1.GetDocumentRequest.ref:type_name -> harness.sync.v1.DocumentRef
-	36, // 15: harness.sync.v1.DocumentRef.scope:type_name -> harness.common.v1.Scope
+	38, // 15: harness.sync.v1.DocumentRef.scope:type_name -> harness.common.v1.Scope
 	0,  // 16: harness.sync.v1.DocumentRef.kind:type_name -> harness.sync.v1.DocumentKind
 	1,  // 17: harness.sync.v1.GetDocumentResponse.document:type_name -> harness.sync.v1.Document
 	13, // 18: harness.sync.v1.PutDocumentRequest.ref:type_name -> harness.sync.v1.DocumentRef
@@ -2863,12 +2950,12 @@ var file_harness_sync_v1_sync_proto_depIdxs = []int32{
 	21, // 28: harness.sync.v1.BatchPutResult.error:type_name -> harness.sync.v1.ItemError
 	3,  // 29: harness.sync.v1.DeleteDocumentResponse.tombstone:type_name -> harness.sync.v1.Tombstone
 	17, // 30: harness.sync.v1.DeleteDocumentResponse.conflict:type_name -> harness.sync.v1.Conflict
-	37, // 31: harness.sync.v1.SessionMetadata.info:type_name -> harness.agent.v1.SessionInfo
+	39, // 31: harness.sync.v1.SessionMetadata.info:type_name -> harness.agent.v1.SessionInfo
 	24, // 32: harness.sync.v1.UpsertSessionRequest.session:type_name -> harness.sync.v1.SessionMetadata
 	24, // 33: harness.sync.v1.UpsertSessionResponse.session:type_name -> harness.sync.v1.SessionMetadata
 	27, // 34: harness.sync.v1.AppendSessionEventsRequest.entries:type_name -> harness.sync.v1.TranscriptEntry
 	24, // 35: harness.sync.v1.GetSessionResponse.session:type_name -> harness.sync.v1.SessionMetadata
-	38, // 36: harness.sync.v1.ListSessionsRequest.statuses:type_name -> harness.agent.v1.SessionStatus
+	40, // 36: harness.sync.v1.ListSessionsRequest.statuses:type_name -> harness.agent.v1.SessionStatus
 	24, // 37: harness.sync.v1.ListSessionsResponse.sessions:type_name -> harness.sync.v1.SessionMetadata
 	27, // 38: harness.sync.v1.GetSessionTranscriptResponse.entries:type_name -> harness.sync.v1.TranscriptEntry
 	5,  // 39: harness.sync.v1.SyncService.ListChanges:input_type -> harness.sync.v1.ListChangesRequest
@@ -2882,19 +2969,21 @@ var file_harness_sync_v1_sync_proto_depIdxs = []int32{
 	30, // 47: harness.sync.v1.SyncService.GetSession:input_type -> harness.sync.v1.GetSessionRequest
 	32, // 48: harness.sync.v1.SyncService.ListSessions:input_type -> harness.sync.v1.ListSessionsRequest
 	34, // 49: harness.sync.v1.SyncService.GetSessionTranscript:input_type -> harness.sync.v1.GetSessionTranscriptRequest
-	6,  // 50: harness.sync.v1.SyncService.ListChanges:output_type -> harness.sync.v1.ListChangesResponse
-	8,  // 51: harness.sync.v1.SyncService.WatchChanges:output_type -> harness.sync.v1.WatchChangesResponse
-	14, // 52: harness.sync.v1.SyncService.GetDocument:output_type -> harness.sync.v1.GetDocumentResponse
-	16, // 53: harness.sync.v1.SyncService.PutDocument:output_type -> harness.sync.v1.PutDocumentResponse
-	19, // 54: harness.sync.v1.SyncService.BatchPutDocuments:output_type -> harness.sync.v1.BatchPutDocumentsResponse
-	23, // 55: harness.sync.v1.SyncService.DeleteDocument:output_type -> harness.sync.v1.DeleteDocumentResponse
-	26, // 56: harness.sync.v1.SyncService.UpsertSession:output_type -> harness.sync.v1.UpsertSessionResponse
-	29, // 57: harness.sync.v1.SyncService.AppendSessionEvents:output_type -> harness.sync.v1.AppendSessionEventsResponse
-	31, // 58: harness.sync.v1.SyncService.GetSession:output_type -> harness.sync.v1.GetSessionResponse
-	33, // 59: harness.sync.v1.SyncService.ListSessions:output_type -> harness.sync.v1.ListSessionsResponse
-	35, // 60: harness.sync.v1.SyncService.GetSessionTranscript:output_type -> harness.sync.v1.GetSessionTranscriptResponse
-	50, // [50:61] is the sub-list for method output_type
-	39, // [39:50] is the sub-list for method input_type
+	36, // 50: harness.sync.v1.SyncService.DeleteSession:input_type -> harness.sync.v1.DeleteSessionRequest
+	6,  // 51: harness.sync.v1.SyncService.ListChanges:output_type -> harness.sync.v1.ListChangesResponse
+	8,  // 52: harness.sync.v1.SyncService.WatchChanges:output_type -> harness.sync.v1.WatchChangesResponse
+	14, // 53: harness.sync.v1.SyncService.GetDocument:output_type -> harness.sync.v1.GetDocumentResponse
+	16, // 54: harness.sync.v1.SyncService.PutDocument:output_type -> harness.sync.v1.PutDocumentResponse
+	19, // 55: harness.sync.v1.SyncService.BatchPutDocuments:output_type -> harness.sync.v1.BatchPutDocumentsResponse
+	23, // 56: harness.sync.v1.SyncService.DeleteDocument:output_type -> harness.sync.v1.DeleteDocumentResponse
+	26, // 57: harness.sync.v1.SyncService.UpsertSession:output_type -> harness.sync.v1.UpsertSessionResponse
+	29, // 58: harness.sync.v1.SyncService.AppendSessionEvents:output_type -> harness.sync.v1.AppendSessionEventsResponse
+	31, // 59: harness.sync.v1.SyncService.GetSession:output_type -> harness.sync.v1.GetSessionResponse
+	33, // 60: harness.sync.v1.SyncService.ListSessions:output_type -> harness.sync.v1.ListSessionsResponse
+	35, // 61: harness.sync.v1.SyncService.GetSessionTranscript:output_type -> harness.sync.v1.GetSessionTranscriptResponse
+	37, // 62: harness.sync.v1.SyncService.DeleteSession:output_type -> harness.sync.v1.DeleteSessionResponse
+	51, // [51:63] is the sub-list for method output_type
+	39, // [39:51] is the sub-list for method input_type
 	39, // [39:39] is the sub-list for extension type_name
 	39, // [39:39] is the sub-list for extension extendee
 	0,  // [0:39] is the sub-list for field type_name
@@ -2944,7 +3033,7 @@ func file_harness_sync_v1_sync_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_sync_v1_sync_proto_rawDesc), len(file_harness_sync_v1_sync_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   35,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
