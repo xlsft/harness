@@ -222,6 +222,9 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 	case *relayv1.Command_SetOutputStyle:
 		_, err := b.SetOutputStyle(ctx, connect.NewRequest(&agentv1.SetOutputStyleRequest{SessionId: sid, Style: p.SetOutputStyle.GetStyle()}))
 		return errAck(id, err, false)
+	case *relayv1.Command_SetAutoContinue:
+		_, err := b.SetAutoContinue(ctx, connect.NewRequest(&agentv1.SetAutoContinueRequest{SessionId: sid, Enabled: p.SetAutoContinue.GetEnabled()}))
+		return errAck(id, err, false)
 	case *relayv1.Command_RemoveQueuedMessage:
 		res, err := b.RemoveQueuedMessage(ctx, connect.NewRequest(&agentv1.RemoveQueuedMessageRequest{SessionId: sid, Uuid: p.RemoveQueuedMessage.GetUuid()}))
 		a := errAck(id, err, false)

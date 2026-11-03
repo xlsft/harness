@@ -55,6 +55,8 @@ type Status struct {
 	ResetsAt    string `json:"resetsAt,omitempty"`
 	BalanceText string `json:"balanceText,omitempty"`
 	WrappedUp   bool   `json:"wrappedUp,omitempty"`
+	// Interrupted: the provider's refusal cut the last turn off and nothing has continued it yet.
+	Interrupted bool `json:"interrupted,omitempty"`
 }
 
 // withoutNumbers keeps the provider and state only.
@@ -92,6 +94,52 @@ type Snapshot struct {
 	Windows                  []Window
 	Balance                  *Balance
 	Spend                    *Spend
+}
+
+// Visible reports whether the snapshot has a block that can tell whether the provider is out (nil, or with every
+// block hidden by the server's policies: it cannot).
+func (s *Snapshot) Visible() bool {
+	if s == nil {
+		return false
+	}
+	return len(s.Windows) > 0 || (s.Balance != nil && s.Balance.Left != nil) || (s.Spend != nil && s.Spend.Budget != nil)
+}
+
+// Exhausted returns the Reached state of a snapshot with a block that is fully used: no balance left (no reset
+// time), the monthly budget spent, or a rate-limit window at 100% that has not reset (the one that resets last, as
+// the provider stays out until then). Windows whose reset time has passed are ignored, like in Evaluate.
+func Exhausted(s *Snapshot, now time.Time) (Status, bool) {
+	if s == nil {
+		return Status{}, false
+	}
+	reached := Status{State: Reached, ProviderID: s.ProviderID, ProviderName: s.ProviderName}
+	if b := s.Balance; b != nil && b.Left != nil && *b.Left <= 0 {
+		label := b.Label
+		if label == "" {
+			label = "credits"
+		}
+		reached.WindowLabel, reached.BalanceText = label, Money(0, b.Currency)+" left"
+		return reached, true
+	}
+	if sp := s.Spend; sp != nil && sp.Budget != nil && *sp.Budget > 0 && sp.Spent >= *sp.Budget {
+		reached.WindowLabel, reached.UsedPercent, reached.ResetsAt, reached.BalanceText = "monthly budget", 100, nextMonth(sp.PeriodStart, now), Money(0, "USD")+" left"
+		return reached, true
+	}
+	found := false
+	for _, w := range s.Windows {
+		if w.UsedPercent < 100 {
+			continue
+		}
+		t, err := time.Parse(time.RFC3339, w.ResetsAt)
+		if err == nil && !t.After(now) {
+			continue
+		}
+		if !found || (err == nil && utc(w.ResetsAt) > reached.ResetsAt) {
+			found = true
+			reached.WindowLabel, reached.UsedPercent, reached.ResetsAt = w.Label, clampPct(w.UsedPercent), utc(w.ResetsAt)
+		}
+	}
+	return reached, found
 }
 
 func rank(s State) int {
@@ -252,7 +300,7 @@ func (t *Tracker) Observe(s Status) *Status {
 		if prev.State == None || prev.State == Cleared {
 			return nil
 		}
-		ev := Status{State: Cleared, ProviderID: s.ProviderID, ProviderName: s.ProviderName}
+		ev := Status{State: Cleared, ProviderID: s.ProviderID, ProviderName: s.ProviderName, Interrupted: s.Interrupted}
 		if ev.ProviderID == "" && ev.ProviderName == "" {
 			ev.ProviderID, ev.ProviderName = prev.ProviderID, prev.ProviderName
 		}
@@ -260,10 +308,16 @@ func (t *Tracker) Observe(s Status) *Status {
 		return &ev
 	}
 	t.last = s
-	if s.State == prev.State && s.ProviderID == prev.ProviderID && s.WindowLabel == prev.WindowLabel {
+	if s.State == prev.State && s.ProviderID == prev.ProviderID && s.WindowLabel == prev.WindowLabel && s.Interrupted == prev.Interrupted {
 		return nil
 	}
 	return &s
+}
+
+// Set records a state as published, whatever the last one was.
+func (t *Tracker) Set(s Status) {
+	s.WrappedUp = false
+	t.last = s
 }
 
 // ReminderVars are the placeholders of the usage_limit_wrap_up reminder for a status.
@@ -304,4 +358,21 @@ func ReminderVars(s Status, loc *time.Location) map[string]string {
 // WrapUpFallback is the usage_limit_wrap_up reminder used when the prompt bundle has none.
 const WrapUpFallback = `<system-reminder>
 The user's usage on {{provider}} is nearly used up ({{detail}}). Requests may start being refused soon, and the rest of this turn could be cut off. Bring the turn to an orderly end: finish the step you are on, but do not begin new large pieces of work or long explorations. Leave the code and any files in a consistent state, with no half-applied edits. Then stop and give the user a short summary of what is done and what remains, so they can continue after {{resets}}. You may say briefly that you are stopping because of the usage limit.
+</system-reminder>`
+
+// ReturnedVars are the placeholders of the usage_limit_returned reminder for the state that cut the turn off.
+func ReturnedVars(s Status) map[string]string {
+	provider := s.ProviderName
+	if provider == "" {
+		provider = s.ProviderID
+	}
+	if provider == "" {
+		provider = "the model provider"
+	}
+	return map[string]string{"provider": provider}
+}
+
+// ReturnedFallback is the usage_limit_returned reminder used when the prompt bundle has none.
+const ReturnedFallback = `<system-reminder>
+The usage limit on {{provider}} that cut off the previous turn has lifted, and requests are going through again. Pick up the interrupted work from the point where it stopped: look at what was already done before repeating anything, and carry on from there. A user message next to this reminder was sent while the limit was in force, so take it into account. If nothing was left unfinished, say so in one sentence and stop.
 </system-reminder>`

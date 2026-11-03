@@ -5,6 +5,8 @@
 // - a message sent while idle starts a turn: thinking and text deltas, then a tool call;
 //   "plan" in the text proposes a plan, "ask"/"question" asks a question, otherwise a Bash call asks for permission;
 // - a message sent while a turn runs is queued (QueueChanged) and starts the next turn;
+// - a message containing "limit reached" drives REACHED with a reset 30 s away: later messages are held, and they go
+//   out at the reset or on a switch to a model of another provider; setAutoContinue continues a cut-off turn at the reset;
 // - Interrupt ends the turn as interrupted; permission, question and plan answers resume it;
 // - a shell-mode command runs in a tiny scripted shell (./mockShell.ts) without a turn;
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
@@ -52,9 +54,12 @@ import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, Subs
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import type { BackgroundReasonName, QuestionReply } from '~/lib/session/types'
-import { backgroundReasonPb, permissionModeName, permissionModePb } from '~/lib/session/reducer'
+import { backgroundReasonPb, permissionModeName, permissionModePb, usageLimitVM } from '~/lib/session/reducer'
 
 // Folders and a small directory tree for the new-session pickers.
+// How far away the reset of a "limit reached" message is.
+const LIMIT_RESET_MS = 30_000
+
 const MOCK_HOME = '/Users/xlsft'
 // The private directory of a session without a folder (the client's HARNESS_HOME/chats/<id>).
 const mockChatDir = (id: string) => `${MOCK_HOME}/.harness/chats/${id}`
@@ -93,8 +98,10 @@ interface MockSession {
   seq: number
   listeners: Set<SubscribeHandlers>
   working: boolean
-  queue: { uuid: string, text: string, queuedAt: number }[]
+  queue: { uuid: string, text: string, queuedAt: number, held?: boolean }[]
   timers: ReturnType<typeof setTimeout>[]
+  // The provider of the model is out of usage (REACHED): messages are held until the reset timer or a model switch.
+  limit?: { timer: ReturnType<typeof setTimeout>, model: string, providerName: string } | null
   // Continuation after a permission / question / plan answer.
   waiting: { requestId: string, question?: boolean, resume: (b: EventBuilder, decision: number, reply?: MockReply) => number } | null
   turn: number
@@ -463,6 +470,17 @@ export class MockTransport implements SessionTransport {
   async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
     const s = this.get(sessionId)
     if (s.info.acp?.needsAuth) throw new Error(`[failed_precondition] ${s.info.acp.agentName} needs you to sign in first`)
+    if (s.limit) {
+      // Held, like the client; Send now tries at once, and the mock's provider refuses until the reset.
+      if (!s.queue.some(q => q.uuid === uuid)) {
+        s.queue.push({ uuid, text, queuedAt: this.now(), held: true })
+        this.emit(s, b => b.queue(s.queue))
+      }
+      if (delivery === SendUserMessageRequest_Delivery.NOW) {
+        this.emit(s, b => b.notice('warning', 'usage_limit_still_reached', 'The provider is still refusing requests; the message stays held.'))
+      }
+      return
+    }
     if (s.working) {
       // Queued (QueueChanged); NOW stops the turn so the message starts the next one, like the client.
       if (!s.queue.some(q => q.uuid === uuid)) {
@@ -504,7 +522,7 @@ export class MockTransport implements SessionTransport {
     return { restoredPrompt, filesRestored: 0 }
   }
 
-  private startTurn(s: MockSession, uuid: string, body: string) {
+  private startTurn(s: MockSession, uuid: string, body: string, clientIds: string[] = [uuid]) {
     if (this.isAcp(s.info.id)) return this.acpTurn(s, uuid, body)
     s.working = true
     s.turn += 1
@@ -513,9 +531,14 @@ export class MockTransport implements SessionTransport {
     const msg = `live-${n}`
     this.emit(s, (b) => {
       b.checkpoint(uuid, body)
-      b.user(uuid, body, [uuid])
+      b.user(uuid, body, clientIds)
       b.turnStarted(uuid, s.info.model)
     })
+
+    if (body.toLowerCase().includes('limit reached')) {
+      this.later(s, this.tick * 6, () => this.reachLimit(s, startedAt))
+      return
+    }
 
     if (body.trim().startsWith('/compact')) {
       this.later(s, 600, () => this.emit(s, (b) => {
@@ -585,6 +608,63 @@ export class MockTransport implements SessionTransport {
     }
   }
 
+  // The provider refuses the turn: REACHED until the reset 30 s away (a real timer, also for a synchronous mock).
+  private reachLimit(s: MockSession, startedAt: number) {
+    const providerName = MODELS.find(m => m.id === s.info.model)?.provider || 'Anthropic'
+    const resetsAt = new Date(this.now() + LIMIT_RESET_MS).toISOString().replace(/\.\d{3}Z$/, 'Z')
+    s.limit = { timer: setTimeout(() => this.limitReturned(s, true), LIMIT_RESET_MS), model: s.info.model, providerName }
+    this.emit(s, (b) => {
+      this.reportUsage(s, b, { state: 'reached', providerId: providerName.toLowerCase(), providerName, windowLabel: '5h', usedPercent: 100, resetsAt, interrupted: true, autoContinue: s.info.autoContinue })
+      b.turnFinished('error', { durationMs: this.now() - startedAt, error: `${providerName} usage limit reached` })
+      // Like the client: the session is idle while the limit holds its messages, and the composer stays usable.
+      s.info = { ...s.info, status: SessionStatus.IDLE }
+      b.sessionUpdated(s.info)
+    })
+    this.finishTurn(s)
+  }
+
+  private reportUsage(s: MockSession, b: EventBuilder, u: UsageLimitInit) {
+    const ev = b.usageLimit(u)
+    if (ev.event.case === 'usageLimit') s.info.usageLimit = ev.event.value
+  }
+
+  // The limit is over (its reset, or a model of another provider): the banner goes, and held messages go out as one
+  // turn. With auto-continue on, a cut-off turn continues; a switch alone starts no turn, as in the client.
+  private limitReturned(s: MockSession, maySelfStart: boolean, provider = s.limit?.providerName ?? '') {
+    if (!s.limit) return
+    clearTimeout(s.limit.timer)
+    s.limit = null
+    const interrupted = !!s.info.usageLimit?.interrupted
+    const held = s.queue.splice(0)
+    const cont = s.info.autoContinue && interrupted && (maySelfStart || held.length > 0)
+    this.emit(s, (b) => {
+      this.reportUsage(s, b, { state: 'cleared', providerId: provider.toLowerCase(), providerName: provider, interrupted: interrupted && !cont, autoContinue: s.info.autoContinue })
+      if (held.length) b.queue([])
+    })
+    if (held.length) {
+      this.startTurn(s, held[0]!.uuid, held.map(q => q.text).join('\n\n'), held.map(q => q.uuid))
+      return
+    }
+    if (cont) this.continueTurn(s)
+  }
+
+  // A turn without a message: the model carries on where the limit cut it off.
+  private continueTurn(s: MockSession) {
+    s.working = true
+    s.turn += 1
+    const msg = `live-${s.turn}`
+    const startedAt = this.now()
+    this.emit(s, b => b.turnStarted(msg, s.info.model))
+    const body = 'The limit is back, so I am picking up where the last turn stopped.'
+    this.stream(s, msg, 0, 'text', body, () => {
+      this.emit(s, (b) => {
+        b.assistant(msg, s.info.model, [{ text: body }], { input: 2000, output: 40 })
+        b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.01, usage: { input: 2000, output: 40 } })
+      })
+      this.finishTurn(s)
+    })
+  }
+
   // The provider runs low during the turn: NEAR after the first response, WRAP_UP after the tool call (the client
   // would remind the model to wrap up here), then a short summary and the turn ends with wrapped_up.
   private usageLimitFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
@@ -592,10 +672,7 @@ export class MockTransport implements SessionTransport {
     const input = { file_path: 'packages/core/src/gateway/errors.ts' }
     const resetsAt = new Date(this.now() + 3 * 3600_000).toISOString().replace(/\.\d{3}Z$/, 'Z')
     const limit = { providerId: 'anthropic', providerName: 'Anthropic', windowLabel: '5h', resetsAt }
-    const report = (b: EventBuilder, u: UsageLimitInit) => {
-      const ev = b.usageLimit(u)
-      if (ev.event.case === 'usageLimit') s.info.usageLimit = ev.event.value
-    }
+    const report = (b: EventBuilder, u: UsageLimitInit) => this.reportUsage(s, b, u)
     this.emit(s, (b) => {
       b.assistant(msg, s.info.model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'Read', input } }], { input: 31_000, output: 600 })
       report(b, { state: 'near', usedPercent: 92, ...limit })
@@ -811,6 +888,14 @@ export class MockTransport implements SessionTransport {
 
   private finishTurn(s: MockSession) {
     s.working = false
+    if (s.limit) {
+      // The turn was refused: what waits stays, held.
+      if (s.queue.length) {
+        s.queue = s.queue.map(q => ({ ...q, held: true }))
+        this.emit(s, b => b.queue(s.queue))
+      }
+      return
+    }
     const next = s.queue.shift()
     if (next) {
       this.emit(s, b => b.queue(s.queue))
@@ -886,6 +971,21 @@ export class MockTransport implements SessionTransport {
     const s = this.get(sessionId)
     s.info = { ...s.info, model }
     this.emit(s, b => b.sessionUpdated(s.info))
+    // A model of another provider ends the limit for this session; one of the same provider changes nothing.
+    const provider = MODELS.find(m => m.id === model)?.provider
+    if (s.limit && provider !== s.limit.providerName) this.limitReturned(s, false, provider ?? model)
+  }
+
+  async setAutoContinue(sessionId: string, enabled: boolean) {
+    const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Continuing when limits return')
+    const u = s.info.usageLimit
+    s.info = { ...s.info, autoContinue: enabled, ...(u && { usageLimit: { ...u, autoContinue: enabled } }) }
+    this.emit(s, (b) => {
+      const v = s.info.usageLimit
+      if (v) b.usageLimit({ state: usageLimitVM(v)?.state ?? 'near', providerId: v.providerId, providerName: v.providerName, windowLabel: v.windowLabel, usedPercent: v.usedPercent, resetsAt: v.resetsAt, balanceText: v.balanceText, wrappedUp: v.wrappedUp, interrupted: v.interrupted, autoContinue: enabled })
+      b.sessionUpdated(s.info)
+    })
   }
 
   async setEffort(_sessionId: string, _effort: Effort) {}

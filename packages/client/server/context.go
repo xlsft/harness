@@ -92,7 +92,7 @@ func (ls *liveSession) runCompaction(f func() (agent.CompactInfo, error)) (agent
 	err := ls.driver.Exclusive(func() {
 		ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_WORKING)
 		info, cerr = f()
-		if ls.sess.Agent.QueueLen() == 0 {
+		if ls.sess.Agent.QueueLen() == 0 || ls.driver.Held() {
 			ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_IDLE)
 		}
 	})

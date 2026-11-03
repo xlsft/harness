@@ -257,6 +257,13 @@ service AgentService {
   rpc CloseBrowser(CloseBrowserRequest) returns (CloseBrowserResponse);
   // Deletes the cookies, cache and storage of the session's browser profile.
   rpc ClearBrowserData(ClearBrowserDataRequest) returns (ClearBrowserDataResponse);
+
+  // ---- Usage limits ----
+
+  // Turns "continue when limits return" on or off for a session (off by default, recorded in its transcript):
+  // when the limit resets and the last turn was cut off by it, the client continues the work by itself. Held
+  // messages go out at the reset either way. ACP sessions refuse it (FAILED_PRECONDITION).
+  rpc SetAutoContinue(SetAutoContinueRequest) returns (SetAutoContinueResponse);
 }
 
 enum PermissionMode {
@@ -389,6 +396,8 @@ message SessionInfo {
   // The latest usage-limit state of the session's provider (the last SessionEvent.usage_limit); absent when
   // nothing was reported. Only for the user's own frontends: it never carries numbers the user may not see.
   optional UsageLimit usage_limit = 30;
+  // "Continue when limits return" is on for the session (SetAutoContinue).
+  bool auto_continue = 31;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -789,6 +798,11 @@ message UserMessage {
   repeated string client_uuids = 3;
   // QueueChanged only: RFC 3339, UTC, when the client queued the message.
   string queued_at = 4;
+  // QueueChanged only: the provider of the session's model is out of usage (UsageLimit.STATE_REACHED), so the
+  // client holds the message instead of starting a turn that would fail. It goes out by itself when the limit
+  // resets or the session moves to a model of a provider that is fine. RemoveQueuedMessage takes it back like any
+  // queued message; SendUserMessage with the same uuid and DELIVERY_NOW tries at once ("Send now").
+  bool held = 5;
 }
 
 // Streaming fragment of the assistant message `message_id`.
@@ -932,7 +946,7 @@ message QuestionOption {
   bool recommended = 3;
 }
 
-// The client's queue of messages sent while a turn runs, in order (full replacement). A message leaves it when it
+// The client's queue of messages sent while a turn runs or the usage limit holds them, in order (full replacement). A message leaves it when it
 // is injected into the running turn or starts the next one (a UserMessage event with its client_uuids follows),
 // is taken back (RemoveQueuedMessage) or becomes a question's answer (QUESTION_OUTCOME_MESSAGE).
 message QueueChanged {
@@ -994,6 +1008,11 @@ message UsageLimit {
   string balance_text = 7;
   // The turn ended after the wrap-up reminder.
   bool wrapped_up = 8;
+  // The last turn was cut off by the limit and has not been continued. Kept on STATE_CLEARED until the next turn
+  // starts.
+  bool interrupted = 9;
+  // "Continue when limits return" is on for the session (SetAutoContinue).
+  bool auto_continue = 10;
 }
 
 message Notice {
@@ -1094,6 +1113,13 @@ message SetModelRequest {
 }
 
 message SetModelResponse {}
+
+message SetAutoContinueRequest {
+  string session_id = 1;
+  bool enabled = 2;
+}
+
+message SetAutoContinueResponse {}
 
 message SetEffortRequest {
   string session_id = 1;

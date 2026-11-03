@@ -1,8 +1,10 @@
 // Delivery state of the user's messages and the actions under each one (copy, rewind, fork, cancel, send now).
 //
 // A message the user typed goes through:
-// - queued: waiting in this browser's local queue (typed while a turn runs) or in the client's queue
-//   (QueueChanged: sent while a question waits, Send now while a turn runs, or behind other messages);
+// - queued: waiting in the client's queue (QueueChanged: sent while a turn runs or a question waits, or behind other
+//   messages);
+// - held: waiting in the client's queue because the provider is out of usage: it goes out by itself when the limit
+//   resets or the session moves to a model of a provider that is fine; Send now tries at once;
 // - sending: the SendUserMessage call is in flight;
 // - sent (one check): the client accepted it and it waits in no queue, the agent has not taken it yet;
 // - read (two checks): the agent took it — its turn started with it or it was injected into the running turn.
@@ -11,7 +13,7 @@
 
 import type { SessionState, UserItem } from './types'
 
-export type Delivery = 'queued' | 'sending' | 'sent' | 'read'
+export type Delivery = 'queued' | 'held' | 'sending' | 'sent' | 'read'
 
 // A message this browser handed to the client (SendUserMessage), until the stream shows it queued or read.
 export interface OutboxEntry {
@@ -30,7 +32,7 @@ export interface PendingMessage {
   // Where it waits: the browser's queue, the client's queue, or handed over (sending / sent).
   where: 'client' | 'outbox'
   at: number
-  // 1-based place among the waiting (queued) messages, 0 when not queued.
+  // 1-based place among the waiting (queued or held) messages, 0 when not waiting.
   position: number
 }
 
@@ -41,11 +43,11 @@ export function pendingMessages(s: SessionState, outbox: OutboxEntry[] = []): Pe
   const handed = outbox.filter(o => !s.delivered[o.id] && !inClient.has(o.id))
   const sentAt = new Map(outbox.map(o => [o.id, o.at]))
   const waiting = [
-    ...s.queue.filter(q => !s.delivered[q.id]).map(q => ({ id: q.id, text: q.text, where: 'client' as const, at: q.at || sentAt.get(q.id) || 0 }))
+    ...s.queue.filter(q => !s.delivered[q.id]).map(q => ({ id: q.id, text: q.text, held: !!q.held, where: 'client' as const, at: q.at || sentAt.get(q.id) || 0 }))
   ]
   return [
     ...handed.map(o => ({ id: o.id, text: o.text, delivery: o.state, where: 'outbox' as const, at: o.at, position: 0 })),
-    ...waiting.map((q, i) => ({ ...q, delivery: 'queued' as const, position: i + 1 }))
+    ...waiting.map(({ held, ...q }, i) => ({ ...q, delivery: held ? 'held' as const : 'queued' as const, position: i + 1 }))
   ]
 }
 
@@ -76,12 +78,12 @@ export interface MessageActions {
 // - Copy: always;
 // - Rewind: on read messages of a session driven from here, disabled while a turn runs (the client rewinds only
 //   an idle session) and on messages not sent yet;
-// - Fork: on read and queued messages (a queued one forks the whole conversation and puts its text in the
+// - Fork: on read and waiting messages (a waiting one forks the whole conversation and puts its text in the
 //   fork's composer), disabled while it is being handed over;
-// - Cancel and Send now: only on queued messages.
+// - Cancel and Send now: only on waiting (queued or held) messages.
 // A read-only session (another machine's) offers Copy only.
 export function messageActions(delivery: Delivery, ctx: { busy: boolean, readOnly: boolean }): MessageActions {
-  const queued = delivery === 'queued'
+  const queued = delivery === 'queued' || delivery === 'held'
   const read = delivery === 'read'
   if (ctx.readOnly) return { copy: 'enabled', rewind: 'hidden', fork: 'hidden', cancel: 'hidden', sendNow: 'hidden', rewindHint: '' }
   const rewindHint = !read ? 'Not sent yet' : ctx.busy ? 'Stop the turn to rewind' : ''

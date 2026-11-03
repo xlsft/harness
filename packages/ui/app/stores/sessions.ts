@@ -726,6 +726,10 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.setModel(id, model)
     },
 
+    async setAutoContinue(id: string, on: boolean) {
+      await this.transport?.setAutoContinue(id, on)
+    },
+
     async setEffort(id: string, effort: EffortName) {
       this.effort[id] = effort
       await this.transport?.setEffort(id, EFFORT_TO_PB[effort])

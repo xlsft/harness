@@ -501,7 +501,16 @@ func (a *Agent) DrainQueue() []llm.ContentBlock {
 // queued messages it came from (messages enqueued without an id are left
 // out of ids).
 func (a *Agent) DrainQueueIDs() ([]llm.ContentBlock, []string) {
+	out, ids := a.takeQueue()
+	a.noteDrained(out)
+	return out, ids
+}
+
+// takeQueue removes and returns the queued content; noteDrained must follow, outside any lock of the caller (it
+// emits an event).
+func (a *Agent) takeQueue() ([]llm.ContentBlock, []string) {
 	a.mu.Lock()
+	defer a.mu.Unlock()
 	var out []llm.ContentBlock
 	var ids []string
 	for _, q := range a.queue {
@@ -511,12 +520,14 @@ func (a *Agent) DrainQueueIDs() ([]llm.ContentBlock, []string) {
 		}
 	}
 	a.queue = nil
-	a.mu.Unlock()
+	return out, ids
+}
+
+func (a *Agent) noteDrained(out []llm.ContentBlock) {
 	if len(out) > 0 {
 		a.notePrompt(out)
 		a.emit(Event{Kind: EventQueueDrained})
 	}
-	return out, ids
 }
 
 // maxPrompts is how many recent user prompts are kept for the auto-mode decider.

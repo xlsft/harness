@@ -917,7 +917,7 @@ func (x RespondToPlanRequest_Decision) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RespondToPlanRequest_Decision.Descriptor instead.
 func (RespondToPlanRequest_Decision) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{77, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{79, 0}
 }
 
 type RewindRequest_Mode int32
@@ -977,7 +977,7 @@ func (x RewindRequest_Mode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RewindRequest_Mode.Descriptor instead.
 func (RewindRequest_Mode) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{81, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{83, 0}
 }
 
 type ContextUsage_Category int32
@@ -1049,7 +1049,7 @@ func (x ContextUsage_Category) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ContextUsage_Category.Descriptor instead.
 func (ContextUsage_Category) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{87, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{89, 0}
 }
 
 type InitializeRequest struct {
@@ -1400,7 +1400,9 @@ type SessionInfo struct {
 	RelayUnavailableReason string `protobuf:"bytes,29,opt,name=relay_unavailable_reason,json=relayUnavailableReason,proto3" json:"relay_unavailable_reason,omitempty"`
 	// The latest usage-limit state of the session's provider (the last SessionEvent.usage_limit); absent when
 	// nothing was reported. Only for the user's own frontends: it never carries numbers the user may not see.
-	UsageLimit    *UsageLimit `protobuf:"bytes,30,opt,name=usage_limit,json=usageLimit,proto3,oneof" json:"usage_limit,omitempty"`
+	UsageLimit *UsageLimit `protobuf:"bytes,30,opt,name=usage_limit,json=usageLimit,proto3,oneof" json:"usage_limit,omitempty"`
+	// "Continue when limits return" is on for the session (SetAutoContinue).
+	AutoContinue  bool `protobuf:"varint,31,opt,name=auto_continue,json=autoContinue,proto3" json:"auto_continue,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1643,6 +1645,13 @@ func (x *SessionInfo) GetUsageLimit() *UsageLimit {
 		return x.UsageLimit
 	}
 	return nil
+}
+
+func (x *SessionInfo) GetAutoContinue() bool {
+	if x != nil {
+		return x.AutoContinue
+	}
+	return false
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -4572,7 +4581,12 @@ type UserMessage struct {
 	// markers, older transcripts).
 	ClientUuids []string `protobuf:"bytes,3,rep,name=client_uuids,json=clientUuids,proto3" json:"client_uuids,omitempty"`
 	// QueueChanged only: RFC 3339, UTC, when the client queued the message.
-	QueuedAt      string `protobuf:"bytes,4,opt,name=queued_at,json=queuedAt,proto3" json:"queued_at,omitempty"`
+	QueuedAt string `protobuf:"bytes,4,opt,name=queued_at,json=queuedAt,proto3" json:"queued_at,omitempty"`
+	// QueueChanged only: the provider of the session's model is out of usage (UsageLimit.STATE_REACHED), so the
+	// client holds the message instead of starting a turn that would fail. It goes out by itself when the limit
+	// resets or the session moves to a model of a provider that is fine. RemoveQueuedMessage takes it back like any
+	// queued message; SendUserMessage with the same uuid and DELIVERY_NOW tries at once ("Send now").
+	Held          bool `protobuf:"varint,5,opt,name=held,proto3" json:"held,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4633,6 +4647,13 @@ func (x *UserMessage) GetQueuedAt() string {
 		return x.QueuedAt
 	}
 	return ""
+}
+
+func (x *UserMessage) GetHeld() bool {
+	if x != nil {
+		return x.Held
+	}
+	return false
 }
 
 // Streaming fragment of the assistant message `message_id`.
@@ -5522,7 +5543,7 @@ func (x *QuestionOption) GetRecommended() bool {
 	return false
 }
 
-// The client's queue of messages sent while a turn runs, in order (full replacement). A message leaves it when it
+// The client's queue of messages sent while a turn runs or the usage limit holds them, in order (full replacement). A message leaves it when it
 // is injected into the running turn or starts the next one (a UserMessage event with its client_uuids follows),
 // is taken back (RemoveQueuedMessage) or becomes a question's answer (QUESTION_OUTCOME_MESSAGE).
 type QueueChanged struct {
@@ -5680,7 +5701,12 @@ type UsageLimit struct {
 	// What is left of a balance or budget, e.g. "$0.40 left"; empty when not applicable or hidden.
 	BalanceText string `protobuf:"bytes,7,opt,name=balance_text,json=balanceText,proto3" json:"balance_text,omitempty"`
 	// The turn ended after the wrap-up reminder.
-	WrappedUp     bool `protobuf:"varint,8,opt,name=wrapped_up,json=wrappedUp,proto3" json:"wrapped_up,omitempty"`
+	WrappedUp bool `protobuf:"varint,8,opt,name=wrapped_up,json=wrappedUp,proto3" json:"wrapped_up,omitempty"`
+	// The last turn was cut off by the limit and has not been continued. Kept on STATE_CLEARED until the next turn
+	// starts.
+	Interrupted bool `protobuf:"varint,9,opt,name=interrupted,proto3" json:"interrupted,omitempty"`
+	// "Continue when limits return" is on for the session (SetAutoContinue).
+	AutoContinue  bool `protobuf:"varint,10,opt,name=auto_continue,json=autoContinue,proto3" json:"auto_continue,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5767,6 +5793,20 @@ func (x *UsageLimit) GetBalanceText() string {
 func (x *UsageLimit) GetWrappedUp() bool {
 	if x != nil {
 		return x.WrappedUp
+	}
+	return false
+}
+
+func (x *UsageLimit) GetInterrupted() bool {
+	if x != nil {
+		return x.Interrupted
+	}
+	return false
+}
+
+func (x *UsageLimit) GetAutoContinue() bool {
+	if x != nil {
+		return x.AutoContinue
 	}
 	return false
 }
@@ -6513,6 +6553,94 @@ func (*SetModelResponse) Descriptor() ([]byte, []int) {
 	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{70}
 }
 
+type SetAutoContinueRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Enabled       bool                   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAutoContinueRequest) Reset() {
+	*x = SetAutoContinueRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAutoContinueRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAutoContinueRequest) ProtoMessage() {}
+
+func (x *SetAutoContinueRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAutoContinueRequest.ProtoReflect.Descriptor instead.
+func (*SetAutoContinueRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *SetAutoContinueRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *SetAutoContinueRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+type SetAutoContinueResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAutoContinueResponse) Reset() {
+	*x = SetAutoContinueResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAutoContinueResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAutoContinueResponse) ProtoMessage() {}
+
+func (x *SetAutoContinueResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAutoContinueResponse.ProtoReflect.Descriptor instead.
+func (*SetAutoContinueResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{72}
+}
+
 type SetEffortRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -6523,7 +6651,7 @@ type SetEffortRequest struct {
 
 func (x *SetEffortRequest) Reset() {
 	*x = SetEffortRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[71]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6535,7 +6663,7 @@ func (x *SetEffortRequest) String() string {
 func (*SetEffortRequest) ProtoMessage() {}
 
 func (x *SetEffortRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[71]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6548,7 +6676,7 @@ func (x *SetEffortRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEffortRequest.ProtoReflect.Descriptor instead.
 func (*SetEffortRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{71}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *SetEffortRequest) GetSessionId() string {
@@ -6573,7 +6701,7 @@ type SetEffortResponse struct {
 
 func (x *SetEffortResponse) Reset() {
 	*x = SetEffortResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[72]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6585,7 +6713,7 @@ func (x *SetEffortResponse) String() string {
 func (*SetEffortResponse) ProtoMessage() {}
 
 func (x *SetEffortResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[72]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6598,7 +6726,7 @@ func (x *SetEffortResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEffortResponse.ProtoReflect.Descriptor instead.
 func (*SetEffortResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{72}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{74}
 }
 
 type SetPermissionModeRequest struct {
@@ -6611,7 +6739,7 @@ type SetPermissionModeRequest struct {
 
 func (x *SetPermissionModeRequest) Reset() {
 	*x = SetPermissionModeRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[73]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6623,7 +6751,7 @@ func (x *SetPermissionModeRequest) String() string {
 func (*SetPermissionModeRequest) ProtoMessage() {}
 
 func (x *SetPermissionModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[73]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6636,7 +6764,7 @@ func (x *SetPermissionModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPermissionModeRequest.ProtoReflect.Descriptor instead.
 func (*SetPermissionModeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{73}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *SetPermissionModeRequest) GetSessionId() string {
@@ -6661,7 +6789,7 @@ type SetPermissionModeResponse struct {
 
 func (x *SetPermissionModeResponse) Reset() {
 	*x = SetPermissionModeResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[74]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6673,7 +6801,7 @@ func (x *SetPermissionModeResponse) String() string {
 func (*SetPermissionModeResponse) ProtoMessage() {}
 
 func (x *SetPermissionModeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[74]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6686,7 +6814,7 @@ func (x *SetPermissionModeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPermissionModeResponse.ProtoReflect.Descriptor instead.
 func (*SetPermissionModeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{74}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{76}
 }
 
 type SuggestFilesRequest struct {
@@ -6700,7 +6828,7 @@ type SuggestFilesRequest struct {
 
 func (x *SuggestFilesRequest) Reset() {
 	*x = SuggestFilesRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[75]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6712,7 +6840,7 @@ func (x *SuggestFilesRequest) String() string {
 func (*SuggestFilesRequest) ProtoMessage() {}
 
 func (x *SuggestFilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[75]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6725,7 +6853,7 @@ func (x *SuggestFilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuggestFilesRequest.ProtoReflect.Descriptor instead.
 func (*SuggestFilesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{75}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *SuggestFilesRequest) GetSessionId() string {
@@ -6758,7 +6886,7 @@ type SuggestFilesResponse struct {
 
 func (x *SuggestFilesResponse) Reset() {
 	*x = SuggestFilesResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[76]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6770,7 +6898,7 @@ func (x *SuggestFilesResponse) String() string {
 func (*SuggestFilesResponse) ProtoMessage() {}
 
 func (x *SuggestFilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[76]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6783,7 +6911,7 @@ func (x *SuggestFilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuggestFilesResponse.ProtoReflect.Descriptor instead.
 func (*SuggestFilesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{76}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *SuggestFilesResponse) GetPaths() []string {
@@ -6805,7 +6933,7 @@ type RespondToPlanRequest struct {
 
 func (x *RespondToPlanRequest) Reset() {
 	*x = RespondToPlanRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[77]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6817,7 +6945,7 @@ func (x *RespondToPlanRequest) String() string {
 func (*RespondToPlanRequest) ProtoMessage() {}
 
 func (x *RespondToPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[77]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6830,7 +6958,7 @@ func (x *RespondToPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondToPlanRequest.ProtoReflect.Descriptor instead.
 func (*RespondToPlanRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{77}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *RespondToPlanRequest) GetSessionId() string {
@@ -6869,7 +6997,7 @@ type RespondToPlanResponse struct {
 
 func (x *RespondToPlanResponse) Reset() {
 	*x = RespondToPlanResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[78]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6881,7 +7009,7 @@ func (x *RespondToPlanResponse) String() string {
 func (*RespondToPlanResponse) ProtoMessage() {}
 
 func (x *RespondToPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[78]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6894,7 +7022,7 @@ func (x *RespondToPlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondToPlanResponse.ProtoReflect.Descriptor instead.
 func (*RespondToPlanResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{78}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{80}
 }
 
 type ListCheckpointsRequest struct {
@@ -6906,7 +7034,7 @@ type ListCheckpointsRequest struct {
 
 func (x *ListCheckpointsRequest) Reset() {
 	*x = ListCheckpointsRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[79]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6918,7 +7046,7 @@ func (x *ListCheckpointsRequest) String() string {
 func (*ListCheckpointsRequest) ProtoMessage() {}
 
 func (x *ListCheckpointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[79]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6931,7 +7059,7 @@ func (x *ListCheckpointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCheckpointsRequest.ProtoReflect.Descriptor instead.
 func (*ListCheckpointsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{79}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *ListCheckpointsRequest) GetSessionId() string {
@@ -6950,7 +7078,7 @@ type ListCheckpointsResponse struct {
 
 func (x *ListCheckpointsResponse) Reset() {
 	*x = ListCheckpointsResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[80]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6962,7 +7090,7 @@ func (x *ListCheckpointsResponse) String() string {
 func (*ListCheckpointsResponse) ProtoMessage() {}
 
 func (x *ListCheckpointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[80]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6975,7 +7103,7 @@ func (x *ListCheckpointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCheckpointsResponse.ProtoReflect.Descriptor instead.
 func (*ListCheckpointsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{80}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *ListCheckpointsResponse) GetCheckpoints() []*Checkpoint {
@@ -6998,7 +7126,7 @@ type RewindRequest struct {
 
 func (x *RewindRequest) Reset() {
 	*x = RewindRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[81]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7010,7 +7138,7 @@ func (x *RewindRequest) String() string {
 func (*RewindRequest) ProtoMessage() {}
 
 func (x *RewindRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[81]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7023,7 +7151,7 @@ func (x *RewindRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RewindRequest.ProtoReflect.Descriptor instead.
 func (*RewindRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{81}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *RewindRequest) GetSessionId() string {
@@ -7063,7 +7191,7 @@ type RewindResponse struct {
 
 func (x *RewindResponse) Reset() {
 	*x = RewindResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[82]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7075,7 +7203,7 @@ func (x *RewindResponse) String() string {
 func (*RewindResponse) ProtoMessage() {}
 
 func (x *RewindResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[82]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7088,7 +7216,7 @@ func (x *RewindResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RewindResponse.ProtoReflect.Descriptor instead.
 func (*RewindResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{82}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *RewindResponse) GetResult() *Rewound {
@@ -7108,7 +7236,7 @@ type CompactRequest struct {
 
 func (x *CompactRequest) Reset() {
 	*x = CompactRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[83]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7120,7 +7248,7 @@ func (x *CompactRequest) String() string {
 func (*CompactRequest) ProtoMessage() {}
 
 func (x *CompactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[83]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7133,7 +7261,7 @@ func (x *CompactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompactRequest.ProtoReflect.Descriptor instead.
 func (*CompactRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{83}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *CompactRequest) GetSessionId() string {
@@ -7160,7 +7288,7 @@ type CompactResponse struct {
 
 func (x *CompactResponse) Reset() {
 	*x = CompactResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[84]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7172,7 +7300,7 @@ func (x *CompactResponse) String() string {
 func (*CompactResponse) ProtoMessage() {}
 
 func (x *CompactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[84]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7185,7 +7313,7 @@ func (x *CompactResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompactResponse.ProtoReflect.Descriptor instead.
 func (*CompactResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{84}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *CompactResponse) GetTokensBefore() int64 {
@@ -7211,7 +7339,7 @@ type GetContextUsageRequest struct {
 
 func (x *GetContextUsageRequest) Reset() {
 	*x = GetContextUsageRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[85]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7223,7 +7351,7 @@ func (x *GetContextUsageRequest) String() string {
 func (*GetContextUsageRequest) ProtoMessage() {}
 
 func (x *GetContextUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[85]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7236,7 +7364,7 @@ func (x *GetContextUsageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContextUsageRequest.ProtoReflect.Descriptor instead.
 func (*GetContextUsageRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{85}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *GetContextUsageRequest) GetSessionId() string {
@@ -7255,7 +7383,7 @@ type GetContextUsageResponse struct {
 
 func (x *GetContextUsageResponse) Reset() {
 	*x = GetContextUsageResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[86]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7267,7 +7395,7 @@ func (x *GetContextUsageResponse) String() string {
 func (*GetContextUsageResponse) ProtoMessage() {}
 
 func (x *GetContextUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[86]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7280,7 +7408,7 @@ func (x *GetContextUsageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContextUsageResponse.ProtoReflect.Descriptor instead.
 func (*GetContextUsageResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{86}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *GetContextUsageResponse) GetUsage() *ContextUsage {
@@ -7324,7 +7452,7 @@ type ContextUsage struct {
 
 func (x *ContextUsage) Reset() {
 	*x = ContextUsage{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[87]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7336,7 +7464,7 @@ func (x *ContextUsage) String() string {
 func (*ContextUsage) ProtoMessage() {}
 
 func (x *ContextUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[87]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7349,7 +7477,7 @@ func (x *ContextUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextUsage.ProtoReflect.Descriptor instead.
 func (*ContextUsage) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{87}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *ContextUsage) GetModel() string {
@@ -7441,7 +7569,7 @@ type UserPreferences struct {
 
 func (x *UserPreferences) Reset() {
 	*x = UserPreferences{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[88]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7453,7 +7581,7 @@ func (x *UserPreferences) String() string {
 func (*UserPreferences) ProtoMessage() {}
 
 func (x *UserPreferences) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[88]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7466,7 +7594,7 @@ func (x *UserPreferences) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserPreferences.ProtoReflect.Descriptor instead.
 func (*UserPreferences) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{88}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *UserPreferences) GetCompactIdleSessions() bool {
@@ -7484,7 +7612,7 @@ type GetUserPreferencesRequest struct {
 
 func (x *GetUserPreferencesRequest) Reset() {
 	*x = GetUserPreferencesRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[89]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7496,7 +7624,7 @@ func (x *GetUserPreferencesRequest) String() string {
 func (*GetUserPreferencesRequest) ProtoMessage() {}
 
 func (x *GetUserPreferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[89]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7509,7 +7637,7 @@ func (x *GetUserPreferencesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserPreferencesRequest.ProtoReflect.Descriptor instead.
 func (*GetUserPreferencesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{89}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{91}
 }
 
 type GetUserPreferencesResponse struct {
@@ -7521,7 +7649,7 @@ type GetUserPreferencesResponse struct {
 
 func (x *GetUserPreferencesResponse) Reset() {
 	*x = GetUserPreferencesResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[90]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7533,7 +7661,7 @@ func (x *GetUserPreferencesResponse) String() string {
 func (*GetUserPreferencesResponse) ProtoMessage() {}
 
 func (x *GetUserPreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[90]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7546,7 +7674,7 @@ func (x *GetUserPreferencesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserPreferencesResponse.ProtoReflect.Descriptor instead.
 func (*GetUserPreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{90}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *GetUserPreferencesResponse) GetPreferences() *UserPreferences {
@@ -7566,7 +7694,7 @@ type UpdateUserPreferencesRequest struct {
 
 func (x *UpdateUserPreferencesRequest) Reset() {
 	*x = UpdateUserPreferencesRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[91]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7578,7 +7706,7 @@ func (x *UpdateUserPreferencesRequest) String() string {
 func (*UpdateUserPreferencesRequest) ProtoMessage() {}
 
 func (x *UpdateUserPreferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[91]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7591,7 +7719,7 @@ func (x *UpdateUserPreferencesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserPreferencesRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserPreferencesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{91}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *UpdateUserPreferencesRequest) GetCompactIdleSessions() bool {
@@ -7610,7 +7738,7 @@ type UpdateUserPreferencesResponse struct {
 
 func (x *UpdateUserPreferencesResponse) Reset() {
 	*x = UpdateUserPreferencesResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[92]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7622,7 +7750,7 @@ func (x *UpdateUserPreferencesResponse) String() string {
 func (*UpdateUserPreferencesResponse) ProtoMessage() {}
 
 func (x *UpdateUserPreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[92]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7635,7 +7763,7 @@ func (x *UpdateUserPreferencesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserPreferencesResponse.ProtoReflect.Descriptor instead.
 func (*UpdateUserPreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{92}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *UpdateUserPreferencesResponse) GetPreferences() *UserPreferences {
@@ -7664,7 +7792,7 @@ type BackgroundTask struct {
 
 func (x *BackgroundTask) Reset() {
 	*x = BackgroundTask{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[93]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7676,7 +7804,7 @@ func (x *BackgroundTask) String() string {
 func (*BackgroundTask) ProtoMessage() {}
 
 func (x *BackgroundTask) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[93]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7689,7 +7817,7 @@ func (x *BackgroundTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackgroundTask.ProtoReflect.Descriptor instead.
 func (*BackgroundTask) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{93}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *BackgroundTask) GetTaskId() string {
@@ -7764,7 +7892,7 @@ type ListTasksRequest struct {
 
 func (x *ListTasksRequest) Reset() {
 	*x = ListTasksRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[94]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7776,7 +7904,7 @@ func (x *ListTasksRequest) String() string {
 func (*ListTasksRequest) ProtoMessage() {}
 
 func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[94]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7789,7 +7917,7 @@ func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListTasksRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{94}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *ListTasksRequest) GetSessionId() string {
@@ -7808,7 +7936,7 @@ type ListTasksResponse struct {
 
 func (x *ListTasksResponse) Reset() {
 	*x = ListTasksResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[95]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7820,7 +7948,7 @@ func (x *ListTasksResponse) String() string {
 func (*ListTasksResponse) ProtoMessage() {}
 
 func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[95]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7833,7 +7961,7 @@ func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListTasksResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{95}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *ListTasksResponse) GetTasks() []*BackgroundTask {
@@ -7853,7 +7981,7 @@ type StopTaskRequest struct {
 
 func (x *StopTaskRequest) Reset() {
 	*x = StopTaskRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[96]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7865,7 +7993,7 @@ func (x *StopTaskRequest) String() string {
 func (*StopTaskRequest) ProtoMessage() {}
 
 func (x *StopTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[96]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7878,7 +8006,7 @@ func (x *StopTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopTaskRequest.ProtoReflect.Descriptor instead.
 func (*StopTaskRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{96}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *StopTaskRequest) GetSessionId() string {
@@ -7903,7 +8031,7 @@ type StopTaskResponse struct {
 
 func (x *StopTaskResponse) Reset() {
 	*x = StopTaskResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[97]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7915,7 +8043,7 @@ func (x *StopTaskResponse) String() string {
 func (*StopTaskResponse) ProtoMessage() {}
 
 func (x *StopTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[97]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7928,7 +8056,7 @@ func (x *StopTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopTaskResponse.ProtoReflect.Descriptor instead.
 func (*StopTaskResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{97}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{99}
 }
 
 type CloseSessionRequest struct {
@@ -7940,7 +8068,7 @@ type CloseSessionRequest struct {
 
 func (x *CloseSessionRequest) Reset() {
 	*x = CloseSessionRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[98]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7952,7 +8080,7 @@ func (x *CloseSessionRequest) String() string {
 func (*CloseSessionRequest) ProtoMessage() {}
 
 func (x *CloseSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[98]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7965,7 +8093,7 @@ func (x *CloseSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseSessionRequest.ProtoReflect.Descriptor instead.
 func (*CloseSessionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{98}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *CloseSessionRequest) GetSessionId() string {
@@ -7983,7 +8111,7 @@ type CloseSessionResponse struct {
 
 func (x *CloseSessionResponse) Reset() {
 	*x = CloseSessionResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[99]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7995,7 +8123,7 @@ func (x *CloseSessionResponse) String() string {
 func (*CloseSessionResponse) ProtoMessage() {}
 
 func (x *CloseSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[99]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8008,7 +8136,7 @@ func (x *CloseSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseSessionResponse.ProtoReflect.Descriptor instead.
 func (*CloseSessionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{99}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{101}
 }
 
 type GetWorkspaceTrustRequest struct {
@@ -8020,7 +8148,7 @@ type GetWorkspaceTrustRequest struct {
 
 func (x *GetWorkspaceTrustRequest) Reset() {
 	*x = GetWorkspaceTrustRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[100]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8032,7 +8160,7 @@ func (x *GetWorkspaceTrustRequest) String() string {
 func (*GetWorkspaceTrustRequest) ProtoMessage() {}
 
 func (x *GetWorkspaceTrustRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[100]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8045,7 +8173,7 @@ func (x *GetWorkspaceTrustRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkspaceTrustRequest.ProtoReflect.Descriptor instead.
 func (*GetWorkspaceTrustRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{100}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *GetWorkspaceTrustRequest) GetPath() string {
@@ -8070,7 +8198,7 @@ type GetWorkspaceTrustResponse struct {
 
 func (x *GetWorkspaceTrustResponse) Reset() {
 	*x = GetWorkspaceTrustResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[101]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8082,7 +8210,7 @@ func (x *GetWorkspaceTrustResponse) String() string {
 func (*GetWorkspaceTrustResponse) ProtoMessage() {}
 
 func (x *GetWorkspaceTrustResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[101]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8095,7 +8223,7 @@ func (x *GetWorkspaceTrustResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkspaceTrustResponse.ProtoReflect.Descriptor instead.
 func (*GetWorkspaceTrustResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{101}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *GetWorkspaceTrustResponse) GetTrusted() bool {
@@ -8143,7 +8271,7 @@ type SetWorkspaceTrustRequest struct {
 
 func (x *SetWorkspaceTrustRequest) Reset() {
 	*x = SetWorkspaceTrustRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[102]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8155,7 +8283,7 @@ func (x *SetWorkspaceTrustRequest) String() string {
 func (*SetWorkspaceTrustRequest) ProtoMessage() {}
 
 func (x *SetWorkspaceTrustRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[102]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8168,7 +8296,7 @@ func (x *SetWorkspaceTrustRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetWorkspaceTrustRequest.ProtoReflect.Descriptor instead.
 func (*SetWorkspaceTrustRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{102}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *SetWorkspaceTrustRequest) GetPath() string {
@@ -8193,7 +8321,7 @@ type SetWorkspaceTrustResponse struct {
 
 func (x *SetWorkspaceTrustResponse) Reset() {
 	*x = SetWorkspaceTrustResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[103]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8205,7 +8333,7 @@ func (x *SetWorkspaceTrustResponse) String() string {
 func (*SetWorkspaceTrustResponse) ProtoMessage() {}
 
 func (x *SetWorkspaceTrustResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[103]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8218,7 +8346,7 @@ func (x *SetWorkspaceTrustResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetWorkspaceTrustResponse.ProtoReflect.Descriptor instead.
 func (*SetWorkspaceTrustResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{103}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{105}
 }
 
 type SetOutputStyleRequest struct {
@@ -8231,7 +8359,7 @@ type SetOutputStyleRequest struct {
 
 func (x *SetOutputStyleRequest) Reset() {
 	*x = SetOutputStyleRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[104]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8243,7 +8371,7 @@ func (x *SetOutputStyleRequest) String() string {
 func (*SetOutputStyleRequest) ProtoMessage() {}
 
 func (x *SetOutputStyleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[104]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8256,7 +8384,7 @@ func (x *SetOutputStyleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetOutputStyleRequest.ProtoReflect.Descriptor instead.
 func (*SetOutputStyleRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{104}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *SetOutputStyleRequest) GetSessionId() string {
@@ -8281,7 +8409,7 @@ type SetOutputStyleResponse struct {
 
 func (x *SetOutputStyleResponse) Reset() {
 	*x = SetOutputStyleResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[105]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8293,7 +8421,7 @@ func (x *SetOutputStyleResponse) String() string {
 func (*SetOutputStyleResponse) ProtoMessage() {}
 
 func (x *SetOutputStyleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[105]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8306,7 +8434,7 @@ func (x *SetOutputStyleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetOutputStyleResponse.ProtoReflect.Descriptor instead.
 func (*SetOutputStyleResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{105}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{107}
 }
 
 type ListOutputStylesRequest struct {
@@ -8318,7 +8446,7 @@ type ListOutputStylesRequest struct {
 
 func (x *ListOutputStylesRequest) Reset() {
 	*x = ListOutputStylesRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[106]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8330,7 +8458,7 @@ func (x *ListOutputStylesRequest) String() string {
 func (*ListOutputStylesRequest) ProtoMessage() {}
 
 func (x *ListOutputStylesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[106]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8343,7 +8471,7 @@ func (x *ListOutputStylesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOutputStylesRequest.ProtoReflect.Descriptor instead.
 func (*ListOutputStylesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{106}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *ListOutputStylesRequest) GetSessionId() string {
@@ -8363,7 +8491,7 @@ type ListOutputStylesResponse struct {
 
 func (x *ListOutputStylesResponse) Reset() {
 	*x = ListOutputStylesResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[107]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8375,7 +8503,7 @@ func (x *ListOutputStylesResponse) String() string {
 func (*ListOutputStylesResponse) ProtoMessage() {}
 
 func (x *ListOutputStylesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[107]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8388,7 +8516,7 @@ func (x *ListOutputStylesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOutputStylesResponse.ProtoReflect.Descriptor instead.
 func (*ListOutputStylesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{107}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *ListOutputStylesResponse) GetStyles() []*OutputStyleInfo {
@@ -8418,7 +8546,7 @@ type OutputStyleInfo struct {
 
 func (x *OutputStyleInfo) Reset() {
 	*x = OutputStyleInfo{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[108]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8430,7 +8558,7 @@ func (x *OutputStyleInfo) String() string {
 func (*OutputStyleInfo) ProtoMessage() {}
 
 func (x *OutputStyleInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[108]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8443,7 +8571,7 @@ func (x *OutputStyleInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OutputStyleInfo.ProtoReflect.Descriptor instead.
 func (*OutputStyleInfo) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{108}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *OutputStyleInfo) GetId() string {
@@ -8507,7 +8635,7 @@ type Environment struct {
 
 func (x *Environment) Reset() {
 	*x = Environment{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[109]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8519,7 +8647,7 @@ func (x *Environment) String() string {
 func (*Environment) ProtoMessage() {}
 
 func (x *Environment) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[109]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8532,7 +8660,7 @@ func (x *Environment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Environment.ProtoReflect.Descriptor instead.
 func (*Environment) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{109}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *Environment) GetFolder() string {
@@ -8623,7 +8751,7 @@ type EnvironmentFolder struct {
 
 func (x *EnvironmentFolder) Reset() {
 	*x = EnvironmentFolder{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[110]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8635,7 +8763,7 @@ func (x *EnvironmentFolder) String() string {
 func (*EnvironmentFolder) ProtoMessage() {}
 
 func (x *EnvironmentFolder) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[110]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8648,7 +8776,7 @@ func (x *EnvironmentFolder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentFolder.ProtoReflect.Descriptor instead.
 func (*EnvironmentFolder) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{110}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *EnvironmentFolder) GetPath() string {
@@ -8696,7 +8824,7 @@ type EnvironmentErrors struct {
 
 func (x *EnvironmentErrors) Reset() {
 	*x = EnvironmentErrors{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[111]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8708,7 +8836,7 @@ func (x *EnvironmentErrors) String() string {
 func (*EnvironmentErrors) ProtoMessage() {}
 
 func (x *EnvironmentErrors) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[111]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8721,7 +8849,7 @@ func (x *EnvironmentErrors) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentErrors.ProtoReflect.Descriptor instead.
 func (*EnvironmentErrors) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{111}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *EnvironmentErrors) GetErrors() []*EnvironmentError {
@@ -8742,7 +8870,7 @@ type EnvironmentError struct {
 
 func (x *EnvironmentError) Reset() {
 	*x = EnvironmentError{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[112]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8754,7 +8882,7 @@ func (x *EnvironmentError) String() string {
 func (*EnvironmentError) ProtoMessage() {}
 
 func (x *EnvironmentError) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[112]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8767,7 +8895,7 @@ func (x *EnvironmentError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentError.ProtoReflect.Descriptor instead.
 func (*EnvironmentError) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{112}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *EnvironmentError) GetLine() int32 {
@@ -8796,7 +8924,7 @@ type GetEnvironmentRequest struct {
 
 func (x *GetEnvironmentRequest) Reset() {
 	*x = GetEnvironmentRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[113]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8808,7 +8936,7 @@ func (x *GetEnvironmentRequest) String() string {
 func (*GetEnvironmentRequest) ProtoMessage() {}
 
 func (x *GetEnvironmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[113]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8821,7 +8949,7 @@ func (x *GetEnvironmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEnvironmentRequest.ProtoReflect.Descriptor instead.
 func (*GetEnvironmentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{113}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *GetEnvironmentRequest) GetFolder() string {
@@ -8847,7 +8975,7 @@ type GetEnvironmentResponse struct {
 
 func (x *GetEnvironmentResponse) Reset() {
 	*x = GetEnvironmentResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[114]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8859,7 +8987,7 @@ func (x *GetEnvironmentResponse) String() string {
 func (*GetEnvironmentResponse) ProtoMessage() {}
 
 func (x *GetEnvironmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[114]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8872,7 +9000,7 @@ func (x *GetEnvironmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEnvironmentResponse.ProtoReflect.Descriptor instead.
 func (*GetEnvironmentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{114}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *GetEnvironmentResponse) GetEnvironment() *Environment {
@@ -8896,7 +9024,7 @@ type UpdateEnvironmentRequest struct {
 
 func (x *UpdateEnvironmentRequest) Reset() {
 	*x = UpdateEnvironmentRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[115]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8908,7 +9036,7 @@ func (x *UpdateEnvironmentRequest) String() string {
 func (*UpdateEnvironmentRequest) ProtoMessage() {}
 
 func (x *UpdateEnvironmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[115]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8921,7 +9049,7 @@ func (x *UpdateEnvironmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateEnvironmentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateEnvironmentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{115}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *UpdateEnvironmentRequest) GetEnvironment() *Environment {
@@ -8956,7 +9084,7 @@ type UpdateEnvironmentResponse struct {
 
 func (x *UpdateEnvironmentResponse) Reset() {
 	*x = UpdateEnvironmentResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[116]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8968,7 +9096,7 @@ func (x *UpdateEnvironmentResponse) String() string {
 func (*UpdateEnvironmentResponse) ProtoMessage() {}
 
 func (x *UpdateEnvironmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[116]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8981,7 +9109,7 @@ func (x *UpdateEnvironmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateEnvironmentResponse.ProtoReflect.Descriptor instead.
 func (*UpdateEnvironmentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{116}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *UpdateEnvironmentResponse) GetEnvironment() *Environment {
@@ -9008,7 +9136,7 @@ type GetFolderInfoRequest struct {
 
 func (x *GetFolderInfoRequest) Reset() {
 	*x = GetFolderInfoRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[117]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9020,7 +9148,7 @@ func (x *GetFolderInfoRequest) String() string {
 func (*GetFolderInfoRequest) ProtoMessage() {}
 
 func (x *GetFolderInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[117]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9033,7 +9161,7 @@ func (x *GetFolderInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFolderInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetFolderInfoRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{117}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *GetFolderInfoRequest) GetPath() string {
@@ -9067,7 +9195,7 @@ type GetFolderInfoResponse struct {
 
 func (x *GetFolderInfoResponse) Reset() {
 	*x = GetFolderInfoResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[118]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9079,7 +9207,7 @@ func (x *GetFolderInfoResponse) String() string {
 func (*GetFolderInfoResponse) ProtoMessage() {}
 
 func (x *GetFolderInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[118]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9092,7 +9220,7 @@ func (x *GetFolderInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFolderInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetFolderInfoResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{118}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *GetFolderInfoResponse) GetPath() string {
@@ -9162,7 +9290,7 @@ type SetSessionFolderRequest struct {
 
 func (x *SetSessionFolderRequest) Reset() {
 	*x = SetSessionFolderRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[119]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9174,7 +9302,7 @@ func (x *SetSessionFolderRequest) String() string {
 func (*SetSessionFolderRequest) ProtoMessage() {}
 
 func (x *SetSessionFolderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[119]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9187,7 +9315,7 @@ func (x *SetSessionFolderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSessionFolderRequest.ProtoReflect.Descriptor instead.
 func (*SetSessionFolderRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{119}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *SetSessionFolderRequest) GetSessionId() string {
@@ -9214,7 +9342,7 @@ type SetSessionFolderResponse struct {
 
 func (x *SetSessionFolderResponse) Reset() {
 	*x = SetSessionFolderResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[120]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9226,7 +9354,7 @@ func (x *SetSessionFolderResponse) String() string {
 func (*SetSessionFolderResponse) ProtoMessage() {}
 
 func (x *SetSessionFolderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[120]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9239,7 +9367,7 @@ func (x *SetSessionFolderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSessionFolderResponse.ProtoReflect.Descriptor instead.
 func (*SetSessionFolderResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{120}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *SetSessionFolderResponse) GetSession() *SessionInfo {
@@ -9260,7 +9388,7 @@ type AddSessionDirectoryRequest struct {
 
 func (x *AddSessionDirectoryRequest) Reset() {
 	*x = AddSessionDirectoryRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[121]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9272,7 +9400,7 @@ func (x *AddSessionDirectoryRequest) String() string {
 func (*AddSessionDirectoryRequest) ProtoMessage() {}
 
 func (x *AddSessionDirectoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[121]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9285,7 +9413,7 @@ func (x *AddSessionDirectoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSessionDirectoryRequest.ProtoReflect.Descriptor instead.
 func (*AddSessionDirectoryRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{121}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *AddSessionDirectoryRequest) GetSessionId() string {
@@ -9314,7 +9442,7 @@ type AddSessionDirectoryResponse struct {
 
 func (x *AddSessionDirectoryResponse) Reset() {
 	*x = AddSessionDirectoryResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[122]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9326,7 +9454,7 @@ func (x *AddSessionDirectoryResponse) String() string {
 func (*AddSessionDirectoryResponse) ProtoMessage() {}
 
 func (x *AddSessionDirectoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[122]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9339,7 +9467,7 @@ func (x *AddSessionDirectoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSessionDirectoryResponse.ProtoReflect.Descriptor instead.
 func (*AddSessionDirectoryResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{122}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *AddSessionDirectoryResponse) GetEnvironment() *Environment {
@@ -9370,7 +9498,7 @@ type ToolTitle struct {
 
 func (x *ToolTitle) Reset() {
 	*x = ToolTitle{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[123]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9382,7 +9510,7 @@ func (x *ToolTitle) String() string {
 func (*ToolTitle) ProtoMessage() {}
 
 func (x *ToolTitle) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[123]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9395,7 +9523,7 @@ func (x *ToolTitle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolTitle.ProtoReflect.Descriptor instead.
 func (*ToolTitle) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{123}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *ToolTitle) GetToolUseId() string {
@@ -9423,7 +9551,7 @@ type ToolBackground struct {
 
 func (x *ToolBackground) Reset() {
 	*x = ToolBackground{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[124]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9435,7 +9563,7 @@ func (x *ToolBackground) String() string {
 func (*ToolBackground) ProtoMessage() {}
 
 func (x *ToolBackground) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[124]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9448,7 +9576,7 @@ func (x *ToolBackground) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolBackground.ProtoReflect.Descriptor instead.
 func (*ToolBackground) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{124}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *ToolBackground) GetTaskId() string {
@@ -9477,7 +9605,7 @@ type BackgroundToolCallRequest struct {
 
 func (x *BackgroundToolCallRequest) Reset() {
 	*x = BackgroundToolCallRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[125]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9489,7 +9617,7 @@ func (x *BackgroundToolCallRequest) String() string {
 func (*BackgroundToolCallRequest) ProtoMessage() {}
 
 func (x *BackgroundToolCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[125]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9502,7 +9630,7 @@ func (x *BackgroundToolCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackgroundToolCallRequest.ProtoReflect.Descriptor instead.
 func (*BackgroundToolCallRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{125}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *BackgroundToolCallRequest) GetSessionId() string {
@@ -9535,7 +9663,7 @@ type BackgroundToolCallResponse struct {
 
 func (x *BackgroundToolCallResponse) Reset() {
 	*x = BackgroundToolCallResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[126]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9547,7 +9675,7 @@ func (x *BackgroundToolCallResponse) String() string {
 func (*BackgroundToolCallResponse) ProtoMessage() {}
 
 func (x *BackgroundToolCallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[126]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9560,7 +9688,7 @@ func (x *BackgroundToolCallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackgroundToolCallResponse.ProtoReflect.Descriptor instead.
 func (*BackgroundToolCallResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{126}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *BackgroundToolCallResponse) GetBackgrounded() bool {
@@ -9580,7 +9708,7 @@ type SetSessionRelayRequest struct {
 
 func (x *SetSessionRelayRequest) Reset() {
 	*x = SetSessionRelayRequest{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[127]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9592,7 +9720,7 @@ func (x *SetSessionRelayRequest) String() string {
 func (*SetSessionRelayRequest) ProtoMessage() {}
 
 func (x *SetSessionRelayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[127]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9605,7 +9733,7 @@ func (x *SetSessionRelayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSessionRelayRequest.ProtoReflect.Descriptor instead.
 func (*SetSessionRelayRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{127}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *SetSessionRelayRequest) GetSessionId() string {
@@ -9632,7 +9760,7 @@ type SetSessionRelayResponse struct {
 
 func (x *SetSessionRelayResponse) Reset() {
 	*x = SetSessionRelayResponse{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[128]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9644,7 +9772,7 @@ func (x *SetSessionRelayResponse) String() string {
 func (*SetSessionRelayResponse) ProtoMessage() {}
 
 func (x *SetSessionRelayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[128]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9657,7 +9785,7 @@ func (x *SetSessionRelayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSessionRelayResponse.ProtoReflect.Descriptor instead.
 func (*SetSessionRelayResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{128}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *SetSessionRelayResponse) GetSession() *SessionInfo {
@@ -9677,7 +9805,7 @@ type ContextUsage_Entry struct {
 
 func (x *ContextUsage_Entry) Reset() {
 	*x = ContextUsage_Entry{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[129]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9689,7 +9817,7 @@ func (x *ContextUsage_Entry) String() string {
 func (*ContextUsage_Entry) ProtoMessage() {}
 
 func (x *ContextUsage_Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[129]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9702,7 +9830,7 @@ func (x *ContextUsage_Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextUsage_Entry.ProtoReflect.Descriptor instead.
 func (*ContextUsage_Entry) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{87, 0}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{89, 0}
 }
 
 func (x *ContextUsage_Entry) GetCategory() ContextUsage_Category {
@@ -9737,7 +9865,7 @@ type ContextUsage_McpTool struct {
 
 func (x *ContextUsage_McpTool) Reset() {
 	*x = ContextUsage_McpTool{}
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[130]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9749,7 +9877,7 @@ func (x *ContextUsage_McpTool) String() string {
 func (*ContextUsage_McpTool) ProtoMessage() {}
 
 func (x *ContextUsage_McpTool) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_agent_proto_msgTypes[130]
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9762,7 +9890,7 @@ func (x *ContextUsage_McpTool) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextUsage_McpTool.ProtoReflect.Descriptor instead.
 func (*ContextUsage_McpTool) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{87, 1}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{89, 1}
 }
 
 func (x *ContextUsage_McpTool) GetServer() string {
@@ -9839,7 +9967,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x05local\x18\n" +
 	" \x01(\bR\x05localB\x0e\n" +
 	"\f_input_priceB\x0f\n" +
-	"\r_output_price\"\x95\n" +
+	"\r_output_price\"\xba\n" +
 	"\n" +
 	"\vSessionInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
@@ -9877,7 +10005,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0frelay_available\x18\x1c \x01(\bR\x0erelayAvailable\x128\n" +
 	"\x18relay_unavailable_reason\x18\x1d \x01(\tR\x16relayUnavailableReason\x12B\n" +
 	"\vusage_limit\x18\x1e \x01(\v2\x1c.harness.agent.v1.UsageLimitH\x04R\n" +
-	"usageLimit\x88\x01\x01B\x0f\n" +
+	"usageLimit\x88\x01\x01\x12#\n" +
+	"\rauto_continue\x18\x1f \x01(\bR\fautoContinueB\x0f\n" +
 	"\r_pull_requestB\v\n" +
 	"\t_worktreeB\x10\n" +
 	"\x0e_device_onlineB\x06\n" +
@@ -10129,12 +10258,13 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x10KIND_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tKIND_FILE\x10\x01\x12\r\n" +
 	"\tKIND_DIFF\x10\x02\x12\f\n" +
-	"\bKIND_URL\x10\x03\"\x99\x01\n" +
+	"\bKIND_URL\x10\x03\"\xad\x01\n" +
 	"\vUserMessage\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x126\n" +
 	"\acontent\x18\x02 \x03(\v2\x1c.harness.llm.v1.ContentBlockR\acontent\x12!\n" +
 	"\fclient_uuids\x18\x03 \x03(\tR\vclientUuids\x12\x1b\n" +
-	"\tqueued_at\x18\x04 \x01(\tR\bqueuedAt\"\xa3\x01\n" +
+	"\tqueued_at\x18\x04 \x01(\tR\bqueuedAt\x12\x12\n" +
+	"\x04held\x18\x05 \x01(\bR\x04held\"\xa3\x01\n" +
 	"\x0eAssistantDelta\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x14\n" +
@@ -10238,7 +10368,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0eRESULT_SUCCESS\x10\x01\x12\x16\n" +
 	"\x12RESULT_INTERRUPTED\x10\x02\x12\x1a\n" +
 	"\x16RESULT_ERROR_MAX_TURNS\x10\x03\x12!\n" +
-	"\x1dRESULT_ERROR_DURING_EXECUTION\x10\x04\"\x9a\x03\n" +
+	"\x1dRESULT_ERROR_DURING_EXECUTION\x10\x04\"\xe1\x03\n" +
 	"\n" +
 	"UsageLimit\x128\n" +
 	"\x05state\x18\x01 \x01(\x0e2\".harness.agent.v1.UsageLimit.StateR\x05state\x12\x1f\n" +
@@ -10250,7 +10380,10 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\tresets_at\x18\x06 \x01(\tR\bresetsAt\x12!\n" +
 	"\fbalance_text\x18\a \x01(\tR\vbalanceText\x12\x1d\n" +
 	"\n" +
-	"wrapped_up\x18\b \x01(\bR\twrappedUp\"g\n" +
+	"wrapped_up\x18\b \x01(\bR\twrappedUp\x12 \n" +
+	"\vinterrupted\x18\t \x01(\bR\vinterrupted\x12#\n" +
+	"\rauto_continue\x18\n" +
+	" \x01(\bR\fautoContinue\"g\n" +
 	"\x05State\x12\x15\n" +
 	"\x11STATE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -10322,7 +10455,12 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\"\x12\n" +
-	"\x10SetModelResponse\"a\n" +
+	"\x10SetModelResponse\"Q\n" +
+	"\x16SetAutoContinueRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x18\n" +
+	"\aenabled\x18\x02 \x01(\bR\aenabled\"\x19\n" +
+	"\x17SetAutoContinueResponse\"a\n" +
 	"\x10SetEffortRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12.\n" +
@@ -10597,7 +10735,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x16BACKGROUND_REASON_USER\x10\x01\x12$\n" +
 	" BACKGROUND_REASON_QUEUED_MESSAGE\x10\x02\x12\x1b\n" +
 	"\x17BACKGROUND_REASON_AGENT\x10\x03\x12\x1a\n" +
-	"\x16BACKGROUND_REASON_AUTO\x10\x042\x84E\n" +
+	"\x16BACKGROUND_REASON_AUTO\x10\x042\xecE\n" +
 	"\fAgentService\x12W\n" +
 	"\n" +
 	"Initialize\x12#.harness.agent.v1.InitializeRequest\x1a$.harness.agent.v1.InitializeResponse\x12`\n" +
@@ -10686,7 +10824,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\vOpenBrowser\x12$.harness.agent.v1.OpenBrowserRequest\x1a%.harness.agent.v1.OpenBrowserResponse\x12f\n" +
 	"\x0fListBrowserTabs\x12(.harness.agent.v1.ListBrowserTabsRequest\x1a).harness.agent.v1.ListBrowserTabsResponse\x12]\n" +
 	"\fCloseBrowser\x12%.harness.agent.v1.CloseBrowserRequest\x1a&.harness.agent.v1.CloseBrowserResponse\x12i\n" +
-	"\x10ClearBrowserData\x12).harness.agent.v1.ClearBrowserDataRequest\x1a*.harness.agent.v1.ClearBrowserDataResponseB\xcb\x01\n" +
+	"\x10ClearBrowserData\x12).harness.agent.v1.ClearBrowserDataRequest\x1a*.harness.agent.v1.ClearBrowserDataResponse\x12f\n" +
+	"\x0fSetAutoContinue\x12(.harness.agent.v1.SetAutoContinueRequest\x1a).harness.agent.v1.SetAutoContinueResponseB\xcb\x01\n" +
 	"\x14com.harness.agent.v1B\n" +
 	"AgentProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
@@ -10703,7 +10842,7 @@ func file_harness_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
-var file_harness_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 131)
+var file_harness_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 133)
 var file_harness_agent_v1_agent_proto_goTypes = []any{
 	(PermissionMode)(0),                      // 0: harness.agent.v1.PermissionMode
 	(SessionStatus)(0),                       // 1: harness.agent.v1.SessionStatus
@@ -10794,187 +10933,189 @@ var file_harness_agent_v1_agent_proto_goTypes = []any{
 	(*AnswerQuestionResponse)(nil),           // 86: harness.agent.v1.AnswerQuestionResponse
 	(*SetModelRequest)(nil),                  // 87: harness.agent.v1.SetModelRequest
 	(*SetModelResponse)(nil),                 // 88: harness.agent.v1.SetModelResponse
-	(*SetEffortRequest)(nil),                 // 89: harness.agent.v1.SetEffortRequest
-	(*SetEffortResponse)(nil),                // 90: harness.agent.v1.SetEffortResponse
-	(*SetPermissionModeRequest)(nil),         // 91: harness.agent.v1.SetPermissionModeRequest
-	(*SetPermissionModeResponse)(nil),        // 92: harness.agent.v1.SetPermissionModeResponse
-	(*SuggestFilesRequest)(nil),              // 93: harness.agent.v1.SuggestFilesRequest
-	(*SuggestFilesResponse)(nil),             // 94: harness.agent.v1.SuggestFilesResponse
-	(*RespondToPlanRequest)(nil),             // 95: harness.agent.v1.RespondToPlanRequest
-	(*RespondToPlanResponse)(nil),            // 96: harness.agent.v1.RespondToPlanResponse
-	(*ListCheckpointsRequest)(nil),           // 97: harness.agent.v1.ListCheckpointsRequest
-	(*ListCheckpointsResponse)(nil),          // 98: harness.agent.v1.ListCheckpointsResponse
-	(*RewindRequest)(nil),                    // 99: harness.agent.v1.RewindRequest
-	(*RewindResponse)(nil),                   // 100: harness.agent.v1.RewindResponse
-	(*CompactRequest)(nil),                   // 101: harness.agent.v1.CompactRequest
-	(*CompactResponse)(nil),                  // 102: harness.agent.v1.CompactResponse
-	(*GetContextUsageRequest)(nil),           // 103: harness.agent.v1.GetContextUsageRequest
-	(*GetContextUsageResponse)(nil),          // 104: harness.agent.v1.GetContextUsageResponse
-	(*ContextUsage)(nil),                     // 105: harness.agent.v1.ContextUsage
-	(*UserPreferences)(nil),                  // 106: harness.agent.v1.UserPreferences
-	(*GetUserPreferencesRequest)(nil),        // 107: harness.agent.v1.GetUserPreferencesRequest
-	(*GetUserPreferencesResponse)(nil),       // 108: harness.agent.v1.GetUserPreferencesResponse
-	(*UpdateUserPreferencesRequest)(nil),     // 109: harness.agent.v1.UpdateUserPreferencesRequest
-	(*UpdateUserPreferencesResponse)(nil),    // 110: harness.agent.v1.UpdateUserPreferencesResponse
-	(*BackgroundTask)(nil),                   // 111: harness.agent.v1.BackgroundTask
-	(*ListTasksRequest)(nil),                 // 112: harness.agent.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),                // 113: harness.agent.v1.ListTasksResponse
-	(*StopTaskRequest)(nil),                  // 114: harness.agent.v1.StopTaskRequest
-	(*StopTaskResponse)(nil),                 // 115: harness.agent.v1.StopTaskResponse
-	(*CloseSessionRequest)(nil),              // 116: harness.agent.v1.CloseSessionRequest
-	(*CloseSessionResponse)(nil),             // 117: harness.agent.v1.CloseSessionResponse
-	(*GetWorkspaceTrustRequest)(nil),         // 118: harness.agent.v1.GetWorkspaceTrustRequest
-	(*GetWorkspaceTrustResponse)(nil),        // 119: harness.agent.v1.GetWorkspaceTrustResponse
-	(*SetWorkspaceTrustRequest)(nil),         // 120: harness.agent.v1.SetWorkspaceTrustRequest
-	(*SetWorkspaceTrustResponse)(nil),        // 121: harness.agent.v1.SetWorkspaceTrustResponse
-	(*SetOutputStyleRequest)(nil),            // 122: harness.agent.v1.SetOutputStyleRequest
-	(*SetOutputStyleResponse)(nil),           // 123: harness.agent.v1.SetOutputStyleResponse
-	(*ListOutputStylesRequest)(nil),          // 124: harness.agent.v1.ListOutputStylesRequest
-	(*ListOutputStylesResponse)(nil),         // 125: harness.agent.v1.ListOutputStylesResponse
-	(*OutputStyleInfo)(nil),                  // 126: harness.agent.v1.OutputStyleInfo
-	(*Environment)(nil),                      // 127: harness.agent.v1.Environment
-	(*EnvironmentFolder)(nil),                // 128: harness.agent.v1.EnvironmentFolder
-	(*EnvironmentErrors)(nil),                // 129: harness.agent.v1.EnvironmentErrors
-	(*EnvironmentError)(nil),                 // 130: harness.agent.v1.EnvironmentError
-	(*GetEnvironmentRequest)(nil),            // 131: harness.agent.v1.GetEnvironmentRequest
-	(*GetEnvironmentResponse)(nil),           // 132: harness.agent.v1.GetEnvironmentResponse
-	(*UpdateEnvironmentRequest)(nil),         // 133: harness.agent.v1.UpdateEnvironmentRequest
-	(*UpdateEnvironmentResponse)(nil),        // 134: harness.agent.v1.UpdateEnvironmentResponse
-	(*GetFolderInfoRequest)(nil),             // 135: harness.agent.v1.GetFolderInfoRequest
-	(*GetFolderInfoResponse)(nil),            // 136: harness.agent.v1.GetFolderInfoResponse
-	(*SetSessionFolderRequest)(nil),          // 137: harness.agent.v1.SetSessionFolderRequest
-	(*SetSessionFolderResponse)(nil),         // 138: harness.agent.v1.SetSessionFolderResponse
-	(*AddSessionDirectoryRequest)(nil),       // 139: harness.agent.v1.AddSessionDirectoryRequest
-	(*AddSessionDirectoryResponse)(nil),      // 140: harness.agent.v1.AddSessionDirectoryResponse
-	(*ToolTitle)(nil),                        // 141: harness.agent.v1.ToolTitle
-	(*ToolBackground)(nil),                   // 142: harness.agent.v1.ToolBackground
-	(*BackgroundToolCallRequest)(nil),        // 143: harness.agent.v1.BackgroundToolCallRequest
-	(*BackgroundToolCallResponse)(nil),       // 144: harness.agent.v1.BackgroundToolCallResponse
-	(*SetSessionRelayRequest)(nil),           // 145: harness.agent.v1.SetSessionRelayRequest
-	(*SetSessionRelayResponse)(nil),          // 146: harness.agent.v1.SetSessionRelayResponse
-	(*ContextUsage_Entry)(nil),               // 147: harness.agent.v1.ContextUsage.Entry
-	(*ContextUsage_McpTool)(nil),             // 148: harness.agent.v1.ContextUsage.McpTool
-	(v1.Effort)(0),                           // 149: harness.llm.v1.Effort
-	(SessionFeature)(0),                      // 150: harness.agent.v1.SessionFeature
-	(*AcpSessionState)(nil),                  // 151: harness.agent.v1.AcpSessionState
-	(*UserShellStarted)(nil),                 // 152: harness.agent.v1.UserShellStarted
-	(*UserShellOutput)(nil),                  // 153: harness.agent.v1.UserShellOutput
-	(*UserShellFinished)(nil),                // 154: harness.agent.v1.UserShellFinished
-	(*BrowserAction)(nil),                    // 155: harness.agent.v1.BrowserAction
-	(*v1.ContentBlock)(nil),                  // 156: harness.llm.v1.ContentBlock
-	(v1.StopReason)(0),                       // 157: harness.llm.v1.StopReason
-	(*v1.Usage)(nil),                         // 158: harness.llm.v1.Usage
-	(*CreateTerminalRequest)(nil),            // 159: harness.agent.v1.CreateTerminalRequest
-	(*AttachTerminalRequest)(nil),            // 160: harness.agent.v1.AttachTerminalRequest
-	(*ListTerminalsRequest)(nil),             // 161: harness.agent.v1.ListTerminalsRequest
-	(*KillTerminalRequest)(nil),              // 162: harness.agent.v1.KillTerminalRequest
-	(*ResizeTerminalRequest)(nil),            // 163: harness.agent.v1.ResizeTerminalRequest
-	(*ListFileRootsRequest)(nil),             // 164: harness.agent.v1.ListFileRootsRequest
-	(*ListFilesRequest)(nil),                 // 165: harness.agent.v1.ListFilesRequest
-	(*ReadFileRequest)(nil),                  // 166: harness.agent.v1.ReadFileRequest
-	(*GetGitStatusRequest)(nil),              // 167: harness.agent.v1.GetGitStatusRequest
-	(*RunShellCommandRequest)(nil),           // 168: harness.agent.v1.RunShellCommandRequest
-	(*StopShellCommandRequest)(nil),          // 169: harness.agent.v1.StopShellCommandRequest
-	(*ListSideChatsRequest)(nil),             // 170: harness.agent.v1.ListSideChatsRequest
-	(*CreateSideChatRequest)(nil),            // 171: harness.agent.v1.CreateSideChatRequest
-	(*GetSideChatRequest)(nil),               // 172: harness.agent.v1.GetSideChatRequest
-	(*UpdateSideChatRequest)(nil),            // 173: harness.agent.v1.UpdateSideChatRequest
-	(*DeleteSideChatRequest)(nil),            // 174: harness.agent.v1.DeleteSideChatRequest
-	(*AskSideChatRequest)(nil),               // 175: harness.agent.v1.AskSideChatRequest
-	(*StopSideChatRequest)(nil),              // 176: harness.agent.v1.StopSideChatRequest
-	(*ListSpeechProvidersRequest)(nil),       // 177: harness.agent.v1.ListSpeechProvidersRequest
-	(*ListSpeechVoicesRequest)(nil),          // 178: harness.agent.v1.ListSpeechVoicesRequest
-	(*GetSpeechSettingsRequest)(nil),         // 179: harness.agent.v1.GetSpeechSettingsRequest
-	(*UpdateSpeechSettingsRequest)(nil),      // 180: harness.agent.v1.UpdateSpeechSettingsRequest
-	(*TranscribeAudioRequest)(nil),           // 181: harness.agent.v1.TranscribeAudioRequest
-	(*SynthesizeSpeechRequest)(nil),          // 182: harness.agent.v1.SynthesizeSpeechRequest
-	(*ListLocalSpeechModelsRequest)(nil),     // 183: harness.agent.v1.ListLocalSpeechModelsRequest
-	(*DownloadSpeechModelRequest)(nil),       // 184: harness.agent.v1.DownloadSpeechModelRequest
-	(*DeleteSpeechModelRequest)(nil),         // 185: harness.agent.v1.DeleteSpeechModelRequest
-	(*ListLocalProvidersRequest)(nil),        // 186: harness.agent.v1.ListLocalProvidersRequest
-	(*AddLocalProviderRequest)(nil),          // 187: harness.agent.v1.AddLocalProviderRequest
-	(*UpdateLocalProviderRequest)(nil),       // 188: harness.agent.v1.UpdateLocalProviderRequest
-	(*RemoveLocalProviderRequest)(nil),       // 189: harness.agent.v1.RemoveLocalProviderRequest
-	(*RefreshLocalProvidersRequest)(nil),     // 190: harness.agent.v1.RefreshLocalProvidersRequest
-	(*PullOllamaModelRequest)(nil),           // 191: harness.agent.v1.PullOllamaModelRequest
-	(*DeleteOllamaModelRequest)(nil),         // 192: harness.agent.v1.DeleteOllamaModelRequest
-	(*GetProviderLimitsRequest)(nil),         // 193: harness.agent.v1.GetProviderLimitsRequest
-	(*ListAcpAgentsRequest)(nil),             // 194: harness.agent.v1.ListAcpAgentsRequest
-	(*InstallAcpAgentRequest)(nil),           // 195: harness.agent.v1.InstallAcpAgentRequest
-	(*UpdateAcpAgentRequest)(nil),            // 196: harness.agent.v1.UpdateAcpAgentRequest
-	(*UninstallAcpAgentRequest)(nil),         // 197: harness.agent.v1.UninstallAcpAgentRequest
-	(*AuthenticateAcpAgentRequest)(nil),      // 198: harness.agent.v1.AuthenticateAcpAgentRequest
-	(*SetAcpModeRequest)(nil),                // 199: harness.agent.v1.SetAcpModeRequest
-	(*GetBrowserAvailabilityRequest)(nil),    // 200: harness.agent.v1.GetBrowserAvailabilityRequest
-	(*InstallBrowserRequest)(nil),            // 201: harness.agent.v1.InstallBrowserRequest
-	(*OpenBrowserRequest)(nil),               // 202: harness.agent.v1.OpenBrowserRequest
-	(*ListBrowserTabsRequest)(nil),           // 203: harness.agent.v1.ListBrowserTabsRequest
-	(*CloseBrowserRequest)(nil),              // 204: harness.agent.v1.CloseBrowserRequest
-	(*ClearBrowserDataRequest)(nil),          // 205: harness.agent.v1.ClearBrowserDataRequest
-	(*CreateTerminalResponse)(nil),           // 206: harness.agent.v1.CreateTerminalResponse
-	(*AttachTerminalResponse)(nil),           // 207: harness.agent.v1.AttachTerminalResponse
-	(*ListTerminalsResponse)(nil),            // 208: harness.agent.v1.ListTerminalsResponse
-	(*KillTerminalResponse)(nil),             // 209: harness.agent.v1.KillTerminalResponse
-	(*ResizeTerminalResponse)(nil),           // 210: harness.agent.v1.ResizeTerminalResponse
-	(*ListFileRootsResponse)(nil),            // 211: harness.agent.v1.ListFileRootsResponse
-	(*ListFilesResponse)(nil),                // 212: harness.agent.v1.ListFilesResponse
-	(*ReadFileResponse)(nil),                 // 213: harness.agent.v1.ReadFileResponse
-	(*GetGitStatusResponse)(nil),             // 214: harness.agent.v1.GetGitStatusResponse
-	(*RunShellCommandResponse)(nil),          // 215: harness.agent.v1.RunShellCommandResponse
-	(*StopShellCommandResponse)(nil),         // 216: harness.agent.v1.StopShellCommandResponse
-	(*ListSideChatsResponse)(nil),            // 217: harness.agent.v1.ListSideChatsResponse
-	(*CreateSideChatResponse)(nil),           // 218: harness.agent.v1.CreateSideChatResponse
-	(*GetSideChatResponse)(nil),              // 219: harness.agent.v1.GetSideChatResponse
-	(*UpdateSideChatResponse)(nil),           // 220: harness.agent.v1.UpdateSideChatResponse
-	(*DeleteSideChatResponse)(nil),           // 221: harness.agent.v1.DeleteSideChatResponse
-	(*AskSideChatResponse)(nil),              // 222: harness.agent.v1.AskSideChatResponse
-	(*StopSideChatResponse)(nil),             // 223: harness.agent.v1.StopSideChatResponse
-	(*ListSpeechProvidersResponse)(nil),      // 224: harness.agent.v1.ListSpeechProvidersResponse
-	(*ListSpeechVoicesResponse)(nil),         // 225: harness.agent.v1.ListSpeechVoicesResponse
-	(*GetSpeechSettingsResponse)(nil),        // 226: harness.agent.v1.GetSpeechSettingsResponse
-	(*UpdateSpeechSettingsResponse)(nil),     // 227: harness.agent.v1.UpdateSpeechSettingsResponse
-	(*TranscribeAudioResponse)(nil),          // 228: harness.agent.v1.TranscribeAudioResponse
-	(*SynthesizeSpeechResponse)(nil),         // 229: harness.agent.v1.SynthesizeSpeechResponse
-	(*ListLocalSpeechModelsResponse)(nil),    // 230: harness.agent.v1.ListLocalSpeechModelsResponse
-	(*DownloadSpeechModelResponse)(nil),      // 231: harness.agent.v1.DownloadSpeechModelResponse
-	(*DeleteSpeechModelResponse)(nil),        // 232: harness.agent.v1.DeleteSpeechModelResponse
-	(*ListLocalProvidersResponse)(nil),       // 233: harness.agent.v1.ListLocalProvidersResponse
-	(*AddLocalProviderResponse)(nil),         // 234: harness.agent.v1.AddLocalProviderResponse
-	(*UpdateLocalProviderResponse)(nil),      // 235: harness.agent.v1.UpdateLocalProviderResponse
-	(*RemoveLocalProviderResponse)(nil),      // 236: harness.agent.v1.RemoveLocalProviderResponse
-	(*RefreshLocalProvidersResponse)(nil),    // 237: harness.agent.v1.RefreshLocalProvidersResponse
-	(*PullOllamaModelResponse)(nil),          // 238: harness.agent.v1.PullOllamaModelResponse
-	(*DeleteOllamaModelResponse)(nil),        // 239: harness.agent.v1.DeleteOllamaModelResponse
-	(*GetProviderLimitsResponse)(nil),        // 240: harness.agent.v1.GetProviderLimitsResponse
-	(*ListAcpAgentsResponse)(nil),            // 241: harness.agent.v1.ListAcpAgentsResponse
-	(*InstallAcpAgentResponse)(nil),          // 242: harness.agent.v1.InstallAcpAgentResponse
-	(*UpdateAcpAgentResponse)(nil),           // 243: harness.agent.v1.UpdateAcpAgentResponse
-	(*UninstallAcpAgentResponse)(nil),        // 244: harness.agent.v1.UninstallAcpAgentResponse
-	(*AuthenticateAcpAgentResponse)(nil),     // 245: harness.agent.v1.AuthenticateAcpAgentResponse
-	(*SetAcpModeResponse)(nil),               // 246: harness.agent.v1.SetAcpModeResponse
-	(*GetBrowserAvailabilityResponse)(nil),   // 247: harness.agent.v1.GetBrowserAvailabilityResponse
-	(*InstallBrowserResponse)(nil),           // 248: harness.agent.v1.InstallBrowserResponse
-	(*OpenBrowserResponse)(nil),              // 249: harness.agent.v1.OpenBrowserResponse
-	(*ListBrowserTabsResponse)(nil),          // 250: harness.agent.v1.ListBrowserTabsResponse
-	(*CloseBrowserResponse)(nil),             // 251: harness.agent.v1.CloseBrowserResponse
-	(*ClearBrowserDataResponse)(nil),         // 252: harness.agent.v1.ClearBrowserDataResponse
+	(*SetAutoContinueRequest)(nil),           // 89: harness.agent.v1.SetAutoContinueRequest
+	(*SetAutoContinueResponse)(nil),          // 90: harness.agent.v1.SetAutoContinueResponse
+	(*SetEffortRequest)(nil),                 // 91: harness.agent.v1.SetEffortRequest
+	(*SetEffortResponse)(nil),                // 92: harness.agent.v1.SetEffortResponse
+	(*SetPermissionModeRequest)(nil),         // 93: harness.agent.v1.SetPermissionModeRequest
+	(*SetPermissionModeResponse)(nil),        // 94: harness.agent.v1.SetPermissionModeResponse
+	(*SuggestFilesRequest)(nil),              // 95: harness.agent.v1.SuggestFilesRequest
+	(*SuggestFilesResponse)(nil),             // 96: harness.agent.v1.SuggestFilesResponse
+	(*RespondToPlanRequest)(nil),             // 97: harness.agent.v1.RespondToPlanRequest
+	(*RespondToPlanResponse)(nil),            // 98: harness.agent.v1.RespondToPlanResponse
+	(*ListCheckpointsRequest)(nil),           // 99: harness.agent.v1.ListCheckpointsRequest
+	(*ListCheckpointsResponse)(nil),          // 100: harness.agent.v1.ListCheckpointsResponse
+	(*RewindRequest)(nil),                    // 101: harness.agent.v1.RewindRequest
+	(*RewindResponse)(nil),                   // 102: harness.agent.v1.RewindResponse
+	(*CompactRequest)(nil),                   // 103: harness.agent.v1.CompactRequest
+	(*CompactResponse)(nil),                  // 104: harness.agent.v1.CompactResponse
+	(*GetContextUsageRequest)(nil),           // 105: harness.agent.v1.GetContextUsageRequest
+	(*GetContextUsageResponse)(nil),          // 106: harness.agent.v1.GetContextUsageResponse
+	(*ContextUsage)(nil),                     // 107: harness.agent.v1.ContextUsage
+	(*UserPreferences)(nil),                  // 108: harness.agent.v1.UserPreferences
+	(*GetUserPreferencesRequest)(nil),        // 109: harness.agent.v1.GetUserPreferencesRequest
+	(*GetUserPreferencesResponse)(nil),       // 110: harness.agent.v1.GetUserPreferencesResponse
+	(*UpdateUserPreferencesRequest)(nil),     // 111: harness.agent.v1.UpdateUserPreferencesRequest
+	(*UpdateUserPreferencesResponse)(nil),    // 112: harness.agent.v1.UpdateUserPreferencesResponse
+	(*BackgroundTask)(nil),                   // 113: harness.agent.v1.BackgroundTask
+	(*ListTasksRequest)(nil),                 // 114: harness.agent.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),                // 115: harness.agent.v1.ListTasksResponse
+	(*StopTaskRequest)(nil),                  // 116: harness.agent.v1.StopTaskRequest
+	(*StopTaskResponse)(nil),                 // 117: harness.agent.v1.StopTaskResponse
+	(*CloseSessionRequest)(nil),              // 118: harness.agent.v1.CloseSessionRequest
+	(*CloseSessionResponse)(nil),             // 119: harness.agent.v1.CloseSessionResponse
+	(*GetWorkspaceTrustRequest)(nil),         // 120: harness.agent.v1.GetWorkspaceTrustRequest
+	(*GetWorkspaceTrustResponse)(nil),        // 121: harness.agent.v1.GetWorkspaceTrustResponse
+	(*SetWorkspaceTrustRequest)(nil),         // 122: harness.agent.v1.SetWorkspaceTrustRequest
+	(*SetWorkspaceTrustResponse)(nil),        // 123: harness.agent.v1.SetWorkspaceTrustResponse
+	(*SetOutputStyleRequest)(nil),            // 124: harness.agent.v1.SetOutputStyleRequest
+	(*SetOutputStyleResponse)(nil),           // 125: harness.agent.v1.SetOutputStyleResponse
+	(*ListOutputStylesRequest)(nil),          // 126: harness.agent.v1.ListOutputStylesRequest
+	(*ListOutputStylesResponse)(nil),         // 127: harness.agent.v1.ListOutputStylesResponse
+	(*OutputStyleInfo)(nil),                  // 128: harness.agent.v1.OutputStyleInfo
+	(*Environment)(nil),                      // 129: harness.agent.v1.Environment
+	(*EnvironmentFolder)(nil),                // 130: harness.agent.v1.EnvironmentFolder
+	(*EnvironmentErrors)(nil),                // 131: harness.agent.v1.EnvironmentErrors
+	(*EnvironmentError)(nil),                 // 132: harness.agent.v1.EnvironmentError
+	(*GetEnvironmentRequest)(nil),            // 133: harness.agent.v1.GetEnvironmentRequest
+	(*GetEnvironmentResponse)(nil),           // 134: harness.agent.v1.GetEnvironmentResponse
+	(*UpdateEnvironmentRequest)(nil),         // 135: harness.agent.v1.UpdateEnvironmentRequest
+	(*UpdateEnvironmentResponse)(nil),        // 136: harness.agent.v1.UpdateEnvironmentResponse
+	(*GetFolderInfoRequest)(nil),             // 137: harness.agent.v1.GetFolderInfoRequest
+	(*GetFolderInfoResponse)(nil),            // 138: harness.agent.v1.GetFolderInfoResponse
+	(*SetSessionFolderRequest)(nil),          // 139: harness.agent.v1.SetSessionFolderRequest
+	(*SetSessionFolderResponse)(nil),         // 140: harness.agent.v1.SetSessionFolderResponse
+	(*AddSessionDirectoryRequest)(nil),       // 141: harness.agent.v1.AddSessionDirectoryRequest
+	(*AddSessionDirectoryResponse)(nil),      // 142: harness.agent.v1.AddSessionDirectoryResponse
+	(*ToolTitle)(nil),                        // 143: harness.agent.v1.ToolTitle
+	(*ToolBackground)(nil),                   // 144: harness.agent.v1.ToolBackground
+	(*BackgroundToolCallRequest)(nil),        // 145: harness.agent.v1.BackgroundToolCallRequest
+	(*BackgroundToolCallResponse)(nil),       // 146: harness.agent.v1.BackgroundToolCallResponse
+	(*SetSessionRelayRequest)(nil),           // 147: harness.agent.v1.SetSessionRelayRequest
+	(*SetSessionRelayResponse)(nil),          // 148: harness.agent.v1.SetSessionRelayResponse
+	(*ContextUsage_Entry)(nil),               // 149: harness.agent.v1.ContextUsage.Entry
+	(*ContextUsage_McpTool)(nil),             // 150: harness.agent.v1.ContextUsage.McpTool
+	(v1.Effort)(0),                           // 151: harness.llm.v1.Effort
+	(SessionFeature)(0),                      // 152: harness.agent.v1.SessionFeature
+	(*AcpSessionState)(nil),                  // 153: harness.agent.v1.AcpSessionState
+	(*UserShellStarted)(nil),                 // 154: harness.agent.v1.UserShellStarted
+	(*UserShellOutput)(nil),                  // 155: harness.agent.v1.UserShellOutput
+	(*UserShellFinished)(nil),                // 156: harness.agent.v1.UserShellFinished
+	(*BrowserAction)(nil),                    // 157: harness.agent.v1.BrowserAction
+	(*v1.ContentBlock)(nil),                  // 158: harness.llm.v1.ContentBlock
+	(v1.StopReason)(0),                       // 159: harness.llm.v1.StopReason
+	(*v1.Usage)(nil),                         // 160: harness.llm.v1.Usage
+	(*CreateTerminalRequest)(nil),            // 161: harness.agent.v1.CreateTerminalRequest
+	(*AttachTerminalRequest)(nil),            // 162: harness.agent.v1.AttachTerminalRequest
+	(*ListTerminalsRequest)(nil),             // 163: harness.agent.v1.ListTerminalsRequest
+	(*KillTerminalRequest)(nil),              // 164: harness.agent.v1.KillTerminalRequest
+	(*ResizeTerminalRequest)(nil),            // 165: harness.agent.v1.ResizeTerminalRequest
+	(*ListFileRootsRequest)(nil),             // 166: harness.agent.v1.ListFileRootsRequest
+	(*ListFilesRequest)(nil),                 // 167: harness.agent.v1.ListFilesRequest
+	(*ReadFileRequest)(nil),                  // 168: harness.agent.v1.ReadFileRequest
+	(*GetGitStatusRequest)(nil),              // 169: harness.agent.v1.GetGitStatusRequest
+	(*RunShellCommandRequest)(nil),           // 170: harness.agent.v1.RunShellCommandRequest
+	(*StopShellCommandRequest)(nil),          // 171: harness.agent.v1.StopShellCommandRequest
+	(*ListSideChatsRequest)(nil),             // 172: harness.agent.v1.ListSideChatsRequest
+	(*CreateSideChatRequest)(nil),            // 173: harness.agent.v1.CreateSideChatRequest
+	(*GetSideChatRequest)(nil),               // 174: harness.agent.v1.GetSideChatRequest
+	(*UpdateSideChatRequest)(nil),            // 175: harness.agent.v1.UpdateSideChatRequest
+	(*DeleteSideChatRequest)(nil),            // 176: harness.agent.v1.DeleteSideChatRequest
+	(*AskSideChatRequest)(nil),               // 177: harness.agent.v1.AskSideChatRequest
+	(*StopSideChatRequest)(nil),              // 178: harness.agent.v1.StopSideChatRequest
+	(*ListSpeechProvidersRequest)(nil),       // 179: harness.agent.v1.ListSpeechProvidersRequest
+	(*ListSpeechVoicesRequest)(nil),          // 180: harness.agent.v1.ListSpeechVoicesRequest
+	(*GetSpeechSettingsRequest)(nil),         // 181: harness.agent.v1.GetSpeechSettingsRequest
+	(*UpdateSpeechSettingsRequest)(nil),      // 182: harness.agent.v1.UpdateSpeechSettingsRequest
+	(*TranscribeAudioRequest)(nil),           // 183: harness.agent.v1.TranscribeAudioRequest
+	(*SynthesizeSpeechRequest)(nil),          // 184: harness.agent.v1.SynthesizeSpeechRequest
+	(*ListLocalSpeechModelsRequest)(nil),     // 185: harness.agent.v1.ListLocalSpeechModelsRequest
+	(*DownloadSpeechModelRequest)(nil),       // 186: harness.agent.v1.DownloadSpeechModelRequest
+	(*DeleteSpeechModelRequest)(nil),         // 187: harness.agent.v1.DeleteSpeechModelRequest
+	(*ListLocalProvidersRequest)(nil),        // 188: harness.agent.v1.ListLocalProvidersRequest
+	(*AddLocalProviderRequest)(nil),          // 189: harness.agent.v1.AddLocalProviderRequest
+	(*UpdateLocalProviderRequest)(nil),       // 190: harness.agent.v1.UpdateLocalProviderRequest
+	(*RemoveLocalProviderRequest)(nil),       // 191: harness.agent.v1.RemoveLocalProviderRequest
+	(*RefreshLocalProvidersRequest)(nil),     // 192: harness.agent.v1.RefreshLocalProvidersRequest
+	(*PullOllamaModelRequest)(nil),           // 193: harness.agent.v1.PullOllamaModelRequest
+	(*DeleteOllamaModelRequest)(nil),         // 194: harness.agent.v1.DeleteOllamaModelRequest
+	(*GetProviderLimitsRequest)(nil),         // 195: harness.agent.v1.GetProviderLimitsRequest
+	(*ListAcpAgentsRequest)(nil),             // 196: harness.agent.v1.ListAcpAgentsRequest
+	(*InstallAcpAgentRequest)(nil),           // 197: harness.agent.v1.InstallAcpAgentRequest
+	(*UpdateAcpAgentRequest)(nil),            // 198: harness.agent.v1.UpdateAcpAgentRequest
+	(*UninstallAcpAgentRequest)(nil),         // 199: harness.agent.v1.UninstallAcpAgentRequest
+	(*AuthenticateAcpAgentRequest)(nil),      // 200: harness.agent.v1.AuthenticateAcpAgentRequest
+	(*SetAcpModeRequest)(nil),                // 201: harness.agent.v1.SetAcpModeRequest
+	(*GetBrowserAvailabilityRequest)(nil),    // 202: harness.agent.v1.GetBrowserAvailabilityRequest
+	(*InstallBrowserRequest)(nil),            // 203: harness.agent.v1.InstallBrowserRequest
+	(*OpenBrowserRequest)(nil),               // 204: harness.agent.v1.OpenBrowserRequest
+	(*ListBrowserTabsRequest)(nil),           // 205: harness.agent.v1.ListBrowserTabsRequest
+	(*CloseBrowserRequest)(nil),              // 206: harness.agent.v1.CloseBrowserRequest
+	(*ClearBrowserDataRequest)(nil),          // 207: harness.agent.v1.ClearBrowserDataRequest
+	(*CreateTerminalResponse)(nil),           // 208: harness.agent.v1.CreateTerminalResponse
+	(*AttachTerminalResponse)(nil),           // 209: harness.agent.v1.AttachTerminalResponse
+	(*ListTerminalsResponse)(nil),            // 210: harness.agent.v1.ListTerminalsResponse
+	(*KillTerminalResponse)(nil),             // 211: harness.agent.v1.KillTerminalResponse
+	(*ResizeTerminalResponse)(nil),           // 212: harness.agent.v1.ResizeTerminalResponse
+	(*ListFileRootsResponse)(nil),            // 213: harness.agent.v1.ListFileRootsResponse
+	(*ListFilesResponse)(nil),                // 214: harness.agent.v1.ListFilesResponse
+	(*ReadFileResponse)(nil),                 // 215: harness.agent.v1.ReadFileResponse
+	(*GetGitStatusResponse)(nil),             // 216: harness.agent.v1.GetGitStatusResponse
+	(*RunShellCommandResponse)(nil),          // 217: harness.agent.v1.RunShellCommandResponse
+	(*StopShellCommandResponse)(nil),         // 218: harness.agent.v1.StopShellCommandResponse
+	(*ListSideChatsResponse)(nil),            // 219: harness.agent.v1.ListSideChatsResponse
+	(*CreateSideChatResponse)(nil),           // 220: harness.agent.v1.CreateSideChatResponse
+	(*GetSideChatResponse)(nil),              // 221: harness.agent.v1.GetSideChatResponse
+	(*UpdateSideChatResponse)(nil),           // 222: harness.agent.v1.UpdateSideChatResponse
+	(*DeleteSideChatResponse)(nil),           // 223: harness.agent.v1.DeleteSideChatResponse
+	(*AskSideChatResponse)(nil),              // 224: harness.agent.v1.AskSideChatResponse
+	(*StopSideChatResponse)(nil),             // 225: harness.agent.v1.StopSideChatResponse
+	(*ListSpeechProvidersResponse)(nil),      // 226: harness.agent.v1.ListSpeechProvidersResponse
+	(*ListSpeechVoicesResponse)(nil),         // 227: harness.agent.v1.ListSpeechVoicesResponse
+	(*GetSpeechSettingsResponse)(nil),        // 228: harness.agent.v1.GetSpeechSettingsResponse
+	(*UpdateSpeechSettingsResponse)(nil),     // 229: harness.agent.v1.UpdateSpeechSettingsResponse
+	(*TranscribeAudioResponse)(nil),          // 230: harness.agent.v1.TranscribeAudioResponse
+	(*SynthesizeSpeechResponse)(nil),         // 231: harness.agent.v1.SynthesizeSpeechResponse
+	(*ListLocalSpeechModelsResponse)(nil),    // 232: harness.agent.v1.ListLocalSpeechModelsResponse
+	(*DownloadSpeechModelResponse)(nil),      // 233: harness.agent.v1.DownloadSpeechModelResponse
+	(*DeleteSpeechModelResponse)(nil),        // 234: harness.agent.v1.DeleteSpeechModelResponse
+	(*ListLocalProvidersResponse)(nil),       // 235: harness.agent.v1.ListLocalProvidersResponse
+	(*AddLocalProviderResponse)(nil),         // 236: harness.agent.v1.AddLocalProviderResponse
+	(*UpdateLocalProviderResponse)(nil),      // 237: harness.agent.v1.UpdateLocalProviderResponse
+	(*RemoveLocalProviderResponse)(nil),      // 238: harness.agent.v1.RemoveLocalProviderResponse
+	(*RefreshLocalProvidersResponse)(nil),    // 239: harness.agent.v1.RefreshLocalProvidersResponse
+	(*PullOllamaModelResponse)(nil),          // 240: harness.agent.v1.PullOllamaModelResponse
+	(*DeleteOllamaModelResponse)(nil),        // 241: harness.agent.v1.DeleteOllamaModelResponse
+	(*GetProviderLimitsResponse)(nil),        // 242: harness.agent.v1.GetProviderLimitsResponse
+	(*ListAcpAgentsResponse)(nil),            // 243: harness.agent.v1.ListAcpAgentsResponse
+	(*InstallAcpAgentResponse)(nil),          // 244: harness.agent.v1.InstallAcpAgentResponse
+	(*UpdateAcpAgentResponse)(nil),           // 245: harness.agent.v1.UpdateAcpAgentResponse
+	(*UninstallAcpAgentResponse)(nil),        // 246: harness.agent.v1.UninstallAcpAgentResponse
+	(*AuthenticateAcpAgentResponse)(nil),     // 247: harness.agent.v1.AuthenticateAcpAgentResponse
+	(*SetAcpModeResponse)(nil),               // 248: harness.agent.v1.SetAcpModeResponse
+	(*GetBrowserAvailabilityResponse)(nil),   // 249: harness.agent.v1.GetBrowserAvailabilityResponse
+	(*InstallBrowserResponse)(nil),           // 250: harness.agent.v1.InstallBrowserResponse
+	(*OpenBrowserResponse)(nil),              // 251: harness.agent.v1.OpenBrowserResponse
+	(*ListBrowserTabsResponse)(nil),          // 252: harness.agent.v1.ListBrowserTabsResponse
+	(*CloseBrowserResponse)(nil),             // 253: harness.agent.v1.CloseBrowserResponse
+	(*ClearBrowserDataResponse)(nil),         // 254: harness.agent.v1.ClearBrowserDataResponse
 }
 var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	0,   // 0: harness.agent.v1.InitializeResponse.permission_modes:type_name -> harness.agent.v1.PermissionMode
 	20,  // 1: harness.agent.v1.InitializeResponse.models:type_name -> harness.agent.v1.ModelInfo
 	0,   // 2: harness.agent.v1.InitializeResponse.disabled_permission_modes:type_name -> harness.agent.v1.PermissionMode
-	149, // 3: harness.agent.v1.ModelInfo.efforts:type_name -> harness.llm.v1.Effort
+	151, // 3: harness.agent.v1.ModelInfo.efforts:type_name -> harness.llm.v1.Effort
 	0,   // 4: harness.agent.v1.SessionInfo.permission_mode:type_name -> harness.agent.v1.PermissionMode
 	1,   // 5: harness.agent.v1.SessionInfo.status:type_name -> harness.agent.v1.SessionStatus
 	23,  // 6: harness.agent.v1.SessionInfo.diff_stats:type_name -> harness.agent.v1.DiffStats
 	24,  // 7: harness.agent.v1.SessionInfo.pull_request:type_name -> harness.agent.v1.PullRequest
 	22,  // 8: harness.agent.v1.SessionInfo.worktree:type_name -> harness.agent.v1.Worktree
-	150, // 9: harness.agent.v1.SessionInfo.unsupported_features:type_name -> harness.agent.v1.SessionFeature
-	151, // 10: harness.agent.v1.SessionInfo.acp:type_name -> harness.agent.v1.AcpSessionState
+	152, // 9: harness.agent.v1.SessionInfo.unsupported_features:type_name -> harness.agent.v1.SessionFeature
+	153, // 10: harness.agent.v1.SessionInfo.acp:type_name -> harness.agent.v1.AcpSessionState
 	74,  // 11: harness.agent.v1.SessionInfo.usage_limit:type_name -> harness.agent.v1.UsageLimit
 	4,   // 12: harness.agent.v1.PullRequest.state:type_name -> harness.agent.v1.PullRequest.State
 	0,   // 13: harness.agent.v1.CreateSessionRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	149, // 14: harness.agent.v1.CreateSessionRequest.effort:type_name -> harness.llm.v1.Effort
+	151, // 14: harness.agent.v1.CreateSessionRequest.effort:type_name -> harness.llm.v1.Effort
 	26,  // 15: harness.agent.v1.CreateSessionRequest.worktree:type_name -> harness.agent.v1.WorktreeOptions
 	29,  // 16: harness.agent.v1.ListRecentFoldersResponse.folders:type_name -> harness.agent.v1.RecentFolder
 	32,  // 17: harness.agent.v1.ListDirectoryResponse.entries:type_name -> harness.agent.v1.DirectoryEntry
@@ -11011,11 +11152,11 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	58,  // 48: harness.agent.v1.SessionEvent.permission_mode_changed:type_name -> harness.agent.v1.PermissionModeChanged
 	59,  // 49: harness.agent.v1.SessionEvent.show_requested:type_name -> harness.agent.v1.ShowRequested
 	74,  // 50: harness.agent.v1.SessionEvent.usage_limit:type_name -> harness.agent.v1.UsageLimit
-	152, // 51: harness.agent.v1.SessionEvent.user_shell_started:type_name -> harness.agent.v1.UserShellStarted
-	153, // 52: harness.agent.v1.SessionEvent.user_shell_output:type_name -> harness.agent.v1.UserShellOutput
-	154, // 53: harness.agent.v1.SessionEvent.user_shell_finished:type_name -> harness.agent.v1.UserShellFinished
-	141, // 54: harness.agent.v1.SessionEvent.tool_title:type_name -> harness.agent.v1.ToolTitle
-	155, // 55: harness.agent.v1.SessionEvent.browser_action:type_name -> harness.agent.v1.BrowserAction
+	154, // 51: harness.agent.v1.SessionEvent.user_shell_started:type_name -> harness.agent.v1.UserShellStarted
+	155, // 52: harness.agent.v1.SessionEvent.user_shell_output:type_name -> harness.agent.v1.UserShellOutput
+	156, // 53: harness.agent.v1.SessionEvent.user_shell_finished:type_name -> harness.agent.v1.UserShellFinished
+	143, // 54: harness.agent.v1.SessionEvent.tool_title:type_name -> harness.agent.v1.ToolTitle
+	157, // 55: harness.agent.v1.SessionEvent.browser_action:type_name -> harness.agent.v1.BrowserAction
 	48,  // 56: harness.agent.v1.TodosUpdated.todos:type_name -> harness.agent.v1.Todo
 	5,   // 57: harness.agent.v1.Todo.status:type_name -> harness.agent.v1.Todo.Status
 	15,  // 58: harness.agent.v1.PlanResolved.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
@@ -11025,12 +11166,12 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	7,   // 62: harness.agent.v1.Compacted.trigger:type_name -> harness.agent.v1.Compacted.Trigger
 	0,   // 63: harness.agent.v1.PermissionModeChanged.mode:type_name -> harness.agent.v1.PermissionMode
 	8,   // 64: harness.agent.v1.ShowRequested.kind:type_name -> harness.agent.v1.ShowRequested.Kind
-	156, // 65: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
-	156, // 66: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
-	157, // 67: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
-	158, // 68: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
-	156, // 69: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
-	142, // 70: harness.agent.v1.ToolCallFinished.background:type_name -> harness.agent.v1.ToolBackground
+	158, // 65: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
+	158, // 66: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
+	159, // 67: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
+	160, // 68: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
+	158, // 69: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
+	144, // 70: harness.agent.v1.ToolCallFinished.background:type_name -> harness.agent.v1.ToolBackground
 	14,  // 71: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
 	2,   // 72: harness.agent.v1.QuestionResolved.outcome:type_name -> harness.agent.v1.QuestionOutcome
 	85,  // 73: harness.agent.v1.QuestionResolved.answers:type_name -> harness.agent.v1.QuestionAnswer
@@ -11039,35 +11180,35 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	9,   // 76: harness.agent.v1.QuestionItem.type:type_name -> harness.agent.v1.QuestionItem.Type
 	60,  // 77: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
 	10,  // 78: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
-	158, // 79: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
+	160, // 79: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
 	11,  // 80: harness.agent.v1.UsageLimit.state:type_name -> harness.agent.v1.UsageLimit.State
 	12,  // 81: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
-	156, // 82: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
+	158, // 82: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
 	13,  // 83: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
 	14,  // 84: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
 	85,  // 85: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
 	2,   // 86: harness.agent.v1.AnswerQuestionRequest.outcome:type_name -> harness.agent.v1.QuestionOutcome
-	149, // 87: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
+	151, // 87: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
 	0,   // 88: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
 	15,  // 89: harness.agent.v1.RespondToPlanRequest.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
 	54,  // 90: harness.agent.v1.ListCheckpointsResponse.checkpoints:type_name -> harness.agent.v1.Checkpoint
 	16,  // 91: harness.agent.v1.RewindRequest.mode:type_name -> harness.agent.v1.RewindRequest.Mode
 	56,  // 92: harness.agent.v1.RewindResponse.result:type_name -> harness.agent.v1.Rewound
-	105, // 93: harness.agent.v1.GetContextUsageResponse.usage:type_name -> harness.agent.v1.ContextUsage
-	147, // 94: harness.agent.v1.ContextUsage.categories:type_name -> harness.agent.v1.ContextUsage.Entry
-	148, // 95: harness.agent.v1.ContextUsage.mcp_tools:type_name -> harness.agent.v1.ContextUsage.McpTool
-	106, // 96: harness.agent.v1.GetUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
-	106, // 97: harness.agent.v1.UpdateUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
+	107, // 93: harness.agent.v1.GetContextUsageResponse.usage:type_name -> harness.agent.v1.ContextUsage
+	149, // 94: harness.agent.v1.ContextUsage.categories:type_name -> harness.agent.v1.ContextUsage.Entry
+	150, // 95: harness.agent.v1.ContextUsage.mcp_tools:type_name -> harness.agent.v1.ContextUsage.McpTool
+	108, // 96: harness.agent.v1.GetUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
+	108, // 97: harness.agent.v1.UpdateUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
 	6,   // 98: harness.agent.v1.BackgroundTask.finish_reason:type_name -> harness.agent.v1.TaskFinished.Reason
-	111, // 99: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
-	126, // 100: harness.agent.v1.ListOutputStylesResponse.styles:type_name -> harness.agent.v1.OutputStyleInfo
-	128, // 101: harness.agent.v1.Environment.additional_folders:type_name -> harness.agent.v1.EnvironmentFolder
-	130, // 102: harness.agent.v1.EnvironmentErrors.errors:type_name -> harness.agent.v1.EnvironmentError
-	127, // 103: harness.agent.v1.GetEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
-	127, // 104: harness.agent.v1.UpdateEnvironmentRequest.environment:type_name -> harness.agent.v1.Environment
-	127, // 105: harness.agent.v1.UpdateEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	113, // 99: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
+	128, // 100: harness.agent.v1.ListOutputStylesResponse.styles:type_name -> harness.agent.v1.OutputStyleInfo
+	130, // 101: harness.agent.v1.Environment.additional_folders:type_name -> harness.agent.v1.EnvironmentFolder
+	132, // 102: harness.agent.v1.EnvironmentErrors.errors:type_name -> harness.agent.v1.EnvironmentError
+	129, // 103: harness.agent.v1.GetEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	129, // 104: harness.agent.v1.UpdateEnvironmentRequest.environment:type_name -> harness.agent.v1.Environment
+	129, // 105: harness.agent.v1.UpdateEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
 	21,  // 106: harness.agent.v1.SetSessionFolderResponse.session:type_name -> harness.agent.v1.SessionInfo
-	127, // 107: harness.agent.v1.AddSessionDirectoryResponse.environment:type_name -> harness.agent.v1.Environment
+	129, // 107: harness.agent.v1.AddSessionDirectoryResponse.environment:type_name -> harness.agent.v1.Environment
 	3,   // 108: harness.agent.v1.ToolBackground.reason:type_name -> harness.agent.v1.BackgroundReason
 	3,   // 109: harness.agent.v1.BackgroundToolCallRequest.reason:type_name -> harness.agent.v1.BackgroundReason
 	21,  // 110: harness.agent.v1.SetSessionRelayResponse.session:type_name -> harness.agent.v1.SessionInfo
@@ -11087,165 +11228,167 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	82,  // 124: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
 	84,  // 125: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
 	87,  // 126: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
-	89,  // 127: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
-	91,  // 128: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
-	122, // 129: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
-	124, // 130: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
-	93,  // 131: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
-	95,  // 132: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
-	97,  // 133: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
-	99,  // 134: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
-	101, // 135: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
-	103, // 136: harness.agent.v1.AgentService.GetContextUsage:input_type -> harness.agent.v1.GetContextUsageRequest
-	107, // 137: harness.agent.v1.AgentService.GetUserPreferences:input_type -> harness.agent.v1.GetUserPreferencesRequest
-	109, // 138: harness.agent.v1.AgentService.UpdateUserPreferences:input_type -> harness.agent.v1.UpdateUserPreferencesRequest
-	112, // 139: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
-	114, // 140: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
-	116, // 141: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
-	118, // 142: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
-	120, // 143: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
-	159, // 144: harness.agent.v1.AgentService.CreateTerminal:input_type -> harness.agent.v1.CreateTerminalRequest
-	160, // 145: harness.agent.v1.AgentService.AttachTerminal:input_type -> harness.agent.v1.AttachTerminalRequest
-	161, // 146: harness.agent.v1.AgentService.ListTerminals:input_type -> harness.agent.v1.ListTerminalsRequest
-	162, // 147: harness.agent.v1.AgentService.KillTerminal:input_type -> harness.agent.v1.KillTerminalRequest
-	163, // 148: harness.agent.v1.AgentService.ResizeTerminal:input_type -> harness.agent.v1.ResizeTerminalRequest
-	131, // 149: harness.agent.v1.AgentService.GetEnvironment:input_type -> harness.agent.v1.GetEnvironmentRequest
-	133, // 150: harness.agent.v1.AgentService.UpdateEnvironment:input_type -> harness.agent.v1.UpdateEnvironmentRequest
-	135, // 151: harness.agent.v1.AgentService.GetFolderInfo:input_type -> harness.agent.v1.GetFolderInfoRequest
-	137, // 152: harness.agent.v1.AgentService.SetSessionFolder:input_type -> harness.agent.v1.SetSessionFolderRequest
-	139, // 153: harness.agent.v1.AgentService.AddSessionDirectory:input_type -> harness.agent.v1.AddSessionDirectoryRequest
-	164, // 154: harness.agent.v1.AgentService.ListFileRoots:input_type -> harness.agent.v1.ListFileRootsRequest
-	165, // 155: harness.agent.v1.AgentService.ListFiles:input_type -> harness.agent.v1.ListFilesRequest
-	166, // 156: harness.agent.v1.AgentService.ReadFile:input_type -> harness.agent.v1.ReadFileRequest
-	167, // 157: harness.agent.v1.AgentService.GetGitStatus:input_type -> harness.agent.v1.GetGitStatusRequest
-	168, // 158: harness.agent.v1.AgentService.RunShellCommand:input_type -> harness.agent.v1.RunShellCommandRequest
-	169, // 159: harness.agent.v1.AgentService.StopShellCommand:input_type -> harness.agent.v1.StopShellCommandRequest
-	170, // 160: harness.agent.v1.AgentService.ListSideChats:input_type -> harness.agent.v1.ListSideChatsRequest
-	171, // 161: harness.agent.v1.AgentService.CreateSideChat:input_type -> harness.agent.v1.CreateSideChatRequest
-	172, // 162: harness.agent.v1.AgentService.GetSideChat:input_type -> harness.agent.v1.GetSideChatRequest
-	173, // 163: harness.agent.v1.AgentService.UpdateSideChat:input_type -> harness.agent.v1.UpdateSideChatRequest
-	174, // 164: harness.agent.v1.AgentService.DeleteSideChat:input_type -> harness.agent.v1.DeleteSideChatRequest
-	175, // 165: harness.agent.v1.AgentService.AskSideChat:input_type -> harness.agent.v1.AskSideChatRequest
-	176, // 166: harness.agent.v1.AgentService.StopSideChat:input_type -> harness.agent.v1.StopSideChatRequest
-	177, // 167: harness.agent.v1.AgentService.ListSpeechProviders:input_type -> harness.agent.v1.ListSpeechProvidersRequest
-	178, // 168: harness.agent.v1.AgentService.ListSpeechVoices:input_type -> harness.agent.v1.ListSpeechVoicesRequest
-	179, // 169: harness.agent.v1.AgentService.GetSpeechSettings:input_type -> harness.agent.v1.GetSpeechSettingsRequest
-	180, // 170: harness.agent.v1.AgentService.UpdateSpeechSettings:input_type -> harness.agent.v1.UpdateSpeechSettingsRequest
-	181, // 171: harness.agent.v1.AgentService.TranscribeAudio:input_type -> harness.agent.v1.TranscribeAudioRequest
-	182, // 172: harness.agent.v1.AgentService.SynthesizeSpeech:input_type -> harness.agent.v1.SynthesizeSpeechRequest
-	183, // 173: harness.agent.v1.AgentService.ListLocalSpeechModels:input_type -> harness.agent.v1.ListLocalSpeechModelsRequest
-	184, // 174: harness.agent.v1.AgentService.DownloadSpeechModel:input_type -> harness.agent.v1.DownloadSpeechModelRequest
-	185, // 175: harness.agent.v1.AgentService.DeleteSpeechModel:input_type -> harness.agent.v1.DeleteSpeechModelRequest
-	186, // 176: harness.agent.v1.AgentService.ListLocalProviders:input_type -> harness.agent.v1.ListLocalProvidersRequest
-	187, // 177: harness.agent.v1.AgentService.AddLocalProvider:input_type -> harness.agent.v1.AddLocalProviderRequest
-	188, // 178: harness.agent.v1.AgentService.UpdateLocalProvider:input_type -> harness.agent.v1.UpdateLocalProviderRequest
-	189, // 179: harness.agent.v1.AgentService.RemoveLocalProvider:input_type -> harness.agent.v1.RemoveLocalProviderRequest
-	190, // 180: harness.agent.v1.AgentService.RefreshLocalProviders:input_type -> harness.agent.v1.RefreshLocalProvidersRequest
-	191, // 181: harness.agent.v1.AgentService.PullOllamaModel:input_type -> harness.agent.v1.PullOllamaModelRequest
-	192, // 182: harness.agent.v1.AgentService.DeleteOllamaModel:input_type -> harness.agent.v1.DeleteOllamaModelRequest
-	193, // 183: harness.agent.v1.AgentService.GetProviderLimits:input_type -> harness.agent.v1.GetProviderLimitsRequest
-	143, // 184: harness.agent.v1.AgentService.BackgroundToolCall:input_type -> harness.agent.v1.BackgroundToolCallRequest
-	194, // 185: harness.agent.v1.AgentService.ListAcpAgents:input_type -> harness.agent.v1.ListAcpAgentsRequest
-	195, // 186: harness.agent.v1.AgentService.InstallAcpAgent:input_type -> harness.agent.v1.InstallAcpAgentRequest
-	196, // 187: harness.agent.v1.AgentService.UpdateAcpAgent:input_type -> harness.agent.v1.UpdateAcpAgentRequest
-	197, // 188: harness.agent.v1.AgentService.UninstallAcpAgent:input_type -> harness.agent.v1.UninstallAcpAgentRequest
-	198, // 189: harness.agent.v1.AgentService.AuthenticateAcpAgent:input_type -> harness.agent.v1.AuthenticateAcpAgentRequest
-	199, // 190: harness.agent.v1.AgentService.SetAcpMode:input_type -> harness.agent.v1.SetAcpModeRequest
-	145, // 191: harness.agent.v1.AgentService.SetSessionRelay:input_type -> harness.agent.v1.SetSessionRelayRequest
-	200, // 192: harness.agent.v1.AgentService.GetBrowserAvailability:input_type -> harness.agent.v1.GetBrowserAvailabilityRequest
-	201, // 193: harness.agent.v1.AgentService.InstallBrowser:input_type -> harness.agent.v1.InstallBrowserRequest
-	202, // 194: harness.agent.v1.AgentService.OpenBrowser:input_type -> harness.agent.v1.OpenBrowserRequest
-	203, // 195: harness.agent.v1.AgentService.ListBrowserTabs:input_type -> harness.agent.v1.ListBrowserTabsRequest
-	204, // 196: harness.agent.v1.AgentService.CloseBrowser:input_type -> harness.agent.v1.CloseBrowserRequest
-	205, // 197: harness.agent.v1.AgentService.ClearBrowserData:input_type -> harness.agent.v1.ClearBrowserDataRequest
-	19,  // 198: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
-	36,  // 199: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
-	38,  // 200: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
-	40,  // 201: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
-	42,  // 202: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
-	28,  // 203: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
-	31,  // 204: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
-	34,  // 205: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
-	44,  // 206: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
-	77,  // 207: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
-	79,  // 208: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
-	81,  // 209: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
-	83,  // 210: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
-	86,  // 211: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
-	88,  // 212: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
-	90,  // 213: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
-	92,  // 214: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
-	123, // 215: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
-	125, // 216: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
-	94,  // 217: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
-	96,  // 218: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
-	98,  // 219: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
-	100, // 220: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
-	102, // 221: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
-	104, // 222: harness.agent.v1.AgentService.GetContextUsage:output_type -> harness.agent.v1.GetContextUsageResponse
-	108, // 223: harness.agent.v1.AgentService.GetUserPreferences:output_type -> harness.agent.v1.GetUserPreferencesResponse
-	110, // 224: harness.agent.v1.AgentService.UpdateUserPreferences:output_type -> harness.agent.v1.UpdateUserPreferencesResponse
-	113, // 225: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
-	115, // 226: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
-	117, // 227: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
-	119, // 228: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
-	121, // 229: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
-	206, // 230: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
-	207, // 231: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
-	208, // 232: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
-	209, // 233: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
-	210, // 234: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
-	132, // 235: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
-	134, // 236: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
-	136, // 237: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
-	138, // 238: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
-	140, // 239: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
-	211, // 240: harness.agent.v1.AgentService.ListFileRoots:output_type -> harness.agent.v1.ListFileRootsResponse
-	212, // 241: harness.agent.v1.AgentService.ListFiles:output_type -> harness.agent.v1.ListFilesResponse
-	213, // 242: harness.agent.v1.AgentService.ReadFile:output_type -> harness.agent.v1.ReadFileResponse
-	214, // 243: harness.agent.v1.AgentService.GetGitStatus:output_type -> harness.agent.v1.GetGitStatusResponse
-	215, // 244: harness.agent.v1.AgentService.RunShellCommand:output_type -> harness.agent.v1.RunShellCommandResponse
-	216, // 245: harness.agent.v1.AgentService.StopShellCommand:output_type -> harness.agent.v1.StopShellCommandResponse
-	217, // 246: harness.agent.v1.AgentService.ListSideChats:output_type -> harness.agent.v1.ListSideChatsResponse
-	218, // 247: harness.agent.v1.AgentService.CreateSideChat:output_type -> harness.agent.v1.CreateSideChatResponse
-	219, // 248: harness.agent.v1.AgentService.GetSideChat:output_type -> harness.agent.v1.GetSideChatResponse
-	220, // 249: harness.agent.v1.AgentService.UpdateSideChat:output_type -> harness.agent.v1.UpdateSideChatResponse
-	221, // 250: harness.agent.v1.AgentService.DeleteSideChat:output_type -> harness.agent.v1.DeleteSideChatResponse
-	222, // 251: harness.agent.v1.AgentService.AskSideChat:output_type -> harness.agent.v1.AskSideChatResponse
-	223, // 252: harness.agent.v1.AgentService.StopSideChat:output_type -> harness.agent.v1.StopSideChatResponse
-	224, // 253: harness.agent.v1.AgentService.ListSpeechProviders:output_type -> harness.agent.v1.ListSpeechProvidersResponse
-	225, // 254: harness.agent.v1.AgentService.ListSpeechVoices:output_type -> harness.agent.v1.ListSpeechVoicesResponse
-	226, // 255: harness.agent.v1.AgentService.GetSpeechSettings:output_type -> harness.agent.v1.GetSpeechSettingsResponse
-	227, // 256: harness.agent.v1.AgentService.UpdateSpeechSettings:output_type -> harness.agent.v1.UpdateSpeechSettingsResponse
-	228, // 257: harness.agent.v1.AgentService.TranscribeAudio:output_type -> harness.agent.v1.TranscribeAudioResponse
-	229, // 258: harness.agent.v1.AgentService.SynthesizeSpeech:output_type -> harness.agent.v1.SynthesizeSpeechResponse
-	230, // 259: harness.agent.v1.AgentService.ListLocalSpeechModels:output_type -> harness.agent.v1.ListLocalSpeechModelsResponse
-	231, // 260: harness.agent.v1.AgentService.DownloadSpeechModel:output_type -> harness.agent.v1.DownloadSpeechModelResponse
-	232, // 261: harness.agent.v1.AgentService.DeleteSpeechModel:output_type -> harness.agent.v1.DeleteSpeechModelResponse
-	233, // 262: harness.agent.v1.AgentService.ListLocalProviders:output_type -> harness.agent.v1.ListLocalProvidersResponse
-	234, // 263: harness.agent.v1.AgentService.AddLocalProvider:output_type -> harness.agent.v1.AddLocalProviderResponse
-	235, // 264: harness.agent.v1.AgentService.UpdateLocalProvider:output_type -> harness.agent.v1.UpdateLocalProviderResponse
-	236, // 265: harness.agent.v1.AgentService.RemoveLocalProvider:output_type -> harness.agent.v1.RemoveLocalProviderResponse
-	237, // 266: harness.agent.v1.AgentService.RefreshLocalProviders:output_type -> harness.agent.v1.RefreshLocalProvidersResponse
-	238, // 267: harness.agent.v1.AgentService.PullOllamaModel:output_type -> harness.agent.v1.PullOllamaModelResponse
-	239, // 268: harness.agent.v1.AgentService.DeleteOllamaModel:output_type -> harness.agent.v1.DeleteOllamaModelResponse
-	240, // 269: harness.agent.v1.AgentService.GetProviderLimits:output_type -> harness.agent.v1.GetProviderLimitsResponse
-	144, // 270: harness.agent.v1.AgentService.BackgroundToolCall:output_type -> harness.agent.v1.BackgroundToolCallResponse
-	241, // 271: harness.agent.v1.AgentService.ListAcpAgents:output_type -> harness.agent.v1.ListAcpAgentsResponse
-	242, // 272: harness.agent.v1.AgentService.InstallAcpAgent:output_type -> harness.agent.v1.InstallAcpAgentResponse
-	243, // 273: harness.agent.v1.AgentService.UpdateAcpAgent:output_type -> harness.agent.v1.UpdateAcpAgentResponse
-	244, // 274: harness.agent.v1.AgentService.UninstallAcpAgent:output_type -> harness.agent.v1.UninstallAcpAgentResponse
-	245, // 275: harness.agent.v1.AgentService.AuthenticateAcpAgent:output_type -> harness.agent.v1.AuthenticateAcpAgentResponse
-	246, // 276: harness.agent.v1.AgentService.SetAcpMode:output_type -> harness.agent.v1.SetAcpModeResponse
-	146, // 277: harness.agent.v1.AgentService.SetSessionRelay:output_type -> harness.agent.v1.SetSessionRelayResponse
-	247, // 278: harness.agent.v1.AgentService.GetBrowserAvailability:output_type -> harness.agent.v1.GetBrowserAvailabilityResponse
-	248, // 279: harness.agent.v1.AgentService.InstallBrowser:output_type -> harness.agent.v1.InstallBrowserResponse
-	249, // 280: harness.agent.v1.AgentService.OpenBrowser:output_type -> harness.agent.v1.OpenBrowserResponse
-	250, // 281: harness.agent.v1.AgentService.ListBrowserTabs:output_type -> harness.agent.v1.ListBrowserTabsResponse
-	251, // 282: harness.agent.v1.AgentService.CloseBrowser:output_type -> harness.agent.v1.CloseBrowserResponse
-	252, // 283: harness.agent.v1.AgentService.ClearBrowserData:output_type -> harness.agent.v1.ClearBrowserDataResponse
-	198, // [198:284] is the sub-list for method output_type
-	112, // [112:198] is the sub-list for method input_type
+	91,  // 127: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
+	93,  // 128: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
+	124, // 129: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
+	126, // 130: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
+	95,  // 131: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
+	97,  // 132: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
+	99,  // 133: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
+	101, // 134: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
+	103, // 135: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
+	105, // 136: harness.agent.v1.AgentService.GetContextUsage:input_type -> harness.agent.v1.GetContextUsageRequest
+	109, // 137: harness.agent.v1.AgentService.GetUserPreferences:input_type -> harness.agent.v1.GetUserPreferencesRequest
+	111, // 138: harness.agent.v1.AgentService.UpdateUserPreferences:input_type -> harness.agent.v1.UpdateUserPreferencesRequest
+	114, // 139: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
+	116, // 140: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
+	118, // 141: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
+	120, // 142: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
+	122, // 143: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
+	161, // 144: harness.agent.v1.AgentService.CreateTerminal:input_type -> harness.agent.v1.CreateTerminalRequest
+	162, // 145: harness.agent.v1.AgentService.AttachTerminal:input_type -> harness.agent.v1.AttachTerminalRequest
+	163, // 146: harness.agent.v1.AgentService.ListTerminals:input_type -> harness.agent.v1.ListTerminalsRequest
+	164, // 147: harness.agent.v1.AgentService.KillTerminal:input_type -> harness.agent.v1.KillTerminalRequest
+	165, // 148: harness.agent.v1.AgentService.ResizeTerminal:input_type -> harness.agent.v1.ResizeTerminalRequest
+	133, // 149: harness.agent.v1.AgentService.GetEnvironment:input_type -> harness.agent.v1.GetEnvironmentRequest
+	135, // 150: harness.agent.v1.AgentService.UpdateEnvironment:input_type -> harness.agent.v1.UpdateEnvironmentRequest
+	137, // 151: harness.agent.v1.AgentService.GetFolderInfo:input_type -> harness.agent.v1.GetFolderInfoRequest
+	139, // 152: harness.agent.v1.AgentService.SetSessionFolder:input_type -> harness.agent.v1.SetSessionFolderRequest
+	141, // 153: harness.agent.v1.AgentService.AddSessionDirectory:input_type -> harness.agent.v1.AddSessionDirectoryRequest
+	166, // 154: harness.agent.v1.AgentService.ListFileRoots:input_type -> harness.agent.v1.ListFileRootsRequest
+	167, // 155: harness.agent.v1.AgentService.ListFiles:input_type -> harness.agent.v1.ListFilesRequest
+	168, // 156: harness.agent.v1.AgentService.ReadFile:input_type -> harness.agent.v1.ReadFileRequest
+	169, // 157: harness.agent.v1.AgentService.GetGitStatus:input_type -> harness.agent.v1.GetGitStatusRequest
+	170, // 158: harness.agent.v1.AgentService.RunShellCommand:input_type -> harness.agent.v1.RunShellCommandRequest
+	171, // 159: harness.agent.v1.AgentService.StopShellCommand:input_type -> harness.agent.v1.StopShellCommandRequest
+	172, // 160: harness.agent.v1.AgentService.ListSideChats:input_type -> harness.agent.v1.ListSideChatsRequest
+	173, // 161: harness.agent.v1.AgentService.CreateSideChat:input_type -> harness.agent.v1.CreateSideChatRequest
+	174, // 162: harness.agent.v1.AgentService.GetSideChat:input_type -> harness.agent.v1.GetSideChatRequest
+	175, // 163: harness.agent.v1.AgentService.UpdateSideChat:input_type -> harness.agent.v1.UpdateSideChatRequest
+	176, // 164: harness.agent.v1.AgentService.DeleteSideChat:input_type -> harness.agent.v1.DeleteSideChatRequest
+	177, // 165: harness.agent.v1.AgentService.AskSideChat:input_type -> harness.agent.v1.AskSideChatRequest
+	178, // 166: harness.agent.v1.AgentService.StopSideChat:input_type -> harness.agent.v1.StopSideChatRequest
+	179, // 167: harness.agent.v1.AgentService.ListSpeechProviders:input_type -> harness.agent.v1.ListSpeechProvidersRequest
+	180, // 168: harness.agent.v1.AgentService.ListSpeechVoices:input_type -> harness.agent.v1.ListSpeechVoicesRequest
+	181, // 169: harness.agent.v1.AgentService.GetSpeechSettings:input_type -> harness.agent.v1.GetSpeechSettingsRequest
+	182, // 170: harness.agent.v1.AgentService.UpdateSpeechSettings:input_type -> harness.agent.v1.UpdateSpeechSettingsRequest
+	183, // 171: harness.agent.v1.AgentService.TranscribeAudio:input_type -> harness.agent.v1.TranscribeAudioRequest
+	184, // 172: harness.agent.v1.AgentService.SynthesizeSpeech:input_type -> harness.agent.v1.SynthesizeSpeechRequest
+	185, // 173: harness.agent.v1.AgentService.ListLocalSpeechModels:input_type -> harness.agent.v1.ListLocalSpeechModelsRequest
+	186, // 174: harness.agent.v1.AgentService.DownloadSpeechModel:input_type -> harness.agent.v1.DownloadSpeechModelRequest
+	187, // 175: harness.agent.v1.AgentService.DeleteSpeechModel:input_type -> harness.agent.v1.DeleteSpeechModelRequest
+	188, // 176: harness.agent.v1.AgentService.ListLocalProviders:input_type -> harness.agent.v1.ListLocalProvidersRequest
+	189, // 177: harness.agent.v1.AgentService.AddLocalProvider:input_type -> harness.agent.v1.AddLocalProviderRequest
+	190, // 178: harness.agent.v1.AgentService.UpdateLocalProvider:input_type -> harness.agent.v1.UpdateLocalProviderRequest
+	191, // 179: harness.agent.v1.AgentService.RemoveLocalProvider:input_type -> harness.agent.v1.RemoveLocalProviderRequest
+	192, // 180: harness.agent.v1.AgentService.RefreshLocalProviders:input_type -> harness.agent.v1.RefreshLocalProvidersRequest
+	193, // 181: harness.agent.v1.AgentService.PullOllamaModel:input_type -> harness.agent.v1.PullOllamaModelRequest
+	194, // 182: harness.agent.v1.AgentService.DeleteOllamaModel:input_type -> harness.agent.v1.DeleteOllamaModelRequest
+	195, // 183: harness.agent.v1.AgentService.GetProviderLimits:input_type -> harness.agent.v1.GetProviderLimitsRequest
+	145, // 184: harness.agent.v1.AgentService.BackgroundToolCall:input_type -> harness.agent.v1.BackgroundToolCallRequest
+	196, // 185: harness.agent.v1.AgentService.ListAcpAgents:input_type -> harness.agent.v1.ListAcpAgentsRequest
+	197, // 186: harness.agent.v1.AgentService.InstallAcpAgent:input_type -> harness.agent.v1.InstallAcpAgentRequest
+	198, // 187: harness.agent.v1.AgentService.UpdateAcpAgent:input_type -> harness.agent.v1.UpdateAcpAgentRequest
+	199, // 188: harness.agent.v1.AgentService.UninstallAcpAgent:input_type -> harness.agent.v1.UninstallAcpAgentRequest
+	200, // 189: harness.agent.v1.AgentService.AuthenticateAcpAgent:input_type -> harness.agent.v1.AuthenticateAcpAgentRequest
+	201, // 190: harness.agent.v1.AgentService.SetAcpMode:input_type -> harness.agent.v1.SetAcpModeRequest
+	147, // 191: harness.agent.v1.AgentService.SetSessionRelay:input_type -> harness.agent.v1.SetSessionRelayRequest
+	202, // 192: harness.agent.v1.AgentService.GetBrowserAvailability:input_type -> harness.agent.v1.GetBrowserAvailabilityRequest
+	203, // 193: harness.agent.v1.AgentService.InstallBrowser:input_type -> harness.agent.v1.InstallBrowserRequest
+	204, // 194: harness.agent.v1.AgentService.OpenBrowser:input_type -> harness.agent.v1.OpenBrowserRequest
+	205, // 195: harness.agent.v1.AgentService.ListBrowserTabs:input_type -> harness.agent.v1.ListBrowserTabsRequest
+	206, // 196: harness.agent.v1.AgentService.CloseBrowser:input_type -> harness.agent.v1.CloseBrowserRequest
+	207, // 197: harness.agent.v1.AgentService.ClearBrowserData:input_type -> harness.agent.v1.ClearBrowserDataRequest
+	89,  // 198: harness.agent.v1.AgentService.SetAutoContinue:input_type -> harness.agent.v1.SetAutoContinueRequest
+	19,  // 199: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
+	36,  // 200: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
+	38,  // 201: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
+	40,  // 202: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
+	42,  // 203: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
+	28,  // 204: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
+	31,  // 205: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
+	34,  // 206: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
+	44,  // 207: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
+	77,  // 208: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
+	79,  // 209: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
+	81,  // 210: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
+	83,  // 211: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
+	86,  // 212: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
+	88,  // 213: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
+	92,  // 214: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
+	94,  // 215: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
+	125, // 216: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
+	127, // 217: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
+	96,  // 218: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
+	98,  // 219: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
+	100, // 220: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
+	102, // 221: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
+	104, // 222: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
+	106, // 223: harness.agent.v1.AgentService.GetContextUsage:output_type -> harness.agent.v1.GetContextUsageResponse
+	110, // 224: harness.agent.v1.AgentService.GetUserPreferences:output_type -> harness.agent.v1.GetUserPreferencesResponse
+	112, // 225: harness.agent.v1.AgentService.UpdateUserPreferences:output_type -> harness.agent.v1.UpdateUserPreferencesResponse
+	115, // 226: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
+	117, // 227: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
+	119, // 228: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
+	121, // 229: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
+	123, // 230: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
+	208, // 231: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
+	209, // 232: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
+	210, // 233: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
+	211, // 234: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
+	212, // 235: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
+	134, // 236: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
+	136, // 237: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
+	138, // 238: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
+	140, // 239: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
+	142, // 240: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
+	213, // 241: harness.agent.v1.AgentService.ListFileRoots:output_type -> harness.agent.v1.ListFileRootsResponse
+	214, // 242: harness.agent.v1.AgentService.ListFiles:output_type -> harness.agent.v1.ListFilesResponse
+	215, // 243: harness.agent.v1.AgentService.ReadFile:output_type -> harness.agent.v1.ReadFileResponse
+	216, // 244: harness.agent.v1.AgentService.GetGitStatus:output_type -> harness.agent.v1.GetGitStatusResponse
+	217, // 245: harness.agent.v1.AgentService.RunShellCommand:output_type -> harness.agent.v1.RunShellCommandResponse
+	218, // 246: harness.agent.v1.AgentService.StopShellCommand:output_type -> harness.agent.v1.StopShellCommandResponse
+	219, // 247: harness.agent.v1.AgentService.ListSideChats:output_type -> harness.agent.v1.ListSideChatsResponse
+	220, // 248: harness.agent.v1.AgentService.CreateSideChat:output_type -> harness.agent.v1.CreateSideChatResponse
+	221, // 249: harness.agent.v1.AgentService.GetSideChat:output_type -> harness.agent.v1.GetSideChatResponse
+	222, // 250: harness.agent.v1.AgentService.UpdateSideChat:output_type -> harness.agent.v1.UpdateSideChatResponse
+	223, // 251: harness.agent.v1.AgentService.DeleteSideChat:output_type -> harness.agent.v1.DeleteSideChatResponse
+	224, // 252: harness.agent.v1.AgentService.AskSideChat:output_type -> harness.agent.v1.AskSideChatResponse
+	225, // 253: harness.agent.v1.AgentService.StopSideChat:output_type -> harness.agent.v1.StopSideChatResponse
+	226, // 254: harness.agent.v1.AgentService.ListSpeechProviders:output_type -> harness.agent.v1.ListSpeechProvidersResponse
+	227, // 255: harness.agent.v1.AgentService.ListSpeechVoices:output_type -> harness.agent.v1.ListSpeechVoicesResponse
+	228, // 256: harness.agent.v1.AgentService.GetSpeechSettings:output_type -> harness.agent.v1.GetSpeechSettingsResponse
+	229, // 257: harness.agent.v1.AgentService.UpdateSpeechSettings:output_type -> harness.agent.v1.UpdateSpeechSettingsResponse
+	230, // 258: harness.agent.v1.AgentService.TranscribeAudio:output_type -> harness.agent.v1.TranscribeAudioResponse
+	231, // 259: harness.agent.v1.AgentService.SynthesizeSpeech:output_type -> harness.agent.v1.SynthesizeSpeechResponse
+	232, // 260: harness.agent.v1.AgentService.ListLocalSpeechModels:output_type -> harness.agent.v1.ListLocalSpeechModelsResponse
+	233, // 261: harness.agent.v1.AgentService.DownloadSpeechModel:output_type -> harness.agent.v1.DownloadSpeechModelResponse
+	234, // 262: harness.agent.v1.AgentService.DeleteSpeechModel:output_type -> harness.agent.v1.DeleteSpeechModelResponse
+	235, // 263: harness.agent.v1.AgentService.ListLocalProviders:output_type -> harness.agent.v1.ListLocalProvidersResponse
+	236, // 264: harness.agent.v1.AgentService.AddLocalProvider:output_type -> harness.agent.v1.AddLocalProviderResponse
+	237, // 265: harness.agent.v1.AgentService.UpdateLocalProvider:output_type -> harness.agent.v1.UpdateLocalProviderResponse
+	238, // 266: harness.agent.v1.AgentService.RemoveLocalProvider:output_type -> harness.agent.v1.RemoveLocalProviderResponse
+	239, // 267: harness.agent.v1.AgentService.RefreshLocalProviders:output_type -> harness.agent.v1.RefreshLocalProvidersResponse
+	240, // 268: harness.agent.v1.AgentService.PullOllamaModel:output_type -> harness.agent.v1.PullOllamaModelResponse
+	241, // 269: harness.agent.v1.AgentService.DeleteOllamaModel:output_type -> harness.agent.v1.DeleteOllamaModelResponse
+	242, // 270: harness.agent.v1.AgentService.GetProviderLimits:output_type -> harness.agent.v1.GetProviderLimitsResponse
+	146, // 271: harness.agent.v1.AgentService.BackgroundToolCall:output_type -> harness.agent.v1.BackgroundToolCallResponse
+	243, // 272: harness.agent.v1.AgentService.ListAcpAgents:output_type -> harness.agent.v1.ListAcpAgentsResponse
+	244, // 273: harness.agent.v1.AgentService.InstallAcpAgent:output_type -> harness.agent.v1.InstallAcpAgentResponse
+	245, // 274: harness.agent.v1.AgentService.UpdateAcpAgent:output_type -> harness.agent.v1.UpdateAcpAgentResponse
+	246, // 275: harness.agent.v1.AgentService.UninstallAcpAgent:output_type -> harness.agent.v1.UninstallAcpAgentResponse
+	247, // 276: harness.agent.v1.AgentService.AuthenticateAcpAgent:output_type -> harness.agent.v1.AuthenticateAcpAgentResponse
+	248, // 277: harness.agent.v1.AgentService.SetAcpMode:output_type -> harness.agent.v1.SetAcpModeResponse
+	148, // 278: harness.agent.v1.AgentService.SetSessionRelay:output_type -> harness.agent.v1.SetSessionRelayResponse
+	249, // 279: harness.agent.v1.AgentService.GetBrowserAvailability:output_type -> harness.agent.v1.GetBrowserAvailabilityResponse
+	250, // 280: harness.agent.v1.AgentService.InstallBrowser:output_type -> harness.agent.v1.InstallBrowserResponse
+	251, // 281: harness.agent.v1.AgentService.OpenBrowser:output_type -> harness.agent.v1.OpenBrowserResponse
+	252, // 282: harness.agent.v1.AgentService.ListBrowserTabs:output_type -> harness.agent.v1.ListBrowserTabsResponse
+	253, // 283: harness.agent.v1.AgentService.CloseBrowser:output_type -> harness.agent.v1.CloseBrowserResponse
+	254, // 284: harness.agent.v1.AgentService.ClearBrowserData:output_type -> harness.agent.v1.ClearBrowserDataResponse
+	90,  // 285: harness.agent.v1.AgentService.SetAutoContinue:output_type -> harness.agent.v1.SetAutoContinueResponse
+	199, // [199:286] is the sub-list for method output_type
+	112, // [112:199] is the sub-list for method input_type
 	112, // [112:112] is the sub-list for extension type_name
 	112, // [112:112] is the sub-list for extension extendee
 	0,   // [0:112] is the sub-list for field type_name
@@ -11308,14 +11451,14 @@ func file_harness_agent_v1_agent_proto_init() {
 		(*AssistantDelta_Thinking)(nil),
 		(*AssistantDelta_InputJson)(nil),
 	}
-	file_harness_agent_v1_agent_proto_msgTypes[91].OneofWrappers = []any{}
+	file_harness_agent_v1_agent_proto_msgTypes[93].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_agent_proto_rawDesc), len(file_harness_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      18,
-			NumMessages:   131,
+			NumMessages:   133,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

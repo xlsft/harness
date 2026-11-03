@@ -26,6 +26,10 @@ export interface UsageLimitVM {
   balanceText: string
   // The last turn ended after the agent was asked to wrap up ("Wrapped up past your usage limit").
   wrappedUp: boolean
+  // The last turn was cut off by the limit and nothing has continued it yet (also on 'cleared').
+  interrupted: boolean
+  // "Continue when limits return" is on for the session.
+  autoContinue: boolean
 }
 
 export interface Usage {
@@ -324,6 +328,8 @@ export interface SessionMeta {
   archived: boolean
   // The session this one was forked from (a sub-session listed under it); empty for top-level sessions.
   parentId: string
+  // "Continue when limits return" is on for the session (setAutoContinue).
+  autoContinue: boolean
   // Started without a folder: cwd is a private directory the client made for it (shown as "No folder", listed
   // under Chats, no repository).
   noFolder: boolean
@@ -345,6 +351,8 @@ export interface QueuedMessage {
   text: string
   // When the client queued it (ms; 0 when unknown).
   at?: number
+  // The usage limit holds it: it goes out by itself when the limit resets or the model moves to a provider that is fine.
+  held?: boolean
 }
 
 // What the Show tool opens: a file (lines 1-based, inclusive, 0 when not given), the session diff (optionally one

@@ -139,6 +139,9 @@ export interface SessionTransport {
   // Turns remote control (mirroring to the harness server) on or off for an open local session; returns the
   // session as it is now (relayEnabled). Refused when remote control is not available.
   setSessionRelay(sessionId: string, enabled: boolean): Promise<SessionInfo>
+  // "Continue when limits return": when the limit resets and the last turn was cut off by it, the client continues the
+  // work by itself. Off by default; held messages go out at the reset either way.
+  setAutoContinue(sessionId: string, enabled: boolean): Promise<void>
 
   suggestFiles(sessionId: string, query: string, limit: number): Promise<string[]>
   compact(sessionId: string, instructions?: string): Promise<void>

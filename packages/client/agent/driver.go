@@ -17,6 +17,9 @@ import (
 // running so that messages are queued meanwhile. A submitted message, another
 // Interrupt, Exclusive or Stop cancels the reply; it is skipped when a message
 // is already queued.
+//
+// While held (SetHeld: the provider of the session's model is out of usage) no message starts a turn: submitted
+// messages wait in the queue, and the queue stays there when a turn ends, until Release.
 type Driver struct {
 	Agent *Agent
 	// OnResult is called after every turn.
@@ -34,6 +37,8 @@ type Driver struct {
 	replying  bool
 	stopReply context.CancelFunc
 	stopped   bool
+	// held: see SetHeld. wakeMissed: Wake was called while held (a background task's notification waits).
+	held, wakeMissed bool
 }
 
 // NewDriver creates a driver whose turns run under ctx.
@@ -43,12 +48,12 @@ func NewDriver(ctx context.Context, a *Agent, onResult func(TurnResult)) *Driver
 	return d
 }
 
-// Submit starts a turn with blocks, or queues them under id if a turn is running.
+// Submit starts a turn with blocks, or queues them under id if a turn is running or the driver is held.
 // It reports whether the message was queued.
 func (d *Driver) Submit(id string, blocks []llm.ContentBlock) (queued bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.running {
+	if d.running || d.held {
 		d.Agent.Enqueue(id, blocks)
 		if d.stopReply != nil {
 			d.stopReply()
@@ -67,10 +72,14 @@ func (d *Driver) Submit(id string, blocks []llm.ContentBlock) (queued bool) {
 
 // Wake starts a turn without a message when the session is idle and the agent has reminders waiting (a
 // background task that finished): the model answers the notification. No-op while a turn runs (the reminder
-// rides on its next request) or after Stop.
+// rides on its next request) or after Stop; while held it waits for Release.
 func (d *Driver) Wake() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if d.held {
+		d.wakeMissed = true
+		return
+	}
 	if d.running || d.stopped || d.ctx.Err() != nil || !d.Agent.HasReminders() {
 		return
 	}
@@ -93,17 +102,62 @@ func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 			d.replying = false
 			d.idle.Broadcast()
 		}
-		next, nextIDs := d.Agent.DrainQueueIDs()
+		var next []llm.ContentBlock
+		var nextIDs []string
+		if !d.held {
+			next, nextIDs = d.Agent.takeQueue()
+		}
 		if len(next) == 0 || d.ctx.Err() != nil {
 			d.running = false
 			d.idle.Broadcast()
 			d.mu.Unlock()
+			d.Agent.noteDrained(next)
 			return
 		}
 		d.interrupts = 0
 		d.mu.Unlock()
+		d.Agent.noteDrained(next)
 		blocks, ids = next, nextIDs
 	}
+}
+
+// SetHeld turns holding on or off. Turning it off starts nothing by itself (see Release); a queue that waits goes
+// out when the running turn ends.
+func (d *Driver) SetHeld(held bool) {
+	d.mu.Lock()
+	d.held = held
+	d.mu.Unlock()
+}
+
+// Held reports whether the driver holds messages.
+func (d *Driver) Held() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.held
+}
+
+// Release ends holding and starts the next turn with the held messages, in order (or with the notification Wake
+// could not start meanwhile). It reports whether a turn started; with a turn running the queue goes out after it.
+func (d *Driver) Release() (started bool) {
+	d.mu.Lock()
+	d.held = false
+	missed := d.wakeMissed
+	d.wakeMissed = false
+	if d.running || d.stopped || d.ctx.Err() != nil {
+		d.mu.Unlock()
+		return false
+	}
+	next, ids := d.Agent.takeQueue()
+	if len(next) == 0 && !(missed && d.Agent.HasReminders()) {
+		d.mu.Unlock()
+		return false
+	}
+	d.running = true
+	d.interrupts = 0
+	d.mu.Unlock()
+	d.Agent.noteDrained(next)
+	go d.loop(next, ids)
+	return true
 }
 
 // reply runs the interrupt reply unless a message is queued, the turn was
@@ -172,15 +226,21 @@ func (d *Driver) Exclusive(f func()) error {
 	d.mu.Unlock()
 	f()
 	d.mu.Lock()
-	next, ids := d.Agent.DrainQueueIDs()
+	var next []llm.ContentBlock
+	var ids []string
+	if !d.held {
+		next, ids = d.Agent.takeQueue()
+	}
 	if len(next) == 0 || d.ctx.Err() != nil {
 		d.running = false
 		d.idle.Broadcast()
 		d.mu.Unlock()
+		d.Agent.noteDrained(next)
 		return nil
 	}
 	d.interrupts = 0
 	d.mu.Unlock()
+	d.Agent.noteDrained(next)
 	go d.loop(next, ids)
 	return nil
 }

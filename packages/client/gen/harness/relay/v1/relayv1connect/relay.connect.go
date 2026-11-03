@@ -88,6 +88,9 @@ const (
 	// RelayServiceSetOutputStyleProcedure is the fully-qualified name of the RelayService's
 	// SetOutputStyle RPC.
 	RelayServiceSetOutputStyleProcedure = "/harness.relay.v1.RelayService/SetOutputStyle"
+	// RelayServiceSetAutoContinueProcedure is the fully-qualified name of the RelayService's
+	// SetAutoContinue RPC.
+	RelayServiceSetAutoContinueProcedure = "/harness.relay.v1.RelayService/SetAutoContinue"
 	// RelayServiceRemoveQueuedMessageProcedure is the fully-qualified name of the RelayService's
 	// RemoveQueuedMessage RPC.
 	RelayServiceRemoveQueuedMessageProcedure = "/harness.relay.v1.RelayService/RemoveQueuedMessage"
@@ -171,6 +174,7 @@ type RelayServiceClient interface {
 	SetEffort(context.Context, *connect.Request[v1.SetEffortRequest]) (*connect.Response[v1.SetEffortResponse], error)
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
 	SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error)
+	SetAutoContinue(context.Context, *connect.Request[v1.SetAutoContinueRequest]) (*connect.Response[v1.SetAutoContinueResponse], error)
 	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
 	// RespondToPlan waits for the host ack like RespondToPermission (first answer wins).
 	RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error)
@@ -329,6 +333,12 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("SetOutputStyle")),
 			connect.WithClientOptions(opts...),
 		),
+		setAutoContinue: connect.NewClient[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse](
+			httpClient,
+			baseURL+RelayServiceSetAutoContinueProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("SetAutoContinue")),
+			connect.WithClientOptions(opts...),
+		),
 		removeQueuedMessage: connect.NewClient[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse](
 			httpClient,
 			baseURL+RelayServiceRemoveQueuedMessageProcedure,
@@ -438,6 +448,7 @@ type relayServiceClient struct {
 	setEffort           *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
 	setPermissionMode   *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
 	setOutputStyle      *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
+	setAutoContinue     *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
 	removeQueuedMessage *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
 	respondToPlan       *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
 	stopTask            *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
@@ -554,6 +565,11 @@ func (c *relayServiceClient) SetOutputStyle(ctx context.Context, req *connect.Re
 	return c.setOutputStyle.CallUnary(ctx, req)
 }
 
+// SetAutoContinue calls harness.relay.v1.RelayService.SetAutoContinue.
+func (c *relayServiceClient) SetAutoContinue(ctx context.Context, req *connect.Request[v1.SetAutoContinueRequest]) (*connect.Response[v1.SetAutoContinueResponse], error) {
+	return c.setAutoContinue.CallUnary(ctx, req)
+}
+
 // RemoveQueuedMessage calls harness.relay.v1.RelayService.RemoveQueuedMessage.
 func (c *relayServiceClient) RemoveQueuedMessage(ctx context.Context, req *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error) {
 	return c.removeQueuedMessage.CallUnary(ctx, req)
@@ -667,6 +683,7 @@ type RelayServiceHandler interface {
 	SetEffort(context.Context, *connect.Request[v1.SetEffortRequest]) (*connect.Response[v1.SetEffortResponse], error)
 	SetPermissionMode(context.Context, *connect.Request[v1.SetPermissionModeRequest]) (*connect.Response[v1.SetPermissionModeResponse], error)
 	SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error)
+	SetAutoContinue(context.Context, *connect.Request[v1.SetAutoContinueRequest]) (*connect.Response[v1.SetAutoContinueResponse], error)
 	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
 	// RespondToPlan waits for the host ack like RespondToPermission (first answer wins).
 	RespondToPlan(context.Context, *connect.Request[v1.RespondToPlanRequest]) (*connect.Response[v1.RespondToPlanResponse], error)
@@ -821,6 +838,12 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("SetOutputStyle")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceSetAutoContinueHandler := connect.NewUnaryHandler(
+		RelayServiceSetAutoContinueProcedure,
+		svc.SetAutoContinue,
+		connect.WithSchema(relayServiceMethods.ByName("SetAutoContinue")),
+		connect.WithHandlerOptions(opts...),
+	)
 	relayServiceRemoveQueuedMessageHandler := connect.NewUnaryHandler(
 		RelayServiceRemoveQueuedMessageProcedure,
 		svc.RemoveQueuedMessage,
@@ -947,6 +970,8 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceSetPermissionModeHandler.ServeHTTP(w, r)
 		case RelayServiceSetOutputStyleProcedure:
 			relayServiceSetOutputStyleHandler.ServeHTTP(w, r)
+		case RelayServiceSetAutoContinueProcedure:
+			relayServiceSetAutoContinueHandler.ServeHTTP(w, r)
 		case RelayServiceRemoveQueuedMessageProcedure:
 			relayServiceRemoveQueuedMessageHandler.ServeHTTP(w, r)
 		case RelayServiceRespondToPlanProcedure:
@@ -1062,6 +1087,10 @@ func (UnimplementedRelayServiceHandler) SetPermissionMode(context.Context, *conn
 
 func (UnimplementedRelayServiceHandler) SetOutputStyle(context.Context, *connect.Request[v1.SetOutputStyleRequest]) (*connect.Response[v1.SetOutputStyleResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SetOutputStyle is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) SetAutoContinue(context.Context, *connect.Request[v1.SetAutoContinueRequest]) (*connect.Response[v1.SetAutoContinueResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SetAutoContinue is not implemented"))
 }
 
 func (UnimplementedRelayServiceHandler) RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error) {

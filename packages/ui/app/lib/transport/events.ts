@@ -53,6 +53,8 @@ export interface UsageLimitInit {
   resetsAt?: string
   balanceText?: string
   wrappedUp?: boolean
+  interrupted?: boolean
+  autoContinue?: boolean
 }
 
 export interface UserShellInit {
@@ -224,8 +226,8 @@ export class EventBuilder {
     return this.emit({ case: 'showRequested', value: value as never })
   }
 
-  queue(messages: { uuid: string, text: string, queuedAt?: number }[]) {
-    return this.emit({ case: 'queueChanged', value: { queued: messages.map(m => ({ uuid: m.uuid, content: [text(m.text)], queuedAt: m.queuedAt ? new Date(m.queuedAt).toISOString() : '' })) } as never })
+  queue(messages: { uuid: string, text: string, queuedAt?: number, held?: boolean }[]) {
+    return this.emit({ case: 'queueChanged', value: { queued: messages.map(m => ({ uuid: m.uuid, content: [text(m.text)], queuedAt: m.queuedAt ? new Date(m.queuedAt).toISOString() : '', held: !!m.held })) } as never })
   }
 
   checkpoint(id: string, preview = '') {
@@ -291,7 +293,7 @@ export class EventBuilder {
   usageLimit(u: UsageLimitInit) {
     const state = { near: UsageLimit_State.NEAR, wrap_up: UsageLimit_State.WRAP_UP, reached: UsageLimit_State.REACHED, cleared: UsageLimit_State.CLEARED }[u.state]
     return this.emit({ case: 'usageLimit', value: { state, providerId: u.providerId ?? '', providerName: u.providerName ?? '', windowLabel: u.windowLabel ?? '',
-      usedPercent: u.usedPercent ?? 0, resetsAt: u.resetsAt ?? '', balanceText: u.balanceText ?? '', wrappedUp: !!u.wrappedUp } as never })
+      usedPercent: u.usedPercent ?? 0, resetsAt: u.resetsAt ?? '', balanceText: u.balanceText ?? '', wrappedUp: !!u.wrappedUp, interrupted: !!u.interrupted, autoContinue: !!u.autoContinue } as never })
   }
 
   permissionModeChanged(mode: PermissionMode) {
