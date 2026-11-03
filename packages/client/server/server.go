@@ -971,7 +971,7 @@ func todosToProto(ts []tools.Todo) []*agentv1.Todo {
 }
 
 func checkpointToProto(c agent.Checkpoint) *agentv1.Checkpoint {
-	return &agentv1.Checkpoint{Id: c.ID, UserMessageUuid: c.UserMessageUUID, PromptPreview: c.PromptPreview,
+	return &agentv1.Checkpoint{Id: c.ID, UserMessageUuid: c.UserMessageUUID, PromptPreview: strings.ToValidUTF8(c.PromptPreview, ""),
 		CreatedAt: c.CreatedAt.UTC().Format(time.RFC3339), HasCodeChanges: c.HasCodeChanges}
 }
 

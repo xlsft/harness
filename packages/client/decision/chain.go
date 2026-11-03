@@ -82,8 +82,8 @@ func (c *Chain) Decide(ctx context.Context, req permissions.AutoRequest) (permis
 
 func shortErr(err error) string {
 	s := err.Error()
-	if len(s) > 200 {
-		s = s[:200] + "…"
+	if r := []rune(s); len(r) > 200 {
+		s = string(r[:200]) + "…"
 	}
 	return s
 }

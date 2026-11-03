@@ -473,9 +473,7 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return name + " " + rel(tools.FilePath(input))
 	case "Bash":
 		c := tools.BashCommand(input)
-		if len(c) > 80 {
-			c = c[:80] + "…"
-		}
+		c = truncateRunes(c, 80)
 		return "Bash " + c
 	case "Glob", "Grep":
 		return name + " " + jsonField(input, "pattern")

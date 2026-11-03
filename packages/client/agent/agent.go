@@ -828,8 +828,10 @@ func preview(blocks []llm.ContentBlock) string {
 	for _, b := range blocks {
 		if b.Type == llm.BlockText && strings.TrimSpace(b.Text) != "" {
 			line := strings.TrimSpace(strings.SplitN(strings.TrimSpace(b.Text), "\n", 2)[0])
-			if len(line) > 120 {
-				line = line[:120] + "…"
+			// By runes: a byte cut can split a character, and invalid UTF-8 fails the proto marshal of every
+			// event that carries it (the session's stream ends on replay).
+			if r := []rune(line); len(r) > 120 {
+				line = string(r[:120]) + "…"
 			}
 			return line
 		}
