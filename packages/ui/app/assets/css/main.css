@@ -3,6 +3,32 @@
 
 @source "../../../app";
 
+/* Terminal fonts with Nerd Fonts glyphs, bundled so the terminal works offline (public/fonts/LICENSE.md). */
+@font-face {
+  font-family: 'CaskaydiaCove Nerd Font';
+  src: url('/fonts/CaskaydiaCoveNerdFont-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'CaskaydiaCove Nerd Font';
+  src: url('/fonts/CaskaydiaCoveNerdFont-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrainsMono Nerd Font Mono';
+  src: url('/fonts/JetBrainsMonoNerdFontMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrainsMono Nerd Font Mono';
+  src: url('/fonts/JetBrainsMonoNerdFontMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
 /*
  * harness desktop design tokens (docs/design/ui/README.md).
  * Terminal-native: pure black, hairline #2b2b2b borders, square corners, monospace everywhere.
@@ -10,6 +36,7 @@
 @theme static {
   --font-sans: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
   --font-mono: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
+  --font-terminal: 'CaskaydiaCove Nerd Font', 'Cascadia Mono', 'JetBrains Mono', ui-monospace, monospace;
   --font-display: 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
 
   /* Defaults of the dark theme: app/themes.ts is the source, and the active theme overrides every

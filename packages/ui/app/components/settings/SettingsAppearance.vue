@@ -14,6 +14,10 @@ const uiSize = computed({ get: () => String(appearance.value.uiSize), set: (v: s
 const codeSize = computed({ get: () => String(appearance.value.codeSize), set: (v: string) => setSizes({ codeSize: Number(v) }) })
 const codeFont = ref(appearance.value.codeFont)
 watch(codeFont, v => setSizes({ codeFont: v }))
+const terminalFont = ref(appearance.value.terminalFont)
+watch(terminalFont, v => setSizes({ terminalFont: v }))
+// The terminal font the current theme brings, for the placeholder.
+const themeTerminalFont = computed(() => (themeById(appearance.value[kind.value], kind.value, themes.value).fonts?.terminal ?? DEFAULT_FONTS.terminal).split(',')[0]!.replace(/['"]/g, '').trim())
 const previewThemes = computed(() => (['light', 'dark'] as const).map(k => themeById(appearance.value[k], k, themes.value)))
 const previewFont = (t: ReturnType<typeof themeById>) => {
   const base = t.fonts?.mono ?? DEFAULT_FONTS.mono
@@ -194,8 +198,24 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
   </div>
   <div class="set-row">
     <div class="set-label">
+      <span>Terminal font</span>
+      <span class="set-desc">Any installed font; empty: the theme's Nerd Font, with icons for prompts and tools.</span>
+    </div>
+    <input
+      v-model.lazy="terminalFont"
+      :placeholder="themeTerminalFont"
+      aria-label="Terminal font"
+      autocapitalize="off"
+      autocorrect="off"
+      spellcheck="false"
+      maxlength="120"
+      class="h-8 w-[200px] border border-accented bg-default px-2.5 text-[12.5px] text-strong outline-none placeholder:text-muted focus:border-accent"
+    >
+  </div>
+  <div class="set-row">
+    <div class="set-label">
       <span>Code font size</span>
-      <span class="set-desc">Independent of the text size.</span>
+      <span class="set-desc">Code and the terminal; independent of the text size.</span>
     </div>
     <div class="w-[200px]">
       <HSelect

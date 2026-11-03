@@ -2,6 +2,9 @@
   "id": "xlsft-light",
   "name": "xlsft`s light",
   "kind": "light",
+  "fonts": {
+    "terminal": "'CaskaydiaCove Nerd Font', 'Cascadia Mono', 'JetBrains Mono', ui-monospace, monospace"
+  },
   "tokens": {
     "ground": "#ffffff",
     "surface": "#fafafa",

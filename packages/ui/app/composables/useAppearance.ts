@@ -6,7 +6,7 @@ import {
   type Appearance, type AppearanceMode, type Theme, type ThemeKind
 } from '~/themes'
 
-const DEFAULTS: Appearance = { mode: 'system', light: DEFAULT_THEME.light, dark: DEFAULT_THEME.dark, uiSize: UI_SIZE_DEFAULT, codeSize: 0, codeFont: '' }
+const DEFAULTS: Appearance = { mode: 'system', light: DEFAULT_THEME.light, dark: DEFAULT_THEME.dark, uiSize: UI_SIZE_DEFAULT, codeSize: 0, codeFont: '', terminalFont: '' }
 const size = (v: unknown, min: number, max: number, fallback: number) => typeof v === 'number' && v >= min && v <= max ? v : fallback
 
 function read(): Appearance {
@@ -18,7 +18,8 @@ function read(): Appearance {
       dark: typeof v.dark === 'string' ? v.dark : DEFAULTS.dark,
       uiSize: size(v.uiSize, 11, 18, UI_SIZE_DEFAULT),
       codeSize: size(v.codeSize, 10, 20, 0),
-      codeFont: typeof v.codeFont === 'string' ? v.codeFont.slice(0, 120) : ''
+      codeFont: typeof v.codeFont === 'string' ? v.codeFont.slice(0, 120) : '',
+      terminalFont: typeof v.terminalFont === 'string' ? v.terminalFont.slice(0, 120) : ''
     }
   } catch {
     return { ...DEFAULTS }
@@ -53,6 +54,7 @@ function apply(t: Theme, a: Appearance) {
   const zoom = a.uiSize / UI_SIZE_DEFAULT
   vars['--app-zoom'] = String(zoom)
   if (a.codeFont.trim()) vars['--font-mono'] = `${family(a.codeFont.trim())}, ${vars['--font-mono']}`
+  if (a.terminalFont.trim()) vars['--font-terminal'] = `${family(a.terminalFont.trim())}, ${vars['--font-terminal']}`
   if (a.codeSize) vars['--code-size'] = `${(a.codeSize / zoom).toFixed(3)}px`
   root.style.zoom = zoom === 1 ? '' : String(zoom)
   root.style.removeProperty('--code-size')
@@ -111,6 +113,6 @@ export function useAppearance() {
     theme,
     setMode: (mode: AppearanceMode) => set({ mode }),
     setTheme: (k: ThemeKind, id: string) => set({ [k]: id }),
-    setSizes: (patch: Partial<Pick<Appearance, 'uiSize' | 'codeSize' | 'codeFont'>>) => set(patch)
+    setSizes: (patch: Partial<Pick<Appearance, 'uiSize' | 'codeSize' | 'codeFont' | 'terminalFont'>>) => set(patch)
   }
 }

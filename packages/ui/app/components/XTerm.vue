@@ -54,7 +54,12 @@ function xtermTheme(): ITheme {
   }
 }
 
-const fontFamily = () => getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim() || 'ui-monospace, monospace'
+const fontFamily = () => getComputedStyle(document.documentElement).getPropertyValue('--font-terminal').trim() || 'ui-monospace, monospace'
+// xterm measures its cells once: load the terminal font (and its bold) before opening or switching to it.
+async function loadFont() {
+  const family = fontFamily()
+  await Promise.all([`${fontSize()}px ${family}`, `bold ${fontSize()}px ${family}`].map(f => document.fonts.load(f).catch(() => [])))
+}
 const fontSize = () => appearance.value.codeSize || 12.5
 
 onMounted(async () => {
@@ -64,6 +69,7 @@ onMounted(async () => {
     import('@xterm/addon-webgl'),
     import('@xterm/addon-web-links')
   ])
+  await loadFont()
   if (!host.value) return
   term = new Terminal({
     allowProposedApi: true,
@@ -102,7 +108,9 @@ onMounted(async () => {
   emit('resize', term.cols, term.rows)
 })
 
-watch([theme, () => appearance.value.codeSize, () => appearance.value.codeFont], () => {
+watch([theme, () => appearance.value.codeSize, () => appearance.value.terminalFont], async () => {
+  if (!term) return
+  await loadFont()
   if (!term) return
   term.options.theme = xtermTheme()
   term.options.fontSize = fontSize()

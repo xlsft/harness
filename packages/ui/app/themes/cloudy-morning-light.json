@@ -4,7 +4,8 @@
   "kind": "light",
   "fonts": {
     "sans": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
-    "display": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    "display": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+    "terminal": "'JetBrainsMono Nerd Font Mono', 'JetBrains Mono', ui-monospace, monospace"
   },
   "radius": {
     "chip": "6px",

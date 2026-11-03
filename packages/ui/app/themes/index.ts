@@ -2,7 +2,8 @@
 // a JSON file in this folder: every colour token (`--color-<token>`, the Tailwind colours: bg-surface,
 // text-strong, border-line…) and, optionally, corner radii (`--radius-<token>`, the Tailwind radii:
 // rounded-control, rounded-box…; square when left out) and fonts (`--font-sans` for the interface, `--font-mono`
-// for code, `--font-display` for big titles; the monospace defaults when left out). main.css derives Nuxt UI's `--ui-*` variables from the
+// for code, `--font-terminal` for the terminal (a Nerd Font, bundled in public/fonts), `--font-display` for big
+// titles; the defaults when left out). main.css derives Nuxt UI's `--ui-*` variables from the
 // colours. To add a theme, add a JSON file with every colour token and list it in THEMES below; the settings show
 // it with a preview drawn from its tokens.
 import cloudyMorningDark from './cloudy-morning-dark.json'
@@ -47,7 +48,12 @@ export type RadiusToken = typeof RADIUS_TOKENS[number]
 
 // The default fonts (main.css @theme): monospace everywhere.
 const MONO = '\'Cascadia Mono\', \'Cascadia Code\', \'JetBrains Mono\', ui-monospace, monospace'
-export const DEFAULT_FONTS = { sans: MONO, mono: MONO, display: '\'Cascadia Code\', \'JetBrains Mono\', ui-monospace, monospace' }
+export const DEFAULT_FONTS = {
+  sans: MONO,
+  mono: MONO,
+  terminal: `'CaskaydiaCove Nerd Font', ${MONO}`,
+  display: '\'Cascadia Code\', \'JetBrains Mono\', ui-monospace, monospace'
+}
 export type FontToken = keyof typeof DEFAULT_FONTS
 
 export interface Theme {
@@ -71,11 +77,12 @@ export interface Appearance {
   mode: AppearanceMode
   light: string
   dark: string
-  // Interface text size in px (the whole app scales from 13); code size in px (0: the default 12.5); a font
-  // family for code put before the theme's (''; the theme's).
+  // Interface text size in px (the whole app scales from 13); code size in px (0: the default 12.5); font
+  // families for code and for the terminal put before the theme's (''; the theme's).
   uiSize: number
   codeSize: number
   codeFont: string
+  terminalFont: string
 }
 
 export const UI_SIZE_DEFAULT = 13
