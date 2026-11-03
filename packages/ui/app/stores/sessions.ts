@@ -31,6 +31,10 @@ const EFFORT_TO_PB: Record<EffortName, Effort> = {
   max: Effort.MAX
 }
 
+// Event streams kept open at once (see trimStreams) and how often the list refreshes the other sessions.
+const MAX_STREAMS = 4
+const LIST_POLL_MS = 4000
+
 // Errors that mean the client is unreachable rather than that a call was refused.
 export const isNetworkError = (msg: string) => /unavailable|failed to fetch|load failed|networkerror|network error|connection (refused|reset|lost)/i.test(msg)
 
@@ -92,12 +96,9 @@ export const useSessionStore = defineStore('sessions', {
         this.clientVersion = init.clientVersion
         this.defaultModel = init.defaultModel
         this.models = await this.transport.listModels()
-        const list = await this.transport.listSessions()
-        for (const info of list) {
-          if (!this.sessions[info.id]) this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
-        }
-        this.order = list.map(i => i.id)
+        await this.refreshList()
         this.ready = true
+        if (import.meta.client) setInterval(() => this.quietly(this.refreshList()), LIST_POLL_MS)
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err)
       }
@@ -120,11 +121,54 @@ export const useSessionStore = defineStore('sessions', {
       return info.id
     },
 
+    // The session list, and the state of sessions without an event stream (their status, title, marks). A busy
+    // session that went idle while not open is left unread.
+    async refreshList() {
+      if (!this.transport) return
+      const list = await this.transport.listSessions()
+      for (const info of list) {
+        const s = this.sessions[info.id]
+        if (!s) {
+          this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
+          continue
+        }
+        if (this.unsubscribers[info.id]) continue
+        const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
+        s.meta = { ...s.meta, ...sessionMeta(info) }
+        if (wasBusy && s.meta.status === 'idle' && this.currentId !== info.id && !s.meta.unread) this.quietly(this.updateSession(info.id, { unread: true }))
+      }
+      this.order = list.map(i => i.id)
+    },
+
+    // Browsers allow about six HTTP/1.1 connections per host, and every event stream holds one; with a stream
+    // per opened session, calls to the client would queue behind them. So only the open session, busy ones and
+    // ones with queued messages keep a stream (at most MAX_STREAMS); the list poll covers the rest.
+    trimStreams() {
+      const needed = (id: string) => id === this.currentId || this.isBusy(id) || !!this.localQueue[id]?.length
+      const ids = Object.keys(this.unsubscribers)
+      const drop = ids.filter(id => !needed(id))
+      const kept = ids.filter(id => needed(id) && id !== this.currentId)
+      while (kept.length + (this.unsubscribers[this.currentId] ? 1 : 0) > MAX_STREAMS) drop.push(kept.shift()!)
+      if (!drop.length) return
+      const rest = { ...this.unsubscribers }
+      for (const id of drop) {
+        rest[id]?.()
+        Reflect.deleteProperty(rest, id)
+      }
+      this.unsubscribers = rest
+    },
+
     open(id: string, resumed = false) {
       if (!this.sessions[id]) return
       this.currentId = id
       if (this.sessions[id]!.meta.unread) this.quietly(this.updateSession(id, { unread: false }))
-      if (this.unsubscribers[id] || !this.transport) return
+      this.trimStreams()
+      this.subscribe(id, resumed)
+    },
+
+    // Opens the session's event stream (no-op while one is open).
+    subscribe(id: string, resumed = false) {
+      if (this.unsubscribers[id] || !this.transport || !this.sessions[id]) return
       const state = this.sessions[id]!
       this.unsubscribers[id] = this.transport.subscribe(id, state.lastSeq, {
         onEvent: (ev) => {
@@ -134,6 +178,7 @@ export const useSessionStore = defineStore('sessions', {
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           // A turn that finished while another session was open leaves this one unread.
           if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread) this.quietly(this.updateSession(id, { unread: true }))
+          if (this.currentId !== id && s.meta.status === 'idle') this.trimStreams()
         },
         onError: (err) => {
           Reflect.deleteProperty(this.unsubscribers, id)
@@ -251,6 +296,8 @@ export const useSessionStore = defineStore('sessions', {
     async send(id: string, text: string) {
       const body = text.trim()
       if (!body || !this.transport) return
+      // The session gets a stream for the turn this starts, even when it is not the open one.
+      this.subscribe(id)
       if (this.isBusy(id)) {
         const q = this.localQueue[id] ?? (this.localQueue[id] = [])
         q.push({ id: newUuid(), text: body })
