@@ -30,7 +30,7 @@ const PRICING = { input: 3, output: 15, cache_read: 0.3, cache_write: 3.75 };
 
 beforeAll(async () => {
   up = await new MockUpstream().start();
-  ts = await startTestServer({ HARNESS_PING_INTERVAL_MS: "40" });
+  ts = await startTestServer({ HARNESS_PING_INTERVAL_MS: "40", HARNESS_UPSTREAM_IDLE_TIMEOUT_MS: "400" });
   token = (await deviceLogin(ts)).accessToken;
   gw = ts.as(token).gateway;
   const api = (method: string, path: string, body?: unknown) => adminApi(ts.url, token, method, path, body);
@@ -411,6 +411,25 @@ describe("reliability", () => {
     const { events } = await collect({ model: "claude-t", maxTokens: 100, messages: [userText("hi")] });
     expect(ofCase(events, "ping").length).toBeGreaterThan(0);
     expect(ofCase(events, "messageStop")).toHaveLength(1);
+  });
+
+  it("drops a stalled upstream despite the keepalive pings and retries it before content", async () => {
+    up.enqueue({ sse: anthropicThinkingText, stallAfter: 0 }, { sse: anthropicThinkingText });
+    const { events, error } = await collect({ model: "claude-t", maxTokens: 100, messages: [userText("hi")] });
+    expect(error).toBeUndefined();
+    expect(up.requests).toHaveLength(2);
+    expect(ofCase(events, "ping").length).toBeGreaterThan(0);
+    expect(ofCase(events, "retry")).toHaveLength(1);
+    expect(ofCase(events, "messageStop")).toHaveLength(1);
+  });
+
+  it("ends the stream with an error when the upstream stalls after content started", async () => {
+    up.enqueue({ sse: anthropicThinkingText, stallAfter: anthropicThinkingText.indexOf("content_block_stop") });
+    const { events, error } = await collect({ model: "claude-t", maxTokens: 100, messages: [userText("hi")] });
+    expect(up.requests).toHaveLength(1);
+    expect(ofCase(events, "contentBlockDelta").length).toBeGreaterThan(0);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect(error!.message).toMatch(/sent nothing/);
   });
 
   it("rejects unknown models and invalid requests before streaming", async () => {

@@ -20,14 +20,25 @@ import (
 	"github.com/xlsft/harness/packages/client/rpc"
 )
 
-// DefaultIdleTimeout drops a stream after 5 minutes without any event.
+// DefaultIdleTimeout drops a stream after 5 minutes without progress: no
+// event other than the server's keepalive pings (which it sends while the
+// upstream model is silent, so they must not keep a stalled request alive).
 const DefaultIdleTimeout = 5 * time.Minute
+
+// DefaultSilenceTimeout drops a stream that delivered nothing at all, not even
+// a ping, for this long once the server was seen pinging (it pings every 10 s
+// by default): the connection is gone (sleep, network change, a proxy).
+const DefaultSilenceTimeout = time.Minute
 
 // Client implements gateway.Gateway.
 type Client struct {
-	rpc         llmv1connect.GatewayServiceClient
-	tokens      rpc.Tokens
-	IdleTimeout time.Duration
+	rpc    llmv1connect.GatewayServiceClient
+	tokens rpc.Tokens
+	// IdleTimeout and SilenceTimeout override DefaultIdleTimeout and
+	// DefaultSilenceTimeout. Either ends the stream with gateway.ErrIdleTimeout,
+	// which gateway.Send retries while no content arrived.
+	IdleTimeout    time.Duration
+	SilenceTimeout time.Duration
 }
 
 var _ gateway.Gateway = (*Client)(nil)
@@ -72,9 +83,12 @@ func (c *Client) CountTokens(ctx context.Context, r *llm.Request) (*llm.TokenCou
 // never restarted.
 func (c *Client) Stream(ctx context.Context, r *llm.Request) (gateway.EventStream, error) {
 	msg := pbconv.StreamRequest(r)
-	idle := c.IdleTimeout
+	idle, silence := c.IdleTimeout, c.SilenceTimeout
 	if idle <= 0 {
 		idle = DefaultIdleTimeout
+	}
+	if silence <= 0 {
+		silence = DefaultSilenceTimeout
 	}
 	open := func(token string) (*stream, error) {
 		sctx, cancel := context.WithCancelCause(ctx)
@@ -85,8 +99,10 @@ func (c *Client) Stream(ctx context.Context, r *llm.Request) (gateway.EventStrea
 			cancel(nil)
 			return nil, err
 		}
-		st := &stream{s: s, ctx: sctx, cancel: cancel, idle: idle}
+		st := &stream{s: s, ctx: sctx, cancel: cancel, idle: idle, silence: silence}
 		st.timer = time.AfterFunc(idle, func() { cancel(gateway.ErrIdleTimeout) })
+		st.quiet = time.AfterFunc(silence, func() { cancel(gateway.ErrIdleTimeout) })
+		st.quiet.Stop() // armed by the first ping
 		// Peek the first message so auth failures surface here.
 		if !s.Receive() {
 			err := s.Err()
@@ -96,7 +112,6 @@ func (c *Client) Stream(ctx context.Context, r *llm.Request) (gateway.EventStrea
 			}
 			return nil, st.mapErr(err)
 		}
-		st.timer.Reset(idle)
 		st.peeked = true
 		return st, nil
 	}
@@ -127,10 +142,14 @@ type stream struct {
 	s      *connect.ServerStreamForClient[llmv1.StreamMessageResponse]
 	ctx    context.Context
 	cancel context.CancelCauseFunc
-	timer  *time.Timer
-	idle   time.Duration
-	peeked bool
-	once   sync.Once
+	// timer fires after idle without progress (pings do not count); quiet
+	// fires after silence without any message, once the server was seen
+	// pinging.
+	timer, quiet  *time.Timer
+	idle, silence time.Duration
+	pinged        bool
+	peeked        bool
+	once          sync.Once
 }
 
 func (s *stream) mapErr(err error) error {
@@ -153,8 +172,15 @@ func (s *stream) Next() (llm.StreamEvent, error) {
 			}
 			return llm.StreamEvent{}, io.EOF
 		}
-		s.timer.Reset(s.idle)
 		ev := pbconv.StreamEvent(s.s.Msg())
+		if ev.Type == llm.EventPing {
+			s.pinged = true
+		} else {
+			s.timer.Reset(s.idle)
+		}
+		if s.pinged {
+			s.quiet.Reset(s.silence)
+		}
 		if ev.Type == "" {
 			continue // unknown future event type
 		}
@@ -165,6 +191,7 @@ func (s *stream) Next() (llm.StreamEvent, error) {
 func (s *stream) Close() error {
 	s.once.Do(func() {
 		s.timer.Stop()
+		s.quiet.Stop()
 		s.cancel(nil)
 		_ = s.s.Close()
 	})

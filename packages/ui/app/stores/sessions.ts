@@ -10,7 +10,7 @@ import {
 } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { SessionInfo } from '~/gen/harness/agent/v1/agent_pb'
-import { createSessionState, permissionModeName, reduce, sessionMeta } from '~/lib/session/reducer'
+import { applyLiveInfo, createSessionState, permissionModeName, reduce, sessionMeta, settleTurn } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 import type { SessionPatch } from '~/lib/transport/types'
@@ -38,6 +38,35 @@ const MAX_STREAMS = 4
 const LIST_POLL_MS = 4000
 // How often the permission mode policy is read again (an admin may change it while the app runs).
 const MODES_POLL_MS = 30_000
+// Stream liveness. A stream that sent control messages beats every 15 s: one silent for STALL_MS is dead (a sleep,
+// a WebView fetch that stopped delivering, a proxy) and is opened again after lastSeq. A broken stream is retried
+// with backoff up to RETRY_MAX_MS. A busy session the list has seen idle for RECONCILE_MS, or still busy
+// INTERRUPT_SETTLE_MS after Stop, gets its stream opened again too: the stream's first message after the replay
+// carries the client's live status, which wins.
+export const STALL_MS = 35_000
+const RETRY_MIN_MS = 1000
+const RETRY_MAX_MS = 15_000
+export const RECONCILE_MS = 6000
+export const INTERRUPT_SETTLE_MS = 4000
+
+// Per-stream bookkeeping kept out of the reactive state.
+const watchdogs = new Map<string, ReturnType<typeof setTimeout>>()
+const retries = new Map<string, { attempt: number, timer?: ReturnType<typeof setTimeout> }>()
+const listedIdleSince = new Map<string, number>()
+// Marks the current stream of a session as replaced (restartStream): it may deliver no more events.
+const replacers = new Map<string, () => void>()
+
+function clearWatchdog(id: string) {
+  const t = watchdogs.get(id)
+  if (t) clearTimeout(t)
+  watchdogs.delete(id)
+}
+
+function clearRetry(id: string) {
+  const r = retries.get(id)
+  if (r?.timer) clearTimeout(r.timer)
+  retries.delete(id)
+}
 
 // Errors that mean the client is unreachable rather than that a call was refused.
 export const isNetworkError = (msg: string) => /unavailable|failed to fetch|load failed|networkerror|network error|connection (refused|reset|lost)/i.test(msg)
@@ -155,12 +184,65 @@ export const useSessionStore = defineStore('sessions', {
           this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
           continue
         }
-        if (this.unsubscribers[info.id]) continue
+        if (this.unsubscribers[info.id]) {
+          this.reconcile(info.id, sessionMeta(info).status)
+          continue
+        }
         const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
         s.meta = { ...s.meta, ...sessionMeta(info) }
         if (wasBusy && s.meta.status === 'idle' && this.currentId !== info.id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(info.id, { unread: true }))
       }
       this.order = list.map(i => i.id)
+    },
+
+    // A streamed session shows a running turn the client lists as not running: tolerated for a moment (the list
+    // and the stream race), then the stream is opened again to catch up.
+    reconcile(id: string, listed: string) {
+      const s = this.sessions[id]
+      const listedBusy = listed === 'working' || listed === 'needs_input'
+      if (!s || s.meta.remote || !this.isBusy(id) || listedBusy) {
+        listedIdleSince.delete(id)
+        return
+      }
+      const since = listedIdleSince.get(id)
+      if (since === undefined) {
+        listedIdleSince.set(id, Date.now())
+        return
+      }
+      if (Date.now() - since < RECONCILE_MS) return
+      listedIdleSince.delete(id)
+      this.restartStream(id)
+    },
+
+    // Opens the session's stream again (after lastSeq, or from the start with `reset`, for another event log).
+    restartStream(id: string, reset = false) {
+      replacers.get(id)?.()
+      replacers.delete(id)
+      const stop = this.unsubscribers[id]
+      if (stop) {
+        stop()
+        const rest = { ...this.unsubscribers }
+        Reflect.deleteProperty(rest, id)
+        this.unsubscribers = rest
+      }
+      const s = this.sessions[id]
+      if (!s) return
+      if (reset) this.sessions[id] = createSessionState(id, s.meta)
+      this.subscribe(id)
+    },
+
+    // A broken stream of a session that still needs one is opened again, with backoff.
+    retryStream(id: string) {
+      const r = retries.get(id) ?? { attempt: 0 }
+      if (r.timer) clearTimeout(r.timer)
+      const delay = Math.min(RETRY_MIN_MS * 2 ** r.attempt, RETRY_MAX_MS)
+      r.attempt += 1
+      r.timer = setTimeout(() => {
+        r.timer = undefined
+        const needed = id === this.currentId || this.isBusy(id) || !!this.localQueue[id]?.length
+        if (needed && this.sessions[id] && !this.unsubscribers[id]) this.subscribe(id)
+      }, delay)
+      retries.set(id, r)
     },
 
     // Browsers allow about six HTTP/1.1 connections per host, and every event stream holds one; with a stream
@@ -206,23 +288,71 @@ export const useSessionStore = defineStore('sessions', {
     subscribe(id: string, resumed = false) {
       if (this.unsubscribers[id] || !this.transport || !this.sessions[id]) return
       const state = this.sessions[id]!
-      this.unsubscribers[id] = this.transport.subscribe(id, state.lastSeq, {
+      // done: the stream ended or was replaced (restartStream), so whatever it still delivers is ignored. stopped:
+      // it was closed here (also when trimmed); events still in flight are harmless, but no watchdog or retry.
+      let done = false
+      let stopped = false
+      // Control messages say when the replay is over (caughtUp); a stream without them never says it.
+      let caughtUp = false
+      let unsubscribe = () => {}
+      replacers.set(id, () => {
+        done = true
+      })
+      const end = () => {
+        done = true
+        stopped = true
+        clearWatchdog(id)
+        if (this.unsubscribers[id] === unsubscribe) Reflect.deleteProperty(this.unsubscribers, id)
+      }
+      // Any message proves the stream alive; once it sent control messages (so it beats), silence ends it.
+      let beats = false
+      const alive = () => {
+        if (!beats || stopped) return
+        clearWatchdog(id)
+        watchdogs.set(id, setTimeout(() => {
+          if (!stopped) this.restartStream(id)
+        }, STALL_MS))
+      }
+      const stop = this.transport.subscribe(id, state.lastSeq, {
+        onControl: (c) => {
+          if (done || stopped) return
+          const s = this.sessions[id]!
+          beats = true
+          alive()
+          // Seqs count in one event log; a client that reopened the session (it restarted) has started another.
+          if (s.logId ? c.logId !== s.logId : s.lastSeq > 0) {
+            this.restartStream(id, true)
+            return
+          }
+          s.logId = c.logId
+          if (!c.session) return
+          caughtUp = true
+          clearRetry(id)
+          const wasBusy = this.isBusy(id)
+          applyLiveInfo(s, c.session)
+          if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
+          if (this.currentId !== id && s.meta.status === 'idle') this.trimStreams()
+        },
         onEvent: (ev) => {
+          if (done) return
+          alive()
           const s = this.sessions[id]!
           const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
           reduce(s, ev)
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           // A turn that finished while another session was open leaves this one unread.
           if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(id, { unread: true }))
-          if (this.currentId !== id && s.meta.status === 'idle') this.trimStreams()
+          // Not while the replay runs: an idle status from history would drop the stream before the live turn.
+          if (this.currentId !== id && s.meta.status === 'idle' && (caughtUp || !beats)) this.trimStreams()
         },
         // The stream of a remote session ends after its server transcript (or when its relay stream closes); the
         // next open reads it again.
         onEnd: () => {
-          Reflect.deleteProperty(this.unsubscribers, id)
+          if (!stopped) end()
         },
         onError: (err) => {
-          Reflect.deleteProperty(this.unsubscribers, id)
+          if (stopped) return
+          end()
           const msg = err instanceof Error ? err.message : String(err)
           if (this.sessions[id]?.meta.remote) {
             this.error = msg
@@ -235,14 +365,23 @@ export const useSessionStore = defineStore('sessions', {
             this.resume(id).catch((e) => {
               this.sessions[id]!.meta.status = 'waiting_for_connection'
               this.error = e instanceof Error ? e.message : String(e)
+              this.retryStream(id)
             })
             return
           }
+          // Any other break (the client went away, a proxy cut the stream): try again, after lastSeq.
           this.sessions[id]!.meta.status = 'waiting_for_connection'
           this.error = msg
           if (isNetworkError(msg)) this.connectionLost = true
+          this.retryStream(id)
         }
       })
+      unsubscribe = () => {
+        stopped = true
+        clearWatchdog(id)
+        stop()
+      }
+      this.unsubscribers[id] = unsubscribe
     },
 
     // Drives a remote session from here through the relay: the composer replaces the notice, and a snapshot read
@@ -305,6 +444,8 @@ export const useSessionStore = defineStore('sessions', {
 
     // Stops following the session here (it is being archived or deleted).
     forget(id: string) {
+      clearRetry(id)
+      listedIdleSince.delete(id)
       const { [id]: stop, ...rest } = this.unsubscribers
       stop?.()
       this.unsubscribers = rest
@@ -338,8 +479,10 @@ export const useSessionStore = defineStore('sessions', {
       const s = this.sessions[id]
       if (!s || !this.transport) return
       const info = await this.transport.createSession({ cwd: s.meta.cwd, resumeSessionId: id })
-      Object.assign(s.meta, sessionMeta(info))
+      // Reopened, the session is idle whatever this state showed (a turn cut short by a client restart).
+      applyLiveInfo(s, info)
       if (this.currentId === id) this.open(id, true)
+      else if (this.localQueue[id]?.length) this.subscribe(id, true)
     },
 
     isBusy(id: string) {
@@ -388,11 +531,30 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport.sendUserMessage(id, next.id, next.text, SendUserMessageRequest_Delivery.QUEUE)
     },
 
+    // Stop always ends in a state the client agrees with: nothing running (idle, or the session is not live on the
+    // client) settles the turn here; a turn that does not end soon gets its stream opened again, whose live status
+    // then wins.
     async interrupt(id: string) {
+      if (!this.transport) return
       try {
-        await this.transport?.interrupt(id)
+        const res = await this.transport.interrupt(id)
+        const s = this.sessions[id]
+        if (!s) return
+        if (res?.idle) {
+          settleTurn(s)
+          this.flushQueue(id)
+          return
+        }
+        setTimeout(() => {
+          if (this.sessions[id] === s && this.isBusy(id) && !s.pendingPermission && !s.pendingQuestion && !s.pendingPlan) this.restartStream(id)
+        }, INTERRUPT_SETTLE_MS)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
+        const s = this.sessions[id]
+        if (s && !s.meta.remote && /not open|not_found|not found/i.test(msg)) {
+          settleTurn(s)
+          return
+        }
         this.error = msg
         if (isNetworkError(msg)) this.connectionLost = true
       }

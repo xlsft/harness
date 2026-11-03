@@ -17,6 +17,9 @@ const subscriberBuffer = 4096
 // subscriber sees history then live events with no gaps or duplicates.
 type hub struct {
 	sessionID string
+	// id names this event log (SubscribeResponse.log_id): seqs only mean
+	// something within one log, and every opening of a session starts one.
+	id string
 
 	mu     sync.Mutex
 	seq    int64
@@ -25,7 +28,9 @@ type hub struct {
 	closed bool
 }
 
-func newHub() *hub { return &hub{subs: map[chan *agentv1.SessionEvent]struct{}{}} }
+func newHub() *hub {
+	return &hub{id: newUUID("log_"), subs: map[chan *agentv1.SessionEvent]struct{}{}}
+}
 
 func (h *hub) publish(ev *agentv1.SessionEvent) {
 	h.mu.Lock()

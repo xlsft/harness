@@ -298,6 +298,9 @@ type Agent struct {
 	// autoReminded: the auto_mode reminder was delivered since auto mode was entered (or since the last
 	// compaction, which drops it from the conversation).
 	autoReminded bool
+	// lostTurn holds the end New gave a turn the history left unfinished (see endLostTurn); it is written to
+	// the transcript when the next turn starts.
+	lostTurn []session.Entry
 }
 
 // New creates an agent.
@@ -311,6 +314,7 @@ func New(cfg Config) *Agent {
 		}
 	}
 	a.contextInjected = cfg.History.ContextInjected
+	a.endLostTurn()
 	if cfg.MaxTokens <= 0 {
 		a.cfg.MaxTokens = 32000
 	}
@@ -322,6 +326,45 @@ func New(cfg Config) *Agent {
 	}
 	a.initOutputStyle(cfg.OutputStyle, cfg.History.OutputStyle)
 	return a
+}
+
+// endLostTurn ends a turn the history left in the middle of tool calls (the process stopped while they ran):
+// without a tool_result for each tool_use the next request would be refused. The calls get the interrupted
+// result and the turn the interrupt marker, as if it had been interrupted; the transcript gets them with the
+// next turn (writing now could race another process still running that turn).
+func (a *Agent) endLostTurn() {
+	toolText, marker := a.interruptedToolText(), llm.TextBlock(a.interruptedText())
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.lostTurn = nil
+	n := len(a.messages)
+	if n == 0 || a.messages[n-1].Role != llm.RoleAssistant {
+		return
+	}
+	uses := a.messages[n-1].ToolUses()
+	if len(uses) == 0 {
+		return
+	}
+	var blocks []llm.ContentBlock
+	for _, u := range uses {
+		b := llm.ContentBlock{Type: llm.BlockToolResult, ToolUseID: u.ID, IsError: true, Content: []llm.ContentBlock{llm.TextBlock(toolText)}}
+		blocks = append(blocks, b)
+		a.lostTurn = append(a.lostTurn, session.Entry{Type: session.TypeUser, Message: session.UserBlocks([]llm.ContentBlock{b}), ToolUseResult: toolText})
+	}
+	blocks = append(blocks, marker)
+	a.lostTurn = append(a.lostTurn, session.Entry{Type: session.TypeUser, Message: userEntryMessage([]llm.ContentBlock{marker})})
+	a.messages = append(a.messages, llm.Message{Role: llm.RoleUser, Content: blocks})
+}
+
+// recordLostTurn writes the end endLostTurn gave the history's unfinished turn.
+func (a *Agent) recordLostTurn() {
+	a.mu.Lock()
+	entries := a.lostTurn
+	a.lostTurn = nil
+	a.mu.Unlock()
+	for _, e := range entries {
+		a.record(e)
+	}
 }
 
 func (a *Agent) log() *slog.Logger {
@@ -634,6 +677,7 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 	res := TurnResult{ModelUsage: map[string]*ModelUsage{}}
 	start := time.Now()
 	finish := func() TurnResult { res.Duration = time.Since(start); return res }
+	a.recordLostTurn()
 
 	promptID := session.NewID()
 	var first []llm.ContentBlock

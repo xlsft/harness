@@ -19,6 +19,8 @@ export interface Config {
   upstreamMaxRetries: number;
   upstreamRetryBaseMs: number;
   pingIntervalMs: number;
+  /** An upstream that sends nothing (no headers, no bytes) for this long is dropped and the attempt retried. */
+  upstreamIdleTimeoutMs: number;
 }
 
 /**
@@ -48,6 +50,7 @@ export function config(): Config {
     upstreamMaxRetries: intEnv(env.HARNESS_UPSTREAM_MAX_RETRIES, 8),
     upstreamRetryBaseMs: intEnv(env.HARNESS_UPSTREAM_RETRY_BASE_MS, 500),
     pingIntervalMs: intEnv(env.HARNESS_PING_INTERVAL_MS, 10_000),
+    upstreamIdleTimeoutMs: intEnv(env.HARNESS_UPSTREAM_IDLE_TIMEOUT_MS, 180_000),
   };
   return cached;
 }

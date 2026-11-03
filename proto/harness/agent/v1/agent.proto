@@ -38,6 +38,9 @@ service AgentService {
   rpc ListBranches(ListBranchesRequest) returns (ListBranchesResponse);
 
   // Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
+  // With `control`, the stream also carries control messages (SubscribeResponse without an event): one before
+  // the replay and one right after it (with the session as it is now), then a heartbeat every 15 seconds; a
+  // frontend that hears nothing for much longer treats the stream as dead and subscribes again.
   // A remote session (SessionInfo.remote) is followed live through the relay when it is remote_controllable;
   // otherwise its durable transcript is read from the harness server and replayed, and the stream then ends.
   rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse);
@@ -48,7 +51,8 @@ service AgentService {
   // Takes back a message that is still queued (by its uuid); a QueueChanged event follows.
   // removed = false when it was already injected into the turn.
   rpc RemoveQueuedMessage(RemoveQueuedMessageRequest) returns (RemoveQueuedMessageResponse);
-  // Cancels in-flight tools and generation; already completed work is kept.
+  // Cancels in-flight tools and generation; already completed work is kept. With no turn running it reports
+  // idle and publishes SessionUpdated, so a frontend that missed the end of a turn catches up.
   rpc Interrupt(InterruptRequest) returns (InterruptResponse);
   rpc RespondToPermission(RespondToPermissionRequest) returns (RespondToPermissionResponse);
   rpc AnswerQuestion(AnswerQuestionRequest) returns (AnswerQuestionResponse);
@@ -407,10 +411,21 @@ message DeleteSessionResponse {}
 message SubscribeRequest {
   string session_id = 1;
   int64 after_seq = 2;
+  // Also send control messages (SubscribeResponse.log_id / session, heartbeats); see Subscribe.
+  bool control = 3;
 }
 
 message SubscribeResponse {
+  // Unset on control messages (SubscribeRequest.control: the ones before and after the replay, and heartbeats).
   SessionEvent event = 1;
+  // Set on control messages: the id of the event log the seqs belong to. Each opening of a session on the
+  // client (a CreateSession, also after the client restarted) starts a new log with seqs from 1. A frontend
+  // that resubscribes with after_seq and gets another log_id than before drops what it has and subscribes
+  // again with after_seq = 0.
+  string log_id = 2;
+  // Set on the control message right after the replay: the session as it is now. Its status is the truth
+  // when the replayed events disagree (e.g. a turn the frontend saw start whose end it missed).
+  SessionInfo session = 3;
 }
 
 message SessionEvent {
@@ -793,7 +808,10 @@ message InterruptRequest {
   string session_id = 1;
 }
 
-message InterruptResponse {}
+message InterruptResponse {
+  // No turn (nor the reply to an interrupted one) was running: nothing was interrupted.
+  bool idle = 1;
+}
 
 message RespondToPermissionRequest {
   enum Decision {

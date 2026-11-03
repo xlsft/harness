@@ -178,6 +178,9 @@ type AgentServiceClient interface {
 	// Local branches of the repository containing `cwd` (empty outside a repository).
 	ListBranches(context.Context, *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error)
 	// Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
+	// With `control`, the stream also carries control messages (SubscribeResponse without an event): one before
+	// the replay and one right after it (with the session as it is now), then a heartbeat every 15 seconds; a
+	// frontend that hears nothing for much longer treats the stream as dead and subscribes again.
 	// A remote session (SessionInfo.remote) is followed live through the relay when it is remote_controllable;
 	// otherwise its durable transcript is read from the harness server and replayed, and the stream then ends.
 	Subscribe(context.Context, *connect.Request[v1.SubscribeRequest]) (*connect.ServerStreamForClient[v1.SubscribeResponse], error)
@@ -187,7 +190,8 @@ type AgentServiceClient interface {
 	// Takes back a message that is still queued (by its uuid); a QueueChanged event follows.
 	// removed = false when it was already injected into the turn.
 	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
-	// Cancels in-flight tools and generation; already completed work is kept.
+	// Cancels in-flight tools and generation; already completed work is kept. With no turn running it reports
+	// idle and publishes SessionUpdated, so a frontend that missed the end of a turn catches up.
 	Interrupt(context.Context, *connect.Request[v1.InterruptRequest]) (*connect.Response[v1.InterruptResponse], error)
 	RespondToPermission(context.Context, *connect.Request[v1.RespondToPermissionRequest]) (*connect.Response[v1.RespondToPermissionResponse], error)
 	AnswerQuestion(context.Context, *connect.Request[v1.AnswerQuestionRequest]) (*connect.Response[v1.AnswerQuestionResponse], error)
@@ -811,6 +815,9 @@ type AgentServiceHandler interface {
 	// Local branches of the repository containing `cwd` (empty outside a repository).
 	ListBranches(context.Context, *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error)
 	// Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
+	// With `control`, the stream also carries control messages (SubscribeResponse without an event): one before
+	// the replay and one right after it (with the session as it is now), then a heartbeat every 15 seconds; a
+	// frontend that hears nothing for much longer treats the stream as dead and subscribes again.
 	// A remote session (SessionInfo.remote) is followed live through the relay when it is remote_controllable;
 	// otherwise its durable transcript is read from the harness server and replayed, and the stream then ends.
 	Subscribe(context.Context, *connect.Request[v1.SubscribeRequest], *connect.ServerStream[v1.SubscribeResponse]) error
@@ -820,7 +827,8 @@ type AgentServiceHandler interface {
 	// Takes back a message that is still queued (by its uuid); a QueueChanged event follows.
 	// removed = false when it was already injected into the turn.
 	RemoveQueuedMessage(context.Context, *connect.Request[v1.RemoveQueuedMessageRequest]) (*connect.Response[v1.RemoveQueuedMessageResponse], error)
-	// Cancels in-flight tools and generation; already completed work is kept.
+	// Cancels in-flight tools and generation; already completed work is kept. With no turn running it reports
+	// idle and publishes SessionUpdated, so a frontend that missed the end of a turn catches up.
 	Interrupt(context.Context, *connect.Request[v1.InterruptRequest]) (*connect.Response[v1.InterruptResponse], error)
 	RespondToPermission(context.Context, *connect.Request[v1.RespondToPermissionRequest]) (*connect.Response[v1.RespondToPermissionResponse], error)
 	AnswerQuestion(context.Context, *connect.Request[v1.AnswerQuestionRequest]) (*connect.Response[v1.AnswerQuestionResponse], error)

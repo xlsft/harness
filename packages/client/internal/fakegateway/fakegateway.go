@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -53,6 +54,9 @@ type Reply struct {
 	Err error
 	// Hold keeps the stream open after Events until the client cancels.
 	Hold bool
+	// Pings, with Hold, sends a ping at this interval while holding (the
+	// server's keepalive while the upstream is silent).
+	Pings time.Duration
 }
 
 // Responder produces the reply for the n-th (0-based) messages request.
@@ -271,8 +275,22 @@ func (s *Server) play(ctx context.Context, stream *connect.ServerStream[llmv1.St
 		}
 	}
 	if reply.Hold {
-		<-ctx.Done()
-		return ctx.Err()
+		var tick <-chan time.Time
+		if reply.Pings > 0 {
+			t := time.NewTicker(reply.Pings)
+			defer t.Stop()
+			tick = t.C
+		}
+		for {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-tick:
+				if err := stream.Send(&llmv1.StreamMessageResponse{Event: &llmv1.StreamMessageResponse_Ping{Ping: &llmv1.Ping{}}}); err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return reply.Err
 }

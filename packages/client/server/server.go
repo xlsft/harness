@@ -64,6 +64,9 @@ type Server struct {
 	// NoPanes says the frontends cannot open panes (the terminal UI): the
 	// Show and Visual tools then report that nothing was shown.
 	NoPanes bool
+	// Heartbeat is the interval of control heartbeats on Subscribe streams
+	// that asked for them (0: DefaultHeartbeat).
+	Heartbeat time.Duration
 
 	ctx    context.Context
 	mu     sync.Mutex
@@ -99,6 +102,9 @@ type Server struct {
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
+
+// DefaultHeartbeat is the interval of Subscribe control heartbeats.
+const DefaultHeartbeat = 15 * time.Second
 
 // New creates a server. Base.Gateway and Base.Prompts should be set so all
 // sessions share one connection to the harness server.
@@ -356,7 +362,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		// The policy may have changed while the session opened (before it was live to follow it).
 		ls.applyModePolicy(p.Disabled())
 	}
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+	ls.publishInfo()
 	for _, w := range sess.Warnings {
 		ls.notice(agentv1.Notice_LEVEL_WARNING, "session_warning", w)
 	}
@@ -479,10 +485,31 @@ func (s *Server) Subscribe(ctx context.Context, req *connect.Request[agentv1.Sub
 	}
 	replay, ch, unsub := ls.hub.subscribe(req.Msg.GetAfterSeq())
 	defer unsub()
+	control := req.Msg.GetControl()
+	logID := ls.hub.id
+	if control {
+		// First, so a frontend holding seqs of another log resets before the replay.
+		if err := stream.Send(&agentv1.SubscribeResponse{LogId: logID}); err != nil {
+			return err
+		}
+	}
 	for _, ev := range replay {
 		if err := stream.Send(&agentv1.SubscribeResponse{Event: ev}); err != nil {
 			return err
 		}
+	}
+	var beat <-chan time.Time
+	if control {
+		if err := stream.Send(&agentv1.SubscribeResponse{LogId: logID, Session: ls.info()}); err != nil {
+			return err
+		}
+		every := s.Heartbeat
+		if every <= 0 {
+			every = DefaultHeartbeat
+		}
+		t := time.NewTicker(every)
+		defer t.Stop()
+		beat = t.C
 	}
 	for {
 		select {
@@ -490,6 +517,10 @@ func (s *Server) Subscribe(ctx context.Context, req *connect.Request[agentv1.Sub
 			return nil
 		case <-s.ctx.Done():
 			return nil
+		case <-beat:
+			if err := stream.Send(&agentv1.SubscribeResponse{LogId: logID}); err != nil {
+				return err
+			}
 		case ev, ok := <-ch:
 			if !ok {
 				if ls.hub.isClosed() {
@@ -593,8 +624,14 @@ func (s *Server) Interrupt(ctx context.Context, req *connect.Request[agentv1.Int
 	if err != nil {
 		return nil, err
 	}
+	idle := !ls.driver.Busy()
 	ls.driver.Interrupt()
-	return connect.NewResponse(&agentv1.InterruptResponse{}), nil
+	if idle {
+		// Nothing to stop: the frontend missed the end of a turn (or never saw
+		// it start); tell it the session is idle.
+		ls.settleIdle()
+	}
+	return connect.NewResponse(&agentv1.InterruptResponse{Idle: idle}), nil
 }
 
 func (s *Server) RespondToPermission(ctx context.Context, req *connect.Request[agentv1.RespondToPermissionRequest]) (*connect.Response[agentv1.RespondToPermissionResponse], error) {
@@ -697,7 +734,7 @@ func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetM
 	ls.mu.Lock()
 	ls.sess.Model = id
 	ls.mu.Unlock()
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+	ls.publishInfo()
 	return connect.NewResponse(&agentv1.SetModelResponse{}), nil
 }
 
@@ -740,7 +777,7 @@ func (s *Server) SetOutputStyle(ctx context.Context, req *connect.Request[agentv
 		ls.notice(agentv1.Notice_LEVEL_INFO, "output_style_deferred",
 			"The style applies now; its change to the coding instructions in the system prompt takes effect at the next compaction.")
 	}
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+	ls.publishInfo()
 	return connect.NewResponse(&agentv1.SetOutputStyleResponse{}), nil
 }
 
