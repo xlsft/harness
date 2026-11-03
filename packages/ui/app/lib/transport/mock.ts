@@ -218,6 +218,8 @@ export class MockTransport implements SessionTransport {
         // History replay yields durable events only; deltas of the in-flight turn are part of the live stream.
         if (ev.event.case === 'assistantDelta' || Number(ev.seq) > afterSeq) h.onEvent(ev)
       }
+      // A session of another machine that cannot be driven is a snapshot of its server transcript.
+      if (s.info.remote && !s.info.remoteControllable) return h.onEnd?.()
       s.listeners.add(h)
     })
     return () => {

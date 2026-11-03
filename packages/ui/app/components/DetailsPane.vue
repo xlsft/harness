@@ -59,7 +59,20 @@ function taskMeta(command: string, tail: string) {
   >
     <section class="flex flex-col border-b border-default px-[13px] py-3">
       <span class="pb-1 text-[12px] text-muted">Environment</span>
-      <div class="nav-row">
+      <div
+        v-if="session.meta.remote"
+        class="nav-row"
+      >
+        <HIcon name="monitor" />remote · {{ session.meta.deviceName || 'another machine' }}<span
+          v-if="session.meta.deviceOnline !== null"
+          class="text-[11px]"
+          :class="session.meta.deviceOnline ? 'text-ok' : 'text-muted'"
+        >· {{ session.meta.deviceOnline ? 'online' : 'offline' }}</span>
+      </div>
+      <div
+        v-else
+        class="nav-row"
+      >
         <HIcon name="monitor" />local · {{ session.meta.deviceName || 'this machine' }}
       </div>
       <div class="nav-row">
@@ -68,7 +81,10 @@ function taskMeta(command: string, tail: string) {
       <div class="nav-row">
         <HIcon name="branch" />{{ session.meta.gitBranch || 'main' }}
       </div>
-      <div class="nav-row">
+      <div
+        v-if="!session.meta.remote"
+        class="nav-row"
+      >
         <HIcon name="relay" />Session relay<span class="flex-1" /><HToggle
           v-model="relay"
           label="Session relay"
