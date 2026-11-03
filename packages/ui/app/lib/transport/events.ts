@@ -4,6 +4,8 @@ import { create } from '@bufbuild/protobuf'
 import {
   Compacted_Trigger,
   Notice_Level,
+  QuestionItem_Type,
+  QuestionOutcome,
   SessionEventSchema,
   SessionInfoSchema,
   TaskFinished_Reason,
@@ -20,6 +22,17 @@ import type {
 import { ContentBlockSchema, StopReason, type ContentBlock } from '~/gen/harness/llm/v1/content_pb'
 
 type EventCase = SessionEvent['event']
+
+export interface QuestionInit {
+  question: string
+  header: string
+  type?: 'single' | 'multi' | 'text' | 'yes_no'
+  multiSelect?: boolean
+  options?: { label: string, description?: string, recommended?: boolean }[]
+  min?: number
+  max?: number
+  allowOther?: boolean
+}
 
 export interface UsageInit {
   input?: number
@@ -138,12 +151,26 @@ export class EventBuilder {
     return this.emit({ case: 'permissionResolved', value: { requestId, decision, resolvedBy } as never })
   }
 
-  question(requestId: string, toolUseId: string, items: { question: string, header: string, multiSelect?: boolean, options: { label: string, description: string }[] }[]) {
-    return this.emit({ case: 'question', value: { requestId, toolUseId, items: items.map(i => ({ ...i, multiSelect: !!i.multiSelect })) } as never })
+  // Typed questions; without a type an item is sent the way an older client sends it (multi_select only).
+  question(requestId: string, toolUseId: string, items: QuestionInit[]) {
+    const TYPE = { single: QuestionItem_Type.SINGLE, multi: QuestionItem_Type.MULTI, text: QuestionItem_Type.TEXT, yes_no: QuestionItem_Type.YES_NO }
+    return this.emit({ case: 'question', value: { requestId, toolUseId, items: items.map(i => ({
+      question: i.question,
+      header: i.header,
+      type: i.type ? TYPE[i.type] : QuestionItem_Type.UNSPECIFIED,
+      multiSelect: i.type ? i.type === 'multi' : !!i.multiSelect,
+      options: (i.type === 'yes_no' && !i.options ? [{ label: 'Yes' }, { label: 'No' }] : i.options ?? [])
+        .map(o => ({ label: o.label, description: o.description ?? '', recommended: !!o.recommended })),
+      min: i.min ?? 0,
+      max: i.max ?? 0,
+      allowOther: i.type ? i.allowOther ?? i.type !== 'text' : false
+    })) } as never })
   }
 
-  questionResolved(requestId: string, resolvedBy = 'local') {
-    return this.emit({ case: 'questionResolved', value: { requestId, resolvedBy } as never })
+  questionResolved(requestId: string, resolvedBy = 'local', outcome: QuestionOutcome = QuestionOutcome.ANSWERED,
+    answers: { selected?: string[], text?: string, skipped?: boolean }[] = [], message = '') {
+    return this.emit({ case: 'questionResolved', value: { requestId, resolvedBy, outcome, message,
+      answers: answers.map(a => ({ selected: a.selected ?? [], text: a.text ?? '', skipped: !!a.skipped })) } as never })
   }
 
   planProposed(requestId: string, toolUseId: string, plan: string, planFilePath: string) {

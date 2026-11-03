@@ -15,7 +15,7 @@ import type {
   BackgroundTask
 } from '~/gen/harness/agent/v1/agent_pb'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
-import type { EffortName } from '~/lib/session/types'
+import type { EffortName, QuestionReply } from '~/lib/session/types'
 import type { ProvidersApi } from '~/lib/providers/types'
 
 export interface ModelInfo {
@@ -84,7 +84,7 @@ export interface SessionTransport {
   // Deletes the session for good: stops it, removes its transcript and the server copy.
   deleteSession(sessionId: string): Promise<void>
   respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision, rule?: string, comment?: string): Promise<void>
-  answerQuestion(sessionId: string, requestId: string, answers: string[][]): Promise<void>
+  answerQuestion(sessionId: string, requestId: string, reply: QuestionReply): Promise<void>
   respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback?: string): Promise<void>
 
   setModel(sessionId: string, model: string): Promise<void>

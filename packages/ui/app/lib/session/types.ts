@@ -96,23 +96,52 @@ export interface PermissionItem {
 export interface QuestionOptionVM {
   label: string
   description: string
+  // Suggested by the model: shown first and highlighted.
+  recommended: boolean
 }
+
+// single: one option; multi: min..max options; text: free text only; yes_no: the options Yes / No.
+export type QuestionType = 'single' | 'multi' | 'text' | 'yes_no'
 
 export interface QuestionItemVM {
   question: string
   header: string
-  multiSelect: boolean
+  type: QuestionType
   options: QuestionOptionVM[]
+  // multi: bounds of the number of choices, "Other" counting as one.
+  min: number
+  max: number
+  // Offers "Other…" with free text (never for text questions).
+  allowOther: boolean
 }
+
+// One answer per question: chosen labels, the Other / text answer, or skipped.
+export interface QuestionAnswerVM {
+  selected: string[]
+  text: string
+  skipped: boolean
+}
+
+// pending → answered (in the card), skipped (whole card), message (answered with chat messages) or cancelled
+// (Stop, session closed, client restarted).
+export type QuestionState = 'pending' | 'answered' | 'skipped' | 'message' | 'cancelled'
 
 export interface QuestionItem {
   kind: 'question'
   id: string
   toolUseId: string
   items: QuestionItemVM[]
-  state: 'pending' | 'answered'
+  state: QuestionState
   resolvedBy: string
+  // state 'answered': one entry per question.
+  answers: QuestionAnswerVM[]
+  // state 'message': the chat text used as the answer.
+  message: string
 }
+
+// How the user resolves a pending question (AnswerQuestion). With 'message' the queued chat messages (all of
+// them when messageUuids is empty) become the free-form answer.
+export type QuestionReply = { outcome: 'answered', answers: QuestionAnswerVM[] } | { outcome: 'skipped' } | { outcome: 'message', messageUuids?: string[] }
 
 export type PlanState = 'pending' | 'approved_accept_edits' | 'approved_manual' | 'keep_planning'
 
