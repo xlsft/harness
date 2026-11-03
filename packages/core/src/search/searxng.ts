@@ -1,7 +1,8 @@
 /**
  * SearXNG provider: the default, free, key-less search backend. In the single-container image it runs
  * next to core on 127.0.0.1 (see docs/PLAN.md §1.7); HARNESS_SEARXNG_URL points at it or at an external
- * instance. The instance must have the JSON output format enabled (`search.formats: [html, json]`).
+ * instance (the built-in provider). Users and admins may also connect SearXNG instances of their own
+ * (search presets). The instance must have the JSON output format enabled (`search.formats: [html, json]`).
  */
 import { guardedFetch } from "../lib/ssrf.ts";
 import { ApiError } from "../lib/errors.ts";
@@ -15,25 +16,38 @@ interface SearxngResult {
 }
 
 export interface SearxngOptions {
+  /** Provider id and name (default "searxng", the built-in one). */
+  id?: string;
+  displayName?: string;
   /** Base URL, e.g. http://127.0.0.1:8888 */
   baseUrl: string;
   /** Request timeout in ms (default 10 s). */
   timeoutMs?: number;
   /** SearXNG safesearch level: 0 off, 1 moderate (default), 2 strict. */
   safeSearch?: 0 | 1 | 2;
+  /** SearXNG language code (default "all"). */
+  language?: string;
+  /** Private addresses are allowed (default: true, the URL is operator configuration). */
+  allowPrivateNetwork?: boolean;
 }
 
 export class SearxngProvider implements SearchProvider {
-  readonly id = "searxng";
-  readonly displayName = "SearXNG";
+  readonly id: string;
+  readonly displayName: string;
   private readonly base: string;
   private readonly timeoutMs: number;
   private readonly safeSearch: number;
+  private readonly language: string;
+  private readonly allowPrivateNetwork: boolean;
 
   constructor(opts: SearxngOptions) {
+    this.id = opts.id ?? "searxng";
+    this.displayName = opts.displayName ?? "SearXNG";
     this.base = opts.baseUrl.replace(/\/+$/, "");
     this.timeoutMs = opts.timeoutMs ?? 10_000;
     this.safeSearch = opts.safeSearch ?? 1;
+    this.language = opts.language || "all";
+    this.allowPrivateNetwork = opts.allowPrivateNetwork ?? true;
   }
 
   async search(q: SearchQuery): Promise<SearchHit[]> {
@@ -43,28 +57,29 @@ export class SearxngProvider implements SearchProvider {
     url.searchParams.set("q", query);
     url.searchParams.set("format", "json");
     url.searchParams.set("safesearch", String(this.safeSearch));
-    url.searchParams.set("language", "all");
+    url.searchParams.set("language", this.language);
 
     const signal = q.signal ? AbortSignal.any([q.signal, AbortSignal.timeout(this.timeoutMs)]) : AbortSignal.timeout(this.timeoutMs);
     let res;
     try {
-      // The SearXNG URL is operator configuration (usually loopback), so private addresses are allowed.
-      res = await guardedFetch(url.toString(), { method: "GET", headers: { accept: "application/json" }, signal, allowPrivateNetwork: true });
+      // The built-in URL is operator configuration (usually loopback), so private addresses are allowed; a
+      // connected instance may reach them only when it is global and allowed to.
+      res = await guardedFetch(url.toString(), { method: "GET", headers: { accept: "application/json" }, signal, allowPrivateNetwork: this.allowPrivateNetwork });
     } catch (err) {
       if (err instanceof ApiError) throw err;
-      throw new ApiError("upstream", `SearXNG is unreachable: ${(err as Error).message}`);
+      throw new ApiError("upstream", `${this.displayName} is unreachable: ${(err as Error).message}`);
     }
     if (res.status === 403) {
       await res.body?.cancel();
-      throw new ApiError("upstream", "SearXNG refused the JSON format; enable `json` in search.formats");
+      throw new ApiError("upstream", `${this.displayName} refused the JSON format; enable \`json\` in search.formats`);
     }
     if (res.status === 429) {
       await res.body?.cancel();
-      throw new ApiError("rate_limit", "SearXNG is rate limiting requests", { retryAfterMs: 5_000 });
+      throw new ApiError("rate_limit", `${this.displayName} is rate limiting requests`, { retryAfterMs: 5_000 });
     }
     if (!res.ok) {
       await res.body?.cancel();
-      throw new ApiError("upstream", `SearXNG returned HTTP ${res.status}`, { upstreamStatus: res.status });
+      throw new ApiError("upstream", `${this.displayName} returned HTTP ${res.status}`, { upstreamStatus: res.status });
     }
     const body = (await res.json()) as { results?: SearxngResult[] };
     const hits: SearchHit[] = [];
@@ -83,7 +98,7 @@ export class SearxngProvider implements SearchProvider {
   async healthy(signal?: AbortSignal): Promise<boolean> {
     try {
       const s = signal ? AbortSignal.any([signal, AbortSignal.timeout(3_000)]) : AbortSignal.timeout(3_000);
-      const res = await guardedFetch(`${this.base}/healthz`, { method: "GET", signal: s, allowPrivateNetwork: true });
+      const res = await guardedFetch(`${this.base}/healthz`, { method: "GET", signal: s, allowPrivateNetwork: this.allowPrivateNetwork });
       await res.body?.cancel();
       return res.ok;
     } catch {

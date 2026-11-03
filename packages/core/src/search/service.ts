@@ -1,9 +1,10 @@
 /**
  * Transport-agnostic search service behind harness.search.v1.SearchService.
  *
- * Providers are registered here; SearXNG is the default and, for now, the only one. Configuration:
+ * The registry here holds the built-in provider, the SearXNG the server ships with; providers connected in the
+ * settings screens (group "search") and the per-user choice between them live in src/search/resolve.ts.
+ * runSearch is the shared query path (validation, domain filters, dedupe, result cap). Configuration:
  *   HARNESS_SEARXNG_URL       SearXNG base URL (default http://127.0.0.1:8888, the in-container instance)
- *   HARNESS_SEARCH_PROVIDER   default provider id (default "searxng")
  */
 import { ApiError } from "../lib/errors.ts";
 import { SearxngProvider } from "./searxng.ts";
@@ -20,6 +21,24 @@ export interface SearchInput {
   maxResults?: number;
   provider?: string;
   signal?: AbortSignal;
+}
+
+/**
+ * Runs one query on a provider: validates it, pushes the domain filters down as hints, then filters, dedupes
+ * and caps the hits. `defaultMax` is the result count when the request leaves it at 0 (a provider option).
+ */
+export async function runSearch(provider: SearchProvider, input: SearchInput, defaultMax = DEFAULT_MAX_RESULTS): Promise<SearchOutput> {
+  const query = input.query.trim();
+  if (!query) throw new ApiError("invalid_request", "query is required");
+  if (query.length > MAX_QUERY_LENGTH) throw new ApiError("invalid_request", `query is longer than ${MAX_QUERY_LENGTH} characters`);
+  const allowed = normalizeDomains(input.allowedDomains);
+  const blocked = normalizeDomains(input.blockedDomains);
+  if (allowed.length && blocked.length) {
+    throw new ApiError("invalid_request", "allowed_domains and blocked_domains cannot be combined");
+  }
+  const max = clampResults(input.maxResults, defaultMax);
+  const hits = await provider.search({ query, allowedDomains: allowed, blockedDomains: blocked, maxResults: max, signal: input.signal });
+  return { provider: provider.id, results: filterAndDedupe(hits, allowed, blocked).slice(0, max) };
 }
 
 export interface SearchOutput {
@@ -51,18 +70,7 @@ export class SearchRegistry {
   }
 
   async search(input: SearchInput): Promise<SearchOutput> {
-    const query = input.query.trim();
-    if (!query) throw new ApiError("invalid_request", "query is required");
-    if (query.length > MAX_QUERY_LENGTH) throw new ApiError("invalid_request", `query is longer than ${MAX_QUERY_LENGTH} characters`);
-    const allowed = normalizeDomains(input.allowedDomains);
-    const blocked = normalizeDomains(input.blockedDomains);
-    if (allowed.length && blocked.length) {
-      throw new ApiError("invalid_request", "allowed_domains and blocked_domains cannot be combined");
-    }
-    const max = clampResults(input.maxResults);
-    const provider = this.get(input.provider);
-    const hits = await provider.search({ query, allowedDomains: allowed, blockedDomains: blocked, maxResults: max, signal: input.signal });
-    return { provider: provider.id, results: filterAndDedupe(hits, allowed, blocked).slice(0, max) };
+    return runSearch(this.get(input.provider), input);
   }
 
   async status(signal?: AbortSignal): Promise<ProviderStatus[]> {
@@ -74,12 +82,9 @@ export class SearchRegistry {
 
 let registry: SearchRegistry | undefined;
 
-/** Process-wide registry built from environment variables. */
+/** Process-wide registry of the built-in provider, built from environment variables. */
 export function searchRegistry(): SearchRegistry {
-  registry ??= new SearchRegistry(
-    [new SearxngProvider({ baseUrl: process.env.HARNESS_SEARXNG_URL || "http://127.0.0.1:8888" })],
-    process.env.HARNESS_SEARCH_PROVIDER || "searxng",
-  );
+  registry ??= new SearchRegistry([new SearxngProvider({ baseUrl: process.env.HARNESS_SEARXNG_URL || "http://127.0.0.1:8888", displayName: "SearXNG (built in)" })], "searxng");
   return registry;
 }
 
@@ -88,8 +93,8 @@ export function resetSearchRegistry(r?: SearchRegistry): void {
   registry = r;
 }
 
-function clampResults(n: number | undefined): number {
-  if (!n || n <= 0) return DEFAULT_MAX_RESULTS;
+function clampResults(n: number | undefined, defaultMax: number): number {
+  if (!n || n <= 0) return Math.min(defaultMax, MAX_RESULTS_CAP);
   return Math.min(n, MAX_RESULTS_CAP);
 }
 

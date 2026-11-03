@@ -10,12 +10,21 @@
  *
  * `discovers_models`: the service documents a model list (GET /models); the others ship a curated list
  * (`default_models`) the user picks from instead.
+ *
+ * Search presets (group "search") name the adapter in src/search/adapters.ts as their type; their base URL is
+ * the API's endpoint (SearXNG: the instance root). `options` are the settings a connected search provider
+ * may change, only those the API documents. The built-in SearXNG (`builtin`) is not stored: it is the
+ * instance the server ships with (HARNESS_SEARXNG_URL), always offered, and its provider id is its preset id.
  */
 
-export type ProviderGroup = "llm" | "classifier";
+export type ProviderGroup = "llm" | "classifier" | "search";
 
 export const LLM_TYPES = ["anthropic", "openai-chat", "openai-responses"] as const;
 export const CLASSIFIER_TYPES = ["decision-model", "decision-http"] as const;
+export const SEARCH_TYPES = ["searxng", "brave", "tavily", "exa", "kagi", "perplexity"] as const;
+export type SearchType = (typeof SEARCH_TYPES)[number];
+/** Provider id of the built-in SearXNG (reserved: no stored provider may use it). */
+export const BUILTIN_SEARCH_ID = "searxng";
 
 export interface PresetField {
   name: "api_key" | "base_url";
@@ -29,6 +38,19 @@ export interface PresetModel {
   display_name: string;
   context_window?: number;
   max_output_tokens?: number;
+}
+
+export type SearchOptionName = "max_results" | "safe_search" | "country" | "language";
+
+export interface PresetOption {
+  name: SearchOptionName;
+  label: string;
+  kind: "number" | "select" | "text";
+  choices?: { value: string; label: string }[];
+  default_value?: string;
+  placeholder?: string;
+  min?: number;
+  max?: number;
 }
 
 export interface ProviderPreset {
@@ -45,6 +67,8 @@ export interface ProviderPreset {
   icon: string;
   discovers_models: boolean;
   local?: boolean;
+  options?: PresetOption[];
+  builtin?: boolean;
 }
 
 export interface ProviderProtocol {
@@ -55,6 +79,33 @@ export interface ProviderProtocol {
 }
 
 const KEY: PresetField = { name: "api_key", label: "API key", required: true };
+
+// --- Search options -------------------------------------------------------------------------------
+const resultsOption = (max: number): PresetOption => ({ name: "max_results", label: "Results", kind: "number", default_value: "10", min: 1, max });
+const SAFE_3: PresetOption = {
+  name: "safe_search",
+  label: "Safe search",
+  kind: "select",
+  choices: [
+    { value: "off", label: "Off" },
+    { value: "moderate", label: "Moderate" },
+    { value: "strict", label: "Strict" },
+  ],
+  default_value: "moderate",
+};
+// APIs with an on/off switch only.
+const SAFE_2: PresetOption = {
+  name: "safe_search",
+  label: "Safe search",
+  kind: "select",
+  choices: [
+    { value: "off", label: "Off" },
+    { value: "strict", label: "On" },
+  ],
+  default_value: "off",
+};
+const COUNTRY: PresetOption = { name: "country", label: "Country", kind: "text", placeholder: "Two-letter code, e.g. US" };
+const LANGUAGE: PresetOption = { name: "language", label: "Language", kind: "text", placeholder: "Two-letter code, e.g. en" };
 
 const KIMI_PLATFORM_MODELS: PresetModel[] = [
   { upstream_model: "kimi-k3.1-pro", display_name: "Kimi K3.1 Pro", context_window: 1_000_000 },
@@ -308,6 +359,110 @@ export const PRESETS: readonly ProviderPreset[] = [
     icon: "TS",
     discovers_models: false,
   },
+
+  // --- Web search -----------------------------------------------------------------------------
+  // Verified November 2026 against each API reference (docs_url). Serper and Jina were left out: their
+  // official docs do not document the request (Serper) or the JSON response (Jina search).
+  {
+    id: BUILTIN_SEARCH_ID,
+    group: "search",
+    display_name: "SearXNG (built in)",
+    description: "The metasearch engine that ships with the server. No key needed.",
+    type: "searxng",
+    base_url: "",
+    fields: [],
+    docs_url: "https://docs.searxng.org/dev/search_api.html",
+    default_models: [],
+    icon: "searxng",
+    discovers_models: false,
+    builtin: true,
+  },
+  {
+    id: "searxng-url",
+    group: "search",
+    display_name: "SearXNG",
+    description: "Your own SearXNG instance (the JSON format must be enabled).",
+    type: "searxng",
+    base_url: "",
+    fields: [{ name: "base_url", label: "Instance URL", required: true, placeholder: "https://searx.example.com" }],
+    docs_url: "https://docs.searxng.org/dev/search_api.html",
+    default_models: [],
+    icon: "searxng",
+    discovers_models: false,
+    local: true,
+    options: [resultsOption(25), SAFE_3, { ...LANGUAGE, placeholder: "e.g. en, or all" }],
+  },
+  {
+    id: "brave",
+    group: "search",
+    display_name: "Brave Search",
+    description: "Brave's independent web index through the Brave Search API.",
+    type: "brave",
+    base_url: "https://api.search.brave.com/res/v1/web/search",
+    fields: [KEY],
+    docs_url: "https://api-dashboard.search.brave.com/app/documentation/web-search/query",
+    default_models: [],
+    icon: "brave",
+    discovers_models: false,
+    options: [resultsOption(20), SAFE_3, COUNTRY, LANGUAGE],
+  },
+  {
+    id: "tavily",
+    group: "search",
+    display_name: "Tavily",
+    description: "Search built for AI agents, with page excerpts.",
+    type: "tavily",
+    base_url: "https://api.tavily.com/search",
+    fields: [KEY],
+    docs_url: "https://docs.tavily.com/documentation/api-reference/endpoint/search",
+    default_models: [],
+    icon: "tavily",
+    discovers_models: false,
+    options: [resultsOption(20), SAFE_2],
+  },
+  {
+    id: "exa",
+    group: "search",
+    display_name: "Exa",
+    description: "Neural web search with highlights from each page.",
+    type: "exa",
+    base_url: "https://api.exa.ai/search",
+    fields: [KEY],
+    docs_url: "https://docs.exa.ai/reference/search",
+    default_models: [],
+    icon: "exa",
+    discovers_models: false,
+    options: [resultsOption(25), COUNTRY],
+  },
+  {
+    id: "kagi",
+    group: "search",
+    display_name: "Kagi",
+    description: "Kagi's premium search results through the Kagi Search API.",
+    type: "kagi",
+    base_url: "https://kagi.com/api/v1/search",
+    fields: [KEY],
+    docs_url: "https://help.kagi.com/kagi/api/search.html",
+    key_url: "https://kagi.com/api/keys",
+    default_models: [],
+    icon: "kagi",
+    discovers_models: false,
+    options: [resultsOption(25), SAFE_2, COUNTRY],
+  },
+  {
+    id: "perplexity",
+    group: "search",
+    display_name: "Perplexity Search",
+    description: "Ranked web results with snippets from the Perplexity Search API.",
+    type: "perplexity",
+    base_url: "https://api.perplexity.ai/search",
+    fields: [KEY],
+    docs_url: "https://docs.perplexity.ai/api-reference/search-post",
+    default_models: [],
+    icon: "perplexity",
+    discovers_models: false,
+    options: [resultsOption(20), COUNTRY, LANGUAGE],
+  },
 ];
 
 export const PROTOCOLS: readonly ProviderProtocol[] = [
@@ -316,6 +471,7 @@ export const PROTOCOLS: readonly ProviderProtocol[] = [
   { id: "anthropic", group: "llm", label: "Anthropic Messages", base_url_hint: "https://api.example.com" },
   { id: "decision-model", group: "classifier", label: "Typed decision model", base_url_hint: "https://decisions.example.com/v1/decide" },
   { id: "decision-http", group: "classifier", label: "HTTP policy webhook", base_url_hint: "https://policy.example.com/decide" },
+  { id: "searxng", group: "search", label: "SearXNG-compatible", base_url_hint: "https://searx.example.com" },
 ];
 
 export function findPreset(id: string): ProviderPreset | undefined {
@@ -325,6 +481,7 @@ export function findPreset(id: string): ProviderPreset | undefined {
 export function groupOfType(type: string): ProviderGroup | undefined {
   if ((LLM_TYPES as readonly string[]).includes(type)) return "llm";
   if ((CLASSIFIER_TYPES as readonly string[]).includes(type)) return "classifier";
+  if ((SEARCH_TYPES as readonly string[]).includes(type)) return "search";
   return undefined;
 }
 
@@ -339,5 +496,13 @@ function normalizeUrl(url: string): string {
 export function presetOf(row: { presetId: string | null; kind: string; type: string; baseUrl: string }): ProviderPreset | undefined {
   if (row.presetId) return findPreset(row.presetId);
   const url = normalizeUrl(row.baseUrl);
-  return PRESETS.find((p) => p.group === row.kind && p.type === row.type && !p.local && normalizeUrl(p.base_url) === url);
+  return PRESETS.find((p) => p.group === row.kind && p.type === row.type && !p.local && !p.builtin && normalizeUrl(p.base_url) === url);
+}
+
+/** The options a stored search provider may set: its preset's, or for a custom SearXNG-compatible one the SearXNG preset's. */
+export function searchOptionSpecs(row: { presetId: string | null; kind: string; type: string; baseUrl: string }): PresetOption[] {
+  if (row.kind !== "search") return [];
+  const preset = presetOf(row);
+  if (preset?.options) return preset.options;
+  return row.type === "searxng" ? (findPreset("searxng-url")?.options ?? []) : [];
 }

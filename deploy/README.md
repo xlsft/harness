@@ -67,7 +67,7 @@ by peer (OS user `harness` → role `harness`).
 
 Passed through to core (see `packages/core`): `HARNESS_SECRET`, `HARNESS_ADMIN_EMAIL`,
 `HARNESS_ADMIN_PASSWORD`, `HARNESS_ALLOW_SIGNUP`, `HARNESS_TRUST_PROXY`, `HARNESS_GRPC_PORT`
-(publish that port too if you set it), `HARNESS_SEARCH_PROVIDER`, `HARNESS_SESSION_BUDGET_USD`, and
+(publish that port too if you set it), `HARNESS_SESSION_BUDGET_USD`, and
 the other `HARNESS_*` tuning variables.
 
 > Today's core still stores its data in SQLite (`HARNESS_DB_URL`, default
@@ -140,6 +140,11 @@ created by root works. Do not mount the same volume into two running containers.
 SearXNG settings: the image ships `/etc/harness/searxng/settings.yml` (JSON format on, limiter off).
 To customize, copy it to `/data/searxng/settings.yml`, keep `search.formats` containing `json`, and
 restart the container.
+
+The bundled SearXNG is the built-in web search provider and the default. Admins can connect another one
+(Brave Search, Tavily, Exa, Kagi, Perplexity, or a SearXNG instance) under **Settings → Search** and
+make it the default for everyone; each user may pick another one for themselves there, including one
+connected with their own key.
 
 ## Operations
 

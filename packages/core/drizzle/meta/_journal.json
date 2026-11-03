@@ -57,6 +57,13 @@
       "when": 1793666490322,
       "tag": "0007_provider_presets",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793673387801,
+      "tag": "0008_search_providers",
+      "breakpoints": true
     }
   ]
 }

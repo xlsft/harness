@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/search/v1/search.proto.
  */
 export const file_harness_search_v1_search: GenFile = /*@__PURE__*/
-  fileDesc("Ch5oYXJuZXNzL3NlYXJjaC92MS9zZWFyY2gucHJvdG8SEWhhcm5lc3Muc2VhcmNoLnYxIosBCg1TZWFyY2hSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEhcKD2FsbG93ZWRfZG9tYWlucxgCIAMoCRIXCg9ibG9ja2VkX2RvbWFpbnMYAyADKAkSEwoLbWF4X3Jlc3VsdHMYBCABKAUSEAoIcHJvdmlkZXIYBSABKAkSEgoKc2Vzc2lvbl9pZBgGIAEoCSJUCg5TZWFyY2hSZXNwb25zZRIwCgdyZXN1bHRzGAEgAygLMh8uaGFybmVzcy5zZWFyY2gudjEuU2VhcmNoUmVzdWx0EhAKCHByb3ZpZGVyGAIgASgJIlEKDFNlYXJjaFJlc3VsdBINCgV0aXRsZRgBIAEoCRILCgN1cmwYAiABKAkSDwoHc25pcHBldBgDIAEoCRIUCgxwdWJsaXNoZWRfYXQYBCABKAkiFgoUTGlzdFByb3ZpZGVyc1JlcXVlc3QiZwoVTGlzdFByb3ZpZGVyc1Jlc3BvbnNlEjQKCXByb3ZpZGVycxgBIAMoCzIhLmhhcm5lc3Muc2VhcmNoLnYxLlNlYXJjaFByb3ZpZGVyEhgKEGRlZmF1bHRfcHJvdmlkZXIYAiABKAkiQwoOU2VhcmNoUHJvdmlkZXISCgoCaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEg8KB2hlYWx0aHkYAyABKAgywgEKDVNlYXJjaFNlcnZpY2USTQoGU2VhcmNoEiAuaGFybmVzcy5zZWFyY2gudjEuU2VhcmNoUmVxdWVzdBohLmhhcm5lc3Muc2VhcmNoLnYxLlNlYXJjaFJlc3BvbnNlEmIKDUxpc3RQcm92aWRlcnMSJy5oYXJuZXNzLnNlYXJjaC52MS5MaXN0UHJvdmlkZXJzUmVxdWVzdBooLmhhcm5lc3Muc2VhcmNoLnYxLkxpc3RQcm92aWRlcnNSZXNwb25zZULTAQoVY29tLmhhcm5lc3Muc2VhcmNoLnYxQgtTZWFyY2hQcm90b1ABWkdnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL3NlYXJjaC92MTtzZWFyY2h2MaICA0hTWKoCEUhhcm5lc3MuU2VhcmNoLlYxygIRSGFybmVzc1xTZWFyY2hcVjHiAh1IYXJuZXNzXFNlYXJjaFxWMVxHUEJNZXRhZGF0YeoCE0hhcm5lc3M6OlNlYXJjaDo6VjFiBnByb3RvMw");
+  fileDesc("Ch5oYXJuZXNzL3NlYXJjaC92MS9zZWFyY2gucHJvdG8SEWhhcm5lc3Muc2VhcmNoLnYxIosBCg1TZWFyY2hSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEhcKD2FsbG93ZWRfZG9tYWlucxgCIAMoCRIXCg9ibG9ja2VkX2RvbWFpbnMYAyADKAkSEwoLbWF4X3Jlc3VsdHMYBCABKAUSEAoIcHJvdmlkZXIYBSABKAkSEgoKc2Vzc2lvbl9pZBgGIAEoCSJUCg5TZWFyY2hSZXNwb25zZRIwCgdyZXN1bHRzGAEgAygLMh8uaGFybmVzcy5zZWFyY2gudjEuU2VhcmNoUmVzdWx0EhAKCHByb3ZpZGVyGAIgASgJImYKDFNlYXJjaFJlc3VsdBINCgV0aXRsZRgBIAEoCRILCgN1cmwYAiABKAkSDwoHc25pcHBldBgDIAEoCRIUCgxwdWJsaXNoZWRfYXQYBCABKAkSEwoLZmF2aWNvbl91cmwYBSABKAkiFgoUTGlzdFByb3ZpZGVyc1JlcXVlc3QiZwoVTGlzdFByb3ZpZGVyc1Jlc3BvbnNlEjQKCXByb3ZpZGVycxgBIAMoCzIhLmhhcm5lc3Muc2VhcmNoLnYxLlNlYXJjaFByb3ZpZGVyEhgKEGRlZmF1bHRfcHJvdmlkZXIYAiABKAkiQwoOU2VhcmNoUHJvdmlkZXISCgoCaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEg8KB2hlYWx0aHkYAyABKAgywgEKDVNlYXJjaFNlcnZpY2USTQoGU2VhcmNoEiAuaGFybmVzcy5zZWFyY2gudjEuU2VhcmNoUmVxdWVzdBohLmhhcm5lc3Muc2VhcmNoLnYxLlNlYXJjaFJlc3BvbnNlEmIKDUxpc3RQcm92aWRlcnMSJy5oYXJuZXNzLnNlYXJjaC52MS5MaXN0UHJvdmlkZXJzUmVxdWVzdBooLmhhcm5lc3Muc2VhcmNoLnYxLkxpc3RQcm92aWRlcnNSZXNwb25zZULTAQoVY29tLmhhcm5lc3Muc2VhcmNoLnYxQgtTZWFyY2hQcm90b1ABWkdnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL3NlYXJjaC92MTtzZWFyY2h2MaICA0hTWKoCEUhhcm5lc3MuU2VhcmNoLlYxygIRSGFybmVzc1xTZWFyY2hcVjHiAh1IYXJuZXNzXFNlYXJjaFxWMVxHUEJNZXRhZGF0YeoCE0hhcm5lc3M6OlNlYXJjaDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message harness.search.v1.SearchRequest
@@ -43,7 +43,8 @@ export type SearchRequest = Message<"harness.search.v1.SearchRequest"> & {
   maxResults: number;
 
   /**
-   * Optional provider id; empty means the server default.
+   * Optional provider id the caller may use; empty means the caller's effective provider (their own
+   * choice, else the server default).
    *
    * @generated from field: string provider = 5;
    */
@@ -113,6 +114,13 @@ export type SearchResult = Message<"harness.search.v1.SearchResult"> & {
    * @generated from field: string published_at = 4;
    */
   publishedAt: string;
+
+  /**
+   * The site's icon, when the provider returns one.
+   *
+   * @generated from field: string favicon_url = 5;
+   */
+  faviconUrl: string;
 };
 
 /**
@@ -140,11 +148,15 @@ export const ListProvidersRequestSchema: GenMessage<ListProvidersRequest> = /*@_
  */
 export type ListProvidersResponse = Message<"harness.search.v1.ListProvidersResponse"> & {
   /**
+   * The search providers the caller may use.
+   *
    * @generated from field: repeated harness.search.v1.SearchProvider providers = 1;
    */
   providers: SearchProvider[];
 
   /**
+   * The caller's effective provider.
+   *
    * @generated from field: string default_provider = 2;
    */
   defaultProvider: string;
@@ -162,7 +174,7 @@ export const ListProvidersResponseSchema: GenMessage<ListProvidersResponse> = /*
  */
 export type SearchProvider = Message<"harness.search.v1.SearchProvider"> & {
   /**
-   * e.g. "searxng".
+   * "searxng" (built in) or a provider id from ProviderService.
    *
    * @generated from field: string id = 1;
    */
@@ -188,9 +200,10 @@ export const SearchProviderSchema: GenMessage<SearchProvider> = /*@__PURE__*/
 
 /**
  * SearchService backs the WebSearch tool. The client calls it; the server runs the query on the
- * configured search provider and returns plain results. Providers are pluggable on the server
- * (SearXNG is the default and needs no API key; others such as Brave, Tavily, Exa or a model
- * provider's native search can be added later). Requires `Authorization: Bearer <access token>`.
+ * caller's search provider and returns plain results. Providers are managed in the settings screens
+ * (harness.llm.v1.ProviderService, group "search"): the built-in SearXNG (no key) or a connected API such as
+ * Brave, Tavily, Exa, Kagi or Perplexity, chosen per user (their own choice, else the server default).
+ * Requires `Authorization: Bearer <access token>`.
  *
  * Status: DRAFT (M2).
  *

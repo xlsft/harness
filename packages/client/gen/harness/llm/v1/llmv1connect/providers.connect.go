@@ -78,6 +78,15 @@ const (
 	// ProviderServiceSetSlotsProcedure is the fully-qualified name of the ProviderService's SetSlots
 	// RPC.
 	ProviderServiceSetSlotsProcedure = "/harness.llm.v1.ProviderService/SetSlots"
+	// ProviderServiceGetSearchProcedure is the fully-qualified name of the ProviderService's GetSearch
+	// RPC.
+	ProviderServiceGetSearchProcedure = "/harness.llm.v1.ProviderService/GetSearch"
+	// ProviderServiceSetSearchDefaultProcedure is the fully-qualified name of the ProviderService's
+	// SetSearchDefault RPC.
+	ProviderServiceSetSearchDefaultProcedure = "/harness.llm.v1.ProviderService/SetSearchDefault"
+	// ProviderServiceSetMySearchProcedure is the fully-qualified name of the ProviderService's
+	// SetMySearch RPC.
+	ProviderServiceSetMySearchProcedure = "/harness.llm.v1.ProviderService/SetMySearch"
 )
 
 // ProviderServiceClient is a client for the harness.llm.v1.ProviderService service.
@@ -118,6 +127,13 @@ type ProviderServiceClient interface {
 	// read them; SetSlots needs the admin role.
 	GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error)
 	SetSlots(context.Context, *connect.Request[v1.SetSlotsRequest]) (*connect.Response[v1.SetSlotsResponse], error)
+	// Web search (harness.search.v1.SearchService, the WebSearch tool): which search provider serves a user's
+	// queries. The server default is a global search provider or the built-in SearXNG ("searxng"); each user
+	// may pick another one they can use (a global one or their own) for themselves, or follow the default.
+	// Any signed-in user may read it and set their own choice; SetSearchDefault needs the admin role.
+	GetSearch(context.Context, *connect.Request[v1.GetSearchRequest]) (*connect.Response[v1.GetSearchResponse], error)
+	SetSearchDefault(context.Context, *connect.Request[v1.SetSearchDefaultRequest]) (*connect.Response[v1.SetSearchDefaultResponse], error)
+	SetMySearch(context.Context, *connect.Request[v1.SetMySearchRequest]) (*connect.Response[v1.SetMySearchResponse], error)
 }
 
 // NewProviderServiceClient constructs a client for the harness.llm.v1.ProviderService service. By
@@ -221,26 +237,47 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(providerServiceMethods.ByName("SetSlots")),
 			connect.WithClientOptions(opts...),
 		),
+		getSearch: connect.NewClient[v1.GetSearchRequest, v1.GetSearchResponse](
+			httpClient,
+			baseURL+ProviderServiceGetSearchProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("GetSearch")),
+			connect.WithClientOptions(opts...),
+		),
+		setSearchDefault: connect.NewClient[v1.SetSearchDefaultRequest, v1.SetSearchDefaultResponse](
+			httpClient,
+			baseURL+ProviderServiceSetSearchDefaultProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("SetSearchDefault")),
+			connect.WithClientOptions(opts...),
+		),
+		setMySearch: connect.NewClient[v1.SetMySearchRequest, v1.SetMySearchResponse](
+			httpClient,
+			baseURL+ProviderServiceSetMySearchProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("SetMySearch")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // providerServiceClient implements ProviderServiceClient.
 type providerServiceClient struct {
-	listPresets     *connect.Client[v1.ListPresetsRequest, v1.ListPresetsResponse]
-	listProviders   *connect.Client[v1.ListProvidersRequest, v1.ListProvidersResponse]
-	createProvider  *connect.Client[v1.CreateProviderRequest, v1.CreateProviderResponse]
-	updateProvider  *connect.Client[v1.UpdateProviderRequest, v1.UpdateProviderResponse]
-	deleteProvider  *connect.Client[v1.DeleteProviderRequest, v1.DeleteProviderResponse]
-	discoverModels  *connect.Client[v1.DiscoverModelsRequest, v1.DiscoverModelsResponse]
-	addModel        *connect.Client[v1.AddModelRequest, v1.AddModelResponse]
-	testProvider    *connect.Client[v1.TestProviderRequest, v1.TestProviderResponse]
-	removeModel     *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
-	getClassifier   *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
-	setClassifier   *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
-	getMyClassifier *connect.Client[v1.GetMyClassifierRequest, v1.GetMyClassifierResponse]
-	setMyClassifier *connect.Client[v1.SetMyClassifierRequest, v1.SetMyClassifierResponse]
-	getSlots        *connect.Client[v1.GetSlotsRequest, v1.GetSlotsResponse]
-	setSlots        *connect.Client[v1.SetSlotsRequest, v1.SetSlotsResponse]
+	listPresets      *connect.Client[v1.ListPresetsRequest, v1.ListPresetsResponse]
+	listProviders    *connect.Client[v1.ListProvidersRequest, v1.ListProvidersResponse]
+	createProvider   *connect.Client[v1.CreateProviderRequest, v1.CreateProviderResponse]
+	updateProvider   *connect.Client[v1.UpdateProviderRequest, v1.UpdateProviderResponse]
+	deleteProvider   *connect.Client[v1.DeleteProviderRequest, v1.DeleteProviderResponse]
+	discoverModels   *connect.Client[v1.DiscoverModelsRequest, v1.DiscoverModelsResponse]
+	addModel         *connect.Client[v1.AddModelRequest, v1.AddModelResponse]
+	testProvider     *connect.Client[v1.TestProviderRequest, v1.TestProviderResponse]
+	removeModel      *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
+	getClassifier    *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
+	setClassifier    *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
+	getMyClassifier  *connect.Client[v1.GetMyClassifierRequest, v1.GetMyClassifierResponse]
+	setMyClassifier  *connect.Client[v1.SetMyClassifierRequest, v1.SetMyClassifierResponse]
+	getSlots         *connect.Client[v1.GetSlotsRequest, v1.GetSlotsResponse]
+	setSlots         *connect.Client[v1.SetSlotsRequest, v1.SetSlotsResponse]
+	getSearch        *connect.Client[v1.GetSearchRequest, v1.GetSearchResponse]
+	setSearchDefault *connect.Client[v1.SetSearchDefaultRequest, v1.SetSearchDefaultResponse]
+	setMySearch      *connect.Client[v1.SetMySearchRequest, v1.SetMySearchResponse]
 }
 
 // ListPresets calls harness.llm.v1.ProviderService.ListPresets.
@@ -318,6 +355,21 @@ func (c *providerServiceClient) SetSlots(ctx context.Context, req *connect.Reque
 	return c.setSlots.CallUnary(ctx, req)
 }
 
+// GetSearch calls harness.llm.v1.ProviderService.GetSearch.
+func (c *providerServiceClient) GetSearch(ctx context.Context, req *connect.Request[v1.GetSearchRequest]) (*connect.Response[v1.GetSearchResponse], error) {
+	return c.getSearch.CallUnary(ctx, req)
+}
+
+// SetSearchDefault calls harness.llm.v1.ProviderService.SetSearchDefault.
+func (c *providerServiceClient) SetSearchDefault(ctx context.Context, req *connect.Request[v1.SetSearchDefaultRequest]) (*connect.Response[v1.SetSearchDefaultResponse], error) {
+	return c.setSearchDefault.CallUnary(ctx, req)
+}
+
+// SetMySearch calls harness.llm.v1.ProviderService.SetMySearch.
+func (c *providerServiceClient) SetMySearch(ctx context.Context, req *connect.Request[v1.SetMySearchRequest]) (*connect.Response[v1.SetMySearchResponse], error) {
+	return c.setMySearch.CallUnary(ctx, req)
+}
+
 // ProviderServiceHandler is an implementation of the harness.llm.v1.ProviderService service.
 type ProviderServiceHandler interface {
 	// The well-known services the settings screens offer to connect in one step (presets), and the protocols a
@@ -356,6 +408,13 @@ type ProviderServiceHandler interface {
 	// read them; SetSlots needs the admin role.
 	GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error)
 	SetSlots(context.Context, *connect.Request[v1.SetSlotsRequest]) (*connect.Response[v1.SetSlotsResponse], error)
+	// Web search (harness.search.v1.SearchService, the WebSearch tool): which search provider serves a user's
+	// queries. The server default is a global search provider or the built-in SearXNG ("searxng"); each user
+	// may pick another one they can use (a global one or their own) for themselves, or follow the default.
+	// Any signed-in user may read it and set their own choice; SetSearchDefault needs the admin role.
+	GetSearch(context.Context, *connect.Request[v1.GetSearchRequest]) (*connect.Response[v1.GetSearchResponse], error)
+	SetSearchDefault(context.Context, *connect.Request[v1.SetSearchDefaultRequest]) (*connect.Response[v1.SetSearchDefaultResponse], error)
+	SetMySearch(context.Context, *connect.Request[v1.SetMySearchRequest]) (*connect.Response[v1.SetMySearchResponse], error)
 }
 
 // NewProviderServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -455,6 +514,24 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 		connect.WithSchema(providerServiceMethods.ByName("SetSlots")),
 		connect.WithHandlerOptions(opts...),
 	)
+	providerServiceGetSearchHandler := connect.NewUnaryHandler(
+		ProviderServiceGetSearchProcedure,
+		svc.GetSearch,
+		connect.WithSchema(providerServiceMethods.ByName("GetSearch")),
+		connect.WithHandlerOptions(opts...),
+	)
+	providerServiceSetSearchDefaultHandler := connect.NewUnaryHandler(
+		ProviderServiceSetSearchDefaultProcedure,
+		svc.SetSearchDefault,
+		connect.WithSchema(providerServiceMethods.ByName("SetSearchDefault")),
+		connect.WithHandlerOptions(opts...),
+	)
+	providerServiceSetMySearchHandler := connect.NewUnaryHandler(
+		ProviderServiceSetMySearchProcedure,
+		svc.SetMySearch,
+		connect.WithSchema(providerServiceMethods.ByName("SetMySearch")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.llm.v1.ProviderService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ProviderServiceListPresetsProcedure:
@@ -487,6 +564,12 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 			providerServiceGetSlotsHandler.ServeHTTP(w, r)
 		case ProviderServiceSetSlotsProcedure:
 			providerServiceSetSlotsHandler.ServeHTTP(w, r)
+		case ProviderServiceGetSearchProcedure:
+			providerServiceGetSearchHandler.ServeHTTP(w, r)
+		case ProviderServiceSetSearchDefaultProcedure:
+			providerServiceSetSearchDefaultHandler.ServeHTTP(w, r)
+		case ProviderServiceSetMySearchProcedure:
+			providerServiceSetMySearchHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -554,4 +637,16 @@ func (UnimplementedProviderServiceHandler) GetSlots(context.Context, *connect.Re
 
 func (UnimplementedProviderServiceHandler) SetSlots(context.Context, *connect.Request[v1.SetSlotsRequest]) (*connect.Response[v1.SetSlotsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetSlots is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) GetSearch(context.Context, *connect.Request[v1.GetSearchRequest]) (*connect.Response[v1.GetSearchResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.GetSearch is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) SetSearchDefault(context.Context, *connect.Request[v1.SetSearchDefaultRequest]) (*connect.Response[v1.SetSearchDefaultResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetSearchDefault is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) SetMySearch(context.Context, *connect.Request[v1.SetMySearchRequest]) (*connect.Response[v1.SetMySearchResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetMySearch is not implemented"))
 }

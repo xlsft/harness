@@ -30,7 +30,8 @@ type SearchRequest struct {
 	BlockedDomains []string `protobuf:"bytes,3,rep,name=blocked_domains,json=blockedDomains,proto3" json:"blocked_domains,omitempty"`
 	// 0 means the provider default (10). The server caps it.
 	MaxResults int32 `protobuf:"varint,4,opt,name=max_results,json=maxResults,proto3" json:"max_results,omitempty"`
-	// Optional provider id; empty means the server default.
+	// Optional provider id the caller may use; empty means the caller's effective provider (their own
+	// choice, else the server default).
 	Provider string `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
 	// Session id, for accounting and per-session limits.
 	SessionId     string `protobuf:"bytes,6,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -169,7 +170,9 @@ type SearchResult struct {
 	Url     string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
 	Snippet string                 `protobuf:"bytes,3,opt,name=snippet,proto3" json:"snippet,omitempty"`
 	// RFC 3339, UTC, when the provider knows it.
-	PublishedAt   string `protobuf:"bytes,4,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	PublishedAt string `protobuf:"bytes,4,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	// The site's icon, when the provider returns one.
+	FaviconUrl    string `protobuf:"bytes,5,opt,name=favicon_url,json=faviconUrl,proto3" json:"favicon_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -232,6 +235,13 @@ func (x *SearchResult) GetPublishedAt() string {
 	return ""
 }
 
+func (x *SearchResult) GetFaviconUrl() string {
+	if x != nil {
+		return x.FaviconUrl
+	}
+	return ""
+}
+
 type ListProvidersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -269,9 +279,11 @@ func (*ListProvidersRequest) Descriptor() ([]byte, []int) {
 }
 
 type ListProvidersResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Providers       []*SearchProvider      `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
-	DefaultProvider string                 `protobuf:"bytes,2,opt,name=default_provider,json=defaultProvider,proto3" json:"default_provider,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The search providers the caller may use.
+	Providers []*SearchProvider `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
+	// The caller's effective provider.
+	DefaultProvider string `protobuf:"bytes,2,opt,name=default_provider,json=defaultProvider,proto3" json:"default_provider,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -322,7 +334,7 @@ func (x *ListProvidersResponse) GetDefaultProvider() string {
 
 type SearchProvider struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// e.g. "searxng".
+	// "searxng" (built in) or a provider id from ProviderService.
 	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	DisplayName   string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Healthy       bool   `protobuf:"varint,3,opt,name=healthy,proto3" json:"healthy,omitempty"`
@@ -397,12 +409,14 @@ const file_harness_search_v1_search_proto_rawDesc = "" +
 	"session_id\x18\x06 \x01(\tR\tsessionId\"g\n" +
 	"\x0eSearchResponse\x129\n" +
 	"\aresults\x18\x01 \x03(\v2\x1f.harness.search.v1.SearchResultR\aresults\x12\x1a\n" +
-	"\bprovider\x18\x02 \x01(\tR\bprovider\"s\n" +
+	"\bprovider\x18\x02 \x01(\tR\bprovider\"\x94\x01\n" +
 	"\fSearchResult\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x18\n" +
 	"\asnippet\x18\x03 \x01(\tR\asnippet\x12!\n" +
-	"\fpublished_at\x18\x04 \x01(\tR\vpublishedAt\"\x16\n" +
+	"\fpublished_at\x18\x04 \x01(\tR\vpublishedAt\x12\x1f\n" +
+	"\vfavicon_url\x18\x05 \x01(\tR\n" +
+	"faviconUrl\"\x16\n" +
 	"\x14ListProvidersRequest\"\x83\x01\n" +
 	"\x15ListProvidersResponse\x12?\n" +
 	"\tproviders\x18\x01 \x03(\v2!.harness.search.v1.SearchProviderR\tproviders\x12)\n" +

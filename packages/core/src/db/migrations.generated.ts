@@ -161,5 +161,11 @@ export const migrations: { id: string; statements: string[] }[] = [
       "ALTER TABLE \"provider\" ADD COLUMN \"kind\" text DEFAULT 'llm' NOT NULL;",
       "ALTER TABLE \"provider\" ADD COLUMN \"preset_id\" text;"
     ]
+  },
+  {
+    "id": "0008_search_providers",
+    "statements": [
+      "ALTER TABLE \"provider\" ADD COLUMN \"options\" jsonb;"
+    ]
   }
 ];

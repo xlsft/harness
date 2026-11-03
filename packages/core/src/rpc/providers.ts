@@ -29,7 +29,8 @@ import {
   type ModelEntry,
   type Slots,
 } from "../services/models.ts";
-import { PRESETS, PROTOCOLS } from "../services/presets.ts";
+import { BUILTIN_SEARCH_ID, PRESETS, PROTOCOLS } from "../services/presets.ts";
+import { getSearchSettings, setMySearch, setSearchDefault, testSearchProvider, type SearchSettings } from "../search/resolve.ts";
 import {
   PROVIDER_TYPES,
   createProvider,
@@ -73,6 +74,18 @@ async function providerToProto(p: PublicProvider, user: PublicUser) {
     updatedAt: p.updated_at,
     presetId: p.preset_id ?? "",
     group: p.group,
+    options: p.options,
+  };
+}
+
+function searchSettingsToProto(s: SearchSettings) {
+  return {
+    settings: {
+      defaultProviderId: s.default_provider_id,
+      myProviderId: s.my_provider_id,
+      effectiveProviderId: s.effective_provider_id,
+      editable: s.editable,
+    },
   };
 }
 
@@ -159,6 +172,17 @@ export function registerProviderService(router: ConnectRouter): void {
           icon: p.icon,
           discoversModels: p.discovers_models,
           local: !!p.local,
+          options: (p.options ?? []).map((o) => ({
+            name: o.name,
+            label: o.label,
+            kind: o.kind,
+            choices: o.choices ?? [],
+            defaultValue: o.default_value ?? "",
+            placeholder: o.placeholder ?? "",
+            min: o.min ?? 0,
+            max: o.max ?? 0,
+          })),
+          builtin: !!p.builtin,
         })),
         protocols: PROTOCOLS.map((p) => ({ id: p.id, group: p.group, label: p.label, baseUrlHint: p.base_url_hint })),
       };
@@ -188,6 +212,7 @@ export function registerProviderService(router: ConnectRouter): void {
         api_key: req.apiKey || null,
         headers: req.headers,
         allow_private_network: req.allowPrivateNetwork,
+        options: req.options,
       };
       if (global) input.id = req.id;
       else if (req.id) throw new ApiError("invalid_request", "Personal providers get a generated id");
@@ -206,6 +231,7 @@ export function registerProviderService(router: ConnectRouter): void {
       if (req.headers !== undefined) input.headers = req.headers.values;
       if (req.enabled !== undefined) input.enabled = req.enabled;
       if (req.allowPrivateNetwork !== undefined) input.allow_private_network = req.allowPrivateNetwork;
+      if (req.options !== undefined) input.options = req.options.values;
       const p = await updateProvider(req.id, input, owner);
       return { provider: await providerToProto(p, user) };
     }),
@@ -250,9 +276,15 @@ export function registerProviderService(router: ConnectRouter): void {
     testProvider: guard(async (req, ctx: HandlerContext) => {
       checkClientVersion(ctx);
       const p = await requirePrincipal(ctx);
+      // The built-in search has no row; running a sample query on it is harmless, so anyone may.
+      if (req.providerId === BUILTIN_SEARCH_ID) {
+        const r = await testSearchProvider(BUILTIN_SEARCH_ID);
+        return { ok: r.ok, message: r.message, modelCount: 0 };
+      }
       const { row, writable } = await providerForUser(req.providerId, p.user);
       if (!writable) throw new ApiError("permission", "Only admins can change global providers");
-      const r = row.kind === "classifier" ? await testClassifierProvider(row.id, p) : await testLlmProvider(row.id);
+      const r =
+        row.kind === "classifier" ? await testClassifierProvider(row.id, p) : row.kind === "search" ? await testSearchProvider(row.id) : await testLlmProvider(row.id);
       return { ok: r.ok, message: r.message, modelCount: r.model_count };
     }),
 
@@ -298,6 +330,18 @@ export function registerProviderService(router: ConnectRouter): void {
       const user = await principal(ctx);
       await setClassifierOverride(user, overrideFromProto(req.mine));
       return myClassifierToProto(user);
+    }),
+
+    getSearch: guard(async (_req, ctx: HandlerContext) => {
+      return searchSettingsToProto(await getSearchSettings(await principal(ctx)));
+    }),
+
+    setSearchDefault: guard(async (req, ctx: HandlerContext) => {
+      return searchSettingsToProto(await setSearchDefault(await principal(ctx), req.providerId));
+    }),
+
+    setMySearch: guard(async (req, ctx: HandlerContext) => {
+      return searchSettingsToProto(await setMySearch(await principal(ctx), req.providerId));
     }),
 
     getSlots: guard(async (_req, ctx: HandlerContext) => {

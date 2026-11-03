@@ -20,6 +20,8 @@ export interface SearchHit {
   snippet: string;
   /** RFC 3339, when known. */
   publishedAt?: string;
+  /** The site's icon (https), when the provider returns one. */
+  favicon?: string;
 }
 
 export interface SearchProvider {

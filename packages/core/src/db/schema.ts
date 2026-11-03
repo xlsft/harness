@@ -140,9 +140,9 @@ export const provider = pgTable(
     id: text("id").primaryKey(),
     /** Null: a global provider (admin-managed, usable by everyone). Set: a personal provider only its owner sees and uses. */
     ownerUserId: text("owner_user_id").references(() => user.id, { onDelete: "cascade" }),
-    /** "llm" (gateway models) or "classifier" (auto-mode decision services, global only). */
+    /** "llm" (gateway models), "classifier" (auto-mode decision services, global only) or "search" (web search APIs). */
     kind: text("kind").notNull().default("llm"),
-    /** llm: anthropic | openai-chat | openai-responses; classifier: decision-model | decision-http */
+    /** llm: anthropic | openai-chat | openai-responses; classifier: decision-model | decision-http; search: see services/presets.ts */
     type: text("type").notNull(),
     /** The preset it was connected from (services/presets.ts); null for a custom provider. */
     presetId: text("preset_id"),
@@ -155,6 +155,8 @@ export const provider = pgTable(
     headersEnc: text("headers_enc"),
     allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
     enabled: boolean("enabled").notNull().default(true),
+    /** Search providers: JSON object of options (result count, safe search, country, language), plain text values. */
+    options: jsonb("options"),
     createdAt: ts("created_at").notNull(),
     updatedAt: ts("updated_at").notNull(),
   },

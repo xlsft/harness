@@ -15,7 +15,9 @@
  *
  * Two groups: "llm" providers serve the gateway's models; "classifier" providers are auto-mode decision
  * services (a typed decision model or a policy webhook) that the server-wide decision chain uses, so they are
- * global only and serve no chat models. A provider may come from a preset (services/presets.ts): the user
+ * global only and serve no chat models; "search" providers are web search APIs (SearchService), global or personal
+ * like LLM providers, with a few plain-text options (result count, safe search, country, language) that their
+ * preset declares. A provider may come from a preset (services/presets.ts): the user
  * gives only what the preset asks for and the rest comes from the preset.
  *
  * Keys are write-only everywhere: no API (user or admin) returns a key or anything decryptable; admins see
@@ -32,7 +34,18 @@ import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
 import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
-import { CLASSIFIER_TYPES, LLM_TYPES, findPreset, groupOfType, presetOf, type ProviderGroup } from "./presets.ts";
+import {
+  BUILTIN_SEARCH_ID,
+  CLASSIFIER_TYPES,
+  LLM_TYPES,
+  SEARCH_TYPES,
+  findPreset,
+  groupOfType,
+  presetOf,
+  searchOptionSpecs,
+  type PresetOption,
+  type ProviderGroup,
+} from "./presets.ts";
 
 /** Types of LLM providers (the gateway adapters). */
 export const PROVIDER_TYPES = LLM_TYPES;
@@ -54,6 +67,8 @@ export interface ProviderRuntime {
   enabled: boolean;
   /** Null for a global provider. */
   ownerUserId: string | null;
+  /** Search providers: their options (validated plain text). */
+  options: Record<string, string>;
 }
 
 export interface ProviderInput {
@@ -69,6 +84,8 @@ export interface ProviderInput {
   headers?: Record<string, string> | null;
   allow_private_network?: boolean;
   enabled?: boolean;
+  /** Search providers: replaces all options. */
+  options?: Record<string, string> | null;
 }
 
 /** Whose providers an operation works on: the global ones (admin) or one user's personal ones. */
@@ -97,6 +114,7 @@ export function publicProvider(r: Row) {
     header_names: headerNames,
     allow_private_network: r.allowPrivateNetwork,
     enabled: r.enabled,
+    options: (r.options as Record<string, string> | null) ?? {},
     created_at: r.createdAt.toISOString(),
     updated_at: r.updatedAt.toISOString(),
   };
@@ -112,6 +130,39 @@ function validateHeaders(h: unknown): Record<string, string> {
       throw new ApiError("invalid_request", `Invalid header ${k}`);
     }
     out[k] = v;
+  }
+  return out;
+}
+
+const COUNTRY_RE = /^[A-Za-z]{2}$/;
+const LANGUAGE_RE = /^(all|[A-Za-z]{2,3}(-[A-Za-z0-9]{2,4})?)$/;
+
+/** A search provider's options, checked against what its preset declares; empty values are dropped. */
+export function validateOptions(specs: PresetOption[], input: Record<string, string> | null | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, raw] of Object.entries(input ?? {})) {
+    const spec = specs.find((o) => o.name === name);
+    if (!spec) throw new ApiError("invalid_request", `Unknown option ${name}`);
+    const v = typeof raw === "string" ? raw.trim() : "";
+    if (!v) continue;
+    if (spec.kind === "number") {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < (spec.min ?? 1) || n > (spec.max ?? 100)) {
+        throw new ApiError("invalid_request", `${spec.label} must be a whole number from ${spec.min ?? 1} to ${spec.max ?? 100}`);
+      }
+      out[name] = String(n);
+    } else if (spec.kind === "select") {
+      if (!spec.choices?.some((c) => c.value === v)) throw new ApiError("invalid_request", `${spec.label} must be one of ${spec.choices?.map((c) => c.value).join(", ")}`);
+      out[name] = v;
+    } else if (name === "country") {
+      if (!COUNTRY_RE.test(v)) throw new ApiError("invalid_request", "Country must be a two-letter code");
+      out[name] = v.toUpperCase();
+    } else if (name === "language") {
+      if (!LANGUAGE_RE.test(v)) throw new ApiError("invalid_request", "Language must be a code such as en or pt-BR");
+      out[name] = v === "all" ? v : v.toLowerCase();
+    } else {
+      out[name] = v.slice(0, 64);
+    }
   }
   return out;
 }
@@ -208,6 +259,7 @@ async function freeGlobalId(base: string): Promise<string> {
   const db = getDb();
   let root = slug(base) || "provider";
   if (root.startsWith(PERSONAL_PREFIX)) root = `p${root}`;
+  if (root === BUILTIN_SEARCH_ID) root = `${root}-1`;
   for (let n = 1; n < 100; n++) {
     const id = n === 1 ? root : `${root}-${n}`;
     if (!(await db.query.provider.findFirst({ where: eq(schema.provider.id, id) }))) return id;
@@ -215,8 +267,11 @@ async function freeGlobalId(base: string): Promise<string> {
   throw new ApiError("invalid_request", "Choose an id");
 }
 
-function checkType(kind: ProviderGroup, type: string | undefined): string {
-  const allowed: readonly string[] = kind === "classifier" ? CLASSIFIER_TYPES : LLM_TYPES;
+/** Types a custom provider of each group may use (search: SearXNG-compatible instances only). */
+const CUSTOM_SEARCH_TYPES = ["searxng"] as const;
+
+function checkType(kind: ProviderGroup, type: string | undefined, custom = false): string {
+  const allowed: readonly string[] = kind === "classifier" ? CLASSIFIER_TYPES : kind === "search" ? (custom ? CUSTOM_SEARCH_TYPES : SEARCH_TYPES) : LLM_TYPES;
   if (!type || !allowed.includes(type)) throw new ApiError("invalid_request", `type must be one of ${allowed.join(", ")}`);
   return type;
 }
@@ -226,6 +281,7 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
   const db = getDb();
   const preset = input.preset_id ? findPreset(input.preset_id) : undefined;
   if (input.preset_id && !preset) throw new ApiError("invalid_request", `Unknown preset ${input.preset_id}`);
+  if (preset?.builtin) throw new ApiError("invalid_request", `${preset.display_name} is built in: there is nothing to connect`);
   let kind: ProviderGroup;
   let type: string;
   let baseUrl = input.base_url?.trim();
@@ -238,9 +294,11 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
       throw new ApiError("invalid_request", `${preset.display_name} needs an API key`);
     }
   } else {
-    if (input.kind && input.kind !== "llm" && input.kind !== "classifier") throw new ApiError("invalid_request", 'group must be "llm" or "classifier"');
+    if (input.kind && input.kind !== "llm" && input.kind !== "classifier" && input.kind !== "search") {
+      throw new ApiError("invalid_request", 'group must be "llm", "classifier" or "search"');
+    }
     kind = (input.kind as ProviderGroup | undefined) || groupOfType(input.type ?? "") || "llm";
-    type = checkType(kind, input.type);
+    type = checkType(kind, input.type, true);
   }
   if (kind === "classifier" && owner) throw new ApiError("invalid_request", "Classifier providers are server-wide: only admins add them, globally");
 
@@ -255,6 +313,7 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
     id = input.id || (await freeGlobalId(preset?.id || input.display_name || type));
     if (!ID_RE.test(id)) throw new ApiError("invalid_request", "id must match [a-z0-9][a-z0-9._-]*");
     if (id.startsWith(PERSONAL_PREFIX)) throw new ApiError("invalid_request", `Ids starting with "${PERSONAL_PREFIX}" are reserved for personal providers`);
+    if (id === BUILTIN_SEARCH_ID) throw new ApiError("invalid_request", `The id "${BUILTIN_SEARCH_ID}" is reserved for the built-in search`);
   }
   if (!baseUrl) throw new ApiError("invalid_request", "base_url is required");
   // A local preset connected globally may reach the private network it is meant for.
@@ -264,6 +323,8 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
     throw new ApiError("invalid_request", `Provider ${id} already exists`, { status: 409 });
   }
   const headers = validateHeaders(input.headers);
+  const options = kind === "search" ? validateOptions(searchOptionSpecs({ presetId: preset?.id ?? null, kind, type, baseUrl }), input.options) : {};
+  if (kind !== "search" && input.options && Object.keys(input.options).length) throw new ApiError("invalid_request", "Only search providers have options");
   const now = new Date();
   const [row] = await db
     .insert(schema.provider)
@@ -280,6 +341,7 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
       headersEnc: Object.keys(headers).length ? encryptSecret(JSON.stringify(headers), `${id}:headers`, secretKey(owner?.userId)) : null,
       allowPrivateNetwork: allowPrivate,
       enabled: input.enabled ?? true,
+      options: Object.keys(options).length ? options : null,
       createdAt: now,
       updatedAt: now,
     })
@@ -291,7 +353,7 @@ export async function updateProvider(id: string, input: ProviderInput, owner: Pr
   const cur = await findInScope(id, owner);
   if (owner && input.allow_private_network) throw new ApiError("invalid_request", "Only global providers may reach private networks");
   const patch: Partial<Row> = { updatedAt: new Date() };
-  if (input.type !== undefined) patch.type = checkType(cur.kind as ProviderGroup, input.type);
+  if (input.type !== undefined) patch.type = checkType(cur.kind as ProviderGroup, input.type, !presetOf(cur));
   if (input.display_name !== undefined) patch.displayName = input.display_name || null;
   const allowPrivate = input.allow_private_network ?? cur.allowPrivateNetwork;
   if (input.allow_private_network !== undefined) patch.allowPrivateNetwork = allowPrivate;
@@ -309,6 +371,11 @@ export async function updateProvider(id: string, input: ProviderInput, owner: Pr
     patch.headersEnc = Object.keys(headers).length ? encryptSecret(JSON.stringify(headers), `${id}:headers`, secretKey(cur.ownerUserId)) : null;
   }
   if (input.enabled !== undefined) patch.enabled = input.enabled;
+  if (input.options !== undefined) {
+    if (cur.kind !== "search") throw new ApiError("invalid_request", "Only search providers have options");
+    const options = validateOptions(searchOptionSpecs({ ...cur, type: patch.type ?? cur.type }), input.options);
+    patch.options = Object.keys(options).length ? options : null;
+  }
   const [row] = await getDb().update(schema.provider).set(patch).where(eq(schema.provider.id, id)).returning();
   return publicProvider(row!);
 }
@@ -354,5 +421,6 @@ export async function loadProviderRuntime(id: string): Promise<ProviderRuntime> 
     allowPrivateNetwork: r.allowPrivateNetwork,
     enabled: r.enabled,
     ownerUserId: r.ownerUserId,
+    options: (r.options as Record<string, string> | null) ?? {},
   };
 }

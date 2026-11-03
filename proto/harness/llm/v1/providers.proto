@@ -57,6 +57,14 @@ service ProviderService {
   // read them; SetSlots needs the admin role.
   rpc GetSlots(GetSlotsRequest) returns (GetSlotsResponse);
   rpc SetSlots(SetSlotsRequest) returns (SetSlotsResponse);
+
+  // Web search (harness.search.v1.SearchService, the WebSearch tool): which search provider serves a user's
+  // queries. The server default is a global search provider or the built-in SearXNG ("searxng"); each user
+  // may pick another one they can use (a global one or their own) for themselves, or follow the default.
+  // Any signed-in user may read it and set their own choice; SetSearchDefault needs the admin role.
+  rpc GetSearch(GetSearchRequest) returns (GetSearchResponse);
+  rpc SetSearchDefault(SetSearchDefaultRequest) returns (SetSearchDefaultResponse);
+  rpc SetMySearch(SetMySearchRequest) returns (SetMySearchResponse);
 }
 
 enum ProviderScope {
@@ -70,7 +78,10 @@ enum ProviderScope {
 //                  "openai-responses");
 //   "classifier" - auto-mode decision services (types "decision-model": a typed decision model such as
 //                  TypeSafe's Jev; "decision-http": a policy webhook answering {decision, reason}). Classifier
-//                  providers are global only, since the decision chain is server-wide.
+//                  providers are global only, since the decision chain is server-wide;
+//   "search"     - web search APIs behind SearchService (types "searxng", "brave", "tavily", "exa", "kagi",
+//                  "perplexity"). Global or personal, like LLM providers. The built-in SearXNG is not a
+//                  stored provider: its preset has `builtin` set and its provider id is "searxng".
 message Provider {
   string id = 1;
   ProviderScope scope = 2;
@@ -95,8 +106,10 @@ message Provider {
   // The preset it was connected from; empty for a custom provider. Providers created before presets existed
   // report the preset whose type and base URL they match.
   string preset_id = 15;
-  // "llm" or "classifier".
+  // "llm", "classifier" or "search".
   string group = 16;
+  // Search providers: their options (see ProviderPreset.options), by name; values are plain text.
+  map<string, string> options = 17;
 }
 
 message ProviderModel {
@@ -146,6 +159,33 @@ message ProviderPreset {
   // Usually runs on the local network (Ollama): connecting it globally allows private networks; personal
   // providers cannot reach private addresses.
   bool local = 13;
+  // Search presets: per-provider settings the user may change after connecting (result count, safe search,
+  // country, language), only those the service supports.
+  repeated PresetOption options = 14;
+  // Ships with the server (the bundled SearXNG): nothing to connect, its provider id is the preset id.
+  bool builtin = 15;
+}
+
+// A setting of a connected provider.
+message PresetOption {
+  // "max_results", "safe_search", "country" or "language".
+  string name = 1;
+  string label = 2;
+  // "number", "select" or "text".
+  string kind = 3;
+  // "select": the allowed values, in order.
+  repeated OptionChoice choices = 4;
+  // What applies while it is unset.
+  string default_value = 5;
+  string placeholder = 6;
+  // "number": the allowed range.
+  int32 min = 7;
+  int32 max = 8;
+}
+
+message OptionChoice {
+  string value = 1;
+  string label = 2;
 }
 
 message PresetField {
@@ -201,8 +241,10 @@ message CreateProviderRequest {
   // Connect a preset: type, group, name and base URL default to the preset's (base_url may be overridden
   // only when the preset asks for it), and only the preset's required fields must be set.
   string preset_id = 9;
-  // Custom providers: "llm" (default) or "classifier" (GLOBAL only).
+  // Custom providers: "llm" (default), "classifier" (GLOBAL only) or "search".
   string group = 10;
+  // Search providers: initial options.
+  map<string, string> options = 11;
 }
 
 message CreateProviderResponse {
@@ -222,6 +264,12 @@ message UpdateProviderRequest {
   optional bool enabled = 7;
   // GLOBAL only.
   optional bool allow_private_network = 8;
+  // Search providers: replaces all options when set (an empty value is dropped: the default applies).
+  optional ProviderOptions options = 9;
+}
+
+message ProviderOptions {
+  map<string, string> values = 1;
 }
 
 message Headers {
@@ -279,7 +327,8 @@ message TestProviderRequest {
 
 message TestProviderResponse {
   bool ok = 1;
-  // What happened, for the user ("Connected, 312 models", "The key was rejected (HTTP 401)").
+  // What happened, for the user ("Connected, 312 models", "The key was rejected (HTTP 401)"). A search
+  // provider runs one sample query ("Connected, 5 results").
   string message = 2;
   // LLM providers: models the service lists (0 when it has no list).
   int32 model_count = 3;
@@ -389,4 +438,43 @@ message SetSlotsRequest {
 
 message SetSlotsResponse {
   Slots slots = 1;
+}
+
+message GetSearchRequest {}
+
+// Which search provider serves the caller's web searches.
+message SearchSettings {
+  // The server default as configured: a global search provider, or "searxng" (the built-in SearXNG), which
+  // also applies when it is empty or went stale.
+  string default_provider_id = 1;
+  // The caller's own choice; empty follows the server default. A stale choice (the provider was removed,
+  // disabled or hidden) reads as empty.
+  string my_provider_id = 2;
+  // What serves the caller's queries now.
+  string effective_provider_id = 3;
+  // The caller may change the server default (admins).
+  bool editable = 4;
+}
+
+message GetSearchResponse {
+  SearchSettings settings = 1;
+}
+
+message SetSearchDefaultRequest {
+  // A global, enabled search provider, or "searxng"; empty: the built-in SearXNG.
+  string provider_id = 1;
+}
+
+message SetSearchDefaultResponse {
+  SearchSettings settings = 1;
+}
+
+message SetMySearchRequest {
+  // A search provider the caller may use (global and enabled, or their own), or "searxng"; empty follows
+  // the server default.
+  string provider_id = 1;
+}
+
+message SetMySearchResponse {
+  SearchSettings settings = 1;
 }

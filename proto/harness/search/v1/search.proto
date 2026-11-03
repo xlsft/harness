@@ -3,9 +3,10 @@ syntax = "proto3";
 package harness.search.v1;
 
 // SearchService backs the WebSearch tool. The client calls it; the server runs the query on the
-// configured search provider and returns plain results. Providers are pluggable on the server
-// (SearXNG is the default and needs no API key; others such as Brave, Tavily, Exa or a model
-// provider's native search can be added later). Requires `Authorization: Bearer <access token>`.
+// caller's search provider and returns plain results. Providers are managed in the settings screens
+// (harness.llm.v1.ProviderService, group "search"): the built-in SearXNG (no key) or a connected API such as
+// Brave, Tavily, Exa, Kagi or Perplexity, chosen per user (their own choice, else the server default).
+// Requires `Authorization: Bearer <access token>`.
 //
 // Status: DRAFT (M2).
 service SearchService {
@@ -22,7 +23,8 @@ message SearchRequest {
   repeated string blocked_domains = 3;
   // 0 means the provider default (10). The server caps it.
   int32 max_results = 4;
-  // Optional provider id; empty means the server default.
+  // Optional provider id the caller may use; empty means the caller's effective provider (their own
+  // choice, else the server default).
   string provider = 5;
   // Session id, for accounting and per-session limits.
   string session_id = 6;
@@ -40,17 +42,21 @@ message SearchResult {
   string snippet = 3;
   // RFC 3339, UTC, when the provider knows it.
   string published_at = 4;
+  // The site's icon, when the provider returns one.
+  string favicon_url = 5;
 }
 
 message ListProvidersRequest {}
 
 message ListProvidersResponse {
+  // The search providers the caller may use.
   repeated SearchProvider providers = 1;
+  // The caller's effective provider.
   string default_provider = 2;
 }
 
 message SearchProvider {
-  // e.g. "searxng".
+  // "searxng" (built in) or a provider id from ProviderService.
   string id = 1;
   string display_name = 2;
   bool healthy = 3;
