@@ -22,6 +22,7 @@ import {
 } from '~/gen/harness/agent/v1/agent_pb'
 import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
+import { MockProvidersApi } from '~/lib/providers/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionTransport, SubscribeHandlers } from './types'
@@ -173,6 +174,11 @@ export class MockTransport implements SessionTransport {
 
   async listModels() {
     return MODELS
+  }
+
+  private providersApi = new MockProvidersApi()
+  providers() {
+    return this.providersApi
   }
 
   subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {

@@ -15,6 +15,7 @@ import {
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { ModelInfo, NewSessionOptions, SessionTransport, SubscribeHandlers } from './types'
 import type { EffortName } from '~/lib/session/types'
+import { ConnectProvidersApi } from '~/lib/providers/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -28,9 +29,17 @@ export class ConnectTransport implements SessionTransport {
   readonly kind = 'connect' as const
   private client: Client<typeof AgentService>
 
+  private providersApi: ConnectProvidersApi
+
   constructor(baseUrl: string, token = '') {
     const interceptors: Interceptor[] = token ? [bearer(token)] : []
-    this.client = createClient(AgentService, createConnectTransport({ baseUrl, interceptors }))
+    const transport = createConnectTransport({ baseUrl, interceptors })
+    this.client = createClient(AgentService, transport)
+    this.providersApi = new ConnectProvidersApi(transport)
+  }
+
+  providers() {
+    return this.providersApi
   }
 
   async initialize() {

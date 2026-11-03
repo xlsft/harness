@@ -16,6 +16,7 @@ import type {
 } from '~/gen/harness/agent/v1/agent_pb'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { EffortName } from '~/lib/session/types'
+import type { ProvidersApi } from '~/lib/providers/types'
 
 export interface ModelInfo {
   id: string
@@ -83,4 +84,8 @@ export interface SessionTransport {
   // Not part of AgentService yet: the model catalog (provider, context, price) comes from the server in M1+.
   // Connect falls back to InitializeResponse.model_ids.
   listModels(): Promise<ModelInfo[]>
+
+  // LLM providers and the auto-mode classifier for the settings screens (harness.llm.v1.ProviderService,
+  // forwarded to the server by the client).
+  providers(): ProvidersApi
 }
