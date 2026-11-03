@@ -22,6 +22,8 @@ import type { AccountApi } from '~/lib/account/types'
 import type { UsageApi } from '~/lib/usage/types'
 import type { TerminalsApi } from '~/lib/terminal/types'
 
+import type { EnvironmentApi } from '~/lib/environment/types'
+
 export interface ModelInfo {
   id: string
   // Human name from the catalog; empty when the server has none (the id is shown then).
@@ -123,4 +125,8 @@ export interface SessionTransport {
   // Shells in a PTY on the client's machine for the terminal pane (create / list / kill, and the interactive
   // TerminalConnection over the client's terminal WebSocket).
   terminals(): TerminalsApi
+
+  // Session environments, folder facts and folder changes (AgentService GetEnvironment and friends). The web
+  // link of a session is sessionWebUrl(initialize().webUrl, id) from ~/lib/environment/types.
+  environment(): EnvironmentApi
 }

@@ -43,6 +43,9 @@ import (
 type Options struct {
 	Cwd            string
 	AdditionalDirs []string
+	// Env holds NAME=value entries added to the environment of the processes tools spawn (the session
+	// environment's variables, AgentService environments).
+	Env []string
 
 	// Server overrides; when Gateway/Prompts are nil the HTTPS adapters are
 	// created from stored credentials (or HARNESS_SERVER_URL + HARNESS_ACCESS_TOKEN).
@@ -452,6 +455,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	plans := PlansDir(s.ID)
 	s.ToolEnv = tools.NewEnv(cwd, scratch)
 	s.ToolEnv.AdditionalDirs = o.AdditionalDirs
+	s.ToolEnv.SetExtraEnv(o.Env)
 	s.ToolEnv.SessionID = s.ID
 	s.ToolEnv.PlansDir = plans
 	if os.Getenv("HARNESS_DISABLE_BACKGROUND_TASKS") != "1" {

@@ -51,6 +51,7 @@ func startHarnessSrv(t *testing.T, respond fg.Responder, gwmod func(*fg.Server),
 	t.Setenv("HARNESS_HOME", t.TempDir())
 	t.Setenv("HARNESS_TMPDIR", t.TempDir())
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
+	t.Setenv("HARNESS_KEYRING", "0") // environment keys go to a file under HARNESS_HOME, never the keychain
 	gw := fg.New(respond)
 	if gwmod != nil {
 		gwmod(gw)

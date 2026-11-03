@@ -407,6 +407,13 @@ func (e *Engine) WorkingDirs() []string {
 	return append([]string(nil), e.workDirs...)
 }
 
+// SetAdditionalDirectories replaces the additional working directories (the cwd stays first).
+func (e *Engine) SetAdditionalDirectories(dirs []string) {
+	e.mu.Lock()
+	e.workDirs = append([]string{e.cwd}, dirs...)
+	e.mu.Unlock()
+}
+
 // AddReadableDir lets the model read dir without asking.
 func (e *Engine) AddReadableDir(dir string) {
 	e.mu.Lock()

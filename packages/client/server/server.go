@@ -25,6 +25,7 @@ import (
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/environment"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
@@ -75,6 +76,11 @@ type Server struct {
 	DeviceID string
 	// Relay, when set, tells which of the user's machines are online and drives remote sessions open on them.
 	Relay *RelayViewer
+
+	// Environments stores the folder environments (environment.go); nil: HARNESS_HOME/environments.
+	Environments *environment.Store
+	// WebURL is the base URL of a web UI that opens sessions (InitializeResponse.web_url); empty when none.
+	WebURL string
 
 	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
 	stateMu sync.Mutex
@@ -183,7 +189,7 @@ func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handl
 // ---- RPCs ----
 
 func (s *Server) Initialize(ctx context.Context, req *connect.Request[agentv1.InitializeRequest]) (*connect.Response[agentv1.InitializeResponse], error) {
-	resp := &agentv1.InitializeResponse{ClientVersion: config.Version, UserEmail: s.UserEmail}
+	resp := &agentv1.InitializeResponse{ClientVersion: config.Version, UserEmail: s.UserEmail, WebUrl: s.WebURL}
 	policy := s.Base.ModePolicy
 	for _, m := range permissions.ModeCycle() {
 		if policy.Allowed(m) {
@@ -297,6 +303,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if wt != nil {
 		opts.Cwd, opts.Worktree = wt.Cwd, wtMeta
 	}
+	senv := s.prepareEnvironment(m.GetCwd(), &opts)
 	if remote != nil {
 		id, err := s.forkRemote(ctx, remote, opts.Cwd)
 		if err != nil {
@@ -314,6 +321,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		return nil, modeError(err, connect.CodeFailedPrecondition)
 	}
 	ls.sess = sess
+	ls.attachEnvironment(senv)
 	ls.branch = workspace.GitBranch(ctx, sess.Cwd)
 	ls.hub.sessionID = sess.ID
 	entries := sess.Transcript.Entries()

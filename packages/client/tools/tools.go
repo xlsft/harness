@@ -92,6 +92,31 @@ type Env struct {
 
 	mu   sync.Mutex
 	host Host
+	// extraEnv is added to the environment of spawned processes (mu).
+	extraEnv []string
+}
+
+// SetAdditionalDirs replaces the additional directories while the session runs (the environment of its
+// folder changed); tool calls that start afterwards see them.
+func (e *Env) SetAdditionalDirs(dirs []string) {
+	e.mu.Lock()
+	e.AdditionalDirs = append([]string(nil), dirs...)
+	e.mu.Unlock()
+}
+
+// SetExtraEnv replaces the NAME=value entries added to the environment of the processes tools spawn (shell
+// commands and background tasks), from the next command on.
+func (e *Env) SetExtraEnv(env []string) {
+	e.mu.Lock()
+	e.extraEnv = append([]string(nil), env...)
+	e.mu.Unlock()
+}
+
+// ExtraEnv returns the entries set with SetExtraEnv.
+func (e *Env) ExtraEnv() []string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return append([]string(nil), e.extraEnv...)
 }
 
 // NewEnv creates an Env with fresh state.
@@ -116,7 +141,11 @@ func (e *Env) Host() Host {
 }
 
 // WorkingDirs returns Cwd plus AdditionalDirs.
-func (e *Env) WorkingDirs() []string { return append([]string{e.Cwd}, e.AdditionalDirs...) }
+func (e *Env) WorkingDirs() []string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return append([]string{e.Cwd}, e.AdditionalDirs...)
+}
 
 func (e *Env) reminder(key string) string {
 	if e.Reminders == nil {

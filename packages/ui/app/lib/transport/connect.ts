@@ -21,6 +21,7 @@ import { ConnectUsersApi } from '~/lib/users/connect'
 import { ConnectAccountApi } from '~/lib/account/connect'
 import { ConnectUsageApi } from '~/lib/usage/connect'
 import { ConnectTerminalsApi } from '~/lib/terminal/connect'
+import { ConnectEnvironmentApi } from '~/lib/environment/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -49,6 +50,12 @@ export class ConnectTransport implements SessionTransport {
     this.accountApi = new ConnectAccountApi(transport)
     this.usageApi = new ConnectUsageApi(transport)
     this.terminalsApi = new ConnectTerminalsApi(transport, baseUrl)
+    this.environmentApi = new ConnectEnvironmentApi(transport)
+  }
+
+  private environmentApi: ConnectEnvironmentApi
+  environment() {
+    return this.environmentApi
   }
 
   providers() {

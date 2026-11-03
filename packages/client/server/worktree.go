@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"time"
 
 	"connectrpc.com/connect"
@@ -106,6 +107,46 @@ func transcriptHead(path string, stopAtCwd bool) (string, *session.Worktree) {
 			if stopAtCwd {
 				break
 			}
+		}
+	}
+	// A transcript outside its first folder's project directory was moved by SetSessionFolder (or forked from
+	// another folder): its folder is the last recorded cwd, with the last recorded worktree.
+	if cwd != "" && session.Slug(cwd) != filepath.Base(filepath.Dir(path)) {
+		if last, lastWt := lastRecorded(path); last != "" {
+			cwd = last
+			if lastWt != nil {
+				wt = lastWt
+			}
+		}
+	}
+	return cwd, wt
+}
+
+// lastRecorded returns the last cwd and the last worktree recorded in a transcript.
+func lastRecorded(path string) (string, *session.Worktree) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", nil
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 64*1024), headMaxLine)
+	var cwd string
+	var wt *session.Worktree
+	for sc.Scan() {
+		var e struct {
+			Type     string            `json:"type"`
+			Cwd      string            `json:"cwd"`
+			Worktree *session.Worktree `json:"worktree"`
+		}
+		if json.Unmarshal(sc.Bytes(), &e) != nil {
+			continue
+		}
+		if e.Cwd != "" {
+			cwd = e.Cwd
+		}
+		if e.Type == session.TypeMeta && e.Worktree != nil {
+			wt = e.Worktree
 		}
 	}
 	return cwd, wt

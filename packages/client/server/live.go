@@ -63,6 +63,8 @@ type liveSession struct {
 	history   int64
 	updatedAt time.Time
 	closed    bool
+	// env is the environment state of the session (environment.go).
+	env sessionEnv
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.

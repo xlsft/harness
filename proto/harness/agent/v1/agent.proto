@@ -94,6 +94,36 @@ service AgentService {
   // Ends the shell (if still running) and forgets the terminal.
   rpc KillTerminal(KillTerminalRequest) returns (KillTerminalResponse);
   rpc ResizeTerminal(ResizeTerminalRequest) returns (ResizeTerminalResponse);
+
+  // --- Environments (packages/client/server/environment.go) ---
+  // An environment belongs to a primary folder (project) and is stored on this machine under HARNESS_HOME,
+  // keyed by the folder's absolute path: a name, additional folders, new-session defaults (worktree, base
+  // branch) and environment variables in .env syntax. Sessions started in the folder use it: the additional
+  // folders become working directories and the variables are set for shell commands, background tasks and the
+  // other processes tools spawn. The variables are encrypted at rest (see Environment.env).
+  //
+  // Returns the environment of a folder, or of a session's primary folder. A folder without one returns the
+  // defaults (exists = false). A remote session's environment lives on its machine: read_only, nothing else set.
+  rpc GetEnvironment(GetEnvironmentRequest) returns (GetEnvironmentResponse);
+  // Replaces the environment of a folder and applies it to the open sessions in that folder from their next tool
+  // call: working directories and environment variables change live; worktree and base branch only affect new
+  // sessions; MCP servers already started keep their environment. Invalid .env text fails with
+  // INVALID_ARGUMENT and an EnvironmentErrors detail (line numbers). A remote session is refused
+  // (FAILED_PRECONDITION).
+  rpc UpdateEnvironment(UpdateEnvironmentRequest) returns (UpdateEnvironmentResponse);
+  // Git facts of a folder for its menu: repository root, current and default branch, and the remote as a
+  // browsable URL ("Open repository on GitHub").
+  rpc GetFolderInfo(GetFolderInfoRequest) returns (GetFolderInfoResponse);
+  // Moves an idle session to another primary folder. The conversation is kept (same session id, the transcript
+  // moves to the new folder's project directory); the tools start over in the new folder: the live session is
+  // closed (SessionEnded reason "folder_changed": background tasks stop, the shell cwd resets) and reopened
+  // with the new folder's settings, permissions, instructions, MCP servers and environment. Subscribers
+  // subscribe again (after_seq = 0). FAILED_PRECONDITION while a turn runs, for a session in a harness worktree
+  // and for remote sessions.
+  rpc SetSessionFolder(SetSessionFolderRequest) returns (SetSessionFolderResponse);
+  // Adds a working directory to an open session's environment (stored) and applies it to the open sessions
+  // in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
+  rpc AddSessionDirectory(AddSessionDirectoryRequest) returns (AddSessionDirectoryResponse);
 }
 
 enum PermissionMode {
@@ -137,6 +167,10 @@ message InitializeResponse {
   // them, and CreateSession / SetPermissionMode with one fail with PERMISSION_DENIED. Read again after a
   // while: the policy can change while the client runs.
   repeated PermissionMode disabled_permission_modes = 7;
+  // Base URL of a web UI that opens this user's sessions: "<web_url>/?session=<id>" opens a session (the UI's
+  // session query parameter). Empty when none is configured (HARNESS_WEB_URL on the client); the harness
+  // server does not serve the UI yet.
+  string web_url = 8;
 }
 
 // A model from the server's catalog, with what frontends need to offer it.
@@ -963,4 +997,130 @@ message OutputStyleInfo {
   string description = 3;
   // builtin | user | project
   string source = 4;
+}
+
+// The environment of a primary folder (AgentService.GetEnvironment).
+message Environment {
+  // Absolute path of the primary folder: the key the environment is stored under.
+  string folder = 1;
+  // Display name; empty means the folder's name.
+  string name = 2;
+  // New-session defaults of the primary folder: start in a new worktree, from base_ref (empty: the
+  // repository's current branch, as WorktreeOptions.base_ref). Frontends prefill the new-session form.
+  bool worktree = 3;
+  string base_ref = 4;
+  // Extra working directories of sessions in the folder, in order.
+  repeated EnvironmentFolder additional_folders = 5;
+  // Environment variables in .env syntax, as the user wrote it (comments and layout kept): NAME=value lines,
+  // an optional "export " prefix, "#" comments, values in double quotes (escapes \n \r \t \" \\ \$, may span
+  // lines) or single quotes (literal, may span lines). No ${VAR} expansion. Names match [A-Za-z_][A-Za-z0-9_]*
+  // and must not start with __HARNESS_. Stored encrypted (a key in the OS keychain, or a 0600 key file with
+  // HARNESS_KEYRING=0 or without a keychain); values are never logged.
+  string env = 6;
+  // The folder has a stored environment; false: these are defaults.
+  bool exists = 7;
+  // The environment cannot be read or changed here (a remote session's environment is on its machine).
+  bool read_only = 8;
+  // RFC 3339, UTC; empty when not stored.
+  string updated_at = 9;
+  // Output only: the names of the variables env defines, in order.
+  repeated string variable_names = 10;
+}
+
+message EnvironmentFolder {
+  // Absolute path.
+  string path = 1;
+  // Stored default for new sessions: start this folder in a worktree from base_ref (empty: the current branch).
+  // Today the client applies additional folders as plain working directories; frontends keep these for the form.
+  bool worktree = 2;
+  string base_ref = 3;
+  // Output only: the folder exists on this machine (missing folders are not applied), and its current branch
+  // (empty outside a repository).
+  bool exists = 4;
+  string git_branch = 5;
+}
+
+// Detail of the INVALID_ARGUMENT error of UpdateEnvironment for .env text that does not parse.
+message EnvironmentErrors {
+  repeated EnvironmentError errors = 1;
+}
+
+message EnvironmentError {
+  // 1-based line of the env text.
+  int32 line = 1;
+  string message = 2;
+}
+
+message GetEnvironmentRequest {
+  // One of: an absolute folder path, or a session (its primary folder: the cwd it was started in, or for a
+  // session in a harness worktree the matching folder of the repository's main checkout).
+  string folder = 1;
+  string session_id = 2;
+}
+
+message GetEnvironmentResponse {
+  Environment environment = 1;
+}
+
+message UpdateEnvironmentRequest {
+  // Full replacement; environment.folder is the key. Output-only fields are ignored.
+  Environment environment = 1;
+  // The session the edit was made from, if any: a remote session is refused.
+  string session_id = 2;
+  // Only check the environment (INVALID_ARGUMENT with EnvironmentErrors when invalid); nothing is stored.
+  bool validate_only = 3;
+}
+
+message UpdateEnvironmentResponse {
+  Environment environment = 1;
+  // Open sessions the environment was applied to.
+  repeated string applied_session_ids = 2;
+}
+
+message GetFolderInfoRequest {
+  // Absolute path; "~" prefixes are expanded.
+  string path = 1;
+}
+
+message GetFolderInfoResponse {
+  // The resolved absolute path.
+  string path = 1;
+  bool exists = 2;
+  // Root of the repository containing path; empty outside a repository.
+  string repository_path = 3;
+  // Checked-out branch; empty outside a repository or on a detached HEAD.
+  string current_branch = 4;
+  // origin/HEAD, else main or master when they exist; empty when unknown.
+  string default_branch = 5;
+  // The remote as configured (origin, else the first remote); empty when none.
+  string remote_url = 6;
+  // The remote as a browsable URL ("https://github.com/owner/repo"), for scp-like (git@host:owner/repo),
+  // ssh://, git:// and http(s):// remotes of any host; empty when there is no remote or it is a local path.
+  string web_url = 7;
+  // Normalized remote ("github.com/owner/repo", see SessionInfo.repo).
+  string repo = 8;
+}
+
+message SetSessionFolderRequest {
+  string session_id = 1;
+  // New primary folder: an absolute path of an existing directory ("~" expanded).
+  string cwd = 2;
+}
+
+message SetSessionFolderResponse {
+  // The reopened session.
+  SessionInfo session = 1;
+}
+
+message AddSessionDirectoryRequest {
+  string session_id = 1;
+  // Absolute path of an existing directory ("~" expanded).
+  string path = 2;
+}
+
+message AddSessionDirectoryResponse {
+  // The updated environment of the session's primary folder.
+  Environment environment = 1;
+  // Open sessions the environment was applied to.
+  repeated string applied_session_ids = 2;
 }
