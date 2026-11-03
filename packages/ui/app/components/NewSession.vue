@@ -495,7 +495,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
                   :key="m.key"
                   role="option"
                   :aria-selected="m.key === mode"
-                  class="flex cursor-pointer flex-col border-l-2 px-2.5 py-[5px]"
+                  class="flex cursor-pointer flex-col rounded-none border-l-2 px-2.5 py-[5px]"
                   :class="m.key === mode ? 'border-accent bg-raised' : 'border-transparent hover:bg-raised'"
                   @click="mode = m.key; menu = ''"
                 >
