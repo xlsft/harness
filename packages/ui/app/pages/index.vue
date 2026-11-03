@@ -95,8 +95,9 @@ useShowRequests()
             :session="session"
             class="min-h-0 flex-1"
           />
-          <div class="shrink-0 px-5 pb-[11px]">
-            <div class="mx-auto flex max-w-[790px] flex-col gap-1.5">
+          <!-- Over the chat's last 24px, so the chat scrolls behind the top of the text box -->
+          <div class="pointer-events-none relative z-10 -mt-6 shrink-0 px-5 pb-[11px]">
+            <div class="pointer-events-auto mx-auto flex max-w-[790px] flex-col gap-1.5">
               <RemoteNotice
                 v-if="readOnly"
                 :session="session"

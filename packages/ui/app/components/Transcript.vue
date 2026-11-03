@@ -216,7 +216,7 @@ function toBottom() {
   <div class="relative flex min-h-0 flex-col">
     <div
       ref="scroller"
-      class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-3"
+      class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-[72px]"
       @scroll="onScroll"
     >
       <SelectionMenu :root="scroller" />
@@ -412,7 +412,7 @@ function toBottom() {
       type="button"
       :aria-label="working ? 'Working · scroll to the latest' : 'Scroll to the latest'"
       :title="working ? 'Working · scroll to the latest' : 'Scroll to the latest'"
-      class="absolute bottom-3 left-1/2 flex h-9 -translate-x-1/2 items-center gap-2 rounded-box border border-line-strong bg-hover px-3 text-[12px] text-muted hover:text-strong"
+      class="absolute bottom-9 left-1/2 flex h-9 -translate-x-1/2 items-center gap-2 rounded-box border border-line-strong bg-hover px-3 text-[12px] text-muted hover:text-strong"
       @click="toBottom"
     >
       <HMark
