@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/xlsft/harness/packages/client/agent"
@@ -63,6 +64,10 @@ type liveSession struct {
 	history   int64
 	updatedAt time.Time
 	closed    bool
+	// compacting is set while a manual or idle compaction runs (runCompaction); idleCompacted once the idle
+	// compactor has handled the session, until the next turn starts (idle.go).
+	compacting    atomic.Bool
+	idleCompacted bool
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.
@@ -177,6 +182,9 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		}
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(content)}}})
 	case agent.EventTurnStarted:
+		ls.mu.Lock()
+		ls.idleCompacted = false
+		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnStarted{TurnStarted: &agentv1.TurnStarted{UserMessageUuid: e.UUID, Model: e.Model}}})
 	case agent.EventStream:
 		ls.onStream(e.Raw)
@@ -217,7 +225,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 	case agent.EventCheckpoint:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_CheckpointCreated{CheckpointCreated: &agentv1.CheckpointCreated{Checkpoint: checkpointToProto(*e.Checkpoint)}}})
 	case agent.EventCompacted:
-		tr := map[string]agentv1.Compacted_Trigger{"manual": agentv1.Compacted_TRIGGER_MANUAL, "auto": agentv1.Compacted_TRIGGER_AUTO, "rewind": agentv1.Compacted_TRIGGER_REWIND}
+		tr := map[string]agentv1.Compacted_Trigger{"manual": agentv1.Compacted_TRIGGER_MANUAL, "auto": agentv1.Compacted_TRIGGER_AUTO, "rewind": agentv1.Compacted_TRIGGER_REWIND, "idle": agentv1.Compacted_TRIGGER_IDLE}
 		c := e.Compaction
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_Compacted{Compacted: &agentv1.Compacted{Trigger: tr[c.Trigger], TokensBefore: int64(c.TokensBefore), TokensAfter: int64(c.TokensAfter)}}})
 	case agent.EventRewound:

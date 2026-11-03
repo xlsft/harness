@@ -72,6 +72,14 @@ service AgentService {
   rpc Rewind(RewindRequest) returns (RewindResponse);
   // Compacts the conversation now (same as /compact), with optional focus instructions.
   rpc Compact(CompactRequest) returns (CompactResponse);
+  // What fills the session's context window, by category (see ContextUsage). Computed on demand: frontends
+  // ask when a context view opens and again after turns while it stays open. Local sessions only.
+  rpc GetContextUsage(GetContextUsageRequest) returns (GetContextUsageResponse);
+
+  // Per-user preferences that the client honours for every session (stored in the user's synced settings
+  // document). Without a server connection Get returns the defaults and Update fails with FAILED_PRECONDITION.
+  rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
+  rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
 
   // Background tasks: shell commands started with run_in_background or moved to the background.
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
@@ -500,6 +508,8 @@ message Compacted {
     TRIGGER_MANUAL = 1;
     TRIGGER_AUTO = 2;
     TRIGGER_REWIND = 3;
+    // In the background, after the session was idle (UserPreferences.compact_idle_sessions).
+    TRIGGER_IDLE = 4;
   }
   Trigger trigger = 1;
   int64 tokens_before = 2;
@@ -873,6 +883,97 @@ message CompactRequest {
 message CompactResponse {
   int64 tokens_before = 1;
   int64 tokens_after = 2;
+}
+
+message GetContextUsageRequest {
+  string session_id = 1;
+}
+
+message GetContextUsageResponse {
+  ContextUsage usage = 1;
+}
+
+// The composition of the next request's context. Token counts come from the provider where it reports them
+// (the last response's usage covers everything sent so far) and are otherwise estimated at ~4 characters per
+// token: the system prompt, tool definitions and messages added since the last response. When the provider's
+// total is known, messages are that total minus the estimated system prompt and tools, so the categories add up
+// to what the provider counted.
+message ContextUsage {
+  enum Category {
+    CATEGORY_UNSPECIFIED = 0;
+    // The conversation: prompts, replies, tool calls and results, reminders, compaction summaries.
+    CATEGORY_MESSAGES = 1;
+    // Definitions of the MCP tools offered to the model (not deferred, or loaded with ToolSearch).
+    CATEGORY_MCP_TOOLS = 2;
+    // Definitions of the built-in tools offered to the model.
+    CATEGORY_SYSTEM_TOOLS = 3;
+    CATEGORY_SYSTEM_PROMPT = 4;
+    // Only listed when the session has skills.
+    CATEGORY_SKILLS = 5;
+    CATEGORY_MCP_SERVER_INSTRUCTIONS = 6;
+    // Room kept free by auto-compaction (window minus its threshold); 0 when auto-compaction is off.
+    CATEGORY_AUTOCOMPACT_BUFFER = 7;
+    CATEGORY_FREE_SPACE = 8;
+  }
+  message Entry {
+    Category category = 1;
+    int64 tokens = 2;
+  }
+  // An MCP tool with the cost of its definition.
+  message McpTool {
+    // Server name as configured, and the tool's name on that server.
+    string server = 1;
+    string tool = 2;
+    // Full tool name offered to the model (mcp__server__tool).
+    string name = 3;
+    string description = 4;
+    int64 tokens = 5;
+    // Deferred and not loaded: only its name is in the context (the deferred_tools reminder).
+    bool deferred = 6;
+  }
+  string model = 1;
+  int64 context_window = 2;
+  // Tokens in the context now: the sum of every category except the buffer and free space.
+  int64 used_tokens = 3;
+  // In display order: messages, MCP tools, system tools, system prompt, skills (when present), MCP server
+  // instructions, autocompact buffer, free space. The entries add up to context_window.
+  repeated Entry categories = 4;
+  // Definitions that are not in the context because they are deferred (loaded on demand with ToolSearch).
+  int64 deferred_mcp_tools_tokens = 5;
+  int64 deferred_system_tools_tokens = 6;
+  // Every MCP tool of the session, offered or deferred, in catalog order.
+  repeated McpTool mcp_tools = 7;
+  // Context size that triggers auto-compaction; 0 when auto-compaction is off for the session.
+  int64 autocompact_threshold = 8;
+  // autocompact_threshold minus used_tokens (0 when it is reached or auto-compaction is off).
+  int64 tokens_until_autocompact = 9;
+  // No provider count is known yet (before the first response, or right after a compaction): everything is
+  // estimated.
+  bool estimated = 10;
+  // A compaction (manual, auto or idle) is running.
+  bool compacting = 11;
+}
+
+// Preferences of the signed-in user that apply to all their sessions on every machine.
+message UserPreferences {
+  // Compact sessions in the background after 30 minutes without activity when their context is above half the
+  // window (settings key compactIdleSessions). Default true.
+  bool compact_idle_sessions = 1;
+}
+
+message GetUserPreferencesRequest {}
+
+message GetUserPreferencesResponse {
+  UserPreferences preferences = 1;
+}
+
+// Unset fields stay as they are.
+message UpdateUserPreferencesRequest {
+  optional bool compact_idle_sessions = 1;
+}
+
+message UpdateUserPreferencesResponse {
+  UserPreferences preferences = 1;
 }
 
 message BackgroundTask {

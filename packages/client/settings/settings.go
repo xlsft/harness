@@ -144,10 +144,13 @@ type Settings struct {
 	// InterruptReply lets the model answer a stopped turn with a short
 	// message (interruptReply, default true).
 	InterruptReply bool
-	ClaudeMdMode   memory.Mode
-	Attribution    Attribution
-	Env            map[string]string
-	Permissions    Permissions
+	// CompactIdleSessions lets the client compact sessions in the background after they were idle for a while
+	// (compactIdleSessions, default true; a per-user preference, see UserPreferences in agent.proto).
+	CompactIdleSessions bool
+	ClaudeMdMode        memory.Mode
+	Attribution         Attribution
+	Env                 map[string]string
+	Permissions         Permissions
 	// AvailableModels is the policy allowlist of models (empty: any).
 	AvailableModels []string
 
@@ -205,6 +208,13 @@ const (
 	DefaultCleanupPeriodDays = 30
 )
 
+// KeyCompactIdleSessions is the settings key of Settings.CompactIdleSessions. The frontends' preference toggle
+// writes it into the user's synced settings document (UserSettingsKey).
+const KeyCompactIdleSessions = "compactIdleSessions"
+
+// UserSettingsKey is the key of the user-scope SETTINGS sync document (the one `import claude` writes).
+const UserSettingsKey = "settings"
+
 var (
 	effortLevels = map[string]bool{"low": true, "medium": true, "high": true, "xhigh": true, "max": true}
 	modes        = map[string]bool{"default": true, "acceptEdits": true, "plan": true, "dontAsk": true, "bypassPermissions": true, "auto": true}
@@ -219,7 +229,7 @@ type layer struct {
 
 	model, effort, outputStyle, claudeMdMode, defaultMode *string
 	autoCompactWindow, cleanupPeriodDays                  *int
-	includeGit, interruptReply                            *bool
+	includeGit, interruptReply, compactIdle               *bool
 	attrCommit, attrPR                                    *string
 	env                                                   map[string]string
 	allow, ask, deny, addDirs                             []string
@@ -248,7 +258,8 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 		home, _ = os.UserHomeDir()
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
-		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true}
+		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
+		CompactIdleSessions: true}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {
 		if l != nil {

@@ -108,7 +108,7 @@ type Checkpoint struct {
 
 // CompactInfo describes a finished compaction.
 type CompactInfo struct {
-	Trigger      string // manual | auto | rewind
+	Trigger      string // manual | auto | rewind | idle
 	TokensBefore int
 	TokensAfter  int
 }
