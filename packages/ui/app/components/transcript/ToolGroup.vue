@@ -40,7 +40,16 @@ const open = ref<Record<string, boolean>>({})
           :name="t.name === 'Task' || t.name === 'Agent' ? 'agent' : toolIcon(t)"
           :spin="t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent'"
         />
-        {{ t.name === 'Task' ? 'Agent' : t.name }} <span class="min-w-0 truncate text-strong">{{ toolTarget(t) }}</span>
+        {{ t.name === 'Task' ? 'Agent' : t.name }} <span
+          v-if="t.name === 'Bash'"
+          class="min-w-0 truncate"
+        ><span
+          v-if="bashLabel(t).verb"
+          :class="t.status === 'error' ? 'mr-1 text-bad' : 'mr-1'"
+        >{{ bashLabel(t).verb }}</span><span class="text-strong">{{ bashLabel(t).text }}</span></span><span
+          v-else
+          class="min-w-0 truncate text-strong"
+        >{{ toolTarget(t) }}</span>
         <span class="flex-1" />
         <span
           v-if="toolMeta(t, now, true).cls === 'diff'"

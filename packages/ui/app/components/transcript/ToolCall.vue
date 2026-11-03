@@ -33,12 +33,7 @@ const kind = computed(() => {
 const isBash = computed(() => t.value.name === 'Bash')
 const command = computed(() => String(t.value.input.command ?? ''))
 const commandLines = computed(() => highlightCode(command.value, 'bash'))
-const bashLabel = computed(() => {
-  const title = t.value.title
-  if (title) return { verb: t.value.status === 'running' ? 'Run' : t.value.status === 'error' ? 'Failed to run' : 'Ran', text: title }
-  const d = String(t.value.input.description ?? '').trim()
-  return { verb: t.value.status === 'error' ? 'Failed:' : '', text: d || command.value }
-})
+const label = computed(() => bashLabel(t.value))
 
 // Bash moved to (or started in) the background: the note the agent got, shown under the command.
 const remote = computed(() => !!store.sessions[props.sessionId]?.meta.remote)
@@ -155,14 +150,16 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
       @click="open = !open"
     >
       <HIcon
-        v-if="tool.status === 'running'"
-        name="loading"
-        spin
-        class="text-accent"
+        :name="tool.status === 'running' ? 'loading' : 'term'"
+        :spin="tool.status === 'running'"
+        :class="tool.status === 'running' ? 'text-accent' : tool.status === 'error' ? 'text-bad' : ''"
       />
+      <span class="shrink-0">Bash</span>
       <span class="min-w-0 truncate">
-        <span :class="tool.status === 'error' ? 'text-bad' : ''">{{ bashLabel.verb }}</span>
-        {{ bashLabel.text }}
+        <span
+          v-if="label.verb"
+          :class="tool.status === 'error' ? 'mr-1 text-bad' : 'mr-1'"
+        >{{ label.verb }}</span><span class="text-strong">{{ label.text }}</span>
       </span>
       <HIcon
         name="right"

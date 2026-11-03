@@ -39,6 +39,15 @@ export function toolIcon(t: ToolItem): IconName {
   }
 }
 
+// What a Bash call does, after "Bash": "Run …" / "Ran …" / "Failed to run …" with the title model's label;
+// until it arrives, the model's own description, else the command.
+export function bashLabel(t: ToolItem): { verb: string, text: string } {
+  const verb = t.status === 'running' ? 'Running' : t.status === 'error' ? 'Failed to run' : 'Ran'
+  if (t.title) return { verb, text: t.title }
+  const d = String(t.input.description ?? '').trim()
+  return { verb: d ? '' : verb, text: d || String(t.input.command ?? '') }
+}
+
 export function toolTarget(t: ToolItem): string {
   const i = t.input
   switch (t.name) {
