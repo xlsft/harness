@@ -147,6 +147,11 @@ const lastIsStreaming = computed(() => {
             :task="session.tasks[b.item.id]!"
             :session-id="session.meta.id"
           />
+          <ShellCard
+            v-else-if="b.item.kind === 'shell'"
+            :item="b.item"
+            :session-id="session.meta.id"
+          />
           <EventCard
             v-else-if="b.item.kind === 'notice'"
             :notice="b.item"

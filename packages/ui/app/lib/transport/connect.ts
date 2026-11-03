@@ -216,6 +216,14 @@ export class ConnectTransport implements SessionTransport {
     await this.client.stopTask({ sessionId, taskId })
   }
 
+  async runShellCommand(sessionId: string, uuid: string, command: string) {
+    return (await this.client.runShellCommand({ sessionId, uuid, command })).commandId
+  }
+
+  async stopShellCommand(sessionId: string, commandId: string) {
+    await this.client.stopShellCommand({ sessionId, commandId })
+  }
+
   async listModels(): Promise<ModelInfo[]> {
     const init = await this.initialize()
     // An older client sends ids only.

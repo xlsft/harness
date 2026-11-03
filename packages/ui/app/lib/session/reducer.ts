@@ -33,9 +33,12 @@ import type {
   Status,
   ToolItem,
   TranscriptItem,
-  Usage
+  Usage,
+  UserShellItem
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
+import { UserShellFinished_Reason } from '~/gen/harness/agent/v1/shell_pb'
+import type { UserShellFinished } from '~/gen/harness/agent/v1/shell_pb'
 
 const COMPACT_TRIGGER: Partial<Record<Compacted_Trigger, CompactItem['trigger']>> = {
   [Compacted_Trigger.MANUAL]: 'manual',
@@ -608,6 +611,25 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    case 'userShellStarted': {
+      const c = e.value
+      if (!find(s, 'shell', c.commandId)) push(s, userShellItem(c.commandId, c.command, c.cwd, at))
+      break
+    }
+
+    case 'userShellOutput': {
+      const item = find(s, 'shell', e.value.commandId)
+      if (item && item.state === 'running') item.output += e.value.text
+      break
+    }
+
+    case 'userShellFinished': {
+      const f = e.value
+      if (!find(s, 'shell', f.commandId)) push(s, userShellItem(f.commandId, f.command, f.cwd, at - Number(f.durationMs)))
+      finishUserShell(find(s, 'shell', f.commandId)!, f)
+      break
+    }
+
     case 'sessionEnded':
       s.endedReason = e.value.reason
       s.meta.status = 'ended'
@@ -618,6 +640,28 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
   }
   return s
+}
+
+// ── user shell commands ──────────────────────────────────────────────────────
+
+function userShellItem(id: string, command: string, cwd: string, at: number): UserShellItem {
+  return { kind: 'shell', id, command, cwd, state: 'running', exitCode: 0, durationMs: 0, startedAt: at, output: '', stderr: '', truncated: false, error: '' }
+}
+
+function finishUserShell(item: UserShellItem, f: UserShellFinished) {
+  item.state = f.reason === UserShellFinished_Reason.STOPPED || f.reason === UserShellFinished_Reason.SESSION_CLOSED
+    ? 'stopped'
+    : f.reason === UserShellFinished_Reason.TIME_LIMIT
+      ? 'timeout'
+      : f.reason === UserShellFinished_Reason.FAILED ? 'failed' : f.exitCode === 0 ? 'ok' : 'error'
+  item.exitCode = f.exitCode
+  item.durationMs = Number(f.durationMs)
+  item.output = f.stdout
+  item.stderr = f.stderr
+  item.truncated = f.truncated
+  item.error = f.error
+  if (f.command) item.command = f.command
+  if (f.cwd) item.cwd = f.cwd
 }
 
 // ── deltas ───────────────────────────────────────────────────────────────────
