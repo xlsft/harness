@@ -1,8 +1,8 @@
 import { create } from '@bufbuild/protobuf'
 import { describe, expect, it } from 'vitest'
 import { SlotsSchema } from '~/gen/harness/llm/v1/gateway_pb'
-import { ClassifierSchema, ProviderPresetSchema, ProviderScope, ProviderSchema } from '~/gen/harness/llm/v1/providers_pb'
-import { classifierView, presetView, providerView, slotsView } from '~/lib/providers/connect'
+import { ClassifierChoice, ClassifierSchema, GetMyClassifierResponseSchema, ProviderPresetSchema, ProviderScope, ProviderSchema } from '~/gen/harness/llm/v1/providers_pb'
+import { classifierView, myClassifierView, presetView, providerView, slotsView } from '~/lib/providers/connect'
 import { MockProvidersApi } from '~/lib/providers/mock'
 import { contextLabel, parseHeaders, slotModelOptions } from '~/lib/providers/types'
 
@@ -53,6 +53,17 @@ describe('providerView', () => {
     })
   })
 
+  it('maps the caller\'s classifier override, following the default when unset', () => {
+    expect(myClassifierView(create(GetMyClassifierResponseSchema, { defaultProviderId: 'typesafe' }))).toEqual({
+      mine: { choice: 'default', providerId: '', llmModel: '' },
+      defaultProviderId: 'typesafe',
+      defaultLlmModel: ''
+    })
+    const r = create(GetMyClassifierResponseSchema, { mine: { choice: ClassifierChoice.PROVIDER, providerId: 'policy', llmModel: 'haiku' }, defaultLlmModel: 'opus' })
+    expect(myClassifierView(r)).toMatchObject({ mine: { choice: 'provider', providerId: 'policy', llmModel: 'haiku' }, defaultLlmModel: 'opus' })
+    expect(myClassifierView(create(GetMyClassifierResponseSchema, { mine: { choice: ClassifierChoice.NONE, providerId: 'stray' } })).mine).toEqual({ choice: 'none', providerId: '', llmModel: '' })
+  })
+
   it('maps the slots, empty when the server sends none', () => {
     expect(slotsView(undefined)).toEqual({ main: '', small: '', plan: '', title: '' })
     expect(slotsView(create(SlotsSchema, { main: 'opus', title: 'haiku' }))).toEqual({ main: 'opus', small: '', plan: '', title: 'haiku' })
@@ -97,6 +108,17 @@ describe('MockProvidersApi', () => {
     await expect(admin.addModel(t.id, { upstream: 'jev-1.13.0' })).rejects.toThrow()
     const c = await admin.setClassifier({ ...(await admin.getClassifier()), enabled: true, providerId: t.id, model: '' })
     expect(c.model).toBe('jev-1.13.0')
+  })
+
+  it('lets everyone override the classifier for themselves over the admin default', async () => {
+    const user = new MockProvidersApi(false)
+    expect(await user.getMyClassifier()).toEqual({ mine: { choice: 'default', providerId: '', llmModel: '' }, defaultProviderId: 'openrouter-decisions', defaultLlmModel: '' })
+    await expect(user.setMyClassifier({ choice: 'provider', providerId: 'openrouter', llmModel: '' })).rejects.toThrow(/Unknown classifier/)
+    await expect(user.setMyClassifier({ choice: 'default', providerId: '', llmModel: 'u-x/model' })).rejects.toThrow(/Unknown model/)
+    expect((await user.setMyClassifier({ choice: 'none', providerId: 'openrouter-decisions', llmModel: 'claude-haiku' })).mine).toEqual({ choice: 'none', providerId: '', llmModel: 'claude-haiku' })
+    const admin = new MockProvidersApi(true)
+    await admin.setClassifier({ ...(await admin.getClassifier()), llmModel: 'claude-haiku' })
+    expect((await admin.getMyClassifier()).defaultLlmModel).toBe('claude-haiku')
   })
 
   it('lets everyone read the slots and admins set them to global models', async () => {

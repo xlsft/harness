@@ -66,6 +66,12 @@ const (
 	// ProviderServiceSetClassifierProcedure is the fully-qualified name of the ProviderService's
 	// SetClassifier RPC.
 	ProviderServiceSetClassifierProcedure = "/harness.llm.v1.ProviderService/SetClassifier"
+	// ProviderServiceGetMyClassifierProcedure is the fully-qualified name of the ProviderService's
+	// GetMyClassifier RPC.
+	ProviderServiceGetMyClassifierProcedure = "/harness.llm.v1.ProviderService/GetMyClassifier"
+	// ProviderServiceSetMyClassifierProcedure is the fully-qualified name of the ProviderService's
+	// SetMyClassifier RPC.
+	ProviderServiceSetMyClassifierProcedure = "/harness.llm.v1.ProviderService/SetMyClassifier"
 	// ProviderServiceGetSlotsProcedure is the fully-qualified name of the ProviderService's GetSlots
 	// RPC.
 	ProviderServiceGetSlotsProcedure = "/harness.llm.v1.ProviderService/GetSlots"
@@ -99,9 +105,15 @@ type ProviderServiceClient interface {
 	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
-	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
+	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
+	// server default for everyone. Admin only.
 	GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error)
 	SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error)
+	// The caller's own classifier choice over the server default: another global classifier provider or none,
+	// and another global model for the model classifier. Applies to the caller's decisions only. Any signed-in
+	// user; the response also carries the server default, read-only.
+	GetMyClassifier(context.Context, *connect.Request[v1.GetMyClassifierRequest]) (*connect.Response[v1.GetMyClassifierResponse], error)
+	SetMyClassifier(context.Context, *connect.Request[v1.SetMyClassifierRequest]) (*connect.Response[v1.SetMyClassifierResponse], error)
 	// The server-wide default models per role (Slots: main, small, plan, title), as configured. Everyone may
 	// read them; SetSlots needs the admin role.
 	GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error)
@@ -185,6 +197,18 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(providerServiceMethods.ByName("SetClassifier")),
 			connect.WithClientOptions(opts...),
 		),
+		getMyClassifier: connect.NewClient[v1.GetMyClassifierRequest, v1.GetMyClassifierResponse](
+			httpClient,
+			baseURL+ProviderServiceGetMyClassifierProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("GetMyClassifier")),
+			connect.WithClientOptions(opts...),
+		),
+		setMyClassifier: connect.NewClient[v1.SetMyClassifierRequest, v1.SetMyClassifierResponse](
+			httpClient,
+			baseURL+ProviderServiceSetMyClassifierProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("SetMyClassifier")),
+			connect.WithClientOptions(opts...),
+		),
 		getSlots: connect.NewClient[v1.GetSlotsRequest, v1.GetSlotsResponse](
 			httpClient,
 			baseURL+ProviderServiceGetSlotsProcedure,
@@ -202,19 +226,21 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // providerServiceClient implements ProviderServiceClient.
 type providerServiceClient struct {
-	listPresets    *connect.Client[v1.ListPresetsRequest, v1.ListPresetsResponse]
-	listProviders  *connect.Client[v1.ListProvidersRequest, v1.ListProvidersResponse]
-	createProvider *connect.Client[v1.CreateProviderRequest, v1.CreateProviderResponse]
-	updateProvider *connect.Client[v1.UpdateProviderRequest, v1.UpdateProviderResponse]
-	deleteProvider *connect.Client[v1.DeleteProviderRequest, v1.DeleteProviderResponse]
-	discoverModels *connect.Client[v1.DiscoverModelsRequest, v1.DiscoverModelsResponse]
-	addModel       *connect.Client[v1.AddModelRequest, v1.AddModelResponse]
-	testProvider   *connect.Client[v1.TestProviderRequest, v1.TestProviderResponse]
-	removeModel    *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
-	getClassifier  *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
-	setClassifier  *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
-	getSlots       *connect.Client[v1.GetSlotsRequest, v1.GetSlotsResponse]
-	setSlots       *connect.Client[v1.SetSlotsRequest, v1.SetSlotsResponse]
+	listPresets     *connect.Client[v1.ListPresetsRequest, v1.ListPresetsResponse]
+	listProviders   *connect.Client[v1.ListProvidersRequest, v1.ListProvidersResponse]
+	createProvider  *connect.Client[v1.CreateProviderRequest, v1.CreateProviderResponse]
+	updateProvider  *connect.Client[v1.UpdateProviderRequest, v1.UpdateProviderResponse]
+	deleteProvider  *connect.Client[v1.DeleteProviderRequest, v1.DeleteProviderResponse]
+	discoverModels  *connect.Client[v1.DiscoverModelsRequest, v1.DiscoverModelsResponse]
+	addModel        *connect.Client[v1.AddModelRequest, v1.AddModelResponse]
+	testProvider    *connect.Client[v1.TestProviderRequest, v1.TestProviderResponse]
+	removeModel     *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
+	getClassifier   *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
+	setClassifier   *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
+	getMyClassifier *connect.Client[v1.GetMyClassifierRequest, v1.GetMyClassifierResponse]
+	setMyClassifier *connect.Client[v1.SetMyClassifierRequest, v1.SetMyClassifierResponse]
+	getSlots        *connect.Client[v1.GetSlotsRequest, v1.GetSlotsResponse]
+	setSlots        *connect.Client[v1.SetSlotsRequest, v1.SetSlotsResponse]
 }
 
 // ListPresets calls harness.llm.v1.ProviderService.ListPresets.
@@ -272,6 +298,16 @@ func (c *providerServiceClient) SetClassifier(ctx context.Context, req *connect.
 	return c.setClassifier.CallUnary(ctx, req)
 }
 
+// GetMyClassifier calls harness.llm.v1.ProviderService.GetMyClassifier.
+func (c *providerServiceClient) GetMyClassifier(ctx context.Context, req *connect.Request[v1.GetMyClassifierRequest]) (*connect.Response[v1.GetMyClassifierResponse], error) {
+	return c.getMyClassifier.CallUnary(ctx, req)
+}
+
+// SetMyClassifier calls harness.llm.v1.ProviderService.SetMyClassifier.
+func (c *providerServiceClient) SetMyClassifier(ctx context.Context, req *connect.Request[v1.SetMyClassifierRequest]) (*connect.Response[v1.SetMyClassifierResponse], error) {
+	return c.setMyClassifier.CallUnary(ctx, req)
+}
+
 // GetSlots calls harness.llm.v1.ProviderService.GetSlots.
 func (c *providerServiceClient) GetSlots(ctx context.Context, req *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error) {
 	return c.getSlots.CallUnary(ctx, req)
@@ -307,9 +343,15 @@ type ProviderServiceHandler interface {
 	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
-	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
+	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
+	// server default for everyone. Admin only.
 	GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error)
 	SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error)
+	// The caller's own classifier choice over the server default: another global classifier provider or none,
+	// and another global model for the model classifier. Applies to the caller's decisions only. Any signed-in
+	// user; the response also carries the server default, read-only.
+	GetMyClassifier(context.Context, *connect.Request[v1.GetMyClassifierRequest]) (*connect.Response[v1.GetMyClassifierResponse], error)
+	SetMyClassifier(context.Context, *connect.Request[v1.SetMyClassifierRequest]) (*connect.Response[v1.SetMyClassifierResponse], error)
 	// The server-wide default models per role (Slots: main, small, plan, title), as configured. Everyone may
 	// read them; SetSlots needs the admin role.
 	GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error)
@@ -389,6 +431,18 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 		connect.WithSchema(providerServiceMethods.ByName("SetClassifier")),
 		connect.WithHandlerOptions(opts...),
 	)
+	providerServiceGetMyClassifierHandler := connect.NewUnaryHandler(
+		ProviderServiceGetMyClassifierProcedure,
+		svc.GetMyClassifier,
+		connect.WithSchema(providerServiceMethods.ByName("GetMyClassifier")),
+		connect.WithHandlerOptions(opts...),
+	)
+	providerServiceSetMyClassifierHandler := connect.NewUnaryHandler(
+		ProviderServiceSetMyClassifierProcedure,
+		svc.SetMyClassifier,
+		connect.WithSchema(providerServiceMethods.ByName("SetMyClassifier")),
+		connect.WithHandlerOptions(opts...),
+	)
 	providerServiceGetSlotsHandler := connect.NewUnaryHandler(
 		ProviderServiceGetSlotsProcedure,
 		svc.GetSlots,
@@ -425,6 +479,10 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 			providerServiceGetClassifierHandler.ServeHTTP(w, r)
 		case ProviderServiceSetClassifierProcedure:
 			providerServiceSetClassifierHandler.ServeHTTP(w, r)
+		case ProviderServiceGetMyClassifierProcedure:
+			providerServiceGetMyClassifierHandler.ServeHTTP(w, r)
+		case ProviderServiceSetMyClassifierProcedure:
+			providerServiceSetMyClassifierHandler.ServeHTTP(w, r)
 		case ProviderServiceGetSlotsProcedure:
 			providerServiceGetSlotsHandler.ServeHTTP(w, r)
 		case ProviderServiceSetSlotsProcedure:
@@ -480,6 +538,14 @@ func (UnimplementedProviderServiceHandler) GetClassifier(context.Context, *conne
 
 func (UnimplementedProviderServiceHandler) SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetClassifier is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) GetMyClassifier(context.Context, *connect.Request[v1.GetMyClassifierRequest]) (*connect.Response[v1.GetMyClassifierResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.GetMyClassifier is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) SetMyClassifier(context.Context, *connect.Request[v1.SetMyClassifierRequest]) (*connect.Response[v1.SetMyClassifierResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetMyClassifier is not implemented"))
 }
 
 func (UnimplementedProviderServiceHandler) GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error) {

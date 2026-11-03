@@ -15,8 +15,9 @@
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
-import type { Principal } from "../services/devices.ts";
+import type { Principal, PublicUser } from "../services/devices.ts";
 import type { TestResult } from "../services/discovery.ts";
+import { resolveModelForUser } from "../services/models.ts";
 import { presetOf } from "../services/presets.ts";
 import { loadProviderRuntime } from "../services/providers.ts";
 import { httpCredentialsResolver, loadDecisionConfig, setDecisionConfig, type DecisionConfig, type StoredProvider } from "./config.ts";
@@ -128,6 +129,19 @@ async function globalProvider(id: string) {
   return rt;
 }
 
+type ProviderRuntime = Awaited<ReturnType<typeof loadProviderRuntime>>;
+
+const isHttpClassifier = (rt: ProviderRuntime) => rt.kind === "classifier" && (rt.type as string) === "decision-http";
+
+/** The http step of a policy-webhook classifier provider (its key and headers are read when deciding). */
+function httpStep(rt: ProviderRuntime, providerId: string, id: string, timeoutMs?: number): HttpStep {
+  return {
+    type: "http",
+    id,
+    settings: { url: rt.baseUrl, credentials_provider: providerId, allow_private_network: rt.allowPrivateNetwork, timeout_ms: timeoutMs || DEFAULT_HTTP_TIMEOUT_MS },
+  };
+}
+
 /** The decision model a classifier provider uses by default: its preset's first model. */
 async function defaultModelOf(providerId: string): Promise<string | undefined> {
   await ensureDb();
@@ -147,18 +161,8 @@ export async function setClassifier(input: Partial<ClassifierSettings>, updatedB
     const rt = await globalProvider(providerId);
     const keepName = target?.display_name ? { display_name: target.display_name } : {};
     let step: Record<string, unknown>;
-    if (rt.kind === "classifier" && (rt.type as string) === "decision-http") {
-      step = {
-        type: "http",
-        id: target?.type === "http" ? target.id : "http:classifier",
-        ...keepName,
-        settings: {
-          url: rt.baseUrl,
-          credentials_provider: providerId,
-          allow_private_network: rt.allowPrivateNetwork,
-          timeout_ms: input.timeout_ms || DEFAULT_HTTP_TIMEOUT_MS,
-        },
-      };
+    if (isHttpClassifier(rt)) {
+      step = { ...httpStep(rt, providerId, target?.type === "http" ? target.id : "http:classifier", input.timeout_ms), ...keepName };
     } else {
       let endpoint: string | undefined;
       let model = input.model?.trim();
@@ -228,11 +232,7 @@ export async function testClassifierProvider(providerId: string, principal: Prin
   const configured = settings.enabled && settings.provider_id === providerId;
   let provider: DecisionProvider;
   if ((rt.type as string) === "decision-http") {
-    const step: HttpStep = {
-      type: "http",
-      id: "http:test",
-      settings: { url: rt.baseUrl, credentials_provider: providerId, allow_private_network: rt.allowPrivateNetwork, timeout_ms: DEFAULT_HTTP_TIMEOUT_MS },
-    };
+    const step = httpStep(rt, providerId, "http:test");
     provider = new HttpProvider({ id: step.id, url: rt.baseUrl, credentials: httpCredentialsResolver(step), allowPrivateNetwork: rt.allowPrivateNetwork, timeoutMs: 10_000 });
   } else {
     const model = (configured && settings.model) || (await defaultModelOf(providerId));
@@ -255,4 +255,187 @@ export async function testClassifierProvider(providerId: string, principal: Prin
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e), model_count: 0 };
   }
+}
+
+// --- per-user override -----------------------------------------------------------------------------
+
+/**
+ * A user's own classifier choice over the server default (ProviderService.GetMyClassifier / SetMyClassifier),
+ * stored in the `setting` table under `classifier:user:<user id>`. It changes only that user's chain: the
+ * decision step (another global classifier provider, or none) and the model of the `llm` steps that follow
+ * the chain's classifier_model. A choice that went stale (provider removed or disabled; model gone or hidden
+ * from the user) follows the server default again, so a user is never left with a broken chain.
+ */
+export interface ClassifierOverride {
+  /** "default": follow the server default; "none": no decision step; "provider": `provider_id`. */
+  choice: "default" | "none" | "provider";
+  provider_id: string;
+  /** Global model of the model classifier; "" follows the server default. */
+  llm_model: string;
+}
+
+export const FOLLOW_DEFAULT: Readonly<ClassifierOverride> = { choice: "default", provider_id: "", llm_model: "" };
+
+const overrideKey = (userId: string) => `classifier:user:${userId}`;
+
+/** A global, enabled classifier provider, or an error naming the id. */
+async function classifierProviderForOverride(id: string): Promise<ProviderRuntime> {
+  let rt: ProviderRuntime | undefined;
+  try {
+    rt = await loadProviderRuntime(id);
+  } catch {
+    rt = undefined;
+  }
+  if (!rt || rt.ownerUserId || rt.kind !== "classifier" || !rt.enabled) throw new ApiError("invalid_request", `Unknown classifier provider ${id}`);
+  return rt;
+}
+
+/** A global model the user may use, or an error naming the id. */
+async function modelForOverride(id: string, user: PublicUser): Promise<string> {
+  const m = await resolveModelForUser(id, user).catch(() => undefined);
+  if (!m || m.ownerUserId) throw new ApiError("invalid_request", `Unknown model ${id}`);
+  return m.id;
+}
+
+/**
+ * The decision step a user's chosen provider runs as. Its id names the provider, so the audit log shows
+ * which classifier decided and its cache entries stay apart from the server default's.
+ */
+async function overrideStep(providerId: string): Promise<ManagedStep> {
+  const rt = await classifierProviderForOverride(providerId);
+  if (isHttpClassifier(rt)) return httpStep(rt, providerId, `http:${providerId}`);
+  const endpoint = endpointOfClassifier(rt.baseUrl);
+  const named = endpoint in DECISION_MODEL_ENDPOINTS ? DECISION_MODEL_ENDPOINTS[endpoint as keyof typeof DECISION_MODEL_ENDPOINTS] : undefined;
+  const model = (await defaultModelOf(providerId)) ?? named?.defaultModel;
+  if (!model) throw new ApiError("invalid_request", `Classifier provider ${providerId} has no default decision model`);
+  return {
+    type: "decision_model",
+    id: `decision_model:${providerId}`,
+    settings: {
+      endpoint,
+      model,
+      api_key_provider: providerId,
+      allow_private_network: rt.allowPrivateNetwork,
+      timeout_ms: DEFAULT_DECISION_MODEL_TIMEOUT_MS,
+      min_probability: DEFAULT_MIN_PROBABILITY,
+      min_margin: DEFAULT_MIN_MARGIN,
+      on_uncertain: "next",
+    },
+  };
+}
+
+/** The global provider a managed step uses. */
+const stepProviderId = (s: ManagedStep) => (s.type === "http" ? s.settings.credentials_provider : s.settings.api_key_provider) ?? "";
+
+async function storedOverride(userId: string): Promise<ClassifierOverride> {
+  await ensureDb();
+  const r = await getDb().query.setting.findFirst({ where: eq(schema.setting.key, overrideKey(userId)) });
+  const v = r?.value as Partial<ClassifierOverride> | undefined;
+  if (!v) return { ...FOLLOW_DEFAULT };
+  const choice = v.choice === "none" || v.choice === "provider" ? v.choice : "default";
+  return { choice, provider_id: choice === "provider" ? (v.provider_id ?? "") : "", llm_model: v.llm_model ?? "" };
+}
+
+interface Resolved {
+  override: ClassifierOverride;
+  /** The decision step of a "provider" choice. */
+  step?: ManagedStep;
+}
+
+/** Decide asks for every prompting tool call, so resolved overrides are kept briefly; other replicas follow within this time. */
+const RESOLVED_MS = 5_000;
+const resolvedCache = new Map<string, { value: Resolved; at: number }>();
+
+/** The user's override with stale parts reset to the server default, plus the step of a chosen provider. */
+async function resolveOverride(user: PublicUser): Promise<Resolved> {
+  const hit = resolvedCache.get(user.id);
+  if (hit && Date.now() - hit.at < RESOLVED_MS) return hit.value;
+  const o = await storedOverride(user.id);
+  const value: Resolved = { override: o };
+  if (o.choice === "provider") {
+    try {
+      value.step = await overrideStep(o.provider_id);
+    } catch {
+      value.override = { ...value.override, choice: "default", provider_id: "" };
+    }
+  }
+  if (o.llm_model) {
+    try {
+      await modelForOverride(o.llm_model, user);
+    } catch {
+      value.override = { ...value.override, llm_model: "" };
+    }
+  }
+  resolvedCache.set(user.id, { value, at: Date.now() });
+  return value;
+}
+
+/** For tests. */
+export function clearClassifierOverrideCache(): void {
+  resolvedCache.clear();
+}
+
+/** The user's override as it applies now (a stale choice reads as following the server default). */
+export async function getClassifierOverride(user: PublicUser): Promise<ClassifierOverride> {
+  return { ...(await resolveOverride(user)).override };
+}
+
+export async function setClassifierOverride(user: PublicUser, input: Partial<ClassifierOverride>): Promise<ClassifierOverride> {
+  const choice = input.choice ?? "default";
+  if (choice !== "default" && choice !== "none" && choice !== "provider") throw new ApiError("invalid_request", 'choice must be "default", "none" or "provider"');
+  const next: ClassifierOverride = { choice, provider_id: "", llm_model: "" };
+  if (choice === "provider") {
+    const id = input.provider_id?.trim();
+    if (!id) throw new ApiError("invalid_request", "provider_id is required");
+    await overrideStep(id);
+    next.provider_id = id;
+  }
+  const model = input.llm_model?.trim();
+  if (model) next.llm_model = await modelForOverride(model, user);
+
+  await ensureDb();
+  const key = overrideKey(user.id);
+  if (next.choice === "default" && !next.llm_model) {
+    await getDb().delete(schema.setting).where(eq(schema.setting.key, key));
+  } else {
+    const now = new Date();
+    await getDb()
+      .insert(schema.setting)
+      .values({ key, value: next, updatedAt: now })
+      .onConflictDoUpdate({ target: schema.setting.key, set: { value: next, updatedAt: now } });
+  }
+  resolvedCache.delete(user.id);
+  return getClassifierOverride(user);
+}
+
+/**
+ * The chain configuration for one user: the server default with the user's override applied. Returns the
+ * given config itself when nothing changes, so the caller keeps the chain built from it. Steps that do not
+ * change keep their identity (the caller reuses their providers); `llm` steps that take the user's model
+ * are copies.
+ */
+export async function decisionConfigFor(user: PublicUser, config: DecisionConfig): Promise<DecisionConfig> {
+  const { override: o, step } = await resolveOverride(user);
+  let providers = config.providers;
+  if (o.choice !== "default") {
+    const target = managedStep(config);
+    const at = target ? providers.indexOf(target) : -1;
+    if (o.choice === "none") {
+      if (at >= 0) providers = providers.filter((_, i) => i !== at);
+    } else if (step && !(target && stepProviderId(target) === o.provider_id)) {
+      // The server default's own provider keeps the admin's step (model, thresholds) as it is.
+      if (at >= 0) providers = providers.map((p, i) => (i === at ? step : p));
+      else {
+        const rules = providers.findIndex((p) => p.type === "rules");
+        providers = [...providers.slice(0, rules + 1), step, ...providers.slice(rules + 1)];
+      }
+    }
+  }
+  let classifierModel = config.classifier_model;
+  if (o.llm_model && o.llm_model !== config.classifier_model) {
+    classifierModel = o.llm_model;
+    providers = providers.map((p) => (p.type === "llm" ? { ...p } : p));
+  }
+  if (providers === config.providers && classifierModel === config.classifier_model) return config;
+  return { ...config, providers, classifier_model: classifierModel };
 }

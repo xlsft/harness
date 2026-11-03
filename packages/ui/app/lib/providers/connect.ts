@@ -6,11 +6,13 @@ import {
   ProviderScope,
   ProviderService,
   type Classifier,
+  ClassifierChoice,
+  type GetMyClassifierResponse,
   type Provider,
   type ProviderPreset
 } from '~/gen/harness/llm/v1/providers_pb'
 import type { Slots } from '~/gen/harness/llm/v1/gateway_pb'
-import type { ClassifierSettings, ModelSlots, PresetView, ProviderGroupName, ProviderView, ProvidersApi } from './types'
+import type { ClassifierOverride, ClassifierSettings, ModelSlots, MyClassifier, PresetView, ProviderGroupName, ProviderView, ProvidersApi } from './types'
 
 const group = (g: string): ProviderGroupName => g === 'classifier' ? 'classifier' : 'llm'
 
@@ -64,6 +66,23 @@ export function classifierView(c: Classifier | undefined): ClassifierSettings {
     llmModel: c?.llmModel ?? ''
   }
 }
+
+const CHOICE_NAMES = {
+  [ClassifierChoice.UNSPECIFIED]: 'default',
+  [ClassifierChoice.NONE]: 'none',
+  [ClassifierChoice.PROVIDER]: 'provider'
+} as const
+
+export function myClassifierView(r: Pick<GetMyClassifierResponse, 'mine' | 'defaultProviderId' | 'defaultLlmModel'>): MyClassifier {
+  const choice = CHOICE_NAMES[r.mine?.choice ?? ClassifierChoice.UNSPECIFIED] ?? 'default'
+  return {
+    mine: { choice, providerId: choice === 'provider' ? r.mine?.providerId ?? '' : '', llmModel: r.mine?.llmModel ?? '' },
+    defaultProviderId: r.defaultProviderId,
+    defaultLlmModel: r.defaultLlmModel
+  }
+}
+
+const CHOICE_PROTO = { default: ClassifierChoice.UNSPECIFIED, none: ClassifierChoice.NONE, provider: ClassifierChoice.PROVIDER } as const
 
 export function slotsView(s: Slots | undefined): ModelSlots {
   return { main: s?.main ?? '', small: s?.small ?? '', plan: s?.plan ?? '', title: s?.title ?? '' }
@@ -161,5 +180,13 @@ export class ConnectProvidersApi implements ProvidersApi {
 
   async setClassifier(c: ClassifierSettings) {
     return classifierView((await this.client.setClassifier({ classifier: c })).classifier)
+  }
+
+  async getMyClassifier() {
+    return myClassifierView(await this.client.getMyClassifier({}))
+  }
+
+  async setMyClassifier(o: ClassifierOverride) {
+    return myClassifierView(await this.client.setMyClassifier({ mine: { choice: CHOICE_PROTO[o.choice], providerId: o.providerId, llmModel: o.llmModel } }))
   }
 }

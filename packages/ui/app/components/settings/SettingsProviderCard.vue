@@ -33,9 +33,15 @@ const emit = defineEmits<{ changed: [], error: [message: string] }>()
 
 const p = computed(() => props.provider)
 const classifier = computed(() => p.value.group === 'classifier')
-// Classifiers page (admins): whether this provider is the classifier in use; one at a time.
+// Classifiers page: whether this provider is the default for everyone (admins set it) and whether the
+// caller uses it for themselves (off follows the default); one at a time each.
 const classifierState = inject(CLASSIFIER, null)
-const inUse = computed(() => classifierState?.settings.value?.providerId === p.value.id)
+const defaultForAll = computed(() => classifierState?.my.value?.defaultProviderId === p.value.id)
+const mine = computed(() => classifierState?.my.value?.mine.choice === 'provider' && classifierState.my.value.mine.providerId === p.value.id)
+const decidesForMe = computed(() => classifierState?.effectiveProviderId.value === p.value.id)
+function toggleMine() {
+  void classifierState?.setMine(mine.value ? { choice: 'default' } : { choice: 'provider', providerId: p.value.id })
+}
 const busy = ref('')
 const test = ref<TestResult | null>(null)
 
@@ -272,31 +278,62 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
         </HBtn>
       </form>
 
-      <!-- Classifier: in use (one at a time; none means rules, then the model) -->
+      <!-- Classifier: the default for everyone (admins; one at a time, none means rules, then the model)
+           and the caller's own choice (off follows the default). -->
       <div
-        v-if="classifier && classifierState?.settings.value && p.scope === 'global'"
-        class="pr-3 pb-2 pl-[52px] max-sm:pl-3"
+        v-if="classifier && classifierState?.my.value && p.scope === 'global'"
+        class="flex flex-wrap items-center gap-x-4 gap-y-1.5 pr-3 pb-2 pl-[52px] text-[11.5px] max-sm:pl-3"
       >
         <button
+          v-if="classifierState.settings.value"
           type="button"
           role="switch"
-          :aria-checked="inUse"
-          :aria-label="`Use ${p.name} as the classifier`"
-          class="flex items-center gap-1.5 text-[11.5px]"
-          :class="inUse ? 'text-white' : 'text-muted hover:text-white'"
-          @click="classifierState.use(inUse ? '' : p.id)"
+          :aria-checked="defaultForAll"
+          :aria-label="`Use ${p.name} by default for everyone`"
+          class="flex items-center gap-1.5"
+          :class="defaultForAll ? 'text-white' : 'text-muted hover:text-white'"
+          @click="classifierState.setDefault(defaultForAll ? '' : p.id)"
         >
           <span
             class="flex size-3.5 items-center justify-center border"
-            :class="inUse ? 'border-accent bg-accent' : 'border-accented'"
+            :class="defaultForAll ? 'border-accent bg-accent' : 'border-accented'"
           ><HIcon
-            v-if="inUse"
+            v-if="defaultForAll"
             name="check"
             :size="10"
             class="text-white"
           /></span>
-          use as classifier
+          default for everyone
         </button>
+        <span
+          v-else-if="defaultForAll"
+          class="text-muted"
+        >default for everyone</span>
+        <button
+          v-if="p.enabled"
+          type="button"
+          role="switch"
+          :aria-checked="mine"
+          :aria-label="`Use ${p.name} for me`"
+          class="flex items-center gap-1.5"
+          :class="mine ? 'text-white' : 'text-muted hover:text-white'"
+          @click="toggleMine"
+        >
+          <span
+            class="flex size-3.5 items-center justify-center border"
+            :class="mine ? 'border-accent bg-accent' : 'border-accented'"
+          ><HIcon
+            v-if="mine"
+            name="check"
+            :size="10"
+            class="text-white"
+          /></span>
+          use for me
+        </button>
+        <span
+          v-if="decidesForMe"
+          class="text-ok"
+        >deciding for you</span>
       </div>
 
       <!-- Classifier: its decision models -->

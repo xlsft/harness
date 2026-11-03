@@ -4,6 +4,7 @@
 // write-only (set flag and hint only). The preset list is a sample of the server's.
 
 import type {
+  ClassifierOverride,
   ClassifierSettings,
   ModelCandidateView,
   ModelSlots,
@@ -147,6 +148,7 @@ export class MockProvidersApi implements ProvidersApi {
   private providers: ProviderView[]
   private classifier: ClassifierSettings
   private slots: ModelSlots = emptySlots()
+  private mine: ClassifierOverride = { choice: 'default', providerId: '', llmModel: '' }
   private seq = 0
 
   constructor(private readonly admin = true) {
@@ -333,5 +335,24 @@ export class MockProvidersApi implements ProvidersApi {
     const preset = PRESETS.find(x => x.id === p?.presetId)
     this.classifier = { ...c, model: c.model || (p?.type === 'decision-model' ? preset?.defaultModels[0]?.upstream ?? '' : '') }
     return { ...this.classifier }
+  }
+
+  async getMyClassifier() {
+    return {
+      mine: { ...this.mine },
+      defaultProviderId: this.classifier.enabled ? this.classifier.providerId : '',
+      defaultLlmModel: this.classifier.llmModel
+    }
+  }
+
+  async setMyClassifier(o: ClassifierOverride) {
+    if (o.choice === 'provider' && !this.providers.some(p => p.id === o.providerId && p.scope === 'global' && p.group === 'classifier' && p.enabled)) {
+      throw new Error(`Unknown classifier provider ${o.providerId}`)
+    }
+    if (o.llmModel && !this.providers.some(p => p.scope === 'global' && p.group === 'llm' && p.models.some(m => m.id === o.llmModel))) {
+      throw new Error(`Unknown model ${o.llmModel}`)
+    }
+    this.mine = { choice: o.choice, providerId: o.choice === 'provider' ? o.providerId : '', llmModel: o.llmModel }
+    return this.getMyClassifier()
   }
 }

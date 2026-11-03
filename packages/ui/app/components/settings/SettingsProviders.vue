@@ -2,8 +2,8 @@
 // Settings > Models or Settings > Classifiers (`group`): where models, or auto-mode decisions, come from.
 // Lists the presets the server offers (connect with just a key) and then custom providers; on Models each
 // enabled model carries its default effort, under a Defaults block (the model per role). A connection is the user's own, or, for admins who choose so, everyone's; classifier
-// providers and the classifier settings are server-wide (admins). Keys are write-only. Changes refresh the
-// model catalog, so the Models section follows.
+// providers are server-wide (admins), and so is the default classifier, which each user may override for
+// themselves. Keys are write-only. Changes refresh the model catalog, so the Models section follows.
 import type { PresetList, ProviderGroupName, ProviderList, ProvidersApi } from '~/lib/providers/types'
 
 const props = defineProps<{ group: ProviderGroupName }>()
@@ -31,6 +31,7 @@ async function load() {
     presets.value = p
     error.value = ''
     emit('changed', l)
+    await classifier?.load(l.canManageGlobal)
   } catch (e) {
     error.value = message(e)
   } finally {
@@ -57,16 +58,17 @@ const PAGES = {
   },
   classifier: {
     title: 'Classifiers',
-    sub: 'Services auto mode asks whether a tool call is safe to run. Server-wide, so admins connect them.'
+    sub: 'Services auto mode asks whether a tool call is safe to run. Admins connect them and choose the default for everyone; you can pick another one for yourself.'
   }
 } as const
 
-// The classifier in use and its fallback model (admins on the Classifiers page).
-if (props.group === 'classifier') {
-  provide(CLASSIFIER, createClassifierState((msg) => {
-    error.value = msg
-  }))
-}
+// The classifier in use and its fallback model: the server default (admins) and the caller's own choice.
+const classifier = props.group === 'classifier'
+  ? createClassifierState((msg) => {
+      error.value = msg
+    })
+  : null
+if (classifier) provide(CLASSIFIER, classifier)
 
 const page = computed(() => ({
   ...PAGES[props.group],
@@ -126,10 +128,13 @@ const page = computed(() => ({
       >
         <!-- Classifiers: the chat model that decides when no classifier is in use or it is unsure. -->
         <template
-          v-if="group === 'classifier' && list.canManageGlobal"
+          v-if="group === 'classifier'"
           #rows
         >
-          <SettingsModelClassifier :providers="list.providers" />
+          <SettingsModelClassifier
+            :providers="list.providers"
+            :can-manage-global="list.canManageGlobal"
+          />
         </template>
       </SettingsProviderGroup>
     </template>

@@ -145,6 +145,23 @@ export interface ClassifierSettings {
   llmModel: string
 }
 
+// A user's own classifier over the server default: 'default' follows it, 'none' runs no classifier (rules,
+// then the model), 'provider' uses providerId. llmModel '' follows the server default's model.
+export type ClassifierChoiceName = 'default' | 'none' | 'provider'
+
+export interface ClassifierOverride {
+  choice: ClassifierChoiceName
+  providerId: string
+  llmModel: string
+}
+
+export interface MyClassifier {
+  mine: ClassifierOverride
+  // The server default as configured: its classifier ('' none) and model ('' the classifier / small slot).
+  defaultProviderId: string
+  defaultLlmModel: string
+}
+
 // Server-wide default model per role, as configured ('' follows the server default). `title` falls back to
 // `small`; `small` also serves summaries, web fetch and compaction.
 export interface ModelSlots {
@@ -184,9 +201,12 @@ export interface ProvidersApi {
   getSlots(): Promise<SlotSettings>
   // Admin only: replaces main, small, plan and title.
   setSlots(s: ModelSlots): Promise<ModelSlots>
-  // Admin only.
+  // Admin only: the server default.
   getClassifier(): Promise<ClassifierSettings>
   setClassifier(c: ClassifierSettings): Promise<ClassifierSettings>
+  // Anyone: the caller's own override and the server default it applies over.
+  getMyClassifier(): Promise<MyClassifier>
+  setMyClassifier(o: ClassifierOverride): Promise<MyClassifier>
 }
 
 // Parses "Name: value" lines into headers; returns an error string for a malformed line.
