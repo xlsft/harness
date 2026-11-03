@@ -88,6 +88,10 @@ func (c *Client) ListSessions(ctx context.Context, req *syncv1.ListSessionsReque
 	return unary(ctx, c, req, c.rpc.ListSessions)
 }
 
+func (c *Client) GetSessionTranscript(ctx context.Context, req *syncv1.GetSessionTranscriptRequest) (*syncv1.GetSessionTranscriptResponse, error) {
+	return unary(ctx, c, req, c.rpc.GetSessionTranscript)
+}
+
 func (c *Client) DeleteSession(ctx context.Context, req *syncv1.DeleteSessionRequest) (*syncv1.DeleteSessionResponse, error) {
 	return unary(ctx, c, req, c.rpc.DeleteSession)
 }

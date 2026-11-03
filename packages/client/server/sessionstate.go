@@ -33,11 +33,12 @@ import (
 // is also recorded as a custom-title transcript entry, which wins over AI titles and travels with the
 // transcript (local list, resume, the uploaded copy).
 
-// SessionSync is the part of harness.sync.v1.SyncService that keeps the user state and deletes server copies
-// (implemented by *syncclient.Client).
+// SessionSync is the part of harness.sync.v1.SyncService that keeps the user state, lists and reads the sessions
+// of the user's other machines (remote.go) and deletes server copies (implemented by *syncclient.Client).
 type SessionSync interface {
 	UpsertSession(ctx context.Context, req *syncv1.UpsertSessionRequest) (*syncv1.UpsertSessionResponse, error)
 	ListSessions(ctx context.Context, req *syncv1.ListSessionsRequest) (*syncv1.ListSessionsResponse, error)
+	GetSessionTranscript(ctx context.Context, req *syncv1.GetSessionTranscriptRequest) (*syncv1.GetSessionTranscriptResponse, error)
 	DeleteSession(ctx context.Context, req *syncv1.DeleteSessionRequest) (*syncv1.DeleteSessionResponse, error)
 }
 
@@ -79,8 +80,8 @@ func (s *Server) applyState(info *agentv1.SessionInfo) {
 	info.Pinned, info.Unread, info.Archived = st.pinned, st.unread, st.archived
 }
 
-// refreshStates reads the user state of the caller's sessions (of cwd, or all) from the server. On failure the
-// last known state stays.
+// refreshStates reads the caller's sessions (of cwd, or all) from the server: their user state, and the server
+// copies that remote.go lists as sessions of other machines. On failure the last known state stays.
 func (s *Server) refreshStates(ctx context.Context, cwd string) {
 	if s.Sync == nil {
 		return
@@ -88,6 +89,7 @@ func (s *Server) refreshStates(ctx context.Context, cwd string) {
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
 	got := map[string]userState{}
+	infos := map[string]*agentv1.SessionInfo{}
 	token := ""
 	for range stateListPages {
 		resp, err := s.Sync.ListSessions(ctx, &syncv1.ListSessionsRequest{Cwd: cwd, IncludeArchived: true, PageSize: stateListPageSize, PageToken: token})
@@ -98,6 +100,7 @@ func (s *Server) refreshStates(ctx context.Context, cwd string) {
 		for _, m := range resp.GetSessions() {
 			i := m.GetInfo()
 			got[i.GetId()] = userState{pinned: i.GetPinned(), unread: i.GetUnread(), archived: i.GetArchived()}
+			infos[i.GetId()] = i
 		}
 		if token = resp.GetNextPageToken(); token == "" {
 			break
@@ -105,9 +108,16 @@ func (s *Server) refreshStates(ctx context.Context, cwd string) {
 	}
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
-	if cwd == "" && token == "" || s.states == nil {
+	complete := cwd == "" && token == ""
+	if complete || s.states == nil {
 		// A complete listing replaces what was known.
 		s.states = map[string]userState{}
+	}
+	if complete || s.listed == nil {
+		s.listed = map[string]*agentv1.SessionInfo{}
+	}
+	for id, i := range infos {
+		s.listed[id] = i
 	}
 	for id, st := range got {
 		if st == (userState{}) {
@@ -186,6 +196,9 @@ func (s *Server) UpdateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	ls, path := s.locate(id)
 	if ls == nil && path == "" {
+		if info := s.remoteInfo(id); info != nil {
+			return s.updateRemote(ctx, info, m, title)
+		}
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s not found", id))
 	}
 	flags := m.Pinned != nil || m.Unread != nil || m.Archived != nil
@@ -320,5 +333,6 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 	_ = os.RemoveAll(bootstrap.FileHistoryDir(id))
 	_ = os.RemoveAll(bootstrap.PlansDir(id))
 	s.setState(id, userState{})
+	s.forgetListed(id)
 	return connect.NewResponse(&agentv1.DeleteSessionResponse{}), nil
 }

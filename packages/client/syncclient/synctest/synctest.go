@@ -555,6 +555,36 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[syncv1.L
 	return connect.NewResponse(resp), nil
 }
 
+// GetSessionTranscript pages through the stored entries of one thread (the main one, or agent_id's) after
+// after_seq; seq is the position among all entries of the session, as on core.
+func (s *Server) GetSessionTranscript(ctx context.Context, req *connect.Request[syncv1.GetSessionTranscriptRequest]) (*connect.Response[syncv1.GetSessionTranscriptResponse], error) {
+	if err := s.begin(ctx, req.Header(), "GetSessionTranscript"); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ss, ok := s.sessions[req.Msg.GetSessionId()]
+	if !ok {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("unknown session"))
+	}
+	size := int(req.Msg.GetPageSize())
+	if size <= 0 {
+		size = 500
+	}
+	resp := &syncv1.GetSessionTranscriptResponse{}
+	for _, e := range ss.Entries {
+		if e.GetSeq() <= req.Msg.GetAfterSeq() || e.GetAgentId() != req.Msg.GetAgentId() {
+			continue
+		}
+		if len(resp.Entries) == size {
+			resp.HasMore = true
+			break
+		}
+		resp.Entries = append(resp.Entries, proto.Clone(e).(*syncv1.TranscriptEntry))
+	}
+	return connect.NewResponse(resp), nil
+}
+
 func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[syncv1.DeleteSessionRequest]) (*connect.Response[syncv1.DeleteSessionResponse], error) {
 	if err := s.begin(ctx, req.Header(), "DeleteSession"); err != nil {
 		return nil, err
