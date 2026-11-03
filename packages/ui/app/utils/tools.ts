@@ -2,6 +2,7 @@
 import { structuredPatch } from 'diff'
 import type { ToolItem } from '~/lib/session/types'
 import type { IconName } from './icons'
+import { showLabel, showPaneTitle, showTargetOf } from './show'
 
 export interface ToolMeta {
   text: string
@@ -30,6 +31,7 @@ export function toolIcon(t: ToolItem): IconName {
     case 'WebFetch': return 'web-search'
     case 'Task':
     case 'Agent': return 'agent'
+    case 'Show': return t.input.target === 'url' ? 'globe' : t.input.target === 'diff' ? 'diff' : 'file'
     default: return 'box'
   }
 }
@@ -48,6 +50,11 @@ export function toolTarget(t: ToolItem): string {
     case 'WebFetch': return String(i.url ?? t.summary)
     case 'Task':
     case 'Agent': return String(i.description ?? t.summary)
+    case 'Show': {
+      // As the model wrote it (paths relative to the session's directory read best).
+      const target = showTargetOf(i, null, '')
+      return target ? showLabel(target, '') : t.summary
+    }
     default: return t.summary || mcpParts(t.name)?.tool || t.name
   }
 }
@@ -148,6 +155,10 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
       const s = patchStats(patchOf(t))
       return { text: `+${s.add} −${s.del}`, cls: 'diff' }
     }
+    case 'Show':
+      if (t.status === 'error') return { text: 'error', cls: 'text-bad' }
+      if (r.shown === false) return { text: 'not shown', cls: 'text-muted' }
+      return { text: showPaneTitle(r.target === 'url' ? 'url' : r.target === 'diff' ? 'diff' : 'file'), cls: '' }
     default:
       if (mcpParts(t.name)) return { text: `${t.status === 'error' ? 'error' : 'ok'} · ${formatSeconds(t.durationMs)}`, cls: t.status === 'error' ? 'text-bad' : 'text-ok' }
       return { text: t.resultSummary, cls: t.status === 'error' ? 'text-bad' : '' }

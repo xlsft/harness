@@ -48,6 +48,7 @@ watchEffect(() => {
 
 const session = computed(() => composing.value ? undefined : store.current)
 useShortcuts()
+useShowRequests()
 </script>
 
 <template>

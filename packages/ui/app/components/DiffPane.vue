@@ -119,6 +119,19 @@ function openFile(path: string) {
   fileMenu.value = ''
 }
 
+// Show: scroll to one file's changes (expanded), or to the top for the whole diff.
+const scroller = ref<HTMLElement | null>(null)
+const { target: showTarget } = useShow()
+watch(showTarget, async (t) => {
+  if (t?.kind !== 'diff') return
+  showTarget.value = null
+  if (t.path) collapsed.value[t.path] = false
+  await nextTick()
+  const el = t.path ? document.getElementById(`diff-${t.path}`) : null
+  if (el) el.scrollIntoView({ block: 'start' })
+  else scroller.value?.scrollTo({ top: 0 })
+}, { immediate: true })
+
 function diffText(g: { path: string, hunks: ReturnType<typeof patchOf> }) {
   const out = [`--- a/${relative(g.path)}`, `+++ b/${relative(g.path)}`]
   for (const h of g.hunks) out.push(`@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@${h.header ? ' ' + h.header : ''}`, ...h.lines)
@@ -199,6 +212,7 @@ async function copy(text: string) {
     </div>
     <div
       v-else
+      ref="scroller"
       class="flex min-h-0 flex-1 flex-col overflow-y-auto"
     >
       <DiffSummary

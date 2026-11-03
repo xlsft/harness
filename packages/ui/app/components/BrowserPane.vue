@@ -77,6 +77,15 @@ function closeTab(id: string) {
   if (selected.value === id) selected.value = tabs.value[Math.max(0, i - 1)]!.id
 }
 
+// Show: the page opens in the blank tab when one is selected, else in a new tab.
+const { target: showTarget } = useShow()
+watch(showTarget, (t) => {
+  if (t?.kind !== 'url') return
+  showTarget.value = null
+  if (tab.value.kind !== 'new') addTab()
+  navigate(t.url)
+}, { immediate: true })
+
 function toggleViewport() {
   viewport.value = viewport.value ? null : 'Mobile'
 }

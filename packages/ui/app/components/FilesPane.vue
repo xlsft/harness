@@ -39,7 +39,9 @@ watch(menuOpen, (v) => {
 const settings = reactive<Record<string, boolean>>({ ...FILES_SETTINGS_DEFAULTS, tree: true })
 const tabSize = ref(4)
 
-const selected = computed(() => FILE_TREE.find(n => n.path === selectedPath.value) ?? null)
+// Files opened from outside the tree (Show, "Open file" in the diff) that the demo tree does not have.
+const outside = ref<FileNode[]>([])
+const selected = computed(() => FILE_TREE.find(n => n.path === selectedPath.value) ?? outside.value.find(n => n.path === selectedPath.value) ?? null)
 const view = computed(() => {
   const n = selected.value
   if (!n) return 'none'
@@ -105,14 +107,48 @@ function openHit(path: string) {
   if (FILE_TREE.some(n => n.path === path)) selectedPath.value = path
 }
 
-// "Open file" from other panes (diff): select it when the tree has it (absolute paths match by suffix).
+// Lines highlighted by Show (1-based, inclusive); cleared when another file is picked.
+const shownLines = ref<{ start: number, end: number } | null>(null)
+watch(selectedPath, () => shownLines.value = null)
+const codeView = ref<HTMLElement | null>(null)
+
+// Opens a file given by another pane or by Show: the tree's node when it has it (absolute paths match by
+// suffix), else a tab of its own, relative to the session's directory.
+function openPath(p: string) {
+  const hit = FILE_TREE.find(n => n.kind !== 'dir' && (n.path === p || p.endsWith(`/${n.path}`)))
+  if (hit) {
+    selectedPath.value = hit.path
+    return
+  }
+  const cwd = props.session.meta.cwd.replace(/\/+$/, '')
+  const rel = cwd && p.startsWith(`${cwd}/`) ? p.slice(cwd.length + 1) : p
+  if (!outside.value.some(n => n.path === rel)) outside.value.push({ path: rel, kind: 'file', git: '' })
+  selectedPath.value = rel
+}
+
+// "Open file" from other panes (diff).
 const filesOpen = useState<string>('files-open-path', () => '')
 watch(filesOpen, (p) => {
   if (!p) return
-  const hit = FILE_TREE.find(n => n.kind !== 'dir' && (n.path === p || p.endsWith(`/${n.path}`)))
-  if (hit) selectedPath.value = hit.path
+  openPath(p)
   filesOpen.value = ''
 }, { immediate: true })
+
+// Show: open the file and scroll its lines into view, highlighted.
+const { target: showTarget } = useShow()
+watch(showTarget, async (t) => {
+  if (t?.kind !== 'file') return
+  showTarget.value = null
+  openPath(t.path)
+  if (!t.lineStart) return
+  await nextTick()
+  shownLines.value = { start: t.lineStart, end: Math.max(t.lineEnd, t.lineStart) }
+  currentLine.value = t.lineStart
+  await nextTick()
+  codeView.value?.querySelector(`[data-line="${t.lineStart}"]`)?.scrollIntoView({ block: 'center' })
+}, { immediate: true })
+
+const isShown = (n: number) => !!shownLines.value && n >= shownLines.value.start && n <= shownLines.value.end
 
 function toggleSetting(key: string) {
   settings[key] = !settings[key]
@@ -244,13 +280,15 @@ function toggleSetting(key: string) {
 
         <div
           v-else-if="view === 'code'"
+          ref="codeView"
           class="min-h-0 flex-1 overflow-auto py-2 text-[12px] leading-[1.65]"
         >
           <div
             v-for="(l, i) in CODE_LINES"
             :key="i"
             class="flex"
-            :class="i + 1 === currentLine && 'bg-hover'"
+            :class="isShown(i + 1) ? 'bg-accent/15' : i + 1 === currentLine && 'bg-hover'"
+            :data-line="i + 1"
             @click="currentLine = i + 1"
           >
             <span

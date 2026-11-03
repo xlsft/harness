@@ -8,7 +8,7 @@
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
-import type { AssistantDelta, SessionEvent, SessionInfo, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
+import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
 import {
   Compacted_Trigger,
   Notice_Level,
@@ -17,6 +17,7 @@ import {
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
   SessionStatus,
+  ShowRequested_Kind,
   TaskFinished_Reason,
   Todo_Status,
   TurnFinished_Result
@@ -27,6 +28,7 @@ import type {
   PermissionModeName,
   SessionMeta,
   SessionState,
+  ShowTarget,
   Status,
   ToolItem,
   TranscriptItem,
@@ -76,6 +78,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     pendingPermission: null,
     pendingQuestion: null,
     pendingPlan: null,
+    showRequest: null,
     endedReason: '',
     thinkingStartedAt: {},
     toolOwners: {}
@@ -161,6 +164,15 @@ function parseJson(json: string): Record<string, unknown> | null {
   }
 }
 
+function showTarget(r: ShowRequested): ShowTarget | null {
+  switch (r.kind) {
+    case ShowRequested_Kind.FILE: return r.path ? { kind: 'file', path: r.path, lineStart: r.lineStart, lineEnd: r.lineEnd } : null
+    case ShowRequested_Kind.DIFF: return { kind: 'diff', path: r.path }
+    case ShowRequested_Kind.URL: return r.url ? { kind: 'url', url: r.url } : null
+    default: return null
+  }
+}
+
 function userItem(id: string, msg: UserMessage): TranscriptItem {
   const attachments = msg.content.flatMap((b): Attachment[] => {
     if (b.block.case === 'image') return [{ kind: 'image' as const, name: 'image', mediaType: b.block.value.mediaType, size: b.block.value.data.length }]
@@ -238,6 +250,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       const id = e.value.uuid || 'u' + seq
       if (!find(s, 'user', id)) push(s, userItem(id, e.value))
       s.queue = s.queue.filter(q => q.id !== id)
+      // The user moved on: a Show they did not see is stale (the transcript row still reopens it).
+      s.showRequest = null
       break
     }
 
@@ -559,6 +573,12 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     case 'permissionModeChanged':
       s.meta.permissionMode = permissionModeName(e.value.mode)
       break
+
+    case 'showRequested': {
+      const target = showTarget(e.value)
+      if (target) s.showRequest = { id: e.value.toolUseId || 'show' + seq, target }
+      break
+    }
 
     case 'sessionEnded':
       s.endedReason = e.value.reason
