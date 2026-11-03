@@ -131,7 +131,7 @@ async function testBuiltin() {
     <section
       v-else
       aria-label="Search providers"
-      class="mb-8 border border-default"
+      class="mb-8 overflow-hidden border border-default"
     >
       <!-- Built in -->
       <div

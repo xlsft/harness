@@ -48,7 +48,7 @@ function open(url: string) {
       </div>
     </div>
 
-    <dl class="m-0 grid grid-cols-2 border border-default max-sm:grid-cols-1">
+    <dl class="m-0 grid grid-cols-2 overflow-hidden border border-default max-sm:grid-cols-1">
       <div
         v-for="(f, i) in facts"
         :key="f.label"
@@ -68,7 +68,7 @@ function open(url: string) {
       <h3 class="m-0 mb-2 text-[11px] font-normal text-muted">
         Links
       </h3>
-      <div class="flex flex-col border border-default">
+      <div class="flex flex-col overflow-hidden border border-default">
         <button
           v-for="l in LINKS"
           :key="l.url"

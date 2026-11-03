@@ -68,7 +68,7 @@ async function create(draft: ProviderDraft) {
       </p>
     </template>
 
-    <div class="border border-default">
+    <div class="overflow-hidden border border-default">
       <div
         v-for="(preset, i) in presets"
         :key="preset.id"

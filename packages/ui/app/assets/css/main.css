@@ -471,6 +471,10 @@
 :where(kbd, [class~="border"][class*="text-[11px]"], [class~="border"][class*="text-[10"]) {
   border-radius: var(--radius-chip);
 }
+/* Rows of a list (separated by a top or bottom rule) are square: the list's own border carries the corners. */
+:where([class~="border-b"], [class~="border-t"]):not([class~="border"]) {
+  border-radius: 0;
+}
 /* Menu and list options: the same, the 2px accent rule only in square themes. */
 :where([role="option"][class~="border-l-2"]) {
   border-left-width: max(0px, calc(2px - var(--radius-control) * 100));

@@ -357,7 +357,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
         <!-- Enabled models with their default effort for new sessions (levels the model offers). -->
         <div
           v-if="!open"
-          class="flex flex-col border border-default"
+          class="flex flex-col overflow-hidden border border-default"
         >
           <div
             v-for="m in p.models"

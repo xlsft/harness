@@ -81,7 +81,7 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
     >
       {{ error }}
     </p>
-    <div class="border border-default">
+    <div class="overflow-hidden border border-default">
       <div
         v-for="(m, i) in rows"
         :key="m.key"
