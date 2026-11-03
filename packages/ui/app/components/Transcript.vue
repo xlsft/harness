@@ -3,6 +3,7 @@
 // 790px max, 15px between items. Parallel tool calls of one message collapse into a ToolGroup.
 import type { SessionState, ToolItem, TranscriptItem, UserItem } from '~/lib/session/types'
 import { hasActions, pendingMessages } from '~/lib/session/delivery'
+import type { ClusterEntry } from '~/components/transcript/ToolCluster.vue'
 
 const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
@@ -14,6 +15,7 @@ type Block
   = | { kind: 'item', key: string, item: TranscriptItem }
     | { kind: 'group', key: string, tools: ToolItem[] }
     | { kind: 'visual', key: string, versions: ToolItem[] }
+    | { kind: 'cluster', key: string, entries: ClusterEntry[] }
 
 // Visual calls by id: one card per id, at its latest call, with the earlier calls as versions.
 const isVisual = (i: TranscriptItem) => i.kind === 'tool' && i.name === 'Visual' && i.status !== 'error'
@@ -26,6 +28,48 @@ const visuals = computed(() => {
   }
   return by
 })
+
+// Tools that stay on their own: agents have their own card, entering plan mode is a notice.
+const UNCLUSTERED = new Set(['Task', 'Agent', 'EnterPlanMode'])
+const clusterable = (b: Block) => b.kind === 'group' || (b.kind === 'item' && ((b.item.kind === 'tool' && !UNCLUSTERED.has(b.item.name)) || b.item.kind === 'assistant'))
+const isToolBlock = (b: Block) => b.kind === 'group' || (b.kind === 'item' && b.item.kind === 'tool')
+function clusterEntries(run: Block[]): ClusterEntry[] {
+  return run.flatMap((b): ClusterEntry[] => {
+    if (b.kind === 'group') return b.tools.map(t => ({ kind: 'tool', key: t.id, tool: t }))
+    if (b.kind !== 'item') return []
+    if (b.item.kind === 'tool') return [{ kind: 'tool', key: b.item.id, tool: b.item }]
+    if (b.item.kind !== 'assistant') return []
+    const id = b.item.id
+    return b.item.blocks.flatMap((blk, i): ClusterEntry[] => blk.text.trim() ? [{ kind: 'note', key: `${id}:${i}`, text: blk.text, thinking: blk.type === 'thinking' }] : [])
+  })
+}
+// Runs of two or more tool calls (with what the model said between them) fold into one cluster; what the model says
+// after the last call stays out, it is the answer.
+function clustered(blocks: Block[]): Block[] {
+  const out: Block[] = []
+  let run: Block[] = []
+  const flush = () => {
+    let end = run.length
+    while (end > 0 && !isToolBlock(run[end - 1]!)) end--
+    let start = 0
+    while (start < end && !isToolBlock(run[start]!)) start++
+    const core = run.slice(start, end)
+    const entries = clusterEntries(core)
+    if (entries.filter(e => e.kind === 'tool').length >= 2) {
+      out.push(...run.slice(0, start), { kind: 'cluster', key: 'c:' + core[0]!.key, entries }, ...run.slice(end))
+    } else out.push(...run)
+    run = []
+  }
+  for (const b of blocks) {
+    if (clusterable(b)) run.push(b)
+    else {
+      flush()
+      out.push(b)
+    }
+  }
+  flush()
+  return out
+}
 
 const blocks = computed<Block[]>(() => {
   const out: Block[] = []
@@ -49,7 +93,7 @@ const blocks = computed<Block[]>(() => {
     }
     out.push({ kind: 'item', key: item.kind + ':' + item.id, item })
   }
-  return out
+  return clustered(out)
 })
 
 // Messages not read by the agent yet: handed to the client (sending, sent), in the client's queue, then in this
@@ -188,8 +232,13 @@ function toBottom() {
           v-for="b in blocks"
           :key="b.key"
         >
+          <ToolCluster
+            v-if="b.kind === 'cluster'"
+            :entries="b.entries"
+            :session-id="session.meta.id"
+          />
           <ToolGroup
-            v-if="b.kind === 'group'"
+            v-else-if="b.kind === 'group'"
             :tools="b.tools"
             :session-id="session.meta.id"
           />
