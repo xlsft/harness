@@ -115,7 +115,9 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
    *   user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
    *                         the composer's shell mode (RunShellCommand); rides on the next model request
-   *   side_chat             (none)                 not a reminder: the system prompt of side chats (AskSideChat)
+   *   usage_limit_wrap_up   {{provider}} {{detail}} {{resets}}  the session's provider is nearly out of usage
+   *                         (harness.agent.v1.UsageLimit WRAP_UP): once per turn, while the turn goes on
+   *   side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
    *   bash_background_user / bash_background_queued_message / bash_background_agent  {{task_id}} {{output_path}}
    *   bash_background_timeout  {{timeout}} {{task_id}} {{output_path}}
    *                         not reminders: the Bash tool_result when the command runs as a background task

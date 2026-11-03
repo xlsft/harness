@@ -9,7 +9,7 @@
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
-import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
+import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
 import {
   BackgroundReason,
   Compacted_Trigger,
@@ -23,7 +23,8 @@ import {
   ShowRequested_Kind,
   TaskFinished_Reason,
   Todo_Status,
-  TurnFinished_Result
+  TurnFinished_Result,
+  UsageLimit_State
 } from '~/gen/harness/agent/v1/agent_pb'
 import type {
   AssistantItem,
@@ -38,6 +39,8 @@ import type {
   ToolItem,
   TranscriptItem,
   Usage,
+  UsageLimitStateName,
+  UsageLimitVM,
   UserShellItem
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
@@ -208,6 +211,28 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
   }
 }
 
+const USAGE_LIMIT_STATE: Partial<Record<UsageLimit_State, UsageLimitStateName>> = {
+  [UsageLimit_State.NEAR]: 'near',
+  [UsageLimit_State.WRAP_UP]: 'wrap_up',
+  [UsageLimit_State.REACHED]: 'reached',
+  [UsageLimit_State.CLEARED]: 'cleared'
+}
+
+// undefined for an unknown state (a newer client).
+export function usageLimitVM(u: UsageLimit | undefined): UsageLimitVM | undefined {
+  const state = u ? USAGE_LIMIT_STATE[u.state] : undefined
+  if (!u || !state) return undefined
+  return {
+    state,
+    providerName: u.providerName || u.providerId,
+    windowLabel: u.windowLabel,
+    usedPercent: u.usedPercent,
+    resetsAt: u.resetsAt,
+    balanceText: u.balanceText,
+    wrappedUp: u.wrappedUp
+  }
+}
+
 function usageOf(u: PbUsage | undefined): Usage {
   if (!u) return emptyUsage()
   return {
@@ -324,6 +349,7 @@ export function settleTurn(s: SessionState) {
 export function applyLiveInfo(s: SessionState, info: SessionInfo) {
   const status = statusName(info.status)
   s.meta = { ...sessionMeta(info), status: s.meta.status === 'ended' ? 'ended' : status }
+  s.usageLimit = usageLimitVM(info.usageLimit) ?? s.usageLimit
   if (status === 'idle' || status === 'error') settleTurn(s)
 }
 
@@ -345,6 +371,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     case 'sessionUpdated': {
       const status = statusName(e.value.status)
       s.meta = { ...sessionMeta(e.value), status: s.meta.status === 'ended' ? 'ended' : status }
+      // Absent from older clients and before anything was reported: the events keep what they said.
+      s.usageLimit = usageLimitVM(e.value.usageLimit) ?? s.usageLimit
       // The client reports idle only after a turn's TurnFinished: a turn still open here lost its end.
       if (s.turnStartedAt && (status === 'idle' || status === 'error')) settleTurn(s)
       break
@@ -367,8 +395,16 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       s.turnStartedAt = at
       s.turnModel = e.value.model
       s.turnTokens = 0
+      // A new turn: the previous one's "wrapped up" no longer describes what runs now.
+      if (s.usageLimit?.wrappedUp) s.usageLimit = { ...s.usageLimit, wrappedUp: false }
       setStatus(s, 'working')
       break
+
+    case 'usageLimit': {
+      const u = usageLimitVM(e.value)
+      if (u) s.usageLimit = u
+      break
+    }
 
     case 'assistantMessage': {
       const m = e.value

@@ -446,3 +446,44 @@ func TestStartFailureReportsError(t *testing.T) {
 		t.Fatal("submit to a dead agent succeeded")
 	}
 }
+
+func TestUsageLimitPassthrough(t *testing.T) {
+	s, rec, _ := newTestSession(t)
+	if err := s.Open(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	usage := func(evs []*agentv1.SessionEvent) []*agentv1.UsageLimit {
+		var out []*agentv1.UsageLimit
+		for _, e := range evs {
+			if u := e.GetUsageLimit(); u != nil {
+				out = append(out, u)
+			}
+		}
+		return out
+	}
+	// Under the thresholds: nothing.
+	s.Submit("u1", text("limits"), false)
+	if got := usage(rec.waitFor(t, "turn 1", turnsFinished(1))); len(got) != 0 {
+		t.Fatalf("usage events under the thresholds: %v", got)
+	}
+	// The agent reports 98% of its 5h window: WRAP_UP with the agent's numbers, and no reminder is sent to it.
+	s.Submit("u2", text("nearlimit"), false)
+	got := usage(rec.waitFor(t, "turn 2", turnsFinished(2)))
+	if len(got) != 1 || got[0].GetState() != agentv1.UsageLimit_STATE_WRAP_UP || got[0].GetProviderId() != "fake" || got[0].GetProviderName() != "Fake" ||
+		got[0].GetWindowLabel() != "5h" || got[0].GetUsedPercent() != 98 || got[0].GetResetsAt() == "" || got[0].GetWrappedUp() {
+		t.Fatalf("usage events: %v", got)
+	}
+	if st := s.State(); st.UsageLimit.GetState() != agentv1.UsageLimit_STATE_WRAP_UP {
+		t.Fatalf("state: %v", st.UsageLimit)
+	}
+	// The agent refuses the prompt for its usage limit: REACHED, before the turn's TurnFinished.
+	s.Submit("u3", text("ratelimited"), false)
+	evs := rec.waitFor(t, "turn 3", turnsFinished(3))
+	got = usage(evs)
+	if len(got) != 2 || got[1].GetState() != agentv1.UsageLimit_STATE_REACHED || got[1].GetWindowLabel() != "5h" {
+		t.Fatalf("usage events: %v", got)
+	}
+	if last := evs[len(evs)-1]; last.GetTurnFinished() == nil {
+		t.Fatalf("REACHED must come before TurnFinished: %v", last)
+	}
+}

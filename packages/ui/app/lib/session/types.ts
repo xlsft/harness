@@ -8,6 +8,25 @@ export type PermissionModeName = 'default' | 'accept_edits' | 'plan' | 'dont_ask
 
 export type EffortName = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
+export type UsageLimitStateName = 'near' | 'wrap_up' | 'reached' | 'cleared'
+
+// The provider behind the session is close to (or past) its usage limit (SessionEvent.usage_limit, also
+// SessionInfo.usage_limit). Numbers are empty / 0 when unknown or hidden from the user by the server's policies.
+export interface UsageLimitVM {
+  state: UsageLimitStateName
+  providerName: string
+  // "5h", "weekly", "credits", "monthly budget", ...
+  windowLabel: string
+  // 0..100.
+  usedPercent: number
+  // RFC 3339; empty when unknown.
+  resetsAt: string
+  // e.g. "$0.40 left".
+  balanceText: string
+  // The last turn ended after the agent was asked to wrap up ("Wrapped up past your usage limit").
+  wrappedUp: boolean
+}
+
 export interface Usage {
   inputTokens: number
   outputTokens: number
@@ -366,6 +385,8 @@ export interface SessionState {
   pendingPlan: string | null
   // The latest Show request not yet followed by a user message; the UI opens it once the session is open.
   showRequest: ShowRequest | null
+  // The latest usage-limit state of the session's provider; undefined until one was reported.
+  usageLimit?: UsageLimitVM
   endedReason: string
   // Internal: thinking start per message (for "Thought for 12s").
   thinkingStartedAt: Record<string, number>

@@ -18,6 +18,15 @@ import (
 // credentials (one refresh-and-retry on UNAUTHENTICATED). The server filters what the user may see; nothing
 // is cached or stored here.
 func (s *Server) GetProviderLimits(ctx context.Context, req *connect.Request[agentv1.GetProviderLimitsRequest]) (*connect.Response[agentv1.GetProviderLimitsResponse], error) {
+	res, err := s.providerLimits(ctx, req.Msg.GetProviderIds(), req.Msg.GetModelId())
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&agentv1.GetProviderLimitsResponse{Providers: res.GetProviders(), Model: res.GetModel()}), nil
+}
+
+// providerLimits asks the server's ProviderLimitsService (see GetProviderLimits); the error is a Connect error.
+func (s *Server) providerLimits(ctx context.Context, providerIDs []string, modelID string) (*llmv1.GetProviderLimitsResponse, error) {
 	if s.Core == nil || s.Core.URL == "" || s.Core.Tokens == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("not connected to a harness server"))
 	}
@@ -29,7 +38,7 @@ func (s *Server) GetProviderLimits(ctx context.Context, req *connect.Request[age
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	call := func(token string) (*connect.Response[llmv1.GetProviderLimitsResponse], error) {
-		r := connect.NewRequest(&llmv1.GetProviderLimitsRequest{ProviderIds: req.Msg.GetProviderIds(), ModelId: req.Msg.GetModelId()})
+		r := connect.NewRequest(&llmv1.GetProviderLimitsRequest{ProviderIds: providerIDs, ModelId: modelID})
 		rpc.SetBearer(r.Header(), token)
 		return client.GetProviderLimits(ctx, r)
 	}
@@ -50,5 +59,5 @@ func (s *Server) GetProviderLimits(ctx context.Context, req *connect.Request[age
 		}
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("harness server is unreachable"))
 	}
-	return connect.NewResponse(&agentv1.GetProviderLimitsResponse{Providers: res.Msg.GetProviders(), Model: res.Msg.GetModel()}), nil
+	return res.Msg, nil
 }

@@ -371,6 +371,9 @@ message SessionInfo {
   // turn it off ("remoteControl": false); relay_unavailable_reason then says why.
   bool relay_available = 28;
   string relay_unavailable_reason = 29;
+  // The latest usage-limit state of the session's provider (the last SessionEvent.usage_limit); absent when
+  // nothing was reported. Only for the user's own frontends: it never carries numbers the user may not see.
+  optional UsageLimit usage_limit = 30;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -604,6 +607,7 @@ message SessionEvent {
     Compacted compacted = 27;
     PermissionModeChanged permission_mode_changed = 28;
     ShowRequested show_requested = 29;
+    UsageLimit usage_limit = 30;
     // User shell commands (shell.proto); numbered apart to leave room for other events.
     UserShellStarted user_shell_started = 50;
     UserShellOutput user_shell_output = 51;
@@ -931,6 +935,47 @@ message TurnFinished {
   double cost_usd = 4;
   int64 duration_ms = 5;
   string error_message = 6;
+}
+
+// The provider behind the session is close to (or past) its usage limit. Emitted when the state changes, and
+// again with wrapped_up right before the TurnFinished of a turn in which the model was asked to wrap up.
+//
+// Harness sessions: the client checks the limits of the session model's provider after each model response
+// (harness.llm.v1.ProviderLimitsService, cached ~30 s); REACHED comes from the provider refusing a request
+// (rate limit, quota or credit errors). When the state turns WRAP_UP during a turn, the model gets a one-time
+// reminder (usage_limit_wrap_up) to finish the piece in hand and summarize. ACP sessions: from the limits the
+// agent reports (AcpAgentLimits) and its rate-limit errors; no reminder (the agent runs its own loop).
+//
+// Privacy: computed in the user's own client from what the server lets this user see. When a shared
+// provider's limits are hidden from the user, only REACHED (from the provider's error) is reported, without
+// window, percentage, reset time or balance.
+message UsageLimit {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    // A window is >= 90% used, the balance is below ~5% of its total (or a small amount), or >= 90% of the
+    // monthly budget is spent.
+    STATE_NEAR = 1;
+    // Nearly exhausted (>= 97% used, or almost no balance left): the agent is asked to wrap up.
+    STATE_WRAP_UP = 2;
+    // The provider refused a request: rate limited, out of quota or credit.
+    STATE_REACHED = 3;
+    // Back under the thresholds (a window reset, credit added).
+    STATE_CLEARED = 4;
+  }
+  State state = 1;
+  string provider_id = 2;
+  string provider_name = 3;
+  // The window or block that triggered the state: "5h", "weekly", "credits", "monthly budget", ...; empty
+  // when unknown or hidden.
+  string window_label = 4;
+  // 0..100; 0 when unknown or hidden.
+  double used_percent = 5;
+  // RFC 3339, UTC; empty when unknown or hidden.
+  string resets_at = 6;
+  // What is left of a balance or budget, e.g. "$0.40 left"; empty when not applicable or hidden.
+  string balance_text = 7;
+  // The turn ended after the wrap-up reminder.
+  bool wrapped_up = 8;
 }
 
 message Notice {

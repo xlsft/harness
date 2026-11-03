@@ -8,6 +8,8 @@
 //	"slow"   one chunk, then waits for session/cancel and stops with "cancelled"
 //	"mode"   switches to the "plan" mode
 //	"limits" sends a rate-limit snapshot in an extension notification
+//	"nearlimit" sends a snapshot with the 5h window 98% used
+//	"ratelimited" fails the prompt with a usage-limit error
 //
 // Environment: FAKE_AUTH=1 refuses session/new until "login" (agent auth) ran or FAKE_AUTH_FILE exists
 // (terminal auth: `fakeagent --login` creates it); FAKE_LOAD=1 advertises loadSession.
@@ -164,6 +166,13 @@ func (a *agent) Prompt(ctx context.Context, p sdk.PromptRequest) (sdk.PromptResp
 	case strings.Contains(text, "mode"):
 		a.send(ctx, id, sdk.SessionUpdate{CurrentModeUpdate: &sdk.SessionCurrentModeUpdate{SessionUpdate: "current_mode_update", CurrentModeId: "plan"}})
 		return sdk.PromptResponse{StopReason: sdk.StopReasonEndTurn}, nil
+	case strings.Contains(text, "nearlimit"):
+		_ = a.conn.NotifyExtension(ctx, "_codex/token_count", map[string]any{"rate_limits": map[string]any{
+			"primary": map[string]any{"used_percent": 98, "window_minutes": 300, "resets_in_seconds": 3600}}})
+		a.send(ctx, id, sdk.UpdateAgentMessageText("ok"))
+		return sdk.PromptResponse{StopReason: sdk.StopReasonEndTurn}, nil
+	case strings.Contains(text, "ratelimited"):
+		return sdk.PromptResponse{}, sdk.NewInternalError(map[string]any{"error": "You've hit your usage limit. Try again later."})
 	case strings.Contains(text, "limits"):
 		_ = a.conn.NotifyExtension(ctx, "_codex/token_count", map[string]any{"rate_limits": map[string]any{
 			"primary":   map[string]any{"used_percent": 42, "window_minutes": 300, "resets_in_seconds": 3600},

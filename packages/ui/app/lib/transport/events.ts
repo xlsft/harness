@@ -11,7 +11,8 @@ import {
   ShowRequested_Kind,
   TaskFinished_Reason,
   Todo_Status,
-  TurnFinished_Result
+  TurnFinished_Result,
+  UsageLimit_State
 } from '~/gen/harness/agent/v1/agent_pb'
 import type {
   BackgroundReason,
@@ -41,6 +42,17 @@ export interface UsageInit {
   input?: number
   output?: number
   cacheRead?: number
+}
+
+export interface UsageLimitInit {
+  state: 'near' | 'wrap_up' | 'reached' | 'cleared'
+  providerId?: string
+  providerName?: string
+  windowLabel?: string
+  usedPercent?: number
+  resetsAt?: string
+  balanceText?: string
+  wrappedUp?: boolean
 }
 
 export interface UserShellInit {
@@ -274,6 +286,12 @@ export class EventBuilder {
 
   compacted(before: number, after: number, auto = false) {
     return this.emit({ case: 'compacted', value: { trigger: auto ? Compacted_Trigger.AUTO : Compacted_Trigger.MANUAL, tokensBefore: BigInt(before), tokensAfter: BigInt(after) } as never })
+  }
+
+  usageLimit(u: UsageLimitInit) {
+    const state = { near: UsageLimit_State.NEAR, wrap_up: UsageLimit_State.WRAP_UP, reached: UsageLimit_State.REACHED, cleared: UsageLimit_State.CLEARED }[u.state]
+    return this.emit({ case: 'usageLimit', value: { state, providerId: u.providerId ?? '', providerName: u.providerName ?? '', windowLabel: u.windowLabel ?? '',
+      usedPercent: u.usedPercent ?? 0, resetsAt: u.resetsAt ?? '', balanceText: u.balanceText ?? '', wrappedUp: !!u.wrappedUp } as never })
   }
 
   permissionModeChanged(mode: PermissionMode) {
