@@ -1,7 +1,8 @@
 // Themes: every theme is light or dark, and the user picks one theme per kind (Settings > Appearance). A theme is
 // a JSON file in this folder: every colour token (`--color-<token>`, the Tailwind colours: bg-surface,
 // text-strong, border-line…) and, optionally, corner radii (`--radius-<token>`, the Tailwind radii:
-// rounded-control, rounded-box…; square when left out). main.css derives Nuxt UI's `--ui-*` variables from the
+// rounded-control, rounded-box…; square when left out) and fonts (`--font-sans` for the interface, `--font-mono`
+// for code, `--font-display` for big titles; the monospace defaults when left out). main.css derives Nuxt UI's `--ui-*` variables from the
 // colours. To add a theme, add a JSON file with every colour token and list it in THEMES below; the settings show
 // it with a preview drawn from its tokens.
 import cloudyMorningDark from './cloudy-morning-dark.json'
@@ -44,6 +45,11 @@ export const RADIUS_TOKENS = [
 
 export type RadiusToken = typeof RADIUS_TOKENS[number]
 
+// The default fonts (main.css @theme): monospace everywhere.
+const MONO = '\'Cascadia Mono\', \'Cascadia Code\', \'JetBrains Mono\', ui-monospace, monospace'
+export const DEFAULT_FONTS = { sans: MONO, mono: MONO, display: '\'Cascadia Code\', \'JetBrains Mono\', ui-monospace, monospace' }
+export type FontToken = keyof typeof DEFAULT_FONTS
+
 export interface Theme {
   id: string
   name: string
@@ -51,6 +57,8 @@ export interface Theme {
   tokens: Record<ThemeToken, string>
   // CSS lengths; a token left out is square (0).
   radius?: Partial<Record<RadiusToken, string>>
+  // CSS font-family lists; a font left out is the default.
+  fonts?: Partial<Record<FontToken, string>>
 }
 
 export const THEMES = [xlsftDark, xlsftLight, cloudyMorningDark, cloudyMorningLight] as Theme[]
@@ -80,6 +88,7 @@ export function themeById(id: string, kind: ThemeKind, extra: Theme[] = []): The
 export function themeVars(theme: Theme): Record<string, string> {
   return Object.fromEntries([
     ...THEME_TOKENS.map(k => [`--color-${k}`, theme.tokens[k]]),
-    ...RADIUS_TOKENS.map(k => [`--radius-${k}`, theme.radius?.[k] ?? '0px'])
+    ...RADIUS_TOKENS.map(k => [`--radius-${k}`, theme.radius?.[k] ?? '0px']),
+    ...(Object.keys(DEFAULT_FONTS) as FontToken[]).map(k => [`--font-${k}`, theme.fonts?.[k] ?? DEFAULT_FONTS[k]])
   ])
 }
