@@ -440,7 +440,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               <div
                 role="listbox"
                 aria-label="Model"
-                class="w-[380px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
+                class="w-[380px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
               >
                 <ModelList
                   :selected="model || store.models[0]?.id || ''"
@@ -464,7 +464,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span>
             </button>
             <template #content>
-              <div class="border border-accented bg-hover">
+              <div class="overflow-hidden border border-accented bg-hover">
                 <EffortSlider
                   v-model="effort"
                   :levels="efforts"
@@ -488,7 +488,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               <div
                 role="listbox"
                 aria-label="Permission mode"
-                class="w-[280px] border border-accented bg-hover text-[12.5px]"
+                class="w-[280px] overflow-hidden border border-accented bg-hover text-[12.5px]"
               >
                 <div
                   v-for="m in store.availableModes.filter(x => x.key !== 'bypass')"

@@ -58,7 +58,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         <div
           role="listbox"
           aria-label="Model"
-          class="w-[380px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
+          class="w-[380px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
         >
           <ModelList
             :selected="session.meta.model"
@@ -84,7 +84,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         />
       </button>
       <template #content>
-        <div class="border border-accented bg-hover">
+        <div class="overflow-hidden border border-accented bg-hover">
           <EffortSlider
             :model-value="effort"
             :levels="efforts"
@@ -112,7 +112,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         <div
           role="listbox"
           aria-label="Permission mode"
-          class="w-[340px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
+          class="w-[340px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
         >
           <div
             v-for="m in store.availableModes"
@@ -168,7 +168,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         <div
           role="dialog"
           aria-label="Context"
-          class="w-[340px] max-w-[calc(100vw-32px)] border border-accented bg-hover px-[13px] py-3 text-[12.5px]"
+          class="w-[340px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover px-[13px] py-3 text-[12.5px]"
         >
           <div class="mb-2.5 text-[12px] text-muted">
             Context
