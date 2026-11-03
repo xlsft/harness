@@ -24,6 +24,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/outputstyle"
@@ -291,7 +292,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		// Started once Open succeeds, so a failed Open leaves no poller behind.
 		startVCSPoller = func() { s.VCS, s.stopVCS = startVCS(s, url, hc, tokens, log) }
 		if gw == nil {
-			gw = connectgw.New(url, hc, tokens)
+			// Local model ids go to the providers on this machine (localmodels), the rest to the server.
+			gw = localmodels.Wrap(connectgw.New(url, hc, tokens))
+			localmodels.StartUsageReporting(ctx, url, hc, tokens, log)
 		}
 		if src == nil {
 			src = prompts.NewConnectSource(url, hc, tokens)

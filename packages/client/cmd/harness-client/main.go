@@ -23,6 +23,7 @@ import (
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/decision"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
+	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/relay"
@@ -189,9 +190,11 @@ func sharedAdapters(serverURL string) (bootstrap.Options, string, error) {
 	if user != nil {
 		email = user.Email
 	}
+	// Requests to local models (Ollama, LM Studio, ...) report their token usage to the server.
+	localmodels.StartUsageReporting(context.Background(), url, hc, tokens, nil)
 	return bootstrap.Options{
 		ServerURL:       url,
-		Gateway:         connectgw.New(url, hc, tokens),
+		Gateway:         localmodels.Wrap(connectgw.New(url, hc, tokens)),
 		Prompts:         prompts.NewConnectSource(url, hc, tokens),
 		DecisionService: decision.NewClient(url, hc, tokens),
 		Search:          web.NewSearchClient(url, hc, tokens),

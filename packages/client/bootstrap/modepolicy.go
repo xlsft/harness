@@ -11,6 +11,7 @@ import (
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/config"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
+	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/syncclient"
@@ -54,6 +55,8 @@ func WatchModePolicy(ctx context.Context, url string, hc *http.Client, tokens au
 		if p.Set(modes) {
 			log.Info("permission mode policy changed", "disabled", modes)
 		}
+		// The same POLICY document may disallow local models (disableLocalModels).
+		localmodels.Default().SetPolicyDisabled(localmodels.PolicyDisabledIn(cache.List(kind)))
 	}
 	apply()
 	cache.Subscribe(func(syncclient.Event) { apply() })
