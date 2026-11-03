@@ -1,79 +1,116 @@
 <script setup lang="ts">
-// Terminal pane (docs/design/ui/Terminal.dc.html). Tabs and scrollback are demo fixtures; the
-// variants of the artboard are tabs here: "harness" is the shell session, "core dev" was started
-// by the agent (banner), "go test" exited non-zero (footer). `menu=settings` opens the settings
-// menu with the cursor-style submenu, `menu=agent` / `menu=exited` select those tabs.
+// Terminal pane: the session's terminals as tabs, each a real shell on this computer (TerminalView, the client's
+// PTY). Terminals keep running when the pane closes and come back when it opens; closing a tab kills its shell.
+// "+" and "Open in terminal" (useTerminalRequests) start new ones; an exited shell can be restarted in place.
 import { usePanes } from '~/composables/usePanes'
 import type { SessionState } from '~/lib/session/types'
-import { CURSOR_STYLES, promptLines, terminalTabs, type CursorStyle, type TermTab } from '~/lib/fixtures/terminal'
+import type { TerminalConnectionState } from '~/lib/terminal/connection'
+import type { TerminalInfo } from '~/lib/terminal/types'
+import { CURSOR_STYLES, type CursorStyle } from '~/lib/fixtures/terminal'
 
 const props = defineProps<{ session: SessionState, menu: string }>()
 
+const store = useSessionStore()
+const toast = useToast()
 const { closePane } = usePanes()
-const now = useNow()
+const { request } = useTerminalRequests()
 
-const tabs = ref<TermTab[]>(terminalTabs())
-const selected = ref(props.menu === 'agent' ? 'core-dev' : props.menu === 'exited' ? 'go-test' : 'harness')
-const tab = computed(() => tabs.value.find(t => t.id === selected.value) ?? tabs.value[0])
+interface Tab { info: TerminalInfo, ticket?: string, exitCode?: number, state?: TerminalConnectionState }
+const tabs = ref<Tab[]>([])
+const selected = ref('')
+const tab = computed(() => tabs.value.find(t => t.info.id === selected.value))
+const error = ref('')
+const remote = computed(() => !!props.session.meta.remote)
 
-const loadedAt = Date.now()
-const agentElapsed = computed(() => tab.value?.agent ? formatDuration(now.value - loadedAt + tab.value.agent.startedAgoMs) : '')
+function message(e: unknown) {
+  return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
+}
+
+async function create(cwd?: string) {
+  if (!store.transport || remote.value) return
+  try {
+    const { terminal, ticket } = await store.transport.terminals().create({ sessionId: props.session.meta.id, cwd })
+    tabs.value.push({ info: terminal, ticket })
+    selected.value = terminal.id
+    error.value = ''
+  } catch (e) {
+    error.value = message(e)
+  }
+}
+
+// The session's terminals that still exist (they outlive the pane); a new one when there are none.
+async function load() {
+  if (!store.transport || remote.value) return
+  try {
+    const list = await store.transport.terminals().list(props.session.meta.id)
+    tabs.value = list.map(info => ({ info, exitCode: info.running ? undefined : info.exitCode }))
+    selected.value = tabs.value.at(-1)?.info.id ?? ''
+    if (!tabs.value.length && !request.value) await create()
+  } catch (e) {
+    error.value = message(e)
+  }
+}
+onMounted(load)
+watch(() => props.session.meta.id, load)
+
+watch(request, (r) => {
+  if (r) {
+    create(r.cwd)
+    request.value = null
+  }
+}, { immediate: true })
+
+async function closeTab(id: string) {
+  const i = tabs.value.findIndex(t => t.info.id === id)
+  if (i < 0) return
+  tabs.value.splice(i, 1)
+  if (selected.value === id) selected.value = tabs.value[Math.max(0, i - 1)]?.info.id ?? ''
+  try {
+    await store.transport?.terminals().kill(id)
+  } catch { /* already gone */ }
+  if (!tabs.value.length) closePane('terminal')
+}
+
+// An exited shell: a new one in the same folder takes its place.
+async function restart() {
+  const t = tab.value
+  if (!t || !store.transport) return
+  const id = t.info.id
+  await create(t.info.cwd)
+  const i = tabs.value.findIndex(x => x.info.id === id)
+  if (i >= 0) tabs.value.splice(i, 1)
+  store.transport.terminals().kill(id).catch(() => {})
+}
+
+async function killCurrent() {
+  menuOpen.value = false
+  if (tab.value) await closeTab(tab.value.info.id)
+}
+
+const views = ref<Record<string, { clear: () => void }>>({})
+function clearCurrent() {
+  menuOpen.value = false
+  if (tab.value) views.value[tab.value.info.id]?.clear()
+}
 
 const menuOpen = ref(props.menu === 'settings')
-const cursorMenu = ref(props.menu === 'settings')
-watch(() => props.menu, (m) => {
-  menuOpen.value = m === 'settings'
-  cursorMenu.value = m === 'settings'
-})
+const cursorMenu = ref(false)
 watch(menuOpen, (v) => {
   if (!v) cursorMenu.value = false
 })
-
 const cursorStyle = ref<CursorStyle>('Block')
 const blink = ref(true)
-const copyOnSelect = ref(false)
+const xtermCursor = computed(() => cursorStyle.value.toLowerCase() as 'block' | 'bar' | 'underline')
 
-const cursorClass = computed(() => ({
-  Block: 'h-[15px] w-2 align-[-3px]',
-  Bar: 'h-[15px] w-0.5 align-[-3px]',
-  Underline: 'h-0.5 w-2 align-[-1px]'
-}[cursorStyle.value]))
-
-let counter = 0
-function clock() {
-  const d = new Date()
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+function onExit(t: Tab, code: number) {
+  t.exitCode = code
 }
-
-function addTab() {
-  counter += 1
-  const id = `zsh-${counter}`
-  tabs.value.push({ id, name: 'zsh', status: '', statusColor: 'var(--color-muted)', lines: promptLines(clock(), '', true) })
-  selected.value = id
+function title(t: Tab) {
+  return t.info.title || t.info.cwd.split('/').pop() || 'shell'
 }
-
-function closeTab(id: string) {
-  const i = tabs.value.findIndex(t => t.id === id)
-  if (i < 0) return
-  tabs.value.splice(i, 1)
-  if (!tabs.value.length) {
-    closePane('terminal')
-    return
-  }
-  if (selected.value === id) selected.value = tabs.value[Math.max(0, i - 1)]!.id
-}
-
-function clearTab() {
-  if (tab.value) tab.value.lines = promptLines(clock(), '', true)
-  menuOpen.value = false
-}
-
-function restart() {
-  const t = tab.value
-  if (!t) return
-  t.exitCode = undefined
-  t.status = ''
-  t.lines = [...t.lines.map(l => ({ ...l, cur: false })), { t: '' }, ...promptLines(clock(), '', true)]
+async function copy(text: string) {
+  await navigator.clipboard.writeText(text)
+  toast.add({ title: 'Path copied', color: 'neutral' })
 }
 </script>
 
@@ -93,27 +130,33 @@ function restart() {
       >
         <PaneTab
           v-for="t in tabs"
-          :key="t.id"
-          :selected="t.id === selected"
+          :key="t.info.id"
+          :selected="t.info.id === selected"
           edge="left"
           class="gap-[7px] px-2.5"
-          @select="selected = t.id"
-          @close="closeTab(t.id)"
+          :title="t.info.cwd"
+          @select="selected = t.info.id"
+          @close="closeTab(t.info.id)"
         >
           <HIcon
             name="term"
             :size="13"
-          />{{ t.name }}<span
+          />{{ title(t) }}<span
+            v-if="t.exitCode !== undefined"
             class="text-[11px]"
-            :style="{ color: t.statusColor }"
-          >{{ t.status }}</span>
+            :class="t.exitCode ? 'text-bad' : 'text-muted'"
+          >{{ t.exitCode }}</span><span
+            v-else-if="t.state === 'reconnecting'"
+            class="text-[11px] text-warn"
+          >●</span>
         </PaneTab>
         <button
+          v-if="!remote"
           type="button"
           aria-label="New terminal tab"
           title="New terminal tab"
           class="flex w-9 items-center justify-center border-x border-line text-muted hover:text-strong"
-          @click="addTab"
+          @click="create()"
         >
           <HIcon name="plus" />
         </button>
@@ -129,63 +172,63 @@ function restart() {
           @click="menuOpen = !menuOpen"
         />
         <PaneBtn
-          icon="full"
-          label="Maximize"
-        />
-        <PaneBtn
           icon="close"
-          label="Close terminal"
+          label="Close terminal pane"
           @click="closePane('terminal')"
         />
       </div>
     </div>
 
-    <div
-      v-if="tab?.agent"
-      class="flex items-center gap-[9px] border-b border-line bg-surface px-3 py-1.5 text-[12px] text-muted"
+    <p
+      v-if="remote"
+      class="m-0 flex flex-1 items-center justify-center px-6 text-center text-[12.5px] text-muted"
     >
-      <HIcon
-        name="ai"
-        :size="14"
-        class="text-accent"
-      />
-      Started by the agent · background task<span class="flex-1" /><span class="text-accent">running · {{ agentElapsed }}</span>
-      <button
-        type="button"
-        class="border border-line px-2 py-px text-[11px] text-bad hover:bg-hover"
+      This session runs on {{ session.meta.deviceName || 'another computer' }}; terminals open on the computer a session runs on.
+    </p>
+    <p
+      v-else-if="error && !tabs.length"
+      class="m-0 flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-[12.5px] text-muted"
+    >
+      <span class="text-bad">{{ error }}</span>
+      <HBtn
+        size="md"
+        @click="create()"
       >
-        Stop
-      </button>
+        Try again
+      </HBtn>
+    </p>
+    <div
+      v-else
+      class="relative min-h-0 flex-1"
+    >
+      <TerminalView
+        v-for="t in tabs"
+        v-show="t.info.id === selected"
+        :key="t.info.id"
+        :ref="(el: any) => { if (el) views[t.info.id] = el; else delete views[t.info.id] }"
+        :info="t.info"
+        :ticket="t.ticket"
+        :active="t.info.id === selected"
+        :cursor-style="xtermCursor"
+        :cursor-blink="blink"
+        class="absolute inset-0"
+        @exit="code => onExit(t, code)"
+        @state="s => t.state = s"
+      />
     </div>
 
-    <pre class="m-0 min-h-0 flex-1 overflow-y-auto px-3.5 py-3 text-[12.5px] leading-[1.6] whitespace-pre-wrap text-toned"><span
-      v-for="(l, i) in tab?.lines"
-      :key="i"
-      class="block min-h-[1.6em]"
-      :style="l.c ? { color: l.c } : undefined"
-    >{{ l.t }}<PaneCaret
-      v-if="l.cur"
-      :class="cursorClass"
-      :blink="blink"
-    /></span></pre>
-
     <div
-      v-if="tab?.exitCode"
-      class="flex items-center gap-[9px] border-t border-l-2 border-t-line border-l-bad px-3 py-2 text-[12px] text-muted"
+      v-if="tab && tab.exitCode !== undefined"
+      class="flex items-center gap-[9px] border-t border-l-2 border-t-line px-3 py-2 text-[12px] text-muted"
+      :class="tab.exitCode ? 'border-l-bad' : 'border-l-line'"
     >
-      Process exited with code <span class="text-bad">{{ tab.exitCode }}</span><span class="flex-1" />
+      Process exited with code <span :class="tab.exitCode ? 'text-bad' : 'text-strong'">{{ tab.exitCode }}</span><span class="flex-1" />
       <button
         type="button"
         class="border border-line px-[9px] py-[2px] text-[11px] text-strong hover:bg-hover"
         @click="restart"
       >
         Restart
-      </button>
-      <button
-        type="button"
-        class="border border-line px-[9px] py-[2px] text-[11px] text-strong hover:bg-hover"
-      >
-        Send output to chat
       </button>
     </div>
 
@@ -194,7 +237,7 @@ function restart() {
         v-if="cursorMenu"
         role="menu"
         aria-label="Cursor style"
-        class="absolute top-[46px] right-[304px] z-30 menu-panel w-[170px]"
+        class="absolute top-[46px] right-[262px] z-30 menu-panel w-[170px]"
       >
         <PaneMenuItem
           v-for="s in CURSOR_STYLES"
@@ -211,7 +254,7 @@ function restart() {
       <div
         role="menu"
         aria-label="Terminal settings"
-        class="absolute top-[46px] right-10 z-30 menu-panel w-[260px]"
+        class="absolute top-[46px] right-10 z-30 menu-panel w-[220px]"
       >
         <PaneMenuItem
           :highlight="cursorMenu"
@@ -230,45 +273,25 @@ function restart() {
         >
           Blink cursor
         </PaneMenuItem>
-        <PaneMenuItem
-          role="menuitemcheckbox"
-          :checked="copyOnSelect"
-          @click="copyOnSelect = !copyOnSelect"
-          @mouseenter="cursorMenu = false"
-        >
-          Copy on select
-        </PaneMenuItem>
-        <PaneMenuItem
-          value="12.5"
-          sub
-          @mouseenter="cursorMenu = false"
-        >
-          Font size
-        </PaneMenuItem>
-        <PaneMenuItem
-          value="10,000 lines"
-          sub
-          @mouseenter="cursorMenu = false"
-        >
-          Scrollback
-        </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
-          kbd="meta+k"
-          @click="clearTab"
+          :disabled="!tab"
+          @click="clearCurrent"
           @mouseenter="cursorMenu = false"
         >
           Clear
         </PaneMenuItem>
         <PaneMenuItem
-          @click="menuOpen = false"
+          :disabled="!tab"
+          @click="tab && copy(tab.info.cwd); menuOpen = false"
           @mouseenter="cursorMenu = false"
         >
-          Rename tab
+          Copy working directory
         </PaneMenuItem>
         <PaneMenuItem
           danger
-          @click="menuOpen = false"
+          :disabled="!tab"
+          @click="killCurrent"
           @mouseenter="cursorMenu = false"
         >
           Kill process

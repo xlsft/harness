@@ -136,6 +136,7 @@ defineExpose({
   },
   focus: () => term?.focus(),
   clear: () => term?.clear(),
+  reset: () => term?.reset(),
   size: () => term ? { cols: term.cols, rows: term.rows } : null
 })
 </script>

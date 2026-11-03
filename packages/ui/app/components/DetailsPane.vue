@@ -32,6 +32,7 @@ const cwdParent = computed(() => props.session.meta.cwd.replace(/\/[^/]+$/, ''))
 
 const desktop = isDesktop()
 const toast = useToast()
+const { openTerminal } = useTerminalRequests()
 async function copy(text: string, what: string) {
   await navigator.clipboard.writeText(text)
   toast.add({ title: `${what} copied`, color: 'neutral' })
@@ -43,11 +44,15 @@ const folderMenu = computed<(RowMenuItem | null)[]>(() => {
   return [
     ...(desktop && local ? [{ label: 'Show in Finder', run: () => revealInFolder(cwd) }] : []),
     null,
-    { label: 'Copy path', run: () => copy(cwd, 'Path') }
+    { label: 'Copy path', run: () => copy(cwd, 'Path') },
+    null,
+    ...(local ? [{ label: 'Open in terminal', run: () => openTerminal(cwd) }] : [])
   ]
 })
 const branchMenu = computed<(RowMenuItem | null)[]>(() => [
-  { label: 'Copy branch name', run: () => copy(props.session.meta.gitBranch || 'main', 'Branch name') }
+  { label: 'Copy branch name', run: () => copy(props.session.meta.gitBranch || 'main', 'Branch name') },
+  null,
+  ...(props.session.meta.remote ? [] : [{ label: 'Open in terminal', run: () => openTerminal(props.session.meta.cwd) }])
 ])
 
 function age(ms: number) {
