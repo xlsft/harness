@@ -108,6 +108,9 @@ type Permissions struct {
 	// DisableAutoMode is set by permissions.disableAutoMode: "disable" (or a
 	// top-level disableAutoMode) at any level.
 	DisableAutoMode bool
+	// DisabledModes is set by policy (permissions.disabledModes, the server's
+	// permission mode policy): modes nobody may use. Never contains "default".
+	DisabledModes []string
 }
 
 // Attribution is the commit / PR attribution text ("" disables it).
@@ -221,6 +224,7 @@ type layer struct {
 	env                                                   map[string]string
 	allow, ask, deny, addDirs                             []string
 	disableBypass, disableAuto                            bool
+	disabledModes                                         []string
 
 	availableModels  []string
 	managedRulesOnly bool

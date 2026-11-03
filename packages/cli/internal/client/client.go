@@ -180,6 +180,8 @@ func Open(ctx context.Context, o Options) (*Conn, error) {
 	socket := filepath.Join(c.dir, "agent.sock")
 	sctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
+	// Modes the server's policy disables: not offered, refused, and a session in one is switched.
+	c.srv.SetModePolicy(bootstrap.WatchModePolicy(sctx, url, hc, tokens, user, log))
 	// Remote control: mirror the session to the server (HARNESS_REMOTE_CONTROL=0 or the remoteControl setting turn it off).
 	if relay.Enabled(true, url, tokens != nil) {
 		relay.Attach(sctx, c.srv, relay.Options{ServerURL: url, HTTP: hc, Tokens: tokens, Logger: log})

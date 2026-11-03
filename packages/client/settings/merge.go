@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
+	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	"github.com/xlsft/harness/packages/client/memory"
 )
 
@@ -97,6 +99,21 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		l.disableAuto = true
 	}
 	if src.Level == LevelPolicy {
+		if v, ok := raw["permissions"]; ok {
+			var p map[string]json.RawMessage
+			if json.Unmarshal(v, &p) == nil {
+				for _, m := range s.stringList(src, "permissions.disabledModes", p["disabledModes"]) {
+					switch {
+					case !modes[m]:
+						s.problem(src, "permissions.disabledModes", "unknown permission mode %q", m)
+					case m == "default":
+						s.problem(src, "permissions.disabledModes", "the default mode cannot be disabled")
+					default:
+						l.disabledModes = append(l.disabledModes, m)
+					}
+				}
+			}
+		}
 		l.availableModels = s.stringList(src, "availableModels", raw["availableModels"])
 		if b := s.boolean(src, raw, "allowManagedPermissionRulesOnly"); b != nil {
 			l.managedRulesOnly = *b
@@ -214,6 +231,11 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 				s.Permissions.DisableBypass = true
 			}
 		}
+		for _, m := range l.disabledModes {
+			if !slices.Contains(s.Permissions.DisabledModes, m) {
+				s.Permissions.DisabledModes = append(s.Permissions.DisabledModes, m)
+			}
+		}
 		// Turning auto mode off only restricts, so every level may do it.
 		if l.disableAuto {
 			s.Permissions.DisableAutoMode = true
@@ -292,6 +314,11 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		s.Permissions.DefaultMode = "default"
 		s.Permissions.DefaultModeSource = Source{Level: LevelPolicy}
 	}
+	if slices.Contains(s.Permissions.DisabledModes, s.Permissions.DefaultMode) {
+		s.ignored(s.Permissions.DefaultModeSource, "permissions.defaultMode", s.Permissions.DefaultMode+" is disabled by policy (permissions.disabledModes)")
+		s.Permissions.DefaultMode = "default"
+		s.Permissions.DefaultModeSource = Source{Level: LevelPolicy}
+	}
 	if len(s.AvailableModels) > 0 && s.Model != "" && !slices.Contains(s.AvailableModels, s.Model) {
 		s.ignored(Source{Level: LevelPolicy}, "model", "model "+strconv.Quote(s.Model)+" is not allowed by policy")
 		s.Model = s.AvailableModels[0]
@@ -338,6 +365,8 @@ type PermissionInputs struct {
 	DisableBypass         bool
 	// DisableAutoMode refuses auto mode (disableAutoMode at any level).
 	DisableAutoMode bool
+	// DisabledModes are the modes policy disables (permissions.disabledModes).
+	DisabledModes []string
 }
 
 // autoModeLevels may switch auto mode on through defaultMode; committed and
@@ -363,6 +392,7 @@ func (s *Settings) PermissionInputs() PermissionInputs {
 		DefaultMode:     s.Permissions.DefaultMode,
 		DisableBypass:   s.Permissions.DisableBypass,
 		DisableAutoMode: s.Permissions.DisableAutoMode,
+		DisabledModes:   slices.Clone(s.Permissions.DisabledModes),
 	}
 
 	for _, d := range s.Permissions.AdditionalDirectories {
@@ -377,5 +407,45 @@ func RuleStrings(rules []Rule) []string {
 	for i, r := range rules {
 		out[i] = r.Rule
 	}
+	return out
+}
+
+// PolicyDisabledModes returns the permission modes the given POLICY documents
+// disable (org scope only): permissions.disabledModes, plus bypassPermissions
+// for permissions.disableBypassPermissionsMode and auto for disableAutoMode.
+// Lists are unioned across documents; the result is sorted and never
+// contains "default". It backs the client-wide live mode policy.
+func PolicyDisabledModes(docs []*syncv1.Document) []string {
+	set := map[string]bool{}
+	for _, d := range docs {
+		if d.GetScope() != commonv1.Scope_SCOPE_ORG {
+			continue
+		}
+		var raw map[string]json.RawMessage
+		if json.Unmarshal([]byte(d.GetContent()), &raw) != nil {
+			continue
+		}
+		var p map[string]json.RawMessage
+		_ = json.Unmarshal(raw["permissions"], &p)
+		var list []string
+		_ = json.Unmarshal(p["disabledModes"], &list)
+		for _, m := range list {
+			if modes[m] && m != "default" {
+				set[m] = true
+			}
+		}
+		var bypass string
+		if json.Unmarshal(p["disableBypassPermissionsMode"], &bypass) == nil && bypass == "disable" {
+			set["bypassPermissions"] = true
+		}
+		if disableFlag(p["disableAutoMode"]) || disableFlag(raw["disableAutoMode"]) {
+			set["auto"] = true
+		}
+	}
+	out := make([]string, 0, len(set))
+	for m := range set {
+		out = append(out, m)
+	}
+	slices.Sort(out)
 	return out
 }

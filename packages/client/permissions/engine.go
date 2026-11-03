@@ -12,9 +12,9 @@ package permissions
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -173,6 +173,9 @@ type Config struct {
 	DisableBypassPermissions bool
 	// DisableAutoMode refuses switching to auto (settings disableAutoMode).
 	DisableAutoMode bool
+	// DisabledModes are the modes the server's policy disables at start
+	// (SetPolicyDisabled updates them live).
+	DisabledModes []Mode
 	// Decider decides what would otherwise prompt in auto mode (may be nil:
 	// auto then behaves like default).
 	Decider Decider
@@ -201,6 +204,7 @@ type Engine struct {
 	trusted       bool
 	disableBypass bool
 	disableAuto   bool
+	policy        map[Mode]bool
 	decider       Decider
 	localPath     string
 	localRoot     string
@@ -220,7 +224,8 @@ func New(cfg Config) *Engine {
 		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, readable: cfg.ReadableDirs,
 		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider, netGuard: cfg.NetGuard,
 	}
-	if e.mode == "" || (e.mode == ModeBypassPermissions && e.disableBypass) || (e.mode == ModeAuto && e.disableAuto) {
+	e.policy = modeSet(cfg.DisabledModes)
+	if e.mode == "" || e.disabledLocked(e.mode) != nil {
 		e.mode = ModeDefault
 	}
 	if e.home == "" {
@@ -286,28 +291,69 @@ func (e *Engine) SetDecider(d Decider) {
 	e.mu.Unlock()
 }
 
-// AutoModeAvailable reports whether auto mode may be switched on.
-func (e *Engine) AutoModeAvailable() bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return !e.disableAuto
+func modeSet(modes []Mode) map[Mode]bool {
+	out := map[Mode]bool{}
+	for _, m := range modes {
+		if m != ModeDefault {
+			out[m] = true
+		}
+	}
+	return out
 }
 
-// NextMode returns the next mode of the Shift+Tab cycle from the current one.
-func (e *Engine) NextMode() Mode { return NextMode(e.Mode(), e.AutoModeAvailable()) }
+// disabledLocked reports why m may not be used (nil: it may). Caller holds mu.
+func (e *Engine) disabledLocked(m Mode) error {
+	switch {
+	case m == ModeDefault:
+		return nil
+	case e.policy[m]:
+		return &ModeDisabledError{Mode: m, Policy: true}
+	case m == ModeBypassPermissions && e.disableBypass, m == ModeAuto && e.disableAuto:
+		return &ModeDisabledError{Mode: m}
+	}
+	return nil
+}
+
+// ModeAllowed reports whether m may be switched on (settings and the server's policy).
+func (e *Engine) ModeAllowed(m Mode) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.disabledLocked(m) == nil
+}
+
+// AutoModeAvailable reports whether auto mode may be switched on.
+func (e *Engine) AutoModeAvailable() bool { return e.ModeAllowed(ModeAuto) }
+
+// NextMode returns the next allowed mode of the Shift+Tab cycle from the
+// current one; modes outside the cycle go back to default.
+func (e *Engine) NextMode() Mode {
+	cur, cycle := e.Mode(), ModeCycle()
+	i := slices.Index(cycle, cur)
+	if i < 0 {
+		return ModeDefault
+	}
+	for k := 1; k < len(cycle); k++ {
+		if m := cycle[(i+k)%len(cycle)]; e.ModeAllowed(m) {
+			return m
+		}
+	}
+	return ModeDefault
+}
 
 // SetMode changes the mode at runtime. A change clears the Decider's
-// session cache.
+// session cache. A disabled mode fails with *ModeDisabledError.
 func (e *Engine) SetMode(m Mode) error {
 	e.mu.Lock()
-	if m == ModeBypassPermissions && e.disableBypass {
+	if err := e.disabledLocked(m); err != nil {
 		e.mu.Unlock()
-		return errors.New("bypassPermissions mode is disabled by policy")
+		return err
 	}
-	if m == ModeAuto && e.disableAuto {
-		e.mu.Unlock()
-		return errors.New("auto mode is disabled by settings (disableAutoMode)")
-	}
+	e.switchLocked(m)
+	return nil
+}
+
+// switchLocked sets the mode, releases mu and notifies on a change.
+func (e *Engine) switchLocked(m Mode) {
 	changed := e.mode != m
 	e.mode = m
 	f, d := e.onMode, e.decider
@@ -320,7 +366,23 @@ func (e *Engine) SetMode(m Mode) error {
 			f(m)
 		}
 	}
-	return nil
+}
+
+// SetPolicyDisabled replaces the modes the server's policy disables. When
+// the current mode becomes disabled the session switches to the closest
+// allowed one (ClosestAllowed) and reports it: from is the old mode, to the
+// new one.
+func (e *Engine) SetPolicyDisabled(modes []Mode) (from, to Mode, switched bool) {
+	e.mu.Lock()
+	e.policy = modeSet(modes)
+	from = e.mode
+	if e.disabledLocked(from) == nil {
+		e.mu.Unlock()
+		return from, from, false
+	}
+	to = ClosestAllowed(from, func(m Mode) bool { return e.disabledLocked(m) == nil })
+	e.switchLocked(to)
+	return from, to, true
 }
 
 // Mode returns the current mode.

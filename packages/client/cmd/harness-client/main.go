@@ -227,7 +227,9 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
-	if tokens, url, _, err := bootstrap.Tokens(*serverURL); err == nil {
+	if tokens, url, user, err := bootstrap.Tokens(*serverURL); err == nil {
+		// Modes the server's policy disables: not offered, refused, and live sessions in one are switched.
+		srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
 		// Settings screens (providers, classifier) reach the server through this client.
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
 		if relay.Enabled(*remote, url, tokens != nil) {

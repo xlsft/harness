@@ -175,8 +175,14 @@ func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handl
 
 func (s *Server) Initialize(ctx context.Context, req *connect.Request[agentv1.InitializeRequest]) (*connect.Response[agentv1.InitializeResponse], error) {
 	resp := &agentv1.InitializeResponse{ClientVersion: config.Version, UserEmail: s.UserEmail}
+	policy := s.Base.ModePolicy
 	for _, m := range permissions.ModeCycle() {
-		resp.PermissionModes = append(resp.PermissionModes, modeToProto(m))
+		if policy.Allowed(m) {
+			resp.PermissionModes = append(resp.PermissionModes, modeToProto(m))
+		}
+	}
+	for _, m := range policy.Disabled() {
+		resp.DisabledPermissionModes = append(resp.DisabledPermissionModes, modeToProto(m))
 	}
 	if s.Base.Gateway != nil {
 		if cat, err := s.Base.Gateway.Models(ctx); err == nil {
@@ -240,6 +246,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	if m.GetPermissionMode() != agentv1.PermissionMode_PERMISSION_MODE_UNSPECIFIED && !s.Base.ModePolicy.Allowed(mode) {
+		return nil, connect.NewError(connect.CodePermissionDenied, &permissions.ModeDisabledError{Mode: mode, Policy: true})
+	}
 	opts := s.Base
 	opts.Cwd = m.GetCwd()
 	if opts.Cwd == "" {
@@ -293,7 +302,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	sess, err := bootstrap.Open(ctx, opts)
 	if err != nil {
 		s.rollbackWorktree(wt)
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, modeError(err, connect.CodeFailedPrecondition)
 	}
 	ls.sess = sess
 	ls.branch = workspace.GitBranch(ctx, sess.Cwd)
@@ -321,6 +330,10 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	s.mu.Lock()
 	s.live[sess.ID] = ls
 	s.mu.Unlock()
+	if p := s.Base.ModePolicy; p != nil {
+		// The policy may have changed while the session opened (before it was live to follow it).
+		ls.applyModePolicy(p.Disabled())
+	}
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
 	for _, w := range sess.Warnings {
 		ls.notice(agentv1.Notice_LEVEL_WARNING, "session_warning", w)
@@ -676,7 +689,7 @@ func (s *Server) SetPermissionMode(ctx context.Context, req *connect.Request[age
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if err := ls.sess.Permissions.SetMode(mode); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, modeError(err, connect.CodeFailedPrecondition)
 	}
 	return connect.NewResponse(&agentv1.SetPermissionModeResponse{}), nil
 }

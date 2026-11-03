@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/xlsft/harness/packages/client/agent"
@@ -74,6 +75,11 @@ type Options struct {
 	// DisableAutoMode refuses the auto permission mode (also set by the
 	// disableAutoMode setting).
 	DisableAutoMode bool
+	// ModePolicy is the client-wide live permission mode policy of the server
+	// (WatchModePolicy); it replaces the policy's permissions.disabledModes
+	// read from this session's settings. Nil: those settings apply. An
+	// explicitly requested PermissionMode it disables fails Open.
+	ModePolicy *permissions.ModePolicy
 	// DecisionService is the remote auto-mode decider. When nil and the
 	// server adapters are created here, it is the DecisionService client of
 	// the same server; otherwise auto mode runs on the local rules only.
@@ -260,6 +266,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	cwd, _ = filepath.Abs(cwd)
 	s := &Session{Cwd: cwd}
+	explicitMode := o.PermissionMode
 
 	gw, src := o.Gateway, o.Prompts
 	var startVCSPoller func()
@@ -380,6 +387,15 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			o.PermissionSources = settingsSources
 		}
 	}
+	disabledModes := o.ModePolicy.Disabled()
+	if o.ModePolicy == nil && st != nil {
+		for _, m := range st.Permissions.DisabledModes {
+			disabledModes = append(disabledModes, permissions.Mode(m))
+		}
+	}
+	if slices.Contains(disabledModes, explicitMode) {
+		return nil, &permissions.ModeDisabledError{Mode: explicitMode, Policy: true}
+	}
 
 	// Model.
 	catalog, err := gw.Models(ctx)
@@ -448,6 +464,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 
 	// Permissions.
 	trusted := s.Trusted
+	chosenMode := o.PermissionMode // by the request or settings; the fallback may silently fall back further
 	if o.PermissionMode == "" {
 		o.PermissionMode = o.FallbackPermissionMode
 	}
@@ -459,9 +476,14 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Cwd: cwd, AdditionalDirectories: o.AdditionalDirs, DefaultMode: o.PermissionMode,
 		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,
 		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, DisableAutoMode: o.DisableAutoMode,
-		Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
+		DisabledModes: disabledModes, Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
 		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
 	})
+	if chosenMode != "" && s.Permissions.Mode() != chosenMode {
+		msg := fmt.Sprintf("permission mode %q is disabled; the session starts in %q mode", chosenMode, s.Permissions.Mode())
+		log.Warn(msg)
+		s.Warnings = append(s.Warnings, msg)
+	}
 	s.openMCP(ctx, o, info.ContextWindow, conv, log)
 	disabled := map[string]bool{}
 	for _, n := range s.Tools.Names() {
