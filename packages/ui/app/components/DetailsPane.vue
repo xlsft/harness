@@ -12,8 +12,6 @@ const store = useSessionStore()
 const now = useNow()
 const relay = ref(true)
 
-const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
-
 const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool'))
 const outputs = computed(() => {
   const files = new Set<string>()
