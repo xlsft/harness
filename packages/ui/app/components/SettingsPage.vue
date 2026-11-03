@@ -15,6 +15,7 @@ const SECTIONS = [
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
   { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
+  { key: 'speech', label: 'Speech', icon: 'mic', group: 'ai' },
   { key: 'users', label: 'Users', icon: 'shield', group: 'server' },
   { key: 'ldap', label: 'LDAP', icon: 'link', group: 'server' },
   { key: 'about', label: 'About', icon: 'info', group: 'product' }
@@ -38,6 +39,7 @@ const KEYWORDS: Record<Section, string> = {
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
+  speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
   account: 'sign out server user',
   users: 'admin users roles passwords',
   ldap: 'ldap directory active directory sign in bind',
@@ -139,6 +141,7 @@ const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => 
       />
 
       <SettingsSearch v-else-if="section === 'search'" />
+      <SettingsSpeech v-else-if="section === 'speech'" />
 
       <SettingsUsers v-else-if="section === 'users'" />
 
