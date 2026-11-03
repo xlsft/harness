@@ -21,8 +21,8 @@ describe("bundle builder", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
-      "AskUserQuestion", "Bash", "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "TaskStop",
-      "TodoWrite", "ToolSearch", "WebFetch", "WebSearch", "Write",
+      "AskUserQuestion", "Bash", "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show",
+      "TaskStop", "TodoWrite", "ToolSearch", "WebFetch", "WebSearch", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
     const reminders: Record<string, string[]> = {
@@ -103,6 +103,10 @@ describe("bundle builder", () => {
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all"]);
     expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background"]);
     expect(props("TaskStop")).toEqual(["task_id"]);
+    expect(props("Show")).toEqual(["target", "path", "line", "end_line", "url"]);
+    expect(b.tools.Show!.input_schema.required).toEqual(["target"]);
+    expect((b.tools.Show!.input_schema.properties as any).target.enum).toEqual(["file", "diff", "url"]);
+    expect(b.tools.Show!.description).toMatch(/http and https/);
     expect(props("ToolSearch")).toEqual(["query", "max_results"]);
     expect(b.tools.ToolSearch!.input_schema.required).toEqual(["query"]);
     expect(props("McpAuthenticate")).toEqual([]);
