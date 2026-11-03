@@ -19,6 +19,7 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent') return 'loading'
   if (t.status === 'error' && t.name === 'Bash') return 'x'
   if (mcpParts(t.name)) return 'box'
+  if (t.name.startsWith('Browser')) return 'globe'
   switch (t.name) {
     case 'Bash':
     case 'TaskOutput': return 'term'
@@ -72,6 +73,12 @@ export function toolTarget(t: ToolItem): string {
     }
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
+    case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
+    case 'BrowserClick':
+    case 'BrowserType':
+    case 'BrowserScroll': return String(i.ref ?? i.direction ?? t.summary ?? '')
+    case 'BrowserKey': return String(i.keys ?? t.summary)
+    case 'BrowserEval': return String(i.expression ?? t.summary).split('\n')[0]!
     default: return t.summary || mcpParts(t.name)?.tool || t.name
   }
 }

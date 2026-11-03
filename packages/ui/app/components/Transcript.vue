@@ -172,6 +172,11 @@ function nextUserAfter(turnId: string) {
   const { items, end } = turnSpan(turnId)
   return items.slice(end + 1).find(i => i.kind === 'user')?.id
 }
+// The agent opens a page: the Browser pane shows it.
+const { openPane } = usePanes()
+watch(() => props.session.browserAction, (a) => {
+  if (a?.phase === 'started' && a.kind === 'navigate') openPane('browser')
+})
 const readAloud = useReadAloud()
 onBeforeUnmount(readAloud.stop)
 // Read aloud automatically: a turn that finishes while the session is open (not ones loaded with it).
