@@ -61,7 +61,7 @@ async function signOut() {
     <div class="mx-auto flex max-w-[960px] gap-10 px-10 pt-10 pb-10 max-md:flex-col max-md:gap-5 max-sm:px-4 max-sm:pt-6">
       <nav
         aria-label="Settings sections"
-        class="flex w-[180px] shrink-0 flex-col gap-[2px] max-md:w-full max-md:flex-row max-md:flex-wrap"
+        class="sticky top-10 flex w-[180px] shrink-0 flex-col gap-[2px] self-start max-md:static max-md:w-full max-md:flex-row max-md:flex-wrap"
       >
         <h1 class="m-0 mb-4 font-display text-[26px] font-bold text-white max-md:mb-1 max-md:w-full">
           Settings
@@ -79,7 +79,7 @@ async function signOut() {
         </button>
       </nav>
 
-      <div class="flex min-w-0 flex-1 flex-col pt-[52px] max-md:pt-0">
+      <div class="flex min-w-0 flex-1 flex-col">
         <template v-if="section === 'general'">
           <h2 class="set-h">
             New sessions
