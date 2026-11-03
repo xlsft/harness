@@ -486,8 +486,8 @@ func (s *Server) liveRemoteInfo(origin, live *agentv1.SessionInfo) *agentv1.Sess
 
 // forkRemote downloads the transcript of a remote session into a new local session in cwd and returns its id
 // (CreateSession then resumes it). Entries are rewritten for this machine: their cwd becomes cwd and the origin's
-// worktree record is dropped.
-func (s *Server) forkRemote(ctx context.Context, info *agentv1.SessionInfo, cwd string) (string, error) {
+// worktree record is dropped. id is the new session id (empty: a new one).
+func (s *Server) forkRemote(ctx context.Context, info *agentv1.SessionInfo, cwd, id string) (string, error) {
 	raw, err := s.remoteEntries(ctx, info.Id)
 	if err != nil {
 		return "", err
@@ -510,7 +510,9 @@ func (s *Server) forkRemote(ctx context.Context, info *agentv1.SessionInfo, cwd 
 	if err := errors.Join(w.Flush(), tmp.Close()); err != nil {
 		return "", connect.NewError(connect.CodeInternal, err)
 	}
-	id := session.NewID()
+	if id == "" {
+		id = session.NewID()
+	}
 	if err := session.Fork(tmp.Name(), session.Store{Root: config.ProjectsDir()}.Path(cwd, id), info.Id, id, ""); err != nil {
 		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("copy the transcript: %w", err))
 	}

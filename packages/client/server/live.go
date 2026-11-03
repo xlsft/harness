@@ -108,6 +108,7 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.statusLocked(),
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
+		NoFolder: isNoFolder(ls.sess.ID, ls.sess.Cwd),
 	}
 	ls.srv.applyState(info)
 	return info

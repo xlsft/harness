@@ -154,14 +154,14 @@ func applySettingsEnv(st *settings.Settings) {
 }
 
 // projectMemory builds the instruction loader for cwd.
-func projectMemory(ctx context.Context, cwd string, workingDirs []string, st *settings.Settings, docs memory.DocSource) *memory.Loader {
+func projectMemory(ctx context.Context, cwd string, workingDirs []string, st *settings.Settings, docs memory.DocSource, noFolder bool) *memory.Loader {
 	key := workspace.ProjectKey(ctx, cwd)
 	var mode memory.Mode
 	if st != nil {
 		mode = st.ClaudeMdMode
 	}
 	return memory.New(memory.Options{
-		Cwd: cwd, ProjectRoot: workspace.GitRoot(ctx, cwd), WorkingDirs: workingDirs, Mode: mode,
+		Cwd: cwd, ProjectRoot: workspace.GitRoot(ctx, cwd), WorkingDirs: workingDirs, Mode: mode, NoAncestors: noFolder,
 		Docs: docs, ProjectKey: key, AutoMemoryDir: memory.AutoMemoryDir(config.Home(), key),
 		Approvals: &memory.FileApprovals{Path: filepath.Join(config.Home(), "import-approvals.json"), Project: key},
 	})

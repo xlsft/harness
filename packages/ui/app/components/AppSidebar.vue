@@ -1,9 +1,10 @@
 <script setup lang="ts">
-// Sessions sidebar (Main.dc.html): window row, wordmark, primary nav, sessions grouped by project, account footer.
+// Sessions sidebar (Main.dc.html): window row, wordmark, primary nav, sessions grouped by project (sessions
+// without a folder under Chats, first), account footer.
 // Sub-sessions (forks) are listed under their parent with an └ connector; a parent row folds them (▾/▸).
 import { isDesktop } from '~/lib/desktop'
 import type { SessionState } from '~/lib/session/types'
-import { limitTree, sessionTree } from '~/lib/session/tree'
+import { groupSessions, limitTree, sessionTree } from '~/lib/session/tree'
 
 const store = useSessionStore()
 const route = useRoute()
@@ -22,33 +23,26 @@ function toggleFold(id: string) {
 const pinned = computed(() => store.sessionList.filter(s => s.meta.pinned))
 const pinnedRows = computed(() => sessionTree(pinned.value, folded.value))
 
-const groups = computed(() => {
-  const map = new Map<string, SessionState[]>()
-  for (const s of store.sessionList) {
-    if (s.meta.pinned) continue
-    const name = basename(s.meta.repo || s.meta.worktree?.repositoryPath || s.meta.cwd) || 'other'
-    if (!map.has(name)) map.set(name, [])
-    map.get(name)!.push(s)
+const groups = computed(() => groupSessions(store.sessionList.filter(s => !s.meta.pinned)).map(({ key, name, chats, sessions }) => {
+  // Folder for "+": the latest local session's, or its main checkout when it ran in a worktree (sessions of
+  // other machines name folders over there; a group of only those has no "+"). Chats' "+" starts without one.
+  const local = chats ? undefined : sessions.find(s => !s.meta.remote)
+  // Sub-sessions follow their parent; the limit counts top-level rows.
+  const tree = sessionTree(sessions, folded.value)
+  const shown = expanded.value[key] ? { rows: tree, more: false } : limitTree(tree, VISIBLE)
+  return {
+    key,
+    name,
+    chats,
+    cwd: local ? local.meta.worktree?.repositoryPath || local.meta.cwd : '',
+    rows: shown.rows,
+    more: shown.more
   }
-  return [...map.entries()].map(([name, sessions]) => {
-    // Folder for "+": the latest local session's, or its main checkout when it ran in a worktree (sessions of
-    // other machines name folders over there; a group of only those has no "+").
-    const local = sessions.find(s => !s.meta.remote)
-    // Sub-sessions follow their parent; the limit counts top-level rows.
-    const tree = sessionTree(sessions, folded.value)
-    const shown = expanded.value[name] ? { rows: tree, more: false } : limitTree(tree, VISIBLE)
-    return {
-      name,
-      cwd: local ? local.meta.worktree?.repositoryPath || local.meta.cwd : '',
-      rows: shown.rows,
-      more: shown.more
-    }
-  })
-})
+}))
 
-// Sections in order: Pinned (when any), then the folder groups.
+// Sections in order: Pinned (when any), then Chats (sessions without a folder) and the folder groups.
 const sections = computed(() => [
-  ...(pinned.value.length ? [{ name: 'Pinned', cwd: '', rows: pinnedRows.value, more: false, pin: true }] : []),
+  ...(pinned.value.length ? [{ key: '\0pinned', name: 'Pinned', chats: false, cwd: '', rows: pinnedRows.value, more: false, pin: true }] : []),
   ...groups.value
 ])
 
@@ -211,7 +205,7 @@ const nav = [
     <div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[5px] py-[11px]">
       <section
         v-for="g in sections"
-        :key="g.name"
+        :key="g.key"
         class="flex flex-col"
       >
         <div class="group/head flex items-center gap-1 px-[9px] pb-1 text-muted">
@@ -230,12 +224,12 @@ const nav = [
           />
           <span class="flex-1" />
           <button
-            v-if="g.cwd"
+            v-if="g.cwd || g.chats"
             type="button"
-            :aria-label="`New session in ${g.name}`"
-            :title="`New session in ${g.cwd}`"
+            :aria-label="g.chats ? 'New session without a folder' : `New session in ${g.name}`"
+            :title="g.chats ? 'New session without a folder' : `New session in ${g.cwd}`"
             class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-strong"
-            @click="newSession(g.cwd)"
+            @click="newSession(g.cwd || undefined)"
           >
             <HIcon
               name="plus"
@@ -331,7 +325,7 @@ const nav = [
           v-if="g.more"
           href="#"
           class="nav-row px-[9px] hover:bg-hover text-[11px] text-muted"
-          @click.prevent="expanded[g.name] = true"
+          @click.prevent="expanded[g.key] = true"
         >Show more</a>
       </section>
     </div>

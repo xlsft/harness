@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/permissions"
 )
@@ -19,6 +20,10 @@ func (s *Server) GetWorkspaceTrust(ctx context.Context, req *connect.Request[age
 	path, err := absDir(req.Msg.GetPath())
 	if err != nil {
 		return nil, err
+	}
+	if config.IsChatDir(path) {
+		// The private directory of a folderless session is always trusted (bootstrap.Options.NoFolder).
+		return connect.NewResponse(&agentv1.GetWorkspaceTrustResponse{Trusted: true, TrustedRoot: path}), nil
 	}
 	root := permissions.DefaultTrustStore().TrustedRoot(path)
 	repo := permissions.RepoRoot(path)

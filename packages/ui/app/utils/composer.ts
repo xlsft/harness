@@ -104,6 +104,12 @@ export function fitEffort(e: EffortName, levels: EffortName[]): EffortName | und
   return [...levels].sort((a, b) => Math.abs(ALL_EFFORTS.indexOf(a) - at) - Math.abs(ALL_EFFORTS.indexOf(b) - at))[0]
 }
 
+/** The folder the new-session screen starts with: the one ?cwd= asks for ("+" of a sidebar group), else none ('',
+ * a session without a folder). The last folder used is deliberately not remembered. */
+export function newSessionFolder(query: Record<string, unknown>): string {
+  return typeof query.cwd === 'string' ? query.cwd : ''
+}
+
 // Initial state for the component kit (/kit) and tests: reaches each state of Composer.dc.html directly.
 export interface ComposerPreset {
   text?: string

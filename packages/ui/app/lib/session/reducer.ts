@@ -77,6 +77,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       unread: false,
       archived: false,
       parentId: '',
+      noFolder: false,
       ...meta
     },
     logId: '',
@@ -166,7 +167,8 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     pinned: info.pinned,
     unread: info.unread,
     archived: info.archived,
-    parentId: info.parentSessionId
+    parentId: info.parentSessionId,
+    noFolder: info.noFolder
   }
 }
 
