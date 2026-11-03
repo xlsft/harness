@@ -117,7 +117,7 @@ func Run(ctx context.Context, o Options) int {
 	if prompt == "" {
 		return r.fatal(errors.New("no prompt given: pass it as an argument or on stdin"))
 	}
-	if focus, ok := compactCommand(prompt); ok {
+	if focus, ok := agent.CompactCommand(prompt); ok {
 		return r.compact(ctx, focus)
 	}
 	res := sess.Agent.RunTurn(ctx, []llm.ContentBlock{llm.TextBlock(prompt)})
@@ -126,18 +126,6 @@ func Run(ctx context.Context, o Options) int {
 		return 1
 	}
 	return 0
-}
-
-// compactCommand recognizes "/compact [focus instructions]".
-func compactCommand(prompt string) (string, bool) {
-	p := strings.TrimSpace(prompt)
-	if p == "/compact" {
-		return "", true
-	}
-	if strings.HasPrefix(p, "/compact ") || strings.HasPrefix(p, "/compact\n") {
-		return strings.TrimSpace(p[len("/compact"):]), true
-	}
-	return "", false
 }
 
 func (r *runner) compact(ctx context.Context, focus string) int {

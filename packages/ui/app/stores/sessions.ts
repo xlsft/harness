@@ -80,6 +80,8 @@ export const useSessionStore = defineStore('sessions', {
     // Remote sessions the user chose to drive from here ("Continue via remote control"): the composer replaces
     // the "Running on <device>" notice while the session stays remote-controllable.
     remoteControl: {} as Record<string, boolean>,
+    // Sessions with a compaction requested from here (button or /compact) that has not returned yet.
+    compacting: {} as Record<string, boolean>,
     unsubscribers: {} as Record<string, () => void>
   }),
 
@@ -478,8 +480,20 @@ export const useSessionStore = defineStore('sessions', {
       return (await this.transport?.suggestFiles(id, query, 8)) ?? []
     },
 
-    async compact(id: string) {
-      await this.transport?.compact(id)
+    // Compacts now; the Compacted event adds the card to the transcript. Concurrent requests are dropped.
+    async compact(id: string, instructions = '') {
+      if (!this.transport || this.compacting[id]) return
+      this.compacting[id] = true
+      try {
+        await this.transport.compact(id, instructions)
+      } finally {
+        this.compacting[id] = false
+      }
+    },
+
+    async contextUsage(id: string) {
+      if (!this.transport) throw new Error('not connected')
+      return this.transport.getContextUsage(id)
     },
 
     async stopTask(id: string, taskId: string) {

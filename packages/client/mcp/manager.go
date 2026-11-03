@@ -532,6 +532,37 @@ func (m *Manager) ToolDefs() []llm.ToolDef {
 	return out
 }
 
+// ToolInfo describes one MCP tool of the session for the context breakdown.
+type ToolInfo struct {
+	// Server is the configured server name; Tool the tool's name on that server ("authenticate" for the
+	// authorization pseudo tool).
+	Server, Tool string
+	Def          llm.ToolDef
+	// Offered: the definition is sent to the model (not deferred, or loaded with ToolSearch).
+	Offered bool
+}
+
+// Catalog lists the session's MCP tools in catalog order, disabled ones left out.
+func (m *Manager) Catalog() []ToolInfo {
+	if m == nil {
+		return nil
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []ToolInfo
+	for _, t := range m.tools {
+		if m.disabled(t.name) {
+			continue
+		}
+		upstream := t.upstream
+		if t.auth {
+			upstream = "authenticate"
+		}
+		out = append(out, ToolInfo{Server: t.srv.name(), Tool: upstream, Def: t.def, Offered: !t.deferred || m.loaded[t.name]})
+	}
+	return out
+}
+
 // Names returns the names of the tools currently offered to the model (ToolSearch first).
 func (m *Manager) Names() []string {
 	if m == nil {

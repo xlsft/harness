@@ -239,7 +239,8 @@ func cmdServe(ctx context.Context, args []string) int {
 		}
 		// Per-user session state (pin, unread, archive, rename) and session deletes go to the server.
 		if os.Getenv("HARNESS_NO_SYNC") != "1" && url != "" && tokens != nil {
-			srv.Sync = syncclient.NewClient(url, rpc.HTTPClient(url), tokens)
+			sc := syncclient.NewClient(url, rpc.HTTPClient(url), tokens)
+			srv.Sync, srv.Preferences = sc, sc
 			// The session list also shows the sessions of the user's other machines; the relay viewer adds their
 			// presence and drives the ones open there (HARNESS_REMOTE_CONTROL=0 turns it off with the host side).
 			if creds, err := auth.DefaultStore(config.CredentialsFile()).Load(); err == nil && creds != nil {

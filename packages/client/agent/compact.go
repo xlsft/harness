@@ -216,6 +216,27 @@ func (a *Agent) Compact(ctx context.Context, instructions string) (CompactInfo, 
 	return info, err
 }
 
+// CompactCommand recognizes "/compact [focus instructions]" and returns the instructions.
+func CompactCommand(prompt string) (string, bool) {
+	p := strings.TrimSpace(prompt)
+	if p == "/compact" {
+		return "", true
+	}
+	if strings.HasPrefix(p, "/compact ") || strings.HasPrefix(p, "/compact\n") {
+		return strings.TrimSpace(p[len("/compact"):]), true
+	}
+	return "", false
+}
+
+// CompactIdle summarizes the conversation of a session nobody has used for a while (trigger "idle"). The
+// session must be idle; failures do not count against auto-compaction.
+func (a *Agent) CompactIdle(ctx context.Context) (CompactInfo, error) {
+	if a.Busy() {
+		return CompactInfo{}, ErrBusy
+	}
+	return a.compact(ctx, "", "idle")
+}
+
 // summarize asks the gateway (request class compaction) for a summary of
 // msgs using the bundle's compaction instruction.
 func (a *Agent) summarize(ctx context.Context, msgs []llm.Message, instructions string) (string, error) {

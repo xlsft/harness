@@ -172,7 +172,7 @@ func (r *replayer) entry(e session.Entry) {
 				// Manual compaction (and summarize-from-checkpoint) runs between turns.
 				r.endTurn()
 			}
-			tr := map[string]agentv1.Compacted_Trigger{"manual": agentv1.Compacted_TRIGGER_MANUAL, "auto": agentv1.Compacted_TRIGGER_AUTO, "rewind": agentv1.Compacted_TRIGGER_REWIND}
+			tr := map[string]agentv1.Compacted_Trigger{"manual": agentv1.Compacted_TRIGGER_MANUAL, "auto": agentv1.Compacted_TRIGGER_AUTO, "rewind": agentv1.Compacted_TRIGGER_REWIND, "idle": agentv1.Compacted_TRIGGER_IDLE}
 			c := &agentv1.Compacted{Trigger: tr[trigger], TokensBefore: int64(before)}
 			if c.Trigger == agentv1.Compacted_TRIGGER_UNSPECIFIED {
 				c.Trigger = agentv1.Compacted_TRIGGER_MANUAL

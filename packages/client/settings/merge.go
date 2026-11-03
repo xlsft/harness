@@ -45,6 +45,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	}
 	l.includeGit = s.boolean(src, raw, "includeGitInstructions")
 	l.interruptReply = s.boolean(src, raw, "interruptReply")
+	l.compactIdle = s.boolean(src, raw, KeyCompactIdleSessions)
 	if v, ok := raw["attribution"]; ok {
 		var a map[string]json.RawMessage
 		if err := json.Unmarshal(v, &a); err != nil {
@@ -270,6 +271,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.interruptReply != nil {
 			s.InterruptReply = *l.interruptReply
+		}
+		if l.compactIdle != nil {
+			s.CompactIdleSessions = *l.compactIdle
 		}
 		if l.attrCommit != nil {
 			v := *l.attrCommit

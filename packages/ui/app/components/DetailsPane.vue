@@ -13,8 +13,6 @@ const now = useNow()
 const relay = ref(true)
 
 const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
-const contextWindow = computed(() => model.value?.contextWindow || 200_000)
-const contextPct = computed(() => Math.min(100, Math.round((props.session.contextTokens / contextWindow.value) * 100)))
 
 const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool'))
 const outputs = computed(() => {
@@ -211,20 +209,7 @@ function taskMeta(command: string, tail: string) {
       </div>
     </section>
 
-    <section class="flex flex-col gap-[7px] border-b border-default px-[13px] py-3">
-      <div class="flex items-center">
-        <span class="text-[12px] text-muted">Context</span><span class="flex-1" /><span class="text-[12px] text-strong">{{ contextPct }}%</span>
-      </div>
-      <div class="flex h-1 bg-raised">
-        <span
-          class="bg-accent"
-          :style="{ width: `${contextPct}%` }"
-        />
-      </div>
-      <div class="flex justify-between text-[10.5px] text-muted">
-        <span>{{ formatTokens(session.contextTokens) }} / {{ formatTokens(contextWindow) }} tok</span><span>{{ formatCost(session.costUsd) }}</span>
-      </div>
-    </section>
+    <DetailsContext :session="session" />
 
     <section
       v-if="outputs.length"

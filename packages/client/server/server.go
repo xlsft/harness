@@ -58,6 +58,9 @@ type Server struct {
 	// Sync stores the per-user session state (pinned, unread, archived, renames) and deletes server copies of
 	// sessions; nil without sync (see sessionstate.go).
 	Sync SessionSync
+	// Preferences reads and writes the user's synced settings document (GetUserPreferences, preferences.go);
+	// nil without sync.
+	Preferences PreferenceDocs
 	// NoPanes says the frontends cannot open panes (the terminal UI): the
 	// Show and Visual tools then report that nothing was shown.
 	NoPanes bool
@@ -101,7 +104,9 @@ var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
 // sessions share one connection to the harness server.
 func New(base bootstrap.Options) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Server{Base: base, ctx: ctx, cancel: cancel, live: map[string]*liveSession{}}
+	s := &Server{Base: base, ctx: ctx, cancel: cancel, live: map[string]*liveSession{}}
+	go s.runIdleCompaction()
+	return s
 }
 
 func (s *Server) log() *slog.Logger {
@@ -517,6 +522,15 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
 		}
 	}
+	// "/compact [instructions]" compacts instead of starting a turn.
+	if len(content) == 1 && content[0].Type == llm.BlockText {
+		if instructions, ok := agent.CompactCommand(content[0].Text); ok {
+			if err := ls.compactCommand(instructions); err != nil {
+				return nil, err
+			}
+			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
+		}
+	}
 	ls.mu.Lock()
 	provisional := ""
 	if ls.title == "" {
@@ -806,16 +820,11 @@ func (s *Server) Compact(ctx context.Context, req *connect.Request[agentv1.Compa
 	if err != nil {
 		return nil, err
 	}
-	var cerr error
-	if err := ls.driver.Exclusive(func() {
-		_, cerr = ls.sess.Agent.Compact(ctx, req.Msg.GetInstructions())
-	}); err != nil {
+	info, err := ls.runCompaction(func() (agent.CompactInfo, error) { return ls.sess.Agent.Compact(ctx, req.Msg.GetInstructions()) })
+	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	if cerr != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, cerr)
-	}
-	return connect.NewResponse(&agentv1.CompactResponse{}), nil
+	return connect.NewResponse(&agentv1.CompactResponse{TokensBefore: int64(info.TokensBefore), TokensAfter: int64(info.TokensAfter)}), nil
 }
 
 func (s *Server) ListTasks(ctx context.Context, req *connect.Request[agentv1.ListTasksRequest]) (*connect.Response[agentv1.ListTasksResponse], error) {

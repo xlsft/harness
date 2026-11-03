@@ -237,6 +237,38 @@ func TestPolicyEnforcement(t *testing.T) {
 	}
 }
 
+func TestCompactIdleSessions(t *testing.T) {
+	root := t.TempDir()
+	cwd, home := filepath.Join(root, "p"), filepath.Join(root, "h")
+	load := func(docs DocSource) *Settings {
+		t.Helper()
+		s, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Docs: docs, Trusted: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	// On by default.
+	if s := load(&fakeDocs{synced: true}); !s.CompactIdleSessions {
+		t.Fatal("compactIdleSessions should default to true")
+	}
+	// The user's synced settings document (where UpdateUserPreferences writes it) turns it off.
+	user := doc("doc_u", commonv1.Scope_SCOPE_USER, syncv1.DocumentKind_DOCUMENT_KIND_SETTINGS, UserSettingsKey, `{"compactIdleSessions": false}`)
+	if s := load(&fakeDocs{synced: true, docs: []*syncv1.Document{user}}); s.CompactIdleSessions {
+		t.Fatal("the user document should turn it off")
+	}
+	// Before the first sync the user file applies.
+	writeJSON(t, filepath.Join(home, ".claude", "settings.json"), `{"compactIdleSessions": false}`)
+	if s := load(nil); s.CompactIdleSessions {
+		t.Fatal("the user file should turn it off")
+	}
+	// A wrong type is a problem and keeps the default.
+	user.Content = `{"compactIdleSessions": "no"}`
+	if s := load(&fakeDocs{synced: true, docs: []*syncv1.Document{user}}); !s.CompactIdleSessions || len(s.Problems) == 0 {
+		t.Fatalf("invalid value: %v %v", s.CompactIdleSessions, s.Problems)
+	}
+}
+
 func TestValidationCollected(t *testing.T) {
 	root := t.TempDir()
 	cwd := filepath.Join(root, "p")

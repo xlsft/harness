@@ -21,8 +21,8 @@ import type { UsersApi } from '~/lib/users/types'
 import type { AccountApi } from '~/lib/account/types'
 import type { UsageApi } from '~/lib/usage/types'
 import type { TerminalsApi } from '~/lib/terminal/types'
-
 import type { EnvironmentApi } from '~/lib/environment/types'
+import type { ContextUsageVM } from '~/lib/session/context'
 
 export interface ModelInfo {
   id: string
@@ -50,6 +50,12 @@ export interface NewSessionOptions {
   fork?: boolean
   // Run in a new git worktree of the repository containing cwd.
   worktree?: { name?: string, branch?: string, baseRef?: string }
+}
+
+// Per-user preferences the client honours for every session (stored in the user's synced settings).
+export interface UserPreferences {
+  // Compact sessions idle for 30 minutes whose context is above half the window, in the background.
+  compactIdleSessions: boolean
 }
 
 // Per-user session state kept on the harness server; unset fields stay as they are.
@@ -101,12 +107,18 @@ export interface SessionTransport {
 
   suggestFiles(sessionId: string, query: string, limit: number): Promise<string[]>
   compact(sessionId: string, instructions?: string): Promise<void>
+  // What fills the session's context window, by category (local sessions only).
+  getContextUsage(sessionId: string): Promise<ContextUsageVM>
   listTasks(sessionId: string): Promise<BackgroundTask[]>
   stopTask(sessionId: string, taskId: string): Promise<void>
 
   // Not part of AgentService yet: the model catalog (provider, context, price) comes from the server in M1+.
   // Connect falls back to InitializeResponse.model_ids.
   listModels(): Promise<ModelInfo[]>
+
+  // Per-user preferences; an update changes only the fields it sets and returns them all.
+  getUserPreferences(): Promise<UserPreferences>
+  updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences>
 
   // LLM providers and the auto-mode classifier for the settings screens (harness.llm.v1.ProviderService,
   // forwarded to the server by the client).

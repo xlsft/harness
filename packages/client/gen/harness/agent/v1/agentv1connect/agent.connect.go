@@ -98,6 +98,15 @@ const (
 	AgentServiceRewindProcedure = "/harness.agent.v1.AgentService/Rewind"
 	// AgentServiceCompactProcedure is the fully-qualified name of the AgentService's Compact RPC.
 	AgentServiceCompactProcedure = "/harness.agent.v1.AgentService/Compact"
+	// AgentServiceGetContextUsageProcedure is the fully-qualified name of the AgentService's
+	// GetContextUsage RPC.
+	AgentServiceGetContextUsageProcedure = "/harness.agent.v1.AgentService/GetContextUsage"
+	// AgentServiceGetUserPreferencesProcedure is the fully-qualified name of the AgentService's
+	// GetUserPreferences RPC.
+	AgentServiceGetUserPreferencesProcedure = "/harness.agent.v1.AgentService/GetUserPreferences"
+	// AgentServiceUpdateUserPreferencesProcedure is the fully-qualified name of the AgentService's
+	// UpdateUserPreferences RPC.
+	AgentServiceUpdateUserPreferencesProcedure = "/harness.agent.v1.AgentService/UpdateUserPreferences"
 	// AgentServiceListTasksProcedure is the fully-qualified name of the AgentService's ListTasks RPC.
 	AgentServiceListTasksProcedure = "/harness.agent.v1.AgentService/ListTasks"
 	// AgentServiceStopTaskProcedure is the fully-qualified name of the AgentService's StopTask RPC.
@@ -199,6 +208,13 @@ type AgentServiceClient interface {
 	Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error)
 	// Compacts the conversation now (same as /compact), with optional focus instructions.
 	Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error)
+	// What fills the session's context window, by category (see ContextUsage). Computed on demand: frontends
+	// ask when a context view opens and again after turns while it stays open. Local sessions only.
+	GetContextUsage(context.Context, *connect.Request[v1.GetContextUsageRequest]) (*connect.Response[v1.GetContextUsageResponse], error)
+	// Per-user preferences that the client honours for every session (stored in the user's synced settings
+	// document). Without a server connection Get returns the defaults and Update fails with FAILED_PRECONDITION.
+	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
+	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
 	// Background tasks: shell commands started with run_in_background or moved to the background.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
@@ -402,6 +418,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("Compact")),
 			connect.WithClientOptions(opts...),
 		),
+		getContextUsage: connect.NewClient[v1.GetContextUsageRequest, v1.GetContextUsageResponse](
+			httpClient,
+			baseURL+AgentServiceGetContextUsageProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetContextUsage")),
+			connect.WithClientOptions(opts...),
+		),
+		getUserPreferences: connect.NewClient[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse](
+			httpClient,
+			baseURL+AgentServiceGetUserPreferencesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetUserPreferences")),
+			connect.WithClientOptions(opts...),
+		),
+		updateUserPreferences: connect.NewClient[v1.UpdateUserPreferencesRequest, v1.UpdateUserPreferencesResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateUserPreferencesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateUserPreferences")),
+			connect.WithClientOptions(opts...),
+		),
 		listTasks: connect.NewClient[v1.ListTasksRequest, v1.ListTasksResponse](
 			httpClient,
 			baseURL+AgentServiceListTasksProcedure,
@@ -497,45 +531,48 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // agentServiceClient implements AgentServiceClient.
 type agentServiceClient struct {
-	initialize          *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
-	createSession       *connect.Client[v1.CreateSessionRequest, v1.CreateSessionResponse]
-	listSessions        *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
-	updateSession       *connect.Client[v1.UpdateSessionRequest, v1.UpdateSessionResponse]
-	deleteSession       *connect.Client[v1.DeleteSessionRequest, v1.DeleteSessionResponse]
-	listRecentFolders   *connect.Client[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse]
-	listDirectory       *connect.Client[v1.ListDirectoryRequest, v1.ListDirectoryResponse]
-	listBranches        *connect.Client[v1.ListBranchesRequest, v1.ListBranchesResponse]
-	subscribe           *connect.Client[v1.SubscribeRequest, v1.SubscribeResponse]
-	sendUserMessage     *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
-	removeQueuedMessage *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
-	interrupt           *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
-	respondToPermission *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
-	answerQuestion      *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
-	setModel            *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
-	setEffort           *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
-	setPermissionMode   *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
-	setOutputStyle      *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
-	listOutputStyles    *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
-	suggestFiles        *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
-	respondToPlan       *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
-	listCheckpoints     *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
-	rewind              *connect.Client[v1.RewindRequest, v1.RewindResponse]
-	compact             *connect.Client[v1.CompactRequest, v1.CompactResponse]
-	listTasks           *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
-	stopTask            *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
-	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
-	getWorkspaceTrust   *connect.Client[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse]
-	setWorkspaceTrust   *connect.Client[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse]
-	createTerminal      *connect.Client[v1.CreateTerminalRequest, v1.CreateTerminalResponse]
-	attachTerminal      *connect.Client[v1.AttachTerminalRequest, v1.AttachTerminalResponse]
-	listTerminals       *connect.Client[v1.ListTerminalsRequest, v1.ListTerminalsResponse]
-	killTerminal        *connect.Client[v1.KillTerminalRequest, v1.KillTerminalResponse]
-	resizeTerminal      *connect.Client[v1.ResizeTerminalRequest, v1.ResizeTerminalResponse]
-	getEnvironment      *connect.Client[v1.GetEnvironmentRequest, v1.GetEnvironmentResponse]
-	updateEnvironment   *connect.Client[v1.UpdateEnvironmentRequest, v1.UpdateEnvironmentResponse]
-	getFolderInfo       *connect.Client[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse]
-	setSessionFolder    *connect.Client[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse]
-	addSessionDirectory *connect.Client[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse]
+	initialize            *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
+	createSession         *connect.Client[v1.CreateSessionRequest, v1.CreateSessionResponse]
+	listSessions          *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	updateSession         *connect.Client[v1.UpdateSessionRequest, v1.UpdateSessionResponse]
+	deleteSession         *connect.Client[v1.DeleteSessionRequest, v1.DeleteSessionResponse]
+	listRecentFolders     *connect.Client[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse]
+	listDirectory         *connect.Client[v1.ListDirectoryRequest, v1.ListDirectoryResponse]
+	listBranches          *connect.Client[v1.ListBranchesRequest, v1.ListBranchesResponse]
+	subscribe             *connect.Client[v1.SubscribeRequest, v1.SubscribeResponse]
+	sendUserMessage       *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
+	removeQueuedMessage   *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
+	interrupt             *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
+	respondToPermission   *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
+	answerQuestion        *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
+	setModel              *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
+	setEffort             *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
+	setPermissionMode     *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
+	setOutputStyle        *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
+	listOutputStyles      *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
+	suggestFiles          *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
+	respondToPlan         *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
+	listCheckpoints       *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
+	rewind                *connect.Client[v1.RewindRequest, v1.RewindResponse]
+	compact               *connect.Client[v1.CompactRequest, v1.CompactResponse]
+	getContextUsage       *connect.Client[v1.GetContextUsageRequest, v1.GetContextUsageResponse]
+	getUserPreferences    *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
+	updateUserPreferences *connect.Client[v1.UpdateUserPreferencesRequest, v1.UpdateUserPreferencesResponse]
+	listTasks             *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	stopTask              *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
+	closeSession          *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
+	getWorkspaceTrust     *connect.Client[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse]
+	setWorkspaceTrust     *connect.Client[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse]
+	createTerminal        *connect.Client[v1.CreateTerminalRequest, v1.CreateTerminalResponse]
+	attachTerminal        *connect.Client[v1.AttachTerminalRequest, v1.AttachTerminalResponse]
+	listTerminals         *connect.Client[v1.ListTerminalsRequest, v1.ListTerminalsResponse]
+	killTerminal          *connect.Client[v1.KillTerminalRequest, v1.KillTerminalResponse]
+	resizeTerminal        *connect.Client[v1.ResizeTerminalRequest, v1.ResizeTerminalResponse]
+	getEnvironment        *connect.Client[v1.GetEnvironmentRequest, v1.GetEnvironmentResponse]
+	updateEnvironment     *connect.Client[v1.UpdateEnvironmentRequest, v1.UpdateEnvironmentResponse]
+	getFolderInfo         *connect.Client[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse]
+	setSessionFolder      *connect.Client[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse]
+	addSessionDirectory   *connect.Client[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -656,6 +693,21 @@ func (c *agentServiceClient) Rewind(ctx context.Context, req *connect.Request[v1
 // Compact calls harness.agent.v1.AgentService.Compact.
 func (c *agentServiceClient) Compact(ctx context.Context, req *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error) {
 	return c.compact.CallUnary(ctx, req)
+}
+
+// GetContextUsage calls harness.agent.v1.AgentService.GetContextUsage.
+func (c *agentServiceClient) GetContextUsage(ctx context.Context, req *connect.Request[v1.GetContextUsageRequest]) (*connect.Response[v1.GetContextUsageResponse], error) {
+	return c.getContextUsage.CallUnary(ctx, req)
+}
+
+// GetUserPreferences calls harness.agent.v1.AgentService.GetUserPreferences.
+func (c *agentServiceClient) GetUserPreferences(ctx context.Context, req *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error) {
+	return c.getUserPreferences.CallUnary(ctx, req)
+}
+
+// UpdateUserPreferences calls harness.agent.v1.AgentService.UpdateUserPreferences.
+func (c *agentServiceClient) UpdateUserPreferences(ctx context.Context, req *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error) {
+	return c.updateUserPreferences.CallUnary(ctx, req)
 }
 
 // ListTasks calls harness.agent.v1.AgentService.ListTasks.
@@ -789,6 +841,13 @@ type AgentServiceHandler interface {
 	Rewind(context.Context, *connect.Request[v1.RewindRequest]) (*connect.Response[v1.RewindResponse], error)
 	// Compacts the conversation now (same as /compact), with optional focus instructions.
 	Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error)
+	// What fills the session's context window, by category (see ContextUsage). Computed on demand: frontends
+	// ask when a context view opens and again after turns while it stays open. Local sessions only.
+	GetContextUsage(context.Context, *connect.Request[v1.GetContextUsageRequest]) (*connect.Response[v1.GetContextUsageResponse], error)
+	// Per-user preferences that the client honours for every session (stored in the user's synced settings
+	// document). Without a server connection Get returns the defaults and Update fails with FAILED_PRECONDITION.
+	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
+	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
 	// Background tasks: shell commands started with run_in_background or moved to the background.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
@@ -988,6 +1047,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("Compact")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetContextUsageHandler := connect.NewUnaryHandler(
+		AgentServiceGetContextUsageProcedure,
+		svc.GetContextUsage,
+		connect.WithSchema(agentServiceMethods.ByName("GetContextUsage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetUserPreferencesHandler := connect.NewUnaryHandler(
+		AgentServiceGetUserPreferencesProcedure,
+		svc.GetUserPreferences,
+		connect.WithSchema(agentServiceMethods.ByName("GetUserPreferences")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateUserPreferencesHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateUserPreferencesProcedure,
+		svc.UpdateUserPreferences,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateUserPreferences")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceListTasksHandler := connect.NewUnaryHandler(
 		AgentServiceListTasksProcedure,
 		svc.ListTasks,
@@ -1128,6 +1205,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceRewindHandler.ServeHTTP(w, r)
 		case AgentServiceCompactProcedure:
 			agentServiceCompactHandler.ServeHTTP(w, r)
+		case AgentServiceGetContextUsageProcedure:
+			agentServiceGetContextUsageHandler.ServeHTTP(w, r)
+		case AgentServiceGetUserPreferencesProcedure:
+			agentServiceGetUserPreferencesHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateUserPreferencesProcedure:
+			agentServiceUpdateUserPreferencesHandler.ServeHTTP(w, r)
 		case AgentServiceListTasksProcedure:
 			agentServiceListTasksHandler.ServeHTTP(w, r)
 		case AgentServiceStopTaskProcedure:
@@ -1261,6 +1344,18 @@ func (UnimplementedAgentServiceHandler) Rewind(context.Context, *connect.Request
 
 func (UnimplementedAgentServiceHandler) Compact(context.Context, *connect.Request[v1.CompactRequest]) (*connect.Response[v1.CompactResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.Compact is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetContextUsage(context.Context, *connect.Request[v1.GetContextUsageRequest]) (*connect.Response[v1.GetContextUsageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetContextUsage is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetUserPreferences is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateUserPreferences is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
