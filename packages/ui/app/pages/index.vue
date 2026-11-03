@@ -4,6 +4,7 @@ import { SplitterGroup, SplitterPanel } from 'reka-ui'
 import { MAIN_SESSION } from '~/lib/transport/scenario'
 import { PANE_WIDTH } from '~/composables/usePanes'
 import { panesOf } from '~/composables/usePaneLayout'
+import { isDesktop } from '~/lib/desktop'
 
 const store = useSessionStore()
 const route = useRoute()
@@ -21,13 +22,17 @@ watch(paneArea, (el) => {
 })
 onBeforeUnmount(() => paneObserver?.disconnect())
 
-// Desktop arranges the panes beside the transcript; below lg the last opened pane covers the screen.
+// Panes sit beside the transcript; in a narrow browser tab (a phone) the last opened pane covers the screen
+// instead. The desktop app keeps them side by side at any window size (half a screen is still a desktop).
 const wide = ref(true)
 onMounted(() => {
+  if (isDesktop()) return
   const mq = window.matchMedia('(min-width: 1024px)')
   wide.value = mq.matches
   mq.addEventListener('change', e => wide.value = e.matches)
 })
+// Session details is a summary column, not something to cover the transcript with.
+const covering = computed(() => panes.value.filter(p => p !== 'details').at(-1))
 
 // Initial share of the pane area: the natural width of the outer row's panes, within 12-70%.
 const paneShare = computed(() => {
@@ -127,11 +132,11 @@ useShowRequests()
     </SplitterGroup>
 
     <div
-      v-if="session && !wide && panes.length"
+      v-if="session && !wide && covering"
       class="fixed inset-0 z-40 bg-default"
     >
       <RightPane
-        :pane="panes[panes.length - 1]!"
+        :pane="covering"
         :session="session"
       />
     </div>

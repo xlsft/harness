@@ -2,6 +2,7 @@
 // Several panes can be open at once; session details is always the last column. An old ?panes= / ?pane=
 // link is applied once to the session it opens.
 // `?menu=<name>` opens a pane's menu on load (used to reach the menu states of the artboards).
+import { isDesktop } from '~/lib/desktop'
 
 export const PANES = ['details', 'terminal', 'diff', 'browser', 'files', 'artifact', 'sidechat', 'tasks', 'agents'] as const
 export type PaneName = typeof PANES[number]
@@ -52,7 +53,7 @@ export function usePanes() {
   const store = useSessionStore()
 
   // Phones open panes on demand only (they cover the transcript); desktop shows session details by default.
-  const desktop = useState('layout-desktop', () => import.meta.client ? window.matchMedia('(min-width: 1024px)').matches : true)
+  const desktop = useState('layout-desktop', () => import.meta.client ? isDesktop() || window.matchMedia('(min-width: 1024px)').matches : true)
 
   // Open panes per session (each session keeps its own set), remembered in this browser.
   const bySession = useState<Record<string, PaneName[]>>('panes-by-session', loadAll)
