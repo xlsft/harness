@@ -293,6 +293,11 @@ export interface SessionMeta {
   // Started without a folder: cwd is a private directory the client made for it (shown as "No folder", listed
   // under Chats, no repository).
   noFolder: boolean
+  // Remote control (the session relay switch): mirrored to the harness server right now; whether it can be turned
+  // on here, and if not, why (shown on the switch).
+  relayEnabled: boolean
+  relayAvailable: boolean
+  relayReason: string
 }
 
 export interface QueuedMessage {

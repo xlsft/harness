@@ -35,6 +35,9 @@ function info(id: string, title: string, repo: string, o: Partial<{ status: Sess
     remote: !!o.remote,
     deviceOnline: o.remote?.online,
     remoteControllable: !!o.remote?.controllable,
+    // Remote sessions report their machine's switch (read-only here).
+    relayEnabled: true,
+    relayAvailable: !o.remote,
     diffStats: { filesChanged: o.files ?? 0, additions: o.additions ?? 0, deletions: o.deletions ?? 0 },
     pullRequest: o.pr ? { number: o.pr, url: `https://${repo}/pull/${o.pr}`, state: PullRequest_State.OPEN } : undefined
   })

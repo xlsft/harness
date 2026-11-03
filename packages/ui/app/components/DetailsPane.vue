@@ -10,7 +10,19 @@ import type { RowMenuItem } from '~/components/RowMenu.vue'
 const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
 const now = useNow()
-const relay = ref(true)
+// The session relay switch (remote control): on mirrors the session to the harness server. A remote session's
+// switch belongs to its machine (read-only here).
+const relay = computed({
+  get: () => props.session.meta.relayEnabled,
+  set: async (on: boolean) => {
+    try {
+      await store.setSessionRelay(props.session.meta.id, on)
+    } catch (e) {
+      toast.add({ title: on ? 'Could not turn on the session relay' : 'Could not turn off the session relay', description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
+    }
+  }
+})
+const relayLocked = computed(() => props.session.meta.remote ? `Switched on ${props.session.meta.deviceName || 'its own machine'}` : props.session.meta.relayAvailable ? '' : props.session.meta.relayReason || 'Remote control is not available')
 
 const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool'))
 const outputs = computed(() => {
@@ -118,10 +130,12 @@ const folderMenu = computed<(RowMenuItem | null)[]>(() => {
     ...(local ? [{ label: 'Open in terminal', run: () => openTerminal(cwd) }] : [])
   ]
 })
-const relayMenu = computed<(RowMenuItem | null)[]>(() => [
-  { label: 'Open on the web', run: () => openExternal(sessionLink.value) },
-  { label: 'Copy link', run: () => copy(sessionLink.value, 'Link') }
-])
+const relayMenu = computed<(RowMenuItem | null)[]>(() => relay.value
+  ? [
+      { label: 'Open on the web', run: () => openExternal(sessionLink.value) },
+      { label: 'Copy link', run: () => copy(sessionLink.value, 'Link') }
+    ]
+  : [])
 const branchMenu = computed<(RowMenuItem | null)[]>(() => [
   { label: 'Copy branch name', run: () => copy(props.session.meta.gitBranch || 'main', 'Branch name') },
   null,
@@ -200,12 +214,9 @@ function taskMeta(command: string, tail: string) {
           <HIcon name="branch" /><span class="min-w-0 truncate">{{ session.meta.gitBranch || 'main' }}</span>
         </button>
       </RowMenu>
-      <div
-        v-if="!session.meta.remote"
-        class="nav-row"
-      >
+      <div class="nav-row">
         <HIcon name="relay" /><span class="min-w-0 truncate">Session relay</span><span class="flex-1" /><RowMenu
-          v-if="sessionLink"
+          v-if="sessionLink && relayMenu.length"
           :items="relayMenu"
           label="Session relay"
           align="end"
@@ -216,10 +227,18 @@ function taskMeta(command: string, tail: string) {
             :size="26"
             :icon-size="13"
           />
-        </RowMenu><HToggle
-          v-model="relay"
-          label="Session relay"
-        />
+        </RowMenu><UTooltip
+          :text="relayLocked"
+          :disabled="!relayLocked"
+          :delay-duration="300"
+          :content="{ side: 'bottom', sideOffset: 4 }"
+        >
+          <span class="flex"><HToggle
+            v-model="relay"
+            label="Session relay"
+            :disabled="!!relayLocked"
+          /></span>
+        </UTooltip>
       </div>
     </section>
 

@@ -193,6 +193,8 @@ export class MockTransport implements SessionTransport {
         title: 'New session',
         cwd: mockChatDir(id),
         noFolder: true,
+        relayEnabled: true,
+        relayAvailable: true,
         model: opts.model || MODELS[0]!.id,
         permissionMode: opts.permissionMode,
         updatedAt: new Date(this.now()).toISOString()
@@ -210,6 +212,8 @@ export class MockTransport implements SessionTransport {
       model: opts.model || MODELS[0]!.id,
       permissionMode: opts.permissionMode,
       worktree: opts.worktree ? { path: `${repo}/.harness/worktrees/${name}`, branch: opts.worktree.branch || `harness/${name}`, baseRef: opts.worktree.baseRef || 'main', repositoryPath: repo } : undefined,
+      relayEnabled: true,
+      relayAvailable: true,
       updatedAt: new Date(this.now()).toISOString()
     })
     this.sessions.set(info.id, { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null })
@@ -686,6 +690,15 @@ export class MockTransport implements SessionTransport {
   }
 
   async setEffort(_sessionId: string, _effort: Effort) {}
+
+  async setSessionRelay(sessionId: string, enabled: boolean) {
+    const s = this.get(sessionId)
+    if (s.info.remote) throw new Error('[failed_precondition] remote control is switched on the session\'s own machine')
+    if (enabled && !s.info.relayAvailable) throw new Error(`[failed_precondition] ${s.info.relayUnavailableReason}`)
+    s.info = create(SessionInfoSchema, { ...s.info, relayEnabled: enabled })
+    this.emit(s, b => b.sessionUpdated(s.info))
+    return s.info
+  }
 
   async setPermissionMode(sessionId: string, mode: PermissionMode) {
     const s = this.get(sessionId)
