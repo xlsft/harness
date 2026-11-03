@@ -19,7 +19,7 @@ export const file_harness_speech_v1_speech: GenFile = /*@__PURE__*/
  */
 export type SpeechProvider = Message<"harness.speech.v1.SpeechProvider"> & {
   /**
-   * Stable id: "openai", "elevenlabs", ... for global providers; "whisper-cpp", "parakeet", "macos-say",
+   * Stable id: "openai", "elevenlabs", ... for global providers; "parakeet", "whisper", "macos-say",
    * "piper" for local ones; "browser" for the Web Speech API.
    *
    * @generated from field: string id = 1;
@@ -57,7 +57,7 @@ export type SpeechProvider = Message<"harness.speech.v1.SpeechProvider"> & {
   available: boolean;
 
   /**
-   * Why it is not available, for the settings screen ("whisper-cli not found: brew install whisper-cpp").
+   * Why it is not available, for the settings screen ("Download a model to use it").
    *
    * @generated from field: string unavailable_reason = 7;
    */
@@ -707,7 +707,8 @@ export const SpeechLocationSchema: GenEnum<SpeechLocation> = /*@__PURE__*/
  *     Deepgram, ElevenLabs, AssemblyAI, Mistral, OpenRouter, MiniMax, Gemini and Cartesia. Admins set their API
  *     keys here; keys are stored encrypted, are write-only and are never returned (api_key_set / api_key_hint).
  *   - LOCAL providers run on the user's machine inside the client (harness.agent.v1.AgentService speech RPCs):
- *     whisper.cpp, NVIDIA Parakeet (sherpa-onnx), macOS `say`, Piper. No server is involved.
+ *     NVIDIA Parakeet, Whisper and Piper (through the sherpa-onnx runtime the client downloads into HARNESS_HOME)
+ *     and macOS `say`. No server is involved, and nothing about them (models, choices) is synced.
  *   - BROWSER is the frontend's own Web Speech API; neither the client nor the server runs it. Its provider id
  *     is "browser" (reserved), so frontends may store it as the chosen provider.
  *

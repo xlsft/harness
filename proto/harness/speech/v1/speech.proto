@@ -9,7 +9,8 @@ package harness.speech.v1;
 //     Deepgram, ElevenLabs, AssemblyAI, Mistral, OpenRouter, MiniMax, Gemini and Cartesia. Admins set their API
 //     keys here; keys are stored encrypted, are write-only and are never returned (api_key_set / api_key_hint).
 //   - LOCAL providers run on the user's machine inside the client (harness.agent.v1.AgentService speech RPCs):
-//     whisper.cpp, NVIDIA Parakeet (sherpa-onnx), macOS `say`, Piper. No server is involved.
+//     NVIDIA Parakeet, Whisper and Piper (through the sherpa-onnx runtime the client downloads into HARNESS_HOME)
+//     and macOS `say`. No server is involved, and nothing about them (models, choices) is synced.
 //   - BROWSER is the frontend's own Web Speech API; neither the client nor the server runs it. Its provider id
 //     is "browser" (reserved), so frontends may store it as the chosen provider.
 //
@@ -54,7 +55,7 @@ enum SpeechLocation {
 
 // A speech provider for one kind (a vendor offering both STT and TTS is listed once per kind).
 message SpeechProvider {
-  // Stable id: "openai", "elevenlabs", ... for global providers; "whisper-cpp", "parakeet", "macos-say",
+  // Stable id: "openai", "elevenlabs", ... for global providers; "parakeet", "whisper", "macos-say",
   // "piper" for local ones; "browser" for the Web Speech API.
   string id = 1;
   string display_name = 2;
@@ -65,7 +66,7 @@ message SpeechProvider {
   // It can be used right now: configured and, for local engines, with at least one model installed and any
   // helper they need (ffmpeg for compressed audio) present.
   bool available = 6;
-  // Why it is not available, for the settings screen ("whisper-cli not found: brew install whisper-cpp").
+  // Why it is not available, for the settings screen ("Download a model to use it").
   string unavailable_reason = 7;
   // Models in display order. Local engines: installed or downloadable (see SpeechModel.installed).
   repeated SpeechModel models = 8;

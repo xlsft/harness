@@ -29,6 +29,7 @@ import (
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/sdk"
 	"github.com/xlsft/harness/packages/client/server"
+	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/web"
 )
@@ -234,6 +235,8 @@ func cmdServe(ctx context.Context, args []string) int {
 		srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
 		// Settings screens (providers, classifier) reach the server through this client.
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
+		// Dictation and read-aloud with the server's global speech providers (local engines need no server).
+		srv.SpeechCore = speech.NewCore(url, rpc.HTTPClient(url), tokens)
 		if relay.Enabled(*remote, url, tokens != nil) {
 			relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
 		}

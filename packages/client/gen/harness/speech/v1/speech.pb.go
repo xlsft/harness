@@ -130,7 +130,7 @@ func (SpeechLocation) EnumDescriptor() ([]byte, []int) {
 // A speech provider for one kind (a vendor offering both STT and TTS is listed once per kind).
 type SpeechProvider struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable id: "openai", "elevenlabs", ... for global providers; "whisper-cpp", "parakeet", "macos-say",
+	// Stable id: "openai", "elevenlabs", ... for global providers; "parakeet", "whisper", "macos-say",
 	// "piper" for local ones; "browser" for the Web Speech API.
 	Id          string         `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	DisplayName string         `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
@@ -141,7 +141,7 @@ type SpeechProvider struct {
 	// It can be used right now: configured and, for local engines, with at least one model installed and any
 	// helper they need (ffmpeg for compressed audio) present.
 	Available bool `protobuf:"varint,6,opt,name=available,proto3" json:"available,omitempty"`
-	// Why it is not available, for the settings screen ("whisper-cli not found: brew install whisper-cpp").
+	// Why it is not available, for the settings screen ("Download a model to use it").
 	UnavailableReason string `protobuf:"bytes,7,opt,name=unavailable_reason,json=unavailableReason,proto3" json:"unavailable_reason,omitempty"`
 	// Models in display order. Local engines: installed or downloadable (see SpeechModel.installed).
 	Models []*SpeechModel `protobuf:"bytes,8,rep,name=models,proto3" json:"models,omitempty"`

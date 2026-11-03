@@ -33,6 +33,7 @@ import (
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
@@ -102,6 +103,12 @@ type Server struct {
 
 	// sides tracks the running side chat answers (sidechats.go).
 	sides sideChatRuns
+
+	// SpeechCore reaches the server's global speech providers (speech.go); nil without a server connection.
+	SpeechCore *speech.Core
+	// SpeechLocal runs this machine's speech engines; nil: created on first use under HARNESS_HOME/speech.
+	SpeechLocal *speech.Local
+	speech      speechState
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)

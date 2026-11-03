@@ -23,11 +23,20 @@ const (
 )
 
 type SpeechSettings struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Stt           *SttSettings           `protobuf:"bytes,1,opt,name=stt,proto3" json:"stt,omitempty"`
-	Tts           *TtsSettings           `protobuf:"bytes,2,opt,name=tts,proto3" json:"tts,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// What applies on this device: the device choice when its provider_id is set, else the synced one.
+	Stt *SttSettings `protobuf:"bytes,1,opt,name=stt,proto3" json:"stt,omitempty"`
+	Tts *TtsSettings `protobuf:"bytes,2,opt,name=tts,proto3" json:"tts,omitempty"`
+	// Synced to every device of the user (global providers only).
+	SyncedStt *SttSettings `protobuf:"bytes,3,opt,name=synced_stt,json=syncedStt,proto3" json:"synced_stt,omitempty"`
+	SyncedTts *TtsSettings `protobuf:"bytes,4,opt,name=synced_tts,json=syncedTts,proto3" json:"synced_tts,omitempty"`
+	// This device only (a local engine or "browser"); an empty provider_id follows the synced choice.
+	DeviceStt *SttSettings `protobuf:"bytes,5,opt,name=device_stt,json=deviceStt,proto3" json:"device_stt,omitempty"`
+	DeviceTts *TtsSettings `protobuf:"bytes,6,opt,name=device_tts,json=deviceTts,proto3" json:"device_tts,omitempty"`
+	// The synced part can be read and stored (the client is connected to a harness server).
+	SyncedAvailable bool `protobuf:"varint,7,opt,name=synced_available,json=syncedAvailable,proto3" json:"synced_available,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SpeechSettings) Reset() {
@@ -74,9 +83,44 @@ func (x *SpeechSettings) GetTts() *TtsSettings {
 	return nil
 }
 
+func (x *SpeechSettings) GetSyncedStt() *SttSettings {
+	if x != nil {
+		return x.SyncedStt
+	}
+	return nil
+}
+
+func (x *SpeechSettings) GetSyncedTts() *TtsSettings {
+	if x != nil {
+		return x.SyncedTts
+	}
+	return nil
+}
+
+func (x *SpeechSettings) GetDeviceStt() *SttSettings {
+	if x != nil {
+		return x.DeviceStt
+	}
+	return nil
+}
+
+func (x *SpeechSettings) GetDeviceTts() *TtsSettings {
+	if x != nil {
+		return x.DeviceTts
+	}
+	return nil
+}
+
+func (x *SpeechSettings) GetSyncedAvailable() bool {
+	if x != nil {
+		return x.SyncedAvailable
+	}
+	return false
+}
+
 type SttSettings struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Empty: none chosen (the frontend picks a default, e.g. "browser").
+	// Empty: none chosen.
 	ProviderId string `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	// Empty: the provider's default model.
 	Model string `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
@@ -492,11 +536,15 @@ func (x *GetSpeechSettingsResponse) GetSettings() *SpeechSettings {
 	return nil
 }
 
-// Replaces the parts that are set: a set `stt` replaces all STT settings, a set `tts` all TTS settings.
+// Replaces the parts that are set, each as a whole. A synced part takes a global provider id (or "" to clear);
+// a device part a local engine id or "browser" (or "" to follow the synced choice). Anything else is
+// INVALID_ARGUMENT. Setting a synced part without a server connection is FAILED_PRECONDITION.
 type UpdateSpeechSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Stt           *SttSettings           `protobuf:"bytes,1,opt,name=stt,proto3,oneof" json:"stt,omitempty"`
-	Tts           *TtsSettings           `protobuf:"bytes,2,opt,name=tts,proto3,oneof" json:"tts,omitempty"`
+	SyncedStt     *SttSettings           `protobuf:"bytes,1,opt,name=synced_stt,json=syncedStt,proto3,oneof" json:"synced_stt,omitempty"`
+	SyncedTts     *TtsSettings           `protobuf:"bytes,2,opt,name=synced_tts,json=syncedTts,proto3,oneof" json:"synced_tts,omitempty"`
+	DeviceStt     *SttSettings           `protobuf:"bytes,3,opt,name=device_stt,json=deviceStt,proto3,oneof" json:"device_stt,omitempty"`
+	DeviceTts     *TtsSettings           `protobuf:"bytes,4,opt,name=device_tts,json=deviceTts,proto3,oneof" json:"device_tts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -531,16 +579,30 @@ func (*UpdateSpeechSettingsRequest) Descriptor() ([]byte, []int) {
 	return file_harness_agent_v1_speech_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *UpdateSpeechSettingsRequest) GetStt() *SttSettings {
+func (x *UpdateSpeechSettingsRequest) GetSyncedStt() *SttSettings {
 	if x != nil {
-		return x.Stt
+		return x.SyncedStt
 	}
 	return nil
 }
 
-func (x *UpdateSpeechSettingsRequest) GetTts() *TtsSettings {
+func (x *UpdateSpeechSettingsRequest) GetSyncedTts() *TtsSettings {
 	if x != nil {
-		return x.Tts
+		return x.SyncedTts
+	}
+	return nil
+}
+
+func (x *UpdateSpeechSettingsRequest) GetDeviceStt() *SttSettings {
+	if x != nil {
+		return x.DeviceStt
+	}
+	return nil
+}
+
+func (x *UpdateSpeechSettingsRequest) GetDeviceTts() *TtsSettings {
+	if x != nil {
+		return x.DeviceTts
 	}
 	return nil
 }
@@ -594,7 +656,7 @@ type TranscribeAudioRequest struct {
 	Audio []byte                 `protobuf:"bytes,1,opt,name=audio,proto3" json:"audio,omitempty"`
 	// "audio/webm;codecs=opus" (MediaRecorder), "audio/wav", "audio/ogg", "audio/mpeg", "audio/mp4" ...
 	MimeType string `protobuf:"bytes,2,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
-	// Empty: the STT settings' provider / model / language.
+	// Empty: the effective STT settings' provider / model / language.
 	ProviderId    string `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	Model         string `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
 	Language      string `protobuf:"bytes,5,opt,name=language,proto3" json:"language,omitempty"`
@@ -750,7 +812,7 @@ type SynthesizeSpeechRequest struct {
 	Text string `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
 	// The text is already plain: skip the Markdown cleanup (code blocks, links, emphasis, tables).
 	PlainText bool `protobuf:"varint,2,opt,name=plain_text,json=plainText,proto3" json:"plain_text,omitempty"`
-	// Empty: the TTS settings' values.
+	// Empty: the effective TTS settings' values.
 	ProviderId string `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	Model      string `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
 	Voice      string `protobuf:"bytes,5,opt,name=voice,proto3" json:"voice,omitempty"`
@@ -928,23 +990,30 @@ func (x *SynthesizeSpeechResponse) GetVoice() string {
 	return ""
 }
 
-// A downloadable model of a local engine (STT models of whisper.cpp / Parakeet, Piper voices).
+// A downloadable file set of this machine: the sherpa-onnx runtime (provider_id "runtime", kind unspecified), a
+// Parakeet or Whisper model, or a Piper voice. Stored under HARNESS_HOME/speech/models; never synced.
 type LocalSpeechModel struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "<provider id>/<model id>", e.g. "whisper-cpp/base", "parakeet/parakeet-tdt-0.6b-v3", "piper/en_US-lessac-medium".
+	// "<provider id>/<model id>", e.g. "parakeet/parakeet-tdt-0.6b-v3", "whisper/base", "piper/en_US-lessac-medium",
+	// "runtime/sherpa-onnx".
 	Id          string        `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ProviderId  string        `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	Model       string        `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
 	DisplayName string        `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Kind        v1.SpeechKind `protobuf:"varint,5,opt,name=kind,proto3,enum=harness.speech.v1.SpeechKind" json:"kind,omitempty"`
-	Installed   bool          `protobuf:"varint,6,opt,name=installed,proto3" json:"installed,omitempty"`
+	// Its files are on disk (a model also needs the runtime to be usable; downloading a model installs it too).
+	Installed bool `protobuf:"varint,6,opt,name=installed,proto3" json:"installed,omitempty"`
 	// On disk when installed, else the download size (approximate; 0 when unknown).
 	SizeBytes int64 `protobuf:"varint,7,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	// A download is running (DownloadSpeechModel).
 	Downloading bool   `protobuf:"varint,8,opt,name=downloading,proto3" json:"downloading,omitempty"`
 	Description string `protobuf:"bytes,9,opt,name=description,proto3" json:"description,omitempty"`
 	// Languages, when the model is limited to some.
-	Languages     []string `protobuf:"bytes,10,rep,name=languages,proto3" json:"languages,omitempty"`
+	Languages []string `protobuf:"bytes,10,rep,name=languages,proto3" json:"languages,omitempty"`
+	// The engine's suggested default.
+	Recommended bool `protobuf:"varint,11,opt,name=recommended,proto3" json:"recommended,omitempty"`
+	// Not downloadable on this platform (the runtime has no build for it).
+	Unsupported   bool `protobuf:"varint,12,opt,name=unsupported,proto3" json:"unsupported,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1049,9 +1118,23 @@ func (x *LocalSpeechModel) GetLanguages() []string {
 	return nil
 }
 
+func (x *LocalSpeechModel) GetRecommended() bool {
+	if x != nil {
+		return x.Recommended
+	}
+	return false
+}
+
+func (x *LocalSpeechModel) GetUnsupported() bool {
+	if x != nil {
+		return x.Unsupported
+	}
+	return false
+}
+
 type ListLocalSpeechModelsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Unspecified: both kinds.
+	// Unspecified: everything, the runtime included.
 	Kind          v1.SpeechKind `protobuf:"varint,1,opt,name=kind,proto3,enum=harness.speech.v1.SpeechKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1097,7 +1180,7 @@ func (x *ListLocalSpeechModelsRequest) GetKind() v1.SpeechKind {
 type ListLocalSpeechModelsResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Models []*LocalSpeechModel    `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
-	// Where model files are stored.
+	// Where the files are stored.
 	ModelsDir     string `protobuf:"bytes,2,opt,name=models_dir,json=modelsDir,proto3" json:"models_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1192,8 +1275,9 @@ func (x *DownloadSpeechModelRequest) GetId() string {
 	return ""
 }
 
-// Progress messages, then one with done (or the stream fails). The download continues on the client when the
-// stream is cancelled; calling again joins it. An installed model answers done right away.
+// Progress messages, then one with done (or the stream fails). The total includes the runtime when it is
+// downloaded along. The download continues on the client when the stream is cancelled; calling again joins it.
+// An installed model answers done right away.
 type DownloadSpeechModelResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	DownloadedBytes int64                  `protobuf:"varint,1,opt,name=downloaded_bytes,json=downloadedBytes,proto3" json:"downloaded_bytes,omitempty"`
@@ -1357,10 +1441,19 @@ var File_harness_agent_v1_speech_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_speech_proto_rawDesc = "" +
 	"\n" +
-	"\x1dharness/agent/v1/speech.proto\x12\x10harness.agent.v1\x1a\x1eharness/speech/v1/speech.proto\"r\n" +
+	"\x1dharness/agent/v1/speech.proto\x12\x10harness.agent.v1\x1a\x1eharness/speech/v1/speech.proto\"\x95\x03\n" +
 	"\x0eSpeechSettings\x12/\n" +
 	"\x03stt\x18\x01 \x01(\v2\x1d.harness.agent.v1.SttSettingsR\x03stt\x12/\n" +
-	"\x03tts\x18\x02 \x01(\v2\x1d.harness.agent.v1.TtsSettingsR\x03tts\"`\n" +
+	"\x03tts\x18\x02 \x01(\v2\x1d.harness.agent.v1.TtsSettingsR\x03tts\x12<\n" +
+	"\n" +
+	"synced_stt\x18\x03 \x01(\v2\x1d.harness.agent.v1.SttSettingsR\tsyncedStt\x12<\n" +
+	"\n" +
+	"synced_tts\x18\x04 \x01(\v2\x1d.harness.agent.v1.TtsSettingsR\tsyncedTts\x12<\n" +
+	"\n" +
+	"device_stt\x18\x05 \x01(\v2\x1d.harness.agent.v1.SttSettingsR\tdeviceStt\x12<\n" +
+	"\n" +
+	"device_tts\x18\x06 \x01(\v2\x1d.harness.agent.v1.TtsSettingsR\tdeviceTts\x12)\n" +
+	"\x10synced_available\x18\a \x01(\bR\x0fsyncedAvailable\"`\n" +
 	"\vSttSettings\x12\x1f\n" +
 	"\vprovider_id\x18\x01 \x01(\tR\n" +
 	"providerId\x12\x14\n" +
@@ -1386,12 +1479,20 @@ const file_harness_agent_v1_speech_proto_rawDesc = "" +
 	"\x06voices\x18\x01 \x03(\v2\x1e.harness.speech.v1.SpeechVoiceR\x06voices\"\x1a\n" +
 	"\x18GetSpeechSettingsRequest\"Y\n" +
 	"\x19GetSpeechSettingsResponse\x12<\n" +
-	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.SpeechSettingsR\bsettings\"\x99\x01\n" +
-	"\x1bUpdateSpeechSettingsRequest\x124\n" +
-	"\x03stt\x18\x01 \x01(\v2\x1d.harness.agent.v1.SttSettingsH\x00R\x03stt\x88\x01\x01\x124\n" +
-	"\x03tts\x18\x02 \x01(\v2\x1d.harness.agent.v1.TtsSettingsH\x01R\x03tts\x88\x01\x01B\x06\n" +
-	"\x04_sttB\x06\n" +
-	"\x04_tts\"\\\n" +
+	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.SpeechSettingsR\bsettings\"\xe5\x02\n" +
+	"\x1bUpdateSpeechSettingsRequest\x12A\n" +
+	"\n" +
+	"synced_stt\x18\x01 \x01(\v2\x1d.harness.agent.v1.SttSettingsH\x00R\tsyncedStt\x88\x01\x01\x12A\n" +
+	"\n" +
+	"synced_tts\x18\x02 \x01(\v2\x1d.harness.agent.v1.TtsSettingsH\x01R\tsyncedTts\x88\x01\x01\x12A\n" +
+	"\n" +
+	"device_stt\x18\x03 \x01(\v2\x1d.harness.agent.v1.SttSettingsH\x02R\tdeviceStt\x88\x01\x01\x12A\n" +
+	"\n" +
+	"device_tts\x18\x04 \x01(\v2\x1d.harness.agent.v1.TtsSettingsH\x03R\tdeviceTts\x88\x01\x01B\r\n" +
+	"\v_synced_sttB\r\n" +
+	"\v_synced_ttsB\r\n" +
+	"\v_device_sttB\r\n" +
+	"\v_device_tts\"\\\n" +
 	"\x1cUpdateSpeechSettingsResponse\x12<\n" +
 	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.SpeechSettingsR\bsettings\"\x9e\x01\n" +
 	"\x16TranscribeAudioRequest\x12\x14\n" +
@@ -1427,7 +1528,7 @@ const file_harness_agent_v1_speech_proto_rawDesc = "" +
 	"\vprovider_id\x18\x05 \x01(\tR\n" +
 	"providerId\x12\x14\n" +
 	"\x05model\x18\x06 \x01(\tR\x05model\x12\x14\n" +
-	"\x05voice\x18\a \x01(\tR\x05voice\"\xce\x02\n" +
+	"\x05voice\x18\a \x01(\tR\x05voice\"\x92\x03\n" +
 	"\x10LocalSpeechModel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vprovider_id\x18\x02 \x01(\tR\n" +
@@ -1441,7 +1542,9 @@ const file_harness_agent_v1_speech_proto_rawDesc = "" +
 	"\vdownloading\x18\b \x01(\bR\vdownloading\x12 \n" +
 	"\vdescription\x18\t \x01(\tR\vdescription\x12\x1c\n" +
 	"\tlanguages\x18\n" +
-	" \x03(\tR\tlanguages\"Q\n" +
+	" \x03(\tR\tlanguages\x12 \n" +
+	"\vrecommended\x18\v \x01(\bR\vrecommended\x12 \n" +
+	"\vunsupported\x18\f \x01(\bR\vunsupported\"Q\n" +
 	"\x1cListLocalSpeechModelsRequest\x121\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x1d.harness.speech.v1.SpeechKindR\x04kind\"z\n" +
 	"\x1dListLocalSpeechModelsResponse\x12:\n" +
@@ -1505,22 +1608,28 @@ var file_harness_agent_v1_speech_proto_goTypes = []any{
 var file_harness_agent_v1_speech_proto_depIdxs = []int32{
 	1,  // 0: harness.agent.v1.SpeechSettings.stt:type_name -> harness.agent.v1.SttSettings
 	2,  // 1: harness.agent.v1.SpeechSettings.tts:type_name -> harness.agent.v1.TtsSettings
-	22, // 2: harness.agent.v1.ListSpeechProvidersRequest.kind:type_name -> harness.speech.v1.SpeechKind
-	23, // 3: harness.agent.v1.ListSpeechProvidersResponse.providers:type_name -> harness.speech.v1.SpeechProvider
-	24, // 4: harness.agent.v1.ListSpeechVoicesResponse.voices:type_name -> harness.speech.v1.SpeechVoice
-	0,  // 5: harness.agent.v1.GetSpeechSettingsResponse.settings:type_name -> harness.agent.v1.SpeechSettings
-	1,  // 6: harness.agent.v1.UpdateSpeechSettingsRequest.stt:type_name -> harness.agent.v1.SttSettings
-	2,  // 7: harness.agent.v1.UpdateSpeechSettingsRequest.tts:type_name -> harness.agent.v1.TtsSettings
-	0,  // 8: harness.agent.v1.UpdateSpeechSettingsResponse.settings:type_name -> harness.agent.v1.SpeechSettings
-	22, // 9: harness.agent.v1.LocalSpeechModel.kind:type_name -> harness.speech.v1.SpeechKind
-	22, // 10: harness.agent.v1.ListLocalSpeechModelsRequest.kind:type_name -> harness.speech.v1.SpeechKind
-	15, // 11: harness.agent.v1.ListLocalSpeechModelsResponse.models:type_name -> harness.agent.v1.LocalSpeechModel
-	15, // 12: harness.agent.v1.DownloadSpeechModelResponse.model:type_name -> harness.agent.v1.LocalSpeechModel
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	1,  // 2: harness.agent.v1.SpeechSettings.synced_stt:type_name -> harness.agent.v1.SttSettings
+	2,  // 3: harness.agent.v1.SpeechSettings.synced_tts:type_name -> harness.agent.v1.TtsSettings
+	1,  // 4: harness.agent.v1.SpeechSettings.device_stt:type_name -> harness.agent.v1.SttSettings
+	2,  // 5: harness.agent.v1.SpeechSettings.device_tts:type_name -> harness.agent.v1.TtsSettings
+	22, // 6: harness.agent.v1.ListSpeechProvidersRequest.kind:type_name -> harness.speech.v1.SpeechKind
+	23, // 7: harness.agent.v1.ListSpeechProvidersResponse.providers:type_name -> harness.speech.v1.SpeechProvider
+	24, // 8: harness.agent.v1.ListSpeechVoicesResponse.voices:type_name -> harness.speech.v1.SpeechVoice
+	0,  // 9: harness.agent.v1.GetSpeechSettingsResponse.settings:type_name -> harness.agent.v1.SpeechSettings
+	1,  // 10: harness.agent.v1.UpdateSpeechSettingsRequest.synced_stt:type_name -> harness.agent.v1.SttSettings
+	2,  // 11: harness.agent.v1.UpdateSpeechSettingsRequest.synced_tts:type_name -> harness.agent.v1.TtsSettings
+	1,  // 12: harness.agent.v1.UpdateSpeechSettingsRequest.device_stt:type_name -> harness.agent.v1.SttSettings
+	2,  // 13: harness.agent.v1.UpdateSpeechSettingsRequest.device_tts:type_name -> harness.agent.v1.TtsSettings
+	0,  // 14: harness.agent.v1.UpdateSpeechSettingsResponse.settings:type_name -> harness.agent.v1.SpeechSettings
+	22, // 15: harness.agent.v1.LocalSpeechModel.kind:type_name -> harness.speech.v1.SpeechKind
+	22, // 16: harness.agent.v1.ListLocalSpeechModelsRequest.kind:type_name -> harness.speech.v1.SpeechKind
+	15, // 17: harness.agent.v1.ListLocalSpeechModelsResponse.models:type_name -> harness.agent.v1.LocalSpeechModel
+	15, // 18: harness.agent.v1.DownloadSpeechModelResponse.model:type_name -> harness.agent.v1.LocalSpeechModel
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_speech_proto_init() }

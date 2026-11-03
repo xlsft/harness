@@ -5191,8 +5191,9 @@ export const AgentService: GenService<{
     output: typeof ListSpeechVoicesResponseSchema;
   },
   /**
-   * The user's speech choices, stored in the user's synced settings document (key "speech"); without a server
-   * connection in HARNESS_HOME/speech/settings.json.
+   * The user's speech choices in two parts: the synced choice of a global provider (the user's synced settings
+   * document, key "speech") and this device's choice of a local engine (HARNESS_HOME/speech/settings.json, never
+   * synced), which overrides the synced one on this device.
    *
    * @generated from rpc harness.agent.v1.AgentService.GetSpeechSettings
    */

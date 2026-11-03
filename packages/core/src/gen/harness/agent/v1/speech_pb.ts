@@ -12,13 +12,15 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/speech.proto.
  */
 export const file_harness_agent_v1_speech: GenFile = /*@__PURE__*/
-  fileDesc("Ch1oYXJuZXNzL2FnZW50L3YxL3NwZWVjaC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSJoCg5TcGVlY2hTZXR0aW5ncxIqCgNzdHQYASABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlN0dFNldHRpbmdzEioKA3R0cxgCIAEoCzIdLmhhcm5lc3MuYWdlbnQudjEuVHRzU2V0dGluZ3MiQwoLU3R0U2V0dGluZ3MSEwoLcHJvdmlkZXJfaWQYASABKAkSDQoFbW9kZWwYAiABKAkSEAoIbGFuZ3VhZ2UYAyABKAkiTwoLVHRzU2V0dGluZ3MSEwoLcHJvdmlkZXJfaWQYASABKAkSDQoFbW9kZWwYAiABKAkSDQoFdm9pY2UYAyABKAkSDQoFc3BlZWQYBCABKAEiSQoaTGlzdFNwZWVjaFByb3ZpZGVyc1JlcXVlc3QSKwoEa2luZBgBIAEoDjIdLmhhcm5lc3Muc3BlZWNoLnYxLlNwZWVjaEtpbmQihAEKG0xpc3RTcGVlY2hQcm92aWRlcnNSZXNwb25zZRI0Cglwcm92aWRlcnMYASADKAsyIS5oYXJuZXNzLnNwZWVjaC52MS5TcGVlY2hQcm92aWRlchIUCgxzZXJ2ZXJfZXJyb3IYAiABKAkSGQoRY2FuX21hbmFnZV9nbG9iYWwYAyABKAgiPQoXTGlzdFNwZWVjaFZvaWNlc1JlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSDQoFbW9kZWwYAiABKAkiSgoYTGlzdFNwZWVjaFZvaWNlc1Jlc3BvbnNlEi4KBnZvaWNlcxgBIAMoCzIeLmhhcm5lc3Muc3BlZWNoLnYxLlNwZWVjaFZvaWNlIhoKGEdldFNwZWVjaFNldHRpbmdzUmVxdWVzdCJPChlHZXRTcGVlY2hTZXR0aW5nc1Jlc3BvbnNlEjIKCHNldHRpbmdzGAEgASgLMiAuaGFybmVzcy5hZ2VudC52MS5TcGVlY2hTZXR0aW5ncyKPAQobVXBkYXRlU3BlZWNoU2V0dGluZ3NSZXF1ZXN0Ei8KA3N0dBgBIAEoCzIdLmhhcm5lc3MuYWdlbnQudjEuU3R0U2V0dGluZ3NIAIgBARIvCgN0dHMYAiABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlR0c1NldHRpbmdzSAGIAQFCBgoEX3N0dEIGCgRfdHRzIlIKHFVwZGF0ZVNwZWVjaFNldHRpbmdzUmVzcG9uc2USMgoIc2V0dGluZ3MYASABKAsyIC5oYXJuZXNzLmFnZW50LnYxLlNwZWVjaFNldHRpbmdzInAKFlRyYW5zY3JpYmVBdWRpb1JlcXVlc3QSDQoFYXVkaW8YASABKAwSEQoJbWltZV90eXBlGAIgASgJEhMKC3Byb3ZpZGVyX2lkGAMgASgJEg0KBW1vZGVsGAQgASgJEhAKCGxhbmd1YWdlGAUgASgJIncKF1RyYW5zY3JpYmVBdWRpb1Jlc3BvbnNlEgwKBHRleHQYASABKAkSEAoIbGFuZ3VhZ2UYAiABKAkSGAoQZHVyYXRpb25fc2Vjb25kcxgDIAEoARITCgtwcm92aWRlcl9pZBgEIAEoCRINCgVtb2RlbBgFIAEoCSJ9ChdTeW50aGVzaXplU3BlZWNoUmVxdWVzdBIMCgR0ZXh0GAEgASgJEhIKCnBsYWluX3RleHQYAiABKAgSEwoLcHJvdmlkZXJfaWQYAyABKAkSDQoFbW9kZWwYBCABKAkSDQoFdm9pY2UYBSABKAkSDQoFc3BlZWQYBiABKAEikQEKGFN5bnRoZXNpemVTcGVlY2hSZXNwb25zZRINCgVhdWRpbxgBIAEoDBIRCgltaW1lX3R5cGUYAiABKAkSDAoEZG9uZRgDIAEoCBISCgpjaGFyYWN0ZXJzGAQgASgDEhMKC3Byb3ZpZGVyX2lkGAUgASgJEg0KBW1vZGVsGAYgASgJEg0KBXZvaWNlGAcgASgJIukBChBMb2NhbFNwZWVjaE1vZGVsEgoKAmlkGAEgASgJEhMKC3Byb3ZpZGVyX2lkGAIgASgJEg0KBW1vZGVsGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIrCgRraW5kGAUgASgOMh0uaGFybmVzcy5zcGVlY2gudjEuU3BlZWNoS2luZBIRCglpbnN0YWxsZWQYBiABKAgSEgoKc2l6ZV9ieXRlcxgHIAEoAxITCgtkb3dubG9hZGluZxgIIAEoCBITCgtkZXNjcmlwdGlvbhgJIAEoCRIRCglsYW5ndWFnZXMYCiADKAkiSwocTGlzdExvY2FsU3BlZWNoTW9kZWxzUmVxdWVzdBIrCgRraW5kGAEgASgOMh0uaGFybmVzcy5zcGVlY2gudjEuU3BlZWNoS2luZCJnCh1MaXN0TG9jYWxTcGVlY2hNb2RlbHNSZXNwb25zZRIyCgZtb2RlbHMYASADKAsyIi5oYXJuZXNzLmFnZW50LnYxLkxvY2FsU3BlZWNoTW9kZWwSEgoKbW9kZWxzX2RpchgCIAEoCSIoChpEb3dubG9hZFNwZWVjaE1vZGVsUmVxdWVzdBIKCgJpZBgBIAEoCSKNAQobRG93bmxvYWRTcGVlY2hNb2RlbFJlc3BvbnNlEhgKEGRvd25sb2FkZWRfYnl0ZXMYASABKAMSEwoLdG90YWxfYnl0ZXMYAiABKAMSDAoEZG9uZRgDIAEoCBIxCgVtb2RlbBgEIAEoCzIiLmhhcm5lc3MuYWdlbnQudjEuTG9jYWxTcGVlY2hNb2RlbCImChhEZWxldGVTcGVlY2hNb2RlbFJlcXVlc3QSCgoCaWQYASABKAkiNwoZRGVsZXRlU3BlZWNoTW9kZWxSZXNwb25zZRIaChJjYW5jZWxsZWRfZG93bmxvYWQYASABKAhCzAEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQgtTcGVlY2hQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw", [file_harness_speech_v1_speech]);
+  fileDesc("Ch1oYXJuZXNzL2FnZW50L3YxL3NwZWVjaC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSLOAgoOU3BlZWNoU2V0dGluZ3MSKgoDc3R0GAEgASgLMh0uaGFybmVzcy5hZ2VudC52MS5TdHRTZXR0aW5ncxIqCgN0dHMYAiABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlR0c1NldHRpbmdzEjEKCnN5bmNlZF9zdHQYAyABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlN0dFNldHRpbmdzEjEKCnN5bmNlZF90dHMYBCABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlR0c1NldHRpbmdzEjEKCmRldmljZV9zdHQYBSABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlN0dFNldHRpbmdzEjEKCmRldmljZV90dHMYBiABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlR0c1NldHRpbmdzEhgKEHN5bmNlZF9hdmFpbGFibGUYByABKAgiQwoLU3R0U2V0dGluZ3MSEwoLcHJvdmlkZXJfaWQYASABKAkSDQoFbW9kZWwYAiABKAkSEAoIbGFuZ3VhZ2UYAyABKAkiTwoLVHRzU2V0dGluZ3MSEwoLcHJvdmlkZXJfaWQYASABKAkSDQoFbW9kZWwYAiABKAkSDQoFdm9pY2UYAyABKAkSDQoFc3BlZWQYBCABKAEiSQoaTGlzdFNwZWVjaFByb3ZpZGVyc1JlcXVlc3QSKwoEa2luZBgBIAEoDjIdLmhhcm5lc3Muc3BlZWNoLnYxLlNwZWVjaEtpbmQihAEKG0xpc3RTcGVlY2hQcm92aWRlcnNSZXNwb25zZRI0Cglwcm92aWRlcnMYASADKAsyIS5oYXJuZXNzLnNwZWVjaC52MS5TcGVlY2hQcm92aWRlchIUCgxzZXJ2ZXJfZXJyb3IYAiABKAkSGQoRY2FuX21hbmFnZV9nbG9iYWwYAyABKAgiPQoXTGlzdFNwZWVjaFZvaWNlc1JlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSDQoFbW9kZWwYAiABKAkiSgoYTGlzdFNwZWVjaFZvaWNlc1Jlc3BvbnNlEi4KBnZvaWNlcxgBIAMoCzIeLmhhcm5lc3Muc3BlZWNoLnYxLlNwZWVjaFZvaWNlIhoKGEdldFNwZWVjaFNldHRpbmdzUmVxdWVzdCJPChlHZXRTcGVlY2hTZXR0aW5nc1Jlc3BvbnNlEjIKCHNldHRpbmdzGAEgASgLMiAuaGFybmVzcy5hZ2VudC52MS5TcGVlY2hTZXR0aW5ncyK5AgobVXBkYXRlU3BlZWNoU2V0dGluZ3NSZXF1ZXN0EjYKCnN5bmNlZF9zdHQYASABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlN0dFNldHRpbmdzSACIAQESNgoKc3luY2VkX3R0cxgCIAEoCzIdLmhhcm5lc3MuYWdlbnQudjEuVHRzU2V0dGluZ3NIAYgBARI2CgpkZXZpY2Vfc3R0GAMgASgLMh0uaGFybmVzcy5hZ2VudC52MS5TdHRTZXR0aW5nc0gCiAEBEjYKCmRldmljZV90dHMYBCABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlR0c1NldHRpbmdzSAOIAQFCDQoLX3N5bmNlZF9zdHRCDQoLX3N5bmNlZF90dHNCDQoLX2RldmljZV9zdHRCDQoLX2RldmljZV90dHMiUgocVXBkYXRlU3BlZWNoU2V0dGluZ3NSZXNwb25zZRIyCghzZXR0aW5ncxgBIAEoCzIgLmhhcm5lc3MuYWdlbnQudjEuU3BlZWNoU2V0dGluZ3MicAoWVHJhbnNjcmliZUF1ZGlvUmVxdWVzdBINCgVhdWRpbxgBIAEoDBIRCgltaW1lX3R5cGUYAiABKAkSEwoLcHJvdmlkZXJfaWQYAyABKAkSDQoFbW9kZWwYBCABKAkSEAoIbGFuZ3VhZ2UYBSABKAkidwoXVHJhbnNjcmliZUF1ZGlvUmVzcG9uc2USDAoEdGV4dBgBIAEoCRIQCghsYW5ndWFnZRgCIAEoCRIYChBkdXJhdGlvbl9zZWNvbmRzGAMgASgBEhMKC3Byb3ZpZGVyX2lkGAQgASgJEg0KBW1vZGVsGAUgASgJIn0KF1N5bnRoZXNpemVTcGVlY2hSZXF1ZXN0EgwKBHRleHQYASABKAkSEgoKcGxhaW5fdGV4dBgCIAEoCBITCgtwcm92aWRlcl9pZBgDIAEoCRINCgVtb2RlbBgEIAEoCRINCgV2b2ljZRgFIAEoCRINCgVzcGVlZBgGIAEoASKRAQoYU3ludGhlc2l6ZVNwZWVjaFJlc3BvbnNlEg0KBWF1ZGlvGAEgASgMEhEKCW1pbWVfdHlwZRgCIAEoCRIMCgRkb25lGAMgASgIEhIKCmNoYXJhY3RlcnMYBCABKAMSEwoLcHJvdmlkZXJfaWQYBSABKAkSDQoFbW9kZWwYBiABKAkSDQoFdm9pY2UYByABKAkikwIKEExvY2FsU3BlZWNoTW9kZWwSCgoCaWQYASABKAkSEwoLcHJvdmlkZXJfaWQYAiABKAkSDQoFbW9kZWwYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEisKBGtpbmQYBSABKA4yHS5oYXJuZXNzLnNwZWVjaC52MS5TcGVlY2hLaW5kEhEKCWluc3RhbGxlZBgGIAEoCBISCgpzaXplX2J5dGVzGAcgASgDEhMKC2Rvd25sb2FkaW5nGAggASgIEhMKC2Rlc2NyaXB0aW9uGAkgASgJEhEKCWxhbmd1YWdlcxgKIAMoCRITCgtyZWNvbW1lbmRlZBgLIAEoCBITCgt1bnN1cHBvcnRlZBgMIAEoCCJLChxMaXN0TG9jYWxTcGVlY2hNb2RlbHNSZXF1ZXN0EisKBGtpbmQYASABKA4yHS5oYXJuZXNzLnNwZWVjaC52MS5TcGVlY2hLaW5kImcKHUxpc3RMb2NhbFNwZWVjaE1vZGVsc1Jlc3BvbnNlEjIKBm1vZGVscxgBIAMoCzIiLmhhcm5lc3MuYWdlbnQudjEuTG9jYWxTcGVlY2hNb2RlbBISCgptb2RlbHNfZGlyGAIgASgJIigKGkRvd25sb2FkU3BlZWNoTW9kZWxSZXF1ZXN0EgoKAmlkGAEgASgJIo0BChtEb3dubG9hZFNwZWVjaE1vZGVsUmVzcG9uc2USGAoQZG93bmxvYWRlZF9ieXRlcxgBIAEoAxITCgt0b3RhbF9ieXRlcxgCIAEoAxIMCgRkb25lGAMgASgIEjEKBW1vZGVsGAQgASgLMiIuaGFybmVzcy5hZ2VudC52MS5Mb2NhbFNwZWVjaE1vZGVsIiYKGERlbGV0ZVNwZWVjaE1vZGVsUmVxdWVzdBIKCgJpZBgBIAEoCSI3ChlEZWxldGVTcGVlY2hNb2RlbFJlc3BvbnNlEhoKEmNhbmNlbGxlZF9kb3dubG9hZBgBIAEoCELMAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCC1NwZWVjaFByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z", [file_harness_speech_v1_speech]);
 
 /**
  * @generated from message harness.agent.v1.SpeechSettings
  */
 export type SpeechSettings = Message<"harness.agent.v1.SpeechSettings"> & {
   /**
+   * What applies on this device: the device choice when its provider_id is set, else the synced one.
+   *
    * @generated from field: harness.agent.v1.SttSettings stt = 1;
    */
   stt?: SttSettings | undefined;
@@ -27,6 +29,37 @@ export type SpeechSettings = Message<"harness.agent.v1.SpeechSettings"> & {
    * @generated from field: harness.agent.v1.TtsSettings tts = 2;
    */
   tts?: TtsSettings | undefined;
+
+  /**
+   * Synced to every device of the user (global providers only).
+   *
+   * @generated from field: harness.agent.v1.SttSettings synced_stt = 3;
+   */
+  syncedStt?: SttSettings | undefined;
+
+  /**
+   * @generated from field: harness.agent.v1.TtsSettings synced_tts = 4;
+   */
+  syncedTts?: TtsSettings | undefined;
+
+  /**
+   * This device only (a local engine or "browser"); an empty provider_id follows the synced choice.
+   *
+   * @generated from field: harness.agent.v1.SttSettings device_stt = 5;
+   */
+  deviceStt?: SttSettings | undefined;
+
+  /**
+   * @generated from field: harness.agent.v1.TtsSettings device_tts = 6;
+   */
+  deviceTts?: TtsSettings | undefined;
+
+  /**
+   * The synced part can be read and stored (the client is connected to a harness server).
+   *
+   * @generated from field: bool synced_available = 7;
+   */
+  syncedAvailable: boolean;
 };
 
 /**
@@ -41,7 +74,7 @@ export const SpeechSettingsSchema: GenMessage<SpeechSettings> = /*@__PURE__*/
  */
 export type SttSettings = Message<"harness.agent.v1.SttSettings"> & {
   /**
-   * Empty: none chosen (the frontend picks a default, e.g. "browser").
+   * Empty: none chosen.
    *
    * @generated from field: string provider_id = 1;
    */
@@ -228,20 +261,32 @@ export const GetSpeechSettingsResponseSchema: GenMessage<GetSpeechSettingsRespon
   messageDesc(file_harness_agent_v1_speech, 8);
 
 /**
- * Replaces the parts that are set: a set `stt` replaces all STT settings, a set `tts` all TTS settings.
+ * Replaces the parts that are set, each as a whole. A synced part takes a global provider id (or "" to clear);
+ * a device part a local engine id or "browser" (or "" to follow the synced choice). Anything else is
+ * INVALID_ARGUMENT. Setting a synced part without a server connection is FAILED_PRECONDITION.
  *
  * @generated from message harness.agent.v1.UpdateSpeechSettingsRequest
  */
 export type UpdateSpeechSettingsRequest = Message<"harness.agent.v1.UpdateSpeechSettingsRequest"> & {
   /**
-   * @generated from field: optional harness.agent.v1.SttSettings stt = 1;
+   * @generated from field: optional harness.agent.v1.SttSettings synced_stt = 1;
    */
-  stt?: SttSettings | undefined;
+  syncedStt?: SttSettings | undefined;
 
   /**
-   * @generated from field: optional harness.agent.v1.TtsSettings tts = 2;
+   * @generated from field: optional harness.agent.v1.TtsSettings synced_tts = 2;
    */
-  tts?: TtsSettings | undefined;
+  syncedTts?: TtsSettings | undefined;
+
+  /**
+   * @generated from field: optional harness.agent.v1.SttSettings device_stt = 3;
+   */
+  deviceStt?: SttSettings | undefined;
+
+  /**
+   * @generated from field: optional harness.agent.v1.TtsSettings device_tts = 4;
+   */
+  deviceTts?: TtsSettings | undefined;
 };
 
 /**
@@ -285,7 +330,7 @@ export type TranscribeAudioRequest = Message<"harness.agent.v1.TranscribeAudioRe
   mimeType: string;
 
   /**
-   * Empty: the STT settings' provider / model / language.
+   * Empty: the effective STT settings' provider / model / language.
    *
    * @generated from field: string provider_id = 3;
    */
@@ -367,7 +412,7 @@ export type SynthesizeSpeechRequest = Message<"harness.agent.v1.SynthesizeSpeech
   plainText: boolean;
 
   /**
-   * Empty: the TTS settings' values.
+   * Empty: the effective TTS settings' values.
    *
    * @generated from field: string provider_id = 3;
    */
@@ -454,13 +499,15 @@ export const SynthesizeSpeechResponseSchema: GenMessage<SynthesizeSpeechResponse
   messageDesc(file_harness_agent_v1_speech, 14);
 
 /**
- * A downloadable model of a local engine (STT models of whisper.cpp / Parakeet, Piper voices).
+ * A downloadable file set of this machine: the sherpa-onnx runtime (provider_id "runtime", kind unspecified), a
+ * Parakeet or Whisper model, or a Piper voice. Stored under HARNESS_HOME/speech/models; never synced.
  *
  * @generated from message harness.agent.v1.LocalSpeechModel
  */
 export type LocalSpeechModel = Message<"harness.agent.v1.LocalSpeechModel"> & {
   /**
-   * "<provider id>/<model id>", e.g. "whisper-cpp/base", "parakeet/parakeet-tdt-0.6b-v3", "piper/en_US-lessac-medium".
+   * "<provider id>/<model id>", e.g. "parakeet/parakeet-tdt-0.6b-v3", "whisper/base", "piper/en_US-lessac-medium",
+   * "runtime/sherpa-onnx".
    *
    * @generated from field: string id = 1;
    */
@@ -487,6 +534,8 @@ export type LocalSpeechModel = Message<"harness.agent.v1.LocalSpeechModel"> & {
   kind: SpeechKind;
 
   /**
+   * Its files are on disk (a model also needs the runtime to be usable; downloading a model installs it too).
+   *
    * @generated from field: bool installed = 6;
    */
   installed: boolean;
@@ -516,6 +565,20 @@ export type LocalSpeechModel = Message<"harness.agent.v1.LocalSpeechModel"> & {
    * @generated from field: repeated string languages = 10;
    */
   languages: string[];
+
+  /**
+   * The engine's suggested default.
+   *
+   * @generated from field: bool recommended = 11;
+   */
+  recommended: boolean;
+
+  /**
+   * Not downloadable on this platform (the runtime has no build for it).
+   *
+   * @generated from field: bool unsupported = 12;
+   */
+  unsupported: boolean;
 };
 
 /**
@@ -530,7 +593,7 @@ export const LocalSpeechModelSchema: GenMessage<LocalSpeechModel> = /*@__PURE__*
  */
 export type ListLocalSpeechModelsRequest = Message<"harness.agent.v1.ListLocalSpeechModelsRequest"> & {
   /**
-   * Unspecified: both kinds.
+   * Unspecified: everything, the runtime included.
    *
    * @generated from field: harness.speech.v1.SpeechKind kind = 1;
    */
@@ -554,7 +617,7 @@ export type ListLocalSpeechModelsResponse = Message<"harness.agent.v1.ListLocalS
   models: LocalSpeechModel[];
 
   /**
-   * Where model files are stored.
+   * Where the files are stored.
    *
    * @generated from field: string models_dir = 2;
    */
@@ -588,8 +651,9 @@ export const DownloadSpeechModelRequestSchema: GenMessage<DownloadSpeechModelReq
   messageDesc(file_harness_agent_v1_speech, 18);
 
 /**
- * Progress messages, then one with done (or the stream fails). The download continues on the client when the
- * stream is cancelled; calling again joins it. An installed model answers done right away.
+ * Progress messages, then one with done (or the stream fails). The total includes the runtime when it is
+ * downloaded along. The download continues on the client when the stream is cancelled; calling again joins it.
+ * An installed model answers done right away.
  *
  * @generated from message harness.agent.v1.DownloadSpeechModelResponse
  */

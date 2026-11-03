@@ -367,8 +367,9 @@ type AgentServiceClient interface {
 	// Voices of a TTS provider (the provider's API for global providers that list them; installed and
 	// downloadable voices for Piper; `say -v ?` for macOS).
 	ListSpeechVoices(context.Context, *connect.Request[v1.ListSpeechVoicesRequest]) (*connect.Response[v1.ListSpeechVoicesResponse], error)
-	// The user's speech choices, stored in the user's synced settings document (key "speech"); without a server
-	// connection in HARNESS_HOME/speech/settings.json.
+	// The user's speech choices in two parts: the synced choice of a global provider (the user's synced settings
+	// document, key "speech") and this device's choice of a local engine (HARNESS_HOME/speech/settings.json, never
+	// synced), which overrides the synced one on this device.
 	GetSpeechSettings(context.Context, *connect.Request[v1.GetSpeechSettingsRequest]) (*connect.Response[v1.GetSpeechSettingsResponse], error)
 	UpdateSpeechSettings(context.Context, *connect.Request[v1.UpdateSpeechSettingsRequest]) (*connect.Response[v1.UpdateSpeechSettingsResponse], error)
 	// Speech to text with the chosen (or given) provider: a local engine on this machine or the server.
@@ -1319,8 +1320,9 @@ type AgentServiceHandler interface {
 	// Voices of a TTS provider (the provider's API for global providers that list them; installed and
 	// downloadable voices for Piper; `say -v ?` for macOS).
 	ListSpeechVoices(context.Context, *connect.Request[v1.ListSpeechVoicesRequest]) (*connect.Response[v1.ListSpeechVoicesResponse], error)
-	// The user's speech choices, stored in the user's synced settings document (key "speech"); without a server
-	// connection in HARNESS_HOME/speech/settings.json.
+	// The user's speech choices in two parts: the synced choice of a global provider (the user's synced settings
+	// document, key "speech") and this device's choice of a local engine (HARNESS_HOME/speech/settings.json, never
+	// synced), which overrides the synced one on this device.
 	GetSpeechSettings(context.Context, *connect.Request[v1.GetSpeechSettingsRequest]) (*connect.Response[v1.GetSpeechSettingsResponse], error)
 	UpdateSpeechSettings(context.Context, *connect.Request[v1.UpdateSpeechSettingsRequest]) (*connect.Response[v1.UpdateSpeechSettingsResponse], error)
 	// Speech to text with the chosen (or given) provider: a local engine on this machine or the server.
