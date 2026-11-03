@@ -62,7 +62,7 @@ useShowRequests()
   <UDashboardGroup
     unit="px"
     storage="local"
-    storage-key="harness-layout"
+    storage-key="harness-layout-2"
   >
     <AppSidebar />
 

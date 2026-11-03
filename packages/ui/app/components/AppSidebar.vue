@@ -116,15 +116,19 @@ const nav = [
     collapsible
     resizable
     :collapsed-size="0"
-    :default-size="264"
+    :default-size="240"
     :min-size="0"
     :max-size="440"
     :toggle="false"
     :ui="{
-      root: 'bg-default border-e border-(--ui-divider) min-w-0 data-[collapsed=true]:hidden',
-      body: 'p-0 gap-0 overflow-hidden',
+      // The desktop app keeps the column at any window width (half a screen is still a desktop); a narrow browser
+      // tab gets the slide-over menu instead, without Nuxt UI's empty header row (ours is the top row below).
+      root: ['bg-default border-e border-(--ui-divider) min-w-0 data-[collapsed=true]:hidden', desktop && 'flex'],
+      header: 'hidden',
+      body: 'p-0 gap-0 overflow-hidden sm:px-0',
       footer: 'h-[46px] gap-[9px] border-t border-default py-0 pr-2.5 pl-3.5 sm:px-3.5',
-      content: 'bg-default rounded-none max-w-[264px]',
+      content: ['bg-default rounded-none max-w-[240px]', desktop && 'hidden'],
+      overlay: desktop ? 'hidden' : '',
       // The border is the divider; the handle only widens the grab area and lights up while used.
       handle: 'relative z-10 -ml-px w-px bg-transparent transition-colors hover:bg-primary data-[dragging=true]:bg-primary'
     }"

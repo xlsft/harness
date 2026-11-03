@@ -13,7 +13,7 @@ useShortcuts()
   <UDashboardGroup
     unit="px"
     storage="local"
-    storage-key="harness-layout"
+    storage-key="harness-layout-2"
   >
     <AppSidebar />
     <!-- The top bar floats over the page (it lines up with the session header) and the page scrolls under it
