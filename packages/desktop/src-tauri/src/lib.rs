@@ -30,6 +30,8 @@ struct Shell {
     /// When the last quit request went to the UI (ms since the epoch): a second one within QUIT_AGAIN_MS quits
     /// anyway, so a hung or unloaded UI never keeps the app open.
     quit_asked_at: std::sync::atomic::AtomicU64,
+    /// Keeps the computer from sleeping while set (caffeinate / systemd-inhibit); killed to let it sleep.
+    awake: Mutex<Option<Child>>,
 }
 
 const QUIT_AGAIN_MS: u64 = 3000;
@@ -126,6 +128,30 @@ fn logout(shell: State<'_, Shell>) -> Result<(), String> {
 
 /// Quitting (⌘Q, the menu, or closing the window) first asks the UI, which warns when sessions, background
 /// tasks or agents are still running; it calls this to really quit.
+/// Keep the computer awake (the UI asks while a session that has "Keep computer awake" on is working).
+#[tauri::command]
+fn keep_awake(shell: State<'_, Shell>, on: bool) -> Result<(), String> {
+    let mut awake = shell.awake.lock().unwrap();
+    if !on {
+        if let Some(mut c) = awake.take() {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+        return Ok(());
+    }
+    if awake.is_some() {
+        return Ok(());
+    }
+    #[cfg(target_os = "macos")]
+    let child = Command::new("caffeinate").args(["-i", "-w", &std::process::id().to_string()]).spawn();
+    #[cfg(target_os = "linux")]
+    let child = Command::new("systemd-inhibit").args(["--what=idle:sleep", "--who=harness", "--why=A session is working", "sleep", "infinity"]).spawn();
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    let child: std::io::Result<Child> = Err(std::io::Error::new(std::io::ErrorKind::Unsupported, "not supported on this system"));
+    *awake = Some(child.map_err(|e| e.to_string())?);
+    Ok(())
+}
+
 #[tauri::command]
 fn confirm_quit(app: AppHandle, shell: State<'_, Shell>) {
     shell.quit_confirmed.store(true, std::sync::atomic::Ordering::SeqCst);
@@ -237,7 +263,7 @@ pub fn run() {
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint, confirm_quit])
+        .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint, confirm_quit, keep_awake])
         .build(tauri::generate_context!())
         .expect("error while building the harness desktop app")
         .run(|app, event| {
@@ -252,6 +278,10 @@ pub fn run() {
                 stop_serve(&shell);
                 let login = shell.login.lock().unwrap().take();
                 if let Some(mut child) = login {
+                    let _ = child.kill();
+                }
+                let awake = shell.awake.lock().unwrap().take();
+                if let Some(mut child) = awake {
                     let _ = child.kill();
                 }
             }

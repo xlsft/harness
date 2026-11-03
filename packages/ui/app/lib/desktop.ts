@@ -98,3 +98,9 @@ export async function guardQuit(check: () => string): Promise<() => void> {
     await invoke('confirm_quit')
   })
 }
+
+/** Keeps the computer from sleeping (true) or lets it sleep again (false); desktop app only. */
+export async function keepAwake(on: boolean) {
+  if (!isDesktop()) return
+  await invoke('keep_awake', { on })
+}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The web UI connects as configured (mock or a client URL). In the desktop shell it first checks the sign-in
 // with the shell, then asks it for the sidecar's endpoint (lib/desktop.ts).
-import { agentEndpoint, authStatus, guardQuit, isDesktop } from '~/lib/desktop'
+import { agentEndpoint, authStatus, guardQuit, isDesktop, keepAwake } from '~/lib/desktop'
 import { isSubagent } from '~/lib/session/reducer'
 import { ConnectTransport } from '~/lib/transport'
 
@@ -13,6 +13,9 @@ useSeoMeta({
 const store = useSessionStore()
 const desktop = isDesktop()
 useTurnNotifications()
+// Keep computer awake (Tools menu, desktop): the computer stays up while a session that has it on is working.
+const awakeSessions = useState<string[]>('keep-awake', () => [])
+watch(() => awakeSessions.value.some(id => store.isBusy(id)), on => void keepAwake(on).catch(() => {}), { immediate: true })
 const phase = ref<'checking' | 'signin' | 'ready'>(desktop ? 'checking' : 'ready')
 
 // Quitting the desktop app warns while work is still running here: sessions in a turn, background tasks, agents.
