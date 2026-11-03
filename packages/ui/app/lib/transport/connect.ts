@@ -22,6 +22,7 @@ import { ConnectUsersApi } from '~/lib/users/connect'
 import { ConnectAccountApi } from '~/lib/account/connect'
 import { ConnectUsageApi } from '~/lib/usage/connect'
 import { ConnectTerminalsApi } from '~/lib/terminal/connect'
+import { ConnectSideChatsApi } from '~/lib/sidechat/connect'
 import { ConnectEnvironmentApi } from '~/lib/environment/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -51,6 +52,7 @@ export class ConnectTransport implements SessionTransport {
     this.accountApi = new ConnectAccountApi(transport)
     this.usageApi = new ConnectUsageApi(transport)
     this.terminalsApi = new ConnectTerminalsApi(transport, baseUrl)
+    this.sideChatsApi = new ConnectSideChatsApi(transport)
     this.environmentApi = new ConnectEnvironmentApi(transport)
   }
 
@@ -77,6 +79,11 @@ export class ConnectTransport implements SessionTransport {
 
   terminals() {
     return this.terminalsApi
+  }
+
+  private sideChatsApi: ConnectSideChatsApi
+  sideChats() {
+    return this.sideChatsApi
   }
 
   async initialize() {

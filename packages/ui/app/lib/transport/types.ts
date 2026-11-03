@@ -21,6 +21,7 @@ import type { UsersApi } from '~/lib/users/types'
 import type { AccountApi } from '~/lib/account/types'
 import type { UsageApi } from '~/lib/usage/types'
 import type { TerminalsApi } from '~/lib/terminal/types'
+import type { SideChatsApi } from '~/lib/sidechat/types'
 import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 
@@ -137,6 +138,10 @@ export interface SessionTransport {
   // Shells in a PTY on the client's machine for the terminal pane (create / list / kill, and the interactive
   // TerminalConnection over the client's terminal WebSocket).
   terminals(): TerminalsApi
+
+  // Side chats next to a session: read-only conversations that see the main session but never change it
+  // (list / create / ask with streamed answers / stop), stored by the client next to the transcript.
+  sideChats(): SideChatsApi
 
   // Session environments, folder facts and folder changes (AgentService GetEnvironment and friends). The web
   // link of a session is sessionWebUrl(initialize().webUrl, id) from ~/lib/environment/types.
