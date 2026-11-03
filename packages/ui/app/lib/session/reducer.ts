@@ -42,6 +42,7 @@ import type {
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
 import { UserShellFinished_Reason } from '~/gen/harness/agent/v1/shell_pb'
+import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 import type { UserShellFinished } from '~/gen/harness/agent/v1/shell_pb'
 
 const COMPACT_TRIGGER: Partial<Record<Compacted_Trigger, CompactItem['trigger']>> = {
@@ -84,6 +85,9 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       relayEnabled: false,
       relayAvailable: false,
       relayReason: '',
+      engine: 'harness',
+      unsupported: [],
+      acp: null,
       ...meta
     },
     logId: '',
@@ -197,7 +201,10 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     noFolder: info.noFolder,
     relayEnabled: info.relayEnabled,
     relayAvailable: info.relayAvailable,
-    relayReason: info.relayUnavailableReason
+    relayReason: info.relayUnavailableReason,
+    engine: info.engine || 'harness',
+    unsupported: info.unsupportedFeatures.map(f => SessionFeature[f]?.toLowerCase() ?? '').filter(Boolean),
+    acp: info.acp ?? null
   }
 }
 

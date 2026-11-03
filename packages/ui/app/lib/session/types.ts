@@ -1,5 +1,6 @@
 // View model of one session, built from harness.agent.v1 SessionEvents by the reducer (./reducer.ts).
 // It is plain data (no protobuf messages) so it can live in a Pinia store and be rendered directly.
+import type { AcpSessionState } from '~/gen/harness/agent/v1/acp_pb'
 
 export type Status = 'idle' | 'working' | 'needs_input' | 'waiting_for_connection' | 'error' | 'ended'
 
@@ -305,6 +306,12 @@ export interface SessionMeta {
   relayEnabled: boolean
   relayAvailable: boolean
   relayReason: string
+  // "harness", or "acp:<agent id>" for a session an ACP agent runs (SessionInfo.engine).
+  engine: string
+  // What the engine cannot do (SessionInfo.unsupported_features), e.g. 'rewind', 'fork', 'compaction'.
+  unsupported: string[]
+  // An ACP session's agent state: modes, sign-in, context, subscription limits (local to this computer).
+  acp: AcpSessionState | null
 }
 
 export interface QueuedMessage {
