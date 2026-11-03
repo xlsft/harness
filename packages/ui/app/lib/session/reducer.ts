@@ -119,7 +119,8 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     : pr?.state === PullRequest_State.MERGED ? 'merged' : pr?.state === PullRequest_State.CLOSED ? 'closed' : 'open'
   return {
     id: info.id,
-    title: info.title,
+    // Sessions that never got a title (headless runs) still need a label in the list.
+    title: info.title || 'Untitled session',
     cwd: info.cwd,
     gitBranch: info.gitBranch,
     model: info.model,

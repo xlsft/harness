@@ -230,7 +230,8 @@ func runOne(ctx context.Context, cfg *config, model string, t *task.Task, repeat
 
 	args := clientArgs(cfg, model, t)
 	writeFile(filepath.Join(logDir, "command.txt"), []byte(shellQuote(append([]string{cfg.client}, args...))+"\n"))
-	p := runProc(ctx, time.Duration(t.Timeout), work, nil, cfg.client, args...)
+	// Eval sessions are throwaway: keep them off the server's session list.
+	p := runProc(ctx, time.Duration(t.Timeout), work, []string{"HARNESS_NO_SYNC=1"}, cfg.client, args...)
 	writeFile(filepath.Join(logDir, "client.stdout"), p.stdout)
 	writeFile(filepath.Join(logDir, "client.stderr"), p.stderr)
 	res.DurationMS = p.duration.Milliseconds()

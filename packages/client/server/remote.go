@@ -244,6 +244,11 @@ func (s *Server) remoteInfo(id string) *agentv1.SessionInfo {
 func (s *Server) withOrigin(listed *agentv1.SessionInfo) *agentv1.SessionInfo {
 	info := proto.Clone(listed).(*agentv1.SessionInfo)
 	info.Remote, info.DeviceOnline, info.RemoteControllable = true, nil, false
+	// Another profile on this machine (a different HARNESS_HOME signs in as another device) reads as this
+	// computer, not as its host name.
+	if host, err := os.Hostname(); err == nil && info.GetDeviceName() == host {
+		info.DeviceName = "this computer"
+	}
 	s.stateMu.Lock()
 	p := s.presence
 	s.stateMu.Unlock()
