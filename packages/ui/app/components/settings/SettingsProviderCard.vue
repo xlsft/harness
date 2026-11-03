@@ -6,6 +6,15 @@
 import type { ModelCandidateView, PresetView, ProtocolView, ProviderPatch, ProviderView, ProvidersApi, TestResult } from '~/lib/providers/types'
 import { contextLabel } from '~/lib/providers/types'
 
+const sessions = useSessionStore()
+const { effortOf, setEffort } = useSessionDefaults()
+const catalogOf = (id: string) => sessions.models.find(x => x.id === id)
+// Effort levels from the model catalog (none until the model is in it).
+const levelsOf = (id: string) => {
+  const m = catalogOf(id)
+  return m ? modelEfforts(m) : []
+}
+
 const props = defineProps<{
   provider: ProviderView
   preset?: PresetView
@@ -273,16 +282,44 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
         v-if="!classifier && (p.models.length || open)"
         class="flex flex-col pr-3 pb-2.5 pl-[52px] max-sm:pl-3"
       >
+        <!-- Enabled models with their default effort for new sessions (levels the model offers). -->
         <div
           v-if="!open"
-          class="flex flex-wrap gap-1.5"
+          class="flex flex-col border border-default"
         >
-          <span
+          <div
             v-for="m in p.models"
             :key="m.id"
-            class="border border-default px-1.5 text-[11px] text-toned"
-            :title="m.id"
-          >{{ m.name }}</span>
+            class="flex min-h-8 items-center gap-3 border-b border-default px-2.5 text-[12px] last:border-b-0"
+          >
+            <span
+              class="min-w-0 flex-1 truncate text-white"
+              :title="m.id"
+            >{{ m.name }}</span>
+            <div
+              v-if="levelsOf(m.id).length"
+              role="radiogroup"
+              :aria-label="`Default effort for ${m.name}`"
+              class="flex gap-[2px]"
+            >
+              <button
+                v-for="e in levelsOf(m.id)"
+                :key="e"
+                type="button"
+                role="radio"
+                :aria-checked="effortOf(catalogOf(m.id)!) === e"
+                class="border px-1.5 py-px text-[11px]"
+                :class="effortOf(catalogOf(m.id)!) === e ? 'border-line bg-raised text-white' : 'border-transparent text-muted hover:text-white'"
+                @click="setEffort(m.id, e)"
+              >
+                {{ e }}
+              </button>
+            </div>
+            <span
+              v-else
+              class="text-[11px] text-dimmed"
+            >no effort levels</span>
+          </div>
         </div>
 
         <div

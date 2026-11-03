@@ -1,11 +1,12 @@
 <script setup lang="ts">
-// Settings > Providers: where models and auto-mode decisions come from, in two sources, "LLM models" and
-// "Classifiers". Each lists the presets the server offers (connect with just a key) and then custom
-// providers. A connection is the user's own, or, for admins who choose so, everyone's; classifier
+// Settings > Models or Settings > Classifiers (`group`): where models, or auto-mode decisions, come from.
+// Lists the presets the server offers (connect with just a key) and then custom providers; on Models each
+// enabled model carries its default effort. A connection is the user's own, or, for admins who choose so, everyone's; classifier
 // providers and the classifier settings are server-wide (admins). Keys are write-only. Changes refresh the
 // model catalog, so the Models section follows.
-import type { PresetList, ProviderList, ProvidersApi } from '~/lib/providers/types'
+import type { PresetList, ProviderGroupName, ProviderList, ProvidersApi } from '~/lib/providers/types'
 
+const props = defineProps<{ group: ProviderGroupName }>()
 const emit = defineEmits<{ changed: [list: ProviderList] }>()
 const store = useSessionStore()
 
@@ -49,32 +50,32 @@ async function changed() {
   }
 }
 
-const groups = computed(() => [
-  {
-    key: 'llm' as const,
-    title: 'LLM models',
-    sub: 'Services whose models you chat with. Connect one with its API key, then switch on the models you want in the picker.'
+const PAGES = {
+  llm: {
+    title: 'Models',
+    sub: 'Services whose models you chat with. Connect one with its API key, switch on the models you want, and set each model\'s default effort. Keys are stored encrypted and never shown again; admins can see that a key is set but cannot read or use yours.'
   },
-  {
-    key: 'classifier' as const,
+  classifier: {
     title: 'Classifiers',
     sub: 'Services auto mode asks whether a tool call is safe to run. Server-wide, so admins connect them.'
   }
-].map(g => ({
-  ...g,
-  presets: presets.value.presets.filter(p => p.group === g.key),
-  protocols: presets.value.protocols.filter(p => p.group === g.key),
-  providers: list.value.providers.filter(p => p.group === g.key)
-})))
+} as const
+
+const page = computed(() => ({
+  ...PAGES[props.group],
+  presets: presets.value.presets.filter(p => p.group === props.group),
+  protocols: presets.value.protocols.filter(p => p.group === props.group),
+  providers: list.value.providers.filter(p => p.group === props.group)
+}))
 </script>
 
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      Providers
+      {{ page.title }}
     </h2>
     <p class="set-sub">
-      Where models and auto-mode decisions come from. Keys are stored encrypted on the server and never shown again; admins can see that a key is set but cannot read or use yours.
+      {{ page.sub }}
     </p>
 
     <p
@@ -100,21 +101,19 @@ const groups = computed(() => [
 
     <template v-else>
       <SettingsProviderGroup
-        v-for="g in groups"
-        :key="g.key"
-        :group="g.key"
-        :title="g.title"
-        :sub="g.sub"
-        :presets="g.presets"
-        :protocols="g.protocols"
-        :providers="g.providers"
+        :group="group"
+        title=""
+        sub=""
+        :presets="page.presets"
+        :protocols="page.protocols"
+        :providers="page.providers"
         :can-manage-global="list.canManageGlobal"
         :api="api()"
         @changed="changed"
         @error="error = $event"
       >
         <SettingsClassifier
-          v-if="g.key === 'classifier' && list.canManageGlobal"
+          v-if="group === 'classifier' && list.canManageGlobal"
           :providers="list.providers"
           :presets="presets.presets"
         />

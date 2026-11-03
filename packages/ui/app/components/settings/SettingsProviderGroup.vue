@@ -56,15 +56,17 @@ async function create(draft: ProviderDraft) {
 
 <template>
   <section
-    :aria-label="title"
+    :aria-label="title || undefined"
     class="mb-8 flex flex-col"
   >
-    <h3 class="m-0 text-[13px] font-semibold text-white">
-      {{ title }}
-    </h3>
-    <p class="m-0 mt-1 mb-3 text-[12px] text-muted">
-      {{ sub }}
-    </p>
+    <template v-if="title">
+      <h3 class="m-0 text-[13px] font-semibold text-white">
+        {{ title }}
+      </h3>
+      <p class="m-0 mt-1 mb-3 text-[12px] text-muted">
+        {{ sub }}
+      </p>
+    </template>
 
     <div class="border border-default">
       <div

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 // Settings page: sections on the left, the chosen one on the right (?section=). General edits the defaults the
 // new-session screen starts from (the same localStorage key it remembers its last choices in).
-import type { EffortName, PermissionModeName } from '~/lib/session/types'
 import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
 import type { ProviderList } from '~/lib/providers/types'
 
@@ -13,7 +12,7 @@ const desktop = isDesktop()
 const SECTIONS = [
   { key: 'general', label: 'General', icon: 'sliders' },
   { key: 'models', label: 'Models', icon: 'ai' },
-  { key: 'providers', label: 'Providers', icon: 'box' },
+  { key: 'classifiers', label: 'Classifiers', icon: 'shield' },
   { key: 'account', label: 'Account', icon: 'lock' },
   { key: 'users', label: 'Users', icon: 'shield' },
   { key: 'about', label: 'About', icon: 'info' }
@@ -37,36 +36,11 @@ const section = computed<Section>({
 })
 
 // New-session defaults, shared with NewSession.vue.
-const PREFS = 'harness-new-session'
-interface Prefs {
-  cwd?: string
-  worktree?: boolean
-  model?: string
-  effort?: EffortName
-  mode?: PermissionModeName
-  // Default effort per model; levels differ between models.
-  effortByModel?: Record<string, EffortName>
-}
-const prefs = reactive<Prefs>({})
-onMounted(() => {
-  try {
-    Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS) ?? '{}') as Prefs)
-  } catch {
-    // Defaults.
-  }
-})
-function save<K extends keyof Prefs>(key: K, value: Prefs[K]) {
-  prefs[key] = value
-  try {
-    localStorage.setItem(PREFS, JSON.stringify(prefs))
-  } catch {
-    // Not remembered.
-  }
-}
-const worktree = computed({ get: () => prefs.worktree ?? false, set: v => save('worktree', v) })
+const { prefs: defaults, save, effortOf, setEffort } = useSessionDefaults()
+const prefs = computed(() => defaults.value)
+const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => save('worktree', v) })
 
 const serverDefault = computed(() => store.defaultModel || store.models[0]?.id || '')
-// Provider names for grouping (personal provider ids are generated); ids until the list arrives.
 const providerNames = ref<Record<string, string>>({})
 function rememberProviders(list: ProviderList) {
   providerNames.value = Object.fromEntries(list.providers.map(p => [p.id, p.scope === 'personal' ? `${p.name} (yours)` : p.name]))
@@ -78,6 +52,7 @@ onMounted(async () => {
     // Older clients do not forward ProviderService: group by id.
   }
 })
+// Models by provider, for the default-model picker.
 const providers = computed(() => {
   const map = new Map<string, typeof store.models>()
   for (const m of store.models) {
@@ -87,17 +62,7 @@ const providers = computed(() => {
   }
   return [...map.entries()].map(([name, models]) => ({ name, models }))
 })
-const defaultModel = computed(() => store.models.find(m => m.id === (prefs.model || serverDefault.value)))
-
-function effortOf(m: { id: string, efforts?: EffortName[] }) {
-  return fitEffort(prefs.effortByModel?.[m.id] ?? prefs.effort ?? 'medium', modelEfforts(m))
-}
-function setEffort(id: string, e: EffortName) {
-  save('effortByModel', { ...prefs.effortByModel, [id]: e })
-}
-function ctx(n: number) {
-  return n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}k`
-}
+const defaultModel = computed(() => store.models.find(m => m.id === (prefs.value.model || serverDefault.value)))
 
 const host = computed(() => {
   try {
@@ -247,79 +212,10 @@ async function signOut() {
           </div>
         </template>
 
-        <template v-else-if="section === 'models'">
-          <h2 class="set-h">
-            Models
-          </h2>
-          <p class="set-sub">
-            What you can use, by provider: the server's models and your own. Each model keeps its own effort; add providers and keys under Providers.
-          </p>
-          <div class="flex flex-col gap-6">
-            <section
-              v-for="p in providers"
-              :key="p.name"
-              :aria-label="p.name"
-              class="flex flex-col"
-            >
-              <div class="flex items-center gap-2 pb-2 text-[12px] text-muted">
-                <span class="text-white">{{ p.name }}</span>
-                <span>{{ p.models.length }} {{ p.models.length === 1 ? 'model' : 'models' }}</span>
-              </div>
-              <div class="border border-default">
-                <div
-                  v-for="m in p.models"
-                  :key="m.id"
-                  class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-default px-3 py-2.5 text-[12.5px] last:border-b-0"
-                >
-                  <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span class="flex items-center gap-2 truncate text-white">
-                      {{ m.id }}
-                      <span
-                        v-if="m.id === serverDefault"
-                        class="border border-default px-1 text-[10.5px] text-muted"
-                      >default</span>
-                    </span>
-                    <span class="text-[11.5px] text-muted">
-                      {{ [m.contextWindow ? `${ctx(m.contextWindow)} context` : '', m.price ? `${m.price} per 1M` : '', m.thinking ? 'thinking' : ''].filter(Boolean).join(' · ') || '—' }}
-                    </span>
-                  </span>
-                  <div
-                    v-if="modelEfforts(m).length"
-                    role="radiogroup"
-                    :aria-label="`Effort for ${m.id}`"
-                    class="flex gap-[2px]"
-                  >
-                    <button
-                      v-for="e in modelEfforts(m)"
-                      :key="e"
-                      type="button"
-                      role="radio"
-                      :aria-checked="effortOf(m) === e"
-                      class="border px-2 py-[3px] text-[11.5px]"
-                      :class="effortOf(m) === e ? 'border-line bg-raised text-white' : 'border-transparent text-muted hover:text-white'"
-                      @click="setEffort(m.id, e)"
-                    >
-                      {{ e }}
-                    </button>
-                  </div>
-                  <span
-                    v-else
-                    class="text-[11.5px] text-dimmed"
-                  >no effort levels</span>
-                </div>
-              </div>
-            </section>
-            <p
-              v-if="!store.models.length"
-              class="m-0 border border-default px-3 py-6 text-center text-[12.5px] text-muted"
-            >
-              No models yet.
-            </p>
-          </div>
-        </template>
-
         <SettingsProviders
-          v-else-if="section === 'providers'"
+          v-else-if="section === 'models' || section === 'classifiers'"
+          :key="section"
+          :group="section === 'models' ? 'llm' : 'classifier'"
           @changed="rememberProviders"
         />
 
