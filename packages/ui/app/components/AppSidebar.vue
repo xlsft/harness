@@ -32,8 +32,8 @@ const groups = computed(() => {
 
 const onArtifacts = computed(() => route.path.startsWith('/artifacts'))
 const onSettings = computed(() => route.path.startsWith('/settings'))
-// A page other than the session view is open: no session row is current.
-const onPage = computed(() => onArtifacts.value || onSettings.value)
+// A page other than the session view is open (or the new-session screen): no session row is current.
+const onPage = computed(() => onArtifacts.value || onSettings.value || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
