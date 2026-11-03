@@ -1283,6 +1283,9 @@ export enum DocumentKind {
    * prohibitions. Always wins over every other source, including CLI flags (PLAN §2.3).
    * Several policies merge in this order (later wins for scalars, lists are unioned): "default", then
    * role-targeted policies matching the caller's role, sorted by key.
+   * permissions.disabledModes (settings mode names: "acceptEdits", "plan", "auto", "dontAsk",
+   * "bypassPermissions"; never "default") lists modes nobody may use; AdminService.SetPermissionModePolicy
+   * edits it in the "default" policy.
    *
    * @generated from enum value: DOCUMENT_KIND_POLICY = 11;
    */

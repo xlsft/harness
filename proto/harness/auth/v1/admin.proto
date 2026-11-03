@@ -2,16 +2,19 @@ syntax = "proto3";
 
 package harness.auth.v1;
 
+import "harness/agent/v1/agent.proto";
 import "harness/auth/v1/auth.proto";
 
 // AdminService is user administration for the settings screens of the apps: accounts (create, reset a
 // password, role, disable, delete), what a user signed in with (sessions and devices), their personal
-// LLM providers, and sign-in against an LDAP / Active Directory directory.
+// LLM providers, sign-in against an LDAP / Active Directory directory, and the server-wide permission mode
+// policy.
 //
 // Every method needs the admin role; anyone else gets PERMISSION_DENIED. Rules the server enforces:
 //   - the last active admin can be neither demoted, disabled nor deleted;
 //   - admins cannot disable or delete themselves;
-//   - users who sign in through LDAP have no local password (their password lives in the directory).
+//   - users who sign in through LDAP have no local password (their password lives in the directory);
+//   - the default ("Ask") permission mode can never be disabled.
 // Passwords are write-only. A generated password is returned once, in the response that set it.
 // The LDAP bind password is write-only too: stored encrypted with the server key, never returned.
 //
@@ -46,6 +49,14 @@ service AdminService {
   rpc TestLdapConnection(TestLdapConnectionRequest) returns (TestLdapConnectionResponse);
   // Looks a user up the way sign-in would (without their password) and reports the mapped account.
   rpc TestLdapUser(TestLdapUserRequest) returns (TestLdapUserResponse);
+
+  // The permission modes nobody on this server may use. Stored in the org-scope POLICY document "default"
+  // (permissions.disabledModes, harness.sync.v1.DocumentKind), so every signed-in client reads it from its
+  // sync feed and enforces it: disabled modes are not offered, cannot be chosen, and live sessions in one
+  // are switched to the closest allowed mode.
+  rpc GetPermissionModePolicy(GetPermissionModePolicyRequest) returns (GetPermissionModePolicyResponse);
+  // Replaces the list. PERMISSION_MODE_DEFAULT, UNSPECIFIED or unknown values -> INVALID_ARGUMENT.
+  rpc SetPermissionModePolicy(SetPermissionModePolicyRequest) returns (SetPermissionModePolicyResponse);
 }
 
 enum UserSource {
@@ -275,4 +286,23 @@ message TestLdapUserResponse {
   bool admin = 9;
   // The local account the user maps to, if one exists.
   string user_id = 10;
+}
+
+message PermissionModePolicy {
+  // Sorted, without duplicates. Never contains PERMISSION_MODE_DEFAULT.
+  repeated harness.agent.v1.PermissionMode disabled_modes = 1;
+}
+
+message GetPermissionModePolicyRequest {}
+
+message GetPermissionModePolicyResponse {
+  PermissionModePolicy policy = 1;
+}
+
+message SetPermissionModePolicyRequest {
+  PermissionModePolicy policy = 1;
+}
+
+message SetPermissionModePolicyResponse {
+  PermissionModePolicy policy = 1;
 }

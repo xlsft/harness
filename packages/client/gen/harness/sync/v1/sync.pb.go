@@ -62,6 +62,9 @@ const (
 	// prohibitions. Always wins over every other source, including CLI flags (PLAN §2.3).
 	// Several policies merge in this order (later wins for scalars, lists are unioned): "default", then
 	// role-targeted policies matching the caller's role, sorted by key.
+	// permissions.disabledModes (settings mode names: "acceptEdits", "plan", "auto", "dontAsk",
+	// "bypassPermissions"; never "default") lists modes nobody may use; AdminService.SetPermissionModePolicy
+	// edits it in the "default" policy.
 	DocumentKind_DOCUMENT_KIND_POLICY DocumentKind = 11
 	// key: rule file path relative to the rules root (e.g. "frontend/react.md"). content: rule markdown with
 	// optional `paths:` frontmatter. SCOPE_USER: analogue of ~/.claude/rules/**.

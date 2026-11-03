@@ -71,6 +71,12 @@ const (
 	// AdminServiceTestLdapUserProcedure is the fully-qualified name of the AdminService's TestLdapUser
 	// RPC.
 	AdminServiceTestLdapUserProcedure = "/harness.auth.v1.AdminService/TestLdapUser"
+	// AdminServiceGetPermissionModePolicyProcedure is the fully-qualified name of the AdminService's
+	// GetPermissionModePolicy RPC.
+	AdminServiceGetPermissionModePolicyProcedure = "/harness.auth.v1.AdminService/GetPermissionModePolicy"
+	// AdminServiceSetPermissionModePolicyProcedure is the fully-qualified name of the AdminService's
+	// SetPermissionModePolicy RPC.
+	AdminServiceSetPermissionModePolicyProcedure = "/harness.auth.v1.AdminService/SetPermissionModePolicy"
 )
 
 // AdminServiceClient is a client for the harness.auth.v1.AdminService service.
@@ -100,6 +106,13 @@ type AdminServiceClient interface {
 	TestLdapConnection(context.Context, *connect.Request[v1.TestLdapConnectionRequest]) (*connect.Response[v1.TestLdapConnectionResponse], error)
 	// Looks a user up the way sign-in would (without their password) and reports the mapped account.
 	TestLdapUser(context.Context, *connect.Request[v1.TestLdapUserRequest]) (*connect.Response[v1.TestLdapUserResponse], error)
+	// The permission modes nobody on this server may use. Stored in the org-scope POLICY document "default"
+	// (permissions.disabledModes, harness.sync.v1.DocumentKind), so every signed-in client reads it from its
+	// sync feed and enforces it: disabled modes are not offered, cannot be chosen, and live sessions in one
+	// are switched to the closest allowed mode.
+	GetPermissionModePolicy(context.Context, *connect.Request[v1.GetPermissionModePolicyRequest]) (*connect.Response[v1.GetPermissionModePolicyResponse], error)
+	// Replaces the list. PERMISSION_MODE_DEFAULT, UNSPECIFIED or unknown values -> INVALID_ARGUMENT.
+	SetPermissionModePolicy(context.Context, *connect.Request[v1.SetPermissionModePolicyRequest]) (*connect.Response[v1.SetPermissionModePolicyResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the harness.auth.v1.AdminService service. By
@@ -197,25 +210,39 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(adminServiceMethods.ByName("TestLdapUser")),
 			connect.WithClientOptions(opts...),
 		),
+		getPermissionModePolicy: connect.NewClient[v1.GetPermissionModePolicyRequest, v1.GetPermissionModePolicyResponse](
+			httpClient,
+			baseURL+AdminServiceGetPermissionModePolicyProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetPermissionModePolicy")),
+			connect.WithClientOptions(opts...),
+		),
+		setPermissionModePolicy: connect.NewClient[v1.SetPermissionModePolicyRequest, v1.SetPermissionModePolicyResponse](
+			httpClient,
+			baseURL+AdminServiceSetPermissionModePolicyProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("SetPermissionModePolicy")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // adminServiceClient implements AdminServiceClient.
 type adminServiceClient struct {
-	listUsers          *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
-	createUser         *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
-	resetPassword      *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
-	setRole            *connect.Client[v1.SetRoleRequest, v1.SetRoleResponse]
-	setDisabled        *connect.Client[v1.SetDisabledRequest, v1.SetDisabledResponse]
-	deleteUser         *connect.Client[v1.DeleteUserRequest, v1.DeleteUserResponse]
-	listUserSessions   *connect.Client[v1.ListUserSessionsRequest, v1.ListUserSessionsResponse]
-	revokeUserSessions *connect.Client[v1.RevokeUserSessionsRequest, v1.RevokeUserSessionsResponse]
-	listUserProviders  *connect.Client[v1.ListUserProvidersRequest, v1.ListUserProvidersResponse]
-	deleteUserProvider *connect.Client[v1.DeleteUserProviderRequest, v1.DeleteUserProviderResponse]
-	getLdapConfig      *connect.Client[v1.GetLdapConfigRequest, v1.GetLdapConfigResponse]
-	setLdapConfig      *connect.Client[v1.SetLdapConfigRequest, v1.SetLdapConfigResponse]
-	testLdapConnection *connect.Client[v1.TestLdapConnectionRequest, v1.TestLdapConnectionResponse]
-	testLdapUser       *connect.Client[v1.TestLdapUserRequest, v1.TestLdapUserResponse]
+	listUsers               *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
+	createUser              *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
+	resetPassword           *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	setRole                 *connect.Client[v1.SetRoleRequest, v1.SetRoleResponse]
+	setDisabled             *connect.Client[v1.SetDisabledRequest, v1.SetDisabledResponse]
+	deleteUser              *connect.Client[v1.DeleteUserRequest, v1.DeleteUserResponse]
+	listUserSessions        *connect.Client[v1.ListUserSessionsRequest, v1.ListUserSessionsResponse]
+	revokeUserSessions      *connect.Client[v1.RevokeUserSessionsRequest, v1.RevokeUserSessionsResponse]
+	listUserProviders       *connect.Client[v1.ListUserProvidersRequest, v1.ListUserProvidersResponse]
+	deleteUserProvider      *connect.Client[v1.DeleteUserProviderRequest, v1.DeleteUserProviderResponse]
+	getLdapConfig           *connect.Client[v1.GetLdapConfigRequest, v1.GetLdapConfigResponse]
+	setLdapConfig           *connect.Client[v1.SetLdapConfigRequest, v1.SetLdapConfigResponse]
+	testLdapConnection      *connect.Client[v1.TestLdapConnectionRequest, v1.TestLdapConnectionResponse]
+	testLdapUser            *connect.Client[v1.TestLdapUserRequest, v1.TestLdapUserResponse]
+	getPermissionModePolicy *connect.Client[v1.GetPermissionModePolicyRequest, v1.GetPermissionModePolicyResponse]
+	setPermissionModePolicy *connect.Client[v1.SetPermissionModePolicyRequest, v1.SetPermissionModePolicyResponse]
 }
 
 // ListUsers calls harness.auth.v1.AdminService.ListUsers.
@@ -288,6 +315,16 @@ func (c *adminServiceClient) TestLdapUser(ctx context.Context, req *connect.Requ
 	return c.testLdapUser.CallUnary(ctx, req)
 }
 
+// GetPermissionModePolicy calls harness.auth.v1.AdminService.GetPermissionModePolicy.
+func (c *adminServiceClient) GetPermissionModePolicy(ctx context.Context, req *connect.Request[v1.GetPermissionModePolicyRequest]) (*connect.Response[v1.GetPermissionModePolicyResponse], error) {
+	return c.getPermissionModePolicy.CallUnary(ctx, req)
+}
+
+// SetPermissionModePolicy calls harness.auth.v1.AdminService.SetPermissionModePolicy.
+func (c *adminServiceClient) SetPermissionModePolicy(ctx context.Context, req *connect.Request[v1.SetPermissionModePolicyRequest]) (*connect.Response[v1.SetPermissionModePolicyResponse], error) {
+	return c.setPermissionModePolicy.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the harness.auth.v1.AdminService service.
 type AdminServiceHandler interface {
 	// Users, oldest first, optionally filtered by a case-insensitive substring of name, username or email.
@@ -315,6 +352,13 @@ type AdminServiceHandler interface {
 	TestLdapConnection(context.Context, *connect.Request[v1.TestLdapConnectionRequest]) (*connect.Response[v1.TestLdapConnectionResponse], error)
 	// Looks a user up the way sign-in would (without their password) and reports the mapped account.
 	TestLdapUser(context.Context, *connect.Request[v1.TestLdapUserRequest]) (*connect.Response[v1.TestLdapUserResponse], error)
+	// The permission modes nobody on this server may use. Stored in the org-scope POLICY document "default"
+	// (permissions.disabledModes, harness.sync.v1.DocumentKind), so every signed-in client reads it from its
+	// sync feed and enforces it: disabled modes are not offered, cannot be chosen, and live sessions in one
+	// are switched to the closest allowed mode.
+	GetPermissionModePolicy(context.Context, *connect.Request[v1.GetPermissionModePolicyRequest]) (*connect.Response[v1.GetPermissionModePolicyResponse], error)
+	// Replaces the list. PERMISSION_MODE_DEFAULT, UNSPECIFIED or unknown values -> INVALID_ARGUMENT.
+	SetPermissionModePolicy(context.Context, *connect.Request[v1.SetPermissionModePolicyRequest]) (*connect.Response[v1.SetPermissionModePolicyResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -408,6 +452,18 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(adminServiceMethods.ByName("TestLdapUser")),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceGetPermissionModePolicyHandler := connect.NewUnaryHandler(
+		AdminServiceGetPermissionModePolicyProcedure,
+		svc.GetPermissionModePolicy,
+		connect.WithSchema(adminServiceMethods.ByName("GetPermissionModePolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceSetPermissionModePolicyHandler := connect.NewUnaryHandler(
+		AdminServiceSetPermissionModePolicyProcedure,
+		svc.SetPermissionModePolicy,
+		connect.WithSchema(adminServiceMethods.ByName("SetPermissionModePolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.auth.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServiceListUsersProcedure:
@@ -438,6 +494,10 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceTestLdapConnectionHandler.ServeHTTP(w, r)
 		case AdminServiceTestLdapUserProcedure:
 			adminServiceTestLdapUserHandler.ServeHTTP(w, r)
+		case AdminServiceGetPermissionModePolicyProcedure:
+			adminServiceGetPermissionModePolicyHandler.ServeHTTP(w, r)
+		case AdminServiceSetPermissionModePolicyProcedure:
+			adminServiceSetPermissionModePolicyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -501,4 +561,12 @@ func (UnimplementedAdminServiceHandler) TestLdapConnection(context.Context, *con
 
 func (UnimplementedAdminServiceHandler) TestLdapUser(context.Context, *connect.Request[v1.TestLdapUserRequest]) (*connect.Response[v1.TestLdapUserResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.TestLdapUser is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetPermissionModePolicy(context.Context, *connect.Request[v1.GetPermissionModePolicyRequest]) (*connect.Response[v1.GetPermissionModePolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.GetPermissionModePolicy is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) SetPermissionModePolicy(context.Context, *connect.Request[v1.SetPermissionModePolicyRequest]) (*connect.Response[v1.SetPermissionModePolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.SetPermissionModePolicy is not implemented"))
 }

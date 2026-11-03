@@ -116,12 +116,17 @@ message InitializeResponse {
   string client_version = 1;
   string user_email = 2;
   repeated string model_ids = 3;
-  // Permission modes this client supports, in Shift+Tab cycle order.
+  // Permission modes this client supports, in Shift+Tab cycle order, without the ones the server's policy
+  // disables (harness.auth.v1.AdminService.SetPermissionModePolicy).
   repeated PermissionMode permission_modes = 4;
   // The server's model catalog, in its order (model_ids lists the same ids).
   repeated ModelInfo models = 5;
   // The server's default model for sessions (its "main" slot); empty when not configured.
   string default_model = 6;
+  // Modes the server's policy disables (also those outside the cycle, e.g. bypass): frontends do not offer
+  // them, and CreateSession / SetPermissionMode with one fail with PERMISSION_DENIED. Read again after a
+  // while: the policy can change while the client runs.
+  repeated PermissionMode disabled_permission_modes = 7;
 }
 
 // A model from the server's catalog, with what frontends need to offer it.
