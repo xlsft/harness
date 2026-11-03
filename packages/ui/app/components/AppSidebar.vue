@@ -21,14 +21,27 @@ const groups = computed(() => {
     if (!map.has(name)) map.set(name, [])
     map.get(name)!.push(s)
   }
-  return [...map.entries()].map(([name, sessions]) => ({
-    name,
-    // Folder for "+": the latest session's, or its main checkout when it ran in a worktree.
-    cwd: sessions[0]!.meta.worktree?.repositoryPath || sessions[0]!.meta.cwd,
-    sessions: expanded.value[name] ? sessions : sessions.slice(0, VISIBLE),
-    more: sessions.length > VISIBLE && !expanded.value[name]
-  }))
+  return [...map.entries()].map(([name, sessions]) => {
+    // Folder for "+": the latest local session's, or its main checkout when it ran in a worktree (sessions of
+    // other machines name folders over there; a group of only those has no "+").
+    const local = sessions.find(s => !s.meta.remote)
+    return {
+      name,
+      cwd: local ? local.meta.worktree?.repositoryPath || local.meta.cwd : '',
+      sessions: expanded.value[name] ? sessions : sessions.slice(0, VISIBLE),
+      more: sessions.length > VISIBLE && !expanded.value[name]
+    }
+  })
 })
+
+// Tooltip of a remote session's device badge.
+function deviceTitle(s: SessionState) {
+  const where = `Runs on ${s.meta.deviceName || 'another machine'}`
+  if (s.meta.remoteControllable) return `${where} · online, remote control available`
+  if (s.meta.deviceOnline === true) return `${where} · online, not open there`
+  if (s.meta.deviceOnline === false) return `${where} · offline`
+  return where
+}
 
 const onArtifacts = computed(() => route.path.startsWith('/artifacts'))
 const onSettings = computed(() => route.path.startsWith('/settings'))
@@ -221,6 +234,12 @@ const nav = [
               :class="s.meta.unread && 'font-semibold text-white'"
             >{{ s.meta.title }}</span>
             <span class="flex-1" />
+            <span
+              v-if="s.meta.remote && menuFor !== s.meta.id"
+              :title="deviceTitle(s)"
+              class="max-w-[84px] shrink-0 truncate text-[10.5px] text-muted group-hover/row:hidden"
+              :class="s.meta.deviceOnline === false && 'opacity-60'"
+            >{{ s.meta.deviceName || 'remote' }}</span>
             <SessionMenu
               :session="s"
               :open="menuFor === s.meta.id"

@@ -247,6 +247,11 @@ export interface SessionMeta {
   // Set when the session runs in a worktree the client created: its worktree, and the main checkout.
   worktree: { path: string, branch: string, baseRef: string, repositoryPath: string } | null
   deviceName: string
+  // A session of another machine of the user (listed from the harness server): read-only here unless it is
+  // remote-controllable (open on its machine, which is online). deviceOnline is null when presence is unknown.
+  remote: boolean
+  deviceOnline: boolean | null
+  remoteControllable: boolean
   additions: number
   deletions: number
   filesChanged: number

@@ -47,6 +47,8 @@ watchEffect(() => {
 })
 
 const session = computed(() => composing.value ? undefined : store.current)
+// A session of another machine is read-only here unless the user drives it through the relay.
+const readOnly = computed(() => !!session.value?.meta.remote && !(store.remoteControl[session.value.meta.id] && session.value.meta.remoteControllable))
 useShortcuts()
 useShowRequests()
 </script>
@@ -82,7 +84,14 @@ useShowRequests()
           />
           <div class="shrink-0 px-5 pb-[11px]">
             <div class="mx-auto flex max-w-[790px] flex-col gap-1.5">
-              <Composer :session="session" />
+              <RemoteNotice
+                v-if="readOnly"
+                :session="session"
+              />
+              <Composer
+                v-else
+                :session="session"
+              />
             </div>
           </div>
         </template>

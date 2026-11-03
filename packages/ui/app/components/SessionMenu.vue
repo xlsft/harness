@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Menu of one session (the "…" on a sidebar row, or a right click on it): show in Finder, copy path, pin,
 // mark as unread, rename, fork, archive, delete. While it is open the letter keys pick an item. Delete asks
-// first: the first click (or D) turns the row into a confirmation, the second deletes.
+// first: the first click (or D) turns the row into a confirmation, the second deletes. A session of another
+// machine has no local folder (no Finder / path), and "Continue here" forks it into a folder of this machine.
 import type { SessionState } from '~/lib/session/types'
 import { isDesktop, revealInFolder } from '~/lib/desktop'
 
@@ -15,6 +16,7 @@ const desktop = isDesktop()
 const id = computed(() => props.session.meta.id)
 const pinned = computed(() => props.session.meta.pinned)
 const unread = computed(() => props.session.meta.unread)
+const remote = computed(() => props.session.meta.remote)
 const confirmDelete = ref(false)
 
 const toast = useToast()
@@ -37,6 +39,7 @@ const actions: Record<string, () => unknown> = {
   u: () => store.setUnread(id.value, !unread.value),
   r: () => emit('rename'),
   f: async () => {
+    if (remote.value) return navigateTo({ path: '/', query: { new: '1', fork: id.value } })
     await store.fork(id.value)
     if (route.path !== '/') await navigateTo('/')
   },
@@ -96,19 +99,21 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         class="w-[220px] border border-accented bg-hover py-1 text-[12.5px]"
       >
         <PaneMenuItem
-          v-if="desktop"
+          v-if="desktop && !remote"
           icon="folder"
           @click="run(() => revealInFolder(session.meta.cwd))"
         >
           Show in Finder
         </PaneMenuItem>
-        <PaneMenuItem
-          icon="copy"
-          @click="run(copyPath)"
-        >
-          Copy path
-        </PaneMenuItem>
-        <div class="my-1 h-px bg-line" />
+        <template v-if="!remote">
+          <PaneMenuItem
+            icon="copy"
+            @click="run(copyPath)"
+          >
+            Copy path
+          </PaneMenuItem>
+          <div class="my-1 h-px bg-line" />
+        </template>
         <PaneMenuItem
           icon="pin"
           value="P"
@@ -135,7 +140,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           value="F"
           @click="run(actions.f!)"
         >
-          Fork
+          {{ remote ? 'Continue here…' : 'Fork' }}
         </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { RespondToPermissionRequest_Decision, RespondToPlanRequest_Decision } from '~/gen/harness/agent/v1/agent_pb'
-import { createSessionState, reduce, reduceAll } from '~/lib/session/reducer'
+import { createSessionState, reduce, reduceAll, sessionMeta } from '~/lib/session/reducer'
 import type { AssistantItem, PermissionItem, PlanItem, ToolItem } from '~/lib/session/types'
-import { EventBuilder } from '~/lib/transport/events'
+import { EventBuilder, sessionInfo } from '~/lib/transport/events'
 import { MAIN_SESSION, mainHistory } from '~/lib/transport/scenario'
 
 const T0 = Date.parse('2026-11-02T12:00:00Z')
@@ -168,5 +168,20 @@ describe('queue, todos, tasks and the main scenario', () => {
     expect(last.kind).toBe('task')
     const group = (s.items.filter(i => i.kind === 'tool') as ToolItem[]).filter(t => t.messageId === 'm3a')
     expect(group.map(t => t.name)).toEqual(['Read', 'Bash', 'Edit', 'Task'])
+  })
+})
+
+describe('sessions of other machines', () => {
+  it('reads the origin of a remote session from SessionInfo and SessionUpdated', () => {
+    const local = sessionMeta(sessionInfo({ id: 'l1', deviceName: 'macbook' }))
+    expect(local).toMatchObject({ remote: false, deviceOnline: null, remoteControllable: false })
+    const remote = sessionMeta(sessionInfo({ id: 'r1', remote: true, deviceName: 'workstation', deviceOnline: false }))
+    expect(remote).toMatchObject({ remote: true, deviceName: 'workstation', deviceOnline: false, remoteControllable: false })
+
+    const s = createSessionState('r1', remote)
+    const b = new EventBuilder('r1', T0)
+    b.sessionUpdated(sessionInfo({ id: 'r1', title: 'Relay', remote: true, deviceName: 'workstation', deviceOnline: true, remoteControllable: true }))
+    reduceAll(s, b.events)
+    expect(s.meta).toMatchObject({ title: 'Relay', remote: true, deviceOnline: true, remoteControllable: true })
   })
 })

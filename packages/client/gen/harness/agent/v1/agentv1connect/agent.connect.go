@@ -118,14 +118,18 @@ type AgentServiceClient interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
 	// Sessions on this machine (local transcripts and live sessions) with the per-user state stored on the harness
-	// server (pinned, unread, archived, renamed title). Archived sessions are left out unless include_archived.
+	// server (pinned, unread, archived, renamed title), plus the user's sessions of other machines listed from the
+	// server (SessionInfo.remote, with their device and, when known, its relay presence). A session the server
+	// lists that is also on this machine appears once, as local. Archived sessions are left out unless
+	// include_archived.
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	// Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
-	// stored on the harness server (SyncService); without a server connection only a rename can be applied
-	// (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed (UNAVAILABLE).
+	// stored on the harness server (SyncService), for remote sessions too; without a server connection only a rename
+	// can be applied (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed
+	// (UNAVAILABLE).
 	UpdateSession(context.Context, *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error)
-	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files.
-	// When the server is unreachable nothing is deleted (UNAVAILABLE).
+	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files (a
+	// remote session: its server copy only). When the server is unreachable nothing is deleted (UNAVAILABLE).
 	DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error)
 	// --- New-session pickers (folder, branch, worktree) ---
 	// Folders recently used for sessions on this machine, most recent first.
@@ -135,6 +139,8 @@ type AgentServiceClient interface {
 	// Local branches of the repository containing `cwd` (empty outside a repository).
 	ListBranches(context.Context, *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error)
 	// Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
+	// A remote session (SessionInfo.remote) is followed live through the relay when it is remote_controllable;
+	// otherwise its durable transcript is read from the harness server and replayed, and the stream then ends.
 	Subscribe(context.Context, *connect.Request[v1.SubscribeRequest]) (*connect.ServerStreamForClient[v1.SubscribeResponse], error)
 	// Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
 	// or the turn is interrupted / backgrounded so it is read right away (NOW).
@@ -545,14 +551,18 @@ type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
 	// Sessions on this machine (local transcripts and live sessions) with the per-user state stored on the harness
-	// server (pinned, unread, archived, renamed title). Archived sessions are left out unless include_archived.
+	// server (pinned, unread, archived, renamed title), plus the user's sessions of other machines listed from the
+	// server (SessionInfo.remote, with their device and, when known, its relay presence). A session the server
+	// lists that is also on this machine appears once, as local. Archived sessions are left out unless
+	// include_archived.
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	// Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
-	// stored on the harness server (SyncService); without a server connection only a rename can be applied
-	// (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed (UNAVAILABLE).
+	// stored on the harness server (SyncService), for remote sessions too; without a server connection only a rename
+	// can be applied (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed
+	// (UNAVAILABLE).
 	UpdateSession(context.Context, *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error)
-	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files.
-	// When the server is unreachable nothing is deleted (UNAVAILABLE).
+	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files (a
+	// remote session: its server copy only). When the server is unreachable nothing is deleted (UNAVAILABLE).
 	DeleteSession(context.Context, *connect.Request[v1.DeleteSessionRequest]) (*connect.Response[v1.DeleteSessionResponse], error)
 	// --- New-session pickers (folder, branch, worktree) ---
 	// Folders recently used for sessions on this machine, most recent first.
@@ -562,6 +572,8 @@ type AgentServiceHandler interface {
 	// Local branches of the repository containing `cwd` (empty outside a repository).
 	ListBranches(context.Context, *connect.Request[v1.ListBranchesRequest]) (*connect.Response[v1.ListBranchesResponse], error)
 	// Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
+	// A remote session (SessionInfo.remote) is followed live through the relay when it is remote_controllable;
+	// otherwise its durable transcript is read from the harness server and replayed, and the stream then ends.
 	Subscribe(context.Context, *connect.Request[v1.SubscribeRequest], *connect.ServerStream[v1.SubscribeResponse]) error
 	// Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
 	// or the turn is interrupted / backgrounded so it is read right away (NOW).

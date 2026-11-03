@@ -17,7 +17,8 @@ export const MODELS: ModelInfo[] = [
 const HARNESS = 'github.com/xlsft/harness'
 const PROXY = 'github.com/xlsft/proxy.xlsft.ru'
 
-function info(id: string, title: string, repo: string, o: Partial<{ status: SessionStatus, additions: number, deletions: number, files: number, pr: number, branch: string, minutesAgo: number }> = {}): SessionInfo {
+// `remote`: a session of another machine of the user (listed from the harness server).
+function info(id: string, title: string, repo: string, o: Partial<{ status: SessionStatus, additions: number, deletions: number, files: number, pr: number, branch: string, minutesAgo: number, remote: { device: string, online?: boolean, controllable?: boolean } }> = {}): SessionInfo {
   const name = repo.split('/').pop()!
   return sessionInfo({
     id,
@@ -29,8 +30,11 @@ function info(id: string, title: string, repo: string, o: Partial<{ status: Sess
     status: o.status ?? SessionStatus.IDLE,
     updatedAt: new Date(Date.now() - (o.minutesAgo ?? 60) * 60_000).toISOString(),
     repo,
-    deviceId: 'dev_macbook',
-    deviceName: 'macbook',
+    deviceId: o.remote ? `dev_${o.remote.device}` : 'dev_macbook',
+    deviceName: o.remote?.device ?? 'macbook',
+    remote: !!o.remote,
+    deviceOnline: o.remote?.online,
+    remoteControllable: !!o.remote?.controllable,
     diffStats: { filesChanged: o.files ?? 0, additions: o.additions ?? 0, deletions: o.deletions ?? 0 },
     pullRequest: o.pr ? { number: o.pr, url: `https://${repo}/pull/${o.pr}`, state: PullRequest_State.OPEN } : undefined
   })
@@ -40,6 +44,7 @@ export function sessionList(): SessionInfo[] {
   return [
     info(MAIN_SESSION, 'M0: LLM gateway in core', HARNESS, { status: SessionStatus.WORKING, additions: 2926, deletions: 0, files: 14, minutesAgo: 0 }),
     info('s-client-loop', 'Agent loop in client (Go)', HARNESS, { additions: 412, deletions: 38, files: 9, branch: 'feat/client-loop', minutesAgo: 12 }),
+    info('s-relay-backoff', 'Relay reconnect backoff', HARNESS, { minutesAgo: 45, remote: { device: 'workstation', online: true } }),
     info('s-proto', 'ConnectRPC proto contracts', HARNESS, { pr: 3, minutesAgo: 90 }),
     info('s-import', 'Import Claude Code sessions', HARNESS, { minutesAgo: 300 }),
     info('s-tui', 'TUI on charm.land', HARNESS, { minutesAgo: 600 }),

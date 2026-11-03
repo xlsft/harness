@@ -28,9 +28,28 @@ type replayOptions struct {
 	// ends an interrupted turn and the synthetic result of an interrupted
 	// tool call).
 	Interrupts []string
+	// InterruptPrefixes also mark interrupts: texts starting with one of them
+	// (used without the session's prompt bundle, whose reminders only keep
+	// their documented prefix).
+	InterruptPrefixes []string
 	// MaxTurns and MaxEvents bound the replay (0: defaults). Older turns are
 	// dropped first and a Notice says so.
 	MaxTurns, MaxEvents int
+}
+
+// isInterrupt reports whether a user message or tool result text is an
+// interrupt marker.
+func (r *replayer) isInterrupt(text string) bool {
+	text = strings.TrimSpace(text)
+	if r.interrupts[text] {
+		return true
+	}
+	for _, p := range r.o.InterruptPrefixes {
+		if p != "" && strings.HasPrefix(text, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // replayHistory rebuilds the durable SessionEvents a frontend would have
@@ -216,7 +235,7 @@ func (r *replayer) user(e session.Entry, at time.Time) {
 			text += b.Text
 		}
 	}
-	interrupt := r.interrupts[strings.TrimSpace(text)]
+	interrupt := r.isInterrupt(text)
 	newTurn := !interrupt && (r.cur == nil ||
 		(e.PromptID != "" && e.PromptID != r.cur.promptID) ||
 		// Transcripts without prompt ids (older Claude Code): a prompt after a
@@ -316,7 +335,7 @@ func (r *replayer) toolResult(b llm.ContentBlock, structured any, at time.Time) 
 	for _, c := range b.Content {
 		text += c.Text
 	}
-	interrupted := r.interrupts[strings.TrimSpace(text)]
+	interrupted := r.isInterrupt(text)
 	fin := &agentv1.ToolCallFinished{ToolUseId: b.ToolUseID, IsError: b.IsError, Interrupted: interrupted, Content: pbconv.Blocks(b.Content)}
 	if interrupted {
 		fin.Summary = "Interrupted"

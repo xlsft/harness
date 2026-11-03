@@ -69,6 +69,9 @@ export const useSessionStore = defineStore('sessions', {
     // Messages typed while a turn runs; sent one by one when the session becomes idle (✕ removes one).
     localQueue: {} as Record<string, LocalQueued[]>,
     effort: {} as Record<string, EffortName>,
+    // Remote sessions the user chose to drive from here ("Continue via remote control"): the composer replaces
+    // the "Running on <device>" notice while the session stays remote-controllable.
+    remoteControl: {} as Record<string, boolean>,
     unsubscribers: {} as Record<string, () => void>
   }),
 
@@ -104,15 +107,17 @@ export const useSessionStore = defineStore('sessions', {
       }
     },
 
-    // Starts a session on the client and opens it; it goes to the top of the list.
-    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string } }) {
+    // Starts a session on the client and opens it; it goes to the top of the list. `forkOf` continues a copy of
+    // that session's transcript (a remote session's is downloaded from the harness server: "Continue here").
+    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string }, forkOf?: string }) {
       if (!this.transport) throw new Error('not connected')
       const info = await this.transport.createSession({
         cwd: opts.cwd,
         model: opts.model,
         effort: opts.effort ? EFFORT_TO_PB[opts.effort] : undefined,
         permissionMode: opts.mode ? MODE_TO_PB[opts.mode] : undefined,
-        worktree: opts.worktree
+        worktree: opts.worktree,
+        ...(opts.forkOf && { resumeSessionId: opts.forkOf, fork: true })
       })
       if (opts.effort) this.effort[info.id] = opts.effort
       this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
@@ -122,7 +127,7 @@ export const useSessionStore = defineStore('sessions', {
     },
 
     // The session list, and the state of sessions without an event stream (their status, title, marks). A busy
-    // session that went idle while not open is left unread.
+    // session that went idle while not open is left unread (a remote one only by its own machine).
     async refreshList() {
       if (!this.transport) return
       const list = await this.transport.listSessions()
@@ -135,7 +140,7 @@ export const useSessionStore = defineStore('sessions', {
         if (this.unsubscribers[info.id]) continue
         const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
         s.meta = { ...s.meta, ...sessionMeta(info) }
-        if (wasBusy && s.meta.status === 'idle' && this.currentId !== info.id && !s.meta.unread) this.quietly(this.updateSession(info.id, { unread: true }))
+        if (wasBusy && s.meta.status === 'idle' && this.currentId !== info.id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(info.id, { unread: true }))
       }
       this.order = list.map(i => i.id)
     },
@@ -159,7 +164,10 @@ export const useSessionStore = defineStore('sessions', {
     },
 
     open(id: string, resumed = false) {
-      if (!this.sessions[id]) return
+      const s = this.sessions[id]
+      if (!s) return
+      // A remote session without a stream shows a snapshot (or its relay stream ended): read it again from the start.
+      if (s.meta.remote && !this.unsubscribers[id]) this.sessions[id] = createSessionState(id, s.meta)
       this.currentId = id
       if (this.sessions[id]!.meta.unread) this.quietly(this.updateSession(id, { unread: false }))
       this.trimStreams()
@@ -177,12 +185,22 @@ export const useSessionStore = defineStore('sessions', {
           reduce(s, ev)
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           // A turn that finished while another session was open leaves this one unread.
-          if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread) this.quietly(this.updateSession(id, { unread: true }))
+          if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(id, { unread: true }))
           if (this.currentId !== id && s.meta.status === 'idle') this.trimStreams()
+        },
+        // The stream of a remote session ends after its server transcript (or when its relay stream closes); the
+        // next open reads it again.
+        onEnd: () => {
+          Reflect.deleteProperty(this.unsubscribers, id)
         },
         onError: (err) => {
           Reflect.deleteProperty(this.unsubscribers, id)
           const msg = err instanceof Error ? err.message : String(err)
+          if (this.sessions[id]?.meta.remote) {
+            this.error = msg
+            if (isNetworkError(msg)) this.connectionLost = true
+            return
+          }
           // A listed session that is not live on the client (closed, or the client restarted): resume it
           // from its transcript, then subscribe again. Tried once per open.
           if (!resumed && /not open|not_found|not found/i.test(msg)) {
@@ -197,6 +215,15 @@ export const useSessionStore = defineStore('sessions', {
           if (isNetworkError(msg)) this.connectionLost = true
         }
       })
+    },
+
+    // Drives a remote session from here through the relay: the composer replaces the notice, and a snapshot read
+    // from the server is replaced by the live relay stream.
+    continueRemotely(id: string) {
+      const s = this.sessions[id]
+      if (!s?.meta.remote || !s.meta.remoteControllable) return
+      this.remoteControl[id] = true
+      if (this.currentId === id && !this.unsubscribers[id]) this.open(id)
     },
 
     // A new session continuing from a copy of this one's transcript.

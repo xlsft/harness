@@ -3,6 +3,8 @@
 // Centre: recent folders, environment, the worktree switch. Bottom: the composer with chips for environment,
 // folder (recent / Open folder… / branch), worktree, model, effort and mode. The session is created on the
 // client with the first message. Shown for ?new=1 (sidebar New session, ⌘N) and on a client with no sessions.
+// With ?fork=<id> ("Continue here" on a session of another machine) the new session starts from a copy of that
+// session's transcript, in the folder picked here.
 import type { Branch, RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
 import { isDesktop, pickFolder } from '~/lib/desktop'
@@ -33,6 +35,8 @@ const browsing = ref(false)
 const input = ref<HTMLTextAreaElement | null>(null)
 
 const name = (p: string) => p.replace(/\/+$/, '').split('/').pop() || p
+
+const forkOf = computed(() => typeof route.query.fork === 'string' ? store.sessions[route.query.fork] : undefined)
 
 function readJSON<T>(key: string, fallback: T): T {
   try {
@@ -134,12 +138,13 @@ async function start() {
       model: model.value,
       effort: efforts.value.length ? effort.value : undefined,
       mode: mode.value,
-      worktree: worktree.value ? { baseRef: baseRef.value } : undefined
+      worktree: worktree.value ? { baseRef: baseRef.value } : undefined,
+      forkOf: forkOf.value?.meta.id
     })
     writeJSON(PREFS, { ...readJSON<object>(PREFS, {}), cwd: cwd.value, worktree: worktree.value, model: model.value, effort: effort.value, mode: mode.value })
     writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
-    const { new: _new, cwd: _cwd, ...rest } = route.query
+    const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
     await router.replace({ query: { ...rest, session: id } })
     await store.send(id, msg)
   } catch (err) {
@@ -170,11 +175,23 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
         data-tauri-drag-region
         class="m-0 flex-1 truncate text-[13.5px] font-semibold text-white"
       >
-        New session
+        {{ forkOf ? 'Continue here' : 'New session' }}
       </h1>
     </header>
 
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-5">
+      <div
+        v-if="forkOf"
+        class="flex w-full max-w-[440px] items-center gap-2.5 border border-accented bg-surface px-3 py-2 text-[12.5px]"
+      >
+        <HIcon
+          name="branch"
+          :size="14"
+          class="shrink-0 text-muted"
+        />
+        <span class="min-w-0 flex-1 truncate text-white">{{ forkOf.meta.title }}</span>
+        <span class="shrink-0 text-[11px] text-muted">from {{ forkOf.meta.deviceName || 'another machine' }}</span>
+      </div>
       <div class="w-full max-w-[440px] border border-accented bg-surface text-[12.5px]">
         <div
           v-for="f in folders.slice(0, 3)"

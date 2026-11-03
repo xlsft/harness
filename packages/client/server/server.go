@@ -69,9 +69,19 @@ type Server struct {
 	// Core, when set, forwards the settings screens' server calls (CoreProxy).
 	Core *CoreProxy
 
+	// DeviceID is this machine's device id (dev_...): sessions the server lists for another device are remote
+	// (remote.go). Empty when unknown; then only the local transcripts decide.
+	DeviceID string
+	// Relay, when set, tells which of the user's machines are online and drives remote sessions open on them.
+	Relay *RelayViewer
+
 	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
 	stateMu sync.Mutex
 	states  map[string]userState
+	// listed is the last known server copy of the caller's sessions, by id (stateMu); presence is the last
+	// relay presence (stateMu).
+	listed   map[string]*agentv1.SessionInfo
+	presence relayPresence
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -92,7 +102,7 @@ func (s *Server) log() *slog.Logger {
 
 // Handler returns the HTTP handler (path prefix and handler).
 func (s *Server) Handler() (string, http.Handler) {
-	return agentv1connect.NewAgentServiceHandler(s)
+	return agentv1connect.NewAgentServiceHandler(routed{s})
 }
 
 // Close interrupts all sessions and releases them.
@@ -210,6 +220,14 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if m.Worktree != nil && m.GetResumeSessionId() != "" && !m.GetFork() {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("worktree cannot be combined with resume_session_id unless fork is set"))
 	}
+	// A session of another machine: only a fork of its server transcript can run here (remote.go).
+	remote := s.remoteInfo(m.GetResumeSessionId())
+	if remote != nil && !m.GetFork() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("session %s runs on %s; fork it to continue here", remote.Id, deviceLabel(remote)))
+	}
+	if remote != nil && m.GetForkAtCheckpointId() != "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a session of another machine can only be forked at its end"))
+	}
 	if id := m.GetResumeSessionId(); id != "" && !m.GetFork() {
 		s.mu.Lock()
 		ls := s.live[id]
@@ -260,6 +278,14 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	if wt != nil {
 		opts.Cwd, opts.Worktree = wt.Cwd, wtMeta
+	}
+	if remote != nil {
+		id, err := s.forkRemote(ctx, remote, opts.Cwd)
+		if err != nil {
+			s.rollbackWorktree(wt)
+			return nil, err
+		}
+		opts.Resume, opts.Fork = id, false
 	}
 	ls := newLiveSession(s)
 	opts.OnEvent = ls.onEvent
@@ -345,7 +371,10 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 		}
 	}
 	s.mu.Unlock()
-	s.refreshStates(ctx, cwd)
+	s.refreshListing(ctx, cwd)
+	for _, info := range s.remoteSessions(cwd, out) {
+		out[info.Id] = info
+	}
 	resp := &agentv1.ListSessionsResponse{}
 	for _, v := range out {
 		s.applyState(v)
@@ -408,6 +437,9 @@ func (s *Server) get(id string) (*liveSession, error) {
 func (s *Server) Subscribe(ctx context.Context, req *connect.Request[agentv1.SubscribeRequest], stream *connect.ServerStream[agentv1.SubscribeResponse]) error {
 	ls, err := s.get(req.Msg.GetSessionId())
 	if err != nil {
+		if info := s.remoteInfo(req.Msg.GetSessionId()); info != nil {
+			return s.subscribeRemote(ctx, info, req.Msg.GetAfterSeq(), stream)
+		}
 		return err
 	}
 	replay, ch, unsub := ls.hub.subscribe(req.Msg.GetAfterSeq())

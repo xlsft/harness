@@ -1137,9 +1137,19 @@ type SessionInfo struct {
 	// Set when the session runs in a git worktree the client created for it (CreateSessionRequest.worktree).
 	Worktree *Worktree `protobuf:"bytes,18,opt,name=worktree,proto3,oneof" json:"worktree,omitempty"`
 	// Per-user state, stored on the harness server: a turn finished while the session was not open in a frontend.
-	Unread        bool `protobuf:"varint,19,opt,name=unread,proto3" json:"unread,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Unread bool `protobuf:"varint,19,opt,name=unread,proto3" json:"unread,omitempty"`
+	// Set by the local client (AgentService.ListSessions) for a session of the user that belongs to another machine:
+	// it is listed from the harness server, device_id / device_name name its machine, its transcript is read-only
+	// here, and commands reach it only through the relay (remote_controllable). Never stored on the server.
+	Remote bool `protobuf:"varint,20,opt,name=remote,proto3" json:"remote,omitempty"`
+	// Remote sessions only: whether the session's machine is connected to the harness server's relay right now.
+	// Absent when unknown (remote control is off on this client, or the server could not be asked).
+	DeviceOnline *bool `protobuf:"varint,21,opt,name=device_online,json=deviceOnline,proto3,oneof" json:"device_online,omitempty"`
+	// Remote sessions only: the session is open on its machine, which is online, so it can be driven through the
+	// relay (Subscribe follows it live and commands are forwarded).
+	RemoteControllable bool `protobuf:"varint,22,opt,name=remote_controllable,json=remoteControllable,proto3" json:"remote_controllable,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SessionInfo) Reset() {
@@ -1301,6 +1311,27 @@ func (x *SessionInfo) GetWorktree() *Worktree {
 func (x *SessionInfo) GetUnread() bool {
 	if x != nil {
 		return x.Unread
+	}
+	return false
+}
+
+func (x *SessionInfo) GetRemote() bool {
+	if x != nil {
+		return x.Remote
+	}
+	return false
+}
+
+func (x *SessionInfo) GetDeviceOnline() bool {
+	if x != nil && x.DeviceOnline != nil {
+		return *x.DeviceOnline
+	}
+	return false
+}
+
+func (x *SessionInfo) GetRemoteControllable() bool {
+	if x != nil {
+		return x.RemoteControllable
 	}
 	return false
 }
@@ -1505,7 +1536,8 @@ type CreateSessionRequest struct {
 	PermissionMode PermissionMode         `protobuf:"varint,3,opt,name=permission_mode,json=permissionMode,proto3,enum=harness.agent.v1.PermissionMode" json:"permission_mode,omitempty"`
 	// Resume an existing session instead of starting a new one.
 	ResumeSessionId string `protobuf:"bytes,4,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
-	// With resume_session_id: copy the transcript into a new session.
+	// With resume_session_id: copy the transcript into a new session. A remote session (SessionInfo.remote) can
+	// only be forked: its transcript is downloaded from the harness server into a new local session in `cwd`.
 	Fork   bool      `protobuf:"varint,5,opt,name=fork,proto3" json:"fork,omitempty"`
 	Effort v1.Effort `protobuf:"varint,6,opt,name=effort,proto3,enum=harness.llm.v1.Effort" json:"effort,omitempty"`
 	// Permission rules in Claude Code syntax, e.g. "Bash(npm run test *)", "Edit(/src/**)".
@@ -7386,7 +7418,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"inputPrice\x88\x01\x01\x12&\n" +
 	"\foutput_price\x18\t \x01(\x01H\x01R\voutputPrice\x88\x01\x01B\x0e\n" +
 	"\f_input_priceB\x0f\n" +
-	"\r_output_price\"\xe8\x05\n" +
+	"\r_output_price\"\xed\x06\n" +
 	"\vSessionInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
@@ -7411,9 +7443,13 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x11parent_session_id\x18\x10 \x01(\tR\x0fparentSessionId\x12!\n" +
 	"\foutput_style\x18\x11 \x01(\tR\voutputStyle\x12;\n" +
 	"\bworktree\x18\x12 \x01(\v2\x1a.harness.agent.v1.WorktreeH\x01R\bworktree\x88\x01\x01\x12\x16\n" +
-	"\x06unread\x18\x13 \x01(\bR\x06unreadB\x0f\n" +
+	"\x06unread\x18\x13 \x01(\bR\x06unread\x12\x16\n" +
+	"\x06remote\x18\x14 \x01(\bR\x06remote\x12(\n" +
+	"\rdevice_online\x18\x15 \x01(\bH\x02R\fdeviceOnline\x88\x01\x01\x12/\n" +
+	"\x13remote_controllable\x18\x16 \x01(\bR\x12remoteControllableB\x0f\n" +
 	"\r_pull_requestB\v\n" +
-	"\t_worktree\"z\n" +
+	"\t_worktreeB\x10\n" +
+	"\x0e_device_online\"z\n" +
 	"\bWorktree\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x19\n" +

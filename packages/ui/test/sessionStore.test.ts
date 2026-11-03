@@ -106,6 +106,54 @@ describe('session user state', () => {
   })
 })
 
+describe('sessions of other machines', () => {
+  const REMOTE = 's-relay-backoff'
+  let ctx: Awaited<ReturnType<typeof setup>>
+  beforeEach(async () => {
+    ctx = await setup()
+  })
+
+  it('reads a remote session again on every open: its stream ends after the server transcript', async () => {
+    const { store } = ctx
+    expect(store.sessions[REMOTE]!.meta).toMatchObject({ remote: true, deviceName: 'workstation', deviceOnline: true, remoteControllable: false })
+    store.open(REMOTE)
+    await waitFor(() => !store.unsubscribers[REMOTE])
+    const items = store.sessions[REMOTE]!.items.length
+    expect(items).toBeGreaterThan(0)
+    store.open('s-proto')
+    store.open(REMOTE)
+    await waitFor(() => !store.unsubscribers[REMOTE] && store.sessions[REMOTE]!.items.length > 0)
+    expect(store.sessions[REMOTE]!.items).toHaveLength(items)
+    expect(store.error).toBe('')
+  })
+
+  it('never marks a remote session unread from here, and drives it only while it is remote-controllable', async () => {
+    const { store, transport, calls } = ctx
+    store.sessions[REMOTE]!.meta.status = 'working'
+    await store.refreshList()
+    expect(calls.some(c => c.id === REMOTE)).toBe(false)
+
+    store.continueRemotely(REMOTE)
+    expect(store.remoteControl[REMOTE]).toBeUndefined()
+    store.open(REMOTE)
+    await waitFor(() => !store.unsubscribers[REMOTE])
+    // The list poll says it is now open on its machine.
+    store.sessions[REMOTE]!.meta.remoteControllable = true
+    const subscribe = vi.spyOn(transport, 'subscribe')
+    store.continueRemotely(REMOTE)
+    expect(store.remoteControl[REMOTE]).toBe(true)
+    // The snapshot is replaced by a new stream (the relay's, on a real client).
+    expect(subscribe).toHaveBeenCalledWith(REMOTE, 0, expect.anything())
+  })
+
+  it('continues a remote session here as a fork of its transcript', async () => {
+    const { store, transport } = ctx
+    const create = vi.spyOn(transport, 'createSession')
+    await store.createSession({ cwd: '~/Projects/xlsft/harness', forkOf: REMOTE })
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ cwd: '~/Projects/xlsft/harness', resumeSessionId: REMOTE, fork: true }))
+  })
+})
+
 async function waitFor(cond: () => boolean, ms = 3000) {
   const end = Date.now() + ms
   while (!cond()) {
