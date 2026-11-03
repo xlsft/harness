@@ -27,6 +27,7 @@ import { MockProvidersApi } from '~/lib/providers/mock'
 import { MockUsersApi } from '~/lib/users/mock'
 import { MockAccountApi } from '~/lib/account/mock'
 import { MockUsageApi } from '~/lib/usage/mock'
+import { MockTerminalsApi } from '~/lib/terminal/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
@@ -238,6 +239,11 @@ export class MockTransport implements SessionTransport {
   private usageApi = new MockUsageApi()
   usage() {
     return this.usageApi
+  }
+
+  private terminalsApi = new MockTerminalsApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
+  terminals() {
+    return this.terminalsApi
   }
 
   subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {

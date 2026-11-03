@@ -20,6 +20,7 @@ import { ConnectProvidersApi } from '~/lib/providers/connect'
 import { ConnectUsersApi } from '~/lib/users/connect'
 import { ConnectAccountApi } from '~/lib/account/connect'
 import { ConnectUsageApi } from '~/lib/usage/connect'
+import { ConnectTerminalsApi } from '~/lib/terminal/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -37,6 +38,7 @@ export class ConnectTransport implements SessionTransport {
   private usersApi: ConnectUsersApi
   private accountApi: ConnectAccountApi
   private usageApi: ConnectUsageApi
+  private terminalsApi: ConnectTerminalsApi
 
   constructor(baseUrl: string, token = '') {
     const interceptors: Interceptor[] = token ? [bearer(token)] : []
@@ -46,6 +48,7 @@ export class ConnectTransport implements SessionTransport {
     this.usersApi = new ConnectUsersApi(transport)
     this.accountApi = new ConnectAccountApi(transport)
     this.usageApi = new ConnectUsageApi(transport)
+    this.terminalsApi = new ConnectTerminalsApi(transport, baseUrl)
   }
 
   providers() {
@@ -62,6 +65,10 @@ export class ConnectTransport implements SessionTransport {
 
   usage() {
     return this.usageApi
+  }
+
+  terminals() {
+    return this.terminalsApi
   }
 
   async initialize() {

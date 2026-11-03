@@ -33,6 +33,7 @@ It ships in two forms:
 | `bootstrap` | Wires one session together |
 | `worktree` | Session worktrees (`<repo>/.harness/worktrees/<name>`) and local branch listing for the new-session pickers |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
+| `terminal` | Shells in a PTY for the UI's terminal pane (creack/pty; ConPTY on Windows): ring buffer replay on reattach, per-client cap, and the WebSocket at `/harness.agent.v1.Terminal/socket`, authenticated by one-time tickets from the terminal RPCs |
 | `relay` | Host side of `harness.relay.v1.RelayService` (remote control): mirrors live sessions to the server and runs viewer commands |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
