@@ -297,7 +297,7 @@ function toggleSetting(key: string) {
             >{{ i + 1 }}</span>
             <span
               class="min-w-0 flex-1 pr-2.5"
-              :class="settings.wrap ? 'break-words whitespace-pre-wrap' : 'whitespace-pre'"
+              :class="settings.wrap ? 'font-mono break-words whitespace-pre-wrap' : 'font-mono whitespace-pre'"
               :style="{ tabSize }"
             ><span
               v-for="(s, j) in l"
@@ -309,7 +309,7 @@ function toggleSetting(key: string) {
 
         <pre
           v-else-if="view === 'md' && showSource"
-          class="m-0 min-h-0 flex-1 overflow-auto px-3.5 py-2 text-[12px] leading-[1.65] whitespace-pre-wrap text-toned"
+          class="m-0 min-h-0 flex-1 overflow-auto px-3.5 py-2 font-mono text-[12px] leading-[1.65] whitespace-pre-wrap text-toned"
         >{{ BASELINE_SOURCE }}</pre>
 
         <div

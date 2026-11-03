@@ -272,7 +272,7 @@ const split = computed(() => {
           </div>
           <template v-else>
             <div
-              class="group/line relative flex whitespace-pre"
+              class="group/line relative flex font-mono whitespace-pre"
               :style="{ background: r.bg }"
             >
               <button
@@ -417,7 +417,7 @@ const split = computed(() => {
       <div
         v-for="(r, i) in split"
         :key="i"
-        class="grid grid-cols-2 whitespace-pre"
+        class="grid grid-cols-2 font-mono whitespace-pre"
       >
         <div
           class="flex overflow-hidden border-r border-default"

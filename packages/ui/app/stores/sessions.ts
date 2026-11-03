@@ -9,6 +9,7 @@ import {
   SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
+import type { SessionInfo } from '~/gen/harness/agent/v1/agent_pb'
 import { createSessionState, permissionModeName, reduce, sessionMeta } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
@@ -187,6 +188,16 @@ export const useSessionStore = defineStore('sessions', {
       if (this.sessions[id]!.meta.unread) this.quietly(this.updateSession(id, { unread: false }))
       this.trimStreams()
       this.subscribe(id, resumed)
+    },
+
+    // After the client reopened a session (its folder changed): drop the old stream and state, read it again from
+    // the start with the new info.
+    reopen(info: SessionInfo) {
+      const id = info.id
+      this.unsubscribers[id]?.()
+      Reflect.deleteProperty(this.unsubscribers, id)
+      this.sessions[id] = createSessionState(id, sessionMeta(info))
+      this.subscribe(id)
     },
 
     // Opens the session's event stream (no-op while one is open).

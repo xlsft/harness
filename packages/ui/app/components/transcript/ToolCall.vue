@@ -204,7 +204,7 @@ v-for="(line, i) in outputLines"
         <div
           v-for="l in f.lines"
           :key="l.n"
-          class="flex gap-3 overflow-hidden px-3 whitespace-pre"
+          class="flex gap-3 overflow-hidden px-3 font-mono whitespace-pre"
         >
           <span class="w-[22px] text-right text-dimmed">{{ l.n }}</span>
           <span><template
@@ -226,7 +226,7 @@ v-for="(line, i) in outputLines"
       <!-- WebFetch: the answer from the page (no result list) -->
       <p
         v-if="!webResults.length && webText"
-        class="m-0 line-clamp-6 px-1.5 py-[3px] whitespace-pre-wrap text-toned"
+        class="m-0 line-clamp-6 px-1.5 py-[3px] font-mono whitespace-pre-wrap text-toned"
       >
         {{ webText }}
       </p>

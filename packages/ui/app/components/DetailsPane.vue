@@ -3,7 +3,8 @@
 // agents and background tasks of the current session.
 import type { SessionState, ToolItem } from '~/lib/session/types'
 import { isSubagent } from '~/lib/session/reducer'
-import { isDesktop, revealInFolder } from '~/lib/desktop'
+import { isDesktop, openExternal, pickFolder, revealInFolder } from '~/lib/desktop'
+import { sessionWebUrl, type FolderInfo } from '~/lib/environment/types'
 import type { RowMenuItem } from '~/components/RowMenu.vue'
 
 const props = defineProps<{ session: SessionState }>()
@@ -33,6 +34,60 @@ const cwdParent = computed(() => props.session.meta.cwd.replace(/\/[^/]+$/, ''))
 const desktop = isDesktop()
 const toast = useToast()
 const { openTerminal } = useTerminalRequests()
+const editing = ref(false)
+const { openPane } = usePanes()
+const browsing = ref<'' | 'change' | 'add'>('')
+
+// Git facts of the folder (its web page for "Open repository…"), and the server's web address for the relay links.
+const folder = ref<FolderInfo | null>(null)
+const webUrl = ref('')
+watch(() => [props.session.meta.id, props.session.meta.cwd], async () => {
+  folder.value = null
+  if (!store.transport || props.session.meta.remote) return
+  try {
+    folder.value = await store.transport.environment().folderInfo(props.session.meta.cwd)
+  } catch { /* no git facts: the menu leaves the repository item out */ }
+}, { immediate: true })
+onMounted(async () => {
+  try {
+    webUrl.value = (await store.transport?.initialize())?.webUrl ?? ''
+  } catch { /* no web link */ }
+})
+const sessionLink = computed(() => sessionWebUrl(webUrl.value, props.session.meta.id))
+const repoHost = computed(() => {
+  try {
+    const h = new URL(folder.value?.webUrl ?? '').host
+    return h === 'github.com' ? 'GitHub' : h
+  } catch {
+    return ''
+  }
+})
+
+// "Change folder…" moves the idle session to another folder (the client reopens it there); "Add folder…" adds a
+// working directory to it and its environment.
+async function chosen(path: string | null) {
+  const what = browsing.value
+  browsing.value = ''
+  if (!path || !store.transport) return
+  const env = store.transport.environment()
+  try {
+    if (what === 'change') store.reopen(await env.setSessionFolder(props.session.meta.id, path))
+    else {
+      await env.addSessionDirectory(props.session.meta.id, path)
+      toast.add({ title: 'Folder added', description: `${basename(path)} is a working directory of this session now.`, color: 'neutral' })
+    }
+  } catch (e) {
+    toast.add({ title: what === 'change' ? 'Could not change the folder' : 'Could not add the folder', description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
+  }
+}
+async function pick(what: 'change' | 'add') {
+  if (!desktop) {
+    browsing.value = what
+    return
+  }
+  browsing.value = what
+  await chosen(await pickFolder(props.session.meta.cwd))
+}
 async function copy(text: string, what: string) {
   await navigator.clipboard.writeText(text)
   toast.add({ title: `${what} copied`, color: 'neutral' })
@@ -41,14 +96,26 @@ async function copy(text: string, what: string) {
 const folderMenu = computed<(RowMenuItem | null)[]>(() => {
   const cwd = props.session.meta.cwd
   const local = !props.session.meta.remote
+  const web = folder.value?.webUrl
   return [
     ...(desktop && local ? [{ label: 'Show in Finder', run: () => revealInFolder(cwd) }] : []),
+    ...(web ? [{ label: `Open repository on ${repoHost.value}`, run: () => openExternal(web) }] : []),
     null,
     { label: 'Copy path', run: () => copy(cwd, 'Path') },
+    ...(local
+      ? [
+          { label: 'Change folder…', run: () => pick('change'), disabled: props.session.meta.status === 'working' || props.session.meta.status === 'needs_input' },
+          { label: 'Add folder…', run: () => pick('add') }
+        ]
+      : []),
     null,
     ...(local ? [{ label: 'Open in terminal', run: () => openTerminal(cwd) }] : [])
   ]
 })
+const relayMenu = computed<(RowMenuItem | null)[]>(() => [
+  { label: 'Open on the web', run: () => openExternal(sessionLink.value) },
+  { label: 'Copy link', run: () => copy(sessionLink.value, 'Link') }
+])
 const branchMenu = computed<(RowMenuItem | null)[]>(() => [
   { label: 'Copy branch name', run: () => copy(props.session.meta.gitBranch || 'main', 'Branch name') },
   null,
@@ -71,7 +138,18 @@ function taskMeta(command: string, tail: string) {
     class="flex h-full min-w-0 flex-col overflow-x-hidden overflow-y-auto bg-default whitespace-nowrap"
   >
     <section class="flex flex-col border-b border-default px-[13px] py-3">
-      <span class="pb-1 text-[12px] text-muted">Environment</span>
+      <div class="flex items-center pb-1">
+        <span class="flex-1 text-[12px] text-muted">Environment</span>
+        <HIconBtn
+          v-if="!session.meta.remote"
+          icon="settings"
+          label="Edit environment"
+          :size="26"
+          :icon-size="13"
+          class="-my-1"
+          @click="editing = true"
+        />
+      </div>
       <div
         v-if="session.meta.remote"
         class="nav-row"
@@ -114,7 +192,19 @@ function taskMeta(command: string, tail: string) {
         v-if="!session.meta.remote"
         class="nav-row"
       >
-        <HIcon name="relay" /><span class="min-w-0 truncate">Session relay</span><span class="flex-1" /><HToggle
+        <HIcon name="relay" /><span class="min-w-0 truncate">Session relay</span><span class="flex-1" /><RowMenu
+          v-if="sessionLink"
+          :items="relayMenu"
+          label="Session relay"
+          align="end"
+        >
+          <HIconBtn
+            icon="more"
+            label="Session relay actions"
+            :size="26"
+            :icon-size="13"
+          />
+        </RowMenu><HToggle
           v-model="relay"
           label="Session relay"
         />
@@ -152,8 +242,15 @@ function taskMeta(command: string, tail: string) {
     <section class="flex flex-col gap-[7px] border-b border-default px-[13px] py-3">
       <span class="text-[12px] text-muted">Changes</span>
       <div class="flex items-center gap-[9px] text-[12.5px]">
-        <HIcon name="pull-request" />
-        <span class="text-ok">+{{ formatCount(session.meta.additions) }}</span><span class="text-bad">−{{ formatCount(session.meta.deletions) }}</span>
+        <button
+          type="button"
+          title="Open changes"
+          class="-mx-[9px] flex items-center gap-[9px] px-[9px] py-1 hover:bg-hover"
+          @click="openPane('diff')"
+        >
+          <HIcon name="pull-request" />
+          <span class="text-ok">+{{ formatCount(session.meta.additions) }}</span><span class="text-bad">−{{ formatCount(session.meta.deletions) }}</span>
+        </button>
         <span class="flex-1" />
         <button
           type="button"
@@ -209,5 +306,22 @@ function taskMeta(command: string, tail: string) {
         <HIcon name="check" />{{ tasks.length - runningTasks.length }} finished
       </div>
     </section>
+    <EnvironmentModal
+      v-model:open="editing"
+      :session="session"
+    />
+    <UModal
+      :open="!!browsing && !desktop"
+      :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"
+      @update:open="v => !v && (browsing = '')"
+    >
+      <template #content>
+        <NewDirectoryBrowser
+          :start="session.meta.cwd"
+          @pick="chosen"
+          @close="browsing = ''"
+        />
+      </template>
+    </UModal>
   </aside>
 </template>

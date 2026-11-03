@@ -207,7 +207,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
         <span class="min-w-0 flex-1 truncate text-strong">{{ forkOf.meta.title }}</span>
         <span class="shrink-0 text-[11px] text-muted">from {{ forkOf.meta.deviceName || 'another machine' }}</span>
       </div>
-      <div class="w-full max-w-[440px] border border-accented bg-surface text-[12.5px]">
+      <div class="w-full max-w-[440px] overflow-hidden border border-accented bg-surface text-[12.5px]">
         <div
           v-for="f in folders.slice(0, 3)"
           :key="f.path"

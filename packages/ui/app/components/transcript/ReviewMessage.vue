@@ -32,7 +32,7 @@ const ROW = {
         {{ c.path }}:{{ c.line }}
       </div>
       <div
-        class="mx-3 my-1 flex overflow-x-auto leading-[1.7] whitespace-pre"
+        class="mx-3 my-1 flex overflow-x-auto font-mono leading-[1.7] whitespace-pre"
         :style="{ background: ROW[c.sign].bg }"
       >
         <span class="w-[38px] shrink-0 pr-2.5 text-right text-dimmed">{{ c.line }}</span>

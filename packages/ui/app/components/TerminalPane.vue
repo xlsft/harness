@@ -155,7 +155,7 @@ async function copy(text: string) {
           type="button"
           aria-label="New terminal tab"
           title="New terminal tab"
-          class="flex w-9 items-center justify-center border-x border-line text-muted hover:text-strong"
+          class="flex w-9 items-center justify-center rounded-none border-x border-line text-muted hover:text-strong"
           @click="create()"
         >
           <HIcon name="plus" />
