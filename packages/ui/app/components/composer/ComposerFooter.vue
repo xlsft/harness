@@ -48,7 +48,10 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         aria-label="Model"
         :class="[BTN, modelOpen ? 'border-accent' : 'border-transparent']"
       >
-        <span class="text-strong">{{ session.meta.model }}</span><span class="max-sm:hidden">· {{ (model?.provider || 'openrouter').toLowerCase().replace(' · local', '') }}</span>
+        <span
+          class="text-strong"
+          :title="model?.provider"
+        >{{ session.meta.model }}</span>
         <HIcon
           name="down"
           :size="11"
@@ -103,7 +106,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         aria-label="Permission mode"
         :class="[BTN, modeOpen ? 'border-accent' : 'border-transparent']"
       >
-        mode <span class="text-strong">{{ MODE_LABEL[session.meta.permissionMode] }}</span><HIcon
+        <span class="text-strong">{{ MODE_LABEL[session.meta.permissionMode] }}</span><HIcon
           name="down"
           :size="11"
         />
@@ -162,7 +165,6 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
             transform="rotate(-90 10 10)"
           />
         </svg>
-        <span class="text-strong">{{ pct }}%</span>
       </button>
       <template #content>
         <div

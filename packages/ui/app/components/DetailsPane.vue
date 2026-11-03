@@ -6,6 +6,7 @@ import { isSubagent } from '~/lib/session/reducer'
 import { isDesktop, openExternal, pickFolder, revealInFolder } from '~/lib/desktop'
 import { sessionWebUrl, type FolderInfo } from '~/lib/environment/types'
 import type { RowMenuItem } from '~/components/RowMenu.vue'
+import type { RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
 
 const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
@@ -76,8 +77,8 @@ const repoHost = computed(() => {
 
 // "Change folder…" moves the idle session to another folder (the client reopens it there); "Add folder…" adds a
 // working directory to it and its environment.
-async function chosen(path: string | null) {
-  const what = browsing.value
+async function chosen(path: string | null, as?: 'change' | 'add') {
+  const what = as ?? browsing.value
   browsing.value = ''
   if (!path || !store.transport) return
   const env = store.transport.environment()
@@ -91,6 +92,17 @@ async function chosen(path: string | null) {
     toast.add({ title: what === 'change' ? 'Could not change the folder' : 'Could not add the folder', description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
   }
 }
+// A session without a folder gets one from the same picker as the new-session screen.
+const assigning = ref(false)
+const recent = ref<RecentFolder[]>([])
+watch(assigning, async (open) => {
+  if (open && store.transport) recent.value = await store.transport.listRecentFolders().catch(() => [])
+})
+function assign(path: string) {
+  assigning.value = false
+  if (path) void chosen(path, 'change')
+}
+
 async function pick(what: 'change' | 'add') {
   if (!desktop) {
     browsing.value = what
@@ -186,7 +198,34 @@ function taskMeta(command: string, tail: string) {
       >
         <HIcon name="monitor" /><span class="min-w-0 truncate">local · {{ session.meta.deviceName || 'this machine' }}</span>
       </div>
+      <!-- No folder yet: pick one, as on the new-session screen (the session moves there) -->
+      <UPopover
+        v-if="noFolder && !session.meta.remote"
+        v-model:open="assigning"
+        :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
+      >
+        <button
+          type="button"
+          class="nav-row -mx-[9px] w-[calc(100%+18px)] px-[9px] text-left hover:bg-hover"
+          :disabled="session.meta.status === 'working' || session.meta.status === 'needs_input'"
+        >
+          <HIcon name="chat" /><span class="min-w-0 flex-1 truncate">No folder</span><span class="text-[11px] text-muted">Choose…</span>
+        </button>
+        <template #content>
+          <NewFolderMenu
+            :folders="recent"
+            cwd=""
+            :branches="[]"
+            current=""
+            base-ref=""
+            :worktree="false"
+            @select="assign"
+            @browse="assigning = false; pick('change')"
+          />
+        </template>
+      </UPopover>
       <RowMenu
+        v-else
         :items="folderMenu"
         label="Folder"
       >
