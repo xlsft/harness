@@ -13,6 +13,7 @@ import {
   ROLE_SLOT_NAMES,
   addProviderModel,
   getSlots,
+  listModelsForUser,
   listProviderModels,
   removeProviderModel,
   setSlots,
@@ -259,7 +260,12 @@ export function registerProviderService(router: ConnectRouter): void {
 
     getSlots: guard(async (_req, ctx: HandlerContext) => {
       const user = await principal(ctx);
-      return { slots: slotsToProto(await getSlots()), editable: user.role === "admin" };
+      // An empty slot resolves to the first catalog model, an empty title slot to the small slot.
+      const catalog = await listModelsForUser(user);
+      const first = String(catalog.models[0]?.id ?? "");
+      const small = catalog.slots.small ? String(catalog.slots.small) : first;
+      const defaults: Slots = { main: first, small: first, plan: first, title: small };
+      return { slots: slotsToProto(await getSlots()), editable: user.role === "admin", defaults: slotsToProto(defaults) };
     }),
 
     setSlots: guard(async (req, ctx: HandlerContext) => {

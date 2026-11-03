@@ -307,7 +307,8 @@ export class MockProvidersApi implements ProvidersApi {
   }
 
   async getSlots() {
-    return { slots: { ...this.slots }, editable: this.admin }
+    const first = this.providers.find(p => p.scope === 'global' && p.group === 'llm')?.models[0]?.id ?? ''
+    return { slots: { ...this.slots }, editable: this.admin, defaults: { main: first, small: first, plan: first, title: this.slots.small || first } }
   }
 
   async setSlots(s: ModelSlots) {

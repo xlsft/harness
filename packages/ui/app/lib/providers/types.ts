@@ -158,6 +158,8 @@ export interface SlotSettings {
   slots: ModelSlots
   // The caller may change them (admins).
   editable: boolean
+  // What each slot resolves to while empty ("Server default").
+  defaults: ModelSlots
 }
 
 export const emptySlots = (): ModelSlots => ({ main: '', small: '', plan: '', title: '' })

@@ -117,10 +117,10 @@ const nav = [
     :max-size="440"
     :toggle="false"
     :ui="{
-      root: 'bg-surface border-e border-(--ui-divider) min-w-0 data-[collapsed=true]:hidden',
+      root: 'bg-default border-e border-(--ui-divider) min-w-0 data-[collapsed=true]:hidden',
       body: 'p-0 gap-0 overflow-hidden',
       footer: 'h-[46px] gap-[9px] border-t border-default py-0 pr-2.5 pl-3.5 sm:px-3.5',
-      content: 'bg-surface rounded-none max-w-[264px]',
+      content: 'bg-default rounded-none max-w-[264px]',
       // The border is the divider; the handle only widens the grab area and lights up while used.
       handle: 'relative z-10 -ml-px w-px bg-transparent transition-colors hover:bg-primary data-[dragging=true]:bg-primary'
     }"

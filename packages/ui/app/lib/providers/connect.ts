@@ -148,7 +148,7 @@ export class ConnectProvidersApi implements ProvidersApi {
 
   async getSlots() {
     const r = await this.client.getSlots({})
-    return { slots: slotsView(r.slots), editable: r.editable }
+    return { slots: slotsView(r.slots), editable: r.editable, defaults: slotsView(r.defaults) }
   }
 
   async setSlots(s: ModelSlots) {

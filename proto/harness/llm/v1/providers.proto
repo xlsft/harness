@@ -329,6 +329,8 @@ message GetSlotsResponse {
   Slots slots = 1;
   // The caller may change them (admins).
   bool editable = 2;
+  // What each slot resolves to while it is empty ("Server default"), for this caller's catalog.
+  Slots defaults = 3;
 }
 
 message SetSlotsRequest {

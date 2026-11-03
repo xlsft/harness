@@ -57,6 +57,10 @@ function pick(v: string) {
         class="min-w-0 flex-1 truncate"
         :class="current ? 'text-white' : 'text-muted'"
       >{{ current?.label ?? placeholder }}</span>
+      <span
+        v-if="current?.hint"
+        class="shrink-0 truncate text-[11.5px] text-muted"
+      >{{ current.hint }}</span>
       <HIcon
         name="down"
         :size="12"

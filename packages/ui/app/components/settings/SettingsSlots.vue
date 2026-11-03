@@ -21,22 +21,29 @@ const saving = ref(false)
 const error = ref('')
 
 const models = computed(() => slotModelOptions(props.providers))
-const options = computed(() => [{ value: '', label: 'Server default' }, ...models.value])
+// Per row: "Server default" names the model it currently resolves to.
+const defaults = ref<ModelSlots>(emptySlots())
+const optionsFor = (key: keyof ModelSlots) => [{ value: '', label: 'Server default', hint: name(defaults.value[key]) }, ...models.value]
 
 function message(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
 }
 
 // A slot's model by name; an id the catalog no longer has is shown as it is.
-function label(id: string) {
-  if (!id) return 'Server default'
-  return models.value.find(m => m.value === id)?.label ?? id
+function name(id: string) {
+  return id ? models.value.find(m => m.value === id)?.label ?? id : ''
+}
+function label(id: string, key: keyof ModelSlots) {
+  if (id) return name(id)
+  const d = name(defaults.value[key])
+  return d ? `Server default (${d})` : 'Server default'
 }
 
 onMounted(async () => {
   try {
     const r = await props.api.getSlots()
     slots.value = r.slots
+    defaults.value = r.defaults
     editable.value = r.editable
     loaded.value = true
   } catch (e) {
@@ -96,7 +103,7 @@ async function set(key: keyof ModelSlots, id: string) {
         >
           <HSelect
             :model-value="slots[row.key]"
-            :options="options"
+            :options="optionsFor(row.key)"
             :aria-label="row.label"
             :disabled="saving"
             @update:model-value="set(row.key, $event)"
@@ -106,7 +113,7 @@ async function set(key: keyof ModelSlots, id: string) {
           v-else
           class="text-[12.5px]"
           :class="slots[row.key] ? 'text-white' : 'text-muted'"
-        >{{ label(slots[row.key]) }}</span>
+        >{{ label(slots[row.key], row.key) }}</span>
       </div>
     </template>
   </section>

@@ -101,7 +101,7 @@ describe('MockProvidersApi', () => {
 
   it('lets everyone read the slots and admins set them to global models', async () => {
     const user = new MockProvidersApi(false)
-    expect(await user.getSlots()).toEqual({ slots: { main: '', small: '', plan: '', title: '' }, editable: false })
+    expect(await user.getSlots()).toEqual({ slots: { main: '', small: '', plan: '', title: '' }, editable: false, defaults: { main: 'claude-haiku', small: 'claude-haiku', plan: 'claude-haiku', title: 'claude-haiku' } })
     await expect(user.setSlots({ main: '', small: '', plan: '', title: 'claude-haiku' })).rejects.toThrow(/Admin/)
     const admin = new MockProvidersApi(true)
     expect((await admin.getSlots()).editable).toBe(true)
