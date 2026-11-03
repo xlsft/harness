@@ -115,7 +115,7 @@ const placeholder = computed(() => {
   if (planMode.value && !busy.value) return 'Describe what to plan. Nothing will be changed.'
   if (queue.value.length) return `${queue.value.length} queued · type to add another`
   if (busy.value) return 'Type to queue a message for after this turn'
-  return 'Message harness · / commands · @ files · ! shell'
+  return 'Message agent · /commands · @files · $shell'
 })
 
 // Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.
@@ -242,8 +242,9 @@ function onKeydown(e: KeyboardEvent) {
 
 function onInput(e: Event) {
   const v = (e.target as HTMLTextAreaElement).value
-  if (mode.value === 'normal' && (v === '!' || v === '#')) {
-    mode.value = v === '!' ? 'shell' : 'memory'
+  // A leading $ (or !) switches to a shell command, # to memory.
+  if (mode.value === 'normal' && (v === '$' || v === '!' || v === '#')) {
+    mode.value = v === '#' ? 'memory' : 'shell'
     text.value = ''
     return
   }
@@ -544,11 +545,13 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       >
         <span
           v-if="mode === 'shell'"
-          class="flex items-center gap-1 border border-orange px-[5px] text-[11px] text-orange"
+          title="Shell command"
+          aria-label="Shell command"
+          class="flex items-center border border-orange px-[3px] py-px text-[11px] text-orange"
         ><HIcon
           name="term"
           :size="12"
-        />shell</span>
+        /></span>
         <span
           v-else-if="mode === 'memory'"
           class="flex items-center gap-1 border border-pink px-[5px] text-[11px] text-pink"
