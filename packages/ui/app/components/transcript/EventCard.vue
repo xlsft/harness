@@ -7,8 +7,10 @@ const props = defineProps<{
   notice?: NoticeItem
   compact?: CompactItem
   turn?: TurnItem
+  // The turn footer's Read aloud is on (this turn's answer is being spoken).
+  speaking?: boolean
 }>()
-const emit = defineEmits<{ retry: [], switchModel: [], copy: [], fork: [] }>()
+const emit = defineEmits<{ retry: [], switchModel: [], copy: [], fork: [], readAloud: [] }>()
 
 const hook = computed(() => {
   if (props.notice?.noticeKind !== 'hook') return null
@@ -143,6 +145,19 @@ const usageLine = computed(() => {
     >
       <HIcon
         name="branch"
+        :size="14"
+      />
+    </button>
+    <button
+      type="button"
+      :aria-label="speaking ? 'Stop reading' : 'Read aloud'"
+      :title="speaking ? 'Stop reading' : 'Read aloud'"
+      class="flex size-[26px] items-center justify-center hover:text-highlighted"
+      :class="speaking && 'text-accent'"
+      @click="emit('readAloud')"
+    >
+      <HIcon
+        :name="speaking ? 'stop' : 'speaker'"
         :size="14"
       />
     </button>

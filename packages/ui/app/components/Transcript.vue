@@ -105,6 +105,31 @@ const cancel = (id: string) => act('Could not cancel the message', async () => {
   if (!await store.removeQueued(sid.value, id)) toast.add({ title: 'Already sent', description: 'The agent has already read this message.', color: 'neutral' })
 })
 const sendNow = (id: string) => act('Could not send the message', () => store.sendNow(sid.value, id))
+// The turn footer: the turn's answer is the text of the assistant messages since the user message that started it.
+function turnSpan(turnId: string) {
+  const items = props.session.items
+  const end = items.findIndex(i => i.kind === 'turn' && i.id === turnId)
+  let start = end
+  while (start > 0 && items[start - 1]!.kind !== 'user') start--
+  return { items, start, end }
+}
+function answerOf(turnId: string) {
+  const { items, start, end } = turnSpan(turnId)
+  return items.slice(start, end).flatMap(i => i.kind === 'assistant' ? i.blocks.flatMap(b => b.type === 'text' ? [b.text] : []) : []).join('\n\n')
+}
+// Retry asks the turn's question again.
+const retry = (turnId: string) => act('Could not retry', async () => {
+  const { items, start } = turnSpan(turnId)
+  const u = items[start - 1]
+  if (u?.kind === 'user') await store.send(sid.value, u.text)
+})
+// Fork from a turn: the conversation up to it (before the next user message, or all of it).
+function nextUserAfter(turnId: string) {
+  const { items, end } = turnSpan(turnId)
+  return items.slice(end + 1).find(i => i.kind === 'user')?.id
+}
+const readAloud = useReadAloud()
+onBeforeUnmount(readAloud.stop)
 const edit = (id: string) => act('Could not edit the message', () => store.editQueued(sid.value, id))
 // A new message (yours, a queued one or the model's next one) brings the view down to it, even when it was
 // scrolled up. column-reverse puts the newest edge at scrollTop 0. Streaming into the same message does not.
@@ -236,6 +261,11 @@ function toBottom() {
             <EventCard
               v-else-if="b.item.kind === 'turn'"
               :turn="b.item"
+              :speaking="readAloud.speaking.value === b.item.id"
+              @copy="copy(answerOf(b.item.id))"
+              @retry="retry(b.item.id)"
+              @fork="fork('', nextUserAfter(b.item.id))"
+              @read-aloud="readAloud.toggle(b.item.id, answerOf(b.item.id))"
             />
             <div
               v-else-if="b.item.kind === 'rewound'"
