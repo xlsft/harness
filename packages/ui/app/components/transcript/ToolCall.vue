@@ -33,7 +33,7 @@ const kind = computed(() => {
 const isBash = computed(() => t.value.name === 'Bash')
 const command = computed(() => String(t.value.input.command ?? ''))
 const bashLabel = computed(() => {
-  const title = (t.value as ToolItem & { title?: string }).title
+  const title = t.value.title
   if (title) return { verb: t.value.status === 'running' ? 'Run' : t.value.status === 'error' ? 'Failed to run' : 'Ran', text: title }
   const d = String(t.value.input.description ?? '').trim()
   return { verb: t.value.status === 'error' ? 'Failed:' : '', text: d || command.value }
