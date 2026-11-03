@@ -10,8 +10,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 // Background task limits.
@@ -91,6 +93,10 @@ type task struct {
 	exited  chan struct{}
 	reason  TaskFinishReason
 	cleanup func()
+	// readOff is where the next TaskOutput read starts.
+	readOff int64
+	// reported is set once a tool result told the model the task finished.
+	reported bool
 }
 
 // NewTaskManager creates a manager writing output files to dir.
@@ -342,6 +348,109 @@ func (m *TaskManager) StopAll(reason TaskFinishReason) {
 		}(id)
 	}
 	wg.Wait()
+}
+
+// Done returns a channel that is closed once the task has finished and its
+// final state is recorded.
+func (m *TaskManager) Done(id string) (<-chan struct{}, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	t, ok := m.tasks[id]
+	if !ok {
+		return nil, false
+	}
+	return t.done, true
+}
+
+// ReadOffset returns where the next TaskOutput read of a task starts.
+func (m *TaskManager) ReadOffset(id string) int64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if t, ok := m.tasks[id]; ok {
+		return t.readOff
+	}
+	return 0
+}
+
+// SetReadOffset moves a task's read position.
+func (m *TaskManager) SetReadOffset(id string, off int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if t, ok := m.tasks[id]; ok {
+		t.readOff = off
+	}
+}
+
+// MarkReported records that a tool result already told the model the task
+// finished, so the completion reminder can be skipped.
+func (m *TaskManager) MarkReported(id string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if t, ok := m.tasks[id]; ok && !t.info.Running {
+		t.reported = true
+	}
+}
+
+// Reported reports whether the model already learned that the task finished.
+func (m *TaskManager) Reported(id string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	t, ok := m.tasks[id]
+	return ok && t.reported
+}
+
+// TaskStatus describes how a task stands, for the model: "running",
+// "exited with code 3", "killed (stopped)" and so on.
+func TaskStatus(info TaskInfo) string {
+	switch {
+	case info.Running:
+		return "running"
+	case info.Reason == TaskStopped:
+		return "killed (stopped with TaskStop or by the user)"
+	case info.Reason == TaskTimeLimit:
+		return "killed (background time limit reached)"
+	case info.Reason == TaskSessionClosed:
+		return "killed (session closed)"
+	case info.ExitCode < 0:
+		return "exited abnormally (killed by a signal)"
+	default:
+		return fmt.Sprintf("exited with code %d", info.ExitCode)
+	}
+}
+
+// TaskState is the short machine form of TaskStatus: running, exited or
+// killed.
+func TaskState(info TaskInfo) string {
+	switch {
+	case info.Running:
+		return "running"
+	case info.Reason == TaskExited && info.ExitCode >= 0:
+		return "exited"
+	default:
+		return "killed"
+	}
+}
+
+// TailLines returns the last n lines of s, at most maxBytes long.
+func TailLines(s string, n, maxBytes int) string {
+	s = strings.TrimRight(s, "\n")
+	if len(s) > maxBytes {
+		s = s[len(s)-maxBytes:]
+		s = trimRuneStart(s)
+	}
+	lines := strings.Split(s, "\n")
+	if len(lines) > n {
+		lines = lines[len(lines)-n:]
+	}
+	return strings.Join(lines, "\n")
+}
+
+// trimRuneStart drops the bytes of a UTF-8 sequence cut at the start of s.
+func trimRuneStart(s string) string {
+	for i := 0; i < 4 && len(s) > 0 && !utf8.RuneStart(s[0]); i++ {
+		s = s[1:]
+	}
+	return s
 }
 
 // ReadTail returns up to n bytes from the end of a task's output file.

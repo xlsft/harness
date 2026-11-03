@@ -81,6 +81,9 @@ func ParseRule(s string) Rule {
 var (
 	editTools = map[string]bool{"Edit": true, "Write": true, "NotebookEdit": true, "MultiEdit": true}
 	readTools = map[string]bool{"Read": true, "Glob": true, "Grep": true, "LS": true, "NotebookRead": true}
+	// pathObservers read a file only when their input names one (Wait on a
+	// path): that path gets the read-tool directory check.
+	pathObservers = map[string]bool{"Wait": true}
 )
 
 // IsEditTool reports whether name modifies files.
@@ -98,7 +101,7 @@ func (r Rule) toolMatches(name string, allowImplied bool) bool {
 	switch {
 	case r.Tool == "Edit" && editTools[name]:
 		return true
-	case r.Tool == "Read" && readTools[name]:
+	case r.Tool == "Read" && (readTools[name] || pathObservers[name]):
 		return true
 	case allowImplied && editTools[r.Tool] && readTools[name]:
 		return true
@@ -216,6 +219,9 @@ func (r Rule) matchesCall(req Request, input map[string]any, mc matchContext, al
 	if !r.toolMatches(req.ToolName, allowImplied) {
 		return false
 	}
+	if pathObservers[req.ToolName] && r.Tool != req.ToolName && req.FilePath == "" {
+		return false // Read rules cover only the file such a tool reads
+	}
 	if r.Spec == "" {
 		return true
 	}
@@ -229,7 +235,7 @@ func (r Rule) matchesCall(req Request, input map[string]any, mc matchContext, al
 		}
 		return globMatch(v, valueString(input[k]))
 	}
-	if editTools[req.ToolName] || readTools[req.ToolName] {
+	if editTools[req.ToolName] || readTools[req.ToolName] || pathObservers[req.ToolName] {
 		p := req.FilePath
 		if p == "" {
 			p = mc.cwd

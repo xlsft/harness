@@ -197,6 +197,13 @@ func req(tool string, input map[string]any) Request {
 	return r
 }
 
+// wait builds a Wait request; readOnly mirrors tools.Wait.ReadOnly.
+func wait(input map[string]any, readOnly bool) Request {
+	r := req("Wait", input)
+	r.ReadOnly = readOnly
+	return r
+}
+
 func bash(cmd string) Request { return req("Bash", map[string]any{"command": cmd}) }
 
 func TestEngineRules(t *testing.T) {
@@ -245,6 +252,11 @@ func TestEngineRules(t *testing.T) {
 		{"bare deny", req("WebSearch", map[string]any{"query": "x"}), Deny},
 		{"protected path", req("Edit", map[string]any{"file_path": filepath.Join(proj, "src/.git/config")}), Ask},
 		{"read-only tool", req("TodoWrite", map[string]any{}), Allow},
+		{"wait on a port", wait(map[string]any{"port": 3000}, true), Allow},
+		{"wait on a remote port", wait(map[string]any{"port": 443, "host": "example.com"}, false), Ask},
+		{"wait on a file inside", wait(map[string]any{"path": filepath.Join(proj, "out.log")}, true), Allow},
+		{"wait on a file outside", wait(map[string]any{"path": "/etc/hosts"}, true), Ask},
+		{"wait on a denied file", wait(map[string]any{"path": filepath.Join(proj, ".env")}, true), Deny},
 	}
 	for _, c := range cases {
 		if d := e.Evaluate(c.r); d.Behavior != c.want {
