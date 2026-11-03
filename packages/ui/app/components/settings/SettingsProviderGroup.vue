@@ -143,7 +143,7 @@ async function create(draft: ProviderDraft) {
       <div class="flex flex-col border-t border-default">
         <div class="flex items-center gap-3 px-3 py-2.5">
           <SettingsMonogram
-            text="+"
+            icon="plus"
             :dim="!custom.length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">

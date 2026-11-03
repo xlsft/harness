@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // Square icon of a provider preset: its logo when one is bundled (utils/providerLogos.ts, keyed by the
-// preset's icon), else the icon as text ("TS", "+"). Nothing is fetched.
+// preset's icon), an app icon (`icon`, e.g. custom providers), else the text ("TS"). Nothing is fetched.
 import { PROVIDER_LOGOS } from '~/utils/providerLogos'
+import type { IconName } from '~/utils/icons'
 
-const props = defineProps<{ text: string, dim?: boolean }>()
-const logo = computed(() => PROVIDER_LOGOS[props.text])
+const props = defineProps<{ text?: string, icon?: IconName, dim?: boolean }>()
+const logo = computed(() => (props.text ? PROVIDER_LOGOS[props.text] : undefined))
 </script>
 
 <template>
@@ -20,6 +21,11 @@ const logo = computed(() => PROVIDER_LOGOS[props.text])
       class="flex size-4 [&>svg]:size-4"
       v-html="logo"
     />
-    <template v-else>{{ text.slice(0, 2) }}</template>
+    <HIcon
+      v-else-if="icon"
+      :name="icon"
+      :size="15"
+    />
+    <template v-else>{{ (text ?? '').slice(0, 2) }}</template>
   </span>
 </template>

@@ -247,7 +247,7 @@ func TestAutoModeGuardsAndCycle(t *testing.T) {
 	if fd.resets != 2 {
 		t.Fatalf("resets %d", fd.resets)
 	}
-	// Outside auto mode the decider is not used.
+	// Outside auto mode, headless, the decider is not used (nobody could approve anyway).
 	_ = e2.SetMode(permissions.ModeDefault)
 	if d := e2.Check(context.Background(), bash("./gen.sh")); d.Behavior != permissions.Deny || d.Auto != nil || fd.n() != 0 {
 		t.Fatalf("default mode %+v", d)
@@ -263,4 +263,41 @@ func TestCommandWritePaths(t *testing.T) {
 	if subs := permissions.Subcommands("FOO=1 timeout 5 go test $(go list ./...)"); strings.Join(subs, "|") != "go test $(go list ./...)|go list ./..." {
 		t.Fatalf("subcommands %q", subs)
 	}
+}
+
+// Outside auto mode (but not in bypass) the classifier guards what would prompt: its deny blocks the action,
+// anything else still goes to the user.
+func TestClassifierGuardsOtherModes(t *testing.T) {
+	ctx := context.Background()
+	engine := func(mode permissions.Mode, d permissions.Decider) *permissions.Engine {
+		dir, _ := filepath.EvalSymlinks(t.TempDir())
+		return permissions.New(permissions.Config{Cwd: dir, Home: filepath.Join(dir, "home"), DefaultMode: mode, Decider: d})
+	}
+	t.Run("deny-blocks-in-ask-mode", func(t *testing.T) {
+		fd := &fakeDecider{res: permissions.AutoResult{Behavior: permissions.Deny, Provider: "jev", Reason: "Wipes the disk"}}
+		e := engine(permissions.ModeDefault, fd)
+		a := &recordingAsker{d: permissions.Decision{Behavior: permissions.Allow}}
+		e.SetAsker(a)
+		d := e.Check(ctx, bash("rm -rf /"))
+		if d.Behavior != permissions.Deny || !strings.Contains(d.Message, "denied by the classifier (jev)") || len(a.reqs) != 0 {
+			t.Fatalf("%+v asked=%d", d, len(a.reqs))
+		}
+	})
+	t.Run("allow-still-asks", func(t *testing.T) {
+		fd := &fakeDecider{res: permissions.AutoResult{Behavior: permissions.Allow, Provider: "jev", Reason: "Fits the request."}}
+		e := engine(permissions.ModeAcceptEdits, fd)
+		a := &recordingAsker{d: permissions.Decision{Behavior: permissions.Allow}}
+		e.SetAsker(a)
+		d := e.Check(ctx, bash("./gen.sh"))
+		if d.Behavior != permissions.Allow || d.ResolvedBy != "user" || len(a.reqs) != 1 {
+			t.Fatalf("%+v asked=%d", d, len(a.reqs))
+		}
+	})
+	t.Run("bypass-never-asks-the-classifier", func(t *testing.T) {
+		fd := &fakeDecider{res: permissions.AutoResult{Behavior: permissions.Deny, Provider: "jev", Reason: "No"}}
+		e := engine(permissions.ModeBypassPermissions, fd)
+		if d := e.Check(ctx, bash("./gen.sh")); d.Behavior != permissions.Allow || fd.n() != 0 {
+			t.Fatalf("%+v calls=%d", d, fd.n())
+		}
+	})
 }

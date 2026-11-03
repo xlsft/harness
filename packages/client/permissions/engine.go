@@ -446,6 +446,24 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 			reason += " " + d.Message
 		}
 	}
+	// Every other mode but bypass: the classifier guards what would prompt. Its deny blocks the action; an
+	// allow or an unsure answer still goes to the user, so the mode keeps its meaning. Without anyone to ask
+	// the action is refused anyway, so the classifier is not consulted.
+	if mode != ModeAuto && mode != ModeBypassPermissions && decider != nil && asker != nil && !d.UserOnly {
+		res := e.decide(ctx, decider, req)
+		auto = &res
+		if res.Behavior == Deny {
+			return Decision{Behavior: Deny, ResolvedBy: "auto", Auto: auto, Message: fmt.Sprintf(
+				"Permission to use %s was denied by the classifier (%s): %s Do not retry it; find a safer way to reach the goal, or ask the user to run it themselves.",
+				req.ToolName, res.Provider, sentence(res.Reason))}
+		}
+		if res.Behavior == Allow && res.Reason != "" {
+			reason = "The classifier sees no risk (" + res.Provider + "): " + sentence(res.Reason)
+			if d.Message != "" {
+				reason += " " + d.Message
+			}
+		}
+	}
 	if asker == nil {
 		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission to use %s was not granted (non-interactive mode). Allow it with --allowedTools or --permission-mode.", req.ToolName), ResolvedBy: "mode"}
 	}
