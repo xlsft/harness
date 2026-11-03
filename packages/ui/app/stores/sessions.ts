@@ -396,13 +396,6 @@ export const useSessionStore = defineStore('sessions', {
           alive()
           const s = live()
           reduce(s, ev)
-          // A code block's command finished: the agent answers with its output (it reaches the model as context).
-          const inline = ev.event.case === 'userShellFinished' ? this.inlineShells[ev.event.value.commandId] : undefined
-          if (inline && !inline.done) {
-            inline.done = true
-            saveInlineShells(this.inlineShells)
-            this.quietly(this.send(id, `${RAN_PREFIX}${inline.command}`))
-          }
           this.pruneOutbox(id, ev)
           // A turn that finished while another session was open leaves this one unread.
           if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(id, { unread: true }))

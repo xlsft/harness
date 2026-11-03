@@ -22,7 +22,7 @@ package harness.agent.v1;
 //
 // The model: when the command ends, its command line, directory, exit code and output (head and tail kept when
 // long) are queued as the user_shell_command reminder. It rides on the next model request: the next request of
-// the running turn, or the first request of the next turn. A user shell command never starts a turn.
+// the running turn or, when the session is idle, of a turn the command's end starts (unless the user stopped it).
 //
 // Sessions of other machines (SessionInfo.remote) and sessions that are not open refuse it: FAILED_PRECONDITION
 // and NOT_FOUND.

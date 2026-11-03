@@ -12,7 +12,8 @@ const t = computed(() => props.tool)
 // Bash: open while the command runs, folded once it is done, unless the user toggled it.
 const toggled = ref<boolean | null>(null)
 const open = computed({
-  get: () => toggled.value ?? (t.value.name !== 'Bash' || t.value.status === 'running'),
+  // Headless, the parent's row already did the opening.
+  get: () => toggled.value ?? (props.headless || t.value.name !== 'Bash' || t.value.status === 'running'),
   set: (v: boolean) => (toggled.value = v)
 })
 const meta = computed(() => toolMeta(t.value, now.value))

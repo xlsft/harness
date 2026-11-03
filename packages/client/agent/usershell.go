@@ -28,11 +28,18 @@ type UserShellNote struct {
 	Error string
 }
 
-// NoteUserShell queues the user_shell_command reminder: it rides on the next
-// model request, the next request of a running turn or the first request of
-// the next turn. It never starts a turn.
+// NoteUserShell queues the user_shell_command reminder for the next model
+// request: the next request of a running turn or, when the session is idle, a
+// turn the command's end starts itself (SetWake) so the model answers it. A
+// command the user stopped starts no turn.
 func (a *Agent) NoteUserShell(n UserShellNote) {
 	a.Remind(ReminderUserShell, userShellVars(n))
+	a.mu.Lock()
+	wake := a.wake
+	a.mu.Unlock()
+	if wake != nil && n.Reason != "stopped" {
+		go wake()
+	}
 }
 
 func userShellVars(n UserShellNote) map[string]string {

@@ -114,7 +114,7 @@ async function stop() {
       v-if="open && item.cwd && !running"
       class="border-t border-default px-3 py-1 text-[11px] text-dimmed"
     >
-      <span class="font-mono">{{ item.cwd }}</span> · the agent sees this on its next turn
+      <span class="font-mono">{{ item.cwd }}</span>
     </div>
   </div>
 </template>

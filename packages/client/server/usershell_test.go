@@ -36,7 +36,7 @@ func TestUserShellCommands(t *testing.T) {
 	}
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 
-	// Runs in the session cwd with the session environment; no turn, no model request.
+	// Runs in the session cwd with the session environment.
 	fin, evs := h.runShell(sid, ch, `echo "var=$SHELL_TEST_VAR"; pwd`)
 	started := evs[0].GetUserShellStarted()
 	for _, ev := range evs {
@@ -122,18 +122,20 @@ func TestUserShellCommands(t *testing.T) {
 	if fin = evs[len(evs)-1].GetUserShellFinished(); fin.Command != "echo legacy" || fin.Stdout != "legacy\n" {
 		t.Fatalf("legacy: %+v", fin)
 	}
-	if n := len(h.gw.Requests()); n != 0 {
-		t.Fatalf("shell commands made %d model requests", n)
+	// A command that ended by itself starts a turn when the session is idle, so the model answers it.
+	if n := len(h.gw.Requests()); n == 0 {
+		t.Fatal("no model request after the shell commands")
 	}
 
-	// The next turn's request carries every command as context, marked as the user's.
+	// The conversation carries every command as context, marked as the user's.
 	h.send(sid, "what happened?")
-	h.until(ch, isTurnFinished)
+	// (The message may queue behind a turn a command started.)
 	reqs := h.gw.Requests()
-	if len(reqs) != 1 {
-		t.Fatalf("requests: %d", len(reqs))
+	for !strings.Contains(allText(reqs[len(reqs)-1]), "what happened?") {
+		h.until(ch, isTurnFinished)
+		reqs = h.gw.Requests()
 	}
-	all := allText(reqs[0])
+	all := allText(reqs[len(reqs)-1])
 	for _, want := range []string{
 		`<user-shell-command cwd="` + h.proj + `">echo "var=$SHELL_TEST_VAR"; pwd</user-shell-command>`,
 		"<user-shell-output exit=\"0\">\nvar=from-env\n" + h.proj + "\n</user-shell-output>",
