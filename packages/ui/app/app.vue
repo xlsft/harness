@@ -5,7 +5,7 @@ import { agentEndpoint, authStatus, isDesktop } from '~/lib/desktop'
 import { ConnectTransport } from '~/lib/transport'
 
 useSeoMeta({
-  title: 'harness',
+  title: 'xlsft`s harness',
   description: 'xlsft`s harness: agent sessions, tools and artifacts.'
 })
 

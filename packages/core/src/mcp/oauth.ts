@@ -171,7 +171,7 @@ async function ensureClient(
     info = await registerClient(d.issuer, {
       metadata: d.metadata,
       clientMetadata: {
-        client_name: "harness",
+        client_name: "xlsft`s harness",
         redirect_uris: [redirect],
         grant_types: ["authorization_code", "refresh_token"],
         response_types: ["code"],

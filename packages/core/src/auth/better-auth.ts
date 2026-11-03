@@ -21,7 +21,7 @@ const ID_PREFIX: Record<string, string> = {
 function createAuth() {
   const cfg = config();
   return betterAuth({
-    appName: "harness",
+    appName: "xlsft`s harness",
     baseURL: cfg.publicUrl,
     basePath: "/api/auth",
     secret: deriveKey("better-auth").toString("base64url"),

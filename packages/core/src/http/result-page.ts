@@ -7,7 +7,7 @@ export function esc(s: string): string {
 export function resultPage(ok: boolean, title: string, message: string, status: number): Response {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)} · harness</title>
+<title>${esc(title)} · xlsft\`s harness</title>
 <style>
 :root{color-scheme:light dark;--fg:#1a1a1a;--bg:#fafafa;--muted:#666;--card:#fff;--line:#ddd;--ok:#2a7a3b;--err:#c33}
 @media (prefers-color-scheme:dark){:root{--fg:#eee;--bg:#161616;--muted:#999;--card:#202020;--line:#333;--ok:#5fbf73;--err:#f66}}

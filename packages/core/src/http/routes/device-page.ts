@@ -26,7 +26,7 @@ function page(title: string, parts: PageParts, status = 200): Response {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>${esc(title)} · harness</title>
+<title>${esc(title)} · xlsft\`s harness</title>
 <style>
 :root{--bg:#000;--line:#2b2b2b;--line-strong:#454545;--text:#d4d4d4;--muted:#8f8f8f;--white:#fff;--accent:#2b7fff;--bad:#ff2056}
 *{box-sizing:border-box}

@@ -25,7 +25,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'en', class: 'dark' },
-      title: 'harness',
+      title: 'xlsft`s harness',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'theme-color', content: '#000000' }

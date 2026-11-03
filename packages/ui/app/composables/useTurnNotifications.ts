@@ -23,7 +23,7 @@ export function useTurnNotifications() {
           : was === 'working' && status === 'error' ? 'Stopped with an error' : ''
       if (!body || Date.now() - (last[id] ?? 0) < COOLDOWN_MS) continue
       last[id] = Date.now()
-      notify(s.meta.title || 'harness', body).catch(() => {})
+      notify(s.meta.title || 'xlsft`s harness', body).catch(() => {})
     }
   })
 }
