@@ -25,6 +25,7 @@ import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { MockProvidersApi } from '~/lib/providers/mock'
 import { MockUsersApi } from '~/lib/users/mock'
+import { MockAccountApi } from '~/lib/account/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
@@ -226,6 +227,11 @@ export class MockTransport implements SessionTransport {
   private usersApi = new MockUsersApi()
   users() {
     return this.usersApi
+  }
+
+  private accountApi = new MockAccountApi()
+  account() {
+    return this.accountApi
   }
 
   subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {
