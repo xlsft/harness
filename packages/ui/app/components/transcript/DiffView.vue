@@ -76,7 +76,7 @@ const ADD = { bg: 'color-mix(in srgb, var(--color-ok) 12%, transparent)', sc: 'v
 const DEL = { bg: 'color-mix(in srgb, var(--color-bad) 12%, transparent)', sc: 'var(--color-bad)', tc: 'var(--color-strong)', s: '−' }
 const CTX = { bg: 'transparent', sc: 'var(--color-muted)', tc: 'var(--color-text)', s: ' ' }
 
-interface URow { kind: 'hunk', text: string }
+interface URow { kind: 'hunk', first: boolean }
 interface LRow { kind: 'line', h: number, a: string, b: string, t: string, bg: string, sc: string, tc: string, s: string }
 
 // Line comments. A comment or draft is anchored to its line's side, number and text, not to a row: when the
@@ -140,7 +140,7 @@ function onDraftKey(e: KeyboardEvent) {
 const unified = computed(() => {
   const rows: (URow | LRow)[] = []
   for (const [hi, h] of props.hunks.entries()) {
-    rows.push({ kind: 'hunk', text: `@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@${h.header ? ' ' + h.header : ''}` })
+    rows.push({ kind: 'hunk', first: hi === 0 })
     let a = h.oldStart
     let b = h.newStart
     for (const l of h.lines) {
@@ -157,8 +157,9 @@ interface Side { n: string, t: string, bg: string, c: string }
 const EMPTY: Side = { n: '', t: '', bg: 'var(--color-hover)', c: 'var(--color-text)' }
 
 const split = computed(() => {
-  const rows: { l: Side, r: Side }[] = []
-  for (const h of props.hunks) {
+  const rows: { l: Side, r: Side, sep?: boolean }[] = []
+  for (const [hi, h] of props.hunks.entries()) {
+    const start = rows.length
     let a = h.oldStart
     let b = h.newStart
     let dels: Side[] = []
@@ -178,6 +179,7 @@ const split = computed(() => {
       }
     }
     flush()
+    if (hi > 0 && rows[start]) rows[start]!.sep = true
   }
   return rows
 })
@@ -273,12 +275,12 @@ const split = computed(() => {
           v-for="(r, i) in unified"
           :key="i"
         >
+          <!-- Between the changed parts of a file: a rule (the line numbers jump there) -->
           <div
             v-if="r.kind === 'hunk'"
-            class="bg-cyan/10 px-3 py-0.5 text-cyan"
-          >
-            {{ r.text }}
-          </div>
+            class="h-px bg-line"
+            :class="r.first && 'hidden'"
+          />
           <template v-else>
             <div
               class="group/line relative flex font-mono whitespace-pre"
@@ -428,6 +430,7 @@ const split = computed(() => {
         v-for="(r, i) in split"
         :key="i"
         class="grid grid-cols-2 font-mono whitespace-pre"
+        :class="r.sep && 'border-t border-line'"
       >
         <div
           class="flex overflow-hidden border-r border-default"
