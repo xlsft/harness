@@ -43,8 +43,8 @@ function clusterEntries(run: Block[]): ClusterEntry[] {
     return b.item.blocks.flatMap((blk, i): ClusterEntry[] => blk.text.trim() ? [{ kind: 'note', key: `${id}:${i}`, text: blk.text, thinking: blk.type === 'thinking' }] : [])
   })
 }
-// Runs of two or more tool calls (with what the model said between them) fold into one cluster; what the model says
-// after the last call stays out, it is the answer.
+// Runs of tool calls (with what the model said between them) fold into one cluster from the first call, so the
+// layout does not jump when the next one comes; what the model says after the last call stays out, it is the answer.
 function clustered(blocks: Block[]): Block[] {
   const out: Block[] = []
   let run: Block[] = []
@@ -55,7 +55,7 @@ function clustered(blocks: Block[]): Block[] {
     while (start < end && !isToolBlock(run[start]!)) start++
     const core = run.slice(start, end)
     const entries = clusterEntries(core)
-    if (entries.filter(e => e.kind === 'tool').length >= 2) {
+    if (entries.some(e => e.kind === 'tool')) {
       out.push(...run.slice(0, start), { kind: 'cluster', key: 'c:' + core[0]!.key, entries }, ...run.slice(end))
     } else out.push(...run)
     run = []

@@ -2,9 +2,20 @@
 // One tool call as a collapsed row that expands into its full card (ToolGroup, ToolCluster).
 import type { ToolItem } from '~/lib/session/types'
 
-defineProps<{ tool: ToolItem, sessionId: string, first?: boolean }>()
+const props = defineProps<{ tool: ToolItem, sessionId: string, first?: boolean }>()
 const now = useNow()
 const open = ref(false)
+const store = useSessionStore()
+const toast = useToast()
+// A running command can go on in the background (not one on another machine).
+const canBackground = computed(() => props.tool.name === 'Bash' && props.tool.status === 'running' && !store.sessions[props.sessionId]?.meta.remote)
+async function toBackground() {
+  try {
+    await store.transport?.backgroundToolCall(props.sessionId, props.tool.id, 'user')
+  } catch (e) {
+    toast.add({ title: 'Could not move it to the background', description: e instanceof Error ? e.message : String(e), color: 'error' })
+  }
+}
 </script>
 
 <template>
@@ -30,6 +41,13 @@ const open = ref(false)
       class="min-w-0 truncate text-strong"
     >{{ toolTarget(tool) }}</span>
     <span class="flex-1" />
+    <HBtn
+      v-if="canBackground"
+      title="Keep it running as a background task and let the agent go on"
+      @click.stop="toBackground"
+    >
+      Run in background
+    </HBtn>
     <span
       v-if="toolMeta(tool, now, true).cls === 'diff'"
       class="shrink-0 text-[10px]"

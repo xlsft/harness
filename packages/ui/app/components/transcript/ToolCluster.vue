@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Several tool calls in a row, with what the model said between them, folded into one line: the current action and
+// Tool calls in a row (one or more), with what the model said between them, folded into one line: the current action and
 // the time while it runs, what was done once it is over. Open, a list: a row per call (expands into its card) and a
 // line per remark (expands in place). Ctrl+O (verbose) opens them all.
 import type { ToolItem } from '~/lib/session/types'
@@ -27,18 +27,6 @@ function action(t: ToolItem) {
   return `${t.name} ${toolTarget(t)}`.trim()
 }
 
-const store = useSessionStore()
-const toast = useToast()
-const remote = computed(() => !!store.sessions[props.sessionId]?.meta.remote)
-async function toBackground() {
-  if (!current.value) return
-  try {
-    await store.transport?.backgroundToolCall(props.sessionId, current.value.id, 'user')
-  } catch (e) {
-    toast.add({ title: 'Could not move it to the background', description: e instanceof Error ? e.message : String(e), color: 'error' })
-  }
-}
-
 const GROUPS: { names: string[], one: string, many: (n: number) => string }[] = [
   { names: ['Bash'], one: 'ran a command', many: n => `ran ${n} commands` },
   { names: ['Read'], one: 'read a file', many: n => `read ${n} files` },
@@ -47,6 +35,7 @@ const GROUPS: { names: string[], one: string, many: (n: number) => string }[] = 
   { names: ['WebFetch', 'WebSearch'], one: 'looked up the web', many: n => `looked up the web ${n} times` }
 ]
 const summary = computed(() => {
+  if (tools.value.length === 1) return action(tools.value[0]!)
   const known = new Set(GROUPS.flatMap(g => g.names))
   const parts = GROUPS.flatMap((g) => {
     const n = tools.value.filter(t => g.names.includes(t.name)).length
@@ -80,7 +69,7 @@ const time = computed(() => {
         />
         <span class="min-w-0 truncate">{{ current ? action(current) : summary }}</span>
         <span
-          v-if="!current && failed"
+          v-if="!current && failed && tools.length > 1"
           class="shrink-0 text-bad"
         >{{ failed }} failed</span>
         <span class="shrink-0 text-[11px] tabular-nums">{{ time }}</span>
@@ -91,15 +80,6 @@ const time = computed(() => {
           :class="open && 'rotate-90'"
         />
       </button>
-      <template v-if="current?.name === 'Bash' && !remote">
-        <span class="flex-1" />
-        <HBtn
-          title="Keep it running as a background task and let the agent go on"
-          @click="toBackground"
-        >
-          Run in background
-        </HBtn>
-      </template>
     </div>
     <div
       v-if="open"
