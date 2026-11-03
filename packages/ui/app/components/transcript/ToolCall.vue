@@ -100,12 +100,13 @@ const showTarget = computed(() => kind.value === 'show' && t.value.status === 'o
 const showIn = computed(() => showTarget.value ? showPaneTitle(showTarget.value.kind) : '')
 
 // Text of a failed call: the tool_result content (results of other kinds are JSON).
-const errorText = computed(() => String(t.value.output || t.value.result?.error || t.value.result?.message || '').trim())
+// (Tool errors come wrapped in a <tool_use_error> tag for the model; the card shows the message alone.)
+const errorText = computed(() => String(t.value.output || t.value.result?.error || t.value.result?.message || '').replace(/<\/?tool_use_error>/g, '').trim())
 
 const webText = computed(() => String(t.value.result?.result ?? t.value.output ?? '').trim())
 
 const hasBody = computed(() => open.value && (
-  t.value.status === 'error' && kind.value !== 'bash'
+  t.value.status === 'error' && !isBash.value
     ? !!errorText.value
     : kind.value === 'bash'
       ? isBash.value || outputLines.value.some(l => l.length)
@@ -248,11 +249,18 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
       </HBtn>
     </div>
 
-    <!-- error of a non-shell tool (bash shows its errors in its own output) -->
-    <pre
-      v-else-if="tool.status === 'error' && kind !== 'bash' && open && errorText"
-      class="m-0 max-h-80 overflow-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap text-bad"
-    >{{ errorText }}</pre>
+    <!-- error of a tool other than Bash (Bash shows its errors in its own output): the message, readable -->
+    <p
+      v-else-if="tool.status === 'error' && !isBash && open && errorText"
+      class="m-0 flex max-h-80 items-start gap-2 overflow-auto bg-surface px-3 py-2 text-[12.5px] leading-[1.6] text-bad"
+    >
+      <HIcon
+        name="alert"
+        :size="14"
+        class="mt-[3px] shrink-0"
+      />
+      <span class="min-w-0 whitespace-pre-wrap">{{ errorText.charAt(0).toUpperCase() + errorText.slice(1) }}</span>
+    </p>
 
     <!-- Bash: the whole command, then its output, dimmed -->
     <pre
