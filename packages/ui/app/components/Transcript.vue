@@ -106,8 +106,8 @@ const activity = computed(() => {
   const s = props.session
   const todo = s.todos.find(t => t.status === 'in_progress')
   if (todo?.activeForm) return todo.activeForm
-  const tool = [...s.items].reverse().find(i => i.kind === 'tool' && i.status === 'running' && i.name !== 'Task')
-  if (tool && tool.kind === 'tool') return `Running ${tool.name}`
+  // A running tool call says what it does in its own row just above.
+  if (s.items.some(i => i.kind === 'tool' && i.status === 'running' && i.name !== 'Task')) return ''
   const last = s.items[s.items.length - 1]
   if (last?.kind === 'assistant' && last.streaming) return last.blocks[last.blocks.length - 1]?.type === 'thinking' ? 'Thinking' : 'Writing'
   return 'Thinking'
@@ -401,8 +401,7 @@ function toBottom() {
             :width="18"
             class="shrink-0"
           />
-          <span class="min-w-0 truncate"><span class="text-strong">{{ activity }}</span>
-            · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
+          <span class="min-w-0 truncate"><template v-if="activity"><span class="text-strong">{{ activity }}</span> · </template>{{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
         </div>
       </div>
     </div>
