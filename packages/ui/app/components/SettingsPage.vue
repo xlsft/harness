@@ -134,11 +134,16 @@ const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => 
         <SettingsCompaction />
       </template>
 
-      <SettingsProviders
-        v-else-if="section === 'models' || section === 'classifiers'"
-        :key="section"
-        :group="section === 'models' ? 'llm' : 'classifier'"
-      />
+      <template v-else-if="section === 'models' || section === 'classifiers'">
+        <SettingsProviders
+          :key="section"
+          :group="section === 'models' ? 'llm' : 'classifier'"
+        />
+        <template v-if="section === 'models'">
+          <SettingsLocalModels />
+          <SettingsAcpAgents />
+        </template>
+      </template>
 
       <SettingsSearch v-else-if="section === 'search'" />
       <SettingsSpeech v-else-if="section === 'speech'" />
