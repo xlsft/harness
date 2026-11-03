@@ -4,7 +4,8 @@
 // - durable events carry a seq; anything at or below lastSeq is a replay duplicate and is skipped;
 // - AssistantDelta is ephemeral (it reuses the seq of the previous durable event), so it is never deduplicated;
 //   deltas are merged into a streaming assistant item, which the final AssistantMessage replaces;
-// - ToolCallStarted / ToolCallFinished are paired by tool_use_id;
+// - ToolCallStarted / ToolCallFinished are paired by tool_use_id; ToolTitle sets the item's title by the same id
+//   (kept aside until the item exists when it comes first);
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
@@ -101,7 +102,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     showRequest: null,
     endedReason: '',
     thinkingStartedAt: {},
-    toolOwners: {}
+    toolOwners: {},
+    toolTitles: {}
   }
 }
 
@@ -387,7 +389,23 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         messageId: owner.messageId,
         grouped: owner.count > 1
       }
+      const title = s.toolTitles[t.toolUseId]
+      if (title) {
+        item.title = title
+        const { [t.toolUseId]: _, ...rest } = s.toolTitles
+        s.toolTitles = rest
+      }
       push(s, item)
+      break
+    }
+
+    case 'toolTitle': {
+      // Generated in the background: it may come before or after the call's ToolCallStarted / Finished.
+      const t = e.value
+      if (!t.title) break
+      const item = find(s, 'tool', t.toolUseId)
+      if (item) item.title = t.title
+      else s.toolTitles[t.toolUseId] = t.title
       break
     }
 

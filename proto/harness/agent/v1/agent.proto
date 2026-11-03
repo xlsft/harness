@@ -516,6 +516,7 @@ message SessionEvent {
     UserShellStarted user_shell_started = 50;
     UserShellOutput user_shell_output = 51;
     UserShellFinished user_shell_finished = 52;
+    ToolTitle tool_title = 53;
   }
 }
 
@@ -1311,4 +1312,13 @@ message AddSessionDirectoryResponse {
   Environment environment = 1;
   // Open sessions the environment was applied to.
   repeated string applied_session_ids = 2;
+}
+
+// A short model-written label of a tool call (Bash for now): a lowercase noun phrase such as "unit tests"
+// that frontends show as "Run <title>" / "Ran <title>". It is generated in the background, so it may
+// arrive before or after the call's ToolCallStarted / ToolCallFinished; it is replayed from the transcript
+// right after ToolCallStarted.
+message ToolTitle {
+  string tool_use_id = 1;
+  string title = 2;
 }

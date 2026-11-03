@@ -354,6 +354,7 @@ export function bundleToProto(b: PromptBundle): MessageInitShape<typeof PromptBu
     reminders: b.reminders,
     compactionInstruction: b.compaction.instruction,
     titleInstruction: b.title.instruction,
+    toolTitleInstruction: b.tool_title.instruction,
     outputStyles: Object.fromEntries(
       Object.entries(b.output_styles).map(([id, s]) => [
         id,

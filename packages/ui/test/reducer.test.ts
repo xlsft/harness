@@ -106,6 +106,52 @@ describe('tool calls', () => {
   })
 })
 
+describe('tool titles', () => {
+  it('sets the title on an existing tool call, before or after its result', () => {
+    const { b, s } = setup()
+    b.assistant('m1', 'glm-4.6', [
+      { toolUse: { id: 't1', name: 'Bash', input: { command: 'pnpm test' } } },
+      { toolUse: { id: 't2', name: 'Bash', input: { command: 'ls' } } }
+    ])
+    b.toolStarted('t1', 'Bash', { command: 'pnpm test' }, 'pnpm test')
+    b.toolStarted('t2', 'Bash', { command: 'ls' }, 'ls')
+    b.toolTitle('t1', 'unit tests')
+    b.toolFinished('t2', { output: 'a\nb', summary: 'exit 0' })
+    b.toolTitle('t2', 'project files')
+    b.toolTitle('t3', '')
+    reduceAll(s, b.events)
+    const tools = s.items.filter(i => i.kind === 'tool') as ToolItem[]
+    expect(tools.map(t => [t.id, t.title, t.status])).toEqual([['t1', 'unit tests', 'running'], ['t2', 'project files', 'ok']])
+    expect(s.toolTitles).toEqual({})
+  })
+
+  it('keeps a title that arrives first and applies it when the tool call appears', () => {
+    const { b, s } = setup()
+    b.toolTitle('t1', 'page script on localhost')
+    reduceAll(s, b.events)
+    expect(s.items.filter(i => i.kind === 'tool')).toHaveLength(0)
+    expect(s.toolTitles).toEqual({ t1: 'page script on localhost' })
+
+    reduce(s, b.toolStarted('t1', 'Bash', { command: 'node script.js' }, 'node script.js'))
+    const tool = s.items.find(i => i.kind === 'tool') as ToolItem
+    expect(tool.title).toBe('page script on localhost')
+    expect(s.toolTitles).toEqual({})
+  })
+
+  it('leaves calls without a ToolTitle untitled', () => {
+    const { b, s } = setup()
+    b.toolStarted('t1', 'Read', { file_path: 'a.ts' }, 'a.ts')
+    reduceAll(s, b.events)
+    expect((s.items.find(i => i.kind === 'tool') as ToolItem).title).toBeUndefined()
+  })
+
+  it('titles the Bash calls of the design scenario', () => {
+    const s = reduceAll(createSessionState(MAIN_SESSION), mainHistory(Date.now()))
+    const buf = s.items.find(i => i.kind === 'tool' && i.id === 't-buf') as ToolItem
+    expect(buf.title).toBe('proto code generation')
+  })
+})
+
 describe('permission, question and plan cards', () => {
   it('shows a pending permission card and resolves it on PermissionResolved', () => {
     const { b, s } = setup()

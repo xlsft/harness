@@ -62,7 +62,12 @@ func (r *replayer) isInterrupt(text string) bool {
 // the replay. Seq, session id are left to the hub; timestamps come from the
 // transcript.
 func replayHistory(entries []session.Entry, o replayOptions) []*agentv1.SessionEvent {
-	r := &replayer{o: o, interrupts: map[string]bool{}, pending: map[string]*pendingTool{}}
+	r := &replayer{o: o, interrupts: map[string]bool{}, pending: map[string]*pendingTool{}, toolTitles: map[string]string{}}
+	for _, e := range entries {
+		if e.Type == session.TypeToolTitle && e.ToolUseID != "" && strings.TrimSpace(e.ToolTitle) != "" {
+			r.toolTitles[e.ToolUseID] = strings.TrimSpace(e.ToolTitle)
+		}
+	}
 	for _, s := range o.Interrupts {
 		if s = strings.TrimSpace(s); s != "" {
 			r.interrupts[s] = true
@@ -113,6 +118,9 @@ type replayer struct {
 	// estimated from the entries that follow the boundary.
 	compact      *agentv1.Compacted
 	compactChars int
+	// toolTitles are the recorded tool-title entries by tool use id (the
+	// last one wins), emitted after the call's ToolCallStarted.
+	toolTitles map[string]string
 }
 
 func entryTime(e session.Entry) time.Time {
@@ -324,6 +332,9 @@ func (r *replayer) flushAssistant() {
 		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallStarted{ToolCallStarted: &agentv1.ToolCallStarted{
 			ToolUseId: b.ID, Name: b.Name, InputJson: string(b.Input), Summary: toolSummary(b.Name, b.Input, r.o.Cwd),
 		}}})
+		if t := r.toolTitles[b.ID]; t != "" {
+			r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolTitle{ToolTitle: &agentv1.ToolTitle{ToolUseId: b.ID, Title: t}}})
+		}
 	}
 }
 

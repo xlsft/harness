@@ -60,6 +60,7 @@ describe("bundle builder", () => {
     expect(b.compaction.instruction).toMatch(/summary/);
     for (const h of ["User intent", "Decisions", "Files touched", "Current state", "Next steps", "Pending todos"]) expect(b.compaction.instruction).toContain(`## ${h}`);
     expect(b.title.instruction).toMatch(/title/);
+    expect(b.tool_title.instruction).toMatch(/label/);
     const env = b.system.find((s) => s.id === "env") as { text: string };
     for (const ph of ["cwd", "platform", "shell", "os_version", "date", "is_git", "git_status", "model_display_name", "model_id", "additional_directories", "scratchpad_dir"]) expect(env.text).toContain(`{{${ph}}}`);
     // built-in output styles

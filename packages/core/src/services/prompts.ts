@@ -21,6 +21,7 @@ export interface PromptBundle {
   reminders: Record<string, string>;
   compaction: { instruction: string };
   title: { instruction: string };
+  tool_title: { instruction: string };
   output_styles: Record<string, OutputStyle>;
 }
 
@@ -155,6 +156,7 @@ export function buildBundle(files: Map<string, string>, modelId: string): Prompt
     reminders,
     compaction: { instruction: (files.get("compaction/instruction.md") ?? "").trimEnd() },
     title: { instruction: (files.get("title/instruction.md") ?? "").trimEnd() },
+    tool_title: { instruction: (files.get("tool-title/instruction.md") ?? "").trimEnd() },
     output_styles,
   };
   const version = createHash("sha256").update(JSON.stringify(body)).digest("hex").slice(0, 16);
