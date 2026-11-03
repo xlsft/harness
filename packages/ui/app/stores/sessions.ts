@@ -1,7 +1,7 @@
 // Session store: one SessionState per session, fed by the transport's Subscribe stream through the reducer.
 
 import { defineStore } from 'pinia'
-import { markRaw } from 'vue'
+import { markRaw, toRaw } from 'vue'
 import {
   PermissionMode,
   RespondToPermissionRequest_Decision,
@@ -51,6 +51,18 @@ const RETRY_MIN_MS = 1000
 const RETRY_MAX_MS = 15_000
 export const RECONCILE_MS = 6000
 export const INTERRUPT_SETTLE_MS = 4000
+// A replay that never says it is over is shown anyway after this long.
+const REPLAY_MAX_MS = 4000
+
+// A plain deep copy of a session state, to reduce a replay into without rendering every event.
+function copyState(s: SessionState): SessionState {
+  const raw = toRaw(s)
+  try {
+    return structuredClone(raw)
+  } catch {
+    return JSON.parse(JSON.stringify(raw)) as SessionState
+  }
+}
 
 // Per-stream bookkeeping kept out of the reactive state.
 const watchdogs = new Map<string, ReturnType<typeof setTimeout>>()
@@ -343,10 +355,33 @@ export const useSessionStore = defineStore('sessions', {
           if (!stopped) this.restartStream(id)
         }, STALL_MS))
       }
+      // A first open replays the whole history: it is reduced into a plain copy (no rendering per event) and shown
+      // at once when the client says the replay is over (or after REPLAY_MAX_MS, or when the stream ends), so the
+      // transcript never shows the intermediate states of old turns. Meanwhile the session shows as loading.
+      let draft: SessionState | null = null
+      let draftTimer: ReturnType<typeof setTimeout> | undefined
+      const flush = () => {
+        if (draftTimer) clearTimeout(draftTimer)
+        draftTimer = undefined
+        if (!draft) return
+        const d = draft
+        draft = null
+        d.loading = false
+        this.sessions[id] = d
+      }
+      // Only streams that say when the replay is over (control messages, the first one before the replay) buffer.
+      const startDraft = () => {
+        const cur = this.sessions[id]!
+        if (draft || caughtUp || cur.lastSeq !== 0 || cur.items.length) return
+        draft = copyState(cur)
+        cur.loading = true
+        draftTimer = setTimeout(flush, REPLAY_MAX_MS)
+      }
+      const live = () => draft ?? this.sessions[id]!
       const stop = this.transport.subscribe(id, state.lastSeq, {
         onControl: (c) => {
           if (done || stopped) return
-          const s = this.sessions[id]!
+          const s = live()
           beats = true
           alive()
           // Seqs count in one event log; a client that reopened the session (it restarted) has started another.
@@ -355,18 +390,22 @@ export const useSessionStore = defineStore('sessions', {
             return
           }
           s.logId = c.logId
-          if (!c.session) return
+          if (!c.session) {
+            startDraft()
+            return
+          }
           caughtUp = true
           clearRetry(id)
           const wasBusy = this.isBusy(id)
           applyLiveInfo(s, c.session)
+          flush()
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           if (this.currentId !== id && s.meta.status === 'idle') this.trimStreams()
         },
         onEvent: (ev) => {
           if (done) return
           alive()
-          const s = this.sessions[id]!
+          const s = live()
           const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
           reduce(s, ev)
           // A code block's command finished: the agent answers with its output (it reaches the model as context).
@@ -386,9 +425,11 @@ export const useSessionStore = defineStore('sessions', {
         // The stream of a remote session ends after its server transcript (or when its relay stream closes); the
         // next open reads it again.
         onEnd: () => {
+          flush()
           if (!stopped) end()
         },
         onError: (err) => {
+          flush()
           if (stopped) return
           end()
           const msg = err instanceof Error ? err.message : String(err)
@@ -415,6 +456,7 @@ export const useSessionStore = defineStore('sessions', {
         }
       })
       unsubscribe = () => {
+        flush()
         stopped = true
         clearWatchdog(id)
         stop()

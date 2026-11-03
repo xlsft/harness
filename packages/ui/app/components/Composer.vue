@@ -401,11 +401,13 @@ async function startRecording() {
     toast.add({ title: 'Dictation', description: e instanceof Error ? e.message : String(e), color: 'error' })
   }
 }
-async function stopRecording(keep: boolean) {
+// keep: insert the text; send: and send it.
+async function stopRecording(keep: boolean, send = false) {
   recording.value = false
   try {
     const said = await dictation.stop(keep)
     if (said) text.value = (text.value ? text.value.replace(/\s*$/, ' ') : '') + said
+    if (said && send) await submit()
   } catch (e) {
     toast.add({ title: 'Could not transcribe', description: e instanceof Error ? e.message : String(e), color: 'error' })
   }
@@ -500,7 +502,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       class="flex min-h-11 items-center gap-2.5 border border-bad bg-surface px-2"
     >
       <span class="size-2 bg-bad" /><span class="text-[12px] text-strong">{{ mmss(now - recordStart) }}</span>
-      <div class="flex h-6 min-w-0 flex-1 items-center gap-0.5 overflow-hidden">
+      <div class="flex h-6 min-w-0 flex-1 items-center justify-end gap-0.5 overflow-hidden">
         <span
           v-for="(h, i) in (dictation.state.value === 'recording' ? dictation.levels.value.map(l => 2 + l * 22) : wave)"
           :key="i"
@@ -522,10 +524,24 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       </button>
       <button
         type="button"
-        aria-label="Finish recording"
+        aria-label="Insert the text"
+        title="Insert the text without sending"
+        :class="ICON_BTN"
+        class="border border-default text-strong"
+        @click="stopRecording(true)"
+      >
+        <HIcon
+          name="check"
+          :size="14"
+        />
+      </button>
+      <button
+        type="button"
+        aria-label="Send"
+        title="Send what you said"
         :class="ICON_BTN"
         class="bg-accent text-on-accent"
-        @click="stopRecording(true)"
+        @click="stopRecording(true, true)"
       >
         <HIcon name="up" />
       </button>

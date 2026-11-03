@@ -8,7 +8,7 @@ import { runMockShell } from '~/lib/transport/mockShell'
 import { useSessionStore } from '~/stores/sessions'
 import { composerRoute } from '~/utils/composer'
 
-vi.mock('vue', () => ({ markRaw: <T>(v: T) => v }))
+vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
 const T0 = Date.parse('2026-11-02T12:00:00Z')
 

@@ -6,7 +6,7 @@ import { MockUsersApi } from '~/lib/users/mock'
 import { useSessionStore } from '~/stores/sessions'
 import { allowedModes, fitMode, nextMode } from '~/utils/composer'
 
-vi.mock('vue', () => ({ markRaw: <T>(v: T) => v }))
+vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
 describe('mode helpers', () => {
   it('hide disabled modes and fall back to the first allowed one', () => {

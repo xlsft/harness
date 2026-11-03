@@ -4,7 +4,8 @@
 // ffmpeg). `levels` feeds the waveform while recording.
 import { BROWSER_SPEECH_PROVIDER, type SpeechProviderView } from '~/lib/speech/types'
 
-const BARS = 60
+// Enough bars to fill a wide composer; the newest is on the right.
+const BARS = 240
 const WAV_RATE = 16_000
 
 type Recognition = { lang: string, continuous: boolean, interimResults: boolean, start(): void, stop(): void, abort(): void, onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null, onerror: ((e: { error: string }) => void) | null, onend: (() => void) | null }

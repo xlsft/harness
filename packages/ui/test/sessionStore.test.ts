@@ -7,7 +7,7 @@ import { useSessionStore } from '~/stores/sessions'
 
 // The store imports markRaw from 'vue', which Nuxt provides and this package does not depend on directly
 // (pinia brings its own copy).
-vi.mock('vue', () => ({ markRaw: <T>(v: T) => v }))
+vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
 // The store against the mock transport; `failing` makes the client refuse user-state changes.
 async function setup() {

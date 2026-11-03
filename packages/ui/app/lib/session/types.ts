@@ -387,6 +387,8 @@ export interface SessionState {
   showRequest: ShowRequest | null
   // The latest usage-limit state of the session's provider; undefined until one was reported.
   usageLimit?: UsageLimitVM
+  // The history is being replayed (first open): the transcript waits for it.
+  loading?: boolean
   // The permission mode plan mode was entered from (approving a plan returns to it).
   prePlanMode?: PermissionModeName
   endedReason: string

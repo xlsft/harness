@@ -9,7 +9,7 @@ import { MockTransport } from '~/lib/transport/mock'
 import { useSessionStore } from '~/stores/sessions'
 import { compactCommand } from '~/utils/composer'
 
-vi.mock('vue', () => ({ markRaw: <T>(v: T) => v }))
+vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
 describe('context usage mapping', () => {
   const pb = create(ContextUsageSchema, {

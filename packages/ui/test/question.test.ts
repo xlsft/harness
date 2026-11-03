@@ -16,7 +16,7 @@ import { EventBuilder } from '~/lib/transport/events'
 import type { SessionTransport } from '~/lib/transport/types'
 import { useSessionStore } from '~/stores/sessions'
 
-vi.mock('vue', () => ({ markRaw: <T>(v: T) => v }))
+vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
 const T0 = Date.parse('2026-11-02T12:00:00Z')
 

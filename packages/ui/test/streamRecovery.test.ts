@@ -10,7 +10,7 @@ import { MockTransport } from '~/lib/transport/mock'
 import type { SubscribeHandlers } from '~/lib/transport/types'
 import { INTERRUPT_SETTLE_MS, RECONCILE_MS, STALL_MS, useSessionStore } from '~/stores/sessions'
 
-vi.mock('vue', () => ({ markRaw: <T>(v: T) => v }))
+vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
 const ID = 's1'
 const T0 = Date.parse('2026-11-03T12:00:00Z')

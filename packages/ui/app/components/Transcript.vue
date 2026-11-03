@@ -171,7 +171,19 @@ function toBottom() {
       @scroll="onScroll"
     >
       <SelectionMenu :root="scroller" />
-      <div class="mx-auto flex w-full max-w-[790px] flex-col gap-[15px]">
+      <!-- The history is being replayed (first open): shown at once when it is in -->
+      <div
+        v-if="session.loading"
+        class="m-auto"
+        role="status"
+        aria-label="Loading the session"
+      >
+        <HMark :width="28" />
+      </div>
+      <div
+        v-else
+        class="mx-auto flex w-full max-w-[790px] flex-col gap-[15px]"
+      >
         <template
           v-for="b in blocks"
           :key="b.key"

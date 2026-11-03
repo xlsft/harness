@@ -6,7 +6,7 @@ import { createSessionState, sessionMeta } from '~/lib/session/reducer'
 import { MockTransport } from '~/lib/transport/mock'
 import { useSessionStore } from '~/stores/sessions'
 
-vi.mock('vue', () => ({ markRaw: <T>(v: T) => v }))
+vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
 describe('session relay', () => {
   it('maps the relay fields of SessionInfo', () => {
