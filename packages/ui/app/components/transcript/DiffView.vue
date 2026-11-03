@@ -42,9 +42,11 @@ const props = withDefaults(defineProps<{
   // No header (the diff pane draws one continuous diff with its own file separators and view menu).
   bare?: boolean
   commentable?: boolean
+  // In the transcript: the body scrolls past 320px, as tool outputs do.
+  capped?: boolean
   // Thread of a sent comment, with the agent's replies (the diff pane reads them from the transcript).
   threadOf?: (c: DiffComment) => ThreadEntry[]
-}>(), { verb: 'Edit', mode: 'unified', icon: true, flush: false, bare: false, commentable: false })
+}>(), { verb: 'Edit', mode: 'unified', icon: true, flush: false, bare: false, commentable: false, capped: false })
 
 const comments = defineModel<DiffComment[]>('comments', { default: () => [] })
 const emit = defineEmits<{ reply: [comment: DiffComment, text: string] }>()
@@ -187,18 +189,21 @@ const split = computed(() => {
   >
     <div
       v-if="!bare"
-      class="flex flex-wrap items-center gap-[9px] border-b border-default py-[7px] pr-2 pl-3 text-[12px]"
+      class="flex items-center gap-[9px] border-b border-default py-[7px] pr-2 pl-3 text-[12.5px] whitespace-nowrap text-muted"
     >
       <HIcon
         v-if="icon"
         name="edit"
-        class="text-muted"
+        class="shrink-0"
       />
-      <span class="text-muted">{{ verb }}</span><span class="min-w-0 truncate text-strong">{{ path }}</span>
+      <span class="shrink-0">{{ verb }}</span><span
+        class="min-w-0 truncate text-strong"
+        :title="path"
+      >{{ path }}</span>
       <span class="flex-1" />
-      <span class="text-ok">+{{ stats.add }}</span><span class="text-bad">−{{ stats.del }}</span>
+      <span class="shrink-0 text-[11px] text-ok">+{{ stats.add }}</span><span class="shrink-0 text-[11px] text-bad">−{{ stats.del }}</span>
       <div
-        class="flex border border-default text-[11px]"
+        class="flex shrink-0 border border-default text-[11px]"
         role="group"
         aria-label="Diff view"
       >
@@ -223,6 +228,7 @@ const split = computed(() => {
     <div
       v-if="view === 'unified'"
       class="@container overflow-x-auto text-[12px] leading-[1.7]"
+      :class="capped && 'max-h-80 overflow-y-auto'"
     >
       <!-- A draft whose line left the diff (the file changed under it): kept open here with its text. -->
       <div
@@ -407,6 +413,7 @@ const split = computed(() => {
     <div
       v-else
       class="overflow-x-auto text-[12px] leading-[1.7]"
+      :class="capped && 'max-h-80 overflow-y-auto'"
     >
       <div
         v-if="commentable && comments.some(c => c.path === path)"

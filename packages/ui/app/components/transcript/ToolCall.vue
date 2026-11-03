@@ -93,6 +93,7 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
     :path="toolTarget(tool)"
     :hunks="patchOf(tool)"
     :verb="tool.name === 'Write' ? 'Write' : 'Edit'"
+    capped
   />
 
   <!-- Headless with nothing to show renders nothing, so the group drops the empty body and its border. -->
