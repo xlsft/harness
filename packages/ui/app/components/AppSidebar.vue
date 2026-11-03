@@ -86,7 +86,10 @@ function newSession(cwd?: string) {
 const desktop = isDesktop()
 
 // Footer: who is signed in and on which server.
-const displayName = computed(() => store.account.name || store.userEmail.split('@')[0] || 'Not signed in')
+// The profile (name, avatar) from the server; the shell's whoami until it loads.
+const { profile, load: loadProfile } = useAccountProfile()
+onMounted(() => loadProfile())
+const displayName = computed(() => profile.value?.name || store.account.name || store.userEmail.split('@')[0] || 'Not signed in')
 const host = computed(() => {
   try {
     return store.account.server ? new URL(store.account.server).host : ''
@@ -276,7 +279,16 @@ const nav = [
     </div>
 
     <template #footer>
-      <span class="flex size-[22px] shrink-0 items-center justify-center bg-accent text-[10.5px] font-bold text-on-accent uppercase">{{ displayName.charAt(0) }}</span>
+      <img
+        v-if="profile?.image"
+        :src="profile.image"
+        alt=""
+        class="size-[22px] shrink-0 object-cover"
+      >
+      <span
+        v-else
+        class="flex size-[22px] shrink-0 items-center justify-center bg-accent text-[10.5px] font-bold text-on-accent uppercase"
+      >{{ displayName.charAt(0) }}</span>
       <span
         class="flex min-w-0 items-baseline gap-1.5"
         :title="store.userEmail"

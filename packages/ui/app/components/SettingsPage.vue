@@ -2,11 +2,9 @@
 // Settings (the body of SettingsModal): sections on the left with a filter, the chosen one on the right
 // (?settings=<section>). General edits the defaults the new-session screen starts from (the same localStorage key
 // it remembers its last choices in).
-import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
 
 const store = useSessionStore()
 const modal = useSettingsModal()
-const desktop = isDesktop()
 
 // Grouped like the nav shows them: you, this app, the AI services, the server (admins), the product.
 const SECTIONS = [
@@ -62,19 +60,6 @@ const section = computed<Section>({
 const { prefs: defaults, save } = useSessionDefaults()
 const prefs = computed(() => defaults.value)
 const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => save('worktree', v) })
-
-const host = computed(() => {
-  try {
-    return store.account.server ? new URL(store.account.server).host : ''
-  } catch {
-    return store.account.server
-  }
-})
-
-async function signOut() {
-  await desktopLogout()
-  window.location.reload()
-}
 </script>
 
 <template>
@@ -158,63 +143,7 @@ async function signOut() {
 
       <SettingsLdap v-else-if="section === 'ldap'" />
 
-      <template v-else-if="section === 'account'">
-        <h2 class="set-h">
-          Account
-        </h2>
-        <p class="set-sub">
-          Who you are signed in as, and where.
-        </p>
-        <div class="set-row">
-          <div class="set-label">
-            <span>Email</span>
-          </div>
-          <span class="text-[12.5px] text-strong">{{ store.userEmail || 'Not signed in' }}</span>
-        </div>
-        <div
-          v-if="store.account.name"
-          class="set-row"
-        >
-          <div class="set-label">
-            <span>Name</span>
-          </div>
-          <span class="text-[12.5px] text-strong">{{ store.account.name }}</span>
-        </div>
-        <div
-          v-if="host"
-          class="set-row"
-        >
-          <div class="set-label">
-            <span>Server</span>
-          </div>
-          <span class="text-[12.5px] text-strong">{{ host }}</span>
-        </div>
-        <div
-          v-if="store.account.role"
-          class="set-row"
-        >
-          <div class="set-label">
-            <span>Role</span>
-          </div>
-          <span class="text-[12.5px] text-strong capitalize">{{ store.account.role }}</span>
-        </div>
-        <div
-          v-if="desktop"
-          class="set-row"
-        >
-          <div class="set-label">
-            <span>Sign out</span>
-            <span class="set-desc">Stops the agent on this computer and forgets its credentials.</span>
-          </div>
-          <button
-            type="button"
-            class="h-8 border border-bad px-3 text-[12.5px] text-bad hover:bg-bad hover:text-on-accent"
-            @click="signOut"
-          >
-            Sign out
-          </button>
-        </div>
-      </template>
+      <SettingsAccount v-else-if="section === 'account'" />
 
       <SettingsAbout v-else />
     </div>
