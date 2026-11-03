@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The Icon Composer icon in Resources/Assets.car (scripts/build-icon.sh); icon.icns is the fallback. -->
+	<key>CFBundleIconName</key>
+	<string>Icon</string>
+</dict>
+</plist>
