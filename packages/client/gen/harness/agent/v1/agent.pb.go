@@ -2625,9 +2625,11 @@ func (*DeleteSessionResponse) Descriptor() ([]byte, []int) {
 }
 
 type SubscribeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	AfterSeq      int64                  `protobuf:"varint,2,opt,name=after_seq,json=afterSeq,proto3" json:"after_seq,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	AfterSeq  int64                  `protobuf:"varint,2,opt,name=after_seq,json=afterSeq,proto3" json:"after_seq,omitempty"`
+	// Also send control messages (SubscribeResponse.log_id / session, heartbeats); see Subscribe.
+	Control       bool `protobuf:"varint,3,opt,name=control,proto3" json:"control,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2676,9 +2678,25 @@ func (x *SubscribeRequest) GetAfterSeq() int64 {
 	return 0
 }
 
+func (x *SubscribeRequest) GetControl() bool {
+	if x != nil {
+		return x.Control
+	}
+	return false
+}
+
 type SubscribeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Event         *SessionEvent          `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unset on control messages (SubscribeRequest.control: the ones before and after the replay, and heartbeats).
+	Event *SessionEvent `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	// Set on control messages: the id of the event log the seqs belong to. Each opening of a session on the
+	// client (a CreateSession, also after the client restarted) starts a new log with seqs from 1. A frontend
+	// that resubscribes with after_seq and gets another log_id than before drops what it has and subscribes
+	// again with after_seq = 0.
+	LogId string `protobuf:"bytes,2,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
+	// Set on the control message right after the replay: the session as it is now. Its status is the truth
+	// when the replayed events disagree (e.g. a turn the frontend saw start whose end it missed).
+	Session       *SessionInfo `protobuf:"bytes,3,opt,name=session,proto3" json:"session,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2716,6 +2734,20 @@ func (*SubscribeResponse) Descriptor() ([]byte, []int) {
 func (x *SubscribeResponse) GetEvent() *SessionEvent {
 	if x != nil {
 		return x.Event
+	}
+	return nil
+}
+
+func (x *SubscribeResponse) GetLogId() string {
+	if x != nil {
+		return x.LogId
+	}
+	return ""
+}
+
+func (x *SubscribeResponse) GetSession() *SessionInfo {
+	if x != nil {
+		return x.Session
 	}
 	return nil
 }
@@ -5470,7 +5502,9 @@ func (x *InterruptRequest) GetSessionId() string {
 }
 
 type InterruptResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// No turn (nor the reply to an interrupted one) was running: nothing was interrupted.
+	Idle          bool `protobuf:"varint,1,opt,name=idle,proto3" json:"idle,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5503,6 +5537,13 @@ func (x *InterruptResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InterruptResponse.ProtoReflect.Descriptor instead.
 func (*InterruptResponse) Descriptor() ([]byte, []int) {
 	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *InterruptResponse) GetIdle() bool {
+	if x != nil {
+		return x.Idle
+	}
+	return false
 }
 
 type RespondToPermissionRequest struct {
@@ -8454,13 +8495,16 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x14DeleteSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
-	"\x15DeleteSessionResponse\"N\n" +
+	"\x15DeleteSessionResponse\"h\n" +
 	"\x10SubscribeRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
-	"\tafter_seq\x18\x02 \x01(\x03R\bafterSeq\"I\n" +
+	"\tafter_seq\x18\x02 \x01(\x03R\bafterSeq\x12\x18\n" +
+	"\acontrol\x18\x03 \x01(\bR\acontrol\"\x99\x01\n" +
 	"\x11SubscribeResponse\x124\n" +
-	"\x05event\x18\x01 \x01(\v2\x1e.harness.agent.v1.SessionEventR\x05event\"\xda\x0f\n" +
+	"\x05event\x18\x01 \x01(\v2\x1e.harness.agent.v1.SessionEventR\x05event\x12\x15\n" +
+	"\x06log_id\x18\x02 \x01(\tR\x05logId\x127\n" +
+	"\asession\x18\x03 \x01(\v2\x1d.harness.agent.v1.SessionInfoR\asession\"\xda\x0f\n" +
 	"\fSessionEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x03R\x03seq\x12\x1d\n" +
 	"\n" +
@@ -8721,8 +8765,9 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\aremoved\x18\x01 \x01(\bR\aremoved\"1\n" +
 	"\x10InterruptRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"\x13\n" +
-	"\x11InterruptResponse\"\xf1\x02\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"'\n" +
+	"\x11InterruptResponse\x12\x12\n" +
+	"\x04idle\x18\x01 \x01(\bR\x04idle\"\xf1\x02\n" +
 	"\x1aRespondToPermissionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1d\n" +
@@ -9177,160 +9222,161 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	18,  // 17: harness.agent.v1.ListSessionsResponse.sessions:type_name -> harness.agent.v1.SessionInfo
 	18,  // 18: harness.agent.v1.UpdateSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
 	42,  // 19: harness.agent.v1.SubscribeResponse.event:type_name -> harness.agent.v1.SessionEvent
-	18,  // 20: harness.agent.v1.SessionEvent.session_updated:type_name -> harness.agent.v1.SessionInfo
-	57,  // 21: harness.agent.v1.SessionEvent.user_message:type_name -> harness.agent.v1.UserMessage
-	58,  // 22: harness.agent.v1.SessionEvent.assistant_delta:type_name -> harness.agent.v1.AssistantDelta
-	59,  // 23: harness.agent.v1.SessionEvent.assistant_message:type_name -> harness.agent.v1.AssistantMessage
-	60,  // 24: harness.agent.v1.SessionEvent.tool_call_started:type_name -> harness.agent.v1.ToolCallStarted
-	61,  // 25: harness.agent.v1.SessionEvent.tool_call_finished:type_name -> harness.agent.v1.ToolCallFinished
-	62,  // 26: harness.agent.v1.SessionEvent.permission_request:type_name -> harness.agent.v1.PermissionRequest
-	66,  // 27: harness.agent.v1.SessionEvent.question:type_name -> harness.agent.v1.Question
-	69,  // 28: harness.agent.v1.SessionEvent.queue_changed:type_name -> harness.agent.v1.QueueChanged
-	70,  // 29: harness.agent.v1.SessionEvent.turn_finished:type_name -> harness.agent.v1.TurnFinished
-	71,  // 30: harness.agent.v1.SessionEvent.notice:type_name -> harness.agent.v1.Notice
-	63,  // 31: harness.agent.v1.SessionEvent.permission_resolved:type_name -> harness.agent.v1.PermissionResolved
-	64,  // 32: harness.agent.v1.SessionEvent.question_resolved:type_name -> harness.agent.v1.QuestionResolved
-	65,  // 33: harness.agent.v1.SessionEvent.session_ended:type_name -> harness.agent.v1.SessionEnded
-	43,  // 34: harness.agent.v1.SessionEvent.turn_started:type_name -> harness.agent.v1.TurnStarted
-	44,  // 35: harness.agent.v1.SessionEvent.todos_updated:type_name -> harness.agent.v1.TodosUpdated
-	46,  // 36: harness.agent.v1.SessionEvent.plan_proposed:type_name -> harness.agent.v1.PlanProposed
-	47,  // 37: harness.agent.v1.SessionEvent.plan_resolved:type_name -> harness.agent.v1.PlanResolved
-	48,  // 38: harness.agent.v1.SessionEvent.task_started:type_name -> harness.agent.v1.TaskStarted
-	49,  // 39: harness.agent.v1.SessionEvent.task_output:type_name -> harness.agent.v1.TaskOutput
-	50,  // 40: harness.agent.v1.SessionEvent.task_finished:type_name -> harness.agent.v1.TaskFinished
-	52,  // 41: harness.agent.v1.SessionEvent.checkpoint_created:type_name -> harness.agent.v1.CheckpointCreated
-	53,  // 42: harness.agent.v1.SessionEvent.rewound:type_name -> harness.agent.v1.Rewound
-	54,  // 43: harness.agent.v1.SessionEvent.compacted:type_name -> harness.agent.v1.Compacted
-	55,  // 44: harness.agent.v1.SessionEvent.permission_mode_changed:type_name -> harness.agent.v1.PermissionModeChanged
-	56,  // 45: harness.agent.v1.SessionEvent.show_requested:type_name -> harness.agent.v1.ShowRequested
-	45,  // 46: harness.agent.v1.TodosUpdated.todos:type_name -> harness.agent.v1.Todo
-	4,   // 47: harness.agent.v1.Todo.status:type_name -> harness.agent.v1.Todo.Status
-	13,  // 48: harness.agent.v1.PlanResolved.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
-	5,   // 49: harness.agent.v1.TaskFinished.reason:type_name -> harness.agent.v1.TaskFinished.Reason
-	51,  // 50: harness.agent.v1.CheckpointCreated.checkpoint:type_name -> harness.agent.v1.Checkpoint
-	14,  // 51: harness.agent.v1.Rewound.mode:type_name -> harness.agent.v1.RewindRequest.Mode
-	6,   // 52: harness.agent.v1.Compacted.trigger:type_name -> harness.agent.v1.Compacted.Trigger
-	0,   // 53: harness.agent.v1.PermissionModeChanged.mode:type_name -> harness.agent.v1.PermissionMode
-	7,   // 54: harness.agent.v1.ShowRequested.kind:type_name -> harness.agent.v1.ShowRequested.Kind
-	130, // 55: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
-	130, // 56: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
-	131, // 57: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
-	132, // 58: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
-	130, // 59: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
-	12,  // 60: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
-	2,   // 61: harness.agent.v1.QuestionResolved.outcome:type_name -> harness.agent.v1.QuestionOutcome
-	81,  // 62: harness.agent.v1.QuestionResolved.answers:type_name -> harness.agent.v1.QuestionAnswer
-	67,  // 63: harness.agent.v1.Question.items:type_name -> harness.agent.v1.QuestionItem
-	68,  // 64: harness.agent.v1.QuestionItem.options:type_name -> harness.agent.v1.QuestionOption
-	8,   // 65: harness.agent.v1.QuestionItem.type:type_name -> harness.agent.v1.QuestionItem.Type
-	57,  // 66: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
-	9,   // 67: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
-	132, // 68: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
-	10,  // 69: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
-	130, // 70: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
-	11,  // 71: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
-	12,  // 72: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
-	81,  // 73: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
-	2,   // 74: harness.agent.v1.AnswerQuestionRequest.outcome:type_name -> harness.agent.v1.QuestionOutcome
-	129, // 75: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
-	0,   // 76: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
-	13,  // 77: harness.agent.v1.RespondToPlanRequest.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
-	51,  // 78: harness.agent.v1.ListCheckpointsResponse.checkpoints:type_name -> harness.agent.v1.Checkpoint
-	14,  // 79: harness.agent.v1.RewindRequest.mode:type_name -> harness.agent.v1.RewindRequest.Mode
-	53,  // 80: harness.agent.v1.RewindResponse.result:type_name -> harness.agent.v1.Rewound
-	5,   // 81: harness.agent.v1.BackgroundTask.finish_reason:type_name -> harness.agent.v1.TaskFinished.Reason
-	99,  // 82: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
-	114, // 83: harness.agent.v1.ListOutputStylesResponse.styles:type_name -> harness.agent.v1.OutputStyleInfo
-	116, // 84: harness.agent.v1.Environment.additional_folders:type_name -> harness.agent.v1.EnvironmentFolder
-	118, // 85: harness.agent.v1.EnvironmentErrors.errors:type_name -> harness.agent.v1.EnvironmentError
-	115, // 86: harness.agent.v1.GetEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
-	115, // 87: harness.agent.v1.UpdateEnvironmentRequest.environment:type_name -> harness.agent.v1.Environment
-	115, // 88: harness.agent.v1.UpdateEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
-	18,  // 89: harness.agent.v1.SetSessionFolderResponse.session:type_name -> harness.agent.v1.SessionInfo
-	115, // 90: harness.agent.v1.AddSessionDirectoryResponse.environment:type_name -> harness.agent.v1.Environment
-	15,  // 91: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
-	22,  // 92: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
-	34,  // 93: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
-	36,  // 94: harness.agent.v1.AgentService.UpdateSession:input_type -> harness.agent.v1.UpdateSessionRequest
-	38,  // 95: harness.agent.v1.AgentService.DeleteSession:input_type -> harness.agent.v1.DeleteSessionRequest
-	24,  // 96: harness.agent.v1.AgentService.ListRecentFolders:input_type -> harness.agent.v1.ListRecentFoldersRequest
-	27,  // 97: harness.agent.v1.AgentService.ListDirectory:input_type -> harness.agent.v1.ListDirectoryRequest
-	30,  // 98: harness.agent.v1.AgentService.ListBranches:input_type -> harness.agent.v1.ListBranchesRequest
-	40,  // 99: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
-	72,  // 100: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
-	74,  // 101: harness.agent.v1.AgentService.RemoveQueuedMessage:input_type -> harness.agent.v1.RemoveQueuedMessageRequest
-	76,  // 102: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
-	78,  // 103: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
-	80,  // 104: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
-	83,  // 105: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
-	85,  // 106: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
-	87,  // 107: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
-	110, // 108: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
-	112, // 109: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
-	89,  // 110: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
-	91,  // 111: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
-	93,  // 112: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
-	95,  // 113: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
-	97,  // 114: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
-	100, // 115: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
-	102, // 116: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
-	104, // 117: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
-	106, // 118: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
-	108, // 119: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
-	133, // 120: harness.agent.v1.AgentService.CreateTerminal:input_type -> harness.agent.v1.CreateTerminalRequest
-	134, // 121: harness.agent.v1.AgentService.AttachTerminal:input_type -> harness.agent.v1.AttachTerminalRequest
-	135, // 122: harness.agent.v1.AgentService.ListTerminals:input_type -> harness.agent.v1.ListTerminalsRequest
-	136, // 123: harness.agent.v1.AgentService.KillTerminal:input_type -> harness.agent.v1.KillTerminalRequest
-	137, // 124: harness.agent.v1.AgentService.ResizeTerminal:input_type -> harness.agent.v1.ResizeTerminalRequest
-	119, // 125: harness.agent.v1.AgentService.GetEnvironment:input_type -> harness.agent.v1.GetEnvironmentRequest
-	121, // 126: harness.agent.v1.AgentService.UpdateEnvironment:input_type -> harness.agent.v1.UpdateEnvironmentRequest
-	123, // 127: harness.agent.v1.AgentService.GetFolderInfo:input_type -> harness.agent.v1.GetFolderInfoRequest
-	125, // 128: harness.agent.v1.AgentService.SetSessionFolder:input_type -> harness.agent.v1.SetSessionFolderRequest
-	127, // 129: harness.agent.v1.AgentService.AddSessionDirectory:input_type -> harness.agent.v1.AddSessionDirectoryRequest
-	16,  // 130: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
-	33,  // 131: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
-	35,  // 132: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
-	37,  // 133: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
-	39,  // 134: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
-	25,  // 135: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
-	28,  // 136: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
-	31,  // 137: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
-	41,  // 138: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
-	73,  // 139: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
-	75,  // 140: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
-	77,  // 141: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
-	79,  // 142: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
-	82,  // 143: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
-	84,  // 144: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
-	86,  // 145: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
-	88,  // 146: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
-	111, // 147: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
-	113, // 148: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
-	90,  // 149: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
-	92,  // 150: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
-	94,  // 151: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
-	96,  // 152: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
-	98,  // 153: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
-	101, // 154: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
-	103, // 155: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
-	105, // 156: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
-	107, // 157: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
-	109, // 158: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
-	138, // 159: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
-	139, // 160: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
-	140, // 161: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
-	141, // 162: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
-	142, // 163: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
-	120, // 164: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
-	122, // 165: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
-	124, // 166: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
-	126, // 167: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
-	128, // 168: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
-	130, // [130:169] is the sub-list for method output_type
-	91,  // [91:130] is the sub-list for method input_type
-	91,  // [91:91] is the sub-list for extension type_name
-	91,  // [91:91] is the sub-list for extension extendee
-	0,   // [0:91] is the sub-list for field type_name
+	18,  // 20: harness.agent.v1.SubscribeResponse.session:type_name -> harness.agent.v1.SessionInfo
+	18,  // 21: harness.agent.v1.SessionEvent.session_updated:type_name -> harness.agent.v1.SessionInfo
+	57,  // 22: harness.agent.v1.SessionEvent.user_message:type_name -> harness.agent.v1.UserMessage
+	58,  // 23: harness.agent.v1.SessionEvent.assistant_delta:type_name -> harness.agent.v1.AssistantDelta
+	59,  // 24: harness.agent.v1.SessionEvent.assistant_message:type_name -> harness.agent.v1.AssistantMessage
+	60,  // 25: harness.agent.v1.SessionEvent.tool_call_started:type_name -> harness.agent.v1.ToolCallStarted
+	61,  // 26: harness.agent.v1.SessionEvent.tool_call_finished:type_name -> harness.agent.v1.ToolCallFinished
+	62,  // 27: harness.agent.v1.SessionEvent.permission_request:type_name -> harness.agent.v1.PermissionRequest
+	66,  // 28: harness.agent.v1.SessionEvent.question:type_name -> harness.agent.v1.Question
+	69,  // 29: harness.agent.v1.SessionEvent.queue_changed:type_name -> harness.agent.v1.QueueChanged
+	70,  // 30: harness.agent.v1.SessionEvent.turn_finished:type_name -> harness.agent.v1.TurnFinished
+	71,  // 31: harness.agent.v1.SessionEvent.notice:type_name -> harness.agent.v1.Notice
+	63,  // 32: harness.agent.v1.SessionEvent.permission_resolved:type_name -> harness.agent.v1.PermissionResolved
+	64,  // 33: harness.agent.v1.SessionEvent.question_resolved:type_name -> harness.agent.v1.QuestionResolved
+	65,  // 34: harness.agent.v1.SessionEvent.session_ended:type_name -> harness.agent.v1.SessionEnded
+	43,  // 35: harness.agent.v1.SessionEvent.turn_started:type_name -> harness.agent.v1.TurnStarted
+	44,  // 36: harness.agent.v1.SessionEvent.todos_updated:type_name -> harness.agent.v1.TodosUpdated
+	46,  // 37: harness.agent.v1.SessionEvent.plan_proposed:type_name -> harness.agent.v1.PlanProposed
+	47,  // 38: harness.agent.v1.SessionEvent.plan_resolved:type_name -> harness.agent.v1.PlanResolved
+	48,  // 39: harness.agent.v1.SessionEvent.task_started:type_name -> harness.agent.v1.TaskStarted
+	49,  // 40: harness.agent.v1.SessionEvent.task_output:type_name -> harness.agent.v1.TaskOutput
+	50,  // 41: harness.agent.v1.SessionEvent.task_finished:type_name -> harness.agent.v1.TaskFinished
+	52,  // 42: harness.agent.v1.SessionEvent.checkpoint_created:type_name -> harness.agent.v1.CheckpointCreated
+	53,  // 43: harness.agent.v1.SessionEvent.rewound:type_name -> harness.agent.v1.Rewound
+	54,  // 44: harness.agent.v1.SessionEvent.compacted:type_name -> harness.agent.v1.Compacted
+	55,  // 45: harness.agent.v1.SessionEvent.permission_mode_changed:type_name -> harness.agent.v1.PermissionModeChanged
+	56,  // 46: harness.agent.v1.SessionEvent.show_requested:type_name -> harness.agent.v1.ShowRequested
+	45,  // 47: harness.agent.v1.TodosUpdated.todos:type_name -> harness.agent.v1.Todo
+	4,   // 48: harness.agent.v1.Todo.status:type_name -> harness.agent.v1.Todo.Status
+	13,  // 49: harness.agent.v1.PlanResolved.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
+	5,   // 50: harness.agent.v1.TaskFinished.reason:type_name -> harness.agent.v1.TaskFinished.Reason
+	51,  // 51: harness.agent.v1.CheckpointCreated.checkpoint:type_name -> harness.agent.v1.Checkpoint
+	14,  // 52: harness.agent.v1.Rewound.mode:type_name -> harness.agent.v1.RewindRequest.Mode
+	6,   // 53: harness.agent.v1.Compacted.trigger:type_name -> harness.agent.v1.Compacted.Trigger
+	0,   // 54: harness.agent.v1.PermissionModeChanged.mode:type_name -> harness.agent.v1.PermissionMode
+	7,   // 55: harness.agent.v1.ShowRequested.kind:type_name -> harness.agent.v1.ShowRequested.Kind
+	130, // 56: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
+	130, // 57: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
+	131, // 58: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
+	132, // 59: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
+	130, // 60: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
+	12,  // 61: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
+	2,   // 62: harness.agent.v1.QuestionResolved.outcome:type_name -> harness.agent.v1.QuestionOutcome
+	81,  // 63: harness.agent.v1.QuestionResolved.answers:type_name -> harness.agent.v1.QuestionAnswer
+	67,  // 64: harness.agent.v1.Question.items:type_name -> harness.agent.v1.QuestionItem
+	68,  // 65: harness.agent.v1.QuestionItem.options:type_name -> harness.agent.v1.QuestionOption
+	8,   // 66: harness.agent.v1.QuestionItem.type:type_name -> harness.agent.v1.QuestionItem.Type
+	57,  // 67: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
+	9,   // 68: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
+	132, // 69: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
+	10,  // 70: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
+	130, // 71: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
+	11,  // 72: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
+	12,  // 73: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
+	81,  // 74: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
+	2,   // 75: harness.agent.v1.AnswerQuestionRequest.outcome:type_name -> harness.agent.v1.QuestionOutcome
+	129, // 76: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
+	0,   // 77: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
+	13,  // 78: harness.agent.v1.RespondToPlanRequest.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
+	51,  // 79: harness.agent.v1.ListCheckpointsResponse.checkpoints:type_name -> harness.agent.v1.Checkpoint
+	14,  // 80: harness.agent.v1.RewindRequest.mode:type_name -> harness.agent.v1.RewindRequest.Mode
+	53,  // 81: harness.agent.v1.RewindResponse.result:type_name -> harness.agent.v1.Rewound
+	5,   // 82: harness.agent.v1.BackgroundTask.finish_reason:type_name -> harness.agent.v1.TaskFinished.Reason
+	99,  // 83: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
+	114, // 84: harness.agent.v1.ListOutputStylesResponse.styles:type_name -> harness.agent.v1.OutputStyleInfo
+	116, // 85: harness.agent.v1.Environment.additional_folders:type_name -> harness.agent.v1.EnvironmentFolder
+	118, // 86: harness.agent.v1.EnvironmentErrors.errors:type_name -> harness.agent.v1.EnvironmentError
+	115, // 87: harness.agent.v1.GetEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	115, // 88: harness.agent.v1.UpdateEnvironmentRequest.environment:type_name -> harness.agent.v1.Environment
+	115, // 89: harness.agent.v1.UpdateEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	18,  // 90: harness.agent.v1.SetSessionFolderResponse.session:type_name -> harness.agent.v1.SessionInfo
+	115, // 91: harness.agent.v1.AddSessionDirectoryResponse.environment:type_name -> harness.agent.v1.Environment
+	15,  // 92: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
+	22,  // 93: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
+	34,  // 94: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
+	36,  // 95: harness.agent.v1.AgentService.UpdateSession:input_type -> harness.agent.v1.UpdateSessionRequest
+	38,  // 96: harness.agent.v1.AgentService.DeleteSession:input_type -> harness.agent.v1.DeleteSessionRequest
+	24,  // 97: harness.agent.v1.AgentService.ListRecentFolders:input_type -> harness.agent.v1.ListRecentFoldersRequest
+	27,  // 98: harness.agent.v1.AgentService.ListDirectory:input_type -> harness.agent.v1.ListDirectoryRequest
+	30,  // 99: harness.agent.v1.AgentService.ListBranches:input_type -> harness.agent.v1.ListBranchesRequest
+	40,  // 100: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
+	72,  // 101: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
+	74,  // 102: harness.agent.v1.AgentService.RemoveQueuedMessage:input_type -> harness.agent.v1.RemoveQueuedMessageRequest
+	76,  // 103: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
+	78,  // 104: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
+	80,  // 105: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
+	83,  // 106: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
+	85,  // 107: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
+	87,  // 108: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
+	110, // 109: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
+	112, // 110: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
+	89,  // 111: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
+	91,  // 112: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
+	93,  // 113: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
+	95,  // 114: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
+	97,  // 115: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
+	100, // 116: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
+	102, // 117: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
+	104, // 118: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
+	106, // 119: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
+	108, // 120: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
+	133, // 121: harness.agent.v1.AgentService.CreateTerminal:input_type -> harness.agent.v1.CreateTerminalRequest
+	134, // 122: harness.agent.v1.AgentService.AttachTerminal:input_type -> harness.agent.v1.AttachTerminalRequest
+	135, // 123: harness.agent.v1.AgentService.ListTerminals:input_type -> harness.agent.v1.ListTerminalsRequest
+	136, // 124: harness.agent.v1.AgentService.KillTerminal:input_type -> harness.agent.v1.KillTerminalRequest
+	137, // 125: harness.agent.v1.AgentService.ResizeTerminal:input_type -> harness.agent.v1.ResizeTerminalRequest
+	119, // 126: harness.agent.v1.AgentService.GetEnvironment:input_type -> harness.agent.v1.GetEnvironmentRequest
+	121, // 127: harness.agent.v1.AgentService.UpdateEnvironment:input_type -> harness.agent.v1.UpdateEnvironmentRequest
+	123, // 128: harness.agent.v1.AgentService.GetFolderInfo:input_type -> harness.agent.v1.GetFolderInfoRequest
+	125, // 129: harness.agent.v1.AgentService.SetSessionFolder:input_type -> harness.agent.v1.SetSessionFolderRequest
+	127, // 130: harness.agent.v1.AgentService.AddSessionDirectory:input_type -> harness.agent.v1.AddSessionDirectoryRequest
+	16,  // 131: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
+	33,  // 132: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
+	35,  // 133: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
+	37,  // 134: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
+	39,  // 135: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
+	25,  // 136: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
+	28,  // 137: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
+	31,  // 138: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
+	41,  // 139: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
+	73,  // 140: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
+	75,  // 141: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
+	77,  // 142: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
+	79,  // 143: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
+	82,  // 144: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
+	84,  // 145: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
+	86,  // 146: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
+	88,  // 147: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
+	111, // 148: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
+	113, // 149: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
+	90,  // 150: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
+	92,  // 151: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
+	94,  // 152: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
+	96,  // 153: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
+	98,  // 154: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
+	101, // 155: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
+	103, // 156: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
+	105, // 157: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
+	107, // 158: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
+	109, // 159: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
+	138, // 160: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
+	139, // 161: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
+	140, // 162: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
+	141, // 163: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
+	142, // 164: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
+	120, // 165: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
+	122, // 166: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
+	124, // 167: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
+	126, // 168: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
+	128, // 169: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
+	131, // [131:170] is the sub-list for method output_type
+	92,  // [92:131] is the sub-list for method input_type
+	92,  // [92:92] is the sub-list for extension type_name
+	92,  // [92:92] is the sub-list for extension extendee
+	0,   // [0:92] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_agent_proto_init() }

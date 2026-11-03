@@ -42,6 +42,10 @@ type liveSession struct {
 	hub    *hub
 	files  fileCache
 
+	// infoMu orders SessionUpdated events: the snapshot is taken and
+	// published under it, so an older snapshot never follows a newer one.
+	infoMu sync.Mutex
+
 	mu          sync.Mutex
 	status      agentv1.SessionStatus
 	pendingPerm map[string]*pendingPermission
@@ -94,12 +98,43 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 	}
 	info := &agentv1.SessionInfo{
 		Id: ls.sess.ID, Cwd: ls.sess.Cwd, Model: ls.sess.Agent.Model(), GitBranch: ls.branch, Title: ls.title,
-		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.status,
+		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.statusLocked(),
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
 	}
 	ls.srv.applyState(info)
 	return info
+}
+
+// statusLocked is the session status (ls.mu held). A busy status without a
+// running turn is never reported: whatever left it behind, nothing runs.
+func (ls *liveSession) statusLocked() agentv1.SessionStatus {
+	st := ls.status
+	busy := st == agentv1.SessionStatus_SESSION_STATUS_WORKING || st == agentv1.SessionStatus_SESSION_STATUS_NEEDS_INPUT
+	if busy && ls.driver != nil && !ls.driver.Busy() {
+		return agentv1.SessionStatus_SESSION_STATUS_IDLE
+	}
+	return st
+}
+
+// publishInfo publishes SessionUpdated with the session as it is now.
+func (ls *liveSession) publishInfo() {
+	ls.infoMu.Lock()
+	defer ls.infoMu.Unlock()
+	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+}
+
+// settleIdle is called when no turn runs although a frontend thinks one
+// does (Interrupt with nothing to interrupt): a stale busy status is
+// cleared and SessionUpdated is published either way, so the frontend
+// catches up.
+func (ls *liveSession) settleIdle() {
+	ls.mu.Lock()
+	if ls.statusLocked() == agentv1.SessionStatus_SESSION_STATUS_IDLE {
+		ls.status = agentv1.SessionStatus_SESSION_STATUS_IDLE
+	}
+	ls.mu.Unlock()
+	ls.publishInfo()
 }
 
 func (ls *liveSession) publish(ev *agentv1.SessionEvent) {
@@ -119,7 +154,7 @@ func (ls *liveSession) setStatus(st agentv1.SessionStatus) {
 	ls.status = st
 	ls.mu.Unlock()
 	if changed {
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+		ls.publishInfo()
 	}
 }
 
@@ -229,7 +264,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 	case agent.EventModeChanged:
 		m, _ := permissions.ParseMode(e.Mode)
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionModeChanged{PermissionModeChanged: &agentv1.PermissionModeChanged{Mode: modeToProto(m)}}})
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+		ls.publishInfo()
 	case agent.EventNotice:
 		lv := map[string]agentv1.Notice_Level{"info": agentv1.Notice_LEVEL_INFO, "warning": agentv1.Notice_LEVEL_WARNING, "error": agentv1.Notice_LEVEL_ERROR}
 		ls.notice(lv[e.Notice.Level], e.Notice.Kind, NoticeText(e.Notice))
@@ -319,7 +354,7 @@ func (ls *liveSession) refreshDiffStats() {
 		ls.diff = ds
 		ls.mu.Unlock()
 		if changed {
-			ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+			ls.publishInfo()
 			ls.syncDiffStats(ds)
 		}
 	}()

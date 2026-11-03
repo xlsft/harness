@@ -259,7 +259,7 @@ func (s *Server) UpdateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	var info *agentv1.SessionInfo
 	if ls != nil {
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+		ls.publishInfo()
 		info = ls.info()
 		if st.archived {
 			s.closeLive(id, "archived")

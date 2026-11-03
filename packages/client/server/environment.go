@@ -367,7 +367,7 @@ func (s *Server) SetSessionFolder(ctx context.Context, req *connect.Request[agen
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the session runs in a git worktree; start a new session in the other folder instead"))
 		}
 		ls.mu.Lock()
-		busy := ls.status != agentv1.SessionStatus_SESSION_STATUS_IDLE || len(ls.queue) > 0
+		busy := ls.statusLocked() != agentv1.SessionStatus_SESSION_STATUS_IDLE || len(ls.queue) > 0
 		ls.mu.Unlock()
 		if busy || ls.driver.Busy() {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the session is working; change its folder once it is idle"))

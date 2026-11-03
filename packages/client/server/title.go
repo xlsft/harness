@@ -10,7 +10,6 @@ import (
 
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/gateway"
-	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/syncclient"
@@ -135,7 +134,7 @@ func (ls *liveSession) setAITitle(title string) {
 			ls.title, ls.titleSource = c, titleCustom
 			ls.mu.Unlock()
 			if changed {
-				ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+				ls.publishInfo()
 				ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = c })
 			}
 			return
@@ -153,7 +152,7 @@ func (ls *liveSession) setAITitle(title string) {
 	ls.mu.Lock()
 	ls.title, ls.titleSource = title, titleAI
 	ls.mu.Unlock()
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
+	ls.publishInfo()
 	ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = title })
 }
 
