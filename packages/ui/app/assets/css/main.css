@@ -418,7 +418,9 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  padding: 14px 0;
+  /* Rules run edge to edge: the row spans the content's side padding (--set-gutter, SettingsPage.vue). */
+  margin-inline: calc(-1 * var(--set-gutter, 0px));
+  padding: 14px var(--set-gutter, 0px);
   border-top: 1px solid var(--ui-border);
 
   @media (max-width: 640px) {

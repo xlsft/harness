@@ -18,11 +18,12 @@ const SECTIONS = [
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
   { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
   { key: 'users', label: 'Users', icon: 'shield', group: 'server' },
+  { key: 'ldap', label: 'LDAP', icon: 'link', group: 'server' },
   { key: 'about', label: 'About', icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
 
-// Users is for admins only (the server enforces it too). The web has no role from the shell: ask the server.
+// Users and LDAP are for admins only (the server enforces it too). The web has no role from the shell: ask the server.
 const isAdmin = ref(store.account.role === 'admin')
 onMounted(async () => {
   try {
@@ -40,11 +41,12 @@ const KEYWORDS: Record<Section, string> = {
   classifiers: 'classifier decision model rules',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
   account: 'sign out server user',
-  users: 'admin users ldap roles',
+  users: 'admin users roles passwords',
+  ldap: 'ldap directory active directory sign in bind',
   about: 'version about'
 }
 const query = ref('')
-const allowed = computed(() => SECTIONS.filter(s => s.key !== 'users' || isAdmin.value))
+const allowed = computed(() => SECTIONS.filter(s => s.group !== 'server' || isAdmin.value))
 const sections = computed(() => {
   const q = query.value.trim().toLowerCase()
   return q ? allowed.value.filter(s => `${s.label} ${KEYWORDS[s.key]}`.toLowerCase().includes(q)) : allowed.value
@@ -119,7 +121,7 @@ async function signOut() {
       </p>
     </nav>
 
-    <div class="min-w-0 flex-1 overflow-y-auto px-7 pt-5 pb-8 max-sm:px-4">
+    <div class="min-w-0 flex-1 overflow-y-auto px-(--set-gutter) pt-5 pb-8 [--set-gutter:28px] max-sm:[--set-gutter:16px]">
       <SettingsAppearance v-if="section === 'appearance'" />
 
       <SettingsUsage v-else-if="section === 'usage'" />
@@ -152,10 +154,9 @@ async function signOut() {
 
       <SettingsSearch v-else-if="section === 'search'" />
 
-      <template v-else-if="section === 'users'">
-        <SettingsUsers />
-        <SettingsLdap />
-      </template>
+      <SettingsUsers v-else-if="section === 'users'" />
+
+      <SettingsLdap v-else-if="section === 'ldap'" />
 
       <template v-else-if="section === 'account'">
         <h2 class="set-h">
