@@ -47,7 +47,11 @@ const sections = computed(() => [
 ])
 
 // Indent of a row's title: one step per level under the top-level row.
-const indent = (depth: number) => ({ paddingLeft: `${9 + depth * 14}px` })
+// A sub-session's title starts past its parent's (whose fold chevron pushes it 22px right); the └ connector
+// starts under the parent's chevron.
+const STEP = 26
+const indent = (depth: number) => ({ paddingLeft: `${9 + depth * STEP}px` })
+const connector = (depth: number) => ({ left: `${12 + (depth - 1) * STEP}px`, width: `${STEP - 8}px` })
 
 // Tooltip of a remote session's device badge.
 function deviceTitle(s: SessionState) {
@@ -247,7 +251,7 @@ const nav = [
             data-rename
             aria-label="Session title"
             class="mx-[2px] h-7 border border-accent bg-default px-[7px] text-[12.5px] text-strong outline-none"
-            :style="depth ? { marginLeft: `${2 + depth * 14}px` } : undefined"
+            :style="depth ? { marginLeft: `${2 + depth * STEP}px` } : undefined"
             @keydown.enter.prevent="finishRename(true)"
             @keydown.esc.prevent="finishRename(false)"
             @blur="finishRename(true)"
@@ -267,8 +271,8 @@ const nav = [
             <span
               v-if="depth"
               aria-hidden="true"
-              class="pointer-events-none absolute top-0 h-1/2 w-[7px] border-b border-l border-line"
-              :style="{ left: `${depth * 14 - 2}px` }"
+              class="pointer-events-none absolute top-0 h-1/2 rounded-none border-b border-l border-line-strong"
+              :style="connector(depth)"
             />
             <button
               v-if="children"
