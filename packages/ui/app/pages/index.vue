@@ -8,6 +8,7 @@ import { isDesktop } from '~/lib/desktop'
 
 const store = useSessionStore()
 const route = useRoute()
+const router = useRouter()
 const { panes } = usePanes()
 const { tree, width: paneAreaWidth } = usePaneLayout()
 
@@ -45,10 +46,17 @@ const paneShare = computed(() => {
 const requested = computed(() => typeof route.query.session === 'string' ? route.query.session : '')
 // The new-session form: asked for (?new=1), or nothing to show yet on a client without sessions.
 const composing = computed(() => route.query.new === '1' || (store.ready && !store.order.length))
-watchEffect(() => {
+// The URL picks the session only when the URL itself changes (a link, a notification, a reload); opening a session
+// from the sidebar or elsewhere moves the URL along. Reacting to every current-session change made a stale
+// ?session= switch back the session just picked.
+watch([() => store.ready, requested], () => {
   if (!store.ready || route.query.new === '1') return
   const id = requested.value && store.sessions[requested.value] ? requested.value : store.currentId || (store.sessions[MAIN_SESSION] ? MAIN_SESSION : store.order[0])
   if (id && id !== store.currentId) store.open(id)
+}, { immediate: true })
+watch(() => store.currentId, (id) => {
+  if (!id || route.path !== '/' || route.query.new === '1' || route.query.session === id) return
+  router.replace({ query: { ...route.query, session: id } })
 })
 
 const session = computed(() => composing.value ? undefined : store.current)

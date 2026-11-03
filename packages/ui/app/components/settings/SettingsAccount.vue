@@ -167,7 +167,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
   <div class="set-row !items-center !justify-start gap-4">
     <button
       type="button"
-      class="group relative size-16 shrink-0 overflow-hidden border border-line outline-none focus-visible:border-accent"
+      class="group relative size-16 shrink-0 overflow-hidden rounded-box border border-line outline-none focus-visible:border-accent"
       :aria-label="profile?.image ? 'Change picture' : 'Add a picture'"
       :disabled="busy"
       @click="picker?.click()"

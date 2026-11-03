@@ -287,11 +287,11 @@ const nav = [
         v-if="profile?.image"
         :src="profile.image"
         alt=""
-        class="size-[22px] shrink-0 object-cover"
+        class="size-[22px] shrink-0 rounded-chip object-cover"
       >
       <span
         v-else
-        class="flex size-[22px] shrink-0 items-center justify-center bg-accent text-[10.5px] font-bold text-on-accent uppercase"
+        class="flex size-[22px] shrink-0 items-center justify-center rounded-chip bg-accent text-[10.5px] font-bold text-on-accent uppercase"
       >{{ displayName.charAt(0) }}</span>
       <span
         class="flex min-w-0 items-baseline gap-1.5"
