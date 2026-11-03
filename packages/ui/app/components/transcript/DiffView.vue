@@ -6,6 +6,7 @@
 // `flush` drops the outer frame (diff pane sections); `commentable` lets the user attach review comments
 // to lines of the unified view (v-model:comments, shared by every diff of the pane).
 import type { PatchHunk } from '~/utils/tools'
+import { locateAnchor, type LineAnchor } from '~/utils/diffAnchor'
 
 export interface DiffComment {
   id: string
@@ -74,25 +75,41 @@ const CTX = { bg: 'transparent', sc: '#8f8f8f', tc: '#d4d4d4', s: ' ' }
 interface URow { kind: 'hunk', text: string }
 interface LRow { kind: 'line', h: number, a: string, b: string, t: string, bg: string, sc: string, tc: string, s: string }
 
-// Line comments: the row being commented on (draft) and the comments of this file by row key.
-const draft = ref<{ key: string, text: string, id?: string } | null>(null)
+// Line comments. A comment or draft is anchored to its line's side, number and text, not to a row: when the
+// diff changes under it (the agent edits the file again) it follows its text to the nearest matching line,
+// and a draft whose line is gone stays open above the diff instead of being lost.
+interface Anchor { side: 'new' | 'old', line: number, code: string, sign: DiffComment['sign'] }
+const draft = ref<{ anchor: Anchor, text: string, id?: string } | null>(null)
 const rowKey = (r: LRow) => `${r.h}:${r.b ? `new:${r.b}` : `old:${r.a}`}`
-const commentsAt = (r: LRow) => comments.value.filter(c => c.path === props.path && `${c.hunk}:${c.side}:${c.line}` === rowKey(r))
+const anchorOf = (r: LRow): Anchor => {
+  const side = r.b ? 'new' : 'old'
+  return { side, line: Number(side === 'new' ? r.b : r.a), code: r.t, sign: r.s === '+' ? '+' : r.s === ' ' ? ' ' : '-' }
+}
+const lineRows = computed(() => unified.value.filter((r): r is LRow => r.kind === 'line'))
+const lineAnchors = computed(() => lineRows.value.map(anchorOf))
+// The row an anchor sits on now (see locateAnchor), as a row key.
+function rowFor(a: LineAnchor): string | null {
+  const i = locateAnchor(lineAnchors.value, a)
+  return i < 0 ? null : rowKey(lineRows.value[i]!)
+}
+const draftRow = computed(() => draft.value && rowFor(draft.value.anchor))
+const commentsAt = (r: LRow) => comments.value.filter(c => c.path === props.path && rowFor(c) === rowKey(r))
 
 const root = ref<HTMLElement | null>(null)
 
 function startComment(r: LRow, c?: DiffComment) {
   // A second click on the same line closes an empty box.
-  if (!c && draft.value?.key === rowKey(r) && !draft.value.text.trim()) {
+  if (!c && draftRow.value === rowKey(r) && !draft.value?.text.trim()) {
     draft.value = null
     return
   }
-  draft.value = { key: rowKey(r), text: c?.text ?? '', id: c?.id }
+  draft.value = { anchor: c ? { side: c.side, line: c.line, code: c.code, sign: c.sign } : anchorOf(r), text: c?.text ?? '', id: c?.id }
   // autofocus does not fire on a field inserted later.
   nextTick(() => root.value?.querySelector<HTMLTextAreaElement>('textarea[data-draft]')?.focus())
 }
 
-function saveComment(r: LRow) {
+// Saves the draft where its anchor sits now (or where it was, when that line is gone from the diff).
+function saveComment() {
   const d = draft.value
   if (!d) return
   const text = d.text.trim()
@@ -101,17 +118,18 @@ function saveComment(r: LRow) {
       ? comments.value.map(c => c.id === d.id ? { ...c, text } : c)
       : comments.value.filter(c => c.id !== d.id)
   } else if (text) {
-    const side = r.b ? 'new' : 'old'
-    comments.value = [...comments.value, { id: `${props.path}:${rowKey(r)}:${Date.now()}`, path: props.path, line: Number(side === 'new' ? r.b : r.a), side, hunk: r.h, sign: r.s === '+' ? '+' : r.s === ' ' ? ' ' : '-', code: r.t, text }]
+    const row = lineRows.value.find(r => rowKey(r) === draftRow.value)
+    const a = row ? anchorOf(row) : d.anchor
+    comments.value = [...comments.value, { id: `${props.path}:${a.side}:${a.line}:${Date.now()}`, path: props.path, line: a.line, side: a.side, hunk: row?.h ?? 0, sign: a.sign, code: a.code, text }]
   }
   draft.value = null
 }
 
-function onDraftKey(e: KeyboardEvent, r: LRow) {
+function onDraftKey(e: KeyboardEvent) {
   if (e.key === 'Escape') draft.value = null
   else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault()
-    saveComment(r)
+    saveComment()
   }
 }
 
@@ -206,6 +224,40 @@ const split = computed(() => {
       v-if="view === 'unified'"
       class="@container overflow-x-auto text-[12px] leading-[1.7]"
     >
+      <!-- A draft whose line left the diff (the file changed under it): kept open here with its text. -->
+      <div
+        v-if="commentable && draft && !draftRow"
+        class="sticky left-0 flex w-[100cqw] flex-col gap-1.5 border border-accent bg-raised px-3 py-2"
+      >
+        <span class="text-[11px] text-muted">Line {{ draft.anchor.line }} changed: <span class="text-toned">{{ draft.anchor.code.trim() }}</span></span>
+        <textarea
+          v-model="draft.text"
+          rows="3"
+          placeholder="What should change here?"
+          aria-label="Comment"
+          data-draft
+          class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-white outline-none placeholder:text-muted"
+          @keydown="onDraftKey"
+        />
+        <div class="flex items-center gap-2 text-[11.5px]">
+          <span class="flex-1" />
+          <button
+            type="button"
+            class="border border-default px-2 py-0.5 text-toned hover:text-white"
+            @click="draft = null"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="bg-accent px-2 py-0.5 text-white disabled:opacity-50"
+            :disabled="!draft.text.trim() && !draft.id"
+            @click="saveComment"
+          >
+            {{ draft.id ? 'Save' : 'Comment' }}
+          </button>
+        </div>
+      </div>
       <!-- Rows are as wide as the longest line, so backgrounds span the whole scroll width. -->
       <div class="w-max min-w-full">
         <template
@@ -315,7 +367,7 @@ const split = computed(() => {
                 </div>
               </div>
               <div
-                v-if="draft?.key === rowKey(r)"
+                v-if="draft && draftRow === rowKey(r)"
                 class="sticky left-0 flex w-[100cqw] flex-col gap-1.5 border border-accent bg-raised px-3 py-2"
               >
                 <textarea
@@ -325,7 +377,7 @@ const split = computed(() => {
                   aria-label="Comment"
                   data-draft
                   class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-white outline-none placeholder:text-muted"
-                  @keydown="onDraftKey($event, r)"
+                  @keydown="onDraftKey"
                 />
                 <div class="flex items-center gap-2 text-[11.5px]">
                   <span class="inline-flex items-center gap-1 text-muted"><HKeys keys="meta+enter" />save<HKeys keys="escape" />cancel</span>
@@ -341,7 +393,7 @@ const split = computed(() => {
                     type="button"
                     class="bg-accent px-2 py-0.5 text-white disabled:opacity-50"
                     :disabled="!draft.text.trim() && !draft.id"
-                    @click="saveComment(r)"
+                    @click="saveComment"
                   >
                     {{ draft.id ? 'Save' : 'Comment' }}
                   </button>

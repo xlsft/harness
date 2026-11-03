@@ -84,7 +84,7 @@ const host = computed(() => {
 // `soon`: not built yet; the row shows a badge (Artifacts keeps its preview page, the others do nothing).
 const nav = [
   { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
-  { label: 'Scheduled', icon: 'clock' as const },
+  { label: 'Scheduled', icon: 'clock' as const, soon: true },
   { label: 'Customize', icon: 'sliders' as const, soon: true },
   { label: 'Knowledge base', icon: 'page' as const, soon: true },
   { label: 'Task tracker', icon: 'tasks' as const, soon: true }
