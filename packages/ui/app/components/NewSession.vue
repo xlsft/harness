@@ -1,8 +1,11 @@
 <script setup lang="ts">
 // New session screen (like Claude Code's): pick where the session runs, then type the first message.
-// Centre: recent folders, environment, the worktree switch. Bottom: the composer with chips for environment,
-// folder (recent / Open folder… / branch), worktree, model, effort and mode. The session is created on the
-// client with the first message. Shown for ?new=1 (sidebar New session, ⌘N) and on a client with no sessions.
+// Centre: No folder, recent folders, Choose folder…, environment, the worktree switch. Bottom: the composer with
+// chips for environment, folder (No folder / recent / Open folder… / branch), worktree, model, effort and mode.
+// The session is created on the client with the first message. Shown for ?new=1 (sidebar New session, ⌘N) and
+// on a client with no sessions. It always starts with no folder (a chat: the client gives the session a private
+// directory); ?cwd= (a sidebar group's "+") preselects a folder. Worktree and the folder's environment need a
+// folder, so they are hidden without one. Model, effort and mode are remembered; the folder is not.
 // With ?fork=<id> ("Continue here" on a session of another machine) the new session starts from a copy of that
 // session's transcript, in the folder picked here.
 import type { Branch, RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
@@ -89,14 +92,14 @@ async function loadBranches() {
 }
 
 onMounted(async () => {
-  const prefs = readJSON<{ cwd?: string, worktree?: boolean, model?: string, effort?: EffortName, mode?: PermissionModeName }>(PREFS, {})
+  const prefs = readJSON<{ worktree?: boolean, model?: string, effort?: EffortName, mode?: PermissionModeName }>(PREFS, {})
   worktree.value = prefs.worktree ?? false
   model.value = prefs.model ?? ''
   effort.value = prefs.effort ?? 'medium'
   mode.value = fitMode(prefs.mode ?? 'auto', store.disabledModes)
   await loadFolders()
-  const asked = typeof route.query.cwd === 'string' ? route.query.cwd : ''
-  cwd.value = asked || prefs.cwd || folders.value[0]?.path || ''
+  const asked = newSessionFolder(route.query)
+  cwd.value = asked
   if (asked && !folders.value.some(f => f.path === asked)) folders.value.unshift({ path: asked, name: name(asked), exists: true } as RecentFolder)
   input.value?.focus()
 })
@@ -106,9 +109,9 @@ watch(() => store.disabledModes, (disabled) => {
   mode.value = fitMode(mode.value, disabled)
 })
 
-// "+" next to a sidebar group while this screen is already open.
+// "+" next to a sidebar group, or the top New session (no cwd: back to no folder), while this screen is open.
 watch(() => route.query.cwd, (asked) => {
-  if (typeof asked === 'string' && asked) choose(asked)
+  if (route.query.new) choose(newSessionFolder({ cwd: asked }))
 })
 
 watch(cwd, () => {
@@ -127,11 +130,12 @@ async function browse() {
   if (path) choose(path)
 }
 
+// '' is No folder.
 function choose(path: string) {
   cwd.value = path
   menu.value = ''
   browsing.value = false
-  if (!folders.value.some(f => f.path === path)) folders.value.unshift({ path, name: name(path), exists: true } as RecentFolder)
+  if (path && !folders.value.some(f => f.path === path)) folders.value.unshift({ path, name: name(path), exists: true } as RecentFolder)
 }
 
 const modelLabel = computed(() => model.value || store.models[0]?.id || 'default model')
@@ -144,7 +148,7 @@ watch([model, efforts], () => {
 
 async function start() {
   const msg = text.value.trim()
-  if (!msg || !cwd.value || busy.value) return
+  if (!msg || busy.value) return
   busy.value = true
   error.value = ''
   try {
@@ -153,11 +157,12 @@ async function start() {
       model: model.value,
       effort: efforts.value.length ? effort.value : undefined,
       mode: mode.value,
-      worktree: worktree.value ? { baseRef: baseRef.value } : undefined,
+      worktree: cwd.value && worktree.value ? { baseRef: baseRef.value } : undefined,
       forkOf: forkOf.value?.meta.id
     })
-    writeJSON(PREFS, { ...readJSON<object>(PREFS, {}), cwd: cwd.value, worktree: worktree.value, model: model.value, effort: effort.value, mode: mode.value })
-    writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
+    const { cwd: _old, ...prefs } = readJSON<Record<string, unknown>>(PREFS, {})
+    writeJSON(PREFS, { ...prefs, model: model.value, effort: effort.value, mode: mode.value, ...(cwd.value && { worktree: worktree.value }) })
+    if (cwd.value) writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
     const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
     await router.replace({ query: { ...rest, session: id } })
@@ -207,10 +212,32 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
         <span class="min-w-0 flex-1 truncate text-strong">{{ forkOf.meta.title }}</span>
         <span class="shrink-0 text-[11px] text-muted">from {{ forkOf.meta.deviceName || 'another machine' }}</span>
       </div>
-      <div class="w-full max-w-[440px] overflow-hidden border border-accented bg-surface text-[12.5px]">
+      <div
+        role="radiogroup"
+        aria-label="Folder"
+        class="w-full max-w-[440px] overflow-hidden border border-accented bg-surface text-[12.5px]"
+      >
+        <div
+          role="radio"
+          :aria-checked="!cwd"
+          title="The session gets a private folder of its own"
+          class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
+          :class="!cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
+          @click="choose('')"
+        >
+          <HIcon
+            name="chat"
+            :size="14"
+            class="shrink-0 text-muted"
+          />
+          <span class="min-w-0 flex-1 truncate">No folder</span>
+          <span class="shrink-0 text-[11px] text-muted">chat</span>
+        </div>
         <div
           v-for="f in folders.slice(0, 3)"
           :key="f.path"
+          role="radio"
+          :aria-checked="f.path === cwd"
           :title="f.path"
           class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
           :class="f.path === cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
@@ -228,12 +255,32 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           >{{ f.gitBranch }}</span>
         </div>
         <div
-          v-if="!folders.length"
-          class="px-3 py-2 text-muted"
+          v-if="cwd && !folders.slice(0, 3).some(f => f.path === cwd)"
+          role="radio"
+          aria-checked="true"
+          :title="cwd"
+          class="flex items-center gap-2.5 border-l-2 border-accent bg-raised px-3 py-2 text-strong"
         >
-          No recent folders: pick one below.
+          <HIcon
+            name="folder"
+            :size="14"
+            class="shrink-0 text-muted"
+          />
+          <span class="min-w-0 flex-1 truncate">{{ name(cwd) }}</span>
         </div>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-left text-toned hover:bg-raised hover:text-strong"
+          @click="browse"
+        >
+          <HIcon
+            name="plus"
+            :size="14"
+            class="shrink-0 text-muted"
+          />Choose folder…
+        </button>
         <UPopover
+          v-if="cwd"
           :open="menu === 'env-centre'"
           :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
           @update:open="menu = $event ? 'env-centre' : ''"
@@ -254,6 +301,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
       </div>
 
       <button
+        v-if="cwd"
         type="button"
         role="switch"
         :aria-checked="worktree"
@@ -299,7 +347,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           <button
             type="button"
             aria-label="Start session"
-            :disabled="!text.trim() || !cwd || busy"
+            :disabled="!text.trim() || busy"
             class="flex size-7 shrink-0 items-center justify-center bg-accent text-on-accent disabled:bg-raised disabled:text-muted"
             @click="start"
           >
@@ -337,13 +385,13 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           >
             <button
               type="button"
-              :title="cwd"
+              :title="cwd || 'No folder: the session gets a private folder of its own'"
               :class="[CHIP, menu === 'folder' ? 'border-accent' : 'border-transparent']"
             >
               <HIcon
-                name="folder"
+                :name="cwd ? 'folder' : 'chat'"
                 :size="12"
-              /><span class="max-w-[160px] truncate text-strong">{{ cwd ? name(cwd) : 'Choose folder' }}</span>
+              /><span class="max-w-[160px] truncate text-strong">{{ cwd ? name(cwd) : 'No folder' }}</span>
             </button>
             <template #content>
               <NewFolderMenu
@@ -361,6 +409,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           </UPopover>
 
           <button
+            v-if="cwd"
             type="button"
             role="switch"
             :aria-checked="worktree"

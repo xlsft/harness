@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Folder picker of the new-session screen: search, recent folders, "Open folder…" (directory browser) and,
-// for a repository, the branch a worktree starts from.
+// Folder picker of the new-session screen: search, No folder (select ''), recent folders, "Open folder…"
+// (directory browser) and, for a repository, the branch a worktree starts from.
 import type { Branch, RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
 
 const props = defineProps<{
@@ -40,6 +40,22 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         autofocus
       >
     </label>
+    <div
+      v-if="!query"
+      role="menuitemradio"
+      :aria-checked="!cwd"
+      title="The session gets a private folder of its own"
+      :class="[ROW, 'mt-1', !cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong']"
+      @click="emit('select', '')"
+    >
+      <span class="min-w-0 flex-1 truncate">No folder</span>
+      <HIcon
+        v-if="!cwd"
+        name="check"
+        :size="13"
+        class="shrink-0 text-accent"
+      />
+    </div>
     <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
       Recent
     </div>

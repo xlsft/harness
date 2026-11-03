@@ -95,11 +95,14 @@ interface MockFile {
 
 export class MockFilesApi implements FilesApi {
   private sessionCwd: (id: string) => string | undefined
+  private blank: (id: string) => boolean
   private files = new Map<string, Map<string, MockFile>>()
   private status = new Map<string, Record<string, GitStatus>>()
 
-  constructor(opts: { sessionCwd: (id: string) => string | undefined }) {
+  // `blank`: the session starts in an empty folder that is no repository (a session without a folder).
+  constructor(opts: { sessionCwd: (id: string) => string | undefined, blank?: (id: string) => boolean }) {
     this.sessionCwd = opts.sessionCwd
+    this.blank = opts.blank ?? (() => false)
   }
 
   private project(sessionId: string) {
@@ -109,11 +112,14 @@ export class MockFilesApi implements FilesApi {
     let files = this.files.get(sessionId)
     if (!files) {
       files = new Map()
-      const t = Date.parse('2026-11-03T12:00:00Z')
-      for (const [rel, text] of Object.entries(FILES)) files.set(rel, { text, mtime: t })
-      for (const [rel, binary] of Object.entries(BINARY)) files.set(rel, { binary, mtime: t })
+      const blank = this.blank(sessionId)
+      if (!blank) {
+        const t = Date.parse('2026-11-03T12:00:00Z')
+        for (const [rel, text] of Object.entries(FILES)) files.set(rel, { text, mtime: t })
+        for (const [rel, binary] of Object.entries(BINARY)) files.set(rel, { binary, mtime: t })
+      }
       this.files.set(sessionId, files)
-      this.status.set(sessionId, { ...INITIAL_STATUS })
+      this.status.set(sessionId, blank ? {} : { ...INITIAL_STATUS })
     }
     return { root, files, status: this.status.get(sessionId)! }
   }

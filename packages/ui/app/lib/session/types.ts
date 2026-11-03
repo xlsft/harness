@@ -287,6 +287,9 @@ export interface SessionMeta {
   archived: boolean
   // The session this one was forked from (a sub-session listed under it); empty for top-level sessions.
   parentId: string
+  // Started without a folder: cwd is a private directory the client made for it (shown as "No folder", listed
+  // under Chats, no repository).
+  noFolder: boolean
 }
 
 export interface QueuedMessage {

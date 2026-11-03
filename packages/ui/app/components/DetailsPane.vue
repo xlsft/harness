@@ -28,6 +28,9 @@ const tasks = computed(() => props.session.taskOrder.map(id => props.session.tas
 const runningTasks = computed(() => tasks.value.filter(t => t.state === 'running'))
 const repoName = computed(() => basename(props.session.meta.repo || props.session.meta.cwd))
 const cwdParent = computed(() => props.session.meta.cwd.replace(/\/[^/]+$/, ''))
+// Started without a folder: its private directory is shown as "No folder", without repository rows. Its
+// environment is per-session on the client; editing it is not offered here.
+const noFolder = computed(() => props.session.meta.noFolder)
 
 const desktop = isDesktop()
 const toast = useToast()
@@ -95,6 +98,13 @@ const folderMenu = computed<(RowMenuItem | null)[]>(() => {
   const cwd = props.session.meta.cwd
   const local = !props.session.meta.remote
   const web = folder.value?.webUrl
+  if (noFolder.value) {
+    return [
+      ...(desktop && local ? [{ label: 'Show in Finder', run: () => revealInFolder(cwd) }] : []),
+      { label: 'Copy path', run: () => copy(cwd, 'Path') },
+      ...(local ? [null, { label: 'Open in terminal', run: () => openTerminal(cwd) }] : [])
+    ]
+  }
   return [
     ...(desktop && local ? [{ label: 'Show in Finder', run: () => revealInFolder(cwd) }] : []),
     ...(web ? [{ label: `Open repository on ${repoHost.value}`, run: () => openExternal(web) }] : []),
@@ -139,7 +149,7 @@ function taskMeta(command: string, tail: string) {
       <div class="flex items-center pb-1">
         <span class="flex-1 text-[12px] text-muted">Environment</span>
         <HIconBtn
-          v-if="!session.meta.remote"
+          v-if="!session.meta.remote && !noFolder"
           icon="settings"
           label="Edit environment"
           :size="26"
@@ -172,10 +182,16 @@ function taskMeta(command: string, tail: string) {
           type="button"
           class="nav-row -mx-[9px] w-[calc(100%+18px)] px-[9px] text-left hover:bg-hover"
         >
-          <HIcon name="folder" /><span class="shrink-0">{{ repoName }}</span><span class="min-w-0 truncate text-[11px] text-muted">· {{ cwdParent }}</span>
+          <template v-if="noFolder">
+            <HIcon name="chat" /><span class="min-w-0 truncate">No folder</span>
+          </template>
+          <template v-else>
+            <HIcon name="folder" /><span class="shrink-0">{{ repoName }}</span><span class="min-w-0 truncate text-[11px] text-muted">· {{ cwdParent }}</span>
+          </template>
         </button>
       </RowMenu>
       <RowMenu
+        v-if="!noFolder && (!folder || folder.repositoryPath)"
         :items="branchMenu"
         label="Branch"
       >
@@ -238,6 +254,7 @@ function taskMeta(command: string, tail: string) {
         </button>
         <span class="flex-1" />
         <button
+          v-if="!noFolder"
           type="button"
           class="shrink-0 border border-default px-2.5 py-1 text-[11.5px] text-strong hover:bg-hover"
         >

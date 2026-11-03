@@ -3,6 +3,39 @@
 // group or pinned apart) is listed at the top level.
 
 import type { SessionState } from './types'
+import { basename } from '~/utils/format'
+
+// Label of the sidebar group of sessions started without a folder.
+export const CHATS_GROUP = 'Chats'
+
+export interface SessionGroup {
+  // Stable key: the folder groups' name, and one no folder name can take for Chats.
+  key: string
+  name: string
+  // The group of sessions without a folder (SessionMeta.noFolder).
+  chats: boolean
+  sessions: SessionState[]
+}
+
+// Sidebar groups in list order: Chats (sessions without a folder) first when there are any, then one group per
+// project (repository, a worktree's main checkout, or the folder name).
+export function groupSessions(list: SessionState[]): SessionGroup[] {
+  const chats: SessionState[] = []
+  const map = new Map<string, SessionState[]>()
+  for (const s of list) {
+    if (s.meta.noFolder) {
+      chats.push(s)
+      continue
+    }
+    const name = basename(s.meta.repo || s.meta.worktree?.repositoryPath || s.meta.cwd) || 'other'
+    if (!map.has(name)) map.set(name, [])
+    map.get(name)!.push(s)
+  }
+  return [
+    ...(chats.length ? [{ key: '\0chats', name: CHATS_GROUP, chats: true, sessions: chats }] : []),
+    ...[...map.entries()].map(([name, sessions]) => ({ key: name, name, chats: false, sessions }))
+  ]
+}
 
 export interface TreeRow {
   session: SessionState

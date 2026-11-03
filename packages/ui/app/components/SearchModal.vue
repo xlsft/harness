@@ -58,12 +58,12 @@ const sessionItem = (s: (typeof sessions.value)[number]): Item => ({
   key: `s:${s.meta.id}`,
   icon: s.meta.remote ? 'monitor' : 'chat',
   label: s.meta.title || 'Untitled session',
-  hint: base(s.meta.cwd),
+  hint: s.meta.noFolder ? 'No folder' : base(s.meta.cwd),
   run: () => openSession(s.meta.id)
 })
 const projects = computed(() => {
   const seen = new Map<string, number>()
-  for (const s of sessions.value) if (!s.meta.remote) seen.set(s.meta.cwd, (seen.get(s.meta.cwd) ?? 0) + 1)
+  for (const s of sessions.value) if (!s.meta.remote && !s.meta.noFolder) seen.set(s.meta.cwd, (seen.get(s.meta.cwd) ?? 0) + 1)
   return [...seen].map(([cwd, n]) => ({ cwd, n }))
 })
 

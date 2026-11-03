@@ -47,6 +47,8 @@ import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
 
 // Folders and a small directory tree for the new-session pickers.
 const MOCK_HOME = '/Users/xlsft'
+// The private directory of a session without a folder (the client's HARNESS_HOME/chats/<id>).
+const mockChatDir = (id: string) => `${MOCK_HOME}/.harness/chats/${id}`
 const MOCK_FOLDERS = [
   { path: '/Users/xlsft/Projects/xlsft/harness', branch: 'main', repo: 'github.com/xlsft/harness' },
   { path: '/Users/xlsft/Projects/xlsft/proxy.xlsft.ru', branch: 'main', repo: 'github.com/xlsft/proxy.xlsft.ru' },
@@ -181,10 +183,26 @@ export class MockTransport implements SessionTransport {
 
   async createSession(opts: NewSessionOptions) {
     if (opts.fork && opts.resumeSessionId) return this.fork(opts.resumeSessionId, opts.forkAtMessageId)
+    const id = `ses_mock_${this.sessions.size + 1}`
+    if (!opts.cwd) {
+      // No folder, as the client does it: a private directory named after the session, no repository.
+      if (opts.worktree) throw new Error('[invalid_argument] worktree requires a folder (cwd)')
+      const info = create(SessionInfoSchema, {
+        id,
+        title: 'New session',
+        cwd: mockChatDir(id),
+        noFolder: true,
+        model: opts.model || MODELS[0]!.id,
+        permissionMode: opts.permissionMode,
+        updatedAt: new Date(this.now()).toISOString()
+      })
+      this.sessions.set(id, { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null })
+      return info
+    }
     const name = opts.worktree ? (opts.worktree.name || `brisk-otter-${(this.sessions.size + 1).toString(16).padStart(4, '0')}`) : ''
     const repo = opts.cwd
     const info = create(SessionInfoSchema, {
-      id: `ses_mock_${this.sessions.size + 1}`,
+      id,
       title: 'New session',
       cwd: opts.worktree ? `${repo}/.harness/worktrees/${name}` : opts.cwd,
       gitBranch: opts.worktree ? (opts.worktree.branch || `harness/${name}`) : 'main',
@@ -213,7 +231,8 @@ export class MockTransport implements SessionTransport {
       .filter(e => e.event.case !== 'sessionUpdated' && e.event.case !== 'queueChanged')
       .map((e, i) => ({ ...e, seq: BigInt(i + 1), sessionId: id }))
     const title = parent.info.title.endsWith(' (fork)') ? parent.info.title : `${parent.info.title} (fork)`
-    const info = create(SessionInfoSchema, { ...parent.info, id, title, parentSessionId: parentId, status: SessionStatus.IDLE, pinned: false, unread: false, updatedAt: new Date(this.now()).toISOString() })
+    // A fork of a session without a folder gets a private directory of its own.
+    const info = create(SessionInfoSchema, { ...parent.info, id, title, parentSessionId: parentId, status: SessionStatus.IDLE, pinned: false, unread: false, updatedAt: new Date(this.now()).toISOString(), ...(parent.info.noFolder && { cwd: mockChatDir(id) }) })
     const s: MockSession = { info, history, seq: history.length, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null }
     this.sessions.set(id, s)
     this.emit(s, b => b.sessionUpdated(info))
@@ -742,7 +761,7 @@ export class MockTransport implements SessionTransport {
     this.emit(s, b => b.taskFinished(taskId, 143, 0, true))
   }
 
-  private filesApi = new MockFilesApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
+  private filesApi = new MockFilesApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd, blank: id => !!this.sessions.get(id)?.info.noFolder })
   files() {
     return this.filesApi
   }
