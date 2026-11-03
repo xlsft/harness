@@ -30,6 +30,7 @@ import { ConnectFilesApi } from '~/lib/files/connect'
 import { ConnectSpeechApi } from '~/lib/speech/connect'
 import { ConnectLocalModelsApi } from './localModels'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
+import { ConnectAcpApi } from '~/lib/acp/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -65,6 +66,7 @@ export class ConnectTransport implements SessionTransport {
     this.filesApi = new ConnectFilesApi(transport)
     this.speechApi = new ConnectSpeechApi(transport)
     this.limitsApi = new ConnectLimitsApi(transport)
+    this.acpApi = new ConnectAcpApi(transport)
   }
 
   private limitsApi: ConnectLimitsApi
@@ -119,7 +121,8 @@ export class ConnectTransport implements SessionTransport {
       resumeSessionId: opts.resumeSessionId ?? '',
       fork: opts.fork ?? false,
       forkAtCheckpointId: opts.forkAtMessageId ?? '',
-      worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined
+      worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined,
+      engine: opts.engine ?? ''
     })
     if (!res.session) throw new Error('the client returned no session')
     return res.session
@@ -293,6 +296,11 @@ export class ConnectTransport implements SessionTransport {
   private localModelsApi?: ConnectLocalModelsApi
   localModels() {
     return (this.localModelsApi ??= new ConnectLocalModelsApi(this.transport))
+  }
+
+  private acpApi!: ConnectAcpApi
+  acp() {
+    return this.acpApi
   }
 }
 

@@ -1,0 +1,308 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/agent/v1/terminal.proto";
+
+// ACP agents (Agent Client Protocol, https://agentclientprotocol.com) as session engines.
+//
+// The client acts as an ACP client: a session can run on an external agent CLI (Claude Code via claude-acp,
+// Codex via codex-acp, Gemini CLI, goose, OpenCode, ...) that brings its own model subscription, agent loop and
+// tools. The client spawns the agent per session (cwd = the session's folder, environment = the session's
+// environment), speaks JSON-RPC over its stdio and maps the agent's updates onto the ordinary SessionEvent
+// stream, so frontends render ACP sessions like harness sessions. What an ACP session cannot do is listed in
+// SessionInfo.unsupported_features.
+//
+// Everything about ACP agents is local to the machine: the registry cache, installed agents and their versions,
+// and what is known about their sign-in live in HARNESS_HOME on this client and are never synced through the
+// harness server. A session started on an ACP agent shows on other machines as running on its own machine.
+//
+// Agents come from the public ACP registry (https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json,
+// cached in HARNESS_HOME/acp/registry.json; the client works from the cache while offline). Binary agents are
+// downloaded into HARNESS_HOME/acp/agents/<id>/<version>/; npx and uvx agents need node (npx) or uv (uvx) on PATH.
+
+// A feature of the session engine that a session may not support. Frontends hide what a session lists in
+// SessionInfo.unsupported_features; the matching RPCs fail with FAILED_PRECONDITION.
+enum SessionFeature {
+  SESSION_FEATURE_UNSPECIFIED = 0;
+  // ListCheckpoints / Rewind (checkpoints are not taken).
+  SESSION_FEATURE_REWIND = 1;
+  // CreateSession with fork.
+  SESSION_FEATURE_FORK = 2;
+  // Sub-agents and sub-sessions (Task tool trees, /branch).
+  SESSION_FEATURE_SUB_SESSIONS = 3;
+  // Side chats (sidechat.proto).
+  SESSION_FEATURE_SIDE_CHAT = 4;
+  // Compact and auto/idle compaction.
+  SESSION_FEATURE_COMPACTION = 5;
+  // GetContextUsage (the breakdown; an ACP agent may still report totals in AcpSessionState).
+  SESSION_FEATURE_CONTEXT_BREAKDOWN = 6;
+  // The harness auto-mode classifier (PERMISSION_MODE_AUTO).
+  SESSION_FEATURE_CLASSIFIER = 7;
+  // SetEffort.
+  SESSION_FEATURE_EFFORT = 8;
+  // SetOutputStyle / ListOutputStyles.
+  SESSION_FEATURE_OUTPUT_STYLES = 9;
+  // RunShellCommand (the composer's shell mode).
+  SESSION_FEATURE_SHELL_COMMANDS = 10;
+  // ListTasks / StopTask (background shell tasks of harness tools).
+  SESSION_FEATURE_BACKGROUND_TASKS = 11;
+  // SetModel with the harness model catalog. ACP sessions switch models with the agent's own options when it
+  // offers a model option (AcpSessionState.models).
+  SESSION_FEATURE_MODEL_CATALOG = 12;
+  // AskUserQuestion cards and ExitPlanMode plan cards.
+  SESSION_FEATURE_QUESTIONS = 13;
+  // SetSessionFolder (moving the session to another folder).
+  SESSION_FEATURE_MOVE_FOLDER = 14;
+}
+
+// How an agent is distributed for this platform.
+enum AcpDistribution {
+  ACP_DISTRIBUTION_UNSPECIFIED = 0;
+  // A per-platform archive downloaded and extracted by the client.
+  ACP_DISTRIBUTION_BINARY = 1;
+  // An npm package run with npx (needs node on PATH).
+  ACP_DISTRIBUTION_NPX = 2;
+  // A Python package run with uvx (needs uv on PATH).
+  ACP_DISTRIBUTION_UVX = 3;
+}
+
+// What the client knows about an agent's sign-in. The agent only says it needs one when a session is started
+// (session/new fails with auth_required), so it stays UNKNOWN until then.
+enum AcpAuthState {
+  ACP_AUTH_STATE_UNSPECIFIED = 0;
+  ACP_AUTH_STATE_UNKNOWN = 1;
+  // The agent started a session without asking for authentication.
+  ACP_AUTH_STATE_NOT_REQUIRED = 2;
+  // The agent refused to start a session until the user signs in (see auth_methods).
+  ACP_AUTH_STATE_REQUIRED = 3;
+  // The user signed in through the client (AuthenticateAcpAgent) and a session started afterwards.
+  ACP_AUTH_STATE_AUTHENTICATED = 4;
+}
+
+// A way to authenticate the agent offered in its initialize response.
+message AcpAuthMethod {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // The agent handles it (it may open a browser): AuthenticateAcpAgent calls `authenticate`.
+    KIND_AGENT = 1;
+    // The user runs the agent's command with `args` / `env` in an interactive terminal (AcpTerminalCommand).
+    KIND_TERMINAL = 2;
+    // The agent reads credentials from environment variables (`env_vars`), set in the session's environment.
+    KIND_ENV_VAR = 3;
+  }
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  Kind kind = 4;
+  // KIND_ENV_VAR: the variable names.
+  repeated string env_vars = 5;
+  // KIND_ENV_VAR: where to get the credentials, when given.
+  string link = 6;
+}
+
+// An agent of the registry merged with its local state.
+message AcpAgent {
+  // Registry id, e.g. "claude-acp", "codex-acp", "gemini".
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  // The registry's current version.
+  string latest_version = 4;
+  string repository = 5;
+  string website = 6;
+  string license = 7;
+  repeated string authors = 8;
+  // The registry's icon (an SVG URL), and the SVG markup itself when the client has it cached.
+  string icon_url = 9;
+  string icon_svg = 10;
+  // The distribution the client uses on this platform (binary first, then npx, then uvx).
+  AcpDistribution distribution = 11;
+  // Installed: a binary agent is downloaded, an npx/uvx agent is recorded (its package is fetched by npx/uvx).
+  bool installed = 12;
+  string installed_version = 13;
+  bool update_available = 14;
+  // The agent can run on this machine: a build for this platform exists, and npx or uvx is on PATH when needed.
+  bool available = 15;
+  // Why not, e.g. "node (npx) is not on PATH" or "no build for linux-aarch64".
+  string unavailable_reason = 16;
+  // "npx" / "uvx" for those distributions: the runtime command it needs.
+  string runtime = 17;
+  AcpAuthState auth_state = 18;
+  // Methods from the agent's last initialize response (empty until the agent ran once).
+  repeated AcpAuthMethod auth_methods = 19;
+  // The engine id to pass in CreateSessionRequest.engine: "acp:<id>".
+  string engine = 20;
+  // The latest subscription limits the agent reported on this machine; absent when it never reported any.
+  optional AcpAgentLimits limits = 21;
+}
+
+// Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
+// Captured from what the agent sends over ACP (its `_meta` fields and extension notifications); the client never
+// asks the provider itself nor reads the agent's credentials. Device-local, like everything about ACP agents.
+message AcpAgentLimits {
+  repeated AcpLimitWindow windows = 1;
+  // The plan, when the agent names it (e.g. "plus", "pro", "max").
+  string plan_name = 2;
+  // RFC 3339, UTC: when the snapshot was received.
+  string updated_at = 3;
+}
+
+message AcpLimitWindow {
+  // e.g. "5h", "weekly".
+  string label = 1;
+  // 0..100.
+  double used_percent = 2;
+  // RFC 3339, UTC; empty when unknown.
+  string resets_at = 3;
+  // Length of the window in minutes; 0 when unknown.
+  int64 window_minutes = 4;
+}
+
+// ACP state of a session (SessionInfo.acp).
+message AcpSessionState {
+  string agent_id = 1;
+  string agent_name = 2;
+  string agent_version = 3;
+  // The agent's session modes (e.g. claude-acp: default, acceptEdits, plan, bypassPermissions) and the current
+  // one. SessionInfo.permission_mode mirrors it when the id matches a harness mode; SetAcpMode switches it.
+  repeated AcpMode modes = 4;
+  string current_mode_id = 5;
+  // Slash commands the agent advertises (available_commands_update). They are sent as prompt text ("/name args").
+  repeated AcpCommand commands = 6;
+  // The agent needs the user to sign in before the session can run (see auth_methods, AuthenticateAcpAgent).
+  bool needs_auth = 7;
+  repeated AcpAuthMethod auth_methods = 8;
+  // The agent could not restore its own session (no session/load): the conversation shown is the client's record
+  // and the agent started a fresh conversation without it.
+  bool fresh_agent_session = 9;
+  // Context window usage the agent reported (usage_update); 0 when it did not.
+  int64 context_used_tokens = 10;
+  int64 context_window_tokens = 11;
+  // The agent process is starting (spawn, initialize, session/new or session/load); messages sent meanwhile wait.
+  bool starting = 12;
+  // The agent's model choices when it offers a model option; SetModel picks one by id.
+  repeated AcpModel models = 13;
+  string current_model_id = 14;
+  // The latest subscription limits the agent reported (also kept per agent, AcpAgent.limits).
+  optional AcpAgentLimits limits = 15;
+}
+
+message AcpMode {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message AcpCommand {
+  string name = 1;
+  string description = 2;
+  // Hint for the command's argument, when it takes one.
+  string input_hint = 3;
+}
+
+message AcpModel {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+// A command for an interactive terminal (terminal-auth methods): the agent's own launch command with the
+// method's extra arguments and environment.
+message AcpTerminalCommand {
+  string command = 1;
+  repeated string args = 2;
+  map<string, string> env = 3;
+  string cwd = 4;
+  // The same as one shell line, quoted for POSIX shells.
+  string shell_line = 5;
+}
+
+message ListAcpAgentsRequest {
+  // Fetch the registry now instead of using a cache younger than its TTL. Offline, the cache is used anyway.
+  bool refresh = 1;
+}
+
+message ListAcpAgentsResponse {
+  repeated AcpAgent agents = 1;
+  // RFC 3339, UTC: when the registry was last fetched; empty when it never was.
+  string registry_fetched_at = 2;
+  // The registry could not be fetched; the agents come from the cache (or are empty without one).
+  string registry_error = 3;
+  // Runtimes found on PATH: "npx", "uvx".
+  repeated string runtimes = 4;
+}
+
+message InstallAcpAgentRequest {
+  string agent_id = 1;
+}
+
+// Progress of InstallAcpAgent / UpdateAcpAgent. The last message has done = true and the agent's new state.
+message InstallAcpAgentResponse {
+  enum Phase {
+    PHASE_UNSPECIFIED = 0;
+    PHASE_RESOLVING = 1;
+    PHASE_DOWNLOADING = 2;
+    PHASE_VERIFYING = 3;
+    PHASE_EXTRACTING = 4;
+    PHASE_DONE = 5;
+  }
+  Phase phase = 1;
+  // PHASE_DOWNLOADING: bytes so far and the total (0 when unknown).
+  int64 bytes_done = 2;
+  int64 bytes_total = 3;
+  string message = 4;
+  bool done = 5;
+  AcpAgent agent = 6;
+}
+
+message UpdateAcpAgentRequest {
+  string agent_id = 1;
+}
+
+// Same shape as InstallAcpAgentResponse.
+message UpdateAcpAgentResponse {
+  InstallAcpAgentResponse progress = 1;
+}
+
+message UninstallAcpAgentRequest {
+  string agent_id = 1;
+}
+
+message UninstallAcpAgentResponse {
+  AcpAgent agent = 1;
+}
+
+message AuthenticateAcpAgentRequest {
+  string agent_id = 1;
+  // An auth method id from AcpAgent.auth_methods / AcpSessionState.auth_methods. Empty with verify.
+  string method_id = 2;
+  // An ACP session waiting for sign-in: it is retried once authenticated (its agent process is used, or restarted
+  // after a terminal login). Empty authenticates in a scratch process.
+  string session_id = 3;
+  // The terminal login finished (or credentials were set): restart the agent and check that a session starts.
+  bool verify = 4;
+  // KIND_TERMINAL: also start the command in a client terminal (terminal.proto) and return it with a ticket.
+  bool open_terminal = 5;
+}
+
+message AuthenticateAcpAgentResponse {
+  // The agent accepted the sign-in (and the session, when given, is running).
+  bool authenticated = 1;
+  // KIND_TERMINAL: run this, then call again with verify.
+  optional AcpTerminalCommand terminal = 2;
+  // open_terminal: the started terminal and a ticket for its WebSocket.
+  optional TerminalInfo terminal_info = 3;
+  string terminal_ticket = 4;
+  // KIND_ENV_VAR: the variables to set in the session's environment (UpdateEnvironment), then verify.
+  repeated string env_vars = 5;
+  AcpAgent agent = 6;
+}
+
+message SetAcpModeRequest {
+  string session_id = 1;
+  // An id from AcpSessionState.modes.
+  string mode_id = 2;
+}
+
+message SetAcpModeResponse {}

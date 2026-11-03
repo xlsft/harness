@@ -29,6 +29,7 @@ import type { FilesApi } from '~/lib/files/types'
 import type { SpeechApi } from '~/lib/speech/types'
 import type { LocalModelsApi } from './localModels'
 import type { LimitsApi } from '~/lib/limits/types'
+import type { AcpApi } from '~/lib/acp/types'
 
 export interface ModelInfo {
   id: string
@@ -60,6 +61,9 @@ export interface NewSessionOptions {
   forkAtMessageId?: string
   // Run in a new git worktree of the repository containing cwd.
   worktree?: { name?: string, branch?: string, baseRef?: string }
+  // The session engine: omitted or 'harness' for the harness agent loop, 'acp:<agent id>' for an installed ACP agent
+  // (AcpAgent.engine). A resume keeps the session's recorded engine.
+  engine?: string
 }
 
 // Per-user preferences the client honours for every session (stored in the user's synced settings).
@@ -197,4 +201,6 @@ export interface SessionTransport {
   // Provider balances, monthly spend and rate-limit windows (AgentService.GetProviderLimits; budgets and the admin
   // visibility policies forwarded to the server by the client, ~/lib/limits). Filtered by the server.
   limits(): LimitsApi
+  // ACP agents as session engines: the registry, installs, sign-in and agent modes (~/lib/acp). Device-local.
+  acp(): AcpApi
 }

@@ -48,15 +48,19 @@ func (s *Server) CreateTerminal(ctx context.Context, req *connect.Request[agentv
 		s.mu.Lock()
 		ls := s.live[id]
 		s.mu.Unlock()
-		if ls == nil {
+		if cwd, acpDirs, ok := s.acpScope(id); ok && ls == nil {
+			defaultCwd, dirs = cwd, acpDirs
+		} else if ls == nil {
 			if remote := s.remoteInfo(id); remote != nil {
 				return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("session %s runs on %s; terminals are only available for sessions of this machine", id, deviceLabel(remote)))
 			}
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open; call CreateSession first", id))
 		}
-		defaultCwd, dirs = ls.sess.Cwd, []string{ls.sess.Cwd}
-		if ls.sess.Permissions != nil {
-			dirs = ls.sess.Permissions.WorkingDirs()
+		if ls != nil {
+			defaultCwd, dirs = ls.sess.Cwd, []string{ls.sess.Cwd}
+			if ls.sess.Permissions != nil {
+				dirs = ls.sess.Permissions.WorkingDirs()
+			}
 		}
 	}
 	cwd, err := terminalCwd(m.GetCwd(), defaultCwd, home, dirs)

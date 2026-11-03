@@ -207,6 +207,9 @@ func (s *Server) sessionFolder(id string) (string, error) {
 		defer ls.mu.Unlock()
 		return ls.env.folder, nil
 	}
+	if m := readAcpMeta(id); m != nil {
+		return environment.Key(recentFolder(m.Cwd, nil)), nil
+	}
 	path, err := session.Store{Root: config.ProjectsDir()}.Find("", id)
 	if err != nil {
 		return "", connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s not found", id))
