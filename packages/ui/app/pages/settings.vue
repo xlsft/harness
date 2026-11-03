@@ -14,6 +14,9 @@ useShortcuts()
       id="settings"
       :ui="{ root: 'min-h-0 h-svh min-w-0', body: 'p-0 sm:p-0 gap-0 overflow-y-auto' }"
     >
+      <template #header>
+        <PageHeader />
+      </template>
       <template #body>
         <SettingsPage />
       </template>

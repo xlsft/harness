@@ -58,10 +58,10 @@ async function signOut() {
     aria-label="Settings"
     class="h-full overflow-y-auto bg-default"
   >
-    <div class="mx-auto flex max-w-[960px] gap-10 px-10 pt-10 pb-10 max-md:flex-col max-md:gap-5 max-sm:px-4 max-sm:pt-6">
+    <div class="mx-auto flex max-w-[960px] gap-10 px-10 pt-2 pb-10 max-md:flex-col max-md:gap-5 max-sm:px-4 max-sm:pt-6">
       <nav
         aria-label="Settings sections"
-        class="sticky top-10 flex w-[180px] shrink-0 flex-col gap-[2px] self-start max-md:static max-md:w-full max-md:flex-row max-md:flex-wrap"
+        class="sticky top-2 flex w-[180px] shrink-0 flex-col gap-[2px] self-start max-md:static max-md:w-full max-md:flex-row max-md:flex-wrap"
       >
         <h1 class="m-0 mb-4 font-display text-[26px] font-bold text-white max-md:mb-1 max-md:w-full">
           Settings
