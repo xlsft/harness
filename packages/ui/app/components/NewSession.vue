@@ -273,7 +273,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           </div>
           <button
             type="button"
-            class="flex w-full items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-left text-toned hover:bg-raised hover:text-strong"
+            class="flex w-full items-center gap-2.5 rounded-none border-l-2 border-transparent px-3 py-2 text-left text-toned hover:bg-raised hover:text-strong"
             @click="browse"
           >
             <HIcon
