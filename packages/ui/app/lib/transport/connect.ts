@@ -116,8 +116,9 @@ export class ConnectTransport implements SessionTransport {
     const abort = new AbortController()
     void (async () => {
       try {
-        for await (const res of this.client.subscribe({ sessionId, afterSeq: BigInt(afterSeq) }, { signal: abort.signal })) {
+        for await (const res of this.client.subscribe({ sessionId, afterSeq: BigInt(afterSeq), control: true }, { signal: abort.signal })) {
           if (res.event) h.onEvent(res.event)
+          else if (res.logId) h.onControl?.({ logId: res.logId, session: res.session })
         }
         h.onEnd?.()
       } catch (err) {
@@ -147,7 +148,8 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async interrupt(sessionId: string) {
-    await this.client.interrupt({ sessionId })
+    const res = await this.client.interrupt({ sessionId })
+    return { idle: res.idle }
   }
 
   async respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision, rule = '', comment = '') {

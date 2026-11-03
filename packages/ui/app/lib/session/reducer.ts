@@ -66,6 +66,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       archived: false,
       ...meta
     },
+    logId: '',
     lastSeq: 0,
     items: [],
     index: {},
@@ -245,6 +246,34 @@ function dropUnfinished(s: SessionState) {
   reindex(s)
 }
 
+function isBusy(status: Status) {
+  return status === 'working' || status === 'needs_input'
+}
+
+// The client says no turn runs (its live status, or an Interrupt it answered with idle) while this state still
+// shows one: the end of that turn never arrived (a stream that died, a client restarted mid-turn). Whatever the
+// transcript shows as running is cut short, as an interrupted turn would leave it.
+export function settleTurn(s: SessionState) {
+  for (const it of s.items) {
+    if (it.kind === 'tool' && it.status === 'running') it.status = 'interrupted'
+    if (it.kind === 'assistant') it.streaming = false
+    if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
+  }
+  s.turnStartedAt = 0
+  s.pendingPermission = null
+  s.pendingQuestion = null
+  s.pendingPlan = null
+  if (isBusy(s.meta.status) || s.meta.status === 'waiting_for_connection') setStatus(s, 'idle')
+}
+
+// The session as the client has it now (SubscribeResponse.session after the replay). Its status wins over the
+// replayed events: an idle session has no running turn, whatever the stream showed before.
+export function applyLiveInfo(s: SessionState, info: SessionInfo) {
+  const status = statusName(info.status)
+  s.meta = { ...sessionMeta(info), status: s.meta.status === 'ended' ? 'ended' : status }
+  if (status === 'idle' || status === 'error') settleTurn(s)
+}
+
 // ── reducer ──────────────────────────────────────────────────────────────────
 
 export function reduce(s: SessionState, ev: SessionEvent): SessionState {
@@ -260,9 +289,13 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
   if (seq > 0) s.lastSeq = seq
 
   switch (e.case) {
-    case 'sessionUpdated':
-      s.meta = { ...sessionMeta(e.value), status: s.meta.status === 'ended' ? 'ended' : statusName(e.value.status) }
+    case 'sessionUpdated': {
+      const status = statusName(e.value.status)
+      s.meta = { ...sessionMeta(e.value), status: s.meta.status === 'ended' ? 'ended' : status }
+      // The client reports idle only after a turn's TurnFinished: a turn still open here lost its end.
+      if (s.turnStartedAt && (status === 'idle' || status === 'error')) settleTurn(s)
       break
+    }
 
     case 'userMessage': {
       dropUnfinished(s)

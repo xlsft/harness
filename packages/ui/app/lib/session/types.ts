@@ -282,6 +282,8 @@ export interface ShowRequest {
 
 export interface SessionState {
   meta: SessionMeta
+  // The client's event log that lastSeq counts in (SubscribeResponse.log_id); empty until a stream said it.
+  logId: string
   lastSeq: number
   items: TranscriptItem[]
   // Index of items by id for O(1) updates (tool calls, permissions, deltas).

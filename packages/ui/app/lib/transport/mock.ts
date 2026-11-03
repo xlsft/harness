@@ -532,7 +532,7 @@ export class MockTransport implements SessionTransport {
 
   async interrupt(sessionId: string) {
     const s = this.get(sessionId)
-    if (!s.working) return
+    if (!s.working) return { idle: true }
     for (const t of s.timers) clearTimeout(t)
     s.timers = []
     const pending = s.waiting
@@ -546,6 +546,7 @@ export class MockTransport implements SessionTransport {
     s.working = false
     s.queue = []
     this.emit(s, b => b.queue([]))
+    return { idle: false }
   }
 
   async respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision) {

@@ -62,8 +62,17 @@ export interface SessionPatch {
   title?: string
 }
 
+// A control message of the stream (no event): the event log id, plus the session as it is now on the one sent
+// right after the replay. Heartbeats carry the log id only.
+export interface StreamControl {
+  logId: string
+  session?: SessionInfo
+}
+
 export interface SubscribeHandlers {
   onEvent: (event: SessionEvent) => void
+  // Control messages; a transport (or client) without them never calls it.
+  onControl?: (control: StreamControl) => void
   onError?: (err: unknown) => void
   onEnd?: () => void
 }
@@ -84,7 +93,8 @@ export interface SessionTransport {
   subscribe(sessionId: string, afterSeq: number, handlers: SubscribeHandlers): () => void
 
   sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery): Promise<void>
-  interrupt(sessionId: string): Promise<void>
+  // idle: no turn was running, so nothing was interrupted (an older client always says false).
+  interrupt(sessionId: string): Promise<{ idle: boolean }>
   // Stops a live session on the client (its transcript stays, so it can be resumed).
   closeSession?(sessionId: string): Promise<void>
   // Pin, mark unread, archive or rename; returns the session as it is now.
