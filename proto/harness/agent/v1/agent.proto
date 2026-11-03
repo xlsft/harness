@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package harness.agent.v1;
 
+import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/llm/v1/content.proto";
 
@@ -132,6 +133,22 @@ service AgentService {
   // Adds a working directory to an open session's environment (stored) and applies it to the open sessions
   // in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
   rpc AddSessionDirectory(AddSessionDirectoryRequest) returns (AddSessionDirectoryResponse);
+
+  // Side chats (sidechat.proto): read-only conversations next to a session that see its conversation but never
+  // change it (no tools). Stored next to the session's transcript. Local open sessions only.
+  rpc ListSideChats(ListSideChatsRequest) returns (ListSideChatsResponse);
+  rpc CreateSideChat(CreateSideChatRequest) returns (CreateSideChatResponse);
+  // The side chat with its messages.
+  rpc GetSideChat(GetSideChatRequest) returns (GetSideChatResponse);
+  // Renames it or changes its model / effort (remembered for this side chat only).
+  rpc UpdateSideChat(UpdateSideChatRequest) returns (UpdateSideChatResponse);
+  // Stops a running answer and deletes the side chat.
+  rpc DeleteSideChat(DeleteSideChatRequest) returns (DeleteSideChatResponse);
+  // Asks a question: streams the stored question, the answer's text deltas and the stored answer with usage.
+  // Cancelling the stream stops the answer like StopSideChat.
+  rpc AskSideChat(AskSideChatRequest) returns (stream AskSideChatResponse);
+  // Stops the running answer of a side chat; the text so far is kept (stopped = true).
+  rpc StopSideChat(StopSideChatRequest) returns (StopSideChatResponse);
 }
 
 enum PermissionMode {

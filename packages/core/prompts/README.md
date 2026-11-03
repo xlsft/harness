@@ -82,6 +82,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `deferred_tools` | `tools` | MCP tools are deferred behind ToolSearch: their names, one per line, at session start |
 | `environment_changed` | `directories`, `variables` | the user edited the session's environment while it runs (AgentService UpdateEnvironment / AddSessionDirectory): the working directories now, one per line, and the names of the variables set (never values; "(none)" when empty). Rides on the next model request |
 | `webfetch_summary` | `url`, `prompt`, `content` | not a reminder: the WebFetch summarization prompt. The client fills it with the fetched page (as Markdown) and the tool's `prompt`, sends it as the only user message of an `auxiliary` request to the small-slot model and returns the reply as the tool result. Not wrapped in `<system-reminder>` |
+| `side_chat` | — | not a reminder: the system prompt of side chats (AgentService AskSideChat). The client sends it as the first system block of a tool-less `auxiliary` request, followed by a block with a read-only rendering of the main session inside `<main_session>`, then the side chat's history and the question (with its quoted excerpt). Not wrapped in `<system-reminder>` |
 
 Each placeholder appears once per reminder (the tests compare the list of placeholders). `interrupted` must stay
 exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start with

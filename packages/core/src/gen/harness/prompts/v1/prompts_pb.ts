@@ -113,6 +113,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
    *   environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
+   *   side_chat             (none)                 not a reminder: the system prompt of side chats (AskSideChat)
    *
    * @generated from field: map<string, string> reminders = 5;
    */

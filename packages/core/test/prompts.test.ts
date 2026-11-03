@@ -45,6 +45,8 @@ describe("bundle builder", () => {
       environment_changed: ["directories", "variables"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
+      // the side chat system prompt (no placeholders: the client sends the main session as a separate block)
+      side_chat: [],
     };
     expect(Object.keys(b.reminders).sort()).toEqual(Object.keys(reminders).sort());
     for (const [id, phs] of Object.entries(reminders)) {
@@ -52,6 +54,8 @@ describe("bundle builder", () => {
       expect(used, id).toEqual([...phs].sort());
     }
     expect(b.reminders.interrupted).toBe("[Request interrupted by user]");
+    expect(b.reminders.side_chat).toMatch(/no tools/);
+    expect(b.reminders.side_chat).toContain("<main_session>");
     expect(b.compaction.instruction).toMatch(/summary/);
     for (const h of ["User intent", "Decisions", "Files touched", "Current state", "Next steps", "Pending todos"]) expect(b.compaction.instruction).toContain(`## ${h}`);
     expect(b.title.instruction).toMatch(/title/);
