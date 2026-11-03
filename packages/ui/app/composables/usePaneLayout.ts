@@ -199,12 +199,17 @@ export function usePaneLayout() {
   function startDrag(src: PaneName, down: PointerEvent) {
     const x0 = down.clientX
     const y0 = down.clientY
+    // From the press, not from the first move: a selection starts on the press and grows with the drag.
+    const noSelect = (e: Event) => e.preventDefault()
+    document.addEventListener('selectstart', noSelect)
     const onMove = (e: PointerEvent) => {
       if (!drag.value) {
         if (Math.hypot(e.clientX - x0, e.clientY - y0) < DRAG_THRESHOLD) return
         drag.value = { src, target: null, region: null }
         document.body.style.cursor = 'grabbing'
         document.body.style.userSelect = 'none'
+        document.body.style.setProperty('-webkit-user-select', 'none')
+        window.getSelection()?.removeAllRanges()
       }
       const el = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-pane]')
       const target = el?.dataset.pane as PaneName | undefined
@@ -221,6 +226,8 @@ export function usePaneLayout() {
       drag.value = null
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
+      document.body.style.removeProperty('-webkit-user-select')
+      document.removeEventListener('selectstart', noSelect)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
