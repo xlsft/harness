@@ -82,6 +82,11 @@ type liveSession struct {
 	relayMu     sync.Mutex
 	// usageLimit is the latest usage-limit state (SessionInfo.usage_limit; ls.mu).
 	usageLimit *agentv1.UsageLimit
+	// usage watches the provider while it is out of usage (usagelimit.go); autoContinue is SetAutoContinue (ls.mu);
+	// heldOnRecord: the transcript's last list of held messages is not empty (ls.mu).
+	usage        usageWatch
+	autoContinue bool
+	heldOnRecord bool
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.
@@ -115,7 +120,7 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
 		NoFolder:   isNoFolder(ls.sess.ID, ls.sess.Cwd),
-		UsageLimit: ls.usageLimit,
+		UsageLimit: ls.usageLimit, AutoContinue: ls.autoContinue,
 	}
 	ls.relayStateLocked(info)
 	ls.srv.applyState(info)
@@ -203,9 +208,11 @@ func (ls *liveSession) close(reason string) {
 	ls.closed = true
 	ls.mu.Unlock()
 	ls.cancel()
+	ls.usage.stop()
 	ls.driver.Stop()
 	ls.driver.Wait()
 	ls.bg.Wait()
+	ls.usage.stop()
 	ls.sess.Agent.SetInteractor(nil)
 	ls.sess.Close()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionEnded{SessionEnded: &agentv1.SessionEnded{Reason: reason}}})
@@ -232,13 +239,16 @@ func (ls *liveSession) onEvent(e agent.Event) {
 	case agent.EventTurnStarted:
 		ls.mu.Lock()
 		ls.idleCompacted = false
-		if u := ls.usageLimit; u.GetWrappedUp() {
-			// "Wrapped up" described the previous turn.
+		if u := ls.usageLimit; u.GetWrappedUp() || u.GetInterrupted() {
+			// "Wrapped up" and "interrupted" described the previous turn.
 			u = proto.Clone(u).(*agentv1.UsageLimit)
-			u.WrappedUp = false
+			u.WrappedUp, u.Interrupted = false, false
 			ls.usageLimit = u
 		}
 		ls.mu.Unlock()
+		if ls.usage.monitor != nil {
+			ls.usage.monitor.TurnContinues()
+		}
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnStarted{TurnStarted: &agentv1.TurnStarted{UserMessageUuid: e.UUID, Model: e.Model}}})
 	case agent.EventStream:
 		ls.onStream(e.Raw)
@@ -268,6 +278,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		ls.queue = nil
 		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{}}})
+		ls.saveHeld()
 	case agent.EventRetry:
 		text := fmt.Sprintf("Retrying (attempt %d of %d) in %d ms", e.Retry.Attempt, e.Retry.MaxRetries, e.Retry.RetryDelayMs)
 		if e.Retry.Error != nil {
@@ -353,7 +364,7 @@ func (ls *liveSession) onResult(res agent.TurnResult) {
 		tf.Result = agentv1.TurnFinished_RESULT_ERROR_DURING_EXECUTION
 	}
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnFinished{TurnFinished: tf}})
-	if ls.srv.ctx.Err() == nil && ls.sess.Agent.QueueLen() == 0 {
+	if ls.srv.ctx.Err() == nil && (ls.sess.Agent.QueueLen() == 0 || ls.driver.Held()) {
 		ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_IDLE)
 	}
 	ls.refreshDiffStats()

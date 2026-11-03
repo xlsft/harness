@@ -40,6 +40,7 @@ import (
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/usagelimit"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -123,6 +124,8 @@ type Server struct {
 	LocalModels *localmodels.Registry
 	// acp holds the ACP agents and the sessions running on them (acp.go).
 	acp acpState
+	// UsageWatch tunes the watch over sessions whose provider is out of usage (usagelimit.go).
+	UsageWatch UsageWatchTimings
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -366,6 +369,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	opts.Logger = s.log()
 	usage := s.newUsageMonitor()
 	opts.UsageMonitor = usage
+	ls.usage.monitor = usage
 	sess, err := bootstrap.Open(ctx, opts)
 	if err != nil {
 		s.rollbackWorktree(wt)
@@ -379,8 +383,12 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	entries := sess.Transcript.Entries()
 	ls.initTitle(session.ReadTitles(entries))
 	ls.relayChoice = session.ReadRemoteControl(entries)
+	// A fork starts by itself: it continues nothing and keeps no messages of the session it came from.
+	ls.autoContinue = !m.GetFork() && session.ReadAutoContinue(entries)
 	if u := lastUsageLimit(entries); u != nil {
 		// The state on record: SessionInfo shows it, and the monitor publishes only what changes from it.
+		u.AutoContinue = ls.autoContinue
+		u.Interrupted = u.Interrupted && !m.GetFork()
 		ls.usageLimit = u
 		usage.Seed(pbconv.FromUsageLimit(u))
 	}
@@ -406,6 +414,10 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	sess.Agent.SetInteractor(ls)
 	ls.driver = agent.NewDriver(s.ctx, sess.Agent, ls.onResult)
 	sess.Agent.SetWake(ls.driver.Wake)
+	if sess.Resumed && !m.GetFork() {
+		ls.restoreHeld(entries)
+	}
+	ls.driver.SetHeld(usage.Current().State == usagelimit.Reached)
 	s.mu.Lock()
 	s.live[sess.ID] = ls
 	s.mu.Unlock()
@@ -420,6 +432,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if todos := sess.Agent.Todos(); len(todos) > 0 {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TodosUpdated{TodosUpdated: &agentv1.TodosUpdated{Todos: todosToProto(todos)}}})
 	}
+	ls.startUsageWatch()
 	s.sessionOpened(sess.ID)
 	return connect.NewResponse(&agentv1.CreateSessionResponse{Session: ls.info()}), nil
 }
@@ -610,9 +623,14 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		ls.seen[id] = true
 		ls.mu.Unlock()
 		if dup {
-			// The same message again, now: a queued one is delivered as soon as possible ("Send now").
+			// The same message again, now: a queued one is delivered as soon as possible ("Send now"), a held one
+			// tries the provider at once.
 			if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW && ls.sess.Agent.QueueLen() > 0 {
-				ls.deliverNow()
+				if ls.driver.Held() {
+					ls.sendHeldNow()
+				} else {
+					ls.deliverNow()
+				}
 			}
 			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
 		}
@@ -640,14 +658,27 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 	if id == "" {
 		id = uuid.NewString()
 	}
+	// Under ls.mu: the queue's copy here is in place before the agent's queue can drain and clear it.
+	ls.mu.Lock()
 	queued := ls.driver.Submit(id, content)
+	held := false
+	var q []*agentv1.UserMessage
 	if queued {
-		ls.mu.Lock()
-		ls.queue = append(ls.queue, &agentv1.UserMessage{Uuid: id, Content: req.Msg.GetContent(), QueuedAt: time.Now().UTC().Format(time.RFC3339Nano)})
-		q := append([]*agentv1.UserMessage(nil), ls.queue...)
-		ls.mu.Unlock()
+		held = ls.driver.Held()
+		ls.queue = append(ls.queue, &agentv1.UserMessage{Uuid: id, Content: req.Msg.GetContent(), QueuedAt: time.Now().UTC().Format(time.RFC3339Nano), Held: held})
+		q = append(q, ls.queue...)
+	}
+	ls.mu.Unlock()
+	if queued {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})
-		if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW {
+		if held {
+			ls.saveHeld()
+			if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW {
+				ls.sendHeldNow()
+			} else {
+				ls.pokeUsageWatch()
+			}
+		} else if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW {
 			ls.deliverNow()
 		} else {
 			// A queued message is read right after the tool calls: a command that keeps it waiting moves to the
@@ -681,6 +712,7 @@ func (s *Server) RemoveQueuedMessage(ctx context.Context, req *connect.Request[a
 	q := append([]*agentv1.UserMessage(nil), ls.queue...)
 	ls.mu.Unlock()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})
+	ls.saveHeld()
 	return connect.NewResponse(&agentv1.RemoveQueuedMessageResponse{Removed: true}), nil
 }
 
@@ -800,12 +832,14 @@ func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetM
 		display, window, thinking = m.DisplayName, m.ContextWindow, m.Capabilities.Thinking
 	}
 	// The session keeps its frozen prompt bundle until the next compaction.
+	prev := ls.sess.Agent.Model()
 	ls.sess.Agent.SetModel(id, display, window)
 	ls.sess.Agent.SetModelThinking(thinking)
 	ls.mu.Lock()
 	ls.sess.Model = id
 	ls.mu.Unlock()
 	ls.publishInfo()
+	ls.usageOnModelChange(prev, id)
 	return connect.NewResponse(&agentv1.SetModelResponse{}), nil
 }
 

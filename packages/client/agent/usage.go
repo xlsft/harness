@@ -3,12 +3,17 @@ package agent
 import (
 	"context"
 
+	"github.com/xlsft/harness/packages/client/gateway"
+	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
 // ReminderUsageWrapUp is the reminder sent once per turn when the session's provider is nearly out of usage.
 const ReminderUsageWrapUp = "usage_limit_wrap_up"
+
+// ReminderUsageReturned is the reminder that continues a turn the usage limit cut off, once the limit is back.
+const ReminderUsageReturned = "usage_limit_returned"
 
 // UsageMonitor follows the usage limits of the session's provider (usagelimit.Monitor).
 type UsageMonitor interface {
@@ -75,6 +80,27 @@ func (a *Agent) finishUsageTurn() {
 	}
 	cur.WrappedUp = true
 	a.publishUsage(cur)
+}
+
+// PublishUsage publishes a usage-limit state decided outside a turn (a reset, a model switch).
+func (a *Agent) PublishUsage(s usagelimit.Status) { a.publishUsage(s) }
+
+// probeMaxTokens caps the reply to ProbeModel; some providers refuse much smaller limits.
+const probeMaxTokens = 16
+
+// ProbeModel asks the session's model for a tiny reply, outside the conversation (no tools, nothing recorded, no
+// retries), to learn whether the provider takes requests: nil when it does. It lets a held message go out only when
+// it will be read, so a refusal leaves the message held instead of in the conversation.
+func (a *Agent) ProbeModel(ctx context.Context) error {
+	req := &llm.Request{
+		Model:     a.Model(),
+		MaxTokens: probeMaxTokens,
+		Messages:  []llm.Message{{Role: llm.RoleUser, Content: []llm.ContentBlock{llm.TextBlock("ping")}}},
+		Stream:    true,
+		Metadata:  &llm.Metadata{SessionID: a.cfg.SessionID, RequestClass: "auxiliary", PromptBundleVersion: a.Bundle().Version},
+	}
+	_, _, err := gateway.Send(ctx, a.cfg.Gateway, req, nil, &gateway.RetryPolicy{})
+	return err
 }
 
 // publishUsage records a usage-limit state in the transcript (replayed on resume) and emits it.

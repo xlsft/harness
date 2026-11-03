@@ -233,6 +233,9 @@ func (a *Agent) injectReminders(promptID string) {
 			a.usage.delivered = true
 			a.mu.Unlock()
 		}
+		if r.id == ReminderUsageReturned {
+			tmpl, ok = bundle.Reminder(r.id, usagelimit.ReturnedFallback), true
+		}
 		if !ok || tmpl == "" {
 			continue
 		}

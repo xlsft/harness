@@ -85,6 +85,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       unread: false,
       archived: false,
       parentId: '',
+      autoContinue: false,
       noFolder: false,
       relayEnabled: false,
       relayAvailable: false,
@@ -204,6 +205,7 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     unread: info.unread,
     archived: info.archived,
     parentId: info.parentSessionId,
+    autoContinue: info.autoContinue,
     noFolder: info.noFolder,
     relayEnabled: info.relayEnabled,
     relayAvailable: info.relayAvailable,
@@ -232,7 +234,9 @@ export function usageLimitVM(u: UsageLimit | undefined): UsageLimitVM | undefine
     usedPercent: u.usedPercent,
     resetsAt: u.resetsAt,
     balanceText: u.balanceText,
-    wrappedUp: u.wrappedUp
+    wrappedUp: u.wrappedUp,
+    interrupted: u.interrupted,
+    autoContinue: u.autoContinue
   }
 }
 
@@ -401,8 +405,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       s.turnStartedAt = at
       s.turnModel = e.value.model
       s.turnTokens = 0
-      // A new turn: the previous one's "wrapped up" no longer describes what runs now.
-      if (s.usageLimit?.wrappedUp) s.usageLimit = { ...s.usageLimit, wrappedUp: false }
+      // A new turn: the previous one's "wrapped up" and "cut off" no longer describe what runs now.
+      if (s.usageLimit?.wrappedUp || s.usageLimit?.interrupted) s.usageLimit = { ...s.usageLimit, wrappedUp: false, interrupted: false }
       s.browserAction = null
       s.browserSteps = 0
       setStatus(s, 'working')
@@ -591,7 +595,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     }
 
     case 'queueChanged':
-      s.queue = e.value.queued.map((m, i) => ({ id: m.uuid || 'q' + i, text: textOf(m.content), ...(m.queuedAt && { at: Date.parse(m.queuedAt) }) }))
+      s.queue = e.value.queued.map((m, i) => ({ id: m.uuid || 'q' + i, text: textOf(m.content), ...(m.queuedAt && { at: Date.parse(m.queuedAt) }), ...(m.held && { held: true }) }))
       break
 
     case 'todosUpdated': {

@@ -747,3 +747,10 @@ func (r routed) SetOutputStyle(ctx context.Context, req *connect.Request[agentv1
 			return &relayv1.SetOutputStyleRequest{Request: m, Options: commandOptions("")}
 		}, nil)
 }
+
+func (r routed) SetAutoContinue(ctx context.Context, req *connect.Request[agentv1.SetAutoContinueRequest]) (*connect.Response[agentv1.SetAutoContinueResponse], error) {
+	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.SetAutoContinue, relayv1connect.RelayServiceClient.SetAutoContinue,
+		func(m *agentv1.SetAutoContinueRequest) *relayv1.SetAutoContinueRequest {
+			return &relayv1.SetAutoContinueRequest{Request: m, Options: commandOptions("")}
+		}, nil)
+}

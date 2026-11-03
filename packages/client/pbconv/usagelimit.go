@@ -18,7 +18,7 @@ func UsageLimit(s usagelimit.Status) *agentv1.UsageLimit {
 		return nil
 	}
 	return &agentv1.UsageLimit{State: st, ProviderId: s.ProviderID, ProviderName: s.ProviderName, WindowLabel: s.WindowLabel,
-		UsedPercent: s.UsedPercent, ResetsAt: s.ResetsAt, BalanceText: s.BalanceText, WrappedUp: s.WrappedUp}
+		UsedPercent: s.UsedPercent, ResetsAt: s.ResetsAt, BalanceText: s.BalanceText, WrappedUp: s.WrappedUp, Interrupted: s.Interrupted}
 }
 
 // FromUsageLimit converts a usage-limit event back (State None for nil).
@@ -33,7 +33,7 @@ func FromUsageLimit(u *agentv1.UsageLimit) usagelimit.Status {
 		}
 	}
 	return usagelimit.Status{State: st, ProviderID: u.GetProviderId(), ProviderName: u.GetProviderName(), WindowLabel: u.GetWindowLabel(),
-		UsedPercent: u.GetUsedPercent(), ResetsAt: u.GetResetsAt(), BalanceText: u.GetBalanceText(), WrappedUp: u.GetWrappedUp()}
+		UsedPercent: u.GetUsedPercent(), ResetsAt: u.GetResetsAt(), BalanceText: u.GetBalanceText(), WrappedUp: u.GetWrappedUp(), Interrupted: u.GetInterrupted()}
 }
 
 // LimitsSnapshot converts what the server returned about a provider's limits (nil stays nil). Blocks the server

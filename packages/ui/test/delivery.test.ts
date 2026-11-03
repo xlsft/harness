@@ -240,3 +240,22 @@ describe('store: sub-sessions', () => {
     expect(store.order).toContain(c2)
   })
 })
+
+describe('held messages', () => {
+  it('marks queue items the usage limit holds, and only those', () => {
+    const s = createSessionState('s1')
+    const b = new EventBuilder('s1', T0)
+    b.queue([{ uuid: 'a', text: 'one', queuedAt: T0, held: true }, { uuid: 'b', text: 'two' }])
+    reduceAll(s, b.events)
+    expect(s.queue).toEqual([{ id: 'a', text: 'one', at: T0, held: true }, { id: 'b', text: 'two' }])
+    expect(pendingMessages(s).map(m => [m.id, m.delivery, m.position])).toEqual([['a', 'held', 1], ['b', 'queued', 2]])
+    expect(pendingMessages(s)[0]).not.toHaveProperty('held')
+  })
+
+  it('offers on a held message the actions of a queued one', () => {
+    const held = messageActions('held', { busy: false, readOnly: false })
+    expect(held).toEqual(messageActions('queued', { busy: false, readOnly: false }))
+    expect(held).toMatchObject({ cancel: 'enabled', sendNow: 'enabled', fork: 'enabled', rewind: 'disabled' })
+    expect(messageActions('held', { busy: false, readOnly: true })).toMatchObject({ cancel: 'hidden', sendNow: 'hidden' })
+  })
+})

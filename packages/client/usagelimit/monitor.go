@@ -103,12 +103,19 @@ func (m *Monitor) Check(ctx context.Context, model string, err error) (*Status, 
 		snap := m.snapshot(ctx, model)
 		m.mu.Lock()
 		defer m.mu.Unlock()
-		st := Status{State: Reached}
+		st := Status{State: Reached, Interrupted: true}
 		if snap != nil {
 			st.ProviderID, st.ProviderName = snap.ProviderID, snap.ProviderName
 		}
-		// Numbers only from a visible evaluation of the same provider; none when the limits are hidden.
-		if e := m.lastEval; e.State != None && e.ProviderID == st.ProviderID {
+		// Numbers only from a visible evaluation of the same provider; none when the limits are hidden. The
+		// snapshot at hand explains the refusal best (a first request may have no earlier evaluation).
+		e := m.lastEval
+		if x, ok := Exhausted(snap, m.now()); ok {
+			e = x
+		} else if x := Evaluate(snap, m.now()); x.State != None {
+			e = x
+		}
+		if e.State != None && e.ProviderID == st.ProviderID {
 			st.WindowLabel, st.UsedPercent, st.ResetsAt, st.BalanceText = e.WindowLabel, e.UsedPercent, e.ResetsAt, e.BalanceText
 		}
 		return m.tracker.Observe(st), m.tracker.Last()
@@ -128,4 +135,72 @@ func (m *Monitor) Check(ctx context.Context, model string, err error) (*Status, 
 	st := Evaluate(snap, m.now())
 	m.lastEval = st
 	return m.tracker.Observe(st), m.tracker.Last()
+}
+
+// Reading is a fresh look at a provider's limits (Recheck).
+type Reading struct {
+	// Known: the snapshot had a visible block, so Status says how the provider stands: Reached when a block is
+	// fully used, else what Evaluate says. Otherwise only the provider's name is known, at best (limits hidden,
+	// unknown model, failed fetch).
+	Known  bool
+	Status Status
+}
+
+// Recheck fetches the limits of the provider behind model, past the cache, and rates them. It changes no published
+// state (see Observe, Set); a failed fetch reads as not Known.
+func (m *Monitor) Recheck(ctx context.Context, model string) Reading {
+	if m.Fetch == nil {
+		return Reading{}
+	}
+	timeout := m.Timeout
+	if timeout <= 0 {
+		timeout = DefaultTimeout
+	}
+	fctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	snap, err := m.Fetch(fctx, model)
+	if err != nil || snap == nil {
+		return Reading{}
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.snap, m.snapModel, m.fetchedAt = snap, model, m.now()
+	r := Reading{Known: snap.Visible(), Status: Status{ProviderID: snap.ProviderID, ProviderName: snap.ProviderName}}
+	if !r.Known {
+		return r
+	}
+	if st, ok := Exhausted(snap, m.now()); ok {
+		r.Status = st
+		return r
+	}
+	r.Status = Evaluate(snap, m.now())
+	m.lastEval = r.Status
+	return r
+}
+
+// Observe records a state decided outside Check (a reset, a model switch) and returns the state to publish when it
+// changed (nil otherwise).
+func (m *Monitor) Observe(s Status) *Status {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if s.State == None {
+		m.lastEval = Status{}
+	}
+	return m.tracker.Observe(s)
+}
+
+// Set records a state to publish even when it reads as unchanged (the reset time or numbers of REACHED moved).
+func (m *Monitor) Set(s Status) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tracker.Set(s)
+}
+
+// TurnContinues forgets that the last turn was cut off: a new turn is starting.
+func (m *Monitor) TurnContinues() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	last := m.tracker.Last()
+	last.Interrupted = false
+	m.tracker.Set(last)
 }

@@ -158,6 +158,12 @@ type Entry struct {
 	// RemoteControl is the session's remote control switch (SetSessionRelay); the last one on record wins on
 	// resume, and without one the settings decide.
 	RemoteControl *bool `json:"remoteControl,omitempty"`
+	// AutoContinue is the session's "continue when limits return" switch (SetAutoContinue); the last one on record
+	// wins on resume.
+	AutoContinue *bool `json:"autoContinue,omitempty"`
+	// HeldMessages are the user messages the usage limit holds, in order (the whole list; empty when it was
+	// emptied). The last one on record is held again on resume.
+	HeldMessages *[]HeldMessage `json:"heldMessages,omitempty"`
 
 	// AutoDecision is set on a tool_result entry when the auto permission
 	// mode decided (or deferred to the user on) that tool call.
@@ -237,6 +243,35 @@ func ReadRemoteControl(entries []Entry) *bool {
 		}
 	}
 	return on
+}
+
+// ReadAutoContinue returns the last "continue when limits return" choice on record (off when none).
+func ReadAutoContinue(entries []Entry) bool {
+	on := false
+	for i := range entries {
+		if e := &entries[i]; e.Type == TypeMeta && e.AutoContinue != nil {
+			on = *e.AutoContinue
+		}
+	}
+	return on
+}
+
+// HeldMessage is a user message waiting for the usage limit to return.
+type HeldMessage struct {
+	ID       string             `json:"id"`
+	Content  []llm.ContentBlock `json:"content"`
+	QueuedAt string             `json:"queuedAt,omitempty"`
+}
+
+// ReadHeldMessages returns the held messages on record.
+func ReadHeldMessages(entries []Entry) []HeldMessage {
+	var held []HeldMessage
+	for i := range entries {
+		if e := &entries[i]; e.Type == TypeMeta && e.HeldMessages != nil {
+			held = *e.HeldMessages
+		}
+	}
+	return held
 }
 
 // Worktree describes a git worktree the client created for a session.

@@ -792,6 +792,13 @@ func (r acpRouted) SetOutputStyle(ctx context.Context, req *connect.Request[agen
 	return r.routed.SetOutputStyle(ctx, req)
 }
 
+func (r acpRouted) SetAutoContinue(ctx context.Context, req *connect.Request[agentv1.SetAutoContinueRequest]) (*connect.Response[agentv1.SetAutoContinueResponse], error) {
+	if r.isAcp(req.Msg.GetSessionId()) {
+		return nil, unsupported("Continuing when limits return")
+	}
+	return r.routed.SetAutoContinue(ctx, req)
+}
+
 func (r acpRouted) ListOutputStyles(ctx context.Context, req *connect.Request[agentv1.ListOutputStylesRequest]) (*connect.Response[agentv1.ListOutputStylesResponse], error) {
 	if r.isAcp(req.Msg.GetSessionId()) {
 		return nil, unsupported("Output styles")

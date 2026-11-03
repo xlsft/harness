@@ -91,7 +91,7 @@ func (ls *liveSession) idleSince() (time.Time, bool) {
 	since := ls.updatedAt
 	ok := !ls.closed && !ls.idleCompacted && ls.waiting == 0 && ls.status == agentv1.SessionStatus_SESSION_STATUS_IDLE && !since.IsZero()
 	ls.mu.Unlock()
-	return since, ok && !ls.compacting.Load() && !ls.driver.Busy()
+	return since, ok && !ls.compacting.Load() && !ls.driver.Busy() && !ls.driver.Held()
 }
 
 func (ls *liveSession) contextFraction() float64 { return ls.sess.Agent.ContextUsage().Fraction() }

@@ -102,6 +102,7 @@ service RelayService {
   rpc SetEffort(SetEffortRequest) returns (SetEffortResponse);
   rpc SetPermissionMode(SetPermissionModeRequest) returns (SetPermissionModeResponse);
   rpc SetOutputStyle(SetOutputStyleRequest) returns (SetOutputStyleResponse);
+  rpc SetAutoContinue(SetAutoContinueRequest) returns (SetAutoContinueResponse);
   rpc RemoveQueuedMessage(RemoveQueuedMessageRequest) returns (RemoveQueuedMessageResponse);
   // RespondToPlan waits for the host ack like RespondToPermission (first answer wins).
   rpc RespondToPlan(RespondToPlanRequest) returns (RespondToPlanResponse);
@@ -201,6 +202,7 @@ message Command {
     harness.agent.v1.ListCheckpointsRequest list_checkpoints = 27;
     harness.agent.v1.ListTasksRequest list_tasks = 28;
     harness.agent.v1.ListOutputStylesRequest list_output_styles = 29;
+    harness.agent.v1.SetAutoContinueRequest set_auto_continue = 30;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -581,6 +583,15 @@ message SetOutputStyleRequest {
 }
 
 message SetOutputStyleResponse {
+  CommandResult result = 1;
+}
+
+message SetAutoContinueRequest {
+  harness.agent.v1.SetAutoContinueRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SetAutoContinueResponse {
   CommandResult result = 1;
 }
 
