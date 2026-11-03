@@ -223,6 +223,27 @@ func TestAITitleAfterFirstTurn(t *testing.T) {
 	}
 }
 
+func TestAITitleUsesTitleSlot(t *testing.T) {
+	h := startHarnessGW(t, nil, func(gw *fg.Server) {
+		gw.Models = []string{"fake-model", "fake-small", "fake-title"}
+		gw.TitleModel = "fake-title"
+		gw.Title = func(*llm.Request) fg.Reply {
+			return fg.Reply{Events: fg.Message("msg_t", fg.Text("Lexer parser bug"))}
+		}
+	}, nil)
+	sid, ch := h.create(&agentv1.CreateSessionRequest{})
+	h.send(sid, "fix the parser bug in lexer.go")
+	h.until(ch, func(ev *agentv1.SessionEvent) bool { return ev.GetSessionUpdated().GetTitle() == "Lexer parser bug" })
+	reqs := h.gw.TitleRequests()
+	if len(reqs) != 1 {
+		t.Fatalf("title requests: %d", len(reqs))
+	}
+	if reqs[0].Model != "fake-title" {
+		t.Fatalf("title model: %q", reqs[0].Model)
+	}
+	h.closeSession(sid)
+}
+
 func TestCustomTitleWins(t *testing.T) {
 	h := startHarnessGW(t, nil, func(gw *fg.Server) {
 		gw.Title = func(req *llm.Request) fg.Reply {

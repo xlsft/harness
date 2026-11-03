@@ -264,7 +264,7 @@ func FromCatalog(r *llmv1.ListModelsResponse) *llm.Catalog {
 		c.Models = append(c.Models, FromModel(m))
 	}
 	if s := r.GetSlots(); s != nil {
-		c.Slots["main"], c.Slots["small"], c.Slots["plan"] = s.GetMain(), s.GetSmall(), s.GetPlan()
+		c.Slots["main"], c.Slots["small"], c.Slots["plan"], c.Slots["title"] = s.GetMain(), s.GetSmall(), s.GetPlan(), s.GetTitle()
 	}
 	return c
 }

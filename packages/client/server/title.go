@@ -19,8 +19,8 @@ import (
 // Session titles.
 //
 // A session starts with a provisional title, the first line of the first
-// prompt (truncated). After the first turn finishes, the small-slot model
-// names the session from a compact rendering of the conversation (first
+// prompt (truncated). After the first turn finishes, the title-slot model
+// (else the small one) names the session from a compact rendering of the conversation (first
 // prompt and the start of the answer); the result is recorded as an
 // ai-title transcript entry, becomes the live title and is published with
 // SessionUpdated. When the first prompt is too short to go on, the attempt
@@ -177,8 +177,21 @@ func (ls *liveSession) syncMeta(fn func(*syncclient.SessionMeta)) {
 	}
 }
 
-// requestTitle asks the small-slot model (the session model when the
-// server has no small slot) for a title.
+// titleModel is the model of title requests: the title slot, else the small
+// slot, else the session model.
+func titleModel(cat *llm.Catalog, sessionModel string) string {
+	if cat != nil {
+		if m := cat.Slots["title"]; m != "" {
+			return m
+		}
+		if m := cat.Slots["small"]; m != "" {
+			return m
+		}
+	}
+	return sessionModel
+}
+
+// requestTitle asks the title model (see titleModel) for a title.
 func requestTitle(ctx context.Context, sess *bootstrap.Session, conv string) (string, error) {
 	bundle := sess.Agent.Bundle()
 	instr, version := fallbackTitleInstruction, ""
@@ -188,15 +201,8 @@ func requestTitle(ctx context.Context, sess *bootstrap.Session, conv string) (st
 			instr = bundle.Title.Instruction
 		}
 	}
-	model := ""
-	if sess.Catalog != nil {
-		model = sess.Catalog.Slots["small"]
-	}
-	if model == "" {
-		model = sess.Agent.Model()
-	}
 	req := &llm.Request{
-		Model:     model,
+		Model:     titleModel(sess.Catalog, sess.Agent.Model()),
 		MaxTokens: titleMaxTokens,
 		System:    []llm.SystemBlock{{Type: "text", Text: instr}},
 		Messages:  []llm.Message{{Role: llm.RoleUser, Content: []llm.ContentBlock{llm.TextBlock(conv)}}},
