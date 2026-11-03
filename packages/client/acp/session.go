@@ -131,8 +131,8 @@ type Session struct {
 	wake   chan struct{}
 	terms  terminals
 
-	// emitMu orders event delivery: events are built under mu into outbox and delivered in order.
-	emitMu sync.Mutex
+	// Events are built under mu into outbox and delivered in order by one caller of unlock at a time (delivering).
+	delivering bool
 
 	mu         sync.Mutex
 	outbox     []func()
@@ -225,16 +225,25 @@ func (s *Session) filesChangedLocked() {
 	}
 }
 
-// unlock releases s.mu and delivers the events built under it, in order.
+// unlock releases s.mu and delivers the events built under it, in order. One caller delivers at a time, outside
+// s.mu (the sink calls back into State): another caller's events are picked up by the one already delivering.
 func (s *Session) unlock() {
-	s.emitMu.Lock()
-	out := s.outbox
-	s.outbox = nil
-	s.mu.Unlock()
-	for _, f := range out {
-		f()
+	if s.delivering {
+		s.mu.Unlock()
+		return
 	}
-	s.emitMu.Unlock()
+	s.delivering = true
+	for len(s.outbox) > 0 {
+		out := s.outbox
+		s.outbox = nil
+		s.mu.Unlock()
+		for _, f := range out {
+			f()
+		}
+		s.mu.Lock()
+	}
+	s.delivering = false
+	s.mu.Unlock()
 }
 
 func noticeEvent(level agentv1.Notice_Level, kind, text string) *agentv1.SessionEvent {

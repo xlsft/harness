@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref_[0-9]+$",
+      "description": "Element to click, from BrowserSnapshot"
+    },
+    "x": {
+      "type": "number",
+      "description": "Instead of ref: horizontal position in CSS pixels of the viewport"
+    },
+    "y": {
+      "type": "number",
+      "description": "Instead of ref: vertical position in CSS pixels of the viewport"
+    },
+    "button": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "middle"
+      ],
+      "description": "Mouse button (default left)"
+    },
+    "double": {
+      "type": "boolean",
+      "description": "Double-click"
+    },
+    "modifiers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ctrl",
+          "shift",
+          "alt",
+          "meta"
+        ]
+      },
+      "description": "Keys held down during the click"
+    }
+  },
+  "additionalProperties": false
+}

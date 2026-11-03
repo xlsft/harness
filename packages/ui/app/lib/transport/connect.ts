@@ -31,6 +31,7 @@ import { ConnectSpeechApi } from '~/lib/speech/connect'
 import { ConnectLocalModelsApi } from './localModels'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
+import { ConnectBrowserApi } from '~/lib/browser/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -67,6 +68,12 @@ export class ConnectTransport implements SessionTransport {
     this.speechApi = new ConnectSpeechApi(transport)
     this.limitsApi = new ConnectLimitsApi(transport)
     this.acpApi = new ConnectAcpApi(transport)
+    this.browserApi = new ConnectBrowserApi(transport, baseUrl)
+  }
+
+  private browserApi: ConnectBrowserApi
+  browser() {
+    return this.browserApi
   }
 
   private limitsApi: ConnectLimitsApi

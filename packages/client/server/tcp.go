@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
+	"github.com/xlsft/harness/packages/client/browser"
 	"net"
 	"net/http"
 	"net/netip"
@@ -123,6 +124,7 @@ func (s *Server) ServeTCP(ctx context.Context, opts TCPOptions) error {
 	}
 	mux := s.mux()
 	s.registerTerminalSocket(mux, opts.AllowedOrigins)
+	s.registerBrowserSocket(mux, opts.AllowedOrigins)
 	return s.serveHandler(ctx, ln, TCPGuard(mux, opts))
 }
 
@@ -153,8 +155,9 @@ var (
 //     since browsers never send credentials on a preflight.
 //  3. Authorization: Bearer <token>, compared in constant time (401 with a
 //     Connect "unauthenticated" error otherwise). The terminal WebSocket
-//     (terminal.SocketPath) is let through without it: browsers cannot set
-//     headers on a WebSocket, so it checks a one-time ticket instead.
+//     (terminal.SocketPath) and the browser WebSocket (browser.SocketPath) are
+//     let through without it: browsers cannot set headers on a WebSocket, so
+//     they check a one-time ticket instead.
 func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 	origins := map[string]bool{}
 	for _, o := range opts.AllowedOrigins {
@@ -214,7 +217,7 @@ func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 				return
 			}
 		}
-		if r.URL.Path != terminal.SocketPath && !tokenMatches(r.Header.Get("Authorization"), want) {
+		if r.URL.Path != terminal.SocketPath && r.URL.Path != browser.SocketPath && !tokenMatches(r.Header.Get("Authorization"), want) {
 			w.Header().Set("WWW-Authenticate", `Bearer realm="harness-client"`)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)

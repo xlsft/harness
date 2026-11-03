@@ -514,6 +514,19 @@ func toolSummary(name string, input []byte, cwd string) string {
 		case w.TaskID != "":
 			return "Wait task " + w.TaskID
 		}
+	case "BrowserNavigate":
+		if u := jsonField(input, "url"); u != "" {
+			return "Browser " + truncateRunes(u, 80)
+		}
+		return "Browser " + jsonField(input, "action")
+	case "BrowserClick", "BrowserType", "BrowserScroll":
+		if r := jsonField(input, "ref"); r != "" {
+			return name + " " + r
+		}
+	case "BrowserKey":
+		return "BrowserKey " + truncateRunes(jsonField(input, "keys"), 60)
+	case "BrowserTabs":
+		return "BrowserTabs " + jsonField(input, "action")
 	case "Show":
 		if t := jsonField(input, "url"); t != "" {
 			return "Show " + t

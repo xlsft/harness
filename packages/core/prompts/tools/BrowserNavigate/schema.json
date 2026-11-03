@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Address to open: http(s) URL, file URL or absolute path, or a bare host such as localhost:3000/path"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "back",
+        "forward",
+        "reload"
+      ],
+      "description": "Instead of url: go back, go forward or reload the active tab"
+    }
+  },
+  "additionalProperties": false
+}

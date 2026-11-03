@@ -154,7 +154,11 @@ func CacheKey(req permissions.AutoRequest) string {
 		delete(m, "description")
 	}
 	b, _ := json.Marshal(in)
-	return req.ToolName + "\x00" + req.Cwd + "\x00" + string(b)
+	key := req.ToolName + "\x00" + req.Cwd + "\x00" + string(b)
+	if req.URL != "" { // a browser action: the same click means something else on another page
+		key += "\x00" + req.URL
+	}
+	return key
 }
 
 // New returns the auto-mode decider of a session: a Cache over a Chain of

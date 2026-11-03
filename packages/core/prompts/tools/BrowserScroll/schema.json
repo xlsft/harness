@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "direction": {
+      "type": "string",
+      "enum": [
+        "up",
+        "down",
+        "left",
+        "right"
+      ],
+      "description": "Which way to scroll"
+    },
+    "amount": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Distance in CSS pixels (default: most of the viewport)"
+    },
+    "ref": {
+      "type": "string",
+      "pattern": "^ref_[0-9]+$",
+      "description": "Element to scroll into view (without direction), or to scroll inside (with direction)"
+    },
+    "x": {
+      "type": "number",
+      "description": "With direction: scroll what is under this point (CSS pixels of the viewport)"
+    },
+    "y": {
+      "type": "number",
+      "description": "With direction: scroll what is under this point (CSS pixels of the viewport)"
+    }
+  },
+  "additionalProperties": false
+}

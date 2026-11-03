@@ -112,6 +112,18 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `WebFetch` | `url`, `prompt` | fetched locally (http upgraded to https except for private hosts, same-host redirects followed, a cross-host redirect returned as a notice, 10 MB / 60 s limits, HTML converted to Markdown, binary refused, 15-minute cache per URL); the answer comes from the small-slot model with `reminders/webfetch_summary.md` |
 | `Show` | `target` (`file` \| `diff` \| `url`), `path`, `line`, `end_line`, `url` | opens the target in the UI's Files, Diff or Browser pane (`ShowRequested` event); read-only, no permission; without a UI that can open panes it reports that nothing was shown |
 | `Visual` | `id`, `title`, `html` | renders a self-contained HTML document in the transcript (sandboxed frame, app colours as CSS variables, `harness.send()` posts a `[from visual <id>]` user message); the same `id` adds a version; read-only, no permission; without a UI that renders it reports that nothing was shown |
+| `BrowserNavigate` | `url` \| `action` (`back` \| `forward` \| `reload`) | the session's headless Chromium (packages/client/browser), shared with the Browser pane; waits for the load (30 s); returns tab, URL and title. Action: per-site permission (localhost and files allowed; a new site asks; `Browser(domain:<host>)` rules) |
+| `BrowserSnapshot` | `ref`, `selector`, `max_chars` | outline of the visible page with stable `[ref_N]` element refs, sensitive fields marked, cut at 24000 characters by default, wrapped in `<untrusted-page-content>`; read-only |
+| `BrowserClick` | `ref` \| `x`+`y`, `button`, `double`, `modifiers` | real mouse events at the element's center; reports a covering element, the navigation or new tab it caused; action |
+| `BrowserType` | `ref`, `text`, `clear` (default true), `submit` | inserts text (chooses an option on a select); password, one-time-code, payment and identity fields are refused unless the user approves that call (user-only prompt, whatever the mode); action |
+| `BrowserKey` | `keys` (space-separated combos such as `ctrl+a Backspace`), `repeat` | key events to the focused element; action |
+| `BrowserScroll` | `direction`, `amount`, `ref`, `x`, `y` | wheel scroll (page or the element under a point) or `ref` into view; reports the scroll position; action |
+| `BrowserScreenshot` | `full_page`, `ref` | image block (PNG viewport/element, JPEG full page cut at 12000 px), scaled to ≤1568 px; read-only |
+| `BrowserEval` | `expression`, `timeout` (ms, ≤60000) | JavaScript in the page's main world (top-level await), JSON result cut at 20000 characters, untrusted; asks on every site unless `BrowserEval` / `BrowserEval(domain:...)` is allowed |
+| `BrowserTabs` | `action` (`list` \| `new` \| `switch` \| `close`), `tab_id`, `url` | tab ids `t1`...; list is read-only |
+| `BrowserConsole` | `level`, `pattern`, `limit` (≤200), `clear` | console messages, exceptions and browser log entries of the active tab (last 500 kept); read-only |
+| `BrowserNetwork` | `filter`, `type`, `status` (`failed` \| `error` \| `2xx`...), `limit`, `clear` | requests of the active tab (last 500 kept), no headers or bodies; read-only |
+| `BrowserWait` | one of `text`, `text_gone`, `selector`, `url`, `navigation`; `timeout` (ms, ≤60000) | a timeout is a normal result; read-only |
 | `McpAuthenticate` | `{}` | template of `mcp__<server>__authenticate` for a remote MCP server that needs authorization; `{{server}}` in the description is filled by the client |
 
 The execution semantics are implemented by the client and must match these descriptions.

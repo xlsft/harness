@@ -398,7 +398,6 @@ function toBottom() {
           />
           <span class="min-w-0 truncate"><span class="text-strong">{{ activity }}</span>
             · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
-          <span class="flex-1" /><span class="inline-flex shrink-0 items-center gap-1 text-[12px] max-sm:hidden"><HKeys keys="escape" />to interrupt</span>
         </div>
       </div>
     </div>

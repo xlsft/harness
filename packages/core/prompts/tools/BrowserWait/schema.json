@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "Wait until this text is visible on the page"
+    },
+    "text_gone": {
+      "type": "string",
+      "description": "Wait until this text is no longer visible"
+    },
+    "selector": {
+      "type": "string",
+      "description": "Wait until an element matching this CSS selector is visible"
+    },
+    "url": {
+      "type": "string",
+      "description": "Wait until the page address contains this text"
+    },
+    "navigation": {
+      "type": "boolean",
+      "description": "Wait for the next page load to finish"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60000,
+      "description": "Milliseconds to wait at most (default 10000)"
+    }
+  },
+  "additionalProperties": false
+}

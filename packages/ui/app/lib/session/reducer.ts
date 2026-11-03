@@ -44,6 +44,7 @@ import type {
   UserShellItem
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
+import { actionView } from '~/lib/browser/types'
 import { UserShellFinished_Reason } from '~/gen/harness/agent/v1/shell_pb'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 import type { UserShellFinished } from '~/gen/harness/agent/v1/shell_pb'
@@ -112,6 +113,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     pendingQuestion: null,
     pendingPlan: null,
     showRequest: null,
+    browserAction: null,
+    browserSteps: 0,
     endedReason: '',
     thinkingStartedAt: {},
     toolOwners: {},
@@ -341,6 +344,7 @@ export function settleTurn(s: SessionState) {
   s.pendingPermission = null
   s.pendingQuestion = null
   s.pendingPlan = null
+  s.browserAction = null
   if (isBusy(s.meta.status) || s.meta.status === 'waiting_for_connection') setStatus(s, 'idle')
 }
 
@@ -399,6 +403,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       s.turnTokens = 0
       // A new turn: the previous one's "wrapped up" no longer describes what runs now.
       if (s.usageLimit?.wrappedUp) s.usageLimit = { ...s.usageLimit, wrappedUp: false }
+      s.browserAction = null
+      s.browserSteps = 0
       setStatus(s, 'working')
       break
 
@@ -601,6 +607,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     }
 
     case 'turnFinished': {
+      s.browserAction = null
       const t = e.value
       const usage = usageOf(t.usage)
       const result = t.result === TurnFinished_Result.INTERRUPTED
@@ -756,6 +763,17 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     case 'showRequested': {
       const target = showTarget(e.value)
       if (target) s.showRequest = { id: e.value.toolUseId || 'show' + seq, target }
+      break
+    }
+
+    case 'browserAction': {
+      const a = actionView(e.value)
+      if (a.phase === 'started') {
+        s.browserSteps++
+        s.browserAction = { ...a, step: s.browserSteps }
+      } else if (s.browserAction?.toolUseId === a.toolUseId) {
+        s.browserAction = { ...s.browserAction, ...a, step: s.browserAction.step }
+      }
       break
     }
 

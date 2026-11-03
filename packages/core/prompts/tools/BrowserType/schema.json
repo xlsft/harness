@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref_[0-9]+$",
+      "description": "Field to type into, from BrowserSnapshot (default: the focused element)"
+    },
+    "text": {
+      "type": "string",
+      "description": "Text to type, or the option to choose in a select"
+    },
+    "clear": {
+      "type": "boolean",
+      "description": "Replace the current content (default true); false appends"
+    },
+    "submit": {
+      "type": "boolean",
+      "description": "Press Enter after typing"
+    }
+  },
+  "required": [
+    "text"
+  ],
+  "additionalProperties": false
+}

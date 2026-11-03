@@ -30,6 +30,7 @@ import type { SpeechApi } from '~/lib/speech/types'
 import type { LocalModelsApi } from './localModels'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
+import type { BrowserApi } from '~/lib/browser/types'
 
 export interface ModelInfo {
   id: string
@@ -206,4 +207,8 @@ export interface SessionTransport {
   limits(): LimitsApi
   // ACP agents as session engines: the registry, installs, sign-in and agent modes (~/lib/acp). Device-local.
   acp(): AcpApi
+  // The session's real browser, shared with the agent's Browser* tools: availability and the Chrome for Testing
+  // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
+  // input go back over it). See ~/lib/browser.
+  browser(): BrowserApi
 }

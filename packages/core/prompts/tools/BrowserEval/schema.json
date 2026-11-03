@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "expression": {
+      "type": "string",
+      "description": "JavaScript to run in the page; the value of the last expression is returned (await allowed)"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60000,
+      "description": "Milliseconds before the script is abandoned (default 10000)"
+    }
+  },
+  "required": [
+    "expression"
+  ],
+  "additionalProperties": false
+}

@@ -105,6 +105,8 @@ func (r Rule) toolMatches(name string, allowImplied bool) bool {
 		return true
 	case allowImplied && editTools[r.Tool] && readTools[name]:
 		return true
+	case r.Tool == BrowserRuleTool && browserSiteTools[name]:
+		return true
 	}
 	return false
 }
@@ -157,7 +159,7 @@ func paramSpec(tool, spec string, input map[string]any) (string, string, bool) {
 	if m == nil {
 		return "", "", false
 	}
-	if tool == "WebFetch" && m[1] == "domain" {
+	if (tool == "WebFetch" || isBrowserTool(tool)) && m[1] == "domain" {
 		return m[1], m[2], true
 	}
 	if _, ok := input[m[1]]; ok {
@@ -226,6 +228,10 @@ func (r Rule) matchesCall(req Request, input map[string]any, mc matchContext, al
 		return true
 	}
 	if k, v, ok := paramSpec(req.ToolName, r.Spec, input); ok {
+		if isBrowserTool(req.ToolName) && k == "domain" {
+			host, _ := browserSite(req.URL)
+			return host != "" && globMatch(strings.ToLower(v), host)
+		}
 		if req.ToolName == "WebFetch" && k == "domain" {
 			u, err := url.Parse(valueString(input["url"]))
 			if err != nil {

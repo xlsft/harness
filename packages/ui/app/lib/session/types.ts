@@ -1,5 +1,6 @@
 // View model of one session, built from harness.agent.v1 SessionEvents by the reducer (./reducer.ts).
 // It is plain data (no protobuf messages) so it can live in a Pinia store and be rendered directly.
+import type { BrowserActionVM } from '~/lib/browser/types'
 import type { AcpSessionState } from '~/gen/harness/agent/v1/acp_pb'
 
 export type Status = 'idle' | 'working' | 'needs_input' | 'waiting_for_connection' | 'error' | 'ended'
@@ -359,6 +360,11 @@ export interface ShowRequest {
   target: ShowTarget
 }
 
+// BrowserAction events of the current turn: the action and its running number in the turn.
+export interface BrowserActionOverlay extends BrowserActionVM {
+  step: number
+}
+
 export interface SessionState {
   meta: SessionMeta
   // The client's event log that lastSeq counts in (SubscribeResponse.log_id); empty until a stream said it.
@@ -395,6 +401,11 @@ export interface SessionState {
   loading?: boolean
   // The permission mode plan mode was entered from (approving a plan returns to it).
   prePlanMode?: PermissionModeName
+  // The agent's latest browser action of this turn, for the Browser pane's overlay; null when the agent is not
+  // acting in the browser (cleared when the turn ends).
+  browserAction: BrowserActionOverlay | null
+  // Browser tool calls started in the current turn (the overlay's "step N").
+  browserSteps: number
   endedReason: string
   // Internal: thinking start per message (for "Thought for 12s").
   thinkingStartedAt: Record<string, number>
