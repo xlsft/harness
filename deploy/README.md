@@ -74,6 +74,56 @@ the other `HARNESS_*` tuning variables.
 > `file:/data/core/harness.db`) and ignores `DATABASE_URL`. The internal Postgres runs anyway, so
 > the same image and volume keep working when core moves to Postgres.
 
+## Users and LDAP
+
+Admins manage accounts in the app: **Settings → Users** (the section is shown to admins only; the
+server refuses everyone else, `harness.auth.v1.AdminService`).
+
+- **Add a user**: name, optional username, email, role, and either a password or "generate a
+  password and show it once" (copy it then; it is never shown again). "Signs in through LDAP"
+  pre-provisions a directory user instead (no local password; the username is their directory
+  username).
+- **Per user**: change the role, reset the password (set one, or generate one shown once), disable /
+  enable (disabling signs them out everywhere: web sessions and devices), delete (asks to confirm),
+  see and revoke their devices and web sessions, and see / remove their personal providers (only
+  whether a key is set; admins can neither read nor use personal keys).
+- **Rules**: the last active admin cannot be demoted, disabled or deleted, and nobody can disable or
+  delete themselves. To hand over, make someone else an admin first.
+
+### LDAP / Active Directory
+
+Configured in the same section (stored in the server database; the search account's password is
+encrypted with a key derived from `HARNESS_SECRET` and never shown again; there are no environment
+variables for it). Fill in, then use **Test connection** and **Test user lookup** (they test the form
+as it is, before saving), then enable and save.
+
+| Field | Notes |
+|---|---|
+| Servers | `ldap://` or `ldaps://` URLs, tried in order (`ldaps://dc1.corp.example.com:636`) |
+| StartTLS | upgrades `ldap://` connections; use either this or `ldaps://` |
+| CA certificate | PEM of a private CA; empty uses the system roots. "Skip certificate check" exists for testing only: it lets anyone on the path read passwords |
+| Search account | bind DN + password used to find users (`cn=harness,ou=services,dc=example,dc=com`, AD also takes `harness@corp.example.com`); empty searches anonymously |
+| User search | base DN (`ou=people,dc=example,dc=com`) and filter. `{{username}}` is replaced by the login, escaped (RFC 4515). OpenLDAP: `(\|(uid={{username}})(mail={{username}}))`; AD: `(&(objectClass=user)(\|(sAMAccountName={{username}})(userPrincipalName={{username}})(mail={{username}})))` |
+| Attributes | username / email / display name: `uid` / `mail` / `cn` (AD: `sAMAccountName` / `mail` / `displayName`) |
+| Allowed group | only members may sign in (checked via `memberOf`, else the group's `member`, `uniqueMember` or `memberUid`) |
+| Admin group | members become admins and everyone else users, re-checked at every sign-in (the last admin is never demoted). Empty: roles are managed in Users |
+| Create accounts | on first sign-in (default on). Off: add directory users under Users first ("Signs in through LDAP") |
+| Local accounts | **Everyone, when the directory refuses**: LDAP first, then local passwords. **Only the break-glass admins**: local passwords only for the listed usernames / emails (they still work while the directory is down); everyone else signs in through LDAP only |
+
+Sign-in: while LDAP is enabled, the sign-in page (`/device`, used by the apps and the CLI) sends the
+email-or-username and password to `POST /api/auth/sign-in/ldap`. The server finds the user with the
+search account (exactly one match), binds as them with their password, creates or updates the local
+account (marked LDAP, no local password; name, email and admin-group role follow the directory) and
+issues the normal session, so devices, tokens and everything after sign-in work as for local accounts.
+A directory user whose email or username already belongs to a local account is refused rather than
+merged: delete or rename the local account first. Disabled users stay disabled whatever the directory
+says. Failed sign-ins are limited per login (`HARNESS_LOGIN_FAILURES_PER_15MIN`, default 10 per 15
+minutes) and per client address (five times that); set `HARNESS_TRUST_PROXY=true` behind a reverse
+proxy so the address is the client's. Passwords are never logged.
+
+Before switching to break-glass mode, add your own admin login to the list, or keep a local admin
+created with `HARNESS_ADMIN_EMAIL` / `HARNESS_ADMIN_PASSWORD` listed there.
+
 ## Volumes
 
 Everything stateful is under `/data` (declared as a volume):
