@@ -17,12 +17,16 @@ const pinned = computed(() => props.session.meta.pinned)
 const unread = computed(() => props.session.meta.unread)
 const confirmDelete = ref(false)
 
+const toast = useToast()
+
+// Runs a menu action; a failure (the server unreachable, say) is shown, not swallowed.
 async function run(action: () => unknown) {
   open.value = false
   try {
     await action()
   } catch (err) {
-    store.error = err instanceof Error ? err.message : String(err)
+    const msg = err instanceof Error ? err.message : String(err)
+    toast.add({ title: 'Could not update the session', description: msg.replace(/^\[\w+\]\s*/, ''), color: 'error' })
   }
 }
 
