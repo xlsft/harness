@@ -34,7 +34,7 @@ const multi = computed(() => q.value.type === 'multi')
 const valid = computed(() => draftValid(q.value, d.value))
 const empty = computed(() => draftAnswer(q.value, d.value).skipped)
 const canChat = computed(() => store.hasChatAnswer(props.sessionId))
-const chatCount = computed(() => (store.localQueue[props.sessionId]?.length ?? 0) + (store.sessions[props.sessionId]?.queue.length ?? 0))
+const chatCount = computed(() => store.sessions[props.sessionId]?.queue.length ?? 0)
 
 const bounds = computed(() => {
   const { min, max } = q.value

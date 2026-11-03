@@ -135,7 +135,7 @@ const busy = computed(() => status.value === 'working' || status.value === 'need
 const offline = computed(() => status.value === 'waiting_for_connection')
 const ended = computed(() => status.value === 'ended')
 const planMode = computed(() => props.session.meta.permissionMode === 'plan')
-const queue = computed(() => store.localQueue[id.value] ?? [])
+const queue = computed(() => props.session.queue)
 // Text handed over by the store (a rewound or forked message, a queued message taken back to edit) replaces the
 // draft once.
 watch(() => store.drafts[id.value], (draft) => {

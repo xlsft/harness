@@ -21,12 +21,6 @@ export interface OutboxEntry {
   state: 'sending' | 'sent'
 }
 
-export interface LocalMessage {
-  id: string
-  text: string
-  at?: number
-}
-
 // One user message bubble that is not in the transcript yet.
 export interface PendingMessage {
   // Frontend message id (SendUserMessageRequest.uuid).
@@ -34,7 +28,7 @@ export interface PendingMessage {
   text: string
   delivery: Exclude<Delivery, 'read'>
   // Where it waits: the browser's queue, the client's queue, or handed over (sending / sent).
-  where: 'local' | 'client' | 'outbox'
+  where: 'client' | 'outbox'
   at: number
   // 1-based place among the waiting (queued) messages, 0 when not queued.
   position: number
@@ -42,13 +36,12 @@ export interface PendingMessage {
 
 // The messages after the transcript, oldest first: the ones handed over and not queued (sending, sent), then the
 // client's queue, then the browser's queue (it is sent after the client's).
-export function pendingMessages(s: SessionState, local: LocalMessage[] = [], outbox: OutboxEntry[] = []): PendingMessage[] {
+export function pendingMessages(s: SessionState, outbox: OutboxEntry[] = []): PendingMessage[] {
   const inClient = new Set(s.queue.map(q => q.id))
   const handed = outbox.filter(o => !s.delivered[o.id] && !inClient.has(o.id))
   const sentAt = new Map(outbox.map(o => [o.id, o.at]))
   const waiting = [
-    ...s.queue.filter(q => !s.delivered[q.id]).map(q => ({ id: q.id, text: q.text, where: 'client' as const, at: q.at || sentAt.get(q.id) || 0 })),
-    ...local.map(q => ({ id: q.id, text: q.text, where: 'local' as const, at: q.at ?? 0 }))
+    ...s.queue.filter(q => !s.delivered[q.id]).map(q => ({ id: q.id, text: q.text, where: 'client' as const, at: q.at || sentAt.get(q.id) || 0 }))
   ]
   return [
     ...handed.map(o => ({ id: o.id, text: o.text, delivery: o.state, where: 'outbox' as const, at: o.at, position: 0 })),

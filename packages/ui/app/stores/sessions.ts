@@ -109,13 +109,6 @@ export function newUuid() {
   return (globalThis.crypto?.randomUUID?.() ?? `ui-${Date.now()}-${uid}`)
 }
 
-export interface LocalQueued {
-  id: string
-  text: string
-  // When it was typed (ms).
-  at?: number
-}
-
 export const useSessionStore = defineStore('sessions', {
   state: () => ({
     transport: null as SessionTransport | null,
@@ -137,8 +130,6 @@ export const useSessionStore = defineStore('sessions', {
     order: [] as string[],
     sessions: {} as Record<string, SessionState>,
     currentId: '',
-    // Messages typed while a turn runs; sent one by one when the session becomes idle (✕ removes one).
-    localQueue: {} as Record<string, LocalQueued[]>,
     // Messages handed to the client (SendUserMessage) until the stream shows them queued or read (delivery.ts).
     outbox: {} as Record<string, OutboxEntry[]>,
     // Text to put into a session's composer (a rewound or forked message, a queued message taken back to edit);
@@ -281,17 +272,17 @@ export const useSessionStore = defineStore('sessions', {
       r.attempt += 1
       r.timer = setTimeout(() => {
         r.timer = undefined
-        const needed = id === this.currentId || this.isBusy(id) || !!this.localQueue[id]?.length
+        const needed = id === this.currentId || this.isBusy(id)
         if (needed && this.sessions[id] && !this.unsubscribers[id]) this.subscribe(id)
       }, delay)
       retries.set(id, r)
     },
 
     // Browsers allow about six HTTP/1.1 connections per host, and every event stream holds one; with a stream
-    // per opened session, calls to the client would queue behind them. So only the open session, busy ones and
-    // ones with queued messages keep a stream (at most MAX_STREAMS); the list poll covers the rest.
+    // per opened session, calls to the client would queue behind them. So only the open session and busy ones keep
+    // a stream (at most MAX_STREAMS); the list poll covers the rest.
     trimStreams() {
-      const needed = (id: string) => id === this.currentId || this.isBusy(id) || !!this.localQueue[id]?.length
+      const needed = (id: string) => id === this.currentId || this.isBusy(id)
       const ids = Object.keys(this.unsubscribers)
       const drop = ids.filter(id => !needed(id))
       const kept = ids.filter(id => needed(id) && id !== this.currentId)
@@ -396,19 +387,15 @@ export const useSessionStore = defineStore('sessions', {
           }
           caughtUp = true
           clearRetry(id)
-          const wasBusy = this.isBusy(id)
           applyLiveInfo(s, c.session)
           flush()
-          if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           if (this.currentId !== id && s.meta.status === 'idle') this.trimStreams()
         },
         onEvent: (ev) => {
           if (done) return
           alive()
           const s = live()
-          const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
           reduce(s, ev)
-          if (ev.event.case === 'toolCallStarted' && ev.event.value.name === 'Bash' && caughtUp) this.releaseLocalQueue(id)
           // A code block's command finished: the agent answers with its output (it reaches the model as context).
           const inline = ev.event.case === 'userShellFinished' ? this.inlineShells[ev.event.value.commandId] : undefined
           if (inline && !inline.done) {
@@ -417,7 +404,6 @@ export const useSessionStore = defineStore('sessions', {
             this.quietly(this.send(id, `${RAN_PREFIX}${inline.command}`))
           }
           this.pruneOutbox(id, ev)
-          if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           // A turn that finished while another session was open leaves this one unread.
           if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(id, { unread: true }))
           // Not while the replay runs: an idle status from history would drop the stream before the live turn.
@@ -585,7 +571,6 @@ export const useSessionStore = defineStore('sessions', {
         throw err
       }
       Reflect.deleteProperty(this.sessions, id)
-      Reflect.deleteProperty(this.localQueue, id)
       Reflect.deleteProperty(this.outbox, id)
       Reflect.deleteProperty(this.effort, id)
     },
@@ -597,7 +582,6 @@ export const useSessionStore = defineStore('sessions', {
       // Reopened, the session is idle whatever this state showed (a turn cut short by a client restart).
       applyLiveInfo(s, info)
       if (this.currentId === id) this.open(id, true)
-      else if (this.localQueue[id]?.length) this.subscribe(id, true)
     },
 
     isBusy(id: string) {
@@ -613,32 +597,8 @@ export const useSessionStore = defineStore('sessions', {
       if (!body || !this.transport) return
       // The session gets a stream for the turn this starts, even when it is not the open one.
       this.subscribe(id)
-      if (this.sessions[id]?.pendingQuestion) {
-        await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
-        return
-      }
-      // A running command would keep it waiting: the client gets it at once and moves the command to the background.
-      if (this.isBusy(id) && !this.commandRunning(id)) {
-        const q = this.localQueue[id] ?? (this.localQueue[id] = [])
-        q.push({ id: newUuid(), text: body, at: Date.now() })
-        return
-      }
+      // Always to the client: it decides when the agent reads it (queues it, moves a command to the background, ...).
       await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
-    },
-
-    commandRunning(id: string) {
-      const s = this.sessions[id]
-      // (A call waiting for a permission has not started yet.)
-      return !!s && !s.pendingPermission && s.items.some(i => i.kind === 'tool' && i.name === 'Bash' && i.status === 'running')
-    },
-
-    // A command started while messages wait here: they go to the client, which reads them after the command (or
-    // moves it to the background).
-    releaseLocalQueue(id: string) {
-      const q = this.localQueue[id]
-      if (!q?.length) return
-      this.localQueue[id] = []
-      for (const m of q) this.quietly(this.deliver(id, m.id, m.text, SendUserMessageRequest_Delivery.QUEUE))
     },
 
     // Hands a message to the client, tracked in the outbox (sending, then sent) until the stream shows it queued
@@ -671,42 +631,22 @@ export const useSessionStore = defineStore('sessions', {
     // Cancels a waiting message: from this browser's queue, or taken back from the client's queue (false when the
     // agent already took it).
     async removeQueued(id: string, queuedId: string) {
-      const local = this.localQueue[id] ?? []
-      if (local.some(q => q.id === queuedId)) {
-        this.localQueue[id] = local.filter(q => q.id !== queuedId)
-        return true
-      }
       if (!this.sessions[id]?.queue.some(q => q.id === queuedId) || !this.transport) return false
-      return this.transport.removeQueuedMessage(id, queuedId)
+      const removed = await this.transport.removeQueuedMessage(id, queuedId)
+      if (removed) this.outbox[id] = (this.outbox[id] ?? []).filter(o => o.id !== queuedId)
+      return removed
     },
-
-    // Takes a waiting message back into the composer to edit it.
     async editQueued(id: string, queuedId: string) {
-      const text = this.localQueue[id]?.find(q => q.id === queuedId)?.text ?? this.sessions[id]?.queue.find(q => q.id === queuedId)?.text
+      const text = this.sessions[id]?.queue.find(q => q.id === queuedId)?.text
       if (text === undefined) return
       if (await this.removeQueued(id, queuedId)) this.drafts[id] = text
     },
-
-    // Sends a waiting message right away instead of after the turn: the client stops the turn (background
-    // shell commands keep running) and the message starts the next one. A message already in the client's queue
-    // is not sent again (the client ignores a repeated uuid): stopping the turn sends the client's queue next.
+    // Asks the client to deliver a queued message now (it moves a running command to the background, or stops the turn).
     async sendNow(id: string, queuedId: string) {
-      if (!this.transport) return
-      const q = (this.localQueue[id] ?? []).find(x => x.id === queuedId)
-      if (!q) {
-        if (this.sessions[id]?.queue.some(x => x.id === queuedId)) await this.interrupt(id)
-        return
-      }
-      this.localQueue[id] = (this.localQueue[id] ?? []).filter(x => x.id !== queuedId)
+      const q = this.sessions[id]?.queue.find(x => x.id === queuedId)
+      if (!q || !this.transport) return
       this.subscribe(id)
-      await this.deliver(id, q.id, q.text, SendUserMessageRequest_Delivery.NOW)
-    },
-
-    async flushQueue(id: string) {
-      const q = this.localQueue[id]
-      if (!q?.length || !this.transport) return
-      const next = q.shift()!
-      await this.deliver(id, next.id, next.text, SendUserMessageRequest_Delivery.QUEUE)
+      await this.transport.sendUserMessage(id, q.id, q.text, SendUserMessageRequest_Delivery.NOW)
     },
 
     // Rewinds code and conversation to just before a user message (the checkpoint of its turn); the message comes
@@ -736,7 +676,6 @@ export const useSessionStore = defineStore('sessions', {
         if (!s) return
         if (res?.idle) {
           settleTurn(s)
-          this.flushQueue(id)
           return
         }
         setTimeout(() => {
@@ -770,19 +709,15 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.answerQuestion(id, requestId, { outcome: 'skipped' })
     },
 
-    // Closes the question with the user's chat messages as the free-form answer: messages still in the local
-    // queue are handed to the client first, then every queued message becomes the answer.
+    // Closes the question with the user's chat messages as the free-form answer: every message the client has queued.
     async answerWithMessage(id: string, requestId: string) {
       if (!this.transport) return
-      const local = this.localQueue[id] ?? []
-      this.localQueue[id] = []
-      for (const q of local) await this.transport.sendUserMessage(id, q.id, q.text, SendUserMessageRequest_Delivery.QUEUE)
       await this.transport.answerQuestion(id, requestId, { outcome: 'message' })
     },
 
     // Whether "Answer with message" has something to send.
     hasChatAnswer(id: string) {
-      return !!this.localQueue[id]?.length || !!this.sessions[id]?.queue.length
+      return !!this.sessions[id]?.queue.length
     },
 
     async respondToPlan(id: string, requestId: string, decision: 'accept_edits' | 'manual' | 'keep_planning', feedback = '') {

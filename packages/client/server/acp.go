@@ -493,6 +493,10 @@ func (r acpRouted) SendUserMessage(ctx context.Context, req *connect.Request[age
 		l.seen[id] = true
 		l.mu.Unlock()
 		if dup {
+			// The same message again, now: a queued one starts the next turn ("Send now").
+			if m.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW && len(l.sess.State().Queue) > 0 {
+				l.sess.Interrupt()
+			}
 			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
 		}
 	}

@@ -465,8 +465,10 @@ export class MockTransport implements SessionTransport {
     if (s.info.acp?.needsAuth) throw new Error(`[failed_precondition] ${s.info.acp.agentName} needs you to sign in first`)
     if (s.working) {
       // Queued (QueueChanged); NOW stops the turn so the message starts the next one, like the client.
-      s.queue.push({ uuid, text, queuedAt: this.now() })
-      this.emit(s, b => b.queue(s.queue))
+      if (!s.queue.some(q => q.uuid === uuid)) {
+        s.queue.push({ uuid, text, queuedAt: this.now() })
+        this.emit(s, b => b.queue(s.queue))
+      }
       if (delivery === SendUserMessageRequest_Delivery.NOW) {
         // Like the client: a running Bash moves to the background and the message is read in this turn;
         // otherwise the turn stops and the message starts the next one.

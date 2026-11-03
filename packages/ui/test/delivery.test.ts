@@ -62,11 +62,11 @@ describe('reducer: read receipts and rewinds', () => {
 })
 
 describe('delivery states and actions', () => {
-  it('orders handed-over, client-queued and locally queued messages and numbers the waiting ones', () => {
+  it('orders handed-over and client-queued messages and numbers the waiting ones', () => {
     const s = createSessionState('s1')
     s.queue = [{ id: 'c1', text: 'in client', at: 100 }, { id: 'c2', text: 'read already' }]
     s.delivered = { c2: 'u9', o3: 'u10' }
-    const out = pendingMessages(s, [{ id: 'l1', text: 'local', at: 300 }], [
+    const out = pendingMessages(s, [
       { id: 'o1', text: 'flying', at: 10, state: 'sending' },
       { id: 'o2', text: 'accepted', at: 20, state: 'sent' },
       { id: 'c1', text: 'in client', at: 50, state: 'sent' },
@@ -75,8 +75,7 @@ describe('delivery states and actions', () => {
     expect(out.map(m => [m.id, m.delivery, m.where, m.position, m.at])).toEqual([
       ['o1', 'sending', 'outbox', 0, 10],
       ['o2', 'sent', 'outbox', 0, 20],
-      ['c1', 'queued', 'client', 1, 100],
-      ['l1', 'queued', 'local', 2, 300]
+      ['c1', 'queued', 'client', 1, 100]
     ])
   })
 
@@ -128,7 +127,7 @@ describe('store: sending, queue actions, rewind and fork', () => {
     const sending = store.send(id, 'build it')
     await flush()
     // In flight: the outbox shows it as sending.
-    expect(pendingMessages(store.sessions[id]!, [], store.outbox[id]).map(m => m.delivery)).toEqual(['sending'])
+    expect(pendingMessages(store.sessions[id]!, store.outbox[id]).map(m => m.delivery)).toEqual(['sending'])
     release()
     await sending
     const s = store.sessions[id]!
@@ -139,10 +138,10 @@ describe('store: sending, queue actions, rewind and fork', () => {
     expect(store.outbox[id]).toEqual([])
     expect(store.isBusy(id)).toBe(true)
 
-    // While the turn waits for a permission, new messages queue in this browser.
+    // While the turn waits for a permission, new messages queue on the client.
     await store.send(id, 'then this')
     await store.send(id, 'and that')
-    let pending = pendingMessages(s, store.localQueue[id], store.outbox[id])
+    let pending = pendingMessages(s, store.outbox[id])
     expect(pending.map(m => [m.text, m.delivery, m.position])).toEqual([['then this', 'queued', 1], ['and that', 'queued', 2]])
 
     // Cancel one; send the other now: the turn stops and the message starts the next one.
@@ -154,7 +153,7 @@ describe('store: sending, queue actions, rewind and fork', () => {
     const last = s.items.findLast(i => i.kind === 'user') as UserItem
     expect(last).toMatchObject({ text: 'then this', clientIds: [a!.id] })
     expect(s.delivered[a!.id]).toBe(last.id)
-    pending = pendingMessages(s, store.localQueue[id], store.outbox[id])
+    pending = pendingMessages(s, store.outbox[id])
     expect(pending).toEqual([])
   })
 
@@ -168,7 +167,7 @@ describe('store: sending, queue actions, rewind and fork', () => {
     await transport.sendUserMessage(id, 'q-1', 'queued in client', 1)
     await transport.sendUserMessage(id, 'q-2', 'second', 1)
     const s = store.sessions[id]!
-    expect(pendingMessages(s, [], store.outbox[id]).map(m => [m.id, m.delivery, m.where])).toEqual([['q-1', 'queued', 'client'], ['q-2', 'queued', 'client']])
+    expect(pendingMessages(s, store.outbox[id]).map(m => [m.id, m.delivery, m.where])).toEqual([['q-1', 'queued', 'client'], ['q-2', 'queued', 'client']])
     expect(await store.removeQueued(id, 'q-1')).toBe(true)
     expect(s.queue.map(q => q.id)).toEqual(['q-2'])
     await store.editQueued(id, 'q-2')

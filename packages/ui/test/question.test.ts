@@ -183,16 +183,15 @@ describe('question store actions', () => {
     return { st, calls, s }
   }
 
-  it('sends chat messages to the client while a question waits, to the local queue otherwise', async () => {
+  it('always hands chat messages to the client', async () => {
     const { st, calls, s } = store()
     await st.send('s1', 'use sqlite')
     expect(calls).toEqual([['send', 's1', expect.any(String), 'use sqlite', SendUserMessageRequest_Delivery.QUEUE]])
-    expect(st.localQueue.s1 ?? []).toEqual([])
     s.pendingQuestion = null
     s.meta.status = 'working'
     await st.send('s1', 'later')
-    expect(calls).toHaveLength(1)
-    expect(st.localQueue.s1!.map(q => q.text)).toEqual(['later'])
+    expect(calls).toHaveLength(2)
+    expect(calls[1]![3]).toBe('later')
   })
 
   it('answers, skips and answers with the queued messages', async () => {
@@ -204,15 +203,9 @@ describe('question store actions', () => {
     calls.length = 0
 
     expect(st.hasChatAnswer('s1')).toBe(false)
-    // A message typed before the question appeared waits locally; one typed after it is on the client.
-    st.localQueue.s1 = [{ id: 'l1', text: 'typed earlier' }]
     s.queue = [{ id: 'm1', text: 'typed meanwhile' }]
     expect(st.hasChatAnswer('s1')).toBe(true)
     await st.answerWithMessage('s1', 'q1')
-    expect(calls).toEqual([
-      ['send', 's1', 'l1', 'typed earlier', SendUserMessageRequest_Delivery.QUEUE],
-      ['answer', 'q1', { outcome: 'message' }]
-    ])
-    expect(st.localQueue.s1).toEqual([])
+    expect(calls).toEqual([['answer', 'q1', { outcome: 'message' }]])
   })
 })

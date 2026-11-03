@@ -98,7 +98,7 @@ const blocks = computed<Block[]>(() => {
 
 // Messages not read by the agent yet: handed to the client (sending, sent), in the client's queue, then in this
 // browser's queue (lib/session/delivery.ts).
-const queued = computed(() => pendingMessages(props.session, store.localQueue[props.session.meta.id], store.outbox[props.session.meta.id]))
+const queued = computed(() => pendingMessages(props.session, store.outbox[props.session.meta.id]))
 const waiting = computed(() => queued.value.filter(q => q.delivery === 'queued').length)
 const working = computed(() => props.session.meta.status === 'working')
 const now = useNow()

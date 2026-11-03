@@ -582,6 +582,16 @@ func (s *Server) Subscribe(ctx context.Context, req *connect.Request[agentv1.Sub
 	}
 }
 
+// deliverNow gets the queued messages read as soon as possible. Running Bash commands move to the background (the
+// model gets the queued_message note) so they are read in this turn right after the tool calls; otherwise the turn
+// is interrupted and they start the next one. An open question keeps waiting: the message stays queued and follows
+// the answer, or becomes it ("answer with message").
+func (ls *liveSession) deliverNow() {
+	if !ls.sess.ToolEnv.Shell.BackgroundRunning(tools.BackgroundQueuedMessage) && !ls.questionPending() {
+		ls.driver.Interrupt()
+	}
+}
+
 // queuedMessageGrace is how long a running command may keep a queued message waiting before it moves to the background.
 const queuedMessageGrace = time.Second
 
@@ -600,6 +610,10 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		ls.seen[id] = true
 		ls.mu.Unlock()
 		if dup {
+			// The same message again, now: a queued one is delivered as soon as possible ("Send now").
+			if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW && ls.sess.Agent.QueueLen() > 0 {
+				ls.deliverNow()
+			}
 			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
 		}
 	}
@@ -634,15 +648,7 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})
 		if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW {
-			// Running Bash commands move to the background (the model gets the
-			// queued_message note) so the message is read in this turn right
-			// after the tool calls; otherwise the turn is interrupted and the
-			// message starts the next one.
-			// An open question keeps waiting: the message stays queued and
-			// follows the answer, or becomes it ("answer with message").
-			if !ls.sess.ToolEnv.Shell.BackgroundRunning(tools.BackgroundQueuedMessage) && !ls.questionPending() {
-				ls.driver.Interrupt()
-			}
+			ls.deliverNow()
 		} else {
 			// A queued message is read right after the tool calls: a command that keeps it waiting moves to the
 			// background. Quick commands get to finish by themselves.
