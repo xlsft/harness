@@ -6,7 +6,7 @@
 // themselves. Keys are write-only. Changes refresh the model catalog, so the Models section follows.
 import type { PresetList, ProviderGroupName, ProviderList, ProvidersApi } from '~/lib/providers/types'
 
-const props = defineProps<{ group: ProviderGroupName }>()
+const props = defineProps<{ group: Exclude<ProviderGroupName, 'search'> }>()
 const emit = defineEmits<{ changed: [list: ProviderList] }>()
 const store = useSessionStore()
 

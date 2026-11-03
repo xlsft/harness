@@ -12,6 +12,7 @@ const SECTIONS = [
   { key: 'general', label: 'General', icon: 'sliders' },
   { key: 'models', label: 'Models', icon: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'shield' },
+  { key: 'search', label: 'Search', icon: 'search' },
   { key: 'account', label: 'Account', icon: 'lock' },
   { key: 'users', label: 'Users', icon: 'shield' },
   { key: 'about', label: 'About', icon: 'info' }
@@ -105,6 +106,8 @@ async function signOut() {
           :key="section"
           :group="section === 'models' ? 'llm' : 'classifier'"
         />
+
+        <SettingsSearch v-else-if="section === 'search'" />
 
         <template v-else-if="section === 'users'">
           <SettingsUsers />

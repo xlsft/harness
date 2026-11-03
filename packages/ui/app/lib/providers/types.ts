@@ -1,12 +1,12 @@
-// ProvidersApi: what the settings screens need from harness.llm.v1.ProviderService (providers in two groups,
-// LLM models and classifiers; the presets to connect; their models; the default model per role; the auto-mode
-// classifier). The client
+// ProvidersApi: what the settings screens need from harness.llm.v1.ProviderService (providers in three groups,
+// LLM models, classifiers and web search; the presets to connect; their models; the default model per role; the
+// auto-mode classifier; the search provider in use). The client
 // forwards these calls to the server with the user's credentials, so the UI never holds server credentials.
 // Two implementations: connect.ts (the real service through the client) and mock.ts (in memory, for the
 // mock transport).
 
 export type ProviderScopeName = 'global' | 'personal'
-export type ProviderGroupName = 'llm' | 'classifier'
+export type ProviderGroupName = 'llm' | 'classifier' | 'search'
 
 export interface ProviderModelView {
   id: string
@@ -33,6 +33,8 @@ export interface ProviderView {
   // The caller may change it (admins: global providers; everyone: their own).
   editable: boolean
   models: ProviderModelView[]
+  // Search providers: their options by name (see PresetView.options); unset ones follow the default.
+  options?: Record<string, string>
 }
 
 export interface ProviderList {
@@ -71,6 +73,21 @@ export interface PresetView {
   discoversModels: boolean
   // Runs on the local network: only a global connection may reach it.
   local: boolean
+  // Search presets: the settings a connected provider may change.
+  options?: PresetOptionView[]
+  // Ships with the server (the bundled SearXNG): nothing to connect; its provider id is the preset id.
+  builtin?: boolean
+}
+
+export interface PresetOptionView {
+  name: string
+  label: string
+  kind: 'number' | 'select' | 'text'
+  choices: { value: string, label: string }[]
+  defaultValue: string
+  placeholder: string
+  min: number
+  max: number
 }
 
 export interface ProtocolView {
@@ -97,6 +114,8 @@ export interface ProviderDraft {
   apiKey?: string
   headers?: Record<string, string>
   allowPrivateNetwork?: boolean
+  // Search providers.
+  options?: Record<string, string>
 }
 
 // Unset fields keep their value; apiKey '' removes the key.
@@ -109,6 +128,8 @@ export interface ProviderPatch {
   headers?: Record<string, string>
   enabled?: boolean
   allowPrivateNetwork?: boolean
+  // Search providers: replaces all options ('' values follow the default).
+  options?: Record<string, string>
 }
 
 export interface ModelCandidateView {
@@ -162,6 +183,18 @@ export interface MyClassifier {
   defaultLlmModel: string
 }
 
+// The search provider serving web searches: the server default (admins set it; 'searxng' is the built-in
+// SearXNG, which also applies when nothing else is chosen) and the caller's own choice ('' follows it).
+export interface SearchSettings {
+  defaultProviderId: string
+  myProviderId: string
+  effectiveProviderId: string
+  // The caller may change the default (admins).
+  editable: boolean
+}
+
+export const BUILTIN_SEARCH_ID = 'searxng'
+
 // Server-wide default model per role, as configured ('' follows the server default). `title` falls back to
 // `small`; `small` also serves summaries, web fetch and compaction.
 export interface ModelSlots {
@@ -207,6 +240,10 @@ export interface ProvidersApi {
   // Anyone: the caller's own override and the server default it applies over.
   getMyClassifier(): Promise<MyClassifier>
   setMyClassifier(o: ClassifierOverride): Promise<MyClassifier>
+  // Web search: anyone reads it and sets their own choice; the default is admin only.
+  getSearch(): Promise<SearchSettings>
+  setSearchDefault(providerId: string): Promise<SearchSettings>
+  setMySearch(providerId: string): Promise<SearchSettings>
 }
 
 // Parses "Name: value" lines into headers; returns an error string for a malformed line.

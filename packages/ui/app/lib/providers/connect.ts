@@ -9,12 +9,13 @@ import {
   ClassifierChoice,
   type GetMyClassifierResponse,
   type Provider,
-  type ProviderPreset
+  type ProviderPreset,
+  type SearchSettings as SearchSettingsMsg
 } from '~/gen/harness/llm/v1/providers_pb'
 import type { Slots } from '~/gen/harness/llm/v1/gateway_pb'
-import type { ClassifierOverride, ClassifierSettings, ModelSlots, MyClassifier, PresetView, ProviderGroupName, ProviderView, ProvidersApi } from './types'
+import type { ClassifierOverride, ClassifierSettings, ModelSlots, MyClassifier, PresetView, ProviderGroupName, ProviderView, ProvidersApi, SearchSettings } from './types'
 
-const group = (g: string): ProviderGroupName => g === 'classifier' ? 'classifier' : 'llm'
+const group = (g: string): ProviderGroupName => g === 'classifier' || g === 'search' ? g : 'llm'
 
 export function providerView(p: Provider): ProviderView {
   return {
@@ -31,7 +32,8 @@ export function providerView(p: Provider): ProviderView {
     enabled: p.enabled,
     allowPrivateNetwork: p.allowPrivateNetwork,
     editable: p.editable,
-    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow) }))
+    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow) })),
+    options: { ...p.options }
   }
 }
 
@@ -49,7 +51,27 @@ export function presetView(p: ProviderPreset): PresetView {
     defaultModels: p.defaultModels.map(m => ({ upstream: m.upstreamModel, name: m.displayName || m.upstreamModel, contextWindow: Number(m.contextWindow) })),
     icon: p.icon || p.displayName.slice(0, 2).toUpperCase(),
     discoversModels: p.discoversModels,
-    local: p.local
+    local: p.local,
+    options: p.options.map(o => ({
+      name: o.name,
+      label: o.label,
+      kind: o.kind === 'number' || o.kind === 'select' ? o.kind : 'text',
+      choices: o.choices.map(c => ({ value: c.value, label: c.label })),
+      defaultValue: o.defaultValue,
+      placeholder: o.placeholder,
+      min: o.min,
+      max: o.max
+    })),
+    builtin: p.builtin
+  }
+}
+
+export function searchSettingsView(s: SearchSettingsMsg | undefined): SearchSettings {
+  return {
+    defaultProviderId: s?.defaultProviderId || 'searxng',
+    myProviderId: s?.myProviderId ?? '',
+    effectiveProviderId: s?.effectiveProviderId || s?.defaultProviderId || 'searxng',
+    editable: s?.editable ?? false
   }
 }
 
@@ -118,7 +140,8 @@ export class ConnectProvidersApi implements ProvidersApi {
       baseUrl: d.baseUrl ?? '',
       apiKey: d.apiKey ?? '',
       headers: d.headers ?? {},
-      allowPrivateNetwork: d.scope === 'global' && !!d.allowPrivateNetwork
+      allowPrivateNetwork: d.scope === 'global' && !!d.allowPrivateNetwork,
+      options: d.options ?? {}
     })
     return providerView(r.provider!)
   }
@@ -132,7 +155,8 @@ export class ConnectProvidersApi implements ProvidersApi {
       apiKey: p.apiKey,
       headers: p.headers ? { values: p.headers } : undefined,
       enabled: p.enabled,
-      allowPrivateNetwork: p.allowPrivateNetwork
+      allowPrivateNetwork: p.allowPrivateNetwork,
+      options: p.options ? { values: p.options } : undefined
     })
     return providerView(r.provider!)
   }
@@ -184,6 +208,18 @@ export class ConnectProvidersApi implements ProvidersApi {
 
   async getMyClassifier() {
     return myClassifierView(await this.client.getMyClassifier({}))
+  }
+
+  async getSearch() {
+    return searchSettingsView((await this.client.getSearch({})).settings)
+  }
+
+  async setSearchDefault(providerId: string) {
+    return searchSettingsView((await this.client.setSearchDefault({ providerId })).settings)
+  }
+
+  async setMySearch(providerId: string) {
+    return searchSettingsView((await this.client.setMySearch({ providerId })).settings)
   }
 
   async setMyClassifier(o: ClassifierOverride) {

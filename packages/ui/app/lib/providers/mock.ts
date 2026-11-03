@@ -1,7 +1,9 @@
 // In-memory ProvidersApi for the mock transport. Follows the server's rules closely enough to exercise the
 // settings screens: presets need only their fields, personal providers get generated ids and
 // `<provider id>/<upstream>` model ids, global ones and classifier providers need the admin role, keys are
-// write-only (set flag and hint only). The preset list is a sample of the server's.
+// write-only (set flag and hint only). Search providers may be global or personal; the built-in SearXNG is the
+// default until an admin picks another, and everyone may pick their own. The preset list is a sample of the
+// server's.
 
 import type {
   ClassifierOverride,
@@ -15,13 +17,28 @@ import type {
   ProviderList,
   ProviderPatch,
   ProviderView,
-  ProvidersApi
+  ProvidersApi,
+  PresetOptionView
 } from './types'
-import { emptySlots } from './types'
+import { BUILTIN_SEARCH_ID, emptySlots } from './types'
 
 const TYPES = ['anthropic', 'openai-chat', 'openai-responses']
 
 const KEY = { name: 'api_key', label: 'API key', required: true, placeholder: '' }
+
+const RESULTS = (max: number): PresetOptionView => ({ name: 'max_results', label: 'Results', kind: 'number', choices: [], defaultValue: '10', placeholder: '', min: 1, max })
+const SAFE: PresetOptionView = {
+  name: 'safe_search',
+  label: 'Safe search',
+  kind: 'select',
+  choices: [{ value: 'off', label: 'Off' }, { value: 'moderate', label: 'Moderate' }, { value: 'strict', label: 'Strict' }],
+  defaultValue: 'moderate',
+  placeholder: '',
+  min: 0,
+  max: 0
+}
+const COUNTRY: PresetOptionView = { name: 'country', label: 'Country', kind: 'text', choices: [], defaultValue: '', placeholder: 'Two-letter code, e.g. US', min: 0, max: 0 }
+const SEARXNG_OPTIONS = [RESULTS(25), SAFE]
 
 const PRESETS: PresetView[] = [
   {
@@ -119,6 +136,70 @@ const PRESETS: PresetView[] = [
     icon: 'TS',
     discoversModels: false,
     local: false
+  },
+  {
+    id: BUILTIN_SEARCH_ID,
+    group: 'search',
+    name: 'SearXNG (built in)',
+    description: 'The metasearch engine that ships with the server. No key needed.',
+    type: 'searxng',
+    baseUrl: '',
+    fields: [],
+    docsUrl: 'https://docs.searxng.org/dev/search_api.html',
+    keyUrl: '',
+    defaultModels: [],
+    icon: 'searxng',
+    discoversModels: false,
+    local: false,
+    builtin: true
+  },
+  {
+    id: 'searxng-url',
+    group: 'search',
+    name: 'SearXNG',
+    description: 'Your own SearXNG instance (the JSON format must be enabled).',
+    type: 'searxng',
+    baseUrl: '',
+    fields: [{ name: 'base_url', label: 'Instance URL', required: true, placeholder: 'https://searx.example.com' }],
+    docsUrl: 'https://docs.searxng.org/dev/search_api.html',
+    keyUrl: '',
+    defaultModels: [],
+    icon: 'searxng',
+    discoversModels: false,
+    local: true,
+    options: SEARXNG_OPTIONS
+  },
+  {
+    id: 'brave',
+    group: 'search',
+    name: 'Brave Search',
+    description: 'Brave\'s independent web index through the Brave Search API.',
+    type: 'brave',
+    baseUrl: 'https://api.search.brave.com/res/v1/web/search',
+    fields: [KEY],
+    docsUrl: 'https://api-dashboard.search.brave.com/app/documentation/web-search/query',
+    keyUrl: '',
+    defaultModels: [],
+    icon: 'brave',
+    discoversModels: false,
+    local: false,
+    options: [RESULTS(20), SAFE, COUNTRY]
+  },
+  {
+    id: 'tavily',
+    group: 'search',
+    name: 'Tavily',
+    description: 'Search built for AI agents, with page excerpts.',
+    type: 'tavily',
+    baseUrl: 'https://api.tavily.com/search',
+    fields: [KEY],
+    docsUrl: 'https://docs.tavily.com/documentation/api-reference/endpoint/search',
+    keyUrl: '',
+    defaultModels: [],
+    icon: 'tavily',
+    discoversModels: false,
+    local: false,
+    options: [RESULTS(20)]
   }
 ]
 
@@ -127,7 +208,8 @@ const PROTOCOLS: PresetList['protocols'] = [
   { id: 'openai-responses', group: 'llm', label: 'OpenAI Responses', baseUrlHint: 'https://api.example.com/v1' },
   { id: 'anthropic', group: 'llm', label: 'Anthropic Messages', baseUrlHint: 'https://api.example.com' },
   { id: 'decision-model', group: 'classifier', label: 'Typed decision model', baseUrlHint: 'https://decisions.example.com/v1/decide' },
-  { id: 'decision-http', group: 'classifier', label: 'HTTP policy webhook', baseUrlHint: 'https://policy.example.com/decide' }
+  { id: 'decision-http', group: 'classifier', label: 'HTTP policy webhook', baseUrlHint: 'https://policy.example.com/decide' },
+  { id: 'searxng', group: 'search', label: 'SearXNG-compatible', baseUrlHint: 'https://searx.example.com' }
 ]
 
 const CANDIDATES: ModelCandidateView[] = [
@@ -149,6 +231,8 @@ export class MockProvidersApi implements ProvidersApi {
   private classifier: ClassifierSettings
   private slots: ModelSlots = emptySlots()
   private mine: ClassifierOverride = { choice: 'default', providerId: '', llmModel: '' }
+  private searchDefault = ''
+  private mySearch = ''
   private seq = 0
 
   constructor(private readonly admin = true) {
@@ -223,6 +307,7 @@ export class MockProvidersApi implements ProvidersApi {
     if (d.scope === 'global' && !this.admin) throw new Error('Admin role required')
     const preset = d.presetId ? PRESETS.find(p => p.id === d.presetId) : undefined
     if (d.presetId && !preset) throw new Error(`Unknown preset ${d.presetId}`)
+    if (preset?.builtin) throw new Error(`${preset.name} is built in: there is nothing to connect`)
     const group = preset?.group ?? d.group ?? 'llm'
     if (group === 'classifier' && d.scope !== 'global') throw new Error('Classifier providers are server-wide: only admins add them, globally')
     if (preset?.fields.some(f => f.name === 'api_key' && f.required) && !d.apiKey) throw new Error(`${preset.name} needs an API key`)
@@ -250,14 +335,35 @@ export class MockProvidersApi implements ProvidersApi {
       enabled: true,
       allowPrivateNetwork: d.scope === 'global' && (!!d.allowPrivateNetwork || !!preset?.local),
       editable: true,
-      models: []
+      models: [],
+      ...(group === 'search' ? { options: this.checkOptions(preset ?? PRESETS.find(x => x.id === 'searxng-url'), d.options) } : {})
     }
     this.providers.push(p)
     return structuredClone(p)
   }
 
+  // Options a search preset declares: numbers in range, choices from the list; '' drops one.
+  private checkOptions(preset: PresetView | undefined, input: Record<string, string> | undefined) {
+    const out: Record<string, string> = {}
+    for (const [name, v] of Object.entries(input ?? {})) {
+      const spec = preset?.options?.find(o => o.name === name)
+      if (!spec) throw new Error(`Unknown option ${name}`)
+      if (!v.trim()) continue
+      if (spec.kind === 'number' && !(Number.isInteger(Number(v)) && Number(v) >= spec.min && Number(v) <= spec.max)) {
+        throw new Error(`${spec.label} must be a whole number from ${spec.min} to ${spec.max}`)
+      }
+      if (spec.kind === 'select' && !spec.choices.some(c => c.value === v)) throw new Error(`${spec.label} must be one of ${spec.choices.map(c => c.value).join(', ')}`)
+      out[name] = spec.name === 'country' ? v.trim().toUpperCase() : v.trim()
+    }
+    return out
+  }
+
   async update(id: string, patch: ProviderPatch) {
     const p = this.writable(id)
+    if (patch.options !== undefined) {
+      if (p.group !== 'search') throw new Error('Only search providers have options')
+      p.options = this.checkOptions(PRESETS.find(x => x.id === (p.presetId || 'searxng-url')), patch.options)
+    }
     if (patch.type !== undefined) p.type = patch.type
     if (patch.name !== undefined) p.name = patch.name || p.id
     if (patch.baseUrl !== undefined) p.baseUrl = patch.baseUrl
@@ -287,7 +393,11 @@ export class MockProvidersApi implements ProvidersApi {
   }
 
   async test(id: string) {
+    if (id === BUILTIN_SEARCH_ID) return { ok: true, message: 'Connected, 5 results for a sample query', modelCount: 0 }
     const p = this.writable(id)
+    if (p.group === 'search') {
+      return p.keySet || p.type === 'searxng' ? { ok: true, message: 'Connected, 5 results for a sample query', modelCount: 0 } : { ok: false, message: `${p.name} rejected the API key (HTTP 401)`, modelCount: 0 }
+    }
     if (!p.keySet && !p.presetId.startsWith('ollama')) return { ok: false, message: 'The key was rejected (HTTP 401)', modelCount: 0 }
     if (p.group === 'classifier') return { ok: true, message: 'Connected: a sample "ls" was answered allow', modelCount: 0 }
     return { ok: true, message: `Connected, ${CANDIDATES.length} models offered`, modelCount: CANDIDATES.length }
@@ -296,6 +406,7 @@ export class MockProvidersApi implements ProvidersApi {
   async addModel(providerId: string, m: NewModel) {
     const p = this.writable(providerId)
     if (p.group === 'classifier') throw new Error('Classifier providers serve no chat models')
+    if (p.group === 'search') throw new Error('Search providers serve no chat models')
     const id = p.scope === 'personal' ? `${p.id}/${m.upstream}` : m.id || m.upstream
     if (this.providers.some(x => x.models.some(y => y.id === id))) throw new Error(`Model ${id} already exists`)
     p.models.push({ id, name: m.name || m.upstream, upstream: m.upstream, contextWindow: m.contextWindow || 128_000 })
@@ -354,5 +465,29 @@ export class MockProvidersApi implements ProvidersApi {
     }
     this.mine = { choice: o.choice, providerId: o.choice === 'provider' ? o.providerId : '', llmModel: o.llmModel }
     return this.getMyClassifier()
+  }
+
+  // A search provider the caller may use: enabled, global or their own (every personal one is the caller's here).
+  private usableSearch(id: string, globalOnly = false) {
+    return id === BUILTIN_SEARCH_ID || this.providers.some(p => p.id === id && p.group === 'search' && p.enabled && (p.scope === 'global' || !globalOnly))
+  }
+
+  async getSearch() {
+    const def = this.searchDefault && this.usableSearch(this.searchDefault, true) ? this.searchDefault : BUILTIN_SEARCH_ID
+    const mine = this.mySearch && this.usableSearch(this.mySearch) ? this.mySearch : ''
+    return { defaultProviderId: def, myProviderId: mine, effectiveProviderId: mine || def, editable: this.admin }
+  }
+
+  async setSearchDefault(providerId: string) {
+    if (!this.admin) throw new Error('Admin role required')
+    if (providerId && !this.usableSearch(providerId, true)) throw new Error(`Unknown search provider ${providerId}`)
+    this.searchDefault = providerId === BUILTIN_SEARCH_ID ? '' : providerId
+    return this.getSearch()
+  }
+
+  async setMySearch(providerId: string) {
+    if (providerId && !this.usableSearch(providerId)) throw new Error(`Unknown search provider ${providerId}`)
+    this.mySearch = providerId
+    return this.getSearch()
   }
 }
