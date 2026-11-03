@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Tool call card (Tool.dc.html): bash (output, running, error), read / glob rows, grep matches, web results,
+// Tool call card (Tool.dc.html): bash and TaskOutput (output, running, error), read / glob / Wait rows, grep matches, web results,
 // MCP input / output, edits as diffs (DiffView) and subagents (AgentCard). Output bodies scroll past 320px.
 import type { ToolItem } from '~/lib/session/types'
 
@@ -18,7 +18,7 @@ const kind = computed(() => {
   if (t.value.name === 'Grep') return 'grep'
   if (t.value.name === 'WebSearch' || t.value.name === 'WebFetch') return 'web'
   if (mcp.value) return 'mcp'
-  if (['Read', 'Glob', 'LS'].includes(t.value.name)) return 'row'
+  if (['Read', 'Glob', 'LS', 'Wait'].includes(t.value.name)) return 'row'
   return 'bash'
 })
 

@@ -1,6 +1,7 @@
 // How a tool call is labeled: icon, the white "target" and the right-hand meta (Tool.dc.html, Main.dc.html rows).
 import { structuredPatch } from 'diff'
 import type { ToolItem } from '~/lib/session/types'
+import { formatDuration, formatSeconds } from './format'
 import type { IconName } from './icons'
 
 export interface ToolMeta {
@@ -18,7 +19,9 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.status === 'error' && t.name === 'Bash') return 'x'
   if (mcpParts(t.name)) return 'box'
   switch (t.name) {
-    case 'Bash': return 'term'
+    case 'Bash':
+    case 'TaskOutput': return 'term'
+    case 'Wait': return 'clock'
     case 'Read': return 'file'
     case 'Glob':
     case 'LS': return 'folder'
@@ -48,8 +51,20 @@ export function toolTarget(t: ToolItem): string {
     case 'WebFetch': return String(i.url ?? t.summary)
     case 'Task':
     case 'Agent': return String(i.description ?? t.summary)
+    case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
+    case 'Wait': return waitTarget(i) || t.summary
     default: return t.summary || mcpParts(t.name)?.tool || t.name
   }
+}
+
+const patternSuffix = (p: unknown) => typeof p === 'string' && p ? ` /${p}/` : ''
+
+// What a Wait call waits for: "port 3000", "port example.com:443", "task b1f2", a path; plus the pattern.
+function waitTarget(i: Record<string, unknown>): string {
+  if (i.port != null) return `port ${i.host ? `${String(i.host)}:` : ''}${String(i.port)}`
+  if (i.task_id) return `task ${String(i.task_id)}${patternSuffix(i.pattern)}`
+  if (i.path) return `${String(i.path)}${i.changed ? ' (change)' : ''}${patternSuffix(i.pattern)}`
+  return ''
 }
 
 export interface PatchHunk {
@@ -137,6 +152,18 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
       const code = typeof r.exitCode === 'number' ? r.exitCode : t.status === 'error' ? 1 : 0
       if (compact && code === 0) return { text: `ok · ${formatSeconds(t.durationMs)}`, cls: 'text-ok' }
       return { text: `exit ${code} · ${formatSeconds(t.durationMs)}`, cls: code === 0 ? 'text-ok' : 'text-bad' }
+    }
+    case 'TaskOutput': {
+      if (t.status === 'error') return { text: t.resultSummary || 'error', cls: 'text-bad' }
+      const wait = r.timed_out ? ' · timed out' : ''
+      if (r.status === 'exited') return { text: `exit ${String(r.exit_code ?? 0)}${wait}`, cls: r.exit_code ? 'text-bad' : 'text-ok' }
+      if (r.status === 'killed') return { text: `killed${wait}`, cls: 'text-bad' }
+      return { text: `running${wait}`, cls: 'text-muted' }
+    }
+    case 'Wait': {
+      if (t.status === 'error') return { text: t.resultSummary || 'error', cls: 'text-bad' }
+      const elapsed = formatSeconds(typeof r.elapsed_ms === 'number' ? r.elapsed_ms : t.durationMs)
+      return r.met === false ? { text: `timed out · ${elapsed}`, cls: 'text-bad' } : { text: elapsed, cls: 'text-ok' }
     }
     case 'Read': {
       const f = r.file as { numLines?: number } | undefined
