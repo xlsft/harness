@@ -103,7 +103,7 @@ function taskMeta(command: string, tail: string) {
       >
         <button
           type="button"
-          class="nav-row w-full text-left hover:bg-hover"
+          class="nav-row -mx-[9px] w-[calc(100%+18px)] px-[9px] text-left hover:bg-hover"
         >
           <HIcon name="folder" /><span class="shrink-0">{{ repoName }}</span><span class="min-w-0 truncate text-[11px] text-muted">· {{ cwdParent }}</span>
         </button>
@@ -114,7 +114,7 @@ function taskMeta(command: string, tail: string) {
       >
         <button
           type="button"
-          class="nav-row w-full text-left hover:bg-hover"
+          class="nav-row -mx-[9px] w-[calc(100%+18px)] px-[9px] text-left hover:bg-hover"
         >
           <HIcon name="branch" /><span class="min-w-0 truncate">{{ session.meta.gitBranch || 'main' }}</span>
         </button>
