@@ -21,6 +21,57 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type UserSource int32
+
+const (
+	UserSource_USER_SOURCE_UNSPECIFIED UserSource = 0
+	// A local account with a password.
+	UserSource_USER_SOURCE_LOCAL UserSource = 1
+	// Signs in through LDAP; no local password.
+	UserSource_USER_SOURCE_LDAP UserSource = 2
+)
+
+// Enum value maps for UserSource.
+var (
+	UserSource_name = map[int32]string{
+		0: "USER_SOURCE_UNSPECIFIED",
+		1: "USER_SOURCE_LOCAL",
+		2: "USER_SOURCE_LDAP",
+	}
+	UserSource_value = map[string]int32{
+		"USER_SOURCE_UNSPECIFIED": 0,
+		"USER_SOURCE_LOCAL":       1,
+		"USER_SOURCE_LDAP":        2,
+	}
+)
+
+func (x UserSource) Enum() *UserSource {
+	p := new(UserSource)
+	*p = x
+	return p
+}
+
+func (x UserSource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UserSource) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_auth_v1_auth_proto_enumTypes[0].Descriptor()
+}
+
+func (UserSource) Type() protoreflect.EnumType {
+	return &file_harness_auth_v1_auth_proto_enumTypes[0]
+}
+
+func (x UserSource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UserSource.Descriptor instead.
+func (UserSource) EnumDescriptor() ([]byte, []int) {
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{0}
+}
+
 type PollDeviceAuthResponse_Status int32
 
 const (
@@ -64,11 +115,11 @@ func (x PollDeviceAuthResponse_Status) String() string {
 }
 
 func (PollDeviceAuthResponse_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_auth_v1_auth_proto_enumTypes[0].Descriptor()
+	return file_harness_auth_v1_auth_proto_enumTypes[1].Descriptor()
 }
 
 func (PollDeviceAuthResponse_Status) Type() protoreflect.EnumType {
-	return &file_harness_auth_v1_auth_proto_enumTypes[0]
+	return &file_harness_auth_v1_auth_proto_enumTypes[1]
 }
 
 func (x PollDeviceAuthResponse_Status) Number() protoreflect.EnumNumber {
@@ -113,11 +164,11 @@ func (x User_Role) String() string {
 }
 
 func (User_Role) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_auth_v1_auth_proto_enumTypes[1].Descriptor()
+	return file_harness_auth_v1_auth_proto_enumTypes[2].Descriptor()
 }
 
 func (User_Role) Type() protoreflect.EnumType {
-	return &file_harness_auth_v1_auth_proto_enumTypes[1]
+	return &file_harness_auth_v1_auth_proto_enumTypes[2]
 }
 
 func (x User_Role) Number() protoreflect.EnumNumber {
@@ -126,7 +177,7 @@ func (x User_Role) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use User_Role.Descriptor instead.
 func (User_Role) EnumDescriptor() ([]byte, []int) {
-	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{15, 0}
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{19, 0}
 }
 
 type ListDevicesRequest struct {
@@ -815,6 +866,204 @@ func (x *GetMeResponse) GetDevice() *Device {
 	return nil
 }
 
+type UpdateMeRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unset: unchanged. 1-100 characters after trimming.
+	Name *string `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	// Unset: unchanged; "": removes the avatar. Otherwise a data URL of a PNG, JPEG or WebP image
+	// ("data:image/png;base64,..."), at most 256x256 pixels and 200 KB decoded. The client resizes before
+	// uploading; the server checks the type (by content, not only the declared one), size and dimensions.
+	Image         *string `protobuf:"bytes,2,opt,name=image,proto3,oneof" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateMeRequest) Reset() {
+	*x = UpdateMeRequest{}
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMeRequest) ProtoMessage() {}
+
+func (x *UpdateMeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMeRequest.ProtoReflect.Descriptor instead.
+func (*UpdateMeRequest) Descriptor() ([]byte, []int) {
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateMeRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *UpdateMeRequest) GetImage() string {
+	if x != nil && x.Image != nil {
+		return *x.Image
+	}
+	return ""
+}
+
+type UpdateMeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateMeResponse) Reset() {
+	*x = UpdateMeResponse{}
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMeResponse) ProtoMessage() {}
+
+func (x *UpdateMeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMeResponse.ProtoReflect.Descriptor instead.
+func (*UpdateMeResponse) Descriptor() ([]byte, []int) {
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateMeResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type ChangePasswordRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPassword string                 `protobuf:"bytes,1,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	// 8-128 characters.
+	NewPassword string `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	// Also signs out the user's web sessions and every other device; the calling device stays signed in.
+	RevokeOtherSessions bool `protobuf:"varint,3,opt,name=revoke_other_sessions,json=revokeOtherSessions,proto3" json:"revoke_other_sessions,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ChangePasswordRequest) Reset() {
+	*x = ChangePasswordRequest{}
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangePasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangePasswordRequest) ProtoMessage() {}
+
+func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
+func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ChangePasswordRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) GetRevokeOtherSessions() bool {
+	if x != nil {
+		return x.RevokeOtherSessions
+	}
+	return false
+}
+
+type ChangePasswordResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChangePasswordResponse) Reset() {
+	*x = ChangePasswordResponse{}
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangePasswordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangePasswordResponse) ProtoMessage() {}
+
+func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangePasswordResponse.ProtoReflect.Descriptor instead.
+func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{16}
+}
+
 type LogoutRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -823,7 +1072,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[13]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -835,7 +1084,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[13]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -848,7 +1097,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{13}
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{17}
 }
 
 type LogoutResponse struct {
@@ -859,7 +1108,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[14]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -871,7 +1120,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[14]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -884,22 +1133,31 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{14}
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{18}
 }
 
 type User struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Role          User_Role              `protobuf:"varint,4,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Name  string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Role  User_Role              `protobuf:"varint,4,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	// Profile fields, set by GetMe and UpdateMe (empty elsewhere).
+	// Sign-in handle; empty when the account has none.
+	Username string `protobuf:"bytes,5,opt,name=username,proto3" json:"username,omitempty"`
+	// Avatar as a data URL (see UpdateMeRequest.image); empty when none is set.
+	Image  string     `protobuf:"bytes,6,opt,name=image,proto3" json:"image,omitempty"`
+	Source UserSource `protobuf:"varint,7,opt,name=source,proto3,enum=harness.auth.v1.UserSource" json:"source,omitempty"`
+	// RFC 3339, UTC. last_sign_in_at is the latest web sign-in (devices are approved from one); empty when never.
+	CreatedAt     string `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LastSignInAt  string `protobuf:"bytes,9,opt,name=last_sign_in_at,json=lastSignInAt,proto3" json:"last_sign_in_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[15]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -911,7 +1169,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[15]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -924,7 +1182,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{15}
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *User) GetId() string {
@@ -955,6 +1213,41 @@ func (x *User) GetRole() User_Role {
 	return User_ROLE_UNSPECIFIED
 }
 
+func (x *User) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *User) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+func (x *User) GetSource() UserSource {
+	if x != nil {
+		return x.Source
+	}
+	return UserSource_USER_SOURCE_UNSPECIFIED
+}
+
+func (x *User) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *User) GetLastSignInAt() string {
+	if x != nil {
+		return x.LastSignInAt
+	}
+	return ""
+}
+
 type Device struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -962,15 +1255,19 @@ type Device struct {
 	Os    string                 `protobuf:"bytes,3,opt,name=os,proto3" json:"os,omitempty"`
 	Arch  string                 `protobuf:"bytes,4,opt,name=arch,proto3" json:"arch,omitempty"`
 	// RFC 3339, UTC.
-	CreatedAt     string `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	LastSeenAt    string `protobuf:"bytes,6,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
+	CreatedAt  string `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LastSeenAt string `protobuf:"bytes,6,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
+	// The device making the call (ListDevices).
+	Current bool `protobuf:"varint,7,opt,name=current,proto3" json:"current,omitempty"`
+	// The client program that signed in, e.g. "harness-client"; empty when unknown.
+	ClientName    string `protobuf:"bytes,8,opt,name=client_name,json=clientName,proto3" json:"client_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Device) Reset() {
 	*x = Device{}
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[16]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -982,7 +1279,7 @@ func (x *Device) String() string {
 func (*Device) ProtoMessage() {}
 
 func (x *Device) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_auth_proto_msgTypes[16]
+	mi := &file_harness_auth_v1_auth_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -995,7 +1292,7 @@ func (x *Device) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Device.ProtoReflect.Descriptor instead.
 func (*Device) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{16}
+	return file_harness_auth_v1_auth_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Device) GetId() string {
@@ -1036,6 +1333,20 @@ func (x *Device) GetCreatedAt() string {
 func (x *Device) GetLastSeenAt() string {
 	if x != nil {
 		return x.LastSeenAt
+	}
+	return ""
+}
+
+func (x *Device) GetCurrent() bool {
+	if x != nil {
+		return x.Current
+	}
+	return false
+}
+
+func (x *Device) GetClientName() string {
+	if x != nil {
+		return x.ClientName
 	}
 	return ""
 }
@@ -1095,19 +1406,37 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\fGetMeRequest\"k\n" +
 	"\rGetMeResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.harness.auth.v1.UserR\x04user\x12/\n" +
-	"\x06device\x18\x02 \x01(\v2\x17.harness.auth.v1.DeviceR\x06device\"\x0f\n" +
+	"\x06device\x18\x02 \x01(\v2\x17.harness.auth.v1.DeviceR\x06device\"X\n" +
+	"\x0fUpdateMeRequest\x12\x17\n" +
+	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x19\n" +
+	"\x05image\x18\x02 \x01(\tH\x01R\x05image\x88\x01\x01B\a\n" +
+	"\x05_nameB\b\n" +
+	"\x06_image\"=\n" +
+	"\x10UpdateMeResponse\x12)\n" +
+	"\x04user\x18\x01 \x01(\v2\x15.harness.auth.v1.UserR\x04user\"\x99\x01\n" +
+	"\x15ChangePasswordRequest\x12)\n" +
+	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\x12!\n" +
+	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\x122\n" +
+	"\x15revoke_other_sessions\x18\x03 \x01(\bR\x13revokeOtherSessions\"\x18\n" +
+	"\x16ChangePasswordResponse\"\x0f\n" +
 	"\rLogoutRequest\"\x10\n" +
-	"\x0eLogoutResponse\"\xad\x01\n" +
+	"\x0eLogoutResponse\"\xda\x02\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12.\n" +
-	"\x04role\x18\x04 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\";\n" +
+	"\x04role\x18\x04 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x12\x1a\n" +
+	"\busername\x18\x05 \x01(\tR\busername\x12\x14\n" +
+	"\x05image\x18\x06 \x01(\tR\x05image\x123\n" +
+	"\x06source\x18\a \x01(\x0e2\x1b.harness.auth.v1.UserSourceR\x06source\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\x12%\n" +
+	"\x0flast_sign_in_at\x18\t \x01(\tR\flastSignInAt\";\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tROLE_USER\x10\x01\x12\x0e\n" +
 	"\n" +
-	"ROLE_ADMIN\x10\x02\"\x91\x01\n" +
+	"ROLE_ADMIN\x10\x02\"\xcc\x01\n" +
 	"\x06Device\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x0e\n" +
@@ -1116,12 +1445,22 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12 \n" +
 	"\flast_seen_at\x18\x06 \x01(\tR\n" +
-	"lastSeenAt2\x95\x05\n" +
+	"lastSeenAt\x12\x18\n" +
+	"\acurrent\x18\a \x01(\bR\acurrent\x12\x1f\n" +
+	"\vclient_name\x18\b \x01(\tR\n" +
+	"clientName*V\n" +
+	"\n" +
+	"UserSource\x12\x1b\n" +
+	"\x17USER_SOURCE_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11USER_SOURCE_LOCAL\x10\x01\x12\x14\n" +
+	"\x10USER_SOURCE_LDAP\x10\x022\xc9\x06\n" +
 	"\x11DeviceAuthService\x12d\n" +
 	"\x0fStartDeviceAuth\x12'.harness.auth.v1.StartDeviceAuthRequest\x1a(.harness.auth.v1.StartDeviceAuthResponse\x12a\n" +
 	"\x0ePollDeviceAuth\x12&.harness.auth.v1.PollDeviceAuthRequest\x1a'.harness.auth.v1.PollDeviceAuthResponse\x12m\n" +
 	"\x12RefreshAccessToken\x12*.harness.auth.v1.RefreshAccessTokenRequest\x1a+.harness.auth.v1.RefreshAccessTokenResponse\x12F\n" +
-	"\x05GetMe\x12\x1d.harness.auth.v1.GetMeRequest\x1a\x1e.harness.auth.v1.GetMeResponse\x12I\n" +
+	"\x05GetMe\x12\x1d.harness.auth.v1.GetMeRequest\x1a\x1e.harness.auth.v1.GetMeResponse\x12O\n" +
+	"\bUpdateMe\x12 .harness.auth.v1.UpdateMeRequest\x1a!.harness.auth.v1.UpdateMeResponse\x12a\n" +
+	"\x0eChangePassword\x12&.harness.auth.v1.ChangePasswordRequest\x1a'.harness.auth.v1.ChangePasswordResponse\x12I\n" +
 	"\x06Logout\x12\x1e.harness.auth.v1.LogoutRequest\x1a\x1f.harness.auth.v1.LogoutResponse\x12X\n" +
 	"\vListDevices\x12#.harness.auth.v1.ListDevicesRequest\x1a$.harness.auth.v1.ListDevicesResponse\x12[\n" +
 	"\fRevokeDevice\x12$.harness.auth.v1.RevokeDeviceRequest\x1a%.harness.auth.v1.RevokeDeviceResponseB\xc3\x01\n" +
@@ -1139,56 +1478,67 @@ func file_harness_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_harness_auth_v1_auth_proto_rawDescData
 }
 
-var file_harness_auth_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_harness_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_harness_auth_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_harness_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_harness_auth_v1_auth_proto_goTypes = []any{
-	(PollDeviceAuthResponse_Status)(0), // 0: harness.auth.v1.PollDeviceAuthResponse.Status
-	(User_Role)(0),                     // 1: harness.auth.v1.User.Role
-	(*ListDevicesRequest)(nil),         // 2: harness.auth.v1.ListDevicesRequest
-	(*ListDevicesResponse)(nil),        // 3: harness.auth.v1.ListDevicesResponse
-	(*RevokeDeviceRequest)(nil),        // 4: harness.auth.v1.RevokeDeviceRequest
-	(*RevokeDeviceResponse)(nil),       // 5: harness.auth.v1.RevokeDeviceResponse
-	(*StartDeviceAuthRequest)(nil),     // 6: harness.auth.v1.StartDeviceAuthRequest
-	(*StartDeviceAuthResponse)(nil),    // 7: harness.auth.v1.StartDeviceAuthResponse
-	(*PollDeviceAuthRequest)(nil),      // 8: harness.auth.v1.PollDeviceAuthRequest
-	(*PollDeviceAuthResponse)(nil),     // 9: harness.auth.v1.PollDeviceAuthResponse
-	(*DeviceCredentials)(nil),          // 10: harness.auth.v1.DeviceCredentials
-	(*RefreshAccessTokenRequest)(nil),  // 11: harness.auth.v1.RefreshAccessTokenRequest
-	(*RefreshAccessTokenResponse)(nil), // 12: harness.auth.v1.RefreshAccessTokenResponse
-	(*GetMeRequest)(nil),               // 13: harness.auth.v1.GetMeRequest
-	(*GetMeResponse)(nil),              // 14: harness.auth.v1.GetMeResponse
-	(*LogoutRequest)(nil),              // 15: harness.auth.v1.LogoutRequest
-	(*LogoutResponse)(nil),             // 16: harness.auth.v1.LogoutResponse
-	(*User)(nil),                       // 17: harness.auth.v1.User
-	(*Device)(nil),                     // 18: harness.auth.v1.Device
+	(UserSource)(0),                    // 0: harness.auth.v1.UserSource
+	(PollDeviceAuthResponse_Status)(0), // 1: harness.auth.v1.PollDeviceAuthResponse.Status
+	(User_Role)(0),                     // 2: harness.auth.v1.User.Role
+	(*ListDevicesRequest)(nil),         // 3: harness.auth.v1.ListDevicesRequest
+	(*ListDevicesResponse)(nil),        // 4: harness.auth.v1.ListDevicesResponse
+	(*RevokeDeviceRequest)(nil),        // 5: harness.auth.v1.RevokeDeviceRequest
+	(*RevokeDeviceResponse)(nil),       // 6: harness.auth.v1.RevokeDeviceResponse
+	(*StartDeviceAuthRequest)(nil),     // 7: harness.auth.v1.StartDeviceAuthRequest
+	(*StartDeviceAuthResponse)(nil),    // 8: harness.auth.v1.StartDeviceAuthResponse
+	(*PollDeviceAuthRequest)(nil),      // 9: harness.auth.v1.PollDeviceAuthRequest
+	(*PollDeviceAuthResponse)(nil),     // 10: harness.auth.v1.PollDeviceAuthResponse
+	(*DeviceCredentials)(nil),          // 11: harness.auth.v1.DeviceCredentials
+	(*RefreshAccessTokenRequest)(nil),  // 12: harness.auth.v1.RefreshAccessTokenRequest
+	(*RefreshAccessTokenResponse)(nil), // 13: harness.auth.v1.RefreshAccessTokenResponse
+	(*GetMeRequest)(nil),               // 14: harness.auth.v1.GetMeRequest
+	(*GetMeResponse)(nil),              // 15: harness.auth.v1.GetMeResponse
+	(*UpdateMeRequest)(nil),            // 16: harness.auth.v1.UpdateMeRequest
+	(*UpdateMeResponse)(nil),           // 17: harness.auth.v1.UpdateMeResponse
+	(*ChangePasswordRequest)(nil),      // 18: harness.auth.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),     // 19: harness.auth.v1.ChangePasswordResponse
+	(*LogoutRequest)(nil),              // 20: harness.auth.v1.LogoutRequest
+	(*LogoutResponse)(nil),             // 21: harness.auth.v1.LogoutResponse
+	(*User)(nil),                       // 22: harness.auth.v1.User
+	(*Device)(nil),                     // 23: harness.auth.v1.Device
 }
 var file_harness_auth_v1_auth_proto_depIdxs = []int32{
-	18, // 0: harness.auth.v1.ListDevicesResponse.devices:type_name -> harness.auth.v1.Device
-	0,  // 1: harness.auth.v1.PollDeviceAuthResponse.status:type_name -> harness.auth.v1.PollDeviceAuthResponse.Status
-	10, // 2: harness.auth.v1.PollDeviceAuthResponse.credentials:type_name -> harness.auth.v1.DeviceCredentials
-	17, // 3: harness.auth.v1.DeviceCredentials.user:type_name -> harness.auth.v1.User
-	17, // 4: harness.auth.v1.GetMeResponse.user:type_name -> harness.auth.v1.User
-	18, // 5: harness.auth.v1.GetMeResponse.device:type_name -> harness.auth.v1.Device
-	1,  // 6: harness.auth.v1.User.role:type_name -> harness.auth.v1.User.Role
-	6,  // 7: harness.auth.v1.DeviceAuthService.StartDeviceAuth:input_type -> harness.auth.v1.StartDeviceAuthRequest
-	8,  // 8: harness.auth.v1.DeviceAuthService.PollDeviceAuth:input_type -> harness.auth.v1.PollDeviceAuthRequest
-	11, // 9: harness.auth.v1.DeviceAuthService.RefreshAccessToken:input_type -> harness.auth.v1.RefreshAccessTokenRequest
-	13, // 10: harness.auth.v1.DeviceAuthService.GetMe:input_type -> harness.auth.v1.GetMeRequest
-	15, // 11: harness.auth.v1.DeviceAuthService.Logout:input_type -> harness.auth.v1.LogoutRequest
-	2,  // 12: harness.auth.v1.DeviceAuthService.ListDevices:input_type -> harness.auth.v1.ListDevicesRequest
-	4,  // 13: harness.auth.v1.DeviceAuthService.RevokeDevice:input_type -> harness.auth.v1.RevokeDeviceRequest
-	7,  // 14: harness.auth.v1.DeviceAuthService.StartDeviceAuth:output_type -> harness.auth.v1.StartDeviceAuthResponse
-	9,  // 15: harness.auth.v1.DeviceAuthService.PollDeviceAuth:output_type -> harness.auth.v1.PollDeviceAuthResponse
-	12, // 16: harness.auth.v1.DeviceAuthService.RefreshAccessToken:output_type -> harness.auth.v1.RefreshAccessTokenResponse
-	14, // 17: harness.auth.v1.DeviceAuthService.GetMe:output_type -> harness.auth.v1.GetMeResponse
-	16, // 18: harness.auth.v1.DeviceAuthService.Logout:output_type -> harness.auth.v1.LogoutResponse
-	3,  // 19: harness.auth.v1.DeviceAuthService.ListDevices:output_type -> harness.auth.v1.ListDevicesResponse
-	5,  // 20: harness.auth.v1.DeviceAuthService.RevokeDevice:output_type -> harness.auth.v1.RevokeDeviceResponse
-	14, // [14:21] is the sub-list for method output_type
-	7,  // [7:14] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	23, // 0: harness.auth.v1.ListDevicesResponse.devices:type_name -> harness.auth.v1.Device
+	1,  // 1: harness.auth.v1.PollDeviceAuthResponse.status:type_name -> harness.auth.v1.PollDeviceAuthResponse.Status
+	11, // 2: harness.auth.v1.PollDeviceAuthResponse.credentials:type_name -> harness.auth.v1.DeviceCredentials
+	22, // 3: harness.auth.v1.DeviceCredentials.user:type_name -> harness.auth.v1.User
+	22, // 4: harness.auth.v1.GetMeResponse.user:type_name -> harness.auth.v1.User
+	23, // 5: harness.auth.v1.GetMeResponse.device:type_name -> harness.auth.v1.Device
+	22, // 6: harness.auth.v1.UpdateMeResponse.user:type_name -> harness.auth.v1.User
+	2,  // 7: harness.auth.v1.User.role:type_name -> harness.auth.v1.User.Role
+	0,  // 8: harness.auth.v1.User.source:type_name -> harness.auth.v1.UserSource
+	7,  // 9: harness.auth.v1.DeviceAuthService.StartDeviceAuth:input_type -> harness.auth.v1.StartDeviceAuthRequest
+	9,  // 10: harness.auth.v1.DeviceAuthService.PollDeviceAuth:input_type -> harness.auth.v1.PollDeviceAuthRequest
+	12, // 11: harness.auth.v1.DeviceAuthService.RefreshAccessToken:input_type -> harness.auth.v1.RefreshAccessTokenRequest
+	14, // 12: harness.auth.v1.DeviceAuthService.GetMe:input_type -> harness.auth.v1.GetMeRequest
+	16, // 13: harness.auth.v1.DeviceAuthService.UpdateMe:input_type -> harness.auth.v1.UpdateMeRequest
+	18, // 14: harness.auth.v1.DeviceAuthService.ChangePassword:input_type -> harness.auth.v1.ChangePasswordRequest
+	20, // 15: harness.auth.v1.DeviceAuthService.Logout:input_type -> harness.auth.v1.LogoutRequest
+	3,  // 16: harness.auth.v1.DeviceAuthService.ListDevices:input_type -> harness.auth.v1.ListDevicesRequest
+	5,  // 17: harness.auth.v1.DeviceAuthService.RevokeDevice:input_type -> harness.auth.v1.RevokeDeviceRequest
+	8,  // 18: harness.auth.v1.DeviceAuthService.StartDeviceAuth:output_type -> harness.auth.v1.StartDeviceAuthResponse
+	10, // 19: harness.auth.v1.DeviceAuthService.PollDeviceAuth:output_type -> harness.auth.v1.PollDeviceAuthResponse
+	13, // 20: harness.auth.v1.DeviceAuthService.RefreshAccessToken:output_type -> harness.auth.v1.RefreshAccessTokenResponse
+	15, // 21: harness.auth.v1.DeviceAuthService.GetMe:output_type -> harness.auth.v1.GetMeResponse
+	17, // 22: harness.auth.v1.DeviceAuthService.UpdateMe:output_type -> harness.auth.v1.UpdateMeResponse
+	19, // 23: harness.auth.v1.DeviceAuthService.ChangePassword:output_type -> harness.auth.v1.ChangePasswordResponse
+	21, // 24: harness.auth.v1.DeviceAuthService.Logout:output_type -> harness.auth.v1.LogoutResponse
+	4,  // 25: harness.auth.v1.DeviceAuthService.ListDevices:output_type -> harness.auth.v1.ListDevicesResponse
+	6,  // 26: harness.auth.v1.DeviceAuthService.RevokeDevice:output_type -> harness.auth.v1.RevokeDeviceResponse
+	18, // [18:27] is the sub-list for method output_type
+	9,  // [9:18] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_harness_auth_v1_auth_proto_init() }
@@ -1196,13 +1546,14 @@ func file_harness_auth_v1_auth_proto_init() {
 	if File_harness_auth_v1_auth_proto != nil {
 		return
 	}
+	file_harness_auth_v1_auth_proto_msgTypes[13].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_auth_v1_auth_proto_rawDesc), len(file_harness_auth_v1_auth_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   17,
+			NumEnums:      3,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

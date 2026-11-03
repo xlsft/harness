@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/auth/v1/auth.proto.
  */
 export const file_harness_auth_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChpoYXJuZXNzL2F1dGgvdjEvYXV0aC5wcm90bxIPaGFybmVzcy5hdXRoLnYxIiUKEkxpc3REZXZpY2VzUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIj8KE0xpc3REZXZpY2VzUmVzcG9uc2USKAoHZGV2aWNlcxgBIAMoCzIXLmhhcm5lc3MuYXV0aC52MS5EZXZpY2UiKAoTUmV2b2tlRGV2aWNlUmVxdWVzdBIRCglkZXZpY2VfaWQYASABKAkiFgoUUmV2b2tlRGV2aWNlUmVzcG9uc2UidAoWU3RhcnREZXZpY2VBdXRoUmVxdWVzdBITCgtjbGllbnRfbmFtZRgBIAEoCRITCgtkZXZpY2VfbmFtZRgCIAEoCRIKCgJvcxgDIAEoCRIMCgRhcmNoGAQgASgJEhYKDmNsaWVudF92ZXJzaW9uGAUgASgJIrQBChdTdGFydERldmljZUF1dGhSZXNwb25zZRITCgtkZXZpY2VfY29kZRgBIAEoCRIRCgl1c2VyX2NvZGUYAiABKAkSGAoQdmVyaWZpY2F0aW9uX3VyaRgDIAEoCRIhChl2ZXJpZmljYXRpb25fdXJpX2NvbXBsZXRlGAQgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIYChBpbnRlcnZhbF9zZWNvbmRzGAYgASgFIiwKFVBvbGxEZXZpY2VBdXRoUmVxdWVzdBITCgtkZXZpY2VfY29kZRgBIAEoCSKaAgoWUG9sbERldmljZUF1dGhSZXNwb25zZRI+CgZzdGF0dXMYASABKA4yLi5oYXJuZXNzLmF1dGgudjEuUG9sbERldmljZUF1dGhSZXNwb25zZS5TdGF0dXMSNwoLY3JlZGVudGlhbHMYAiABKAsyIi5oYXJuZXNzLmF1dGgudjEuRGV2aWNlQ3JlZGVudGlhbHMihgEKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfUEVORElORxABEhQKEFNUQVRVU19TTE9XX0RPV04QAhITCg9TVEFUVVNfQVBQUk9WRUQQAxIRCg1TVEFUVVNfREVOSUVEEAQSEgoOU1RBVFVTX0VYUElSRUQQBSKaAQoRRGV2aWNlQ3JlZGVudGlhbHMSEQoJZGV2aWNlX2lkGAEgASgJEhQKDGRldmljZV90b2tlbhgCIAEoCRIUCgxhY2Nlc3NfdG9rZW4YAyABKAkSIQoZYWNjZXNzX2V4cGlyZXNfaW5fc2Vjb25kcxgEIAEoBRIjCgR1c2VyGAUgASgLMhUuaGFybmVzcy5hdXRoLnYxLlVzZXIiMQoZUmVmcmVzaEFjY2Vzc1Rva2VuUmVxdWVzdBIUCgxkZXZpY2VfdG9rZW4YASABKAkiVQoaUmVmcmVzaEFjY2Vzc1Rva2VuUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEiEKGWFjY2Vzc19leHBpcmVzX2luX3NlY29uZHMYAiABKAUiDgoMR2V0TWVSZXF1ZXN0Il0KDUdldE1lUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLmhhcm5lc3MuYXV0aC52MS5Vc2VyEicKBmRldmljZRgCIAEoCzIXLmhhcm5lc3MuYXV0aC52MS5EZXZpY2UiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSKWAQoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRuYW1lGAMgASgJEigKBHJvbGUYBCABKA4yGi5oYXJuZXNzLmF1dGgudjEuVXNlci5Sb2xlIjsKBFJvbGUSFAoQUk9MRV9VTlNQRUNJRklFRBAAEg0KCVJPTEVfVVNFUhABEg4KClJPTEVfQURNSU4QAiJmCgZEZXZpY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIKCgJvcxgDIAEoCRIMCgRhcmNoGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkSFAoMbGFzdF9zZWVuX2F0GAYgASgJMpUFChFEZXZpY2VBdXRoU2VydmljZRJkCg9TdGFydERldmljZUF1dGgSJy5oYXJuZXNzLmF1dGgudjEuU3RhcnREZXZpY2VBdXRoUmVxdWVzdBooLmhhcm5lc3MuYXV0aC52MS5TdGFydERldmljZUF1dGhSZXNwb25zZRJhCg5Qb2xsRGV2aWNlQXV0aBImLmhhcm5lc3MuYXV0aC52MS5Qb2xsRGV2aWNlQXV0aFJlcXVlc3QaJy5oYXJuZXNzLmF1dGgudjEuUG9sbERldmljZUF1dGhSZXNwb25zZRJtChJSZWZyZXNoQWNjZXNzVG9rZW4SKi5oYXJuZXNzLmF1dGgudjEuUmVmcmVzaEFjY2Vzc1Rva2VuUmVxdWVzdBorLmhhcm5lc3MuYXV0aC52MS5SZWZyZXNoQWNjZXNzVG9rZW5SZXNwb25zZRJGCgVHZXRNZRIdLmhhcm5lc3MuYXV0aC52MS5HZXRNZVJlcXVlc3QaHi5oYXJuZXNzLmF1dGgudjEuR2V0TWVSZXNwb25zZRJJCgZMb2dvdXQSHi5oYXJuZXNzLmF1dGgudjEuTG9nb3V0UmVxdWVzdBofLmhhcm5lc3MuYXV0aC52MS5Mb2dvdXRSZXNwb25zZRJYCgtMaXN0RGV2aWNlcxIjLmhhcm5lc3MuYXV0aC52MS5MaXN0RGV2aWNlc1JlcXVlc3QaJC5oYXJuZXNzLmF1dGgudjEuTGlzdERldmljZXNSZXNwb25zZRJbCgxSZXZva2VEZXZpY2USJC5oYXJuZXNzLmF1dGgudjEuUmV2b2tlRGV2aWNlUmVxdWVzdBolLmhhcm5lc3MuYXV0aC52MS5SZXZva2VEZXZpY2VSZXNwb25zZULDAQoTY29tLmhhcm5lc3MuYXV0aC52MUIJQXV0aFByb3RvUAFaQ2dpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYXV0aC92MTthdXRodjGiAgNIQViqAg9IYXJuZXNzLkF1dGguVjHKAg9IYXJuZXNzXEF1dGhcVjHiAhtIYXJuZXNzXEF1dGhcVjFcR1BCTWV0YWRhdGHqAhFIYXJuZXNzOjpBdXRoOjpWMWIGcHJvdG8z");
+  fileDesc("ChpoYXJuZXNzL2F1dGgvdjEvYXV0aC5wcm90bxIPaGFybmVzcy5hdXRoLnYxIiUKEkxpc3REZXZpY2VzUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIj8KE0xpc3REZXZpY2VzUmVzcG9uc2USKAoHZGV2aWNlcxgBIAMoCzIXLmhhcm5lc3MuYXV0aC52MS5EZXZpY2UiKAoTUmV2b2tlRGV2aWNlUmVxdWVzdBIRCglkZXZpY2VfaWQYASABKAkiFgoUUmV2b2tlRGV2aWNlUmVzcG9uc2UidAoWU3RhcnREZXZpY2VBdXRoUmVxdWVzdBITCgtjbGllbnRfbmFtZRgBIAEoCRITCgtkZXZpY2VfbmFtZRgCIAEoCRIKCgJvcxgDIAEoCRIMCgRhcmNoGAQgASgJEhYKDmNsaWVudF92ZXJzaW9uGAUgASgJIrQBChdTdGFydERldmljZUF1dGhSZXNwb25zZRITCgtkZXZpY2VfY29kZRgBIAEoCRIRCgl1c2VyX2NvZGUYAiABKAkSGAoQdmVyaWZpY2F0aW9uX3VyaRgDIAEoCRIhChl2ZXJpZmljYXRpb25fdXJpX2NvbXBsZXRlGAQgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIYChBpbnRlcnZhbF9zZWNvbmRzGAYgASgFIiwKFVBvbGxEZXZpY2VBdXRoUmVxdWVzdBITCgtkZXZpY2VfY29kZRgBIAEoCSKaAgoWUG9sbERldmljZUF1dGhSZXNwb25zZRI+CgZzdGF0dXMYASABKA4yLi5oYXJuZXNzLmF1dGgudjEuUG9sbERldmljZUF1dGhSZXNwb25zZS5TdGF0dXMSNwoLY3JlZGVudGlhbHMYAiABKAsyIi5oYXJuZXNzLmF1dGgudjEuRGV2aWNlQ3JlZGVudGlhbHMihgEKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfUEVORElORxABEhQKEFNUQVRVU19TTE9XX0RPV04QAhITCg9TVEFUVVNfQVBQUk9WRUQQAxIRCg1TVEFUVVNfREVOSUVEEAQSEgoOU1RBVFVTX0VYUElSRUQQBSKaAQoRRGV2aWNlQ3JlZGVudGlhbHMSEQoJZGV2aWNlX2lkGAEgASgJEhQKDGRldmljZV90b2tlbhgCIAEoCRIUCgxhY2Nlc3NfdG9rZW4YAyABKAkSIQoZYWNjZXNzX2V4cGlyZXNfaW5fc2Vjb25kcxgEIAEoBRIjCgR1c2VyGAUgASgLMhUuaGFybmVzcy5hdXRoLnYxLlVzZXIiMQoZUmVmcmVzaEFjY2Vzc1Rva2VuUmVxdWVzdBIUCgxkZXZpY2VfdG9rZW4YASABKAkiVQoaUmVmcmVzaEFjY2Vzc1Rva2VuUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEiEKGWFjY2Vzc19leHBpcmVzX2luX3NlY29uZHMYAiABKAUiDgoMR2V0TWVSZXF1ZXN0Il0KDUdldE1lUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLmhhcm5lc3MuYXV0aC52MS5Vc2VyEicKBmRldmljZRgCIAEoCzIXLmhhcm5lc3MuYXV0aC52MS5EZXZpY2UiSwoPVXBkYXRlTWVSZXF1ZXN0EhEKBG5hbWUYASABKAlIAIgBARISCgVpbWFnZRgCIAEoCUgBiAEBQgcKBV9uYW1lQggKBl9pbWFnZSI3ChBVcGRhdGVNZVJlc3BvbnNlEiMKBHVzZXIYASABKAsyFS5oYXJuZXNzLmF1dGgudjEuVXNlciJmChVDaGFuZ2VQYXNzd29yZFJlcXVlc3QSGAoQY3VycmVudF9wYXNzd29yZBgBIAEoCRIUCgxuZXdfcGFzc3dvcmQYAiABKAkSHQoVcmV2b2tlX290aGVyX3Nlc3Npb25zGAMgASgIIhgKFkNoYW5nZVBhc3N3b3JkUmVzcG9uc2UiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSKRAgoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRuYW1lGAMgASgJEigKBHJvbGUYBCABKA4yGi5oYXJuZXNzLmF1dGgudjEuVXNlci5Sb2xlEhAKCHVzZXJuYW1lGAUgASgJEg0KBWltYWdlGAYgASgJEisKBnNvdXJjZRgHIAEoDjIbLmhhcm5lc3MuYXV0aC52MS5Vc2VyU291cmNlEhIKCmNyZWF0ZWRfYXQYCCABKAkSFwoPbGFzdF9zaWduX2luX2F0GAkgASgJIjsKBFJvbGUSFAoQUk9MRV9VTlNQRUNJRklFRBAAEg0KCVJPTEVfVVNFUhABEg4KClJPTEVfQURNSU4QAiKMAQoGRGV2aWNlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCgoCb3MYAyABKAkSDAoEYXJjaBgEIAEoCRISCgpjcmVhdGVkX2F0GAUgASgJEhQKDGxhc3Rfc2Vlbl9hdBgGIAEoCRIPCgdjdXJyZW50GAcgASgIEhMKC2NsaWVudF9uYW1lGAggASgJKlYKClVzZXJTb3VyY2USGwoXVVNFUl9TT1VSQ0VfVU5TUEVDSUZJRUQQABIVChFVU0VSX1NPVVJDRV9MT0NBTBABEhQKEFVTRVJfU09VUkNFX0xEQVAQAjLJBgoRRGV2aWNlQXV0aFNlcnZpY2USZAoPU3RhcnREZXZpY2VBdXRoEicuaGFybmVzcy5hdXRoLnYxLlN0YXJ0RGV2aWNlQXV0aFJlcXVlc3QaKC5oYXJuZXNzLmF1dGgudjEuU3RhcnREZXZpY2VBdXRoUmVzcG9uc2USYQoOUG9sbERldmljZUF1dGgSJi5oYXJuZXNzLmF1dGgudjEuUG9sbERldmljZUF1dGhSZXF1ZXN0GicuaGFybmVzcy5hdXRoLnYxLlBvbGxEZXZpY2VBdXRoUmVzcG9uc2USbQoSUmVmcmVzaEFjY2Vzc1Rva2VuEiouaGFybmVzcy5hdXRoLnYxLlJlZnJlc2hBY2Nlc3NUb2tlblJlcXVlc3QaKy5oYXJuZXNzLmF1dGgudjEuUmVmcmVzaEFjY2Vzc1Rva2VuUmVzcG9uc2USRgoFR2V0TWUSHS5oYXJuZXNzLmF1dGgudjEuR2V0TWVSZXF1ZXN0Gh4uaGFybmVzcy5hdXRoLnYxLkdldE1lUmVzcG9uc2USTwoIVXBkYXRlTWUSIC5oYXJuZXNzLmF1dGgudjEuVXBkYXRlTWVSZXF1ZXN0GiEuaGFybmVzcy5hdXRoLnYxLlVwZGF0ZU1lUmVzcG9uc2USYQoOQ2hhbmdlUGFzc3dvcmQSJi5oYXJuZXNzLmF1dGgudjEuQ2hhbmdlUGFzc3dvcmRSZXF1ZXN0GicuaGFybmVzcy5hdXRoLnYxLkNoYW5nZVBhc3N3b3JkUmVzcG9uc2USSQoGTG9nb3V0Eh4uaGFybmVzcy5hdXRoLnYxLkxvZ291dFJlcXVlc3QaHy5oYXJuZXNzLmF1dGgudjEuTG9nb3V0UmVzcG9uc2USWAoLTGlzdERldmljZXMSIy5oYXJuZXNzLmF1dGgudjEuTGlzdERldmljZXNSZXF1ZXN0GiQuaGFybmVzcy5hdXRoLnYxLkxpc3REZXZpY2VzUmVzcG9uc2USWwoMUmV2b2tlRGV2aWNlEiQuaGFybmVzcy5hdXRoLnYxLlJldm9rZURldmljZVJlcXVlc3QaJS5oYXJuZXNzLmF1dGgudjEuUmV2b2tlRGV2aWNlUmVzcG9uc2VCwwEKE2NvbS5oYXJuZXNzLmF1dGgudjFCCUF1dGhQcm90b1ABWkNnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2F1dGgvdjE7YXV0aHYxogIDSEFYqgIPSGFybmVzcy5BdXRoLlYxygIPSGFybmVzc1xBdXRoXFYx4gIbSGFybmVzc1xBdXRoXFYxXEdQQk1ldGFkYXRh6gIRSGFybmVzczo6QXV0aDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message harness.auth.v1.ListDevicesRequest
@@ -353,6 +353,95 @@ export const GetMeResponseSchema: GenMessage<GetMeResponse> = /*@__PURE__*/
   messageDesc(file_harness_auth_v1_auth, 12);
 
 /**
+ * @generated from message harness.auth.v1.UpdateMeRequest
+ */
+export type UpdateMeRequest = Message<"harness.auth.v1.UpdateMeRequest"> & {
+  /**
+   * Unset: unchanged. 1-100 characters after trimming.
+   *
+   * @generated from field: optional string name = 1;
+   */
+  name?: string | undefined;
+
+  /**
+   * Unset: unchanged; "": removes the avatar. Otherwise a data URL of a PNG, JPEG or WebP image
+   * ("data:image/png;base64,..."), at most 256x256 pixels and 200 KB decoded. The client resizes before
+   * uploading; the server checks the type (by content, not only the declared one), size and dimensions.
+   *
+   * @generated from field: optional string image = 2;
+   */
+  image?: string | undefined;
+};
+
+/**
+ * Describes the message harness.auth.v1.UpdateMeRequest.
+ * Use `create(UpdateMeRequestSchema)` to create a new message.
+ */
+export const UpdateMeRequestSchema: GenMessage<UpdateMeRequest> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 13);
+
+/**
+ * @generated from message harness.auth.v1.UpdateMeResponse
+ */
+export type UpdateMeResponse = Message<"harness.auth.v1.UpdateMeResponse"> & {
+  /**
+   * @generated from field: harness.auth.v1.User user = 1;
+   */
+  user?: User | undefined;
+};
+
+/**
+ * Describes the message harness.auth.v1.UpdateMeResponse.
+ * Use `create(UpdateMeResponseSchema)` to create a new message.
+ */
+export const UpdateMeResponseSchema: GenMessage<UpdateMeResponse> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 14);
+
+/**
+ * @generated from message harness.auth.v1.ChangePasswordRequest
+ */
+export type ChangePasswordRequest = Message<"harness.auth.v1.ChangePasswordRequest"> & {
+  /**
+   * @generated from field: string current_password = 1;
+   */
+  currentPassword: string;
+
+  /**
+   * 8-128 characters.
+   *
+   * @generated from field: string new_password = 2;
+   */
+  newPassword: string;
+
+  /**
+   * Also signs out the user's web sessions and every other device; the calling device stays signed in.
+   *
+   * @generated from field: bool revoke_other_sessions = 3;
+   */
+  revokeOtherSessions: boolean;
+};
+
+/**
+ * Describes the message harness.auth.v1.ChangePasswordRequest.
+ * Use `create(ChangePasswordRequestSchema)` to create a new message.
+ */
+export const ChangePasswordRequestSchema: GenMessage<ChangePasswordRequest> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 15);
+
+/**
+ * @generated from message harness.auth.v1.ChangePasswordResponse
+ */
+export type ChangePasswordResponse = Message<"harness.auth.v1.ChangePasswordResponse"> & {
+};
+
+/**
+ * Describes the message harness.auth.v1.ChangePasswordResponse.
+ * Use `create(ChangePasswordResponseSchema)` to create a new message.
+ */
+export const ChangePasswordResponseSchema: GenMessage<ChangePasswordResponse> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_auth, 16);
+
+/**
  * @generated from message harness.auth.v1.LogoutRequest
  */
 export type LogoutRequest = Message<"harness.auth.v1.LogoutRequest"> & {
@@ -363,7 +452,7 @@ export type LogoutRequest = Message<"harness.auth.v1.LogoutRequest"> & {
  * Use `create(LogoutRequestSchema)` to create a new message.
  */
 export const LogoutRequestSchema: GenMessage<LogoutRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 13);
+  messageDesc(file_harness_auth_v1_auth, 17);
 
 /**
  * @generated from message harness.auth.v1.LogoutResponse
@@ -376,7 +465,7 @@ export type LogoutResponse = Message<"harness.auth.v1.LogoutResponse"> & {
  * Use `create(LogoutResponseSchema)` to create a new message.
  */
 export const LogoutResponseSchema: GenMessage<LogoutResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 14);
+  messageDesc(file_harness_auth_v1_auth, 18);
 
 /**
  * @generated from message harness.auth.v1.User
@@ -401,6 +490,38 @@ export type User = Message<"harness.auth.v1.User"> & {
    * @generated from field: harness.auth.v1.User.Role role = 4;
    */
   role: User_Role;
+
+  /**
+   * Profile fields, set by GetMe and UpdateMe (empty elsewhere).
+   * Sign-in handle; empty when the account has none.
+   *
+   * @generated from field: string username = 5;
+   */
+  username: string;
+
+  /**
+   * Avatar as a data URL (see UpdateMeRequest.image); empty when none is set.
+   *
+   * @generated from field: string image = 6;
+   */
+  image: string;
+
+  /**
+   * @generated from field: harness.auth.v1.UserSource source = 7;
+   */
+  source: UserSource;
+
+  /**
+   * RFC 3339, UTC. last_sign_in_at is the latest web sign-in (devices are approved from one); empty when never.
+   *
+   * @generated from field: string created_at = 8;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: string last_sign_in_at = 9;
+   */
+  lastSignInAt: string;
 };
 
 /**
@@ -408,7 +529,7 @@ export type User = Message<"harness.auth.v1.User"> & {
  * Use `create(UserSchema)` to create a new message.
  */
 export const UserSchema: GenMessage<User> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 15);
+  messageDesc(file_harness_auth_v1_auth, 19);
 
 /**
  * @generated from enum harness.auth.v1.User.Role
@@ -434,7 +555,7 @@ export enum User_Role {
  * Describes the enum harness.auth.v1.User.Role.
  */
 export const User_RoleSchema: GenEnum<User_Role> = /*@__PURE__*/
-  enumDesc(file_harness_auth_v1_auth, 15, 0);
+  enumDesc(file_harness_auth_v1_auth, 19, 0);
 
 /**
  * @generated from message harness.auth.v1.Device
@@ -471,6 +592,20 @@ export type Device = Message<"harness.auth.v1.Device"> & {
    * @generated from field: string last_seen_at = 6;
    */
   lastSeenAt: string;
+
+  /**
+   * The device making the call (ListDevices).
+   *
+   * @generated from field: bool current = 7;
+   */
+  current: boolean;
+
+  /**
+   * The client program that signed in, e.g. "harness-client"; empty when unknown.
+   *
+   * @generated from field: string client_name = 8;
+   */
+  clientName: string;
 };
 
 /**
@@ -478,7 +613,37 @@ export type Device = Message<"harness.auth.v1.Device"> & {
  * Use `create(DeviceSchema)` to create a new message.
  */
 export const DeviceSchema: GenMessage<Device> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_auth, 16);
+  messageDesc(file_harness_auth_v1_auth, 20);
+
+/**
+ * @generated from enum harness.auth.v1.UserSource
+ */
+export enum UserSource {
+  /**
+   * @generated from enum value: USER_SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A local account with a password.
+   *
+   * @generated from enum value: USER_SOURCE_LOCAL = 1;
+   */
+  LOCAL = 1,
+
+  /**
+   * Signs in through LDAP; no local password.
+   *
+   * @generated from enum value: USER_SOURCE_LDAP = 2;
+   */
+  LDAP = 2,
+}
+
+/**
+ * Describes the enum harness.auth.v1.UserSource.
+ */
+export const UserSourceSchema: GenEnum<UserSource> = /*@__PURE__*/
+  enumDesc(file_harness_auth_v1_auth, 0);
 
 /**
  * Device authorization for clients (CLI, desktop, SSH runners), modeled on RFC 8628.
@@ -525,12 +690,36 @@ export const DeviceAuthService: GenService<{
     output: typeof RefreshAccessTokenResponseSchema;
   },
   /**
+   * The calling user's profile (and the calling device when authenticated with an access token).
+   *
    * @generated from rpc harness.auth.v1.DeviceAuthService.GetMe
    */
   getMe: {
     methodKind: "unary";
     input: typeof GetMeRequestSchema;
     output: typeof GetMeResponseSchema;
+  },
+  /**
+   * Changes the calling user's display name and/or avatar. Directory (LDAP) users cannot change their
+   * name (the directory sets it at every sign-in): FAILED_PRECONDITION.
+   *
+   * @generated from rpc harness.auth.v1.DeviceAuthService.UpdateMe
+   */
+  updateMe: {
+    methodKind: "unary";
+    input: typeof UpdateMeRequestSchema;
+    output: typeof UpdateMeResponseSchema;
+  },
+  /**
+   * Changes the calling user's local password. A wrong current password is INVALID_ARGUMENT; directory
+   * (LDAP) users have no local password: FAILED_PRECONDITION. Attempts are limited per user.
+   *
+   * @generated from rpc harness.auth.v1.DeviceAuthService.ChangePassword
+   */
+  changePassword: {
+    methodKind: "unary";
+    input: typeof ChangePasswordRequestSchema;
+    output: typeof ChangePasswordResponseSchema;
   },
   /**
    * Revokes the calling device.
@@ -543,7 +732,8 @@ export const DeviceAuthService: GenService<{
     output: typeof LogoutResponseSchema;
   },
   /**
-   * Devices of the calling user (admins may pass user_id to list another user's devices).
+   * Devices of the calling user (admins may pass user_id to list another user's devices), most recently seen
+   * first. Device.current marks the device making the call.
    *
    * @generated from rpc harness.auth.v1.DeviceAuthService.ListDevices
    */
@@ -554,6 +744,7 @@ export const DeviceAuthService: GenService<{
   },
   /**
    * Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+   * The calling device itself is refused with FAILED_PRECONDITION: it signs out with Logout instead.
    *
    * @generated from rpc harness.auth.v1.DeviceAuthService.RevokeDevice
    */

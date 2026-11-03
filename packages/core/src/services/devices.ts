@@ -240,9 +240,11 @@ export interface DeviceInfo {
   client_name: string | null;
   created_at: string;
   last_seen_at: string | null;
+  /** The device making the call. */
+  current: boolean;
 }
 
-function deviceInfo(d: typeof schema.device.$inferSelect): DeviceInfo {
+function deviceInfo(d: typeof schema.device.$inferSelect, currentId?: string): DeviceInfo {
   return {
     id: d.id,
     name: d.name,
@@ -251,6 +253,7 @@ function deviceInfo(d: typeof schema.device.$inferSelect): DeviceInfo {
     client_name: d.clientName ?? null,
     created_at: d.createdAt.toISOString(),
     last_seen_at: d.lastSeenAt ? d.lastSeenAt.toISOString() : null,
+    current: !!currentId && d.id === currentId,
   };
 }
 
@@ -258,7 +261,7 @@ export async function describePrincipal(p: Principal) {
   let info: DeviceInfo | null = null;
   if (p.deviceId) {
     const d = await getDb().query.device.findFirst({ where: eq(schema.device.id, p.deviceId) });
-    if (d) info = deviceInfo(d);
+    if (d) info = deviceInfo(d, p.deviceId);
   }
   return { user: p.user, device: info };
 }
@@ -277,18 +280,21 @@ export async function listDevices(p: Principal, userId?: string): Promise<Device
     where: and(eq(schema.device.userId, target), isNull(schema.device.revokedAt)),
   });
   const seen = (d: typeof schema.device.$inferSelect) => (d.lastSeenAt ?? d.createdAt).getTime();
-  return rows.sort((a, b) => seen(b) - seen(a)).map(deviceInfo);
+  return rows.sort((a, b) => seen(b) - seen(a)).map((d) => deviceInfo(d, p.deviceId));
 }
 
 /**
  * Revokes a device of the caller (admins: any device). Unknown devices and devices of other
- * users (for non-admins) are NOT_FOUND, so device ids of other users do not leak.
+ * users (for non-admins) are NOT_FOUND, so device ids of other users do not leak. The calling device is
+ * refused (FAILED_PRECONDITION): revoking it would cut off the very client the request came through, so it
+ * signs out with Logout instead.
  */
 export async function revokeDeviceFor(p: Principal, deviceId: string): Promise<void> {
   if (!deviceId) throw new ApiError("invalid_request", "device_id is required");
   await ensureDb();
   const d = await getDb().query.device.findFirst({ where: eq(schema.device.id, deviceId) });
   if (!d || (d.userId !== p.user.id && p.user.role !== "admin")) throw new ApiError("not_found", "Device not found");
+  if (d.id === p.deviceId) throw new ApiError("failed_precondition", "This is the device you are using; sign out on it instead");
   if (!d.revokedAt) await revokeDevice(deviceId);
 }
 
