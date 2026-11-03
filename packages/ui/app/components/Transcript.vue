@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Transcript (Main.dc.html): bottom-anchored column (column-reverse keeps it pinned to the newest item),
 // 790px max, 15px between items. Parallel tool calls of one message collapse into a ToolGroup.
-import type { SessionState, ToolItem, TranscriptItem } from '~/lib/session/types'
+import type { SessionState, ToolItem, TranscriptItem, UserItem } from '~/lib/session/types'
+import { hasActions, pendingMessages } from '~/lib/session/delivery'
 
 const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
@@ -51,9 +52,49 @@ const blocks = computed<Block[]>(() => {
   return out
 })
 
-// Messages waiting in this browser, then the ones sent to the client while a question waits for its answer.
-const queued = computed(() => [...(store.localQueue[props.session.meta.id] ?? []), ...props.session.queue])
+// Messages not read by the agent yet: handed to the client (sending, sent), in the client's queue, then in this
+// browser's queue (lib/session/delivery.ts).
+const queued = computed(() => pendingMessages(props.session, store.localQueue[props.session.meta.id], store.outbox[props.session.meta.id]))
+const waiting = computed(() => queued.value.filter(q => q.delivery === 'queued').length)
 const working = computed(() => props.session.meta.status === 'working')
+const busy = computed(() => working.value || props.session.meta.status === 'needs_input')
+// Another machine's session not driven from here offers Copy only.
+const readOnly = computed(() => props.session.meta.remote && !(store.remoteControl[props.session.meta.id] && props.session.meta.remoteControllable))
+// The last user message keeps its actions row visible; the others show it on hover.
+const lastUser = computed(() => {
+  const q = queued.value[queued.value.length - 1]
+  if (q) return 'p:' + q.id
+  const u = props.session.items.findLast(i => i.kind === 'user' && hasActions(i))
+  return u ? 'u:' + u.id : ''
+})
+
+const toast = useToast()
+const route = useRoute()
+// Message actions; a failure shows a toast.
+async function act(title: string, fn: () => unknown) {
+  try {
+    await fn()
+  } catch (err) {
+    toast.add({ title, description: (err instanceof Error ? err.message : String(err)).replace(/^\[\w+\]\s*/, ''), color: 'error' })
+  }
+}
+const sid = computed(() => props.session.meta.id)
+const copy = (text: string) => act('Could not copy', async () => {
+  await navigator.clipboard.writeText(text)
+  toast.add({ title: 'Message copied', color: 'neutral' })
+})
+const rewind = (item: UserItem) => act('Could not rewind', () => store.rewind(sid.value, item.id))
+// A fork from a message holds the conversation before it, with the message in the fork's composer; a queued
+// message forks the whole conversation.
+const fork = (text: string, at?: string) => act('Could not fork', async () => {
+  await store.fork(sid.value, { at, draft: text })
+  if (route.path !== '/') await navigateTo('/')
+})
+const cancel = (id: string) => act('Could not cancel the message', async () => {
+  if (!await store.removeQueued(sid.value, id)) toast.add({ title: 'Already sent', description: 'The agent has already read this message.', color: 'neutral' })
+})
+const sendNow = (id: string) => act('Could not send the message', () => store.sendNow(sid.value, id))
+const edit = (id: string) => act('Could not edit the message', () => store.editQueued(sid.value, id))
 // A new message (yours, a queued one or the model's next one) brings the view down to it, even when it was
 // scrolled up. column-reverse puts the newest edge at scrollTop 0. Streaming into the same message does not.
 const scroller = ref<HTMLElement | null>(null)
@@ -94,11 +135,26 @@ const lastIsStreaming = computed(() => {
           :session-id="session.meta.id"
         />
         <template v-else>
-          <UserMessage
+          <div
             v-if="b.item.kind === 'user'"
-            :text="b.item.text"
-            :attachments="b.item.attachments"
-          />
+            class="group/msg flex flex-col gap-1"
+          >
+            <UserMessage
+              :text="b.item.text"
+              :attachments="b.item.attachments"
+            />
+            <MessageActions
+              v-if="hasActions(b.item)"
+              delivery="read"
+              :at="b.item.at ?? 0"
+              :busy="busy"
+              :read-only="readOnly"
+              :visible="lastUser === 'u:' + b.item.id"
+              @copy="copy((b.item as UserItem).text)"
+              @rewind="rewind(b.item as UserItem)"
+              @fork="fork((b.item as UserItem).text, b.item.id)"
+            />
+          </div>
           <template v-else-if="b.item.kind === 'assistant'">
             <template
               v-for="(blk, i) in b.item.blocks"
@@ -170,12 +226,32 @@ const lastIsStreaming = computed(() => {
         </template>
       </template>
 
-      <UserMessage
+      <div
         v-for="q in queued"
         :key="q.id"
-        :text="q.text"
-        queued
-      />
+        class="group/msg flex flex-col gap-1"
+        :data-pending="q.delivery"
+      >
+        <UserMessage
+          :text="q.text"
+          :queued="q.delivery === 'queued'"
+          :pending="q.delivery !== 'queued'"
+          @edit="edit(q.id)"
+        />
+        <MessageActions
+          :delivery="q.delivery"
+          :at="q.at"
+          :position="q.position"
+          :waiting="waiting"
+          :busy="busy"
+          :read-only="readOnly"
+          :visible="lastUser === 'p:' + q.id"
+          @copy="copy(q.text)"
+          @fork="fork(q.text)"
+          @cancel="cancel(q.id)"
+          @send-now="sendNow(q.id)"
+        />
+      </div>
 
       <div
         v-if="working && !lastIsStreaming && !session.items.some(i => i.kind === 'task' && session.tasks[i.id]?.state === 'running' && !session.tasks[i.id]?.tail)"

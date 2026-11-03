@@ -3,10 +3,18 @@
 // mark as unread, rename, fork, archive, delete. While it is open the letter keys pick an item. Delete asks
 // first: the first click (or D) turns the row into a confirmation, the second deletes. A session of another
 // machine has no local folder (no Finder / path), and "Continue here" forks it into a folder of this machine.
+// A sub-session row (`sub`) has its own menu: Open in ▸, pin, unread, rename, fork, Detach to top level, archive,
+// delete. Archiving takes the sub-sessions along; deleting detaches them first (they stay as top-level sessions).
 import type { SessionState } from '~/lib/session/types'
 import { isDesktop, revealInFolder } from '~/lib/desktop'
 
-const props = defineProps<{ session: SessionState }>()
+const props = withDefaults(defineProps<{
+  session: SessionState
+  // Listed under its parent (a fork).
+  sub?: boolean
+  // How many sub-sessions it has (any depth), for the archive and delete wording.
+  children?: number
+}>(), { sub: false, children: 0 })
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ rename: [] }>()
 
@@ -34,6 +42,23 @@ async function run(action: () => unknown) {
 
 const copyPath = () => navigator.clipboard.writeText(props.session.meta.cwd)
 
+// "Open in" targets: this window, or a new browser tab (the UI opens ?session=<id>; not in the desktop app).
+const openTargets = computed(() => [
+  { label: 'This window', run: openHere },
+  ...(desktop ? [] : [{ label: 'New tab', run: openInTab }])
+])
+function openHere() {
+  store.open(id.value)
+  if (route.path !== '/' || route.query.new) return navigateTo({ path: '/' })
+}
+function openInTab() {
+  const url = new URL(window.location.href)
+  url.search = ''
+  url.hash = ''
+  url.searchParams.set('session', id.value)
+  window.open(url.toString(), '_blank', 'noopener')
+}
+
 const actions: Record<string, () => unknown> = {
   p: () => store.setPinned(id.value, !pinned.value),
   u: () => store.setUnread(id.value, !unread.value),
@@ -45,6 +70,7 @@ const actions: Record<string, () => unknown> = {
   },
   a: () => store.archive(id.value)
 }
+const detach = () => store.detach(id.value)
 
 // Deleting cannot be undone: the first press asks, the second deletes.
 function remove() {
@@ -98,14 +124,42 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         :aria-label="session.meta.title"
         class="w-[220px] border border-accented bg-hover py-1 text-[12.5px]"
       >
+        <UPopover
+          v-if="sub"
+          mode="hover"
+          :open-delay="0"
+          :content="{ side: 'right', align: 'start', sideOffset: 2 }"
+        >
+          <PaneMenuItem
+            icon="external"
+            sub
+          >
+            Open in
+          </PaneMenuItem>
+          <template #content>
+            <div
+              role="menu"
+              aria-label="Open in"
+              class="min-w-[160px] border border-accented bg-hover py-1 text-[12.5px]"
+            >
+              <PaneMenuItem
+                v-for="t in openTargets"
+                :key="t.label"
+                @click="run(t.run)"
+              >
+                {{ t.label }}
+              </PaneMenuItem>
+            </div>
+          </template>
+        </UPopover>
         <PaneMenuItem
-          v-if="desktop && !remote"
+          v-if="desktop && !remote && !sub"
           icon="folder"
           @click="run(() => revealInFolder(session.meta.cwd))"
         >
           Show in Finder
         </PaneMenuItem>
-        <template v-if="!remote">
+        <template v-if="!remote && !sub">
           <PaneMenuItem
             icon="copy"
             @click="run(copyPath)"
@@ -142,10 +196,20 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         >
           {{ remote ? 'Continue here…' : 'Fork' }}
         </PaneMenuItem>
+        <template v-if="sub">
+          <div class="my-1 h-px bg-line" />
+          <PaneMenuItem
+            icon="arrow-up-right"
+            @click="run(detach)"
+          >
+            Detach to top level
+          </PaneMenuItem>
+        </template>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
           icon="archive"
           value="A"
+          :title="children ? `Its ${children} sub-session${children === 1 ? '' : 's'} are archived too` : undefined"
           @click="run(actions.a!)"
         >
           Archive
@@ -154,9 +218,10 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           icon="trash"
           value="D"
           danger
+          :title="children ? 'Sub-sessions stay, moved to the top level' : undefined"
           @click="remove"
         >
-          {{ confirmDelete ? 'Delete for good?' : 'Delete' }}
+          {{ confirmDelete ? (children ? 'Delete? Sub-sessions stay' : 'Delete for good?') : 'Delete' }}
         </PaneMenuItem>
       </div>
     </template>

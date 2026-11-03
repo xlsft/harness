@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Composer (Composer.dc.html): Enter sends, Shift+Enter new line, Cmd/Ctrl+Enter queues; while a turn runs, messages queue (✕ removes one)
-// and Stop interrupts. `/` and `@` open menus, `!` runs a shell command, `#` saves to memory. Status line, queue,
+// Composer (Composer.dc.html): Enter sends, Shift+Enter new line, Cmd/Ctrl+Enter queues; while a turn runs, messages queue (the
+// transcript shows them with their actions: send now, cancel, click to edit) and Stop interrupts. `/` and `@` open
+// menus, `!` runs a shell command, `#` saves to memory. Status line, store drafts (rewind, fork, edit a queued message),
 // attachments, drop, voice, context warning, permission waiting, offline and ended states.
 import type { Hint } from '~/components/composer/ComposerFooter.vue'
 import type { SessionState } from '~/lib/session/types'
@@ -57,6 +58,19 @@ const offline = computed(() => status.value === 'waiting_for_connection')
 const ended = computed(() => status.value === 'ended')
 const planMode = computed(() => props.session.meta.permissionMode === 'plan')
 const queue = computed(() => store.localQueue[id.value] ?? [])
+// Text handed over by the store (a rewound or forked message, a queued message taken back to edit) replaces the
+// draft once.
+watch(() => store.drafts[id.value], (draft) => {
+  if (draft === undefined) return
+  text.value = draft
+  Reflect.deleteProperty(store.drafts, id.value)
+  nextTick(() => {
+    const el = input.value
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  })
+}, { immediate: true })
 const multiline = computed(() => text.value.includes('\n'))
 const hasText = computed(() => text.value.trim().length > 0)
 const uploading = computed(() => files.value.filter(f => f.progress !== undefined && f.progress < 100).length)
@@ -327,47 +341,6 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       <span class="min-w-0 truncate"><span class="text-strong">{{ activity }}</span>
         · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
       <span class="flex-1" /><span class="inline-flex shrink-0 items-center gap-1 max-sm:hidden @max-[480px]:hidden"><HKeys keys="escape" />to interrupt</span>
-    </div>
-
-    <!-- queued messages -->
-    <div
-      v-if="queue.length"
-      class="border border-dashed border-accented text-[12px]"
-    >
-      <div
-        v-for="(q, i) in queue"
-        :key="q.id"
-        class="flex items-center gap-[9px] px-2.5 py-[5px]"
-        :class="i < queue.length - 1 ? 'border-b border-dashed border-default' : ''"
-      >
-        <span class="text-muted">{{ i + 1 }}</span>
-        <span class="min-w-0 flex-1 truncate text-toned">{{ q.text }}</span>
-        <button
-          type="button"
-          class="text-muted hover:text-highlighted"
-          @click="store.sendNow(id, q.id)"
-        >
-          send now
-        </button>
-        <button
-          type="button"
-          class="text-muted hover:text-highlighted"
-          @click="text = q.text; store.removeQueued(id, q.id)"
-        >
-          edit
-        </button>
-        <button
-          type="button"
-          :aria-label="`Remove queued message ${i + 1}`"
-          class="text-muted hover:text-highlighted"
-          @click="store.removeQueued(id, q.id)"
-        >
-          <HIcon
-            name="close"
-            :size="12"
-          />
-        </button>
-      </div>
     </div>
 
     <!-- context almost full -->

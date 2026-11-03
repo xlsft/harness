@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // Sessions sidebar (Main.dc.html): window row, wordmark, primary nav, sessions grouped by project, account footer.
+// Sub-sessions (forks) are listed under their parent with an └ connector; a parent row folds them (▾/▸).
 import { isDesktop } from '~/lib/desktop'
 import type { SessionState } from '~/lib/session/types'
+import { limitTree, sessionTree } from '~/lib/session/tree'
 
 const store = useSessionStore()
 const route = useRoute()
@@ -11,7 +13,14 @@ const expanded = ref<Record<string, boolean>>({})
 
 const VISIBLE = 5
 
+// Parents whose sub-sessions are folded (the ▸ on their row).
+const folded = useState<Record<string, boolean>>('sidebar-folded', () => ({}))
+function toggleFold(id: string) {
+  folded.value = { ...folded.value, [id]: !folded.value[id] }
+}
+
 const pinned = computed(() => store.sessionList.filter(s => s.meta.pinned))
+const pinnedRows = computed(() => sessionTree(pinned.value, folded.value))
 
 const groups = computed(() => {
   const map = new Map<string, SessionState[]>()
@@ -25,14 +34,26 @@ const groups = computed(() => {
     // Folder for "+": the latest local session's, or its main checkout when it ran in a worktree (sessions of
     // other machines name folders over there; a group of only those has no "+").
     const local = sessions.find(s => !s.meta.remote)
+    // Sub-sessions follow their parent; the limit counts top-level rows.
+    const tree = sessionTree(sessions, folded.value)
+    const shown = expanded.value[name] ? { rows: tree, more: false } : limitTree(tree, VISIBLE)
     return {
       name,
       cwd: local ? local.meta.worktree?.repositoryPath || local.meta.cwd : '',
-      sessions: expanded.value[name] ? sessions : sessions.slice(0, VISIBLE),
-      more: sessions.length > VISIBLE && !expanded.value[name]
+      rows: shown.rows,
+      more: shown.more
     }
   })
 })
+
+// Sections in order: Pinned (when any), then the folder groups.
+const sections = computed(() => [
+  ...(pinned.value.length ? [{ name: 'Pinned', cwd: '', rows: pinnedRows.value, more: false, pin: true }] : []),
+  ...groups.value
+])
+
+// Indent of a row's title: one step per level under the top-level row.
+const indent = (depth: number) => ({ paddingLeft: `${9 + depth * 14}px` })
 
 // Tooltip of a remote session's device badge.
 function deviceTitle(s: SessionState) {
@@ -181,7 +202,7 @@ const nav = [
 
     <div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[5px] py-[11px]">
       <section
-        v-for="g in [...(pinned.length ? [{ name: 'Pinned', cwd: '', sessions: pinned, more: false, pin: true }] : []), ...groups]"
+        v-for="g in sections"
         :key="g.name"
         class="flex flex-col"
       >
@@ -215,7 +236,7 @@ const nav = [
           </button>
         </div>
         <template
-          v-for="s in g.sessions"
+          v-for="{ session: s, depth, children, collapsed: isFolded } in g.rows"
           :key="s.meta.id"
         >
           <input
@@ -224,6 +245,7 @@ const nav = [
             data-rename
             aria-label="Session title"
             class="mx-[2px] h-7 border border-accent bg-default px-[7px] text-[12.5px] text-strong outline-none"
+            :style="depth ? { marginLeft: `${2 + depth * 14}px` } : undefined"
             @keydown.enter.prevent="finishRename(true)"
             @keydown.esc.prevent="finishRename(false)"
             @blur="finishRename(true)"
@@ -231,12 +253,34 @@ const nav = [
           <a
             v-else
             href="#"
-            class="group/row nav-row px-[9px] hover:bg-hover"
+            class="group/row nav-row relative pr-[9px] hover:bg-hover"
             :class="[!onPage && s.meta.id === store.currentId ? 'nav-row-current' : '', menuFor === s.meta.id ? 'bg-hover' : '']"
+            :style="indent(depth)"
+            :data-depth="depth"
             @click.prevent="openSession(s.meta.id)"
             @contextmenu.prevent="menuFor = s.meta.id"
             @dblclick.prevent="startRename(s)"
           >
+            <!-- └ connector of a sub-session -->
+            <span
+              v-if="depth"
+              aria-hidden="true"
+              class="pointer-events-none absolute top-0 h-1/2 w-[7px] border-b border-l border-line"
+              :style="{ left: `${depth * 14 - 2}px` }"
+            />
+            <button
+              v-if="children"
+              type="button"
+              :aria-label="isFolded ? `Show ${children} sub-sessions` : `Hide ${children} sub-sessions`"
+              :aria-expanded="!isFolded"
+              class="-ml-[3px] flex size-4 shrink-0 items-center justify-center text-muted hover:text-strong"
+              @click.stop.prevent="toggleFold(s.meta.id)"
+            >
+              <HIcon
+                :name="isFolded ? 'right' : 'down'"
+                :size="11"
+              />
+            </button>
             <span
               class="truncate"
               :class="s.meta.unread && 'font-semibold text-strong'"
@@ -250,6 +294,8 @@ const nav = [
             >{{ s.meta.deviceName || 'remote' }}</span>
             <SessionMenu
               :session="s"
+              :sub="depth > 0"
+              :children="menuFor === s.meta.id ? store.childrenOf(s.meta.id).length : 0"
               :open="menuFor === s.meta.id"
               @update:open="menuFor = $event ? s.meta.id : ''"
               @rename="startRename(s)"

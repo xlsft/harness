@@ -26,6 +26,10 @@ export interface UserItem {
   id: string
   text: string
   attachments: Attachment[]
+  // When the agent took the message (the event's time; 0 when unknown).
+  at?: number
+  // Frontend ids (SendUserMessageRequest.uuid) of the messages this entry carries.
+  clientIds?: string[]
 }
 
 export interface AssistantBlock {
@@ -260,11 +264,15 @@ export interface SessionMeta {
   pinned: boolean
   unread: boolean
   archived: boolean
+  // The session this one was forked from (a sub-session listed under it); empty for top-level sessions.
+  parentId: string
 }
 
 export interface QueuedMessage {
   id: string
   text: string
+  // When the client queued it (ms; 0 when unknown).
+  at?: number
 }
 
 // What the Show tool opens: a file (lines 1-based, inclusive, 0 when not given), the session diff (optionally one
@@ -289,7 +297,10 @@ export interface SessionState {
   tasks: Record<string, TaskVM>
   taskOrder: string[]
   todos: TodoVM[]
+  // The client's queue (QueueChanged).
   queue: QueuedMessage[]
+  // Read receipts: frontend message id → the user item that carries it (the agent took the message).
+  delivered: Record<string, string>
   // Current turn.
   turnStartedAt: number
   turnModel: string

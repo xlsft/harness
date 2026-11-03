@@ -100,8 +100,9 @@ export class EventBuilder {
     return this.emit({ case: 'sessionUpdated', value: info })
   }
 
-  user(uuid: string, body: string) {
-    return this.emit({ case: 'userMessage', value: { uuid, content: [text(body)] } as never })
+  // clientUuids: the frontend ids of the messages this entry carries (read receipts).
+  user(uuid: string, body: string, clientUuids: string[] = []) {
+    return this.emit({ case: 'userMessage', value: { uuid, content: [text(body)], clientUuids } as never })
   }
 
   turnStarted(userMessageUuid: string, model: string) {
@@ -191,8 +192,16 @@ export class EventBuilder {
     return this.emit({ case: 'showRequested', value: value as never })
   }
 
-  queue(messages: { uuid: string, text: string }[]) {
-    return this.emit({ case: 'queueChanged', value: { queued: messages.map(m => ({ uuid: m.uuid, content: [text(m.text)] })) } as never })
+  queue(messages: { uuid: string, text: string, queuedAt?: number }[]) {
+    return this.emit({ case: 'queueChanged', value: { queued: messages.map(m => ({ uuid: m.uuid, content: [text(m.text)], queuedAt: m.queuedAt ? new Date(m.queuedAt).toISOString() : '' })) } as never })
+  }
+
+  checkpoint(id: string, preview = '') {
+    return this.emit({ case: 'checkpointCreated', value: { checkpoint: { id, userMessageUuid: id, promptPreview: preview, createdAt: new Date(this.t).toISOString(), hasCodeChanges: false } } as never })
+  }
+
+  rewound(checkpointId: string, mode: number, restoredPrompt = '', filesRestored = 0) {
+    return this.emit({ case: 'rewound', value: { checkpointId, mode, restoredPrompt, filesRestored, filesSkipped: 0 } as never })
   }
 
   todos(list: { content: string, activeForm: string, status: 'pending' | 'in_progress' | 'completed' }[]) {

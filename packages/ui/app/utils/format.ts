@@ -48,6 +48,19 @@ export function formatAge(ms: number): string {
   return new Date(Date.now() - ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Relative time in words for message rows: just now, 1 minute ago, 3 hours ago, yesterday, 4 days ago, Oct 29.
+export function formatAgo(ms: number): string {
+  const m = Math.floor(Math.max(0, ms) / 60_000)
+  if (m < 1) return 'just now'
+  if (m < 60) return m === 1 ? '1 minute ago' : `${m} minutes ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return h === 1 ? '1 hour ago' : `${h} hours ago`
+  const d = Math.floor(h / 24)
+  if (d === 1) return 'yesterday'
+  if (d < 7) return `${d} days ago`
+  return new Date(Date.now() - ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export function basename(path: string): string {
   const p = path.replace(/\/+$/, '')
   return p.slice(p.lastIndexOf('/') + 1) || path

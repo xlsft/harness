@@ -14,8 +14,10 @@ import {
   QuestionOutcome,
   RecentFolderSchema,
   SessionInfoSchema,
+  SessionStatus,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
+  type RewindRequest_Mode,
   SendUserMessageRequest_Delivery,
   type PermissionMode,
   type SessionEvent,
@@ -73,7 +75,7 @@ interface MockSession {
   seq: number
   listeners: Set<SubscribeHandlers>
   working: boolean
-  queue: { uuid: string, text: string }[]
+  queue: { uuid: string, text: string, queuedAt: number }[]
   timers: ReturnType<typeof setTimeout>[]
   // Continuation after a permission / question / plan answer.
   waiting: { requestId: string, question?: boolean, resume: (b: EventBuilder, decision: number, reply?: MockReply) => number } | null
@@ -147,7 +149,8 @@ export class MockTransport implements SessionTransport {
       ...(patch.pinned !== undefined && { pinned: patch.pinned }),
       ...(patch.unread !== undefined && { unread: patch.unread }),
       ...(patch.archived !== undefined && { archived: patch.archived }),
-      ...(title && { title })
+      ...(title && { title }),
+      ...(patch.detachFromParent && { parentSessionId: '' })
     })
     if (patch.archived) this.stop(s)
     return s.info
@@ -167,6 +170,7 @@ export class MockTransport implements SessionTransport {
   }
 
   async createSession(opts: NewSessionOptions) {
+    if (opts.fork && opts.resumeSessionId) return this.fork(opts.resumeSessionId, opts.forkAtMessageId)
     const name = opts.worktree ? (opts.worktree.name || `brisk-otter-${(this.sessions.size + 1).toString(16).padStart(4, '0')}`) : ''
     const repo = opts.cwd
     const info = create(SessionInfoSchema, {
@@ -180,6 +184,29 @@ export class MockTransport implements SessionTransport {
       updatedAt: new Date(this.now()).toISOString()
     })
     this.sessions.set(info.id, { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null })
+    return info
+  }
+
+  // A fork as the client makes it: a copy of the conversation (before forkAt, a user message uuid), the parent
+  // named, and the title "<parent title> (fork)".
+  private fork(parentId: string, forkAt?: string) {
+    const parent = this.get(parentId)
+    const id = `ses_mock_${this.sessions.size + 1}`
+    let durable = parent.history.filter(e => e.event.case !== 'assistantDelta')
+    if (forkAt) {
+      const at = durable.findIndex(e => e.event.case === 'userMessage' && e.event.value.uuid === forkAt)
+      if (at < 0) throw new Error(`message ${forkAt} is not in the transcript`)
+      durable = durable.slice(0, at)
+    }
+    // The conversation replays like a resumed transcript (no session state of the parent), then the fork's info.
+    const history = durable
+      .filter(e => e.event.case !== 'sessionUpdated' && e.event.case !== 'queueChanged')
+      .map((e, i) => ({ ...e, seq: BigInt(i + 1), sessionId: id }))
+    const title = parent.info.title.endsWith(' (fork)') ? parent.info.title : `${parent.info.title} (fork)`
+    const info = create(SessionInfoSchema, { ...parent.info, id, title, parentSessionId: parentId, status: SessionStatus.IDLE, pinned: false, unread: false, updatedAt: new Date(this.now()).toISOString() })
+    const s: MockSession = { info, history, seq: history.length, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null }
+    this.sessions.set(id, s)
+    this.emit(s, b => b.sessionUpdated(info))
     return info
   }
 
@@ -338,12 +365,37 @@ export class MockTransport implements SessionTransport {
 
   async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
     const s = this.get(sessionId)
-    if (s.working && delivery !== SendUserMessageRequest_Delivery.NOW) {
-      s.queue.push({ uuid, text })
+    if (s.working) {
+      // Queued (QueueChanged); NOW stops the turn so the message starts the next one, like the client.
+      s.queue.push({ uuid, text, queuedAt: this.now() })
       this.emit(s, b => b.queue(s.queue))
+      if (delivery === SendUserMessageRequest_Delivery.NOW) {
+        this.stopTurn(s)
+        this.finishTurn(s)
+      }
       return
     }
     this.startTurn(s, uuid, text)
+  }
+
+  async removeQueuedMessage(sessionId: string, uuid: string) {
+    const s = this.get(sessionId)
+    const before = s.queue.length
+    s.queue = s.queue.filter(q => q.uuid !== uuid)
+    if (s.queue.length === before) return false
+    this.emit(s, b => b.queue(s.queue))
+    return true
+  }
+
+  // Rewinds to the checkpoint of a user message: the message's text comes back for the composer.
+  async rewind(sessionId: string, checkpointId: string, mode: RewindRequest_Mode) {
+    const s = this.get(sessionId)
+    if (s.working) throw new Error('[failed_precondition] a turn is in progress')
+    const ev = s.history.find(e => e.event.case === 'userMessage' && e.event.value.uuid === checkpointId)
+    if (!ev || ev.event.case !== 'userMessage') throw new Error(`[failed_precondition] unknown checkpoint ${checkpointId}`)
+    const restoredPrompt = ev.event.value.content.map(b => b.block.case === 'text' ? b.block.value.text : '').join('')
+    this.emit(s, b => b.rewound(checkpointId, mode, restoredPrompt))
+    return { restoredPrompt, filesRestored: 0 }
   }
 
   private startTurn(s: MockSession, uuid: string, body: string) {
@@ -353,7 +405,8 @@ export class MockTransport implements SessionTransport {
     const startedAt = this.now()
     const msg = `live-${n}`
     this.emit(s, (b) => {
-      b.user(uuid, body)
+      b.checkpoint(uuid, body)
+      b.user(uuid, body, [uuid])
       b.turnStarted(uuid, s.info.model)
     })
 
@@ -528,6 +581,21 @@ export class MockTransport implements SessionTransport {
       this.emit(s, b => b.queue(s.queue))
       this.later(s, 400, () => this.startTurn(s, next.uuid, next.text))
     }
+  }
+
+  // Ends the running turn as interrupted (an open card is cancelled); the queue is kept.
+  private stopTurn(s: MockSession) {
+    for (const t of s.timers) clearTimeout(t)
+    s.timers = []
+    const pending = s.waiting
+    s.waiting = null
+    s.afterResume = null
+    this.emit(s, (b) => {
+      if (pending?.question) b.questionResolved(pending.requestId, 'interrupt', QuestionOutcome.CANCELLED)
+      else if (pending) b.permissionResolved(pending.requestId, RespondToPermissionRequest_Decision.DENY, 'interrupt')
+      b.turnFinished('interrupted', { durationMs: 0 })
+    })
+    s.working = false
   }
 
   async interrupt(sessionId: string) {

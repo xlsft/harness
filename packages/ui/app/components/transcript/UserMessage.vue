@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // User message (User.dc.html): right-aligned bubble. Slash commands and @mentions are highlighted,
-// a leading "> quote" line renders as a reply-to fragment, `queued` uses the dashed waiting style.
+// a leading "> quote" line renders as a reply-to fragment, `queued` uses the dashed waiting style (a click takes it
+// back into the composer: `edit`), `pending` (handed to the client, not read yet) a plain muted one.
 import type { Attachment } from '~/lib/session/types'
 import { FROM_VISUAL } from '~/lib/visual'
 
@@ -8,7 +9,9 @@ const props = withDefaults(defineProps<{
   text: string
   attachments?: Attachment[]
   queued?: boolean
-}>(), { attachments: () => [], queued: false })
+  pending?: boolean
+}>(), { attachments: () => [], queued: false, pending: false })
+const emit = defineEmits<{ edit: [] }>()
 
 // Review comments from the diff pane get their own card.
 const review = computed(() => parseReview(props.text))
@@ -45,12 +48,20 @@ const parsed = computed(() => {
       :files="attachments"
       side="right"
     />
-    <div
+    <button
       v-if="queued"
-      class="flex max-w-[78%] flex-col gap-[5px] self-end border border-dashed border-accented px-3 py-[9px] leading-[1.55] text-toned"
+      type="button"
+      title="Edit: back to the composer"
+      class="flex max-w-[78%] cursor-text flex-col self-end border border-dashed border-accented px-3 py-[9px] text-left leading-[1.55] text-toned hover:border-accent"
+      @click="emit('edit')"
     >
-      <span class="text-[11px] text-muted">queued · sends after this turn</span>
       <span class="whitespace-pre-wrap">{{ text }}</span>
+    </button>
+    <div
+      v-else-if="pending"
+      class="flex max-w-[78%] flex-col self-end border border-default px-3 py-[9px] leading-[1.55] whitespace-pre-wrap text-toned"
+    >
+      {{ text }}
     </div>
     <span
       v-else-if="interrupted"

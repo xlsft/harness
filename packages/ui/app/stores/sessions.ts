@@ -6,11 +6,15 @@ import {
   PermissionMode,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
+  RewindRequest_Mode,
   SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
+import type { SessionEvent } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { createSessionState, permissionModeName, reduce, sessionMeta } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
+import { liveOutbox, type OutboxEntry } from '~/lib/session/delivery'
+import { descendants } from '~/lib/session/tree'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 import type { SessionPatch } from '~/lib/transport/types'
 import { allowedModes } from '~/utils/composer'
@@ -50,6 +54,8 @@ export function newUuid() {
 export interface LocalQueued {
   id: string
   text: string
+  // When it was typed (ms).
+  at?: number
 }
 
 export const useSessionStore = defineStore('sessions', {
@@ -75,6 +81,11 @@ export const useSessionStore = defineStore('sessions', {
     currentId: '',
     // Messages typed while a turn runs; sent one by one when the session becomes idle (✕ removes one).
     localQueue: {} as Record<string, LocalQueued[]>,
+    // Messages handed to the client (SendUserMessage) until the stream shows them queued or read (delivery.ts).
+    outbox: {} as Record<string, OutboxEntry[]>,
+    // Text to put into a session's composer (a rewound or forked message, a queued message taken back to edit);
+    // the composer takes it and clears the entry.
+    drafts: {} as Record<string, string>,
     effort: {} as Record<string, EffortName>,
     // Remote sessions the user chose to drive from here ("Continue via remote control"): the composer replaces
     // the "Running on <device>" notice while the session stays remote-controllable.
@@ -198,6 +209,7 @@ export const useSessionStore = defineStore('sessions', {
           const s = this.sessions[id]!
           const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
           reduce(s, ev)
+          this.pruneOutbox(id, ev)
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           // A turn that finished while another session was open leaves this one unread.
           if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(id, { unread: true }))
@@ -241,15 +253,38 @@ export const useSessionStore = defineStore('sessions', {
       if (this.currentId === id && !this.unsubscribers[id]) this.open(id)
     },
 
-    // A new session continuing from a copy of this one's transcript.
-    async fork(id: string) {
+    // A new sub-session continuing from a copy of this one's transcript (the client names the parent and titles it
+    // "<parent title> (fork)"). `at` forks before that user message instead of at the end; `draft` goes into the
+    // fork's composer (the message it was forked from, to send again or edit).
+    async fork(id: string, opts: { at?: string, draft?: string } = {}) {
       const s = this.sessions[id]
       if (!s || !this.transport) return
-      const info = await this.transport.createSession({ cwd: s.meta.cwd, resumeSessionId: id, fork: true })
+      const info = await this.transport.createSession({ cwd: s.meta.cwd, resumeSessionId: id, fork: true, ...(opts.at && { forkAtMessageId: opts.at }) })
       this.sessions[info.id] = createSessionState(info.id, sessionMeta(info))
       this.order = [info.id, ...this.order.filter(x => x !== info.id)]
+      if (opts.draft) this.drafts[info.id] = opts.draft
       this.open(info.id)
       return info.id
+    },
+
+    // Makes a sub-session a top-level session (the client records it and syncs it).
+    async detach(id: string) {
+      const s = this.sessions[id]
+      if (!s || !this.transport || !s.meta.parentId) return
+      const before = s.meta.parentId
+      s.meta.parentId = ''
+      try {
+        const info = await this.transport.updateSession(id, { detachFromParent: true })
+        s.meta.parentId = info.parentSessionId
+      } catch (err) {
+        s.meta.parentId = before
+        throw err
+      }
+    },
+
+    // Sub-sessions of a session (any depth) that are listed.
+    childrenOf(id: string) {
+      return descendants(this.order.map(x => this.sessions[x]!).filter(Boolean), id)
     },
 
     // Reports a failed background call (an unread mark) instead of throwing.
@@ -261,10 +296,11 @@ export const useSessionStore = defineStore('sessions', {
 
     // Per-user state (pinned, unread, archived, title) lives on the harness server: the change shows at once and
     // is rolled back when the client refuses it.
-    async updateSession(id: string, patch: SessionPatch) {
+    // (Detaching a sub-session goes through detach.)
+    async updateSession(id: string, patch: Omit<SessionPatch, 'detachFromParent'>) {
       const s = this.sessions[id]
       if (!s || !this.transport) return
-      const keys = (Object.keys(patch) as (keyof SessionPatch)[]).filter(k => patch[k] !== undefined)
+      const keys = (Object.keys(patch) as (keyof typeof patch)[]).filter(k => patch[k] !== undefined)
       const before = Object.fromEntries(keys.map(k => [k, s.meta[k]]))
       Object.assign(s.meta, Object.fromEntries(keys.map(k => [k, patch[k]])))
       try {
@@ -299,14 +335,23 @@ export const useSessionStore = defineStore('sessions', {
     },
 
     // Hides the session from the sidebar; the client stops it. Its transcript stays and it can be unarchived.
+    // Its sub-sessions are archived with it (they belong to its work; unarchiving brings each back).
     async archive(id: string) {
+      const children = this.childrenOf(id).filter(c => !this.sessions[c]?.meta.archived)
       this.forget(id)
       await this.updateSession(id, { archived: true, pinned: false })
+      for (const c of children) {
+        this.forget(c)
+        await this.updateSession(c, { archived: true, pinned: false })
+      }
     },
 
     // Deletes the session for good (client and server); it comes back when the client refuses.
+    // Its direct sub-sessions are detached first and stay as top-level sessions: deleting cannot be undone, so it
+    // never takes other conversations along.
     async deleteSession(id: string) {
       if (!this.sessions[id] || !this.transport) return
+      for (const c of this.order.filter(x => this.sessions[x]?.meta.parentId === id)) await this.detach(c)
       const at = this.order.indexOf(id)
       this.forget(id)
       this.order = this.order.filter(x => x !== id)
@@ -318,6 +363,7 @@ export const useSessionStore = defineStore('sessions', {
       }
       Reflect.deleteProperty(this.sessions, id)
       Reflect.deleteProperty(this.localQueue, id)
+      Reflect.deleteProperty(this.outbox, id)
       Reflect.deleteProperty(this.effort, id)
     },
 
@@ -343,36 +389,99 @@ export const useSessionStore = defineStore('sessions', {
       // The session gets a stream for the turn this starts, even when it is not the open one.
       this.subscribe(id)
       if (this.sessions[id]?.pendingQuestion) {
-        await this.transport.sendUserMessage(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
+        await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
         return
       }
       if (this.isBusy(id)) {
         const q = this.localQueue[id] ?? (this.localQueue[id] = [])
-        q.push({ id: newUuid(), text: body })
+        q.push({ id: newUuid(), text: body, at: Date.now() })
         return
       }
-      await this.transport.sendUserMessage(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
+      await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
     },
 
-    removeQueued(id: string, queuedId: string) {
-      this.localQueue[id] = (this.localQueue[id] ?? []).filter(q => q.id !== queuedId)
+    // Hands a message to the client, tracked in the outbox (sending, then sent) until the stream shows it queued
+    // or read. A refused message leaves the outbox and the error is thrown.
+    async deliver(id: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
+      if (!this.transport) return
+      const box = this.outbox[id] ?? (this.outbox[id] = [])
+      box.push({ id: uuid, text, at: Date.now(), state: 'sending' })
+      try {
+        await this.transport.sendUserMessage(id, uuid, text, delivery)
+        const e = this.outbox[id]?.find(o => o.id === uuid)
+        if (e) e.state = 'sent'
+      } catch (err) {
+        this.outbox[id] = (this.outbox[id] ?? []).filter(o => o.id !== uuid)
+        throw err
+      }
+    },
+
+    // Drops outbox entries the agent has read. A question answered with the queued messages takes them without a
+    // UserMessage, so handed-over messages that wait in no queue leave then too.
+    pruneOutbox(id: string, ev: SessionEvent) {
+      const box = this.outbox[id]
+      const s = this.sessions[id]
+      if (!box?.length || !s) return
+      let kept = liveOutbox(s, box)
+      if (ev.event.case === 'questionResolved') kept = kept.filter(o => o.state === 'sending' || s.queue.some(q => q.id === o.id))
+      if (kept.length !== box.length) this.outbox[id] = kept
+    },
+
+    // Cancels a waiting message: from this browser's queue, or taken back from the client's queue (false when the
+    // agent already took it).
+    async removeQueued(id: string, queuedId: string) {
+      const local = this.localQueue[id] ?? []
+      if (local.some(q => q.id === queuedId)) {
+        this.localQueue[id] = local.filter(q => q.id !== queuedId)
+        return true
+      }
+      if (!this.sessions[id]?.queue.some(q => q.id === queuedId) || !this.transport) return false
+      return this.transport.removeQueuedMessage(id, queuedId)
+    },
+
+    // Takes a waiting message back into the composer to edit it.
+    async editQueued(id: string, queuedId: string) {
+      const text = this.localQueue[id]?.find(q => q.id === queuedId)?.text ?? this.sessions[id]?.queue.find(q => q.id === queuedId)?.text
+      if (text === undefined) return
+      if (await this.removeQueued(id, queuedId)) this.drafts[id] = text
     },
 
     // Sends a waiting message right away instead of after the turn: the client stops the turn (background
-    // shell commands keep running) and the message starts the next one.
+    // shell commands keep running) and the message starts the next one. A message already in the client's queue
+    // is not sent again (the client ignores a repeated uuid): stopping the turn sends the client's queue next.
     async sendNow(id: string, queuedId: string) {
+      if (!this.transport) return
       const q = (this.localQueue[id] ?? []).find(x => x.id === queuedId)
-      if (!q || !this.transport) return
-      this.removeQueued(id, queuedId)
+      if (!q) {
+        if (this.sessions[id]?.queue.some(x => x.id === queuedId)) await this.interrupt(id)
+        return
+      }
+      this.localQueue[id] = (this.localQueue[id] ?? []).filter(x => x.id !== queuedId)
       this.subscribe(id)
-      await this.transport.sendUserMessage(id, q.id, q.text, SendUserMessageRequest_Delivery.NOW)
+      await this.deliver(id, q.id, q.text, SendUserMessageRequest_Delivery.NOW)
     },
 
     async flushQueue(id: string) {
       const q = this.localQueue[id]
       if (!q?.length || !this.transport) return
       const next = q.shift()!
-      await this.transport.sendUserMessage(id, next.id, next.text, SendUserMessageRequest_Delivery.QUEUE)
+      await this.deliver(id, next.id, next.text, SendUserMessageRequest_Delivery.QUEUE)
+    },
+
+    // Rewinds code and conversation to just before a user message (the checkpoint of its turn); the message comes
+    // back into the composer. A message without file checkpoints (injected into a running turn, or a session
+    // without file history) rewinds the conversation only.
+    async rewind(id: string, messageId: string) {
+      if (!this.transport) return
+      let res: { restoredPrompt: string }
+      try {
+        res = await this.transport.rewind(id, messageId, RewindRequest_Mode.CODE_AND_CONVERSATION)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (/in progress|busy|not open|not found/i.test(msg)) throw err
+        res = await this.transport.rewind(id, messageId, RewindRequest_Mode.CONVERSATION)
+      }
+      if (res.restoredPrompt) this.drafts[id] = res.restoredPrompt
     },
 
     async interrupt(id: string) {
