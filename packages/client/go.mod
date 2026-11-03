@@ -5,7 +5,10 @@ go 1.26.3
 require (
 	connectrpc.com/connect v1.21.1
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
+	github.com/UserExistsError/conpty v0.1.4
 	github.com/bmatcuk/doublestar/v4 v4.10.4
+	github.com/coder/websocket v1.8.15
+	github.com/creack/pty v1.1.24
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06

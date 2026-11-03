@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package harness.agent.v1;
 
+import "harness/agent/v1/terminal.proto";
 import "harness/llm/v1/content.proto";
 
 // AgentService is served by the local client (packages/client) to frontends:
@@ -84,6 +85,15 @@ service AgentService {
   // committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
   rpc GetWorkspaceTrust(GetWorkspaceTrustRequest) returns (GetWorkspaceTrustResponse);
   rpc SetWorkspaceTrust(SetWorkspaceTrustRequest) returns (SetWorkspaceTrustResponse);
+
+  // Terminals (terminal.proto): shells in a PTY, with I/O over a WebSocket authenticated by one-time tickets.
+  // CreateTerminal starts one and returns a ticket; AttachTerminal returns a fresh ticket to reconnect.
+  rpc CreateTerminal(CreateTerminalRequest) returns (CreateTerminalResponse);
+  rpc AttachTerminal(AttachTerminalRequest) returns (AttachTerminalResponse);
+  rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
+  // Ends the shell (if still running) and forgets the terminal.
+  rpc KillTerminal(KillTerminalRequest) returns (KillTerminalResponse);
+  rpc ResizeTerminal(ResizeTerminalRequest) returns (ResizeTerminalResponse);
 }
 
 enum PermissionMode {

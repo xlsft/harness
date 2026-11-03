@@ -33,6 +33,7 @@ import (
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/syncclient"
+	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
@@ -82,6 +83,10 @@ type Server struct {
 	// relay presence (stateMu).
 	listed   map[string]*agentv1.SessionInfo
 	presence relayPresence
+
+	// terms are the client's terminals (terminals.go); termOnce creates the manager.
+	termOnce sync.Once
+	terms    *terminal.Manager
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -115,6 +120,7 @@ func (s *Server) Close() {
 	for _, ls := range live {
 		ls.close("host_shutdown")
 	}
+	s.terminals().Close()
 }
 
 // ServeUnix serves AgentService over h2c on a unix socket until ctx ends.
@@ -137,7 +143,10 @@ func (s *Server) ServeUnix(ctx context.Context, socket string) error {
 
 // Serve serves AgentService over h2c (and HTTP/1.1 for Connect) on ln.
 func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
-	return s.serveHandler(ctx, ln, s.mux())
+	mux := s.mux()
+	// No browser reaches a socket listener: any Origin is refused.
+	s.registerTerminalSocket(mux, nil)
+	return s.serveHandler(ctx, ln, mux)
 }
 
 func (s *Server) mux() *http.ServeMux {
@@ -853,6 +862,7 @@ func (s *Server) closeLive(id, reason string) bool {
 	// TODO(worktree): offer to remove the session's worktree (ls.sess.Worktree) here when it is clean and its
 	// branch has no commits beyond base_ref; worktrees are never removed automatically today.
 	ls.close(reason)
+	s.terminals().KillSession(id)
 	return true
 }
 
