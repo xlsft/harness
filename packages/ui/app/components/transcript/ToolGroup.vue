@@ -23,7 +23,7 @@ const open = ref<Record<string, boolean>>({})
   </div>
   <div
     v-else
-    class="border border-default"
+    class="overflow-hidden border border-default"
   >
     <template
       v-for="(t, i) in tools"
@@ -31,7 +31,7 @@ const open = ref<Record<string, boolean>>({})
     >
       <button
         type="button"
-        class="flex w-full items-center gap-[9px] px-3 py-[7px] text-left text-[12.5px] text-muted hover:bg-hover"
+        class="flex w-full items-center gap-[9px] rounded-none px-3 py-[7px] text-left text-[12.5px] text-muted hover:bg-hover"
         :class="i > 0 ? 'border-t border-default' : ''"
         :aria-expanded="!!open[t.id]"
         @click="open[t.id] = !open[t.id]"

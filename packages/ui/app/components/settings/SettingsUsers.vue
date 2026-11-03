@@ -349,7 +349,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
     </p>
     <div
       v-else-if="users.length"
-      class="border border-default"
+      class="overflow-hidden border border-default"
     >
       <div
         v-for="u in users"
@@ -358,7 +358,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
         <button
           type="button"
-          class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 text-left text-[12.5px] hover:bg-hover"
+          class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-none px-3 py-2.5 text-left text-[12.5px] hover:bg-hover"
           :aria-expanded="open === u.id"
           @click="toggle(u)"
         >
