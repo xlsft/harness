@@ -13,6 +13,7 @@ const store = useSessionStore()
 const modeOpen = ref(props.initialMenu === 'mode')
 const modelOpen = ref(props.initialMenu === 'model')
 const effortOpen = ref(false)
+const contextOpen = ref(false)
 
 const id = computed(() => props.session.meta.id)
 const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
@@ -128,36 +129,53 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
       </template>
     </UPopover>
 
-    <button
-      type="button"
-      :aria-label="`Usage limits: ${pct}% used`"
-      :class="[BTN, 'border-transparent']"
+    <UPopover
+      v-model:open="contextOpen"
+      :content="{ side: 'top', align: 'end', sideOffset: 6 }"
     >
-      <svg
-        viewBox="0 0 20 20"
-        class="size-[15px]"
-        aria-hidden="true"
+      <button
+        type="button"
+        :aria-label="`Context: ${pct}% used`"
+        :class="[BTN, contextOpen ? 'border-accent' : 'border-transparent']"
       >
-        <circle
-          cx="10"
-          cy="10"
-          r="8"
-          fill="none"
-          stroke="var(--color-line)"
-          stroke-width="3"
-        />
-        <circle
-          cx="10"
-          cy="10"
-          r="8"
-          fill="none"
-          stroke="var(--color-accent)"
-          stroke-width="3"
-          :stroke-dasharray="`${(pct / 100) * 50.27} 50.27`"
-          transform="rotate(-90 10 10)"
-        />
-      </svg>
-      <span class="text-strong">{{ pct }}%</span>
-    </button>
+        <svg
+          viewBox="0 0 20 20"
+          class="size-[15px]"
+          aria-hidden="true"
+        >
+          <circle
+            cx="10"
+            cy="10"
+            r="8"
+            fill="none"
+            stroke="var(--color-line)"
+            stroke-width="3"
+          />
+          <circle
+            cx="10"
+            cy="10"
+            r="8"
+            fill="none"
+            stroke="var(--color-accent)"
+            stroke-width="3"
+            :stroke-dasharray="`${(pct / 100) * 50.27} 50.27`"
+            transform="rotate(-90 10 10)"
+          />
+        </svg>
+        <span class="text-strong">{{ pct }}%</span>
+      </button>
+      <template #content>
+        <div
+          role="dialog"
+          aria-label="Context"
+          class="w-[340px] max-w-[calc(100vw-32px)] border border-accented bg-hover px-[13px] py-3 text-[12.5px]"
+        >
+          <div class="mb-2.5 text-[12px] text-muted">
+            Context
+          </div>
+          <ContextBreakdown :session="session" />
+        </div>
+      </template>
+    </UPopover>
   </div>
 </template>
