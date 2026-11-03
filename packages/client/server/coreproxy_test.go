@@ -98,7 +98,9 @@ func TestCoreProxyRefusesOtherServicesAndStreams(t *testing.T) {
 
 	for _, c := range []struct{ path, ct string }{
 		{"/harness.llm.v1.GatewayService/ListModels", "application/json"},
-		{"/harness.auth.v1.DeviceAuthService/GetMe", "application/json"},
+		{"/harness.auth.v1.DeviceAuthService/RefreshAccessToken", "application/json"},
+		{"/harness.auth.v1.DeviceAuthService/PollDeviceAuth", "application/json"},
+		{"/harness.auth.v1.DeviceAuthService/Logout", "application/json"},
 		{"/harness.llm.v1.ProviderService/ListProviders", "application/connect+json"},
 	} {
 		req := httptest.NewRequest(http.MethodPost, c.path, strings.NewReader(`{}`))
@@ -132,5 +134,36 @@ func TestCoreProxyForwardsAdminService(t *testing.T) {
 	s.mux().ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK || path != "/harness.auth.v1.AdminService/ListUsers" || auth != "Bearer hat_admin" {
 		t.Fatalf("status %d path %q auth %q", rec.Code, path, auth)
+	}
+}
+
+func TestCoreProxyForwardsAccountMethods(t *testing.T) {
+	var paths []string
+	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer hat_me" {
+			t.Errorf("auth %q", r.Header.Get("Authorization"))
+		}
+		paths = append(paths, r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{}`)
+	}))
+	defer core.Close()
+	s := New(bootstrap.Options{})
+	defer s.Close()
+	s.Core = &CoreProxy{URL: core.URL, HTTP: core.Client(), Tokens: &proxyTokens{token: "hat_me"}}
+	mux := s.mux()
+
+	for _, m := range []string{"GetMe", "UpdateMe", "ChangePassword", "ListDevices", "RevokeDevice"} {
+		path := "/harness.auth.v1.DeviceAuthService/" + m
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: status %d body %s", m, rec.Code, rec.Body.String())
+		}
+	}
+	if len(paths) != 5 {
+		t.Fatalf("server got %v", paths)
 	}
 }

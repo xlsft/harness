@@ -17,11 +17,13 @@ import (
 // CoreProxy forwards unary Connect calls of selected harness server services
 // (harness.llm.v1.ProviderService: the settings screens' providers and
 // classifier; harness.auth.v1.AdminService: user administration and LDAP,
-// admins only) to the server with this client's access token. Frontends talk
+// admins only), plus the account methods of harness.auth.v1.DeviceAuthService
+// (coreProxyProcedures: the settings screen's profile, password and devices),
+// to the server with this client's access token. Frontends talk
 // to the client only and never hold server credentials; the server decides
 // what the signed-in user may do, exactly as for its own calls.
 //
-// Only the listed services are forwarded, only unary Connect requests
+// Only the listed services and procedures are forwarded, only unary Connect requests
 // (POST, application/proto or application/json), with a bounded body. The
 // frontend's Authorization header (the local agent token) and cookies are
 // never forwarded: the request to the server is built from scratch.
@@ -35,6 +37,17 @@ type CoreProxy struct {
 // coreProxyServices are the server services frontends may reach through the client.
 var coreProxyServices = []string{llmv1connect.ProviderServiceName, authv1connect.AdminServiceName}
 
+// coreProxyProcedures are single methods of other server services frontends may
+// reach. Never the device flow, token refresh or Logout: those manage this
+// client's own credentials.
+var coreProxyProcedures = []string{
+	authv1connect.DeviceAuthServiceGetMeProcedure,
+	authv1connect.DeviceAuthServiceUpdateMeProcedure,
+	authv1connect.DeviceAuthServiceChangePasswordProcedure,
+	authv1connect.DeviceAuthServiceListDevicesProcedure,
+	authv1connect.DeviceAuthServiceRevokeDeviceProcedure,
+}
+
 const coreProxyMaxBody = 1 << 20
 
 // forwardedRequestHeaders are copied from the frontend's request.
@@ -43,6 +56,9 @@ var forwardedRequestHeaders = []string{"Content-Type", "Connect-Protocol-Version
 func (p *CoreProxy) register(mux *http.ServeMux) {
 	for _, s := range coreProxyServices {
 		mux.Handle("/"+s+"/", p)
+	}
+	for _, path := range coreProxyProcedures {
+		mux.Handle(path, p)
 	}
 }
 
