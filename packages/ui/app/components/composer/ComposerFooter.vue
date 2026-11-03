@@ -174,6 +174,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
             Context
           </div>
           <ContextBreakdown :session="session" />
+          <LimitsBlock :session="session" />
         </div>
       </template>
     </UPopover>
