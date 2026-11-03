@@ -21,6 +21,20 @@ watch(attach, (paths) => {
   attach.value = []
   nextTick(() => input.value?.focus())
 }, { deep: true })
+// "Reply" on text picked in the transcript: a "> quote" first line, which the sent message shows as a reply.
+const { reply } = useQuoteRequests()
+watch(reply, (q) => {
+  if (!q) return
+  const rest = text.value.replace(/^> .*\n?/, '')
+  text.value = `> ${quoteLine(q)}\n${rest}`
+  reply.value = ''
+  nextTick(() => {
+    const el = input.value
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  })
+})
 const mode = ref<'normal' | 'shell' | 'memory'>('normal')
 const focused = ref(!!props.preset?.focused)
 const error = ref(props.preset?.error ?? '')

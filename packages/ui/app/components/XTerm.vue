@@ -106,6 +106,8 @@ onMounted(async () => {
   observer.observe(host.value)
   fitAddon.fit()
   emit('resize', term.cols, term.rows)
+  // The WebGL canvas may not paint output written before it was sized; draw it once more.
+  requestAnimationFrame(() => term?.refresh(0, term.rows - 1))
 })
 
 watch([theme, () => appearance.value.codeSize, () => appearance.value.terminalFont], async () => {

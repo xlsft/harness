@@ -77,6 +77,7 @@ const lastIsStreaming = computed(() => {
     ref="scroller"
     class="flex flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-3"
   >
+    <SelectionMenu :root="scroller" />
     <div class="mx-auto flex w-full max-w-[790px] flex-col gap-[15px]">
       <template
         v-for="b in blocks"

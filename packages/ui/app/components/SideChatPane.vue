@@ -82,6 +82,18 @@ function addChat() {
   selected.value = id
 }
 
+// "Start a side chat" on text picked in the transcript: a new chat quoting it, ready for the question.
+const { sideChat } = useQuoteRequests()
+const sideInput = ref<HTMLInputElement | null>(null)
+watch(sideChat, (q) => {
+  if (!q) return
+  addChat()
+  quote.value = quoteLine(q, 600)
+  input.value = ''
+  sideChat.value = ''
+  nextTick(() => sideInput.value?.focus())
+}, { immediate: true })
+
 function closeChat(id: string) {
   const i = chats.value.findIndex(c => c.id === id)
   if (i < 0) return
@@ -296,6 +308,7 @@ onBeforeUnmount(stop)
         </div>
         <div class="flex min-h-[42px] items-center gap-2 pr-2 pl-3">
           <input
+            ref="sideInput"
             v-model="input"
             type="text"
             :disabled="streaming"
