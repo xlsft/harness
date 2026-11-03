@@ -17,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{ update: [patch: SpeechSettingsPatch], reload: [], error: [message: string] }>()
 
 const stt = computed(() => props.kind === 'stt')
+const autoRead = useAutoReadAloud()
 const local = computed(() => props.providers.filter(p => p.location === 'local'))
 const global = computed(() => props.providers.filter(p => p.location === 'global'))
 // The browser's own speech: synthesis everywhere, recognition only where the WebView has it (not WebKit).
@@ -43,19 +44,19 @@ function patch(part: 'device' | 'synced', choice: Partial<SttChoice & TtsChoice>
 // A new provider starts from its defaults.
 const pick = (part: 'device' | 'synced', providerId: string) => patch(part, { providerId, model: '', voice: '' })
 
-const status = (p: SpeechProviderView) => p.available ? '' : p.unavailableReason || (p.location === 'global' ? 'not set up' : 'not installed')
 const deviceOptions = computed<HSelectOption[]>(() => [
   { value: '', label: 'Same as all devices' },
   ...(browserOk.value ? [{ value: BROWSER_SPEECH_PROVIDER, label: stt.value ? 'Browser dictation' : 'Browser voice', hint: 'built in' }] : []),
-  ...local.value.map(p => ({ value: p.id, label: p.name, hint: status(p) || 'on this computer' }))
+  ...local.value.filter(p => p.available || p.id === device.value.providerId).map(p => ({ value: p.id, label: p.name, hint: 'on this computer' }))
 ])
 const syncedOptions = computed<HSelectOption[]>(() => [
   { value: '', label: 'None' },
-  ...global.value.map(p => ({ value: p.id, label: p.name, hint: status(p) }))
+  ...global.value.filter(p => p.available || p.id === synced.value.providerId).map(p => ({ value: p.id, label: p.name }))
 ])
 const modelOptions = computed<HSelectOption[]>(() => [
   { value: '', label: 'Default', hint: provider.value?.defaultModel },
-  ...(provider.value?.models ?? []).map(m => ({ value: m.id, label: m.name, hint: provider.value?.location === 'local' && !m.installed ? 'not downloaded' : '' }))
+  // Only what is usable: a local model once downloaded.
+  ...(provider.value?.models ?? []).filter(m => provider.value?.location !== 'local' || m.installed || m.id === effective.value.model).map(m => ({ value: m.id, label: m.name }))
 ])
 
 const LANGUAGES: HSelectOption[] = [
@@ -71,11 +72,13 @@ watch(() => [provider.value?.id, effective.value.model], async () => {
   const p = provider.value
   if (stt.value || !p) return (voices.value = [])
   const toOption = (v: { id: string, name: string, language: string, installed: boolean }) =>
-    ({ value: v.id, label: v.name, hint: [v.language, p.location === 'local' && !v.installed ? 'not downloaded' : ''].filter(Boolean).join(' · ') })
-  voices.value = [{ value: '', label: 'Default', hint: p.defaultVoice }, ...p.voices.map(toOption)]
+    ({ value: v.id, label: v.name, hint: v.language })
+  // Local voices once downloaded.
+  const usable = (v: { id: string, installed: boolean }) => p.location !== 'local' || v.installed || v.id === effective.value.voice
+  voices.value = [{ value: '', label: 'Default', hint: p.defaultVoice }, ...p.voices.filter(usable).map(toOption)]
   if (!p.listsVoices) return
   try {
-    voices.value = [{ value: '', label: 'Default', hint: p.defaultVoice }, ...(await props.api.listVoices(p.id, effective.value.model || undefined)).map(toOption)]
+    voices.value = [{ value: '', label: 'Default', hint: p.defaultVoice }, ...(await props.api.listVoices(p.id, effective.value.model || undefined)).filter(usable).map(toOption)]
   } catch { /* the built-in list stays */ }
 }, { immediate: true })
 
@@ -279,6 +282,20 @@ async function clearKey(p: SpeechProviderView) {
         </div>
       </template>
     </template>
+
+    <div
+      v-if="!stt"
+      class="set-row"
+    >
+      <div class="set-label">
+        <span>Read answers automatically</span>
+        <span class="set-desc">Each new answer is read aloud when it finishes. This device only.</span>
+      </div>
+      <HToggle
+        v-model="autoRead"
+        label="Read answers automatically"
+      />
+    </div>
 
     <div class="mt-3 overflow-hidden border border-default">
       <div

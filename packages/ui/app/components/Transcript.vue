@@ -130,6 +130,16 @@ function nextUserAfter(turnId: string) {
 }
 const readAloud = useReadAloud()
 onBeforeUnmount(readAloud.stop)
+// Read aloud automatically: a turn that finishes while the session is open (not ones loaded with it).
+const autoRead = useAutoReadAloud()
+const lastTurn = computed(() => props.session.items.findLast(i => i.kind === 'turn'))
+watch(lastTurn, (turn, before) => {
+  if (!autoRead.value || !turn || turn.kind !== 'turn' || turn.result !== 'success') return
+  if (!before || before.id === turn.id || props.session.meta.id !== sid.value) return
+  const text = answerOf(turn.id)
+  if (text.trim()) void readAloud.toggle(turn.id, text)
+})
+watch(sid, () => readAloud.stop())
 const edit = (id: string) => act('Could not edit the message', () => store.editQueued(sid.value, id))
 // A new message (yours, a queued one or the model's next one) brings the view down to it, even when it was
 // scrolled up. column-reverse puts the newest edge at scrollTop 0. Streaming into the same message does not.

@@ -7,6 +7,25 @@ import { BROWSER_SPEECH_PROVIDER } from '~/lib/speech/types'
 let player: HTMLAudioElement | null = null
 let synthesis: { cancel(): void } | null = null
 
+const AUTO_KEY = 'harness-read-aloud-auto'
+
+// Read each new answer aloud as it finishes (Settings › Speech); this device only.
+export function useAutoReadAloud() {
+  const on = useState<boolean>('read-aloud-auto', () => {
+    try {
+      return import.meta.client && localStorage.getItem(AUTO_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  watch(on, (v) => {
+    try {
+      localStorage.setItem(AUTO_KEY, v ? '1' : '0')
+    } catch { /* not stored */ }
+  })
+  return on
+}
+
 export function useReadAloud() {
   const store = useSessionStore()
   const toast = useToast()

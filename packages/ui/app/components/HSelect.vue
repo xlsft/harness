@@ -69,7 +69,7 @@ function pick(v: string) {
       >{{ current?.label ?? placeholder }}</span>
       <span
         v-if="current?.hint"
-        class="shrink-0 truncate text-[11.5px] text-muted"
+        class="max-w-[45%] shrink-0 truncate text-[11.5px] text-muted"
       >{{ current.hint }}</span>
       <HIcon
         name="down"
@@ -81,7 +81,7 @@ function pick(v: string) {
       <div
         role="listbox"
         :aria-label="ariaLabel"
-        class="w-(--reka-popover-trigger-width) min-w-[220px] border border-accented bg-hover text-[12.5px]"
+        class="w-(--reka-popover-trigger-width) min-w-[220px] overflow-hidden border border-accented bg-hover text-[12.5px]"
       >
         <label
           v-if="options.length >= FILTER_FROM"
@@ -121,7 +121,8 @@ function pick(v: string) {
               <span class="min-w-0 flex-1 truncate">{{ o.label }}</span>
               <span
                 v-if="o.hint"
-                class="shrink-0 text-[11px] text-muted"
+                class="max-w-[45%] shrink-0 truncate text-[11px] text-muted"
+                :title="o.hint"
               >{{ o.hint }}</span>
             </div>
           </template>
