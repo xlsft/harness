@@ -7,12 +7,9 @@ import type { SessionState } from '~/lib/session/types'
 
 export type Hint = { keys?: string, text: string }[]
 
-const props = defineProps<{ session: SessionState, hint?: Hint, initialMenu?: 'mode' | 'model' | '' }>()
+const props = defineProps<{ session: SessionState, hint?: Hint }>()
 const store = useSessionStore()
 
-const modeOpen = ref(props.initialMenu === 'mode')
-const modelOpen = ref(props.initialMenu === 'model')
-const effortOpen = ref(false)
 const contextOpen = ref(false)
 
 const id = computed(() => props.session.meta.id)
@@ -39,98 +36,17 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
       </span>
     </span>
 
-    <UPopover
-      v-model:open="modelOpen"
-      :content="{ side: 'top', align: 'end', sideOffset: 6 }"
-    >
-      <button
-        type="button"
-        aria-label="Model"
-        :class="[BTN, modelOpen && 'bg-hover']"
-      >
-        <span
-          class="text-strong"
-          :title="model?.provider"
-        >{{ session.meta.model }}</span>
-        <HIcon
-          name="down"
-          :size="11"
-        />
-      </button>
-      <template #content>
-        <div
-          role="listbox"
-          aria-label="Model"
-          class="w-[380px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
-        >
-          <ModelList
-            :selected="session.meta.model"
-            @pick="store.setModel(id, $event); modelOpen = false"
-          />
-        </div>
-      </template>
-    </UPopover>
-
-    <UPopover
-      v-if="effort"
-      v-model:open="effortOpen"
-      :content="{ side: 'top', align: 'end', sideOffset: 6 }"
-    >
-      <button
-        type="button"
-        aria-label="Effort"
-        :class="[BTN, effortOpen && 'bg-hover', 'max-sm:hidden']"
-      >
-        effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span><HIcon
-          name="down"
-          :size="11"
-        />
-      </button>
-      <template #content>
-        <div class="overflow-hidden border border-accented bg-hover">
-          <EffortSlider
-            :model-value="effort"
-            :levels="efforts"
-            @update:model-value="store.setEffort(id, $event)"
-          />
-        </div>
-      </template>
-    </UPopover>
-
-    <UPopover
-      v-model:open="modeOpen"
-      :content="{ side: 'top', align: 'end', sideOffset: 6 }"
-    >
-      <button
-        type="button"
-        aria-label="Permission mode"
-        :class="[BTN, modeOpen && 'bg-hover']"
-      >
-        <span class="text-strong">{{ MODE_LABEL[session.meta.permissionMode] }}</span><HIcon
-          name="down"
-          :size="11"
-        />
-      </button>
-      <template #content>
-        <div
-          role="listbox"
-          aria-label="Permission mode"
-          class="w-[340px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
-        >
-          <div
-            v-for="m in store.availableModes"
-            :key="m.key"
-            role="option"
-            :aria-selected="m.key === session.meta.permissionMode"
-            class="flex cursor-pointer flex-col rounded-none border-l-2 px-2.5 py-1.5"
-            :class="[m.key === session.meta.permissionMode ? 'border-l-accent bg-raised' : 'border-l-transparent hover:bg-raised', m.sep ? 'border-t border-t-default' : '']"
-            @click="store.setPermissionMode(id, m.key); modeOpen = false"
-          >
-            <span :class="m.cls">{{ m.label }}</span><span class="text-[11px] text-muted">{{ m.detail }}</span>
-          </div>
-        </div>
-      </template>
-    </UPopover>
+    <SessionControls
+      :model="session.meta.model"
+      :label="session.meta.model"
+      :provider="model?.provider"
+      :efforts="efforts"
+      :effort="effort"
+      :mode="session.meta.permissionMode"
+      @update:model="store.setModel(id, $event)"
+      @update:effort="store.setEffort(id, $event)"
+      @update:mode="store.setPermissionMode(id, $event)"
+    />
 
     <UPopover
       v-model:open="contextOpen"

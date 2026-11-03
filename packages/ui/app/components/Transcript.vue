@@ -99,7 +99,7 @@ const blocks = computed<Block[]>(() => {
 // Messages not read by the agent yet: handed to the client (sending, sent), in the client's queue, then in this
 // browser's queue (lib/session/delivery.ts).
 const queued = computed(() => pendingMessages(props.session, store.outbox[props.session.meta.id]))
-const waiting = computed(() => queued.value.filter(q => q.delivery === 'queued').length)
+const waiting = computed(() => queued.value.filter(q => q.delivery === 'queued' || q.delivery === 'held').length)
 const working = computed(() => props.session.meta.status === 'working')
 const now = useNow()
 const activity = computed(() => {
@@ -386,8 +386,8 @@ function toBottom() {
         >
           <UserMessage
             :text="q.text"
-            :queued="q.delivery === 'queued'"
-            :pending="q.delivery !== 'queued'"
+            :queued="q.delivery === 'queued' || q.delivery === 'held'"
+            :pending="q.delivery !== 'queued' && q.delivery !== 'held'"
             @edit="edit(q.id)"
           />
           <MessageActions

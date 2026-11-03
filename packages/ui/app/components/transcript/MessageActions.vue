@@ -22,6 +22,7 @@ const actions = computed(() => messageActions(props.delivery, { busy: props.busy
 const label = computed(() => {
   switch (props.delivery) {
     case 'queued': return (props.waiting ?? 0) > 1 && props.position ? `queued · ${props.position} of ${props.waiting}` : 'queued'
+    case 'held': return 'held until limits return'
     case 'sending': return 'sending'
     case 'sent': return 'sent'
     default: return 'read'
@@ -61,7 +62,7 @@ function run(key: string) {
       :data-delivery="delivery"
     >
       <HIcon
-        v-if="delivery === 'queued' || delivery === 'sending'"
+        v-if="delivery === 'queued' || delivery === 'held' || delivery === 'sending'"
         name="clock"
         :size="12"
       />

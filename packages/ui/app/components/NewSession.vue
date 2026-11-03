@@ -429,85 +429,16 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
 
           <span class="flex-1" />
 
-          <UPopover
-            :open="menu === 'model'"
-            :content="{ side: 'top', align: 'end', sideOffset: 6 }"
-            @update:open="menu = $event ? 'model' : ''"
-          >
-            <button
-              type="button"
-              :class="[CHIP, menu === 'model' && 'bg-hover']"
-            >
-              <span class="text-strong">{{ modelLabel }}</span>
-            </button>
-            <template #content>
-              <div
-                role="listbox"
-                aria-label="Model"
-                class="w-[380px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
-              >
-                <ModelList
-                  :selected="model || store.models[0]?.id || ''"
-                  @pick="model = $event; menu = ''"
-                />
-              </div>
-            </template>
-          </UPopover>
-
-          <UPopover
-            v-if="efforts.length"
-            :open="menu === 'effort'"
-            :content="{ side: 'top', align: 'end', sideOffset: 6 }"
-            @update:open="menu = $event ? 'effort' : ''"
-          >
-            <button
-              type="button"
-              aria-label="Effort"
-              :class="[CHIP, menu === 'effort' && 'bg-hover', '@max-[560px]:hidden']"
-            >
-              effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span>
-            </button>
-            <template #content>
-              <div class="overflow-hidden border border-accented bg-hover">
-                <EffortSlider
-                  v-model="effort"
-                  :levels="efforts"
-                />
-              </div>
-            </template>
-          </UPopover>
-
-          <UPopover
-            :open="menu === 'mode'"
-            :content="{ side: 'top', align: 'end', sideOffset: 6 }"
-            @update:open="menu = $event ? 'mode' : ''"
-          >
-            <button
-              type="button"
-              :class="[CHIP, menu === 'mode' && 'bg-hover']"
-            >
-              <span class="text-strong">{{ MODE_LABEL[mode] }}</span>
-            </button>
-            <template #content>
-              <div
-                role="listbox"
-                aria-label="Permission mode"
-                class="w-[280px] overflow-hidden border border-accented bg-hover text-[12.5px]"
-              >
-                <div
-                  v-for="m in store.availableModes.filter(x => x.key !== 'bypass')"
-                  :key="m.key"
-                  role="option"
-                  :aria-selected="m.key === mode"
-                  class="flex cursor-pointer flex-col rounded-none border-l-2 px-2.5 py-[5px]"
-                  :class="m.key === mode ? 'border-accent bg-raised' : 'border-transparent hover:bg-raised'"
-                  @click="mode = m.key; menu = ''"
-                >
-                  <span :class="m.cls">{{ m.label }}</span><span class="text-[11px] text-muted">{{ m.detail }}</span>
-                </div>
-              </div>
-            </template>
-          </UPopover>
+          <SessionControls
+            :model="model || store.models[0]?.id || ''"
+            :label="modelLabel"
+            :efforts="efforts"
+            :effort="efforts.length ? effort : undefined"
+            :mode="mode"
+            @update:model="model = $event"
+            @update:effort="effort = $event"
+            @update:mode="mode = $event"
+          />
         </div>
       </div>
     </div>

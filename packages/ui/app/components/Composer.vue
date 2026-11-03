@@ -814,7 +814,6 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
     <ComposerFooter
       :session="session"
       :hint="hint"
-      :initial-menu="preset?.menu === 'mode' || preset?.menu === 'model' ? preset.menu : ''"
     />
     <UModal
       v-model:open="browsingFolder"

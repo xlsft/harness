@@ -33,6 +33,14 @@ const resets = computed(() => {
   return `Resets ${sameDay ? 'at' : ''} ${d.toLocaleString(undefined, sameDay ? { hour: 'numeric', minute: '2-digit' } : { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`.replace('  ', ' ')
 })
 const bad = computed(() => limit.value?.state === 'reached')
+// Held messages go out by themselves when the limit returns, or on a switch to a model of another provider.
+const store = useSessionStore()
+const held = computed(() => props.session.queue.filter(q => q.held).length)
+const note = computed(() => {
+  if (!bad.value) return ''
+  const n = held.value
+  return n ? `${n} ${n === 1 ? 'message' : 'messages'} held: sent when the limit returns, or if you switch to a model of another provider.` : 'New messages wait until the limit returns. You can also switch to a model of another provider.'
+})
 </script>
 
 <template>
@@ -60,6 +68,22 @@ const bad = computed(() => limit.value?.state === 'reached')
         v-if="detail"
         class="truncate text-[11.5px] text-muted"
       >{{ detail }}</span>
+      <span
+        v-if="note"
+        class="text-[11.5px] text-muted"
+      >{{ note }}</span>
+      <label
+        v-if="bad && limit!.interrupted"
+        class="mt-1 flex cursor-pointer items-center gap-2 text-[12px] text-toned"
+      >
+        <input
+          type="checkbox"
+          :checked="session.meta.autoContinue"
+          class="accent-(--color-accent)"
+          @change="store.setAutoContinue(session.meta.id, ($event.target as HTMLInputElement).checked)"
+        >
+        Continue the interrupted work when the limit returns
+      </label>
     </span>
     <HIconBtn
       icon="close"
