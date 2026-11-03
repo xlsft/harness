@@ -192,6 +192,7 @@ watch([menu, token], async () => {
 const pending = computed(() => props.session.items.find(i => i.kind === 'permission' && i.state === 'pending'))
 
 const placeholder = computed(() => {
+  if (dictation.state.value === 'transcribing') return 'Transcribing…'
   if (mode.value === 'shell') return 'Run a command'
   if (mode.value === 'memory') return 'Something to remember'
   if (planMode.value && !busy.value) return 'Describe what to plan. Nothing will be changed.'
@@ -391,13 +392,26 @@ function mmss(ms: number) {
   const sec = Math.max(0, Math.floor(ms / 1000))
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 }
-function startRecording() {
-  recording.value = true
-  recordStart.value = Date.now()
+// Dictation (useDictation): the microphone, then the speech-to-text provider of Settings › Speech.
+const dictation = useDictation()
+const toast = useToast()
+async function startRecording() {
+  try {
+    await dictation.start()
+    recording.value = true
+    recordStart.value = dictation.startedAt.value
+  } catch (e) {
+    toast.add({ title: 'Dictation', description: e instanceof Error ? e.message : String(e), color: 'error' })
+  }
 }
-function stopRecording(keep: boolean) {
+async function stopRecording(keep: boolean) {
   recording.value = false
-  if (keep) text.value = (text.value ? text.value + ' ' : '') + 'check why the stream hangs on ollama when the model takes more than a minute'
+  try {
+    const said = await dictation.stop(keep)
+    if (said) text.value = (text.value ? text.value.replace(/\s*$/, ' ') : '') + said
+  } catch (e) {
+    toast.add({ title: 'Could not transcribe', description: e instanceof Error ? e.message : String(e), color: 'error' })
+  }
 }
 
 const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
@@ -510,7 +524,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       <span class="size-2 bg-bad" /><span class="text-[12px] text-strong">{{ mmss(now - recordStart) }}</span>
       <div class="flex h-6 min-w-0 flex-1 items-center gap-0.5 overflow-hidden">
         <span
-          v-for="(h, i) in wave"
+          v-for="(h, i) in (dictation.state.value === 'recording' ? dictation.levels.value.map(l => 2 + l * 22) : wave)"
           :key="i"
           class="w-0.5 shrink-0 bg-bad"
           :style="{ height: `${h}px` }"

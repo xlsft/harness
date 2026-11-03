@@ -5,5 +5,8 @@
 	<!-- The Icon Composer icon in Resources/Assets.car (scripts/build-icon.sh); icon.icns is the fallback. -->
 	<key>CFBundleIconName</key>
 	<string>Icon</string>
+	<!-- Dictation in the composer records the microphone (WebKit asks with this text). -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Dictation turns what you say into a message.</string>
 </dict>
 </plist>
