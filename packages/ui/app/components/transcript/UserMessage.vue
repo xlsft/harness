@@ -26,12 +26,11 @@ const interrupted = computed(() => /^\[Request interrupted by user[^\]]*\]$/.tes
 // Sent by a button inside a visual (harness.send): a chip instead of the "[from visual <id>]" prefix.
 const fromVisual = computed(() => props.text.match(FROM_VISUAL)?.[1] ?? '')
 
-const parsed = computed(() => {
-  const text = fromVisual.value ? props.text.replace(FROM_VISUAL, '') : props.text
-  const lines = text.split('\n')
-  const quote = lines[0]?.startsWith('> ') ? lines[0].slice(2) : ''
-  const body = quote ? lines.slice(1).join('\n').trim() : text
-  const parts: { t: string, kind: 'text' | 'command' | 'mention' }[] = []
+// The text as Markdown-style quotes ("> " lines, one block per run) and the replies between them, each reply split
+// into plain text, a leading /command and @mentions.
+type Part = { t: string, kind: 'text' | 'command' | 'mention' }
+function partsOf(body: string): Part[] {
+  const parts: Part[] = []
   const re = /(^\/[\w-]+)|(@[\w./-]+)/g
   let last = 0
   let m: RegExpExecArray | null
@@ -41,7 +40,36 @@ const parsed = computed(() => {
     last = m.index + m[0].length
   }
   if (last < body.length) parts.push({ t: body.slice(last), kind: 'text' })
-  return { quote, parts, rich: parts.some(p => p.kind !== 'text') }
+  return parts
+}
+const parsed = computed(() => {
+  const text = fromVisual.value ? props.text.replace(FROM_VISUAL, '') : props.text
+  const blocks: ({ kind: 'quote', text: string } | { kind: 'body', parts: Part[] })[] = []
+  let quote: string[] = []
+  let body: string[] = []
+  const flush = () => {
+    if (quote.length) blocks.push({ kind: 'quote', text: quote.join('\n') })
+    const b = body.join('\n').trim()
+    if (b) blocks.push({ kind: 'body', parts: partsOf(b) })
+    quote = []
+    body = []
+  }
+  for (const line of text.split('\n')) {
+    const q = line.match(/^>\s?(.*)$/)
+    if (q) {
+      if (body.join('').trim()) flush()
+      else body = []
+      quote.push(q[1]!)
+    } else {
+      if (quote.length && !body.length) {
+        blocks.push({ kind: 'quote', text: quote.join('\n') })
+        quote = []
+      }
+      body.push(line)
+    }
+  }
+  flush()
+  return { blocks, rich: blocks.some(b => b.kind === 'body' && b.parts.some(p => p.kind !== 'text')) }
 })
 </script>
 
@@ -59,39 +87,55 @@ const parsed = computed(() => {
       class="flex max-w-[78%] cursor-text flex-col gap-[7px] self-end border border-dashed border-accented px-3 py-[9px] text-left leading-[1.55] text-toned hover:border-accent"
       @click="emit('edit')"
     >
-      <span
-        v-if="parsed.quote"
-        class="border-l-2 border-accented pl-2.5 text-[12px] text-muted"
-      >{{ parsed.quote }}</span>
-      <span class="whitespace-pre-wrap"><template
-        v-for="(p, i) in parsed.parts"
-        :key="i"
-      ><span
-        v-if="p.kind === 'command'"
-        class="border border-accent px-[5px] text-accent"
-      >{{ p.t }}</span><span
-        v-else-if="p.kind === 'mention'"
-        class="bg-accent/15 px-1 text-accent"
-      >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
+      <template
+        v-for="(b, bi) in parsed.blocks"
+        :key="bi"
+      >
+        <span
+          v-if="b.kind === 'quote'"
+          class="border-l-2 border-accented pl-2.5 text-[12px] whitespace-pre-wrap text-muted"
+        >{{ b.text }}</span>
+        <span
+          v-else
+          class="whitespace-pre-wrap"
+        ><template
+          v-for="(p, i) in b.parts"
+          :key="i"
+        ><span
+          v-if="p.kind === 'command'"
+          class="border border-accent px-[5px] text-accent"
+        >{{ p.t }}</span><span
+          v-else-if="p.kind === 'mention'"
+          class="bg-accent/15 px-1 text-accent"
+        >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
+      </template>
     </button>
     <div
       v-else-if="pending"
       class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default px-3 py-[9px] leading-[1.55] text-toned"
     >
-      <span
-        v-if="parsed.quote"
-        class="border-l-2 border-accented pl-2.5 text-[12px] text-muted"
-      >{{ parsed.quote }}</span>
-      <span class="whitespace-pre-wrap"><template
-        v-for="(p, i) in parsed.parts"
-        :key="i"
-      ><span
-        v-if="p.kind === 'command'"
-        class="border border-accent px-[5px] text-accent"
-      >{{ p.t }}</span><span
-        v-else-if="p.kind === 'mention'"
-        class="bg-accent/15 px-1 text-accent"
-      >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
+      <template
+        v-for="(b, bi) in parsed.blocks"
+        :key="bi"
+      >
+        <span
+          v-if="b.kind === 'quote'"
+          class="border-l-2 border-accented pl-2.5 text-[12px] whitespace-pre-wrap text-muted"
+        >{{ b.text }}</span>
+        <span
+          v-else
+          class="whitespace-pre-wrap"
+        ><template
+          v-for="(p, i) in b.parts"
+          :key="i"
+        ><span
+          v-if="p.kind === 'command'"
+          class="border border-accent px-[5px] text-accent"
+        >{{ p.t }}</span><span
+          v-else-if="p.kind === 'mention'"
+          class="bg-accent/15 px-1 text-accent"
+        >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
+      </template>
     </div>
     <span
       v-else-if="ran"
@@ -117,26 +161,35 @@ const parsed = computed(() => {
     />
     <div
       v-else
-      class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default bg-hover px-3 py-[9px] whitespace-pre-wrap text-strong"
+      class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default bg-hover px-3 py-[9px] text-strong"
       :class="parsed.rich ? 'leading-[1.7]' : 'leading-[1.55]'"
     >
       <span
-        v-if="parsed.quote"
-        class="border-l-2 border-accented pl-2.5 text-[12px] text-muted"
-      >{{ parsed.quote }}</span>
-      <span><span
         v-if="fromVisual"
-        class="mr-1.5 border border-accented px-[5px] text-[11.5px] text-muted"
-      >from visual</span><template
-        v-for="(p, i) in parsed.parts"
-        :key="i"
-      ><span
-        v-if="p.kind === 'command'"
-        class="border border-accent px-[5px] text-accent"
-      >{{ p.t }}</span><span
-        v-else-if="p.kind === 'mention'"
-        class="bg-accent/15 px-1 text-accent"
-      >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
+        class="self-start border border-accented px-[5px] text-[11.5px] text-muted"
+      >from visual</span>
+      <template
+        v-for="(b, bi) in parsed.blocks"
+        :key="bi"
+      >
+        <span
+          v-if="b.kind === 'quote'"
+          class="border-l-2 border-accented pl-2.5 text-[12px] whitespace-pre-wrap text-muted"
+        >{{ b.text }}</span>
+        <span
+          v-else
+          class="whitespace-pre-wrap"
+        ><template
+          v-for="(p, i) in b.parts"
+          :key="i"
+        ><span
+          v-if="p.kind === 'command'"
+          class="border border-accent px-[5px] text-accent"
+        >{{ p.t }}</span><span
+          v-else-if="p.kind === 'mention'"
+          class="bg-accent/15 px-1 text-accent"
+        >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
+      </template>
     </div>
   </div>
 </template>

@@ -24,13 +24,13 @@ watch(attach, (paths) => {
   attach.value = []
   nextTick(() => input.value?.focus())
 }, { deep: true })
-// "Reply" on text picked in the transcript: the quote shows as a block above the field and goes first in the sent
-// message ("> quote", a blank line, then the text), which the transcript shows as a reply.
+// "Reply" on text picked in the transcript: a Markdown quote ("> …" and a blank line) at the end of the text, so
+// quotes and answers can alternate; the field shows quote lines as quotes (quoteLines).
 const { reply } = useQuoteRequests()
-const quoted = ref('')
 watch(reply, (q) => {
   if (!q) return
-  quoted.value = quoteLine(q)
+  const before = text.value.replace(/\s*$/, '')
+  text.value = `${before ? `${before}\n\n` : ''}> ${quoteLine(q)}\n\n`
   reply.value = ''
   nextTick(() => {
     const el = input.value
@@ -242,9 +242,8 @@ onMounted(() => {
 })
 
 async function submit() {
-  const typed = text.value
-  if (!typed.trim() || ended.value) return
-  const body = quoted.value && mode.value === 'normal' ? `> ${quoted.value}\n\n${typed}` : typed
+  const body = text.value
+  if (!body.trim() || ended.value) return
   error.value = ''
   if (mode.value !== 'normal') {
     const route = composerRoute(mode.value, body, memoryTarget.value)
@@ -271,7 +270,6 @@ async function submit() {
   }
   text.value = ''
   files.value = []
-  quoted.value = ''
   await safeSend(body)
 }
 
@@ -353,6 +351,17 @@ function onKeydown(e: KeyboardEvent) {
     mode.value = 'normal'
     e.preventDefault()
   }
+}
+
+// Quote lines of the text ("> …"), drawn under the field.
+const quoteLines = computed(() => text.value.split('\n').map((l) => {
+  const mark = l.match(/^>\s?/)?.[0] ?? ''
+  return { text: l, quote: !!mark, mark }
+}))
+const hasQuotes = computed(() => mode.value === 'normal' && quoteLines.value.some(l => l.quote))
+const mirror = ref<HTMLElement | null>(null)
+function syncMirror() {
+  if (mirror.value && input.value) mirror.value.scrollTop = input.value.scrollTop
 }
 
 function onInput(e: Event) {
@@ -557,20 +566,6 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       :class="frame"
       @drop.prevent="onDrop"
     >
-      <!-- the quote a Reply answers -->
-      <div
-        v-if="quoted"
-        class="mx-2 mt-2 flex items-start gap-2 border-l-2 border-accent bg-hover py-1.5 pr-1 pl-2.5 text-[12.5px] text-muted"
-      >
-        <span class="line-clamp-3 min-w-0 flex-1">{{ quoted }}</span>
-        <HIconBtn
-          icon="close"
-          label="Remove the quote"
-          :size="26"
-          :icon-size="12"
-          @click="quoted = ''"
-        />
-      </div>
       <div
         v-if="files.length"
         class="flex flex-wrap gap-1.5 px-2 pt-2"
@@ -701,19 +696,38 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           class="hidden"
           @change="addFiles(($event.target as HTMLInputElement).files)"
         >
-        <textarea
-          ref="input"
-          :value="text"
-          rows="1"
-          :placeholder="placeholder"
-          aria-label="Message"
-          class="min-w-0 flex-1 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:truncate placeholder:text-muted"
-          :class="[menu === 'slash' ? 'text-accent' : 'text-strong', !text && 'overflow-hidden']"
-          @input="onInput"
-          @keydown="onKeydown"
-          @focus="focused = true"
-          @blur="focused = false"
-        />
+        <div class="relative grid min-w-0 flex-1">
+          <!-- What the field shows when it has quotes: quote lines dimmed with a rule, under the transparent text -->
+          <div
+            v-if="hasQuotes"
+            ref="mirror"
+            aria-hidden="true"
+            class="pointer-events-none col-start-1 row-start-1 max-h-[167px] overflow-hidden py-[3px] leading-[1.6] break-words whitespace-pre-wrap text-strong"
+          >
+            <span
+              v-for="(l, i) in quoteLines"
+              :key="i"
+              :class="l.quote && 'text-muted shadow-[inset_2px_0_0_var(--color-accent)]'"
+            ><span
+              v-if="l.mark"
+              class="text-transparent"
+            >{{ l.mark }}</span>{{ l.text.slice(l.mark.length) + (i < quoteLines.length - 1 ? '\n' : '\u200b') }}</span>
+          </div>
+          <textarea
+            ref="input"
+            :value="text"
+            rows="1"
+            :placeholder="placeholder"
+            aria-label="Message"
+            class="col-start-1 row-start-1 min-w-0 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:truncate placeholder:text-muted"
+            :class="[hasQuotes ? 'text-transparent caret-(--color-strong)' : menu === 'slash' ? 'text-accent' : 'text-strong', !text && 'overflow-hidden']"
+            @input="onInput"
+            @keydown="onKeydown"
+            @focus="focused = true"
+            @blur="focused = false"
+            @scroll="syncMirror"
+          />
+        </div>
         <template v-if="error">
           <button
             type="button"
