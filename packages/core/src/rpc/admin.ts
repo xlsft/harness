@@ -7,12 +7,11 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import {
   AdminService,
   LdapLocalLogin,
-  UserSource,
   type AdminUser,
   type LdapConfig,
 } from "../gen/harness/auth/v1/admin_pb.ts";
 import { PermissionMode } from "../gen/harness/agent/v1/agent_pb.ts";
-import { User_Role } from "../gen/harness/auth/v1/auth_pb.ts";
+import { User_Role, UserSource } from "../gen/harness/auth/v1/auth_pb.ts";
 import {
   getLdapSettings,
   resolveLdapConfig,

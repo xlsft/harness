@@ -59,14 +59,6 @@ service AdminService {
   rpc SetPermissionModePolicy(SetPermissionModePolicyRequest) returns (SetPermissionModePolicyResponse);
 }
 
-enum UserSource {
-  USER_SOURCE_UNSPECIFIED = 0;
-  // A local account with a password.
-  USER_SOURCE_LOCAL = 1;
-  // Signs in through LDAP; no local password.
-  USER_SOURCE_LDAP = 2;
-}
-
 message AdminUser {
   string id = 1;
   string name = 2;

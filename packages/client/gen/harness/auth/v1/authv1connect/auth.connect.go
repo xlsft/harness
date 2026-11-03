@@ -44,6 +44,12 @@ const (
 	DeviceAuthServiceRefreshAccessTokenProcedure = "/harness.auth.v1.DeviceAuthService/RefreshAccessToken"
 	// DeviceAuthServiceGetMeProcedure is the fully-qualified name of the DeviceAuthService's GetMe RPC.
 	DeviceAuthServiceGetMeProcedure = "/harness.auth.v1.DeviceAuthService/GetMe"
+	// DeviceAuthServiceUpdateMeProcedure is the fully-qualified name of the DeviceAuthService's
+	// UpdateMe RPC.
+	DeviceAuthServiceUpdateMeProcedure = "/harness.auth.v1.DeviceAuthService/UpdateMe"
+	// DeviceAuthServiceChangePasswordProcedure is the fully-qualified name of the DeviceAuthService's
+	// ChangePassword RPC.
+	DeviceAuthServiceChangePasswordProcedure = "/harness.auth.v1.DeviceAuthService/ChangePassword"
 	// DeviceAuthServiceLogoutProcedure is the fully-qualified name of the DeviceAuthService's Logout
 	// RPC.
 	DeviceAuthServiceLogoutProcedure = "/harness.auth.v1.DeviceAuthService/Logout"
@@ -64,12 +70,21 @@ type DeviceAuthServiceClient interface {
 	// Unauthenticated (uses the device token). UNAUTHENTICATED means the device was revoked:
 	// the client deletes its credentials and asks the user to sign in again.
 	RefreshAccessToken(context.Context, *connect.Request[v1.RefreshAccessTokenRequest]) (*connect.Response[v1.RefreshAccessTokenResponse], error)
+	// The calling user's profile (and the calling device when authenticated with an access token).
 	GetMe(context.Context, *connect.Request[v1.GetMeRequest]) (*connect.Response[v1.GetMeResponse], error)
+	// Changes the calling user's display name and/or avatar. Directory (LDAP) users cannot change their
+	// name (the directory sets it at every sign-in): FAILED_PRECONDITION.
+	UpdateMe(context.Context, *connect.Request[v1.UpdateMeRequest]) (*connect.Response[v1.UpdateMeResponse], error)
+	// Changes the calling user's local password. A wrong current password is INVALID_ARGUMENT; directory
+	// (LDAP) users have no local password: FAILED_PRECONDITION. Attempts are limited per user.
+	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
 	// Revokes the calling device.
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
-	// Devices of the calling user (admins may pass user_id to list another user's devices).
+	// Devices of the calling user (admins may pass user_id to list another user's devices), most recently seen
+	// first. Device.current marks the device making the call.
 	ListDevices(context.Context, *connect.Request[v1.ListDevicesRequest]) (*connect.Response[v1.ListDevicesResponse], error)
 	// Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+	// The calling device itself is refused with FAILED_PRECONDITION: it signs out with Logout instead.
 	RevokeDevice(context.Context, *connect.Request[v1.RevokeDeviceRequest]) (*connect.Response[v1.RevokeDeviceResponse], error)
 }
 
@@ -108,6 +123,18 @@ func NewDeviceAuthServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(deviceAuthServiceMethods.ByName("GetMe")),
 			connect.WithClientOptions(opts...),
 		),
+		updateMe: connect.NewClient[v1.UpdateMeRequest, v1.UpdateMeResponse](
+			httpClient,
+			baseURL+DeviceAuthServiceUpdateMeProcedure,
+			connect.WithSchema(deviceAuthServiceMethods.ByName("UpdateMe")),
+			connect.WithClientOptions(opts...),
+		),
+		changePassword: connect.NewClient[v1.ChangePasswordRequest, v1.ChangePasswordResponse](
+			httpClient,
+			baseURL+DeviceAuthServiceChangePasswordProcedure,
+			connect.WithSchema(deviceAuthServiceMethods.ByName("ChangePassword")),
+			connect.WithClientOptions(opts...),
+		),
 		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
 			httpClient,
 			baseURL+DeviceAuthServiceLogoutProcedure,
@@ -135,6 +162,8 @@ type deviceAuthServiceClient struct {
 	pollDeviceAuth     *connect.Client[v1.PollDeviceAuthRequest, v1.PollDeviceAuthResponse]
 	refreshAccessToken *connect.Client[v1.RefreshAccessTokenRequest, v1.RefreshAccessTokenResponse]
 	getMe              *connect.Client[v1.GetMeRequest, v1.GetMeResponse]
+	updateMe           *connect.Client[v1.UpdateMeRequest, v1.UpdateMeResponse]
+	changePassword     *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
 	logout             *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 	listDevices        *connect.Client[v1.ListDevicesRequest, v1.ListDevicesResponse]
 	revokeDevice       *connect.Client[v1.RevokeDeviceRequest, v1.RevokeDeviceResponse]
@@ -158,6 +187,16 @@ func (c *deviceAuthServiceClient) RefreshAccessToken(ctx context.Context, req *c
 // GetMe calls harness.auth.v1.DeviceAuthService.GetMe.
 func (c *deviceAuthServiceClient) GetMe(ctx context.Context, req *connect.Request[v1.GetMeRequest]) (*connect.Response[v1.GetMeResponse], error) {
 	return c.getMe.CallUnary(ctx, req)
+}
+
+// UpdateMe calls harness.auth.v1.DeviceAuthService.UpdateMe.
+func (c *deviceAuthServiceClient) UpdateMe(ctx context.Context, req *connect.Request[v1.UpdateMeRequest]) (*connect.Response[v1.UpdateMeResponse], error) {
+	return c.updateMe.CallUnary(ctx, req)
+}
+
+// ChangePassword calls harness.auth.v1.DeviceAuthService.ChangePassword.
+func (c *deviceAuthServiceClient) ChangePassword(ctx context.Context, req *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
+	return c.changePassword.CallUnary(ctx, req)
 }
 
 // Logout calls harness.auth.v1.DeviceAuthService.Logout.
@@ -184,12 +223,21 @@ type DeviceAuthServiceHandler interface {
 	// Unauthenticated (uses the device token). UNAUTHENTICATED means the device was revoked:
 	// the client deletes its credentials and asks the user to sign in again.
 	RefreshAccessToken(context.Context, *connect.Request[v1.RefreshAccessTokenRequest]) (*connect.Response[v1.RefreshAccessTokenResponse], error)
+	// The calling user's profile (and the calling device when authenticated with an access token).
 	GetMe(context.Context, *connect.Request[v1.GetMeRequest]) (*connect.Response[v1.GetMeResponse], error)
+	// Changes the calling user's display name and/or avatar. Directory (LDAP) users cannot change their
+	// name (the directory sets it at every sign-in): FAILED_PRECONDITION.
+	UpdateMe(context.Context, *connect.Request[v1.UpdateMeRequest]) (*connect.Response[v1.UpdateMeResponse], error)
+	// Changes the calling user's local password. A wrong current password is INVALID_ARGUMENT; directory
+	// (LDAP) users have no local password: FAILED_PRECONDITION. Attempts are limited per user.
+	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
 	// Revokes the calling device.
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
-	// Devices of the calling user (admins may pass user_id to list another user's devices).
+	// Devices of the calling user (admins may pass user_id to list another user's devices), most recently seen
+	// first. Device.current marks the device making the call.
 	ListDevices(context.Context, *connect.Request[v1.ListDevicesRequest]) (*connect.Response[v1.ListDevicesResponse], error)
 	// Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+	// The calling device itself is refused with FAILED_PRECONDITION: it signs out with Logout instead.
 	RevokeDevice(context.Context, *connect.Request[v1.RevokeDeviceRequest]) (*connect.Response[v1.RevokeDeviceResponse], error)
 }
 
@@ -224,6 +272,18 @@ func NewDeviceAuthServiceHandler(svc DeviceAuthServiceHandler, opts ...connect.H
 		connect.WithSchema(deviceAuthServiceMethods.ByName("GetMe")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deviceAuthServiceUpdateMeHandler := connect.NewUnaryHandler(
+		DeviceAuthServiceUpdateMeProcedure,
+		svc.UpdateMe,
+		connect.WithSchema(deviceAuthServiceMethods.ByName("UpdateMe")),
+		connect.WithHandlerOptions(opts...),
+	)
+	deviceAuthServiceChangePasswordHandler := connect.NewUnaryHandler(
+		DeviceAuthServiceChangePasswordProcedure,
+		svc.ChangePassword,
+		connect.WithSchema(deviceAuthServiceMethods.ByName("ChangePassword")),
+		connect.WithHandlerOptions(opts...),
+	)
 	deviceAuthServiceLogoutHandler := connect.NewUnaryHandler(
 		DeviceAuthServiceLogoutProcedure,
 		svc.Logout,
@@ -252,6 +312,10 @@ func NewDeviceAuthServiceHandler(svc DeviceAuthServiceHandler, opts ...connect.H
 			deviceAuthServiceRefreshAccessTokenHandler.ServeHTTP(w, r)
 		case DeviceAuthServiceGetMeProcedure:
 			deviceAuthServiceGetMeHandler.ServeHTTP(w, r)
+		case DeviceAuthServiceUpdateMeProcedure:
+			deviceAuthServiceUpdateMeHandler.ServeHTTP(w, r)
+		case DeviceAuthServiceChangePasswordProcedure:
+			deviceAuthServiceChangePasswordHandler.ServeHTTP(w, r)
 		case DeviceAuthServiceLogoutProcedure:
 			deviceAuthServiceLogoutHandler.ServeHTTP(w, r)
 		case DeviceAuthServiceListDevicesProcedure:
@@ -281,6 +345,14 @@ func (UnimplementedDeviceAuthServiceHandler) RefreshAccessToken(context.Context,
 
 func (UnimplementedDeviceAuthServiceHandler) GetMe(context.Context, *connect.Request[v1.GetMeRequest]) (*connect.Response[v1.GetMeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.DeviceAuthService.GetMe is not implemented"))
+}
+
+func (UnimplementedDeviceAuthServiceHandler) UpdateMe(context.Context, *connect.Request[v1.UpdateMeRequest]) (*connect.Response[v1.UpdateMeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.DeviceAuthService.UpdateMe is not implemented"))
+}
+
+func (UnimplementedDeviceAuthServiceHandler) ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.DeviceAuthService.ChangePassword is not implemented"))
 }
 
 func (UnimplementedDeviceAuthServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {

@@ -22,57 +22,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type UserSource int32
-
-const (
-	UserSource_USER_SOURCE_UNSPECIFIED UserSource = 0
-	// A local account with a password.
-	UserSource_USER_SOURCE_LOCAL UserSource = 1
-	// Signs in through LDAP; no local password.
-	UserSource_USER_SOURCE_LDAP UserSource = 2
-)
-
-// Enum value maps for UserSource.
-var (
-	UserSource_name = map[int32]string{
-		0: "USER_SOURCE_UNSPECIFIED",
-		1: "USER_SOURCE_LOCAL",
-		2: "USER_SOURCE_LDAP",
-	}
-	UserSource_value = map[string]int32{
-		"USER_SOURCE_UNSPECIFIED": 0,
-		"USER_SOURCE_LOCAL":       1,
-		"USER_SOURCE_LDAP":        2,
-	}
-)
-
-func (x UserSource) Enum() *UserSource {
-	p := new(UserSource)
-	*p = x
-	return p
-}
-
-func (x UserSource) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (UserSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_auth_v1_admin_proto_enumTypes[0].Descriptor()
-}
-
-func (UserSource) Type() protoreflect.EnumType {
-	return &file_harness_auth_v1_admin_proto_enumTypes[0]
-}
-
-func (x UserSource) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use UserSource.Descriptor instead.
-func (UserSource) EnumDescriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{0}
-}
-
 // Who may still sign in with a local password while LDAP is enabled.
 type LdapLocalLogin int32
 
@@ -109,11 +58,11 @@ func (x LdapLocalLogin) String() string {
 }
 
 func (LdapLocalLogin) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_auth_v1_admin_proto_enumTypes[1].Descriptor()
+	return file_harness_auth_v1_admin_proto_enumTypes[0].Descriptor()
 }
 
 func (LdapLocalLogin) Type() protoreflect.EnumType {
-	return &file_harness_auth_v1_admin_proto_enumTypes[1]
+	return &file_harness_auth_v1_admin_proto_enumTypes[0]
 }
 
 func (x LdapLocalLogin) Number() protoreflect.EnumNumber {
@@ -122,7 +71,7 @@ func (x LdapLocalLogin) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LdapLocalLogin.Descriptor instead.
 func (LdapLocalLogin) EnumDescriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{1}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{0}
 }
 
 type AdminUser struct {
@@ -2385,12 +2334,7 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\x1eSetPermissionModePolicyRequest\x12=\n" +
 	"\x06policy\x18\x01 \x01(\v2%.harness.auth.v1.PermissionModePolicyR\x06policy\"`\n" +
 	"\x1fSetPermissionModePolicyResponse\x12=\n" +
-	"\x06policy\x18\x01 \x01(\v2%.harness.auth.v1.PermissionModePolicyR\x06policy*V\n" +
-	"\n" +
-	"UserSource\x12\x1b\n" +
-	"\x17USER_SOURCE_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11USER_SOURCE_LOCAL\x10\x01\x12\x14\n" +
-	"\x10USER_SOURCE_LDAP\x10\x02*s\n" +
+	"\x06policy\x18\x01 \x01(\v2%.harness.auth.v1.PermissionModePolicyR\x06policy*s\n" +
 	"\x0eLdapLocalLogin\x12 \n" +
 	"\x1cLDAP_LOCAL_LOGIN_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19LDAP_LOCAL_LOGIN_FALLBACK\x10\x01\x12 \n" +
@@ -2429,104 +2373,104 @@ func file_harness_auth_v1_admin_proto_rawDescGZIP() []byte {
 	return file_harness_auth_v1_admin_proto_rawDescData
 }
 
-var file_harness_auth_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_harness_auth_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_harness_auth_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_harness_auth_v1_admin_proto_goTypes = []any{
-	(UserSource)(0),                         // 0: harness.auth.v1.UserSource
-	(LdapLocalLogin)(0),                     // 1: harness.auth.v1.LdapLocalLogin
-	(*AdminUser)(nil),                       // 2: harness.auth.v1.AdminUser
-	(*ListUsersRequest)(nil),                // 3: harness.auth.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),               // 4: harness.auth.v1.ListUsersResponse
-	(*CreateUserRequest)(nil),               // 5: harness.auth.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),              // 6: harness.auth.v1.CreateUserResponse
-	(*ResetPasswordRequest)(nil),            // 7: harness.auth.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),           // 8: harness.auth.v1.ResetPasswordResponse
-	(*SetRoleRequest)(nil),                  // 9: harness.auth.v1.SetRoleRequest
-	(*SetRoleResponse)(nil),                 // 10: harness.auth.v1.SetRoleResponse
-	(*SetDisabledRequest)(nil),              // 11: harness.auth.v1.SetDisabledRequest
-	(*SetDisabledResponse)(nil),             // 12: harness.auth.v1.SetDisabledResponse
-	(*DeleteUserRequest)(nil),               // 13: harness.auth.v1.DeleteUserRequest
-	(*DeleteUserResponse)(nil),              // 14: harness.auth.v1.DeleteUserResponse
-	(*ListUserSessionsRequest)(nil),         // 15: harness.auth.v1.ListUserSessionsRequest
-	(*ListUserSessionsResponse)(nil),        // 16: harness.auth.v1.ListUserSessionsResponse
-	(*RevokeUserSessionsRequest)(nil),       // 17: harness.auth.v1.RevokeUserSessionsRequest
-	(*RevokeUserSessionsResponse)(nil),      // 18: harness.auth.v1.RevokeUserSessionsResponse
-	(*UserProvider)(nil),                    // 19: harness.auth.v1.UserProvider
-	(*ListUserProvidersRequest)(nil),        // 20: harness.auth.v1.ListUserProvidersRequest
-	(*ListUserProvidersResponse)(nil),       // 21: harness.auth.v1.ListUserProvidersResponse
-	(*DeleteUserProviderRequest)(nil),       // 22: harness.auth.v1.DeleteUserProviderRequest
-	(*DeleteUserProviderResponse)(nil),      // 23: harness.auth.v1.DeleteUserProviderResponse
-	(*LdapConfig)(nil),                      // 24: harness.auth.v1.LdapConfig
-	(*GetLdapConfigRequest)(nil),            // 25: harness.auth.v1.GetLdapConfigRequest
-	(*GetLdapConfigResponse)(nil),           // 26: harness.auth.v1.GetLdapConfigResponse
-	(*SetLdapConfigRequest)(nil),            // 27: harness.auth.v1.SetLdapConfigRequest
-	(*SetLdapConfigResponse)(nil),           // 28: harness.auth.v1.SetLdapConfigResponse
-	(*TestLdapConnectionRequest)(nil),       // 29: harness.auth.v1.TestLdapConnectionRequest
-	(*TestLdapConnectionResponse)(nil),      // 30: harness.auth.v1.TestLdapConnectionResponse
-	(*TestLdapUserRequest)(nil),             // 31: harness.auth.v1.TestLdapUserRequest
-	(*TestLdapUserResponse)(nil),            // 32: harness.auth.v1.TestLdapUserResponse
-	(*PermissionModePolicy)(nil),            // 33: harness.auth.v1.PermissionModePolicy
-	(*GetPermissionModePolicyRequest)(nil),  // 34: harness.auth.v1.GetPermissionModePolicyRequest
-	(*GetPermissionModePolicyResponse)(nil), // 35: harness.auth.v1.GetPermissionModePolicyResponse
-	(*SetPermissionModePolicyRequest)(nil),  // 36: harness.auth.v1.SetPermissionModePolicyRequest
-	(*SetPermissionModePolicyResponse)(nil), // 37: harness.auth.v1.SetPermissionModePolicyResponse
-	(User_Role)(0),                          // 38: harness.auth.v1.User.Role
+	(LdapLocalLogin)(0),                     // 0: harness.auth.v1.LdapLocalLogin
+	(*AdminUser)(nil),                       // 1: harness.auth.v1.AdminUser
+	(*ListUsersRequest)(nil),                // 2: harness.auth.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),               // 3: harness.auth.v1.ListUsersResponse
+	(*CreateUserRequest)(nil),               // 4: harness.auth.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),              // 5: harness.auth.v1.CreateUserResponse
+	(*ResetPasswordRequest)(nil),            // 6: harness.auth.v1.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),           // 7: harness.auth.v1.ResetPasswordResponse
+	(*SetRoleRequest)(nil),                  // 8: harness.auth.v1.SetRoleRequest
+	(*SetRoleResponse)(nil),                 // 9: harness.auth.v1.SetRoleResponse
+	(*SetDisabledRequest)(nil),              // 10: harness.auth.v1.SetDisabledRequest
+	(*SetDisabledResponse)(nil),             // 11: harness.auth.v1.SetDisabledResponse
+	(*DeleteUserRequest)(nil),               // 12: harness.auth.v1.DeleteUserRequest
+	(*DeleteUserResponse)(nil),              // 13: harness.auth.v1.DeleteUserResponse
+	(*ListUserSessionsRequest)(nil),         // 14: harness.auth.v1.ListUserSessionsRequest
+	(*ListUserSessionsResponse)(nil),        // 15: harness.auth.v1.ListUserSessionsResponse
+	(*RevokeUserSessionsRequest)(nil),       // 16: harness.auth.v1.RevokeUserSessionsRequest
+	(*RevokeUserSessionsResponse)(nil),      // 17: harness.auth.v1.RevokeUserSessionsResponse
+	(*UserProvider)(nil),                    // 18: harness.auth.v1.UserProvider
+	(*ListUserProvidersRequest)(nil),        // 19: harness.auth.v1.ListUserProvidersRequest
+	(*ListUserProvidersResponse)(nil),       // 20: harness.auth.v1.ListUserProvidersResponse
+	(*DeleteUserProviderRequest)(nil),       // 21: harness.auth.v1.DeleteUserProviderRequest
+	(*DeleteUserProviderResponse)(nil),      // 22: harness.auth.v1.DeleteUserProviderResponse
+	(*LdapConfig)(nil),                      // 23: harness.auth.v1.LdapConfig
+	(*GetLdapConfigRequest)(nil),            // 24: harness.auth.v1.GetLdapConfigRequest
+	(*GetLdapConfigResponse)(nil),           // 25: harness.auth.v1.GetLdapConfigResponse
+	(*SetLdapConfigRequest)(nil),            // 26: harness.auth.v1.SetLdapConfigRequest
+	(*SetLdapConfigResponse)(nil),           // 27: harness.auth.v1.SetLdapConfigResponse
+	(*TestLdapConnectionRequest)(nil),       // 28: harness.auth.v1.TestLdapConnectionRequest
+	(*TestLdapConnectionResponse)(nil),      // 29: harness.auth.v1.TestLdapConnectionResponse
+	(*TestLdapUserRequest)(nil),             // 30: harness.auth.v1.TestLdapUserRequest
+	(*TestLdapUserResponse)(nil),            // 31: harness.auth.v1.TestLdapUserResponse
+	(*PermissionModePolicy)(nil),            // 32: harness.auth.v1.PermissionModePolicy
+	(*GetPermissionModePolicyRequest)(nil),  // 33: harness.auth.v1.GetPermissionModePolicyRequest
+	(*GetPermissionModePolicyResponse)(nil), // 34: harness.auth.v1.GetPermissionModePolicyResponse
+	(*SetPermissionModePolicyRequest)(nil),  // 35: harness.auth.v1.SetPermissionModePolicyRequest
+	(*SetPermissionModePolicyResponse)(nil), // 36: harness.auth.v1.SetPermissionModePolicyResponse
+	(User_Role)(0),                          // 37: harness.auth.v1.User.Role
+	(UserSource)(0),                         // 38: harness.auth.v1.UserSource
 	(*Device)(nil),                          // 39: harness.auth.v1.Device
 	(v1.PermissionMode)(0),                  // 40: harness.agent.v1.PermissionMode
 }
 var file_harness_auth_v1_admin_proto_depIdxs = []int32{
-	38, // 0: harness.auth.v1.AdminUser.role:type_name -> harness.auth.v1.User.Role
-	0,  // 1: harness.auth.v1.AdminUser.source:type_name -> harness.auth.v1.UserSource
-	2,  // 2: harness.auth.v1.ListUsersResponse.users:type_name -> harness.auth.v1.AdminUser
-	38, // 3: harness.auth.v1.CreateUserRequest.role:type_name -> harness.auth.v1.User.Role
-	2,  // 4: harness.auth.v1.CreateUserResponse.user:type_name -> harness.auth.v1.AdminUser
-	38, // 5: harness.auth.v1.SetRoleRequest.role:type_name -> harness.auth.v1.User.Role
-	2,  // 6: harness.auth.v1.SetRoleResponse.user:type_name -> harness.auth.v1.AdminUser
-	2,  // 7: harness.auth.v1.SetDisabledResponse.user:type_name -> harness.auth.v1.AdminUser
+	37, // 0: harness.auth.v1.AdminUser.role:type_name -> harness.auth.v1.User.Role
+	38, // 1: harness.auth.v1.AdminUser.source:type_name -> harness.auth.v1.UserSource
+	1,  // 2: harness.auth.v1.ListUsersResponse.users:type_name -> harness.auth.v1.AdminUser
+	37, // 3: harness.auth.v1.CreateUserRequest.role:type_name -> harness.auth.v1.User.Role
+	1,  // 4: harness.auth.v1.CreateUserResponse.user:type_name -> harness.auth.v1.AdminUser
+	37, // 5: harness.auth.v1.SetRoleRequest.role:type_name -> harness.auth.v1.User.Role
+	1,  // 6: harness.auth.v1.SetRoleResponse.user:type_name -> harness.auth.v1.AdminUser
+	1,  // 7: harness.auth.v1.SetDisabledResponse.user:type_name -> harness.auth.v1.AdminUser
 	39, // 8: harness.auth.v1.ListUserSessionsResponse.devices:type_name -> harness.auth.v1.Device
-	19, // 9: harness.auth.v1.ListUserProvidersResponse.providers:type_name -> harness.auth.v1.UserProvider
-	1,  // 10: harness.auth.v1.LdapConfig.local_login:type_name -> harness.auth.v1.LdapLocalLogin
-	24, // 11: harness.auth.v1.GetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
-	24, // 12: harness.auth.v1.SetLdapConfigRequest.config:type_name -> harness.auth.v1.LdapConfig
-	24, // 13: harness.auth.v1.SetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
-	24, // 14: harness.auth.v1.TestLdapConnectionRequest.config:type_name -> harness.auth.v1.LdapConfig
-	24, // 15: harness.auth.v1.TestLdapUserRequest.config:type_name -> harness.auth.v1.LdapConfig
+	18, // 9: harness.auth.v1.ListUserProvidersResponse.providers:type_name -> harness.auth.v1.UserProvider
+	0,  // 10: harness.auth.v1.LdapConfig.local_login:type_name -> harness.auth.v1.LdapLocalLogin
+	23, // 11: harness.auth.v1.GetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
+	23, // 12: harness.auth.v1.SetLdapConfigRequest.config:type_name -> harness.auth.v1.LdapConfig
+	23, // 13: harness.auth.v1.SetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
+	23, // 14: harness.auth.v1.TestLdapConnectionRequest.config:type_name -> harness.auth.v1.LdapConfig
+	23, // 15: harness.auth.v1.TestLdapUserRequest.config:type_name -> harness.auth.v1.LdapConfig
 	40, // 16: harness.auth.v1.PermissionModePolicy.disabled_modes:type_name -> harness.agent.v1.PermissionMode
-	33, // 17: harness.auth.v1.GetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
-	33, // 18: harness.auth.v1.SetPermissionModePolicyRequest.policy:type_name -> harness.auth.v1.PermissionModePolicy
-	33, // 19: harness.auth.v1.SetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
-	3,  // 20: harness.auth.v1.AdminService.ListUsers:input_type -> harness.auth.v1.ListUsersRequest
-	5,  // 21: harness.auth.v1.AdminService.CreateUser:input_type -> harness.auth.v1.CreateUserRequest
-	7,  // 22: harness.auth.v1.AdminService.ResetPassword:input_type -> harness.auth.v1.ResetPasswordRequest
-	9,  // 23: harness.auth.v1.AdminService.SetRole:input_type -> harness.auth.v1.SetRoleRequest
-	11, // 24: harness.auth.v1.AdminService.SetDisabled:input_type -> harness.auth.v1.SetDisabledRequest
-	13, // 25: harness.auth.v1.AdminService.DeleteUser:input_type -> harness.auth.v1.DeleteUserRequest
-	15, // 26: harness.auth.v1.AdminService.ListUserSessions:input_type -> harness.auth.v1.ListUserSessionsRequest
-	17, // 27: harness.auth.v1.AdminService.RevokeUserSessions:input_type -> harness.auth.v1.RevokeUserSessionsRequest
-	20, // 28: harness.auth.v1.AdminService.ListUserProviders:input_type -> harness.auth.v1.ListUserProvidersRequest
-	22, // 29: harness.auth.v1.AdminService.DeleteUserProvider:input_type -> harness.auth.v1.DeleteUserProviderRequest
-	25, // 30: harness.auth.v1.AdminService.GetLdapConfig:input_type -> harness.auth.v1.GetLdapConfigRequest
-	27, // 31: harness.auth.v1.AdminService.SetLdapConfig:input_type -> harness.auth.v1.SetLdapConfigRequest
-	29, // 32: harness.auth.v1.AdminService.TestLdapConnection:input_type -> harness.auth.v1.TestLdapConnectionRequest
-	31, // 33: harness.auth.v1.AdminService.TestLdapUser:input_type -> harness.auth.v1.TestLdapUserRequest
-	34, // 34: harness.auth.v1.AdminService.GetPermissionModePolicy:input_type -> harness.auth.v1.GetPermissionModePolicyRequest
-	36, // 35: harness.auth.v1.AdminService.SetPermissionModePolicy:input_type -> harness.auth.v1.SetPermissionModePolicyRequest
-	4,  // 36: harness.auth.v1.AdminService.ListUsers:output_type -> harness.auth.v1.ListUsersResponse
-	6,  // 37: harness.auth.v1.AdminService.CreateUser:output_type -> harness.auth.v1.CreateUserResponse
-	8,  // 38: harness.auth.v1.AdminService.ResetPassword:output_type -> harness.auth.v1.ResetPasswordResponse
-	10, // 39: harness.auth.v1.AdminService.SetRole:output_type -> harness.auth.v1.SetRoleResponse
-	12, // 40: harness.auth.v1.AdminService.SetDisabled:output_type -> harness.auth.v1.SetDisabledResponse
-	14, // 41: harness.auth.v1.AdminService.DeleteUser:output_type -> harness.auth.v1.DeleteUserResponse
-	16, // 42: harness.auth.v1.AdminService.ListUserSessions:output_type -> harness.auth.v1.ListUserSessionsResponse
-	18, // 43: harness.auth.v1.AdminService.RevokeUserSessions:output_type -> harness.auth.v1.RevokeUserSessionsResponse
-	21, // 44: harness.auth.v1.AdminService.ListUserProviders:output_type -> harness.auth.v1.ListUserProvidersResponse
-	23, // 45: harness.auth.v1.AdminService.DeleteUserProvider:output_type -> harness.auth.v1.DeleteUserProviderResponse
-	26, // 46: harness.auth.v1.AdminService.GetLdapConfig:output_type -> harness.auth.v1.GetLdapConfigResponse
-	28, // 47: harness.auth.v1.AdminService.SetLdapConfig:output_type -> harness.auth.v1.SetLdapConfigResponse
-	30, // 48: harness.auth.v1.AdminService.TestLdapConnection:output_type -> harness.auth.v1.TestLdapConnectionResponse
-	32, // 49: harness.auth.v1.AdminService.TestLdapUser:output_type -> harness.auth.v1.TestLdapUserResponse
-	35, // 50: harness.auth.v1.AdminService.GetPermissionModePolicy:output_type -> harness.auth.v1.GetPermissionModePolicyResponse
-	37, // 51: harness.auth.v1.AdminService.SetPermissionModePolicy:output_type -> harness.auth.v1.SetPermissionModePolicyResponse
+	32, // 17: harness.auth.v1.GetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
+	32, // 18: harness.auth.v1.SetPermissionModePolicyRequest.policy:type_name -> harness.auth.v1.PermissionModePolicy
+	32, // 19: harness.auth.v1.SetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
+	2,  // 20: harness.auth.v1.AdminService.ListUsers:input_type -> harness.auth.v1.ListUsersRequest
+	4,  // 21: harness.auth.v1.AdminService.CreateUser:input_type -> harness.auth.v1.CreateUserRequest
+	6,  // 22: harness.auth.v1.AdminService.ResetPassword:input_type -> harness.auth.v1.ResetPasswordRequest
+	8,  // 23: harness.auth.v1.AdminService.SetRole:input_type -> harness.auth.v1.SetRoleRequest
+	10, // 24: harness.auth.v1.AdminService.SetDisabled:input_type -> harness.auth.v1.SetDisabledRequest
+	12, // 25: harness.auth.v1.AdminService.DeleteUser:input_type -> harness.auth.v1.DeleteUserRequest
+	14, // 26: harness.auth.v1.AdminService.ListUserSessions:input_type -> harness.auth.v1.ListUserSessionsRequest
+	16, // 27: harness.auth.v1.AdminService.RevokeUserSessions:input_type -> harness.auth.v1.RevokeUserSessionsRequest
+	19, // 28: harness.auth.v1.AdminService.ListUserProviders:input_type -> harness.auth.v1.ListUserProvidersRequest
+	21, // 29: harness.auth.v1.AdminService.DeleteUserProvider:input_type -> harness.auth.v1.DeleteUserProviderRequest
+	24, // 30: harness.auth.v1.AdminService.GetLdapConfig:input_type -> harness.auth.v1.GetLdapConfigRequest
+	26, // 31: harness.auth.v1.AdminService.SetLdapConfig:input_type -> harness.auth.v1.SetLdapConfigRequest
+	28, // 32: harness.auth.v1.AdminService.TestLdapConnection:input_type -> harness.auth.v1.TestLdapConnectionRequest
+	30, // 33: harness.auth.v1.AdminService.TestLdapUser:input_type -> harness.auth.v1.TestLdapUserRequest
+	33, // 34: harness.auth.v1.AdminService.GetPermissionModePolicy:input_type -> harness.auth.v1.GetPermissionModePolicyRequest
+	35, // 35: harness.auth.v1.AdminService.SetPermissionModePolicy:input_type -> harness.auth.v1.SetPermissionModePolicyRequest
+	3,  // 36: harness.auth.v1.AdminService.ListUsers:output_type -> harness.auth.v1.ListUsersResponse
+	5,  // 37: harness.auth.v1.AdminService.CreateUser:output_type -> harness.auth.v1.CreateUserResponse
+	7,  // 38: harness.auth.v1.AdminService.ResetPassword:output_type -> harness.auth.v1.ResetPasswordResponse
+	9,  // 39: harness.auth.v1.AdminService.SetRole:output_type -> harness.auth.v1.SetRoleResponse
+	11, // 40: harness.auth.v1.AdminService.SetDisabled:output_type -> harness.auth.v1.SetDisabledResponse
+	13, // 41: harness.auth.v1.AdminService.DeleteUser:output_type -> harness.auth.v1.DeleteUserResponse
+	15, // 42: harness.auth.v1.AdminService.ListUserSessions:output_type -> harness.auth.v1.ListUserSessionsResponse
+	17, // 43: harness.auth.v1.AdminService.RevokeUserSessions:output_type -> harness.auth.v1.RevokeUserSessionsResponse
+	20, // 44: harness.auth.v1.AdminService.ListUserProviders:output_type -> harness.auth.v1.ListUserProvidersResponse
+	22, // 45: harness.auth.v1.AdminService.DeleteUserProvider:output_type -> harness.auth.v1.DeleteUserProviderResponse
+	25, // 46: harness.auth.v1.AdminService.GetLdapConfig:output_type -> harness.auth.v1.GetLdapConfigResponse
+	27, // 47: harness.auth.v1.AdminService.SetLdapConfig:output_type -> harness.auth.v1.SetLdapConfigResponse
+	29, // 48: harness.auth.v1.AdminService.TestLdapConnection:output_type -> harness.auth.v1.TestLdapConnectionResponse
+	31, // 49: harness.auth.v1.AdminService.TestLdapUser:output_type -> harness.auth.v1.TestLdapUserResponse
+	34, // 50: harness.auth.v1.AdminService.GetPermissionModePolicy:output_type -> harness.auth.v1.GetPermissionModePolicyResponse
+	36, // 51: harness.auth.v1.AdminService.SetPermissionModePolicy:output_type -> harness.auth.v1.SetPermissionModePolicyResponse
 	36, // [36:52] is the sub-list for method output_type
 	20, // [20:36] is the sub-list for method input_type
 	20, // [20:20] is the sub-list for extension type_name
@@ -2545,7 +2489,7 @@ func file_harness_auth_v1_admin_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_auth_v1_admin_proto_rawDesc), len(file_harness_auth_v1_admin_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      1,
 			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,

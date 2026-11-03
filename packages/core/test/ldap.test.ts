@@ -7,8 +7,8 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { LdapLocalLogin, UserSource, type LdapConfig } from "../src/gen/harness/auth/v1/admin_pb.ts";
-import { User_Role } from "../src/gen/harness/auth/v1/auth_pb.ts";
+import { LdapLocalLogin, type LdapConfig } from "../src/gen/harness/auth/v1/admin_pb.ts";
+import { User_Role, UserSource } from "../src/gen/harness/auth/v1/auth_pb.ts";
 import { escapeFilterValue, userFilter } from "../src/auth/ldap.ts";
 import { FakeLdap } from "./helpers/fake-ldap.ts";
 import { ADMIN, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";

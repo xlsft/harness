@@ -5,11 +5,10 @@ import { Code, ConnectError, createClient, type Client, type Transport } from '@
 import {
   AdminService,
   LdapLocalLogin,
-  UserSource,
   type AdminUser,
   type LdapConfig
 } from '~/gen/harness/auth/v1/admin_pb'
-import { User_Role } from '~/gen/harness/auth/v1/auth_pb'
+import { User_Role, UserSource } from '~/gen/harness/auth/v1/auth_pb'
 import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
 import type { PermissionModeName } from '~/lib/session/types'
 import type { LdapSettings, NewUser, UserRole, UsersApi, UserView } from './types'

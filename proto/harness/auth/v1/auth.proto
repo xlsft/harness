@@ -18,12 +18,21 @@ service DeviceAuthService {
   // Unauthenticated (uses the device token). UNAUTHENTICATED means the device was revoked:
   // the client deletes its credentials and asks the user to sign in again.
   rpc RefreshAccessToken(RefreshAccessTokenRequest) returns (RefreshAccessTokenResponse);
+  // The calling user's profile (and the calling device when authenticated with an access token).
   rpc GetMe(GetMeRequest) returns (GetMeResponse);
+  // Changes the calling user's display name and/or avatar. Directory (LDAP) users cannot change their
+  // name (the directory sets it at every sign-in): FAILED_PRECONDITION.
+  rpc UpdateMe(UpdateMeRequest) returns (UpdateMeResponse);
+  // Changes the calling user's local password. A wrong current password is INVALID_ARGUMENT; directory
+  // (LDAP) users have no local password: FAILED_PRECONDITION. Attempts are limited per user.
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   // Revokes the calling device.
   rpc Logout(LogoutRequest) returns (LogoutResponse);
-  // Devices of the calling user (admins may pass user_id to list another user's devices).
+  // Devices of the calling user (admins may pass user_id to list another user's devices), most recently seen
+  // first. Device.current marks the device making the call.
   rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
   // Revokes a device of the calling user (admins: any device). Its refresh fails with UNAUTHENTICATED afterwards.
+  // The calling device itself is refused with FAILED_PRECONDITION: it signs out with Logout instead.
   rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
 }
 
@@ -102,6 +111,29 @@ message GetMeResponse {
   Device device = 2;
 }
 
+message UpdateMeRequest {
+  // Unset: unchanged. 1-100 characters after trimming.
+  optional string name = 1;
+  // Unset: unchanged; "": removes the avatar. Otherwise a data URL of a PNG, JPEG or WebP image
+  // ("data:image/png;base64,..."), at most 256x256 pixels and 200 KB decoded. The client resizes before
+  // uploading; the server checks the type (by content, not only the declared one), size and dimensions.
+  optional string image = 2;
+}
+
+message UpdateMeResponse {
+  User user = 1;
+}
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  // 8-128 characters.
+  string new_password = 2;
+  // Also signs out the user's web sessions and every other device; the calling device stays signed in.
+  bool revoke_other_sessions = 3;
+}
+
+message ChangePasswordResponse {}
+
 message LogoutRequest {}
 
 message LogoutResponse {}
@@ -116,6 +148,23 @@ message User {
   string email = 2;
   string name = 3;
   Role role = 4;
+  // Profile fields, set by GetMe and UpdateMe (empty elsewhere).
+  // Sign-in handle; empty when the account has none.
+  string username = 5;
+  // Avatar as a data URL (see UpdateMeRequest.image); empty when none is set.
+  string image = 6;
+  UserSource source = 7;
+  // RFC 3339, UTC. last_sign_in_at is the latest web sign-in (devices are approved from one); empty when never.
+  string created_at = 8;
+  string last_sign_in_at = 9;
+}
+
+enum UserSource {
+  USER_SOURCE_UNSPECIFIED = 0;
+  // A local account with a password.
+  USER_SOURCE_LOCAL = 1;
+  // Signs in through LDAP; no local password.
+  USER_SOURCE_LDAP = 2;
 }
 
 message Device {
@@ -126,4 +175,8 @@ message Device {
   // RFC 3339, UTC.
   string created_at = 5;
   string last_seen_at = 6;
+  // The device making the call (ListDevices).
+  bool current = 7;
+  // The client program that signed in, e.g. "harness-client"; empty when unknown.
+  string client_name = 8;
 }

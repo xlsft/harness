@@ -3,7 +3,7 @@
  * transport-agnostic services in src/services.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { DeviceAuthService, PollDeviceAuthResponse_Status, User_Role } from "../gen/harness/auth/v1/auth_pb.ts";
+import { DeviceAuthService, PollDeviceAuthResponse_Status, User_Role, UserSource } from "../gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService, type StreamMessageResponse } from "../gen/harness/llm/v1/gateway_pb.ts";
 import { PromptService } from "../gen/harness/prompts/v1/prompts_pb.ts";
 import { McpService } from "../gen/harness/mcp/v1/mcp_pb.ts";
@@ -23,6 +23,7 @@ import {
   type DeviceInfo,
   type PublicUser,
 } from "../services/devices.ts";
+import { changePassword, getProfile, updateProfile, type Profile } from "../services/account.ts";
 import { countTokens, prepareMessages, runMessages } from "../services/gateway.ts";
 import { listModelsForUser } from "../services/models.ts";
 import { getPromptBundle } from "../services/prompts.ts";
@@ -47,11 +48,31 @@ const POLL_STATUS = {
 } as const;
 
 function deviceToProto(d: DeviceInfo) {
-  return { id: d.id, name: d.name, os: d.os, arch: d.arch, createdAt: d.created_at, lastSeenAt: d.last_seen_at ?? "" };
+  return {
+    id: d.id,
+    name: d.name,
+    os: d.os,
+    arch: d.arch,
+    createdAt: d.created_at,
+    lastSeenAt: d.last_seen_at ?? "",
+    current: d.current,
+    clientName: d.client_name ?? "",
+  };
 }
 
 function userToProto(u: PublicUser) {
   return { id: u.id, email: u.email, name: u.name, role: u.role === "admin" ? User_Role.ADMIN : User_Role.USER };
+}
+
+function profileToProto(p: Profile) {
+  return {
+    ...userToProto(p),
+    username: p.username,
+    image: p.image,
+    source: p.source === "ldap" ? UserSource.LDAP : UserSource.LOCAL,
+    createdAt: p.created_at,
+    lastSignInAt: p.last_sign_in_at,
+  };
 }
 
 /**
@@ -128,11 +149,23 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
     }),
 
     getMe: guard(async (_req, ctx: HandlerContext) => {
-      const me = await describePrincipal(await requirePrincipal(ctx));
+      const p = await requirePrincipal(ctx);
+      const me = await describePrincipal(p);
       return {
-        user: userToProto(me.user),
+        user: profileToProto(await getProfile(p)),
         device: me.device ? deviceToProto(me.device) : undefined,
       };
+    }),
+
+    updateMe: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      return { user: profileToProto(await updateProfile(p, { name: req.name, image: req.image })) };
+    }),
+
+    changePassword: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      await changePassword(p, { current_password: req.currentPassword, new_password: req.newPassword, revoke_other_sessions: req.revokeOtherSessions });
+      return {};
     }),
 
     logout: guard(async (_req, ctx: HandlerContext) => {

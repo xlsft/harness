@@ -18,6 +18,7 @@ import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { EffortName, QuestionReply } from '~/lib/session/types'
 import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
+import type { AccountApi } from '~/lib/account/types'
 
 export interface ModelInfo {
   id: string
@@ -109,4 +110,8 @@ export interface SessionTransport {
 
   // User administration and LDAP for admins (harness.auth.v1.AdminService, forwarded to the server by the client).
   users(): UsersApi
+
+  // The signed-in user's own profile, avatar, password and devices (harness.auth.v1.DeviceAuthService account
+  // methods, forwarded to the server by the client).
+  account(): AccountApi
 }

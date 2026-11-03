@@ -5,8 +5,7 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { UserSource } from "../src/gen/harness/auth/v1/admin_pb.ts";
-import { User_Role } from "../src/gen/harness/auth/v1/auth_pb.ts";
+import { User_Role, UserSource } from "../src/gen/harness/auth/v1/auth_pb.ts";
 import { ProviderScope } from "../src/gen/harness/llm/v1/providers_pb.ts";
 import { ADMIN, createUserAndLogin, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";
 
