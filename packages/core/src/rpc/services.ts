@@ -36,6 +36,7 @@ import { registerProviderService } from "./providers.ts";
 import { registerRelayService } from "./relay.ts";
 import { registerSearchService } from "./search.ts";
 import { registerSyncService } from "./sync.ts";
+import { registerUsageService } from "./usage.ts";
 import { registerVcsService } from "./vcs.ts";
 
 const POLL_STATUS = {
@@ -201,6 +202,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   });
 
   registerProviderService(router);
+  registerUsageService(router);
   registerAdminService(router);
   registerSyncService(router);
   registerSearchService(router);

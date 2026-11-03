@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package harness.llm.v1;
+
+// UsageService reports what the gateway recorded for LLM requests (GatewayService.StreamMessage), for the
+// settings screens' Usage tab: tokens, requests and cost over a time range, by bucket, model and request class.
+//
+// Cost policy: money is only counted for pay-as-you-go ("metered") providers whose model has a price in the
+// catalog. A model without a price, or any model of a subscription / coding plan provider (a preset with
+// billing "plan", see ProviderPreset.billing), counts tokens only: its requests add nothing to cost_usd and
+// their tokens are reported in unpriced_tokens, so "cost $0" and "cost unknown" stay apart.
+//
+// Frontends reach it through the local client, which forwards these calls to the server with the user's
+// credentials (packages/client/server/coreproxy.go). Requires `Authorization: Bearer <access token>`.
+// Status: DRAFT (M2).
+service UsageService {
+  // The caller's own usage. Any signed-in user.
+  rpc GetMyUsage(GetMyUsageRequest) returns (GetMyUsageResponse);
+  // Everyone's usage, or one user's, with a per-user table. Admin only.
+  rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
+}
+
+enum UsageBucket {
+  // Hours for ranges up to 2 days, days otherwise.
+  USAGE_BUCKET_UNSPECIFIED = 0;
+  // Allowed for ranges up to 7 days.
+  USAGE_BUCKET_HOUR = 1;
+  USAGE_BUCKET_DAY = 2;
+}
+
+message UsageRange {
+  // RFC 3339. Empty `to`: now; empty `from`: 30 days before `to`. At most 400 days.
+  string from = 1;
+  string to = 2;
+  UsageBucket bucket = 3;
+  // IANA time zone the buckets start in ("Europe/Berlin"); empty: UTC.
+  string time_zone = 4;
+}
+
+// Sums over a set of usage records. Tokens: total_tokens = input + output + cache read + cache write.
+message UsageTotals {
+  int64 requests = 1;
+  int64 input_tokens = 2;
+  int64 output_tokens = 3;
+  int64 cache_read_tokens = 4;
+  int64 cache_write_tokens = 5;
+  int64 total_tokens = 6;
+  // Metered, priced requests only (see the service comment).
+  double cost_usd = 7;
+  // Tokens of requests that carry no cost (no price, or a plan provider). cost_usd is complete when it is 0.
+  int64 unpriced_tokens = 8;
+}
+
+// One model's share of a bucket.
+message UsageBucketModel {
+  // UsageModel.key.
+  string model_key = 1;
+  UsageTotals totals = 2;
+}
+
+message UsageBucketPoint {
+  // RFC 3339, UTC: the bucket's start (midnight or the full hour in the requested time zone).
+  string start = 1;
+  UsageTotals totals = 2;
+  // Models with requests in this bucket, in the order of UsageReport.models.
+  repeated UsageBucketModel models = 3;
+}
+
+message UsageModel {
+  // Stable key within the report (the catalog model id the requests named).
+  string key = 1;
+  string model_id = 2;
+  // From the catalog; for a model removed since, its upstream model or id.
+  string display_name = 3;
+  string upstream_model = 4;
+  string provider_id = 5;
+  // The provider's name, its preset's name, or its id.
+  string provider_name = 6;
+  // Some of its requests in the range carry a cost. false: show no cost for it (unknown, not $0); true with
+  // totals.unpriced_tokens > 0: the cost covers part of its tokens only.
+  bool priced = 7;
+  UsageTotals totals = 8;
+}
+
+message UsageRequestClass {
+  // "main", "subagent", "compaction", "auxiliary" (titles, the classifier, summaries) or "other" (unset).
+  string request_class = 1;
+  UsageTotals totals = 2;
+}
+
+message UsageReport {
+  // The range served, after defaults (RFC 3339, UTC), and the bucket size used.
+  string from = 1;
+  string to = 2;
+  UsageBucket bucket = 3;
+  string time_zone = 4;
+  UsageTotals totals = 5;
+  // Every bucket of the range in order, empty ones included.
+  repeated UsageBucketPoint buckets = 6;
+  // By total tokens, largest first.
+  repeated UsageModel models = 7;
+  // By total tokens, largest first.
+  repeated UsageRequestClass request_classes = 8;
+}
+
+message UsageUser {
+  string user_id = 1;
+  string name = 2;
+  string username = 3;
+  string email = 4;
+  UsageTotals totals = 5;
+  // RFC 3339: the user's last request in the range.
+  string last_active_at = 6;
+}
+
+message GetMyUsageRequest {
+  UsageRange range = 1;
+}
+
+message GetMyUsageResponse {
+  UsageReport report = 1;
+}
+
+message GetUsageRequest {
+  UsageRange range = 1;
+  // Only this user; empty: everyone.
+  string user_id = 2;
+}
+
+message GetUsageResponse {
+  UsageReport report = 1;
+  // Users with requests in the range, by total tokens, largest first.
+  repeated UsageUser users = 2;
+}

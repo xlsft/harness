@@ -110,6 +110,9 @@ message Provider {
   string group = 16;
   // Search providers: their options (see ProviderPreset.options), by name; values are plain text.
   map<string, string> options = 17;
+  // LLM providers: "metered" (pay as you go) or "plan" (a subscription / coding plan), from its preset; a
+  // custom provider is "metered" (its models cost what their catalog price says, nothing without one).
+  string billing = 18;
 }
 
 message ProviderModel {
@@ -164,6 +167,9 @@ message ProviderPreset {
   repeated PresetOption options = 14;
   // Ships with the server (the bundled SearXNG): nothing to connect, its provider id is the preset id.
   bool builtin = 15;
+  // LLM presets: "metered" (pay as you go: requests to priced models count their cost) or "plan" (a flat-rate
+  // subscription / coding plan: usage counts tokens only, never cost; see harness.llm.v1.UsageService).
+  string billing = 16;
 }
 
 // A setting of a connected provider.

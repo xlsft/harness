@@ -161,7 +161,10 @@ type Provider struct {
 	// "llm", "classifier" or "search".
 	Group string `protobuf:"bytes,16,opt,name=group,proto3" json:"group,omitempty"`
 	// Search providers: their options (see ProviderPreset.options), by name; values are plain text.
-	Options       map[string]string `protobuf:"bytes,17,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Options map[string]string `protobuf:"bytes,17,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// LLM providers: "metered" (pay as you go) or "plan" (a subscription / coding plan), from its preset; a
+	// custom provider is "metered" (its models cost what their catalog price says, nothing without one).
+	Billing       string `protobuf:"bytes,18,opt,name=billing,proto3" json:"billing,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -313,6 +316,13 @@ func (x *Provider) GetOptions() map[string]string {
 		return x.Options
 	}
 	return nil
+}
+
+func (x *Provider) GetBilling() string {
+	if x != nil {
+		return x.Billing
+	}
+	return ""
 }
 
 type ProviderModel struct {
@@ -523,7 +533,10 @@ type ProviderPreset struct {
 	// country, language), only those the service supports.
 	Options []*PresetOption `protobuf:"bytes,14,rep,name=options,proto3" json:"options,omitempty"`
 	// Ships with the server (the bundled SearXNG): nothing to connect, its provider id is the preset id.
-	Builtin       bool `protobuf:"varint,15,opt,name=builtin,proto3" json:"builtin,omitempty"`
+	Builtin bool `protobuf:"varint,15,opt,name=builtin,proto3" json:"builtin,omitempty"`
+	// LLM presets: "metered" (pay as you go: requests to priced models count their cost) or "plan" (a flat-rate
+	// subscription / coding plan: usage counts tokens only, never cost; see harness.llm.v1.UsageService).
+	Billing       string `protobuf:"bytes,16,opt,name=billing,proto3" json:"billing,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -661,6 +674,13 @@ func (x *ProviderPreset) GetBuiltin() bool {
 		return x.Builtin
 	}
 	return false
+}
+
+func (x *ProviderPreset) GetBilling() string {
+	if x != nil {
+		return x.Billing
+	}
+	return ""
 }
 
 // A setting of a connected provider.
@@ -3211,7 +3231,7 @@ var File_harness_llm_v1_providers_proto protoreflect.FileDescriptor
 
 const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\n" +
-	"\x1eharness/llm/v1/providers.proto\x12\x0eharness.llm.v1\x1a\x1charness/llm/v1/gateway.proto\"\x95\x05\n" +
+	"\x1eharness/llm/v1/providers.proto\x12\x0eharness.llm.v1\x1a\x1charness/llm/v1/gateway.proto\"\xaf\x05\n" +
 	"\bProvider\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x123\n" +
 	"\x05scope\x18\x02 \x01(\x0e2\x1d.harness.llm.v1.ProviderScopeR\x05scope\x12\x12\n" +
@@ -3233,7 +3253,8 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"updated_at\x18\x0e \x01(\tR\tupdatedAt\x12\x1b\n" +
 	"\tpreset_id\x18\x0f \x01(\tR\bpresetId\x12\x14\n" +
 	"\x05group\x18\x10 \x01(\tR\x05group\x12?\n" +
-	"\aoptions\x18\x11 \x03(\v2%.harness.llm.v1.Provider.OptionsEntryR\aoptions\x1a:\n" +
+	"\aoptions\x18\x11 \x03(\v2%.harness.llm.v1.Provider.OptionsEntryR\aoptions\x12\x18\n" +
+	"\abilling\x18\x12 \x01(\tR\abilling\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd6\x01\n" +
@@ -3247,7 +3268,7 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x12ListPresetsRequest\"\x8f\x01\n" +
 	"\x13ListPresetsResponse\x128\n" +
 	"\apresets\x18\x01 \x03(\v2\x1e.harness.llm.v1.ProviderPresetR\apresets\x12>\n" +
-	"\tprotocols\x18\x02 \x03(\v2 .harness.llm.v1.ProviderProtocolR\tprotocols\"\xfe\x03\n" +
+	"\tprotocols\x18\x02 \x03(\v2 .harness.llm.v1.ProviderProtocolR\tprotocols\"\x98\x04\n" +
 	"\x0eProviderPreset\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05group\x18\x02 \x01(\tR\x05group\x12!\n" +
@@ -3264,7 +3285,8 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x10discovers_models\x18\f \x01(\bR\x0fdiscoversModels\x12\x14\n" +
 	"\x05local\x18\r \x01(\bR\x05local\x126\n" +
 	"\aoptions\x18\x0e \x03(\v2\x1c.harness.llm.v1.PresetOptionR\aoptions\x12\x18\n" +
-	"\abuiltin\x18\x0f \x01(\bR\abuiltin\"\xef\x01\n" +
+	"\abuiltin\x18\x0f \x01(\bR\abuiltin\x12\x18\n" +
+	"\abilling\x18\x10 \x01(\tR\abilling\"\xef\x01\n" +
 	"\fPresetOption\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
