@@ -267,6 +267,8 @@ export async function createModel(input: ModelInput) {
 
 async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string }) {
   if (await findModel(input.id)) throw new ApiError("invalid_request", `Model ${input.id} already exists`, { status: 409 });
+  const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, input.provider_id) });
+  if (provider?.kind === "classifier") throw new ApiError("invalid_request", "Classifier providers serve no chat models");
   const now = new Date();
   await getDb()
     .insert(schema.model)

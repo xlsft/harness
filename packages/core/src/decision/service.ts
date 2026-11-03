@@ -16,7 +16,7 @@ import { newId, sha256 } from "../lib/ids.ts";
 import { TokenBucketLimiter } from "../lib/rate-limit.ts";
 import type { Principal } from "../services/devices.ts";
 import { cacheFor } from "./cache.ts";
-import { decisionModelKeyResolver, httpSecrets, loadDecisionConfig, type DecisionConfig, type OnErrorPolicy, type RulesExtras } from "./config.ts";
+import { decisionModelKeyResolver, httpCredentialsResolver, loadDecisionConfig, type DecisionConfig, type OnErrorPolicy, type RulesExtras } from "./config.ts";
 import { DecisionModelProvider, decisionEndpointUrl } from "./decision-model.ts";
 import { HttpProvider } from "./http.ts";
 import { LlmProvider } from "./llm.ts";
@@ -137,13 +137,11 @@ export function buildProviders(cfg: DecisionConfig): DecisionProvider[] {
           cacheTtlMs: cfg.cache_ttl_seconds * 1000,
         });
       case "http": {
-        const secrets = httpSecrets(p);
         return new HttpProvider({
           id: p.id,
           displayName: p.display_name,
           url: p.settings.url,
-          bearerToken: secrets.bearerToken,
-          headers: secrets.headers,
+          credentials: httpCredentialsResolver(p),
           allowPrivateNetwork: p.settings.allow_private_network,
           timeoutMs: p.settings.timeout_ms,
           healthUrl: p.settings.health_url,

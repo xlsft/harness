@@ -154,5 +154,12 @@ export const migrations: { id: string; statements: string[] }[] = [
       "ALTER TABLE \"provider\" ADD CONSTRAINT \"provider_owner_user_id_user_id_fk\" FOREIGN KEY (\"owner_user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
       "CREATE INDEX \"provider_owner_idx\" ON \"provider\" USING btree (\"owner_user_id\");"
     ]
+  },
+  {
+    "id": "0007_provider_presets",
+    "statements": [
+      "ALTER TABLE \"provider\" ADD COLUMN \"kind\" text DEFAULT 'llm' NOT NULL;",
+      "ALTER TABLE \"provider\" ADD COLUMN \"preset_id\" text;"
+    ]
   }
 ];

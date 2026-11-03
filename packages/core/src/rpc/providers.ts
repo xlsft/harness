@@ -5,11 +5,12 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { ProviderScope, ProviderService, type Classifier } from "../gen/harness/llm/v1/providers_pb.ts";
-import { getClassifier, setClassifier, type ClassifierSettings } from "../decision/classifier.ts";
+import { getClassifier, setClassifier, testClassifierProvider, type ClassifierSettings } from "../decision/classifier.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
-import { discoverModelsForUser } from "../services/discovery.ts";
+import { discoverModelsForUser, testLlmProvider } from "../services/discovery.ts";
 import { addProviderModel, listProviderModels, removeProviderModel, type ModelEntry } from "../services/models.ts";
+import { PRESETS, PROTOCOLS } from "../services/presets.ts";
 import {
   PROVIDER_TYPES,
   createProvider,
@@ -51,6 +52,8 @@ async function providerToProto(p: PublicProvider, user: PublicUser) {
     models: (await listProviderModels(p.id, user)).map(modelToProto),
     createdAt: p.created_at,
     updatedAt: p.updated_at,
+    presetId: p.preset_id ?? "",
+    group: p.group,
   };
 }
 
@@ -87,6 +90,33 @@ export function registerProviderService(router: ConnectRouter): void {
   };
 
   router.service(ProviderService, {
+    listPresets: guard(async (_req, ctx: HandlerContext) => {
+      await principal(ctx);
+      return {
+        presets: PRESETS.map((p) => ({
+          id: p.id,
+          group: p.group,
+          displayName: p.display_name,
+          description: p.description,
+          type: p.type,
+          baseUrl: p.base_url,
+          fields: p.fields.map((f) => ({ name: f.name, label: f.label, required: f.required, placeholder: f.placeholder ?? "" })),
+          docsUrl: p.docs_url ?? "",
+          keyUrl: p.key_url ?? "",
+          defaultModels: p.default_models.map((m) => ({
+            upstreamModel: m.upstream_model,
+            displayName: m.display_name,
+            contextWindow: BigInt(m.context_window ?? 0),
+            maxOutputTokens: BigInt(m.max_output_tokens ?? 0),
+          })),
+          icon: p.icon,
+          discoversModels: p.discovers_models,
+          local: !!p.local,
+        })),
+        protocols: PROTOCOLS.map((p) => ({ id: p.id, group: p.group, label: p.label, baseUrlHint: p.base_url_hint })),
+      };
+    }),
+
     listProviders: guard(async (_req, ctx: HandlerContext) => {
       const user = await principal(ctx);
       const providers = await listProvidersForUser(user);
@@ -103,6 +133,8 @@ export function registerProviderService(router: ConnectRouter): void {
       if (global) requireAdmin(user);
       else if (req.scope !== ProviderScope.PERSONAL) throw new ApiError("invalid_request", "scope must be GLOBAL or PERSONAL");
       const input: ProviderInput = {
+        preset_id: req.presetId || undefined,
+        kind: req.group || undefined,
         type: req.type,
         display_name: req.displayName || null,
         base_url: req.baseUrl,
@@ -166,6 +198,15 @@ export function registerProviderService(router: ConnectRouter): void {
         user,
       );
       return { model: modelToProto(m) };
+    }),
+
+    testProvider: guard(async (req, ctx: HandlerContext) => {
+      checkClientVersion(ctx);
+      const p = await requirePrincipal(ctx);
+      const { row, writable } = await providerForUser(req.providerId, p.user);
+      if (!writable) throw new ApiError("permission", "Only admins can change global providers");
+      const r = row.kind === "classifier" ? await testClassifierProvider(row.id, p) : await testLlmProvider(row.id);
+      return { ok: r.ok, message: r.message, modelCount: r.model_count };
     }),
 
     removeModel: guard(async (req, ctx: HandlerContext) => {

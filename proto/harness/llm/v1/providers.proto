@@ -17,6 +17,9 @@ package harness.llm.v1;
 // credentials (packages/client/server/coreproxy.go); a page served by the server can call it directly.
 // Requires `Authorization: Bearer <access token>`. Status: DRAFT (M2).
 service ProviderService {
+  // The well-known services the settings screens offer to connect in one step (presets), and the protocols a
+  // custom provider may speak. Served by the server, so a new preset needs no app release.
+  rpc ListPresets(ListPresetsRequest) returns (ListPresetsResponse);
   // The caller's providers: the global ones first (all of them for admins, enabled ones for everyone
   // else), then the caller's personal ones; each with the models the caller may see.
   rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
@@ -31,10 +34,14 @@ service ProviderService {
   // connection test for the base URL and key.
   rpc DiscoverModels(DiscoverModelsRequest) returns (DiscoverModelsResponse);
   rpc AddModel(AddModelRequest) returns (AddModelResponse);
+  // One-click connection check: an LLM provider lists its models (a 401 / 403 means the key is rejected; a
+  // service without a model list counts as reachable); a classifier provider answers one sample decision.
+  // Same access as DiscoverModels.
+  rpc TestProvider(TestProviderRequest) returns (TestProviderResponse);
   rpc RemoveModel(RemoveModelRequest) returns (RemoveModelResponse);
 
-  // The auto-mode classifier's typed decision model (the decision_model step of DecisionService's chain),
-  // using the key of a global provider. Admin only.
+  // The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
+  // typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
   rpc GetClassifier(GetClassifierRequest) returns (GetClassifierResponse);
   rpc SetClassifier(SetClassifierRequest) returns (SetClassifierResponse);
 }
@@ -45,10 +52,16 @@ enum ProviderScope {
   PROVIDER_SCOPE_PERSONAL = 2;
 }
 
+// Groups ("sources") of providers:
+//   "llm"        - LLM APIs whose models GatewayService offers (types "anthropic", "openai-chat",
+//                  "openai-responses");
+//   "classifier" - auto-mode decision services (types "decision-model": a typed decision model such as
+//                  TypeSafe's Jev; "decision-http": a policy webhook answering {decision, reason}). Classifier
+//                  providers are global only, since the decision chain is server-wide.
 message Provider {
   string id = 1;
   ProviderScope scope = 2;
-  // "anthropic", "openai-chat" or "openai-responses".
+  // The protocol, see the groups above.
   string type = 3;
   string display_name = 4;
   string base_url = 5;
@@ -66,6 +79,11 @@ message Provider {
   // RFC 3339, UTC.
   string created_at = 13;
   string updated_at = 14;
+  // The preset it was connected from; empty for a custom provider. Providers created before presets existed
+  // report the preset whose type and base URL they match.
+  string preset_id = 15;
+  // "llm" or "classifier".
+  string group = 16;
 }
 
 message ProviderModel {
@@ -76,6 +94,71 @@ message ProviderModel {
   int64 context_window = 4;
   int64 max_output_tokens = 5;
   bool enabled = 6;
+}
+
+message ListPresetsRequest {}
+
+message ListPresetsResponse {
+  // In display order, LLM presets first.
+  repeated ProviderPreset presets = 1;
+  // Protocols a custom provider may use.
+  repeated ProviderProtocol protocols = 2;
+}
+
+// A well-known service: the user enters only its `fields` (usually just the API key).
+message ProviderPreset {
+  // Stable id ([a-z0-9-]+), sent as CreateProviderRequest.preset_id.
+  string id = 1;
+  // "llm" or "classifier".
+  string group = 2;
+  string display_name = 3;
+  // One line for the settings screen.
+  string description = 4;
+  // The protocol (Provider.type).
+  string type = 5;
+  // The default base URL (a classifier's: the full endpoint URL).
+  string base_url = 6;
+  // What the user fills in, in order.
+  repeated PresetField fields = 7;
+  // Where the service documents its API, and where its keys are created (either may be empty).
+  string docs_url = 8;
+  string key_url = 9;
+  // Models offered when the service has no model list (or a classifier's decision models); with
+  // discovers_models they are only a fallback for the picker.
+  repeated PresetModel default_models = 10;
+  // A short monogram ("OR", "AN") the apps draw as the preset's icon.
+  string icon = 11;
+  // The service lists its models (DiscoverModels asks it); otherwise DiscoverModels answers default_models.
+  bool discovers_models = 12;
+  // Usually runs on the local network (Ollama): connecting it globally allows private networks; personal
+  // providers cannot reach private addresses.
+  bool local = 13;
+}
+
+message PresetField {
+  // "api_key" or "base_url".
+  string name = 1;
+  string label = 2;
+  bool required = 3;
+  string placeholder = 4;
+}
+
+message PresetModel {
+  string upstream_model = 1;
+  string display_name = 2;
+  // 0 when unknown.
+  int64 context_window = 3;
+  int64 max_output_tokens = 4;
+}
+
+message ProviderProtocol {
+  // Provider.type.
+  string id = 1;
+  // "llm" or "classifier".
+  string group = 2;
+  string label = 3;
+  // Placeholder for the base URL field.
+  string base_url_hint = 4;
 }
 
 message ListProvidersRequest {}
@@ -90,8 +173,10 @@ message ListProvidersResponse {
 
 message CreateProviderRequest {
   ProviderScope scope = 1;
-  // GLOBAL only: the provider id ([a-z0-9][a-z0-9._-]*); personal providers get a generated one.
+  // GLOBAL only: the provider id ([a-z0-9][a-z0-9._-]*); empty derives one from the preset or the name.
+  // Personal providers always get a generated one.
   string id = 2;
+  // Ignored with preset_id (the preset's type).
   string type = 3;
   string display_name = 4;
   string base_url = 5;
@@ -100,6 +185,11 @@ message CreateProviderRequest {
   map<string, string> headers = 7;
   // GLOBAL only.
   bool allow_private_network = 8;
+  // Connect a preset: type, group, name and base URL default to the preset's (base_url may be overridden
+  // only when the preset asks for it), and only the preset's required fields must be set.
+  string preset_id = 9;
+  // Custom providers: "llm" (default) or "classifier" (GLOBAL only).
+  string group = 10;
 }
 
 message CreateProviderResponse {
@@ -170,6 +260,18 @@ message AddModelResponse {
   ProviderModel model = 1;
 }
 
+message TestProviderRequest {
+  string provider_id = 1;
+}
+
+message TestProviderResponse {
+  bool ok = 1;
+  // What happened, for the user ("Connected, 312 models", "The key was rejected (HTTP 401)").
+  string message = 2;
+  // LLM providers: models the service lists (0 when it has no list).
+  int32 model_count = 3;
+}
+
 message RemoveModelRequest {
   string model_id = 1;
 }
@@ -190,11 +292,13 @@ message SetClassifierResponse {
   Classifier classifier = 1;
 }
 
-// Auto mode decides with the chain rules -> decision model (this) -> model classifier (llm).
+// Auto mode decides with the chain rules -> decision step (this) -> model classifier (llm).
 message Classifier {
-  // The decision model step is in the chain.
+  // The decision step is in the chain.
   bool enabled = 1;
-  // Global provider whose API key the decision model uses; its host must be the endpoint's host.
+  // The global provider the decision step uses: a classifier provider ("decision-model": its base URL is the
+  // endpoint; "decision-http": a policy webhook, the thresholds below do not apply), or an LLM provider on
+  // the host of a named decision endpoint (its key is reused).
   string provider_id = 2;
   // "openrouter", "typesafe" or an https URL of a server speaking the same protocol. Empty: derived from
   // the provider's base URL (openrouter.ai -> "openrouter", api.typesafe.ai -> "typesafe").
