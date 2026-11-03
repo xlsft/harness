@@ -187,6 +187,33 @@ const (
 	// AgentServiceStopSideChatProcedure is the fully-qualified name of the AgentService's StopSideChat
 	// RPC.
 	AgentServiceStopSideChatProcedure = "/harness.agent.v1.AgentService/StopSideChat"
+	// AgentServiceListSpeechProvidersProcedure is the fully-qualified name of the AgentService's
+	// ListSpeechProviders RPC.
+	AgentServiceListSpeechProvidersProcedure = "/harness.agent.v1.AgentService/ListSpeechProviders"
+	// AgentServiceListSpeechVoicesProcedure is the fully-qualified name of the AgentService's
+	// ListSpeechVoices RPC.
+	AgentServiceListSpeechVoicesProcedure = "/harness.agent.v1.AgentService/ListSpeechVoices"
+	// AgentServiceGetSpeechSettingsProcedure is the fully-qualified name of the AgentService's
+	// GetSpeechSettings RPC.
+	AgentServiceGetSpeechSettingsProcedure = "/harness.agent.v1.AgentService/GetSpeechSettings"
+	// AgentServiceUpdateSpeechSettingsProcedure is the fully-qualified name of the AgentService's
+	// UpdateSpeechSettings RPC.
+	AgentServiceUpdateSpeechSettingsProcedure = "/harness.agent.v1.AgentService/UpdateSpeechSettings"
+	// AgentServiceTranscribeAudioProcedure is the fully-qualified name of the AgentService's
+	// TranscribeAudio RPC.
+	AgentServiceTranscribeAudioProcedure = "/harness.agent.v1.AgentService/TranscribeAudio"
+	// AgentServiceSynthesizeSpeechProcedure is the fully-qualified name of the AgentService's
+	// SynthesizeSpeech RPC.
+	AgentServiceSynthesizeSpeechProcedure = "/harness.agent.v1.AgentService/SynthesizeSpeech"
+	// AgentServiceListLocalSpeechModelsProcedure is the fully-qualified name of the AgentService's
+	// ListLocalSpeechModels RPC.
+	AgentServiceListLocalSpeechModelsProcedure = "/harness.agent.v1.AgentService/ListLocalSpeechModels"
+	// AgentServiceDownloadSpeechModelProcedure is the fully-qualified name of the AgentService's
+	// DownloadSpeechModel RPC.
+	AgentServiceDownloadSpeechModelProcedure = "/harness.agent.v1.AgentService/DownloadSpeechModel"
+	// AgentServiceDeleteSpeechModelProcedure is the fully-qualified name of the AgentService's
+	// DeleteSpeechModel RPC.
+	AgentServiceDeleteSpeechModelProcedure = "/harness.agent.v1.AgentService/DeleteSpeechModel"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -333,6 +360,26 @@ type AgentServiceClient interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest]) (*connect.ServerStreamForClient[v1.AskSideChatResponse], error)
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// --- Speech (speech.proto, packages/client/server/speech.go) ---
+	// Speech providers for dictation (STT) and "Read aloud" (TTS): the local engines of this machine and the
+	// server's global providers, with models, voices and availability.
+	ListSpeechProviders(context.Context, *connect.Request[v1.ListSpeechProvidersRequest]) (*connect.Response[v1.ListSpeechProvidersResponse], error)
+	// Voices of a TTS provider (the provider's API for global providers that list them; installed and
+	// downloadable voices for Piper; `say -v ?` for macOS).
+	ListSpeechVoices(context.Context, *connect.Request[v1.ListSpeechVoicesRequest]) (*connect.Response[v1.ListSpeechVoicesResponse], error)
+	// The user's speech choices, stored in the user's synced settings document (key "speech"); without a server
+	// connection in HARNESS_HOME/speech/settings.json.
+	GetSpeechSettings(context.Context, *connect.Request[v1.GetSpeechSettingsRequest]) (*connect.Response[v1.GetSpeechSettingsResponse], error)
+	UpdateSpeechSettings(context.Context, *connect.Request[v1.UpdateSpeechSettingsRequest]) (*connect.Response[v1.UpdateSpeechSettingsResponse], error)
+	// Speech to text with the chosen (or given) provider: a local engine on this machine or the server.
+	TranscribeAudio(context.Context, *connect.Request[v1.TranscribeAudioRequest]) (*connect.Response[v1.TranscribeAudioResponse], error)
+	// Text to speech with the chosen (or given) provider; Markdown is turned into speakable text first. The audio
+	// streams back in pieces so playback can start early.
+	SynthesizeSpeech(context.Context, *connect.Request[v1.SynthesizeSpeechRequest]) (*connect.ServerStreamForClient[v1.SynthesizeSpeechResponse], error)
+	// Model files of the local engines: installed state, downloads with progress, deletion.
+	ListLocalSpeechModels(context.Context, *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error)
+	DownloadSpeechModel(context.Context, *connect.Request[v1.DownloadSpeechModelRequest]) (*connect.ServerStreamForClient[v1.DownloadSpeechModelResponse], error)
+	DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -676,6 +723,60 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 			connect.WithClientOptions(opts...),
 		),
+		listSpeechProviders: connect.NewClient[v1.ListSpeechProvidersRequest, v1.ListSpeechProvidersResponse](
+			httpClient,
+			baseURL+AgentServiceListSpeechProvidersProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListSpeechProviders")),
+			connect.WithClientOptions(opts...),
+		),
+		listSpeechVoices: connect.NewClient[v1.ListSpeechVoicesRequest, v1.ListSpeechVoicesResponse](
+			httpClient,
+			baseURL+AgentServiceListSpeechVoicesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListSpeechVoices")),
+			connect.WithClientOptions(opts...),
+		),
+		getSpeechSettings: connect.NewClient[v1.GetSpeechSettingsRequest, v1.GetSpeechSettingsResponse](
+			httpClient,
+			baseURL+AgentServiceGetSpeechSettingsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetSpeechSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		updateSpeechSettings: connect.NewClient[v1.UpdateSpeechSettingsRequest, v1.UpdateSpeechSettingsResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateSpeechSettingsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateSpeechSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		transcribeAudio: connect.NewClient[v1.TranscribeAudioRequest, v1.TranscribeAudioResponse](
+			httpClient,
+			baseURL+AgentServiceTranscribeAudioProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("TranscribeAudio")),
+			connect.WithClientOptions(opts...),
+		),
+		synthesizeSpeech: connect.NewClient[v1.SynthesizeSpeechRequest, v1.SynthesizeSpeechResponse](
+			httpClient,
+			baseURL+AgentServiceSynthesizeSpeechProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SynthesizeSpeech")),
+			connect.WithClientOptions(opts...),
+		),
+		listLocalSpeechModels: connect.NewClient[v1.ListLocalSpeechModelsRequest, v1.ListLocalSpeechModelsResponse](
+			httpClient,
+			baseURL+AgentServiceListLocalSpeechModelsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListLocalSpeechModels")),
+			connect.WithClientOptions(opts...),
+		),
+		downloadSpeechModel: connect.NewClient[v1.DownloadSpeechModelRequest, v1.DownloadSpeechModelResponse](
+			httpClient,
+			baseURL+AgentServiceDownloadSpeechModelProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DownloadSpeechModel")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSpeechModel: connect.NewClient[v1.DeleteSpeechModelRequest, v1.DeleteSpeechModelResponse](
+			httpClient,
+			baseURL+AgentServiceDeleteSpeechModelProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteSpeechModel")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -736,6 +837,15 @@ type agentServiceClient struct {
 	deleteSideChat        *connect.Client[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse]
 	askSideChat           *connect.Client[v1.AskSideChatRequest, v1.AskSideChatResponse]
 	stopSideChat          *connect.Client[v1.StopSideChatRequest, v1.StopSideChatResponse]
+	listSpeechProviders   *connect.Client[v1.ListSpeechProvidersRequest, v1.ListSpeechProvidersResponse]
+	listSpeechVoices      *connect.Client[v1.ListSpeechVoicesRequest, v1.ListSpeechVoicesResponse]
+	getSpeechSettings     *connect.Client[v1.GetSpeechSettingsRequest, v1.GetSpeechSettingsResponse]
+	updateSpeechSettings  *connect.Client[v1.UpdateSpeechSettingsRequest, v1.UpdateSpeechSettingsResponse]
+	transcribeAudio       *connect.Client[v1.TranscribeAudioRequest, v1.TranscribeAudioResponse]
+	synthesizeSpeech      *connect.Client[v1.SynthesizeSpeechRequest, v1.SynthesizeSpeechResponse]
+	listLocalSpeechModels *connect.Client[v1.ListLocalSpeechModelsRequest, v1.ListLocalSpeechModelsResponse]
+	downloadSpeechModel   *connect.Client[v1.DownloadSpeechModelRequest, v1.DownloadSpeechModelResponse]
+	deleteSpeechModel     *connect.Client[v1.DeleteSpeechModelRequest, v1.DeleteSpeechModelResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1013,6 +1123,51 @@ func (c *agentServiceClient) StopSideChat(ctx context.Context, req *connect.Requ
 	return c.stopSideChat.CallUnary(ctx, req)
 }
 
+// ListSpeechProviders calls harness.agent.v1.AgentService.ListSpeechProviders.
+func (c *agentServiceClient) ListSpeechProviders(ctx context.Context, req *connect.Request[v1.ListSpeechProvidersRequest]) (*connect.Response[v1.ListSpeechProvidersResponse], error) {
+	return c.listSpeechProviders.CallUnary(ctx, req)
+}
+
+// ListSpeechVoices calls harness.agent.v1.AgentService.ListSpeechVoices.
+func (c *agentServiceClient) ListSpeechVoices(ctx context.Context, req *connect.Request[v1.ListSpeechVoicesRequest]) (*connect.Response[v1.ListSpeechVoicesResponse], error) {
+	return c.listSpeechVoices.CallUnary(ctx, req)
+}
+
+// GetSpeechSettings calls harness.agent.v1.AgentService.GetSpeechSettings.
+func (c *agentServiceClient) GetSpeechSettings(ctx context.Context, req *connect.Request[v1.GetSpeechSettingsRequest]) (*connect.Response[v1.GetSpeechSettingsResponse], error) {
+	return c.getSpeechSettings.CallUnary(ctx, req)
+}
+
+// UpdateSpeechSettings calls harness.agent.v1.AgentService.UpdateSpeechSettings.
+func (c *agentServiceClient) UpdateSpeechSettings(ctx context.Context, req *connect.Request[v1.UpdateSpeechSettingsRequest]) (*connect.Response[v1.UpdateSpeechSettingsResponse], error) {
+	return c.updateSpeechSettings.CallUnary(ctx, req)
+}
+
+// TranscribeAudio calls harness.agent.v1.AgentService.TranscribeAudio.
+func (c *agentServiceClient) TranscribeAudio(ctx context.Context, req *connect.Request[v1.TranscribeAudioRequest]) (*connect.Response[v1.TranscribeAudioResponse], error) {
+	return c.transcribeAudio.CallUnary(ctx, req)
+}
+
+// SynthesizeSpeech calls harness.agent.v1.AgentService.SynthesizeSpeech.
+func (c *agentServiceClient) SynthesizeSpeech(ctx context.Context, req *connect.Request[v1.SynthesizeSpeechRequest]) (*connect.ServerStreamForClient[v1.SynthesizeSpeechResponse], error) {
+	return c.synthesizeSpeech.CallServerStream(ctx, req)
+}
+
+// ListLocalSpeechModels calls harness.agent.v1.AgentService.ListLocalSpeechModels.
+func (c *agentServiceClient) ListLocalSpeechModels(ctx context.Context, req *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error) {
+	return c.listLocalSpeechModels.CallUnary(ctx, req)
+}
+
+// DownloadSpeechModel calls harness.agent.v1.AgentService.DownloadSpeechModel.
+func (c *agentServiceClient) DownloadSpeechModel(ctx context.Context, req *connect.Request[v1.DownloadSpeechModelRequest]) (*connect.ServerStreamForClient[v1.DownloadSpeechModelResponse], error) {
+	return c.downloadSpeechModel.CallServerStream(ctx, req)
+}
+
+// DeleteSpeechModel calls harness.agent.v1.AgentService.DeleteSpeechModel.
+func (c *agentServiceClient) DeleteSpeechModel(ctx context.Context, req *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error) {
+	return c.deleteSpeechModel.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1157,6 +1312,26 @@ type AgentServiceHandler interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest], *connect.ServerStream[v1.AskSideChatResponse]) error
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// --- Speech (speech.proto, packages/client/server/speech.go) ---
+	// Speech providers for dictation (STT) and "Read aloud" (TTS): the local engines of this machine and the
+	// server's global providers, with models, voices and availability.
+	ListSpeechProviders(context.Context, *connect.Request[v1.ListSpeechProvidersRequest]) (*connect.Response[v1.ListSpeechProvidersResponse], error)
+	// Voices of a TTS provider (the provider's API for global providers that list them; installed and
+	// downloadable voices for Piper; `say -v ?` for macOS).
+	ListSpeechVoices(context.Context, *connect.Request[v1.ListSpeechVoicesRequest]) (*connect.Response[v1.ListSpeechVoicesResponse], error)
+	// The user's speech choices, stored in the user's synced settings document (key "speech"); without a server
+	// connection in HARNESS_HOME/speech/settings.json.
+	GetSpeechSettings(context.Context, *connect.Request[v1.GetSpeechSettingsRequest]) (*connect.Response[v1.GetSpeechSettingsResponse], error)
+	UpdateSpeechSettings(context.Context, *connect.Request[v1.UpdateSpeechSettingsRequest]) (*connect.Response[v1.UpdateSpeechSettingsResponse], error)
+	// Speech to text with the chosen (or given) provider: a local engine on this machine or the server.
+	TranscribeAudio(context.Context, *connect.Request[v1.TranscribeAudioRequest]) (*connect.Response[v1.TranscribeAudioResponse], error)
+	// Text to speech with the chosen (or given) provider; Markdown is turned into speakable text first. The audio
+	// streams back in pieces so playback can start early.
+	SynthesizeSpeech(context.Context, *connect.Request[v1.SynthesizeSpeechRequest], *connect.ServerStream[v1.SynthesizeSpeechResponse]) error
+	// Model files of the local engines: installed state, downloads with progress, deletion.
+	ListLocalSpeechModels(context.Context, *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error)
+	DownloadSpeechModel(context.Context, *connect.Request[v1.DownloadSpeechModelRequest], *connect.ServerStream[v1.DownloadSpeechModelResponse]) error
+	DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1496,6 +1671,60 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListSpeechProvidersHandler := connect.NewUnaryHandler(
+		AgentServiceListSpeechProvidersProcedure,
+		svc.ListSpeechProviders,
+		connect.WithSchema(agentServiceMethods.ByName("ListSpeechProviders")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListSpeechVoicesHandler := connect.NewUnaryHandler(
+		AgentServiceListSpeechVoicesProcedure,
+		svc.ListSpeechVoices,
+		connect.WithSchema(agentServiceMethods.ByName("ListSpeechVoices")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetSpeechSettingsHandler := connect.NewUnaryHandler(
+		AgentServiceGetSpeechSettingsProcedure,
+		svc.GetSpeechSettings,
+		connect.WithSchema(agentServiceMethods.ByName("GetSpeechSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateSpeechSettingsHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateSpeechSettingsProcedure,
+		svc.UpdateSpeechSettings,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateSpeechSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceTranscribeAudioHandler := connect.NewUnaryHandler(
+		AgentServiceTranscribeAudioProcedure,
+		svc.TranscribeAudio,
+		connect.WithSchema(agentServiceMethods.ByName("TranscribeAudio")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSynthesizeSpeechHandler := connect.NewServerStreamHandler(
+		AgentServiceSynthesizeSpeechProcedure,
+		svc.SynthesizeSpeech,
+		connect.WithSchema(agentServiceMethods.ByName("SynthesizeSpeech")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListLocalSpeechModelsHandler := connect.NewUnaryHandler(
+		AgentServiceListLocalSpeechModelsProcedure,
+		svc.ListLocalSpeechModels,
+		connect.WithSchema(agentServiceMethods.ByName("ListLocalSpeechModels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDownloadSpeechModelHandler := connect.NewServerStreamHandler(
+		AgentServiceDownloadSpeechModelProcedure,
+		svc.DownloadSpeechModel,
+		connect.WithSchema(agentServiceMethods.ByName("DownloadSpeechModel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteSpeechModelHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteSpeechModelProcedure,
+		svc.DeleteSpeechModel,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteSpeechModel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1608,6 +1837,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceAskSideChatHandler.ServeHTTP(w, r)
 		case AgentServiceStopSideChatProcedure:
 			agentServiceStopSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceListSpeechProvidersProcedure:
+			agentServiceListSpeechProvidersHandler.ServeHTTP(w, r)
+		case AgentServiceListSpeechVoicesProcedure:
+			agentServiceListSpeechVoicesHandler.ServeHTTP(w, r)
+		case AgentServiceGetSpeechSettingsProcedure:
+			agentServiceGetSpeechSettingsHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateSpeechSettingsProcedure:
+			agentServiceUpdateSpeechSettingsHandler.ServeHTTP(w, r)
+		case AgentServiceTranscribeAudioProcedure:
+			agentServiceTranscribeAudioHandler.ServeHTTP(w, r)
+		case AgentServiceSynthesizeSpeechProcedure:
+			agentServiceSynthesizeSpeechHandler.ServeHTTP(w, r)
+		case AgentServiceListLocalSpeechModelsProcedure:
+			agentServiceListLocalSpeechModelsHandler.ServeHTTP(w, r)
+		case AgentServiceDownloadSpeechModelProcedure:
+			agentServiceDownloadSpeechModelHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteSpeechModelProcedure:
+			agentServiceDeleteSpeechModelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1835,4 +2082,40 @@ func (UnimplementedAgentServiceHandler) AskSideChat(context.Context, *connect.Re
 
 func (UnimplementedAgentServiceHandler) StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListSpeechProviders(context.Context, *connect.Request[v1.ListSpeechProvidersRequest]) (*connect.Response[v1.ListSpeechProvidersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSpeechProviders is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListSpeechVoices(context.Context, *connect.Request[v1.ListSpeechVoicesRequest]) (*connect.Response[v1.ListSpeechVoicesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSpeechVoices is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetSpeechSettings(context.Context, *connect.Request[v1.GetSpeechSettingsRequest]) (*connect.Response[v1.GetSpeechSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSpeechSettings is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateSpeechSettings(context.Context, *connect.Request[v1.UpdateSpeechSettingsRequest]) (*connect.Response[v1.UpdateSpeechSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateSpeechSettings is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) TranscribeAudio(context.Context, *connect.Request[v1.TranscribeAudioRequest]) (*connect.Response[v1.TranscribeAudioResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.TranscribeAudio is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SynthesizeSpeech(context.Context, *connect.Request[v1.SynthesizeSpeechRequest], *connect.ServerStream[v1.SynthesizeSpeechResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SynthesizeSpeech is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListLocalSpeechModels(context.Context, *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListLocalSpeechModels is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DownloadSpeechModel(context.Context, *connect.Request[v1.DownloadSpeechModelRequest], *connect.ServerStream[v1.DownloadSpeechModelResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DownloadSpeechModel is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteSpeechModel is not implemented"))
 }
