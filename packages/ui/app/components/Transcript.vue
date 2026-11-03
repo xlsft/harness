@@ -262,6 +262,7 @@ function toBottom() {
               v-else-if="b.item.kind === 'turn'"
               :turn="b.item"
               :speaking="readAloud.speaking.value === b.item.id"
+              :speech-loading="readAloud.loading.value === b.item.id"
               @copy="copy(answerOf(b.item.id))"
               @retry="retry(b.item.id)"
               @fork="fork('', nextUserAfter(b.item.id))"

@@ -9,6 +9,8 @@ const props = defineProps<{
   turn?: TurnItem
   // The turn footer's Read aloud is on (this turn's answer is being spoken).
   speaking?: boolean
+  // Its audio is being made (before any sound).
+  speechLoading?: boolean
 }>()
 const emit = defineEmits<{ retry: [], switchModel: [], copy: [], fork: [], readAloud: [] }>()
 
@@ -157,7 +159,8 @@ const usageLine = computed(() => {
       @click="emit('readAloud')"
     >
       <HIcon
-        :name="speaking ? 'stop' : 'speaker'"
+        :name="speechLoading ? 'loading' : speaking ? 'stop' : 'speaker'"
+        :spin="speechLoading"
         :size="14"
       />
     </button>
