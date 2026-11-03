@@ -54,6 +54,18 @@ const blocks = computed<Block[]>(() => {
 // Messages waiting in this browser, then the ones sent to the client while a question waits for its answer.
 const queued = computed(() => [...(store.localQueue[props.session.meta.id] ?? []), ...props.session.queue])
 const working = computed(() => props.session.meta.status === 'working')
+// A new message (yours, a queued one or the model's next one) brings the view down to it, even when it was
+// scrolled up. column-reverse puts the newest edge at scrollTop 0. Streaming into the same message does not.
+const scroller = ref<HTMLElement | null>(null)
+const lastKey = computed(() => {
+  const last = props.session.items.findLast(i => i.kind === 'user' || i.kind === 'assistant')
+  return `${props.session.meta.id}:${last?.kind}:${last?.id}:${queued.value.length}`
+})
+watch(lastKey, (now, before) => {
+  const sameSession = now.split(':')[0] === before?.split(':')[0]
+  nextTick(() => scroller.value?.scrollTo({ top: 0, behavior: sameSession ? 'smooth' : 'auto' }))
+})
+
 const lastIsStreaming = computed(() => {
   const last = props.session.items[props.session.items.length - 1]
   return last?.kind === 'assistant' && last.streaming
@@ -61,7 +73,10 @@ const lastIsStreaming = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-3">
+  <div
+    ref="scroller"
+    class="flex flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-3"
+  >
     <div class="mx-auto flex w-full max-w-[790px] flex-col gap-[15px]">
       <template
         v-for="b in blocks"

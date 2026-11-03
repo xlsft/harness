@@ -34,6 +34,16 @@ const menu = ref<'' | 'env' | 'env-centre' | 'folder' | 'model' | 'effort' | 'mo
 const browsing = ref(false)
 const input = ref<HTMLTextAreaElement | null>(null)
 
+// Grows with the text up to 8 lines (8 × 20.8px), then scrolls, like the session composer.
+function autosize() {
+  const el = input.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = text.value ? `${Math.min(el.scrollHeight, 173)}px` : ''
+  el.style.overflowY = el.scrollHeight > 173 ? 'auto' : 'hidden'
+}
+watch(text, () => nextTick(autosize))
+
 const name = (p: string) => p.replace(/\/+$/, '').split('/').pop() || p
 
 const forkOf = computed(() => typeof route.query.fork === 'string' ? store.sessions[route.query.fork] : undefined)
@@ -270,12 +280,12 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           {{ error }}
         </p>
         <div
-          class="flex min-h-[42px] items-center gap-1.5 border bg-surface px-2.5"
+          class="flex min-h-[42px] items-end gap-1.5 border bg-surface px-2.5 py-[7px]"
           :class="text ? 'border-accent' : 'border-accented'"
         >
           <HIcon
             name="plus"
-            class="shrink-0 text-muted"
+            class="mb-1.5 shrink-0 text-muted"
           />
           <textarea
             ref="input"

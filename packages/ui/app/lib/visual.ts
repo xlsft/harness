@@ -14,25 +14,66 @@ const CSP = [
   'form-action \'none\''
 ].join('; ')
 
-// Variable in the visual → app token it reads, with the dark theme's value when the token is missing.
+// Variable in the visual → app token it reads, with the dark theme's value when the token is missing. The
+// Visual tool description (core prompts/tools/Visual) lists the same names; keep them in step.
 const VARS: [string, string, string][] = [
   ['--bg', '--color-ground', '#000000'],
   ['--surface', '--color-surface', '#0a0a0a'],
+  ['--hover', '--color-hover', '#131313'],
   ['--raised', '--color-raised', '#1c1c1c'],
   ['--line', '--color-line', '#2b2b2b'],
-  ['--muted', '--ui-text-muted', '#8f8f8f'],
+  ['--line-strong', '--color-line-strong', '#454545'],
   ['--text', '--ui-text', '#d4d4d4'],
+  ['--text-strong', '--ui-text-highlighted', '#ffffff'],
+  ['--muted', '--ui-text-muted', '#8f8f8f'],
+  ['--dimmed', '--ui-text-dimmed', '#737373'],
   ['--accent', '--color-accent', '#2b7fff'],
+  ['--accent-hover', '--color-accent-hover', '#8ec5ff'],
   ['--ok', '--color-ok', '#00bc7d'],
   ['--warn', '--color-warn', '#fe9a00'],
   ['--error', '--color-bad', '#ff2056'],
+  ['--cyan', '--color-cyan', '#00b8db'],
+  ['--violet', '--color-violet', '#8e51ff'],
+  ['--pink', '--color-pink', '#f6339a'],
+  ['--orange', '--color-orange', '#fe6e00'],
   ['--font', '--font-sans', 'ui-monospace, monospace'],
   ['--mono', '--font-mono', 'ui-monospace, monospace']
 ]
 
+// Fixed parts of the app's look: square corners, its type scale and spacing, and a chart palette.
+const FIXED = '--radius:0px;--border:1px;--text-xs:11px;--text-sm:12px;--text-md:13px;--text-lg:15px;--text-xl:18px;'
+  + '--leading:1.6;--space:4px;--control-h:28px;'
+  + '--chart-1:var(--accent);--chart-2:var(--ok);--chart-3:var(--warn);--chart-4:var(--violet);--chart-5:var(--cyan);--chart-6:var(--pink)'
+
+// Base styles in the app's look, at zero specificity (:where) so any rule of the visual wins.
+const BASE = `:where(html,body){margin:0;background:transparent;color:var(--text);font:var(--text-md)/var(--leading) var(--font)}
+:where(body){padding:calc(var(--space)*3)}
+:where(*,*::before,*::after){box-sizing:border-box;border-radius:var(--radius)}
+:where(h1,h2,h3,h4){margin:0 0 calc(var(--space)*2);color:var(--text-strong);font-weight:600;line-height:1.3}
+:where(h1){font-size:var(--text-xl)}:where(h2){font-size:var(--text-lg)}:where(h3,h4){font-size:var(--text-md)}
+:where(p){margin:0 0 calc(var(--space)*2)}
+:where(a){color:var(--accent);text-decoration:none}:where(a:hover){color:var(--accent-hover)}
+:where(code,kbd,pre){font-family:var(--mono);font-size:var(--text-sm)}
+:where(code){border:var(--border) solid var(--line);background:var(--raised);padding:0 4px}
+:where(pre){margin:0;border:var(--border) solid var(--line);background:var(--surface);padding:calc(var(--space)*2.5) calc(var(--space)*3);overflow:auto}
+:where(hr){border:0;border-top:var(--border) solid var(--line);margin:calc(var(--space)*3) 0}
+:where(button){height:var(--control-h);padding:0 calc(var(--space)*2.5);border:var(--border) solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:var(--text-sm);cursor:pointer}
+:where(button:hover){border-color:var(--line-strong);color:var(--text-strong)}
+:where(button:disabled){opacity:.5;cursor:default}
+:where(button.primary,button[type=submit]){background:var(--accent);border-color:var(--accent);color:#fff}
+:where(input:not([type=checkbox],[type=radio],[type=range]),select,textarea){height:var(--control-h);padding:0 calc(var(--space)*2.5);border:var(--border) solid var(--line-strong);background:var(--bg);color:var(--text-strong);font:inherit;font-size:var(--text-sm);outline:none}
+:where(textarea){height:auto;padding:calc(var(--space)*1.5) calc(var(--space)*2.5)}
+:where(input,select,textarea):focus{border-color:var(--accent)}
+:where(input[type=checkbox],input[type=radio],input[type=range]){accent-color:var(--accent)}
+:where(table){border-collapse:collapse;width:100%;font-size:var(--text-sm)}
+:where(th,td){border-bottom:var(--border) solid var(--line);padding:calc(var(--space)*1.5) calc(var(--space)*2.5);text-align:left}
+:where(th){color:var(--muted);font-weight:400}
+::selection{background:color-mix(in srgb,var(--accent) 35%,transparent)}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--line-strong)}::-webkit-scrollbar-track{background:transparent}`
+
 function themeVars(): string {
   const style = import.meta.client ? getComputedStyle(document.documentElement) : null
-  return VARS.map(([name, token, fallback]) => `${name}:${style?.getPropertyValue(token).trim() || fallback}`).join(';')
+  return VARS.map(([name, token, fallback]) => `${name}:${style?.getPropertyValue(token).trim() || fallback}`).join(';') + ';' + FIXED
 }
 
 // Messages from the frame carry the nonce; the script that knows it removes itself, so the visual's own code
@@ -48,7 +89,7 @@ addEventListener('load',size);if(s)s.remove()})()`
 
 export function visualDocument(html: string, nonce: string): string {
   const head = `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${CSP}">`
-    + `<style>:root{${themeVars()};color-scheme:dark}html,body{margin:0;background:transparent;color:var(--text);font:13px/1.6 var(--font)}</style>`
+    + `<style>:root{${themeVars()};color-scheme:dark}${BASE}</style>`
     + `<script>${bridge(nonce)}</script>`
   // Our head goes first so the visual's own styles win; a document without <head> gets one.
   const h = html.match(/<head(\s[^>]*)?>/i)
