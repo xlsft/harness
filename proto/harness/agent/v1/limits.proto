@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/llm/v1/limits.proto";
+
+// AgentService.GetProviderLimits: the client forwards it to the server's harness.llm.v1.ProviderLimitsService
+// with its own credentials, so the UI reads provider balances and rate-limit windows over the agent transport.
+
+message GetProviderLimitsRequest {
+  // Only these providers; empty: all the user may see.
+  repeated string provider_ids = 1;
+  // Also answer `model`: the provider behind this model id (the current session's model).
+  string model_id = 2;
+}
+
+message GetProviderLimitsResponse {
+  repeated harness.llm.v1.ProviderLimits providers = 1;
+  harness.llm.v1.ProviderLimits model = 2;
+}

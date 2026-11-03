@@ -235,6 +235,9 @@ const (
 	// AgentServiceDeleteOllamaModelProcedure is the fully-qualified name of the AgentService's
 	// DeleteOllamaModel RPC.
 	AgentServiceDeleteOllamaModelProcedure = "/harness.agent.v1.AgentService/DeleteOllamaModel"
+	// AgentServiceGetProviderLimitsProcedure is the fully-qualified name of the AgentService's
+	// GetProviderLimits RPC.
+	AgentServiceGetProviderLimitsProcedure = "/harness.agent.v1.AgentService/GetProviderLimits"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -414,6 +417,9 @@ type AgentServiceClient interface {
 	// Downloads a model into an Ollama server, streaming its progress; cancelling the stream stops the pull.
 	PullOllamaModel(context.Context, *connect.Request[v1.PullOllamaModelRequest]) (*connect.ServerStreamForClient[v1.PullOllamaModelResponse], error)
 	DeleteOllamaModel(context.Context, *connect.Request[v1.DeleteOllamaModelRequest]) (*connect.Response[v1.DeleteOllamaModelResponse], error)
+	// Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
+	// may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
+	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -853,6 +859,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("DeleteOllamaModel")),
 			connect.WithClientOptions(opts...),
 		),
+		getProviderLimits: connect.NewClient[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse](
+			httpClient,
+			baseURL+AgentServiceGetProviderLimitsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetProviderLimits")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -929,6 +941,7 @@ type agentServiceClient struct {
 	refreshLocalProviders *connect.Client[v1.RefreshLocalProvidersRequest, v1.RefreshLocalProvidersResponse]
 	pullOllamaModel       *connect.Client[v1.PullOllamaModelRequest, v1.PullOllamaModelResponse]
 	deleteOllamaModel     *connect.Client[v1.DeleteOllamaModelRequest, v1.DeleteOllamaModelResponse]
+	getProviderLimits     *connect.Client[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1286,6 +1299,11 @@ func (c *agentServiceClient) DeleteOllamaModel(ctx context.Context, req *connect
 	return c.deleteOllamaModel.CallUnary(ctx, req)
 }
 
+// GetProviderLimits calls harness.agent.v1.AgentService.GetProviderLimits.
+func (c *agentServiceClient) GetProviderLimits(ctx context.Context, req *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error) {
+	return c.getProviderLimits.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1463,6 +1481,9 @@ type AgentServiceHandler interface {
 	// Downloads a model into an Ollama server, streaming its progress; cancelling the stream stops the pull.
 	PullOllamaModel(context.Context, *connect.Request[v1.PullOllamaModelRequest], *connect.ServerStream[v1.PullOllamaModelResponse]) error
 	DeleteOllamaModel(context.Context, *connect.Request[v1.DeleteOllamaModelRequest]) (*connect.Response[v1.DeleteOllamaModelResponse], error)
+	// Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
+	// may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
+	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1898,6 +1919,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("DeleteOllamaModel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetProviderLimitsHandler := connect.NewUnaryHandler(
+		AgentServiceGetProviderLimitsProcedure,
+		svc.GetProviderLimits,
+		connect.WithSchema(agentServiceMethods.ByName("GetProviderLimits")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2042,6 +2069,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServicePullOllamaModelHandler.ServeHTTP(w, r)
 		case AgentServiceDeleteOllamaModelProcedure:
 			agentServiceDeleteOllamaModelHandler.ServeHTTP(w, r)
+		case AgentServiceGetProviderLimitsProcedure:
+			agentServiceGetProviderLimitsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2333,4 +2362,8 @@ func (UnimplementedAgentServiceHandler) PullOllamaModel(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) DeleteOllamaModel(context.Context, *connect.Request[v1.DeleteOllamaModelRequest]) (*connect.Response[v1.DeleteOllamaModelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteOllamaModel is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetProviderLimits is not implemented"))
 }

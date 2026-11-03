@@ -28,6 +28,7 @@ import { ConnectEnvironmentApi } from '~/lib/environment/connect'
 import { ConnectFilesApi } from '~/lib/files/connect'
 import { ConnectSpeechApi } from '~/lib/speech/connect'
 import { ConnectLocalModelsApi } from './localModels'
+import { ConnectLimitsApi } from '~/lib/limits/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -62,6 +63,12 @@ export class ConnectTransport implements SessionTransport {
     this.environmentApi = new ConnectEnvironmentApi(transport)
     this.filesApi = new ConnectFilesApi(transport)
     this.speechApi = new ConnectSpeechApi(transport)
+    this.limitsApi = new ConnectLimitsApi(transport)
+  }
+
+  private limitsApi: ConnectLimitsApi
+  limits() {
+    return this.limitsApi
   }
 
   private environmentApi: ConnectEnvironmentApi

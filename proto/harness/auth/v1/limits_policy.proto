@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+import "harness/llm/v1/limits.proto";
+
+// AdminService messages for the visibility of global providers' limits (harness.llm.v1.ProviderLimitsService):
+// per provider, who sees its balance and who sees its limits (spend and rate-limit windows). Personal
+// providers have no policy: only their owner ever sees their limits, and these RPCs refuse them (NOT_FOUND).
+
+message ListProviderLimitsPoliciesRequest {}
+
+message ListProviderLimitsPoliciesResponse {
+  // One per global LLM provider, defaults (everyone) included.
+  repeated harness.llm.v1.ProviderLimitsPolicy policies = 1;
+}
+
+message SetProviderLimitsPolicyRequest {
+  // Replaces the provider's policy; unset blocks fall back to everyone.
+  harness.llm.v1.ProviderLimitsPolicy policy = 1;
+}
+
+message SetProviderLimitsPolicyResponse {
+  harness.llm.v1.ProviderLimitsPolicy policy = 1;
+}

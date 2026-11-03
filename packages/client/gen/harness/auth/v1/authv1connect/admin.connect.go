@@ -83,6 +83,12 @@ const (
 	// AdminServiceSetLocalModelPolicyProcedure is the fully-qualified name of the AdminService's
 	// SetLocalModelPolicy RPC.
 	AdminServiceSetLocalModelPolicyProcedure = "/harness.auth.v1.AdminService/SetLocalModelPolicy"
+	// AdminServiceListProviderLimitsPoliciesProcedure is the fully-qualified name of the AdminService's
+	// ListProviderLimitsPolicies RPC.
+	AdminServiceListProviderLimitsPoliciesProcedure = "/harness.auth.v1.AdminService/ListProviderLimitsPolicies"
+	// AdminServiceSetProviderLimitsPolicyProcedure is the fully-qualified name of the AdminService's
+	// SetProviderLimitsPolicy RPC.
+	AdminServiceSetProviderLimitsPolicyProcedure = "/harness.auth.v1.AdminService/SetProviderLimitsPolicy"
 )
 
 // AdminServiceClient is a client for the harness.auth.v1.AdminService service.
@@ -124,6 +130,10 @@ type AdminServiceClient interface {
 	// read it from their sync feed and enforce it. Default: allowed.
 	GetLocalModelPolicy(context.Context, *connect.Request[v1.GetLocalModelPolicyRequest]) (*connect.Response[v1.GetLocalModelPolicyResponse], error)
 	SetLocalModelPolicy(context.Context, *connect.Request[v1.SetLocalModelPolicyRequest]) (*connect.Response[v1.SetLocalModelPolicyResponse], error)
+	// Who sees each global LLM provider's balance and limits (limits_policy.proto, harness.llm.v1.ProviderLimitsService).
+	// A personal provider is NOT_FOUND: only its owner sees its limits.
+	ListProviderLimitsPolicies(context.Context, *connect.Request[v1.ListProviderLimitsPoliciesRequest]) (*connect.Response[v1.ListProviderLimitsPoliciesResponse], error)
+	SetProviderLimitsPolicy(context.Context, *connect.Request[v1.SetProviderLimitsPolicyRequest]) (*connect.Response[v1.SetProviderLimitsPolicyResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the harness.auth.v1.AdminService service. By
@@ -245,29 +255,43 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(adminServiceMethods.ByName("SetLocalModelPolicy")),
 			connect.WithClientOptions(opts...),
 		),
+		listProviderLimitsPolicies: connect.NewClient[v1.ListProviderLimitsPoliciesRequest, v1.ListProviderLimitsPoliciesResponse](
+			httpClient,
+			baseURL+AdminServiceListProviderLimitsPoliciesProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("ListProviderLimitsPolicies")),
+			connect.WithClientOptions(opts...),
+		),
+		setProviderLimitsPolicy: connect.NewClient[v1.SetProviderLimitsPolicyRequest, v1.SetProviderLimitsPolicyResponse](
+			httpClient,
+			baseURL+AdminServiceSetProviderLimitsPolicyProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("SetProviderLimitsPolicy")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // adminServiceClient implements AdminServiceClient.
 type adminServiceClient struct {
-	listUsers               *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
-	createUser              *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
-	resetPassword           *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
-	setRole                 *connect.Client[v1.SetRoleRequest, v1.SetRoleResponse]
-	setDisabled             *connect.Client[v1.SetDisabledRequest, v1.SetDisabledResponse]
-	deleteUser              *connect.Client[v1.DeleteUserRequest, v1.DeleteUserResponse]
-	listUserSessions        *connect.Client[v1.ListUserSessionsRequest, v1.ListUserSessionsResponse]
-	revokeUserSessions      *connect.Client[v1.RevokeUserSessionsRequest, v1.RevokeUserSessionsResponse]
-	listUserProviders       *connect.Client[v1.ListUserProvidersRequest, v1.ListUserProvidersResponse]
-	deleteUserProvider      *connect.Client[v1.DeleteUserProviderRequest, v1.DeleteUserProviderResponse]
-	getLdapConfig           *connect.Client[v1.GetLdapConfigRequest, v1.GetLdapConfigResponse]
-	setLdapConfig           *connect.Client[v1.SetLdapConfigRequest, v1.SetLdapConfigResponse]
-	testLdapConnection      *connect.Client[v1.TestLdapConnectionRequest, v1.TestLdapConnectionResponse]
-	testLdapUser            *connect.Client[v1.TestLdapUserRequest, v1.TestLdapUserResponse]
-	getPermissionModePolicy *connect.Client[v1.GetPermissionModePolicyRequest, v1.GetPermissionModePolicyResponse]
-	setPermissionModePolicy *connect.Client[v1.SetPermissionModePolicyRequest, v1.SetPermissionModePolicyResponse]
-	getLocalModelPolicy     *connect.Client[v1.GetLocalModelPolicyRequest, v1.GetLocalModelPolicyResponse]
-	setLocalModelPolicy     *connect.Client[v1.SetLocalModelPolicyRequest, v1.SetLocalModelPolicyResponse]
+	listUsers                  *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
+	createUser                 *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
+	resetPassword              *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	setRole                    *connect.Client[v1.SetRoleRequest, v1.SetRoleResponse]
+	setDisabled                *connect.Client[v1.SetDisabledRequest, v1.SetDisabledResponse]
+	deleteUser                 *connect.Client[v1.DeleteUserRequest, v1.DeleteUserResponse]
+	listUserSessions           *connect.Client[v1.ListUserSessionsRequest, v1.ListUserSessionsResponse]
+	revokeUserSessions         *connect.Client[v1.RevokeUserSessionsRequest, v1.RevokeUserSessionsResponse]
+	listUserProviders          *connect.Client[v1.ListUserProvidersRequest, v1.ListUserProvidersResponse]
+	deleteUserProvider         *connect.Client[v1.DeleteUserProviderRequest, v1.DeleteUserProviderResponse]
+	getLdapConfig              *connect.Client[v1.GetLdapConfigRequest, v1.GetLdapConfigResponse]
+	setLdapConfig              *connect.Client[v1.SetLdapConfigRequest, v1.SetLdapConfigResponse]
+	testLdapConnection         *connect.Client[v1.TestLdapConnectionRequest, v1.TestLdapConnectionResponse]
+	testLdapUser               *connect.Client[v1.TestLdapUserRequest, v1.TestLdapUserResponse]
+	getPermissionModePolicy    *connect.Client[v1.GetPermissionModePolicyRequest, v1.GetPermissionModePolicyResponse]
+	setPermissionModePolicy    *connect.Client[v1.SetPermissionModePolicyRequest, v1.SetPermissionModePolicyResponse]
+	getLocalModelPolicy        *connect.Client[v1.GetLocalModelPolicyRequest, v1.GetLocalModelPolicyResponse]
+	setLocalModelPolicy        *connect.Client[v1.SetLocalModelPolicyRequest, v1.SetLocalModelPolicyResponse]
+	listProviderLimitsPolicies *connect.Client[v1.ListProviderLimitsPoliciesRequest, v1.ListProviderLimitsPoliciesResponse]
+	setProviderLimitsPolicy    *connect.Client[v1.SetProviderLimitsPolicyRequest, v1.SetProviderLimitsPolicyResponse]
 }
 
 // ListUsers calls harness.auth.v1.AdminService.ListUsers.
@@ -360,6 +384,16 @@ func (c *adminServiceClient) SetLocalModelPolicy(ctx context.Context, req *conne
 	return c.setLocalModelPolicy.CallUnary(ctx, req)
 }
 
+// ListProviderLimitsPolicies calls harness.auth.v1.AdminService.ListProviderLimitsPolicies.
+func (c *adminServiceClient) ListProviderLimitsPolicies(ctx context.Context, req *connect.Request[v1.ListProviderLimitsPoliciesRequest]) (*connect.Response[v1.ListProviderLimitsPoliciesResponse], error) {
+	return c.listProviderLimitsPolicies.CallUnary(ctx, req)
+}
+
+// SetProviderLimitsPolicy calls harness.auth.v1.AdminService.SetProviderLimitsPolicy.
+func (c *adminServiceClient) SetProviderLimitsPolicy(ctx context.Context, req *connect.Request[v1.SetProviderLimitsPolicyRequest]) (*connect.Response[v1.SetProviderLimitsPolicyResponse], error) {
+	return c.setProviderLimitsPolicy.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the harness.auth.v1.AdminService service.
 type AdminServiceHandler interface {
 	// Users, oldest first, optionally filtered by a case-insensitive substring of name, username or email.
@@ -399,6 +433,10 @@ type AdminServiceHandler interface {
 	// read it from their sync feed and enforce it. Default: allowed.
 	GetLocalModelPolicy(context.Context, *connect.Request[v1.GetLocalModelPolicyRequest]) (*connect.Response[v1.GetLocalModelPolicyResponse], error)
 	SetLocalModelPolicy(context.Context, *connect.Request[v1.SetLocalModelPolicyRequest]) (*connect.Response[v1.SetLocalModelPolicyResponse], error)
+	// Who sees each global LLM provider's balance and limits (limits_policy.proto, harness.llm.v1.ProviderLimitsService).
+	// A personal provider is NOT_FOUND: only its owner sees its limits.
+	ListProviderLimitsPolicies(context.Context, *connect.Request[v1.ListProviderLimitsPoliciesRequest]) (*connect.Response[v1.ListProviderLimitsPoliciesResponse], error)
+	SetProviderLimitsPolicy(context.Context, *connect.Request[v1.SetProviderLimitsPolicyRequest]) (*connect.Response[v1.SetProviderLimitsPolicyResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -516,6 +554,18 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(adminServiceMethods.ByName("SetLocalModelPolicy")),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceListProviderLimitsPoliciesHandler := connect.NewUnaryHandler(
+		AdminServiceListProviderLimitsPoliciesProcedure,
+		svc.ListProviderLimitsPolicies,
+		connect.WithSchema(adminServiceMethods.ByName("ListProviderLimitsPolicies")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceSetProviderLimitsPolicyHandler := connect.NewUnaryHandler(
+		AdminServiceSetProviderLimitsPolicyProcedure,
+		svc.SetProviderLimitsPolicy,
+		connect.WithSchema(adminServiceMethods.ByName("SetProviderLimitsPolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.auth.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServiceListUsersProcedure:
@@ -554,6 +604,10 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceGetLocalModelPolicyHandler.ServeHTTP(w, r)
 		case AdminServiceSetLocalModelPolicyProcedure:
 			adminServiceSetLocalModelPolicyHandler.ServeHTTP(w, r)
+		case AdminServiceListProviderLimitsPoliciesProcedure:
+			adminServiceListProviderLimitsPoliciesHandler.ServeHTTP(w, r)
+		case AdminServiceSetProviderLimitsPolicyProcedure:
+			adminServiceSetProviderLimitsPolicyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -633,4 +687,12 @@ func (UnimplementedAdminServiceHandler) GetLocalModelPolicy(context.Context, *co
 
 func (UnimplementedAdminServiceHandler) SetLocalModelPolicy(context.Context, *connect.Request[v1.SetLocalModelPolicyRequest]) (*connect.Response[v1.SetLocalModelPolicyResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.SetLocalModelPolicy is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) ListProviderLimitsPolicies(context.Context, *connect.Request[v1.ListProviderLimitsPoliciesRequest]) (*connect.Response[v1.ListProviderLimitsPoliciesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.ListProviderLimitsPolicies is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) SetProviderLimitsPolicy(context.Context, *connect.Request[v1.SetProviderLimitsPolicyRequest]) (*connect.Response[v1.SetProviderLimitsPolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.SetProviderLimitsPolicy is not implemented"))
 }

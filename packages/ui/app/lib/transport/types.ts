@@ -28,6 +28,7 @@ import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
 import type { SpeechApi } from '~/lib/speech/types'
 import type { LocalModelsApi } from './localModels'
+import type { LimitsApi } from '~/lib/limits/types'
 
 export interface ModelInfo {
   id: string
@@ -188,4 +189,7 @@ export interface SessionTransport {
   // Local LLM providers of the client's machine (Ollama, LM Studio, llama.cpp, MLX, vLLM, Jan, custom
   // OpenAI-compatible endpoints): detection, models, Ollama pulls. Per device, never synced (./localModels.ts).
   localModels(): LocalModelsApi
+  // Provider balances, monthly spend and rate-limit windows (AgentService.GetProviderLimits; budgets and the admin
+  // visibility policies forwarded to the server by the client, ~/lib/limits). Filtered by the server.
+  limits(): LimitsApi
 }

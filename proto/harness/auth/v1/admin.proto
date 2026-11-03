@@ -4,6 +4,7 @@ package harness.auth.v1;
 
 import "harness/agent/v1/agent.proto";
 import "harness/auth/v1/auth.proto";
+import "harness/auth/v1/limits_policy.proto";
 
 // AdminService is user administration for the settings screens of the apps: accounts (create, reset a
 // password, role, disable, delete), what a user signed in with (sessions and devices), their personal
@@ -63,6 +64,10 @@ service AdminService {
   // read it from their sync feed and enforce it. Default: allowed.
   rpc GetLocalModelPolicy(GetLocalModelPolicyRequest) returns (GetLocalModelPolicyResponse);
   rpc SetLocalModelPolicy(SetLocalModelPolicyRequest) returns (SetLocalModelPolicyResponse);
+  // Who sees each global LLM provider's balance and limits (limits_policy.proto, harness.llm.v1.ProviderLimitsService).
+  // A personal provider is NOT_FOUND: only its owner sees its limits.
+  rpc ListProviderLimitsPolicies(ListProviderLimitsPoliciesRequest) returns (ListProviderLimitsPoliciesResponse);
+  rpc SetProviderLimitsPolicy(SetProviderLimitsPolicyRequest) returns (SetProviderLimitsPolicyResponse);
 }
 
 message AdminUser {

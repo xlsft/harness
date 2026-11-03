@@ -39,6 +39,8 @@ import {
 import { getModePolicy, setModePolicy, type ModeName } from "../services/mode-policy.ts";
 import { getLocalModelPolicy, setLocalModelPolicy } from "../services/local-models.ts";
 import { deleteProvider, listUserProviders } from "../services/providers.ts";
+import { listPolicies as listLimitsPolicies, setPolicy as setLimitsPolicy } from "../limits/policy.ts";
+import { policyFromProto, policyToProto } from "./limits.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
 
@@ -303,6 +305,16 @@ export function registerAdminService(router: ConnectRouter): void {
       const p = await principal(ctx);
       if (!req.policy) throw new ApiError("invalid_request", "policy is required");
       return { policy: { allowed: await setLocalModelPolicy(p, req.policy.allowed) } };
+    }),
+
+    listProviderLimitsPolicies: guard(async (_req, ctx: HandlerContext) => {
+      await admin(ctx);
+      return { policies: (await listLimitsPolicies()).map(policyToProto) };
+    }),
+
+    setProviderLimitsPolicy: guard(async (req, ctx: HandlerContext) => {
+      await admin(ctx);
+      return { policy: policyToProto(await setLimitsPolicy(policyFromProto(req.policy))) };
     }),
   });
 }

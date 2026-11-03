@@ -33,6 +33,8 @@ import { ensureDb, getDb, schema } from "../db/index.ts";
 import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
 import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
+import { clearBalanceCache } from "../limits/balance.ts";
+import { forgetRateLimits } from "../limits/headers.ts";
 import type { PublicUser } from "./devices.ts";
 import {
   BUILTIN_SEARCH_ID,
@@ -408,6 +410,8 @@ export async function deleteProvider(id: string, owner: ProviderOwner = null) {
     if (used) throw new ApiError("invalid_request", `Provider is used by model ${used.id}`, { status: 409 });
   }
   await db.delete(schema.provider).where(eq(schema.provider.id, id));
+  forgetRateLimits(id);
+  clearBalanceCache(id);
   return { deleted: true };
 }
 

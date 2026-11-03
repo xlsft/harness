@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.agent.v1;
 
 import "harness/agent/v1/files.proto";
+import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
@@ -209,6 +210,9 @@ service AgentService {
   // Downloads a model into an Ollama server, streaming its progress; cancelling the stream stops the pull.
   rpc PullOllamaModel(PullOllamaModelRequest) returns (stream PullOllamaModelResponse);
   rpc DeleteOllamaModel(DeleteOllamaModelRequest) returns (DeleteOllamaModelResponse);
+  // Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
+  // may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
+  rpc GetProviderLimits(GetProviderLimitsRequest) returns (GetProviderLimitsResponse);
 }
 
 enum PermissionMode {
