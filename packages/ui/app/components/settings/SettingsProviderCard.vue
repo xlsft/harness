@@ -7,7 +7,12 @@ import type { ModelCandidateView, PresetView, ProtocolView, ProviderPatch, Provi
 import { contextLabel } from '~/lib/providers/types'
 
 const sessions = useSessionStore()
-const { effortOf, setEffort } = useSessionDefaults()
+const { prefs, save: saveDefault, effortOf, setEffort } = useSessionDefaults()
+// The model new sessions start with: the one chosen here, else the server's default.
+const isDefault = (id: string) => (prefs.value.model || sessions.defaultModel || sessions.models[0]?.id) === id
+function toggleDefault(id: string) {
+  saveDefault('model', prefs.value.model === id ? '' : id)
+}
 const catalogOf = (id: string) => sessions.models.find(x => x.id === id)
 // Effort levels from the model catalog (none until the model is in it).
 const levelsOf = (id: string) => {
@@ -296,6 +301,27 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
               class="min-w-0 flex-1 truncate text-white"
               :title="m.id"
             >{{ m.name }}</span>
+            <!-- One model is the default for new sessions (this browser); none set means the server's. -->
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="isDefault(m.id)"
+              :aria-label="`Use ${m.name} by default`"
+              class="flex shrink-0 items-center gap-1.5 text-[11px]"
+              :class="isDefault(m.id) ? 'text-white' : 'text-muted hover:text-white'"
+              @click="toggleDefault(m.id)"
+            >
+              <span
+                class="flex size-3.5 items-center justify-center border"
+                :class="isDefault(m.id) ? 'border-accent bg-accent' : 'border-accented'"
+              ><HIcon
+                v-if="isDefault(m.id)"
+                name="check"
+                :size="10"
+                class="text-white"
+              /></span>
+              default
+            </button>
             <div
               v-if="levelsOf(m.id).length"
               role="radiogroup"

@@ -2,7 +2,6 @@
 // Settings page: sections on the left, the chosen one on the right (?section=). General edits the defaults the
 // new-session screen starts from (the same localStorage key it remembers its last choices in).
 import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
-import type { ProviderList } from '~/lib/providers/types'
 
 const store = useSessionStore()
 const route = useRoute()
@@ -36,33 +35,9 @@ const section = computed<Section>({
 })
 
 // New-session defaults, shared with NewSession.vue.
-const { prefs: defaults, save, effortOf, setEffort } = useSessionDefaults()
+const { prefs: defaults, save } = useSessionDefaults()
 const prefs = computed(() => defaults.value)
 const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => save('worktree', v) })
-
-const serverDefault = computed(() => store.defaultModel || store.models[0]?.id || '')
-const providerNames = ref<Record<string, string>>({})
-function rememberProviders(list: ProviderList) {
-  providerNames.value = Object.fromEntries(list.providers.map(p => [p.id, p.scope === 'personal' ? `${p.name} (yours)` : p.name]))
-}
-onMounted(async () => {
-  try {
-    if (store.transport) rememberProviders(await store.transport.providers().list())
-  } catch {
-    // Older clients do not forward ProviderService: group by id.
-  }
-})
-// Models by provider, for the default-model picker.
-const providers = computed(() => {
-  const map = new Map<string, typeof store.models>()
-  for (const m of store.models) {
-    const p = m.provider ? providerNames.value[m.provider] ?? m.provider : 'Other'
-    if (!map.has(p)) map.set(p, [])
-    map.get(p)!.push(m)
-  }
-  return [...map.entries()].map(([name, models]) => ({ name, models }))
-})
-const defaultModel = computed(() => store.models.find(m => m.id === (prefs.value.model || serverDefault.value)))
 
 const host = computed(() => {
   try {
@@ -146,47 +121,6 @@ async function signOut() {
           </div>
           <div class="set-row">
             <div class="set-label">
-              <span>Default model</span>
-              <span class="set-desc">The model a new session starts with. Server default follows what the admin set.</span>
-            </div>
-            <div class="w-[300px] max-sm:w-full">
-              <HSelect
-                :model-value="prefs.model ?? ''"
-                aria-label="Default model"
-                :options="[{ value: '', label: `Server default${serverDefault ? ` (${serverDefault})` : ''}` }, ...providers.flatMap(p => p.models.map(m => ({ value: m.id, label: m.displayName || m.id, group: p.name })))]"
-                @update:model-value="save('model', $event)"
-              />
-            </div>
-          </div>
-          <div
-            v-if="defaultModel && modelEfforts(defaultModel).length"
-            class="set-row"
-          >
-            <div class="set-label">
-              <span>Effort</span>
-              <span class="set-desc">How long {{ defaultModel.id }} thinks before answering.</span>
-            </div>
-            <div
-              role="radiogroup"
-              aria-label="Effort"
-              class="flex gap-[2px]"
-            >
-              <button
-                v-for="e in modelEfforts(defaultModel)"
-                :key="e"
-                type="button"
-                role="radio"
-                :aria-checked="effortOf(defaultModel) === e"
-                class="border px-3 py-[5px] text-[12.5px]"
-                :class="effortOf(defaultModel) === e ? 'border-line bg-raised text-white' : 'border-transparent text-toned hover:text-white'"
-                @click="setEffort(defaultModel.id, e)"
-              >
-                {{ e }}
-              </button>
-            </div>
-          </div>
-          <div class="set-row">
-            <div class="set-label">
               <span>Worktree</span>
               <span class="set-desc">Run each new session in its own git worktree.</span>
             </div>
@@ -201,7 +135,6 @@ async function signOut() {
           v-else-if="section === 'models' || section === 'classifiers'"
           :key="section"
           :group="section === 'models' ? 'llm' : 'classifier'"
-          @changed="rememberProviders"
         />
 
         <template v-else-if="section === 'users'">
