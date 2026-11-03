@@ -27,8 +27,51 @@ const KEYWORDS = new Set([
 
 const CODE_RE = /(\/\/[^\n]*|#[^\n]*)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)|(\b\d[\d_]*(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)(\s*\()?|([^\w\s'"`]+|\s+)/g
 
+const SHELLS = new Set(['bash', 'sh', 'zsh', 'shell', 'console', 'shellscript'])
+const SHELL_KEYWORDS = new Set([
+  'if', 'then', 'else', 'elif', 'fi', 'for', 'in', 'do', 'done', 'while', 'until', 'case', 'esac', 'function', 'select',
+  'time', 'export', 'local', 'readonly', 'declare', 'unset', 'return', 'exit', 'source', 'eval', 'exec', 'set'
+])
+// Comments, strings, variables and substitutions, operators, flags, numbers, words.
+const SHELL_RE = /((?:^|(?<=\s))#.*)|('[^']*'?|"(?:[^"\\]|\\.)*"?|\$'(?:[^'\\]|\\.)*'?)|(\$\{[^}]*\}?|\$\(+|\$[A-Za-z_]\w*|\$[\d@#?$!*-])|(&&|\|\||\|&?|;;?|&|\d?>>?&?\d?|<<<?|<|\(|\)|`)|((?<=^|\s)--?[\w-]+(?:=\S*)?)|(\b\d+\b)|([^\s'"$&|;<>()`]+)|(\s+|\S)/g
+
+// A shell line: the command word of each pipeline step in white, flags cyan, variables amber, keywords pink.
+export function highlightShell(line: string): Token[] {
+  const out: Token[] = []
+  let command = true
+  SHELL_RE.lastIndex = 0
+  let m: RegExpExecArray | null
+  while ((m = SHELL_RE.exec(line))) {
+    if (m[1]) out.push({ t: m[1], c: PALETTE.muted })
+    else if (m[2]) out.push({ t: m[2], c: PALETTE.string })
+    else if (m[3]) {
+      out.push({ t: m[3], c: PALETTE.number })
+      if (m[3].startsWith('$(')) command = true
+    } else if (m[4]) {
+      out.push({ t: m[4], c: PALETTE.keyword })
+      command = m[4] !== '<' && !/>/.test(m[4])
+    } else if (m[5]) out.push({ t: m[5], c: PALETTE.type })
+    else if (m[6]) out.push({ t: m[6], c: PALETTE.number })
+    else if (m[7]) {
+      const w = m[7]
+      if (SHELL_KEYWORDS.has(w)) {
+        out.push({ t: w, c: PALETTE.keyword })
+        command = !['in', 'export', 'local', 'readonly', 'declare', 'unset'].includes(w)
+      } else if (command && /^[A-Za-z_]\w*=/.test(w)) {
+        // An assignment before the command (FOO=1 cmd).
+        out.push({ t: w, c: PALETTE.text })
+      } else {
+        out.push({ t: w, c: command ? PALETTE.white : PALETTE.text })
+        command = false
+      }
+    } else out.push({ t: m[0], c: PALETTE.text })
+  }
+  return merge(out)
+}
+
 // Highlights one line of code. `#` comments only for shell-like languages.
 export function highlightLine(line: string, lang = 'ts'): Token[] {
+  if (SHELLS.has(lang)) return highlightShell(line)
   const shell = ['bash', 'sh', 'shell', 'yaml', 'yml'].includes(lang)
   const out: Token[] = []
   CODE_RE.lastIndex = 0

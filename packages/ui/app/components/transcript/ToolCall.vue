@@ -32,6 +32,7 @@ const kind = computed(() => {
 // label, tool.title); until the label arrives, the model's own description, else the command.
 const isBash = computed(() => t.value.name === 'Bash')
 const command = computed(() => String(t.value.input.command ?? ''))
+const commandLines = computed(() => highlightCode(command.value, 'bash'))
 const bashLabel = computed(() => {
   const title = t.value.title
   if (title) return { verb: t.value.status === 'running' ? 'Run' : t.value.status === 'error' ? 'Failed to run' : 'Ran', text: title }
@@ -226,7 +227,14 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
     <pre
       v-else-if="isBash && open"
       class="m-0 max-h-80 overflow-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap"
-    ><span class="text-strong"><span class="text-muted select-none">$ </span>{{ command }}</span><template v-if="outputLines.some(l => l.length)">{{ '\n' }}<span :class="tool.status === 'error' ? 'text-bad/80' : 'text-muted'">{{ outputLines.map(l => l.map(tk => tk.t).join('')).join('\n') }}</span></template><span
+    ><span class="text-muted select-none">$ </span><template
+v-for="(line, i) in commandLines"
+:key="'c' + i"
+><span
+v-for="(tk, j) in line"
+:key="j"
+:style="{ color: tk.c }"
+>{{ tk.t }}</span><template v-if="i < commandLines.length - 1">{{ '\n' }}</template></template><template v-if="outputLines.some(l => l.length)">{{ '\n' }}<span :class="tool.status === 'error' ? 'text-bad/80' : 'text-muted'">{{ outputLines.map(l => l.map(tk => tk.t).join('')).join('\n') }}</span></template><span
       v-if="tool.status === 'running'"
       class="h-caret ml-0.5 inline-block h-[13px] w-[7px] bg-graphite-200 align-[-2px]"
     /></pre>
