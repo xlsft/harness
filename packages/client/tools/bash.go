@@ -144,15 +144,20 @@ type ExecOptions struct {
 	AutoBackground bool
 	Description    string
 	ToolUseID      string
+	// OnOutput, when set, receives every chunk the command writes (stream 0 is stdout, 1 stderr) as it is
+	// captured, until the command moves to the background. It is called with the capture lock held: it must
+	// not block.
+	OnOutput func(stream int, p []byte)
 }
 
 // switchWriter captures stdout/stderr in memory until the command is moved
 // to the background, then redirects both into the task output file.
 type switchWriter struct {
-	mu   sync.Mutex
-	bufs [2]bytes.Buffer
-	cut  bool
-	file *os.File
+	mu       sync.Mutex
+	bufs     [2]bytes.Buffer
+	cut      bool
+	file     *os.File
+	onOutput func(stream int, p []byte)
 }
 
 type swStream struct {
@@ -165,6 +170,9 @@ func (s swStream) Write(p []byte) (int, error) {
 	defer s.w.mu.Unlock()
 	if s.w.file != nil {
 		return s.w.file.Write(p)
+	}
+	if s.w.onOutput != nil {
+		s.w.onOutput(s.i, p)
 	}
 	b := &s.w.bufs[s.i]
 	if room := bashMaxCaptureBytes - b.Len(); room < len(p) {
@@ -266,7 +274,7 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	}()
 
 	cmd := s.command(command, cwdFile, cwd)
-	sw := &switchWriter{}
+	sw := &switchWriter{onOutput: o.OnOutput}
 	cmd.Stdout, cmd.Stderr = swStream{sw, 0}, swStream{sw, 1}
 	if err := cmd.Start(); err != nil {
 		return ExecResult{StartCwd: cwd}, err

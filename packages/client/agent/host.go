@@ -41,7 +41,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell {
 			if id == "environment_changed" {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}

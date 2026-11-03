@@ -47,6 +47,9 @@ const (
 	// SubtypeRewind marks a conversation rewind: the entry branches from the
 	// message before the rewound turn, so it becomes the new leaf.
 	SubtypeRewind = "rewind"
+	// SubtypeUserShell records a command the user ran in the composer's shell mode (userShell holds it); it is
+	// shown in replays. What the model saw is the user_shell_command reminder, a meta user entry.
+	SubtypeUserShell = "user_shell_command"
 )
 
 // unchained entry types carry no uuid/parentUuid.
@@ -142,6 +145,9 @@ type Entry struct {
 	// mode decided (or deferred to the user on) that tool call.
 	AutoDecision *AutoDecision `json:"autoDecision,omitempty"`
 
+	// UserShell is set on SubtypeUserShell system entries.
+	UserShell *UserShell `json:"userShell,omitempty"`
+
 	// ai-title / custom-title fields
 	AITitle     string `json:"aiTitle,omitempty"`
 	CustomTitle string `json:"customTitle,omitempty"`
@@ -206,6 +212,21 @@ type Worktree struct {
 	BaseRef string `json:"baseRef,omitempty"`
 	// RepositoryPath is the main checkout of the repository.
 	RepositoryPath string `json:"repositoryPath"`
+}
+
+// UserShell is a finished user shell command (composer shell mode). Stdout and stderr are bounded (head and
+// tail kept); Truncated says so.
+type UserShell struct {
+	ID         string `json:"id"`
+	Command    string `json:"command"`
+	Cwd        string `json:"cwd"`
+	ExitCode   int    `json:"exitCode"`
+	Reason     string `json:"reason"` // exited | stopped | time_limit | session_closed | failed
+	DurationMs int64  `json:"durationMs"`
+	Stdout     string `json:"stdout,omitempty"`
+	Stderr     string `json:"stderr,omitempty"`
+	Truncated  bool   `json:"truncated,omitempty"`
+	Error      string `json:"error,omitempty"`
 }
 
 // AutoDecision records an auto-mode verdict on a tool call.

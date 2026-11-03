@@ -150,6 +150,12 @@ const (
 	// AgentServiceAddSessionDirectoryProcedure is the fully-qualified name of the AgentService's
 	// AddSessionDirectory RPC.
 	AgentServiceAddSessionDirectoryProcedure = "/harness.agent.v1.AgentService/AddSessionDirectory"
+	// AgentServiceRunShellCommandProcedure is the fully-qualified name of the AgentService's
+	// RunShellCommand RPC.
+	AgentServiceRunShellCommandProcedure = "/harness.agent.v1.AgentService/RunShellCommand"
+	// AgentServiceStopShellCommandProcedure is the fully-qualified name of the AgentService's
+	// StopShellCommand RPC.
+	AgentServiceStopShellCommandProcedure = "/harness.agent.v1.AgentService/StopShellCommand"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -261,6 +267,14 @@ type AgentServiceClient interface {
 	// Adds a working directory to an open session's environment (stored) and applies it to the open sessions
 	// in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
 	AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error)
+	// --- User shell commands (shell.proto) ---
+	// Runs a command from the composer's shell mode in the session's shell, without the model and without a
+	// permission prompt, at once (also while a turn runs). Returns when it started; UserShellStarted / Output /
+	// Finished events follow, and the result reaches the model on its next request. FAILED_PRECONDITION for
+	// remote sessions.
+	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
+	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
+	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -526,6 +540,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("AddSessionDirectory")),
 			connect.WithClientOptions(opts...),
 		),
+		runShellCommand: connect.NewClient[v1.RunShellCommandRequest, v1.RunShellCommandResponse](
+			httpClient,
+			baseURL+AgentServiceRunShellCommandProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RunShellCommand")),
+			connect.WithClientOptions(opts...),
+		),
+		stopShellCommand: connect.NewClient[v1.StopShellCommandRequest, v1.StopShellCommandResponse](
+			httpClient,
+			baseURL+AgentServiceStopShellCommandProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -573,6 +599,8 @@ type agentServiceClient struct {
 	getFolderInfo         *connect.Client[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse]
 	setSessionFolder      *connect.Client[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse]
 	addSessionDirectory   *connect.Client[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse]
+	runShellCommand       *connect.Client[v1.RunShellCommandRequest, v1.RunShellCommandResponse]
+	stopShellCommand      *connect.Client[v1.StopShellCommandRequest, v1.StopShellCommandResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -785,6 +813,16 @@ func (c *agentServiceClient) AddSessionDirectory(ctx context.Context, req *conne
 	return c.addSessionDirectory.CallUnary(ctx, req)
 }
 
+// RunShellCommand calls harness.agent.v1.AgentService.RunShellCommand.
+func (c *agentServiceClient) RunShellCommand(ctx context.Context, req *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error) {
+	return c.runShellCommand.CallUnary(ctx, req)
+}
+
+// StopShellCommand calls harness.agent.v1.AgentService.StopShellCommand.
+func (c *agentServiceClient) StopShellCommand(ctx context.Context, req *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error) {
+	return c.stopShellCommand.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -894,6 +932,14 @@ type AgentServiceHandler interface {
 	// Adds a working directory to an open session's environment (stored) and applies it to the open sessions
 	// in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
 	AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error)
+	// --- User shell commands (shell.proto) ---
+	// Runs a command from the composer's shell mode in the session's shell, without the model and without a
+	// permission prompt, at once (also while a turn runs). Returns when it started; UserShellStarted / Output /
+	// Finished events follow, and the result reaches the model on its next request. FAILED_PRECONDITION for
+	// remote sessions.
+	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
+	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
+	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1155,6 +1201,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("AddSessionDirectory")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceRunShellCommandHandler := connect.NewUnaryHandler(
+		AgentServiceRunShellCommandProcedure,
+		svc.RunShellCommand,
+		connect.WithSchema(agentServiceMethods.ByName("RunShellCommand")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceStopShellCommandHandler := connect.NewUnaryHandler(
+		AgentServiceStopShellCommandProcedure,
+		svc.StopShellCommand,
+		connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1241,6 +1299,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetSessionFolderHandler.ServeHTTP(w, r)
 		case AgentServiceAddSessionDirectoryProcedure:
 			agentServiceAddSessionDirectoryHandler.ServeHTTP(w, r)
+		case AgentServiceRunShellCommandProcedure:
+			agentServiceRunShellCommandHandler.ServeHTTP(w, r)
+		case AgentServiceStopShellCommandProcedure:
+			agentServiceStopShellCommandHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1416,4 +1478,12 @@ func (UnimplementedAgentServiceHandler) SetSessionFolder(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AddSessionDirectory is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunShellCommand is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopShellCommand is not implemented"))
 }

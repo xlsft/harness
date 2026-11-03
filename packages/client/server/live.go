@@ -70,6 +70,8 @@ type liveSession struct {
 	// compactor has handled the session, until the next turn starts (idle.go).
 	compacting    atomic.Bool
 	idleCompacted bool
+	// shells are the user shell commands of the session (usershell.go).
+	shells userShells
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.

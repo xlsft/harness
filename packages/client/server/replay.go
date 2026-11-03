@@ -190,6 +190,8 @@ func (r *replayer) entry(e session.Entry) {
 			if r.cur != nil {
 				r.cur.errMsg = e.Content
 			}
+		case session.SubtypeUserShell:
+			r.userShell(e, at)
 		}
 	}
 }

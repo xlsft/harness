@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// User shell commands: the composer's shell mode ("$ make test"). The client runs the command itself, without
+// the model and without a permission prompt (it is the user's own command), and the model sees the command and
+// its output as context on its next request.
+//
+// How it runs (packages/client/server/usershell.go):
+// - Through the session's shell, the machinery of the Bash tool: the shell's current directory, the session
+//   environment's variables, the login-shell snapshot (aliases, functions, PATH). A `cd` moves the session's
+//   shell directory for later commands and the agent's Bash calls, as a Bash `cd` does; like Bash, variables
+//   exported by a command do not outlive it (every command runs in a fresh shell process).
+// - At once, concurrently with a running turn (it neither waits for the turn nor interrupts it), and
+//   concurrently with other user shell commands.
+// - Bash's limits apply: it is killed after the Bash maximum timeout (BASH_MAX_TIMEOUT_MS, 10 minutes by
+//   default) and its output is captured up to Bash's capture limit. StopShellCommand kills it earlier.
+//
+// Events (SessionEvent): UserShellStarted, then throttled UserShellOutput chunks while it runs, then
+// UserShellFinished with the final (bounded) output. Started and Finished are durable and part of transcript
+// replays (output chunks are not replayed; Finished carries the output).
+//
+// The model: when the command ends, its command line, directory, exit code and output (head and tail kept when
+// long) are queued as the user_shell_command reminder. It rides on the next model request: the next request of
+// the running turn, or the first request of the next turn. A user shell command never starts a turn.
+//
+// Sessions of other machines (SessionInfo.remote) and sessions that are not open refuse it: FAILED_PRECONDITION
+// and NOT_FOUND.
+
+message RunShellCommandRequest {
+  string session_id = 1;
+  // The command line, run with the session's shell (`sh -c` semantics).
+  string command = 2;
+  // Client-generated id used for deduplication; it becomes the command id. Empty: the client picks one.
+  string uuid = 3;
+}
+
+message RunShellCommandResponse {
+  string command_id = 1;
+}
+
+message StopShellCommandRequest {
+  string session_id = 1;
+  string command_id = 2;
+}
+
+message StopShellCommandResponse {}
+
+message UserShellStarted {
+  string command_id = 1;
+  string command = 2;
+  // The directory it runs in (the session shell's current directory).
+  string cwd = 3;
+}
+
+// A chunk of output of a running user shell command, in arrival order. Chunks are throttled and stop after a
+// streaming limit; UserShellFinished.output is authoritative.
+message UserShellOutput {
+  string command_id = 1;
+  string text = 2;
+}
+
+message UserShellFinished {
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    REASON_EXITED = 1;
+    // StopShellCommand.
+    REASON_STOPPED = 2;
+    REASON_TIME_LIMIT = 3;
+    REASON_SESSION_CLOSED = 4;
+    // The shell could not be started (see error).
+    REASON_FAILED = 5;
+  }
+  string command_id = 1;
+  Reason reason = 2;
+  // -1 when it did not exit by itself (stopped, timed out, failed).
+  int32 exit_code = 3;
+  int64 duration_ms = 4;
+  // Standard output and standard error, head and tail kept when long (see truncated).
+  string stdout = 5;
+  string stderr = 6;
+  bool truncated = 7;
+  string error = 8;
+  // The directory it ran in (repeated from UserShellStarted for replays and late subscribers).
+  string cwd = 9;
+  string command = 10;
+}

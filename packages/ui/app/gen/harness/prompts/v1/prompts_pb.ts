@@ -113,6 +113,8 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
    *   environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
+   *   user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
+   *                         the composer's shell mode (RunShellCommand); rides on the next model request
    *
    * @generated from field: map<string, string> reminders = 5;
    */
