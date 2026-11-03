@@ -26,6 +26,7 @@ import type { SideChatsApi } from '~/lib/sidechat/types'
 import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
+import type { LocalModelsApi } from './localModels'
 
 export interface ModelInfo {
   id: string
@@ -39,6 +40,8 @@ export interface ModelInfo {
   // Effort levels the model supports, lowest first; empty when it has none.
   efforts?: EffortName[]
   thinking?: boolean
+  // A model of a local provider on the client's machine (id "local:<provider>/<name>"): free, per device.
+  local?: boolean
 }
 
 // What a new session starts with (the new-session screen's chips).
@@ -176,4 +179,8 @@ export interface SessionTransport {
   // The files pane: a session's working directories, listings with git status, file contents within limits
   // (AgentService ListFileRoots / ListFiles / ReadFile / GetGitStatus, ~/lib/files).
   files(): FilesApi
+
+  // Local LLM providers of the client's machine (Ollama, LM Studio, llama.cpp, MLX, vLLM, Jan, custom
+  // OpenAI-compatible endpoints): detection, models, Ollama pulls. Per device, never synced (./localModels.ts).
+  localModels(): LocalModelsApi
 }

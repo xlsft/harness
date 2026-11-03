@@ -40,7 +40,8 @@ import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
-import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import type { QuestionReply } from '~/lib/session/types'
 import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
@@ -278,7 +279,13 @@ export class MockTransport implements SessionTransport {
   }
 
   async listModels() {
-    return MODELS
+    return [...MODELS, ...this.localModels().pickerModels()]
+  }
+
+  // Local providers of this (mock) machine; their models join listModels() marked local.
+  private localModelsApi?: MockLocalModelsApi
+  localModels() {
+    return (this.localModelsApi ??= new MockLocalModelsApi({ tick: this.tick * 4 }))
   }
 
   private providersApi = new MockProvidersApi()
@@ -798,6 +805,206 @@ export class MockTransport implements SessionTransport {
     const stop = this.shells.get(commandId)
     if (!stop) throw new Error(`shell command ${commandId} is not running`)
     stop()
+  }
+}
+
+// ---- Local LLM providers (./localModels.ts) ----
+//
+// The machine of the mock: Ollama runs with two models, LM Studio and the other default endpoints are not
+// running, and one custom OpenAI-compatible endpoint (a vLLM box on the LAN, with a key) is reachable. A pull
+// streams progress every few ticks and adds the model; a model name containing "missing" fails like Ollama does.
+
+export interface MockLocalModelsOptions {
+  // Delay between pull progress messages (ms); 0 runs pulls without waiting.
+  tick?: number
+  // The server's policy disallows local models.
+  disabledByPolicy?: boolean
+}
+
+const mockLocalModel = (providerId: string, name: string, o: Partial<LocalModel> = {}): LocalModel => ({
+  id: `local:${providerId}/${name}`,
+  name,
+  displayName: name,
+  contextWindow: 32_768,
+  maxContextWindow: 0,
+  sizeBytes: 0,
+  family: '',
+  parameterSize: '',
+  quantization: '',
+  modifiedAt: '',
+  ...o
+})
+
+const notRunning = (id: string, kind: LocalProviderKindName, name: string, baseUrl: string): LocalProvider => ({
+  id, kind, name, baseUrl, enabled: true, builtin: true, reachable: false, version: '',
+  error: 'not running (connection refused)', hasApiKey: false, models: [], checkedAt: new Date().toISOString(), contextLength: 0
+})
+
+export class MockLocalModelsApi implements LocalModelsApi {
+  private tick: number
+  private disabledByPolicy: boolean
+  private providers: LocalProvider[]
+  private seq = 0
+
+  constructor(opts: MockLocalModelsOptions = {}) {
+    this.tick = opts.tick ?? 120
+    this.disabledByPolicy = opts.disabledByPolicy ?? false
+    const checkedAt = new Date().toISOString()
+    this.providers = [
+      {
+        id: 'ollama', kind: 'ollama', name: 'Ollama', baseUrl: 'http://127.0.0.1:11434', enabled: true, builtin: true,
+        reachable: true, version: '0.12.3', error: '', hasApiKey: false, checkedAt, contextLength: 0,
+        models: [
+          mockLocalModel('ollama', 'llama3.2:3b', { maxContextWindow: 131_072, tools: true, vision: false, thinking: false, sizeBytes: 2_019_393_189, family: 'llama', parameterSize: '3.2B', quantization: 'Q4_K_M', modifiedAt: '2026-10-12T09:30:00Z' }),
+          mockLocalModel('ollama', 'qwen3:8b', { maxContextWindow: 40_960, tools: true, vision: false, thinking: true, sizeBytes: 5_225_387_923, family: 'qwen3', parameterSize: '8.2B', quantization: 'Q4_K_M', modifiedAt: '2026-10-28T17:02:00Z' })
+        ]
+      },
+      notRunning('lmstudio', 'lmstudio', 'LM Studio', 'http://127.0.0.1:1234/v1'),
+      notRunning('llamacpp', 'llamacpp', 'llama.cpp', 'http://127.0.0.1:8080/v1'),
+      notRunning('mlx', 'mlx', 'MLX', 'http://127.0.0.1:8080/v1'),
+      notRunning('vllm', 'vllm', 'vLLM', 'http://127.0.0.1:8000/v1'),
+      notRunning('jan', 'jan', 'Jan', 'http://127.0.0.1:1337/v1'),
+      {
+        id: 'custom-a1b2c3', kind: 'custom', name: 'Workstation', baseUrl: 'http://192.168.1.20:8000/v1', enabled: true, builtin: false,
+        reachable: true, version: '', error: '', hasApiKey: true, checkedAt, contextLength: 0,
+        models: [mockLocalModel('custom-a1b2c3', 'Qwen/Qwen3-Coder-30B-A3B-Instruct', { contextWindow: 65_536, maxContextWindow: 65_536 })]
+      }
+    ]
+  }
+
+  private state(): LocalProvidersState {
+    const providers = structuredClone(this.providers)
+    if (this.disabledByPolicy) for (const p of providers) p.models = []
+    return { providers, disabledByPolicy: this.disabledByPolicy }
+  }
+
+  private find(id: string) {
+    const p = this.providers.find(p => p.id === id)
+    if (!p) throw new Error(`no local provider "${id}"`)
+    return p
+  }
+
+  private ollama(id = 'ollama') {
+    if (this.disabledByPolicy) throw new Error('local models are disabled by the server\'s policy')
+    const p = this.find(id)
+    if (p.kind !== 'ollama') throw new Error(`${p.name} is not an Ollama server`)
+    if (!p.reachable) throw new Error(`${p.name} is not reachable`)
+    return p
+  }
+
+  // The model picker's local entries (listModels).
+  pickerModels(): ModelInfo[] {
+    if (this.disabledByPolicy) return []
+    return this.providers.filter(p => p.enabled && p.reachable).flatMap(p => p.models.map(m => ({
+      id: m.id, displayName: m.displayName, provider: p.name, contextWindow: m.contextWindow, price: '', local: true, thinking: m.thinking
+    })))
+  }
+
+  async list() {
+    return this.state()
+  }
+
+  async add(input: AddLocalProviderInput) {
+    let url: URL
+    try {
+      url = new URL(input.baseUrl)
+    } catch {
+      throw new Error('base_url must be an http(s) URL')
+    }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('base_url must be an http(s) URL')
+    const kind = input.kind ?? 'custom'
+    const id = `${kind}-mock${++this.seq}`
+    // Only the LAN box answers in the mock; anything else is not running.
+    const reachable = url.hostname.startsWith('192.168.')
+    const p: LocalProvider = {
+      id, kind, name: input.name || 'OpenAI-compatible', baseUrl: input.baseUrl.replace(/\/+$/, ''), enabled: true, builtin: false,
+      reachable, version: '', error: reachable ? '' : 'not running (no answer in time)', hasApiKey: !!input.apiKey,
+      models: reachable ? [mockLocalModel(id, 'default')] : [], checkedAt: new Date().toISOString(), contextLength: input.contextLength ?? 0
+    }
+    this.providers.push(p)
+    return structuredClone(p)
+  }
+
+  async update(id: string, patch: LocalProviderPatch) {
+    const p = this.find(id)
+    if (p.builtin && (patch.name !== undefined || patch.baseUrl !== undefined || patch.apiKey !== undefined)) {
+      throw new Error('built-in providers can only be enabled, disabled or given a context length')
+    }
+    if (patch.name) p.name = patch.name
+    if (patch.baseUrl) p.baseUrl = patch.baseUrl
+    if (patch.apiKey !== undefined) p.hasApiKey = patch.apiKey !== ''
+    if (patch.enabled !== undefined) p.enabled = patch.enabled
+    if (patch.contextLength !== undefined) {
+      p.contextLength = patch.contextLength
+      if (p.kind === 'ollama') {
+        for (const m of p.models) m.contextWindow = Math.min(patch.contextLength || 32_768, m.maxContextWindow || Infinity)
+      }
+    }
+    return structuredClone(p)
+  }
+
+  async remove(id: string) {
+    const p = this.find(id)
+    if (p.builtin) throw new Error('built-in providers cannot be removed; disable them instead')
+    this.providers = this.providers.filter(x => x.id !== id)
+  }
+
+  async refresh(id?: string) {
+    const now = new Date().toISOString()
+    for (const p of this.providers) if (p.enabled && (!id || p.id === id)) p.checkedAt = now
+    return this.state()
+  }
+
+  pullOllamaModel(model: string, handlers: PullHandlers, providerId = 'ollama'): PullHandle {
+    let cancel = () => {}
+    const done = new Promise<void>((resolve, reject) => {
+      let p: LocalProvider
+      try {
+        p = this.ollama(providerId)
+      } catch (e) {
+        reject(e)
+        return
+      }
+      const total = 4_920_000_000
+      const steps: PullProgress[] = [
+        { status: 'pulling manifest', digest: '', total: 0, completed: 0, done: false },
+        ...[0, 0.18, 0.41, 0.67, 0.9, 1].map(f => ({ status: 'downloading', digest: 'sha256:6e4c38e1172f', total, completed: Math.round(total * f), done: false })),
+        { status: 'verifying sha256 digest', digest: '', total: 0, completed: 0, done: false },
+        { status: 'writing manifest', digest: '', total: 0, completed: 0, done: false },
+        { status: 'success', digest: '', total: 0, completed: 0, done: true }
+      ]
+      let i = 0
+      let timer: ReturnType<typeof setTimeout> | undefined
+      cancel = () => {
+        clearTimeout(timer)
+        reject(new Error('pull cancelled'))
+      }
+      const step = () => {
+        if (model.includes('missing') && i === 1) {
+          reject(new Error('pull model manifest: file does not exist'))
+          return
+        }
+        const s = steps[i++]!
+        handlers.onProgress?.(s)
+        if (s.done) {
+          if (!p.models.some(m => m.name === model)) {
+            p.models.push(mockLocalModel(p.id, model, { tools: true, sizeBytes: total, modifiedAt: new Date().toISOString() }))
+            p.models.sort((a, b) => a.name.localeCompare(b.name))
+          }
+          resolve()
+          return
+        }
+        timer = setTimeout(step, this.tick)
+      }
+      step()
+    })
+    return { done, cancel: () => cancel() }
+  }
+
+  async deleteOllamaModel(model: string, providerId = 'ollama') {
+    const p = this.ollama(providerId)
+    if (!p.models.some(m => m.name === model)) throw new Error(`model '${model}' not found`)
+    p.models = p.models.filter(m => m.name !== model)
   }
 }
 

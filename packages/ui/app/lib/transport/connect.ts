@@ -3,7 +3,7 @@
 // serves it. Every call carries `Authorization: Bearer <token>` when a token is given (see token.ts).
 
 import { create } from '@bufbuild/protobuf'
-import { createClient, type Client, type Interceptor } from '@connectrpc/connect'
+import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
   AgentService,
@@ -26,6 +26,7 @@ import { ConnectTerminalsApi } from '~/lib/terminal/connect'
 import { ConnectSideChatsApi } from '~/lib/sidechat/connect'
 import { ConnectEnvironmentApi } from '~/lib/environment/connect'
 import { ConnectFilesApi } from '~/lib/files/connect'
+import { ConnectLocalModelsApi } from './localModels'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -38,6 +39,7 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 export class ConnectTransport implements SessionTransport {
   readonly kind = 'connect' as const
   private client: Client<typeof AgentService>
+  private transport: Transport
 
   private providersApi: ConnectProvidersApi
   private usersApi: ConnectUsersApi
@@ -48,6 +50,7 @@ export class ConnectTransport implements SessionTransport {
   constructor(baseUrl: string, token = '') {
     const interceptors: Interceptor[] = token ? [bearer(token)] : []
     const transport = createConnectTransport({ baseUrl, interceptors })
+    this.transport = transport
     this.client = createClient(AgentService, transport)
     this.providersApi = new ConnectProvidersApi(transport)
     this.usersApi = new ConnectUsersApi(transport)
@@ -258,13 +261,19 @@ export class ConnectTransport implements SessionTransport {
       contextWindow: Number(m.contextWindow),
       price: m.inputPrice !== undefined && m.outputPrice !== undefined ? `${fmt(m.inputPrice)} / ${fmt(m.outputPrice)}` : '',
       efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e),
-      thinking: m.thinking
+      thinking: m.thinking,
+      ...(m.local ? { local: true, price: '' } : {})
     }))
   }
 
   private filesApi!: ConnectFilesApi
   files() {
     return this.filesApi
+  }
+
+  private localModelsApi?: ConnectLocalModelsApi
+  localModels() {
+    return (this.localModelsApi ??= new ConnectLocalModelsApi(this.transport))
   }
 }
 
