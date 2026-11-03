@@ -16,12 +16,11 @@ useShortcuts()
     storage-key="harness-layout"
   >
     <AppSidebar />
-    <!-- Laid out like the session page (header straight in the column), so the top bar lines up with it. -->
-    <div class="flex h-svh min-w-0 flex-1 flex-col">
-      <PageHeader />
-      <div class="min-h-0 flex-1">
-        <ArtifactsPage v-model:view="view" />
-      </div>
+    <!-- The top bar floats over the page (it lines up with the session header) and the page scrolls under it
+         to the window's top edge; the page starts below it. -->
+    <div class="relative h-svh min-w-0 flex-1">
+      <PageHeader class="absolute inset-x-0 top-0 z-10" />
+      <ArtifactsPage v-model:view="view" />
     </div>
   </UDashboardGroup>
 </template>

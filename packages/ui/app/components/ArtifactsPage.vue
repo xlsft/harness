@@ -21,7 +21,7 @@ function type(a: ArtifactEntry) {
     aria-label="Artifacts"
     class="h-full overflow-y-auto bg-default"
   >
-    <div class="mx-auto flex max-w-[1080px] flex-col gap-[22px] px-10 pt-10 pb-10 max-sm:px-4 max-sm:pt-6">
+    <div class="mx-auto flex max-w-[1080px] flex-col gap-[22px] px-10 pt-[52px] pb-10 max-sm:px-4">
       <h1 class="m-0 font-display text-[26px] font-bold text-white">
         Artifacts
       </h1>
