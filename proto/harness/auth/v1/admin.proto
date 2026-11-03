@@ -1,0 +1,278 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+import "harness/auth/v1/auth.proto";
+
+// AdminService is user administration for the settings screens of the apps: accounts (create, reset a
+// password, role, disable, delete), what a user signed in with (sessions and devices), their personal
+// LLM providers, and sign-in against an LDAP / Active Directory directory.
+//
+// Every method needs the admin role; anyone else gets PERMISSION_DENIED. Rules the server enforces:
+//   - the last active admin can be neither demoted, disabled nor deleted;
+//   - admins cannot disable or delete themselves;
+//   - users who sign in through LDAP have no local password (their password lives in the directory).
+// Passwords are write-only. A generated password is returned once, in the response that set it.
+// The LDAP bind password is write-only too: stored encrypted with the server key, never returned.
+//
+// Frontends reach it through the local client, which forwards these calls to the server with the user's
+// credentials (packages/client/server/coreproxy.go). Requires `Authorization: Bearer <access token>`.
+service AdminService {
+  // Users, oldest first, optionally filtered by a case-insensitive substring of name, username or email.
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  // Sets or generates a new local password. Refused (FAILED_PRECONDITION) for LDAP users.
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc SetRole(SetRoleRequest) returns (SetRoleResponse);
+  // Disabling signs the user out everywhere (web sessions and devices); enabling lets them sign in again.
+  rpc SetDisabled(SetDisabledRequest) returns (SetDisabledResponse);
+  // Deletes the user with everything they own (sessions, devices, personal providers, ...).
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+
+  // The user's connected devices and how many web sessions they have.
+  rpc ListUserSessions(ListUserSessionsRequest) returns (ListUserSessionsResponse);
+  // Revokes one device, or (device_id empty) every device and web session of the user.
+  rpc RevokeUserSessions(RevokeUserSessionsRequest) returns (RevokeUserSessionsResponse);
+
+  // The user's personal providers: whether a key is set, never the key or its hint.
+  rpc ListUserProviders(ListUserProvidersRequest) returns (ListUserProvidersResponse);
+  // Deletes one of them with its models.
+  rpc DeleteUserProvider(DeleteUserProviderRequest) returns (DeleteUserProviderResponse);
+
+  rpc GetLdapConfig(GetLdapConfigRequest) returns (GetLdapConfigResponse);
+  rpc SetLdapConfig(SetLdapConfigRequest) returns (SetLdapConfigResponse);
+  // Connects to the directory and binds with the search account. Tests the given config (an empty
+  // bind_password keeps the stored one), so it can be checked before it is saved.
+  rpc TestLdapConnection(TestLdapConnectionRequest) returns (TestLdapConnectionResponse);
+  // Looks a user up the way sign-in would (without their password) and reports the mapped account.
+  rpc TestLdapUser(TestLdapUserRequest) returns (TestLdapUserResponse);
+}
+
+enum UserSource {
+  USER_SOURCE_UNSPECIFIED = 0;
+  // A local account with a password.
+  USER_SOURCE_LOCAL = 1;
+  // Signs in through LDAP; no local password.
+  USER_SOURCE_LDAP = 2;
+}
+
+message AdminUser {
+  string id = 1;
+  string name = 2;
+  string username = 3;
+  string email = 4;
+  User.Role role = 5;
+  UserSource source = 6;
+  bool disabled = 7;
+  string disabled_reason = 8;
+  // RFC 3339, UTC. Empty when unknown / never.
+  string created_at = 9;
+  string last_sign_in_at = 10;
+  // The latest activity of a session or device.
+  string last_seen_at = 11;
+  // The calling admin.
+  bool is_self = 12;
+}
+
+message ListUsersRequest {
+  string query = 1;
+  // 0: no limit.
+  int32 limit = 2;
+}
+
+message ListUsersResponse {
+  repeated AdminUser users = 1;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  // Optional: 3-30 characters of [a-zA-Z0-9_.], stored lowercased.
+  string username = 2;
+  string email = 3;
+  // At least 8 characters. Ignored when generate_password or ldap is set.
+  string password = 4;
+  bool generate_password = 5;
+  User.Role role = 6;
+  // Pre-provisions a directory user (no local password): they sign in through LDAP with `username`.
+  bool ldap = 7;
+}
+
+message CreateUserResponse {
+  AdminUser user = 1;
+  // Set when the password was generated; shown once.
+  string generated_password = 2;
+}
+
+message ResetPasswordRequest {
+  string user_id = 1;
+  // Ignored when generate is set.
+  string password = 2;
+  bool generate = 3;
+  // Also sign the user out everywhere.
+  bool revoke_sessions = 4;
+}
+
+message ResetPasswordResponse {
+  string generated_password = 1;
+}
+
+message SetRoleRequest {
+  string user_id = 1;
+  User.Role role = 2;
+}
+
+message SetRoleResponse {
+  AdminUser user = 1;
+}
+
+message SetDisabledRequest {
+  string user_id = 1;
+  bool disabled = 2;
+  string reason = 3;
+}
+
+message SetDisabledResponse {
+  AdminUser user = 1;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
+message DeleteUserResponse {}
+
+message ListUserSessionsRequest {
+  string user_id = 1;
+}
+
+message ListUserSessionsResponse {
+  repeated Device devices = 1;
+  int32 web_sessions = 2;
+}
+
+message RevokeUserSessionsRequest {
+  string user_id = 1;
+  // Empty: everything.
+  string device_id = 2;
+}
+
+message RevokeUserSessionsResponse {
+  int32 revoked_devices = 1;
+  int32 revoked_web_sessions = 2;
+}
+
+message UserProvider {
+  string id = 1;
+  string type = 2;
+  string display_name = 3;
+  string base_url = 4;
+  bool api_key_set = 5;
+  bool enabled = 6;
+  int32 model_count = 7;
+}
+
+message ListUserProvidersRequest {
+  string user_id = 1;
+}
+
+message ListUserProvidersResponse {
+  repeated UserProvider providers = 1;
+}
+
+message DeleteUserProviderRequest {
+  string user_id = 1;
+  string provider_id = 2;
+}
+
+message DeleteUserProviderResponse {}
+
+// Who may still sign in with a local password while LDAP is enabled.
+enum LdapLocalLogin {
+  LDAP_LOCAL_LOGIN_UNSPECIFIED = 0;
+  // LDAP first; when the directory refuses (or is unreachable), local accounts.
+  LDAP_LOCAL_LOGIN_FALLBACK = 1;
+  // Only the logins in break_glass_logins (break-glass admins); everyone else signs in through LDAP.
+  LDAP_LOCAL_LOGIN_BREAK_GLASS = 2;
+}
+
+message LdapConfig {
+  bool enabled = 1;
+  // ldap:// or ldaps:// URLs, tried in order.
+  repeated string urls = 2;
+  // Upgrade ldap:// connections with StartTLS.
+  bool start_tls = 3;
+  // PEM CA certificate(s) to verify the server with (default: the system roots).
+  string ca_cert = 4;
+  // Do not verify the server certificate. Insecure: for testing only.
+  bool skip_verify = 5;
+  // Search account; empty: anonymous search.
+  string bind_dn = 6;
+  // Write-only: set to change; empty keeps the stored one (clear_bind_password removes it).
+  string bind_password = 7;
+  bool bind_password_set = 8;
+  bool clear_bind_password = 9;
+  string user_base_dn = 10;
+  // {{username}} is replaced by the escaped login, e.g. (|(uid={{username}})(mail={{username}})).
+  string user_filter = 11;
+  // Attribute mapping (defaults uid, mail, cn).
+  string username_attribute = 12;
+  string email_attribute = 13;
+  string name_attribute = 14;
+  // Only members of this group may sign in (empty: anyone the filter finds).
+  string allowed_group_dn = 15;
+  // Members of this group become admins, everyone else users (empty: roles are managed here).
+  string admin_group_dn = 16;
+  // Create the account on first LDAP sign-in (otherwise an admin pre-provisions it).
+  bool auto_create_users = 17;
+  LdapLocalLogin local_login = 18;
+  // LDAP_LOCAL_LOGIN_BREAK_GLASS: usernames or emails that keep local sign-in.
+  repeated string break_glass_logins = 19;
+  // Per operation; 0: default (5000).
+  int32 timeout_ms = 20;
+}
+
+message GetLdapConfigRequest {}
+
+message GetLdapConfigResponse {
+  LdapConfig config = 1;
+}
+
+message SetLdapConfigRequest {
+  LdapConfig config = 1;
+}
+
+message SetLdapConfigResponse {
+  LdapConfig config = 1;
+}
+
+message TestLdapConnectionRequest {
+  LdapConfig config = 1;
+}
+
+message TestLdapConnectionResponse {
+  bool ok = 1;
+  // What happened, or why it failed.
+  string message = 2;
+  // The URL that answered.
+  string url = 3;
+}
+
+message TestLdapUserRequest {
+  LdapConfig config = 1;
+  string login = 2;
+}
+
+message TestLdapUserResponse {
+  bool found = 1;
+  string message = 2;
+  string dn = 3;
+  string username = 4;
+  string email = 5;
+  string name = 6;
+  repeated string groups = 7;
+  // Whether the user passes allowed_group_dn, and would be an admin through admin_group_dn.
+  bool allowed = 8;
+  bool admin = 9;
+  // The local account the user maps to, if one exists.
+  string user_id = 10;
+}
