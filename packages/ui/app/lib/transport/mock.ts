@@ -38,6 +38,7 @@ import { MockSideChatsApi } from '~/lib/sidechat/mock'
 
 import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
+import { MockSpeechApi } from '~/lib/speech/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
@@ -285,6 +286,11 @@ export class MockTransport implements SessionTransport {
   private terminalsApi = new MockTerminalsApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
   terminals() {
     return this.terminalsApi
+  }
+
+  private speechApi = new MockSpeechApi()
+  speech() {
+    return this.speechApi
   }
 
   private sideChatsApi = new MockSideChatsApi({ sessionModel: id => this.sessions.get(id)?.info.model })
