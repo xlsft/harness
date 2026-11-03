@@ -19,7 +19,7 @@ Use Bash for running programs: builds, tests, git, package managers, servers. Sh
 ## Background processes
 - Every Bash call starts a new shell process. Shell job control (`&`, `jobs`, `kill %1`, `wait`, `fg`) does not carry over to the next call, and a process started with `&` is not tracked by anything.
 - For servers, watchers and long jobs, set `run_in_background` on Bash. You get a task id and an output file. Stop the task with TaskStop.
-- You are told when a background task finishes. Do not poll or `sleep` while waiting; do other work or end your turn.
+- You are told when a background task finishes. Do not poll or `sleep` while waiting; do other work or end your turn. To check on a task, use TaskOutput; to wait for a port, a file or a task, use Wait.
 - If the user asked you to stop a server or process when you are done, stop it before your final answer and confirm it is gone.
 
 ## Messages from the system

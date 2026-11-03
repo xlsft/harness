@@ -570,7 +570,7 @@ func (e *Engine) Evaluate(req Request) Decision {
 	switch {
 	case isWebTool(req.ToolName):
 		return e.evalWeb(req, input, mc)
-	case readTools[req.ToolName]:
+	case readTools[req.ToolName] || (pathObservers[req.ToolName] && req.FilePath != ""):
 		if inAny(path, e.workDirs) || inAny(path, e.scratch) || inAny(path, e.readable) {
 			return Decision{Behavior: Allow, ResolvedBy: "mode"}
 		}

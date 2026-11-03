@@ -155,7 +155,7 @@ type PromptBundle struct {
 	//	plan_mode             {{plan_file_path}}     plan mode is active: read-only, write the plan, call ExitPlanMode
 	//	plan_approved         {{plan_file_path}}     the user approved the plan
 	//	plan_rejected         {{feedback}}           the user asked to keep planning
-	//	background_task_done  {{task_id}} {{exit_code}} {{output_path}}
+	//	background_task_done  {{task_id}} {{command}} {{status}} {{tail}} {{output_path}}
 	//	compacted                                    first message after a compaction summary
 	//	attribution           {{commit}} {{pr}}      commit / PR attribution lines
 	//	output_style          {{name}} {{content}}   the active output style (sent at session start and on change)

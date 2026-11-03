@@ -75,7 +75,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `auto_mode` | — | auto mode is active: once per stretch of auto mode and again after a compaction; allows shell reading, searching and mechanical edits, with Read/Edit/Write as the fallback |
 | `plan_approved` | `plan_file_path` | the user approved the plan (ExitPlanMode) |
 | `plan_rejected` | `feedback` | the user asked to keep planning |
-| `background_task_done` | `task_id`, `exit_code`, `output_path` | a background Bash command finished |
+| `background_task_done` | `task_id`, `command`, `status`, `tail`, `output_path` | a background Bash command finished: `status` is "exited with code N" or how it was killed, `tail` its last lines ("(no output)" when empty). Rides on the next model request (the next turn when idle; it never starts a turn); skipped when a TaskOutput or Wait result already reported the finish |
 | `compacted` | — | first message after a compaction summary |
 | `attribution` | `commit`, `pr` | commit / PR attribution lines |
 | `output_style` | `name`, `content` | the active output style, at session start and when it changes |
@@ -93,6 +93,8 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `Read`, `Write`, `Edit`, `Glob`, `Grep` | see `schema.json` | M0 file tools |
 | `Bash` | `command`, `timeout`, `description`, `run_in_background` | background: returns a task id + output file path at once; a foreground command that hits its timeout is moved to the background; completion arrives as `background_task_done` |
 | `TaskStop` | `task_id` | stops a background task |
+| `TaskOutput` | `task_id`, `offset`, `block`, `pattern`, `timeout` | new output since the last TaskOutput read of that task (or from `offset`), with the status; `block` waits for the finish, `pattern` for a new matching line; timeout default 30 s, max 10 min; over 30000 characters keeps the end with a note |
+| `Wait` | `task_id` \| `port` (+`host`) \| `path` (+`changed`), `pattern`, `timeout` (required, max 10 min) | waits for a task to finish or print a matching line, a TCP port to accept connections, or a file to exist / change / match; a timeout is a normal result. Read-only, except a port on a host other than this machine (normal permission check); a path outside the working directories is checked like Read |
 | `TodoWrite` | `todos: [{content, activeForm, status}]` | full replacement; exactly one `in_progress` |
 | `AskUserQuestion` | `questions: [{question, header (≤12), options: [{label, description}] (2–4), multiSelect}] (1–4)` | |
 | `EnterPlanMode` | `{}` | |

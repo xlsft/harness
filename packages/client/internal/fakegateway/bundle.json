@@ -1,5 +1,5 @@
 {
-  "version": "test-2026-11-02.2",
+  "version": "test-2026-11-03.1",
   "model": "fake-model",
   "system": [
     {
@@ -19,44 +19,82 @@
     }
   ],
   "tools": {
-    "Read": {
-      "description": "Read a file from the local filesystem.",
+    "AskUserQuestion": {
+      "description": "Ask the user multiple-choice questions.",
       "input_schema": {
         "type": "object",
         "properties": {
-          "file_path": {
-            "type": "string"
-          },
-          "offset": {
-            "type": "integer"
-          },
-          "limit": {
-            "type": "integer"
-          },
-          "pages": {
-            "type": "string"
+          "questions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string"
+                },
+                "header": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "description"
+                    ]
+                  }
+                },
+                "multiSelect": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "question",
+                "header",
+                "options",
+                "multiSelect"
+              ]
+            }
           }
         },
         "required": [
-          "file_path"
+          "questions"
         ]
       }
     },
-    "Write": {
-      "description": "Write a file to the local filesystem.",
+    "Bash": {
+      "description": "Run a shell command.",
       "input_schema": {
         "type": "object",
         "properties": {
-          "file_path": {
+          "command": {
             "type": "string"
           },
-          "content": {
+          "description": {
             "type": "string"
+          },
+          "timeout": {
+            "type": "number"
+          },
+          "run_in_background": {
+            "type": "boolean"
           }
         },
         "required": [
-          "file_path",
-          "content"
+          "command"
         ]
       }
     },
@@ -85,26 +123,24 @@
         ]
       }
     },
-    "Bash": {
-      "description": "Run a shell command.",
+    "EnterPlanMode": {
+      "description": "Switch to plan mode.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    "ExitPlanMode": {
+      "description": "Present the plan for approval.",
       "input_schema": {
         "type": "object",
         "properties": {
-          "command": {
+          "plan": {
             "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "timeout": {
-            "type": "number"
-          },
-          "run_in_background": {
-            "type": "boolean"
           }
         },
         "required": [
-          "command"
+          "plan"
         ]
       }
     },
@@ -183,80 +219,97 @@
         ]
       }
     },
-    "AskUserQuestion": {
-      "description": "Ask the user multiple-choice questions.",
+    "Read": {
+      "description": "Read a file from the local filesystem.",
       "input_schema": {
         "type": "object",
         "properties": {
-          "questions": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 4,
-            "items": {
-              "type": "object",
-              "properties": {
-                "question": {
-                  "type": "string"
-                },
-                "header": {
-                  "type": "string"
-                },
-                "options": {
-                  "type": "array",
-                  "minItems": 2,
-                  "maxItems": 4,
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "type": "string"
-                      },
-                      "description": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "label",
-                      "description"
-                    ]
-                  }
-                },
-                "multiSelect": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "question",
-                "header",
-                "options",
-                "multiSelect"
-              ]
-            }
-          }
-        },
-        "required": [
-          "questions"
-        ]
-      }
-    },
-    "EnterPlanMode": {
-      "description": "Switch to plan mode.",
-      "input_schema": {
-        "type": "object",
-        "properties": {}
-      }
-    },
-    "ExitPlanMode": {
-      "description": "Present the plan for approval.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "plan": {
+          "file_path": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "pages": {
             "type": "string"
           }
         },
         "required": [
-          "plan"
+          "file_path"
+        ]
+      }
+    },
+    "Show": {
+      "description": "Open a file, the session diff or a web page for the user.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "file",
+              "diff",
+              "url"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "end_line": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
+    },
+    "TaskOutput": {
+      "description": "Read a background task's new output.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "block": {
+            "type": "boolean"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    "TaskStop": {
+      "description": "Stop a background task.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
         ]
       }
     },
@@ -298,44 +351,53 @@
         ]
       }
     },
-    "TaskStop": {
-      "description": "Stop a background task.",
+    "Wait": {
+      "description": "Wait for a task, a port or a file.",
       "input_schema": {
         "type": "object",
         "properties": {
           "task_id": {
             "type": "string"
-          }
-        },
-        "required": [
-          "task_id"
-        ]
-      }
-    },
-    "Show": {
-      "description": "Open a file, the session diff or a web page for the user.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "string",
-            "enum": ["file", "diff", "url"]
+          },
+          "port": {
+            "type": "integer"
+          },
+          "host": {
+            "type": "string"
           },
           "path": {
             "type": "string"
           },
-          "line": {
-            "type": "integer"
+          "changed": {
+            "type": "boolean"
           },
-          "end_line": {
-            "type": "integer"
+          "pattern": {
+            "type": "string"
           },
-          "url": {
+          "timeout": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "timeout"
+        ]
+      }
+    },
+    "Write": {
+      "description": "Write a file to the local filesystem.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "content": {
             "type": "string"
           }
         },
         "required": [
-          "target"
+          "file_path",
+          "content"
         ]
       }
     }
@@ -351,7 +413,7 @@
     "plan_mode": "<system-reminder>Plan mode is active. Use read-only tools only, then call ExitPlanMode. Plan file: {{plan_file_path}}</system-reminder>",
     "plan_approved": "<system-reminder>The plan in {{plan_file_path}} was approved.</system-reminder>",
     "plan_rejected": "The user wants to keep planning: {{feedback}}",
-    "background_task_done": "<system-reminder>Background task {{task_id}} finished with exit code {{exit_code}}. Output: {{output_path}}</system-reminder>",
+    "background_task_done": "<system-reminder>Background task {{task_id}} ({{command}}) {{status}}. Last lines:\n{{tail}}\nOutput: {{output_path}}</system-reminder>",
     "compacted": "<system-reminder>The conversation above was compacted into a summary.</system-reminder>",
     "output_style": "<system-reminder>\nOutput style: {{name}}\n{{content}}\n</system-reminder>"
   },

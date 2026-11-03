@@ -21,7 +21,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | Doing engineering tasks | `system/static/40-doing_tasks.md` | written |
 | Tool policy (choice of tools, parallelism, background work, reminders) | `system/static/50-tool_policy.md`, `overrides/gpt-*/...` | written |
 | Environment | `system/dynamic/10-env.md` | written |
-| Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode | `tools/<Name>/` | written |
+| Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode | `tools/<Name>/` | written |
 | MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
 | Web: WebSearch, WebFetch | `tools/WebSearch/`, `tools/WebFetch/` | written |
 | 14 reminders (12 core ids plus `output_style` and `deferred_tools`) | `reminders/` | written |
@@ -160,12 +160,12 @@ Parameter names and schemas stay compatible with the client (`packages/client/to
 2. BASH-2. Each call is a new shell process: no job control across calls; never use `&`, `nohup`, `disown`; use `run_in_background`. `[eval]` Why: see TOOL-6.
 3. BASH-3. Stop servers you were asked to stop before answering (TaskStop for background tasks) and confirm they are gone. `[eval]` Why: see TOOL-6.
 4. BASH-4. Default timeout 2 minutes, max 10 minutes (600000 ms); a foreground command that times out moves to the background. Output over 30000 characters is saved to a file with a preview. Why: matches the client.
-5. BASH-5. Background commands return a task id and output file at once; completion arrives as a reminder; do not poll or sleep; read the output file when needed. Why: matches the client.
+5. BASH-5. Background commands return a task id and output file at once; completion arrives as a reminder with the status and the last lines; do not `cat` the output file or sleep; check on a task with TaskOutput and wait for ports, files or tasks with Wait. Why: matches the client; reading only new output keeps context small.
 6. BASH-6. Exit code 1 from `grep`, `rg`, `find`, `diff`, `test`, `git diff` means no match or differences. Why: avoids false error handling.
 7. BASH-7. Do not use Bash for reading, writing, editing or searching files, or for talking to the user (`echo`). Why: TOOL-1.
 8. BASH-8. Quote paths with spaces; chain dependent commands with `&&`; independent commands as parallel calls; no interactive commands or `-i` flags; check a parent directory exists before creating files in it. Why: common shell failures.
 9. BASH-9. `description`: a short active-voice summary of what the command does, more detail for obscure pipelines. Why: the user reads it in place of the command.
-10. BASH-10. No `sleep` between commands that can run now; if polling an external system is unavoidable, use a status command rather than sleeping first. Why: wasted time.
+10. BASH-10. No `sleep` between commands that can run now; to wait for a port, a file or a background task use Wait; for other external systems use a status command rather than sleeping first. Why: wasted time.
 11. BASH-11. Git safety: never change git config; commands that discard work or history (`reset --hard`, force push, `clean -f`, `branch -D`, `checkout .`, `restore .`) only when asked; never force-push to main or master and warn if asked; never skip hooks or signing unless asked; prefer a new commit over amending, and after a failed pre-commit hook fix and commit again (amend would change the previous commit). Why: these lose work or bypass the user's safeguards.
 12. BASH-12. Commits only when asked: look at status, diff and recent log; stage specific files, not everything; skip files that look like secrets and warn; write a short message about why, in the repo's style; pass the message through a heredoc; add attribution lines when the attribution reminder gives them; no empty commits; check status afterwards. Why: predictable, reviewable commits.
 13. BASH-13. Pull requests only when asked: review all commits on the branch against the base, push with upstream if needed, create with `gh pr create` using a short title and a body with a summary and a test plan; return the PR URL. Use `gh` for GitHub work. Do not write `@name` for anyone who should not be notified. Why: complete PR descriptions; no accidental pings.
@@ -176,6 +176,19 @@ Parameter names and schemas stay compatible with the client (`packages/client/to
 1. STOP-1. Stops a background task by `task_id`, including child processes; output so far stays readable. Why: matches client.
 2. STOP-2. Use it for tasks no longer needed, stuck, or that the user asked to stop; it cannot stop processes started with `&`. `[eval]` Why: see TOOL-6.
 3. STOP-3. Do not stop tasks the user started unless asked. Why: they are the user's.
+
+### 3.7a TaskOutput
+
+1. TOUT-1. Returns the output a background task wrote since the last TaskOutput call for it, plus its status (running, exited with a code, killed); `offset` reads from a byte position instead. Why: the model sees only new lines.
+2. TOUT-2. `block` waits for the task to finish; `pattern` waits for a new matching line (only lines after the read position); both end early when the task finishes; `timeout` default 30 s, max 10 min; a timeout is not an error. Why: matches the client.
+3. TOUT-3. Output over 30000 characters keeps its end and says how much was left out and where the full file is. Why: logs matter most at the end.
+4. TOUT-4. Use it instead of `cat`/`tail` on the output file and instead of `sleep` loops. Why: polling with shell commands wastes turns and context.
+
+### 3.7b Wait
+
+1. WAIT-1. Exactly one target: `task_id` (finished, or with `pattern` a matching line anywhere in its output), `port` (TCP connect succeeds; `host` defaults to localhost), `path` (exists; with `pattern` a matching line; with `changed` created, modified or deleted after the call starts). Why: matches the client.
+2. WAIT-2. `timeout` is required (max 10 min) and should be realistic; running out of time is a normal result, after which the agent investigates before waiting again. Why: weak models wait forever or retry blindly.
+3. WAIT-3. Use it instead of `sleep` and retry loops. It only observes; a remote host may need permission. Why: TOOL-6 and BASH-10.
 
 ### 3.8 TodoWrite
 
@@ -265,7 +278,7 @@ All reminders except the two interruption markers and `webfetch_summary` (REM-15
 7. REM-7. `plan_mode`: read-only except the plan file; explore, ask, design; end the turn only with AskUserQuestion or ExitPlanMode; if a plan file already exists from earlier, check whether it is the same task. Why: keeps plan mode strict and ends it properly.
 8. REM-8. `plan_approved`: implement now, follow the saved plan, track steps, tell the user about deviations. Why: transition out of plan mode.
 9. REM-9. `plan_rejected`: still in plan mode; revise from feedback; call ExitPlanMode again. Why: loop until approved.
-10. REM-10. `background_task_done`: id, exit code and output file; read the output if it matters; this is an automated event, not user input or approval. Why: the agent must not treat a notification as a reply to a pending question.
+10. REM-10. `background_task_done`: id, command, status (exit code or how it was killed), the last lines of output and the output file; read more with TaskOutput if it matters; this is an automated event, not user input or approval. Sent with the next model request (never starts a turn by itself) and skipped when a TaskOutput or Wait result already reported the finish. Why: the agent must not treat a notification as a reply to a pending question, and the tail usually answers whether it worked without another call.
 11. REM-11. `compacted`: earlier messages were summarized; continue without asking the user to repeat or recapping; re-read files instead of trusting remembered contents; re-check background tasks if needed. Why: smooth continuation.
 12. REM-12. `attribution`: lines to end commit messages and PR bodies with, when not empty; does not license commits. Why: admin-configurable attribution.
 13. REM-13. `output_style`: names the active style and carries its text; it changes how to communicate, never the safety rules or tool rules. Why: styles switch without breaking the prompt cache.

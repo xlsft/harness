@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "task_id": { "type": "string", "description": "ID of the background task" },
+    "offset": { "type": "integer", "minimum": 0, "description": "Byte position to read from (default: where the last TaskOutput call for this task stopped)" },
+    "block": { "type": "boolean", "description": "Wait until the task finishes (or the timeout passes)" },
+    "pattern": { "type": "string", "description": "Regular expression; wait until a new output line matches it" },
+    "timeout": { "type": "integer", "minimum": 1, "maximum": 600000, "description": "How long to wait in milliseconds when block or pattern is set (default 30000, max 600000)" }
+  },
+  "required": ["task_id"],
+  "additionalProperties": false
+}

@@ -461,8 +461,26 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "Bash " + c
 	case "Glob", "Grep":
 		return name + " " + jsonField(input, "pattern")
-	case "TaskStop":
-		return "TaskStop " + jsonField(input, "task_id")
+	case "TaskStop", "TaskOutput":
+		return name + " " + jsonField(input, "task_id")
+	case "Wait":
+		var w struct {
+			TaskID string `json:"task_id"`
+			Port   *int   `json:"port"`
+			Host   string `json:"host"`
+			Path   string `json:"path"`
+		}
+		_ = json.Unmarshal(input, &w)
+		switch {
+		case w.Port != nil && w.Host != "":
+			return fmt.Sprintf("Wait port %s:%d", w.Host, *w.Port)
+		case w.Port != nil:
+			return fmt.Sprintf("Wait port %d", *w.Port)
+		case w.Path != "":
+			return "Wait " + rel(w.Path)
+		case w.TaskID != "":
+			return "Wait task " + w.TaskID
+		}
 	case "Show":
 		if t := jsonField(input, "url"); t != "" {
 			return "Show " + t

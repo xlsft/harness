@@ -21,7 +21,7 @@ It ships in two forms:
 | `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
 | `vcs` | Device providers `gh` and `glab`: CLI detection (version, logged-in hosts), PR/MR and CI polling for the session branch, `ReportDeviceProviders` / `ReportDeviceSnapshot` uploads; `vcstest` is a fake `VcsService` |
 | `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
-| `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop |
+| `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait |
 | `web` | WebSearch (`harness.search.v1.SearchService` on the server) and WebFetch (local fetch, http → https except private hosts, same-host redirects only, 10 MB / 60 s limits, HTML → Markdown, binary refused, 15-minute in-memory cache per URL, answer from the small-slot model through the gateway with the bundle's `webfetch_summary` prompt) |
 | `netguard` | Private-network classification (loopback, RFC 1918, link-local, ULA, CGNAT, metadata names, names resolving there) shared by the permission engine and WebFetch's dial guard |
 | `outputstyle` | Output style discovery: bundle built-ins, user styles (sync or `~/.claude`/`~/.harness/output-styles`), project styles (`.claude`/`.harness/output-styles`), frontmatter parsing |
