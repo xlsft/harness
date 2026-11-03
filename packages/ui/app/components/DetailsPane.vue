@@ -3,6 +3,8 @@
 // agents and background tasks of the current session.
 import type { SessionState, ToolItem } from '~/lib/session/types'
 import { isSubagent } from '~/lib/session/reducer'
+import { isDesktop, revealInFolder } from '~/lib/desktop'
+import type { RowMenuItem } from '~/components/RowMenu.vue'
 
 const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
@@ -42,6 +44,26 @@ const runningTasks = computed(() => tasks.value.filter(t => t.state === 'running
 const repoName = computed(() => basename(props.session.meta.repo || props.session.meta.cwd))
 const cwdParent = computed(() => props.session.meta.cwd.replace(/\/[^/]+$/, ''))
 
+const desktop = isDesktop()
+const toast = useToast()
+async function copy(text: string, what: string) {
+  await navigator.clipboard.writeText(text)
+  toast.add({ title: `${what} copied`, color: 'neutral' })
+}
+// Menus of the folder and branch rows (a remote session's folders are on another machine: copy only).
+const folderMenu = computed<(RowMenuItem | null)[]>(() => {
+  const cwd = props.session.meta.cwd
+  const local = !props.session.meta.remote
+  return [
+    ...(desktop && local ? [{ label: 'Show in Finder', run: () => revealInFolder(cwd) }] : []),
+    null,
+    { label: 'Copy path', run: () => copy(cwd, 'Path') }
+  ]
+})
+const branchMenu = computed<(RowMenuItem | null)[]>(() => [
+  { label: 'Copy branch name', run: () => copy(props.session.meta.gitBranch || 'main', 'Branch name') }
+])
+
 function age(ms: number) {
   return `${Math.max(1, Math.round(ms / 60_000))}m`
 }
@@ -75,12 +97,28 @@ function taskMeta(command: string, tail: string) {
       >
         <HIcon name="monitor" /><span class="min-w-0 truncate">local · {{ session.meta.deviceName || 'this machine' }}</span>
       </div>
-      <div class="nav-row">
-        <HIcon name="folder" /><span class="shrink-0">{{ repoName }}</span><span class="min-w-0 truncate text-[11px] text-muted">· {{ cwdParent }}</span>
-      </div>
-      <div class="nav-row">
-        <HIcon name="branch" /><span class="min-w-0 truncate">{{ session.meta.gitBranch || 'main' }}</span>
-      </div>
+      <RowMenu
+        :items="folderMenu"
+        label="Folder"
+      >
+        <button
+          type="button"
+          class="nav-row w-full text-left hover:bg-hover"
+        >
+          <HIcon name="folder" /><span class="shrink-0">{{ repoName }}</span><span class="min-w-0 truncate text-[11px] text-muted">· {{ cwdParent }}</span>
+        </button>
+      </RowMenu>
+      <RowMenu
+        :items="branchMenu"
+        label="Branch"
+      >
+        <button
+          type="button"
+          class="nav-row w-full text-left hover:bg-hover"
+        >
+          <HIcon name="branch" /><span class="min-w-0 truncate">{{ session.meta.gitBranch || 'main' }}</span>
+        </button>
+      </RowMenu>
       <div
         v-if="!session.meta.remote"
         class="nav-row"
