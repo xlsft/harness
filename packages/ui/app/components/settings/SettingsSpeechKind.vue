@@ -162,10 +162,10 @@ async function clearKey(p: SpeechProviderView) {
     class="mb-8 flex flex-col"
     :aria-label="stt ? 'Speech to text' : 'Text to speech'"
   >
-    <h3 class="m-0 mb-1 text-[13px] font-semibold text-strong">
+    <h2 class="set-h">
       {{ stt ? 'Speech to text' : 'Text to speech' }}
-    </h3>
-    <p class="m-0 mb-1 text-[12px] text-muted">
+    </h2>
+    <p class="set-sub">
       {{ stt ? 'Turns what you say into a message in the composer.' : 'Reads answers aloud from the speaker button under them.' }}
     </p>
 

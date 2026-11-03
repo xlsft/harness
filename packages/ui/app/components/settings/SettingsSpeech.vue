@@ -48,13 +48,6 @@ async function update(patch: SpeechSettingsPatch) {
 
 <template>
   <div class="flex flex-col">
-    <h2 class="set-h">
-      Speech
-    </h2>
-    <p class="set-sub">
-      Dictation in the composer and Read aloud on answers. Engines on this computer run offline and stay on it; the server's providers follow you to every device.
-    </p>
-
     <p
       v-if="error"
       role="alert"
