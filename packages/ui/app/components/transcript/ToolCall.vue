@@ -8,9 +8,13 @@ const props = withDefaults(defineProps<{ tool: ToolItem, sessionId: string, head
 const store = useSessionStore()
 const { show } = useShow()
 const now = useNow()
-const open = ref(true)
-
 const t = computed(() => props.tool)
+// Bash: open while the command runs, folded once it is done, unless the user toggled it.
+const toggled = ref<boolean | null>(null)
+const open = computed({
+  get: () => toggled.value ?? (t.value.name !== 'Bash' || t.value.status === 'running'),
+  set: (v: boolean) => (toggled.value = v)
+})
 const meta = computed(() => toolMeta(t.value, now.value))
 const mcp = computed(() => mcpParts(t.value.name))
 const kind = computed(() => {
@@ -22,6 +26,17 @@ const kind = computed(() => {
   if (t.value.name === 'Show') return 'show'
   if (['Read', 'Glob', 'LS', 'Wait'].includes(t.value.name)) return 'row'
   return 'bash'
+})
+
+// Bash's row says what the command does: "Run …" while it runs, "Ran …", "Failed to run …" (the title model's
+// label, tool.title); until the label arrives, the model's own description, else the command.
+const isBash = computed(() => t.value.name === 'Bash')
+const command = computed(() => String(t.value.input.command ?? ''))
+const bashLabel = computed(() => {
+  const title = (t.value as ToolItem & { title?: string }).title
+  if (title) return { verb: t.value.status === 'running' ? 'Run' : t.value.status === 'error' ? 'Failed to run' : 'Ran', text: title }
+  const d = String(t.value.input.description ?? '').trim()
+  return { verb: t.value.status === 'error' ? 'Failed:' : '', text: d || command.value }
 })
 
 const output = computed(() => String(t.value.result?.stdout ?? t.value.output ?? ''))
@@ -69,7 +84,7 @@ const hasBody = computed(() => open.value && (
   t.value.status === 'error' && kind.value !== 'bash'
     ? !!errorText.value
     : kind.value === 'bash'
-      ? outputLines.value.some(l => l.length)
+      ? isBash.value || outputLines.value.some(l => l.length)
       : kind.value === 'web'
         ? webResults.value.length > 0 || !!webText.value
         // Show has a body only under a group's row, which cannot hold the Open button.
@@ -99,10 +114,47 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
   <!-- Headless with nothing to show renders nothing, so the group drops the empty body and its border. -->
   <div
     v-else-if="!headless || hasBody"
-    :class="headless ? '' : ['border border-default', tool.status === 'error' ? 'border-l-2 border-l-bad' : '']"
+    :class="headless ? '' : isBash ? ['border', tool.status === 'error' ? 'border-bad' : 'border-default'] : ['border border-default', tool.status === 'error' ? 'border-l-2 border-l-bad' : '']"
   >
+    <!-- Bash: what it does, folded to that row once done -->
+    <button
+      v-if="!headless && isBash"
+      type="button"
+      class="flex w-full items-center gap-[9px] px-3 py-[7px] text-left text-[12.5px] text-muted"
+      :class="hasBody ? 'border-b border-default' : ''"
+      :aria-expanded="open"
+      @click="open = !open"
+    >
+      <HIcon
+        v-if="tool.status === 'running'"
+        name="loading"
+        spin
+        class="text-accent"
+      />
+      <span class="min-w-0 truncate">
+        <span :class="tool.status === 'error' ? 'text-bad' : ''">{{ bashLabel.verb }}</span>
+        {{ bashLabel.text }}
+      </span>
+      <HIcon
+        name="right"
+        :size="11"
+        class="shrink-0 transition-transform"
+        :class="open && 'rotate-90'"
+      />
+      <span class="flex-1" />
+      <span
+        class="shrink-0 text-[11px]"
+        :class="meta.cls === 'diff' ? '' : meta.cls"
+      >{{ meta.text }}</span>
+      <HBtn
+        v-if="tool.status === 'running'"
+        @click.stop="store.interrupt(sessionId)"
+      >
+        Stop
+      </HBtn>
+    </button>
     <div
-      v-if="!headless"
+      v-else-if="!headless"
       class="flex items-center gap-[9px] px-3 py-[7px] text-[12.5px] text-muted"
       :class="hasBody ? 'border-b border-default' : ''"
     >
@@ -169,6 +221,15 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
       v-else-if="tool.status === 'error' && kind !== 'bash' && open && errorText"
       class="m-0 max-h-80 overflow-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap text-bad"
     >{{ errorText }}</pre>
+
+    <!-- Bash: the whole command, then its output, dimmed -->
+    <pre
+      v-else-if="isBash && open"
+      class="m-0 max-h-80 overflow-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap"
+    ><span class="text-strong"><span class="text-muted select-none">$ </span>{{ command }}</span><template v-if="outputLines.some(l => l.length)">{{ '\n' }}<span :class="tool.status === 'error' ? 'text-bad/80' : 'text-muted'">{{ outputLines.map(l => l.map(tk => tk.t).join('')).join('\n') }}</span></template><span
+      v-if="tool.status === 'running'"
+      class="h-caret ml-0.5 inline-block h-[13px] w-[7px] bg-graphite-200 align-[-2px]"
+    /></pre>
 
     <!-- bash output -->
     <pre
