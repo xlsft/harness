@@ -1,11 +1,11 @@
 <script setup lang="ts">
-// Settings page: sections on the left, the chosen one on the right (?section=). General edits the defaults the
-// new-session screen starts from (the same localStorage key it remembers its last choices in).
+// Settings (the body of SettingsModal): sections on the left with a filter, the chosen one on the right
+// (?settings=<section>). General edits the defaults the new-session screen starts from (the same localStorage key
+// it remembers its last choices in).
 import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
 
 const store = useSessionStore()
-const route = useRoute()
-const router = useRouter()
+const modal = useSettingsModal()
 const desktop = isDesktop()
 
 const SECTIONS = [
@@ -28,11 +28,26 @@ onMounted(async () => {
     // Keep what the shell said.
   }
 })
-const sections = computed(() => SECTIONS.filter(s => s.key !== 'users' || isAdmin.value))
+// What each section holds, so the filter finds "theme" under General and "LDAP" under Users.
+const KEYWORDS: Record<Section, string> = {
+  general: 'appearance theme light dark mode permission modes new sessions worktree',
+  models: 'providers llm keys slots default model title effort',
+  classifiers: 'classifier decision model rules',
+  search: 'web search providers searxng brave tavily exa kagi perplexity',
+  account: 'sign out server user',
+  users: 'admin users ldap roles',
+  about: 'version about'
+}
+const query = ref('')
+const allowed = computed(() => SECTIONS.filter(s => s.key !== 'users' || isAdmin.value))
+const sections = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  return q ? allowed.value.filter(s => `${s.label} ${KEYWORDS[s.key]}`.toLowerCase().includes(q)) : allowed.value
+})
 
 const section = computed<Section>({
-  get: () => sections.value.find(s => s.key === route.query.section)?.key ?? 'general',
-  set: v => router.replace({ query: { ...route.query, section: v === 'general' ? undefined : v } })
+  get: () => allowed.value.find(s => s.key === modal.section.value)?.key ?? 'general',
+  set: v => modal.setSection(v)
 })
 
 // New-session defaults, shared with NewSession.vue.
@@ -55,126 +70,136 @@ async function signOut() {
 </script>
 
 <template>
-  <section
-    aria-label="Settings"
-    class="h-full overflow-y-auto bg-default"
-  >
-    <div class="mx-auto flex max-w-[960px] gap-10 px-10 pt-[52px] pb-10 max-md:flex-col max-md:gap-5 max-sm:px-4">
-      <nav
-        aria-label="Settings sections"
-        class="sticky top-[52px] flex w-[180px] shrink-0 flex-col gap-[2px] self-start max-md:static max-md:w-full max-md:flex-row max-md:flex-wrap"
-      >
-        <h1 class="m-0 mb-4 font-display text-[26px] font-bold text-strong max-md:mb-1 max-md:w-full">
-          Settings
-        </h1>
-        <button
-          v-for="s in sections"
-          :key="s.key"
-          type="button"
-          class="nav-row px-[9px] hover:bg-hover"
-          :class="section === s.key ? 'nav-row-current' : ''"
-          :aria-current="section === s.key ? 'page' : undefined"
-          @click="section = s.key"
-        >
-          <HIcon :name="s.icon" />{{ s.label }}
-        </button>
-      </nav>
-
-      <div class="flex min-w-0 flex-1 flex-col">
-        <template v-if="section === 'general'">
-          <SettingsAppearance />
-          <SettingsModes />
-          <h2 class="set-h">
-            New sessions
-          </h2>
-          <p class="set-sub">
-            What the new-session screen starts with. Changing a chip there updates these too.
-          </p>
-          <div class="set-row">
-            <div class="set-label">
-              <span>Worktree</span>
-              <span class="set-desc">Run each new session in its own git worktree.</span>
-            </div>
-            <HToggle
-              v-model="worktree"
-              label="Worktree by default"
-            />
-          </div>
-        </template>
-
-        <SettingsProviders
-          v-else-if="section === 'models' || section === 'classifiers'"
-          :key="section"
-          :group="section === 'models' ? 'llm' : 'classifier'"
+  <div class="flex min-h-0 flex-1 max-md:flex-col">
+    <nav
+      aria-label="Settings sections"
+      class="flex w-[220px] shrink-0 flex-col gap-[2px] overflow-y-auto border-r border-line p-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b"
+    >
+      <label class="mb-2 flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
+        <HIcon
+          name="search"
+          :size="13"
         />
+        <input
+          v-model="query"
+          placeholder="Search"
+          aria-label="Search settings"
+          class="min-w-0 flex-1 bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
+        >
+      </label>
+      <button
+        v-for="s in sections"
+        :key="s.key"
+        type="button"
+        class="nav-row px-[9px] hover:bg-hover"
+        :class="section === s.key ? 'nav-row-current' : ''"
+        :aria-current="section === s.key ? 'page' : undefined"
+        @click="section = s.key"
+      >
+        <HIcon :name="s.icon" />{{ s.label }}
+      </button>
+      <p
+        v-if="!sections.length"
+        class="m-0 px-[9px] py-2 text-[12px] text-muted"
+      >
+        Nothing matches.
+      </p>
+    </nav>
 
-        <SettingsSearch v-else-if="section === 'search'" />
+    <div class="min-w-0 flex-1 overflow-y-auto px-8 pt-6 pb-10 max-sm:px-4">
+      <template v-if="section === 'general'">
+        <SettingsAppearance />
+        <SettingsModes />
+        <h2 class="set-h">
+          New sessions
+        </h2>
+        <p class="set-sub">
+          What the new-session screen starts with. Changing a chip there updates these too.
+        </p>
+        <div class="set-row">
+          <div class="set-label">
+            <span>Worktree</span>
+            <span class="set-desc">Run each new session in its own git worktree.</span>
+          </div>
+          <HToggle
+            v-model="worktree"
+            label="Worktree by default"
+          />
+        </div>
+      </template>
 
-        <template v-else-if="section === 'users'">
-          <SettingsUsers />
-          <SettingsLdap />
-        </template>
+      <SettingsProviders
+        v-else-if="section === 'models' || section === 'classifiers'"
+        :key="section"
+        :group="section === 'models' ? 'llm' : 'classifier'"
+      />
 
-        <template v-else-if="section === 'account'">
-          <h2 class="set-h">
-            Account
-          </h2>
-          <p class="set-sub">
-            Who you are signed in as, and where.
-          </p>
-          <div class="set-row">
-            <div class="set-label">
-              <span>Email</span>
-            </div>
-            <span class="text-[12.5px] text-strong">{{ store.userEmail || 'Not signed in' }}</span>
-          </div>
-          <div
-            v-if="store.account.name"
-            class="set-row"
-          >
-            <div class="set-label">
-              <span>Name</span>
-            </div>
-            <span class="text-[12.5px] text-strong">{{ store.account.name }}</span>
-          </div>
-          <div
-            v-if="host"
-            class="set-row"
-          >
-            <div class="set-label">
-              <span>Server</span>
-            </div>
-            <span class="text-[12.5px] text-strong">{{ host }}</span>
-          </div>
-          <div
-            v-if="store.account.role"
-            class="set-row"
-          >
-            <div class="set-label">
-              <span>Role</span>
-            </div>
-            <span class="text-[12.5px] text-strong capitalize">{{ store.account.role }}</span>
-          </div>
-          <div
-            v-if="desktop"
-            class="set-row"
-          >
-            <div class="set-label">
-              <span>Sign out</span>
-              <span class="set-desc">Stops the agent on this computer and forgets its credentials.</span>
-            </div>
-            <button
-              type="button"
-              class="h-8 border border-bad px-3 text-[12.5px] text-bad hover:bg-bad hover:text-on-accent"
-              @click="signOut"
-            >
-              Sign out
-            </button>
-          </div>
-        </template>
+      <SettingsSearch v-else-if="section === 'search'" />
 
-        <SettingsAbout v-else />
-      </div>
+      <template v-else-if="section === 'users'">
+        <SettingsUsers />
+        <SettingsLdap />
+      </template>
+
+      <template v-else-if="section === 'account'">
+        <h2 class="set-h">
+          Account
+        </h2>
+        <p class="set-sub">
+          Who you are signed in as, and where.
+        </p>
+        <div class="set-row">
+          <div class="set-label">
+            <span>Email</span>
+          </div>
+          <span class="text-[12.5px] text-strong">{{ store.userEmail || 'Not signed in' }}</span>
+        </div>
+        <div
+          v-if="store.account.name"
+          class="set-row"
+        >
+          <div class="set-label">
+            <span>Name</span>
+          </div>
+          <span class="text-[12.5px] text-strong">{{ store.account.name }}</span>
+        </div>
+        <div
+          v-if="host"
+          class="set-row"
+        >
+          <div class="set-label">
+            <span>Server</span>
+          </div>
+          <span class="text-[12.5px] text-strong">{{ host }}</span>
+        </div>
+        <div
+          v-if="store.account.role"
+          class="set-row"
+        >
+          <div class="set-label">
+            <span>Role</span>
+          </div>
+          <span class="text-[12.5px] text-strong capitalize">{{ store.account.role }}</span>
+        </div>
+        <div
+          v-if="desktop"
+          class="set-row"
+        >
+          <div class="set-label">
+            <span>Sign out</span>
+            <span class="set-desc">Stops the agent on this computer and forgets its credentials.</span>
+          </div>
+          <button
+            type="button"
+            class="h-8 border border-bad px-3 text-[12.5px] text-bad hover:bg-bad hover:text-on-accent"
+            @click="signOut"
+          >
+            Sign out
+          </button>
+        </div>
+      </template>
+
+      <SettingsAbout v-else />
     </div>
-  </section>
+  </div>
 </template>

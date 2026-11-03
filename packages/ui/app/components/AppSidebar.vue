@@ -44,9 +44,10 @@ function deviceTitle(s: SessionState) {
 }
 
 const onArtifacts = computed(() => route.path.startsWith('/artifacts'))
-const onSettings = computed(() => route.path.startsWith('/settings'))
+const settings = useSettingsModal()
+const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
-const onPage = computed(() => onArtifacts.value || onSettings.value || !!route.query.new)
+const onPage = computed(() => onArtifacts.value || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -293,7 +294,7 @@ const nav = [
         label="Settings"
         kbd="meta+,"
         :pressed="onSettings"
-        @click="navigateTo('/settings'); open = false"
+        @click="settings.open(); open = false"
       />
       <HIconBtn
         icon="search"

@@ -71,6 +71,9 @@ if (desktop) {
       @signed-in="connectDesktop"
     />
     <HLoader v-else-if="phase === 'checking'" />
-    <NuxtPage v-else />
+    <template v-else>
+      <NuxtPage />
+      <SettingsModal />
+    </template>
   </UApp>
 </template>

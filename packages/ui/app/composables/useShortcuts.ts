@@ -8,6 +8,7 @@ export function useShortcuts() {
   const { togglePane } = usePanes()
   const collapsed = useState('sidebar-collapsed', () => false)
   const verbose = useState('transcript-verbose', () => false)
+  const settings = useSettingsModal()
 
   defineShortcuts({
     'meta_j': () => togglePane('terminal'),
@@ -17,7 +18,7 @@ export function useShortcuts() {
     'meta_b': () => {
       collapsed.value = !collapsed.value
     },
-    'meta_,': () => navigateTo('/settings'),
+    'meta_,': () => settings.open(),
     'meta_n': () => {
       navigateTo({ path: '/', query: { ...route.query, new: '1' } })
     },
@@ -36,6 +37,8 @@ export function useShortcuts() {
     'escape': {
       usingInput: true,
       handler: () => {
+        // Esc closes the settings modal instead (SettingsModal).
+        if (settings.isOpen.value) return
         const s = store.current
         if (s && s.meta.status === 'working') store.interrupt(s.meta.id)
       }

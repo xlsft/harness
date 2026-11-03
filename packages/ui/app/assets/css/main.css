@@ -439,3 +439,8 @@
   font-size: 11.5px;
   color: var(--ui-text-muted);
 }
+
+/* Popups (selects, menus, tooltips) open above the settings modal (z-40); Reka sets z-index: auto inline. */
+[data-reka-popper-content-wrapper] {
+  z-index: 60 !important;
+}

@@ -33,6 +33,16 @@ const groups = computed(() => {
   return out
 })
 
+// Esc closes the menu (the settings modal around it stays open until the next Esc).
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') open.value = false
+}
+watch(open, (v) => {
+  if (v) document.addEventListener('keydown', onKey)
+  else document.removeEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+
 function pick(v: string) {
   model.value = v
   open.value = false
