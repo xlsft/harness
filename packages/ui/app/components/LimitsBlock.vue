@@ -48,7 +48,7 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
 <template>
   <div
     v-if="shown"
-    class="mt-3 flex flex-col gap-1.5 border-t border-default pt-3 text-[12px]"
+    class="-mx-[13px] mt-3 flex flex-col gap-1.5 border-t border-default px-[13px] pt-3 text-[12px]"
   >
     <div class="flex items-center gap-2">
       <span class="text-muted">Limits</span>
@@ -61,7 +61,7 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
       <span class="w-[74px] shrink-0 whitespace-nowrap text-muted">Balance</span>
       <span
         v-if="balance.total"
-        class="h-1 flex-1 bg-raised"
+        class="h-1.5 flex-1 bg-raised"
       ><span
         class="block h-full"
         :class="tone(100 - (balance.balance / balance.total) * 100)"
@@ -82,7 +82,7 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
       <span class="w-[74px] shrink-0 whitespace-nowrap text-muted">This month</span>
       <span
         v-if="spend.budget"
-        class="h-1 flex-1 bg-raised"
+        class="h-1.5 flex-1 bg-raised"
       ><span
         class="block h-full"
         :class="tone((spend.spent / spend.budget) * 100)"
@@ -105,7 +105,7 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
       class="flex items-center gap-2"
     >
       <span class="w-[74px] shrink-0 truncate text-muted">{{ w.label }}</span>
-      <span class="h-1 flex-1 bg-raised"><span
+      <span class="h-1.5 flex-1 bg-raised"><span
         class="block h-full"
         :class="tone(w.usedPercent)"
         :style="{ width: `${Math.min(100, w.usedPercent)}%` }"

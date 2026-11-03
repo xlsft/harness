@@ -65,6 +65,20 @@ func (d *Driver) Submit(id string, blocks []llm.ContentBlock) (queued bool) {
 	return false
 }
 
+// Wake starts a turn without a message when the session is idle and the agent has reminders waiting (a
+// background task that finished): the model answers the notification. No-op while a turn runs (the reminder
+// rides on its next request) or after Stop.
+func (d *Driver) Wake() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.running || d.stopped || d.ctx.Err() != nil || !d.Agent.HasReminders() {
+		return
+	}
+	d.running = true
+	d.interrupts = 0
+	go d.loop(nil, nil)
+}
+
 func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 	for {
 		res := d.Agent.RunTurnWithIDs(d.ctx, blocks, ids)

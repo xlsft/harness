@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Background task (Task.dc.html): running with its output tail, finished notice, failed with the last line.
-// A running task with no output yet is the one-line "Running … 0m 48s" status of Main.dc.html.
+// Background task: one notice line, like the other transcript notices — running (with Stop), finished, stopped or
+// failed (with its last output line), the command and how long it ran. Its output is in the Background tasks pane.
 import type { TaskVM } from '~/lib/session/types'
 
 const props = defineProps<{ task: TaskVM, sessionId: string }>()
@@ -9,100 +9,52 @@ const { openPane } = usePanes()
 const now = useNow()
 
 const elapsed = computed(() => now.value - props.task.startedAt)
-const tail = computed(() => props.task.tail.split('\n').filter(Boolean))
-const lastLine = computed(() => tail.value[tail.value.length - 1] ?? '')
+const lastLine = computed(() => props.task.tail.split('\n').filter(Boolean).at(-1) ?? '')
+const label = computed(() => ({
+  running: 'Background command running',
+  done: 'Background command finished',
+  stopped: 'Background command stopped'
+} as Record<string, string>)[props.task.state] ?? 'Background command failed')
+const failed = computed(() => !['running', 'done', 'stopped'].includes(props.task.state))
 </script>
 
 <template>
-  <!-- running, no output yet -->
-  <div
-    v-if="task.state === 'running' && !task.tail"
-    class="flex items-center gap-[9px] text-[12.5px] text-muted"
-  >
-    <HIcon
-      name="loading"
-      spin
-      class="text-accent"
-    />Running {{ task.description || task.command }} {{ formatClock(elapsed) }}
-  </div>
-
-  <!-- running with output -->
-  <div
-    v-else-if="task.state === 'running'"
-    class="border border-default"
-  >
-    <div class="flex flex-wrap items-center gap-[9px] border-b border-default px-3 py-2 text-[12.5px]">
+  <div class="flex flex-col gap-0.5 text-[12.5px] text-muted">
+    <div class="flex min-w-0 items-center gap-[9px]">
       <HIcon
-        name="background"
-        class="text-muted"
+        :name="task.state === 'running' ? 'loading' : failed ? 'warn' : 'check'"
+        :spin="task.state === 'running'"
+        class="shrink-0"
+        :class="task.state === 'running' ? 'text-accent' : failed ? 'text-bad' : task.state === 'done' ? 'text-ok' : ''"
       />
-      <span class="text-muted">Background</span><span class="text-strong">{{ task.command }}</span>
-      <span class="flex-1" /><span class="text-[11px] text-accent">running · {{ formatDuration(elapsed) }}</span>
-    </div>
-    <pre class="m-0 overflow-x-auto bg-surface px-3 py-2 text-[12px] leading-[1.6] text-muted"><template
-v-for="(l, i) in tail"
-                                                                                                         :key="i"
-><template
-                                                                                                           v-for="(part, j) in l.split(/(https?:\/\/\S+)/)"
-                                                                                                           :key="j"
-                                                                                                         ><span
-v-if="j % 2"
-                                                                                                                class="text-accent"
-    >{{ part }}</span><template v-else>{{ part }}</template></template>{{ i < tail.length - 1 ? '\n' : '' }}</template></pre>
-    <div class="flex items-center gap-2 border-t border-default px-3 py-1.5 text-[11px] text-muted">
-      {{ task.outputPath ? basename(task.outputPath) : '' }}
-      <span class="flex-1" />
-      <HBtn @click="openPane('terminal')">
-        Open in terminal
-      </HBtn>
-      <HBtn
-        tone="danger"
+      <span
+        class="shrink-0"
+        :class="failed && 'text-bad'"
+      >{{ label }}</span>
+      <button
+        type="button"
+        class="min-w-0 truncate text-left font-mono text-[12px] text-toned hover:text-strong"
+        :title="`${task.command} · open the Background tasks pane`"
+        @click="openPane('tasks')"
+      >
+        {{ task.description || task.command }}
+      </button>
+      <span class="shrink-0 text-[11px] tabular-nums">
+        <template v-if="task.state === 'running'">{{ formatClock(elapsed) }}</template>
+        <template v-else>exit {{ task.exitCode }} · {{ formatDuration(task.durationMs) }}</template>
+      </span>
+      <button
+        v-if="task.state === 'running'"
+        type="button"
+        class="shrink-0 text-[11.5px] hover:text-bad"
         @click="store.stopTask(sessionId, task.id)"
       >
         Stop
-      </HBtn>
+      </button>
     </div>
-  </div>
-
-  <!-- finished -->
-  <div
-    v-else-if="task.state === 'done' || task.state === 'stopped'"
-    class="flex flex-wrap items-center gap-[9px] border border-default px-3 py-2 text-[12.5px]"
-  >
-    <HIcon
-      name="check"
-      :class="task.state === 'done' ? 'text-ok' : 'text-muted'"
-    />
-    <span class="text-muted">{{ task.state === 'done' ? 'Background finished' : 'Background stopped' }}</span><span class="text-strong">{{ task.command }}</span>
-    <span class="flex-1" />
     <span
-      class="text-[11px]"
-      :class="task.state === 'done' ? 'text-ok' : 'text-muted'"
-    >exit {{ task.exitCode }} · {{ formatDuration(task.durationMs) }}</span>
-  </div>
-
-  <!-- failed -->
-  <div
-    v-else
-    class="border border-l-2 border-default border-l-bad"
-  >
-    <div class="flex flex-wrap items-center gap-[9px] px-3 py-2 text-[12.5px]">
-      <HIcon
-        name="warn"
-        class="text-bad"
-      />
-      <span class="text-muted">Background failed</span><span class="text-strong">{{ task.command }}</span>
-      <span class="flex-1" /><span class="text-[11px] text-bad">exit {{ task.exitCode }} · {{ formatSeconds(task.durationMs) }}</span>
-    </div>
-    <pre
-      v-if="lastLine"
-      class="m-0 border-t border-default bg-surface px-3 py-[7px] text-[12px] leading-[1.6] text-toned"
-    >{{ lastLine }}</pre>
-    <div class="flex gap-2 border-t border-default px-3 py-1.5">
-      <HBtn @click="openPane('tasks')">
-        Full output
-      </HBtn>
-      <HBtn>Restart</HBtn>
-    </div>
+      v-if="failed && lastLine"
+      class="truncate pl-6 font-mono text-[12px] text-dimmed"
+    >{{ lastLine }}</span>
   </div>
 </template>

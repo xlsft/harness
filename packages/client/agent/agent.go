@@ -287,8 +287,10 @@ type Agent struct {
 	warned          map[string]bool
 	todos           []tools.Todo
 	reminders       []pendingReminder
-	interactor      tools.Interactor
-	contextWindow   int
+	// Starts a turn for a notification while idle (SetWake).
+	wake          func()
+	interactor    tools.Interactor
+	contextWindow int
 
 	// token estimate: usage of the last response and the message count it covered
 	lastUsage    int
@@ -740,6 +742,9 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 			a.Remind("plan_mode", map[string]string{"plan_file_path": tools.NextPlanPath(a.cfg.ToolEnv)})
 		}
 		a.remindAutoMode()
+	} else {
+		// A turn started by a notification (Driver.Wake): no message, the pending reminders are its input.
+		a.emit(Event{Kind: EventTurnStarted, UUID: session.NewID(), Model: a.Model()})
 	}
 	a.appendMessage(llm.RoleUser, append(first, input...))
 

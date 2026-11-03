@@ -396,6 +396,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	sess.Permissions.SetAsker(ls)
 	sess.Agent.SetInteractor(ls)
 	ls.driver = agent.NewDriver(s.ctx, sess.Agent, ls.onResult)
+	sess.Agent.SetWake(ls.driver.Wake)
 	s.mu.Lock()
 	s.live[sess.ID] = ls
 	s.mu.Unlock()

@@ -99,10 +99,9 @@ const (
 
 // OnTaskEvent forwards a background task event and queues the
 // background_task_done reminder when a task ends. The reminder rides on the
-// next model request: the following request of a running turn, or the next
-// turn when the session is idle (a finished task never starts a turn by
-// itself; frontends show the TaskFinished event). It is dropped when a
-// TaskOutput or Wait result already reported the finish.
+// next model request: the following request of a running turn, or a turn the
+// task's end starts itself when the session is idle (SetWake). It is dropped
+// when a TaskOutput or Wait result already reported the finish.
 func (a *Agent) OnTaskEvent(e tools.TaskEvent) {
 	ev := e
 	a.emit(Event{Kind: EventTask, Task: &ev})
@@ -119,7 +118,35 @@ func (a *Agent) OnTaskEvent(e tools.TaskEvent) {
 			"task_id": e.Task.ID, "exit_code": strconv.Itoa(e.Task.ExitCode), "output_path": e.Task.OutputPath,
 			"command": cmd, "reason": string(e.Task.Reason), "status": tools.TaskStatus(e.Task), "tail": tail,
 		})
+		// A task that ended by itself (done, failed, out of time) wakes an idle session so the model answers it;
+		// one stopped on request does not.
+		a.mu.Lock()
+		wake := a.wake
+		a.mu.Unlock()
+		if wake != nil && e.Task.Reason != tools.TaskStopped {
+			go wake()
+		}
 	}
+}
+
+// SetWake sets what starts a turn for a notification while the session is idle (Driver.Wake).
+func (a *Agent) SetWake(f func()) {
+	a.mu.Lock()
+	a.wake = f
+	a.mu.Unlock()
+}
+
+// HasReminders reports whether reminders wait for the next model request (stale task reports excluded).
+func (a *Agent) HasReminders() bool {
+	a.mu.Lock()
+	pending := append([]pendingReminder(nil), a.reminders...)
+	a.mu.Unlock()
+	for _, r := range pending {
+		if !a.taskReported(r) {
+			return true
+		}
+	}
+	return false
 }
 
 // taskReported reports whether a pending background_task_done reminder is
