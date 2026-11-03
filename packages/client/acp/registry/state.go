@@ -54,6 +54,8 @@ type AgentState struct {
 	Installed   *Installed   `json:"installed,omitempty"`
 	Auth        AuthState    `json:"auth,omitempty"`
 	AuthMethods []AuthMethod `json:"authMethods,omitempty"`
+	// Limits is the latest subscription-limit snapshot the agent reported.
+	Limits *Limits `json:"limits,omitempty"`
 }
 
 type stateFile struct {

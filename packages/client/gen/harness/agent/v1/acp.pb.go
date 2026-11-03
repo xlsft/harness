@@ -349,7 +349,7 @@ func (x InstallAcpAgentResponse_Phase) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InstallAcpAgentResponse_Phase.Descriptor instead.
 func (InstallAcpAgentResponse_Phase) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{10, 0}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{12, 0}
 }
 
 // A way to authenticate the agent offered in its initialize response.
@@ -471,7 +471,9 @@ type AcpAgent struct {
 	// Methods from the agent's last initialize response (empty until the agent ran once).
 	AuthMethods []*AcpAuthMethod `protobuf:"bytes,19,rep,name=auth_methods,json=authMethods,proto3" json:"auth_methods,omitempty"`
 	// The engine id to pass in CreateSessionRequest.engine: "acp:<id>".
-	Engine        string `protobuf:"bytes,20,opt,name=engine,proto3" json:"engine,omitempty"`
+	Engine string `protobuf:"bytes,20,opt,name=engine,proto3" json:"engine,omitempty"`
+	// The latest subscription limits the agent reported on this machine; absent when it never reported any.
+	Limits        *AcpAgentLimits `protobuf:"bytes,21,opt,name=limits,proto3,oneof" json:"limits,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -646,6 +648,150 @@ func (x *AcpAgent) GetEngine() string {
 	return ""
 }
 
+func (x *AcpAgent) GetLimits() *AcpAgentLimits {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
+// Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
+// Captured from what the agent sends over ACP (its `_meta` fields and extension notifications); the client never
+// asks the provider itself nor reads the agent's credentials. Device-local, like everything about ACP agents.
+type AcpAgentLimits struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Windows []*AcpLimitWindow      `protobuf:"bytes,1,rep,name=windows,proto3" json:"windows,omitempty"`
+	// The plan, when the agent names it (e.g. "plus", "pro", "max").
+	PlanName string `protobuf:"bytes,2,opt,name=plan_name,json=planName,proto3" json:"plan_name,omitempty"`
+	// RFC 3339, UTC: when the snapshot was received.
+	UpdatedAt     string `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcpAgentLimits) Reset() {
+	*x = AcpAgentLimits{}
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcpAgentLimits) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcpAgentLimits) ProtoMessage() {}
+
+func (x *AcpAgentLimits) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcpAgentLimits.ProtoReflect.Descriptor instead.
+func (*AcpAgentLimits) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AcpAgentLimits) GetWindows() []*AcpLimitWindow {
+	if x != nil {
+		return x.Windows
+	}
+	return nil
+}
+
+func (x *AcpAgentLimits) GetPlanName() string {
+	if x != nil {
+		return x.PlanName
+	}
+	return ""
+}
+
+func (x *AcpAgentLimits) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type AcpLimitWindow struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// e.g. "5h", "weekly".
+	Label string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	// 0..100.
+	UsedPercent float64 `protobuf:"fixed64,2,opt,name=used_percent,json=usedPercent,proto3" json:"used_percent,omitempty"`
+	// RFC 3339, UTC; empty when unknown.
+	ResetsAt string `protobuf:"bytes,3,opt,name=resets_at,json=resetsAt,proto3" json:"resets_at,omitempty"`
+	// Length of the window in minutes; 0 when unknown.
+	WindowMinutes int64 `protobuf:"varint,4,opt,name=window_minutes,json=windowMinutes,proto3" json:"window_minutes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcpLimitWindow) Reset() {
+	*x = AcpLimitWindow{}
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcpLimitWindow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcpLimitWindow) ProtoMessage() {}
+
+func (x *AcpLimitWindow) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcpLimitWindow.ProtoReflect.Descriptor instead.
+func (*AcpLimitWindow) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AcpLimitWindow) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *AcpLimitWindow) GetUsedPercent() float64 {
+	if x != nil {
+		return x.UsedPercent
+	}
+	return 0
+}
+
+func (x *AcpLimitWindow) GetResetsAt() string {
+	if x != nil {
+		return x.ResetsAt
+	}
+	return ""
+}
+
+func (x *AcpLimitWindow) GetWindowMinutes() int64 {
+	if x != nil {
+		return x.WindowMinutes
+	}
+	return 0
+}
+
 // ACP state of a session (SessionInfo.acp).
 type AcpSessionState struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
@@ -672,13 +818,15 @@ type AcpSessionState struct {
 	// The agent's model choices when it offers a model option; SetModel picks one by id.
 	Models         []*AcpModel `protobuf:"bytes,13,rep,name=models,proto3" json:"models,omitempty"`
 	CurrentModelId string      `protobuf:"bytes,14,opt,name=current_model_id,json=currentModelId,proto3" json:"current_model_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The latest subscription limits the agent reported (also kept per agent, AcpAgent.limits).
+	Limits        *AcpAgentLimits `protobuf:"bytes,15,opt,name=limits,proto3,oneof" json:"limits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AcpSessionState) Reset() {
 	*x = AcpSessionState{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -690,7 +838,7 @@ func (x *AcpSessionState) String() string {
 func (*AcpSessionState) ProtoMessage() {}
 
 func (x *AcpSessionState) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -703,7 +851,7 @@ func (x *AcpSessionState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcpSessionState.ProtoReflect.Descriptor instead.
 func (*AcpSessionState) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{2}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AcpSessionState) GetAgentId() string {
@@ -804,6 +952,13 @@ func (x *AcpSessionState) GetCurrentModelId() string {
 	return ""
 }
 
+func (x *AcpSessionState) GetLimits() *AcpAgentLimits {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
 type AcpMode struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -815,7 +970,7 @@ type AcpMode struct {
 
 func (x *AcpMode) Reset() {
 	*x = AcpMode{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -827,7 +982,7 @@ func (x *AcpMode) String() string {
 func (*AcpMode) ProtoMessage() {}
 
 func (x *AcpMode) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -840,7 +995,7 @@ func (x *AcpMode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcpMode.ProtoReflect.Descriptor instead.
 func (*AcpMode) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{3}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AcpMode) GetId() string {
@@ -876,7 +1031,7 @@ type AcpCommand struct {
 
 func (x *AcpCommand) Reset() {
 	*x = AcpCommand{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -888,7 +1043,7 @@ func (x *AcpCommand) String() string {
 func (*AcpCommand) ProtoMessage() {}
 
 func (x *AcpCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -901,7 +1056,7 @@ func (x *AcpCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcpCommand.ProtoReflect.Descriptor instead.
 func (*AcpCommand) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{4}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AcpCommand) GetName() string {
@@ -936,7 +1091,7 @@ type AcpModel struct {
 
 func (x *AcpModel) Reset() {
 	*x = AcpModel{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -948,7 +1103,7 @@ func (x *AcpModel) String() string {
 func (*AcpModel) ProtoMessage() {}
 
 func (x *AcpModel) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -961,7 +1116,7 @@ func (x *AcpModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcpModel.ProtoReflect.Descriptor instead.
 func (*AcpModel) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{5}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AcpModel) GetId() string {
@@ -1001,7 +1156,7 @@ type AcpTerminalCommand struct {
 
 func (x *AcpTerminalCommand) Reset() {
 	*x = AcpTerminalCommand{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1013,7 +1168,7 @@ func (x *AcpTerminalCommand) String() string {
 func (*AcpTerminalCommand) ProtoMessage() {}
 
 func (x *AcpTerminalCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1026,7 +1181,7 @@ func (x *AcpTerminalCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcpTerminalCommand.ProtoReflect.Descriptor instead.
 func (*AcpTerminalCommand) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{6}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AcpTerminalCommand) GetCommand() string {
@@ -1074,7 +1229,7 @@ type ListAcpAgentsRequest struct {
 
 func (x *ListAcpAgentsRequest) Reset() {
 	*x = ListAcpAgentsRequest{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1086,7 +1241,7 @@ func (x *ListAcpAgentsRequest) String() string {
 func (*ListAcpAgentsRequest) ProtoMessage() {}
 
 func (x *ListAcpAgentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1099,7 +1254,7 @@ func (x *ListAcpAgentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAcpAgentsRequest.ProtoReflect.Descriptor instead.
 func (*ListAcpAgentsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{7}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListAcpAgentsRequest) GetRefresh() bool {
@@ -1124,7 +1279,7 @@ type ListAcpAgentsResponse struct {
 
 func (x *ListAcpAgentsResponse) Reset() {
 	*x = ListAcpAgentsResponse{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1136,7 +1291,7 @@ func (x *ListAcpAgentsResponse) String() string {
 func (*ListAcpAgentsResponse) ProtoMessage() {}
 
 func (x *ListAcpAgentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1149,7 +1304,7 @@ func (x *ListAcpAgentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAcpAgentsResponse.ProtoReflect.Descriptor instead.
 func (*ListAcpAgentsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{8}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListAcpAgentsResponse) GetAgents() []*AcpAgent {
@@ -1189,7 +1344,7 @@ type InstallAcpAgentRequest struct {
 
 func (x *InstallAcpAgentRequest) Reset() {
 	*x = InstallAcpAgentRequest{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1201,7 +1356,7 @@ func (x *InstallAcpAgentRequest) String() string {
 func (*InstallAcpAgentRequest) ProtoMessage() {}
 
 func (x *InstallAcpAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1214,7 +1369,7 @@ func (x *InstallAcpAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallAcpAgentRequest.ProtoReflect.Descriptor instead.
 func (*InstallAcpAgentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{9}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *InstallAcpAgentRequest) GetAgentId() string {
@@ -1240,7 +1395,7 @@ type InstallAcpAgentResponse struct {
 
 func (x *InstallAcpAgentResponse) Reset() {
 	*x = InstallAcpAgentResponse{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1252,7 +1407,7 @@ func (x *InstallAcpAgentResponse) String() string {
 func (*InstallAcpAgentResponse) ProtoMessage() {}
 
 func (x *InstallAcpAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1265,7 +1420,7 @@ func (x *InstallAcpAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallAcpAgentResponse.ProtoReflect.Descriptor instead.
 func (*InstallAcpAgentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{10}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *InstallAcpAgentResponse) GetPhase() InstallAcpAgentResponse_Phase {
@@ -1319,7 +1474,7 @@ type UpdateAcpAgentRequest struct {
 
 func (x *UpdateAcpAgentRequest) Reset() {
 	*x = UpdateAcpAgentRequest{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1331,7 +1486,7 @@ func (x *UpdateAcpAgentRequest) String() string {
 func (*UpdateAcpAgentRequest) ProtoMessage() {}
 
 func (x *UpdateAcpAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1344,7 +1499,7 @@ func (x *UpdateAcpAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAcpAgentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAcpAgentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{11}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpdateAcpAgentRequest) GetAgentId() string {
@@ -1364,7 +1519,7 @@ type UpdateAcpAgentResponse struct {
 
 func (x *UpdateAcpAgentResponse) Reset() {
 	*x = UpdateAcpAgentResponse{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1376,7 +1531,7 @@ func (x *UpdateAcpAgentResponse) String() string {
 func (*UpdateAcpAgentResponse) ProtoMessage() {}
 
 func (x *UpdateAcpAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1389,7 +1544,7 @@ func (x *UpdateAcpAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAcpAgentResponse.ProtoReflect.Descriptor instead.
 func (*UpdateAcpAgentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{12}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateAcpAgentResponse) GetProgress() *InstallAcpAgentResponse {
@@ -1408,7 +1563,7 @@ type UninstallAcpAgentRequest struct {
 
 func (x *UninstallAcpAgentRequest) Reset() {
 	*x = UninstallAcpAgentRequest{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1420,7 +1575,7 @@ func (x *UninstallAcpAgentRequest) String() string {
 func (*UninstallAcpAgentRequest) ProtoMessage() {}
 
 func (x *UninstallAcpAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1433,7 +1588,7 @@ func (x *UninstallAcpAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallAcpAgentRequest.ProtoReflect.Descriptor instead.
 func (*UninstallAcpAgentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{13}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UninstallAcpAgentRequest) GetAgentId() string {
@@ -1452,7 +1607,7 @@ type UninstallAcpAgentResponse struct {
 
 func (x *UninstallAcpAgentResponse) Reset() {
 	*x = UninstallAcpAgentResponse{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1464,7 +1619,7 @@ func (x *UninstallAcpAgentResponse) String() string {
 func (*UninstallAcpAgentResponse) ProtoMessage() {}
 
 func (x *UninstallAcpAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1477,7 +1632,7 @@ func (x *UninstallAcpAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallAcpAgentResponse.ProtoReflect.Descriptor instead.
 func (*UninstallAcpAgentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{14}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UninstallAcpAgentResponse) GetAgent() *AcpAgent {
@@ -1505,7 +1660,7 @@ type AuthenticateAcpAgentRequest struct {
 
 func (x *AuthenticateAcpAgentRequest) Reset() {
 	*x = AuthenticateAcpAgentRequest{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1517,7 +1672,7 @@ func (x *AuthenticateAcpAgentRequest) String() string {
 func (*AuthenticateAcpAgentRequest) ProtoMessage() {}
 
 func (x *AuthenticateAcpAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1530,7 +1685,7 @@ func (x *AuthenticateAcpAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateAcpAgentRequest.ProtoReflect.Descriptor instead.
 func (*AuthenticateAcpAgentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{15}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *AuthenticateAcpAgentRequest) GetAgentId() string {
@@ -1586,7 +1741,7 @@ type AuthenticateAcpAgentResponse struct {
 
 func (x *AuthenticateAcpAgentResponse) Reset() {
 	*x = AuthenticateAcpAgentResponse{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1598,7 +1753,7 @@ func (x *AuthenticateAcpAgentResponse) String() string {
 func (*AuthenticateAcpAgentResponse) ProtoMessage() {}
 
 func (x *AuthenticateAcpAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1611,7 +1766,7 @@ func (x *AuthenticateAcpAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateAcpAgentResponse.ProtoReflect.Descriptor instead.
 func (*AuthenticateAcpAgentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{16}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AuthenticateAcpAgentResponse) GetAuthenticated() bool {
@@ -1667,7 +1822,7 @@ type SetAcpModeRequest struct {
 
 func (x *SetAcpModeRequest) Reset() {
 	*x = SetAcpModeRequest{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1679,7 +1834,7 @@ func (x *SetAcpModeRequest) String() string {
 func (*SetAcpModeRequest) ProtoMessage() {}
 
 func (x *SetAcpModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1692,7 +1847,7 @@ func (x *SetAcpModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAcpModeRequest.ProtoReflect.Descriptor instead.
 func (*SetAcpModeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{17}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SetAcpModeRequest) GetSessionId() string {
@@ -1717,7 +1872,7 @@ type SetAcpModeResponse struct {
 
 func (x *SetAcpModeResponse) Reset() {
 	*x = SetAcpModeResponse{}
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1729,7 +1884,7 @@ func (x *SetAcpModeResponse) String() string {
 func (*SetAcpModeResponse) ProtoMessage() {}
 
 func (x *SetAcpModeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_acp_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_acp_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1742,7 +1897,7 @@ func (x *SetAcpModeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAcpModeResponse.ProtoReflect.Descriptor instead.
 func (*SetAcpModeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{18}
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{20}
 }
 
 var File_harness_agent_v1_acp_proto protoreflect.FileDescriptor
@@ -1762,7 +1917,7 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\n" +
 	"KIND_AGENT\x10\x01\x12\x11\n" +
 	"\rKIND_TERMINAL\x10\x02\x12\x10\n" +
-	"\fKIND_ENV_VAR\x10\x03\"\xda\x05\n" +
+	"\fKIND_ENV_VAR\x10\x03\"\xa4\x06\n" +
 	"\bAcpAgent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1787,7 +1942,19 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\n" +
 	"auth_state\x18\x12 \x01(\x0e2\x1e.harness.agent.v1.AcpAuthStateR\tauthState\x12B\n" +
 	"\fauth_methods\x18\x13 \x03(\v2\x1f.harness.agent.v1.AcpAuthMethodR\vauthMethods\x12\x16\n" +
-	"\x06engine\x18\x14 \x01(\tR\x06engine\"\xf4\x04\n" +
+	"\x06engine\x18\x14 \x01(\tR\x06engine\x12=\n" +
+	"\x06limits\x18\x15 \x01(\v2 .harness.agent.v1.AcpAgentLimitsH\x00R\x06limits\x88\x01\x01B\t\n" +
+	"\a_limits\"\x88\x01\n" +
+	"\x0eAcpAgentLimits\x12:\n" +
+	"\awindows\x18\x01 \x03(\v2 .harness.agent.v1.AcpLimitWindowR\awindows\x12\x1b\n" +
+	"\tplan_name\x18\x02 \x01(\tR\bplanName\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x03 \x01(\tR\tupdatedAt\"\x8d\x01\n" +
+	"\x0eAcpLimitWindow\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12!\n" +
+	"\fused_percent\x18\x02 \x01(\x01R\vusedPercent\x12\x1b\n" +
+	"\tresets_at\x18\x03 \x01(\tR\bresetsAt\x12%\n" +
+	"\x0ewindow_minutes\x18\x04 \x01(\x03R\rwindowMinutes\"\xbe\x05\n" +
 	"\x0fAcpSessionState\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
@@ -1805,7 +1972,9 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\x15context_window_tokens\x18\v \x01(\x03R\x13contextWindowTokens\x12\x1a\n" +
 	"\bstarting\x18\f \x01(\bR\bstarting\x122\n" +
 	"\x06models\x18\r \x03(\v2\x1a.harness.agent.v1.AcpModelR\x06models\x12(\n" +
-	"\x10current_model_id\x18\x0e \x01(\tR\x0ecurrentModelId\"O\n" +
+	"\x10current_model_id\x18\x0e \x01(\tR\x0ecurrentModelId\x12=\n" +
+	"\x06limits\x18\x0f \x01(\v2 .harness.agent.v1.AcpAgentLimitsH\x00R\x06limits\x88\x01\x01B\t\n" +
+	"\a_limits\"O\n" +
 	"\aAcpMode\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1928,7 +2097,7 @@ func file_harness_agent_v1_acp_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_acp_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_harness_agent_v1_acp_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_harness_agent_v1_acp_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_harness_agent_v1_acp_proto_goTypes = []any{
 	(SessionFeature)(0),                  // 0: harness.agent.v1.SessionFeature
 	(AcpDistribution)(0),                 // 1: harness.agent.v1.AcpDistribution
@@ -1937,49 +2106,54 @@ var file_harness_agent_v1_acp_proto_goTypes = []any{
 	(InstallAcpAgentResponse_Phase)(0),   // 4: harness.agent.v1.InstallAcpAgentResponse.Phase
 	(*AcpAuthMethod)(nil),                // 5: harness.agent.v1.AcpAuthMethod
 	(*AcpAgent)(nil),                     // 6: harness.agent.v1.AcpAgent
-	(*AcpSessionState)(nil),              // 7: harness.agent.v1.AcpSessionState
-	(*AcpMode)(nil),                      // 8: harness.agent.v1.AcpMode
-	(*AcpCommand)(nil),                   // 9: harness.agent.v1.AcpCommand
-	(*AcpModel)(nil),                     // 10: harness.agent.v1.AcpModel
-	(*AcpTerminalCommand)(nil),           // 11: harness.agent.v1.AcpTerminalCommand
-	(*ListAcpAgentsRequest)(nil),         // 12: harness.agent.v1.ListAcpAgentsRequest
-	(*ListAcpAgentsResponse)(nil),        // 13: harness.agent.v1.ListAcpAgentsResponse
-	(*InstallAcpAgentRequest)(nil),       // 14: harness.agent.v1.InstallAcpAgentRequest
-	(*InstallAcpAgentResponse)(nil),      // 15: harness.agent.v1.InstallAcpAgentResponse
-	(*UpdateAcpAgentRequest)(nil),        // 16: harness.agent.v1.UpdateAcpAgentRequest
-	(*UpdateAcpAgentResponse)(nil),       // 17: harness.agent.v1.UpdateAcpAgentResponse
-	(*UninstallAcpAgentRequest)(nil),     // 18: harness.agent.v1.UninstallAcpAgentRequest
-	(*UninstallAcpAgentResponse)(nil),    // 19: harness.agent.v1.UninstallAcpAgentResponse
-	(*AuthenticateAcpAgentRequest)(nil),  // 20: harness.agent.v1.AuthenticateAcpAgentRequest
-	(*AuthenticateAcpAgentResponse)(nil), // 21: harness.agent.v1.AuthenticateAcpAgentResponse
-	(*SetAcpModeRequest)(nil),            // 22: harness.agent.v1.SetAcpModeRequest
-	(*SetAcpModeResponse)(nil),           // 23: harness.agent.v1.SetAcpModeResponse
-	nil,                                  // 24: harness.agent.v1.AcpTerminalCommand.EnvEntry
-	(*TerminalInfo)(nil),                 // 25: harness.agent.v1.TerminalInfo
+	(*AcpAgentLimits)(nil),               // 7: harness.agent.v1.AcpAgentLimits
+	(*AcpLimitWindow)(nil),               // 8: harness.agent.v1.AcpLimitWindow
+	(*AcpSessionState)(nil),              // 9: harness.agent.v1.AcpSessionState
+	(*AcpMode)(nil),                      // 10: harness.agent.v1.AcpMode
+	(*AcpCommand)(nil),                   // 11: harness.agent.v1.AcpCommand
+	(*AcpModel)(nil),                     // 12: harness.agent.v1.AcpModel
+	(*AcpTerminalCommand)(nil),           // 13: harness.agent.v1.AcpTerminalCommand
+	(*ListAcpAgentsRequest)(nil),         // 14: harness.agent.v1.ListAcpAgentsRequest
+	(*ListAcpAgentsResponse)(nil),        // 15: harness.agent.v1.ListAcpAgentsResponse
+	(*InstallAcpAgentRequest)(nil),       // 16: harness.agent.v1.InstallAcpAgentRequest
+	(*InstallAcpAgentResponse)(nil),      // 17: harness.agent.v1.InstallAcpAgentResponse
+	(*UpdateAcpAgentRequest)(nil),        // 18: harness.agent.v1.UpdateAcpAgentRequest
+	(*UpdateAcpAgentResponse)(nil),       // 19: harness.agent.v1.UpdateAcpAgentResponse
+	(*UninstallAcpAgentRequest)(nil),     // 20: harness.agent.v1.UninstallAcpAgentRequest
+	(*UninstallAcpAgentResponse)(nil),    // 21: harness.agent.v1.UninstallAcpAgentResponse
+	(*AuthenticateAcpAgentRequest)(nil),  // 22: harness.agent.v1.AuthenticateAcpAgentRequest
+	(*AuthenticateAcpAgentResponse)(nil), // 23: harness.agent.v1.AuthenticateAcpAgentResponse
+	(*SetAcpModeRequest)(nil),            // 24: harness.agent.v1.SetAcpModeRequest
+	(*SetAcpModeResponse)(nil),           // 25: harness.agent.v1.SetAcpModeResponse
+	nil,                                  // 26: harness.agent.v1.AcpTerminalCommand.EnvEntry
+	(*TerminalInfo)(nil),                 // 27: harness.agent.v1.TerminalInfo
 }
 var file_harness_agent_v1_acp_proto_depIdxs = []int32{
 	3,  // 0: harness.agent.v1.AcpAuthMethod.kind:type_name -> harness.agent.v1.AcpAuthMethod.Kind
 	1,  // 1: harness.agent.v1.AcpAgent.distribution:type_name -> harness.agent.v1.AcpDistribution
 	2,  // 2: harness.agent.v1.AcpAgent.auth_state:type_name -> harness.agent.v1.AcpAuthState
 	5,  // 3: harness.agent.v1.AcpAgent.auth_methods:type_name -> harness.agent.v1.AcpAuthMethod
-	8,  // 4: harness.agent.v1.AcpSessionState.modes:type_name -> harness.agent.v1.AcpMode
-	9,  // 5: harness.agent.v1.AcpSessionState.commands:type_name -> harness.agent.v1.AcpCommand
-	5,  // 6: harness.agent.v1.AcpSessionState.auth_methods:type_name -> harness.agent.v1.AcpAuthMethod
-	10, // 7: harness.agent.v1.AcpSessionState.models:type_name -> harness.agent.v1.AcpModel
-	24, // 8: harness.agent.v1.AcpTerminalCommand.env:type_name -> harness.agent.v1.AcpTerminalCommand.EnvEntry
-	6,  // 9: harness.agent.v1.ListAcpAgentsResponse.agents:type_name -> harness.agent.v1.AcpAgent
-	4,  // 10: harness.agent.v1.InstallAcpAgentResponse.phase:type_name -> harness.agent.v1.InstallAcpAgentResponse.Phase
-	6,  // 11: harness.agent.v1.InstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
-	15, // 12: harness.agent.v1.UpdateAcpAgentResponse.progress:type_name -> harness.agent.v1.InstallAcpAgentResponse
-	6,  // 13: harness.agent.v1.UninstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
-	11, // 14: harness.agent.v1.AuthenticateAcpAgentResponse.terminal:type_name -> harness.agent.v1.AcpTerminalCommand
-	25, // 15: harness.agent.v1.AuthenticateAcpAgentResponse.terminal_info:type_name -> harness.agent.v1.TerminalInfo
-	6,  // 16: harness.agent.v1.AuthenticateAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	7,  // 4: harness.agent.v1.AcpAgent.limits:type_name -> harness.agent.v1.AcpAgentLimits
+	8,  // 5: harness.agent.v1.AcpAgentLimits.windows:type_name -> harness.agent.v1.AcpLimitWindow
+	10, // 6: harness.agent.v1.AcpSessionState.modes:type_name -> harness.agent.v1.AcpMode
+	11, // 7: harness.agent.v1.AcpSessionState.commands:type_name -> harness.agent.v1.AcpCommand
+	5,  // 8: harness.agent.v1.AcpSessionState.auth_methods:type_name -> harness.agent.v1.AcpAuthMethod
+	12, // 9: harness.agent.v1.AcpSessionState.models:type_name -> harness.agent.v1.AcpModel
+	7,  // 10: harness.agent.v1.AcpSessionState.limits:type_name -> harness.agent.v1.AcpAgentLimits
+	26, // 11: harness.agent.v1.AcpTerminalCommand.env:type_name -> harness.agent.v1.AcpTerminalCommand.EnvEntry
+	6,  // 12: harness.agent.v1.ListAcpAgentsResponse.agents:type_name -> harness.agent.v1.AcpAgent
+	4,  // 13: harness.agent.v1.InstallAcpAgentResponse.phase:type_name -> harness.agent.v1.InstallAcpAgentResponse.Phase
+	6,  // 14: harness.agent.v1.InstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
+	17, // 15: harness.agent.v1.UpdateAcpAgentResponse.progress:type_name -> harness.agent.v1.InstallAcpAgentResponse
+	6,  // 16: harness.agent.v1.UninstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
+	13, // 17: harness.agent.v1.AuthenticateAcpAgentResponse.terminal:type_name -> harness.agent.v1.AcpTerminalCommand
+	27, // 18: harness.agent.v1.AuthenticateAcpAgentResponse.terminal_info:type_name -> harness.agent.v1.TerminalInfo
+	6,  // 19: harness.agent.v1.AuthenticateAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_acp_proto_init() }
@@ -1988,14 +2162,16 @@ func file_harness_agent_v1_acp_proto_init() {
 		return
 	}
 	file_harness_agent_v1_terminal_proto_init()
-	file_harness_agent_v1_acp_proto_msgTypes[16].OneofWrappers = []any{}
+	file_harness_agent_v1_acp_proto_msgTypes[1].OneofWrappers = []any{}
+	file_harness_agent_v1_acp_proto_msgTypes[4].OneofWrappers = []any{}
+	file_harness_agent_v1_acp_proto_msgTypes[18].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_acp_proto_rawDesc), len(file_harness_agent_v1_acp_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   20,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

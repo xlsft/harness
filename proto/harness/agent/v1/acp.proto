@@ -133,6 +133,30 @@ message AcpAgent {
   repeated AcpAuthMethod auth_methods = 19;
   // The engine id to pass in CreateSessionRequest.engine: "acp:<id>".
   string engine = 20;
+  // The latest subscription limits the agent reported on this machine; absent when it never reported any.
+  optional AcpAgentLimits limits = 21;
+}
+
+// Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
+// Captured from what the agent sends over ACP (its `_meta` fields and extension notifications); the client never
+// asks the provider itself nor reads the agent's credentials. Device-local, like everything about ACP agents.
+message AcpAgentLimits {
+  repeated AcpLimitWindow windows = 1;
+  // The plan, when the agent names it (e.g. "plus", "pro", "max").
+  string plan_name = 2;
+  // RFC 3339, UTC: when the snapshot was received.
+  string updated_at = 3;
+}
+
+message AcpLimitWindow {
+  // e.g. "5h", "weekly".
+  string label = 1;
+  // 0..100.
+  double used_percent = 2;
+  // RFC 3339, UTC; empty when unknown.
+  string resets_at = 3;
+  // Length of the window in minutes; 0 when unknown.
+  int64 window_minutes = 4;
 }
 
 // ACP state of a session (SessionInfo.acp).
@@ -160,6 +184,8 @@ message AcpSessionState {
   // The agent's model choices when it offers a model option; SetModel picks one by id.
   repeated AcpModel models = 13;
   string current_model_id = 14;
+  // The latest subscription limits the agent reported (also kept per agent, AcpAgent.limits).
+  optional AcpAgentLimits limits = 15;
 }
 
 message AcpMode {

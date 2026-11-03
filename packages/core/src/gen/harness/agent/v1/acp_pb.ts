@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/acp.proto.
  */
 export const file_harness_agent_v1_acp: GenFile = /*@__PURE__*/
-  fileDesc("ChpoYXJuZXNzL2FnZW50L3YxL2FjcC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSLlAQoNQWNwQXV0aE1ldGhvZBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEjIKBGtpbmQYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QuS2luZBIQCghlbnZfdmFycxgFIAMoCRIMCgRsaW5rGAYgASgJIlEKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg4KCktJTkRfQUdFTlQQARIRCg1LSU5EX1RFUk1JTkFMEAISEAoMS0lORF9FTlZfVkFSEAMi+AMKCEFjcEFnZW50EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSFgoObGF0ZXN0X3ZlcnNpb24YBCABKAkSEgoKcmVwb3NpdG9yeRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJEg8KB2xpY2Vuc2UYByABKAkSDwoHYXV0aG9ycxgIIAMoCRIQCghpY29uX3VybBgJIAEoCRIQCghpY29uX3N2ZxgKIAEoCRI3CgxkaXN0cmlidXRpb24YCyABKA4yIS5oYXJuZXNzLmFnZW50LnYxLkFjcERpc3RyaWJ1dGlvbhIRCglpbnN0YWxsZWQYDCABKAgSGQoRaW5zdGFsbGVkX3ZlcnNpb24YDSABKAkSGAoQdXBkYXRlX2F2YWlsYWJsZRgOIAEoCBIRCglhdmFpbGFibGUYDyABKAgSGgoSdW5hdmFpbGFibGVfcmVhc29uGBAgASgJEg8KB3J1bnRpbWUYESABKAkSMgoKYXV0aF9zdGF0ZRgSIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aFN0YXRlEjUKDGF1dGhfbWV0aG9kcxgTIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aE1ldGhvZBIOCgZlbmdpbmUYFCABKAkivQMKD0FjcFNlc3Npb25TdGF0ZRIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEhUKDWFnZW50X3ZlcnNpb24YAyABKAkSKAoFbW9kZXMYBCADKAsyGS5oYXJuZXNzLmFnZW50LnYxLkFjcE1vZGUSFwoPY3VycmVudF9tb2RlX2lkGAUgASgJEi4KCGNvbW1hbmRzGAYgAygLMhwuaGFybmVzcy5hZ2VudC52MS5BY3BDb21tYW5kEhIKCm5lZWRzX2F1dGgYByABKAgSNQoMYXV0aF9tZXRob2RzGAggAygLMh8uaGFybmVzcy5hZ2VudC52MS5BY3BBdXRoTWV0aG9kEhsKE2ZyZXNoX2FnZW50X3Nlc3Npb24YCSABKAgSGwoTY29udGV4dF91c2VkX3Rva2VucxgKIAEoAxIdChVjb250ZXh0X3dpbmRvd190b2tlbnMYCyABKAMSEAoIc3RhcnRpbmcYDCABKAgSKgoGbW9kZWxzGA0gAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbBIYChBjdXJyZW50X21vZGVsX2lkGA4gASgJIjgKB0FjcE1vZGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCSJDCgpBY3BDb21tYW5kEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEgoKaW5wdXRfaGludBgDIAEoCSI5CghBY3BNb2RlbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIrwBChJBY3BUZXJtaW5hbENvbW1hbmQSDwoHY29tbWFuZBgBIAEoCRIMCgRhcmdzGAIgAygJEjoKA2VudhgDIAMoCzItLmhhcm5lc3MuYWdlbnQudjEuQWNwVGVybWluYWxDb21tYW5kLkVudkVudHJ5EgsKA2N3ZBgEIAEoCRISCgpzaGVsbF9saW5lGAUgASgJGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiJwoUTGlzdEFjcEFnZW50c1JlcXVlc3QSDwoHcmVmcmVzaBgBIAEoCCKKAQoVTGlzdEFjcEFnZW50c1Jlc3BvbnNlEioKBmFnZW50cxgBIAMoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQSGwoTcmVnaXN0cnlfZmV0Y2hlZF9hdBgCIAEoCRIWCg5yZWdpc3RyeV9lcnJvchgDIAEoCRIQCghydW50aW1lcxgEIAMoCSIqChZJbnN0YWxsQWNwQWdlbnRSZXF1ZXN0EhAKCGFnZW50X2lkGAEgASgJItQCChdJbnN0YWxsQWNwQWdlbnRSZXNwb25zZRI+CgVwaGFzZRgBIAEoDjIvLmhhcm5lc3MuYWdlbnQudjEuSW5zdGFsbEFjcEFnZW50UmVzcG9uc2UuUGhhc2USEgoKYnl0ZXNfZG9uZRgCIAEoAxITCgtieXRlc190b3RhbBgDIAEoAxIPCgdtZXNzYWdlGAQgASgJEgwKBGRvbmUYBSABKAgSKQoFYWdlbnQYBiABKAsyGi5oYXJuZXNzLmFnZW50LnYxLkFjcEFnZW50IoUBCgVQaGFzZRIVChFQSEFTRV9VTlNQRUNJRklFRBAAEhMKD1BIQVNFX1JFU09MVklORxABEhUKEVBIQVNFX0RPV05MT0FESU5HEAISEwoPUEhBU0VfVkVSSUZZSU5HEAMSFAoQUEhBU0VfRVhUUkFDVElORxAEEg4KClBIQVNFX0RPTkUQBSIpChVVcGRhdGVBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAkiVQoWVXBkYXRlQWNwQWdlbnRSZXNwb25zZRI7Cghwcm9ncmVzcxgBIAEoCzIpLmhhcm5lc3MuYWdlbnQudjEuSW5zdGFsbEFjcEFnZW50UmVzcG9uc2UiLAoYVW5pbnN0YWxsQWNwQWdlbnRSZXF1ZXN0EhAKCGFnZW50X2lkGAEgASgJIkYKGVVuaW5zdGFsbEFjcEFnZW50UmVzcG9uc2USKQoFYWdlbnQYASABKAsyGi5oYXJuZXNzLmFnZW50LnYxLkFjcEFnZW50In0KG0F1dGhlbnRpY2F0ZUFjcEFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCRIRCgltZXRob2RfaWQYAiABKAkSEgoKc2Vzc2lvbl9pZBgDIAEoCRIOCgZ2ZXJpZnkYBCABKAgSFQoNb3Blbl90ZXJtaW5hbBgFIAEoCCKjAgocQXV0aGVudGljYXRlQWNwQWdlbnRSZXNwb25zZRIVCg1hdXRoZW50aWNhdGVkGAEgASgIEjsKCHRlcm1pbmFsGAIgASgLMiQuaGFybmVzcy5hZ2VudC52MS5BY3BUZXJtaW5hbENvbW1hbmRIAIgBARI6Cg10ZXJtaW5hbF9pbmZvGAMgASgLMh4uaGFybmVzcy5hZ2VudC52MS5UZXJtaW5hbEluZm9IAYgBARIXCg90ZXJtaW5hbF90aWNrZXQYBCABKAkSEAoIZW52X3ZhcnMYBSADKAkSKQoFYWdlbnQYBiABKAsyGi5oYXJuZXNzLmFnZW50LnYxLkFjcEFnZW50QgsKCV90ZXJtaW5hbEIQCg5fdGVybWluYWxfaW5mbyI4ChFTZXRBY3BNb2RlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEg8KB21vZGVfaWQYAiABKAkiFAoSU2V0QWNwTW9kZVJlc3BvbnNlKvsDCg5TZXNzaW9uRmVhdHVyZRIfChtTRVNTSU9OX0ZFQVRVUkVfVU5TUEVDSUZJRUQQABIaChZTRVNTSU9OX0ZFQVRVUkVfUkVXSU5EEAESGAoUU0VTU0lPTl9GRUFUVVJFX0ZPUksQAhIgChxTRVNTSU9OX0ZFQVRVUkVfU1VCX1NFU1NJT05TEAMSHQoZU0VTU0lPTl9GRUFUVVJFX1NJREVfQ0hBVBAEEh4KGlNFU1NJT05fRkVBVFVSRV9DT01QQUNUSU9OEAUSJQohU0VTU0lPTl9GRUFUVVJFX0NPTlRFWFRfQlJFQUtET1dOEAYSHgoaU0VTU0lPTl9GRUFUVVJFX0NMQVNTSUZJRVIQBxIaChZTRVNTSU9OX0ZFQVRVUkVfRUZGT1JUEAgSIQodU0VTU0lPTl9GRUFUVVJFX09VVFBVVF9TVFlMRVMQCRIiCh5TRVNTSU9OX0ZFQVRVUkVfU0hFTExfQ09NTUFORFMQChIkCiBTRVNTSU9OX0ZFQVRVUkVfQkFDS0dST1VORF9UQVNLUxALEiEKHVNFU1NJT05fRkVBVFVSRV9NT0RFTF9DQVRBTE9HEAwSHQoZU0VTU0lPTl9GRUFUVVJFX1FVRVNUSU9OUxANEh8KG1NFU1NJT05fRkVBVFVSRV9NT1ZFX0ZPTERFUhAOKoQBCg9BY3BEaXN0cmlidXRpb24SIAocQUNQX0RJU1RSSUJVVElPTl9VTlNQRUNJRklFRBAAEhsKF0FDUF9ESVNUUklCVVRJT05fQklOQVJZEAESGAoUQUNQX0RJU1RSSUJVVElPTl9OUFgQAhIYChRBQ1BfRElTVFJJQlVUSU9OX1VWWBADKqoBCgxBY3BBdXRoU3RhdGUSHgoaQUNQX0FVVEhfU1RBVEVfVU5TUEVDSUZJRUQQABIaChZBQ1BfQVVUSF9TVEFURV9VTktOT1dOEAESHwobQUNQX0FVVEhfU1RBVEVfTk9UX1JFUVVJUkVEEAISGwoXQUNQX0FVVEhfU1RBVEVfUkVRVUlSRUQQAxIgChxBQ1BfQVVUSF9TVEFURV9BVVRIRU5USUNBVEVEEARCyQEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQghBY3BQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw", [file_harness_agent_v1_terminal]);
+  fileDesc("ChpoYXJuZXNzL2FnZW50L3YxL2FjcC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSLlAQoNQWNwQXV0aE1ldGhvZBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEjIKBGtpbmQYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QuS2luZBIQCghlbnZfdmFycxgFIAMoCRIMCgRsaW5rGAYgASgJIlEKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg4KCktJTkRfQUdFTlQQARIRCg1LSU5EX1RFUk1JTkFMEAISEAoMS0lORF9FTlZfVkFSEAMiugQKCEFjcEFnZW50EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSFgoObGF0ZXN0X3ZlcnNpb24YBCABKAkSEgoKcmVwb3NpdG9yeRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJEg8KB2xpY2Vuc2UYByABKAkSDwoHYXV0aG9ycxgIIAMoCRIQCghpY29uX3VybBgJIAEoCRIQCghpY29uX3N2ZxgKIAEoCRI3CgxkaXN0cmlidXRpb24YCyABKA4yIS5oYXJuZXNzLmFnZW50LnYxLkFjcERpc3RyaWJ1dGlvbhIRCglpbnN0YWxsZWQYDCABKAgSGQoRaW5zdGFsbGVkX3ZlcnNpb24YDSABKAkSGAoQdXBkYXRlX2F2YWlsYWJsZRgOIAEoCBIRCglhdmFpbGFibGUYDyABKAgSGgoSdW5hdmFpbGFibGVfcmVhc29uGBAgASgJEg8KB3J1bnRpbWUYESABKAkSMgoKYXV0aF9zdGF0ZRgSIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aFN0YXRlEjUKDGF1dGhfbWV0aG9kcxgTIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aE1ldGhvZBIOCgZlbmdpbmUYFCABKAkSNQoGbGltaXRzGBUgASgLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudExpbWl0c0gAiAEBQgkKB19saW1pdHMiagoOQWNwQWdlbnRMaW1pdHMSMQoHd2luZG93cxgBIAMoCzIgLmhhcm5lc3MuYWdlbnQudjEuQWNwTGltaXRXaW5kb3cSEQoJcGxhbl9uYW1lGAIgASgJEhIKCnVwZGF0ZWRfYXQYAyABKAkiYAoOQWNwTGltaXRXaW5kb3cSDQoFbGFiZWwYASABKAkSFAoMdXNlZF9wZXJjZW50GAIgASgBEhEKCXJlc2V0c19hdBgDIAEoCRIWCg53aW5kb3dfbWludXRlcxgEIAEoAyL/AwoPQWNwU2Vzc2lvblN0YXRlEhAKCGFnZW50X2lkGAEgASgJEhIKCmFnZW50X25hbWUYAiABKAkSFQoNYWdlbnRfdmVyc2lvbhgDIAEoCRIoCgVtb2RlcxgEIAMoCzIZLmhhcm5lc3MuYWdlbnQudjEuQWNwTW9kZRIXCg9jdXJyZW50X21vZGVfaWQYBSABKAkSLgoIY29tbWFuZHMYBiADKAsyHC5oYXJuZXNzLmFnZW50LnYxLkFjcENvbW1hbmQSEgoKbmVlZHNfYXV0aBgHIAEoCBI1CgxhdXRoX21ldGhvZHMYCCADKAsyHy5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QSGwoTZnJlc2hfYWdlbnRfc2Vzc2lvbhgJIAEoCBIbChNjb250ZXh0X3VzZWRfdG9rZW5zGAogASgDEh0KFWNvbnRleHRfd2luZG93X3Rva2VucxgLIAEoAxIQCghzdGFydGluZxgMIAEoCBIqCgZtb2RlbHMYDSADKAsyGi5oYXJuZXNzLmFnZW50LnYxLkFjcE1vZGVsEhgKEGN1cnJlbnRfbW9kZWxfaWQYDiABKAkSNQoGbGltaXRzGA8gASgLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudExpbWl0c0gAiAEBQgkKB19saW1pdHMiOAoHQWNwTW9kZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIkMKCkFjcENvbW1hbmQSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRISCgppbnB1dF9oaW50GAMgASgJIjkKCEFjcE1vZGVsEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkivAEKEkFjcFRlcm1pbmFsQ29tbWFuZBIPCgdjb21tYW5kGAEgASgJEgwKBGFyZ3MYAiADKAkSOgoDZW52GAMgAygLMi0uaGFybmVzcy5hZ2VudC52MS5BY3BUZXJtaW5hbENvbW1hbmQuRW52RW50cnkSCwoDY3dkGAQgASgJEhIKCnNoZWxsX2xpbmUYBSABKAkaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASInChRMaXN0QWNwQWdlbnRzUmVxdWVzdBIPCgdyZWZyZXNoGAEgASgIIooBChVMaXN0QWNwQWdlbnRzUmVzcG9uc2USKgoGYWdlbnRzGAEgAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudBIbChNyZWdpc3RyeV9mZXRjaGVkX2F0GAIgASgJEhYKDnJlZ2lzdHJ5X2Vycm9yGAMgASgJEhAKCHJ1bnRpbWVzGAQgAygJIioKFkluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAki1AIKF0luc3RhbGxBY3BBZ2VudFJlc3BvbnNlEj4KBXBoYXNlGAEgASgOMi8uaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZS5QaGFzZRISCgpieXRlc19kb25lGAIgASgDEhMKC2J5dGVzX3RvdGFsGAMgASgDEg8KB21lc3NhZ2UYBCABKAkSDAoEZG9uZRgFIAEoCBIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQihQEKBVBoYXNlEhUKEVBIQVNFX1VOU1BFQ0lGSUVEEAASEwoPUEhBU0VfUkVTT0xWSU5HEAESFQoRUEhBU0VfRE9XTkxPQURJTkcQAhITCg9QSEFTRV9WRVJJRllJTkcQAxIUChBQSEFTRV9FWFRSQUNUSU5HEAQSDgoKUEhBU0VfRE9ORRAFIikKFVVwZGF0ZUFjcEFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCSJVChZVcGRhdGVBY3BBZ2VudFJlc3BvbnNlEjsKCHByb2dyZXNzGAEgASgLMikuaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZSIsChhVbmluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAkiRgoZVW5pbnN0YWxsQWNwQWdlbnRSZXNwb25zZRIpCgVhZ2VudBgBIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQifQobQXV0aGVudGljYXRlQWNwQWdlbnRSZXF1ZXN0EhAKCGFnZW50X2lkGAEgASgJEhEKCW1ldGhvZF9pZBgCIAEoCRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBnZlcmlmeRgEIAEoCBIVCg1vcGVuX3Rlcm1pbmFsGAUgASgIIqMCChxBdXRoZW50aWNhdGVBY3BBZ2VudFJlc3BvbnNlEhUKDWF1dGhlbnRpY2F0ZWQYASABKAgSOwoIdGVybWluYWwYAiABKAsyJC5oYXJuZXNzLmFnZW50LnYxLkFjcFRlcm1pbmFsQ29tbWFuZEgAiAEBEjoKDXRlcm1pbmFsX2luZm8YAyABKAsyHi5oYXJuZXNzLmFnZW50LnYxLlRlcm1pbmFsSW5mb0gBiAEBEhcKD3Rlcm1pbmFsX3RpY2tldBgEIAEoCRIQCghlbnZfdmFycxgFIAMoCRIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnRCCwoJX3Rlcm1pbmFsQhAKDl90ZXJtaW5hbF9pbmZvIjgKEVNldEFjcE1vZGVSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSDwoHbW9kZV9pZBgCIAEoCSIUChJTZXRBY3BNb2RlUmVzcG9uc2Uq+wMKDlNlc3Npb25GZWF0dXJlEh8KG1NFU1NJT05fRkVBVFVSRV9VTlNQRUNJRklFRBAAEhoKFlNFU1NJT05fRkVBVFVSRV9SRVdJTkQQARIYChRTRVNTSU9OX0ZFQVRVUkVfRk9SSxACEiAKHFNFU1NJT05fRkVBVFVSRV9TVUJfU0VTU0lPTlMQAxIdChlTRVNTSU9OX0ZFQVRVUkVfU0lERV9DSEFUEAQSHgoaU0VTU0lPTl9GRUFUVVJFX0NPTVBBQ1RJT04QBRIlCiFTRVNTSU9OX0ZFQVRVUkVfQ09OVEVYVF9CUkVBS0RPV04QBhIeChpTRVNTSU9OX0ZFQVRVUkVfQ0xBU1NJRklFUhAHEhoKFlNFU1NJT05fRkVBVFVSRV9FRkZPUlQQCBIhCh1TRVNTSU9OX0ZFQVRVUkVfT1VUUFVUX1NUWUxFUxAJEiIKHlNFU1NJT05fRkVBVFVSRV9TSEVMTF9DT01NQU5EUxAKEiQKIFNFU1NJT05fRkVBVFVSRV9CQUNLR1JPVU5EX1RBU0tTEAsSIQodU0VTU0lPTl9GRUFUVVJFX01PREVMX0NBVEFMT0cQDBIdChlTRVNTSU9OX0ZFQVRVUkVfUVVFU1RJT05TEA0SHwobU0VTU0lPTl9GRUFUVVJFX01PVkVfRk9MREVSEA4qhAEKD0FjcERpc3RyaWJ1dGlvbhIgChxBQ1BfRElTVFJJQlVUSU9OX1VOU1BFQ0lGSUVEEAASGwoXQUNQX0RJU1RSSUJVVElPTl9CSU5BUlkQARIYChRBQ1BfRElTVFJJQlVUSU9OX05QWBACEhgKFEFDUF9ESVNUUklCVVRJT05fVVZYEAMqqgEKDEFjcEF1dGhTdGF0ZRIeChpBQ1BfQVVUSF9TVEFURV9VTlNQRUNJRklFRBAAEhoKFkFDUF9BVVRIX1NUQVRFX1VOS05PV04QARIfChtBQ1BfQVVUSF9TVEFURV9OT1RfUkVRVUlSRUQQAhIbChdBQ1BfQVVUSF9TVEFURV9SRVFVSVJFRBADEiAKHEFDUF9BVVRIX1NUQVRFX0FVVEhFTlRJQ0FURUQQBELJAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCCEFjcFByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z", [file_harness_agent_v1_terminal]);
 
 /**
  * A way to authenticate the agent offered in its initialize response.
@@ -224,6 +224,13 @@ export type AcpAgent = Message<"harness.agent.v1.AcpAgent"> & {
    * @generated from field: string engine = 20;
    */
   engine: string;
+
+  /**
+   * The latest subscription limits the agent reported on this machine; absent when it never reported any.
+   *
+   * @generated from field: optional harness.agent.v1.AcpAgentLimits limits = 21;
+   */
+  limits?: AcpAgentLimits | undefined;
 };
 
 /**
@@ -232,6 +239,81 @@ export type AcpAgent = Message<"harness.agent.v1.AcpAgent"> & {
  */
 export const AcpAgentSchema: GenMessage<AcpAgent> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_acp, 1);
+
+/**
+ * Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
+ * Captured from what the agent sends over ACP (its `_meta` fields and extension notifications); the client never
+ * asks the provider itself nor reads the agent's credentials. Device-local, like everything about ACP agents.
+ *
+ * @generated from message harness.agent.v1.AcpAgentLimits
+ */
+export type AcpAgentLimits = Message<"harness.agent.v1.AcpAgentLimits"> & {
+  /**
+   * @generated from field: repeated harness.agent.v1.AcpLimitWindow windows = 1;
+   */
+  windows: AcpLimitWindow[];
+
+  /**
+   * The plan, when the agent names it (e.g. "plus", "pro", "max").
+   *
+   * @generated from field: string plan_name = 2;
+   */
+  planName: string;
+
+  /**
+   * RFC 3339, UTC: when the snapshot was received.
+   *
+   * @generated from field: string updated_at = 3;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.AcpAgentLimits.
+ * Use `create(AcpAgentLimitsSchema)` to create a new message.
+ */
+export const AcpAgentLimitsSchema: GenMessage<AcpAgentLimits> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_acp, 2);
+
+/**
+ * @generated from message harness.agent.v1.AcpLimitWindow
+ */
+export type AcpLimitWindow = Message<"harness.agent.v1.AcpLimitWindow"> & {
+  /**
+   * e.g. "5h", "weekly".
+   *
+   * @generated from field: string label = 1;
+   */
+  label: string;
+
+  /**
+   * 0..100.
+   *
+   * @generated from field: double used_percent = 2;
+   */
+  usedPercent: number;
+
+  /**
+   * RFC 3339, UTC; empty when unknown.
+   *
+   * @generated from field: string resets_at = 3;
+   */
+  resetsAt: string;
+
+  /**
+   * Length of the window in minutes; 0 when unknown.
+   *
+   * @generated from field: int64 window_minutes = 4;
+   */
+  windowMinutes: bigint;
+};
+
+/**
+ * Describes the message harness.agent.v1.AcpLimitWindow.
+ * Use `create(AcpLimitWindowSchema)` to create a new message.
+ */
+export const AcpLimitWindowSchema: GenMessage<AcpLimitWindow> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_acp, 3);
 
 /**
  * ACP state of a session (SessionInfo.acp).
@@ -324,6 +406,13 @@ export type AcpSessionState = Message<"harness.agent.v1.AcpSessionState"> & {
    * @generated from field: string current_model_id = 14;
    */
   currentModelId: string;
+
+  /**
+   * The latest subscription limits the agent reported (also kept per agent, AcpAgent.limits).
+   *
+   * @generated from field: optional harness.agent.v1.AcpAgentLimits limits = 15;
+   */
+  limits?: AcpAgentLimits | undefined;
 };
 
 /**
@@ -331,7 +420,7 @@ export type AcpSessionState = Message<"harness.agent.v1.AcpSessionState"> & {
  * Use `create(AcpSessionStateSchema)` to create a new message.
  */
 export const AcpSessionStateSchema: GenMessage<AcpSessionState> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 2);
+  messageDesc(file_harness_agent_v1_acp, 4);
 
 /**
  * @generated from message harness.agent.v1.AcpMode
@@ -358,7 +447,7 @@ export type AcpMode = Message<"harness.agent.v1.AcpMode"> & {
  * Use `create(AcpModeSchema)` to create a new message.
  */
 export const AcpModeSchema: GenMessage<AcpMode> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 3);
+  messageDesc(file_harness_agent_v1_acp, 5);
 
 /**
  * @generated from message harness.agent.v1.AcpCommand
@@ -387,7 +476,7 @@ export type AcpCommand = Message<"harness.agent.v1.AcpCommand"> & {
  * Use `create(AcpCommandSchema)` to create a new message.
  */
 export const AcpCommandSchema: GenMessage<AcpCommand> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 4);
+  messageDesc(file_harness_agent_v1_acp, 6);
 
 /**
  * @generated from message harness.agent.v1.AcpModel
@@ -414,7 +503,7 @@ export type AcpModel = Message<"harness.agent.v1.AcpModel"> & {
  * Use `create(AcpModelSchema)` to create a new message.
  */
 export const AcpModelSchema: GenMessage<AcpModel> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 5);
+  messageDesc(file_harness_agent_v1_acp, 7);
 
 /**
  * A command for an interactive terminal (terminal-auth methods): the agent's own launch command with the
@@ -456,7 +545,7 @@ export type AcpTerminalCommand = Message<"harness.agent.v1.AcpTerminalCommand"> 
  * Use `create(AcpTerminalCommandSchema)` to create a new message.
  */
 export const AcpTerminalCommandSchema: GenMessage<AcpTerminalCommand> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 6);
+  messageDesc(file_harness_agent_v1_acp, 8);
 
 /**
  * @generated from message harness.agent.v1.ListAcpAgentsRequest
@@ -475,7 +564,7 @@ export type ListAcpAgentsRequest = Message<"harness.agent.v1.ListAcpAgentsReques
  * Use `create(ListAcpAgentsRequestSchema)` to create a new message.
  */
 export const ListAcpAgentsRequestSchema: GenMessage<ListAcpAgentsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 7);
+  messageDesc(file_harness_agent_v1_acp, 9);
 
 /**
  * @generated from message harness.agent.v1.ListAcpAgentsResponse
@@ -513,7 +602,7 @@ export type ListAcpAgentsResponse = Message<"harness.agent.v1.ListAcpAgentsRespo
  * Use `create(ListAcpAgentsResponseSchema)` to create a new message.
  */
 export const ListAcpAgentsResponseSchema: GenMessage<ListAcpAgentsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 8);
+  messageDesc(file_harness_agent_v1_acp, 10);
 
 /**
  * @generated from message harness.agent.v1.InstallAcpAgentRequest
@@ -530,7 +619,7 @@ export type InstallAcpAgentRequest = Message<"harness.agent.v1.InstallAcpAgentRe
  * Use `create(InstallAcpAgentRequestSchema)` to create a new message.
  */
 export const InstallAcpAgentRequestSchema: GenMessage<InstallAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 9);
+  messageDesc(file_harness_agent_v1_acp, 11);
 
 /**
  * Progress of InstallAcpAgent / UpdateAcpAgent. The last message has done = true and the agent's new state.
@@ -576,7 +665,7 @@ export type InstallAcpAgentResponse = Message<"harness.agent.v1.InstallAcpAgentR
  * Use `create(InstallAcpAgentResponseSchema)` to create a new message.
  */
 export const InstallAcpAgentResponseSchema: GenMessage<InstallAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 10);
+  messageDesc(file_harness_agent_v1_acp, 12);
 
 /**
  * @generated from enum harness.agent.v1.InstallAcpAgentResponse.Phase
@@ -617,7 +706,7 @@ export enum InstallAcpAgentResponse_Phase {
  * Describes the enum harness.agent.v1.InstallAcpAgentResponse.Phase.
  */
 export const InstallAcpAgentResponse_PhaseSchema: GenEnum<InstallAcpAgentResponse_Phase> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_acp, 10, 0);
+  enumDesc(file_harness_agent_v1_acp, 12, 0);
 
 /**
  * @generated from message harness.agent.v1.UpdateAcpAgentRequest
@@ -634,7 +723,7 @@ export type UpdateAcpAgentRequest = Message<"harness.agent.v1.UpdateAcpAgentRequ
  * Use `create(UpdateAcpAgentRequestSchema)` to create a new message.
  */
 export const UpdateAcpAgentRequestSchema: GenMessage<UpdateAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 11);
+  messageDesc(file_harness_agent_v1_acp, 13);
 
 /**
  * Same shape as InstallAcpAgentResponse.
@@ -653,7 +742,7 @@ export type UpdateAcpAgentResponse = Message<"harness.agent.v1.UpdateAcpAgentRes
  * Use `create(UpdateAcpAgentResponseSchema)` to create a new message.
  */
 export const UpdateAcpAgentResponseSchema: GenMessage<UpdateAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 12);
+  messageDesc(file_harness_agent_v1_acp, 14);
 
 /**
  * @generated from message harness.agent.v1.UninstallAcpAgentRequest
@@ -670,7 +759,7 @@ export type UninstallAcpAgentRequest = Message<"harness.agent.v1.UninstallAcpAge
  * Use `create(UninstallAcpAgentRequestSchema)` to create a new message.
  */
 export const UninstallAcpAgentRequestSchema: GenMessage<UninstallAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 13);
+  messageDesc(file_harness_agent_v1_acp, 15);
 
 /**
  * @generated from message harness.agent.v1.UninstallAcpAgentResponse
@@ -687,7 +776,7 @@ export type UninstallAcpAgentResponse = Message<"harness.agent.v1.UninstallAcpAg
  * Use `create(UninstallAcpAgentResponseSchema)` to create a new message.
  */
 export const UninstallAcpAgentResponseSchema: GenMessage<UninstallAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 14);
+  messageDesc(file_harness_agent_v1_acp, 16);
 
 /**
  * @generated from message harness.agent.v1.AuthenticateAcpAgentRequest
@@ -733,7 +822,7 @@ export type AuthenticateAcpAgentRequest = Message<"harness.agent.v1.Authenticate
  * Use `create(AuthenticateAcpAgentRequestSchema)` to create a new message.
  */
 export const AuthenticateAcpAgentRequestSchema: GenMessage<AuthenticateAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 15);
+  messageDesc(file_harness_agent_v1_acp, 17);
 
 /**
  * @generated from message harness.agent.v1.AuthenticateAcpAgentResponse
@@ -783,7 +872,7 @@ export type AuthenticateAcpAgentResponse = Message<"harness.agent.v1.Authenticat
  * Use `create(AuthenticateAcpAgentResponseSchema)` to create a new message.
  */
 export const AuthenticateAcpAgentResponseSchema: GenMessage<AuthenticateAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 16);
+  messageDesc(file_harness_agent_v1_acp, 18);
 
 /**
  * @generated from message harness.agent.v1.SetAcpModeRequest
@@ -807,7 +896,7 @@ export type SetAcpModeRequest = Message<"harness.agent.v1.SetAcpModeRequest"> & 
  * Use `create(SetAcpModeRequestSchema)` to create a new message.
  */
 export const SetAcpModeRequestSchema: GenMessage<SetAcpModeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 17);
+  messageDesc(file_harness_agent_v1_acp, 19);
 
 /**
  * @generated from message harness.agent.v1.SetAcpModeResponse
@@ -820,7 +909,7 @@ export type SetAcpModeResponse = Message<"harness.agent.v1.SetAcpModeResponse"> 
  * Use `create(SetAcpModeResponseSchema)` to create a new message.
  */
 export const SetAcpModeResponseSchema: GenMessage<SetAcpModeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 18);
+  messageDesc(file_harness_agent_v1_acp, 20);
 
 /**
  * A feature of the session engine that a session may not support. Frontends hide what a session lists in
