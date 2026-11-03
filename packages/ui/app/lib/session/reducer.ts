@@ -102,6 +102,17 @@ export function permissionModeName(mode: PermissionMode): PermissionModeName {
   }
 }
 
+export function permissionModePb(mode: PermissionModeName): PermissionMode {
+  switch (mode) {
+    case 'accept_edits': return PermissionMode.ACCEPT_EDITS
+    case 'plan': return PermissionMode.PLAN
+    case 'dont_ask': return PermissionMode.DONT_ASK
+    case 'bypass': return PermissionMode.BYPASS_PERMISSIONS
+    case 'auto': return PermissionMode.AUTO
+    default: return PermissionMode.DEFAULT
+  }
+}
+
 export function statusName(status: SessionStatus): Status {
   switch (status) {
     case SessionStatus.WORKING: return 'working'

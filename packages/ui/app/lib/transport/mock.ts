@@ -29,6 +29,7 @@ import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
 import type { QuestionReply } from '~/lib/session/types'
+import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
 
 // Folders and a small directory tree for the new-session pickers.
 const MOCK_HOME = '/Users/xlsft'
@@ -116,7 +117,14 @@ export class MockTransport implements SessionTransport {
   }
 
   async initialize() {
-    return create(InitializeResponseSchema, { clientVersion: '0.1.0-mock', userEmail: 'xlsft@self-hosted', modelIds: MODELS.map(m => m.id) })
+    const disabled = this.usersApi.disabledModes
+    return create(InitializeResponseSchema, {
+      clientVersion: '0.1.0-mock',
+      userEmail: 'xlsft@self-hosted',
+      modelIds: MODELS.map(m => m.id),
+      permissionModes: (['default', 'accept_edits', 'plan', 'auto'] as const).filter(m => !disabled.includes(m)).map(permissionModePb),
+      disabledPermissionModes: disabled.map(permissionModePb)
+    })
   }
 
   async listSessions() {
@@ -513,6 +521,7 @@ export class MockTransport implements SessionTransport {
 
   async setPermissionMode(sessionId: string, mode: PermissionMode) {
     const s = this.get(sessionId)
+    if (this.usersApi.disabledModes.includes(permissionModeName(mode))) throw new Error('[permission_denied] this permission mode is disabled by your administrator')
     s.info = { ...s.info, permissionMode: mode }
     this.emit(s, b => b.permissionModeChanged(mode))
   }

@@ -39,7 +39,6 @@ const section = computed<Section>({
 const { prefs: defaults, save, effortOf, setEffort } = useSessionDefaults()
 const prefs = computed(() => defaults.value)
 const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => save('worktree', v) })
-
 const serverDefault = computed(() => store.defaultModel || store.models[0]?.id || '')
 const providerNames = ref<Record<string, string>>({})
 function rememberProviders(list: ProviderList) {
@@ -106,44 +105,13 @@ async function signOut() {
 
       <div class="flex min-w-0 flex-1 flex-col pt-[52px] max-md:pt-0">
         <template v-if="section === 'general'">
+          <SettingsModes />
           <h2 class="set-h">
             New sessions
           </h2>
           <p class="set-sub">
             What the new-session screen starts with. Changing a chip there updates these too.
           </p>
-          <div class="set-row">
-            <div class="set-label">
-              <span>Permission mode</span>
-              <span class="set-desc">How much the agent may do without asking.</span>
-            </div>
-            <div class="flex flex-col border border-default">
-              <button
-                v-for="m in MODES"
-                :key="m.key"
-                type="button"
-                role="radio"
-                :aria-checked="(prefs.mode ?? 'auto') === m.key"
-                class="flex w-[300px] items-center gap-2.5 px-3 py-2 text-left hover:bg-hover max-sm:w-full"
-                :class="(prefs.mode ?? 'auto') === m.key ? 'bg-raised' : ''"
-                @click="save('mode', m.key)"
-              >
-                <span class="flex-1">
-                  <span
-                    class="block text-[12.5px]"
-                    :class="m.cls"
-                  >{{ m.label }}</span>
-                  <span class="block text-[11.5px] text-muted">{{ m.detail }}</span>
-                </span>
-                <HIcon
-                  v-if="(prefs.mode ?? 'auto') === m.key"
-                  name="check"
-                  :size="14"
-                  class="text-accent"
-                />
-              </button>
-            </div>
-          </div>
           <div class="set-row">
             <div class="set-label">
               <span>Model</span>
