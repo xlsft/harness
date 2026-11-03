@@ -173,7 +173,7 @@ const placeholder = computed(() => {
   if (planMode.value && !busy.value) return 'Describe what to plan. Nothing will be changed.'
   if (queue.value.length) return `${queue.value.length} queued · type to add another`
   if (busy.value) return 'Type to queue a message for after this turn'
-  return 'Message agent · /commands · @files · $shell'
+  return 'Message agent · / commands · @ files · $ shell'
 })
 
 // Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.

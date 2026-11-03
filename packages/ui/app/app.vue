@@ -88,6 +88,7 @@ if (desktop) {
     <template v-else>
       <NuxtPage />
       <SettingsModal />
+      <SearchModal />
     </template>
   </UApp>
 </template>

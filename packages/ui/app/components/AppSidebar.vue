@@ -66,6 +66,7 @@ function deviceTitle(s: SessionState) {
 
 const onArtifacts = computed(() => route.path.startsWith('/artifacts'))
 const settings = useSettingsModal()
+const searchOpen = useState('search-open', () => false)
 const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
 const onPage = computed(() => onArtifacts.value || !!route.query.new)
@@ -180,6 +181,13 @@ const nav = [
         @click.prevent="newSession()"
       >
         <HIcon name="plus" />New session<span class="flex-1" /><HKeys keys="meta+n" />
+      </a>
+      <a
+        href="#"
+        class="nav-row px-[9px] hover:bg-hover text-strong"
+        @click.prevent="searchOpen = true; open = false"
+      >
+        <HIcon name="search" />Search<span class="flex-1" /><HKeys keys="meta+k" />
       </a>
       <component
         :is="item.to ? 'NuxtLink' : 'a'"
@@ -357,11 +365,6 @@ const nav = [
         kbd="meta+,"
         :pressed="onSettings"
         @click="settings.open(); open = false"
-      />
-      <HIconBtn
-        icon="search"
-        label="Search"
-        kbd="meta+k"
       />
     </template>
   </UDashboardSidebar>
