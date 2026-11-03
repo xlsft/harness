@@ -12,6 +12,7 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { patchStats, type PatchHunk } from '~/utils/tools'
 import {
   ContextUsage_Category,
   ContextUsageSchema,
@@ -45,6 +46,7 @@ import { MockSideChatsApi } from '~/lib/sidechat/mock'
 
 import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
+import { diffVersion, type SessionDiff, type SessionFileDiff } from '~/lib/files/sessionDiff'
 import { MockSpeechApi } from '~/lib/speech/mock'
 import { MockAcpApi } from '~/lib/acp/mock'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
@@ -1086,6 +1088,51 @@ export class MockTransport implements SessionTransport {
   private filesApi = new MockFilesApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd, blank: id => !!this.sessions.get(id)?.info.noFolder })
   files() {
     return this.filesApi
+  }
+
+  // As the client measures it: the mock has no disk, so its "disk" is what the session's Edit / Write calls reported
+  // (later reports of a file add to the earlier ones) and what MockFilesApi.write changed.
+  async sessionDiff(sessionId: string, opts: { ifNoneMatch?: string } = {}): Promise<SessionDiff> {
+    const s = this.get(sessionId)
+    if (s.info.remote) throw new Error(`[failed_precondition] session ${sessionId} runs on ${s.info.deviceName || 'another machine'}; its files can only be browsed on that machine`)
+    const cwd = s.info.cwd.replace(/\/+$/, '')
+    const started = new Map<string, { name: string, input: Record<string, unknown> }>()
+    const byPath = new Map<string, SessionFileDiff>()
+    for (const { event } of s.history) {
+      if (event.case === 'toolCallStarted') {
+        started.set(event.value.toolUseId, { name: event.value.name, input: JSON.parse(event.value.inputJson || '{}') })
+      } else if (event.case === 'toolCallFinished' && !event.value.isError) {
+        const call = started.get(event.value.toolUseId)
+        if (!call || !['Edit', 'MultiEdit', 'Write'].includes(call.name) || typeof call.input.file_path !== 'string') continue
+        const raw = event.value.structuredResultJson ? JSON.parse(event.value.structuredResultJson) : null
+        const hunks: PatchHunk[] = Array.isArray(raw?.structuredPatch) ? raw.structuredPatch : []
+        if (!hunks.length) continue
+        const given = call.input.file_path
+        const path = given.startsWith('/') ? given : `${cwd}/${given}`
+        const { add, del } = patchStats(hunks)
+        const known = byPath.get(path)
+        if (known) {
+          known.hunks = [...known.hunks, ...hunks]
+          known.add += add
+          known.del += del
+        } else {
+          byPath.set(path, { path, label: path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path, kind: call.name === 'Write' && !del ? 'A' : 'M', oldPath: '', add, del, hunks, binary: false, tooLarge: false })
+        }
+      }
+    }
+    for (const f of this.filesApi.changes(sessionId)) byPath.set(f.path, f)
+    const files = [...byPath.values()].sort((a, b) => a.path < b.path ? -1 : 1)
+    const version = diffVersion(files)
+    const notModified = opts.ifNoneMatch === version
+    return {
+      version,
+      notModified,
+      truncated: false,
+      files: notModified ? [] : files,
+      filesChanged: files.length,
+      additions: files.reduce((n, f) => n + f.add, 0),
+      deletions: files.reduce((n, f) => n + f.del, 0)
+    }
   }
 
   // User shell commands (runMockShell): the result streams after a short delay, `sleep N` runs N seconds

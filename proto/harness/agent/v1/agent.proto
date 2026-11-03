@@ -7,6 +7,7 @@ import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
+import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/speech.proto";
@@ -264,6 +265,12 @@ service AgentService {
   // when the limit resets and the last turn was cut off by it, the client continues the work by itself. Held
   // messages go out at the reset either way. ACP sessions refuse it (FAILED_PRECONDITION).
   rpc SetAutoContinue(SetAutoContinueRequest) returns (SetAutoContinueResponse);
+
+  // --- Session changes ---
+
+  // What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
+  // FAILED_PRECONDITION for a session of another machine.
+  rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
 }
 
 enum PermissionMode {

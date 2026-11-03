@@ -26,6 +26,7 @@ import type { SideChatsApi } from '~/lib/sidechat/types'
 import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
+import type { SessionDiff } from '~/lib/files/sessionDiff'
 import type { SpeechApi } from '~/lib/speech/types'
 import type { LocalModelsApi } from './localModels'
 import type { LimitsApi } from '~/lib/limits/types'
@@ -197,6 +198,11 @@ export interface SessionTransport {
   // The files pane: a session's working directories, listings with git status, file contents within limits
   // (AgentService ListFileRoots / ListFiles / ReadFile / GetGitStatus, ~/lib/files).
   files(): FilesApi
+
+  // The session's changes as they are on disk, shell commands' edits included (AgentService GetSessionDiff,
+  // ~/lib/files/sessionDiff). Fails for a session of another machine. With ifNoneMatch, an unchanged state comes
+  // back as notModified.
+  sessionDiff(sessionId: string, opts?: { ifNoneMatch?: string }): Promise<SessionDiff>
 
   // Dictation and "Read aloud" (~/lib/speech): providers (local engines of the client's machine and the server's
   // global providers), the synced / device settings, transcribe, streamed synthesis, local model downloads, and the

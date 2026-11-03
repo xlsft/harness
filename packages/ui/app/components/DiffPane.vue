@@ -1,15 +1,25 @@
 <script setup lang="ts">
 // Diff pane (header "Diff" button). Not drawn as its own artboard: built from Diff.dc.html —
-// the turn summary on top, then every edit of the session as a unified / split diff, edge to edge.
+// the turn summary on top, then every changed file of the session as a unified / split diff, edge to edge.
+// The list is what the client measures on disk (GetSessionDiff), so shell commands' edits show; it refreshes on
+// open, after any tool finishes, when a turn ends, on a light poll while visible and by the header's button. Sessions
+// of another machine, and a client that cannot answer, show what the transcript's Edit / Write calls did instead.
 // Review comments: hover a line, add a comment; it goes to the agent as soon as it is saved (queued while
 // a turn runs) and stays on its line marked as sent.
 import type { SessionState, ToolItem } from '~/lib/session/types'
 import type { DiffComment, ThreadEntry } from '~/components/transcript/DiffView.vue'
+import type { FileChange, PatchHunk } from '~/utils/tools'
 import { isDesktop, openWithDefaultApp, revealInFolder } from '~/lib/desktop'
+import { SessionDiffLoader, type SessionDiff } from '~/lib/files/sessionDiff'
 
 const props = defineProps<{ session: SessionState }>()
 const { closePane } = usePanes()
 const store = useSessionStore()
+
+const relative = (path: string) => {
+  const cwd = props.session.meta.cwd.replace(/\/+$/, '')
+  return cwd && path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path
+}
 
 // Comments survive closing and reopening the pane within the session (not a reload).
 const comments = useState<DiffComment[]>(`diff-comments-${props.session.meta.id}`, () => [])
@@ -51,11 +61,93 @@ async function onReply(c: DiffComment, text: string) {
   await store.send(props.session.meta.id, message)
 }
 
+// --- What the client measures ---
+const sid = computed(() => props.session.meta.id)
+const remote = computed(() => !!props.session.meta.remote)
+// The last answer, per session: reopening the pane shows it at once. A failed refresh keeps it, a client that never
+// answered leaves it null (the transcript's list shows).
+const measured = useState<Record<string, SessionDiff>>('diff-measured', () => ({}))
+const live = computed<SessionDiff | null>(() => remote.value ? null : measured.value[sid.value] ?? null)
+const refreshing = ref(false)
+const loader = new SessionDiffLoader({
+  fetch: (ifNoneMatch) => {
+    const t = store.transport
+    if (!t) return Promise.reject(new Error('no transport'))
+    return store.whenOpen(sid.value, () => t.sessionDiff(sid.value, { ifNoneMatch }))
+  },
+  onChange: (diff) => {
+    measured.value = { ...measured.value, [sid.value]: diff }
+  },
+  onError: () => {
+    // The transcript's list, or the last answer, stays on show.
+  }
+})
+
+async function refresh() {
+  if (remote.value) return
+  refreshing.value = true
+  await loader.load()
+  refreshing.value = false
+}
+
+function restart() {
+  loader.reset(measured.value[sid.value]?.version ?? '')
+  void refresh()
+}
+onMounted(restart)
+watch(sid, restart)
+watch(() => store.transport, (t, old) => t && t !== old && restart())
+
+// Any tool may have changed files (Bash above all): once one finishes, refresh, debounced over a burst.
+const finishedTools = computed(() => props.session.items
+  .filter(i => i.kind === 'tool' && i.status !== 'running')
+  .map(i => i.id)
+  .join(','))
+let toolTimer: ReturnType<typeof setTimeout> | undefined
+watch(finishedTools, (now, before) => {
+  if (now === before) return
+  clearTimeout(toolTimer)
+  toolTimer = setTimeout(() => void refresh(), 500)
+})
+watch(() => props.session.meta.status, (s, before) => {
+  if (before === 'working' && s !== 'working') void refresh()
+})
+// A light poll while the page is visible: the user and background tasks change files as well.
+const POLL_MS = 5000
+let poll: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  poll = setInterval(() => {
+    if (document.visibilityState === 'visible') void refresh()
+  }, POLL_MS)
+})
+onBeforeUnmount(() => {
+  clearInterval(poll)
+  clearTimeout(toolTimer)
+})
+
+// --- From the transcript ---
 const edits = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool' && ['Edit', 'MultiEdit', 'Write'].includes(i.name) && i.status === 'ok' && patchOf(i).length > 0))
 const files = computed(() => fileChanges(edits.value))
 
-// One continuous diff: one net diff per file, files in first-edit order.
-const groups = computed(() => {
+interface DiffGroup {
+  path: string
+  label: string
+  kind: FileChange['kind']
+  oldPath: string
+  hunks: PatchHunk[]
+  stats: { add: number, del: number }
+  binary: boolean
+  tooLarge: boolean
+}
+
+// One continuous diff: one net diff per file.
+const groups = computed<DiffGroup[]>(() => {
+  if (live.value) {
+    return live.value.files.map(f => ({
+      path: f.path, label: f.label, kind: f.kind, oldPath: f.oldPath, hunks: f.hunks, stats: { add: f.add, del: f.del }, binary: f.binary, tooLarge: f.tooLarge
+    }))
+  }
+  // Files in first-edit order.
   const map = new Map<string, { path: string, label: string, tools: ToolItem[] }>()
   for (const t of edits.value) {
     const path = String(t.input.file_path ?? '')
@@ -63,9 +155,10 @@ const groups = computed(() => {
     map.get(path)!.tools.push(t)
   }
   // The file's net change when the edits can be replayed from the recorded original, else each edit's hunks.
-  return [...map.values()].map(({ tools, ...g }) => {
+  return [...map.values()].map(({ tools, path, label }) => {
     const hunks = netPatch(tools) ?? tools.flatMap(patchOf)
-    return { ...g, hunks, stats: patchStats(hunks) }
+    const kind = files.value.find(f => f.path === path)?.kind ?? 'M'
+    return { path, label: relative(label), kind, oldPath: '', hunks, stats: patchStats(hunks), binary: false, tooLarge: false }
   }).filter(g => g.hunks.length)
 })
 
@@ -89,9 +182,8 @@ function setView(v: 'unified' | 'split') {
   }
 }
 
-const kindOf = (path: string) => files.value.find(f => f.path === path)?.kind ?? 'M'
 // Totals from the net diffs, not the sum of every edit.
-const summary = computed(() => groups.value.map(g => ({ kind: kindOf(g.path), path: g.path, add: g.stats.add, del: g.stats.del })))
+const summary = computed(() => groups.value.map(g => ({ kind: g.kind, path: g.path, add: g.stats.add, del: g.stats.del })))
 
 // Per-file state for this session: collapsed, and viewed (which also collapses it).
 const collapsed = useState<Record<string, boolean>>(`diff-collapsed-${props.session.meta.id}`, () => ({}))
@@ -102,11 +194,6 @@ const copyMenu = ref(false)
 const { openPane } = usePanes()
 const filesOpen = useState<string>('files-open-path', () => '')
 const attach = useState<string[]>('composer-attach', () => [])
-
-const relative = (path: string) => {
-  const cwd = props.session.meta.cwd.replace(/\/+$/, '')
-  return cwd && path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path
-}
 
 function toggleViewed(path: string) {
   viewed.value[path] = !viewed.value[path]
@@ -132,8 +219,16 @@ watch(showTarget, async (t) => {
   else scroller.value?.scrollTo({ top: 0 })
 }, { immediate: true })
 
-function diffText(g: { path: string, hunks: ReturnType<typeof patchOf> }) {
-  const out = [`--- a/${relative(g.path)}`, `+++ b/${relative(g.path)}`]
+// Why a file has no hunks to show.
+function noHunks(g: DiffGroup) {
+  if (g.binary) return 'Binary file'
+  if (g.tooLarge) return 'Too large to show'
+  if (g.kind === 'R') return 'Renamed, no line changes'
+  return g.hunks.length ? '' : 'No line changes'
+}
+
+function diffText(g: DiffGroup) {
+  const out = [`--- a/${g.label}`, `+++ b/${g.label}`]
   for (const h of g.hunks) out.push(`@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@${h.header ? ' ' + h.header : ''}`, ...h.lines)
   return out.join('\n')
 }
@@ -157,6 +252,14 @@ async function copy(text: string) {
     <div class="flex h-11 shrink-0 items-center gap-0.5 border-b border-default pr-1.5 pl-3.5">
       <span class="font-display text-[13px] text-strong">Changes</span>
       <span class="flex-1" />
+      <HIconBtn
+        v-if="!remote"
+        icon="refresh"
+        label="Refresh"
+        :size="30"
+        :class="refreshing && 'text-muted'"
+        @click="refresh"
+      />
       <UPopover
         v-model:open="viewMenu"
         :content="{ side: 'bottom', align: 'end', sideOffset: 4 }"
@@ -199,7 +302,7 @@ async function copy(text: string) {
       />
     </div>
     <div
-      v-if="!edits.length"
+      v-if="!groups.length"
       class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
     >
       <HIcon
@@ -208,7 +311,7 @@ async function copy(text: string) {
         class="text-muted"
       />
       <span class="text-strong">No changes yet</span>
-      <span class="max-w-80 text-[12px] leading-[1.55] text-muted">Edits the agent makes in this session show up here for review.</span>
+      <span class="max-w-80 text-[12px] leading-[1.55] text-muted">{{ live ? 'Files changed in this session show up here for review.' : 'Edits the agent makes in this session show up here for review.' }}</span>
     </div>
     <div
       v-else
@@ -220,6 +323,12 @@ async function copy(text: string) {
         flush
         total-only
       />
+      <div
+        v-if="live?.truncated"
+        class="border-b border-default px-3 py-[5px] text-[12px] text-muted"
+      >
+        Too many changed files: showing the first {{ groups.length }}.
+      </div>
       <section
         v-for="g in groups"
         :id="`diff-${g.path}`"
@@ -227,7 +336,7 @@ async function copy(text: string) {
         class="not-first-of-type:border-t not-first-of-type:border-default"
       >
         <div
-          :title="g.path"
+          :title="g.oldPath ? `${g.oldPath} → ${g.path}` : g.path"
           class="sticky top-0 z-10 flex cursor-pointer items-center gap-2 border-b border-default bg-surface py-[3px] pr-1.5 pl-2 text-[12px] text-toned"
           @click="collapsed[g.path] = !collapsed[g.path]"
         >
@@ -239,12 +348,12 @@ async function copy(text: string) {
           />
           <span
             class="w-3 shrink-0"
-            :class="kindOf(g.path) === 'A' ? 'text-ok' : kindOf(g.path) === 'D' ? 'text-bad' : 'text-warn'"
-          >{{ kindOf(g.path) }}</span>
+            :class="g.kind === 'A' ? 'text-ok' : g.kind === 'D' ? 'text-bad' : 'text-warn'"
+          >{{ g.kind }}</span>
           <span
             class="min-w-0 flex-1 truncate"
             :class="viewed[g.path] && 'text-muted'"
-          >{{ relative(g.label) }}</span>
+          >{{ g.label }}</span>
           <span class="text-ok">+{{ g.stats.add }}</span><span class="text-bad">−{{ g.stats.del }}</span>
           <div
             class="flex items-center"
@@ -342,10 +451,18 @@ async function copy(text: string) {
             </UPopover>
           </div>
         </div>
+        <div
+          v-if="noHunks(g)"
+          v-show="!collapsed[g.path]"
+          class="px-3 py-2 text-[12px] text-muted"
+        >
+          {{ noHunks(g) }}
+        </div>
         <DiffView
+          v-else
           v-show="!collapsed[g.path]"
           v-model:comments="comments"
-          :path="g.label"
+          :path="g.path"
           :hunks="g.hunks"
           :mode="view"
           :thread-of="threadOf"

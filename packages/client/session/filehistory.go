@@ -180,6 +180,39 @@ func (h *FileHistory) prune() {
 	}
 }
 
+// Baselines returns, per tracked file, the backup holding its content before the session first touched it, "" when
+// it did not exist then.
+func (h *FileHistory) Baselines() map[string]string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	names := map[string]string{}
+	for _, s := range h.snapshots {
+		for p, b := range s.TrackedFileBackups {
+			if _, ok := names[p]; ok {
+				continue
+			}
+			names[p] = ""
+			if b.BackupFileName != nil {
+				names[p] = *b.BackupFileName
+			}
+		}
+	}
+	// The first backup outlives pruned checkpoints.
+	for p, name := range h.first {
+		if cur, ok := names[p]; !ok || (cur != "" && versionOf(name) < versionOf(cur)) {
+			names[p] = name
+		}
+	}
+	out := make(map[string]string, len(names))
+	for p, name := range names {
+		if name != "" {
+			name = filepath.Join(h.dir, name)
+		}
+		out[p] = name
+	}
+	return out
+}
+
 // Checkpoints returns the retained checkpoints, oldest first.
 func (h *FileHistory) Checkpoints() []FileSnapshot {
 	h.mu.Lock()

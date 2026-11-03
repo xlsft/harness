@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// AgentService.GetSessionDiff: what the session changed, measured on disk by the client (so edits made by shell
+// commands count too). SessionInfo.diff_stats carries the totals of the same computation.
+//
+// Baseline per file:
+// - in a git repository of the session (of a working directory or the cwd): the working tree against HEAD, staged
+//   and untracked files included, .gitignore respected; in a worktree the client created, against the merge base
+//   of its base ref, so what the session committed there still counts;
+// - elsewhere: for files the file tools touched, their content before the session first touched them; files in
+//   the session's scratch dir and private no-folder dir without such a snapshot count as new.
+
+message GetSessionDiffRequest {
+  string session_id = 1;
+  // A version from an earlier response: when nothing changed the response has not_modified set and no files.
+  string if_none_match = 2;
+}
+
+message GetSessionDiffResponse {
+  repeated FileDiff files = 1;
+  // Hash of the files and truncated: equal versions mean nothing changed.
+  string version = 2;
+  bool not_modified = 3;
+  // More files changed than are listed (the totals count the listed ones).
+  bool truncated = 4;
+  int32 files_changed = 5;
+  int32 additions = 6;
+  int32 deletions = 7;
+}
+
+enum FileDiffStatus {
+  FILE_DIFF_STATUS_UNSPECIFIED = 0;
+  FILE_DIFF_STATUS_ADDED = 1;
+  FILE_DIFF_STATUS_MODIFIED = 2;
+  FILE_DIFF_STATUS_DELETED = 3;
+  FILE_DIFF_STATUS_RENAMED = 4;
+}
+
+// Where a file's baseline came from.
+enum FileDiffSource {
+  FILE_DIFF_SOURCE_UNSPECIFIED = 0;
+  FILE_DIFF_SOURCE_GIT = 1;
+  // The file checkpoints: its content before the session's first edit.
+  FILE_DIFF_SOURCE_HISTORY = 2;
+  // Found in the scratch or private directory, without a snapshot: diffed against nothing.
+  FILE_DIFF_SOURCE_NEW_FILE = 3;
+}
+
+message FileDiffHunk {
+  int32 old_start = 1;
+  int32 old_lines = 2;
+  int32 new_start = 3;
+  int32 new_lines = 4;
+  // Each line starts with ' ', '+' or '-'.
+  repeated string lines = 5;
+  // The function context git reports after @@.
+  string header = 6;
+}
+
+message FileDiff {
+  // Absolute, as the session knows it.
+  string path = 1;
+  // For showing: relative to the cwd or its root; "scratchpad/<name>" in the scratch dir.
+  string display_path = 2;
+  FileDiffStatus status = 3;
+  // Renames: the absolute path it had.
+  string old_path = 4;
+  int32 additions = 5;
+  int32 deletions = 6;
+  repeated FileDiffHunk hunks = 7;
+  // Binary or too large: listed without hunks or line counts.
+  bool binary = 8;
+  bool too_large = 9;
+  FileDiffSource source = 10;
+}

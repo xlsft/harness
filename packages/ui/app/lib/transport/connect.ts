@@ -26,7 +26,7 @@ import { ConnectUsageApi } from '~/lib/usage/connect'
 import { ConnectTerminalsApi } from '~/lib/terminal/connect'
 import { ConnectSideChatsApi } from '~/lib/sidechat/connect'
 import { ConnectEnvironmentApi } from '~/lib/environment/connect'
-import { ConnectFilesApi } from '~/lib/files/connect'
+import { ConnectFilesApi, sessionDiffView } from '~/lib/files/connect'
 import { ConnectSpeechApi } from '~/lib/speech/connect'
 import { ConnectLocalModelsApi } from './localModels'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
@@ -303,6 +303,10 @@ export class ConnectTransport implements SessionTransport {
   private filesApi!: ConnectFilesApi
   files() {
     return this.filesApi
+  }
+
+  async sessionDiff(sessionId: string, opts: { ifNoneMatch?: string } = {}) {
+    return sessionDiffView(await this.client.getSessionDiff({ sessionId, ifNoneMatch: opts.ifNoneMatch ?? '' }))
   }
 
   private speechApi!: ConnectSpeechApi

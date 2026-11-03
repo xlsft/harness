@@ -160,3 +160,45 @@ func TestSessionFiles(t *testing.T) {
 		t.Errorf("unknown session: %v", err)
 	}
 }
+
+// The pane's list and the counts of SessionInfo (the details pane, the sidebar) come from one measurement, for a
+// session without a folder as well.
+func TestSessionDiffAgreesWithDiffStats(t *testing.T) {
+	h := startHarness(t, fg.Sequence(), nil)
+	cs, err := h.client.CreateSession(h.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := cs.Msg.Session
+	if !info.NoFolder {
+		t.Fatalf("expected a session without a folder: %+v", info)
+	}
+	sid := info.Id
+	ch := h.subscribe(sid)
+	if err := os.WriteFile(filepath.Join(info.Cwd, "made-by-bash.txt"), []byte("one\ntwo\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d, err := h.client.GetSessionDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionDiffRequest{SessionId: sid}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d.Msg.Files) != 1 || d.Msg.Files[0].DisplayPath != "made-by-bash.txt" || d.Msg.Additions != 2 || d.Msg.FilesChanged != 1 {
+		t.Fatalf("diff: %+v", d.Msg)
+	}
+	up := h.until(ch, func(ev *agentv1.SessionEvent) bool { return ev.GetSessionUpdated().GetDiffStats().GetAdditions() == 2 })
+	if ds := up[len(up)-1].GetSessionUpdated().DiffStats; ds.FilesChanged != 1 || ds.Deletions != 0 {
+		t.Fatalf("diff stats: %+v", ds)
+	}
+
+	same, err := h.client.GetSessionDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionDiffRequest{SessionId: sid, IfNoneMatch: d.Msg.Version}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !same.Msg.NotModified || len(same.Msg.Files) != 0 || same.Msg.Version != d.Msg.Version || same.Msg.Additions != 2 {
+		t.Fatalf("unchanged: %+v", same.Msg)
+	}
+
+	if _, err := h.client.GetSessionDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionDiffRequest{SessionId: "nope"})); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Fatalf("unknown session: %v", err)
+	}
+}

@@ -282,6 +282,9 @@ const (
 	// AgentServiceSetAutoContinueProcedure is the fully-qualified name of the AgentService's
 	// SetAutoContinue RPC.
 	AgentServiceSetAutoContinueProcedure = "/harness.agent.v1.AgentService/SetAutoContinue"
+	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
+	// GetSessionDiff RPC.
+	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -508,6 +511,9 @@ type AgentServiceClient interface {
 	// when the limit resets and the last turn was cut off by it, the client continues the work by itself. Held
 	// messages go out at the reset either way. ACP sessions refuse it (FAILED_PRECONDITION).
 	SetAutoContinue(context.Context, *connect.Request[v1.SetAutoContinueRequest]) (*connect.Response[v1.SetAutoContinueResponse], error)
+	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
+	// FAILED_PRECONDITION for a session of another machine.
+	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1043,6 +1049,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetAutoContinue")),
 			connect.WithClientOptions(opts...),
 		),
+		getSessionDiff: connect.NewClient[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse](
+			httpClient,
+			baseURL+AgentServiceGetSessionDiffProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1135,6 +1147,7 @@ type agentServiceClient struct {
 	closeBrowser           *connect.Client[v1.CloseBrowserRequest, v1.CloseBrowserResponse]
 	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 	setAutoContinue        *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
+	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1572,6 +1585,11 @@ func (c *agentServiceClient) SetAutoContinue(ctx context.Context, req *connect.R
 	return c.setAutoContinue.CallUnary(ctx, req)
 }
 
+// GetSessionDiff calls harness.agent.v1.AgentService.GetSessionDiff.
+func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
+	return c.getSessionDiff.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1796,6 +1814,9 @@ type AgentServiceHandler interface {
 	// when the limit resets and the last turn was cut off by it, the client continues the work by itself. Held
 	// messages go out at the reset either way. ACP sessions refuse it (FAILED_PRECONDITION).
 	SetAutoContinue(context.Context, *connect.Request[v1.SetAutoContinueRequest]) (*connect.Response[v1.SetAutoContinueResponse], error)
+	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
+	// FAILED_PRECONDITION for a session of another machine.
+	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2327,6 +2348,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetAutoContinue")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetSessionDiffHandler := connect.NewUnaryHandler(
+		AgentServiceGetSessionDiffProcedure,
+		svc.GetSessionDiff,
+		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2503,6 +2530,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceClearBrowserDataHandler.ServeHTTP(w, r)
 		case AgentServiceSetAutoContinueProcedure:
 			agentServiceSetAutoContinueHandler.ServeHTTP(w, r)
+		case AgentServiceGetSessionDiffProcedure:
+			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2858,4 +2887,8 @@ func (UnimplementedAgentServiceHandler) ClearBrowserData(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) SetAutoContinue(context.Context, *connect.Request[v1.SetAutoContinueRequest]) (*connect.Response[v1.SetAutoContinueResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetAutoContinue is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
 }
