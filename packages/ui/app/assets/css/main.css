@@ -127,7 +127,24 @@
     color: inherit;
   }
 
-  button {
+  /* Everything clickable shows the pointer; disabled controls do not. */
+  button,
+  a[href],
+  summary,
+  label:has(> input:not([type="text"])),
+  [role="button"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="radio"],
+  [role="switch"],
+  [role="tab"] {
+    cursor: pointer;
+  }
+
+  :is(button, [role="button"], [role="option"], [role="radio"], [role="switch"]):disabled,
+  [aria-disabled="true"] {
     cursor: default;
   }
 
@@ -478,4 +495,19 @@
 /* Menu and list options: the same, the 2px accent rule only in square themes. */
 :where([role="option"][class~="border-l-2"]) {
   border-left-width: max(0px, calc(2px - var(--radius-control) * 100));
+}
+
+/* Interface text size (Settings > Appearance) zooms the whole app; viewport-tall boxes divide the zoom back out
+   so they still fit the window. --code-size, when set, sizes code everywhere (blocks, inline, tool output). */
+:root {
+  --app-zoom: 1;
+}
+.h-svh {
+  height: calc(100svh / var(--app-zoom));
+}
+.min-h-svh {
+  min-height: calc(100svh / var(--app-zoom));
+}
+:root[data-code-size] :is(pre, code, samp, pre *) {
+  font-size: var(--code-size) !important;
 }

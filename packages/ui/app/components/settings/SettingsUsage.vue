@@ -429,7 +429,7 @@ function ago(iso: string) {
           <tr
             v-for="u in users"
             :key="u.userId"
-            class="cursor-default border-t border-line hover:bg-hover"
+            class="cursor-pointer border-t border-line hover:bg-hover"
             @click="scope = u.userId"
           >
             <td class="py-2">

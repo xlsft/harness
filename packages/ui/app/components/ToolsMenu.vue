@@ -38,7 +38,7 @@ function choose(p: PaneName | 'ios') {
       :key="m.pane"
       role="menuitemcheckbox"
       :aria-checked="pinned.includes(m.pane)"
-      class="flex cursor-default items-center gap-2.5 border-l-2 px-[9px] py-[7px] hover:bg-raised"
+      class="flex cursor-pointer items-center gap-2.5 border-l-2 px-[9px] py-[7px] hover:bg-raised"
       :class="m.pane !== 'ios' && isOpen(m.pane) ? 'border-accent bg-raised text-strong' : 'border-transparent'"
       @click="choose(m.pane)"
     >
@@ -63,7 +63,7 @@ function choose(p: PaneName | 'ios') {
     <div
       role="menuitemcheckbox"
       :aria-checked="awake"
-      class="mt-0.5 flex cursor-default items-center gap-2.5 bg-raised px-[9px] py-2"
+      class="mt-0.5 flex cursor-pointer items-center gap-2.5 bg-raised px-[9px] py-2"
       @click="awake = !awake"
     >
       <HIcon

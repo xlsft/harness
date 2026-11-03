@@ -3,7 +3,7 @@
 // computer"); remote-control hosts (RelayService) and SSH hosts are listed here once the UI talks to core.
 const emit = defineEmits<{ close: [] }>()
 const query = ref('')
-const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
+const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
 </script>
 
 <template>

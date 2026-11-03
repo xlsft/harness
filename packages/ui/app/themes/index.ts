@@ -71,7 +71,15 @@ export interface Appearance {
   mode: AppearanceMode
   light: string
   dark: string
+  // Interface text size in px (the whole app scales from 13); code size in px (0: the default 12.5); a font
+  // family for code put before the theme's (''; the theme's).
+  uiSize: number
+  codeSize: number
+  codeFont: string
 }
+
+export const UI_SIZE_DEFAULT = 13
+export const CODE_SIZE_DEFAULT = 12.5
 
 // localStorage keys: the choice, and the resolved variables the head script applies before the app loads
 // (nuxt.config.ts), so a reload does not flash the default theme.

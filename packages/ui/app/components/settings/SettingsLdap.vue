@@ -94,7 +94,7 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
 <template>
   <section
     aria-label="LDAP"
-    class="mt-8 flex flex-col"
+    class="flex flex-col"
   >
     <h2 class="set-h">
       LDAP

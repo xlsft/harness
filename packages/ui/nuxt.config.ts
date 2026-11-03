@@ -9,7 +9,8 @@ try{a=JSON.parse(localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)})||'{}')}
 try{c=JSON.parse(localStorage.getItem(${JSON.stringify(THEME_CACHE_KEY)})||'null')}catch(e){}
 var k=a.mode==='light'||a.mode==='dark'?a.mode:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
 var v=c&&c.kind===k&&c.vars?c.vars:d[k],r=document.documentElement;
-for(var n in v)r.style.setProperty(n,v[n]);r.classList.add(k)}catch(e){}})()`
+for(var n in v)r.style.setProperty(n,v[n]);r.classList.add(k);
+if(v['--app-zoom']&&v['--app-zoom']!=='1')r.style.zoom=v['--app-zoom'];if(v['--code-size'])r.dataset.codeSize=''}catch(e){}})()`
 
 export default defineNuxtConfig({
   // The Connect transport is loaded lazily; pre-bundle its deps so the first dev load does not reload.

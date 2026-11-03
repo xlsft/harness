@@ -114,7 +114,7 @@ function pick(v: string) {
               :key="o.value"
               role="option"
               :aria-selected="o.value === model"
-              class="flex min-h-8 cursor-default items-center gap-2 border-l-2 pr-2.5 pl-[8px]"
+              class="flex min-h-8 cursor-pointer items-center gap-2 border-l-2 pr-2.5 pl-[8px]"
               :class="o.value === model ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
               @click="pick(o.value)"
             >

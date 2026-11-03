@@ -460,7 +460,7 @@ function toggleSetting(key: string) {
             role="treeitem"
             :aria-selected="r.path === selectedPath"
             :aria-expanded="r.kind === 'dir' ? openDirs.includes(r.path) : undefined"
-            class="flex h-[26px] cursor-default items-center gap-[7px] overflow-hidden border-l-2 pr-2 whitespace-nowrap"
+            class="flex h-[26px] cursor-pointer items-center gap-[7px] overflow-hidden border-l-2 pr-2 whitespace-nowrap"
             :class="r.path === selectedPath ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-hover'"
             :style="{ paddingLeft: `${6 + depth(r.path) * 14}px` }"
             @click="select(r)"
@@ -497,7 +497,7 @@ function toggleSetting(key: string) {
           <div
             v-for="(h, i) in SEARCH_HITS"
             :key="i"
-            class="flex cursor-default gap-2 overflow-hidden py-[3px] pr-1 whitespace-nowrap hover:bg-hover"
+            class="flex cursor-pointer gap-2 overflow-hidden py-[3px] pr-1 whitespace-nowrap hover:bg-hover"
             :class="h.file ? 'pl-[2px] text-strong' : 'pl-3 text-toned'"
             @click="h.file && openHit(h.before)"
           >

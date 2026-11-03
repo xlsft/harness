@@ -145,6 +145,8 @@ async function signOut() {
   window.location.reload()
 }
 
+// The red outline of every sign-out button on the page.
+const danger = 'h-8 shrink-0 border border-bad px-3 text-[12.5px] text-bad hover:bg-bad hover:text-on-accent'
 const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px] text-strong outline-none focus:border-accent'
 </script>
 
@@ -202,6 +204,9 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
         <input
           v-model="name"
           aria-label="Display name"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
           :class="input"
           class="max-w-[280px]"
           maxlength="80"
@@ -378,15 +383,15 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
       </span>
       <span class="set-desc">{{ [d.os && `${d.os}/${d.arch}`, d.clientName].filter(Boolean).join(' · ') || 'Unknown client' }} · signed in {{ date(d.createdAt) }} · seen {{ ago(d.lastSeenAt) }}</span>
     </div>
-    <HBtn
+    <button
       v-if="!d.current"
-      size="md"
-      tone="danger"
+      type="button"
+      :class="danger"
       @click="revoke(d)"
       @blur="confirmRevoke = ''"
     >
       {{ confirmRevoke === d.id ? 'Sign out?' : 'Sign out' }}
-    </HBtn>
+    </button>
   </div>
 
   <div
@@ -399,7 +404,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
     </div>
     <button
       type="button"
-      class="h-8 border border-bad px-3 text-[12.5px] text-bad hover:bg-bad hover:text-on-accent"
+      :class="danger"
       @click="signOut"
     >
       Sign out

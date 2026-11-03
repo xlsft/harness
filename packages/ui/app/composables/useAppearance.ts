@@ -2,11 +2,12 @@
 // active theme's tokens go on <html> as --color-* variables with a `light` / `dark` class; the resolved
 // variables are cached for the head script (nuxt.config.ts) so the next load starts in the right theme.
 import {
-  APPEARANCE_KEY, CUSTOM_THEMES_KEY, DEFAULT_THEME, THEME_CACHE_KEY, THEMES, themeById, themeVars,
+  APPEARANCE_KEY, CUSTOM_THEMES_KEY, DEFAULT_THEME, THEME_CACHE_KEY, THEMES, UI_SIZE_DEFAULT, themeById, themeVars,
   type Appearance, type AppearanceMode, type Theme, type ThemeKind
 } from '~/themes'
 
-const DEFAULTS: Appearance = { mode: 'system', light: DEFAULT_THEME.light, dark: DEFAULT_THEME.dark }
+const DEFAULTS: Appearance = { mode: 'system', light: DEFAULT_THEME.light, dark: DEFAULT_THEME.dark, uiSize: UI_SIZE_DEFAULT, codeSize: 0, codeFont: '' }
+const size = (v: unknown, min: number, max: number, fallback: number) => typeof v === 'number' && v >= min && v <= max ? v : fallback
 
 function read(): Appearance {
   try {
@@ -14,7 +15,10 @@ function read(): Appearance {
     return {
       mode: v.mode === 'light' || v.mode === 'dark' ? v.mode : 'system',
       light: typeof v.light === 'string' ? v.light : DEFAULTS.light,
-      dark: typeof v.dark === 'string' ? v.dark : DEFAULTS.dark
+      dark: typeof v.dark === 'string' ? v.dark : DEFAULTS.dark,
+      uiSize: size(v.uiSize, 11, 18, UI_SIZE_DEFAULT),
+      codeSize: size(v.codeSize, 10, 20, 0),
+      codeFont: typeof v.codeFont === 'string' ? v.codeFont.slice(0, 120) : ''
     }
   } catch {
     return { ...DEFAULTS }
@@ -38,9 +42,22 @@ let started = false
 const kind = computed<ThemeKind>(() => appearance.value.mode === 'system' ? (systemDark.value ? 'dark' : 'light') : appearance.value.mode)
 const theme = computed<Theme>(() => themeById(appearance.value[kind.value], kind.value, custom.value))
 
-function apply(t: Theme) {
+// A font name as typed ("JetBrains Mono") quoted for font-family, unless the user wrote a list.
+const family = (f: string) => /[,'"]/.test(f) ? f : `'${f}'`
+
+function apply(t: Theme, a: Appearance) {
   const root = document.documentElement
   const vars = themeVars(t)
+  // The interface size scales the whole app (main.css divides viewport heights by --app-zoom); code keeps its
+  // own size, so it is divided back.
+  const zoom = a.uiSize / UI_SIZE_DEFAULT
+  vars['--app-zoom'] = String(zoom)
+  if (a.codeFont.trim()) vars['--font-mono'] = `${family(a.codeFont.trim())}, ${vars['--font-mono']}`
+  if (a.codeSize) vars['--code-size'] = `${(a.codeSize / zoom).toFixed(3)}px`
+  root.style.zoom = zoom === 1 ? '' : String(zoom)
+  root.style.removeProperty('--code-size')
+  if (a.codeSize) root.dataset.codeSize = ''
+  else delete root.dataset.codeSize
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v)
   root.classList.toggle('dark', t.kind === 'dark')
   root.classList.toggle('light', t.kind === 'light')
@@ -59,7 +76,7 @@ export function startAppearance() {
   const media = window.matchMedia('(prefers-color-scheme: dark)')
   systemDark.value = media.matches
   media.addEventListener('change', e => (systemDark.value = e.matches))
-  watch(theme, apply, { immediate: true })
+  watch([theme, appearance], ([t, a]) => apply(t, a), { immediate: true })
 }
 
 export function useAppearance() {
@@ -93,6 +110,7 @@ export function useAppearance() {
     kind,
     theme,
     setMode: (mode: AppearanceMode) => set({ mode }),
-    setTheme: (k: ThemeKind, id: string) => set({ [k]: id })
+    setTheme: (k: ThemeKind, id: string) => set({ [k]: id }),
+    setSizes: (patch: Partial<Pick<Appearance, 'uiSize' | 'codeSize' | 'codeFont'>>) => set(patch)
   }
 }

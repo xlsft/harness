@@ -17,7 +17,7 @@ defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
       :key="o.key"
       role="option"
       :aria-selected="i === active"
-      class="flex cursor-default items-center border-l-2 px-2.5 py-1.5"
+      class="flex cursor-pointer items-center border-l-2 px-2.5 py-1.5"
       :class="[i === active ? 'border-accent bg-raised' : 'border-transparent', kind === 'slash' ? 'gap-3' : 'gap-2.5']"
       @mouseenter="$emit('hover', i)"
       @mousedown.prevent="$emit('pick', o)"

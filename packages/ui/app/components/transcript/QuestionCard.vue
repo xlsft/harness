@@ -106,7 +106,7 @@ const resolved = computed(() => ({
       <label
         v-for="o in options"
         :key="o.label"
-        class="flex cursor-default gap-2.5 border-l-2 px-2 py-[7px]"
+        class="flex cursor-pointer gap-2.5 border-l-2 px-2 py-[7px]"
         :class="d.selected.includes(o.label) ? 'border-accent bg-hover' : 'border-transparent'"
       >
         <input
@@ -129,7 +129,7 @@ const resolved = computed(() => ({
       </label>
       <label
         v-if="q.allowOther"
-        class="flex cursor-default gap-2.5 border-l-2 px-2 py-[7px]"
+        class="flex cursor-pointer gap-2.5 border-l-2 px-2 py-[7px]"
         :class="d.otherOpen ? 'border-accent bg-hover' : 'border-transparent'"
       >
         <input

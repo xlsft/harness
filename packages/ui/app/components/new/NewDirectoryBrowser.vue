@@ -55,7 +55,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
     <div class="h-[320px] overflow-y-auto py-1">
       <div
         v-if="listing?.parent"
-        class="flex cursor-default items-center gap-2 px-2.5 py-[5px] text-muted hover:bg-raised hover:text-strong"
+        class="flex cursor-pointer items-center gap-2 px-2.5 py-[5px] text-muted hover:bg-raised hover:text-strong"
         @click="go(listing.parent)"
       >
         <HIcon
@@ -66,7 +66,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
       <div
         v-for="e in listing?.entries ?? []"
         :key="e.name"
-        class="flex cursor-default items-center gap-2 px-2.5 py-[5px] text-toned hover:bg-raised hover:text-strong"
+        class="flex cursor-pointer items-center gap-2 px-2.5 py-[5px] text-toned hover:bg-raised hover:text-strong"
         @click="go(join(listing!.path, e.name))"
       >
         <HIcon

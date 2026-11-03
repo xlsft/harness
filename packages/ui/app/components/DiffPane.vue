@@ -228,7 +228,7 @@ async function copy(text: string) {
       >
         <div
           :title="g.path"
-          class="sticky top-0 z-10 flex cursor-default items-center gap-2 border-b border-default bg-surface py-[3px] pr-1.5 pl-2 text-[12px] text-toned"
+          class="sticky top-0 z-10 flex cursor-pointer items-center gap-2 border-b border-default bg-surface py-[3px] pr-1.5 pl-2 text-[12px] text-toned"
           @click="collapsed[g.path] = !collapsed[g.path]"
         >
           <HIcon

@@ -43,7 +43,7 @@ withDefaults(defineProps<{
     :role="role"
     :aria-checked="role === 'menuitem' ? undefined : checked"
     :aria-disabled="disabled || undefined"
-    class="flex cursor-default items-center border-l-2 px-[9px] py-1.5"
+    class="flex cursor-pointer items-center border-l-2 px-[9px] py-1.5"
     :class="[
       gap,
       highlight ? 'border-accent bg-raised text-strong' : 'border-transparent',

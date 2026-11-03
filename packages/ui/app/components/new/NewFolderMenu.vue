@@ -19,7 +19,7 @@ const shown = computed(() => {
   const q = query.value.toLowerCase()
   return props.folders.filter(f => !q || f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q))
 })
-const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
+const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
 </script>
 
 <template>

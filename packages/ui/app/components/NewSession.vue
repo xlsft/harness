@@ -212,7 +212,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           v-for="f in folders.slice(0, 3)"
           :key="f.path"
           :title="f.path"
-          class="flex cursor-default items-center gap-2.5 border-l-2 px-3 py-2"
+          class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
           :class="f.path === cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
           @click="choose(f.path)"
         >
@@ -446,7 +446,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
                   :key="m.key"
                   role="option"
                   :aria-selected="m.key === mode"
-                  class="flex cursor-default flex-col border-l-2 px-2.5 py-[5px]"
+                  class="flex cursor-pointer flex-col border-l-2 px-2.5 py-[5px]"
                   :class="m.key === mode ? 'border-accent bg-raised' : 'border-transparent hover:bg-raised'"
                   @click="mode = m.key; menu = ''"
                 >

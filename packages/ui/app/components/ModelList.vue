@@ -90,7 +90,7 @@ function ctx(n: number) {
           role="option"
           :aria-selected="m.id === selected"
           :aria-disabled="m.offline || undefined"
-          class="group/model flex min-h-8 cursor-default items-center gap-3 border-l-2 pr-3 pl-[10px]"
+          class="group/model flex min-h-8 cursor-pointer items-center gap-3 border-l-2 pr-3 pl-[10px]"
           :class="m.id === selected ? 'border-accent bg-raised' : 'border-transparent hover:bg-raised'"
           @click="!m.offline && emit('pick', m.id)"
         >

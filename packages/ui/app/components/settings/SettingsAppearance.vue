@@ -2,10 +2,24 @@
 // Settings > General > Appearance: the mode (follow the system, always light, always dark) and the theme used
 // for each kind, picked from previews; VS Code colour themes can be imported. Kept in this browser
 // (composables/useAppearance.ts).
-import type { AppearanceMode, ThemeKind } from '~/themes'
+import { CODE_SIZE_DEFAULT, DEFAULT_FONTS, UI_SIZE_DEFAULT, themeById, type AppearanceMode, type ThemeKind } from '~/themes'
 import { themeFromVsCode } from '~/themes/vscode'
 
-const { appearance, kind, themes, isCustom, importTheme, removeTheme, setMode, setTheme } = useAppearance()
+const { appearance, kind, themes, isCustom, importTheme, removeTheme, setMode, setTheme, setSizes } = useAppearance()
+
+// Text sizes: the interface scales the whole app; code has its own size and font.
+const UI_SIZES = [12, 13, 14, 15, 16].map(n => ({ value: String(n), label: `${n} px`, hint: n === UI_SIZE_DEFAULT ? 'default' : undefined }))
+const CODE_SIZES = [{ value: '0', label: `Default · ${CODE_SIZE_DEFAULT} px` }, ...[11, 12, 13, 14, 15, 16].map(n => ({ value: String(n), label: `${n} px` }))]
+const uiSize = computed({ get: () => String(appearance.value.uiSize), set: (v: string) => setSizes({ uiSize: Number(v) }) })
+const codeSize = computed({ get: () => String(appearance.value.codeSize), set: (v: string) => setSizes({ codeSize: Number(v) }) })
+const codeFont = ref(appearance.value.codeFont)
+watch(codeFont, v => setSizes({ codeFont: v }))
+const previewThemes = computed(() => (['light', 'dark'] as const).map(k => themeById(appearance.value[k], k, themes.value)))
+const previewFont = (t: ReturnType<typeof themeById>) => {
+  const base = t.fonts?.mono ?? DEFAULT_FONTS.mono
+  const f = appearance.value.codeFont.trim()
+  return f ? `${/[,'"]/.test(f) ? f : `'${f}'`}, ${base}` : base
+}
 const toast = useToast()
 
 const picker = ref<HTMLInputElement | null>(null)
@@ -126,6 +140,69 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
           />
         </span>
       </button>
+    </div>
+  </div>
+  <div class="set-row">
+    <div class="set-label">
+      <span>Text size</span>
+      <span class="set-desc">The interface's text; everything else scales with it.</span>
+    </div>
+    <div class="w-[200px]">
+      <HSelect
+        v-model="uiSize"
+        :options="UI_SIZES"
+        aria-label="Text size"
+      />
+    </div>
+  </div>
+
+  <h2 class="set-h mt-8">
+    Code
+  </h2>
+  <p class="set-sub">
+    Code blocks, diffs, inline code and command output, in your light and dark theme.
+  </p>
+  <div class="set-row !items-stretch gap-3 max-md:flex-col">
+    <div
+      v-for="t in previewThemes"
+      :key="t.id"
+      class="flex min-w-0 flex-1 flex-col gap-1.5"
+    >
+      <span class="text-[11.5px] text-muted">{{ t.name }}</span>
+      <CodePreview
+        :theme="t"
+        :size="appearance.codeSize || CODE_SIZE_DEFAULT"
+        :font="previewFont(t)"
+      />
+    </div>
+  </div>
+  <div class="set-row">
+    <div class="set-label">
+      <span>Code font</span>
+      <span class="set-desc">A monospace font installed on this computer; empty: the theme's.</span>
+    </div>
+    <input
+      v-model.lazy="codeFont"
+      placeholder="e.g. JetBrains Mono"
+      aria-label="Code font"
+      autocapitalize="off"
+      autocorrect="off"
+      spellcheck="false"
+      maxlength="120"
+      class="h-8 w-[200px] border border-accented bg-default px-2.5 text-[12.5px] text-strong outline-none placeholder:text-muted focus:border-accent"
+    >
+  </div>
+  <div class="set-row">
+    <div class="set-label">
+      <span>Code font size</span>
+      <span class="set-desc">Independent of the text size.</span>
+    </div>
+    <div class="w-[200px]">
+      <HSelect
+        v-model="codeSize"
+        :options="CODE_SIZES"
+        aria-label="Code font size"
+      />
     </div>
   </div>
 </template>

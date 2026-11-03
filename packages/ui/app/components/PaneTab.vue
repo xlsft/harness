@@ -21,7 +21,7 @@ const emit = defineEmits<{ select: [], close: [] }>()
     role="tab"
     tabindex="0"
     :aria-selected="selected"
-    class="group flex cursor-default items-center border-b-2 border-line text-[12px] whitespace-nowrap"
+    class="group flex cursor-pointer items-center border-b-2 border-line text-[12px] whitespace-nowrap"
     :class="[
       edge === 'left' ? 'border-l' : 'border-r',
       selected ? 'border-b-accent bg-surface text-strong' : 'border-b-transparent text-muted hover:text-toned',

@@ -118,7 +118,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
             :key="m.key"
             role="option"
             :aria-selected="m.key === session.meta.permissionMode"
-            class="flex cursor-default flex-col border-l-2 px-2.5 py-1.5"
+            class="flex cursor-pointer flex-col border-l-2 px-2.5 py-1.5"
             :class="[m.key === session.meta.permissionMode ? 'border-l-accent bg-raised' : 'border-l-transparent hover:bg-raised', m.sep ? 'border-t border-t-default' : '']"
             @click="store.setPermissionMode(id, m.key); modeOpen = false"
           >

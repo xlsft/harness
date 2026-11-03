@@ -291,7 +291,7 @@ const mono = '\'JetBrains Mono\', monospace'
             v-else
             role="menuitem"
             :aria-disabled="m.disabled ? 'true' : 'false'"
-            class="flex cursor-default items-center gap-2.5 px-[9px] py-1.5"
+            class="flex cursor-pointer items-center gap-2.5 px-[9px] py-1.5"
             :class="m.disabled ? 'text-disabled' : m.danger ? 'text-bad hover:bg-raised' : 'text-toned hover:bg-raised hover:text-strong'"
             @click="!m.disabled && choose(m.label)"
           >

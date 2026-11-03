@@ -104,7 +104,7 @@ function clearFinished() {
         class="shrink-0 border border-line bg-surface"
       >
         <div
-          class="flex h-[38px] cursor-default items-center gap-[9px] pr-2 pl-2.5 text-[12.5px]"
+          class="flex h-[38px] cursor-pointer items-center gap-[9px] pr-2 pl-2.5 text-[12.5px]"
           @click="toggle(t)"
         >
           <HIcon
@@ -176,7 +176,7 @@ function clearFinished() {
             class="shrink-0 border border-muted bg-surface"
           >
             <div
-              class="flex h-[34px] cursor-default items-center gap-[9px] px-2.5 text-[12.5px]"
+              class="flex h-[34px] cursor-pointer items-center gap-[9px] px-2.5 text-[12.5px]"
               @click="toggle(t)"
             >
               <HIcon
