@@ -1,9 +1,27 @@
 <script setup lang="ts">
 // Settings > General > Appearance: the mode (follow the system, always light, always dark) and the theme used
-// for each kind, picked from previews. Kept in this browser (composables/useAppearance.ts).
-import { THEMES, type AppearanceMode, type ThemeKind } from '~/themes'
+// for each kind, picked from previews; VS Code colour themes can be imported. Kept in this browser
+// (composables/useAppearance.ts).
+import type { AppearanceMode, ThemeKind } from '~/themes'
+import { themeFromVsCode } from '~/themes/vscode'
 
-const { appearance, kind, setMode, setTheme } = useAppearance()
+const { appearance, kind, themes, isCustom, importTheme, removeTheme, setMode, setTheme } = useAppearance()
+const toast = useToast()
+
+const picker = ref<HTMLInputElement | null>(null)
+async function onPick(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  try {
+    const t = themeFromVsCode(await file.text(), file.name)
+    importTheme(t)
+    toast.add({ title: `Imported ${t.name}`, description: `Now your ${t.kind} theme.`, color: 'neutral' })
+  } catch (err) {
+    toast.add({ title: 'Could not import the theme', description: err instanceof Error ? err.message : String(err), color: 'error' })
+  }
+}
 
 const MODES = [
   { value: 'system', label: 'System', hint: 'follows the OS' },
@@ -22,9 +40,27 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
 </script>
 
 <template>
-  <h2 class="set-h">
-    Appearance
-  </h2>
+  <div class="flex items-start gap-3">
+    <h2 class="set-h flex-1">
+      Appearance
+    </h2>
+    <HBtn
+      size="md"
+      @click="picker?.click()"
+    >
+      <HIcon
+        name="upload"
+        :size="12"
+      />Import VS Code theme…
+    </HBtn>
+    <input
+      ref="picker"
+      type="file"
+      accept=".json,application/json"
+      class="hidden"
+      @change="onPick"
+    >
+  </div>
   <p class="set-sub">
     How the app looks in this browser.
   </p>
@@ -59,18 +95,29 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
       class="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2.5"
     >
       <button
-        v-for="t in THEMES.filter(x => x.kind === k.kind)"
+        v-for="t in themes.filter(x => x.kind === k.kind)"
         :key="t.id"
         type="button"
         role="radio"
         :aria-checked="appearance[k.kind] === t.id"
-        class="flex flex-col border text-left outline-none focus-visible:border-accent"
+        class="flex flex-col overflow-hidden border text-left outline-none focus-visible:border-accent"
         :class="appearance[k.kind] === t.id ? 'border-accent' : 'border-line hover:border-line-strong'"
         @click="setTheme(k.kind, t.id)"
       >
         <ThemePreview :theme="t" />
         <span class="flex h-8 items-center gap-2 border-t border-line px-2.5 text-[12.5px]">
           <span class="min-w-0 flex-1 truncate text-strong">{{ t.name }}</span>
+          <span
+            v-if="isCustom(t)"
+            role="button"
+            :aria-label="`Remove ${t.name}`"
+            title="Remove"
+            class="text-muted hover:text-bad"
+            @click.stop="removeTheme(t)"
+          ><HIcon
+            name="trash"
+            :size="12"
+          /></span>
           <HIcon
             v-if="appearance[k.kind] === t.id"
             name="check"

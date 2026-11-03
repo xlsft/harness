@@ -69,9 +69,12 @@ export interface Appearance {
 // (nuxt.config.ts), so a reload does not flash the default theme.
 export const APPEARANCE_KEY = 'harness-appearance'
 export const THEME_CACHE_KEY = 'harness-theme-vars'
+// Themes imported in this browser (VS Code themes, themes/vscode.ts).
+export const CUSTOM_THEMES_KEY = 'harness-custom-themes'
 
-export function themeById(id: string, kind: ThemeKind): Theme {
-  return THEMES.find(t => t.id === id && t.kind === kind) ?? THEMES.find(t => t.id === DEFAULT_THEME[kind])!
+// `extra`: imported themes, looked up after the built-in ones.
+export function themeById(id: string, kind: ThemeKind, extra: Theme[] = []): Theme {
+  return [...THEMES, ...extra].find(t => t.id === id && t.kind === kind) ?? THEMES.find(t => t.id === DEFAULT_THEME[kind])!
 }
 
 export function themeVars(theme: Theme): Record<string, string> {

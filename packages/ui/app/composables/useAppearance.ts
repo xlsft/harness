@@ -2,7 +2,7 @@
 // active theme's tokens go on <html> as --color-* variables with a `light` / `dark` class; the resolved
 // variables are cached for the head script (nuxt.config.ts) so the next load starts in the right theme.
 import {
-  APPEARANCE_KEY, DEFAULT_THEME, THEME_CACHE_KEY, themeById, themeVars,
+  APPEARANCE_KEY, CUSTOM_THEMES_KEY, DEFAULT_THEME, THEME_CACHE_KEY, THEMES, themeById, themeVars,
   type Appearance, type AppearanceMode, type Theme, type ThemeKind
 } from '~/themes'
 
@@ -21,12 +21,22 @@ function read(): Appearance {
   }
 }
 
+function readCustom(): Theme[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(CUSTOM_THEMES_KEY) ?? '[]')
+    return Array.isArray(v) ? v.filter(t => t && typeof t.id === 'string' && t.tokens && (t.kind === 'light' || t.kind === 'dark')) : []
+  } catch {
+    return []
+  }
+}
+
 const appearance = ref<Appearance>({ ...DEFAULTS })
+const custom = ref<Theme[]>([])
 const systemDark = ref(true)
 let started = false
 
 const kind = computed<ThemeKind>(() => appearance.value.mode === 'system' ? (systemDark.value ? 'dark' : 'light') : appearance.value.mode)
-const theme = computed<Theme>(() => themeById(appearance.value[kind.value], kind.value))
+const theme = computed<Theme>(() => themeById(appearance.value[kind.value], kind.value, custom.value))
 
 function apply(t: Theme) {
   const root = document.documentElement
@@ -45,6 +55,7 @@ export function startAppearance() {
   if (started || !import.meta.client) return
   started = true
   appearance.value = read()
+  custom.value = readCustom()
   const media = window.matchMedia('(prefers-color-scheme: dark)')
   systemDark.value = media.matches
   media.addEventListener('change', e => (systemDark.value = e.matches))
@@ -58,7 +69,26 @@ export function useAppearance() {
       localStorage.setItem(APPEARANCE_KEY, JSON.stringify(appearance.value))
     } catch { /* kept for this page only */ }
   }
+  function saveCustom(next: Theme[]) {
+    custom.value = next
+    try {
+      localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(next))
+    } catch { /* kept for this page only */ }
+  }
+  // Adds (or replaces, by id) an imported theme and switches its kind to it.
+  function importTheme(t: Theme) {
+    saveCustom([...custom.value.filter(x => x.id !== t.id), t])
+    set({ [t.kind]: t.id })
+  }
+  function removeTheme(t: Theme) {
+    saveCustom(custom.value.filter(x => x.id !== t.id))
+    if (appearance.value[t.kind] === t.id) set({ [t.kind]: DEFAULT_THEME[t.kind] })
+  }
   return {
+    themes: computed(() => [...THEMES, ...custom.value]),
+    isCustom: (t: Theme) => custom.value.some(x => x.id === t.id),
+    importTheme,
+    removeTheme,
     appearance: readonly(appearance),
     kind,
     theme,
