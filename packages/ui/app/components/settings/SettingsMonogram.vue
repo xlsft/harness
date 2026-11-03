@@ -11,7 +11,7 @@ const logo = computed(() => (props.text ? PROVIDER_LOGOS[props.text] : undefined
 <template>
   <span
     aria-hidden="true"
-    class="flex size-7 shrink-0 items-center justify-center border border-line bg-raised font-mono text-[10.5px] font-semibold tracking-wide"
+    class="flex size-7 shrink-0 items-center justify-center rounded-control border border-line bg-raised font-mono text-[10.5px] font-semibold tracking-wide"
     :class="[dim ? 'text-dimmed' : 'text-strong', logo && dim ? 'opacity-60' : '']"
   >
     <!-- Bundled, static markup (no user input). -->
