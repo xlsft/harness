@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package harness.agent.v1;
 
+import "harness/agent/v1/files.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/llm/v1/content.proto";
 
@@ -124,6 +125,15 @@ service AgentService {
   // Adds a working directory to an open session's environment (stored) and applies it to the open sessions
   // in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
   rpc AddSessionDirectory(AddSessionDirectoryRequest) returns (AddSessionDirectoryResponse);
+
+  // --- Files (files.proto, packages/client/server/filebrowser.go) ---
+  // The files pane: a session's working directories, their listings with git status and .gitignore marks, file
+  // contents within limits, and the repository's changed paths. Paths must stay inside the working directories
+  // (PERMISSION_DENIED otherwise); sessions of other machines are FAILED_PRECONDITION.
+  rpc ListFileRoots(ListFileRootsRequest) returns (ListFileRootsResponse);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
+  rpc GetGitStatus(GetGitStatusRequest) returns (GetGitStatusResponse);
 }
 
 enum PermissionMode {

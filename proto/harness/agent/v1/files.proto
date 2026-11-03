@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Files: browsing a session's working directories (its cwd and additional directories) for the UI's files pane.
+//
+// Every path is absolute or relative to the session's cwd, and must resolve (symlinks followed) inside one of the
+// session's working directories: anything else is PERMISSION_DENIED. Only sessions of this machine can be
+// browsed; sessions of other machines (SessionInfo.remote) are FAILED_PRECONDITION.
+//
+// Limits: a directory lists at most 5000 entries (ListFilesResponse.truncated); ReadFile returns at most 2 MB of
+// text and 10 MB of an image (smaller with max_bytes), and no content for other binary files.
+
+enum GitFileStatus {
+  GIT_FILE_STATUS_UNSPECIFIED = 0; // unchanged, or not in a repository
+  GIT_FILE_STATUS_ADDED = 1;       // new in the index, or the new side of a rename or copy
+  GIT_FILE_STATUS_MODIFIED = 2;
+  GIT_FILE_STATUS_DELETED = 3;
+  GIT_FILE_STATUS_UNTRACKED = 4;
+  GIT_FILE_STATUS_RENAMED = 5;
+  GIT_FILE_STATUS_CONFLICTED = 6;  // unmerged
+}
+
+enum FileKind {
+  FILE_KIND_UNSPECIFIED = 0;
+  FILE_KIND_FILE = 1;
+  FILE_KIND_DIRECTORY = 2;
+  // A symlink whose target is missing or outside the working directories; a symlink to a file or directory
+  // inside them is listed as its target's kind with symlink = true.
+  FILE_KIND_SYMLINK = 3;
+  FILE_KIND_OTHER = 4;
+}
+
+message FileRoot {
+  // Absolute, as the session knows it (the cwd first).
+  string path = 1;
+  string name = 2;
+  // The repository's top level when the root is inside a git repository.
+  string git_root = 3;
+}
+
+message ListFileRootsRequest {
+  string session_id = 1;
+}
+
+message ListFileRootsResponse {
+  repeated FileRoot roots = 1;
+}
+
+message FileEntry {
+  string name = 1;
+  // Absolute.
+  string path = 2;
+  FileKind kind = 3;
+  bool symlink = 4;
+  int64 size = 5;
+  // RFC 3339; empty for deleted entries.
+  string modified_at = 6;
+  GitFileStatus git_status = 7;
+  // Matched by .gitignore (or .git / node_modules, always): hidden unless show_ignored.
+  bool ignored = 8;
+  // A tracked file deleted from the working tree (git_status DELETED): listed so the tree can show it.
+  bool deleted = 9;
+}
+
+message ListFilesRequest {
+  string session_id = 1;
+  // A directory; empty means the session's cwd.
+  string path = 2;
+  // Also list ignored entries (marked ignored).
+  bool show_ignored = 3;
+}
+
+message ListFilesResponse {
+  // The directory, absolute.
+  string path = 1;
+  // Directories first, then by name.
+  repeated FileEntry entries = 2;
+  // More entries than the listing limit.
+  bool truncated = 3;
+}
+
+message ReadFileRequest {
+  string session_id = 1;
+  string path = 2;
+  // Lower than the server limits to read less; 0 means the limits (2 MB text, 10 MB images).
+  int64 max_bytes = 3;
+  // An etag from an earlier read: when the file still matches, the response has not_modified and no content.
+  string if_none_match = 4;
+}
+
+message ReadFileResponse {
+  // Absolute.
+  string path = 1;
+  int64 size = 2;
+  // RFC 3339.
+  string modified_at = 3;
+  // Changes when the file's size or modification time does.
+  string etag = 4;
+  bool not_modified = 5;
+  // e.g. "text/markdown", "image/png", "application/octet-stream".
+  string mime = 6;
+  bool is_binary = 7;
+  // UTF-8 text (is_binary false), possibly cut at the limit (truncated).
+  string text = 8;
+  // The bytes of an image (mime image/*) within the image limit.
+  bytes data = 9;
+  bool truncated = 10;
+  // No content because the file is above the limit for its kind (text is cut instead).
+  bool too_large = 11;
+}
+
+message GetGitStatusRequest {
+  string session_id = 1;
+  // A directory inside the repository; empty means the session's cwd.
+  string path = 2;
+}
+
+message GetGitStatusResponse {
+  // The repository's top level; empty outside a repository.
+  string root = 1;
+  // Changed paths, absolute, with their status (deleted files included). Capped at 5000 paths (truncated).
+  map<string, GitFileStatus> files = 2;
+  bool truncated = 3;
+}

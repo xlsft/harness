@@ -141,6 +141,16 @@ const (
 	// AgentServiceAddSessionDirectoryProcedure is the fully-qualified name of the AgentService's
 	// AddSessionDirectory RPC.
 	AgentServiceAddSessionDirectoryProcedure = "/harness.agent.v1.AgentService/AddSessionDirectory"
+	// AgentServiceListFileRootsProcedure is the fully-qualified name of the AgentService's
+	// ListFileRoots RPC.
+	AgentServiceListFileRootsProcedure = "/harness.agent.v1.AgentService/ListFileRoots"
+	// AgentServiceListFilesProcedure is the fully-qualified name of the AgentService's ListFiles RPC.
+	AgentServiceListFilesProcedure = "/harness.agent.v1.AgentService/ListFiles"
+	// AgentServiceReadFileProcedure is the fully-qualified name of the AgentService's ReadFile RPC.
+	AgentServiceReadFileProcedure = "/harness.agent.v1.AgentService/ReadFile"
+	// AgentServiceGetGitStatusProcedure is the fully-qualified name of the AgentService's GetGitStatus
+	// RPC.
+	AgentServiceGetGitStatusProcedure = "/harness.agent.v1.AgentService/GetGitStatus"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -245,6 +255,14 @@ type AgentServiceClient interface {
 	// Adds a working directory to an open session's environment (stored) and applies it to the open sessions
 	// in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
 	AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error)
+	// --- Files (files.proto, packages/client/server/filebrowser.go) ---
+	// The files pane: a session's working directories, their listings with git status and .gitignore marks, file
+	// contents within limits, and the repository's changed paths. Paths must stay inside the working directories
+	// (PERMISSION_DENIED otherwise); sessions of other machines are FAILED_PRECONDITION.
+	ListFileRoots(context.Context, *connect.Request[v1.ListFileRootsRequest]) (*connect.Response[v1.ListFileRootsResponse], error)
+	ListFiles(context.Context, *connect.Request[v1.ListFilesRequest]) (*connect.Response[v1.ListFilesResponse], error)
+	ReadFile(context.Context, *connect.Request[v1.ReadFileRequest]) (*connect.Response[v1.ReadFileResponse], error)
+	GetGitStatus(context.Context, *connect.Request[v1.GetGitStatusRequest]) (*connect.Response[v1.GetGitStatusResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -492,6 +510,30 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("AddSessionDirectory")),
 			connect.WithClientOptions(opts...),
 		),
+		listFileRoots: connect.NewClient[v1.ListFileRootsRequest, v1.ListFileRootsResponse](
+			httpClient,
+			baseURL+AgentServiceListFileRootsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListFileRoots")),
+			connect.WithClientOptions(opts...),
+		),
+		listFiles: connect.NewClient[v1.ListFilesRequest, v1.ListFilesResponse](
+			httpClient,
+			baseURL+AgentServiceListFilesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListFiles")),
+			connect.WithClientOptions(opts...),
+		),
+		readFile: connect.NewClient[v1.ReadFileRequest, v1.ReadFileResponse](
+			httpClient,
+			baseURL+AgentServiceReadFileProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ReadFile")),
+			connect.WithClientOptions(opts...),
+		),
+		getGitStatus: connect.NewClient[v1.GetGitStatusRequest, v1.GetGitStatusResponse](
+			httpClient,
+			baseURL+AgentServiceGetGitStatusProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetGitStatus")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -536,6 +578,10 @@ type agentServiceClient struct {
 	getFolderInfo       *connect.Client[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse]
 	setSessionFolder    *connect.Client[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse]
 	addSessionDirectory *connect.Client[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse]
+	listFileRoots       *connect.Client[v1.ListFileRootsRequest, v1.ListFileRootsResponse]
+	listFiles           *connect.Client[v1.ListFilesRequest, v1.ListFilesResponse]
+	readFile            *connect.Client[v1.ReadFileRequest, v1.ReadFileResponse]
+	getGitStatus        *connect.Client[v1.GetGitStatusRequest, v1.GetGitStatusResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -733,6 +779,26 @@ func (c *agentServiceClient) AddSessionDirectory(ctx context.Context, req *conne
 	return c.addSessionDirectory.CallUnary(ctx, req)
 }
 
+// ListFileRoots calls harness.agent.v1.AgentService.ListFileRoots.
+func (c *agentServiceClient) ListFileRoots(ctx context.Context, req *connect.Request[v1.ListFileRootsRequest]) (*connect.Response[v1.ListFileRootsResponse], error) {
+	return c.listFileRoots.CallUnary(ctx, req)
+}
+
+// ListFiles calls harness.agent.v1.AgentService.ListFiles.
+func (c *agentServiceClient) ListFiles(ctx context.Context, req *connect.Request[v1.ListFilesRequest]) (*connect.Response[v1.ListFilesResponse], error) {
+	return c.listFiles.CallUnary(ctx, req)
+}
+
+// ReadFile calls harness.agent.v1.AgentService.ReadFile.
+func (c *agentServiceClient) ReadFile(ctx context.Context, req *connect.Request[v1.ReadFileRequest]) (*connect.Response[v1.ReadFileResponse], error) {
+	return c.readFile.CallUnary(ctx, req)
+}
+
+// GetGitStatus calls harness.agent.v1.AgentService.GetGitStatus.
+func (c *agentServiceClient) GetGitStatus(ctx context.Context, req *connect.Request[v1.GetGitStatusRequest]) (*connect.Response[v1.GetGitStatusResponse], error) {
+	return c.getGitStatus.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -835,6 +901,14 @@ type AgentServiceHandler interface {
 	// Adds a working directory to an open session's environment (stored) and applies it to the open sessions
 	// in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
 	AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error)
+	// --- Files (files.proto, packages/client/server/filebrowser.go) ---
+	// The files pane: a session's working directories, their listings with git status and .gitignore marks, file
+	// contents within limits, and the repository's changed paths. Paths must stay inside the working directories
+	// (PERMISSION_DENIED otherwise); sessions of other machines are FAILED_PRECONDITION.
+	ListFileRoots(context.Context, *connect.Request[v1.ListFileRootsRequest]) (*connect.Response[v1.ListFileRootsResponse], error)
+	ListFiles(context.Context, *connect.Request[v1.ListFilesRequest]) (*connect.Response[v1.ListFilesResponse], error)
+	ReadFile(context.Context, *connect.Request[v1.ReadFileRequest]) (*connect.Response[v1.ReadFileResponse], error)
+	GetGitStatus(context.Context, *connect.Request[v1.GetGitStatusRequest]) (*connect.Response[v1.GetGitStatusResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1078,6 +1152,30 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("AddSessionDirectory")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListFileRootsHandler := connect.NewUnaryHandler(
+		AgentServiceListFileRootsProcedure,
+		svc.ListFileRoots,
+		connect.WithSchema(agentServiceMethods.ByName("ListFileRoots")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListFilesHandler := connect.NewUnaryHandler(
+		AgentServiceListFilesProcedure,
+		svc.ListFiles,
+		connect.WithSchema(agentServiceMethods.ByName("ListFiles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceReadFileHandler := connect.NewUnaryHandler(
+		AgentServiceReadFileProcedure,
+		svc.ReadFile,
+		connect.WithSchema(agentServiceMethods.ByName("ReadFile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetGitStatusHandler := connect.NewUnaryHandler(
+		AgentServiceGetGitStatusProcedure,
+		svc.GetGitStatus,
+		connect.WithSchema(agentServiceMethods.ByName("GetGitStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1158,6 +1256,14 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetSessionFolderHandler.ServeHTTP(w, r)
 		case AgentServiceAddSessionDirectoryProcedure:
 			agentServiceAddSessionDirectoryHandler.ServeHTTP(w, r)
+		case AgentServiceListFileRootsProcedure:
+			agentServiceListFileRootsHandler.ServeHTTP(w, r)
+		case AgentServiceListFilesProcedure:
+			agentServiceListFilesHandler.ServeHTTP(w, r)
+		case AgentServiceReadFileProcedure:
+			agentServiceReadFileHandler.ServeHTTP(w, r)
+		case AgentServiceGetGitStatusProcedure:
+			agentServiceGetGitStatusHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1321,4 +1427,20 @@ func (UnimplementedAgentServiceHandler) SetSessionFolder(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AddSessionDirectory is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListFileRoots(context.Context, *connect.Request[v1.ListFileRootsRequest]) (*connect.Response[v1.ListFileRootsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListFileRoots is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListFiles(context.Context, *connect.Request[v1.ListFilesRequest]) (*connect.Response[v1.ListFilesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListFiles is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ReadFile(context.Context, *connect.Request[v1.ReadFileRequest]) (*connect.Response[v1.ReadFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ReadFile is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetGitStatus(context.Context, *connect.Request[v1.GetGitStatusRequest]) (*connect.Response[v1.GetGitStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetGitStatus is not implemented"))
 }
