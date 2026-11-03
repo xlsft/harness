@@ -181,7 +181,7 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5px] whitespace-nowrap hover:text-toned'
+const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitespace-nowrap hover:bg-hover hover:text-toned'
 </script>
 
 <template>
@@ -366,7 +366,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           >
             <button
               type="button"
-              :class="[CHIP, menu === 'env' ? 'border-accent' : 'border-transparent']"
+              :class="[CHIP, menu === 'env' && 'bg-hover']"
             >
               <HIcon
                 name="monitor"
@@ -386,7 +386,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
             <button
               type="button"
               :title="cwd || 'No folder: the session gets a private folder of its own'"
-              :class="[CHIP, menu === 'folder' ? 'border-accent' : 'border-transparent']"
+              :class="[CHIP, menu === 'folder' && 'bg-hover']"
             >
               <HIcon
                 :name="cwd ? 'folder' : 'chat'"
@@ -432,7 +432,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           >
             <button
               type="button"
-              :class="[CHIP, menu === 'model' ? 'border-accent' : 'border-transparent']"
+              :class="[CHIP, menu === 'model' && 'bg-hover']"
             >
               <span class="text-strong">{{ modelLabel }}</span>
             </button>
@@ -459,7 +459,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
             <button
               type="button"
               aria-label="Effort"
-              :class="[CHIP, menu === 'effort' ? 'border-accent' : 'border-transparent', '@max-[560px]:hidden']"
+              :class="[CHIP, menu === 'effort' && 'bg-hover', '@max-[560px]:hidden']"
             >
               effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span>
             </button>
@@ -480,7 +480,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           >
             <button
               type="button"
-              :class="[CHIP, menu === 'mode' ? 'border-accent' : 'border-transparent']"
+              :class="[CHIP, menu === 'mode' && 'bg-hover']"
             >
               <span class="text-strong">{{ MODE_LABEL[mode] }}</span>
             </button>

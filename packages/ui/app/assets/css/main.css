@@ -509,8 +509,8 @@
 }
 
 /* Theme corners without per-component classes: bordered blocks (cards, bubbles, menus, the composer) take the
-   box radius, controls the control radius, small bordered marks the chip radius. Zero specificity, so an explicit
-   rounded-* class still wins. All 0 in square themes. */
+   box radius, controls the control radius, small bordered marks the chip radius. All 0 in square themes. These
+   rules are outside the layers, so they beat Tailwind's utilities: rounded-none is restated below them. */
 :where([class~="border"], [class~="border-dashed"]) {
   border-radius: var(--radius-box);
 }
@@ -519,6 +519,9 @@
 }
 :where(kbd, [class~="border"][class*="text-[11px]"], [class~="border"][class*="text-[10"]) {
   border-radius: var(--radius-chip);
+}
+.rounded-none {
+  border-radius: 0;
 }
 /* Rows of a list and cells of a tab strip (separated by a single rule on some sides) are square: the list's or
    strip's own border carries the corners. */

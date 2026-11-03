@@ -21,7 +21,7 @@ const efforts = computed(() => modelEfforts(model.value))
 const effort = computed(() => fitEffort(store.effort[id.value] ?? 'medium', efforts.value))
 const contextWindow = computed(() => model.value?.contextWindow || 200_000)
 const pct = computed(() => Math.min(100, Math.round((props.session.contextTokens / contextWindow.value) * 100)))
-const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.5px] whitespace-nowrap text-muted hover:text-toned'
+const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whitespace-nowrap text-muted hover:bg-hover hover:text-toned'
 </script>
 
 <template>
@@ -46,7 +46,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
       <button
         type="button"
         aria-label="Model"
-        :class="[BTN, modelOpen ? 'border-accent' : 'border-transparent']"
+        :class="[BTN, modelOpen && 'bg-hover']"
       >
         <span
           class="text-strong"
@@ -79,7 +79,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
       <button
         type="button"
         aria-label="Effort"
-        :class="[BTN, effortOpen ? 'border-accent' : 'border-transparent', 'max-sm:hidden']"
+        :class="[BTN, effortOpen && 'bg-hover', 'max-sm:hidden']"
       >
         effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span><HIcon
           name="down"
@@ -104,7 +104,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
       <button
         type="button"
         aria-label="Permission mode"
-        :class="[BTN, modeOpen ? 'border-accent' : 'border-transparent']"
+        :class="[BTN, modeOpen && 'bg-hover']"
       >
         <span class="text-strong">{{ MODE_LABEL[session.meta.permissionMode] }}</span><HIcon
           name="down"
@@ -139,7 +139,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
       <button
         type="button"
         :aria-label="`Context: ${pct}% used`"
-        :class="[BTN, contextOpen ? 'border-accent' : 'border-transparent']"
+        :class="[BTN, contextOpen && 'bg-hover']"
       >
         <svg
           viewBox="0 0 20 20"
