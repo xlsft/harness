@@ -55,6 +55,10 @@ message PromptBundle {
   //   user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
   //                         the composer's shell mode (RunShellCommand); rides on the next model request
   //   side_chat             (none)                 not a reminder: the system prompt of side chats (AskSideChat)
+  //   bash_background_user / bash_background_queued_message / bash_background_agent  {{task_id}} {{output_path}}
+  //   bash_background_timeout  {{timeout}} {{task_id}} {{output_path}}
+  //                         not reminders: the Bash tool_result when the command runs as a background task
+  //                         (moved by the user / for a queued message / run_in_background / hit its timeout)
   map<string, string> reminders = 5;
   string compaction_instruction = 6;
   string title_instruction = 7;

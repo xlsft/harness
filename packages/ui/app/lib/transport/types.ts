@@ -138,6 +138,11 @@ export interface SessionTransport {
   getContextUsage(sessionId: string): Promise<ContextUsageVM>
   listTasks(sessionId: string): Promise<BackgroundTask[]>
   stopTask(sessionId: string, taskId: string): Promise<void>
+  // Moves the running foreground Bash command of a tool call to the background without stopping it (the "Run in
+  // background" button: reason 'user'; delivering a queued message now: 'queued_message'). The call then
+  // finishes with ToolCallFinished.background and a TaskStarted follows. false: that call runs no foreground
+  // command (anymore).
+  backgroundToolCall(sessionId: string, toolUseId: string, reason: 'user' | 'queued_message'): Promise<boolean>
   // The composer's shell mode: the client runs the command in the session's shell (no model, no prompt) and
   // streams UserShellStarted / Output / Finished; the model sees the result on its next request. `uuid`
   // deduplicates and becomes the command id. Remote sessions refuse it.

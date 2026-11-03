@@ -238,6 +238,9 @@ const (
 	// AgentServiceGetProviderLimitsProcedure is the fully-qualified name of the AgentService's
 	// GetProviderLimits RPC.
 	AgentServiceGetProviderLimitsProcedure = "/harness.agent.v1.AgentService/GetProviderLimits"
+	// AgentServiceBackgroundToolCallProcedure is the fully-qualified name of the AgentService's
+	// BackgroundToolCall RPC.
+	AgentServiceBackgroundToolCallProcedure = "/harness.agent.v1.AgentService/BackgroundToolCall"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -420,6 +423,11 @@ type AgentServiceClient interface {
 	// Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
 	// may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
 	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
+	// Moves the running foreground Bash command of a tool call to the background task manager without stopping
+	// it: the process keeps running and its output goes to the task's output file. The tool call completes right
+	// away with a note to the model (task id, TaskOutput / TaskStop); its ToolCallFinished carries `background`,
+	// and TaskStarted follows. backgrounded = false when that tool call has no running foreground command.
+	BackgroundToolCall(context.Context, *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -865,6 +873,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetProviderLimits")),
 			connect.WithClientOptions(opts...),
 		),
+		backgroundToolCall: connect.NewClient[v1.BackgroundToolCallRequest, v1.BackgroundToolCallResponse](
+			httpClient,
+			baseURL+AgentServiceBackgroundToolCallProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("BackgroundToolCall")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -942,6 +956,7 @@ type agentServiceClient struct {
 	pullOllamaModel       *connect.Client[v1.PullOllamaModelRequest, v1.PullOllamaModelResponse]
 	deleteOllamaModel     *connect.Client[v1.DeleteOllamaModelRequest, v1.DeleteOllamaModelResponse]
 	getProviderLimits     *connect.Client[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse]
+	backgroundToolCall    *connect.Client[v1.BackgroundToolCallRequest, v1.BackgroundToolCallResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1304,6 +1319,11 @@ func (c *agentServiceClient) GetProviderLimits(ctx context.Context, req *connect
 	return c.getProviderLimits.CallUnary(ctx, req)
 }
 
+// BackgroundToolCall calls harness.agent.v1.AgentService.BackgroundToolCall.
+func (c *agentServiceClient) BackgroundToolCall(ctx context.Context, req *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error) {
+	return c.backgroundToolCall.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1484,6 +1504,11 @@ type AgentServiceHandler interface {
 	// Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
 	// may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
 	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
+	// Moves the running foreground Bash command of a tool call to the background task manager without stopping
+	// it: the process keeps running and its output goes to the task's output file. The tool call completes right
+	// away with a note to the model (task id, TaskOutput / TaskStop); its ToolCallFinished carries `background`,
+	// and TaskStarted follows. backgrounded = false when that tool call has no running foreground command.
+	BackgroundToolCall(context.Context, *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1925,6 +1950,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetProviderLimits")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceBackgroundToolCallHandler := connect.NewUnaryHandler(
+		AgentServiceBackgroundToolCallProcedure,
+		svc.BackgroundToolCall,
+		connect.WithSchema(agentServiceMethods.ByName("BackgroundToolCall")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2071,6 +2102,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceDeleteOllamaModelHandler.ServeHTTP(w, r)
 		case AgentServiceGetProviderLimitsProcedure:
 			agentServiceGetProviderLimitsHandler.ServeHTTP(w, r)
+		case AgentServiceBackgroundToolCallProcedure:
+			agentServiceBackgroundToolCallHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2366,4 +2399,8 @@ func (UnimplementedAgentServiceHandler) DeleteOllamaModel(context.Context, *conn
 
 func (UnimplementedAgentServiceHandler) GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetProviderLimits is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) BackgroundToolCall(context.Context, *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.BackgroundToolCall is not implemented"))
 }

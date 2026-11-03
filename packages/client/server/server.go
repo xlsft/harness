@@ -605,12 +605,13 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})
 		if req.Msg.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW {
-			// Running shell commands move to the background so the message is
-			// read in this turn right after the tool calls; otherwise the turn
-			// is interrupted and the message starts the next one.
+			// Running Bash commands move to the background (the model gets the
+			// queued_message note) so the message is read in this turn right
+			// after the tool calls; otherwise the turn is interrupted and the
+			// message starts the next one.
 			// An open question keeps waiting: the message stays queued and
 			// follows the answer, or becomes it ("answer with message").
-			if !ls.sess.ToolEnv.Shell.BackgroundRunning() && !ls.questionPending() {
+			if !ls.sess.ToolEnv.Shell.BackgroundRunning(tools.BackgroundQueuedMessage) && !ls.questionPending() {
 				ls.driver.Interrupt()
 			}
 		}

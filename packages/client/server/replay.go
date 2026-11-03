@@ -360,6 +360,7 @@ func (r *replayer) toolResult(b llm.ContentBlock, structured any, at time.Time) 
 		if j, err := json.Marshal(structured); err == nil {
 			fin.StructuredResultJson = string(j)
 		}
+		fin.Background = toolBackground(structured)
 	}
 	if !interrupted {
 		r.cards(b.ToolUseID, pt, structured, b.IsError, at)

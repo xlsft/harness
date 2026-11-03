@@ -250,7 +250,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		}
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallFinished{ToolCallFinished: &agentv1.ToolCallFinished{
 			ToolUseId: e.ToolUseID, IsError: e.IsError, Interrupted: e.Interrupted, Content: pbconv.Blocks(e.Content), DurationMs: e.Duration.Milliseconds(),
-			StructuredResultJson: structured, Summary: e.Summary,
+			StructuredResultJson: structured, Summary: e.Summary, Background: toolBackground(e.Structured),
 		}}})
 	case agent.EventQueueDrained:
 		ls.mu.Lock()

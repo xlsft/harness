@@ -60,6 +60,10 @@ export interface SubagentStep {
   status: 'done' | 'running' | 'waiting' | 'failed'
 }
 
+// Why a Bash command runs in the background (harness.agent.v1.BackgroundReason): the user moved it, it was moved
+// so a queued message could be delivered now, the agent started it with run_in_background, or it hit its timeout.
+export type BackgroundReasonName = 'user' | 'queued_message' | 'agent' | 'auto'
+
 export interface ToolItem {
   kind: 'tool'
   id: string
@@ -82,6 +86,9 @@ export interface ToolItem {
   title?: string
   // Auto mode verdict for this call, when the classifier decided it.
   autoDecision?: { decision: string, reason: string, provider: string }
+  // Set when the Bash command runs on as background task `taskId` (ToolCallFinished.background); the card shows
+  // a short note about it inside the output.
+  background?: { taskId: string, reason: BackgroundReasonName }
   // Subagents (Task / Agent tool): progress reported by the client.
   subagent?: { steps: SubagentStep[], tokens: number, toolCalls: number, model: string, active: number }
 }

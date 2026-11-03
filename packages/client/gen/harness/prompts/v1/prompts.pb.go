@@ -163,6 +163,10 @@ type PromptBundle struct {
 	//	user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
 	//	                      the composer's shell mode (RunShellCommand); rides on the next model request
 	//	side_chat             (none)                 not a reminder: the system prompt of side chats (AskSideChat)
+	//	bash_background_user / bash_background_queued_message / bash_background_agent  {{task_id}} {{output_path}}
+	//	bash_background_timeout  {{timeout}} {{task_id}} {{output_path}}
+	//	                      not reminders: the Bash tool_result when the command runs as a background task
+	//	                      (moved by the user / for a queued message / run_in_background / hit its timeout)
 	Reminders             map[string]string `protobuf:"bytes,5,rep,name=reminders,proto3" json:"reminders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CompactionInstruction string            `protobuf:"bytes,6,opt,name=compaction_instruction,json=compactionInstruction,proto3" json:"compaction_instruction,omitempty"`
 	TitleInstruction      string            `protobuf:"bytes,7,opt,name=title_instruction,json=titleInstruction,proto3" json:"title_instruction,omitempty"`
