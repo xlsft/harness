@@ -3,6 +3,9 @@
 // SVG and a PNG, a binary and a large file. It follows the client's rules: paths must stay inside the cwd, ignored
 // entries only with showIgnored, directories first, etags for unchanged files.
 
+import { structuredPatch } from 'diff'
+import { patchStats } from '~/utils/tools'
+import type { SessionFileDiff } from './sessionDiff'
 import type { DirListing, FileContent, FileEntry, FileRoot, FilesApi, GitStatus } from './types'
 import { FILE_LIMITS } from './types'
 import { absolutePath, baseName, dirName, fuzzyScore, isWithin } from './tree'
@@ -98,6 +101,8 @@ export class MockFilesApi implements FilesApi {
   private blank: (id: string) => boolean
   private files = new Map<string, Map<string, MockFile>>()
   private status = new Map<string, Record<string, GitStatus>>()
+  // Per session, what written files held before their first write (null: nothing).
+  private baselines = new Map<string, Map<string, string | null>>()
 
   // `blank`: the session starts in an empty folder that is no repository (a session without a folder).
   constructor(opts: { sessionCwd: (id: string) => string | undefined, blank?: (id: string) => boolean }) {
@@ -131,10 +136,30 @@ export class MockFilesApi implements FilesApi {
     return { ...p, abs, rel: abs === p.root ? '' : abs.slice(p.root.length + 1) }
   }
 
-  // Changes a file as the agent would (tests and the mock scenario).
+  // What write() changed, as GetSessionDiff measures it: each file against its first state (the initial git marks of
+  // the fixture are not the session's doing, so they do not count).
+  changes(sessionId: string): SessionFileDiff[] {
+    const { root, files } = this.project(sessionId)
+    const out: SessionFileDiff[] = []
+    for (const [rel, before] of this.baselines.get(sessionId) ?? []) {
+      const now = files.get(rel)?.text ?? null
+      if (now === before) continue
+      const hunks = structuredPatch('a', 'b', before ?? '', now ?? '', '', '', { context: 3 }).hunks.map(h => ({
+        oldStart: h.oldStart, oldLines: h.oldLines, newStart: h.newStart, newLines: h.newLines, lines: h.lines.filter(l => !l.startsWith('\\'))
+      }))
+      const { add, del } = patchStats(hunks)
+      out.push({ path: `${root}/${rel}`, label: rel, kind: before === null ? 'A' : now === null ? 'D' : 'M', oldPath: '', add, del, hunks, binary: false, tooLarge: false })
+    }
+    return out
+  }
+
+  // Changes a file as the agent would, by any tool (tests and the mock scenario).
   write(sessionId: string, rel: string, text: string) {
     const { files, status } = this.project(sessionId)
     const existed = files.has(rel)
+    let baselines = this.baselines.get(sessionId)
+    if (!baselines) this.baselines.set(sessionId, baselines = new Map())
+    if (!baselines.has(rel)) baselines.set(rel, existed ? files.get(rel)!.text ?? '' : null)
     files.set(rel, { text, mtime: Math.max(Date.now(), (files.get(rel)?.mtime ?? 0) + 1) })
     if (!status[rel]) status[rel] = existed ? 'M' : 'U'
   }

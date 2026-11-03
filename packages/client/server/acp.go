@@ -12,6 +12,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/xlsft/harness/packages/client/acp"
 	"github.com/xlsft/harness/packages/client/acp/registry"
@@ -128,13 +129,27 @@ func (l *acpLive) FilesChanged() {
 			time.Sleep(wait)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		d := diffStats(ctx, l.meta.Cwd, nil)
+		d := sessionDiffStats(ctx, acpDiffSources(l.meta.ID, l.meta.Cwd, l.dirs))
 		cancel()
 		l.mu.Lock()
-		l.diff, l.diffAt, l.diffGo = d, time.Now(), false
+		if d != nil {
+			l.diff = d
+		}
+		l.diffAt, l.diffGo = time.Now(), false
 		l.mu.Unlock()
 		l.publishInfo()
 	}()
+}
+
+// setDiffStats records the session's change counts and publishes them when they changed.
+func (l *acpLive) setDiffStats(ds *agentv1.DiffStats) {
+	l.mu.Lock()
+	changed := !proto.Equal(ds, l.diff)
+	l.diff = ds
+	l.mu.Unlock()
+	if changed {
+		l.publishInfo()
+	}
 }
 
 func (l *acpLive) info() *agentv1.SessionInfo {
@@ -291,7 +306,9 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 	}
 	s.acp.live[meta.ID] = l
 	s.acp.mu.Unlock()
-	l.diff = diffStats(ctx, meta.Cwd, nil)
+	diffCtx, diffDone := context.WithTimeout(ctx, sessionOpenDiffTimeout)
+	l.diff = sessionDiffStats(diffCtx, acpDiffSources(meta.ID, meta.Cwd, l.dirs))
+	diffDone()
 	l.publishInfo()
 	go func() { _ = l.sess.Open(s.ctx) }()
 	s.sessionOpened(meta.ID)

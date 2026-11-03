@@ -64,6 +64,8 @@ type liveSession struct {
 	titleTurns int
 	titleTried bool
 	diff       *agentv1.DiffStats
+	// A measurement of diff runs; another was asked for meanwhile (refreshDiffStats).
+	diffRunning, diffAgain bool
 	// history is the number of events replayed from the transcript at open.
 	history   int64
 	updatedAt time.Time
@@ -253,6 +255,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 			ToolUseId: e.ToolUseID, Name: e.ToolName, InputJson: string(e.Input), Summary: toolSummary(e.ToolName, e.Input, ls.sess.Cwd),
 		}}})
 	case agent.EventToolEnd:
+		ls.refreshDiffStats() // any tool may have changed files (a shell command, most of all)
 		structured := ""
 		if e.Structured != nil {
 			if b, err := json.Marshal(e.Structured); err == nil {
@@ -360,31 +363,60 @@ func (ls *liveSession) onResult(res agent.TurnResult) {
 	ls.afterTurn()
 }
 
-// refreshDiffStats measures the working tree changes in the background and
-// publishes SessionUpdated when they changed.
+// refreshDiffStats measures the session's changes in the background and publishes SessionUpdated when they changed.
+// One measurement runs at a time; asking during one measures again a moment after it, so a burst of tools costs a
+// few measurements, not one each.
 func (ls *liveSession) refreshDiffStats() {
 	ls.mu.Lock()
 	if ls.closed {
 		ls.mu.Unlock()
 		return
 	}
+	if ls.diffRunning {
+		ls.diffAgain = true
+		ls.mu.Unlock()
+		return
+	}
+	ls.diffRunning = true
 	ls.bg.Add(1)
 	ls.mu.Unlock()
 	go func() {
 		defer ls.bg.Done()
-		ds := diffStats(ls.ctx, ls.sess.Cwd, ls.sess.Worktree)
-		if ls.ctx.Err() != nil {
-			return
-		}
-		ls.mu.Lock()
-		changed := !proto.Equal(ds, ls.diff)
-		ls.diff = ds
-		ls.mu.Unlock()
-		if changed {
-			ls.publishInfo()
-			ls.syncDiffStats(ds)
+		for {
+			ds := sessionDiffStats(ls.ctx, ls.diffSources())
+			if ls.ctx.Err() == nil && ds != nil {
+				ls.setDiffStats(ds)
+			}
+			ls.mu.Lock()
+			again := ls.diffAgain && !ls.closed && ls.ctx.Err() == nil
+			ls.diffAgain = false
+			ls.diffRunning = again
+			ls.mu.Unlock()
+			if !again {
+				return
+			}
+			select {
+			case <-time.After(diffRefreshGap):
+			case <-ls.ctx.Done():
+				ls.mu.Lock()
+				ls.diffRunning = false
+				ls.mu.Unlock()
+				return
+			}
 		}
 	}()
+}
+
+// setDiffStats records the session's change counts and publishes them when they changed.
+func (ls *liveSession) setDiffStats(ds *agentv1.DiffStats) {
+	ls.mu.Lock()
+	changed := !proto.Equal(ds, ls.diff)
+	ls.diff = ds
+	ls.mu.Unlock()
+	if changed {
+		ls.publishInfo()
+		ls.syncDiffStats(ds)
+	}
 }
 
 func (ls *liveSession) syncDiffStats(ds *agentv1.DiffStats) {

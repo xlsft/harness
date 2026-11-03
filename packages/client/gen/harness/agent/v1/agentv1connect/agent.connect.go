@@ -279,6 +279,9 @@ const (
 	// AgentServiceClearBrowserDataProcedure is the fully-qualified name of the AgentService's
 	// ClearBrowserData RPC.
 	AgentServiceClearBrowserDataProcedure = "/harness.agent.v1.AgentService/ClearBrowserData"
+	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
+	// GetSessionDiff RPC.
+	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -501,6 +504,9 @@ type AgentServiceClient interface {
 	CloseBrowser(context.Context, *connect.Request[v1.CloseBrowserRequest]) (*connect.Response[v1.CloseBrowserResponse], error)
 	// Deletes the cookies, cache and storage of the session's browser profile.
 	ClearBrowserData(context.Context, *connect.Request[v1.ClearBrowserDataRequest]) (*connect.Response[v1.ClearBrowserDataResponse], error)
+	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
+	// FAILED_PRECONDITION for a session of another machine.
+	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1030,6 +1036,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("ClearBrowserData")),
 			connect.WithClientOptions(opts...),
 		),
+		getSessionDiff: connect.NewClient[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse](
+			httpClient,
+			baseURL+AgentServiceGetSessionDiffProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1121,6 +1133,7 @@ type agentServiceClient struct {
 	listBrowserTabs        *connect.Client[v1.ListBrowserTabsRequest, v1.ListBrowserTabsResponse]
 	closeBrowser           *connect.Client[v1.CloseBrowserRequest, v1.CloseBrowserResponse]
 	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
+	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1553,6 +1566,11 @@ func (c *agentServiceClient) ClearBrowserData(ctx context.Context, req *connect.
 	return c.clearBrowserData.CallUnary(ctx, req)
 }
 
+// GetSessionDiff calls harness.agent.v1.AgentService.GetSessionDiff.
+func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
+	return c.getSessionDiff.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1773,6 +1791,9 @@ type AgentServiceHandler interface {
 	CloseBrowser(context.Context, *connect.Request[v1.CloseBrowserRequest]) (*connect.Response[v1.CloseBrowserResponse], error)
 	// Deletes the cookies, cache and storage of the session's browser profile.
 	ClearBrowserData(context.Context, *connect.Request[v1.ClearBrowserDataRequest]) (*connect.Response[v1.ClearBrowserDataResponse], error)
+	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
+	// FAILED_PRECONDITION for a session of another machine.
+	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2298,6 +2319,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("ClearBrowserData")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetSessionDiffHandler := connect.NewUnaryHandler(
+		AgentServiceGetSessionDiffProcedure,
+		svc.GetSessionDiff,
+		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2472,6 +2499,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceCloseBrowserHandler.ServeHTTP(w, r)
 		case AgentServiceClearBrowserDataProcedure:
 			agentServiceClearBrowserDataHandler.ServeHTTP(w, r)
+		case AgentServiceGetSessionDiffProcedure:
+			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2823,4 +2852,8 @@ func (UnimplementedAgentServiceHandler) CloseBrowser(context.Context, *connect.R
 
 func (UnimplementedAgentServiceHandler) ClearBrowserData(context.Context, *connect.Request[v1.ClearBrowserDataRequest]) (*connect.Response[v1.ClearBrowserDataResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ClearBrowserData is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
 }

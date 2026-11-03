@@ -4,6 +4,8 @@
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { AgentService } from '~/gen/harness/agent/v1/agent_pb'
 import { FileKind, GitFileStatus, type FileEntry as FileEntryPb } from '~/gen/harness/agent/v1/files_pb'
+import { FileDiffStatus, type GetSessionDiffResponse } from '~/gen/harness/agent/v1/session_diff_pb'
+import type { SessionDiff, SessionFileDiff } from './sessionDiff'
 import type { EntryKind, FileContent, FileEntry, FilesApi, GitStatus } from './types'
 
 const STATUS: Record<GitFileStatus, GitStatus> = {
@@ -39,6 +41,36 @@ export function fileEntryView(e: FileEntryPb): FileEntry {
     git: gitStatusView(e.gitStatus),
     ignored: e.ignored,
     deleted: e.deleted
+  }
+}
+
+const DIFF_KIND: Record<FileDiffStatus, SessionFileDiff['kind']> = {
+  [FileDiffStatus.UNSPECIFIED]: 'M',
+  [FileDiffStatus.ADDED]: 'A',
+  [FileDiffStatus.MODIFIED]: 'M',
+  [FileDiffStatus.DELETED]: 'D',
+  [FileDiffStatus.RENAMED]: 'R'
+}
+
+export function sessionDiffView(r: GetSessionDiffResponse): SessionDiff {
+  return {
+    version: r.version,
+    notModified: r.notModified,
+    truncated: r.truncated,
+    filesChanged: r.filesChanged,
+    additions: r.additions,
+    deletions: r.deletions,
+    files: r.files.map(f => ({
+      path: f.path,
+      label: f.displayPath || f.path,
+      kind: DIFF_KIND[f.status] ?? 'M',
+      oldPath: f.oldPath,
+      add: f.additions,
+      del: f.deletions,
+      binary: f.binary,
+      tooLarge: f.tooLarge,
+      hunks: f.hunks.map(h => ({ oldStart: h.oldStart, oldLines: h.oldLines, newStart: h.newStart, newLines: h.newLines, lines: h.lines, ...(h.header ? { header: h.header } : {}) }))
+    }))
   }
 }
 

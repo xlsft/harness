@@ -384,7 +384,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		ls.usageLimit = u
 		usage.Seed(pbconv.FromUsageLimit(u))
 	}
-	ls.diff = diffStats(ctx, sess.Cwd, sess.Worktree)
+	diffCtx, diffDone := context.WithTimeout(ctx, sessionOpenDiffTimeout)
+	ls.diff = sessionDiffStats(diffCtx, ls.diffSources())
+	diffDone()
 	if sess.Resumed {
 		// The history goes first (seq 1..n), so Subscribe(after_seq=0) shows the conversation so far.
 		bundle := sess.Agent.Bundle()

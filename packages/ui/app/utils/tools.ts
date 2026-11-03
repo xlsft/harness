@@ -228,7 +228,7 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
 }
 
 export interface FileChange {
-  kind: 'A' | 'M' | 'D'
+  kind: 'A' | 'M' | 'D' | 'R'
   path: string
   add: number
   del: number
