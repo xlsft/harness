@@ -478,6 +478,8 @@ export class MockTransport implements SessionTransport {
       b.toolStarted(tool, 'Bash', { command }, command)
       b.permissionRequest(req, tool, 'Bash', { command, description: 'Remove the old core build before rebuilding.' }, ['Bash(rm -rf packages/core/.output)'], 'Remove the old core build before rebuilding.')
     })
+    // The client labels Bash calls in the background: the title follows the call shortly.
+    this.later(s, this.tick * 6, () => this.emit(s, b => b.toolTitle(tool, 'clean core build')))
     s.waiting = {
       requestId: req,
       resume: (b, decision) => {

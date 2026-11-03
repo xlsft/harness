@@ -76,6 +76,8 @@ type liveSession struct {
 	idleCompacted bool
 	// shells are the user shell commands of the session (usershell.go).
 	shells userShells
+	// toolTitles tracks the Bash tool title requests (tooltitle.go; ls.mu).
+	toolTitles toolTitles
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.
@@ -234,6 +236,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 			am.MessageId, am.Model, am.StopReason, am.Usage = r.ID, r.Model, pbconv.StopReason(r.StopReason), pbconv.Usage(r.Usage)
 		}
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_AssistantMessage{AssistantMessage: am}})
+		ls.requestToolTitles(e.Message.Content)
 	case agent.EventToolStart:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallStarted{ToolCallStarted: &agentv1.ToolCallStarted{
 			ToolUseId: e.ToolUseID, Name: e.ToolName, InputJson: string(e.Input), Summary: toolSummary(e.ToolName, e.Input, ls.sess.Cwd),

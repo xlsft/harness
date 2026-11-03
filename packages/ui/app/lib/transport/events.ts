@@ -143,6 +143,11 @@ export class EventBuilder {
     return this.emit({ case: 'toolCallStarted', value: { toolUseId, name, inputJson: JSON.stringify(input), summary } as never })
   }
 
+  // The model-written label of a call (Bash), sent shortly after the call starts.
+  toolTitle(toolUseId: string, title: string) {
+    return this.emit({ case: 'toolTitle', value: { toolUseId, title } as never })
+  }
+
   toolFinished(toolUseId: string, o: { output?: string, result?: unknown, summary?: string, durationMs?: number, isError?: boolean, interrupted?: boolean } = {}) {
     return this.emit({
       case: 'toolCallFinished',

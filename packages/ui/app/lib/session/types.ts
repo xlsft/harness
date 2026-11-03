@@ -77,6 +77,9 @@ export interface ToolItem {
   // The assistant message that requested it, and whether it shares that message with other calls.
   messageId: string
   grouped: boolean
+  // Short model-written label of the call (Bash for now; ToolTitle), a lowercase noun phrase shown as
+  // "Run <title>" / "Ran <title>". Absent until it arrives, and for calls that never get one.
+  title?: string
   // Auto mode verdict for this call, when the classifier decided it.
   autoDecision?: { decision: string, reason: string, provider: string }
   // Subagents (Task / Agent tool): progress reported by the client.
@@ -347,4 +350,6 @@ export interface SessionState {
   thinkingStartedAt: Record<string, number>
   // Internal: which assistant message asked for each tool call, and how many calls it made.
   toolOwners: Record<string, { messageId: string, count: number }>
+  // Internal: ToolTitle labels that arrived before their tool call's item, applied when it appears.
+  toolTitles: Record<string, string>
 }

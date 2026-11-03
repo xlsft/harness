@@ -45,6 +45,9 @@ type Bundle struct {
 	Reminders  map[string]string     `json:"reminders"`
 	Compaction *Instruction          `json:"compaction,omitempty"`
 	Title      *Instruction          `json:"title,omitempty"`
+	// ToolTitle labels Bash tool calls (nil for older servers: the client
+	// has a fallback).
+	ToolTitle *Instruction `json:"tool_title,omitempty"`
 	// OutputStyles are the built-in output styles keyed by id (may be empty
 	// for older servers).
 	OutputStyles map[string]OutputStyle `json:"output_styles,omitempty"`

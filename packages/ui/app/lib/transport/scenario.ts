@@ -99,6 +99,23 @@ const GREP_OUT = [
   'core/server/gateway/translate.ts:42:      if (opts.holdStopUntilUsage && !usage) {'
 ].join('\n')
 
+// Labels of the mock Bash calls (ToolTitle), by command.
+const BASH_TITLES: Record<string, string> = {
+  'pnpm --filter core dev': 'core dev server',
+  'docker compose up postgres': 'Postgres container',
+  'go test ./loop -run TestLoop -count=20': 'loop test stress run',
+  'pnpm --filter ui dev --port 5173': 'UI dev server on port 5173',
+  'pnpm vitest run gateway': 'gateway unit tests',
+  'buf generate': 'proto code generation',
+  'go test ./loop': 'loop package tests',
+  'pnpm lint --fix': 'lint autofix',
+  'git push origin feat/gateway-stream': 'push of the gateway branch',
+  'docker build -t harness-core .': 'core Docker image build',
+  'pnpm --filter ui build': 'UI production build',
+  'go mod tidy': 'Go module cleanup',
+  'pnpm install --frozen-lockfile': 'dependency install'
+}
+
 // History of the main session. `now` anchors the in-progress turn so elapsed timers read like the design.
 export function mainHistory(now: number): SessionEvent[] {
   const b = new EventBuilder(MAIN_SESSION, now - 3 * 3600_000)
@@ -131,6 +148,7 @@ export function mainHistory(now: number): SessionEvent[] {
   ], { input: 9000, output: 400 })
   for (const d of done) {
     b.wait(300).toolStarted('tb-' + d.id, 'Bash', { command: d.cmd, run_in_background: true }, d.cmd)
+    b.wait(50).toolTitle('tb-' + d.id, BASH_TITLES[d.cmd]!)
     b.wait(100).toolFinished('tb-' + d.id, { output: `Started in the background as task ${d.id}`, summary: 'background', durationMs: 90 })
     b.taskStarted(d.id, 'tb-' + d.id, d.cmd, d.cmd)
     b.wait(d.ms).taskFinished(d.id, d.exit, d.ms)
@@ -142,6 +160,7 @@ export function mainHistory(now: number): SessionEvent[] {
   for (const t of bg) {
     b.at(now - t.ago * 1000)
     b.toolStarted('tb-' + t.id, 'Bash', { command: t.cmd, run_in_background: true }, t.cmd)
+    b.toolTitle('tb-' + t.id, BASH_TITLES[t.cmd]!)
     b.toolFinished('tb-' + t.id, { output: `Started in the background as task ${t.id}`, summary: 'background', durationMs: 60 })
     b.taskStarted(t.id, 'tb-' + t.id, t.cmd, t.cmd)
     if (t.out) b.taskOutput(t.id, t.out)
@@ -216,6 +235,7 @@ export function mainHistory(now: number): SessionEvent[] {
   b.wait(300).toolStarted('t-read', 'Read', { file_path: 'proto/gateway/v1/gateway.proto' }, 'proto/gateway/v1/gateway.proto')
   b.wait(40).toolFinished('t-read', { result: { file: { filePath: 'proto/gateway/v1/gateway.proto', numLines: 212, totalLines: 212 } }, summary: '212 lines', durationMs: 40 })
   b.toolStarted('t-buf', 'Bash', { command: 'buf generate' }, 'buf generate')
+  b.wait(400).toolTitle('t-buf', BASH_TITLES['buf generate']!)
   b.wait(4100).toolFinished('t-buf', { output: '', result: { stdout: '', stderr: '', exitCode: 0 }, summary: 'ok', durationMs: 4100 })
   b.toolStarted('t-edit-route', 'Edit', { file_path: 'packages/core/server/routes/gateway.ts' }, 'packages/core/server/routes/gateway.ts')
   b.wait(200).toolFinished('t-edit-route', { result: { filePath: 'packages/core/server/routes/gateway.ts', structuredPatch: patch(148, 6) }, summary: '+148 −6', durationMs: 200 })
@@ -243,6 +263,7 @@ export function mainHistory(now: number): SessionEvent[] {
 
   b.wait(2000).assistant('m3e', 'glm-4.6', [{ toolUse: { id: 't-vitest', name: 'Bash', input: { command: 'pnpm vitest run gateway' } } }], { output: 200 })
   b.toolStarted('t-vitest', 'Bash', { command: 'pnpm vitest run gateway' }, 'pnpm vitest run gateway')
+  b.wait(400).toolTitle('t-vitest', BASH_TITLES['pnpm vitest run gateway']!)
   b.wait(3800).toolFinished('t-vitest', { output: VITEST_OUT, result: { stdout: VITEST_OUT, stderr: '', exitCode: 0 }, summary: 'exit 0', durationMs: 3800 })
 
   b.at(now - 48_000)

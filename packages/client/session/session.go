@@ -39,6 +39,9 @@ const (
 	// TypeCustomTitle holds a title the user set (customTitle, no uuid). It
 	// always wins over an AI title.
 	TypeCustomTitle = "custom-title"
+	// TypeToolTitle holds a model-generated label of a tool call (toolUseId,
+	// toolTitle; harness only, no uuid). Replays show it on that call.
+	TypeToolTitle = "tool-title"
 )
 
 // System entry subtypes written by the client.
@@ -54,7 +57,7 @@ const (
 
 // unchained entry types carry no uuid/parentUuid.
 func unchained(t string) bool {
-	return t == TypeMeta || t == TypeFileHistorySnapshot || t == TypeAITitle || t == TypeCustomTitle
+	return t == TypeMeta || t == TypeFileHistorySnapshot || t == TypeAITitle || t == TypeCustomTitle || t == TypeToolTitle
 }
 
 // CompactMetadata is attached to compact_boundary entries.
@@ -159,6 +162,10 @@ type Entry struct {
 	// ai-title / custom-title fields
 	AITitle     string `json:"aiTitle,omitempty"`
 	CustomTitle string `json:"customTitle,omitempty"`
+
+	// tool-title fields
+	ToolUseID string `json:"toolUseId,omitempty"`
+	ToolTitle string `json:"toolTitle,omitempty"`
 }
 
 // Titles are the session titles on record in a transcript (the last entry
