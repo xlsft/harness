@@ -188,7 +188,6 @@ watch([menu, token], async () => {
   ]
 }, { immediate: true })
 
-
 const placeholder = computed(() => {
   if (dictation.state.value === 'transcribing') return 'Transcribing…'
   if (mode.value === 'shell') return 'Run a command'
