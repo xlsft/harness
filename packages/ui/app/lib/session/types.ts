@@ -217,6 +217,26 @@ export interface TaskItem {
   id: string
 }
 
+// A command the user ran in the composer's shell mode (RunShellCommand): run by the client, not the model.
+export type UserShellState = 'running' | 'ok' | 'error' | 'stopped' | 'timeout' | 'failed'
+
+export interface UserShellItem {
+  kind: 'shell'
+  id: string
+  command: string
+  cwd: string
+  state: UserShellState
+  // -1 when it did not exit by itself.
+  exitCode: number
+  durationMs: number
+  startedAt: number
+  // While running: the streamed output (stdout and stderr in arrival order). Once finished: stdout.
+  output: string
+  stderr: string
+  truncated: boolean
+  error: string
+}
+
 export interface RewoundItem {
   kind: 'rewound'
   id: string
@@ -237,6 +257,7 @@ export type TranscriptItem
     | TurnItem
     | TaskItem
     | RewoundItem
+    | UserShellItem
 
 export interface SessionMeta {
   id: string

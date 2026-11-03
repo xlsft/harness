@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // Composer (Composer.dc.html): Enter sends, Shift+Enter new line, Cmd/Ctrl+Enter queues; while a turn runs, messages queue (the
 // transcript shows them with their actions: send now, cancel, click to edit) and Stop interrupts. `/` and `@` open
-// menus, `!` runs a shell command, `#` saves to memory. Status line, store drafts (rewind, fork, edit a queued message),
-// attachments, drop, voice, context warning, permission waiting, offline and ended states.
+// menus, `$` (or `!`) runs a shell command in the session's shell on the client (RunShellCommand: at once, no turn;
+// the model sees it next), `#` saves to memory; `+` opens a menu for these. Status line, store drafts (rewind, fork,
+// edit a queued message), attachments, drop, voice, context warning, permission waiting, offline and ended states.
 import type { Hint } from '~/components/composer/ComposerFooter.vue'
 import type { SessionState } from '~/lib/session/types'
-import type { ComposerPreset, MenuOption } from '~/utils/composer'
+import type { ComposerMode, ComposerPreset, MenuOption } from '~/utils/composer'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 
 const props = defineProps<{ session: SessionState, preset?: ComposerPreset }>()
@@ -37,7 +38,7 @@ watch(reply, (q) => {
     el.setSelectionRange(el.value.length, el.value.length)
   })
 })
-const mode = ref<'normal' | 'shell' | 'memory'>('normal')
+const mode = ref<ComposerMode>('normal')
 
 // The "+" menu: attach files, mention a folder, start a slash command, or a shell command.
 const plusOpen = ref(false)
@@ -81,6 +82,8 @@ defineShortcuts({ meta_u: () => plus('files') })
 const focused = ref(!!props.preset?.focused)
 const error = ref(props.preset?.error ?? '')
 const failedText = ref('')
+// The failed submission was a shell command (Retry runs it again).
+const failedShell = ref(false)
 const files = ref(props.preset?.files ?? [])
 const dragging = ref(props.preset?.drop ?? 0)
 const recording = ref(!!props.preset?.recording)
@@ -219,16 +222,12 @@ async function submit() {
   const body = text.value
   if (!body.trim() || ended.value) return
   error.value = ''
-  if (mode.value === 'shell') {
+  if (mode.value !== 'normal') {
+    const route = composerRoute(mode.value, body, memoryTarget.value)
     text.value = ''
     mode.value = 'normal'
-    await safeSend('!' + body)
-    return
-  }
-  if (mode.value === 'memory') {
-    text.value = ''
-    mode.value = 'normal'
-    await safeSend(`# ${body} (save to ${memoryTarget.value})`)
+    if (route?.kind === 'shell') await safeRun(route.command)
+    else if (route) await safeSend(route.text)
     return
   }
   const compactFocus = compactCommand(body)
@@ -252,12 +251,38 @@ async function submit() {
 }
 
 async function safeSend(body: string) {
+  failedShell.value = false
   try {
     await store.send(id.value, body)
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
     failedText.value = body
     text.value = body
+  }
+}
+
+// Shell mode: the client runs the command right away (even while a turn runs); a refusal puts it back.
+async function safeRun(command: string) {
+  failedShell.value = false
+  try {
+    await store.runShell(id.value, command)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : String(err)
+    failedText.value = command
+    failedShell.value = true
+    text.value = command
+    mode.value = 'shell'
+  }
+}
+
+function retry() {
+  error.value = ''
+  text.value = ''
+  if (failedShell.value) {
+    mode.value = 'normal'
+    safeRun(failedText.value)
+  } else {
+    safeSend(failedText.value)
   }
 }
 
@@ -658,7 +683,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           <button
             type="button"
             class="flex items-center gap-1.5 border border-bad px-2.5 py-1 text-[12px] text-strong"
-            @click="error = ''; safeSend(failedText); text = ''"
+            @click="retry"
           >
             <HIcon
               name="retry"

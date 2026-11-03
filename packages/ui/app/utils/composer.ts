@@ -28,6 +28,20 @@ export function compactCommand(text: string): string | null {
   return /^\/compact\s/.test(t) ? t.slice('/compact'.length).trim() : null
 }
 
+export type ComposerMode = 'normal' | 'shell' | 'memory'
+
+// Where a submitted draft goes: shell mode runs the command in the session's shell (RunShellCommand, never a
+// chat message); memory mode and plain text are messages. Null for an empty draft.
+export type ComposerRoute = { kind: 'shell', command: string } | { kind: 'message', text: string }
+
+export function composerRoute(mode: ComposerMode, body: string, memoryTarget = 'CLAUDE.md'): ComposerRoute | null {
+  const t = body.trim()
+  if (!t) return null
+  if (mode === 'shell') return { kind: 'shell', command: t }
+  if (mode === 'memory') return { kind: 'message', text: `# ${t} (save to ${memoryTarget})` }
+  return { kind: 'message', text: body }
+}
+
 export const MENTION_EXTRAS: MenuOption[] = [
   { key: 'agent:code-reviewer', label: 'code-reviewer', detail: 'agent', icon: 'ai', iconCls: 'text-accent' },
   { key: 'mcp:youtrack:HRN-42', label: 'youtrack:HRN-42', detail: 'MCP resource', icon: 'box', iconCls: 'text-muted' }

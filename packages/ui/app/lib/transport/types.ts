@@ -132,6 +132,11 @@ export interface SessionTransport {
   getContextUsage(sessionId: string): Promise<ContextUsageVM>
   listTasks(sessionId: string): Promise<BackgroundTask[]>
   stopTask(sessionId: string, taskId: string): Promise<void>
+  // The composer's shell mode: the client runs the command in the session's shell (no model, no prompt) and
+  // streams UserShellStarted / Output / Finished; the model sees the result on its next request. `uuid`
+  // deduplicates and becomes the command id. Remote sessions refuse it.
+  runShellCommand(sessionId: string, uuid: string, command: string): Promise<string>
+  stopShellCommand(sessionId: string, commandId: string): Promise<void>
 
   // Not part of AgentService yet: the model catalog (provider, context, price) comes from the server in M1+.
   // Connect falls back to InitializeResponse.model_ids.

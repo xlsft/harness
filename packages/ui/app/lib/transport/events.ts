@@ -20,6 +20,7 @@ import type {
   SessionEvent,
   SessionInfo
 } from '~/gen/harness/agent/v1/agent_pb'
+import { UserShellFinished_Reason } from '~/gen/harness/agent/v1/shell_pb'
 import { ContentBlockSchema, StopReason, type ContentBlock } from '~/gen/harness/llm/v1/content_pb'
 
 type EventCase = SessionEvent['event']
@@ -39,6 +40,18 @@ export interface UsageInit {
   input?: number
   output?: number
   cacheRead?: number
+}
+
+export interface UserShellInit {
+  command: string
+  cwd: string
+  exitCode: number
+  durationMs: number
+  stdout?: string
+  stderr?: string
+  reason?: 'exited' | 'stopped' | 'time_limit' | 'failed'
+  truncated?: boolean
+  error?: string
 }
 
 export type AssistantPart
@@ -235,6 +248,21 @@ export class EventBuilder {
       case: 'taskFinished',
       value: { taskId, reason: stopped ? TaskFinished_Reason.STOPPED : TaskFinished_Reason.EXITED, exitCode, durationMs: BigInt(durationMs) } as never
     })
+  }
+
+  userShellStarted(commandId: string, command: string, cwd: string) {
+    return this.emit({ case: 'userShellStarted', value: { commandId, command, cwd } as never })
+  }
+
+  userShellOutput(commandId: string, body: string) {
+    return this.emit({ case: 'userShellOutput', value: { commandId, text: body } as never })
+  }
+
+  userShellFinished(commandId: string, o: UserShellInit) {
+    const reason = { exited: UserShellFinished_Reason.EXITED, stopped: UserShellFinished_Reason.STOPPED, time_limit: UserShellFinished_Reason.TIME_LIMIT,
+      failed: UserShellFinished_Reason.FAILED }[o.reason ?? 'exited']
+    return this.emit({ case: 'userShellFinished', value: { commandId, reason, exitCode: o.exitCode, durationMs: BigInt(o.durationMs), stdout: o.stdout ?? '',
+      stderr: o.stderr ?? '', truncated: !!o.truncated, error: o.error ?? '', cwd: o.cwd, command: o.command } as never })
   }
 
   compacted(before: number, after: number, auto = false) {

@@ -5,7 +5,8 @@
 // - a message sent while idle starts a turn: thinking and text deltas, then a tool call;
 //   "plan" in the text proposes a plan, "ask"/"question" asks a question, otherwise a Bash call asks for permission;
 // - a message sent while a turn runs is queued (QueueChanged) and starts the next turn;
-// - Interrupt ends the turn as interrupted; permission, question and plan answers resume it.
+// - Interrupt ends the turn as interrupted; permission, question and plan answers resume it;
+// - a shell-mode command runs in a tiny scripted shell (./mockShell.ts) without a turn.
 
 import {
   ContextUsage_Category,
@@ -27,6 +28,7 @@ import {
 } from '~/gen/harness/agent/v1/agent_pb'
 import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
+import { runMockShell } from './mockShell'
 import { MockProvidersApi } from '~/lib/providers/mock'
 import { MockUsersApi } from '~/lib/users/mock'
 import { MockAccountApi } from '~/lib/account/mock'
@@ -737,6 +739,40 @@ export class MockTransport implements SessionTransport {
   private filesApi = new MockFilesApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
   files() {
     return this.filesApi
+  }
+
+  // User shell commands (runMockShell): the result streams after a short delay, `sleep N` runs N seconds
+  // (Stop ends it), and cd moves the session's shell directory. Remote sessions refuse them, as the client does.
+  private shellCwd = new Map<string, string>()
+  private shells = new Map<string, () => void>()
+
+  async runShellCommand(sessionId: string, uuid: string, command: string) {
+    const s = this.get(sessionId)
+    if (s.info.remote) throw new Error(`session ${sessionId} runs on ${s.info.deviceName || 'another machine'}: shell commands run only on the session's own machine`)
+    const id = uuid || `sh-${Date.now()}`
+    if (this.shells.has(id)) return id
+    const cwd = this.shellCwd.get(sessionId) ?? s.info.cwd
+    const r = runMockShell(command, cwd)
+    const startedAt = this.now()
+    this.emit(s, b => b.userShellStarted(id, command, cwd))
+    const finish = (stopped: boolean) => {
+      if (!this.shells.delete(id)) return
+      if (!stopped) this.shellCwd.set(sessionId, r.cwd)
+      const durationMs = stopped ? this.now() - startedAt : r.durationMs
+      this.emit(s, b => b.userShellFinished(id, stopped
+        ? { command, cwd, exitCode: -1, durationMs, stdout: r.stdout, reason: 'stopped' }
+        : { command, cwd, exitCode: r.exitCode, durationMs, stdout: r.stdout, stderr: r.stderr }))
+    }
+    this.shells.set(id, () => finish(true))
+    if (r.stdout && r.durationMs > 1000) this.later(s, this.tick * 4, () => this.shells.has(id) && this.emit(s, b => b.userShellOutput(id, r.stdout)))
+    this.later(s, this.tick ? r.durationMs : 0, () => finish(false))
+    return id
+  }
+
+  async stopShellCommand(_sessionId: string, commandId: string) {
+    const stop = this.shells.get(commandId)
+    if (!stop) throw new Error(`shell command ${commandId} is not running`)
+    stop()
   }
 }
 

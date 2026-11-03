@@ -769,6 +769,19 @@ export const useSessionStore = defineStore('sessions', {
 
     async stopTask(id: string, taskId: string) {
       await this.transport?.stopTask(id, taskId)
+    },
+
+    // The composer's shell mode: the client runs the command at once (also while a turn runs, without queueing
+    // or starting one) and the transcript shows it as a shell card; the model sees it on its next request.
+    async runShell(id: string, command: string) {
+      const body = command.trim()
+      if (!body || !this.transport) return
+      this.subscribe(id)
+      await this.transport.runShellCommand(id, newUuid(), body)
+    },
+
+    async stopShell(id: string, commandId: string) {
+      await this.transport?.stopShellCommand(id, commandId)
     }
   }
 })

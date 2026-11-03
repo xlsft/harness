@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.agent.v1;
 
 import "harness/agent/v1/files.proto";
+import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/llm/v1/content.proto";
 
@@ -146,6 +147,14 @@ service AgentService {
   rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
   rpc ReadFile(ReadFileRequest) returns (ReadFileResponse);
   rpc GetGitStatus(GetGitStatusRequest) returns (GetGitStatusResponse);
+  // --- User shell commands (shell.proto) ---
+  // Runs a command from the composer's shell mode in the session's shell, without the model and without a
+  // permission prompt, at once (also while a turn runs). Returns when it started; UserShellStarted / Output /
+  // Finished events follow, and the result reaches the model on its next request. FAILED_PRECONDITION for
+  // remote sessions.
+  rpc RunShellCommand(RunShellCommandRequest) returns (RunShellCommandResponse);
+  // Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
+  rpc StopShellCommand(StopShellCommandRequest) returns (StopShellCommandResponse);
 }
 
 enum PermissionMode {
@@ -476,6 +485,10 @@ message SessionEvent {
     Compacted compacted = 27;
     PermissionModeChanged permission_mode_changed = 28;
     ShowRequested show_requested = 29;
+    // User shell commands (shell.proto); numbered apart to leave room for other events.
+    UserShellStarted user_shell_started = 50;
+    UserShellOutput user_shell_output = 51;
+    UserShellFinished user_shell_finished = 52;
   }
 }
 

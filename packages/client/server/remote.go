@@ -624,6 +624,9 @@ func forward[Req, Res, RReq, RRes any](ctx context.Context, r routed, id string,
 }
 
 func (r routed) SendUserMessage(ctx context.Context, req *connect.Request[agentv1.SendUserMessageRequest]) (*connect.Response[agentv1.SendUserMessageResponse], error) {
+	if res, ok, err := r.legacyShell(ctx, req); ok {
+		return res, err
+	}
 	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.SendUserMessage, relayv1connect.RelayServiceClient.SendUserMessage,
 		func(m *agentv1.SendUserMessageRequest) *relayv1.SendUserMessageRequest {
 			return &relayv1.SendUserMessageRequest{Request: m, Options: commandOptions(m.GetUuid())}

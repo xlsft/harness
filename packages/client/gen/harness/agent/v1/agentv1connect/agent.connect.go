@@ -160,6 +160,12 @@ const (
 	// AgentServiceGetGitStatusProcedure is the fully-qualified name of the AgentService's GetGitStatus
 	// RPC.
 	AgentServiceGetGitStatusProcedure = "/harness.agent.v1.AgentService/GetGitStatus"
+	// AgentServiceRunShellCommandProcedure is the fully-qualified name of the AgentService's
+	// RunShellCommand RPC.
+	AgentServiceRunShellCommandProcedure = "/harness.agent.v1.AgentService/RunShellCommand"
+	// AgentServiceStopShellCommandProcedure is the fully-qualified name of the AgentService's
+	// StopShellCommand RPC.
+	AgentServiceStopShellCommandProcedure = "/harness.agent.v1.AgentService/StopShellCommand"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -283,6 +289,14 @@ type AgentServiceClient interface {
 	ListFiles(context.Context, *connect.Request[v1.ListFilesRequest]) (*connect.Response[v1.ListFilesResponse], error)
 	ReadFile(context.Context, *connect.Request[v1.ReadFileRequest]) (*connect.Response[v1.ReadFileResponse], error)
 	GetGitStatus(context.Context, *connect.Request[v1.GetGitStatusRequest]) (*connect.Response[v1.GetGitStatusResponse], error)
+	// --- User shell commands (shell.proto) ---
+	// Runs a command from the composer's shell mode in the session's shell, without the model and without a
+	// permission prompt, at once (also while a turn runs). Returns when it started; UserShellStarted / Output /
+	// Finished events follow, and the result reaches the model on its next request. FAILED_PRECONDITION for
+	// remote sessions.
+	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
+	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
+	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -572,6 +586,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetGitStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		runShellCommand: connect.NewClient[v1.RunShellCommandRequest, v1.RunShellCommandResponse](
+			httpClient,
+			baseURL+AgentServiceRunShellCommandProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RunShellCommand")),
+			connect.WithClientOptions(opts...),
+		),
+		stopShellCommand: connect.NewClient[v1.StopShellCommandRequest, v1.StopShellCommandResponse](
+			httpClient,
+			baseURL+AgentServiceStopShellCommandProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -623,6 +649,8 @@ type agentServiceClient struct {
 	listFiles             *connect.Client[v1.ListFilesRequest, v1.ListFilesResponse]
 	readFile              *connect.Client[v1.ReadFileRequest, v1.ReadFileResponse]
 	getGitStatus          *connect.Client[v1.GetGitStatusRequest, v1.GetGitStatusResponse]
+	runShellCommand       *connect.Client[v1.RunShellCommandRequest, v1.RunShellCommandResponse]
+	stopShellCommand      *connect.Client[v1.StopShellCommandRequest, v1.StopShellCommandResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -855,6 +883,16 @@ func (c *agentServiceClient) GetGitStatus(ctx context.Context, req *connect.Requ
 	return c.getGitStatus.CallUnary(ctx, req)
 }
 
+// RunShellCommand calls harness.agent.v1.AgentService.RunShellCommand.
+func (c *agentServiceClient) RunShellCommand(ctx context.Context, req *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error) {
+	return c.runShellCommand.CallUnary(ctx, req)
+}
+
+// StopShellCommand calls harness.agent.v1.AgentService.StopShellCommand.
+func (c *agentServiceClient) StopShellCommand(ctx context.Context, req *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error) {
+	return c.stopShellCommand.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -976,6 +1014,14 @@ type AgentServiceHandler interface {
 	ListFiles(context.Context, *connect.Request[v1.ListFilesRequest]) (*connect.Response[v1.ListFilesResponse], error)
 	ReadFile(context.Context, *connect.Request[v1.ReadFileRequest]) (*connect.Response[v1.ReadFileResponse], error)
 	GetGitStatus(context.Context, *connect.Request[v1.GetGitStatusRequest]) (*connect.Response[v1.GetGitStatusResponse], error)
+	// --- User shell commands (shell.proto) ---
+	// Runs a command from the composer's shell mode in the session's shell, without the model and without a
+	// permission prompt, at once (also while a turn runs). Returns when it started; UserShellStarted / Output /
+	// Finished events follow, and the result reaches the model on its next request. FAILED_PRECONDITION for
+	// remote sessions.
+	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
+	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
+	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1261,6 +1307,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetGitStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceRunShellCommandHandler := connect.NewUnaryHandler(
+		AgentServiceRunShellCommandProcedure,
+		svc.RunShellCommand,
+		connect.WithSchema(agentServiceMethods.ByName("RunShellCommand")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceStopShellCommandHandler := connect.NewUnaryHandler(
+		AgentServiceStopShellCommandProcedure,
+		svc.StopShellCommand,
+		connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1355,6 +1413,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceReadFileHandler.ServeHTTP(w, r)
 		case AgentServiceGetGitStatusProcedure:
 			agentServiceGetGitStatusHandler.ServeHTTP(w, r)
+		case AgentServiceRunShellCommandProcedure:
+			agentServiceRunShellCommandHandler.ServeHTTP(w, r)
+		case AgentServiceStopShellCommandProcedure:
+			agentServiceStopShellCommandHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1546,4 +1608,12 @@ func (UnimplementedAgentServiceHandler) ReadFile(context.Context, *connect.Reque
 
 func (UnimplementedAgentServiceHandler) GetGitStatus(context.Context, *connect.Request[v1.GetGitStatusRequest]) (*connect.Response[v1.GetGitStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetGitStatus is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunShellCommand is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopShellCommand is not implemented"))
 }
