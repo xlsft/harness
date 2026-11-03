@@ -93,7 +93,7 @@ packages/
 
 ### 1.2 LLM gateway
 - **Providers** (admin): `{type: anthropic|openai-chat|openai-responses, baseUrl, apiKey, headers}`. Keys are encrypted with the master key `HARNESS_SECRET`.
-- **Model catalog:** discovery via `GET /v1/models` plus manual entries. Fields: `contextWindow`, `maxOutput`, `capabilities`, prices, visibility by user and role. Aliases and **slots** (`main`, `small`, `plan`) are configured on the server.
+- **Model catalog:** discovery via `GET /v1/models` plus manual entries. Fields: `contextWindow`, `maxOutput`, `capabilities`, prices, visibility by user and role. Aliases and **slots** (`main`, `small`, `plan`, `title`; `title` falls back to `small`) are configured on the server.
 - **Canonical API for the client:** `POST /api/llm/messages` (stream), `POST /api/llm/count_tokens`, `GET /api/llm/models`. Request — content blocks + tools + system by section + effort/thinking + `request-class` (main | subagent | compaction | auxiliary).
 - **Upstream translation:**
   - `tool_result` → `tool` role, images → into a user message.

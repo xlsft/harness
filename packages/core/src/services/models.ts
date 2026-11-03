@@ -52,8 +52,13 @@ export interface ModelEntry {
   ownerUserId: string | null;
 }
 
-/** `classifier`: model of the auto-mode decision classifier (src/decision/llm.ts); falls back to `small`. */
-export const SLOT_NAMES = ["main", "small", "plan", "classifier"] as const;
+/**
+ * `title`: model of session titles; falls back to `small`. `classifier`: model of the auto-mode decision
+ * classifier (src/decision/llm.ts); falls back to `small`.
+ */
+export const SLOT_NAMES = ["main", "small", "plan", "title", "classifier"] as const;
+/** The slots the settings screens set (ProviderService.SetSlots); the classifier has its own call. */
+export const ROLE_SLOT_NAMES = ["main", "small", "plan", "title"] as const;
 export type Slots = Partial<Record<(typeof SLOT_NAMES)[number], string>>;
 
 const DEFAULT_CAPS: ModelCapabilities = {
@@ -137,6 +142,7 @@ export async function listModelsForUser(user: PublicUser) {
   for (const name of SLOT_NAMES) {
     const v = slots[name];
     if (v && ids.has(v)) effective[name] = v;
+    else if (name === "title" && effective.small) effective.title = effective.small;
     else if (visible[0]) effective[name] = visible[0].id;
   }
   return { models: visible.map(catalogEntry), slots: effective };
@@ -414,7 +420,8 @@ export async function setSlots(input: Slots) {
   const slots: Slots = {};
   for (const name of SLOT_NAMES) {
     const v = input[name];
-    if (v === undefined || v === null) continue;
+    // Unset or empty: the slot follows its default.
+    if (v === undefined || v === null || v === "") continue;
     if (!(await findGlobalModel(v))) throw new ApiError("invalid_request", `Unknown model ${v} for slot ${name}`);
     slots[name] = v;
   }

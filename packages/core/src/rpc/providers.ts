@@ -9,7 +9,16 @@ import { getClassifier, setClassifier, testClassifierProvider, type ClassifierSe
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { discoverModelsForUser, testLlmProvider } from "../services/discovery.ts";
-import { addProviderModel, listProviderModels, removeProviderModel, type ModelEntry } from "../services/models.ts";
+import {
+  ROLE_SLOT_NAMES,
+  addProviderModel,
+  getSlots,
+  listProviderModels,
+  removeProviderModel,
+  setSlots,
+  type ModelEntry,
+  type Slots,
+} from "../services/models.ts";
 import { PRESETS, PROTOCOLS } from "../services/presets.ts";
 import {
   PROVIDER_TYPES,
@@ -81,6 +90,11 @@ function classifierToProto(c: ClassifierSettings): Classifier {
     timeoutMs: c.timeout_ms,
     llmModel: c.llm_model,
   };
+}
+
+/** The role slots as configured ("" for one that follows its default); the classifier slot is not shown. */
+function slotsToProto(s: Slots) {
+  return { main: s.main ?? "", small: s.small ?? "", plan: s.plan ?? "", title: s.title ?? "" };
 }
 
 export function registerProviderService(router: ConnectRouter): void {
@@ -241,6 +255,21 @@ export function registerProviderService(router: ConnectRouter): void {
         user.id,
       );
       return { classifier: classifierToProto(out) };
+    }),
+
+    getSlots: guard(async (_req, ctx: HandlerContext) => {
+      const user = await principal(ctx);
+      return { slots: slotsToProto(await getSlots()), editable: user.role === "admin" };
+    }),
+
+    setSlots: guard(async (req, ctx: HandlerContext) => {
+      requireAdmin(await principal(ctx));
+      const input = req.slots;
+      if (!input) throw new ApiError("invalid_request", "slots is required");
+      // The classifier slot belongs to SetClassifier; keep it.
+      const next: Slots = { classifier: (await getSlots()).classifier };
+      for (const name of ROLE_SLOT_NAMES) next[name] = input[name];
+      return { slots: slotsToProto(await setSlots(next)) };
     }),
   });
 }

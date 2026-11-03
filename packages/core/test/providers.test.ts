@@ -247,3 +247,48 @@ describe("classifier", () => {
     expect(after.body.config.providers.map((p: { type: string }) => p.type)).toEqual(["rules", "llm"]);
   });
 });
+
+describe("slots", () => {
+  const api = (method: string, path: string, body?: unknown) => adminApi(ts.url, adminToken, method, path, body);
+
+  beforeAll(async () => {
+    await admin.providers.createProvider({ scope: ProviderScope.GLOBAL, id: "slots-p", type: "anthropic", baseUrl: up.url, apiKey: GLOBAL_KEY, allowPrivateNetwork: true });
+    await admin.providers.addModel({ providerId: "slots-p", upstreamModel: "big", id: "slot-big" });
+    await admin.providers.addModel({ providerId: "slots-p", upstreamModel: "tiny", id: "slot-tiny" });
+  });
+
+  it("are readable by everyone and settable by admins only", async () => {
+    expect((await alice.providers.getSlots({})).editable).toBe(false);
+    expect((await admin.providers.getSlots({})).editable).toBe(true);
+    expect(await code(alice.providers.setSlots({ slots: { main: "slot-big" } }))).toBe(Code.PermissionDenied);
+    expect(await code(admin.providers.setSlots({}))).toBe(Code.InvalidArgument);
+
+    const set = await admin.providers.setSlots({ slots: { main: "slot-big", small: "slot-big", title: "slot-tiny" } });
+    expect(set.slots).toMatchObject({ main: "slot-big", small: "slot-big", plan: "", title: "slot-tiny" });
+    expect((await alice.providers.getSlots({})).slots).toMatchObject({ main: "slot-big", small: "slot-big", plan: "", title: "slot-tiny" });
+  });
+
+  it("serve the title slot in the catalog, falling back to the small one", async () => {
+    await admin.providers.setSlots({ slots: { main: "slot-big", small: "slot-big", title: "slot-tiny" } });
+    expect((await alice.gateway.listModels({})).slots).toMatchObject({ main: "slot-big", small: "slot-big", title: "slot-tiny" });
+
+    await admin.providers.setSlots({ slots: { main: "slot-tiny", small: "slot-big", title: "" } });
+    expect((await admin.providers.getSlots({})).slots?.title).toBe("");
+    expect((await alice.gateway.listModels({})).slots).toMatchObject({ main: "slot-tiny", small: "slot-big", title: "slot-big" });
+  });
+
+  it("accept global models only", async () => {
+    expect(await code(admin.providers.setSlots({ slots: { title: `${aliceProvider}/claude-up` } }))).toBe(Code.InvalidArgument);
+    expect(await code(admin.providers.setSlots({ slots: { main: "no-such-model" } }))).toBe(Code.InvalidArgument);
+    expect((await api("PUT", "/api/admin/slots", { title: `${aliceProvider}/claude-up` })).status).toBe(400);
+  });
+
+  it("keep the classifier slot, which the admin API also sets", async () => {
+    const put = await api("PUT", "/api/admin/slots", { small: "slot-big", title: "slot-tiny", classifier: "slot-tiny" });
+    expect(put.status).toBe(200);
+    expect(put.body.slots).toEqual({ small: "slot-big", title: "slot-tiny", classifier: "slot-tiny" });
+
+    await admin.providers.setSlots({ slots: { main: "slot-big", small: "slot-tiny" } });
+    expect((await api("GET", "/api/admin/slots")).body.slots).toEqual({ main: "slot-big", small: "slot-tiny", classifier: "slot-tiny" });
+  });
+});
