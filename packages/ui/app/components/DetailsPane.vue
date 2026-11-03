@@ -55,7 +55,7 @@ function taskMeta(command: string, tail: string) {
 <template>
   <aside
     aria-label="Session details"
-    class="flex h-full flex-col overflow-y-auto bg-default"
+    class="flex h-full min-w-0 flex-col overflow-x-hidden overflow-y-auto bg-default whitespace-nowrap"
   >
     <section class="flex flex-col border-b border-default px-[13px] py-3">
       <span class="pb-1 text-[12px] text-muted">Environment</span>
@@ -63,9 +63,9 @@ function taskMeta(command: string, tail: string) {
         v-if="session.meta.remote"
         class="nav-row"
       >
-        <HIcon name="monitor" />remote · {{ session.meta.deviceName || 'another machine' }}<span
+        <HIcon name="monitor" /><span class="min-w-0 truncate">remote · {{ session.meta.deviceName || 'another machine' }}</span><span
           v-if="session.meta.deviceOnline !== null"
-          class="text-[11px]"
+          class="shrink-0 text-[11px]"
           :class="session.meta.deviceOnline ? 'text-ok' : 'text-muted'"
         >· {{ session.meta.deviceOnline ? 'online' : 'offline' }}</span>
       </div>
@@ -73,19 +73,19 @@ function taskMeta(command: string, tail: string) {
         v-else
         class="nav-row"
       >
-        <HIcon name="monitor" />local · {{ session.meta.deviceName || 'this machine' }}
+        <HIcon name="monitor" /><span class="min-w-0 truncate">local · {{ session.meta.deviceName || 'this machine' }}</span>
       </div>
       <div class="nav-row">
-        <HIcon name="folder" />{{ repoName }}<span class="text-[11px] text-muted">· {{ cwdParent }}</span>
+        <HIcon name="folder" /><span class="shrink-0">{{ repoName }}</span><span class="min-w-0 truncate text-[11px] text-muted">· {{ cwdParent }}</span>
       </div>
       <div class="nav-row">
-        <HIcon name="branch" />{{ session.meta.gitBranch || 'main' }}
+        <HIcon name="branch" /><span class="min-w-0 truncate">{{ session.meta.gitBranch || 'main' }}</span>
       </div>
       <div
         v-if="!session.meta.remote"
         class="nav-row"
       >
-        <HIcon name="relay" />Session relay<span class="flex-1" /><HToggle
+        <HIcon name="relay" /><span class="min-w-0 truncate">Session relay</span><span class="flex-1" /><HToggle
           v-model="relay"
           label="Session relay"
         />
@@ -114,15 +114,15 @@ function taskMeta(command: string, tail: string) {
         :key="p.name"
         class="nav-row"
       >
-        <span class="flex size-4 items-center justify-center border border-default text-[9.5px]">{{ p.letter }}</span>{{ p.name }}
+        <span class="flex size-4 shrink-0 items-center justify-center border border-default text-[9.5px]">{{ p.letter }}</span><span class="min-w-0 truncate">{{ p.name }}</span>
         <span class="flex-1" />
         <span
           v-if="p.state === 'active'"
-          class="text-[10.5px] text-ok"
+          class="shrink-0 text-[10.5px] text-ok"
         >active</span>
         <span
           v-else-if="p.state === 'ready'"
-          class="text-[10.5px] text-muted"
+          class="shrink-0 text-[10.5px] text-muted"
         >ready</span>
         <a
           v-else
@@ -157,7 +157,7 @@ function taskMeta(command: string, tail: string) {
         <span class="flex-1" />
         <button
           type="button"
-          class="border border-default px-2.5 py-1 text-[11.5px] text-strong hover:bg-hover"
+          class="shrink-0 border border-default px-2.5 py-1 text-[11.5px] text-strong hover:bg-hover"
         >
           {{ session.meta.pullRequest ? `PR ${session.meta.pullRequest.number}` : 'Create PR' }}
         </button>
@@ -166,7 +166,7 @@ function taskMeta(command: string, tail: string) {
 
     <section class="flex flex-col border-b border-default px-[13px] py-3">
       <div class="flex items-center pb-1">
-        <span class="text-[12px] text-muted">Agents</span><span class="flex-1" /><span class="text-[10.5px] text-muted">{{ runningAgents.length }} running</span>
+        <span class="truncate text-[12px] text-muted">Agents</span><span class="flex-1" /><span class="shrink-0 pl-2 text-[10.5px] text-muted">{{ runningAgents.length }} running</span>
       </div>
       <div
         v-for="a in runningAgents"
@@ -186,7 +186,7 @@ function taskMeta(command: string, tail: string) {
 
     <section class="flex flex-col px-[13px] py-3">
       <div class="flex items-center pb-1">
-        <span class="text-[12px] text-muted">Background tasks</span><span class="flex-1" /><span class="text-[10.5px] text-muted">{{ runningTasks.length }} running</span>
+        <span class="truncate text-[12px] text-muted">Background tasks</span><span class="flex-1" /><span class="shrink-0 pl-2 text-[10.5px] text-muted">{{ runningTasks.length }} running</span>
       </div>
       <div
         v-for="t in runningTasks"
