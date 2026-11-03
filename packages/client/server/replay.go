@@ -331,6 +331,10 @@ func (r *replayer) toolResult(b llm.ContentBlock, structured any, at time.Time) 
 	}
 	if !interrupted {
 		r.cards(b.ToolUseID, pt, structured, b.IsError, at)
+	} else if pt.name == "AskUserQuestion" {
+		for _, ev := range questionCard(b.ToolUseID, pt.input, nil, true) {
+			r.emit(at, ev)
+		}
 	}
 	r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallFinished{ToolCallFinished: fin}})
 	if pt.name == "TodoWrite" && !b.IsError && !interrupted {
@@ -346,26 +350,9 @@ func (r *replayer) cards(toolUseID string, pt *pendingTool, structured any, isEr
 	sm, _ := structured.(map[string]any)
 	switch pt.name {
 	case "AskUserQuestion":
-		if sm == nil || sm["answers"] == nil {
-			return // never answered (non-interactive, interrupted)
+		for _, ev := range questionCard(toolUseID, pt.input, structured, false) {
+			r.emit(at, ev)
 		}
-		var in struct {
-			Questions []tools.Question `json:"questions"`
-		}
-		if json.Unmarshal(pt.input, &in) != nil || len(in.Questions) == 0 {
-			return
-		}
-		id := "q_history_" + toolUseID
-		q := &agentv1.Question{RequestId: id, ToolUseId: toolUseID}
-		for _, it := range in.Questions {
-			item := &agentv1.QuestionItem{Question: it.Question, Header: it.Header, MultiSelect: it.MultiSelect}
-			for _, o := range it.Options {
-				item.Options = append(item.Options, &agentv1.QuestionOption{Label: o.Label, Description: o.Description})
-			}
-			q.Items = append(q.Items, item)
-		}
-		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_Question{Question: q}})
-		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_QuestionResolved{QuestionResolved: &agentv1.QuestionResolved{RequestId: id, ResolvedBy: "history"}}})
 	case "ExitPlanMode":
 		approved, ok := sm["approved"].(bool)
 		if sm == nil || !ok {
@@ -398,8 +385,16 @@ func (r *replayer) endTurn() {
 		if r.pending[id] == nil {
 			continue
 		}
+		pt := r.pending[id]
 		delete(r.pending, id)
 		orphans = true
+		if pt.name == "AskUserQuestion" {
+			// The process stopped while the question was open: the asking
+			// turn is gone, so the card shows it cancelled.
+			for _, ev := range questionCard(id, pt.input, nil, true) {
+				r.emit(t.last, ev)
+			}
+		}
 		r.emit(t.last, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallFinished{ToolCallFinished: &agentv1.ToolCallFinished{
 			ToolUseId: id, IsError: true, Interrupted: true, Summary: "Interrupted"}}})
 	}

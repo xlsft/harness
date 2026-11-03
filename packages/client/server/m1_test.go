@@ -285,7 +285,7 @@ func TestAskUserQuestion(t *testing.T) {
 		t.Fatal("status NEEDS_INPUT not reported")
 	}
 	tr := lastResultText(h.gw.Requests()[1])
-	if !strings.Contains(tr, `"Which database?" = "SQLite"`) || !strings.Contains(tr, `"Which features?" = "Auth, Billing"`) {
+	if !strings.Contains(tr, `[{"question":"Which database?","selected":["SQLite"]},{"question":"Which features?","selected":["Auth","Billing"]}]`) {
 		t.Fatalf("answer result %q", tr)
 	}
 }

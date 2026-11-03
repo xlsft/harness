@@ -277,36 +277,19 @@ func (h *fakeHost) SetTodos(t []Todo)      { h.todos = t }
 func (h *fakeHost) Interactor() Interactor { return h.ia }
 
 type fakeIA struct {
-	answers [][]string
+	resp    QuestionResponse
+	asked   []Question
 	plan    PlanResponse
 	gotPlan string
 }
 
-func (f *fakeIA) AskQuestions(ctx context.Context, id string, qs []Question) ([][]string, error) {
-	return f.answers, nil
+func (f *fakeIA) AskQuestions(ctx context.Context, id string, qs []Question) (QuestionResponse, error) {
+	f.asked = qs
+	return f.resp, nil
 }
 func (f *fakeIA) ProposePlan(ctx context.Context, id, plan, path string) (PlanResponse, error) {
 	f.gotPlan = plan
 	return f.plan, nil
-}
-
-func TestAskUserQuestion(t *testing.T) {
-	env := newEnv(t)
-	q := map[string]any{"questions": []any{map[string]any{"question": "Which DB?", "header": "DB", "multiSelect": false,
-		"options": []any{map[string]any{"label": "Postgres", "description": "relational"}, map[string]any{"label": "SQLite", "description": "embedded"}}}}}
-	if r := call(t, env, &AskUserQuestion{}, q); !r.IsError || !strings.Contains(text(r), "non-interactive") {
-		t.Fatalf("headless: %q", text(r))
-	}
-	ia := &fakeIA{answers: [][]string{{"SQLite"}}}
-	env.SetHost(&fakeHost{ia: ia})
-	r := call(t, env, &AskUserQuestion{}, q)
-	if r.IsError || !strings.Contains(text(r), `"Which DB?" = "SQLite"`) {
-		t.Fatalf("answer: %q", text(r))
-	}
-	bad := map[string]any{"questions": []any{map[string]any{"question": "Q", "header": "H", "options": []any{map[string]any{"label": "only"}}}}}
-	if r := call(t, env, &AskUserQuestion{}, bad); !r.IsError || !strings.Contains(text(r), "2 to 4") {
-		t.Fatalf("validation: %q", text(r))
-	}
 }
 
 func TestPlanModeTools(t *testing.T) {

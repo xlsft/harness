@@ -185,19 +185,24 @@ func (m *Manager) askApproval(ctx context.Context, env *tools.Env, s *server, to
 	if args := s.cfg.GetStdio().GetArgs(); len(args) > 0 {
 		cmd += " " + fmt.Sprint(args)
 	}
+	noOther := false
 	q := tools.Question{
-		Header:   "MCP server",
-		Question: fmt.Sprintf("Allow the MCP server %q to start on this device? It runs: %s", s.name(), cmd),
+		Header:     "MCP server",
+		Type:       tools.QuestionSingle,
+		AllowOther: &noOther,
+		Question:   fmt.Sprintf("Allow the MCP server %q to start on this device? It runs: %s", s.name(), cmd),
 		Options: []tools.QuestionOption{
 			{Label: approveLabel, Description: "Start it now and remember the decision for this configuration"},
 			{Label: denyLabel, Description: "Do not start it on this device"},
 		},
 	}
-	answers, err := ia.AskQuestions(ctx, toolUseID, []tools.Question{q})
+	resp, err := ia.AskQuestions(ctx, toolUseID, []tools.Question{q})
 	if err != nil {
 		return false, err
 	}
-	return len(answers) > 0 && len(answers[0]) > 0 && answers[0][0] == approveLabel, nil
+	// Skipping or answering with a message does not approve.
+	a := resp.Answers
+	return resp.Outcome == tools.QuestionAnswered && len(a) > 0 && len(a[0].Selected) == 1 && a[0].Selected[0] == approveLabel, nil
 }
 
 // Approve records a local decision for a stdio server by name (frontends' approval screens).
