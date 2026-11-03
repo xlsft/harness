@@ -40,6 +40,30 @@ const bashLabel = computed(() => {
   return { verb: t.value.status === 'error' ? 'Failed:' : '', text: d || command.value }
 })
 
+// Bash moved to (or started in) the background: the note the agent got, shown under the command.
+const remote = computed(() => !!store.sessions[props.sessionId]?.meta.remote)
+const backgroundNote = computed(() => {
+  const b = t.value.background
+  if (!b) return ''
+  const sent = String(t.value.output ?? '').trim()
+  if (sent.includes(b.taskId)) return sent
+  const why = { user: 'Moved to the background by you', queued_message: 'Moved to the background so your message could be delivered', agent: 'Started in the background by the agent', auto: 'Moved to the background after its timeout' }[b.reason]
+  return `${why}. Background task ${b.taskId}.`
+})
+// The command's own output (without the note when the result is just the note).
+const bashOutput = computed(() => {
+  const s = outputLines.value.map(l => l.map(tk => tk.t).join('')).join('\n')
+  return backgroundNote.value && s.trim() === backgroundNote.value ? '' : s
+})
+const toast = useToast()
+async function toBackground() {
+  try {
+    await store.transport?.backgroundToolCall(props.sessionId, t.value.id, 'user')
+  } catch (e) {
+    toast.add({ title: 'Could not move it to the background', description: e instanceof Error ? e.message : String(e), color: 'error' })
+  }
+}
+
 const output = computed(() => String(t.value.result?.stdout ?? t.value.output ?? ''))
 const outputLines = computed(() => highlightOutput(t.value.status === 'error' ? [t.value.result?.stdout, t.value.result?.stderr, t.value.output].filter(Boolean).join('\n') || t.value.output : output.value))
 
@@ -147,12 +171,18 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
         class="shrink-0 text-[11px]"
         :class="meta.cls === 'diff' ? '' : meta.cls"
       >{{ meta.text }}</span>
-      <HBtn
-        v-if="tool.status === 'running'"
-        @click.stop="store.interrupt(sessionId)"
-      >
-        Stop
-      </HBtn>
+      <template v-if="tool.status === 'running'">
+        <HBtn
+          v-if="!remote"
+          title="Keep it running as a background task and let the agent go on"
+          @click.stop="toBackground"
+        >
+          Run in background
+        </HBtn>
+        <HBtn @click.stop="store.interrupt(sessionId)">
+          Stop
+        </HBtn>
+      </template>
     </button>
     <div
       v-else-if="!headless"
@@ -234,7 +264,7 @@ v-for="(line, i) in commandLines"
 v-for="(tk, j) in line"
 :key="j"
 :style="{ color: tk.c }"
->{{ tk.t }}</span><template v-if="i < commandLines.length - 1">{{ '\n' }}</template></template><template v-if="outputLines.some(l => l.length)">{{ '\n' }}<span :class="tool.status === 'error' ? 'text-bad/80' : 'text-muted'">{{ outputLines.map(l => l.map(tk => tk.t).join('')).join('\n') }}</span></template><span
+>{{ tk.t }}</span><template v-if="i < commandLines.length - 1">{{ '\n' }}</template></template><template v-if="bashOutput.trim()">{{ '\n' }}<span :class="tool.status === 'error' ? 'text-bad/80' : 'text-muted'">{{ bashOutput }}</span></template><template v-if="backgroundNote">{{ '\n' }}<span class="text-dimmed italic">{{ backgroundNote }}</span></template><span
       v-if="tool.status === 'running'"
       class="h-caret ml-0.5 inline-block h-[13px] w-[7px] bg-graphite-200 align-[-2px]"
     /></pre>
