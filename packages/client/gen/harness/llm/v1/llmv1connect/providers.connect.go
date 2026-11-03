@@ -66,6 +66,12 @@ const (
 	// ProviderServiceSetClassifierProcedure is the fully-qualified name of the ProviderService's
 	// SetClassifier RPC.
 	ProviderServiceSetClassifierProcedure = "/harness.llm.v1.ProviderService/SetClassifier"
+	// ProviderServiceGetSlotsProcedure is the fully-qualified name of the ProviderService's GetSlots
+	// RPC.
+	ProviderServiceGetSlotsProcedure = "/harness.llm.v1.ProviderService/GetSlots"
+	// ProviderServiceSetSlotsProcedure is the fully-qualified name of the ProviderService's SetSlots
+	// RPC.
+	ProviderServiceSetSlotsProcedure = "/harness.llm.v1.ProviderService/SetSlots"
 )
 
 // ProviderServiceClient is a client for the harness.llm.v1.ProviderService service.
@@ -96,6 +102,10 @@ type ProviderServiceClient interface {
 	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
 	GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error)
 	SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error)
+	// The server-wide default models per role (Slots: main, small, plan, title), as configured. Everyone may
+	// read them; SetSlots needs the admin role.
+	GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error)
+	SetSlots(context.Context, *connect.Request[v1.SetSlotsRequest]) (*connect.Response[v1.SetSlotsResponse], error)
 }
 
 // NewProviderServiceClient constructs a client for the harness.llm.v1.ProviderService service. By
@@ -175,6 +185,18 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(providerServiceMethods.ByName("SetClassifier")),
 			connect.WithClientOptions(opts...),
 		),
+		getSlots: connect.NewClient[v1.GetSlotsRequest, v1.GetSlotsResponse](
+			httpClient,
+			baseURL+ProviderServiceGetSlotsProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("GetSlots")),
+			connect.WithClientOptions(opts...),
+		),
+		setSlots: connect.NewClient[v1.SetSlotsRequest, v1.SetSlotsResponse](
+			httpClient,
+			baseURL+ProviderServiceSetSlotsProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("SetSlots")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -191,6 +213,8 @@ type providerServiceClient struct {
 	removeModel    *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
 	getClassifier  *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
 	setClassifier  *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
+	getSlots       *connect.Client[v1.GetSlotsRequest, v1.GetSlotsResponse]
+	setSlots       *connect.Client[v1.SetSlotsRequest, v1.SetSlotsResponse]
 }
 
 // ListPresets calls harness.llm.v1.ProviderService.ListPresets.
@@ -248,6 +272,16 @@ func (c *providerServiceClient) SetClassifier(ctx context.Context, req *connect.
 	return c.setClassifier.CallUnary(ctx, req)
 }
 
+// GetSlots calls harness.llm.v1.ProviderService.GetSlots.
+func (c *providerServiceClient) GetSlots(ctx context.Context, req *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error) {
+	return c.getSlots.CallUnary(ctx, req)
+}
+
+// SetSlots calls harness.llm.v1.ProviderService.SetSlots.
+func (c *providerServiceClient) SetSlots(ctx context.Context, req *connect.Request[v1.SetSlotsRequest]) (*connect.Response[v1.SetSlotsResponse], error) {
+	return c.setSlots.CallUnary(ctx, req)
+}
+
 // ProviderServiceHandler is an implementation of the harness.llm.v1.ProviderService service.
 type ProviderServiceHandler interface {
 	// The well-known services the settings screens offer to connect in one step (presets), and the protocols a
@@ -276,6 +310,10 @@ type ProviderServiceHandler interface {
 	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
 	GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error)
 	SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error)
+	// The server-wide default models per role (Slots: main, small, plan, title), as configured. Everyone may
+	// read them; SetSlots needs the admin role.
+	GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error)
+	SetSlots(context.Context, *connect.Request[v1.SetSlotsRequest]) (*connect.Response[v1.SetSlotsResponse], error)
 }
 
 // NewProviderServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -351,6 +389,18 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 		connect.WithSchema(providerServiceMethods.ByName("SetClassifier")),
 		connect.WithHandlerOptions(opts...),
 	)
+	providerServiceGetSlotsHandler := connect.NewUnaryHandler(
+		ProviderServiceGetSlotsProcedure,
+		svc.GetSlots,
+		connect.WithSchema(providerServiceMethods.ByName("GetSlots")),
+		connect.WithHandlerOptions(opts...),
+	)
+	providerServiceSetSlotsHandler := connect.NewUnaryHandler(
+		ProviderServiceSetSlotsProcedure,
+		svc.SetSlots,
+		connect.WithSchema(providerServiceMethods.ByName("SetSlots")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.llm.v1.ProviderService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ProviderServiceListPresetsProcedure:
@@ -375,6 +425,10 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 			providerServiceGetClassifierHandler.ServeHTTP(w, r)
 		case ProviderServiceSetClassifierProcedure:
 			providerServiceSetClassifierHandler.ServeHTTP(w, r)
+		case ProviderServiceGetSlotsProcedure:
+			providerServiceGetSlotsHandler.ServeHTTP(w, r)
+		case ProviderServiceSetSlotsProcedure:
+			providerServiceSetSlotsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -426,4 +480,12 @@ func (UnimplementedProviderServiceHandler) GetClassifier(context.Context, *conne
 
 func (UnimplementedProviderServiceHandler) SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetClassifier is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) GetSlots(context.Context, *connect.Request[v1.GetSlotsRequest]) (*connect.Response[v1.GetSlotsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.GetSlots is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) SetSlots(context.Context, *connect.Request[v1.SetSlotsRequest]) (*connect.Response[v1.SetSlotsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetSlots is not implemented"))
 }

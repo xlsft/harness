@@ -337,7 +337,7 @@ export function modelsToProto(r: {
           }
         : undefined,
     })),
-    slots: { main: r.slots.main ?? "", small: r.slots.small ?? "", plan: r.slots.plan ?? "" },
+    slots: { main: r.slots.main ?? "", small: r.slots.small ?? "", plan: r.slots.plan ?? "", title: r.slots.title ?? "" },
   };
 }
 

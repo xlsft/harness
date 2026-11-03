@@ -260,3 +260,22 @@ func TestCleanTitle(t *testing.T) {
 		t.Errorf("provisional: %q", got)
 	}
 }
+
+func TestTitleModel(t *testing.T) {
+	cat := func(slots map[string]string) *llm.Catalog { return &llm.Catalog{Slots: slots} }
+	for _, c := range []struct {
+		name string
+		cat  *llm.Catalog
+		want string
+	}{
+		{"title slot", cat(map[string]string{"main": "m", "small": "s", "title": "t"}), "t"},
+		{"small slot when no title slot", cat(map[string]string{"main": "m", "small": "s"}), "s"},
+		{"small slot when the title slot is empty", cat(map[string]string{"small": "s", "title": ""}), "s"},
+		{"session model without slots", cat(map[string]string{"main": "m"}), "session"},
+		{"session model without a catalog", nil, "session"},
+	} {
+		if got := titleModel(c.cat, "session"); got != c.want {
+			t.Errorf("%s: titleModel = %q, want %q", c.name, got, c.want)
+		}
+	}
+}

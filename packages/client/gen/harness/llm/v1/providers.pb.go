@@ -2111,11 +2111,191 @@ func (x *Classifier) GetLlmModel() string {
 	return ""
 }
 
+type GetSlotsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSlotsRequest) Reset() {
+	*x = GetSlotsRequest{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSlotsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSlotsRequest) ProtoMessage() {}
+
+func (x *GetSlotsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSlotsRequest.ProtoReflect.Descriptor instead.
+func (*GetSlotsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{31}
+}
+
+type GetSlotsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// As configured: an empty slot follows the server default (ListModels has the effective ones).
+	Slots *Slots `protobuf:"bytes,1,opt,name=slots,proto3" json:"slots,omitempty"`
+	// The caller may change them (admins).
+	Editable      bool `protobuf:"varint,2,opt,name=editable,proto3" json:"editable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSlotsResponse) Reset() {
+	*x = GetSlotsResponse{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSlotsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSlotsResponse) ProtoMessage() {}
+
+func (x *GetSlotsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSlotsResponse.ProtoReflect.Descriptor instead.
+func (*GetSlotsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *GetSlotsResponse) GetSlots() *Slots {
+	if x != nil {
+		return x.Slots
+	}
+	return nil
+}
+
+func (x *GetSlotsResponse) GetEditable() bool {
+	if x != nil {
+		return x.Editable
+	}
+	return false
+}
+
+type SetSlotsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Replaces main, small, plan and title; an empty one is cleared. Values are global model ids. The model
+	// classifier's model is set with SetClassifier and is kept.
+	Slots         *Slots `protobuf:"bytes,1,opt,name=slots,proto3" json:"slots,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSlotsRequest) Reset() {
+	*x = SetSlotsRequest{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSlotsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSlotsRequest) ProtoMessage() {}
+
+func (x *SetSlotsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSlotsRequest.ProtoReflect.Descriptor instead.
+func (*SetSlotsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *SetSlotsRequest) GetSlots() *Slots {
+	if x != nil {
+		return x.Slots
+	}
+	return nil
+}
+
+type SetSlotsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slots         *Slots                 `protobuf:"bytes,1,opt,name=slots,proto3" json:"slots,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSlotsResponse) Reset() {
+	*x = SetSlotsResponse{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSlotsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSlotsResponse) ProtoMessage() {}
+
+func (x *SetSlotsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSlotsResponse.ProtoReflect.Descriptor instead.
+func (*SetSlotsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *SetSlotsResponse) GetSlots() *Slots {
+	if x != nil {
+		return x.Slots
+	}
+	return nil
+}
+
 var File_harness_llm_v1_providers_proto protoreflect.FileDescriptor
 
 const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\n" +
-	"\x1eharness/llm/v1/providers.proto\x12\x0eharness.llm.v1\"\x98\x04\n" +
+	"\x1eharness/llm/v1/providers.proto\x12\x0eharness.llm.v1\x1a\x1charness/llm/v1/gateway.proto\"\x98\x04\n" +
 	"\bProvider\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x123\n" +
 	"\x05scope\x18\x02 \x01(\x0e2\x1d.harness.llm.v1.ProviderScopeR\x05scope\x12\x12\n" +
@@ -2289,11 +2469,19 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\fon_uncertain\x18\a \x01(\tR\vonUncertain\x12\x1d\n" +
 	"\n" +
 	"timeout_ms\x18\b \x01(\x05R\ttimeoutMs\x12\x1b\n" +
-	"\tllm_model\x18\t \x01(\tR\bllmModel*g\n" +
+	"\tllm_model\x18\t \x01(\tR\bllmModel\"\x11\n" +
+	"\x0fGetSlotsRequest\"[\n" +
+	"\x10GetSlotsResponse\x12+\n" +
+	"\x05slots\x18\x01 \x01(\v2\x15.harness.llm.v1.SlotsR\x05slots\x12\x1a\n" +
+	"\beditable\x18\x02 \x01(\bR\beditable\">\n" +
+	"\x0fSetSlotsRequest\x12+\n" +
+	"\x05slots\x18\x01 \x01(\v2\x15.harness.llm.v1.SlotsR\x05slots\"?\n" +
+	"\x10SetSlotsResponse\x12+\n" +
+	"\x05slots\x18\x01 \x01(\v2\x15.harness.llm.v1.SlotsR\x05slots*g\n" +
 	"\rProviderScope\x12\x1e\n" +
 	"\x1aPROVIDER_SCOPE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15PROVIDER_SCOPE_GLOBAL\x10\x01\x12\x1b\n" +
-	"\x17PROVIDER_SCOPE_PERSONAL\x10\x022\x89\b\n" +
+	"\x17PROVIDER_SCOPE_PERSONAL\x10\x022\xa7\t\n" +
 	"\x0fProviderService\x12V\n" +
 	"\vListPresets\x12\".harness.llm.v1.ListPresetsRequest\x1a#.harness.llm.v1.ListPresetsResponse\x12\\\n" +
 	"\rListProviders\x12$.harness.llm.v1.ListProvidersRequest\x1a%.harness.llm.v1.ListProvidersResponse\x12_\n" +
@@ -2305,7 +2493,9 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\fTestProvider\x12#.harness.llm.v1.TestProviderRequest\x1a$.harness.llm.v1.TestProviderResponse\x12V\n" +
 	"\vRemoveModel\x12\".harness.llm.v1.RemoveModelRequest\x1a#.harness.llm.v1.RemoveModelResponse\x12\\\n" +
 	"\rGetClassifier\x12$.harness.llm.v1.GetClassifierRequest\x1a%.harness.llm.v1.GetClassifierResponse\x12\\\n" +
-	"\rSetClassifier\x12$.harness.llm.v1.SetClassifierRequest\x1a%.harness.llm.v1.SetClassifierResponseB\xc1\x01\n" +
+	"\rSetClassifier\x12$.harness.llm.v1.SetClassifierRequest\x1a%.harness.llm.v1.SetClassifierResponse\x12M\n" +
+	"\bGetSlots\x12\x1f.harness.llm.v1.GetSlotsRequest\x1a .harness.llm.v1.GetSlotsResponse\x12M\n" +
+	"\bSetSlots\x12\x1f.harness.llm.v1.SetSlotsRequest\x1a .harness.llm.v1.SetSlotsResponseB\xc1\x01\n" +
 	"\x12com.harness.llm.v1B\x0eProvidersProtoP\x01ZAgithub.com/xlsft/harness/packages/client/gen/harness/llm/v1;llmv1\xa2\x02\x03HLX\xaa\x02\x0eHarness.Llm.V1\xca\x02\x0eHarness\\Llm\\V1\xe2\x02\x1aHarness\\Llm\\V1\\GPBMetadata\xea\x02\x10Harness::Llm::V1b\x06proto3"
 
 var (
@@ -2321,7 +2511,7 @@ func file_harness_llm_v1_providers_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_llm_v1_providers_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_llm_v1_providers_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_harness_llm_v1_providers_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_harness_llm_v1_providers_proto_goTypes = []any{
 	(ProviderScope)(0),             // 0: harness.llm.v1.ProviderScope
 	(*Provider)(nil),               // 1: harness.llm.v1.Provider
@@ -2355,8 +2545,13 @@ var file_harness_llm_v1_providers_proto_goTypes = []any{
 	(*SetClassifierRequest)(nil),   // 29: harness.llm.v1.SetClassifierRequest
 	(*SetClassifierResponse)(nil),  // 30: harness.llm.v1.SetClassifierResponse
 	(*Classifier)(nil),             // 31: harness.llm.v1.Classifier
-	nil,                            // 32: harness.llm.v1.CreateProviderRequest.HeadersEntry
-	nil,                            // 33: harness.llm.v1.Headers.ValuesEntry
+	(*GetSlotsRequest)(nil),        // 32: harness.llm.v1.GetSlotsRequest
+	(*GetSlotsResponse)(nil),       // 33: harness.llm.v1.GetSlotsResponse
+	(*SetSlotsRequest)(nil),        // 34: harness.llm.v1.SetSlotsRequest
+	(*SetSlotsResponse)(nil),       // 35: harness.llm.v1.SetSlotsResponse
+	nil,                            // 36: harness.llm.v1.CreateProviderRequest.HeadersEntry
+	nil,                            // 37: harness.llm.v1.Headers.ValuesEntry
+	(*Slots)(nil),                  // 38: harness.llm.v1.Slots
 }
 var file_harness_llm_v1_providers_proto_depIdxs = []int32{
 	0,  // 0: harness.llm.v1.Provider.scope:type_name -> harness.llm.v1.ProviderScope
@@ -2367,43 +2562,50 @@ var file_harness_llm_v1_providers_proto_depIdxs = []int32{
 	7,  // 5: harness.llm.v1.ProviderPreset.default_models:type_name -> harness.llm.v1.PresetModel
 	1,  // 6: harness.llm.v1.ListProvidersResponse.providers:type_name -> harness.llm.v1.Provider
 	0,  // 7: harness.llm.v1.CreateProviderRequest.scope:type_name -> harness.llm.v1.ProviderScope
-	32, // 8: harness.llm.v1.CreateProviderRequest.headers:type_name -> harness.llm.v1.CreateProviderRequest.HeadersEntry
+	36, // 8: harness.llm.v1.CreateProviderRequest.headers:type_name -> harness.llm.v1.CreateProviderRequest.HeadersEntry
 	1,  // 9: harness.llm.v1.CreateProviderResponse.provider:type_name -> harness.llm.v1.Provider
 	14, // 10: harness.llm.v1.UpdateProviderRequest.headers:type_name -> harness.llm.v1.Headers
-	33, // 11: harness.llm.v1.Headers.values:type_name -> harness.llm.v1.Headers.ValuesEntry
+	37, // 11: harness.llm.v1.Headers.values:type_name -> harness.llm.v1.Headers.ValuesEntry
 	1,  // 12: harness.llm.v1.UpdateProviderResponse.provider:type_name -> harness.llm.v1.Provider
 	20, // 13: harness.llm.v1.DiscoverModelsResponse.models:type_name -> harness.llm.v1.ModelCandidate
 	2,  // 14: harness.llm.v1.AddModelResponse.model:type_name -> harness.llm.v1.ProviderModel
 	31, // 15: harness.llm.v1.GetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
 	31, // 16: harness.llm.v1.SetClassifierRequest.classifier:type_name -> harness.llm.v1.Classifier
 	31, // 17: harness.llm.v1.SetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
-	3,  // 18: harness.llm.v1.ProviderService.ListPresets:input_type -> harness.llm.v1.ListPresetsRequest
-	9,  // 19: harness.llm.v1.ProviderService.ListProviders:input_type -> harness.llm.v1.ListProvidersRequest
-	11, // 20: harness.llm.v1.ProviderService.CreateProvider:input_type -> harness.llm.v1.CreateProviderRequest
-	13, // 21: harness.llm.v1.ProviderService.UpdateProvider:input_type -> harness.llm.v1.UpdateProviderRequest
-	16, // 22: harness.llm.v1.ProviderService.DeleteProvider:input_type -> harness.llm.v1.DeleteProviderRequest
-	18, // 23: harness.llm.v1.ProviderService.DiscoverModels:input_type -> harness.llm.v1.DiscoverModelsRequest
-	21, // 24: harness.llm.v1.ProviderService.AddModel:input_type -> harness.llm.v1.AddModelRequest
-	23, // 25: harness.llm.v1.ProviderService.TestProvider:input_type -> harness.llm.v1.TestProviderRequest
-	25, // 26: harness.llm.v1.ProviderService.RemoveModel:input_type -> harness.llm.v1.RemoveModelRequest
-	27, // 27: harness.llm.v1.ProviderService.GetClassifier:input_type -> harness.llm.v1.GetClassifierRequest
-	29, // 28: harness.llm.v1.ProviderService.SetClassifier:input_type -> harness.llm.v1.SetClassifierRequest
-	4,  // 29: harness.llm.v1.ProviderService.ListPresets:output_type -> harness.llm.v1.ListPresetsResponse
-	10, // 30: harness.llm.v1.ProviderService.ListProviders:output_type -> harness.llm.v1.ListProvidersResponse
-	12, // 31: harness.llm.v1.ProviderService.CreateProvider:output_type -> harness.llm.v1.CreateProviderResponse
-	15, // 32: harness.llm.v1.ProviderService.UpdateProvider:output_type -> harness.llm.v1.UpdateProviderResponse
-	17, // 33: harness.llm.v1.ProviderService.DeleteProvider:output_type -> harness.llm.v1.DeleteProviderResponse
-	19, // 34: harness.llm.v1.ProviderService.DiscoverModels:output_type -> harness.llm.v1.DiscoverModelsResponse
-	22, // 35: harness.llm.v1.ProviderService.AddModel:output_type -> harness.llm.v1.AddModelResponse
-	24, // 36: harness.llm.v1.ProviderService.TestProvider:output_type -> harness.llm.v1.TestProviderResponse
-	26, // 37: harness.llm.v1.ProviderService.RemoveModel:output_type -> harness.llm.v1.RemoveModelResponse
-	28, // 38: harness.llm.v1.ProviderService.GetClassifier:output_type -> harness.llm.v1.GetClassifierResponse
-	30, // 39: harness.llm.v1.ProviderService.SetClassifier:output_type -> harness.llm.v1.SetClassifierResponse
-	29, // [29:40] is the sub-list for method output_type
-	18, // [18:29] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	38, // 18: harness.llm.v1.GetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
+	38, // 19: harness.llm.v1.SetSlotsRequest.slots:type_name -> harness.llm.v1.Slots
+	38, // 20: harness.llm.v1.SetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
+	3,  // 21: harness.llm.v1.ProviderService.ListPresets:input_type -> harness.llm.v1.ListPresetsRequest
+	9,  // 22: harness.llm.v1.ProviderService.ListProviders:input_type -> harness.llm.v1.ListProvidersRequest
+	11, // 23: harness.llm.v1.ProviderService.CreateProvider:input_type -> harness.llm.v1.CreateProviderRequest
+	13, // 24: harness.llm.v1.ProviderService.UpdateProvider:input_type -> harness.llm.v1.UpdateProviderRequest
+	16, // 25: harness.llm.v1.ProviderService.DeleteProvider:input_type -> harness.llm.v1.DeleteProviderRequest
+	18, // 26: harness.llm.v1.ProviderService.DiscoverModels:input_type -> harness.llm.v1.DiscoverModelsRequest
+	21, // 27: harness.llm.v1.ProviderService.AddModel:input_type -> harness.llm.v1.AddModelRequest
+	23, // 28: harness.llm.v1.ProviderService.TestProvider:input_type -> harness.llm.v1.TestProviderRequest
+	25, // 29: harness.llm.v1.ProviderService.RemoveModel:input_type -> harness.llm.v1.RemoveModelRequest
+	27, // 30: harness.llm.v1.ProviderService.GetClassifier:input_type -> harness.llm.v1.GetClassifierRequest
+	29, // 31: harness.llm.v1.ProviderService.SetClassifier:input_type -> harness.llm.v1.SetClassifierRequest
+	32, // 32: harness.llm.v1.ProviderService.GetSlots:input_type -> harness.llm.v1.GetSlotsRequest
+	34, // 33: harness.llm.v1.ProviderService.SetSlots:input_type -> harness.llm.v1.SetSlotsRequest
+	4,  // 34: harness.llm.v1.ProviderService.ListPresets:output_type -> harness.llm.v1.ListPresetsResponse
+	10, // 35: harness.llm.v1.ProviderService.ListProviders:output_type -> harness.llm.v1.ListProvidersResponse
+	12, // 36: harness.llm.v1.ProviderService.CreateProvider:output_type -> harness.llm.v1.CreateProviderResponse
+	15, // 37: harness.llm.v1.ProviderService.UpdateProvider:output_type -> harness.llm.v1.UpdateProviderResponse
+	17, // 38: harness.llm.v1.ProviderService.DeleteProvider:output_type -> harness.llm.v1.DeleteProviderResponse
+	19, // 39: harness.llm.v1.ProviderService.DiscoverModels:output_type -> harness.llm.v1.DiscoverModelsResponse
+	22, // 40: harness.llm.v1.ProviderService.AddModel:output_type -> harness.llm.v1.AddModelResponse
+	24, // 41: harness.llm.v1.ProviderService.TestProvider:output_type -> harness.llm.v1.TestProviderResponse
+	26, // 42: harness.llm.v1.ProviderService.RemoveModel:output_type -> harness.llm.v1.RemoveModelResponse
+	28, // 43: harness.llm.v1.ProviderService.GetClassifier:output_type -> harness.llm.v1.GetClassifierResponse
+	30, // 44: harness.llm.v1.ProviderService.SetClassifier:output_type -> harness.llm.v1.SetClassifierResponse
+	33, // 45: harness.llm.v1.ProviderService.GetSlots:output_type -> harness.llm.v1.GetSlotsResponse
+	35, // 46: harness.llm.v1.ProviderService.SetSlots:output_type -> harness.llm.v1.SetSlotsResponse
+	34, // [34:47] is the sub-list for method output_type
+	21, // [21:34] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_providers_proto_init() }
@@ -2411,6 +2613,7 @@ func file_harness_llm_v1_providers_proto_init() {
 	if File_harness_llm_v1_providers_proto != nil {
 		return
 	}
+	file_harness_llm_v1_gateway_proto_init()
 	file_harness_llm_v1_providers_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2418,7 +2621,7 @@ func file_harness_llm_v1_providers_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_llm_v1_providers_proto_rawDesc), len(file_harness_llm_v1_providers_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   33,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

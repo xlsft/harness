@@ -418,9 +418,11 @@ func (x *Pricing) GetCacheWrite() float64 {
 type Slots struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Main  string                 `protobuf:"bytes,1,opt,name=main,proto3" json:"main,omitempty"`
-	// Titles, summaries, WebFetch, compaction.
-	Small         string `protobuf:"bytes,2,opt,name=small,proto3" json:"small,omitempty"`
-	Plan          string `protobuf:"bytes,3,opt,name=plan,proto3" json:"plan,omitempty"`
+	// Summaries, WebFetch, compaction; also titles when `title` is not set.
+	Small string `protobuf:"bytes,2,opt,name=small,proto3" json:"small,omitempty"`
+	Plan  string `protobuf:"bytes,3,opt,name=plan,proto3" json:"plan,omitempty"`
+	// Session titles. In ListModels it falls back to `small` when the admin did not set it.
+	Title         string `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -472,6 +474,13 @@ func (x *Slots) GetSmall() string {
 func (x *Slots) GetPlan() string {
 	if x != nil {
 		return x.Plan
+	}
+	return ""
+}
+
+func (x *Slots) GetTitle() string {
+	if x != nil {
+		return x.Title
 	}
 	return ""
 }
@@ -1528,11 +1537,12 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\n" +
 	"cache_read\x18\x03 \x01(\x01R\tcacheRead\x12\x1f\n" +
 	"\vcache_write\x18\x04 \x01(\x01R\n" +
-	"cacheWrite\"E\n" +
+	"cacheWrite\"[\n" +
 	"\x05Slots\x12\x12\n" +
 	"\x04main\x18\x01 \x01(\tR\x04main\x12\x14\n" +
 	"\x05small\x18\x02 \x01(\tR\x05small\x12\x12\n" +
-	"\x04plan\x18\x03 \x01(\tR\x04plan\"\xf0\x01\n" +
+	"\x04plan\x18\x03 \x01(\tR\x04plan\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\"\xf0\x01\n" +
 	"\x0fRequestMetadata\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12A\n" +
