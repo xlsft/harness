@@ -11,6 +11,7 @@
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
 import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
 import {
+  BackgroundReason,
   Compacted_Trigger,
   Notice_Level,
   PermissionMode,
@@ -27,6 +28,7 @@ import {
 import type {
   AssistantItem,
   Attachment,
+  BackgroundReasonName,
   CompactItem,
   PermissionModeName,
   SessionMeta,
@@ -128,6 +130,25 @@ export function permissionModePb(mode: PermissionModeName): PermissionMode {
     case 'bypass': return PermissionMode.BYPASS_PERMISSIONS
     case 'auto': return PermissionMode.AUTO
     default: return PermissionMode.DEFAULT
+  }
+}
+
+// UNSPECIFIED comes from transcripts written before the reason was recorded; it reads as "runs in the background".
+export function backgroundReasonName(reason: BackgroundReason): BackgroundReasonName {
+  switch (reason) {
+    case BackgroundReason.USER: return 'user'
+    case BackgroundReason.QUEUED_MESSAGE: return 'queued_message'
+    case BackgroundReason.AUTO: return 'auto'
+    default: return 'agent'
+  }
+}
+
+export function backgroundReasonPb(reason: BackgroundReasonName): BackgroundReason {
+  switch (reason) {
+    case 'user': return BackgroundReason.USER
+    case 'queued_message': return BackgroundReason.QUEUED_MESSAGE
+    case 'agent': return BackgroundReason.AGENT
+    case 'auto': return BackgroundReason.AUTO
   }
 }
 
@@ -418,6 +439,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       item.result = parseJson(t.structuredResultJson)
       item.resultSummary = t.summary
       item.durationMs = Number(t.durationMs)
+      if (t.background?.taskId) item.background = { taskId: t.background.taskId, reason: backgroundReasonName(t.background.reason) }
       break
     }
 

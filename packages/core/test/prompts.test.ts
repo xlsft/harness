@@ -46,6 +46,11 @@ describe("bundle builder", () => {
       user_shell_command: ["cwd", "command", "exit_code", "output", "status"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
+      // Bash tool_result notes about a command that runs in the background, by reason
+      bash_background_user: ["task_id", "output_path"],
+      bash_background_queued_message: ["task_id", "output_path"],
+      bash_background_agent: ["task_id", "output_path"],
+      bash_background_timeout: ["timeout", "task_id", "output_path"],
       // the side chat system prompt (no placeholders: the client sends the main session as a separate block)
       side_chat: [],
     };

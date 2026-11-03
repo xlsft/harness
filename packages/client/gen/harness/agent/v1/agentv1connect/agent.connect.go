@@ -214,6 +214,9 @@ const (
 	// AgentServiceDeleteSpeechModelProcedure is the fully-qualified name of the AgentService's
 	// DeleteSpeechModel RPC.
 	AgentServiceDeleteSpeechModelProcedure = "/harness.agent.v1.AgentService/DeleteSpeechModel"
+	// AgentServiceBackgroundToolCallProcedure is the fully-qualified name of the AgentService's
+	// BackgroundToolCall RPC.
+	AgentServiceBackgroundToolCallProcedure = "/harness.agent.v1.AgentService/BackgroundToolCall"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -381,6 +384,11 @@ type AgentServiceClient interface {
 	ListLocalSpeechModels(context.Context, *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error)
 	DownloadSpeechModel(context.Context, *connect.Request[v1.DownloadSpeechModelRequest]) (*connect.ServerStreamForClient[v1.DownloadSpeechModelResponse], error)
 	DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error)
+	// Moves the running foreground Bash command of a tool call to the background task manager without stopping
+	// it: the process keeps running and its output goes to the task's output file. The tool call completes right
+	// away with a note to the model (task id, TaskOutput / TaskStop); its ToolCallFinished carries `background`,
+	// and TaskStarted follows. backgrounded = false when that tool call has no running foreground command.
+	BackgroundToolCall(context.Context, *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -778,6 +786,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("DeleteSpeechModel")),
 			connect.WithClientOptions(opts...),
 		),
+		backgroundToolCall: connect.NewClient[v1.BackgroundToolCallRequest, v1.BackgroundToolCallResponse](
+			httpClient,
+			baseURL+AgentServiceBackgroundToolCallProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("BackgroundToolCall")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -847,6 +861,7 @@ type agentServiceClient struct {
 	listLocalSpeechModels *connect.Client[v1.ListLocalSpeechModelsRequest, v1.ListLocalSpeechModelsResponse]
 	downloadSpeechModel   *connect.Client[v1.DownloadSpeechModelRequest, v1.DownloadSpeechModelResponse]
 	deleteSpeechModel     *connect.Client[v1.DeleteSpeechModelRequest, v1.DeleteSpeechModelResponse]
+	backgroundToolCall    *connect.Client[v1.BackgroundToolCallRequest, v1.BackgroundToolCallResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1169,6 +1184,11 @@ func (c *agentServiceClient) DeleteSpeechModel(ctx context.Context, req *connect
 	return c.deleteSpeechModel.CallUnary(ctx, req)
 }
 
+// BackgroundToolCall calls harness.agent.v1.AgentService.BackgroundToolCall.
+func (c *agentServiceClient) BackgroundToolCall(ctx context.Context, req *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error) {
+	return c.backgroundToolCall.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1334,6 +1354,11 @@ type AgentServiceHandler interface {
 	ListLocalSpeechModels(context.Context, *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error)
 	DownloadSpeechModel(context.Context, *connect.Request[v1.DownloadSpeechModelRequest], *connect.ServerStream[v1.DownloadSpeechModelResponse]) error
 	DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error)
+	// Moves the running foreground Bash command of a tool call to the background task manager without stopping
+	// it: the process keeps running and its output goes to the task's output file. The tool call completes right
+	// away with a note to the model (task id, TaskOutput / TaskStop); its ToolCallFinished carries `background`,
+	// and TaskStarted follows. backgrounded = false when that tool call has no running foreground command.
+	BackgroundToolCall(context.Context, *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1727,6 +1752,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("DeleteSpeechModel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceBackgroundToolCallHandler := connect.NewUnaryHandler(
+		AgentServiceBackgroundToolCallProcedure,
+		svc.BackgroundToolCall,
+		connect.WithSchema(agentServiceMethods.ByName("BackgroundToolCall")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1857,6 +1888,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceDownloadSpeechModelHandler.ServeHTTP(w, r)
 		case AgentServiceDeleteSpeechModelProcedure:
 			agentServiceDeleteSpeechModelHandler.ServeHTTP(w, r)
+		case AgentServiceBackgroundToolCallProcedure:
+			agentServiceBackgroundToolCallHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2120,4 +2153,8 @@ func (UnimplementedAgentServiceHandler) DownloadSpeechModel(context.Context, *co
 
 func (UnimplementedAgentServiceHandler) DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteSpeechModel is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) BackgroundToolCall(context.Context, *connect.Request[v1.BackgroundToolCallRequest]) (*connect.Response[v1.BackgroundToolCallResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.BackgroundToolCall is not implemented"))
 }

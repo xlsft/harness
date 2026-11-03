@@ -116,7 +116,7 @@ func TestBackgroundTaskReminder(t *testing.T) {
 		return false
 	})
 	trs := fg.LastToolResults(mainRequests(e.srv)[1])
-	if !strings.Contains(fg.ResultText(trs[0]), "running in background with ID: b") {
+	if !strings.Contains(fg.ResultText(trs[0]), "runs as background task b") {
 		t.Fatalf("tool result %q", fg.ResultText(trs[0]))
 	}
 	s.Agent.RunTurn(context.Background(), prompt("next"))
@@ -137,7 +137,7 @@ func TestBackgroundTaskReminder(t *testing.T) {
 // A task whose finish a TaskOutput result already reported gets no
 // completion reminder.
 func TestBackgroundTaskReminderSkippedWhenReported(t *testing.T) {
-	idRe := regexp.MustCompile(`ID: (b[0-9a-f]+)`)
+	idRe := regexp.MustCompile(`background task (b[0-9a-f]+)`)
 	e := setup(t, func(n int, r *llm.Request) fg.Reply {
 		switch n {
 		case 0:
@@ -175,7 +175,7 @@ func TestAutoBackgroundInTurn(t *testing.T) {
 		t.Fatalf("result %+v after %s", res, time.Since(start))
 	}
 	tr := fg.ResultText(fg.LastToolResults(e.srv.Requests()[1])[0])
-	if !strings.Contains(tr, "did not complete within its") || s.Tasks.Running() != 1 {
+	if !strings.Contains(tr, "did not finish within its") || s.Tasks.Running() != 1 {
 		t.Fatalf("auto-background: %q running=%d", tr, s.Tasks.Running())
 	}
 	s.Close()

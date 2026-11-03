@@ -1,0 +1,1 @@
+You started this command in the background (run_in_background). It runs as background task {{task_id}}; its output goes to {{output_path}}. Read new output with TaskOutput or stop it with TaskStop, using that task id. You will be notified when it finishes.

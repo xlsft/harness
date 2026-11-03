@@ -17,6 +17,7 @@ import {
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { contextUsageFromProto } from '~/lib/session/context'
+import { backgroundReasonPb } from '~/lib/session/reducer'
 import type { EffortName, QuestionReply } from '~/lib/session/types'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
 import { ConnectUsersApi } from '~/lib/users/connect'
@@ -238,6 +239,10 @@ export class ConnectTransport implements SessionTransport {
 
   async stopTask(sessionId: string, taskId: string) {
     await this.client.stopTask({ sessionId, taskId })
+  }
+
+  async backgroundToolCall(sessionId: string, toolUseId: string, reason: 'user' | 'queued_message') {
+    return (await this.client.backgroundToolCall({ sessionId, toolUseId, reason: backgroundReasonPb(reason) })).backgrounded
   }
 
   async runShellCommand(sessionId: string, uuid: string, command: string) {

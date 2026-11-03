@@ -43,8 +43,8 @@ import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { contextUsageFromProto } from '~/lib/session/context'
-import type { QuestionReply } from '~/lib/session/types'
-import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
+import type { BackgroundReasonName, QuestionReply } from '~/lib/session/types'
+import { backgroundReasonPb, permissionModeName, permissionModePb } from '~/lib/session/reducer'
 
 // Folders and a small directory tree for the new-session pickers.
 const MOCK_HOME = '/Users/xlsft'
@@ -91,6 +91,32 @@ interface MockSession {
   waiting: { requestId: string, question?: boolean, resume: (b: EventBuilder, decision: number, reply?: MockReply) => number } | null
   turn: number
   afterResume: ((ok: boolean) => void) | null
+  // The foreground Bash of a live turn that can be moved to the background (backgroundToolCall).
+  runningBash?: MockBash | null
+}
+
+interface MockBash {
+  toolUseId: string
+  command: string
+  description: string
+  startedAt: number
+  // Output printed so far (the stdout of the backgrounded result).
+  output: string
+  // Continues the turn once the command finished (null) or moved to the background.
+  after: (reason: BackgroundReasonName | null) => void
+}
+
+// The notes the client's Bash tool returns for a command that runs in the background (the fallbacks of
+// packages/client/tools/bash.go; the bundle texts live in packages/core/prompts/reminders/bash_background_*.md).
+const BACKGROUND_NOTE_HEAD: Record<BackgroundReasonName, string> = {
+  user: 'The user moved this command to the background while it was running.',
+  queued_message: 'This command was moved to the background so that a message the user sent while it was running could be delivered now.',
+  agent: 'You started this command in the background (run_in_background).',
+  auto: 'This command did not finish within its 2m0s timeout, so it was moved to the background instead of being stopped.'
+}
+
+export function mockBackgroundNote(reason: BackgroundReasonName, taskId: string, outputPath: string) {
+  return `${BACKGROUND_NOTE_HEAD[reason]} It keeps running as background task ${taskId}; its output so far and from now on goes to ${outputPath}. Read new output with TaskOutput or stop it with TaskStop, using that task id. You will be notified when it finishes.`
 }
 
 export interface MockOptions {
@@ -410,8 +436,13 @@ export class MockTransport implements SessionTransport {
       s.queue.push({ uuid, text, queuedAt: this.now() })
       this.emit(s, b => b.queue(s.queue))
       if (delivery === SendUserMessageRequest_Delivery.NOW) {
-        this.stopTurn(s)
-        this.finishTurn(s)
+        // Like the client: a running Bash moves to the background and the message is read in this turn;
+        // otherwise the turn stops and the message starts the next one.
+        if (s.runningBash) this.backgroundBash(s, 'queued_message')
+        else {
+          this.stopTurn(s)
+          this.finishTurn(s)
+        }
       }
       return
     }
@@ -470,6 +501,7 @@ export class MockTransport implements SessionTransport {
       this.stream(s, msg, 1, 'text', intro, () => {
         if (lower.includes('plan')) return this.planFlow(s, msg, thinking, intro, startedAt)
         if (lower.includes('ask') || lower.includes('question')) return this.questionFlow(s, msg, thinking, intro, startedAt)
+        if (lower.includes('long') || lower.includes('watch')) return this.longBashFlow(s, msg, thinking, intro, startedAt)
         this.permissionFlow(s, msg, thinking, intro, startedAt)
       })
     })
@@ -514,6 +546,98 @@ export class MockTransport implements SessionTransport {
         this.finishTurn(s)
       }))
     }
+  }
+
+  // A Bash call that keeps running (it finishes by itself after a while unless the mock is synchronous) and can
+  // be moved to the background: backgroundToolCall, or a message sent with delivery NOW.
+  private longBashFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
+    const tool = `${msg}-bash`
+    const command = 'pnpm --filter core test -- --watch=false'
+    const description = 'Run the core test suite.'
+    const lines = ['> core@0.1.0 test', ' RUN  v4.1.12 packages/core', ' ✓ test/prompts.test.ts (6 tests)', ' ✓ test/gateway.test.ts (41 tests)']
+    this.emit(s, (b) => {
+      b.assistant(msg, s.info.model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'Bash', input: { command, description } } }], { input: 31_000, output: 800 })
+      b.toolStarted(tool, 'Bash', { command, description }, command)
+    })
+    this.later(s, this.tick * 6, () => this.emit(s, b => b.toolTitle(tool, 'core tests')))
+    const bash: MockBash = {
+      toolUseId: tool,
+      command,
+      description,
+      startedAt: this.now(),
+      output: lines.slice(0, 2).join('\n'),
+      after: (reason) => {
+        const msg2 = `${msg}-done`
+        const delivered = reason ? s.queue.splice(0) : []
+        if (delivered.length) {
+          // The queued messages are read in this turn, right after the tool result.
+          this.emit(s, (b) => {
+            b.queue([])
+            b.user(`${msg}-queued`, delivered.map(q => q.text).join('\n\n'), delivered.map(q => q.uuid))
+          })
+        }
+        const body = !reason
+          ? 'All 47 core tests pass.'
+          : delivered.length
+            ? 'Got your message. The tests keep running in the background; I will look at the result when they finish.'
+            : 'The tests keep running in the background. I will check their output when they finish.'
+        this.stream(s, msg2, 0, 'text', body, () => this.emit(s, (b) => {
+          b.assistant(msg2, s.info.model, [{ text: body }], { input: 33_000, output: 200 })
+          b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.02, usage: { input: 12_000, output: 1000 } })
+          this.finishTurn(s)
+        }))
+      }
+    }
+    s.runningBash = bash
+    // Unless it is backgrounded, the command finishes by itself after a while (never in a synchronous mock).
+    if (this.tick > 0) {
+      s.timers.push(setTimeout(() => {
+        if (s.runningBash !== bash) return
+        s.runningBash = null
+        this.emit(s, b => b.toolFinished(tool, {
+          output: lines.join('\n'),
+          result: { stdout: lines.join('\n'), stderr: '', interrupted: false, exitCode: 0 },
+          summary: 'Exit code 0',
+          durationMs: this.now() - bash.startedAt
+        }))
+        bash.after(null)
+      }, 20_000))
+    }
+  }
+
+  // Moves the running Bash to the background: the call finishes with the note and the marker, a background
+  // task starts (and finishes a little later), and the turn goes on.
+  private backgroundBash(s: MockSession, reason: 'user' | 'queued_message') {
+    const bash = s.runningBash
+    if (!bash) return false
+    s.runningBash = null
+    const taskId = `b${s.info.id.slice(-4)}${s.turn}`
+    const outputPath = `/tmp/harness/tasks/${taskId}.log`
+    this.emit(s, (b) => {
+      b.toolFinished(bash.toolUseId, {
+        output: mockBackgroundNote(reason, taskId, outputPath),
+        result: { stdout: bash.output, stderr: '', interrupted: false, backgroundTaskId: taskId, outputFile: outputPath, backgroundReason: reason },
+        summary: `Moved to background task ${taskId}`,
+        durationMs: this.now() - bash.startedAt,
+        background: { taskId, reason: backgroundReasonPb(reason) }
+      })
+      b.taskStarted(taskId, bash.toolUseId, bash.command, bash.description)
+      b.taskOutput(taskId, bash.output)
+    })
+    if (this.tick > 0) {
+      setTimeout(() => this.emit(s, (b) => {
+        b.taskOutput(taskId, ' ✓ test/prompts.test.ts (6 tests)\n ✓ test/gateway.test.ts (41 tests)')
+        b.taskFinished(taskId, 0, this.now() - bash.startedAt)
+      }), 6000)
+    }
+    bash.after(reason)
+    return true
+  }
+
+  async backgroundToolCall(sessionId: string, toolUseId: string, reason: 'user' | 'queued_message') {
+    const s = this.get(sessionId)
+    if (s.runningBash?.toolUseId !== toolUseId) return false
+    return this.backgroundBash(s, reason)
   }
 
   private questionFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
@@ -629,6 +753,7 @@ export class MockTransport implements SessionTransport {
   private stopTurn(s: MockSession) {
     for (const t of s.timers) clearTimeout(t)
     s.timers = []
+    this.interruptBash(s)
     const pending = s.waiting
     s.waiting = null
     s.afterResume = null
@@ -640,11 +765,20 @@ export class MockTransport implements SessionTransport {
     s.working = false
   }
 
+  // An interrupted turn kills its foreground Bash.
+  private interruptBash(s: MockSession) {
+    const bash = s.runningBash
+    if (!bash) return
+    s.runningBash = null
+    this.emit(s, b => b.toolFinished(bash.toolUseId, { output: '[Request interrupted by user for tool use]', isError: true, interrupted: true, summary: 'Interrupted' }))
+  }
+
   async interrupt(sessionId: string) {
     const s = this.get(sessionId)
     if (!s.working) return { idle: true }
     for (const t of s.timers) clearTimeout(t)
     s.timers = []
+    this.interruptBash(s)
     const pending = s.waiting
     s.waiting = null
     s.afterResume = null

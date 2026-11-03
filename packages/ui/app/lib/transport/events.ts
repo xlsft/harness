@@ -14,6 +14,7 @@ import {
   TurnFinished_Result
 } from '~/gen/harness/agent/v1/agent_pb'
 import type {
+  BackgroundReason,
   PermissionMode,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
@@ -148,7 +149,7 @@ export class EventBuilder {
     return this.emit({ case: 'toolTitle', value: { toolUseId, title } as never })
   }
 
-  toolFinished(toolUseId: string, o: { output?: string, result?: unknown, summary?: string, durationMs?: number, isError?: boolean, interrupted?: boolean } = {}) {
+  toolFinished(toolUseId: string, o: { output?: string, result?: unknown, summary?: string, durationMs?: number, isError?: boolean, interrupted?: boolean, background?: { taskId: string, reason: BackgroundReason } } = {}) {
     return this.emit({
       case: 'toolCallFinished',
       value: {
@@ -158,7 +159,8 @@ export class EventBuilder {
         content: o.output ? [text(o.output)] : [],
         durationMs: BigInt(o.durationMs ?? 0),
         structuredResultJson: o.result ? JSON.stringify(o.result) : '',
-        summary: o.summary ?? ''
+        summary: o.summary ?? '',
+        background: o.background
       } as never
     })
   }

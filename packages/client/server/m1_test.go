@@ -558,8 +558,11 @@ func TestNowDeliveryBackgroundsRunningBash(t *testing.T) {
 	start := time.Now()
 	var results []agentv1.TurnFinished_Result
 	taskStarted := false
+	var bg *agentv1.ToolBackground
 	h.until(ch, func(ev *agentv1.SessionEvent) bool {
 		switch {
+		case ev.GetToolCallFinished() != nil:
+			bg = ev.GetToolCallFinished().GetBackground()
 		case ev.GetToolCallStarted() != nil:
 			go func() {
 				time.Sleep(300 * time.Millisecond)
@@ -577,8 +580,11 @@ func TestNowDeliveryBackgroundsRunningBash(t *testing.T) {
 	}
 	reqs := h.gw.Requests()
 	lm := reqs[1].Messages[len(reqs[1].Messages)-1]
-	if lm.Content[0].Type != llm.BlockToolResult || !strings.Contains(fg.ResultText(lm.Content[0]), "moved this command to the background") || lm.Content[1].Text != "stop that" {
+	if lm.Content[0].Type != llm.BlockToolResult || !strings.Contains(fg.ResultText(lm.Content[0]), "so that a message the user sent") || lm.Content[1].Text != "stop that" {
 		t.Fatalf("queued message after backgrounded tool: %+v", lm.Content)
+	}
+	if bg.GetReason() != agentv1.BackgroundReason_BACKGROUND_REASON_QUEUED_MESSAGE || bg.GetTaskId() == "" || !strings.Contains(fg.ResultText(lm.Content[0]), bg.GetTaskId()) {
+		t.Fatalf("background marker %+v", bg)
 	}
 	h.client.CloseSession(h.ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: sid}))
 }

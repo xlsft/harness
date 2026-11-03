@@ -194,6 +194,12 @@ service AgentService {
   rpc ListLocalSpeechModels(ListLocalSpeechModelsRequest) returns (ListLocalSpeechModelsResponse);
   rpc DownloadSpeechModel(DownloadSpeechModelRequest) returns (stream DownloadSpeechModelResponse);
   rpc DeleteSpeechModel(DeleteSpeechModelRequest) returns (DeleteSpeechModelResponse);
+
+  // Moves the running foreground Bash command of a tool call to the background task manager without stopping
+  // it: the process keeps running and its output goes to the task's output file. The tool call completes right
+  // away with a note to the model (task id, TaskOutput / TaskStop); its ToolCallFinished carries `background`,
+  // and TaskStarted follows. backgrounded = false when that tool call has no running foreground command.
+  rpc BackgroundToolCall(BackgroundToolCallRequest) returns (BackgroundToolCallResponse);
 }
 
 enum PermissionMode {
@@ -742,6 +748,9 @@ message ToolCallFinished {
   string structured_result_json = 6;
   // Short human-readable summary for collapsed rendering, e.g. "Read 42 lines".
   string summary = 7;
+  // Set when the Bash command runs on as a background task (frontends show the note inside the card).
+  // Replayed from the transcript.
+  ToolBackground background = 8;
 }
 
 message PermissionRequest {
@@ -1344,4 +1353,34 @@ message AddSessionDirectoryResponse {
 message ToolTitle {
   string tool_use_id = 1;
   string title = 2;
+}
+
+// Why a Bash command runs in the background.
+enum BackgroundReason {
+  BACKGROUND_REASON_UNSPECIFIED = 0;
+  // The user moved the running command to the background (BackgroundToolCall).
+  BACKGROUND_REASON_USER = 1;
+  // Moved so a message the user sent while it ran could be delivered now (SendUserMessage DELIVERY_NOW).
+  BACKGROUND_REASON_QUEUED_MESSAGE = 2;
+  // The model started it in the background (run_in_background).
+  BACKGROUND_REASON_AGENT = 3;
+  // Moved to the background when it hit its timeout.
+  BACKGROUND_REASON_AUTO = 4;
+}
+
+// A tool call whose command runs on as background task `task_id` (see TaskStarted / TaskFinished).
+message ToolBackground {
+  string task_id = 1;
+  BackgroundReason reason = 2;
+}
+
+message BackgroundToolCallRequest {
+  string session_id = 1;
+  string tool_use_id = 2;
+  // USER or QUEUED_MESSAGE (UNSPECIFIED means USER); the reason picks the note the model gets.
+  BackgroundReason reason = 3;
+}
+
+message BackgroundToolCallResponse {
+  bool backgrounded = 1;
 }

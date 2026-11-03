@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/prompts"
 )
 
 // Bash limits (overridable with BASH_DEFAULT_TIMEOUT_MS / BASH_MAX_TIMEOUT_MS).
@@ -131,7 +132,8 @@ type ExecResult struct {
 	StartCwd string
 	// Background is set when the command was moved to the background.
 	Background *TaskInfo
-	// BackgroundReason is "timeout" or "user".
+	// BackgroundReason is BackgroundAuto (timeout), BackgroundUser or
+	// BackgroundQueuedMessage.
 	BackgroundReason string
 }
 
@@ -199,20 +201,61 @@ func (w *switchWriter) switchTo(f *os.File) {
 	w.file = f
 }
 
+// Why a Bash command runs in the background (ExecResult.BackgroundReason and
+// the "backgroundReason" field of the Bash structured result).
+const (
+	// BackgroundUser: the user moved the running command to the background.
+	BackgroundUser = "user"
+	// BackgroundQueuedMessage: moved so a queued user message could be read.
+	BackgroundQueuedMessage = "queued_message"
+	// BackgroundAgent: started with run_in_background.
+	BackgroundAgent = "agent"
+	// BackgroundAuto: moved when it hit its timeout.
+	BackgroundAuto = "auto"
+)
+
 type fgExec struct {
-	once sync.Once
-	bg   chan struct{}
+	once      sync.Once
+	bg        chan struct{}
+	toolUseID string
+	reason    string
+}
+
+func (fg *fgExec) background(reason string) {
+	fg.once.Do(func() {
+		fg.reason = reason
+		close(fg.bg)
+	})
 }
 
 // BackgroundRunning asks every running foreground command that can be
-// backgrounded to move to the background. It reports whether there was one.
-func (s *Shell) BackgroundRunning() bool {
+// backgrounded to move to the background, giving reason (BackgroundUser or
+// BackgroundQueuedMessage). It reports whether there was one.
+func (s *Shell) BackgroundRunning(reason string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for fg := range s.running {
-		fg.once.Do(func() { close(fg.bg) })
+		fg.background(reason)
 	}
 	return len(s.running) > 0
+}
+
+// BackgroundToolCall moves the running foreground command of one tool call to
+// the background. It reports whether such a command was running.
+func (s *Shell) BackgroundToolCall(toolUseID, reason string) bool {
+	if toolUseID == "" {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	found := false
+	for fg := range s.running {
+		if fg.toolUseID == toolUseID {
+			fg.background(reason)
+			found = true
+		}
+	}
+	return found
 }
 
 // command builds the shell process for a command line (not started).
@@ -283,9 +326,10 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	go func() { done <- cmd.Wait() }()
 
 	var bgReq chan struct{}
+	var bgFg *fgExec
 	if o.Tasks != nil {
-		fg := &fgExec{bg: make(chan struct{})}
-		bgReq = fg.bg
+		fg := &fgExec{bg: make(chan struct{}), toolUseID: o.ToolUseID}
+		bgReq, bgFg = fg.bg, fg
 		s.mu.Lock()
 		if s.running == nil {
 			s.running = map[*fgExec]struct{}{}
@@ -339,13 +383,19 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 		res.Interrupted = true
 	case <-timer.C:
 		if o.Tasks != nil && o.AutoBackground && !startsWithSleep(command) {
-			return handoff("timeout")
+			return handoff(BackgroundAuto)
 		}
 		_ = killProcessGroup(cmd)
 		err = <-done
 		res.TimedOut = true
 	case <-bgReq:
-		return handoff("user")
+		reason := BackgroundUser
+		s.mu.Lock()
+		if bgFg != nil && bgFg.reason != "" {
+			reason = bgFg.reason
+		}
+		s.mu.Unlock()
+		return handoff(reason)
 	}
 	res.Stdout, res.Stderr, res.Truncated = sw.snapshot()
 	var exitErr *exec.ExitError
@@ -471,8 +521,8 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		if err != nil {
 			return ErrorResult("failed to start background command: %v", err)
 		}
-		r := TextResult(fmt.Sprintf("Command running in background with ID: %s. Output is being written to: %s", info.ID, info.OutputPath),
-			map[string]any{"stdout": "", "stderr": "", "interrupted": false, "backgroundTaskId": info.ID, "outputFile": info.OutputPath})
+		r := TextResult(BackgroundNote(env, BackgroundAgent, info.ID, info.OutputPath, 0),
+			map[string]any{"stdout": "", "stderr": "", "interrupted": false, "backgroundTaskId": info.ID, "outputFile": info.OutputPath, "backgroundReason": BackgroundAgent})
 		r.Summary = "Started background task " + info.ID
 		return r
 	}
@@ -481,16 +531,11 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("failed to run command: %v", err)
 	}
 	if bg := res.Background; bg != nil {
-		var msg string
-		if res.BackgroundReason == "timeout" {
-			msg = fmt.Sprintf("Command did not complete within its %s timeout and was moved to the background with ID: %s. Output is being written to: %s", formatDuration(timeout), bg.ID, bg.OutputPath)
-		} else {
-			msg = fmt.Sprintf("The user moved this command to the background with ID: %s. Output is being written to: %s", bg.ID, bg.OutputPath)
-		}
+		msg := BackgroundNote(env, res.BackgroundReason, bg.ID, bg.OutputPath, timeout)
 		if changesDir(in.Command) {
 			msg += fmt.Sprintf("\nSession cwd remains %s; directory changes made by the backgrounded command do not apply to subsequent commands.", res.StartCwd)
 		}
-		r := TextResult(msg, map[string]any{"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": false, "backgroundTaskId": bg.ID, "outputFile": bg.OutputPath})
+		r := TextResult(msg, map[string]any{"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": false, "backgroundTaskId": bg.ID, "outputFile": bg.OutputPath, "backgroundReason": res.BackgroundReason})
 		r.Summary = "Moved to background task " + bg.ID
 		return r
 	}
@@ -562,6 +607,40 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		r.Summary = fmt.Sprintf("Exit code %d", res.ExitCode)
 	}
 	return r
+}
+
+// Reminder ids of the Bash tool_result notes about a background command
+// (packages/core/prompts/reminders/<id>.md), by reason.
+var backgroundNoteKeys = map[string]string{
+	BackgroundUser:          "bash_background_user",
+	BackgroundQueuedMessage: "bash_background_queued_message",
+	BackgroundAgent:         "bash_background_agent",
+	BackgroundAuto:          "bash_background_timeout",
+}
+
+// Fallbacks for a bundle without the note templates.
+var backgroundNoteFallbacks = map[string]string{
+	BackgroundUser:          "The user moved this command to the background while it was running. It keeps running as background task {{task_id}}; its output so far and from now on goes to {{output_path}}. Read new output with TaskOutput or stop it with TaskStop, using that task id. You will be notified when it finishes.",
+	BackgroundQueuedMessage: "This command was moved to the background so that a message the user sent while it was running could be delivered now. It keeps running as background task {{task_id}}; its output so far and from now on goes to {{output_path}}. Read new output with TaskOutput or stop it with TaskStop, using that task id. You will be notified when it finishes.",
+	BackgroundAgent:         "You started this command in the background (run_in_background). It runs as background task {{task_id}}; its output goes to {{output_path}}. Read new output with TaskOutput or stop it with TaskStop, using that task id. You will be notified when it finishes.",
+	BackgroundAuto:          "This command did not finish within its {{timeout}} timeout, so it was moved to the background instead of being stopped. It keeps running as background task {{task_id}}; its output so far and from now on goes to {{output_path}}. Read new output with TaskOutput or stop it with TaskStop, using that task id. You will be notified when it finishes.",
+}
+
+// BackgroundNote is the tool_result text of a Bash command that runs in the
+// background for reason (BackgroundUser, BackgroundQueuedMessage,
+// BackgroundAgent or BackgroundAuto). timeout is used by BackgroundAuto.
+func BackgroundNote(env *Env, reason, taskID, outputPath string, timeout time.Duration) string {
+	if _, ok := backgroundNoteKeys[reason]; !ok {
+		reason = BackgroundUser
+	}
+	tmpl := ""
+	if env != nil {
+		tmpl = env.reminder(backgroundNoteKeys[reason])
+	}
+	if tmpl == "" {
+		tmpl = backgroundNoteFallbacks[reason]
+	}
+	return prompts.Render(tmpl, map[string]string{"task_id": taskID, "output_path": outputPath, "timeout": formatDuration(timeout)}, nil)
 }
 
 func formatDuration(d time.Duration) string {

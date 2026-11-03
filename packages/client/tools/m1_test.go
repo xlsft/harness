@@ -149,7 +149,7 @@ func TestBackgroundTaskLifecycle(t *testing.T) {
 	mu, evs := collectTasks(env.Tasks)
 	r := call(t, env, &Bash{}, map[string]any{"command": "echo hello; sleep 0.3; echo bye; exit 3", "run_in_background": true, "description": "greet"})
 	id, _ := r.Structured.(map[string]any)["backgroundTaskId"].(string)
-	if r.IsError || id == "" || !strings.Contains(text(r), "running in background with ID: "+id) {
+	if r.IsError || id == "" || !strings.Contains(text(r), "background task "+id) {
 		t.Fatalf("start: %q", text(r))
 	}
 	waitFor(t, 5*time.Second, func() bool { info, _ := env.Tasks.Get(id); return !info.Running })
@@ -208,7 +208,7 @@ func TestAutoBackgroundOnTimeout(t *testing.T) {
 	start := time.Now()
 	r := call(t, env, &Bash{}, map[string]any{"command": "echo early; sleep 1; echo late", "timeout": 300})
 	id, _ := r.Structured.(map[string]any)["backgroundTaskId"].(string)
-	if r.IsError || id == "" || !strings.Contains(text(r), "did not complete within its") || time.Since(start) > 900*time.Millisecond {
+	if r.IsError || id == "" || !strings.Contains(text(r), "did not finish within its") || time.Since(start) > 900*time.Millisecond {
 		t.Fatalf("auto-background: %q after %s", text(r), time.Since(start))
 	}
 	waitFor(t, 5*time.Second, func() bool { info, _ := env.Tasks.Get(id); return !info.Running })
@@ -224,10 +224,10 @@ func TestAutoBackgroundOnTimeout(t *testing.T) {
 	// Manual backgrounding (SendUserMessage NOW).
 	go func() {
 		time.Sleep(200 * time.Millisecond)
-		env.Shell.BackgroundRunning()
+		env.Shell.BackgroundRunning(BackgroundQueuedMessage)
 	}()
 	r = call(t, env, &Bash{}, map[string]any{"command": "sleep 2"})
-	if r.IsError || !strings.Contains(text(r), "moved this command to the background") {
+	if r.IsError || !strings.Contains(text(r), "moved to the background so that a message") {
 		t.Fatalf("manual background: %q", text(r))
 	}
 	env.Tasks.StopAll(TaskSessionClosed)
