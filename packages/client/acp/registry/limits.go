@@ -131,7 +131,9 @@ func windowsOf(v any, now time.Time) *Limits {
 			keys = append(keys, k)
 		}
 		// primary before secondary, then the rest by name.
-		sort.Slice(keys, func(i, j int) bool { return rank(keys[i]) < rank(keys[j]) || rank(keys[i]) == rank(keys[j]) && keys[i] < keys[j] })
+		sort.Slice(keys, func(i, j int) bool {
+			return rank(keys[i]) < rank(keys[j]) || rank(keys[i]) == rank(keys[j]) && keys[i] < keys[j]
+		})
 		for _, k := range keys {
 			add(k, x[k])
 		}

@@ -102,6 +102,9 @@ type Server struct {
 
 	// sides tracks the running side chat answers (sidechats.go).
 	sides sideChatRuns
+
+	// acp holds the ACP agents and the sessions running on them (acp.go).
+	acp acpState
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -128,7 +131,7 @@ func (s *Server) log() *slog.Logger {
 
 // Handler returns the HTTP handler (path prefix and handler).
 func (s *Server) Handler() (string, http.Handler) {
-	return agentv1connect.NewAgentServiceHandler(routed{s})
+	return agentv1connect.NewAgentServiceHandler(acpRouted{routed{s}})
 }
 
 // Close interrupts all sessions and releases them.
@@ -141,6 +144,7 @@ func (s *Server) Close() {
 	for _, ls := range live {
 		ls.close("host_shutdown")
 	}
+	s.closeAcp()
 	s.terminals().Close()
 }
 

@@ -58,6 +58,9 @@ func (s *Server) fileScope(id string) (*fileScope, error) {
 	ls := s.live[id]
 	s.mu.Unlock()
 	if ls == nil {
+		if cwd, dirs, ok := s.acpScope(id); ok {
+			return &fileScope{cwd: cwd, dirs: dirs}, nil
+		}
 		if remote := s.remoteInfo(id); remote != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("session %s runs on %s; its files can only be browsed on that machine", id, deviceLabel(remote)))
 		}

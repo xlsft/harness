@@ -104,7 +104,11 @@ func newTestSession(t *testing.T, env ...string) (*Session, *recorder, string) {
 	rec := &recorder{}
 	cfg := Config{AgentID: "fake", AgentName: "Fake", AgentVersion: "1.0.0", Launch: registry.Launch{Command: fakeAgentBin},
 		Cwd: cwd, Env: env, Sink: rec,
-		OnAuth:   func(s registry.AuthState, _ []registry.AuthMethod) { rec.mu.Lock(); rec.auth = append(rec.auth, s); rec.mu.Unlock() },
+		OnAuth: func(s registry.AuthState, _ []registry.AuthMethod) {
+			rec.mu.Lock()
+			rec.auth = append(rec.auth, s)
+			rec.mu.Unlock()
+		},
 		OnLimits: func(l *registry.Limits) { rec.mu.Lock(); rec.limits = l; rec.mu.Unlock() }}
 	s := New(cfg)
 	t.Cleanup(s.Close)
