@@ -2,6 +2,7 @@
 // User message (User.dc.html): right-aligned bubble. Slash commands and @mentions are highlighted,
 // a leading "> quote" line renders as a reply-to fragment, `queued` uses the dashed waiting style.
 import type { Attachment } from '~/lib/session/types'
+import { FROM_VISUAL } from '~/lib/visual'
 
 const props = withDefaults(defineProps<{
   text: string
@@ -15,10 +16,14 @@ const review = computed(() => parseReview(props.text))
 // The marker the client records when the user stops a turn: plain text, not a bubble.
 const interrupted = computed(() => /^\[Request interrupted by user[^\]]*\]$/.test(props.text.trim()))
 
+// Sent by a button inside a visual (harness.send): a chip instead of the "[from visual <id>]" prefix.
+const fromVisual = computed(() => props.text.match(FROM_VISUAL)?.[1] ?? '')
+
 const parsed = computed(() => {
-  const lines = props.text.split('\n')
+  const text = fromVisual.value ? props.text.replace(FROM_VISUAL, '') : props.text
+  const lines = text.split('\n')
   const quote = lines[0]?.startsWith('> ') ? lines[0].slice(2) : ''
-  const body = quote ? lines.slice(1).join('\n').trim() : props.text
+  const body = quote ? lines.slice(1).join('\n').trim() : text
   const parts: { t: string, kind: 'text' | 'command' | 'mention' }[] = []
   const re = /(^\/[\w-]+)|(@[\w./-]+)/g
   let last = 0
@@ -69,7 +74,10 @@ const parsed = computed(() => {
         v-if="parsed.quote"
         class="border-l-2 border-accented pl-2.5 text-[12px] text-muted"
       >{{ parsed.quote }}</span>
-      <span><template
+      <span><span
+        v-if="fromVisual"
+        class="mr-1.5 border border-accented px-[5px] text-[11.5px] text-muted"
+      >from visual</span><template
         v-for="(p, i) in parsed.parts"
         :key="i"
       ><span

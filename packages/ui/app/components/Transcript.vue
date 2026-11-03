@@ -12,10 +12,28 @@ const HIDDEN_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode', 'TodoWrite'])
 type Block
   = | { kind: 'item', key: string, item: TranscriptItem }
     | { kind: 'group', key: string, tools: ToolItem[] }
+    | { kind: 'visual', key: string, versions: ToolItem[] }
+
+// Visual calls by id: one card per id, at its latest call, with the earlier calls as versions.
+const isVisual = (i: TranscriptItem) => i.kind === 'tool' && i.name === 'Visual' && i.status !== 'error'
+const visuals = computed(() => {
+  const by = new Map<string, ToolItem[]>()
+  for (const item of props.session.items) {
+    if (item.kind !== 'tool' || !isVisual(item)) continue
+    const id = String(item.input.id ?? item.id)
+    by.set(id, [...(by.get(id) ?? []), item])
+  }
+  return by
+})
 
 const blocks = computed<Block[]>(() => {
   const out: Block[] = []
   for (const item of props.session.items) {
+    if (item.kind === 'tool' && isVisual(item)) {
+      const versions = visuals.value.get(String(item.input.id ?? item.id))!
+      if (versions[versions.length - 1] === item) out.push({ kind: 'visual', key: 'v:' + String(item.input.id ?? item.id), versions })
+      continue
+    }
     if (item.kind === 'tool') {
       if (HIDDEN_TOOLS.has(item.name)) continue
       if (item.grouped) {
@@ -52,6 +70,11 @@ const lastIsStreaming = computed(() => {
         <ToolGroup
           v-if="b.kind === 'group'"
           :tools="b.tools"
+          :session-id="session.meta.id"
+        />
+        <VisualCard
+          v-else-if="b.kind === 'visual'"
+          :versions="b.versions"
           :session-id="session.meta.id"
         />
         <template v-else>

@@ -396,6 +396,10 @@ var showKinds = map[string]agentv1.ShowRequested_Kind{
 
 // Show implements tools.Shower: it publishes ShowRequested and reports
 // whether a subscriber (a frontend, or the relay mirror) sees it now.
+// RendersHTML reports whether the frontends draw Visual tool calls (the
+// terminal UI does not).
+func (ls *liveSession) RendersHTML() bool { return !ls.srv.NoPanes }
+
 func (ls *liveSession) Show(toolUseID string, t tools.ShowTarget) tools.ShowStatus {
 	if ls.srv.NoPanes {
 		return tools.ShowUnavailable

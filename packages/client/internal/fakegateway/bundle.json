@@ -400,6 +400,28 @@
           "content"
         ]
       }
+    },
+    "Visual": {
+      "description": "Show a self-contained HTML document in the conversation.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "html"
+        ]
+      }
     }
   },
   "reminders": {

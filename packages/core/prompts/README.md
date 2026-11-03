@@ -103,6 +103,7 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `WebSearch` | `query`, `allowed_domains`, `blocked_domains` | runs on the server (`harness.search.v1.SearchService`); the client formats title, URL, snippet and date and adds a reminder to cite sources; the domain lists cannot be combined |
 | `WebFetch` | `url`, `prompt` | fetched locally (http upgraded to https except for private hosts, same-host redirects followed, a cross-host redirect returned as a notice, 10 MB / 60 s limits, HTML converted to Markdown, binary refused, 15-minute cache per URL); the answer comes from the small-slot model with `reminders/webfetch_summary.md` |
 | `Show` | `target` (`file` \| `diff` \| `url`), `path`, `line`, `end_line`, `url` | opens the target in the UI's Files, Diff or Browser pane (`ShowRequested` event); read-only, no permission; without a UI that can open panes it reports that nothing was shown |
+| `Visual` | `id`, `title`, `html` | renders a self-contained HTML document in the transcript (sandboxed frame, app colours as CSS variables, `harness.send()` posts a `[from visual <id>]` user message); the same `id` adds a version; read-only, no permission; without a UI that renders it reports that nothing was shown |
 | `McpAuthenticate` | `{}` | template of `mcp__<server>__authenticate` for a remote MCP server that needs authorization; `{{server}}` in the description is filled by the client |
 
 The execution semantics are implemented by the client and must match these descriptions.

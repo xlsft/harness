@@ -57,7 +57,7 @@ type Server struct {
 	// sessions; nil without sync (see sessionstate.go).
 	Sync SessionSync
 	// NoPanes says the frontends cannot open panes (the terminal UI): the
-	// Show tool then reports that nothing was shown.
+	// Show and Visual tools then report that nothing was shown.
 	NoPanes bool
 
 	ctx    context.Context

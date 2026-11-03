@@ -22,7 +22,7 @@ describe("bundle builder", () => {
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
       "AskUserQuestion", "Bash", "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
-      "TaskStop", "TodoWrite", "ToolSearch", "Wait", "WebFetch", "WebSearch", "Write",
+      "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
     const reminders: Record<string, string[]> = {
@@ -107,6 +107,8 @@ describe("bundle builder", () => {
     expect(b.tools.Show!.input_schema.required).toEqual(["target"]);
     expect((b.tools.Show!.input_schema.properties as any).target.enum).toEqual(["file", "diff", "url"]);
     expect(b.tools.Show!.description).toMatch(/http and https/);
+    expect(props("Visual")).toEqual(["id", "title", "html"]);
+    expect(b.tools.Visual!.description).toMatch(/harness\.send/);
     expect(props("TaskOutput")).toEqual(["task_id", "offset", "block", "pattern", "timeout"]);
     expect(b.tools.TaskOutput!.input_schema.required).toEqual(["task_id"]);
     expect((b.tools.TaskOutput!.input_schema.properties as any).timeout.maximum).toBe(600000);
