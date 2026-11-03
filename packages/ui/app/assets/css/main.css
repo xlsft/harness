@@ -49,6 +49,11 @@
   --color-cyan: #00b8db;
   --color-pink: #f6339a;
   --color-violet: #8e51ff;
+  --color-chart-1: #2b7fff;
+  --color-chart-2: #f54900;
+  --color-chart-3: #8e51ff;
+  --color-chart-4: #0092b8;
+  --color-chart-5: #f6339a;
 }
 
 /* Nuxt UI's variables follow the theme's tokens. */

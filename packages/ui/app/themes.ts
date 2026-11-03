@@ -16,6 +16,8 @@ export const THEME_TOKENS = [
   'accent', 'accent-hover', 'on-accent',
   // Status and highlight colours.
   'ok', 'bad', 'warn', 'orange', 'cyan', 'pink', 'violet',
+  // Chart series in order (identity, not status), checked for colour-blind separation on the theme's surface.
+  'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
   // Neutral scale for Nuxt UI (`neutral`), lightest to darkest on screen.
   'graphite-50', 'graphite-100', 'graphite-200', 'graphite-300', 'graphite-400', 'graphite-500',
   'graphite-600', 'graphite-700', 'graphite-800', 'graphite-900', 'graphite-950'
@@ -58,6 +60,11 @@ export const THEMES: Theme[] = [
       'cyan': '#00b8db',
       'pink': '#f6339a',
       'violet': '#8e51ff',
+      'chart-1': '#2b7fff',
+      'chart-2': '#f54900',
+      'chart-3': '#8e51ff',
+      'chart-4': '#0092b8',
+      'chart-5': '#f6339a',
       'graphite-50': '#ffffff',
       'graphite-100': '#f2f2f2',
       'graphite-200': '#d4d4d4',
@@ -98,6 +105,11 @@ export const THEMES: Theme[] = [
       'cyan': '#00869f',
       'pink': '#d01f7c',
       'violet': '#6e3ae6',
+      'chart-1': '#1f6feb',
+      'chart-2': '#d95a00',
+      'chart-3': '#6e3ae6',
+      'chart-4': '#00869f',
+      'chart-5': '#d01f7c',
       'graphite-50': '#000000',
       'graphite-100': '#131313',
       'graphite-200': '#2b2b2b',

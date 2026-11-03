@@ -9,8 +9,8 @@ const modal = useSettingsModal()
 // Grouped like the nav shows them: you, this app, the AI services, the server (admins), the product.
 const SECTIONS = [
   { key: 'account', label: 'Account', icon: 'lock', group: 'you' },
-  { key: 'usage', label: 'Usage', icon: 'history', group: 'you' },
-  { key: 'appearance', label: 'Appearance', icon: 'sun', group: 'app' },
+  { key: 'usage', label: 'Usage', icon: 'chart', group: 'you' },
+  { key: 'appearance', label: 'Appearance', icon: 'palette', group: 'app' },
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
