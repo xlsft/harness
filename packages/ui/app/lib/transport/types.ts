@@ -26,6 +26,7 @@ import type { SideChatsApi } from '~/lib/sidechat/types'
 import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
+import type { AcpApi } from '~/lib/acp/types'
 
 export interface ModelInfo {
   id: string
@@ -55,6 +56,9 @@ export interface NewSessionOptions {
   forkAtMessageId?: string
   // Run in a new git worktree of the repository containing cwd.
   worktree?: { name?: string, branch?: string, baseRef?: string }
+  // The session engine: omitted or 'harness' for the harness agent loop, 'acp:<agent id>' for an installed ACP agent
+  // (AcpAgent.engine). A resume keeps the session's recorded engine.
+  engine?: string
 }
 
 // Per-user preferences the client honours for every session (stored in the user's synced settings).
@@ -176,4 +180,7 @@ export interface SessionTransport {
   // The files pane: a session's working directories, listings with git status, file contents within limits
   // (AgentService ListFileRoots / ListFiles / ReadFile / GetGitStatus, ~/lib/files).
   files(): FilesApi
+
+  // ACP agents as session engines: the registry, installs, sign-in and agent modes (~/lib/acp). Device-local.
+  acp(): AcpApi
 }

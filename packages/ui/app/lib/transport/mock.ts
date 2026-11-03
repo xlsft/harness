@@ -6,7 +6,9 @@
 //   "plan" in the text proposes a plan, "ask"/"question" asks a question, otherwise a Bash call asks for permission;
 // - a message sent while a turn runs is queued (QueueChanged) and starts the next turn;
 // - Interrupt ends the turn as interrupted; permission, question and plan answers resume it;
-// - a shell-mode command runs in a tiny scripted shell (./mockShell.ts) without a turn.
+// - a shell-mode command runs in a tiny scripted shell (./mockShell.ts) without a turn;
+// - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
+//   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
 import {
   ContextUsage_Category,
@@ -23,6 +25,7 @@ import {
   type RewindRequest_Mode,
   SendUserMessageRequest_Delivery,
   type PermissionMode,
+  PermissionMode as PermissionModePb,
   type SessionEvent,
   type SessionInfo
 } from '~/gen/harness/agent/v1/agent_pb'
@@ -38,6 +41,8 @@ import { MockSideChatsApi } from '~/lib/sidechat/mock'
 
 import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
+import { MockAcpApi } from '~/lib/acp/mock'
+import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
@@ -127,6 +132,7 @@ export class MockTransport implements SessionTransport {
         afterResume: null
       })
     }
+    this.seedAcpSession(now)
   }
 
   private get(id: string) {
@@ -182,6 +188,8 @@ export class MockTransport implements SessionTransport {
   }
 
   async createSession(opts: NewSessionOptions) {
+    if (opts.engine && opts.engine !== 'harness' && !opts.resumeSessionId) return this.createAcpSession(opts)
+    if (opts.fork && opts.resumeSessionId && this.isAcp(opts.resumeSessionId)) throw new Error('[failed_precondition] Forking is not available in sessions that run on an ACP agent')
     if (opts.fork && opts.resumeSessionId) return this.fork(opts.resumeSessionId, opts.forkAtMessageId)
     const id = `ses_mock_${this.sessions.size + 1}`
     if (!opts.cwd) {
@@ -399,6 +407,7 @@ export class MockTransport implements SessionTransport {
 
   async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
     const s = this.get(sessionId)
+    if (s.info.acp?.needsAuth) throw new Error(`[failed_precondition] ${s.info.acp.agentName} needs you to sign in first`)
     if (s.working) {
       // Queued (QueueChanged); NOW stops the turn so the message starts the next one, like the client.
       s.queue.push({ uuid, text, queuedAt: this.now() })
@@ -424,6 +433,7 @@ export class MockTransport implements SessionTransport {
   // Rewinds to the checkpoint of a user message: the message's text comes back for the composer.
   async rewind(sessionId: string, checkpointId: string, mode: RewindRequest_Mode) {
     const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Rewind')
     if (s.working) throw new Error('[failed_precondition] a turn is in progress')
     const ev = s.history.find(e => e.event.case === 'userMessage' && e.event.value.uuid === checkpointId)
     if (!ev || ev.event.case !== 'userMessage') throw new Error(`[failed_precondition] unknown checkpoint ${checkpointId}`)
@@ -433,6 +443,7 @@ export class MockTransport implements SessionTransport {
   }
 
   private startTurn(s: MockSession, uuid: string, body: string) {
+    if (this.isAcp(s.info.id)) return this.acpTurn(s, uuid, body)
     s.working = true
     s.turn += 1
     const n = s.turn
@@ -702,6 +713,7 @@ export class MockTransport implements SessionTransport {
 
   async compact(sessionId: string) {
     const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Compaction')
     // A compaction takes a while: the details pane shows it busy meanwhile.
     await new Promise(resolve => setTimeout(resolve, this.tick * 40))
     this.messageTokens.set(sessionId, 9_800)
@@ -710,6 +722,7 @@ export class MockTransport implements SessionTransport {
 
   async getContextUsage(sessionId: string) {
     this.get(sessionId)
+    this.refuseAcp(sessionId, 'The context breakdown')
     const window = 200_000
     const threshold = window * 0.92
     const parts: [ContextUsage_Category, number][] = [
@@ -798,6 +811,178 @@ export class MockTransport implements SessionTransport {
     const stop = this.shells.get(commandId)
     if (!stop) throw new Error(`shell command ${commandId} is not running`)
     stop()
+  }
+
+  // ---- ACP sessions (~/lib/acp) ----
+
+  private acpApi?: MockAcpApi
+  acp() {
+    this.acpApi ??= new MockAcpApi({
+      now: this.now,
+      tick: this.tick ? 120 : 0,
+      onSessionAuthenticated: id => this.acpAuthenticated(id),
+      setSessionMode: (id, modeId) => this.acpSetMode(id, modeId)
+    })
+    return this.acpApi
+  }
+
+  private isAcp(id: string) {
+    return !!this.sessions.get(id)?.info.engine.startsWith('acp:')
+  }
+
+  private refuseAcp(id: string, what: string) {
+    if (this.isAcp(id)) throw new Error(`[failed_precondition] ${what} is not available in sessions that run on an ACP agent`)
+  }
+
+  private static readonly ACP_UNSUPPORTED = [
+    SessionFeature.REWIND, SessionFeature.FORK, SessionFeature.SUB_SESSIONS, SessionFeature.SIDE_CHAT, SessionFeature.COMPACTION,
+    SessionFeature.CONTEXT_BREAKDOWN, SessionFeature.CLASSIFIER, SessionFeature.EFFORT, SessionFeature.OUTPUT_STYLES,
+    SessionFeature.SHELL_COMMANDS, SessionFeature.BACKGROUND_TASKS, SessionFeature.MODEL_CATALOG, SessionFeature.QUESTIONS,
+    SessionFeature.MOVE_FOLDER
+  ]
+
+  private static acpPermissionMode(modeId: string) {
+    switch (modeId) {
+      case 'acceptEdits': return PermissionModePb.ACCEPT_EDITS
+      case 'plan': return PermissionModePb.PLAN
+      case 'bypassPermissions': return PermissionModePb.BYPASS_PERMISSIONS
+      default: return PermissionModePb.DEFAULT
+    }
+  }
+
+  private acpInfo(id: string, agentId: string, cwd: string, title: string) {
+    const api = this.acp()
+    const agent = api.agent(agentId)
+    if (!agent) throw new Error(`[not_found] the ACP registry has no agent "${agentId}"`)
+    if (!agent.installed) throw new Error(`[failed_precondition] ACP agent ${agentId} is not installed on this machine; install it first (InstallAcpAgent)`)
+    const acp = api.sessionState(agentId)
+    return create(SessionInfoSchema, {
+      id,
+      title,
+      cwd,
+      gitBranch: 'main',
+      model: agent.name,
+      engine: agent.engine,
+      unsupportedFeatures: MockTransport.ACP_UNSUPPORTED,
+      acp,
+      permissionMode: MockTransport.acpPermissionMode(acp.currentModeId),
+      status: acp.needsAuth ? SessionStatus.NEEDS_INPUT : SessionStatus.IDLE,
+      updatedAt: new Date(this.now()).toISOString()
+    })
+  }
+
+  private createAcpSession(opts: NewSessionOptions) {
+    const agentId = opts.engine!.startsWith('acp:') ? opts.engine!.slice(4) : ''
+    if (!agentId) throw new Error(`[invalid_argument] unknown engine "${opts.engine}" (use "harness" or "acp:<agent id>")`)
+    const id = `ses_mock_${this.sessions.size + 1}`
+    const info = this.acpInfo(id, agentId, opts.cwd || mockChatDir(id), 'New session')
+    if (!opts.cwd) info.noFolder = true
+    const s: MockSession = { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null }
+    this.sessions.set(id, s)
+    this.emit(s, b => b.sessionUpdated(info))
+    if (info.acp?.needsAuth) {
+      this.emit(s, b => b.notice('warning', 'acp_auth_required', `${info.acp!.agentName} needs you to sign in before it can run. Choose a sign-in method, then send your message again.`))
+    }
+    return info
+  }
+
+  // A finished Codex session in the list, with its limits.
+  private seedAcpSession(now: number) {
+    const id = 'ses_mock_acp_codex'
+    const info = this.acpInfo(id, 'codex-acp', MOCK_FOLDERS[0]!.path, 'Tighten gateway retry backoff')
+    info.updatedAt = new Date(now - 45 * 60_000).toISOString()
+    const s: MockSession = { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null }
+    this.sessions.set(id, s)
+    const b = new EventBuilder(id, now - 50 * 60_000, 0)
+    b.sessionUpdated(info)
+    b.user('acp-seed-u1', 'Make the gateway retry backoff exponential and cap it at 5 attempts.', ['acp-seed-u1'])
+    b.turnStarted('acp-seed-u1', info.model)
+    b.wait(1500).assistant('acp-seed-m1', info.model, [{ text: 'Reading the retry helper first.' }, { toolUse: { id: 'acp-seed-t1', name: 'Read', input: { file_path: 'packages/core/server/gateway/retry.ts' } } }])
+    b.toolStarted('acp-seed-t1', 'Read', { file_path: 'packages/core/server/gateway/retry.ts', acp: { kind: 'read', title: 'Read retry.ts' } }, 'Read retry.ts')
+    b.wait(400).toolFinished('acp-seed-t1', { output: 'export const MAX_ATTEMPTS = 3', durationMs: 400 })
+    b.wait(2000).assistant('acp-seed-m2', info.model, [{ text: 'Backoff is now exponential (500 ms base, factor 2) and stops after 5 attempts.' }])
+    b.turnFinished('success', { durationMs: 4100, costUsd: 0, usage: { input: 18_200, output: 640 } })
+    s.history = b.events
+    s.seq = b.seq
+  }
+
+  private acpAuthenticated(id: string) {
+    const s = this.sessions.get(id)
+    if (!s?.info.acp) return
+    s.info = create(SessionInfoSchema, { ...s.info, status: SessionStatus.IDLE, acp: { ...s.info.acp, needsAuth: false } })
+    this.emit(s, b => b.sessionUpdated(s.info))
+  }
+
+  private acpSetMode(id: string, modeId: string) {
+    const s = this.get(id)
+    if (!s.info.acp?.modes.some(m => m.id === modeId)) throw new Error(`[failed_precondition] ${s.info.acp?.agentName ?? 'the agent'} has no mode "${modeId}"`)
+    const mode = MockTransport.acpPermissionMode(modeId)
+    s.info = create(SessionInfoSchema, { ...s.info, permissionMode: mode, acp: { ...s.info.acp, currentModeId: modeId } })
+    this.emit(s, (b) => {
+      b.permissionModeChanged(mode)
+      b.sessionUpdated(s.info)
+    })
+  }
+
+  // An ACP turn: thinking and text stream, then an Edit tool call waits for permission; allowed, it applies a
+  // diff, updates the plan and replies. No checkpoint (rewind is not available), cost 0 (the user's subscription).
+  private acpTurn(s: MockSession, uuid: string, body: string) {
+    s.working = true
+    s.turn += 1
+    const msg = `acp-${s.turn}`
+    const startedAt = this.now()
+    const model = s.info.model
+    this.emit(s, (b) => {
+      b.user(uuid, body, [uuid])
+      b.turnStarted(uuid, model)
+    })
+    const thinking = 'The retry helper lives in the gateway. Check how it is called, then make the change in one place.'
+    const intro = 'I\'ll make the backoff exponential in `retry.ts`; the callers keep their signature.'
+    const tool = `${msg}-edit`
+    const req = `${msg}-perm`
+    const filePath = `${s.info.cwd}/packages/core/server/gateway/retry.ts`
+    const title = 'Edit packages/core/server/gateway/retry.ts'
+    const input = { file_path: filePath, acp: { kind: 'edit', title, locations: [{ path: filePath, line: 12 }] } }
+    this.stream(s, msg, 0, 'thinking', thinking, () => this.stream(s, msg, 1, 'text', intro, () => {
+      this.emit(s, (b) => {
+        b.assistant(msg, model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'Edit', input } }])
+        b.toolStarted(tool, 'Edit', input, title)
+        b.permissionRequest(req, tool, 'Edit', input, [], title)
+      })
+      s.waiting = {
+        requestId: req,
+        resume: (b, decision) => {
+          b.permissionResolved(req, decision)
+          if (decision === RespondToPermissionRequest_Decision.DENY) {
+            b.toolFinished(tool, { output: 'The user rejected this edit.', isError: true, summary: 'failed' })
+            return 0
+          }
+          b.wait(600).toolFinished(tool, {
+            output: `Edited ${filePath}`,
+            durationMs: 600,
+            result: {
+              type: 'update',
+              filePath,
+              structuredPatch: [{ oldStart: 10, oldLines: 3, newStart: 10, newLines: 3, lines: [' export async function withRetry(fn) {', '-  const delay = 500', '+  const delay = 500 * 2 ** attempt', '   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {'] }]
+            }
+          })
+          b.todos([
+            { content: 'Make the backoff exponential', activeForm: 'Make the backoff exponential', status: 'completed' },
+            { content: 'Cap retries at 5 attempts', activeForm: 'Cap retries at 5 attempts', status: 'in_progress' }
+          ])
+          return 1
+        }
+      }
+      s.afterResume = (ok) => {
+        const msg2 = `${msg}-done`
+        const reply = ok ? 'Done: the delay doubles on every attempt, starting at 500 ms.' : 'Understood, I left `retry.ts` as it was.'
+        this.stream(s, msg2, 0, 'text', reply, () => this.emit(s, (b) => {
+          b.assistant(msg2, model, [{ text: reply }], { input: 21_000, output: 380 })
+          b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0, usage: { input: 21_000, output: 380 } })
+          this.finishTurn(s)
+        }))
+      }
+    }))
   }
 }
 

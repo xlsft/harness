@@ -26,6 +26,7 @@ import { ConnectTerminalsApi } from '~/lib/terminal/connect'
 import { ConnectSideChatsApi } from '~/lib/sidechat/connect'
 import { ConnectEnvironmentApi } from '~/lib/environment/connect'
 import { ConnectFilesApi } from '~/lib/files/connect'
+import { ConnectAcpApi } from '~/lib/acp/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -57,6 +58,7 @@ export class ConnectTransport implements SessionTransport {
     this.sideChatsApi = new ConnectSideChatsApi(transport)
     this.environmentApi = new ConnectEnvironmentApi(transport)
     this.filesApi = new ConnectFilesApi(transport)
+    this.acpApi = new ConnectAcpApi(transport)
   }
 
   private environmentApi: ConnectEnvironmentApi
@@ -106,7 +108,8 @@ export class ConnectTransport implements SessionTransport {
       resumeSessionId: opts.resumeSessionId ?? '',
       fork: opts.fork ?? false,
       forkAtCheckpointId: opts.forkAtMessageId ?? '',
-      worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined
+      worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined,
+      engine: opts.engine ?? ''
     })
     if (!res.session) throw new Error('the client returned no session')
     return res.session
@@ -265,6 +268,11 @@ export class ConnectTransport implements SessionTransport {
   private filesApi!: ConnectFilesApi
   files() {
     return this.filesApi
+  }
+
+  private acpApi!: ConnectAcpApi
+  acp() {
+    return this.acpApi
   }
 }
 
