@@ -16,16 +16,12 @@ useShortcuts()
     storage-key="harness-layout"
   >
     <AppSidebar />
-    <UDashboardPanel
-      id="artifacts"
-      :ui="{ root: 'min-h-0 h-svh min-w-0', body: 'p-0 sm:p-0 gap-0 overflow-y-auto' }"
-    >
-      <template #header>
-        <PageHeader />
-      </template>
-      <template #body>
+    <!-- Laid out like the session page (header straight in the column), so the top bar lines up with it. -->
+    <div class="flex h-svh min-w-0 flex-1 flex-col">
+      <PageHeader />
+      <div class="min-h-0 flex-1">
         <ArtifactsPage v-model:view="view" />
-      </template>
-    </UDashboardPanel>
+      </div>
+    </div>
   </UDashboardGroup>
 </template>

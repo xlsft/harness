@@ -12,7 +12,7 @@ const desktop = isDesktop()
 <template>
   <header
     data-tauri-drag-region
-    class="flex h-11 shrink-0 items-center gap-1.5 pr-4"
+    class="flex h-11 shrink-0 items-center gap-1.5 border-b border-transparent pr-4"
     :class="desktop ? (collapsed ? 'pl-[92px]' : 'pl-4 max-lg:pl-[92px]') : 'pl-4'"
   >
     <HIconBtn

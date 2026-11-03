@@ -140,7 +140,7 @@ export const PRESETS: readonly ProviderPreset[] = [
     id: "kimi-code-global",
     group: "llm",
     display_name: "Kimi Code (kimi.ai)",
-    description: "The kimi.ai coding subscription, outside mainland China (Anthropic-compatible endpoint).",
+    description: "The kimi.ai coding subscription, international (Anthropic-compatible endpoint).",
     type: "anthropic",
     base_url: "https://api.kimi.ai/coding",
     fields: [KEY],
