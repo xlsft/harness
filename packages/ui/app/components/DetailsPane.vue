@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Session details (the right panel of Main.dc.html): environment, context, providers, outputs, changes,
+// Session details (the right panel of Main.dc.html): environment, context, outputs, changes,
 // agents and background tasks of the current session.
 import type { SessionState, ToolItem } from '~/lib/session/types'
 import { isSubagent } from '~/lib/session/reducer'
@@ -14,20 +14,6 @@ const relay = ref(true)
 const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
 const contextWindow = computed(() => model.value?.contextWindow || 200_000)
 const contextPct = computed(() => Math.min(100, Math.round((props.session.contextTokens / contextWindow.value) * 100)))
-
-const providers = computed(() => {
-  const seen = new Map<string, { name: string, offline: boolean }>()
-  for (const m of store.models) {
-    if (!m.provider || seen.has(m.provider)) continue
-    seen.set(m.provider, { name: m.provider, offline: !!m.offline })
-  }
-  const active = model.value?.provider
-  return [...seen.values()].map(p => ({
-    ...p,
-    letter: p.name.startsWith('Ollama') ? 'L' : p.name[0]!,
-    state: p.name === active ? 'active' : p.offline ? 'connect' : 'ready'
-  }))
-})
 
 const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool'))
 const outputs = computed(() => {
@@ -143,35 +129,6 @@ function taskMeta(command: string, tail: string) {
       <div class="flex justify-between text-[10.5px] text-muted">
         <span>{{ formatTokens(session.contextTokens) }} / {{ formatTokens(contextWindow) }} tok</span><span>{{ formatCost(session.costUsd) }}</span>
       </div>
-    </section>
-
-    <section class="flex flex-col border-b border-default px-[13px] py-3">
-      <span class="pb-1 text-[12px] text-muted">Providers</span>
-      <div
-        v-for="p in providers"
-        :key="p.name"
-        class="nav-row"
-      >
-        <span class="flex size-4 shrink-0 items-center justify-center border border-default text-[9.5px]">{{ p.letter }}</span><span class="min-w-0 truncate">{{ p.name }}</span>
-        <span class="flex-1" />
-        <span
-          v-if="p.state === 'active'"
-          class="shrink-0 text-[10.5px] text-ok"
-        >active</span>
-        <span
-          v-else-if="p.state === 'ready'"
-          class="shrink-0 text-[10.5px] text-muted"
-        >ready</span>
-        <a
-          v-else
-          href="#"
-          class="text-[10.5px] text-orange"
-        >Connect</a>
-      </div>
-      <a
-        href="#"
-        class="pt-0.5 text-[11px] text-muted hover:text-highlighted"
-      >Show more</a>
     </section>
 
     <section
