@@ -18,8 +18,11 @@ import {
 
 const props = defineProps<{ item: QuestionItem, sessionId: string }>()
 const store = useSessionStore()
-const step = ref(0)
-const drafts = ref<QuestionDraft[]>(props.item.items.map(() => emptyDraft()))
+// The answers so far and the step, kept while the card is away (another session open) or the page reloads.
+const { draft: saved, clear } = useCardDraft(`question:${props.sessionId}:${props.item.id}`, () => ({ step: 0, drafts: props.item.items.map(() => emptyDraft()) as QuestionDraft[] }))
+const step = computed({ get: () => saved.value.step, set: (v: number) => (saved.value.step = v) })
+const drafts = computed(() => saved.value.drafts)
+watch(() => props.item.state, s => s !== 'pending' && clear())
 const sending = ref(false)
 const error = ref('')
 

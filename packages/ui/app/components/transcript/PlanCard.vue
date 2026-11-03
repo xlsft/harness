@@ -5,15 +5,19 @@ import type { PlanItem } from '~/lib/session/types'
 
 const props = defineProps<{ item: PlanItem, sessionId: string }>()
 const store = useSessionStore()
-const feedback = ref('')
+const { draft: feedback, clear } = useCardDraft(`plan:${props.sessionId}:${props.item.id}`, () => '')
 const pending = computed(() => props.item.state === 'pending')
+// Requested changes keep planning: approving is off while there is feedback.
+const changing = computed(() => !!feedback.value.trim())
 
 function answer(d: 'accept_edits' | 'manual' | 'keep_planning') {
-  if (!pending.value) return
+  if (!pending.value || (d !== 'keep_planning' && changing.value)) return
   store.respondToPlan(props.sessionId, props.item.id, d, d === 'keep_planning' ? feedback.value : '')
+  clear()
 }
+watch(pending, p => !p && clear())
 
-defineShortcuts(computed(() => pending.value
+defineShortcuts(computed(() => pending.value && !changing.value
   ? { 1: () => answer('accept_edits'), 2: () => answer('manual') }
   : {}))
 
@@ -47,27 +51,30 @@ const label = computed(() => ({
         v-model="feedback"
         placeholder="What should change? (keeps planning)"
         class="border border-default bg-default px-2.5 py-1.5 text-[12.5px] text-strong outline-none placeholder:text-muted focus:border-accent"
-        @keydown.enter="answer('keep_planning')"
+        @keydown.enter="changing && answer('keep_planning')"
       >
       <div class="flex flex-wrap gap-2">
         <HBtn
-          variant="primary"
+          :variant="changing ? 'outline' : 'primary'"
           size="md"
+          :disabled="changing"
           @click="answer('accept_edits')"
         >
           Approve, accept edits <span class="opacity-70">1</span>
         </HBtn>
         <HBtn
           size="md"
+          :disabled="changing"
           @click="answer('manual')"
         >
           Approve, ask for edits <span class="text-muted">2</span>
         </HBtn>
         <HBtn
+          :variant="changing ? 'primary' : 'outline'"
           size="md"
           @click="answer('keep_planning')"
         >
-          Keep planning
+          {{ changing ? 'Send changes' : 'Keep planning' }}
         </HBtn>
       </div>
     </div>
