@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.agent.v1;
 
 import "harness/agent/v1/files.proto";
+import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/terminal.proto";
@@ -171,6 +172,9 @@ service AgentService {
   rpc AskSideChat(AskSideChatRequest) returns (stream AskSideChatResponse);
   // Stops the running answer of a side chat; the text so far is kept (stopped = true).
   rpc StopSideChat(StopSideChatRequest) returns (StopSideChatResponse);
+  // Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
+  // may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
+  rpc GetProviderLimits(GetProviderLimitsRequest) returns (GetProviderLimitsResponse);
 }
 
 enum PermissionMode {

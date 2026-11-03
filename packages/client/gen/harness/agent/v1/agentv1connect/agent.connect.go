@@ -187,6 +187,9 @@ const (
 	// AgentServiceStopSideChatProcedure is the fully-qualified name of the AgentService's StopSideChat
 	// RPC.
 	AgentServiceStopSideChatProcedure = "/harness.agent.v1.AgentService/StopSideChat"
+	// AgentServiceGetProviderLimitsProcedure is the fully-qualified name of the AgentService's
+	// GetProviderLimits RPC.
+	AgentServiceGetProviderLimitsProcedure = "/harness.agent.v1.AgentService/GetProviderLimits"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -333,6 +336,9 @@ type AgentServiceClient interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest]) (*connect.ServerStreamForClient[v1.AskSideChatResponse], error)
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
+	// may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
+	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -676,6 +682,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 			connect.WithClientOptions(opts...),
 		),
+		getProviderLimits: connect.NewClient[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse](
+			httpClient,
+			baseURL+AgentServiceGetProviderLimitsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetProviderLimits")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -736,6 +748,7 @@ type agentServiceClient struct {
 	deleteSideChat        *connect.Client[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse]
 	askSideChat           *connect.Client[v1.AskSideChatRequest, v1.AskSideChatResponse]
 	stopSideChat          *connect.Client[v1.StopSideChatRequest, v1.StopSideChatResponse]
+	getProviderLimits     *connect.Client[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1013,6 +1026,11 @@ func (c *agentServiceClient) StopSideChat(ctx context.Context, req *connect.Requ
 	return c.stopSideChat.CallUnary(ctx, req)
 }
 
+// GetProviderLimits calls harness.agent.v1.AgentService.GetProviderLimits.
+func (c *agentServiceClient) GetProviderLimits(ctx context.Context, req *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error) {
+	return c.getProviderLimits.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1157,6 +1175,9 @@ type AgentServiceHandler interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest], *connect.ServerStream[v1.AskSideChatResponse]) error
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// Provider limits (limits.proto): balances, monthly spend and rate-limit windows of the LLM providers the user
+	// may see, from the server (harness.llm.v1.ProviderLimitsService). UNAVAILABLE without a server.
+	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1496,6 +1517,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetProviderLimitsHandler := connect.NewUnaryHandler(
+		AgentServiceGetProviderLimitsProcedure,
+		svc.GetProviderLimits,
+		connect.WithSchema(agentServiceMethods.ByName("GetProviderLimits")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1608,6 +1635,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceAskSideChatHandler.ServeHTTP(w, r)
 		case AgentServiceStopSideChatProcedure:
 			agentServiceStopSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceGetProviderLimitsProcedure:
+			agentServiceGetProviderLimitsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1835,4 +1864,8 @@ func (UnimplementedAgentServiceHandler) AskSideChat(context.Context, *connect.Re
 
 func (UnimplementedAgentServiceHandler) StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetProviderLimits is not implemented"))
 }

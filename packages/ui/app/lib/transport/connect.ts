@@ -26,6 +26,7 @@ import { ConnectTerminalsApi } from '~/lib/terminal/connect'
 import { ConnectSideChatsApi } from '~/lib/sidechat/connect'
 import { ConnectEnvironmentApi } from '~/lib/environment/connect'
 import { ConnectFilesApi } from '~/lib/files/connect'
+import { ConnectLimitsApi } from '~/lib/limits/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -57,6 +58,12 @@ export class ConnectTransport implements SessionTransport {
     this.sideChatsApi = new ConnectSideChatsApi(transport)
     this.environmentApi = new ConnectEnvironmentApi(transport)
     this.filesApi = new ConnectFilesApi(transport)
+    this.limitsApi = new ConnectLimitsApi(transport)
+  }
+
+  private limitsApi: ConnectLimitsApi
+  limits() {
+    return this.limitsApi
   }
 
   private environmentApi: ConnectEnvironmentApi

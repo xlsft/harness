@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package harness.llm.v1;
+
+import "harness/llm/v1/providers.proto";
+
+// ProviderLimitsService reports how much money or quota each LLM provider has left, for the settings screens
+// and the session's context popover ("the current session's provider").
+//
+// A provider may have any mix of three independent blocks:
+//   - balance: prepaid credit or a key limit read from the provider's own API (OpenRouter /api/v1/key and
+//     /api/v1/credits, DeepSeek /user/balance, Moonshot /v1/users/me/balance). Fetched on demand and cached
+//     for 60 s per provider (a failure too), never more often, with the provider's key on the server only;
+//   - spend: what our own usage records cost on this provider in the current calendar month (UTC), plus an
+//     optional monthly budget set with SetProviderBudget. For providers without a balance API (OpenAI,
+//     Anthropic, ...), or alongside a balance;
+//   - windows: rate-limit windows from the response headers the gateway already receives (anthropic-ratelimit-*,
+//     the unified 5h / 7d plan headers, x-ratelimit-*): the latest snapshot per provider, no extra requests.
+//
+// Visibility, enforced here (hidden blocks are left out of the response, not flagged):
+//   - global providers: listed for everyone who can use them (admins: all of them). Each one has two policies an
+//     admin sets through harness.auth.v1.AdminService (ProviderLimitsPolicy): who sees its balance, and who sees
+//     its limits (spend and windows). Default: everyone who can use it. Admins always see both;
+//   - personal providers (a user's own key): only their owner ever sees their limits, admins included; there is
+//     no policy and no override. Their header snapshots live in the server's memory and are served to the owner
+//     only.
+//
+// Frontends reach GetProviderLimits through the local client (AgentService.GetProviderLimits) and
+// SetProviderBudget through the client's core proxy (packages/client/server/coreproxy.go).
+// Requires `Authorization: Bearer <access token>`. Status: DRAFT (M2).
+service ProviderLimitsService {
+  // The limits of the LLM providers the caller can use (see the visibility rules above).
+  rpc GetProviderLimits(GetProviderLimitsRequest) returns (GetProviderLimitsResponse);
+  // Sets or clears a provider's monthly budget (USD). Admins for global providers; the owner for a personal one.
+  rpc SetProviderBudget(SetProviderBudgetRequest) returns (SetProviderBudgetResponse);
+}
+
+// Credit read from the provider's API. Amounts are in `currency`.
+message ProviderBalance {
+  // ISO 4217 ("USD", "CNY").
+  string currency = 1;
+  // What is left to spend: the key's remaining limit, or the account's remaining credit.
+  optional double balance = 2;
+  // Spent from `total` (key usage, or credits used).
+  optional double used = 3;
+  // The cap `balance` is part of: the key limit or the credits bought.
+  optional double total = 4;
+  // What `total` is: "key limit" or "credits".
+  string label = 5;
+  // RFC 3339, UTC: when it was read from the provider.
+  string updated_at = 6;
+  // The endpoint it came from ("openrouter:/api/v1/key", "deepseek:/user/balance", ...).
+  string source = 7;
+  // Set when the last read failed (the other fields are then empty); never contains the key.
+  string error = 8;
+}
+
+// What our usage records cost on the provider this month.
+message ProviderSpend {
+  // Always "USD" (catalog prices).
+  string currency = 1;
+  double spent = 2;
+  // The provider's monthly budget, when one is set.
+  optional double budget = 3;
+  // RFC 3339, UTC: the start of the period (the first of the month, 00:00 UTC).
+  string period_start = 4;
+  // Plan providers count tokens only, so spent stays 0: true when some tokens carry no price.
+  bool partial = 5;
+}
+
+// One rate-limit window from the response headers.
+message LimitWindow {
+  // "5h", "weekly", "weekly (Opus)", "requests/min", "tokens/min", "input tokens/min", "output tokens/min".
+  string label = 1;
+  // 0..100.
+  double used_percent = 2;
+  optional double remaining = 3;
+  optional double limit = 4;
+  // RFC 3339, UTC; empty when the provider does not say.
+  string resets_at = 5;
+}
+
+message ProviderLimits {
+  string provider_id = 1;
+  string provider_name = 2;
+  ProviderScope scope = 3;
+  // "metered" or "plan" (Provider.billing).
+  string billing = 4;
+  // Absent: no balance API, or hidden from the caller.
+  ProviderBalance balance = 5;
+  // Absent: hidden from the caller.
+  ProviderSpend spend = 6;
+  // Empty: nothing seen yet, or hidden from the caller.
+  repeated LimitWindow windows = 7;
+  // RFC 3339, UTC: when the windows were captured; empty without windows.
+  string windows_updated_at = 8;
+  // "response_headers" for the windows; see ProviderBalance.source for the balance.
+  string windows_source = 9;
+}
+
+message GetProviderLimitsRequest {
+  // Only these providers (still subject to visibility); empty: all of them.
+  repeated string provider_ids = 1;
+  // Also answer `model`: the limits of the provider behind this model id. An unknown or hidden model leaves
+  // `model` unset (no error).
+  string model_id = 2;
+}
+
+message GetProviderLimitsResponse {
+  repeated ProviderLimits providers = 1;
+  // The provider behind GetProviderLimitsRequest.model_id.
+  ProviderLimits model = 2;
+}
+
+message SetProviderBudgetRequest {
+  string provider_id = 1;
+  // USD per calendar month; unset clears the budget.
+  optional double monthly_usd = 2;
+}
+
+message SetProviderBudgetResponse {
+  ProviderLimits limits = 1;
+}
+
+// Who may see one block of a global provider's limits. Admins always may.
+enum LimitsAudience {
+  // Same as EVERYONE.
+  LIMITS_AUDIENCE_UNSPECIFIED = 0;
+  // Everyone who can use the provider.
+  LIMITS_AUDIENCE_EVERYONE = 1;
+  // The users in user_ids (and admins).
+  LIMITS_AUDIENCE_SELECTED_USERS = 2;
+  LIMITS_AUDIENCE_ADMINS_ONLY = 3;
+}
+
+message LimitsVisibility {
+  LimitsAudience audience = 1;
+  // With LIMITS_AUDIENCE_SELECTED_USERS.
+  repeated string user_ids = 2;
+}
+
+// A global provider's two visibility policies (harness.auth.v1.AdminService). Personal providers have none.
+message ProviderLimitsPolicy {
+  string provider_id = 1;
+  // Who sees ProviderLimits.balance.
+  LimitsVisibility balance = 2;
+  // Who sees ProviderLimits.spend and ProviderLimits.windows.
+  LimitsVisibility limits = 3;
+}

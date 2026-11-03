@@ -39,6 +39,7 @@ import { registerSearchService } from "./search.ts";
 import { registerSyncService } from "./sync.ts";
 import { registerUsageService } from "./usage.ts";
 import { registerVcsService } from "./vcs.ts";
+import { registerProviderLimitsService } from "./limits.ts";
 
 const POLL_STATUS = {
   pending: PollDeviceAuthResponse_Status.PENDING,
@@ -243,6 +244,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerMcpService(router);
   registerRelayService(router);
   registerVcsService(router);
+  registerProviderLimitsService(router);
 
   return router;
 }

@@ -23,6 +23,7 @@ import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import { appendFileSync } from "node:fs";
 import { guardedFetch } from "../lib/ssrf.ts";
+import { captureRateLimits } from "../limits/headers.ts";
 import type { Principal } from "./devices.ts";
 import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEntry } from "./models.ts";
 import { billingOf } from "./presets.ts";
@@ -161,6 +162,8 @@ export async function* runMessages(
         }
         return { ok: false, failure: networkFailure(err), committed: false, sent, target };
       }
+      // Rate-limit windows ride on every response, a 429 included (limits/headers.ts).
+      captureRateLimits(provider.id, res.headers);
       if (!res.ok || !res.body) {
         const text = await res.text().catch(() => "");
         return { ok: false, failure: classifyHttpFailure(res.status, res.headers, text), committed: false, sent, target };

@@ -33,6 +33,7 @@ import { MockProvidersApi } from '~/lib/providers/mock'
 import { MockUsersApi } from '~/lib/users/mock'
 import { MockAccountApi } from '~/lib/account/mock'
 import { MockUsageApi } from '~/lib/usage/mock'
+import { MockLimitsApi } from '~/lib/limits/mock'
 import { MockTerminalsApi } from '~/lib/terminal/mock'
 import { MockSideChatsApi } from '~/lib/sidechat/mock'
 
@@ -294,6 +295,11 @@ export class MockTransport implements SessionTransport {
   private accountApi = new MockAccountApi()
   account() {
     return this.accountApi
+  }
+
+  private limitsApi = new MockLimitsApi()
+  limits() {
+    return this.limitsApi
   }
 
   private usageApi = new MockUsageApi()

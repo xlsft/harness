@@ -38,6 +38,8 @@ import {
 } from "../services/admin-users.ts";
 import { getModePolicy, setModePolicy, type ModeName } from "../services/mode-policy.ts";
 import { deleteProvider, listUserProviders } from "../services/providers.ts";
+import { listPolicies as listLimitsPolicies, setPolicy as setLimitsPolicy } from "../limits/policy.ts";
+import { policyFromProto, policyToProto } from "./limits.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
 
@@ -292,6 +294,16 @@ export function registerAdminService(router: ConnectRouter): void {
       const p = await principal(ctx);
       const modes = (req.policy?.disabledModes ?? []).map(modeFromProto);
       return { policy: modePolicyToProto(await setModePolicy(p, modes)) };
+    }),
+
+    listProviderLimitsPolicies: guard(async (_req, ctx: HandlerContext) => {
+      await admin(ctx);
+      return { policies: (await listLimitsPolicies()).map(policyToProto) };
+    }),
+
+    setProviderLimitsPolicy: guard(async (req, ctx: HandlerContext) => {
+      await admin(ctx);
+      return { policy: policyToProto(await setLimitsPolicy(policyFromProto(req.policy))) };
     }),
   });
 }

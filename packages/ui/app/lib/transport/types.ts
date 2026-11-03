@@ -26,6 +26,7 @@ import type { SideChatsApi } from '~/lib/sidechat/types'
 import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
+import type { LimitsApi } from '~/lib/limits/types'
 
 export interface ModelInfo {
   id: string
@@ -176,4 +177,8 @@ export interface SessionTransport {
   // The files pane: a session's working directories, listings with git status, file contents within limits
   // (AgentService ListFileRoots / ListFiles / ReadFile / GetGitStatus, ~/lib/files).
   files(): FilesApi
+
+  // Provider balances, monthly spend and rate-limit windows (AgentService.GetProviderLimits; budgets and the admin
+  // visibility policies forwarded to the server by the client, ~/lib/limits). Filtered by the server.
+  limits(): LimitsApi
 }
