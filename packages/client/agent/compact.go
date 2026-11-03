@@ -273,6 +273,8 @@ func (a *Agent) summaryBlocks(summary string) []llm.ContentBlock {
 }
 
 func (a *Agent) compact(ctx context.Context, instructions, trigger string) (CompactInfo, error) {
+	// The lost turn's end goes before the boundary, where its tool calls are.
+	a.recordLostTurn()
 	msgs := a.Messages()
 	before := a.EstimateTokens()
 	summary, err := a.summarize(ctx, msgs, instructions)

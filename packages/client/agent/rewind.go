@@ -93,6 +93,7 @@ func (a *Agent) reload() session.Conversation {
 	a.lastUsage = 0
 	a.afterReloadStyle()
 	a.mu.Unlock()
+	a.endLostTurn()
 	return conv
 }
 
