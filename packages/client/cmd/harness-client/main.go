@@ -230,6 +230,8 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv.Logger = log
 	// A web UI that opens sessions by ?session=<id> (Initialize web_url); the harness server serves none yet.
 	srv.WebURL = strings.TrimRight(strings.TrimSpace(os.Getenv("HARNESS_WEB_URL")), "/")
+	// Why sessions are not mirrored (the session relay switch shows it); cleared when a relay host attaches.
+	srv.RelayOffReason = relay.DisabledReason(*remote, "", false)
 	if tokens, url, user, err := bootstrap.Tokens(*serverURL); err == nil {
 		// Modes the server's policy disables: not offered, refused, and live sessions in one are switched.
 		srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
@@ -237,7 +239,7 @@ func cmdServe(ctx context.Context, args []string) int {
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
 		// Dictation and read-aloud with the server's global speech providers (local engines need no server).
 		srv.SpeechCore = speech.NewCore(url, rpc.HTTPClient(url), tokens)
-		if relay.Enabled(*remote, url, tokens != nil) {
+		if srv.RelayOffReason = relay.DisabledReason(*remote, url, tokens != nil); srv.RelayOffReason == "" {
 			relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
 		}
 		// Per-user session state (pin, unread, archive, rename) and session deletes go to the server.

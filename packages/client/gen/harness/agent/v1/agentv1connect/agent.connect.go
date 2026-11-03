@@ -214,6 +214,9 @@ const (
 	// AgentServiceDeleteSpeechModelProcedure is the fully-qualified name of the AgentService's
 	// DeleteSpeechModel RPC.
 	AgentServiceDeleteSpeechModelProcedure = "/harness.agent.v1.AgentService/DeleteSpeechModel"
+	// AgentServiceSetSessionRelayProcedure is the fully-qualified name of the AgentService's
+	// SetSessionRelay RPC.
+	AgentServiceSetSessionRelayProcedure = "/harness.agent.v1.AgentService/SetSessionRelay"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -381,6 +384,13 @@ type AgentServiceClient interface {
 	ListLocalSpeechModels(context.Context, *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error)
 	DownloadSpeechModel(context.Context, *connect.Request[v1.DownloadSpeechModelRequest]) (*connect.ServerStreamForClient[v1.DownloadSpeechModelResponse], error)
 	DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error)
+	// Turns remote control (the relay mirror to the harness server) on or off for one open session. Off: the
+	// session is unregistered upstream, its events are no longer published and viewer commands for it are
+	// rejected. On: it is registered again and viewers catch up from its event log. The choice is recorded in the
+	// transcript and survives a resume; without one the settings decide ("remoteControl", default true).
+	// Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
+	// (SessionInfo.relay_available) or for remote sessions.
+	SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -778,6 +788,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("DeleteSpeechModel")),
 			connect.WithClientOptions(opts...),
 		),
+		setSessionRelay: connect.NewClient[v1.SetSessionRelayRequest, v1.SetSessionRelayResponse](
+			httpClient,
+			baseURL+AgentServiceSetSessionRelayProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetSessionRelay")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -847,6 +863,7 @@ type agentServiceClient struct {
 	listLocalSpeechModels *connect.Client[v1.ListLocalSpeechModelsRequest, v1.ListLocalSpeechModelsResponse]
 	downloadSpeechModel   *connect.Client[v1.DownloadSpeechModelRequest, v1.DownloadSpeechModelResponse]
 	deleteSpeechModel     *connect.Client[v1.DeleteSpeechModelRequest, v1.DeleteSpeechModelResponse]
+	setSessionRelay       *connect.Client[v1.SetSessionRelayRequest, v1.SetSessionRelayResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1169,6 +1186,11 @@ func (c *agentServiceClient) DeleteSpeechModel(ctx context.Context, req *connect
 	return c.deleteSpeechModel.CallUnary(ctx, req)
 }
 
+// SetSessionRelay calls harness.agent.v1.AgentService.SetSessionRelay.
+func (c *agentServiceClient) SetSessionRelay(ctx context.Context, req *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error) {
+	return c.setSessionRelay.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1334,6 +1356,13 @@ type AgentServiceHandler interface {
 	ListLocalSpeechModels(context.Context, *connect.Request[v1.ListLocalSpeechModelsRequest]) (*connect.Response[v1.ListLocalSpeechModelsResponse], error)
 	DownloadSpeechModel(context.Context, *connect.Request[v1.DownloadSpeechModelRequest], *connect.ServerStream[v1.DownloadSpeechModelResponse]) error
 	DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error)
+	// Turns remote control (the relay mirror to the harness server) on or off for one open session. Off: the
+	// session is unregistered upstream, its events are no longer published and viewer commands for it are
+	// rejected. On: it is registered again and viewers catch up from its event log. The choice is recorded in the
+	// transcript and survives a resume; without one the settings decide ("remoteControl", default true).
+	// Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
+	// (SessionInfo.relay_available) or for remote sessions.
+	SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1727,6 +1756,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("DeleteSpeechModel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceSetSessionRelayHandler := connect.NewUnaryHandler(
+		AgentServiceSetSessionRelayProcedure,
+		svc.SetSessionRelay,
+		connect.WithSchema(agentServiceMethods.ByName("SetSessionRelay")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1857,6 +1892,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceDownloadSpeechModelHandler.ServeHTTP(w, r)
 		case AgentServiceDeleteSpeechModelProcedure:
 			agentServiceDeleteSpeechModelHandler.ServeHTTP(w, r)
+		case AgentServiceSetSessionRelayProcedure:
+			agentServiceSetSessionRelayHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2120,4 +2157,8 @@ func (UnimplementedAgentServiceHandler) DownloadSpeechModel(context.Context, *co
 
 func (UnimplementedAgentServiceHandler) DeleteSpeechModel(context.Context, *connect.Request[v1.DeleteSpeechModelRequest]) (*connect.Response[v1.DeleteSpeechModelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteSpeechModel is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetSessionRelay is not implemented"))
 }

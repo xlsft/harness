@@ -34,12 +34,43 @@ type hostSession struct {
 	base       int64
 	baseSet    bool
 	lastLocal  int64 // highest local durable seq the server acknowledged
+	lastSent   int64 // highest local durable seq sent upstream (maybe stored without an answer)
 	superseded bool
 	stop       chan struct{}
+	// hostID is the host the current epoch was registered with.
+	hostID string
+	// removed is set when remote control was turned off for the session (Host.RemoveSession): run stops,
+	// unregisters the session and closes done.
+	removed bool
+	quit    chan struct{}
+	done    chan struct{}
 }
 
 func newHostSession(h *Host, id string, feed Feed) *hostSession {
-	return &hostSession{h: h, id: id, feed: feed, cmds: make(chan *relayv1.Command, 256), stop: make(chan struct{})}
+	return &hostSession{h: h, id: id, feed: feed, cmds: make(chan *relayv1.Command, 256), stop: make(chan struct{}),
+		quit: make(chan struct{}), done: make(chan struct{})}
+}
+
+// remove stops mirroring the session (remote control turned off for it).
+func (hs *hostSession) remove() {
+	hs.mu.Lock()
+	defer hs.mu.Unlock()
+	if !hs.removed {
+		hs.removed = true
+		close(hs.quit)
+	}
+}
+
+// inherit takes over the seq mapping of an earlier mirror of the same session in this process (remote control
+// turned off and on again), so the server's seq keeps counting where it stopped and the events of the pause are
+// published on the next registration.
+func (hs *hostSession) inherit(prev *hostSession) {
+	prev.mu.Lock()
+	base, baseSet, last, sent := prev.base, prev.baseSet, prev.lastLocal, prev.lastSent
+	prev.mu.Unlock()
+	hs.mu.Lock()
+	hs.base, hs.baseSet, hs.lastLocal, hs.lastSent = base, baseSet, last, sent
+	hs.mu.Unlock()
 }
 
 func (hs *hostSession) currentEpoch() int64 {
@@ -55,6 +86,12 @@ func (hs *hostSession) supersede() {
 		hs.superseded = true
 		close(hs.stop)
 	}
+}
+
+func (hs *hostSession) isRemoved() bool {
+	hs.mu.Lock()
+	defer hs.mu.Unlock()
+	return hs.removed
 }
 
 func (hs *hostSession) isSuperseded() bool {
@@ -80,6 +117,9 @@ func (hs *hostSession) rebase(epoch, acked int64) int64 {
 		}
 		hs.base, hs.baseSet = acked-skip, true
 		hs.lastLocal = max(hs.lastLocal, skip)
+	case acked > hs.base+hs.lastLocal && acked <= hs.base+hs.lastSent:
+		// Our own events were stored but the answer was lost (a call cancelled or timed out).
+		hs.lastLocal = acked - hs.base
 	case acked > hs.base+hs.lastLocal:
 		// Another host published meanwhile: continue after its events.
 		hs.base = acked - hs.lastLocal
@@ -98,19 +138,46 @@ const (
 )
 
 // run keeps the session registered and published until it ends, is
-// superseded or ctx is done.
+// superseded, removed or ctx is done. A removed session is unregistered.
 func (hs *hostSession) run(ctx context.Context) {
+	defer close(hs.done)
+	parent := ctx
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	// qctx also ends when the session is removed: waits end at once, while calls in flight (a registration, a
+	// publish) complete, so the epoch to unregister and the acknowledged seq stay known.
+	qctx, qcancel := context.WithCancel(ctx)
+	defer qcancel()
+	go func() {
+		select {
+		case <-hs.quit:
+			qcancel()
+		case <-qctx.Done():
+		}
+	}()
+	unregistered := false
+	defer func() {
+		hs.mu.Lock()
+		removed, superseded, hostID, epoch := hs.removed, hs.superseded, hs.hostID, hs.epoch
+		hs.mu.Unlock()
+		if !removed || superseded || unregistered || epoch == 0 || parent.Err() != nil {
+			return
+		}
+		uctx, c := context.WithTimeout(context.WithoutCancel(parent), 5*time.Second)
+		defer c()
+		if _, err := call(uctx, hs.h, hs.h.rpc.UnregisterSession, &relayv1.UnregisterSessionRequest{HostId: hostID, SessionId: hs.id, Epoch: epoch}); err != nil {
+			hs.h.log.Debug("unregister session failed", "session", hs.id, "err", err)
+		}
+	}()
 	go hs.worker(ctx)
 	h := hs.h
 	attempt := 0
-	for ctx.Err() == nil && !hs.isSuperseded() {
-		if attempt > 0 && !sleep(ctx, h.backoff(attempt-1)) {
+	for qctx.Err() == nil && !hs.isSuperseded() {
+		if attempt > 0 && !sleep(qctx, h.backoff(attempt-1)) {
 			return
 		}
 		attempt++
-		hostID, err := h.waitHost(ctx)
+		hostID, err := h.waitHost(qctx)
 		if err != nil {
 			return
 		}
@@ -120,6 +187,9 @@ func (hs *hostSession) run(ctx context.Context) {
 			continue
 		}
 		epoch := res.GetEpoch()
+		hs.mu.Lock()
+		hs.hostID = hostID
+		hs.mu.Unlock()
 		after := hs.rebase(epoch, res.GetAckedSeq())
 		rewinds := 0
 		for {
@@ -129,6 +199,7 @@ func (hs *hostSession) run(ctx context.Context) {
 				uctx, c := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 				_, _ = call(uctx, h, h.rpc.UnregisterSession, &relayv1.UnregisterSessionRequest{HostId: hostID, SessionId: hs.id, Epoch: epoch})
 				c()
+				unregistered = true
 				return
 			case reasonStop, reasonSuperseded:
 				return
@@ -138,7 +209,7 @@ func (hs *hostSession) run(ctx context.Context) {
 				hs.mu.Unlock()
 				if next <= after {
 					rewinds++
-					if !sleep(ctx, h.backoff(min(rewinds, 6))) {
+					if !sleep(qctx, h.backoff(min(rewinds, 6))) {
 						return
 					}
 				} else {
@@ -191,6 +262,9 @@ func (hs *hostSession) publish(ctx context.Context, hostID string, epoch, after 
 		}
 	}
 	flush := func() (stopReason, int64, bool) {
+		hs.mu.Lock()
+		hs.lastSent = max(hs.lastSent, batchLocal)
+		hs.mu.Unlock()
 		for attempt := 0; len(batch) > 0; attempt++ {
 			res, err := call(ctx, h, h.rpc.PublishEvents, &relayv1.PublishEventsRequest{HostId: hostID, SessionId: hs.id, Epoch: epoch, Events: batch})
 			if err == nil {
@@ -204,7 +278,7 @@ func (hs *hostSession) publish(ctx context.Context, hostID string, epoch, after 
 				}
 				return 0, 0, true
 			}
-			if ctx.Err() != nil {
+			if ctx.Err() != nil || hs.isRemoved() {
 				return reasonStop, 0, false
 			}
 			switch codeOf(err) {
@@ -254,6 +328,8 @@ func (hs *hostSession) publish(ctx context.Context, hostID string, epoch, after 
 			return reasonStop, 0
 		case <-hs.stop:
 			return reasonSuperseded, 0
+		case <-hs.quit:
+			return reasonStop, 0
 		case ev, ok := <-ch:
 			if !ok {
 				if r, a, ok := flush(); !ok {

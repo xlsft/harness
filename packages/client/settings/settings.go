@@ -153,6 +153,9 @@ type Settings struct {
 	Permissions         Permissions
 	// AvailableModels is the policy allowlist of models (empty: any).
 	AvailableModels []string
+	// RemoteControlPolicyOff: a policy document says "remoteControl": false, so sessions are never mirrored to the
+	// server and the per-session switch cannot turn it on.
+	RemoteControlPolicyOff bool
 
 	// Raw holds every top-level key of the winning level (for keys this
 	// package does not model). Values are byte-exact JSON.
@@ -212,6 +215,11 @@ const (
 // writes it into the user's synced settings document (UserSettingsKey).
 const KeyCompactIdleSessions = "compactIdleSessions"
 
+// KeyRemoteControl is the settings key of the remote control default (true when absent): false keeps new and
+// resumed sessions off the relay until the session switch turns it on; false in a policy document turns it off
+// for good (Settings.RemoteControlPolicyOff).
+const KeyRemoteControl = "remoteControl"
+
 // UserSettingsKey is the key of the user-scope SETTINGS sync document (the one `import claude` writes).
 const UserSettingsKey = "settings"
 
@@ -238,6 +246,8 @@ type layer struct {
 
 	availableModels  []string
 	managedRulesOnly bool
+	// remoteControlOff: a policy document says "remoteControl": false.
+	remoteControlOff bool
 	// extra are further layers of the same level (permission rule documents).
 	extra []*layer
 }

@@ -151,6 +151,9 @@ type Entry struct {
 	// Worktree is the git worktree the session runs in (written once when
 	// the client creates it; the last one on record wins).
 	Worktree *Worktree `json:"worktree,omitempty"`
+	// RemoteControl is the session's remote control switch (SetSessionRelay); the last one on record wins on
+	// resume, and without one the settings decide.
+	RemoteControl *bool `json:"remoteControl,omitempty"`
 
 	// AutoDecision is set on a tool_result entry when the auto permission
 	// mode decided (or deferred to the user on) that tool call.
@@ -214,6 +217,19 @@ func ReadTitles(entries []Entry) Titles {
 		}
 	}
 	return t
+}
+
+// ReadRemoteControl returns the last remote control choice on record (harness-meta remoteControl), nil when the
+// session never had one.
+func ReadRemoteControl(entries []Entry) *bool {
+	var on *bool
+	for i := range entries {
+		if e := &entries[i]; e.Type == TypeMeta && e.RemoteControl != nil {
+			v := *e.RemoteControl
+			on = &v
+		}
+	}
+	return on
 }
 
 // Worktree describes a git worktree the client created for a session.
