@@ -5,6 +5,7 @@
 import type { Hint } from '~/components/composer/ComposerFooter.vue'
 import type { SessionState } from '~/lib/session/types'
 import type { ComposerPreset, MenuOption } from '~/utils/composer'
+import { isDesktop, pickFolder } from '~/lib/desktop'
 
 const props = defineProps<{ session: SessionState, preset?: ComposerPreset }>()
 const store = useSessionStore()
@@ -36,6 +37,46 @@ watch(reply, (q) => {
   })
 })
 const mode = ref<'normal' | 'shell' | 'memory'>('normal')
+
+// The "+" menu: attach files, mention a folder, start a slash command, or a shell command.
+const plusOpen = ref(false)
+const browsingFolder = ref(false)
+function focusEnd() {
+  nextTick(() => {
+    const el = input.value
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  })
+}
+function insertText(t: string) {
+  text.value = text.value && !/\s$/.test(text.value) ? `${text.value} ${t}` : `${text.value}${t}`
+  focusEnd()
+}
+// A folder as an @mention, relative to the session's folder when inside it.
+function mentionFolder(path: string | null) {
+  browsingFolder.value = false
+  if (!path) return
+  const cwd = props.session.meta.cwd.replace(/\/+$/, '')
+  const rel = path === cwd ? '.' : path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path
+  insertText(`@${rel}/ `)
+}
+async function plus(action: 'files' | 'folder' | 'slash' | 'shell') {
+  plusOpen.value = false
+  if (action === 'files') fileInput.value?.click()
+  else if (action === 'folder') {
+    if (isDesktop()) mentionFolder(await pickFolder(props.session.meta.cwd))
+    else browsingFolder.value = true
+  } else if (action === 'slash') {
+    mode.value = 'normal'
+    text.value = '/'
+    focusEnd()
+  } else {
+    mode.value = 'shell'
+    focusEnd()
+  }
+}
+defineShortcuts({ meta_u: () => plus('files') })
 const focused = ref(!!props.preset?.focused)
 const error = ref(props.preset?.error ?? '')
 const failedText = ref('')
@@ -573,16 +614,53 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           v-else-if="planMode && !busy"
           class="border border-cyan px-[5px] text-[11px] text-cyan"
         >plan</span>
-        <button
+        <UPopover
           v-else
-          type="button"
-          aria-label="Attach"
-          :class="ICON_BTN"
-          class="text-muted hover:text-highlighted"
-          @click="fileInput?.click()"
+          v-model:open="plusOpen"
+          :content="{ side: 'top', align: 'start', sideOffset: 6 }"
         >
-          <HIcon name="plus" />
-        </button>
+          <button
+            type="button"
+            aria-label="Add"
+            :class="ICON_BTN"
+            class="text-muted hover:text-highlighted"
+          >
+            <HIcon name="plus" />
+          </button>
+          <template #content>
+            <div
+              role="menu"
+              aria-label="Add"
+              class="w-[230px] border border-accented bg-hover py-1 text-[12.5px]"
+            >
+              <PaneMenuItem
+                icon="attach"
+                kbd="meta+u"
+                @click="plus('files')"
+              >
+                Add files or photos
+              </PaneMenuItem>
+              <PaneMenuItem
+                icon="folder"
+                @click="plus('folder')"
+              >
+                Add folder
+              </PaneMenuItem>
+              <PaneMenuItem
+                icon="slash"
+                @click="plus('slash')"
+              >
+                Slash commands
+              </PaneMenuItem>
+              <PaneMenuItem
+                icon="term"
+                @click="plus('shell')"
+              >
+                Execute shell
+              </PaneMenuItem>
+            </div>
+          </template>
+        </UPopover>
         <input
           ref="fileInput"
           type="file"
@@ -691,5 +769,17 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       :hint="hint"
       :initial-menu="preset?.menu === 'mode' || preset?.menu === 'model' ? preset.menu : ''"
     />
+    <UModal
+      v-model:open="browsingFolder"
+      :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"
+    >
+      <template #content>
+        <NewDirectoryBrowser
+          :start="session.meta.cwd"
+          @pick="mentionFolder"
+          @close="browsingFolder = false"
+        />
+      </template>
+    </UModal>
   </div>
 </template>
