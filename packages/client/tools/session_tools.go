@@ -94,7 +94,12 @@ func (*ExitPlanMode) Run(ctx context.Context, env *Env, call Call) Result {
 	structured := map[string]any{"plan": in.Plan, "filePath": path}
 	switch resp.Decision {
 	case PlanApproveAcceptEdits, PlanApproveManual:
+		// The first approval returns to the mode plan mode was entered from (auto, accept edits, ...); from
+		// "ask" (or unknown) it accepts edits. The second asks for each edit.
 		mode := "acceptEdits"
+		if p, ok := h.(interface{ PrePlanMode() string }); ok && p.PrePlanMode() != "default" && p.PrePlanMode() != "" {
+			mode = p.PrePlanMode()
+		}
 		if resp.Decision == PlanApproveManual {
 			mode = "default"
 		}

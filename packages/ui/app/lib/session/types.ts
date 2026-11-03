@@ -387,6 +387,8 @@ export interface SessionState {
   showRequest: ShowRequest | null
   // The latest usage-limit state of the session's provider; undefined until one was reported.
   usageLimit?: UsageLimitVM
+  // The permission mode plan mode was entered from (approving a plan returns to it).
+  prePlanMode?: PermissionModeName
   endedReason: string
   // Internal: thinking start per message (for "Thought for 12s").
   thinkingStartedAt: Record<string, number>

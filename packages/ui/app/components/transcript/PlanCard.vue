@@ -7,6 +7,11 @@ const props = defineProps<{ item: PlanItem, sessionId: string }>()
 const store = useSessionStore()
 const { draft: feedback, clear } = useCardDraft(`plan:${props.sessionId}:${props.item.id}`, () => '')
 const pending = computed(() => props.item.state === 'pending')
+// The first approval returns to the mode plan mode was entered from; from Ask it accepts edits.
+const back = computed(() => {
+  const m = store.sessions[props.sessionId]?.prePlanMode
+  return m && m !== 'default' && m !== 'plan' ? m : 'accept_edits'
+})
 // Requested changes keep planning: approving is off while there is feedback.
 const changing = computed(() => !!feedback.value.trim())
 
@@ -23,7 +28,7 @@ defineShortcuts(computed(() => pending.value && !changing.value
 
 const label = computed(() => ({
   pending: '',
-  approved_accept_edits: 'Plan approved · accepting edits',
+  approved_accept_edits: 'Plan approved',
   approved_manual: 'Plan approved · asking for each edit',
   keep_planning: 'Kept planning'
 }[props.item.state]))
@@ -60,7 +65,7 @@ const label = computed(() => ({
           :disabled="changing"
           @click="answer('accept_edits')"
         >
-          Approve, accept edits <span class="opacity-70">1</span>
+          Approve, {{ MODE_LABEL[back].toLowerCase() }} <span class="opacity-70">1</span>
         </HBtn>
         <HBtn
           size="md"

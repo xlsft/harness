@@ -194,8 +194,10 @@ type Config struct {
 
 // Engine is the rule engine. It implements Checker.
 type Engine struct {
-	mu            sync.RWMutex
-	mode          Mode
+	mu   sync.RWMutex
+	mode Mode
+	// The mode plan mode was entered from, restored when a plan is approved.
+	prePlan       Mode
 	cwd           string
 	workDirs      []string
 	scratch       []string
@@ -352,9 +354,22 @@ func (e *Engine) SetMode(m Mode) error {
 	return nil
 }
 
+// PrePlanMode is the mode plan mode was last entered from (default when unknown).
+func (e *Engine) PrePlanMode() Mode {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	if e.prePlan == "" || e.prePlan == ModePlan {
+		return ModeDefault
+	}
+	return e.prePlan
+}
+
 // switchLocked sets the mode, releases mu and notifies on a change.
 func (e *Engine) switchLocked(m Mode) {
 	changed := e.mode != m
+	if m == ModePlan && e.mode != ModePlan {
+		e.prePlan = e.mode
+	}
 	e.mode = m
 	f, d := e.onMode, e.decider
 	e.mu.Unlock()

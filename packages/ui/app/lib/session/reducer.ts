@@ -370,6 +370,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
   switch (e.case) {
     case 'sessionUpdated': {
       const status = statusName(e.value.status)
+      const mode = permissionModeName(e.value.permissionMode)
+      if (mode === 'plan' && s.meta.permissionMode !== 'plan') s.prePlanMode = s.meta.permissionMode
       s.meta = { ...sessionMeta(e.value), status: s.meta.status === 'ended' ? 'ended' : status }
       // Absent from older clients and before anything was reported: the events keep what they said.
       s.usageLimit = usageLimitVM(e.value.usageLimit) ?? s.usageLimit
@@ -741,9 +743,13 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
-    case 'permissionModeChanged':
-      s.meta.permissionMode = permissionModeName(e.value.mode)
+    case 'permissionModeChanged': {
+      const next = permissionModeName(e.value.mode)
+      // The mode plan mode was entered from: approving the plan returns to it (the client does the same).
+      if (next === 'plan' && s.meta.permissionMode !== 'plan') s.prePlanMode = s.meta.permissionMode
+      s.meta.permissionMode = next
       break
+    }
 
     case 'showRequested': {
       const target = showTarget(e.value)

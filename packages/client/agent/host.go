@@ -36,6 +36,14 @@ func (a *Agent) SetPermissionMode(mode string) error {
 	return a.cfg.Modes.SetMode(m)
 }
 
+// PrePlanMode is the mode plan mode was entered from ("default" when unknown); approving a plan returns to it.
+func (a *Agent) PrePlanMode() string {
+	if p, ok := a.cfg.Modes.(interface{ PrePlanMode() permissions.Mode }); ok {
+		return string(p.PrePlanMode())
+	}
+	return string(permissions.ModeDefault)
+}
+
 // Remind implements tools.Host: the reminder is injected into the next
 // model request (skipped when the bundle lacks the id).
 func (a *Agent) Remind(id string, vars map[string]string) {
