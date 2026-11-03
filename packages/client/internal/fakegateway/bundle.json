@@ -311,6 +311,33 @@
           "task_id"
         ]
       }
+    },
+    "Show": {
+      "description": "Open a file, the session diff or a web page for the user.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": ["file", "diff", "url"]
+          },
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "end_line": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
     }
   },
   "reminders": {

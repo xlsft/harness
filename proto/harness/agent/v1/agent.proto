@@ -370,6 +370,7 @@ message SessionEvent {
     Rewound rewound = 26;
     Compacted compacted = 27;
     PermissionModeChanged permission_mode_changed = 28;
+    ShowRequested show_requested = 29;
   }
 }
 
@@ -485,6 +486,30 @@ message Compacted {
 
 message PermissionModeChanged {
   PermissionMode mode = 1;
+}
+
+// Emitted when the model calls Show: a frontend viewing the session opens the matching pane (Files, Diff
+// or Browser) and brings the target into view. It only opens; nothing changes. Frontends apply it once,
+// when the session is open: a request for a session that is not open waits until the user opens it.
+// Transcript replays do not emit it (the Show tool call carries the same target).
+message ShowRequested {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // A file: `path`, optionally lines `line_start`..`line_end`.
+    KIND_FILE = 1;
+    // The session diff: optionally scrolled to the file `path`.
+    KIND_DIFF = 2;
+    // A web page: `url` (http or https).
+    KIND_URL = 3;
+  }
+  string tool_use_id = 1;
+  Kind kind = 2;
+  // Absolute path (file, diff).
+  string path = 3;
+  // 1-based, inclusive; 0 when not given. line_end is 0 or >= line_start.
+  int32 line_start = 4;
+  int32 line_end = 5;
+  string url = 6;
 }
 
 message UserMessage {

@@ -167,6 +167,7 @@ func Open(ctx context.Context, o Options) (*Conn, error) {
 	c.srv = server.New(base)
 	c.srv.UserEmail = c.Email
 	c.srv.Logger = log
+	c.srv.NoPanes = true
 
 	// A private socket: short enough for macOS (104 bytes), mode 0600 (set by ServeUnix).
 	c.dir, err = os.MkdirTemp("", "hcli")
