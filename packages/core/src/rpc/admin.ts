@@ -37,6 +37,7 @@ import {
   type Role,
 } from "../services/admin-users.ts";
 import { getModePolicy, setModePolicy, type ModeName } from "../services/mode-policy.ts";
+import { getLocalModelPolicy, setLocalModelPolicy } from "../services/local-models.ts";
 import { deleteProvider, listUserProviders } from "../services/providers.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
@@ -292,6 +293,16 @@ export function registerAdminService(router: ConnectRouter): void {
       const p = await principal(ctx);
       const modes = (req.policy?.disabledModes ?? []).map(modeFromProto);
       return { policy: modePolicyToProto(await setModePolicy(p, modes)) };
+    }),
+
+    getLocalModelPolicy: guard(async (_req, ctx: HandlerContext) => {
+      return { policy: { allowed: await getLocalModelPolicy(await principal(ctx)) } };
+    }),
+
+    setLocalModelPolicy: guard(async (req, ctx: HandlerContext) => {
+      const p = await principal(ctx);
+      if (!req.policy) throw new ApiError("invalid_request", "policy is required");
+      return { policy: { allowed: await setLocalModelPolicy(p, req.policy.allowed) } };
     }),
   });
 }
