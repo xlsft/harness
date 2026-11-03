@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref_[0-9]+$",
+      "description": "Outline only this element and what it contains (a ref from an earlier snapshot)"
+    },
+    "selector": {
+      "type": "string",
+      "description": "Outline only the first element matching this CSS selector"
+    },
+    "max_chars": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 80000,
+      "description": "Longest outline returned, in characters (default 24000)"
+    }
+  },
+  "additionalProperties": false
+}

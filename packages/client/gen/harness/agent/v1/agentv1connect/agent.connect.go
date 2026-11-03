@@ -261,6 +261,24 @@ const (
 	// AgentServiceSetSessionRelayProcedure is the fully-qualified name of the AgentService's
 	// SetSessionRelay RPC.
 	AgentServiceSetSessionRelayProcedure = "/harness.agent.v1.AgentService/SetSessionRelay"
+	// AgentServiceGetBrowserAvailabilityProcedure is the fully-qualified name of the AgentService's
+	// GetBrowserAvailability RPC.
+	AgentServiceGetBrowserAvailabilityProcedure = "/harness.agent.v1.AgentService/GetBrowserAvailability"
+	// AgentServiceInstallBrowserProcedure is the fully-qualified name of the AgentService's
+	// InstallBrowser RPC.
+	AgentServiceInstallBrowserProcedure = "/harness.agent.v1.AgentService/InstallBrowser"
+	// AgentServiceOpenBrowserProcedure is the fully-qualified name of the AgentService's OpenBrowser
+	// RPC.
+	AgentServiceOpenBrowserProcedure = "/harness.agent.v1.AgentService/OpenBrowser"
+	// AgentServiceListBrowserTabsProcedure is the fully-qualified name of the AgentService's
+	// ListBrowserTabs RPC.
+	AgentServiceListBrowserTabsProcedure = "/harness.agent.v1.AgentService/ListBrowserTabs"
+	// AgentServiceCloseBrowserProcedure is the fully-qualified name of the AgentService's CloseBrowser
+	// RPC.
+	AgentServiceCloseBrowserProcedure = "/harness.agent.v1.AgentService/CloseBrowser"
+	// AgentServiceClearBrowserDataProcedure is the fully-qualified name of the AgentService's
+	// ClearBrowserData RPC.
+	AgentServiceClearBrowserDataProcedure = "/harness.agent.v1.AgentService/ClearBrowserData"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -470,6 +488,19 @@ type AgentServiceClient interface {
 	// Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
 	// (SessionInfo.relay_available) or for remote sessions.
 	SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error)
+	// Browser (browser.proto): a headless Chromium per session, shared by the Browser pane and the agent's
+	// Browser* tools, with the live view over a WebSocket authenticated by one-time tickets.
+	// GetBrowserAvailability says which browser would run (or that none is found); InstallBrowser downloads the
+	// pinned Chrome for Testing build with progress.
+	GetBrowserAvailability(context.Context, *connect.Request[v1.GetBrowserAvailabilityRequest]) (*connect.Response[v1.GetBrowserAvailabilityResponse], error)
+	InstallBrowser(context.Context, *connect.Request[v1.InstallBrowserRequest]) (*connect.ServerStreamForClient[v1.InstallBrowserResponse], error)
+	// Starts the session's browser if needed and returns its state and a ticket for the socket.
+	OpenBrowser(context.Context, *connect.Request[v1.OpenBrowserRequest]) (*connect.Response[v1.OpenBrowserResponse], error)
+	ListBrowserTabs(context.Context, *connect.Request[v1.ListBrowserTabsRequest]) (*connect.Response[v1.ListBrowserTabsResponse], error)
+	// Stops the session's browser (the profile stays; tabs come back on the next open).
+	CloseBrowser(context.Context, *connect.Request[v1.CloseBrowserRequest]) (*connect.Response[v1.CloseBrowserResponse], error)
+	// Deletes the cookies, cache and storage of the session's browser profile.
+	ClearBrowserData(context.Context, *connect.Request[v1.ClearBrowserDataRequest]) (*connect.Response[v1.ClearBrowserDataResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -963,91 +994,133 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetSessionRelay")),
 			connect.WithClientOptions(opts...),
 		),
+		getBrowserAvailability: connect.NewClient[v1.GetBrowserAvailabilityRequest, v1.GetBrowserAvailabilityResponse](
+			httpClient,
+			baseURL+AgentServiceGetBrowserAvailabilityProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetBrowserAvailability")),
+			connect.WithClientOptions(opts...),
+		),
+		installBrowser: connect.NewClient[v1.InstallBrowserRequest, v1.InstallBrowserResponse](
+			httpClient,
+			baseURL+AgentServiceInstallBrowserProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("InstallBrowser")),
+			connect.WithClientOptions(opts...),
+		),
+		openBrowser: connect.NewClient[v1.OpenBrowserRequest, v1.OpenBrowserResponse](
+			httpClient,
+			baseURL+AgentServiceOpenBrowserProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("OpenBrowser")),
+			connect.WithClientOptions(opts...),
+		),
+		listBrowserTabs: connect.NewClient[v1.ListBrowserTabsRequest, v1.ListBrowserTabsResponse](
+			httpClient,
+			baseURL+AgentServiceListBrowserTabsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListBrowserTabs")),
+			connect.WithClientOptions(opts...),
+		),
+		closeBrowser: connect.NewClient[v1.CloseBrowserRequest, v1.CloseBrowserResponse](
+			httpClient,
+			baseURL+AgentServiceCloseBrowserProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CloseBrowser")),
+			connect.WithClientOptions(opts...),
+		),
+		clearBrowserData: connect.NewClient[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse](
+			httpClient,
+			baseURL+AgentServiceClearBrowserDataProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ClearBrowserData")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // agentServiceClient implements AgentServiceClient.
 type agentServiceClient struct {
-	initialize            *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
-	createSession         *connect.Client[v1.CreateSessionRequest, v1.CreateSessionResponse]
-	listSessions          *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
-	updateSession         *connect.Client[v1.UpdateSessionRequest, v1.UpdateSessionResponse]
-	deleteSession         *connect.Client[v1.DeleteSessionRequest, v1.DeleteSessionResponse]
-	listRecentFolders     *connect.Client[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse]
-	listDirectory         *connect.Client[v1.ListDirectoryRequest, v1.ListDirectoryResponse]
-	listBranches          *connect.Client[v1.ListBranchesRequest, v1.ListBranchesResponse]
-	subscribe             *connect.Client[v1.SubscribeRequest, v1.SubscribeResponse]
-	sendUserMessage       *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
-	removeQueuedMessage   *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
-	interrupt             *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
-	respondToPermission   *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
-	answerQuestion        *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
-	setModel              *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
-	setEffort             *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
-	setPermissionMode     *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
-	setOutputStyle        *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
-	listOutputStyles      *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
-	suggestFiles          *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
-	respondToPlan         *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
-	listCheckpoints       *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
-	rewind                *connect.Client[v1.RewindRequest, v1.RewindResponse]
-	compact               *connect.Client[v1.CompactRequest, v1.CompactResponse]
-	getContextUsage       *connect.Client[v1.GetContextUsageRequest, v1.GetContextUsageResponse]
-	getUserPreferences    *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
-	updateUserPreferences *connect.Client[v1.UpdateUserPreferencesRequest, v1.UpdateUserPreferencesResponse]
-	listTasks             *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
-	stopTask              *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
-	closeSession          *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
-	getWorkspaceTrust     *connect.Client[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse]
-	setWorkspaceTrust     *connect.Client[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse]
-	createTerminal        *connect.Client[v1.CreateTerminalRequest, v1.CreateTerminalResponse]
-	attachTerminal        *connect.Client[v1.AttachTerminalRequest, v1.AttachTerminalResponse]
-	listTerminals         *connect.Client[v1.ListTerminalsRequest, v1.ListTerminalsResponse]
-	killTerminal          *connect.Client[v1.KillTerminalRequest, v1.KillTerminalResponse]
-	resizeTerminal        *connect.Client[v1.ResizeTerminalRequest, v1.ResizeTerminalResponse]
-	getEnvironment        *connect.Client[v1.GetEnvironmentRequest, v1.GetEnvironmentResponse]
-	updateEnvironment     *connect.Client[v1.UpdateEnvironmentRequest, v1.UpdateEnvironmentResponse]
-	getFolderInfo         *connect.Client[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse]
-	setSessionFolder      *connect.Client[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse]
-	addSessionDirectory   *connect.Client[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse]
-	listFileRoots         *connect.Client[v1.ListFileRootsRequest, v1.ListFileRootsResponse]
-	listFiles             *connect.Client[v1.ListFilesRequest, v1.ListFilesResponse]
-	readFile              *connect.Client[v1.ReadFileRequest, v1.ReadFileResponse]
-	getGitStatus          *connect.Client[v1.GetGitStatusRequest, v1.GetGitStatusResponse]
-	runShellCommand       *connect.Client[v1.RunShellCommandRequest, v1.RunShellCommandResponse]
-	stopShellCommand      *connect.Client[v1.StopShellCommandRequest, v1.StopShellCommandResponse]
-	listSideChats         *connect.Client[v1.ListSideChatsRequest, v1.ListSideChatsResponse]
-	createSideChat        *connect.Client[v1.CreateSideChatRequest, v1.CreateSideChatResponse]
-	getSideChat           *connect.Client[v1.GetSideChatRequest, v1.GetSideChatResponse]
-	updateSideChat        *connect.Client[v1.UpdateSideChatRequest, v1.UpdateSideChatResponse]
-	deleteSideChat        *connect.Client[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse]
-	askSideChat           *connect.Client[v1.AskSideChatRequest, v1.AskSideChatResponse]
-	stopSideChat          *connect.Client[v1.StopSideChatRequest, v1.StopSideChatResponse]
-	listSpeechProviders   *connect.Client[v1.ListSpeechProvidersRequest, v1.ListSpeechProvidersResponse]
-	listSpeechVoices      *connect.Client[v1.ListSpeechVoicesRequest, v1.ListSpeechVoicesResponse]
-	getSpeechSettings     *connect.Client[v1.GetSpeechSettingsRequest, v1.GetSpeechSettingsResponse]
-	updateSpeechSettings  *connect.Client[v1.UpdateSpeechSettingsRequest, v1.UpdateSpeechSettingsResponse]
-	transcribeAudio       *connect.Client[v1.TranscribeAudioRequest, v1.TranscribeAudioResponse]
-	synthesizeSpeech      *connect.Client[v1.SynthesizeSpeechRequest, v1.SynthesizeSpeechResponse]
-	listLocalSpeechModels *connect.Client[v1.ListLocalSpeechModelsRequest, v1.ListLocalSpeechModelsResponse]
-	downloadSpeechModel   *connect.Client[v1.DownloadSpeechModelRequest, v1.DownloadSpeechModelResponse]
-	deleteSpeechModel     *connect.Client[v1.DeleteSpeechModelRequest, v1.DeleteSpeechModelResponse]
-	listLocalProviders    *connect.Client[v1.ListLocalProvidersRequest, v1.ListLocalProvidersResponse]
-	addLocalProvider      *connect.Client[v1.AddLocalProviderRequest, v1.AddLocalProviderResponse]
-	updateLocalProvider   *connect.Client[v1.UpdateLocalProviderRequest, v1.UpdateLocalProviderResponse]
-	removeLocalProvider   *connect.Client[v1.RemoveLocalProviderRequest, v1.RemoveLocalProviderResponse]
-	refreshLocalProviders *connect.Client[v1.RefreshLocalProvidersRequest, v1.RefreshLocalProvidersResponse]
-	pullOllamaModel       *connect.Client[v1.PullOllamaModelRequest, v1.PullOllamaModelResponse]
-	deleteOllamaModel     *connect.Client[v1.DeleteOllamaModelRequest, v1.DeleteOllamaModelResponse]
-	getProviderLimits     *connect.Client[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse]
-	backgroundToolCall    *connect.Client[v1.BackgroundToolCallRequest, v1.BackgroundToolCallResponse]
-	listAcpAgents         *connect.Client[v1.ListAcpAgentsRequest, v1.ListAcpAgentsResponse]
-	installAcpAgent       *connect.Client[v1.InstallAcpAgentRequest, v1.InstallAcpAgentResponse]
-	updateAcpAgent        *connect.Client[v1.UpdateAcpAgentRequest, v1.UpdateAcpAgentResponse]
-	uninstallAcpAgent     *connect.Client[v1.UninstallAcpAgentRequest, v1.UninstallAcpAgentResponse]
-	authenticateAcpAgent  *connect.Client[v1.AuthenticateAcpAgentRequest, v1.AuthenticateAcpAgentResponse]
-	setAcpMode            *connect.Client[v1.SetAcpModeRequest, v1.SetAcpModeResponse]
-	setSessionRelay       *connect.Client[v1.SetSessionRelayRequest, v1.SetSessionRelayResponse]
+	initialize             *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
+	createSession          *connect.Client[v1.CreateSessionRequest, v1.CreateSessionResponse]
+	listSessions           *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	updateSession          *connect.Client[v1.UpdateSessionRequest, v1.UpdateSessionResponse]
+	deleteSession          *connect.Client[v1.DeleteSessionRequest, v1.DeleteSessionResponse]
+	listRecentFolders      *connect.Client[v1.ListRecentFoldersRequest, v1.ListRecentFoldersResponse]
+	listDirectory          *connect.Client[v1.ListDirectoryRequest, v1.ListDirectoryResponse]
+	listBranches           *connect.Client[v1.ListBranchesRequest, v1.ListBranchesResponse]
+	subscribe              *connect.Client[v1.SubscribeRequest, v1.SubscribeResponse]
+	sendUserMessage        *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
+	removeQueuedMessage    *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
+	interrupt              *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
+	respondToPermission    *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
+	answerQuestion         *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
+	setModel               *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
+	setEffort              *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
+	setPermissionMode      *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
+	setOutputStyle         *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
+	listOutputStyles       *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
+	suggestFiles           *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
+	respondToPlan          *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
+	listCheckpoints        *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
+	rewind                 *connect.Client[v1.RewindRequest, v1.RewindResponse]
+	compact                *connect.Client[v1.CompactRequest, v1.CompactResponse]
+	getContextUsage        *connect.Client[v1.GetContextUsageRequest, v1.GetContextUsageResponse]
+	getUserPreferences     *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
+	updateUserPreferences  *connect.Client[v1.UpdateUserPreferencesRequest, v1.UpdateUserPreferencesResponse]
+	listTasks              *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	stopTask               *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
+	closeSession           *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
+	getWorkspaceTrust      *connect.Client[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse]
+	setWorkspaceTrust      *connect.Client[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse]
+	createTerminal         *connect.Client[v1.CreateTerminalRequest, v1.CreateTerminalResponse]
+	attachTerminal         *connect.Client[v1.AttachTerminalRequest, v1.AttachTerminalResponse]
+	listTerminals          *connect.Client[v1.ListTerminalsRequest, v1.ListTerminalsResponse]
+	killTerminal           *connect.Client[v1.KillTerminalRequest, v1.KillTerminalResponse]
+	resizeTerminal         *connect.Client[v1.ResizeTerminalRequest, v1.ResizeTerminalResponse]
+	getEnvironment         *connect.Client[v1.GetEnvironmentRequest, v1.GetEnvironmentResponse]
+	updateEnvironment      *connect.Client[v1.UpdateEnvironmentRequest, v1.UpdateEnvironmentResponse]
+	getFolderInfo          *connect.Client[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse]
+	setSessionFolder       *connect.Client[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse]
+	addSessionDirectory    *connect.Client[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse]
+	listFileRoots          *connect.Client[v1.ListFileRootsRequest, v1.ListFileRootsResponse]
+	listFiles              *connect.Client[v1.ListFilesRequest, v1.ListFilesResponse]
+	readFile               *connect.Client[v1.ReadFileRequest, v1.ReadFileResponse]
+	getGitStatus           *connect.Client[v1.GetGitStatusRequest, v1.GetGitStatusResponse]
+	runShellCommand        *connect.Client[v1.RunShellCommandRequest, v1.RunShellCommandResponse]
+	stopShellCommand       *connect.Client[v1.StopShellCommandRequest, v1.StopShellCommandResponse]
+	listSideChats          *connect.Client[v1.ListSideChatsRequest, v1.ListSideChatsResponse]
+	createSideChat         *connect.Client[v1.CreateSideChatRequest, v1.CreateSideChatResponse]
+	getSideChat            *connect.Client[v1.GetSideChatRequest, v1.GetSideChatResponse]
+	updateSideChat         *connect.Client[v1.UpdateSideChatRequest, v1.UpdateSideChatResponse]
+	deleteSideChat         *connect.Client[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse]
+	askSideChat            *connect.Client[v1.AskSideChatRequest, v1.AskSideChatResponse]
+	stopSideChat           *connect.Client[v1.StopSideChatRequest, v1.StopSideChatResponse]
+	listSpeechProviders    *connect.Client[v1.ListSpeechProvidersRequest, v1.ListSpeechProvidersResponse]
+	listSpeechVoices       *connect.Client[v1.ListSpeechVoicesRequest, v1.ListSpeechVoicesResponse]
+	getSpeechSettings      *connect.Client[v1.GetSpeechSettingsRequest, v1.GetSpeechSettingsResponse]
+	updateSpeechSettings   *connect.Client[v1.UpdateSpeechSettingsRequest, v1.UpdateSpeechSettingsResponse]
+	transcribeAudio        *connect.Client[v1.TranscribeAudioRequest, v1.TranscribeAudioResponse]
+	synthesizeSpeech       *connect.Client[v1.SynthesizeSpeechRequest, v1.SynthesizeSpeechResponse]
+	listLocalSpeechModels  *connect.Client[v1.ListLocalSpeechModelsRequest, v1.ListLocalSpeechModelsResponse]
+	downloadSpeechModel    *connect.Client[v1.DownloadSpeechModelRequest, v1.DownloadSpeechModelResponse]
+	deleteSpeechModel      *connect.Client[v1.DeleteSpeechModelRequest, v1.DeleteSpeechModelResponse]
+	listLocalProviders     *connect.Client[v1.ListLocalProvidersRequest, v1.ListLocalProvidersResponse]
+	addLocalProvider       *connect.Client[v1.AddLocalProviderRequest, v1.AddLocalProviderResponse]
+	updateLocalProvider    *connect.Client[v1.UpdateLocalProviderRequest, v1.UpdateLocalProviderResponse]
+	removeLocalProvider    *connect.Client[v1.RemoveLocalProviderRequest, v1.RemoveLocalProviderResponse]
+	refreshLocalProviders  *connect.Client[v1.RefreshLocalProvidersRequest, v1.RefreshLocalProvidersResponse]
+	pullOllamaModel        *connect.Client[v1.PullOllamaModelRequest, v1.PullOllamaModelResponse]
+	deleteOllamaModel      *connect.Client[v1.DeleteOllamaModelRequest, v1.DeleteOllamaModelResponse]
+	getProviderLimits      *connect.Client[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse]
+	backgroundToolCall     *connect.Client[v1.BackgroundToolCallRequest, v1.BackgroundToolCallResponse]
+	listAcpAgents          *connect.Client[v1.ListAcpAgentsRequest, v1.ListAcpAgentsResponse]
+	installAcpAgent        *connect.Client[v1.InstallAcpAgentRequest, v1.InstallAcpAgentResponse]
+	updateAcpAgent         *connect.Client[v1.UpdateAcpAgentRequest, v1.UpdateAcpAgentResponse]
+	uninstallAcpAgent      *connect.Client[v1.UninstallAcpAgentRequest, v1.UninstallAcpAgentResponse]
+	authenticateAcpAgent   *connect.Client[v1.AuthenticateAcpAgentRequest, v1.AuthenticateAcpAgentResponse]
+	setAcpMode             *connect.Client[v1.SetAcpModeRequest, v1.SetAcpModeResponse]
+	setSessionRelay        *connect.Client[v1.SetSessionRelayRequest, v1.SetSessionRelayResponse]
+	getBrowserAvailability *connect.Client[v1.GetBrowserAvailabilityRequest, v1.GetBrowserAvailabilityResponse]
+	installBrowser         *connect.Client[v1.InstallBrowserRequest, v1.InstallBrowserResponse]
+	openBrowser            *connect.Client[v1.OpenBrowserRequest, v1.OpenBrowserResponse]
+	listBrowserTabs        *connect.Client[v1.ListBrowserTabsRequest, v1.ListBrowserTabsResponse]
+	closeBrowser           *connect.Client[v1.CloseBrowserRequest, v1.CloseBrowserResponse]
+	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1450,6 +1523,36 @@ func (c *agentServiceClient) SetSessionRelay(ctx context.Context, req *connect.R
 	return c.setSessionRelay.CallUnary(ctx, req)
 }
 
+// GetBrowserAvailability calls harness.agent.v1.AgentService.GetBrowserAvailability.
+func (c *agentServiceClient) GetBrowserAvailability(ctx context.Context, req *connect.Request[v1.GetBrowserAvailabilityRequest]) (*connect.Response[v1.GetBrowserAvailabilityResponse], error) {
+	return c.getBrowserAvailability.CallUnary(ctx, req)
+}
+
+// InstallBrowser calls harness.agent.v1.AgentService.InstallBrowser.
+func (c *agentServiceClient) InstallBrowser(ctx context.Context, req *connect.Request[v1.InstallBrowserRequest]) (*connect.ServerStreamForClient[v1.InstallBrowserResponse], error) {
+	return c.installBrowser.CallServerStream(ctx, req)
+}
+
+// OpenBrowser calls harness.agent.v1.AgentService.OpenBrowser.
+func (c *agentServiceClient) OpenBrowser(ctx context.Context, req *connect.Request[v1.OpenBrowserRequest]) (*connect.Response[v1.OpenBrowserResponse], error) {
+	return c.openBrowser.CallUnary(ctx, req)
+}
+
+// ListBrowserTabs calls harness.agent.v1.AgentService.ListBrowserTabs.
+func (c *agentServiceClient) ListBrowserTabs(ctx context.Context, req *connect.Request[v1.ListBrowserTabsRequest]) (*connect.Response[v1.ListBrowserTabsResponse], error) {
+	return c.listBrowserTabs.CallUnary(ctx, req)
+}
+
+// CloseBrowser calls harness.agent.v1.AgentService.CloseBrowser.
+func (c *agentServiceClient) CloseBrowser(ctx context.Context, req *connect.Request[v1.CloseBrowserRequest]) (*connect.Response[v1.CloseBrowserResponse], error) {
+	return c.closeBrowser.CallUnary(ctx, req)
+}
+
+// ClearBrowserData calls harness.agent.v1.AgentService.ClearBrowserData.
+func (c *agentServiceClient) ClearBrowserData(ctx context.Context, req *connect.Request[v1.ClearBrowserDataRequest]) (*connect.Response[v1.ClearBrowserDataResponse], error) {
+	return c.clearBrowserData.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1657,6 +1760,19 @@ type AgentServiceHandler interface {
 	// Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
 	// (SessionInfo.relay_available) or for remote sessions.
 	SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error)
+	// Browser (browser.proto): a headless Chromium per session, shared by the Browser pane and the agent's
+	// Browser* tools, with the live view over a WebSocket authenticated by one-time tickets.
+	// GetBrowserAvailability says which browser would run (or that none is found); InstallBrowser downloads the
+	// pinned Chrome for Testing build with progress.
+	GetBrowserAvailability(context.Context, *connect.Request[v1.GetBrowserAvailabilityRequest]) (*connect.Response[v1.GetBrowserAvailabilityResponse], error)
+	InstallBrowser(context.Context, *connect.Request[v1.InstallBrowserRequest], *connect.ServerStream[v1.InstallBrowserResponse]) error
+	// Starts the session's browser if needed and returns its state and a ticket for the socket.
+	OpenBrowser(context.Context, *connect.Request[v1.OpenBrowserRequest]) (*connect.Response[v1.OpenBrowserResponse], error)
+	ListBrowserTabs(context.Context, *connect.Request[v1.ListBrowserTabsRequest]) (*connect.Response[v1.ListBrowserTabsResponse], error)
+	// Stops the session's browser (the profile stays; tabs come back on the next open).
+	CloseBrowser(context.Context, *connect.Request[v1.CloseBrowserRequest]) (*connect.Response[v1.CloseBrowserResponse], error)
+	// Deletes the cookies, cache and storage of the session's browser profile.
+	ClearBrowserData(context.Context, *connect.Request[v1.ClearBrowserDataRequest]) (*connect.Response[v1.ClearBrowserDataResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2146,6 +2262,42 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetSessionRelay")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetBrowserAvailabilityHandler := connect.NewUnaryHandler(
+		AgentServiceGetBrowserAvailabilityProcedure,
+		svc.GetBrowserAvailability,
+		connect.WithSchema(agentServiceMethods.ByName("GetBrowserAvailability")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceInstallBrowserHandler := connect.NewServerStreamHandler(
+		AgentServiceInstallBrowserProcedure,
+		svc.InstallBrowser,
+		connect.WithSchema(agentServiceMethods.ByName("InstallBrowser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceOpenBrowserHandler := connect.NewUnaryHandler(
+		AgentServiceOpenBrowserProcedure,
+		svc.OpenBrowser,
+		connect.WithSchema(agentServiceMethods.ByName("OpenBrowser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListBrowserTabsHandler := connect.NewUnaryHandler(
+		AgentServiceListBrowserTabsProcedure,
+		svc.ListBrowserTabs,
+		connect.WithSchema(agentServiceMethods.ByName("ListBrowserTabs")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCloseBrowserHandler := connect.NewUnaryHandler(
+		AgentServiceCloseBrowserProcedure,
+		svc.CloseBrowser,
+		connect.WithSchema(agentServiceMethods.ByName("CloseBrowser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceClearBrowserDataHandler := connect.NewUnaryHandler(
+		AgentServiceClearBrowserDataProcedure,
+		svc.ClearBrowserData,
+		connect.WithSchema(agentServiceMethods.ByName("ClearBrowserData")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2308,6 +2460,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetAcpModeHandler.ServeHTTP(w, r)
 		case AgentServiceSetSessionRelayProcedure:
 			agentServiceSetSessionRelayHandler.ServeHTTP(w, r)
+		case AgentServiceGetBrowserAvailabilityProcedure:
+			agentServiceGetBrowserAvailabilityHandler.ServeHTTP(w, r)
+		case AgentServiceInstallBrowserProcedure:
+			agentServiceInstallBrowserHandler.ServeHTTP(w, r)
+		case AgentServiceOpenBrowserProcedure:
+			agentServiceOpenBrowserHandler.ServeHTTP(w, r)
+		case AgentServiceListBrowserTabsProcedure:
+			agentServiceListBrowserTabsHandler.ServeHTTP(w, r)
+		case AgentServiceCloseBrowserProcedure:
+			agentServiceCloseBrowserHandler.ServeHTTP(w, r)
+		case AgentServiceClearBrowserDataProcedure:
+			agentServiceClearBrowserDataHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2635,4 +2799,28 @@ func (UnimplementedAgentServiceHandler) SetAcpMode(context.Context, *connect.Req
 
 func (UnimplementedAgentServiceHandler) SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetSessionRelay is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetBrowserAvailability(context.Context, *connect.Request[v1.GetBrowserAvailabilityRequest]) (*connect.Response[v1.GetBrowserAvailabilityResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetBrowserAvailability is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) InstallBrowser(context.Context, *connect.Request[v1.InstallBrowserRequest], *connect.ServerStream[v1.InstallBrowserResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.InstallBrowser is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) OpenBrowser(context.Context, *connect.Request[v1.OpenBrowserRequest]) (*connect.Response[v1.OpenBrowserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.OpenBrowser is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListBrowserTabs(context.Context, *connect.Request[v1.ListBrowserTabsRequest]) (*connect.Response[v1.ListBrowserTabsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListBrowserTabs is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CloseBrowser(context.Context, *connect.Request[v1.CloseBrowserRequest]) (*connect.Response[v1.CloseBrowserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CloseBrowser is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ClearBrowserData(context.Context, *connect.Request[v1.ClearBrowserDataRequest]) (*connect.Response[v1.ClearBrowserDataResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ClearBrowserData is not implemented"))
 }

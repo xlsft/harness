@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "full_page": {
+      "type": "boolean",
+      "description": "Capture the whole page instead of the viewport"
+    },
+    "ref": {
+      "type": "string",
+      "pattern": "^ref_[0-9]+$",
+      "description": "Capture only this element, from BrowserSnapshot"
+    }
+  },
+  "additionalProperties": false
+}

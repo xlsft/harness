@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.agent.v1;
 
 import "harness/agent/v1/acp.proto";
+import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
@@ -242,6 +243,20 @@ service AgentService {
   // Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
   // (SessionInfo.relay_available) or for remote sessions.
   rpc SetSessionRelay(SetSessionRelayRequest) returns (SetSessionRelayResponse);
+
+  // Browser (browser.proto): a headless Chromium per session, shared by the Browser pane and the agent's
+  // Browser* tools, with the live view over a WebSocket authenticated by one-time tickets.
+  // GetBrowserAvailability says which browser would run (or that none is found); InstallBrowser downloads the
+  // pinned Chrome for Testing build with progress.
+  rpc GetBrowserAvailability(GetBrowserAvailabilityRequest) returns (GetBrowserAvailabilityResponse);
+  rpc InstallBrowser(InstallBrowserRequest) returns (stream InstallBrowserResponse);
+  // Starts the session's browser if needed and returns its state and a ticket for the socket.
+  rpc OpenBrowser(OpenBrowserRequest) returns (OpenBrowserResponse);
+  rpc ListBrowserTabs(ListBrowserTabsRequest) returns (ListBrowserTabsResponse);
+  // Stops the session's browser (the profile stays; tabs come back on the next open).
+  rpc CloseBrowser(CloseBrowserRequest) returns (CloseBrowserResponse);
+  // Deletes the cookies, cache and storage of the session's browser profile.
+  rpc ClearBrowserData(ClearBrowserDataRequest) returns (ClearBrowserDataResponse);
 }
 
 enum PermissionMode {
@@ -609,6 +624,9 @@ message SessionEvent {
     UserShellOutput user_shell_output = 51;
     UserShellFinished user_shell_finished = 52;
     ToolTitle tool_title = 53;
+    // The agent acting in the session's browser (browser.proto), for the Browser pane's overlay; numbered
+    // apart like the shell events.
+    BrowserAction browser_action = 60;
   }
 }
 

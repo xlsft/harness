@@ -1,0 +1,202 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Browser: a real Chromium per session on the client's machine, shared by the user (the UI's Browser pane) and
+// the agent (the Browser* tools).
+//
+// The browser is headless and driven over the Chrome DevTools Protocol. It uses an installed Chrome, Chromium,
+// Edge or Brave (or HARNESS_BROWSER), else a pinned Chrome for Testing build downloaded on demand into
+// HARNESS_HOME/browser (InstallBrowser). Each session has its own profile under HARNESS_HOME/browser/profiles, so
+// cookies and storage persist while the session lives (ClearBrowserData wipes them). The browser starts lazily
+// (OpenBrowser, or the agent's first browser tool call) and stops with the session, on CloseBrowser, or after
+// a while with neither viewers nor tool calls; the open tabs' URLs come back when it starts again.
+//
+// The RPCs here (on AgentService) manage the browser; the live view goes over a WebSocket on the same HTTP server:
+// GET /harness.agent.v1.Browser/socket, authenticated with a one-time ticket from OpenBrowser (the
+// Sec-WebSocket-Protocol entry "ticket.<ticket>" next to "harness-browser.v1", or the `ticket` query parameter).
+//
+// Server → UI:
+//   binary frames: a screencast frame of the active tab:
+//       [uint32 big-endian header length][header JSON][JPEG bytes]
+//     header: {"tab":"t1","seq":12,"width":1280,"height":800,"scale":1,"scrollX":0,"scrollY":0,"ts":1730000000.5}
+//     width/height are the page viewport in CSS px; the image may be smaller or larger (scale = image px per CSS px).
+//   text frames (JSON):
+//     {"type":"state","state":<BrowserState as JSON, proto3 JSON names>}   on connect and on every change
+//     {"type":"action","action":<BrowserAction as JSON>}                    the agent acts (overlay)
+//     {"type":"error","message":"..."}                                     a command failed
+//     {"type":"closed","reason":"..."}                                     the browser stopped; the socket closes
+// UI → server (text frames, JSON):
+//     {"type":"navigate","url":"https://..."}  {"type":"back"}  {"type":"forward"}  {"type":"reload"}  {"type":"stop"}
+//     {"type":"newTab","url":"..."}  {"type":"closeTab","tab":"t2"}  {"type":"switchTab","tab":"t2"}
+//     {"type":"viewport","preset":"desktop"|"tablet"|"mobile"|"custom","width":800,"height":600}
+//     {"type":"mouse","event":"move"|"down"|"up"|"wheel","x":10,"y":20,"button":"left"|"middle"|"right"|"none",
+//      "clickCount":1,"deltaX":0,"deltaY":120,"modifiers":0}      coordinates in page CSS px of the active tab
+//     {"type":"key","event":"down"|"up"|"char","key":"a","code":"KeyA","text":"a","keyCode":65,"modifiers":0}
+//     {"type":"paste","text":"..."}
+//     {"type":"takeover","on":true}   the user takes the browser over: the agent's action tools fail until "on":false
+//   modifiers is a bit mask: 1 Alt, 2 Ctrl, 4 Meta, 8 Shift (as in CDP Input.dispatch*).
+//
+// Several viewers may watch one browser; frames are dropped for a viewer that falls behind (the JPEG quality
+// adapts). Sessions of other machines (SessionInfo.remote) and ACP sessions have no browser here:
+// FAILED_PRECONDITION. No browser available: FAILED_PRECONDITION (call InstallBrowser).
+
+message BrowserViewport {
+  enum Preset {
+    PRESET_UNSPECIFIED = 0;
+    // 1280 × 800, no emulation.
+    PRESET_DESKTOP = 1;
+    // 768 × 1024 at 2x, touch, mobile.
+    PRESET_TABLET = 2;
+    // 375 × 812 at 3x, touch, mobile user agent.
+    PRESET_MOBILE = 3;
+    // width × height, desktop.
+    PRESET_CUSTOM = 4;
+  }
+  Preset preset = 1;
+  // CSS px.
+  uint32 width = 2;
+  uint32 height = 3;
+  double device_scale_factor = 4;
+  bool mobile = 5;
+  bool touch = 6;
+}
+
+message BrowserTab {
+  // Short and stable while the browser runs: "t1", "t2", ...
+  string tab_id = 1;
+  string url = 2;
+  string title = 3;
+  bool loading = 4;
+  // The page's icon (absolute URL), empty when unknown.
+  string favicon_url = 5;
+  // Console errors and uncaught exceptions since the page loaded.
+  int32 console_errors = 6;
+  bool can_go_back = 7;
+  bool can_go_forward = 8;
+  bool active = 9;
+}
+
+message BrowserState {
+  string session_id = 1;
+  // Whether the browser process runs (a stopped browser starts again on OpenBrowser or a tool call).
+  bool running = 2;
+  // Open order.
+  repeated BrowserTab tabs = 3;
+  string active_tab_id = 4;
+  BrowserViewport viewport = 5;
+  // Sites (host names) the agent may use in this session without asking again (approved this session; rules
+  // in settings are not listed).
+  repeated string allowed_sites = 6;
+  // The user took the browser over ({"type":"takeover"}): the agent's action tools fail meanwhile.
+  bool taken_over = 7;
+}
+
+// What the agent is doing in the browser: one STARTED and one FINISHED per browser tool call, for the pane's
+// overlay ("step 3 of 5 · click · Add provider"). Also a SessionEvent (browser_action) and a socket message.
+message BrowserAction {
+  enum Phase {
+    PHASE_UNSPECIFIED = 0;
+    PHASE_STARTED = 1;
+    PHASE_FINISHED = 2;
+  }
+  string tool_use_id = 1;
+  Phase phase = 2;
+  // navigate, back, forward, reload, click, type, key, scroll, snapshot, screenshot, eval, tabs, console,
+  // network, wait.
+  string kind = 3;
+  string tab_id = 4;
+  // The element ref ("ref_12") the action targets, when it targets one.
+  string ref = 5;
+  // Where it acts, in page CSS px (click, scroll at a point); unset when it acts on no point.
+  optional double x = 6;
+  optional double y = 7;
+  // The target element's box in page CSS px (x, y, width, height), when known.
+  repeated double rect = 8;
+  // Human label: the element's name ("Add provider"), the URL, the keys.
+  string label = 9;
+  // FINISHED only: the error, empty on success.
+  string error = 10;
+  // The tab's URL when the action started.
+  string url = 11;
+}
+
+message BrowserAvailability {
+  enum Source {
+    SOURCE_UNSPECIFIED = 0;
+    // HARNESS_BROWSER names the executable.
+    SOURCE_ENV = 1;
+    // An installed Chrome, Chromium, Edge or Brave.
+    SOURCE_SYSTEM = 2;
+    // The Chrome for Testing build in HARNESS_HOME/browser.
+    SOURCE_DOWNLOADED = 3;
+  }
+  bool available = 1;
+  string executable = 2;
+  // "Google Chrome", "Chromium", "Microsoft Edge", "Brave", "Chrome for Testing".
+  string product = 3;
+  Source source = 4;
+  // Whether InstallBrowser can download a build for this platform.
+  bool downloadable = 5;
+  // The pinned Chrome for Testing version InstallBrowser downloads.
+  string download_version = 6;
+  // Whether that build is already in HARNESS_HOME/browser.
+  bool downloaded = 7;
+  // Set while a download runs.
+  bool downloading = 8;
+}
+
+message GetBrowserAvailabilityRequest {}
+
+message GetBrowserAvailabilityResponse {
+  BrowserAvailability availability = 1;
+}
+
+message InstallBrowserRequest {}
+
+// Progress, then a last message with done (and the availability). The download belongs to the client: it
+// continues when the stream goes away.
+message InstallBrowserResponse {
+  int64 downloaded_bytes = 1;
+  // 0 when unknown.
+  int64 total_bytes = 2;
+  bool done = 3;
+  BrowserAvailability availability = 4;
+}
+
+message OpenBrowserRequest {
+  // A live harness session of this machine.
+  string session_id = 1;
+  // Opens this URL in a new tab when set (http, https or file).
+  string url = 2;
+  // Applies this viewport when set.
+  optional BrowserViewport viewport = 3;
+}
+
+message OpenBrowserResponse {
+  BrowserState state = 1;
+  // One-time ticket for the WebSocket, valid for a short time (see the file comment).
+  string ticket = 2;
+}
+
+message ListBrowserTabsRequest {
+  string session_id = 1;
+}
+
+message ListBrowserTabsResponse {
+  // Empty when the browser does not run (state.running false).
+  BrowserState state = 1;
+}
+
+message CloseBrowserRequest {
+  string session_id = 1;
+}
+
+message CloseBrowserResponse {}
+
+message ClearBrowserDataRequest {
+  string session_id = 1;
+}
+
+// Cookies, cache and site storage of the session's profile are gone (the browser keeps running when it ran).
+message ClearBrowserDataResponse {}

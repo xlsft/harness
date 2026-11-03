@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/xlsft/harness/packages/client/browser"
 	"log/slog"
 	"net"
 	"net/http"
@@ -106,6 +107,9 @@ type Server struct {
 	// terms are the client's terminals (terminals.go); termOnce creates the manager.
 	termOnce sync.Once
 	terms    *terminal.Manager
+	// Browsers runs the sessions' browsers (browsers.go); nil: created on first use under HARNESS_HOME/browser.
+	Browsers    *browser.Manager
+	browserOnce sync.Once
 
 	// sides tracks the running side chat answers (sidechats.go).
 	sides sideChatRuns
@@ -160,6 +164,7 @@ func (s *Server) Close() {
 	}
 	s.closeAcp()
 	s.terminals().Close()
+	s.browsers().Close()
 }
 
 // ServeUnix serves AgentService over h2c on a unix socket until ctx ends.
@@ -185,6 +190,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	mux := s.mux()
 	// No browser reaches a socket listener: any Origin is refused.
 	s.registerTerminalSocket(mux, nil)
+	s.registerBrowserSocket(mux, nil)
 	return s.serveHandler(ctx, ln, mux)
 }
 
@@ -353,6 +359,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		opts.Resume, opts.Fork = id, false
 	}
 	ls := newLiveSession(s)
+	if opts.Browser == nil {
+		opts.Browser = s.browsers()
+	}
 	opts.OnEvent = ls.onEvent
 	opts.Logger = s.log()
 	sess, err := bootstrap.Open(ctx, opts)

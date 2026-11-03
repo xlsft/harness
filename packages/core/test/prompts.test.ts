@@ -21,7 +21,9 @@ describe("bundle builder", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
-      "AskUserQuestion", "Bash", "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
+      "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
+      "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
+      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -120,6 +122,16 @@ describe("bundle builder", () => {
     expect((b.tools.Show!.input_schema.properties as any).target.enum).toEqual(["file", "diff", "url"]);
     expect(b.tools.Show!.description).toMatch(/http and https/);
     expect(props("Visual")).toEqual(["id", "title", "html"]);
+    expect(props("BrowserNavigate")).toEqual(["url", "action"]);
+    expect(props("BrowserClick")).toEqual(["ref", "x", "y", "button", "double", "modifiers"]);
+    expect(props("BrowserType")).toEqual(["ref", "text", "clear", "submit"]);
+    expect(b.tools.BrowserType!.input_schema.required).toEqual(["text"]);
+    expect(props("BrowserWait")).toEqual(["text", "text_gone", "selector", "url", "navigation", "timeout"]);
+    for (const n of Object.keys(b.tools).filter((n) => n.startsWith("Browser"))) {
+      // Page content is untrusted; every browser tool that returns it says so.
+      if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
+    }
+    expect(b.tools.BrowserType!.description).toMatch(/password/);
     expect(b.tools.Visual!.description).toMatch(/harness\.send/);
     expect(props("TaskOutput")).toEqual(["task_id", "offset", "block", "pattern", "timeout"]);
     expect(b.tools.TaskOutput!.input_schema.required).toEqual(["task_id"]);

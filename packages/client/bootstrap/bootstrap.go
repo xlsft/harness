@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/xlsft/harness/packages/client/browser"
 	"log/slog"
 	"net/http"
 	"os"
@@ -127,6 +128,9 @@ type Options struct {
 	// HARNESS_NO_MCP=1) disables MCP servers.
 	MCP   *mcp.Client
 	NoMCP bool
+	// Browser, when set, gives the session a browser (the Browser* tools; HARNESS_NO_BROWSER=1 leaves them out).
+	// The session's browser stops when the session closes.
+	Browser *browser.Manager
 
 	OnEvent func(agent.Event)
 	Logger  *slog.Logger
@@ -176,6 +180,7 @@ type Session struct {
 	stopSync  context.CancelFunc
 	stopVCS   context.CancelFunc
 	styleOpts outputstyle.Options
+	browsers  *browser.Manager
 }
 
 // Close kills background tasks, closes the transcript and flushes the transcript upload.
@@ -184,6 +189,9 @@ func (s *Session) Close() error {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
 	}
 	s.MCP.Close()
+	if s.browsers != nil {
+		s.browsers.CloseSession(s.ID)
+	}
 	var err error
 	if s.Transcript != nil {
 		err = s.Transcript.Close()
@@ -213,6 +221,9 @@ func (s *Session) ToolNames() []string {
 		}
 	}
 	for _, d := range s.MCP.ToolDefs() {
+		out = append(out, d.Name)
+	}
+	for _, d := range s.browserFallbackDefs() {
 		out = append(out, d.Name)
 	}
 	return out
@@ -477,6 +488,12 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	s.registerWebTools(o)
+	useBrowser := o.Browser != nil && os.Getenv("HARNESS_NO_BROWSER") != "1"
+	if useBrowser {
+		for _, t := range o.Browser.Tools() {
+			s.Tools.Register(t)
+		}
+	}
 
 	// Permissions.
 	trusted := s.Trusted
@@ -495,6 +512,12 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		DisabledModes: disabledModes, Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
 		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
 	})
+	if useBrowser {
+		if b, err := o.Browser.Session(s.ID); err == nil {
+			b.SetSites(s.Permissions.AllowedSites)
+			s.browsers = o.Browser
+		}
+	}
 	if chosenMode != "" && s.Permissions.Mode() != chosenMode {
 		msg := fmt.Sprintf("permission mode %q is disabled; the session starts in %q mode", chosenMode, s.Permissions.Mode())
 		log.Warn(msg)
@@ -565,7 +588,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		RefreshBundle:   func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
 		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
 		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
-		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.mcpExtraTools(),
+		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
 		OnEvent:               onEvent, Logger: log,
 	})

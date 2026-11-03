@@ -96,6 +96,12 @@ type Request struct {
 	// rules apply, allow rules and permissive modes do not, and the auto-mode
 	// Decider is never consulted.
 	AlwaysAsk bool
+	// URL is the page a browser tool acts on or loads (tools.PermissionHints; "" for other tools or no page).
+	URL string
+	// Sensitive, when set, says why only the user may approve this call (a browser tool typing into a password
+	// or payment field): deny rules apply, allow rules, permissive modes and the auto-mode Decider do not, and
+	// no "always allow" rule is offered.
+	Sensitive string
 
 	// Intent context for the auto-mode Decider (filled by the agent loop):
 	// the session id, the latest user prompts (newest last) and the
@@ -215,6 +221,8 @@ type Engine struct {
 	asker         Asker
 	onMode        func(Mode)
 	netGuard      *netguard.Guard
+	// sites are the hosts the user approved for the browser tools in this session (browser.go).
+	sites map[string]bool
 }
 
 // New builds an engine from cfg.
@@ -555,6 +563,9 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 		ad.ResolvedBy = "user"
 	}
 	ad.Auto = auto
+	if ad.Behavior == Allow && req.Sensitive == "" {
+		e.grantSite(req)
+	}
 	return ad
 }
 
@@ -620,6 +631,12 @@ func (e *Engine) Evaluate(req Request) Decision {
 			return Decision{Behavior: Deny, Rule: r.String(), ResolvedBy: "rule", Message: fmt.Sprintf("Permission to use %s has been denied by rule %s.", req.ToolName, r)}
 		}
 	}
+	if req.Sensitive != "" {
+		if e.mode == ModePlan && !req.ReadOnly {
+			return e.planDenial(req.ToolName)
+		}
+		return Decision{Behavior: Ask, UserOnly: true, Message: req.Sensitive}
+	}
 	if req.AlwaysAsk {
 		if e.mode == ModePlan && !req.ReadOnly {
 			return e.planDenial(req.ToolName)
@@ -670,6 +687,9 @@ func (e *Engine) Evaluate(req Request) Decision {
 	}
 	if e.mode == ModePlan {
 		return e.planDenial(req.ToolName)
+	}
+	if isBrowserTool(req.ToolName) {
+		return e.evalBrowser(req, input, mc)
 	}
 	if editTools[req.ToolName] {
 		if isProtected(path, e.workDirs, e.home) {
@@ -876,6 +896,10 @@ func (e *Engine) Suggest(req Request) []string {
 		return []string{tool + "(/" + filepath.ToSlash(dir) + "/**)"}
 	case isWebTool(req.ToolName):
 		return suggestWeb(req)
+	case req.Sensitive != "":
+		return nil
+	case isBrowserTool(req.ToolName):
+		return suggestBrowser(req)
 	}
 	return []string{req.ToolName}
 }

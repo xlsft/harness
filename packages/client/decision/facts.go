@@ -113,6 +113,11 @@ func ComputeFacts(ctx context.Context, req permissions.AutoRequest, git GitInfo)
 		if u, _ := input["url"].(string); u != "" {
 			f.NetworkHosts = appendUnique(nil, urlHost(u))
 		}
+	case permissions.IsBrowserTool(req.ToolName):
+		// The input of a click or a key press does not name the site it acts on.
+		if req.URL != "" {
+			f.NetworkHosts = appendUnique(nil, urlHost(req.URL))
+		}
 	}
 	if git != nil && req.Cwd != "" {
 		f.InsideGitRepo, f.GitBranch = git(ctx, req.Cwd)

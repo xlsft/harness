@@ -1141,6 +1141,10 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			if aa, ok := t.(tools.AlwaysAsker); ok && aa.AlwaysAsk() {
 				req.AlwaysAsk = true
 			}
+			if ph, ok := t.(tools.PermissionHinter); ok {
+				h := ph.PermissionHints(ctx, a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: u.Input})
+				req.URL, req.Sensitive = h.URL, h.Sensitive
+			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
 				if a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {

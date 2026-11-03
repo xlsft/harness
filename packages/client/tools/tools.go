@@ -59,6 +59,21 @@ type AlwaysAsker interface {
 	AlwaysAsk() bool
 }
 
+// PermissionHints are facts about a call that the permission check needs and only the tool can tell: the page a
+// browser action acts on, or why its target is a sensitive field.
+type PermissionHints struct {
+	// URL is the page the call acts on or loads ("" when there is none).
+	URL string
+	// Sensitive, when set, says why only the user may approve the call (typing into a password field...).
+	Sensitive string
+}
+
+// PermissionHinter is implemented by tools whose permission check depends on state outside the input (the
+// browser tools). The agent loop calls it right before the check.
+type PermissionHinter interface {
+	PermissionHints(ctx context.Context, env *Env, call Call) PermissionHints
+}
+
 // Call identifies one tool invocation.
 type Call struct {
 	ID    string
