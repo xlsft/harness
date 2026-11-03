@@ -366,3 +366,25 @@ func TestFrontmatterList(t *testing.T) {
 		t.Error("FrontmatterString")
 	}
 }
+
+func TestNoAncestors(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, map[string]string{
+		"CLAUDE.md":              "root instructions",
+		"chats/s1/CLAUDE.md":     "own instructions",
+		"chats/s1/sub/CLAUDE.md": "nested instructions",
+	})
+	cwd := filepath.Join(root, "chats", "s1")
+	l := New(Options{Cwd: cwd, Home: filepath.Join(root, "home"), ManagedFiles: []string{}, NoAncestors: true})
+	var got []string
+	for _, in := range l.Initial() {
+		got = append(got, in.Content)
+	}
+	if strings.Join(got, "|") != "own instructions" {
+		t.Fatalf("initial %q", got)
+	}
+	nested := l.ForPath(filepath.Join(cwd, "sub", "x.go"))
+	if len(nested) != 1 || nested[0].Content != "nested instructions" {
+		t.Fatalf("nested %+v", nested)
+	}
+}

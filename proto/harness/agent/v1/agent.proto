@@ -277,6 +277,11 @@ message SessionInfo {
   // Remote sessions only: the session is open on its machine, which is online, so it can be driven through the
   // relay (Subscribe follows it live and commands are forwarded).
   bool remote_controllable = 22;
+  // The session was started without a folder (CreateSessionRequest.cwd empty): `cwd` is a private working
+  // directory the client created for it (HARNESS_HOME/chats/<session id>, not a repository, no project
+  // settings, instructions or MCP servers). Frontends show "No folder" instead of the path; the directory is
+  // removed with the session.
+  bool no_folder = 23;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -311,6 +316,12 @@ message PullRequest {
 }
 
 message CreateSessionRequest {
+  // The session's folder. Empty starts a session without a folder (SessionInfo.no_folder): the client creates a
+  // private working directory for it, HARNESS_HOME/chats/<session id> (0700). Its environment (GetEnvironment,
+  // UpdateEnvironment) is keyed by that directory, so it is per-session. With resume_session_id and no fork,
+  // empty resumes the session in its recorded folder; a fork of a folderless session (or a fork with empty cwd)
+  // gets its own private directory, seeded with a copy of the parent's files when the parent had one.
+  // Cannot be empty together with worktree.
   string cwd = 1;
   string model = 2;
   PermissionMode permission_mode = 3;

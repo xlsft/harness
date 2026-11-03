@@ -38,6 +38,20 @@ func PromptCacheDir() string { return filepath.Join(Home(), "cache", "prompts") 
 // ProjectsDir is the root of session transcripts.
 func ProjectsDir() string { return filepath.Join(Home(), "projects") }
 
+// ChatsDir holds the private working directories of sessions started without a folder.
+func ChatsDir() string { return filepath.Join(Home(), "chats") }
+
+// ChatDir is the private working directory of a folderless session.
+func ChatDir(sessionID string) string { return filepath.Join(ChatsDir(), sessionID) }
+
+// IsChatDir reports whether dir is the private working directory of a folderless session.
+func IsChatDir(dir string) bool {
+	if dir == "" {
+		return false
+	}
+	return filepath.Dir(filepath.Clean(dir)) == ChatsDir()
+}
+
 // CredentialsFile is the fallback credential store.
 func CredentialsFile() string { return filepath.Join(Home(), "credentials.json") }
 

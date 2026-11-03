@@ -158,7 +158,7 @@ func fileInfo(path string) *agentv1.SessionInfo {
 	id := strings.TrimSuffix(filepath.Base(path), ".jsonl")
 	cwd, wt := transcriptHead(path, false)
 	info := &agentv1.SessionInfo{Id: id, Cwd: cwd, Title: sessionTitle(path), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
-		ParentSessionId: forkedFrom(path), Worktree: worktreeToProto(wt)}
+		ParentSessionId: forkedFrom(path), Worktree: worktreeToProto(wt), NoFolder: isNoFolder(id, cwd)}
 	if st, err := os.Stat(path); err == nil {
 		info.UpdatedAt = st.ModTime().UTC().Format(time.RFC3339)
 	}
@@ -356,6 +356,7 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	_ = os.RemoveAll(bootstrap.FileHistoryDir(id))
 	_ = os.RemoveAll(bootstrap.PlansDir(id))
+	s.removeChatDir(id)
 	s.setState(id, userState{})
 	s.forgetListed(id)
 	return connect.NewResponse(&agentv1.DeleteSessionResponse{}), nil

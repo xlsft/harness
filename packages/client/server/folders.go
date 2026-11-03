@@ -41,7 +41,7 @@ func (s *Server) ListRecentFolders(ctx context.Context, req *connect.Request[age
 
 	last := map[string]time.Time{}
 	note := func(path string, at time.Time) {
-		if path == "" {
+		if path == "" || config.IsChatDir(path) { // folderless sessions have no folder to offer
 			return
 		}
 		if t, ok := last[path]; !ok || at.After(t) {

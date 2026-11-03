@@ -144,6 +144,9 @@ type Options struct {
 	// ProjectOnly loads only the project files (no managed files, user
 	// memory, user rules or auto memory).
 	ProjectOnly bool
+	// NoAncestors reads instruction files of Cwd and below only, not of its ancestors (sessions without a
+	// folder: their private directory belongs to no project).
+	NoAncestors bool
 }
 
 // DefaultManagedFiles returns the organization-managed CLAUDE.md locations
@@ -298,6 +301,15 @@ func (l *Loader) originOfImporter(path string) Origin {
 	return OriginProject
 }
 
+// ancestors returns the directories whose instruction files apply at startup: the filesystem root down to
+// the working directory, or the working directory alone with NoAncestors.
+func (l *Loader) ancestors() []string {
+	if l.opts.NoAncestors {
+		return []string{l.cwd}
+	}
+	return ancestors(l.cwd)
+}
+
 // ancestors returns the directories from the filesystem root down to dir.
 func ancestors(dir string) []string {
 	var dirs []string
@@ -338,7 +350,7 @@ func isFile(p string) bool {
 // anyClaudeFile reports whether a CLAUDE.md-family file exists in cwd or an
 // ancestor (the condition that disables the AGENTS.md fallback).
 func (l *Loader) anyClaudeFile() bool {
-	for _, d := range ancestors(l.cwd) {
+	for _, d := range l.ancestors() {
 		for _, n := range claudeNames {
 			p := filepath.Join(d, n)
 			if !l.isUserConfig(p) && isFile(p) {
@@ -391,7 +403,7 @@ func (l *Loader) loadStartup() []Instruction {
 	if !l.opts.ProjectOnly {
 		l.addUserMemory(&out)
 	}
-	for _, d := range ancestors(l.cwd) {
+	for _, d := range l.ancestors() {
 		l.visited[d] = true
 		l.addDir(&out, d, TriggerStartup)
 	}

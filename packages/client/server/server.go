@@ -114,6 +114,7 @@ const DefaultHeartbeat = 15 * time.Second
 func New(base bootstrap.Options) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Server{Base: base, ctx: ctx, cancel: cancel, live: map[string]*liveSession{}}
+	bootstrap.IsolateChats() // terminals and file panes of folderless sessions see no repository above them
 	go s.runIdleCompaction()
 	return s
 }
@@ -279,10 +280,11 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		return nil, connect.NewError(connect.CodePermissionDenied, &permissions.ModeDisabledError{Mode: mode, Policy: true})
 	}
 	opts := s.Base
-	opts.Cwd = m.GetCwd()
-	if opts.Cwd == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cwd is required"))
+	chat, err := s.chatFolder(m, remote)
+	if err != nil {
+		return nil, err
 	}
+	opts.Cwd, opts.SessionID, opts.NoFolder = chat.cwd, chat.id, chat.noFolder
 	if m.GetModel() != "" {
 		opts.Model = m.GetModel()
 	}
@@ -317,11 +319,16 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if wt != nil {
 		opts.Cwd, opts.Worktree = wt.Cwd, wtMeta
 	}
-	senv := s.prepareEnvironment(m.GetCwd(), &opts)
+	envFolder := m.GetCwd()
+	if chat.noFolder {
+		envFolder = opts.Cwd // per-session: keyed by the private directory
+	}
+	senv := s.prepareEnvironment(envFolder, &opts)
 	if remote != nil {
-		id, err := s.forkRemote(ctx, remote, opts.Cwd)
+		id, err := s.forkRemote(ctx, remote, opts.Cwd, opts.SessionID)
 		if err != nil {
 			s.rollbackWorktree(wt)
+			chat.rollback()
 			return nil, err
 		}
 		opts.Resume, opts.Fork = id, false
@@ -332,6 +339,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	sess, err := bootstrap.Open(ctx, opts)
 	if err != nil {
 		s.rollbackWorktree(wt)
+		chat.rollback()
 		return nil, modeError(err, connect.CodeFailedPrecondition)
 	}
 	ls.sess = sess
@@ -425,6 +433,7 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 	resp := &agentv1.ListSessionsResponse{}
 	for _, v := range out {
 		s.applyState(v)
+		v.NoFolder = v.NoFolder || isNoFolder(v.Id, v.Cwd)
 		if v.Archived && !req.Msg.GetIncludeArchived() {
 			continue
 		}

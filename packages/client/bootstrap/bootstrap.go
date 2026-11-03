@@ -108,6 +108,10 @@ type Options struct {
 	// session (AgentService CreateSession with worktree options). It is
 	// written to the transcript; a resumed session reports the recorded one.
 	Worktree *session.Worktree
+	// NoFolder says Cwd is the private working directory of a session started without a folder
+	// (config.ChatDir): it is trusted, belongs to no repository (git does not look above config.ChatsDir) and
+	// instruction files of its ancestors are not read.
+	NoFolder bool
 
 	// Unattended applies the background task time limit (headless runs).
 	Unattended bool
@@ -359,8 +363,13 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 
 	// Workspace trust and the settings hierarchy (policy > CLI > local > project > user > org).
+	if o.NoFolder {
+		IsolateChats()
+	}
 	if o.Trusted != nil {
 		s.Trusted = *o.Trusted
+	} else if o.NoFolder {
+		s.Trusted = true // created by the client for this session alone
 	} else {
 		s.Trusted = permissions.IsTrusted(cwd)
 	}
@@ -441,7 +450,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if !s.Bundle.UsesPlaceholder("git_status") {
 		gitForContext = env.GitStatus
 	}
-	s.Memory = projectMemory(ctx, cwd, o.AdditionalDirs, st, memDocs)
+	s.Memory = projectMemory(ctx, cwd, o.AdditionalDirs, st, memDocs, o.NoFolder)
 	var styleDocs outputstyle.DocSource
 	if s.Sync != nil {
 		styleDocs = s.Sync.Cache()

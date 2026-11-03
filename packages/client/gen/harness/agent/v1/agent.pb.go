@@ -1248,8 +1248,13 @@ type SessionInfo struct {
 	// Remote sessions only: the session is open on its machine, which is online, so it can be driven through the
 	// relay (Subscribe follows it live and commands are forwarded).
 	RemoteControllable bool `protobuf:"varint,22,opt,name=remote_controllable,json=remoteControllable,proto3" json:"remote_controllable,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// The session was started without a folder (CreateSessionRequest.cwd empty): `cwd` is a private working
+	// directory the client created for it (HARNESS_HOME/chats/<session id>, not a repository, no project
+	// settings, instructions or MCP servers). Frontends show "No folder" instead of the path; the directory is
+	// removed with the session.
+	NoFolder      bool `protobuf:"varint,23,opt,name=no_folder,json=noFolder,proto3" json:"no_folder,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionInfo) Reset() {
@@ -1432,6 +1437,13 @@ func (x *SessionInfo) GetDeviceOnline() bool {
 func (x *SessionInfo) GetRemoteControllable() bool {
 	if x != nil {
 		return x.RemoteControllable
+	}
+	return false
+}
+
+func (x *SessionInfo) GetNoFolder() bool {
+	if x != nil {
+		return x.NoFolder
 	}
 	return false
 }
@@ -1630,10 +1642,16 @@ func (x *PullRequest) GetState() PullRequest_State {
 }
 
 type CreateSessionRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Cwd            string                 `protobuf:"bytes,1,opt,name=cwd,proto3" json:"cwd,omitempty"`
-	Model          string                 `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
-	PermissionMode PermissionMode         `protobuf:"varint,3,opt,name=permission_mode,json=permissionMode,proto3,enum=harness.agent.v1.PermissionMode" json:"permission_mode,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The session's folder. Empty starts a session without a folder (SessionInfo.no_folder): the client creates a
+	// private working directory for it, HARNESS_HOME/chats/<session id> (0700). Its environment (GetEnvironment,
+	// UpdateEnvironment) is keyed by that directory, so it is per-session. With resume_session_id and no fork,
+	// empty resumes the session in its recorded folder; a fork of a folderless session (or a fork with empty cwd)
+	// gets its own private directory, seeded with a copy of the parent's files when the parent had one.
+	// Cannot be empty together with worktree.
+	Cwd            string         `protobuf:"bytes,1,opt,name=cwd,proto3" json:"cwd,omitempty"`
+	Model          string         `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	PermissionMode PermissionMode `protobuf:"varint,3,opt,name=permission_mode,json=permissionMode,proto3,enum=harness.agent.v1.PermissionMode" json:"permission_mode,omitempty"`
 	// Resume an existing session instead of starting a new one.
 	ResumeSessionId string `protobuf:"bytes,4,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
 	// With resume_session_id: copy the transcript into a new session. A remote session (SessionInfo.remote) can
@@ -9114,7 +9132,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"inputPrice\x88\x01\x01\x12&\n" +
 	"\foutput_price\x18\t \x01(\x01H\x01R\voutputPrice\x88\x01\x01B\x0e\n" +
 	"\f_input_priceB\x0f\n" +
-	"\r_output_price\"\xed\x06\n" +
+	"\r_output_price\"\x8a\a\n" +
 	"\vSessionInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
@@ -9142,7 +9160,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x06unread\x18\x13 \x01(\bR\x06unread\x12\x16\n" +
 	"\x06remote\x18\x14 \x01(\bR\x06remote\x12(\n" +
 	"\rdevice_online\x18\x15 \x01(\bH\x02R\fdeviceOnline\x88\x01\x01\x12/\n" +
-	"\x13remote_controllable\x18\x16 \x01(\bR\x12remoteControllableB\x0f\n" +
+	"\x13remote_controllable\x18\x16 \x01(\bR\x12remoteControllable\x12\x1b\n" +
+	"\tno_folder\x18\x17 \x01(\bR\bnoFolderB\x0f\n" +
 	"\r_pull_requestB\v\n" +
 	"\t_worktreeB\x10\n" +
 	"\x0e_device_online\"z\n" +
