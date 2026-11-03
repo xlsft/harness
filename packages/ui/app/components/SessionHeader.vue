@@ -17,7 +17,7 @@ const toolsOpen = ref(menu.value === 'tools')
 const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[] = [
   { pane: 'details', icon: 'tasks', label: 'Tasks' },
   { pane: 'terminal', icon: 'terminal', label: 'Terminal', kbd: 'meta+j' },
-  { pane: 'diff', icon: 'diff', label: 'Diff' },
+  { pane: 'diff', icon: 'diff', label: 'Changes' },
   { pane: 'browser', icon: 'globe', label: 'Browser' },
   { pane: 'files', icon: 'folder', label: 'Files' }
 ]

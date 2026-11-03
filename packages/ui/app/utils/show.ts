@@ -8,7 +8,7 @@ export function showPane(t: ShowTarget): PaneName {
 
 /** The pane's title, as the client names it in the tool result ("Opened … in the Files pane"). */
 export function showPaneTitle(kind: ShowTarget['kind']): string {
-  return kind === 'file' ? 'Files' : kind === 'diff' ? 'Diff' : 'Browser'
+  return kind === 'file' ? 'Files' : kind === 'diff' ? 'Changes' : 'Browser'
 }
 
 const relativeTo = (cwd: string, path: string) => {

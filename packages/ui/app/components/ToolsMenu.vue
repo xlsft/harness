@@ -19,18 +19,17 @@ const awake = computed({
   }
 })
 
-const items: { pane: PaneName | 'ios', label: string, icon: IconName, kbd?: string }[] = [
+const items: { pane: PaneName, label: string, icon: IconName, kbd?: string }[] = [
   { pane: 'terminal', label: 'Terminal', icon: 'term', kbd: 'meta+j' },
   { pane: 'browser', label: 'Browser', icon: 'globe-stand', kbd: 'meta+shift+b' },
   { pane: 'files', label: 'Files', icon: 'folder', kbd: 'meta+shift+e' },
+  { pane: 'diff', label: 'Changes', icon: 'diff' },
   { pane: 'sidechat', label: 'Side chat', icon: 'chat', kbd: 'meta+;' },
   { pane: 'tasks', label: 'Background tasks', icon: 'diamond' },
-  { pane: 'agents', label: 'Agents', icon: 'ai' },
-  { pane: 'ios', label: 'iOS Simulator', icon: 'phone' }
+  { pane: 'agents', label: 'Agents', icon: 'ai' }
 ]
 
-function choose(p: PaneName | 'ios') {
-  if (p === 'ios') return
+function choose(p: PaneName) {
   togglePane(p)
   emit('select')
 }
@@ -46,7 +45,7 @@ function choose(p: PaneName | 'ios') {
       v-for="m in items"
       :key="m.pane"
       role="menuitemcheckbox"
-      :aria-checked="m.pane !== 'ios' && isOpen(m.pane)"
+      :aria-checked="isOpen(m.pane)"
       class="flex cursor-pointer items-center gap-2.5 rounded-none px-3 py-[7px] hover:bg-raised"
       @click="choose(m.pane)"
     >
@@ -57,7 +56,7 @@ function choose(p: PaneName | 'ios') {
         :keys="m.kbd"
       />
       <HIcon
-        v-if="m.pane !== 'ios' && isOpen(m.pane)"
+        v-if="isOpen(m.pane)"
         name="check"
         :size="14"
         class="text-accent"

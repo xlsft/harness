@@ -151,11 +151,11 @@ async function copy(text: string) {
 
 <template>
   <section
-    aria-label="Diff"
+    aria-label="Changes"
     class="flex h-full flex-col bg-default"
   >
     <div class="flex h-11 shrink-0 items-center gap-0.5 border-b border-default pr-1.5 pl-3.5">
-      <span class="font-display text-[13px] text-strong">Diff</span>
+      <span class="font-display text-[13px] text-strong">Changes</span>
       <span class="flex-1" />
       <UPopover
         v-model:open="viewMenu"
