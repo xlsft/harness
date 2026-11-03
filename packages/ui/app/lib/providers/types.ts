@@ -7,6 +7,9 @@
 
 export type ProviderScopeName = 'global' | 'personal'
 export type ProviderGroupName = 'llm' | 'classifier' | 'search'
+// LLM providers: 'metered' (pay as you go: priced models count cost) or 'plan' (a subscription / coding plan:
+// tokens only, never cost). Other groups: ''.
+export type BillingName = 'metered' | 'plan' | ''
 
 export interface ProviderModelView {
   id: string
@@ -35,6 +38,8 @@ export interface ProviderView {
   models: ProviderModelView[]
   // Search providers: their options by name (see PresetView.options); unset ones follow the default.
   options?: Record<string, string>
+  // From its preset; custom providers are 'metered'.
+  billing?: BillingName
 }
 
 export interface ProviderList {
@@ -77,6 +82,7 @@ export interface PresetView {
   options?: PresetOptionView[]
   // Ships with the server (the bundled SearXNG): nothing to connect; its provider id is the preset id.
   builtin?: boolean
+  billing?: BillingName
 }
 
 export interface PresetOptionView {

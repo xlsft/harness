@@ -16,6 +16,7 @@ import { McpService } from "../../src/gen/harness/mcp/v1/mcp_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
 import { RelayService } from "../../src/gen/harness/relay/v1/relay_pb.ts";
 import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
+import { UsageService } from "../../src/gen/harness/llm/v1/usage_pb.ts";
 import { VcsService } from "../../src/gen/harness/vcs/v1/vcs_pb.ts";
 import { createTempDatabase, type TempDatabase } from "./pg.ts";
 
@@ -29,6 +30,7 @@ export interface TestServer {
   admin: Client<typeof AdminService>;
   gateway: Client<typeof GatewayService>;
   providers: Client<typeof ProviderService>;
+  usage: Client<typeof UsageService>;
   prompts: Client<typeof PromptService>;
   sync: Client<typeof SyncService>;
   mcp: Client<typeof McpService>;
@@ -40,6 +42,7 @@ export interface TestServer {
     admin: Client<typeof AdminService>;
     gateway: Client<typeof GatewayService>;
     providers: Client<typeof ProviderService>;
+    usage: Client<typeof UsageService>;
     prompts: Client<typeof PromptService>;
     sync: Client<typeof SyncService>;
     mcp: Client<typeof McpService>;
@@ -100,6 +103,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       admin: createClient(AdminService, transport),
       gateway: createClient(GatewayService, transport),
       providers: createClient(ProviderService, transport),
+      usage: createClient(UsageService, transport),
       prompts: createClient(PromptService, transport),
       sync: createClient(SyncService, transport),
       mcp: createClient(McpService, transport),

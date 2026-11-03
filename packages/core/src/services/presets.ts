@@ -11,6 +11,10 @@
  * `discovers_models`: the service documents a model list (GET /models); the others ship a curated list
  * (`default_models`) the user picks from instead.
  *
+ * `billing` (LLM presets): "plan" marks a flat-rate subscription / coding plan. Usage on such a provider
+ * counts tokens only and never cost, even for a model with a catalog price; everything else is "metered"
+ * (pay as you go), where a priced model's requests cost what the price says. Custom providers are metered.
+ *
  * Search presets (group "search") name the adapter in src/search/adapters.ts as their type; their base URL is
  * the API's endpoint (SearXNG: the instance root). `options` are the settings a connected search provider
  * may change, only those the API documents. The built-in SearXNG (`builtin`) is not stored: it is the
@@ -18,6 +22,8 @@
  */
 
 export type ProviderGroup = "llm" | "classifier" | "search";
+/** How an LLM provider charges: "metered" (pay as you go) or "plan" (flat-rate subscription / coding plan). */
+export type Billing = "metered" | "plan";
 
 export const LLM_TYPES = ["anthropic", "openai-chat", "openai-responses"] as const;
 export const CLASSIFIER_TYPES = ["decision-model", "decision-http"] as const;
@@ -69,6 +75,8 @@ export interface ProviderPreset {
   local?: boolean;
   options?: PresetOption[];
   builtin?: boolean;
+  /** Default "metered". */
+  billing?: Billing;
 }
 
 export interface ProviderProtocol {
@@ -186,6 +194,7 @@ export const PRESETS: readonly ProviderPreset[] = [
     ],
     icon: "kimi",
     discovers_models: false,
+    billing: "plan",
   },
   {
     id: "kimi-code-global",
@@ -207,6 +216,7 @@ export const PRESETS: readonly ProviderPreset[] = [
     ],
     icon: "kimi",
     discovers_models: false,
+    billing: "plan",
   },
   {
     id: "moonshot",
@@ -266,6 +276,7 @@ export const PRESETS: readonly ProviderPreset[] = [
     ],
     icon: "zai",
     discovers_models: false,
+    billing: "plan",
   },
   {
     id: "deepseek",
@@ -497,6 +508,11 @@ export function presetOf(row: { presetId: string | null; kind: string; type: str
   if (row.presetId) return findPreset(row.presetId);
   const url = normalizeUrl(row.baseUrl);
   return PRESETS.find((p) => p.group === row.kind && p.type === row.type && !p.local && !p.builtin && normalizeUrl(p.base_url) === url);
+}
+
+/** How a stored provider charges: its preset's billing; custom providers (and non-LLM groups) are metered. */
+export function billingOf(row: { presetId: string | null; kind: string; type: string; baseUrl: string }): Billing {
+  return presetOf(row)?.billing ?? "metered";
 }
 
 /** The options a stored search provider may set: its preset's, or for a custom SearXNG-compatible one the SearXNG preset's. */

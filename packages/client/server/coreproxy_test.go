@@ -116,24 +116,31 @@ func TestCoreProxyRefusesOtherServicesAndStreams(t *testing.T) {
 	}
 }
 
-func TestCoreProxyForwardsAdminService(t *testing.T) {
+func TestCoreProxyForwardsAdminAndUsageServices(t *testing.T) {
 	var path, auth string
 	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path, auth = r.URL.Path, r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"users":[]}`)
+		_, _ = io.WriteString(w, `{}`)
 	}))
 	defer core.Close()
 	s := New(bootstrap.Options{})
 	defer s.Close()
 	s.Core = &CoreProxy{URL: core.URL, HTTP: core.Client(), Tokens: &proxyTokens{token: "hat_admin"}}
 
-	req := httptest.NewRequest(http.MethodPost, "/harness.auth.v1.AdminService/ListUsers", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	s.mux().ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK || path != "/harness.auth.v1.AdminService/ListUsers" || auth != "Bearer hat_admin" {
-		t.Fatalf("status %d path %q auth %q", rec.Code, path, auth)
+	for _, p := range []string{
+		"/harness.auth.v1.AdminService/ListUsers",
+		"/harness.llm.v1.UsageService/GetMyUsage",
+		"/harness.llm.v1.UsageService/GetUsage",
+	} {
+		path, auth = "", ""
+		req := httptest.NewRequest(http.MethodPost, p, strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		s.mux().ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK || path != p || auth != "Bearer hat_admin" {
+			t.Fatalf("%s: status %d path %q auth %q", p, rec.Code, path, auth)
+		}
 	}
 }
 

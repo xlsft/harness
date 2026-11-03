@@ -234,6 +234,12 @@ export const usageRecord = pgTable(
     cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
     cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
     costUsd: doublePrecision("cost_usd").notNull().default(0),
+    /**
+     * The request was billed at a catalog price (a priced model on a metered provider). False: it counts
+     * tokens only (no price, or a subscription / coding plan provider), so its cost is unknown, not 0.
+     * Null on records from before the column (services/usage.ts infers it).
+     */
+    priced: boolean("priced"),
     retries: integer("retries").notNull().default(0),
     /** ok | error | aborted */
     status: text("status").notNull(),

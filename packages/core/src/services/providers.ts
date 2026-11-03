@@ -39,10 +39,12 @@ import {
   CLASSIFIER_TYPES,
   LLM_TYPES,
   SEARCH_TYPES,
+  billingOf,
   findPreset,
   groupOfType,
   presetOf,
   searchOptionSpecs,
+  type Billing,
   type PresetOption,
   type ProviderGroup,
 } from "./presets.ts";
@@ -69,6 +71,8 @@ export interface ProviderRuntime {
   ownerUserId: string | null;
   /** Search providers: their options (validated plain text). */
   options: Record<string, string>;
+  /** LLM providers: a "plan" provider's requests never cost money (services/presets.ts). */
+  billing: Billing;
 }
 
 export interface ProviderInput {
@@ -106,6 +110,7 @@ export function publicProvider(r: Row) {
     scope: r.ownerUserId ? ("personal" as const) : ("global" as const),
     group: r.kind as ProviderGroup,
     preset_id: presetOf(r)?.id ?? null,
+    billing: billingOf(r),
     type: r.type,
     display_name: r.displayName,
     base_url: r.baseUrl,
@@ -422,5 +427,6 @@ export async function loadProviderRuntime(id: string): Promise<ProviderRuntime> 
     enabled: r.enabled,
     ownerUserId: r.ownerUserId,
     options: (r.options as Record<string, string> | null) ?? {},
+    billing: billingOf(r),
   };
 }

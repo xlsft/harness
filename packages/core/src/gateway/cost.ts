@@ -1,4 +1,5 @@
 import type { ModelPricing } from "../services/models.ts";
+import type { Billing } from "../services/presets.ts";
 import type { Usage } from "./types.ts";
 
 export function emptyUsage(): Usage {
@@ -13,6 +14,14 @@ export function mergeUsage(base: Usage, patch: Partial<Usage> | undefined): Usag
     if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
   }
   return out;
+}
+
+/**
+ * The price a request is billed at: the model's catalog price on a metered (pay-as-you-go) provider, none on a
+ * subscription / coding plan provider (its requests count tokens only) or for a model without a price.
+ */
+export function billedPricing(pricing: ModelPricing | null | undefined, billing: Billing): ModelPricing | null {
+  return billing === "plan" ? null : (pricing ?? null);
 }
 
 /** USD cost for normalized usage; pricing is USD per 1M tokens. Missing cache prices fall back to input price. */

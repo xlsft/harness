@@ -19,6 +19,7 @@ import type { EffortName, QuestionReply } from '~/lib/session/types'
 import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
 import type { AccountApi } from '~/lib/account/types'
+import type { UsageApi } from '~/lib/usage/types'
 
 export interface ModelInfo {
   id: string
@@ -114,4 +115,7 @@ export interface SessionTransport {
   // The signed-in user's own profile, avatar, password and devices (harness.auth.v1.DeviceAuthService account
   // methods, forwarded to the server by the client).
   account(): AccountApi
+
+  // LLM usage reports for the Usage tab (harness.llm.v1.UsageService, forwarded to the server by the client).
+  usage(): UsageApi
 }

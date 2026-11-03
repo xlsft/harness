@@ -16,8 +16,9 @@ import (
 
 // CoreProxy forwards unary Connect calls of selected harness server services
 // (harness.llm.v1.ProviderService: the settings screens' providers and
-// classifier; harness.auth.v1.AdminService: user administration and LDAP,
-// admins only), plus the account methods of harness.auth.v1.DeviceAuthService
+// classifier; harness.llm.v1.UsageService: the Usage tab's reports;
+// harness.auth.v1.AdminService: user administration and LDAP, admins only),
+// plus the account methods of harness.auth.v1.DeviceAuthService
 // (coreProxyProcedures: the settings screen's profile, password and devices),
 // to the server with this client's access token. Frontends talk
 // to the client only and never hold server credentials; the server decides
@@ -35,7 +36,7 @@ type CoreProxy struct {
 }
 
 // coreProxyServices are the server services frontends may reach through the client.
-var coreProxyServices = []string{llmv1connect.ProviderServiceName, authv1connect.AdminServiceName}
+var coreProxyServices = []string{llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName}
 
 // coreProxyProcedures are single methods of other server services frontends may
 // reach. Never the device flow, token refresh or Logout: those manage this

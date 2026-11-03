@@ -8,13 +8,14 @@
  * (only before the first content block), fallback chain, usage/cost accounting.
  */
 import { setTimeout as sleep } from "node:timers/promises";
+import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { anthropicAdapter } from "../gateway/adapters/anthropic.ts";
 import { openaiChatAdapter } from "../gateway/adapters/openai-chat.ts";
 import { openaiResponsesAdapter } from "../gateway/adapters/openai-responses.ts";
 import type { Adapter, AdapterTarget, UpstreamRequest } from "../gateway/adapters/types.ts";
-import { computeCost, emptyUsage, estimateTokens, mergeUsage } from "../gateway/cost.ts";
+import { billedPricing, computeCost, emptyUsage, estimateTokens, mergeUsage } from "../gateway/cost.ts";
 import { classifyHttpFailure, networkFailure } from "../gateway/errors.ts";
 import { computeFeatures, normalizeRequest } from "../gateway/features.ts";
 import type { CanonicalRequest, GatewayEvent, StopReason, UpstreamFailure, Usage } from "../gateway/types.ts";
@@ -24,6 +25,7 @@ import { appendFileSync } from "node:fs";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { Principal } from "./devices.ts";
 import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEntry } from "./models.ts";
+import { billingOf } from "./presets.ts";
 import { loadProviderRuntime, redactSecrets, type ProviderType } from "./providers.ts";
 import { enforceQuotas } from "./quotas.ts";
 
@@ -185,7 +187,7 @@ export async function* runMessages(
           if (ev.stop_reason === "stop_sequence" && ev.stop_sequence) delta.stop_sequence = ev.stop_sequence;
           yield { event: "message_delta", data: { type: "message_delta", delta, usage: { ...usage } } };
           const harness: Record<string, unknown> = {
-            cost_usd: computeCost(usage, model.pricing),
+            cost_usd: computeCost(usage, billedPricing(model.pricing, provider.billing)),
             upstream_model: model.upstreamModel,
             retries,
             // Catalog alias that answered; differs from req.model after a fallback.
@@ -308,6 +310,9 @@ async function recordUsage(r: {
   durationMs: number;
 }) {
   await ensureDb();
+  // A subscription / coding plan provider's requests count tokens only (services/presets.ts billing).
+  const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, r.model.providerId) });
+  const pricing = billedPricing(r.model.pricing, provider ? billingOf(provider) : "metered");
   await getDb()
     .insert(schema.usageRecord)
     .values({
@@ -324,7 +329,8 @@ async function recordUsage(r: {
       outputTokens: r.usage.output_tokens,
       cacheReadTokens: r.usage.cache_read_input_tokens,
       cacheWriteTokens: r.usage.cache_creation_input_tokens,
-      costUsd: computeCost(r.usage, r.model.pricing),
+      costUsd: computeCost(r.usage, pricing),
+      priced: pricing !== null,
       retries: r.retries,
       status: r.status,
       stopReason: r.stopReason,

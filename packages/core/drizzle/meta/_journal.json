@@ -64,6 +64,13 @@
       "when": 1793673387801,
       "tag": "0008_search_providers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793702479827,
+      "tag": "0009_usage_priced",
+      "breakpoints": true
     }
   ]
 }

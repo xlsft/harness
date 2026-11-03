@@ -13,9 +13,10 @@ import {
   type SearchSettings as SearchSettingsMsg
 } from '~/gen/harness/llm/v1/providers_pb'
 import type { Slots } from '~/gen/harness/llm/v1/gateway_pb'
-import type { ClassifierOverride, ClassifierSettings, ModelSlots, MyClassifier, PresetView, ProviderGroupName, ProviderView, ProvidersApi, SearchSettings } from './types'
+import type { BillingName, ClassifierOverride, ClassifierSettings, ModelSlots, MyClassifier, PresetView, ProviderGroupName, ProviderView, ProvidersApi, SearchSettings } from './types'
 
 const group = (g: string): ProviderGroupName => g === 'classifier' || g === 'search' ? g : 'llm'
+const billing = (b: string): BillingName => b === 'metered' || b === 'plan' ? b : ''
 
 export function providerView(p: Provider): ProviderView {
   return {
@@ -33,7 +34,8 @@ export function providerView(p: Provider): ProviderView {
     allowPrivateNetwork: p.allowPrivateNetwork,
     editable: p.editable,
     models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow) })),
-    options: { ...p.options }
+    options: { ...p.options },
+    billing: billing(p.billing)
   }
 }
 
@@ -62,7 +64,8 @@ export function presetView(p: ProviderPreset): PresetView {
       min: o.min,
       max: o.max
     })),
-    builtin: p.builtin
+    builtin: p.builtin,
+    billing: billing(p.billing)
   }
 }
 

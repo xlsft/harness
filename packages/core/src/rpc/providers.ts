@@ -75,6 +75,7 @@ async function providerToProto(p: PublicProvider, user: PublicUser) {
     presetId: p.preset_id ?? "",
     group: p.group,
     options: p.options,
+    billing: p.group === "llm" ? p.billing : "",
   };
 }
 
@@ -183,6 +184,7 @@ export function registerProviderService(router: ConnectRouter): void {
             max: o.max ?? 0,
           })),
           builtin: !!p.builtin,
+          billing: p.group === "llm" ? (p.billing ?? "metered") : "",
         })),
         protocols: PROTOCOLS.map((p) => ({ id: p.id, group: p.group, label: p.label, baseUrlHint: p.base_url_hint })),
       };
