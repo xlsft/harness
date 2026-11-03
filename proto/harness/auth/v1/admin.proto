@@ -57,6 +57,12 @@ service AdminService {
   rpc GetPermissionModePolicy(GetPermissionModePolicyRequest) returns (GetPermissionModePolicyResponse);
   // Replaces the list. PERMISSION_MODE_DEFAULT, UNSPECIFIED or unknown values -> INVALID_ARGUMENT.
   rpc SetPermissionModePolicy(SetPermissionModePolicyRequest) returns (SetPermissionModePolicyResponse);
+
+  // Whether clients may use local LLM providers on users' machines (Ollama, LM Studio, ...; agent.v1
+  // localmodels.proto). Stored in the same org-scope POLICY document ("disableLocalModels": true), so clients
+  // read it from their sync feed and enforce it. Default: allowed.
+  rpc GetLocalModelPolicy(GetLocalModelPolicyRequest) returns (GetLocalModelPolicyResponse);
+  rpc SetLocalModelPolicy(SetLocalModelPolicyRequest) returns (SetLocalModelPolicyResponse);
 }
 
 message AdminUser {
@@ -297,4 +303,23 @@ message SetPermissionModePolicyRequest {
 
 message SetPermissionModePolicyResponse {
   PermissionModePolicy policy = 1;
+}
+
+message LocalModelPolicy {
+  // Local models are allowed on clients (the default).
+  bool allowed = 1;
+}
+
+message GetLocalModelPolicyRequest {}
+
+message GetLocalModelPolicyResponse {
+  LocalModelPolicy policy = 1;
+}
+
+message SetLocalModelPolicyRequest {
+  LocalModelPolicy policy = 1;
+}
+
+message SetLocalModelPolicyResponse {
+  LocalModelPolicy policy = 1;
 }

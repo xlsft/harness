@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.agent.v1;
 
 import "harness/agent/v1/files.proto";
+import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/terminal.proto";
@@ -171,6 +172,21 @@ service AgentService {
   rpc AskSideChat(AskSideChatRequest) returns (stream AskSideChatResponse);
   // Stops the running answer of a side chat; the text so far is kept (stopped = true).
   rpc StopSideChat(StopSideChatRequest) returns (StopSideChatResponse);
+
+  // ---- Local LLM providers (localmodels.proto): model servers on this machine the client calls directly ----
+
+  // Detected and configured local providers with their models (cached probes; refresh = probe now).
+  rpc ListLocalProviders(ListLocalProvidersRequest) returns (ListLocalProvidersResponse);
+  // Adds an endpoint (e.g. a custom OpenAI-compatible server); it is probed right away.
+  rpc AddLocalProvider(AddLocalProviderRequest) returns (AddLocalProviderResponse);
+  // Renames, moves, re-keys, enables or disables a provider.
+  rpc UpdateLocalProvider(UpdateLocalProviderRequest) returns (UpdateLocalProviderResponse);
+  rpc RemoveLocalProvider(RemoveLocalProviderRequest) returns (RemoveLocalProviderResponse);
+  // Probes the providers again (all enabled ones, or one).
+  rpc RefreshLocalProviders(RefreshLocalProvidersRequest) returns (RefreshLocalProvidersResponse);
+  // Downloads a model into an Ollama server, streaming its progress; cancelling the stream stops the pull.
+  rpc PullOllamaModel(PullOllamaModelRequest) returns (stream PullOllamaModelResponse);
+  rpc DeleteOllamaModel(DeleteOllamaModelRequest) returns (DeleteOllamaModelResponse);
 }
 
 enum PermissionMode {
@@ -234,6 +250,9 @@ message ModelInfo {
   // USD per 1M tokens; absent when the server has no prices configured.
   optional double input_price = 8;
   optional double output_price = 9;
+  // A model of a local provider on this machine (localmodels.proto; id "local:<provider>/<name>"): free, and
+  // per device.
+  bool local = 10;
 }
 
 message SessionInfo {

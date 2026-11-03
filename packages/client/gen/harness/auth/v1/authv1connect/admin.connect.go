@@ -77,6 +77,12 @@ const (
 	// AdminServiceSetPermissionModePolicyProcedure is the fully-qualified name of the AdminService's
 	// SetPermissionModePolicy RPC.
 	AdminServiceSetPermissionModePolicyProcedure = "/harness.auth.v1.AdminService/SetPermissionModePolicy"
+	// AdminServiceGetLocalModelPolicyProcedure is the fully-qualified name of the AdminService's
+	// GetLocalModelPolicy RPC.
+	AdminServiceGetLocalModelPolicyProcedure = "/harness.auth.v1.AdminService/GetLocalModelPolicy"
+	// AdminServiceSetLocalModelPolicyProcedure is the fully-qualified name of the AdminService's
+	// SetLocalModelPolicy RPC.
+	AdminServiceSetLocalModelPolicyProcedure = "/harness.auth.v1.AdminService/SetLocalModelPolicy"
 )
 
 // AdminServiceClient is a client for the harness.auth.v1.AdminService service.
@@ -113,6 +119,11 @@ type AdminServiceClient interface {
 	GetPermissionModePolicy(context.Context, *connect.Request[v1.GetPermissionModePolicyRequest]) (*connect.Response[v1.GetPermissionModePolicyResponse], error)
 	// Replaces the list. PERMISSION_MODE_DEFAULT, UNSPECIFIED or unknown values -> INVALID_ARGUMENT.
 	SetPermissionModePolicy(context.Context, *connect.Request[v1.SetPermissionModePolicyRequest]) (*connect.Response[v1.SetPermissionModePolicyResponse], error)
+	// Whether clients may use local LLM providers on users' machines (Ollama, LM Studio, ...; agent.v1
+	// localmodels.proto). Stored in the same org-scope POLICY document ("disableLocalModels": true), so clients
+	// read it from their sync feed and enforce it. Default: allowed.
+	GetLocalModelPolicy(context.Context, *connect.Request[v1.GetLocalModelPolicyRequest]) (*connect.Response[v1.GetLocalModelPolicyResponse], error)
+	SetLocalModelPolicy(context.Context, *connect.Request[v1.SetLocalModelPolicyRequest]) (*connect.Response[v1.SetLocalModelPolicyResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the harness.auth.v1.AdminService service. By
@@ -222,6 +233,18 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(adminServiceMethods.ByName("SetPermissionModePolicy")),
 			connect.WithClientOptions(opts...),
 		),
+		getLocalModelPolicy: connect.NewClient[v1.GetLocalModelPolicyRequest, v1.GetLocalModelPolicyResponse](
+			httpClient,
+			baseURL+AdminServiceGetLocalModelPolicyProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetLocalModelPolicy")),
+			connect.WithClientOptions(opts...),
+		),
+		setLocalModelPolicy: connect.NewClient[v1.SetLocalModelPolicyRequest, v1.SetLocalModelPolicyResponse](
+			httpClient,
+			baseURL+AdminServiceSetLocalModelPolicyProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("SetLocalModelPolicy")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -243,6 +266,8 @@ type adminServiceClient struct {
 	testLdapUser            *connect.Client[v1.TestLdapUserRequest, v1.TestLdapUserResponse]
 	getPermissionModePolicy *connect.Client[v1.GetPermissionModePolicyRequest, v1.GetPermissionModePolicyResponse]
 	setPermissionModePolicy *connect.Client[v1.SetPermissionModePolicyRequest, v1.SetPermissionModePolicyResponse]
+	getLocalModelPolicy     *connect.Client[v1.GetLocalModelPolicyRequest, v1.GetLocalModelPolicyResponse]
+	setLocalModelPolicy     *connect.Client[v1.SetLocalModelPolicyRequest, v1.SetLocalModelPolicyResponse]
 }
 
 // ListUsers calls harness.auth.v1.AdminService.ListUsers.
@@ -325,6 +350,16 @@ func (c *adminServiceClient) SetPermissionModePolicy(ctx context.Context, req *c
 	return c.setPermissionModePolicy.CallUnary(ctx, req)
 }
 
+// GetLocalModelPolicy calls harness.auth.v1.AdminService.GetLocalModelPolicy.
+func (c *adminServiceClient) GetLocalModelPolicy(ctx context.Context, req *connect.Request[v1.GetLocalModelPolicyRequest]) (*connect.Response[v1.GetLocalModelPolicyResponse], error) {
+	return c.getLocalModelPolicy.CallUnary(ctx, req)
+}
+
+// SetLocalModelPolicy calls harness.auth.v1.AdminService.SetLocalModelPolicy.
+func (c *adminServiceClient) SetLocalModelPolicy(ctx context.Context, req *connect.Request[v1.SetLocalModelPolicyRequest]) (*connect.Response[v1.SetLocalModelPolicyResponse], error) {
+	return c.setLocalModelPolicy.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the harness.auth.v1.AdminService service.
 type AdminServiceHandler interface {
 	// Users, oldest first, optionally filtered by a case-insensitive substring of name, username or email.
@@ -359,6 +394,11 @@ type AdminServiceHandler interface {
 	GetPermissionModePolicy(context.Context, *connect.Request[v1.GetPermissionModePolicyRequest]) (*connect.Response[v1.GetPermissionModePolicyResponse], error)
 	// Replaces the list. PERMISSION_MODE_DEFAULT, UNSPECIFIED or unknown values -> INVALID_ARGUMENT.
 	SetPermissionModePolicy(context.Context, *connect.Request[v1.SetPermissionModePolicyRequest]) (*connect.Response[v1.SetPermissionModePolicyResponse], error)
+	// Whether clients may use local LLM providers on users' machines (Ollama, LM Studio, ...; agent.v1
+	// localmodels.proto). Stored in the same org-scope POLICY document ("disableLocalModels": true), so clients
+	// read it from their sync feed and enforce it. Default: allowed.
+	GetLocalModelPolicy(context.Context, *connect.Request[v1.GetLocalModelPolicyRequest]) (*connect.Response[v1.GetLocalModelPolicyResponse], error)
+	SetLocalModelPolicy(context.Context, *connect.Request[v1.SetLocalModelPolicyRequest]) (*connect.Response[v1.SetLocalModelPolicyResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -464,6 +504,18 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(adminServiceMethods.ByName("SetPermissionModePolicy")),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceGetLocalModelPolicyHandler := connect.NewUnaryHandler(
+		AdminServiceGetLocalModelPolicyProcedure,
+		svc.GetLocalModelPolicy,
+		connect.WithSchema(adminServiceMethods.ByName("GetLocalModelPolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceSetLocalModelPolicyHandler := connect.NewUnaryHandler(
+		AdminServiceSetLocalModelPolicyProcedure,
+		svc.SetLocalModelPolicy,
+		connect.WithSchema(adminServiceMethods.ByName("SetLocalModelPolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.auth.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServiceListUsersProcedure:
@@ -498,6 +550,10 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceGetPermissionModePolicyHandler.ServeHTTP(w, r)
 		case AdminServiceSetPermissionModePolicyProcedure:
 			adminServiceSetPermissionModePolicyHandler.ServeHTTP(w, r)
+		case AdminServiceGetLocalModelPolicyProcedure:
+			adminServiceGetLocalModelPolicyHandler.ServeHTTP(w, r)
+		case AdminServiceSetLocalModelPolicyProcedure:
+			adminServiceSetLocalModelPolicyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -569,4 +625,12 @@ func (UnimplementedAdminServiceHandler) GetPermissionModePolicy(context.Context,
 
 func (UnimplementedAdminServiceHandler) SetPermissionModePolicy(context.Context, *connect.Request[v1.SetPermissionModePolicyRequest]) (*connect.Response[v1.SetPermissionModePolicyResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.SetPermissionModePolicy is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetLocalModelPolicy(context.Context, *connect.Request[v1.GetLocalModelPolicyRequest]) (*connect.Response[v1.GetLocalModelPolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.GetLocalModelPolicy is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) SetLocalModelPolicy(context.Context, *connect.Request[v1.SetLocalModelPolicyRequest]) (*connect.Response[v1.SetLocalModelPolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.auth.v1.AdminService.SetLocalModelPolicy is not implemented"))
 }

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/llm/v1/usage.proto.
  */
 export const file_harness_llm_v1_usage: GenFile = /*@__PURE__*/
-  fileDesc("ChpoYXJuZXNzL2xsbS92MS91c2FnZS5wcm90bxIOaGFybmVzcy5sbG0udjEiZgoKVXNhZ2VSYW5nZRIMCgRmcm9tGAEgASgJEgoKAnRvGAIgASgJEisKBmJ1Y2tldBgDIAEoDjIbLmhhcm5lc3MubGxtLnYxLlVzYWdlQnVja2V0EhEKCXRpbWVfem9uZRgEIAEoCSLEAQoLVXNhZ2VUb3RhbHMSEAoIcmVxdWVzdHMYASABKAMSFAoMaW5wdXRfdG9rZW5zGAIgASgDEhUKDW91dHB1dF90b2tlbnMYAyABKAMSGQoRY2FjaGVfcmVhZF90b2tlbnMYBCABKAMSGgoSY2FjaGVfd3JpdGVfdG9rZW5zGAUgASgDEhQKDHRvdGFsX3Rva2VucxgGIAEoAxIQCghjb3N0X3VzZBgHIAEoARIXCg91bnByaWNlZF90b2tlbnMYCCABKAMiUgoQVXNhZ2VCdWNrZXRNb2RlbBIRCgltb2RlbF9rZXkYASABKAkSKwoGdG90YWxzGAIgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMigAEKEFVzYWdlQnVja2V0UG9pbnQSDQoFc3RhcnQYASABKAkSKwoGdG90YWxzGAIgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMSMAoGbW9kZWxzGAMgAygLMiAuaGFybmVzcy5sbG0udjEuVXNhZ2VCdWNrZXRNb2RlbCLCAQoKVXNhZ2VNb2RlbBILCgNrZXkYASABKAkSEAoIbW9kZWxfaWQYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJEhYKDnVwc3RyZWFtX21vZGVsGAQgASgJEhMKC3Byb3ZpZGVyX2lkGAUgASgJEhUKDXByb3ZpZGVyX25hbWUYBiABKAkSDgoGcHJpY2VkGAcgASgIEisKBnRvdGFscxgIIAEoCzIbLmhhcm5lc3MubGxtLnYxLlVzYWdlVG90YWxzIlcKEVVzYWdlUmVxdWVzdENsYXNzEhUKDXJlcXVlc3RfY2xhc3MYASABKAkSKwoGdG90YWxzGAIgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMirwIKC1VzYWdlUmVwb3J0EgwKBGZyb20YASABKAkSCgoCdG8YAiABKAkSKwoGYnVja2V0GAMgASgOMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VCdWNrZXQSEQoJdGltZV96b25lGAQgASgJEisKBnRvdGFscxgFIAEoCzIbLmhhcm5lc3MubGxtLnYxLlVzYWdlVG90YWxzEjEKB2J1Y2tldHMYBiADKAsyIC5oYXJuZXNzLmxsbS52MS5Vc2FnZUJ1Y2tldFBvaW50EioKBm1vZGVscxgHIAMoCzIaLmhhcm5lc3MubGxtLnYxLlVzYWdlTW9kZWwSOgoPcmVxdWVzdF9jbGFzc2VzGAggAygLMiEuaGFybmVzcy5sbG0udjEuVXNhZ2VSZXF1ZXN0Q2xhc3MikAEKCVVzYWdlVXNlchIPCgd1c2VyX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSDQoFZW1haWwYBCABKAkSKwoGdG90YWxzGAUgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMSFgoObGFzdF9hY3RpdmVfYXQYBiABKAkiPgoRR2V0TXlVc2FnZVJlcXVlc3QSKQoFcmFuZ2UYASABKAsyGi5oYXJuZXNzLmxsbS52MS5Vc2FnZVJhbmdlIkEKEkdldE15VXNhZ2VSZXNwb25zZRIrCgZyZXBvcnQYASABKAsyGy5oYXJuZXNzLmxsbS52MS5Vc2FnZVJlcG9ydCJNCg9HZXRVc2FnZVJlcXVlc3QSKQoFcmFuZ2UYASABKAsyGi5oYXJuZXNzLmxsbS52MS5Vc2FnZVJhbmdlEg8KB3VzZXJfaWQYAiABKAkiaQoQR2V0VXNhZ2VSZXNwb25zZRIrCgZyZXBvcnQYASABKAsyGy5oYXJuZXNzLmxsbS52MS5Vc2FnZVJlcG9ydBIoCgV1c2VycxgCIAMoCzIZLmhhcm5lc3MubGxtLnYxLlVzYWdlVXNlcipYCgtVc2FnZUJ1Y2tldBIcChhVU0FHRV9CVUNLRVRfVU5TUEVDSUZJRUQQABIVChFVU0FHRV9CVUNLRVRfSE9VUhABEhQKEFVTQUdFX0JVQ0tFVF9EQVkQAjKyAQoMVXNhZ2VTZXJ2aWNlElMKCkdldE15VXNhZ2USIS5oYXJuZXNzLmxsbS52MS5HZXRNeVVzYWdlUmVxdWVzdBoiLmhhcm5lc3MubGxtLnYxLkdldE15VXNhZ2VSZXNwb25zZRJNCghHZXRVc2FnZRIfLmhhcm5lc3MubGxtLnYxLkdldFVzYWdlUmVxdWVzdBogLmhhcm5lc3MubGxtLnYxLkdldFVzYWdlUmVzcG9uc2VCvQEKEmNvbS5oYXJuZXNzLmxsbS52MUIKVXNhZ2VQcm90b1ABWkFnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2xsbS92MTtsbG12MaICA0hMWKoCDkhhcm5lc3MuTGxtLlYxygIOSGFybmVzc1xMbG1cVjHiAhpIYXJuZXNzXExsbVxWMVxHUEJNZXRhZGF0YeoCEEhhcm5lc3M6OkxsbTo6VjFiBnByb3RvMw");
+  fileDesc("ChpoYXJuZXNzL2xsbS92MS91c2FnZS5wcm90bxIOaGFybmVzcy5sbG0udjEiZgoKVXNhZ2VSYW5nZRIMCgRmcm9tGAEgASgJEgoKAnRvGAIgASgJEisKBmJ1Y2tldBgDIAEoDjIbLmhhcm5lc3MubGxtLnYxLlVzYWdlQnVja2V0EhEKCXRpbWVfem9uZRgEIAEoCSLEAQoLVXNhZ2VUb3RhbHMSEAoIcmVxdWVzdHMYASABKAMSFAoMaW5wdXRfdG9rZW5zGAIgASgDEhUKDW91dHB1dF90b2tlbnMYAyABKAMSGQoRY2FjaGVfcmVhZF90b2tlbnMYBCABKAMSGgoSY2FjaGVfd3JpdGVfdG9rZW5zGAUgASgDEhQKDHRvdGFsX3Rva2VucxgGIAEoAxIQCghjb3N0X3VzZBgHIAEoARIXCg91bnByaWNlZF90b2tlbnMYCCABKAMiUgoQVXNhZ2VCdWNrZXRNb2RlbBIRCgltb2RlbF9rZXkYASABKAkSKwoGdG90YWxzGAIgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMigAEKEFVzYWdlQnVja2V0UG9pbnQSDQoFc3RhcnQYASABKAkSKwoGdG90YWxzGAIgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMSMAoGbW9kZWxzGAMgAygLMiAuaGFybmVzcy5sbG0udjEuVXNhZ2VCdWNrZXRNb2RlbCLRAQoKVXNhZ2VNb2RlbBILCgNrZXkYASABKAkSEAoIbW9kZWxfaWQYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJEhYKDnVwc3RyZWFtX21vZGVsGAQgASgJEhMKC3Byb3ZpZGVyX2lkGAUgASgJEhUKDXByb3ZpZGVyX25hbWUYBiABKAkSDgoGcHJpY2VkGAcgASgIEisKBnRvdGFscxgIIAEoCzIbLmhhcm5lc3MubGxtLnYxLlVzYWdlVG90YWxzEg0KBWxvY2FsGAkgASgIIlcKEVVzYWdlUmVxdWVzdENsYXNzEhUKDXJlcXVlc3RfY2xhc3MYASABKAkSKwoGdG90YWxzGAIgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMirwIKC1VzYWdlUmVwb3J0EgwKBGZyb20YASABKAkSCgoCdG8YAiABKAkSKwoGYnVja2V0GAMgASgOMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VCdWNrZXQSEQoJdGltZV96b25lGAQgASgJEisKBnRvdGFscxgFIAEoCzIbLmhhcm5lc3MubGxtLnYxLlVzYWdlVG90YWxzEjEKB2J1Y2tldHMYBiADKAsyIC5oYXJuZXNzLmxsbS52MS5Vc2FnZUJ1Y2tldFBvaW50EioKBm1vZGVscxgHIAMoCzIaLmhhcm5lc3MubGxtLnYxLlVzYWdlTW9kZWwSOgoPcmVxdWVzdF9jbGFzc2VzGAggAygLMiEuaGFybmVzcy5sbG0udjEuVXNhZ2VSZXF1ZXN0Q2xhc3MikAEKCVVzYWdlVXNlchIPCgd1c2VyX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSDQoFZW1haWwYBCABKAkSKwoGdG90YWxzGAUgASgLMhsuaGFybmVzcy5sbG0udjEuVXNhZ2VUb3RhbHMSFgoObGFzdF9hY3RpdmVfYXQYBiABKAkiPgoRR2V0TXlVc2FnZVJlcXVlc3QSKQoFcmFuZ2UYASABKAsyGi5oYXJuZXNzLmxsbS52MS5Vc2FnZVJhbmdlIkEKEkdldE15VXNhZ2VSZXNwb25zZRIrCgZyZXBvcnQYASABKAsyGy5oYXJuZXNzLmxsbS52MS5Vc2FnZVJlcG9ydCJNCg9HZXRVc2FnZVJlcXVlc3QSKQoFcmFuZ2UYASABKAsyGi5oYXJuZXNzLmxsbS52MS5Vc2FnZVJhbmdlEg8KB3VzZXJfaWQYAiABKAkiaQoQR2V0VXNhZ2VSZXNwb25zZRIrCgZyZXBvcnQYASABKAsyGy5oYXJuZXNzLmxsbS52MS5Vc2FnZVJlcG9ydBIoCgV1c2VycxgCIAMoCzIZLmhhcm5lc3MubGxtLnYxLlVzYWdlVXNlciKYAgoQTG9jYWxVc2FnZVJlY29yZBIKCgJpZBgBIAEoCRIQCghtb2RlbF9pZBgCIAEoCRITCgtwcm92aWRlcl9pZBgDIAEoCRIVCg1yZXF1ZXN0X2NsYXNzGAQgASgJEhIKCnNlc3Npb25faWQYBSABKAkSEAoIYWdlbnRfaWQYBiABKAkSFAoMaW5wdXRfdG9rZW5zGAcgASgDEhUKDW91dHB1dF90b2tlbnMYCCABKAMSGQoRY2FjaGVfcmVhZF90b2tlbnMYCSABKAMSDgoGc3RhdHVzGAogASgJEhMKC3N0b3BfcmVhc29uGAsgASgJEhMKC2R1cmF0aW9uX21zGAwgASgDEhIKCmNyZWF0ZWRfYXQYDSABKAkiTAoXUmVwb3J0TG9jYWxVc2FnZVJlcXVlc3QSMQoHcmVjb3JkcxgBIAMoCzIgLmhhcm5lc3MubGxtLnYxLkxvY2FsVXNhZ2VSZWNvcmQiLAoYUmVwb3J0TG9jYWxVc2FnZVJlc3BvbnNlEhAKCGFjY2VwdGVkGAEgASgFKlgKC1VzYWdlQnVja2V0EhwKGFVTQUdFX0JVQ0tFVF9VTlNQRUNJRklFRBAAEhUKEVVTQUdFX0JVQ0tFVF9IT1VSEAESFAoQVVNBR0VfQlVDS0VUX0RBWRACMpkCCgxVc2FnZVNlcnZpY2USUwoKR2V0TXlVc2FnZRIhLmhhcm5lc3MubGxtLnYxLkdldE15VXNhZ2VSZXF1ZXN0GiIuaGFybmVzcy5sbG0udjEuR2V0TXlVc2FnZVJlc3BvbnNlEk0KCEdldFVzYWdlEh8uaGFybmVzcy5sbG0udjEuR2V0VXNhZ2VSZXF1ZXN0GiAuaGFybmVzcy5sbG0udjEuR2V0VXNhZ2VSZXNwb25zZRJlChBSZXBvcnRMb2NhbFVzYWdlEicuaGFybmVzcy5sbG0udjEuUmVwb3J0TG9jYWxVc2FnZVJlcXVlc3QaKC5oYXJuZXNzLmxsbS52MS5SZXBvcnRMb2NhbFVzYWdlUmVzcG9uc2VCvQEKEmNvbS5oYXJuZXNzLmxsbS52MUIKVXNhZ2VQcm90b1ABWkFnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2xsbS92MTtsbG12MaICA0hMWKoCDkhhcm5lc3MuTGxtLlYxygIOSGFybmVzc1xMbG1cVjHiAhpIYXJuZXNzXExsbVxWMVxHUEJNZXRhZGF0YeoCEEhhcm5lc3M6OkxsbTo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message harness.llm.v1.UsageRange
@@ -215,6 +215,13 @@ export type UsageModel = Message<"harness.llm.v1.UsageModel"> & {
    * @generated from field: harness.llm.v1.UsageTotals totals = 8;
    */
   totals?: UsageTotals | undefined;
+
+  /**
+   * A local model of a user's machine (model_id "local:<provider>/<name>", ReportLocalUsage): always free.
+   *
+   * @generated from field: bool local = 9;
+   */
+  local: boolean;
 };
 
 /**
@@ -435,6 +442,133 @@ export const GetUsageResponseSchema: GenMessage<GetUsageResponse> = /*@__PURE__*
   messageDesc(file_harness_llm_v1_usage, 11);
 
 /**
+ * One request to a local model, as the client saw it.
+ *
+ * @generated from message harness.llm.v1.LocalUsageRecord
+ */
+export type LocalUsageRecord = Message<"harness.llm.v1.LocalUsageRecord"> & {
+  /**
+   * Client-generated id; a record sent twice is stored once.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "local:<provider>/<name>".
+   *
+   * @generated from field: string model_id = 2;
+   */
+  modelId: string;
+
+  /**
+   * The local provider's id ("ollama").
+   *
+   * @generated from field: string provider_id = 3;
+   */
+  providerId: string;
+
+  /**
+   * @generated from field: string request_class = 4;
+   */
+  requestClass: string;
+
+  /**
+   * @generated from field: string session_id = 5;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: string agent_id = 6;
+   */
+  agentId: string;
+
+  /**
+   * @generated from field: int64 input_tokens = 7;
+   */
+  inputTokens: bigint;
+
+  /**
+   * @generated from field: int64 output_tokens = 8;
+   */
+  outputTokens: bigint;
+
+  /**
+   * @generated from field: int64 cache_read_tokens = 9;
+   */
+  cacheReadTokens: bigint;
+
+  /**
+   * ok | error | aborted
+   *
+   * @generated from field: string status = 10;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string stop_reason = 11;
+   */
+  stopReason: string;
+
+  /**
+   * @generated from field: int64 duration_ms = 12;
+   */
+  durationMs: bigint;
+
+  /**
+   * RFC 3339; the server's clock when empty or in the future.
+   *
+   * @generated from field: string created_at = 13;
+   */
+  createdAt: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.LocalUsageRecord.
+ * Use `create(LocalUsageRecordSchema)` to create a new message.
+ */
+export const LocalUsageRecordSchema: GenMessage<LocalUsageRecord> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_usage, 12);
+
+/**
+ * @generated from message harness.llm.v1.ReportLocalUsageRequest
+ */
+export type ReportLocalUsageRequest = Message<"harness.llm.v1.ReportLocalUsageRequest"> & {
+  /**
+   * At most 500 per call.
+   *
+   * @generated from field: repeated harness.llm.v1.LocalUsageRecord records = 1;
+   */
+  records: LocalUsageRecord[];
+};
+
+/**
+ * Describes the message harness.llm.v1.ReportLocalUsageRequest.
+ * Use `create(ReportLocalUsageRequestSchema)` to create a new message.
+ */
+export const ReportLocalUsageRequestSchema: GenMessage<ReportLocalUsageRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_usage, 13);
+
+/**
+ * @generated from message harness.llm.v1.ReportLocalUsageResponse
+ */
+export type ReportLocalUsageResponse = Message<"harness.llm.v1.ReportLocalUsageResponse"> & {
+  /**
+   * Records stored by this call (duplicates are not counted).
+   *
+   * @generated from field: int32 accepted = 1;
+   */
+  accepted: number;
+};
+
+/**
+ * Describes the message harness.llm.v1.ReportLocalUsageResponse.
+ * Use `create(ReportLocalUsageResponseSchema)` to create a new message.
+ */
+export const ReportLocalUsageResponseSchema: GenMessage<ReportLocalUsageResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_usage, 14);
+
+/**
  * @generated from enum harness.llm.v1.UsageBucket
  */
 export enum UsageBucket {
@@ -499,6 +633,19 @@ export const UsageService: GenService<{
     methodKind: "unary";
     input: typeof GetUsageRequestSchema;
     output: typeof GetUsageResponseSchema;
+  },
+  /**
+   * Records requests the calling client sent to local models on its machine (agent.v1 localmodels.proto), which
+   * never pass through the gateway. They are stored with cost 0 as priced (free, not unknown), under the
+   * calling device. Any signed-in user (a device token); model ids must start with "local:". Only usage data is
+   * sent: local provider configuration stays on the device.
+   *
+   * @generated from rpc harness.llm.v1.UsageService.ReportLocalUsage
+   */
+  reportLocalUsage: {
+    methodKind: "unary";
+    input: typeof ReportLocalUsageRequestSchema;
+    output: typeof ReportLocalUsageResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_llm_v1_usage, 0);

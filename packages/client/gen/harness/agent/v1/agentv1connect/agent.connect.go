@@ -187,6 +187,27 @@ const (
 	// AgentServiceStopSideChatProcedure is the fully-qualified name of the AgentService's StopSideChat
 	// RPC.
 	AgentServiceStopSideChatProcedure = "/harness.agent.v1.AgentService/StopSideChat"
+	// AgentServiceListLocalProvidersProcedure is the fully-qualified name of the AgentService's
+	// ListLocalProviders RPC.
+	AgentServiceListLocalProvidersProcedure = "/harness.agent.v1.AgentService/ListLocalProviders"
+	// AgentServiceAddLocalProviderProcedure is the fully-qualified name of the AgentService's
+	// AddLocalProvider RPC.
+	AgentServiceAddLocalProviderProcedure = "/harness.agent.v1.AgentService/AddLocalProvider"
+	// AgentServiceUpdateLocalProviderProcedure is the fully-qualified name of the AgentService's
+	// UpdateLocalProvider RPC.
+	AgentServiceUpdateLocalProviderProcedure = "/harness.agent.v1.AgentService/UpdateLocalProvider"
+	// AgentServiceRemoveLocalProviderProcedure is the fully-qualified name of the AgentService's
+	// RemoveLocalProvider RPC.
+	AgentServiceRemoveLocalProviderProcedure = "/harness.agent.v1.AgentService/RemoveLocalProvider"
+	// AgentServiceRefreshLocalProvidersProcedure is the fully-qualified name of the AgentService's
+	// RefreshLocalProviders RPC.
+	AgentServiceRefreshLocalProvidersProcedure = "/harness.agent.v1.AgentService/RefreshLocalProviders"
+	// AgentServicePullOllamaModelProcedure is the fully-qualified name of the AgentService's
+	// PullOllamaModel RPC.
+	AgentServicePullOllamaModelProcedure = "/harness.agent.v1.AgentService/PullOllamaModel"
+	// AgentServiceDeleteOllamaModelProcedure is the fully-qualified name of the AgentService's
+	// DeleteOllamaModel RPC.
+	AgentServiceDeleteOllamaModelProcedure = "/harness.agent.v1.AgentService/DeleteOllamaModel"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -333,6 +354,18 @@ type AgentServiceClient interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest]) (*connect.ServerStreamForClient[v1.AskSideChatResponse], error)
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// Detected and configured local providers with their models (cached probes; refresh = probe now).
+	ListLocalProviders(context.Context, *connect.Request[v1.ListLocalProvidersRequest]) (*connect.Response[v1.ListLocalProvidersResponse], error)
+	// Adds an endpoint (e.g. a custom OpenAI-compatible server); it is probed right away.
+	AddLocalProvider(context.Context, *connect.Request[v1.AddLocalProviderRequest]) (*connect.Response[v1.AddLocalProviderResponse], error)
+	// Renames, moves, re-keys, enables or disables a provider.
+	UpdateLocalProvider(context.Context, *connect.Request[v1.UpdateLocalProviderRequest]) (*connect.Response[v1.UpdateLocalProviderResponse], error)
+	RemoveLocalProvider(context.Context, *connect.Request[v1.RemoveLocalProviderRequest]) (*connect.Response[v1.RemoveLocalProviderResponse], error)
+	// Probes the providers again (all enabled ones, or one).
+	RefreshLocalProviders(context.Context, *connect.Request[v1.RefreshLocalProvidersRequest]) (*connect.Response[v1.RefreshLocalProvidersResponse], error)
+	// Downloads a model into an Ollama server, streaming its progress; cancelling the stream stops the pull.
+	PullOllamaModel(context.Context, *connect.Request[v1.PullOllamaModelRequest]) (*connect.ServerStreamForClient[v1.PullOllamaModelResponse], error)
+	DeleteOllamaModel(context.Context, *connect.Request[v1.DeleteOllamaModelRequest]) (*connect.Response[v1.DeleteOllamaModelResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -676,6 +709,48 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 			connect.WithClientOptions(opts...),
 		),
+		listLocalProviders: connect.NewClient[v1.ListLocalProvidersRequest, v1.ListLocalProvidersResponse](
+			httpClient,
+			baseURL+AgentServiceListLocalProvidersProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListLocalProviders")),
+			connect.WithClientOptions(opts...),
+		),
+		addLocalProvider: connect.NewClient[v1.AddLocalProviderRequest, v1.AddLocalProviderResponse](
+			httpClient,
+			baseURL+AgentServiceAddLocalProviderProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("AddLocalProvider")),
+			connect.WithClientOptions(opts...),
+		),
+		updateLocalProvider: connect.NewClient[v1.UpdateLocalProviderRequest, v1.UpdateLocalProviderResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateLocalProviderProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateLocalProvider")),
+			connect.WithClientOptions(opts...),
+		),
+		removeLocalProvider: connect.NewClient[v1.RemoveLocalProviderRequest, v1.RemoveLocalProviderResponse](
+			httpClient,
+			baseURL+AgentServiceRemoveLocalProviderProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RemoveLocalProvider")),
+			connect.WithClientOptions(opts...),
+		),
+		refreshLocalProviders: connect.NewClient[v1.RefreshLocalProvidersRequest, v1.RefreshLocalProvidersResponse](
+			httpClient,
+			baseURL+AgentServiceRefreshLocalProvidersProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RefreshLocalProviders")),
+			connect.WithClientOptions(opts...),
+		),
+		pullOllamaModel: connect.NewClient[v1.PullOllamaModelRequest, v1.PullOllamaModelResponse](
+			httpClient,
+			baseURL+AgentServicePullOllamaModelProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("PullOllamaModel")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteOllamaModel: connect.NewClient[v1.DeleteOllamaModelRequest, v1.DeleteOllamaModelResponse](
+			httpClient,
+			baseURL+AgentServiceDeleteOllamaModelProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteOllamaModel")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -736,6 +811,13 @@ type agentServiceClient struct {
 	deleteSideChat        *connect.Client[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse]
 	askSideChat           *connect.Client[v1.AskSideChatRequest, v1.AskSideChatResponse]
 	stopSideChat          *connect.Client[v1.StopSideChatRequest, v1.StopSideChatResponse]
+	listLocalProviders    *connect.Client[v1.ListLocalProvidersRequest, v1.ListLocalProvidersResponse]
+	addLocalProvider      *connect.Client[v1.AddLocalProviderRequest, v1.AddLocalProviderResponse]
+	updateLocalProvider   *connect.Client[v1.UpdateLocalProviderRequest, v1.UpdateLocalProviderResponse]
+	removeLocalProvider   *connect.Client[v1.RemoveLocalProviderRequest, v1.RemoveLocalProviderResponse]
+	refreshLocalProviders *connect.Client[v1.RefreshLocalProvidersRequest, v1.RefreshLocalProvidersResponse]
+	pullOllamaModel       *connect.Client[v1.PullOllamaModelRequest, v1.PullOllamaModelResponse]
+	deleteOllamaModel     *connect.Client[v1.DeleteOllamaModelRequest, v1.DeleteOllamaModelResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1013,6 +1095,41 @@ func (c *agentServiceClient) StopSideChat(ctx context.Context, req *connect.Requ
 	return c.stopSideChat.CallUnary(ctx, req)
 }
 
+// ListLocalProviders calls harness.agent.v1.AgentService.ListLocalProviders.
+func (c *agentServiceClient) ListLocalProviders(ctx context.Context, req *connect.Request[v1.ListLocalProvidersRequest]) (*connect.Response[v1.ListLocalProvidersResponse], error) {
+	return c.listLocalProviders.CallUnary(ctx, req)
+}
+
+// AddLocalProvider calls harness.agent.v1.AgentService.AddLocalProvider.
+func (c *agentServiceClient) AddLocalProvider(ctx context.Context, req *connect.Request[v1.AddLocalProviderRequest]) (*connect.Response[v1.AddLocalProviderResponse], error) {
+	return c.addLocalProvider.CallUnary(ctx, req)
+}
+
+// UpdateLocalProvider calls harness.agent.v1.AgentService.UpdateLocalProvider.
+func (c *agentServiceClient) UpdateLocalProvider(ctx context.Context, req *connect.Request[v1.UpdateLocalProviderRequest]) (*connect.Response[v1.UpdateLocalProviderResponse], error) {
+	return c.updateLocalProvider.CallUnary(ctx, req)
+}
+
+// RemoveLocalProvider calls harness.agent.v1.AgentService.RemoveLocalProvider.
+func (c *agentServiceClient) RemoveLocalProvider(ctx context.Context, req *connect.Request[v1.RemoveLocalProviderRequest]) (*connect.Response[v1.RemoveLocalProviderResponse], error) {
+	return c.removeLocalProvider.CallUnary(ctx, req)
+}
+
+// RefreshLocalProviders calls harness.agent.v1.AgentService.RefreshLocalProviders.
+func (c *agentServiceClient) RefreshLocalProviders(ctx context.Context, req *connect.Request[v1.RefreshLocalProvidersRequest]) (*connect.Response[v1.RefreshLocalProvidersResponse], error) {
+	return c.refreshLocalProviders.CallUnary(ctx, req)
+}
+
+// PullOllamaModel calls harness.agent.v1.AgentService.PullOllamaModel.
+func (c *agentServiceClient) PullOllamaModel(ctx context.Context, req *connect.Request[v1.PullOllamaModelRequest]) (*connect.ServerStreamForClient[v1.PullOllamaModelResponse], error) {
+	return c.pullOllamaModel.CallServerStream(ctx, req)
+}
+
+// DeleteOllamaModel calls harness.agent.v1.AgentService.DeleteOllamaModel.
+func (c *agentServiceClient) DeleteOllamaModel(ctx context.Context, req *connect.Request[v1.DeleteOllamaModelRequest]) (*connect.Response[v1.DeleteOllamaModelResponse], error) {
+	return c.deleteOllamaModel.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1157,6 +1274,18 @@ type AgentServiceHandler interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest], *connect.ServerStream[v1.AskSideChatResponse]) error
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// Detected and configured local providers with their models (cached probes; refresh = probe now).
+	ListLocalProviders(context.Context, *connect.Request[v1.ListLocalProvidersRequest]) (*connect.Response[v1.ListLocalProvidersResponse], error)
+	// Adds an endpoint (e.g. a custom OpenAI-compatible server); it is probed right away.
+	AddLocalProvider(context.Context, *connect.Request[v1.AddLocalProviderRequest]) (*connect.Response[v1.AddLocalProviderResponse], error)
+	// Renames, moves, re-keys, enables or disables a provider.
+	UpdateLocalProvider(context.Context, *connect.Request[v1.UpdateLocalProviderRequest]) (*connect.Response[v1.UpdateLocalProviderResponse], error)
+	RemoveLocalProvider(context.Context, *connect.Request[v1.RemoveLocalProviderRequest]) (*connect.Response[v1.RemoveLocalProviderResponse], error)
+	// Probes the providers again (all enabled ones, or one).
+	RefreshLocalProviders(context.Context, *connect.Request[v1.RefreshLocalProvidersRequest]) (*connect.Response[v1.RefreshLocalProvidersResponse], error)
+	// Downloads a model into an Ollama server, streaming its progress; cancelling the stream stops the pull.
+	PullOllamaModel(context.Context, *connect.Request[v1.PullOllamaModelRequest], *connect.ServerStream[v1.PullOllamaModelResponse]) error
+	DeleteOllamaModel(context.Context, *connect.Request[v1.DeleteOllamaModelRequest]) (*connect.Response[v1.DeleteOllamaModelResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1496,6 +1625,48 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListLocalProvidersHandler := connect.NewUnaryHandler(
+		AgentServiceListLocalProvidersProcedure,
+		svc.ListLocalProviders,
+		connect.WithSchema(agentServiceMethods.ByName("ListLocalProviders")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceAddLocalProviderHandler := connect.NewUnaryHandler(
+		AgentServiceAddLocalProviderProcedure,
+		svc.AddLocalProvider,
+		connect.WithSchema(agentServiceMethods.ByName("AddLocalProvider")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateLocalProviderHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateLocalProviderProcedure,
+		svc.UpdateLocalProvider,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateLocalProvider")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRemoveLocalProviderHandler := connect.NewUnaryHandler(
+		AgentServiceRemoveLocalProviderProcedure,
+		svc.RemoveLocalProvider,
+		connect.WithSchema(agentServiceMethods.ByName("RemoveLocalProvider")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRefreshLocalProvidersHandler := connect.NewUnaryHandler(
+		AgentServiceRefreshLocalProvidersProcedure,
+		svc.RefreshLocalProviders,
+		connect.WithSchema(agentServiceMethods.ByName("RefreshLocalProviders")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServicePullOllamaModelHandler := connect.NewServerStreamHandler(
+		AgentServicePullOllamaModelProcedure,
+		svc.PullOllamaModel,
+		connect.WithSchema(agentServiceMethods.ByName("PullOllamaModel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteOllamaModelHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteOllamaModelProcedure,
+		svc.DeleteOllamaModel,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteOllamaModel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1608,6 +1779,20 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceAskSideChatHandler.ServeHTTP(w, r)
 		case AgentServiceStopSideChatProcedure:
 			agentServiceStopSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceListLocalProvidersProcedure:
+			agentServiceListLocalProvidersHandler.ServeHTTP(w, r)
+		case AgentServiceAddLocalProviderProcedure:
+			agentServiceAddLocalProviderHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateLocalProviderProcedure:
+			agentServiceUpdateLocalProviderHandler.ServeHTTP(w, r)
+		case AgentServiceRemoveLocalProviderProcedure:
+			agentServiceRemoveLocalProviderHandler.ServeHTTP(w, r)
+		case AgentServiceRefreshLocalProvidersProcedure:
+			agentServiceRefreshLocalProvidersHandler.ServeHTTP(w, r)
+		case AgentServicePullOllamaModelProcedure:
+			agentServicePullOllamaModelHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteOllamaModelProcedure:
+			agentServiceDeleteOllamaModelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1835,4 +2020,32 @@ func (UnimplementedAgentServiceHandler) AskSideChat(context.Context, *connect.Re
 
 func (UnimplementedAgentServiceHandler) StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListLocalProviders(context.Context, *connect.Request[v1.ListLocalProvidersRequest]) (*connect.Response[v1.ListLocalProvidersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListLocalProviders is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) AddLocalProvider(context.Context, *connect.Request[v1.AddLocalProviderRequest]) (*connect.Response[v1.AddLocalProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AddLocalProvider is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateLocalProvider(context.Context, *connect.Request[v1.UpdateLocalProviderRequest]) (*connect.Response[v1.UpdateLocalProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateLocalProvider is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RemoveLocalProvider(context.Context, *connect.Request[v1.RemoveLocalProviderRequest]) (*connect.Response[v1.RemoveLocalProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RemoveLocalProvider is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RefreshLocalProviders(context.Context, *connect.Request[v1.RefreshLocalProvidersRequest]) (*connect.Response[v1.RefreshLocalProvidersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RefreshLocalProviders is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) PullOllamaModel(context.Context, *connect.Request[v1.PullOllamaModelRequest], *connect.ServerStream[v1.PullOllamaModelResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.PullOllamaModel is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DeleteOllamaModel(context.Context, *connect.Request[v1.DeleteOllamaModelRequest]) (*connect.Response[v1.DeleteOllamaModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteOllamaModel is not implemented"))
 }
