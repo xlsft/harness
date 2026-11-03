@@ -15,12 +15,24 @@ const SECTIONS = [
   { key: 'models', label: 'Models', icon: 'ai' },
   { key: 'providers', label: 'Providers', icon: 'box' },
   { key: 'account', label: 'Account', icon: 'lock' },
+  { key: 'users', label: 'Users', icon: 'shield' },
   { key: 'about', label: 'About', icon: 'info' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
 
+// Users is for admins only (the server enforces it too). The web has no role from the shell: ask the server.
+const isAdmin = ref(store.account.role === 'admin')
+onMounted(async () => {
+  try {
+    if (store.transport) isAdmin.value = await store.transport.users().isAdmin()
+  } catch {
+    // Keep what the shell said.
+  }
+})
+const sections = computed(() => SECTIONS.filter(s => s.key !== 'users' || isAdmin.value))
+
 const section = computed<Section>({
-  get: () => SECTIONS.find(s => s.key === route.query.section)?.key ?? 'general',
+  get: () => sections.value.find(s => s.key === route.query.section)?.key ?? 'general',
   set: v => router.replace({ query: { ...route.query, section: v === 'general' ? undefined : v } })
 })
 
@@ -115,7 +127,7 @@ async function signOut() {
           Settings
         </h1>
         <button
-          v-for="s in SECTIONS"
+          v-for="s in sections"
           :key="s.key"
           type="button"
           class="nav-row px-[9px] hover:bg-hover"
@@ -310,6 +322,11 @@ async function signOut() {
           v-else-if="section === 'providers'"
           @changed="rememberProviders"
         />
+
+        <template v-else-if="section === 'users'">
+          <SettingsUsers />
+          <SettingsLdap />
+        </template>
 
         <template v-else-if="section === 'account'">
           <h2 class="set-h">

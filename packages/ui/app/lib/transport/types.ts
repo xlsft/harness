@@ -17,6 +17,7 @@ import type {
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { EffortName } from '~/lib/session/types'
 import type { ProvidersApi } from '~/lib/providers/types'
+import type { UsersApi } from '~/lib/users/types'
 
 export interface ModelInfo {
   id: string
@@ -103,4 +104,7 @@ export interface SessionTransport {
   // LLM providers and the auto-mode classifier for the settings screens (harness.llm.v1.ProviderService,
   // forwarded to the server by the client).
   providers(): ProvidersApi
+
+  // User administration and LDAP for admins (harness.auth.v1.AdminService, forwarded to the server by the client).
+  users(): UsersApi
 }
