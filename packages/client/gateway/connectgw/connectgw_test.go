@@ -9,6 +9,7 @@ import (
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/gateway"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
+	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	"github.com/xlsft/harness/packages/client/internal/fakegateway"
 	"github.com/xlsft/harness/packages/client/llm"
 )
@@ -99,5 +100,44 @@ func TestCountTokens(t *testing.T) {
 	n, err := gw.CountTokens(context.Background(), req())
 	if err != nil || !n.Estimated {
 		t.Fatalf("count: %+v %v", n, err)
+	}
+}
+
+// The server pings while the upstream model is silent; a stalled upstream must
+// still time out (and be retried while nothing was received), not hang the turn.
+func TestPingsDoNotHideAStall(t *testing.T) {
+	srv, url := fakegateway.Start(t, func(n int, r *llm.Request) fakegateway.Reply {
+		if n == 0 {
+			return fakegateway.Reply{Hold: true, Pings: 20 * time.Millisecond}
+		}
+		return fakegateway.Reply{Events: fakegateway.Message("msg_ok", fakegateway.Text("ok"))}
+	})
+	gw := connectgw.New(url, nil, auth.StaticToken("hat_x"))
+	gw.IdleTimeout = 300 * time.Millisecond
+	retries := 0
+	start := time.Now()
+	resp, _, err := gateway.Send(context.Background(), gw, req(), nil, &gateway.RetryPolicy{MaxRetries: 1, BaseDelay: time.Millisecond,
+		OnRetry: func(int, time.Duration, error) { retries++ }})
+	if err != nil || resp.Message.Text() != "ok" || retries != 1 || len(srv.Requests()) != 2 {
+		t.Fatalf("want a retry after the stall: %v %q retries=%d requests=%d", err, resp.Message.Text(), retries, len(srv.Requests()))
+	}
+	if d := time.Since(start); d > 3*time.Second {
+		t.Fatalf("took %s", d)
+	}
+}
+
+// A stream that went silent after the server was seen pinging is dead (the
+// connection is gone): it is dropped long before the idle timeout.
+func TestSilenceAfterPingsDropsTheStream(t *testing.T) {
+	_, url := fakegateway.Start(t, func(n int, r *llm.Request) fakegateway.Reply {
+		ping := &llmv1.StreamMessageResponse{Event: &llmv1.StreamMessageResponse_Ping{Ping: &llmv1.Ping{}}}
+		return fakegateway.Reply{Events: []*llmv1.StreamMessageResponse{ping}, Hold: true}
+	})
+	gw := connectgw.New(url, nil, auth.StaticToken("hat_x"))
+	gw.SilenceTimeout = 200 * time.Millisecond
+	start := time.Now()
+	_, _, err := gateway.Send(context.Background(), gw, req(), nil, &gateway.RetryPolicy{})
+	if !errors.Is(err, gateway.ErrIdleTimeout) || time.Since(start) > 3*time.Second {
+		t.Fatalf("want the silence timeout, got %v after %s", err, time.Since(start))
 	}
 }

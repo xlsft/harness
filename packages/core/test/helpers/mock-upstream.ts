@@ -19,6 +19,8 @@ export interface MockResponse {
   chunkSize?: number;
   /** Delay between chunks. */
   delayMs?: number;
+  /** Stop sending after this many characters of `sse` and keep the connection open (a stalled upstream). */
+  stallAfter?: number;
 }
 
 export type MockHandler = (req: RecordedRequest) => MockResponse;
@@ -70,10 +72,12 @@ export class MockUpstream {
     if (r.sse !== undefined) {
       res.writeHead(status, { "content-type": "text/event-stream", ...r.headers });
       const size = r.chunkSize ?? 37;
-      for (let i = 0; i < r.sse.length; i += size) {
-        res.write(r.sse.slice(i, i + size));
+      const text = r.stallAfter === undefined ? r.sse : r.sse.slice(0, r.stallAfter);
+      for (let i = 0; i < text.length; i += size) {
+        res.write(text.slice(i, Math.min(i + size, text.length)));
         if (r.delayMs) await new Promise((x) => setTimeout(x, r.delayMs));
       }
+      if (r.stallAfter !== undefined) return;
       res.end();
       return;
     }

@@ -126,85 +126,122 @@ export async function* runMessages(
     usage = emptyUsage();
     debugUpstream(sent.url, sent.body);
 
-    let res;
-    try {
-      res = await guardedFetch(sent.url, {
-        method: "POST",
-        headers: sent.headers,
-        body: JSON.stringify(sent.body),
-        signal,
-        allowPrivateNetwork: provider.allowPrivateNetwork,
-      });
-    } catch (err) {
-      if (signal?.aborted) throw err;
-      if (err instanceof ApiError) {
-        return { ok: false, failure: { type: "upstream", message: err.message, retryable: false }, committed: false, sent, target };
-      }
-      return { ok: false, failure: networkFailure(err), committed: false, sent, target };
-    }
-    if (!res.ok || !res.body) {
-      const text = await res.text().catch(() => "");
-      return { ok: false, failure: classifyHttpFailure(res.status, res.headers, text), committed: false, sent, target };
-    }
-
-    const commit = (): GatewayEvent => {
-      committed = true;
-      served = model;
-      return {
-        event: "message_start",
-        data: {
-          type: "message_start",
-          message: {
-            id: messageId,
-            model: req.model,
-            role: "assistant",
-            content: [],
-            stop_reason: null,
-            usage: { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens },
-          },
-        },
-      };
-    };
-
-    for await (const ev of adapter.translate(res.body as ReadableStream<Uint8Array>, target)) {
-      switch (ev.kind) {
-        case "start":
-          usage = mergeUsage(usage, ev.usage);
-          break;
-        case "usage":
-          usage = mergeUsage(usage, ev.usage);
-          break;
-        case "block":
-          if (!committed) yield commit();
-          yield { event: ev.event, data: ev.data };
-          break;
-        case "error":
-          return { ok: false, failure: ev.error, committed, sent, target };
-        case "stop": {
-          usage = mergeUsage(usage, ev.usage);
-          if (!committed) yield commit();
-          const delta: Record<string, unknown> = { stop_reason: ev.stop_reason };
-          if (ev.stop_reason === "stop_sequence" && ev.stop_sequence) delta.stop_sequence = ev.stop_sequence;
-          yield { event: "message_delta", data: { type: "message_delta", delta, usage: { ...usage } } };
-          const harness: Record<string, unknown> = {
-            cost_usd: computeCost(usage, billedPricing(model.pricing, provider.billing)),
-            upstream_model: model.upstreamModel,
-            retries,
-            // Catalog alias that answered; differs from req.model after a fallback.
-            served_model: model.id,
-          };
-          yield { event: "message_stop", data: { type: "message_stop", harness } };
-          return { ok: true, stopReason: ev.stop_reason };
-        }
-      }
-    }
-    return {
+    // The client's keepalive pings must not keep a stalled upstream alive: an upstream silent for
+    // upstreamIdleTimeoutMs (before the headers or between body chunks) fails the attempt, which is retried
+    // like a dropped connection while nothing reached the client.
+    const idle = new AbortController();
+    const stalled = (): AttemptResult => ({
       ok: false,
-      failure: { type: "upstream", message: "Upstream stream ended unexpectedly", retryable: true },
+      failure: { type: "upstream", message: `Upstream sent nothing for ${Math.round(cfg.upstreamIdleTimeoutMs / 1000)}s`, retryable: true },
       committed,
       sent,
       target,
+    });
+    let timer: NodeJS.Timeout | undefined;
+    const touch = () => {
+      clearTimeout(timer);
+      if (cfg.upstreamIdleTimeoutMs > 0) timer = setTimeout(() => idle.abort(), cfg.upstreamIdleTimeoutMs);
     };
+    touch();
+    try {
+      let res;
+      try {
+        res = await guardedFetch(sent.url, {
+          method: "POST",
+          headers: sent.headers,
+          body: JSON.stringify(sent.body),
+          signal: signal ? AbortSignal.any([signal, idle.signal]) : idle.signal,
+          allowPrivateNetwork: provider.allowPrivateNetwork,
+        });
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        if (idle.signal.aborted) return stalled();
+        if (err instanceof ApiError) {
+          return { ok: false, failure: { type: "upstream", message: err.message, retryable: false }, committed: false, sent, target };
+        }
+        return { ok: false, failure: networkFailure(err), committed: false, sent, target };
+      }
+      if (!res.ok || !res.body) {
+        const text = await res.text().catch(() => "");
+        return { ok: false, failure: classifyHttpFailure(res.status, res.headers, text), committed: false, sent, target };
+      }
+
+      const commit = (): GatewayEvent => {
+        committed = true;
+        served = model;
+        return {
+          event: "message_start",
+          data: {
+            type: "message_start",
+            message: {
+              id: messageId,
+              model: req.model,
+              role: "assistant",
+              content: [],
+              stop_reason: null,
+              usage: { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens },
+            },
+          },
+        };
+      };
+
+      touch();
+      const body = (res.body as ReadableStream<Uint8Array>).pipeThrough(
+        new TransformStream<Uint8Array, Uint8Array>({
+          transform(chunk, ctl) {
+            touch();
+            ctl.enqueue(chunk);
+          },
+        }),
+      );
+      try {
+        for await (const ev of adapter.translate(body, target)) {
+          switch (ev.kind) {
+            case "start":
+              usage = mergeUsage(usage, ev.usage);
+              break;
+            case "usage":
+              usage = mergeUsage(usage, ev.usage);
+              break;
+            case "block":
+              if (!committed) yield commit();
+              yield { event: ev.event, data: ev.data };
+              break;
+            case "error":
+              return { ok: false, failure: ev.error, committed, sent, target };
+            case "stop": {
+              usage = mergeUsage(usage, ev.usage);
+              if (!committed) yield commit();
+              const delta: Record<string, unknown> = { stop_reason: ev.stop_reason };
+              if (ev.stop_reason === "stop_sequence" && ev.stop_sequence) delta.stop_sequence = ev.stop_sequence;
+              yield { event: "message_delta", data: { type: "message_delta", delta, usage: { ...usage } } };
+              const harness: Record<string, unknown> = {
+                cost_usd: computeCost(usage, billedPricing(model.pricing, provider.billing)),
+                upstream_model: model.upstreamModel,
+                retries,
+                // Catalog alias that answered; differs from req.model after a fallback.
+                served_model: model.id,
+              };
+              yield { event: "message_stop", data: { type: "message_stop", harness } };
+              return { ok: true, stopReason: ev.stop_reason };
+            }
+          }
+        }
+      } catch (err) {
+        if (signal?.aborted || !idle.signal.aborted) throw err;
+        return stalled();
+      }
+      if (idle.signal.aborted) return stalled();
+      return {
+        ok: false,
+        failure: { type: "upstream", message: "Upstream stream ended unexpectedly", retryable: true },
+        committed,
+        sent,
+        target,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   try {
