@@ -83,6 +83,10 @@ const grep = computed(() => {
   return files
 })
 
+// Grep output without file:line:text matches: its lines as they are, minus the "no matches" message.
+const grepPlain = computed(() => String(t.value.result?.content ?? t.value.output ?? '').split('\n').map(l => l.trim())
+  .filter(l => l && !/^no (matches|files) found/i.test(l)))
+
 function marks(text: string) {
   const p = String(t.value.input.pattern ?? '')
   if (!p) return [{ t: text, m: false }]
@@ -315,6 +319,22 @@ v-for="(line, i) in outputLines"
             class="bg-accent text-on-accent"
           >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
         </div>
+      </template>
+      <!-- No match lines: file names only (files_with_matches, count), or nothing found -->
+      <template v-if="!grep.length">
+        <div
+          v-for="line in grepPlain"
+          :key="line"
+          class="truncate px-3 font-mono text-toned"
+        >
+          {{ line }}
+        </div>
+        <p
+          v-if="!grepPlain.length && tool.status !== 'running'"
+          class="m-0 px-3 text-muted"
+        >
+          Nothing found
+        </p>
       </template>
     </div>
 
