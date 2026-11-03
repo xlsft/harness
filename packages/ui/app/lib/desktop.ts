@@ -48,6 +48,22 @@ export async function pickFolder(defaultPath?: string): Promise<string | null> {
   return typeof picked === 'string' ? picked : null
 }
 
+/**
+ * A system notification: through the shell in the desktop app, the browser's Notification API on the web.
+ * Asks for permission the first time; does nothing when it is refused.
+ */
+export async function notify(title: string, body: string) {
+  if (isDesktop()) {
+    const n = await import('@tauri-apps/plugin-notification')
+    if (!(await n.isPermissionGranted()) && (await n.requestPermission()) !== 'granted') return
+    n.sendNotification({ title, body })
+    return
+  }
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'default') await Notification.requestPermission()
+  if (Notification.permission === 'granted') new Notification(title, { body })
+}
+
 /** Opens a URL in the default browser. */
 export async function openExternal(url: string) {
   const { openUrl } = await import('@tauri-apps/plugin-opener')

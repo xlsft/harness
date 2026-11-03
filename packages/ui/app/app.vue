@@ -11,6 +11,7 @@ useSeoMeta({
 
 const store = useSessionStore()
 const desktop = isDesktop()
+useTurnNotifications()
 const phase = ref<'checking' | 'signin' | 'ready'>(desktop ? 'checking' : 'ready')
 const signInError = ref('')
 
