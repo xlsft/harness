@@ -41,9 +41,9 @@ func TestHeadlessAutoMode(t *testing.T) {
 		if len(fg.LastToolResults(r)) == 0 {
 			return fg.Reply{Events: fg.Message("m1",
 				fg.Text("Let me check the toolchain first."),
-				fg.ToolUse("t_safe", "Bash", map[string]any{"command": safe}),
-				fg.ToolUse("t_danger", "Bash", map[string]any{"command": dangerous}),
-				fg.ToolUse("t_amb", "Bash", map[string]any{"command": ambiguous}),
+				fg.ToolUse("t_safe", "Bash", map[string]any{"description": "test", "command": safe}),
+				fg.ToolUse("t_danger", "Bash", map[string]any{"description": "test", "command": dangerous}),
+				fg.ToolUse("t_amb", "Bash", map[string]any{"description": "test", "command": ambiguous}),
 			)}
 		}
 		return fg.Reply{Events: fg.Message("m2", fg.Text("done"))}

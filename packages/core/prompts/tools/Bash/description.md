@@ -23,7 +23,7 @@ Rules:
 - Before creating files or directories, check that the target's parent directory exists and is where you mean to write.
 - Do not run interactive commands (editors, pagers, prompts, `git rebase -i`, `git add -i`); they hang until the timeout. Use non-interactive flags.
 - Never put `sleep` between commands that are ready to run. If you must wait for something (a port, a file, a background task), use Wait; for other external systems, use a command that reports its status instead of sleeping first.
-- `description`: say what the command does in active voice, in about 5 to 10 words ("Run unit tests", "List files changed on this branch"). For pipelines or unusual flags, say what the whole thing achieves.
+- `description` (required): a label for the row the user sees, which reads "Running <label>", "Ran <label>" or "Failed to run <label>". Write a noun phrase of 2 to 6 words naming what the command works on or produces, without a leading verb: "unit tests", "lint on the UI package", "changed files on this branch", "dependency install". Start in lowercase unless the first word is a name or acronym ("Docker image build"). For pipelines or unusual flags, name what the whole thing achieves.
 
 Git safety:
 - Leave the git configuration alone.

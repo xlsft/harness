@@ -59,7 +59,7 @@ func fakeHome(t *testing.T) (claudeHome, claudeJSON, harnessHome string) {
 	}
 	os.Symlink("/etc/hosts", filepath.Join(claudeHome, "skills", "pdf", "hosts"))
 	claudeJSON = filepath.Join(root, ".claude.json")
-	os.WriteFile(claudeJSON, []byte(`{"theme":"dark","mcpServers":{"github":{"type":"http","url":"https://api.example.com/mcp","headers":{"Authorization":"Bearer x"}},"fs":{"command":"npx","args":["fs"],"env":{"TOKEN":"t"}}}}`), 0o644)
+	os.WriteFile(claudeJSON, []byte(`{"theme":"dark","mcpServers":{"github":{"type":"http","url":"https://api.example.com/mcp","headers":{"Authorization":"Bearer x"}},"fs":{"description":"test","command":"npx","args":["fs"],"env":{"TOKEN":"t"}}}}`), 0o644)
 	return claudeHome, claudeJSON, filepath.Join(root, ".harness")
 }
 

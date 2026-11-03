@@ -375,7 +375,7 @@ func TestAllowAlwaysAndPermissionComments(t *testing.T) {
 		last := r.Messages[len(r.Messages)-1]
 		lb := last.Content[len(last.Content)-1]
 		if lb.Type == llm.BlockText && strings.HasPrefix(lb.Text, "run ") {
-			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b"+string(rune('a'+n)), "Bash", map[string]any{"command": strings.TrimPrefix(lb.Text, "run ")}))}
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b"+string(rune('a'+n)), "Bash", map[string]any{"description": "test", "command": strings.TrimPrefix(lb.Text, "run ")}))}
 		}
 		return fg.Reply{Events: fg.Message("m", fg.Text("ok"))}
 	}, nil)
@@ -549,7 +549,7 @@ func TestNowDeliveryBackgroundsRunningBash(t *testing.T) {
 	h := startHarness(t, func(n int, r *llm.Request) fg.Reply {
 		last := r.Messages[len(r.Messages)-1]
 		if last.Content[len(last.Content)-1].Text == "start" {
-			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b", "Bash", map[string]any{"command": "sleep 30"}))}
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b", "Bash", map[string]any{"description": "test", "command": "sleep 30"}))}
 		}
 		return fg.Reply{Events: fg.Message("m", fg.Text("ack"))}
 	}, func(o *bootstrap.Options) { o.AllowedTools = []string{"Bash"} })

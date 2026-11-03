@@ -141,7 +141,7 @@ func TestBackgroundTaskReminderSkippedWhenReported(t *testing.T) {
 	e := setup(t, func(n int, r *llm.Request) fg.Reply {
 		switch n {
 		case 0:
-			return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"command": "echo bg-out", "run_in_background": true}))}
+			return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"description": "test", "command": "echo bg-out", "run_in_background": true}))}
 		case 1:
 			id := idRe.FindStringSubmatch(fg.ResultText(fg.LastToolResults(r)[0]))[1]
 			return fg.Reply{Events: fg.Message("m2", fg.ToolUse("t1", "TaskOutput", map[string]any{"task_id": id, "block": true, "timeout": 5000}))}
@@ -166,7 +166,7 @@ func TestBackgroundTaskReminderSkippedWhenReported(t *testing.T) {
 func TestAutoBackgroundInTurn(t *testing.T) {
 	t.Setenv("BASH_DEFAULT_TIMEOUT_MS", "300")
 	e := setup(t, fg.Sequence(func(r *llm.Request) fg.Reply {
-		return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"command": "echo a; sleep 2"}))}
+		return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"description": "test", "command": "echo a; sleep 2"}))}
 	}))
 	s := e.open(t, func(o *bootstrap.Options) { o.PermissionMode = permissions.ModeBypassPermissions })
 	start := time.Now()
@@ -392,7 +392,7 @@ func TestTrimToolOutputsBeforeSummarizing(t *testing.T) {
 			return fg.Reply{Events: fg.Message("sum", fg.Text("SUMMARY"))}
 		}
 		if n < 6 {
-			return fg.Reply{Events: fg.WithInputTokens(fg.Message("m", fg.ToolUse("t"+string(rune('a'+n)), "Bash", map[string]any{"command": big})), len(reqText(r))/4)}
+			return fg.Reply{Events: fg.WithInputTokens(fg.Message("m", fg.ToolUse("t"+string(rune('a'+n)), "Bash", map[string]any{"description": "test", "command": big})), len(reqText(r))/4)}
 		}
 		return fg.Reply{Events: fg.Message("m", fg.Text("done"))}
 	})

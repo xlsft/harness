@@ -496,7 +496,7 @@ func TestProjectConfigRegistration(t *testing.T) {
 	h.svc.Servers = []*mcpv1.Server{existing}
 	cfg := filepath.Join(h.cwd, ".mcp.json")
 	os.WriteFile(cfg, []byte(`{"mcpServers":{
-		"lint":{"command":"`+exe(t)+`","args":["--new"]},
+		"lint":{"description":"test","command":"`+exe(t)+`","args":["--new"]},
 		"docs":{"type":"http","url":"https://docs.example/mcp","headers":{"X-Key":"${secret:KEY}"}},
 		"weird":{"type":"carrier-pigeon"}
 	}}`), 0o644)

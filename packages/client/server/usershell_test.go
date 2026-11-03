@@ -200,7 +200,7 @@ func TestUserShellWhileTurnRuns(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		if n == 0 {
-			return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"command": "sleep 1.5"}))}
+			return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"description": "test", "command": "sleep 1.5"}))}
 		}
 		return fg.Reply{Events: fg.Message("m2", fg.Text("done"))}
 	}, nil)

@@ -447,9 +447,6 @@
   "title": {
     "instruction": "Write a short title."
   },
-  "tool_title": {
-    "instruction": "Label this shell command."
-  },
   "output_styles": {
     "default": {
       "id": "default",

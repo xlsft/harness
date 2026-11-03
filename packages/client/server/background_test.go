@@ -19,7 +19,7 @@ import (
 func TestBackgroundToolCallRPC(t *testing.T) {
 	h := startHarness(t, func(n int, r *llm.Request) fg.Reply {
 		if n == 0 {
-			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b1", "Bash", map[string]any{"command": "sleep 30"}))}
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b1", "Bash", map[string]any{"description": "test", "command": "sleep 30"}))}
 		}
 		return fg.Reply{Events: fg.Message("m2", fg.Text("ok"))}
 	}, func(o *bootstrap.Options) { o.AllowedTools = []string{"Bash"} })

@@ -58,7 +58,7 @@ func autoEngine(t *testing.T, d permissions.Decider, cfg permissions.Config) (*p
 }
 
 func bash(cmd string) permissions.Request {
-	in, _ := json.Marshal(map[string]string{"command": cmd})
+	in, _ := json.Marshal(map[string]string{"description": "test", "command": cmd})
 	return permissions.Request{ToolName: "Bash", ToolUseID: "t1", Input: in, Command: cmd, SessionID: "s1",
 		RecentUserMessages: []string{"run the generator"}, Rationale: "Running the generator."}
 }

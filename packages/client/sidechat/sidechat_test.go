@@ -38,7 +38,7 @@ func q(s string) string { b, _ := json.Marshal(s); return string(b) }
 func TestRenderMain(t *testing.T) {
 	entries := conv(t,
 		[2]string{"user", q("Fix the flaky login test <system-reminder>secret reminder</system-reminder>")},
-		[2]string{"assistant", `[{"type":"thinking","thinking":"hmm","signature":"s"},{"type":"text","text":"Looking at it."},{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"go test ./auth/...   -run Login","timeout":5}}]`},
+		[2]string{"assistant", `[{"type":"thinking","thinking":"hmm","signature":"s"},{"type":"text","text":"Looking at it."},{"type":"tool_use","id":"t1","name":"Bash","input":{"description":"test","command":"go test ./auth/...   -run Login","timeout":5}}]`},
 		[2]string{"user", `[{"type":"tool_result","tool_use_id":"t1","content":"FAIL"}]`},
 		[2]string{"assistant", `[{"type":"tool_use","id":"t2","name":"Edit","input":{"file_path":"/p/auth/login_test.go","old_string":"a","new_string":"b"}},{"type":"tool_use","id":"t3","name":"TodoWrite","input":{"todos":[]}}]`},
 		[2]string{"user", q("<command-name>/clear</command-name>")},

@@ -12,7 +12,6 @@ The bundle `version` is a content hash: it changes exactly when the resolved tex
 | `reminders/<id>.md` | `reminders[<id>]` |
 | `compaction/instruction.md` | `compaction_instruction` |
 | `title/instruction.md` | `title_instruction` |
-| `tool-title/instruction.md` | `tool_title_instruction` |
 | `output-styles/<id>.md` | `output_styles[<id>]` (see below) |
 
 Trailing whitespace of each file is trimmed. This README is not part of the bundle.

@@ -104,7 +104,7 @@ func TestBashReadsSatisfyReadBeforeEdit(t *testing.T) {
 				}
 			}
 		}
-		r := call(t, env, &Bash{}, map[string]any{"command": c})
+		r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": c})
 		if r.IsError {
 			continue // tool missing on this machine
 		}
@@ -114,8 +114,8 @@ func TestBashReadsSatisfyReadBeforeEdit(t *testing.T) {
 	}
 	p := filepath.Join(env.Cwd, "g.txt")
 	write(t, p, "x\n")
-	call(t, env, &Bash{}, map[string]any{"command": "grep -r x ."})
-	call(t, env, &Bash{}, map[string]any{"command": "sed -i.bak 's/x/y/' g.txt"})
+	call(t, env, &Bash{}, map[string]any{"description": "test", "command": "grep -r x ."})
+	call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sed -i.bak 's/x/y/' g.txt"})
 	if env.Files.CheckWritable(p) == "" {
 		t.Fatal("recursive grep / sed -i must not count as a read")
 	}
@@ -180,7 +180,7 @@ func TestBackgroundTaskLifecycle(t *testing.T) {
 	}
 
 	// TaskStop kills a running task.
-	r = call(t, env, &Bash{}, map[string]any{"command": "sleep 30", "run_in_background": true})
+	r = call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sleep 30", "run_in_background": true})
 	id = r.Structured.(map[string]any)["backgroundTaskId"].(string)
 	start := time.Now()
 	r = call(t, env, &TaskStop{}, map[string]any{"task_id": id})
@@ -194,8 +194,8 @@ func TestBackgroundTaskLifecycle(t *testing.T) {
 		t.Fatal("stopping a finished task is an error")
 	}
 	// StopAll on session close.
-	call(t, env, &Bash{}, map[string]any{"command": "sleep 30", "run_in_background": true})
-	call(t, env, &Bash{}, map[string]any{"command": "sleep 30", "run_in_background": true})
+	call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sleep 30", "run_in_background": true})
+	call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sleep 30", "run_in_background": true})
 	env.Tasks.StopAll(TaskSessionClosed)
 	if env.Tasks.Running() != 0 {
 		t.Fatal("tasks still running")
@@ -206,7 +206,7 @@ func TestAutoBackgroundOnTimeout(t *testing.T) {
 	env := newEnv(t)
 	env.Tasks = NewTaskManager(filepath.Join(env.ScratchDir, "tasks"))
 	start := time.Now()
-	r := call(t, env, &Bash{}, map[string]any{"command": "echo early; sleep 1; echo late", "timeout": 300})
+	r := call(t, env, &Bash{}, map[string]any{"description": "test", "command": "echo early; sleep 1; echo late", "timeout": 300})
 	id, _ := r.Structured.(map[string]any)["backgroundTaskId"].(string)
 	if r.IsError || id == "" || !strings.Contains(text(r), "did not finish within its") || time.Since(start) > 900*time.Millisecond {
 		t.Fatalf("auto-background: %q after %s", text(r), time.Since(start))
@@ -217,7 +217,7 @@ func TestAutoBackgroundOnTimeout(t *testing.T) {
 		t.Fatalf("handed-off output %q exit %d", data, info.ExitCode)
 	}
 	// Commands starting with sleep time out instead.
-	r = call(t, env, &Bash{}, map[string]any{"command": "sleep 2", "timeout": 200})
+	r = call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sleep 2", "timeout": 200})
 	if !r.IsError || !strings.Contains(text(r), "timed out") {
 		t.Fatalf("sleep must time out: %q", text(r))
 	}
@@ -226,7 +226,7 @@ func TestAutoBackgroundOnTimeout(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 		env.Shell.BackgroundRunning(BackgroundQueuedMessage)
 	}()
-	r = call(t, env, &Bash{}, map[string]any{"command": "sleep 2"})
+	r = call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sleep 2"})
 	if r.IsError || !strings.Contains(text(r), "moved to the background so that a message") {
 		t.Fatalf("manual background: %q", text(r))
 	}

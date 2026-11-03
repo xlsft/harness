@@ -77,10 +77,6 @@ type Server struct {
 	// recorded apart (TitleRequests) and do not advance Respond's request
 	// number. When nil, title requests fail.
 	Title func(req *llm.Request) Reply
-	// ToolTitle scripts Bash tool title requests (see IsToolTitleRequest),
-	// recorded apart (ToolTitleRequests) like session titles. When nil,
-	// they fail.
-	ToolTitle func(req *llm.Request) Reply
 
 	// RejectTokens makes the next N authenticated calls fail with UNAUTHENTICATED.
 	RejectTokens atomic.Int32
@@ -117,28 +113,6 @@ func (s *Server) TitleRequests() []*llm.Request {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([]*llm.Request(nil), s.titles...)
-}
-
-// ToolTitleRequests returns the recorded tool title requests.
-func (s *Server) ToolTitleRequests() []*llm.Request {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return append([]*llm.Request(nil), s.tools...)
-}
-
-// IsToolTitleRequest reports whether req asks for a Bash tool title: an
-// auxiliary request whose system prompt is the bundle's tool title
-// instruction.
-func (s *Server) IsToolTitleRequest(req *llm.Request) bool {
-	if req.Metadata == nil || req.Metadata.RequestClass != "auxiliary" || s.Bundle == nil || s.Bundle.ToolTitle == nil || s.Bundle.ToolTitle.Instruction == "" {
-		return false
-	}
-	for _, b := range req.System {
-		if strings.Contains(b.Text, s.Bundle.ToolTitle.Instruction) {
-			return true
-		}
-	}
-	return false
 }
 
 // IsTitleRequest reports whether req asks for a session title: an
@@ -273,16 +247,6 @@ func (g gatewayHandler) StreamMessage(ctx context.Context, req *connect.Request[
 	if tc := req.Msg.GetToolChoice(); tc != nil {
 		modes := map[llmv1.ToolChoice_Mode]string{llmv1.ToolChoice_MODE_AUTO: "auto", llmv1.ToolChoice_MODE_ANY: "any", llmv1.ToolChoice_MODE_TOOL: "tool", llmv1.ToolChoice_MODE_NONE: "none"}
 		r.ToolChoice = &llm.ToolChoice{Type: modes[tc.GetMode()], Name: tc.GetToolName()}
-	}
-	if g.s.IsToolTitleRequest(r) {
-		g.s.mu.Lock()
-		g.s.tools = append(g.s.tools, r)
-		title := g.s.ToolTitle
-		g.s.mu.Unlock()
-		if title == nil {
-			return rpc.NewError(connect.CodeInvalidArgument, commonv1.ErrorType_ERROR_TYPE_INVALID_ARGUMENT, "no tool title scripted", 0)
-		}
-		return g.s.play(ctx, stream, title(r))
 	}
 	if g.s.IsTitleRequest(r) {
 		g.s.mu.Lock()

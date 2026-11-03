@@ -19,7 +19,7 @@ func TestAutoModeOverAgentService(t *testing.T) {
 		last := r.Messages[len(r.Messages)-1]
 		lb := last.Content[len(last.Content)-1]
 		if lb.Type == llm.BlockText && strings.HasPrefix(lb.Text, "run ") {
-			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b"+string(rune('a'+n)), "Bash", map[string]any{"command": strings.TrimPrefix(lb.Text, "run ")}))}
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b"+string(rune('a'+n)), "Bash", map[string]any{"description": "test", "command": strings.TrimPrefix(lb.Text, "run ")}))}
 		}
 		return fg.Reply{Events: fg.Message("m", fg.Text("ok"))}
 	}, nil)

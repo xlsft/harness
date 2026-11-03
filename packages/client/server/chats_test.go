@@ -27,7 +27,7 @@ func chatResponder(n int, r *llm.Request) fg.Reply {
 			return fg.Reply{Events: fg.Message("m", fg.ToolUse(id, "Write", map[string]any{"file_path": p, "content": "hello\n"}))}
 		}
 		if c, ok := strings.CutPrefix(lb.Text, "run "); ok {
-			return fg.Reply{Events: fg.Message("m", fg.ToolUse(id, "Bash", map[string]any{"command": c}))}
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse(id, "Bash", map[string]any{"description": "test", "command": c}))}
 		}
 	}
 	return fg.Reply{Events: fg.Message("m", fg.Text("ok"))}

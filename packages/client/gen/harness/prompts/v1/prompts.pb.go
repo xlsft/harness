@@ -175,12 +175,9 @@ type PromptBundle struct {
 	// Built-in output styles keyed by id (default, proactive, concise, explanatory, learning). User and
 	// project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .claude/output-styles/*.md with the
 	// same fields in their frontmatter. "default" adds nothing.
-	OutputStyles map[string]*OutputStyle `protobuf:"bytes,8,rep,name=output_styles,json=outputStyles,proto3" json:"output_styles,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Instruction for the short label of a Bash tool call (a lowercase noun phrase the UI shows as
-	// "Run <label>"); the client sends the command and its description. Empty: the client's fallback.
-	ToolTitleInstruction string `protobuf:"bytes,9,opt,name=tool_title_instruction,json=toolTitleInstruction,proto3" json:"tool_title_instruction,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	OutputStyles  map[string]*OutputStyle `protobuf:"bytes,8,rep,name=output_styles,json=outputStyles,proto3" json:"output_styles,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PromptBundle) Reset() {
@@ -267,13 +264,6 @@ func (x *PromptBundle) GetOutputStyles() map[string]*OutputStyle {
 		return x.OutputStyles
 	}
 	return nil
-}
-
-func (x *PromptBundle) GetToolTitleInstruction() string {
-	if x != nil {
-		return x.ToolTitleInstruction
-	}
-	return ""
 }
 
 // An output style changes how the assistant communicates (tone, verbosity, teaching) without changing
@@ -485,7 +475,7 @@ const file_harness_prompts_v1_prompts_proto_rawDesc = "" +
 	"\rif_none_match\x18\x02 \x01(\tR\vifNoneMatch\"p\n" +
 	"\x11GetBundleResponse\x12!\n" +
 	"\fnot_modified\x18\x01 \x01(\bR\vnotModified\x128\n" +
-	"\x06bundle\x18\x02 \x01(\v2 .harness.prompts.v1.PromptBundleR\x06bundle\"\xfc\x05\n" +
+	"\x06bundle\x18\x02 \x01(\v2 .harness.prompts.v1.PromptBundleR\x06bundle\"\xcc\x05\n" +
 	"\fPromptBundle\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x129\n" +
@@ -494,8 +484,7 @@ const file_harness_prompts_v1_prompts_proto_rawDesc = "" +
 	"\treminders\x18\x05 \x03(\v2/.harness.prompts.v1.PromptBundle.RemindersEntryR\treminders\x125\n" +
 	"\x16compaction_instruction\x18\x06 \x01(\tR\x15compactionInstruction\x12+\n" +
 	"\x11title_instruction\x18\a \x01(\tR\x10titleInstruction\x12W\n" +
-	"\routput_styles\x18\b \x03(\v22.harness.prompts.v1.PromptBundle.OutputStylesEntryR\foutputStyles\x124\n" +
-	"\x16tool_title_instruction\x18\t \x01(\tR\x14toolTitleInstruction\x1a\\\n" +
+	"\routput_styles\x18\b \x03(\v22.harness.prompts.v1.PromptBundle.OutputStylesEntryR\foutputStyles\x1a\\\n" +
 	"\n" +
 	"ToolsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x128\n" +
@@ -505,7 +494,8 @@ const file_harness_prompts_v1_prompts_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a`\n" +
 	"\x11OutputStylesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x125\n" +
-	"\x05value\x18\x02 \x01(\v2\x1f.harness.prompts.v1.OutputStyleR\x05value:\x028\x01\"\xa1\x01\n" +
+	"\x05value\x18\x02 \x01(\v2\x1f.harness.prompts.v1.OutputStyleR\x05value:\x028\x01J\x04\b\t\x10\n" +
+	"\"\xa1\x01\n" +
 	"\vOutputStyle\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +

@@ -127,7 +127,7 @@ func TestReplayHistory(t *testing.T) {
 	b.add(session.Entry{Type: session.TypeUser, Message: session.UserText("<context>project</context>"), IsMeta: true})
 	b.add(session.Entry{Type: session.TypeUser, Message: session.UserText(strings.Repeat("summary ", 100)), IsCompactSummary: true, IsVisibleInTranscriptOnly: true})
 	b.prompt("now add tests", "p2", "acceptEdits")
-	b.assistant("msg_3", llm.Usage{InputTokens: 300, OutputTokens: 5}, toolUse("t3", "Bash", map[string]string{"command": "go test ./..."}))
+	b.assistant("msg_3", llm.Usage{InputTokens: 300, OutputTokens: 5}, toolUse("t3", "Bash", map[string]string{"description": "test", "command": "go test ./..."}))
 	b.result("p2", "t3", testToolInterrupt, true, testToolInterrupt)
 	b.add(session.Entry{Type: session.TypeUser, Message: session.UserText(testInterrupt), PromptID: "p2"})
 	b.entries = append(b.entries, session.Entry{Type: session.TypeAITitle, AITitle: "Parser bug"})
@@ -183,7 +183,7 @@ func TestReplayHistoryOrphanToolsAndRewind(t *testing.T) {
 	b.assistant("msg_1", llm.Usage{}, llm.TextBlock("one"))
 	b.add(session.Entry{Type: session.TypeSystem, Subtype: session.SubtypeRewind, Content: "Rewound to checkpoint x"})
 	b.prompt("second", "p2", "")
-	b.assistant("msg_2", llm.Usage{}, toolUse("t1", "Bash", map[string]string{"command": "sleep 100"}), toolUse("t2", "Glob", map[string]string{"pattern": "*.go"}))
+	b.assistant("msg_2", llm.Usage{}, toolUse("t1", "Bash", map[string]string{"description": "test", "command": "sleep 100"}), toolUse("t2", "Glob", map[string]string{"pattern": "*.go"}))
 	b.result("p2", "t2", "a.go", false, nil)
 	// The process stopped here: t1 never got a result.
 	evs := replayHistory(b.entries, replayOptions{})

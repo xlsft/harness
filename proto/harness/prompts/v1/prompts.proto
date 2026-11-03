@@ -68,9 +68,7 @@ message PromptBundle {
   // project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .claude/output-styles/*.md with the
   // same fields in their frontmatter. "default" adds nothing.
   map<string, OutputStyle> output_styles = 8;
-  // Instruction for the short label of a Bash tool call (a lowercase noun phrase the UI shows as
-  // "Run <label>"); the client sends the command and its description. Empty: the client's fallback.
-  string tool_title_instruction = 9;
+  reserved 9; // tool_title_instruction: the model labels its Bash calls itself (description)
 }
 
 // An output style changes how the assistant communicates (tone, verbosity, teaching) without changing

@@ -22,7 +22,7 @@ func gitOn(branch string) GitInfo {
 }
 
 func bashReq(cmd string) permissions.AutoRequest {
-	in, _ := json.Marshal(map[string]string{"command": cmd})
+	in, _ := json.Marshal(map[string]string{"description": "test", "command": cmd})
 	return permissions.AutoRequest{
 		Request: permissions.Request{ToolName: "Bash", Input: in, Command: cmd},
 		Cwd:     testCwd, WorkDirs: []string{testCwd}, Home: testHome,
@@ -489,7 +489,7 @@ func TestRuleCategoriesAreRiskCategories(t *testing.T) {
 // bashInput is the TypeScript test helper `bash(command, extra)`: the
 // fixture defaults plus a Bash command.
 func bashInput(command string) RulesInput {
-	in, _ := json.Marshal(map[string]string{"command": command})
+	in, _ := json.Marshal(map[string]string{"description": "test", "command": command})
 	return RulesInput{ToolName: "Bash", Input: in, Cwd: "/work/proj", AdditionalDirectories: []string{"/work/shared"}}
 }
 

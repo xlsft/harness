@@ -71,9 +71,6 @@ func FromProto(p *promptsv1.PromptBundle) *Bundle {
 	if p.GetTitleInstruction() != "" {
 		b.Title = &Instruction{Instruction: p.GetTitleInstruction()}
 	}
-	if p.GetToolTitleInstruction() != "" {
-		b.ToolTitle = &Instruction{Instruction: p.GetToolTitleInstruction()}
-	}
 	for id, st := range p.GetOutputStyles() {
 		if b.OutputStyles == nil {
 			b.OutputStyles = map[string]OutputStyle{}
@@ -108,9 +105,6 @@ func ToProto(b *Bundle) *promptsv1.PromptBundle {
 	}
 	if b.Title != nil {
 		p.TitleInstruction = b.Title.Instruction
-	}
-	if b.ToolTitle != nil {
-		p.ToolTitleInstruction = b.ToolTitle.Instruction
 	}
 	for id, st := range b.OutputStyles {
 		if p.OutputStyles == nil {

@@ -499,6 +499,9 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	if strings.TrimSpace(in.Command) == "" {
 		return ErrorResult("InputValidationError: command is required")
 	}
+	if strings.TrimSpace(in.Description) == "" {
+		return ErrorResult("InputValidationError: description is required: a noun phrase of 2 to 6 words naming what the command works on or produces")
+	}
 	maxT := envDuration("BASH_MAX_TIMEOUT_MS", BashMaxTimeout)
 	defT := envDuration("BASH_DEFAULT_TIMEOUT_MS", BashDefaultTimeout)
 	if defT > maxT {

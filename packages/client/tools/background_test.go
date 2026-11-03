@@ -39,7 +39,7 @@ func TestBackgroundToolCallKeepsProcessRunning(t *testing.T) {
 	env.Tasks = NewTaskManager(filepath.Join(env.ScratchDir, "tasks"))
 	defer env.Tasks.StopAll(TaskSessionClosed)
 	marker := filepath.Join(env.Cwd, "done")
-	ch := runBash(env, "toolu_bg", map[string]any{"command": "echo before; sleep 0.6; echo after; touch " + marker})
+	ch := runBash(env, "toolu_bg", map[string]any{"description": "test", "command": "echo before; sleep 0.6; echo after; touch " + marker})
 	waitRunning(t, env, "toolu_bg")
 	if env.Shell.BackgroundToolCall("toolu_other", BackgroundUser) {
 		t.Fatal("another tool call must not match")
@@ -93,13 +93,13 @@ func TestBackgroundNotes(t *testing.T) {
 		}
 	}
 	for _, reason := range []string{BackgroundUser, BackgroundQueuedMessage} {
-		ch := runBash(env, "toolu_"+reason, map[string]any{"command": "sleep 5"})
+		ch := runBash(env, "toolu_"+reason, map[string]any{"description": "test", "command": "sleep 5"})
 		waitRunning(t, env, "toolu_"+reason)
 		env.Shell.BackgroundToolCall("toolu_"+reason, reason)
 		check(<-ch, reason, map[string]string{BackgroundUser: "The user moved", BackgroundQueuedMessage: "so that a message the user sent"}[reason])
 	}
-	check(call(t, env, &Bash{}, map[string]any{"command": "sleep 5", "run_in_background": true}), BackgroundAgent, "You started this command in the background")
-	check(call(t, env, &Bash{}, map[string]any{"command": "echo x; sleep 5", "timeout": 200}), BackgroundAuto, "did not finish within its 200ms timeout")
+	check(call(t, env, &Bash{}, map[string]any{"description": "test", "command": "sleep 5", "run_in_background": true}), BackgroundAgent, "You started this command in the background")
+	check(call(t, env, &Bash{}, map[string]any{"description": "test", "command": "echo x; sleep 5", "timeout": 200}), BackgroundAuto, "did not finish within its 200ms timeout")
 
 	// Bundle templates override the fallbacks.
 	env.Reminders = func(k string) string {

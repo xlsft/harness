@@ -104,7 +104,7 @@ func TestToolRoundTripAndPermissions(t *testing.T) {
 			target = filepath.Join(fg.Cwd(r), "out.txt")
 			return fg.Reply{Events: fg.Message("m1",
 				fg.ToolUse("t_write", "Write", map[string]any{"file_path": target, "content": "hi\n"}),
-				fg.ToolUse("t_bash", "Bash", map[string]any{"command": "rm -rf /tmp/never"}),
+				fg.ToolUse("t_bash", "Bash", map[string]any{"description": "test", "command": "rm -rf /tmp/never"}),
 			)}
 		},
 	))
@@ -179,7 +179,7 @@ func TestParallelReadOnlyCalls(t *testing.T) {
 
 func TestInterruptMidTool(t *testing.T) {
 	e := setup(t, fg.Sequence(func(r *llm.Request) fg.Reply {
-		return fg.Reply{Events: fg.Message("m1", fg.Text("running"), fg.ToolUse("b1", "Bash", map[string]any{"command": "sleep 30"}))}
+		return fg.Reply{Events: fg.Message("m1", fg.Text("running"), fg.ToolUse("b1", "Bash", map[string]any{"description": "test", "command": "sleep 30"}))}
 	}))
 	var s *bootstrap.Session
 	s = e.open(t, func(o *bootstrap.Options) {
@@ -219,7 +219,7 @@ func TestInterruptMidTool(t *testing.T) {
 
 func TestInterruptDuringStream(t *testing.T) {
 	e := setup(t, fg.Sequence(func(r *llm.Request) fg.Reply {
-		return fg.Reply{Events: fg.Partial("m1", false, fg.Text("half done"), fg.ToolUse("x", "Bash", map[string]any{"command": "ls"})), Hold: true}
+		return fg.Reply{Events: fg.Partial("m1", false, fg.Text("half done"), fg.ToolUse("x", "Bash", map[string]any{"description": "test", "command": "ls"})), Hold: true}
 	}))
 	s := e.open(t, nil)
 	go func() { time.Sleep(300 * time.Millisecond); s.Agent.Interrupt() }()
@@ -238,7 +238,7 @@ func TestInterruptDuringStream(t *testing.T) {
 
 func TestQueuedMessageInjectedAfterTools(t *testing.T) {
 	e := setup(t, fg.Sequence(func(r *llm.Request) fg.Reply {
-		return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"command": "sleep 0.5"}))}
+		return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"description": "test", "command": "sleep 0.5"}))}
 	}))
 	var drv *agent.Driver
 	var mu sync.Mutex

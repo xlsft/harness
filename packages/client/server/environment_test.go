@@ -35,7 +35,7 @@ func (b *bashScript) respond(n int, r *llm.Request) fg.Reply {
 		b.requests = append(b.requests, allText(r))
 		return fg.Reply{Events: fg.Message("done", fg.Text("done"))}
 	}
-	return fg.Reply{Events: fg.Message("bash", fg.ToolUse("b1", "Bash", map[string]any{"command": b.next}))}
+	return fg.Reply{Events: fg.Message("bash", fg.ToolUse("b1", "Bash", map[string]any{"description": "test", "command": b.next}))}
 }
 
 func (b *bashScript) run(h *harness, sid string, ch <-chan *agentv1.SessionEvent, cmd string) (result, request string) {
