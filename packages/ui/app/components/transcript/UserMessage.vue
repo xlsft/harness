@@ -4,6 +4,7 @@
 // back into the composer: `edit`), `pending` (handed to the client, not read yet) a plain muted one.
 import type { Attachment } from '~/lib/session/types'
 import { FROM_VISUAL } from '~/lib/visual'
+import { RAN_PREFIX } from '~/stores/sessions'
 
 const props = withDefaults(defineProps<{
   text: string
@@ -15,6 +16,9 @@ const emit = defineEmits<{ edit: [] }>()
 
 // Review comments from the diff pane get their own card.
 const review = computed(() => parseReview(props.text))
+
+// Sent by a code block's Run once its command finished: a quiet line, the output is in the block above.
+const ran = computed(() => props.text.startsWith(RAN_PREFIX) ? props.text.slice(RAN_PREFIX.length) : '')
 
 // The marker the client records when the user stops a turn: plain text, not a bubble.
 const interrupted = computed(() => /^\[Request interrupted by user[^\]]*\]$/.test(props.text.trim()))
@@ -63,6 +67,15 @@ const parsed = computed(() => {
     >
       {{ text }}
     </div>
+    <span
+      v-else-if="ran"
+      class="inline-flex max-w-[78%] items-center gap-1.5 text-[12px] text-muted"
+    >
+      <HIcon
+        name="play"
+        :size="12"
+      />Ran <code class="truncate font-mono text-toned">{{ ran.split('\n')[0] }}</code>
+    </span>
     <span
       v-else-if="interrupted"
       class="inline-flex items-center gap-1.5 text-[12px] text-muted"

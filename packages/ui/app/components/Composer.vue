@@ -95,6 +95,40 @@ const input = ref<HTMLTextAreaElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const id = computed(() => props.session.meta.id)
+
+// The unsent draft of each session (text and mode) is kept in this browser: switching sessions, reloading or
+// quitting the app keeps it; sending (an empty composer) clears it.
+const draftKey = (sid: string) => `harness-draft:${sid}`
+function loadDraft(sid: string) {
+  try {
+    const v = JSON.parse(localStorage.getItem(draftKey(sid)) ?? 'null') as { text?: string, mode?: ComposerMode } | null
+    if (v && typeof v.text === 'string') return v
+  } catch { /* storage unavailable */ }
+  return null
+}
+function saveDraft(sid: string, t: string, m: ComposerMode) {
+  try {
+    if (!t && m === 'normal') localStorage.removeItem(draftKey(sid))
+    else localStorage.setItem(draftKey(sid), JSON.stringify({ text: t, mode: m }))
+  } catch { /* storage unavailable */ }
+}
+if (!props.preset) {
+  const d = loadDraft(id.value)
+  if (d) {
+    text.value = d.text ?? ''
+    if (d.mode) mode.value = d.mode
+  }
+}
+watch(id, (now, before) => {
+  if (props.preset) return
+  if (before) saveDraft(before, text.value, mode.value)
+  const d = loadDraft(now)
+  text.value = d?.text ?? ''
+  mode.value = d?.mode ?? 'normal'
+})
+watch([text, mode], ([t, m]) => {
+  if (!props.preset) saveDraft(id.value, t, m)
+})
 const status = computed(() => props.session.meta.status)
 const busy = computed(() => status.value === 'working' || status.value === 'needs_input')
 const waiting = computed(() => status.value === 'needs_input')

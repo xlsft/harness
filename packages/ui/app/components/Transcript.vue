@@ -204,7 +204,7 @@ const lastIsStreaming = computed(() => {
             :session-id="session.meta.id"
           />
           <ShellCard
-            v-else-if="b.item.kind === 'shell'"
+            v-else-if="b.item.kind === 'shell' && !store.inlineShells[b.item.id]"
             :item="b.item"
             :session-id="session.meta.id"
           />

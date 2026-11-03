@@ -9,9 +9,8 @@ import {
   RewindRequest_Mode,
   SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
-import type { SessionEvent } from '~/gen/harness/agent/v1/agent_pb'
+import type { SessionEvent, SessionInfo } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
-import type { SessionInfo } from '~/gen/harness/agent/v1/agent_pb'
 import { applyLiveInfo, createSessionState, permissionModeName, reduce, sessionMeta, settleTurn } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
 import { liveOutbox, type OutboxEntry } from '~/lib/session/delivery'
@@ -76,6 +75,23 @@ function clearRetry(id: string) {
 export const isNetworkError = (msg: string) => /unavailable|failed to fetch|load failed|networkerror|network error|connection (refused|reset|lost)/i.test(msg)
 
 let uid = 0
+// The message a code block's Run sends once its command finished; UserMessage shows it as a quiet line.
+export const RAN_PREFIX = '[ran the command] '
+const INLINE_KEY = 'harness-inline-shells'
+function loadInlineShells(): Record<string, { command: string, done: boolean }> {
+  try {
+    return JSON.parse(localStorage.getItem(INLINE_KEY) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+function saveInlineShells(v: Record<string, { command: string, done: boolean }>) {
+  try {
+    // The last 200 are enough to keep their cards out of the transcript.
+    localStorage.setItem(INLINE_KEY, JSON.stringify(Object.fromEntries(Object.entries(v).slice(-200))))
+  } catch { /* storage unavailable */ }
+}
+
 export function newUuid() {
   uid += 1
   return (globalThis.crypto?.randomUUID?.() ?? `ui-${Date.now()}-${uid}`)
@@ -122,7 +138,10 @@ export const useSessionStore = defineStore('sessions', {
     remoteControl: {} as Record<string, boolean>,
     // Sessions with a compaction requested from here (button or /compact) that has not returned yet.
     compacting: {} as Record<string, boolean>,
-    unsubscribers: {} as Record<string, () => void>
+    unsubscribers: {} as Record<string, () => void>,
+    // Shell commands run from a code block (runShell inline): command id → command, and whether the agent was
+    // already asked to go on (a replayed finish must not ask again).
+    inlineShells: loadInlineShells()
   }),
 
   getters: {
@@ -350,6 +369,13 @@ export const useSessionStore = defineStore('sessions', {
           const s = this.sessions[id]!
           const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
           reduce(s, ev)
+          // A code block's command finished: the agent answers with its output (it reaches the model as context).
+          const inline = ev.event.case === 'userShellFinished' ? this.inlineShells[ev.event.value.commandId] : undefined
+          if (inline && !inline.done) {
+            inline.done = true
+            saveInlineShells(this.inlineShells)
+            this.quietly(this.send(id, `${RAN_PREFIX}${inline.command}`))
+          }
           this.pruneOutbox(id, ev)
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
           // A turn that finished while another session was open leaves this one unread.
@@ -773,11 +799,19 @@ export const useSessionStore = defineStore('sessions', {
 
     // The composer's shell mode: the client runs the command at once (also while a turn runs, without queueing
     // or starting one) and the transcript shows it as a shell card; the model sees it on its next request.
-    async runShell(id: string, command: string) {
+    // `inline`: run from a code block's Run button. The block shows the output (the transcript draws no shell card
+    // for it), and once it finishes a short message asks the agent to go on with the result.
+    async runShell(id: string, command: string, opts: { inline?: boolean } = {}) {
       const body = command.trim()
-      if (!body || !this.transport) return
+      if (!body || !this.transport) return ''
       this.subscribe(id)
-      await this.transport.runShellCommand(id, newUuid(), body)
+      const uuid = newUuid()
+      if (opts.inline) {
+        this.inlineShells[uuid] = { command: body, done: false }
+        saveInlineShells(this.inlineShells)
+      }
+      await this.transport.runShellCommand(id, uuid, body)
+      return uuid
     },
 
     async stopShell(id: string, commandId: string) {
