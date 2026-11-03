@@ -17,6 +17,7 @@ const parts = computed(() => props.keys.split(/[+\s]/).filter(Boolean))
       :key="i"
       :value="k"
       :size="size"
+      variant="subtle"
     />
   </span>
 </template>
