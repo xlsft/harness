@@ -96,7 +96,7 @@ const usageLine = computed(() => {
     class="flex items-center gap-3 text-[11.5px] text-muted"
   >
     <span class="h-px flex-1 bg-line" />
-    Context compacted · {{ formatTokens(compact.tokensBefore) }} → {{ formatTokens(compact.tokensAfter) }} tokens
+    Context compacted{{ compact.trigger === 'idle' ? ' while idle' : '' }} · {{ formatTokens(compact.tokensBefore) }} → {{ formatTokens(compact.tokensAfter) }} tokens
     <a
       href="#"
       class="link"

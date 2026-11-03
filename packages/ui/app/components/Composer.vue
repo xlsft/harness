@@ -162,9 +162,19 @@ async function submit() {
     await safeSend(`# ${body} (save to ${memoryTarget.value})`)
     return
   }
-  if (body.trim() === '/compact' && !busy.value) {
+  const compactFocus = compactCommand(body)
+  if (compactFocus !== null) {
+    if (busy.value) {
+      error.value = 'Wait for the turn to finish, then /compact.'
+      return
+    }
     text.value = ''
-    await store.compact(id.value)
+    try {
+      await store.compact(id.value, compactFocus)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : String(err)
+      text.value = body
+    }
     return
   }
   text.value = ''

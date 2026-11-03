@@ -34,7 +34,7 @@ onMounted(async () => {
 const KEYWORDS: Record<Section, string> = {
   usage: 'tokens cost spend money statistics chart',
   appearance: 'theme light dark mode system colours',
-  sessions: 'permission modes ask auto plan bypass new sessions worktree defaults',
+  sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
@@ -129,6 +129,7 @@ const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => 
             label="Worktree by default"
           />
         </div>
+        <SettingsCompaction />
       </template>
 
       <SettingsProviders

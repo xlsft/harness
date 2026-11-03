@@ -177,7 +177,7 @@ export interface NoticeItem {
 export interface CompactItem {
   kind: 'compact'
   id: string
-  trigger: 'manual' | 'auto' | 'rewind'
+  trigger: 'manual' | 'auto' | 'rewind' | 'idle'
   tokensBefore: number
   tokensAfter: number
 }

@@ -14,7 +14,8 @@ import {
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
-import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
+import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import { contextUsageFromProto } from '~/lib/session/context'
 import type { EffortName, QuestionReply } from '~/lib/session/types'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
 import { ConnectUsersApi } from '~/lib/users/connect'
@@ -175,6 +176,22 @@ export class ConnectTransport implements SessionTransport {
 
   async compact(sessionId: string, instructions = '') {
     await this.client.compact({ sessionId, instructions })
+  }
+
+  async getContextUsage(sessionId: string) {
+    const res = await this.client.getContextUsage({ sessionId })
+    if (!res.usage) throw new Error('the client returned no context usage')
+    return contextUsageFromProto(res.usage)
+  }
+
+  async getUserPreferences(): Promise<UserPreferences> {
+    const res = await this.client.getUserPreferences({})
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true }
+  }
+
+  async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions })
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true }
   }
 
   async listTasks(sessionId: string) {

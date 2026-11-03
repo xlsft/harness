@@ -21,6 +21,13 @@ export const SLASH_COMMANDS: MenuOption[] = [
   { key: '/rewind', label: '/rewind', detail: 'Restore code or conversation to a checkpoint', tag: 'built-in' }
 ]
 
+// "/compact [focus instructions]": the instructions ('' for none), or null when the text is not the command.
+export function compactCommand(text: string): string | null {
+  const t = text.trim()
+  if (t === '/compact') return ''
+  return /^\/compact\s/.test(t) ? t.slice('/compact'.length).trim() : null
+}
+
 export const MENTION_EXTRAS: MenuOption[] = [
   { key: 'agent:code-reviewer', label: 'code-reviewer', detail: 'agent', icon: 'ai', iconCls: 'text-accent' },
   { key: 'mcp:youtrack:HRN-42', label: 'youtrack:HRN-42', detail: 'MCP resource', icon: 'box', iconCls: 'text-muted' }

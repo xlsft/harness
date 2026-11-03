@@ -8,6 +8,8 @@
 // - Interrupt ends the turn as interrupted; permission, question and plan answers resume it.
 
 import {
+  ContextUsage_Category,
+  ContextUsageSchema,
   InitializeResponseSchema,
   ListBranchesResponseSchema,
   ListDirectoryResponseSchema,
@@ -29,7 +31,8 @@ import { MockAccountApi } from '~/lib/account/mock'
 import { MockUsageApi } from '~/lib/usage/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
-import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
+import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import { contextUsageFromProto } from '~/lib/session/context'
 import type { QuestionReply } from '~/lib/session/types'
 import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
 
@@ -87,6 +90,9 @@ export interface MockOptions {
 export class MockTransport implements SessionTransport {
   readonly kind = 'mock' as const
   private sessions = new Map<string, MockSession>()
+  // Message tokens per session for the context breakdown (a compaction shrinks them).
+  private messageTokens = new Map<string, number>()
+  private preferences: UserPreferences = { compactIdleSessions: true }
   private tick: number
   private now: () => number
 
@@ -554,7 +560,54 @@ export class MockTransport implements SessionTransport {
 
   async compact(sessionId: string) {
     const s = this.get(sessionId)
+    // A compaction takes a while: the details pane shows it busy meanwhile.
+    await new Promise(resolve => setTimeout(resolve, this.tick * 40))
+    this.messageTokens.set(sessionId, 9_800)
     this.emit(s, b => b.compacted(182_000, 24_000))
+  }
+
+  async getContextUsage(sessionId: string) {
+    this.get(sessionId)
+    const window = 200_000
+    const threshold = window * 0.92
+    const parts: [ContextUsage_Category, number][] = [
+      [ContextUsage_Category.MESSAGES, this.messageTokens.get(sessionId) ?? 98_400],
+      [ContextUsage_Category.MCP_TOOLS, 6_300],
+      [ContextUsage_Category.SYSTEM_TOOLS, 11_900],
+      [ContextUsage_Category.SYSTEM_PROMPT, 3_600],
+      [ContextUsage_Category.MCP_SERVER_INSTRUCTIONS, 0]
+    ]
+    const used = parts.reduce((n, [, t]) => n + t, 0)
+    const tools = [
+      { server: 'youtrack', tool: 'search_issues', description: 'Search YouTrack issues with a query', tokens: 1_400, deferred: false },
+      { server: 'youtrack', tool: 'get_issue', description: 'Read an issue by its readable id (PRJ-123)', tokens: 900, deferred: false },
+      { server: 'youtrack', tool: 'update_issue', description: 'Change the fields of an issue', tokens: 4_000, deferred: false },
+      { server: 'figma', tool: 'get_design_context', description: 'Design context of a Figma node for implementing it in code', tokens: 2_600, deferred: true },
+      { server: 'figma', tool: 'get_screenshot', description: 'Screenshot of a Figma node', tokens: 700, deferred: true }
+    ]
+    return contextUsageFromProto(create(ContextUsageSchema, {
+      model: 'mock',
+      contextWindow: BigInt(window),
+      usedTokens: BigInt(used),
+      categories: [
+        ...parts.map(([category, tokens]) => ({ category, tokens: BigInt(tokens) })),
+        { category: ContextUsage_Category.AUTOCOMPACT_BUFFER, tokens: BigInt(window - threshold) },
+        { category: ContextUsage_Category.FREE_SPACE, tokens: BigInt(threshold - used) }
+      ],
+      deferredMcpToolsTokens: BigInt(tools.filter(t => t.deferred).reduce((n, t) => n + t.tokens, 0)),
+      mcpTools: tools.map(t => ({ ...t, name: `mcp__${t.server}__${t.tool}`, tokens: BigInt(t.tokens) })),
+      autocompactThreshold: BigInt(threshold),
+      tokensUntilAutocompact: BigInt(threshold - used)
+    }))
+  }
+
+  async getUserPreferences() {
+    return { ...this.preferences }
+  }
+
+  async updateUserPreferences(patch: Partial<UserPreferences>) {
+    this.preferences = { ...this.preferences, ...patch }
+    return { ...this.preferences }
   }
 
   async listTasks() {

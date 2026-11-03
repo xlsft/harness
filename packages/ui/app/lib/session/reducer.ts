@@ -25,6 +25,7 @@ import {
 import type {
   AssistantItem,
   Attachment,
+  CompactItem,
   PermissionModeName,
   SessionMeta,
   SessionState,
@@ -35,6 +36,13 @@ import type {
   Usage
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
+
+const COMPACT_TRIGGER: Partial<Record<Compacted_Trigger, CompactItem['trigger']>> = {
+  [Compacted_Trigger.MANUAL]: 'manual',
+  [Compacted_Trigger.AUTO]: 'auto',
+  [Compacted_Trigger.REWIND]: 'rewind',
+  [Compacted_Trigger.IDLE]: 'idle'
+}
 
 export function emptyUsage(): Usage {
   return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0 }
@@ -578,7 +586,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       push(s, {
         kind: 'compact',
         id: 'c' + seq,
-        trigger: c.trigger === Compacted_Trigger.AUTO ? 'auto' : c.trigger === Compacted_Trigger.REWIND ? 'rewind' : 'manual',
+        trigger: COMPACT_TRIGGER[c.trigger] ?? 'manual',
         tokensBefore: Number(c.tokensBefore),
         tokensAfter: Number(c.tokensAfter)
       })
