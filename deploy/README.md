@@ -27,7 +27,7 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
   harness/server
 ```
 
-- `HARNESS_ADMIN_EMAIL` / `HARNESS_ADMIN_PASSWORD` create the first admin on startup. They are optional: on a server with no accounts, the first person to sign in (from the app or the CLI) creates the admin account on the sign-in page (name, username, email, password). After that, sign-up is closed and an admin adds people, unless `HARNESS_ALLOW_SIGNUP=true`. People sign in with their email or their username (3-30 letters, digits, `_` or `.`; case-insensitive).
+- `HARNESS_ADMIN_EMAIL` / `HARNESS_ADMIN_PASSWORD` create the first admin on startup (username: `HARNESS_ADMIN_USERNAME`, or the email's local part). They are optional: on a server with no accounts, the first person to sign in (from the app or the CLI) creates the admin account on the sign-in page (name, username, email, password). After that, sign-up is closed and an admin adds people, unless `HARNESS_ALLOW_SIGNUP=true`. People sign in with their email or their username (3-30 letters, digits, `_` or `.`; case-insensitive).
 - Set `HARNESS_SECRET` (32+ characters) explicitly and keep it: it derives the auth secret and
   encrypts stored provider keys. Without it core generates one into `/data/core/secret`, which works
   but then that file is part of what you must back up.

@@ -14,6 +14,7 @@ export interface Config {
   promptsDir: string;
   adminEmail?: string;
   adminPassword?: string;
+  adminUsername?: string;
   allowSignup: boolean;
   upstreamMaxRetries: number;
   upstreamRetryBaseMs: number;
@@ -42,6 +43,7 @@ export function config(): Config {
     promptsDir: resolve(env.HARNESS_PROMPTS_DIR || "./prompts"),
     adminEmail: env.HARNESS_ADMIN_EMAIL || undefined,
     adminPassword: env.HARNESS_ADMIN_PASSWORD || undefined,
+    adminUsername: env.HARNESS_ADMIN_USERNAME || undefined,
     allowSignup: env.HARNESS_ALLOW_SIGNUP === "true",
     upstreamMaxRetries: intEnv(env.HARNESS_UPSTREAM_MAX_RETRIES, 8),
     upstreamRetryBaseMs: intEnv(env.HARNESS_UPSTREAM_RETRY_BASE_MS, 500),

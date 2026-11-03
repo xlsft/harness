@@ -92,16 +92,29 @@ export function resetAuth(): void {
  * HARNESS_ADMIN_EMAIL / HARNESS_ADMIN_PASSWORD and by scripts/create-admin.ts.
  * Returns "created" | "promoted" | "exists".
  */
-export async function ensureAdmin(email: string, password: string, name = "Admin"): Promise<string> {
+export async function ensureAdmin(email: string, password: string, name = "Admin", username?: string): Promise<string> {
   const db = getDb();
   const existing = await db.query.user.findFirst({ where: eq(schema.user.email, email.toLowerCase()) });
+  // The admin gets a username to sign in with: the one given, else the email's local part when it is a valid one.
+  const handle = await freeUsername(username ?? email.split("@")[0]!, existing?.id);
   if (existing) {
-    if (existing.role !== "admin") {
-      await db.update(schema.user).set({ role: "admin", updatedAt: new Date() }).where(eq(schema.user.id, existing.id));
-      return "promoted";
-    }
-    return "exists";
+    const set: Partial<typeof schema.user.$inferInsert> = {};
+    if (existing.role !== "admin") set.role = "admin";
+    if (!existing.username && handle) Object.assign(set, { username: handle, displayUsername: handle });
+    if (!Object.keys(set).length) return "exists";
+    await db.update(schema.user).set({ ...set, updatedAt: new Date() }).where(eq(schema.user.id, existing.id));
+    return set.role ? "promoted" : "updated";
   }
-  await getAuth().api.createUser({ body: { email, password, name, role: "admin" } });
+  await getAuth().api.createUser({ body: { email, password, name, role: "admin", data: handle ? { username: handle, displayUsername: handle } : {} } });
   return "created";
+}
+
+const USERNAME = /^[a-zA-Z0-9_.]{3,30}$/;
+
+/** `wanted` lowercased when it is a valid username nobody else has, else undefined. */
+async function freeUsername(wanted: string, self?: string): Promise<string | undefined> {
+  const name = wanted.toLowerCase();
+  if (!USERNAME.test(name)) return undefined;
+  const taken = await getDb().query.user.findFirst({ where: eq(schema.user.username, name) });
+  return !taken || taken.id === self ? name : undefined;
 }

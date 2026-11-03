@@ -29,7 +29,7 @@ Other scripts:
 |---|---|
 | `pnpm test` | Vitest: unit, translation and contract tests (in-process server + mock upstream) on in-memory PGlite. With `TEST_DATABASE_URL` set, `test/postgres.test.ts` also runs against that server (throwaway databases; the role needs `CREATEDB`); add `TEST_ALL_ON_POSTGRES=1` to run every suite there |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm admin:create <email> <password> [name]` | Create or promote an admin without restarting (with PGlite, stop the server first: the embedded database is single-process) |
+| `pnpm admin:create <email> <password> [name] [username]` | Create or promote an admin (the username defaults to the email's local part) without restarting (with PGlite, stop the server first: the embedded database is single-process) |
 | `pnpm db:generate` | After editing `src/db/schema.ts`: drizzle-kit SQL migration + embed it into `src/db/migrations.generated.ts` |
 | `pnpm gen` | Regenerate `src/gen` from `/proto` with the local `protoc-gen-es` (needs `buf`); equivalent to the TS part of the root `buf.gen.yaml` |
 
@@ -62,7 +62,7 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_PUBLIC_URL` | `http://localhost:$PORT` | Base for `verification_uri`, Better Auth base URL / trusted origin |
 | `DATABASE_URL` | unset: PGlite in `$HARNESS_DATA_DIR/pglite` | Postgres URL (TCP or unix socket); see Database |
 | `HARNESS_DATA_DIR` | `./.data` | Generated secret, embedded PGlite database |
-| `HARNESS_ADMIN_EMAIL`, `HARNESS_ADMIN_PASSWORD` | — | Admin bootstrap on start |
+| `HARNESS_ADMIN_EMAIL`, `HARNESS_ADMIN_PASSWORD`, `HARNESS_ADMIN_USERNAME` | — | Admin bootstrap on start (the username defaults to the email's local part) |
 | `HARNESS_GRPC_PORT` | off | Extra h2c listener with plain gRPC (see Transport) |
 | `HARNESS_PROMPTS_DIR` | `./prompts` | Prompt files (see [`prompts/README.md`](prompts/README.md)) |
 | `HARNESS_DEVICE_RATE_LIMIT_PER_MIN` | `30` | Per-IP token bucket (burst and refill per minute) for `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, each limited separately; `0` disables |
