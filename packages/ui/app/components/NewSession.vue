@@ -212,92 +212,96 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
         <span class="min-w-0 flex-1 truncate text-strong">{{ forkOf.meta.title }}</span>
         <span class="shrink-0 text-[11px] text-muted">from {{ forkOf.meta.deviceName || 'another machine' }}</span>
       </div>
-      <div
-        role="radiogroup"
-        aria-label="Folder"
-        class="w-full max-w-[440px] overflow-hidden border border-accented bg-surface text-[12.5px]"
-      >
+      <div class="relative w-full max-w-[440px]">
+        <!-- The cat sits on the card -->
+        <CatMascot class="absolute right-5 bottom-full" />
         <div
-          role="radio"
-          :aria-checked="!cwd"
-          title="The session gets a private folder of its own"
-          class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
-          :class="!cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
-          @click="choose('')"
+          role="radiogroup"
+          aria-label="Folder"
+          class="overflow-hidden border border-accented bg-surface text-[12.5px]"
         >
-          <HIcon
-            name="chat"
-            :size="14"
-            class="shrink-0 text-muted"
-          />
-          <span class="min-w-0 flex-1 truncate">No folder</span>
-          <span class="shrink-0 text-[11px] text-muted">chat</span>
-        </div>
-        <div
-          v-for="f in folders.slice(0, 3)"
-          :key="f.path"
-          role="radio"
-          :aria-checked="f.path === cwd"
-          :title="f.path"
-          class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
-          :class="f.path === cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
-          @click="choose(f.path)"
-        >
-          <HIcon
-            name="folder"
-            :size="14"
-            class="shrink-0 text-muted"
-          />
-          <span class="min-w-0 flex-1 truncate">{{ f.name }}</span>
-          <span
-            v-if="f.gitBranch"
-            class="shrink-0 text-[11px] text-muted"
-          >{{ f.gitBranch }}</span>
-        </div>
-        <div
-          v-if="cwd && !folders.slice(0, 3).some(f => f.path === cwd)"
-          role="radio"
-          aria-checked="true"
-          :title="cwd"
-          class="flex items-center gap-2.5 border-l-2 border-accent bg-raised px-3 py-2 text-strong"
-        >
-          <HIcon
-            name="folder"
-            :size="14"
-            class="shrink-0 text-muted"
-          />
-          <span class="min-w-0 flex-1 truncate">{{ name(cwd) }}</span>
-        </div>
-        <button
-          type="button"
-          class="flex w-full items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-left text-toned hover:bg-raised hover:text-strong"
-          @click="browse"
-        >
-          <HIcon
-            name="plus"
-            :size="14"
-            class="shrink-0 text-muted"
-          />Choose folder…
-        </button>
-        <UPopover
-          v-if="cwd"
-          :open="menu === 'env-centre'"
-          :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
-          @update:open="menu = $event ? 'env-centre' : ''"
-        >
+          <div
+            role="radio"
+            :aria-checked="!cwd"
+            title="The session gets a private folder of its own"
+            class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
+            :class="!cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
+            @click="choose('')"
+          >
+            <HIcon
+              name="chat"
+              :size="14"
+              class="shrink-0 text-muted"
+            />
+            <span class="min-w-0 flex-1 truncate">No folder</span>
+            <span class="shrink-0 text-[11px] text-muted">chat</span>
+          </div>
+          <div
+            v-for="f in folders.slice(0, 3)"
+            :key="f.path"
+            role="radio"
+            :aria-checked="f.path === cwd"
+            :title="f.path"
+            class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
+            :class="f.path === cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
+            @click="choose(f.path)"
+          >
+            <HIcon
+              name="folder"
+              :size="14"
+              class="shrink-0 text-muted"
+            />
+            <span class="min-w-0 flex-1 truncate">{{ f.name }}</span>
+            <span
+              v-if="f.gitBranch"
+              class="shrink-0 text-[11px] text-muted"
+            >{{ f.gitBranch }}</span>
+          </div>
+          <div
+            v-if="cwd && !folders.slice(0, 3).some(f => f.path === cwd)"
+            role="radio"
+            aria-checked="true"
+            :title="cwd"
+            class="flex items-center gap-2.5 border-l-2 border-accent bg-raised px-3 py-2 text-strong"
+          >
+            <HIcon
+              name="folder"
+              :size="14"
+              class="shrink-0 text-muted"
+            />
+            <span class="min-w-0 flex-1 truncate">{{ name(cwd) }}</span>
+          </div>
           <button
             type="button"
-            class="flex w-full items-center gap-1.5 border-t border-default px-3 py-2 text-left text-toned hover:text-strong"
+            class="flex w-full items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-left text-toned hover:bg-raised hover:text-strong"
+            @click="browse"
           >
-            Choose environment<HIcon
-              name="down"
-              :size="11"
-            />
+            <HIcon
+              name="plus"
+              :size="14"
+              class="shrink-0 text-muted"
+            />Choose folder…
           </button>
-          <template #content>
-            <NewEnvMenu @close="menu = ''" />
-          </template>
-        </UPopover>
+          <UPopover
+            v-if="cwd"
+            :open="menu === 'env-centre'"
+            :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
+            @update:open="menu = $event ? 'env-centre' : ''"
+          >
+            <button
+              type="button"
+              class="flex w-full items-center gap-1.5 border-t border-default px-3 py-2 text-left text-toned hover:text-strong"
+            >
+              Choose environment<HIcon
+                name="down"
+                :size="11"
+              />
+            </button>
+            <template #content>
+              <NewEnvMenu @close="menu = ''" />
+            </template>
+          </UPopover>
+        </div>
       </div>
 
       <button
