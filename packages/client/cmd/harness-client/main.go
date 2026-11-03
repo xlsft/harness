@@ -29,6 +29,7 @@ import (
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/sdk"
 	"github.com/xlsft/harness/packages/client/server"
+	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/web"
 )
 
@@ -226,8 +227,14 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
-	if tokens, url, _, err := bootstrap.Tokens(*serverURL); err == nil && relay.Enabled(*remote, url, tokens != nil) {
-		relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
+	if tokens, url, _, err := bootstrap.Tokens(*serverURL); err == nil {
+		if relay.Enabled(*remote, url, tokens != nil) {
+			relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
+		}
+		// Per-user session state (pin, unread, archive, rename) and session deletes go to the server.
+		if os.Getenv("HARNESS_NO_SYNC") != "1" && url != "" && tokens != nil {
+			srv.Sync = syncclient.NewClient(url, rpc.HTTPClient(url), tokens)
+		}
 	}
 	if err := serveListeners(ctx, srv, *socket, tcp); err != nil {
 		return fail(err)

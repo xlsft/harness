@@ -157,6 +157,19 @@ func (ls *liveSession) setAITitle(title string) {
 	ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = title })
 }
 
+// setCustomTitle records a rename as a custom-title entry; it wins over AI titles from now on. The caller
+// publishes the change.
+func (ls *liveSession) setCustomTitle(title string) error {
+	if _, err := ls.sess.Transcript.Append(session.Entry{Type: session.TypeCustomTitle, CustomTitle: title}); err != nil {
+		return err
+	}
+	ls.mu.Lock()
+	ls.title, ls.titleSource = title, titleCustom
+	ls.mu.Unlock()
+	ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = title })
+	return nil
+}
+
 // syncMeta updates the synced session metadata (no-op without sync).
 func (ls *liveSession) syncMeta(fn func(*syncclient.SessionMeta)) {
 	if up := ls.sess.Uploader; up != nil {

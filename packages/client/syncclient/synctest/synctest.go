@@ -524,8 +524,48 @@ func (s *Server) UpsertSession(ctx context.Context, req *connect.Request[syncv1.
 	}
 	paths := req.Msg.GetUpdatePaths()
 	ss.Upserts = append(ss.Upserts, append([]string(nil), paths...))
-	applyPaths(ss.Meta, in, paths)
+	if !ok {
+		// Like core: a new session takes all fields of the request.
+		applyPaths(ss.Meta, in, nil)
+	} else {
+		applyPaths(ss.Meta, in, paths)
+	}
 	return connect.NewResponse(&syncv1.UpsertSessionResponse{Session: proto.Clone(ss.Meta).(*syncv1.SessionMetadata)}), nil
+}
+
+// ListSessions returns the sessions (archived ones only with include_archived), newest update first,
+// in one page; only the cwd filter is supported.
+func (s *Server) ListSessions(ctx context.Context, req *connect.Request[syncv1.ListSessionsRequest]) (*connect.Response[syncv1.ListSessionsResponse], error) {
+	if err := s.begin(ctx, req.Header(), "ListSessions"); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	resp := &syncv1.ListSessionsResponse{}
+	for _, ss := range s.sessions {
+		info := ss.Meta.GetInfo()
+		if (info.GetArchived() && !req.Msg.GetIncludeArchived()) || (req.Msg.GetCwd() != "" && info.GetCwd() != req.Msg.GetCwd()) {
+			continue
+		}
+		resp.Sessions = append(resp.Sessions, proto.Clone(ss.Meta).(*syncv1.SessionMetadata))
+	}
+	sort.Slice(resp.Sessions, func(i, j int) bool {
+		return resp.Sessions[i].GetInfo().GetUpdatedAt() > resp.Sessions[j].GetInfo().GetUpdatedAt()
+	})
+	return connect.NewResponse(resp), nil
+}
+
+func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[syncv1.DeleteSessionRequest]) (*connect.Response[syncv1.DeleteSessionResponse], error) {
+	if err := s.begin(ctx, req.Header(), "DeleteSession"); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.sessions[req.Msg.GetSessionId()]; !ok {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("unknown session"))
+	}
+	delete(s.sessions, req.Msg.GetSessionId())
+	return connect.NewResponse(&syncv1.DeleteSessionResponse{}), nil
 }
 
 // applyPaths copies the listed fields (all client-writable ones when empty).
@@ -581,6 +621,9 @@ func applyPaths(dst, src *syncv1.SessionMetadata, paths []string) {
 	}
 	if has("info.pinned") {
 		d.Pinned = si.GetPinned()
+	}
+	if has("info.unread") {
+		d.Unread = si.GetUnread()
 	}
 	if has("info.parent_session_id") {
 		d.ParentSessionId = si.GetParentSessionId()

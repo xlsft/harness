@@ -42,6 +42,12 @@ func startHarness(t *testing.T, respond fg.Responder, mod func(*bootstrap.Option
 // before it serves.
 func startHarnessGW(t *testing.T, respond fg.Responder, gwmod func(*fg.Server), mod func(*bootstrap.Options)) *harness {
 	t.Helper()
+	return startHarnessSrv(t, respond, gwmod, mod, nil)
+}
+
+// startHarnessSrv is startHarnessGW with a hook to configure the server before it serves.
+func startHarnessSrv(t *testing.T, respond fg.Responder, gwmod func(*fg.Server), mod func(*bootstrap.Options), srvmod func(*server.Server)) *harness {
+	t.Helper()
 	t.Setenv("HARNESS_HOME", t.TempDir())
 	t.Setenv("HARNESS_TMPDIR", t.TempDir())
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
@@ -60,6 +66,9 @@ func startHarnessGW(t *testing.T, respond fg.Responder, gwmod func(*fg.Server), 
 		mod(&base)
 	}
 	srv := server.New(base)
+	if srvmod != nil {
+		srvmod(srv)
+	}
 	socket := shortSocket(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
