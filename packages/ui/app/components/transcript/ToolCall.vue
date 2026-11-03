@@ -114,7 +114,7 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
   <!-- Headless with nothing to show renders nothing, so the group drops the empty body and its border. -->
   <div
     v-else-if="!headless || hasBody"
-    :class="headless ? '' : isBash ? ['border', tool.status === 'error' ? 'border-bad' : 'border-default'] : ['border border-default', tool.status === 'error' ? 'border-l-2 border-l-bad' : '']"
+    :class="headless ? '' : isBash ? ['overflow-hidden border', tool.status === 'error' ? 'border-bad' : 'border-default'] : ['overflow-hidden border border-default', tool.status === 'error' ? 'border-l-2 border-l-bad' : '']"
   >
     <!-- Bash: what it does, folded to that row once done -->
     <button
