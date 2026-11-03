@@ -266,7 +266,7 @@ export const PRESETS: readonly ProviderPreset[] = [
     id: "openrouter-decisions",
     group: "classifier",
     display_name: "OpenRouter decisions",
-    description: "TypeSafe's Jev decision model through OpenRouter's decisions endpoint.",
+    description: "Decision model through OpenRouter's decisions endpoint.",
     type: "decision-model",
     base_url: "https://openrouter.ai/api/alpha/decisions",
     fields: [KEY],

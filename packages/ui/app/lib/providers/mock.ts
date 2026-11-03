@@ -91,7 +91,7 @@ const PRESETS: PresetView[] = [
     id: 'openrouter-decisions',
     group: 'classifier',
     name: 'OpenRouter decisions',
-    description: 'TypeSafe\'s Jev decision model through OpenRouter\'s decisions endpoint.',
+    description: 'Decision model through OpenRouter\'s decisions endpoint.',
     type: 'decision-model',
     baseUrl: 'https://openrouter.ai/api/alpha/decisions',
     fields: [KEY],
