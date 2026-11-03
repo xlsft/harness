@@ -52,7 +52,7 @@ const RETRY_MAX_MS = 15_000
 export const RECONCILE_MS = 6000
 export const INTERRUPT_SETTLE_MS = 4000
 // A replay that never says it is over is shown anyway after this long.
-const REPLAY_MAX_MS = 4000
+const REPLAY_MAX_MS = 20_000
 
 // A plain deep copy of a session state, to reduce a replay into without rendering every event.
 function copyState(s: SessionState): SessionState {
