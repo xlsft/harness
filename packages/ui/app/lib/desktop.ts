@@ -99,6 +99,19 @@ export async function guardQuit(check: () => string): Promise<() => void> {
   })
 }
 
+/** The theme's ground colour as the window background (seen before the page paints and while resizing). */
+export async function setWindowGround(color: string) {
+  if (!isDesktop()) return
+  const probe = document.createElement('span')
+  probe.style.color = color
+  document.body.appendChild(probe)
+  const m = getComputedStyle(probe).color.match(/\d+(\.\d+)?/g)
+  probe.remove()
+  if (!m || m.length < 3) return
+  const hex = '#' + m.slice(0, 3).map(v => Math.round(Number(v)).toString(16).padStart(2, '0')).join('')
+  await invoke('set_ground', { color: hex })
+}
+
 /** Keeps the computer from sleeping (true) or lets it sleep again (false); desktop app only. */
 export async function keepAwake(on: boolean) {
   if (!isDesktop()) return

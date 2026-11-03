@@ -228,13 +228,43 @@ fn stop_serve(shell: &Shell) {
     }
 }
 
-/// The window background behind the web page (seen before the UI paints): the ground colour of the
-/// default theme of the system's kind (app/themes.ts in the ui package).
+/// The window background behind the web page (seen before the UI paints and while resizing): the ground colour
+/// of the theme in use, which the UI reports (set_ground) and which is kept for the next start; until then the
+/// default theme of the system's kind (app/themes in the ui package).
 fn ground(theme: tauri::Theme) -> tauri::window::Color {
     match theme {
         tauri::Theme::Light => tauri::window::Color(0xff, 0xff, 0xff, 0xff),
         _ => tauri::window::Color(0, 0, 0, 0xff),
     }
+}
+
+fn ground_file(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("ground"))
+}
+
+fn parse_hex(s: &str) -> Option<tauri::window::Color> {
+    let h = s.trim().trim_start_matches('#');
+    if h.len() != 6 {
+        return None;
+    }
+    let v = u32::from_str_radix(h, 16).ok()?;
+    Some(tauri::window::Color((v >> 16) as u8, (v >> 8) as u8, v as u8, 0xff))
+}
+
+/// The UI's theme ground colour (#rrggbb): the window background now and at the next start.
+#[tauri::command]
+fn set_ground(app: AppHandle, color: String) -> Result<(), String> {
+    let c = parse_hex(&color).ok_or("expected #rrggbb")?;
+    for w in app.webview_windows().values() {
+        let _ = w.set_background_color(Some(c));
+    }
+    if let Some(f) = ground_file(&app) {
+        if let Some(dir) = f.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        let _ = std::fs::write(f, color.trim());
+    }
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -245,16 +275,22 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .manage(Shell::default())
         .setup(|app| {
+            let saved = ground_file(app.handle()).and_then(|f| std::fs::read_to_string(f).ok()).and_then(|s| parse_hex(&s));
             for w in app.webview_windows().values() {
-                if let Ok(theme) = w.theme() {
+                if let Some(c) = saved {
+                    let _ = w.set_background_color(Some(c));
+                } else if let Ok(theme) = w.theme() {
                     let _ = w.set_background_color(Some(ground(theme)));
                 }
             }
             Ok(())
         })
         .on_window_event(|window, event| match event {
+            // The UI reports the new theme's ground (set_ground); this is only the fallback before it has.
             tauri::WindowEvent::ThemeChanged(theme) => {
-                let _ = window.set_background_color(Some(ground(*theme)));
+                if ground_file(window.app_handle()).map(|f| !f.exists()).unwrap_or(true) {
+                    let _ = window.set_background_color(Some(ground(*theme)));
+                }
             }
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 if hold_quit(window.app_handle()) {
@@ -263,7 +299,7 @@ pub fn run() {
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint, confirm_quit, keep_awake])
+        .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint, confirm_quit, keep_awake, set_ground])
         .build(tauri::generate_context!())
         .expect("error while building the harness desktop app")
         .run(|app, event| {

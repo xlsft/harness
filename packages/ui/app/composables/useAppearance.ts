@@ -1,6 +1,7 @@
 // Appearance: the mode (system, light, dark) and the theme picked for each kind, kept in this browser. The
 // active theme's tokens go on <html> as --color-* variables with a `light` / `dark` class; the resolved
 // variables are cached for the head script (nuxt.config.ts) so the next load starts in the right theme.
+import { setWindowGround } from '~/lib/desktop'
 import {
   APPEARANCE_KEY, CUSTOM_THEMES_KEY, DEFAULT_THEME, THEME_CACHE_KEY, THEMES, UI_SIZE_DEFAULT, themeById, themeVars,
   type Appearance, type AppearanceMode, type Theme, type ThemeKind
@@ -64,6 +65,7 @@ function apply(t: Theme, a: Appearance) {
   root.classList.toggle('dark', t.kind === 'dark')
   root.classList.toggle('light', t.kind === 'light')
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.tokens.ground)
+  void setWindowGround(t.tokens.ground).catch(() => {})
   try {
     localStorage.setItem(THEME_CACHE_KEY, JSON.stringify({ kind: t.kind, vars }))
   } catch { /* private mode: the next load starts from the defaults */ }
