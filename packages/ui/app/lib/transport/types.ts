@@ -20,6 +20,7 @@ import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
 import type { AccountApi } from '~/lib/account/types'
 import type { UsageApi } from '~/lib/usage/types'
+import type { EnvironmentApi } from '~/lib/environment/types'
 
 export interface ModelInfo {
   id: string
@@ -118,4 +119,8 @@ export interface SessionTransport {
 
   // LLM usage reports for the Usage tab (harness.llm.v1.UsageService, forwarded to the server by the client).
   usage(): UsageApi
+
+  // Session environments, folder facts and folder changes (AgentService GetEnvironment and friends). The web
+  // link of a session is sessionWebUrl(initialize().webUrl, id) from ~/lib/environment/types.
+  environment(): EnvironmentApi
 }

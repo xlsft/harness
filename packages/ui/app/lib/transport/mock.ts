@@ -27,6 +27,7 @@ import { MockProvidersApi } from '~/lib/providers/mock'
 import { MockUsersApi } from '~/lib/users/mock'
 import { MockAccountApi } from '~/lib/account/mock'
 import { MockUsageApi } from '~/lib/usage/mock'
+import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
@@ -125,7 +126,9 @@ export class MockTransport implements SessionTransport {
       userEmail: 'xlsft@self-hosted',
       modelIds: MODELS.map(m => m.id),
       permissionModes: (['default', 'accept_edits', 'plan', 'auto'] as const).filter(m => !disabled.includes(m)).map(permissionModePb),
-      disabledPermissionModes: disabled.map(permissionModePb)
+      disabledPermissionModes: disabled.map(permissionModePb),
+      // The mock UI itself opens sessions by ?session=<id>.
+      webUrl: typeof location !== 'undefined' ? location.origin : ''
     })
   }
 
@@ -238,6 +241,41 @@ export class MockTransport implements SessionTransport {
   private usageApi = new MockUsageApi()
   usage() {
     return this.usageApi
+  }
+
+  private environmentApi = new MockEnvironmentApi({
+    home: MOCK_HOME,
+    sessions: () => [...this.sessions.values()].map(s => s.info),
+    exists: path => path in MOCK_TREE || MOCK_FOLDERS.some(f => path.startsWith(`${f.path}/`)),
+    repository: (path) => {
+      const f = MOCK_FOLDERS.find(f => path === f.path || path.startsWith(`${f.path}/`))
+      return f && { path: f.path, branch: f.branch, repo: f.repo }
+    },
+    moveSession: (id, cwd) => this.moveSession(id, cwd)
+  })
+
+  environment() {
+    return this.environmentApi
+  }
+
+  // SetSessionFolder as the client does it: the session must be idle; subscribers get SessionEnded
+  // ('folder_changed', not kept in the history) and their stream ends, so they subscribe again.
+  private moveSession(id: string, cwd: string) {
+    const s = this.get(id)
+    if (s.working || s.waiting) throw new Error('[failed_precondition] the session is working; change its folder once it is idle')
+    if (s.info.cwd === cwd) return s.info
+    s.info = create(SessionInfoSchema, { ...s.info, cwd })
+    const b = new EventBuilder(id, this.now(), s.seq)
+    b.sessionEnded('folder_changed')
+    s.seq = b.seq
+    const listeners = [...s.listeners]
+    s.listeners.clear()
+    for (const l of listeners) {
+      for (const ev of b.events) l.onEvent(ev)
+      l.onEnd?.()
+    }
+    this.emit(s, e => e.sessionUpdated(s.info))
+    return s.info
   }
 
   subscribe(sessionId: string, afterSeq: number, h: SubscribeHandlers) {
