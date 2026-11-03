@@ -24,7 +24,7 @@ import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
-import type { NewSessionOptions, SessionTransport, SubscribeHandlers } from './types'
+import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
 
 // Folders and a small directory tree for the new-session pickers.
 const MOCK_HOME = '/Users/xlsft'
@@ -113,7 +113,35 @@ export class MockTransport implements SessionTransport {
   }
 
   async listSessions() {
-    return [...this.sessions.values()].map(s => s.info)
+    return [...this.sessions.values()].map(s => s.info).filter(i => !i.archived)
+  }
+
+  async updateSession(sessionId: string, patch: SessionPatch) {
+    const s = this.get(sessionId)
+    const title = patch.title?.trim()
+    if (patch.title !== undefined && !title) throw new Error('title must not be empty')
+    s.info = create(SessionInfoSchema, {
+      ...s.info,
+      ...(patch.pinned !== undefined && { pinned: patch.pinned }),
+      ...(patch.unread !== undefined && { unread: patch.unread }),
+      ...(patch.archived !== undefined && { archived: patch.archived }),
+      ...(title && { title })
+    })
+    if (patch.archived) this.stop(s)
+    return s.info
+  }
+
+  async deleteSession(sessionId: string) {
+    this.stop(this.get(sessionId))
+    this.sessions.delete(sessionId)
+  }
+
+  private stop(s: MockSession) {
+    for (const t of s.timers) clearTimeout(t)
+    s.timers = []
+    s.working = false
+    s.waiting = null
+    s.afterResume = null
   }
 
   async createSession(opts: NewSessionOptions) {

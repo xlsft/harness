@@ -13,7 +13,7 @@ import {
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
-import type { ModelInfo, NewSessionOptions, SessionTransport, SubscribeHandlers } from './types'
+import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
 import type { EffortName } from '~/lib/session/types'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -89,6 +89,16 @@ export class ConnectTransport implements SessionTransport {
 
   async closeSession(sessionId: string) {
     await this.client.closeSession({ sessionId })
+  }
+
+  async updateSession(sessionId: string, patch: SessionPatch) {
+    const res = await this.client.updateSession({ sessionId, ...patch })
+    if (!res.session) throw new Error('the client returned no session')
+    return res.session
+  }
+
+  async deleteSession(sessionId: string) {
+    await this.client.deleteSession({ sessionId })
   }
 
   async interrupt(sessionId: string) {
