@@ -540,3 +540,9 @@
 :root[data-code-size] :is(pre, code, samp, pre *) {
   font-size: var(--code-size) !important;
 }
+
+/* Dragging a divider (pane splits, the sidebar's edge) never selects the text it passes over. */
+body:has([data-state="drag"], [data-dragging="true"]) {
+  user-select: none;
+  -webkit-user-select: none;
+}

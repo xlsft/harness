@@ -53,20 +53,20 @@ describe('regionAt', () => {
 })
 
 describe('placeNew', () => {
-  it('adds a column before details when there is room', () => {
-    expect(placeNew(row(p('terminal'), p('details')), 'browser', 1200)).toEqual(row(p('terminal'), p('browser'), p('details')))
+  it('adds a column after the others (details stays first) when there is room', () => {
+    expect(placeNew(row(p('details'), p('terminal')), 'browser', 1200)).toEqual(row(p('details'), p('terminal'), p('browser')))
     expect(placeNew(null, 'diff', 0)).toEqual(p('diff'))
   })
 
   it('stacks under the last content column when a column does not fit', () => {
     // terminal 320 + details 240 = 560; one more column needs 880
-    expect(placeNew(row(p('terminal'), p('details')), 'browser', 700)).toEqual(row(col(p('terminal'), p('browser')), p('details')))
-    expect(placeNew(row(col(p('terminal'), p('browser')), p('details')), 'files', 700))
-      .toEqual(row(col(p('terminal'), p('browser'), p('files')), p('details')))
+    expect(placeNew(row(p('details'), p('terminal')), 'browser', 700)).toEqual(row(p('details'), col(p('terminal'), p('browser'))))
+    expect(placeNew(row(p('details'), col(p('terminal'), p('browser'))), 'files', 700))
+      .toEqual(row(p('details'), col(p('terminal'), p('browser'), p('files'))))
   })
 
-  it('keeps details as the last column', () => {
-    expect(placeNew(row(p('terminal'), p('browser')), 'details', 300)).toEqual(row(p('terminal'), p('browser'), p('details')))
+  it('keeps details as the first column', () => {
+    expect(placeNew(row(p('terminal'), p('browser')), 'details', 300)).toEqual(row(p('details'), p('terminal'), p('browser')))
   })
 })
 

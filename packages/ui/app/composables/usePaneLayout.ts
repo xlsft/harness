@@ -68,22 +68,19 @@ export function minWidth(n: LayoutNode | null): number {
 }
 
 /**
- * Adds a newly opened pane: a new column when the pane area has room for it (details stays the last
- * column), otherwise stacked under the last content column. width 0 (not measured yet) means room.
+ * Adds a newly opened pane: a new column when the pane area has room for it (details stays the first
+ * column, next to the transcript), otherwise stacked under the last content column. width 0 (not measured yet) means room.
  */
 export function placeNew(tree: LayoutNode | null, pane: PaneName, width: number): LayoutNode {
   if (!tree) return leaf(pane)
   const cols = tree.kind === 'split' && tree.dir === 'row' ? tree.children : [tree]
   const isDetails = (c: LayoutNode) => c.kind === 'pane' && c.pane === 'details'
-  if (pane === 'details') return simplify({ kind: 'split', dir: 'row', children: [...cols, leaf(pane)] })!
+  if (pane === 'details') return simplify({ kind: 'split', dir: 'row', children: [leaf(pane), ...cols] })!
   const fits = !width || minWidth(tree) + minOf(pane) <= width
   const content = cols.filter(c => !isDetails(c))
   const last = content[content.length - 1]
   if (fits || !last) {
-    const at = cols.findIndex(isDetails)
-    const next = [...cols]
-    next.splice(at < 0 ? next.length : at, 0, leaf(pane))
-    return simplify({ kind: 'split', dir: 'row', children: next })!
+    return simplify({ kind: 'split', dir: 'row', children: [...cols, leaf(pane)] })!
   }
   const stacked: LayoutNode = last.kind === 'split' && last.dir === 'col'
     ? { ...last, children: [...last.children, leaf(pane)] }

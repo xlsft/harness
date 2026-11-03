@@ -1,5 +1,5 @@
 // Which right panes are open, per session (each session keeps its own set, remembered in this browser).
-// Several panes can be open at once; session details is always the last column. An old ?panes= / ?pane=
+// Several panes can be open at once; session details is always the first column. An old ?panes= / ?pane=
 // link is applied once to the session it opens.
 // `?menu=<name>` opens a pane's menu on load (used to reach the menu states of the artboards).
 import { isDesktop } from '~/lib/desktop'
@@ -21,10 +21,11 @@ export const PANE_WIDTH: Record<PaneName, number> = {
 
 const isPane = (p: string): p is PaneName => (PANES as readonly string[]).includes(p)
 
-// Details is the narrow summary column: it stays at the far right whatever the opening order.
+// Details is the narrow summary column: it stays next to the transcript, before the other panes, whatever the
+// opening order.
 function normalize(list: PaneName[]): PaneName[] {
   const uniq = [...new Set(list)]
-  return uniq.includes('details') ? [...uniq.filter(p => p !== 'details'), 'details'] : uniq
+  return uniq.includes('details') ? ['details', ...uniq.filter(p => p !== 'details')] : uniq
 }
 
 const STORAGE_KEY = 'harness-panes'
