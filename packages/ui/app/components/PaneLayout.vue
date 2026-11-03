@@ -25,8 +25,11 @@ function share(n: LayoutNode): number {
     :pane="node.pane"
     :session="session"
   />
+  <!-- Keyed by the order of its children: Reka reads a panel's order once, and panes swapped by dragging would keep
+       resizing as if they were still in their old places (the divider moving them the opposite way). -->
   <SplitterGroup
     v-else
+    :key="node.children.map(nodeKey).join('|')"
     :direction="node.dir === 'row' ? 'horizontal' : 'vertical'"
     :auto-save-id="`harness-split-${session.meta.id}-${node.dir}-${nodeKey(node)}`"
     class="size-full"
