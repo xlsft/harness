@@ -57,6 +57,17 @@ const blocks = computed<Block[]>(() => {
 const queued = computed(() => pendingMessages(props.session, store.localQueue[props.session.meta.id], store.outbox[props.session.meta.id]))
 const waiting = computed(() => queued.value.filter(q => q.delivery === 'queued').length)
 const working = computed(() => props.session.meta.status === 'working')
+const now = useNow()
+const activity = computed(() => {
+  const s = props.session
+  const todo = s.todos.find(t => t.status === 'in_progress')
+  if (todo?.activeForm) return todo.activeForm
+  const tool = [...s.items].reverse().find(i => i.kind === 'tool' && i.status === 'running' && i.name !== 'Task')
+  if (tool && tool.kind === 'tool') return `Running ${tool.name}`
+  const last = s.items[s.items.length - 1]
+  if (last?.kind === 'assistant' && last.streaming) return last.blocks[last.blocks.length - 1]?.type === 'thinking' ? 'Thinking' : 'Writing'
+  return 'Thinking'
+})
 const busy = computed(() => working.value || props.session.meta.status === 'needs_input')
 // Another machine's session not driven from here offers Copy only.
 const readOnly = computed(() => props.session.meta.remote && !(store.remoteControl[props.session.meta.id] && props.session.meta.remoteControllable))
@@ -107,167 +118,195 @@ watch(lastKey, (now, before) => {
   nextTick(() => scroller.value?.scrollTo({ top: 0, behavior: sameSession ? 'smooth' : 'auto' }))
 })
 
-const lastIsStreaming = computed(() => {
-  const last = props.session.items[props.session.items.length - 1]
-  return last?.kind === 'assistant' && last.streaming
-})
+// column-reverse: the newest edge is scrollTop 0, scrolling up goes negative.
+const scrolledUp = ref(false)
+function onScroll() {
+  scrolledUp.value = (scroller.value?.scrollTop ?? 0) < -120
+}
+function toBottom() {
+  scroller.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <template>
-  <div
-    ref="scroller"
-    class="flex flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-3"
-  >
-    <SelectionMenu :root="scroller" />
-    <div class="mx-auto flex w-full max-w-[790px] flex-col gap-[15px]">
-      <template
-        v-for="b in blocks"
-        :key="b.key"
-      >
-        <ToolGroup
-          v-if="b.kind === 'group'"
-          :tools="b.tools"
-          :session-id="session.meta.id"
-        />
-        <VisualCard
-          v-else-if="b.kind === 'visual'"
-          :versions="b.versions"
-          :session-id="session.meta.id"
-        />
-        <template v-else>
-          <div
-            v-if="b.item.kind === 'user'"
-            class="group/msg flex flex-col gap-1"
-          >
-            <UserMessage
-              :text="b.item.text"
-              :attachments="b.item.attachments"
-            />
-            <MessageActions
-              v-if="hasActions(b.item)"
-              delivery="read"
-              :at="b.item.at ?? 0"
-              :busy="busy"
-              :read-only="readOnly"
-              :visible="lastUser === 'u:' + b.item.id"
-              @copy="copy((b.item as UserItem).text)"
-              @rewind="rewind(b.item as UserItem)"
-              @fork="fork((b.item as UserItem).text, b.item.id)"
-            />
-          </div>
-          <template v-else-if="b.item.kind === 'assistant'">
-            <template
-              v-for="(blk, i) in b.item.blocks"
-              :key="i"
+  <div class="relative flex min-h-0 flex-col">
+    <div
+      ref="scroller"
+      class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-3"
+      @scroll="onScroll"
+    >
+      <SelectionMenu :root="scroller" />
+      <div class="mx-auto flex w-full max-w-[790px] flex-col gap-[15px]">
+        <template
+          v-for="b in blocks"
+          :key="b.key"
+        >
+          <ToolGroup
+            v-if="b.kind === 'group'"
+            :tools="b.tools"
+            :session-id="session.meta.id"
+          />
+          <VisualCard
+            v-else-if="b.kind === 'visual'"
+            :versions="b.versions"
+            :session-id="session.meta.id"
+          />
+          <template v-else>
+            <div
+              v-if="b.item.kind === 'user'"
+              class="group/msg flex flex-col gap-1"
             >
-              <!-- Reasoning the model kept to itself (signature only) has nothing to show. -->
-              <ThinkingBlock
-                v-if="blk.type === 'thinking' && (blk.text || (b.item.streaming && i === b.item.blocks.length - 1))"
-                :text="blk.text"
-                :duration-ms="blk.durationMs"
-                :streaming="b.item.streaming && i === b.item.blocks.length - 1"
+              <UserMessage
+                :text="b.item.text"
+                :attachments="b.item.attachments"
               />
-              <MarkdownBlock
-                v-else
-                :text="blk.text"
-                :streaming="b.item.streaming && i === b.item.blocks.length - 1"
+              <MessageActions
+                v-if="hasActions(b.item)"
+                delivery="read"
+                :at="b.item.at ?? 0"
+                :busy="busy"
+                :read-only="readOnly"
+                :visible="lastUser === 'u:' + b.item.id"
+                @copy="copy((b.item as UserItem).text)"
+                @rewind="rewind(b.item as UserItem)"
+                @fork="fork((b.item as UserItem).text, b.item.id)"
               />
+            </div>
+            <template v-else-if="b.item.kind === 'assistant'">
+              <template
+                v-for="(blk, i) in b.item.blocks"
+                :key="i"
+              >
+                <!-- Reasoning the model kept to itself (signature only) has nothing to show. -->
+                <ThinkingBlock
+                  v-if="blk.type === 'thinking' && (blk.text || (b.item.streaming && i === b.item.blocks.length - 1))"
+                  :text="blk.text"
+                  :duration-ms="blk.durationMs"
+                  :streaming="b.item.streaming && i === b.item.blocks.length - 1"
+                />
+                <MarkdownBlock
+                  v-else
+                  :text="blk.text"
+                  :streaming="b.item.streaming && i === b.item.blocks.length - 1"
+                />
+              </template>
             </template>
+            <ToolCall
+              v-else-if="b.item.kind === 'tool'"
+              :tool="b.item"
+              :session-id="session.meta.id"
+            />
+            <PermissionCard
+              v-else-if="b.item.kind === 'permission'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
+            <QuestionCard
+              v-else-if="b.item.kind === 'question'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
+            <PlanCard
+              v-else-if="b.item.kind === 'plan'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
+            <TodoCard
+              v-else-if="b.item.kind === 'todos'"
+              :todos="b.item.todos"
+            />
+            <TaskCard
+              v-else-if="b.item.kind === 'task' && session.tasks[b.item.id]"
+              :task="session.tasks[b.item.id]!"
+              :session-id="session.meta.id"
+            />
+            <ShellCard
+              v-else-if="b.item.kind === 'shell' && !store.inlineShells[b.item.id]"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
+            <EventCard
+              v-else-if="b.item.kind === 'notice'"
+              :notice="b.item"
+            />
+            <EventCard
+              v-else-if="b.item.kind === 'compact'"
+              :compact="b.item"
+            />
+            <EventCard
+              v-else-if="b.item.kind === 'turn'"
+              :turn="b.item"
+            />
+            <div
+              v-else-if="b.item.kind === 'rewound'"
+              class="text-[12px] text-muted"
+            >
+              Rewound · {{ b.item.filesRestored }} files restored<template v-if="b.item.filesSkipped">
+                , {{ b.item.filesSkipped }} skipped
+              </template>
+            </div>
           </template>
-          <ToolCall
-            v-else-if="b.item.kind === 'tool'"
-            :tool="b.item"
-            :session-id="session.meta.id"
-          />
-          <PermissionCard
-            v-else-if="b.item.kind === 'permission'"
-            :item="b.item"
-            :session-id="session.meta.id"
-          />
-          <QuestionCard
-            v-else-if="b.item.kind === 'question'"
-            :item="b.item"
-            :session-id="session.meta.id"
-          />
-          <PlanCard
-            v-else-if="b.item.kind === 'plan'"
-            :item="b.item"
-            :session-id="session.meta.id"
-          />
-          <TodoCard
-            v-else-if="b.item.kind === 'todos'"
-            :todos="b.item.todos"
-          />
-          <TaskCard
-            v-else-if="b.item.kind === 'task' && session.tasks[b.item.id]"
-            :task="session.tasks[b.item.id]!"
-            :session-id="session.meta.id"
-          />
-          <ShellCard
-            v-else-if="b.item.kind === 'shell' && !store.inlineShells[b.item.id]"
-            :item="b.item"
-            :session-id="session.meta.id"
-          />
-          <EventCard
-            v-else-if="b.item.kind === 'notice'"
-            :notice="b.item"
-          />
-          <EventCard
-            v-else-if="b.item.kind === 'compact'"
-            :compact="b.item"
-          />
-          <EventCard
-            v-else-if="b.item.kind === 'turn'"
-            :turn="b.item"
-          />
-          <div
-            v-else-if="b.item.kind === 'rewound'"
-            class="text-[12px] text-muted"
-          >
-            Rewound · {{ b.item.filesRestored }} files restored<template v-if="b.item.filesSkipped">
-              , {{ b.item.filesSkipped }} skipped
-            </template>
-          </div>
         </template>
-      </template>
 
-      <div
-        v-for="q in queued"
-        :key="q.id"
-        class="group/msg flex flex-col gap-1"
-        :data-pending="q.delivery"
-      >
-        <UserMessage
-          :text="q.text"
-          :queued="q.delivery === 'queued'"
-          :pending="q.delivery !== 'queued'"
-          @edit="edit(q.id)"
-        />
-        <MessageActions
-          :delivery="q.delivery"
-          :at="q.at"
-          :position="q.position"
-          :waiting="waiting"
-          :busy="busy"
-          :read-only="readOnly"
-          :visible="lastUser === 'p:' + q.id"
-          @copy="copy(q.text)"
-          @fork="fork(q.text)"
-          @cancel="cancel(q.id)"
-          @send-now="sendNow(q.id)"
-        />
-      </div>
+        <div
+          v-for="q in queued"
+          :key="q.id"
+          class="group/msg flex flex-col gap-1"
+          :data-pending="q.delivery"
+        >
+          <UserMessage
+            :text="q.text"
+            :queued="q.delivery === 'queued'"
+            :pending="q.delivery !== 'queued'"
+            @edit="edit(q.id)"
+          />
+          <MessageActions
+            :delivery="q.delivery"
+            :at="q.at"
+            :position="q.position"
+            :waiting="waiting"
+            :busy="busy"
+            :read-only="readOnly"
+            :visible="lastUser === 'p:' + q.id"
+            @copy="copy(q.text)"
+            @fork="fork(q.text)"
+            @cancel="cancel(q.id)"
+            @send-now="sendNow(q.id)"
+          />
+        </div>
 
-      <div
-        v-if="working && !lastIsStreaming && !session.items.some(i => i.kind === 'task' && session.tasks[i.id]?.state === 'running' && !session.tasks[i.id]?.tail)"
-        class="flex items-center gap-[9px] text-[12.5px] text-muted"
-      >
-        <HIcon
-          name="loading"
-          spin
-          class="text-accent"
-        />{{ session.todos.find(t => t.status === 'in_progress')?.activeForm || 'Thinking' }}
+        <div
+          v-if="working && !session.items.some(i => i.kind === 'task' && session.tasks[i.id]?.state === 'running' && !session.tasks[i.id]?.tail)"
+          class="flex items-center gap-[9px] text-[12.5px] whitespace-nowrap text-muted"
+        >
+          <HMark
+            :width="18"
+            class="shrink-0"
+          />
+          <span class="min-w-0 truncate"><span class="text-strong">{{ activity }}</span>
+            · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
+          <span class="flex-1" /><span class="inline-flex shrink-0 items-center gap-1 text-[12px] max-sm:hidden"><HKeys keys="escape" />to interrupt</span>
+        </div>
       </div>
     </div>
+    <!-- Scrolled up: back to the newest message; the mark animates while the session is working. -->
+    <button
+      v-if="scrolledUp"
+      type="button"
+      :aria-label="working ? 'Working · scroll to the latest' : 'Scroll to the latest'"
+      :title="working ? 'Working · scroll to the latest' : 'Scroll to the latest'"
+      class="absolute bottom-3 left-1/2 flex h-9 -translate-x-1/2 items-center gap-2 rounded-box border border-line-strong bg-hover px-3 text-[12px] text-muted hover:text-strong"
+      @click="toBottom"
+    >
+      <HMark
+        v-if="working"
+        :width="20"
+      />
+      <HIcon
+        v-else
+        name="down"
+        :size="14"
+      />
+    </button>
   </div>
 </template>

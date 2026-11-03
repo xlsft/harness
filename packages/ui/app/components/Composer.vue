@@ -189,16 +189,6 @@ watch([menu, token], async () => {
   ]
 }, { immediate: true })
 
-const activity = computed(() => {
-  const s = props.session
-  const todo = s.todos.find(t => t.status === 'in_progress')
-  if (todo?.activeForm) return todo.activeForm
-  const tool = [...s.items].reverse().find(i => i.kind === 'tool' && i.status === 'running' && i.name !== 'Task')
-  if (tool && tool.kind === 'tool') return `Running ${tool.name}`
-  const last = s.items[s.items.length - 1]
-  if (last?.kind === 'assistant' && last.streaming) return last.blocks[last.blocks.length - 1]?.type === 'thinking' ? 'Thinking' : 'Writing'
-  return 'Thinking'
-})
 const pending = computed(() => props.session.items.find(i => i.kind === 'permission' && i.state === 'pending'))
 
 const placeholder = computed(() => {
@@ -438,20 +428,6 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         <span class="inline-flex items-center gap-1"><HKeys keys="2" />always</span>
         <span class="inline-flex items-center gap-1"><HKeys keys="escape" />deny</span>
       </span>
-    </div>
-    <div
-      v-else-if="busy"
-      class="flex items-center gap-[9px] text-[12px] whitespace-nowrap text-muted"
-    >
-      <HIcon
-        name="loading"
-        :size="14"
-        spin
-        class="text-accent"
-      />
-      <span class="min-w-0 truncate"><span class="text-strong">{{ activity }}</span>
-        · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
-      <span class="flex-1" /><span class="inline-flex shrink-0 items-center gap-1 max-sm:hidden @max-[480px]:hidden"><HKeys keys="escape" />to interrupt</span>
     </div>
 
     <!-- context almost full -->
