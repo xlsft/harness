@@ -56,6 +56,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       filesChanged: 0,
       pullRequest: null,
       pinned: false,
+      unread: false,
+      archived: false,
       ...meta
     },
     lastSeq: 0,
@@ -124,7 +126,9 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     deletions: info.diffStats?.deletions ?? 0,
     filesChanged: info.diffStats?.filesChanged ?? 0,
     pullRequest: pr ? { number: pr.number, url: pr.url, state: prState } : null,
-    pinned: info.pinned
+    pinned: info.pinned,
+    unread: info.unread,
+    archived: info.archived
   }
 }
 

@@ -56,7 +56,8 @@ service SyncService {
   rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
 
   // Creates or updates session metadata. Called by the client when a session starts and whenever
-  // metadata changes; by frontends to rename / archive / pin.
+  // metadata changes, and for the per-user state (rename, pin, unread, archive: "info.title", "info.pinned",
+  // "info.unread", "info.archived").
   rpc UpsertSession(UpsertSessionRequest) returns (UpsertSessionResponse);
   // Uploads transcript entries. Entries already stored (same uuid) are skipped and reported as duplicates.
   rpc AppendSessionEvents(AppendSessionEventsRequest) returns (AppendSessionEventsResponse);
@@ -65,6 +66,8 @@ service SyncService {
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   // Transcript entries in server order (`seq`), paged forward from after_seq.
   rpc GetSessionTranscript(GetSessionTranscriptRequest) returns (GetSessionTranscriptResponse);
+  // Deletes a session of the caller with its transcript. Unknown or foreign session -> NOT_FOUND.
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -415,3 +418,9 @@ message GetSessionTranscriptResponse {
   repeated TranscriptEntry entries = 1;
   bool has_more = 2;
 }
+
+message DeleteSessionRequest {
+  string session_id = 1;
+}
+
+message DeleteSessionResponse {}

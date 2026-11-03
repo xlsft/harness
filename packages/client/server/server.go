@@ -53,6 +53,9 @@ type Server struct {
 	// HistoryTurns and HistoryEvents cap the history replayed into the
 	// event log of a resumed session (0: defaults).
 	HistoryTurns, HistoryEvents int
+	// Sync stores the per-user session state (pinned, unread, archived, renames) and deletes server copies of
+	// sessions; nil without sync (see sessionstate.go).
+	Sync SessionSync
 
 	ctx    context.Context
 	mu     sync.Mutex
@@ -60,6 +63,10 @@ type Server struct {
 	cancel context.CancelFunc
 	// observer is told about opened sessions (SetSessionObserver).
 	observer func(sessionID string)
+
+	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
+	stateMu sync.Mutex
+	states  map[string]userState
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -330,8 +337,13 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 		}
 	}
 	s.mu.Unlock()
+	s.refreshStates(ctx, cwd)
 	resp := &agentv1.ListSessionsResponse{}
 	for _, v := range out {
+		s.applyState(v)
+		if v.Archived && !req.Msg.GetIncludeArchived() {
+			continue
+		}
 		resp.Sessions = append(resp.Sessions, v)
 	}
 	sort.Slice(resp.Sessions, func(i, j int) bool { return resp.Sessions[i].UpdatedAt > resp.Sessions[j].UpdatedAt })
@@ -788,17 +800,25 @@ func (s *Server) StopTask(ctx context.Context, req *connect.Request[agentv1.Stop
 }
 
 func (s *Server) CloseSession(ctx context.Context, req *connect.Request[agentv1.CloseSessionRequest]) (*connect.Response[agentv1.CloseSessionResponse], error) {
+	if !s.closeLive(req.Msg.GetSessionId(), "closed") {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open", req.Msg.GetSessionId()))
+	}
+	return connect.NewResponse(&agentv1.CloseSessionResponse{}), nil
+}
+
+// closeLive ends a live session with reason (SessionEnded); false when it is not live.
+func (s *Server) closeLive(id, reason string) bool {
 	s.mu.Lock()
-	ls := s.live[req.Msg.GetSessionId()]
-	delete(s.live, req.Msg.GetSessionId())
+	ls := s.live[id]
+	delete(s.live, id)
 	s.mu.Unlock()
 	if ls == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open", req.Msg.GetSessionId()))
+		return false
 	}
 	// TODO(worktree): offer to remove the session's worktree (ls.sess.Worktree) here when it is clean and its
 	// branch has no commits beyond base_ref; worktrees are never removed automatically today.
-	ls.close("closed")
-	return connect.NewResponse(&agentv1.CloseSessionResponse{}), nil
+	ls.close(reason)
+	return true
 }
 
 func modeFromProto(m agentv1.PermissionMode) (permissions.Mode, error) {

@@ -18,6 +18,7 @@ import { AsyncQueue } from "../lib/async.ts";
 import { ApiError, asApiError } from "../lib/errors.ts";
 import {
   appendSessionEvents,
+  deleteSession,
   getSession,
   getSessionTranscript,
   listSessions,
@@ -278,6 +279,12 @@ export function registerSyncService(router: ConnectRouter): void {
       const p = await requirePrincipal(ctx);
       const r = await getSessionTranscript(p, req.sessionId, Number(req.afterSeq), req.pageSize, req.agentId);
       return { entries: r.entries.map(entryToProto), hasMore: r.hasMore };
+    }),
+
+    deleteSession: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      await deleteSession(p, req.sessionId);
+      return {};
     }),
   });
 }

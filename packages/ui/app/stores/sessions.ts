@@ -12,6 +12,7 @@ import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { createSessionState, reduce, sessionMeta } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, SessionState } from '~/lib/session/types'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
+import type { SessionPatch } from '~/lib/transport/types'
 
 const MODE_TO_PB: Record<PermissionModeName, PermissionMode> = {
   default: PermissionMode.DEFAULT,
@@ -28,27 +29,6 @@ const EFFORT_TO_PB: Record<EffortName, Effort> = {
   high: Effort.HIGH,
   xhigh: Effort.XHIGH,
   max: Effort.MAX
-}
-
-interface Marks { pinned: string[], unread: string[], archived: string[], titles: Record<string, string> }
-const MARKS = 'harness-session-marks'
-
-function loadMarks(): Marks {
-  const empty: Marks = { pinned: [], unread: [], archived: [], titles: {} }
-  if (!import.meta.client) return empty
-  try {
-    return { ...empty, ...JSON.parse(localStorage.getItem(MARKS) ?? '{}') as Partial<Marks> }
-  } catch {
-    return empty
-  }
-}
-
-function saveMarks(m: Marks) {
-  try {
-    localStorage.setItem(MARKS, JSON.stringify(m))
-  } catch {
-    // Not remembered.
-  }
 }
 
 // Errors that mean the client is unreachable rather than that a call was refused.
@@ -85,8 +65,6 @@ export const useSessionStore = defineStore('sessions', {
     // Messages typed while a turn runs; sent one by one when the session becomes idle (✕ removes one).
     localQueue: {} as Record<string, LocalQueued[]>,
     effort: {} as Record<string, EffortName>,
-    // Per-session sidebar state kept in this browser: pinned, marked unread, renamed, archived.
-    marks: loadMarks(),
     unsubscribers: {} as Record<string, () => void>
   }),
 
@@ -95,10 +73,7 @@ export const useSessionStore = defineStore('sessions', {
       return state.sessions[state.currentId]
     },
     sessionList(state): SessionState[] {
-      return state.order.map(id => state.sessions[id]!).filter(s => s && !state.marks.archived.includes(s.meta.id))
-    },
-    titleOf(state) {
-      return (s: SessionState) => state.marks.titles[s.meta.id] || s.meta.title
+      return state.order.map(id => state.sessions[id]!).filter(s => s && !s.meta.archived)
     }
   },
 
@@ -148,7 +123,7 @@ export const useSessionStore = defineStore('sessions', {
     open(id: string, resumed = false) {
       if (!this.sessions[id]) return
       this.currentId = id
-      if (this.marks.unread.includes(id)) this.setMark('unread', id, false)
+      if (this.sessions[id]!.meta.unread) this.quietly(this.updateSession(id, { unread: false }))
       if (this.unsubscribers[id] || !this.transport) return
       const state = this.sessions[id]!
       this.unsubscribers[id] = this.transport.subscribe(id, state.lastSeq, {
@@ -157,6 +132,8 @@ export const useSessionStore = defineStore('sessions', {
           const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
           reduce(s, ev)
           if (wasBusy && s.meta.status === 'idle') this.flushQueue(id)
+          // A turn that finished while another session was open leaves this one unread.
+          if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread) this.quietly(this.updateSession(id, { unread: true }))
         },
         onError: (err) => {
           Reflect.deleteProperty(this.unsubscribers, id)
@@ -188,32 +165,73 @@ export const useSessionStore = defineStore('sessions', {
       return info.id
     },
 
-    setMark(kind: 'pinned' | 'unread' | 'archived', id: string, on: boolean) {
-      const list = this.marks[kind].filter(x => x !== id)
-      this.marks[kind] = on ? [id, ...list] : list
-      saveMarks(this.marks)
+    // Reports a failed background call (an unread mark) instead of throwing.
+    quietly(p: Promise<unknown>) {
+      p.catch((err) => {
+        this.error = err instanceof Error ? err.message : String(err)
+      })
     },
 
-    rename(id: string, title: string) {
+    // Per-user state (pinned, unread, archived, title) lives on the harness server: the change shows at once and
+    // is rolled back when the client refuses it.
+    async updateSession(id: string, patch: SessionPatch) {
+      const s = this.sessions[id]
+      if (!s || !this.transport) return
+      const keys = (Object.keys(patch) as (keyof SessionPatch)[]).filter(k => patch[k] !== undefined)
+      const before = Object.fromEntries(keys.map(k => [k, s.meta[k]]))
+      Object.assign(s.meta, Object.fromEntries(keys.map(k => [k, patch[k]])))
+      try {
+        const info = await this.transport.updateSession(id, patch)
+        Object.assign(s.meta, { pinned: info.pinned, unread: info.unread, archived: info.archived, title: info.title })
+      } catch (err) {
+        Object.assign(s.meta, before)
+        throw err
+      }
+    },
+
+    async setPinned(id: string, on: boolean) {
+      await this.updateSession(id, { pinned: on })
+    },
+
+    async setUnread(id: string, on: boolean) {
+      await this.updateSession(id, { unread: on })
+    },
+
+    async rename(id: string, title: string) {
       const t = title.trim()
-      const { [id]: _, ...titles } = this.marks.titles
-      this.marks.titles = t && t !== this.sessions[id]?.meta.title ? { ...titles, [id]: t } : titles
-      saveMarks(this.marks)
+      if (!t || t === this.sessions[id]?.meta.title) return
+      await this.updateSession(id, { title: t })
     },
 
-    // Hides the session from the sidebar and stops it on the client; its transcript stays and it can be resumed.
-    async archive(id: string) {
-      this.setMark('archived', id, true)
-      this.setMark('pinned', id, false)
+    // Stops following the session here (it is being archived or deleted).
+    forget(id: string) {
       const { [id]: stop, ...rest } = this.unsubscribers
       stop?.()
       this.unsubscribers = rest
       if (this.currentId === id) this.currentId = ''
+    },
+
+    // Hides the session from the sidebar; the client stops it. Its transcript stays and it can be unarchived.
+    async archive(id: string) {
+      this.forget(id)
+      await this.updateSession(id, { archived: true, pinned: false })
+    },
+
+    // Deletes the session for good (client and server); it comes back when the client refuses.
+    async deleteSession(id: string) {
+      if (!this.sessions[id] || !this.transport) return
+      const at = this.order.indexOf(id)
+      this.forget(id)
+      this.order = this.order.filter(x => x !== id)
       try {
-        await this.transport?.closeSession?.(id)
-      } catch {
-        // Not live on the client; nothing to stop.
+        await this.transport.deleteSession(id)
+      } catch (err) {
+        if (at >= 0 && !this.order.includes(id)) this.order = [...this.order.slice(0, at), id, ...this.order.slice(at)]
+        throw err
       }
+      Reflect.deleteProperty(this.sessions, id)
+      Reflect.deleteProperty(this.localQueue, id)
+      Reflect.deleteProperty(this.effort, id)
     },
 
     async resume(id: string) {

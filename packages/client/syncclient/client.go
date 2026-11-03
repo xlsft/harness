@@ -80,6 +80,18 @@ func (c *Client) AppendSessionEvents(ctx context.Context, req *syncv1.AppendSess
 	return unary(ctx, c, req, c.rpc.AppendSessionEvents)
 }
 
+func (c *Client) GetSession(ctx context.Context, req *syncv1.GetSessionRequest) (*syncv1.GetSessionResponse, error) {
+	return unary(ctx, c, req, c.rpc.GetSession)
+}
+
+func (c *Client) ListSessions(ctx context.Context, req *syncv1.ListSessionsRequest) (*syncv1.ListSessionsResponse, error) {
+	return unary(ctx, c, req, c.rpc.ListSessions)
+}
+
+func (c *Client) DeleteSession(ctx context.Context, req *syncv1.DeleteSessionRequest) (*syncv1.DeleteSessionResponse, error) {
+	return unary(ctx, c, req, c.rpc.DeleteSession)
+}
+
 // watch opens a WatchChanges stream with the current token. Errors
 // (including UNAUTHENTICATED) surface from the stream's Receive/Err.
 func (c *Client) watch(ctx context.Context, req *syncv1.WatchChangesRequest) (*connect.ServerStreamForClient[syncv1.WatchChangesResponse], error) {

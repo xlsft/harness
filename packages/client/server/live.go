@@ -87,12 +87,14 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 	if updated.IsZero() {
 		updated = time.Now()
 	}
-	return &agentv1.SessionInfo{
+	info := &agentv1.SessionInfo{
 		Id: ls.sess.ID, Cwd: ls.sess.Cwd, Model: ls.sess.Agent.Model(), GitBranch: ls.branch, Title: ls.title,
 		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.status,
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
 	}
+	ls.srv.applyState(info)
+	return info
 }
 
 func (ls *liveSession) publish(ev *agentv1.SessionEvent) {

@@ -222,7 +222,10 @@ export interface SessionMeta {
   deletions: number
   filesChanged: number
   pullRequest: { number: number, url: string, state: 'open' | 'draft' | 'merged' | 'closed' } | null
+  // Per-user state kept on the harness server (title includes a rename).
   pinned: boolean
+  unread: boolean
+  archived: boolean
 }
 
 export interface QueuedMessage {

@@ -11,12 +11,12 @@ const expanded = ref<Record<string, boolean>>({})
 
 const VISIBLE = 5
 
-const pinned = computed(() => store.marks.pinned.map(id => store.sessionList.find(s => s.meta.id === id)).filter((s): s is SessionState => !!s))
+const pinned = computed(() => store.sessionList.filter(s => s.meta.pinned))
 
 const groups = computed(() => {
   const map = new Map<string, SessionState[]>()
   for (const s of store.sessionList) {
-    if (store.marks.pinned.includes(s.meta.id)) continue
+    if (s.meta.pinned) continue
     const name = basename(s.meta.repo || s.meta.worktree?.repositoryPath || s.meta.cwd) || 'other'
     if (!map.has(name)) map.set(name, [])
     map.get(name)!.push(s)
@@ -48,12 +48,12 @@ const menuFor = ref('')
 const renaming = ref('')
 const draft = ref('')
 function startRename(s: SessionState) {
-  draft.value = store.titleOf(s)
+  draft.value = s.meta.title
   renaming.value = s.meta.id
   nextTick(() => (document.querySelector('[data-rename]') as HTMLInputElement | null)?.select())
 }
 function finishRename(save: boolean) {
-  if (save && renaming.value) store.rename(renaming.value, draft.value)
+  if (save && renaming.value) store.quietly(store.rename(renaming.value, draft.value))
   renaming.value = ''
 }
 
@@ -218,8 +218,8 @@ const nav = [
           >
             <span
               class="truncate"
-              :class="store.marks.unread.includes(s.meta.id) && 'font-semibold text-white'"
-            >{{ store.titleOf(s) }}</span>
+              :class="s.meta.unread && 'font-semibold text-white'"
+            >{{ s.meta.title }}</span>
             <span class="flex-1" />
             <SessionMenu
               :session="s"
@@ -229,7 +229,7 @@ const nav = [
             />
             <template v-if="menuFor !== s.meta.id">
               <span
-                v-if="store.marks.unread.includes(s.meta.id)"
+                v-if="s.meta.unread"
                 class="size-1.5 shrink-0 rounded-full bg-accent group-hover/row:hidden"
               />
               <template v-else-if="mark(s)">

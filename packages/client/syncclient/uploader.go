@@ -242,6 +242,19 @@ func (u *Uploader) Queue(sessionID, path string) error {
 	return QueueFile(u.o.StateDir, sessionID, path)
 }
 
+// Forget drops the upload state of a deleted session, so that no uploader
+// uploads it again. stateDir "" is the default state directory. A session
+// without state is not an error.
+func Forget(stateDir, sessionID string) error {
+	if stateDir == "" {
+		stateDir = filepath.Join(DefaultDir(), "sessions")
+	}
+	if err := os.Remove(statePath(stateDir, sessionID)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
 // Track registers a live session for upload and schedules a metadata
 // upsert. Call it when a session opens (also on resume).
 func (u *Uploader) Track(sessionID, path string, meta SessionMeta) error {
@@ -407,6 +420,9 @@ func (u *Uploader) Run(ctx context.Context) error {
 				return ctx.Err()
 			}
 			if err := u.Flush(ctx, id); err != nil {
+				if errors.Is(err, ErrNotTracked) {
+					continue // forgotten (deleted) meanwhile
+				}
 				u.log.Debug("sync: session upload failed; will retry", "session", id, "err", err)
 				u.mu.Lock()
 				u.pending[id] = true

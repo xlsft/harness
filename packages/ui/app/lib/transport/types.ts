@@ -43,6 +43,16 @@ export interface NewSessionOptions {
   worktree?: { name?: string, branch?: string, baseRef?: string }
 }
 
+// Per-user session state kept on the harness server; unset fields stay as they are.
+export interface SessionPatch {
+  pinned?: boolean
+  unread?: boolean
+  // true also stops the session on the client.
+  archived?: boolean
+  // A rename; it wins over the AI title.
+  title?: string
+}
+
 export interface SubscribeHandlers {
   onEvent: (event: SessionEvent) => void
   onError?: (err: unknown) => void
@@ -53,6 +63,7 @@ export interface SessionTransport {
   readonly kind: 'mock' | 'connect'
 
   initialize(): Promise<InitializeResponse>
+  // Sessions of the client, archived ones left out.
   listSessions(): Promise<SessionInfo[]>
   // Starts a session on the client's machine (model: the client's default when empty).
   createSession(opts: NewSessionOptions): Promise<SessionInfo>
@@ -67,6 +78,10 @@ export interface SessionTransport {
   interrupt(sessionId: string): Promise<void>
   // Stops a live session on the client (its transcript stays, so it can be resumed).
   closeSession?(sessionId: string): Promise<void>
+  // Pin, mark unread, archive or rename; returns the session as it is now.
+  updateSession(sessionId: string, patch: SessionPatch): Promise<SessionInfo>
+  // Deletes the session for good: stops it, removes its transcript and the server copy.
+  deleteSession(sessionId: string): Promise<void>
   respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision, rule?: string, comment?: string): Promise<void>
   answerQuestion(sessionId: string, requestId: string, answers: string[][]): Promise<void>
   respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback?: string): Promise<void>

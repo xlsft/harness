@@ -243,6 +243,20 @@ export async function getSession(p: Principal, sessionId: string): Promise<Sessi
   return sessionView(await ownedSession(p, sessionId));
 }
 
+/** Deletes a session of the caller with its transcript (entries and PR links cascade). */
+export async function deleteSession(p: Principal, sessionId: string): Promise<void> {
+  if (!sessionId) throw new ApiError("invalid_request", "session_id is required");
+  await ensureDb();
+  await sessionMutex.run(async () => {
+    const s = schema.syncSession;
+    const rows = await getDb()
+      .delete(s)
+      .where(and(eq(s.id, sessionId), eq(s.userId, p.user.id)))
+      .returning({ id: s.id });
+    if (!rows.length) throw new ApiError("not_found", `Session ${sessionId} not found`);
+  });
+}
+
 export interface ListSessionsInput {
   repo?: string;
   cwd?: string;

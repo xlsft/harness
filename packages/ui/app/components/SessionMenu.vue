@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Menu of one session (the "…" on a sidebar row, or a right click on it): show in Finder, copy path, pin,
-// mark as unread, rename, fork, archive. While it is open the letter keys pick an item.
+// mark as unread, rename, fork, archive, delete. While it is open the letter keys pick an item. Delete asks
+// first: the first click (or D) turns the row into a confirmation, the second deletes.
 import type { SessionState } from '~/lib/session/types'
 import { isDesktop, revealInFolder } from '~/lib/desktop'
 
@@ -12,8 +13,9 @@ const store = useSessionStore()
 const route = useRoute()
 const desktop = isDesktop()
 const id = computed(() => props.session.meta.id)
-const pinned = computed(() => store.marks.pinned.includes(id.value))
-const unread = computed(() => store.marks.unread.includes(id.value))
+const pinned = computed(() => props.session.meta.pinned)
+const unread = computed(() => props.session.meta.unread)
+const confirmDelete = ref(false)
 
 async function run(action: () => unknown) {
   open.value = false
@@ -27,8 +29,8 @@ async function run(action: () => unknown) {
 const copyPath = () => navigator.clipboard.writeText(props.session.meta.cwd)
 
 const actions: Record<string, () => unknown> = {
-  p: () => store.setMark('pinned', id.value, !pinned.value),
-  u: () => store.setMark('unread', id.value, !unread.value),
+  p: () => store.setPinned(id.value, !pinned.value),
+  u: () => store.setUnread(id.value, !unread.value),
   r: () => emit('rename'),
   f: async () => {
     await store.fork(id.value)
@@ -37,14 +39,29 @@ const actions: Record<string, () => unknown> = {
   a: () => store.archive(id.value)
 }
 
+// Deleting cannot be undone: the first press asks, the second deletes.
+function remove() {
+  if (!confirmDelete.value) {
+    confirmDelete.value = true
+    return
+  }
+  run(() => store.deleteSession(id.value))
+}
+
 function onKey(e: KeyboardEvent) {
   if (e.metaKey || e.ctrlKey || e.altKey) return
+  if (e.key.toLowerCase() === 'd') {
+    e.preventDefault()
+    remove()
+    return
+  }
   const action = actions[e.key.toLowerCase()]
   if (!action) return
   e.preventDefault()
   run(action)
 }
 watch(open, (v) => {
+  confirmDelete.value = false
   if (v) document.addEventListener('keydown', onKey)
   else document.removeEventListener('keydown', onKey)
 })
@@ -58,7 +75,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   >
     <button
       type="button"
-      :aria-label="`More for ${store.titleOf(session)}`"
+      :aria-label="`More for ${session.meta.title}`"
       class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-white"
       :class="open ? 'flex bg-hover text-white' : 'hidden group-hover/row:flex'"
       @click.stop.prevent
@@ -71,7 +88,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
     <template #content>
       <div
         role="menu"
-        :aria-label="store.titleOf(session)"
+        :aria-label="session.meta.title"
         class="w-[220px] border border-accented bg-hover py-1 text-[12.5px]"
       >
         <PaneMenuItem
@@ -123,6 +140,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           @click="run(actions.a!)"
         >
           Archive
+        </PaneMenuItem>
+        <PaneMenuItem
+          icon="trash"
+          value="D"
+          danger
+          @click="remove"
+        >
+          {{ confirmDelete ? 'Delete for good?' : 'Delete' }}
         </PaneMenuItem>
       </div>
     </template>
