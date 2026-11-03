@@ -448,6 +448,18 @@ describe("sessions", () => {
     expect((await A.getSession({ sessionId: sid })).session!.info!.title).toBe("Renamed");
   });
 
+  it("labels an untitled session with its first message in the list", async () => {
+    const id = "c0000000-0000-4000-8000-00000000000a";
+    await A.upsertSession({ session: { info: info({ id, title: "", cwd: "/home/alice/untitled" }) } });
+    await A.appendSessionEvents({
+      sessionId: id,
+      entries: [{ uuid: "p1", type: "user", entryJson: '{"type":"user","uuid":"p1","message":{"role":"user","content":"Explain   the\\nbuild script"}}' }],
+    });
+    const listed = (await A.listSessions({ cwd: "/home/alice/untitled" })).sessions;
+    expect(listed[0]!.info!.title).toBe("Explain the build script");
+    await A.deleteSession({ sessionId: id });
+  });
+
   it("appends transcript entries idempotently and byte-exact, with server seq", async () => {
     await expectError(A.appendSessionEvents({ sessionId: "0b5a2c1e-1111-4222-8333-444455556666", entries: [] }), Code.NotFound);
     const line = (uuid: string, text: string) => `{"type":"user","uuid":"${uuid}","message":{"role":"user","content":[{"type":"text","text":"${text}"}]},  "pad":"ü"}`;

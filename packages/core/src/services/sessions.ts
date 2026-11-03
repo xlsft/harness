@@ -327,10 +327,35 @@ export async function listSessions(p: Principal, f: ListSessionsInput): Promise<
     .limit(size + 1);
   const page = rows.slice(0, size);
   const last = page.at(-1);
+  const prompts = await firstPrompts(page.filter((r) => !r.title).map((r) => r.id));
   return {
-    sessions: page.map(sessionView),
+    sessions: page.map((r) => {
+      const v = sessionView(r);
+      // A session that never got a title (a headless run, say) is labelled by its first message.
+      if (!r.title && prompts.has(r.id)) v.info.title = prompts.get(r.id)!;
+      return v;
+    }),
     nextPageToken: rows.length > size && last ? Buffer.from(JSON.stringify({ t: last.lastActivityAt.getTime(), id: last.id })).toString("base64url") : "",
   };
+}
+
+const PROMPT_TITLE_CHARS = 80;
+
+/** The first user message of each session (main thread), as a one-line label. */
+async function firstPrompts(ids: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!ids.length) return out;
+  const e = schema.syncSessionEntry;
+  const rows = await getDb()
+    .selectDistinctOn([e.sessionId], { sessionId: e.sessionId, text: e.searchText })
+    .from(e)
+    .where(and(inArray(e.sessionId, ids), eq(e.agentId, ""), eq(e.type, "user"), sql`${e.searchText} <> ''`))
+    .orderBy(e.sessionId, e.seq);
+  for (const r of rows) {
+    const line = r.text.replace(/\s+/g, " ").trim();
+    if (line) out.set(r.sessionId, line.length > PROMPT_TITLE_CHARS ? `${line.slice(0, PROMPT_TITLE_CHARS - 1)}…` : line);
+  }
+  return out;
 }
 
 /** Entries of one thread (the main thread for agentId "", otherwise that subagent), in seq order. */
