@@ -582,6 +582,9 @@ func (s *Server) Subscribe(ctx context.Context, req *connect.Request[agentv1.Sub
 	}
 }
 
+// queuedMessageGrace is how long a running command may keep a queued message waiting before it moves to the background.
+const queuedMessageGrace = time.Second
+
 func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agentv1.SendUserMessageRequest]) (*connect.Response[agentv1.SendUserMessageResponse], error) {
 	ls, err := s.get(req.Msg.GetSessionId())
 	if err != nil {
@@ -640,6 +643,14 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 			if !ls.sess.ToolEnv.Shell.BackgroundRunning(tools.BackgroundQueuedMessage) && !ls.questionPending() {
 				ls.driver.Interrupt()
 			}
+		} else {
+			// A queued message is read right after the tool calls: a command that keeps it waiting moves to the
+			// background. Quick commands get to finish by themselves.
+			time.AfterFunc(queuedMessageGrace, func() {
+				if ls.ctx.Err() == nil && ls.sess.Agent.QueueLen() > 0 && !ls.questionPending() {
+					ls.sess.ToolEnv.Shell.BackgroundRunning(tools.BackgroundQueuedMessage)
+				}
+			})
 		}
 	}
 	return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil

@@ -408,6 +408,7 @@ export const useSessionStore = defineStore('sessions', {
           const s = live()
           const wasBusy = s.meta.status === 'working' || s.meta.status === 'needs_input'
           reduce(s, ev)
+          if (ev.event.case === 'toolCallStarted' && ev.event.value.name === 'Bash' && caughtUp) this.releaseLocalQueue(id)
           // A code block's command finished: the agent answers with its output (it reaches the model as context).
           const inline = ev.event.case === 'userShellFinished' ? this.inlineShells[ev.event.value.commandId] : undefined
           if (inline && !inline.done) {
@@ -616,12 +617,28 @@ export const useSessionStore = defineStore('sessions', {
         await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
         return
       }
-      if (this.isBusy(id)) {
+      // A running command would keep it waiting: the client gets it at once and moves the command to the background.
+      if (this.isBusy(id) && !this.commandRunning(id)) {
         const q = this.localQueue[id] ?? (this.localQueue[id] = [])
         q.push({ id: newUuid(), text: body, at: Date.now() })
         return
       }
       await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
+    },
+
+    commandRunning(id: string) {
+      const s = this.sessions[id]
+      // (A call waiting for a permission has not started yet.)
+      return !!s && !s.pendingPermission && s.items.some(i => i.kind === 'tool' && i.name === 'Bash' && i.status === 'running')
+    },
+
+    // A command started while messages wait here: they go to the client, which reads them after the command (or
+    // moves it to the background).
+    releaseLocalQueue(id: string) {
+      const q = this.localQueue[id]
+      if (!q?.length) return
+      this.localQueue[id] = []
+      for (const m of q) this.quietly(this.deliver(id, m.id, m.text, SendUserMessageRequest_Delivery.QUEUE))
     },
 
     // Hands a message to the client, tracked in the outbox (sending, then sent) until the stream shows it queued

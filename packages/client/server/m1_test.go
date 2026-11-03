@@ -589,6 +589,43 @@ func TestNowDeliveryBackgroundsRunningBash(t *testing.T) {
 	h.client.CloseSession(h.ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: sid}))
 }
 
+// A queued message moves a command that keeps it waiting to the background
+// after a short grace, and the model reads it in the same turn.
+func TestQueuedMessageBackgroundsRunningBash(t *testing.T) {
+	h := startHarness(t, func(n int, r *llm.Request) fg.Reply {
+		last := r.Messages[len(r.Messages)-1]
+		if last.Content[len(last.Content)-1].Text == "start" {
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b", "Bash", map[string]any{"description": "test", "command": "sleep 30"}))}
+		}
+		return fg.Reply{Events: fg.Message("m", fg.Text("ack"))}
+	}, func(o *bootstrap.Options) { o.AllowedTools = []string{"Bash"} })
+	sid, ch := h.create(&agentv1.CreateSessionRequest{})
+	h.send(sid, "start")
+	start := time.Now()
+	var bg *agentv1.ToolBackground
+	h.until(ch, func(ev *agentv1.SessionEvent) bool {
+		switch {
+		case ev.GetToolCallFinished() != nil:
+			bg = ev.GetToolCallFinished().GetBackground()
+		case ev.GetToolCallStarted() != nil:
+			go func() {
+				time.Sleep(200 * time.Millisecond)
+				h.client.SendUserMessage(h.ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: "q1", Content: text("hello meanwhile")}))
+			}()
+		}
+		return isTurnFinished(ev)
+	})
+	if time.Since(start) > 10*time.Second || bg.GetReason() != agentv1.BackgroundReason_BACKGROUND_REASON_QUEUED_MESSAGE || bg.GetTaskId() == "" {
+		t.Fatalf("after %s: background %+v", time.Since(start), bg)
+	}
+	reqs := h.gw.Requests()
+	lm := reqs[1].Messages[len(reqs[1].Messages)-1]
+	if lm.Content[len(lm.Content)-1].Text != "hello meanwhile" {
+		t.Fatalf("queued message not read in the same turn: %+v", lm.Content)
+	}
+	h.client.CloseSession(h.ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: sid}))
+}
+
 // NOW delivery while the model is generating interrupts the turn; the
 // message starts the next one.
 func TestNowDeliveryInterruptsGeneration(t *testing.T) {
