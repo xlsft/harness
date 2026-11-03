@@ -63,7 +63,8 @@ harness-client sync --watch                         # catch up the sync cache, u
 
 Environment variables:
 - `HARNESS_HOME` overrides `~/.harness`.
-- `HARNESS_KEYRING=0` stores credentials only in `~/.harness/credentials.json`.
+- `HARNESS_KEYRING=0` stores credentials only in `~/.harness/credentials.json` (and the environments' encryption key only in `~/.harness/environments/key`).
+- `HARNESS_WEB_URL` is reported as `InitializeResponse.web_url`: a web UI that opens a session at `<url>/?session=<id>`.
 - `HARNESS_SERVER_URL` + `HARNESS_ACCESS_TOKEN` use a fixed access token (for example on SSH runners).
 - `HARNESS_TMPDIR` sets the root of the per-session scratch directories.
 - `HARNESS_NO_VCS=1` stops the session from polling PR/CI state through `gh`/`glab`.
@@ -139,6 +140,12 @@ Titles: the first line of the first prompt is the provisional title. After the f
 ## Sessions of other machines
 
 `ListSessions` also returns the user's sessions that the harness server lists for other machines (`SessionInfo.remote`, with `device_id` / `device_name`); a session that is live here, has a local transcript or carries this machine's device id is never shown as remote. With the relay viewer (on unless `HARNESS_REMOTE_CONTROL=0`), `RelayService.ListHosts` adds `device_online` and `remote_controllable` (open on its online machine); without it they stay unknown. `Subscribe` on a remote session follows it live through the relay when it is remote-controllable, otherwise it replays the server transcript and ends. Commands for a remote-controllable session are forwarded to `RelayService` (send, interrupt, permission / question / plan answers, model, effort, mode, output style, compact, tasks, file suggestions); other remote sessions refuse them with `FAILED_PRECONDITION`. Pin, unread, archive and rename write the server copy, delete removes it, and `CreateSession` with `fork` copies the server transcript into a new local session in `cwd` (paths rewritten to `cwd`, subagent transcripts not copied). See `server/remote.go`.
+
+## Environments
+
+An environment belongs to a primary folder and lives in `~/.harness/environments/<hash>.json` (0600, directory 0700), keyed by the folder's absolute path: a name, additional folders, new-session defaults (worktree, base branch) and environment variables in `.env` syntax (`environment/dotenv.go`). The `.env` text is sealed with AES-256-GCM; the key is in the OS keychain (service `harness-client`, account `environment-key`), or in `~/.harness/environments/key` (0600) with `HARNESS_KEYRING=0` or without a keychain. Values are never logged.
+
+`CreateSession` in a folder adds the environment's existing additional folders to the working directories and its variables to the environment of shell commands and background tasks (they override the client's own; the harness's internal variables cannot be overridden; a `PATH` set there is replaced by the login-shell snapshot). `UpdateEnvironment` and `AddSessionDirectory` apply to the open sessions of the folder from their next tool call (working directories, permissions' working directories, variables) and queue an `environment_changed` reminder with the directories and variable names. The system prompt's environment section, MCP servers and background tasks already running keep what they started with. `SetSessionFolder` closes an idle session, moves its transcript to the new folder's project directory and resumes it there with the same model, mode and effort. Remote sessions refuse all of these. See `server/environment.go`.
 
 ## Local end-to-end run without the real server
 

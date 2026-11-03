@@ -111,6 +111,21 @@ const (
 	// AgentServiceSetWorkspaceTrustProcedure is the fully-qualified name of the AgentService's
 	// SetWorkspaceTrust RPC.
 	AgentServiceSetWorkspaceTrustProcedure = "/harness.agent.v1.AgentService/SetWorkspaceTrust"
+	// AgentServiceGetEnvironmentProcedure is the fully-qualified name of the AgentService's
+	// GetEnvironment RPC.
+	AgentServiceGetEnvironmentProcedure = "/harness.agent.v1.AgentService/GetEnvironment"
+	// AgentServiceUpdateEnvironmentProcedure is the fully-qualified name of the AgentService's
+	// UpdateEnvironment RPC.
+	AgentServiceUpdateEnvironmentProcedure = "/harness.agent.v1.AgentService/UpdateEnvironment"
+	// AgentServiceGetFolderInfoProcedure is the fully-qualified name of the AgentService's
+	// GetFolderInfo RPC.
+	AgentServiceGetFolderInfoProcedure = "/harness.agent.v1.AgentService/GetFolderInfo"
+	// AgentServiceSetSessionFolderProcedure is the fully-qualified name of the AgentService's
+	// SetSessionFolder RPC.
+	AgentServiceSetSessionFolderProcedure = "/harness.agent.v1.AgentService/SetSessionFolder"
+	// AgentServiceAddSessionDirectoryProcedure is the fully-qualified name of the AgentService's
+	// AddSessionDirectory RPC.
+	AgentServiceAddSessionDirectoryProcedure = "/harness.agent.v1.AgentService/AddSessionDirectory"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -178,6 +193,35 @@ type AgentServiceClient interface {
 	// committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
 	GetWorkspaceTrust(context.Context, *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error)
 	SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error)
+	// --- Environments (packages/client/server/environment.go) ---
+	// An environment belongs to a primary folder (project) and is stored on this machine under HARNESS_HOME,
+	// keyed by the folder's absolute path: a name, additional folders, new-session defaults (worktree, base
+	// branch) and environment variables in .env syntax. Sessions started in the folder use it: the additional
+	// folders become working directories and the variables are set for shell commands, background tasks and the
+	// other processes tools spawn. The variables are encrypted at rest (see Environment.env).
+	//
+	// Returns the environment of a folder, or of a session's primary folder. A folder without one returns the
+	// defaults (exists = false). A remote session's environment lives on its machine: read_only, nothing else set.
+	GetEnvironment(context.Context, *connect.Request[v1.GetEnvironmentRequest]) (*connect.Response[v1.GetEnvironmentResponse], error)
+	// Replaces the environment of a folder and applies it to the open sessions in that folder from their next tool
+	// call: working directories and environment variables change live; worktree and base branch only affect new
+	// sessions; MCP servers already started keep their environment. Invalid .env text fails with
+	// INVALID_ARGUMENT and an EnvironmentErrors detail (line numbers). A remote session is refused
+	// (FAILED_PRECONDITION).
+	UpdateEnvironment(context.Context, *connect.Request[v1.UpdateEnvironmentRequest]) (*connect.Response[v1.UpdateEnvironmentResponse], error)
+	// Git facts of a folder for its menu: repository root, current and default branch, and the remote as a
+	// browsable URL ("Open repository on GitHub").
+	GetFolderInfo(context.Context, *connect.Request[v1.GetFolderInfoRequest]) (*connect.Response[v1.GetFolderInfoResponse], error)
+	// Moves an idle session to another primary folder. The conversation is kept (same session id, the transcript
+	// moves to the new folder's project directory); the tools start over in the new folder: the live session is
+	// closed (SessionEnded reason "folder_changed": background tasks stop, the shell cwd resets) and reopened
+	// with the new folder's settings, permissions, instructions, MCP servers and environment. Subscribers
+	// subscribe again (after_seq = 0). FAILED_PRECONDITION while a turn runs, for a session in a harness worktree
+	// and for remote sessions.
+	SetSessionFolder(context.Context, *connect.Request[v1.SetSessionFolderRequest]) (*connect.Response[v1.SetSessionFolderResponse], error)
+	// Adds a working directory to an open session's environment (stored) and applies it to the open sessions
+	// in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
+	AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -365,6 +409,36 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetWorkspaceTrust")),
 			connect.WithClientOptions(opts...),
 		),
+		getEnvironment: connect.NewClient[v1.GetEnvironmentRequest, v1.GetEnvironmentResponse](
+			httpClient,
+			baseURL+AgentServiceGetEnvironmentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetEnvironment")),
+			connect.WithClientOptions(opts...),
+		),
+		updateEnvironment: connect.NewClient[v1.UpdateEnvironmentRequest, v1.UpdateEnvironmentResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateEnvironmentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateEnvironment")),
+			connect.WithClientOptions(opts...),
+		),
+		getFolderInfo: connect.NewClient[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse](
+			httpClient,
+			baseURL+AgentServiceGetFolderInfoProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetFolderInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		setSessionFolder: connect.NewClient[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse](
+			httpClient,
+			baseURL+AgentServiceSetSessionFolderProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetSessionFolder")),
+			connect.WithClientOptions(opts...),
+		),
+		addSessionDirectory: connect.NewClient[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse](
+			httpClient,
+			baseURL+AgentServiceAddSessionDirectoryProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("AddSessionDirectory")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -399,6 +473,11 @@ type agentServiceClient struct {
 	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
 	getWorkspaceTrust   *connect.Client[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse]
 	setWorkspaceTrust   *connect.Client[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse]
+	getEnvironment      *connect.Client[v1.GetEnvironmentRequest, v1.GetEnvironmentResponse]
+	updateEnvironment   *connect.Client[v1.UpdateEnvironmentRequest, v1.UpdateEnvironmentResponse]
+	getFolderInfo       *connect.Client[v1.GetFolderInfoRequest, v1.GetFolderInfoResponse]
+	setSessionFolder    *connect.Client[v1.SetSessionFolderRequest, v1.SetSessionFolderResponse]
+	addSessionDirectory *connect.Client[v1.AddSessionDirectoryRequest, v1.AddSessionDirectoryResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -546,6 +625,31 @@ func (c *agentServiceClient) SetWorkspaceTrust(ctx context.Context, req *connect
 	return c.setWorkspaceTrust.CallUnary(ctx, req)
 }
 
+// GetEnvironment calls harness.agent.v1.AgentService.GetEnvironment.
+func (c *agentServiceClient) GetEnvironment(ctx context.Context, req *connect.Request[v1.GetEnvironmentRequest]) (*connect.Response[v1.GetEnvironmentResponse], error) {
+	return c.getEnvironment.CallUnary(ctx, req)
+}
+
+// UpdateEnvironment calls harness.agent.v1.AgentService.UpdateEnvironment.
+func (c *agentServiceClient) UpdateEnvironment(ctx context.Context, req *connect.Request[v1.UpdateEnvironmentRequest]) (*connect.Response[v1.UpdateEnvironmentResponse], error) {
+	return c.updateEnvironment.CallUnary(ctx, req)
+}
+
+// GetFolderInfo calls harness.agent.v1.AgentService.GetFolderInfo.
+func (c *agentServiceClient) GetFolderInfo(ctx context.Context, req *connect.Request[v1.GetFolderInfoRequest]) (*connect.Response[v1.GetFolderInfoResponse], error) {
+	return c.getFolderInfo.CallUnary(ctx, req)
+}
+
+// SetSessionFolder calls harness.agent.v1.AgentService.SetSessionFolder.
+func (c *agentServiceClient) SetSessionFolder(ctx context.Context, req *connect.Request[v1.SetSessionFolderRequest]) (*connect.Response[v1.SetSessionFolderResponse], error) {
+	return c.setSessionFolder.CallUnary(ctx, req)
+}
+
+// AddSessionDirectory calls harness.agent.v1.AgentService.AddSessionDirectory.
+func (c *agentServiceClient) AddSessionDirectory(ctx context.Context, req *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error) {
+	return c.addSessionDirectory.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -611,6 +715,35 @@ type AgentServiceHandler interface {
 	// committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
 	GetWorkspaceTrust(context.Context, *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error)
 	SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error)
+	// --- Environments (packages/client/server/environment.go) ---
+	// An environment belongs to a primary folder (project) and is stored on this machine under HARNESS_HOME,
+	// keyed by the folder's absolute path: a name, additional folders, new-session defaults (worktree, base
+	// branch) and environment variables in .env syntax. Sessions started in the folder use it: the additional
+	// folders become working directories and the variables are set for shell commands, background tasks and the
+	// other processes tools spawn. The variables are encrypted at rest (see Environment.env).
+	//
+	// Returns the environment of a folder, or of a session's primary folder. A folder without one returns the
+	// defaults (exists = false). A remote session's environment lives on its machine: read_only, nothing else set.
+	GetEnvironment(context.Context, *connect.Request[v1.GetEnvironmentRequest]) (*connect.Response[v1.GetEnvironmentResponse], error)
+	// Replaces the environment of a folder and applies it to the open sessions in that folder from their next tool
+	// call: working directories and environment variables change live; worktree and base branch only affect new
+	// sessions; MCP servers already started keep their environment. Invalid .env text fails with
+	// INVALID_ARGUMENT and an EnvironmentErrors detail (line numbers). A remote session is refused
+	// (FAILED_PRECONDITION).
+	UpdateEnvironment(context.Context, *connect.Request[v1.UpdateEnvironmentRequest]) (*connect.Response[v1.UpdateEnvironmentResponse], error)
+	// Git facts of a folder for its menu: repository root, current and default branch, and the remote as a
+	// browsable URL ("Open repository on GitHub").
+	GetFolderInfo(context.Context, *connect.Request[v1.GetFolderInfoRequest]) (*connect.Response[v1.GetFolderInfoResponse], error)
+	// Moves an idle session to another primary folder. The conversation is kept (same session id, the transcript
+	// moves to the new folder's project directory); the tools start over in the new folder: the live session is
+	// closed (SessionEnded reason "folder_changed": background tasks stop, the shell cwd resets) and reopened
+	// with the new folder's settings, permissions, instructions, MCP servers and environment. Subscribers
+	// subscribe again (after_seq = 0). FAILED_PRECONDITION while a turn runs, for a session in a harness worktree
+	// and for remote sessions.
+	SetSessionFolder(context.Context, *connect.Request[v1.SetSessionFolderRequest]) (*connect.Response[v1.SetSessionFolderResponse], error)
+	// Adds a working directory to an open session's environment (stored) and applies it to the open sessions
+	// in that folder, this one included, from their next tool call. FAILED_PRECONDITION for remote sessions.
+	AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -794,6 +927,36 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetWorkspaceTrust")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetEnvironmentHandler := connect.NewUnaryHandler(
+		AgentServiceGetEnvironmentProcedure,
+		svc.GetEnvironment,
+		connect.WithSchema(agentServiceMethods.ByName("GetEnvironment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateEnvironmentHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateEnvironmentProcedure,
+		svc.UpdateEnvironment,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateEnvironment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetFolderInfoHandler := connect.NewUnaryHandler(
+		AgentServiceGetFolderInfoProcedure,
+		svc.GetFolderInfo,
+		connect.WithSchema(agentServiceMethods.ByName("GetFolderInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetSessionFolderHandler := connect.NewUnaryHandler(
+		AgentServiceSetSessionFolderProcedure,
+		svc.SetSessionFolder,
+		connect.WithSchema(agentServiceMethods.ByName("SetSessionFolder")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceAddSessionDirectoryHandler := connect.NewUnaryHandler(
+		AgentServiceAddSessionDirectoryProcedure,
+		svc.AddSessionDirectory,
+		connect.WithSchema(agentServiceMethods.ByName("AddSessionDirectory")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -854,6 +1017,16 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceGetWorkspaceTrustHandler.ServeHTTP(w, r)
 		case AgentServiceSetWorkspaceTrustProcedure:
 			agentServiceSetWorkspaceTrustHandler.ServeHTTP(w, r)
+		case AgentServiceGetEnvironmentProcedure:
+			agentServiceGetEnvironmentHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateEnvironmentProcedure:
+			agentServiceUpdateEnvironmentHandler.ServeHTTP(w, r)
+		case AgentServiceGetFolderInfoProcedure:
+			agentServiceGetFolderInfoHandler.ServeHTTP(w, r)
+		case AgentServiceSetSessionFolderProcedure:
+			agentServiceSetSessionFolderHandler.ServeHTTP(w, r)
+		case AgentServiceAddSessionDirectoryProcedure:
+			agentServiceAddSessionDirectoryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -977,4 +1150,24 @@ func (UnimplementedAgentServiceHandler) GetWorkspaceTrust(context.Context, *conn
 
 func (UnimplementedAgentServiceHandler) SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetWorkspaceTrust is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetEnvironment(context.Context, *connect.Request[v1.GetEnvironmentRequest]) (*connect.Response[v1.GetEnvironmentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetEnvironment is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateEnvironment(context.Context, *connect.Request[v1.UpdateEnvironmentRequest]) (*connect.Response[v1.UpdateEnvironmentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateEnvironment is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetFolderInfo(context.Context, *connect.Request[v1.GetFolderInfoRequest]) (*connect.Response[v1.GetFolderInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetFolderInfo is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetSessionFolder(context.Context, *connect.Request[v1.SetSessionFolderRequest]) (*connect.Response[v1.SetSessionFolderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetSessionFolder is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) AddSessionDirectory(context.Context, *connect.Request[v1.AddSessionDirectoryRequest]) (*connect.Response[v1.AddSessionDirectoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AddSessionDirectory is not implemented"))
 }

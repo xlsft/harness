@@ -105,3 +105,54 @@ func ProjectKey(ctx context.Context, dir string) string {
 	}
 	return PathKey(dir)
 }
+
+// RemoteWebURL converts a git remote URL into the repository's browsable web URL: "https://host/owner/repo"
+// for scp-like (git@host:owner/repo.git), ssh://, git:// and https:// remotes, keeping the case of the path,
+// without user info and a trailing ".git". The port of an http(s) remote is kept (its web server listens
+// there); ssh and git ports are dropped. An http:// remote stays http. It returns "" for local paths and
+// inputs it cannot parse.
+func RemoteWebURL(remote string) string {
+	r := strings.TrimSpace(remote)
+	if r == "" {
+		return ""
+	}
+	scheme, host, path := "https", "", ""
+	if i := strings.Index(r, "://"); i >= 0 {
+		u, err := url.Parse(r)
+		if err != nil {
+			return ""
+		}
+		switch strings.ToLower(u.Scheme) {
+		case "http":
+			scheme, host = "http", u.Host
+		case "https":
+			host = u.Host
+		case "ssh", "git", "git+ssh", "ssh+git":
+			host = u.Hostname()
+		default:
+			return ""
+		}
+		path = u.Path
+	} else {
+		// scp-like: [user@]host:path (see NormalizeRemote).
+		colon := strings.Index(r, ":")
+		slash := strings.Index(r, "/")
+		if colon <= 0 || (slash >= 0 && slash < colon) {
+			return ""
+		}
+		host, path = r[:colon], r[colon+1:]
+		if at := strings.LastIndex(host, "@"); at >= 0 {
+			host = host[at+1:]
+		}
+		if len(host) == 1 {
+			return ""
+		}
+	}
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	path = strings.Trim(strings.ReplaceAll(path, "\\", "/"), "/")
+	path = strings.Trim(strings.TrimSuffix(path, ".git"), "/")
+	if host == "" || path == "" {
+		return ""
+	}
+	return scheme + "://" + host + "/" + path
+}

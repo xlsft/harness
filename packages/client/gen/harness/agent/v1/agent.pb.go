@@ -924,8 +924,12 @@ type InitializeResponse struct {
 	// them, and CreateSession / SetPermissionMode with one fail with PERMISSION_DENIED. Read again after a
 	// while: the policy can change while the client runs.
 	DisabledPermissionModes []PermissionMode `protobuf:"varint,7,rep,packed,name=disabled_permission_modes,json=disabledPermissionModes,proto3,enum=harness.agent.v1.PermissionMode" json:"disabled_permission_modes,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// Base URL of a web UI that opens this user's sessions: "<web_url>/?session=<id>" opens a session (the UI's
+	// session query parameter). Empty when none is configured (HARNESS_WEB_URL on the client); the harness
+	// server does not serve the UI yet.
+	WebUrl        string `protobuf:"bytes,8,opt,name=web_url,json=webUrl,proto3" json:"web_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InitializeResponse) Reset() {
@@ -1005,6 +1009,13 @@ func (x *InitializeResponse) GetDisabledPermissionModes() []PermissionMode {
 		return x.DisabledPermissionModes
 	}
 	return nil
+}
+
+func (x *InitializeResponse) GetWebUrl() string {
+	if x != nil {
+		return x.WebUrl
+	}
+	return ""
 }
 
 // A model from the server's catalog, with what frontends need to offer it.
@@ -7402,6 +7413,888 @@ func (x *OutputStyleInfo) GetSource() string {
 	return ""
 }
 
+// The environment of a primary folder (AgentService.GetEnvironment).
+type Environment struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Absolute path of the primary folder: the key the environment is stored under.
+	Folder string `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
+	// Display name; empty means the folder's name.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// New-session defaults of the primary folder: start in a new worktree, from base_ref (empty: the
+	// repository's current branch, as WorktreeOptions.base_ref). Frontends prefill the new-session form.
+	Worktree bool   `protobuf:"varint,3,opt,name=worktree,proto3" json:"worktree,omitempty"`
+	BaseRef  string `protobuf:"bytes,4,opt,name=base_ref,json=baseRef,proto3" json:"base_ref,omitempty"`
+	// Extra working directories of sessions in the folder, in order.
+	AdditionalFolders []*EnvironmentFolder `protobuf:"bytes,5,rep,name=additional_folders,json=additionalFolders,proto3" json:"additional_folders,omitempty"`
+	// Environment variables in .env syntax, as the user wrote it (comments and layout kept): NAME=value lines,
+	// an optional "export " prefix, "#" comments, values in double quotes (escapes \n \r \t \" \\ \$, may span
+	// lines) or single quotes (literal, may span lines). No ${VAR} expansion. Names match [A-Za-z_][A-Za-z0-9_]*
+	// and must not start with __HARNESS_. Stored encrypted (a key in the OS keychain, or a 0600 key file with
+	// HARNESS_KEYRING=0 or without a keychain); values are never logged.
+	Env string `protobuf:"bytes,6,opt,name=env,proto3" json:"env,omitempty"`
+	// The folder has a stored environment; false: these are defaults.
+	Exists bool `protobuf:"varint,7,opt,name=exists,proto3" json:"exists,omitempty"`
+	// The environment cannot be read or changed here (a remote session's environment is on its machine).
+	ReadOnly bool `protobuf:"varint,8,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
+	// RFC 3339, UTC; empty when not stored.
+	UpdatedAt string `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Output only: the names of the variables env defines, in order.
+	VariableNames []string `protobuf:"bytes,10,rep,name=variable_names,json=variableNames,proto3" json:"variable_names,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Environment) Reset() {
+	*x = Environment{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[100]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Environment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Environment) ProtoMessage() {}
+
+func (x *Environment) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[100]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Environment.ProtoReflect.Descriptor instead.
+func (*Environment) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{100}
+}
+
+func (x *Environment) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *Environment) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Environment) GetWorktree() bool {
+	if x != nil {
+		return x.Worktree
+	}
+	return false
+}
+
+func (x *Environment) GetBaseRef() string {
+	if x != nil {
+		return x.BaseRef
+	}
+	return ""
+}
+
+func (x *Environment) GetAdditionalFolders() []*EnvironmentFolder {
+	if x != nil {
+		return x.AdditionalFolders
+	}
+	return nil
+}
+
+func (x *Environment) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
+}
+
+func (x *Environment) GetExists() bool {
+	if x != nil {
+		return x.Exists
+	}
+	return false
+}
+
+func (x *Environment) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
+}
+
+func (x *Environment) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *Environment) GetVariableNames() []string {
+	if x != nil {
+		return x.VariableNames
+	}
+	return nil
+}
+
+type EnvironmentFolder struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Absolute path.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Stored default for new sessions: start this folder in a worktree from base_ref (empty: the current branch).
+	// Today the client applies additional folders as plain working directories; frontends keep these for the form.
+	Worktree bool   `protobuf:"varint,2,opt,name=worktree,proto3" json:"worktree,omitempty"`
+	BaseRef  string `protobuf:"bytes,3,opt,name=base_ref,json=baseRef,proto3" json:"base_ref,omitempty"`
+	// Output only: the folder exists on this machine (missing folders are not applied), and its current branch
+	// (empty outside a repository).
+	Exists        bool   `protobuf:"varint,4,opt,name=exists,proto3" json:"exists,omitempty"`
+	GitBranch     string `protobuf:"bytes,5,opt,name=git_branch,json=gitBranch,proto3" json:"git_branch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnvironmentFolder) Reset() {
+	*x = EnvironmentFolder{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[101]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnvironmentFolder) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnvironmentFolder) ProtoMessage() {}
+
+func (x *EnvironmentFolder) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[101]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnvironmentFolder.ProtoReflect.Descriptor instead.
+func (*EnvironmentFolder) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{101}
+}
+
+func (x *EnvironmentFolder) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *EnvironmentFolder) GetWorktree() bool {
+	if x != nil {
+		return x.Worktree
+	}
+	return false
+}
+
+func (x *EnvironmentFolder) GetBaseRef() string {
+	if x != nil {
+		return x.BaseRef
+	}
+	return ""
+}
+
+func (x *EnvironmentFolder) GetExists() bool {
+	if x != nil {
+		return x.Exists
+	}
+	return false
+}
+
+func (x *EnvironmentFolder) GetGitBranch() string {
+	if x != nil {
+		return x.GitBranch
+	}
+	return ""
+}
+
+// Detail of the INVALID_ARGUMENT error of UpdateEnvironment for .env text that does not parse.
+type EnvironmentErrors struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Errors        []*EnvironmentError    `protobuf:"bytes,1,rep,name=errors,proto3" json:"errors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnvironmentErrors) Reset() {
+	*x = EnvironmentErrors{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[102]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnvironmentErrors) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnvironmentErrors) ProtoMessage() {}
+
+func (x *EnvironmentErrors) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[102]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnvironmentErrors.ProtoReflect.Descriptor instead.
+func (*EnvironmentErrors) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{102}
+}
+
+func (x *EnvironmentErrors) GetErrors() []*EnvironmentError {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
+type EnvironmentError struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 1-based line of the env text.
+	Line          int32  `protobuf:"varint,1,opt,name=line,proto3" json:"line,omitempty"`
+	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnvironmentError) Reset() {
+	*x = EnvironmentError{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[103]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnvironmentError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnvironmentError) ProtoMessage() {}
+
+func (x *EnvironmentError) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[103]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnvironmentError.ProtoReflect.Descriptor instead.
+func (*EnvironmentError) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{103}
+}
+
+func (x *EnvironmentError) GetLine() int32 {
+	if x != nil {
+		return x.Line
+	}
+	return 0
+}
+
+func (x *EnvironmentError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type GetEnvironmentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// One of: an absolute folder path, or a session (its primary folder: the cwd it was started in, or for a
+	// session in a harness worktree the matching folder of the repository's main checkout).
+	Folder        string `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
+	SessionId     string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEnvironmentRequest) Reset() {
+	*x = GetEnvironmentRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[104]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEnvironmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEnvironmentRequest) ProtoMessage() {}
+
+func (x *GetEnvironmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[104]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEnvironmentRequest.ProtoReflect.Descriptor instead.
+func (*GetEnvironmentRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{104}
+}
+
+func (x *GetEnvironmentRequest) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *GetEnvironmentRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type GetEnvironmentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Environment   *Environment           `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEnvironmentResponse) Reset() {
+	*x = GetEnvironmentResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[105]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEnvironmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEnvironmentResponse) ProtoMessage() {}
+
+func (x *GetEnvironmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[105]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEnvironmentResponse.ProtoReflect.Descriptor instead.
+func (*GetEnvironmentResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{105}
+}
+
+func (x *GetEnvironmentResponse) GetEnvironment() *Environment {
+	if x != nil {
+		return x.Environment
+	}
+	return nil
+}
+
+type UpdateEnvironmentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Full replacement; environment.folder is the key. Output-only fields are ignored.
+	Environment *Environment `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
+	// The session the edit was made from, if any: a remote session is refused.
+	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// Only check the environment (INVALID_ARGUMENT with EnvironmentErrors when invalid); nothing is stored.
+	ValidateOnly  bool `protobuf:"varint,3,opt,name=validate_only,json=validateOnly,proto3" json:"validate_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEnvironmentRequest) Reset() {
+	*x = UpdateEnvironmentRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[106]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEnvironmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEnvironmentRequest) ProtoMessage() {}
+
+func (x *UpdateEnvironmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[106]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEnvironmentRequest.ProtoReflect.Descriptor instead.
+func (*UpdateEnvironmentRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{106}
+}
+
+func (x *UpdateEnvironmentRequest) GetEnvironment() *Environment {
+	if x != nil {
+		return x.Environment
+	}
+	return nil
+}
+
+func (x *UpdateEnvironmentRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *UpdateEnvironmentRequest) GetValidateOnly() bool {
+	if x != nil {
+		return x.ValidateOnly
+	}
+	return false
+}
+
+type UpdateEnvironmentResponse struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Environment *Environment           `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Open sessions the environment was applied to.
+	AppliedSessionIds []string `protobuf:"bytes,2,rep,name=applied_session_ids,json=appliedSessionIds,proto3" json:"applied_session_ids,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *UpdateEnvironmentResponse) Reset() {
+	*x = UpdateEnvironmentResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[107]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEnvironmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEnvironmentResponse) ProtoMessage() {}
+
+func (x *UpdateEnvironmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[107]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEnvironmentResponse.ProtoReflect.Descriptor instead.
+func (*UpdateEnvironmentResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{107}
+}
+
+func (x *UpdateEnvironmentResponse) GetEnvironment() *Environment {
+	if x != nil {
+		return x.Environment
+	}
+	return nil
+}
+
+func (x *UpdateEnvironmentResponse) GetAppliedSessionIds() []string {
+	if x != nil {
+		return x.AppliedSessionIds
+	}
+	return nil
+}
+
+type GetFolderInfoRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Absolute path; "~" prefixes are expanded.
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFolderInfoRequest) Reset() {
+	*x = GetFolderInfoRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[108]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFolderInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFolderInfoRequest) ProtoMessage() {}
+
+func (x *GetFolderInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[108]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFolderInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetFolderInfoRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{108}
+}
+
+func (x *GetFolderInfoRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+type GetFolderInfoResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The resolved absolute path.
+	Path   string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Exists bool   `protobuf:"varint,2,opt,name=exists,proto3" json:"exists,omitempty"`
+	// Root of the repository containing path; empty outside a repository.
+	RepositoryPath string `protobuf:"bytes,3,opt,name=repository_path,json=repositoryPath,proto3" json:"repository_path,omitempty"`
+	// Checked-out branch; empty outside a repository or on a detached HEAD.
+	CurrentBranch string `protobuf:"bytes,4,opt,name=current_branch,json=currentBranch,proto3" json:"current_branch,omitempty"`
+	// origin/HEAD, else main or master when they exist; empty when unknown.
+	DefaultBranch string `protobuf:"bytes,5,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
+	// The remote as configured (origin, else the first remote); empty when none.
+	RemoteUrl string `protobuf:"bytes,6,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
+	// The remote as a browsable URL ("https://github.com/owner/repo"), for scp-like (git@host:owner/repo),
+	// ssh://, git:// and http(s):// remotes of any host; empty when there is no remote or it is a local path.
+	WebUrl string `protobuf:"bytes,7,opt,name=web_url,json=webUrl,proto3" json:"web_url,omitempty"`
+	// Normalized remote ("github.com/owner/repo", see SessionInfo.repo).
+	Repo          string `protobuf:"bytes,8,opt,name=repo,proto3" json:"repo,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFolderInfoResponse) Reset() {
+	*x = GetFolderInfoResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[109]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFolderInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFolderInfoResponse) ProtoMessage() {}
+
+func (x *GetFolderInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[109]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFolderInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetFolderInfoResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{109}
+}
+
+func (x *GetFolderInfoResponse) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GetFolderInfoResponse) GetExists() bool {
+	if x != nil {
+		return x.Exists
+	}
+	return false
+}
+
+func (x *GetFolderInfoResponse) GetRepositoryPath() string {
+	if x != nil {
+		return x.RepositoryPath
+	}
+	return ""
+}
+
+func (x *GetFolderInfoResponse) GetCurrentBranch() string {
+	if x != nil {
+		return x.CurrentBranch
+	}
+	return ""
+}
+
+func (x *GetFolderInfoResponse) GetDefaultBranch() string {
+	if x != nil {
+		return x.DefaultBranch
+	}
+	return ""
+}
+
+func (x *GetFolderInfoResponse) GetRemoteUrl() string {
+	if x != nil {
+		return x.RemoteUrl
+	}
+	return ""
+}
+
+func (x *GetFolderInfoResponse) GetWebUrl() string {
+	if x != nil {
+		return x.WebUrl
+	}
+	return ""
+}
+
+func (x *GetFolderInfoResponse) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+type SetSessionFolderRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// New primary folder: an absolute path of an existing directory ("~" expanded).
+	Cwd           string `protobuf:"bytes,2,opt,name=cwd,proto3" json:"cwd,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSessionFolderRequest) Reset() {
+	*x = SetSessionFolderRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[110]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSessionFolderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSessionFolderRequest) ProtoMessage() {}
+
+func (x *SetSessionFolderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[110]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSessionFolderRequest.ProtoReflect.Descriptor instead.
+func (*SetSessionFolderRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{110}
+}
+
+func (x *SetSessionFolderRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *SetSessionFolderRequest) GetCwd() string {
+	if x != nil {
+		return x.Cwd
+	}
+	return ""
+}
+
+type SetSessionFolderResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The reopened session.
+	Session       *SessionInfo `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSessionFolderResponse) Reset() {
+	*x = SetSessionFolderResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[111]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSessionFolderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSessionFolderResponse) ProtoMessage() {}
+
+func (x *SetSessionFolderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[111]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSessionFolderResponse.ProtoReflect.Descriptor instead.
+func (*SetSessionFolderResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{111}
+}
+
+func (x *SetSessionFolderResponse) GetSession() *SessionInfo {
+	if x != nil {
+		return x.Session
+	}
+	return nil
+}
+
+type AddSessionDirectoryRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// Absolute path of an existing directory ("~" expanded).
+	Path          string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddSessionDirectoryRequest) Reset() {
+	*x = AddSessionDirectoryRequest{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[112]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddSessionDirectoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddSessionDirectoryRequest) ProtoMessage() {}
+
+func (x *AddSessionDirectoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[112]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddSessionDirectoryRequest.ProtoReflect.Descriptor instead.
+func (*AddSessionDirectoryRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{112}
+}
+
+func (x *AddSessionDirectoryRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *AddSessionDirectoryRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+type AddSessionDirectoryResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The updated environment of the session's primary folder.
+	Environment *Environment `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Open sessions the environment was applied to.
+	AppliedSessionIds []string `protobuf:"bytes,2,rep,name=applied_session_ids,json=appliedSessionIds,proto3" json:"applied_session_ids,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *AddSessionDirectoryResponse) Reset() {
+	*x = AddSessionDirectoryResponse{}
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[113]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddSessionDirectoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddSessionDirectoryResponse) ProtoMessage() {}
+
+func (x *AddSessionDirectoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_agent_proto_msgTypes[113]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddSessionDirectoryResponse.ProtoReflect.Descriptor instead.
+func (*AddSessionDirectoryResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{113}
+}
+
+func (x *AddSessionDirectoryResponse) GetEnvironment() *Environment {
+	if x != nil {
+		return x.Environment
+	}
+	return nil
+}
+
+func (x *AddSessionDirectoryResponse) GetAppliedSessionIds() []string {
+	if x != nil {
+		return x.AppliedSessionIds
+	}
+	return nil
+}
+
 var File_harness_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_agent_proto_rawDesc = "" +
@@ -7409,7 +8302,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x1charness/agent/v1/agent.proto\x12\x10harness.agent.v1\x1a\x1charness/llm/v1/content.proto\"Z\n" +
 	"\x11InitializeRequest\x12\x1a\n" +
 	"\bfrontend\x18\x01 \x01(\tR\bfrontend\x12)\n" +
-	"\x10frontend_version\x18\x02 \x01(\tR\x0ffrontendVersion\"\xfc\x02\n" +
+	"\x10frontend_version\x18\x02 \x01(\tR\x0ffrontendVersion\"\x95\x03\n" +
 	"\x12InitializeResponse\x12%\n" +
 	"\x0eclient_version\x18\x01 \x01(\tR\rclientVersion\x12\x1d\n" +
 	"\n" +
@@ -7418,7 +8311,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x10permission_modes\x18\x04 \x03(\x0e2 .harness.agent.v1.PermissionModeR\x0fpermissionModes\x123\n" +
 	"\x06models\x18\x05 \x03(\v2\x1b.harness.agent.v1.ModelInfoR\x06models\x12#\n" +
 	"\rdefault_model\x18\x06 \x01(\tR\fdefaultModel\x12\\\n" +
-	"\x19disabled_permission_modes\x18\a \x03(\x0e2 .harness.agent.v1.PermissionModeR\x17disabledPermissionModes\"\xd6\x02\n" +
+	"\x19disabled_permission_modes\x18\a \x03(\x0e2 .harness.agent.v1.PermissionModeR\x17disabledPermissionModes\x12\x17\n" +
+	"\aweb_url\x18\b \x01(\tR\x06webUrl\"\xd6\x02\n" +
 	"\tModelInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
@@ -7973,7 +8867,71 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06source\x18\x04 \x01(\tR\x06source*\xea\x01\n" +
+	"\x06source\x18\x04 \x01(\tR\x06source\"\xd1\x02\n" +
+	"\vEnvironment\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
+	"\bworktree\x18\x03 \x01(\bR\bworktree\x12\x19\n" +
+	"\bbase_ref\x18\x04 \x01(\tR\abaseRef\x12R\n" +
+	"\x12additional_folders\x18\x05 \x03(\v2#.harness.agent.v1.EnvironmentFolderR\x11additionalFolders\x12\x10\n" +
+	"\x03env\x18\x06 \x01(\tR\x03env\x12\x16\n" +
+	"\x06exists\x18\a \x01(\bR\x06exists\x12\x1b\n" +
+	"\tread_only\x18\b \x01(\bR\breadOnly\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\tR\tupdatedAt\x12%\n" +
+	"\x0evariable_names\x18\n" +
+	" \x03(\tR\rvariableNames\"\x95\x01\n" +
+	"\x11EnvironmentFolder\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x1a\n" +
+	"\bworktree\x18\x02 \x01(\bR\bworktree\x12\x19\n" +
+	"\bbase_ref\x18\x03 \x01(\tR\abaseRef\x12\x16\n" +
+	"\x06exists\x18\x04 \x01(\bR\x06exists\x12\x1d\n" +
+	"\n" +
+	"git_branch\x18\x05 \x01(\tR\tgitBranch\"O\n" +
+	"\x11EnvironmentErrors\x12:\n" +
+	"\x06errors\x18\x01 \x03(\v2\".harness.agent.v1.EnvironmentErrorR\x06errors\"@\n" +
+	"\x10EnvironmentError\x12\x12\n" +
+	"\x04line\x18\x01 \x01(\x05R\x04line\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"N\n" +
+	"\x15GetEnvironmentRequest\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\"Y\n" +
+	"\x16GetEnvironmentResponse\x12?\n" +
+	"\venvironment\x18\x01 \x01(\v2\x1d.harness.agent.v1.EnvironmentR\venvironment\"\x9f\x01\n" +
+	"\x18UpdateEnvironmentRequest\x12?\n" +
+	"\venvironment\x18\x01 \x01(\v2\x1d.harness.agent.v1.EnvironmentR\venvironment\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12#\n" +
+	"\rvalidate_only\x18\x03 \x01(\bR\fvalidateOnly\"\x8c\x01\n" +
+	"\x19UpdateEnvironmentResponse\x12?\n" +
+	"\venvironment\x18\x01 \x01(\v2\x1d.harness.agent.v1.EnvironmentR\venvironment\x12.\n" +
+	"\x13applied_session_ids\x18\x02 \x03(\tR\x11appliedSessionIds\"*\n" +
+	"\x14GetFolderInfoRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\"\x86\x02\n" +
+	"\x15GetFolderInfoResponse\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
+	"\x06exists\x18\x02 \x01(\bR\x06exists\x12'\n" +
+	"\x0frepository_path\x18\x03 \x01(\tR\x0erepositoryPath\x12%\n" +
+	"\x0ecurrent_branch\x18\x04 \x01(\tR\rcurrentBranch\x12%\n" +
+	"\x0edefault_branch\x18\x05 \x01(\tR\rdefaultBranch\x12\x1d\n" +
+	"\n" +
+	"remote_url\x18\x06 \x01(\tR\tremoteUrl\x12\x17\n" +
+	"\aweb_url\x18\a \x01(\tR\x06webUrl\x12\x12\n" +
+	"\x04repo\x18\b \x01(\tR\x04repo\"J\n" +
+	"\x17SetSessionFolderRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x10\n" +
+	"\x03cwd\x18\x02 \x01(\tR\x03cwd\"S\n" +
+	"\x18SetSessionFolderResponse\x127\n" +
+	"\asession\x18\x01 \x01(\v2\x1d.harness.agent.v1.SessionInfoR\asession\"O\n" +
+	"\x1aAddSessionDirectoryRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\"\x8e\x01\n" +
+	"\x1bAddSessionDirectoryResponse\x12?\n" +
+	"\venvironment\x18\x01 \x01(\v2\x1d.harness.agent.v1.EnvironmentR\venvironment\x12.\n" +
+	"\x13applied_session_ids\x18\x02 \x03(\tR\x11appliedSessionIds*\xea\x01\n" +
 	"\x0ePermissionMode\x12\x1f\n" +
 	"\x1bPERMISSION_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17PERMISSION_MODE_DEFAULT\x10\x01\x12 \n" +
@@ -7994,7 +8952,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x19QUESTION_OUTCOME_ANSWERED\x10\x01\x12\x1c\n" +
 	"\x18QUESTION_OUTCOME_SKIPPED\x10\x02\x12\x1c\n" +
 	"\x18QUESTION_OUTCOME_MESSAGE\x10\x03\x12\x1e\n" +
-	"\x1aQUESTION_OUTCOME_CANCELLED\x10\x042\x8f\x16\n" +
+	"\x1aQUESTION_OUTCOME_CANCELLED\x10\x042\xa3\x1a\n" +
 	"\fAgentService\x12W\n" +
 	"\n" +
 	"Initialize\x12#.harness.agent.v1.InitializeRequest\x1a$.harness.agent.v1.InitializeResponse\x12`\n" +
@@ -8025,7 +8983,12 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\bStopTask\x12!.harness.agent.v1.StopTaskRequest\x1a\".harness.agent.v1.StopTaskResponse\x12]\n" +
 	"\fCloseSession\x12%.harness.agent.v1.CloseSessionRequest\x1a&.harness.agent.v1.CloseSessionResponse\x12l\n" +
 	"\x11GetWorkspaceTrust\x12*.harness.agent.v1.GetWorkspaceTrustRequest\x1a+.harness.agent.v1.GetWorkspaceTrustResponse\x12l\n" +
-	"\x11SetWorkspaceTrust\x12*.harness.agent.v1.SetWorkspaceTrustRequest\x1a+.harness.agent.v1.SetWorkspaceTrustResponseB\xcb\x01\n" +
+	"\x11SetWorkspaceTrust\x12*.harness.agent.v1.SetWorkspaceTrustRequest\x1a+.harness.agent.v1.SetWorkspaceTrustResponse\x12c\n" +
+	"\x0eGetEnvironment\x12'.harness.agent.v1.GetEnvironmentRequest\x1a(.harness.agent.v1.GetEnvironmentResponse\x12l\n" +
+	"\x11UpdateEnvironment\x12*.harness.agent.v1.UpdateEnvironmentRequest\x1a+.harness.agent.v1.UpdateEnvironmentResponse\x12`\n" +
+	"\rGetFolderInfo\x12&.harness.agent.v1.GetFolderInfoRequest\x1a'.harness.agent.v1.GetFolderInfoResponse\x12i\n" +
+	"\x10SetSessionFolder\x12).harness.agent.v1.SetSessionFolderRequest\x1a*.harness.agent.v1.SetSessionFolderResponse\x12r\n" +
+	"\x13AddSessionDirectory\x12,.harness.agent.v1.AddSessionDirectoryRequest\x1a-.harness.agent.v1.AddSessionDirectoryResponseB\xcb\x01\n" +
 	"\x14com.harness.agent.v1B\n" +
 	"AgentProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
@@ -8042,7 +9005,7 @@ func file_harness_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 15)
-var file_harness_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
+var file_harness_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 114)
 var file_harness_agent_v1_agent_proto_goTypes = []any{
 	(PermissionMode)(0),                      // 0: harness.agent.v1.PermissionMode
 	(SessionStatus)(0),                       // 1: harness.agent.v1.SessionStatus
@@ -8159,16 +9122,30 @@ var file_harness_agent_v1_agent_proto_goTypes = []any{
 	(*ListOutputStylesRequest)(nil),          // 112: harness.agent.v1.ListOutputStylesRequest
 	(*ListOutputStylesResponse)(nil),         // 113: harness.agent.v1.ListOutputStylesResponse
 	(*OutputStyleInfo)(nil),                  // 114: harness.agent.v1.OutputStyleInfo
-	(v1.Effort)(0),                           // 115: harness.llm.v1.Effort
-	(*v1.ContentBlock)(nil),                  // 116: harness.llm.v1.ContentBlock
-	(v1.StopReason)(0),                       // 117: harness.llm.v1.StopReason
-	(*v1.Usage)(nil),                         // 118: harness.llm.v1.Usage
+	(*Environment)(nil),                      // 115: harness.agent.v1.Environment
+	(*EnvironmentFolder)(nil),                // 116: harness.agent.v1.EnvironmentFolder
+	(*EnvironmentErrors)(nil),                // 117: harness.agent.v1.EnvironmentErrors
+	(*EnvironmentError)(nil),                 // 118: harness.agent.v1.EnvironmentError
+	(*GetEnvironmentRequest)(nil),            // 119: harness.agent.v1.GetEnvironmentRequest
+	(*GetEnvironmentResponse)(nil),           // 120: harness.agent.v1.GetEnvironmentResponse
+	(*UpdateEnvironmentRequest)(nil),         // 121: harness.agent.v1.UpdateEnvironmentRequest
+	(*UpdateEnvironmentResponse)(nil),        // 122: harness.agent.v1.UpdateEnvironmentResponse
+	(*GetFolderInfoRequest)(nil),             // 123: harness.agent.v1.GetFolderInfoRequest
+	(*GetFolderInfoResponse)(nil),            // 124: harness.agent.v1.GetFolderInfoResponse
+	(*SetSessionFolderRequest)(nil),          // 125: harness.agent.v1.SetSessionFolderRequest
+	(*SetSessionFolderResponse)(nil),         // 126: harness.agent.v1.SetSessionFolderResponse
+	(*AddSessionDirectoryRequest)(nil),       // 127: harness.agent.v1.AddSessionDirectoryRequest
+	(*AddSessionDirectoryResponse)(nil),      // 128: harness.agent.v1.AddSessionDirectoryResponse
+	(v1.Effort)(0),                           // 129: harness.llm.v1.Effort
+	(*v1.ContentBlock)(nil),                  // 130: harness.llm.v1.ContentBlock
+	(v1.StopReason)(0),                       // 131: harness.llm.v1.StopReason
+	(*v1.Usage)(nil),                         // 132: harness.llm.v1.Usage
 }
 var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	0,   // 0: harness.agent.v1.InitializeResponse.permission_modes:type_name -> harness.agent.v1.PermissionMode
 	17,  // 1: harness.agent.v1.InitializeResponse.models:type_name -> harness.agent.v1.ModelInfo
 	0,   // 2: harness.agent.v1.InitializeResponse.disabled_permission_modes:type_name -> harness.agent.v1.PermissionMode
-	115, // 3: harness.agent.v1.ModelInfo.efforts:type_name -> harness.llm.v1.Effort
+	129, // 3: harness.agent.v1.ModelInfo.efforts:type_name -> harness.llm.v1.Effort
 	0,   // 4: harness.agent.v1.SessionInfo.permission_mode:type_name -> harness.agent.v1.PermissionMode
 	1,   // 5: harness.agent.v1.SessionInfo.status:type_name -> harness.agent.v1.SessionStatus
 	20,  // 6: harness.agent.v1.SessionInfo.diff_stats:type_name -> harness.agent.v1.DiffStats
@@ -8176,7 +9153,7 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	19,  // 8: harness.agent.v1.SessionInfo.worktree:type_name -> harness.agent.v1.Worktree
 	3,   // 9: harness.agent.v1.PullRequest.state:type_name -> harness.agent.v1.PullRequest.State
 	0,   // 10: harness.agent.v1.CreateSessionRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	115, // 11: harness.agent.v1.CreateSessionRequest.effort:type_name -> harness.llm.v1.Effort
+	129, // 11: harness.agent.v1.CreateSessionRequest.effort:type_name -> harness.llm.v1.Effort
 	23,  // 12: harness.agent.v1.CreateSessionRequest.worktree:type_name -> harness.agent.v1.WorktreeOptions
 	26,  // 13: harness.agent.v1.ListRecentFoldersResponse.folders:type_name -> harness.agent.v1.RecentFolder
 	29,  // 14: harness.agent.v1.ListDirectoryResponse.entries:type_name -> harness.agent.v1.DirectoryEntry
@@ -8220,11 +9197,11 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	6,   // 52: harness.agent.v1.Compacted.trigger:type_name -> harness.agent.v1.Compacted.Trigger
 	0,   // 53: harness.agent.v1.PermissionModeChanged.mode:type_name -> harness.agent.v1.PermissionMode
 	7,   // 54: harness.agent.v1.ShowRequested.kind:type_name -> harness.agent.v1.ShowRequested.Kind
-	116, // 55: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
-	116, // 56: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
-	117, // 57: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
-	118, // 58: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
-	116, // 59: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
+	130, // 55: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
+	130, // 56: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
+	131, // 57: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
+	132, // 58: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
+	130, // 59: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
 	12,  // 60: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
 	2,   // 61: harness.agent.v1.QuestionResolved.outcome:type_name -> harness.agent.v1.QuestionOutcome
 	81,  // 62: harness.agent.v1.QuestionResolved.answers:type_name -> harness.agent.v1.QuestionAnswer
@@ -8233,14 +9210,14 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	8,   // 65: harness.agent.v1.QuestionItem.type:type_name -> harness.agent.v1.QuestionItem.Type
 	57,  // 66: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
 	9,   // 67: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
-	118, // 68: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
+	132, // 68: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
 	10,  // 69: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
-	116, // 70: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
+	130, // 70: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
 	11,  // 71: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
 	12,  // 72: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
 	81,  // 73: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
 	2,   // 74: harness.agent.v1.AnswerQuestionRequest.outcome:type_name -> harness.agent.v1.QuestionOutcome
-	115, // 75: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
+	129, // 75: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
 	0,   // 76: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
 	13,  // 77: harness.agent.v1.RespondToPlanRequest.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
 	51,  // 78: harness.agent.v1.ListCheckpointsResponse.checkpoints:type_name -> harness.agent.v1.Checkpoint
@@ -8249,69 +9226,86 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	5,   // 81: harness.agent.v1.BackgroundTask.finish_reason:type_name -> harness.agent.v1.TaskFinished.Reason
 	99,  // 82: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
 	114, // 83: harness.agent.v1.ListOutputStylesResponse.styles:type_name -> harness.agent.v1.OutputStyleInfo
-	15,  // 84: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
-	22,  // 85: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
-	34,  // 86: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
-	36,  // 87: harness.agent.v1.AgentService.UpdateSession:input_type -> harness.agent.v1.UpdateSessionRequest
-	38,  // 88: harness.agent.v1.AgentService.DeleteSession:input_type -> harness.agent.v1.DeleteSessionRequest
-	24,  // 89: harness.agent.v1.AgentService.ListRecentFolders:input_type -> harness.agent.v1.ListRecentFoldersRequest
-	27,  // 90: harness.agent.v1.AgentService.ListDirectory:input_type -> harness.agent.v1.ListDirectoryRequest
-	30,  // 91: harness.agent.v1.AgentService.ListBranches:input_type -> harness.agent.v1.ListBranchesRequest
-	40,  // 92: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
-	72,  // 93: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
-	74,  // 94: harness.agent.v1.AgentService.RemoveQueuedMessage:input_type -> harness.agent.v1.RemoveQueuedMessageRequest
-	76,  // 95: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
-	78,  // 96: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
-	80,  // 97: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
-	83,  // 98: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
-	85,  // 99: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
-	87,  // 100: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
-	110, // 101: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
-	112, // 102: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
-	89,  // 103: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
-	91,  // 104: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
-	93,  // 105: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
-	95,  // 106: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
-	97,  // 107: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
-	100, // 108: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
-	102, // 109: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
-	104, // 110: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
-	106, // 111: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
-	108, // 112: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
-	16,  // 113: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
-	33,  // 114: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
-	35,  // 115: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
-	37,  // 116: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
-	39,  // 117: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
-	25,  // 118: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
-	28,  // 119: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
-	31,  // 120: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
-	41,  // 121: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
-	73,  // 122: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
-	75,  // 123: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
-	77,  // 124: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
-	79,  // 125: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
-	82,  // 126: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
-	84,  // 127: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
-	86,  // 128: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
-	88,  // 129: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
-	111, // 130: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
-	113, // 131: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
-	90,  // 132: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
-	92,  // 133: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
-	94,  // 134: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
-	96,  // 135: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
-	98,  // 136: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
-	101, // 137: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
-	103, // 138: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
-	105, // 139: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
-	107, // 140: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
-	109, // 141: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
-	113, // [113:142] is the sub-list for method output_type
-	84,  // [84:113] is the sub-list for method input_type
-	84,  // [84:84] is the sub-list for extension type_name
-	84,  // [84:84] is the sub-list for extension extendee
-	0,   // [0:84] is the sub-list for field type_name
+	116, // 84: harness.agent.v1.Environment.additional_folders:type_name -> harness.agent.v1.EnvironmentFolder
+	118, // 85: harness.agent.v1.EnvironmentErrors.errors:type_name -> harness.agent.v1.EnvironmentError
+	115, // 86: harness.agent.v1.GetEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	115, // 87: harness.agent.v1.UpdateEnvironmentRequest.environment:type_name -> harness.agent.v1.Environment
+	115, // 88: harness.agent.v1.UpdateEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	18,  // 89: harness.agent.v1.SetSessionFolderResponse.session:type_name -> harness.agent.v1.SessionInfo
+	115, // 90: harness.agent.v1.AddSessionDirectoryResponse.environment:type_name -> harness.agent.v1.Environment
+	15,  // 91: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
+	22,  // 92: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
+	34,  // 93: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
+	36,  // 94: harness.agent.v1.AgentService.UpdateSession:input_type -> harness.agent.v1.UpdateSessionRequest
+	38,  // 95: harness.agent.v1.AgentService.DeleteSession:input_type -> harness.agent.v1.DeleteSessionRequest
+	24,  // 96: harness.agent.v1.AgentService.ListRecentFolders:input_type -> harness.agent.v1.ListRecentFoldersRequest
+	27,  // 97: harness.agent.v1.AgentService.ListDirectory:input_type -> harness.agent.v1.ListDirectoryRequest
+	30,  // 98: harness.agent.v1.AgentService.ListBranches:input_type -> harness.agent.v1.ListBranchesRequest
+	40,  // 99: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
+	72,  // 100: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
+	74,  // 101: harness.agent.v1.AgentService.RemoveQueuedMessage:input_type -> harness.agent.v1.RemoveQueuedMessageRequest
+	76,  // 102: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
+	78,  // 103: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
+	80,  // 104: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
+	83,  // 105: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
+	85,  // 106: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
+	87,  // 107: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
+	110, // 108: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
+	112, // 109: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
+	89,  // 110: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
+	91,  // 111: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
+	93,  // 112: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
+	95,  // 113: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
+	97,  // 114: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
+	100, // 115: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
+	102, // 116: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
+	104, // 117: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
+	106, // 118: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
+	108, // 119: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
+	119, // 120: harness.agent.v1.AgentService.GetEnvironment:input_type -> harness.agent.v1.GetEnvironmentRequest
+	121, // 121: harness.agent.v1.AgentService.UpdateEnvironment:input_type -> harness.agent.v1.UpdateEnvironmentRequest
+	123, // 122: harness.agent.v1.AgentService.GetFolderInfo:input_type -> harness.agent.v1.GetFolderInfoRequest
+	125, // 123: harness.agent.v1.AgentService.SetSessionFolder:input_type -> harness.agent.v1.SetSessionFolderRequest
+	127, // 124: harness.agent.v1.AgentService.AddSessionDirectory:input_type -> harness.agent.v1.AddSessionDirectoryRequest
+	16,  // 125: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
+	33,  // 126: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
+	35,  // 127: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
+	37,  // 128: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
+	39,  // 129: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
+	25,  // 130: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
+	28,  // 131: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
+	31,  // 132: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
+	41,  // 133: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
+	73,  // 134: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
+	75,  // 135: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
+	77,  // 136: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
+	79,  // 137: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
+	82,  // 138: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
+	84,  // 139: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
+	86,  // 140: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
+	88,  // 141: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
+	111, // 142: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
+	113, // 143: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
+	90,  // 144: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
+	92,  // 145: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
+	94,  // 146: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
+	96,  // 147: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
+	98,  // 148: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
+	101, // 149: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
+	103, // 150: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
+	105, // 151: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
+	107, // 152: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
+	109, // 153: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
+	120, // 154: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
+	122, // 155: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
+	124, // 156: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
+	126, // 157: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
+	128, // 158: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
+	125, // [125:159] is the sub-list for method output_type
+	91,  // [91:125] is the sub-list for method input_type
+	91,  // [91:91] is the sub-list for extension type_name
+	91,  // [91:91] is the sub-list for extension extendee
+	0,   // [0:91] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_agent_proto_init() }
@@ -8362,7 +9356,7 @@ func file_harness_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_agent_proto_rawDesc), len(file_harness_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      15,
-			NumMessages:   100,
+			NumMessages:   114,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

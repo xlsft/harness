@@ -112,6 +112,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   compacted                                    first message after a compaction summary
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
+   *   environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
    *
    * @generated from field: map<string, string> reminders = 5;
    */

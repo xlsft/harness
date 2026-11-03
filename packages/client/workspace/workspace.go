@@ -115,6 +115,10 @@ func GitBranch(ctx context.Context, dir string) string {
 	return strings.TrimSpace(out)
 }
 
+// DefaultBranch returns the repository's default branch: origin/HEAD, else main or master when they exist,
+// else "".
+func DefaultBranch(ctx context.Context, dir string) string { return mainBranch(ctx, dir) }
+
 func mainBranch(ctx context.Context, dir string) string {
 	if out, err := run(ctx, dir, "git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"); err == nil {
 		return strings.TrimPrefix(strings.TrimSpace(out), "origin/")

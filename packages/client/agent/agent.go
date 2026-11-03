@@ -516,6 +516,13 @@ func (a *Agent) SetEffort(effort string) {
 	a.mu.Unlock()
 }
 
+// Effort returns the effort level set for the session ("" when unset).
+func (a *Agent) Effort() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.cfg.Effort
+}
+
 // QueueLen returns the number of queued messages.
 func (a *Agent) QueueLen() int {
 	a.mu.Lock()

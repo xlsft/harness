@@ -42,6 +42,7 @@ describe("bundle builder", () => {
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],
       deferred_tools: ["tools"],
+      environment_changed: ["directories", "variables"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
     };

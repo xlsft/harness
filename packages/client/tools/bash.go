@@ -222,7 +222,9 @@ func (s *Shell) command(command, cwdFile, cwd string) *exec.Cmd {
 	script.WriteString(`eval "$__harness_cmd"` + "\n")
 	cmd := exec.Command(s.path, "-c", script.String())
 	cmd.Dir = cwd
-	cmd.Env = append(os.Environ(),
+	// The session environment's variables override the client's; the harness entries come last so they cannot
+	// be overridden (exec keeps the last value of a name).
+	cmd.Env = append(append(os.Environ(), s.env.ExtraEnv()...),
 		"__HARNESS_CMD="+command,
 		"__HARNESS_CWD_FILE="+cwdFile,
 		"HARNESS=1",

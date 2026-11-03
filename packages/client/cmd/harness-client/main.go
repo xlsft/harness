@@ -227,6 +227,8 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
+	// A web UI that opens sessions by ?session=<id> (Initialize web_url); the harness server serves none yet.
+	srv.WebURL = strings.TrimRight(strings.TrimSpace(os.Getenv("HARNESS_WEB_URL")), "/")
 	if tokens, url, user, err := bootstrap.Tokens(*serverURL); err == nil {
 		// Modes the server's policy disables: not offered, refused, and live sessions in one are switched.
 		srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
