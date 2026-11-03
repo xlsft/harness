@@ -30,7 +30,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
-        class="flex h-[min(680px,100%)] w-[min(920px,100%)] flex-col border border-line-strong bg-default"
+        class="flex h-[min(680px,100%)] w-[min(920px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
       >
         <div
           data-tauri-drag-region

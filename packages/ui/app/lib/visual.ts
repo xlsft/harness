@@ -37,14 +37,20 @@ const VARS: [string, string, string][] = [
   ['--violet', '--color-violet', '#8e51ff'],
   ['--pink', '--color-pink', '#f6339a'],
   ['--orange', '--color-orange', '#fe6e00'],
+  ['--chart-1', '--color-chart-1', '#2b7fff'],
+  ['--chart-2', '--color-chart-2', '#f54900'],
+  ['--chart-3', '--color-chart-3', '#8e51ff'],
+  ['--chart-4', '--color-chart-4', '#0092b8'],
+  ['--chart-5', '--color-chart-5', '#f6339a'],
+  ['--radius', '--radius-control', '0px'],
+  ['--radius-box', '--radius-box', '0px'],
   ['--font', '--font-sans', 'ui-monospace, monospace'],
   ['--mono', '--font-mono', 'ui-monospace, monospace']
 ]
 
-// Fixed parts of the app's look: square corners, its type scale and spacing, and a chart palette.
-const FIXED = '--radius:0px;--border:1px;--text-xs:11px;--text-sm:12px;--text-md:13px;--text-lg:15px;--text-xl:18px;'
+// Fixed parts of the app's look: its type scale and spacing, and a chart palette.
+const FIXED = '--border:1px;--text-xs:11px;--text-sm:12px;--text-md:13px;--text-lg:15px;--text-xl:18px;'
   + '--leading:1.6;--space:4px;--control-h:28px;'
-  + '--chart-1:var(--accent);--chart-2:var(--ok);--chart-3:var(--warn);--chart-4:var(--violet);--chart-5:var(--cyan);--chart-6:var(--pink)'
 
 // Base styles in the app's look, at zero specificity (:where) so any rule of the visual wins.
 const BASE = `:where(html,body){margin:0;background:transparent;color:var(--text);font:var(--text-md)/var(--leading) var(--font)}

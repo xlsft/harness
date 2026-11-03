@@ -5,6 +5,7 @@ import type { Theme } from '~/themes'
 
 const props = defineProps<{ theme: Theme }>()
 const c = computed(() => props.theme.tokens)
+const r = computed(() => props.theme.radius ?? {})
 </script>
 
 <template>
@@ -37,7 +38,7 @@ const c = computed(() => props.theme.tokens)
     <div class="flex flex-1 flex-col gap-[6px] px-[9px] pt-[9px]">
       <span
         class="h-[11px] w-[55%] self-end"
-        :style="{ background: c.hover, border: `1px solid ${c.line}` }"
+        :style="{ background: c.hover, border: `1px solid ${c.line}`, borderRadius: r.chip }"
       />
       <span
         class="h-[4px] w-[90%]"
@@ -63,11 +64,11 @@ const c = computed(() => props.theme.tokens)
       </span>
       <span
         class="mt-auto mb-[7px] flex h-[16px] items-center justify-end pr-[2px]"
-        :style="{ background: c.surface, border: `1px solid ${c.accent}` }"
+        :style="{ background: c.surface, border: `1px solid ${c.accent}`, borderRadius: r.chip }"
       >
         <span
           class="size-[10px]"
-          :style="{ background: c.accent }"
+          :style="{ background: c.accent, borderRadius: r.chip ? '3px' : 0 }"
         />
       </span>
     </div>

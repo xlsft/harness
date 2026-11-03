@@ -54,6 +54,12 @@
   --color-chart-3: #8e51ff;
   --color-chart-4: #0092b8;
   --color-chart-5: #f6339a;
+
+  /* Corner radii (rounded-chip, rounded-control, rounded-box, rounded-panel): square unless the theme sets them. */
+  --radius-chip: 0px;
+  --radius-control: 0px;
+  --radius-box: 0px;
+  --radius-panel: 0px;
 }
 
 /* Nuxt UI's variables follow the theme's tokens. */
@@ -161,7 +167,8 @@
 @utility nav-row-current {
   background: var(--color-hover);
   color: var(--color-strong);
-  border-left: 2px solid var(--color-accent);
+  /* The accent rule marks the row in square themes; rounded ones mark it with the background alone. */
+  border-left: max(0px, calc(2px - var(--radius-control) * 100)) solid var(--color-accent);
 
   &:hover {
     color: var(--color-strong);
@@ -450,4 +457,21 @@
 /* Popups (selects, menus, tooltips) open above the settings modal (z-40); Reka sets z-index: auto inline. */
 [data-reka-popper-content-wrapper] {
   z-index: 60 !important;
+}
+
+/* Theme corners without per-component classes: bordered blocks (cards, bubbles, menus, the composer) take the
+   box radius, controls the control radius, small bordered marks the chip radius. Zero specificity, so an explicit
+   rounded-* class still wins. All 0 in square themes. */
+:where([class~="border"], [class~="border-dashed"]) {
+  border-radius: var(--radius-box);
+}
+:where(button, input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea, [role="option"], [role="menuitem"], .nav-row) {
+  border-radius: var(--radius-control);
+}
+:where(kbd, [class~="border"][class*="text-[11px]"], [class~="border"][class*="text-[10"]) {
+  border-radius: var(--radius-chip);
+}
+/* Menu and list options: the same, the 2px accent rule only in square themes. */
+:where([role="option"][class~="border-l-2"]) {
+  border-left-width: max(0px, calc(2px - var(--radius-control) * 100));
 }
