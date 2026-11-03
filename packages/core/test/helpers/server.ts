@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
 import { createClient, type Client } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-node";
 import { H3, serve } from "h3";
+import { AdminService } from "../../src/gen/harness/auth/v1/admin_pb.ts";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
 import { ProviderService } from "../../src/gen/harness/llm/v1/providers_pb.ts";
@@ -25,6 +26,7 @@ export const ADMIN = { email: "admin@test.local", password: "admin-password-1" }
 export interface TestServer {
   url: string;
   auth: Client<typeof DeviceAuthService>;
+  admin: Client<typeof AdminService>;
   gateway: Client<typeof GatewayService>;
   providers: Client<typeof ProviderService>;
   prompts: Client<typeof PromptService>;
@@ -35,6 +37,7 @@ export interface TestServer {
   /** Connect clients authenticated with the given access token. */
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
+    admin: Client<typeof AdminService>;
     gateway: Client<typeof GatewayService>;
     providers: Client<typeof ProviderService>;
     prompts: Client<typeof PromptService>;
@@ -94,6 +97,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
     });
     return {
       auth: createClient(DeviceAuthService, transport),
+      admin: createClient(AdminService, transport),
       gateway: createClient(GatewayService, transport),
       providers: createClient(ProviderService, transport),
       prompts: createClient(PromptService, transport),

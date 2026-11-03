@@ -5,6 +5,7 @@
  */
 import { defineHandler, type H3Event } from "h3";
 import { hasUsers } from "../../auth/better-auth.ts";
+import { getLdapSettings } from "../../auth/ldap-config.ts";
 import { config } from "../../env.ts";
 import { decideDeviceAuthorization, findPendingByUserCode } from "../../services/devices.ts";
 import { getPrincipal } from "../util.ts";
@@ -69,7 +70,8 @@ footer a{color:var(--muted);text-decoration:none}footer a:hover{color:var(--whit
 
 const SIGN_IN = { heading: "Sign in to connect a device", text: "A device asked to join your harness account. Sign in, then confirm it." };
 
-function signInForm(code: string): string {
+/** `ldap`: LDAP sign-in is enabled; the server then decides between the directory and local accounts. */
+function signInForm(code: string, ldap = false): string {
   return `${code ? `<div class="code small">${esc(code)}</div>` : ""}
 <form id="f"><label>Email or username<input name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
 <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
@@ -80,10 +82,12 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   const fd = new FormData(e.target);
   const login = String(fd.get('login')).trim(), password = fd.get('password');
   const byEmail = login.includes('@');
-  const r = await fetch(byEmail ? '/api/auth/sign-in/email' : '/api/auth/sign-in/username', {method:'POST', headers:{'content-type':'application/json'},
+  const r = ${ldap} ? await fetch('/api/auth/sign-in/ldap', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({login, password})})
+    : await fetch(byEmail ? '/api/auth/sign-in/email' : '/api/auth/sign-in/username', {method:'POST', headers:{'content-type':'application/json'},
     body: JSON.stringify(byEmail ? {email: login, password} : {username: login, password})});
   if (r.ok) location.href = '/device' + (${JSON.stringify(code)} ? '?code=' + encodeURIComponent(${JSON.stringify(code)}) : '');
-  else document.getElementById('err').textContent = 'Sign-in failed';
+  else document.getElementById('err').textContent = r.status === 429 || r.status === 403 || r.status === 503
+    ? (await r.json().catch(() => ({}))).message || 'Sign-in failed' : 'Sign-in failed';
 });
 </script>`;
 }
@@ -132,7 +136,7 @@ export default defineHandler(async (event) => {
   const session = principal?.via === "session" ? principal : undefined;
 
   if (event.req.method === "POST") {
-    if (!session) return page("Sign in", { ...SIGN_IN, body: signInForm("") }, 401);
+    if (!session) return page("Sign in", { ...SIGN_IN, body: signInForm("", (await getLdapSettings()).enabled) }, 401);
     if (!sameOrigin(event)) return page("Error", { heading: "Request rejected", text: "Cross-origin form submission." }, 403);
     const form = new URLSearchParams(await event.req.text());
     const code = form.get("code") ?? "";
@@ -149,7 +153,7 @@ export default defineHandler(async (event) => {
 
   const code = event.url.searchParams.get("code") ?? "";
   if (!session && !(await hasUsers())) return page("Set up", { ...SETUP, body: setupForm(code) });
-  if (!session) return page("Sign in", { ...SIGN_IN, body: signInForm(code) });
+  if (!session) return page("Sign in", { ...SIGN_IN, body: signInForm(code, (await getLdapSettings()).enabled) });
   if (!code) return page("Connect a device", { ...CONNECT, body: codeForm() });
   const pending = await findPendingByUserCode(code);
   if (!pending) return page("Expired", { ...CONNECT, body: codeForm("This code is invalid or has expired.") }, 400);

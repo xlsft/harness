@@ -8,6 +8,8 @@ import { getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { deriveKey } from "../lib/crypto.ts";
 import { newId } from "../lib/ids.ts";
+import { getLdapRuntimeConfig } from "./ldap-config.ts";
+import { isBreakGlass, ldapSignIn } from "./ldap-sign-in.ts";
 
 const ID_PREFIX: Record<string, string> = {
   user: "usr",
@@ -46,6 +48,15 @@ function createAuth() {
         if (ctx.path.startsWith("/sign-up/") && !cfg.allowSignup && (await hasUsers())) {
           throw new APIError("FORBIDDEN", { message: "Sign-up is closed. Ask an administrator to create your account." });
         }
+        // With LDAP in break-glass mode only the listed logins keep local password sign-in.
+        if (ctx.path === "/sign-in/email" || ctx.path === "/sign-in/username") {
+          const ldap = await getLdapRuntimeConfig();
+          const body = (ctx.body ?? {}) as { email?: unknown; username?: unknown };
+          const login = String(body.email ?? body.username ?? "");
+          if (ldap.enabled && ldap.local_login === "break_glass" && !isBreakGlass(ldap, login)) {
+            throw new APIError("FORBIDDEN", { message: "Sign in with your directory account." });
+          }
+        }
       }),
     },
     databaseHooks: {
@@ -56,9 +67,10 @@ function createAuth() {
         },
       },
     },
+    // ldapSignIn: POST /sign-in/ldap against the directory configured in AdminService (ldap-sign-in.ts).
     // username: optional unique handle (3-30 chars of [a-zA-Z0-9_.], stored lowercased) usable at
     // /sign-in/username instead of the email; set at sign-up or by an admin (create-user `data.username`).
-    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), username()],
+    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), username(), ldapSignIn()],
     advanced: {
       database: {
         generateId: ({ model }) => newId(ID_PREFIX[model] ?? model.slice(0, 4)),

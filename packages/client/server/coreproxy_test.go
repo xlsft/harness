@@ -113,3 +113,24 @@ func TestCoreProxyRefusesOtherServicesAndStreams(t *testing.T) {
 		t.Fatalf("server got %d calls", calls)
 	}
 }
+
+func TestCoreProxyForwardsAdminService(t *testing.T) {
+	var path, auth string
+	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path, auth = r.URL.Path, r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"users":[]}`)
+	}))
+	defer core.Close()
+	s := New(bootstrap.Options{})
+	defer s.Close()
+	s.Core = &CoreProxy{URL: core.URL, HTTP: core.Client(), Tokens: &proxyTokens{token: "hat_admin"}}
+
+	req := httptest.NewRequest(http.MethodPost, "/harness.auth.v1.AdminService/ListUsers", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	s.mux().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || path != "/harness.auth.v1.AdminService/ListUsers" || auth != "Bearer hat_admin" {
+		t.Fatalf("status %d path %q auth %q", rec.Code, path, auth)
+	}
+}

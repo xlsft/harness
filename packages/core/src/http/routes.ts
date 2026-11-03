@@ -11,9 +11,10 @@ export interface RouteDef {
 export const routes: RouteDef[] = [
   { route: "/api/health", method: "get", handler: "./src/http/routes/health.ts" },
 
-  // Connect services (proto/harness/**): DeviceAuthService, GatewayService, PromptService, SyncService,
+  // Connect services (proto/harness/**): DeviceAuthService, AdminService, GatewayService, PromptService, SyncService,
   // SearchService, DecisionService, McpService, VcsService, RelayService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.auth.v1.AdminService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.ProviderService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
