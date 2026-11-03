@@ -5,6 +5,7 @@ package harness.agent.v1;
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
+import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/llm/v1/content.proto";
 
@@ -171,6 +172,28 @@ service AgentService {
   rpc AskSideChat(AskSideChatRequest) returns (stream AskSideChatResponse);
   // Stops the running answer of a side chat; the text so far is kept (stopped = true).
   rpc StopSideChat(StopSideChatRequest) returns (StopSideChatResponse);
+
+  // --- Speech (speech.proto, packages/client/server/speech.go) ---
+  // Speech providers for dictation (STT) and "Read aloud" (TTS): the local engines of this machine and the
+  // server's global providers, with models, voices and availability.
+  rpc ListSpeechProviders(ListSpeechProvidersRequest) returns (ListSpeechProvidersResponse);
+  // Voices of a TTS provider (the provider's API for global providers that list them; installed and
+  // downloadable voices for Piper; `say -v ?` for macOS).
+  rpc ListSpeechVoices(ListSpeechVoicesRequest) returns (ListSpeechVoicesResponse);
+  // The user's speech choices in two parts: the synced choice of a global provider (the user's synced settings
+  // document, key "speech") and this device's choice of a local engine (HARNESS_HOME/speech/settings.json, never
+  // synced), which overrides the synced one on this device.
+  rpc GetSpeechSettings(GetSpeechSettingsRequest) returns (GetSpeechSettingsResponse);
+  rpc UpdateSpeechSettings(UpdateSpeechSettingsRequest) returns (UpdateSpeechSettingsResponse);
+  // Speech to text with the chosen (or given) provider: a local engine on this machine or the server.
+  rpc TranscribeAudio(TranscribeAudioRequest) returns (TranscribeAudioResponse);
+  // Text to speech with the chosen (or given) provider; Markdown is turned into speakable text first. The audio
+  // streams back in pieces so playback can start early.
+  rpc SynthesizeSpeech(SynthesizeSpeechRequest) returns (stream SynthesizeSpeechResponse);
+  // Model files of the local engines: installed state, downloads with progress, deletion.
+  rpc ListLocalSpeechModels(ListLocalSpeechModelsRequest) returns (ListLocalSpeechModelsResponse);
+  rpc DownloadSpeechModel(DownloadSpeechModelRequest) returns (stream DownloadSpeechModelResponse);
+  rpc DeleteSpeechModel(DeleteSpeechModelRequest) returns (DeleteSpeechModelResponse);
 }
 
 enum PermissionMode {

@@ -99,7 +99,7 @@ export async function discoverModelsForUser(providerId: string, user: PublicUser
 export async function discoverModels(providerId: string, globalOnly = false): Promise<{ provider_id: string; models: ModelCandidate[] }> {
   await ensureDb();
   const row = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, providerId) });
-  if (!row || (globalOnly && row.ownerUserId)) throw new ApiError("not_found", `Provider ${providerId} not found`);
+  if (!row || row.kind === "speech" || (globalOnly && row.ownerUserId)) throw new ApiError("not_found", `Provider ${providerId} not found`);
   if (row.kind === "search") throw new ApiError("invalid_request", "Search providers serve no models");
   const p = await loadProviderRuntime(providerId);
   const preset = presetOf(row);

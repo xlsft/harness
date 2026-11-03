@@ -1,0 +1,216 @@
+syntax = "proto3";
+
+package harness.speech.v1;
+
+// Speech: speech-to-text (dictation in the composer) and text-to-speech ("Read aloud" on messages).
+//
+// Providers come from three places, told apart by SpeechLocation:
+//   - GLOBAL providers run on the harness server (this service): hosted speech APIs such as OpenAI, Groq,
+//     Deepgram, ElevenLabs, AssemblyAI, Mistral, OpenRouter, MiniMax, Gemini and Cartesia. Admins set their API
+//     keys here; keys are stored encrypted, are write-only and are never returned (api_key_set / api_key_hint).
+//   - LOCAL providers run on the user's machine inside the client (harness.agent.v1.AgentService speech RPCs):
+//     NVIDIA Parakeet, Whisper and Piper (through the sherpa-onnx runtime the client downloads into HARNESS_HOME)
+//     and macOS `say`. No server is involved, and nothing about them (models, choices) is synced.
+//   - BROWSER is the frontend's own Web Speech API; neither the client nor the server runs it. Its provider id
+//     is "browser" (reserved), so frontends may store it as the chosen provider.
+//
+// Frontends normally reach this service through the client: AgentService.ListSpeechProviders / Transcribe /
+// Synthesize route to it for global providers, and the admin key methods are forwarded to the server unchanged
+// (packages/client/server/coreproxy.go). Requires `Authorization: Bearer <access token>`. Status: DRAFT.
+service SpeechService {
+  // Every global speech provider the server knows for the kind, configured or not (configured: an admin set its
+  // key), with its models and static voices. Any signed-in user.
+  rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+  // Sets (or replaces) a global provider's API key and optionally its base URL. Admin only.
+  rpc SetProviderKey(SetProviderKeyRequest) returns (SetProviderKeyResponse);
+  // Removes a global provider's key (and base URL override): it is not configured afterwards. Admin only.
+  rpc ClearProviderKey(ClearProviderKeyRequest) returns (ClearProviderKeyResponse);
+  // The voices of a TTS provider: from the provider's API when it lists them (ElevenLabs, Cartesia; needs the
+  // key), else the static list of the descriptor. Any signed-in user, configured providers only.
+  rpc ListVoices(ListVoicesRequest) returns (ListVoicesResponse);
+  // Speech to text on a configured global provider. Audio is limited to 25 MiB.
+  rpc Transcribe(TranscribeRequest) returns (TranscribeResponse);
+  // Text to speech on a configured global provider. Long text is split at sentence boundaries into the
+  // provider's request size and the audio of each piece streams back in order, so playback can start early.
+  rpc Synthesize(SynthesizeRequest) returns (stream SynthesizeResponse);
+}
+
+enum SpeechKind {
+  SPEECH_KIND_UNSPECIFIED = 0;
+  // Speech to text.
+  SPEECH_KIND_STT = 1;
+  // Text to speech.
+  SPEECH_KIND_TTS = 2;
+}
+
+enum SpeechLocation {
+  SPEECH_LOCATION_UNSPECIFIED = 0;
+  // Runs on the harness server (SpeechService), with a key an admin set.
+  SPEECH_LOCATION_GLOBAL = 1;
+  // Runs on the user's machine (the client).
+  SPEECH_LOCATION_LOCAL = 2;
+  // Runs in the frontend (Web Speech API, provider id "browser").
+  SPEECH_LOCATION_BROWSER = 3;
+}
+
+// A speech provider for one kind (a vendor offering both STT and TTS is listed once per kind).
+message SpeechProvider {
+  // Stable id: "openai", "elevenlabs", ... for global providers; "parakeet", "whisper", "macos-say",
+  // "piper" for local ones; "browser" for the Web Speech API.
+  string id = 1;
+  string display_name = 2;
+  SpeechKind kind = 3;
+  SpeechLocation location = 4;
+  // Global: an admin set the key. Local: the engine is installed (its binary was found).
+  bool configured = 5;
+  // It can be used right now: configured and, for local engines, with at least one model installed and any
+  // helper they need (ffmpeg for compressed audio) present.
+  bool available = 6;
+  // Why it is not available, for the settings screen ("Download a model to use it").
+  string unavailable_reason = 7;
+  // Models in display order. Local engines: installed or downloadable (see SpeechModel.installed).
+  repeated SpeechModel models = 8;
+  // TTS: voices in display order (static list; with lists_voices, ListVoices has the full list).
+  repeated SpeechVoice voices = 9;
+  // TTS: ListVoices asks the provider's API for its voices.
+  bool lists_voices = 10;
+  string default_model = 11;
+  // TTS.
+  string default_voice = 12;
+  // TTS: the speed setting is honoured.
+  bool supports_speed = 13;
+  // STT: a language hint is honoured (otherwise the language is always detected).
+  bool supports_language = 14;
+  // STT: audio MIME types accepted as they are (base types, e.g. "audio/webm", "audio/wav"). The client converts
+  // other audio to 16 kHz mono WAV with ffmpeg first, when it can.
+  repeated string input_mime_types = 15;
+  // Global providers: the key's last characters ("…abcd"), for admins only; empty otherwise.
+  bool api_key_set = 16;
+  string api_key_hint = 17;
+  // Global providers, for admins: the base URL in use (the vendor's default unless overridden).
+  string base_url = 18;
+  // Where the service documents its API, and where its keys are created (either may be empty).
+  string docs_url = 19;
+  string key_url = 20;
+  // A short monogram ("OA", "EL") the apps draw as the provider's icon.
+  string icon = 21;
+  // One line for the settings screen.
+  string description = 22;
+}
+
+message SpeechModel {
+  string id = 1;
+  string display_name = 2;
+  string description = 3;
+  // Local models: the files are on this machine.
+  bool installed = 4;
+  // Local models: download size (or size on disk when installed), 0 when unknown.
+  int64 size_bytes = 5;
+  // TTS: ids of the voices this model can speak with; empty: all of the provider's voices.
+  repeated string voice_ids = 6;
+  // BCP 47 languages it supports; empty: many / unknown.
+  repeated string languages = 7;
+}
+
+message SpeechVoice {
+  string id = 1;
+  string display_name = 2;
+  // BCP 47 ("en-US"), empty when unknown or multilingual.
+  string language = 3;
+  // "female", "male", "neutral" or empty.
+  string gender = 4;
+  string description = 5;
+  // A sample the settings screen may play (https), empty when none.
+  string preview_url = 6;
+  // Local voices (Piper): the files are on this machine, and their size.
+  bool installed = 7;
+  int64 size_bytes = 8;
+}
+
+message ListProvidersRequest {
+  // Unspecified: both kinds.
+  SpeechKind kind = 1;
+}
+
+message ListProvidersResponse {
+  repeated SpeechProvider providers = 1;
+  // The caller may set and clear keys (admins).
+  bool can_manage = 2;
+}
+
+message SetProviderKeyRequest {
+  // A global provider id from ListProviders.
+  string provider_id = 1;
+  string api_key = 2;
+  // Optional base URL override (a proxy or a regional endpoint); empty keeps the vendor's default.
+  string base_url = 3;
+}
+
+message SetProviderKeyResponse {
+  // Both kinds of the vendor share the key; this lists each kind it serves.
+  repeated SpeechProvider providers = 1;
+}
+
+message ClearProviderKeyRequest {
+  string provider_id = 1;
+}
+
+message ClearProviderKeyResponse {}
+
+message ListVoicesRequest {
+  string provider_id = 1;
+  // Optional: only the voices this model can speak with.
+  string model = 2;
+}
+
+message ListVoicesResponse {
+  repeated SpeechVoice voices = 1;
+}
+
+message TranscribeRequest {
+  string provider_id = 1;
+  // Empty: the provider's default model.
+  string model = 2;
+  bytes audio = 3;
+  // The audio's MIME type, parameters allowed ("audio/webm;codecs=opus", "audio/wav", "audio/mpeg").
+  string mime_type = 4;
+  // BCP 47 / ISO 639-1 hint ("en", "de"); empty: detect.
+  string language = 5;
+  // Optional vocabulary / context hint (names, jargon), for providers that take one.
+  string prompt = 6;
+}
+
+message TranscribeResponse {
+  string text = 1;
+  // The detected or given language, when the provider reports it.
+  string language = 2;
+  // Audio length in seconds, when known (0 otherwise).
+  double duration_seconds = 3;
+  string provider_id = 4;
+  string model = 5;
+}
+
+message SynthesizeRequest {
+  string provider_id = 1;
+  // Empty: the provider's default model / voice.
+  string model = 2;
+  string voice = 3;
+  // Plain speakable text (the client strips Markdown before). At most 100 000 characters.
+  string text = 4;
+  // 1.0 is normal; 0 means 1.0. Clamped to the provider's range (about 0.5 to 2).
+  double speed = 5;
+  // Optional BCP 47 language hint for providers that take one.
+  string language = 6;
+}
+
+// The audio, in order. The first message carries mime_type; concatenating every `audio` gives one playable file
+// (MP3 frames, or one WAV for providers that only produce raw PCM).
+message SynthesizeResponse {
+  bytes audio = 1;
+  // First message only: "audio/mpeg" or "audio/wav".
+  string mime_type = 2;
+  // Last message only: the stream is complete.
+  bool done = 3;
+  // Last message: characters synthesized (for usage displays).
+  int64 characters = 4;
+}

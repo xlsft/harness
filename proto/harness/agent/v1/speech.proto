@@ -1,0 +1,213 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/speech/v1/speech.proto";
+
+// Speech on the client (packages/client/speech, packages/client/server/speech.go): dictation (speech to text)
+// and "Read aloud" (text to speech) for the frontends.
+//
+// The client is the single entry point: it lists the local engines it can run on this machine next to the
+// server's global providers (harness.speech.v1.SpeechService), keeps the user's choice, and routes each
+// TranscribeAudio / SynthesizeSpeech call to a local engine or to the server. Provider ids:
+//   - local:   "parakeet" (NVIDIA Parakeet), "whisper" (OpenAI Whisper), "piper" (Piper voices), all three run by
+//              the sherpa-onnx runtime that the client downloads into HARNESS_HOME with the first model; and
+//              "macos-say" (the macOS system voices);
+//   - global:  the server's ids ("openai", "groq", "deepgram", "elevenlabs", ...);
+//   - browser: "browser" is the frontend's Web Speech API. The client never runs it: TranscribeAudio /
+//              SynthesizeSpeech with it are INVALID_ARGUMENT, but it may be stored as this device's choice.
+//
+// What lives where: device-local things never leave the device. Local engines, their downloaded models and the
+// choice of a local engine / model / voice (or "browser") are stored on this machine only
+// (HARNESS_HOME/speech/). Only the choice of a global provider is synced to the user's other devices (the user's
+// synced settings document on the server, key "speech"). On a device, its own choice, when set, overrides the
+// synced one.
+//
+// Local engines run fully on this machine: inference happens in a child process of the client using files under
+// HARNESS_HOME; the only network use is fetching the runtime and model files (DownloadSpeechModel). ffmpeg is
+// optional: local recognizers read WAV directly, and only compressed recordings need it (see
+// SpeechProvider.input_mime_types: without ffmpeg, local engines list WAV types only).
+
+message SpeechSettings {
+  // What applies on this device: the device choice when its provider_id is set, else the synced one.
+  SttSettings stt = 1;
+  TtsSettings tts = 2;
+  // Synced to every device of the user (global providers only).
+  SttSettings synced_stt = 3;
+  TtsSettings synced_tts = 4;
+  // This device only (a local engine or "browser"); an empty provider_id follows the synced choice.
+  SttSettings device_stt = 5;
+  TtsSettings device_tts = 6;
+  // The synced part can be read and stored (the client is connected to a harness server).
+  bool synced_available = 7;
+}
+
+message SttSettings {
+  // Empty: none chosen.
+  string provider_id = 1;
+  // Empty: the provider's default model.
+  string model = 2;
+  // ISO 639-1 / BCP 47 hint ("en"); empty: detect the language.
+  string language = 3;
+}
+
+message TtsSettings {
+  string provider_id = 1;
+  string model = 2;
+  // Empty: the provider's default voice.
+  string voice = 3;
+  // 1.0 is normal; 0 reads as 1.0.
+  double speed = 4;
+}
+
+message ListSpeechProvidersRequest {
+  // Unspecified: both kinds.
+  harness.speech.v1.SpeechKind kind = 1;
+}
+
+message ListSpeechProvidersResponse {
+  // Local engines first, then the server's global providers. Without a server connection (or when it is
+  // unreachable) only the local ones, with server_error set.
+  repeated harness.speech.v1.SpeechProvider providers = 1;
+  // Why the server's providers are missing ("not connected to a harness server"); empty when they are listed.
+  string server_error = 2;
+  // The caller may set the global providers' keys (admins; SpeechService.SetProviderKey through the client).
+  bool can_manage_global = 3;
+}
+
+message ListSpeechVoicesRequest {
+  string provider_id = 1;
+  string model = 2;
+}
+
+message ListSpeechVoicesResponse {
+  repeated harness.speech.v1.SpeechVoice voices = 1;
+}
+
+message GetSpeechSettingsRequest {}
+
+message GetSpeechSettingsResponse {
+  SpeechSettings settings = 1;
+}
+
+// Replaces the parts that are set, each as a whole. A synced part takes a global provider id (or "" to clear);
+// a device part a local engine id or "browser" (or "" to follow the synced choice). Anything else is
+// INVALID_ARGUMENT. Setting a synced part without a server connection is FAILED_PRECONDITION.
+message UpdateSpeechSettingsRequest {
+  optional SttSettings synced_stt = 1;
+  optional TtsSettings synced_tts = 2;
+  optional SttSettings device_stt = 3;
+  optional TtsSettings device_tts = 4;
+}
+
+message UpdateSpeechSettingsResponse {
+  SpeechSettings settings = 1;
+}
+
+message TranscribeAudioRequest {
+  bytes audio = 1;
+  // "audio/webm;codecs=opus" (MediaRecorder), "audio/wav", "audio/ogg", "audio/mpeg", "audio/mp4" ...
+  string mime_type = 2;
+  // Empty: the effective STT settings' provider / model / language.
+  string provider_id = 3;
+  string model = 4;
+  string language = 5;
+}
+
+message TranscribeAudioResponse {
+  string text = 1;
+  string language = 2;
+  double duration_seconds = 3;
+  // What transcribed it.
+  string provider_id = 4;
+  string model = 5;
+}
+
+message SynthesizeSpeechRequest {
+  // Markdown (a message as shown) or plain text; see plain_text.
+  string text = 1;
+  // The text is already plain: skip the Markdown cleanup (code blocks, links, emphasis, tables).
+  bool plain_text = 2;
+  // Empty: the effective TTS settings' values.
+  string provider_id = 3;
+  string model = 4;
+  string voice = 5;
+  // 0: the settings' speed.
+  double speed = 6;
+}
+
+// The audio in order; see harness.speech.v1.SynthesizeResponse. Local engines send one WAV file (in pieces).
+message SynthesizeSpeechResponse {
+  bytes audio = 1;
+  // First message only.
+  string mime_type = 2;
+  // Last message only.
+  bool done = 3;
+  int64 characters = 4;
+  // First message only: what speaks.
+  string provider_id = 5;
+  string model = 6;
+  string voice = 7;
+}
+
+// A downloadable file set of this machine: the sherpa-onnx runtime (provider_id "runtime", kind unspecified), a
+// Parakeet or Whisper model, or a Piper voice. Stored under HARNESS_HOME/speech/models; never synced.
+message LocalSpeechModel {
+  // "<provider id>/<model id>", e.g. "parakeet/parakeet-tdt-0.6b-v3", "whisper/base", "piper/en_US-lessac-medium",
+  // "runtime/sherpa-onnx".
+  string id = 1;
+  string provider_id = 2;
+  string model = 3;
+  string display_name = 4;
+  harness.speech.v1.SpeechKind kind = 5;
+  // Its files are on disk (a model also needs the runtime to be usable; downloading a model installs it too).
+  bool installed = 6;
+  // On disk when installed, else the download size (approximate; 0 when unknown).
+  int64 size_bytes = 7;
+  // A download is running (DownloadSpeechModel).
+  bool downloading = 8;
+  string description = 9;
+  // Languages, when the model is limited to some.
+  repeated string languages = 10;
+  // The engine's suggested default.
+  bool recommended = 11;
+  // Not downloadable on this platform (the runtime has no build for it).
+  bool unsupported = 12;
+}
+
+message ListLocalSpeechModelsRequest {
+  // Unspecified: everything, the runtime included.
+  harness.speech.v1.SpeechKind kind = 1;
+}
+
+message ListLocalSpeechModelsResponse {
+  repeated LocalSpeechModel models = 1;
+  // Where the files are stored.
+  string models_dir = 2;
+}
+
+message DownloadSpeechModelRequest {
+  // LocalSpeechModel.id.
+  string id = 1;
+}
+
+// Progress messages, then one with done (or the stream fails). The total includes the runtime when it is
+// downloaded along. The download continues on the client when the stream is cancelled; calling again joins it.
+// An installed model answers done right away.
+message DownloadSpeechModelResponse {
+  int64 downloaded_bytes = 1;
+  // 0 while unknown.
+  int64 total_bytes = 2;
+  bool done = 3;
+  // With done: the model as it is now.
+  LocalSpeechModel model = 4;
+}
+
+message DeleteSpeechModelRequest {
+  string id = 1;
+}
+
+message DeleteSpeechModelResponse {
+  // A running download was stopped and its partial files removed.
+  bool cancelled_download = 1;
+}

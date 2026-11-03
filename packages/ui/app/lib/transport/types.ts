@@ -26,6 +26,7 @@ import type { SideChatsApi } from '~/lib/sidechat/types'
 import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
+import type { SpeechApi } from '~/lib/speech/types'
 
 export interface ModelInfo {
   id: string
@@ -176,4 +177,9 @@ export interface SessionTransport {
   // The files pane: a session's working directories, listings with git status, file contents within limits
   // (AgentService ListFileRoots / ListFiles / ReadFile / GetGitStatus, ~/lib/files).
   files(): FilesApi
+
+  // Dictation and "Read aloud" (~/lib/speech): providers (local engines of the client's machine and the server's
+  // global providers), the synced / device settings, transcribe, streamed synthesis, local model downloads, and the
+  // admins' global provider keys.
+  speech(): SpeechApi
 }

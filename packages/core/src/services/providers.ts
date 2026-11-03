@@ -28,7 +28,7 @@
  * server secret (HARNESS_SECRET) and the database.
  */
 import { randomBytes } from "node:crypto";
-import { and, asc, eq, isNull, or } from "drizzle-orm";
+import { and, asc, eq, isNull, ne, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
 import { ApiError } from "../lib/errors.ts";
@@ -186,6 +186,17 @@ function hint(key: string): string {
   return key.length > 8 ? `…${key.slice(-4)}` : "…";
 }
 
+/** Encrypts a global provider's API key for its row (speech keys, src/speech/store.ts), with the key hint. */
+export function encryptGlobalKey(id: string, apiKey: string): { apiKeyEnc: string; apiKeyHint: string } {
+  return { apiKeyEnc: encryptSecret(apiKey, `${id}:api_key`, secretKey(null)), apiKeyHint: hint(apiKey) };
+}
+
+/**
+ * Rows of the "speech" kind hold the speech vendors' keys (SpeechService, src/speech/store.ts); they are not
+ * providers of the settings screens' Models list and are left out of every ProviderService view.
+ */
+const notSpeech = ne(schema.provider.kind, "speech");
+
 /** `u-` plus 10 random lowercase letters and digits. */
 function personalId(): string {
   const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -199,7 +210,7 @@ function scopeCond(owner: ProviderOwner) {
 
 async function findInScope(id: string, owner: ProviderOwner): Promise<Row> {
   await ensureDb();
-  const r = await getDb().query.provider.findFirst({ where: and(eq(schema.provider.id, id), scopeCond(owner)) });
+  const r = await getDb().query.provider.findFirst({ where: and(eq(schema.provider.id, id), scopeCond(owner), notSpeech) });
   if (!r) throw new ApiError("not_found", `Provider ${id} not found`);
   return r;
 }
@@ -207,7 +218,7 @@ async function findInScope(id: string, owner: ProviderOwner): Promise<Row> {
 /** Global providers (admin API). */
 export async function listProviders() {
   await ensureDb();
-  const rows = await getDb().select().from(schema.provider).where(isNull(schema.provider.ownerUserId)).orderBy(asc(schema.provider.createdAt));
+  const rows = await getDb().select().from(schema.provider).where(and(isNull(schema.provider.ownerUserId), notSpeech)).orderBy(asc(schema.provider.createdAt));
   return rows.map(publicProvider);
 }
 
@@ -220,7 +231,7 @@ export async function listProvidersForUser(user: PublicUser) {
   const rows = await getDb()
     .select()
     .from(schema.provider)
-    .where(or(isNull(schema.provider.ownerUserId), eq(schema.provider.ownerUserId, user.id)))
+    .where(and(or(isNull(schema.provider.ownerUserId), eq(schema.provider.ownerUserId, user.id)), notSpeech))
     .orderBy(asc(schema.provider.createdAt));
   const visible = rows.filter((r) => r.ownerUserId || r.enabled || user.role === "admin");
   return [...visible.filter((r) => !r.ownerUserId), ...visible.filter((r) => r.ownerUserId)].map(publicProvider);
@@ -244,7 +255,7 @@ export async function getProvider(id: string, owner: ProviderOwner = null) {
  */
 export async function providerForUser(id: string, user: PublicUser): Promise<{ row: Row; owner: ProviderOwner; writable: boolean }> {
   await ensureDb();
-  const r = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, id) });
+  const r = await getDb().query.provider.findFirst({ where: and(eq(schema.provider.id, id), notSpeech) });
   if (r && r.ownerUserId === user.id) return { row: r, owner: { userId: user.id }, writable: true };
   if (r && !r.ownerUserId && (r.enabled || user.role === "admin")) return { row: r, owner: null, writable: user.role === "admin" };
   throw new ApiError("not_found", `Provider ${id} not found`);

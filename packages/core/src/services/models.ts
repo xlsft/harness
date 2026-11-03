@@ -276,6 +276,7 @@ async function insertModel(input: ModelInput & { id: string; provider_id: string
   const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, input.provider_id) });
   if (provider?.kind === "classifier") throw new ApiError("invalid_request", "Classifier providers serve no chat models");
   if (provider?.kind === "search") throw new ApiError("invalid_request", "Search providers serve no chat models");
+  if (provider?.kind === "speech") throw new ApiError("invalid_request", `Unknown provider ${input.provider_id}`);
   const now = new Date();
   await getDb()
     .insert(schema.model)
