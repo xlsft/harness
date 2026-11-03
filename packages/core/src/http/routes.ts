@@ -12,7 +12,7 @@ export const routes: RouteDef[] = [
   { route: "/api/health", method: "get", handler: "./src/http/routes/health.ts" },
 
   // Connect services (proto/harness/**): DeviceAuthService, AdminService, GatewayService, ProviderService, UsageService,
-  // PromptService, SyncService, SearchService, DecisionService, McpService, VcsService, RelayService
+  // PromptService, SyncService, SearchService, SpeechService, DecisionService, McpService, VcsService, RelayService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.AdminService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
@@ -21,6 +21,7 @@ export const routes: RouteDef[] = [
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.sync.v1.SyncService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.search.v1.SearchService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.speech.v1.SpeechService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.decision.v1.DecisionService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.mcp.v1.McpService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.relay.v1.RelayService/**", handler: "./src/http/routes/rpc.ts" },
