@@ -43,9 +43,15 @@ service ProviderService {
   rpc RemoveModel(RemoveModelRequest) returns (RemoveModelResponse);
 
   // The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
-  // typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
+  // typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
+  // server default for everyone. Admin only.
   rpc GetClassifier(GetClassifierRequest) returns (GetClassifierResponse);
   rpc SetClassifier(SetClassifierRequest) returns (SetClassifierResponse);
+  // The caller's own classifier choice over the server default: another global classifier provider or none,
+  // and another global model for the model classifier. Applies to the caller's decisions only. Any signed-in
+  // user; the response also carries the server default, read-only.
+  rpc GetMyClassifier(GetMyClassifierRequest) returns (GetMyClassifierResponse);
+  rpc SetMyClassifier(SetMyClassifierRequest) returns (SetMyClassifierResponse);
 
   // The server-wide default models per role (Slots: main, small, plan, title), as configured. Everyone may
   // read them; SetSlots needs the admin role.
@@ -320,6 +326,48 @@ message Classifier {
   int32 timeout_ms = 8;
   // Catalog model (global) of the model classifier step; empty: the classifier / small slot.
   string llm_model = 9;
+}
+
+// Which decision step a user's override picks.
+enum ClassifierChoice {
+  // Follow the server default (GetClassifier).
+  CLASSIFIER_CHOICE_UNSPECIFIED = 0;
+  // No decision step: rules, then the model classifier.
+  CLASSIFIER_CHOICE_NONE = 1;
+  // The global classifier provider in provider_id.
+  CLASSIFIER_CHOICE_PROVIDER = 2;
+}
+
+// A user's override of the server-default classifier. A choice that went stale (its provider or model was
+// removed, disabled or hidden from the user) follows the server default again.
+message ClassifierOverride {
+  ClassifierChoice choice = 1;
+  // With CLASSIFIER_CHOICE_PROVIDER: a global, enabled provider of the "classifier" group.
+  string provider_id = 2;
+  // Global model of the model classifier step for this user; empty: the server default. A chain step with
+  // its own model (admin decision config) keeps it.
+  string llm_model = 3;
+}
+
+message GetMyClassifierRequest {}
+
+message GetMyClassifierResponse {
+  ClassifierOverride mine = 1;
+  // The server default as configured: the provider of the decision step ("" none) and the model classifier's
+  // model ("" the classifier / small slot).
+  string default_provider_id = 2;
+  string default_llm_model = 3;
+}
+
+message SetMyClassifierRequest {
+  // Replaces the caller's override; the zero value follows the server default in full.
+  ClassifierOverride mine = 1;
+}
+
+message SetMyClassifierResponse {
+  ClassifierOverride mine = 1;
+  string default_provider_id = 2;
+  string default_llm_model = 3;
 }
 
 message GetSlotsRequest {}

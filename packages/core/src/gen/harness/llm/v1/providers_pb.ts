@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/llm/v1/providers.proto.
  */
 export const file_harness_llm_v1_providers: GenFile = /*@__PURE__*/
-  fileDesc("Ch5oYXJuZXNzL2xsbS92MS9wcm92aWRlcnMucHJvdG8SDmhhcm5lc3MubGxtLnYxIvYCCghQcm92aWRlchIKCgJpZBgBIAEoCRIsCgVzY29wZRgCIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSDAoEdHlwZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSEwoLYXBpX2tleV9zZXQYBiABKAgSFAoMYXBpX2tleV9oaW50GAcgASgJEhQKDGhlYWRlcl9uYW1lcxgIIAMoCRIPCgdlbmFibGVkGAkgASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgKIAEoCBIQCghlZGl0YWJsZRgLIAEoCBItCgZtb2RlbHMYDCADKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlck1vZGVsEhIKCmNyZWF0ZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRIRCglwcmVzZXRfaWQYDyABKAkSDQoFZ3JvdXAYECABKAkijQEKDVByb3ZpZGVyTW9kZWwSCgoCaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhYKDnVwc3RyZWFtX21vZGVsGAMgASgJEhYKDmNvbnRleHRfd2luZG93GAQgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAUgASgDEg8KB2VuYWJsZWQYBiABKAgiFAoSTGlzdFByZXNldHNSZXF1ZXN0InsKE0xpc3RQcmVzZXRzUmVzcG9uc2USLwoHcHJlc2V0cxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyUHJlc2V0EjMKCXByb3RvY29scxgCIAMoCzIgLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyUHJvdG9jb2wisgIKDlByb3ZpZGVyUHJlc2V0EgoKAmlkGAEgASgJEg0KBWdyb3VwGAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIMCgR0eXBlGAUgASgJEhAKCGJhc2VfdXJsGAYgASgJEisKBmZpZWxkcxgHIAMoCzIbLmhhcm5lc3MubGxtLnYxLlByZXNldEZpZWxkEhAKCGRvY3NfdXJsGAggASgJEg8KB2tleV91cmwYCSABKAkSMwoOZGVmYXVsdF9tb2RlbHMYCiADKAsyGy5oYXJuZXNzLmxsbS52MS5QcmVzZXRNb2RlbBIMCgRpY29uGAsgASgJEhgKEGRpc2NvdmVyc19tb2RlbHMYDCABKAgSDQoFbG9jYWwYDSABKAgiUQoLUHJlc2V0RmllbGQSDAoEbmFtZRgBIAEoCRINCgVsYWJlbBgCIAEoCRIQCghyZXF1aXJlZBgDIAEoCBITCgtwbGFjZWhvbGRlchgEIAEoCSJuCgtQcmVzZXRNb2RlbBIWCg51cHN0cmVhbV9tb2RlbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOY29udGV4dF93aW5kb3cYAyABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBCABKAMiUwoQUHJvdmlkZXJQcm90b2NvbBIKCgJpZBgBIAEoCRINCgVncm91cBgCIAEoCRINCgVsYWJlbBgDIAEoCRIVCg1iYXNlX3VybF9oaW50GAQgASgJIhYKFExpc3RQcm92aWRlcnNSZXF1ZXN0Im4KFUxpc3RQcm92aWRlcnNSZXNwb25zZRIrCglwcm92aWRlcnMYASADKAsyGC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlchINCgV0eXBlcxgCIAMoCRIZChFjYW5fbWFuYWdlX2dsb2JhbBgDIAEoCCLOAgoVQ3JlYXRlUHJvdmlkZXJSZXF1ZXN0EiwKBXNjb3BlGAEgASgOMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJTY29wZRIKCgJpZBgCIAEoCRIMCgR0eXBlGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIQCghiYXNlX3VybBgFIAEoCRIPCgdhcGlfa2V5GAYgASgJEkMKB2hlYWRlcnMYByADKAsyMi5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlcXVlc3QuSGVhZGVyc0VudHJ5Eh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgIIAEoCBIRCglwcmVzZXRfaWQYCSABKAkSDQoFZ3JvdXAYCiABKAkaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWQ3JlYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIswCChVVcGRhdGVQcm92aWRlclJlcXVlc3QSCgoCaWQYASABKAkSEQoEdHlwZRgCIAEoCUgAiAEBEhkKDGRpc3BsYXlfbmFtZRgDIAEoCUgBiAEBEhUKCGJhc2VfdXJsGAQgASgJSAKIAQESFAoHYXBpX2tleRgFIAEoCUgDiAEBEi0KB2hlYWRlcnMYBiABKAsyFy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzSASIAQESFAoHZW5hYmxlZBgHIAEoCEgFiAEBEiIKFWFsbG93X3ByaXZhdGVfbmV0d29yaxgIIAEoCEgGiAEBQgcKBV90eXBlQg8KDV9kaXNwbGF5X25hbWVCCwoJX2Jhc2VfdXJsQgoKCF9hcGlfa2V5QgoKCF9oZWFkZXJzQgoKCF9lbmFibGVkQhgKFl9hbGxvd19wcml2YXRlX25ldHdvcmsibQoHSGVhZGVycxIzCgZ2YWx1ZXMYASADKAsyIy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzLlZhbHVlc0VudHJ5Gi0KC1ZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWVXBkYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIiMKFURlbGV0ZVByb3ZpZGVyUmVxdWVzdBIKCgJpZBgBIAEoCSIYChZEZWxldGVQcm92aWRlclJlc3BvbnNlIiwKFURpc2NvdmVyTW9kZWxzUmVxdWVzdBITCgtwcm92aWRlcl9pZBgBIAEoCSJIChZEaXNjb3Zlck1vZGVsc1Jlc3BvbnNlEi4KBm1vZGVscxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLk1vZGVsQ2FuZGlkYXRlIoQBCg5Nb2RlbENhbmRpZGF0ZRIWCg51cHN0cmVhbV9tb2RlbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOY29udGV4dF93aW5kb3cYAyABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBCABKAMSEQoJbW9kZWxfaWRzGAUgAygJIrUBCg9BZGRNb2RlbFJlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSFgoOdXBzdHJlYW1fbW9kZWwYAiABKAkSCgoCaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhYKDmNvbnRleHRfd2luZG93GAUgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAYgASgDEhAKCHRoaW5raW5nGAcgASgIEg4KBmltYWdlcxgIIAEoCCJAChBBZGRNb2RlbFJlc3BvbnNlEiwKBW1vZGVsGAEgASgLMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJNb2RlbCIqChNUZXN0UHJvdmlkZXJSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJIkgKFFRlc3RQcm92aWRlclJlc3BvbnNlEgoKAm9rGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSEwoLbW9kZWxfY291bnQYAyABKAUiJgoSUmVtb3ZlTW9kZWxSZXF1ZXN0EhAKCG1vZGVsX2lkGAEgASgJIhUKE1JlbW92ZU1vZGVsUmVzcG9uc2UiFgoUR2V0Q2xhc3NpZmllclJlcXVlc3QiRwoVR2V0Q2xhc3NpZmllclJlc3BvbnNlEi4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkYKFFNldENsYXNzaWZpZXJSZXF1ZXN0Ei4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkcKFVNldENsYXNzaWZpZXJSZXNwb25zZRIuCgpjbGFzc2lmaWVyGAEgASgLMhouaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllciK9AQoKQ2xhc3NpZmllchIPCgdlbmFibGVkGAEgASgIEhMKC3Byb3ZpZGVyX2lkGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBW1vZGVsGAQgASgJEhcKD21pbl9wcm9iYWJpbGl0eRgFIAEoARISCgptaW5fbWFyZ2luGAYgASgBEhQKDG9uX3VuY2VydGFpbhgHIAEoCRISCgp0aW1lb3V0X21zGAggASgFEhEKCWxsbV9tb2RlbBgJIAEoCSIRCg9HZXRTbG90c1JlcXVlc3QiSgoQR2V0U2xvdHNSZXNwb25zZRIkCgVzbG90cxgBIAEoCzIVLmhhcm5lc3MubGxtLnYxLlNsb3RzEhAKCGVkaXRhYmxlGAIgASgIIjcKD1NldFNsb3RzUmVxdWVzdBIkCgVzbG90cxgBIAEoCzIVLmhhcm5lc3MubGxtLnYxLlNsb3RzIjgKEFNldFNsb3RzUmVzcG9uc2USJAoFc2xvdHMYASABKAsyFS5oYXJuZXNzLmxsbS52MS5TbG90cypnCg1Qcm92aWRlclNjb3BlEh4KGlBST1ZJREVSX1NDT1BFX1VOU1BFQ0lGSUVEEAASGQoVUFJPVklERVJfU0NPUEVfR0xPQkFMEAESGwoXUFJPVklERVJfU0NPUEVfUEVSU09OQUwQAjKnCQoPUHJvdmlkZXJTZXJ2aWNlElYKC0xpc3RQcmVzZXRzEiIuaGFybmVzcy5sbG0udjEuTGlzdFByZXNldHNSZXF1ZXN0GiMuaGFybmVzcy5sbG0udjEuTGlzdFByZXNldHNSZXNwb25zZRJcCg1MaXN0UHJvdmlkZXJzEiQuaGFybmVzcy5sbG0udjEuTGlzdFByb3ZpZGVyc1JlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5MaXN0UHJvdmlkZXJzUmVzcG9uc2USXwoOQ3JlYXRlUHJvdmlkZXISJS5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlc3BvbnNlEl8KDlVwZGF0ZVByb3ZpZGVyEiUuaGFybmVzcy5sbG0udjEuVXBkYXRlUHJvdmlkZXJSZXF1ZXN0GiYuaGFybmVzcy5sbG0udjEuVXBkYXRlUHJvdmlkZXJSZXNwb25zZRJfCg5EZWxldGVQcm92aWRlchIlLmhhcm5lc3MubGxtLnYxLkRlbGV0ZVByb3ZpZGVyUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkRlbGV0ZVByb3ZpZGVyUmVzcG9uc2USXwoORGlzY292ZXJNb2RlbHMSJS5oYXJuZXNzLmxsbS52MS5EaXNjb3Zlck1vZGVsc1JlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5EaXNjb3Zlck1vZGVsc1Jlc3BvbnNlEk0KCEFkZE1vZGVsEh8uaGFybmVzcy5sbG0udjEuQWRkTW9kZWxSZXF1ZXN0GiAuaGFybmVzcy5sbG0udjEuQWRkTW9kZWxSZXNwb25zZRJZCgxUZXN0UHJvdmlkZXISIy5oYXJuZXNzLmxsbS52MS5UZXN0UHJvdmlkZXJSZXF1ZXN0GiQuaGFybmVzcy5sbG0udjEuVGVzdFByb3ZpZGVyUmVzcG9uc2USVgoLUmVtb3ZlTW9kZWwSIi5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlcXVlc3QaIy5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlc3BvbnNlElwKDUdldENsYXNzaWZpZXISJC5oYXJuZXNzLmxsbS52MS5HZXRDbGFzc2lmaWVyUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLkdldENsYXNzaWZpZXJSZXNwb25zZRJcCg1TZXRDbGFzc2lmaWVyEiQuaGFybmVzcy5sbG0udjEuU2V0Q2xhc3NpZmllclJlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5TZXRDbGFzc2lmaWVyUmVzcG9uc2USTQoIR2V0U2xvdHMSHy5oYXJuZXNzLmxsbS52MS5HZXRTbG90c1JlcXVlc3QaIC5oYXJuZXNzLmxsbS52MS5HZXRTbG90c1Jlc3BvbnNlEk0KCFNldFNsb3RzEh8uaGFybmVzcy5sbG0udjEuU2V0U2xvdHNSZXF1ZXN0GiAuaGFybmVzcy5sbG0udjEuU2V0U2xvdHNSZXNwb25zZULBAQoSY29tLmhhcm5lc3MubGxtLnYxQg5Qcm92aWRlcnNQcm90b1ABWkFnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2xsbS92MTtsbG12MaICA0hMWKoCDkhhcm5lc3MuTGxtLlYxygIOSGFybmVzc1xMbG1cVjHiAhpIYXJuZXNzXExsbVxWMVxHUEJNZXRhZGF0YeoCEEhhcm5lc3M6OkxsbTo6VjFiBnByb3RvMw", [file_harness_llm_v1_gateway]);
+  fileDesc("Ch5oYXJuZXNzL2xsbS92MS9wcm92aWRlcnMucHJvdG8SDmhhcm5lc3MubGxtLnYxIvYCCghQcm92aWRlchIKCgJpZBgBIAEoCRIsCgVzY29wZRgCIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSDAoEdHlwZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSEwoLYXBpX2tleV9zZXQYBiABKAgSFAoMYXBpX2tleV9oaW50GAcgASgJEhQKDGhlYWRlcl9uYW1lcxgIIAMoCRIPCgdlbmFibGVkGAkgASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgKIAEoCBIQCghlZGl0YWJsZRgLIAEoCBItCgZtb2RlbHMYDCADKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlck1vZGVsEhIKCmNyZWF0ZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRIRCglwcmVzZXRfaWQYDyABKAkSDQoFZ3JvdXAYECABKAkijQEKDVByb3ZpZGVyTW9kZWwSCgoCaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhYKDnVwc3RyZWFtX21vZGVsGAMgASgJEhYKDmNvbnRleHRfd2luZG93GAQgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAUgASgDEg8KB2VuYWJsZWQYBiABKAgiFAoSTGlzdFByZXNldHNSZXF1ZXN0InsKE0xpc3RQcmVzZXRzUmVzcG9uc2USLwoHcHJlc2V0cxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyUHJlc2V0EjMKCXByb3RvY29scxgCIAMoCzIgLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyUHJvdG9jb2wisgIKDlByb3ZpZGVyUHJlc2V0EgoKAmlkGAEgASgJEg0KBWdyb3VwGAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIMCgR0eXBlGAUgASgJEhAKCGJhc2VfdXJsGAYgASgJEisKBmZpZWxkcxgHIAMoCzIbLmhhcm5lc3MubGxtLnYxLlByZXNldEZpZWxkEhAKCGRvY3NfdXJsGAggASgJEg8KB2tleV91cmwYCSABKAkSMwoOZGVmYXVsdF9tb2RlbHMYCiADKAsyGy5oYXJuZXNzLmxsbS52MS5QcmVzZXRNb2RlbBIMCgRpY29uGAsgASgJEhgKEGRpc2NvdmVyc19tb2RlbHMYDCABKAgSDQoFbG9jYWwYDSABKAgiUQoLUHJlc2V0RmllbGQSDAoEbmFtZRgBIAEoCRINCgVsYWJlbBgCIAEoCRIQCghyZXF1aXJlZBgDIAEoCBITCgtwbGFjZWhvbGRlchgEIAEoCSJuCgtQcmVzZXRNb2RlbBIWCg51cHN0cmVhbV9tb2RlbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOY29udGV4dF93aW5kb3cYAyABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBCABKAMiUwoQUHJvdmlkZXJQcm90b2NvbBIKCgJpZBgBIAEoCRINCgVncm91cBgCIAEoCRINCgVsYWJlbBgDIAEoCRIVCg1iYXNlX3VybF9oaW50GAQgASgJIhYKFExpc3RQcm92aWRlcnNSZXF1ZXN0Im4KFUxpc3RQcm92aWRlcnNSZXNwb25zZRIrCglwcm92aWRlcnMYASADKAsyGC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlchINCgV0eXBlcxgCIAMoCRIZChFjYW5fbWFuYWdlX2dsb2JhbBgDIAEoCCLOAgoVQ3JlYXRlUHJvdmlkZXJSZXF1ZXN0EiwKBXNjb3BlGAEgASgOMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJTY29wZRIKCgJpZBgCIAEoCRIMCgR0eXBlGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIQCghiYXNlX3VybBgFIAEoCRIPCgdhcGlfa2V5GAYgASgJEkMKB2hlYWRlcnMYByADKAsyMi5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlcXVlc3QuSGVhZGVyc0VudHJ5Eh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgIIAEoCBIRCglwcmVzZXRfaWQYCSABKAkSDQoFZ3JvdXAYCiABKAkaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWQ3JlYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIswCChVVcGRhdGVQcm92aWRlclJlcXVlc3QSCgoCaWQYASABKAkSEQoEdHlwZRgCIAEoCUgAiAEBEhkKDGRpc3BsYXlfbmFtZRgDIAEoCUgBiAEBEhUKCGJhc2VfdXJsGAQgASgJSAKIAQESFAoHYXBpX2tleRgFIAEoCUgDiAEBEi0KB2hlYWRlcnMYBiABKAsyFy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzSASIAQESFAoHZW5hYmxlZBgHIAEoCEgFiAEBEiIKFWFsbG93X3ByaXZhdGVfbmV0d29yaxgIIAEoCEgGiAEBQgcKBV90eXBlQg8KDV9kaXNwbGF5X25hbWVCCwoJX2Jhc2VfdXJsQgoKCF9hcGlfa2V5QgoKCF9oZWFkZXJzQgoKCF9lbmFibGVkQhgKFl9hbGxvd19wcml2YXRlX25ldHdvcmsibQoHSGVhZGVycxIzCgZ2YWx1ZXMYASADKAsyIy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzLlZhbHVlc0VudHJ5Gi0KC1ZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWVXBkYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIiMKFURlbGV0ZVByb3ZpZGVyUmVxdWVzdBIKCgJpZBgBIAEoCSIYChZEZWxldGVQcm92aWRlclJlc3BvbnNlIiwKFURpc2NvdmVyTW9kZWxzUmVxdWVzdBITCgtwcm92aWRlcl9pZBgBIAEoCSJIChZEaXNjb3Zlck1vZGVsc1Jlc3BvbnNlEi4KBm1vZGVscxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLk1vZGVsQ2FuZGlkYXRlIoQBCg5Nb2RlbENhbmRpZGF0ZRIWCg51cHN0cmVhbV9tb2RlbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOY29udGV4dF93aW5kb3cYAyABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBCABKAMSEQoJbW9kZWxfaWRzGAUgAygJIrUBCg9BZGRNb2RlbFJlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSFgoOdXBzdHJlYW1fbW9kZWwYAiABKAkSCgoCaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhYKDmNvbnRleHRfd2luZG93GAUgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAYgASgDEhAKCHRoaW5raW5nGAcgASgIEg4KBmltYWdlcxgIIAEoCCJAChBBZGRNb2RlbFJlc3BvbnNlEiwKBW1vZGVsGAEgASgLMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJNb2RlbCIqChNUZXN0UHJvdmlkZXJSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJIkgKFFRlc3RQcm92aWRlclJlc3BvbnNlEgoKAm9rGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSEwoLbW9kZWxfY291bnQYAyABKAUiJgoSUmVtb3ZlTW9kZWxSZXF1ZXN0EhAKCG1vZGVsX2lkGAEgASgJIhUKE1JlbW92ZU1vZGVsUmVzcG9uc2UiFgoUR2V0Q2xhc3NpZmllclJlcXVlc3QiRwoVR2V0Q2xhc3NpZmllclJlc3BvbnNlEi4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkYKFFNldENsYXNzaWZpZXJSZXF1ZXN0Ei4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkcKFVNldENsYXNzaWZpZXJSZXNwb25zZRIuCgpjbGFzc2lmaWVyGAEgASgLMhouaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllciK9AQoKQ2xhc3NpZmllchIPCgdlbmFibGVkGAEgASgIEhMKC3Byb3ZpZGVyX2lkGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBW1vZGVsGAQgASgJEhcKD21pbl9wcm9iYWJpbGl0eRgFIAEoARISCgptaW5fbWFyZ2luGAYgASgBEhQKDG9uX3VuY2VydGFpbhgHIAEoCRISCgp0aW1lb3V0X21zGAggASgFEhEKCWxsbV9tb2RlbBgJIAEoCSJuChJDbGFzc2lmaWVyT3ZlcnJpZGUSMAoGY2hvaWNlGAEgASgOMiAuaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllckNob2ljZRITCgtwcm92aWRlcl9pZBgCIAEoCRIRCglsbG1fbW9kZWwYAyABKAkiGAoWR2V0TXlDbGFzc2lmaWVyUmVxdWVzdCKDAQoXR2V0TXlDbGFzc2lmaWVyUmVzcG9uc2USMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZRIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAIgASgJEhkKEWRlZmF1bHRfbGxtX21vZGVsGAMgASgJIkoKFlNldE15Q2xhc3NpZmllclJlcXVlc3QSMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZSKDAQoXU2V0TXlDbGFzc2lmaWVyUmVzcG9uc2USMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZRIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAIgASgJEhkKEWRlZmF1bHRfbGxtX21vZGVsGAMgASgJIhEKD0dldFNsb3RzUmVxdWVzdCJKChBHZXRTbG90c1Jlc3BvbnNlEiQKBXNsb3RzGAEgASgLMhUuaGFybmVzcy5sbG0udjEuU2xvdHMSEAoIZWRpdGFibGUYAiABKAgiNwoPU2V0U2xvdHNSZXF1ZXN0EiQKBXNsb3RzGAEgASgLMhUuaGFybmVzcy5sbG0udjEuU2xvdHMiOAoQU2V0U2xvdHNSZXNwb25zZRIkCgVzbG90cxgBIAEoCzIVLmhhcm5lc3MubGxtLnYxLlNsb3RzKmcKDVByb3ZpZGVyU2NvcGUSHgoaUFJPVklERVJfU0NPUEVfVU5TUEVDSUZJRUQQABIZChVQUk9WSURFUl9TQ09QRV9HTE9CQUwQARIbChdQUk9WSURFUl9TQ09QRV9QRVJTT05BTBACKnEKEENsYXNzaWZpZXJDaG9pY2USIQodQ0xBU1NJRklFUl9DSE9JQ0VfVU5TUEVDSUZJRUQQABIaChZDTEFTU0lGSUVSX0NIT0lDRV9OT05FEAESHgoaQ0xBU1NJRklFUl9DSE9JQ0VfUFJPVklERVIQAjLvCgoPUHJvdmlkZXJTZXJ2aWNlElYKC0xpc3RQcmVzZXRzEiIuaGFybmVzcy5sbG0udjEuTGlzdFByZXNldHNSZXF1ZXN0GiMuaGFybmVzcy5sbG0udjEuTGlzdFByZXNldHNSZXNwb25zZRJcCg1MaXN0UHJvdmlkZXJzEiQuaGFybmVzcy5sbG0udjEuTGlzdFByb3ZpZGVyc1JlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5MaXN0UHJvdmlkZXJzUmVzcG9uc2USXwoOQ3JlYXRlUHJvdmlkZXISJS5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlc3BvbnNlEl8KDlVwZGF0ZVByb3ZpZGVyEiUuaGFybmVzcy5sbG0udjEuVXBkYXRlUHJvdmlkZXJSZXF1ZXN0GiYuaGFybmVzcy5sbG0udjEuVXBkYXRlUHJvdmlkZXJSZXNwb25zZRJfCg5EZWxldGVQcm92aWRlchIlLmhhcm5lc3MubGxtLnYxLkRlbGV0ZVByb3ZpZGVyUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkRlbGV0ZVByb3ZpZGVyUmVzcG9uc2USXwoORGlzY292ZXJNb2RlbHMSJS5oYXJuZXNzLmxsbS52MS5EaXNjb3Zlck1vZGVsc1JlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5EaXNjb3Zlck1vZGVsc1Jlc3BvbnNlEk0KCEFkZE1vZGVsEh8uaGFybmVzcy5sbG0udjEuQWRkTW9kZWxSZXF1ZXN0GiAuaGFybmVzcy5sbG0udjEuQWRkTW9kZWxSZXNwb25zZRJZCgxUZXN0UHJvdmlkZXISIy5oYXJuZXNzLmxsbS52MS5UZXN0UHJvdmlkZXJSZXF1ZXN0GiQuaGFybmVzcy5sbG0udjEuVGVzdFByb3ZpZGVyUmVzcG9uc2USVgoLUmVtb3ZlTW9kZWwSIi5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlcXVlc3QaIy5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlc3BvbnNlElwKDUdldENsYXNzaWZpZXISJC5oYXJuZXNzLmxsbS52MS5HZXRDbGFzc2lmaWVyUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLkdldENsYXNzaWZpZXJSZXNwb25zZRJcCg1TZXRDbGFzc2lmaWVyEiQuaGFybmVzcy5sbG0udjEuU2V0Q2xhc3NpZmllclJlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5TZXRDbGFzc2lmaWVyUmVzcG9uc2USYgoPR2V0TXlDbGFzc2lmaWVyEiYuaGFybmVzcy5sbG0udjEuR2V0TXlDbGFzc2lmaWVyUmVxdWVzdBonLmhhcm5lc3MubGxtLnYxLkdldE15Q2xhc3NpZmllclJlc3BvbnNlEmIKD1NldE15Q2xhc3NpZmllchImLmhhcm5lc3MubGxtLnYxLlNldE15Q2xhc3NpZmllclJlcXVlc3QaJy5oYXJuZXNzLmxsbS52MS5TZXRNeUNsYXNzaWZpZXJSZXNwb25zZRJNCghHZXRTbG90cxIfLmhhcm5lc3MubGxtLnYxLkdldFNsb3RzUmVxdWVzdBogLmhhcm5lc3MubGxtLnYxLkdldFNsb3RzUmVzcG9uc2USTQoIU2V0U2xvdHMSHy5oYXJuZXNzLmxsbS52MS5TZXRTbG90c1JlcXVlc3QaIC5oYXJuZXNzLmxsbS52MS5TZXRTbG90c1Jlc3BvbnNlQsEBChJjb20uaGFybmVzcy5sbG0udjFCDlByb3ZpZGVyc1Byb3RvUAFaQWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvbGxtL3YxO2xsbXYxogIDSExYqgIOSGFybmVzcy5MbG0uVjHKAg5IYXJuZXNzXExsbVxWMeICGkhhcm5lc3NcTGxtXFYxXEdQQk1ldGFkYXRh6gIQSGFybmVzczo6TGxtOjpWMWIGcHJvdG8z", [file_harness_llm_v1_gateway]);
 
 /**
  * Groups ("sources") of providers:
@@ -1050,6 +1050,130 @@ export const ClassifierSchema: GenMessage<Classifier> = /*@__PURE__*/
   messageDesc(file_harness_llm_v1_providers, 30);
 
 /**
+ * A user's override of the server-default classifier. A choice that went stale (its provider or model was
+ * removed, disabled or hidden from the user) follows the server default again.
+ *
+ * @generated from message harness.llm.v1.ClassifierOverride
+ */
+export type ClassifierOverride = Message<"harness.llm.v1.ClassifierOverride"> & {
+  /**
+   * @generated from field: harness.llm.v1.ClassifierChoice choice = 1;
+   */
+  choice: ClassifierChoice;
+
+  /**
+   * With CLASSIFIER_CHOICE_PROVIDER: a global, enabled provider of the "classifier" group.
+   *
+   * @generated from field: string provider_id = 2;
+   */
+  providerId: string;
+
+  /**
+   * Global model of the model classifier step for this user; empty: the server default. A chain step with
+   * its own model (admin decision config) keeps it.
+   *
+   * @generated from field: string llm_model = 3;
+   */
+  llmModel: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.ClassifierOverride.
+ * Use `create(ClassifierOverrideSchema)` to create a new message.
+ */
+export const ClassifierOverrideSchema: GenMessage<ClassifierOverride> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 31);
+
+/**
+ * @generated from message harness.llm.v1.GetMyClassifierRequest
+ */
+export type GetMyClassifierRequest = Message<"harness.llm.v1.GetMyClassifierRequest"> & {
+};
+
+/**
+ * Describes the message harness.llm.v1.GetMyClassifierRequest.
+ * Use `create(GetMyClassifierRequestSchema)` to create a new message.
+ */
+export const GetMyClassifierRequestSchema: GenMessage<GetMyClassifierRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 32);
+
+/**
+ * @generated from message harness.llm.v1.GetMyClassifierResponse
+ */
+export type GetMyClassifierResponse = Message<"harness.llm.v1.GetMyClassifierResponse"> & {
+  /**
+   * @generated from field: harness.llm.v1.ClassifierOverride mine = 1;
+   */
+  mine?: ClassifierOverride | undefined;
+
+  /**
+   * The server default as configured: the provider of the decision step ("" none) and the model classifier's
+   * model ("" the classifier / small slot).
+   *
+   * @generated from field: string default_provider_id = 2;
+   */
+  defaultProviderId: string;
+
+  /**
+   * @generated from field: string default_llm_model = 3;
+   */
+  defaultLlmModel: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.GetMyClassifierResponse.
+ * Use `create(GetMyClassifierResponseSchema)` to create a new message.
+ */
+export const GetMyClassifierResponseSchema: GenMessage<GetMyClassifierResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 33);
+
+/**
+ * @generated from message harness.llm.v1.SetMyClassifierRequest
+ */
+export type SetMyClassifierRequest = Message<"harness.llm.v1.SetMyClassifierRequest"> & {
+  /**
+   * Replaces the caller's override; the zero value follows the server default in full.
+   *
+   * @generated from field: harness.llm.v1.ClassifierOverride mine = 1;
+   */
+  mine?: ClassifierOverride | undefined;
+};
+
+/**
+ * Describes the message harness.llm.v1.SetMyClassifierRequest.
+ * Use `create(SetMyClassifierRequestSchema)` to create a new message.
+ */
+export const SetMyClassifierRequestSchema: GenMessage<SetMyClassifierRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 34);
+
+/**
+ * @generated from message harness.llm.v1.SetMyClassifierResponse
+ */
+export type SetMyClassifierResponse = Message<"harness.llm.v1.SetMyClassifierResponse"> & {
+  /**
+   * @generated from field: harness.llm.v1.ClassifierOverride mine = 1;
+   */
+  mine?: ClassifierOverride | undefined;
+
+  /**
+   * @generated from field: string default_provider_id = 2;
+   */
+  defaultProviderId: string;
+
+  /**
+   * @generated from field: string default_llm_model = 3;
+   */
+  defaultLlmModel: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.SetMyClassifierResponse.
+ * Use `create(SetMyClassifierResponseSchema)` to create a new message.
+ */
+export const SetMyClassifierResponseSchema: GenMessage<SetMyClassifierResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 35);
+
+/**
  * @generated from message harness.llm.v1.GetSlotsRequest
  */
 export type GetSlotsRequest = Message<"harness.llm.v1.GetSlotsRequest"> & {
@@ -1060,7 +1184,7 @@ export type GetSlotsRequest = Message<"harness.llm.v1.GetSlotsRequest"> & {
  * Use `create(GetSlotsRequestSchema)` to create a new message.
  */
 export const GetSlotsRequestSchema: GenMessage<GetSlotsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 31);
+  messageDesc(file_harness_llm_v1_providers, 36);
 
 /**
  * @generated from message harness.llm.v1.GetSlotsResponse
@@ -1086,7 +1210,7 @@ export type GetSlotsResponse = Message<"harness.llm.v1.GetSlotsResponse"> & {
  * Use `create(GetSlotsResponseSchema)` to create a new message.
  */
 export const GetSlotsResponseSchema: GenMessage<GetSlotsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 32);
+  messageDesc(file_harness_llm_v1_providers, 37);
 
 /**
  * @generated from message harness.llm.v1.SetSlotsRequest
@@ -1106,7 +1230,7 @@ export type SetSlotsRequest = Message<"harness.llm.v1.SetSlotsRequest"> & {
  * Use `create(SetSlotsRequestSchema)` to create a new message.
  */
 export const SetSlotsRequestSchema: GenMessage<SetSlotsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 33);
+  messageDesc(file_harness_llm_v1_providers, 38);
 
 /**
  * @generated from message harness.llm.v1.SetSlotsResponse
@@ -1123,7 +1247,7 @@ export type SetSlotsResponse = Message<"harness.llm.v1.SetSlotsResponse"> & {
  * Use `create(SetSlotsResponseSchema)` to create a new message.
  */
 export const SetSlotsResponseSchema: GenMessage<SetSlotsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 34);
+  messageDesc(file_harness_llm_v1_providers, 39);
 
 /**
  * @generated from enum harness.llm.v1.ProviderScope
@@ -1150,6 +1274,40 @@ export enum ProviderScope {
  */
 export const ProviderScopeSchema: GenEnum<ProviderScope> = /*@__PURE__*/
   enumDesc(file_harness_llm_v1_providers, 0);
+
+/**
+ * Which decision step a user's override picks.
+ *
+ * @generated from enum harness.llm.v1.ClassifierChoice
+ */
+export enum ClassifierChoice {
+  /**
+   * Follow the server default (GetClassifier).
+   *
+   * @generated from enum value: CLASSIFIER_CHOICE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * No decision step: rules, then the model classifier.
+   *
+   * @generated from enum value: CLASSIFIER_CHOICE_NONE = 1;
+   */
+  NONE = 1,
+
+  /**
+   * The global classifier provider in provider_id.
+   *
+   * @generated from enum value: CLASSIFIER_CHOICE_PROVIDER = 2;
+   */
+  PROVIDER = 2,
+}
+
+/**
+ * Describes the enum harness.llm.v1.ClassifierChoice.
+ */
+export const ClassifierChoiceSchema: GenEnum<ClassifierChoice> = /*@__PURE__*/
+  enumDesc(file_harness_llm_v1_providers, 1);
 
 /**
  * ProviderService manages the LLM providers (upstream API + key) whose models GatewayService offers, for the
@@ -1264,7 +1422,8 @@ export const ProviderService: GenService<{
   },
   /**
    * The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
-   * typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
+   * typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
+   * server default for everyone. Admin only.
    *
    * @generated from rpc harness.llm.v1.ProviderService.GetClassifier
    */
@@ -1280,6 +1439,26 @@ export const ProviderService: GenService<{
     methodKind: "unary";
     input: typeof SetClassifierRequestSchema;
     output: typeof SetClassifierResponseSchema;
+  },
+  /**
+   * The caller's own classifier choice over the server default: another global classifier provider or none,
+   * and another global model for the model classifier. Applies to the caller's decisions only. Any signed-in
+   * user; the response also carries the server default, read-only.
+   *
+   * @generated from rpc harness.llm.v1.ProviderService.GetMyClassifier
+   */
+  getMyClassifier: {
+    methodKind: "unary";
+    input: typeof GetMyClassifierRequestSchema;
+    output: typeof GetMyClassifierResponseSchema;
+  },
+  /**
+   * @generated from rpc harness.llm.v1.ProviderService.SetMyClassifier
+   */
+  setMyClassifier: {
+    methodKind: "unary";
+    input: typeof SetMyClassifierRequestSchema;
+    output: typeof SetMyClassifierResponseSchema;
   },
   /**
    * The server-wide default models per role (Slots: main, small, plan, title), as configured. Everyone may

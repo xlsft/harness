@@ -72,8 +72,8 @@ export function registerDecisionService(router: ConnectRouter): void {
     }),
     listProviders: guard(async (_req, ctx: HandlerContext) => {
       checkClientVersion(ctx);
-      await requirePrincipal(ctx);
-      const r = await listDecisionProviders(ctx.signal);
+      const principal = await requirePrincipal(ctx);
+      const r = await listDecisionProviders(principal.user, ctx.signal);
       return {
         providers: r.providers.map((p) => ({ id: p.id, type: p.type, displayName: p.displayName, healthy: p.healthy, model: p.model })),
         onError: r.onError === "next" ? OnError.NEXT : OnError.ASK,

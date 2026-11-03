@@ -1,11 +1,20 @@
 /**
  * Connect implementation of harness.llm.v1.ProviderService: proto <-> src/services/providers.ts, models.ts,
- * discovery.ts and src/decision/classifier.ts. Global providers and the classifier need the admin role;
- * personal providers belong to the caller (services/providers.ts has the scope rules).
+ * discovery.ts and src/decision/classifier.ts. Global providers and the server-default classifier need the
+ * admin role; personal providers and the caller's own classifier override belong to the caller
+ * (services/providers.ts has the scope rules).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { ProviderScope, ProviderService, type Classifier } from "../gen/harness/llm/v1/providers_pb.ts";
-import { getClassifier, setClassifier, testClassifierProvider, type ClassifierSettings } from "../decision/classifier.ts";
+import { ClassifierChoice, ProviderScope, ProviderService, type Classifier, type ClassifierOverride as ClassifierOverrideMsg } from "../gen/harness/llm/v1/providers_pb.ts";
+import {
+  getClassifier,
+  getClassifierOverride,
+  setClassifier,
+  setClassifierOverride,
+  testClassifierProvider,
+  type ClassifierOverride,
+  type ClassifierSettings,
+} from "../decision/classifier.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { discoverModelsForUser, testLlmProvider } from "../services/discovery.ts";
@@ -90,6 +99,29 @@ function classifierToProto(c: ClassifierSettings): Classifier {
     timeoutMs: c.timeout_ms,
     llmModel: c.llm_model,
   };
+}
+
+const CHOICE_TO_PROTO: Record<ClassifierOverride["choice"], ClassifierChoice> = {
+  default: ClassifierChoice.UNSPECIFIED,
+  none: ClassifierChoice.NONE,
+  provider: ClassifierChoice.PROVIDER,
+};
+
+/** The caller's override and the server default it applies over (Get/SetMyClassifier). */
+async function myClassifierToProto(user: PublicUser) {
+  const [mine, def] = await Promise.all([getClassifierOverride(user), getClassifier()]);
+  return {
+    mine: { choice: CHOICE_TO_PROTO[mine.choice], providerId: mine.provider_id, llmModel: mine.llm_model },
+    defaultProviderId: def.enabled ? def.provider_id : "",
+    defaultLlmModel: def.llm_model,
+  };
+}
+
+function overrideFromProto(m: ClassifierOverrideMsg | undefined): Partial<ClassifierOverride> {
+  if (!m) return {};
+  const choice = m.choice === ClassifierChoice.NONE ? "none" : m.choice === ClassifierChoice.PROVIDER ? "provider" : m.choice === ClassifierChoice.UNSPECIFIED ? "default" : undefined;
+  if (!choice) throw new ApiError("invalid_request", "Unknown classifier choice");
+  return { choice, provider_id: m.providerId, llm_model: m.llmModel };
 }
 
 /** The role slots as configured ("" for one that follows its default); the classifier slot is not shown. */
@@ -255,6 +287,16 @@ export function registerProviderService(router: ConnectRouter): void {
         user.id,
       );
       return { classifier: classifierToProto(out) };
+    }),
+
+    getMyClassifier: guard(async (_req, ctx: HandlerContext) => {
+      return myClassifierToProto(await principal(ctx));
+    }),
+
+    setMyClassifier: guard(async (req, ctx: HandlerContext) => {
+      const user = await principal(ctx);
+      await setClassifierOverride(user, overrideFromProto(req.mine));
+      return myClassifierToProto(user);
     }),
 
     getSlots: guard(async (_req, ctx: HandlerContext) => {

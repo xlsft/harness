@@ -14,8 +14,9 @@ import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId, sha256 } from "../lib/ids.ts";
 import { TokenBucketLimiter } from "../lib/rate-limit.ts";
-import type { Principal } from "../services/devices.ts";
+import type { Principal, PublicUser } from "../services/devices.ts";
 import { cacheFor } from "./cache.ts";
+import { decisionConfigFor } from "./classifier.ts";
 import { decisionModelKeyResolver, httpCredentialsResolver, loadDecisionConfig, type DecisionConfig, type OnErrorPolicy, type RulesExtras } from "./config.ts";
 import { DecisionModelProvider, decisionEndpointUrl } from "./decision-model.ts";
 import { HttpProvider } from "./http.ts";
@@ -179,6 +180,20 @@ export async function decisionChain(): Promise<{ chain: DecisionChain; config: D
   return { chain: current.chain, config: current.config };
 }
 
+/**
+ * The chain one user's decisions run through: the configured one with the user's classifier override
+ * applied (classifier.ts). Unchanged steps reuse the configured chain's providers.
+ */
+export async function decisionChainFor(user: PublicUser): Promise<{ chain: DecisionChain; config: DecisionConfig }> {
+  const base = await decisionChain();
+  if (override) return base;
+  const config = await decisionConfigFor(user, base.config);
+  if (config === base.config) return base;
+  const built = new Map(base.config.providers.map((s, i) => [s, base.chain.providers[i]]));
+  const providers = config.providers.map((s) => built.get(s) ?? buildProviders({ ...config, providers: [s] })[0]!);
+  return { chain: new DecisionChain(providers, config.on_error), config };
+}
+
 /** For tests: replaces the configured chain (undefined restores it). */
 export function setDecisionChainForTests(chain?: DecisionChain): void {
   override = chain;
@@ -256,7 +271,7 @@ export function resetDecisionRateLimit(): void {
 
 export async function decide(principal: Principal, req: DecideRequestInput, signal?: AbortSignal): Promise<ChainResult & { rulesVersion: string }> {
   const input = validateDecideRequest(req);
-  const { chain: configured, config } = await decisionChain();
+  const { chain: configured, config } = await decisionChainFor(principal.user);
   let chain = configured;
   if (req.provider) {
     if (principal.user.role !== "admin") throw new ApiError("permission", "Only admins can force a decision provider");
@@ -309,8 +324,9 @@ export interface ProviderStatus {
   model: string;
 }
 
-export async function listDecisionProviders(signal?: AbortSignal): Promise<{ providers: ProviderStatus[]; onError: OnErrorPolicy }> {
-  const { chain } = await decisionChain();
+/** The chain the user's decisions run through (their classifier override applied). */
+export async function listDecisionProviders(user: PublicUser, signal?: AbortSignal): Promise<{ providers: ProviderStatus[]; onError: OnErrorPolicy }> {
+  const { chain } = await decisionChainFor(user);
   const providers = await Promise.all(
     chain.providers.map(async (p) => ({
       id: p.id,
