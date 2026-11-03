@@ -34,6 +34,31 @@ export const MODES: { key: PermissionModeName, label: string, detail: string, cl
   { key: 'bypass', label: 'Bypass', detail: 'All safeguards off. Sandboxed hosts only', cls: 'text-bad', sep: true }
 ]
 
+// Every mode in the client's order (the Shift+Tab cycle, then the modes outside it), for Settings; Don't ask is
+// offered there only.
+export const DONT_ASK_MODE: typeof MODES[number] = { key: 'dont_ask', label: 'Don\'t ask', detail: 'Never prompts: anything that would ask is denied', cls: 'text-white' }
+export const MODE_ORDER: PermissionModeName[] = ['default', 'accept_edits', 'plan', 'auto', 'dont_ask', 'bypass']
+
+// The Shift+Tab order when the client does not report one (InitializeResponse.permission_modes).
+export const MODE_CYCLE: PermissionModeName[] = ['default', 'accept_edits', 'auto', 'plan']
+
+/** The modes of MODES the server's policy allows (InitializeResponse.disabled_permission_modes). */
+export function allowedModes(disabled: readonly PermissionModeName[]) {
+  return MODES.filter(m => !disabled.includes(m.key))
+}
+
+/** `mode` when the policy allows it, else the first allowed mode (Ask can never be disabled). */
+export function fitMode(mode: PermissionModeName, disabled: readonly PermissionModeName[]): PermissionModeName {
+  return disabled.includes(mode) ? (allowedModes(disabled)[0]?.key ?? 'default') : mode
+}
+
+/** The mode after `cur` in the Shift+Tab cycle, skipping disabled modes; modes outside the cycle go to its start. */
+export function nextMode(cur: PermissionModeName, cycle: readonly PermissionModeName[], disabled: readonly PermissionModeName[]): PermissionModeName {
+  const modes = (cycle.length ? cycle : MODE_CYCLE).filter(m => !disabled.includes(m))
+  if (!modes.length) return 'default'
+  return modes[(modes.indexOf(cur) + 1) % modes.length]!
+}
+
 export const MODE_LABEL: Record<PermissionModeName, string> = {
   default: 'ask',
   accept_edits: 'accept edits',

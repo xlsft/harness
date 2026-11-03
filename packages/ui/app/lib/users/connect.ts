@@ -10,6 +10,8 @@ import {
   type LdapConfig
 } from '~/gen/harness/auth/v1/admin_pb'
 import { User_Role } from '~/gen/harness/auth/v1/auth_pb'
+import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
+import type { PermissionModeName } from '~/lib/session/types'
 import type { LdapSettings, NewUser, UserRole, UsersApi, UserView } from './types'
 
 export function userView(u: AdminUser): UserView {
@@ -167,5 +169,14 @@ export class ConnectUsersApi implements UsersApi {
   async testLdapUser(s: LdapSettings, login: string) {
     const r = await this.client.testLdapUser({ config: ldapConfig(s), login })
     return { found: r.found, message: r.message, dn: r.dn, username: r.username, email: r.email, name: r.name, groups: r.groups, allowed: r.allowed, admin: r.admin, userId: r.userId }
+  }
+
+  async getModePolicy() {
+    return (await this.client.getPermissionModePolicy({})).policy?.disabledModes.map(permissionModeName) ?? []
+  }
+
+  async setModePolicy(disabled: PermissionModeName[]) {
+    const r = await this.client.setPermissionModePolicy({ policy: { disabledModes: disabled.map(permissionModePb) } })
+    return r.policy?.disabledModes.map(permissionModeName) ?? []
   }
 }

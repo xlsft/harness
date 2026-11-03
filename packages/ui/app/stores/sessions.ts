@@ -9,10 +9,11 @@ import {
   SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
-import { createSessionState, reduce, sessionMeta } from '~/lib/session/reducer'
+import { createSessionState, permissionModeName, reduce, sessionMeta } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 import type { SessionPatch } from '~/lib/transport/types'
+import { allowedModes } from '~/utils/composer'
 
 const MODE_TO_PB: Record<PermissionModeName, PermissionMode> = {
   default: PermissionMode.DEFAULT,
@@ -34,6 +35,8 @@ const EFFORT_TO_PB: Record<EffortName, Effort> = {
 // Event streams kept open at once (see trimStreams) and how often the list refreshes the other sessions.
 const MAX_STREAMS = 4
 const LIST_POLL_MS = 4000
+// How often the permission mode policy is read again (an admin may change it while the app runs).
+const MODES_POLL_MS = 30_000
 
 // Errors that mean the client is unreachable rather than that a call was refused.
 export const isNetworkError = (msg: string) => /unavailable|failed to fetch|load failed|networkerror|network error|connection (refused|reset|lost)/i.test(msg)
@@ -60,6 +63,10 @@ export const useSessionStore = defineStore('sessions', {
     clientVersion: '',
     // The server's default session model (its main slot); empty when unknown.
     defaultModel: '',
+    // The client's Shift+Tab cycle and the modes the server's policy disables (Initialize); disabled modes are
+    // offered nowhere.
+    permissionModes: [] as PermissionModeName[],
+    disabledModes: [] as PermissionModeName[],
     // The signed-in account as the desktop shell reports it (whoami); empty on the web.
     account: { name: '', server: '', role: '' },
     models: [] as ModelInfo[],
@@ -81,6 +88,10 @@ export const useSessionStore = defineStore('sessions', {
     },
     sessionList(state): SessionState[] {
       return state.order.map(id => state.sessions[id]!).filter(s => s && !s.meta.archived)
+    },
+    // The permission modes to offer (pickers, Settings), without the disabled ones.
+    availableModes(state) {
+      return allowedModes(state.disabledModes)
     }
   },
 
@@ -98,10 +109,14 @@ export const useSessionStore = defineStore('sessions', {
         this.userEmail = init.userEmail
         this.clientVersion = init.clientVersion
         this.defaultModel = init.defaultModel
+        this.applyModes(init)
         this.models = await this.transport.listModels()
         await this.refreshList()
         this.ready = true
-        if (import.meta.client) setInterval(() => this.quietly(this.refreshList()), LIST_POLL_MS)
+        if (import.meta.client) {
+          setInterval(() => this.quietly(this.refreshList()), LIST_POLL_MS)
+          setInterval(() => this.refreshModes(), MODES_POLL_MS)
+        }
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err)
       }
@@ -421,8 +436,31 @@ export const useSessionStore = defineStore('sessions', {
 
     async setPermissionMode(id: string, mode: PermissionModeName) {
       const s = this.sessions[id]
+      const prev = s?.meta.permissionMode
       if (s) s.meta.permissionMode = mode
-      await this.transport?.setPermissionMode(id, MODE_TO_PB[mode])
+      try {
+        await this.transport?.setPermissionMode(id, MODE_TO_PB[mode])
+      } catch (err) {
+        // Refused (e.g. the mode was just disabled by the server's policy): show the mode the session is in.
+        if (s && prev && s.meta.permissionMode === mode) s.meta.permissionMode = prev
+        this.error = err instanceof Error ? err.message : String(err)
+        await this.refreshModes()
+      }
+    },
+
+    applyModes(init: { permissionModes: PermissionMode[], disabledPermissionModes: PermissionMode[] }) {
+      this.permissionModes = init.permissionModes.map(permissionModeName)
+      this.disabledModes = init.disabledPermissionModes.map(permissionModeName).filter(m => m !== 'default')
+    },
+
+    // Reads the permission mode policy again (Initialize); failures keep the last known one.
+    async refreshModes() {
+      if (!this.transport) return
+      try {
+        this.applyModes(await this.transport.initialize())
+      } catch {
+        // Unreachable for now; the next poll tries again.
+      }
     },
 
     async suggestFiles(id: string, query: string) {

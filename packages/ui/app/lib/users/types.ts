@@ -3,6 +3,8 @@
 // user's credentials; the server refuses everyone but admins. Two implementations: connect.ts (the real
 // service through the client) and mock.ts (in memory, for the mock transport).
 
+import type { PermissionModeName } from '~/lib/session/types'
+
 export type UserRole = 'admin' | 'user'
 
 export interface UserView {
@@ -120,6 +122,9 @@ export interface UsersApi {
   setLdap(s: LdapSettings): Promise<LdapSettings>
   testLdap(s: LdapSettings): Promise<LdapTestResult>
   testLdapUser(s: LdapSettings, login: string): Promise<LdapUserLookup>
+  // The permission modes nobody on the server may use ('default' is never among them). Every client enforces it.
+  getModePolicy(): Promise<PermissionModeName[]>
+  setModePolicy(disabled: PermissionModeName[]): Promise<PermissionModeName[]>
 }
 
 export const DEFAULT_LDAP_FILTER = '(|(uid={{username}})(mail={{username}}))'

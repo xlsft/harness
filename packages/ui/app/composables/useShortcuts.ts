@@ -1,9 +1,6 @@
 // Global keyboard shortcuts (PLAN.md §4), where the browser lets us have them:
 // ⌘J terminal · ⌘⇧B browser · ⌘⇧E files · ⌘; side chat · ⌘B sidebar · ⌘N new session · ⌘, settings ·
 // Esc interrupts the running turn (when no card or menu takes it) · ⇧Tab cycles the permission mode · Ctrl+O verbose transcript.
-import type { PermissionModeName } from '~/lib/session/types'
-
-const MODE_CYCLE: PermissionModeName[] = ['default', 'accept_edits', 'auto', 'plan']
 
 export function useShortcuts() {
   const store = useSessionStore()
@@ -32,8 +29,8 @@ export function useShortcuts() {
       handler: () => {
         const s = store.current
         if (!s) return
-        const i = MODE_CYCLE.indexOf(s.meta.permissionMode)
-        store.setPermissionMode(s.meta.id, MODE_CYCLE[(i + 1) % MODE_CYCLE.length]!)
+        // The client's cycle, without the modes the server's policy disables.
+        store.setPermissionMode(s.meta.id, nextMode(s.meta.permissionMode, store.permissionModes, store.disabledModes))
       }
     },
     'escape': {

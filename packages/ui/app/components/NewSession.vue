@@ -83,12 +83,17 @@ onMounted(async () => {
   worktree.value = prefs.worktree ?? false
   model.value = prefs.model ?? ''
   effort.value = prefs.effort ?? 'medium'
-  mode.value = prefs.mode ?? 'auto'
+  mode.value = fitMode(prefs.mode ?? 'auto', store.disabledModes)
   await loadFolders()
   const asked = typeof route.query.cwd === 'string' ? route.query.cwd : ''
   cwd.value = asked || prefs.cwd || folders.value[0]?.path || ''
   if (asked && !folders.value.some(f => f.path === asked)) folders.value.unshift({ path: asked, name: name(asked), exists: true } as RecentFolder)
   input.value?.focus()
+})
+
+// The server's policy can disable the chosen mode while this screen is open.
+watch(() => store.disabledModes, (disabled) => {
+  mode.value = fitMode(mode.value, disabled)
 })
 
 // "+" next to a sidebar group while this screen is already open.
@@ -427,7 +432,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
                 class="w-[280px] border border-accented bg-hover text-[12.5px]"
               >
                 <div
-                  v-for="m in MODES.filter(x => x.key !== 'bypass')"
+                  v-for="m in store.availableModes.filter(x => x.key !== 'bypass')"
                   :key="m.key"
                   role="option"
                   :aria-selected="m.key === mode"

@@ -2,8 +2,11 @@
 // section: admin only, the last admin cannot be demoted, disabled or deleted, nobody disables or deletes
 // themselves, directory users have no local password, passwords are write-only.
 
+import type { PermissionModeName } from '~/lib/session/types'
 import type { LdapSettings, NewUser, UserProviderView, UserRole, UserSessions, UsersApi, UserView } from './types'
 import { emptyLdapSettings } from './types'
+
+const MODE_ORDER: PermissionModeName[] = ['default', 'accept_edits', 'plan', 'auto', 'dont_ask', 'bypass']
 
 const now = () => new Date().toISOString()
 
@@ -13,6 +16,8 @@ export class MockUsersApi implements UsersApi {
   private devices: Record<string, UserSessions> = {}
   private userProviders: Record<string, UserProviderView[]> = {}
   private seq = 0
+  // The server-wide disabled permission modes; the mock transport's Initialize reports them.
+  disabledModes: PermissionModeName[] = []
 
   constructor(private readonly admin = true) {
     const day = 86_400_000
@@ -154,5 +159,17 @@ export class MockUsersApi implements UsersApi {
     const u = this.users.find(x => x.source === 'ldap' && (x.username === login || x.email === login))
     if (!u) return { found: false, message: 'No single directory entry matches this login', dn: '', username: '', email: '', name: '', groups: [], allowed: false, admin: false, userId: '' }
     return { found: true, message: 'Found', dn: `uid=${u.username},ou=people,dc=example,dc=com`, username: u.username, email: u.email, name: u.name, groups: ['cn=staff,ou=groups,dc=example,dc=com'], allowed: true, admin: false, userId: u.id }
+  }
+
+  async getModePolicy() {
+    this.check()
+    return [...this.disabledModes]
+  }
+
+  async setModePolicy(disabled: PermissionModeName[]) {
+    this.check()
+    if (disabled.includes('default')) throw new Error('The default (Ask) permission mode cannot be disabled')
+    this.disabledModes = MODE_ORDER.filter(m => disabled.includes(m))
+    return [...this.disabledModes]
   }
 }

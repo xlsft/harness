@@ -114,7 +114,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
           class="w-[340px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
         >
           <div
-            v-for="m in MODES"
+            v-for="m in store.availableModes"
             :key="m.key"
             role="option"
             :aria-selected="m.key === session.meta.permissionMode"
