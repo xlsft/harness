@@ -7,17 +7,17 @@ const tool = (name: string, input: Record<string, unknown>, result: Record<strin
 })
 
 describe('Wait rows', () => {
-  it('names the target', () => {
-    expect(toolTarget(tool('Wait', { port: 3000, timeout: 5000 }))).toBe('port 3000')
-    expect(toolTarget(tool('Wait', { port: 443, host: 'example.com', timeout: 5000 }))).toBe('port example.com:443')
-    expect(toolTarget(tool('Wait', { task_id: 'b1f2', pattern: 'ready', timeout: 5000 }))).toBe('task b1f2 /ready/')
-    expect(toolTarget(tool('Wait', { path: '/p/out.log', changed: true, timeout: 5000 }))).toBe('/p/out.log (change)')
+  it('shows how long it may wait, then the target (a file by name)', () => {
+    expect(toolTarget(tool('Wait', { port: 3000, timeout: 5000 }))).toBe('up to 5s · port 3000')
+    expect(toolTarget(tool('Wait', { port: 443, host: 'example.com', timeout: 90000 }))).toBe('up to 1m 30s · port example.com:443')
+    expect(toolTarget(tool('Wait', { task_id: 'b1f2', pattern: 'ready', timeout: 60000 }))).toBe('up to 1m · task b1f2 /ready/')
+    expect(toolTarget(tool('Wait', { path: '/p/out.log', changed: true, timeout: 5000 }))).toBe('up to 5s · out.log to change')
     expect(toolIcon(tool('Wait', { port: 3000 }))).toBe('clock')
   })
 
-  it('shows the elapsed time, or that it timed out', () => {
-    expect(toolMeta(tool('Wait', { port: 3000 }, { met: true, elapsed_ms: 2100 }), 0)).toEqual({ text: '2.1s', cls: 'text-ok' })
-    expect(toolMeta(tool('Wait', { port: 3000 }, { met: false, elapsed_ms: 30000 }), 0)).toEqual({ text: 'timed out · 30.0s', cls: 'text-bad' })
+  it('shows the elapsed time; running out the time is a normal end', () => {
+    expect(toolMeta(tool('Wait', { port: 3000 }, { met: true, elapsed_ms: 2100 }), 0)).toEqual({ text: 'ready · 2.1s', cls: 'text-ok' })
+    expect(toolMeta(tool('Wait', { port: 3000 }, { met: false, elapsed_ms: 30000 }), 0)).toEqual({ text: 'waited 30.0s', cls: 'text-muted' })
   })
 })
 

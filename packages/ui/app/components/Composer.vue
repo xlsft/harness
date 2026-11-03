@@ -331,6 +331,13 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         <button
           type="button"
           class="text-muted hover:text-highlighted"
+          @click="store.sendNow(id, q.id)"
+        >
+          send now
+        </button>
+        <button
+          type="button"
+          class="text-muted hover:text-highlighted"
           @click="text = q.text; store.removeQueued(id, q.id)"
         >
           edit

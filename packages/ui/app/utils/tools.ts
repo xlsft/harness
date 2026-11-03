@@ -67,11 +67,21 @@ export function toolTarget(t: ToolItem): string {
 const patternSuffix = (p: unknown) => typeof p === 'string' && p ? ` /${p}/` : ''
 
 // What a Wait call waits for: "port 3000", "port example.com:443", "task b1f2", a path; plus the pattern.
+// 5s · 1m · 1m 30s: a limit the model set, in whole seconds.
+function roughDuration(ms: number): string {
+  const sec = Math.round(ms / 1000)
+  return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}m${sec % 60 ? ` ${sec % 60}s` : ''}`
+}
+
+// "up to 1m · port 3000": how long it may wait first, then what for (a file by its name, not its path).
 function waitTarget(i: Record<string, unknown>): string {
-  if (i.port != null) return `port ${i.host ? `${String(i.host)}:` : ''}${String(i.port)}`
-  if (i.task_id) return `task ${String(i.task_id)}${patternSuffix(i.pattern)}`
-  if (i.path) return `${String(i.path)}${i.changed ? ' (change)' : ''}${patternSuffix(i.pattern)}`
-  return ''
+  const limit = typeof i.timeout === 'number' ? `up to ${roughDuration(i.timeout)}` : ''
+  const what = i.port != null
+    ? `port ${i.host ? `${String(i.host)}:` : ''}${String(i.port)}`
+    : i.task_id
+      ? `task ${String(i.task_id)}${patternSuffix(i.pattern)}`
+      : i.path ? `${String(i.path).split('/').pop()}${i.changed ? ' to change' : ''}${patternSuffix(i.pattern)}` : ''
+  return [limit, what].filter(Boolean).join(' · ')
 }
 
 export interface PatchHunk {
@@ -170,7 +180,8 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
     case 'Wait': {
       if (t.status === 'error') return { text: t.resultSummary || 'error', cls: 'text-bad' }
       const elapsed = formatSeconds(typeof r.elapsed_ms === 'number' ? r.elapsed_ms : t.durationMs)
-      return r.met === false ? { text: `timed out · ${elapsed}`, cls: 'text-bad' } : { text: elapsed, cls: 'text-ok' }
+      // Running out the time is a normal end (a wait used as a timer), not a failure.
+      return r.met === false ? { text: `waited ${elapsed}`, cls: 'text-muted' } : { text: `ready · ${elapsed}`, cls: 'text-ok' }
     }
     case 'Read': {
       const f = r.file as { numLines?: number } | undefined

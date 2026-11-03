@@ -343,6 +343,16 @@ export const useSessionStore = defineStore('sessions', {
       this.localQueue[id] = (this.localQueue[id] ?? []).filter(q => q.id !== queuedId)
     },
 
+    // Sends a waiting message right away instead of after the turn: the client stops the turn (background
+    // shell commands keep running) and the message starts the next one.
+    async sendNow(id: string, queuedId: string) {
+      const q = (this.localQueue[id] ?? []).find(x => x.id === queuedId)
+      if (!q || !this.transport) return
+      this.removeQueued(id, queuedId)
+      this.subscribe(id)
+      await this.transport.sendUserMessage(id, q.id, q.text, SendUserMessageRequest_Delivery.NOW)
+    },
+
     async flushQueue(id: string) {
       const q = this.localQueue[id]
       if (!q?.length || !this.transport) return
