@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -120,7 +121,8 @@ func TestBackgroundTaskReminder(t *testing.T) {
 	}
 	s.Agent.RunTurn(context.Background(), prompt("next"))
 	last := mainRequests(e.srv)[2]
-	if !strings.Contains(reqText(last), "Background task b") || !strings.Contains(reqText(last), "exit code 0") {
+	if txt := reqText(last); !strings.Contains(txt, "Background task b") || !strings.Contains(txt, "exited with code 0") ||
+		!strings.Contains(txt, "Last lines:\nbg-out\n") || !strings.Contains(txt, "(echo bg-out; sleep 0.2)") {
 		t.Fatalf("background_task_done reminder missing:\n%s", reqText(last))
 	}
 	tasks := s.Tasks.List()
@@ -129,6 +131,35 @@ func TestBackgroundTaskReminder(t *testing.T) {
 	}
 	if data, _ := os.ReadFile(tasks[0].OutputPath); string(data) != "bg-out\n" {
 		t.Fatalf("output %q", data)
+	}
+}
+
+// A task whose finish a TaskOutput result already reported gets no
+// completion reminder.
+func TestBackgroundTaskReminderSkippedWhenReported(t *testing.T) {
+	idRe := regexp.MustCompile(`ID: (b[0-9a-f]+)`)
+	e := setup(t, func(n int, r *llm.Request) fg.Reply {
+		switch n {
+		case 0:
+			return fg.Reply{Events: fg.Message("m1", fg.ToolUse("b1", "Bash", map[string]any{"command": "echo bg-out", "run_in_background": true}))}
+		case 1:
+			id := idRe.FindStringSubmatch(fg.ResultText(fg.LastToolResults(r)[0]))[1]
+			return fg.Reply{Events: fg.Message("m2", fg.ToolUse("t1", "TaskOutput", map[string]any{"task_id": id, "block": true, "timeout": 5000}))}
+		}
+		return fg.Reply{Events: fg.Message("m", fg.Text("ok"))}
+	})
+	s := e.open(t, func(o *bootstrap.Options) { o.AllowedTools = []string{"Bash(echo *)"} })
+	if res := s.Agent.RunTurn(context.Background(), prompt("start it")); res.Subtype != agent.SubtypeSuccess {
+		t.Fatalf("result %+v", res)
+	}
+	if tr := fg.ResultText(fg.LastToolResults(mainRequests(e.srv)[2])[0]); !strings.Contains(tr, "exited with code 0") || !strings.Contains(tr, "bg-out") {
+		t.Fatalf("TaskOutput result %q", tr)
+	}
+	s.Agent.RunTurn(context.Background(), prompt("next"))
+	for i, r := range mainRequests(e.srv) {
+		if strings.Contains(reqText(r), "Background task b") {
+			t.Fatalf("request %d carries a completion reminder for a reported task:\n%s", i, reqText(r))
+		}
 	}
 }
 

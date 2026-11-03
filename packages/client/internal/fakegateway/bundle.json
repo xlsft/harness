@@ -1,5 +1,5 @@
 {
-  "version": "test-2026-11-02.2",
+  "version": "test-2026-11-03.1",
   "model": "fake-model",
   "system": [
     {
@@ -311,6 +311,64 @@
           "task_id"
         ]
       }
+    },
+    "TaskOutput": {
+      "description": "Read a background task's new output.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "block": {
+            "type": "boolean"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    "Wait": {
+      "description": "Wait for a task, a port or a file.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "host": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "timeout"
+        ]
+      }
     }
   },
   "reminders": {
@@ -324,7 +382,7 @@
     "plan_mode": "<system-reminder>Plan mode is active. Use read-only tools only, then call ExitPlanMode. Plan file: {{plan_file_path}}</system-reminder>",
     "plan_approved": "<system-reminder>The plan in {{plan_file_path}} was approved.</system-reminder>",
     "plan_rejected": "The user wants to keep planning: {{feedback}}",
-    "background_task_done": "<system-reminder>Background task {{task_id}} finished with exit code {{exit_code}}. Output: {{output_path}}</system-reminder>",
+    "background_task_done": "<system-reminder>Background task {{task_id}} ({{command}}) {{status}}. Last lines:\n{{tail}}\nOutput: {{output_path}}</system-reminder>",
     "compacted": "<system-reminder>The conversation above was compacted into a summary.</system-reminder>",
     "output_style": "<system-reminder>\nOutput style: {{name}}\n{{content}}\n</system-reminder>"
   },

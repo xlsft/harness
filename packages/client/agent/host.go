@@ -78,17 +78,45 @@ func (a *Agent) SetInteractor(ia tools.Interactor) {
 	a.mu.Unlock()
 }
 
+// Background task completion notice: the tail of the output it carries.
+const (
+	taskDoneTailLines  = 10
+	taskDoneTailBytes  = 1500
+	taskDoneCommandMax = 200
+)
+
 // OnTaskEvent forwards a background task event and queues the
-// background_task_done reminder when a task ends.
+// background_task_done reminder when a task ends. The reminder rides on the
+// next model request: the following request of a running turn, or the next
+// turn when the session is idle (a finished task never starts a turn by
+// itself; frontends show the TaskFinished event). It is dropped when a
+// TaskOutput or Wait result already reported the finish.
 func (a *Agent) OnTaskEvent(e tools.TaskEvent) {
 	ev := e
 	a.emit(Event{Kind: EventTask, Task: &ev})
 	if e.Kind == tools.TaskEventFinished && e.Task.Reason != tools.TaskSessionClosed {
+		tail := tools.TailLines(tools.ReadTail(e.Task.OutputPath, 4*taskDoneTailBytes), taskDoneTailLines, taskDoneTailBytes)
+		if strings.TrimSpace(tail) == "" {
+			tail = "(no output)"
+		}
+		cmd := e.Task.Command
+		if len(cmd) > taskDoneCommandMax {
+			cmd = strings.ToValidUTF8(cmd[:taskDoneCommandMax], "") + "…"
+		}
 		a.Remind("background_task_done", map[string]string{
 			"task_id": e.Task.ID, "exit_code": strconv.Itoa(e.Task.ExitCode), "output_path": e.Task.OutputPath,
-			"command": e.Task.Command, "reason": string(e.Task.Reason),
+			"command": cmd, "reason": string(e.Task.Reason), "status": tools.TaskStatus(e.Task), "tail": tail,
 		})
 	}
+}
+
+// taskReported reports whether a pending background_task_done reminder is
+// stale because a tool result already told the model.
+func (a *Agent) taskReported(r pendingReminder) bool {
+	if r.id != "background_task_done" || a.cfg.ToolEnv == nil || a.cfg.ToolEnv.Tasks == nil {
+		return false
+	}
+	return a.cfg.ToolEnv.Tasks.Reported(r.vars["task_id"])
 }
 
 func (a *Agent) noteToolRound(uses []llm.ContentBlock) {
@@ -150,6 +178,9 @@ func (a *Agent) injectReminders(promptID string) {
 	a.mu.Unlock()
 	var blocks []llm.ContentBlock
 	for _, r := range pending {
+		if a.taskReported(r) {
+			continue
+		}
 		tmpl, ok := bundle.Reminders[r.id]
 		if r.id == ReminderOutputStyle {
 			tmpl, ok = styleTemplate(bundle), true
