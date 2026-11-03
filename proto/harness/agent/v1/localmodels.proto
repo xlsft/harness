@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Local LLM providers: model servers running on the user's machine (Ollama, LM Studio, llama.cpp, MLX, vLLM,
+// Jan, or any OpenAI-compatible endpoint) that the client calls directly. The harness server cannot reach the
+// user's localhost, so these never go through harness.llm.v1.GatewayService.
+//
+// Model ids are namespaced "local:<provider id>/<model name>", e.g. "local:ollama/qwen3:8b". Such ids are
+// accepted wherever a model is chosen on this client (CreateSession, SetModel, side chats) and appear in
+// InitializeResponse.models (ModelInfo.local = true), merged after the server's catalog. They are per device:
+// another machine of the same user lists its own.
+//
+// Built-in providers are probed on their default ports (short timeouts, on demand, cached for a while):
+//   ollama   http://127.0.0.1:11434   native API (/api/tags, /api/show, /api/chat)
+//   lmstudio http://127.0.0.1:1234/v1 OpenAI-compatible
+//   llamacpp http://127.0.0.1:8080/v1 OpenAI-compatible (llama-server)
+//   mlx      http://127.0.0.1:8080/v1 OpenAI-compatible (mlx_lm.server; shares the port with llama.cpp, told apart
+//                                    by llama.cpp's /props)
+//   vllm     http://127.0.0.1:8000/v1 OpenAI-compatible
+//   jan      http://127.0.0.1:1337/v1 OpenAI-compatible
+// Users add further endpoints (AddLocalProvider), e.g. a custom OpenAI-compatible server with an API key. Keys
+// are kept in the OS keychain of this machine (file fallback under HARNESS_HOME) and never sent to the server.
+//
+// Requests to local models cost nothing: their token usage is reported to the server (harness.llm.v1.UsageService
+// ReportLocalUsage) with cost 0, so the Usage tab shows them.
+//
+// The server's admin may disallow local models (harness.auth.v1.AdminService.SetLocalModelPolicy): then
+// ListLocalProviders reports disabled_by_policy, no local model is listed or accepted, and requests to them fail
+// with PERMISSION_DENIED.
+
+enum LocalProviderKind {
+  LOCAL_PROVIDER_KIND_UNSPECIFIED = 0;
+  LOCAL_PROVIDER_KIND_OLLAMA = 1;
+  LOCAL_PROVIDER_KIND_LM_STUDIO = 2;
+  LOCAL_PROVIDER_KIND_LLAMA_CPP = 3;
+  LOCAL_PROVIDER_KIND_MLX = 4;
+  LOCAL_PROVIDER_KIND_VLLM = 5;
+  LOCAL_PROVIDER_KIND_JAN = 6;
+  // Any server speaking OpenAI chat completions (/v1/models, /v1/chat/completions).
+  LOCAL_PROVIDER_KIND_CUSTOM = 7;
+}
+
+// A model a local provider serves.
+message LocalModel {
+  // Namespaced id: "local:<provider id>/<name>".
+  string id = 1;
+  // The provider's own model name ("qwen3:8b").
+  string name = 2;
+  string display_name = 3;
+  // Context window the client uses for this model (for Ollama: the num_ctx it requests, at most the model's
+  // own limit). 0 when unknown.
+  int64 context_window = 4;
+  // The model's own maximum context, when the provider reports it (Ollama /api/show). 0 when unknown.
+  int64 max_context_window = 5;
+  // Capabilities, when the provider reports them; unset means unknown (tools are then offered, and dropped if
+  // the server refuses them).
+  optional bool tools = 6;
+  optional bool vision = 7;
+  optional bool thinking = 8;
+  // Ollama details (empty / 0 elsewhere).
+  int64 size_bytes = 9;
+  string family = 10;
+  string parameter_size = 11;
+  string quantization = 12;
+  // RFC 3339, when known.
+  string modified_at = 13;
+}
+
+message LocalProvider {
+  // "ollama", "lmstudio", "llamacpp", "mlx", "vllm", "jan" for the built-in ones; "custom-<suffix>" (or
+  // "<kind>-<suffix>") for added ones.
+  string id = 1;
+  LocalProviderKind kind = 2;
+  string name = 3;
+  // Base URL: the server root for Ollama, the /v1 prefix for OpenAI-compatible servers.
+  string base_url = 4;
+  // Disabled providers are not probed and their models are not offered.
+  bool enabled = 5;
+  // A built-in default endpoint (it can be disabled, not removed).
+  bool builtin = 6;
+  // The last probe reached the server.
+  bool reachable = 7;
+  // Server version, when it reports one (Ollama, vLLM).
+  string version = 8;
+  // Why the last probe failed (empty when reachable or never probed).
+  string error = 9;
+  // An API key is stored for this provider (the key itself is never returned).
+  bool has_api_key = 10;
+  repeated LocalModel models = 11;
+  // RFC 3339; empty when never probed.
+  string checked_at = 12;
+  // Ollama: the context window requested for models (num_ctx), capped by each model's own limit. 0: the
+  // client's default (32768).
+  int64 context_length = 13;
+}
+
+message ListLocalProvidersRequest {
+  // Probe now instead of answering from the cache (which is refreshed when older than a minute).
+  bool refresh = 1;
+}
+
+message ListLocalProvidersResponse {
+  repeated LocalProvider providers = 1;
+  // The server's policy disallows local models on this client.
+  bool disabled_by_policy = 2;
+}
+
+message AddLocalProviderRequest {
+  // UNSPECIFIED means CUSTOM.
+  LocalProviderKind kind = 1;
+  string name = 2;
+  // Required; http or https.
+  string base_url = 3;
+  // Optional; stored in the keychain.
+  string api_key = 4;
+  int64 context_length = 5;
+}
+
+message AddLocalProviderResponse {
+  LocalProvider provider = 1;
+}
+
+// Unset fields stay as they are. Built-in providers accept enabled and context_length only.
+message UpdateLocalProviderRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string base_url = 3;
+  // An empty string removes the stored key.
+  optional string api_key = 4;
+  optional bool enabled = 5;
+  optional int64 context_length = 6;
+}
+
+message UpdateLocalProviderResponse {
+  LocalProvider provider = 1;
+}
+
+// Built-in providers cannot be removed (FAILED_PRECONDITION): disable them instead.
+message RemoveLocalProviderRequest {
+  string id = 1;
+}
+
+message RemoveLocalProviderResponse {}
+
+message RefreshLocalProvidersRequest {
+  // Probe only this provider; empty probes all enabled ones.
+  string id = 1;
+}
+
+message RefreshLocalProvidersResponse {
+  repeated LocalProvider providers = 1;
+  bool disabled_by_policy = 2;
+}
+
+message PullOllamaModelRequest {
+  // An Ollama provider; empty means the built-in "ollama".
+  string provider_id = 1;
+  // Model to pull, e.g. "qwen3:8b".
+  string model = 2;
+}
+
+// Progress of a pull, as Ollama reports it (/api/pull). The last message has done = true.
+message PullOllamaModelResponse {
+  // "pulling manifest", "downloading", "verifying sha256 digest", "success", ...
+  string status = 1;
+  string digest = 2;
+  int64 total = 3;
+  int64 completed = 4;
+  bool done = 5;
+}
+
+message DeleteOllamaModelRequest {
+  string provider_id = 1;
+  string model = 2;
+}
+
+message DeleteOllamaModelResponse {}

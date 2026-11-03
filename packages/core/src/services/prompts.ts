@@ -9,6 +9,7 @@ import { join, relative, sep } from "node:path";
 import { config } from "../env.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "./devices.ts";
+import { isLocalModelId } from "./local-models.ts";
 import { getSlots, resolveModelForUser } from "./models.ts";
 
 export const DYNAMIC_BOUNDARY = "__dynamic_boundary__";
@@ -169,6 +170,12 @@ export async function getPromptBundle(user: PublicUser, modelId: string | undefi
   if (!id) {
     id = (await getSlots()).main;
     if (!id) throw new ApiError("invalid_request", "model query parameter is required");
+  }
+  if (isLocalModelId(id)) {
+    // A model on the user's machine (agent.v1 localmodels.proto): in no catalog. Overrides match the full id
+    // (e.g. "local:*") and the provider's model name.
+    const files = resolvePromptFiles(config().promptsDir, [id, id.slice(id.indexOf("/") + 1)]);
+    return buildBundle(files, id);
   }
   const model = await resolveModelForUser(id, user);
   const files = resolvePromptFiles(config().promptsDir, [model.id, model.upstreamModel]);

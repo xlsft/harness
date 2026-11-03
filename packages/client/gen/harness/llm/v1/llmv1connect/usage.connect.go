@@ -37,6 +37,9 @@ const (
 	UsageServiceGetMyUsageProcedure = "/harness.llm.v1.UsageService/GetMyUsage"
 	// UsageServiceGetUsageProcedure is the fully-qualified name of the UsageService's GetUsage RPC.
 	UsageServiceGetUsageProcedure = "/harness.llm.v1.UsageService/GetUsage"
+	// UsageServiceReportLocalUsageProcedure is the fully-qualified name of the UsageService's
+	// ReportLocalUsage RPC.
+	UsageServiceReportLocalUsageProcedure = "/harness.llm.v1.UsageService/ReportLocalUsage"
 )
 
 // UsageServiceClient is a client for the harness.llm.v1.UsageService service.
@@ -45,6 +48,11 @@ type UsageServiceClient interface {
 	GetMyUsage(context.Context, *connect.Request[v1.GetMyUsageRequest]) (*connect.Response[v1.GetMyUsageResponse], error)
 	// Everyone's usage, or one user's, with a per-user table. Admin only.
 	GetUsage(context.Context, *connect.Request[v1.GetUsageRequest]) (*connect.Response[v1.GetUsageResponse], error)
+	// Records requests the calling client sent to local models on its machine (agent.v1 localmodels.proto), which
+	// never pass through the gateway. They are stored with cost 0 as priced (free, not unknown), under the
+	// calling device. Any signed-in user (a device token); model ids must start with "local:". Only usage data is
+	// sent: local provider configuration stays on the device.
+	ReportLocalUsage(context.Context, *connect.Request[v1.ReportLocalUsageRequest]) (*connect.Response[v1.ReportLocalUsageResponse], error)
 }
 
 // NewUsageServiceClient constructs a client for the harness.llm.v1.UsageService service. By
@@ -70,13 +78,20 @@ func NewUsageServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(usageServiceMethods.ByName("GetUsage")),
 			connect.WithClientOptions(opts...),
 		),
+		reportLocalUsage: connect.NewClient[v1.ReportLocalUsageRequest, v1.ReportLocalUsageResponse](
+			httpClient,
+			baseURL+UsageServiceReportLocalUsageProcedure,
+			connect.WithSchema(usageServiceMethods.ByName("ReportLocalUsage")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // usageServiceClient implements UsageServiceClient.
 type usageServiceClient struct {
-	getMyUsage *connect.Client[v1.GetMyUsageRequest, v1.GetMyUsageResponse]
-	getUsage   *connect.Client[v1.GetUsageRequest, v1.GetUsageResponse]
+	getMyUsage       *connect.Client[v1.GetMyUsageRequest, v1.GetMyUsageResponse]
+	getUsage         *connect.Client[v1.GetUsageRequest, v1.GetUsageResponse]
+	reportLocalUsage *connect.Client[v1.ReportLocalUsageRequest, v1.ReportLocalUsageResponse]
 }
 
 // GetMyUsage calls harness.llm.v1.UsageService.GetMyUsage.
@@ -89,12 +104,22 @@ func (c *usageServiceClient) GetUsage(ctx context.Context, req *connect.Request[
 	return c.getUsage.CallUnary(ctx, req)
 }
 
+// ReportLocalUsage calls harness.llm.v1.UsageService.ReportLocalUsage.
+func (c *usageServiceClient) ReportLocalUsage(ctx context.Context, req *connect.Request[v1.ReportLocalUsageRequest]) (*connect.Response[v1.ReportLocalUsageResponse], error) {
+	return c.reportLocalUsage.CallUnary(ctx, req)
+}
+
 // UsageServiceHandler is an implementation of the harness.llm.v1.UsageService service.
 type UsageServiceHandler interface {
 	// The caller's own usage. Any signed-in user.
 	GetMyUsage(context.Context, *connect.Request[v1.GetMyUsageRequest]) (*connect.Response[v1.GetMyUsageResponse], error)
 	// Everyone's usage, or one user's, with a per-user table. Admin only.
 	GetUsage(context.Context, *connect.Request[v1.GetUsageRequest]) (*connect.Response[v1.GetUsageResponse], error)
+	// Records requests the calling client sent to local models on its machine (agent.v1 localmodels.proto), which
+	// never pass through the gateway. They are stored with cost 0 as priced (free, not unknown), under the
+	// calling device. Any signed-in user (a device token); model ids must start with "local:". Only usage data is
+	// sent: local provider configuration stays on the device.
+	ReportLocalUsage(context.Context, *connect.Request[v1.ReportLocalUsageRequest]) (*connect.Response[v1.ReportLocalUsageResponse], error)
 }
 
 // NewUsageServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -116,12 +141,20 @@ func NewUsageServiceHandler(svc UsageServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(usageServiceMethods.ByName("GetUsage")),
 		connect.WithHandlerOptions(opts...),
 	)
+	usageServiceReportLocalUsageHandler := connect.NewUnaryHandler(
+		UsageServiceReportLocalUsageProcedure,
+		svc.ReportLocalUsage,
+		connect.WithSchema(usageServiceMethods.ByName("ReportLocalUsage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.llm.v1.UsageService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UsageServiceGetMyUsageProcedure:
 			usageServiceGetMyUsageHandler.ServeHTTP(w, r)
 		case UsageServiceGetUsageProcedure:
 			usageServiceGetUsageHandler.ServeHTTP(w, r)
+		case UsageServiceReportLocalUsageProcedure:
+			usageServiceReportLocalUsageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -137,4 +170,8 @@ func (UnimplementedUsageServiceHandler) GetMyUsage(context.Context, *connect.Req
 
 func (UnimplementedUsageServiceHandler) GetUsage(context.Context, *connect.Request[v1.GetUsageRequest]) (*connect.Response[v1.GetUsageResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.UsageService.GetUsage is not implemented"))
+}
+
+func (UnimplementedUsageServiceHandler) ReportLocalUsage(context.Context, *connect.Request[v1.ReportLocalUsageRequest]) (*connect.Response[v1.ReportLocalUsageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.UsageService.ReportLocalUsage is not implemented"))
 }

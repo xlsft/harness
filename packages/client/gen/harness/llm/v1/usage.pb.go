@@ -374,8 +374,10 @@ type UsageModel struct {
 	ProviderName string `protobuf:"bytes,6,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
 	// Some of its requests in the range carry a cost. false: show no cost for it (unknown, not $0); true with
 	// totals.unpriced_tokens > 0: the cost covers part of its tokens only.
-	Priced        bool         `protobuf:"varint,7,opt,name=priced,proto3" json:"priced,omitempty"`
-	Totals        *UsageTotals `protobuf:"bytes,8,opt,name=totals,proto3" json:"totals,omitempty"`
+	Priced bool         `protobuf:"varint,7,opt,name=priced,proto3" json:"priced,omitempty"`
+	Totals *UsageTotals `protobuf:"bytes,8,opt,name=totals,proto3" json:"totals,omitempty"`
+	// A local model of a user's machine (model_id "local:<provider>/<name>", ReportLocalUsage): always free.
+	Local         bool `protobuf:"varint,9,opt,name=local,proto3" json:"local,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -464,6 +466,13 @@ func (x *UsageModel) GetTotals() *UsageTotals {
 		return x.Totals
 	}
 	return nil
+}
+
+func (x *UsageModel) GetLocal() bool {
+	if x != nil {
+		return x.Local
+	}
+	return false
 }
 
 type UsageRequestClass struct {
@@ -902,6 +911,242 @@ func (x *GetUsageResponse) GetUsers() []*UsageUser {
 	return nil
 }
 
+// One request to a local model, as the client saw it.
+type LocalUsageRecord struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Client-generated id; a record sent twice is stored once.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// "local:<provider>/<name>".
+	ModelId string `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	// The local provider's id ("ollama").
+	ProviderId      string `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	RequestClass    string `protobuf:"bytes,4,opt,name=request_class,json=requestClass,proto3" json:"request_class,omitempty"`
+	SessionId       string `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	AgentId         string `protobuf:"bytes,6,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	InputTokens     int64  `protobuf:"varint,7,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
+	OutputTokens    int64  `protobuf:"varint,8,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	CacheReadTokens int64  `protobuf:"varint,9,opt,name=cache_read_tokens,json=cacheReadTokens,proto3" json:"cache_read_tokens,omitempty"`
+	// ok | error | aborted
+	Status     string `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+	StopReason string `protobuf:"bytes,11,opt,name=stop_reason,json=stopReason,proto3" json:"stop_reason,omitempty"`
+	DurationMs int64  `protobuf:"varint,12,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	// RFC 3339; the server's clock when empty or in the future.
+	CreatedAt     string `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalUsageRecord) Reset() {
+	*x = LocalUsageRecord{}
+	mi := &file_harness_llm_v1_usage_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalUsageRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalUsageRecord) ProtoMessage() {}
+
+func (x *LocalUsageRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_usage_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalUsageRecord.ProtoReflect.Descriptor instead.
+func (*LocalUsageRecord) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_usage_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *LocalUsageRecord) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetProviderId() string {
+	if x != nil {
+		return x.ProviderId
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetRequestClass() string {
+	if x != nil {
+		return x.RequestClass
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetInputTokens() int64 {
+	if x != nil {
+		return x.InputTokens
+	}
+	return 0
+}
+
+func (x *LocalUsageRecord) GetOutputTokens() int64 {
+	if x != nil {
+		return x.OutputTokens
+	}
+	return 0
+}
+
+func (x *LocalUsageRecord) GetCacheReadTokens() int64 {
+	if x != nil {
+		return x.CacheReadTokens
+	}
+	return 0
+}
+
+func (x *LocalUsageRecord) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetStopReason() string {
+	if x != nil {
+		return x.StopReason
+	}
+	return ""
+}
+
+func (x *LocalUsageRecord) GetDurationMs() int64 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *LocalUsageRecord) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type ReportLocalUsageRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// At most 500 per call.
+	Records       []*LocalUsageRecord `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportLocalUsageRequest) Reset() {
+	*x = ReportLocalUsageRequest{}
+	mi := &file_harness_llm_v1_usage_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportLocalUsageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportLocalUsageRequest) ProtoMessage() {}
+
+func (x *ReportLocalUsageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_usage_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportLocalUsageRequest.ProtoReflect.Descriptor instead.
+func (*ReportLocalUsageRequest) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_usage_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ReportLocalUsageRequest) GetRecords() []*LocalUsageRecord {
+	if x != nil {
+		return x.Records
+	}
+	return nil
+}
+
+type ReportLocalUsageResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Records stored by this call (duplicates are not counted).
+	Accepted      int32 `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportLocalUsageResponse) Reset() {
+	*x = ReportLocalUsageResponse{}
+	mi := &file_harness_llm_v1_usage_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportLocalUsageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportLocalUsageResponse) ProtoMessage() {}
+
+func (x *ReportLocalUsageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_usage_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportLocalUsageResponse.ProtoReflect.Descriptor instead.
+func (*ReportLocalUsageResponse) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_usage_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ReportLocalUsageResponse) GetAccepted() int32 {
+	if x != nil {
+		return x.Accepted
+	}
+	return 0
+}
+
 var File_harness_llm_v1_usage_proto protoreflect.FileDescriptor
 
 const file_harness_llm_v1_usage_proto_rawDesc = "" +
@@ -928,7 +1173,7 @@ const file_harness_llm_v1_usage_proto_rawDesc = "" +
 	"\x10UsageBucketPoint\x12\x14\n" +
 	"\x05start\x18\x01 \x01(\tR\x05start\x123\n" +
 	"\x06totals\x18\x02 \x01(\v2\x1b.harness.llm.v1.UsageTotalsR\x06totals\x128\n" +
-	"\x06models\x18\x03 \x03(\v2 .harness.llm.v1.UsageBucketModelR\x06models\"\x96\x02\n" +
+	"\x06models\x18\x03 \x03(\v2 .harness.llm.v1.UsageBucketModelR\x06models\"\xac\x02\n" +
 	"\n" +
 	"UsageModel\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x19\n" +
@@ -939,7 +1184,8 @@ const file_harness_llm_v1_usage_proto_rawDesc = "" +
 	"providerId\x12#\n" +
 	"\rprovider_name\x18\x06 \x01(\tR\fproviderName\x12\x16\n" +
 	"\x06priced\x18\a \x01(\bR\x06priced\x123\n" +
-	"\x06totals\x18\b \x01(\v2\x1b.harness.llm.v1.UsageTotalsR\x06totals\"m\n" +
+	"\x06totals\x18\b \x01(\v2\x1b.harness.llm.v1.UsageTotalsR\x06totals\x12\x14\n" +
+	"\x05local\x18\t \x01(\bR\x05local\"m\n" +
 	"\x11UsageRequestClass\x12#\n" +
 	"\rrequest_class\x18\x01 \x01(\tR\frequestClass\x123\n" +
 	"\x06totals\x18\x02 \x01(\v2\x1b.harness.llm.v1.UsageTotalsR\x06totals\"\xf4\x02\n" +
@@ -968,15 +1214,40 @@ const file_harness_llm_v1_usage_proto_rawDesc = "" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"x\n" +
 	"\x10GetUsageResponse\x123\n" +
 	"\x06report\x18\x01 \x01(\v2\x1b.harness.llm.v1.UsageReportR\x06report\x12/\n" +
-	"\x05users\x18\x02 \x03(\v2\x19.harness.llm.v1.UsageUserR\x05users*X\n" +
+	"\x05users\x18\x02 \x03(\v2\x19.harness.llm.v1.UsageUserR\x05users\"\xaa\x03\n" +
+	"\x10LocalUsageRecord\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x1f\n" +
+	"\vprovider_id\x18\x03 \x01(\tR\n" +
+	"providerId\x12#\n" +
+	"\rrequest_class\x18\x04 \x01(\tR\frequestClass\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x05 \x01(\tR\tsessionId\x12\x19\n" +
+	"\bagent_id\x18\x06 \x01(\tR\aagentId\x12!\n" +
+	"\finput_tokens\x18\a \x01(\x03R\vinputTokens\x12#\n" +
+	"\routput_tokens\x18\b \x01(\x03R\foutputTokens\x12*\n" +
+	"\x11cache_read_tokens\x18\t \x01(\x03R\x0fcacheReadTokens\x12\x16\n" +
+	"\x06status\x18\n" +
+	" \x01(\tR\x06status\x12\x1f\n" +
+	"\vstop_reason\x18\v \x01(\tR\n" +
+	"stopReason\x12\x1f\n" +
+	"\vduration_ms\x18\f \x01(\x03R\n" +
+	"durationMs\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\r \x01(\tR\tcreatedAt\"U\n" +
+	"\x17ReportLocalUsageRequest\x12:\n" +
+	"\arecords\x18\x01 \x03(\v2 .harness.llm.v1.LocalUsageRecordR\arecords\"6\n" +
+	"\x18ReportLocalUsageResponse\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\x05R\baccepted*X\n" +
 	"\vUsageBucket\x12\x1c\n" +
 	"\x18USAGE_BUCKET_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11USAGE_BUCKET_HOUR\x10\x01\x12\x14\n" +
-	"\x10USAGE_BUCKET_DAY\x10\x022\xb2\x01\n" +
+	"\x10USAGE_BUCKET_DAY\x10\x022\x99\x02\n" +
 	"\fUsageService\x12S\n" +
 	"\n" +
 	"GetMyUsage\x12!.harness.llm.v1.GetMyUsageRequest\x1a\".harness.llm.v1.GetMyUsageResponse\x12M\n" +
-	"\bGetUsage\x12\x1f.harness.llm.v1.GetUsageRequest\x1a .harness.llm.v1.GetUsageResponseB\xbd\x01\n" +
+	"\bGetUsage\x12\x1f.harness.llm.v1.GetUsageRequest\x1a .harness.llm.v1.GetUsageResponse\x12e\n" +
+	"\x10ReportLocalUsage\x12'.harness.llm.v1.ReportLocalUsageRequest\x1a(.harness.llm.v1.ReportLocalUsageResponseB\xbd\x01\n" +
 	"\x12com.harness.llm.v1B\n" +
 	"UsageProtoP\x01ZAgithub.com/xlsft/harness/packages/client/gen/harness/llm/v1;llmv1\xa2\x02\x03HLX\xaa\x02\x0eHarness.Llm.V1\xca\x02\x0eHarness\\Llm\\V1\xe2\x02\x1aHarness\\Llm\\V1\\GPBMetadata\xea\x02\x10Harness::Llm::V1b\x06proto3"
 
@@ -993,21 +1264,24 @@ func file_harness_llm_v1_usage_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_llm_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_llm_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_harness_llm_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_harness_llm_v1_usage_proto_goTypes = []any{
-	(UsageBucket)(0),           // 0: harness.llm.v1.UsageBucket
-	(*UsageRange)(nil),         // 1: harness.llm.v1.UsageRange
-	(*UsageTotals)(nil),        // 2: harness.llm.v1.UsageTotals
-	(*UsageBucketModel)(nil),   // 3: harness.llm.v1.UsageBucketModel
-	(*UsageBucketPoint)(nil),   // 4: harness.llm.v1.UsageBucketPoint
-	(*UsageModel)(nil),         // 5: harness.llm.v1.UsageModel
-	(*UsageRequestClass)(nil),  // 6: harness.llm.v1.UsageRequestClass
-	(*UsageReport)(nil),        // 7: harness.llm.v1.UsageReport
-	(*UsageUser)(nil),          // 8: harness.llm.v1.UsageUser
-	(*GetMyUsageRequest)(nil),  // 9: harness.llm.v1.GetMyUsageRequest
-	(*GetMyUsageResponse)(nil), // 10: harness.llm.v1.GetMyUsageResponse
-	(*GetUsageRequest)(nil),    // 11: harness.llm.v1.GetUsageRequest
-	(*GetUsageResponse)(nil),   // 12: harness.llm.v1.GetUsageResponse
+	(UsageBucket)(0),                 // 0: harness.llm.v1.UsageBucket
+	(*UsageRange)(nil),               // 1: harness.llm.v1.UsageRange
+	(*UsageTotals)(nil),              // 2: harness.llm.v1.UsageTotals
+	(*UsageBucketModel)(nil),         // 3: harness.llm.v1.UsageBucketModel
+	(*UsageBucketPoint)(nil),         // 4: harness.llm.v1.UsageBucketPoint
+	(*UsageModel)(nil),               // 5: harness.llm.v1.UsageModel
+	(*UsageRequestClass)(nil),        // 6: harness.llm.v1.UsageRequestClass
+	(*UsageReport)(nil),              // 7: harness.llm.v1.UsageReport
+	(*UsageUser)(nil),                // 8: harness.llm.v1.UsageUser
+	(*GetMyUsageRequest)(nil),        // 9: harness.llm.v1.GetMyUsageRequest
+	(*GetMyUsageResponse)(nil),       // 10: harness.llm.v1.GetMyUsageResponse
+	(*GetUsageRequest)(nil),          // 11: harness.llm.v1.GetUsageRequest
+	(*GetUsageResponse)(nil),         // 12: harness.llm.v1.GetUsageResponse
+	(*LocalUsageRecord)(nil),         // 13: harness.llm.v1.LocalUsageRecord
+	(*ReportLocalUsageRequest)(nil),  // 14: harness.llm.v1.ReportLocalUsageRequest
+	(*ReportLocalUsageResponse)(nil), // 15: harness.llm.v1.ReportLocalUsageResponse
 }
 var file_harness_llm_v1_usage_proto_depIdxs = []int32{
 	0,  // 0: harness.llm.v1.UsageRange.bucket:type_name -> harness.llm.v1.UsageBucket
@@ -1027,15 +1301,18 @@ var file_harness_llm_v1_usage_proto_depIdxs = []int32{
 	1,  // 14: harness.llm.v1.GetUsageRequest.range:type_name -> harness.llm.v1.UsageRange
 	7,  // 15: harness.llm.v1.GetUsageResponse.report:type_name -> harness.llm.v1.UsageReport
 	8,  // 16: harness.llm.v1.GetUsageResponse.users:type_name -> harness.llm.v1.UsageUser
-	9,  // 17: harness.llm.v1.UsageService.GetMyUsage:input_type -> harness.llm.v1.GetMyUsageRequest
-	11, // 18: harness.llm.v1.UsageService.GetUsage:input_type -> harness.llm.v1.GetUsageRequest
-	10, // 19: harness.llm.v1.UsageService.GetMyUsage:output_type -> harness.llm.v1.GetMyUsageResponse
-	12, // 20: harness.llm.v1.UsageService.GetUsage:output_type -> harness.llm.v1.GetUsageResponse
-	19, // [19:21] is the sub-list for method output_type
-	17, // [17:19] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	13, // 17: harness.llm.v1.ReportLocalUsageRequest.records:type_name -> harness.llm.v1.LocalUsageRecord
+	9,  // 18: harness.llm.v1.UsageService.GetMyUsage:input_type -> harness.llm.v1.GetMyUsageRequest
+	11, // 19: harness.llm.v1.UsageService.GetUsage:input_type -> harness.llm.v1.GetUsageRequest
+	14, // 20: harness.llm.v1.UsageService.ReportLocalUsage:input_type -> harness.llm.v1.ReportLocalUsageRequest
+	10, // 21: harness.llm.v1.UsageService.GetMyUsage:output_type -> harness.llm.v1.GetMyUsageResponse
+	12, // 22: harness.llm.v1.UsageService.GetUsage:output_type -> harness.llm.v1.GetUsageResponse
+	15, // 23: harness.llm.v1.UsageService.ReportLocalUsage:output_type -> harness.llm.v1.ReportLocalUsageResponse
+	21, // [21:24] is the sub-list for method output_type
+	18, // [18:21] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_usage_proto_init() }
@@ -1049,7 +1326,7 @@ func file_harness_llm_v1_usage_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_llm_v1_usage_proto_rawDesc), len(file_harness_llm_v1_usage_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   12,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

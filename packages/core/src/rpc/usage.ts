@@ -6,6 +6,7 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { UsageBucket, UsageService, type UsageRange } from "../gen/harness/llm/v1/usage_pb.ts";
 import { ApiError } from "../lib/errors.ts";
 import { usageByUser, usageReport, type UsageRangeInput, type UsageReport, type UsageTotals } from "../services/usage.ts";
+import { isLocalModelId, recordLocalUsage } from "../services/local-models.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
 
@@ -50,6 +51,7 @@ function reportToProto(r: UsageReport) {
       providerName: m.provider_name,
       priced: m.priced,
       totals: totalsToProto(m.totals),
+      local: isLocalModelId(m.model_id),
     })),
     requestClasses: r.request_classes.map((c) => ({ requestClass: c.request_class, totals: totalsToProto(c.totals) })),
   };
@@ -60,6 +62,29 @@ export function registerUsageService(router: ConnectRouter): void {
     getMyUsage: guard(async (req, ctx: HandlerContext) => {
       const { user } = await requirePrincipal(ctx);
       return { report: reportToProto(await usageReport(rangeFromProto(req.range), user.id)) };
+    }),
+
+    reportLocalUsage: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      const accepted = await recordLocalUsage(
+        p,
+        req.records.map((r) => ({
+          id: r.id,
+          model_id: r.modelId,
+          provider_id: r.providerId,
+          request_class: r.requestClass,
+          session_id: r.sessionId,
+          agent_id: r.agentId,
+          input_tokens: Number(r.inputTokens),
+          output_tokens: Number(r.outputTokens),
+          cache_read_tokens: Number(r.cacheReadTokens),
+          status: r.status,
+          stop_reason: r.stopReason,
+          duration_ms: Number(r.durationMs),
+          created_at: r.createdAt,
+        })),
+      );
+      return { accepted };
     }),
 
     getUsage: guard(async (req, ctx: HandlerContext) => {

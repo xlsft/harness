@@ -27,6 +27,7 @@ import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
 import type { SpeechApi } from '~/lib/speech/types'
+import type { LocalModelsApi } from './localModels'
 
 export interface ModelInfo {
   id: string
@@ -40,6 +41,8 @@ export interface ModelInfo {
   // Effort levels the model supports, lowest first; empty when it has none.
   efforts?: EffortName[]
   thinking?: boolean
+  // A model of a local provider on the client's machine (id "local:<provider>/<name>"): free, per device.
+  local?: boolean
 }
 
 // What a new session starts with (the new-session screen's chips).
@@ -182,4 +185,7 @@ export interface SessionTransport {
   // global providers), the synced / device settings, transcribe, streamed synthesis, local model downloads, and the
   // admins' global provider keys.
   speech(): SpeechApi
+  // Local LLM providers of the client's machine (Ollama, LM Studio, llama.cpp, MLX, vLLM, Jan, custom
+  // OpenAI-compatible endpoints): detection, models, Ollama pulls. Per device, never synced (./localModels.ts).
+  localModels(): LocalModelsApi
 }

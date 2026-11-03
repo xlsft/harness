@@ -101,6 +101,13 @@ func sideChatModel(ls *liveSession, id string) (llm.Model, error) {
 	}
 	m, ok := ls.sess.Catalog.Find(id)
 	if !ok {
+		// A local model detected after the session opened.
+		var err error
+		if m, ok, err = ls.srv.localCatalogModel(context.Background(), id); err != nil {
+			return llm.Model{}, err
+		}
+	}
+	if !ok {
 		return llm.Model{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown model %s", id))
 	}
 	return m, nil

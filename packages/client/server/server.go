@@ -30,6 +30,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/session"
@@ -109,6 +110,8 @@ type Server struct {
 	// SpeechLocal runs this machine's speech engines; nil: created on first use under HARNESS_HOME/speech.
 	SpeechLocal *speech.Local
 	speech      speechState
+	// LocalModels holds this machine's local LLM providers (localmodels.go); nil: localmodels.Default().
+	LocalModels *localmodels.Registry
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -242,6 +245,7 @@ func modelInfo(m llm.Model) *agentv1.ModelInfo {
 		ContextWindow: int64(m.ContextWindow),
 		Thinking:      m.Capabilities.Thinking,
 		Images:        m.Capabilities.Images,
+		Local:         localmodels.IsLocal(m.ID),
 	}
 	for _, e := range m.Capabilities.Effort {
 		if pe := pbconv.Effort(e); pe != llmv1.Effort_EFFORT_UNSPECIFIED {
@@ -740,6 +744,12 @@ func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetM
 	display, window, thinking := id, 0, false
 	if ls.sess.Catalog != nil {
 		m, ok := ls.sess.Catalog.Find(id)
+		if !ok {
+			// A local model detected after the session opened.
+			if m, ok, err = s.localCatalogModel(ctx, id); err != nil {
+				return nil, err
+			}
+		}
 		if !ok {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown model %s", id))
 		}

@@ -18,6 +18,11 @@ service UsageService {
   rpc GetMyUsage(GetMyUsageRequest) returns (GetMyUsageResponse);
   // Everyone's usage, or one user's, with a per-user table. Admin only.
   rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
+  // Records requests the calling client sent to local models on its machine (agent.v1 localmodels.proto), which
+  // never pass through the gateway. They are stored with cost 0 as priced (free, not unknown), under the
+  // calling device. Any signed-in user (a device token); model ids must start with "local:". Only usage data is
+  // sent: local provider configuration stays on the device.
+  rpc ReportLocalUsage(ReportLocalUsageRequest) returns (ReportLocalUsageResponse);
 }
 
 enum UsageBucket {
@@ -80,6 +85,8 @@ message UsageModel {
   // totals.unpriced_tokens > 0: the cost covers part of its tokens only.
   bool priced = 7;
   UsageTotals totals = 8;
+  // A local model of a user's machine (model_id "local:<provider>/<name>", ReportLocalUsage): always free.
+  bool local = 9;
 }
 
 message UsageRequestClass {
@@ -131,4 +138,36 @@ message GetUsageResponse {
   UsageReport report = 1;
   // Users with requests in the range, by total tokens, largest first.
   repeated UsageUser users = 2;
+}
+
+// One request to a local model, as the client saw it.
+message LocalUsageRecord {
+  // Client-generated id; a record sent twice is stored once.
+  string id = 1;
+  // "local:<provider>/<name>".
+  string model_id = 2;
+  // The local provider's id ("ollama").
+  string provider_id = 3;
+  string request_class = 4;
+  string session_id = 5;
+  string agent_id = 6;
+  int64 input_tokens = 7;
+  int64 output_tokens = 8;
+  int64 cache_read_tokens = 9;
+  // ok | error | aborted
+  string status = 10;
+  string stop_reason = 11;
+  int64 duration_ms = 12;
+  // RFC 3339; the server's clock when empty or in the future.
+  string created_at = 13;
+}
+
+message ReportLocalUsageRequest {
+  // At most 500 per call.
+  repeated LocalUsageRecord records = 1;
+}
+
+message ReportLocalUsageResponse {
+  // Records stored by this call (duplicates are not counted).
+  int32 accepted = 1;
 }
