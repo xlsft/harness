@@ -355,6 +355,7 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 		_ = os.RemoveAll(strings.TrimSuffix(path, ".jsonl"))
 	}
 	_ = os.RemoveAll(bootstrap.FileHistoryDir(id))
+	_ = os.RemoveAll(bootstrap.FolderBaselineDir(id))
 	_ = os.RemoveAll(bootstrap.PlansDir(id))
 	_ = s.browsers().DeleteProfile(id)
 	s.removeChatDir(id)

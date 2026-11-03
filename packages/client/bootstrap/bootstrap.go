@@ -268,6 +268,11 @@ func Tokens(serverOverride string) (auth.TokenSource, string, *auth.User, error)
 // PlansDir is where ExitPlanMode writes the plans of a session.
 func PlansDir(sessionID string) string { return filepath.Join(config.Home(), "plans", sessionID) }
 
+// FolderBaselineDir holds the snapshots of a session's working directories outside git.
+func FolderBaselineDir(sessionID string) string {
+	return filepath.Join(config.Home(), "folder-baselines", sessionID)
+}
+
 // FileHistoryDir holds the file checkpoints of a session.
 func FileHistoryDir(sessionID string) string {
 	return filepath.Join(config.Home(), "file-history", sessionID)
@@ -353,6 +358,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			}
 			if err := session.CopyDir(FileHistoryDir(id), FileHistoryDir(newID)); err != nil {
 				log.Warn("copy file history failed", "err", err)
+			}
+			if err := session.CopyDir(FolderBaselineDir(id), FolderBaselineDir(newID)); err != nil {
+				log.Warn("copy folder baselines failed", "err", err)
 			}
 			id, p = newID, dst
 		}

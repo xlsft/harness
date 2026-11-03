@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/xlsft/harness/packages/client/bootstrap"
+	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/internal/gittest"
 	"github.com/xlsft/harness/packages/client/session"
@@ -359,5 +361,109 @@ func TestParseGitPatchQuotedAndCounts(t *testing.T) {
 	}
 	if fs[1].Path != "with space.txt" || fs[1].Status != agentv1.FileDiffStatus_FILE_DIFF_STATUS_ADDED {
 		t.Fatalf("second: %+v", fs[1])
+	}
+}
+
+func TestSessionDiffFolderSnapshot(t *testing.T) {
+	cwd := t.TempDir()
+	store := t.TempDir()
+	writeTree(t, filepath.Join(cwd, "kept.txt"), "kept\n")
+	writeTree(t, filepath.Join(cwd, "edited.txt"), "one\ntwo\n")
+	writeTree(t, filepath.Join(cwd, "gone.txt"), "bye\n")
+	writeTree(t, filepath.Join(cwd, "big.bin"), strings.Repeat("x", maxDiffFileBytes+1))
+	writeTree(t, filepath.Join(cwd, "node_modules/dep.js"), "dep\n")
+	writeTree(t, filepath.Join(cwd, "nested/.git/HEAD"), "ref\n")
+	writeTree(t, filepath.Join(cwd, "nested/inner.txt"), "inner\n")
+	src := &diffSources{cwd: cwd, dirs: []string{cwd}, folderStore: store}
+
+	if r := diffOf(t, src); len(r.Files) != 0 {
+		t.Fatalf("the first measurement takes the snapshot, nothing changed: %+v", r.Files)
+	}
+	// Changes no file tool saw.
+	writeTree(t, filepath.Join(cwd, "edited.txt"), "one\nTWO\n")
+	if err := os.Remove(filepath.Join(cwd, "gone.txt")); err != nil {
+		t.Fatal(err)
+	}
+	writeTree(t, filepath.Join(cwd, "fresh.txt"), "fresh\n")
+	writeTree(t, filepath.Join(cwd, "big.bin"), strings.Repeat("y", maxDiffFileBytes+2))
+	writeTree(t, filepath.Join(cwd, "node_modules/dep.js"), "changed\n")
+	writeTree(t, filepath.Join(cwd, "nested/inner.txt"), "changed\n")
+	check := func(r *agentv1.GetSessionDiffResponse) {
+		t.Helper()
+		if f := wantDiff(t, r, "edited.txt"); f.Status != agentv1.FileDiffStatus_FILE_DIFF_STATUS_MODIFIED || f.Additions != 1 || f.Deletions != 1 {
+			t.Fatalf("edited: %+v", f)
+		}
+		if f := wantDiff(t, r, "gone.txt"); f.Status != agentv1.FileDiffStatus_FILE_DIFF_STATUS_DELETED || f.Deletions != 1 {
+			t.Fatalf("gone: %+v", f)
+		}
+		if f := wantDiff(t, r, "fresh.txt"); f.Status != agentv1.FileDiffStatus_FILE_DIFF_STATUS_ADDED || f.Additions != 1 {
+			t.Fatalf("fresh: %+v", f)
+		}
+		if f := wantDiff(t, r, "big.bin"); !f.TooLarge || len(f.Hunks) != 0 {
+			t.Fatalf("big: %+v", f)
+		}
+		if len(r.Files) != 4 {
+			t.Fatalf("only these four changed: %+v", r.Files)
+		}
+	}
+	check(diffOf(t, src))
+
+	// A client restart: the snapshot comes back from disk, not from a new walk.
+	folderBaselines.Lock()
+	folderBaselines.held = map[string]*folderBaseline{}
+	folderBaselines.Unlock()
+	check(diffOf(t, src))
+
+	// Put back as it was (a new mtime): no change after all.
+	writeTree(t, filepath.Join(cwd, "edited.txt"), "one\ntwo\n")
+	if r := diffOf(t, src); diffFile(r, "edited.txt") != nil {
+		t.Fatalf("restored file listed: %+v", r.Files)
+	}
+}
+
+func TestSessionDiffFolderSnapshotPartial(t *testing.T) {
+	cwd := t.TempDir()
+	store := t.TempDir()
+	writeTree(t, filepath.Join(cwd, "a.txt"), "a\n")
+	src := &diffSources{cwd: cwd, dirs: []string{cwd}, folderStore: store}
+	real, err := filepath.EvalSymlinks(cwd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Out of time before reaching anything: nothing is known, so nothing reads as new.
+	done, cancel := context.WithCancel(context.Background())
+	cancel()
+	if fb := folderBaselineOf(done, store, real, nil); !fb.Partial || len(fb.Files) != 0 {
+		t.Fatalf("partial snapshot: %+v", fb)
+	}
+	writeTree(t, filepath.Join(cwd, "b.txt"), "b\n")
+	if r := diffOf(t, src); len(r.Files) != 0 {
+		t.Fatalf("a partial snapshot finds no new files: %+v", r.Files)
+	}
+}
+
+func TestSessionDiffFolderTooBroad(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if !folderTooBroad(resolvedPath(home)) || !folderTooBroad("/") {
+		t.Fatal("the home directory and the root get no snapshot")
+	}
+	if folderTooBroad(filepath.Join(resolvedPath(home), "project")) {
+		t.Fatal("a project does")
+	}
+}
+
+func TestSweepFolderBaselines(t *testing.T) {
+	t.Setenv("HARNESS_HOME", t.TempDir())
+	writeTree(t, filepath.Join(bootstrap.FolderBaselineDir("11111111-1111-1111-1111-111111111111"), "x.json"), "{}")
+	kept := "22222222-2222-2222-2222-222222222222"
+	writeTree(t, filepath.Join(bootstrap.FolderBaselineDir(kept), "x.json"), "{}")
+	writeTree(t, session.Store{Root: config.ProjectsDir()}.Path("/some/project", kept), "{}\n")
+	sweepFolderBaselines()
+	if _, err := os.Stat(bootstrap.FolderBaselineDir("11111111-1111-1111-1111-111111111111")); err == nil {
+		t.Fatal("a session without a transcript keeps its snapshot")
+	}
+	if _, err := os.Stat(filepath.Join(bootstrap.FolderBaselineDir(kept), "x.json")); err != nil {
+		t.Fatalf("a session with a transcript lost its snapshot: %v", err)
 	}
 }

@@ -9,8 +9,10 @@ package harness.agent.v1;
 // - in a git repository of the session (of a working directory or the cwd): the working tree against HEAD, staged
 //   and untracked files included, .gitignore respected; in a worktree the client created, against the merge base
 //   of its base ref, so what the session committed there still counts;
-// - elsewhere: for files the file tools touched, their content before the session first touched them; files in
-//   the session's scratch dir and private no-folder dir without such a snapshot count as new.
+// - elsewhere: for files the file tools touched, their content before the session first touched them; for the rest
+//   of a working directory, a snapshot taken when the session first measured it (a file too big to copy is listed
+//   as changed without hunks; a directory too big to walk compares only the files reached, finding no new ones);
+//   files in the session's scratch dir and private no-folder dir without a snapshot count as new.
 
 message GetSessionDiffRequest {
   string session_id = 1;
@@ -42,9 +44,9 @@ enum FileDiffStatus {
 enum FileDiffSource {
   FILE_DIFF_SOURCE_UNSPECIFIED = 0;
   FILE_DIFF_SOURCE_GIT = 1;
-  // The file checkpoints: its content before the session's first edit.
+  // The file checkpoints or the directory's snapshot: its content before the session changed it.
   FILE_DIFF_SOURCE_HISTORY = 2;
-  // Found in the scratch or private directory, without a snapshot: diffed against nothing.
+  // Without a snapshot (created since, or in the scratch or private directory): diffed against nothing.
   FILE_DIFF_SOURCE_NEW_FILE = 3;
 }
 

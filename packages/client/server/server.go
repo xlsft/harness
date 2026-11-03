@@ -210,6 +210,7 @@ func (s *Server) mux() *http.ServeMux {
 // serveHandler serves h over HTTP/1.1 and h2c on ln until ctx ends, then
 // closes all sessions.
 func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handler) error {
+	sweepFolderBaselines()
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
 	p.SetUnencryptedHTTP2(true)

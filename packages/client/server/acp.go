@@ -646,6 +646,7 @@ func (r acpRouted) DeleteSession(ctx context.Context, req *connect.Request[agent
 		_, _ = r.Sync.DeleteSession(cctx, &syncv1.DeleteSessionRequest{SessionId: id})
 		cancel()
 	}
+	_ = os.RemoveAll(bootstrap.FolderBaselineDir(id))
 	if err := os.RemoveAll(acpSessionDir(id)); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

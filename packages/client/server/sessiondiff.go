@@ -20,6 +20,8 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/xlsft/harness/packages/client/bootstrap"
+	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/tools"
 )
@@ -55,10 +57,13 @@ type diffSources struct {
 	baseRef string
 	// baselines are the file checkpoints' first states (session.FileHistory.Baselines).
 	baselines map[string]string
+	// folderStore is where the snapshots of its directories outside git are kept (folderbaseline.go); "" for none.
+	// harnessHome stays out of them: the client's own files change all the time.
+	folderStore, harnessHome string
 }
 
 func (ls *liveSession) diffSources() *diffSources {
-	src := &diffSources{cwd: ls.sess.Cwd, dirs: []string{ls.sess.Cwd}}
+	src := &diffSources{cwd: ls.sess.Cwd, dirs: []string{ls.sess.Cwd}, folderStore: bootstrap.FolderBaselineDir(ls.sess.ID), harnessHome: config.Home()}
 	if ls.sess.Permissions != nil {
 		if d := ls.sess.Permissions.WorkingDirs(); len(d) > 0 {
 			src.dirs = d
@@ -80,7 +85,7 @@ func (ls *liveSession) diffSources() *diffSources {
 }
 
 func acpDiffSources(id, cwd string, dirs []string) *diffSources {
-	src := &diffSources{cwd: cwd, dirs: append([]string{cwd}, dirs...)}
+	src := &diffSources{cwd: cwd, dirs: append([]string{cwd}, dirs...), folderStore: bootstrap.FolderBaselineDir(id), harnessHome: config.Home()}
 	if isNoFolder(id, cwd) {
 		src.private = cwd
 	}
@@ -144,6 +149,8 @@ func computeSessionDiff(ctx context.Context, src *diffSources) (*agentv1.GetSess
 	}
 	scratch := filepath.Clean(src.scratch)
 	done := map[string]bool{}
+	type folder struct{ clean, real string }
+	var folders []folder
 	for _, d := range append([]string{src.cwd}, src.dirs...) {
 		if d == "" || (src.scratch != "" && filepath.Clean(d) == scratch) {
 			continue
@@ -154,7 +161,11 @@ func computeSessionDiff(ctx context.Context, src *diffSources) (*agentv1.GetSess
 			continue
 		}
 		top := gitTopLevel(ctx, real)
-		if top == "" || done[top] {
+		if top == "" {
+			folders = append(folders, folder{d, real})
+			continue
+		}
+		if done[top] {
 			continue
 		}
 		done[top] = true
@@ -170,6 +181,11 @@ func computeSessionDiff(ctx context.Context, src *diffSources) (*agentv1.GetSess
 		}
 	}
 	b.addHistory()
+	if src.folderStore != "" {
+		for _, f := range folders {
+			b.addFolder(ctx, f.clean, f.real)
+		}
+	}
 	if src.scratch != "" {
 		b.addNewFiles(src.scratch, scratchInternal)
 	}

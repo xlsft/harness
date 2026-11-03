@@ -82,9 +82,9 @@ type FileDiffSource int32
 const (
 	FileDiffSource_FILE_DIFF_SOURCE_UNSPECIFIED FileDiffSource = 0
 	FileDiffSource_FILE_DIFF_SOURCE_GIT         FileDiffSource = 1
-	// The file checkpoints: its content before the session's first edit.
+	// The file checkpoints or the directory's snapshot: its content before the session changed it.
 	FileDiffSource_FILE_DIFF_SOURCE_HISTORY FileDiffSource = 2
-	// Found in the scratch or private directory, without a snapshot: diffed against nothing.
+	// Without a snapshot (created since, or in the scratch or private directory): diffed against nothing.
 	FileDiffSource_FILE_DIFF_SOURCE_NEW_FILE FileDiffSource = 3
 )
 
