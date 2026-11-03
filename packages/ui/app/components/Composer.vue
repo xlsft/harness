@@ -131,7 +131,6 @@ watch([text, mode], ([t, m]) => {
 })
 const status = computed(() => props.session.meta.status)
 const busy = computed(() => status.value === 'working' || status.value === 'needs_input')
-const waiting = computed(() => status.value === 'needs_input')
 const offline = computed(() => status.value === 'waiting_for_connection')
 const ended = computed(() => status.value === 'ended')
 const planMode = computed(() => props.session.meta.permissionMode === 'plan')
@@ -189,7 +188,6 @@ watch([menu, token], async () => {
   ]
 }, { immediate: true })
 
-const pending = computed(() => props.session.items.find(i => i.kind === 'permission' && i.state === 'pending'))
 
 const placeholder = computed(() => {
   if (dictation.state.value === 'transcribing') return 'Transcribing…'
@@ -423,27 +421,6 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
     @dragenter.prevent="dragging = Math.max(1, dragging)"
     @dragover.prevent
   >
-    <!-- status line -->
-    <div
-      v-if="waiting"
-      class="flex items-center gap-[9px] text-[12px] text-muted"
-    >
-      <HIcon
-        name="shield"
-        :size="14"
-        class="text-accent"
-      />
-      <span class="text-strong">Waiting for approval</span>
-      <template v-if="pending && pending.kind === 'permission'">
-        · Allow {{ pending.toolName }}?
-      </template>
-      <span class="flex-1" /><span class="flex shrink-0 items-center gap-2.5 max-sm:hidden @max-[560px]:hidden">
-        <span class="inline-flex items-center gap-1"><HKeys keys="1" />allow</span>
-        <span class="inline-flex items-center gap-1"><HKeys keys="2" />always</span>
-        <span class="inline-flex items-center gap-1"><HKeys keys="escape" />deny</span>
-      </span>
-    </div>
-
     <!-- context almost full -->
     <div
       v-if="contextPct >= 90 && !busy"

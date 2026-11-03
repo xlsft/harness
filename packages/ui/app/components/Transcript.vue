@@ -226,6 +226,16 @@ function toBottom() {
                 />
               </template>
             </template>
+            <!-- Plan mode entered: a line, like the other notices (the plan itself is a PlanCard) -->
+            <div
+              v-else-if="b.item.kind === 'tool' && b.item.name === 'EnterPlanMode'"
+              class="flex items-center gap-2 text-[12px] text-muted"
+            >
+              <HIcon
+                name="info"
+                :size="14"
+              />{{ b.item.status === 'error' ? 'Could not enter plan mode' : b.item.status === 'running' ? 'Entering plan mode' : 'Entered plan mode' }}
+            </div>
             <ToolCall
               v-else-if="b.item.kind === 'tool'"
               :tool="b.item"
