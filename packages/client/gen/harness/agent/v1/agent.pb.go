@@ -1153,7 +1153,8 @@ type SessionInfo struct {
 	// Per-user state, stored on the harness server: hidden from the default session list.
 	Archived bool `protobuf:"varint,14,opt,name=archived,proto3" json:"archived,omitempty"`
 	Pinned   bool `protobuf:"varint,15,opt,name=pinned,proto3" json:"pinned,omitempty"`
-	// Set for forks and /branch.
+	// Set for forks and /branch: the session it was forked from. Frontends list such a sub-session under its
+	// parent. Cleared by UpdateSessionRequest.detach_from_parent.
 	ParentSessionId string `protobuf:"bytes,16,opt,name=parent_session_id,json=parentSessionId,proto3" json:"parent_session_id,omitempty"`
 	// Active output style id or name ("default" when none).
 	OutputStyle string `protobuf:"bytes,17,opt,name=output_style,json=outputStyle,proto3" json:"output_style,omitempty"`
@@ -1570,7 +1571,9 @@ type CreateSessionRequest struct {
 	MaxTurns int32 `protobuf:"varint,9,opt,name=max_turns,json=maxTurns,proto3" json:"max_turns,omitempty"`
 	// Extra working directories (like --add-dir).
 	AdditionalDirectories []string `protobuf:"bytes,10,rep,name=additional_directories,json=additionalDirectories,proto3" json:"additional_directories,omitempty"`
-	// With fork: fork at this checkpoint instead of the end of the transcript.
+	// With fork: fork at this checkpoint instead of the end of the transcript. Any UserMessage.uuid of the
+	// transcript works (a checkpoint id is the uuid of the prompt that started its turn): the fork holds the
+	// conversation before that message. A fork is titled "<parent title> (fork)".
 	ForkAtCheckpointId string `protobuf:"bytes,11,opt,name=fork_at_checkpoint_id,json=forkAtCheckpointId,proto3" json:"fork_at_checkpoint_id,omitempty"`
 	// Run the session in a new git worktree of the repository containing `cwd`. The client creates it under
 	// <repository>/.harness/worktrees/<name> (git-ignored) on a new branch, and the session's cwd becomes the
@@ -2430,9 +2433,12 @@ type UpdateSessionRequest struct {
 	// true also stops the session if it is live; false brings it back to the list.
 	Archived *bool `protobuf:"varint,4,opt,name=archived,proto3,oneof" json:"archived,omitempty"`
 	// A rename (recorded as a custom-title transcript entry); it wins over the AI title. Must not be empty.
-	Title         *string `protobuf:"bytes,5,opt,name=title,proto3,oneof" json:"title,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Title *string `protobuf:"bytes,5,opt,name=title,proto3,oneof" json:"title,omitempty"`
+	// true clears parent_session_id (recorded in the transcript and synced): a sub-session becomes a top-level
+	// session. false is a no-op.
+	DetachFromParent *bool `protobuf:"varint,6,opt,name=detach_from_parent,json=detachFromParent,proto3,oneof" json:"detach_from_parent,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *UpdateSessionRequest) Reset() {
@@ -2498,6 +2504,13 @@ func (x *UpdateSessionRequest) GetTitle() string {
 		return *x.Title
 	}
 	return ""
+}
+
+func (x *UpdateSessionRequest) GetDetachFromParent() bool {
+	if x != nil && x.DetachFromParent != nil {
+		return *x.DetachFromParent
+	}
+	return false
 }
 
 type UpdateSessionResponse struct {
@@ -4106,9 +4119,19 @@ func (x *ShowRequested) GetUrl() string {
 }
 
 type UserMessage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	Content       []*v1.ContentBlock     `protobuf:"bytes,2,rep,name=content,proto3" json:"content,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// In a UserMessage event: the transcript entry's uuid (a checkpoint id when it started a turn). In
+	// QueueChanged: SendUserMessageRequest.uuid.
+	Uuid    string             `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	Content []*v1.ContentBlock `protobuf:"bytes,2,rep,name=content,proto3" json:"content,omitempty"`
+	// UserMessage events only: SendUserMessageRequest.uuid of each message this entry carries, in order (a
+	// prompt that started a turn: one; queued messages injected into a running turn together: one each). A
+	// UserMessage event means the agent took the message: frontends mark these uuids as read. Recorded in the
+	// transcript, so history replay carries them too. Empty for entries a frontend did not send (interrupt
+	// markers, older transcripts).
+	ClientUuids []string `protobuf:"bytes,3,rep,name=client_uuids,json=clientUuids,proto3" json:"client_uuids,omitempty"`
+	// QueueChanged only: RFC 3339, UTC, when the client queued the message.
+	QueuedAt      string `protobuf:"bytes,4,opt,name=queued_at,json=queuedAt,proto3" json:"queued_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4155,6 +4178,20 @@ func (x *UserMessage) GetContent() []*v1.ContentBlock {
 		return x.Content
 	}
 	return nil
+}
+
+func (x *UserMessage) GetClientUuids() []string {
+	if x != nil {
+		return x.ClientUuids
+	}
+	return nil
+}
+
+func (x *UserMessage) GetQueuedAt() string {
+	if x != nil {
+		return x.QueuedAt
+	}
+	return ""
 }
 
 // Streaming fragment of the assistant message `message_id`.
@@ -5034,6 +5071,9 @@ func (x *QuestionOption) GetRecommended() bool {
 	return false
 }
 
+// The client's queue of messages sent while a turn runs, in order (full replacement). A message leaves it when it
+// is injected into the running turn or starts the next one (a UserMessage event with its client_uuids follows),
+// is taken back (RemoveQueuedMessage) or becomes a question's answer (QUESTION_OUTCOME_MESSAGE).
 type QueueChanged struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Queued        []*UserMessage         `protobuf:"bytes,1,rep,name=queued,proto3" json:"queued,omitempty"`
@@ -8437,18 +8477,20 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x03cwd\x18\x01 \x01(\tR\x03cwd\x12)\n" +
 	"\x10include_archived\x18\x02 \x01(\bR\x0fincludeArchived\"Q\n" +
 	"\x14ListSessionsResponse\x129\n" +
-	"\bsessions\x18\x01 \x03(\v2\x1d.harness.agent.v1.SessionInfoR\bsessions\"\xd8\x01\n" +
+	"\bsessions\x18\x01 \x03(\v2\x1d.harness.agent.v1.SessionInfoR\bsessions\"\xa2\x02\n" +
 	"\x14UpdateSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
 	"\x06pinned\x18\x02 \x01(\bH\x00R\x06pinned\x88\x01\x01\x12\x1b\n" +
 	"\x06unread\x18\x03 \x01(\bH\x01R\x06unread\x88\x01\x01\x12\x1f\n" +
 	"\barchived\x18\x04 \x01(\bH\x02R\barchived\x88\x01\x01\x12\x19\n" +
-	"\x05title\x18\x05 \x01(\tH\x03R\x05title\x88\x01\x01B\t\n" +
+	"\x05title\x18\x05 \x01(\tH\x03R\x05title\x88\x01\x01\x121\n" +
+	"\x12detach_from_parent\x18\x06 \x01(\bH\x04R\x10detachFromParent\x88\x01\x01B\t\n" +
 	"\a_pinnedB\t\n" +
 	"\a_unreadB\v\n" +
 	"\t_archivedB\b\n" +
-	"\x06_title\"P\n" +
+	"\x06_titleB\x15\n" +
+	"\x13_detach_from_parent\"P\n" +
 	"\x15UpdateSessionResponse\x127\n" +
 	"\asession\x18\x01 \x01(\v2\x1d.harness.agent.v1.SessionInfoR\asession\"5\n" +
 	"\x14DeleteSessionRequest\x12\x1d\n" +
@@ -8587,10 +8629,12 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x10KIND_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tKIND_FILE\x10\x01\x12\r\n" +
 	"\tKIND_DIFF\x10\x02\x12\f\n" +
-	"\bKIND_URL\x10\x03\"Y\n" +
+	"\bKIND_URL\x10\x03\"\x99\x01\n" +
 	"\vUserMessage\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x126\n" +
-	"\acontent\x18\x02 \x03(\v2\x1c.harness.llm.v1.ContentBlockR\acontent\"\xa3\x01\n" +
+	"\acontent\x18\x02 \x03(\v2\x1c.harness.llm.v1.ContentBlockR\acontent\x12!\n" +
+	"\fclient_uuids\x18\x03 \x03(\tR\vclientUuids\x12\x1b\n" +
+	"\tqueued_at\x18\x04 \x01(\tR\bqueuedAt\"\xa3\x01\n" +
 	"\x0eAssistantDelta\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x14\n" +

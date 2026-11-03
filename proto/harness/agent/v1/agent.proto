@@ -211,7 +211,8 @@ message SessionInfo {
   // Per-user state, stored on the harness server: hidden from the default session list.
   bool archived = 14;
   bool pinned = 15;
-  // Set for forks and /branch.
+  // Set for forks and /branch: the session it was forked from. Frontends list such a sub-session under its
+  // parent. Cleared by UpdateSessionRequest.detach_from_parent.
   string parent_session_id = 16;
   // Active output style id or name ("default" when none).
   string output_style = 17;
@@ -279,7 +280,9 @@ message CreateSessionRequest {
   int32 max_turns = 9;
   // Extra working directories (like --add-dir).
   repeated string additional_directories = 10;
-  // With fork: fork at this checkpoint instead of the end of the transcript.
+  // With fork: fork at this checkpoint instead of the end of the transcript. Any UserMessage.uuid of the
+  // transcript works (a checkpoint id is the uuid of the prompt that started its turn): the fork holds the
+  // conversation before that message. A fork is titled "<parent title> (fork)".
   string fork_at_checkpoint_id = 11;
   // Run the session in a new git worktree of the repository containing `cwd`. The client creates it under
   // <repository>/.harness/worktrees/<name> (git-ignored) on a new branch, and the session's cwd becomes the
@@ -384,6 +387,9 @@ message UpdateSessionRequest {
   optional bool archived = 4;
   // A rename (recorded as a custom-title transcript entry); it wins over the AI title. Must not be empty.
   optional string title = 5;
+  // true clears parent_session_id (recorded in the transcript and synced): a sub-session becomes a top-level
+  // session. false is a no-op.
+  optional bool detach_from_parent = 6;
 }
 
 message UpdateSessionResponse {
@@ -579,8 +585,18 @@ message ShowRequested {
 }
 
 message UserMessage {
+  // In a UserMessage event: the transcript entry's uuid (a checkpoint id when it started a turn). In
+  // QueueChanged: SendUserMessageRequest.uuid.
   string uuid = 1;
   repeated harness.llm.v1.ContentBlock content = 2;
+  // UserMessage events only: SendUserMessageRequest.uuid of each message this entry carries, in order (a
+  // prompt that started a turn: one; queued messages injected into a running turn together: one each). A
+  // UserMessage event means the agent took the message: frontends mark these uuids as read. Recorded in the
+  // transcript, so history replay carries them too. Empty for entries a frontend did not send (interrupt
+  // markers, older transcripts).
+  repeated string client_uuids = 3;
+  // QueueChanged only: RFC 3339, UTC, when the client queued the message.
+  string queued_at = 4;
 }
 
 // Streaming fragment of the assistant message `message_id`.
@@ -721,6 +737,9 @@ message QuestionOption {
   bool recommended = 3;
 }
 
+// The client's queue of messages sent while a turn runs, in order (full replacement). A message leaves it when it
+// is injected into the running turn or starts the next one (a UserMessage event with its client_uuids follows),
+// is taken back (RemoveQueuedMessage) or becomes a question's answer (QUESTION_OUTCOME_MESSAGE).
 message QueueChanged {
   repeated UserMessage queued = 1;
 }

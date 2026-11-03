@@ -311,6 +311,10 @@ func (s *Server) updateRemote(ctx context.Context, info *agentv1.SessionInfo, m 
 		patch.Title = title
 		paths = append(paths, "info.title")
 	}
+	detach := m.GetDetachFromParent()
+	if detach {
+		paths = append(paths, "info.parent_session_id")
+	}
 	if len(paths) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("nothing to update"))
 	}
@@ -330,6 +334,16 @@ func (s *Server) updateRemote(ctx context.Context, info *agentv1.SessionInfo, m 
 		}
 		s.stateMu.Unlock()
 		info.Title = title
+	}
+	if detach {
+		s.stateMu.Lock()
+		if l := s.listed[info.Id]; l != nil {
+			l = proto.Clone(l).(*agentv1.SessionInfo)
+			l.ParentSessionId = ""
+			s.listed[info.Id] = l
+		}
+		s.stateMu.Unlock()
+		info.ParentSessionId = ""
 	}
 	s.applyState(info)
 	return connect.NewResponse(&agentv1.UpdateSessionResponse{Session: info}), nil

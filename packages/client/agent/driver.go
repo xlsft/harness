@@ -57,13 +57,17 @@ func (d *Driver) Submit(id string, blocks []llm.ContentBlock) (queued bool) {
 	}
 	d.running = true
 	d.interrupts = 0
-	go d.loop(blocks)
+	var ids []string
+	if id != "" {
+		ids = []string{id}
+	}
+	go d.loop(blocks, ids)
 	return false
 }
 
-func (d *Driver) loop(blocks []llm.ContentBlock) {
+func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 	for {
-		res := d.Agent.RunTurn(d.ctx, blocks)
+		res := d.Agent.RunTurnWithIDs(d.ctx, blocks, ids)
 		if d.OnResult != nil {
 			d.OnResult(res)
 		}
@@ -75,7 +79,7 @@ func (d *Driver) loop(blocks []llm.ContentBlock) {
 			d.replying = false
 			d.idle.Broadcast()
 		}
-		next := d.Agent.DrainQueue()
+		next, nextIDs := d.Agent.DrainQueueIDs()
 		if len(next) == 0 || d.ctx.Err() != nil {
 			d.running = false
 			d.idle.Broadcast()
@@ -84,7 +88,7 @@ func (d *Driver) loop(blocks []llm.ContentBlock) {
 		}
 		d.interrupts = 0
 		d.mu.Unlock()
-		blocks = next
+		blocks, ids = next, nextIDs
 	}
 }
 
@@ -154,7 +158,7 @@ func (d *Driver) Exclusive(f func()) error {
 	d.mu.Unlock()
 	f()
 	d.mu.Lock()
-	next := d.Agent.DrainQueue()
+	next, ids := d.Agent.DrainQueueIDs()
 	if len(next) == 0 || d.ctx.Err() != nil {
 		d.running = false
 		d.idle.Broadcast()
@@ -163,7 +167,7 @@ func (d *Driver) Exclusive(f func()) error {
 	}
 	d.interrupts = 0
 	d.mu.Unlock()
-	go d.loop(next)
+	go d.loop(next, ids)
 	return nil
 }
 

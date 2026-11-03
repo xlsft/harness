@@ -113,6 +113,11 @@ type Entry struct {
 	UUID                    string   `json:"uuid,omitempty"`
 	Timestamp               string   `json:"timestamp"`
 
+	// ClientUUIDs are the frontend ids (SendUserMessageRequest.uuid) of the
+	// messages a user entry carries: one for a prompt, one per message for
+	// queued messages injected into a turn together.
+	ClientUUIDs []string `json:"clientUuids,omitempty"`
+
 	// compaction
 	LogicalParentUUID         string           `json:"logicalParentUuid,omitempty"`
 	CompactMetadata           *CompactMetadata `json:"compactMetadata,omitempty"`
@@ -128,6 +133,9 @@ type Entry struct {
 	PromptBundleVersion string `json:"promptBundleVersion,omitempty"`
 	Model               string `json:"model,omitempty"`
 	ForkedFrom          string `json:"forkedFrom,omitempty"`
+	// DetachedFromParent clears an earlier forkedFrom: the session is no
+	// longer listed as a sub-session of its parent.
+	DetachedFromParent bool `json:"detachedFromParent,omitempty"`
 	// OutputStyle is the active output style id or name ("default" when
 	// cleared); the last one on record wins on resume.
 	OutputStyle string `json:"outputStyle,omitempty"`
@@ -412,6 +420,9 @@ func Rebuild(entries []Entry) Conversation {
 			if e.ForkedFrom != "" {
 				c.ForkedFrom = e.ForkedFrom
 			}
+			if e.DetachedFromParent {
+				c.ForkedFrom = ""
+			}
 			if e.OutputStyle != "" {
 				c.OutputStyle = e.OutputStyle
 			}
@@ -504,6 +515,25 @@ func TurnParent(entries []Entry, uuid string) (*string, bool) {
 		}
 	}
 	return p, true
+}
+
+// ParentOf returns the session a transcript was forked from, "" when it was
+// never forked or was detached from its parent since. The last record wins
+// (a fork of a fork copies its parent's record before its own).
+func ParentOf(entries []Entry) string {
+	parent := ""
+	for _, e := range entries {
+		if e.Type != TypeMeta {
+			continue
+		}
+		if e.ForkedFrom != "" {
+			parent = e.ForkedFrom
+		}
+		if e.DetachedFromParent {
+			parent = ""
+		}
+	}
+	return parent
 }
 
 // FirstText returns the first text of an entry's message.

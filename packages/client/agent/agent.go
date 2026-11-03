@@ -118,6 +118,9 @@ type Event struct {
 	Kind    EventKind
 	UUID    string
 	Message *llm.Message
+	// ClientUUIDs (EventUser) are the frontend ids of the submitted messages
+	// the user message carries (Enqueue / RunTurnWithIDs ids).
+	ClientUUIDs []string
 	// Response is set on EventAssistant (id, model, stop reason, usage).
 	Response *llm.Response
 	// Raw is the raw stream event (EventStream) or the structured tool
@@ -435,10 +438,22 @@ func (a *Agent) RemoveQueued(id string) bool {
 
 // DrainQueue removes and returns all queued content.
 func (a *Agent) DrainQueue() []llm.ContentBlock {
+	out, _ := a.DrainQueueIDs()
+	return out
+}
+
+// DrainQueueIDs removes and returns all queued content, with the ids of the
+// queued messages it came from (messages enqueued without an id are left
+// out of ids).
+func (a *Agent) DrainQueueIDs() ([]llm.ContentBlock, []string) {
 	a.mu.Lock()
 	var out []llm.ContentBlock
+	var ids []string
 	for _, q := range a.queue {
 		out = append(out, q.blocks...)
+		if q.id != "" {
+			ids = append(ids, q.id)
+		}
 	}
 	a.queue = nil
 	a.mu.Unlock()
@@ -446,7 +461,7 @@ func (a *Agent) DrainQueue() []llm.ContentBlock {
 		a.notePrompt(out)
 		a.emit(Event{Kind: EventQueueDrained})
 	}
-	return out
+	return out, ids
 }
 
 // maxPrompts is how many recent user prompts are kept for the auto-mode decider.
@@ -619,6 +634,13 @@ func (a *Agent) projectContextBlock() llm.ContentBlock {
 // error occurs. The tool_use/tool_result pairing invariant always holds when
 // it returns.
 func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnResult {
+	return a.RunTurnWithIDs(parent, input, nil)
+}
+
+// RunTurnWithIDs is RunTurn for input submitted by frontends: clientIDs are
+// the ids of the messages it is made of, recorded on the prompt's transcript
+// entry and reported with its EventUser (ClientUUIDs).
+func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock, clientIDs []string) TurnResult {
 	ctx, cancel := context.WithCancel(parent)
 	a.mu.Lock()
 	a.cancel = cancel
@@ -655,9 +677,9 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 			created, _ := time.Parse("2006-01-02T15:04:05.000Z", snap.Timestamp)
 			a.emit(Event{Kind: EventCheckpoint, Checkpoint: &Checkpoint{ID: uid, UserMessageUUID: uid, PromptPreview: preview(input), CreatedAt: created}})
 		}
-		a.record(session.Entry{Type: session.TypeUser, UUID: uid, Message: userEntryMessage(input), PromptID: promptID, PermissionMode: a.permissionMode()})
+		a.record(session.Entry{Type: session.TypeUser, UUID: uid, Message: userEntryMessage(input), PromptID: promptID, PermissionMode: a.permissionMode(), ClientUUIDs: clientIDs})
 		a.notePrompt(input)
-		a.emit(Event{Kind: EventUser, UUID: uid, Message: &llm.Message{Role: llm.RoleUser, Content: input}})
+		a.emit(Event{Kind: EventUser, UUID: uid, Message: &llm.Message{Role: llm.RoleUser, Content: input}, ClientUUIDs: clientIDs})
 		a.emit(Event{Kind: EventTurnStarted, UUID: uid, Model: a.Model()})
 		if a.permissionMode() == string(permissions.ModePlan) && a.cfg.ToolEnv != nil {
 			a.Remind("plan_mode", map[string]string{"plan_file_path": tools.NextPlanPath(a.cfg.ToolEnv)})
@@ -730,16 +752,18 @@ func (a *Agent) RunTurn(parent context.Context, input []llm.ContentBlock) TurnRe
 		}
 		a.noteToolRound(uses)
 		var tail []llm.ContentBlock
+		var tailIDs []string
 		tail = append(tail, comments...)
 		if interrupted {
 			tail = append(tail, llm.TextBlock(a.interruptedText()))
-		} else if q := a.DrainQueue(); len(q) > 0 {
+		} else if q, ids := a.DrainQueueIDs(); len(q) > 0 {
 			tail = append(tail, q...)
+			tailIDs = ids
 		}
 		if len(tail) > 0 {
 			blocks = append(blocks, tail...)
-			id := a.record(session.Entry{Type: session.TypeUser, Message: userEntryMessage(tail), PromptID: promptID})
-			a.emit(Event{Kind: EventUser, UUID: id, Message: &llm.Message{Role: llm.RoleUser, Content: tail}})
+			id := a.record(session.Entry{Type: session.TypeUser, Message: userEntryMessage(tail), PromptID: promptID, ClientUUIDs: tailIDs})
+			a.emit(Event{Kind: EventUser, UUID: id, Message: &llm.Message{Role: llm.RoleUser, Content: tail}, ClientUUIDs: tailIDs})
 		}
 		a.appendMessage(llm.RoleUser, blocks)
 		toolTurns++

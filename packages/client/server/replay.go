@@ -251,11 +251,11 @@ func (r *replayer) user(e session.Entry, at time.Time) {
 		}
 		r.turnStarts = append(r.turnStarts, len(r.events))
 		r.cur = &replayTurn{promptID: e.PromptID, start: at, last: at, started: &agentv1.TurnStarted{UserMessageUuid: e.UUID}}
-		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(other)}}})
+		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(other), ClientUuids: e.ClientUUIDs}}})
 		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnStarted{TurnStarted: r.cur.started}})
 		return
 	}
-	r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(other)}}})
+	r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(other), ClientUuids: e.ClientUUIDs}}})
 	if r.cur != nil {
 		r.cur.lastResult, r.cur.lastAsst = false, false
 		if interrupt {

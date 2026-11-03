@@ -81,3 +81,28 @@ func TestJSONLRoundTrip(t *testing.T) {
 		t.Fatalf("find %q %v", p, err)
 	}
 }
+
+func TestParentOf(t *testing.T) {
+	meta := func(from string, detached bool) Entry {
+		return Entry{Type: TypeMeta, ForkedFrom: from, DetachedFromParent: detached}
+	}
+	cases := []struct {
+		name    string
+		entries []Entry
+		want    string
+	}{
+		{"never forked", []Entry{{Type: TypeUser, UUID: "u"}}, ""},
+		{"fork", []Entry{meta("a", false)}, "a"},
+		{"fork of a fork: the last record wins", []Entry{meta("a", false), {Type: TypeUser}, meta("b", false)}, "b"},
+		{"detached", []Entry{meta("a", false), meta("", true)}, ""},
+		{"fork of a detached session", []Entry{meta("a", false), meta("", true), meta("c", false)}, "c"},
+	}
+	for _, c := range cases {
+		if got := ParentOf(c.entries); got != c.want {
+			t.Errorf("%s: ParentOf = %q, want %q", c.name, got, c.want)
+		}
+		if got := Rebuild(c.entries).ForkedFrom; got != c.want {
+			t.Errorf("%s: Rebuild.ForkedFrom = %q, want %q", c.name, got, c.want)
+		}
+	}
+}

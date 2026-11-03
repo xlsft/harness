@@ -222,6 +222,10 @@ func (s *Server) UpdateSession(ctx context.Context, req *connect.Request[agentv1
 	if m.Title != nil {
 		paths = append(paths, "info.title")
 	}
+	detach := m.GetDetachFromParent()
+	if detach {
+		paths = append(paths, "info.parent_session_id")
+	}
 	if len(paths) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("nothing to update"))
 	}
@@ -237,6 +241,9 @@ func (s *Server) UpdateSession(ctx context.Context, req *connect.Request[agentv1
 		info.Pinned, info.Unread, info.Archived = st.pinned, st.unread, st.archived
 		if m.Title != nil {
 			info.Title = title
+		}
+		if detach {
+			info.ParentSessionId = ""
 		}
 		cctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 		_, err := s.Sync.UpsertSession(cctx, &syncv1.UpsertSessionRequest{Session: &syncv1.SessionMetadata{Info: info}, UpdatePaths: paths})
@@ -257,6 +264,18 @@ func (s *Server) UpdateSession(ctx context.Context, req *connect.Request[agentv1
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("record the title: %w", err))
 		}
 	}
+	if detach {
+		var err error
+		if ls != nil {
+			err = ls.detachFromParent()
+		} else {
+			err = appendEntry(path, session.Entry{Type: session.TypeMeta, SessionID: id, DetachedFromParent: true,
+				Timestamp: time.Now().UTC().Format("2006-01-02T15:04:05.000Z")})
+		}
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("record the detach: %w", err))
+		}
+	}
 	var info *agentv1.SessionInfo
 	if ls != nil {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: ls.info()}})
@@ -274,8 +293,13 @@ func (s *Server) UpdateSession(ctx context.Context, req *connect.Request[agentv1
 
 // appendCustomTitle records a rename in the transcript of a session that is not live.
 func appendCustomTitle(path, id, title string) error {
-	data, err := json.Marshal(session.Entry{Type: session.TypeCustomTitle, CustomTitle: title, SessionID: id,
+	return appendEntry(path, session.Entry{Type: session.TypeCustomTitle, CustomTitle: title, SessionID: id,
 		Timestamp: time.Now().UTC().Format("2006-01-02T15:04:05.000Z")})
+}
+
+// appendEntry appends an unchained entry to the transcript of a session that is not live.
+func appendEntry(path string, e session.Entry) error {
+	data, err := json.Marshal(e)
 	if err != nil {
 		return err
 	}
