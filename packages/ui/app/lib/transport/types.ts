@@ -20,6 +20,8 @@ import type { ProvidersApi } from '~/lib/providers/types'
 
 export interface ModelInfo {
   id: string
+  // Human name from the catalog; empty when the server has none (the id is shown then).
+  displayName?: string
   provider: string
   contextWindow: number
   // e.g. "$0.60/M"; empty when unknown.

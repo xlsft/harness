@@ -362,19 +362,12 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               <div
                 role="listbox"
                 aria-label="Model"
-                class="max-h-[340px] w-[300px] overflow-y-auto border border-accented bg-hover text-[12.5px]"
+                class="w-[380px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
               >
-                <div
-                  v-for="m in store.models"
-                  :key="m.id"
-                  role="option"
-                  :aria-selected="m.id === (model || store.models[0]?.id)"
-                  class="flex cursor-default gap-2.5 border-l-2 px-2.5 py-[5px]"
-                  :class="m.id === (model || store.models[0]?.id) ? 'border-accent bg-raised text-white' : 'border-transparent text-toned hover:bg-raised'"
-                  @click="model = m.id"
-                >
-                  <span class="flex-1">{{ m.id }}</span><span class="text-[11px] text-muted">{{ m.provider }}</span>
-                </div>
+                <ModelList
+                  :selected="model || store.models[0]?.id || ''"
+                  @pick="model = $event"
+                />
                 <div
                   v-if="efforts.length"
                   class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted"

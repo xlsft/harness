@@ -12,7 +12,6 @@ const store = useSessionStore()
 
 const modeOpen = ref(props.initialMenu === 'mode')
 const modelOpen = ref(props.initialMenu === 'model')
-const query = ref('')
 
 const id = computed(() => props.session.meta.id)
 const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
@@ -20,21 +19,6 @@ const efforts = computed(() => modelEfforts(model.value))
 const effort = computed(() => fitEffort(store.effort[id.value] ?? 'medium', efforts.value))
 const contextWindow = computed(() => model.value?.contextWindow || 200_000)
 const pct = computed(() => Math.min(100, Math.round((props.session.contextTokens / contextWindow.value) * 100)))
-const groups = computed(() => {
-  const map = new Map<string, typeof store.models>()
-  for (const m of store.models) {
-    if (query.value && !m.id.includes(query.value.toLowerCase())) continue
-    const p = m.provider || 'Models'
-    if (!map.has(p)) map.set(p, [])
-    map.get(p)!.push(m)
-  }
-  return [...map.entries()]
-})
-
-function ctx(n: number) {
-  return n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}k`
-}
-
 const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.5px] whitespace-nowrap text-muted hover:text-toned'
 </script>
 
@@ -74,48 +58,10 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
           aria-label="Model"
           class="w-[380px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
         >
-          <label class="flex items-center gap-2 border-b border-default px-2.5 py-1.5 text-muted">
-            <HIcon
-              name="search"
-              :size="13"
-            />
-            <input
-              v-model="query"
-              placeholder="Search models"
-              class="min-w-0 flex-1 bg-transparent text-white outline-none placeholder:text-muted"
-            >
-          </label>
-          <template
-            v-for="[provider, models] in groups"
-            :key="provider"
-          >
-            <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
-              {{ provider }}
-            </div>
-            <div
-              v-for="m in models"
-              :key="m.id"
-              role="option"
-              :aria-selected="m.id === session.meta.model"
-              :aria-disabled="m.offline || undefined"
-              class="flex cursor-default gap-2.5 border-l-2 px-2.5 py-[5px]"
-              :class="m.id === session.meta.model ? 'border-accent bg-raised' : 'border-transparent hover:bg-raised'"
-              @click="!m.offline && (store.setModel(id, m.id), modelOpen = false)"
-            >
-              <span
-                class="flex-1"
-                :class="m.offline ? 'text-muted' : 'text-white'"
-              >{{ m.id }}</span>
-              <span
-                v-if="m.offline"
-                class="text-[11px] text-orange"
-              >offline</span>
-              <span
-                v-else
-                class="text-[11px] text-muted"
-              >{{ ctx(m.contextWindow) }}{{ m.price ? ` · ${m.price}` : '' }}</span>
-            </div>
-          </template>
+          <ModelList
+            :selected="session.meta.model"
+            @pick="store.setModel(id, $event); modelOpen = false"
+          />
           <div
             v-if="efforts.length"
             class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted"
