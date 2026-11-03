@@ -187,6 +187,23 @@ const (
 	// AgentServiceStopSideChatProcedure is the fully-qualified name of the AgentService's StopSideChat
 	// RPC.
 	AgentServiceStopSideChatProcedure = "/harness.agent.v1.AgentService/StopSideChat"
+	// AgentServiceListAcpAgentsProcedure is the fully-qualified name of the AgentService's
+	// ListAcpAgents RPC.
+	AgentServiceListAcpAgentsProcedure = "/harness.agent.v1.AgentService/ListAcpAgents"
+	// AgentServiceInstallAcpAgentProcedure is the fully-qualified name of the AgentService's
+	// InstallAcpAgent RPC.
+	AgentServiceInstallAcpAgentProcedure = "/harness.agent.v1.AgentService/InstallAcpAgent"
+	// AgentServiceUpdateAcpAgentProcedure is the fully-qualified name of the AgentService's
+	// UpdateAcpAgent RPC.
+	AgentServiceUpdateAcpAgentProcedure = "/harness.agent.v1.AgentService/UpdateAcpAgent"
+	// AgentServiceUninstallAcpAgentProcedure is the fully-qualified name of the AgentService's
+	// UninstallAcpAgent RPC.
+	AgentServiceUninstallAcpAgentProcedure = "/harness.agent.v1.AgentService/UninstallAcpAgent"
+	// AgentServiceAuthenticateAcpAgentProcedure is the fully-qualified name of the AgentService's
+	// AuthenticateAcpAgent RPC.
+	AgentServiceAuthenticateAcpAgentProcedure = "/harness.agent.v1.AgentService/AuthenticateAcpAgent"
+	// AgentServiceSetAcpModeProcedure is the fully-qualified name of the AgentService's SetAcpMode RPC.
+	AgentServiceSetAcpModeProcedure = "/harness.agent.v1.AgentService/SetAcpMode"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -333,6 +350,21 @@ type AgentServiceClient interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest]) (*connect.ServerStreamForClient[v1.AskSideChatResponse], error)
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// --- ACP agents (acp.proto, packages/client/acp) ---
+	// Device-local: the registry cache, installs and sign-in state live in HARNESS_HOME and are never synced.
+	// The registry's agents merged with what is installed here, runtime availability and sign-in state.
+	ListAcpAgents(context.Context, *connect.Request[v1.ListAcpAgentsRequest]) (*connect.Response[v1.ListAcpAgentsResponse], error)
+	// Installs the registry's current version (binary: download, verify, extract; npx/uvx: record it), streaming
+	// progress. FAILED_PRECONDITION when the agent cannot run here (no build, runtime missing).
+	InstallAcpAgent(context.Context, *connect.Request[v1.InstallAcpAgentRequest]) (*connect.ServerStreamForClient[v1.InstallAcpAgentResponse], error)
+	// Installs the registry's current version over an installed one (the old version is removed afterwards).
+	UpdateAcpAgent(context.Context, *connect.Request[v1.UpdateAcpAgentRequest]) (*connect.ServerStreamForClient[v1.UpdateAcpAgentResponse], error)
+	UninstallAcpAgent(context.Context, *connect.Request[v1.UninstallAcpAgentRequest]) (*connect.Response[v1.UninstallAcpAgentResponse], error)
+	// Signs an agent in with one of its auth methods: agent methods call `authenticate`, terminal methods return
+	// the command to run (optionally started in a client terminal), env-var methods name the variables.
+	AuthenticateAcpAgent(context.Context, *connect.Request[v1.AuthenticateAcpAgentRequest]) (*connect.Response[v1.AuthenticateAcpAgentResponse], error)
+	// Switches an ACP session to one of the agent's modes (session/set_mode).
+	SetAcpMode(context.Context, *connect.Request[v1.SetAcpModeRequest]) (*connect.Response[v1.SetAcpModeResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -676,6 +708,42 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 			connect.WithClientOptions(opts...),
 		),
+		listAcpAgents: connect.NewClient[v1.ListAcpAgentsRequest, v1.ListAcpAgentsResponse](
+			httpClient,
+			baseURL+AgentServiceListAcpAgentsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListAcpAgents")),
+			connect.WithClientOptions(opts...),
+		),
+		installAcpAgent: connect.NewClient[v1.InstallAcpAgentRequest, v1.InstallAcpAgentResponse](
+			httpClient,
+			baseURL+AgentServiceInstallAcpAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("InstallAcpAgent")),
+			connect.WithClientOptions(opts...),
+		),
+		updateAcpAgent: connect.NewClient[v1.UpdateAcpAgentRequest, v1.UpdateAcpAgentResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateAcpAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateAcpAgent")),
+			connect.WithClientOptions(opts...),
+		),
+		uninstallAcpAgent: connect.NewClient[v1.UninstallAcpAgentRequest, v1.UninstallAcpAgentResponse](
+			httpClient,
+			baseURL+AgentServiceUninstallAcpAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UninstallAcpAgent")),
+			connect.WithClientOptions(opts...),
+		),
+		authenticateAcpAgent: connect.NewClient[v1.AuthenticateAcpAgentRequest, v1.AuthenticateAcpAgentResponse](
+			httpClient,
+			baseURL+AgentServiceAuthenticateAcpAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("AuthenticateAcpAgent")),
+			connect.WithClientOptions(opts...),
+		),
+		setAcpMode: connect.NewClient[v1.SetAcpModeRequest, v1.SetAcpModeResponse](
+			httpClient,
+			baseURL+AgentServiceSetAcpModeProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetAcpMode")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -736,6 +804,12 @@ type agentServiceClient struct {
 	deleteSideChat        *connect.Client[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse]
 	askSideChat           *connect.Client[v1.AskSideChatRequest, v1.AskSideChatResponse]
 	stopSideChat          *connect.Client[v1.StopSideChatRequest, v1.StopSideChatResponse]
+	listAcpAgents         *connect.Client[v1.ListAcpAgentsRequest, v1.ListAcpAgentsResponse]
+	installAcpAgent       *connect.Client[v1.InstallAcpAgentRequest, v1.InstallAcpAgentResponse]
+	updateAcpAgent        *connect.Client[v1.UpdateAcpAgentRequest, v1.UpdateAcpAgentResponse]
+	uninstallAcpAgent     *connect.Client[v1.UninstallAcpAgentRequest, v1.UninstallAcpAgentResponse]
+	authenticateAcpAgent  *connect.Client[v1.AuthenticateAcpAgentRequest, v1.AuthenticateAcpAgentResponse]
+	setAcpMode            *connect.Client[v1.SetAcpModeRequest, v1.SetAcpModeResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1013,6 +1087,36 @@ func (c *agentServiceClient) StopSideChat(ctx context.Context, req *connect.Requ
 	return c.stopSideChat.CallUnary(ctx, req)
 }
 
+// ListAcpAgents calls harness.agent.v1.AgentService.ListAcpAgents.
+func (c *agentServiceClient) ListAcpAgents(ctx context.Context, req *connect.Request[v1.ListAcpAgentsRequest]) (*connect.Response[v1.ListAcpAgentsResponse], error) {
+	return c.listAcpAgents.CallUnary(ctx, req)
+}
+
+// InstallAcpAgent calls harness.agent.v1.AgentService.InstallAcpAgent.
+func (c *agentServiceClient) InstallAcpAgent(ctx context.Context, req *connect.Request[v1.InstallAcpAgentRequest]) (*connect.ServerStreamForClient[v1.InstallAcpAgentResponse], error) {
+	return c.installAcpAgent.CallServerStream(ctx, req)
+}
+
+// UpdateAcpAgent calls harness.agent.v1.AgentService.UpdateAcpAgent.
+func (c *agentServiceClient) UpdateAcpAgent(ctx context.Context, req *connect.Request[v1.UpdateAcpAgentRequest]) (*connect.ServerStreamForClient[v1.UpdateAcpAgentResponse], error) {
+	return c.updateAcpAgent.CallServerStream(ctx, req)
+}
+
+// UninstallAcpAgent calls harness.agent.v1.AgentService.UninstallAcpAgent.
+func (c *agentServiceClient) UninstallAcpAgent(ctx context.Context, req *connect.Request[v1.UninstallAcpAgentRequest]) (*connect.Response[v1.UninstallAcpAgentResponse], error) {
+	return c.uninstallAcpAgent.CallUnary(ctx, req)
+}
+
+// AuthenticateAcpAgent calls harness.agent.v1.AgentService.AuthenticateAcpAgent.
+func (c *agentServiceClient) AuthenticateAcpAgent(ctx context.Context, req *connect.Request[v1.AuthenticateAcpAgentRequest]) (*connect.Response[v1.AuthenticateAcpAgentResponse], error) {
+	return c.authenticateAcpAgent.CallUnary(ctx, req)
+}
+
+// SetAcpMode calls harness.agent.v1.AgentService.SetAcpMode.
+func (c *agentServiceClient) SetAcpMode(ctx context.Context, req *connect.Request[v1.SetAcpModeRequest]) (*connect.Response[v1.SetAcpModeResponse], error) {
+	return c.setAcpMode.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1157,6 +1261,21 @@ type AgentServiceHandler interface {
 	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest], *connect.ServerStream[v1.AskSideChatResponse]) error
 	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
 	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
+	// --- ACP agents (acp.proto, packages/client/acp) ---
+	// Device-local: the registry cache, installs and sign-in state live in HARNESS_HOME and are never synced.
+	// The registry's agents merged with what is installed here, runtime availability and sign-in state.
+	ListAcpAgents(context.Context, *connect.Request[v1.ListAcpAgentsRequest]) (*connect.Response[v1.ListAcpAgentsResponse], error)
+	// Installs the registry's current version (binary: download, verify, extract; npx/uvx: record it), streaming
+	// progress. FAILED_PRECONDITION when the agent cannot run here (no build, runtime missing).
+	InstallAcpAgent(context.Context, *connect.Request[v1.InstallAcpAgentRequest], *connect.ServerStream[v1.InstallAcpAgentResponse]) error
+	// Installs the registry's current version over an installed one (the old version is removed afterwards).
+	UpdateAcpAgent(context.Context, *connect.Request[v1.UpdateAcpAgentRequest], *connect.ServerStream[v1.UpdateAcpAgentResponse]) error
+	UninstallAcpAgent(context.Context, *connect.Request[v1.UninstallAcpAgentRequest]) (*connect.Response[v1.UninstallAcpAgentResponse], error)
+	// Signs an agent in with one of its auth methods: agent methods call `authenticate`, terminal methods return
+	// the command to run (optionally started in a client terminal), env-var methods name the variables.
+	AuthenticateAcpAgent(context.Context, *connect.Request[v1.AuthenticateAcpAgentRequest]) (*connect.Response[v1.AuthenticateAcpAgentResponse], error)
+	// Switches an ACP session to one of the agent's modes (session/set_mode).
+	SetAcpMode(context.Context, *connect.Request[v1.SetAcpModeRequest]) (*connect.Response[v1.SetAcpModeResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1496,6 +1615,42 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListAcpAgentsHandler := connect.NewUnaryHandler(
+		AgentServiceListAcpAgentsProcedure,
+		svc.ListAcpAgents,
+		connect.WithSchema(agentServiceMethods.ByName("ListAcpAgents")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceInstallAcpAgentHandler := connect.NewServerStreamHandler(
+		AgentServiceInstallAcpAgentProcedure,
+		svc.InstallAcpAgent,
+		connect.WithSchema(agentServiceMethods.ByName("InstallAcpAgent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateAcpAgentHandler := connect.NewServerStreamHandler(
+		AgentServiceUpdateAcpAgentProcedure,
+		svc.UpdateAcpAgent,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateAcpAgent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUninstallAcpAgentHandler := connect.NewUnaryHandler(
+		AgentServiceUninstallAcpAgentProcedure,
+		svc.UninstallAcpAgent,
+		connect.WithSchema(agentServiceMethods.ByName("UninstallAcpAgent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceAuthenticateAcpAgentHandler := connect.NewUnaryHandler(
+		AgentServiceAuthenticateAcpAgentProcedure,
+		svc.AuthenticateAcpAgent,
+		connect.WithSchema(agentServiceMethods.ByName("AuthenticateAcpAgent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetAcpModeHandler := connect.NewUnaryHandler(
+		AgentServiceSetAcpModeProcedure,
+		svc.SetAcpMode,
+		connect.WithSchema(agentServiceMethods.ByName("SetAcpMode")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1608,6 +1763,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceAskSideChatHandler.ServeHTTP(w, r)
 		case AgentServiceStopSideChatProcedure:
 			agentServiceStopSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceListAcpAgentsProcedure:
+			agentServiceListAcpAgentsHandler.ServeHTTP(w, r)
+		case AgentServiceInstallAcpAgentProcedure:
+			agentServiceInstallAcpAgentHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateAcpAgentProcedure:
+			agentServiceUpdateAcpAgentHandler.ServeHTTP(w, r)
+		case AgentServiceUninstallAcpAgentProcedure:
+			agentServiceUninstallAcpAgentHandler.ServeHTTP(w, r)
+		case AgentServiceAuthenticateAcpAgentProcedure:
+			agentServiceAuthenticateAcpAgentHandler.ServeHTTP(w, r)
+		case AgentServiceSetAcpModeProcedure:
+			agentServiceSetAcpModeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1835,4 +2002,28 @@ func (UnimplementedAgentServiceHandler) AskSideChat(context.Context, *connect.Re
 
 func (UnimplementedAgentServiceHandler) StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListAcpAgents(context.Context, *connect.Request[v1.ListAcpAgentsRequest]) (*connect.Response[v1.ListAcpAgentsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListAcpAgents is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) InstallAcpAgent(context.Context, *connect.Request[v1.InstallAcpAgentRequest], *connect.ServerStream[v1.InstallAcpAgentResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.InstallAcpAgent is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateAcpAgent(context.Context, *connect.Request[v1.UpdateAcpAgentRequest], *connect.ServerStream[v1.UpdateAcpAgentResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateAcpAgent is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UninstallAcpAgent(context.Context, *connect.Request[v1.UninstallAcpAgentRequest]) (*connect.Response[v1.UninstallAcpAgentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UninstallAcpAgent is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) AuthenticateAcpAgent(context.Context, *connect.Request[v1.AuthenticateAcpAgentRequest]) (*connect.Response[v1.AuthenticateAcpAgentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AuthenticateAcpAgent is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetAcpMode(context.Context, *connect.Request[v1.SetAcpModeRequest]) (*connect.Response[v1.SetAcpModeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetAcpMode is not implemented"))
 }

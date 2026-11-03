@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package harness.agent.v1;
 
+import "harness/agent/v1/acp.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
@@ -171,6 +172,22 @@ service AgentService {
   rpc AskSideChat(AskSideChatRequest) returns (stream AskSideChatResponse);
   // Stops the running answer of a side chat; the text so far is kept (stopped = true).
   rpc StopSideChat(StopSideChatRequest) returns (StopSideChatResponse);
+
+  // --- ACP agents (acp.proto, packages/client/acp) ---
+  // Device-local: the registry cache, installs and sign-in state live in HARNESS_HOME and are never synced.
+  // The registry's agents merged with what is installed here, runtime availability and sign-in state.
+  rpc ListAcpAgents(ListAcpAgentsRequest) returns (ListAcpAgentsResponse);
+  // Installs the registry's current version (binary: download, verify, extract; npx/uvx: record it), streaming
+  // progress. FAILED_PRECONDITION when the agent cannot run here (no build, runtime missing).
+  rpc InstallAcpAgent(InstallAcpAgentRequest) returns (stream InstallAcpAgentResponse);
+  // Installs the registry's current version over an installed one (the old version is removed afterwards).
+  rpc UpdateAcpAgent(UpdateAcpAgentRequest) returns (stream UpdateAcpAgentResponse);
+  rpc UninstallAcpAgent(UninstallAcpAgentRequest) returns (UninstallAcpAgentResponse);
+  // Signs an agent in with one of its auth methods: agent methods call `authenticate`, terminal methods return
+  // the command to run (optionally started in a client terminal), env-var methods name the variables.
+  rpc AuthenticateAcpAgent(AuthenticateAcpAgentRequest) returns (AuthenticateAcpAgentResponse);
+  // Switches an ACP session to one of the agent's modes (session/set_mode).
+  rpc SetAcpMode(SetAcpModeRequest) returns (SetAcpModeResponse);
 }
 
 enum PermissionMode {
@@ -282,6 +299,13 @@ message SessionInfo {
   // settings, instructions or MCP servers). Frontends show "No folder" instead of the path; the directory is
   // removed with the session.
   bool no_folder = 23;
+  // The engine running the session: "harness" (empty from older clients) or "acp:<agent id>" (acp.proto).
+  string engine = 24;
+  // Features the session's engine does not support: frontends hide them, their RPCs fail with
+  // FAILED_PRECONDITION. Empty for harness sessions.
+  repeated SessionFeature unsupported_features = 25;
+  // ACP sessions only: the agent's modes, commands, sign-in and context state.
+  optional AcpSessionState acp = 26;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -346,6 +370,9 @@ message CreateSessionRequest {
   // <repository>/.harness/worktrees/<name> (git-ignored) on a new branch, and the session's cwd becomes the
   // matching directory inside it. Fails with FAILED_PRECONDITION outside a git repository.
   optional WorktreeOptions worktree = 12;
+  // The session engine: empty or "harness" for the harness agent loop, "acp:<agent id>" for an installed ACP
+  // agent (acp.proto). Recorded with the session: a resume uses the recorded engine and ignores this field.
+  string engine = 13;
 }
 
 message WorktreeOptions {
