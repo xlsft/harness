@@ -538,4 +538,46 @@ describe("sessions", () => {
     expect([...p1.sessions, ...p2.sessions].map((s) => s.info!.id).sort()).toEqual([sid, S_API, S_WEB].sort());
     await expectError(A.listSessions({ pageToken: "garbage" }), Code.InvalidArgument);
   });
+
+  it("keeps per-user state (pinned, unread, archived, title) without clobbering client fields", async () => {
+    const S_STATE = "c0000000-0000-4000-8000-000000000005";
+    await A.upsertSession({ session: { info: info({ id: S_STATE, title: "AI title", status: SessionStatus.IDLE }) } });
+    const r = await A.upsertSession({
+      session: { info: create(SessionInfoSchema, { id: S_STATE, pinned: true, unread: true, title: "My name" }) },
+      updatePaths: ["info.pinned", "info.unread", "info.title"],
+    });
+    expect(r.session!.info).toMatchObject({ pinned: true, unread: true, title: "My name", cwd: "/home/alice/app", model: "claude-t" });
+    // a later client upload of its own fields keeps the user state
+    await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: S_STATE, status: SessionStatus.WORKING, model: "claude-u" }) }, updatePaths: ["info.status", "info.model"] });
+    const listed = (await A.listSessions({ includeArchived: true })).sessions.find((s) => s.info!.id === S_STATE)!;
+    expect(listed.info).toMatchObject({ pinned: true, unread: true, title: "My name", status: SessionStatus.WORKING, model: "claude-u" });
+    // archive hides it from the default list; unarchive brings it back
+    await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: S_STATE, archived: true }) }, updatePaths: ["info.archived"] });
+    expect((await A.listSessions({})).sessions.map((s) => s.info!.id)).not.toContain(S_STATE);
+    await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: S_STATE, archived: false, unread: false }) }, updatePaths: ["info.archived", "info.unread"] });
+    const back = (await A.listSessions({})).sessions.find((s) => s.info!.id === S_STATE)!;
+    expect(back.info).toMatchObject({ archived: false, unread: false, pinned: true });
+    // another user can neither see nor change it
+    expect((await B.listSessions({ includeArchived: true })).sessions.map((s) => s.info!.id)).not.toContain(S_STATE);
+    await expectError(B.upsertSession({ session: { info: create(SessionInfoSchema, { id: S_STATE, pinned: false }) }, updatePaths: ["info.pinned"] }), Code.PermissionDenied);
+    expect((await A.getSession({ sessionId: S_STATE })).session!.info!.pinned).toBe(true);
+  });
+
+  it("deletes a session with its transcript, only for its owner", async () => {
+    const S_DEL = "d0000000-0000-4000-8000-000000000006";
+    await A.upsertSession({ session: { info: info({ id: S_DEL, title: "Doomed" }) } });
+    await A.appendSessionEvents({ sessionId: S_DEL, entries: [{ uuid: "d1", entryJson: '{"type":"user","message":{"content":"zyzzyva"}}' }] });
+    await expectError(A.deleteSession({ sessionId: "" }), Code.InvalidArgument);
+    await expectError(B.deleteSession({ sessionId: S_DEL }), Code.NotFound);
+    expect((await A.getSession({ sessionId: S_DEL })).session!.info!.title).toBe("Doomed");
+
+    await A.deleteSession({ sessionId: S_DEL });
+    await expectError(A.getSession({ sessionId: S_DEL }), Code.NotFound);
+    await expectError(A.getSessionTranscript({ sessionId: S_DEL }), Code.NotFound);
+    expect((await A.listSessions({ query: "zyzzyva", includeArchived: true })).sessions).toEqual([]);
+    await expectError(A.deleteSession({ sessionId: S_DEL }), Code.NotFound);
+    // the id is free again: a client re-upload recreates it from scratch
+    const again = await A.upsertSession({ session: { info: info({ id: S_DEL }) } });
+    expect(again.session!.lastSeq).toBe(0n);
+  });
 });
