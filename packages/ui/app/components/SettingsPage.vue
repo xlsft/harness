@@ -73,7 +73,7 @@ async function signOut() {
   <div class="flex min-h-0 flex-1 max-md:flex-col">
     <nav
       aria-label="Settings sections"
-      class="flex w-[220px] shrink-0 flex-col gap-[2px] overflow-y-auto border-r border-line p-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b"
+      class="flex w-[200px] shrink-0 flex-col gap-[2px] overflow-y-auto border-r border-line p-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b"
     >
       <label class="mb-2 flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
         <HIcon
@@ -106,7 +106,7 @@ async function signOut() {
       </p>
     </nav>
 
-    <div class="min-w-0 flex-1 overflow-y-auto px-8 pt-6 pb-10 max-sm:px-4">
+    <div class="min-w-0 flex-1 overflow-y-auto px-7 pt-5 pb-8 max-sm:px-4">
       <template v-if="section === 'general'">
         <SettingsAppearance />
         <SettingsModes />
