@@ -685,7 +685,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         id: 'c' + seq,
         trigger: COMPACT_TRIGGER[c.trigger] ?? 'manual',
         tokensBefore: Number(c.tokensBefore),
-        tokensAfter: Number(c.tokensAfter)
+        tokensAfter: Number(c.tokensAfter),
+        summary: c.summary
       })
       s.contextTokens = Number(c.tokensAfter)
       break

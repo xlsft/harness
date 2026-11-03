@@ -12,6 +12,7 @@ const props = defineProps<{
   // Its audio is being made (before any sound).
   speechLoading?: boolean
 }>()
+const summaryOpen = ref(false)
 const emit = defineEmits<{ retry: [], switchModel: [], copy: [], fork: [], readAloud: [] }>()
 
 const hook = computed(() => {
@@ -94,18 +95,31 @@ const usageLine = computed(() => {
     />{{ notice.text }}
   </div>
 
-  <!-- compaction -->
+  <!-- compaction, with the summary the conversation continues from -->
   <div
     v-else-if="compact"
-    class="flex items-center gap-3 text-[11.5px] text-muted"
+    class="flex flex-col gap-2"
   >
-    <span class="h-px flex-1 bg-line" />
-    Context compacted{{ compact.trigger === 'idle' ? ' while idle' : '' }} · {{ formatTokens(compact.tokensBefore) }} → {{ formatTokens(compact.tokensAfter) }} tokens
-    <a
-      href="#"
-      class="link"
-    >summary</a>
-    <span class="h-px flex-1 bg-line" />
+    <div class="flex items-center gap-3 text-[11.5px] text-muted">
+      <span class="h-px flex-1 bg-line" />
+      Context compacted{{ compact.trigger === 'idle' ? ' while idle' : '' }} · {{ formatTokens(compact.tokensBefore) }} → {{ formatTokens(compact.tokensAfter) }} tokens
+      <button
+        v-if="compact.summary"
+        type="button"
+        class="link"
+        :aria-expanded="summaryOpen"
+        @click="summaryOpen = !summaryOpen"
+      >
+        {{ summaryOpen ? 'hide summary' : 'summary' }}
+      </button>
+      <span class="h-px flex-1 bg-line" />
+    </div>
+    <div
+      v-if="summaryOpen && compact.summary"
+      class="max-h-80 overflow-y-auto border border-default bg-surface px-4 py-3 text-[13px]"
+    >
+      <MarkdownBlock :text="compact.summary" />
+    </div>
   </div>
 
   <!-- interrupted turn -->

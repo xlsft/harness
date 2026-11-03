@@ -722,6 +722,8 @@ message Compacted {
   Trigger trigger = 1;
   int64 tokens_before = 2;
   int64 tokens_after = 3;
+  // The summary the conversation continues from (what the model sees in place of the earlier turns).
+  string summary = 4;
 }
 
 message PermissionModeChanged {

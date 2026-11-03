@@ -275,7 +275,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 	case agent.EventCompacted:
 		tr := map[string]agentv1.Compacted_Trigger{"manual": agentv1.Compacted_TRIGGER_MANUAL, "auto": agentv1.Compacted_TRIGGER_AUTO, "rewind": agentv1.Compacted_TRIGGER_REWIND, "idle": agentv1.Compacted_TRIGGER_IDLE}
 		c := e.Compaction
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_Compacted{Compacted: &agentv1.Compacted{Trigger: tr[c.Trigger], TokensBefore: int64(c.TokensBefore), TokensAfter: int64(c.TokensAfter)}}})
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_Compacted{Compacted: &agentv1.Compacted{Trigger: tr[c.Trigger], TokensBefore: int64(c.TokensBefore), TokensAfter: int64(c.TokensAfter), Summary: c.Summary}}})
 	case agent.EventRewound:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_Rewound{Rewound: rewoundToProto(*e.Rewind)}})
 	case agent.EventTask:

@@ -215,6 +215,9 @@ func (r *replayer) user(e session.Entry, at time.Time) {
 				r.compactChars += len(b.Text)
 			}
 			r.compact.TokensAfter = int64(r.compactChars / 4)
+			if e.IsCompactSummary && r.compact.Summary == "" && len(blocks) > 0 {
+				r.compact.Summary = blocks[0].Text
+			}
 		}
 		return
 	}

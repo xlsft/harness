@@ -4253,10 +4253,12 @@ func (x *Rewound) GetRestoredPrompt() string {
 }
 
 type Compacted struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Trigger       Compacted_Trigger      `protobuf:"varint,1,opt,name=trigger,proto3,enum=harness.agent.v1.Compacted_Trigger" json:"trigger,omitempty"`
-	TokensBefore  int64                  `protobuf:"varint,2,opt,name=tokens_before,json=tokensBefore,proto3" json:"tokens_before,omitempty"`
-	TokensAfter   int64                  `protobuf:"varint,3,opt,name=tokens_after,json=tokensAfter,proto3" json:"tokens_after,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Trigger      Compacted_Trigger      `protobuf:"varint,1,opt,name=trigger,proto3,enum=harness.agent.v1.Compacted_Trigger" json:"trigger,omitempty"`
+	TokensBefore int64                  `protobuf:"varint,2,opt,name=tokens_before,json=tokensBefore,proto3" json:"tokens_before,omitempty"`
+	TokensAfter  int64                  `protobuf:"varint,3,opt,name=tokens_after,json=tokensAfter,proto3" json:"tokens_after,omitempty"`
+	// The summary the conversation continues from (what the model sees in place of the earlier turns).
+	Summary       string `protobuf:"bytes,4,opt,name=summary,proto3" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4310,6 +4312,13 @@ func (x *Compacted) GetTokensAfter() int64 {
 		return x.TokensAfter
 	}
 	return 0
+}
+
+func (x *Compacted) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
 }
 
 type PermissionModeChanged struct {
@@ -9865,11 +9874,12 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x04mode\x18\x02 \x01(\x0e2$.harness.agent.v1.RewindRequest.ModeR\x04mode\x12%\n" +
 	"\x0efiles_restored\x18\x03 \x01(\x05R\rfilesRestored\x12#\n" +
 	"\rfiles_skipped\x18\x04 \x01(\x05R\ffilesSkipped\x12'\n" +
-	"\x0frestored_prompt\x18\x05 \x01(\tR\x0erestoredPrompt\"\x82\x02\n" +
+	"\x0frestored_prompt\x18\x05 \x01(\tR\x0erestoredPrompt\"\x9c\x02\n" +
 	"\tCompacted\x12=\n" +
 	"\atrigger\x18\x01 \x01(\x0e2#.harness.agent.v1.Compacted.TriggerR\atrigger\x12#\n" +
 	"\rtokens_before\x18\x02 \x01(\x03R\ftokensBefore\x12!\n" +
-	"\ftokens_after\x18\x03 \x01(\x03R\vtokensAfter\"n\n" +
+	"\ftokens_after\x18\x03 \x01(\x03R\vtokensAfter\x12\x18\n" +
+	"\asummary\x18\x04 \x01(\tR\asummary\"n\n" +
 	"\aTrigger\x12\x17\n" +
 	"\x13TRIGGER_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eTRIGGER_MANUAL\x10\x01\x12\x10\n" +

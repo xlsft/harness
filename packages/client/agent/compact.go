@@ -327,7 +327,7 @@ func (a *Agent) compact(ctx context.Context, instructions, trigger string) (Comp
 	a.afterCompactStyle()
 	a.autoReminded = false
 	a.mu.Unlock()
-	info := CompactInfo{Trigger: trigger, TokensBefore: before, TokensAfter: a.EstimateTokens()}
+	info := CompactInfo{Trigger: trigger, TokensBefore: before, TokensAfter: a.EstimateTokens(), Summary: summary}
 	a.refreshBundle(ctx)
 	a.emit(Event{Kind: EventCompacted, Compaction: &info})
 	return info, nil

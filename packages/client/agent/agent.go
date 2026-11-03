@@ -111,6 +111,7 @@ type CompactInfo struct {
 	Trigger      string // manual | auto | rewind | idle
 	TokensBefore int
 	TokensAfter  int
+	Summary      string // what the conversation continues from
 }
 
 // Event is emitted while a turn runs.

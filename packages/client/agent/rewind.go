@@ -228,9 +228,11 @@ func (a *Agent) summarizeAround(ctx context.Context, entries []session.Entry, ch
 	}
 	prefix, suffix := chain[:split], chain[split:]
 	before := a.EstimateTokens()
+	var compactSummary string
 	switch mode {
 	case RewindSummarizeFrom:
 		summary, err := a.summarize(ctx, messagesOf(suffix), instructions)
+		compactSummary = summary
 		if err != nil {
 			return err
 		}
@@ -243,6 +245,7 @@ func (a *Agent) summarizeAround(ctx context.Context, entries []session.Entry, ch
 			return errors.New("there is nothing before this checkpoint to summarize")
 		}
 		summary, err := a.summarize(ctx, pm, instructions)
+		compactSummary = summary
 		if err != nil {
 			return err
 		}
@@ -264,7 +267,7 @@ func (a *Agent) summarizeAround(ctx context.Context, entries []session.Entry, ch
 		}
 	}
 	a.reload()
-	info := CompactInfo{Trigger: "rewind", TokensBefore: before, TokensAfter: a.EstimateTokens()}
+	info := CompactInfo{Trigger: "rewind", TokensBefore: before, TokensAfter: a.EstimateTokens(), Summary: compactSummary}
 	a.emit(Event{Kind: EventCompacted, Compaction: &info})
 	return nil
 }

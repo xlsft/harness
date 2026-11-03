@@ -195,6 +195,8 @@ export interface CompactItem {
   trigger: 'manual' | 'auto' | 'rewind' | 'idle'
   tokensBefore: number
   tokensAfter: number
+  // What the conversation continues from ('' when the client did not send it).
+  summary: string
 }
 
 export interface TurnItem {
