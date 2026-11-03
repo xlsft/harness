@@ -216,7 +216,7 @@ function toBottom() {
   <div class="relative flex min-h-0 flex-col">
     <div
       ref="scroller"
-      class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-[72px]"
+      class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-[144px]"
       @scroll="onScroll"
     >
       <SelectionMenu :root="scroller" />
