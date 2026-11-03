@@ -66,6 +66,7 @@ function copyState(s: SessionState): SessionState {
 
 // Per-stream bookkeeping kept out of the reactive state.
 const watchdogs = new Map<string, ReturnType<typeof setTimeout>>()
+const resuming = new Map<string, Promise<void>>()
 const retries = new Map<string, { attempt: number, timer?: ReturnType<typeof setTimeout> }>()
 const listedIdleSince = new Map<string, number>()
 // Marks the current stream of a session as replaced (restartStream): it may deliver no more events.
@@ -568,7 +569,28 @@ export const useSessionStore = defineStore('sessions', {
       Reflect.deleteProperty(this.effort, id)
     },
 
-    async resume(id: string) {
+    // Runs a call that needs the session open on the client: a listed session that is not (the client restarted) is
+    // reopened first, once.
+    async whenOpen<T>(id: string, call: () => Promise<T>): Promise<T> {
+      try {
+        return await call()
+      } catch (e) {
+        if (!/not open/i.test(e instanceof Error ? e.message : String(e))) throw e
+        await this.resume(id)
+        return call()
+      }
+    },
+
+    // Reopens a listed session on the client (callers at the same moment share one reopen).
+    resume(id: string) {
+      const running = resuming.get(id)
+      if (running) return running
+      const p = this.doResume(id).finally(() => resuming.delete(id))
+      resuming.set(id, p)
+      return p
+    },
+
+    async doResume(id: string) {
       const s = this.sessions[id]
       if (!s || !this.transport) return
       const info = await this.transport.createSession({ cwd: s.meta.cwd, resumeSessionId: id })

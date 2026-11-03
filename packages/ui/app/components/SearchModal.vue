@@ -79,7 +79,7 @@ watch([query, kind, open], async () => {
   }
   const n = ++seq
   try {
-    const res = await store.transport.files().search(current.meta.id, q, kind.value === 'code' ? 50 : 6)
+    const res = await store.whenOpen(current.meta.id, () => store.transport!.files().search(current.meta.id, q, kind.value === 'code' ? 50 : 6))
     if (n === seq) files.value = res
   } catch {
     if (n === seq) files.value = []

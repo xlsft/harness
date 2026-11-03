@@ -84,7 +84,7 @@ async function loadRoots() {
   if (!a || remote.value) return
   rootsError.value = ''
   try {
-    roots.value = await a.roots(sid.value)
+    roots.value = await store.whenOpen(sid.value, () => a.roots(sid.value))
     if (!vs.value.expanded.length && roots.value[0]) vs.value.expanded = [roots.value[0].path]
     await Promise.all([...vs.value.expanded.map(d => loadDir(d)), loadStatus()])
   } catch (e) {

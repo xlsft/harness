@@ -29,7 +29,7 @@ function message(e: unknown) {
 async function create(cwd?: string) {
   if (!store.transport || remote.value) return
   try {
-    const { terminal, ticket } = await store.transport.terminals().create({ sessionId: props.session.meta.id, cwd })
+    const { terminal, ticket } = await store.whenOpen(props.session.meta.id, () => store.transport!.terminals().create({ sessionId: props.session.meta.id, cwd }))
     tabs.value.push({ info: terminal, ticket })
     selected.value = terminal.id
     error.value = ''
@@ -42,7 +42,7 @@ async function create(cwd?: string) {
 async function load() {
   if (!store.transport || remote.value) return
   try {
-    const list = await store.transport.terminals().list(props.session.meta.id)
+    const list = await store.whenOpen(props.session.meta.id, () => store.transport!.terminals().list(props.session.meta.id))
     tabs.value = list.map(info => ({ info, exitCode: info.running ? undefined : info.exitCode }))
     selected.value = tabs.value.at(-1)?.info.id ?? ''
     if (!tabs.value.length && !request.value) await create()

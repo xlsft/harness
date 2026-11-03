@@ -78,7 +78,7 @@ const drawn = computed(() => {
 })
 
 // ── connection ──
-function connect() {
+function connect(retryOpen = true) {
   disconnect()
   error.value = ''
   if (remote.value || !store.transport || !availability.value?.available) return
@@ -94,7 +94,12 @@ function connect() {
   })
   c.onError(m => (error.value = m))
   c.onConnectionChange(s => (link.value = s))
-  c.connect().catch(e => (error.value = message(e)))
+  c.connect().catch(async (e) => {
+    // The client restarted: reopen the session, then connect again.
+    if (retryOpen && /not open/i.test(message(e))) {
+      await store.resume(props.session.meta.id).then(() => connect(false)).catch(err => (error.value = message(err)))
+    } else error.value = message(e)
+  })
 }
 function disconnect() {
   conn?.close()

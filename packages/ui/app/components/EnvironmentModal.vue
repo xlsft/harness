@@ -38,7 +38,7 @@ async function load() {
   serverErrors.value = []
   screen.value = 'main'
   try {
-    const v = await store.transport.environment().get({ sessionId: props.session.meta.id })
+    const v = await store.whenOpen(props.session.meta.id, () => store.transport!.environment().get({ sessionId: props.session.meta.id }))
     view.value = v
     name.value = v.name || base(v.folder)
     env.value = v.env
