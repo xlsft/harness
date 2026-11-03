@@ -96,7 +96,7 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `TaskOutput` | `task_id`, `offset`, `block`, `pattern`, `timeout` | new output since the last TaskOutput read of that task (or from `offset`), with the status; `block` waits for the finish, `pattern` for a new matching line; timeout default 30 s, max 10 min; over 30000 characters keeps the end with a note |
 | `Wait` | `task_id` \| `port` (+`host`) \| `path` (+`changed`), `pattern`, `timeout` (required, max 10 min) | waits for a task to finish or print a matching line, a TCP port to accept connections, or a file to exist / change / match; a timeout is a normal result. Read-only, except a port on a host other than this machine (normal permission check); a path outside the working directories is checked like Read |
 | `TodoWrite` | `todos: [{content, activeForm, status}]` | full replacement; exactly one `in_progress` |
-| `AskUserQuestion` | `questions: [{question, header (≤12), options: [{label, description}] (2–4), multiSelect}] (1–4)` | |
+| `AskUserQuestion` | `questions: [{question, header (≤12), type: single\|multi\|text\|yes_no, options: [{label, description?, recommended?}] (2–6, single/multi only), min?, max? (multi), allowOther? (default true)}] (1–4)` | |
 | `EnterPlanMode` | `{}` | |
 | `ExitPlanMode` | `plan` (Markdown) | the client writes it to the plan file and asks the user to approve |
 | `ToolSearch` | `query`, `max_results` | offered only while MCP tools are deferred; `select:a,b` or keywords; returns full definitions and makes those tools callable |

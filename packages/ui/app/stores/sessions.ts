@@ -10,7 +10,7 @@ import {
 } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { createSessionState, reduce, sessionMeta } from '~/lib/session/reducer'
-import type { EffortName, PermissionModeName, SessionState } from '~/lib/session/types'
+import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 import type { SessionPatch } from '~/lib/transport/types'
 
@@ -292,12 +292,18 @@ export const useSessionStore = defineStore('sessions', {
       return st === 'working' || st === 'needs_input'
     },
 
-    // While a turn runs the message waits in the local queue; when idle it is sent right away.
+    // While a turn runs the message waits in the local queue; when idle it is sent right away. While a question
+    // waits for an answer it goes to the client's queue instead: it does not end the wait, follows the answer
+    // in the same turn (or becomes it with "Answer with message") and survives a reload.
     async send(id: string, text: string) {
       const body = text.trim()
       if (!body || !this.transport) return
       // The session gets a stream for the turn this starts, even when it is not the open one.
       this.subscribe(id)
+      if (this.sessions[id]?.pendingQuestion) {
+        await this.transport.sendUserMessage(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
+        return
+      }
       if (this.isBusy(id)) {
         const q = this.localQueue[id] ?? (this.localQueue[id] = [])
         q.push({ id: newUuid(), text: body })
@@ -334,8 +340,28 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.respondToPermission(id, requestId, d, rule, comment)
     },
 
-    async answerQuestion(id: string, requestId: string, answers: string[][]) {
-      await this.transport?.answerQuestion(id, requestId, answers)
+    async answerQuestion(id: string, requestId: string, answers: QuestionAnswerVM[]) {
+      await this.transport?.answerQuestion(id, requestId, { outcome: 'answered', answers })
+    },
+
+    // The model gets "the user did not answer, decide yourself".
+    async skipQuestion(id: string, requestId: string) {
+      await this.transport?.answerQuestion(id, requestId, { outcome: 'skipped' })
+    },
+
+    // Closes the question with the user's chat messages as the free-form answer: messages still in the local
+    // queue are handed to the client first, then every queued message becomes the answer.
+    async answerWithMessage(id: string, requestId: string) {
+      if (!this.transport) return
+      const local = this.localQueue[id] ?? []
+      this.localQueue[id] = []
+      for (const q of local) await this.transport.sendUserMessage(id, q.id, q.text, SendUserMessageRequest_Delivery.QUEUE)
+      await this.transport.answerQuestion(id, requestId, { outcome: 'message' })
+    },
+
+    // Whether "Answer with message" has something to send.
+    hasChatAnswer(id: string) {
+      return !!this.localQueue[id]?.length || !!this.sessions[id]?.queue.length
     },
 
     async respondToPlan(id: string, requestId: string, decision: 'accept_edits' | 'manual' | 'keep_planning', feedback = '') {

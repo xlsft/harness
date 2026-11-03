@@ -7,6 +7,7 @@ import { createClient, type Client, type Interceptor } from '@connectrpc/connect
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
   AgentService,
+  QuestionOutcome,
   type PermissionMode,
   type RespondToPermissionRequest_Decision,
   type RespondToPlanRequest_Decision,
@@ -14,7 +15,7 @@ import {
 } from '~/gen/harness/agent/v1/agent_pb'
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
-import type { EffortName } from '~/lib/session/types'
+import type { EffortName, QuestionReply } from '~/lib/session/types'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -118,8 +119,17 @@ export class ConnectTransport implements SessionTransport {
     await this.client.respondToPermission({ sessionId, requestId, decision, rule, comment })
   }
 
-  async answerQuestion(sessionId: string, requestId: string, answers: string[][]) {
-    await this.client.answerQuestion({ sessionId, requestId, answers: answers.map(selected => ({ selected })) })
+  async answerQuestion(sessionId: string, requestId: string, reply: QuestionReply) {
+    switch (reply.outcome) {
+      case 'answered':
+        await this.client.answerQuestion({ sessionId, requestId, outcome: QuestionOutcome.ANSWERED, answers: reply.answers })
+        break
+      case 'skipped':
+        await this.client.answerQuestion({ sessionId, requestId, outcome: QuestionOutcome.SKIPPED })
+        break
+      case 'message':
+        await this.client.answerQuestion({ sessionId, requestId, outcome: QuestionOutcome.MESSAGE, messageUuids: reply.messageUuids ?? [] })
+    }
   }
 
   async respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback = '') {

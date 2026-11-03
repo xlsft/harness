@@ -480,7 +480,9 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 			// Running shell commands move to the background so the message is
 			// read in this turn right after the tool calls; otherwise the turn
 			// is interrupted and the message starts the next one.
-			if !ls.sess.ToolEnv.Shell.BackgroundRunning() {
+			// An open question keeps waiting: the message stays queued and
+			// follows the answer, or becomes it ("answer with message").
+			if !ls.sess.ToolEnv.Shell.BackgroundRunning() && !ls.questionPending() {
 				ls.driver.Interrupt()
 			}
 		}
@@ -567,26 +569,6 @@ func (s *Server) RespondToPermission(ctx context.Context, req *connect.Request[a
 	d.ResolvedBy = "user"
 	p.ch <- permissionAnswer{d: d, decision: m.GetDecision()}
 	return connect.NewResponse(&agentv1.RespondToPermissionResponse{}), nil
-}
-
-func (s *Server) AnswerQuestion(ctx context.Context, req *connect.Request[agentv1.AnswerQuestionRequest]) (*connect.Response[agentv1.AnswerQuestionResponse], error) {
-	ls, err := s.get(req.Msg.GetSessionId())
-	if err != nil {
-		return nil, err
-	}
-	ls.mu.Lock()
-	ch := ls.pendingQ[req.Msg.GetRequestId()]
-	delete(ls.pendingQ, req.Msg.GetRequestId())
-	ls.mu.Unlock()
-	if ch == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no pending question %s", req.Msg.GetRequestId()))
-	}
-	var answers [][]string
-	for _, a := range req.Msg.GetAnswers() {
-		answers = append(answers, a.GetSelected())
-	}
-	ch <- answers
-	return connect.NewResponse(&agentv1.AnswerQuestionResponse{}), nil
 }
 
 func (s *Server) RespondToPlan(ctx context.Context, req *connect.Request[agentv1.RespondToPlanRequest]) (*connect.Response[agentv1.RespondToPlanResponse], error) {

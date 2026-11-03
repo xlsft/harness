@@ -131,11 +131,13 @@ describe("bundle builder", () => {
     expect(todo.additionalProperties).toBe(false);
     const qs = (b.tools.AskUserQuestion!.input_schema.properties as any).questions;
     expect([qs.minItems, qs.maxItems]).toEqual([1, 4]);
-    expect(Object.keys(qs.items.properties)).toEqual(["question", "header", "options", "multiSelect"]);
-    expect(qs.items.required).toEqual(["question", "header", "options", "multiSelect"]);
+    expect(Object.keys(qs.items.properties)).toEqual(["question", "header", "type", "options", "min", "max", "allowOther"]);
+    expect(qs.items.required).toEqual(["question", "header", "type"]);
+    expect(qs.items.properties.type.enum).toEqual(["single", "multi", "text", "yes_no"]);
     expect(qs.items.properties.header.maxLength).toBe(12);
-    expect([qs.items.properties.options.minItems, qs.items.properties.options.maxItems]).toEqual([2, 4]);
-    expect(Object.keys(qs.items.properties.options.items.properties)).toEqual(["label", "description"]);
+    expect([qs.items.properties.options.minItems, qs.items.properties.options.maxItems]).toEqual([2, 6]);
+    expect(Object.keys(qs.items.properties.options.items.properties)).toEqual(["label", "description", "recommended"]);
+    expect(qs.items.properties.options.items.required).toEqual(["label"]);
     expect(qs.items.additionalProperties).toBe(false);
     expect(qs.items.properties.options.items.additionalProperties).toBe(false);
     expect(b.tools.Bash!.description).toMatch(/run_in_background/);

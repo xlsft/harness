@@ -6,30 +6,38 @@
       "type": "array",
       "minItems": 1,
       "maxItems": 4,
-      "description": "Questions to ask the user (1-4)",
+      "description": "Questions to ask the user (1-4), shown as one card with a step per question",
       "items": {
         "type": "object",
         "properties": {
           "question": { "type": "string", "description": "The complete question to ask, ending with a question mark" },
           "header": { "type": "string", "maxLength": 12, "description": "Very short label shown as a chip (max 12 characters)" },
+          "type": {
+            "type": "string",
+            "enum": ["single", "multi", "text", "yes_no"],
+            "description": "single: pick one option; multi: pick between min and max options; text: free-text answer only (no options); yes_no: Yes or No (no options)"
+          },
           "options": {
             "type": "array",
             "minItems": 2,
-            "maxItems": 4,
-            "description": "The available choices (2-4). The user can also answer in free form",
+            "maxItems": 6,
+            "description": "The choices (2-6) for single and multi questions. Omit for text and yes_no",
             "items": {
               "type": "object",
               "properties": {
                 "label": { "type": "string", "description": "Short display text of the option (1-5 words)" },
-                "description": { "type": "string", "description": "What choosing this option means or implies" }
+                "description": { "type": "string", "description": "What choosing this option means or implies" },
+                "recommended": { "type": "boolean", "description": "Mark the option you suggest; it is shown first and highlighted. At most one for single questions" }
               },
-              "required": ["label", "description"],
+              "required": ["label"],
               "additionalProperties": false
             }
           },
-          "multiSelect": { "type": "boolean", "description": "Allow the user to choose more than one option" }
+          "min": { "type": "integer", "minimum": 0, "description": "multi only: the fewest choices the user must make (default 0)" },
+          "max": { "type": "integer", "minimum": 1, "description": "multi only: the most choices the user can make (default: all)" },
+          "allowOther": { "type": "boolean", "description": "Offer a free-text \"Other\" answer next to the options (default true). Set to false only when no answer outside the options makes sense" }
         },
-        "required": ["question", "header", "options", "multiSelect"],
+        "required": ["question", "header", "type"],
         "additionalProperties": false
       }
     }

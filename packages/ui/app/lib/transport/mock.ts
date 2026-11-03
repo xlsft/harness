@@ -11,6 +11,7 @@ import {
   InitializeResponseSchema,
   ListBranchesResponseSchema,
   ListDirectoryResponseSchema,
+  QuestionOutcome,
   RecentFolderSchema,
   SessionInfoSchema,
   RespondToPermissionRequest_Decision,
@@ -26,6 +27,7 @@ import { MockProvidersApi } from '~/lib/providers/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
+import type { QuestionReply } from '~/lib/session/types'
 
 // Folders and a small directory tree for the new-session pickers.
 const MOCK_HOME = '/Users/xlsft'
@@ -55,6 +57,9 @@ const MOCK_TREE: Record<string, string[]> = {
   '/Users/xlsft/Projects/xlsft/youtrack-mcp': []
 }
 
+// A question answer as the mock resumes it (a message answer carries the taken text).
+type MockReply = Exclude<QuestionReply, { outcome: 'message' }> | { outcome: 'message', message: string }
+
 interface MockSession {
   info: SessionInfo
   history: SessionEvent[]
@@ -64,7 +69,7 @@ interface MockSession {
   queue: { uuid: string, text: string }[]
   timers: ReturnType<typeof setTimeout>[]
   // Continuation after a permission / question / plan answer.
-  waiting: { requestId: string, resume: (b: EventBuilder, decision: number) => number } | null
+  waiting: { requestId: string, question?: boolean, resume: (b: EventBuilder, decision: number, reply?: MockReply) => number } | null
   turn: number
   afterResume: ((ok: boolean) => void) | null
 }
@@ -352,17 +357,32 @@ export class MockTransport implements SessionTransport {
       b.question(req, tool, [{
         question: 'Where should provider keys live?',
         header: 'Keys',
+        type: 'single',
         options: [
-          { label: 'Postgres, encrypted (recommended)', description: 'Master key in env, rotation without restart' },
           { label: 'Container env', description: 'Simpler, but rotating a key means a redeploy' },
+          { label: 'Postgres, encrypted', description: 'Master key in env, rotation without restart', recommended: true },
           { label: 'External Vault', description: 'One more service in docker-compose' }
         ]
+      }, {
+        question: 'Which providers should be enabled first?',
+        header: 'Providers',
+        type: 'multi',
+        min: 1,
+        max: 2,
+        options: [{ label: 'Anthropic' }, { label: 'OpenAI' }, { label: 'OpenRouter' }]
+      }, {
+        question: 'Rotate existing keys on deploy?',
+        header: 'Rotation',
+        type: 'yes_no'
       }])
     })
     s.waiting = {
       requestId: req,
-      resume: (b) => {
-        b.questionResolved(req)
+      question: true,
+      resume: (b, _d, reply) => {
+        if (reply?.outcome === 'skipped') b.questionResolved(req, 'local', QuestionOutcome.SKIPPED)
+        else if (reply?.outcome === 'message') b.questionResolved(req, 'local', QuestionOutcome.MESSAGE, [], reply.message)
+        else b.questionResolved(req, 'local', QuestionOutcome.ANSWERED, reply?.outcome === 'answered' ? reply.answers : [])
         b.toolFinished(tool, { output: 'Answered', summary: 'answered' })
         return 1
       }
@@ -414,14 +434,14 @@ export class MockTransport implements SessionTransport {
     }
   }
 
-  private resume(sessionId: string, requestId: string, decision: number) {
+  private resume(sessionId: string, requestId: string, decision: number, reply?: MockReply) {
     const s = this.get(sessionId)
     if (!s.waiting || s.waiting.requestId !== requestId) return
     const w = s.waiting
     s.waiting = null
     let ok = 0
     this.emit(s, (b) => {
-      ok = w.resume(b, decision)
+      ok = w.resume(b, decision, reply)
     })
     const next = s.afterResume
     s.afterResume = null
@@ -446,7 +466,8 @@ export class MockTransport implements SessionTransport {
     s.waiting = null
     s.afterResume = null
     this.emit(s, (b) => {
-      if (pending) b.permissionResolved(pending.requestId, RespondToPermissionRequest_Decision.DENY, 'interrupt')
+      if (pending?.question) b.questionResolved(pending.requestId, 'interrupt', QuestionOutcome.CANCELLED)
+      else if (pending) b.permissionResolved(pending.requestId, RespondToPermissionRequest_Decision.DENY, 'interrupt')
       b.turnFinished('interrupted', { durationMs: 0 })
     })
     s.working = false
@@ -458,8 +479,16 @@ export class MockTransport implements SessionTransport {
     this.resume(sessionId, requestId, decision)
   }
 
-  async answerQuestion(sessionId: string, requestId: string) {
-    this.resume(sessionId, requestId, 1)
+  // Like the client: a message answer takes the queued messages (all, or the given ones) out of the queue.
+  async answerQuestion(sessionId: string, requestId: string, reply: QuestionReply) {
+    const s = this.get(sessionId)
+    if (reply.outcome !== 'message') return this.resume(sessionId, requestId, 1, reply)
+    const want = reply.messageUuids?.length ? new Set(reply.messageUuids) : null
+    const taken = s.queue.filter(q => !want || want.has(q.uuid))
+    if (!taken.length) throw new Error('no queued message to answer with')
+    s.queue = s.queue.filter(q => !taken.includes(q))
+    this.emit(s, b => b.queue(s.queue))
+    this.resume(sessionId, requestId, 1, { outcome: 'message', message: taken.map(q => q.text).join('\n\n') })
   }
 
   async respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision) {

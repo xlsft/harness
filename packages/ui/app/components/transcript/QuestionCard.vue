@@ -1,39 +1,82 @@
 <script setup lang="ts">
-// AskUserQuestion (Event.dc.html "question"): options as radio rows (checkboxes for multi-select),
-// Answer / Other…, one question at a time ("2 of 3"). Resolved by QuestionResolved.
+// AskUserQuestion (Event.dc.html "question"): one card for 1–4 questions, a step each ("2 / 3"), one submit at
+// the end; Back goes to the previous step before submitting. Single / yes_no are radio rows, multi checkboxes
+// (min..max), text a free field; "Other…" adds free text unless the model disabled it; recommended options
+// come first, highlighted. Skip hands the decision back to the model; "Answer with message" closes the question
+// with the chat messages written meanwhile. Resolved by QuestionResolved (answered, skipped, message, cancelled).
 import type { QuestionItem } from '~/lib/session/types'
+import {
+  answerSummary,
+  draftAnswer,
+  draftValid,
+  emptyDraft,
+  orderedOptions,
+  toggleOption,
+  toggleOther,
+  type QuestionDraft
+} from '~/lib/session/question'
 
 const props = defineProps<{ item: QuestionItem, sessionId: string }>()
 const store = useSessionStore()
 const step = ref(0)
-const answers = ref<string[][]>(props.item.items.map(q => q.options[0] ? [q.options[0].label] : []))
-const other = ref('')
-const otherOpen = ref(false)
+const drafts = ref<QuestionDraft[]>(props.item.items.map(() => emptyDraft()))
+const sending = ref(false)
+const error = ref('')
 
 const q = computed(() => props.item.items[step.value]!)
+const d = computed(() => drafts.value[step.value]!)
+const last = computed(() => step.value === props.item.items.length - 1)
+const options = computed(() => orderedOptions(q.value))
+const multi = computed(() => q.value.type === 'multi')
+const valid = computed(() => draftValid(q.value, d.value))
+const empty = computed(() => draftAnswer(q.value, d.value).skipped)
+const canChat = computed(() => store.hasChatAnswer(props.sessionId))
+const chatCount = computed(() => (store.localQueue[props.sessionId]?.length ?? 0) + (store.sessions[props.sessionId]?.queue.length ?? 0))
 
-function toggle(label: string) {
-  const cur = answers.value[step.value] ?? []
-  answers.value[step.value] = q.value.multiSelect
-    ? cur.includes(label) ? cur.filter(l => l !== label) : [...cur, label]
-    : [label]
+const bounds = computed(() => {
+  const { min, max } = q.value
+  if (!multi.value) return ''
+  if (min === 0) return `choose up to ${max}`
+  return min === max ? `choose ${min}` : `choose ${min} to ${max}`
+})
+
+function set(next: QuestionDraft) {
+  drafts.value[step.value] = next
 }
 
-function submit() {
-  if (otherOpen.value && other.value.trim()) answers.value[step.value] = [other.value.trim()]
-  otherOpen.value = false
-  other.value = ''
-  if (step.value < props.item.items.length - 1) {
+async function run(f: () => Promise<void>) {
+  if (sending.value) return
+  sending.value = true
+  error.value = ''
+  try {
+    await f()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : String(err)
+  } finally {
+    sending.value = false
+  }
+}
+
+function next() {
+  if (!valid.value) return
+  if (!last.value) {
     step.value += 1
     return
   }
-  store.answerQuestion(props.sessionId, props.item.id, answers.value)
+  const answers = props.item.items.map((it, i) => draftAnswer(it, drafts.value[i]!))
+  run(() => store.answerQuestion(props.sessionId, props.item.id, answers))
 }
 
-const split = (label: string) => {
-  const m = label.match(/^(.*?)\s*(\(recommended\))$/)
-  return m ? { main: m[1], hint: m[2] } : { main: label, hint: '' }
-}
+const skip = () => run(() => store.skipQuestion(props.sessionId, props.item.id))
+const withMessage = () => run(() => store.answerWithMessage(props.sessionId, props.item.id))
+
+const resolved = computed(() => ({
+  pending: { text: '', cls: '' },
+  answered: { text: 'Answered', cls: 'text-ok' },
+  skipped: { text: 'Skipped · left to the agent', cls: 'text-muted' },
+  message: { text: 'Answered with a message', cls: 'text-ok' },
+  cancelled: { text: 'Question cancelled', cls: 'text-muted' }
+}[props.item.state]))
 </script>
 
 <template>
@@ -44,70 +87,155 @@ const split = (label: string) => {
     <div class="flex items-center gap-[9px] border-b border-default px-3 py-2 text-[12.5px]">
       <HIcon
         name="question"
-        class="text-accent"
+        class="shrink-0 text-accent"
       />
-      <span class="text-white">{{ q.question }}</span>
+      <span class="shrink-0 border border-default px-[5px] text-[11px] text-muted">{{ q.header }}</span>
+      <span class="min-w-0 text-white">{{ q.question }}</span>
       <span class="flex-1" />
       <span
         v-if="item.items.length > 1"
-        class="text-[11px] text-muted"
-      >{{ step + 1 }} of {{ item.items.length }}</span>
+        class="shrink-0 text-[11px] text-muted"
+      >{{ step + 1 }} / {{ item.items.length }}</span>
     </div>
+
     <div class="flex flex-col gap-0.5 p-1.5 text-[12.5px]">
+      <span
+        v-if="bounds"
+        class="px-2 pt-0.5 pb-1 text-[11px] text-muted"
+      >{{ bounds }}</span>
       <label
-        v-for="o in q.options"
+        v-for="o in options"
         :key="o.label"
         class="flex cursor-default gap-2.5 border-l-2 px-2 py-[7px]"
-        :class="answers[step]?.includes(o.label) ? 'border-accent bg-hover' : 'border-transparent'"
+        :class="d.selected.includes(o.label) ? 'border-accent bg-hover' : 'border-transparent'"
       >
         <input
-          :type="q.multiSelect ? 'checkbox' : 'radio'"
-          :name="item.id"
-          :checked="answers[step]?.includes(o.label)"
+          :type="multi ? 'checkbox' : 'radio'"
+          :name="item.id + ':' + step"
+          :checked="d.selected.includes(o.label)"
           class="mt-[3px] accent-accent"
-          @change="toggle(o.label)"
+          @change="set(toggleOption(q, d, o.label))"
         >
         <span class="flex flex-col">
-          <span class="text-white">{{ split(o.label).main }} <span
-            v-if="split(o.label).hint"
-            class="text-muted"
-          >{{ split(o.label).hint }}</span></span>
-          <span class="text-[11.5px] text-muted">{{ o.description }}</span>
+          <span class="text-white">{{ o.label }} <span
+            v-if="o.recommended"
+            class="text-accent"
+          >recommended</span></span>
+          <span
+            v-if="o.description"
+            class="text-[11.5px] text-muted"
+          >{{ o.description }}</span>
         </span>
       </label>
+      <label
+        v-if="q.allowOther"
+        class="flex cursor-default gap-2.5 border-l-2 px-2 py-[7px]"
+        :class="d.otherOpen ? 'border-accent bg-hover' : 'border-transparent'"
+      >
+        <input
+          :type="multi ? 'checkbox' : 'radio'"
+          :name="item.id + ':' + step"
+          :checked="d.otherOpen"
+          class="mt-[3px] accent-accent"
+          @change="set(toggleOther(q, d))"
+        >
+        <span class="text-white">Other…</span>
+      </label>
       <input
-        v-if="otherOpen"
-        v-model="other"
+        v-if="q.type === 'text' || d.otherOpen"
+        :key="step"
+        :value="d.other"
         autofocus
-        placeholder="Type your own answer"
+        :placeholder="q.type === 'text' ? 'Type your answer' : 'Type your own answer'"
         class="mx-2 my-1 border border-default bg-default px-2.5 py-1.5 text-white outline-none placeholder:text-muted focus:border-accent"
-        @keydown.enter="submit"
+        @input="set({ ...d, other: ($event.target as HTMLInputElement).value })"
+        @keydown.enter.prevent="next"
       >
     </div>
-    <div class="flex gap-2 border-t border-default px-3 py-2">
+
+    <div
+      v-if="chatCount"
+      class="border-t border-default px-3 py-1.5 text-[11.5px] text-muted"
+    >
+      {{ chatCount }} chat message{{ chatCount > 1 ? 's' : '' }} written meanwhile will follow your answer, or send them as the answer.
+    </div>
+    <div class="flex flex-wrap items-center gap-2 border-t border-default px-3 py-2">
+      <HBtn
+        v-if="step > 0"
+        size="md"
+        :disabled="sending"
+        @click="step -= 1"
+      >
+        Back
+      </HBtn>
       <HBtn
         variant="primary"
         size="md"
-        @click="submit"
+        :disabled="sending || !valid || (empty && item.items.length === 1)"
+        @click="next"
       >
-        Answer
+        {{ last ? (item.items.length > 1 ? 'Submit' : 'Answer') : (empty ? 'Skip question' : 'Next') }}
       </HBtn>
       <HBtn
         size="md"
-        @click="otherOpen = !otherOpen"
+        :disabled="sending"
+        @click="skip"
       >
-        Other…
+        Skip
       </HBtn>
+      <span class="flex-1" />
+      <HBtn
+        v-if="canChat"
+        size="md"
+        :disabled="sending"
+        @click="withMessage"
+      >
+        Answer with message
+      </HBtn>
+    </div>
+    <div
+      v-if="error"
+      class="border-t border-default px-3 py-1.5 text-[11.5px] text-bad"
+    >
+      {{ error }}
     </div>
   </div>
   <div
     v-else
-    class="flex items-center gap-[9px] text-[12px] text-muted"
+    class="flex flex-col gap-0.5 text-[12px] text-muted"
   >
-    <HIcon
-      name="question"
-      :size="14"
-      class="text-ok"
-    />Answered<span class="truncate text-toned">{{ item.items[0]?.question }}</span>
+    <div class="flex items-center gap-[9px]">
+      <HIcon
+        name="question"
+        :size="14"
+        :class="resolved.cls"
+      />
+      <span :class="resolved.cls">{{ resolved.text }}</span>
+      <span
+        v-if="item.state !== 'answered' || item.items.length === 1"
+        class="truncate text-toned"
+      >{{ item.items[0]?.question }}</span>
+      <span class="flex-1" />
+      <span
+        v-if="item.resolvedBy && item.resolvedBy !== 'local' && item.resolvedBy !== 'history'"
+        class="shrink-0"
+      >by {{ item.resolvedBy }}</span>
+    </div>
+    <template v-if="item.state === 'answered'">
+      <div
+        v-for="(it, i) in item.items"
+        :key="i"
+        class="flex gap-[9px] pl-[23px]"
+      >
+        <span class="shrink-0">{{ it.header }}</span>
+        <span class="truncate text-toned">{{ answerSummary(it, item.answers[i]) }}</span>
+      </div>
+    </template>
+    <div
+      v-else-if="item.state === 'message' && item.message"
+      class="truncate pl-[23px] text-toned"
+    >
+      {{ item.message }}
+    </div>
   </div>
 </template>

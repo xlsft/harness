@@ -34,6 +34,7 @@ import type {
   TranscriptItem,
   Usage
 } from './types'
+import { answerVM, questionItemVM, questionState } from './question'
 
 export function emptyUsage(): Usage {
   return { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0 }
@@ -373,14 +374,11 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
           kind: 'question',
           id: q.requestId,
           toolUseId: q.toolUseId,
-          items: q.items.map(i => ({
-            question: i.question,
-            header: i.header,
-            multiSelect: i.multiSelect,
-            options: i.options.map(o => ({ label: o.label, description: o.description }))
-          })),
+          items: q.items.map(questionItemVM),
           state: 'pending',
-          resolvedBy: ''
+          resolvedBy: '',
+          answers: [],
+          message: ''
         })
       }
       s.pendingQuestion = q.requestId
@@ -391,8 +389,10 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     case 'questionResolved': {
       const item = find(s, 'question', e.value.requestId)
       if (item) {
-        item.state = 'answered'
+        item.state = questionState(e.value)
         item.resolvedBy = e.value.resolvedBy
+        item.answers = e.value.answers.map(answerVM)
+        item.message = e.value.message
       }
       if (s.pendingQuestion === e.value.requestId) s.pendingQuestion = null
       if (s.meta.status === 'needs_input') setStatus(s, blockingStatus(s))
@@ -468,6 +468,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       for (const it of s.items) {
         if (it.kind === 'tool' && it.status === 'running' && !isSubagent(it)) it.status = result === 'interrupted' ? 'interrupted' : it.status
         if (it.kind === 'assistant') it.streaming = false
+        // A question still open when the turn ends can no longer be answered.
+        if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
       }
       s.turnStartedAt = 0
       s.pendingPermission = null

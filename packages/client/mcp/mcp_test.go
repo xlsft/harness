@@ -192,9 +192,9 @@ func (h *fakeHost) Interactor() tools.Interactor     { return h }
 func (h *fakeHost) ProposePlan(context.Context, string, string, string) (tools.PlanResponse, error) {
 	return tools.PlanResponse{}, errors.New("no")
 }
-func (h *fakeHost) AskQuestions(_ context.Context, _ string, qs []tools.Question) ([][]string, error) {
+func (h *fakeHost) AskQuestions(_ context.Context, _ string, qs []tools.Question) (tools.QuestionResponse, error) {
 	h.asked = append(h.asked, qs...)
-	return [][]string{{h.answer}}, nil
+	return tools.QuestionResponse{Outcome: tools.QuestionAnswered, Answers: []tools.QuestionAnswer{{Selected: []string{h.answer}}}}, nil
 }
 
 func TestStdioApprovalOnFirstUse(t *testing.T) {

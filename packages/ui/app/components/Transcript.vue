@@ -33,7 +33,8 @@ const blocks = computed<Block[]>(() => {
   return out
 })
 
-const queued = computed(() => store.localQueue[props.session.meta.id] ?? [])
+// Messages waiting in this browser, then the ones sent to the client while a question waits for its answer.
+const queued = computed(() => [...(store.localQueue[props.session.meta.id] ?? []), ...props.session.queue])
 const working = computed(() => props.session.meta.status === 'working')
 const lastIsStreaming = computed(() => {
   const last = props.session.items[props.session.items.length - 1]

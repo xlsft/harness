@@ -150,9 +150,10 @@ var ErrNonInteractive = errors.New("no interactive user is attached to this sess
 
 // Interactor asks the user questions and plan approvals (AgentService).
 type Interactor interface {
-	// AskQuestions blocks until the user answers: one []string of selected
-	// labels (or free text) per question.
-	AskQuestions(ctx context.Context, toolUseID string, qs []Question) ([][]string, error)
+	// AskQuestions blocks until the user answers normalized questions (see
+	// NormalizeQuestions), skips them or answers with a chat message. Chat
+	// messages sent meanwhile do not end the wait.
+	AskQuestions(ctx context.Context, toolUseID string, qs []Question) (QuestionResponse, error)
 	// ProposePlan blocks until the user approves or rejects the plan.
 	ProposePlan(ctx context.Context, toolUseID, plan, path string) (PlanResponse, error)
 }

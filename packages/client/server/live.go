@@ -45,7 +45,7 @@ type liveSession struct {
 	mu          sync.Mutex
 	status      agentv1.SessionStatus
 	pendingPerm map[string]*pendingPermission
-	pendingQ    map[string]chan [][]string
+	pendingQ    map[string]*pendingQuestion
 	pendingPlan map[string]chan planAnswer
 	waiting     int
 	queue       []*agentv1.UserMessage
@@ -79,7 +79,7 @@ var (
 func newLiveSession(s *Server) *liveSession {
 	ctx, cancel := context.WithCancel(s.ctx)
 	return &liveSession{srv: s, hub: newHub(), seen: map[string]bool{}, status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
-		pendingPerm: map[string]*pendingPermission{}, pendingQ: map[string]chan [][]string{}, pendingPlan: map[string]chan planAnswer{},
+		pendingPerm: map[string]*pendingPermission{}, pendingQ: map[string]*pendingQuestion{}, pendingPlan: map[string]chan planAnswer{},
 		ctx: ctx, cancel: cancel}
 }
 
@@ -359,39 +359,6 @@ func (ls *liveSession) Ask(ctx context.Context, req permissions.Request) (permis
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
 			RequestId: id, Decision: a.decision, ResolvedBy: "local"}}})
 		return a.d, nil
-	}
-}
-
-// AskQuestions implements tools.Interactor (AskUserQuestion).
-func (ls *liveSession) AskQuestions(ctx context.Context, toolUseID string, qs []tools.Question) ([][]string, error) {
-	id := newUUID("q_")
-	ch := make(chan [][]string, 1)
-	ls.mu.Lock()
-	ls.pendingQ[id] = ch
-	ls.mu.Unlock()
-	defer func() {
-		ls.mu.Lock()
-		delete(ls.pendingQ, id)
-		ls.mu.Unlock()
-	}()
-	q := &agentv1.Question{RequestId: id, ToolUseId: toolUseID}
-	for _, it := range qs {
-		item := &agentv1.QuestionItem{Question: it.Question, Header: it.Header, MultiSelect: it.MultiSelect}
-		for _, o := range it.Options {
-			item.Options = append(item.Options, &agentv1.QuestionOption{Label: o.Label, Description: o.Description})
-		}
-		q.Items = append(q.Items, item)
-	}
-	ls.beginWait()
-	defer ls.endWait()
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_Question{Question: q}})
-	select {
-	case <-ctx.Done():
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QuestionResolved{QuestionResolved: &agentv1.QuestionResolved{RequestId: id, ResolvedBy: "interrupt"}}})
-		return nil, ctx.Err()
-	case a := <-ch:
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QuestionResolved{QuestionResolved: &agentv1.QuestionResolved{RequestId: id, ResolvedBy: "local"}}})
-		return a, nil
 	}
 }
 
