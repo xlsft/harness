@@ -12,7 +12,8 @@ Timeouts and output:
 
 Background commands:
 - Set `run_in_background` to true for servers, watchers and long builds or test runs whose result you do not need right away. The call returns at once with a task id and an output file path; the command keeps running.
-- You get a system reminder with the exit code when it finishes. Do not poll the output file or `sleep` while waiting; do other work, or end your turn. Read the output file when you need to check on it.
+- You get a system reminder with the exit status and the last lines of output when it finishes. Do not `cat` or `tail` the output file and do not `sleep` while waiting; do other work, or end your turn.
+- To check on a running task, use TaskOutput: it returns only the output written since your last check and can wait for the task to finish or for a line to appear. To wait until a server's port opens or a file appears, use Wait.
 - Stop a background task with TaskStop. If the user asked you to stop a server or process when you are done, stop it before your final answer and confirm it is gone (for example, the port no longer answers).
 
 Rules:
@@ -21,7 +22,7 @@ Rules:
 - Join dependent commands with `&&`. Send independent commands as separate calls in the same response so they run in parallel.
 - Before creating files or directories, check that the target's parent directory exists and is where you mean to write.
 - Do not run interactive commands (editors, pagers, prompts, `git rebase -i`, `git add -i`); they hang until the timeout. Use non-interactive flags.
-- Never put `sleep` between commands that are ready to run. If you must wait on an external system, use a command that reports its status instead of sleeping first.
+- Never put `sleep` between commands that are ready to run. If you must wait for something (a port, a file, a background task), use Wait; for other external systems, use a command that reports its status instead of sleeping first.
 - `description`: say what the command does in active voice, in about 5 to 10 words ("Run unit tests", "List files changed on this branch"). For pipelines or unusual flags, say what the whole thing achieves.
 
 Git safety:
