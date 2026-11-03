@@ -200,6 +200,12 @@ func (r *replayer) entry(e session.Entry) {
 			}
 		case session.SubtypeUserShell:
 			r.userShell(e, at)
+		case session.SubtypeUsageLimit:
+			if e.UsageLimit != nil {
+				if u := pbconv.UsageLimit(*e.UsageLimit); u != nil {
+					r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_UsageLimit{UsageLimit: u}})
+				}
+			}
 		}
 	}
 }

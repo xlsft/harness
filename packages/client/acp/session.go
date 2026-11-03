@@ -18,6 +18,7 @@ import (
 	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
+	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
 // Sink receives a session's events.
@@ -86,6 +87,8 @@ type State struct {
 	Title          string
 	Queue          []*agentv1.UserMessage
 	Limits         *registry.Limits
+	// UsageLimit is the latest usage-limit state published (nil before any).
+	UsageLimit *agentv1.UsageLimit
 }
 
 // ErrAuthRequired is returned while the agent waits for the user to sign in.
@@ -168,6 +171,9 @@ type Session struct {
 	lastUsage  *sdk.Usage
 	turnTokens int64
 	limits     *registry.Limits
+	// usage publishes usage-limit state changes (usage.go); usageLimit is the latest one published.
+	usage      usagelimit.Tracker
+	usageLimit *agentv1.UsageLimit
 }
 
 // New creates the engine; Open starts the agent. Messages submitted before it runs wait in the queue.
@@ -251,7 +257,7 @@ func (s *Session) State() State {
 	st := State{Starting: s.starting, NeedsAuth: s.needsAuth, AuthMethods: s.authM, StartError: s.startErr,
 		Modes: s.modes, CurrentMode: s.curMode, Commands: s.commands, Models: s.models, CurrentModel: s.curModel,
 		ContextUsed: s.ctxUsed, ContextSize: s.ctxSize, AgentSessionID: string(s.sessionID), LoadSupported: s.caps.LoadSession,
-		Fresh: s.fresh, Title: s.title, Limits: s.limits}
+		Fresh: s.fresh, Title: s.title, Limits: s.limits, UsageLimit: s.usageLimit}
 	for _, q := range s.queue {
 		st.Queue = append(st.Queue, &agentv1.UserMessage{Uuid: q.uuid, Content: q.content, QueuedAt: q.queuedAt.UTC().Format(time.RFC3339Nano)})
 	}
@@ -821,6 +827,7 @@ func (s *Session) runTurn(q queued) {
 			msg = ErrAuthRequired.Error()
 		}
 	}
+	s.turnUsageLocked(err, cancelled)
 	usage := usageProto(res.Usage)
 	if usage == nil {
 		usage = usageProto(s.lastUsage)
@@ -1201,6 +1208,7 @@ func (s *Session) limitsLocked(v any) bool {
 	if f := s.cfg.OnLimits; f != nil {
 		s.outbox = append(s.outbox, func() { f(l) })
 	}
+	s.observeUsageLocked(s.evaluateUsageLocked())
 	s.changedLocked()
 	return true
 }

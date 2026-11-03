@@ -355,6 +355,8 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls := newLiveSession(s)
 	opts.OnEvent = ls.onEvent
 	opts.Logger = s.log()
+	usage := s.newUsageMonitor()
+	opts.UsageMonitor = usage
 	sess, err := bootstrap.Open(ctx, opts)
 	if err != nil {
 		s.rollbackWorktree(wt)
@@ -368,6 +370,11 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	entries := sess.Transcript.Entries()
 	ls.initTitle(session.ReadTitles(entries))
 	ls.relayChoice = session.ReadRemoteControl(entries)
+	if u := lastUsageLimit(entries); u != nil {
+		// The state on record: SessionInfo shows it, and the monitor publishes only what changes from it.
+		ls.usageLimit = u
+		usage.Seed(pbconv.FromUsageLimit(u))
+	}
 	ls.diff = diffStats(ctx, sess.Cwd, sess.Worktree)
 	if sess.Resumed {
 		// The history goes first (seq 1..n), so Subscribe(after_seq=0) shows the conversation so far.

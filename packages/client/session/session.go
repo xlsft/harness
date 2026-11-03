@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
 // Entry types.
@@ -53,6 +54,9 @@ const (
 	// SubtypeUserShell records a command the user ran in the composer's shell mode (userShell holds it); it is
 	// shown in replays. What the model saw is the user_shell_command reminder, a meta user entry.
 	SubtypeUserShell = "user_shell_command"
+	// SubtypeUsageLimit records a usage-limit state of the session's provider (usageLimit holds it), replayed
+	// as SessionEvent.usage_limit.
+	SubtypeUsageLimit = "usage_limit"
 )
 
 // unchained entry types carry no uuid/parentUuid.
@@ -161,6 +165,9 @@ type Entry struct {
 
 	// UserShell is set on SubtypeUserShell system entries.
 	UserShell *UserShell `json:"userShell,omitempty"`
+
+	// UsageLimit is set on SubtypeUsageLimit system entries.
+	UsageLimit *usagelimit.Status `json:"usageLimit,omitempty"`
 
 	// ai-title / custom-title fields
 	AITitle     string `json:"aiTitle,omitempty"`

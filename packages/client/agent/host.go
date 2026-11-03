@@ -10,6 +10,7 @@ import (
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
 // Limits for injected reminders.
@@ -189,6 +190,12 @@ func (a *Agent) injectReminders(promptID string) {
 			tmpl, ok = styleTemplate(bundle), true
 			a.mu.Lock()
 			a.noteStyleInjected(r.vars)
+			a.mu.Unlock()
+		}
+		if r.id == ReminderUsageWrapUp {
+			tmpl, ok = bundle.Reminder(r.id, usagelimit.WrapUpFallback), true
+			a.mu.Lock()
+			a.usage.delivered = true
 			a.mu.Unlock()
 		}
 		if !ok || tmpl == "" {

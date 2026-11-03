@@ -82,6 +82,8 @@ type liveSession struct {
 	// SetSessionRelay calls (relay.go).
 	relayChoice *bool
 	relayMu     sync.Mutex
+	// usageLimit is the latest usage-limit state (SessionInfo.usage_limit; ls.mu).
+	usageLimit *agentv1.UsageLimit
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.
@@ -114,7 +116,8 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.statusLocked(),
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
-		NoFolder: isNoFolder(ls.sess.ID, ls.sess.Cwd),
+		NoFolder:   isNoFolder(ls.sess.ID, ls.sess.Cwd),
+		UsageLimit: ls.usageLimit,
 	}
 	ls.relayStateLocked(info)
 	ls.srv.applyState(info)
@@ -231,6 +234,12 @@ func (ls *liveSession) onEvent(e agent.Event) {
 	case agent.EventTurnStarted:
 		ls.mu.Lock()
 		ls.idleCompacted = false
+		if u := ls.usageLimit; u.GetWrappedUp() {
+			// "Wrapped up" described the previous turn.
+			u = proto.Clone(u).(*agentv1.UsageLimit)
+			u.WrappedUp = false
+			ls.usageLimit = u
+		}
 		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnStarted{TurnStarted: &agentv1.TurnStarted{UserMessageUuid: e.UUID, Model: e.Model}}})
 	case agent.EventStream:
@@ -284,6 +293,8 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		m, _ := permissions.ParseMode(e.Mode)
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionModeChanged{PermissionModeChanged: &agentv1.PermissionModeChanged{Mode: modeToProto(m)}}})
 		ls.publishInfo()
+	case agent.EventUsageLimit:
+		ls.onUsageLimit(*e.UsageLimit)
 	case agent.EventNotice:
 		lv := map[string]agentv1.Notice_Level{"info": agentv1.Notice_LEVEL_INFO, "warning": agentv1.Notice_LEVEL_WARNING, "error": agentv1.Notice_LEVEL_ERROR}
 		ls.notice(lv[e.Notice.Level], e.Notice.Kind, NoticeText(e.Notice))

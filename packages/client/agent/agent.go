@@ -26,6 +26,7 @@ import (
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
 // InterruptedFallback is used only when the bundle lacks the "interrupted" reminder.
@@ -78,6 +79,8 @@ const (
 	EventModeChanged
 	// EventNotice is an informational message for frontends (Notice).
 	EventNotice
+	// EventUsageLimit carries a usage-limit state of the session's provider (UsageLimit).
+	EventUsageLimit
 )
 
 // Notice is an informational event.
@@ -149,6 +152,7 @@ type Event struct {
 	Task       *tools.TaskEvent
 	Mode       string
 	Notice     *Notice
+	UsageLimit *usagelimit.Status
 }
 
 // ModelUsage aggregates usage per model.
@@ -254,6 +258,9 @@ type Config struct {
 	// DisableInterruptReply turns off the short model reply after an
 	// interrupted turn (ReplyToInterrupt, run by Driver).
 	DisableInterruptReply bool
+	// UsageMonitor follows the provider's usage limits after each model response and asks the model to wrap
+	// up when they are nearly exhausted (may be nil).
+	UsageMonitor UsageMonitor
 
 	OnEvent func(Event)
 	Retry   *gateway.RetryPolicy
@@ -305,6 +312,8 @@ type Agent struct {
 	// lostTurn holds the end New gave a turn the history left unfinished (see endLostTurn); it is written to
 	// the transcript when the next turn starts.
 	lostTurn []session.Entry
+	// usage is the usage-limit state of the running turn (usage.go).
+	usage usageTurn
 }
 
 // New creates an agent.
@@ -699,8 +708,9 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 
 	res := TurnResult{ModelUsage: map[string]*ModelUsage{}}
 	start := time.Now()
-	finish := func() TurnResult { res.Duration = time.Since(start); return res }
+	finish := func() TurnResult { a.finishUsageTurn(); res.Duration = time.Since(start); return res }
 	a.recordLostTurn()
+	a.startUsageTurn()
 
 	promptID := session.NewID()
 	var first []llm.ContentBlock
@@ -755,6 +765,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 				return finish()
 			}
 			a.record(session.Entry{Type: session.TypeSystem, Subtype: "api_error", Level: "error", Content: err.Error()})
+			a.checkUsage(ctx, err, false)
 			res.Subtype, res.IsError = SubtypeErrorDuringExecution, true
 			res.Errors = append(res.Errors, err.Error())
 			return finish()
@@ -776,6 +787,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		a.emit(Event{Kind: EventAssistant, UUID: asstUUID, Message: &msg, Response: &resp})
 
 		uses := msg.ToolUses()
+		a.checkUsage(ctx, nil, len(uses) > 0)
 		if len(uses) == 0 {
 			res.Subtype = SubtypeSuccess
 			res.Result = msg.Text()

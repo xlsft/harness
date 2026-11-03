@@ -45,7 +45,7 @@ import { MockFilesApi } from '~/lib/files/mock'
 import { MockSpeechApi } from '~/lib/speech/mock'
 import { MockAcpApi } from '~/lib/acp/mock'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
-import { EventBuilder } from './events'
+import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
@@ -527,6 +527,7 @@ export class MockTransport implements SessionTransport {
           ? 'One decision first, it changes the shape of the change.'
           : 'Rebuilding core from a clean output directory, then running the gateway tests.'
       this.stream(s, msg, 1, 'text', intro, () => {
+        if (lower.includes('limit')) return this.usageLimitFlow(s, msg, thinking, intro, startedAt)
         if (lower.includes('plan')) return this.planFlow(s, msg, thinking, intro, startedAt)
         if (lower.includes('ask') || lower.includes('question')) return this.questionFlow(s, msg, thinking, intro, startedAt)
         if (lower.includes('long') || lower.includes('watch')) return this.longBashFlow(s, msg, thinking, intro, startedAt)
@@ -574,6 +575,38 @@ export class MockTransport implements SessionTransport {
         this.finishTurn(s)
       }))
     }
+  }
+
+  // The provider runs low during the turn: NEAR after the first response, WRAP_UP after the tool call (the client
+  // would remind the model to wrap up here), then a short summary and the turn ends with wrapped_up.
+  private usageLimitFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
+    const tool = `${msg}-read`
+    const input = { file_path: 'packages/core/src/gateway/errors.ts' }
+    const resetsAt = new Date(this.now() + 3 * 3600_000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+    const limit = { providerId: 'anthropic', providerName: 'Anthropic', windowLabel: '5h', resetsAt }
+    const report = (b: EventBuilder, u: UsageLimitInit) => {
+      const ev = b.usageLimit(u)
+      if (ev.event.case === 'usageLimit') s.info.usageLimit = ev.event.value
+    }
+    this.emit(s, (b) => {
+      b.assistant(msg, s.info.model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'Read', input } }], { input: 31_000, output: 600 })
+      report(b, { state: 'near', usedPercent: 92, ...limit })
+      b.toolStarted(tool, 'Read', input, input.file_path)
+    })
+    this.later(s, this.tick * 8, () => {
+      this.emit(s, (b) => {
+        b.toolFinished(tool, { output: 'export function classifyHttpFailure(...)', summary: 'Read 57 lines' })
+        report(b, { state: 'wrap_up', usedPercent: 98, ...limit })
+      })
+      const msg2 = `${msg}-wrap`
+      const body = 'Stopping here because the Anthropic usage limit is almost used up.\n\n**Done:** the 429 classification is in place.\n**Left:** the quota error type and its tests.'
+      this.stream(s, msg2, 0, 'text', body, () => this.emit(s, (b) => {
+        b.assistant(msg2, s.info.model, [{ text: body }], { input: 32_000, output: 300 })
+        report(b, { state: 'wrap_up', usedPercent: 98, wrappedUp: true, ...limit })
+        b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.02, usage: { input: 12_000, output: 900 } })
+        this.finishTurn(s)
+      }))
+    })
   }
 
   // A Bash call that keeps running (it finishes by itself after a while unless the mock is synchronous) and can

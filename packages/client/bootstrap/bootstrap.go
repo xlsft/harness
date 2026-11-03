@@ -128,6 +128,9 @@ type Options struct {
 	MCP   *mcp.Client
 	NoMCP bool
 
+	// UsageMonitor follows the usage limits of the session provider (agent.Config.UsageMonitor; may be nil).
+	UsageMonitor agent.UsageMonitor
+
 	OnEvent func(agent.Event)
 	Logger  *slog.Logger
 }
@@ -567,6 +570,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.mcpExtraTools(),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
+		UsageMonitor:          o.UsageMonitor,
 		OnEvent:               onEvent, Logger: log,
 	})
 	s.Permissions.OnModeChange(func(m permissions.Mode) {

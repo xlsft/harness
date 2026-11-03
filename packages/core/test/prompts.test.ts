@@ -44,6 +44,7 @@ describe("bundle builder", () => {
       deferred_tools: ["tools"],
       environment_changed: ["directories", "variables"],
       user_shell_command: ["cwd", "command", "exit_code", "output", "status"],
+      usage_limit_wrap_up: ["provider", "detail", "resets"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason

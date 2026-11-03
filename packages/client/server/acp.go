@@ -150,6 +150,7 @@ func (l *acpLive) info() *agentv1.SessionInfo {
 		PermissionMode: acp.PermissionModeOf(st.CurrentMode), UpdatedAt: m.UpdatedAt.UTC().Format(time.RFC3339),
 		DiffStats: l.diff, NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(),
 		Acp: acp.StateToProto(l.sess.Config(), st), DeviceId: l.srv.DeviceID,
+		UsageLimit: st.UsageLimit,
 	}
 	l.mu.Unlock()
 	if st.CurrentModel != "" {
