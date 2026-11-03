@@ -73,18 +73,11 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
     <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
         Protocol
-        <select
+        <HSelect
           v-model="form.type"
-          :class="input"
-        >
-          <option
-            v-for="t in protocols"
-            :key="t.id"
-            :value="t.id"
-          >
-            {{ t.label }}
-          </option>
-        </select>
+          aria-label="Protocol"
+          :options="protocols.map(t => ({ value: t.id, label: t.label }))"
+        />
       </label>
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
         Name

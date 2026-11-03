@@ -304,18 +304,11 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
           <span class="set-desc">Who may still sign in with a local password.</span>
         </div>
         <div class="flex flex-col gap-2">
-          <select
+          <HSelect
             v-model="s.localLogin"
             aria-label="Local accounts"
-            :class="input"
-          >
-            <option value="fallback">
-              Everyone, when the directory refuses
-            </option>
-            <option value="break_glass">
-              Only the break-glass admins below
-            </option>
-          </select>
+            :options="[{ value: 'fallback', label: 'Everyone, when the directory refuses' }, { value: 'break_glass', label: 'Only the break-glass admins below' }]"
+          />
           <textarea
             v-if="s.localLogin === 'break_glass'"
             v-model="breakGlass"

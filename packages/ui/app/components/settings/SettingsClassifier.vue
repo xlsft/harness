@@ -94,23 +94,13 @@ const small = 'h-8 w-[120px] border border-accented bg-default px-2 text-[12.5px
             <span>Provider</span>
             <span class="set-desc">{{ choices.length ? 'One of the classifiers connected above.' : 'Connect a classifier above first.' }}</span>
           </div>
-          <select
-            :value="c.providerId"
+          <HSelect
+            :model-value="c.providerId"
             aria-label="Classifier provider"
-            :class="input"
-            @change="pick(($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">
-              Choose a classifier
-            </option>
-            <option
-              v-for="p in choices"
-              :key="p.id"
-              :value="p.id"
-            >
-              {{ p.name }}{{ p.group === 'llm' ? ' (LLM key)' : '' }}
-            </option>
-          </select>
+            placeholder="Choose a classifier"
+            :options="choices.map(p => ({ value: p.id, label: p.name, hint: p.group === 'llm' ? 'LLM key' : undefined }))"
+            @update:model-value="pick"
+          />
         </div>
         <template v-if="!webhook">
           <div class="set-row">
@@ -165,18 +155,11 @@ const small = 'h-8 w-[120px] border border-accented bg-default px-2 text-[12.5px
             <div class="set-label">
               <span>When unsure</span>
             </div>
-            <select
+            <HSelect
               v-model="c.onUncertain"
               aria-label="When the classifier is unsure"
-              :class="input"
-            >
-              <option value="next">
-                Ask the LLM model
-              </option>
-              <option value="ask">
-                Ask the developer
-              </option>
-            </select>
+              :options="[{ value: 'next', label: 'Ask the LLM model' }, { value: 'ask', label: 'Ask the developer' }]"
+            />
           </div>
         </template>
       </template>
@@ -185,22 +168,11 @@ const small = 'h-8 w-[120px] border border-accented bg-default px-2 text-[12.5px
           <span>LLM model as classifier</span>
           <span class="set-desc">Decides when the classifier is unsure or off. Empty: the server's classifier or small slot.</span>
         </div>
-        <select
+        <HSelect
           v-model="c.llmModel"
           aria-label="LLM model as classifier"
-          :class="input"
-        >
-          <option value="">
-            Server default
-          </option>
-          <option
-            v-for="m in llmModels"
-            :key="m.id"
-            :value="m.id"
-          >
-            {{ m.name }} · {{ m.provider }}
-          </option>
-        </select>
+          :options="[{ value: '', label: 'Server default' }, ...llmModels.map(m => ({ value: m.id, label: m.name, hint: m.provider }))]"
+        />
       </div>
       <div class="flex items-center justify-end gap-3 border-t border-default pt-3">
         <span

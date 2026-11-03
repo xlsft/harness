@@ -283,13 +283,11 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           >
         </label>
         <label class="flex flex-col gap-1 text-[11.5px] text-muted">Role
-          <select
+          <HSelect
             v-model="form.role"
-            :class="input"
-          >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
+            aria-label="Role"
+            :options="[{ value: 'user', label: 'User' }, { value: 'admin', label: 'Admin' }]"
+          />
         </label>
       </div>
       <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-toned">

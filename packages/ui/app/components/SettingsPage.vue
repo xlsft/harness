@@ -146,32 +146,17 @@ async function signOut() {
           </div>
           <div class="set-row">
             <div class="set-label">
-              <span>Model</span>
-              <span class="set-desc">Per-model effort is set under Models.</span>
+              <span>Default model</span>
+              <span class="set-desc">The model a new session starts with. Server default follows what the admin set.</span>
             </div>
-            <select
-              :value="prefs.model ?? ''"
-              aria-label="Default model"
-              class="h-8 w-[300px] border border-accented bg-default px-2 text-[12.5px] text-white outline-none focus:border-accent max-sm:w-full"
-              @change="save('model', ($event.target as HTMLSelectElement).value)"
-            >
-              <option value="">
-                Server default{{ serverDefault ? ` (${serverDefault})` : '' }}
-              </option>
-              <optgroup
-                v-for="p in providers"
-                :key="p.name"
-                :label="p.name"
-              >
-                <option
-                  v-for="m in p.models"
-                  :key="m.id"
-                  :value="m.id"
-                >
-                  {{ m.id }}
-                </option>
-              </optgroup>
-            </select>
+            <div class="w-[300px] max-sm:w-full">
+              <HSelect
+                :model-value="prefs.model ?? ''"
+                aria-label="Default model"
+                :options="[{ value: '', label: `Server default${serverDefault ? ` (${serverDefault})` : ''}` }, ...providers.flatMap(p => p.models.map(m => ({ value: m.id, label: m.displayName || m.id, group: p.name })))]"
+                @update:model-value="save('model', $event)"
+              />
+            </div>
           </div>
           <div
             v-if="defaultModel && modelEfforts(defaultModel).length"
@@ -282,26 +267,7 @@ async function signOut() {
           </div>
         </template>
 
-        <template v-else>
-          <h2 class="set-h">
-            About
-          </h2>
-          <p class="set-sub">
-            Your workflow, unbounded.
-          </p>
-          <div class="set-row">
-            <div class="set-label">
-              <span>Client</span>
-            </div>
-            <span class="text-[12.5px] text-white">{{ store.clientVersion || '—' }}</span>
-          </div>
-          <div class="set-row">
-            <div class="set-label">
-              <span>App</span>
-            </div>
-            <span class="text-[12.5px] text-white">{{ desktop ? 'Desktop' : 'Web' }}</span>
-          </div>
-        </template>
+        <SettingsAbout v-else />
       </div>
     </div>
   </section>
