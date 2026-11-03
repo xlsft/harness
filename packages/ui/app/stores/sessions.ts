@@ -758,6 +758,21 @@ export const useSessionStore = defineStore('sessions', {
       }
     },
 
+    // The session relay switch: shows at once, rolled back when the client refuses it (the caller reports the error).
+    async setSessionRelay(id: string, on: boolean) {
+      const s = this.sessions[id]
+      if (!s || !this.transport) return
+      const prev = s.meta.relayEnabled
+      s.meta.relayEnabled = on
+      try {
+        const info = await this.transport.setSessionRelay(id, on)
+        Object.assign(s.meta, { relayEnabled: info.relayEnabled, relayAvailable: info.relayAvailable, relayReason: info.relayUnavailableReason })
+      } catch (err) {
+        if (s.meta.relayEnabled === on) s.meta.relayEnabled = prev
+        throw err
+      }
+    },
+
     applyModes(init: { permissionModes: PermissionMode[], disabledPermissionModes: PermissionMode[] }) {
       this.permissionModes = init.permissionModes.map(permissionModeName)
       this.disabledModes = init.disabledPermissionModes.map(permissionModeName).filter(m => m !== 'default')

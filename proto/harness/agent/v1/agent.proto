@@ -235,6 +235,13 @@ service AgentService {
   rpc AuthenticateAcpAgent(AuthenticateAcpAgentRequest) returns (AuthenticateAcpAgentResponse);
   // Switches an ACP session to one of the agent's modes (session/set_mode).
   rpc SetAcpMode(SetAcpModeRequest) returns (SetAcpModeResponse);
+  // Turns remote control (the relay mirror to the harness server) on or off for one open session. Off: the
+  // session is unregistered upstream, its events are no longer published and viewer commands for it are
+  // rejected. On: it is registered again and viewers catch up from its event log. The choice is recorded in the
+  // transcript and survives a resume; without one the settings decide ("remoteControl", default true).
+  // Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
+  // (SessionInfo.relay_available) or for remote sessions.
+  rpc SetSessionRelay(SetSessionRelayRequest) returns (SetSessionRelayResponse);
 }
 
 enum PermissionMode {
@@ -356,6 +363,14 @@ message SessionInfo {
   repeated SessionFeature unsupported_features = 25;
   // ACP sessions only: the agent's modes, commands, sign-in and context state.
   optional AcpSessionState acp = 26;
+  // Local open sessions: the session is mirrored to the harness server right now (relay_available and remote
+  // control on for it, see SetSessionRelay). False for other sessions.
+  bool relay_enabled = 27;
+  // Local open sessions: remote control can be turned on for the session. False when this client runs no relay
+  // host (HARNESS_REMOTE_CONTROL=0, --remote-control=false, not signed in to a harness server) or policy settings
+  // turn it off ("remoteControl": false); relay_unavailable_reason then says why.
+  bool relay_available = 28;
+  string relay_unavailable_reason = 29;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -1431,4 +1446,14 @@ message BackgroundToolCallRequest {
 
 message BackgroundToolCallResponse {
   bool backgrounded = 1;
+}
+
+message SetSessionRelayRequest {
+  string session_id = 1;
+  bool enabled = 2;
+}
+
+message SetSessionRelayResponse {
+  // The session after the change (relay_enabled is the effective state).
+  SessionInfo session = 1;
 }

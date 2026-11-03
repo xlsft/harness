@@ -90,6 +90,9 @@ type Host struct {
 	// conn is closed and replaced whenever the host (re)connects.
 	conn     chan struct{}
 	sessions map[string]*hostSession
+	// retired holds the last mirror of sessions whose remote control was turned off (RemoveSession), so a
+	// later AddSession continues its seq mapping.
+	retired map[string]*hostSession
 	// done holds acks of finished commands (re-sent on redelivery); running
 	// holds commands being executed.
 	done    map[string]*relayv1.CommandAck
@@ -129,7 +132,7 @@ func New(o Options) *Host {
 		o:   o,
 		rpc: relayv1connect.NewRelayServiceClient(o.HTTP, strings.TrimRight(o.ServerURL, "/"), rpc.ClientOptions()...),
 		log: log.With("component", "relay"), conn: make(chan struct{}),
-		sessions: map[string]*hostSession{}, done: map[string]*relayv1.CommandAck{}, running: map[string]bool{},
+		sessions: map[string]*hostSession{}, retired: map[string]*hostSession{}, done: map[string]*relayv1.CommandAck{}, running: map[string]bool{},
 		ackKick: make(chan struct{}, 1),
 	}
 }
@@ -342,7 +345,8 @@ func (h *Host) superseded(s *relayv1.SessionSuperseded) {
 }
 
 // AddSession starts mirroring a live session (no-op when it is already
-// mirrored or settings disable remote control for it).
+// mirrored or remote control is off for it). A session mirrored before in
+// this process (RemoveSession) registers again and publishes what it missed.
 func (h *Host) AddSession(ctx context.Context, sessionID string) {
 	feed, ok := h.o.Backend.SessionFeed(sessionID)
 	if !ok || !feed.RemoteControl() {
@@ -355,8 +359,19 @@ func (h *Host) AddSession(ctx context.Context, sessionID string) {
 	}
 	hs := newHostSession(h, sessionID, feed)
 	h.sessions[sessionID] = hs
+	prev := h.retired[sessionID]
+	delete(h.retired, sessionID)
 	h.mu.Unlock()
 	go func() {
+		if prev != nil {
+			// Wait for the old mirror to unregister, then continue its seq mapping.
+			select {
+			case <-prev.done:
+			case <-ctx.Done():
+				return
+			}
+			hs.inherit(prev)
+		}
 		hs.run(ctx)
 		h.mu.Lock()
 		if h.sessions[sessionID] == hs {
@@ -364,6 +379,32 @@ func (h *Host) AddSession(ctx context.Context, sessionID string) {
 		}
 		h.mu.Unlock()
 	}()
+}
+
+// RemoveSession stops mirroring a session (remote control turned off for it):
+// it is unregistered upstream, its events are no longer published and
+// commands for it are rejected. No-op when it is not mirrored.
+func (h *Host) RemoveSession(sessionID string) {
+	h.mu.Lock()
+	hs := h.sessions[sessionID]
+	if hs != nil {
+		delete(h.sessions, sessionID)
+		h.retired[sessionID] = hs
+	}
+	h.mu.Unlock()
+	if hs != nil {
+		hs.remove()
+	}
+}
+
+// SetSessionMirrored applies the per-session remote control switch: on
+// mirrors the session (AddSession), off stops (RemoveSession).
+func (h *Host) SetSessionMirrored(ctx context.Context, sessionID string, on bool) {
+	if on {
+		h.AddSession(ctx, sessionID)
+	} else {
+		h.RemoveSession(sessionID)
+	}
 }
 
 func (h *Host) session(id string) *hostSession {

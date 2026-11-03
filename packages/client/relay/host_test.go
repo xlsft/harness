@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -216,6 +217,8 @@ type fakeFeed struct {
 	seq    int64
 	closed bool
 	info   *agentv1.SessionInfo
+	// relayOff is the per-session remote control switch turned off.
+	relayOff atomic.Bool
 }
 
 func newFakeFeed(id string) *fakeFeed {
@@ -298,7 +301,9 @@ func (f *fakeFeed) Closed() bool {
 	return f.closed
 }
 func (f *fakeFeed) Info() *agentv1.SessionInfo { return f.info }
-func (f *fakeFeed) RemoteControl() bool        { return f.info.GetTitle() != "no-remote" }
+func (f *fakeFeed) RemoteControl() bool {
+	return f.info.GetTitle() != "no-remote" && !f.relayOff.Load()
+}
 
 type fakeBackend struct {
 	agentv1connect.UnimplementedAgentServiceHandler

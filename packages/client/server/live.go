@@ -78,6 +78,10 @@ type liveSession struct {
 	shells userShells
 	// toolTitles tracks the Bash tool title requests (tooltitle.go; ls.mu).
 	toolTitles toolTitles
+	// relayChoice is the remote control switch on record (nil: settings decide; ls.mu); relayMu orders
+	// SetSessionRelay calls (relay.go).
+	relayChoice *bool
+	relayMu     sync.Mutex
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.
@@ -112,6 +116,7 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
 		NoFolder: isNoFolder(ls.sess.ID, ls.sess.Cwd),
 	}
+	ls.relayStateLocked(info)
 	ls.srv.applyState(info)
 	return info
 }

@@ -63,7 +63,14 @@ func (h *Host) dispatch(ctx context.Context, c *relayv1.Command) {
 	// ours: leave the command to its owner. An older epoch on a session we
 	// still own is a redelivery from before our last registration and runs.
 	hs := h.session(c.GetSessionId())
-	if hs == nil || hs.isSuperseded() {
+	if hs == nil {
+		// Open here with remote control turned off: refuse rather than leave the viewer waiting.
+		if f, ok := h.o.Backend.SessionFeed(c.GetSessionId()); ok && !f.Closed() && !f.RemoteControl() {
+			h.ack(outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "remote control is turned off for this session"))
+		}
+		return
+	}
+	if hs.isSuperseded() {
 		return
 	}
 	h.markRunning(id, true)
@@ -130,6 +137,16 @@ func (hs *hostSession) worker(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
+		case <-hs.quit:
+			// Remote control turned off: commands not started yet are refused (dispatch refuses new ones).
+			for {
+				select {
+				case c := <-hs.cmds:
+					hs.h.ack(outcome(c.GetCommandId(), relayv1.CommandAck_OUTCOME_REJECTED, "remote control is turned off for this session"))
+				default:
+					return
+				}
+			}
 		case c := <-hs.cmds:
 			if !hs.waitEpoch(ctx, c.GetEpoch()) {
 				hs.h.markRunning(c.GetCommandId(), false)

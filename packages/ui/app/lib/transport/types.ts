@@ -135,6 +135,9 @@ export interface SessionTransport {
   setModel(sessionId: string, model: string): Promise<void>
   setEffort(sessionId: string, effort: Effort): Promise<void>
   setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void>
+  // Turns remote control (mirroring to the harness server) on or off for an open local session; returns the
+  // session as it is now (relayEnabled). Refused when remote control is not available.
+  setSessionRelay(sessionId: string, enabled: boolean): Promise<SessionInfo>
 
   suggestFiles(sessionId: string, query: string, limit: number): Promise<string[]>
   compact(sessionId: string, instructions?: string): Promise<void>

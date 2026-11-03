@@ -1,8 +1,6 @@
 package server
 
 import (
-	"encoding/json"
-
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 )
 
@@ -70,20 +68,7 @@ func (f Feed) Closed() bool { return f.ls.hub.isClosed() }
 func (f Feed) Info() *agentv1.SessionInfo { return f.ls.info() }
 
 // RemoteControl reports whether the session may be mirrored and controlled
-// through the server: true unless the merged settings say
-// "remoteControl": false.
-func (f Feed) RemoteControl() bool {
-	st := f.ls.sess.Settings
-	if st == nil {
-		return true
-	}
-	raw, ok := st.Raw["remoteControl"]
-	if !ok {
-		return true
-	}
-	var on bool
-	if json.Unmarshal(raw, &on) != nil {
-		return true
-	}
-	return on
-}
+// through the server: the session's remote control switch on record
+// (SetSessionRelay), else the merged settings ("remoteControl", default
+// true); never when policy settings turn it off.
+func (f Feed) RemoteControl() bool { return f.ls.relayWanted() }

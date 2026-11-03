@@ -81,6 +81,9 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       archived: false,
       parentId: '',
       noFolder: false,
+      relayEnabled: false,
+      relayAvailable: false,
+      relayReason: '',
       ...meta
     },
     logId: '',
@@ -191,7 +194,10 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     unread: info.unread,
     archived: info.archived,
     parentId: info.parentSessionId,
-    noFolder: info.noFolder
+    noFolder: info.noFolder,
+    relayEnabled: info.relayEnabled,
+    relayAvailable: info.relayAvailable,
+    relayReason: info.relayUnavailableReason
   }
 }
 

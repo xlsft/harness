@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -84,6 +85,10 @@ type Server struct {
 	DeviceID string
 	// Relay, when set, tells which of the user's machines are online and drives remote sessions open on them.
 	Relay *RelayViewer
+	// RelayOffReason says why no relay host mirrors this client's sessions (SessionInfo.relay_unavailable_reason;
+	// empty: "not signed in"). relayHost is the attached host (SetRelayHost, relay.go).
+	RelayOffReason string
+	relayHost      atomic.Pointer[RelayHost]
 
 	// Environments stores the folder environments (environment.go); nil: HARNESS_HOME/environments.
 	Environments *environment.Store
@@ -362,6 +367,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls.hub.sessionID = sess.ID
 	entries := sess.Transcript.Entries()
 	ls.initTitle(session.ReadTitles(entries))
+	ls.relayChoice = session.ReadRemoteControl(entries)
 	ls.diff = diffStats(ctx, sess.Cwd, sess.Worktree)
 	if sess.Resumed {
 		// The history goes first (seq 1..n), so Subscribe(after_seq=0) shows the conversation so far.

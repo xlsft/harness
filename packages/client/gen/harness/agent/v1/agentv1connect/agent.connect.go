@@ -258,6 +258,9 @@ const (
 	AgentServiceAuthenticateAcpAgentProcedure = "/harness.agent.v1.AgentService/AuthenticateAcpAgent"
 	// AgentServiceSetAcpModeProcedure is the fully-qualified name of the AgentService's SetAcpMode RPC.
 	AgentServiceSetAcpModeProcedure = "/harness.agent.v1.AgentService/SetAcpMode"
+	// AgentServiceSetSessionRelayProcedure is the fully-qualified name of the AgentService's
+	// SetSessionRelay RPC.
+	AgentServiceSetSessionRelayProcedure = "/harness.agent.v1.AgentService/SetSessionRelay"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -460,6 +463,13 @@ type AgentServiceClient interface {
 	AuthenticateAcpAgent(context.Context, *connect.Request[v1.AuthenticateAcpAgentRequest]) (*connect.Response[v1.AuthenticateAcpAgentResponse], error)
 	// Switches an ACP session to one of the agent's modes (session/set_mode).
 	SetAcpMode(context.Context, *connect.Request[v1.SetAcpModeRequest]) (*connect.Response[v1.SetAcpModeResponse], error)
+	// Turns remote control (the relay mirror to the harness server) on or off for one open session. Off: the
+	// session is unregistered upstream, its events are no longer published and viewer commands for it are
+	// rejected. On: it is registered again and viewers catch up from its event log. The choice is recorded in the
+	// transcript and survives a resume; without one the settings decide ("remoteControl", default true).
+	// Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
+	// (SessionInfo.relay_available) or for remote sessions.
+	SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -947,6 +957,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetAcpMode")),
 			connect.WithClientOptions(opts...),
 		),
+		setSessionRelay: connect.NewClient[v1.SetSessionRelayRequest, v1.SetSessionRelayResponse](
+			httpClient,
+			baseURL+AgentServiceSetSessionRelayProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetSessionRelay")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1031,6 +1047,7 @@ type agentServiceClient struct {
 	uninstallAcpAgent     *connect.Client[v1.UninstallAcpAgentRequest, v1.UninstallAcpAgentResponse]
 	authenticateAcpAgent  *connect.Client[v1.AuthenticateAcpAgentRequest, v1.AuthenticateAcpAgentResponse]
 	setAcpMode            *connect.Client[v1.SetAcpModeRequest, v1.SetAcpModeResponse]
+	setSessionRelay       *connect.Client[v1.SetSessionRelayRequest, v1.SetSessionRelayResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1428,6 +1445,11 @@ func (c *agentServiceClient) SetAcpMode(ctx context.Context, req *connect.Reques
 	return c.setAcpMode.CallUnary(ctx, req)
 }
 
+// SetSessionRelay calls harness.agent.v1.AgentService.SetSessionRelay.
+func (c *agentServiceClient) SetSessionRelay(ctx context.Context, req *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error) {
+	return c.setSessionRelay.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1628,6 +1650,13 @@ type AgentServiceHandler interface {
 	AuthenticateAcpAgent(context.Context, *connect.Request[v1.AuthenticateAcpAgentRequest]) (*connect.Response[v1.AuthenticateAcpAgentResponse], error)
 	// Switches an ACP session to one of the agent's modes (session/set_mode).
 	SetAcpMode(context.Context, *connect.Request[v1.SetAcpModeRequest]) (*connect.Response[v1.SetAcpModeResponse], error)
+	// Turns remote control (the relay mirror to the harness server) on or off for one open session. Off: the
+	// session is unregistered upstream, its events are no longer published and viewer commands for it are
+	// rejected. On: it is registered again and viewers catch up from its event log. The choice is recorded in the
+	// transcript and survives a resume; without one the settings decide ("remoteControl", default true).
+	// Publishes SessionUpdated (relay_enabled). FAILED_PRECONDITION when remote control is not available
+	// (SessionInfo.relay_available) or for remote sessions.
+	SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2111,6 +2140,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetAcpMode")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceSetSessionRelayHandler := connect.NewUnaryHandler(
+		AgentServiceSetSessionRelayProcedure,
+		svc.SetSessionRelay,
+		connect.WithSchema(agentServiceMethods.ByName("SetSessionRelay")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2271,6 +2306,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceAuthenticateAcpAgentHandler.ServeHTTP(w, r)
 		case AgentServiceSetAcpModeProcedure:
 			agentServiceSetAcpModeHandler.ServeHTTP(w, r)
+		case AgentServiceSetSessionRelayProcedure:
+			agentServiceSetSessionRelayHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2594,4 +2631,8 @@ func (UnimplementedAgentServiceHandler) AuthenticateAcpAgent(context.Context, *c
 
 func (UnimplementedAgentServiceHandler) SetAcpMode(context.Context, *connect.Request[v1.SetAcpModeRequest]) (*connect.Response[v1.SetAcpModeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetAcpMode is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetSessionRelay(context.Context, *connect.Request[v1.SetSessionRelayRequest]) (*connect.Response[v1.SetSessionRelayResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetSessionRelay is not implemented"))
 }

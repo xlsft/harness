@@ -119,6 +119,9 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		if b := s.boolean(src, raw, "allowManagedPermissionRulesOnly"); b != nil {
 			l.managedRulesOnly = *b
 		}
+		if b := s.boolean(src, raw, KeyRemoteControl); b != nil && !*b {
+			l.remoteControlOff = true
+		}
 	}
 	return l
 }
@@ -200,6 +203,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 	for _, l := range layers {
 		if l.src.Level == LevelPolicy && l.managedRulesOnly {
 			managedOnly = true
+		}
+		if l.src.Level == LevelPolicy && l.remoteControlOff {
+			s.RemoteControlPolicyOff = true
 		}
 	}
 	gated := func(l *layer) bool { return l.src.Level == LevelProject && !s.Trusted }

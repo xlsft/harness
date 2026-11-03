@@ -222,6 +222,12 @@ export class ConnectTransport implements SessionTransport {
     await this.client.setPermissionMode({ sessionId, mode })
   }
 
+  async setSessionRelay(sessionId: string, enabled: boolean) {
+    const res = await this.client.setSessionRelay({ sessionId, enabled })
+    if (!res.session) throw new Error('the client returned no session')
+    return res.session
+  }
+
   async suggestFiles(sessionId: string, query: string, limit: number) {
     return (await this.client.suggestFiles({ sessionId, query, limit })).paths
   }
