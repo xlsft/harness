@@ -81,3 +81,20 @@ export async function openWithDefaultApp(path: string) {
   const { openPath } = await import('@tauri-apps/plugin-opener')
   await openPath(path)
 }
+
+/**
+ * Quitting the app (⌘Q, the menu, closing the window) asks `check` first: a message to confirm with a native
+ * dialog, or '' to quit at once. Returns a stop function.
+ */
+export async function guardQuit(check: () => string): Promise<() => void> {
+  const { listen } = await import('@tauri-apps/api/event')
+  return listen('quit-requested', async () => {
+    const warning = check()
+    if (warning) {
+      const { ask } = await import('@tauri-apps/plugin-dialog')
+      const quit = await ask(warning, { title: 'Quit xlsft`s harness?', kind: 'warning', okLabel: 'Quit', cancelLabel: 'Cancel' })
+      if (!quit) return
+    }
+    await invoke('confirm_quit')
+  })
+}

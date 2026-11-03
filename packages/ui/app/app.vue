@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // The web UI connects as configured (mock or a client URL). In the desktop shell it first checks the sign-in
 // with the shell, then asks it for the sidecar's endpoint (lib/desktop.ts).
-import { agentEndpoint, authStatus, isDesktop } from '~/lib/desktop'
+import { agentEndpoint, authStatus, guardQuit, isDesktop } from '~/lib/desktop'
+import { isSubagent } from '~/lib/session/reducer'
 import { ConnectTransport } from '~/lib/transport'
 
 useSeoMeta({
@@ -13,6 +14,19 @@ const store = useSessionStore()
 const desktop = isDesktop()
 useTurnNotifications()
 const phase = ref<'checking' | 'signin' | 'ready'>(desktop ? 'checking' : 'ready')
+
+// Quitting the desktop app warns while work is still running here: sessions in a turn, background tasks, agents.
+function runningWork() {
+  const all = Object.values(store.sessions).filter(s => !s.meta.remote)
+  const count = (n: number, one: string, many: string) => n ? `${n} ${n === 1 ? one : many}` : ''
+  const parts = [
+    count(all.filter(s => s.meta.status === 'working' || s.meta.status === 'needs_input').length, 'session is working', 'sessions are working'),
+    count(all.reduce((n, s) => n + Object.values(s.tasks).filter(t => t.state === 'running').length, 0), 'background task is running', 'background tasks are running'),
+    count(all.reduce((n, s) => n + s.items.filter(i => i.kind === 'tool' && isSubagent(i) && i.status === 'running').length, 0), 'agent is running', 'agents are running')
+  ].filter(Boolean)
+  return parts.length ? `${parts.join(', ')}. Quitting stops them.` : ''
+}
+if (desktop) guardQuit(runningWork)
 const signInError = ref('')
 
 async function connectDesktop() {

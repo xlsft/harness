@@ -25,7 +25,14 @@ const ORIGINS: &str = "tauri://localhost,http://tauri.localhost,http://localhost
 struct Shell {
     serve: Mutex<Option<Serve>>,
     login: Mutex<Option<Child>>,
+    /// Set once the UI agreed to quit (nothing running, or the user confirmed): the next exit goes through.
+    quit_confirmed: std::sync::atomic::AtomicBool,
+    /// When the last quit request went to the UI (ms since the epoch): a second one within QUIT_AGAIN_MS quits
+    /// anyway, so a hung or unloaded UI never keeps the app open.
+    quit_asked_at: std::sync::atomic::AtomicU64,
 }
+
+const QUIT_AGAIN_MS: u64 = 3000;
 
 struct Serve {
     child: Child,
@@ -117,6 +124,32 @@ fn logout(shell: State<'_, Shell>) -> Result<(), String> {
     }
 }
 
+/// Quitting (⌘Q, the menu, or closing the window) first asks the UI, which warns when sessions, background
+/// tasks or agents are still running; it calls this to really quit.
+#[tauri::command]
+fn confirm_quit(app: AppHandle, shell: State<'_, Shell>) {
+    shell.quit_confirmed.store(true, std::sync::atomic::Ordering::SeqCst);
+    app.exit(0);
+}
+
+/// Hands a quit request to the UI unless it was already confirmed; true when the request was held back.
+fn hold_quit(app: &AppHandle) -> bool {
+    let shell = app.state::<Shell>();
+    if shell.quit_confirmed.load(std::sync::atomic::Ordering::SeqCst) {
+        return false;
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let last = shell.quit_asked_at.swap(now, std::sync::atomic::Ordering::SeqCst);
+    if now.saturating_sub(last) < QUIT_AGAIN_MS {
+        return false;
+    }
+    let _ = app.emit("quit-requested", ());
+    true
+}
+
 /// The local AgentService endpoint, starting `harness-client serve` on first use (or after it exited).
 #[tauri::command]
 fn agent_endpoint(shell: State<'_, Shell>) -> Result<Endpoint, String> {
@@ -193,15 +226,27 @@ pub fn run() {
             }
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::ThemeChanged(theme) = event {
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::ThemeChanged(theme) => {
                 let _ = window.set_background_color(Some(ground(*theme)));
             }
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                if hold_quit(window.app_handle()) {
+                    api.prevent_close();
+                }
+            }
+            _ => {}
         })
-        .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint])
+        .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint, confirm_quit])
         .build(tauri::generate_context!())
         .expect("error while building the harness desktop app")
         .run(|app, event| {
+            // ⌘Q / Quit from the menu (code None: not app.exit) goes through the UI first.
+            if let RunEvent::ExitRequested { code: None, api, .. } = &event {
+                if hold_quit(app) {
+                    api.prevent_exit();
+                }
+            }
             if let RunEvent::Exit = event {
                 let shell = app.state::<Shell>();
                 stop_serve(&shell);
