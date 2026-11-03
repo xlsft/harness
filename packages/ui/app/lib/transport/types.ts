@@ -23,6 +23,7 @@ import type { UsageApi } from '~/lib/usage/types'
 import type { TerminalsApi } from '~/lib/terminal/types'
 
 import type { EnvironmentApi } from '~/lib/environment/types'
+import type { FilesApi } from '~/lib/files/types'
 
 export interface ModelInfo {
   id: string
@@ -129,4 +130,8 @@ export interface SessionTransport {
   // Session environments, folder facts and folder changes (AgentService GetEnvironment and friends). The web
   // link of a session is sessionWebUrl(initialize().webUrl, id) from ~/lib/environment/types.
   environment(): EnvironmentApi
+
+  // The files pane: a session's working directories, listings with git status, file contents within limits
+  // (AgentService ListFileRoots / ListFiles / ReadFile / GetGitStatus, ~/lib/files).
+  files(): FilesApi
 }

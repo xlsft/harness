@@ -22,6 +22,7 @@ import { ConnectAccountApi } from '~/lib/account/connect'
 import { ConnectUsageApi } from '~/lib/usage/connect'
 import { ConnectTerminalsApi } from '~/lib/terminal/connect'
 import { ConnectEnvironmentApi } from '~/lib/environment/connect'
+import { ConnectFilesApi } from '~/lib/files/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.LOW]: 'low',
@@ -51,6 +52,7 @@ export class ConnectTransport implements SessionTransport {
     this.usageApi = new ConnectUsageApi(transport)
     this.terminalsApi = new ConnectTerminalsApi(transport, baseUrl)
     this.environmentApi = new ConnectEnvironmentApi(transport)
+    this.filesApi = new ConnectFilesApi(transport)
   }
 
   private environmentApi: ConnectEnvironmentApi
@@ -213,6 +215,11 @@ export class ConnectTransport implements SessionTransport {
       efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e),
       thinking: m.thinking
     }))
+  }
+
+  private filesApi!: ConnectFilesApi
+  files() {
+    return this.filesApi
   }
 }
 

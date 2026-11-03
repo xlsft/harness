@@ -30,6 +30,7 @@ import { MockUsageApi } from '~/lib/usage/mock'
 import { MockTerminalsApi } from '~/lib/terminal/mock'
 
 import { MockEnvironmentApi } from '~/lib/environment/mock'
+import { MockFilesApi } from '~/lib/files/mock'
 import { EventBuilder } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers } from './types'
@@ -609,6 +610,11 @@ export class MockTransport implements SessionTransport {
   async stopTask(sessionId: string, taskId: string) {
     const s = this.get(sessionId)
     this.emit(s, b => b.taskFinished(taskId, 143, 0, true))
+  }
+
+  private filesApi = new MockFilesApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
+  files() {
+    return this.filesApi
   }
 }
 
