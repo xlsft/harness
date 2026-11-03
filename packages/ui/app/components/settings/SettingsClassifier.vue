@@ -1,9 +1,10 @@
 <script setup lang="ts">
-// Settings > Providers > Classifier (admins): auto mode decides tool calls with rules, then a typed decision
-// model (Jev through OpenRouter, or TypeSafe) paid with a global provider's key, then the model classifier.
-import type { ClassifierSettings, ProviderView } from '~/lib/providers/types'
+// Settings > Providers > Classifiers > Auto-mode classifier (admins): auto mode decides tool calls with the
+// built-in rules, then the decision step (a connected classifier provider: a typed decision model or a
+// policy webhook), then an LLM model as classifier when the step is unsure or off. Server-wide.
+import type { ClassifierSettings, PresetView, ProviderView } from '~/lib/providers/types'
 
-const props = defineProps<{ providers: ProviderView[] }>()
+const props = defineProps<{ providers: ProviderView[], presets: PresetView[] }>()
 const store = useSessionStore()
 
 const c = ref<ClassifierSettings | null>(null)
@@ -11,8 +12,13 @@ const error = ref('')
 const saved = ref(false)
 const saving = ref(false)
 
-const keyed = computed(() => props.providers.filter(p => p.keySet))
-const models = computed(() => props.providers.flatMap(p => p.models))
+// Global classifier providers, plus an LLM provider the chain already uses (set up before classifier
+// providers existed: its key is reused on a decision endpoint of the same host).
+const choices = computed(() => props.providers.filter(p => p.scope === 'global' && (p.group === 'classifier' || p.id === c.value?.providerId)))
+const chosen = computed(() => props.providers.find(p => p.id === c.value?.providerId))
+const webhook = computed(() => chosen.value?.type === 'decision-http')
+const suggested = computed(() => props.presets.find(p => p.id === chosen.value?.presetId)?.defaultModels ?? [])
+const llmModels = computed(() => props.providers.filter(p => p.scope === 'global' && p.group === 'llm').flatMap(p => p.models.map(m => ({ ...m, provider: p.name }))))
 
 onMounted(async () => {
   try {
@@ -21,6 +27,14 @@ onMounted(async () => {
     error.value = e instanceof Error ? e.message : String(e)
   }
 })
+
+function pick(id: string) {
+  if (!c.value) return
+  c.value.providerId = id
+  // The new provider's own default model applies unless one is typed.
+  c.value.model = ''
+  c.value.endpoint = ''
+}
 
 async function save() {
   if (!c.value) return
@@ -38,18 +52,19 @@ async function save() {
 }
 
 const input = 'h-8 w-[300px] border border-accented bg-default px-2 text-[12.5px] text-white outline-none focus:border-accent max-sm:w-full'
+const small = 'h-8 w-[120px] border border-accented bg-default px-2 text-[12.5px] text-white outline-none focus:border-accent'
 </script>
 
 <template>
   <section
-    aria-label="Classifier"
-    class="flex flex-col"
+    aria-label="Auto-mode classifier"
+    class="mt-4 flex flex-col"
   >
-    <h2 class="set-h">
-      Classifier
-    </h2>
-    <p class="set-sub">
-      How auto mode decides tool calls: built-in rules, then a typed decision model, then the model classifier when it is unsure. Applies to every user.
+    <h3 class="m-0 text-[13px] font-semibold text-white">
+      Auto-mode classifier
+    </h3>
+    <p class="m-0 mt-1 mb-2 text-[12px] text-muted">
+      Built-in rules first, then the classifier below, then an LLM model when it is unsure. Applies to every user.
     </p>
     <p
       v-if="error"
@@ -65,126 +80,125 @@ const input = 'h-8 w-[300px] border border-accented bg-default px-2 text-[12.5px
     >
       <div class="set-row">
         <div class="set-label">
-          <span>Decision model</span>
-          <span class="set-desc">A model that answers allow / ask / deny with probabilities.</span>
+          <span>Classifier</span>
+          <span class="set-desc">A connected classifier answers allow / ask / deny before the LLM model is asked.</span>
         </div>
         <HToggle
           v-model="c.enabled"
-          label="Use a decision model"
+          label="Use a classifier"
         />
       </div>
       <template v-if="c.enabled">
         <div class="set-row">
           <div class="set-label">
             <span>Provider</span>
-            <span class="set-desc">A global provider whose key pays for decisions (OpenRouter or TypeSafe).</span>
+            <span class="set-desc">{{ choices.length ? 'One of the classifiers connected above.' : 'Connect a classifier above first.' }}</span>
           </div>
           <select
-            v-model="c.providerId"
-            aria-label="Decision model provider"
+            :value="c.providerId"
+            aria-label="Classifier provider"
             :class="input"
+            @change="pick(($event.target as HTMLSelectElement).value)"
           >
             <option value="">
-              Choose a provider
+              Choose a classifier
             </option>
             <option
-              v-for="p in keyed"
+              v-for="p in choices"
               :key="p.id"
               :value="p.id"
             >
-              {{ p.name }} ({{ p.baseUrl }})
+              {{ p.name }}{{ p.group === 'llm' ? ' (LLM key)' : '' }}
             </option>
           </select>
         </div>
-        <div class="set-row">
-          <div class="set-label">
-            <span>Model</span>
-            <span class="set-desc">Empty: the endpoint's default (typesafe/jev-1.13 on OpenRouter).</span>
-          </div>
-          <input
-            v-model="c.model"
-            aria-label="Decision model id"
-            placeholder="typesafe/jev-1.13"
-            :class="input"
-          >
-        </div>
-        <div class="set-row">
-          <div class="set-label">
-            <span>Endpoint</span>
-            <span class="set-desc">Empty: from the provider (openrouter, typesafe), or an https URL.</span>
-          </div>
-          <input
-            v-model="c.endpoint"
-            aria-label="Decision endpoint"
-            placeholder="from the provider"
-            :class="input"
-          >
-        </div>
-        <div class="set-row">
-          <div class="set-label">
-            <span>Confidence</span>
-            <span class="set-desc">Minimum probability of the answer and its lead over the runner-up.</span>
-          </div>
-          <div class="flex gap-2">
+        <template v-if="!webhook">
+          <div class="set-row">
+            <div class="set-label">
+              <span>Decision model</span>
+              <span class="set-desc">Empty: the provider's default{{ suggested[0] ? ` (${suggested[0].upstream})` : '' }}.</span>
+            </div>
             <input
-              v-model.number="c.minProbability"
-              type="number"
-              min="0"
-              max="1"
-              step="0.05"
-              aria-label="Minimum probability"
+              v-model="c.model"
+              aria-label="Decision model id"
+              list="classifier-models"
+              :placeholder="suggested[0]?.upstream ?? 'model id'"
               :class="input"
-              class="w-[120px]"
             >
-            <input
-              v-model.number="c.minMargin"
-              type="number"
-              min="0"
-              max="1"
-              step="0.05"
-              aria-label="Minimum margin"
+            <datalist id="classifier-models">
+              <option
+                v-for="m in suggested"
+                :key="m.upstream"
+                :value="m.upstream"
+              >
+                {{ m.name }}
+              </option>
+            </datalist>
+          </div>
+          <div class="set-row">
+            <div class="set-label">
+              <span>Confidence</span>
+              <span class="set-desc">Minimum probability of the answer, and its lead over the runner-up.</span>
+            </div>
+            <div class="flex gap-2">
+              <input
+                v-model.number="c.minProbability"
+                type="number"
+                min="0"
+                max="1"
+                step="0.05"
+                aria-label="Minimum probability"
+                :class="small"
+              >
+              <input
+                v-model.number="c.minMargin"
+                type="number"
+                min="0"
+                max="1"
+                step="0.05"
+                aria-label="Minimum margin"
+                :class="small"
+              >
+            </div>
+          </div>
+          <div class="set-row">
+            <div class="set-label">
+              <span>When unsure</span>
+            </div>
+            <select
+              v-model="c.onUncertain"
+              aria-label="When the classifier is unsure"
               :class="input"
-              class="w-[120px]"
             >
+              <option value="next">
+                Ask the LLM model
+              </option>
+              <option value="ask">
+                Ask the developer
+              </option>
+            </select>
           </div>
-        </div>
-        <div class="set-row">
-          <div class="set-label">
-            <span>When unsure</span>
-          </div>
-          <select
-            v-model="c.onUncertain"
-            aria-label="When the decision model is unsure"
-            :class="input"
-          >
-            <option value="next">
-              Ask the model classifier
-            </option>
-            <option value="ask">
-              Ask the developer
-            </option>
-          </select>
-        </div>
+        </template>
       </template>
       <div class="set-row">
         <div class="set-label">
-          <span>Classifier model</span>
-          <span class="set-desc">Model of the last step. Empty: the server's classifier or small slot.</span>
+          <span>LLM model as classifier</span>
+          <span class="set-desc">Decides when the classifier is unsure or off. Empty: the server's classifier or small slot.</span>
         </div>
         <select
           v-model="c.llmModel"
-          aria-label="Classifier model"
+          aria-label="LLM model as classifier"
           :class="input"
         >
           <option value="">
             Server default
           </option>
           <option
-            v-for="m in models"
+            v-for="m in llmModels"
             :key="m.id"
             :value="m.id"
           >
-            {{ m.name }} ({{ m.id }})
+            {{ m.name }} · {{ m.provider }}
           </option>
         </select>
       </div>

@@ -50,6 +50,13 @@
       "when": 1793664161917,
       "tag": "0006_personal_providers",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793666490322,
+      "tag": "0007_provider_presets",
+      "breakpoints": true
     }
   ]
 }

@@ -24,6 +24,8 @@ export interface HttpProviderOptions {
   url: string;
   bearerToken?: string;
   headers?: Record<string, string>;
+  /** Resolves the token and headers when deciding (a provider's credentials); overrides the two above. */
+  credentials?: () => Promise<{ bearerToken?: string; headers: Record<string, string> }>;
   allowPrivateNetwork?: boolean;
   timeoutMs?: number;
   /** Optional GET endpoint for healthy(); without it the provider reports healthy. */
@@ -64,13 +66,14 @@ export class HttpProvider implements DecisionProvider {
     const timeoutMs = this.o.timeoutMs ?? DEFAULT_HTTP_TIMEOUT_MS;
     const timeout = AbortSignal.timeout(timeoutMs);
     const signal = ctx.signal ? AbortSignal.any([ctx.signal, timeout]) : timeout;
+    const creds = this.o.credentials ? await this.o.credentials() : { bearerToken: this.o.bearerToken, headers: this.o.headers };
     const headers: Record<string, string> = {
-      ...this.o.headers,
+      ...creds.headers,
       "content-type": "application/json",
       accept: "application/json",
       "user-agent": "harness-core/decision",
     };
-    if (this.o.bearerToken) headers.authorization = `Bearer ${this.o.bearerToken}`;
+    if (creds.bearerToken) headers.authorization = `Bearer ${creds.bearerToken}`;
 
     let text: string;
     try {

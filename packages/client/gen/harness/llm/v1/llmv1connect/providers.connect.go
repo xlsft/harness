@@ -33,6 +33,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// ProviderServiceListPresetsProcedure is the fully-qualified name of the ProviderService's
+	// ListPresets RPC.
+	ProviderServiceListPresetsProcedure = "/harness.llm.v1.ProviderService/ListPresets"
 	// ProviderServiceListProvidersProcedure is the fully-qualified name of the ProviderService's
 	// ListProviders RPC.
 	ProviderServiceListProvidersProcedure = "/harness.llm.v1.ProviderService/ListProviders"
@@ -51,6 +54,9 @@ const (
 	// ProviderServiceAddModelProcedure is the fully-qualified name of the ProviderService's AddModel
 	// RPC.
 	ProviderServiceAddModelProcedure = "/harness.llm.v1.ProviderService/AddModel"
+	// ProviderServiceTestProviderProcedure is the fully-qualified name of the ProviderService's
+	// TestProvider RPC.
+	ProviderServiceTestProviderProcedure = "/harness.llm.v1.ProviderService/TestProvider"
 	// ProviderServiceRemoveModelProcedure is the fully-qualified name of the ProviderService's
 	// RemoveModel RPC.
 	ProviderServiceRemoveModelProcedure = "/harness.llm.v1.ProviderService/RemoveModel"
@@ -64,6 +70,9 @@ const (
 
 // ProviderServiceClient is a client for the harness.llm.v1.ProviderService service.
 type ProviderServiceClient interface {
+	// The well-known services the settings screens offer to connect in one step (presets), and the protocols a
+	// custom provider may speak. Served by the server, so a new preset needs no app release.
+	ListPresets(context.Context, *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error)
 	// The caller's providers: the global ones first (all of them for admins, enabled ones for everyone
 	// else), then the caller's personal ones; each with the models the caller may see.
 	ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error)
@@ -78,9 +87,13 @@ type ProviderServiceClient interface {
 	// connection test for the base URL and key.
 	DiscoverModels(context.Context, *connect.Request[v1.DiscoverModelsRequest]) (*connect.Response[v1.DiscoverModelsResponse], error)
 	AddModel(context.Context, *connect.Request[v1.AddModelRequest]) (*connect.Response[v1.AddModelResponse], error)
+	// One-click connection check: an LLM provider lists its models (a 401 / 403 means the key is rejected; a
+	// service without a model list counts as reachable); a classifier provider answers one sample decision.
+	// Same access as DiscoverModels.
+	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
-	// The auto-mode classifier's typed decision model (the decision_model step of DecisionService's chain),
-	// using the key of a global provider. Admin only.
+	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
+	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
 	GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error)
 	SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error)
 }
@@ -96,6 +109,12 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 	baseURL = strings.TrimRight(baseURL, "/")
 	providerServiceMethods := v1.File_harness_llm_v1_providers_proto.Services().ByName("ProviderService").Methods()
 	return &providerServiceClient{
+		listPresets: connect.NewClient[v1.ListPresetsRequest, v1.ListPresetsResponse](
+			httpClient,
+			baseURL+ProviderServiceListPresetsProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("ListPresets")),
+			connect.WithClientOptions(opts...),
+		),
 		listProviders: connect.NewClient[v1.ListProvidersRequest, v1.ListProvidersResponse](
 			httpClient,
 			baseURL+ProviderServiceListProvidersProcedure,
@@ -132,6 +151,12 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(providerServiceMethods.ByName("AddModel")),
 			connect.WithClientOptions(opts...),
 		),
+		testProvider: connect.NewClient[v1.TestProviderRequest, v1.TestProviderResponse](
+			httpClient,
+			baseURL+ProviderServiceTestProviderProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("TestProvider")),
+			connect.WithClientOptions(opts...),
+		),
 		removeModel: connect.NewClient[v1.RemoveModelRequest, v1.RemoveModelResponse](
 			httpClient,
 			baseURL+ProviderServiceRemoveModelProcedure,
@@ -155,15 +180,22 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // providerServiceClient implements ProviderServiceClient.
 type providerServiceClient struct {
+	listPresets    *connect.Client[v1.ListPresetsRequest, v1.ListPresetsResponse]
 	listProviders  *connect.Client[v1.ListProvidersRequest, v1.ListProvidersResponse]
 	createProvider *connect.Client[v1.CreateProviderRequest, v1.CreateProviderResponse]
 	updateProvider *connect.Client[v1.UpdateProviderRequest, v1.UpdateProviderResponse]
 	deleteProvider *connect.Client[v1.DeleteProviderRequest, v1.DeleteProviderResponse]
 	discoverModels *connect.Client[v1.DiscoverModelsRequest, v1.DiscoverModelsResponse]
 	addModel       *connect.Client[v1.AddModelRequest, v1.AddModelResponse]
+	testProvider   *connect.Client[v1.TestProviderRequest, v1.TestProviderResponse]
 	removeModel    *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
 	getClassifier  *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
 	setClassifier  *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
+}
+
+// ListPresets calls harness.llm.v1.ProviderService.ListPresets.
+func (c *providerServiceClient) ListPresets(ctx context.Context, req *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error) {
+	return c.listPresets.CallUnary(ctx, req)
 }
 
 // ListProviders calls harness.llm.v1.ProviderService.ListProviders.
@@ -196,6 +228,11 @@ func (c *providerServiceClient) AddModel(ctx context.Context, req *connect.Reque
 	return c.addModel.CallUnary(ctx, req)
 }
 
+// TestProvider calls harness.llm.v1.ProviderService.TestProvider.
+func (c *providerServiceClient) TestProvider(ctx context.Context, req *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error) {
+	return c.testProvider.CallUnary(ctx, req)
+}
+
 // RemoveModel calls harness.llm.v1.ProviderService.RemoveModel.
 func (c *providerServiceClient) RemoveModel(ctx context.Context, req *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error) {
 	return c.removeModel.CallUnary(ctx, req)
@@ -213,6 +250,9 @@ func (c *providerServiceClient) SetClassifier(ctx context.Context, req *connect.
 
 // ProviderServiceHandler is an implementation of the harness.llm.v1.ProviderService service.
 type ProviderServiceHandler interface {
+	// The well-known services the settings screens offer to connect in one step (presets), and the protocols a
+	// custom provider may speak. Served by the server, so a new preset needs no app release.
+	ListPresets(context.Context, *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error)
 	// The caller's providers: the global ones first (all of them for admins, enabled ones for everyone
 	// else), then the caller's personal ones; each with the models the caller may see.
 	ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error)
@@ -227,9 +267,13 @@ type ProviderServiceHandler interface {
 	// connection test for the base URL and key.
 	DiscoverModels(context.Context, *connect.Request[v1.DiscoverModelsRequest]) (*connect.Response[v1.DiscoverModelsResponse], error)
 	AddModel(context.Context, *connect.Request[v1.AddModelRequest]) (*connect.Response[v1.AddModelResponse], error)
+	// One-click connection check: an LLM provider lists its models (a 401 / 403 means the key is rejected; a
+	// service without a model list counts as reachable); a classifier provider answers one sample decision.
+	// Same access as DiscoverModels.
+	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
-	// The auto-mode classifier's typed decision model (the decision_model step of DecisionService's chain),
-	// using the key of a global provider. Admin only.
+	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
+	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
 	GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error)
 	SetClassifier(context.Context, *connect.Request[v1.SetClassifierRequest]) (*connect.Response[v1.SetClassifierResponse], error)
 }
@@ -241,6 +285,12 @@ type ProviderServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	providerServiceMethods := v1.File_harness_llm_v1_providers_proto.Services().ByName("ProviderService").Methods()
+	providerServiceListPresetsHandler := connect.NewUnaryHandler(
+		ProviderServiceListPresetsProcedure,
+		svc.ListPresets,
+		connect.WithSchema(providerServiceMethods.ByName("ListPresets")),
+		connect.WithHandlerOptions(opts...),
+	)
 	providerServiceListProvidersHandler := connect.NewUnaryHandler(
 		ProviderServiceListProvidersProcedure,
 		svc.ListProviders,
@@ -277,6 +327,12 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 		connect.WithSchema(providerServiceMethods.ByName("AddModel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	providerServiceTestProviderHandler := connect.NewUnaryHandler(
+		ProviderServiceTestProviderProcedure,
+		svc.TestProvider,
+		connect.WithSchema(providerServiceMethods.ByName("TestProvider")),
+		connect.WithHandlerOptions(opts...),
+	)
 	providerServiceRemoveModelHandler := connect.NewUnaryHandler(
 		ProviderServiceRemoveModelProcedure,
 		svc.RemoveModel,
@@ -297,6 +353,8 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 	)
 	return "/harness.llm.v1.ProviderService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case ProviderServiceListPresetsProcedure:
+			providerServiceListPresetsHandler.ServeHTTP(w, r)
 		case ProviderServiceListProvidersProcedure:
 			providerServiceListProvidersHandler.ServeHTTP(w, r)
 		case ProviderServiceCreateProviderProcedure:
@@ -309,6 +367,8 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 			providerServiceDiscoverModelsHandler.ServeHTTP(w, r)
 		case ProviderServiceAddModelProcedure:
 			providerServiceAddModelHandler.ServeHTTP(w, r)
+		case ProviderServiceTestProviderProcedure:
+			providerServiceTestProviderHandler.ServeHTTP(w, r)
 		case ProviderServiceRemoveModelProcedure:
 			providerServiceRemoveModelHandler.ServeHTTP(w, r)
 		case ProviderServiceGetClassifierProcedure:
@@ -323,6 +383,10 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 
 // UnimplementedProviderServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedProviderServiceHandler struct{}
+
+func (UnimplementedProviderServiceHandler) ListPresets(context.Context, *connect.Request[v1.ListPresetsRequest]) (*connect.Response[v1.ListPresetsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.ListPresets is not implemented"))
+}
 
 func (UnimplementedProviderServiceHandler) ListProviders(context.Context, *connect.Request[v1.ListProvidersRequest]) (*connect.Response[v1.ListProvidersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.ListProviders is not implemented"))
@@ -346,6 +410,10 @@ func (UnimplementedProviderServiceHandler) DiscoverModels(context.Context, *conn
 
 func (UnimplementedProviderServiceHandler) AddModel(context.Context, *connect.Request[v1.AddModelRequest]) (*connect.Response[v1.AddModelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.AddModel is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.TestProvider is not implemented"))
 }
 
 func (UnimplementedProviderServiceHandler) RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error) {

@@ -10,9 +10,16 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/llm/v1/providers.proto.
  */
 export const file_harness_llm_v1_providers: GenFile = /*@__PURE__*/
-  fileDesc("Ch5oYXJuZXNzL2xsbS92MS9wcm92aWRlcnMucHJvdG8SDmhhcm5lc3MubGxtLnYxItQCCghQcm92aWRlchIKCgJpZBgBIAEoCRIsCgVzY29wZRgCIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSDAoEdHlwZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSEwoLYXBpX2tleV9zZXQYBiABKAgSFAoMYXBpX2tleV9oaW50GAcgASgJEhQKDGhlYWRlcl9uYW1lcxgIIAMoCRIPCgdlbmFibGVkGAkgASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgKIAEoCBIQCghlZGl0YWJsZRgLIAEoCBItCgZtb2RlbHMYDCADKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlck1vZGVsEhIKCmNyZWF0ZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCSKNAQoNUHJvdmlkZXJNb2RlbBIKCgJpZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOdXBzdHJlYW1fbW9kZWwYAyABKAkSFgoOY29udGV4dF93aW5kb3cYBCABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBSABKAMSDwoHZW5hYmxlZBgGIAEoCCIWChRMaXN0UHJvdmlkZXJzUmVxdWVzdCJuChVMaXN0UHJvdmlkZXJzUmVzcG9uc2USKwoJcHJvdmlkZXJzGAEgAygLMhguaGFybmVzcy5sbG0udjEuUHJvdmlkZXISDQoFdHlwZXMYAiADKAkSGQoRY2FuX21hbmFnZV9nbG9iYWwYAyABKAgirAIKFUNyZWF0ZVByb3ZpZGVyUmVxdWVzdBIsCgVzY29wZRgBIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSCgoCaWQYAiABKAkSDAoEdHlwZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSDwoHYXBpX2tleRgGIAEoCRJDCgdoZWFkZXJzGAcgAygLMjIuaGFybmVzcy5sbG0udjEuQ3JlYXRlUHJvdmlkZXJSZXF1ZXN0LkhlYWRlcnNFbnRyeRIdChVhbGxvd19wcml2YXRlX25ldHdvcmsYCCABKAgaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWQ3JlYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIswCChVVcGRhdGVQcm92aWRlclJlcXVlc3QSCgoCaWQYASABKAkSEQoEdHlwZRgCIAEoCUgAiAEBEhkKDGRpc3BsYXlfbmFtZRgDIAEoCUgBiAEBEhUKCGJhc2VfdXJsGAQgASgJSAKIAQESFAoHYXBpX2tleRgFIAEoCUgDiAEBEi0KB2hlYWRlcnMYBiABKAsyFy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzSASIAQESFAoHZW5hYmxlZBgHIAEoCEgFiAEBEiIKFWFsbG93X3ByaXZhdGVfbmV0d29yaxgIIAEoCEgGiAEBQgcKBV90eXBlQg8KDV9kaXNwbGF5X25hbWVCCwoJX2Jhc2VfdXJsQgoKCF9hcGlfa2V5QgoKCF9oZWFkZXJzQgoKCF9lbmFibGVkQhgKFl9hbGxvd19wcml2YXRlX25ldHdvcmsibQoHSGVhZGVycxIzCgZ2YWx1ZXMYASADKAsyIy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzLlZhbHVlc0VudHJ5Gi0KC1ZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWVXBkYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIiMKFURlbGV0ZVByb3ZpZGVyUmVxdWVzdBIKCgJpZBgBIAEoCSIYChZEZWxldGVQcm92aWRlclJlc3BvbnNlIiwKFURpc2NvdmVyTW9kZWxzUmVxdWVzdBITCgtwcm92aWRlcl9pZBgBIAEoCSJIChZEaXNjb3Zlck1vZGVsc1Jlc3BvbnNlEi4KBm1vZGVscxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLk1vZGVsQ2FuZGlkYXRlIoQBCg5Nb2RlbENhbmRpZGF0ZRIWCg51cHN0cmVhbV9tb2RlbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOY29udGV4dF93aW5kb3cYAyABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBCABKAMSEQoJbW9kZWxfaWRzGAUgAygJIrUBCg9BZGRNb2RlbFJlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSFgoOdXBzdHJlYW1fbW9kZWwYAiABKAkSCgoCaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhYKDmNvbnRleHRfd2luZG93GAUgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAYgASgDEhAKCHRoaW5raW5nGAcgASgIEg4KBmltYWdlcxgIIAEoCCJAChBBZGRNb2RlbFJlc3BvbnNlEiwKBW1vZGVsGAEgASgLMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJNb2RlbCImChJSZW1vdmVNb2RlbFJlcXVlc3QSEAoIbW9kZWxfaWQYASABKAkiFQoTUmVtb3ZlTW9kZWxSZXNwb25zZSIWChRHZXRDbGFzc2lmaWVyUmVxdWVzdCJHChVHZXRDbGFzc2lmaWVyUmVzcG9uc2USLgoKY2xhc3NpZmllchgBIAEoCzIaLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXIiRgoUU2V0Q2xhc3NpZmllclJlcXVlc3QSLgoKY2xhc3NpZmllchgBIAEoCzIaLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXIiRwoVU2V0Q2xhc3NpZmllclJlc3BvbnNlEi4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIr0BCgpDbGFzc2lmaWVyEg8KB2VuYWJsZWQYASABKAgSEwoLcHJvdmlkZXJfaWQYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDQoFbW9kZWwYBCABKAkSFwoPbWluX3Byb2JhYmlsaXR5GAUgASgBEhIKCm1pbl9tYXJnaW4YBiABKAESFAoMb25fdW5jZXJ0YWluGAcgASgJEhIKCnRpbWVvdXRfbXMYCCABKAUSEQoJbGxtX21vZGVsGAkgASgJKmcKDVByb3ZpZGVyU2NvcGUSHgoaUFJPVklERVJfU0NPUEVfVU5TUEVDSUZJRUQQABIZChVQUk9WSURFUl9TQ09QRV9HTE9CQUwQARIbChdQUk9WSURFUl9TQ09QRV9QRVJTT05BTBACMtYGCg9Qcm92aWRlclNlcnZpY2USXAoNTGlzdFByb3ZpZGVycxIkLmhhcm5lc3MubGxtLnYxLkxpc3RQcm92aWRlcnNSZXF1ZXN0GiUuaGFybmVzcy5sbG0udjEuTGlzdFByb3ZpZGVyc1Jlc3BvbnNlEl8KDkNyZWF0ZVByb3ZpZGVyEiUuaGFybmVzcy5sbG0udjEuQ3JlYXRlUHJvdmlkZXJSZXF1ZXN0GiYuaGFybmVzcy5sbG0udjEuQ3JlYXRlUHJvdmlkZXJSZXNwb25zZRJfCg5VcGRhdGVQcm92aWRlchIlLmhhcm5lc3MubGxtLnYxLlVwZGF0ZVByb3ZpZGVyUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLlVwZGF0ZVByb3ZpZGVyUmVzcG9uc2USXwoORGVsZXRlUHJvdmlkZXISJS5oYXJuZXNzLmxsbS52MS5EZWxldGVQcm92aWRlclJlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5EZWxldGVQcm92aWRlclJlc3BvbnNlEl8KDkRpc2NvdmVyTW9kZWxzEiUuaGFybmVzcy5sbG0udjEuRGlzY292ZXJNb2RlbHNSZXF1ZXN0GiYuaGFybmVzcy5sbG0udjEuRGlzY292ZXJNb2RlbHNSZXNwb25zZRJNCghBZGRNb2RlbBIfLmhhcm5lc3MubGxtLnYxLkFkZE1vZGVsUmVxdWVzdBogLmhhcm5lc3MubGxtLnYxLkFkZE1vZGVsUmVzcG9uc2USVgoLUmVtb3ZlTW9kZWwSIi5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlcXVlc3QaIy5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlc3BvbnNlElwKDUdldENsYXNzaWZpZXISJC5oYXJuZXNzLmxsbS52MS5HZXRDbGFzc2lmaWVyUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLkdldENsYXNzaWZpZXJSZXNwb25zZRJcCg1TZXRDbGFzc2lmaWVyEiQuaGFybmVzcy5sbG0udjEuU2V0Q2xhc3NpZmllclJlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5TZXRDbGFzc2lmaWVyUmVzcG9uc2VCwQEKEmNvbS5oYXJuZXNzLmxsbS52MUIOUHJvdmlkZXJzUHJvdG9QAVpBZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9sbG0vdjE7bGxtdjGiAgNITFiqAg5IYXJuZXNzLkxsbS5WMcoCDkhhcm5lc3NcTGxtXFYx4gIaSGFybmVzc1xMbG1cVjFcR1BCTWV0YWRhdGHqAhBIYXJuZXNzOjpMbG06OlYxYgZwcm90bzM");
+  fileDesc("Ch5oYXJuZXNzL2xsbS92MS9wcm92aWRlcnMucHJvdG8SDmhhcm5lc3MubGxtLnYxIvYCCghQcm92aWRlchIKCgJpZBgBIAEoCRIsCgVzY29wZRgCIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSDAoEdHlwZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSEwoLYXBpX2tleV9zZXQYBiABKAgSFAoMYXBpX2tleV9oaW50GAcgASgJEhQKDGhlYWRlcl9uYW1lcxgIIAMoCRIPCgdlbmFibGVkGAkgASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgKIAEoCBIQCghlZGl0YWJsZRgLIAEoCBItCgZtb2RlbHMYDCADKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlck1vZGVsEhIKCmNyZWF0ZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRIRCglwcmVzZXRfaWQYDyABKAkSDQoFZ3JvdXAYECABKAkijQEKDVByb3ZpZGVyTW9kZWwSCgoCaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhYKDnVwc3RyZWFtX21vZGVsGAMgASgJEhYKDmNvbnRleHRfd2luZG93GAQgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAUgASgDEg8KB2VuYWJsZWQYBiABKAgiFAoSTGlzdFByZXNldHNSZXF1ZXN0InsKE0xpc3RQcmVzZXRzUmVzcG9uc2USLwoHcHJlc2V0cxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyUHJlc2V0EjMKCXByb3RvY29scxgCIAMoCzIgLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyUHJvdG9jb2wisgIKDlByb3ZpZGVyUHJlc2V0EgoKAmlkGAEgASgJEg0KBWdyb3VwGAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIMCgR0eXBlGAUgASgJEhAKCGJhc2VfdXJsGAYgASgJEisKBmZpZWxkcxgHIAMoCzIbLmhhcm5lc3MubGxtLnYxLlByZXNldEZpZWxkEhAKCGRvY3NfdXJsGAggASgJEg8KB2tleV91cmwYCSABKAkSMwoOZGVmYXVsdF9tb2RlbHMYCiADKAsyGy5oYXJuZXNzLmxsbS52MS5QcmVzZXRNb2RlbBIMCgRpY29uGAsgASgJEhgKEGRpc2NvdmVyc19tb2RlbHMYDCABKAgSDQoFbG9jYWwYDSABKAgiUQoLUHJlc2V0RmllbGQSDAoEbmFtZRgBIAEoCRINCgVsYWJlbBgCIAEoCRIQCghyZXF1aXJlZBgDIAEoCBITCgtwbGFjZWhvbGRlchgEIAEoCSJuCgtQcmVzZXRNb2RlbBIWCg51cHN0cmVhbV9tb2RlbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOY29udGV4dF93aW5kb3cYAyABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBCABKAMiUwoQUHJvdmlkZXJQcm90b2NvbBIKCgJpZBgBIAEoCRINCgVncm91cBgCIAEoCRINCgVsYWJlbBgDIAEoCRIVCg1iYXNlX3VybF9oaW50GAQgASgJIhYKFExpc3RQcm92aWRlcnNSZXF1ZXN0Im4KFUxpc3RQcm92aWRlcnNSZXNwb25zZRIrCglwcm92aWRlcnMYASADKAsyGC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlchINCgV0eXBlcxgCIAMoCRIZChFjYW5fbWFuYWdlX2dsb2JhbBgDIAEoCCLOAgoVQ3JlYXRlUHJvdmlkZXJSZXF1ZXN0EiwKBXNjb3BlGAEgASgOMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJTY29wZRIKCgJpZBgCIAEoCRIMCgR0eXBlGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIQCghiYXNlX3VybBgFIAEoCRIPCgdhcGlfa2V5GAYgASgJEkMKB2hlYWRlcnMYByADKAsyMi5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlcXVlc3QuSGVhZGVyc0VudHJ5Eh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgIIAEoCBIRCglwcmVzZXRfaWQYCSABKAkSDQoFZ3JvdXAYCiABKAkaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWQ3JlYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIswCChVVcGRhdGVQcm92aWRlclJlcXVlc3QSCgoCaWQYASABKAkSEQoEdHlwZRgCIAEoCUgAiAEBEhkKDGRpc3BsYXlfbmFtZRgDIAEoCUgBiAEBEhUKCGJhc2VfdXJsGAQgASgJSAKIAQESFAoHYXBpX2tleRgFIAEoCUgDiAEBEi0KB2hlYWRlcnMYBiABKAsyFy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzSASIAQESFAoHZW5hYmxlZBgHIAEoCEgFiAEBEiIKFWFsbG93X3ByaXZhdGVfbmV0d29yaxgIIAEoCEgGiAEBQgcKBV90eXBlQg8KDV9kaXNwbGF5X25hbWVCCwoJX2Jhc2VfdXJsQgoKCF9hcGlfa2V5QgoKCF9oZWFkZXJzQgoKCF9lbmFibGVkQhgKFl9hbGxvd19wcml2YXRlX25ldHdvcmsibQoHSGVhZGVycxIzCgZ2YWx1ZXMYASADKAsyIy5oYXJuZXNzLmxsbS52MS5IZWFkZXJzLlZhbHVlc0VudHJ5Gi0KC1ZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiRAoWVXBkYXRlUHJvdmlkZXJSZXNwb25zZRIqCghwcm92aWRlchgBIAEoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyIiMKFURlbGV0ZVByb3ZpZGVyUmVxdWVzdBIKCgJpZBgBIAEoCSIYChZEZWxldGVQcm92aWRlclJlc3BvbnNlIiwKFURpc2NvdmVyTW9kZWxzUmVxdWVzdBITCgtwcm92aWRlcl9pZBgBIAEoCSJIChZEaXNjb3Zlck1vZGVsc1Jlc3BvbnNlEi4KBm1vZGVscxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLk1vZGVsQ2FuZGlkYXRlIoQBCg5Nb2RlbENhbmRpZGF0ZRIWCg51cHN0cmVhbV9tb2RlbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSFgoOY29udGV4dF93aW5kb3cYAyABKAMSGQoRbWF4X291dHB1dF90b2tlbnMYBCABKAMSEQoJbW9kZWxfaWRzGAUgAygJIrUBCg9BZGRNb2RlbFJlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSFgoOdXBzdHJlYW1fbW9kZWwYAiABKAkSCgoCaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhYKDmNvbnRleHRfd2luZG93GAUgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAYgASgDEhAKCHRoaW5raW5nGAcgASgIEg4KBmltYWdlcxgIIAEoCCJAChBBZGRNb2RlbFJlc3BvbnNlEiwKBW1vZGVsGAEgASgLMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJNb2RlbCIqChNUZXN0UHJvdmlkZXJSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJIkgKFFRlc3RQcm92aWRlclJlc3BvbnNlEgoKAm9rGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSEwoLbW9kZWxfY291bnQYAyABKAUiJgoSUmVtb3ZlTW9kZWxSZXF1ZXN0EhAKCG1vZGVsX2lkGAEgASgJIhUKE1JlbW92ZU1vZGVsUmVzcG9uc2UiFgoUR2V0Q2xhc3NpZmllclJlcXVlc3QiRwoVR2V0Q2xhc3NpZmllclJlc3BvbnNlEi4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkYKFFNldENsYXNzaWZpZXJSZXF1ZXN0Ei4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkcKFVNldENsYXNzaWZpZXJSZXNwb25zZRIuCgpjbGFzc2lmaWVyGAEgASgLMhouaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllciK9AQoKQ2xhc3NpZmllchIPCgdlbmFibGVkGAEgASgIEhMKC3Byb3ZpZGVyX2lkGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBW1vZGVsGAQgASgJEhcKD21pbl9wcm9iYWJpbGl0eRgFIAEoARISCgptaW5fbWFyZ2luGAYgASgBEhQKDG9uX3VuY2VydGFpbhgHIAEoCRISCgp0aW1lb3V0X21zGAggASgFEhEKCWxsbV9tb2RlbBgJIAEoCSpnCg1Qcm92aWRlclNjb3BlEh4KGlBST1ZJREVSX1NDT1BFX1VOU1BFQ0lGSUVEEAASGQoVUFJPVklERVJfU0NPUEVfR0xPQkFMEAESGwoXUFJPVklERVJfU0NPUEVfUEVSU09OQUwQAjKJCAoPUHJvdmlkZXJTZXJ2aWNlElYKC0xpc3RQcmVzZXRzEiIuaGFybmVzcy5sbG0udjEuTGlzdFByZXNldHNSZXF1ZXN0GiMuaGFybmVzcy5sbG0udjEuTGlzdFByZXNldHNSZXNwb25zZRJcCg1MaXN0UHJvdmlkZXJzEiQuaGFybmVzcy5sbG0udjEuTGlzdFByb3ZpZGVyc1JlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5MaXN0UHJvdmlkZXJzUmVzcG9uc2USXwoOQ3JlYXRlUHJvdmlkZXISJS5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5DcmVhdGVQcm92aWRlclJlc3BvbnNlEl8KDlVwZGF0ZVByb3ZpZGVyEiUuaGFybmVzcy5sbG0udjEuVXBkYXRlUHJvdmlkZXJSZXF1ZXN0GiYuaGFybmVzcy5sbG0udjEuVXBkYXRlUHJvdmlkZXJSZXNwb25zZRJfCg5EZWxldGVQcm92aWRlchIlLmhhcm5lc3MubGxtLnYxLkRlbGV0ZVByb3ZpZGVyUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkRlbGV0ZVByb3ZpZGVyUmVzcG9uc2USXwoORGlzY292ZXJNb2RlbHMSJS5oYXJuZXNzLmxsbS52MS5EaXNjb3Zlck1vZGVsc1JlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5EaXNjb3Zlck1vZGVsc1Jlc3BvbnNlEk0KCEFkZE1vZGVsEh8uaGFybmVzcy5sbG0udjEuQWRkTW9kZWxSZXF1ZXN0GiAuaGFybmVzcy5sbG0udjEuQWRkTW9kZWxSZXNwb25zZRJZCgxUZXN0UHJvdmlkZXISIy5oYXJuZXNzLmxsbS52MS5UZXN0UHJvdmlkZXJSZXF1ZXN0GiQuaGFybmVzcy5sbG0udjEuVGVzdFByb3ZpZGVyUmVzcG9uc2USVgoLUmVtb3ZlTW9kZWwSIi5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlcXVlc3QaIy5oYXJuZXNzLmxsbS52MS5SZW1vdmVNb2RlbFJlc3BvbnNlElwKDUdldENsYXNzaWZpZXISJC5oYXJuZXNzLmxsbS52MS5HZXRDbGFzc2lmaWVyUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLkdldENsYXNzaWZpZXJSZXNwb25zZRJcCg1TZXRDbGFzc2lmaWVyEiQuaGFybmVzcy5sbG0udjEuU2V0Q2xhc3NpZmllclJlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5TZXRDbGFzc2lmaWVyUmVzcG9uc2VCwQEKEmNvbS5oYXJuZXNzLmxsbS52MUIOUHJvdmlkZXJzUHJvdG9QAVpBZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9sbG0vdjE7bGxtdjGiAgNITFiqAg5IYXJuZXNzLkxsbS5WMcoCDkhhcm5lc3NcTGxtXFYx4gIaSGFybmVzc1xMbG1cVjFcR1BCTWV0YWRhdGHqAhBIYXJuZXNzOjpMbG06OlYxYgZwcm90bzM");
 
 /**
+ * Groups ("sources") of providers:
+ *   "llm"        - LLM APIs whose models GatewayService offers (types "anthropic", "openai-chat",
+ *                  "openai-responses");
+ *   "classifier" - auto-mode decision services (types "decision-model": a typed decision model such as
+ *                  TypeSafe's Jev; "decision-http": a policy webhook answering {decision, reason}). Classifier
+ *                  providers are global only, since the decision chain is server-wide.
+ *
  * @generated from message harness.llm.v1.Provider
  */
 export type Provider = Message<"harness.llm.v1.Provider"> & {
@@ -27,7 +34,7 @@ export type Provider = Message<"harness.llm.v1.Provider"> & {
   scope: ProviderScope;
 
   /**
-   * "anthropic", "openai-chat" or "openai-responses".
+   * The protocol, see the groups above.
    *
    * @generated from field: string type = 3;
    */
@@ -97,6 +104,21 @@ export type Provider = Message<"harness.llm.v1.Provider"> & {
    * @generated from field: string updated_at = 14;
    */
   updatedAt: string;
+
+  /**
+   * The preset it was connected from; empty for a custom provider. Providers created before presets existed
+   * report the preset whose type and base URL they match.
+   *
+   * @generated from field: string preset_id = 15;
+   */
+  presetId: string;
+
+  /**
+   * "llm" or "classifier".
+   *
+   * @generated from field: string group = 16;
+   */
+  group: string;
 };
 
 /**
@@ -151,6 +173,254 @@ export const ProviderModelSchema: GenMessage<ProviderModel> = /*@__PURE__*/
   messageDesc(file_harness_llm_v1_providers, 1);
 
 /**
+ * @generated from message harness.llm.v1.ListPresetsRequest
+ */
+export type ListPresetsRequest = Message<"harness.llm.v1.ListPresetsRequest"> & {
+};
+
+/**
+ * Describes the message harness.llm.v1.ListPresetsRequest.
+ * Use `create(ListPresetsRequestSchema)` to create a new message.
+ */
+export const ListPresetsRequestSchema: GenMessage<ListPresetsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 2);
+
+/**
+ * @generated from message harness.llm.v1.ListPresetsResponse
+ */
+export type ListPresetsResponse = Message<"harness.llm.v1.ListPresetsResponse"> & {
+  /**
+   * In display order, LLM presets first.
+   *
+   * @generated from field: repeated harness.llm.v1.ProviderPreset presets = 1;
+   */
+  presets: ProviderPreset[];
+
+  /**
+   * Protocols a custom provider may use.
+   *
+   * @generated from field: repeated harness.llm.v1.ProviderProtocol protocols = 2;
+   */
+  protocols: ProviderProtocol[];
+};
+
+/**
+ * Describes the message harness.llm.v1.ListPresetsResponse.
+ * Use `create(ListPresetsResponseSchema)` to create a new message.
+ */
+export const ListPresetsResponseSchema: GenMessage<ListPresetsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 3);
+
+/**
+ * A well-known service: the user enters only its `fields` (usually just the API key).
+ *
+ * @generated from message harness.llm.v1.ProviderPreset
+ */
+export type ProviderPreset = Message<"harness.llm.v1.ProviderPreset"> & {
+  /**
+   * Stable id ([a-z0-9-]+), sent as CreateProviderRequest.preset_id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "llm" or "classifier".
+   *
+   * @generated from field: string group = 2;
+   */
+  group: string;
+
+  /**
+   * @generated from field: string display_name = 3;
+   */
+  displayName: string;
+
+  /**
+   * One line for the settings screen.
+   *
+   * @generated from field: string description = 4;
+   */
+  description: string;
+
+  /**
+   * The protocol (Provider.type).
+   *
+   * @generated from field: string type = 5;
+   */
+  type: string;
+
+  /**
+   * The default base URL (a classifier's: the full endpoint URL).
+   *
+   * @generated from field: string base_url = 6;
+   */
+  baseUrl: string;
+
+  /**
+   * What the user fills in, in order.
+   *
+   * @generated from field: repeated harness.llm.v1.PresetField fields = 7;
+   */
+  fields: PresetField[];
+
+  /**
+   * Where the service documents its API, and where its keys are created (either may be empty).
+   *
+   * @generated from field: string docs_url = 8;
+   */
+  docsUrl: string;
+
+  /**
+   * @generated from field: string key_url = 9;
+   */
+  keyUrl: string;
+
+  /**
+   * Models offered when the service has no model list (or a classifier's decision models); with
+   * discovers_models they are only a fallback for the picker.
+   *
+   * @generated from field: repeated harness.llm.v1.PresetModel default_models = 10;
+   */
+  defaultModels: PresetModel[];
+
+  /**
+   * A short monogram ("OR", "AN") the apps draw as the preset's icon.
+   *
+   * @generated from field: string icon = 11;
+   */
+  icon: string;
+
+  /**
+   * The service lists its models (DiscoverModels asks it); otherwise DiscoverModels answers default_models.
+   *
+   * @generated from field: bool discovers_models = 12;
+   */
+  discoversModels: boolean;
+
+  /**
+   * Usually runs on the local network (Ollama): connecting it globally allows private networks; personal
+   * providers cannot reach private addresses.
+   *
+   * @generated from field: bool local = 13;
+   */
+  local: boolean;
+};
+
+/**
+ * Describes the message harness.llm.v1.ProviderPreset.
+ * Use `create(ProviderPresetSchema)` to create a new message.
+ */
+export const ProviderPresetSchema: GenMessage<ProviderPreset> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 4);
+
+/**
+ * @generated from message harness.llm.v1.PresetField
+ */
+export type PresetField = Message<"harness.llm.v1.PresetField"> & {
+  /**
+   * "api_key" or "base_url".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: bool required = 3;
+   */
+  required: boolean;
+
+  /**
+   * @generated from field: string placeholder = 4;
+   */
+  placeholder: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.PresetField.
+ * Use `create(PresetFieldSchema)` to create a new message.
+ */
+export const PresetFieldSchema: GenMessage<PresetField> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 5);
+
+/**
+ * @generated from message harness.llm.v1.PresetModel
+ */
+export type PresetModel = Message<"harness.llm.v1.PresetModel"> & {
+  /**
+   * @generated from field: string upstream_model = 1;
+   */
+  upstreamModel: string;
+
+  /**
+   * @generated from field: string display_name = 2;
+   */
+  displayName: string;
+
+  /**
+   * 0 when unknown.
+   *
+   * @generated from field: int64 context_window = 3;
+   */
+  contextWindow: bigint;
+
+  /**
+   * @generated from field: int64 max_output_tokens = 4;
+   */
+  maxOutputTokens: bigint;
+};
+
+/**
+ * Describes the message harness.llm.v1.PresetModel.
+ * Use `create(PresetModelSchema)` to create a new message.
+ */
+export const PresetModelSchema: GenMessage<PresetModel> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 6);
+
+/**
+ * @generated from message harness.llm.v1.ProviderProtocol
+ */
+export type ProviderProtocol = Message<"harness.llm.v1.ProviderProtocol"> & {
+  /**
+   * Provider.type.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "llm" or "classifier".
+   *
+   * @generated from field: string group = 2;
+   */
+  group: string;
+
+  /**
+   * @generated from field: string label = 3;
+   */
+  label: string;
+
+  /**
+   * Placeholder for the base URL field.
+   *
+   * @generated from field: string base_url_hint = 4;
+   */
+  baseUrlHint: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.ProviderProtocol.
+ * Use `create(ProviderProtocolSchema)` to create a new message.
+ */
+export const ProviderProtocolSchema: GenMessage<ProviderProtocol> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 7);
+
+/**
  * @generated from message harness.llm.v1.ListProvidersRequest
  */
 export type ListProvidersRequest = Message<"harness.llm.v1.ListProvidersRequest"> & {
@@ -161,7 +431,7 @@ export type ListProvidersRequest = Message<"harness.llm.v1.ListProvidersRequest"
  * Use `create(ListProvidersRequestSchema)` to create a new message.
  */
 export const ListProvidersRequestSchema: GenMessage<ListProvidersRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 2);
+  messageDesc(file_harness_llm_v1_providers, 8);
 
 /**
  * @generated from message harness.llm.v1.ListProvidersResponse
@@ -192,7 +462,7 @@ export type ListProvidersResponse = Message<"harness.llm.v1.ListProvidersRespons
  * Use `create(ListProvidersResponseSchema)` to create a new message.
  */
 export const ListProvidersResponseSchema: GenMessage<ListProvidersResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 3);
+  messageDesc(file_harness_llm_v1_providers, 9);
 
 /**
  * @generated from message harness.llm.v1.CreateProviderRequest
@@ -204,13 +474,16 @@ export type CreateProviderRequest = Message<"harness.llm.v1.CreateProviderReques
   scope: ProviderScope;
 
   /**
-   * GLOBAL only: the provider id ([a-z0-9][a-z0-9._-]*); personal providers get a generated one.
+   * GLOBAL only: the provider id ([a-z0-9][a-z0-9._-]*); empty derives one from the preset or the name.
+   * Personal providers always get a generated one.
    *
    * @generated from field: string id = 2;
    */
   id: string;
 
   /**
+   * Ignored with preset_id (the preset's type).
+   *
    * @generated from field: string type = 3;
    */
   type: string;
@@ -243,6 +516,21 @@ export type CreateProviderRequest = Message<"harness.llm.v1.CreateProviderReques
    * @generated from field: bool allow_private_network = 8;
    */
   allowPrivateNetwork: boolean;
+
+  /**
+   * Connect a preset: type, group, name and base URL default to the preset's (base_url may be overridden
+   * only when the preset asks for it), and only the preset's required fields must be set.
+   *
+   * @generated from field: string preset_id = 9;
+   */
+  presetId: string;
+
+  /**
+   * Custom providers: "llm" (default) or "classifier" (GLOBAL only).
+   *
+   * @generated from field: string group = 10;
+   */
+  group: string;
 };
 
 /**
@@ -250,7 +538,7 @@ export type CreateProviderRequest = Message<"harness.llm.v1.CreateProviderReques
  * Use `create(CreateProviderRequestSchema)` to create a new message.
  */
 export const CreateProviderRequestSchema: GenMessage<CreateProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 4);
+  messageDesc(file_harness_llm_v1_providers, 10);
 
 /**
  * @generated from message harness.llm.v1.CreateProviderResponse
@@ -267,7 +555,7 @@ export type CreateProviderResponse = Message<"harness.llm.v1.CreateProviderRespo
  * Use `create(CreateProviderResponseSchema)` to create a new message.
  */
 export const CreateProviderResponseSchema: GenMessage<CreateProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 5);
+  messageDesc(file_harness_llm_v1_providers, 11);
 
 /**
  * Unset fields keep their value.
@@ -327,7 +615,7 @@ export type UpdateProviderRequest = Message<"harness.llm.v1.UpdateProviderReques
  * Use `create(UpdateProviderRequestSchema)` to create a new message.
  */
 export const UpdateProviderRequestSchema: GenMessage<UpdateProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 6);
+  messageDesc(file_harness_llm_v1_providers, 12);
 
 /**
  * @generated from message harness.llm.v1.Headers
@@ -344,7 +632,7 @@ export type Headers = Message<"harness.llm.v1.Headers"> & {
  * Use `create(HeadersSchema)` to create a new message.
  */
 export const HeadersSchema: GenMessage<Headers> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 7);
+  messageDesc(file_harness_llm_v1_providers, 13);
 
 /**
  * @generated from message harness.llm.v1.UpdateProviderResponse
@@ -361,7 +649,7 @@ export type UpdateProviderResponse = Message<"harness.llm.v1.UpdateProviderRespo
  * Use `create(UpdateProviderResponseSchema)` to create a new message.
  */
 export const UpdateProviderResponseSchema: GenMessage<UpdateProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 8);
+  messageDesc(file_harness_llm_v1_providers, 14);
 
 /**
  * @generated from message harness.llm.v1.DeleteProviderRequest
@@ -378,7 +666,7 @@ export type DeleteProviderRequest = Message<"harness.llm.v1.DeleteProviderReques
  * Use `create(DeleteProviderRequestSchema)` to create a new message.
  */
 export const DeleteProviderRequestSchema: GenMessage<DeleteProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 9);
+  messageDesc(file_harness_llm_v1_providers, 15);
 
 /**
  * @generated from message harness.llm.v1.DeleteProviderResponse
@@ -391,7 +679,7 @@ export type DeleteProviderResponse = Message<"harness.llm.v1.DeleteProviderRespo
  * Use `create(DeleteProviderResponseSchema)` to create a new message.
  */
 export const DeleteProviderResponseSchema: GenMessage<DeleteProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 10);
+  messageDesc(file_harness_llm_v1_providers, 16);
 
 /**
  * @generated from message harness.llm.v1.DiscoverModelsRequest
@@ -408,7 +696,7 @@ export type DiscoverModelsRequest = Message<"harness.llm.v1.DiscoverModelsReques
  * Use `create(DiscoverModelsRequestSchema)` to create a new message.
  */
 export const DiscoverModelsRequestSchema: GenMessage<DiscoverModelsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 11);
+  messageDesc(file_harness_llm_v1_providers, 17);
 
 /**
  * @generated from message harness.llm.v1.DiscoverModelsResponse
@@ -425,7 +713,7 @@ export type DiscoverModelsResponse = Message<"harness.llm.v1.DiscoverModelsRespo
  * Use `create(DiscoverModelsResponseSchema)` to create a new message.
  */
 export const DiscoverModelsResponseSchema: GenMessage<DiscoverModelsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 12);
+  messageDesc(file_harness_llm_v1_providers, 18);
 
 /**
  * @generated from message harness.llm.v1.ModelCandidate
@@ -466,7 +754,7 @@ export type ModelCandidate = Message<"harness.llm.v1.ModelCandidate"> & {
  * Use `create(ModelCandidateSchema)` to create a new message.
  */
 export const ModelCandidateSchema: GenMessage<ModelCandidate> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 13);
+  messageDesc(file_harness_llm_v1_providers, 19);
 
 /**
  * @generated from message harness.llm.v1.AddModelRequest
@@ -522,7 +810,7 @@ export type AddModelRequest = Message<"harness.llm.v1.AddModelRequest"> & {
  * Use `create(AddModelRequestSchema)` to create a new message.
  */
 export const AddModelRequestSchema: GenMessage<AddModelRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 14);
+  messageDesc(file_harness_llm_v1_providers, 20);
 
 /**
  * @generated from message harness.llm.v1.AddModelResponse
@@ -539,7 +827,55 @@ export type AddModelResponse = Message<"harness.llm.v1.AddModelResponse"> & {
  * Use `create(AddModelResponseSchema)` to create a new message.
  */
 export const AddModelResponseSchema: GenMessage<AddModelResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 15);
+  messageDesc(file_harness_llm_v1_providers, 21);
+
+/**
+ * @generated from message harness.llm.v1.TestProviderRequest
+ */
+export type TestProviderRequest = Message<"harness.llm.v1.TestProviderRequest"> & {
+  /**
+   * @generated from field: string provider_id = 1;
+   */
+  providerId: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.TestProviderRequest.
+ * Use `create(TestProviderRequestSchema)` to create a new message.
+ */
+export const TestProviderRequestSchema: GenMessage<TestProviderRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 22);
+
+/**
+ * @generated from message harness.llm.v1.TestProviderResponse
+ */
+export type TestProviderResponse = Message<"harness.llm.v1.TestProviderResponse"> & {
+  /**
+   * @generated from field: bool ok = 1;
+   */
+  ok: boolean;
+
+  /**
+   * What happened, for the user ("Connected, 312 models", "The key was rejected (HTTP 401)").
+   *
+   * @generated from field: string message = 2;
+   */
+  message: string;
+
+  /**
+   * LLM providers: models the service lists (0 when it has no list).
+   *
+   * @generated from field: int32 model_count = 3;
+   */
+  modelCount: number;
+};
+
+/**
+ * Describes the message harness.llm.v1.TestProviderResponse.
+ * Use `create(TestProviderResponseSchema)` to create a new message.
+ */
+export const TestProviderResponseSchema: GenMessage<TestProviderResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 23);
 
 /**
  * @generated from message harness.llm.v1.RemoveModelRequest
@@ -556,7 +892,7 @@ export type RemoveModelRequest = Message<"harness.llm.v1.RemoveModelRequest"> & 
  * Use `create(RemoveModelRequestSchema)` to create a new message.
  */
 export const RemoveModelRequestSchema: GenMessage<RemoveModelRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 16);
+  messageDesc(file_harness_llm_v1_providers, 24);
 
 /**
  * @generated from message harness.llm.v1.RemoveModelResponse
@@ -569,7 +905,7 @@ export type RemoveModelResponse = Message<"harness.llm.v1.RemoveModelResponse"> 
  * Use `create(RemoveModelResponseSchema)` to create a new message.
  */
 export const RemoveModelResponseSchema: GenMessage<RemoveModelResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 17);
+  messageDesc(file_harness_llm_v1_providers, 25);
 
 /**
  * @generated from message harness.llm.v1.GetClassifierRequest
@@ -582,7 +918,7 @@ export type GetClassifierRequest = Message<"harness.llm.v1.GetClassifierRequest"
  * Use `create(GetClassifierRequestSchema)` to create a new message.
  */
 export const GetClassifierRequestSchema: GenMessage<GetClassifierRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 18);
+  messageDesc(file_harness_llm_v1_providers, 26);
 
 /**
  * @generated from message harness.llm.v1.GetClassifierResponse
@@ -599,7 +935,7 @@ export type GetClassifierResponse = Message<"harness.llm.v1.GetClassifierRespons
  * Use `create(GetClassifierResponseSchema)` to create a new message.
  */
 export const GetClassifierResponseSchema: GenMessage<GetClassifierResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 19);
+  messageDesc(file_harness_llm_v1_providers, 27);
 
 /**
  * @generated from message harness.llm.v1.SetClassifierRequest
@@ -616,7 +952,7 @@ export type SetClassifierRequest = Message<"harness.llm.v1.SetClassifierRequest"
  * Use `create(SetClassifierRequestSchema)` to create a new message.
  */
 export const SetClassifierRequestSchema: GenMessage<SetClassifierRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 20);
+  messageDesc(file_harness_llm_v1_providers, 28);
 
 /**
  * @generated from message harness.llm.v1.SetClassifierResponse
@@ -633,23 +969,25 @@ export type SetClassifierResponse = Message<"harness.llm.v1.SetClassifierRespons
  * Use `create(SetClassifierResponseSchema)` to create a new message.
  */
 export const SetClassifierResponseSchema: GenMessage<SetClassifierResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 21);
+  messageDesc(file_harness_llm_v1_providers, 29);
 
 /**
- * Auto mode decides with the chain rules -> decision model (this) -> model classifier (llm).
+ * Auto mode decides with the chain rules -> decision step (this) -> model classifier (llm).
  *
  * @generated from message harness.llm.v1.Classifier
  */
 export type Classifier = Message<"harness.llm.v1.Classifier"> & {
   /**
-   * The decision model step is in the chain.
+   * The decision step is in the chain.
    *
    * @generated from field: bool enabled = 1;
    */
   enabled: boolean;
 
   /**
-   * Global provider whose API key the decision model uses; its host must be the endpoint's host.
+   * The global provider the decision step uses: a classifier provider ("decision-model": its base URL is the
+   * endpoint; "decision-http": a policy webhook, the thresholds below do not apply), or an LLM provider on
+   * the host of a named decision endpoint (its key is reused).
    *
    * @generated from field: string provider_id = 2;
    */
@@ -707,7 +1045,7 @@ export type Classifier = Message<"harness.llm.v1.Classifier"> & {
  * Use `create(ClassifierSchema)` to create a new message.
  */
 export const ClassifierSchema: GenMessage<Classifier> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 22);
+  messageDesc(file_harness_llm_v1_providers, 30);
 
 /**
  * @generated from enum harness.llm.v1.ProviderScope
@@ -754,6 +1092,17 @@ export const ProviderScopeSchema: GenEnum<ProviderScope> = /*@__PURE__*/
  * @generated from service harness.llm.v1.ProviderService
  */
 export const ProviderService: GenService<{
+  /**
+   * The well-known services the settings screens offer to connect in one step (presets), and the protocols a
+   * custom provider may speak. Served by the server, so a new preset needs no app release.
+   *
+   * @generated from rpc harness.llm.v1.ProviderService.ListPresets
+   */
+  listPresets: {
+    methodKind: "unary";
+    input: typeof ListPresetsRequestSchema;
+    output: typeof ListPresetsResponseSchema;
+  },
   /**
    * The caller's providers: the global ones first (all of them for admins, enabled ones for everyone
    * else), then the caller's personal ones; each with the models the caller may see.
@@ -816,6 +1165,18 @@ export const ProviderService: GenService<{
     output: typeof AddModelResponseSchema;
   },
   /**
+   * One-click connection check: an LLM provider lists its models (a 401 / 403 means the key is rejected; a
+   * service without a model list counts as reachable); a classifier provider answers one sample decision.
+   * Same access as DiscoverModels.
+   *
+   * @generated from rpc harness.llm.v1.ProviderService.TestProvider
+   */
+  testProvider: {
+    methodKind: "unary";
+    input: typeof TestProviderRequestSchema;
+    output: typeof TestProviderResponseSchema;
+  },
+  /**
    * @generated from rpc harness.llm.v1.ProviderService.RemoveModel
    */
   removeModel: {
@@ -824,8 +1185,8 @@ export const ProviderService: GenService<{
     output: typeof RemoveModelResponseSchema;
   },
   /**
-   * The auto-mode classifier's typed decision model (the decision_model step of DecisionService's chain),
-   * using the key of a global provider. Admin only.
+   * The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
+   * typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
    *
    * @generated from rpc harness.llm.v1.ProviderService.GetClassifier
    */

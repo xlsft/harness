@@ -7,6 +7,7 @@
  *       {"type": "rules", "id": "rules"},
  *       {"type": "llm", "id": "llm", "settings": {"model"?, "timeout_ms"?, "max_tokens"?, "min_confidence"?}},
  *       {"type": "http", "id": "opa", "display_name"?, "settings": {"url", "bearer_token"?, "headers"?,
+ *                                                                  "credentials_provider"?,  // or: a provider's key + headers
  *                                                                  "allow_private_network"?, "timeout_ms"?, "health_url"?}},
  *       {"type": "decision_model", "id": "decision_model", "display_name"?,     // typed decision model (decision-model.ts)
  *        "settings": {"endpoint"?: "openrouter" | "typesafe" | "<https URL>",  // default "openrouter"
@@ -70,6 +71,8 @@ export interface HttpSettingsStored {
   health_url?: string;
   bearer_token_enc?: string;
   headers_enc?: string;
+  /** Global provider whose key (sent as the bearer token) and headers are used instead of the above. */
+  credentials_provider?: string;
 }
 
 /** Stored decision_model settings: the API key encrypted. */
@@ -163,7 +166,18 @@ export function httpSecrets(p: Extract<StoredProvider, { type: "http" }>): { bea
  * The API key of a gateway provider, for a decision endpoint on the same host. Throws ProviderError("config")
  * when the provider is gone, has no key or lives on another host.
  */
-export async function gatewayProviderKey(providerId: string, endpointUrl: string): Promise<string> {
+export async function gatewayProviderKey(providerId: string, endpointUrl: string): Promise<string | undefined> {
+  const rt = await providerCredentials(providerId, endpointUrl);
+  // A classifier provider may be a self-hosted service that needs no key; an LLM provider's key is the point.
+  if (!rt.apiKey && rt.kind !== "classifier") throw new ProviderError(`Gateway provider ${providerId} has no API key`, "config");
+  return rt.apiKey;
+}
+
+/**
+ * The decrypted credentials (key, extra headers) of a global provider, for a decision endpoint on the same
+ * host. Throws ProviderError("config") when the provider is gone, personal or lives on another host.
+ */
+export async function providerCredentials(providerId: string, endpointUrl: string) {
   let rt: Awaited<ReturnType<typeof loadProviderRuntime>>;
   try {
     rt = await loadProviderRuntime(providerId);
@@ -172,7 +186,6 @@ export async function gatewayProviderKey(providerId: string, endpointUrl: string
   }
   // The chain is server-wide: a user's personal key must never pay for (or see) other users' decisions.
   if (rt.ownerUserId) throw new ProviderError(`Gateway provider ${providerId} does not exist`, "config");
-  if (!rt.apiKey) throw new ProviderError(`Gateway provider ${providerId} has no API key`, "config");
   let same = false;
   try {
     same = new URL(rt.baseUrl).hostname.toLowerCase() === new URL(endpointUrl).hostname.toLowerCase();
@@ -180,7 +193,21 @@ export async function gatewayProviderKey(providerId: string, endpointUrl: string
     same = false;
   }
   if (!same) throw new ProviderError(`Gateway provider ${providerId} is on another host than the decision endpoint; its key is not sent there`, "config");
-  return rt.apiKey;
+  return rt;
+}
+
+/** Resolves a webhook's secrets when deciding: its own encrypted ones, or a classifier provider's. */
+export function httpCredentialsResolver(p: Extract<StoredProvider, { type: "http" }>): () => Promise<{ bearerToken?: string; headers: Record<string, string> }> {
+  const providerId = p.settings.credentials_provider;
+  if (providerId) {
+    const url = p.settings.url;
+    return async () => {
+      const rt = await providerCredentials(providerId, url);
+      return { ...(rt.apiKey ? { bearerToken: rt.apiKey } : {}), headers: rt.headers };
+    };
+  }
+  const secrets = httpSecrets(p);
+  return async () => secrets;
 }
 
 /** Resolves a decision model's API key when deciding (decrypted secret or a gateway provider's key). */
@@ -388,7 +415,7 @@ async function validateProvider(raw: unknown, index: number, previous: DecisionC
     return { type, ...base, settings: s };
   }
   if (type === "decision_model") return { type, ...base, settings: await validateDecisionModel(settings, field, id, previous) };
-  onlyKeys(settings, ["url", "bearer_token", "headers", "allow_private_network", "timeout_ms", "health_url"], `${field}.settings`);
+  onlyKeys(settings, ["url", "bearer_token", "headers", "credentials_provider", "allow_private_network", "timeout_ms", "health_url"], `${field}.settings`);
   const allowPrivate = bool(settings.allow_private_network, `${field}.settings.allow_private_network`, false);
   const url = str(settings.url, `${field}.settings.url`);
   if (!url) throw bad(`${field}.settings.url is required`);
@@ -402,6 +429,19 @@ async function validateProvider(raw: unknown, index: number, previous: DecisionC
     timeout_ms: int(settings.timeout_ms, `${field}.settings.timeout_ms`, 100, 60_000, DEFAULT_HTTP_TIMEOUT_MS),
     ...(healthUrl ? { health_url: healthUrl } : {}),
   };
+  const credentialsProvider = str(settings.credentials_provider, `${field}.settings.credentials_provider`);
+  if (credentialsProvider) {
+    if ((settings.bearer_token ?? "") !== "" || (settings.headers ?? null) !== null) {
+      throw bad(`${field}.settings: set bearer_token / headers or credentials_provider, not both`);
+    }
+    try {
+      await providerCredentials(credentialsProvider, url);
+    } catch (e) {
+      throw bad(`${field}.settings.credentials_provider: ${(e as Error).message}`);
+    }
+    s.credentials_provider = credentialsProvider;
+    return { type, ...base, settings: s };
+  }
   if (settings.bearer_token === undefined) {
     if (prev?.settings.bearer_token_enc) s.bearer_token_enc = prev.settings.bearer_token_enc;
   } else if (settings.bearer_token !== null && settings.bearer_token !== "") {

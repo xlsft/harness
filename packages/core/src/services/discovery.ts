@@ -1,6 +1,7 @@
 /**
- * Model discovery (admin): lists the models an upstream offers via its `/v1/models` endpoint,
- * through the SSRF guard, and returns them as candidates for the model catalog.
+ * Model discovery: lists the models an upstream offers via its `/v1/models` endpoint, through the SSRF
+ * guard, and returns them as candidates for the model catalog. A preset without a model list (and every
+ * classifier provider) answers the preset's curated models instead. Also the LLM half of TestProvider.
  */
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
@@ -9,6 +10,7 @@ import { joinUrl } from "../gateway/adapters/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
+import { presetOf } from "./presets.ts";
 import { loadProviderRuntime, providerForUser, redactSecrets, type ProviderRuntime } from "./providers.ts";
 
 export interface ModelCandidate {
@@ -99,9 +101,14 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
   const row = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, providerId) });
   if (!row || (globalOnly && row.ownerUserId)) throw new ApiError("not_found", `Provider ${providerId} not found`);
   const p = await loadProviderRuntime(providerId);
+  const preset = presetOf(row);
 
   const raw: Record<string, any>[] = [];
-  if (p.type === "anthropic") {
+  if (row.kind === "classifier" || (preset && !preset.discovers_models)) {
+    for (const m of preset?.default_models ?? []) {
+      raw.push({ id: m.upstream_model, display_name: m.display_name, context_window: m.context_window, max_output_tokens: m.max_output_tokens });
+    }
+  } else if (p.type === "anthropic") {
     // Paginated: ?limit=&after_id=, response {data, has_more, last_id}.
     let after: string | undefined;
     for (let page = 0; page < MAX_PAGES; page++) {
@@ -132,4 +139,31 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
   }
   models.sort((a, b) => a.upstream_model.localeCompare(b.upstream_model));
   return { provider_id: providerId, models };
+}
+
+export interface TestResult {
+  ok: boolean;
+  message: string;
+  model_count: number;
+}
+
+/**
+ * Connection test of an LLM provider: asks for its model list with its key. 2xx: connected; 401 / 403: the
+ * key is rejected; 404 / 405: reachable, but the service has no model list (its key is checked on first use).
+ */
+export async function testLlmProvider(providerId: string): Promise<TestResult> {
+  const p = await loadProviderRuntime(providerId);
+  const url = p.type === "anthropic" ? joinUrl(p.baseUrl, "/v1/models") : joinUrl(p.baseUrl, "/models");
+  try {
+    const j = await fetchJson(p, url);
+    const list = Array.isArray(j.data) ? j.data : Array.isArray(j.models) ? j.models : [];
+    return { ok: true, message: list.length ? `Connected, ${list.length} models offered` : "Connected", model_count: list.length };
+  } catch (e) {
+    const status = e instanceof ApiError ? e.upstreamStatus : undefined;
+    if (status === 401 || status === 403) return { ok: false, message: `The key was rejected (HTTP ${status})`, model_count: 0 };
+    if (status === 404 || status === 405) {
+      return { ok: true, message: "Reachable; the service lists no models, so the key is checked on first use", model_count: 0 };
+    }
+    return { ok: false, message: e instanceof Error ? e.message : String(e), model_count: 0 };
+  }
 }

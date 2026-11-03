@@ -6,23 +6,47 @@ import {
   ProviderScope,
   ProviderService,
   type Classifier,
-  type Provider
+  type Provider,
+  type ProviderPreset
 } from '~/gen/harness/llm/v1/providers_pb'
-import type { ClassifierSettings, ProviderView, ProvidersApi } from './types'
+import type { ClassifierSettings, PresetView, ProviderGroupName, ProviderView, ProvidersApi } from './types'
+
+const group = (g: string): ProviderGroupName => g === 'classifier' ? 'classifier' : 'llm'
 
 export function providerView(p: Provider): ProviderView {
   return {
     id: p.id,
     scope: p.scope === ProviderScope.PERSONAL ? 'personal' : 'global',
+    group: group(p.group),
+    presetId: p.presetId,
     type: p.type,
     name: p.displayName || p.id,
     baseUrl: p.baseUrl,
     keySet: p.apiKeySet,
     keyHint: p.apiKeyHint,
+    headerNames: [...p.headerNames],
     enabled: p.enabled,
     allowPrivateNetwork: p.allowPrivateNetwork,
     editable: p.editable,
     models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow) }))
+  }
+}
+
+export function presetView(p: ProviderPreset): PresetView {
+  return {
+    id: p.id,
+    group: group(p.group),
+    name: p.displayName,
+    description: p.description,
+    type: p.type,
+    baseUrl: p.baseUrl,
+    fields: p.fields.map(f => ({ name: f.name, label: f.label, required: f.required, placeholder: f.placeholder })),
+    docsUrl: p.docsUrl,
+    keyUrl: p.keyUrl,
+    defaultModels: p.defaultModels.map(m => ({ upstream: m.upstreamModel, name: m.displayName || m.upstreamModel, contextWindow: Number(m.contextWindow) })),
+    icon: p.icon || p.displayName.slice(0, 2).toUpperCase(),
+    discoversModels: p.discoversModels,
+    local: p.local
   }
 }
 
@@ -47,6 +71,14 @@ export class ConnectProvidersApi implements ProvidersApi {
     this.client = createClient(ProviderService, transport)
   }
 
+  async presets() {
+    const r = await this.client.listPresets({})
+    return {
+      presets: r.presets.map(presetView),
+      protocols: r.protocols.map(p => ({ id: p.id, group: group(p.group), label: p.label, baseUrlHint: p.baseUrlHint }))
+    }
+  }
+
   async list() {
     const r = await this.client.listProviders({})
     return { providers: r.providers.map(providerView), types: r.types, canManageGlobal: r.canManageGlobal }
@@ -55,11 +87,13 @@ export class ConnectProvidersApi implements ProvidersApi {
   async create(d: Parameters<ProvidersApi['create']>[0]) {
     const r = await this.client.createProvider({
       scope: d.scope === 'global' ? ProviderScope.GLOBAL : ProviderScope.PERSONAL,
-      id: d.scope === 'global' ? d.id ?? '' : '',
-      type: d.type,
-      displayName: d.name,
-      baseUrl: d.baseUrl,
+      presetId: d.presetId ?? '',
+      group: d.presetId ? '' : d.group ?? '',
+      type: d.type ?? '',
+      displayName: d.name ?? '',
+      baseUrl: d.baseUrl ?? '',
       apiKey: d.apiKey ?? '',
+      headers: d.headers ?? {},
       allowPrivateNetwork: d.scope === 'global' && !!d.allowPrivateNetwork
     })
     return providerView(r.provider!)
@@ -72,6 +106,7 @@ export class ConnectProvidersApi implements ProvidersApi {
       displayName: p.name,
       baseUrl: p.baseUrl,
       apiKey: p.apiKey,
+      headers: p.headers ? { values: p.headers } : undefined,
       enabled: p.enabled,
       allowPrivateNetwork: p.allowPrivateNetwork
     })
@@ -85,6 +120,11 @@ export class ConnectProvidersApi implements ProvidersApi {
   async discover(id: string) {
     const r = await this.client.discoverModels({ providerId: id })
     return r.models.map(m => ({ upstream: m.upstreamModel, name: m.displayName, contextWindow: Number(m.contextWindow), modelIds: m.modelIds }))
+  }
+
+  async test(id: string) {
+    const r = await this.client.testProvider({ providerId: id })
+    return { ok: r.ok, message: r.message, modelCount: r.modelCount }
   }
 
   async addModel(providerId: string, m: Parameters<ProvidersApi['addModel']>[1]) {

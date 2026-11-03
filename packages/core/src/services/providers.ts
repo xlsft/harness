@@ -13,6 +13,11 @@
  * Anything that does not belong to the caller's scope answers "not found", never "forbidden", so the
  * existence of another user's provider does not leak.
  *
+ * Two groups: "llm" providers serve the gateway's models; "classifier" providers are auto-mode decision
+ * services (a typed decision model or a policy webhook) that the server-wide decision chain uses, so they are
+ * global only and serve no chat models. A provider may come from a preset (services/presets.ts): the user
+ * gives only what the preset asks for and the rest comes from the preset.
+ *
  * Keys are write-only everywhere: no API (user or admin) returns a key or anything decryptable; admins see
  * a user's providers with `api_key_set` only and may delete them, but cannot use them (the gateway, slots
  * and the decision chain only accept global providers for anyone but the owner). Personal secrets are
@@ -27,8 +32,10 @@ import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
 import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
+import { CLASSIFIER_TYPES, LLM_TYPES, findPreset, groupOfType, presetOf, type ProviderGroup } from "./presets.ts";
 
-export const PROVIDER_TYPES = ["anthropic", "openai-chat", "openai-responses"] as const;
+/** Types of LLM providers (the gateway adapters). */
+export const PROVIDER_TYPES = LLM_TYPES;
 export type ProviderType = (typeof PROVIDER_TYPES)[number];
 
 /** Id prefix of personal providers (reserved for them). */
@@ -37,7 +44,9 @@ export const PERSONAL_PREFIX = "u-";
 /** Decrypted provider, only for use inside the gateway. Never serialize. */
 export interface ProviderRuntime {
   id: string;
+  /** A classifier provider's type ("decision-model", "decision-http") never reaches the gateway. */
   type: ProviderType;
+  kind: ProviderGroup;
   baseUrl: string;
   apiKey?: string;
   headers: Record<string, string>;
@@ -49,6 +58,10 @@ export interface ProviderRuntime {
 
 export interface ProviderInput {
   id?: string;
+  /** Connect a preset: type, kind, name and base URL default to the preset's. */
+  preset_id?: string;
+  /** Custom providers: "llm" (default) or "classifier". */
+  kind?: string;
   type?: string;
   display_name?: string | null;
   base_url?: string;
@@ -74,6 +87,8 @@ export function publicProvider(r: Row) {
   return {
     id: r.id,
     scope: r.ownerUserId ? ("personal" as const) : ("global" as const),
+    group: r.kind as ProviderGroup,
+    preset_id: presetOf(r)?.id ?? null,
     type: r.type,
     display_name: r.displayName,
     base_url: r.baseUrl,
@@ -179,9 +194,56 @@ export async function providerForUser(id: string, user: PublicUser): Promise<{ r
   throw new ApiError("not_found", `Provider ${id} not found`);
 }
 
+/** Lowercase slug for a derived global id ("My Router!" -> "my-router"). */
+function slug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^[^a-z0-9]+|-+$/g, "")
+    .slice(0, 48);
+}
+
+/** A free global id based on `base` (base, base-2, base-3, ...). */
+async function freeGlobalId(base: string): Promise<string> {
+  const db = getDb();
+  let root = slug(base) || "provider";
+  if (root.startsWith(PERSONAL_PREFIX)) root = `p${root}`;
+  for (let n = 1; n < 100; n++) {
+    const id = n === 1 ? root : `${root}-${n}`;
+    if (!(await db.query.provider.findFirst({ where: eq(schema.provider.id, id) }))) return id;
+  }
+  throw new ApiError("invalid_request", "Choose an id");
+}
+
+function checkType(kind: ProviderGroup, type: string | undefined): string {
+  const allowed: readonly string[] = kind === "classifier" ? CLASSIFIER_TYPES : LLM_TYPES;
+  if (!type || !allowed.includes(type)) throw new ApiError("invalid_request", `type must be one of ${allowed.join(", ")}`);
+  return type;
+}
+
 export async function createProvider(input: ProviderInput, owner: ProviderOwner = null) {
   await ensureDb();
   const db = getDb();
+  const preset = input.preset_id ? findPreset(input.preset_id) : undefined;
+  if (input.preset_id && !preset) throw new ApiError("invalid_request", `Unknown preset ${input.preset_id}`);
+  let kind: ProviderGroup;
+  let type: string;
+  let baseUrl = input.base_url?.trim();
+  if (preset) {
+    kind = preset.group;
+    type = preset.type;
+    // The URL is the preset's unless the preset asks for it (a local server).
+    if (!preset.fields.some((f) => f.name === "base_url") || !baseUrl) baseUrl = preset.base_url;
+    if (preset.fields.some((f) => f.name === "api_key" && f.required) && !input.api_key) {
+      throw new ApiError("invalid_request", `${preset.display_name} needs an API key`);
+    }
+  } else {
+    if (input.kind && input.kind !== "llm" && input.kind !== "classifier") throw new ApiError("invalid_request", 'group must be "llm" or "classifier"');
+    kind = (input.kind as ProviderGroup | undefined) || groupOfType(input.type ?? "") || "llm";
+    type = checkType(kind, input.type);
+  }
+  if (kind === "classifier" && owner) throw new ApiError("invalid_request", "Classifier providers are server-wide: only admins add them, globally");
+
   let id: string;
   if (owner) {
     if (input.id !== undefined && input.id !== "") throw new ApiError("invalid_request", "Personal providers get a generated id");
@@ -190,17 +252,14 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
     if (count >= MAX_PERSONAL_PROVIDERS) throw new ApiError("invalid_request", `At most ${MAX_PERSONAL_PROVIDERS} personal providers`);
     id = personalId();
   } else {
-    if (!input.id) throw new ApiError("invalid_request", "id is required");
-    id = input.id;
+    id = input.id || (await freeGlobalId(preset?.id || input.display_name || type));
     if (!ID_RE.test(id)) throw new ApiError("invalid_request", "id must match [a-z0-9][a-z0-9._-]*");
     if (id.startsWith(PERSONAL_PREFIX)) throw new ApiError("invalid_request", `Ids starting with "${PERSONAL_PREFIX}" are reserved for personal providers`);
   }
-  if (!PROVIDER_TYPES.includes(input.type as ProviderType)) {
-    throw new ApiError("invalid_request", `type must be one of ${PROVIDER_TYPES.join(", ")}`);
-  }
-  if (!input.base_url) throw new ApiError("invalid_request", "base_url is required");
-  const allowPrivate = !owner && input.allow_private_network === true;
-  await assertResolvesPublic(input.base_url, allowPrivate);
+  if (!baseUrl) throw new ApiError("invalid_request", "base_url is required");
+  // A local preset connected globally may reach the private network it is meant for.
+  const allowPrivate = !owner && (input.allow_private_network === true || !!preset?.local);
+  await assertResolvesPublic(baseUrl, allowPrivate);
   if (await db.query.provider.findFirst({ where: eq(schema.provider.id, id) })) {
     throw new ApiError("invalid_request", `Provider ${id} already exists`, { status: 409 });
   }
@@ -211,9 +270,11 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
     .values({
       id,
       ownerUserId: owner?.userId ?? null,
-      type: input.type!,
-      displayName: input.display_name || null,
-      baseUrl: input.base_url.replace(/\/+$/, ""),
+      kind,
+      type,
+      presetId: preset?.id ?? null,
+      displayName: input.display_name || preset?.display_name || null,
+      baseUrl: baseUrl.replace(/\/+$/, ""),
       apiKeyEnc: input.api_key ? encryptSecret(input.api_key, `${id}:api_key`, secretKey(owner?.userId)) : null,
       apiKeyHint: input.api_key ? hint(input.api_key) : null,
       headersEnc: Object.keys(headers).length ? encryptSecret(JSON.stringify(headers), `${id}:headers`, secretKey(owner?.userId)) : null,
@@ -230,10 +291,7 @@ export async function updateProvider(id: string, input: ProviderInput, owner: Pr
   const cur = await findInScope(id, owner);
   if (owner && input.allow_private_network) throw new ApiError("invalid_request", "Only global providers may reach private networks");
   const patch: Partial<Row> = { updatedAt: new Date() };
-  if (input.type !== undefined) {
-    if (!PROVIDER_TYPES.includes(input.type as ProviderType)) throw new ApiError("invalid_request", "invalid type");
-    patch.type = input.type;
-  }
+  if (input.type !== undefined) patch.type = checkType(cur.kind as ProviderGroup, input.type);
   if (input.display_name !== undefined) patch.displayName = input.display_name || null;
   const allowPrivate = input.allow_private_network ?? cur.allowPrivateNetwork;
   if (input.allow_private_network !== undefined) patch.allowPrivateNetwork = allowPrivate;
@@ -289,6 +347,7 @@ export async function loadProviderRuntime(id: string): Promise<ProviderRuntime> 
   return {
     id: r.id,
     type: r.type as ProviderType,
+    kind: r.kind as ProviderGroup,
     baseUrl: r.baseUrl,
     apiKey: r.apiKeyEnc ? decryptSecret(r.apiKeyEnc, `${r.id}:api_key`, secretKey(r.ownerUserId)) : undefined,
     headers: r.headersEnc ? JSON.parse(decryptSecret(r.headersEnc, `${r.id}:headers`, secretKey(r.ownerUserId))) : {},

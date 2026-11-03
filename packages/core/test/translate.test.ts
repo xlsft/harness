@@ -27,7 +27,7 @@ const model = (over: Partial<ModelEntry> = {}): ModelEntry => ({
 
 const target = (req: CanonicalRequest, m = model(), disabled: string[] = []): AdapterTarget => ({
   model: m,
-  provider: { id: "p", type: "anthropic", baseUrl: "http://x", headers: {}, allowPrivateNetwork: false, enabled: true, ownerUserId: null },
+  provider: { id: "p", type: "anthropic", kind: "llm", baseUrl: "http://x", headers: {}, allowPrivateNetwork: false, enabled: true, ownerUserId: null },
   features: computeFeatures(req, m, new Set(disabled)),
 });
 
