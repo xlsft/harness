@@ -3,29 +3,30 @@
 // failed (with its last output line), the command and how long it ran. Its output is in the Background tasks pane.
 import type { TaskVM } from '~/lib/session/types'
 
-const props = defineProps<{ task: TaskVM, sessionId: string }>()
+// end: the line where the task finished; the other one stays where it started ("started" once it is over).
+const props = defineProps<{ task: TaskVM, sessionId: string, end?: boolean }>()
 const store = useSessionStore()
 const { openPane } = usePanes()
 const now = useNow()
 
 const elapsed = computed(() => now.value - props.task.startedAt)
 const lastLine = computed(() => props.task.tail.split('\n').filter(Boolean).at(-1) ?? '')
-const label = computed(() => ({
-  running: 'Background command running',
-  done: 'Background command finished',
-  stopped: 'Background command stopped'
-} as Record<string, string>)[props.task.state] ?? 'Background command failed')
-const failed = computed(() => !['running', 'done', 'stopped'].includes(props.task.state))
+// The start line of a task that is over just says it started; its end line tells how it went.
+const started = computed(() => !props.end && props.task.state !== 'running')
+const label = computed(() => started.value
+  ? 'Background command started'
+  : ({ running: 'Background command running', done: 'Background command finished', stopped: 'Background command stopped' } as Record<string, string>)[props.task.state] ?? 'Background command failed')
+const failed = computed(() => !started.value && !['running', 'done', 'stopped'].includes(props.task.state))
 </script>
 
 <template>
   <div class="flex flex-col gap-0.5 text-[12.5px] text-muted">
     <div class="flex min-w-0 items-center gap-[9px]">
       <HIcon
-        :name="task.state === 'running' ? 'loading' : failed ? 'warn' : 'check'"
+        :name="task.state === 'running' ? 'loading' : started ? 'background' : failed ? 'warn' : 'check'"
         :spin="task.state === 'running'"
         class="shrink-0"
-        :class="task.state === 'running' ? 'text-accent' : failed ? 'text-bad' : task.state === 'done' ? 'text-ok' : ''"
+        :class="task.state === 'running' ? 'text-accent' : started ? '' : failed ? 'text-bad' : task.state === 'done' ? 'text-ok' : ''"
       />
       <span
         class="shrink-0"
@@ -41,7 +42,7 @@ const failed = computed(() => !['running', 'done', 'stopped'].includes(props.tas
       </button>
       <span class="shrink-0 text-[11px] tabular-nums">
         <template v-if="task.state === 'running'">{{ formatClock(elapsed) }}</template>
-        <template v-else>exit {{ task.exitCode }} · {{ formatDuration(task.durationMs) }}</template>
+        <template v-else-if="!started">exit {{ task.exitCode }} · {{ formatDuration(task.durationMs) }}</template>
       </span>
       <button
         v-if="task.state === 'running'"

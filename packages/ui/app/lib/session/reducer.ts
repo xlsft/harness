@@ -712,6 +712,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         t.state = f.reason === TaskFinished_Reason.STOPPED || f.reason === TaskFinished_Reason.SESSION_CLOSED
           ? 'stopped'
           : f.exitCode === 0 ? 'done' : 'failed'
+        const endId = `${f.taskId}:end`
+        if (!find(s, 'task', endId)) push(s, { kind: 'task', id: endId, taskId: f.taskId, end: true })
       }
       break
     }

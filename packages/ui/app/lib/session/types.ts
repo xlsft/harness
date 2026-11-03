@@ -244,9 +244,13 @@ export interface TaskVM {
   tail: string
 }
 
+// A background task in the transcript: where it started, and (`end`) where it finished, so the history reads in
+// order. `taskId` is the task's id (TaskVM); the end item's own id is "<task id>:end".
 export interface TaskItem {
   kind: 'task'
   id: string
+  taskId?: string
+  end?: boolean
 }
 
 // A command the user ran in the composer's shell mode (RunShellCommand): run by the client, not the model.

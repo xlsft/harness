@@ -273,9 +273,10 @@ function toBottom() {
               :todos="b.item.todos"
             />
             <TaskCard
-              v-else-if="b.item.kind === 'task' && session.tasks[b.item.id]"
-              :task="session.tasks[b.item.id]!"
+              v-else-if="b.item.kind === 'task' && session.tasks[b.item.taskId ?? b.item.id]"
+              :task="session.tasks[b.item.taskId ?? b.item.id]!"
               :session-id="session.meta.id"
+              :end="!!b.item.end"
             />
             <ShellCard
               v-else-if="b.item.kind === 'shell' && !store.inlineShells[b.item.id]"
