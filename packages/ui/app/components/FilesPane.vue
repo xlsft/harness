@@ -461,6 +461,9 @@ const remoteText = computed(() => {
     class="relative flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-stretch border-b border-line pr-1.5">
+      <div class="flex items-center px-3 font-display text-[13px] text-strong">
+        Files
+      </div>
       <div
         role="tablist"
         aria-label="Open files"
