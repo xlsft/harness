@@ -49,13 +49,13 @@ scripts/e2e/run.sh                                 # core + client end to end, s
 ## Local dev stack and real models
 
 ```bash
-OPENROUTER_API_KEY=sk-or-... scripts/dev/stack.sh  # build, start core on :3737, sign in, configure cheap models
-HARNESS_HOME=.dev/home HARNESS_KEYRING=0 .dev/harness-client -p "..." --model qwen-flash
+scripts/dev/stack.sh                               # build, start core on :3737 with an admin, sign the client in
+HARNESS_HOME=.dev/home HARNESS_KEYRING=0 .dev/harness-client -p "..." --model <id>
 scripts/dev/evals.sh                               # eval suite against the stack
 scripts/dev/stack.sh stop
 ```
 
-The key is only sent to the local server's admin API, where it is stored encrypted. State lives in git-ignored `.dev/` and `packages/core/.data-dev/`.
+Add providers, keys and models in the app under Settings -> Providers (global ones as the admin, personal ones as any user); the auto-mode classifier is set there too. Keys are stored encrypted on the server and never go through env vars. State lives in git-ignored `.dev/` and `packages/core/.data-dev/`.
 
 ## Evals
 

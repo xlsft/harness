@@ -43,6 +43,13 @@
       "when": 1793661698963,
       "tag": "0005_username",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793664161917,
+      "tag": "0006_personal_providers",
+      "breakpoints": true
     }
   ]
 }

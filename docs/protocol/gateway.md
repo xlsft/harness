@@ -40,9 +40,17 @@ The canonical model follows the Anthropic Messages API. Per upstream type:
 - When a quota is exceeded, the server returns `RESOURCE_EXHAUSTED` with `ERROR_TYPE_QUOTA_EXCEEDED`.
 - `RequestMetadata.request_class` allows routing and accounting per class, for example sending compaction to a cheaper model.
 
+## Providers: global and personal
+
+Providers and their API keys are configured in the apps' settings through `harness.llm.v1.ProviderService` (proto/harness/llm/v1/providers.proto); the local client forwards these calls to the server with the user's credentials. The admin JSON API (`/api/admin/providers`, `/api/admin/models`, `/api/admin/slots`) manages global providers only.
+
+- **Global** providers (admins) are offered to every user, subject to each model's `roles`. Model ids are the admin's aliases.
+- **Personal** providers are added by any user with their own key. Only the owner sees them and their models, and only the owner's requests can use them; another user (an admin included) gets the same `NOT_FOUND` as for a missing model. Their ids are generated (`u-<random>`, a reserved prefix) and their model ids are always `<provider id>/<upstream model>`, so they never clash with global aliases or other users' models. A user's catalog lists global models first, then their own; slots, the classifier model and the decision chain's `api_key_provider` accept global ones only. Personal providers cannot use `allow_private_network`. Usage and quotas are recorded for the user as for any request.
+- Keys are write-only everywhere (`api_key_set` instead); admins see a user's providers without even the key hint (`GET /api/admin/users/:id/providers`) and may delete them. Personal keys are encrypted with a per-user data key derived from `HARNESS_SECRET`, and upstream error text is scrubbed of provider secrets. This protects keys against database dumps and an admin account taken over through the API, not against someone who holds both the server secret and the database.
+
 ## Model discovery
 
-`POST /api/admin/providers/:id/discover` (admin JSON API) lists the upstream's models through the SSRF guard: Anthropic `/v1/models` (paginated), OpenAI-compatible `/models`. It returns candidates the admin can add to the catalog.
+`POST /api/admin/providers/:id/discover` (admin JSON API, global providers) and `ProviderService.DiscoverModels` (any provider the caller may change) list the upstream's models through the SSRF guard: Anthropic `/v1/models` (paginated), OpenAI-compatible `/models`. They return candidates to add to the catalog.
 
 ## Limits
 

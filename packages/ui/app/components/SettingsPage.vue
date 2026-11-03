@@ -3,6 +3,7 @@
 // new-session screen starts from (the same localStorage key it remembers its last choices in).
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
 import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
+import type { ProviderList } from '~/lib/providers/types'
 
 const store = useSessionStore()
 const route = useRoute()
@@ -12,6 +13,7 @@ const desktop = isDesktop()
 const SECTIONS = [
   { key: 'general', label: 'General', icon: 'sliders' },
   { key: 'models', label: 'Models', icon: 'ai' },
+  { key: 'providers', label: 'Providers', icon: 'box' },
   { key: 'account', label: 'Account', icon: 'lock' },
   { key: 'about', label: 'About', icon: 'info' }
 ] as const
@@ -52,10 +54,22 @@ function save<K extends keyof Prefs>(key: K, value: Prefs[K]) {
 const worktree = computed({ get: () => prefs.worktree ?? false, set: v => save('worktree', v) })
 
 const serverDefault = computed(() => store.defaultModel || store.models[0]?.id || '')
+// Provider names for grouping (personal provider ids are generated); ids until the list arrives.
+const providerNames = ref<Record<string, string>>({})
+function rememberProviders(list: ProviderList) {
+  providerNames.value = Object.fromEntries(list.providers.map(p => [p.id, p.scope === 'personal' ? `${p.name} (yours)` : p.name]))
+}
+onMounted(async () => {
+  try {
+    if (store.transport) rememberProviders(await store.transport.providers().list())
+  } catch {
+    // Older clients do not forward ProviderService: group by id.
+  }
+})
 const providers = computed(() => {
   const map = new Map<string, typeof store.models>()
   for (const m of store.models) {
-    const p = m.provider || 'Other'
+    const p = m.provider ? providerNames.value[m.provider] ?? m.provider : 'Other'
     if (!map.has(p)) map.set(p, [])
     map.get(p)!.push(m)
   }
@@ -226,7 +240,7 @@ async function signOut() {
             Models
           </h2>
           <p class="set-sub">
-            What your server offers, by provider. Each model keeps its own effort; providers and keys are managed on the server.
+            What you can use, by provider: the server's models and your own. Each model keeps its own effort; add providers and keys under Providers.
           </p>
           <div class="flex flex-col gap-6">
             <section
@@ -291,6 +305,11 @@ async function signOut() {
             </p>
           </div>
         </template>
+
+        <SettingsProviders
+          v-else-if="section === 'providers'"
+          @changed="rememberProviders"
+        />
 
         <template v-else-if="section === 'account'">
           <h2 class="set-h">

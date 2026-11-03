@@ -15,6 +15,7 @@ export const routes: RouteDef[] = [
   // SearchService, DecisionService, McpService, VcsService, RelayService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.llm.v1.ProviderService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.sync.v1.SyncService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.search.v1.SearchService/**", handler: "./src/http/routes/rpc.ts" },
@@ -40,6 +41,8 @@ export const routes: RouteDef[] = [
   { route: "/api/admin/providers", handler: "./src/http/routes/admin-providers.ts" },
   { route: "/api/admin/providers/:id", handler: "./src/http/routes/admin-provider.ts" },
   { route: "/api/admin/providers/:id/discover", method: "post", handler: "./src/http/routes/admin-provider-discover.ts" },
+  { route: "/api/admin/users/:userId/providers", method: "get", handler: "./src/http/routes/admin-user-providers.ts" },
+  { route: "/api/admin/users/:userId/providers/:id", method: "delete", handler: "./src/http/routes/admin-user-providers.ts" },
   { route: "/api/admin/models", handler: "./src/http/routes/admin-models.ts" },
   { route: "/api/admin/models/:id", handler: "./src/http/routes/admin-model.ts" },
   { route: "/api/admin/slots", handler: "./src/http/routes/admin-slots.ts" },

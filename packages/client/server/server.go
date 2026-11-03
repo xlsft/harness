@@ -63,6 +63,8 @@ type Server struct {
 	cancel context.CancelFunc
 	// observer is told about opened sessions (SetSessionObserver).
 	observer func(sessionID string)
+	// Core, when set, forwards the settings screens' server calls (CoreProxy).
+	Core *CoreProxy
 
 	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
 	stateMu sync.Mutex
@@ -129,6 +131,9 @@ func (s *Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	path, h := s.Handler()
 	mux.Handle(path, h)
+	if s.Core != nil {
+		s.Core.register(mux)
+	}
 	return mux
 }
 

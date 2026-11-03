@@ -29,7 +29,7 @@
  * Webhook secrets (`bearer_token`, `headers`) are write-only: stored encrypted, shown as `bearer_token_set`
  * and `header_names`; omitting them on PUT keeps the stored values, null clears them. The same holds for a
  * decision model's `api_key` (shown as `api_key_set`). `api_key_provider` names a gateway provider
- * (/api/admin/providers) whose key is used instead, read when deciding; its base URL must have the same
+ * (a global one, /api/admin/providers) whose key is used instead, read when deciding; its base URL must have the same
  * host as the decision endpoint, so the key never goes to another service.
  */
 import { eq } from "drizzle-orm";
@@ -38,7 +38,7 @@ import { decryptSecret, encryptSecret } from "../lib/crypto.ts";
 import { ApiError } from "../lib/errors.ts";
 import { sha256 } from "../lib/ids.ts";
 import { assertUrlAllowed } from "../lib/ssrf.ts";
-import { findModel } from "../services/models.ts";
+import { findGlobalModel } from "../services/models.ts";
 import { loadProviderRuntime } from "../services/providers.ts";
 import {
   DECISION_MODEL_ENDPOINTS,
@@ -170,6 +170,8 @@ export async function gatewayProviderKey(providerId: string, endpointUrl: string
   } catch {
     throw new ProviderError(`Gateway provider ${providerId} does not exist`, "config");
   }
+  // The chain is server-wide: a user's personal key must never pay for (or see) other users' decisions.
+  if (rt.ownerUserId) throw new ProviderError(`Gateway provider ${providerId} does not exist`, "config");
   if (!rt.apiKey) throw new ProviderError(`Gateway provider ${providerId} has no API key`, "config");
   let same = false;
   try {
@@ -372,7 +374,7 @@ async function validateProvider(raw: unknown, index: number, previous: DecisionC
   if (type === "llm") {
     onlyKeys(settings, ["model", "timeout_ms", "max_tokens", "min_confidence"], `${field}.settings`);
     const model = str(settings.model, `${field}.settings.model`);
-    if (model && !(await findModel(model))) throw bad(`Unknown model ${model} in ${field}.settings.model`);
+    if (model && !(await findGlobalModel(model))) throw bad(`Unknown model ${model} in ${field}.settings.model`);
     const s: LlmSettings = {
       ...(model ? { model } : {}),
       timeout_ms: int(settings.timeout_ms, `${field}.settings.timeout_ms`, 100, 120_000, DEFAULT_LLM_TIMEOUT_MS),
@@ -498,7 +500,7 @@ export async function validateDecisionConfig(input: unknown, previous?: Decision
   const onError = o.on_error ?? "ask";
   if (onError !== "ask" && onError !== "next") throw bad('on_error must be "ask" or "next"');
   const classifier = str(o.classifier_model, "classifier_model") ?? null;
-  if (classifier && !(await findModel(classifier))) throw bad(`Unknown model ${classifier} in classifier_model`);
+  if (classifier && !(await findGlobalModel(classifier))) throw bad(`Unknown model ${classifier} in classifier_model`);
   return {
     providers,
     on_error: onError,

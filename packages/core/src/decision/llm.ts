@@ -11,7 +11,7 @@ import { normalizeRequest } from "../gateway/features.ts";
 import type { GatewayEvent } from "../gateway/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { runMessages } from "../services/gateway.ts";
-import { findModel, getSlots, type ModelEntry } from "../services/models.ts";
+import { findGlobalModel, getSlots, type ModelEntry } from "../services/models.ts";
 import { resolvePromptFiles } from "../services/prompts.ts";
 import { enforceQuotas } from "../services/quotas.ts";
 import { decisionCacheKey, type DecisionCache } from "./cache.ts";
@@ -74,7 +74,7 @@ export class LlmProvider implements DecisionProvider {
   private async resolveModel(): Promise<ModelEntry> {
     const id = await this.modelId();
     if (!id) throw new ProviderError("No classifier model is configured (set classifier_model or the classifier / small slot)", "config");
-    const m = await findModel(id);
+    const m = await findGlobalModel(id);
     if (!m || !m.enabled) throw new ProviderError(`Classifier model ${id} is not available`, "config");
     return m;
   }

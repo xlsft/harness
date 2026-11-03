@@ -8,7 +8,8 @@ import { ANTHROPIC_VERSION } from "../gateway/adapters/anthropic.ts";
 import { joinUrl } from "../gateway/adapters/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { guardedFetch } from "../lib/ssrf.ts";
-import { loadProviderRuntime, type ProviderRuntime } from "./providers.ts";
+import type { PublicUser } from "./devices.ts";
+import { loadProviderRuntime, providerForUser, redactSecrets, type ProviderRuntime } from "./providers.ts";
 
 export interface ModelCandidate {
   /** Upstream model id, to be used as `upstream_model` of a catalog entry. */
@@ -52,11 +53,11 @@ async function fetchJson(p: ProviderRuntime, url: string): Promise<Record<string
     });
   } catch (err) {
     if (err instanceof ApiError) throw err;
-    throw new ApiError("upstream", `Could not reach ${url}: ${(err as Error).message}`);
+    throw new ApiError("upstream", redactSecrets(`Could not reach ${url}: ${(err as Error).message}`, p));
   }
   const text = await res.text();
   if (!res.ok) {
-    throw new ApiError("upstream", `Upstream answered ${res.status} for ${url}: ${text.slice(0, 300)}`, {
+    throw new ApiError("upstream", redactSecrets(`Upstream answered ${res.status} for ${url}: ${text.slice(0, 300)}`, p), {
       upstreamStatus: res.status,
     });
   }
@@ -85,10 +86,18 @@ export function toCandidate(m: Record<string, any>): Omit<ModelCandidate, "catal
   return c;
 }
 
-export async function discoverModels(providerId: string): Promise<{ provider_id: string; models: ModelCandidate[] }> {
+/** Discovery for a provider the user may change (admins: global ones; everyone: their own). */
+export async function discoverModelsForUser(providerId: string, user: PublicUser) {
+  const { writable } = await providerForUser(providerId, user);
+  if (!writable) throw new ApiError("permission", "Only admins can change global providers");
+  return discoverModels(providerId);
+}
+
+/** Discovery for a global provider (admin API) or, through discoverModelsForUser, a checked one. */
+export async function discoverModels(providerId: string, globalOnly = false): Promise<{ provider_id: string; models: ModelCandidate[] }> {
   await ensureDb();
   const row = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, providerId) });
-  if (!row) throw new ApiError("not_found", `Provider ${providerId} not found`);
+  if (!row || (globalOnly && row.ownerUserId)) throw new ApiError("not_found", `Provider ${providerId} not found`);
   const p = await loadProviderRuntime(providerId);
 
   const raw: Record<string, any>[] = [];
