@@ -29,6 +29,7 @@ import { getPromptBundle } from "../services/prompts.ts";
 import { checkClientVersion, rateLimitByIp, requirePrincipal } from "./context.ts";
 import { bundleToProto, eventToProto, messagesFromProto, modelsToProto, streamRequestToCanonical, toolsFromProto } from "./convert.ts";
 import { guard, toConnectError } from "./errors.ts";
+import { registerAdminService } from "./admin.ts";
 import { registerDecisionService } from "./decision.ts";
 import { registerMcpService } from "./mcp.ts";
 import { registerProviderService } from "./providers.ts";
@@ -200,6 +201,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   });
 
   registerProviderService(router);
+  registerAdminService(router);
   registerSyncService(router);
   registerSearchService(router);
   registerDecisionService(router);
