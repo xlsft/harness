@@ -30,7 +30,7 @@ const text = ref('')
 const busy = ref(false)
 const error = ref('')
 // One open menu at a time; the environment menu has two triggers (centre card and footer chip).
-const menu = ref<'' | 'env' | 'env-centre' | 'folder' | 'model' | 'mode'>('')
+const menu = ref<'' | 'env' | 'env-centre' | 'folder' | 'model' | 'effort' | 'mode'>('')
 const browsing = ref(false)
 const input = ref<HTMLTextAreaElement | null>(null)
 
@@ -370,10 +370,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               type="button"
               :class="[CHIP, menu === 'model' ? 'border-accent' : 'border-transparent']"
             >
-              <span class="text-white">{{ modelLabel }}</span><span
-                v-if="efforts.length"
-                class="@max-[560px]:hidden"
-              >{{ effort }}</span>
+              <span class="text-white">{{ modelLabel }}</span>
             </button>
             <template #content>
               <div
@@ -383,24 +380,31 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               >
                 <ModelList
                   :selected="model || store.models[0]?.id || ''"
-                  @pick="model = $event"
+                  @pick="model = $event; menu = ''"
                 />
-                <div
-                  v-if="efforts.length"
-                  class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted"
-                >
-                  <span>effort</span>
-                  <button
-                    v-for="e in efforts"
-                    :key="e"
-                    type="button"
-                    class="border px-1.5"
-                    :class="e === effort ? 'border-accent text-white' : 'border-default'"
-                    @click="effort = e"
-                  >
-                    {{ e }}
-                  </button>
-                </div>
+              </div>
+            </template>
+          </UPopover>
+
+          <UPopover
+            v-if="efforts.length"
+            :open="menu === 'effort'"
+            :content="{ side: 'top', align: 'end', sideOffset: 6 }"
+            @update:open="menu = $event ? 'effort' : ''"
+          >
+            <button
+              type="button"
+              aria-label="Effort"
+              :class="[CHIP, menu === 'effort' ? 'border-accent' : 'border-transparent', '@max-[560px]:hidden']"
+            >
+              effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-white'">{{ effort }}</span>
+            </button>
+            <template #content>
+              <div class="border border-accented bg-hover">
+                <EffortSlider
+                  v-model="effort"
+                  :levels="efforts"
+                />
               </div>
             </template>
           </UPopover>

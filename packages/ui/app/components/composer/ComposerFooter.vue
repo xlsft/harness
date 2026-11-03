@@ -12,6 +12,7 @@ const store = useSessionStore()
 
 const modeOpen = ref(props.initialMenu === 'mode')
 const modelOpen = ref(props.initialMenu === 'model')
+const effortOpen = ref(false)
 
 const id = computed(() => props.session.meta.id)
 const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
@@ -62,38 +63,35 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
             :selected="session.meta.model"
             @pick="store.setModel(id, $event); modelOpen = false"
           />
-          <div
-            v-if="efforts.length"
-            class="flex gap-2.5 border-t border-default px-2.5 py-1.5 text-[11.5px] text-muted"
-          >
-            <span>effort</span>
-            <button
-              v-for="e in efforts"
-              :key="e"
-              type="button"
-              class="border px-1.5"
-              :class="e === effort ? 'border-accent text-white' : 'border-default'"
-              @click="store.setEffort(id, e)"
-            >
-              {{ e }}
-            </button>
-          </div>
         </div>
       </template>
     </UPopover>
 
-    <button
+    <UPopover
       v-if="effort"
-      type="button"
-      aria-label="Effort"
-      :class="[BTN, 'border-transparent max-sm:hidden']"
-      @click="modelOpen = true"
+      v-model:open="effortOpen"
+      :content="{ side: 'top', align: 'end', sideOffset: 6 }"
     >
-      effort <span class="text-white">{{ effort }}</span><HIcon
-        name="down"
-        :size="11"
-      />
-    </button>
+      <button
+        type="button"
+        aria-label="Effort"
+        :class="[BTN, effortOpen ? 'border-accent' : 'border-transparent', 'max-sm:hidden']"
+      >
+        effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-white'">{{ effort }}</span><HIcon
+          name="down"
+          :size="11"
+        />
+      </button>
+      <template #content>
+        <div class="border border-accented bg-hover">
+          <EffortSlider
+            :model-value="effort"
+            :levels="efforts"
+            @update:model-value="store.setEffort(id, $event)"
+          />
+        </div>
+      </template>
+    </UPopover>
 
     <UPopover
       v-model:open="modeOpen"
