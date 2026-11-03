@@ -94,7 +94,7 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `Bash` | `command`, `timeout`, `description`, `run_in_background` | background: returns a task id + output file path at once; a foreground command that hits its timeout is moved to the background; completion arrives as `background_task_done` |
 | `TaskStop` | `task_id` | stops a background task |
 | `TodoWrite` | `todos: [{content, activeForm, status}]` | full replacement; exactly one `in_progress` |
-| `AskUserQuestion` | `questions: [{question, header (≤12), options: [{label, description}] (2–4), multiSelect}] (1–4)` | |
+| `AskUserQuestion` | `questions: [{question, header (≤12), type: single\|multi\|text\|yes_no, options: [{label, description?, recommended?}] (2–6, single/multi only), min?, max? (multi), allowOther? (default true)}] (1–4)` | |
 | `EnterPlanMode` | `{}` | |
 | `ExitPlanMode` | `plan` (Markdown) | the client writes it to the plan file and asks the user to approve |
 | `ToolSearch` | `query`, `max_results` | offered only while MCP tools are deferred; `select:a,b` or keywords; returns full definitions and makes those tools callable |
