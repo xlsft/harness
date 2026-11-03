@@ -185,7 +185,7 @@ const split = computed(() => {
   <div
     ref="root"
     class="bg-surface"
-    :class="bare ? '' : flush ? 'border-b border-default' : 'border border-default'"
+    :class="bare ? '' : flush ? 'border-b border-default' : 'overflow-hidden border border-default'"
   >
     <div
       v-if="!bare"
