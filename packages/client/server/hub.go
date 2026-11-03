@@ -85,6 +85,13 @@ func (h *hub) close() {
 	}
 }
 
+// watched reports whether any subscriber is following the session.
+func (h *hub) watched() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.subs) > 0
+}
+
 func (h *hub) isClosed() bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()

@@ -71,7 +71,10 @@ type liveSession struct {
 	bg     sync.WaitGroup
 }
 
-var _ tools.Interactor = (*liveSession)(nil)
+var (
+	_ tools.Interactor = (*liveSession)(nil)
+	_ tools.Shower     = (*liveSession)(nil)
+)
 
 func newLiveSession(s *Server) *liveSession {
 	ctx, cancel := context.WithCancel(s.ctx)
@@ -417,6 +420,28 @@ func (ls *liveSession) ProposePlan(ctx context.Context, toolUseID, plan, path st
 	}
 }
 
+// showKinds maps tools.ShowTarget kinds to the proto enum.
+var showKinds = map[string]agentv1.ShowRequested_Kind{
+	tools.ShowFile: agentv1.ShowRequested_KIND_FILE,
+	tools.ShowDiff: agentv1.ShowRequested_KIND_DIFF,
+	tools.ShowURL:  agentv1.ShowRequested_KIND_URL,
+}
+
+// Show implements tools.Shower: it publishes ShowRequested and reports
+// whether a subscriber (a frontend, or the relay mirror) sees it now.
+func (ls *liveSession) Show(toolUseID string, t tools.ShowTarget) tools.ShowStatus {
+	if ls.srv.NoPanes {
+		return tools.ShowUnavailable
+	}
+	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ShowRequested{ShowRequested: &agentv1.ShowRequested{
+		ToolUseId: toolUseID, Kind: showKinds[t.Kind], Path: t.Path, LineStart: int32(t.LineStart), LineEnd: int32(t.LineEnd), Url: t.URL,
+	}}})
+	if !ls.hub.watched() {
+		return tools.ShowPending
+	}
+	return tools.ShowOpened
+}
+
 // toolSummary renders a short label such as "Read src/main.go".
 func toolSummary(name string, input []byte, cwd string) string {
 	rel := func(p string) string {
@@ -438,6 +463,14 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return name + " " + jsonField(input, "pattern")
 	case "TaskStop":
 		return "TaskStop " + jsonField(input, "task_id")
+	case "Show":
+		if t := jsonField(input, "url"); t != "" {
+			return "Show " + t
+		}
+		if p := jsonField(input, "path"); p != "" {
+			return "Show " + rel(p)
+		}
+		return "Show " + jsonField(input, "target")
 	}
 	return name
 }

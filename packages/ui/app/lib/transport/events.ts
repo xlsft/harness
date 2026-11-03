@@ -6,6 +6,7 @@ import {
   Notice_Level,
   SessionEventSchema,
   SessionInfoSchema,
+  ShowRequested_Kind,
   TaskFinished_Reason,
   Todo_Status,
   TurnFinished_Result
@@ -152,6 +153,15 @@ export class EventBuilder {
 
   planResolved(requestId: string, decision: RespondToPlanRequest_Decision, resolvedBy = 'local') {
     return this.emit({ case: 'planResolved', value: { requestId, decision, resolvedBy } as never })
+  }
+
+  show(toolUseId: string, target: { file: string, lines?: [number, number] } | { diff: string } | { url: string }) {
+    const value = 'file' in target
+      ? { toolUseId, kind: ShowRequested_Kind.FILE, path: target.file, lineStart: target.lines?.[0] ?? 0, lineEnd: target.lines?.[1] ?? 0, url: '' }
+      : 'diff' in target
+        ? { toolUseId, kind: ShowRequested_Kind.DIFF, path: target.diff, lineStart: 0, lineEnd: 0, url: '' }
+        : { toolUseId, kind: ShowRequested_Kind.URL, path: '', lineStart: 0, lineEnd: 0, url: target.url }
+    return this.emit({ case: 'showRequested', value: value as never })
   }
 
   queue(messages: { uuid: string, text: string }[]) {

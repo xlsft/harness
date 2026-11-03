@@ -233,6 +233,19 @@ export interface QueuedMessage {
   text: string
 }
 
+// What the Show tool opens: a file (lines 1-based, inclusive, 0 when not given), the session diff (optionally one
+// file) or a web page.
+export type ShowTarget
+  = | { kind: 'file', path: string, lineStart: number, lineEnd: number }
+    | { kind: 'diff', path: string }
+    | { kind: 'url', url: string }
+
+// The latest ShowRequested of the current turn; id is the Show tool call's id.
+export interface ShowRequest {
+  id: string
+  target: ShowTarget
+}
+
 export interface SessionState {
   meta: SessionMeta
   lastSeq: number
@@ -256,6 +269,8 @@ export interface SessionState {
   pendingPermission: string | null
   pendingQuestion: string | null
   pendingPlan: string | null
+  // The latest Show request not yet followed by a user message; the UI opens it once the session is open.
+  showRequest: ShowRequest | null
   endedReason: string
   // Internal: thinking start per message (for "Thought for 12s").
   thinkingStartedAt: Record<string, number>

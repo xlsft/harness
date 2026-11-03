@@ -56,6 +56,9 @@ type Server struct {
 	// Sync stores the per-user session state (pinned, unread, archived, renames) and deletes server copies of
 	// sessions; nil without sync (see sessionstate.go).
 	Sync SessionSync
+	// NoPanes says the frontends cannot open panes (the terminal UI): the
+	// Show tool then reports that nothing was shown.
+	NoPanes bool
 
 	ctx    context.Context
 	mu     sync.Mutex

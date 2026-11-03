@@ -6,6 +6,7 @@ import type { ToolItem } from '~/lib/session/types'
 // `headless`: just the body, under a row drawn by the parent (an expanded item of a ToolGroup).
 const props = withDefaults(defineProps<{ tool: ToolItem, sessionId: string, headless?: boolean }>(), { headless: false })
 const store = useSessionStore()
+const { show } = useShow()
 const now = useNow()
 const open = ref(true)
 
@@ -18,6 +19,7 @@ const kind = computed(() => {
   if (t.value.name === 'Grep') return 'grep'
   if (t.value.name === 'WebSearch' || t.value.name === 'WebFetch') return 'web'
   if (mcp.value) return 'mcp'
+  if (t.value.name === 'Show') return 'show'
   if (['Read', 'Glob', 'LS'].includes(t.value.name)) return 'row'
   return 'bash'
 })
@@ -52,6 +54,12 @@ const webResults = computed(() => {
   return Array.isArray(r) ? r as { title: string, url: string }[] : []
 })
 
+// Show: what the call opened, to open it again.
+const showTarget = computed(() => kind.value === 'show' && t.value.status === 'ok'
+  ? showTargetOf(t.value.input, t.value.result, store.sessions[props.sessionId]?.meta.cwd ?? '')
+  : null)
+const showIn = computed(() => showTarget.value ? showPaneTitle(showTarget.value.kind) : '')
+
 // Text of a failed call: the tool_result content (results of other kinds are JSON).
 const errorText = computed(() => String(t.value.output || t.value.result?.error || t.value.result?.message || '').trim())
 
@@ -60,7 +68,12 @@ const webText = computed(() => String(t.value.result?.result ?? t.value.output ?
 const hasBody = computed(() => open.value && (
   t.value.status === 'error' && kind.value !== 'bash'
     ? !!errorText.value
-    : kind.value === 'bash' ? outputLines.value.some(l => l.length) : kind.value === 'web' ? webResults.value.length > 0 || !!webText.value : kind.value !== 'row'
+    : kind.value === 'bash'
+      ? outputLines.value.some(l => l.length)
+      : kind.value === 'web'
+        ? webResults.value.length > 0 || !!webText.value
+        // Show has a body only under a group's row, which cannot hold the Open button.
+        : kind.value === 'show' ? props.headless && !!showTarget.value : kind.value !== 'row'
 ))
 
 // Favicons load straight from each site (no third-party icon service); a host without one shows its letter.
@@ -117,6 +130,13 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
       >
         Stop
       </HBtn>
+      <HBtn
+        v-else-if="showTarget"
+        :title="`Open in the ${showIn} pane`"
+        @click="show(showTarget)"
+      >
+        Open
+      </HBtn>
       <button
         v-else-if="kind === 'bash' && output"
         type="button"
@@ -132,9 +152,20 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
       </button>
     </div>
 
+    <!-- Show under a group's row: the Open button -->
+    <div
+      v-if="kind === 'show' && headless && showTarget"
+      class="flex items-center gap-2 px-3 py-[7px] text-[12px] text-muted"
+    >
+      <span class="min-w-0 flex-1 truncate">{{ showIn }} pane</span>
+      <HBtn @click="show(showTarget)">
+        Open
+      </HBtn>
+    </div>
+
     <!-- error of a non-shell tool (bash shows its errors in its own output) -->
     <pre
-      v-if="tool.status === 'error' && kind !== 'bash' && open && errorText"
+      v-else-if="tool.status === 'error' && kind !== 'bash' && open && errorText"
       class="m-0 max-h-80 overflow-auto bg-surface px-3 py-[9px] text-[12px] leading-[1.6] whitespace-pre-wrap text-bad"
     >{{ errorText }}</pre>
 
