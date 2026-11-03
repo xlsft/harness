@@ -72,6 +72,12 @@ func (s *Server) fileScope(id string) (*fileScope, error) {
 			sc.dirs = d
 		}
 	}
+	// What the agent writes to its scratchpad shows too, as a root of its own.
+	if env := ls.sess.ToolEnv; env != nil && env.ScratchDir != "" {
+		if st, err := os.Stat(env.ScratchDir); err == nil && st.IsDir() {
+			sc.dirs = append(append([]string(nil), sc.dirs...), env.ScratchDir)
+		}
+	}
 	return sc, nil
 }
 

@@ -105,7 +105,10 @@ const errorText = computed(() => String(t.value.output || t.value.result?.error 
 
 const webText = computed(() => String(t.value.result?.result ?? t.value.output ?? '').trim())
 
-const hasBody = computed(() => open.value && (
+// Headless under a labelled row: what the call really did (Bash shows its command, diffs their path).
+const concrete = computed(() => props.headless && !isBash.value && kind.value !== 'diff' && String(t.value.input.description ?? '').trim() ? toolTarget(t.value) : '')
+
+const hasBody = computed(() => !!concrete.value || (open.value && (
   t.value.status === 'error' && !isBash.value
     ? !!errorText.value
     : kind.value === 'bash'
@@ -114,7 +117,7 @@ const hasBody = computed(() => open.value && (
         ? webResults.value.length > 0 || !!webText.value
         // Show has a body only under a group's row, which cannot hold the Open button.
         : kind.value === 'show' ? props.headless && !!showTarget.value : kind.value !== 'row'
-))
+)))
 
 // Favicons load straight from each site (no third-party icon service); a host without one shows its letter.
 const noIcon = reactive<Record<string, boolean>>({})
@@ -237,6 +240,15 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
         />
       </button>
     </div>
+
+    <!-- Under a row that shows the model's label: the call itself -->
+    <p
+      v-if="concrete"
+      class="m-0 truncate bg-surface px-3 pt-[7px] pb-[3px] font-mono text-[12px] text-muted last:pb-[7px]"
+      :title="concrete"
+    >
+      {{ concrete }}
+    </p>
 
     <!-- Show under a group's row: the Open button -->
     <div

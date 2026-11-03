@@ -39,7 +39,7 @@ async function toBackground() {
     >{{ bashLabel(tool).verb }}</span><span class="text-strong">{{ bashLabel(tool).text }}</span></span><span
       v-else
       class="min-w-0 truncate text-strong"
-    >{{ toolTarget(tool) }}</span>
+    >{{ toolLabel(tool) }}</span>
     <span class="flex-1" />
     <HBtn
       v-if="canBackground"

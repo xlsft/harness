@@ -203,13 +203,13 @@ const split = computed(() => {
       <span class="flex-1" />
       <span class="shrink-0 text-[11px] text-ok">+{{ stats.add }}</span><span class="shrink-0 text-[11px] text-bad">−{{ stats.del }}</span>
       <div
-        class="flex shrink-0 border border-default text-[11px]"
+        class="flex shrink-0 overflow-hidden border border-default text-[11px]"
         role="group"
         aria-label="Diff view"
       >
         <button
           type="button"
-          class="px-[7px] py-px"
+          class="rounded-none px-[7px] py-px"
           :class="view === 'unified' ? 'bg-raised text-strong' : 'text-muted'"
           @click="view = 'unified'"
         >
@@ -217,7 +217,7 @@ const split = computed(() => {
         </button>
         <button
           type="button"
-          class="px-[7px] py-px"
+          class="rounded-none px-[7px] py-px"
           :class="view === 'split' ? 'bg-raised text-strong' : 'text-muted'"
           @click="view = 'split'"
         >

@@ -112,33 +112,33 @@ describe("bundle builder", () => {
       expect(t.input_schema.additionalProperties).toBe(false);
       expect(t.input_schema.type).toBe("object");
     }
-    expect(props("Read")).toEqual(["file_path", "offset", "limit"]);
-    expect(props("Write")).toEqual(["file_path", "content"]);
-    expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all"]);
+    expect(props("Read")).toEqual(["file_path", "offset", "limit", "description"]);
+    expect(props("Write")).toEqual(["file_path", "content", "description"]);
+    expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all", "description"]);
     expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background"]);
-    expect(props("TaskStop")).toEqual(["task_id"]);
-    expect(props("Show")).toEqual(["target", "path", "line", "end_line", "url"]);
-    expect(b.tools.Show!.input_schema.required).toEqual(["target"]);
+    expect(props("TaskStop")).toEqual(["task_id", "description"]);
+    expect(props("Show")).toEqual(["target", "path", "line", "end_line", "url", "description"]);
+    expect(b.tools.Show!.input_schema.required).toEqual(["target", "description"]);
     expect((b.tools.Show!.input_schema.properties as any).target.enum).toEqual(["file", "diff", "url"]);
     expect(b.tools.Show!.description).toMatch(/http and https/);
     expect(props("Visual")).toEqual(["id", "title", "html"]);
-    expect(props("BrowserNavigate")).toEqual(["url", "action"]);
-    expect(props("BrowserClick")).toEqual(["ref", "x", "y", "button", "double", "modifiers"]);
-    expect(props("BrowserType")).toEqual(["ref", "text", "clear", "submit"]);
-    expect(b.tools.BrowserType!.input_schema.required).toEqual(["text"]);
-    expect(props("BrowserWait")).toEqual(["text", "text_gone", "selector", "url", "navigation", "timeout"]);
+    expect(props("BrowserNavigate")).toEqual(["url", "action", "description"]);
+    expect(props("BrowserClick")).toEqual(["ref", "x", "y", "button", "double", "modifiers", "description"]);
+    expect(props("BrowserType")).toEqual(["ref", "text", "clear", "submit", "description"]);
+    expect(b.tools.BrowserType!.input_schema.required).toEqual(["text", "description"]);
+    expect(props("BrowserWait")).toEqual(["text", "text_gone", "selector", "url", "navigation", "timeout", "description"]);
     for (const n of Object.keys(b.tools).filter((n) => n.startsWith("Browser"))) {
       // Page content is untrusted; every browser tool that returns it says so.
       if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
     expect(b.tools.Visual!.description).toMatch(/harness\.send/);
-    expect(props("TaskOutput")).toEqual(["task_id", "offset", "block", "pattern", "timeout"]);
-    expect(b.tools.TaskOutput!.input_schema.required).toEqual(["task_id"]);
+    expect(props("TaskOutput")).toEqual(["task_id", "offset", "block", "pattern", "timeout", "description"]);
+    expect(b.tools.TaskOutput!.input_schema.required).toEqual(["task_id", "description"]);
     expect((b.tools.TaskOutput!.input_schema.properties as any).timeout.maximum).toBe(600000);
     expect(b.tools.TaskOutput!.description).toMatch(/30000/);
-    expect(props("Wait")).toEqual(["task_id", "port", "host", "path", "changed", "pattern", "timeout"]);
-    expect(b.tools.Wait!.input_schema.required).toEqual(["timeout"]);
+    expect(props("Wait")).toEqual(["task_id", "port", "host", "path", "changed", "pattern", "timeout", "description"]);
+    expect(b.tools.Wait!.input_schema.required).toEqual(["timeout", "description"]);
     expect((b.tools.Wait!.input_schema.properties as any).timeout.maximum).toBe(600000);
     expect(b.tools.Wait!.description).toMatch(/exactly one/);
     expect(b.tools.Bash!.description).toMatch(/TaskOutput/);
@@ -168,14 +168,14 @@ describe("bundle builder", () => {
     expect(qs.items.properties.options.items.additionalProperties).toBe(false);
     expect(b.tools.Bash!.description).toMatch(/run_in_background/);
     expect(b.tools.Bash!.description).toMatch(/TaskStop/);
-    expect(props("Glob")).toEqual(["pattern", "path"]);
-    expect(props("Grep")).toEqual(["pattern", "path", "glob", "type", "output_mode", "-i", "-n", "-A", "-B", "-C", "multiline", "head_limit"]);
+    expect(props("Glob")).toEqual(["pattern", "path", "description"]);
+    expect(props("Grep")).toEqual(["pattern", "path", "glob", "type", "output_mode", "-i", "-n", "-A", "-B", "-C", "multiline", "head_limit", "description"]);
     expect(b.tools.Bash!.description).toMatch(/30000 characters/);
     expect(b.tools.Bash!.description).toMatch(/600000/);
-    expect(props("WebSearch")).toEqual(["query", "allowed_domains", "blocked_domains"]);
-    expect(b.tools.WebSearch!.input_schema.required).toEqual(["query"]);
-    expect(props("WebFetch")).toEqual(["url", "prompt"]);
-    expect(b.tools.WebFetch!.input_schema.required).toEqual(["url", "prompt"]);
+    expect(props("WebSearch")).toEqual(["query", "allowed_domains", "blocked_domains", "description"]);
+    expect(b.tools.WebSearch!.input_schema.required).toEqual(["query", "description"]);
+    expect(props("WebFetch")).toEqual(["url", "prompt", "description"]);
+    expect(b.tools.WebFetch!.input_schema.required).toEqual(["url", "prompt", "description"]);
     expect(b.tools.WebFetch!.description).toMatch(/15 minutes/);
     expect(b.tools.WebFetch!.description).toMatch(/10 MB/);
   });
@@ -228,7 +228,7 @@ describe("PromptService", () => {
     expect(b.model).toBe("gpt-x");
     expect(b.system.find((s) => s.dynamicBoundary)).toMatchObject({ id: DYNAMIC_BOUNDARY, text: "" });
     expect(b.system.find((s) => s.id === "tool_policy")!.text).toMatch(/function-calling interface/); // gpt-* override
-    expect(JSON.parse(b.tools.Edit!.inputSchemaJson).required).toEqual(["file_path", "old_string", "new_string"]);
+    expect(JSON.parse(b.tools.Edit!.inputSchemaJson).required).toEqual(["file_path", "old_string", "new_string", "description"]);
     expect(b.compactionInstruction).not.toBe("");
     expect(Object.keys(b.outputStyles).sort()).toEqual(["concise", "default", "explanatory", "learning", "proactive"]);
     expect(b.outputStyles.explanatory).toMatchObject({ id: "explanatory", name: "Explanatory", keepCodingInstructions: true });

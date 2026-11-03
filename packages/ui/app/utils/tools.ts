@@ -52,6 +52,11 @@ export function bashLabel(t: ToolItem): { verb: string, text: string } {
   return { verb, text: /^[A-Z][a-z]/.test(d) ? d[0]!.toLowerCase() + d.slice(1) : d }
 }
 
+// A tool call's row: the model's own label (the description parameter), else what it acts on.
+export function toolLabel(t: ToolItem): string {
+  return String(t.input.description ?? '').trim() || toolTarget(t)
+}
+
 export function toolTarget(t: ToolItem): string {
   const i = t.input
   switch (t.name) {

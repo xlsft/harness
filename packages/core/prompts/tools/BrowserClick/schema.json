@@ -40,7 +40,14 @@
         ]
       },
       "description": "Keys held down during the click"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "required": [
+    "description"
+  ]
 }

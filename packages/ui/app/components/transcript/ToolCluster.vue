@@ -24,7 +24,7 @@ function action(t: ToolItem) {
     const l = bashLabel(t)
     return l.verb ? `${l.verb} ${l.text}` : l.text
   }
-  return `${t.name} ${toolTarget(t)}`.trim()
+  return `${t.name} ${toolLabel(t)}`.trim()
 }
 
 const BROWSER_TOOLS_LIST = ['BrowserNavigate', 'BrowserSnapshot', 'BrowserClick', 'BrowserType', 'BrowserKey', 'BrowserScroll', 'BrowserScreenshot', 'BrowserEval', 'BrowserTabs', 'BrowserConsole', 'BrowserNetwork', 'BrowserWait']

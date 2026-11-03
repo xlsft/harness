@@ -2,14 +2,46 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "task_id": { "type": "string", "description": "Wait for this background task to finish (or, with pattern, to print a matching line)" },
-    "port": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "Wait until this TCP port accepts connections" },
-    "host": { "type": "string", "description": "Host for port (default localhost)" },
-    "path": { "type": "string", "description": "Wait until this file exists (or, with pattern, contains a matching line)" },
-    "changed": { "type": "boolean", "description": "With path: wait until the file is created, modified or deleted after the call starts" },
-    "pattern": { "type": "string", "description": "Regular expression matched line by line against the task output or the file" },
-    "timeout": { "type": "integer", "minimum": 1, "maximum": 600000, "description": "Maximum time to wait in milliseconds (max 600000)" }
+    "task_id": {
+      "type": "string",
+      "description": "Wait for this background task to finish (or, with pattern, to print a matching line)"
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "description": "Wait until this TCP port accepts connections"
+    },
+    "host": {
+      "type": "string",
+      "description": "Host for port (default localhost)"
+    },
+    "path": {
+      "type": "string",
+      "description": "Wait until this file exists (or, with pattern, contains a matching line)"
+    },
+    "changed": {
+      "type": "boolean",
+      "description": "With path: wait until the file is created, modified or deleted after the call starts"
+    },
+    "pattern": {
+      "type": "string",
+      "description": "Regular expression matched line by line against the task output or the file"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 600000,
+      "description": "Maximum time to wait in milliseconds (max 600000)"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
   },
-  "required": ["timeout"],
+  "required": [
+    "timeout",
+    "description"
+  ],
   "additionalProperties": false
 }

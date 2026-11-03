@@ -27,7 +27,14 @@
       "minimum": 1,
       "maximum": 60000,
       "description": "Milliseconds to wait at most (default 10000)"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "required": [
+    "description"
+  ]
 }

@@ -16,7 +16,14 @@
       "minimum": 1000,
       "maximum": 80000,
       "description": "Longest outline returned, in characters (default 24000)"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "required": [
+    "description"
+  ]
 }
