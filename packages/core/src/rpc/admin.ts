@@ -1,6 +1,7 @@
 /**
  * Connect implementation of harness.auth.v1.AdminService: proto <-> src/services/admin-users.ts and the LDAP
- * settings / directory code in src/auth. Every method needs the admin role (PERMISSION_DENIED otherwise).
+ * settings / directory code in src/auth, and the permission mode policy (src/services/mode-policy.ts). Every method
+ * needs the admin role (PERMISSION_DENIED otherwise).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import {
@@ -10,6 +11,7 @@ import {
   type AdminUser,
   type LdapConfig,
 } from "../gen/harness/auth/v1/admin_pb.ts";
+import { PermissionMode } from "../gen/harness/agent/v1/agent_pb.ts";
 import { User_Role } from "../gen/harness/auth/v1/auth_pb.ts";
 import {
   getLdapSettings,
@@ -35,6 +37,7 @@ import {
   type AdminUserView,
   type Role,
 } from "../services/admin-users.ts";
+import { getModePolicy, setModePolicy, type ModeName } from "../services/mode-policy.ts";
 import { deleteProvider, listUserProviders } from "../services/providers.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
@@ -119,17 +122,35 @@ async function testConfig(c: LdapConfig | undefined) {
   return cfg;
 }
 
+const MODE_TO_PROTO: Record<ModeName, PermissionMode> = {
+  default: PermissionMode.DEFAULT,
+  acceptEdits: PermissionMode.ACCEPT_EDITS,
+  plan: PermissionMode.PLAN,
+  auto: PermissionMode.AUTO,
+  dontAsk: PermissionMode.DONT_ASK,
+  bypassPermissions: PermissionMode.BYPASS_PERMISSIONS,
+};
+
+function modeFromProto(m: PermissionMode): string {
+  const name = (Object.keys(MODE_TO_PROTO) as ModeName[]).find((k) => MODE_TO_PROTO[k] === m);
+  if (!name) throw new ApiError("invalid_request", `Unknown permission mode ${m}`);
+  return name;
+}
+
+const modePolicyToProto = (modes: ModeName[]) => ({ disabledModes: modes.map((m) => MODE_TO_PROTO[m]) });
+
 function failure(e: unknown): string {
   if (e instanceof LdapUnavailableError || e instanceof ApiError) return e.message;
   return e instanceof Error ? e.message : String(e);
 }
 
 export function registerAdminService(router: ConnectRouter): void {
-  const admin = async (ctx: HandlerContext) => {
+  const principal = async (ctx: HandlerContext) => {
     const p = await requirePrincipal(ctx);
     if (p.user.role !== "admin") throw new ApiError("permission", "Admin role required");
-    return p.user;
+    return p;
   };
+  const admin = async (ctx: HandlerContext) => (await principal(ctx)).user;
 
   router.service(AdminService, {
     listUsers: guard(async (req, ctx: HandlerContext) => {
@@ -262,6 +283,16 @@ export function registerAdminService(router: ConnectRouter): void {
       } catch (e) {
         return { found: false, message: failure(e) };
       }
+    }),
+
+    getPermissionModePolicy: guard(async (_req, ctx: HandlerContext) => {
+      return { policy: modePolicyToProto(await getModePolicy(await principal(ctx))) };
+    }),
+
+    setPermissionModePolicy: guard(async (req, ctx: HandlerContext) => {
+      const p = await principal(ctx);
+      const modes = (req.policy?.disabledModes ?? []).map(modeFromProto);
+      return { policy: modePolicyToProto(await setModePolicy(p, modes)) };
     }),
   });
 }
