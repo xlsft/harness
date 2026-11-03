@@ -56,16 +56,42 @@ const parsed = computed(() => {
       v-if="queued"
       type="button"
       title="Edit: back to the composer"
-      class="flex max-w-[78%] cursor-text flex-col self-end border border-dashed border-accented px-3 py-[9px] text-left leading-[1.55] text-toned hover:border-accent"
+      class="flex max-w-[78%] cursor-text flex-col gap-[7px] self-end border border-dashed border-accented px-3 py-[9px] text-left leading-[1.55] text-toned hover:border-accent"
       @click="emit('edit')"
     >
-      <span class="whitespace-pre-wrap">{{ text }}</span>
+      <span
+        v-if="parsed.quote"
+        class="border-l-2 border-accented pl-2.5 text-[12px] text-muted"
+      >{{ parsed.quote }}</span>
+      <span class="whitespace-pre-wrap"><template
+        v-for="(p, i) in parsed.parts"
+        :key="i"
+      ><span
+        v-if="p.kind === 'command'"
+        class="border border-accent px-[5px] text-accent"
+      >{{ p.t }}</span><span
+        v-else-if="p.kind === 'mention'"
+        class="bg-accent/15 px-1 text-accent"
+      >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
     </button>
     <div
       v-else-if="pending"
-      class="flex max-w-[78%] flex-col self-end border border-default px-3 py-[9px] leading-[1.55] whitespace-pre-wrap text-toned"
+      class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default px-3 py-[9px] leading-[1.55] text-toned"
     >
-      {{ text }}
+      <span
+        v-if="parsed.quote"
+        class="border-l-2 border-accented pl-2.5 text-[12px] text-muted"
+      >{{ parsed.quote }}</span>
+      <span class="whitespace-pre-wrap"><template
+        v-for="(p, i) in parsed.parts"
+        :key="i"
+      ><span
+        v-if="p.kind === 'command'"
+        class="border border-accent px-[5px] text-accent"
+      >{{ p.t }}</span><span
+        v-else-if="p.kind === 'mention'"
+        class="bg-accent/15 px-1 text-accent"
+      >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
     </div>
     <span
       v-else-if="ran"
