@@ -1,8 +1,9 @@
 import { create } from '@bufbuild/protobuf'
 import { describe, expect, it } from 'vitest'
-import { ClassifierSchema, ProviderScope, ProviderSchema } from '~/gen/harness/llm/v1/providers_pb'
-import { classifierView, providerView } from '~/lib/providers/connect'
+import { ClassifierSchema, ProviderPresetSchema, ProviderScope, ProviderSchema } from '~/gen/harness/llm/v1/providers_pb'
+import { classifierView, presetView, providerView } from '~/lib/providers/connect'
 import { MockProvidersApi } from '~/lib/providers/mock'
+import { contextLabel, parseHeaders } from '~/lib/providers/types'
 
 describe('providerView', () => {
   it('maps a personal provider and its models, falling back to the id for names', () => {
@@ -19,6 +20,26 @@ describe('providerView', () => {
     }))
     expect(v).toMatchObject({ id: 'u-abc', scope: 'personal', name: 'u-abc', keySet: true, keyHint: '…1234', editable: true })
     expect(v.models).toEqual([{ id: 'u-abc/qwen/qwen3.7-flash', name: 'u-abc/qwen/qwen3.7-flash', upstream: 'qwen/qwen3.7-flash', contextWindow: 1_000_000 }])
+  })
+
+  it('maps the group and preset, defaulting to an LLM custom provider', () => {
+    const v = providerView(create(ProviderSchema, { id: 'typesafe', scope: ProviderScope.GLOBAL, group: 'classifier', presetId: 'typesafe', headerNames: ['X-A'] }))
+    expect(v).toMatchObject({ group: 'classifier', presetId: 'typesafe', headerNames: ['X-A'] })
+    expect(providerView(create(ProviderSchema, { id: 'old' }))).toMatchObject({ group: 'llm', presetId: '' })
+  })
+
+  it('maps a preset, with a monogram fallback', () => {
+    const v = presetView(create(ProviderPresetSchema, {
+      id: 'kimi-code',
+      group: 'llm',
+      displayName: 'Kimi Code',
+      type: 'anthropic',
+      baseUrl: 'https://api.kimi.com/coding',
+      fields: [{ name: 'api_key', label: 'API key', required: true }],
+      defaultModels: [{ upstreamModel: 'kimi-for-coding', contextWindow: 256_000n }]
+    }))
+    expect(v).toMatchObject({ id: 'kimi-code', icon: 'KI', discoversModels: false, local: false })
+    expect(v.defaultModels).toEqual([{ upstream: 'kimi-for-coding', name: 'kimi-for-coding', contextWindow: 256_000 }])
   })
 
   it('maps the classifier with defaults when the server sends none', () => {
@@ -48,5 +69,38 @@ describe('MockProvidersApi', () => {
     await expect(api.update('openrouter', { name: 'x' })).rejects.toThrow()
     await expect(api.getClassifier()).rejects.toThrow()
     expect((await api.list()).canManageGlobal).toBe(false)
+  })
+
+  it('connects a preset with only its key and offers its curated models', async () => {
+    const api = new MockProvidersApi(false)
+    await expect(api.create({ scope: 'personal', presetId: 'kimi-code' })).rejects.toThrow(/API key/)
+    const p = await api.create({ scope: 'personal', presetId: 'kimi-code', apiKey: 'sk-fake-key-123456', baseUrl: 'https://elsewhere.example' })
+    expect(p).toMatchObject({ presetId: 'kimi-code', group: 'llm', name: 'Kimi Code', baseUrl: 'https://api.kimi.com/coding', type: 'anthropic' })
+    expect((await api.discover(p.id)).map(c => c.upstream)).toContain('kimi-for-coding')
+    expect(await api.test(p.id)).toMatchObject({ ok: true })
+  })
+
+  it('keeps classifier providers server-wide and lets custom providers be many', async () => {
+    const user = new MockProvidersApi(false)
+    await expect(user.create({ scope: 'personal', presetId: 'typesafe', apiKey: 'sk-fake-key-123456' })).rejects.toThrow(/server-wide/)
+    const admin = new MockProvidersApi(true)
+    const a = await admin.create({ scope: 'global', group: 'llm', type: 'openai-chat', name: 'Team A', baseUrl: 'https://a.example/v1' })
+    const b = await admin.create({ scope: 'global', group: 'llm', type: 'openai-chat', name: 'Team A', baseUrl: 'https://b.example/v1' })
+    expect([a.id, b.id]).toEqual(['team-a', 'team-a-2'])
+    const t = await admin.create({ scope: 'global', presetId: 'typesafe', apiKey: 'sk-fake-key-123456' })
+    await expect(admin.addModel(t.id, { upstream: 'jev-1.13.0' })).rejects.toThrow()
+    const c = await admin.setClassifier({ ...(await admin.getClassifier()), enabled: true, providerId: t.id, model: '' })
+    expect(c.model).toBe('jev-1.13.0')
+  })
+})
+
+describe('helpers', () => {
+  it('parses header lines and rejects malformed ones', () => {
+    expect(parseHeaders('X-Team: core\n\nX-Env:prod ')).toEqual({ 'X-Team': 'core', 'X-Env': 'prod' })
+    expect(parseHeaders('no colon here')).toMatch(/Not a header/)
+  })
+
+  it('labels context windows', () => {
+    expect([contextLabel(0), contextLabel(256_000), contextLabel(1_000_000)]).toEqual(['', '256k', '1M'])
   })
 })

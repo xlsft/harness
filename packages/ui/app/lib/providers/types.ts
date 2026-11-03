@@ -1,9 +1,11 @@
-// ProvidersApi: what the settings screens need from harness.llm.v1.ProviderService (LLM providers, their
-// models and the auto-mode classifier). The client forwards these calls to the server with the user's
-// credentials, so the UI never holds server credentials. Two implementations: connect.ts (the real
-// service through the client) and mock.ts (in memory, for the mock transport).
+// ProvidersApi: what the settings screens need from harness.llm.v1.ProviderService (providers in two groups,
+// LLM models and classifiers; the presets to connect; their models; the auto-mode classifier). The client
+// forwards these calls to the server with the user's credentials, so the UI never holds server credentials.
+// Two implementations: connect.ts (the real service through the client) and mock.ts (in memory, for the
+// mock transport).
 
 export type ProviderScopeName = 'global' | 'personal'
+export type ProviderGroupName = 'llm' | 'classifier'
 
 export interface ProviderModelView {
   id: string
@@ -15,12 +17,16 @@ export interface ProviderModelView {
 export interface ProviderView {
   id: string
   scope: ProviderScopeName
+  group: ProviderGroupName
+  // The preset it was connected from; '' for a custom provider.
+  presetId: string
   type: string
   name: string
   baseUrl: string
   // Keys are write-only: only whether one is set, and its last characters.
   keySet: boolean
   keyHint: string
+  headerNames: string[]
   enabled: boolean
   allowPrivateNetwork: boolean
   // The caller may change it (admins: global providers; everyone: their own).
@@ -34,14 +40,61 @@ export interface ProviderList {
   canManageGlobal: boolean
 }
 
+export interface PresetFieldView {
+  name: 'api_key' | 'base_url' | string
+  label: string
+  required: boolean
+  placeholder: string
+}
+
+export interface PresetModelView {
+  upstream: string
+  name: string
+  contextWindow: number
+}
+
+// A well-known service the user connects by entering only its fields.
+export interface PresetView {
+  id: string
+  group: ProviderGroupName
+  name: string
+  description: string
+  type: string
+  baseUrl: string
+  fields: PresetFieldView[]
+  docsUrl: string
+  keyUrl: string
+  defaultModels: PresetModelView[]
+  // Monogram drawn as the icon.
+  icon: string
+  discoversModels: boolean
+  // Runs on the local network: only a global connection may reach it.
+  local: boolean
+}
+
+export interface ProtocolView {
+  id: string
+  group: ProviderGroupName
+  label: string
+  baseUrlHint: string
+}
+
+export interface PresetList {
+  presets: PresetView[]
+  protocols: ProtocolView[]
+}
+
 export interface ProviderDraft {
   scope: ProviderScopeName
-  // Global only; personal providers get a generated id.
-  id?: string
-  type: string
-  name: string
-  baseUrl: string
+  // Connect a preset: only its fields are needed.
+  presetId?: string
+  // Custom providers.
+  group?: ProviderGroupName
+  type?: string
+  name?: string
+  baseUrl?: string
   apiKey?: string
+  headers?: Record<string, string>
   allowPrivateNetwork?: boolean
 }
 
@@ -51,6 +104,8 @@ export interface ProviderPatch {
   name?: string
   baseUrl?: string
   apiKey?: string
+  // Replaces all extra headers.
+  headers?: Record<string, string>
   enabled?: boolean
   allowPrivateNetwork?: boolean
 }
@@ -71,6 +126,12 @@ export interface NewModel {
   id?: string
 }
 
+export interface TestResult {
+  ok: boolean
+  message: string
+  modelCount: number
+}
+
 export interface ClassifierSettings {
   enabled: boolean
   providerId: string
@@ -84,11 +145,13 @@ export interface ClassifierSettings {
 }
 
 export interface ProvidersApi {
+  presets(): Promise<PresetList>
   list(): Promise<ProviderList>
   create(draft: ProviderDraft): Promise<ProviderView>
   update(id: string, patch: ProviderPatch): Promise<ProviderView>
   remove(id: string): Promise<void>
   discover(id: string): Promise<ModelCandidateView[]>
+  test(id: string): Promise<TestResult>
   addModel(providerId: string, model: NewModel): Promise<void>
   removeModel(modelId: string): Promise<void>
   // Admin only.
@@ -96,32 +159,22 @@ export interface ProvidersApi {
   setClassifier(c: ClassifierSettings): Promise<ClassifierSettings>
 }
 
-// The settings form for a new or edited provider.
-export interface ProviderForm {
-  // Provider being edited; empty for a new one.
-  id: string
-  scope: ProviderScopeName
-  // New global providers: the id to create.
-  newId: string
-  type: string
-  name: string
-  baseUrl: string
-  // A new key; empty keeps the stored one.
-  apiKey: string
-  clearKey: boolean
-  allowPrivateNetwork: boolean
+// Parses "Name: value" lines into headers; returns an error string for a malformed line.
+export function parseHeaders(text: string): Record<string, string> | string {
+  const out: Record<string, string> = {}
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    const i = line.indexOf(':')
+    const name = i > 0 ? line.slice(0, i).trim() : ''
+    if (!/^[A-Za-z0-9-]+$/.test(name)) return `Not a header: ${line}`
+    out[name] = line.slice(i + 1).trim()
+  }
+  return out
 }
 
-// Human name of a provider type.
-export const PROVIDER_TYPE_LABELS: Record<string, string> = {
-  'anthropic': 'Anthropic Messages',
-  'openai-chat': 'OpenAI Chat Completions',
-  'openai-responses': 'OpenAI Responses'
-}
-
-// Base URL suggested for a type (OpenAI-compatible URLs include /v1).
-export const PROVIDER_TYPE_URLS: Record<string, string> = {
-  'anthropic': 'https://api.anthropic.com',
-  'openai-chat': 'https://api.openai.com/v1',
-  'openai-responses': 'https://api.openai.com/v1'
+// "1M", "256k", or '' when unknown.
+export function contextLabel(n: number): string {
+  if (!n) return ''
+  return n >= 1_000_000 ? `${Math.round(n / 100_000) / 10}M` : `${Math.round(n / 1000)}k`
 }
