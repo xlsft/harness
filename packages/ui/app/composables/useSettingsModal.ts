@@ -5,9 +5,9 @@ export function useSettingsModal() {
   const router = useRouter()
 
   const isOpen = computed(() => typeof route.query.settings === 'string')
-  const section = computed(() => String(route.query.settings || 'general'))
+  const section = computed(() => String(route.query.settings || 'appearance'))
 
-  function open(s = 'general') {
+  function open(s = 'appearance') {
     if (isOpen.value) router.replace({ query: { ...route.query, settings: s } })
     else router.push({ query: { ...route.query, settings: s } })
   }

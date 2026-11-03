@@ -8,14 +8,17 @@ const store = useSessionStore()
 const modal = useSettingsModal()
 const desktop = isDesktop()
 
+// Grouped like the nav shows them: you, this app, the AI services, the server (admins), the product.
 const SECTIONS = [
-  { key: 'general', label: 'General', icon: 'sliders' },
-  { key: 'models', label: 'Models', icon: 'ai' },
-  { key: 'classifiers', label: 'Classifiers', icon: 'shield' },
-  { key: 'search', label: 'Search', icon: 'search' },
-  { key: 'account', label: 'Account', icon: 'lock' },
-  { key: 'users', label: 'Users', icon: 'shield' },
-  { key: 'about', label: 'About', icon: 'info' }
+  { key: 'account', label: 'Account', icon: 'lock', group: 'you' },
+  { key: 'usage', label: 'Usage', icon: 'history', group: 'you' },
+  { key: 'appearance', label: 'Appearance', icon: 'sun', group: 'app' },
+  { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
+  { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
+  { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
+  { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
+  { key: 'users', label: 'Users', icon: 'shield', group: 'server' },
+  { key: 'about', label: 'About', icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
 
@@ -28,9 +31,11 @@ onMounted(async () => {
     // Keep what the shell said.
   }
 })
-// What each section holds, so the filter finds "theme" under General and "LDAP" under Users.
+// What each section holds, so the filter finds "theme" under Appearance and "LDAP" under Users.
 const KEYWORDS: Record<Section, string> = {
-  general: 'appearance theme light dark mode permission modes new sessions worktree',
+  usage: 'tokens cost spend money statistics chart',
+  appearance: 'theme light dark mode system colours',
+  sessions: 'permission modes ask auto plan bypass new sessions worktree defaults',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
@@ -45,8 +50,9 @@ const sections = computed(() => {
   return q ? allowed.value.filter(s => `${s.label} ${KEYWORDS[s.key]}`.toLowerCase().includes(q)) : allowed.value
 })
 
+// Old links (?settings=general) open Appearance.
 const section = computed<Section>({
-  get: () => allowed.value.find(s => s.key === modal.section.value)?.key ?? 'general',
+  get: () => allowed.value.find(s => s.key === modal.section.value)?.key ?? 'appearance',
   set: v => modal.setSection(v)
 })
 
@@ -87,17 +93,24 @@ async function signOut() {
           class="min-w-0 flex-1 bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
         >
       </label>
-      <button
-        v-for="s in sections"
+      <template
+        v-for="(s, i) in sections"
         :key="s.key"
-        type="button"
-        class="nav-row px-[9px] hover:bg-hover"
-        :class="section === s.key ? 'nav-row-current' : ''"
-        :aria-current="section === s.key ? 'page' : undefined"
-        @click="section = s.key"
       >
-        <HIcon :name="s.icon" />{{ s.label }}
-      </button>
+        <div
+          v-if="i > 0 && sections[i - 1]!.group !== s.group"
+          class="-mx-3 my-1.5 h-px shrink-0 bg-line max-md:hidden"
+        />
+        <button
+          type="button"
+          class="nav-row px-[9px] hover:bg-hover"
+          :class="section === s.key ? 'nav-row-current' : ''"
+          :aria-current="section === s.key ? 'page' : undefined"
+          @click="section = s.key"
+        >
+          <HIcon :name="s.icon" />{{ s.label }}
+        </button>
+      </template>
       <p
         v-if="!sections.length"
         class="m-0 px-[9px] py-2 text-[12px] text-muted"
@@ -107,8 +120,11 @@ async function signOut() {
     </nav>
 
     <div class="min-w-0 flex-1 overflow-y-auto px-7 pt-5 pb-8 max-sm:px-4">
-      <template v-if="section === 'general'">
-        <SettingsAppearance />
+      <SettingsAppearance v-if="section === 'appearance'" />
+
+      <SettingsUsage v-else-if="section === 'usage'" />
+
+      <template v-else-if="section === 'sessions'">
         <SettingsModes />
         <h2 class="set-h">
           New sessions
