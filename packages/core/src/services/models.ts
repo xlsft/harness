@@ -1,8 +1,19 @@
-/** Model catalog, default slots and capability-negotiation memory. */
-import { and, asc, eq } from "drizzle-orm";
+/**
+ * Model catalog, default slots and capability-negotiation memory.
+ *
+ * A model belongs to the scope of its provider (services/providers.ts):
+ *   - global models (global provider): admin-chosen aliases, offered to every user the model's `roles` allow;
+ *   - personal models (personal provider): offered only to the provider's owner. Their id is always
+ *     `<provider id>/<upstream model>`; personal provider ids are random and carry a reserved prefix, so a
+ *     personal id can neither clash with a global alias nor with another user's model.
+ * A user's catalog is the global models first, then their own; slots point at global models only (a user
+ * without any global model gets their first own model as the default).
+ */
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "./devices.ts";
+import { PERSONAL_PREFIX, providerForUser } from "./providers.ts";
 
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
 export type Effort = (typeof EFFORT_LEVELS)[number];
@@ -37,6 +48,8 @@ export interface ModelEntry {
   extraBody: Record<string, unknown> | null;
   roles: string[] | null;
   enabled: boolean;
+  /** Owner of the model's provider; null for a global model. */
+  ownerUserId: string | null;
 }
 
 /** `classifier`: model of the auto-mode decision classifier (src/decision/llm.ts); falls back to `small`. */
@@ -54,8 +67,9 @@ const DEFAULT_CAPS: ModelCapabilities = {
 
 type Row = typeof schema.model.$inferSelect;
 
-function toEntry(r: Row): ModelEntry {
+function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
   return {
+    ownerUserId,
     id: r.id,
     displayName: r.displayName,
     providerId: r.providerId,
@@ -98,8 +112,11 @@ export function adminEntry(m: ModelEntry) {
   };
 }
 
+/** Personal models: only their owner. Global models: the model's roles. */
 function canSee(m: ModelEntry, user: PublicUser): boolean {
-  return m.enabled && (!m.roles || m.roles.includes(user.role));
+  if (!m.enabled) return false;
+  if (m.ownerUserId) return m.ownerUserId === user.id;
+  return !m.roles || m.roles.includes(user.role);
 }
 
 // --- Client-facing ---------------------------------------------------------------
@@ -110,9 +127,10 @@ export async function listModelsForUser(user: PublicUser) {
     .select()
     .from(schema.model)
     .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
-    .where(eq(schema.provider.enabled, true))
+    .where(and(eq(schema.provider.enabled, true), or(isNull(schema.provider.ownerUserId), eq(schema.provider.ownerUserId, user.id))))
     .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
-  const visible = rows.map((r) => toEntry(r.model)).filter((m) => canSee(m, user));
+  const entries = rows.map((r) => toEntry(r.model, r.provider.ownerUserId)).filter((m) => canSee(m, user));
+  const visible = [...entries.filter((m) => !m.ownerUserId), ...entries.filter((m) => m.ownerUserId)];
   const ids = new Set(visible.map((m) => m.id));
   const slots = await getSlots();
   const effective: Slots = {};
@@ -124,17 +142,29 @@ export async function listModelsForUser(user: PublicUser) {
   return { models: visible.map(catalogEntry), slots: effective };
 }
 
-/** Resolves a model alias for a request, enforcing visibility. */
+/** Resolves a model alias for a request, enforcing visibility (another user's model is "not available"). */
 export async function resolveModelForUser(id: string, user: PublicUser): Promise<ModelEntry> {
   const m = await findModel(id);
   if (!m || !canSee(m, user)) throw new ApiError("not_found", `Model ${id} is not available`);
   return m;
 }
 
+/** Any model, global or personal (no visibility check). */
 export async function findModel(id: string): Promise<ModelEntry | undefined> {
   await ensureDb();
-  const r = await getDb().query.model.findFirst({ where: eq(schema.model.id, id) });
-  return r ? toEntry(r) : undefined;
+  const [r] = await getDb()
+    .select()
+    .from(schema.model)
+    .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
+    .where(eq(schema.model.id, id))
+    .limit(1);
+  return r ? toEntry(r.model, r.provider.ownerUserId) : undefined;
+}
+
+/** A global model; personal models are invisible to server-wide settings (slots, classifier). */
+export async function findGlobalModel(id: string): Promise<ModelEntry | undefined> {
+  const m = await findModel(id);
+  return m && !m.ownerUserId ? m : undefined;
 }
 
 // --- Admin CRUD --------------------------------------------------------------------
@@ -196,29 +226,46 @@ function positiveInt(v: unknown, name: string): number {
   return v;
 }
 
-async function assertProvider(id: string) {
-  const p = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, id) });
+/** The admin API manages global models only: the provider must be a global one. */
+async function assertGlobalProvider(id: string) {
+  const p = await getDb().query.provider.findFirst({ where: and(eq(schema.provider.id, id), isNull(schema.provider.ownerUserId)) });
   if (!p) throw new ApiError("invalid_request", `Unknown provider ${id}`);
 }
 
+async function globalModel(id: string): Promise<ModelEntry> {
+  const m = await findGlobalModel(id);
+  if (!m) throw new ApiError("not_found", `Model ${id} not found`);
+  return m;
+}
+
+/** Global models (admin API). */
 export async function listModelsAdmin() {
   await ensureDb();
-  const rows = await getDb().select().from(schema.model).orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
-  return rows.map((r) => adminEntry(toEntry(r)));
+  const rows = await getDb()
+    .select()
+    .from(schema.model)
+    .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
+    .where(isNull(schema.provider.ownerUserId))
+    .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
+  return rows.map((r) => adminEntry(toEntry(r.model, null)));
 }
 
 export async function getModelAdmin(id: string) {
-  const m = await findModel(id);
-  if (!m) throw new ApiError("not_found", `Model ${id} not found`);
-  return adminEntry(m);
+  return adminEntry(await globalModel(id));
 }
 
 export async function createModel(input: ModelInput) {
   await ensureDb();
   if (!input.id || !ID_RE.test(input.id)) throw new ApiError("invalid_request", "id is required ([A-Za-z0-9._:/-])");
+  if (input.id.startsWith(PERSONAL_PREFIX)) throw new ApiError("invalid_request", `Model ids starting with "${PERSONAL_PREFIX}" are reserved for personal models`);
   if (!input.provider_id) throw new ApiError("invalid_request", "provider_id is required");
   if (!input.upstream_model) throw new ApiError("invalid_request", "upstream_model is required");
-  await assertProvider(input.provider_id);
+  await assertGlobalProvider(input.provider_id);
+  await insertModel(input as ModelInput & { id: string; provider_id: string; upstream_model: string });
+  return getModelAdmin(input.id);
+}
+
+async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string }) {
   if (await findModel(input.id)) throw new ApiError("invalid_request", `Model ${input.id} already exists`, { status: 409 });
   const now = new Date();
   await getDb()
@@ -240,7 +287,6 @@ export async function createModel(input: ModelInput) {
       createdAt: now,
       updatedAt: now,
     });
-  return getModelAdmin(input.id);
 }
 
 function validateFallbacks(f: unknown, self: string): string[] {
@@ -252,12 +298,11 @@ function validateFallbacks(f: unknown, self: string): string[] {
 }
 
 export async function updateModel(id: string, input: ModelInput) {
-  const cur = await findModel(id);
-  if (!cur) throw new ApiError("not_found", `Model ${id} not found`);
+  const cur = await globalModel(id);
   const patch: Partial<Row> = { updatedAt: new Date() };
   if (input.display_name !== undefined) patch.displayName = input.display_name;
   if (input.provider_id !== undefined) {
-    await assertProvider(input.provider_id);
+    await assertGlobalProvider(input.provider_id);
     patch.providerId = input.provider_id;
   }
   if (input.upstream_model !== undefined) patch.upstreamModel = input.upstream_model;
@@ -277,10 +322,80 @@ export async function updateModel(id: string, input: ModelInput) {
 }
 
 export async function deleteModel(id: string) {
-  await ensureDb();
-  const res = await getDb().delete(schema.model).where(eq(schema.model.id, id)).returning();
-  if (res.length === 0) throw new ApiError("not_found", `Model ${id} not found`);
+  await globalModel(id);
+  await getDb().delete(schema.model).where(eq(schema.model.id, id));
   negotiationCache.delete(id);
+  return { deleted: true };
+}
+
+// --- Per-user model management (settings UIs, rpc/providers.ts) ----------------------
+
+export interface ProviderModelInput {
+  /** Global providers only: the catalog alias (defaults to the upstream model id). */
+  id?: string;
+  upstream_model?: string;
+  display_name?: string;
+  context_window?: number;
+  max_output_tokens?: number;
+  capabilities?: Partial<ModelCapabilities>;
+}
+
+/**
+ * Models of a provider as the user sees them in settings: all of them for whoever may change the provider
+ * (admins on global providers, the owner on personal ones), otherwise the ones the user can use.
+ */
+export async function listProviderModels(providerId: string, user: PublicUser): Promise<ModelEntry[]> {
+  const { row, writable } = await providerForUser(providerId, user);
+  const rows = await getDb()
+    .select()
+    .from(schema.model)
+    .where(eq(schema.model.providerId, providerId))
+    .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
+  const all = rows.map((r) => toEntry(r, row.ownerUserId));
+  return writable ? all : all.filter((m) => canSee(m, user));
+}
+
+/**
+ * Adds a model to a provider the user may change. On a personal provider the id is always
+ * `<provider id>/<upstream model>`; on a global one (admins) it is the given alias or the upstream id.
+ */
+export async function addProviderModel(providerId: string, input: ProviderModelInput, user: PublicUser): Promise<ModelEntry> {
+  const { row, writable } = await providerForUser(providerId, user);
+  if (!writable) throw new ApiError("permission", "Only admins can change global providers");
+  const upstream = input.upstream_model?.trim();
+  if (!upstream) throw new ApiError("invalid_request", "upstream_model is required");
+  if (upstream.length > 200) throw new ApiError("invalid_request", "upstream_model is too long");
+  let id: string;
+  if (row.ownerUserId) {
+    id = `${providerId}/${upstream}`;
+  } else {
+    id = input.id?.trim() || upstream;
+    if (id.startsWith(PERSONAL_PREFIX)) throw new ApiError("invalid_request", `Model ids starting with "${PERSONAL_PREFIX}" are reserved for personal models`);
+  }
+  if (!ID_RE.test(id)) throw new ApiError("invalid_request", `Model id ${id} may only use letters, digits and . _ : / -`);
+  await insertModel({
+    id,
+    provider_id: providerId,
+    upstream_model: upstream,
+    display_name: input.display_name?.trim() || upstream,
+    context_window: input.context_window || undefined,
+    max_output_tokens: input.max_output_tokens || undefined,
+    capabilities: input.capabilities,
+  });
+  return (await findModel(id))!;
+}
+
+/** Removes a model from a provider the user may change (a global one only as admin). */
+export async function removeProviderModel(modelId: string, user: PublicUser) {
+  const m = await findModel(modelId);
+  if (!m) throw new ApiError("not_found", `Model ${modelId} not found`);
+  // Throws not_found for another user's provider.
+  const { writable } = await providerForUser(m.providerId, user).catch(() => {
+    throw new ApiError("not_found", `Model ${modelId} not found`);
+  });
+  if (!writable) throw new ApiError("permission", "Only admins can change global providers");
+  await getDb().delete(schema.model).where(eq(schema.model.id, modelId));
+  negotiationCache.delete(modelId);
   return { deleted: true };
 }
 
@@ -298,7 +413,7 @@ export async function setSlots(input: Slots) {
   for (const name of SLOT_NAMES) {
     const v = input[name];
     if (v === undefined || v === null) continue;
-    if (!(await findModel(v))) throw new ApiError("invalid_request", `Unknown model ${v} for slot ${name}`);
+    if (!(await findGlobalModel(v))) throw new ApiError("invalid_request", `Unknown model ${v} for slot ${name}`);
     slots[name] = v;
   }
   await getDb()

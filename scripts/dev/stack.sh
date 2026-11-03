@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# Local development stack: builds and starts core, signs in the client, and (optionally) configures
-# OpenRouter as the model provider with a set of cheap, tool-capable models for testing, and the
-# auto-mode decision chain rules -> decision_model (TypeSafe Jev via OpenRouter) -> llm.
+# Local development stack: builds and starts core with an admin account and signs the client in.
+# Providers, keys, models and the auto-mode classifier are configured in the app (Settings ->
+# Providers): global ones as the admin, personal ones as any user. No keys go through env vars.
 #
 # Usage:
-#   OPENROUTER_API_KEY=sk-or-... scripts/dev/stack.sh      # start + configure OpenRouter models
-#   scripts/dev/stack.sh                                    # start only (no provider)
-#   scripts/dev/stack.sh stop                               # stop the stack started by this script
+#   scripts/dev/stack.sh        # start
+#   scripts/dev/stack.sh stop   # stop the stack started by this script
 #
 # State lives in packages/core/.data-dev (server) and .dev/home (client), both git-ignored.
-# The API key is only sent to the local server's admin API (stored there encrypted); it is
-# never written to the repository.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -86,44 +83,6 @@ if ! "$DEV/harness-client" whoami >/dev/null 2>&1; then
   done
   "${CURL[@]}" --data-urlencode "code=$CODE" -d action=approve "$URL/device" >/dev/null
   wait "$LOGIN_PID"
-fi
-
-if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
-  log "configuring OpenRouter providers"
-  provider() { # id type base_url
-    local body
-    body="$(jq -n --arg id "$1" --arg t "$2" --arg u "$3" --arg k "$OPENROUTER_API_KEY" \
-      '{id:$id,type:$t,display_name:("OpenRouter (" + $t + ")"),base_url:$u,api_key:$k}')"
-    "${CURL[@]}" "${JSON[@]}" -d "$body" "$URL/api/admin/providers" >/dev/null 2>&1 \
-      || "${CURL[@]}" "${JSON[@]}" -X PATCH -d "$body" "$URL/api/admin/providers/$1" >/dev/null 2>&1 \
-      || warn "provider $1 ($2) not accepted by this server version"
-  }
-  provider openrouter-anthropic anthropic https://openrouter.ai/api
-  provider openrouter-chat openai-chat https://openrouter.ai/api/v1
-  provider openrouter-responses openai-responses https://openrouter.ai/api/v1
-
-  log "configuring test models"
-  model() { # json
-    local id; id="$(jq -r .id <<<"$1")"
-    "${CURL[@]}" "${JSON[@]}" -d "$1" "$URL/api/admin/models" >/dev/null 2>&1 \
-      || "${CURL[@]}" "${JSON[@]}" -X PATCH -d "$1" "$URL/api/admin/models/$id" >/dev/null 2>&1 \
-      || warn "model $id not accepted (is its provider configured?)"
-  }
-  caps='"images":true,"pdf":false,"parallel_tool_calls":true'
-  model '{"id":"claude-haiku","display_name":"Claude Haiku 5.5","provider_id":"openrouter-anthropic","upstream_model":"anthropic/claude-haiku-5.5","context_window":200000,"max_output_tokens":16000,"capabilities":{'"$caps"',"thinking":true,"prompt_cache":true,"effort":[]},"pricing":{"input":0.10,"output":0.50}}'
-  model '{"id":"gpt-luna","display_name":"GPT-6 Luna","provider_id":"openrouter-responses","upstream_model":"openai/gpt-6-luna","context_window":400000,"max_output_tokens":32000,"capabilities":{'"$caps"',"thinking":true,"prompt_cache":true,"effort":["low","medium","high"]},"pricing":{"input":0.10,"output":0.50}}'
-  model '{"id":"deepseek-flash","display_name":"DeepSeek V4.1 Flash","provider_id":"openrouter-chat","upstream_model":"deepseek/deepseek-v4.1-flash","context_window":1000000,"max_output_tokens":32000,"capabilities":{"images":false,"pdf":false,"parallel_tool_calls":true,"thinking":true,"prompt_cache":true,"effort":[]},"pricing":{"input":0.045,"output":0.50}}'
-  model '{"id":"qwen-flash","display_name":"Qwen 3.7 Flash","provider_id":"openrouter-chat","upstream_model":"qwen/qwen3.7-flash","context_window":1000000,"max_output_tokens":32000,"capabilities":{"images":false,"pdf":false,"parallel_tool_calls":true,"thinking":false,"prompt_cache":false,"effort":[]},"pricing":{"input":0.03,"output":0.13}}'
-  model '{"id":"glm-flash","display_name":"GLM 5.3 Flash","provider_id":"openrouter-chat","upstream_model":"z-ai/glm-5.3-flash","context_window":1000000,"max_output_tokens":32000,"capabilities":{"images":false,"pdf":false,"parallel_tool_calls":true,"thinking":false,"prompt_cache":false,"effort":[]},"pricing":{"input":0.029,"output":0.092}}'
-  "${CURL[@]}" "${JSON[@]}" -X PUT -d '{"main":"claude-haiku","small":"glm-flash","plan":"claude-haiku","classifier":"claude-haiku"}' \
-    "$URL/api/admin/slots" >/dev/null || warn "slots not set"
-
-  # Auto mode: built-in rules, then TypeSafe's Jev through OpenRouter's decisions endpoint (reusing the
-  # openrouter-chat provider's key, so it is stored only once), then the classifier slot model when Jev
-  # is unsure. Replaces the whole decision config.
-  log "configuring the auto-mode decision chain (rules -> decision_model -> llm)"
-  "${CURL[@]}" "${JSON[@]}" -X PUT -d '{"providers":[{"type":"rules"},{"type":"decision_model","display_name":"Jev (OpenRouter)","settings":{"endpoint":"openrouter","model":"typesafe/jev-1.13","api_key_provider":"openrouter-chat"}},{"type":"llm"}]}' \
-    "$URL/api/admin/decision" >/dev/null || warn "decision chain not set (does this server know decision_model?)"
 fi
 
 log "ready"

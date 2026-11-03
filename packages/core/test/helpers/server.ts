@@ -10,6 +10,7 @@ import { createConnectTransport } from "@connectrpc/connect-node";
 import { H3, serve } from "h3";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
+import { ProviderService } from "../../src/gen/harness/llm/v1/providers_pb.ts";
 import { McpService } from "../../src/gen/harness/mcp/v1/mcp_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
 import { RelayService } from "../../src/gen/harness/relay/v1/relay_pb.ts";
@@ -25,6 +26,7 @@ export interface TestServer {
   url: string;
   auth: Client<typeof DeviceAuthService>;
   gateway: Client<typeof GatewayService>;
+  providers: Client<typeof ProviderService>;
   prompts: Client<typeof PromptService>;
   sync: Client<typeof SyncService>;
   mcp: Client<typeof McpService>;
@@ -34,6 +36,7 @@ export interface TestServer {
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
     gateway: Client<typeof GatewayService>;
+    providers: Client<typeof ProviderService>;
     prompts: Client<typeof PromptService>;
     sync: Client<typeof SyncService>;
     mcp: Client<typeof McpService>;
@@ -92,6 +95,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
     return {
       auth: createClient(DeviceAuthService, transport),
       gateway: createClient(GatewayService, transport),
+      providers: createClient(ProviderService, transport),
       prompts: createClient(PromptService, transport),
       sync: createClient(SyncService, transport),
       mcp: createClient(McpService, transport),

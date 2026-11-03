@@ -134,30 +134,38 @@ export const accessToken = pgTable(
 // Providers, model catalog, settings
 // ---------------------------------------------------------------------------
 
-export const provider = pgTable("provider", {
-  id: text("id").primaryKey(),
-  /** anthropic | openai-chat */
-  type: text("type").notNull(),
-  displayName: text("display_name"),
-  baseUrl: text("base_url").notNull(),
-  /** AES-256-GCM, see lib/crypto.ts. Null when the provider needs no key (e.g. local Ollama). */
-  apiKeyEnc: text("api_key_enc"),
-  apiKeyHint: text("api_key_hint"),
-  /** Encrypted JSON object of extra headers. */
-  headersEnc: text("headers_enc"),
-  allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
-  enabled: boolean("enabled").notNull().default(true),
-  createdAt: ts("created_at").notNull(),
-  updatedAt: ts("updated_at").notNull(),
-});
+export const provider = pgTable(
+  "provider",
+  {
+    id: text("id").primaryKey(),
+    /** Null: a global provider (admin-managed, usable by everyone). Set: a personal provider only its owner sees and uses. */
+    ownerUserId: text("owner_user_id").references(() => user.id, { onDelete: "cascade" }),
+    /** anthropic | openai-chat | openai-responses */
+    type: text("type").notNull(),
+    displayName: text("display_name"),
+    baseUrl: text("base_url").notNull(),
+    /** AES-256-GCM, see lib/crypto.ts. Null when the provider needs no key (e.g. local Ollama). */
+    apiKeyEnc: text("api_key_enc"),
+    apiKeyHint: text("api_key_hint"),
+    /** Encrypted JSON object of extra headers. */
+    headersEnc: text("headers_enc"),
+    allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("provider_owner_idx").on(t.ownerUserId)],
+);
 
 export const model = pgTable("model", {
-  /** Alias the client sends in `model`. */
+  /** Alias the client sends in `model`. Personal models are `<provider id>/<upstream model>` (services/models.ts). */
   id: text("id").primaryKey(),
   displayName: text("display_name").notNull(),
   providerId: text("provider_id")
     .notNull()
-    .references(() => provider.id, { onDelete: "restrict" }),
+    // Deleting a global provider that models still use is refused in services/providers.ts; the cascade
+    // removes a personal provider's models with it (also when its owner is deleted).
+    .references(() => provider.id, { onDelete: "cascade" }),
   upstreamModel: text("upstream_model").notNull(),
   contextWindow: integer("context_window").notNull(),
   maxOutputTokens: integer("max_output_tokens").notNull(),

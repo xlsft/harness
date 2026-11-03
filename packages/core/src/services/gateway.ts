@@ -24,7 +24,7 @@ import { appendFileSync } from "node:fs";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { Principal } from "./devices.ts";
 import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEntry } from "./models.ts";
-import { loadProviderRuntime, type ProviderType } from "./providers.ts";
+import { loadProviderRuntime, redactSecrets, type ProviderType } from "./providers.ts";
 import { enforceQuotas } from "./quotas.ts";
 
 const ADAPTERS: Record<ProviderType, Adapter> = {
@@ -218,7 +218,7 @@ export async function* runMessages(
           stopReason = result.stopReason;
           return;
         }
-        const { failure } = result;
+        const failure = { ...result.failure, message: redactSecrets(result.failure.message, result.target.provider) };
         errorType = failure.type;
         if (result.committed) {
           // Content already reached the client: no retries, report and close.
