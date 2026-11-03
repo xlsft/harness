@@ -226,8 +226,12 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log
-	if tokens, url, _, err := bootstrap.Tokens(*serverURL); err == nil && relay.Enabled(*remote, url, tokens != nil) {
-		relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
+	if tokens, url, _, err := bootstrap.Tokens(*serverURL); err == nil {
+		// Settings screens (providers, classifier) reach the server through this client.
+		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
+		if relay.Enabled(*remote, url, tokens != nil) {
+			relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
+		}
 	}
 	if err := serveListeners(ctx, srv, *socket, tcp); err != nil {
 		return fail(err)

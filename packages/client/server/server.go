@@ -60,6 +60,8 @@ type Server struct {
 	cancel context.CancelFunc
 	// observer is told about opened sessions (SetSessionObserver).
 	observer func(sessionID string)
+	// Core, when set, forwards the settings screens' server calls (CoreProxy).
+	Core *CoreProxy
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -122,6 +124,9 @@ func (s *Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	path, h := s.Handler()
 	mux.Handle(path, h)
+	if s.Core != nil {
+		s.Core.register(mux)
+	}
 	return mux
 }
 
