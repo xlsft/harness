@@ -14,14 +14,18 @@ service AgentService {
 
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   // Sessions on this machine (local transcripts and live sessions) with the per-user state stored on the harness
-  // server (pinned, unread, archived, renamed title). Archived sessions are left out unless include_archived.
+  // server (pinned, unread, archived, renamed title), plus the user's sessions of other machines listed from the
+  // server (SessionInfo.remote, with their device and, when known, its relay presence). A session the server
+  // lists that is also on this machine appears once, as local. Archived sessions are left out unless
+  // include_archived.
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   // Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
-  // stored on the harness server (SyncService); without a server connection only a rename can be applied
-  // (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed (UNAVAILABLE).
+  // stored on the harness server (SyncService), for remote sessions too; without a server connection only a rename
+  // can be applied (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed
+  // (UNAVAILABLE).
   rpc UpdateSession(UpdateSessionRequest) returns (UpdateSessionResponse);
-  // Deletes a session for good: stops it if live, deletes its server copy and its local transcript files.
-  // When the server is unreachable nothing is deleted (UNAVAILABLE).
+  // Deletes a session for good: stops it if live, deletes its server copy and its local transcript files (a
+  // remote session: its server copy only). When the server is unreachable nothing is deleted (UNAVAILABLE).
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 
   // --- New-session pickers (folder, branch, worktree) ---
@@ -33,6 +37,8 @@ service AgentService {
   rpc ListBranches(ListBranchesRequest) returns (ListBranchesResponse);
 
   // Replays events after `after_seq`, then streams live events (history first, then live; no gaps, no duplicates).
+  // A remote session (SessionInfo.remote) is followed live through the relay when it is remote_controllable;
+  // otherwise its durable transcript is read from the harness server and replayed, and the stream then ends.
   rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse);
 
   // Sent while a turn is running, the message is queued and injected after the current tool calls (QUEUE),
@@ -164,6 +170,16 @@ message SessionInfo {
   optional Worktree worktree = 18;
   // Per-user state, stored on the harness server: a turn finished while the session was not open in a frontend.
   bool unread = 19;
+  // Set by the local client (AgentService.ListSessions) for a session of the user that belongs to another machine:
+  // it is listed from the harness server, device_id / device_name name its machine, its transcript is read-only
+  // here, and commands reach it only through the relay (remote_controllable). Never stored on the server.
+  bool remote = 20;
+  // Remote sessions only: whether the session's machine is connected to the harness server's relay right now.
+  // Absent when unknown (remote control is off on this client, or the server could not be asked).
+  optional bool device_online = 21;
+  // Remote sessions only: the session is open on its machine, which is online, so it can be driven through the
+  // relay (Subscribe follows it live and commands are forwarded).
+  bool remote_controllable = 22;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -203,7 +219,8 @@ message CreateSessionRequest {
   PermissionMode permission_mode = 3;
   // Resume an existing session instead of starting a new one.
   string resume_session_id = 4;
-  // With resume_session_id: copy the transcript into a new session.
+  // With resume_session_id: copy the transcript into a new session. A remote session (SessionInfo.remote) can
+  // only be forked: its transcript is downloaded from the harness server into a new local session in `cwd`.
   bool fork = 5;
   harness.llm.v1.Effort effort = 6;
   // Permission rules in Claude Code syntax, e.g. "Bash(npm run test *)", "Edit(/src/**)".
