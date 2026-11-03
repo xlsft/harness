@@ -166,6 +166,27 @@ const (
 	// AgentServiceStopShellCommandProcedure is the fully-qualified name of the AgentService's
 	// StopShellCommand RPC.
 	AgentServiceStopShellCommandProcedure = "/harness.agent.v1.AgentService/StopShellCommand"
+	// AgentServiceListSideChatsProcedure is the fully-qualified name of the AgentService's
+	// ListSideChats RPC.
+	AgentServiceListSideChatsProcedure = "/harness.agent.v1.AgentService/ListSideChats"
+	// AgentServiceCreateSideChatProcedure is the fully-qualified name of the AgentService's
+	// CreateSideChat RPC.
+	AgentServiceCreateSideChatProcedure = "/harness.agent.v1.AgentService/CreateSideChat"
+	// AgentServiceGetSideChatProcedure is the fully-qualified name of the AgentService's GetSideChat
+	// RPC.
+	AgentServiceGetSideChatProcedure = "/harness.agent.v1.AgentService/GetSideChat"
+	// AgentServiceUpdateSideChatProcedure is the fully-qualified name of the AgentService's
+	// UpdateSideChat RPC.
+	AgentServiceUpdateSideChatProcedure = "/harness.agent.v1.AgentService/UpdateSideChat"
+	// AgentServiceDeleteSideChatProcedure is the fully-qualified name of the AgentService's
+	// DeleteSideChat RPC.
+	AgentServiceDeleteSideChatProcedure = "/harness.agent.v1.AgentService/DeleteSideChat"
+	// AgentServiceAskSideChatProcedure is the fully-qualified name of the AgentService's AskSideChat
+	// RPC.
+	AgentServiceAskSideChatProcedure = "/harness.agent.v1.AgentService/AskSideChat"
+	// AgentServiceStopSideChatProcedure is the fully-qualified name of the AgentService's StopSideChat
+	// RPC.
+	AgentServiceStopSideChatProcedure = "/harness.agent.v1.AgentService/StopSideChat"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -297,6 +318,21 @@ type AgentServiceClient interface {
 	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
 	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
 	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
+	// Side chats (sidechat.proto): read-only conversations next to a session that see its conversation but never
+	// change it (no tools). Stored next to the session's transcript. Local open sessions only.
+	ListSideChats(context.Context, *connect.Request[v1.ListSideChatsRequest]) (*connect.Response[v1.ListSideChatsResponse], error)
+	CreateSideChat(context.Context, *connect.Request[v1.CreateSideChatRequest]) (*connect.Response[v1.CreateSideChatResponse], error)
+	// The side chat with its messages.
+	GetSideChat(context.Context, *connect.Request[v1.GetSideChatRequest]) (*connect.Response[v1.GetSideChatResponse], error)
+	// Renames it or changes its model / effort (remembered for this side chat only).
+	UpdateSideChat(context.Context, *connect.Request[v1.UpdateSideChatRequest]) (*connect.Response[v1.UpdateSideChatResponse], error)
+	// Stops a running answer and deletes the side chat.
+	DeleteSideChat(context.Context, *connect.Request[v1.DeleteSideChatRequest]) (*connect.Response[v1.DeleteSideChatResponse], error)
+	// Asks a question: streams the stored question, the answer's text deltas and the stored answer with usage.
+	// Cancelling the stream stops the answer like StopSideChat.
+	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest]) (*connect.ServerStreamForClient[v1.AskSideChatResponse], error)
+	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
+	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -598,6 +634,48 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
 			connect.WithClientOptions(opts...),
 		),
+		listSideChats: connect.NewClient[v1.ListSideChatsRequest, v1.ListSideChatsResponse](
+			httpClient,
+			baseURL+AgentServiceListSideChatsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListSideChats")),
+			connect.WithClientOptions(opts...),
+		),
+		createSideChat: connect.NewClient[v1.CreateSideChatRequest, v1.CreateSideChatResponse](
+			httpClient,
+			baseURL+AgentServiceCreateSideChatProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreateSideChat")),
+			connect.WithClientOptions(opts...),
+		),
+		getSideChat: connect.NewClient[v1.GetSideChatRequest, v1.GetSideChatResponse](
+			httpClient,
+			baseURL+AgentServiceGetSideChatProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetSideChat")),
+			connect.WithClientOptions(opts...),
+		),
+		updateSideChat: connect.NewClient[v1.UpdateSideChatRequest, v1.UpdateSideChatResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateSideChatProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateSideChat")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSideChat: connect.NewClient[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse](
+			httpClient,
+			baseURL+AgentServiceDeleteSideChatProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteSideChat")),
+			connect.WithClientOptions(opts...),
+		),
+		askSideChat: connect.NewClient[v1.AskSideChatRequest, v1.AskSideChatResponse](
+			httpClient,
+			baseURL+AgentServiceAskSideChatProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("AskSideChat")),
+			connect.WithClientOptions(opts...),
+		),
+		stopSideChat: connect.NewClient[v1.StopSideChatRequest, v1.StopSideChatResponse](
+			httpClient,
+			baseURL+AgentServiceStopSideChatProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -651,6 +729,13 @@ type agentServiceClient struct {
 	getGitStatus          *connect.Client[v1.GetGitStatusRequest, v1.GetGitStatusResponse]
 	runShellCommand       *connect.Client[v1.RunShellCommandRequest, v1.RunShellCommandResponse]
 	stopShellCommand      *connect.Client[v1.StopShellCommandRequest, v1.StopShellCommandResponse]
+	listSideChats         *connect.Client[v1.ListSideChatsRequest, v1.ListSideChatsResponse]
+	createSideChat        *connect.Client[v1.CreateSideChatRequest, v1.CreateSideChatResponse]
+	getSideChat           *connect.Client[v1.GetSideChatRequest, v1.GetSideChatResponse]
+	updateSideChat        *connect.Client[v1.UpdateSideChatRequest, v1.UpdateSideChatResponse]
+	deleteSideChat        *connect.Client[v1.DeleteSideChatRequest, v1.DeleteSideChatResponse]
+	askSideChat           *connect.Client[v1.AskSideChatRequest, v1.AskSideChatResponse]
+	stopSideChat          *connect.Client[v1.StopSideChatRequest, v1.StopSideChatResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -893,6 +978,41 @@ func (c *agentServiceClient) StopShellCommand(ctx context.Context, req *connect.
 	return c.stopShellCommand.CallUnary(ctx, req)
 }
 
+// ListSideChats calls harness.agent.v1.AgentService.ListSideChats.
+func (c *agentServiceClient) ListSideChats(ctx context.Context, req *connect.Request[v1.ListSideChatsRequest]) (*connect.Response[v1.ListSideChatsResponse], error) {
+	return c.listSideChats.CallUnary(ctx, req)
+}
+
+// CreateSideChat calls harness.agent.v1.AgentService.CreateSideChat.
+func (c *agentServiceClient) CreateSideChat(ctx context.Context, req *connect.Request[v1.CreateSideChatRequest]) (*connect.Response[v1.CreateSideChatResponse], error) {
+	return c.createSideChat.CallUnary(ctx, req)
+}
+
+// GetSideChat calls harness.agent.v1.AgentService.GetSideChat.
+func (c *agentServiceClient) GetSideChat(ctx context.Context, req *connect.Request[v1.GetSideChatRequest]) (*connect.Response[v1.GetSideChatResponse], error) {
+	return c.getSideChat.CallUnary(ctx, req)
+}
+
+// UpdateSideChat calls harness.agent.v1.AgentService.UpdateSideChat.
+func (c *agentServiceClient) UpdateSideChat(ctx context.Context, req *connect.Request[v1.UpdateSideChatRequest]) (*connect.Response[v1.UpdateSideChatResponse], error) {
+	return c.updateSideChat.CallUnary(ctx, req)
+}
+
+// DeleteSideChat calls harness.agent.v1.AgentService.DeleteSideChat.
+func (c *agentServiceClient) DeleteSideChat(ctx context.Context, req *connect.Request[v1.DeleteSideChatRequest]) (*connect.Response[v1.DeleteSideChatResponse], error) {
+	return c.deleteSideChat.CallUnary(ctx, req)
+}
+
+// AskSideChat calls harness.agent.v1.AgentService.AskSideChat.
+func (c *agentServiceClient) AskSideChat(ctx context.Context, req *connect.Request[v1.AskSideChatRequest]) (*connect.ServerStreamForClient[v1.AskSideChatResponse], error) {
+	return c.askSideChat.CallServerStream(ctx, req)
+}
+
+// StopSideChat calls harness.agent.v1.AgentService.StopSideChat.
+func (c *agentServiceClient) StopSideChat(ctx context.Context, req *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error) {
+	return c.stopSideChat.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1022,6 +1142,21 @@ type AgentServiceHandler interface {
 	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
 	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
 	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
+	// Side chats (sidechat.proto): read-only conversations next to a session that see its conversation but never
+	// change it (no tools). Stored next to the session's transcript. Local open sessions only.
+	ListSideChats(context.Context, *connect.Request[v1.ListSideChatsRequest]) (*connect.Response[v1.ListSideChatsResponse], error)
+	CreateSideChat(context.Context, *connect.Request[v1.CreateSideChatRequest]) (*connect.Response[v1.CreateSideChatResponse], error)
+	// The side chat with its messages.
+	GetSideChat(context.Context, *connect.Request[v1.GetSideChatRequest]) (*connect.Response[v1.GetSideChatResponse], error)
+	// Renames it or changes its model / effort (remembered for this side chat only).
+	UpdateSideChat(context.Context, *connect.Request[v1.UpdateSideChatRequest]) (*connect.Response[v1.UpdateSideChatResponse], error)
+	// Stops a running answer and deletes the side chat.
+	DeleteSideChat(context.Context, *connect.Request[v1.DeleteSideChatRequest]) (*connect.Response[v1.DeleteSideChatResponse], error)
+	// Asks a question: streams the stored question, the answer's text deltas and the stored answer with usage.
+	// Cancelling the stream stops the answer like StopSideChat.
+	AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest], *connect.ServerStream[v1.AskSideChatResponse]) error
+	// Stops the running answer of a side chat; the text so far is kept (stopped = true).
+	StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1319,6 +1454,48 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListSideChatsHandler := connect.NewUnaryHandler(
+		AgentServiceListSideChatsProcedure,
+		svc.ListSideChats,
+		connect.WithSchema(agentServiceMethods.ByName("ListSideChats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCreateSideChatHandler := connect.NewUnaryHandler(
+		AgentServiceCreateSideChatProcedure,
+		svc.CreateSideChat,
+		connect.WithSchema(agentServiceMethods.ByName("CreateSideChat")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetSideChatHandler := connect.NewUnaryHandler(
+		AgentServiceGetSideChatProcedure,
+		svc.GetSideChat,
+		connect.WithSchema(agentServiceMethods.ByName("GetSideChat")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateSideChatHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateSideChatProcedure,
+		svc.UpdateSideChat,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateSideChat")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteSideChatHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteSideChatProcedure,
+		svc.DeleteSideChat,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteSideChat")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceAskSideChatHandler := connect.NewServerStreamHandler(
+		AgentServiceAskSideChatProcedure,
+		svc.AskSideChat,
+		connect.WithSchema(agentServiceMethods.ByName("AskSideChat")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceStopSideChatHandler := connect.NewUnaryHandler(
+		AgentServiceStopSideChatProcedure,
+		svc.StopSideChat,
+		connect.WithSchema(agentServiceMethods.ByName("StopSideChat")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -1417,6 +1594,20 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceRunShellCommandHandler.ServeHTTP(w, r)
 		case AgentServiceStopShellCommandProcedure:
 			agentServiceStopShellCommandHandler.ServeHTTP(w, r)
+		case AgentServiceListSideChatsProcedure:
+			agentServiceListSideChatsHandler.ServeHTTP(w, r)
+		case AgentServiceCreateSideChatProcedure:
+			agentServiceCreateSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceGetSideChatProcedure:
+			agentServiceGetSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateSideChatProcedure:
+			agentServiceUpdateSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteSideChatProcedure:
+			agentServiceDeleteSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceAskSideChatProcedure:
+			agentServiceAskSideChatHandler.ServeHTTP(w, r)
+		case AgentServiceStopSideChatProcedure:
+			agentServiceStopSideChatHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1616,4 +1807,32 @@ func (UnimplementedAgentServiceHandler) RunShellCommand(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopShellCommand is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListSideChats(context.Context, *connect.Request[v1.ListSideChatsRequest]) (*connect.Response[v1.ListSideChatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSideChats is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreateSideChat(context.Context, *connect.Request[v1.CreateSideChatRequest]) (*connect.Response[v1.CreateSideChatResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreateSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetSideChat(context.Context, *connect.Request[v1.GetSideChatRequest]) (*connect.Response[v1.GetSideChatResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateSideChat(context.Context, *connect.Request[v1.UpdateSideChatRequest]) (*connect.Response[v1.UpdateSideChatResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DeleteSideChat(context.Context, *connect.Request[v1.DeleteSideChatRequest]) (*connect.Response[v1.DeleteSideChatResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) AskSideChat(context.Context, *connect.Request[v1.AskSideChatRequest], *connect.ServerStream[v1.AskSideChatResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AskSideChat is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopSideChat(context.Context, *connect.Request[v1.StopSideChatRequest]) (*connect.Response[v1.StopSideChatResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopSideChat is not implemented"))
 }

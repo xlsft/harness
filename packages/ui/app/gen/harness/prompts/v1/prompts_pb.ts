@@ -115,6 +115,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
    *   user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
    *                         the composer's shell mode (RunShellCommand); rides on the next model request
+   *   side_chat             (none)                 not a reminder: the system prompt of side chats (AskSideChat)
    *
    * @generated from field: map<string, string> reminders = 5;
    */

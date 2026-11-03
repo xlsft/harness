@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/llm/v1/content.proto";
+
+// Side chats: separate, lightweight conversations attached to a session, for the UI's side chat pane.
+//
+// A side chat sees the main session but never changes it: no tools are offered, nothing is written to the main
+// transcript, no files are touched. Each question goes to the side chat's model with the side chat system prompt
+// (the prompt bundle's `side_chat` entry), a compact read-only rendering of the main session's conversation so
+// far (user and assistant text with one-line tool summaries, truncated from the oldest within a budget relative
+// to the model's context window), the side chat's own history, and an optional quoted excerpt. The answer
+// streams back (AskSideChat). Requests are recorded by the gateway with request class "auxiliary", so the
+// Usage tab counts them.
+//
+// Side chats are stored on the session's machine next to its transcript (<session dir>/side-chats/<id>.json
+// under HARNESS_HOME) and survive reloads; deleting the session deletes them.
+//
+// The session must be open on this machine (CreateSession): NOT_FOUND otherwise. Sessions of other machines
+// (SessionInfo.remote) are refused with FAILED_PRECONDITION for now: their transcript lives on that machine.
+
+message SideChatInfo {
+  string side_chat_id = 1;
+  string session_id = 2;
+  // "Side chat" until the first question names it (its first line, truncated), or what the user set.
+  string title = 3;
+  // The model and effort used for the next question. They start as the main session's current model and effort
+  // and change only for this side chat (CreateSideChat, UpdateSideChat, AskSideChat).
+  string model = 4;
+  harness.llm.v1.Effort effort = 5;
+  // RFC 3339.
+  string created_at = 6;
+  string updated_at = 7;
+  uint32 message_count = 8;
+  // An answer is streaming right now.
+  bool answering = 9;
+}
+
+message SideChatMessage {
+  string message_id = 1;
+  // "user" or "assistant".
+  string role = 2;
+  // Markdown for answers; the question as typed for user messages.
+  string text = 3;
+  // User messages: the quoted excerpt the question is about (from the transcript selection); empty when none.
+  string quote = 4;
+  // Assistant messages: the model and effort that answered.
+  string model = 5;
+  harness.llm.v1.Effort effort = 6;
+  // RFC 3339.
+  string created_at = 7;
+  // Assistant messages: token usage of the request (absent when the gateway reported none).
+  harness.llm.v1.Usage usage = 8;
+  // Assistant messages: the answer was stopped (StopSideChat, or the asking stream was cancelled) and text is
+  // what arrived until then.
+  bool stopped = 9;
+  // Assistant messages: the request failed; text holds what arrived before the error, if anything.
+  string error = 10;
+}
+
+message ListSideChatsRequest {
+  string session_id = 1;
+}
+
+message ListSideChatsResponse {
+  // Oldest first.
+  repeated SideChatInfo side_chats = 1;
+}
+
+message CreateSideChatRequest {
+  string session_id = 1;
+  // Empty: "Side chat" until the first question.
+  string title = 2;
+  // Empty: the main session's current model. An unknown model is INVALID_ARGUMENT.
+  string model = 3;
+  // Unspecified: the main session's current effort.
+  harness.llm.v1.Effort effort = 4;
+}
+
+message CreateSideChatResponse {
+  SideChatInfo side_chat = 1;
+}
+
+message GetSideChatRequest {
+  string session_id = 1;
+  string side_chat_id = 2;
+}
+
+message GetSideChatResponse {
+  SideChatInfo side_chat = 1;
+  // Oldest first; an answer still streaming is not included until it ends.
+  repeated SideChatMessage messages = 2;
+}
+
+message UpdateSideChatRequest {
+  string session_id = 1;
+  string side_chat_id = 2;
+  optional string title = 3;
+  // Remembered for this side chat only.
+  optional string model = 4;
+  optional harness.llm.v1.Effort effort = 5;
+}
+
+message UpdateSideChatResponse {
+  SideChatInfo side_chat = 1;
+}
+
+message DeleteSideChatRequest {
+  string session_id = 1;
+  string side_chat_id = 2;
+}
+
+message DeleteSideChatResponse {}
+
+message AskSideChatRequest {
+  string session_id = 1;
+  string side_chat_id = 2;
+  string text = 3;
+  // A quoted excerpt the question is about (e.g. text selected in the main transcript).
+  string quote = 4;
+  // Set: answer with this model and remember it for the side chat. Empty: the side chat's model.
+  string model = 5;
+  // Set: answer with this effort and remember it. Unspecified: the side chat's effort.
+  harness.llm.v1.Effort effort = 6;
+}
+
+// The stream of AskSideChat: first `question` (the stored user message), then `delta`s of the answer's text, then
+// `answer` (the stored assistant message with usage; also sent, with stopped or error set, when the answer is
+// stopped or fails after the question was stored). Only one answer runs per side chat: asking while one
+// streams is FAILED_PRECONDITION.
+message AskSideChatResponse {
+  oneof event {
+    SideChatMessage question = 1;
+    string delta = 2;
+    SideChatMessage answer = 3;
+  }
+  // With `answer`: the side chat after it (message_count, updated_at, title).
+  SideChatInfo side_chat = 4;
+}
+
+message StopSideChatRequest {
+  string session_id = 1;
+  string side_chat_id = 2;
+}
+
+message StopSideChatResponse {
+  // False when no answer was streaming.
+  bool stopped = 1;
+}

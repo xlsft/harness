@@ -99,6 +99,9 @@ type Server struct {
 	// terms are the client's terminals (terminals.go); termOnce creates the manager.
 	termOnce sync.Once
 	terms    *terminal.Manager
+
+	// sides tracks the running side chat answers (sidechats.go).
+	sides sideChatRuns
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)

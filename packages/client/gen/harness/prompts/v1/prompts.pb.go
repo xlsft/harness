@@ -162,6 +162,7 @@ type PromptBundle struct {
 	//	environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
 	//	user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
 	//	                      the composer's shell mode (RunShellCommand); rides on the next model request
+	//	side_chat             (none)                 not a reminder: the system prompt of side chats (AskSideChat)
 	Reminders             map[string]string `protobuf:"bytes,5,rep,name=reminders,proto3" json:"reminders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CompactionInstruction string            `protobuf:"bytes,6,opt,name=compaction_instruction,json=compactionInstruction,proto3" json:"compaction_instruction,omitempty"`
 	TitleInstruction      string            `protobuf:"bytes,7,opt,name=title_instruction,json=titleInstruction,proto3" json:"title_instruction,omitempty"`

@@ -34,6 +34,7 @@ import { MockUsersApi } from '~/lib/users/mock'
 import { MockAccountApi } from '~/lib/account/mock'
 import { MockUsageApi } from '~/lib/usage/mock'
 import { MockTerminalsApi } from '~/lib/terminal/mock'
+import { MockSideChatsApi } from '~/lib/sidechat/mock'
 
 import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
@@ -284,6 +285,11 @@ export class MockTransport implements SessionTransport {
   private terminalsApi = new MockTerminalsApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
   terminals() {
     return this.terminalsApi
+  }
+
+  private sideChatsApi = new MockSideChatsApi({ sessionModel: id => this.sessions.get(id)?.info.model })
+  sideChats() {
+    return this.sideChatsApi
   }
 
   private environmentApi = new MockEnvironmentApi({
