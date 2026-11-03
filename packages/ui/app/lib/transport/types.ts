@@ -18,6 +18,7 @@ import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { EffortName, QuestionReply } from '~/lib/session/types'
 import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
+import type { UsageApi } from '~/lib/usage/types'
 
 export interface ModelInfo {
   id: string
@@ -109,4 +110,7 @@ export interface SessionTransport {
 
   // User administration and LDAP for admins (harness.auth.v1.AdminService, forwarded to the server by the client).
   users(): UsersApi
+
+  // LLM usage reports for the Usage tab (harness.llm.v1.UsageService, forwarded to the server by the client).
+  usage(): UsageApi
 }

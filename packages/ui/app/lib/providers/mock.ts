@@ -87,7 +87,8 @@ const PRESETS: PresetView[] = [
     ],
     icon: 'kimi',
     discoversModels: false,
-    local: false
+    local: false,
+    billing: 'plan'
   },
   {
     id: 'ollama',
@@ -336,6 +337,7 @@ export class MockProvidersApi implements ProvidersApi {
       allowPrivateNetwork: d.scope === 'global' && (!!d.allowPrivateNetwork || !!preset?.local),
       editable: true,
       models: [],
+      billing: group === 'llm' ? preset?.billing ?? 'metered' : '',
       ...(group === 'search' ? { options: this.checkOptions(preset ?? PRESETS.find(x => x.id === 'searxng-url'), d.options) } : {})
     }
     this.providers.push(p)
