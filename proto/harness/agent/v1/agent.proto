@@ -560,10 +560,29 @@ message PermissionResolved {
   string resolved_by = 3;
 }
 
-// A pending Question was answered (or cancelled). Frontends dismiss the card.
+// A pending Question was answered (or cancelled). Frontends replace the card with its outcome.
 message QuestionResolved {
   string request_id = 1;
+  // Who resolved it: "local", "interrupt" (Stop or session closed), "history" (replayed from the transcript).
   string resolved_by = 2;
+  QuestionOutcome outcome = 3;
+  // QUESTION_OUTCOME_ANSWERED: one entry per question, in order.
+  repeated QuestionAnswer answers = 4;
+  // QUESTION_OUTCOME_MESSAGE: the text of the chat message(s) used as the answer.
+  string message = 5;
+}
+
+// How a Question ended.
+enum QuestionOutcome {
+  QUESTION_OUTCOME_UNSPECIFIED = 0;
+  // Answered in the card (some questions may be skipped individually).
+  QUESTION_OUTCOME_ANSWERED = 1;
+  // The user skipped the whole card; the model decides itself.
+  QUESTION_OUTCOME_SKIPPED = 2;
+  // The user's queued chat message(s) became the free-form answer.
+  QUESTION_OUTCOME_MESSAGE = 3;
+  // Stop, the session closed, or the client restarted while the question was open.
+  QUESTION_OUTCOME_CANCELLED = 4;
 }
 
 // The session ended on its host; no more events follow (a resume creates a new subscription).
@@ -579,15 +598,36 @@ message Question {
 }
 
 message QuestionItem {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    // Exactly one of the options.
+    TYPE_SINGLE = 1;
+    // Between min and max of the options.
+    TYPE_MULTI = 2;
+    // Free text only; no options.
+    TYPE_TEXT = 3;
+    // A single choice between the options "Yes" and "No".
+    TYPE_YES_NO = 4;
+  }
   string question = 1;
   string header = 2;
+  // Same as type == TYPE_MULTI (kept for older frontends).
   bool multi_select = 3;
+  // TYPE_YES_NO carries its two options too.
   repeated QuestionOption options = 4;
+  Type type = 5;
+  // TYPE_MULTI: bounds of the number of choices, "Other" counting as one.
+  int32 min = 6;
+  int32 max = 7;
+  // Questions with options offer "Other…" with free text.
+  bool allow_other = 8;
 }
 
 message QuestionOption {
   string label = 1;
   string description = 2;
+  // Suggested by the model: shown first and highlighted.
+  bool recommended = 3;
 }
 
 message QueueChanged {
@@ -678,14 +718,23 @@ message RespondToPermissionResponse {}
 message AnswerQuestionRequest {
   string session_id = 1;
   string request_id = 2;
-  // One entry per question, in order; labels of the chosen options or free text.
+  // QUESTION_OUTCOME_ANSWERED (or unspecified): one entry per question, in order.
   repeated QuestionAnswer answers = 3;
+  // ANSWERED (default), SKIPPED (the model decides itself) or MESSAGE (answer with
+  // queued chat messages). CANCELLED is not accepted: use Interrupt.
+  QuestionOutcome outcome = 4;
+  // QUESTION_OUTCOME_MESSAGE: uuids of the queued messages to use, in order; empty means
+  // all queued messages. They leave the queue and become the free-form answer.
+  repeated string message_uuids = 5;
 }
 
 message QuestionAnswer {
+  // Labels of the chosen options.
   repeated string selected = 1;
-  // Free-text answer ("Other"), used instead of or in addition to selected options.
+  // Free text: the "Other…" answer, or the answer to a TYPE_TEXT question.
   string text = 2;
+  // The user left this question unanswered.
+  bool skipped = 3;
 }
 
 message AnswerQuestionResponse {}
