@@ -23,10 +23,9 @@ const failed = computed(() => !started.value && !['running', 'done', 'stopped'].
   <div class="flex flex-col gap-0.5 text-[12.5px] text-muted">
     <div class="flex min-w-0 items-center gap-[9px]">
       <HIcon
-        :name="task.state === 'running' ? 'loading' : started ? 'background' : failed ? 'warn' : 'check'"
-        :spin="task.state === 'running'"
+        :name="task.state === 'running' || started ? 'background' : failed ? 'warn' : 'check'"
         class="shrink-0"
-        :class="task.state === 'running' ? 'text-accent' : started ? '' : failed ? 'text-bad' : task.state === 'done' ? 'text-ok' : ''"
+        :class="task.state === 'running' || started ? '' : failed ? 'text-bad' : task.state === 'done' ? 'text-ok' : ''"
       />
       <span
         class="shrink-0"

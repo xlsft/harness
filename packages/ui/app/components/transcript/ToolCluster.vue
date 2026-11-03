@@ -63,13 +63,10 @@ const time = computed(() => {
         :aria-expanded="open"
         @click="opened = !opened"
       >
-        <HIcon
-          :name="current ? 'loading' : failed ? 'alert' : 'check'"
-          :spin="!!current"
-          class="shrink-0"
-          :class="current ? 'text-accent' : failed ? 'text-bad' : 'text-ok'"
-        />
-        <span class="min-w-0 truncate">{{ current ? action(current) : summary }}</span>
+        <span
+          class="min-w-0 truncate"
+          :class="!current && failed && tools.length === 1 && 'text-bad'"
+        >{{ current ? action(current) : summary }}</span>
         <span
           v-if="!current && failed && tools.length > 1"
           class="shrink-0 text-bad"

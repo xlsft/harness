@@ -394,7 +394,7 @@ function toBottom() {
         </div>
 
         <div
-          v-if="working && !session.items.some(i => i.kind === 'task' && session.tasks[i.id]?.state === 'running' && !session.tasks[i.id]?.tail)"
+          v-if="working"
           class="flex items-center gap-[9px] text-[12.5px] whitespace-nowrap text-muted"
         >
           <HMark
