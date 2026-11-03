@@ -4,7 +4,15 @@
 // sessions, and their personal providers (key set or not; keys are never shown). The server enforces the
 // rules (admin only, the last admin stays, nobody disables or deletes themselves); errors show inline.
 import type { NewUser, UserProviderView, UserRole, UserSessions, UsersApi, UserView } from '~/lib/users/types'
-import { PROVIDER_TYPE_LABELS } from '~/lib/providers/types'
+
+// Upstream protocol of a user's provider, as shown in the list.
+const PROTOCOL_LABEL: Record<string, string> = {
+  'anthropic': 'Anthropic Messages',
+  'openai-chat': 'OpenAI Chat Completions',
+  'openai-responses': 'OpenAI Responses',
+  'decision-model': 'Decision model',
+  'http': 'HTTP'
+}
 
 const store = useSessionStore()
 
@@ -549,7 +557,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             >
               <span class="truncate text-toned">{{ p.name }}</span>
               <span class="truncate text-dimmed">
-                {{ [PROVIDER_TYPE_LABELS[p.type] ?? p.type, p.keySet ? 'key set' : 'no key', `${p.modelCount} ${p.modelCount === 1 ? 'model' : 'models'}`, p.enabled ? '' : 'off'].filter(Boolean).join(' · ') }}
+                {{ [PROTOCOL_LABEL[p.type] ?? p.type, p.keySet ? 'key set' : 'no key', `${p.modelCount} ${p.modelCount === 1 ? 'model' : 'models'}`, p.enabled ? '' : 'off'].filter(Boolean).join(' · ') }}
               </span>
               <span class="flex-1" />
               <HBtn
