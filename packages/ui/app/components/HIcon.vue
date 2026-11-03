@@ -20,7 +20,9 @@ const px = computed(() => typeof props.size === 'number' ? `${props.size}px` : p
     viewBox="0 0 24 24"
     aria-hidden="true"
     class="shrink-0 fill-current"
-    :class="{ 'h-spin': spin }"
     :style="{ width: px, height: px }"
-  ><path :d="ICONS[name]" /></svg>
+  ><path
+    :d="ICONS[name]"
+    :class="{ 'h-spin': spin }"
+  /></svg>
 </template>

@@ -251,7 +251,11 @@
   }
 }
 
+/* On the icon's path, about the viewBox centre: WebKit misplaces the origin of a transformed outer <svg> under
+   the UI zoom, and the spinner wobbles. */
 @utility h-spin {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
   animation: h-spin 0.9s linear infinite;
 
   @media (prefers-reduced-motion: reduce) {
