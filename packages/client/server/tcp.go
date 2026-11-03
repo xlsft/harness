@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/xlsft/harness/packages/client/terminal"
 )
 
 // DefaultCORSOrigins are the browser origins allowed by default on the TCP
@@ -119,7 +121,9 @@ func (s *Server) ServeTCP(ctx context.Context, opts TCPOptions) error {
 	if opts.OnListen != nil {
 		opts.OnListen(ln.Addr())
 	}
-	return s.serveHandler(ctx, ln, TCPGuard(s.mux(), opts))
+	mux := s.mux()
+	s.registerTerminalSocket(mux, opts.AllowedOrigins)
+	return s.serveHandler(ctx, ln, TCPGuard(mux, opts))
 }
 
 // Headers browsers may send and read, for the Connect, gRPC-Web and gRPC
@@ -148,7 +152,9 @@ var (
 //     with Access-Control-Request-Method) are answered here without a token,
 //     since browsers never send credentials on a preflight.
 //  3. Authorization: Bearer <token>, compared in constant time (401 with a
-//     Connect "unauthenticated" error otherwise).
+//     Connect "unauthenticated" error otherwise). The terminal WebSocket
+//     (terminal.SocketPath) is let through without it: browsers cannot set
+//     headers on a WebSocket, so it checks a one-time ticket instead.
 func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 	origins := map[string]bool{}
 	for _, o := range opts.AllowedOrigins {
@@ -208,7 +214,7 @@ func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 				return
 			}
 		}
-		if !tokenMatches(r.Header.Get("Authorization"), want) {
+		if r.URL.Path != terminal.SocketPath && !tokenMatches(r.Header.Get("Authorization"), want) {
 			w.Header().Set("WWW-Authenticate", `Bearer realm="harness-client"`)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)

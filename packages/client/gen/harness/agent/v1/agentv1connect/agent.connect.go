@@ -111,6 +111,21 @@ const (
 	// AgentServiceSetWorkspaceTrustProcedure is the fully-qualified name of the AgentService's
 	// SetWorkspaceTrust RPC.
 	AgentServiceSetWorkspaceTrustProcedure = "/harness.agent.v1.AgentService/SetWorkspaceTrust"
+	// AgentServiceCreateTerminalProcedure is the fully-qualified name of the AgentService's
+	// CreateTerminal RPC.
+	AgentServiceCreateTerminalProcedure = "/harness.agent.v1.AgentService/CreateTerminal"
+	// AgentServiceAttachTerminalProcedure is the fully-qualified name of the AgentService's
+	// AttachTerminal RPC.
+	AgentServiceAttachTerminalProcedure = "/harness.agent.v1.AgentService/AttachTerminal"
+	// AgentServiceListTerminalsProcedure is the fully-qualified name of the AgentService's
+	// ListTerminals RPC.
+	AgentServiceListTerminalsProcedure = "/harness.agent.v1.AgentService/ListTerminals"
+	// AgentServiceKillTerminalProcedure is the fully-qualified name of the AgentService's KillTerminal
+	// RPC.
+	AgentServiceKillTerminalProcedure = "/harness.agent.v1.AgentService/KillTerminal"
+	// AgentServiceResizeTerminalProcedure is the fully-qualified name of the AgentService's
+	// ResizeTerminal RPC.
+	AgentServiceResizeTerminalProcedure = "/harness.agent.v1.AgentService/ResizeTerminal"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -178,6 +193,14 @@ type AgentServiceClient interface {
 	// committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
 	GetWorkspaceTrust(context.Context, *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error)
 	SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error)
+	// Terminals (terminal.proto): shells in a PTY, with I/O over a WebSocket authenticated by one-time tickets.
+	// CreateTerminal starts one and returns a ticket; AttachTerminal returns a fresh ticket to reconnect.
+	CreateTerminal(context.Context, *connect.Request[v1.CreateTerminalRequest]) (*connect.Response[v1.CreateTerminalResponse], error)
+	AttachTerminal(context.Context, *connect.Request[v1.AttachTerminalRequest]) (*connect.Response[v1.AttachTerminalResponse], error)
+	ListTerminals(context.Context, *connect.Request[v1.ListTerminalsRequest]) (*connect.Response[v1.ListTerminalsResponse], error)
+	// Ends the shell (if still running) and forgets the terminal.
+	KillTerminal(context.Context, *connect.Request[v1.KillTerminalRequest]) (*connect.Response[v1.KillTerminalResponse], error)
+	ResizeTerminal(context.Context, *connect.Request[v1.ResizeTerminalRequest]) (*connect.Response[v1.ResizeTerminalResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -365,6 +388,36 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetWorkspaceTrust")),
 			connect.WithClientOptions(opts...),
 		),
+		createTerminal: connect.NewClient[v1.CreateTerminalRequest, v1.CreateTerminalResponse](
+			httpClient,
+			baseURL+AgentServiceCreateTerminalProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreateTerminal")),
+			connect.WithClientOptions(opts...),
+		),
+		attachTerminal: connect.NewClient[v1.AttachTerminalRequest, v1.AttachTerminalResponse](
+			httpClient,
+			baseURL+AgentServiceAttachTerminalProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("AttachTerminal")),
+			connect.WithClientOptions(opts...),
+		),
+		listTerminals: connect.NewClient[v1.ListTerminalsRequest, v1.ListTerminalsResponse](
+			httpClient,
+			baseURL+AgentServiceListTerminalsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListTerminals")),
+			connect.WithClientOptions(opts...),
+		),
+		killTerminal: connect.NewClient[v1.KillTerminalRequest, v1.KillTerminalResponse](
+			httpClient,
+			baseURL+AgentServiceKillTerminalProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("KillTerminal")),
+			connect.WithClientOptions(opts...),
+		),
+		resizeTerminal: connect.NewClient[v1.ResizeTerminalRequest, v1.ResizeTerminalResponse](
+			httpClient,
+			baseURL+AgentServiceResizeTerminalProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ResizeTerminal")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -399,6 +452,11 @@ type agentServiceClient struct {
 	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
 	getWorkspaceTrust   *connect.Client[v1.GetWorkspaceTrustRequest, v1.GetWorkspaceTrustResponse]
 	setWorkspaceTrust   *connect.Client[v1.SetWorkspaceTrustRequest, v1.SetWorkspaceTrustResponse]
+	createTerminal      *connect.Client[v1.CreateTerminalRequest, v1.CreateTerminalResponse]
+	attachTerminal      *connect.Client[v1.AttachTerminalRequest, v1.AttachTerminalResponse]
+	listTerminals       *connect.Client[v1.ListTerminalsRequest, v1.ListTerminalsResponse]
+	killTerminal        *connect.Client[v1.KillTerminalRequest, v1.KillTerminalResponse]
+	resizeTerminal      *connect.Client[v1.ResizeTerminalRequest, v1.ResizeTerminalResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -546,6 +604,31 @@ func (c *agentServiceClient) SetWorkspaceTrust(ctx context.Context, req *connect
 	return c.setWorkspaceTrust.CallUnary(ctx, req)
 }
 
+// CreateTerminal calls harness.agent.v1.AgentService.CreateTerminal.
+func (c *agentServiceClient) CreateTerminal(ctx context.Context, req *connect.Request[v1.CreateTerminalRequest]) (*connect.Response[v1.CreateTerminalResponse], error) {
+	return c.createTerminal.CallUnary(ctx, req)
+}
+
+// AttachTerminal calls harness.agent.v1.AgentService.AttachTerminal.
+func (c *agentServiceClient) AttachTerminal(ctx context.Context, req *connect.Request[v1.AttachTerminalRequest]) (*connect.Response[v1.AttachTerminalResponse], error) {
+	return c.attachTerminal.CallUnary(ctx, req)
+}
+
+// ListTerminals calls harness.agent.v1.AgentService.ListTerminals.
+func (c *agentServiceClient) ListTerminals(ctx context.Context, req *connect.Request[v1.ListTerminalsRequest]) (*connect.Response[v1.ListTerminalsResponse], error) {
+	return c.listTerminals.CallUnary(ctx, req)
+}
+
+// KillTerminal calls harness.agent.v1.AgentService.KillTerminal.
+func (c *agentServiceClient) KillTerminal(ctx context.Context, req *connect.Request[v1.KillTerminalRequest]) (*connect.Response[v1.KillTerminalResponse], error) {
+	return c.killTerminal.CallUnary(ctx, req)
+}
+
+// ResizeTerminal calls harness.agent.v1.AgentService.ResizeTerminal.
+func (c *agentServiceClient) ResizeTerminal(ctx context.Context, req *connect.Request[v1.ResizeTerminalRequest]) (*connect.Response[v1.ResizeTerminalResponse], error) {
+	return c.resizeTerminal.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -611,6 +694,14 @@ type AgentServiceHandler interface {
 	// committed settings apply only in trusted folders. Frontends ask before the first session in a folder.
 	GetWorkspaceTrust(context.Context, *connect.Request[v1.GetWorkspaceTrustRequest]) (*connect.Response[v1.GetWorkspaceTrustResponse], error)
 	SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error)
+	// Terminals (terminal.proto): shells in a PTY, with I/O over a WebSocket authenticated by one-time tickets.
+	// CreateTerminal starts one and returns a ticket; AttachTerminal returns a fresh ticket to reconnect.
+	CreateTerminal(context.Context, *connect.Request[v1.CreateTerminalRequest]) (*connect.Response[v1.CreateTerminalResponse], error)
+	AttachTerminal(context.Context, *connect.Request[v1.AttachTerminalRequest]) (*connect.Response[v1.AttachTerminalResponse], error)
+	ListTerminals(context.Context, *connect.Request[v1.ListTerminalsRequest]) (*connect.Response[v1.ListTerminalsResponse], error)
+	// Ends the shell (if still running) and forgets the terminal.
+	KillTerminal(context.Context, *connect.Request[v1.KillTerminalRequest]) (*connect.Response[v1.KillTerminalResponse], error)
+	ResizeTerminal(context.Context, *connect.Request[v1.ResizeTerminalRequest]) (*connect.Response[v1.ResizeTerminalResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -794,6 +885,36 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetWorkspaceTrust")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceCreateTerminalHandler := connect.NewUnaryHandler(
+		AgentServiceCreateTerminalProcedure,
+		svc.CreateTerminal,
+		connect.WithSchema(agentServiceMethods.ByName("CreateTerminal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceAttachTerminalHandler := connect.NewUnaryHandler(
+		AgentServiceAttachTerminalProcedure,
+		svc.AttachTerminal,
+		connect.WithSchema(agentServiceMethods.ByName("AttachTerminal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListTerminalsHandler := connect.NewUnaryHandler(
+		AgentServiceListTerminalsProcedure,
+		svc.ListTerminals,
+		connect.WithSchema(agentServiceMethods.ByName("ListTerminals")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceKillTerminalHandler := connect.NewUnaryHandler(
+		AgentServiceKillTerminalProcedure,
+		svc.KillTerminal,
+		connect.WithSchema(agentServiceMethods.ByName("KillTerminal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceResizeTerminalHandler := connect.NewUnaryHandler(
+		AgentServiceResizeTerminalProcedure,
+		svc.ResizeTerminal,
+		connect.WithSchema(agentServiceMethods.ByName("ResizeTerminal")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -854,6 +975,16 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceGetWorkspaceTrustHandler.ServeHTTP(w, r)
 		case AgentServiceSetWorkspaceTrustProcedure:
 			agentServiceSetWorkspaceTrustHandler.ServeHTTP(w, r)
+		case AgentServiceCreateTerminalProcedure:
+			agentServiceCreateTerminalHandler.ServeHTTP(w, r)
+		case AgentServiceAttachTerminalProcedure:
+			agentServiceAttachTerminalHandler.ServeHTTP(w, r)
+		case AgentServiceListTerminalsProcedure:
+			agentServiceListTerminalsHandler.ServeHTTP(w, r)
+		case AgentServiceKillTerminalProcedure:
+			agentServiceKillTerminalHandler.ServeHTTP(w, r)
+		case AgentServiceResizeTerminalProcedure:
+			agentServiceResizeTerminalHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -977,4 +1108,24 @@ func (UnimplementedAgentServiceHandler) GetWorkspaceTrust(context.Context, *conn
 
 func (UnimplementedAgentServiceHandler) SetWorkspaceTrust(context.Context, *connect.Request[v1.SetWorkspaceTrustRequest]) (*connect.Response[v1.SetWorkspaceTrustResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetWorkspaceTrust is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreateTerminal(context.Context, *connect.Request[v1.CreateTerminalRequest]) (*connect.Response[v1.CreateTerminalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreateTerminal is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) AttachTerminal(context.Context, *connect.Request[v1.AttachTerminalRequest]) (*connect.Response[v1.AttachTerminalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AttachTerminal is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListTerminals(context.Context, *connect.Request[v1.ListTerminalsRequest]) (*connect.Response[v1.ListTerminalsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListTerminals is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) KillTerminal(context.Context, *connect.Request[v1.KillTerminalRequest]) (*connect.Response[v1.KillTerminalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.KillTerminal is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ResizeTerminal(context.Context, *connect.Request[v1.ResizeTerminalRequest]) (*connect.Response[v1.ResizeTerminalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ResizeTerminal is not implemented"))
 }

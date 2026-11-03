@@ -20,6 +20,7 @@ import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
 import type { AccountApi } from '~/lib/account/types'
 import type { UsageApi } from '~/lib/usage/types'
+import type { TerminalsApi } from '~/lib/terminal/types'
 
 export interface ModelInfo {
   id: string
@@ -118,4 +119,8 @@ export interface SessionTransport {
 
   // LLM usage reports for the Usage tab (harness.llm.v1.UsageService, forwarded to the server by the client).
   usage(): UsageApi
+
+  // Shells in a PTY on the client's machine for the terminal pane (create / list / kill, and the interactive
+  // TerminalConnection over the client's terminal WebSocket).
+  terminals(): TerminalsApi
 }

@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Terminals: interactive shells in a PTY on the client's machine, for the UI's terminal pane.
+//
+// The RPCs here (on AgentService) manage terminals; the interactive I/O goes over a WebSocket on the same HTTP
+// server: GET /harness.agent.v1.Terminal/socket, authenticated with a one-time ticket from CreateTerminal or
+// AttachTerminal (the Sec-WebSocket-Protocol entry "ticket.<ticket>" next to "harness-terminal.v1", or the
+// `ticket` query parameter). Binary frames from the UI are input; binary frames to the UI are output, starting
+// with a replay of the recent output. Text frames carry small JSON control messages:
+//   to the UI:       {"type":"exit","code":0}, {"type":"resize","cols":80,"rows":24},
+//                    {"type":"skipped","bytes":1234} (this viewer fell behind and missed output)
+//   from the UI:     {"type":"resize","cols":80,"rows":24}, {"type":"input","data":"ls\r"}
+//
+// A terminal belongs to a session of this machine or is standalone. It keeps running when the UI disconnects
+// (reattach with AttachTerminal) and ends when it is killed, when its session is closed, or when the client stops.
+// Sessions of other machines (SessionInfo.remote) cannot have terminals here: FAILED_PRECONDITION.
+
+message TerminalInfo {
+  string terminal_id = 1;
+  // Empty for a standalone terminal.
+  string session_id = 2;
+  string title = 3;
+  string cwd = 4;
+  // The shell's path, e.g. "/bin/zsh".
+  string shell = 5;
+  int32 pid = 6;
+  bool running = 7;
+  // Set once the shell has exited (128 + signal number when it was killed by a signal).
+  optional int32 exit_code = 8;
+  // RFC 3339.
+  string created_at = 9;
+  uint32 cols = 10;
+  uint32 rows = 11;
+}
+
+message CreateTerminalRequest {
+  // A live session of this machine, or empty for a standalone terminal.
+  string session_id = 1;
+  // Absolute, or starting with "~/". It must be inside the session's working directories (cwd and additional
+  // directories); empty means the session's cwd, or the home directory for a standalone terminal.
+  string cwd = 2;
+  uint32 cols = 3;
+  uint32 rows = 4;
+  // Extra environment variables on top of the client's environment (TERM=xterm-256color and
+  // COLORTERM=truecolor are always set).
+  map<string, string> env = 5;
+  // Empty: the cwd's base name.
+  string title = 6;
+}
+
+message CreateTerminalResponse {
+  TerminalInfo terminal = 1;
+  // One-time ticket for the WebSocket, valid for a short time (see the file comment).
+  string ticket = 2;
+}
+
+message AttachTerminalRequest {
+  string terminal_id = 1;
+}
+
+message AttachTerminalResponse {
+  TerminalInfo terminal = 1;
+  string ticket = 2;
+}
+
+message ListTerminalsRequest {
+  // Empty lists all terminals of the client.
+  string session_id = 1;
+}
+
+message ListTerminalsResponse {
+  // Oldest first.
+  repeated TerminalInfo terminals = 1;
+}
+
+message KillTerminalRequest {
+  string terminal_id = 1;
+}
+
+message KillTerminalResponse {}
+
+message ResizeTerminalRequest {
+  string terminal_id = 1;
+  uint32 cols = 2;
+  uint32 rows = 3;
+}
+
+message ResizeTerminalResponse {}

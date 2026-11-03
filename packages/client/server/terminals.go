@@ -1,0 +1,192 @@
+package server
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+
+	"connectrpc.com/connect"
+
+	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/terminal"
+)
+
+// Terminals (terminal.proto): shells in a PTY for the UI's terminal pane. The RPCs manage them; the I/O goes
+// over the WebSocket of terminal.Manager.SocketHandler at terminal.SocketPath, authenticated by the one-time
+// tickets CreateTerminal and AttachTerminal return (TCPGuard lets that path through without the bearer token).
+
+const (
+	maxTerminalSize = 2000
+	maxTerminalEnv  = 100
+)
+
+// terminals returns the client's terminal manager (created on first use).
+func (s *Server) terminals() *terminal.Manager {
+	s.termOnce.Do(func() {
+		if s.terms == nil {
+			s.terms = &terminal.Manager{}
+		}
+	})
+	return s.terms
+}
+
+// registerTerminalSocket serves the terminal WebSocket on mux; requests with an Origin header must come from
+// origins.
+func (s *Server) registerTerminalSocket(mux *http.ServeMux, origins []string) {
+	mux.Handle(terminal.SocketPath, s.terminals().SocketHandler(origins))
+}
+
+func (s *Server) CreateTerminal(ctx context.Context, req *connect.Request[agentv1.CreateTerminalRequest]) (*connect.Response[agentv1.CreateTerminalResponse], error) {
+	m := req.Msg
+	home, _ := os.UserHomeDir()
+	defaultCwd, dirs := home, []string(nil)
+	if id := m.GetSessionId(); id != "" {
+		s.mu.Lock()
+		ls := s.live[id]
+		s.mu.Unlock()
+		if ls == nil {
+			if remote := s.remoteInfo(id); remote != nil {
+				return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("session %s runs on %s; terminals are only available for sessions of this machine", id, deviceLabel(remote)))
+			}
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open; call CreateSession first", id))
+		}
+		defaultCwd, dirs = ls.sess.Cwd, []string{ls.sess.Cwd}
+		if ls.sess.Permissions != nil {
+			dirs = ls.sess.Permissions.WorkingDirs()
+		}
+	}
+	cwd, err := terminalCwd(m.GetCwd(), defaultCwd, home, dirs)
+	if err != nil {
+		return nil, err
+	}
+	cols, rows := m.GetCols(), m.GetRows()
+	if cols > maxTerminalSize || rows > maxTerminalSize {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cols and rows must be at most %d", maxTerminalSize))
+	}
+	if err := validTerminalEnv(m.GetEnv()); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	mgr := s.terminals()
+	t, err := mgr.Create(terminal.Options{
+		SessionID: m.GetSessionId(), Cwd: cwd, Title: m.GetTitle(), Cols: uint16(cols), Rows: uint16(rows), Env: m.GetEnv(),
+	})
+	if err != nil {
+		return nil, terminalError(err)
+	}
+	ticket, err := mgr.IssueTicket(t.ID())
+	if err != nil {
+		return nil, terminalError(err)
+	}
+	return connect.NewResponse(&agentv1.CreateTerminalResponse{Terminal: terminalInfo(t.Info()), Ticket: ticket}), nil
+}
+
+func (s *Server) AttachTerminal(ctx context.Context, req *connect.Request[agentv1.AttachTerminalRequest]) (*connect.Response[agentv1.AttachTerminalResponse], error) {
+	mgr := s.terminals()
+	t := mgr.Get(req.Msg.GetTerminalId())
+	if t == nil {
+		return nil, terminalError(terminal.ErrNotFound)
+	}
+	ticket, err := mgr.IssueTicket(t.ID())
+	if err != nil {
+		return nil, terminalError(err)
+	}
+	return connect.NewResponse(&agentv1.AttachTerminalResponse{Terminal: terminalInfo(t.Info()), Ticket: ticket}), nil
+}
+
+func (s *Server) ListTerminals(ctx context.Context, req *connect.Request[agentv1.ListTerminalsRequest]) (*connect.Response[agentv1.ListTerminalsResponse], error) {
+	resp := &agentv1.ListTerminalsResponse{}
+	for _, t := range s.terminals().List(req.Msg.GetSessionId()) {
+		resp.Terminals = append(resp.Terminals, terminalInfo(t.Info()))
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (s *Server) KillTerminal(ctx context.Context, req *connect.Request[agentv1.KillTerminalRequest]) (*connect.Response[agentv1.KillTerminalResponse], error) {
+	if !s.terminals().Kill(req.Msg.GetTerminalId()) {
+		return nil, terminalError(terminal.ErrNotFound)
+	}
+	return connect.NewResponse(&agentv1.KillTerminalResponse{}), nil
+}
+
+func (s *Server) ResizeTerminal(ctx context.Context, req *connect.Request[agentv1.ResizeTerminalRequest]) (*connect.Response[agentv1.ResizeTerminalResponse], error) {
+	m := req.Msg
+	if m.GetCols() == 0 || m.GetRows() == 0 || m.GetCols() > maxTerminalSize || m.GetRows() > maxTerminalSize {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cols and rows must be between 1 and %d", maxTerminalSize))
+	}
+	t := s.terminals().Get(m.GetTerminalId())
+	if t == nil {
+		return nil, terminalError(terminal.ErrNotFound)
+	}
+	if err := t.Resize(uint16(m.GetCols()), uint16(m.GetRows())); err != nil {
+		return nil, terminalError(err)
+	}
+	return connect.NewResponse(&agentv1.ResizeTerminalResponse{}), nil
+}
+
+// terminalCwd resolves a terminal's directory like ListDirectory does (absolute, or "~/..."; empty: def). With
+// working directories (a session's), it must be inside one of them.
+func terminalCwd(p, def, home string, dirs []string) (string, error) {
+	if strings.TrimSpace(p) == "" {
+		p = def
+	}
+	cwd, err := expandPath(p, home)
+	if err != nil {
+		return "", connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	st, err := os.Stat(cwd)
+	if err != nil {
+		return "", fsError(cwd, err)
+	}
+	if !st.IsDir() {
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s is not a directory", cwd))
+	}
+	if dirs != nil && !permissions.WithinAny(cwd, dirs) {
+		return "", connect.NewError(connect.CodePermissionDenied, fmt.Errorf("%s is outside the session's working directories", cwd))
+	}
+	return cwd, nil
+}
+
+func validTerminalEnv(env map[string]string) error {
+	if len(env) > maxTerminalEnv {
+		return fmt.Errorf("at most %d environment variables", maxTerminalEnv)
+	}
+	for k, v := range env {
+		if k == "" || strings.ContainsAny(k, "=\x00") || strings.ContainsRune(v, 0) {
+			return fmt.Errorf("invalid environment variable %q", k)
+		}
+	}
+	return nil
+}
+
+func terminalError(err error) error {
+	code := connect.CodeInternal
+	switch {
+	case errors.Is(err, terminal.ErrNotFound):
+		code = connect.CodeNotFound
+	case errors.Is(err, terminal.ErrLimit):
+		code = connect.CodeResourceExhausted
+	case errors.Is(err, terminal.ErrExited):
+		code = connect.CodeFailedPrecondition
+	case errors.Is(err, terminal.ErrUnsupported):
+		code = connect.CodeUnimplemented
+	case errors.Is(err, terminal.ErrClosed):
+		code = connect.CodeUnavailable
+	}
+	return connect.NewError(code, err)
+}
+
+func terminalInfo(i terminal.Info) *agentv1.TerminalInfo {
+	ti := &agentv1.TerminalInfo{
+		TerminalId: i.ID, SessionId: i.SessionID, Title: i.Title, Cwd: i.Cwd, Shell: i.Shell, Pid: int32(i.Pid),
+		Running: i.Running, CreatedAt: rfc3339(i.CreatedAt), Cols: uint32(i.Cols), Rows: uint32(i.Rows),
+	}
+	if !i.Running {
+		code := int32(i.ExitCode)
+		ti.ExitCode = &code
+	}
+	return ti
+}
