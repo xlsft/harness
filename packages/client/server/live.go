@@ -217,7 +217,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		if len(content) == 0 {
 			return
 		}
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(content)}}})
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(content), ClientUuids: e.ClientUUIDs}}})
 	case agent.EventTurnStarted:
 		ls.mu.Lock()
 		ls.idleCompacted = false

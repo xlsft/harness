@@ -351,6 +351,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 			ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = t })
 		}
 	}
+	if m.GetFork() {
+		ls.titleFork()
+	}
 	ls.syncDiffStats(ls.diff)
 	sess.Permissions.SetAsker(ls)
 	sess.Agent.SetInteractor(ls)
@@ -457,12 +460,7 @@ func forkedFrom(path string) string {
 	if err != nil {
 		return ""
 	}
-	for _, e := range entries {
-		if e.Type == session.TypeMeta && e.ForkedFrom != "" {
-			return e.ForkedFrom
-		}
-	}
-	return ""
+	return session.ParentOf(entries)
 }
 
 func (s *Server) get(id string) (*liveSession, error) {
@@ -579,7 +577,7 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 	queued := ls.driver.Submit(id, content)
 	if queued {
 		ls.mu.Lock()
-		ls.queue = append(ls.queue, &agentv1.UserMessage{Uuid: id, Content: req.Msg.GetContent()})
+		ls.queue = append(ls.queue, &agentv1.UserMessage{Uuid: id, Content: req.Msg.GetContent(), QueuedAt: time.Now().UTC().Format(time.RFC3339Nano)})
 		q := append([]*agentv1.UserMessage(nil), ls.queue...)
 		ls.mu.Unlock()
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_QueueChanged{QueueChanged: &agentv1.QueueChanged{Queued: q}}})

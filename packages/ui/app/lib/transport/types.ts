@@ -9,6 +9,7 @@ import type {
   PermissionMode,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
+  RewindRequest_Mode,
   SendUserMessageRequest_Delivery,
   SessionEvent,
   SessionInfo,
@@ -48,6 +49,8 @@ export interface NewSessionOptions {
   resumeSessionId?: string
   // With resumeSessionId: start a new session from a copy of that transcript.
   fork?: boolean
+  // With fork: copy only the conversation before this user message (UserMessage.uuid, a checkpoint id).
+  forkAtMessageId?: string
   // Run in a new git worktree of the repository containing cwd.
   worktree?: { name?: string, branch?: string, baseRef?: string }
 }
@@ -66,6 +69,8 @@ export interface SessionPatch {
   archived?: boolean
   // A rename; it wins over the AI title.
   title?: string
+  // Clears the parent: a sub-session (fork) becomes a top-level session.
+  detachFromParent?: boolean
 }
 
 // A control message of the stream (no event): the event log id, plus the session as it is now on the one sent
@@ -99,6 +104,11 @@ export interface SessionTransport {
   subscribe(sessionId: string, afterSeq: number, handlers: SubscribeHandlers): () => void
 
   sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery): Promise<void>
+  // Takes back a message still in the client's queue; false when it was already injected into the turn.
+  removeQueuedMessage(sessionId: string, uuid: string): Promise<boolean>
+  // Restores code and/or conversation to the checkpoint of a user message (the session must be idle); the
+  // message's text comes back to put in the composer.
+  rewind(sessionId: string, checkpointId: string, mode: RewindRequest_Mode): Promise<{ restoredPrompt: string, filesRestored: number }>
   // idle: no turn was running, so nothing was interrupted (an older client always says false).
   interrupt(sessionId: string): Promise<{ idle: boolean }>
   // Stops a live session on the client (its transcript stays, so it can be resumed).

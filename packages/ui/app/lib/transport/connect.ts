@@ -11,6 +11,7 @@ import {
   type PermissionMode,
   type RespondToPermissionRequest_Decision,
   type RespondToPlanRequest_Decision,
+  type RewindRequest_Mode,
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
@@ -95,6 +96,7 @@ export class ConnectTransport implements SessionTransport {
       permissionMode: opts.permissionMode,
       resumeSessionId: opts.resumeSessionId ?? '',
       fork: opts.fork ?? false,
+      forkAtCheckpointId: opts.forkAtMessageId ?? '',
       worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined
     })
     if (!res.session) throw new Error('the client returned no session')
@@ -132,6 +134,15 @@ export class ConnectTransport implements SessionTransport {
   async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
     const content = [create(ContentBlockSchema, { block: { case: 'text', value: { text } } })]
     await this.client.sendUserMessage({ sessionId, uuid, content, delivery })
+  }
+
+  async removeQueuedMessage(sessionId: string, uuid: string) {
+    return (await this.client.removeQueuedMessage({ sessionId, uuid })).removed
+  }
+
+  async rewind(sessionId: string, checkpointId: string, mode: RewindRequest_Mode) {
+    const res = await this.client.rewind({ sessionId, checkpointId, mode })
+    return { restoredPrompt: res.result?.restoredPrompt ?? '', filesRestored: res.result?.filesRestored ?? 0 }
   }
 
   async closeSession(sessionId: string) {

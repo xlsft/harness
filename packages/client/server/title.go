@@ -169,6 +169,40 @@ func (ls *liveSession) setCustomTitle(title string) error {
 	return nil
 }
 
+// detachFromParent makes the session a top-level one: the transcript records it (so a resume and the session list
+// agree) and the synced metadata loses its parent.
+func (ls *liveSession) detachFromParent() error {
+	if _, err := ls.sess.Transcript.Append(session.Entry{Type: session.TypeMeta, DetachedFromParent: true}); err != nil {
+		return err
+	}
+	ls.mu.Lock()
+	ls.sess.ParentSessionID = ""
+	ls.mu.Unlock()
+	ls.syncMeta(func(m *syncclient.SessionMeta) { m.ParentSessionID = "" })
+	return nil
+}
+
+// forkSuffix marks the title of a fork.
+const forkSuffix = " (fork)"
+
+// titleFork names a new fork after its parent: "<parent title> (fork)", recorded as a custom title so the AI
+// title does not replace it. The copied transcript carries the parent's title; a fork of a fork keeps a single
+// suffix. Nothing is recorded when the parent had no title yet.
+func (ls *liveSession) titleFork() {
+	ls.mu.Lock()
+	t := ls.title
+	ls.mu.Unlock()
+	if t == "" {
+		return
+	}
+	if !strings.HasSuffix(t, forkSuffix) {
+		t = truncateRunes(t, maxCustomTitle-len([]rune(forkSuffix))) + forkSuffix
+	}
+	if err := ls.setCustomTitle(t); err != nil {
+		ls.srv.log().Warn("fork title not recorded", "err", err)
+	}
+}
+
 // syncMeta updates the synced session metadata (no-op without sync).
 func (ls *liveSession) syncMeta(fn func(*syncclient.SessionMeta)) {
 	if up := ls.sess.Uploader; up != nil {

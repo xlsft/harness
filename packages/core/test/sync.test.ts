@@ -448,6 +448,19 @@ describe("sessions", () => {
     expect((await A.getSession({ sessionId: sid })).session!.info!.title).toBe("Renamed");
   });
 
+  it("keeps a sub-session's parent and clears it with the parent_session_id path (detach)", async () => {
+    const child = "c0000000-0000-4000-8000-00000000000c";
+    await A.upsertSession({ session: { info: info({ id: child, title: "Fix login test (fork)", parentSessionId: sid }) } });
+    expect((await A.getSession({ sessionId: child })).session!.info!.parentSessionId).toBe(sid);
+    // other updates leave the parent alone
+    await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: child, pinned: true }) }, updatePaths: ["info.pinned"] });
+    const listed = (await A.listSessions({ cwd: "/home/alice/app" })).sessions.find((s) => s.info!.id === child);
+    expect(listed!.info).toMatchObject({ parentSessionId: sid, pinned: true });
+    await A.upsertSession({ session: { info: create(SessionInfoSchema, { id: child }) }, updatePaths: ["info.parent_session_id"] });
+    expect((await A.getSession({ sessionId: child })).session!.info).toMatchObject({ parentSessionId: "", title: "Fix login test (fork)" });
+    await A.deleteSession({ sessionId: child });
+  });
+
   it("labels an untitled session with its first message in the list", async () => {
     const id = "c0000000-0000-4000-8000-00000000000a";
     await A.upsertSession({ session: { info: info({ id, title: "", cwd: "/home/alice/untitled" }) } });

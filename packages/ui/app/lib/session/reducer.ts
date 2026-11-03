@@ -16,6 +16,7 @@ import {
   PullRequest_State,
   RespondToPermissionRequest_Decision,
   RespondToPlanRequest_Decision,
+  RewindRequest_Mode,
   SessionStatus,
   ShowRequested_Kind,
   TaskFinished_Reason,
@@ -72,6 +73,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       pinned: false,
       unread: false,
       archived: false,
+      parentId: '',
       ...meta
     },
     logId: '',
@@ -82,6 +84,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     taskOrder: [],
     todos: [],
     queue: [],
+    delivered: {},
     turnStartedAt: 0,
     turnModel: '',
     turnTokens: 0,
@@ -159,7 +162,8 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     pullRequest: pr ? { number: pr.number, url: pr.url, state: prState } : null,
     pinned: info.pinned,
     unread: info.unread,
-    archived: info.archived
+    archived: info.archived,
+    parentId: info.parentSessionId
   }
 }
 
@@ -201,13 +205,13 @@ function showTarget(r: ShowRequested): ShowTarget | null {
   }
 }
 
-function userItem(id: string, msg: UserMessage): TranscriptItem {
+function userItem(id: string, msg: UserMessage, at: number): TranscriptItem {
   const attachments = msg.content.flatMap((b): Attachment[] => {
     if (b.block.case === 'image') return [{ kind: 'image' as const, name: 'image', mediaType: b.block.value.mediaType, size: b.block.value.data.length }]
     if (b.block.case === 'document') return [{ kind: 'document' as const, name: b.block.value.title || 'document', mediaType: b.block.value.mediaType, size: b.block.value.data.length }]
     return []
   })
-  return { kind: 'user' as const, id, text: textOf(msg.content), attachments }
+  return { kind: 'user' as const, id, text: textOf(msg.content), attachments, at, clientIds: [...msg.clientUuids] }
 }
 
 // ── item helpers ─────────────────────────────────────────────────────────────
@@ -308,8 +312,10 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     case 'userMessage': {
       dropUnfinished(s)
       const id = e.value.uuid || 'u' + seq
-      if (!find(s, 'user', id)) push(s, userItem(id, e.value))
-      s.queue = s.queue.filter(q => q.id !== id)
+      if (!find(s, 'user', id)) push(s, userItem(id, e.value, at))
+      // The agent took these messages: they are read, and no longer wait in the client's queue.
+      for (const c of e.value.clientUuids) s.delivered[c] = id
+      s.queue = s.queue.filter(q => q.id !== id && !e.value.clientUuids.includes(q.id))
       // The user moved on: a Show they did not see is stale (the transcript row still reopens it).
       s.showRequest = null
       break
@@ -483,7 +489,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     }
 
     case 'queueChanged':
-      s.queue = e.value.queued.map((m, i) => ({ id: m.uuid || 'q' + i, text: textOf(m.content) }))
+      s.queue = e.value.queued.map((m, i) => ({ id: m.uuid || 'q' + i, text: textOf(m.content), ...(m.queuedAt && { at: Date.parse(m.queuedAt) }) }))
       break
 
     case 'todosUpdated': {
@@ -627,9 +633,18 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
-    case 'rewound':
+    case 'rewound': {
+      // A conversation rewind drops the message it went back to and everything after it (the client's
+      // conversation now ends before that message); the marker stays.
+      const m = e.value.mode
+      const at = s.index['user:' + e.value.checkpointId]
+      if ((m === RewindRequest_Mode.CODE_AND_CONVERSATION || m === RewindRequest_Mode.CONVERSATION) && at !== undefined) {
+        s.items.splice(at)
+        reindex(s)
+      }
       push(s, { kind: 'rewound', id: 'r' + seq, filesRestored: e.value.filesRestored, filesSkipped: e.value.filesSkipped })
       break
+    }
 
     case 'permissionModeChanged':
       s.meta.permissionMode = permissionModeName(e.value.mode)
