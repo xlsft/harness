@@ -24,12 +24,13 @@ watch(attach, (paths) => {
   attach.value = []
   nextTick(() => input.value?.focus())
 }, { deep: true })
-// "Reply" on text picked in the transcript: a "> quote" first line, which the sent message shows as a reply.
+// "Reply" on text picked in the transcript: the quote shows as a block above the field and goes first in the sent
+// message ("> quote", a blank line, then the text), which the transcript shows as a reply.
 const { reply } = useQuoteRequests()
+const quoted = ref('')
 watch(reply, (q) => {
   if (!q) return
-  const rest = text.value.replace(/^> .*\n?/, '')
-  text.value = `> ${quoteLine(q)}\n${rest}`
+  quoted.value = quoteLine(q)
   reply.value = ''
   nextTick(() => {
     const el = input.value
@@ -241,8 +242,9 @@ onMounted(() => {
 })
 
 async function submit() {
-  const body = text.value
-  if (!body.trim() || ended.value) return
+  const typed = text.value
+  if (!typed.trim() || ended.value) return
+  const body = quoted.value && mode.value === 'normal' ? `> ${quoted.value}\n\n${typed}` : typed
   error.value = ''
   if (mode.value !== 'normal') {
     const route = composerRoute(mode.value, body, memoryTarget.value)
@@ -269,6 +271,7 @@ async function submit() {
   }
   text.value = ''
   files.value = []
+  quoted.value = ''
   await safeSend(body)
 }
 
@@ -554,6 +557,20 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       :class="frame"
       @drop.prevent="onDrop"
     >
+      <!-- the quote a Reply answers -->
+      <div
+        v-if="quoted"
+        class="mx-2 mt-2 flex items-start gap-2 border-l-2 border-accent bg-hover py-1.5 pr-1 pl-2.5 text-[12.5px] text-muted"
+      >
+        <span class="line-clamp-3 min-w-0 flex-1">{{ quoted }}</span>
+        <HIconBtn
+          icon="close"
+          label="Remove the quote"
+          :size="26"
+          :icon-size="12"
+          @click="quoted = ''"
+        />
+      </div>
       <div
         v-if="files.length"
         class="flex flex-wrap gap-1.5 px-2 pt-2"
