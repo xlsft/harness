@@ -6,6 +6,7 @@
 import type {
   ClassifierSettings,
   ModelCandidateView,
+  ModelSlots,
   NewModel,
   PresetList,
   PresetView,
@@ -15,6 +16,7 @@ import type {
   ProviderView,
   ProvidersApi
 } from './types'
+import { emptySlots } from './types'
 
 const TYPES = ['anthropic', 'openai-chat', 'openai-responses']
 
@@ -144,6 +146,7 @@ function slug(s: string) {
 export class MockProvidersApi implements ProvidersApi {
   private providers: ProviderView[]
   private classifier: ClassifierSettings
+  private slots: ModelSlots = emptySlots()
   private seq = 0
 
   constructor(private readonly admin = true) {
@@ -301,6 +304,20 @@ export class MockProvidersApi implements ProvidersApi {
     if (!p) throw new Error(`Model ${modelId} not found`)
     this.writable(p.id)
     p.models = p.models.filter(m => m.id !== modelId)
+  }
+
+  async getSlots() {
+    return { slots: { ...this.slots }, editable: this.admin }
+  }
+
+  async setSlots(s: ModelSlots) {
+    if (!this.admin) throw new Error('Admin role required')
+    const global = new Set(this.providers.filter(p => p.scope === 'global' && p.group === 'llm').flatMap(p => p.models.map(m => m.id)))
+    for (const [name, id] of Object.entries(s)) {
+      if (id && !global.has(id)) throw new Error(`Unknown model ${id} for slot ${name}`)
+    }
+    this.slots = { main: s.main, small: s.small, plan: s.plan, title: s.title }
+    return { ...this.slots }
   }
 
   async getClassifier() {

@@ -9,7 +9,8 @@ import {
   type Provider,
   type ProviderPreset
 } from '~/gen/harness/llm/v1/providers_pb'
-import type { ClassifierSettings, PresetView, ProviderGroupName, ProviderView, ProvidersApi } from './types'
+import type { Slots } from '~/gen/harness/llm/v1/gateway_pb'
+import type { ClassifierSettings, ModelSlots, PresetView, ProviderGroupName, ProviderView, ProvidersApi } from './types'
 
 const group = (g: string): ProviderGroupName => g === 'classifier' ? 'classifier' : 'llm'
 
@@ -62,6 +63,10 @@ export function classifierView(c: Classifier | undefined): ClassifierSettings {
     timeoutMs: c?.timeoutMs ?? 3000,
     llmModel: c?.llmModel ?? ''
   }
+}
+
+export function slotsView(s: Slots | undefined): ModelSlots {
+  return { main: s?.main ?? '', small: s?.small ?? '', plan: s?.plan ?? '', title: s?.title ?? '' }
 }
 
 export class ConnectProvidersApi implements ProvidersApi {
@@ -139,6 +144,15 @@ export class ConnectProvidersApi implements ProvidersApi {
 
   async removeModel(modelId: string) {
     await this.client.removeModel({ modelId })
+  }
+
+  async getSlots() {
+    const r = await this.client.getSlots({})
+    return { slots: slotsView(r.slots), editable: r.editable }
+  }
+
+  async setSlots(s: ModelSlots) {
+    return slotsView((await this.client.setSlots({ slots: s })).slots)
   }
 
   async getClassifier() {

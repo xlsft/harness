@@ -1,9 +1,10 @@
 import { create } from '@bufbuild/protobuf'
 import { describe, expect, it } from 'vitest'
+import { SlotsSchema } from '~/gen/harness/llm/v1/gateway_pb'
 import { ClassifierSchema, ProviderPresetSchema, ProviderScope, ProviderSchema } from '~/gen/harness/llm/v1/providers_pb'
-import { classifierView, presetView, providerView } from '~/lib/providers/connect'
+import { classifierView, presetView, providerView, slotsView } from '~/lib/providers/connect'
 import { MockProvidersApi } from '~/lib/providers/mock'
-import { contextLabel, parseHeaders } from '~/lib/providers/types'
+import { contextLabel, parseHeaders, slotModelOptions } from '~/lib/providers/types'
 
 describe('providerView', () => {
   it('maps a personal provider and its models, falling back to the id for names', () => {
@@ -51,6 +52,11 @@ describe('providerView', () => {
       minProbability: 0.9
     })
   })
+
+  it('maps the slots, empty when the server sends none', () => {
+    expect(slotsView(undefined)).toEqual({ main: '', small: '', plan: '', title: '' })
+    expect(slotsView(create(SlotsSchema, { main: 'opus', title: 'haiku' }))).toEqual({ main: 'opus', small: '', plan: '', title: 'haiku' })
+  })
 })
 
 describe('MockProvidersApi', () => {
@@ -92,6 +98,17 @@ describe('MockProvidersApi', () => {
     const c = await admin.setClassifier({ ...(await admin.getClassifier()), enabled: true, providerId: t.id, model: '' })
     expect(c.model).toBe('jev-1.13.0')
   })
+
+  it('lets everyone read the slots and admins set them to global models', async () => {
+    const user = new MockProvidersApi(false)
+    expect(await user.getSlots()).toEqual({ slots: { main: '', small: '', plan: '', title: '' }, editable: false })
+    await expect(user.setSlots({ main: '', small: '', plan: '', title: 'claude-haiku' })).rejects.toThrow(/Admin/)
+    const admin = new MockProvidersApi(true)
+    expect((await admin.getSlots()).editable).toBe(true)
+    await expect(admin.setSlots({ main: '', small: '', plan: '', title: 'u-x/model' })).rejects.toThrow(/Unknown model/)
+    expect(await admin.setSlots({ main: '', small: '', plan: '', title: 'claude-haiku' })).toMatchObject({ title: 'claude-haiku' })
+    expect((await admin.getSlots()).slots.title).toBe('claude-haiku')
+  })
 })
 
 describe('helpers', () => {
@@ -102,5 +119,13 @@ describe('helpers', () => {
 
   it('labels context windows', () => {
     expect([contextLabel(0), contextLabel(256_000), contextLabel(1_000_000)]).toEqual(['', '256k', '1M'])
+  })
+
+  it('offers global LLM models only as slot choices, grouped by provider', async () => {
+    const api = new MockProvidersApi(true)
+    await api.create({ scope: 'personal', type: 'anthropic', name: 'Mine', baseUrl: 'https://api.anthropic.com', apiKey: 'sk-fake-key-123456' })
+    const mine = (await api.list()).providers.find(p => p.scope === 'personal')!
+    await api.addModel(mine.id, { upstream: 'claude-x' })
+    expect(slotModelOptions((await api.list()).providers)).toEqual([{ value: 'claude-haiku', label: 'Claude Haiku 5.5', hint: '200k', group: 'OpenRouter' }])
   })
 })

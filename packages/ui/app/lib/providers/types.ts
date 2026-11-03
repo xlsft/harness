@@ -1,5 +1,6 @@
 // ProvidersApi: what the settings screens need from harness.llm.v1.ProviderService (providers in two groups,
-// LLM models and classifiers; the presets to connect; their models; the auto-mode classifier). The client
+// LLM models and classifiers; the presets to connect; their models; the default model per role; the auto-mode
+// classifier). The client
 // forwards these calls to the server with the user's credentials, so the UI never holds server credentials.
 // Two implementations: connect.ts (the real service through the client) and mock.ts (in memory, for the
 // mock transport).
@@ -144,6 +145,30 @@ export interface ClassifierSettings {
   llmModel: string
 }
 
+// Server-wide default model per role, as configured ('' follows the server default). `title` falls back to
+// `small`; `small` also serves summaries, web fetch and compaction.
+export interface ModelSlots {
+  main: string
+  small: string
+  plan: string
+  title: string
+}
+
+export interface SlotSettings {
+  slots: ModelSlots
+  // The caller may change them (admins).
+  editable: boolean
+}
+
+export const emptySlots = (): ModelSlots => ({ main: '', small: '', plan: '', title: '' })
+
+// The models a slot may point at: global LLM models, grouped by provider.
+export function slotModelOptions(providers: ProviderView[]): { value: string, label: string, hint?: string, group?: string }[] {
+  return providers
+    .filter(p => p.scope === 'global' && p.group === 'llm')
+    .flatMap(p => p.models.map(m => ({ value: m.id, label: m.name, hint: contextLabel(m.contextWindow) || undefined, group: p.name })))
+}
+
 export interface ProvidersApi {
   presets(): Promise<PresetList>
   list(): Promise<ProviderList>
@@ -154,6 +179,9 @@ export interface ProvidersApi {
   test(id: string): Promise<TestResult>
   addModel(providerId: string, model: NewModel): Promise<void>
   removeModel(modelId: string): Promise<void>
+  getSlots(): Promise<SlotSettings>
+  // Admin only: replaces main, small, plan and title.
+  setSlots(s: ModelSlots): Promise<ModelSlots>
   // Admin only.
   getClassifier(): Promise<ClassifierSettings>
   setClassifier(c: ClassifierSettings): Promise<ClassifierSettings>

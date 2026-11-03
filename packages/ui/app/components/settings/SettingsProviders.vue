@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Settings > Models or Settings > Classifiers (`group`): where models, or auto-mode decisions, come from.
 // Lists the presets the server offers (connect with just a key) and then custom providers; on Models each
-// enabled model carries its default effort. A connection is the user's own, or, for admins who choose so, everyone's; classifier
+// enabled model carries its default effort, under a Defaults block (the model per role). A connection is the user's own, or, for admins who choose so, everyone's; classifier
 // providers and the classifier settings are server-wide (admins). Keys are write-only. Changes refresh the
 // model catalog, so the Models section follows.
 import type { PresetList, ProviderGroupName, ProviderList, ProvidersApi } from '~/lib/providers/types'
@@ -100,6 +100,11 @@ const page = computed(() => ({
     </p>
 
     <template v-else>
+      <SettingsSlots
+        v-if="group === 'llm'"
+        :providers="list.providers"
+        :api="api()"
+      />
       <SettingsProviderGroup
         :group="group"
         title=""
