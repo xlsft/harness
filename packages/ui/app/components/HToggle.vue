@@ -16,6 +16,9 @@ defineProps<{ muted?: boolean, label?: string, disabled?: boolean }>()
     :class="[model ? 'h-[15px] w-7 justify-end bg-accent' : 'h-4 w-[30px] justify-start bg-line']"
     @click.stop="model = !model"
   >
-    <span :class="model ? 'size-[11px] bg-on-accent' : 'size-3 bg-graphite-400'" />
+    <span
+      class="rounded-[max(0px,calc(var(--radius-control)-2px))]"
+      :class="model ? 'size-[11px] bg-on-accent' : 'size-3 bg-graphite-400'"
+    />
   </button>
 </template>
