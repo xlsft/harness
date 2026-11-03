@@ -9,13 +9,15 @@ import (
 	"time"
 
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/gen/harness/auth/v1/authv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	"github.com/xlsft/harness/packages/client/rpc"
 )
 
 // CoreProxy forwards unary Connect calls of selected harness server services
 // (harness.llm.v1.ProviderService: the settings screens' providers and
-// classifier) to the server with this client's access token. Frontends talk
+// classifier; harness.auth.v1.AdminService: user administration and LDAP,
+// admins only) to the server with this client's access token. Frontends talk
 // to the client only and never hold server credentials; the server decides
 // what the signed-in user may do, exactly as for its own calls.
 //
@@ -31,7 +33,7 @@ type CoreProxy struct {
 }
 
 // coreProxyServices are the server services frontends may reach through the client.
-var coreProxyServices = []string{llmv1connect.ProviderServiceName}
+var coreProxyServices = []string{llmv1connect.ProviderServiceName, authv1connect.AdminServiceName}
 
 const coreProxyMaxBody = 1 << 20
 
