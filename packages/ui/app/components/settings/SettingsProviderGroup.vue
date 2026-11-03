@@ -131,6 +131,14 @@ async function create(draft: ProviderDraft) {
         />
       </div>
 
+      <!-- Rows of the page's own (the Classifiers page's model row). -->
+      <div
+        v-if="$slots.rows"
+        class="border-t border-default"
+      >
+        <slot name="rows" />
+      </div>
+
       <!-- Custom providers -->
       <div class="flex flex-col border-t border-default">
         <div class="flex items-center gap-3 px-3 py-2.5">

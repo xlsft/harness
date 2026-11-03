@@ -33,6 +33,9 @@ const emit = defineEmits<{ changed: [], error: [message: string] }>()
 
 const p = computed(() => props.provider)
 const classifier = computed(() => p.value.group === 'classifier')
+// Classifiers page (admins): whether this provider is the classifier in use; one at a time.
+const classifierState = inject(CLASSIFIER, null)
+const inUse = computed(() => classifierState?.settings.value?.providerId === p.value.id)
 const busy = ref('')
 const test = ref<TestResult | null>(null)
 
@@ -268,6 +271,33 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
           Save
         </HBtn>
       </form>
+
+      <!-- Classifier: in use (one at a time; none means rules, then the model) -->
+      <div
+        v-if="classifier && classifierState?.settings.value && p.scope === 'global'"
+        class="pr-3 pb-2 pl-[52px] max-sm:pl-3"
+      >
+        <button
+          type="button"
+          role="switch"
+          :aria-checked="inUse"
+          :aria-label="`Use ${p.name} as the classifier`"
+          class="flex items-center gap-1.5 text-[11.5px]"
+          :class="inUse ? 'text-white' : 'text-muted hover:text-white'"
+          @click="classifierState.use(inUse ? '' : p.id)"
+        >
+          <span
+            class="flex size-3.5 items-center justify-center border"
+            :class="inUse ? 'border-accent bg-accent' : 'border-accented'"
+          ><HIcon
+            v-if="inUse"
+            name="check"
+            :size="10"
+            class="text-white"
+          /></span>
+          use as classifier
+        </button>
+      </div>
 
       <!-- Classifier: its decision models -->
       <div

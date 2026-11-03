@@ -61,6 +61,13 @@ const PAGES = {
   }
 } as const
 
+// The classifier in use and its fallback model (admins on the Classifiers page).
+if (props.group === 'classifier') {
+  provide(CLASSIFIER, createClassifierState((msg) => {
+    error.value = msg
+  }))
+}
+
 const page = computed(() => ({
   ...PAGES[props.group],
   presets: presets.value.presets.filter(p => p.group === props.group),
@@ -112,11 +119,13 @@ const page = computed(() => ({
         @changed="changed"
         @error="error = $event"
       >
-        <SettingsClassifier
+        <!-- Classifiers: the chat model that decides when no classifier is in use or it is unsure. -->
+        <template
           v-if="group === 'classifier' && list.canManageGlobal"
-          :providers="list.providers"
-          :presets="presets.presets"
-        />
+          #rows
+        >
+          <SettingsModelClassifier :providers="list.providers" />
+        </template>
       </SettingsProviderGroup>
     </template>
   </div>

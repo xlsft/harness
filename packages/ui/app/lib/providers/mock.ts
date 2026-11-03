@@ -32,7 +32,7 @@ const PRESETS: PresetView[] = [
     docsUrl: 'https://openrouter.ai/docs/quickstart',
     keyUrl: 'https://openrouter.ai/settings/keys',
     defaultModels: [],
-    icon: 'OR',
+    icon: 'openrouter',
     discoversModels: true,
     local: false
   },
@@ -47,7 +47,7 @@ const PRESETS: PresetView[] = [
     docsUrl: 'https://platform.claude.com/docs/en/api/overview',
     keyUrl: 'https://platform.claude.com/settings/keys',
     defaultModels: [],
-    icon: 'AN',
+    icon: 'anthropic',
     discoversModels: true,
     local: false
   },
@@ -65,7 +65,7 @@ const PRESETS: PresetView[] = [
       { upstream: 'kimi-for-coding', name: 'Kimi for Coding', contextWindow: 0 },
       { upstream: 'k3', name: 'K3', contextWindow: 0 }
     ],
-    icon: 'KC',
+    icon: 'kimi',
     discoversModels: false,
     local: false
   },
@@ -83,7 +83,7 @@ const PRESETS: PresetView[] = [
     docsUrl: 'https://docs.ollama.com/api/openai-compatibility',
     keyUrl: '',
     defaultModels: [],
-    icon: 'OL',
+    icon: 'ollama',
     discoversModels: true,
     local: true
   },
@@ -98,7 +98,7 @@ const PRESETS: PresetView[] = [
     docsUrl: '',
     keyUrl: 'https://openrouter.ai/settings/keys',
     defaultModels: [{ upstream: 'typesafe/jev-1.13', name: 'Jev 1.13', contextWindow: 0 }],
-    icon: 'OR',
+    icon: 'openrouter',
     discoversModels: false,
     local: false
   },

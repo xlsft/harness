@@ -31,7 +31,7 @@ export const MODES: { key: PermissionModeName, label: string, detail: string, cl
   { key: 'accept_edits', label: 'Accept edits', detail: 'File edits auto, commands ask', cls: 'text-white' },
   { key: 'auto', label: 'Auto', detail: 'Safe actions auto, risky ones ask', cls: 'text-white' },
   { key: 'plan', label: 'Plan', detail: 'Read only, produce a plan', cls: 'text-cyan' },
-  { key: 'bypass', label: 'Bypass', detail: 'No prompts. Sandboxed hosts only', cls: 'text-bad', sep: true }
+  { key: 'bypass', label: 'Bypass', detail: 'All safeguards off. Sandboxed hosts only', cls: 'text-bad', sep: true }
 ]
 
 export const MODE_LABEL: Record<PermissionModeName, string> = {
