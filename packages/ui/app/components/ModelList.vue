@@ -62,7 +62,7 @@ function ctx(n: number) {
 
 <template>
   <div>
-    <label class="flex items-center gap-2 border-b border-default px-2.5 py-1.5 text-muted">
+    <label class="flex h-9 items-center gap-2.5 border-b border-default px-3 text-muted">
       <HIcon
         name="search"
         :size="13"
@@ -76,12 +76,12 @@ function ctx(n: number) {
         @keydown.enter.prevent="pickFirst"
       >
     </label>
-    <div class="max-h-[320px] overflow-y-auto">
+    <div class="max-h-[340px] overflow-y-auto py-1">
       <template
         v-for="sec in sections"
         :key="sec.title"
       >
-        <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
+        <div class="px-3 pt-2.5 pb-1 text-[11px] text-muted first:pt-1.5">
           {{ sec.title }}
         </div>
         <div
@@ -90,18 +90,18 @@ function ctx(n: number) {
           role="option"
           :aria-selected="m.id === selected"
           :aria-disabled="m.offline || undefined"
-          class="group/model flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]"
+          class="group/model flex min-h-8 cursor-default items-center gap-3 border-l-2 pr-3 pl-[10px]"
           :class="m.id === selected ? 'border-accent bg-raised' : 'border-transparent hover:bg-raised'"
           @click="!m.offline && emit('pick', m.id)"
         >
-          <span class="flex min-w-0 flex-1 items-baseline gap-2">
+          <span class="flex min-w-0 flex-1 items-baseline gap-2.5">
             <span
               class="shrink-0"
               :class="m.offline ? 'text-muted' : 'text-white'"
             >{{ nameOf(m) }}</span>
             <span
               v-if="m.displayName && m.displayName !== m.id"
-              class="min-w-0 truncate text-[10.5px] text-dimmed"
+              class="min-w-0 truncate text-[11px] text-muted"
             >{{ m.id }}</span>
           </span>
           <span
@@ -110,23 +110,26 @@ function ctx(n: number) {
           >offline</span>
           <span
             v-else-if="m.contextWindow"
-            class="shrink-0 text-[11px] text-muted"
+            class="shrink-0 text-[11px] text-muted tabular-nums"
           >{{ ctx(m.contextWindow) }}{{ m.price ? ` · ${m.price}` : '' }}</span>
           <button
             type="button"
             :aria-label="favorites.includes(m.id) ? `Remove ${nameOf(m)} from favorites` : `Add ${nameOf(m)} to favorites`"
             :aria-pressed="favorites.includes(m.id)"
-            class="flex size-4 shrink-0 items-center justify-center text-[12px] leading-none"
-            :class="favorites.includes(m.id) ? 'text-warn' : 'text-dimmed opacity-0 group-hover/model:opacity-100 hover:text-white'"
+            class="flex h-6 shrink-0 items-center justify-center overflow-hidden transition-[width,margin] duration-150"
+            :class="favorites.includes(m.id) ? 'w-6 text-warn' : '-ml-3 w-0 text-muted group-hover/model:ml-0 group-hover/model:w-6 hover:text-white focus-visible:ml-0 focus-visible:w-6'"
             @click.stop="toggleFavorite(m.id)"
           >
-            {{ favorites.includes(m.id) ? '★' : '☆' }}
+            <HIcon
+              :name="favorites.includes(m.id) ? 'star-filled' : 'star'"
+              :size="14"
+            />
           </button>
         </div>
       </template>
       <p
         v-if="!sections.length"
-        class="m-0 px-2.5 py-4 text-center text-muted"
+        class="m-0 px-3 py-5 text-center text-muted"
       >
         No models match.
       </p>
