@@ -69,6 +69,8 @@ function onReplyKey(e: KeyboardEvent, c: DiffComment) {
 const view = ref(props.mode)
 watch(() => props.mode, m => view.value = m)
 const stats = computed(() => patchStats(props.hunks))
+// A file written from nothing has no old side to show next to the new one.
+const createsFile = computed(() => props.hunks.every(h => h.oldLines === 0))
 
 const ADD = { bg: 'color-mix(in srgb, var(--color-ok) 12%, transparent)', sc: 'var(--color-ok)', tc: 'var(--color-strong)', s: '+' }
 const DEL = { bg: 'color-mix(in srgb, var(--color-bad) 12%, transparent)', sc: 'var(--color-bad)', tc: 'var(--color-strong)', s: '−' }
@@ -203,6 +205,7 @@ const split = computed(() => {
       <span class="flex-1" />
       <span class="shrink-0 text-[11px] text-ok">+{{ stats.add }}</span><span class="shrink-0 text-[11px] text-bad">−{{ stats.del }}</span>
       <div
+        v-if="!createsFile"
         class="flex shrink-0 overflow-hidden border border-default text-[11px]"
         role="group"
         aria-label="Diff view"
