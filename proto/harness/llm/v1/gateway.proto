@@ -61,9 +61,11 @@ message Pricing {
 // Default model per role, configured on the server.
 message Slots {
   string main = 1;
-  // Titles, summaries, WebFetch, compaction.
+  // Summaries, WebFetch, compaction; also titles when `title` is not set.
   string small = 2;
   string plan = 3;
+  // Session titles. In ListModels it falls back to `small` when the admin did not set it.
+  string title = 4;
 }
 
 enum RequestClass {

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package harness.llm.v1;
 
+import "harness/llm/v1/gateway.proto";
+
 // ProviderService manages the LLM providers (upstream API + key) whose models GatewayService offers, for the
 // settings screens of the apps. Two scopes:
 //   - GLOBAL providers are managed by admins and offered to every user (each model's roles still apply);
@@ -44,6 +46,11 @@ service ProviderService {
   // typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. Admin only.
   rpc GetClassifier(GetClassifierRequest) returns (GetClassifierResponse);
   rpc SetClassifier(SetClassifierRequest) returns (SetClassifierResponse);
+
+  // The server-wide default models per role (Slots: main, small, plan, title), as configured. Everyone may
+  // read them; SetSlots needs the admin role.
+  rpc GetSlots(GetSlotsRequest) returns (GetSlotsResponse);
+  rpc SetSlots(SetSlotsRequest) returns (SetSlotsResponse);
 }
 
 enum ProviderScope {
@@ -313,4 +320,23 @@ message Classifier {
   int32 timeout_ms = 8;
   // Catalog model (global) of the model classifier step; empty: the classifier / small slot.
   string llm_model = 9;
+}
+
+message GetSlotsRequest {}
+
+message GetSlotsResponse {
+  // As configured: an empty slot follows the server default (ListModels has the effective ones).
+  Slots slots = 1;
+  // The caller may change them (admins).
+  bool editable = 2;
+}
+
+message SetSlotsRequest {
+  // Replaces main, small, plan and title; an empty one is cleared. Values are global model ids. The model
+  // classifier's model is set with SetClassifier and is kept.
+  Slots slots = 1;
+}
+
+message SetSlotsResponse {
+  Slots slots = 1;
 }
