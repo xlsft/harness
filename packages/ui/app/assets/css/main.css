@@ -333,11 +333,21 @@
     margin: 4px 0;
   }
 
-  & table {
-    width: 100%;
-    border-collapse: collapse;
+  /* Tables: words never break mid-word (the body's overflow-wrap would squeeze columns to a letter), text
+     cells wrap at spaces, headers and inline code stay on one line, and a table wider than the message
+     scrolls inside its frame. */
+  & [data-md-table] {
+    max-width: 100%;
+    overflow-x: auto;
     border: 1px solid #2b2b2b;
+  }
+
+  & table {
+    min-width: 100%;
+    border-collapse: collapse;
     font-size: 12.5px;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   & th {
@@ -345,13 +355,28 @@
     color: #fff;
     font-weight: 400;
     text-align: left;
+    vertical-align: bottom;
+    white-space: nowrap;
     padding: 7px 12px;
     border-bottom: 1px solid #2b2b2b;
   }
 
   & td {
     padding: 7px 12px;
+    vertical-align: top;
     border-bottom: 1px solid #1c1c1c;
+  }
+
+  & :is(th, td) code {
+    white-space: nowrap;
+  }
+
+  & td[data-col='short'] {
+    white-space: nowrap;
+  }
+
+  & td[data-col='text'] {
+    min-width: 22ch;
   }
 
   & tr:last-child td {
