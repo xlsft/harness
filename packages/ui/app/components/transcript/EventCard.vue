@@ -57,7 +57,7 @@ const usageLine = computed(() => {
     <span class="flex items-center gap-[9px]"><HIcon
       name="warn"
       class="text-bad"
-    /><span class="text-white">{{ error.title }}</span></span>
+    /><span class="text-strong">{{ error.title }}</span></span>
     <span
       v-if="error.detail"
       class="text-[12px] text-muted"

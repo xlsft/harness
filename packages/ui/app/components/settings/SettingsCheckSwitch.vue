@@ -12,7 +12,7 @@ defineEmits<{ toggle: [] }>()
     :aria-label="label"
     :disabled="disabled"
     class="flex items-center gap-1.5 disabled:cursor-default"
-    :class="checked ? 'text-white' : 'text-muted hover:text-white disabled:hover:text-muted'"
+    :class="checked ? 'text-strong' : 'text-muted hover:text-strong disabled:hover:text-muted'"
     @click="$emit('toggle')"
   >
     <span
@@ -22,7 +22,7 @@ defineEmits<{ toggle: [] }>()
       v-if="checked"
       name="check"
       :size="10"
-      class="text-white"
+      class="text-strong"
     /></span>
     <slot />
   </button>

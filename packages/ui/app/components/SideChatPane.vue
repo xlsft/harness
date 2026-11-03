@@ -152,7 +152,7 @@ onBeforeUnmount(stop)
           type="button"
           aria-label="New side chat"
           title="New side chat"
-          class="flex w-9 shrink-0 items-center justify-center border-r border-line text-muted hover:text-white"
+          class="flex w-9 shrink-0 items-center justify-center border-r border-line text-muted hover:text-strong"
           @click="addChat"
         >
           <HIcon name="plus" />
@@ -177,7 +177,7 @@ onBeforeUnmount(stop)
         v-if="!chat?.messages.length"
         class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
       >
-        <span class="text-[13.5px] text-white">{{ SIDE_EMPTY.title }}</span>
+        <span class="text-[13.5px] text-strong">{{ SIDE_EMPTY.title }}</span>
         <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">{{ SIDE_EMPTY.body }}</span>
       </div>
 
@@ -192,7 +192,7 @@ onBeforeUnmount(stop)
         >
           <div
             v-if="m.role === 'user'"
-            class="flex max-w-[85%] flex-col gap-1.5 self-end border border-line bg-hover px-[11px] py-2 text-white"
+            class="flex max-w-[85%] flex-col gap-1.5 self-end border border-line bg-hover px-[11px] py-2 text-strong"
           >
             <span
               v-if="m.quote"
@@ -208,7 +208,7 @@ onBeforeUnmount(stop)
               <span
                 v-for="(s, i) in segments(m.text)"
                 :key="i"
-                :class="s.code && 'border border-line bg-hover px-1 text-[12px] text-white'"
+                :class="s.code && 'border border-line bg-hover px-1 text-[12px] text-strong'"
               >{{ s.t }}</span><PaneCaret
                 v-if="m.streaming && !m.points"
                 class="ml-[2px] h-[14px] w-[7px] align-[-2px]"
@@ -233,7 +233,7 @@ onBeforeUnmount(stop)
             >
               <button
                 type="button"
-                class="flex items-center gap-[5px] border border-line px-2 py-[2px] text-[11px] text-white hover:bg-hover"
+                class="flex items-center gap-[5px] border border-line px-2 py-[2px] text-[11px] text-strong hover:bg-hover"
               >
                 <HIcon
                   name="up"
@@ -242,7 +242,7 @@ onBeforeUnmount(stop)
               </button>
               <button
                 type="button"
-                class="px-1.5 py-[2px] text-[11px] text-muted hover:text-white"
+                class="px-1.5 py-[2px] text-[11px] text-muted hover:text-strong"
                 @click="copy(m)"
               >
                 Copy
@@ -257,7 +257,7 @@ onBeforeUnmount(stop)
             <span
               v-for="(s, i) in segments(m.text)"
               :key="i"
-              :class="s.code && 'border border-line bg-hover px-1 text-[12px] text-white'"
+              :class="s.code && 'border border-line bg-hover px-1 text-[12px] text-strong'"
             >{{ s.t }}</span><PaneCaret
               v-if="m.streaming"
               class="ml-[2px] h-[14px] w-[7px] align-[-2px]"
@@ -285,7 +285,7 @@ onBeforeUnmount(stop)
           <button
             type="button"
             aria-label="Remove quote"
-            class="mt-[3px] text-muted hover:text-white"
+            class="mt-[3px] text-muted hover:text-strong"
             @click="quote = ''"
           >
             <HIcon
@@ -301,7 +301,7 @@ onBeforeUnmount(stop)
             :disabled="streaming"
             :placeholder="streaming ? 'Answering…' : 'Ask a quick question'"
             aria-label="Ask a quick question"
-            class="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-muted"
+            class="min-w-0 flex-1 bg-transparent text-[13px] text-strong outline-none placeholder:text-muted"
             @keydown.enter.prevent="send"
           >
           <button
@@ -309,10 +309,10 @@ onBeforeUnmount(stop)
             type="button"
             aria-label="Stop"
             title="Stop"
-            class="flex size-[26px] items-center justify-center bg-white"
+            class="flex size-[26px] items-center justify-center bg-strong"
             @click="stop"
           >
-            <span class="size-[9px] bg-black" />
+            <span class="size-[9px] bg-ground" />
           </button>
           <button
             v-else
@@ -320,7 +320,7 @@ onBeforeUnmount(stop)
             aria-label="Send"
             title="Send"
             class="flex size-[26px] items-center justify-center"
-            :class="input.trim() ? 'bg-accent text-white' : 'bg-raised text-disabled'"
+            :class="input.trim() ? 'bg-accent text-on-accent' : 'bg-raised text-disabled'"
             @click="send"
           >
             <HIcon
@@ -331,7 +331,7 @@ onBeforeUnmount(stop)
         </div>
       </div>
       <div class="flex gap-3 text-[11px] text-muted">
-        <span>read-only · sees the main session</span><span class="flex-1" /><span><span class="text-white">{{ SIDE_MODEL.name }}</span> · {{ SIDE_MODEL.provider }}</span>
+        <span>read-only · sees the main session</span><span class="flex-1" /><span><span class="text-strong">{{ SIDE_MODEL.name }}</span> · {{ SIDE_MODEL.provider }}</span>
       </div>
     </div>
   </section>

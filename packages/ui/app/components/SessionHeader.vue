@@ -44,7 +44,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
     />
     <h1
       data-tauri-drag-region
-      class="m-0 min-w-0 truncate font-display text-[13.5px] font-semibold text-white"
+      class="m-0 min-w-0 truncate font-display text-[13.5px] font-semibold text-strong"
     >
       {{ session.meta.title }}
     </h1>
@@ -76,7 +76,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
         aria-haspopup="menu"
         :aria-expanded="toolsOpen"
         class="flex size-7 items-center justify-center border"
-        :class="toolsOpen ? 'border-default bg-raised text-white' : 'border-transparent text-muted hover:text-highlighted'"
+        :class="toolsOpen ? 'border-default bg-raised text-strong' : 'border-transparent text-muted hover:text-highlighted'"
       >
         <HIcon name="more" />
       </button>

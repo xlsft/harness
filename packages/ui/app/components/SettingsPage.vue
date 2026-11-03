@@ -64,7 +64,7 @@ async function signOut() {
         aria-label="Settings sections"
         class="sticky top-[52px] flex w-[180px] shrink-0 flex-col gap-[2px] self-start max-md:static max-md:w-full max-md:flex-row max-md:flex-wrap"
       >
-        <h1 class="m-0 mb-4 font-display text-[26px] font-bold text-white max-md:mb-1 max-md:w-full">
+        <h1 class="m-0 mb-4 font-display text-[26px] font-bold text-strong max-md:mb-1 max-md:w-full">
           Settings
         </h1>
         <button
@@ -82,6 +82,7 @@ async function signOut() {
 
       <div class="flex min-w-0 flex-1 flex-col">
         <template v-if="section === 'general'">
+          <SettingsAppearance />
           <SettingsModes />
           <h2 class="set-h">
             New sessions
@@ -125,7 +126,7 @@ async function signOut() {
             <div class="set-label">
               <span>Email</span>
             </div>
-            <span class="text-[12.5px] text-white">{{ store.userEmail || 'Not signed in' }}</span>
+            <span class="text-[12.5px] text-strong">{{ store.userEmail || 'Not signed in' }}</span>
           </div>
           <div
             v-if="store.account.name"
@@ -134,7 +135,7 @@ async function signOut() {
             <div class="set-label">
               <span>Name</span>
             </div>
-            <span class="text-[12.5px] text-white">{{ store.account.name }}</span>
+            <span class="text-[12.5px] text-strong">{{ store.account.name }}</span>
           </div>
           <div
             v-if="host"
@@ -143,7 +144,7 @@ async function signOut() {
             <div class="set-label">
               <span>Server</span>
             </div>
-            <span class="text-[12.5px] text-white">{{ host }}</span>
+            <span class="text-[12.5px] text-strong">{{ host }}</span>
           </div>
           <div
             v-if="store.account.role"
@@ -152,7 +153,7 @@ async function signOut() {
             <div class="set-label">
               <span>Role</span>
             </div>
-            <span class="text-[12.5px] text-white capitalize">{{ store.account.role }}</span>
+            <span class="text-[12.5px] text-strong capitalize">{{ store.account.role }}</span>
           </div>
           <div
             v-if="desktop"
@@ -164,7 +165,7 @@ async function signOut() {
             </div>
             <button
               type="button"
-              class="h-8 border border-bad px-3 text-[12.5px] text-bad hover:bg-bad hover:text-black"
+              class="h-8 border border-bad px-3 text-[12.5px] text-bad hover:bg-bad hover:text-on-accent"
               @click="signOut"
             >
               Sign out

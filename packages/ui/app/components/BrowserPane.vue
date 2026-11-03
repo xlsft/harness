@@ -124,7 +124,7 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
           type="button"
           aria-label="New browser tab"
           title="New browser tab"
-          class="flex w-9 shrink-0 items-center justify-center border-r border-line text-muted hover:text-white"
+          class="flex w-9 shrink-0 items-center justify-center border-r border-line text-muted hover:text-strong"
           @click="addTab"
         >
           <HIcon name="plus" />
@@ -183,7 +183,7 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
           type="text"
           spellcheck="false"
           placeholder="Type a URL"
-          class="min-w-0 flex-1 truncate bg-transparent text-[12.5px] text-white outline-none placeholder:text-muted"
+          class="min-w-0 flex-1 truncate bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
           @keydown.enter="navigate(address)"
         >
       </label>
@@ -208,10 +208,10 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
         :size="14"
         class="text-accent"
       />
-      <span class="text-white">The agent is using this tab</span>· step {{ AGENT_STEP.step }} of {{ AGENT_STEP.of }}<span class="flex-1" />
+      <span class="text-strong">The agent is using this tab</span>· step {{ AGENT_STEP.step }} of {{ AGENT_STEP.of }}<span class="flex-1" />
       <button
         type="button"
-        class="border border-line px-2 py-px text-[11px] text-white hover:bg-hover"
+        class="border border-line px-2 py-px text-[11px] text-strong hover:bg-hover"
         @click="agent = false"
       >
         Take over
@@ -233,7 +233,7 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
         v-for="v in VIEWPORTS"
         :key="v.name"
         type="button"
-        :class="v.name === vp.name ? 'border border-accent px-1.5 text-white' : 'hover:text-white'"
+        :class="v.name === vp.name ? 'border border-accent px-1.5 text-strong' : 'hover:text-strong'"
         @click="pickViewport(v.name)"
       >
         {{ v.name }}
@@ -253,13 +253,13 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
           :size="30"
           class="text-muted"
         />
-        <span class="font-display text-[15px] text-white">Browse with the agent</span>
+        <span class="font-display text-[15px] text-strong">Browse with the agent</span>
         <span class="max-w-[340px] text-[12.5px] leading-[1.55] text-muted">Type a URL, or ask the agent to open, click and fill in pages for you.</span>
         <span class="h-2" />
         <span class="text-[12px] text-muted">Preview your app instead</span>
         <a
           href="#"
-          class="flex items-center gap-2.5 border border-line bg-surface px-3 py-[7px] text-[12.5px] text-white hover:bg-hover"
+          class="flex items-center gap-2.5 border border-line bg-surface px-3 py-[7px] text-[12.5px] text-strong hover:bg-hover"
           @click.prevent="openPreview"
         >{{ PREVIEW_APP.name }}<span class="text-muted">{{ PREVIEW_APP.detail }}</span><HIcon
           name="right"
@@ -275,21 +275,21 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
         :style="{ width: vp ? `${vp.width}px` : '100%' }"
       >
         <div class="flex flex-wrap items-center gap-3.5 border-b border-line px-4 py-3 text-[12px]">
-          <span class="font-display text-[13px] font-bold text-white">harness core</span>
-          <span class="border-b border-accent text-white">Providers</span><span class="text-muted">Keys</span><span class="text-muted">Usage</span>
+          <span class="font-display text-[13px] font-bold text-strong">harness core</span>
+          <span class="border-b border-accent text-strong">Providers</span><span class="text-muted">Keys</span><span class="text-muted">Usage</span>
         </div>
         <div class="flex flex-col gap-3 p-4">
           <div class="flex flex-wrap items-center gap-2.5">
-            <span class="flex-1 font-display text-[17px] font-bold text-white">Providers</span>
+            <span class="flex-1 font-display text-[17px] font-bold text-strong">Providers</span>
             <span class="relative inline-flex">
               <button
                 type="button"
-                class="bg-accent px-3 py-1.5 text-[12px] text-white"
+                class="bg-accent px-3 py-1.5 text-[12px] text-on-accent"
                 :class="agent && 'outline-2 outline-offset-[3px] outline-accent'"
               >+ Add provider</button>
               <span
                 v-if="agent"
-                class="absolute right-[-3px] bottom-[calc(100%+8px)] bg-accent px-1.5 py-px text-[10.5px] whitespace-nowrap text-white"
+                class="absolute right-[-3px] bottom-[calc(100%+8px)] bg-accent px-1.5 py-px text-[10.5px] whitespace-nowrap text-on-accent"
               >{{ AGENT_STEP.action }}</span>
             </span>
           </div>
@@ -300,7 +300,7 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
               class="flex gap-2.5 px-3 py-2"
               :class="i < PROVIDERS.length - 1 && 'border-b border-muted'"
             >
-              <span class="flex-1 text-white">{{ p.name }}</span><span class="text-muted">{{ p.key }}</span><span :style="{ color: p.color }">{{ p.state }}</span>
+              <span class="flex-1 text-strong">{{ p.name }}</span><span class="text-muted">{{ p.key }}</span><span :style="{ color: p.color }">{{ p.state }}</span>
             </div>
           </div>
           <div class="flex flex-col gap-1.5 border border-line px-3 py-2.5 text-[12px]">
@@ -319,7 +319,7 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
 
       <div
         v-if="approval"
-        class="absolute inset-0 flex items-center justify-center bg-[#000000b3] p-5"
+        class="absolute inset-0 flex items-center justify-center bg-ground/70 p-5"
       >
         <div
           role="dialog"
@@ -327,27 +327,27 @@ function pickViewport(name: typeof VIEWPORTS[number]['name']) {
           class="flex w-[340px] max-w-full flex-col border border-line-strong bg-hover"
         >
           <div class="flex flex-col gap-1.5 border-b border-line px-3.5 py-3">
-            <span class="text-[13px] text-white">{{ SITE_PERMISSION.title }}</span>
+            <span class="text-[13px] text-strong">{{ SITE_PERMISSION.title }}</span>
             <span class="text-[12px] leading-[1.5] text-muted">{{ SITE_PERMISSION.body }}</span>
           </div>
           <div class="flex flex-wrap gap-2 px-3.5 py-2.5">
             <button
               type="button"
-              class="bg-accent px-3 py-[5px] text-[12px] text-white hover:brightness-110"
+              class="bg-accent px-3 py-[5px] text-[12px] text-on-accent hover:brightness-110"
               @click="allowed.push(tab.id)"
             >
               Allow once
             </button>
             <button
               type="button"
-              class="border border-line px-3 py-[5px] text-[12px] text-white hover:bg-raised"
+              class="border border-line px-3 py-[5px] text-[12px] text-strong hover:bg-raised"
               @click="allowed.push(tab.id)"
             >
               Always allow
             </button>
             <button
               type="button"
-              class="border border-line px-3 py-[5px] text-[12px] text-white hover:bg-raised"
+              class="border border-line px-3 py-[5px] text-[12px] text-strong hover:bg-raised"
               @click="closeTab(tab.id)"
             >
               Deny

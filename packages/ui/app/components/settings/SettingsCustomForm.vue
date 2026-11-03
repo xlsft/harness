@@ -61,7 +61,7 @@ function submit() {
   })
 }
 
-const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-white outline-none focus:border-accent'
+const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent'
 </script>
 
 <template>
@@ -115,7 +115,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           v-model="form.headers"
           rows="2"
           :placeholder="provider?.headerNames.length ? `Set: ${provider.headerNames.join(', ')}. Type new ones to replace them` : 'One per line, e.g. X-Team: core'"
-          class="w-full resize-y border border-accented bg-default px-2 py-1.5 font-mono text-[12px] text-white outline-none focus:border-accent"
+          class="w-full resize-y border border-accented bg-default px-2 py-1.5 font-mono text-[12px] text-strong outline-none focus:border-accent"
         />
         <span
           v-if="headerError"

@@ -147,7 +147,7 @@ const nav = [
     <div class="flex flex-col border-b border-default px-[5px] py-1.5">
       <a
         href="#"
-        class="nav-row px-[9px] hover:bg-hover text-white"
+        class="nav-row px-[9px] hover:bg-hover text-strong"
         @click.prevent="newSession()"
       >
         <HIcon name="plus" />New session<span class="flex-1" /><HKeys keys="meta+n" />
@@ -197,7 +197,7 @@ const nav = [
             type="button"
             :aria-label="`New session in ${g.name}`"
             :title="`New session in ${g.cwd}`"
-            class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-white"
+            class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-strong"
             @click="newSession(g.cwd)"
           >
             <HIcon
@@ -215,7 +215,7 @@ const nav = [
             v-model="draft"
             data-rename
             aria-label="Session title"
-            class="mx-[2px] h-7 border border-accent bg-default px-[7px] text-[12.5px] text-white outline-none"
+            class="mx-[2px] h-7 border border-accent bg-default px-[7px] text-[12.5px] text-strong outline-none"
             @keydown.enter.prevent="finishRename(true)"
             @keydown.esc.prevent="finishRename(false)"
             @blur="finishRename(true)"
@@ -231,7 +231,7 @@ const nav = [
           >
             <span
               class="truncate"
-              :class="s.meta.unread && 'font-semibold text-white'"
+              :class="s.meta.unread && 'font-semibold text-strong'"
             >{{ s.meta.title }}</span>
             <span class="flex-1" />
             <span
@@ -275,13 +275,13 @@ const nav = [
     </div>
 
     <template #footer>
-      <span class="flex size-[22px] shrink-0 items-center justify-center bg-accent text-[10.5px] font-bold text-white uppercase">{{ displayName.charAt(0) }}</span>
+      <span class="flex size-[22px] shrink-0 items-center justify-center bg-accent text-[10.5px] font-bold text-on-accent uppercase">{{ displayName.charAt(0) }}</span>
       <span
         class="flex min-w-0 items-baseline gap-1.5"
         :title="store.userEmail"
       >
         <!-- The host gives way first, then the name. -->
-        <span class="min-w-[4ch] truncate text-[12px] text-white">{{ displayName }}</span>
+        <span class="min-w-[4ch] truncate text-[12px] text-strong">{{ displayName }}</span>
         <span
           v-if="host"
           class="min-w-0 shrink-[9999] truncate text-[10.5px] text-muted"

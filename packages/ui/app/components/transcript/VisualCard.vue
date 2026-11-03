@@ -21,7 +21,9 @@ const html = computed(() => String(t.value.input.html ?? ''))
 const drawing = computed(() => t.value.status === 'running' && !html.value)
 
 const nonce = ref(newUuid())
-const srcdoc = computed(() => html.value ? visualDocument(html.value, nonce.value) : '')
+// Rebuilt when the theme changes, so the visual's CSS variables follow it.
+const { theme } = useAppearance()
+const srcdoc = computed(() => html.value && theme.value ? visualDocument(html.value, nonce.value) : '')
 const frame = ref<HTMLIFrameElement | null>(null)
 const full = ref(false)
 const fullFrame = ref<HTMLIFrameElement | null>(null)
@@ -81,7 +83,7 @@ function download() {
         :size="13"
         class="mr-1"
       />
-      <span class="min-w-0 flex-1 truncate text-white">{{ title }}</span>
+      <span class="min-w-0 flex-1 truncate text-strong">{{ title }}</span>
       <span
         v-if="versions.length > 1"
         class="flex items-center"
@@ -89,7 +91,7 @@ function download() {
         <button
           type="button"
           aria-label="Previous version"
-          class="flex size-6 items-center justify-center hover:text-white disabled:opacity-40"
+          class="flex size-6 items-center justify-center hover:text-strong disabled:opacity-40"
           :disabled="index === 0"
           @click="index--"
         >
@@ -102,7 +104,7 @@ function download() {
         <button
           type="button"
           aria-label="Next version"
-          class="flex size-6 items-center justify-center hover:text-white disabled:opacity-40"
+          class="flex size-6 items-center justify-center hover:text-strong disabled:opacity-40"
           :disabled="index === versions.length - 1"
           @click="index++"
         >
@@ -195,7 +197,7 @@ function download() {
         class="fixed inset-0 z-50 flex flex-col bg-ground"
       >
         <div class="flex h-11 shrink-0 items-center gap-2 border-b border-default pr-2 pl-4 text-[12.5px]">
-          <span class="min-w-0 flex-1 truncate text-white">{{ title }}</span>
+          <span class="min-w-0 flex-1 truncate text-strong">{{ title }}</span>
           <HIconBtn
             icon="close"
             label="Close"

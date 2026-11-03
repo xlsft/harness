@@ -22,12 +22,12 @@ export interface TermTab {
   exitCode?: number
 }
 
-const A = '#2b7fff'
-const G = '#8f8f8f'
-const W = '#ffffff'
-const OK = '#00bc7d'
-const BAD = '#ff2056'
-const WARN = '#fe9a00'
+const A = 'var(--color-accent)'
+const G = 'var(--color-muted)'
+const W = 'var(--color-strong)'
+const OK = 'var(--color-ok)'
+const BAD = 'var(--color-bad)'
+const WARN = 'var(--color-warn)'
 
 const L = (t: string, c?: string, cur?: boolean): TermLine => ({ t, c, cur })
 

@@ -20,7 +20,7 @@ const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
       <input
         v-model="query"
         placeholder="Search environments"
-        class="min-w-0 flex-1 bg-transparent text-white outline-none placeholder:text-muted"
+        class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
       >
     </label>
     <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
@@ -29,7 +29,7 @@ const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
     <div
       role="menuitemradio"
       aria-checked="true"
-      :class="[ROW, 'border-accent bg-raised text-white']"
+      :class="[ROW, 'border-accent bg-raised text-strong']"
       @click="emit('close')"
     >
       <HIcon

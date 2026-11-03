@@ -14,17 +14,17 @@ export interface BrowserTab {
   kind: BrowserPageKind
 }
 
-export const NEW_TAB: Omit<BrowserTab, 'id'> = { title: 'New tab', fav: '', favBg: '#1c1c1c', favFg: '#ffffff', url: '', kind: 'new' }
-export const DEV_TAB: Omit<BrowserTab, 'id'> = { title: 'harness core · providers', fav: 'h', favBg: '#2b7fff', favFg: '#ffffff', url: 'localhost:3000/providers', kind: 'dev' }
-export const PR_TAB: Omit<BrowserTab, 'id'> = { title: 'xlsft/harness · PR 14', fav: 'G', favBg: '#ffffff', favFg: '#000000', url: 'github.com/xlsft/harness/pull/14', kind: 'pr' }
+export const NEW_TAB: Omit<BrowserTab, 'id'> = { title: 'New tab', fav: '', favBg: 'var(--color-raised)', favFg: 'var(--color-strong)', url: '', kind: 'new' }
+export const DEV_TAB: Omit<BrowserTab, 'id'> = { title: 'harness core · providers', fav: 'h', favBg: 'var(--color-accent)', favFg: 'var(--color-on-accent)', url: 'localhost:3000/providers', kind: 'dev' }
+export const PR_TAB: Omit<BrowserTab, 'id'> = { title: 'xlsft/harness · PR 14', fav: 'G', favBg: 'var(--color-strong)', favFg: 'var(--color-ground)', url: 'github.com/xlsft/harness/pull/14', kind: 'pr' }
 
 // The app preview offered on a new tab.
 export const PREVIEW_APP = { name: 'core', detail: 'pnpm dev · :3000' }
 
 export const PROVIDERS = [
-  { name: 'OpenRouter', key: 'sk-or-…41f2', state: 'active', color: '#00bc7d' },
-  { name: 'Anthropic', key: 'sk-ant-…9c0d', state: 'ready', color: '#8f8f8f' },
-  { name: 'Ollama', key: 'localhost:11434', state: 'offline', color: '#fe6e00' }
+  { name: 'OpenRouter', key: 'sk-or-…41f2', state: 'active', color: 'var(--color-ok)' },
+  { name: 'Anthropic', key: 'sk-ant-…9c0d', state: 'ready', color: 'var(--color-muted)' },
+  { name: 'Ollama', key: 'localhost:11434', state: 'offline', color: 'var(--color-orange)' }
 ]
 
 // "Requests, last hour" bar heights in px.

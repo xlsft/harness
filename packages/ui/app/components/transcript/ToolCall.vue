@@ -111,10 +111,10 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
         :class="tool.status === 'running' ? 'text-accent' : tool.status === 'error' ? 'text-bad' : ''"
       />
       <template v-if="mcp">
-        <span class="border border-default px-[5px] text-[11px]">{{ mcp.server }}</span><span class="text-white">{{ mcp.tool }}</span>
+        <span class="border border-default px-[5px] text-[11px]">{{ mcp.server }}</span><span class="text-strong">{{ mcp.tool }}</span>
       </template>
       <template v-else>
-        {{ tool.name }}<span class="min-w-0 truncate text-white">{{ toolTarget(tool) }}</span>
+        {{ tool.name }}<span class="min-w-0 truncate text-strong">{{ toolTarget(tool) }}</span>
         <template v-if="tool.name === 'Grep' && tool.input.path">
           in {{ tool.input.path }}
         </template>
@@ -196,7 +196,7 @@ v-for="(line, i) in outputLines"
         :key="f.file"
       >
         <div
-          class="px-3 text-white"
+          class="px-3 text-strong"
           :class="i > 0 ? 'pt-1' : ''"
         >
           {{ f.file }}
@@ -212,7 +212,7 @@ v-for="(line, i) in outputLines"
             :key="k"
           ><span
             v-if="p.m"
-            class="bg-accent text-white"
+            class="bg-accent text-on-accent"
           >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
         </div>
       </template>
@@ -251,9 +251,9 @@ v-for="(line, i) in outputLines"
         >
         <span
           v-else
-          class="flex size-4 shrink-0 items-center justify-center bg-raised text-[10px] text-white"
+          class="flex size-4 shrink-0 items-center justify-center bg-raised text-[10px] text-strong"
         >{{ (host(r.url) ?? '?')[0]!.toUpperCase() }}</span>
-        <span class="min-w-0 truncate text-white group-hover:underline">{{ r.title }}</span><span class="shrink-0 text-muted group-hover:text-toned">{{ host(r.url) }}</span>
+        <span class="min-w-0 truncate text-strong group-hover:underline">{{ r.title }}</span><span class="shrink-0 text-muted group-hover:text-toned">{{ host(r.url) }}</span>
       </a>
     </div>
 

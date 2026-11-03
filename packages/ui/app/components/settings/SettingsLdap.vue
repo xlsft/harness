@@ -87,8 +87,8 @@ async function testUser() {
   }
 }
 
-const input = 'h-8 w-[300px] border border-accented bg-default px-2 text-[12.5px] text-white outline-none focus:border-accent max-sm:w-full'
-const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 font-mono text-[12px] text-white outline-none focus:border-accent max-sm:w-full'
+const input = 'h-8 w-[300px] border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent max-sm:w-full'
+const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 font-mono text-[12px] text-strong outline-none focus:border-accent max-sm:w-full'
 </script>
 
 <template>

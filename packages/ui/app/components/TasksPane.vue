@@ -60,7 +60,7 @@ function clearFinished() {
     class="flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
-      <span class="font-display text-[13px] text-white">Background tasks</span>
+      <span class="font-display text-[13px] text-strong">Background tasks</span>
       <span class="flex-1" />
       <PaneBtn
         icon="trash"
@@ -87,7 +87,7 @@ function clearFinished() {
         :size="24"
         class="text-muted"
       />
-      <span class="text-white">No background tasks</span>
+      <span class="text-strong">No background tasks</span>
       <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Dev servers, watchers and long test runs the agent starts in the background show up here.</span>
     </div>
 
@@ -96,7 +96,7 @@ function clearFinished() {
       class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3"
     >
       <div class="px-[2px] pt-[2px] pb-1 text-[12px] text-muted">
-        Running <span class="text-white">{{ running.length }}</span>
+        Running <span class="text-strong">{{ running.length }}</span>
       </div>
       <div
         v-for="t in running"
@@ -118,7 +118,7 @@ function clearFinished() {
             spin
             class="text-accent"
           />
-          <span class="min-w-0 flex-1 truncate text-white">{{ t.command }}</span>
+          <span class="min-w-0 flex-1 truncate text-strong">{{ t.command }}</span>
           <span class="text-[11.5px] whitespace-nowrap text-muted">{{ formatDuration(now - t.startedAt) }}</span>
           <button
             type="button"
@@ -127,7 +127,7 @@ function clearFinished() {
             class="flex size-6 shrink-0 items-center justify-center border border-line bg-raised hover:border-line-strong"
             @click.stop="stop(t)"
           >
-            <span class="size-2 bg-white" />
+            <span class="size-2 bg-strong" />
           </button>
         </div>
         <div
@@ -142,14 +142,14 @@ function clearFinished() {
           <div class="flex gap-1.5">
             <button
               type="button"
-              class="border border-line px-2 py-px text-[11px] text-white hover:bg-hover"
+              class="border border-line px-2 py-px text-[11px] text-strong hover:bg-hover"
               @click="openPane('terminal')"
             >
               Open in terminal
             </button>
             <button
               type="button"
-              class="border border-line px-2 py-px text-[11px] text-white hover:bg-hover"
+              class="border border-line px-2 py-px text-[11px] text-strong hover:bg-hover"
             >
               Send output to chat
             </button>
@@ -167,7 +167,7 @@ function clearFinished() {
           <HIcon
             :name="finishedOpen ? 'down' : 'right'"
             :size="11"
-          />Finished <span class="text-white">{{ finished.length }}</span>
+          />Finished <span class="text-strong">{{ finished.length }}</span>
         </button>
         <template v-if="finishedOpen">
           <div

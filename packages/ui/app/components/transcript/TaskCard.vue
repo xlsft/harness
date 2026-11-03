@@ -36,7 +36,7 @@ const lastLine = computed(() => tail.value[tail.value.length - 1] ?? '')
         name="background"
         class="text-muted"
       />
-      <span class="text-muted">Background</span><span class="text-white">{{ task.command }}</span>
+      <span class="text-muted">Background</span><span class="text-strong">{{ task.command }}</span>
       <span class="flex-1" /><span class="text-[11px] text-accent">running · {{ formatDuration(elapsed) }}</span>
     </div>
     <pre class="m-0 overflow-x-auto bg-surface px-3 py-2 text-[12px] leading-[1.6] text-muted"><template
@@ -73,7 +73,7 @@ v-if="j % 2"
       name="check"
       :class="task.state === 'done' ? 'text-ok' : 'text-muted'"
     />
-    <span class="text-muted">{{ task.state === 'done' ? 'Background finished' : 'Background stopped' }}</span><span class="text-white">{{ task.command }}</span>
+    <span class="text-muted">{{ task.state === 'done' ? 'Background finished' : 'Background stopped' }}</span><span class="text-strong">{{ task.command }}</span>
     <span class="flex-1" />
     <span
       class="text-[11px]"
@@ -91,7 +91,7 @@ v-if="j % 2"
         name="warn"
         class="text-bad"
       />
-      <span class="text-muted">Background failed</span><span class="text-white">{{ task.command }}</span>
+      <span class="text-muted">Background failed</span><span class="text-strong">{{ task.command }}</span>
       <span class="flex-1" /><span class="text-[11px] text-bad">exit {{ task.exitCode }} · {{ formatSeconds(task.durationMs) }}</span>
     </div>
     <pre

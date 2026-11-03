@@ -7,16 +7,16 @@ export interface Token {
 }
 
 export const PALETTE = {
-  text: '#d4d4d4',
-  white: '#ffffff',
-  muted: '#8f8f8f',
-  keyword: '#f6339a',
-  string: '#00bc7d',
-  type: '#00b8db',
-  number: '#fe9a00',
-  ok: '#00bc7d',
-  warn: '#fe9a00',
-  bad: '#ff2056'
+  text: 'var(--color-text)',
+  white: 'var(--color-strong)',
+  muted: 'var(--color-muted)',
+  keyword: 'var(--color-pink)',
+  string: 'var(--color-ok)',
+  type: 'var(--color-cyan)',
+  number: 'var(--color-warn)',
+  ok: 'var(--color-ok)',
+  warn: 'var(--color-warn)',
+  bad: 'var(--color-bad)'
 }
 
 const KEYWORDS = new Set([

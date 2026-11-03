@@ -155,7 +155,7 @@ async function copy(text: string) {
     class="flex h-full flex-col bg-default"
   >
     <div class="flex h-11 shrink-0 items-center gap-0.5 border-b border-default pr-1.5 pl-3.5">
-      <span class="font-display text-[13px] text-white">Diff</span>
+      <span class="font-display text-[13px] text-strong">Diff</span>
       <span class="flex-1" />
       <UPopover
         v-model:open="viewMenu"
@@ -207,7 +207,7 @@ async function copy(text: string) {
         :size="24"
         class="text-muted"
       />
-      <span class="text-white">No changes yet</span>
+      <span class="text-strong">No changes yet</span>
       <span class="max-w-80 text-[12px] leading-[1.55] text-muted">Edits the agent makes in this session show up here for review.</span>
     </div>
     <div

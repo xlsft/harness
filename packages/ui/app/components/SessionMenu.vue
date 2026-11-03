@@ -83,8 +83,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
     <button
       type="button"
       :aria-label="`More for ${session.meta.title}`"
-      class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-white"
-      :class="open ? 'flex bg-hover text-white' : 'hidden group-hover/row:flex'"
+      class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-strong"
+      :class="open ? 'flex bg-hover text-strong' : 'hidden group-hover/row:flex'"
       @click.stop.prevent
     >
       <HIcon

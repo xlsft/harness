@@ -41,12 +41,12 @@ export interface CodeToken {
   c: string
 }
 
-const K = '#f6339a'
-const S = '#00bc7d'
-const C = '#8f8f8f'
-const F = '#2b7fff'
-const Ty = '#00b8db'
-const D = '#d4d4d4'
+const K = 'var(--color-pink)'
+const S = 'var(--color-ok)'
+const C = 'var(--color-muted)'
+const F = 'var(--color-accent)'
+const Ty = 'var(--color-cyan)'
+const D = 'var(--color-text)'
 const x = (t: string, c: string): CodeToken => ({ t, c })
 
 export const CODE_LINES: CodeToken[][] = [
@@ -76,11 +76,11 @@ export const BASELINE = {
   title: 'Eval baseline: M1 (2026-11-02)',
   intro: 'Client: M0 + M1 context packages. Server: M1 core (Anthropic, OpenAI-chat and Responses adapters). Models via OpenRouter. One attempt per task; total cost about $0.093.',
   results: [
-    { model: 'claude-haiku', rate: '100%', passed: '7/7', color: '#00bc7d' },
-    { model: 'gpt-luna', rate: '100%', passed: '7/7', color: '#00bc7d' },
-    { model: 'deepseek-flash', rate: '100%', passed: '7/7', color: '#00bc7d' },
-    { model: 'qwen-flash', rate: '100%', passed: '7/7', color: '#00bc7d' },
-    { model: 'glm-flash', rate: '86%', passed: '6/7', color: '#fe9a00' }
+    { model: 'claude-haiku', rate: '100%', passed: '7/7', color: 'var(--color-ok)' },
+    { model: 'gpt-luna', rate: '100%', passed: '7/7', color: 'var(--color-ok)' },
+    { model: 'deepseek-flash', rate: '100%', passed: '7/7', color: 'var(--color-ok)' },
+    { model: 'qwen-flash', rate: '100%', passed: '7/7', color: 'var(--color-ok)' },
+    { model: 'glm-flash', rate: '86%', passed: '6/7', color: 'var(--color-warn)' }
   ],
   failures: [
     { model: 'glm-flash', task: 'py-implement-from-docstring', status: 'fail', turns: '7' }

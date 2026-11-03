@@ -60,7 +60,7 @@ async function create(draft: ProviderDraft) {
     class="mb-8 flex flex-col"
   >
     <template v-if="title">
-      <h3 class="m-0 text-[13px] font-semibold text-white">
+      <h3 class="m-0 text-[13px] font-semibold text-strong">
         {{ title }}
       </h3>
       <p class="m-0 mt-1 mb-3 text-[12px] text-muted">
@@ -81,7 +81,7 @@ async function create(draft: ProviderDraft) {
             :dim="!connectionsOf(preset.id).length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="flex items-center gap-2 text-[12.5px] text-white">
+            <span class="flex items-center gap-2 text-[12.5px] text-strong">
               {{ preset.name }}
               <span
                 v-if="connectionsOf(preset.id).length"
@@ -147,7 +147,7 @@ async function create(draft: ProviderDraft) {
             :dim="!custom.length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="text-[12.5px] text-white">Custom</span>
+            <span class="text-[12.5px] text-strong">Custom</span>
             <span class="truncate text-[11.5px] text-muted">{{ group === 'llm' ? 'Any compatible API: you set the protocol, URL, key and headers.' : 'A decision model or policy webhook of your own.' }}</span>
           </span>
           <HBtn

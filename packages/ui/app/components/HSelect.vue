@@ -55,7 +55,7 @@ function pick(v: string) {
     >
       <span
         class="min-w-0 flex-1 truncate"
-        :class="current ? 'text-white' : 'text-muted'"
+        :class="current ? 'text-strong' : 'text-muted'"
       >{{ current?.label ?? placeholder }}</span>
       <span
         v-if="current?.hint"
@@ -85,7 +85,7 @@ function pick(v: string) {
             v-model="query"
             placeholder="Filter"
             aria-label="Filter options"
-            class="min-w-0 flex-1 bg-transparent text-white outline-none placeholder:text-muted"
+            class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
           >
         </label>
         <div class="max-h-[280px] overflow-y-auto py-1">
@@ -105,7 +105,7 @@ function pick(v: string) {
               role="option"
               :aria-selected="o.value === model"
               class="flex min-h-8 cursor-default items-center gap-2 border-l-2 pr-2.5 pl-[8px]"
-              :class="o.value === model ? 'border-accent bg-raised text-white' : 'border-transparent text-toned hover:bg-raised hover:text-white'"
+              :class="o.value === model ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
               @click="pick(o.value)"
             >
               <span class="min-w-0 flex-1 truncate">{{ o.label }}</span>

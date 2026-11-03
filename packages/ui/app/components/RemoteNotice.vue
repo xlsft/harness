@@ -40,7 +40,7 @@ function continueHere() {
       :size="14"
       class="shrink-0 text-muted"
     />
-    <span class="min-w-0 truncate text-white">Running on {{ device }}</span>
+    <span class="min-w-0 truncate text-strong">Running on {{ device }}</span>
     <span
       v-if="presence"
       class="text-[11.5px]"

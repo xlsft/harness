@@ -91,7 +91,7 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
         <span
           aria-hidden="true"
           class="flex size-7 shrink-0 items-center justify-center border border-line bg-raised"
-          :class="isOff(m.key) ? 'text-dimmed' : 'text-white'"
+          :class="isOff(m.key) ? 'text-dimmed' : 'text-strong'"
         ><HIcon
           :name="ICONS[m.key]"
           :size="14"
@@ -117,7 +117,7 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
           :aria-checked="defaultMode === m.key"
           :aria-label="`Start new sessions in ${m.label} mode`"
           class="flex shrink-0 items-center gap-1.5 text-[11px]"
-          :class="defaultMode === m.key ? 'text-white' : 'text-muted hover:text-white'"
+          :class="defaultMode === m.key ? 'text-strong' : 'text-muted hover:text-strong'"
           @click="save('mode', m.key)"
         >
           <span
@@ -127,7 +127,7 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
             v-if="defaultMode === m.key"
             name="check"
             :size="10"
-            class="text-white"
+            class="text-strong"
           /></span>
           default
         </button>

@@ -25,10 +25,11 @@ interface PageParts {
 function page(title: string, parts: PageParts, status = 200): Response {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <title>${esc(title)} · xlsft\`s harness</title>
 <style>
-:root{--bg:#000;--line:#2b2b2b;--line-strong:#454545;--text:#d4d4d4;--muted:#8f8f8f;--white:#fff;--accent:#2b7fff;--bad:#ff2056}
+:root{color-scheme:dark;--bg:#000;--line:#2b2b2b;--line-strong:#454545;--text:#d4d4d4;--muted:#8f8f8f;--white:#fff;--on-accent:#fff;--accent:#2b7fff;--bad:#ff2056}
+@media (prefers-color-scheme:light){:root{color-scheme:light;--bg:#fff;--line:#e3e3e3;--line-strong:#c7c7c7;--text:#2b2b2b;--muted:#6b6b6b;--white:#000;--accent:#1f6feb;--bad:#e0003f}}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 body{font:13px/1.6 "Cascadia Code","JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;min-height:100vh;display:flex;flex-direction:column;padding:0 20px}
@@ -46,7 +47,7 @@ input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px var(--bg) inset;-webkit-tex
 input:focus{border-color:var(--accent)}
 button{height:36px;border:1px solid var(--line);border-radius:0;background:transparent;color:var(--text);font:inherit;font-size:12.5px;cursor:pointer}
 button:hover{color:var(--white)}
-button.primary{background:var(--accent);border-color:var(--accent);color:var(--white)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .row{display:flex;gap:8px}.row button{flex:1}
 .code{font-size:24px;letter-spacing:.2em;color:var(--white);text-align:center;padding:14px;border:1px solid var(--line-strong);background:var(--bg)}
 .code.small{font-size:15px;padding:8px}

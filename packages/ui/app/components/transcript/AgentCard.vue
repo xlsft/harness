@@ -24,7 +24,7 @@ const footer = computed(() => {
         :name="running ? 'agent' : failed ? 'x' : 'check'"
         :class="running ? 'text-accent' : failed ? 'text-bad' : 'text-ok'"
       />
-      <span class="text-white">Agent</span>
+      <span class="text-strong">Agent</span>
       <span class="border border-default px-[5px] text-[11px] text-muted">{{ type }}</span>
       <span class="text-muted">{{ toolTarget(tool) }}</span>
       <span class="flex-1" />
@@ -46,7 +46,7 @@ const footer = computed(() => {
         v-for="(s, i) in sub.steps"
         :key="i"
         class="flex items-center gap-2"
-        :class="s.status === 'running' ? 'text-white' : ''"
+        :class="s.status === 'running' ? 'text-strong' : ''"
       >
         <span
           class="w-3"

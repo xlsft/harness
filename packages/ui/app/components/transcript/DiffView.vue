@@ -68,9 +68,9 @@ const view = ref(props.mode)
 watch(() => props.mode, m => view.value = m)
 const stats = computed(() => patchStats(props.hunks))
 
-const ADD = { bg: '#00bc7d1f', sc: '#00bc7d', tc: '#fff', s: '+' }
-const DEL = { bg: '#ff20561f', sc: '#ff2056', tc: '#fff', s: '−' }
-const CTX = { bg: 'transparent', sc: '#8f8f8f', tc: '#d4d4d4', s: ' ' }
+const ADD = { bg: 'color-mix(in srgb, var(--color-ok) 12%, transparent)', sc: 'var(--color-ok)', tc: 'var(--color-strong)', s: '+' }
+const DEL = { bg: 'color-mix(in srgb, var(--color-bad) 12%, transparent)', sc: 'var(--color-bad)', tc: 'var(--color-strong)', s: '−' }
+const CTX = { bg: 'transparent', sc: 'var(--color-muted)', tc: 'var(--color-text)', s: ' ' }
 
 interface URow { kind: 'hunk', text: string }
 interface LRow { kind: 'line', h: number, a: string, b: string, t: string, bg: string, sc: string, tc: string, s: string }
@@ -150,7 +150,7 @@ const unified = computed(() => {
 })
 
 interface Side { n: string, t: string, bg: string, c: string }
-const EMPTY: Side = { n: '', t: '', bg: '#131313', c: '#d4d4d4' }
+const EMPTY: Side = { n: '', t: '', bg: 'var(--color-hover)', c: 'var(--color-text)' }
 
 const split = computed(() => {
   const rows: { l: Side, r: Side }[] = []
@@ -166,11 +166,11 @@ const split = computed(() => {
     }
     for (const line of h.lines) {
       const t = line.slice(1)
-      if (line.startsWith('-')) dels.push({ n: String(a++), t, bg: '#ff20561f', c: '#fff' })
-      else if (line.startsWith('+')) adds.push({ n: String(b++), t, bg: '#00bc7d1f', c: '#fff' })
+      if (line.startsWith('-')) dels.push({ n: String(a++), t, bg: 'color-mix(in srgb, var(--color-bad) 12%, transparent)', c: 'var(--color-strong)' })
+      else if (line.startsWith('+')) adds.push({ n: String(b++), t, bg: 'color-mix(in srgb, var(--color-ok) 12%, transparent)', c: 'var(--color-strong)' })
       else {
         flush()
-        rows.push({ l: { n: String(a++), t, bg: 'transparent', c: '#d4d4d4' }, r: { n: String(b++), t, bg: 'transparent', c: '#d4d4d4' } })
+        rows.push({ l: { n: String(a++), t, bg: 'transparent', c: 'var(--color-text)' }, r: { n: String(b++), t, bg: 'transparent', c: 'var(--color-text)' } })
       }
     }
     flush()
@@ -194,7 +194,7 @@ const split = computed(() => {
         name="edit"
         class="text-muted"
       />
-      <span class="text-muted">{{ verb }}</span><span class="min-w-0 truncate text-white">{{ path }}</span>
+      <span class="text-muted">{{ verb }}</span><span class="min-w-0 truncate text-strong">{{ path }}</span>
       <span class="flex-1" />
       <span class="text-ok">+{{ stats.add }}</span><span class="text-bad">−{{ stats.del }}</span>
       <div
@@ -205,7 +205,7 @@ const split = computed(() => {
         <button
           type="button"
           class="px-[7px] py-px"
-          :class="view === 'unified' ? 'bg-raised text-white' : 'text-muted'"
+          :class="view === 'unified' ? 'bg-raised text-strong' : 'text-muted'"
           @click="view = 'unified'"
         >
           Unified
@@ -213,7 +213,7 @@ const split = computed(() => {
         <button
           type="button"
           class="px-[7px] py-px"
-          :class="view === 'split' ? 'bg-raised text-white' : 'text-muted'"
+          :class="view === 'split' ? 'bg-raised text-strong' : 'text-muted'"
           @click="view = 'split'"
         >
           Split
@@ -236,21 +236,21 @@ const split = computed(() => {
           placeholder="What should change here?"
           aria-label="Comment"
           data-draft
-          class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-white outline-none placeholder:text-muted"
+          class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-strong outline-none placeholder:text-muted"
           @keydown="onDraftKey"
         />
         <div class="flex items-center gap-2 text-[11.5px]">
           <span class="flex-1" />
           <button
             type="button"
-            class="border border-default px-2 py-0.5 text-toned hover:text-white"
+            class="border border-default px-2 py-0.5 text-toned hover:text-strong"
             @click="draft = null"
           >
             Cancel
           </button>
           <button
             type="button"
-            class="bg-accent px-2 py-0.5 text-white disabled:opacity-50"
+            class="bg-accent px-2 py-0.5 text-on-accent disabled:opacity-50"
             :disabled="!draft.text.trim() && !draft.id"
             @click="saveComment"
           >
@@ -266,7 +266,7 @@ const split = computed(() => {
         >
           <div
             v-if="r.kind === 'hunk'"
-            class="bg-[#071a20] px-3 py-0.5 text-cyan"
+            class="bg-cyan/10 px-3 py-0.5 text-cyan"
           >
             {{ r.text }}
           </div>
@@ -279,7 +279,7 @@ const split = computed(() => {
                 v-if="commentable"
                 type="button"
                 :aria-label="`Comment on line ${r.b || r.a}`"
-                class="absolute top-1/2 left-0.5 hidden size-4 -translate-y-1/2 items-center justify-center bg-accent text-white group-hover/line:flex"
+                class="absolute top-1/2 left-0.5 hidden size-4 -translate-y-1/2 items-center justify-center bg-accent text-on-accent group-hover/line:flex"
                 @click="startComment(r)"
               >
                 <HIcon
@@ -309,7 +309,7 @@ const split = computed(() => {
                   >
                     <div class="flex items-start gap-2">
                       <span class="w-10 shrink-0 text-[11px] text-muted">you</span>
-                      <span class="min-w-0 flex-1 text-white">{{ e.text }}</span>
+                      <span class="min-w-0 flex-1 text-strong">{{ e.text }}</span>
                     </div>
                     <div class="flex items-start gap-2">
                       <span class="w-10 shrink-0 text-[11px] text-accent">agent</span>
@@ -332,7 +332,7 @@ const split = computed(() => {
                     rows="1"
                     placeholder="Reply…"
                     aria-label="Reply"
-                    class="ml-12 resize-none border border-default bg-surface px-2 py-1 text-[12px] leading-[1.6] text-white outline-none placeholder:text-muted focus:border-accent"
+                    class="ml-12 resize-none border border-default bg-surface px-2 py-1 text-[12px] leading-[1.6] text-strong outline-none placeholder:text-muted focus:border-accent"
                     @keydown="onReplyKey($event, c)"
                   />
                 </template>
@@ -351,7 +351,7 @@ const split = computed(() => {
                   <template v-else>
                     <button
                       type="button"
-                      class="text-[11px] text-muted hover:text-white"
+                      class="text-[11px] text-muted hover:text-strong"
                       @click="startComment(r, c)"
                     >
                       Edit
@@ -376,7 +376,7 @@ const split = computed(() => {
                   placeholder="What should change here?"
                   aria-label="Comment"
                   data-draft
-                  class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-white outline-none placeholder:text-muted"
+                  class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-strong outline-none placeholder:text-muted"
                   @keydown="onDraftKey"
                 />
                 <div class="flex items-center gap-2 text-[11.5px]">
@@ -384,14 +384,14 @@ const split = computed(() => {
                   <span class="flex-1" />
                   <button
                     type="button"
-                    class="border border-default px-2 py-0.5 text-toned hover:text-white"
+                    class="border border-default px-2 py-0.5 text-toned hover:text-strong"
                     @click="draft = null"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    class="bg-accent px-2 py-0.5 text-white disabled:opacity-50"
+                    class="bg-accent px-2 py-0.5 text-on-accent disabled:opacity-50"
                     :disabled="!draft.text.trim() && !draft.id"
                     @click="saveComment"
                   >

@@ -36,7 +36,7 @@ function toggle(a: ToolItem) {
 
 const STEP: Record<SubagentStep['status'], { icon: IconName, color: string, fg: string }> = {
   done: { icon: 'check', color: 'text-ok', fg: 'text-muted' },
-  running: { icon: 'loading', color: 'text-accent', fg: 'text-white' },
+  running: { icon: 'loading', color: 'text-accent', fg: 'text-strong' },
   waiting: { icon: 'dot', color: 'text-line-strong', fg: 'text-muted' },
   failed: { icon: 'x', color: 'text-bad', fg: 'text-toned' }
 }
@@ -52,7 +52,7 @@ function clearFinished() {
     class="flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
-      <span class="font-display text-[13px] text-white">Agents</span>
+      <span class="font-display text-[13px] text-strong">Agents</span>
       <span class="flex-1" />
       <PaneBtn
         icon="trash"
@@ -79,7 +79,7 @@ function clearFinished() {
         :size="24"
         class="text-muted"
       />
-      <span class="text-white">No agents running</span>
+      <span class="text-strong">No agents running</span>
       <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Subagents and parallel sessions started from this session show up here with their own tasks.</span>
     </div>
 
@@ -88,7 +88,7 @@ function clearFinished() {
       class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3"
     >
       <div class="px-[2px] pt-[2px] pb-1 text-[12px] text-muted">
-        Running <span class="text-white">{{ running.length }}</span>
+        Running <span class="text-strong">{{ running.length }}</span>
       </div>
       <div
         v-for="a in running"
@@ -111,7 +111,7 @@ function clearFinished() {
             :size="13"
             class="text-accent"
           />
-          <span class="min-w-0 truncate text-white">{{ title(a) }}</span>
+          <span class="min-w-0 truncate text-strong">{{ title(a) }}</span>
           <HIcon
             name="right"
             :size="12"
@@ -126,7 +126,7 @@ function clearFinished() {
             title="Stop agent"
             class="flex size-6 shrink-0 items-center justify-center border border-line bg-raised hover:border-line-strong"
           >
-            <span class="size-2 bg-white" />
+            <span class="size-2 bg-strong" />
           </button>
         </div>
         <template v-if="isGroup(a)">
@@ -180,7 +180,7 @@ function clearFinished() {
           <HIcon
             :name="finishedOpen ? 'down' : 'right'"
             :size="11"
-          />Finished <span class="text-white">{{ finished.length }}</span>
+          />Finished <span class="text-strong">{{ finished.length }}</span>
         </button>
         <template v-if="finishedOpen">
           <div

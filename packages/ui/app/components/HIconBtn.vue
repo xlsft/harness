@@ -35,7 +35,7 @@ const box = computed(() => ({ 26: 'size-[26px]', 28: 'size-7', 30: 'size-[30px]'
       :aria-label="label"
       :aria-pressed="pressed || undefined"
       class="flex shrink-0 items-center justify-center border hover:text-highlighted"
-      :class="[box, active ? 'border-line text-white' : pressed ? 'border-transparent bg-raised text-white' : 'border-transparent text-muted']"
+      :class="[box, active ? 'border-line text-strong' : pressed ? 'border-transparent bg-raised text-strong' : 'border-transparent text-muted']"
     >
       <HIcon
         :name="icon"

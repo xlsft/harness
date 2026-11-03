@@ -178,7 +178,7 @@ async function copy(text: string) {
   }
 }
 
-const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-white outline-none focus:border-accent'
+const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent'
 </script>
 
 <template>
@@ -203,10 +203,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       role="status"
       class="mb-3 flex flex-col gap-2 border border-accent px-3 py-2.5 text-[12px]"
     >
-      <span class="text-white">New password for {{ revealed.email }}</span>
+      <span class="text-strong">New password for {{ revealed.email }}</span>
       <span class="text-muted">Shown only now. Hand it over securely; it cannot be shown again.</span>
       <div class="flex items-center gap-2">
-        <code class="flex-1 truncate border border-default bg-raised px-2 py-1 font-mono text-[12.5px] text-white select-all">{{ revealed.password }}</code>
+        <code class="flex-1 truncate border border-default bg-raised px-2 py-1 font-mono text-[12.5px] text-strong select-all">{{ revealed.password }}</code>
         <HBtn
           size="sm"
           @click="copy(revealed.password)"
@@ -363,7 +363,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           @click="toggle(u)"
         >
           <span class="flex min-w-[220px] flex-1 flex-col gap-0.5">
-            <span class="flex items-center gap-2 truncate text-white">
+            <span class="flex items-center gap-2 truncate text-strong">
               {{ u.name }}
               <span
                 v-if="u.isSelf"
@@ -441,7 +441,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 role="radio"
                 :aria-checked="u.role === r"
                 class="border px-2 py-[3px] text-[11.5px] capitalize"
-                :class="u.role === r ? 'border-line bg-raised text-white' : 'border-transparent text-muted hover:text-white'"
+                :class="u.role === r ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
                 @click="u.role !== r && setRole(u, r)"
               >
                 {{ r }}

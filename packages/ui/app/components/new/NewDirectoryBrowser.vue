@@ -48,14 +48,14 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
         v-model="typed"
         spellcheck="false"
         aria-label="Path"
-        class="min-w-0 flex-1 bg-transparent text-white outline-none"
+        class="min-w-0 flex-1 bg-transparent text-strong outline-none"
       >
       <HKeys keys="enter" />
     </form>
     <div class="h-[320px] overflow-y-auto py-1">
       <div
         v-if="listing?.parent"
-        class="flex cursor-default items-center gap-2 px-2.5 py-[5px] text-muted hover:bg-raised hover:text-white"
+        class="flex cursor-default items-center gap-2 px-2.5 py-[5px] text-muted hover:bg-raised hover:text-strong"
         @click="go(listing.parent)"
       >
         <HIcon
@@ -66,7 +66,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
       <div
         v-for="e in listing?.entries ?? []"
         :key="e.name"
-        class="flex cursor-default items-center gap-2 px-2.5 py-[5px] text-toned hover:bg-raised hover:text-white"
+        class="flex cursor-default items-center gap-2 px-2.5 py-[5px] text-toned hover:bg-raised hover:text-strong"
         @click="go(join(listing!.path, e.name))"
       >
         <HIcon
@@ -93,7 +93,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
       <span class="min-w-0 flex-1 truncate text-[11.5px] text-muted">{{ listing?.path }}</span>
       <button
         type="button"
-        class="h-7 border border-default px-2.5 text-toned hover:text-white"
+        class="h-7 border border-default px-2.5 text-toned hover:text-strong"
         @click="emit('close')"
       >
         Cancel
@@ -101,7 +101,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
       <button
         type="button"
         :disabled="(!listing && !typed.trim()) || loading"
-        class="h-7 bg-accent px-2.5 text-white disabled:opacity-50"
+        class="h-7 bg-accent px-2.5 text-on-accent disabled:opacity-50"
         @click="emit('pick', listing?.path ?? typed.trim())"
       >
         Use this folder

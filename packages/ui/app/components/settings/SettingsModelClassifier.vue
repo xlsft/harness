@@ -45,13 +45,13 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
     <div class="flex items-center gap-3 px-3 py-2.5">
       <span
         aria-hidden="true"
-        class="flex size-7 shrink-0 items-center justify-center border border-line bg-raised text-white"
+        class="flex size-7 shrink-0 items-center justify-center border border-line bg-raised text-strong"
       ><HIcon
         name="ai"
         :size="15"
       /></span>
       <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span class="text-[12.5px] text-white">Model as classifier</span>
+        <span class="text-[12.5px] text-strong">Model as classifier</span>
         <span class="truncate text-[11.5px] text-muted">Decides when the classifier is unsure.</span>
       </span>
       <HBtn
@@ -72,7 +72,7 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
     >
       <!-- The model of the model classifier -->
       <div class="flex flex-col gap-1.5">
-        <span class="text-[12px] text-white">Model</span>
+        <span class="text-[12px] text-strong">Model</span>
         <div class="flex items-center gap-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-1">
           <span :class="label">Server default</span>
           <div
@@ -89,7 +89,7 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
           <span
             v-else
             class="text-[12px]"
-            :class="defaultModel ? 'text-white' : 'text-muted'"
+            :class="defaultModel ? 'text-strong' : 'text-muted'"
           >{{ modelLabel(defaultModel) }}</span>
         </div>
         <div class="flex items-center gap-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-1">
@@ -107,7 +107,7 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
 
       <!-- The caller's classifier, including none (the switches on the classifiers above set the same) -->
       <div class="flex flex-col gap-1.5">
-        <span class="text-[12px] text-white">Classifier</span>
+        <span class="text-[12px] text-strong">Classifier</span>
         <div class="flex items-center gap-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-1">
           <span :class="label">For me</span>
           <div class="w-[260px] max-sm:w-full">

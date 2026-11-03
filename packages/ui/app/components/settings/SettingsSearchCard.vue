@@ -110,7 +110,7 @@ const dot = computed(() => {
   return !hasKey.value || p.value.keySet ? 'bg-ok' : 'bg-warn'
 })
 
-const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] text-white outline-none focus:border-accent'
+const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] text-strong outline-none focus:border-accent'
 </script>
 
 <template>
@@ -121,7 +121,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
   >
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2 pr-3 pl-[52px] text-[12px] max-sm:pl-3">
       <span class="flex min-w-[200px] flex-1 flex-col gap-0.5">
-        <span class="flex items-center gap-2 text-white">
+        <span class="flex items-center gap-2 text-strong">
           <span
             class="size-1.5 shrink-0"
             :class="dot"

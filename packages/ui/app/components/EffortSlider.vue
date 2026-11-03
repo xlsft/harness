@@ -43,7 +43,7 @@ function onKey(e: KeyboardEvent) {
   <div class="flex w-[220px] flex-col gap-2 p-2.5">
     <div class="flex items-baseline justify-between text-[11.5px]">
       <span class="text-muted">Effort</span>
-      <span :class="atMax ? 'text-accent' : 'text-white'">{{ LABEL[model] }}</span>
+      <span :class="atMax ? 'text-accent' : 'text-strong'">{{ LABEL[model] }}</span>
     </div>
     <div
       ref="track"
@@ -64,7 +64,7 @@ function onKey(e: KeyboardEvent) {
         :style="{ width: `calc((100% - 14px) * ${share(index)} + 14px)` }"
       />
       <span
-        class="absolute inset-y-0 w-3.5 border-2 border-default bg-white transition-[left] duration-150"
+        class="absolute inset-y-0 w-3.5 border-2 border-default bg-strong transition-[left] duration-150"
         :style="{ left: `calc((100% - 14px) * ${share(index)})` }"
       />
     </div>

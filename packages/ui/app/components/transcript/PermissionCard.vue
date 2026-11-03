@@ -42,12 +42,12 @@ const resolved = computed(() => ({
         name="shield"
         class="text-accent"
       />
-      <span class="text-white">Allow {{ item.toolName }}?</span>
+      <span class="text-strong">Allow {{ item.toolName }}?</span>
       <span class="flex-1" />
       <span class="text-[11px] text-muted">waiting</span>
     </div>
     <div class="flex flex-col gap-2.5 px-3 py-2.5 text-[12.5px]">
-      <code class="block border border-default bg-default px-2.5 py-[7px] break-all text-white">{{ command }}</code>
+      <code class="block border border-default bg-default px-2.5 py-[7px] break-all text-strong">{{ command }}</code>
       <span
         v-if="item.reason"
         class="text-muted"

@@ -94,7 +94,7 @@ function taskMeta(command: string, tail: string) {
 
     <section class="flex flex-col gap-[7px] border-b border-default px-[13px] py-3">
       <div class="flex items-center">
-        <span class="text-[12px] text-muted">Context</span><span class="flex-1" /><span class="text-[12px] text-white">{{ contextPct }}%</span>
+        <span class="text-[12px] text-muted">Context</span><span class="flex-1" /><span class="text-[12px] text-strong">{{ contextPct }}%</span>
       </div>
       <div class="flex h-1 bg-raised">
         <span
@@ -157,7 +157,7 @@ function taskMeta(command: string, tail: string) {
         <span class="flex-1" />
         <button
           type="button"
-          class="border border-default px-2.5 py-1 text-[11.5px] text-white hover:bg-hover"
+          class="border border-default px-2.5 py-1 text-[11.5px] text-strong hover:bg-hover"
         >
           {{ session.meta.pullRequest ? `PR ${session.meta.pullRequest.number}` : 'Create PR' }}
         </button>

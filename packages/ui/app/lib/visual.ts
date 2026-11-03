@@ -29,6 +29,7 @@ const VARS: [string, string, string][] = [
   ['--dimmed', '--ui-text-dimmed', '#737373'],
   ['--accent', '--color-accent', '#2b7fff'],
   ['--accent-hover', '--color-accent-hover', '#8ec5ff'],
+  ['--on-accent', '--color-on-accent', '#ffffff'],
   ['--ok', '--color-ok', '#00bc7d'],
   ['--warn', '--color-warn', '#fe9a00'],
   ['--error', '--color-bad', '#ff2056'],
@@ -60,7 +61,7 @@ const BASE = `:where(html,body){margin:0;background:transparent;color:var(--text
 :where(button){height:var(--control-h);padding:0 calc(var(--space)*2.5);border:var(--border) solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:var(--text-sm);cursor:pointer}
 :where(button:hover){border-color:var(--line-strong);color:var(--text-strong)}
 :where(button:disabled){opacity:.5;cursor:default}
-:where(button.primary,button[type=submit]){background:var(--accent);border-color:var(--accent);color:#fff}
+:where(button.primary,button[type=submit]){background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 :where(input:not([type=checkbox],[type=radio],[type=range]),select,textarea){height:var(--control-h);padding:0 calc(var(--space)*2.5);border:var(--border) solid var(--line-strong);background:var(--bg);color:var(--text-strong);font:inherit;font-size:var(--text-sm);outline:none}
 :where(textarea){height:auto;padding:calc(var(--space)*1.5) calc(var(--space)*2.5)}
 :where(input,select,textarea):focus{border-color:var(--accent)}
@@ -70,6 +71,8 @@ const BASE = `:where(html,body){margin:0;background:transparent;color:var(--text
 :where(th){color:var(--muted);font-weight:400}
 ::selection{background:color-mix(in srgb,var(--accent) 35%,transparent)}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--line-strong)}::-webkit-scrollbar-track{background:transparent}`
+
+const scheme = () => import.meta.client && document.documentElement.classList.contains('light') ? 'light' : 'dark'
 
 function themeVars(): string {
   const style = import.meta.client ? getComputedStyle(document.documentElement) : null
@@ -89,7 +92,7 @@ addEventListener('load',size);if(s)s.remove()})()`
 
 export function visualDocument(html: string, nonce: string): string {
   const head = `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${CSP}">`
-    + `<style>:root{${themeVars()};color-scheme:dark}${BASE}</style>`
+    + `<style>:root{${themeVars()};color-scheme:${scheme()}}${BASE}</style>`
     + `<script>${bridge(nonce)}</script>`
   // Our head goes first so the visual's own styles win; a document without <head> gets one.
   const h = html.match(/<head(\s[^>]*)?>/i)

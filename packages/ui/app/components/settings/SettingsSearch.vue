@@ -141,7 +141,7 @@ async function testBuiltin() {
         <div class="flex items-center gap-3 px-3 py-2.5">
           <SettingsMonogram :text="builtin.icon" />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="flex items-center gap-2 text-[12.5px] text-white">
+            <span class="flex items-center gap-2 text-[12.5px] text-strong">
               {{ builtin.name }}
               <span class="text-[11px] text-ok">ready</span>
             </span>
@@ -189,7 +189,7 @@ async function testBuiltin() {
             :dim="!connectionsOf(preset.id).length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="flex items-center gap-2 text-[12.5px] text-white">
+            <span class="flex items-center gap-2 text-[12.5px] text-strong">
               {{ preset.name }}
               <span
                 v-if="connectionsOf(preset.id).length"
@@ -242,7 +242,7 @@ async function testBuiltin() {
             :dim="!custom.length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="text-[12.5px] text-white">Custom</span>
+            <span class="text-[12.5px] text-strong">Custom</span>
             <span class="truncate text-[11.5px] text-muted">Any SearXNG-compatible instance: you set the name and URL.</span>
           </span>
           <HBtn

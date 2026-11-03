@@ -156,7 +156,7 @@ const meta = computed(() => {
   return parts.join(' · ')
 })
 
-const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] text-white outline-none focus:border-accent'
+const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] text-strong outline-none focus:border-accent'
 </script>
 
 <template>
@@ -179,7 +179,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
     <template v-else>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2 pr-3 pl-[52px] text-[12px] max-sm:pl-3">
         <span class="flex min-w-[200px] flex-1 flex-col gap-0.5">
-          <span class="flex items-center gap-2 text-white">
+          <span class="flex items-center gap-2 text-strong">
             <span
               class="size-1.5 shrink-0"
               :class="!p.enabled ? 'bg-graphite-400' : test ? (test.ok ? 'bg-ok' : 'bg-bad') : p.keySet || !preset?.fields.some(f => f.required && f.name === 'api_key') ? 'bg-ok' : 'bg-warn'"
@@ -291,7 +291,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
           :aria-checked="defaultForAll"
           :aria-label="`Use ${p.name} by default for everyone`"
           class="flex items-center gap-1.5"
-          :class="defaultForAll ? 'text-white' : 'text-muted hover:text-white'"
+          :class="defaultForAll ? 'text-strong' : 'text-muted hover:text-strong'"
           @click="classifierState.setDefault(defaultForAll ? '' : p.id)"
         >
           <span
@@ -301,7 +301,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
             v-if="defaultForAll"
             name="check"
             :size="10"
-            class="text-white"
+            class="text-strong"
           /></span>
           default for everyone
         </button>
@@ -316,7 +316,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
           :aria-checked="mine"
           :aria-label="`Use ${p.name} for me`"
           class="flex items-center gap-1.5"
-          :class="mine ? 'text-white' : 'text-muted hover:text-white'"
+          :class="mine ? 'text-strong' : 'text-muted hover:text-strong'"
           @click="toggleMine"
         >
           <span
@@ -326,7 +326,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
             v-if="mine"
             name="check"
             :size="10"
-            class="text-white"
+            class="text-strong"
           /></span>
           use for me
         </button>
@@ -365,7 +365,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
             class="flex min-h-8 items-center gap-3 border-b border-default px-2.5 text-[12px] last:border-b-0"
           >
             <span
-              class="min-w-0 flex-1 truncate text-white"
+              class="min-w-0 flex-1 truncate text-strong"
               :title="m.id"
             >{{ m.name }}</span>
             <!-- One model is the default for new sessions (this browser); none set means the server's. -->
@@ -375,7 +375,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
               :aria-checked="isDefault(m.id)"
               :aria-label="`Use ${m.name} by default`"
               class="flex shrink-0 items-center gap-1.5 text-[11px]"
-              :class="isDefault(m.id) ? 'text-white' : 'text-muted hover:text-white'"
+              :class="isDefault(m.id) ? 'text-strong' : 'text-muted hover:text-strong'"
               @click="toggleDefault(m.id)"
             >
               <span
@@ -385,7 +385,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
                 v-if="isDefault(m.id)"
                 name="check"
                 :size="10"
-                class="text-white"
+                class="text-strong"
               /></span>
               default
             </button>
@@ -402,7 +402,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
                 role="radio"
                 :aria-checked="effortOf(catalogOf(m.id)!) === e"
                 class="border px-1.5 py-px text-[11px]"
-                :class="effortOf(catalogOf(m.id)!) === e ? 'border-line bg-raised text-white' : 'border-transparent text-muted hover:text-white'"
+                :class="effortOf(catalogOf(m.id)!) === e ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
                 @click="setEffort(m.id, e)"
               >
                 {{ e }}

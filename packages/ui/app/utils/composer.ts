@@ -27,16 +27,16 @@ export const MENTION_EXTRAS: MenuOption[] = [
 ]
 
 export const MODES: { key: PermissionModeName, label: string, detail: string, cls: string, sep?: boolean }[] = [
-  { key: 'default', label: 'Ask', detail: 'Approve every edit and command', cls: 'text-white' },
-  { key: 'accept_edits', label: 'Accept edits', detail: 'File edits auto, commands ask', cls: 'text-white' },
-  { key: 'auto', label: 'Auto', detail: 'Safe actions auto, risky ones ask', cls: 'text-white' },
+  { key: 'default', label: 'Ask', detail: 'Approve every edit and command', cls: 'text-strong' },
+  { key: 'accept_edits', label: 'Accept edits', detail: 'File edits auto, commands ask', cls: 'text-strong' },
+  { key: 'auto', label: 'Auto', detail: 'Safe actions auto, risky ones ask', cls: 'text-strong' },
   { key: 'plan', label: 'Plan', detail: 'Read only, produce a plan', cls: 'text-cyan' },
   { key: 'bypass', label: 'Bypass', detail: 'All safeguards off. Sandboxed hosts only', cls: 'text-bad', sep: true }
 ]
 
 // Every mode in the client's order (the Shift+Tab cycle, then the modes outside it), for Settings; Don't ask is
 // offered there only.
-export const DONT_ASK_MODE: typeof MODES[number] = { key: 'dont_ask', label: 'Don\'t ask', detail: 'Never prompts: anything that would ask is denied', cls: 'text-white' }
+export const DONT_ASK_MODE: typeof MODES[number] = { key: 'dont_ask', label: 'Don\'t ask', detail: 'Never prompts: anything that would ask is denied', cls: 'text-strong' }
 export const MODE_ORDER: PermissionModeName[] = ['default', 'accept_edits', 'plan', 'auto', 'dont_ask', 'bypass']
 
 // The Shift+Tab order when the client does not report one (InitializeResponse.permission_modes).

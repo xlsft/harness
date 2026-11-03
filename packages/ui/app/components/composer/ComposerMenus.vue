@@ -23,7 +23,7 @@ defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
       @mousedown.prevent="$emit('pick', o)"
     >
       <template v-if="kind === 'slash'">
-        <span class="w-[140px] shrink-0 text-white">{{ o.label }}</span>
+        <span class="w-[140px] shrink-0 text-strong">{{ o.label }}</span>
         <span class="min-w-0 flex-1 truncate text-muted">{{ o.detail }}</span>
         <span class="text-[11px] text-muted">{{ o.tag }}</span>
       </template>
@@ -33,7 +33,7 @@ defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
           :size="14"
           :class="o.iconCls"
         />
-        <span class="text-white">{{ o.label }}</span>
+        <span class="text-strong">{{ o.label }}</span>
         <span class="truncate text-muted">{{ o.detail }}</span>
       </template>
     </div>

@@ -69,9 +69,9 @@ async function cancel() {
     <div class="flex flex-1 items-center justify-center">
       <div class="flex w-full max-w-[420px] flex-col gap-6">
         <div class="flex flex-col gap-4">
-          <HWordmark class="h-[22px] w-auto self-start text-white" />
+          <HWordmark class="h-[22px] w-auto self-start text-strong" />
           <div class="flex flex-col gap-1.5">
-            <h1 class="m-0 text-[17px] font-semibold text-white">
+            <h1 class="m-0 text-[17px] font-semibold text-strong">
               Your workflow, unbounded.
             </h1>
             <p class="m-0 text-[13px] leading-[1.6] text-toned">
@@ -94,13 +94,13 @@ async function cancel() {
               autocomplete="url"
               aria-label="Server URL"
               placeholder="https://harness.example.com"
-              class="h-9 border border-accented bg-surface px-2.5 text-[12.5px] text-white outline-none placeholder:text-dimmed focus:border-accent"
+              class="h-9 border border-accented bg-surface px-2.5 text-[12.5px] text-strong outline-none placeholder:text-dimmed focus:border-accent"
             >
           </label>
           <button
             type="submit"
             :disabled="busy || !server.trim()"
-            class="h-9 bg-accent text-[12.5px] text-white disabled:opacity-50"
+            class="h-9 bg-accent text-[12.5px] text-on-accent disabled:opacity-50"
           >
             {{ busy ? 'Connecting…' : 'Sign in' }}
           </button>
@@ -111,7 +111,7 @@ async function cancel() {
           class="flex flex-col gap-3 border border-accented bg-surface p-4"
         >
           <span class="text-[12px] text-muted">Confirm this code in your browser</span>
-          <span class="text-center text-[24px] tracking-[0.2em] text-white">{{ code.code }}</span>
+          <span class="text-center text-[24px] tracking-[0.2em] text-strong">{{ code.code }}</span>
           <span class="inline-flex items-center gap-2 text-[12px] text-muted">
             <HIcon
               name="loading"
@@ -123,14 +123,14 @@ async function cancel() {
           <div class="flex gap-2">
             <button
               type="button"
-              class="h-8 flex-1 border border-default text-[12px] text-toned hover:text-white"
+              class="h-8 flex-1 border border-default text-[12px] text-toned hover:text-strong"
               @click="openExternal(code.uri)"
             >
               Open the page again
             </button>
             <button
               type="button"
-              class="h-8 flex-1 border border-default text-[12px] text-toned hover:text-white"
+              class="h-8 flex-1 border border-default text-[12px] text-toned hover:text-strong"
               @click="cancel"
             >
               Cancel
@@ -152,7 +152,7 @@ async function cancel() {
         v-for="l in LINKS"
         :key="l.url"
         type="button"
-        class="inline-flex items-center gap-1 hover:text-white"
+        class="inline-flex items-center gap-1 hover:text-strong"
         @click="openExternal(l.url)"
       >
         {{ l.label }}<HIcon

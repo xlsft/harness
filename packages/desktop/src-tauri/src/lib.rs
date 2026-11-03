@@ -169,6 +169,15 @@ fn stop_serve(shell: &Shell) {
     }
 }
 
+/// The window background behind the web page (seen before the UI paints): the ground colour of the
+/// default theme of the system's kind (app/themes.ts in the ui package).
+fn ground(theme: tauri::Theme) -> tauri::window::Color {
+    match theme {
+        tauri::Theme::Light => tauri::window::Color(0xff, 0xff, 0xff, 0xff),
+        _ => tauri::window::Color(0, 0, 0, 0xff),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -176,6 +185,19 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(Shell::default())
+        .setup(|app| {
+            for w in app.webview_windows().values() {
+                if let Ok(theme) = w.theme() {
+                    let _ = w.set_background_color(Some(ground(theme)));
+                }
+            }
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::ThemeChanged(theme) = event {
+                let _ = window.set_background_color(Some(ground(*theme)));
+            }
+        })
         .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint])
         .build(tauri::generate_context!())
         .expect("error while building the harness desktop app")

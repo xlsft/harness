@@ -47,7 +47,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         aria-label="Model"
         :class="[BTN, modelOpen ? 'border-accent' : 'border-transparent']"
       >
-        <span class="text-white">{{ session.meta.model }}</span><span class="max-sm:hidden">· {{ (model?.provider || 'openrouter').toLowerCase().replace(' · local', '') }}</span>
+        <span class="text-strong">{{ session.meta.model }}</span><span class="max-sm:hidden">· {{ (model?.provider || 'openrouter').toLowerCase().replace(' · local', '') }}</span>
         <HIcon
           name="down"
           :size="11"
@@ -77,7 +77,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         aria-label="Effort"
         :class="[BTN, effortOpen ? 'border-accent' : 'border-transparent', 'max-sm:hidden']"
       >
-        effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-white'">{{ effort }}</span><HIcon
+        effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span><HIcon
           name="down"
           :size="11"
         />
@@ -102,7 +102,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
         aria-label="Permission mode"
         :class="[BTN, modeOpen ? 'border-accent' : 'border-transparent']"
       >
-        mode <span class="text-white">{{ MODE_LABEL[session.meta.permissionMode] }}</span><HIcon
+        mode <span class="text-strong">{{ MODE_LABEL[session.meta.permissionMode] }}</span><HIcon
           name="down"
           :size="11"
         />
@@ -143,7 +143,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
           cy="10"
           r="8"
           fill="none"
-          stroke="#2b2b2b"
+          stroke="var(--color-line)"
           stroke-width="3"
         />
         <circle
@@ -151,13 +151,13 @@ const BTN = 'flex shrink-0 items-center gap-[5px] border px-1.5 py-0.5 text-[11.
           cy="10"
           r="8"
           fill="none"
-          stroke="#2b7fff"
+          stroke="var(--color-accent)"
           stroke-width="3"
           :stroke-dasharray="`${(pct / 100) * 50.27} 50.27`"
           transform="rotate(-90 10 10)"
         />
       </svg>
-      <span class="text-white">{{ pct }}%</span>
+      <span class="text-strong">{{ pct }}%</span>
     </button>
   </div>
 </template>

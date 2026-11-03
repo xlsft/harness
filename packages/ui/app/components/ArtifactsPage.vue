@@ -22,7 +22,7 @@ function type(a: ArtifactEntry) {
     class="h-full overflow-y-auto bg-default"
   >
     <div class="mx-auto flex max-w-[1080px] flex-col gap-[22px] px-10 pt-[52px] pb-10 max-sm:px-4">
-      <h1 class="m-0 font-display text-[26px] font-bold text-white">
+      <h1 class="m-0 font-display text-[26px] font-bold text-strong">
         Artifacts
       </h1>
 
@@ -39,7 +39,7 @@ function type(a: ArtifactEntry) {
             role="tab"
             :aria-selected="filter === f"
             class="border px-3 py-[5px] text-[12.5px]"
-            :class="filter === f ? 'border-line bg-raised text-white' : 'border-transparent text-toned hover:text-white'"
+            :class="filter === f ? 'border-line bg-raised text-strong' : 'border-transparent text-toned hover:text-strong'"
             @click="filter = f"
           >
             {{ f }}
@@ -50,7 +50,7 @@ function type(a: ArtifactEntry) {
           type="button"
           aria-label="Search"
           title="Search"
-          class="flex size-8 items-center justify-center text-toned hover:text-white"
+          class="flex size-8 items-center justify-center text-toned hover:text-strong"
         >
           <HIcon
             name="search"
@@ -61,7 +61,7 @@ function type(a: ArtifactEntry) {
           type="button"
           aria-label="Filter and sort"
           title="Filter and sort"
-          class="flex size-8 items-center justify-center text-toned hover:text-white"
+          class="flex size-8 items-center justify-center text-toned hover:text-strong"
         >
           <HIcon
             name="filter"
@@ -72,7 +72,7 @@ function type(a: ArtifactEntry) {
           type="button"
           :aria-label="props.view === 'grid' ? 'Show as list' : 'Show as grid'"
           :title="props.view === 'grid' ? 'Show as list' : 'Show as grid'"
-          class="flex size-8 items-center justify-center text-toned hover:text-white"
+          class="flex size-8 items-center justify-center text-toned hover:text-strong"
           @click="emit('update:view', props.view === 'grid' ? 'list' : 'grid')"
         >
           <HIcon
@@ -89,7 +89,7 @@ function type(a: ArtifactEntry) {
             v-for="k in ARTIFACT_KINDS"
             :key="k.name"
             href="#"
-            class="group flex w-[150px] flex-col gap-2 text-white"
+            class="group flex w-[150px] flex-col gap-2 text-strong"
             @click.prevent
           >
             <span
@@ -140,7 +140,7 @@ function type(a: ArtifactEntry) {
                 /><span class="h-3.5 w-[70%] bg-line" /><span class="h-[5px] w-[90%] bg-raised" /><span class="h-[5px] w-4/5 bg-raised" /><span class="h-[5px] w-[85%] bg-raised" />
               </template>
               <template v-else-if="a.type === 'doc' || a.type === 'slides'">
-                <span class="font-display text-[12px] leading-[1.3] text-white">{{ a.title }}</span><span class="h-1 w-[92%] bg-raised" /><span class="h-1 w-[86%] bg-raised" /><span class="h-1 w-[90%] bg-raised" />
+                <span class="font-display text-[12px] leading-[1.3] text-strong">{{ a.title }}</span><span class="h-1 w-[92%] bg-raised" /><span class="h-1 w-[86%] bg-raised" /><span class="h-1 w-[90%] bg-raised" />
               </template>
               <div
                 v-else-if="a.type === 'dash'"
@@ -162,7 +162,7 @@ function type(a: ArtifactEntry) {
             >
               <HIcon :name="type(a).icon" />
             </span>
-            <span class="flex min-w-0 flex-1 flex-col gap-[2px]"><span class="truncate text-[13px] text-white">{{ a.title }}</span><span class="text-[11.5px] text-muted">{{ a.when }}</span></span>
+            <span class="flex min-w-0 flex-1 flex-col gap-[2px]"><span class="truncate text-[13px] text-strong">{{ a.title }}</span><span class="text-[11.5px] text-muted">{{ a.when }}</span></span>
             <HIcon
               name="globe-share"
               :class="a.shared ? 'text-toned' : 'text-transparent'"
@@ -195,7 +195,7 @@ function type(a: ArtifactEntry) {
           </span>
           <NuxtLink
             :to="open"
-            class="min-w-0 flex-1 truncate text-[13px] text-white hover:underline"
+            class="min-w-0 flex-1 truncate text-[13px] text-strong hover:underline"
           >
             {{ a.title }}
           </NuxtLink>
@@ -209,7 +209,7 @@ function type(a: ArtifactEntry) {
             type="button"
             aria-label="More actions"
             title="More actions"
-            class="ml-3 flex size-[30px] items-center justify-center text-muted hover:text-white"
+            class="ml-3 flex size-[30px] items-center justify-center text-muted hover:text-strong"
           >
             <HIcon name="more" />
           </button>

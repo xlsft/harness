@@ -222,7 +222,7 @@ function toggleSetting(key: string) {
             aria-label="Show source"
             title="Show source"
             :aria-pressed="showSource"
-            class="flex size-[26px] items-center justify-center border border-line text-white"
+            class="flex size-[26px] items-center justify-center border border-line text-strong"
             :class="showSource ? 'bg-raised' : 'hover:bg-hover'"
             @click="showSource = !showSource"
           >
@@ -246,24 +246,24 @@ function toggleSetting(key: string) {
             :size="26"
             class="text-muted"
           />
-          <span class="text-[13px] text-white">{{ selectedPath }}</span><span class="text-[12px] text-muted">{{ folderInfo }}</span>
+          <span class="text-[13px] text-strong">{{ selectedPath }}</span><span class="text-[12px] text-muted">{{ folderInfo }}</span>
           <div class="flex flex-wrap justify-center gap-1.5 pt-1.5">
             <button
               type="button"
-              class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-white hover:bg-raised"
+              class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-strong hover:bg-raised"
             >
               Attach as context
             </button>
             <button
               type="button"
-              class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-white hover:bg-raised"
+              class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-strong hover:bg-raised"
               @click="openPane('terminal')"
             >
               Open in terminal
             </button>
             <button
               type="button"
-              class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-white hover:bg-raised"
+              class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-strong hover:bg-raised"
             >
               Show in Finder
             </button>
@@ -271,7 +271,7 @@ function toggleSetting(key: string) {
               type="button"
               aria-label="More actions"
               title="More actions"
-              class="flex w-[30px] items-center justify-center text-muted hover:text-white"
+              class="flex w-[30px] items-center justify-center text-muted hover:text-strong"
             >
               <HIcon name="more" />
             </button>
@@ -293,7 +293,7 @@ function toggleSetting(key: string) {
           >
             <span
               class="w-[38px] shrink-0 pr-3 text-right"
-              :class="i + 1 === currentLine ? 'text-white' : 'text-dimmed'"
+              :class="i + 1 === currentLine ? 'text-strong' : 'text-dimmed'"
             >{{ i + 1 }}</span>
             <span
               class="min-w-0 flex-1 pr-2.5"
@@ -316,7 +316,7 @@ function toggleSetting(key: string) {
           v-else-if="view === 'md'"
           class="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-[18px] py-4 text-[12.5px] leading-[1.6]"
         >
-          <h1 class="m-0 font-display text-[20px] leading-[1.3] text-white">
+          <h1 class="m-0 font-display text-[20px] leading-[1.3] text-strong">
             {{ BASELINE.title }}
           </h1>
           <p class="m-0">
@@ -325,7 +325,7 @@ function toggleSetting(key: string) {
           <div class="relative overflow-x-auto border border-line">
             <table class="w-full border-collapse text-[12px] whitespace-nowrap">
               <thead>
-                <tr class="bg-surface text-white">
+                <tr class="bg-surface text-strong">
                   <th class="border-b border-line px-2.5 py-1.5 text-left font-normal">
                     Model
                   </th>
@@ -364,13 +364,13 @@ function toggleSetting(key: string) {
               </tbody>
             </table>
           </div>
-          <h2 class="mt-1 mb-0 font-display text-[16px] text-white">
+          <h2 class="mt-1 mb-0 font-display text-[16px] text-strong">
             Failures
           </h2>
           <div class="overflow-x-auto border border-line">
             <table class="w-full border-collapse text-[12px]">
               <thead>
-                <tr class="bg-surface text-white">
+                <tr class="bg-surface text-strong">
                   <th class="border-b border-line px-2.5 py-1.5 text-left font-normal">
                     Model
                   </th>
@@ -417,7 +417,7 @@ function toggleSetting(key: string) {
             :size="26"
             class="text-muted"
           />
-          <span class="text-[13px] text-white">{{ selected ? name(selectedPath) : 'No file open' }}</span>
+          <span class="text-[13px] text-strong">{{ selected ? name(selectedPath) : 'No file open' }}</span>
           <span class="text-[12px] text-muted">{{ selected ? 'No preview for this file' : 'Pick a file in the tree' }}</span>
         </div>
       </div>
@@ -442,7 +442,7 @@ function toggleSetting(key: string) {
               type="text"
               spellcheck="false"
               placeholder="Filter, or ? to search in files"
-              class="min-w-0 flex-1 truncate bg-transparent text-white outline-none placeholder:text-muted"
+              class="min-w-0 flex-1 truncate bg-transparent text-strong outline-none placeholder:text-muted"
               @keydown.esc="query = ''"
             >
           </label>
@@ -461,7 +461,7 @@ function toggleSetting(key: string) {
             :aria-selected="r.path === selectedPath"
             :aria-expanded="r.kind === 'dir' ? openDirs.includes(r.path) : undefined"
             class="flex h-[26px] cursor-default items-center gap-[7px] overflow-hidden border-l-2 pr-2 whitespace-nowrap"
-            :class="r.path === selectedPath ? 'border-accent bg-raised text-white' : 'border-transparent text-toned hover:bg-hover'"
+            :class="r.path === selectedPath ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-hover'"
             :style="{ paddingLeft: `${6 + depth(r.path) * 14}px` }"
             @click="select(r)"
             @dblclick="pin(r)"
@@ -498,12 +498,12 @@ function toggleSetting(key: string) {
             v-for="(h, i) in SEARCH_HITS"
             :key="i"
             class="flex cursor-default gap-2 overflow-hidden py-[3px] pr-1 whitespace-nowrap hover:bg-hover"
-            :class="h.file ? 'pl-[2px] text-white' : 'pl-3 text-toned'"
+            :class="h.file ? 'pl-[2px] text-strong' : 'pl-3 text-toned'"
             @click="h.file && openHit(h.before)"
           >
             <span class="text-[11px] text-dimmed">{{ h.line }}</span><span class="truncate">{{ h.before }}<span
               v-if="h.match"
-              class="bg-accent text-white"
+              class="bg-accent text-on-accent"
             >{{ h.match }}</span>{{ h.after }}</span>
           </div>
         </div>

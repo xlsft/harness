@@ -72,7 +72,7 @@ function ctx(n: number) {
         v-model="query"
         placeholder="Search models"
         aria-label="Search models"
-        class="min-w-0 flex-1 bg-transparent text-white outline-none placeholder:text-muted"
+        class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
         @keydown.enter.prevent="pickFirst"
       >
     </label>
@@ -97,7 +97,7 @@ function ctx(n: number) {
           <span class="flex min-w-0 flex-1 items-baseline gap-2.5">
             <span
               class="shrink-0"
-              :class="m.offline ? 'text-muted' : 'text-white'"
+              :class="m.offline ? 'text-muted' : 'text-strong'"
             >{{ nameOf(m) }}</span>
             <span
               v-if="m.displayName && m.displayName !== m.id"
@@ -117,7 +117,7 @@ function ctx(n: number) {
             :aria-label="favorites.includes(m.id) ? `Remove ${nameOf(m)} from favorites` : `Add ${nameOf(m)} to favorites`"
             :aria-pressed="favorites.includes(m.id)"
             class="flex h-6 shrink-0 items-center justify-center overflow-hidden transition-[width,margin] duration-150"
-            :class="favorites.includes(m.id) ? 'w-6 text-warn' : '-ml-3 w-0 text-muted group-hover/model:ml-0 group-hover/model:w-6 hover:text-white focus-visible:ml-0 focus-visible:w-6'"
+            :class="favorites.includes(m.id) ? 'w-6 text-warn' : '-ml-3 w-0 text-muted group-hover/model:ml-0 group-hover/model:w-6 hover:text-strong focus-visible:ml-0 focus-visible:w-6'"
             @click.stop="toggleFavorite(m.id)"
           >
             <HIcon

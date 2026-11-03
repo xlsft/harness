@@ -22,11 +22,11 @@ const cls = computed(() => [
     lg: 'px-3 py-1.5 text-[12px]'
   }[props.size],
   props.variant === 'primary'
-    ? 'bg-accent text-white hover:brightness-110'
+    ? 'bg-accent text-on-accent hover:brightness-110'
     : props.variant === 'outline'
       ? 'border border-line hover:bg-hover'
       : 'hover:text-highlighted',
-  props.variant !== 'primary' && (props.tone === 'danger' ? 'text-bad' : props.tone === 'muted' ? 'text-muted' : 'text-white')
+  props.variant !== 'primary' && (props.tone === 'danger' ? 'text-bad' : props.tone === 'muted' ? 'text-muted' : 'text-strong')
 ])
 </script>
 

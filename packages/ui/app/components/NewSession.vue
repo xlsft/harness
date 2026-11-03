@@ -188,7 +188,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
     >
       <h1
         data-tauri-drag-region
-        class="m-0 flex-1 truncate text-[13.5px] font-semibold text-white"
+        class="m-0 flex-1 truncate text-[13.5px] font-semibold text-strong"
       >
         {{ forkOf ? 'Continue here' : 'New session' }}
       </h1>
@@ -204,7 +204,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           :size="14"
           class="shrink-0 text-muted"
         />
-        <span class="min-w-0 flex-1 truncate text-white">{{ forkOf.meta.title }}</span>
+        <span class="min-w-0 flex-1 truncate text-strong">{{ forkOf.meta.title }}</span>
         <span class="shrink-0 text-[11px] text-muted">from {{ forkOf.meta.deviceName || 'another machine' }}</span>
       </div>
       <div class="w-full max-w-[440px] border border-accented bg-surface text-[12.5px]">
@@ -213,7 +213,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           :key="f.path"
           :title="f.path"
           class="flex cursor-default items-center gap-2.5 border-l-2 px-3 py-2"
-          :class="f.path === cwd ? 'border-accent bg-raised text-white' : 'border-transparent text-toned hover:bg-raised hover:text-white'"
+          :class="f.path === cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
           @click="choose(f.path)"
         >
           <HIcon
@@ -240,7 +240,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
         >
           <button
             type="button"
-            class="flex w-full items-center gap-1.5 border-t border-default px-3 py-2 text-left text-toned hover:text-white"
+            class="flex w-full items-center gap-1.5 border-t border-default px-3 py-2 text-left text-toned hover:text-strong"
           >
             Choose environment<HIcon
               name="down"
@@ -266,7 +266,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
           :size="14"
           :class="worktree ? 'text-accent' : 'text-muted'"
         />
-        <span class="text-white">{{ worktree ? 'Worktree on' : 'Turn on Worktree' }}</span>
+        <span class="text-strong">{{ worktree ? 'Worktree on' : 'Turn on Worktree' }}</span>
         <span class="min-w-0 truncate text-muted">{{ worktree ? `new branch from ${baseRef || current || 'HEAD'}` : 'Session running here' }}</span>
       </button>
     </div>
@@ -293,14 +293,14 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
             rows="1"
             aria-label="First message"
             placeholder="Describe a task or ask a question"
-            class="min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-[3px] text-[13px] leading-[1.6] text-white outline-none placeholder:truncate placeholder:text-muted"
+            class="min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-[3px] text-[13px] leading-[1.6] text-strong outline-none placeholder:truncate placeholder:text-muted"
             @keydown="onKeydown"
           />
           <button
             type="button"
             aria-label="Start session"
             :disabled="!text.trim() || !cwd || busy"
-            class="flex size-7 shrink-0 items-center justify-center bg-accent text-white disabled:bg-raised disabled:text-muted"
+            class="flex size-7 shrink-0 items-center justify-center bg-accent text-on-accent disabled:bg-raised disabled:text-muted"
             @click="start"
           >
             <HIcon
@@ -343,7 +343,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               <HIcon
                 name="folder"
                 :size="12"
-              /><span class="max-w-[160px] truncate text-white">{{ cwd ? name(cwd) : 'Choose folder' }}</span>
+              /><span class="max-w-[160px] truncate text-strong">{{ cwd ? name(cwd) : 'Choose folder' }}</span>
             </button>
             <template #content>
               <NewFolderMenu
@@ -371,7 +371,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               :name="worktree ? 'checkbox-checked' : 'checkbox'"
               :size="12"
               :class="worktree && 'text-accent'"
-            /><span :class="worktree && 'text-white'">Worktree</span>
+            /><span :class="worktree && 'text-strong'">Worktree</span>
           </button>
 
           <span class="flex-1" />
@@ -385,7 +385,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               type="button"
               :class="[CHIP, menu === 'model' ? 'border-accent' : 'border-transparent']"
             >
-              <span class="text-white">{{ modelLabel }}</span>
+              <span class="text-strong">{{ modelLabel }}</span>
             </button>
             <template #content>
               <div
@@ -412,7 +412,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               aria-label="Effort"
               :class="[CHIP, menu === 'effort' ? 'border-accent' : 'border-transparent', '@max-[560px]:hidden']"
             >
-              effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-white'">{{ effort }}</span>
+              effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span>
             </button>
             <template #content>
               <div class="border border-accented bg-hover">
@@ -433,7 +433,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 border px-1.5 py-0.5 text-[11.5
               type="button"
               :class="[CHIP, menu === 'mode' ? 'border-accent' : 'border-transparent']"
             >
-              <span class="text-white">{{ MODE_LABEL[mode] }}</span>
+              <span class="text-strong">{{ MODE_LABEL[mode] }}</span>
             </button>
             <template #content>
               <div

@@ -77,7 +77,7 @@ watch([menu, token], async () => {
       label: basename(p) + (p.endsWith('/') ? '/' : ''),
       detail: p.replace(/\/?[^/]+\/?$/, ''),
       icon: p.endsWith('/') ? 'folder' as const : 'file' as const,
-      iconCls: p.endsWith('/') ? 'text-muted' : 'text-white'
+      iconCls: p.endsWith('/') ? 'text-muted' : 'text-strong'
     })),
     ...MENTION_EXTRAS.filter(e => !q || e.label.includes(q))
   ]
@@ -290,7 +290,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         :size="14"
         class="text-accent"
       />
-      <span class="text-white">Waiting for approval</span>
+      <span class="text-strong">Waiting for approval</span>
       <template v-if="pending && pending.kind === 'permission'">
         · Allow {{ pending.toolName }}?
       </template>
@@ -310,7 +310,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         spin
         class="text-accent"
       />
-      <span class="min-w-0 truncate"><span class="text-white">{{ activity }}</span>
+      <span class="min-w-0 truncate"><span class="text-strong">{{ activity }}</span>
         · {{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
       <span class="flex-1" /><span class="inline-flex shrink-0 items-center gap-1 max-sm:hidden @max-[480px]:hidden"><HKeys keys="escape" />to interrupt</span>
     </div>
@@ -366,7 +366,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         :size="14"
         class="text-warn"
       />
-      <span class="text-white">Context {{ contextPct }}% full</span><span class="text-muted">auto-compact at 95%</span>
+      <span class="text-strong">Context {{ contextPct }}% full</span><span class="text-muted">auto-compact at 95%</span>
       <span class="flex-1" /><HBtn @click="store.compact(id)">
         Compact now
       </HBtn>
@@ -416,7 +416,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
     <!-- drop target -->
     <div
       v-else-if="dragging"
-      class="flex min-h-[88px] flex-col items-center justify-center gap-1.5 border border-dashed border-accent bg-[#2b7fff14] text-[12.5px] text-white"
+      class="flex min-h-[88px] flex-col items-center justify-center gap-1.5 border border-dashed border-accent bg-accent/8 text-[12.5px] text-strong"
       @dragleave.prevent="dragging = 0"
       @drop.prevent="onDrop"
     >
@@ -433,7 +433,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       v-else-if="recording"
       class="flex min-h-11 items-center gap-2.5 border border-bad bg-surface px-2"
     >
-      <span class="size-2 bg-bad" /><span class="text-[12px] text-white">{{ mmss(now - recordStart) }}</span>
+      <span class="size-2 bg-bad" /><span class="text-[12px] text-strong">{{ mmss(now - recordStart) }}</span>
       <div class="flex h-6 min-w-0 flex-1 items-center gap-0.5 overflow-hidden">
         <span
           v-for="(h, i) in wave"
@@ -458,7 +458,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         type="button"
         aria-label="Finish recording"
         :class="ICON_BTN"
-        class="bg-accent text-white"
+        class="bg-accent text-on-accent"
         @click="stopRecording(true)"
       >
         <HIcon name="up" />
@@ -483,7 +483,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           :class="[f.error ? 'border-bad' : 'border-default', f.image ? 'py-1 pr-1.5 pl-1' : 'px-1.5 py-1', f.progress !== undefined && f.progress < 100 ? 'min-w-[150px] flex-col items-stretch gap-[3px]' : '']"
         >
           <template v-if="f.progress !== undefined && f.progress < 100">
-            <span class="flex gap-2"><span class="text-white">{{ f.name }}</span><span class="flex-1" /><span class="text-accent">{{ f.progress }}%</span></span>
+            <span class="flex gap-2"><span class="text-strong">{{ f.name }}</span><span class="flex-1" /><span class="text-accent">{{ f.progress }}%</span></span>
             <span class="flex h-0.5 bg-line"><span
               class="bg-accent"
               :style="{ width: `${f.progress}%` }"
@@ -494,15 +494,15 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
               v-if="f.image"
               role="img"
               aria-label="Image thumbnail"
-              class="size-[26px] bg-raised bg-[repeating-linear-gradient(135deg,#2b2b2b_0_1px,transparent_1px_6px)]"
+              class="size-[26px] bg-raised bg-[repeating-linear-gradient(135deg,var(--color-line)_0_1px,transparent_1px_6px)]"
             />
             <HIcon
               v-else-if="!f.error"
               name="file"
               :size="14"
-              class="text-white"
+              class="text-strong"
             />
-            <span class="text-white">{{ f.name }}</span>
+            <span class="text-strong">{{ f.name }}</span>
             <span
               v-if="f.error"
               class="text-bad"
@@ -570,7 +570,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           :placeholder="placeholder"
           aria-label="Message"
           class="min-w-0 flex-1 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:truncate placeholder:text-muted"
-          :class="[menu === 'slash' ? 'text-accent' : 'text-white', !text && 'overflow-hidden']"
+          :class="[menu === 'slash' ? 'text-accent' : 'text-strong', !text && 'overflow-hidden']"
           @input="onInput"
           @keydown="onKeydown"
           @focus="focused = true"
@@ -579,7 +579,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         <template v-if="error">
           <button
             type="button"
-            class="flex items-center gap-1.5 border border-bad px-2.5 py-1 text-[12px] text-white"
+            class="flex items-center gap-1.5 border border-bad px-2.5 py-1 text-[12px] text-strong"
             @click="error = ''; safeSend(failedText); text = ''"
           >
             <HIcon
@@ -604,7 +604,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             type="button"
             aria-label="Queue"
             :class="ICON_BTN"
-            class="bg-accent text-white"
+            class="bg-accent text-on-accent"
             @click="submit"
           >
             <HIcon name="up" />
@@ -627,7 +627,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             type="button"
             :aria-label="mode === 'shell' ? 'Run' : 'Send'"
             :disabled="!hasText || uploading > 0"
-            :class="[ICON_BTN, !hasText || uploading ? 'bg-raised text-disabled' : mode === 'shell' ? 'bg-orange text-black' : mode === 'memory' ? 'bg-pink text-white' : 'bg-accent text-white']"
+            :class="[ICON_BTN, !hasText || uploading ? 'bg-raised text-disabled' : mode === 'shell' ? 'bg-orange text-black' : mode === 'memory' ? 'bg-pink text-on-accent' : 'bg-accent text-on-accent']"
             @click="submit"
           >
             <HIcon name="up" />
@@ -652,7 +652,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         :key="t"
         type="button"
         class="border px-1.5"
-        :class="memoryTarget === t ? 'border-pink text-white' : 'border-default'"
+        :class="memoryTarget === t ? 'border-pink text-strong' : 'border-default'"
         @click="memoryTarget = t"
       >
         {{ t }}

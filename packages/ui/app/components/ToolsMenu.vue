@@ -39,7 +39,7 @@ function choose(p: PaneName | 'ios') {
       role="menuitemcheckbox"
       :aria-checked="pinned.includes(m.pane)"
       class="flex cursor-default items-center gap-2.5 border-l-2 px-[9px] py-[7px] hover:bg-raised"
-      :class="m.pane !== 'ios' && isOpen(m.pane) ? 'border-accent bg-raised text-white' : 'border-transparent'"
+      :class="m.pane !== 'ios' && isOpen(m.pane) ? 'border-accent bg-raised text-strong' : 'border-transparent'"
       @click="choose(m.pane)"
     >
       <HIcon :name="m.icon" />
@@ -70,7 +70,7 @@ function choose(p: PaneName | 'ios') {
         name="sun"
         class="text-muted"
       />
-      <span class="flex flex-1 flex-col gap-px"><span class="text-white">Keep computer awake</span><span class="text-[11px] text-muted">Only for this session</span></span>
+      <span class="flex flex-1 flex-col gap-px"><span class="text-strong">Keep computer awake</span><span class="text-[11px] text-muted">Only for this session</span></span>
       <HToggle
         v-model="awake"
         label="Keep computer awake"

@@ -22,7 +22,7 @@ async function copy() {
 <template>
   <div class="border border-default bg-surface">
     <div class="flex items-center gap-2.5 border-b border-default py-1.5 pr-2 pl-3 text-[11.5px] text-muted">
-      <span class="border border-default px-[5px] text-white">{{ lang }}</span>
+      <span class="border border-default px-[5px] text-strong">{{ lang }}</span>
       <span
         v-if="filename"
         class="truncate"
@@ -52,7 +52,7 @@ class="inline-block w-10 pr-3.5 text-right text-dimmed select-none"
 >{{ i + 1 }}</span><span
       v-for="(tk, j) in line"
       :key="j"
-      :style="{ color: shell && tk.t.trim() === '$' ? '#8f8f8f' : tk.c }"
+      :style="{ color: shell && tk.t.trim() === '$' ? 'var(--color-muted)' : tk.c }"
     >{{ tk.t }}</span>{{ '\n' }}</template></pre>
   </div>
 </template>

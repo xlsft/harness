@@ -12,7 +12,7 @@ defineProps<{ todos: TodoVM[] }>()
       v-for="(t, i) in todos"
       :key="i"
       class="flex items-center gap-[9px] text-[12.5px]"
-      :class="t.status === 'completed' ? 'text-muted' : t.status === 'in_progress' ? 'text-white' : 'text-toned'"
+      :class="t.status === 'completed' ? 'text-muted' : t.status === 'in_progress' ? 'text-strong' : 'text-toned'"
     >
       <HIcon
         v-if="t.status === 'completed'"

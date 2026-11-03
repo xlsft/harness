@@ -24,7 +24,7 @@ function submit() {
   })
 }
 
-const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-white outline-none focus:border-accent'
+const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent'
 </script>
 
 <template>

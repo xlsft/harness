@@ -42,8 +42,8 @@ const fileName = computed(() => props.label)
         :class="tone === 'ok' ? 'text-ok' : 'text-accent'"
       />
     </span>
-    <span class="flex min-w-0 flex-1 flex-col"><span class="text-white">{{ label }}</span><span class="text-[11px] text-muted">{{ detail }}</span></span>
-    <span class="flex items-center gap-1.5 border border-default px-[9px] py-[3px] text-[11.5px] text-white">Open<HIcon
+    <span class="flex min-w-0 flex-1 flex-col"><span class="text-strong">{{ label }}</span><span class="text-[11px] text-muted">{{ detail }}</span></span>
+    <span class="flex items-center gap-1.5 border border-default px-[9px] py-[3px] text-[11.5px] text-strong">Open<HIcon
       v-if="tone !== 'ok'"
       name="arrow-up-right"
       :size="12"
@@ -60,7 +60,7 @@ const fileName = computed(() => props.label)
       :size="16"
       class="text-accent"
     />
-    <span class="flex min-w-0 flex-1 flex-col"><span class="text-white">{{ label }}</span><span class="text-[11px] text-muted">{{ detail }}</span></span>
+    <span class="flex min-w-0 flex-1 flex-col"><span class="text-strong">{{ label }}</span><span class="text-[11px] text-muted">{{ detail }}</span></span>
     <span
       v-if="status"
       class="text-[11px] text-accent"
@@ -83,7 +83,7 @@ const fileName = computed(() => props.label)
       href="#"
       class="link"
     >{{ sha }}</a>
-    <span class="min-w-0 flex-1 truncate text-white">{{ label }}</span>
+    <span class="min-w-0 flex-1 truncate text-strong">{{ label }}</span>
     <span class="text-[11px] text-ok">+{{ add }}</span><span class="text-[11px] text-bad">−{{ del }}</span>
   </div>
 
@@ -96,7 +96,7 @@ const fileName = computed(() => props.label)
       name="pull-request"
       :size="16"
       class="text-ok"
-    /><span class="text-white">{{ label }}</span></span>
+    /><span class="text-strong">{{ label }}</span></span>
     <span class="flex flex-wrap gap-2.5 text-[11px] text-muted">
       <span>{{ detail }}</span><span>{{ branch }}</span><span class="text-ok">{{ checks }}</span><span class="text-ok">+{{ add }}</span><span class="text-bad">−{{ del }}</span>
     </span>

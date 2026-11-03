@@ -67,7 +67,7 @@ const parsed = computed(() => {
     />
     <div
       v-else
-      class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default bg-hover px-3 py-[9px] whitespace-pre-wrap text-white"
+      class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default bg-hover px-3 py-[9px] whitespace-pre-wrap text-strong"
       :class="parsed.rich ? 'leading-[1.7]' : 'leading-[1.55]'"
     >
       <span
@@ -85,7 +85,7 @@ const parsed = computed(() => {
         class="border border-accent px-[5px] text-accent"
       >{{ p.t }}</span><span
         v-else-if="p.kind === 'mention'"
-        class="bg-[#2b7fff26] px-1 text-accent"
+        class="bg-accent/15 px-1 text-accent"
       >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
     </div>
   </div>

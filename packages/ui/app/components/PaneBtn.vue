@@ -26,7 +26,7 @@ withDefaults(defineProps<{
     class="flex size-[30px] shrink-0 items-center justify-center"
     :class="[
       pressed ? 'bg-raised' : 'hover:bg-hover',
-      disabled ? 'text-disabled' : pressed || white ? 'text-white' : 'text-muted hover:text-white'
+      disabled ? 'text-disabled' : pressed || white ? 'text-strong' : 'text-muted hover:text-strong'
     ]"
   >
     <HIcon

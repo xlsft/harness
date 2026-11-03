@@ -46,8 +46,8 @@ withDefaults(defineProps<{
     class="flex cursor-default items-center border-l-2 px-[9px] py-1.5"
     :class="[
       gap,
-      highlight ? 'border-accent bg-raised text-white' : 'border-transparent',
-      !highlight && (disabled ? 'text-muted' : danger ? 'text-bad hover:bg-raised' : [active ? 'text-white' : 'text-toned', 'hover:border-accent hover:bg-raised hover:text-white'])
+      highlight ? 'border-accent bg-raised text-strong' : 'border-transparent',
+      !highlight && (disabled ? 'text-muted' : danger ? 'text-bad hover:bg-raised' : [active ? 'text-strong' : 'text-toned', 'hover:border-accent hover:bg-raised hover:text-strong'])
     ]"
   >
     <HIcon

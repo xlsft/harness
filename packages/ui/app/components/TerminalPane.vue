@@ -48,7 +48,7 @@ function clock() {
 function addTab() {
   counter += 1
   const id = `zsh-${counter}`
-  tabs.value.push({ id, name: 'zsh', status: '', statusColor: '#8f8f8f', lines: promptLines(clock(), '', true) })
+  tabs.value.push({ id, name: 'zsh', status: '', statusColor: 'var(--color-muted)', lines: promptLines(clock(), '', true) })
   selected.value = id
 }
 
@@ -83,7 +83,7 @@ function restart() {
     class="relative flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-stretch border-b border-line pr-1.5">
-      <div class="flex items-center px-3 font-display text-[13px] text-white">
+      <div class="flex items-center px-3 font-display text-[13px] text-strong">
         Terminal
       </div>
       <div
@@ -112,7 +112,7 @@ function restart() {
           type="button"
           aria-label="New terminal tab"
           title="New terminal tab"
-          class="flex w-9 items-center justify-center border-x border-line text-muted hover:text-white"
+          class="flex w-9 items-center justify-center border-x border-line text-muted hover:text-strong"
           @click="addTab"
         >
           <HIcon name="plus" />
@@ -176,14 +176,14 @@ function restart() {
       Process exited with code <span class="text-bad">{{ tab.exitCode }}</span><span class="flex-1" />
       <button
         type="button"
-        class="border border-line px-[9px] py-[2px] text-[11px] text-white hover:bg-hover"
+        class="border border-line px-[9px] py-[2px] text-[11px] text-strong hover:bg-hover"
         @click="restart"
       >
         Restart
       </button>
       <button
         type="button"
-        class="border border-line px-[9px] py-[2px] text-[11px] text-white hover:bg-hover"
+        class="border border-line px-[9px] py-[2px] text-[11px] text-strong hover:bg-hover"
       >
         Send output to chat
       </button>

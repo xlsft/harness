@@ -37,9 +37,9 @@ function open(url: string) {
 <template>
   <div class="flex flex-col gap-8">
     <div class="flex flex-col items-start gap-5 border border-default bg-surface px-6 py-7">
-      <HWordmark class="h-[30px] w-auto self-start text-white" />
+      <HWordmark class="h-[30px] w-auto self-start text-strong" />
       <div class="flex flex-col gap-2">
-        <h2 class="m-0 text-[17px] font-semibold text-white">
+        <h2 class="m-0 text-[17px] font-semibold text-strong">
           Your workflow, unbounded.
         </h2>
         <p class="m-0 max-w-[460px] text-[12.5px] leading-[1.6] text-toned">
@@ -58,7 +58,7 @@ function open(url: string) {
         <dt class="text-[11px] text-muted">
           {{ f.label }}
         </dt>
-        <dd class="m-0 truncate text-[12.5px] text-white tabular-nums">
+        <dd class="m-0 truncate text-[12.5px] text-strong tabular-nums">
           {{ f.value }}
         </dd>
       </div>
@@ -78,14 +78,14 @@ function open(url: string) {
         >
           <HIcon
             :name="l.icon"
-            class="text-muted group-hover:text-white"
+            class="text-muted group-hover:text-strong"
           />
-          <span class="text-[12.5px] text-white">{{ l.label }}</span>
+          <span class="text-[12.5px] text-strong">{{ l.label }}</span>
           <span class="min-w-0 flex-1 truncate text-[11.5px] text-muted">{{ l.detail }}</span>
           <HIcon
             name="arrow-up-right"
             :size="13"
-            class="text-muted group-hover:text-white"
+            class="text-muted group-hover:text-strong"
           />
         </button>
       </div>
@@ -95,7 +95,7 @@ function open(url: string) {
       <span>Made by</span>
       <button
         type="button"
-        class="text-white hover:text-accent"
+        class="text-strong hover:text-accent"
         @click="open('https://github.com/xlsft')"
       >
         xlsft

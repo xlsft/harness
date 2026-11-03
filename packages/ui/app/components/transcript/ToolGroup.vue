@@ -40,7 +40,7 @@ const open = ref<Record<string, boolean>>({})
           :name="t.name === 'Task' || t.name === 'Agent' ? 'agent' : toolIcon(t)"
           :spin="t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent'"
         />
-        {{ t.name === 'Task' ? 'Agent' : t.name }} <span class="min-w-0 truncate text-white">{{ toolTarget(t) }}</span>
+        {{ t.name === 'Task' ? 'Agent' : t.name }} <span class="min-w-0 truncate text-strong">{{ toolTarget(t) }}</span>
         <span class="flex-1" />
         <span
           v-if="toolMeta(t, now, true).cls === 'diff'"

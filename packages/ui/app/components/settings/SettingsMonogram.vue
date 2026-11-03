@@ -12,7 +12,7 @@ const logo = computed(() => (props.text ? PROVIDER_LOGOS[props.text] : undefined
   <span
     aria-hidden="true"
     class="flex size-7 shrink-0 items-center justify-center border border-line bg-raised font-mono text-[10.5px] font-semibold tracking-wide"
-    :class="[dim ? 'text-dimmed' : 'text-white', logo && dim ? 'opacity-60' : '']"
+    :class="[dim ? 'text-dimmed' : 'text-strong', logo && dim ? 'opacity-60' : '']"
   >
     <!-- Bundled, static markup (no user input). -->
     <!-- eslint-disable-next-line vue/no-v-html -->

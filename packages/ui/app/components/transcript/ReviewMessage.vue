@@ -6,9 +6,9 @@ import type { ReviewItem } from '~/utils/review'
 defineProps<{ items: ReviewItem[] }>()
 
 const ROW = {
-  '+': { bg: '#00bc7d1f', sc: '#00bc7d', s: '+' },
-  '-': { bg: '#ff20561f', sc: '#ff2056', s: '−' },
-  ' ': { bg: 'transparent', sc: '#8f8f8f', s: ' ' }
+  '+': { bg: 'color-mix(in srgb, var(--color-ok) 12%, transparent)', sc: 'var(--color-ok)', s: '+' },
+  '-': { bg: 'color-mix(in srgb, var(--color-bad) 12%, transparent)', sc: 'var(--color-bad)', s: '−' },
+  ' ': { bg: 'transparent', sc: 'var(--color-muted)', s: ' ' }
 }
 </script>
 
@@ -40,9 +40,9 @@ const ROW = {
           class="w-3.5 shrink-0"
           :style="{ color: ROW[c.sign].sc }"
         >{{ ROW[c.sign].s }}</span>
-        <span class="text-white">{{ c.code }}</span>
+        <span class="text-strong">{{ c.code }}</span>
       </div>
-      <div class="px-3 pb-2 leading-[1.55] whitespace-pre-wrap text-white">
+      <div class="px-3 pb-2 leading-[1.55] whitespace-pre-wrap text-strong">
         {{ c.text }}
       </div>
     </div>

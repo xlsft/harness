@@ -90,7 +90,7 @@ const resolved = computed(() => ({
         class="shrink-0 text-accent"
       />
       <span class="shrink-0 border border-default px-[5px] text-[11px] text-muted">{{ q.header }}</span>
-      <span class="min-w-0 text-white">{{ q.question }}</span>
+      <span class="min-w-0 text-strong">{{ q.question }}</span>
       <span class="flex-1" />
       <span
         v-if="item.items.length > 1"
@@ -117,7 +117,7 @@ const resolved = computed(() => ({
           @change="set(toggleOption(q, d, o.label))"
         >
         <span class="flex flex-col">
-          <span class="text-white">{{ o.label }} <span
+          <span class="text-strong">{{ o.label }} <span
             v-if="o.recommended"
             class="text-accent"
           >recommended</span></span>
@@ -139,7 +139,7 @@ const resolved = computed(() => ({
           class="mt-[3px] accent-accent"
           @change="set(toggleOther(q, d))"
         >
-        <span class="text-white">Other…</span>
+        <span class="text-strong">Other…</span>
       </label>
       <input
         v-if="q.type === 'text' || d.otherOpen"
@@ -147,7 +147,7 @@ const resolved = computed(() => ({
         :value="d.other"
         autofocus
         :placeholder="q.type === 'text' ? 'Type your answer' : 'Type your own answer'"
-        class="mx-2 my-1 border border-default bg-default px-2.5 py-1.5 text-white outline-none placeholder:text-muted focus:border-accent"
+        class="mx-2 my-1 border border-default bg-default px-2.5 py-1.5 text-strong outline-none placeholder:text-muted focus:border-accent"
         @input="set({ ...d, other: ($event.target as HTMLInputElement).value })"
         @keydown.enter.prevent="next"
       >

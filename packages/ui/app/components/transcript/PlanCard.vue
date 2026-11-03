@@ -32,7 +32,7 @@ const label = computed(() => ({
   >
     <div class="flex items-center gap-[9px] border-b border-default px-3 py-2 text-[12.5px]">
       <span class="border border-cyan px-[5px] text-[11px] text-cyan">plan</span>
-      <span class="text-white">{{ pending ? 'Ready to code?' : label }}</span>
+      <span class="text-strong">{{ pending ? 'Ready to code?' : label }}</span>
       <span class="flex-1" />
       <span class="truncate text-[11px] text-muted">{{ item.planFilePath }}</span>
     </div>
@@ -46,7 +46,7 @@ const label = computed(() => ({
       <input
         v-model="feedback"
         placeholder="What should change? (keeps planning)"
-        class="border border-default bg-default px-2.5 py-1.5 text-[12.5px] text-white outline-none placeholder:text-muted focus:border-accent"
+        class="border border-default bg-default px-2.5 py-1.5 text-[12.5px] text-strong outline-none placeholder:text-muted focus:border-accent"
         @keydown.enter="answer('keep_planning')"
       >
       <div class="flex flex-wrap gap-2">

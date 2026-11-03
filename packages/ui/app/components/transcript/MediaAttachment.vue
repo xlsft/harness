@@ -15,9 +15,9 @@ const props = withDefaults(defineProps<{
 function fileLook(f: Attachment): { icon: IconName, cls: string, type: string } {
   if (/zip|tar|gz/.test(f.mediaType) || /\.(zip|tgz|gz)$/.test(f.name)) return { icon: 'archive', cls: 'text-warn', type: 'Archive' }
   if (/json/.test(f.mediaType) || f.name.endsWith('.json')) return { icon: 'code', cls: 'text-cyan', type: 'JSON' }
-  if (f.kind === 'image') return { icon: 'image', cls: 'text-white', type: 'Image' }
-  if (f.name.endsWith('.md')) return { icon: 'file', cls: 'text-white', type: 'Markdown' }
-  return { icon: 'file', cls: 'text-white', type: f.mediaType.split('/').pop()?.toUpperCase() ?? 'File' }
+  if (f.kind === 'image') return { icon: 'image', cls: 'text-strong', type: 'Image' }
+  if (f.name.endsWith('.md')) return { icon: 'file', cls: 'text-strong', type: 'Markdown' }
+  return { icon: 'file', cls: 'text-strong', type: f.mediaType.split('/').pop()?.toUpperCase() ?? 'File' }
 }
 
 function size(n: number) {
@@ -47,7 +47,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
         :size="16"
         :class="fileLook(f).cls"
       /></span>
-      <span class="flex flex-col"><span class="text-[12.5px] text-white">{{ f.name }}</span><span class="text-[11px] text-muted">{{ fileLook(f).type }} · {{ size(f.size) }}</span></span>
+      <span class="flex flex-col"><span class="text-[12.5px] text-strong">{{ f.name }}</span><span class="text-[11px] text-muted">{{ fileLook(f).type }} · {{ size(f.size) }}</span></span>
     </a>
   </div>
 
@@ -58,7 +58,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
     <div
       role="img"
       :aria-label="caption"
-      class="flex aspect-video flex-col items-center justify-center gap-2 border border-default bg-surface bg-[repeating-linear-gradient(135deg,#131313_0_1px,transparent_1px_14px)] text-[11px] text-muted"
+      class="flex aspect-video flex-col items-center justify-center gap-2 border border-default bg-surface bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_1px,transparent_1px_14px)] text-[11px] text-muted"
     >
       <HIcon
         name="image"
@@ -81,14 +81,14 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
       :key="i"
       role="img"
       :aria-label="`Screenshot ${i + 1}`"
-      class="flex aspect-square items-end border border-default bg-surface bg-[repeating-linear-gradient(135deg,#131313_0_1px,transparent_1px_10px)] p-[5px] text-[10px] text-muted"
+      class="flex aspect-square items-end border border-default bg-surface bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_1px,transparent_1px_10px)] p-[5px] text-[10px] text-muted"
     >
       {{ f.name }}
     </div>
     <a
       v-if="files.length > 3"
       href="#"
-      class="flex aspect-square items-center justify-center border border-default bg-hover text-[16px] text-white"
+      class="flex aspect-square items-center justify-center border border-default bg-hover text-[16px] text-strong"
     >+{{ files.length - 3 }}</a>
   </div>
 
@@ -101,7 +101,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
       <button
         type="button"
         aria-label="Play"
-        class="flex size-[46px] items-center justify-center bg-accent text-white"
+        class="flex size-[46px] items-center justify-center bg-accent text-on-accent"
         @click="playing = !playing"
       >
         <HIcon
@@ -130,7 +130,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
       <button
         type="button"
         aria-label="Play voice message"
-        class="flex size-8 shrink-0 items-center justify-center bg-accent text-white"
+        class="flex size-8 shrink-0 items-center justify-center bg-accent text-on-accent"
       >
         <HIcon name="play" />
       </button>

@@ -59,7 +59,7 @@ const mono = '\'JetBrains Mono\', monospace'
         aria-haspopup="menu"
         :aria-expanded="menuOpen"
         data-menu-anchor
-        class="flex h-[30px] items-center gap-1.5 border px-2.5 text-[12.5px] text-white"
+        class="flex h-[30px] items-center gap-1.5 border px-2.5 text-[12.5px] text-strong"
         :class="menuOpen ? 'border-line-strong bg-raised' : 'border-transparent hover:bg-hover'"
         @click="menuOpen = !menuOpen"
       >
@@ -73,7 +73,7 @@ const mono = '\'JetBrains Mono\', monospace'
       <span class="px-1 text-[11.5px] text-muted">{{ ARTIFACT.author }}</span>
       <button
         type="button"
-        class="flex h-[30px] items-center gap-1.5 bg-raised px-[9px] text-[12px] text-white"
+        class="flex h-[30px] items-center gap-1.5 bg-raised px-[9px] text-[12px] text-strong"
         @click="openPane('sidechat')"
       >
         <HIcon
@@ -84,7 +84,7 @@ const mono = '\'JetBrains Mono\', monospace'
       </button>
       <button
         type="button"
-        class="flex h-[30px] items-center gap-1.5 px-[9px] text-[12px] text-white hover:bg-hover"
+        class="flex h-[30px] items-center gap-1.5 px-[9px] text-[12px] text-strong hover:bg-hover"
       >
         <HIcon
           name="link"
@@ -96,7 +96,7 @@ const mono = '\'JetBrains Mono\', monospace'
         aria-label="Comments"
         title="Comments"
         :aria-expanded="thread"
-        class="flex h-[30px] items-center gap-1 px-[7px] text-[11px] text-white"
+        class="flex h-[30px] items-center gap-1 px-[7px] text-[11px] text-strong"
         :class="thread ? 'bg-raised' : 'hover:bg-hover'"
         @click="thread = !thread"
       >
@@ -131,7 +131,7 @@ const mono = '\'JetBrains Mono\', monospace'
         spin
         class="text-accent"
       />
-      <span class="text-white">The agent is publishing a new version</span>{{ ARTIFACT.version.from }} → {{ ARTIFACT.version.to }}<span class="flex-1" />
+      <span class="text-strong">The agent is publishing a new version</span>{{ ARTIFACT.version.from }} → {{ ARTIFACT.version.to }}<span class="flex-1" />
       <a
         href="#"
         class="text-accent hover:text-accent-hover"
@@ -217,7 +217,7 @@ const mono = '\'JetBrains Mono\', monospace'
             v-if="thread"
             type="button"
             aria-label="Comment thread"
-            class="absolute top-[18px] right-[-6px] size-6 bg-accent text-center text-white"
+            class="absolute top-[18px] right-[-6px] size-6 bg-accent text-center text-on-accent"
             style="font: 600 11px/24px 'Cascadia Mono', 'Cascadia Code', monospace"
             @click="thread = false"
           >
@@ -244,7 +244,7 @@ const mono = '\'JetBrains Mono\', monospace'
               :size="12"
               class="text-accent"
             />
-            <span class="text-white">{{ c.author }}</span>{{ c.when }}
+            <span class="text-strong">{{ c.author }}</span>{{ c.when }}
           </span>
           <span class="leading-[1.5]">{{ c.text }}</span>
           <span
@@ -257,11 +257,11 @@ const mono = '\'JetBrains Mono\', monospace'
             v-model="reply"
             type="text"
             placeholder="Reply…"
-            class="min-w-0 flex-1 border border-line bg-transparent px-2 py-1 text-white outline-none placeholder:text-muted focus:border-accent"
+            class="min-w-0 flex-1 border border-line bg-transparent px-2 py-1 text-strong outline-none placeholder:text-muted focus:border-accent"
           >
           <button
             type="button"
-            class="border border-line px-[9px] py-[3px] text-[11.5px] text-white hover:bg-raised"
+            class="border border-line px-[9px] py-[3px] text-[11.5px] text-strong hover:bg-raised"
             @click="thread = false"
           >
             Resolve
@@ -292,7 +292,7 @@ const mono = '\'JetBrains Mono\', monospace'
             role="menuitem"
             :aria-disabled="m.disabled ? 'true' : 'false'"
             class="flex cursor-default items-center gap-2.5 px-[9px] py-1.5"
-            :class="m.disabled ? 'text-disabled' : m.danger ? 'text-bad hover:bg-raised' : 'text-toned hover:bg-raised hover:text-white'"
+            :class="m.disabled ? 'text-disabled' : m.danger ? 'text-bad hover:bg-raised' : 'text-toned hover:bg-raised hover:text-strong'"
             @click="!m.disabled && choose(m.label)"
           >
             <HIcon

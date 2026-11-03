@@ -74,7 +74,7 @@ async function set(key: keyof ModelSlots, id: string) {
     aria-label="Defaults"
     class="mb-6 flex flex-col"
   >
-    <h3 class="m-0 text-[13px] font-semibold text-white">
+    <h3 class="m-0 text-[13px] font-semibold text-strong">
       Defaults
     </h3>
     <p class="m-0 mt-1 mb-2 text-[12px] text-muted">
@@ -112,7 +112,7 @@ async function set(key: keyof ModelSlots, id: string) {
         <span
           v-else
           class="text-[12.5px]"
-          :class="slots[row.key] ? 'text-white' : 'text-muted'"
+          :class="slots[row.key] ? 'text-strong' : 'text-muted'"
         >{{ label(slots[row.key], row.key) }}</span>
       </div>
     </template>

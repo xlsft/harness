@@ -5,18 +5,18 @@ import type { IconName } from '~/utils/icons'
 export type ArtifactType = 'doc' | 'slides' | 'design' | 'dash' | 'page'
 
 export const ARTIFACT_TYPES: Record<ArtifactType, { color: string, tint: string, icon: IconName }> = {
-  doc: { color: '#2b7fff', tint: '#2b7fff1f', icon: 'doc' },
-  slides: { color: '#fe6e00', tint: '#fe6e001f', icon: 'slides' },
-  design: { color: '#8e51ff', tint: '#8e51ff26', icon: 'design' },
-  dash: { color: '#ff2056', tint: '#ff20561f', icon: 'dash' },
-  page: { color: '#8f8f8f', tint: '#1c1c1c', icon: 'page' }
+  doc: { color: 'var(--color-accent)', tint: '#2b7fff1f', icon: 'doc' },
+  slides: { color: 'var(--color-orange)', tint: '#fe6e001f', icon: 'slides' },
+  design: { color: 'var(--color-violet)', tint: '#8e51ff26', icon: 'design' },
+  dash: { color: 'var(--color-bad)', tint: '#ff20561f', icon: 'dash' },
+  page: { color: 'var(--color-muted)', tint: 'var(--color-raised)', icon: 'page' }
 }
 
 export const ARTIFACT_KINDS: { name: string, type: ArtifactType, badge: string, badgeColor: string }[] = [
-  { name: 'Docs', type: 'doc', badge: 'New', badgeColor: '#2b7fff' },
-  { name: 'Slides', type: 'slides', badge: 'New', badgeColor: '#2b7fff' },
-  { name: 'Design', type: 'design', badge: 'New', badgeColor: '#2b7fff' },
-  { name: 'Dashboard', type: 'dash', badge: 'Beta', badgeColor: '#8f8f8f' }
+  { name: 'Docs', type: 'doc', badge: 'New', badgeColor: 'var(--color-accent)' },
+  { name: 'Slides', type: 'slides', badge: 'New', badgeColor: 'var(--color-accent)' },
+  { name: 'Design', type: 'design', badge: 'New', badgeColor: 'var(--color-accent)' },
+  { name: 'Dashboard', type: 'dash', badge: 'Beta', badgeColor: 'var(--color-muted)' }
 ]
 
 export interface ArtifactEntry {

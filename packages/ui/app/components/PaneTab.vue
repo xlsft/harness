@@ -24,7 +24,7 @@ const emit = defineEmits<{ select: [], close: [] }>()
     class="group flex cursor-default items-center border-b-2 border-line text-[12px] whitespace-nowrap"
     :class="[
       edge === 'left' ? 'border-l' : 'border-r',
-      selected ? 'border-b-accent bg-surface text-white' : 'border-b-transparent text-muted hover:text-toned',
+      selected ? 'border-b-accent bg-surface text-strong' : 'border-b-transparent text-muted hover:text-toned',
       italic && 'italic'
     ]"
     @click="emit('select')"
@@ -35,7 +35,7 @@ const emit = defineEmits<{ select: [], close: [] }>()
       v-if="closable"
       type="button"
       aria-label="Close tab"
-      class="flex shrink-0 items-center justify-center hover:text-white"
+      class="flex shrink-0 items-center justify-center hover:text-strong"
       :class="selected ? 'text-muted' : 'text-transparent group-hover:text-muted'"
       @click.stop="emit('close')"
     >

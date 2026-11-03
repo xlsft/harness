@@ -36,7 +36,7 @@ const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
       <input
         v-model="query"
         placeholder="Search folders"
-        class="min-w-0 flex-1 bg-transparent text-white outline-none placeholder:text-muted"
+        class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
         autofocus
       >
     </label>
@@ -50,7 +50,7 @@ const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
         role="menuitemradio"
         :aria-checked="f.path === cwd"
         :title="f.path"
-        :class="[ROW, f.path === cwd ? 'border-accent bg-raised text-white' : 'border-transparent text-toned hover:bg-raised hover:text-white', !f.exists && 'opacity-50']"
+        :class="[ROW, f.path === cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong', !f.exists && 'opacity-50']"
         @click="f.exists && emit('select', f.path)"
       >
         <span class="min-w-0 flex-1 truncate">{{ f.name }}</span>
@@ -75,7 +75,7 @@ const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
     <div class="my-1 h-px bg-line" />
     <div
       role="menuitem"
-      :class="[ROW, 'border-transparent text-toned hover:bg-raised hover:text-white']"
+      :class="[ROW, 'border-transparent text-toned hover:bg-raised hover:text-strong']"
       @click="emit('browse')"
     >
       <HIcon
@@ -93,7 +93,7 @@ const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
         role="menuitem"
         :aria-disabled="!worktree || !branches.length || undefined"
         :title="worktree ? 'Branch the worktree starts from' : 'Turn on Worktree to start from another branch'"
-        :class="[ROW, 'border-transparent', worktree && branches.length ? 'text-toned hover:bg-raised hover:text-white' : 'text-muted']"
+        :class="[ROW, 'border-transparent', worktree && branches.length ? 'text-toned hover:bg-raised hover:text-strong' : 'text-muted']"
       >
         <HIcon
           name="branch"
@@ -118,7 +118,7 @@ const ROW = 'flex cursor-default items-center gap-2 border-l-2 px-2.5 py-[5px]'
             :key="b.name"
             role="menuitemradio"
             :aria-checked="b.name === (baseRef || current)"
-            :class="[ROW, b.name === (baseRef || current) ? 'border-accent bg-raised text-white' : 'border-transparent text-toned hover:bg-raised hover:text-white']"
+            :class="[ROW, b.name === (baseRef || current) ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong']"
             @click="emit('branch', b.name); branchOpen = false"
           >
             <span class="min-w-0 flex-1 truncate">{{ b.name }}</span>
