@@ -125,6 +125,38 @@ func (*ExitPlanMode) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 }
 
+// ---- WrapUp ----
+
+// WrapUp closes a turn: the frontends show its recap, question and buttons under the last message (they read them
+// from the call). A button sends its label as the user's reply.
+type WrapUp struct{}
+
+func (*WrapUp) Name() string                  { return "WrapUp" }
+func (*WrapUp) ReadOnly(json.RawMessage) bool { return true }
+
+func (*WrapUp) Run(ctx context.Context, env *Env, call Call) Result {
+	var in struct {
+		Recap   string   `json:"recap"`
+		Ask     string   `json:"ask"`
+		Actions []string `json:"actions"`
+	}
+	if err := decode(call.Input, &in); err != nil {
+		return ErrorResult("%v", err)
+	}
+	if strings.TrimSpace(in.Recap) == "" {
+		return ErrorResult("InputValidationError: recap is required")
+	}
+	if in.Ask != "" && len(in.Actions) == 0 {
+		return ErrorResult("InputValidationError: ask needs actions: one or two answers the user can click")
+	}
+	if len(in.Actions) > 2 {
+		return ErrorResult("InputValidationError: at most two actions")
+	}
+	r := TextResult("Shown to the user under your last message. Now write your closing message, your full answer, with no more tool calls.", nil)
+	r.Summary = "Wrapped up"
+	return r
+}
+
 // ---- TodoWrite ----
 
 // Todo is one item of the session todo list.

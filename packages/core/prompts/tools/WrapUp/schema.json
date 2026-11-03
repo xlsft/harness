@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "recap": { "type": "string", "description": "Two or three short sentences for the user: what is now true or changed, and where it stands, including what is not done or not verified. No recommendation here." },
+    "ask": { "type": "string", "description": "The one decision that waits on the user, as one short sentence. Leave it out when nothing waits on them." },
+    "actions": {
+      "type": "array",
+      "description": "With ask: one or two answers the user can pick with a click, 1 to 3 words each, written as the user's reply. Your recommendation first.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "maxItems": 2
+    }
+  },
+  "required": ["recap"],
+  "additionalProperties": false
+}

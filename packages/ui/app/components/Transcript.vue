@@ -9,7 +9,7 @@ const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
 
 // Tool calls whose own card replaces them.
-const HIDDEN_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode', 'TodoWrite'])
+const HIDDEN_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode', 'TodoWrite', 'WrapUp'])
 
 type Block
   = | { kind: 'item', key: string, item: TranscriptItem }
@@ -176,6 +176,18 @@ function nextUserAfter(turnId: string) {
 const { openPane } = usePanes()
 watch(() => props.session.browserAction, (a) => {
   if (a?.phase === 'started' && a.kind === 'navigate') openPane('browser')
+})
+// The box of the last turn (WrapUp), once the turn is over and until the user moves on.
+const dismissedBoxes = useState<Record<string, boolean>>('next-step-dismissed', () => ({}))
+const nextStep = computed(() => {
+  if (props.session.meta.status !== 'idle') return null
+  const items = props.session.items
+  for (let i = items.length - 1; i >= 0; i--) {
+    const it = items[i]!
+    if (it.kind === 'user') return null
+    if (it.kind === 'tool' && it.name === 'WrapUp' && it.status === 'ok') return dismissedBoxes.value[it.id] ? null : it
+  }
+  return null
 })
 const readAloud = useReadAloud()
 onBeforeUnmount(readAloud.stop)
@@ -393,6 +405,12 @@ function toBottom() {
           />
         </div>
 
+        <NextStepBox
+          v-if="nextStep"
+          :tool="nextStep"
+          :session-id="session.meta.id"
+          @dismiss="dismissedBoxes[nextStep.id] = true"
+        />
         <div
           v-if="working"
           class="flex items-center gap-[9px] text-[12.5px] whitespace-nowrap text-muted"
