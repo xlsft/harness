@@ -16,6 +16,7 @@ import type {
   BackgroundTask
 } from '~/gen/harness/agent/v1/agent_pb'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
+import type { SubagentTranscriptItem } from '~/gen/harness/agent/v1/subagents_pb'
 import type { EffortName, QuestionReply } from '~/lib/session/types'
 import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
@@ -150,6 +151,8 @@ export interface SessionTransport {
   getContextUsage(sessionId: string): Promise<ContextUsageVM>
   listTasks(sessionId: string): Promise<BackgroundTask[]>
   stopTask(sessionId: string, taskId: string): Promise<void>
+  stopSubagent(sessionId: string, agentId: string): Promise<void>
+  subagentTranscript(sessionId: string, agentId: string): Promise<SubagentTranscriptItem[]>
   // Moves the running foreground Bash command of a tool call to the background without stopping it (the "Run in
   // background" button: reason 'user'; delivering a queued message now: 'queued_message'). The call then
   // finishes with ToolCallFinished.background and a TaskStarted follows. false: that call runs no foreground

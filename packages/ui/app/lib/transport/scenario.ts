@@ -2,6 +2,7 @@
 // artboards (docs/design/ui), so every screen of the design is reachable with the mock.
 
 import { PermissionMode, PullRequest_State, SessionStatus, type SessionEvent, type SessionInfo } from '~/gen/harness/agent/v1/agent_pb'
+import { SubagentState, SubagentStepStatus } from '~/gen/harness/agent/v1/subagents_pb'
 import { EventBuilder, sessionInfo } from './events'
 import type { ModelInfo } from './types'
 
@@ -202,6 +203,7 @@ export function mainHistory(now: number): SessionEvent[] {
   for (const a of finishedAgents) {
     b.wait(200).toolStarted(a.id, 'Task', { description: a.d, subagent_type: 'general-purpose' }, a.d)
     if (a.calls) b.notice('info', 'subagent_progress', { tool_use_id: a.id, steps: [], tokens: 120_000, tool_calls: a.calls, model: 'qwen3-coder' })
+    b.subagent(a.id, a.id, a.d, 'general-purpose', 'qwen3-coder', a.ok ? SubagentState.FINISHED : SubagentState.FAILED, { toolCalls: a.calls })
     b.wait(a.ms).toolFinished(a.id, { output: a.ok ? 'Done.' : 'Failed: the device did not answer the sync upload.', isError: !a.ok, durationMs: a.ms, summary: a.ok ? 'done' : 'failed' })
   }
   b.at(now - 17 * 60_000 - 30_000)
@@ -209,6 +211,7 @@ export function mainHistory(now: number): SessionEvent[] {
   for (const a of agents) {
     b.at(now - a.ago * 1000)
     b.toolStarted(a.id, 'Task', { description: a.d, subagent_type: a.type }, a.d)
+    b.subagent(a.id, a.id, a.d, a.type, a.model, SubagentState.RUNNING, { toolCalls: a.calls, steps: a.steps.map(st => ({ tool: st.tool, target: st.target, status: st.status === 'done' ? SubagentStepStatus.DONE : st.status === 'running' ? SubagentStepStatus.RUNNING : SubagentStepStatus.UNSPECIFIED })) })
     if (a.calls || a.steps.length) {
       b.notice('info', 'subagent_progress', { tool_use_id: a.id, steps: a.steps, tokens: a.calls * 4000, tool_calls: a.calls, model: a.model, active: a.active })
     } else {

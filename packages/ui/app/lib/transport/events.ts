@@ -1,6 +1,7 @@
 // Small builder for harness.agent.v1.SessionEvent sequences, used by the mock transport and the tests.
 
 import { create } from '@bufbuild/protobuf'
+import type { SubagentState, SubagentStepStatus } from '~/gen/harness/agent/v1/subagents_pb'
 import {
   Compacted_Trigger,
   Notice_Level,
@@ -254,6 +255,14 @@ export class EventBuilder {
   notice(level: 'info' | 'warning' | 'error', kind: string, body: string | Record<string, unknown>) {
     const l = { info: Notice_Level.INFO, warning: Notice_Level.WARNING, error: Notice_Level.ERROR }[level]
     return this.emit({ case: 'notice', value: { level: l, kind, text: typeof body === 'string' ? body : JSON.stringify(body) } as never })
+  }
+
+  subagent(id: string, toolUseId: string, name: string, type: string, model: string, state: SubagentState, o: { toolCalls?: number, steps?: { tool: string, target: string, status: SubagentStepStatus }[] } = {}) {
+    return this.emit({ case: 'subagentUpdated', value: { agent: {
+      id, parentId: '', toolUseId, name, type, model, state, currentTool: '', toolCalls: o.toolCalls ?? 0,
+      steps: (o.steps ?? []).map((st, i) => ({ toolUseId: `${id}-${i}`, ...st })),
+      inputTokens: 0n, outputTokens: 0n, costUsd: 0, startedAt: new Date(this.t).toISOString(), finishedAt: '', report: '', error: '', worktreePath: '', worktreeBranch: ''
+    } } as never })
   }
 
   taskStarted(taskId: string, toolUseId: string, command: string, description: string) {

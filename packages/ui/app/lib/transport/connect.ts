@@ -271,6 +271,14 @@ export class ConnectTransport implements SessionTransport {
     await this.client.stopTask({ sessionId, taskId })
   }
 
+  async stopSubagent(sessionId: string, agentId: string) {
+    await this.client.stopSubagent({ sessionId, agentId })
+  }
+
+  async subagentTranscript(sessionId: string, agentId: string) {
+    return (await this.client.getSubagentTranscript({ sessionId, agentId })).items
+  }
+
   async backgroundToolCall(sessionId: string, toolUseId: string, reason: 'user' | 'queued_message') {
     return (await this.client.backgroundToolCall({ sessionId, toolUseId, reason: backgroundReasonPb(reason) })).backgrounded
   }

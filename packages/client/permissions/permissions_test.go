@@ -477,3 +477,20 @@ func TestRelocateFollowsTheFolder(t *testing.T) {
 		t.Fatalf("dirs %v", d)
 	}
 }
+
+// A subagent's worktree sits under .harness, a protected directory, but is a working directory like any other.
+func TestAddWorkDirStaysAndIsNotProtected(t *testing.T) {
+	cwd := t.TempDir()
+	wt := filepath.Join(cwd, ".harness", "worktrees", "agent-a1")
+	file := filepath.Join(wt, "main.go")
+	e := New(Config{Cwd: cwd, DefaultMode: ModeAcceptEdits})
+	req := Request{ToolName: "Edit", FilePath: file}
+	if d := e.Evaluate(req); d.Behavior != Ask {
+		t.Fatalf("before: %v", d.Behavior)
+	}
+	e.AddWorkDir(wt)
+	e.SetAdditionalDirectories(nil)
+	if d := e.Evaluate(req); d.Behavior != Allow {
+		t.Fatalf("after: %v %s", d.Behavior, d.Message)
+	}
+}

@@ -130,6 +130,7 @@ const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
   <AgentCard
     v-if="kind === 'agent'"
     :tool="tool"
+    :session-id="sessionId"
   />
 
   <DiffView

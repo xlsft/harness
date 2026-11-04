@@ -226,7 +226,7 @@ func (*TodoWrite) Run(ctx context.Context, env *Env, call Call) Result {
 
 // ---- TaskStop ----
 
-// TaskStop stops a background task.
+// TaskStop stops a background task or a subagent.
 type TaskStop struct{}
 
 func (*TaskStop) Name() string                  { return "TaskStop" }
@@ -241,6 +241,9 @@ func (*TaskStop) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	if in.TaskID == "" {
 		return ErrorResult("InputValidationError: task_id is required")
+	}
+	if r, ok := stopAgent(env, in.TaskID); ok {
+		return r
 	}
 	if env.Tasks == nil {
 		return ErrorResult("no background tasks in this session")

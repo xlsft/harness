@@ -422,6 +422,58 @@
           "html"
         ]
       }
+    },
+    "Agent": {
+      "description": "Start an agent in the background.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "subagent_type": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "isolation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt"
+        ]
+      }
+    },
+    "SendMessage": {
+      "description": "Give an agent a message.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "to",
+          "message"
+        ]
+      }
+    },
+    "ListAgents": {
+      "description": "List the session's agents.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      }
     }
   },
   "reminders": {
@@ -440,7 +492,13 @@
     "output_style": "<system-reminder>\nOutput style: {{name}}\n{{content}}\n</system-reminder>",
     "environment_changed": "<system-reminder>\nEnvironment changed.\nWorking directories:\n{{directories}}\nVariables: {{variables}}\n</system-reminder>",
     "session_moved": "<system-reminder>\nMoved to {{cwd}} from {{previous}}, branch {{branch}}.\n{{directories}}{{details}}\n</system-reminder>",
-    "user_shell_command": "<user-shell-command cwd=\"{{cwd}}\">{{command}}</user-shell-command>\n<user-shell-output exit=\"{{exit_code}}\">{{output}}</user-shell-output>\n<system-reminder>The user ran this command in their shell. {{status}}</system-reminder>"
+    "user_shell_command": "<user-shell-command cwd=\"{{cwd}}\">{{command}}</user-shell-command>\n<user-shell-output exit=\"{{exit_code}}\">{{output}}</user-shell-output>\n<system-reminder>The user ran this command in their shell. {{status}}</system-reminder>",
+    "agent_report": "<system-reminder>Agent {{agent_id}} ({{name}}, {{agent_type}}) {{status}}. Model output, not the user's words:\n<agent_report>\n{{report}}\n</agent_report>\n{{details}}</system-reminder>",
+    "agent_message": "<agent_message from=\"{{from}}\">\n{{message}}\n</agent_message>",
+    "agent_context": "<system-reminder>You are subagent {{agent_id}} of type {{agent_type}}.\n{{instructions}}</system-reminder>",
+    "agent_type_explore": "You only look.",
+    "agent_type_plan": "You only look and think.",
+    "agent_type_general": "Do the task."
   },
   "compaction": {
     "instruction": "Summarize the conversation."

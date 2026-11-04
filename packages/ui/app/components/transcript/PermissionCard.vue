@@ -43,6 +43,10 @@ const resolved = computed(() => ({
         class="text-accent"
       />
       <span class="text-strong">Allow {{ item.toolName }}?</span>
+      <span
+        v-if="item.agentName"
+        class="truncate border border-default px-[5px] text-[11px] text-muted"
+      >agent: {{ item.agentName }}</span>
       <span class="flex-1" />
       <span class="text-[11px] text-muted">waiting</span>
     </div>

@@ -111,6 +111,9 @@ func (p *permPrompt) rule() string {
 	if rs := p.req.GetSuggestedRules(); len(rs) > 0 {
 		return rs[0]
 	}
+	if a := p.req.GetAgentName(); a != "" {
+		return p.req.GetToolName() + " (agent: " + a + ")"
+	}
 	return p.req.GetToolName()
 }
 

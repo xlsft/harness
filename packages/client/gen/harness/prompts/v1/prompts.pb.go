@@ -156,6 +156,10 @@ type PromptBundle struct {
 	//	plan_approved         {{plan_file_path}}     the user approved the plan
 	//	plan_rejected         {{feedback}}           the user asked to keep planning
 	//	background_task_done  {{task_id}} {{command}} {{status}} {{tail}} {{output_path}}
+	//	agent_report          {{agent_id}} {{name}} {{agent_type}} {{status}} {{report}} {{details}}
+	//	agent_message         {{from}} {{message}}
+	//	agent_context         {{agent_id}} {{agent_type}} {{instructions}}
+	//	agent_type_general, agent_type_explore, agent_type_plan
 	//	compacted                                    first message after a compaction summary
 	//	attribution           {{commit}} {{pr}}      commit / PR attribution lines
 	//	output_style          {{name}} {{content}}   the active output style (sent at session start and on change)

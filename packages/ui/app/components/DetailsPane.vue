@@ -2,7 +2,6 @@
 // Session details (the right panel of Main.dc.html): environment, context, outputs, changes,
 // agents and background tasks of the current session.
 import type { SessionState, ToolItem } from '~/lib/session/types'
-import { isSubagent } from '~/lib/session/reducer'
 import { isDesktop, openExternal, pickFolder, revealInFolder } from '~/lib/desktop'
 import { sessionWebUrl, type FolderInfo } from '~/lib/environment/types'
 import type { RowMenuItem } from '~/components/RowMenu.vue'
@@ -33,8 +32,8 @@ const outputs = computed(() => {
   }
   return [...files].slice(-3)
 })
-const agents = computed(() => tools.value.filter(isSubagent))
-const runningAgents = computed(() => agents.value.filter(a => a.status === 'running'))
+const agents = computed(() => props.session.subagentOrder.map(id => props.session.subagents[id]!))
+const runningAgents = computed(() => agents.value.filter(a => a.state === 'running' || a.state === 'queued'))
 const tasks = computed(() => props.session.taskOrder.map(id => props.session.tasks[id]!))
 const runningTasks = computed(() => tasks.value.filter(t => t.state === 'running'))
 const repoName = computed(() => basename(props.session.meta.repo || props.session.meta.cwd))
@@ -338,7 +337,7 @@ function taskMeta(command: string, tail: string) {
         <HIcon
           name="agent"
           class="text-accent"
-        /><span class="truncate">{{ String(a.input.description ?? a.summary) }}</span>
+        /><span class="truncate">{{ a.name }}</span>
         <span class="flex-1" /><span class="text-[10.5px] text-muted">{{ age(now - a.startedAt) }}</span>
       </div>
       <div class="nav-row text-muted">

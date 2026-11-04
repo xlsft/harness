@@ -825,6 +825,15 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.stopTask(id, taskId)
     },
 
+    async stopSubagent(id: string, agentId: string) {
+      await this.transport?.stopSubagent(id, agentId)
+    },
+
+    async subagentTranscript(id: string, agentId: string) {
+      if (!this.transport) throw new Error('not connected')
+      return this.transport.subagentTranscript(id, agentId)
+    },
+
     // The composer's shell mode: the client runs the command at once (also while a turn runs, without queueing
     // or starting one) and the transcript shows it as a shell card; the model sees it on its next request.
     // `inline`: run from a code block's Run button. The block shows the output (the transcript draws no shell card

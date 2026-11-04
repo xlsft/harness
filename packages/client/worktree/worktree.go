@@ -198,6 +198,23 @@ func Rollback(ctx context.Context, r *Result) error {
 	return err
 }
 
+// RemoveIfUntouched removes a worktree when nothing was done in it: no uncommitted change and no commit past the
+// point Create started it from. It reports whether it did.
+func RemoveIfUntouched(ctx context.Context, r *Result) (bool, error) {
+	if r == nil {
+		return false, nil
+	}
+	status, err := git(ctx, QueryTimeout, r.Path, "status", "--porcelain")
+	if err != nil || strings.TrimSpace(status) != "" {
+		return false, err
+	}
+	ahead, err := git(ctx, QueryTimeout, r.Path, "rev-list", "--count", r.BaseRef+"..HEAD")
+	if err != nil || strings.TrimSpace(ahead) != "0" {
+		return false, err
+	}
+	return true, Rollback(ctx, r)
+}
+
 // EnsureExcluded adds "/.harness/worktrees/" to <commonDir>/info/exclude
 // unless an equivalent line is already there.
 func EnsureExcluded(commonDir string) error {

@@ -11,6 +11,7 @@ import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/speech.proto";
+import "harness/agent/v1/subagents.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/llm/v1/content.proto";
 
@@ -271,6 +272,13 @@ service AgentService {
   // What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
   // FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
+
+  // --- Subagents (subagents.proto) ---
+
+  // Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
+  rpc StopSubagent(StopSubagentRequest) returns (StopSubagentResponse);
+  // What a subagent did, for reading.
+  rpc GetSubagentTranscript(GetSubagentTranscriptRequest) returns (GetSubagentTranscriptResponse);
 }
 
 enum PermissionMode {
@@ -647,6 +655,8 @@ message SessionEvent {
     // The agent acting in the session's browser (browser.proto), for the Browser pane's overlay; numbered
     // apart like the shell events.
     BrowserAction browser_action = 60;
+    // Subagents (subagents.proto); numbered apart like the shell events.
+    SubagentUpdated subagent_updated = 70;
   }
 }
 
@@ -873,6 +883,9 @@ message PermissionRequest {
   bool one_time_only = 7;
   // Risk categories from the auto-mode decider when this prompt is an ASK fall-back.
   repeated string risk_categories = 8;
+  // Set when a subagent of the session asks (subagents.proto): its id and name, for the label.
+  string agent_id = 9;
+  string agent_name = 10;
 }
 
 // A pending PermissionRequest was answered (by any client, or by a hook / rule). Frontends dismiss the card.
