@@ -47,6 +47,8 @@ type ObjectRef struct {
 // ContentBlock is a single content block. Only the fields relevant to Type are set.
 type ContentBlock struct {
 	Type string `json:"type"`
+	// Title names a document.
+	Title string `json:"title,omitempty"`
 
 	// text
 	Text string `json:"text,omitempty"`
