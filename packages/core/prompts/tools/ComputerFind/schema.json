@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "string",
+      "description": "The app, by name or id."
+    },
+    "query": {
+      "type": "string",
+      "description": "Text to look for, case-insensitive."
+    },
+    "role": {
+      "type": "string",
+      "description": "An exact accessibility role."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200,
+      "description": "Default 50."
+    }
+  },
+  "required": [
+    "app"
+  ],
+  "additionalProperties": false
+}

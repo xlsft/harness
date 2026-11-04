@@ -52,13 +52,15 @@ type liveSession struct {
 	pendingPerm map[string]*pendingPermission
 	pendingQ    map[string]*pendingQuestion
 	pendingPlan map[string]chan planAnswer
-	waiting     int
-	queue       []*agentv1.UserMessage
-	seen        map[string]bool
-	messageID   string
-	branch      string
-	title       string
-	titleSource titleSource
+	// pendingAccess are the open access cards of computer use (computeruse.go).
+	pendingAccess map[string]*pendingComputerAccess
+	waiting       int
+	queue         []*agentv1.UserMessage
+	seen          map[string]bool
+	messageID     string
+	branch        string
+	title         string
+	titleSource   titleSource
 	// titleTurns counts finished turns while the title is provisional;
 	// titleTried is set once the AI title request started.
 	titleTurns int
@@ -367,6 +369,7 @@ func (ls *liveSession) onResult(res agent.TurnResult) {
 		tf.Result = agentv1.TurnFinished_RESULT_ERROR_DURING_EXECUTION
 	}
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnFinished{TurnFinished: tf}})
+	ls.computerTurnEnded()
 	if ls.srv.ctx.Err() == nil && (ls.sess.Agent.QueueLen() == 0 || ls.driver.Held()) {
 		ls.setStatus(agentv1.SessionStatus_SESSION_STATUS_IDLE)
 	}

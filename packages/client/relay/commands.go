@@ -12,6 +12,7 @@ import (
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	relayv1 "github.com/xlsft/harness/packages/client/gen/harness/relay/v1"
+	"github.com/xlsft/harness/packages/client/server"
 )
 
 // epochWait bounds how long a command routed to a newer epoch waits for this
@@ -183,6 +184,7 @@ func errAck(id string, err error, answer bool) *relayv1.CommandAck {
 // exec runs a session command through the backend's AgentService methods, the
 // same code paths local frontends call.
 func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck {
+	ctx = server.WithRemoteOrigin(ctx)
 	b, id, sid := h.o.Backend, c.GetCommandId(), c.GetSessionId()
 	// The command's session is authoritative; the wrapped request cannot point elsewhere.
 	clone := func(m proto.Message) proto.Message { return proto.Clone(m) }
@@ -288,6 +290,7 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 
 // execHost runs a host-level command (spawn).
 func (h *Host) execHost(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck {
+	ctx = server.WithRemoteOrigin(ctx)
 	id := c.GetCommandId()
 	sp := c.GetSpawnSession()
 	if sp == nil {

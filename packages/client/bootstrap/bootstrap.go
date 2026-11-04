@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/xlsft/harness/packages/client/browser"
+	"github.com/xlsft/harness/packages/client/computeruse"
 	"log/slog"
 	"net/http"
 	"os"
@@ -131,6 +132,9 @@ type Options struct {
 	// Browser, when set, gives the session a browser (the Browser* tools; HARNESS_NO_BROWSER=1 leaves them out).
 	// The session's browser stops when the session closes.
 	Browser *browser.Manager
+	// ComputerUse, when set, gives the session the Computer* tools (HARNESS_NO_COMPUTER_USE=1 leaves them out). They are
+	// only offered while the device-local switch is on. The session's grants end when the session closes.
+	ComputerUse *computeruse.Manager
 
 	// UsageMonitor follows the usage limits of the session provider (agent.Config.UsageMonitor; may be nil).
 	UsageMonitor agent.UsageMonitor
@@ -184,6 +188,7 @@ type Session struct {
 	stopVCS   context.CancelFunc
 	styleOpts outputstyle.Options
 	browsers  *browser.Manager
+	computer  *computeruse.Manager
 }
 
 // Close kills background tasks, closes the transcript and flushes the transcript upload.
@@ -192,6 +197,9 @@ func (s *Session) Close() error {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
 	}
 	s.MCP.Close()
+	if s.computer != nil {
+		s.computer.CloseSession(s.ID)
+	}
 	if s.browsers != nil {
 		s.browsers.CloseSession(s.ID)
 	}
@@ -504,6 +512,13 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		for _, t := range o.Browser.Tools() {
 			s.Tools.Register(t)
 		}
+	}
+
+	if o.ComputerUse != nil && os.Getenv("HARNESS_NO_COMPUTER_USE") != "1" {
+		for _, t := range o.ComputerUse.Tools() {
+			s.Tools.Register(t)
+		}
+		s.computer = o.ComputerUse
 	}
 
 	// Permissions.

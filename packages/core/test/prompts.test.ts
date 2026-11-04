@@ -23,6 +23,8 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
+      "ComputerAccess", "ComputerActivate", "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey",
+      "ComputerMenu", "ComputerScreenshot", "ComputerScroll", "ComputerType",
       "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);

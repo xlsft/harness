@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "string",
+      "description": "The app, by name or id."
+    },
+    "x": {
+      "type": "number"
+    },
+    "y": {
+      "type": "number"
+    },
+    "dx": {
+      "type": "integer",
+      "description": "Lines to the right; negative to the left."
+    },
+    "dy": {
+      "type": "integer",
+      "description": "Lines down; negative up."
+    }
+  },
+  "required": [
+    "app"
+  ],
+  "additionalProperties": false
+}

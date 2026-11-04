@@ -24,6 +24,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp | `tools/<Name>/` | written |
 | MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
 | Web: WebSearch, WebFetch | `tools/WebSearch/`, `tools/WebFetch/` | written |
+| Computer use: ComputerApps, ComputerAccess, ComputerScreenshot, ComputerClick, ComputerDrag, ComputerScroll, ComputerType, ComputerKey, ComputerActivate, ComputerFind, ComputerMenu, ComputerBatch | `tools/Computer*/` | written |
 | Browser: BrowserNavigate, BrowserSnapshot, BrowserClick, BrowserType, BrowserKey, BrowserScroll, BrowserScreenshot, BrowserEval, BrowserTabs, BrowserConsole, BrowserNetwork, BrowserWait | `tools/Browser*/` | written |
 | 14 reminders (12 core ids plus `output_style` and `deferred_tools`) | `reminders/` | written |
 | WebFetch summarization prompt (small-slot model) | `reminders/webfetch_summary.md` | written |

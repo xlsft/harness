@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Computer use: the agent sees and controls desktop apps of this machine (packages/client/computeruse). Everything
+// here is device-local: nothing is kept in the user's synced settings, the events do not go to the relay mirror, and
+// these RPCs refuse a session of another machine and a frontend that is not on this machine (FAILED_PRECONDITION).
+
+// What the model may do in an app. Set by the client from what the app is, never by a frontend.
+enum ComputerAccessTier {
+  COMPUTER_ACCESS_TIER_UNSPECIFIED = 0;
+  // Screenshots and accessibility reads only (browsers).
+  COMPUTER_ACCESS_TIER_READ = 1;
+  // Plain clicks and scrolling on top of that, no typing or right click (terminals, IDEs, script runners).
+  COMPUTER_ACCESS_TIER_CLICK = 2;
+  COMPUTER_ACCESS_TIER_FULL = 3;
+}
+
+// A permission of the operating system (TCC on macOS) the driver needs.
+message ComputerUsePermission {
+  // Stable id ("screen_recording", "accessibility").
+  string id = 1;
+  string name = 2;
+  bool granted = 3;
+  // How the user grants it, for when it is missing.
+  string how_to_grant = 4;
+}
+
+message ComputerUseStatus {
+  // The user's device-local switch (off by default).
+  bool enabled = 1;
+  // A driver exists for this platform.
+  bool supported = 2;
+  // "macos", "linux", "windows".
+  string platform = 3;
+  // Why it cannot work right now: no driver for the platform, or its helper program is missing.
+  string unavailable_reason = 4;
+  repeated ComputerUsePermission permissions = 5;
+}
+
+message GetComputerUseStatusRequest {}
+
+message GetComputerUseStatusResponse {
+  ComputerUseStatus status = 1;
+}
+
+message SetComputerUseEnabledRequest {
+  bool enabled = 1;
+}
+
+message SetComputerUseEnabledResponse {
+  ComputerUseStatus status = 1;
+}
+
+// One app the model asks to use.
+message ComputerAccessApp {
+  // The driver's id (a bundle id on macOS).
+  string id = 1;
+  string name = 2;
+  ComputerAccessTier tier = 3;
+  // What the tier means for this app, for the card.
+  string tier_note = 4;
+}
+
+// The model called ComputerAccess. The turn waits for RespondToComputerAccess; Stop cancels it.
+message ComputerAccessRequested {
+  string request_id = 1;
+  string tool_use_id = 2;
+  // Why the model wants them, in its own words (shown as such).
+  string reason = 3;
+  repeated ComputerAccessApp apps = 4;
+  // Permissions of the operating system that are still missing.
+  repeated ComputerUsePermission missing_permissions = 5;
+}
+
+message ComputerAccessResolved {
+  string request_id = 1;
+  // The ids of the apps the user approved (none: denied).
+  repeated string approved_app_ids = 2;
+  // "local" or "interrupt".
+  string resolved_by = 3;
+}
+
+// An app the session may use, until the session ends or the user stops it.
+message ComputerUseGrant {
+  string app_id = 1;
+  string app_name = 2;
+  ComputerAccessTier tier = 3;
+}
+
+// The current state of computer use in a session, in full: the indicator while the agent controls the machine.
+message ComputerUseState {
+  // The agent acted on the machine during this turn and the turn still runs.
+  bool controlling = 1;
+  // What it is doing now ("Clicking in Notes"), empty between actions.
+  string action = 2;
+  repeated ComputerUseGrant grants = 3;
+}
+
+message RespondToComputerAccessRequest {
+  string session_id = 1;
+  string request_id = 2;
+  // The apps to approve, a subset of the request's. Empty denies all of them.
+  repeated string approved_app_ids = 3;
+}
+
+message RespondToComputerAccessResponse {}
+
+// Stops computer use in the session at once: cancels the action in flight, revokes the session's grants and interrupts
+// the turn. The model has to ask again.
+message StopComputerUseRequest {
+  string session_id = 1;
+}
+
+message StopComputerUseResponse {}

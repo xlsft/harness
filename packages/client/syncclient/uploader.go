@@ -543,7 +543,7 @@ func (u *Uploader) readBatch(st *uploadState) ([]*syncv1.TranscriptEntry, int64,
 			// EOF or a partial last line: stop before it.
 			break
 		}
-		text := strings.TrimRight(string(line), "\r\n")
+		text := scrubComputerUse(strings.TrimRight(string(line), "\r\n"))
 		if len(text)+256 > u.o.MaxBytes {
 			u.log.Warn("sync: transcript line too large to upload; skipped", "session", st.SessionID, "bytes", len(text))
 			consumed += int64(len(line))

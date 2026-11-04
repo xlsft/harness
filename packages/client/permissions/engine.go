@@ -706,6 +706,9 @@ func (e *Engine) Evaluate(req Request) Decision {
 	if isBrowserTool(req.ToolName) {
 		return e.evalBrowser(req, input, mc)
 	}
+	if isComputerTool(req.ToolName) {
+		return Decision{Behavior: Allow, ResolvedBy: "computer_access"}
+	}
 	if editTools[req.ToolName] {
 		if isProtected(path, e.workDirs, e.home) {
 			return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s is a protected path; edits always need approval.", path)}

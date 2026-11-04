@@ -107,6 +107,8 @@ func (r Rule) toolMatches(name string, allowImplied bool) bool {
 		return true
 	case r.Tool == BrowserRuleTool && browserSiteTools[name]:
 		return true
+	case r.Tool == ComputerRuleTool && isComputerTool(name):
+		return true
 	}
 	return false
 }

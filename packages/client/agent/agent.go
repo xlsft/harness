@@ -992,9 +992,15 @@ func (a *Agent) markInterrupted(acc *llm.Accumulator) {
 func (a *Agent) toolNames() []string {
 	var names []string
 	for _, n := range a.cfg.Tools.Names() {
-		if !a.cfg.DisabledTools[n] {
-			names = append(names, n)
+		if a.cfg.DisabledTools[n] {
+			continue
 		}
+		if t, ok := a.cfg.Tools.Get(n); ok {
+			if h, ok := t.(tools.ModelHider); ok && h.HiddenFromModel() {
+				continue
+			}
+		}
+		names = append(names, n)
 	}
 	return names
 }

@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "string",
+      "description": "The app, by name or id."
+    },
+    "from_x": {
+      "type": "number"
+    },
+    "from_y": {
+      "type": "number"
+    },
+    "to_x": {
+      "type": "number"
+    },
+    "to_y": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "app",
+    "from_x",
+    "from_y",
+    "to_x",
+    "to_y"
+  ],
+  "additionalProperties": false
+}

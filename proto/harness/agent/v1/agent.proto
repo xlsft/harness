@@ -4,6 +4,7 @@ package harness.agent.v1;
 
 import "harness/agent/v1/acp.proto";
 import "harness/agent/v1/browser.proto";
+import "harness/agent/v1/computer_use.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
@@ -271,6 +272,15 @@ service AgentService {
   // What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
   // FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
+
+  // --- Computer use (computer_use.proto) ---
+
+  // The device-local switch and what the operating system allows. Never prompts for a permission.
+  rpc GetComputerUseStatus(GetComputerUseStatusRequest) returns (GetComputerUseStatusResponse);
+  rpc SetComputerUseEnabled(SetComputerUseEnabledRequest) returns (SetComputerUseEnabledResponse);
+  // The user's answer to ComputerAccessRequested.
+  rpc RespondToComputerAccess(RespondToComputerAccessRequest) returns (RespondToComputerAccessResponse);
+  rpc StopComputerUse(StopComputerUseRequest) returns (StopComputerUseResponse);
 }
 
 enum PermissionMode {
@@ -647,6 +657,10 @@ message SessionEvent {
     // The agent acting in the session's browser (browser.proto), for the Browser pane's overlay; numbered
     // apart like the shell events.
     BrowserAction browser_action = 60;
+    // Computer use (computer_use.proto); numbered apart like the shell and browser events.
+    ComputerAccessRequested computer_access_requested = 70;
+    ComputerAccessResolved computer_access_resolved = 71;
+    ComputerUseState computer_use_state = 72;
   }
 }
 

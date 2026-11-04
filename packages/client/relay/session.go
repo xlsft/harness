@@ -2,7 +2,9 @@ package relay
 
 import (
 	"context"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	relayv1 "github.com/xlsft/harness/packages/client/gen/harness/relay/v1"
 )
 
@@ -227,6 +230,7 @@ func (hs *hostSession) run(ctx context.Context) {
 // envelope converts a local event for the wire without touching the shared original.
 func (hs *hostSession) envelope(ev *agentv1.SessionEvent, base int64) *relayv1.EventEnvelope {
 	c := proto.Clone(ev).(*agentv1.SessionEvent)
+	scrubDeviceLocal(c)
 	c.SessionId = hs.id
 	c.Seq = base + ev.GetSeq()
 	id := uuid.NewString()
@@ -234,6 +238,21 @@ func (hs *hostSession) envelope(ev *agentv1.SessionEvent, base int64) *relayv1.E
 		id = uuid.NewSHA1(uuidNamespace, []byte(hs.h.o.InstanceID+"/"+hs.id+"/"+strconv.FormatInt(ev.GetSeq(), 10))).String()
 	}
 	return &relayv1.EventEnvelope{Uuid: id, Event: c}
+}
+
+// scrubDeviceLocal takes computer use off an event going to the server: its cards and state are empty there, and its
+// screenshots stay on this machine. An emptied event keeps its seq, so viewers see no gap in the log.
+func scrubDeviceLocal(c *agentv1.SessionEvent) {
+	switch e := c.GetEvent().(type) {
+	case *agentv1.SessionEvent_ComputerAccessRequested, *agentv1.SessionEvent_ComputerAccessResolved, *agentv1.SessionEvent_ComputerUseState:
+		c.Event = nil
+	case *agentv1.SessionEvent_ToolCallFinished:
+		tf := e.ToolCallFinished
+		if !strings.Contains(tf.GetStructuredResultJson(), `"computer_use":true`) {
+			return
+		}
+		tf.Content = slices.DeleteFunc(tf.GetContent(), func(b *llmv1.ContentBlock) bool { return b.GetImage() != nil })
+	}
 }
 
 func isDelta(ev *agentv1.SessionEvent) bool {

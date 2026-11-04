@@ -1,0 +1,1 @@
+Chooses an item from the menu bar of an app with the full tier, by its titles from the menu down, such as ["File", "Export", "PDF"]. Usually steadier than clicking through a menu. The system menu is refused.
