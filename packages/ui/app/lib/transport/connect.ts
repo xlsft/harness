@@ -322,6 +322,15 @@ export class ConnectTransport implements SessionTransport {
     return sessionDiffView(await this.client.getSessionDiff({ sessionId, ifNoneMatch: opts.ifNoneMatch ?? '' }))
   }
 
+  async updateViewerPresence(sessionId: string, viewerId: string, focused: boolean) {
+    await this.client.updateViewerPresence({ sessionId, viewerId, focused })
+  }
+
+  async readSentFile(sessionId: string, path: string) {
+    const r = await this.client.readSentFile({ sessionId, path })
+    return { bytes: r.content as Uint8Array<ArrayBuffer>, mime: r.mime, sha256: r.sha256 }
+  }
+
   private speechApi!: ConnectSpeechApi
   speech() {
     return this.speechApi

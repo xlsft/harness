@@ -5,6 +5,7 @@ import type { SessionState, ToolItem, TranscriptItem, UserItem } from '~/lib/ses
 import { hasActions, pendingMessages } from '~/lib/session/delivery'
 import { chaptersOf, linkedSessionIds, SESSION_CARD_TOOLS } from '~/lib/session/links'
 import type { ClusterEntry } from '~/components/transcript/ToolCluster.vue'
+import { findingsOf, sentFilesOf } from '~/lib/session/userTools'
 
 const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
@@ -17,6 +18,8 @@ type Block
     | { kind: 'group', key: string, tools: ToolItem[] }
     | { kind: 'visual', key: string, versions: ToolItem[] }
     | { kind: 'cluster', key: string, entries: ClusterEntry[] }
+    | { kind: 'files', key: string, tool: ToolItem }
+    | { kind: 'findings', key: string, tool: ToolItem }
 
 // Visual calls by id: one card per id, at its latest call, with the earlier calls as versions.
 const isVisual = (i: TranscriptItem) => i.kind === 'tool' && i.name === 'Visual' && i.status !== 'error'
@@ -72,9 +75,20 @@ function clustered(blocks: Block[]): Block[] {
   return out
 }
 
+// ReportFindings: each result is the whole list, so one card, at the latest report.
+const latestFindings = computed(() => props.session.items.findLast(i => i.kind === 'tool' && !!findingsOf(i)))
+
 const blocks = computed<Block[]>(() => {
   const out: Block[] = []
   for (const item of props.session.items) {
+    if (item.kind === 'tool' && sentFilesOf(item)) {
+      out.push({ kind: 'files', key: 'f:' + item.id, tool: item })
+      continue
+    }
+    if (item.kind === 'tool' && findingsOf(item)) {
+      if (item === latestFindings.value) out.push({ kind: 'findings', key: 'r:' + item.id, tool: item })
+      continue
+    }
     if (item.kind === 'tool' && isVisual(item)) {
       const versions = visuals.value.get(String(item.input.id ?? item.id))!
       if (versions[versions.length - 1] === item) out.push({ kind: 'visual', key: 'v:' + String(item.input.id ?? item.id), versions })
@@ -269,6 +283,16 @@ function toBottom() {
           <VisualCard
             v-else-if="b.kind === 'visual'"
             :versions="b.versions"
+            :session-id="session.meta.id"
+          />
+          <SentFilesCard
+            v-else-if="b.kind === 'files'"
+            :tool="b.tool"
+            :session-id="session.meta.id"
+          />
+          <FindingsCard
+            v-else-if="b.kind === 'findings'"
+            :tool="b.tool"
             :session-id="session.meta.id"
           />
           <template v-else>

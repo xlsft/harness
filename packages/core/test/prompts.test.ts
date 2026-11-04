@@ -23,7 +23,7 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "ProposeBranch", "Read", "RequestDirectory", "SendMessage", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionStart", "Show", "SyncWithBase", "TaskOutput",
+      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "ProposeBranch", "PushNotification", "Read", "ReadNotifications", "ReportFindings", "RequestDirectory", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionStart", "Show", "SyncWithBase", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -50,8 +50,7 @@ describe("bundle builder", () => {
       user_shell_command: ["cwd", "command", "exit_code", "output", "status"],
       usage_limit_wrap_up: ["provider", "detail", "resets"],
       usage_limit_returned: ["provider"],
-      session_message: ["from_id", "from_name", "from_title", "message"],
-      session_report: ["session_id", "name", "title", "status", "report"],
+      "from_id", "from_name", "from_title", "message", "name", "report", "session_id", "status", "title",
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason

@@ -209,6 +209,12 @@ export interface SessionTransport {
   // back as notModified.
   sessionDiff(sessionId: string, opts?: { ifNoneMatch?: string }): Promise<SessionDiff>
 
+  // Whether the user is looking at a session in this frontend (AgentService UpdateViewerPresence); renewed while focused.
+  updateViewerPresence(sessionId: string, viewerId: string, focused: boolean): Promise<void>
+  // The bytes of a file in the session's scope, for SendUserFile cards (AgentService ReadSentFile). Fails for a session
+  // of another machine.
+  readSentFile(sessionId: string, path: string): Promise<{ bytes: Uint8Array<ArrayBuffer>, mime: string, sha256: string }>
+
   // Dictation and "Read aloud" (~/lib/speech): providers (local engines of the client's machine and the server's
   // global providers), the synced / device settings, transcribe, streamed synthesis, local model downloads, and the
   // admins' global provider keys.

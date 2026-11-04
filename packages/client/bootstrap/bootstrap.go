@@ -208,6 +208,7 @@ func (s *Session) Close() error {
 	if s.Subagents != nil {
 		s.Subagents.Shutdown()
 	}
+	tools.SetNotificationListener(s.ID, nil)
 	if s.Tasks != nil {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
 	}
@@ -630,6 +631,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		UsageMonitor:          o.UsageMonitor,
 		OnEvent:               onEvent, Logger: log,
 	})
+	tools.SetNotificationListener(s.ID, s.Agent.OnNotification)
+	s.ToolEnv.RestoreFindings(conv.Findings)
+	s.ToolEnv.ReadDenied = func(p string) bool {
+		return s.Permissions.Evaluate(permissions.Request{ToolName: "Read", FilePath: p, ReadOnly: true}).Behavior == permissions.Deny
+	}
 	s.Permissions.OnModeChange(func(m permissions.Mode) {
 		s.Agent.Emit(agent.Event{Kind: agent.EventModeChanged, Mode: string(m)})
 	})

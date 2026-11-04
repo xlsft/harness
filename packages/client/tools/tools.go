@@ -110,10 +110,7 @@ type Env struct {
 	RipgrepPath string
 	// BeforeEdit is called before a file tool modifies path (checkpoints).
 	BeforeEdit func(path string)
-	// Agents is the session's set of subagents (nil disables the agent tools); AgentID is the subagent this Env
-	// belongs to (empty for the session's main agent).
-	Agents  Agents
-	AgentID string
+		,
 
 	mu    sync.Mutex
 	host  Host
@@ -282,7 +279,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Monitor{}, &NotebookEdit{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Monitor{}, &NotebookEdit{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{})
 }
 
 // Register adds or replaces a tool.

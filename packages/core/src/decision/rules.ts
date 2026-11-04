@@ -1921,7 +1921,7 @@ function isSafeCmd(c: Cmd, ctx: Ctx, extraAllow: RegExp[]): boolean {
 // Entry point
 // ---------------------------------------------------------------------------------------------------
 
-const READ_TOOLS = new Set(["Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent", "EnterWorktree", "ChangeDirectory", "RequestDirectory", "ProposeBranch", "SyncWithBase", "SendMessage", "ListAgents", "Monitor", "MarkChapter", "SessionList", "SessionDismiss"]);
+const READ_TOOLS = new Set(["Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent", "EnterWorktree", "ChangeDirectory", "RequestDirectory", "ProposeBranch", "SyncWithBase", "SendMessage", "ListAgents", "Monitor", "MarkChapter", "SessionList", "SessionDismiss", "PushNotification", "ReadNotifications", "SendUserFile", "ReportFindings"]);
 const WRITE_TOOLS = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
 
 function ask(reason: string, rule = "ask.default"): RulesResult {

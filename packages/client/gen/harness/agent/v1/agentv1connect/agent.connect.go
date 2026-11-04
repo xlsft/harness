@@ -294,6 +294,12 @@ const (
 	// AgentServiceResolveSessionProposalProcedure is the fully-qualified name of the AgentService's
 	// ResolveSessionProposal RPC.
 	AgentServiceResolveSessionProposalProcedure = "/harness.agent.v1.AgentService/ResolveSessionProposal"
+	// AgentServiceUpdateViewerPresenceProcedure is the fully-qualified name of the AgentService's
+	// UpdateViewerPresence RPC.
+	AgentServiceUpdateViewerPresenceProcedure = "/harness.agent.v1.AgentService/UpdateViewerPresence"
+	// AgentServiceReadSentFileProcedure is the fully-qualified name of the AgentService's ReadSentFile
+	// RPC.
+	AgentServiceReadSentFileProcedure = "/harness.agent.v1.AgentService/ReadSentFile"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -531,6 +537,10 @@ type AgentServiceClient interface {
 	// appears in ListSessions; a SessionProposal event follows either way. NOT_FOUND for an unknown proposal or a
 	// session that is not open, FAILED_PRECONDITION when it was already resolved or has expired.
 	ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error)
+	// Whether the user is looking at a session in this frontend; PushNotification stays quiet while they are.
+	UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error)
+	// The bytes of a file in the session's scope, for SendUserFile cards.
+	ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1090,6 +1100,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("ResolveSessionProposal")),
 			connect.WithClientOptions(opts...),
 		),
+		updateViewerPresence: connect.NewClient[v1.UpdateViewerPresenceRequest, v1.UpdateViewerPresenceResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateViewerPresenceProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateViewerPresence")),
+			connect.WithClientOptions(opts...),
+		),
+		readSentFile: connect.NewClient[v1.ReadSentFileRequest, v1.ReadSentFileResponse](
+			httpClient,
+			baseURL+AgentServiceReadSentFileProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ReadSentFile")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1186,6 +1208,8 @@ type agentServiceClient struct {
 	stopSubagent           *connect.Client[v1.StopSubagentRequest, v1.StopSubagentResponse]
 	getSubagentTranscript  *connect.Client[v1.GetSubagentTranscriptRequest, v1.GetSubagentTranscriptResponse]
 	resolveSessionProposal *connect.Client[v1.ResolveSessionProposalRequest, v1.ResolveSessionProposalResponse]
+	updateViewerPresence   *connect.Client[v1.UpdateViewerPresenceRequest, v1.UpdateViewerPresenceResponse]
+	readSentFile           *connect.Client[v1.ReadSentFileRequest, v1.ReadSentFileResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1643,6 +1667,16 @@ func (c *agentServiceClient) ResolveSessionProposal(ctx context.Context, req *co
 	return c.resolveSessionProposal.CallUnary(ctx, req)
 }
 
+// UpdateViewerPresence calls harness.agent.v1.AgentService.UpdateViewerPresence.
+func (c *agentServiceClient) UpdateViewerPresence(ctx context.Context, req *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error) {
+	return c.updateViewerPresence.CallUnary(ctx, req)
+}
+
+// ReadSentFile calls harness.agent.v1.AgentService.ReadSentFile.
+func (c *agentServiceClient) ReadSentFile(ctx context.Context, req *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error) {
+	return c.readSentFile.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1878,6 +1912,10 @@ type AgentServiceHandler interface {
 	// appears in ListSessions; a SessionProposal event follows either way. NOT_FOUND for an unknown proposal or a
 	// session that is not open, FAILED_PRECONDITION when it was already resolved or has expired.
 	ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error)
+	// Whether the user is looking at a session in this frontend; PushNotification stays quiet while they are.
+	UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error)
+	// The bytes of a file in the session's scope, for SendUserFile cards.
+	ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2433,6 +2471,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("ResolveSessionProposal")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceUpdateViewerPresenceHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateViewerPresenceProcedure,
+		svc.UpdateViewerPresence,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateViewerPresence")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceReadSentFileHandler := connect.NewUnaryHandler(
+		AgentServiceReadSentFileProcedure,
+		svc.ReadSentFile,
+		connect.WithSchema(agentServiceMethods.ByName("ReadSentFile")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2617,6 +2667,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceGetSubagentTranscriptHandler.ServeHTTP(w, r)
 		case AgentServiceResolveSessionProposalProcedure:
 			agentServiceResolveSessionProposalHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateViewerPresenceProcedure:
+			agentServiceUpdateViewerPresenceHandler.ServeHTTP(w, r)
+		case AgentServiceReadSentFileProcedure:
+			agentServiceReadSentFileHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2988,4 +3042,12 @@ func (UnimplementedAgentServiceHandler) GetSubagentTranscript(context.Context, *
 
 func (UnimplementedAgentServiceHandler) ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ResolveSessionProposal is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateViewerPresence is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ReadSentFile is not implemented"))
 }

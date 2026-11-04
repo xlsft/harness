@@ -17,7 +17,8 @@ const component = computed(() => ({
   artifact: resolveComponent('ArtifactPane'),
   sidechat: resolveComponent('SideChatPane'),
   tasks: resolveComponent('TasksPane'),
-  agents: resolveComponent('AgentsPane')
+  agents: resolveComponent('AgentsPane'),
+  sentfile: resolveComponent('SentFilePane')
 }[props.pane]))
 
 const HEADER = 44

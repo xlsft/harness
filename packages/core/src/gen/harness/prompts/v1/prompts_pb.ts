@@ -129,6 +129,8 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *                         message (SessionSend); it carries no user authority
    *   session_report        {{session_id}} {{name}} {{title}} {{status}} {{report}}  a session started from this one
    *                         ended a turn; {{report}} is the start of its latest answer
+   *   notifications_pending                        notifications wait for ReadNotifications (rides on the next model
+   *                         request, or wakes an idle session)
    *   side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
    *   bash_background_user / bash_background_queued_message / bash_background_agent  {{task_id}} {{output_path}}
    *   bash_background_timeout  {{timeout}} {{task_id}} {{output_path}}

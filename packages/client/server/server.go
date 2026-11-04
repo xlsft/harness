@@ -437,6 +437,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	s.mu.Lock()
 	s.live[sess.ID] = ls
 	s.mu.Unlock()
+	sess.Agent.WakeIfNotified()
 	if p := s.Base.ModePolicy; p != nil {
 		// The policy may have changed while the session opened (before it was live to follow it).
 		ls.applyModePolicy(p.Disabled())
