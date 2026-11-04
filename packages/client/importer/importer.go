@@ -85,6 +85,62 @@ type Options struct {
 	Queue SessionQueue
 	// UploadSessions flushes queued sessions immediately.
 	UploadSessions bool
+
+	// Sections limits the configuration imported; nil: all of it.
+	Sections map[Section]bool
+	// SelectSession limits Sessions to the transcripts it accepts, by project folder and session id; nil: all.
+	// Subagent transcripts travel with their session.
+	SelectSession func(folder, id string) bool
+	// HoldSession says why a session must stay as it is (open here, of another machine); "": it may be imported.
+	HoldSession func(id string) string
+	// SessionDone says the server has all of a session's local copy: when that copy is current too, the session is
+	// reported as it stands, without going through the queue. nil: always through the queue.
+	SessionDone func(id string) bool
+	// OnProgress follows a run that uploads (never a dry run); it is called on Run's goroutine.
+	OnProgress func(Progress)
+	// ForceHint and SecretsHint name the switches in notes; defaults: the CLI's flags.
+	ForceHint, SecretsHint string
+}
+
+// Section is a choosable part of the configuration.
+type Section string
+
+const (
+	SectionMemory       Section = "memory"
+	SectionSettings     Section = "settings" // with permission rules and hooks
+	SectionSkills       Section = "skills"
+	SectionAgents       Section = "agents"
+	SectionCommands     Section = "commands"
+	SectionOutputStyles Section = "output-styles"
+	SectionMCP          Section = "mcp"
+)
+
+// SectionOf returns the section of an item kind ("" for a session).
+func SectionOf(kind string) Section {
+	switch kind {
+	case "memory":
+		return SectionMemory
+	case "settings", "permissions", "hooks":
+		return SectionSettings
+	case "skill":
+		return SectionSkills
+	case "agent":
+		return SectionAgents
+	case "command":
+		return SectionCommands
+	case "output-style":
+		return SectionOutputStyles
+	case "mcp":
+		return SectionMCP
+	}
+	return ""
+}
+
+// Progress is one step of a run: the item Kind/Key started, or, with Item, finished.
+type Progress struct {
+	Kind, Key   string
+	Done, Total int
+	Item        *Item
 }
 
 // Status of an imported item.
@@ -150,8 +206,28 @@ func (r *Report) Print(w io.Writer) {
 }
 
 type run struct {
-	o   Options
-	rep *Report
+	o           Options
+	rep         *Report
+	done, total int
+}
+
+func (r *run) wants(s Section) bool { return r.o.Sections == nil || r.o.Sections[s] }
+
+func (r *run) started(kind, key string) {
+	if r.o.OnProgress != nil {
+		r.o.OnProgress(Progress{Kind: kind, Key: key, Done: r.done, Total: r.total})
+	}
+}
+
+func (r *run) finished(it Item) {
+	r.done++
+	r.report(it)
+}
+
+func (r *run) report(it Item) {
+	if r.o.OnProgress != nil {
+		r.o.OnProgress(Progress{Kind: it.Kind, Key: it.Key, Done: r.done, Total: r.total, Item: &it})
+	}
 }
 
 func (r *run) add(it Item) { r.rep.Items = append(r.rep.Items, it) }
@@ -175,23 +251,53 @@ func Run(ctx context.Context, o Options) (*Report, error) {
 	if !o.DryRun && o.Putter == nil {
 		return nil, fmt.Errorf("importer: a server connection is required (or use --dry-run)")
 	}
+	if o.ForceHint == "" {
+		o.ForceHint = "--force"
+	}
+	if o.SecretsHint == "" {
+		o.SecretsHint = "--include-secrets"
+	}
 	r := &run{o: o, rep: &Report{}}
-	r.memory()
-	r.settings()
-	r.skills()
-	r.markdownDir("agent", syncv1.DocumentKind_DOCUMENT_KIND_AGENT, filepath.Join(o.ClaudeHome, "agents"), false)
-	r.markdownDir("command", syncv1.DocumentKind_DOCUMENT_KIND_COMMAND, filepath.Join(o.ClaudeHome, "commands"), true)
-	r.markdownDir("output-style", syncv1.DocumentKind_DOCUMENT_KIND_OUTPUT_STYLE, filepath.Join(o.ClaudeHome, "output-styles"), false)
-	r.mcp()
+	if r.wants(SectionMemory) {
+		r.memory()
+	}
+	if r.wants(SectionSettings) {
+		r.settings()
+	}
+	if r.wants(SectionSkills) {
+		r.skills()
+	}
+	if r.wants(SectionAgents) {
+		r.markdownDir("agent", syncv1.DocumentKind_DOCUMENT_KIND_AGENT, filepath.Join(o.ClaudeHome, "agents"), false)
+	}
+	if r.wants(SectionCommands) {
+		r.markdownDir("command", syncv1.DocumentKind_DOCUMENT_KIND_COMMAND, filepath.Join(o.ClaudeHome, "commands"), true)
+	}
+	if r.wants(SectionOutputStyles) {
+		r.markdownDir("output-style", syncv1.DocumentKind_DOCUMENT_KIND_OUTPUT_STYLE, filepath.Join(o.ClaudeHome, "output-styles"), false)
+	}
+	if r.wants(SectionMCP) {
+		r.mcp()
+	}
+	var units []sessionUnit
+	if o.Sessions {
+		units = r.sessionUnits()
+	}
+	r.total = len(r.rep.Items) + len(units)
 	if !o.DryRun {
+		for _, it := range r.rep.Items {
+			if it.req == nil {
+				r.finished(it)
+			}
+		}
 		if err := r.upload(ctx); err != nil {
 			return r.rep, err
 		}
 	}
 	if o.Sessions {
-		r.sessions(ctx)
+		r.sessions(ctx, units)
 	}
-	return r.rep, nil
+	return r.rep, ctx.Err()
 }
 
 func (r *run) memory() {
@@ -279,7 +385,7 @@ func (r *run) settings() {
 			}
 			sort.Strings(dropped)
 			if len(dropped) > 0 {
-				notes = append(notes, "secret env not uploaded: "+strings.Join(dropped, ", ")+" (use --include-secrets)")
+				notes = append(notes, "secret env not uploaded: "+strings.Join(dropped, ", ")+" (use "+r.o.SecretsHint+")")
 			}
 			if len(env) == 0 {
 				delete(m, "env")
@@ -492,17 +598,22 @@ func (r *run) upload(ctx context.Context) error {
 		}
 	}
 	for start := 0; start < len(idx); start += batchSize {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		end := min(start+batchSize, len(idx))
 		chunk := idx[start:end]
 		req := &syncv1.BatchPutDocumentsRequest{}
 		for _, i := range chunk {
 			req.Items = append(req.Items, r.rep.Items[i].req)
 		}
+		r.started(r.rep.Items[chunk[0]].Kind, r.rep.Items[chunk[0]].Key)
 		resp, err := r.o.Putter.BatchPutDocuments(ctx, req)
 		if err != nil {
 			for _, i := range chunk {
 				r.rep.Items[i].Status = StatusError
 				r.rep.Items[i].Note = joinNote(r.rep.Items[i].Note, err.Error())
+				r.finished(r.rep.Items[i])
 			}
 			return fmt.Errorf("upload: %w", err)
 		}
@@ -510,6 +621,7 @@ func (r *run) upload(ctx context.Context) error {
 			it := &r.rep.Items[i]
 			if j >= len(resp.GetResults()) {
 				it.Status, it.Note = StatusError, joinNote(it.Note, "no result from server")
+				r.finished(*it)
 				continue
 			}
 			switch res := resp.GetResults()[j].GetResult().(type) {
@@ -518,13 +630,14 @@ func (r *run) upload(ctx context.Context) error {
 				it.Note = joinNote(it.Note, fmt.Sprintf("v%d", res.Document.GetVersion()))
 			case *syncv1.BatchPutResult_Conflict:
 				it.Status = StatusExists
-				it.Note = joinNote(it.Note, "already on the server (use --force to overwrite)")
+				it.Note = joinNote(it.Note, "already on the server (use "+r.o.ForceHint+" to overwrite)")
 			case *syncv1.BatchPutResult_Error:
 				it.Status = StatusError
 				it.Note = joinNote(it.Note, res.Error.GetCode()+": "+res.Error.GetMessage())
 			default:
 				it.Status, it.Note = StatusError, joinNote(it.Note, "empty result")
 			}
+			r.finished(*it)
 		}
 	}
 	return nil
@@ -542,11 +655,21 @@ func joinNote(a, b string) string {
 
 var sessionFile = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.jsonl$`)
 
-func (r *run) sessions(ctx context.Context) {
+// sessionUnit is what travels together: a session's transcript with those of its subagents, or a stray transcript.
+type sessionUnit struct {
+	key, path, folder, id string
+	// top says it is a session: <folder>/<uuid>.jsonl.
+	top bool
+	// extras are the subagent transcripts, relative to the source root.
+	extras []string
+}
+
+// sessionUnits lists the selected transcripts under ClaudeHome/projects.
+func (r *run) sessionUnits() []sessionUnit {
 	src := filepath.Join(r.o.ClaudeHome, "projects")
 	if r.o.ProjectsDir == "" {
 		r.add(Item{Kind: "session", Key: src, Status: StatusError, Note: "no harness projects directory configured"})
-		return
+		return nil
 	}
 	var files []string
 	_ = filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
@@ -556,77 +679,151 @@ func (r *run) sessions(ctx context.Context) {
 		return nil
 	})
 	sort.Strings(files)
-	var subagents int
+	// Sorted, "<uuid>.jsonl" comes before "<uuid>/...", so a session is known before its subagents.
+	var units []sessionUnit
+	byID := map[string]int{}
 	for _, p := range files {
 		rel, _ := filepath.Rel(src, p)
-		dst := filepath.Join(r.o.ProjectsDir, rel)
-		// Top-level transcripts are <slug>/<uuid>.jsonl; deeper files are
-		// subagent transcripts that travel with their session.
-		top := len(strings.Split(filepath.ToSlash(rel), "/")) == 2 && sessionFile.MatchString(filepath.Base(p))
-		if !top {
-			subagents++
-		}
 		key := filepath.ToSlash(rel)
-		status, note := r.copySession(p, dst)
-		if !top {
-			if status == StatusError {
-				r.add(Item{Kind: "session", Key: key, Status: status, Note: note})
-			}
+		parts := strings.Split(key, "/")
+		if len(parts) < 2 {
 			continue
 		}
-		if status == StatusError || r.o.DryRun || r.o.Queue == nil {
-			r.add(Item{Kind: "session", Key: key, Status: status, Note: note})
-			continue
-		}
-		id := strings.TrimSuffix(filepath.Base(p), ".jsonl")
-		if err := r.o.Queue.Queue(id, dst); err != nil {
-			r.add(Item{Kind: "session", Key: key, Status: StatusError, Note: joinNote(note, "queue: "+err.Error())})
-			continue
-		}
-		if r.o.UploadSessions {
-			if err := r.o.Queue.Flush(ctx, id); err != nil {
-				r.add(Item{Kind: "session", Key: key, Status: StatusQueued, Note: joinNote(note, "upload deferred: "+err.Error())})
+		id := strings.TrimSuffix(parts[len(parts)-1], ".jsonl")
+		if len(parts) > 2 {
+			id = parts[1]
+			if i, ok := byID[parts[0]+"/"+id]; ok {
+				units[i].extras = append(units[i].extras, rel)
 				continue
 			}
-			r.add(Item{Kind: "session", Key: key, Status: StatusUploaded, Note: note})
+		}
+		if r.o.SelectSession != nil && !r.o.SelectSession(parts[0], id) {
 			continue
 		}
-		r.add(Item{Kind: "session", Key: key, Status: StatusQueued, Note: note})
+		top := len(parts) == 2 && sessionFile.MatchString(parts[1])
+		if top {
+			byID[parts[0]+"/"+id] = len(units)
+		}
+		units = append(units, sessionUnit{key: key, path: rel, folder: parts[0], id: id, top: top})
+	}
+	return units
+}
+
+func (r *run) sessions(ctx context.Context, units []sessionUnit) {
+	src := filepath.Join(r.o.ClaudeHome, "projects")
+	var subagents int
+	for _, u := range units {
+		if ctx.Err() != nil {
+			break
+		}
+		r.started("session", u.key)
+		it := r.session(ctx, src, u, &subagents)
+		if it.Status == StatusError && ctx.Err() != nil {
+			break // the copy it was in stopped with the run: nothing is left behind, the next run does it
+		}
+		r.add(it)
+		r.finished(it)
 	}
 	if subagents > 0 {
 		r.add(Item{Kind: "session", Key: "(subagent transcripts)", Status: StatusNoted, Note: fmt.Sprintf("%d files copied and uploaded with their sessions", subagents)})
 	}
 }
 
-// copySession copies src to dst unless dst already has the same size.
-func (r *run) copySession(src, dst string) (Status, string) {
+// session imports one unit: the subagent transcripts first, so that the session's upload takes them along.
+func (r *run) session(ctx context.Context, src string, u sessionUnit, subagents *int) Item {
+	if r.o.HoldSession != nil && u.top {
+		if why := r.o.HoldSession(u.id); why != "" {
+			return Item{Kind: "session", Key: u.key, Status: StatusSkipped, Note: why}
+		}
+	}
+	for _, rel := range u.extras {
+		*subagents++
+		if status, note := r.copySession(ctx, filepath.Join(src, rel), filepath.Join(r.o.ProjectsDir, rel)); status == StatusError && ctx.Err() == nil {
+			it := Item{Kind: "session", Key: filepath.ToSlash(rel), Status: status, Note: note}
+			r.add(it)
+			r.report(it)
+		}
+	}
+	dst := filepath.Join(r.o.ProjectsDir, u.path)
+	status, note := r.copySession(ctx, filepath.Join(src, u.path), dst)
+	if !u.top {
+		*subagents++
+	}
+	if !u.top || status == StatusError || r.o.DryRun || r.o.Queue == nil {
+		return Item{Kind: "session", Key: u.key, Status: status, Note: note}
+	}
+	if status != StatusCopied && r.o.SessionDone != nil && r.o.SessionDone(u.id) {
+		return Item{Kind: "session", Key: u.key, Status: status, Note: note}
+	}
+	if err := r.o.Queue.Queue(u.id, dst); err != nil {
+		return Item{Kind: "session", Key: u.key, Status: StatusError, Note: joinNote(note, "queue: "+err.Error())}
+	}
+	if !r.o.UploadSessions {
+		return Item{Kind: "session", Key: u.key, Status: StatusQueued, Note: note}
+	}
+	if err := r.o.Queue.Flush(ctx, u.id); err != nil {
+		return Item{Kind: "session", Key: u.key, Status: StatusQueued, Note: joinNote(note, "upload deferred: "+err.Error())}
+	}
+	return Item{Kind: "session", Key: u.key, Status: StatusUploaded, Note: note}
+}
+
+// copyStatus says what importing src to dst would do: nothing (StatusExists, StatusSkipped) or copy (StatusPlanned).
+func copyStatus(src, dst string) (Status, string, error) {
 	si, err := os.Stat(src)
 	if err != nil {
-		return StatusError, err.Error()
+		return StatusError, "", err
 	}
 	if di, err := os.Stat(dst); err == nil {
 		if di.Size() == si.Size() {
-			return StatusExists, "already copied"
+			return StatusExists, "already copied", nil
 		}
 		if di.Size() > si.Size() {
-			return StatusSkipped, "local copy is newer (continued in harness)"
+			return StatusSkipped, "local copy is newer (continued in harness)", nil
 		}
 	}
-	if r.o.DryRun {
-		return StatusPlanned, fmt.Sprintf("would copy %d bytes", si.Size())
+	return StatusPlanned, fmt.Sprintf("would copy %d bytes", si.Size()), nil
+}
+
+// copySession copies src to dst unless dst already has the same size.
+func (r *run) copySession(ctx context.Context, src, dst string) (Status, string) {
+	status, note, err := copyStatus(src, dst)
+	switch {
+	case err != nil:
+		return StatusError, err.Error()
+	case status != StatusPlanned || r.o.DryRun:
+		return status, note
 	}
-	if err := copyFile(src, dst); err != nil {
+	if err := copyFile(ctx, src, dst); err != nil {
 		return StatusError, err.Error()
 	}
 	return StatusCopied, ""
 }
 
-func copyFile(src, dst string) error {
+// ctxReader stops a copy when its context ends: a transcript can take a while.
+type ctxReader struct {
+	ctx context.Context
+	r   io.Reader
+}
+
+func (c ctxReader) Read(p []byte) (int, error) {
+	if err := c.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return c.r.Read(p)
+}
+
+// copyFile copies through a temporary file, so a stopped copy leaves nothing behind. The copy keeps the source's time:
+// session lists sort by it, and an imported session was not used just now.
+func copyFile(ctx context.Context, src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
+	st, err := in.Stat()
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
 		return err
 	}
@@ -635,7 +832,7 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(out, in); err != nil {
+	if _, err := io.Copy(out, ctxReader{ctx, in}); err != nil {
 		out.Close()
 		os.Remove(tmp)
 		return err
@@ -644,5 +841,6 @@ func copyFile(src, dst string) error {
 		os.Remove(tmp)
 		return err
 	}
+	_ = os.Chtimes(tmp, st.ModTime(), st.ModTime())
 	return os.Rename(tmp, dst)
 }

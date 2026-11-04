@@ -55,6 +55,7 @@ import { MockSpeechApi } from '~/lib/speech/mock'
 import { ACP_SWITCH_REFUSAL, acpUnsupported, MockAcpApi } from '~/lib/acp/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
+import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb, permissionModeName, permissionModePb, usageLimitVM } from '~/lib/session/reducer'
@@ -364,6 +365,19 @@ export class MockTransport implements SessionTransport {
   private accountApi = new MockAccountApi()
   account() {
     return this.accountApi
+  }
+
+  private claudeImportApi?: MockClaudeImportApi
+  claudeImport() {
+    return (this.claudeImportApi ??= new MockClaudeImportApi({ tick: this.tick * 3, onSession: s => this.addImportedSession(s) }))
+  }
+
+  // An imported session joins the session list, as its transcript does on a real client.
+  private addImportedSession(s: MockImportedSession) {
+    const info = create(SessionInfoSchema, { id: s.id, title: s.title, cwd: s.cwd, updatedAt: s.updatedAt, model: 'claude-sonnet', status: SessionStatus.IDLE })
+    const history = otherHistory(info, this.now())
+    const durable = history.filter(e => e.event.case !== 'assistantDelta')
+    this.sessions.set(s.id, { info, history, seq: Number(durable[durable.length - 1]?.seq ?? 0), listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null })
   }
 
   private limitsApi = new MockLimitsApi()

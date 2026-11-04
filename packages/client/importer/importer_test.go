@@ -178,7 +178,7 @@ func TestImportUploads(t *testing.T) {
 	if user(syncv1.DocumentKind_DOCUMENT_KIND_COMMAND, "git:commit") == nil || user(syncv1.DocumentKind_DOCUMENT_KIND_OUTPUT_STYLE, "Terse") == nil {
 		t.Error("command / output style missing")
 	}
-	// Sessions: copied with layout, uploaded; subagent copied only.
+	// Sessions: copied with layout, uploaded along with their subagents.
 	dst := filepath.Join(hh, "projects", "-w", sessionID+".jsonl")
 	if _, err := os.Stat(dst); err != nil {
 		t.Fatal(err)
@@ -187,7 +187,7 @@ func TestImportUploads(t *testing.T) {
 		t.Fatal("subagent transcript not copied")
 	}
 	ss := fs.Session(sessionID)
-	if ss == nil || len(ss.Entries) != 2 || ss.Meta.GetInfo().GetCwd() != "/w" || ss.Meta.GetInfo().GetTitle() != "hello" {
+	if ss == nil || len(ss.Entries) != 3 || ss.Meta.GetInfo().GetCwd() != "/w" || ss.Meta.GetInfo().GetTitle() != "hello" {
 		t.Fatalf("session upload: %+v", ss)
 	}
 	if it := find(rep, "session", "-w/"+sessionID+".jsonl"); it.Status != StatusUploaded {
