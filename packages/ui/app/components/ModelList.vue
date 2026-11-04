@@ -100,8 +100,8 @@ function pickFirst() {
           :aria-selected="m.key === selectedKey"
           :aria-disabled="!pickable(m) || undefined"
           :title="m.disabledReason || undefined"
-          class="group/model flex min-h-8 items-center gap-3 rounded-none border-l-2 pr-3 pl-[10px]"
-          :class="[m.key === selectedKey ? 'border-accent bg-raised' : 'border-transparent', pickable(m) && 'cursor-pointer', pickable(m) && m.key !== selectedKey && 'hover:bg-raised']"
+          class="group/model flex min-h-8 items-center gap-3 rounded-none px-3"
+          :class="[m.key === selectedKey && 'bg-raised shadow-[inset_2px_0_0_var(--color-accent)]', pickable(m) && 'cursor-pointer', pickable(m) && m.key !== selectedKey && 'hover:bg-raised']"
           @click="pickable(m) && emit('pick', m.id, m.engine)"
         >
           <span class="flex min-w-0 flex-1 items-baseline gap-2.5">
