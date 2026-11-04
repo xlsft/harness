@@ -42,7 +42,8 @@ service ProviderService {
   // Same access as DiscoverModels.
   rpc TestProvider(TestProviderRequest) returns (TestProviderResponse);
   rpc RemoveModel(RemoveModelRequest) returns (RemoveModelResponse);
-  // Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them.
+  // Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them,
+  // and the level recommended among them.
   // What is set here, also none, is kept: discovery only fills in what nobody set.
   rpc SetModelEfforts(SetModelEffortsRequest) returns (SetModelEffortsResponse);
 
@@ -129,6 +130,8 @@ message ProviderModel {
   bool enabled = 6;
   // Effort levels the model takes, lowest first; empty when it has none.
   repeated Effort efforts = 7;
+  // The level recommended for a new session, one of `efforts`; UNSPECIFIED: none.
+  Effort default_effort = 8;
 }
 
 message ListPresetsRequest {}
@@ -338,6 +341,9 @@ message SetModelEffortsRequest {
   string model_id = 1;
   // The whole set; empty: the model takes no effort.
   repeated Effort efforts = 2;
+  // The level to recommend, by hand and kept from then on: one of `efforts`, or UNSPECIFIED for none. Absent: unchanged,
+  // unless `efforts` drops that level.
+  optional Effort default_effort = 3;
 }
 
 message SetModelEffortsResponse {

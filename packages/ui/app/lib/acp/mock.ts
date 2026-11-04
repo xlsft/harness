@@ -61,6 +61,8 @@ const EFFORTS: Record<string, { id: string, name: string, description?: string }
   'codex-acp': [{ id: 'quick', name: 'Quick' }, { id: 'balanced', name: 'Balanced' }, { id: 'deep', name: 'Think deeply' }]
 }
 const CURRENT_EFFORT: Record<string, string> = { 'codex-acp': 'balanced' }
+// What a fresh session starts on; the client recommends it.
+const DEFAULT_EFFORT: Record<string, string> = { 'codex-acp': 'balanced' }
 
 export interface MockAcpHooks {
   now?: () => number
@@ -78,7 +80,7 @@ function reported(id: string, now: number) {
   const efforts = (EFFORTS[id] ?? []).map(e => create(AcpEffortSchema, e))
   return {
     selectable: true, models, currentModelId: models[0]!.id, modes: (MODES[id] ?? []).map(m => create(AcpModeSchema, m)), currentModeId: CURRENT_MODE[id] ?? '',
-    efforts, currentEffortId: CURRENT_EFFORT[id] ?? '', unsupportedFeatures: acpUnsupported(efforts.length > 0),
+    efforts, currentEffortId: CURRENT_EFFORT[id] ?? '', defaultEffortId: DEFAULT_EFFORT[id] ?? '', unsupportedFeatures: acpUnsupported(efforts.length > 0),
     modelsStatus: AcpModelsStatus.OK, modelsUpdatedAt: new Date(now - 60_000).toISOString()
   }
 }
@@ -172,6 +174,7 @@ export class MockAcpApi implements AcpApi {
       currentModelId: (MODELS[agentId] ?? [{ id: 'default' }])[0]!.id,
       efforts: EFFORTS[agentId] ?? [],
       currentEffortId: CURRENT_EFFORT[agentId] ?? '',
+      defaultEffortId: DEFAULT_EFFORT[agentId] ?? '',
       limits: a.limits
     })
   }

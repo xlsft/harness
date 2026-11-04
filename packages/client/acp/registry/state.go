@@ -79,6 +79,11 @@ type Catalog struct {
 	// Efforts is empty for an agent without an effort option.
 	Efforts       []Effort `json:"efforts,omitempty"`
 	CurrentEffort string   `json:"currentEffort,omitempty"`
+	// DefaultEffort is the level a fresh session starts on by itself. Only a probe sets it: CurrentEffort can follow a
+	// level chosen in a session.
+	DefaultEffort string `json:"defaultEffort,omitempty"`
+	// DefaultProbed says a probe had its chance to set DefaultEffort: a catalog from before it existed gets one.
+	DefaultProbed bool `json:"defaultProbed,omitempty"`
 	// UpdatedAt is when the agent last reported successfully.
 	UpdatedAt time.Time `json:"updatedAt,omitzero"`
 	// Version is the installed version this was last checked against: a new one is probed again.

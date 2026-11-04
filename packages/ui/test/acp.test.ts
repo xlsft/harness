@@ -237,7 +237,8 @@ describe('effort on an agent', () => {
     const claude = agents.find(a => a.id === 'claude-acp')!
     expect(newSessionAgentEffort(codex, '')).toEqual({
       levels: [{ id: 'quick', label: 'Quick' }, { id: 'balanced', label: 'Balanced' }, { id: 'deep', label: 'Think deeply' }],
-      current: 'balanced'
+      current: 'balanced',
+      recommended: 'balanced'
     })
     expect(newSessionAgentEffort(codex, 'deep').current).toBe('deep')
     expect(newSessionAgentEffort(codex, 'gone').current).toBe('balanced')

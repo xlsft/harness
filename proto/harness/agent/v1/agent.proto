@@ -421,6 +421,8 @@ message ModelInfo {
   // For showing: the provider's name, and the id as a person reads it (id stays what requests send).
   string provider_name = 11;
   string display_id = 12;
+  // The level recommended for a new session, one of `efforts`; UNSPECIFIED: none.
+  harness.llm.v1.Effort default_effort = 13;
 }
 
 message SessionInfo {
@@ -560,6 +562,8 @@ message CreateSessionRequest {
   // With resume_session_id: copy the transcript into a new session. A remote session (SessionInfo.remote) can
   // only be forked: its transcript is downloaded from the harness server into a new local session in `cwd`.
   bool fork = 5;
+  // UNSPECIFIED on a new session: the effortLevel setting, else the level the model recommends, else medium or the nearest
+  // the model takes; none on a model without levels. A resumed session gets no such level.
   harness.llm.v1.Effort effort = 6;
   // Permission rules in Claude Code syntax, e.g. "Bash(npm run test *)", "Edit(/src/**)".
   repeated string allowed_tools = 7;

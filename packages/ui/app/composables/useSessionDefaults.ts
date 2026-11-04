@@ -39,9 +39,9 @@ export function useSessionDefaults() {
     }
   }
 
-  // A model's default effort: its own, else the general one, fitted to the levels it offers.
-  function effortOf(m: { id: string, efforts?: EffortName[] }) {
-    return fitEffort(prefs.value.effortByModel?.[m.id] ?? prefs.value.effort ?? 'medium', modelEfforts(m))
+  // A model's default effort, in the new-session screen's order: its own, else the recommended one, else the general one.
+  function effortOf(m: { id: string, efforts?: EffortName[], defaultEffort?: EffortName }) {
+    return startEffort({ own: prefs.value.effortByModel?.[m.id], recommended: m.defaultEffort, fallback: prefs.value.effort, levels: modelEfforts(m) })
   }
   function setEffort(id: string, e: EffortName) {
     save('effortByModel', { ...prefs.value.effortByModel, [id]: e })

@@ -122,6 +122,10 @@ async function toggleLevel(m: { id: string, efforts: EffortName[] }, level: Effo
   const next = ALL_EFFORTS.filter(e => e === level ? !m.efforts.includes(e) : m.efforts.includes(e))
   if (await run(`levels:${m.id}`, () => props.api.setModelEfforts(m.id, next))) emit('changed')
 }
+// The level recommended for new sessions, or none ('').
+async function setRecommended(m: { id: string, efforts: EffortName[] }, level: EffortName | '') {
+  if (await run(`levels:${m.id}`, () => props.api.setModelEfforts(m.id, [...m.efforts], level))) emit('changed')
+}
 
 // Decision models of a classifier provider (the preset's list; a custom one is set in the classifier).
 const decisionModels = computed(() => props.preset?.defaultModels ?? [])
@@ -453,6 +457,38 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
                 @click="toggleLevel(m, e)"
               >
                 {{ e }}
+              </button>
+            </div>
+            <div
+              v-if="editingLevels === m.id && m.efforts.length"
+              role="radiogroup"
+              :aria-label="`Effort recommended for ${m.name}`"
+              class="flex flex-wrap items-center gap-[2px] border-b border-default px-2.5 py-1 text-[11px] last:border-b-0"
+            >
+              <span class="mr-1.5 text-muted">Recommended</span>
+              <button
+                v-for="e in m.efforts"
+                :key="e"
+                type="button"
+                role="radio"
+                :aria-checked="m.defaultEffort === e"
+                :disabled="busy === `levels:${m.id}`"
+                class="border px-1.5 py-px"
+                :class="m.defaultEffort === e ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
+                @click="setRecommended(m, e)"
+              >
+                {{ e }}
+              </button>
+              <button
+                type="button"
+                role="radio"
+                :aria-checked="!m.defaultEffort"
+                :disabled="busy === `levels:${m.id}`"
+                class="border px-1.5 py-px"
+                :class="!m.defaultEffort ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
+                @click="setRecommended(m, '')"
+              >
+                none
               </button>
             </div>
           </template>

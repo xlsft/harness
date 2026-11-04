@@ -316,7 +316,7 @@ describe("model list capabilities", () => {
         reasoning: { mandatory: false, supported_efforts: ["max", "xhigh", "high", "medium", "low", "minimal", "none"], default_effort: "medium" },
         architecture: { input_modalities: ["text", "image", "file"] },
       }),
-    ).toEqual({ thinking: true, effort: ["low", "medium", "high", "xhigh", "max"], images: true, pdf: true });
+    ).toEqual({ thinking: true, effort: ["low", "medium", "high", "xhigh", "max"], images: true, pdf: true, default_effort: "medium" });
     // No allowlist: the basic levels. An allowlist of levels harness has no name for: thinking without levels.
     expect(listedCapabilities({ id: "a", reasoning: { mandatory: false, supported_efforts: null } })).toEqual({ thinking: true, effort: ["low", "medium", "high"] });
     expect(listedCapabilities({ id: "a", reasoning: { mandatory: true, supported_efforts: ["minimal"] } })).toEqual({ thinking: true });
@@ -338,6 +338,20 @@ describe("model list capabilities", () => {
     ).toEqual({ thinking: true, effort: ["low", "medium", "high"], images: true });
     expect(listedCapabilities({ id: "claude", capabilities: { thinking: no, effort: { supported: false, low: no }, image_input: no, pdf_input: no } })).toBeUndefined();
     expect(listedCapabilities({ id: "claude", capabilities: null })).toBeUndefined();
+  });
+  it("reads the default effort only when it is one of the model's levels", () => {
+    const of = (reasoning: unknown) => listedCapabilities({ id: "a", reasoning })?.default_effort;
+    expect(of({ supported_efforts: ["high", "low"], default_effort: "high" })).toBe("high");
+    expect(of({ supported_efforts: null, default_effort: "medium" })).toBe("medium");
+    // Not offered: another level, a level harness has no name for, none at all.
+    expect(of({ supported_efforts: ["high", "low"], default_effort: "medium" })).toBeUndefined();
+    expect(of({ supported_efforts: null, default_effort: "max" })).toBeUndefined();
+    expect(of({ supported_efforts: ["high", "minimal"], default_effort: "minimal" })).toBeUndefined();
+    expect(of({ supported_efforts: ["none", "low"], default_effort: "none" })).toBeUndefined();
+    expect(of({ supported_efforts: ["minimal"], default_effort: "minimal" })).toBeUndefined();
+    expect(of({ supported_efforts: ["low"], default_effort: null })).toBeUndefined();
+    expect(of({ supported_efforts: ["low"], default_effort: ["low"] })).toBeUndefined();
+    expect(of({ supported_efforts: ["low"] })).toBeUndefined();
   });
   it("says nothing for a list that says nothing", () => {
     expect(toCandidate({ id: "gpt-x", owned_by: "openai" })?.capabilities).toBeUndefined();
@@ -408,6 +422,91 @@ describe("capabilities of added models", () => {
     expect((await alice.providers.listProviders({})).providers.find((p) => p.id === aliceProvider)!.models.find((m) => m.id === own.id)?.efforts).toEqual([LOW, HIGH]);
     expect(await code(bob.providers.setModelEfforts({ modelId: own.id, efforts: [LOW] }))).toBe(Code.NotFound);
     expect(await code(admin.providers.setModelEfforts({ modelId: "nope", efforts: [] }))).toBe(Code.NotFound);
+  });
+
+  describe("recommended effort", () => {
+    const list = (id: string, default_effort: string, supported_efforts: string[] | null = ["low", "medium", "high"]) => ({ json: { data: [{ id, reasoning: { supported_efforts, default_effort } }] } });
+    const discover = async (reply: { json: unknown }) => {
+      up.enqueue(reply);
+      await admin.providers.discoverModels({ providerId: "caps-list" });
+    };
+    const add = (name: string) => admin.providers.addModel({ providerId: "caps-list", upstreamModel: name, id: `rec-${name}` });
+
+    it("comes from the list on adding, and is filled in on models already added", async () => {
+      await add("before");
+      expect((await capsOf("rec-before")).defaultEffort).toBe(Effort.UNSPECIFIED);
+      await discover(list("before", "high"));
+      expect(await capsOf("rec-before")).toMatchObject({ effort: [LOW, MEDIUM, HIGH], defaultEffort: HIGH });
+
+      await discover(list("added", "medium"));
+      await add("added");
+      expect((await capsOf("rec-added")).defaultEffort).toBe(MEDIUM);
+      expect((await admin.providers.listProviders({})).providers.find((p) => p.id === "caps-list")!.models.find((m) => m.id === "rec-added")?.defaultEffort).toBe(MEDIUM);
+
+      // Like the rest: a list only fills in what is empty, and takes nothing away.
+      await discover(list("added", "high"));
+      expect((await capsOf("rec-added")).defaultEffort).toBe(MEDIUM);
+      await discover({ json: { data: [{ id: "added" }] } });
+      expect((await capsOf("rec-added")).defaultEffort).toBe(MEDIUM);
+    });
+
+    it("from a list never overrides one set by hand, also none", async () => {
+      await add("hand");
+      await admin.providers.setModelEfforts({ modelId: "rec-hand", efforts: [LOW, MEDIUM, HIGH], defaultEffort: LOW });
+      await discover(list("hand", "high"));
+      expect((await capsOf("rec-hand")).defaultEffort).toBe(LOW);
+
+      await add("none");
+      await admin.providers.setModelEfforts({ modelId: "rec-none", efforts: [LOW, MEDIUM, HIGH], defaultEffort: Effort.UNSPECIFIED });
+      await discover(list("none", "high"));
+      expect(await capsOf("rec-none")).toMatchObject({ effort: [LOW, MEDIUM, HIGH], defaultEffort: Effort.UNSPECIFIED });
+    });
+
+    it("from a list must be one of the levels set by hand", async () => {
+      await add("levels");
+      await admin.providers.setModelEfforts({ modelId: "rec-levels", efforts: [MAX] });
+      await discover(list("levels", "high"));
+      expect(await capsOf("rec-levels")).toMatchObject({ effort: [MAX], defaultEffort: Effort.UNSPECIFIED });
+      // Nor is it taken over by a model added with levels of its own.
+      await discover(list("own", "high"));
+      await adminApi(ts.url, adminToken, "POST", "/api/admin/models", { id: "rec-own", provider_id: "caps-list", upstream_model: "own", capabilities: { effort: ["max"] } });
+      expect((await capsOf("rec-own")).defaultEffort).toBe(Effort.UNSPECIFIED);
+    });
+
+    it("set by hand must be a level of the model, and goes with it", async () => {
+      await add("gone");
+      await admin.providers.setModelEfforts({ modelId: "rec-gone", efforts: [LOW, HIGH], defaultEffort: HIGH });
+      expect((await capsOf("rec-gone")).defaultEffort).toBe(HIGH);
+      expect(await code(admin.providers.setModelEfforts({ modelId: "rec-gone", efforts: [LOW, HIGH], defaultEffort: MAX }))).toBe(Code.InvalidArgument);
+      // Levels alone leave it while it is one of them.
+      await admin.providers.setModelEfforts({ modelId: "rec-gone", efforts: [LOW, MEDIUM, HIGH] });
+      expect((await capsOf("rec-gone")).defaultEffort).toBe(HIGH);
+      await admin.providers.setModelEfforts({ modelId: "rec-gone", efforts: [LOW, MEDIUM] });
+      expect((await capsOf("rec-gone")).defaultEffort).toBe(Effort.UNSPECIFIED);
+      // What was set by hand stays out of the list's reach even then.
+      await admin.providers.setModelEfforts({ modelId: "rec-gone", efforts: [LOW, MEDIUM, HIGH] });
+      await discover(list("gone", "high"));
+      expect((await capsOf("rec-gone")).defaultEffort).toBe(Effort.UNSPECIFIED);
+    });
+
+    it("set alone says nothing about the levels", async () => {
+      await discover(list("alone", "high", ["low", "high"]));
+      await add("alone");
+      await admin.providers.setModelEfforts({ modelId: "rec-alone", efforts: [LOW, HIGH], defaultEffort: LOW });
+      const stored = await adminApi(ts.url, adminToken, "GET", "/api/admin/models/rec-alone");
+      expect(stored.body.capabilities).toMatchObject({ effort: ["low", "high"], default_effort: "low" });
+      // Set to none through the admin API: nothing shows of the stored marker.
+      await adminApi(ts.url, adminToken, "PATCH", "/api/admin/models/rec-alone", { capabilities: { default_effort: "" } });
+      expect((await capsOf("rec-alone")).defaultEffort).toBe(Effort.UNSPECIFIED);
+      expect((await adminApi(ts.url, adminToken, "GET", "/api/admin/models/rec-alone")).body.capabilities.default_effort).toBeUndefined();
+    });
+
+    it("can be set by hand only by who may change the provider", async () => {
+      expect(await code(alice.providers.setModelEfforts({ modelId: "rec-added", efforts: [LOW, MEDIUM, HIGH], defaultEffort: LOW }))).toBe(Code.PermissionDenied);
+      const own = (await alice.providers.addModel({ providerId: aliceProvider, upstreamModel: "own-recommended" })).model!;
+      const set = await alice.providers.setModelEfforts({ modelId: own.id, efforts: [HIGH, LOW], defaultEffort: HIGH });
+      expect(set.model).toMatchObject({ efforts: [LOW, HIGH], defaultEffort: HIGH });
+    });
   });
 
   it("keep an admin API choice too", async () => {

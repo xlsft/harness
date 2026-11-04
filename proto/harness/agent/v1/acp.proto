@@ -176,6 +176,9 @@ message AcpAgent {
   // (CreateSessionRequest.acp_effort_id). Empty: the agent offers no effort option.
   repeated AcpEffort efforts = 31;
   string current_effort_id = 32;
+  // The level a fresh session on the agent starts on by itself, as a probe found it, one of `efforts`. Unlike
+  // current_effort_id, which can follow a level chosen in a session, no session changes it. Empty: not known.
+  string default_effort_id = 33;
 }
 
 // Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
@@ -233,6 +236,8 @@ message AcpSessionState {
   // Empty: the agent offers no such option. The cached list while it starts or the session is not open.
   repeated AcpEffort efforts = 16;
   string current_effort_id = 17;
+  // The level a fresh session on the agent starts on by itself (AcpAgent.default_effort_id), one of `efforts`.
+  string default_effort_id = 18;
 }
 
 message AcpMode {

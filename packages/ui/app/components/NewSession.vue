@@ -36,6 +36,9 @@ const engine = ref('')
 const acpMode = ref('')
 const acpEffort = ref('')
 const effort = ref<EffortName>('medium')
+// The level last chosen by hand on any model: what a model without its own or a recommended level starts on. A level
+// that only followed a model's recommendation does not get here.
+const generalEffort = ref<EffortName>('medium')
 const mode = ref<PermissionModeName>('auto')
 const text = ref('')
 const busy = ref(false)
@@ -107,7 +110,8 @@ onMounted(async () => {
   acpMode.value = prefs.acpMode ?? ''
   acpEffort.value = prefs.acpEffort ?? ''
   fitChoice()
-  effort.value = prefs.effort ?? 'medium'
+  generalEffort.value = prefs.effort ?? 'medium'
+  fitStartEffort()
   mode.value = fitMode(prefs.mode ?? 'auto', store.disabledModes)
   await loadFolders()
   const asked = newSessionFolder(route.query)
@@ -186,20 +190,31 @@ const modelLabel = computed(() => {
   const m = store.models.find(x => x.id === model.value) ?? (model.value ? undefined : store.models[0])
   return m?.displayName || model.value || m?.id || 'default model'
 })
-const efforts = computed(() => engine.value ? [] : modelEfforts(store.models.find(m => m.id === (model.value || store.models[0]?.id))))
+const modelId = computed(() => model.value || store.models[0]?.id || '')
+const serverModel = computed(() => store.models.find(m => m.id === modelId.value))
+const efforts = computed(() => engine.value ? [] : modelEfforts(serverModel.value))
+const recommended = computed(() => engine.value ? undefined : serverModel.value?.defaultEffort)
 // The effort chip: the agent's own levels on an agent, from the cached catalog.
 const effortChoice = computed(() => engine.value
   ? newSessionAgentEffort(agent.value, acpEffort.value)
-  : { levels: harnessEffortLevels(efforts.value), current: efforts.value.length ? effort.value : undefined })
+  : { levels: harnessEffortLevels(efforts.value), current: efforts.value.length ? effort.value : undefined, recommended: recommended.value })
 function pickEffort(level: string) {
-  if (engine.value) acpEffort.value = level
-  else effort.value = level as EffortName
+  if (engine.value) {
+    acpEffort.value = level
+    return
+  }
+  effort.value = generalEffort.value = level as EffortName
+  // The user's own for this model from now on; a level nobody picked stays unremembered, so it follows the recommendation.
+  const prefs = readJSON<{ effortByModel?: Record<string, EffortName> }>(PREFS, {})
+  writeJSON(PREFS, { ...prefs, effortByModel: { ...prefs.effortByModel, [modelId.value]: level as EffortName } })
 }
-// Each model starts at its own remembered effort (Settings → Models), else the nearest level it offers.
-watch([model, efforts], () => {
-  const own = readJSON<{ effortByModel?: Record<string, EffortName> }>(PREFS, {}).effortByModel?.[model.value || store.models[0]?.id || '']
-  effort.value = fitEffort(own ?? effort.value, efforts.value) ?? effort.value
-})
+// Each model starts at its own remembered effort (here or in Settings → Models), else its recommended one, else the last
+// chosen or the nearest level it offers.
+function fitStartEffort() {
+  const own = readJSON<{ effortByModel?: Record<string, EffortName> }>(PREFS, {}).effortByModel?.[modelId.value]
+  effort.value = startEffort({ own, recommended: recommended.value, fallback: generalEffort.value, levels: efforts.value }) ?? effort.value
+}
+watch([model, efforts, recommended], fitStartEffort)
 
 async function start() {
   const msg = text.value.trim()
@@ -222,7 +237,7 @@ async function start() {
       })
     })
     const { cwd: _old, ...prefs } = readJSON<Record<string, unknown>>(PREFS, {})
-    writeJSON(PREFS, { ...prefs, model: model.value, engine: engine.value, acpMode: acpMode.value, acpEffort: acpEffort.value, effort: effort.value, mode: mode.value, ...(cwd.value && !noWorktree.value && { worktree: worktree.value }) })
+    writeJSON(PREFS, { ...prefs, model: model.value, engine: engine.value, acpMode: acpMode.value, acpEffort: acpEffort.value, effort: generalEffort.value, mode: mode.value, ...(cwd.value && !noWorktree.value && { worktree: worktree.value }) })
     if (cwd.value) writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
     const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
@@ -497,6 +512,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
             :scope="scope"
             :efforts="effortChoice.levels"
             :effort="effortChoice.current"
+            :recommended="effortChoice.recommended"
             :mode="mode"
             :acp-modes="acpModes"
             @update:model="pickModel"

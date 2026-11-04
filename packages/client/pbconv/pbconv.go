@@ -254,6 +254,7 @@ func FromModel(m *llmv1.Model) llm.Model {
 		for _, e := range c.GetEffort() {
 			out.Capabilities.Effort = append(out.Capabilities.Effort, FromEffort(e))
 		}
+		out.Capabilities.DefaultEffort = FromEffort(c.GetDefaultEffort())
 	}
 	if p := m.Pricing; p != nil {
 		out.Pricing = &struct {

@@ -253,7 +253,7 @@ export class MockProvidersApi implements ProvidersApi {
         enabled: true,
         allowPrivateNetwork: false,
         editable: admin,
-        models: [{ id: 'claude-haiku', name: 'Claude Haiku 5.5', upstream: 'anthropic/claude-haiku-5.5', contextWindow: 200_000, efforts: ['low', 'medium', 'high'] }]
+        models: [{ id: 'claude-haiku', name: 'Claude Haiku 5.5', upstream: 'anthropic/claude-haiku-5.5', contextWindow: 200_000, efforts: ['low', 'medium', 'high'], defaultEffort: 'medium' }]
       },
       {
         id: 'openrouter-decisions',
@@ -415,11 +415,15 @@ export class MockProvidersApi implements ProvidersApi {
     p.models.push({ id, name: m.name || m.upstream, upstream: m.upstream, contextWindow: m.contextWindow || 128_000, efforts: [] })
   }
 
-  async setModelEfforts(modelId: string, efforts: EffortName[]) {
+  async setModelEfforts(modelId: string, efforts: EffortName[], defaultEffort?: EffortName | '') {
     const p = this.providers.find(x => x.models.some(m => m.id === modelId))
     if (!p) throw new Error(`Model ${modelId} not found`)
     this.writable(p.id)
-    p.models.find(m => m.id === modelId)!.efforts = efforts
+    if (defaultEffort && !efforts.includes(defaultEffort)) throw new Error(`[invalid_argument] ${defaultEffort} is not one of the model's effort levels`)
+    const m = p.models.find(m => m.id === modelId)!
+    m.efforts = efforts
+    const recommended = defaultEffort === undefined ? m.defaultEffort : defaultEffort
+    m.defaultEffort = recommended && efforts.includes(recommended) ? recommended : undefined
   }
 
   async removeModel(modelId: string) {

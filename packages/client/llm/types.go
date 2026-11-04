@@ -9,6 +9,7 @@ package llm
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 )
 
 // Block types.
@@ -301,6 +302,8 @@ type Model struct {
 		PDF               bool     `json:"pdf"`
 		ParallelToolCalls bool     `json:"parallel_tool_calls"`
 		PromptCache       bool     `json:"prompt_cache"`
+		// DefaultEffort is the level recommended for a new session, one of Effort ("" when none).
+		DefaultEffort string `json:"default_effort,omitempty"`
 	} `json:"capabilities"`
 	Pricing *struct {
 		Input      float64 `json:"input"`
@@ -327,6 +330,37 @@ func (c *Catalog) Find(id string) (Model, bool) {
 		}
 	}
 	return Model{}, false
+}
+
+// effortLevels are the harness's effort levels, lowest first.
+var effortLevels = []string{"low", "medium", "high", "xhigh", "max"}
+
+// RecommendedEffort is the model's recommended level, if it takes that level ("" otherwise).
+func (m Model) RecommendedEffort() string {
+	if slices.Contains(m.Capabilities.Effort, m.Capabilities.DefaultEffort) {
+		return m.Capabilities.DefaultEffort
+	}
+	return ""
+}
+
+// StartingEffort is the level a new session on the model starts on when nobody chose one: the recommended level, else
+// medium or the nearest the model takes, the lower one of two as near ("" for a model without levels). The frontends'
+// fallback is the same (startEffort in packages/ui), so what they show and what runs cannot differ.
+func (m Model) StartingEffort() string {
+	if e := m.RecommendedEffort(); e != "" {
+		return e
+	}
+	best, bestDistance := "", len(effortLevels)
+	for i, l := range effortLevels {
+		d := i - slices.Index(effortLevels, "medium")
+		if d < 0 {
+			d = -d
+		}
+		if d < bestDistance && slices.Contains(m.Capabilities.Effort, l) {
+			best, bestDistance = l, d
+		}
+	}
+	return best
 }
 
 // TokenCount is the response of count_tokens.
