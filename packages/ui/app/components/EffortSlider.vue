@@ -62,6 +62,15 @@ function onKey(e: KeyboardEvent) {
         class="absolute inset-y-0 left-0 rounded-control bg-accent transition-[width] duration-150"
         :style="{ width: `calc((100% - 14px) * ${share(index)} + 14px)` }"
       />
+      <!-- A tick at each level, where the thumb's middle stops. -->
+      <span
+        v-for="(l, i) in levels"
+        :key="l.id"
+        aria-hidden="true"
+        class="absolute top-1/2 h-1.5 w-px -translate-x-1/2 -translate-y-1/2"
+        :class="i < index ? 'bg-black/35' : 'bg-line-strong'"
+        :style="{ left: `calc((100% - 14px) * ${share(i)} + 7px)` }"
+      />
       <span
         class="absolute inset-y-0 w-3.5 rounded-control bg-strong transition-[left] duration-150"
         :style="{ left: `calc((100% - 14px) * ${share(index)})` }"
