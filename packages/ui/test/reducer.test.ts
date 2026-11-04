@@ -13,6 +13,17 @@ function setup() {
   return { b, s }
 }
 
+describe('changes the model makes to the session', () => {
+  it('reach the chips through SessionUpdated, and the transcript as a notice', () => {
+    const { b, s } = setup()
+    b.sessionUpdated(sessionInfo({ id: 's1', title: 'Renamed', model: 'other-model', effort: 'high', keepAwake: true }))
+    b.notice('info', 'session_model_changed', 'Model changed to Other by the agent.')
+    reduceAll(s, b.events)
+    expect(s.meta).toMatchObject({ title: 'Renamed', model: 'other-model', effort: 'high', keepAwake: true })
+    expect(s.items.at(-1)).toMatchObject({ kind: 'notice', noticeKind: 'session_model_changed', text: 'Model changed to Other by the agent.' })
+  })
+})
+
 describe('assistant deltas', () => {
   it('merges text and thinking deltas into one streaming message, then the final message replaces it', () => {
     const { b, s } = setup()
