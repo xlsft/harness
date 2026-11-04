@@ -157,6 +157,23 @@ func TestMonitorCommandEndsWithFirstMatch(t *testing.T) {
 	}
 }
 
+// A command that is over by the time the monitor looks: its match still arrives, and its own report stays.
+func TestMonitorCommandThatExitsAtOnce(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		env, log := monitorEnv(t)
+		id := monitorID(t, call(t, env, &Monitor{}, map[string]any{"command": "echo READY; exit 3", "pattern": "READY", "description": "quick"}))
+		waitFor(t, 5*time.Second, func() bool { return len(log.notices("monitor_match")) == 1 })
+		waitFor(t, 5*time.Second, func() bool {
+			info, _ := env.Tasks.Get(id)
+			return !info.Running
+		})
+		info, _ := env.Tasks.Get(id)
+		if n := log.notices("monitor_match")[0]; n["lines"] != "READY" || info.ExitCode != 3 {
+			t.Fatalf("notice %+v, task %+v", n, info)
+		}
+	}
+}
+
 func TestMonitorThrottlesBursts(t *testing.T) {
 	env, log := monitorEnv(t)
 	task := bgTask(t, env, "for i in 1 2 3 4 5 6 7 8 9 10; do echo hit $i; done; sleep 0.5; echo hit last; sleep 30")

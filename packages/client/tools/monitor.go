@@ -103,7 +103,8 @@ func (m *TaskManager) watchTask(w *monitor, re *regexp.Regexp, targetID, toolUse
 		m.mu.Unlock()
 		return TaskInfo{}, fmt.Errorf("task %s is itself a monitor", targetID)
 	}
-	if !t.info.Running {
+	// A command started just now may be done already; its output is still there to match.
+	if !t.info.Running && !w.owned {
 		status := TaskStatus(t.info)
 		m.mu.Unlock()
 		return TaskInfo{}, fmt.Errorf("task %s has already finished (%s); read its output with TaskOutput", targetID, status)
@@ -260,8 +261,15 @@ func (w *monitor) stopped(reason string) {
 }
 
 func (w *monitor) finish(end monitorEnd) {
+	// A command that already exited has nothing to stop, and keeps its own finish report.
+	stopOwned := w.owned && end != monitorEndTarget
+	select {
+	case <-w.target.exited:
+		stopOwned = false
+	default:
+	}
 	ownedNote := ""
-	if w.owned {
+	if stopOwned {
 		ownedNote = " The command it started was stopped."
 	}
 	switch end {
@@ -285,7 +293,7 @@ func (w *monitor) finish(end monitorEnd) {
 		w.stopped(w.noisyReason + ". Start another with a narrower pattern if you still need one." + ownedNote)
 	}
 	close(w.settled)
-	if w.owned && end != monitorEndTarget {
+	if stopOwned {
 		w.m.stopSilently(w.target.info.ID)
 	}
 	w.finished <- nil
