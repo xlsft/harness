@@ -26,10 +26,12 @@ export interface ModelCapabilities {
   pdf: boolean;
   parallel_tool_calls: boolean;
   prompt_cache: boolean;
+  /** The level recommended for a new session, one of `effort`. Absent: none; stored as "" when set to none by hand. */
+  default_effort?: Effort | "";
 }
 
 /** What a provider's model list can say about a model. A list only ever turns these on. */
-const LISTED_CAPS = ["thinking", "effort", "images", "pdf"] as const;
+const LISTED_CAPS = ["thinking", "effort", "images", "pdf", "default_effort"] as const;
 export type ListedCapabilities = Partial<Pick<ModelCapabilities, (typeof LISTED_CAPS)[number]>>;
 
 /** As stored: `set_by_hand` names the capabilities someone set, which a model list leaves alone even when empty. */
@@ -95,6 +97,7 @@ function shownAs(r: Row, provider: typeof schema.provider.$inferSelect) {
 
 function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
   const { set_by_hand, ...capabilities } = (r.capabilities ?? {}) as StoredCapabilities;
+  if (!capabilities.default_effort) delete capabilities.default_effort;
   return {
     ownerUserId,
     id: r.id,
@@ -235,7 +238,22 @@ function validateCaps(c: unknown): Partial<ModelCapabilities> {
     }
     out.effort = EFFORT_LEVELS.filter((l) => (caps.effort as string[]).includes(l));
   }
+  if (caps.default_effort !== undefined) {
+    const d = caps.default_effort ?? "";
+    if (d !== "" && !EFFORT_LEVELS.includes(d as Effort)) {
+      throw new ApiError("invalid_request", `capabilities.default_effort must be one of ${EFFORT_LEVELS.join(", ")}, or empty for none`);
+    }
+    out.default_effort = d as Effort | "";
+  }
   return out;
+}
+
+/** `caps` as it stands after `given`: a recommended level is one the model takes. One named by hand must be; one that stopped being goes. */
+function settledDefaultEffort(caps: Partial<ModelCapabilities>, given: Partial<ModelCapabilities>): Partial<ModelCapabilities> {
+  const d = caps.default_effort;
+  if (!d || caps.effort?.includes(d)) return caps;
+  if (given.default_effort) throw new ApiError("invalid_request", `capabilities.default_effort must be one of the model's effort levels, not ${d}`);
+  return { ...caps, default_effort: "" };
 }
 
 /** `caps` with the capabilities given by hand on top of the ones already recorded as such. */
@@ -254,6 +272,11 @@ export function backfilledCapabilities(stored: unknown, listed: ListedCapabiliti
   const added: ListedCapabilities = {};
   if (listed.thinking && !caps.thinking && !caps.set_by_hand?.includes("thinking")) added.thinking = true;
   if (listed.effort?.length && !caps.effort?.length && !caps.set_by_hand?.includes("effort")) added.effort = listed.effort;
+  // Only a level the model ends up with: its levels may be someone's choice that the list's default is not one of.
+  const levels = added.effort ?? caps.effort;
+  if (listed.default_effort && !caps.default_effort && !caps.set_by_hand?.includes("default_effort") && levels?.includes(listed.default_effort)) {
+    added.default_effort = listed.default_effort;
+  }
   if (listed.images && !caps.images && !caps.set_by_hand?.includes("images")) added.images = true;
   if (listed.pdf && !caps.pdf && !caps.set_by_hand?.includes("pdf")) added.pdf = true;
   return Object.keys(added).length ? { ...caps, ...added } : undefined;
@@ -333,7 +356,7 @@ async function insertModel(input: ModelInput & { id: string; provider_id: string
       upstreamModel: input.upstream_model,
       contextWindow: positiveInt(input.context_window ?? 128_000, "context_window"),
       maxOutputTokens: positiveInt(input.max_output_tokens ?? 8192, "max_output_tokens"),
-      capabilities: markSetByHand({ ...DEFAULT_CAPS, ...input.listed, ...validateCaps(input.capabilities) }, validateCaps(input.capabilities)),
+      capabilities: markSetByHand(settledDefaultEffort({ ...DEFAULT_CAPS, ...input.listed, ...validateCaps(input.capabilities) }, validateCaps(input.capabilities)), validateCaps(input.capabilities)),
       pricing: validatePricing(input.pricing),
       fallbacks: validateFallbacks(input.fallbacks, input.id),
       extraBody: input.extra_body ?? null,
@@ -366,7 +389,7 @@ export async function updateModel(id: string, input: ModelInput) {
   if (input.max_output_tokens !== undefined) patch.maxOutputTokens = positiveInt(input.max_output_tokens, "max_output_tokens");
   if (input.capabilities !== undefined) {
     const given = validateCaps(input.capabilities);
-    patch.capabilities = markSetByHand({ ...cur.capabilities, ...given }, given, cur.setByHand);
+    patch.capabilities = markSetByHand(settledDefaultEffort({ ...cur.capabilities, ...given }, given), given, cur.setByHand);
   }
   if (input.pricing !== undefined) patch.pricing = validatePricing(input.pricing);
   if (input.fallbacks !== undefined) patch.fallbacks = validateFallbacks(input.fallbacks, id);
@@ -464,14 +487,17 @@ async function writableModel(modelId: string, user: PublicUser): Promise<ModelEn
 
 /**
  * Sets a model's effort levels by hand. Kept from then on, also none; a refusal remembered from the upstream goes,
- * so the levels are tried again.
+ * so the levels are tried again. `defaultEffort`, when given, sets the recommended level the same way ("": none); alone,
+ * over the levels the model already has, it says nothing about them, which stay as they came.
  */
-export async function setProviderModelEfforts(modelId: string, efforts: string[], user: PublicUser): Promise<ModelEntry> {
+export async function setProviderModelEfforts(modelId: string, efforts: string[], user: PublicUser, defaultEffort?: string): Promise<ModelEntry> {
   const m = await writableModel(modelId, user);
-  const given = validateCaps({ effort: efforts });
-  const capabilities = markSetByHand({ ...m.capabilities, ...given }, given, m.setByHand);
+  const { effort } = validateCaps({ effort: efforts });
+  const levelsGiven = defaultEffort === undefined || effort!.join() !== m.capabilities.effort.join();
+  const given = { ...(levelsGiven && { effort }), ...validateCaps({ default_effort: defaultEffort }) };
+  const capabilities = markSetByHand(settledDefaultEffort({ ...m.capabilities, ...given }, given), given, m.setByHand);
   await getDb().update(schema.model).set({ capabilities, updatedAt: new Date() }).where(eq(schema.model.id, modelId));
-  await clearNegotiation(modelId, "effort");
+  if (levelsGiven) await clearNegotiation(modelId, "effort");
   return (await findModel(modelId))!;
 }
 

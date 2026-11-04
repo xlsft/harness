@@ -10,21 +10,24 @@
 //	"limits" sends a rate-limit snapshot in an extension notification
 //	"nearlimit" sends a snapshot with the 5h window 98% used
 //	"ratelimited" fails the prompt with a usage-limit error
+//	"/usage" exactly, with FAKE_USAGE_FILE set: answers with that file's text, spending FAKE_USAGE_TOKENS tokens
 //	"newmodels" reports the models of FAKE_MODELS_FILE and the levels of FAKE_EFFORTS_FILE again in a config_option_update
 //
 // Environment: FAKE_AUTH=1 refuses session/new until "login" (agent auth) ran or FAKE_AUTH_FILE exists
 // (terminal auth: `fakeagent --login` creates it); FAKE_LOAD=1 advertises loadSession; FAKE_MODELS_FILE holds the
 // model config option, one "id=Name" per line, the first one current (no file or an empty one: no model option, as
 // with an agent that has none); FAKE_EFFORTS_FILE holds its effort config option the same way, under the agent's own
-// names; while FAKE_FAIL_FILE exists session/new fails; FAKE_LOG appends one line per
+// names; FAKE_USAGE_FILE also advertises the "usage" command; while FAKE_FAIL_FILE exists session/new fails; FAKE_LOG appends one line per
 // process start and per request that matters to tests.
 package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -163,15 +166,23 @@ func (a *agent) NewSession(ctx context.Context, p sdk.NewSessionRequest) (sdk.Ne
 		return sdk.NewSessionResponse{}, sdk.NewInternalError(map[string]any{"error": "the fake agent is broken"})
 	}
 	logLine("session/new %s", p.Cwd)
+	if p.Meta != nil {
+		meta, _ := json.Marshal(p.Meta)
+		logLine("session/meta %s", meta)
+	}
 	a.mu.Lock()
 	a.n++
 	id := sdk.SessionId(fmt.Sprintf("fake-%d", a.n))
 	a.cwd[id] = p.Cwd
 	a.mu.Unlock()
+	commands := []sdk.AvailableCommand{{Name: "review", Description: "Review the changes"}}
+	if os.Getenv("FAKE_USAGE_FILE") != "" {
+		commands = append(commands, sdk.AvailableCommand{Name: "usage", Description: "Show session cost and plan usage"})
+	}
 	go func() {
 		_ = a.conn.SessionUpdate(context.Background(), sdk.SessionNotification{SessionId: id, Update: sdk.SessionUpdate{
 			AvailableCommandsUpdate: &sdk.SessionAvailableCommandsUpdate{SessionUpdate: "available_commands_update",
-				AvailableCommands: []sdk.AvailableCommand{{Name: "review", Description: "Review the changes"}}}}})
+				AvailableCommands: commands}}})
 	}()
 	return sdk.NewSessionResponse{SessionId: id, Modes: modes(), ConfigOptions: configOptions("", "")}, nil
 }
@@ -187,6 +198,7 @@ func (a *agent) LoadSession(ctx context.Context, p sdk.LoadSessionRequest) (sdk.
 }
 
 func (a *agent) Cancel(ctx context.Context, p sdk.CancelNotification) error {
+	logLine("session/cancel")
 	a.mu.Lock()
 	c := a.cancels[p.SessionId]
 	a.mu.Unlock()
@@ -222,6 +234,12 @@ func (a *agent) Prompt(ctx context.Context, p sdk.PromptRequest) (sdk.PromptResp
 	id := p.SessionId
 	usage := &sdk.Usage{InputTokens: 100, OutputTokens: 20, TotalTokens: 120}
 	switch {
+	case text == "/usage":
+		logLine("usage prompt")
+		reply, _ := os.ReadFile(os.Getenv("FAKE_USAGE_FILE"))
+		a.send(ctx, id, sdk.UpdateAgentMessageText(string(reply)))
+		tokens, _ := strconv.Atoi(os.Getenv("FAKE_USAGE_TOKENS"))
+		return sdk.PromptResponse{StopReason: sdk.StopReasonEndTurn, Usage: &sdk.Usage{OutputTokens: tokens, TotalTokens: tokens}}, nil
 	case strings.Contains(text, "newmodels"):
 		a.send(ctx, id, sdk.SessionUpdate{ConfigOptionUpdate: &sdk.SessionConfigOptionUpdate{SessionUpdate: "config_option_update", ConfigOptions: configOptions("", "")}})
 		// The client handles the update after this answer otherwise.

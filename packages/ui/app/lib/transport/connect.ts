@@ -33,6 +33,7 @@ import { ConnectFilesApi, diffBaseMessage, diffBasesView, sessionDiffView, sessi
 import type { DiffBaseChoice } from '~/lib/files/sessionDiff'
 import { ConnectSpeechApi } from '~/lib/speech/connect'
 import { ConnectLocalModelsApi } from './localModels'
+import { ConnectClaudeImportApi } from '~/lib/import/connect'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
@@ -366,6 +367,7 @@ export class ConnectTransport implements SessionTransport {
       contextWindow: Number(m.contextWindow),
       price: m.inputPrice === undefined || m.outputPrice === undefined ? '' : m.inputPrice === 0 && m.outputPrice === 0 ? 'Free' : `${fmt(m.inputPrice)} / ${fmt(m.outputPrice)}`,
       efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e),
+      defaultEffort: EFFORT_NAME[m.defaultEffort],
       thinking: m.thinking,
       ...(m.local ? { local: true, price: '' } : {})
     }))
@@ -407,6 +409,11 @@ export class ConnectTransport implements SessionTransport {
   private speechApi!: ConnectSpeechApi
   speech() {
     return this.speechApi
+  }
+
+  private claudeImportApi?: ConnectClaudeImportApi
+  claudeImport() {
+    return (this.claudeImportApi ??= new ConnectClaudeImportApi(this.transport))
   }
 
   private localModelsApi?: ConnectLocalModelsApi

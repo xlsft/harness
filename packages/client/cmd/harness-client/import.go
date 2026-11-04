@@ -57,6 +57,7 @@ func runImport(args []string) int {
 		ClaudeHome: *claudeDir, ClaudeJSON: *claudeJSON, ProjectsDir: config.ProjectsDir(),
 		DryRun: *dryRun, Sessions: *sessions, IncludeSecrets: *secrets, Force: *force,
 	}
+	var objects *syncclient.ObjectQueue
 	if !*dryRun {
 		tokens, url, _, err := bootstrap.Tokens(*server)
 		if err != nil {
@@ -70,10 +71,15 @@ func runImport(args []string) int {
 		client := syncclient.NewClient(url, nil, tokens)
 		opts.Putter = client
 		deviceID, deviceName := deviceIdentity()
-		opts.Queue = syncclient.NewUploader(syncclient.UploaderOptions{API: client, DeviceID: deviceID, DeviceName: deviceName})
+		// Images and documents in transcripts go to the object store, when the server has one.
+		objects = syncclient.SharedObjectQueue(client, nil)
+		opts.Queue = syncclient.NewUploader(syncclient.UploaderOptions{API: client, DeviceID: deviceID, DeviceName: deviceName, Objects: objects})
 		opts.UploadSessions = !*noUpload
 	}
 	rep, err := importer.Run(ctx, opts)
+	if objects != nil && *sessions && !*noUpload {
+		objects.Flush(ctx)
+	}
 	if rep != nil {
 		rep.Print(os.Stdout)
 	}

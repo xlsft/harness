@@ -718,3 +718,95 @@ func (a *acpModels) sessionMeta(id string) string {
 	b, _ := os.ReadFile(filepath.Join(a.home, "acp", "sessions", id, "meta.json"))
 	return string(b)
 }
+
+// The level a probe finds is the agent's default: a session's level, whichever way it reaches the cache, does not change it.
+func TestAcpDefaultEffortIsNotASessionsChoice(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.setEfforts("think=Think", "ultra=Ultrathink")
+	a.install()
+	if x := a.settled(); x.DefaultEffortId != "think" {
+		t.Fatalf("probed: %q", x.DefaultEffortId)
+	}
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: t.TempDir(), Engine: "acp:fake", AcpEffortId: "ultra"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	a.waitFor("the session on its level", func() bool {
+		st := a.sessionState(sid)
+		return !st.GetStarting() && st.GetCurrentEffortId() == "ultra" && st.GetDefaultEffortId() == "think"
+	})
+	if x := a.list(false); x.DefaultEffortId != "think" {
+		t.Fatalf("after a chosen level: %q", x.DefaultEffortId)
+	}
+	newLevels := func(id string, lines ...string) {
+		t.Helper()
+		a.setEfforts(lines...)
+		if _, err := a.client.SendUserMessage(a.ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: id, Content: text("newmodels")})); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The default is not offered any more: the cached current level becomes the session's, and no default shows.
+	newLevels("u1", "ultra=Ultrathink", "deep=Deep")
+	a.waitFor("the cache to take the session's", func() bool {
+		x := a.list(false)
+		return slices.Equal(effortIDs(x.Efforts), []string{"ultra", "deep"}) && x.CurrentEffortId == "ultra"
+	})
+	if x, st := a.list(false), a.sessionState(sid); x.DefaultEffortId != "" || st.GetDefaultEffortId() != "" {
+		t.Fatalf("default not offered: %q %q", x.DefaultEffortId, st.GetDefaultEffortId())
+	}
+	// Offered again: the agent's default is what it was, while the current level still says the session's.
+	newLevels("u2", "think=Think", "ultra=Ultrathink")
+	a.waitFor("the levels back", func() bool {
+		return slices.Equal(effortIDs(a.list(false).Efforts), []string{"think", "ultra"})
+	})
+	if x := a.list(false); x.DefaultEffortId != "think" || x.CurrentEffortId != "ultra" {
+		t.Fatalf("default %q current %q", x.DefaultEffortId, x.CurrentEffortId)
+	}
+	// A refresh asks the agent again.
+	a.setEfforts("deep=Deep", "ultra=Ultrathink")
+	a.list(true)
+	if x := a.settled(); x.DefaultEffortId != "deep" {
+		t.Fatalf("refreshed: %q", x.DefaultEffortId)
+	}
+}
+
+// A catalog from before the default was recorded has a current level that may be a session's: it is not taken for the
+// default, one probe finds it, and a failing probe is not repeated on every listing.
+func TestAcpCatalogWithoutDefaultGetsOneProbe(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.setEfforts("think=Think", "ultra=Ultrathink")
+	a.install()
+	a.settled()
+	old := func() {
+		t.Helper()
+		if _, err := a.srv.AcpRegistry().UpdateCatalog("fake", "1.0.0", func(c *registry.Catalog) {
+			c.CurrentEffort, c.DefaultEffort, c.DefaultProbed = "ultra", "", false
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old()
+	a.list(false)
+	if x := a.settled(); x.DefaultEffortId != "think" {
+		t.Fatalf("after its probe: %q", x.DefaultEffortId)
+	}
+	spawns := a.count("spawn")
+	a.settled()
+	if a.count("spawn") != spawns {
+		t.Fatal("probed again with the default known")
+	}
+	if err := os.WriteFile(a.fail, []byte("no"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	old()
+	a.list(false)
+	a.settled()
+	spawns = a.count("spawn")
+	a.settled()
+	if a.count("spawn") != spawns {
+		t.Fatal("a failed probe runs again on every listing")
+	}
+}

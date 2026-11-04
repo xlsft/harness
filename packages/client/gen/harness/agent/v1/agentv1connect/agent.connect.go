@@ -351,6 +351,12 @@ const (
 	// AgentServiceStopWorkflowProcedure is the fully-qualified name of the AgentService's StopWorkflow
 	// RPC.
 	AgentServiceStopWorkflowProcedure = "/harness.agent.v1.AgentService/StopWorkflow"
+	// AgentServiceScanClaudeImportProcedure is the fully-qualified name of the AgentService's
+	// ScanClaudeImport RPC.
+	AgentServiceScanClaudeImportProcedure = "/harness.agent.v1.AgentService/ScanClaudeImport"
+	// AgentServiceRunClaudeImportProcedure is the fully-qualified name of the AgentService's
+	// RunClaudeImport RPC.
+	AgentServiceRunClaudeImportProcedure = "/harness.agent.v1.AgentService/RunClaudeImport"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -629,6 +635,13 @@ type AgentServiceClient interface {
 	// Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
 	// ended comes back as it ended.
 	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
+	// A preview of what an import would bring from this machine: the config by kind and the sessions by project. Never
+	// writes. It reads the head of each transcript, so it stays fast on large directories.
+	ScanClaudeImport(context.Context, *connect.Request[v1.ScanClaudeImportRequest]) (*connect.Response[v1.ScanClaudeImportResponse], error)
+	// Imports what the request chose, reporting progress and ending with the report. Cancelling the call stops it, and
+	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
+	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
+	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest]) (*connect.ServerStreamForClient[v1.RunClaudeImportResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1302,6 +1315,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
+		scanClaudeImport: connect.NewClient[v1.ScanClaudeImportRequest, v1.ScanClaudeImportResponse](
+			httpClient,
+			baseURL+AgentServiceScanClaudeImportProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ScanClaudeImport")),
+			connect.WithClientOptions(opts...),
+		),
+		runClaudeImport: connect.NewClient[v1.RunClaudeImportRequest, v1.RunClaudeImportResponse](
+			httpClient,
+			baseURL+AgentServiceRunClaudeImportProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1417,6 +1442,8 @@ type agentServiceClient struct {
 	getSessionFileDiff      *connect.Client[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse]
 	createObjectTicket      *connect.Client[v1.CreateObjectTicketRequest, v1.CreateObjectTicketResponse]
 	stopWorkflow            *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
+	scanClaudeImport        *connect.Client[v1.ScanClaudeImportRequest, v1.ScanClaudeImportResponse]
+	runClaudeImport         *connect.Client[v1.RunClaudeImportRequest, v1.RunClaudeImportResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1969,6 +1996,16 @@ func (c *agentServiceClient) StopWorkflow(ctx context.Context, req *connect.Requ
 	return c.stopWorkflow.CallUnary(ctx, req)
 }
 
+// ScanClaudeImport calls harness.agent.v1.AgentService.ScanClaudeImport.
+func (c *agentServiceClient) ScanClaudeImport(ctx context.Context, req *connect.Request[v1.ScanClaudeImportRequest]) (*connect.Response[v1.ScanClaudeImportResponse], error) {
+	return c.scanClaudeImport.CallUnary(ctx, req)
+}
+
+// RunClaudeImport calls harness.agent.v1.AgentService.RunClaudeImport.
+func (c *agentServiceClient) RunClaudeImport(ctx context.Context, req *connect.Request[v1.RunClaudeImportRequest]) (*connect.ServerStreamForClient[v1.RunClaudeImportResponse], error) {
+	return c.runClaudeImport.CallServerStream(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2245,6 +2282,13 @@ type AgentServiceHandler interface {
 	// Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
 	// ended comes back as it ended.
 	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
+	// A preview of what an import would bring from this machine: the config by kind and the sessions by project. Never
+	// writes. It reads the head of each transcript, so it stays fast on large directories.
+	ScanClaudeImport(context.Context, *connect.Request[v1.ScanClaudeImportRequest]) (*connect.Response[v1.ScanClaudeImportResponse], error)
+	// Imports what the request chose, reporting progress and ending with the report. Cancelling the call stops it, and
+	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
+	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
+	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2914,6 +2958,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceScanClaudeImportHandler := connect.NewUnaryHandler(
+		AgentServiceScanClaudeImportProcedure,
+		svc.ScanClaudeImport,
+		connect.WithSchema(agentServiceMethods.ByName("ScanClaudeImport")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRunClaudeImportHandler := connect.NewServerStreamHandler(
+		AgentServiceRunClaudeImportProcedure,
+		svc.RunClaudeImport,
+		connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3136,6 +3192,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceCreateObjectTicketHandler.ServeHTTP(w, r)
 		case AgentServiceStopWorkflowProcedure:
 			agentServiceStopWorkflowHandler.ServeHTTP(w, r)
+		case AgentServiceScanClaudeImportProcedure:
+			agentServiceScanClaudeImportHandler.ServeHTTP(w, r)
+		case AgentServiceRunClaudeImportProcedure:
+			agentServiceRunClaudeImportHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3583,4 +3643,12 @@ func (UnimplementedAgentServiceHandler) CreateObjectTicket(context.Context, *con
 
 func (UnimplementedAgentServiceHandler) StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopWorkflow is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ScanClaudeImport(context.Context, *connect.Request[v1.ScanClaudeImportRequest]) (*connect.Response[v1.ScanClaudeImportResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ScanClaudeImport is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunClaudeImport is not implemented"))
 }

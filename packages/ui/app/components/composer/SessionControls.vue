@@ -15,6 +15,8 @@ const props = defineProps<{
   provider?: string
   efforts: EffortLevel[]
   effort?: string
+  // The level the model or agent recommends, marked in the slider.
+  recommended?: string
   mode?: PermissionModeName
   scope?: ModelScope
   acpModes?: { modes: AcpMode[], current: string }
@@ -88,6 +90,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
         <EffortSlider
           :model-value="effort"
           :levels="efforts"
+          :recommended="recommended"
           @update:model-value="emit('update:effort', $event)"
         />
       </div>

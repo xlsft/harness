@@ -37,7 +37,7 @@ export function providerView(p: Provider): ProviderView {
     enabled: p.enabled,
     allowPrivateNetwork: p.allowPrivateNetwork,
     editable: p.editable,
-    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow), efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e) })),
+    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow), efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e), defaultEffort: EFFORT_NAME[m.defaultEffort] })),
     options: { ...p.options },
     billing: billing(p.billing)
   }
@@ -192,8 +192,12 @@ export class ConnectProvidersApi implements ProvidersApi {
     })
   }
 
-  async setModelEfforts(modelId: string, efforts: EffortName[]) {
-    await this.client.setModelEfforts({ modelId, efforts: efforts.map(e => EFFORT_PB[e]) })
+  async setModelEfforts(modelId: string, efforts: EffortName[], defaultEffort?: EffortName | '') {
+    await this.client.setModelEfforts({
+      modelId,
+      efforts: efforts.map(e => EFFORT_PB[e]),
+      ...(defaultEffort !== undefined && { defaultEffort: defaultEffort ? EFFORT_PB[defaultEffort] : Effort.UNSPECIFIED })
+    })
   }
 
   async removeModel(modelId: string) {

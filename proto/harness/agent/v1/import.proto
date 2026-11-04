@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// AgentService.ScanClaudeImport and RunClaudeImport: bringing the user-level Claude Code configuration and session
+// transcripts of this client's machine into harness. The client decides everything here (what exists, what looks like
+// a secret, what is already imported); frontends render the answer and send what the user chose. Scanning reads local
+// files and asks the server which documents it has; importing uploads to the user's own server. Sessions of the user's
+// other machines are not touched.
+
+// The parts of Claude Code's configuration, each a choice of its own.
+enum ClaudeImportSection {
+  CLAUDE_IMPORT_SECTION_UNSPECIFIED = 0;
+  CLAUDE_IMPORT_SECTION_MEMORY = 1;
+  // settings.json with its permission rules and hooks.
+  CLAUDE_IMPORT_SECTION_SETTINGS = 2;
+  CLAUDE_IMPORT_SECTION_SKILLS = 3;
+  CLAUDE_IMPORT_SECTION_AGENTS = 4;
+  CLAUDE_IMPORT_SECTION_COMMANDS = 5;
+  CLAUDE_IMPORT_SECTION_OUTPUT_STYLES = 6;
+  // Listed for manual setup: nothing is uploaded.
+  CLAUDE_IMPORT_SECTION_MCP_SERVERS = 7;
+  // Labels the sessions in reports. A request picks sessions by project_paths and session_ids instead.
+  CLAUDE_IMPORT_SECTION_SESSIONS = 8;
+}
+
+enum ClaudeImportStatus {
+  CLAUDE_IMPORT_STATUS_UNSPECIFIED = 0;
+  // Not on the server yet: an import brings it.
+  CLAUDE_IMPORT_STATUS_NEW = 1;
+  // Already there: an import leaves a document as it is without force, and a session is never duplicated.
+  CLAUDE_IMPORT_STATUS_EXISTS = 2;
+  // Not imported; the note says why.
+  CLAUDE_IMPORT_STATUS_SKIPPED = 3;
+  // The user sets it up by hand; the note says what it is.
+  CLAUDE_IMPORT_STATUS_MANUAL = 4;
+  // Reports only: uploaded in this run.
+  CLAUDE_IMPORT_STATUS_IMPORTED = 5;
+  // Reports only: copied here, its upload waits for the next try (the next session start or import).
+  CLAUDE_IMPORT_STATUS_QUEUED = 6;
+  // Reports only: failed; the note says why.
+  CLAUDE_IMPORT_STATUS_ERROR = 7;
+}
+
+// One config item, or one session in a report.
+message ClaudeImportItem {
+  ClaudeImportSection section = 1;
+  // "memory", "settings", "permissions", "hooks", "skill", "agent", "command", "output-style", "mcp", "session".
+  string kind = 2;
+  string name = 3;
+  ClaudeImportStatus status = 4;
+  string note = 5;
+}
+
+message ClaudeImportSession {
+  string id = 1;
+  // As far as the head of the transcript tells; may be empty.
+  string title = 2;
+  // With its subagent transcripts.
+  int64 size_bytes = 3;
+  // RFC 3339.
+  string updated_at = 4;
+  ClaudeImportStatus status = 5;
+  string note = 6;
+}
+
+// A folder of ~/.claude/projects.
+message ClaudeImportProject {
+  // The folder's name under projects.
+  string folder = 1;
+  // The directory its sessions ran in; the folder's name when no transcript says. RunClaudeImport takes this.
+  string path = 2;
+  int32 session_count = 3;
+  // How many of them an import would leave as they are (status EXISTS or SKIPPED).
+  int32 imported_count = 4;
+  int64 total_bytes = 5;
+  // RFC 3339; the newest transcript.
+  string newest_at = 6;
+  // Newest first.
+  repeated ClaudeImportSession sessions = 7;
+}
+
+message ScanClaudeImportRequest {
+  // Default: ~/.claude. Its sibling .claude.json holds the MCP servers.
+  optional string claude_dir = 1;
+}
+
+message ScanClaudeImportResponse {
+  // Claude Code's directory exists.
+  bool found = 1;
+  // The directory scanned.
+  string claude_dir = 2;
+  repeated ClaudeImportItem items = 3;
+  // Newest first.
+  repeated ClaudeImportProject projects = 4;
+  // This client has a server to import to; without one RunClaudeImport fails.
+  bool connected = 5;
+  // The server answered which documents exist. False: items that may exist read as new.
+  bool server_checked = 6;
+}
+
+message RunClaudeImportRequest {
+  // The config to bring. CLAUDE_IMPORT_SECTION_SESSIONS means nothing here.
+  repeated ClaudeImportSection sections = 1;
+  // Bring the sessions of these projects (ClaudeImportProject.path)...
+  repeated string project_paths = 2;
+  // ...and these sessions. Both empty: no sessions.
+  repeated string session_ids = 3;
+  // Upload env values that look like secrets. Off: they stay out, and the settings item's note names them.
+  bool include_secrets = 4;
+  // Overwrite documents that already exist on the server.
+  bool force = 5;
+  // As in ScanClaudeImportRequest.
+  optional string claude_dir = 6;
+}
+
+message ClaudeImportProgress {
+  // What is being done now, or was just finished: "skill pdf", "session <title>".
+  string current = 1;
+  int32 done = 2;
+  int32 total = 3;
+  // The item that just finished; unset when one is only starting. A frontend that cancels already holds these.
+  ClaudeImportItem item = 4;
+}
+
+message ClaudeImportReport {
+  repeated ClaudeImportItem items = 1;
+  int32 imported = 2;
+  int32 exists = 3;
+  int32 skipped = 4;
+  int32 queued = 5;
+  int32 errors = 6;
+  int32 manual = 7;
+  // Why the run as a whole stopped (the server is unreachable, ...); empty otherwise.
+  string error = 8;
+}
+
+message RunClaudeImportResponse {
+  oneof event {
+    ClaudeImportProgress progress = 1;
+    // The last message of a run that was not cancelled.
+    ClaudeImportReport report = 2;
+  }
+}

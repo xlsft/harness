@@ -50,6 +50,7 @@ const BAR = 'block h-full rounded-chip'
 const tone = (pct: number) => pct >= 90 ? 'bg-bad' : pct >= 70 ? 'bg-warn' : 'bg-accent'
 const balance = computed(() => view.value?.balance)
 const spend = computed(() => view.value?.spend)
+const hasBalance = computed(() => !!balance.value && !balance.value.error && balance.value.balance !== undefined)
 const shown = computed(() => !!windows.value.length || (balance.value && !balance.value.error && balance.value.balance !== undefined) || !!spend.value)
 </script>
 
@@ -59,43 +60,43 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
     class="-mx-[13px] mt-3 flex flex-col gap-3 border-t border-default px-[13px] pt-3 text-[12px]"
   >
     <span class="truncate text-muted">{{ title || 'Limits' }}</span>
+    <!-- Money on one line: what this month cost, and what is left. -->
     <div
-      v-if="balance && !balance.error && balance.balance !== undefined"
+      v-if="spend || hasBalance"
       class="flex flex-col gap-1.5"
     >
-      <div class="flex items-baseline gap-2">
-        <span class="min-w-0 flex-1 truncate text-strong">Balance</span>
-        <span class="shrink-0 text-strong tabular-nums">{{ money(balance.balance, balance.currency) }}<template v-if="balance.total">
-          <span class="text-muted"> of {{ money(balance.total, balance.currency) }}</span>
-        </template></span>
-      </div>
-      <span
-        v-if="balance.total"
-        :class="TRACK"
-      ><span
-        :class="[BAR, tone(100 - (balance.balance / balance.total) * 100)]"
-        :style="{ width: `${Math.min(100, (balance.balance / balance.total) * 100)}%` }"
-      /></span>
-    </div>
-    <div
-      v-if="spend"
-      class="flex flex-col gap-1.5"
-    >
-      <div class="flex items-baseline gap-2">
-        <span class="min-w-0 flex-1 truncate text-strong">This month</span>
+      <div class="flex items-baseline justify-between gap-4">
         <span
-          class="shrink-0 text-strong tabular-nums"
-          :title="spend.partial ? 'Some requests had no price; this is a lower bound' : undefined"
-        >{{ spend.partial ? '≥' : '' }}{{ money(spend.spent, spend.currency) }}<template v-if="spend.budget">
-          <span class="text-muted"> of {{ money(spend.budget, spend.currency) }}</span>
-        </template></span>
+          v-if="spend"
+          class="flex min-w-0 items-baseline gap-1.5"
+        >
+          <span class="truncate text-strong">This month</span>
+          <span
+            class="shrink-0 text-muted tabular-nums"
+            :title="spend.partial ? 'Some requests had no price; this is a lower bound' : undefined"
+          >{{ spend.partial ? '≥' : '' }}{{ money(spend.spent, spend.currency) }}<template v-if="spend.budget"> of {{ money(spend.budget, spend.currency) }}</template></span>
+        </span>
+        <span
+          v-if="hasBalance"
+          class="flex min-w-0 items-baseline gap-1.5"
+        >
+          <span class="truncate text-strong">Balance</span>
+          <span class="shrink-0 text-muted tabular-nums">{{ money(balance!.balance!, balance!.currency) }}<template v-if="balance!.total"> of {{ money(balance!.total, balance!.currency) }}</template></span>
+        </span>
       </div>
       <span
-        v-if="spend.budget"
+        v-if="spend?.budget"
         :class="TRACK"
       ><span
         :class="[BAR, tone((spend.spent / spend.budget) * 100)]"
         :style="{ width: `${Math.min(100, (spend.spent / spend.budget) * 100)}%` }"
+      /></span>
+      <span
+        v-if="hasBalance && balance!.total"
+        :class="TRACK"
+      ><span
+        :class="[BAR, tone(100 - (balance!.balance! / balance!.total) * 100)]"
+        :style="{ width: `${Math.min(100, (balance!.balance! / balance!.total) * 100)}%` }"
       /></span>
     </div>
     <div

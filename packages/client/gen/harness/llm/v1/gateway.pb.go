@@ -286,8 +286,11 @@ type Capabilities struct {
 	Pdf               bool     `protobuf:"varint,4,opt,name=pdf,proto3" json:"pdf,omitempty"`
 	ParallelToolCalls bool     `protobuf:"varint,5,opt,name=parallel_tool_calls,json=parallelToolCalls,proto3" json:"parallel_tool_calls,omitempty"`
 	PromptCache       bool     `protobuf:"varint,6,opt,name=prompt_cache,json=promptCache,proto3" json:"prompt_cache,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// The level recommended for a new session, one of `effort`: from the upstream's model list or set by hand.
+	// UNSPECIFIED: none.
+	DefaultEffort Effort `protobuf:"varint,7,opt,name=default_effort,json=defaultEffort,proto3,enum=harness.llm.v1.Effort" json:"default_effort,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Capabilities) Reset() {
@@ -360,6 +363,13 @@ func (x *Capabilities) GetPromptCache() bool {
 		return x.PromptCache
 	}
 	return false
+}
+
+func (x *Capabilities) GetDefaultEffort() Effort {
+	if x != nil {
+		return x.DefaultEffort
+	}
+	return Effort_EFFORT_UNSPECIFIED
 }
 
 // USD per 1M tokens. A zero cache price means "same as input".
@@ -1543,14 +1553,15 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\n" +
 	"display_id\x18\t \x01(\tR\tdisplayIdB\n" +
 	"\n" +
-	"\b_pricing\"\xd7\x01\n" +
+	"\b_pricing\"\x96\x02\n" +
 	"\fCapabilities\x12\x1a\n" +
 	"\bthinking\x18\x01 \x01(\bR\bthinking\x12.\n" +
 	"\x06effort\x18\x02 \x03(\x0e2\x16.harness.llm.v1.EffortR\x06effort\x12\x16\n" +
 	"\x06images\x18\x03 \x01(\bR\x06images\x12\x10\n" +
 	"\x03pdf\x18\x04 \x01(\bR\x03pdf\x12.\n" +
 	"\x13parallel_tool_calls\x18\x05 \x01(\bR\x11parallelToolCalls\x12!\n" +
-	"\fprompt_cache\x18\x06 \x01(\bR\vpromptCache\"w\n" +
+	"\fprompt_cache\x18\x06 \x01(\bR\vpromptCache\x12=\n" +
+	"\x0edefault_effort\x18\a \x01(\x0e2\x16.harness.llm.v1.EffortR\rdefaultEffort\"w\n" +
 	"\aPricing\x12\x14\n" +
 	"\x05input\x18\x01 \x01(\x01R\x05input\x12\x16\n" +
 	"\x06output\x18\x02 \x01(\x01R\x06output\x12\x1d\n" +
@@ -1703,41 +1714,42 @@ var file_harness_llm_v1_gateway_proto_depIdxs = []int32{
 	4,  // 2: harness.llm.v1.Model.capabilities:type_name -> harness.llm.v1.Capabilities
 	5,  // 3: harness.llm.v1.Model.pricing:type_name -> harness.llm.v1.Pricing
 	20, // 4: harness.llm.v1.Capabilities.effort:type_name -> harness.llm.v1.Effort
-	0,  // 5: harness.llm.v1.RequestMetadata.request_class:type_name -> harness.llm.v1.RequestClass
-	21, // 6: harness.llm.v1.StreamMessageRequest.system:type_name -> harness.llm.v1.TextBlock
-	22, // 7: harness.llm.v1.StreamMessageRequest.messages:type_name -> harness.llm.v1.Message
-	23, // 8: harness.llm.v1.StreamMessageRequest.tools:type_name -> harness.llm.v1.Tool
-	24, // 9: harness.llm.v1.StreamMessageRequest.tool_choice:type_name -> harness.llm.v1.ToolChoice
-	25, // 10: harness.llm.v1.StreamMessageRequest.thinking:type_name -> harness.llm.v1.Thinking
-	20, // 11: harness.llm.v1.StreamMessageRequest.effort:type_name -> harness.llm.v1.Effort
-	7,  // 12: harness.llm.v1.StreamMessageRequest.metadata:type_name -> harness.llm.v1.RequestMetadata
-	10, // 13: harness.llm.v1.StreamMessageResponse.message_start:type_name -> harness.llm.v1.MessageStart
-	11, // 14: harness.llm.v1.StreamMessageResponse.content_block_start:type_name -> harness.llm.v1.ContentBlockStart
-	12, // 15: harness.llm.v1.StreamMessageResponse.content_block_delta:type_name -> harness.llm.v1.ContentBlockDelta
-	13, // 16: harness.llm.v1.StreamMessageResponse.content_block_stop:type_name -> harness.llm.v1.ContentBlockStop
-	14, // 17: harness.llm.v1.StreamMessageResponse.message_delta:type_name -> harness.llm.v1.MessageDelta
-	15, // 18: harness.llm.v1.StreamMessageResponse.message_stop:type_name -> harness.llm.v1.MessageStop
-	16, // 19: harness.llm.v1.StreamMessageResponse.ping:type_name -> harness.llm.v1.Ping
-	17, // 20: harness.llm.v1.StreamMessageResponse.retry:type_name -> harness.llm.v1.Retry
-	26, // 21: harness.llm.v1.MessageStart.usage:type_name -> harness.llm.v1.Usage
-	27, // 22: harness.llm.v1.ContentBlockStart.block:type_name -> harness.llm.v1.ContentBlock
-	28, // 23: harness.llm.v1.MessageDelta.stop_reason:type_name -> harness.llm.v1.StopReason
-	26, // 24: harness.llm.v1.MessageDelta.usage:type_name -> harness.llm.v1.Usage
-	29, // 25: harness.llm.v1.Retry.error:type_name -> harness.common.v1.ErrorInfo
-	21, // 26: harness.llm.v1.CountTokensRequest.system:type_name -> harness.llm.v1.TextBlock
-	22, // 27: harness.llm.v1.CountTokensRequest.messages:type_name -> harness.llm.v1.Message
-	23, // 28: harness.llm.v1.CountTokensRequest.tools:type_name -> harness.llm.v1.Tool
-	1,  // 29: harness.llm.v1.GatewayService.ListModels:input_type -> harness.llm.v1.ListModelsRequest
-	8,  // 30: harness.llm.v1.GatewayService.StreamMessage:input_type -> harness.llm.v1.StreamMessageRequest
-	18, // 31: harness.llm.v1.GatewayService.CountTokens:input_type -> harness.llm.v1.CountTokensRequest
-	2,  // 32: harness.llm.v1.GatewayService.ListModels:output_type -> harness.llm.v1.ListModelsResponse
-	9,  // 33: harness.llm.v1.GatewayService.StreamMessage:output_type -> harness.llm.v1.StreamMessageResponse
-	19, // 34: harness.llm.v1.GatewayService.CountTokens:output_type -> harness.llm.v1.CountTokensResponse
-	32, // [32:35] is the sub-list for method output_type
-	29, // [29:32] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	20, // 5: harness.llm.v1.Capabilities.default_effort:type_name -> harness.llm.v1.Effort
+	0,  // 6: harness.llm.v1.RequestMetadata.request_class:type_name -> harness.llm.v1.RequestClass
+	21, // 7: harness.llm.v1.StreamMessageRequest.system:type_name -> harness.llm.v1.TextBlock
+	22, // 8: harness.llm.v1.StreamMessageRequest.messages:type_name -> harness.llm.v1.Message
+	23, // 9: harness.llm.v1.StreamMessageRequest.tools:type_name -> harness.llm.v1.Tool
+	24, // 10: harness.llm.v1.StreamMessageRequest.tool_choice:type_name -> harness.llm.v1.ToolChoice
+	25, // 11: harness.llm.v1.StreamMessageRequest.thinking:type_name -> harness.llm.v1.Thinking
+	20, // 12: harness.llm.v1.StreamMessageRequest.effort:type_name -> harness.llm.v1.Effort
+	7,  // 13: harness.llm.v1.StreamMessageRequest.metadata:type_name -> harness.llm.v1.RequestMetadata
+	10, // 14: harness.llm.v1.StreamMessageResponse.message_start:type_name -> harness.llm.v1.MessageStart
+	11, // 15: harness.llm.v1.StreamMessageResponse.content_block_start:type_name -> harness.llm.v1.ContentBlockStart
+	12, // 16: harness.llm.v1.StreamMessageResponse.content_block_delta:type_name -> harness.llm.v1.ContentBlockDelta
+	13, // 17: harness.llm.v1.StreamMessageResponse.content_block_stop:type_name -> harness.llm.v1.ContentBlockStop
+	14, // 18: harness.llm.v1.StreamMessageResponse.message_delta:type_name -> harness.llm.v1.MessageDelta
+	15, // 19: harness.llm.v1.StreamMessageResponse.message_stop:type_name -> harness.llm.v1.MessageStop
+	16, // 20: harness.llm.v1.StreamMessageResponse.ping:type_name -> harness.llm.v1.Ping
+	17, // 21: harness.llm.v1.StreamMessageResponse.retry:type_name -> harness.llm.v1.Retry
+	26, // 22: harness.llm.v1.MessageStart.usage:type_name -> harness.llm.v1.Usage
+	27, // 23: harness.llm.v1.ContentBlockStart.block:type_name -> harness.llm.v1.ContentBlock
+	28, // 24: harness.llm.v1.MessageDelta.stop_reason:type_name -> harness.llm.v1.StopReason
+	26, // 25: harness.llm.v1.MessageDelta.usage:type_name -> harness.llm.v1.Usage
+	29, // 26: harness.llm.v1.Retry.error:type_name -> harness.common.v1.ErrorInfo
+	21, // 27: harness.llm.v1.CountTokensRequest.system:type_name -> harness.llm.v1.TextBlock
+	22, // 28: harness.llm.v1.CountTokensRequest.messages:type_name -> harness.llm.v1.Message
+	23, // 29: harness.llm.v1.CountTokensRequest.tools:type_name -> harness.llm.v1.Tool
+	1,  // 30: harness.llm.v1.GatewayService.ListModels:input_type -> harness.llm.v1.ListModelsRequest
+	8,  // 31: harness.llm.v1.GatewayService.StreamMessage:input_type -> harness.llm.v1.StreamMessageRequest
+	18, // 32: harness.llm.v1.GatewayService.CountTokens:input_type -> harness.llm.v1.CountTokensRequest
+	2,  // 33: harness.llm.v1.GatewayService.ListModels:output_type -> harness.llm.v1.ListModelsResponse
+	9,  // 34: harness.llm.v1.GatewayService.StreamMessage:output_type -> harness.llm.v1.StreamMessageResponse
+	19, // 35: harness.llm.v1.GatewayService.CountTokens:output_type -> harness.llm.v1.CountTokensResponse
+	33, // [33:36] is the sub-list for method output_type
+	30, // [30:33] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_gateway_proto_init() }

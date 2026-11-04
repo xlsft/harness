@@ -9,7 +9,7 @@ import type { ModelInfo } from './types'
 export const MAIN_SESSION = 's-gateway'
 
 export const MODELS: ModelInfo[] = [
-  { id: 'glm-4.6', provider: 'OpenRouter', contextWindow: 200_000, price: '$0.60/M' },
+  { id: 'glm-4.6', provider: 'OpenRouter', contextWindow: 200_000, price: '$0.60/M', efforts: ['low', 'medium', 'high'], defaultEffort: 'high' },
   { id: 'qwen3-coder', provider: 'OpenRouter', contextWindow: 256_000, price: '$0.40/M' },
   { id: 'claude-sonnet-5-5', provider: 'Anthropic', contextWindow: 1_000_000, price: '$3/M' },
   { id: 'qwen3-coder:30b', provider: 'Ollama · local', contextWindow: 32_000, price: '', offline: true }

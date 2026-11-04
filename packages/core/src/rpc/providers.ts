@@ -55,6 +55,7 @@ function modelToProto(m: ModelEntry) {
     maxOutputTokens: BigInt(m.maxOutputTokens),
     enabled: m.enabled,
     efforts: m.capabilities.effort.map(effortToProto),
+    defaultEffort: effortToProto(m.capabilities.default_effort ?? ""),
   };
 }
 
@@ -298,7 +299,8 @@ export function registerProviderService(router: ConnectRouter): void {
 
     setModelEfforts: guard(async (req, ctx: HandlerContext) => {
       const user = await principal(ctx);
-      return { model: modelToProto(await setProviderModelEfforts(req.modelId, req.efforts.map(effortName), user)) };
+      const defaultEffort = req.defaultEffort === undefined ? undefined : effortName(req.defaultEffort);
+      return { model: modelToProto(await setProviderModelEfforts(req.modelId, req.efforts.map(effortName), user, defaultEffort)) };
     }),
 
     removeModel: guard(async (req, ctx: HandlerContext) => {

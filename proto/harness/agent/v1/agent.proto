@@ -6,6 +6,7 @@ import "harness/agent/v1/acp.proto";
 import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/computer_use.proto";
 import "harness/agent/v1/files.proto";
+import "harness/agent/v1/import.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/pr.proto";
@@ -343,6 +344,16 @@ service AgentService {
   // Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
   // ended comes back as it ended.
   rpc StopWorkflow(StopWorkflowRequest) returns (StopWorkflowResponse);
+
+  // --- Import from Claude Code (import.proto) ---
+
+  // A preview of what an import would bring from this machine: the config by kind and the sessions by project. Never
+  // writes. It reads the head of each transcript, so it stays fast on large directories.
+  rpc ScanClaudeImport(ScanClaudeImportRequest) returns (ScanClaudeImportResponse);
+  // Imports what the request chose, reporting progress and ending with the report. Cancelling the call stops it, and
+  // running it again skips what is done; a session already imported is not duplicated. One run at a time:
+  // FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
+  rpc RunClaudeImport(RunClaudeImportRequest) returns (stream RunClaudeImportResponse);
 }
 
 message CreateObjectTicketRequest {}
@@ -421,6 +432,8 @@ message ModelInfo {
   // For showing: the provider's name, and the id as a person reads it (id stays what requests send).
   string provider_name = 11;
   string display_id = 12;
+  // The level recommended for a new session, one of `efforts`; UNSPECIFIED: none.
+  harness.llm.v1.Effort default_effort = 13;
 }
 
 message SessionInfo {
@@ -560,6 +573,8 @@ message CreateSessionRequest {
   // With resume_session_id: copy the transcript into a new session. A remote session (SessionInfo.remote) can
   // only be forked: its transcript is downloaded from the harness server into a new local session in `cwd`.
   bool fork = 5;
+  // UNSPECIFIED on a new session: the effortLevel setting, else the level the model recommends, else medium or the nearest
+  // the model takes; none on a model without levels. A resumed session gets no such level.
   harness.llm.v1.Effort effort = 6;
   // Permission rules in Claude Code syntax, e.g. "Bash(npm run test *)", "Edit(/src/**)".
   repeated string allowed_tools = 7;

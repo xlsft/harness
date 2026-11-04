@@ -70,6 +70,8 @@ type Server struct {
 	// Preferences reads and writes the user's synced settings document (GetUserPreferences, preferences.go);
 	// nil without sync.
 	Preferences PreferenceDocs
+	// ImportTo is the user's server for imports (import.go); nil without sync.
+	ImportTo *syncclient.Client
 	// NoPanes says the frontends cannot open panes (the terminal UI): the
 	// Show and Visual tools then report that nothing was shown.
 	NoPanes bool
@@ -87,6 +89,9 @@ type Server struct {
 	Core *CoreProxy
 	// Objects, when set, serves the object store's bytes to frontends (ObjectProxy).
 	Objects *ObjectProxy
+
+	// importing holds the one running import (import.go).
+	importing atomic.Bool
 
 	// DeviceID is this machine's device id (dev_...): sessions the server lists for another device are remote
 	// (remote.go). Empty when unknown; then only the local transcripts decide.
@@ -301,6 +306,7 @@ func modelInfo(m llm.Model) *agentv1.ModelInfo {
 		}
 	}
 	slices.Sort(mi.Efforts)
+	mi.DefaultEffort = pbconv.Effort(m.RecommendedEffort())
 	if p := m.Pricing; p != nil {
 		mi.InputPrice, mi.OutputPrice = &p.Input, &p.Output
 	}
@@ -360,6 +366,8 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if e := pbconv.FromEffort(m.GetEffort()); e != "" {
 		opts.Effort = e
 	}
+	// A new session nobody chose an effort for; a session that exists keeps its own.
+	opts.StartingEffort = m.GetResumeSessionId() == ""
 	if n := m.GetMaxTurns(); n > 0 {
 		opts.MaxTurns = int(n)
 	}
@@ -517,8 +525,9 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 				continue
 			}
 			id := strings.TrimSuffix(filepath.Base(f), ".jsonl")
-			out[id] = &agentv1.SessionInfo{Id: id, Cwd: cwd, Title: sessionTitle(f), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
-				UpdatedAt: st.ModTime().UTC().Format(time.RFC3339), ParentSessionId: forkedFrom(f), Worktree: transcriptWorktree(f)}
+			title, parent := listedTranscript(f)
+			out[id] = &agentv1.SessionInfo{Id: id, Cwd: cwd, Title: title, Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
+				UpdatedAt: st.ModTime().UTC().Format(time.RFC3339), ParentSessionId: parent, Worktree: transcriptWorktree(f)}
 		}
 	} else {
 		// No cwd: the most recent sessions of every project, so a frontend's session list survives a
@@ -529,8 +538,9 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 				continue // never used: no message, no folder
 			}
 			id := strings.TrimSuffix(filepath.Base(f.path), ".jsonl")
-			out[id] = &agentv1.SessionInfo{Id: id, Cwd: tcwd, Title: sessionTitle(f.path), Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
-				UpdatedAt: f.mod.UTC().Format(time.RFC3339), ParentSessionId: forkedFrom(f.path), Worktree: worktreeToProto(wt)}
+			title, parent := listedTranscript(f.path)
+			out[id] = &agentv1.SessionInfo{Id: id, Cwd: tcwd, Title: title, Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
+				UpdatedAt: f.mod.UTC().Format(time.RFC3339), ParentSessionId: parent, Worktree: worktreeToProto(wt)}
 		}
 	}
 	s.mu.Lock()
@@ -562,6 +572,37 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 	}
 	sort.Slice(resp.Sessions, func(i, j int) bool { return resp.Sessions[i].UpdatedAt > resp.Sessions[j].UpdatedAt })
 	return connect.NewResponse(resp), nil
+}
+
+// listedTranscripts remembers what the session list shows of a transcript while the file stays the same: frontends
+// poll the list, and imported histories run to gigabytes.
+var listedTranscripts = struct {
+	sync.Mutex
+	byPath map[string]listedTranscriptInfo
+}{byPath: map[string]listedTranscriptInfo{}}
+
+type listedTranscriptInfo struct {
+	size          int64
+	mod           time.Time
+	title, parent string
+}
+
+func listedTranscript(path string) (title, parent string) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return sessionTitle(path), forkedFrom(path)
+	}
+	listedTranscripts.Lock()
+	info, ok := listedTranscripts.byPath[path]
+	listedTranscripts.Unlock()
+	if ok && info.size == st.Size() && info.mod.Equal(st.ModTime()) {
+		return info.title, info.parent
+	}
+	title, parent = sessionTitle(path), forkedFrom(path)
+	listedTranscripts.Lock()
+	listedTranscripts.byPath[path] = listedTranscriptInfo{st.Size(), st.ModTime(), title, parent}
+	listedTranscripts.Unlock()
+	return title, parent
 }
 
 // sessionTitle returns the recorded custom or AI title of a transcript, else

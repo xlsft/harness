@@ -12,6 +12,7 @@ const SECTIONS = [
   { key: 'usage', label: 'Usage', icon: 'chart', group: 'you' },
   { key: 'appearance', label: 'Appearance', icon: 'palette', group: 'app' },
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
+  { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
   { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
@@ -37,6 +38,7 @@ const KEYWORDS: Record<Section, string> = {
   usage: 'tokens cost spend money statistics chart',
   appearance: 'theme light dark mode system colours',
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
+  import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
@@ -152,6 +154,8 @@ const notifications = computed({
         <SettingsPullRequests />
         <SettingsAgents />
       </template>
+
+      <SettingsImport v-else-if="section === 'import'" />
 
       <template v-else-if="section === 'models' || section === 'classifiers'">
         <SettingsProviders

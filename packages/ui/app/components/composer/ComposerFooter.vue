@@ -2,6 +2,7 @@
 </script>
 
 <script setup lang="ts">
+import type { ProviderLimitsView } from '~/lib/limits/types'
 // Composer footer (Composer.dc.html): hint · model · effort · mode · usage ring, with the model and mode pickers.
 import { sessionEffort, type ModelScope } from '~/lib/acp/modelChoices'
 import type { EffortName, SessionState } from '~/lib/session/types'
@@ -28,6 +29,7 @@ const effortChoice = computed(() => sessionEffort({
   unsupported: props.session.meta.unsupported.includes('effort'),
   acp: acp.value,
   harness: modelEfforts(model.value),
+  recommended: model.value?.defaultEffort,
   chosen: (props.session.meta.effort || store.effort[id.value] || 'medium') as EffortName
 }))
 function pickEffort(level: string) {
@@ -38,6 +40,25 @@ function pickEffort(level: string) {
 const contextWindow = computed(() => onAgent.value ? Number(acp.value?.contextWindowTokens ?? 0) : model.value?.contextWindow || 200_000)
 const contextUsed = computed(() => Number(acp.value?.contextUsedTokens ?? 0) || props.session.contextTokens)
 const pct = computed(() => contextWindow.value ? Math.min(100, Math.round((contextUsed.value / contextWindow.value) * 100)) : 0)
+// The ring shows what runs out first: the fullest limit window of the plan, else how much of the balance is spent,
+// else the session's context.
+const providerLimits = ref<ProviderLimitsView | null>(null)
+async function loadLimits() {
+  providerLimits.value = null
+  if (onAgent.value || props.session.meta.remote || !store.transport || !props.session.meta.model) return
+  try {
+    providerLimits.value = (await store.transport.limits().getProviderLimits({ modelId: props.session.meta.model })).model ?? null
+  } catch { /* no server, or nothing visible: the context */ }
+}
+onMounted(loadLimits)
+watch(() => [props.session.meta.id, props.session.meta.model, props.session.meta.status], loadLimits)
+const usage = computed(() => {
+  const windows = acp.value?.limits?.windows ?? providerLimits.value?.windows ?? []
+  if (windows.length) return { label: 'Limit', pct: Math.round(Math.min(100, Math.max(...windows.map(w => w.usedPercent)))) }
+  const b = providerLimits.value?.balance
+  if (b && !b.error && b.balance !== undefined && b.total) return { label: 'Balance', pct: Math.round(Math.min(100, Math.max(0, 100 - (b.balance / b.total) * 100))) }
+  return { label: 'Context', pct: pct.value }
+})
 const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whitespace-nowrap text-muted hover:bg-hover hover:text-toned'
 </script>
 
@@ -65,6 +86,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
       :acp-modes="acpModes"
       :efforts="effortChoice.levels"
       :effort="effortChoice.current"
+      :recommended="effortChoice.recommended"
       :mode="session.meta.permissionMode"
       @update:model="(m, engine) => store.setModel(id, m, engine)"
       @update:acp-mode="store.setAcpMode(id, $event)"
@@ -78,7 +100,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
     >
       <button
         type="button"
-        :aria-label="`Context: ${pct}% used`"
+        :aria-label="`${usage.label}: ${usage.pct}% used`"
         :class="[BTN, contextOpen && 'bg-hover']"
       >
         <svg
@@ -101,7 +123,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
             fill="none"
             stroke="var(--color-accent)"
             stroke-width="3"
-            :stroke-dasharray="`${(pct / 100) * 50.27} 50.27`"
+            :stroke-dasharray="`${(usage.pct / 100) * 50.27} 50.27`"
             transform="rotate(-90 10 10)"
           />
         </svg>

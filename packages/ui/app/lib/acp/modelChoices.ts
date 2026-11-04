@@ -132,19 +132,20 @@ export function agentEffortLevels(efforts: { id: string, name: string }[]): Effo
 }
 
 // The effort chip of a running session: the agent's levels on an agent, the model's on harness, nothing where the
-// client says the session has no effort.
-export function sessionEffort(c: { onAgent: boolean, unsupported: boolean, acp?: AcpSessionState | null, harness: EffortName[], chosen: EffortName }): { levels: EffortLevel[], current?: string } {
+// client says the session has no effort. `recommended` only marks a level: a session keeps the one it is on.
+export function sessionEffort(c: { onAgent: boolean, unsupported: boolean, acp?: AcpSessionState | null, harness: EffortName[], chosen: EffortName, recommended?: EffortName }): { levels: EffortLevel[], current?: string, recommended?: string } {
   if (c.unsupported) return { levels: [] }
-  if (c.onAgent) return { levels: agentEffortLevels(c.acp?.efforts ?? []), current: c.acp?.currentEffortId || undefined }
-  return { levels: harnessEffortLevels(c.harness), current: fitEffort(c.chosen, c.harness) }
+  if (c.onAgent) return { levels: agentEffortLevels(c.acp?.efforts ?? []), current: c.acp?.currentEffortId || undefined, recommended: c.acp?.defaultEffortId || undefined }
+  return { levels: harnessEffortLevels(c.harness), current: fitEffort(c.chosen, c.harness), recommended: c.recommended }
 }
 
 // The effort chip of the new-session screen on an agent, from what the client has cached about it: the level chosen
-// here while the agent still lists it, else the one it starts on.
-export function newSessionAgentEffort(agent: AcpAgent | undefined, chosen: string): { levels: EffortLevel[], current?: string } {
+// here while the agent still lists it, else its default, which is what it starts on and what it recommends, else the
+// current level last reported.
+export function newSessionAgentEffort(agent: AcpAgent | undefined, chosen: string): { levels: EffortLevel[], current?: string, recommended?: string } {
   if (!agent || agent.unsupportedFeatures.includes(SessionFeature.EFFORT)) return { levels: [] }
-  const current = agent.efforts.some(e => e.id === chosen) ? chosen : agent.currentEffortId
-  return { levels: agentEffortLevels(agent.efforts), current: current || undefined }
+  const current = agent.efforts.some(e => e.id === chosen) ? chosen : agent.defaultEffortId || agent.currentEffortId
+  return { levels: agentEffortLevels(agent.efforts), current: current || undefined, recommended: agent.defaultEffortId || undefined }
 }
 
 // What the new-session screen starts a session with. On an agent the server's effort and permission mode do not apply,
