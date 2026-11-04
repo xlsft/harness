@@ -67,8 +67,8 @@ function onKey(e: KeyboardEvent) {
         v-for="(l, i) in levels"
         :key="l.id"
         aria-hidden="true"
-        class="absolute top-1/2 h-2 w-[1.5px] -translate-x-1/2 -translate-y-1/2"
-        :class="i < index ? 'bg-black/60' : 'bg-(--color-muted)'"
+        class="absolute top-1/2 h-1.5 w-px -translate-x-1/2 -translate-y-1/2"
+        :class="i < index ? 'bg-black/45' : 'bg-(--color-dimmed)'"
         :style="{ left: `calc((100% - 14px) * ${share(i)} + 7px)` }"
       />
       <span
