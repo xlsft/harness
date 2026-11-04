@@ -665,6 +665,7 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 	}
 	ls.userSpoke()
 	s.noteMessageOrigin(ctx, ls.sess.ID, req.Peer().Addr)
+	ls.drivenByRelay.Store(isRelayOrigin(ctx))
 	return s.submitMessage(ls, req)
 }
 
@@ -674,7 +675,6 @@ func (s *Server) submitMessage(ls *liveSession, req *connect.Request[agentv1.Sen
 	if len(content) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("content is empty"))
 	}
-	ls.drivenByRelay.Store(isRelayOrigin(ctx))
 	if id := req.Msg.GetUuid(); id != "" {
 		ls.mu.Lock()
 		dup := ls.seen[id]

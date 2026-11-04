@@ -82,17 +82,15 @@ var (
 	editTools = map[string]bool{"Edit": true, "Write": true, "NotebookEdit": true, "MultiEdit": true}
 	readTools = map[string]bool{"Read": true, "Glob": true, "Grep": true, "LS": true, "NotebookRead": true}
 	// pathObservers read a file only when their input names one (Wait on a
-	// path): that path gets the read-tool directory check.
-	pathObservers = map[string]bool{"Wait": true}
+	// path) or show one to the user (OpenInEditor, RevealPath): that path gets
+	// the read-tool directory check, and Read deny rules cover them.
+	pathObservers = map[string]bool{"Wait": true, "OpenInEditor": true, "RevealPath": true}
 	// worktreeTools change only the session's own worktree and branch: accept-edits mode lets them through. Throwing
 	// away uncommitted work is marked Sensitive by the tool and always asks.
 	worktreeTools = map[string]bool{"EnterWorktree": true, "ExitWorktree": true, "SyncWithBase": true}
 	// sessionTools start or reach other sessions. They change nothing here and those sessions keep their own permission
 	// checks, so they run without a prompt, except in plan mode. SessionArchive is not one of them: it always asks.
 	sessionTools = map[string]bool{"SessionStart": true, "SessionHandoff": true, "SessionSend": true}
-	// path) or show one to the user (OpenInEditor, RevealPath): that path gets
-	// the read-tool directory check, and Read deny rules cover them.
-	pathObservers = map[string]bool{"Wait": true, "OpenInEditor": true, "RevealPath": true}
 )
 
 // IsEditTool reports whether name modifies files.

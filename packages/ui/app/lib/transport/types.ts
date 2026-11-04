@@ -18,7 +18,6 @@ import type {
 } from '~/gen/harness/agent/v1/agent_pb'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { SubagentTranscriptItem } from '~/gen/harness/agent/v1/subagents_pb'
-import type { EffortName, QuestionReply } from '~/lib/session/types'
 import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
 import type { AccountApi } from '~/lib/account/types'
