@@ -66,6 +66,8 @@ type PermissionHints struct {
 	URL string
 	// Sensitive, when set, says why only the user may approve the call (typing into a password field...).
 	Sensitive string
+	// Label, when set, is what the permission prompt calls the call instead of its tool name (rules never see it).
+	Label string
 }
 
 // PermissionHinter is implemented by tools whose permission check depends on state outside the input (the

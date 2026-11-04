@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -162,17 +164,18 @@ func TestToolListStates(t *testing.T) {
 	waitIdle(t, term)
 	res := r.call(ToolList, nil)
 	text := resultText(res)
-	if !strings.Contains(text, `"mine"`) || strings.Contains(text, "theirs") || !strings.Contains(text, "idle at the shell prompt") || !strings.Contains(text, other) || !strings.Contains(text, "opened by the user") {
+	if !strings.Contains(text, `"mine"`) || strings.Contains(text, "theirs") || !strings.Contains(text, "at the shell prompt") || !strings.Contains(text, other) || !strings.Contains(text, "opened by the user") {
 		t.Fatalf("list: %s", text)
 	}
-	if command, cwd := (&runTool{toolBase{r.m}}).ShellCheck(r.env, tools.Call{Input: json.RawMessage(`{"command":"ls","tab_id":"` + term.ID() + `"}`)}); command != "ls" || cwd != other {
-		t.Fatalf("permission check: %q in %q, want the tab's directory %q", command, cwd, other)
+	// The permission check sees the directory the new tab will start in.
+	if command, cwd := (&runTool{toolBase{r.m}}).ShellCheck(r.env, tools.Call{Input: json.RawMessage(`{"command":"ls"}`)}); command != "ls" || cwd != r.env.Cwd {
+		t.Fatalf("permission check: %q in %q, want %q", command, cwd, r.env.Cwd)
 	}
 
 	// A running command, with its command line.
 	_, _ = term.Write([]byte("sleep 30\n"))
 	deadline := time.Now().Add(5 * time.Second)
-	for !strings.Contains(resultText(r.call(ToolList, nil)), "running sleep 30") {
+	for !strings.Contains(resultText(r.call(ToolList, nil)), "running sleep (sleep 30), ") {
 		if time.Now().After(deadline) {
 			t.Fatalf("list: %s", resultText(r.call(ToolList, nil)))
 		}
@@ -186,7 +189,7 @@ func TestToolRunNewTabQuickCommand(t *testing.T) {
 	res := r.call(ToolRun, map[string]any{"command": "echo agent-$((40+2))", "title": "quick"})
 	text := resultText(res)
 	id := tabOf(t, res)
-	if !strings.Contains(text, "agent-42") || !strings.Contains(text, "back at its prompt") || !strings.Contains(text, "untrusted-terminal-output") {
+	if !strings.Contains(text, "agent-42") || !strings.Contains(text, "got its prompt back") || !strings.Contains(text, "untrusted-terminal-output") {
 		t.Fatalf("result: %s", text)
 	}
 	term := r.m.Get(id)
@@ -201,12 +204,15 @@ func TestToolRunNewTabQuickCommand(t *testing.T) {
 		t.Fatalf("the result told the model already; notice: %+v", f)
 	case <-time.After(500 * time.Millisecond):
 	}
-	// Multi-line commands run line by line in the same tab.
-	res = r.call(ToolRun, map[string]any{"command": "echo one\necho two", "tab_id": id})
+	// Multi-line commands run line by line, and every call has a tab of its own.
+	res = r.call(ToolRun, map[string]any{"command": "echo one\necho two"})
+	if tabOf(t, res) == id {
+		t.Fatal("TerminalRun reused a tab")
+	}
 	if text := resultText(res); !strings.Contains(text, "one") || !strings.Contains(text, "two") {
 		t.Fatalf("two lines: %s", text)
 	}
-	if m := res.Structured.(map[string]any); m["state"] != "finished" {
+	if m := res.Structured.(map[string]any); m["state"] != "prompt" {
 		t.Fatalf("state: %v", m)
 	}
 }
@@ -219,19 +225,15 @@ func TestToolRunSlowCommandNotifies(t *testing.T) {
 	if m := res.Structured.(map[string]any); m["state"] != "running" {
 		t.Fatalf("state: %v (%s)", m, resultText(res))
 	}
-	// Typing into it now would go to the program: refused, nothing typed.
-	again := r.call(ToolRun, map[string]any{"command": "echo should-not-appear", "tab_id": id})
-	if !again.IsError || !strings.Contains(resultText(again), "Nothing was typed") {
-		t.Fatalf("busy tab: %s", resultText(again))
-	}
 	select {
 	case f := <-r.doneCh:
 		block := f.TailBlock()
-		if f.TerminalID != id || f.SessionID != "s1" || !strings.Contains(f.Command, "sleep 3") || !strings.Contains(f.Status, "prompt") || !strings.Contains(block, "finished-now") || !strings.Contains(block, "untrusted-terminal-output") || strings.Contains(block, "should-not-appear") {
+		if f.TerminalID != id || f.SessionID != "s1" || !strings.Contains(f.Command, "sleep 3") || !strings.Contains(f.Status, "got its prompt back") || !strings.Contains(f.Status, "not known") || !strings.Contains(block, "finished-now") || !strings.Contains(block, "untrusted-terminal-output") {
 			t.Fatalf("notice: %+v\n%s", f, block)
 		}
 	case <-time.After(15 * time.Second):
-		t.Fatalf("no notice; tab shows: %q", r.m.Get(id).Screen())
+		lines, _ := r.m.Get(id).Screen()
+		t.Fatalf("no notice; tab shows: %q", lines)
 	}
 }
 
@@ -246,26 +248,6 @@ func TestToolRunShellExits(t *testing.T) {
 		}
 	case <-time.After(15 * time.Second):
 		t.Fatal("no notice")
-	}
-	res := r.call(ToolRun, map[string]any{"command": "echo hi", "tab_id": id})
-	if !res.IsError || !strings.Contains(resultText(res), "exited") {
-		t.Fatalf("typing into a dead tab: %s", resultText(res))
-	}
-}
-
-// What the user has half typed cannot end up in front of the checked command.
-func TestToolRunClearsTheUsersLine(t *testing.T) {
-	r := newRig(t)
-	term := shell(t, r.m, Options{SessionID: "s1", Cwd: r.env.Cwd})
-	v := term.Attach()
-	defer v.Close()
-	_, _ = term.Write([]byte("echo marker; waitprompt=1\n"))
-	readUntil(t, v, "marker\r\n")
-	_, _ = term.Write([]byte("false && echo DRAFT "))
-	time.Sleep(100 * time.Millisecond)
-	res := r.call(ToolRun, map[string]any{"command": "echo typed-$((1+1))", "tab_id": term.ID()})
-	if text := resultText(res); res.IsError || !strings.Contains(text, "typed-2") {
-		t.Fatalf("with a draft on the line: %s", text)
 	}
 }
 
@@ -287,8 +269,8 @@ func TestToolRunRefusals(t *testing.T) {
 	}
 	// Another session's tab does not exist for this one, whatever the call.
 	theirs := shell(t, r.m, Options{SessionID: "other", Cwd: r.env.Cwd})
-	for _, name := range []string{ToolRead, ToolRun, ToolStop} {
-		if res := r.call(name, map[string]any{"tab_id": theirs.ID(), "command": "echo x"}); !res.IsError || !strings.Contains(resultText(res), "no terminal tab") {
+	for _, name := range []string{ToolRead, ToolStop} {
+		if res := r.call(name, map[string]any{"tab_id": theirs.ID()}); !res.IsError || !strings.Contains(resultText(res), "no terminal tab") {
 			t.Fatalf("%s: %s", name, resultText(res))
 		}
 	}
@@ -402,7 +384,7 @@ func TestStopEscalates(t *testing.T) {
 }
 
 // The shells people really use: line editors redraw, prompts have escape sequences. Each must show a clean screen,
-// hand the terminal to a command and take it back, and clear a half-typed line.
+// hand the terminal to a command and take it back.
 func TestRealShells(t *testing.T) {
 	for _, c := range []struct {
 		shell string
@@ -421,33 +403,143 @@ func TestRealShells(t *testing.T) {
 				t.Fatal(err)
 			}
 			term.waitPrompt(context.Background())
-
-			_, _ = term.Write([]byte("false && echo DRAFT "))
-			time.Sleep(200 * time.Millisecond)
-			res := r.call(ToolRun, map[string]any{"command": "echo real-$((1+1))", "tab_id": term.ID()})
-			if text := resultText(res); res.IsError || !strings.Contains(text, "real-2") {
-				t.Fatalf("result: %s", text)
+			run, err := term.Type("sleep 3; echo slow-done")
+			if err != nil {
+				t.Fatal(err)
 			}
-			screen := strings.Join(term.Screen(), "\n")
-			if strings.Contains(screen, "\x1b") || strings.Contains(screen, "DRAFT echo") {
-				t.Fatalf("screen: %q", screen)
+			deadline := time.Now().Add(2 * time.Second)
+			for !term.State().Busy && time.Now().Before(deadline) {
+				time.Sleep(50 * time.Millisecond)
 			}
-
-			res = r.call(ToolRun, map[string]any{"command": "sleep 3; echo slow-done", "tab_id": term.ID()})
-			if m := res.Structured.(map[string]any); m["state"] != "running" {
-				t.Fatalf("state %v: %s", m, resultText(res))
-			}
-			if st := term.State(); !st.Busy || !strings.Contains(st.Command, "sleep") && !strings.Contains(st.Command, c.shell) {
+			if st := term.State(); !st.Busy || st.Program == "" {
 				t.Fatalf("state: %+v", st)
 			}
 			select {
 			case f := <-r.doneCh:
-				if !strings.Contains(f.TailBlock(), "slow-done") {
+				if !strings.Contains(f.TailBlock(), "slow-done") || f.Command != run.Command {
 					t.Fatalf("notice: %s", f.TailBlock())
 				}
 			case <-time.After(15 * time.Second):
-				t.Fatalf("no notice; screen: %q", term.Screen())
+				lines, _ := term.Screen()
+				t.Fatalf("no notice; screen: %q", lines)
+			}
+			lines, _ := term.Screen()
+			if screen := strings.Join(lines, "\n"); strings.Contains(screen, "\x1b") || !strings.Contains(screen, "slow-done") {
+				t.Fatalf("screen: %q", screen)
 			}
 		})
+	}
+}
+
+var quietRe = regexp.MustCompile(`no output for [1-9]\d*s`)
+
+// readUntilScreen reads the tab until its screen holds want and the program in it has been quiet for a second.
+func (r *toolRig) readUntilQuiet(id, want string) tools.Result {
+	r.t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		res := r.call(ToolRead, map[string]any{"tab_id": id})
+		if text := resultText(res); strings.Contains(text, want) && quietRe.MatchString(text) {
+			return res
+		}
+		if time.Now().After(deadline) {
+			r.t.Fatalf("no %q: %s", want, resultText(res))
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// A program that waits for an answer has not finished: it reads as running and quiet, the screen shows what it wants,
+// and nobody is told the prompt came back.
+func TestWaitingProgramReadsAsRunning(t *testing.T) {
+	r := newRig(t)
+	res := r.call(ToolRun, map[string]any{"command": `sh -c 'printf "Deploy to prod? [y/n] "; read answer'`})
+	id := tabOf(t, res)
+	if m := res.Structured.(map[string]any); m["state"] != "running" || !strings.Contains(resultText(res), "waiting for input") || !strings.Contains(resultText(res), "Deploy to prod?") {
+		t.Fatalf("result: %v\n%s", m, resultText(res))
+	}
+	res = r.readUntilQuiet(id, "Deploy to prod? [y/n]")
+	m := res.Structured.(map[string]any)
+	if m["state"] != "running" || m["program"] != "sh" || m["no_output_seconds"].(int) < 1 || !strings.Contains(resultText(res), "waiting for input") {
+		t.Fatalf("read: %v\n%s", m, resultText(res))
+	}
+	list := resultText(r.call(ToolList, nil))
+	if !strings.Contains(list, "running sh (") || !quietRe.MatchString(list) {
+		t.Fatalf("list: %s", list)
+	}
+	select {
+	case f := <-r.doneCh:
+		t.Fatalf("a waiting program is not finished: %+v", f)
+	case <-time.After(500 * time.Millisecond):
+	}
+}
+
+// A shell builtin cannot be told from the prompt, and the wording does not pretend: the screen shows the question.
+func TestShellBuiltinIsNotCalledFinished(t *testing.T) {
+	r := newRig(t)
+	res := r.call(ToolRun, map[string]any{"command": `printf 'Your name? '; read name`})
+	id := tabOf(t, res)
+	text := resultText(res)
+	if !strings.Contains(text, "Your name?") || !strings.Contains(text, "read") || strings.Contains(text, "finished") {
+		t.Fatalf("result: %s", text)
+	}
+	read := resultText(r.readUntilQuiet(id, "Your name?"))
+	if !strings.Contains(read, "shell builtin such as read") {
+		t.Fatalf("read: %s", read)
+	}
+}
+
+// A full-screen program on the alternate screen: its screen is what reads, the shell's comes back after it.
+func TestAlternateScreenWhileRunning(t *testing.T) {
+	r := newRig(t)
+	res := r.call(ToolRun, map[string]any{"command": `echo before-it; sh -c 'printf "\033[?1049h\033[2J\033[3;5HMENU: pick one"; read a; printf "\033[?1049l"'`})
+	id := tabOf(t, res)
+	res = r.readUntilQuiet(id, "MENU: pick one")
+	text := resultText(res)
+	m := res.Structured.(map[string]any)
+	if m["alternate_screen"] != true || m["state"] != "running" || !strings.Contains(text, "alternate screen") || strings.Contains(text, "before-it") {
+		t.Fatalf("read: %v\n%s", m, text)
+	}
+	// The user answers in the pane; the shell's screen is back.
+	if _, err := r.m.Get(id).Write([]byte("y\n")); err != nil {
+		t.Fatal(err)
+	}
+	res = r.readUntilQuiet(id, "before-it")
+	if m := res.Structured.(map[string]any); m["alternate_screen"] != false || m["state"] != "shell" {
+		t.Fatalf("after: %v\n%s", m, resultText(res))
+	}
+}
+
+// A real full-screen program, by name, on its own screen.
+func TestRealVim(t *testing.T) {
+	vim, err := exec.LookPath("vim")
+	if err != nil {
+		t.Skip("no vim")
+	}
+	r := newRig(t)
+	id := tabOf(t, r.call(ToolRun, map[string]any{"command": vim + " -u NONE -N notes.txt"}))
+	res := r.readUntilQuiet(id, "notes.txt")
+	m := res.Structured.(map[string]any)
+	if m["program"] != "vim" || m["alternate_screen"] != true || !strings.Contains(resultText(res), "running vim") {
+		t.Fatalf("read: %v\n%s", m, resultText(res))
+	}
+	if !strings.Contains(resultText(r.call(ToolList, nil)), "running vim") {
+		t.Fatal("list does not name vim")
+	}
+	if res := r.call(ToolStop, map[string]any{"tab_id": id}); res.IsError {
+		t.Fatalf("stop: %s", resultText(res))
+	}
+}
+
+func TestQuietText(t *testing.T) {
+	for d, want := range map[time.Duration]string{
+		300 * time.Millisecond:        "output just now",
+		40 * time.Second:              "no output for 40s",
+		3*time.Minute + 5*time.Second: "no output for 3m 5s",
+		2*time.Hour + 3*time.Minute:   "no output for 2h 3m",
+	} {
+		if got := quietText(d); got != want {
+			t.Errorf("%v: %q, want %q", d, got, want)
+		}
 	}
 }

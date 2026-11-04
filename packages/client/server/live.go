@@ -452,7 +452,7 @@ func (ls *liveSession) Ask(ctx context.Context, req permissions.Request) (permis
 		delete(ls.pendingPerm, id)
 		ls.mu.Unlock()
 	}()
-	pr := &agentv1.PermissionRequest{RequestId: id, ToolUseId: req.ToolUseID, ToolName: req.ToolName, InputJson: string(req.Input),
+	pr := &agentv1.PermissionRequest{RequestId: id, ToolUseId: req.ToolUseID, ToolName: req.PromptName(), InputJson: string(req.Input),
 		SuggestedRules: req.Suggestions, Reason: req.Reason}
 	ls.beginWait()
 	defer ls.endWait()

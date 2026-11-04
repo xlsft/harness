@@ -4,21 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
 
-// What the agent does with a terminal: read its screen, see whether a command runs in it, type a command and
-// notice when the shell has its prompt back, stop what runs.
+// What the agent does with a terminal: read its screen, see which program holds it and how long it has been quiet,
+// start a command in a new tab and notice when the shell gets its prompt back, stop what runs.
 //
-// A command's end is seen on the PTY: the terminal's foreground process group is the shell's own while it waits at
-// its prompt and the command's while that runs. No shell integration is needed, so it works in the user's shell as
-// it is; the price is that the exit code stays unknown (the shell keeps it to itself). Windows cannot tell.
+// The screen is the source of truth. What the PTY tells is who owns the terminal: the foreground process group is the
+// shell's own while it waits at its prompt and a program's while that runs. No shell integration is needed, so it works
+// in the user's shell as it is; the price is that the exit code stays unknown (the shell keeps it to itself), and that a
+// quiet program may be working or waiting for input, and a shell builtin such as read looks like the prompt. Only the
+// screen tells those apart. Windows cannot tell who owns the terminal.
 
 var (
-	// ErrBusy: a program runs in the terminal, so typing would go to it instead of the shell.
-	ErrBusy = errors.New("a command is running in this terminal")
 	// ErrNotBusy: nothing runs in the terminal to stop.
 	ErrNotBusy = errors.New("nothing is running in this terminal")
 )
@@ -49,8 +50,10 @@ type State struct {
 	Known bool
 	// Busy: a program holds the terminal; the shell is not at its prompt.
 	Busy bool
-	// Command is the program's command line.
-	Command string
+	// Command is the program's command line, Program its name.
+	Command, Program string
+	// Quiet is how long the terminal has had no new output.
+	Quiet time.Duration
 	// Cwd is the shell's current directory, where it can be told; the directory it started in otherwise.
 	Cwd string
 }
@@ -69,7 +72,7 @@ func (t *Terminal) foreground() (pgid int, busy, known bool) {
 
 // State looks at what runs in the terminal now.
 func (t *Terminal) State() State {
-	st := State{Cwd: t.cwd}
+	st := State{Cwd: t.cwd, Quiet: t.quiet()}
 	if !t.Info().Running {
 		return st
 	}
@@ -84,8 +87,28 @@ func (t *Terminal) State() State {
 	st.Known, st.Busy = known, busy
 	if busy {
 		st.Command = in.groupCommand(pgid)
+		st.Program = programName(st.Command)
 	}
 	return st
+}
+
+// programName is the name of the program in a command line.
+func programName(command string) string {
+	fields := strings.Fields(command)
+	if len(fields) == 0 {
+		return ""
+	}
+	return filepath.Base(strings.TrimPrefix(fields[0], "-"))
+}
+
+func (t *Terminal) quiet() time.Duration {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	last := t.lastOutput
+	if last.IsZero() {
+		last = t.created
+	}
+	return time.Since(last)
 }
 
 // OpenedByAgent reports whether the agent opened this terminal and the user has not typed in it since, so what runs
@@ -104,8 +127,17 @@ func (t *Terminal) activity() (input, output time.Time) {
 	return t.lastInput, t.lastOutput
 }
 
-// Screen returns the terminal's text as a person sees it, with what the buffer still has of the scrollback.
-func (t *Terminal) Screen() []string { return t.screenFrom(0) }
+// Screen returns the terminal's text as a person sees it, with what the buffer still has of the scrollback. While a
+// full-screen program has the alternate screen, that is what shows (alt), without a scrollback.
+func (t *Terminal) Screen() (lines []string, alt bool) {
+	t.mu.Lock()
+	data, _, _ := t.ring.readFrom(0, len(t.ring.buf))
+	cols, rows := int(t.cols), int(t.rows)
+	t.mu.Unlock()
+	s := newScreen(cols, rows)
+	s.write(data)
+	return s.text(), s.g == s.alt
+}
 
 func (t *Terminal) screenFrom(off int64) []string {
 	t.mu.Lock()
@@ -155,7 +187,7 @@ func (t *Terminal) waitPrompt(ctx context.Context) {
 	}
 }
 
-// RunFinished says a command the agent typed has ended.
+// RunFinished says the shell got its prompt back after a command the agent typed, or exited.
 type RunFinished struct {
 	SessionID, TerminalID, Title, Command string
 	// Status says how far that is known: the shell has its prompt back, or the shell itself exited.
@@ -170,7 +202,7 @@ type Run struct {
 	Command string
 	offset  int64
 	done    chan struct{}
-	// watched is false where the end of a command cannot be seen.
+	// watched is false where the prompt coming back cannot be seen.
 	watched bool
 
 	mu       sync.Mutex
@@ -180,11 +212,11 @@ type Run struct {
 	waiting, stopped bool
 }
 
-// Watched reports whether the end of the command will be noticed.
+// Watched reports whether the shell's prompt coming back will be noticed.
 func (r *Run) Watched() bool { return r.watched }
 
-// Wait blocks up to d for the end of the command. When it reports true the caller tells the model; otherwise the
-// end is announced through Manager.OnRunFinished later.
+// Wait blocks up to d for the shell to get its prompt back. When it reports true the caller tells the model; otherwise
+// that is announced through Manager.OnRunFinished later.
 func (r *Run) Wait(ctx context.Context, d time.Duration) (status string, finished bool) {
 	if !r.watched {
 		return "", false
@@ -206,9 +238,8 @@ func (r *Run) Wait(ctx context.Context, d time.Duration) (status string, finishe
 // Output is what the terminal showed from the start of the command on.
 func (r *Run) Output() []string { return r.t.screenFrom(r.offset) }
 
-// Type types a command line for the shell and watches for its end. A half-typed line of the user's is cleared first,
-// so that what runs is exactly what was checked; it is refused while a program holds the terminal, since the text
-// would go to that program. The command must not hold control characters (ValidateCommand).
+// Type types a command line for the shell of a tab just opened for it, and watches for the shell's prompt to come
+// back. The command must not hold control characters (ValidateCommand).
 func (t *Terminal) Type(command string) (*Run, error) {
 	if err := ValidateCommand(command); err != nil {
 		return nil, err
@@ -216,29 +247,14 @@ func (t *Terminal) Type(command string) (*Run, error) {
 	if !t.Info().Running {
 		return nil, ErrExited
 	}
-	pgid, busy, known := t.foreground()
-	if busy {
-		name := ""
-		if in, ok := t.p.(inspector); ok {
-			name = in.groupCommand(pgid)
-		}
-		if name != "" {
-			return nil, fmt.Errorf("%w (%s)", ErrBusy, name)
-		}
-		return nil, ErrBusy
-	}
+	_, _, known := t.foreground()
 	r := &Run{t: t, Command: command, done: make(chan struct{}), watched: known}
 	t.mu.Lock()
 	r.offset = t.ring.end
-	if t.lastRun != nil {
-		// What is still being watched here has handed the terminal back, or the check above would have refused.
-		t.lastRun.markStopped()
-	}
 	t.lastRun = r
 	t.mu.Unlock()
-	// ^U clears the line (the line editor's binding, or the kernel's line discipline), Enter submits each line.
-	line := "\x15" + strings.ReplaceAll(command, "\n", "\r") + "\r"
-	if _, err := t.p.Write([]byte(line)); err != nil {
+	// Enter submits each line.
+	if _, err := t.p.Write([]byte(strings.ReplaceAll(command, "\n", "\r") + "\r")); err != nil {
 		return nil, err
 	}
 	if known {
@@ -301,7 +317,7 @@ loop:
 		}
 		_, last := t.activity()
 		if time.Since(idleSince) >= runQuiet && time.Since(last) >= runQuiet && (seen || time.Since(start) >= runUnseenAfter) {
-			status = "the shell is back at its prompt (the exit code is not known)"
+			status = "the shell got its prompt back, which does not say the command succeeded: the exit code is not known, and a shell builtin such as read waiting for input looks the same"
 			break loop
 		}
 	}

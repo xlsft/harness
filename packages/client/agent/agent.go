@@ -1171,7 +1171,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			}
 			if ph, ok := t.(tools.PermissionHinter); ok {
 				h := ph.PermissionHints(ctx, a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: u.Input})
-				req.URL, req.Sensitive = h.URL, h.Sensitive
+				req.URL, req.Sensitive, req.Label = h.URL, h.Sensitive, h.Label
 			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)

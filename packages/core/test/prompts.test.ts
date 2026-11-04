@@ -135,11 +135,12 @@ describe("bundle builder", () => {
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
     expect(props("TerminalRead")).toEqual(["tab_id", "lines", "wait_for_output_ms", "description"]);
-    expect(props("TerminalRun")).toEqual(["command", "tab_id", "title", "description"]);
+    expect(props("TerminalRun")).toEqual(["command", "title", "description"]);
     expect(b.tools.TerminalRun!.input_schema.required).toEqual(["command", "description"]);
     expect(b.tools.TerminalStop!.input_schema.required).toEqual(["tab_id", "description"]);
     for (const n of ["TerminalRead", "TerminalRun"]) expect(b.tools[n]!.description).toMatch(/untrusted/i);
     expect(b.tools.TerminalRun!.description).toMatch(/same permission/);
+    for (const n of ["TerminalRead", "TerminalList", "TerminalRun"]) expect(b.tools[n]!.description).toMatch(/waiting for input/);
     expect(b.tools.Visual!.description).toMatch(/harness\.send/);
     expect(props("TaskOutput")).toEqual(["task_id", "offset", "block", "pattern", "timeout", "description"]);
     expect(b.tools.TaskOutput!.input_schema.required).toEqual(["task_id", "description"]);

@@ -5043,8 +5043,10 @@ type PermissionRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	RequestId string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	ToolUseId string                 `protobuf:"bytes,2,opt,name=tool_use_id,json=toolUseId,proto3" json:"tool_use_id,omitempty"`
-	ToolName  string                 `protobuf:"bytes,3,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
-	InputJson string                 `protobuf:"bytes,4,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
+	// What the prompt calls the call: the tool's name, or what it does when the check is another tool's
+	// ("run in terminal", checked as Bash). For display.
+	ToolName  string `protobuf:"bytes,3,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
+	InputJson string `protobuf:"bytes,4,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
 	// Rule the user may choose to always allow, e.g. "Bash(npm run test *)".
 	SuggestedRules []string `protobuf:"bytes,5,rep,name=suggested_rules,json=suggestedRules,proto3" json:"suggested_rules,omitempty"`
 	Reason         string   `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`

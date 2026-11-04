@@ -2247,6 +2247,9 @@ export type PermissionRequest = Message<"harness.agent.v1.PermissionRequest"> & 
   toolUseId: string;
 
   /**
+   * What the prompt calls the call: the tool's name, or what it does when the check is another tool's
+   * ("run in terminal", checked as Bash). For display.
+   *
    * @generated from field: string tool_name = 3;
    */
   toolName: string;

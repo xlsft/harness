@@ -867,6 +867,8 @@ message ToolCallFinished {
 message PermissionRequest {
   string request_id = 1;
   string tool_use_id = 2;
+  // What the prompt calls the call: the tool's name, or what it does when the check is another tool's
+  // ("run in terminal", checked as Bash). For display.
   string tool_name = 3;
   string input_json = 4;
   // Rule the user may choose to always allow, e.g. "Bash(npm run test *)".

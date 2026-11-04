@@ -19,6 +19,7 @@ import (
 	"github.com/xlsft/harness/packages/client/server"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/syncclient/synctest"
+	"github.com/xlsft/harness/packages/client/terminal"
 )
 
 func terminalRun(command string) func(*llm.Request) fg.Reply {
@@ -61,15 +62,20 @@ func terminalRunCall(command string) fg.BlockSpec {
 	return fg.ToolUse("toolu_term", "TerminalRun", map[string]any{"command": command, "title": "agent", "description": "a command"})
 }
 
-// TerminalRun has Bash's permission check: the prompt shows the command as a Bash call, a refusal types nothing, a
-// Bash rule applies, and what it runs comes back in the result. The pane is asked to show the tab.
+// TerminalRun has Bash's permission check under its own label: the prompt says it runs in a terminal and shows the
+// command, a refusal types nothing, Bash rules decide, and what it runs comes back in the result. The pane is asked to
+// show the tab.
 func TestTerminalRunPermissions(t *testing.T) {
 	t.Setenv("SHELL", "/bin/sh")
 	h := startHarness(t, byMessage(map[string]fg.BlockSpec{
 		"run-denied":   terminalRunCall("touch denied.txt"),
 		"run-approved": terminalRunCall("touch approved.txt"),
 		"run-ruled":    terminalRunCall("touch ruled.txt"),
-	}), func(o *bootstrap.Options) { o.DisallowedTools = []string{"Bash(touch ruled.txt)"} })
+		"run-allowed":  terminalRunCall("touch allowed.txt"),
+	}), func(o *bootstrap.Options) {
+		o.DisallowedTools = []string{"Bash(touch ruled.txt)"}
+		o.AllowedTools = []string{"Bash(touch allowed.txt)"}
+	})
 	tabsOf := func(id string) []*agentv1.TerminalInfo {
 		l, err := h.client.ListTerminals(h.ctx, connect.NewRequest(&agentv1.ListTerminalsRequest{SessionId: id}))
 		if err != nil {
@@ -80,7 +86,7 @@ func TestTerminalRunPermissions(t *testing.T) {
 
 	// A denial in a session of its own: its interrupt reply must not meet the next message.
 	denied, deniedCh := h.create(&agentv1.CreateSessionRequest{})
-	if asked := h.turn(denied, deniedCh, "run-denied", agentv1.RespondToPermissionRequest_DECISION_DENY); len(asked) != 1 || asked[0] != "Bash" {
+	if asked := h.turn(denied, deniedCh, "run-denied", agentv1.RespondToPermissionRequest_DECISION_DENY); len(asked) != 1 || asked[0] != terminal.PromptLabel {
 		t.Fatalf("asked: %v", asked)
 	}
 	if n := len(tabsOf(denied)); n != 0 {
@@ -90,8 +96,10 @@ func TestTerminalRunPermissions(t *testing.T) {
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "run-approved")
 	var shown *agentv1.ShowRequested
+	var prompt *agentv1.PermissionRequest
 	h.until(ch, func(ev *agentv1.SessionEvent) bool {
 		if p := ev.GetPermissionRequest(); p != nil {
+			prompt = p
 			h.client.RespondToPermission(h.ctx, connect.NewRequest(&agentv1.RespondToPermissionRequest{SessionId: sid, RequestId: p.RequestId, Decision: agentv1.RespondToPermissionRequest_DECISION_ALLOW}))
 		}
 		if s := ev.GetShowRequested(); s != nil {
@@ -99,6 +107,13 @@ func TestTerminalRunPermissions(t *testing.T) {
 		}
 		return isTurnFinished(ev)
 	})
+	if prompt == nil || prompt.ToolName != "run in terminal" || !strings.Contains(prompt.InputJson, "touch approved.txt") {
+		t.Fatalf("prompt: %+v", prompt)
+	}
+	// "Always allow" still offers a Bash rule: only the label changed.
+	if len(prompt.SuggestedRules) == 0 || !strings.HasPrefix(prompt.SuggestedRules[0], "Bash(") {
+		t.Fatalf("suggested rules: %v", prompt.SuggestedRules)
+	}
 	l := tabsOf(sid)
 	if len(l) != 1 || l[0].Title != "agent" {
 		t.Fatalf("tabs: %+v", l)
@@ -123,6 +138,14 @@ func TestTerminalRunPermissions(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(h.proj, "ruled.txt")); err == nil {
 		t.Fatal("a denied command ran")
 	}
+
+	// A Bash allow rule decides without a prompt.
+	if asked := h.turn(sid, ch, "run-allowed", agentv1.RespondToPermissionRequest_DECISION_DENY); len(asked) != 0 {
+		t.Fatalf("asked: %v", asked)
+	}
+	if !anyRequestHolds(h, "got its prompt back") {
+		t.Fatal("the allowed command did not run")
+	}
 }
 
 // A command that outlives the tool call: its end starts a turn in the idle session, with a notice in the request.
@@ -132,14 +155,14 @@ func TestTerminalRunWakesTheSession(t *testing.T) {
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.turn(sid, ch, "go", agentv1.RespondToPermissionRequest_DECISION_ALLOW)
 	reqs := h.gw.Requests()
-	if res := lastResultText(reqs[len(reqs)-1]); !strings.Contains(res, "still running") {
+	if res := lastResultText(reqs[len(reqs)-1]); !strings.Contains(res, "has not got its prompt back") {
 		t.Fatalf("result: %s", res)
 	}
 	// No message from anyone: the end of the command starts the next turn.
 	h.until(ch, isTurnFinished)
 	reqs = h.gw.Requests()
 	all := allText(reqs[len(reqs)-1])
-	if !strings.Contains(all, "finished-marker") || !strings.Contains(all, "sleep 3") || !strings.Contains(all, "untrusted-terminal-output") {
+	if !strings.Contains(all, "got its prompt back") || !strings.Contains(all, "finished-marker") || !strings.Contains(all, "sleep 3") || !strings.Contains(all, "untrusted-terminal-output") {
 		t.Fatalf("the notice: %s", all)
 	}
 	// Once only.

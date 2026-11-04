@@ -81,7 +81,10 @@ const (
 
 // Request describes a pending tool call.
 type Request struct {
-	ToolName  string
+	ToolName string
+	// Label is what the user's prompt calls the call when that differs from ToolName, the name rules match
+	// (TerminalRun is checked as Bash and shown as what it does). Only PromptName reads it.
+	Label     string
 	ToolUseID string
 	Input     json.RawMessage
 	// ReadOnly is the tool's own classification of this call.
@@ -630,6 +633,14 @@ func sentence(s string) string {
 
 func (e *Engine) planDenial(tool string) Decision {
 	return Decision{Behavior: Deny, ResolvedBy: "mode", Message: fmt.Sprintf("Plan mode is active: %s is not allowed. Only read-only tools may be used until the user approves a plan (call ExitPlanMode with the plan).", tool)}
+}
+
+// PromptName is the name the user's prompt shows.
+func (r Request) PromptName() string {
+	if r.Label != "" {
+		return r.Label
+	}
+	return r.ToolName
 }
 
 // Evaluate returns the static decision without consulting the asker.

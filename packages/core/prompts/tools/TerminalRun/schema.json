@@ -6,13 +6,9 @@
       "type": "string",
       "description": "The shell command line to type and submit"
     },
-    "tab_id": {
-      "type": "string",
-      "description": "The tab to type into; leave it out to open a new tab"
-    },
     "title": {
       "type": "string",
-      "description": "For a new tab: its short title, such as dev server"
+      "description": "The new tab's short title, such as dev server"
     },
     "description": {
       "type": "string",
