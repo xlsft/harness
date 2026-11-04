@@ -72,6 +72,8 @@ export interface NewSessionOptions {
 export interface UserPreferences {
   // Compact sessions idle for 30 minutes whose context is above half the window, in the background.
   compactIdleSessions: boolean
+  // How many times per hour a watched pull request may wake a session (1 to 240; the client validates).
+  prMonitorWakesPerHour: number
 }
 
 // Per-user session state kept on the harness server; unset fields stay as they are.

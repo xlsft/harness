@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -155,7 +156,7 @@ func TestPRMonitorWakesTheSessionAndResumesAfterARestart(t *testing.T) {
 	h.until(ch, isTurnFinished)
 	reqs := h.gw.Requests()
 	wake := allText(reqs[len(reqs)-1])
-	for _, want := range []string{"#12", "1 check failed", "the end of the log", "<pr-external-data>", "&lt;/pr-external-data>"} {
+	for _, want := range []string{"#12", "1 check failed", "the end of the log", "<pr-external-data>", "&lt;/pr-external-data>", "<!-- harness v=1 session="} {
 		if !strings.Contains(wake, want) {
 			t.Fatalf("the wake misses %q:\n%s", want, wake)
 		}
@@ -218,6 +219,53 @@ func TestPRMonitorWakesTheSessionAndResumesAfterARestart(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(bootstrap.PRStateDir()); len(entries) != 0 {
 		t.Fatalf("state stays after delete: %v", entries)
+	}
+}
+
+// The cap comes from the settings and a change applies to a running session.
+func TestPRWakeCapSettingAppliesWithoutReopening(t *testing.T) {
+	host := &fakePRHost{state: agentv1.PullRequest_STATE_OPEN, updatedAt: "t0"}
+	h := startHarness(t, prResponder, func(o *bootstrap.Options) {
+		o.VCSProviders, o.VCSSchedule = []vcs.Provider{host}, fastPolls
+	})
+	settingsFile := filepath.Join(h.proj, ".claude", "settings.local.json")
+	if err := os.MkdirAll(filepath.Dir(settingsFile), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	setCap := func(n string) {
+		t.Helper()
+		if err := os.WriteFile(settingsFile, []byte(`{"prMonitorWakesPerHour": `+n+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	setCap("1")
+	sid, ch := h.create(&agentv1.CreateSessionRequest{})
+	h.send(sid, "tool PrBind pr="+prURL)
+	h.until(ch, isTurnFinished)
+	if _, err := h.client.SetPrMonitor(h.ctx, connect.NewRequest(&agentv1.SetPrMonitorRequest{SessionId: sid, Enabled: true})); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(50 * time.Millisecond) // the baseline poll
+	comment := func(id string) {
+		host.update(func() { host.comments = append(host.comments, vcs.Comment{ID: id, Author: "me", Body: "note " + id}) })
+	}
+	comment("c1")
+	h.until(ch, isTurnFinished)
+	n := len(h.gw.Requests())
+	comment("c2")
+	time.Sleep(200 * time.Millisecond)
+	if got := len(h.gw.Requests()); got != n {
+		t.Fatalf("over the cap of 1: %d requests, was %d", got, n)
+	}
+	// Over the cap the comment is re-read when the PR changes again; the raised cap lets it out.
+	setCap("5")
+	comment("c3")
+	h.until(ch, isTurnFinished)
+	if reqs := h.gw.Requests(); !strings.Contains(allText(reqs[len(reqs)-1]), "note c3") {
+		t.Fatalf("after raising the cap:\n%s", allText(reqs[len(reqs)-1]))
+	}
+	if _, err := h.client.CloseSession(h.ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: sid})); err != nil {
+		t.Fatal(err)
 	}
 }
 

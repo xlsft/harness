@@ -67,6 +67,9 @@ func statusText(s *PRStatus) string {
 	}
 	fmt.Fprintf(&b, "Auto-merge: %s\n", onOff(s.AutoMerge))
 	fmt.Fprintf(&b, "Bound to this session: %s, monitoring: %s", yesNo(s.Bound), onOff(s.Monitoring))
+	if s.Marker != "" {
+		fmt.Fprintf(&b, "\nEnd every comment you post on a pull request with this line, changing only kind (reply, review or status) if another fits:\n%s", s.Marker)
+	}
 	return b.String()
 }
 

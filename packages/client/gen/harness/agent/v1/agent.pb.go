@@ -7665,8 +7665,11 @@ type UserPreferences struct {
 	// Compact sessions in the background after 30 minutes without activity when their context is above half the
 	// window (settings key compactIdleSessions). Default true.
 	CompactIdleSessions bool `protobuf:"varint,1,opt,name=compact_idle_sessions,json=compactIdleSessions,proto3" json:"compact_idle_sessions,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// How many times per hour a monitored pull request may wake a session (settings key prMonitorWakesPerHour),
+	// 1 to 240. Default 30. It stops a loop of the agent waking itself; what is over it waits for a later poll.
+	PrMonitorWakesPerHour int32 `protobuf:"varint,2,opt,name=pr_monitor_wakes_per_hour,json=prMonitorWakesPerHour,proto3" json:"pr_monitor_wakes_per_hour,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *UserPreferences) Reset() {
@@ -7704,6 +7707,13 @@ func (x *UserPreferences) GetCompactIdleSessions() bool {
 		return x.CompactIdleSessions
 	}
 	return false
+}
+
+func (x *UserPreferences) GetPrMonitorWakesPerHour() int32 {
+	if x != nil {
+		return x.PrMonitorWakesPerHour
+	}
+	return 0
 }
 
 type GetUserPreferencesRequest struct {
@@ -7790,8 +7800,10 @@ func (x *GetUserPreferencesResponse) GetPreferences() *UserPreferences {
 type UpdateUserPreferencesRequest struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	CompactIdleSessions *bool                  `protobuf:"varint,1,opt,name=compact_idle_sessions,json=compactIdleSessions,proto3,oneof" json:"compact_idle_sessions,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// INVALID_ARGUMENT outside 1 to 240.
+	PrMonitorWakesPerHour *int32 `protobuf:"varint,2,opt,name=pr_monitor_wakes_per_hour,json=prMonitorWakesPerHour,proto3,oneof" json:"pr_monitor_wakes_per_hour,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *UpdateUserPreferencesRequest) Reset() {
@@ -7829,6 +7841,13 @@ func (x *UpdateUserPreferencesRequest) GetCompactIdleSessions() bool {
 		return *x.CompactIdleSessions
 	}
 	return false
+}
+
+func (x *UpdateUserPreferencesRequest) GetPrMonitorWakesPerHour() int32 {
+	if x != nil && x.PrMonitorWakesPerHour != nil {
+		return *x.PrMonitorWakesPerHour
+	}
+	return 0
 }
 
 type UpdateUserPreferencesResponse struct {
@@ -10678,15 +10697,18 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fCATEGORY_SKILLS\x10\x05\x12$\n" +
 	" CATEGORY_MCP_SERVER_INSTRUCTIONS\x10\x06\x12\x1f\n" +
 	"\x1bCATEGORY_AUTOCOMPACT_BUFFER\x10\a\x12\x17\n" +
-	"\x13CATEGORY_FREE_SPACE\x10\b\"E\n" +
+	"\x13CATEGORY_FREE_SPACE\x10\b\"\x7f\n" +
 	"\x0fUserPreferences\x122\n" +
-	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\"\x1b\n" +
+	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\x128\n" +
+	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\"\x1b\n" +
 	"\x19GetUserPreferencesRequest\"a\n" +
 	"\x1aGetUserPreferencesResponse\x12C\n" +
-	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"q\n" +
+	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xce\x01\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
-	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01B\x18\n" +
-	"\x16_compact_idle_sessions\"d\n" +
+	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +
+	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01B\x18\n" +
+	"\x16_compact_idle_sessionsB\x1c\n" +
+	"\x1a_pr_monitor_wakes_per_hour\"d\n" +
 	"\x1dUpdateUserPreferencesResponse\x12C\n" +
 	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc9\x02\n" +
 	"\x0eBackgroundTask\x12\x17\n" +

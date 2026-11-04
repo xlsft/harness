@@ -147,10 +147,13 @@ type Settings struct {
 	// CompactIdleSessions lets the client compact sessions in the background after they were idle for a while
 	// (compactIdleSessions, default true; a per-user preference, see UserPreferences in agent.proto).
 	CompactIdleSessions bool
-	ClaudeMdMode        memory.Mode
-	Attribution         Attribution
-	Env                 map[string]string
-	Permissions         Permissions
+	// PRMonitorWakesPerHour caps how often a monitored pull request wakes a session (prMonitorWakesPerHour, default
+	// DefaultPRMonitorWakesPerHour, at most MaxPRMonitorWakesPerHour; a per-user preference, see UserPreferences).
+	PRMonitorWakesPerHour int
+	ClaudeMdMode          memory.Mode
+	Attribution           Attribution
+	Env                   map[string]string
+	Permissions           Permissions
 	// AvailableModels is the policy allowlist of models (empty: any).
 	AvailableModels []string
 	// RemoteControlPolicyOff: a policy document says "remoteControl": false, so sessions are never mirrored to the
@@ -209,11 +212,21 @@ type Options struct {
 // Defaults.
 const (
 	DefaultCleanupPeriodDays = 30
+	// DefaultPRMonitorWakesPerHour and MaxPRMonitorWakesPerHour bound Settings.PRMonitorWakesPerHour. The maximum is
+	// one wake per fastest poll (15 s): the cap must still be able to stop a loop.
+	DefaultPRMonitorWakesPerHour = 30
+	MaxPRMonitorWakesPerHour     = 240
 )
+
+// ValidPRMonitorWakesPerHour reports whether n can be Settings.PRMonitorWakesPerHour.
+func ValidPRMonitorWakesPerHour(n int) bool { return n >= 1 && n <= MaxPRMonitorWakesPerHour }
 
 // KeyCompactIdleSessions is the settings key of Settings.CompactIdleSessions. The frontends' preference toggle
 // writes it into the user's synced settings document (UserSettingsKey).
 const KeyCompactIdleSessions = "compactIdleSessions"
+
+// KeyPRMonitorWakesPerHour is the settings key of Settings.PRMonitorWakesPerHour, written the same way.
+const KeyPRMonitorWakesPerHour = "prMonitorWakesPerHour"
 
 // KeyRemoteControl is the settings key of the remote control default (true when absent): false keeps new and
 // resumed sessions off the relay until the session switch turns it on; false in a policy document turns it off
@@ -236,7 +249,7 @@ type layer struct {
 	raw map[string]json.RawMessage
 
 	model, effort, outputStyle, claudeMdMode, defaultMode *string
-	autoCompactWindow, cleanupPeriodDays                  *int
+	autoCompactWindow, cleanupPeriodDays, prWakes         *int
 	includeGit, interruptReply, compactIdle               *bool
 	attrCommit, attrPR                                    *string
 	env                                                   map[string]string
@@ -269,7 +282,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
-		CompactIdleSessions: true}
+		CompactIdleSessions: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {
 		if l != nil {

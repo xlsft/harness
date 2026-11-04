@@ -132,6 +132,7 @@ const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => 
           />
         </div>
         <SettingsCompaction />
+        <SettingsPullRequests />
       </template>
 
       <template v-else-if="section === 'models' || section === 'classifiers'">

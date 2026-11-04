@@ -46,6 +46,10 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	l.includeGit = s.boolean(src, raw, "includeGitInstructions")
 	l.interruptReply = s.boolean(src, raw, "interruptReply")
 	l.compactIdle = s.boolean(src, raw, KeyCompactIdleSessions)
+	if l.prWakes = s.integer(src, raw, KeyPRMonitorWakesPerHour); l.prWakes != nil && !ValidPRMonitorWakesPerHour(*l.prWakes) {
+		s.problem(src, KeyPRMonitorWakesPerHour, "must be between 1 and %d", MaxPRMonitorWakesPerHour)
+		l.prWakes = nil
+	}
 	if v, ok := raw["attribution"]; ok {
 		var a map[string]json.RawMessage
 		if err := json.Unmarshal(v, &a); err != nil {
@@ -280,6 +284,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.compactIdle != nil {
 			s.CompactIdleSessions = *l.compactIdle
+		}
+		if l.prWakes != nil {
+			s.PRMonitorWakesPerHour = *l.prWakes
 		}
 		if l.attrCommit != nil {
 			v := *l.attrCommit

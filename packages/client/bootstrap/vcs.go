@@ -10,6 +10,7 @@ import (
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/vcs"
 )
@@ -34,11 +35,26 @@ func PRStateDir() string { return filepath.Join(config.Home(), "pr-watch") }
 func (s *Session) registerPRTools(o Options, log *slog.Logger) {
 	s.PR = vcs.NewTracker(vcs.TrackerOptions{
 		SessionID: s.ID, Dir: s.Cwd, StateDir: PRStateDir(), Disabled: os.Getenv("HARNESS_NO_VCS") == "1",
-		Providers: o.VCSProviders, Schedule: o.VCSSchedule, Logger: log,
+		Providers: o.VCSProviders, Schedule: o.VCSSchedule, Logger: log, WakesPerHour: s.prWakesPerHour,
+		SaltFile: filepath.Join(config.Home(), "pr-marker-salt"),
 	})
 	for _, t := range vcs.PRTools(s.PR) {
 		s.Tools.Register(t)
 	}
+}
+
+// prWakesPerHour reads the merged settings of the session's folder again, so a change of the user's synced settings
+// document (UpdateUserPreferences) applies without reopening the session.
+func (s *Session) prWakesPerHour() int {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Cwd, Docs: docs, Trusted: s.Trusted})
+	if err != nil {
+		return settings.DefaultPRMonitorWakesPerHour
+	}
+	return st.PRMonitorWakesPerHour
 }
 
 // ConnectPR sends what the tracker sees to the session: notes as reminders, a state change to onChange.
@@ -46,10 +62,10 @@ func (s *Session) ConnectPR(onChange func()) {
 	s.PR.SetHooks(vcs.TrackerHooks{
 		OnChange: onChange,
 		OnNote: func(n vcs.PRNote) {
-			s.Agent.NotePRActivity(n.Number, n.URL, n.Events, n.External, n.Wake)
+			s.Agent.NotePRActivity(n.Number, n.URL, n.Events, n.External, n.Marker, n.Wake)
 		},
 		OnDetected: func(number int64, url string) {
-			s.Agent.NotePRDetected(number, url)
+			s.Agent.NotePRDetected(number, url, s.PR.Marker())
 			if s.VCS != nil {
 				s.VCS.Poke()
 			}

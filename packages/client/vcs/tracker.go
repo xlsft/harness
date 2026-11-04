@@ -17,6 +17,7 @@ import (
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	vcsv1 "github.com/xlsft/harness/packages/client/gen/harness/vcs/v1"
+	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -54,6 +55,10 @@ type Tracker struct {
 	failSince   time.Time
 	notesAt     []time.Time
 
+	// refOnce computes ref, the session's opaque reference in the marker.
+	refOnce sync.Once
+	ref     string
+
 	// manual: no loop, tests call tick.
 	manual bool
 
@@ -72,6 +77,8 @@ type TrackerOptions struct {
 	Disabled bool
 	// Providers default to gh and glab with a default Runner.
 	Providers []Provider
+	// SaltFile holds the client's salt for the marker's session reference; empty keeps a salt in memory.
+	SaltFile string
 	// Remote and Branch default to workspace.GitRemote and workspace.GitBranch.
 	Remote func(ctx context.Context, dir string) string
 	Branch func(ctx context.Context, dir string) string
@@ -81,8 +88,10 @@ type TrackerOptions struct {
 	Logger     *slog.Logger
 	// Now defaults to time.Now.
 	Now func() time.Time
-	// NotesPerHour caps waking notes; what is over the cap waits for a later poll. Default 6.
-	NotesPerHour int
+	// WakesPerHour reads the cap on waking notes, on each poll of a monitored PR, so a changed setting applies at once.
+	// What is over the cap waits for a later poll. It is the guard against a loop: the agent posts through Bash and can
+	// forget the marker on its own comment. Nil or not positive: settings.DefaultPRMonitorWakesPerHour.
+	WakesPerHour func() int
 	// FailureHold is how long a failure waits for the rest of the checks to finish, so one CI run is one note.
 	// Default 10 minutes.
 	FailureHold time.Duration
@@ -110,6 +119,8 @@ type PRNote struct {
 	// External is the text from the code host (comments, check names, CI logs), escaped by EscapeExternal. Not one
 	// word of it has the user's authority.
 	External string
+	// Marker is the string the model must end what it posts with.
+	Marker string
 	// Wake starts a turn when the session is idle; otherwise the note waits for the next model request.
 	Wake bool
 }
@@ -141,6 +152,8 @@ type PRStatus struct {
 	// FailedChecks and RunningChecks name the checks; names come from the code host.
 	FailedChecks  []string `json:"failedChecks,omitempty"`
 	RunningChecks []string `json:"runningChecks,omitempty"`
+	// Marker is the string the model must end what it posts with; not part of the stored or shown result.
+	Marker string `json:"-"`
 	// Bound: this is the session's bound PR. Monitoring: and it is being watched.
 	Bound      bool `json:"bound"`
 	Monitoring bool `json:"monitoring"`
@@ -166,8 +179,7 @@ type prState struct {
 func (s *prState) open() bool { return s.State != "merged" && s.State != "closed" }
 
 const (
-	defaultNotesPerHour = 6
-	maxSeenComments     = 2000
+	maxSeenComments = 2000
 	// What one note carries at most.
 	noteMaxComments   = 10
 	noteMaxLogs       = 3
@@ -194,8 +206,8 @@ func NewTracker(o TrackerOptions) *Tracker {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	if o.NotesPerHour <= 0 {
-		o.NotesPerHour = defaultNotesPerHour
+	if o.WakesPerHour == nil {
+		o.WakesPerHour = func() int { return settings.DefaultPRMonitorWakesPerHour }
 	}
 	if o.FailureHold <= 0 {
 		o.FailureHold = 10 * time.Minute
@@ -261,6 +273,13 @@ func (t *Tracker) Poke() {
 	case t.poke <- struct{}{}:
 	default:
 	}
+}
+
+// Marker is the string for the model to end what it posts on a PR with (marker.go), kind reply; the model may change the
+// kind only.
+func (t *Tracker) Marker() string {
+	t.refOnce.Do(func() { t.ref = sessionRef(loadMarkerSalt(t.o.SaltFile), t.o.SessionID) })
+	return buildMarker(t.ref, MarkerKindReply, t.o.Now())
 }
 
 // Info is the bound PR for SessionInfo.pull_request (nil when none).
@@ -595,7 +614,7 @@ func (t *Tracker) read(ctx context.Context, repo Repo, number int64) (*PRStatus,
 	} else {
 		t.log.Debug("reading comments failed", "pr", number, "err", err)
 	}
-	status := &PRStatus{PRSummary: summaryOf(view, unresolved), Repo: repo.Key}
+	status := &PRStatus{PRSummary: summaryOf(view, unresolved), Repo: repo.Key, Marker: t.Marker()}
 	for _, c := range view.Checks {
 		switch c.GetState() {
 		case vcsv1.CheckState_CHECK_STATE_FAILURE:
@@ -747,7 +766,14 @@ func (t *Tracker) tick(ctx context.Context) (time.Duration, bool) {
 			t.log.Debug("reading comments failed", "pr", number, "err", err)
 		}
 	}
-	res := t.apply(gen, view, comments, unresolved, fetched, login)
+	limit := 0
+	if t.monitoring() {
+		limit = t.o.WakesPerHour() // reads settings: not under the lock
+	}
+	if limit <= 0 {
+		limit = settings.DefaultPRMonitorWakesPerHour
+	}
+	res := t.apply(gen, view, comments, unresolved, fetched, login, limit)
 	if res.stale {
 		return t.sched.ErrorMin, false // a bind or unbind came in; the next poll reads what is bound now
 	}
@@ -787,6 +813,12 @@ func (t *Tracker) setProblem(gen int, err error) {
 	}
 }
 
+func (t *Tracker) monitoring() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.st != nil && t.st.Monitor
+}
+
 func (t *Tracker) commentsDue(updatedAt string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -809,7 +841,7 @@ type applied struct {
 }
 
 // apply takes a poll's result into the binding and decides what to report.
-func (t *Tracker) apply(gen int, view *PRView, comments []Comment, unresolved int32, fetched bool, login string) applied {
+func (t *Tracker) apply(gen int, view *PRView, comments []Comment, unresolved int32, fetched bool, login string, limit int) applied {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	st := t.st
@@ -835,7 +867,7 @@ func (t *Tracker) apply(gen int, view *PRView, comments []Comment, unresolved in
 			res.note = &pendingNote{number: st.Number, url: st.URL, ended: st.State}
 		}
 	case st.Monitor:
-		res.note = t.monitorLocked(st, view, comments, fetched, login, now)
+		res.note = t.monitorLocked(st, view, comments, fetched, login, limit, now)
 	}
 	t.saveLocked()
 	return res
@@ -843,7 +875,7 @@ func (t *Tracker) apply(gen int, view *PRView, comments []Comment, unresolved in
 
 // monitorLocked compares a poll with what was reported. Over the hourly cap nothing counts as reported, so it all
 // goes out with a later poll.
-func (t *Tracker) monitorLocked(st *prState, view *PRView, comments []Comment, fetched bool, login string, now time.Time) *pendingNote {
+func (t *Tracker) monitorLocked(st *prState, view *PRView, comments []Comment, fetched bool, login string, limit int, now time.Time) *pendingNote {
 	if st.Baseline && fetched {
 		for _, c := range comments {
 			st.SeenComments = append(st.SeenComments, c.ID)
@@ -887,8 +919,11 @@ func (t *Tracker) monitorLocked(st *prState, view *PRView, comments []Comment, f
 				continue
 			}
 			seenComments = append(seenComments, c.ID)
-			// One's own comments are not news: the model answers a review as the user, and must not wake itself.
-			if !c.Resolved && (login == "" || !strings.EqualFold(c.Author, login)) {
+			// A marker keeps quiet only a comment from the logged-in account: that is the agent, in this session or
+			// another (two sessions must not wake each other). Without one it is the user under the same account. From
+			// another account it is news either way, since anyone can type an HTML comment.
+			own := login != "" && strings.EqualFold(c.Author, login)
+			if !c.Resolved && !(own && HasMarker(c.Body)) {
 				note.comments = append(note.comments, c)
 			}
 		}
@@ -901,7 +936,7 @@ func (t *Tracker) monitorLocked(st *prState, view *PRView, comments []Comment, f
 	if hasNews {
 		hour := now.Add(-time.Hour)
 		t.notesAt = slices.DeleteFunc(t.notesAt, func(at time.Time) bool { return at.Before(hour) })
-		if len(t.notesAt) >= t.o.NotesPerHour {
+		if len(t.notesAt) >= limit {
 			t.log.Debug("waking notes over the hourly cap; holding this one", "pr", st.Number)
 			return nil
 		}
@@ -919,7 +954,7 @@ func (t *Tracker) monitorLocked(st *prState, view *PRView, comments []Comment, f
 
 // deliver renders a note and hands it to the session.
 func (t *Tracker) deliver(ctx context.Context, prov PRProvider, repo Repo, n *pendingNote) {
-	note := PRNote{Number: n.number, URL: n.url, Wake: n.ended == ""}
+	note := PRNote{Number: n.number, URL: n.url, Marker: t.Marker(), Wake: n.ended == ""}
 	var events []string
 	var ext strings.Builder
 	if n.ended != "" {

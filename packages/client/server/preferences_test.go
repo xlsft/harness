@@ -137,3 +137,36 @@ func TestContextUsageToProto(t *testing.T) {
 		t.Fatalf("mcp tools %+v deferred=%d", p.McpTools, p.DeferredMcpToolsTokens)
 	}
 }
+
+func TestPRMonitorWakesPreference(t *testing.T) {
+	ctx := context.Background()
+	docs := &fakeDocs{}
+	s := &Server{Preferences: docs}
+	got, err := s.GetUserPreferences(ctx, connect.NewRequest(&agentv1.GetUserPreferencesRequest{}))
+	if err != nil || got.Msg.Preferences.PrMonitorWakesPerHour != 30 {
+		t.Fatalf("default: %v %+v", err, got)
+	}
+	for _, bad := range []int32{0, -1, 241} {
+		_, err := s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{PrMonitorWakesPerHour: proto.Int32(bad)}))
+		if connect.CodeOf(err) != connect.CodeInvalidArgument {
+			t.Fatalf("%d: %v", bad, err)
+		}
+	}
+	if docs.puts != 0 {
+		t.Fatal("an invalid value was written")
+	}
+	up, err := s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{PrMonitorWakesPerHour: proto.Int32(60)}))
+	if err != nil || up.Msg.Preferences.PrMonitorWakesPerHour != 60 || !up.Msg.Preferences.CompactIdleSessions {
+		t.Fatalf("update: %v %+v", err, up)
+	}
+	var stored map[string]any
+	if err := json.Unmarshal([]byte(docs.doc.GetContent()), &stored); err != nil || stored["prMonitorWakesPerHour"] != float64(60) {
+		t.Fatalf("stored: %v %s", err, docs.doc.GetContent())
+	}
+	// A bad value in the document (edited by hand) reads as the default.
+	docs.write(`{"prMonitorWakesPerHour": 100000}`)
+	got, err = s.GetUserPreferences(ctx, connect.NewRequest(&agentv1.GetUserPreferencesRequest{}))
+	if err != nil || got.Msg.Preferences.PrMonitorWakesPerHour != 30 {
+		t.Fatalf("bad document: %v %+v", err, got)
+	}
+}

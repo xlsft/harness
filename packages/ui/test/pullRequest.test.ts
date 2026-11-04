@@ -41,4 +41,12 @@ describe('auto-fix switch', () => {
     expect((await t.listSessions()).find(s => s.id === withPr.id)!.pullRequest!.monitoring).toBe(true)
     await expect(t.setPrMonitor(without.id, true)).rejects.toThrow(/failed_precondition/)
   })
+
+  it('the wake cap is a validated preference', async () => {
+    const t = new MockTransport({ tick: 0 })
+    expect((await t.getUserPreferences()).prMonitorWakesPerHour).toBe(30)
+    expect((await t.updateUserPreferences({ prMonitorWakesPerHour: 60 })).prMonitorWakesPerHour).toBe(60)
+    for (const bad of [0, -1, 241, 1.5]) await expect(t.updateUserPreferences({ prMonitorWakesPerHour: bad })).rejects.toThrow(/invalid_argument/)
+    expect((await t.getUserPreferences()).prMonitorWakesPerHour).toBe(60)
+  })
 })

@@ -259,12 +259,12 @@ export class ConnectTransport implements SessionTransport {
 
   async getUserPreferences(): Promise<UserPreferences> {
     const res = await this.client.getUserPreferences({})
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true }
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30 }
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions })
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true }
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour })
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30 }
   }
 
   async listTasks(sessionId: string) {
