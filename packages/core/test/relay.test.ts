@@ -416,6 +416,16 @@ describe("commands", () => {
     };
     await A1.ackCommands({ hostId: h, acks: [{ commandId: c2.commandId, outcome: CommandAck_Outcome.FAILED, errorMessage: "boom" }] });
     expect((await expectError(failing, Code.FailedPrecondition)).message).toContain("boom");
+
+    // the Agents pane of a remote-controlled session
+    const stopping = A1.stopSubagent({ request: { sessionId: s.id, agentId: "a1" } });
+    const c3 = (await st.until((r) => isCommand(r) && (r.event.value as { payload: { case: string } }).payload.case === "stopSubagent")).event.value as { commandId: string };
+    await A1.ackCommands({ hostId: h, acks: [{ commandId: c3.commandId, outcome: CommandAck_Outcome.OK, result: { case: "stopSubagent", value: { agent: { id: "a1" } } } }] });
+    expect((await stopping).response!.agent!.id).toBe("a1");
+    const reading = A1.getSubagentTranscript({ request: { sessionId: s.id, agentId: "a1" } });
+    const c4 = (await st.until((r) => isCommand(r) && (r.event.value as { payload: { case: string } }).payload.case === "getSubagentTranscript")).event.value as { commandId: string };
+    await A1.ackCommands({ hostId: h, acks: [{ commandId: c4.commandId, outcome: CommandAck_Outcome.OK, result: { case: "getSubagentTranscript", value: { items: [{ text: "words" }] } } }] });
+    expect((await reading).response!.items[0]!.text).toBe("words");
     st.close();
   });
 

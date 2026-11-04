@@ -684,11 +684,13 @@ func (s *Server) AppendSessionEvents(ctx context.Context, req *connect.Request[s
 		if e.GetUuid() == "" {
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("entry uuid required"))
 		}
-		if ss.uuids[e.GetUuid()] {
+		// Per thread, like the real server: subagent transcripts share the session.
+		key := e.GetAgentId() + "\x00" + e.GetUuid()
+		if ss.uuids[key] {
 			resp.Duplicates++
 			continue
 		}
-		ss.uuids[e.GetUuid()] = true
+		ss.uuids[key] = true
 		c := proto.Clone(e).(*syncv1.TranscriptEntry)
 		c.Seq = int64(len(ss.Entries) + 1)
 		ss.Entries = append(ss.Entries, c)

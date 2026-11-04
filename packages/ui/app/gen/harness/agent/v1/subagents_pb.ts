@@ -393,7 +393,7 @@ export enum SubagentState {
   FAILED = 4,
 
   /**
-   * Stopped on request (TaskStop, StopSubagent, Interrupt).
+   * Stopped on request (TaskStop, StopSubagent). Interrupting the session's turn leaves agents running.
    *
    * @generated from enum value: SUBAGENT_STATE_STOPPED = 5;
    */

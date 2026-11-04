@@ -150,10 +150,14 @@ type Settings struct {
 	// PRMonitorWakesPerHour caps how often a monitored pull request wakes a session (prMonitorWakesPerHour, default
 	// DefaultPRMonitorWakesPerHour, at most MaxPRMonitorWakesPerHour; a per-user preference, see UserPreferences).
 	PRMonitorWakesPerHour int
-	ClaudeMdMode          memory.Mode
-	Attribution           Attribution
-	Env                   map[string]string
-	Permissions           Permissions
+	// SubagentMaxDepth is how deep subagents nest and SubagentMaxRunning how many of a session run at once
+	// (subagentMaxDepth, subagentMaxRunning; per-user preferences, see UserPreferences).
+	SubagentMaxDepth   int
+	SubagentMaxRunning int
+	ClaudeMdMode       memory.Mode
+	Attribution        Attribution
+	Env                map[string]string
+	Permissions        Permissions
 	// AvailableModels is the policy allowlist of models (empty: any).
 	AvailableModels []string
 	// RemoteControlPolicyOff: a policy document says "remoteControl": false, so sessions are never mirrored to the
@@ -225,6 +229,27 @@ func ValidPRMonitorWakesPerHour(n int) bool { return n >= 1 && n <= MaxPRMonitor
 // writes it into the user's synced settings document (UserSettingsKey).
 const KeyCompactIdleSessions = "compactIdleSessions"
 
+// Bounds of Settings.SubagentMaxDepth and Settings.SubagentMaxRunning. The maximums keep a model from fanning out past
+// what a machine and a usage limit can carry.
+const (
+	DefaultSubagentMaxDepth   = 2
+	MaxSubagentMaxDepth       = 5
+	DefaultSubagentMaxRunning = 8
+	MaxSubagentMaxRunning     = 32
+)
+
+// ValidSubagentMaxDepth reports whether n can be Settings.SubagentMaxDepth.
+func ValidSubagentMaxDepth(n int) bool { return n >= 1 && n <= MaxSubagentMaxDepth }
+
+// ValidSubagentMaxRunning reports whether n can be Settings.SubagentMaxRunning.
+func ValidSubagentMaxRunning(n int) bool { return n >= 1 && n <= MaxSubagentMaxRunning }
+
+// The settings keys of Settings.SubagentMaxDepth and Settings.SubagentMaxRunning.
+const (
+	KeySubagentMaxDepth   = "subagentMaxDepth"
+	KeySubagentMaxRunning = "subagentMaxRunning"
+)
+
 // KeyPRMonitorWakesPerHour is the settings key of Settings.PRMonitorWakesPerHour, written the same way.
 const KeyPRMonitorWakesPerHour = "prMonitorWakesPerHour"
 
@@ -253,6 +278,7 @@ type layer struct {
 
 	model, effort, outputStyle, claudeMdMode, defaultMode *string
 	autoCompactWindow, cleanupPeriodDays, prWakes         *int
+	subagentDepth, subagentRunning                        *int
 	includeGit, interruptReply, compactIdle               *bool
 	attrCommit, attrPR                                    *string
 	env                                                   map[string]string
@@ -285,7 +311,8 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
-		CompactIdleSessions: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour}
+		CompactIdleSessions: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
+		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {
 		if l != nil {

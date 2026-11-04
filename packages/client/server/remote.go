@@ -51,8 +51,8 @@ import (
 const (
 	// presenceTTL is how long relay presence is trusted when the server stops answering ListHosts.
 	presenceTTL = 2 * time.Minute
-	// remoteTranscriptPage / remoteTranscriptPages bound one read of a remote transcript (main thread only;
-	// subagent transcripts are not shown or copied).
+	// remoteTranscriptPage / remoteTranscriptPages bound one read of a remote transcript. Subagent transcripts are
+	// read on demand (GetSubagentTranscript), and a fork does not copy them.
 	remoteTranscriptPage    = 2000
 	remoteTranscriptPages   = 100
 	remoteTranscriptTimeout = 30 * time.Second
@@ -351,6 +351,12 @@ func (s *Server) updateRemote(ctx context.Context, info *agentv1.SessionInfo, m 
 
 // remoteEntries reads the main-thread transcript of a session from the server, in order.
 func (s *Server) remoteEntries(ctx context.Context, id string) ([]*syncv1.TranscriptEntry, error) {
+	return s.remoteThread(ctx, id, "")
+}
+
+// remoteThread reads one thread of a session's transcript from the server, in order: the main thread for agentID "",
+// otherwise that subagent's.
+func (s *Server) remoteThread(ctx context.Context, id, agentID string) ([]*syncv1.TranscriptEntry, error) {
 	if s.Sync == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("this client does not sync with the harness server"))
 	}
@@ -359,7 +365,7 @@ func (s *Server) remoteEntries(ctx context.Context, id string) ([]*syncv1.Transc
 	var out []*syncv1.TranscriptEntry
 	after := int64(0)
 	for range remoteTranscriptPages {
-		res, err := s.Sync.GetSessionTranscript(ctx, &syncv1.GetSessionTranscriptRequest{SessionId: id, AfterSeq: after, PageSize: remoteTranscriptPage})
+		res, err := s.Sync.GetSessionTranscript(ctx, &syncv1.GetSessionTranscriptRequest{SessionId: id, AfterSeq: after, PageSize: remoteTranscriptPage, AgentId: agentID})
 		if err != nil {
 			return nil, syncError(err)
 		}
@@ -399,6 +405,7 @@ func (s *Server) remoteHistory(ctx context.Context, info *agentv1.SessionInfo) (
 	}
 	evs := replayHistory(entries, replayOptions{Cwd: info.Cwd, Interrupts: []string{agent.InterruptedFallback},
 		InterruptPrefixes: []string{interruptedToolUsePrefix}, MaxTurns: s.HistoryTurns, MaxEvents: s.HistoryEvents})
+	evs = append(evs, recordedSubagents(entries)...)
 	s.applyState(info)
 	evs = append(evs, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: info}})
 	now := time.Now().UTC().Format(time.RFC3339Nano)
@@ -721,6 +728,41 @@ func (r routed) ListTasks(ctx context.Context, req *connect.Request[agentv1.List
 			return &relayv1.ListTasksRequest{Request: m}
 		},
 		func(res *relayv1.ListTasksResponse) *agentv1.ListTasksResponse { return res.GetResponse() })
+}
+
+func (r routed) StopSubagent(ctx context.Context, req *connect.Request[agentv1.StopSubagentRequest]) (*connect.Response[agentv1.StopSubagentResponse], error) {
+	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.StopSubagent, relayv1connect.RelayServiceClient.StopSubagent,
+		func(m *agentv1.StopSubagentRequest) *relayv1.StopSubagentRequest {
+			return &relayv1.StopSubagentRequest{Request: m}
+		},
+		func(res *relayv1.StopSubagentResponse) *agentv1.StopSubagentResponse { return res.GetResponse() })
+}
+
+// GetSubagentTranscript reads a remote agent's transcript from the machine running it when it can be reached (it has
+// what was not uploaded yet), otherwise from the server's copy.
+func (r routed) GetSubagentTranscript(ctx context.Context, req *connect.Request[agentv1.GetSubagentTranscriptRequest]) (*connect.Response[agentv1.GetSubagentTranscriptResponse], error) {
+	id := req.Msg.GetSessionId()
+	r.mu.Lock()
+	live := r.live[id] != nil
+	r.mu.Unlock()
+	info := r.remoteInfo(id)
+	if live || info == nil {
+		return r.Server.GetSubagentTranscript(ctx, req)
+	}
+	if info.RemoteControllable && r.Relay != nil {
+		res, err := forward(ctx, r, id, req, r.Server.GetSubagentTranscript, relayv1connect.RelayServiceClient.GetSubagentTranscript,
+			func(m *agentv1.GetSubagentTranscriptRequest) *relayv1.GetSubagentTranscriptRequest {
+				return &relayv1.GetSubagentTranscriptRequest{Request: m}
+			},
+			func(res *relayv1.GetSubagentTranscriptResponse) *agentv1.GetSubagentTranscriptResponse {
+				return res.GetResponse()
+			})
+		if err == nil {
+			return res, nil
+		}
+		r.log().Debug("agent transcript through the relay failed; reading the server's copy", "session", id, "err", err)
+	}
+	return r.remoteSubagentTranscript(ctx, id, req.Msg.GetAgentId())
 }
 
 func (r routed) ListCheckpoints(ctx context.Context, req *connect.Request[agentv1.ListCheckpointsRequest]) (*connect.Response[agentv1.ListCheckpointsResponse], error) {

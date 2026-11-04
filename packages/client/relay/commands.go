@@ -280,6 +280,20 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 			a.Result = &relayv1.CommandAck_ListTasks{ListTasks: res.Msg}
 		}
 		return a
+	case *relayv1.Command_StopSubagent:
+		res, err := b.StopSubagent(ctx, connect.NewRequest(&agentv1.StopSubagentRequest{SessionId: sid, AgentId: p.StopSubagent.GetAgentId()}))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_StopSubagent{StopSubagent: res.Msg}
+		}
+		return a
+	case *relayv1.Command_GetSubagentTranscript:
+		res, err := b.GetSubagentTranscript(ctx, connect.NewRequest(&agentv1.GetSubagentTranscriptRequest{SessionId: sid, AgentId: p.GetSubagentTranscript.GetAgentId()}))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_GetSubagentTranscript{GetSubagentTranscript: res.Msg}
+		}
+		return a
 	case *relayv1.Command_ListOutputStyles:
 		res, err := b.ListOutputStyles(ctx, connect.NewRequest(&agentv1.ListOutputStylesRequest{SessionId: sid}))
 		a := errAck(id, err, false)

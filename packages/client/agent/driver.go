@@ -39,7 +39,8 @@ type Driver struct {
 	stopped   bool
 	// held: see SetHeld. wakeMissed: Wake was called while held (a background task's notification waits).
 	held, wakeMissed bool
-	// wakeLater: Wake was called during a turn, whose next request may never come; checked when it ends.
+	// wakeLater: Wake was called during a turn, whose next request may never come; checked when it ends, dropped by
+	// Interrupt.
 	wakeLater bool
 }
 
@@ -95,10 +96,9 @@ func (d *Driver) Wake() {
 	go d.loop(nil, nil)
 }
 
-// wakeDue reports whether a Wake during the turn that just ended still has something to answer (d.mu held). After
-// an interrupted turn it waits for the next message: the user just stopped the work.
-func (d *Driver) wakeDue(interrupted bool) bool {
-	due := d.wakeLater && !interrupted && !d.held && !d.stopped && d.ctx.Err() == nil && d.Agent.HasReminders()
+// wakeDue reports whether a Wake during the turn that just ended still has something to answer (d.mu held).
+func (d *Driver) wakeDue() bool {
+	due := d.wakeLater && !d.held && !d.stopped && d.ctx.Err() == nil && d.Agent.HasReminders()
 	d.wakeLater = false
 	return due
 }
@@ -122,7 +122,7 @@ func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 		if !d.held {
 			next, nextIDs = d.Agent.takeQueue()
 		}
-		wake := d.wakeDue(res.Interrupted)
+		wake := d.wakeDue()
 		if (len(next) == 0 && !wake) || d.ctx.Err() != nil {
 			d.running = false
 			d.idle.Broadcast()
@@ -206,6 +206,8 @@ func (d *Driver) Busy() bool {
 func (d *Driver) Interrupt() {
 	d.mu.Lock()
 	d.interrupts++
+	// What came in before the user stopped the turn waits for their next message; what comes in after it wakes as usual.
+	d.wakeLater = false
 	if d.stopReply != nil {
 		d.stopReply()
 	}
@@ -247,7 +249,7 @@ func (d *Driver) Exclusive(f func()) error {
 	if !d.held {
 		next, ids = d.Agent.takeQueue()
 	}
-	wake := d.wakeDue(false)
+	wake := d.wakeDue()
 	if (len(next) == 0 && !wake) || d.ctx.Err() != nil {
 		d.running = false
 		d.idle.Broadcast()

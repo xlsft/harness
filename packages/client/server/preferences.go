@@ -62,6 +62,20 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		}
 		set[settings.KeyPRMonitorWakesPerHour] = n
 	}
+	if req.Msg.SubagentMaxDepth != nil {
+		n := int(req.Msg.GetSubagentMaxDepth())
+		if !settings.ValidSubagentMaxDepth(n) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("agent nesting depth must be between 1 and %d", settings.MaxSubagentMaxDepth))
+		}
+		set[settings.KeySubagentMaxDepth] = n
+	}
+	if req.Msg.SubagentMaxRunning != nil {
+		n := int(req.Msg.GetSubagentMaxRunning())
+		if !settings.ValidSubagentMaxRunning(n) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("agents running at once must be between 1 and %d", settings.MaxSubagentMaxRunning))
+		}
+		set[settings.KeySubagentMaxRunning] = n
+	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
 	doc, err := s.mergeUserSettings(ctx, set)
@@ -113,7 +127,8 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 
 // preferencesOf reads the preferences from a settings document (nil or invalid content: the defaults).
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
-	p := &agentv1.UserPreferences{CompactIdleSessions: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour}
+	p := &agentv1.UserPreferences{CompactIdleSessions: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
+		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
@@ -125,6 +140,12 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	var n int32
 	if v, ok := raw[settings.KeyPRMonitorWakesPerHour]; ok && json.Unmarshal(v, &n) == nil && settings.ValidPRMonitorWakesPerHour(int(n)) {
 		p.PrMonitorWakesPerHour = n
+	}
+	if v, ok := raw[settings.KeySubagentMaxDepth]; ok && json.Unmarshal(v, &n) == nil && settings.ValidSubagentMaxDepth(int(n)) {
+		p.SubagentMaxDepth = n
+	}
+	if v, ok := raw[settings.KeySubagentMaxRunning]; ok && json.Unmarshal(v, &n) == nil && settings.ValidSubagentMaxRunning(int(n)) {
+		p.SubagentMaxRunning = n
 	}
 	return p
 }

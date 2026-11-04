@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSessionState, reduce } from '../app/lib/session/reducer'
+import { MockTransport } from '../app/lib/transport/mock'
 import type { SessionEvent } from '../app/gen/harness/agent/v1/agent_pb'
 import { SubagentState, SubagentStepStatus } from '../app/gen/harness/agent/v1/subagents_pb'
 
@@ -15,6 +16,16 @@ function agent(over: Record<string, unknown> = {}) {
 function event(n: number, a: unknown): SessionEvent {
   return { seq: BigInt(n), timestamp: '2026-11-04T00:00:01Z', event: { case: 'subagentUpdated', value: { agent: a } } } as unknown as SessionEvent
 }
+
+describe('subagent limits', () => {
+  it('are validated preferences with the defaults', async () => {
+    const t = new MockTransport()
+    expect(await t.getUserPreferences()).toMatchObject({ subagentMaxDepth: 2, subagentMaxRunning: 8 })
+    expect(await t.updateUserPreferences({ subagentMaxDepth: 3, subagentMaxRunning: 16 })).toMatchObject({ subagentMaxDepth: 3, subagentMaxRunning: 16 })
+    for (const bad of [0, 6, 1.5]) await expect(t.updateUserPreferences({ subagentMaxDepth: bad })).rejects.toThrow(/invalid_argument/)
+    for (const bad of [0, 33]) await expect(t.updateUserPreferences({ subagentMaxRunning: bad })).rejects.toThrow(/invalid_argument/)
+  })
+})
 
 describe('subagent events', () => {
   it('keeps the agents, live', () => {

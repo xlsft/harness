@@ -84,6 +84,9 @@ export interface UserPreferences {
   compactIdleSessions: boolean
   // How many times per hour a watched pull request may wake a session (1 to 240; the client validates).
   prMonitorWakesPerHour: number
+  // How deep subagents nest (1 to 5) and how many of a session run at once (1 to 32); read when an agent starts.
+  subagentMaxDepth: number
+  subagentMaxRunning: number
 }
 
 // Preferences of this device, kept by the client on this machine and never synced.

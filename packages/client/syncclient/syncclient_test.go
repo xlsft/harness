@@ -657,3 +657,81 @@ func TestUploaderFollowsAMovedTranscript(t *testing.T) {
 		t.Fatalf("after leaving: %+v", info)
 	}
 }
+
+// Subagent transcripts upload with their session: each in its own thread, resuming from its own offset, and following
+// the session when it moves.
+func TestUploaderUploadsAgentTranscripts(t *testing.T) {
+	fs := synctest.New()
+	srv := fs.Start()
+	defer srv.Close()
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+	transcript := filepath.Join(dir, "s1.jsonl")
+	appendFile(t, transcript, line("u1", "", "user", ""))
+	threads := filepath.Join(dir, "s1", "subagents")
+	if err := os.MkdirAll(threads, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	appendFile(t, filepath.Join(threads, "agent-a1.jsonl"), line("u1", "", "user", "")+`{"type":"harness-meta","sessionId":"s1"}`+"\n")
+	appendFile(t, filepath.Join(threads, "agent-a2.jsonl"), line("x1", "", "assistant", ""))
+	// The agent's record is not a transcript.
+	if err := os.WriteFile(filepath.Join(threads, "agent-a1.meta.json"), []byte("{}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	u := NewUploader(UploaderOptions{API: NewClient(srv.URL, nil, nil), StateDir: stateDir, Logger: quiet, DeviceID: "d",
+		ResolveRepo: func(context.Context, string) string { return "" }})
+	if err := u.Track("s1", transcript, SessionMeta{Cwd: "/w"}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	byThread := func() map[string][]string {
+		out := map[string][]string{}
+		for _, e := range fs.Session("s1").Entries {
+			out[e.GetAgentId()] = append(out[e.GetAgentId()], e.GetUuid())
+		}
+		return out
+	}
+	got := byThread()
+	if len(got[""]) != 1 || len(got["a1"]) != 2 || len(got["a2"]) != 1 || len(got) != 3 {
+		t.Fatalf("threads %v", got)
+	}
+	if len(u.Pending()) != 0 {
+		t.Fatalf("pending %v", u.Pending())
+	}
+
+	// New lines of an agent show as pending and only they go up.
+	appendFile(t, filepath.Join(threads, "agent-a2.jsonl"), line("x2", "x1", "assistant", ""))
+	if p := u.Pending(); len(p) != 1 {
+		t.Fatalf("pending %v", p)
+	}
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	if got = byThread(); len(got["a2"]) != 2 || len(got["a1"]) != 2 || len(got[""]) != 1 {
+		t.Fatalf("after append: %v", got)
+	}
+
+	// A moved session keeps its offsets: nothing is sent twice.
+	moved := filepath.Join(dir, "elsewhere", "s1.jsonl")
+	if err := u.MoveTranscript("s1", moved, func() error {
+		if err := os.MkdirAll(filepath.Dir(moved), 0o755); err != nil {
+			return err
+		}
+		if err := os.Rename(transcript, moved); err != nil {
+			return err
+		}
+		return os.Rename(filepath.Join(dir, "s1"), filepath.Join(dir, "elsewhere", "s1"))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	appendFile(t, filepath.Join(dir, "elsewhere", "s1", "subagents", "agent-a1.jsonl"), line("u9", "u1", "assistant", ""))
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	if got = byThread(); len(got["a1"]) != 3 || got["a1"][2] != "u9" {
+		t.Fatalf("after the move: %v", got)
+	}
+}

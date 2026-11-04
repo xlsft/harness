@@ -43,7 +43,7 @@ function command<C extends NonNullable<CommandPayload["case"]>>(kind: C, hold: H
 }
 
 /** A query wrapper: { request } -> { response } taken from the ack result of the same name. */
-function query<C extends "suggestFiles" | "listCheckpoints" | "listTasks" | "listOutputStyles">(kind: C) {
+function query<C extends "suggestFiles" | "listCheckpoints" | "listTasks" | "listOutputStyles" | "stopSubagent" | "getSubagentTranscript">(kind: C) {
   return guard(async (req: { request?: Extract<CommandPayload, { case: C }>["value"] }, ctx: HandlerContext) => {
     const p = await requirePrincipal(ctx);
     if (!req.request) throw new ApiError("invalid_request", "request is required");
@@ -149,6 +149,8 @@ export function registerRelayService(router: ConnectRouter): void {
     listCheckpoints: query("listCheckpoints"),
     listTasks: query("listTasks"),
     listOutputStyles: query("listOutputStyles"),
+    stopSubagent: query("stopSubagent"),
+    getSubagentTranscript: query("getSubagentTranscript"),
 
     spawnSession: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);

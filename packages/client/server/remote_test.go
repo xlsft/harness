@@ -41,6 +41,8 @@ type fakeRelay struct {
 	sent     []*agentv1.SendUserMessageRequest
 	awake    []*agentv1.SetKeepAwakeRequest
 	outcome  relayv1.CommandAck_Outcome
+	// transcriptDown makes GetSubagentTranscript fail as with a silent host.
+	transcriptDown bool
 }
 
 func (f *fakeRelay) SetKeepAwake(ctx context.Context, req *connect.Request[relayv1.SetKeepAwakeRequest]) (*connect.Response[relayv1.SetKeepAwakeResponse], error) {

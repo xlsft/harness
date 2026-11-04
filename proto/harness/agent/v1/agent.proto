@@ -282,8 +282,10 @@ service AgentService {
   // --- Subagents (subagents.proto) ---
 
   // Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
+  // Nothing else from a frontend stops an agent but closing or deleting the session: Interrupt leaves them running.
   rpc StopSubagent(StopSubagentRequest) returns (StopSubagentResponse);
-  // What a subagent did, for reading.
+  // What a subagent did, for reading. For a session of another machine it comes through the relay, or from the
+  // synced transcript when that machine cannot be reached.
   rpc GetSubagentTranscript(GetSubagentTranscriptRequest) returns (GetSubagentTranscriptResponse);
   // --- Sessions started from a session (session_links.proto) ---
 
@@ -1383,6 +1385,11 @@ message UserPreferences {
   // How many times per hour a monitored pull request may wake a session (settings key prMonitorWakesPerHour),
   // 1 to 240. Default 30. It stops a loop of the agent waking itself; what is over it waits for a later poll.
   int32 pr_monitor_wakes_per_hour = 2;
+  // How deep subagents nest (settings key subagentMaxDepth), 1 to 5. Default 2: the session's agent starts agents,
+  // and those may start agents. Read when an agent starts.
+  int32 subagent_max_depth = 3;
+  // How many subagents of a session run at once (settings key subagentMaxRunning), 1 to 32. Default 8; the others wait.
+  int32 subagent_max_running = 4;
 }
 
 message GetUserPreferencesRequest {}
@@ -1396,6 +1403,10 @@ message UpdateUserPreferencesRequest {
   optional bool compact_idle_sessions = 1;
   // INVALID_ARGUMENT outside 1 to 240.
   optional int32 pr_monitor_wakes_per_hour = 2;
+  // INVALID_ARGUMENT outside 1 to 5.
+  optional int32 subagent_max_depth = 3;
+  // INVALID_ARGUMENT outside 1 to 32.
+  optional int32 subagent_max_running = 4;
 }
 
 message UpdateUserPreferencesResponse {

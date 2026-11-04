@@ -150,6 +150,7 @@ const notifications = computed({
         </div>
         <SettingsCompaction />
         <SettingsPullRequests />
+        <SettingsAgents />
       </template>
 
       <template v-else-if="section === 'models' || section === 'classifiers'">
