@@ -494,3 +494,23 @@ func TestAddWorkDirStaysAndIsNotProtected(t *testing.T) {
 		t.Fatalf("after: %v %s", d.Behavior, d.Message)
 	}
 }
+
+// Edit rules and the working directories scope NotebookEdit through the same file path as Edit.
+func TestNotebookEditPathScoping(t *testing.T) {
+	dir := t.TempDir()
+	proj := filepath.Join(dir, "proj")
+	os.MkdirAll(proj, 0o755)
+	e := New(Config{Cwd: proj, Home: filepath.Join(dir, "home"), Allow: []string{"Edit(/src/**)"}, Deny: []string{"Edit(/secret/**)"}})
+	check := func(path string) Behavior {
+		return e.Evaluate(Request{ToolName: "NotebookEdit", FilePath: path, Input: []byte(`{}`)}).Behavior
+	}
+	if b := check(filepath.Join(proj, "src", "a.ipynb")); b != Allow {
+		t.Errorf("allowed path: %v", b)
+	}
+	if b := check(filepath.Join(proj, "secret", "a.ipynb")); b != Deny {
+		t.Errorf("denied path: %v", b)
+	}
+	if b := check(filepath.Join(dir, "elsewhere", "a.ipynb")); b != Ask {
+		t.Errorf("outside: %v", b)
+	}
+}

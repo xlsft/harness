@@ -53,7 +53,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != "monitor_match" && id != "monitor_stopped" {
 			if id == "environment_changed" || id == "session_moved" {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}
@@ -106,9 +106,21 @@ const (
 // task's end starts itself when the session is idle (SetWake). It is dropped
 // when a TaskOutput or Wait result already reported the finish.
 func (a *Agent) OnTaskEvent(e tools.TaskEvent) {
+	if e.Kind == tools.TaskEventNotify {
+		// A monitor's notice: for the model only, and it starts a turn when the session is idle.
+		a.Remind(e.Reminder, e.Vars)
+		a.mu.Lock()
+		wake := a.wake
+		a.mu.Unlock()
+		if wake != nil {
+			go wake()
+		}
+		return
+	}
 	ev := e
 	a.emit(Event{Kind: EventTask, Task: &ev})
-	if e.Kind == tools.TaskEventFinished && e.Task.Reason != tools.TaskSessionClosed {
+	// A monitor's own entry ending is not a command finishing: it reports through its notices.
+	if e.Kind == tools.TaskEventFinished && e.Task.Reason != tools.TaskSessionClosed && !e.Task.Monitor {
 		tail := tools.TailLines(tools.ReadTail(e.Task.OutputPath, 4*taskDoneTailBytes), taskDoneTailLines, taskDoneTailBytes)
 		if strings.TrimSpace(tail) == "" {
 			tail = "(no output)"

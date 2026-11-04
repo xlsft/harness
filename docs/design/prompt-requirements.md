@@ -24,6 +24,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, EnterWorktree, ExitWorktree, ChangeDirectory, RequestDirectory, ProposeBranch, SyncWithBase | `tools/<Name>/` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, Agent, SendMessage, ListAgents | `tools/<Name>/` | written |
 | Reminders: agent_report, agent_message, agent_context, agent_type_general, agent_type_explore, agent_type_plan | `reminders/<id>.md` | written |
+| Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, Monitor, NotebookEdit, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp | `tools/<Name>/` | written |
 | MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
 | Web: WebSearch, WebFetch | `tools/WebSearch/`, `tools/WebFetch/` | written |
 | Browser: BrowserNavigate, BrowserSnapshot, BrowserClick, BrowserType, BrowserKey, BrowserScroll, BrowserScreenshot, BrowserEval, BrowserTabs, BrowserConsole, BrowserNetwork, BrowserWait | `tools/Browser*/` | written |
@@ -34,15 +35,14 @@ What the bundle covers today, and what it deliberately leaves out.
 | Auto-mode decision classifier | `decision/` | written |
 | Output styles: default, proactive, concise, explanatory, learning | `output-styles/` | written |
 
-Dropped on purpose, because harness does not have these features: desktop control, IDE integration (selected lines, diagnostics), feedback commands, plans and billing, remote control branding, hosted artifacts, team and coordinator messaging, memory files written by the agent, scheduled loops and wake-ups, sandbox-specific failure guidance, cross-session messaging, the product's own help agent, notebook reading in Read (the client does not support it yet).
+Dropped on purpose, because harness does not have these features: desktop control, IDE integration (selected lines, diagnostics), feedback commands, plans and billing, remote control branding, hosted artifacts, team and coordinator messaging, memory files written by the agent, scheduled loops and wake-ups, sandbox-specific failure guidance, cross-session messaging, the product's own help agent.
 
 Needed later, not written yet (they arrive with their tools; see `docs/PLAN.md` and the milestone column in `docs/design/prompt-flow.md`):
 
 - `Agent` (subagents): when to delegate, how to brief a subagent, not duplicating its work, trusting but checking its results.
 - `Skill`: loading skills before use.
 - MCP resources and prompts, MCP server instructions.
-- `NotebookEdit`, notebook support in Read.
-- `EnterWorktree` / `ExitWorktree`, `Monitor`, scheduling tools, `SendMessage`.
+- `EnterWorktree` / `ExitWorktree`, scheduling tools, `SendMessage`.
 - Hooks: hook output is user feedback; a blocking hook means adjust or ask the user to check their hook config.
 - Reminders for those features (file opened in an editor, skills listed, hook results, token budget, truncated reads).
 

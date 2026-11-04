@@ -126,7 +126,7 @@ onBeforeUnmount(() => {
 })
 
 // --- From the transcript ---
-const edits = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool' && ['Edit', 'MultiEdit', 'Write'].includes(i.name) && i.status === 'ok' && patchOf(i).length > 0))
+const edits = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool' && isEditTool(i.name) && i.status === 'ok' && patchOf(i).length > 0))
 const files = computed(() => fileChanges(edits.value))
 
 interface DiffGroup {
@@ -150,7 +150,7 @@ const groups = computed<DiffGroup[]>(() => {
   // Files in first-edit order.
   const map = new Map<string, { path: string, label: string, tools: ToolItem[] }>()
   for (const t of edits.value) {
-    const path = String(t.input.file_path ?? '')
+    const path = editedPath(t)
     if (!map.has(path)) map.set(path, { path, label: toolTarget(t), tools: [] })
     map.get(path)!.tools.push(t)
   }

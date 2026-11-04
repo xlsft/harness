@@ -549,6 +549,8 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "Agent " + truncateRunes(jsonField(input, "description"), 80)
 	case "SendMessage":
 		return "SendMessage " + jsonField(input, "to")
+	case "NotebookEdit":
+		return name + " " + rel(tools.FilePath(input))
 	case "TaskStop", "TaskOutput":
 		return name + " " + jsonField(input, "task_id")
 	case "Wait":

@@ -1211,9 +1211,19 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
-				if a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
-					req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
+			}
+			if sc, ok := t.(tools.ShellCommander); ok {
+				if cmd := sc.ShellCommand(u.Input); cmd != "" {
+					if a.cfg.DisabledTools["Bash"] {
+						setResult(idx, tools.ErrorResult("%s cannot run a command in this session: Bash is disabled.", u.Name), "")
+						continue
+					}
+					// Rules, auto mode and the prompt all see what runs: a shell command.
+					req.ToolName, req.Command = "Bash", cmd
 				}
+			}
+			if req.ToolName == "Bash" && a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
+				req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
 			}
 			req.SessionID, req.RecentUserMessages, req.Rationale = a.cfg.SessionID, a.recentPrompts(), rationale[u.ID]
 			d := a.cfg.Permissions.Check(ctx, req)

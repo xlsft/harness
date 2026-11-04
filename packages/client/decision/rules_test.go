@@ -673,3 +673,16 @@ func TestFacts(t *testing.T) {
 		t.Fatalf("write paths %q", cp.WritePaths)
 	}
 }
+
+// A Monitor watching a task is a read; one that starts a command gets the verdict of that command.
+func TestMonitorRules(t *testing.T) {
+	eval := func(in string) RulesResult {
+		return EvaluateRules(RulesInput{ToolName: "Monitor", Input: json.RawMessage(in), Cwd: testCwd}, RulesOptions{})
+	}
+	if r := eval(`{"task_id":"b1","pattern":"x"}`); r.Decision != RuleAllow {
+		t.Fatalf("watching a task: %+v", r)
+	}
+	if r := eval(`{"command":"curl http://169.254.169.254/latest/meta-data/","pattern":"x"}`); r.Decision != RuleDeny {
+		t.Fatalf("a command: %+v", r)
+	}
+}

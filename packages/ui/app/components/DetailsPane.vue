@@ -28,7 +28,7 @@ const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.
 const outputs = computed(() => {
   const files = new Set<string>()
   for (const t of tools.value) {
-    if ((t.name === 'Write' || t.name === 'Edit') && typeof t.input.file_path === 'string') files.add(basename(t.input.file_path))
+    if ((t.name === 'Write' || t.name === 'Edit' || t.name === 'NotebookEdit') && editedPath(t)) files.add(basename(editedPath(t)))
   }
   return [...files].slice(-3)
 })

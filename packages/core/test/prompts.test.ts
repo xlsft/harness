@@ -23,7 +23,7 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "McpAuthenticate", "ProposeBranch", "Read", "RequestDirectory", "SendMessage", "Show", "SyncWithBase", "TaskOutput",
+      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "McpAuthenticate", "Monitor", "NotebookEdit", "ProposeBranch", "Read", "RequestDirectory", "SendMessage", "Show", "SyncWithBase", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -40,12 +40,7 @@ describe("bundle builder", () => {
       plan_approved: ["plan_file_path"],
       plan_rejected: ["feedback"],
       background_task_done: ["task_id", "command", "status", "tail", "output_path"],
-      agent_report: ["agent_id", "name", "agent_type", "status", "report", "details"],
-      agent_message: ["from", "message"],
-      agent_context: ["agent_id", "agent_type", "instructions"],
-      agent_type_general: [],
-      agent_type_explore: [],
-      agent_type_plan: [],
+      "agent_id", "agent_id", "agent_type", "agent_type", "count", "description", "details", "from", "instructions", "lines", "message", "name", "pattern", "reason", "report", "status", "task_id",
       compacted: [],
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],

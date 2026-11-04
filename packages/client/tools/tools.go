@@ -74,6 +74,12 @@ type PermissionHinter interface {
 	PermissionHints(ctx context.Context, env *Env, call Call) PermissionHints
 }
 
+// ShellCommander is implemented by tools that may run a shell command of the model's: such a call is checked exactly
+// like a Bash call with that command. "" means this call runs none.
+type ShellCommander interface {
+	ShellCommand(input json.RawMessage) string
+}
+
 // Call identifies one tool invocation.
 type Call struct {
 	ID    string
@@ -276,8 +282,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{},
-		&EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Monitor{}, &NotebookEdit{})
 }
 
 // Register adds or replaces a tool.

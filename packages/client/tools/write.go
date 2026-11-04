@@ -23,12 +23,16 @@ func (*Write) ReadOnly(json.RawMessage) bool { return false }
 // FilePath extracts file_path from an input (used by permissions).
 func FilePath(input json.RawMessage) string {
 	var v struct {
-		FilePath string `json:"file_path"`
-		Path     string `json:"path"`
+		FilePath     string `json:"file_path"`
+		NotebookPath string `json:"notebook_path"`
+		Path         string `json:"path"`
 	}
 	_ = json.Unmarshal(input, &v)
 	if v.FilePath != "" {
 		return v.FilePath
+	}
+	if v.NotebookPath != "" {
+		return v.NotebookPath
 	}
 	return v.Path
 }

@@ -1,7 +1,7 @@
 Runs a shell command and returns its output (stdout and stderr) and exit code.
 
 How the shell behaves:
-- Every call starts a new shell process from the user's profile. The working directory carries over to the next call (a `cd` sticks), as long as it stays inside the working directories; otherwise it is reset. Environment variables, functions and aliases do not carry over: set them in the same command that needs them. Prefer absolute paths to `cd`.
+- Every call starts a new shell process from the user's profile. The working directory carries over to the next call (a `cd` sticks), as long as it stays inside the working directories; otherwise it is reset. A note at the end of the result says so whenever a command ends in another directory than it started in. Environment variables, functions and aliases do not carry over: set them in the same command that needs them. Prefer absolute paths to `cd`.
 - Because each call is a new process, shell job control does not work across calls: `jobs`, `kill %1`, `fg` and `wait` see nothing from earlier calls, and a process started with `&`, `nohup` or `disown` is not tracked and TaskStop cannot stop it. Never background a command that way; use `run_in_background`.
 
 Timeouts and output:

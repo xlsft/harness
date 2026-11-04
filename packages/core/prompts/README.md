@@ -80,6 +80,8 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `agent_context` | `agent_id`, `agent_type`, `instructions` | starts the first message of a subagent: what it is, who speaks to it, how to report |
 | `agent_type_general`, `agent_type_explore`, `agent_type_plan` | none | the `instructions` of the built-in agent types |
 | `background_task_done` | `task_id`, `command`, `status`, `tail`, `output_path` | a background Bash command finished: `status` is "exited with code N" or how it was killed, `tail` its last lines ("(no output)" when empty). Rides on the next model request (the next turn when idle; it never starts a turn); skipped when a TaskOutput or Wait result already reported the finish |
+| `monitor_match` | `task_id`, `description`, `pattern`, `count`, `lines`, `status` | a Monitor found matching lines: a burst is one notice, at most 20 lines. `status` says whether the monitor goes on. Starts a turn when the session is idle |
+| `monitor_stopped` | `task_id`, `description`, `pattern`, `reason` | a Monitor ended by itself: its timeout, the background time limit of the session, or too many matches. Starts a turn when the session is idle |
 | `compacted` | — | first message after a compaction summary |
 | `attribution` | `commit`, `pr` | commit / PR attribution lines |
 | `output_style` | `name`, `content` | the active output style, at session start and when it changes |
@@ -112,6 +114,8 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `ListAgents` | `description` | the session's agents and the types that can be started |
 | `TaskOutput` | `task_id`, `offset`, `block`, `pattern`, `timeout` | new output since the last TaskOutput read of that task (or from `offset`), with the status; `block` waits for the finish, `pattern` for a new matching line; timeout default 30 s, max 10 min; over 30000 characters keeps the end with a note |
 | `Wait` | `task_id` \| `port` (+`host`) \| `path` (+`changed`), `pattern`, `timeout` (required, max 10 min) | waits for a task to finish or print a matching line, a TCP port to accept connections, or a file to exist / change / match; a timeout is a normal result. Read-only, except a port on a host other than this machine (normal permission check); a path outside the working directories is checked like Read |
+| `Monitor` | `task_id` \| `command`, `pattern`, `persistent`, `timeout` (default 1 h, max 24 h) | returns at once; matching lines arrive as `monitor_match`. A `command` is one task with its monitor and stops when the monitor ends; on a `task_id` the monitor gets a task entry of its own (TaskStop ends it, TaskOutput reads its matches). Read-only on a task; with a `command` it is permission-checked as that command in Bash |
+| `NotebookEdit` | `notebook_path`, `cell_id` \| `cell_index`, `new_source`, `cell_type`, `edit_mode: replace\|insert\|delete` | rewrites one cell, the rest of the file stays byte for byte; read-before-edit and path rules as Edit; a replaced code cell loses outputs and execution count |
 | `TodoWrite` | `todos: [{content, activeForm, status}]` | full replacement; exactly one `in_progress` |
 | `AskUserQuestion` | `questions: [{question, header (≤12), type: single\|multi\|text\|yes_no, options: [{label, description?, recommended?}] (2–6, single/multi only), min?, max? (multi), allowOther? (default true)}] (1–4)` | |
 | `WrapUp` | `recap`, `ask`, `actions` (1–2) | closes a turn: the box under the last message; a button sends its label as the user's reply |

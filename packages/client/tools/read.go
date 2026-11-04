@@ -88,6 +88,12 @@ func (*Read) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%s appears to be a binary file and cannot be read as text.", path)
 	}
 	env.Files.MarkReadContent(path, data)
+	if ext == ".ipynb" {
+		// Not a notebook after all (broken JSON): shown as text, which is what there is to fix.
+		if r, ok := readNotebook(path, data, in); ok {
+			return r
+		}
+	}
 	if len(data) == 0 {
 		msg := env.reminder("empty_file")
 		if msg == "" {

@@ -299,6 +299,14 @@
         ]
       }
     },
+    "Monitor": {
+      "description": "Watch a background task or a command for lines matching a pattern.",
+      "input_schema": {"type": "object", "properties": {"task_id": {"type": "string"}, "command": {"type": "string"}, "pattern": {"type": "string"}, "persistent": {"type": "boolean"}, "timeout": {"type": "number"}, "description": {"type": "string"}}, "required": ["pattern"]}
+    },
+    "NotebookEdit": {
+      "description": "Change one cell of a notebook.",
+      "input_schema": {"type": "object", "properties": {"notebook_path": {"type": "string"}, "cell_id": {"type": "string"}, "cell_index": {"type": "integer"}, "new_source": {"type": "string"}, "cell_type": {"type": "string"}, "edit_mode": {"type": "string"}}, "required": ["notebook_path"]}
+    },
     "TaskStop": {
       "description": "Stop a background task.",
       "input_schema": {
@@ -488,6 +496,8 @@
     "plan_approved": "<system-reminder>The plan in {{plan_file_path}} was approved.</system-reminder>",
     "plan_rejected": "The user wants to keep planning: {{feedback}}",
     "background_task_done": "<system-reminder>Background task {{task_id}} ({{command}}) {{status}}. Last lines:\n{{tail}}\nOutput: {{output_path}}</system-reminder>",
+    "monitor_match": "<system-reminder>Monitor {{task_id}} ({{description}}): {{count}} lines match /{{pattern}}/:\n{{lines}}\n{{status}}</system-reminder>",
+    "monitor_stopped": "<system-reminder>Monitor {{task_id}} ({{description}}) stopped: {{reason}}</system-reminder>",
     "compacted": "<system-reminder>The conversation above was compacted into a summary.</system-reminder>",
     "output_style": "<system-reminder>\nOutput style: {{name}}\n{{content}}\n</system-reminder>",
     "environment_changed": "<system-reminder>\nEnvironment changed.\nWorking directories:\n{{directories}}\nVariables: {{variables}}\n</system-reminder>",

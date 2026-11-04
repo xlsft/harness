@@ -52,6 +52,8 @@ type TaskInfo struct {
 	ExitCode    int
 	Reason      TaskFinishReason
 	Duration    time.Duration
+	// Monitor marks the entry of a monitor watching another task: no process of its own, its output is the matches.
+	Monitor bool
 }
 
 // TaskEventKind enumerates task events.
@@ -62,6 +64,8 @@ const (
 	TaskEventStarted TaskEventKind = iota + 1
 	TaskEventOutput
 	TaskEventFinished
+	// TaskEventNotify asks for a reminder and wakes an idle session (Reminder, Vars).
+	TaskEventNotify
 )
 
 // TaskEvent is emitted by the TaskManager.
@@ -70,6 +74,9 @@ type TaskEvent struct {
 	Task TaskInfo
 	// Text is the new output (TaskEventOutput).
 	Text string
+	// Reminder and Vars are the reminder to queue (TaskEventNotify).
+	Reminder string
+	Vars     map[string]string
 }
 
 // TaskManager runs shell commands in the background, streaming their output
@@ -87,8 +94,9 @@ type TaskManager struct {
 }
 
 type task struct {
-	info    TaskInfo
-	cmd     *exec.Cmd
+	info TaskInfo
+	// kill ends the task: its process group, or a monitor's loop.
+	kill    func()
 	done    chan struct{}
 	exited  chan struct{}
 	reason  TaskFinishReason
@@ -97,6 +105,8 @@ type task struct {
 	readOff int64
 	// reported is set once a tool result told the model the task finished.
 	reported bool
+	// watchers are the monitors reading this task's output; their last matches go out before it counts as finished.
+	watchers []*monitor
 }
 
 // NewTaskManager creates a manager writing output files to dir.
@@ -146,9 +156,16 @@ func (m *TaskManager) Start(sh *Shell, command, description, toolUseID string, t
 
 // adopt takes over a running command whose output now goes to path.
 func (m *TaskManager) adopt(id, path string, f *os.File, cmd *exec.Cmd, done <-chan error, command, description, toolUseID string, timeout time.Duration, cleanup func()) TaskInfo {
+	info := TaskInfo{ID: id, ToolUseID: toolUseID, Command: command, Description: description, OutputPath: path}
+	return m.track(info, f, func() { _ = killProcessGroup(cmd) }, done, timeout, cleanup)
+}
+
+// track registers a running task and follows it until done delivers.
+func (m *TaskManager) track(info TaskInfo, f *os.File, kill func(), done <-chan error, timeout time.Duration, cleanup func()) TaskInfo {
+	info.StartedAt, info.Running = time.Now(), true
 	t := &task{
-		info:    TaskInfo{ID: id, ToolUseID: toolUseID, Command: command, Description: description, OutputPath: path, StartedAt: time.Now(), Running: true},
-		cmd:     cmd,
+		info:    info,
+		kill:    kill,
 		done:    make(chan struct{}),
 		exited:  make(chan struct{}),
 		cleanup: cleanup,
@@ -157,7 +174,7 @@ func (m *TaskManager) adopt(id, path string, f *os.File, cmd *exec.Cmd, done <-c
 	if m.tasks == nil {
 		m.tasks = map[string]*task{}
 	}
-	m.tasks[id] = t
+	m.tasks[info.ID] = t
 	m.mu.Unlock()
 	m.emit(TaskEvent{Kind: TaskEventStarted, Task: t.info})
 
@@ -185,7 +202,7 @@ func (m *TaskManager) adopt(id, path string, f *os.File, cmd *exec.Cmd, done <-c
 				t.reason = TaskTimeLimit
 			}
 			m.mu.Unlock()
-			_ = killProcessGroup(cmd)
+			kill()
 			err = <-done
 		}
 		if f != nil {
@@ -193,6 +210,7 @@ func (m *TaskManager) adopt(id, path string, f *os.File, cmd *exec.Cmd, done <-c
 		}
 		close(t.exited)
 		<-tailDone
+		m.settleWatchers(t)
 		if t.cleanup != nil {
 			t.cleanup()
 		}
@@ -320,7 +338,7 @@ func (m *TaskManager) stop(id string, reason TaskFinishReason) (TaskInfo, error)
 		t.reason = reason
 	}
 	m.mu.Unlock()
-	_ = killProcessGroup(t.cmd)
+	t.kill()
 	select {
 	case <-t.done:
 	case <-time.After(5 * time.Second):
