@@ -60,6 +60,10 @@ type Config struct {
 	OnAuth func(state registry.AuthState, methods []registry.AuthMethod)
 	// OnLimits records a subscription-limit snapshot the agent reported (device-local state).
 	OnLimits func(l *registry.Limits)
+	// LimitsSource is what is known about this agent's limits beyond the generic _meta parsing (LimitsSourceFor).
+	LimitsSource LimitsSource
+	// SessionMeta is sent as the _meta of session/new.
+	SessionMeta map[string]any
 	// OnAgentSession records the agent's session id once it is known (for a later session/load).
 	OnAgentSession func(id string)
 	// Now overrides time.Now (tests).
@@ -196,6 +200,8 @@ type Session struct {
 	// usage publishes usage-limit state changes (usage.go); usageLimit is the latest one published.
 	usage      usagelimit.Tracker
 	usageLimit *agentv1.UsageLimit
+	// hidden takes the reply of a hidden prompt (limits.go); while it is set the agent's updates are not a turn.
+	hidden func(text string)
 }
 
 // New creates the engine; Open starts the agent. Messages submitted before it runs wait in the queue.
@@ -472,7 +478,7 @@ func (s *Session) openSession(ctx context.Context) error {
 	s.mu.Unlock()
 	if err == nil && !have {
 		var res sdk.NewSessionResponse
-		res, err = p.conn.NewSession(octx, sdk.NewSessionRequest{Cwd: s.cfg.Cwd, McpServers: []sdk.McpServer{}, AdditionalDirectories: addl})
+		res, err = p.conn.NewSession(octx, sdk.NewSessionRequest{Meta: s.cfg.SessionMeta, Cwd: s.cfg.Cwd, McpServers: []sdk.McpServer{}, AdditionalDirectories: addl})
 		if err == nil {
 			s.mu.Lock()
 			s.sessionID = res.SessionId
@@ -1198,6 +1204,12 @@ func (s *Session) update(n sdk.SessionNotification) {
 		return
 	}
 	u := n.Update
+	if s.hidden != nil {
+		if u.AgentMessageChunk != nil {
+			s.hidden(blockText(u.AgentMessageChunk.Content))
+		}
+		return
+	}
 	if n.Meta != nil {
 		s.limitsLocked(n.Meta)
 	}
@@ -1384,6 +1396,13 @@ func (s *Session) PendingPermission(requestID string) bool {
 	return s.perms[requestID] != nil
 }
 
+// WaitsOnPermission reports whether a permission request of this session is open.
+func (s *Session) WaitsOnPermission() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.perms) > 0
+}
+
 // readFile handles fs/read_text_file (line is 1-based; limit counts lines).
 func (s *Session) readFile(p sdk.ReadTextFileRequest) (sdk.ReadTextFileResponse, error) {
 	if !filepath.IsAbs(p.Path) {
@@ -1441,11 +1460,16 @@ func (s *Session) writeFile(p sdk.WriteTextFileRequest) (sdk.WriteTextFileRespon
 
 // limitsLocked records a rate-limit snapshot found in v (an agent's _meta or extension params).
 func (s *Session) limitsLocked(v any) bool {
-	l := registry.ParseLimits(v, s.now())
+	var l *registry.Limits
+	if src := s.cfg.LimitsSource; src != nil {
+		l = src.Event(v, s.limits, s.now())
+	}
+	if l == nil {
+		l = registry.ParseLimits(v, s.now()).Merge(s.limits)
+	}
 	if l == nil {
 		return false
 	}
-	l = l.Merge(s.limits)
 	s.limits = l
 	if f := s.cfg.OnLimits; f != nil {
 		s.outbox = append(s.outbox, func() { f(l) })
@@ -1453,6 +1477,24 @@ func (s *Session) limitsLocked(v any) bool {
 	s.observeUsageLocked(s.evaluateUsageLocked())
 	s.changedLocked()
 	return true
+}
+
+// ApplyLimits takes a report from outside this session (a LimitsSource's Fetch), which is stored already. A refusal
+// for limits stands until a turn goes through (turnUsageLocked), whatever the numbers say.
+func (s *Session) ApplyLimits(l *registry.Limits) {
+	if l == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.unlock()
+	if s.closed {
+		return
+	}
+	s.limits = l
+	if s.usage.Last().State != usagelimit.Reached {
+		s.observeUsageLocked(s.evaluateUsageLocked())
+	}
+	s.changedLocked()
 }
 
 // extension handles an extension notification or request ("_..."): rate-limit snapshots are recorded.

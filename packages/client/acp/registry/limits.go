@@ -38,52 +38,11 @@ func (l *Limits) Merge(old *Limits) *Limits {
 		out.PlanName = old.PlanName
 	}
 	for _, w := range old.Windows {
-		if !oldWindowLabels[w.Label] && !slices.ContainsFunc(l.Windows, func(n LimitWindow) bool { return n.Label == w.Label }) {
+		if !slices.ContainsFunc(l.Windows, func(n LimitWindow) bool { return n.Label == w.Label }) {
 			out.Windows = append(out.Windows, w)
 		}
 	}
-	slices.SortStableFunc(out.Windows, func(a, b LimitWindow) int { return windowOrder(a.Label) - windowOrder(b.Label) })
 	return &out
-}
-
-// singleWindowLabels names the windows of an agent that reports one at a time, as rateLimitType and a utilization
-// (Claude's rate_limit_event, in `_claude/rateLimit`).
-var singleWindowLabels = map[string]string{
-	"five_hour": "5-hour limit", "seven_day": "Weekly · all models", "seven_day_opus": "Weekly · Opus", "seven_day_sonnet": "Weekly · Sonnet",
-}
-
-// oldWindowLabels are what these windows were called before; a stored report with them is out of date.
-var oldWindowLabels = map[string]bool{"5h": true, "7d": true, "7d Opus": true, "7d Sonnet": true}
-
-// windowOrder puts the shortest window first, as they read best.
-func windowOrder(label string) int {
-	for i, l := range []string{"5-hour limit", "Weekly · all models", "Weekly · Opus", "Weekly · Sonnet"} {
-		if l == label {
-			return i
-		}
-	}
-	return 4
-}
-
-func singleWindow(m map[string]any, now time.Time) *Limits {
-	kind, _ := m["rateLimitType"].(string)
-	if kind == "" {
-		kind, _ = m["rate_limit_type"].(string)
-	}
-	pct, ok := number(m, "utilization")
-	if kind == "" || !ok {
-		return nil
-	}
-	if pct <= 1 {
-		pct *= 100
-	}
-	label := singleWindowLabels[kind]
-	if label == "" {
-		label = strings.ReplaceAll(kind, "_", " ")
-	}
-	return &Limits{Partial: true, UpdatedAt: now.UTC(), Windows: []LimitWindow{{
-		Label: label, UsedPercent: math.Max(0, math.Min(100, pct)), ResetsAt: resetTime(m, now),
-	}}}
 }
 
 // SetLimits stores an agent's latest limits snapshot (device-local).
@@ -122,9 +81,6 @@ func findLimits(v any, now time.Time, depth int) *Limits {
 	}
 	switch x := v.(type) {
 	case map[string]any:
-		if l := singleWindow(x, now); l != nil {
-			return l
-		}
 		for k, child := range x {
 			if limitKeys[norm(k)] {
 				if l := windowsOf(child, now); l != nil {
@@ -171,7 +127,7 @@ func windowsOf(v any, now time.Time) *Limits {
 		if !ok {
 			return
 		}
-		pct, ok := number(m, "used_percent", "usedPercent", "percent_used", "percentUsed", "used_pct", "utilization")
+		pct, ok := Number(m, "used_percent", "usedPercent", "percent_used", "percentUsed", "used_pct", "utilization")
 		if !ok {
 			return
 		}
@@ -179,12 +135,12 @@ func windowsOf(v any, now time.Time) *Limits {
 			pct *= 100
 		}
 		win := LimitWindow{UsedPercent: math.Max(0, math.Min(100, pct))}
-		if mins, ok := number(m, "window_minutes", "windowMinutes", "window_duration_mins", "windowDurationMins"); ok {
+		if mins, ok := Number(m, "window_minutes", "windowMinutes", "window_duration_mins", "windowDurationMins"); ok {
 			win.WindowMinutes = int64(mins)
-		} else if secs, ok := number(m, "window_seconds", "windowSeconds"); ok {
+		} else if secs, ok := Number(m, "window_seconds", "windowSeconds"); ok {
 			win.WindowMinutes = int64(secs / 60)
 		}
-		win.ResetsAt = resetTime(m, now)
+		win.ResetsAt = ResetTime(m, now)
 		win.Label = labelOf(m, name, win.WindowMinutes)
 		l.Windows = append(l.Windows, win)
 	}
@@ -225,7 +181,8 @@ func rank(k string) int {
 
 func hasKey(m map[string]any, k string) bool { _, ok := m[k]; return ok }
 
-func number(m map[string]any, keys ...string) (float64, bool) {
+// Number reads the first of keys that holds a number (or a number as text).
+func Number(m map[string]any, keys ...string) (float64, bool) {
 	for _, k := range keys {
 		switch n := m[k].(type) {
 		case float64:
@@ -243,7 +200,8 @@ func number(m map[string]any, keys ...string) (float64, bool) {
 	return 0, false
 }
 
-func resetTime(m map[string]any, now time.Time) time.Time {
+// ResetTime reads when a window resets: resets_at (unix seconds or milliseconds, or RFC 3339) or resets_in_seconds.
+func ResetTime(m map[string]any, now time.Time) time.Time {
 	for _, k := range []string{"resets_at", "resetsAt", "reset_at", "resetAt"} {
 		switch v := m[k].(type) {
 		case float64:
@@ -257,7 +215,7 @@ func resetTime(m map[string]any, now time.Time) time.Time {
 			}
 		}
 	}
-	if secs, ok := number(m, "resets_in_seconds", "resetsInSeconds", "reset_after_seconds", "resetAfterSeconds"); ok {
+	if secs, ok := Number(m, "resets_in_seconds", "resetsInSeconds", "reset_after_seconds", "resetAfterSeconds"); ok {
 		return now.Add(time.Duration(secs) * time.Second).UTC()
 	}
 	return time.Time{}

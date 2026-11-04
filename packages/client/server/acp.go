@@ -39,6 +39,8 @@ type acpState struct {
 	live map[string]*acpLive
 	// probes finds out the agents' models (acp_models.go).
 	probes acpProbes
+	// limits asks the agents with a limits source for their limits (acp_limits.go).
+	limits acpLimits
 }
 
 // AcpRegistry returns the ACP agent manager (HARNESS_HOME/acp); tests may set it with SetAcpRegistry first.
@@ -73,6 +75,7 @@ func (s *Server) closeAcp() {
 		l.close("host_shutdown")
 	}
 	s.acp.probes.wait()
+	s.acp.limits.wait()
 }
 
 // acpLive is an open ACP session.
@@ -112,6 +115,9 @@ func (l *acpLive) Publish(ev *agentv1.SessionEvent) {
 	l.mu.Unlock()
 	if ev.GetTurnFinished() != nil || ev.GetUserMessage() != nil {
 		_ = writeAcpMeta(meta)
+	}
+	if ev.GetTurnFinished() != nil {
+		l.srv.refreshAcpLimits(meta.AgentID)
 	}
 }
 
@@ -307,7 +313,7 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 		OnAuth: func(state registry.AuthState, methods []registry.AuthMethod) {
 			_ = reg.SetAuth(agentID, state, methods)
 		},
-		OnLimits: func(lim *registry.Limits) { _ = reg.SetLimits(agentID, lim) },
+		OnLimits: func(lim *registry.Limits) { _ = reg.SetLimits(agentID, lim) }, LimitsSource: s.acpLimitsSource(agentID),
 		OnAgentSession: func(id string) {
 			l.mu.Lock()
 			l.meta.AgentSessionID = id
@@ -333,7 +339,11 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 	l.diff = sessionDiffStats(diffCtx, acpDiffSources(meta.ID, meta.Cwd, l.dirs))
 	diffDone()
 	l.publishInfo()
-	go func() { _ = l.sess.Open(s.ctx) }()
+	go func() {
+		if err := l.sess.Open(s.ctx); err == nil {
+			s.refreshAcpLimits(agentID)
+		}
+	}()
 	s.sessionOpened(meta.ID)
 	return l.info(), nil
 }

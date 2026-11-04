@@ -47,29 +47,20 @@ func TestParseLimitsCamelCaseArrayAndNone(t *testing.T) {
 	}
 }
 
-func TestClaudeRateLimitEvent(t *testing.T) {
-	now := time.Unix(1_800_000_000, 0)
-	l := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{
-		"status": "allowed_warning", "rateLimitType": "five_hour", "utilization": 0.82, "resetsAt": float64(1_800_003_600),
-	}}, now)
-	if l == nil || !l.Partial || len(l.Windows) != 1 || l.Windows[0].Label != "5-hour limit" || int(l.Windows[0].UsedPercent) != 82 {
-		t.Fatalf("event: %+v", l)
+func TestMergeKeepsWhatAPartialReportDoesNotList(t *testing.T) {
+	old := &Limits{PlanName: "pro", Windows: []LimitWindow{{Label: "a", UsedPercent: 1}, {Label: "b", UsedPercent: 2}}}
+	l := (&Limits{Partial: true, Windows: []LimitWindow{{Label: "b", UsedPercent: 9}}}).Merge(old)
+	if l.Partial || l.PlanName != "pro" || len(l.Windows) != 2 || l.Windows[0].UsedPercent != 9 || l.Windows[1].Label != "a" {
+		t.Fatalf("merged: %+v", l)
 	}
-	if !l.Windows[0].ResetsAt.Equal(time.Unix(1_800_003_600, 0)) {
-		t.Fatalf("resets: %v", l.Windows[0].ResetsAt)
+	full := &Limits{Windows: []LimitWindow{{Label: "c"}}}
+	if full.Merge(old) != full {
+		t.Fatal("a full report replaces the old one")
 	}
-	// Without a number it says nothing about how much is used.
-	if got := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"status": "allowed", "rateLimitType": "five_hour"}}, now); got != nil {
-		t.Fatalf("no utilization: %+v", got)
-	}
-	// One window at a time: the others keep their numbers.
-	week := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"rateLimitType": "seven_day", "utilization": 0.4}}, now)
-	merged := week.Merge(l)
-	if len(merged.Windows) != 2 || merged.Windows[0].Label != "5-hour limit" || merged.Windows[1].Label != "Weekly · all models" || merged.Partial {
-		t.Fatalf("merged: %+v", merged)
-	}
-	again := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"rateLimitType": "five_hour", "utilization": 0.9}}, now).Merge(merged)
-	if len(again.Windows) != 2 || int(again.Windows[0].UsedPercent) != 90 {
-		t.Fatalf("replaced: %+v", again)
+}
+
+func TestClaudeEventIsNotGeneric(t *testing.T) {
+	if l := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"rateLimitType": "five_hour", "utilization": 0.8}}, time.Now()); l != nil {
+		t.Fatalf("limits: %+v", l)
 	}
 }
