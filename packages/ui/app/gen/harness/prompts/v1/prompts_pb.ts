@@ -115,6 +115,8 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   agent_type_general, agent_type_explore, agent_type_plan
    *   monitor_match         {{task_id}} {{description}} {{pattern}} {{count}} {{lines}} {{status}}  a Monitor found matching lines
    *   monitor_stopped       {{task_id}} {{description}} {{pattern}} {{reason}}  a Monitor ended by itself (timeout, too noisy)
+   *   terminal_command_done {{tab_id}} {{title}} {{command}} {{status}} {{tail}}  a command the agent typed into a
+   *                         terminal tab ended (TerminalRun); rides on the next model request, starts one when idle
    *   compacted                                    first message after a compaction summary
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)

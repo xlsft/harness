@@ -32,15 +32,8 @@ const modelUsageCheckTimeout = 5 * time.Second
 
 // ---- Where the user is ----
 
-type relayOriginKey struct{}
-
-// WithRelayOrigin marks a command as forwarded by the relay: the user sent it from another machine.
-func WithRelayOrigin(ctx context.Context) context.Context {
-	return context.WithValue(ctx, relayOriginKey{}, true)
-}
-
 func isRelayOrigin(ctx context.Context) bool {
-	on, _ := ctx.Value(relayOriginKey{}).(bool)
+	on, _ := ctx.Value(remoteOriginKey{}).(bool)
 	return on
 }
 

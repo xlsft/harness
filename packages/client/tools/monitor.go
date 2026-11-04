@@ -337,7 +337,15 @@ func (*Monitor) Name() string { return "Monitor" }
 // ReadOnly reports a monitor on a task that already runs; one that starts a command is checked like Bash.
 func (m *Monitor) ReadOnly(input json.RawMessage) bool { return m.ShellCommand(input) == "" }
 
-// ShellCommand implements ShellCommander.
+// PermissionHints implements PermissionHinter: a monitor that starts a command is checked as that command.
+func (m *Monitor) PermissionHints(_ context.Context, _ *Env, call Call) PermissionHints {
+	if cmd := m.ShellCommand(call.Input); cmd != "" {
+		return PermissionHints{CheckAs: "Bash", Command: cmd}
+	}
+	return PermissionHints{}
+}
+
+// ShellCommand is the command this monitor starts ("" when it watches a task).
 func (*Monitor) ShellCommand(input json.RawMessage) string {
 	var in monitorInput
 	_ = json.Unmarshal(input, &in)

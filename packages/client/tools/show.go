@@ -16,17 +16,21 @@ const (
 	ShowFile = "file"
 	ShowDiff = "diff"
 	ShowURL  = "url"
+	// ShowTerminal is not a target of the Show tool: the terminal tools bring up the tab they started.
+	ShowTerminal = "terminal"
 )
 
 // ShowTarget is what the Show tool opens for the user.
 type ShowTarget struct {
-	// Kind is ShowFile, ShowDiff or ShowURL.
+	// Kind is ShowFile, ShowDiff, ShowURL or ShowTerminal.
 	Kind string
 	// Path is absolute (file, diff; empty for the whole diff).
 	Path string
 	// LineStart and LineEnd are 1-based and inclusive; 0 when not given.
 	LineStart, LineEnd int
 	URL                string
+	// TerminalID is the tab (ShowTerminal).
+	TerminalID string
 }
 
 // ShowStatus is the outcome of Shower.Show.

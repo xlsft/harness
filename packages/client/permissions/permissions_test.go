@@ -270,6 +270,44 @@ func TestEngineRules(t *testing.T) {
 	}
 }
 
+// TerminalRun is checked as Bash, so a rule that removes Bash must not leave it on the tool list.
+func TestBareBashDenyRemovesTerminalRun(t *testing.T) {
+	e := New(Config{Cwd: t.TempDir(), Deny: []string{"Bash"}})
+	if !e.IsDisabled("TerminalRun") {
+		t.Fatal("deny Bash leaves TerminalRun")
+	}
+	if e.IsDisabled("TerminalRead") {
+		t.Fatal("reading a terminal is not running anything")
+	}
+	if e = New(Config{Cwd: t.TempDir(), Deny: []string{"Bash(rm *)"}}); e.IsDisabled("TerminalRun") {
+		t.Fatal("a rule with a pattern keeps the tool")
+	}
+}
+
+// A label changes what the prompt shows and nothing the rules see.
+func TestLabelOnlyChangesThePromptName(t *testing.T) {
+	e := New(Config{Cwd: t.TempDir(), Deny: []string{"Bash(rm *)"}, Allow: []string{"Bash(touch *)"}})
+	req := func(command string) Request {
+		input, _ := json.Marshal(map[string]string{"command": command})
+		return Request{ToolName: "Bash", Label: "run in terminal", Command: command, Input: input}
+	}
+	if d := e.Evaluate(req("rm x")); d.Behavior != Deny {
+		t.Fatalf("deny rule: %+v", d)
+	}
+	if d := e.Evaluate(req("touch x")); d.Behavior != Allow {
+		t.Fatalf("allow rule: %+v", d)
+	}
+	if got := e.Suggest(req("make x")); len(got) == 0 || !strings.HasPrefix(got[0], "Bash(") {
+		t.Fatalf("suggestions: %v", got)
+	}
+	if n := req("x").PromptName(); n != "run in terminal" {
+		t.Fatalf("prompt name: %q", n)
+	}
+	if n := (Request{ToolName: "Bash"}).PromptName(); n != "Bash" {
+		t.Fatalf("prompt name: %q", n)
+	}
+}
+
 type fixedAsker struct {
 	d    Decision
 	last *Request

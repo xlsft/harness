@@ -462,6 +462,7 @@ export type ShowTarget
   = | { kind: 'file', path: string, lineStart: number, lineEnd: number }
     | { kind: 'diff', path: string }
     | { kind: 'url', url: string }
+    | { kind: 'terminal', terminalId: string }
 
 // The latest ShowRequested of the current turn; id is the Show tool call's id.
 export interface ShowRequest {

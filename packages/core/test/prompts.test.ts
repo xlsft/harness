@@ -38,9 +38,15 @@ describe("bundle builder", () => {
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
       "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
-      "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "ChangeDirectory", "ComputerAccess", "ComputerActivate", "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll", "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet", "Show", "SyncWithBase", "TaskOutput",
-      "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
+      "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
+      "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
+      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake",
+      "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
+      "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
+      "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
+      "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
+      "Show", "SyncWithBase", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
+      "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
     const reminders: Record<string, string[]> = {
@@ -56,7 +62,6 @@ describe("bundle builder", () => {
       plan_approved: ["plan_file_path"],
       plan_rejected: ["feedback"],
       background_task_done: ["task_id", "command", "status", "tail", "output_path"],
-      "agent_id", "agent_id", "agent_type", "agent_type", "count", "description", "details", "from", "instructions", "lines", "message", "name", "pattern", "reason", "report", "status", "task_id",
       compacted: [],
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],
@@ -66,7 +71,20 @@ describe("bundle builder", () => {
       user_shell_command: ["cwd", "command", "exit_code", "output", "status"],
       usage_limit_wrap_up: ["provider", "detail", "resets"],
       usage_limit_returned: ["provider"],
-      "events", "external", "from_id", "from_name", "from_title", "marker", "message", "name", "number", "report", "session_id", "status", "title", "url",
+      agent_report: ["agent_id", "name", "agent_type", "status", "report", "details"],
+      agent_message: ["from", "message"],
+      agent_context: ["agent_id", "agent_type", "instructions"],
+      agent_type_general: [],
+      agent_type_explore: [],
+      agent_type_plan: [],
+      session_message: ["from_id", "from_name", "from_title", "message"],
+      session_report: ["session_id", "name", "title", "status", "report"],
+      pr_activity: ["number", "url", "events", "external", "marker"],
+      pr_detected: ["number", "url", "marker"],
+      notifications_pending: [],
+      monitor_match: ["task_id", "description", "pattern", "count", "lines", "status"],
+      monitor_stopped: ["task_id", "description", "pattern", "reason"],
+      terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason
@@ -158,6 +176,13 @@ describe("bundle builder", () => {
       if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
+    expect(props("TerminalRead")).toEqual(["tab_id", "lines", "wait_for_output_ms", "description"]);
+    expect(props("TerminalRun")).toEqual(["command", "title", "description"]);
+    expect(b.tools.TerminalRun!.input_schema.required).toEqual(["command", "description"]);
+    expect(b.tools.TerminalStop!.input_schema.required).toEqual(["tab_id", "description"]);
+    for (const n of ["TerminalRead", "TerminalRun"]) expect(b.tools[n]!.description).toMatch(/untrusted/i);
+    expect(b.tools.TerminalRun!.description).toMatch(/same permission/);
+    for (const n of ["TerminalRead", "TerminalList", "TerminalRun"]) expect(b.tools[n]!.description).toMatch(/waiting for input/);
     expect(b.tools.Visual!.description).toMatch(/harness\.send/);
     expect(props("TaskOutput")).toEqual(["task_id", "offset", "block", "pattern", "timeout", "description"]);
     expect(b.tools.TaskOutput!.input_schema.required).toEqual(["task_id", "description"]);

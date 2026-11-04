@@ -84,18 +84,14 @@ type PermissionHints struct {
 	// knows from its input and the session's state that it is harmless). With Sensitive set, the user is asked even
 	// in plan mode rather than the call being refused there.
 	ReadOnly bool
+	// Label, when set, is what the permission prompt calls the call instead of its tool name (rules never see it).
+	Label string
 }
 
 // PermissionHinter is implemented by tools whose permission check depends on state outside the input (the
 // browser tools). The agent loop calls it right before the check.
 type PermissionHinter interface {
 	PermissionHints(ctx context.Context, env *Env, call Call) PermissionHints
-}
-
-// ShellCommander is implemented by tools that may run a shell command of the model's: such a call is checked exactly
-// like a Bash call with that command. "" means this call runs none.
-type ShellCommander interface {
-	ShellCommand(input json.RawMessage) string
 }
 
 // Call identifies one tool invocation.

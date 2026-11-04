@@ -477,7 +477,7 @@ func (ls *liveSession) Ask(ctx context.Context, req permissions.Request) (permis
 		delete(ls.pendingPerm, id)
 		ls.mu.Unlock()
 	}()
-	pr := &agentv1.PermissionRequest{RequestId: id, ToolUseId: req.ToolUseID, ToolName: req.ToolName, InputJson: string(req.Input),
+	pr := &agentv1.PermissionRequest{RequestId: id, ToolUseId: req.ToolUseID, ToolName: req.PromptName(), InputJson: string(req.Input),
 		SuggestedRules: req.Suggestions, Reason: req.Reason, AgentId: req.AgentID, AgentName: req.AgentName}
 	ls.beginWait()
 	defer ls.endWait()
@@ -521,9 +521,10 @@ func (ls *liveSession) ProposePlan(ctx context.Context, toolUseID, plan, path st
 
 // showKinds maps tools.ShowTarget kinds to the proto enum.
 var showKinds = map[string]agentv1.ShowRequested_Kind{
-	tools.ShowFile: agentv1.ShowRequested_KIND_FILE,
-	tools.ShowDiff: agentv1.ShowRequested_KIND_DIFF,
-	tools.ShowURL:  agentv1.ShowRequested_KIND_URL,
+	tools.ShowFile:     agentv1.ShowRequested_KIND_FILE,
+	tools.ShowDiff:     agentv1.ShowRequested_KIND_DIFF,
+	tools.ShowURL:      agentv1.ShowRequested_KIND_URL,
+	tools.ShowTerminal: agentv1.ShowRequested_KIND_TERMINAL,
 }
 
 // Show implements tools.Shower: it publishes ShowRequested and reports
@@ -537,7 +538,7 @@ func (ls *liveSession) Show(toolUseID string, t tools.ShowTarget) tools.ShowStat
 		return tools.ShowUnavailable
 	}
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ShowRequested{ShowRequested: &agentv1.ShowRequested{
-		ToolUseId: toolUseID, Kind: showKinds[t.Kind], Path: t.Path, LineStart: int32(t.LineStart), LineEnd: int32(t.LineEnd), Url: t.URL,
+		ToolUseId: toolUseID, Kind: showKinds[t.Kind], Path: t.Path, LineStart: int32(t.LineStart), LineEnd: int32(t.LineEnd), Url: t.URL, TerminalId: t.TerminalID,
 	}}})
 	if !ls.hub.watched() {
 		return tools.ShowPending
@@ -593,6 +594,8 @@ func toolSummary(name string, input []byte, cwd string) string {
 			return "Preview " + n
 		}
 		return "Preview " + truncateRunes(jsonField(input, "url"), 80)
+	case "TerminalRun":
+		return "TerminalRun " + truncateRunes(jsonField(input, "command"), 80)
 	case "BrowserNavigate":
 		if u := jsonField(input, "url"); u != "" {
 			return "Browser " + truncateRunes(u, 80)

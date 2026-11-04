@@ -33,7 +33,7 @@ func TestElsewhereReasonFollowsTheLastMessage(t *testing.T) {
 	if ls.ElsewhereReason() != "" {
 		t.Fatal("a local session has its user here")
 	}
-	if !isRelayOrigin(WithRelayOrigin(context.Background())) || isRelayOrigin(context.Background()) {
+	if !isRelayOrigin(WithRemoteOrigin(context.Background())) || isRelayOrigin(context.Background()) {
 		t.Fatal("the mark")
 	}
 	ls.drivenByRelay.Store(true)

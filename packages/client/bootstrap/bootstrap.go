@@ -40,6 +40,7 @@ import (
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/syncclient"
+	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/web"
@@ -145,6 +146,8 @@ type Options struct {
 	// ComputerUse, when set, gives the session the Computer* tools (HARNESS_NO_COMPUTER_USE=1 leaves them out). They are
 	// only offered while the device-local switch is on. The session's grants end when the session closes.
 	ComputerUse *computeruse.Manager
+	// Terminals, when set, gives the agent the tabs of the Terminal pane (the Terminal* tools).
+	Terminals *terminal.Manager
 
 	// UsageMonitor follows the usage limits of the session provider (agent.Config.UsageMonitor; may be nil).
 	UsageMonitor agent.UsageMonitor
@@ -555,6 +558,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	useBrowser := o.Browser != nil && os.Getenv("HARNESS_NO_BROWSER") != "1"
 	if useBrowser {
 		for _, t := range o.Browser.Tools() {
+			s.Tools.Register(t)
+		}
+	}
+	if o.Terminals != nil {
+		for _, t := range o.Terminals.Tools() {
 			s.Tools.Register(t)
 		}
 	}

@@ -1232,25 +1232,19 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			}
 			if ph, ok := t.(tools.PermissionHinter); ok {
 				h := ph.PermissionHints(ctx, a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: u.Input})
-				req.URL, req.Sensitive = h.URL, h.Sensitive
+				req.URL, req.Sensitive, req.Label = h.URL, h.Sensitive, h.Label
 				hinted = h
 				applyCheckAs(&req, h)
 				req.ReadOnly = req.ReadOnly || h.ReadOnly
+				if h.CheckAs == "Bash" && a.cfg.DisabledTools["Bash"] {
+					setResult(idx, tools.ErrorResult("%s cannot run a command in this session: Bash is disabled.", u.Name), "")
+					continue
+				}
 			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
 			}
-			if sc, ok := t.(tools.ShellCommander); ok {
-				if cmd := sc.ShellCommand(u.Input); cmd != "" {
-					if a.cfg.DisabledTools["Bash"] {
-						setResult(idx, tools.ErrorResult("%s cannot run a command in this session: Bash is disabled.", u.Name), "")
-						continue
-					}
-					// Rules, auto mode and the prompt all see what runs: a shell command.
-					req.ToolName, req.Command = "Bash", cmd
-				}
-			}
-			if req.ToolName == "Bash" && a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
+			if req.ToolName == "Bash" && req.Cwd == "" && a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
 				req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
 			}
 			req.SessionID, req.RecentUserMessages, req.Rationale = a.cfg.SessionID, a.recentPrompts(), rationale[u.ID]

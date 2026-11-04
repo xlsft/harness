@@ -95,10 +95,12 @@ const webResults = computed(() => {
   return Array.isArray(r) ? r as { title: string, url: string }[] : []
 })
 
-// Show: what the call opened, to open it again.
-const showTarget = computed(() => kind.value === 'show' && t.value.status === 'ok'
-  ? showTargetOf(t.value.input, t.value.result, store.sessions[props.sessionId]?.meta.cwd ?? '')
-  : null)
+// Show: what the call opened, to open it again. The terminal tools link to their tab the same way.
+const showTarget = computed(() => {
+  if (t.value.status !== 'ok') return null
+  if (t.value.name.startsWith('Terminal')) return terminalTargetOf(t.value.result)
+  return kind.value === 'show' ? showTargetOf(t.value.input, t.value.result, store.sessions[props.sessionId]?.meta.cwd ?? '') : null
+})
 const showIn = computed(() => showTarget.value ? showPaneTitle(showTarget.value.kind) : '')
 
 // Text of a failed call: the tool_result content (results of other kinds are JSON).

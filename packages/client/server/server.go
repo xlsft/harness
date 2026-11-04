@@ -399,6 +399,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if opts.ComputerUse == nil && !s.NoPanes {
 		opts.ComputerUse = s.computerUse()
 	}
+	if opts.Terminals == nil && !s.NoPanes {
+		opts.Terminals = s.terminals()
+	}
 	opts.OnEvent = ls.onEvent
 	opts.Logger = s.log()
 	usage := s.newUsageMonitor()

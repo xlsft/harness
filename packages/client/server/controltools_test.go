@@ -364,7 +364,7 @@ func TestDeviceToolsRefuseWhenDrivenFromElsewhere(t *testing.T) {
 		t.Fatal(err)
 	}
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
-	if _, err := srv.SendUserMessage(server.WithRelayOrigin(context.Background()), connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Content: text("go")})); err != nil {
+	if _, err := srv.SendUserMessage(server.WithRemoteOrigin(context.Background()), connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Content: text("go")})); err != nil {
 		t.Fatal(err)
 	}
 	h.until(ch, isTurnFinished)

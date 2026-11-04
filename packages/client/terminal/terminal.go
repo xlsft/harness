@@ -4,6 +4,8 @@
 // (WebSocket connections, socket.go) can come and go while the shell keeps running: a new viewer gets the
 // buffered output replayed, then live output. Viewers read the ring at their own pace; one that falls more than
 // the buffer behind skips ahead instead of queueing, so a slow UI never grows memory or stalls the shell.
+//
+// The agent shares these terminals through the Terminal* tools (tools.go, run.go).
 package terminal
 
 import (
@@ -62,6 +64,8 @@ type Options struct {
 	// Shell and Args override DefaultShell (tests).
 	Shell string
 	Args  []string
+	// Agent says the agent opened it, not the user (TerminalOpen, TerminalRun).
+	Agent bool
 }
 
 // Info is a snapshot of a terminal.
@@ -82,6 +86,8 @@ type Terminal struct {
 	p                                proc
 	pid                              int
 	done                             chan struct{}
+	mgr                              *Manager
+	agent                            bool
 
 	mu         sync.Mutex
 	ring       *ring
@@ -89,6 +95,10 @@ type Terminal struct {
 	running    bool
 	exitCode   int
 	viewers    map[*Viewer]struct{}
+	// lastInput is the last time a viewer (the user) sent input; lastOutput the last output.
+	lastInput, lastOutput time.Time
+	// lastRun is the agent's latest command (run.go).
+	lastRun *Run
 }
 
 func (t *Terminal) ID() string        { return t.id }
@@ -106,10 +116,11 @@ func (t *Terminal) Info() Info {
 	}
 }
 
-// Write sends input to the shell.
+// Write sends a viewer's input to the shell.
 func (t *Terminal) Write(b []byte) (int, error) {
 	t.mu.Lock()
 	running := t.running
+	t.lastInput = time.Now()
 	t.mu.Unlock()
 	if !running {
 		return 0, ErrExited
@@ -145,6 +156,7 @@ func (t *Terminal) resizeLocked(cols, rows uint16) error {
 func (t *Terminal) output(b []byte) {
 	t.mu.Lock()
 	t.ring.write(b)
+	t.lastOutput = time.Now()
 	t.notifyLocked()
 	t.mu.Unlock()
 }
@@ -299,6 +311,10 @@ type Manager struct {
 	TicketTTL  time.Duration
 	// Now is the clock for tickets (tests).
 	Now func() time.Time
+	// OnRunFinished is told when a command the agent started ends by itself and no tool result reported it (run.go).
+	OnRunFinished func(RunFinished)
+	// Refuse, when set, says why a session's agent cannot use terminals on this machine (tools.go).
+	Refuse func(sessionID string) error
 
 	mu      sync.Mutex
 	terms   map[string]*Terminal
@@ -372,7 +388,7 @@ func (m *Manager) Create(o Options) (*Terminal, error) {
 	}
 	t := &Terminal{
 		id: "term_" + randomHex(8), sessionID: o.SessionID, title: title, cwd: o.Cwd, shell: shell,
-		created: time.Now(), p: p, pid: p.Pid(), done: make(chan struct{}),
+		created: time.Now(), p: p, pid: p.Pid(), done: make(chan struct{}), mgr: m, agent: o.Agent,
 		ring: newRing(size), cols: cols, rows: rows, running: true, viewers: map[*Viewer]struct{}{},
 	}
 	go t.run()

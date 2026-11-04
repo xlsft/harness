@@ -25,6 +25,7 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.name.startsWith('Browser') || t.name === 'PreviewStart') return 'globe'
   if (t.name === 'ComputerClick' || t.name === 'ComputerDrag') return 'cursor'
   if (t.name.startsWith('Computer')) return 'monitor'
+  if (t.name.startsWith('Terminal')) return 'term'
   switch (t.name) {
     case 'Bash':
     case 'TaskOutput': return 'term'
@@ -172,6 +173,7 @@ export function toolTarget(t: ToolItem): string {
     case 'SessionSetEffort': return `Effort: ${String(i.effort ?? '')}`
     case 'SessionSetMode': return `Mode: ${MODE_LABEL[TOOL_MODE_NAMES[String(i.mode)] ?? i.mode as PermissionModeName] ?? String(i.mode ?? '')}`
     case 'SessionSetTitle': return `Title: ${String(i.title ?? '')}`
+    case 'TerminalRun': return String(i.command ?? t.summary)
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

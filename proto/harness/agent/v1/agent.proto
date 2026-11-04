@@ -856,8 +856,8 @@ message PermissionModeChanged {
   PermissionMode mode = 1;
 }
 
-// Emitted when the model calls Show: a frontend viewing the session opens the matching pane (Files, Diff
-// or Browser) and brings the target into view. It only opens; nothing changes. Frontends apply it once,
+// Emitted when the model calls Show or starts something in a terminal tab: a frontend viewing the session opens
+// the matching pane (Files, Diff, Browser or Terminal) and brings the target into view. It only opens; nothing changes. Frontends apply it once,
 // when the session is open: a request for a session that is not open waits until the user opens it.
 // Transcript replays do not emit it (the Show tool call carries the same target).
 message ShowRequested {
@@ -869,6 +869,8 @@ message ShowRequested {
     KIND_DIFF = 2;
     // A web page: `url` (http or https).
     KIND_URL = 3;
+    // A tab of the Terminal pane: `terminal_id`.
+    KIND_TERMINAL = 4;
   }
   string tool_use_id = 1;
   Kind kind = 2;
@@ -878,6 +880,7 @@ message ShowRequested {
   int32 line_start = 4;
   int32 line_end = 5;
   string url = 6;
+  string terminal_id = 7;
 }
 
 message UserMessage {
@@ -952,6 +955,8 @@ message ToolCallFinished {
 message PermissionRequest {
   string request_id = 1;
   string tool_use_id = 2;
+  // What the prompt calls the call: the tool's name, or what it does when the check is another tool's
+  // ("run in terminal", checked as Bash). For display.
   string tool_name = 3;
   string input_json = 4;
   // Rule the user may choose to always allow, e.g. "Bash(npm run test *)".
