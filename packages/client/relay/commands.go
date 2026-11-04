@@ -309,6 +309,13 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 			a.Result = &relayv1.CommandAck_StopSubagent{StopSubagent: res.Msg}
 		}
 		return a
+	case *relayv1.Command_StopWorkflow:
+		res, err := b.StopWorkflow(ctx, connect.NewRequest(&agentv1.StopWorkflowRequest{SessionId: sid, WorkflowId: p.StopWorkflow.GetWorkflowId()}))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_StopWorkflow{StopWorkflow: res.Msg}
+		}
+		return a
 	case *relayv1.Command_GetSubagentTranscript:
 		res, err := b.GetSubagentTranscript(ctx, connect.NewRequest(&agentv1.GetSubagentTranscriptRequest{SessionId: sid, AgentId: p.GetSubagentTranscript.GetAgentId()}))
 		a := errAck(id, err, false)

@@ -144,6 +144,9 @@ const (
 	// RelayServiceResolveSessionProposalProcedure is the fully-qualified name of the RelayService's
 	// ResolveSessionProposal RPC.
 	RelayServiceResolveSessionProposalProcedure = "/harness.relay.v1.RelayService/ResolveSessionProposal"
+	// RelayServiceStopWorkflowProcedure is the fully-qualified name of the RelayService's StopWorkflow
+	// RPC.
+	RelayServiceStopWorkflowProcedure = "/harness.relay.v1.RelayService/StopWorkflow"
 )
 
 // RelayServiceClient is a client for the harness.relay.v1.RelayService service.
@@ -229,6 +232,8 @@ type RelayServiceClient interface {
 	// Starts or dismisses a proposal of a session (harness.agent.v1.ResolveSessionProposalRequest): held for the host's
 	// ack, and the session's SessionProposal event follows.
 	ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error)
+	// Stops a run of the Workflow tool on the machine running the session: a query command like StopSubagent.
+	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 }
 
 // NewRelayServiceClient constructs a client for the harness.relay.v1.RelayService service. By
@@ -482,6 +487,12 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("ResolveSessionProposal")),
 			connect.WithClientOptions(opts...),
 		),
+		stopWorkflow: connect.NewClient[v1.StopWorkflowRequest, v1.StopWorkflowResponse](
+			httpClient,
+			baseURL+RelayServiceStopWorkflowProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("StopWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -527,6 +538,7 @@ type relayServiceClient struct {
 	getSubagentTranscript  *connect.Client[v1.GetSubagentTranscriptRequest, v1.GetSubagentTranscriptResponse]
 	sendSessionNote        *connect.Client[v1.SendSessionNoteRequest, v1.SendSessionNoteResponse]
 	resolveSessionProposal *connect.Client[v1.ResolveSessionProposalRequest, v1.ResolveSessionProposalResponse]
+	stopWorkflow           *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
 }
 
 // RegisterHost calls harness.relay.v1.RelayService.RegisterHost.
@@ -729,6 +741,11 @@ func (c *relayServiceClient) ResolveSessionProposal(ctx context.Context, req *co
 	return c.resolveSessionProposal.CallUnary(ctx, req)
 }
 
+// StopWorkflow calls harness.relay.v1.RelayService.StopWorkflow.
+func (c *relayServiceClient) StopWorkflow(ctx context.Context, req *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error) {
+	return c.stopWorkflow.CallUnary(ctx, req)
+}
+
 // RelayServiceHandler is an implementation of the harness.relay.v1.RelayService service.
 type RelayServiceHandler interface {
 	// --- Host side --------------------------------------------------------------------------------------
@@ -812,6 +829,8 @@ type RelayServiceHandler interface {
 	// Starts or dismisses a proposal of a session (harness.agent.v1.ResolveSessionProposalRequest): held for the host's
 	// ack, and the session's SessionProposal event follows.
 	ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error)
+	// Stops a run of the Workflow tool on the machine running the session: a query command like StopSubagent.
+	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 }
 
 // NewRelayServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -1061,6 +1080,12 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("ResolveSessionProposal")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceStopWorkflowHandler := connect.NewUnaryHandler(
+		RelayServiceStopWorkflowProcedure,
+		svc.StopWorkflow,
+		connect.WithSchema(relayServiceMethods.ByName("StopWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.RelayService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RelayServiceRegisterHostProcedure:
@@ -1143,6 +1168,8 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceSendSessionNoteHandler.ServeHTTP(w, r)
 		case RelayServiceResolveSessionProposalProcedure:
 			relayServiceResolveSessionProposalHandler.ServeHTTP(w, r)
+		case RelayServiceStopWorkflowProcedure:
+			relayServiceStopWorkflowHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1310,4 +1337,8 @@ func (UnimplementedRelayServiceHandler) SendSessionNote(context.Context, *connec
 
 func (UnimplementedRelayServiceHandler) ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ResolveSessionProposal is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.StopWorkflow is not implemented"))
 }

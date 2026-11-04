@@ -3,9 +3,10 @@
 // client validates and reads them when an agent starts; a refused value puts the field back and says why.
 const store = useSessionStore()
 
-const saved = ref({ subagentMaxDepth: 2, subagentMaxRunning: 8 })
+const saved = ref({ subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30 })
 const depth = ref(2)
 const running = ref(8)
+const perWorkflow = ref(30)
 const loaded = ref(false)
 const error = ref('')
 
@@ -13,10 +14,11 @@ function message(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
 }
 
-function apply(p: { subagentMaxDepth: number, subagentMaxRunning: number }) {
-  saved.value = { subagentMaxDepth: p.subagentMaxDepth, subagentMaxRunning: p.subagentMaxRunning }
+function apply(p: { subagentMaxDepth: number, subagentMaxRunning: number, workflowMaxAgents: number }) {
+  saved.value = { subagentMaxDepth: p.subagentMaxDepth, subagentMaxRunning: p.subagentMaxRunning, workflowMaxAgents: p.workflowMaxAgents }
   depth.value = p.subagentMaxDepth
   running.value = p.subagentMaxRunning
+  perWorkflow.value = p.workflowMaxAgents
 }
 
 onMounted(async () => {
@@ -31,8 +33,8 @@ onMounted(async () => {
 
 async function save() {
   if (!store.transport) return
-  const patch = { subagentMaxDepth: Number(depth.value), subagentMaxRunning: Number(running.value) }
-  if (patch.subagentMaxDepth === saved.value.subagentMaxDepth && patch.subagentMaxRunning === saved.value.subagentMaxRunning) return
+  const patch = { subagentMaxDepth: Number(depth.value), subagentMaxRunning: Number(running.value), workflowMaxAgents: Number(perWorkflow.value) }
+  if (patch.subagentMaxDepth === saved.value.subagentMaxDepth && patch.subagentMaxRunning === saved.value.subagentMaxRunning && patch.workflowMaxAgents === saved.value.workflowMaxAgents) return
   try {
     apply(await store.transport.updateUserPreferences(patch))
     error.value = ''
@@ -92,6 +94,26 @@ async function save() {
         type="number"
         min="1"
         max="32"
+        step="1"
+        class="w-20 border border-default bg-transparent px-2 py-1 text-[12.5px] text-strong"
+        :disabled="!loaded"
+        @change="save"
+      >
+    </div>
+    <div class="set-row">
+      <label
+        class="set-label"
+        for="workflow-max-agents"
+      >
+        <span>Agents per workflow</span>
+        <span class="set-desc">The most agents one run of a workflow may call, from 1 to 200. Past it, the script gets an error.</span>
+      </label>
+      <input
+        id="workflow-max-agents"
+        v-model.number="perWorkflow"
+        type="number"
+        min="1"
+        max="200"
         step="1"
         class="w-20 border border-default bg-transparent px-2 py-1 text-[12.5px] text-strong"
         :disabled="!loaded"

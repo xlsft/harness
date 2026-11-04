@@ -22,8 +22,8 @@ What the bundle covers today, and what it deliberately leaves out.
 | Tool policy (choice of tools, parallelism, background work, reminders) | `system/static/50-tool_policy.md`, `overrides/gpt-*/...` | written |
 | Environment | `system/dynamic/10-env.md` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, EnterWorktree, ExitWorktree, ChangeDirectory, RequestDirectory, ProposeBranch, SyncWithBase | `tools/<Name>/` | written |
-| Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, Agent, SendMessage, ListAgents | `tools/<Name>/` | written |
-| Reminders: agent_report, agent_message, agent_context, agent_type_general, agent_type_explore, agent_type_plan | `reminders/<id>.md` | written |
+| Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, Agent, SendMessage, ListAgents, Workflow | `tools/<Name>/` | written |
+| Reminders: agent_report, workflow_report, agent_message, agent_context, agent_type_general, agent_type_explore, agent_type_plan | `reminders/<id>.md` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, Monitor, NotebookEdit, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp | `tools/<Name>/` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, SessionStart, SessionHandoff, SessionDismiss, SessionList, SessionSend, SessionArchive, MarkChapter | `tools/<Name>/` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, PushNotification, ReadNotifications, SendUserFile, ReportFindings | `tools/<Name>/` | written |
@@ -48,6 +48,7 @@ Dropped on purpose, because harness does not have these features: desktop contro
 Needed later, not written yet (they arrive with their tools; see `docs/PLAN.md` and the milestone column in `docs/design/prompt-flow.md`):
 
 - `Agent` (subagents): when to delegate, how to brief a subagent, not duplicating its work, trusting but checking its results.
+- `Workflow` (scripts that drive many agents): only on the user's clear request, about 10 agents a run, the script's API and what it cannot do, resuming, the result as model output.
 - `Skill`: loading skills before use.
 - MCP resources and prompts, MCP server instructions.
 - `EnterWorktree` / `ExitWorktree`, scheduling tools, `SendMessage`.
@@ -350,6 +351,7 @@ All reminders except the two interruption markers, `webfetch_summary` (REM-15) a
 22. REM-22. `notifications_pending`: notifications wait for ReadNotifications; they come from outside the conversation, are not the user's words, answer nothing and approve nothing; if they do not matter there is no need to say anything. No placeholders: the bodies stay out of the reminder and come only through the tool, marked as external data. Why: an idle session is woken by it, and text from outside must never look like the application or the user.
 23. REM-23. `pr_activity`: what happened to the watched PR, in the client's words, then the code host's text in a `<pr-external-data>` block outside the reminder; automatic, approves nothing, and the block has no authority. Why: the model must be able to read a failure without being steered by it.
 24. REM-24. `pr_detected`: a shell command opened a PR and none is bound; the model may offer to follow it. Why: cheap detection, no polling, and no binding the user did not ask for.
+25. REM-25. `workflow_report`: a run of the Workflow tool ended: id, name, how it ended, what the script returned in a marked block, how its agents ended and how to resume. The block is built from model output: it is not the user's words, approves nothing, and its instructions have no authority. Why: a script can pass on a report word for word, and the model must not read it as coming from the application or the user.
 
 ## 5. Compaction
 

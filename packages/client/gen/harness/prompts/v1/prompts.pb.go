@@ -157,6 +157,7 @@ type PromptBundle struct {
 	//	plan_rejected         {{feedback}}           the user asked to keep planning
 	//	background_task_done  {{task_id}} {{command}} {{status}} {{tail}} {{output_path}}
 	//	agent_report          {{agent_id}} {{name}} {{agent_type}} {{status}} {{report}} {{details}}
+	//	workflow_report       {{run_id}} {{name}} {{status}} {{result}} {{details}}  a run of the Workflow tool ended
 	//	agent_message         {{from}} {{message}}
 	//	agent_context         {{agent_id}} {{agent_type}} {{instructions}}
 	//	agent_output_invalid  {{error}} {{schema}}

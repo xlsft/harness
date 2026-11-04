@@ -122,7 +122,10 @@ func Run(ctx context.Context, o Options) int {
 	}
 	res := sess.Agent.RunTurn(ctx, []llm.ContentBlock{llm.TextBlock(prompt)})
 	// The process ends with the run: agents still at work get to finish, and the model answers their reports.
-	for !res.Interrupted && (sess.Subagents.Active() > 0 || sess.Agent.HasReminders()) {
+	for !res.Interrupted && (sess.Workflows.Active() > 0 || sess.Subagents.Active() > 0 || sess.Agent.HasReminders()) {
+		if err := sess.Workflows.WaitIdle(ctx); err != nil {
+			break
+		}
 		if err := sess.Subagents.WaitIdle(ctx); err != nil {
 			break
 		}

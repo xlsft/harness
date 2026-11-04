@@ -230,6 +230,7 @@ func (ls *liveSession) close(reason string) {
 	ls.srv.keepAwake().Forget(ls.sess.ID)
 	ls.cancel()
 	ls.usage.stop()
+	ls.sess.Workflows.Shutdown()
 	ls.sess.Subagents.Shutdown()
 	ls.driver.Stop()
 	ls.driver.Wait()
@@ -329,6 +330,8 @@ func (ls *liveSession) onEvent(e agent.Event) {
 	case agent.EventSubagent:
 		ls.refreshDiffStats() // an agent's tools change files too
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SubagentUpdated{SubagentUpdated: &agentv1.SubagentUpdated{Agent: subagentToProto(*e.Subagent)}}})
+	case agent.EventWorkflow:
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_WorkflowUpdated{WorkflowUpdated: &agentv1.WorkflowUpdated{Workflow: workflowToProto(*e.Workflow)}}})
 	case agent.EventNotice:
 		lv := map[string]agentv1.Notice_Level{"info": agentv1.Notice_LEVEL_INFO, "warning": agentv1.Notice_LEVEL_WARNING, "error": agentv1.Notice_LEVEL_ERROR}
 		ls.notice(lv[e.Notice.Level], e.Notice.Kind, NoticeText(e.Notice))

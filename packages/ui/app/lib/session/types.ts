@@ -117,6 +117,38 @@ export interface SubagentVM {
   worktreeBranch: string
 }
 
+export type WorkflowStateName = 'running' | 'finished' | 'failed' | 'stopped' | 'interrupted'
+
+// One agent() call of a run (harness.agent.v1.WorkflowAgent). The call's agent is in subagents, by agentId.
+export interface WorkflowAgentVM {
+  agentId: string
+  label: string
+  phase: string
+  state: SubagentStateName
+  cached: boolean
+  error: string
+}
+
+// A run of the Workflow tool (harness.agent.v1.WorkflowInfo).
+export interface WorkflowVM {
+  id: string
+  toolUseId: string
+  name: string
+  description: string
+  phases: string[]
+  currentPhase: string
+  state: WorkflowStateName
+  agents: WorkflowAgentVM[]
+  log: string[]
+  startedAt: number
+  // 0 while it runs.
+  finishedAt: number
+  error: string
+  result: string
+  tokens: number
+  costUsd: number
+}
+
 // Why a Bash command runs in the background (harness.agent.v1.BackgroundReason): the user moved it, it was moved
 // so a queued message could be delivered now, the agent started it with run_in_background, or it hit its timeout.
 export type BackgroundReasonName = 'user' | 'queued_message' | 'agent' | 'auto'
@@ -518,6 +550,9 @@ export interface SessionState {
   // The session's subagents (SubagentUpdated), oldest first.
   subagents: Record<string, SubagentVM>
   subagentOrder: string[]
+  // The session's runs of the Workflow tool (WorkflowUpdated), oldest first.
+  workflows: Record<string, WorkflowVM>
+  workflowOrder: string[]
   todos: TodoVM[]
   // The session's proposals, by the SessionStart call that made them.
   proposals: Record<string, SessionProposalVM>

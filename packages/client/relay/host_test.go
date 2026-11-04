@@ -556,6 +556,8 @@ func TestCommandsRunOnceAndAckWithOutcomes(t *testing.T) {
 			relayv1.CommandAck_OUTCOME_ALREADY_RESOLVED},
 		{&relayv1.Command{CommandId: "cmd_stop_agent", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),
 			Payload: &relayv1.Command_StopSubagent{StopSubagent: &agentv1.StopSubagentRequest{AgentId: "nope"}}}, relayv1.CommandAck_OUTCOME_FAILED},
+		{&relayv1.Command{CommandId: "cmd_stop_workflow", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),
+			Payload: &relayv1.Command_StopWorkflow{StopWorkflow: &agentv1.StopWorkflowRequest{WorkflowId: "nope"}}}, relayv1.CommandAck_OUTCOME_FAILED},
 		{&relayv1.Command{CommandId: "cmd_agent_transcript", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),
 			Payload: &relayv1.Command_GetSubagentTranscript{GetSubagentTranscript: &agentv1.GetSubagentTranscriptRequest{AgentId: "nope"}}}, relayv1.CommandAck_OUTCOME_FAILED},
 		{&relayv1.Command{CommandId: "cmd_stop", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),

@@ -128,6 +128,8 @@ type Env struct {
 	// belongs to (empty for the session's main agent).
 	Agents  Agents
 	AgentID string
+	// Workflows is the session's set of runs of the Workflow tool (set for the main agent only; nil disables the tool).
+	Workflows Workflows
 	// ReadDenied reports whether a permission rule denies reading path (nil: none does).
 	ReadDenied func(path string) bool
 	// Objects is the object store (nil without a server).
@@ -303,7 +305,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Monitor{}, &NotebookEdit{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{})
 }
 
 // Register adds or replaces a tool.

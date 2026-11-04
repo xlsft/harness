@@ -19,7 +19,7 @@ export function mcpParts(name: string) {
 export const computerGroupLabel = (n: number) => n === 1 ? 'used the computer' : `took ${n} computer steps`
 
 export function toolIcon(t: ToolItem): IconName {
-  if (t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent') return 'loading'
+  if (t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent' && t.name !== 'Workflow') return 'loading'
   if (t.status === 'error' && t.name === 'Bash') return 'x'
   if (mcpParts(t.name)) return 'box'
   if (t.name.startsWith('Browser') || t.name === 'PreviewStart') return 'globe'
@@ -31,7 +31,6 @@ export function toolIcon(t: ToolItem): IconName {
     case 'TaskOutput': return 'term'
     case 'Wait':
     case 'Monitor': return 'clock'
-    case 'Wait': return 'clock'
     case 'PreviewStop':
     case 'PreviewList':
     case 'PreviewLogs': return 'term'
@@ -54,8 +53,8 @@ export function toolIcon(t: ToolItem): IconName {
     case 'Task':
     case 'Agent':
     case 'SendMessage':
-    case 'ListAgents': return 'agent'
-    case 'Agent': return 'agent'
+    case 'ListAgents':
+    case 'Workflow': return 'agent'
     case 'PushNotification':
     case 'ReadNotifications': return 'alert'
     case 'SendUserFile': return 'file'
@@ -123,6 +122,7 @@ export function toolTarget(t: ToolItem): string {
     case 'Agent': return String(i.description ?? t.summary)
     case 'SendMessage': return String(i.to ?? t.summary)
     case 'ListAgents': return 'agents'
+    case 'Workflow': return String(i.name ?? i.resume_from ?? i.script_path ?? t.summary)
     case 'Show': {
       // As the model wrote it (paths relative to the session's directory read best).
       const target = showTargetOf(i, null, '')

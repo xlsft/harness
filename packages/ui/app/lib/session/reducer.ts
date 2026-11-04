@@ -13,6 +13,7 @@ import { sessionNoteOf } from './links'
 import { accessItem, computerUseVM, toolImages } from './computer'
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
 import { SubagentState, SubagentStepStatus, type SubagentInfo } from '~/gen/harness/agent/v1/subagents_pb'
+import { WorkflowState, type WorkflowInfo } from '~/gen/harness/agent/v1/workflows_pb'
 import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
 import {
   BackgroundReason,
@@ -34,6 +35,8 @@ import type {
   SubagentStateName,
   SubagentStep,
   SubagentVM,
+  WorkflowStateName,
+  WorkflowVM,
   AssistantItem,
   Attachment,
   BackgroundReasonName,
@@ -113,6 +116,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     taskOrder: [],
     subagents: {},
     subagentOrder: [],
+    workflows: {},
+    workflowOrder: [],
     todos: [],
     proposals: {},
     queue: [],
@@ -789,6 +794,15 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    case 'workflowUpdated': {
+      // Usage comes with the run's agents (subagentUpdated); adding it here would count it twice.
+      const w = e.value.workflow && workflowVM(e.value.workflow)
+      if (!w) break
+      if (!s.workflows[w.id]) s.workflowOrder.push(w.id)
+      s.workflows[w.id] = w
+      break
+    }
+
     case 'taskStarted': {
       const t = e.value
       s.tasks[t.taskId] = {
@@ -1026,6 +1040,35 @@ export function subagentVM(a: SubagentInfo): SubagentVM {
     error: a.error,
     worktreePath: a.worktreePath,
     worktreeBranch: a.worktreeBranch
+  }
+}
+
+const WORKFLOW_STATES: Record<WorkflowState, WorkflowStateName> = {
+  [WorkflowState.UNSPECIFIED]: 'running',
+  [WorkflowState.RUNNING]: 'running',
+  [WorkflowState.FINISHED]: 'finished',
+  [WorkflowState.FAILED]: 'failed',
+  [WorkflowState.STOPPED]: 'stopped',
+  [WorkflowState.INTERRUPTED]: 'interrupted'
+}
+
+export function workflowVM(w: WorkflowInfo): WorkflowVM {
+  return {
+    id: w.id,
+    toolUseId: w.toolUseId,
+    name: w.name,
+    description: w.description,
+    phases: [...w.phases],
+    currentPhase: w.currentPhase,
+    state: WORKFLOW_STATES[w.state],
+    agents: w.agents.map(a => ({ agentId: a.agentId, label: a.label, phase: a.phase, state: SUBAGENT_STATES[a.state], cached: a.cached, error: a.error })),
+    log: [...w.log],
+    startedAt: w.startedAt ? Date.parse(w.startedAt) : 0,
+    finishedAt: w.finishedAt ? Date.parse(w.finishedAt) : 0,
+    error: w.error,
+    result: w.result,
+    tokens: Number(w.inputTokens) + Number(w.outputTokens),
+    costUsd: w.costUsd
   }
 }
 

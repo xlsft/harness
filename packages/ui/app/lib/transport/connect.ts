@@ -313,12 +313,12 @@ export class ConnectTransport implements SessionTransport {
 
   async getUserPreferences(): Promise<UserPreferences> {
     const res = await this.client.getUserPreferences({})
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8 }
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30 }
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning })
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8 }
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents })
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30 }
   }
 
   async listTasks(sessionId: string) {
@@ -331,6 +331,10 @@ export class ConnectTransport implements SessionTransport {
 
   async stopSubagent(sessionId: string, agentId: string) {
     await this.client.stopSubagent({ sessionId, agentId })
+  }
+
+  async stopWorkflow(sessionId: string, workflowId: string) {
+    await this.client.stopWorkflow({ sessionId, workflowId })
   }
 
   async subagentTranscript(sessionId: string, agentId: string) {

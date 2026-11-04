@@ -102,6 +102,8 @@ export interface UserPreferences {
   // How deep subagents nest (1 to 5) and how many of a session run at once (1 to 32); read when an agent starts.
   subagentMaxDepth: number
   subagentMaxRunning: number
+  // The hard cap on agent() calls in one run of the Workflow tool (1 to 200); read when a run starts.
+  workflowMaxAgents: number
 }
 
 // Preferences of this device, kept by the client on this machine and never synced.
@@ -202,6 +204,7 @@ export interface SessionTransport {
   listTasks(sessionId: string): Promise<BackgroundTask[]>
   stopTask(sessionId: string, taskId: string): Promise<void>
   stopSubagent(sessionId: string, agentId: string): Promise<void>
+  stopWorkflow(sessionId: string, workflowId: string): Promise<void>
   subagentTranscript(sessionId: string, agentId: string): Promise<SubagentTranscriptItem[]>
   // Moves the running foreground Bash command of a tool call to the background without stopping it (the "Run in
   // background" button: reason 'user'; delivering a queued message now: 'queued_message'). The call then

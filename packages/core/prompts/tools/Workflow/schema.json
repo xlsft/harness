@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "script": { "type": "string", "description": "The script itself: JavaScript that starts with export const meta = { name, description, phases }." },
+    "script_path": { "type": "string", "description": "Path of a file holding the script, instead of script." },
+    "name": { "type": "string", "description": "Name of a saved workflow, instead of script: its file name without .js, or the name in its meta." },
+    "args": { "description": "Any JSON value; the script reads it as args. A resume without it keeps the run's." },
+    "resume_from": { "type": "string", "description": "A run id of this session to continue. Finished agent calls come back from its cache. Without a script, the run's own script runs again." }
+  },
+  "additionalProperties": false
+}

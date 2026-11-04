@@ -459,6 +459,10 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 			ls.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SubagentUpdated{SubagentUpdated: &agentv1.SubagentUpdated{Agent: subagentToProto(a)}}})
 			ls.history++
 		}
+		for _, w := range sess.Workflows.List() {
+			ls.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_WorkflowUpdated{WorkflowUpdated: &agentv1.WorkflowUpdated{Workflow: workflowToProto(w)}}})
+			ls.history++
+		}
 	}
 	if m.GetFork() {
 		ls.titleFork()

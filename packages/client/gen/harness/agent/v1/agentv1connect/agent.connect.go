@@ -348,6 +348,9 @@ const (
 	// AgentServiceCreateObjectTicketProcedure is the fully-qualified name of the AgentService's
 	// CreateObjectTicket RPC.
 	AgentServiceCreateObjectTicketProcedure = "/harness.agent.v1.AgentService/CreateObjectTicket"
+	// AgentServiceStopWorkflowProcedure is the fully-qualified name of the AgentService's StopWorkflow
+	// RPC.
+	AgentServiceStopWorkflowProcedure = "/harness.agent.v1.AgentService/StopWorkflow"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -623,6 +626,9 @@ type AgentServiceClient interface {
 	// <video> cannot send the agent token, and frontends never hold server credentials, so the client signs short-lived
 	// read tickets and fetches the bytes with its own. available is false without a server.
 	CreateObjectTicket(context.Context, *connect.Request[v1.CreateObjectTicketRequest]) (*connect.Response[v1.CreateObjectTicketResponse], error)
+	// Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
+	// ended comes back as it ended.
+	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1290,6 +1296,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("CreateObjectTicket")),
 			connect.WithClientOptions(opts...),
 		),
+		stopWorkflow: connect.NewClient[v1.StopWorkflowRequest, v1.StopWorkflowResponse](
+			httpClient,
+			baseURL+AgentServiceStopWorkflowProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1404,6 +1416,7 @@ type agentServiceClient struct {
 	listDiffBases           *connect.Client[v1.ListDiffBasesRequest, v1.ListDiffBasesResponse]
 	getSessionFileDiff      *connect.Client[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse]
 	createObjectTicket      *connect.Client[v1.CreateObjectTicketRequest, v1.CreateObjectTicketResponse]
+	stopWorkflow            *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1951,6 +1964,11 @@ func (c *agentServiceClient) CreateObjectTicket(ctx context.Context, req *connec
 	return c.createObjectTicket.CallUnary(ctx, req)
 }
 
+// StopWorkflow calls harness.agent.v1.AgentService.StopWorkflow.
+func (c *agentServiceClient) StopWorkflow(ctx context.Context, req *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error) {
+	return c.stopWorkflow.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2224,6 +2242,9 @@ type AgentServiceHandler interface {
 	// <video> cannot send the agent token, and frontends never hold server credentials, so the client signs short-lived
 	// read tickets and fetches the bytes with its own. available is false without a server.
 	CreateObjectTicket(context.Context, *connect.Request[v1.CreateObjectTicketRequest]) (*connect.Response[v1.CreateObjectTicketResponse], error)
+	// Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
+	// ended comes back as it ended.
+	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2887,6 +2908,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("CreateObjectTicket")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceStopWorkflowHandler := connect.NewUnaryHandler(
+		AgentServiceStopWorkflowProcedure,
+		svc.StopWorkflow,
+		connect.WithSchema(agentServiceMethods.ByName("StopWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3107,6 +3134,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceGetSessionFileDiffHandler.ServeHTTP(w, r)
 		case AgentServiceCreateObjectTicketProcedure:
 			agentServiceCreateObjectTicketHandler.ServeHTTP(w, r)
+		case AgentServiceStopWorkflowProcedure:
+			agentServiceStopWorkflowHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3550,4 +3579,8 @@ func (UnimplementedAgentServiceHandler) GetSessionFileDiff(context.Context, *con
 
 func (UnimplementedAgentServiceHandler) CreateObjectTicket(context.Context, *connect.Request[v1.CreateObjectTicketRequest]) (*connect.Response[v1.CreateObjectTicketResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreateObjectTicket is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopWorkflow is not implemented"))
 }

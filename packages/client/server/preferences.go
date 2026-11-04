@@ -76,6 +76,13 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		}
 		set[settings.KeySubagentMaxRunning] = n
 	}
+	if req.Msg.WorkflowMaxAgents != nil {
+		n := int(req.Msg.GetWorkflowMaxAgents())
+		if !settings.ValidWorkflowMaxAgents(n) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("agents per workflow must be between 1 and %d", settings.MaxWorkflowMaxAgents))
+		}
+		set[settings.KeyWorkflowMaxAgents] = n
+	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
 	doc, err := s.mergeUserSettings(ctx, set)
@@ -128,7 +135,7 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 // preferencesOf reads the preferences from a settings document (nil or invalid content: the defaults).
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	p := &agentv1.UserPreferences{CompactIdleSessions: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
-		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning}
+		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
@@ -146,6 +153,9 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	}
 	if v, ok := raw[settings.KeySubagentMaxRunning]; ok && json.Unmarshal(v, &n) == nil && settings.ValidSubagentMaxRunning(int(n)) {
 		p.SubagentMaxRunning = n
+	}
+	if v, ok := raw[settings.KeyWorkflowMaxAgents]; ok && json.Unmarshal(v, &n) == nil && settings.ValidWorkflowMaxAgents(int(n)) {
+		p.WorkflowMaxAgents = n
 	}
 	return p
 }

@@ -3491,6 +3491,9 @@ func rawFallback(src string) []hit {
 var gitInternalRe = jsRe(`(^|\/)\.git\/(hooks|config)(\/|$)`)
 
 func evaluateTool(tool string, input map[string]any, ctx *rulesCtx, facts RulesFacts, adminAllowed bool) RulesResult {
+	if tool == "Workflow" {
+		return ask("Starts a script that runs many agents", "ask.workflow")
+	}
 	if tool == "ExitWorktree" {
 		if discard, _ := input["discard_changes"].(bool); discard {
 			return ask("Discards uncommitted work in a worktree", "ask.discard_worktree")

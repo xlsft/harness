@@ -2074,6 +2074,7 @@ function rawFallback(src: string): Hit[] {
 }
 
 function evaluateTool(tool: string, input: Record<string, unknown>, ctx: Ctx, facts: RulesFacts, adminAllowed: boolean): RulesResult {
+  if (tool === "Workflow") return ask("Starts a script that runs many agents", "ask.workflow");
   if (tool === "ExitWorktree") {
     if (input.discard_changes === true) return ask("Discards uncommitted work in a worktree", "ask.discard_worktree");
     return { decision: "allow", reason: "Leaves the session's worktree without discarding work", categories: [], rule: "allow.leave_worktree" };

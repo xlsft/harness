@@ -2,7 +2,7 @@
 // Background tasks pane (docs/design/ui/TasksPane.dc.html), on real session data: running tasks are
 // cards (the first one open, each toggles with its chevron), finished runs are rows with ✓ / ✕.
 import { usePanes } from '~/composables/usePanes'
-import type { SessionState, TaskVM } from '~/lib/session/types'
+import type { SessionState, TaskVM, WorkflowAgentVM, WorkflowVM } from '~/lib/session/types'
 import { taskPid } from '~/lib/fixtures/tasks'
 
 const props = defineProps<{ session: SessionState, menu: string }>()
@@ -16,6 +16,25 @@ const all = computed(() => props.session.taskOrder.map(id => props.session.tasks
 const running = computed(() => all.value.filter(t => t.state === 'running'))
 const finished = computed(() => all.value.filter(t => t.state !== 'running' && !cleared.value.includes(t.id)))
 const finishedOpen = ref(true)
+const workflows = computed(() => props.session.workflowOrder.map(id => props.session.workflows[id]).filter((w): w is WorkflowVM => !!w && !cleared.value.includes(w.id)))
+
+// A run's agents by phase: its phases in order, then agents named no phase.
+function phaseGroups(w: WorkflowVM) {
+  const groups = w.phases.map(title => ({ title, agents: w.agents.filter(a => a.phase === title) }))
+  const rest = w.agents.filter(a => !w.phases.includes(a.phase))
+  return rest.length ? [{ title: '', agents: rest }, ...groups] : groups
+}
+
+// The live state of a run's agent, when its own event is newer.
+function agentState(a: WorkflowAgentVM) {
+  return a.cached ? 'cached' : (props.session.subagents[a.agentId]?.state ?? a.state)
+}
+
+function stopWorkflow(w: WorkflowVM) {
+  store.stopWorkflow(props.session.meta.id, w.id)
+}
+
+const workflowLine = (w: WorkflowVM) => [w.state === 'running' ? w.currentPhase : w.state, `${w.agents.length} agents`].filter(Boolean).join(' · ')
 
 // Open/closed per task; untouched cards follow the default (only the first running card is open).
 const toggled = ref<Record<string, boolean>>({})
@@ -50,7 +69,7 @@ function stop(t: TaskVM) {
 }
 
 function clearFinished() {
-  cleared.value = [...cleared.value, ...finished.value.map(t => t.id)]
+  cleared.value = [...cleared.value, ...finished.value.map(t => t.id), ...workflows.value.filter(w => w.state !== 'running').map(w => w.id)]
 }
 </script>
 
@@ -79,7 +98,7 @@ function clearFinished() {
     </div>
 
     <div
-      v-if="!running.length && !finished.length"
+      v-if="!running.length && !finished.length && !workflows.length"
       class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
     >
       <HIcon
@@ -88,13 +107,72 @@ function clearFinished() {
         class="text-muted"
       />
       <span class="text-strong">No background tasks</span>
-      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Dev servers, watchers, long test runs and monitors the agent starts in the background show up here.</span>
+      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Dev servers, watchers, long test runs, monitors and workflows the agent starts in the background show up here.</span>
     </div>
 
     <div
       v-else
       class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3"
     >
+      <template v-if="workflows.length">
+        <div class="px-[2px] pt-[2px] pb-1 text-[12px] text-muted">
+          Workflows <span class="text-strong">{{ workflows.length }}</span>
+        </div>
+        <div
+          v-for="w in workflows"
+          :key="w.id"
+          class="shrink-0 border border-line bg-surface"
+        >
+          <div class="flex h-[38px] items-center gap-[9px] pr-2 pl-2.5 text-[12.5px]">
+            <HIcon
+              :name="w.state === 'running' ? 'loading' : w.state === 'finished' ? 'check' : 'x'"
+              :size="13"
+              :spin="w.state === 'running'"
+              :class="w.state === 'running' ? 'text-accent' : w.state === 'finished' ? 'text-ok' : w.state === 'failed' ? 'text-bad' : 'text-muted'"
+            />
+            <span class="min-w-0 flex-1 truncate text-strong">{{ w.name }}</span>
+            <span class="text-[11.5px] whitespace-nowrap text-muted">{{ workflowLine(w) }}</span>
+            <button
+              v-if="w.state === 'running'"
+              type="button"
+              aria-label="Stop"
+              title="Stop"
+              class="flex size-6 shrink-0 items-center justify-center border border-line bg-raised hover:border-line-strong"
+              @click="stopWorkflow(w)"
+            >
+              <span class="size-2 bg-strong" />
+            </button>
+          </div>
+          <div class="flex flex-col gap-1 border-t border-line px-2.5 pt-2 pb-2.5 text-[11.5px]">
+            <span class="text-muted">{{ w.description }}</span>
+            <span
+              v-if="w.error"
+              class="whitespace-pre-wrap text-bad"
+            >{{ w.error }}</span>
+            <template
+              v-for="g in phaseGroups(w)"
+              :key="g.title"
+            >
+              <span
+                v-if="g.title"
+                :class="g.title === w.currentPhase && w.state === 'running' ? 'text-strong' : 'text-toned'"
+              >{{ g.title }}</span>
+              <span
+                v-for="(a, i) in g.agents"
+                :key="i"
+                class="flex items-center gap-1.5 pl-2.5 text-muted"
+              >
+                <span class="min-w-0 flex-1 truncate">{{ a.label }}</span>
+                <span class="whitespace-nowrap">{{ agentState(a) }}</span>
+              </span>
+            </template>
+            <pre
+              v-if="w.log.length"
+              class="m-0 border border-muted bg-default px-2 py-1.5 text-[11.5px] leading-[1.6] whitespace-pre-wrap text-muted"
+            >{{ w.log.slice(-8).join('\n') }}</pre>
+          </div>
+        </div>
+      </template>
       <div class="px-[2px] pt-[2px] pb-1 text-[12px] text-muted">
         Running <span class="text-strong">{{ running.length }}</span>
       </div>
