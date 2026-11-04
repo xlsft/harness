@@ -116,9 +116,9 @@ const BASIC_EFFORTS: Effort[] = ["low", "medium", "high"];
 
 /**
  * What one entry of a model list says the model can do; only what it says yes to. Two formats:
- *   - OpenRouter style: `reasoning` (`supported_efforts`, highest first, null for no allowlist), else
+ *   - OpenRouter style: `reasoning` (`supported_efforts`, highest first, null for no allowlist; `default_effort`), else
  *     `supported_parameters`, and `architecture.input_modalities`. Levels harness has no name for ("minimal",
- *     "none") are left out.
+ *     "none") are left out, and so is a default that is not one of the levels kept.
  *   - Anthropic: `capabilities`, an object of `{supported: boolean}` per capability and per effort level.
  */
 export function listedCapabilities(m: Record<string, any>): ListedCapabilities | undefined {
@@ -144,6 +144,8 @@ export function listedCapabilities(m: Record<string, any>): ListedCapabilities |
     if (caps.pdf_input?.supported === true) c.pdf = true;
   }
   if (!c.effort?.length) delete c.effort;
+  const listedDefault = m.reasoning?.default_effort;
+  if (c.effort?.includes(listedDefault)) c.default_effort = listedDefault;
   return Object.keys(c).length ? c : undefined;
 }
 

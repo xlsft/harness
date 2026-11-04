@@ -405,6 +405,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
               <EffortSlider
                 :model-value="effort"
                 :levels="harnessEffortLevels(efforts)"
+                :recommended="model?.defaultEffort"
                 @update:model-value="pickEffort($event as EffortName)"
               />
             </div>

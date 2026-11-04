@@ -20,6 +20,8 @@ export interface ProviderModelView {
   contextWindow: number
   // Effort levels the model takes, lowest first.
   efforts: EffortName[]
+  // The level recommended for a new session, one of `efforts`.
+  defaultEffort?: EffortName
 }
 
 export interface ProviderView {
@@ -240,8 +242,9 @@ export interface ProvidersApi {
   discover(id: string): Promise<ModelCandidateView[]>
   test(id: string): Promise<TestResult>
   addModel(providerId: string, model: NewModel): Promise<void>
-  // Sets by hand the levels a model takes, for lists that do not say.
-  setModelEfforts(modelId: string, efforts: EffortName[]): Promise<void>
+  // Sets by hand the levels a model takes, for lists that do not say. `defaultEffort`: the level to recommend, '' for
+  // none; omitted: unchanged, unless `efforts` drops that level.
+  setModelEfforts(modelId: string, efforts: EffortName[], defaultEffort?: EffortName | ''): Promise<void>
   removeModel(modelId: string): Promise<void>
   getSlots(): Promise<SlotSettings>
   // Admin only: replaces main, small, plan and title.

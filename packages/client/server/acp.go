@@ -212,13 +212,15 @@ func (l *acpLive) close(reason string) {
 // storedAcpInfo is the listing of a recorded ACP session that is not open.
 func (s *Server) storedAcpInfo(m acpMeta) *agentv1.SessionInfo {
 	var efforts []acp.Effort
+	defaultEffort := ""
 	if c := s.AcpRegistry().State(m.AgentID).Catalog; c != nil {
 		efforts = c.Efforts
+		defaultEffort = acpDefaultEffort(c, acp.EffortsToProto(efforts))
 	}
 	info := &agentv1.SessionInfo{Id: m.ID, Title: m.Title, Cwd: m.Cwd, Model: m.AgentName, Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
 		UpdatedAt: m.UpdatedAt.UTC().Format(time.RFC3339), NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(len(efforts) > 0),
 		Acp: &agentv1.AcpSessionState{AgentId: m.AgentID, AgentName: m.AgentName, AgentVersion: m.AgentVersion,
-			Efforts: acp.EffortsToProto(efforts), CurrentEffortId: m.Effort}, DeviceId: s.DeviceID}
+			Efforts: acp.EffortsToProto(efforts), CurrentEffortId: m.Effort, DefaultEffortId: defaultEffort}, DeviceId: s.DeviceID}
 	s.applyState(info)
 	return info
 }

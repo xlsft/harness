@@ -28,6 +28,7 @@ const effortChoice = computed(() => sessionEffort({
   unsupported: props.session.meta.unsupported.includes('effort'),
   acp: acp.value,
   harness: modelEfforts(model.value),
+  recommended: model.value?.defaultEffort,
   chosen: (props.session.meta.effort || store.effort[id.value] || 'medium') as EffortName
 }))
 function pickEffort(level: string) {
@@ -65,6 +66,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
       :acp-modes="acpModes"
       :efforts="effortChoice.levels"
       :effort="effortChoice.current"
+      :recommended="effortChoice.recommended"
       :mode="session.meta.permissionMode"
       @update:model="(m, engine) => store.setModel(id, m, engine)"
       @update:acp-mode="store.setAcpMode(id, $event)"

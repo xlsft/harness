@@ -152,7 +152,7 @@ curl -s localhost:3000/api/admin/providers "${H[@]}" -d '{
 curl -s localhost:3000/api/admin/models "${H[@]}" -d '{
   "id": "claude-sonnet", "display_name": "Claude Sonnet", "provider_id": "anthropic",
   "upstream_model": "claude-sonnet-4-5", "context_window": 200000, "max_output_tokens": 64000,
-  "capabilities": {"thinking": true, "effort": ["low","medium","high"], "images": true, "pdf": true, "prompt_cache": true},
+  "capabilities": {"thinking": true, "effort": ["low","medium","high"], "default_effort": "high", "images": true, "pdf": true, "prompt_cache": true},
   "pricing": {"input": 3, "output": 15, "cache_read": 0.3, "cache_write": 3.75},
   "fallbacks": []}'
 

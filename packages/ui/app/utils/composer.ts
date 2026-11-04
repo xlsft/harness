@@ -116,6 +116,22 @@ export function fitEffort(e: EffortName, levels: EffortName[]): EffortName | und
   return [...levels].sort((a, b) => Math.abs(ALL_EFFORTS.indexOf(a) - at) - Math.abs(ALL_EFFORTS.indexOf(b) - at))[0]
 }
 
+/**
+ * The level a new session starts on: the user's own for the model, else the level the model recommends, else `fallback`
+ * (the general choice, 'medium' without one), fitted to the levels offered. The client's order for a session started
+ * without a level ends the same (llm.Model.StartingEffort).
+ */
+export function startEffort(c: { own?: EffortName, recommended?: EffortName, fallback?: EffortName, levels: EffortName[] }): EffortName | undefined {
+  const recommended = c.recommended && c.levels.includes(c.recommended) ? c.recommended : undefined
+  return fitEffort(c.own ?? recommended ?? c.fallback ?? 'medium', c.levels)
+}
+
+/** What the effort slider's label says: the level's name, and whether to add that it is the recommended one. */
+export function effortSliderLabel(levels: EffortLevel[], selected: string, recommended?: string): { label: string, recommended: boolean } {
+  const level = levels.find(l => l.id === selected)
+  return { label: level?.label ?? selected, recommended: !!level && level.id === recommended }
+}
+
 /** The folder the new-session screen starts with: the one ?cwd= asks for ("+" of a sidebar group), else none ('',
  * a session without a folder). The last folder used is deliberately not remembered. */
 export function newSessionFolder(query: Record<string, unknown>): string {

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 // Effort as a slider over the levels the model or agent offers (lowest first, an agent's in its order): a thick track
-// with a square thumb inside it. Click, drag or use the arrow keys.
-import type { EffortLevel } from '~/utils/composer'
+// with a square thumb inside it. Click, drag or use the arrow keys. The recommended level, if any, has a taller tick and
+// says so in the label.
+import { effortSliderLabel, type EffortLevel } from '~/utils/composer'
 
-const props = defineProps<{ levels: EffortLevel[] }>()
+const props = defineProps<{ levels: EffortLevel[], recommended?: string }>()
 const model = defineModel<string>({ required: true })
 
 const index = computed(() => Math.max(0, props.levels.findIndex(l => l.id === model.value)))
-const label = computed(() => props.levels.find(l => l.id === model.value)?.label ?? model.value)
+const shown = computed(() => effortSliderLabel(props.levels, model.value, props.recommended))
 const last = computed(() => props.levels.length - 1)
 // The thumb's left edge, as a share of the track minus the thumb.
 const share = (i: number) => (last.value ? i / last.value : 0)
@@ -42,7 +43,10 @@ function onKey(e: KeyboardEvent) {
   <div class="flex w-[220px] flex-col gap-2 p-2.5">
     <div class="flex items-baseline justify-between text-[11.5px]">
       <span class="text-muted">Effort</span>
-      <span :class="atMax ? 'text-accent' : 'text-strong'">{{ label }}</span>
+      <span :class="atMax ? 'text-accent' : 'text-strong'">{{ shown.label }}<span
+        v-if="shown.recommended"
+        class="text-muted"
+      > · Recommended</span></span>
     </div>
     <div
       ref="track"
@@ -52,7 +56,7 @@ function onKey(e: KeyboardEvent) {
       :aria-valuemin="0"
       :aria-valuemax="last"
       :aria-valuenow="index"
-      :aria-valuetext="label"
+      :aria-valuetext="shown.recommended ? `${shown.label}, recommended` : shown.label"
       class="relative h-3.5 cursor-pointer touch-none overflow-hidden rounded-control bg-line outline-none focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-accent"
       @pointerdown="onDown"
       @keydown="onKey"
@@ -67,8 +71,8 @@ function onKey(e: KeyboardEvent) {
         v-for="(l, i) in levels"
         :key="l.id"
         aria-hidden="true"
-        class="absolute top-1/2 h-1.5 w-px -translate-x-1/2 -translate-y-1/2"
-        :class="i < index ? 'bg-black/45' : 'bg-(--color-dimmed)'"
+        class="absolute top-1/2 w-px -translate-x-1/2 -translate-y-1/2"
+        :class="[i < index ? 'bg-black/45' : 'bg-(--color-dimmed)', l.id === recommended ? 'h-2.5' : 'h-1.5']"
         :style="{ left: `calc((100% - 14px) * ${share(i)} + 7px)` }"
       />
       <span

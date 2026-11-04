@@ -68,6 +68,8 @@ export interface ModelInfo {
   offline?: boolean
   // Effort levels the model supports, lowest first; empty when it has none.
   efforts?: EffortName[]
+  // The level recommended for a new session, one of `efforts`.
+  defaultEffort?: EffortName
   thinking?: boolean
   // A model of a local provider on the client's machine (id "local:<provider>/<name>"): free, per device.
   local?: boolean

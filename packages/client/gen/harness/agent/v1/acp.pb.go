@@ -566,6 +566,9 @@ type AcpAgent struct {
 	// (CreateSessionRequest.acp_effort_id). Empty: the agent offers no effort option.
 	Efforts         []*AcpEffort `protobuf:"bytes,31,rep,name=efforts,proto3" json:"efforts,omitempty"`
 	CurrentEffortId string       `protobuf:"bytes,32,opt,name=current_effort_id,json=currentEffortId,proto3" json:"current_effort_id,omitempty"`
+	// The level a fresh session on the agent starts on by itself, as a probe found it, one of `efforts`. Unlike
+	// current_effort_id, which can follow a level chosen in a session, no session changes it. Empty: not known.
+	DefaultEffortId string `protobuf:"bytes,33,opt,name=default_effort_id,json=defaultEffortId,proto3" json:"default_effort_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -824,6 +827,13 @@ func (x *AcpAgent) GetCurrentEffortId() string {
 	return ""
 }
 
+func (x *AcpAgent) GetDefaultEffortId() string {
+	if x != nil {
+		return x.DefaultEffortId
+	}
+	return ""
+}
+
 // Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
 // Captured from what the agent sends over ACP (its `_meta` fields and extension notifications); the client never
 // asks the provider itself nor reads the agent's credentials. Device-local, like everything about ACP agents.
@@ -995,6 +1005,8 @@ type AcpSessionState struct {
 	// Empty: the agent offers no such option. The cached list while it starts or the session is not open.
 	Efforts         []*AcpEffort `protobuf:"bytes,16,rep,name=efforts,proto3" json:"efforts,omitempty"`
 	CurrentEffortId string       `protobuf:"bytes,17,opt,name=current_effort_id,json=currentEffortId,proto3" json:"current_effort_id,omitempty"`
+	// The level a fresh session on the agent starts on by itself (AcpAgent.default_effort_id), one of `efforts`.
+	DefaultEffortId string `protobuf:"bytes,18,opt,name=default_effort_id,json=defaultEffortId,proto3" json:"default_effort_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1144,6 +1156,13 @@ func (x *AcpSessionState) GetEfforts() []*AcpEffort {
 func (x *AcpSessionState) GetCurrentEffortId() string {
 	if x != nil {
 		return x.CurrentEffortId
+	}
+	return ""
+}
+
+func (x *AcpSessionState) GetDefaultEffortId() string {
+	if x != nil {
+		return x.DefaultEffortId
 	}
 	return ""
 }
@@ -2188,7 +2207,7 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\n" +
 	"KIND_AGENT\x10\x01\x12\x11\n" +
 	"\rKIND_TERMINAL\x10\x02\x12\x10\n" +
-	"\fKIND_ENV_VAR\x10\x03\"\xca\n" +
+	"\fKIND_ENV_VAR\x10\x03\"\xf6\n" +
 	"\n" +
 	"\bAcpAgent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -2228,7 +2247,8 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\x11models_updated_at\x18\x1d \x01(\tR\x0fmodelsUpdatedAt\x12S\n" +
 	"\x14unsupported_features\x18\x1e \x03(\x0e2 .harness.agent.v1.SessionFeatureR\x13unsupportedFeatures\x125\n" +
 	"\aefforts\x18\x1f \x03(\v2\x1b.harness.agent.v1.AcpEffortR\aefforts\x12*\n" +
-	"\x11current_effort_id\x18  \x01(\tR\x0fcurrentEffortIdB\t\n" +
+	"\x11current_effort_id\x18  \x01(\tR\x0fcurrentEffortId\x12*\n" +
+	"\x11default_effort_id\x18! \x01(\tR\x0fdefaultEffortIdB\t\n" +
 	"\a_limits\"\x88\x01\n" +
 	"\x0eAcpAgentLimits\x12:\n" +
 	"\awindows\x18\x01 \x03(\v2 .harness.agent.v1.AcpLimitWindowR\awindows\x12\x1b\n" +
@@ -2239,7 +2259,7 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12!\n" +
 	"\fused_percent\x18\x02 \x01(\x01R\vusedPercent\x12\x1b\n" +
 	"\tresets_at\x18\x03 \x01(\tR\bresetsAt\x12%\n" +
-	"\x0ewindow_minutes\x18\x04 \x01(\x03R\rwindowMinutes\"\xa1\x06\n" +
+	"\x0ewindow_minutes\x18\x04 \x01(\x03R\rwindowMinutes\"\xcd\x06\n" +
 	"\x0fAcpSessionState\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
@@ -2260,7 +2280,8 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\x10current_model_id\x18\x0e \x01(\tR\x0ecurrentModelId\x12=\n" +
 	"\x06limits\x18\x0f \x01(\v2 .harness.agent.v1.AcpAgentLimitsH\x00R\x06limits\x88\x01\x01\x125\n" +
 	"\aefforts\x18\x10 \x03(\v2\x1b.harness.agent.v1.AcpEffortR\aefforts\x12*\n" +
-	"\x11current_effort_id\x18\x11 \x01(\tR\x0fcurrentEffortIdB\t\n" +
+	"\x11current_effort_id\x18\x11 \x01(\tR\x0fcurrentEffortId\x12*\n" +
+	"\x11default_effort_id\x18\x12 \x01(\tR\x0fdefaultEffortIdB\t\n" +
 	"\a_limits\"O\n" +
 	"\aAcpMode\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +

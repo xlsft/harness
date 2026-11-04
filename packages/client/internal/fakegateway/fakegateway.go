@@ -69,6 +69,8 @@ type Server struct {
 	Respond Responder
 	// Model ids in the catalog; the first is the main slot, the second the small slot.
 	Models []string
+	// Capabilities replaces the capabilities of the models it names.
+	Capabilities map[string]*llmv1.Capabilities
 	// SmallModel overrides the catalog's small slot ("" keeps the second model, if any).
 	SmallModel string
 	// TitleModel sets the catalog's title slot ("" leaves it unset).
@@ -201,6 +203,13 @@ type gatewayHandler struct {
 	s *Server
 }
 
+func (s *Server) capabilities(id string) *llmv1.Capabilities {
+	if c := s.Capabilities[id]; c != nil {
+		return c
+	}
+	return &llmv1.Capabilities{ParallelToolCalls: true, PromptCache: true}
+}
+
 func (g gatewayHandler) ListModels(ctx context.Context, req *connect.Request[llmv1.ListModelsRequest]) (*connect.Response[llmv1.ListModelsResponse], error) {
 	if err := g.s.checkAuth(req.Header()); err != nil {
 		return nil, err
@@ -208,7 +217,7 @@ func (g gatewayHandler) ListModels(ctx context.Context, req *connect.Request[llm
 	resp := &llmv1.ListModelsResponse{Slots: &llmv1.Slots{}}
 	for i, id := range g.s.Models {
 		resp.Models = append(resp.Models, &llmv1.Model{Id: id, DisplayName: "Fake " + id, ContextWindow: 200000, MaxOutputTokens: 16000,
-			Capabilities: &llmv1.Capabilities{ParallelToolCalls: true, PromptCache: true}})
+			Capabilities: g.s.capabilities(id)})
 		switch i {
 		case 0:
 			resp.Slots.Main = id

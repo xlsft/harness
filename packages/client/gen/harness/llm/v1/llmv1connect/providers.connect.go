@@ -116,7 +116,8 @@ type ProviderServiceClient interface {
 	// Same access as DiscoverModels.
 	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
-	// Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them.
+	// Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them,
+	// and the level recommended among them.
 	// What is set here, also none, is kept: discovery only fills in what nobody set.
 	SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
@@ -412,7 +413,8 @@ type ProviderServiceHandler interface {
 	// Same access as DiscoverModels.
 	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
-	// Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them.
+	// Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them,
+	// and the level recommended among them.
 	// What is set here, also none, is kept: discovery only fills in what nobody set.
 	SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a

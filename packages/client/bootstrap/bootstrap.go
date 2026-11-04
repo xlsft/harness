@@ -63,9 +63,12 @@ type Options struct {
 	Prompts   prompts.Source
 	HTTP      *http.Client
 
-	Model    string
-	Effort   string
-	MaxTurns int
+	Model  string
+	Effort string
+	// StartingEffort starts the session on the model's starting level (llm.Model.StartingEffort) when neither Effort nor
+	// the effortLevel setting says one. Without it such a session sends no effort.
+	StartingEffort bool
+	MaxTurns       int
 	// OutputStyle selects the output style (--output-style): a built-in id or
 	// a user/project style name; "default" clears it. Empty keeps the style
 	// recorded in a resumed transcript, else the outputStyle setting.
@@ -520,6 +523,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		return nil, errors.New("no model selected: pass --model or configure a main slot on the server")
 	}
 	info, _ := catalog.Find(s.Model)
+	if o.StartingEffort && o.Effort == "" {
+		o.Effort = info.StartingEffort()
+	}
 
 	// Prompt bundle, frozen per session.
 	loader := &prompts.Loader{Source: src, Dir: config.PromptCacheDir(), Logger: log}

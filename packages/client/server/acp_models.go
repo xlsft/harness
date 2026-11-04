@@ -134,10 +134,12 @@ func (s *Server) runAcpProbe(id string) {
 	_, uerr := reg.UpdateCatalog(id, version, func(c *registry.Catalog) {
 		c.Version = version
 		c.Error, c.NeedsAuth = "", false
+		c.DefaultProbed = true
 		switch {
 		case err == nil:
 			c.Models, c.CurrentModel, c.Modes, c.CurrentMode = res.Models, res.CurrentModel, res.Modes, res.CurrentMode
 			c.Efforts, c.CurrentEffort = res.Efforts, res.CurrentEffort
+			c.DefaultEffort = res.CurrentEffort // A probe's session is fresh: nothing was chosen in it.
 			if c.CurrentModel == "" && len(c.Models) > 0 {
 				c.CurrentModel = c.Models[0].ID
 			}
@@ -181,7 +183,7 @@ func (s *Server) scheduleAcpProbes(refresh bool) {
 		if s.acp.probes.active(in.ID) {
 			continue
 		}
-		if st := reg.State(in.ID); st.Auth != registry.AuthRequired && (st.Catalog == nil || st.Catalog.Version != in.Version) {
+		if st := reg.State(in.ID); st.Auth != registry.AuthRequired && (st.Catalog == nil || st.Catalog.Version != in.Version || (len(st.Catalog.Efforts) > 0 && !st.Catalog.DefaultProbed)) {
 			s.probeAcpModels(in.ID)
 		}
 	}
@@ -200,6 +202,7 @@ func (s *Server) applyAcpModels(out *agentv1.AcpAgent, id string, st registry.Ag
 		out.Models, out.CurrentModelId = acp.ModelsToProto(c.Models), c.CurrentModel
 		out.Modes, out.CurrentModeId = acp.ModesToProto(c.Modes), c.CurrentMode
 		out.Efforts, out.CurrentEffortId = acp.EffortsToProto(c.Efforts), c.CurrentEffort
+		out.DefaultEffortId = acpDefaultEffort(c, out.Efforts)
 		if !c.UpdatedAt.IsZero() {
 			out.ModelsUpdatedAt = c.UpdatedAt.UTC().Format(time.RFC3339)
 		}
@@ -234,6 +237,7 @@ func (s *Server) acpSessionState(cfg acp.Config, st acp.State) *agentv1.AcpSessi
 			out.CurrentEffortId = c.CurrentEffort
 		}
 	}
+	out.DefaultEffortId = acpDefaultEffort(c, out.Efforts)
 	if len(out.Models) > 0 {
 		return out
 	}
@@ -248,6 +252,17 @@ func (s *Server) acpSessionState(cfg acp.Config, st acp.State) *agentv1.AcpSessi
 		}
 	}
 	return out
+}
+
+// acpDefaultEffort is the agent's default level, if it is one of the levels offered ("" otherwise): levels can depend on
+// the model a session is on.
+func acpDefaultEffort(c *registry.Catalog, offered []*agentv1.AcpEffort) string {
+	for _, e := range offered {
+		if e.GetId() == c.DefaultEffort {
+			return c.DefaultEffort
+		}
+	}
+	return ""
 }
 
 // observeState keeps what follows from a session's state: the model, mode and effort to restore on a resume, and the agent's
@@ -297,6 +312,7 @@ func (l *acpLive) observeState() {
 				c.CurrentMode = st.CurrentMode
 			}
 			// Levels can depend on the session's model: one without any says nothing about the agent's other models.
+			// DefaultEffort stays: a session's level says nothing about what a fresh one starts on.
 			if len(st.Efforts) > 0 {
 				c.Efforts = st.Efforts
 				if !hasAcpEffort(st.Efforts, c.CurrentEffort) {

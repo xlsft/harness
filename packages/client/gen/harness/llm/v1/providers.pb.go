@@ -335,7 +335,9 @@ type ProviderModel struct {
 	MaxOutputTokens int64  `protobuf:"varint,5,opt,name=max_output_tokens,json=maxOutputTokens,proto3" json:"max_output_tokens,omitempty"`
 	Enabled         bool   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Effort levels the model takes, lowest first; empty when it has none.
-	Efforts       []Effort `protobuf:"varint,7,rep,packed,name=efforts,proto3,enum=harness.llm.v1.Effort" json:"efforts,omitempty"`
+	Efforts []Effort `protobuf:"varint,7,rep,packed,name=efforts,proto3,enum=harness.llm.v1.Effort" json:"efforts,omitempty"`
+	// The level recommended for a new session, one of `efforts`; UNSPECIFIED: none.
+	DefaultEffort Effort `protobuf:"varint,8,opt,name=default_effort,json=defaultEffort,proto3,enum=harness.llm.v1.Effort" json:"default_effort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -417,6 +419,13 @@ func (x *ProviderModel) GetEfforts() []Effort {
 		return x.Efforts
 	}
 	return nil
+}
+
+func (x *ProviderModel) GetDefaultEffort() Effort {
+	if x != nil {
+		return x.DefaultEffort
+	}
+	return Effort_EFFORT_UNSPECIFIED
 }
 
 type ListPresetsRequest struct {
@@ -1976,7 +1985,10 @@ type SetModelEffortsRequest struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	ModelId string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	// The whole set; empty: the model takes no effort.
-	Efforts       []Effort `protobuf:"varint,2,rep,packed,name=efforts,proto3,enum=harness.llm.v1.Effort" json:"efforts,omitempty"`
+	Efforts []Effort `protobuf:"varint,2,rep,packed,name=efforts,proto3,enum=harness.llm.v1.Effort" json:"efforts,omitempty"`
+	// The level to recommend, by hand and kept from then on: one of `efforts`, or UNSPECIFIED for none. Absent: unchanged,
+	// unless `efforts` drops that level.
+	DefaultEffort *Effort `protobuf:"varint,3,opt,name=default_effort,json=defaultEffort,proto3,enum=harness.llm.v1.Effort,oneof" json:"default_effort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2023,6 +2035,13 @@ func (x *SetModelEffortsRequest) GetEfforts() []Effort {
 		return x.Efforts
 	}
 	return nil
+}
+
+func (x *SetModelEffortsRequest) GetDefaultEffort() Effort {
+	if x != nil && x.DefaultEffort != nil {
+		return *x.DefaultEffort
+	}
+	return Effort_EFFORT_UNSPECIFIED
 }
 
 type SetModelEffortsResponse struct {
@@ -3364,7 +3383,7 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\abilling\x18\x12 \x01(\tR\abilling\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc7\x02\n" +
 	"\rProviderModel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12%\n" +
@@ -3372,7 +3391,8 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x0econtext_window\x18\x04 \x01(\x03R\rcontextWindow\x12*\n" +
 	"\x11max_output_tokens\x18\x05 \x01(\x03R\x0fmaxOutputTokens\x12\x18\n" +
 	"\aenabled\x18\x06 \x01(\bR\aenabled\x120\n" +
-	"\aefforts\x18\a \x03(\x0e2\x16.harness.llm.v1.EffortR\aefforts\"\x14\n" +
+	"\aefforts\x18\a \x03(\x0e2\x16.harness.llm.v1.EffortR\aefforts\x12=\n" +
+	"\x0edefault_effort\x18\b \x01(\x0e2\x16.harness.llm.v1.EffortR\rdefaultEffort\"\x14\n" +
 	"\x12ListPresetsRequest\"\x8f\x01\n" +
 	"\x13ListPresetsResponse\x128\n" +
 	"\apresets\x18\x01 \x03(\v2\x1e.harness.llm.v1.ProviderPresetR\apresets\x12>\n" +
@@ -3507,10 +3527,12 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\bthinking\x18\a \x01(\bR\bthinking\x12\x16\n" +
 	"\x06images\x18\b \x01(\bR\x06images\"G\n" +
 	"\x10AddModelResponse\x123\n" +
-	"\x05model\x18\x01 \x01(\v2\x1d.harness.llm.v1.ProviderModelR\x05model\"e\n" +
+	"\x05model\x18\x01 \x01(\v2\x1d.harness.llm.v1.ProviderModelR\x05model\"\xbc\x01\n" +
 	"\x16SetModelEffortsRequest\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x120\n" +
-	"\aefforts\x18\x02 \x03(\x0e2\x16.harness.llm.v1.EffortR\aefforts\"N\n" +
+	"\aefforts\x18\x02 \x03(\x0e2\x16.harness.llm.v1.EffortR\aefforts\x12B\n" +
+	"\x0edefault_effort\x18\x03 \x01(\x0e2\x16.harness.llm.v1.EffortH\x00R\rdefaultEffort\x88\x01\x01B\x11\n" +
+	"\x0f_default_effort\"N\n" +
 	"\x17SetModelEffortsResponse\x123\n" +
 	"\x05model\x18\x01 \x01(\v2\x1d.harness.llm.v1.ProviderModelR\x05model\"6\n" +
 	"\x13TestProviderRequest\x12\x1f\n" +
@@ -3706,83 +3728,85 @@ var file_harness_llm_v1_providers_proto_depIdxs = []int32{
 	3,  // 1: harness.llm.v1.Provider.models:type_name -> harness.llm.v1.ProviderModel
 	54, // 2: harness.llm.v1.Provider.options:type_name -> harness.llm.v1.Provider.OptionsEntry
 	59, // 3: harness.llm.v1.ProviderModel.efforts:type_name -> harness.llm.v1.Effort
-	6,  // 4: harness.llm.v1.ListPresetsResponse.presets:type_name -> harness.llm.v1.ProviderPreset
-	11, // 5: harness.llm.v1.ListPresetsResponse.protocols:type_name -> harness.llm.v1.ProviderProtocol
-	9,  // 6: harness.llm.v1.ProviderPreset.fields:type_name -> harness.llm.v1.PresetField
-	10, // 7: harness.llm.v1.ProviderPreset.default_models:type_name -> harness.llm.v1.PresetModel
-	7,  // 8: harness.llm.v1.ProviderPreset.options:type_name -> harness.llm.v1.PresetOption
-	8,  // 9: harness.llm.v1.PresetOption.choices:type_name -> harness.llm.v1.OptionChoice
-	2,  // 10: harness.llm.v1.ListProvidersResponse.providers:type_name -> harness.llm.v1.Provider
-	0,  // 11: harness.llm.v1.CreateProviderRequest.scope:type_name -> harness.llm.v1.ProviderScope
-	55, // 12: harness.llm.v1.CreateProviderRequest.headers:type_name -> harness.llm.v1.CreateProviderRequest.HeadersEntry
-	56, // 13: harness.llm.v1.CreateProviderRequest.options:type_name -> harness.llm.v1.CreateProviderRequest.OptionsEntry
-	2,  // 14: harness.llm.v1.CreateProviderResponse.provider:type_name -> harness.llm.v1.Provider
-	18, // 15: harness.llm.v1.UpdateProviderRequest.headers:type_name -> harness.llm.v1.Headers
-	17, // 16: harness.llm.v1.UpdateProviderRequest.options:type_name -> harness.llm.v1.ProviderOptions
-	57, // 17: harness.llm.v1.ProviderOptions.values:type_name -> harness.llm.v1.ProviderOptions.ValuesEntry
-	58, // 18: harness.llm.v1.Headers.values:type_name -> harness.llm.v1.Headers.ValuesEntry
-	2,  // 19: harness.llm.v1.UpdateProviderResponse.provider:type_name -> harness.llm.v1.Provider
-	24, // 20: harness.llm.v1.DiscoverModelsResponse.models:type_name -> harness.llm.v1.ModelCandidate
-	3,  // 21: harness.llm.v1.AddModelResponse.model:type_name -> harness.llm.v1.ProviderModel
-	59, // 22: harness.llm.v1.SetModelEffortsRequest.efforts:type_name -> harness.llm.v1.Effort
-	3,  // 23: harness.llm.v1.SetModelEffortsResponse.model:type_name -> harness.llm.v1.ProviderModel
-	37, // 24: harness.llm.v1.GetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
-	37, // 25: harness.llm.v1.SetClassifierRequest.classifier:type_name -> harness.llm.v1.Classifier
-	37, // 26: harness.llm.v1.SetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
-	1,  // 27: harness.llm.v1.ClassifierOverride.choice:type_name -> harness.llm.v1.ClassifierChoice
-	38, // 28: harness.llm.v1.GetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
-	38, // 29: harness.llm.v1.SetMyClassifierRequest.mine:type_name -> harness.llm.v1.ClassifierOverride
-	38, // 30: harness.llm.v1.SetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
-	60, // 31: harness.llm.v1.GetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
-	60, // 32: harness.llm.v1.GetSlotsResponse.defaults:type_name -> harness.llm.v1.Slots
-	60, // 33: harness.llm.v1.SetSlotsRequest.slots:type_name -> harness.llm.v1.Slots
-	60, // 34: harness.llm.v1.SetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
-	48, // 35: harness.llm.v1.GetSearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
-	48, // 36: harness.llm.v1.SetSearchDefaultResponse.settings:type_name -> harness.llm.v1.SearchSettings
-	48, // 37: harness.llm.v1.SetMySearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
-	4,  // 38: harness.llm.v1.ProviderService.ListPresets:input_type -> harness.llm.v1.ListPresetsRequest
-	12, // 39: harness.llm.v1.ProviderService.ListProviders:input_type -> harness.llm.v1.ListProvidersRequest
-	14, // 40: harness.llm.v1.ProviderService.CreateProvider:input_type -> harness.llm.v1.CreateProviderRequest
-	16, // 41: harness.llm.v1.ProviderService.UpdateProvider:input_type -> harness.llm.v1.UpdateProviderRequest
-	20, // 42: harness.llm.v1.ProviderService.DeleteProvider:input_type -> harness.llm.v1.DeleteProviderRequest
-	22, // 43: harness.llm.v1.ProviderService.DiscoverModels:input_type -> harness.llm.v1.DiscoverModelsRequest
-	25, // 44: harness.llm.v1.ProviderService.AddModel:input_type -> harness.llm.v1.AddModelRequest
-	29, // 45: harness.llm.v1.ProviderService.TestProvider:input_type -> harness.llm.v1.TestProviderRequest
-	31, // 46: harness.llm.v1.ProviderService.RemoveModel:input_type -> harness.llm.v1.RemoveModelRequest
-	27, // 47: harness.llm.v1.ProviderService.SetModelEfforts:input_type -> harness.llm.v1.SetModelEffortsRequest
-	33, // 48: harness.llm.v1.ProviderService.GetClassifier:input_type -> harness.llm.v1.GetClassifierRequest
-	35, // 49: harness.llm.v1.ProviderService.SetClassifier:input_type -> harness.llm.v1.SetClassifierRequest
-	39, // 50: harness.llm.v1.ProviderService.GetMyClassifier:input_type -> harness.llm.v1.GetMyClassifierRequest
-	41, // 51: harness.llm.v1.ProviderService.SetMyClassifier:input_type -> harness.llm.v1.SetMyClassifierRequest
-	43, // 52: harness.llm.v1.ProviderService.GetSlots:input_type -> harness.llm.v1.GetSlotsRequest
-	45, // 53: harness.llm.v1.ProviderService.SetSlots:input_type -> harness.llm.v1.SetSlotsRequest
-	47, // 54: harness.llm.v1.ProviderService.GetSearch:input_type -> harness.llm.v1.GetSearchRequest
-	50, // 55: harness.llm.v1.ProviderService.SetSearchDefault:input_type -> harness.llm.v1.SetSearchDefaultRequest
-	52, // 56: harness.llm.v1.ProviderService.SetMySearch:input_type -> harness.llm.v1.SetMySearchRequest
-	5,  // 57: harness.llm.v1.ProviderService.ListPresets:output_type -> harness.llm.v1.ListPresetsResponse
-	13, // 58: harness.llm.v1.ProviderService.ListProviders:output_type -> harness.llm.v1.ListProvidersResponse
-	15, // 59: harness.llm.v1.ProviderService.CreateProvider:output_type -> harness.llm.v1.CreateProviderResponse
-	19, // 60: harness.llm.v1.ProviderService.UpdateProvider:output_type -> harness.llm.v1.UpdateProviderResponse
-	21, // 61: harness.llm.v1.ProviderService.DeleteProvider:output_type -> harness.llm.v1.DeleteProviderResponse
-	23, // 62: harness.llm.v1.ProviderService.DiscoverModels:output_type -> harness.llm.v1.DiscoverModelsResponse
-	26, // 63: harness.llm.v1.ProviderService.AddModel:output_type -> harness.llm.v1.AddModelResponse
-	30, // 64: harness.llm.v1.ProviderService.TestProvider:output_type -> harness.llm.v1.TestProviderResponse
-	32, // 65: harness.llm.v1.ProviderService.RemoveModel:output_type -> harness.llm.v1.RemoveModelResponse
-	28, // 66: harness.llm.v1.ProviderService.SetModelEfforts:output_type -> harness.llm.v1.SetModelEffortsResponse
-	34, // 67: harness.llm.v1.ProviderService.GetClassifier:output_type -> harness.llm.v1.GetClassifierResponse
-	36, // 68: harness.llm.v1.ProviderService.SetClassifier:output_type -> harness.llm.v1.SetClassifierResponse
-	40, // 69: harness.llm.v1.ProviderService.GetMyClassifier:output_type -> harness.llm.v1.GetMyClassifierResponse
-	42, // 70: harness.llm.v1.ProviderService.SetMyClassifier:output_type -> harness.llm.v1.SetMyClassifierResponse
-	44, // 71: harness.llm.v1.ProviderService.GetSlots:output_type -> harness.llm.v1.GetSlotsResponse
-	46, // 72: harness.llm.v1.ProviderService.SetSlots:output_type -> harness.llm.v1.SetSlotsResponse
-	49, // 73: harness.llm.v1.ProviderService.GetSearch:output_type -> harness.llm.v1.GetSearchResponse
-	51, // 74: harness.llm.v1.ProviderService.SetSearchDefault:output_type -> harness.llm.v1.SetSearchDefaultResponse
-	53, // 75: harness.llm.v1.ProviderService.SetMySearch:output_type -> harness.llm.v1.SetMySearchResponse
-	57, // [57:76] is the sub-list for method output_type
-	38, // [38:57] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	59, // 4: harness.llm.v1.ProviderModel.default_effort:type_name -> harness.llm.v1.Effort
+	6,  // 5: harness.llm.v1.ListPresetsResponse.presets:type_name -> harness.llm.v1.ProviderPreset
+	11, // 6: harness.llm.v1.ListPresetsResponse.protocols:type_name -> harness.llm.v1.ProviderProtocol
+	9,  // 7: harness.llm.v1.ProviderPreset.fields:type_name -> harness.llm.v1.PresetField
+	10, // 8: harness.llm.v1.ProviderPreset.default_models:type_name -> harness.llm.v1.PresetModel
+	7,  // 9: harness.llm.v1.ProviderPreset.options:type_name -> harness.llm.v1.PresetOption
+	8,  // 10: harness.llm.v1.PresetOption.choices:type_name -> harness.llm.v1.OptionChoice
+	2,  // 11: harness.llm.v1.ListProvidersResponse.providers:type_name -> harness.llm.v1.Provider
+	0,  // 12: harness.llm.v1.CreateProviderRequest.scope:type_name -> harness.llm.v1.ProviderScope
+	55, // 13: harness.llm.v1.CreateProviderRequest.headers:type_name -> harness.llm.v1.CreateProviderRequest.HeadersEntry
+	56, // 14: harness.llm.v1.CreateProviderRequest.options:type_name -> harness.llm.v1.CreateProviderRequest.OptionsEntry
+	2,  // 15: harness.llm.v1.CreateProviderResponse.provider:type_name -> harness.llm.v1.Provider
+	18, // 16: harness.llm.v1.UpdateProviderRequest.headers:type_name -> harness.llm.v1.Headers
+	17, // 17: harness.llm.v1.UpdateProviderRequest.options:type_name -> harness.llm.v1.ProviderOptions
+	57, // 18: harness.llm.v1.ProviderOptions.values:type_name -> harness.llm.v1.ProviderOptions.ValuesEntry
+	58, // 19: harness.llm.v1.Headers.values:type_name -> harness.llm.v1.Headers.ValuesEntry
+	2,  // 20: harness.llm.v1.UpdateProviderResponse.provider:type_name -> harness.llm.v1.Provider
+	24, // 21: harness.llm.v1.DiscoverModelsResponse.models:type_name -> harness.llm.v1.ModelCandidate
+	3,  // 22: harness.llm.v1.AddModelResponse.model:type_name -> harness.llm.v1.ProviderModel
+	59, // 23: harness.llm.v1.SetModelEffortsRequest.efforts:type_name -> harness.llm.v1.Effort
+	59, // 24: harness.llm.v1.SetModelEffortsRequest.default_effort:type_name -> harness.llm.v1.Effort
+	3,  // 25: harness.llm.v1.SetModelEffortsResponse.model:type_name -> harness.llm.v1.ProviderModel
+	37, // 26: harness.llm.v1.GetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
+	37, // 27: harness.llm.v1.SetClassifierRequest.classifier:type_name -> harness.llm.v1.Classifier
+	37, // 28: harness.llm.v1.SetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
+	1,  // 29: harness.llm.v1.ClassifierOverride.choice:type_name -> harness.llm.v1.ClassifierChoice
+	38, // 30: harness.llm.v1.GetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
+	38, // 31: harness.llm.v1.SetMyClassifierRequest.mine:type_name -> harness.llm.v1.ClassifierOverride
+	38, // 32: harness.llm.v1.SetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
+	60, // 33: harness.llm.v1.GetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
+	60, // 34: harness.llm.v1.GetSlotsResponse.defaults:type_name -> harness.llm.v1.Slots
+	60, // 35: harness.llm.v1.SetSlotsRequest.slots:type_name -> harness.llm.v1.Slots
+	60, // 36: harness.llm.v1.SetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
+	48, // 37: harness.llm.v1.GetSearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
+	48, // 38: harness.llm.v1.SetSearchDefaultResponse.settings:type_name -> harness.llm.v1.SearchSettings
+	48, // 39: harness.llm.v1.SetMySearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
+	4,  // 40: harness.llm.v1.ProviderService.ListPresets:input_type -> harness.llm.v1.ListPresetsRequest
+	12, // 41: harness.llm.v1.ProviderService.ListProviders:input_type -> harness.llm.v1.ListProvidersRequest
+	14, // 42: harness.llm.v1.ProviderService.CreateProvider:input_type -> harness.llm.v1.CreateProviderRequest
+	16, // 43: harness.llm.v1.ProviderService.UpdateProvider:input_type -> harness.llm.v1.UpdateProviderRequest
+	20, // 44: harness.llm.v1.ProviderService.DeleteProvider:input_type -> harness.llm.v1.DeleteProviderRequest
+	22, // 45: harness.llm.v1.ProviderService.DiscoverModels:input_type -> harness.llm.v1.DiscoverModelsRequest
+	25, // 46: harness.llm.v1.ProviderService.AddModel:input_type -> harness.llm.v1.AddModelRequest
+	29, // 47: harness.llm.v1.ProviderService.TestProvider:input_type -> harness.llm.v1.TestProviderRequest
+	31, // 48: harness.llm.v1.ProviderService.RemoveModel:input_type -> harness.llm.v1.RemoveModelRequest
+	27, // 49: harness.llm.v1.ProviderService.SetModelEfforts:input_type -> harness.llm.v1.SetModelEffortsRequest
+	33, // 50: harness.llm.v1.ProviderService.GetClassifier:input_type -> harness.llm.v1.GetClassifierRequest
+	35, // 51: harness.llm.v1.ProviderService.SetClassifier:input_type -> harness.llm.v1.SetClassifierRequest
+	39, // 52: harness.llm.v1.ProviderService.GetMyClassifier:input_type -> harness.llm.v1.GetMyClassifierRequest
+	41, // 53: harness.llm.v1.ProviderService.SetMyClassifier:input_type -> harness.llm.v1.SetMyClassifierRequest
+	43, // 54: harness.llm.v1.ProviderService.GetSlots:input_type -> harness.llm.v1.GetSlotsRequest
+	45, // 55: harness.llm.v1.ProviderService.SetSlots:input_type -> harness.llm.v1.SetSlotsRequest
+	47, // 56: harness.llm.v1.ProviderService.GetSearch:input_type -> harness.llm.v1.GetSearchRequest
+	50, // 57: harness.llm.v1.ProviderService.SetSearchDefault:input_type -> harness.llm.v1.SetSearchDefaultRequest
+	52, // 58: harness.llm.v1.ProviderService.SetMySearch:input_type -> harness.llm.v1.SetMySearchRequest
+	5,  // 59: harness.llm.v1.ProviderService.ListPresets:output_type -> harness.llm.v1.ListPresetsResponse
+	13, // 60: harness.llm.v1.ProviderService.ListProviders:output_type -> harness.llm.v1.ListProvidersResponse
+	15, // 61: harness.llm.v1.ProviderService.CreateProvider:output_type -> harness.llm.v1.CreateProviderResponse
+	19, // 62: harness.llm.v1.ProviderService.UpdateProvider:output_type -> harness.llm.v1.UpdateProviderResponse
+	21, // 63: harness.llm.v1.ProviderService.DeleteProvider:output_type -> harness.llm.v1.DeleteProviderResponse
+	23, // 64: harness.llm.v1.ProviderService.DiscoverModels:output_type -> harness.llm.v1.DiscoverModelsResponse
+	26, // 65: harness.llm.v1.ProviderService.AddModel:output_type -> harness.llm.v1.AddModelResponse
+	30, // 66: harness.llm.v1.ProviderService.TestProvider:output_type -> harness.llm.v1.TestProviderResponse
+	32, // 67: harness.llm.v1.ProviderService.RemoveModel:output_type -> harness.llm.v1.RemoveModelResponse
+	28, // 68: harness.llm.v1.ProviderService.SetModelEfforts:output_type -> harness.llm.v1.SetModelEffortsResponse
+	34, // 69: harness.llm.v1.ProviderService.GetClassifier:output_type -> harness.llm.v1.GetClassifierResponse
+	36, // 70: harness.llm.v1.ProviderService.SetClassifier:output_type -> harness.llm.v1.SetClassifierResponse
+	40, // 71: harness.llm.v1.ProviderService.GetMyClassifier:output_type -> harness.llm.v1.GetMyClassifierResponse
+	42, // 72: harness.llm.v1.ProviderService.SetMyClassifier:output_type -> harness.llm.v1.SetMyClassifierResponse
+	44, // 73: harness.llm.v1.ProviderService.GetSlots:output_type -> harness.llm.v1.GetSlotsResponse
+	46, // 74: harness.llm.v1.ProviderService.SetSlots:output_type -> harness.llm.v1.SetSlotsResponse
+	49, // 75: harness.llm.v1.ProviderService.GetSearch:output_type -> harness.llm.v1.GetSearchResponse
+	51, // 76: harness.llm.v1.ProviderService.SetSearchDefault:output_type -> harness.llm.v1.SetSearchDefaultResponse
+	53, // 77: harness.llm.v1.ProviderService.SetMySearch:output_type -> harness.llm.v1.SetMySearchResponse
+	59, // [59:78] is the sub-list for method output_type
+	40, // [40:59] is the sub-list for method input_type
+	40, // [40:40] is the sub-list for extension type_name
+	40, // [40:40] is the sub-list for extension extendee
+	0,  // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_providers_proto_init() }
@@ -3793,6 +3817,7 @@ func file_harness_llm_v1_providers_proto_init() {
 	file_harness_llm_v1_content_proto_init()
 	file_harness_llm_v1_gateway_proto_init()
 	file_harness_llm_v1_providers_proto_msgTypes[14].OneofWrappers = []any{}
+	file_harness_llm_v1_providers_proto_msgTypes[25].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

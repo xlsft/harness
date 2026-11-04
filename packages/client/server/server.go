@@ -301,6 +301,7 @@ func modelInfo(m llm.Model) *agentv1.ModelInfo {
 		}
 	}
 	slices.Sort(mi.Efforts)
+	mi.DefaultEffort = pbconv.Effort(m.RecommendedEffort())
 	if p := m.Pricing; p != nil {
 		mi.InputPrice, mi.OutputPrice = &p.Input, &p.Output
 	}
@@ -360,6 +361,8 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if e := pbconv.FromEffort(m.GetEffort()); e != "" {
 		opts.Effort = e
 	}
+	// A new session nobody chose an effort for; a session that exists keeps its own.
+	opts.StartingEffort = m.GetResumeSessionId() == ""
 	if n := m.GetMaxTurns(); n > 0 {
 		opts.MaxTurns = int(n)
 	}

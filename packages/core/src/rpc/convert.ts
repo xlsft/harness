@@ -333,6 +333,7 @@ export function modelsToProto(r: {
         pdf: m.capabilities.pdf,
         parallelToolCalls: m.capabilities.parallel_tool_calls,
         promptCache: m.capabilities.prompt_cache,
+        defaultEffort: effortToProto(m.capabilities.default_effort ?? ""),
       },
       pricing: m.pricing
         ? {

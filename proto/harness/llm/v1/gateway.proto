@@ -51,6 +51,9 @@ message Capabilities {
   bool pdf = 4;
   bool parallel_tool_calls = 5;
   bool prompt_cache = 6;
+  // The level recommended for a new session, one of `effort`: from the upstream's model list or set by hand.
+  // UNSPECIFIED: none.
+  Effort default_effort = 7;
 }
 
 // USD per 1M tokens. A zero cache price means "same as input".
