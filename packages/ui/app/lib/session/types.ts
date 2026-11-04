@@ -79,10 +79,39 @@ export interface AssistantItem {
 export type ToolStatus = 'running' | 'ok' | 'error' | 'interrupted'
 
 export interface SubagentStep {
+  // The tool call's id; absent in progress notices.
+  id?: string
   tool: string
   target: string
   meta?: string
   status: 'done' | 'running' | 'waiting' | 'failed'
+}
+
+export type SubagentStateName = 'queued' | 'running' | 'finished' | 'failed' | 'stopped' | 'interrupted'
+
+// A subagent of the session (harness.agent.v1.SubagentInfo).
+export interface SubagentVM {
+  id: string
+  parentId: string
+  toolUseId: string
+  name: string
+  type: string
+  model: string
+  state: SubagentStateName
+  currentTool: string
+  steps: SubagentStep[]
+  toolCalls: number
+  inputTokens: number
+  outputTokens: number
+  tokens: number
+  costUsd: number
+  startedAt: number
+  // 0 while it works.
+  finishedAt: number
+  report: string
+  error: string
+  worktreePath: string
+  worktreeBranch: string
 }
 
 // Why a Bash command runs in the background (harness.agent.v1.BackgroundReason): the user moved it, it was moved
@@ -114,8 +143,9 @@ export interface ToolItem {
   // Set when the Bash command runs on as background task `taskId` (ToolCallFinished.background); the card shows
   // a short note about it inside the output.
   background?: { taskId: string, reason: BackgroundReasonName }
-  // Subagents (Task / Agent tool): progress reported by the client.
-  subagent?: { steps: SubagentStep[], tokens: number, toolCalls: number, model: string, active: number }
+  // Subagents (Task / Agent tool): progress reported by the client. The Agent call itself ends at once; `agentId`
+  // and `state` follow the agent it started.
+  subagent?: { steps: SubagentStep[], tokens: number, toolCalls: number, model: string, active: number, agentId?: string, state?: SubagentStateName, report?: string }
 }
 
 export type PermissionState = 'pending' | 'allowed' | 'allowed_always' | 'denied'
@@ -130,6 +160,8 @@ export interface PermissionItem {
   reason: string
   state: PermissionState
   resolvedBy: string
+  // Set when a subagent asks.
+  agentName: string
 }
 
 export interface QuestionOptionVM {
@@ -383,6 +415,9 @@ export interface SessionState {
   index: Record<string, number>
   tasks: Record<string, TaskVM>
   taskOrder: string[]
+  // The session's subagents (SubagentUpdated), oldest first.
+  subagents: Record<string, SubagentVM>
+  subagentOrder: string[]
   todos: TodoVM[]
   // The client's queue (QueueChanged).
   queue: QueuedMessage[]

@@ -21,9 +21,9 @@ describe("bundle builder", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
-      "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
+      "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
+      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "ListAgents", "McpAuthenticate", "Read", "SendMessage", "Show", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -40,6 +40,12 @@ describe("bundle builder", () => {
       plan_approved: ["plan_file_path"],
       plan_rejected: ["feedback"],
       background_task_done: ["task_id", "command", "status", "tail", "output_path"],
+      agent_report: ["agent_id", "name", "agent_type", "status", "report", "details"],
+      agent_message: ["from", "message"],
+      agent_context: ["agent_id", "agent_type", "instructions"],
+      agent_type_general: [],
+      agent_type_explore: [],
+      agent_type_plan: [],
       compacted: [],
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],

@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "What this agent does, in 3 to 5 words. It is the agent's name in lists and in the user's view."
+    },
+    "prompt": {
+      "type": "string",
+      "description": "The complete task for the agent, which sees nothing else of this conversation"
+    },
+    "subagent_type": {
+      "type": "string",
+      "description": "general-purpose (default), Explore, Plan, or a type ListAgents shows"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model id or slot name; default: your model"
+    },
+    "isolation": {
+      "type": "string",
+      "enum": [
+        "worktree"
+      ],
+      "description": "Run in a git worktree of its own"
+    }
+  },
+  "required": [
+    "description",
+    "prompt"
+  ],
+  "additionalProperties": false
+}

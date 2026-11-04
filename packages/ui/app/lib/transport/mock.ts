@@ -1085,6 +1085,12 @@ export class MockTransport implements SessionTransport {
     this.emit(s, b => b.taskFinished(taskId, 143, 0, true))
   }
 
+  async stopSubagent() {}
+
+  async subagentTranscript() {
+    return []
+  }
+
   private filesApi = new MockFilesApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd, blank: id => !!this.sessions.get(id)?.info.noFolder })
   files() {
     return this.filesApi

@@ -285,6 +285,12 @@ const (
 	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionDiff RPC.
 	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
+	// AgentServiceStopSubagentProcedure is the fully-qualified name of the AgentService's StopSubagent
+	// RPC.
+	AgentServiceStopSubagentProcedure = "/harness.agent.v1.AgentService/StopSubagent"
+	// AgentServiceGetSubagentTranscriptProcedure is the fully-qualified name of the AgentService's
+	// GetSubagentTranscript RPC.
+	AgentServiceGetSubagentTranscriptProcedure = "/harness.agent.v1.AgentService/GetSubagentTranscript"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -514,6 +520,10 @@ type AgentServiceClient interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
+	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
+	// What a subagent did, for reading.
+	GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1055,6 +1065,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		stopSubagent: connect.NewClient[v1.StopSubagentRequest, v1.StopSubagentResponse](
+			httpClient,
+			baseURL+AgentServiceStopSubagentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopSubagent")),
+			connect.WithClientOptions(opts...),
+		),
+		getSubagentTranscript: connect.NewClient[v1.GetSubagentTranscriptRequest, v1.GetSubagentTranscriptResponse](
+			httpClient,
+			baseURL+AgentServiceGetSubagentTranscriptProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetSubagentTranscript")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1148,6 +1170,8 @@ type agentServiceClient struct {
 	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 	setAutoContinue        *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
 	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
+	stopSubagent           *connect.Client[v1.StopSubagentRequest, v1.StopSubagentResponse]
+	getSubagentTranscript  *connect.Client[v1.GetSubagentTranscriptRequest, v1.GetSubagentTranscriptResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1590,6 +1614,16 @@ func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Re
 	return c.getSessionDiff.CallUnary(ctx, req)
 }
 
+// StopSubagent calls harness.agent.v1.AgentService.StopSubagent.
+func (c *agentServiceClient) StopSubagent(ctx context.Context, req *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error) {
+	return c.stopSubagent.CallUnary(ctx, req)
+}
+
+// GetSubagentTranscript calls harness.agent.v1.AgentService.GetSubagentTranscript.
+func (c *agentServiceClient) GetSubagentTranscript(ctx context.Context, req *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error) {
+	return c.getSubagentTranscript.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1817,6 +1851,10 @@ type AgentServiceHandler interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
+	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
+	// What a subagent did, for reading.
+	GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2354,6 +2392,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceStopSubagentHandler := connect.NewUnaryHandler(
+		AgentServiceStopSubagentProcedure,
+		svc.StopSubagent,
+		connect.WithSchema(agentServiceMethods.ByName("StopSubagent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetSubagentTranscriptHandler := connect.NewUnaryHandler(
+		AgentServiceGetSubagentTranscriptProcedure,
+		svc.GetSubagentTranscript,
+		connect.WithSchema(agentServiceMethods.ByName("GetSubagentTranscript")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2532,6 +2582,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetAutoContinueHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionDiffProcedure:
 			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
+		case AgentServiceStopSubagentProcedure:
+			agentServiceStopSubagentHandler.ServeHTTP(w, r)
+		case AgentServiceGetSubagentTranscriptProcedure:
+			agentServiceGetSubagentTranscriptHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2891,4 +2945,12 @@ func (UnimplementedAgentServiceHandler) SetAutoContinue(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopSubagent is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSubagentTranscript is not implemented"))
 }

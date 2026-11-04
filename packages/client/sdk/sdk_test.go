@@ -85,3 +85,34 @@ func TestHeadlessOutputFormats(t *testing.T) {
 		t.Fatalf("stream-json:\n%s", out.String())
 	}
 }
+
+// A headless run ends with its process, so it waits for its agents and the model answers their reports.
+func TestHeadlessWaitsForAgents(t *testing.T) {
+	t.Setenv("HARNESS_HOME", t.TempDir())
+	t.Setenv("HARNESS_TMPDIR", t.TempDir())
+	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
+	gw, url := fg.Start(t, func(n int, r *llm.Request) fg.Reply {
+		if r.Metadata != nil && r.Metadata.AgentID != "" {
+			return fg.Reply{Events: fg.Message("c", fg.Text("agent findings"))}
+		}
+		last := r.Messages[len(r.Messages)-1]
+		for _, c := range last.Content {
+			if strings.Contains(c.Text, "agent findings") {
+				return fg.Reply{Events: fg.Message("p", fg.Text("final answer"))}
+			}
+		}
+		if n == 0 {
+			return fg.Reply{Events: fg.Message("p", fg.ToolUse("a1", "Agent", map[string]any{"description": "look", "prompt": "look around"}))}
+		}
+		return fg.Reply{Events: fg.Message("p", fg.Text("waiting"))}
+	})
+	tok := auth.StaticToken("hat_test")
+	var out bytes.Buffer
+	code := sdk.Run(context.Background(), sdk.Options{
+		Bootstrap: bootstrap.Options{Cwd: t.TempDir(), Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok), NoPersistence: true, NoSync: true},
+		Prompt:    "go", OutputFormat: sdk.FormatText, Stdout: &out, Stderr: &out,
+	})
+	if code != 0 || !strings.Contains(out.String(), "final answer") {
+		t.Fatalf("code %d, output %q, %d requests", code, out.String(), len(gw.Requests()))
+	}
+}

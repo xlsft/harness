@@ -271,7 +271,7 @@ func (a *Agent) summarize(ctx context.Context, msgs []llm.Message, instructions 
 		Tools:      a.toolDefs(bundle),
 		ToolChoice: &llm.ToolChoice{Type: "none"},
 		Stream:     true,
-		Metadata:   &llm.Metadata{SessionID: a.cfg.SessionID, RequestClass: "compaction", PromptBundleVersion: bundle.Version},
+		Metadata:   &llm.Metadata{SessionID: a.cfg.SessionID, RequestClass: "compaction", AgentID: a.cfg.AgentID, PromptBundleVersion: bundle.Version},
 	}
 	resp, _, err := gateway.Send(ctx, a.cfg.Gateway, req, nil, a.retryPolicy())
 	if err != nil {

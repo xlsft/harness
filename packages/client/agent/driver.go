@@ -39,6 +39,8 @@ type Driver struct {
 	stopped   bool
 	// held: see SetHeld. wakeMissed: Wake was called while held (a background task's notification waits).
 	held, wakeMissed bool
+	// wakeLater: Wake was called during a turn, whose next request may never come; checked when it ends.
+	wakeLater bool
 }
 
 // NewDriver creates a driver whose turns run under ctx.
@@ -71,8 +73,9 @@ func (d *Driver) Submit(id string, blocks []llm.ContentBlock) (queued bool) {
 }
 
 // Wake starts a turn without a message when the session is idle and the agent has reminders waiting (a
-// background task that finished): the model answers the notification. No-op while a turn runs (the reminder
-// rides on its next request) or after Stop; while held it waits for Release.
+// background task that finished): the model answers the notification. While a turn runs the reminder rides on its
+// next request; if the turn ends without another one, the next turn starts for it. No-op after Stop; while held it
+// waits for Release.
 func (d *Driver) Wake() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -80,12 +83,24 @@ func (d *Driver) Wake() {
 		d.wakeMissed = true
 		return
 	}
-	if d.running || d.stopped || d.ctx.Err() != nil || !d.Agent.HasReminders() {
+	if d.running {
+		d.wakeLater = true
+		return
+	}
+	if d.stopped || d.ctx.Err() != nil || !d.Agent.HasReminders() {
 		return
 	}
 	d.running = true
 	d.interrupts = 0
 	go d.loop(nil, nil)
+}
+
+// wakeDue reports whether a Wake during the turn that just ended still has something to answer (d.mu held). After
+// an interrupted turn it waits for the next message: the user just stopped the work.
+func (d *Driver) wakeDue(interrupted bool) bool {
+	due := d.wakeLater && !interrupted && !d.held && !d.stopped && d.ctx.Err() == nil && d.Agent.HasReminders()
+	d.wakeLater = false
+	return due
 }
 
 func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
@@ -107,7 +122,8 @@ func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 		if !d.held {
 			next, nextIDs = d.Agent.takeQueue()
 		}
-		if len(next) == 0 || d.ctx.Err() != nil {
+		wake := d.wakeDue(res.Interrupted)
+		if (len(next) == 0 && !wake) || d.ctx.Err() != nil {
 			d.running = false
 			d.idle.Broadcast()
 			d.mu.Unlock()
@@ -231,7 +247,8 @@ func (d *Driver) Exclusive(f func()) error {
 	if !d.held {
 		next, ids = d.Agent.takeQueue()
 	}
-	if len(next) == 0 || d.ctx.Err() != nil {
+	wake := d.wakeDue(false)
+	if (len(next) == 0 && !wake) || d.ctx.Err() != nil {
 		d.running = false
 		d.idle.Broadcast()
 		d.mu.Unlock()

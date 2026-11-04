@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Subagents: agents a session's model starts with the Agent tool. They run on the client in the background, each
+// with its own transcript (<transcript without .jsonl>/subagents/agent-<id>.jsonl), and report back to the agent
+// that started them.
+
+enum SubagentState {
+  SUBAGENT_STATE_UNSPECIFIED = 0;
+  // Waiting for a free slot (the session runs a limited number of agents at once).
+  SUBAGENT_STATE_QUEUED = 1;
+  SUBAGENT_STATE_RUNNING = 2;
+  // Ended its turn; its report is in `report`. SendMessage continues it.
+  SUBAGENT_STATE_FINISHED = 3;
+  // Ended on an error (`error`).
+  SUBAGENT_STATE_FAILED = 4;
+  // Stopped on request (TaskStop, StopSubagent, Interrupt).
+  SUBAGENT_STATE_STOPPED = 5;
+  // Was running when the client stopped or the session closed.
+  SUBAGENT_STATE_INTERRUPTED = 6;
+}
+
+enum SubagentStepStatus {
+  SUBAGENT_STEP_STATUS_UNSPECIFIED = 0;
+  SUBAGENT_STEP_STATUS_RUNNING = 1;
+  SUBAGENT_STEP_STATUS_DONE = 2;
+  SUBAGENT_STEP_STATUS_FAILED = 3;
+}
+
+// One tool call of a subagent.
+message SubagentStep {
+  string tool_use_id = 1;
+  string tool = 2;
+  // What it acts on: a path, a pattern, a command.
+  string target = 3;
+  SubagentStepStatus status = 4;
+}
+
+message SubagentInfo {
+  string id = 1;
+  // The subagent that started this one; empty when the session's main agent did.
+  string parent_id = 2;
+  // The Agent tool call that started it.
+  string tool_use_id = 3;
+  // The call's description.
+  string name = 4;
+  // general-purpose, Explore, Plan or a custom type.
+  string type = 5;
+  string model = 6;
+  SubagentState state = 7;
+  // The tool running now; empty between tool calls.
+  string current_tool = 8;
+  // The latest tool calls, oldest first (bounded; tool_calls counts them all).
+  repeated SubagentStep steps = 9;
+  int32 tool_calls = 10;
+  // Totals of the agent's model requests. They count toward the session (the requests carry its id).
+  int64 input_tokens = 11;
+  int64 output_tokens = 12;
+  double cost_usd = 13;
+  // RFC 3339, UTC.
+  string started_at = 14;
+  string finished_at = 15;
+  // The final message of its last finished turn.
+  string report = 16;
+  string error = 17;
+  // Set when it runs in a git worktree of its own.
+  string worktree_path = 18;
+  string worktree_branch = 19;
+}
+
+// A subagent was started or changed (state, tool calls). Carries the agent as it is now. A resumed session publishes
+// one per agent on record, after the replayed history.
+message SubagentUpdated {
+  SubagentInfo agent = 1;
+}
+
+message StopSubagentRequest {
+  string session_id = 1;
+  string agent_id = 2;
+}
+
+message StopSubagentResponse {
+  SubagentInfo agent = 1;
+}
+
+message GetSubagentTranscriptRequest {
+  string session_id = 1;
+  string agent_id = 2;
+}
+
+// One entry of a subagent's transcript, flattened for reading.
+message SubagentTranscriptItem {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // What the agent was told.
+    KIND_USER = 1;
+    KIND_ASSISTANT = 2;
+    KIND_TOOL = 3;
+  }
+  Kind kind = 1;
+  string text = 2;
+  // KIND_TOOL: the tool, its target and its result (bounded). The result is empty while it runs.
+  string tool_use_id = 3;
+  string tool_name = 4;
+  string target = 5;
+  string output = 6;
+  bool is_error = 7;
+}
+
+message GetSubagentTranscriptResponse {
+  repeated SubagentTranscriptItem items = 1;
+}

@@ -102,6 +102,7 @@ type Message struct {
 type Entry struct {
 	ParentUUID              *string  `json:"parentUuid"`
 	IsSidechain             bool     `json:"isSidechain"`
+	AgentID                 string   `json:"agentId,omitempty"`
 	UserType                string   `json:"userType,omitempty"`
 	Cwd                     string   `json:"cwd,omitempty"`
 	SessionID               string   `json:"sessionId"`
@@ -644,6 +645,7 @@ type Writer struct {
 	entry     string
 	last      string
 	disabled  bool
+	agentID   string
 	entries   []Entry
 }
 
@@ -659,11 +661,13 @@ type WriterOptions struct {
 	// Initial are the entries already in the transcript (resume), kept in
 	// memory with every appended entry for rewinds and rebuilds.
 	Initial []Entry
+	// AgentID marks the entries of a subagent's transcript (isSidechain, agentId).
+	AgentID string
 }
 
 // OpenWriter opens (creating if needed) the transcript at path for appending.
 func OpenWriter(path string, o WriterOptions) (*Writer, error) {
-	w := &Writer{path: path, sessionID: o.SessionID, cwd: o.Cwd, gitBranch: o.GitBranch, version: o.Version, entry: o.Entrypoint, last: o.LastUUID, disabled: o.Disabled,
+	w := &Writer{path: path, sessionID: o.SessionID, cwd: o.Cwd, gitBranch: o.GitBranch, version: o.Version, entry: o.Entrypoint, last: o.LastUUID, disabled: o.Disabled, agentID: o.AgentID,
 		entries: append([]Entry(nil), o.Initial...)}
 	if o.Disabled {
 		return w, nil
@@ -716,6 +720,7 @@ func (w *Writer) AppendBranch(e Entry, parent *string) (string, error) {
 
 func (w *Writer) appendLocked(e Entry, parent *string) (string, error) {
 	e.SessionID = w.sessionID
+	e.AgentID, e.IsSidechain = w.agentID, w.agentID != ""
 	if e.Timestamp == "" {
 		e.Timestamp = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	}

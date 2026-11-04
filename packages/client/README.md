@@ -21,7 +21,7 @@ It ships in two forms:
 | `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
 | `vcs` | Device providers `gh` and `glab`: CLI detection (version, logged-in hosts), PR/MR and CI polling for the session branch, `ReportDeviceProviders` / `ReportDeviceSnapshot` uploads; `vcstest` is a fake `VcsService` |
 | `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
-| `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait |
+| `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait, Agent, SendMessage, ListAgents |
 | `web` | WebSearch (`harness.search.v1.SearchService` on the server) and WebFetch (local fetch, http → https except private hosts, same-host redirects only, 10 MB / 60 s limits, HTML → Markdown, binary refused, 15-minute in-memory cache per URL, answer from the small-slot model through the gateway with the bundle's `webfetch_summary` prompt) |
 | `netguard` | Private-network classification (loopback, RFC 1918, link-local, ULA, CGNAT, metadata names, names resolving there) shared by the permission engine and WebFetch's dial guard |
 | `outputstyle` | Output style discovery: bundle built-ins, user styles (sync or `~/.claude`/`~/.harness/output-styles`), project styles (`.claude`/`.harness/output-styles`), frontmatter parsing |
@@ -31,6 +31,7 @@ It ships in two forms:
 | `mcp` | MCP servers from `harness.mcp.v1.McpService`: remote tools through the core proxy, stdio servers via `IssueStdioLaunch` and the Go MCP SDK with per-device approval (`~/.harness/mcp-approvals.json`), `mcp__<server>__<tool>` tools, deferred tools and `ToolSearch` |
 | `agent` | The loop (`Agent.RunTurn`), reminders, todos, checkpoints/rewind, compaction, and `Driver` (message queue, background turns) |
 | `bootstrap` | Wires one session together |
+| `subagent` | The agents the Agent tool starts: background runs with their own transcript (`<transcript>/subagents/`), the depth limit and concurrency cap, reports to the parent, `SpawnSubagent` for code |
 | `worktree` | Session worktrees (`<repo>/.harness/worktrees/<name>`) and local branch listing for the new-session pickers |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
 | `browser` | A headless Chromium per session over CDP (installed Chrome/Chromium/Edge/Brave, `HARNESS_BROWSER`, or a pinned Chrome for Testing downloaded into `HARNESS_HOME/browser`), the Browser pane's WebSocket at `/harness.agent.v1.Browser/socket` (one-time tickets, JPEG screencast, input forwarding) and the agent's `Browser*` tools (`HARNESS_NO_BROWSER=1` leaves them out); see `proto/harness/agent/v1/browser.proto` |

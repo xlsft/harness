@@ -13,6 +13,9 @@ import (
 	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
+// ReminderAgentReport carries a subagent's report to the agent that started it (package subagent).
+const ReminderAgentReport = "agent_report"
+
 // Limits for injected reminders.
 const (
 	maxFileChangedReminders = 5
@@ -50,7 +53,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport {
 			if id == "environment_changed" {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}
@@ -135,6 +138,19 @@ func (a *Agent) SetWake(f func()) {
 	a.wake = f
 	a.mu.Unlock()
 }
+
+// Wake starts a turn for a pending notification when the session is idle (see SetWake; no-op without one).
+func (a *Agent) Wake() {
+	a.mu.Lock()
+	wake := a.wake
+	a.mu.Unlock()
+	if wake != nil {
+		wake()
+	}
+}
+
+// RecentPrompts returns the latest prompts of the agent's user, newest last.
+func (a *Agent) RecentPrompts() []string { return a.recentPrompts() }
 
 // HasReminders reports whether reminders wait for the next model request (stale task reports excluded).
 func (a *Agent) HasReminders() bool {

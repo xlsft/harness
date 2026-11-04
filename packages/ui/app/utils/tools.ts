@@ -34,7 +34,9 @@ export function toolIcon(t: ToolItem): IconName {
     case 'WebSearch':
     case 'WebFetch': return 'web-search'
     case 'Task':
-    case 'Agent': return 'agent'
+    case 'Agent':
+    case 'SendMessage':
+    case 'ListAgents': return 'agent'
     case 'Show': return t.input.target === 'url' ? 'globe' : t.input.target === 'diff' ? 'diff' : 'file'
     default: return 'box'
   }
@@ -71,6 +73,8 @@ export function toolTarget(t: ToolItem): string {
     case 'WebFetch': return String(i.url ?? t.summary)
     case 'Task':
     case 'Agent': return String(i.description ?? t.summary)
+    case 'SendMessage': return String(i.to ?? t.summary)
+    case 'ListAgents': return 'agents'
     case 'Show': {
       // As the model wrote it (paths relative to the session's directory read best).
       const target = showTargetOf(i, null, '')

@@ -110,6 +110,11 @@ type Request struct {
 	RecentUserMessages []string
 	Rationale          string
 
+	// AgentID / AgentName identify the subagent making the call (empty for the session's main agent); the prompt
+	// to the user carries them.
+	AgentID   string
+	AgentName string
+
 	// Set by the engine before calling the Asker.
 	// Suggestions are rules the user may choose to always allow.
 	Suggestions []string
@@ -206,6 +211,8 @@ type Engine struct {
 	prePlan       Mode
 	cwd           string
 	workDirs      []string
+	additional    []string
+	extraWork     []string
 	scratch       []string
 	readable      []string
 	home          string
@@ -244,7 +251,8 @@ func New(cfg Config) *Engine {
 	if e.cwd == "" {
 		e.cwd, _ = filepath.Abs(".")
 	}
-	e.workDirs = append([]string{e.cwd}, cfg.AdditionalDirectories...)
+	e.additional = append([]string(nil), cfg.AdditionalDirectories...)
+	e.setWorkDirsLocked()
 	e.localPath = cfg.LocalSettingsPath
 	if e.localPath == "" {
 		e.localPath = filepath.Join(RepoRoot(e.cwd), ".claude", "settings.local.json")
@@ -433,8 +441,21 @@ func (e *Engine) WorkingDirs() []string {
 // SetAdditionalDirectories replaces the additional working directories (the cwd stays first).
 func (e *Engine) SetAdditionalDirectories(dirs []string) {
 	e.mu.Lock()
-	e.workDirs = append([]string{e.cwd}, dirs...)
+	e.additional = append([]string(nil), dirs...)
+	e.setWorkDirsLocked()
 	e.mu.Unlock()
+}
+
+// AddWorkDir adds a working directory that stays through SetAdditionalDirectories (the worktree of a subagent).
+func (e *Engine) AddWorkDir(dir string) {
+	e.mu.Lock()
+	e.extraWork = append(e.extraWork, dir)
+	e.setWorkDirsLocked()
+	e.mu.Unlock()
+}
+
+func (e *Engine) setWorkDirsLocked() {
+	e.workDirs = append(append([]string{e.cwd}, e.additional...), e.extraWork...)
 }
 
 // AddReadableDir lets the model read dir without asking.

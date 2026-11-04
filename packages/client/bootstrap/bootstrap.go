@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/xlsft/harness/packages/client/agent"
@@ -34,6 +35,7 @@ import (
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/settings"
+	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/vcs"
@@ -169,6 +171,8 @@ type Session struct {
 	Settings *settings.Settings
 	// Memory loads project instructions; ForPath returns subdirectory files lazily.
 	Memory *memory.Loader
+	// Subagents runs the agents the model starts with the Agent tool; SpawnSubagent is its entry point for code.
+	Subagents *subagent.Manager
 	// MCP holds the session's MCP servers and tools (nil when MCP is off).
 	MCP *mcp.Manager
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
@@ -188,6 +192,9 @@ type Session struct {
 
 // Close kills background tasks, closes the transcript and flushes the transcript upload.
 func (s *Session) Close() error {
+	if s.Subagents != nil {
+		s.Subagents.Shutdown()
+	}
 	if s.Tasks != nil {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
 	}
@@ -608,6 +615,23 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		s.Agent.Emit(agent.Event{Kind: agent.EventModeChanged, Mode: string(m)})
 	})
 	s.ToolEnv.Reminders = func(k string) string { return s.Agent.Bundle().Reminder(k, "") }
+	s.Subagents = subagent.New(subagent.Config{
+		SessionID: s.ID, Dir: filepath.Join(strings.TrimSuffix(path, ".jsonl"), "subagents"), NoPersistence: o.NoPersistence,
+		Cwd: cwd, GitBranch: branch, Version: config.Version, Entrypoint: o.Entrypoint,
+		Gateway: gw, Catalog: catalog,
+		Bundle: func(ctx context.Context, m string) (*prompts.Bundle, error) {
+			if m == s.Agent.Model() {
+				return s.Agent.Bundle(), nil
+			}
+			return loader.Get(ctx, m)
+		},
+		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
+		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
+		Vars: env.Vars(), ProjectContext: projectContext, AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor,
+		CustomTypes: subagent.LoadDefinitions(subagent.DefinitionDirs(config.Home(), homeDir(), cwd, s.Trusted)), Logger: log,
+	})
+	s.Subagents.Attach(s.Agent)
+	s.ToolEnv.Agents = s.Subagents
 	if s.Tasks != nil {
 		s.Tasks.OnEvent = s.Agent.OnTaskEvent
 	}
@@ -651,6 +675,11 @@ func (s *Session) resolveOutputStyle(o Options, st *settings.Settings, conv sess
 		return nil, outputstyle.Default
 	}
 	return agentStyle(found), found.ID
+}
+
+func homeDir() string {
+	h, _ := os.UserHomeDir()
+	return h
 }
 
 func mergeDirs(a, b []string) []string {

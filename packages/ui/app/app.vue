@@ -2,7 +2,6 @@
 // The web UI connects as configured (mock or a client URL). In the desktop shell it first checks the sign-in
 // with the shell, then asks it for the sidecar's endpoint (lib/desktop.ts).
 import { agentEndpoint, authStatus, guardQuit, isDesktop, keepAwake } from '~/lib/desktop'
-import { isSubagent } from '~/lib/session/reducer'
 import { ConnectTransport } from '~/lib/transport'
 
 useSeoMeta({
@@ -25,7 +24,7 @@ function runningWork() {
   const parts = [
     count(all.filter(s => s.meta.status === 'working' || s.meta.status === 'needs_input').length, 'session is working', 'sessions are working'),
     count(all.reduce((n, s) => n + Object.values(s.tasks).filter(t => t.state === 'running').length, 0), 'background task is running', 'background tasks are running'),
-    count(all.reduce((n, s) => n + s.items.filter(i => i.kind === 'tool' && isSubagent(i) && i.status === 'running').length, 0), 'agent is running', 'agents are running')
+    count(all.reduce((n, s) => n + Object.values(s.subagents).filter(a => a.state === 'running' || a.state === 'queued').length, 0), 'agent is running', 'agents are running')
   ].filter(Boolean)
   return parts.length ? `${parts.join(', ')}. Quitting stops them.` : ''
 }

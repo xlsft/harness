@@ -132,6 +132,10 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 // statusLocked is the session status (ls.mu held). A busy status without a
 // running turn is never reported: whatever left it behind, nothing runs.
 func (ls *liveSession) statusLocked() agentv1.SessionStatus {
+	if ls.waiting > 0 {
+		// A subagent can wait for the user while the main agent is idle.
+		return agentv1.SessionStatus_SESSION_STATUS_NEEDS_INPUT
+	}
 	st := ls.status
 	busy := st == agentv1.SessionStatus_SESSION_STATUS_WORKING || st == agentv1.SessionStatus_SESSION_STATUS_NEEDS_INPUT
 	if busy && ls.driver != nil && !ls.driver.Busy() {
@@ -211,6 +215,7 @@ func (ls *liveSession) close(reason string) {
 	ls.mu.Unlock()
 	ls.cancel()
 	ls.usage.stop()
+	ls.sess.Subagents.Shutdown()
 	ls.driver.Stop()
 	ls.driver.Wait()
 	ls.bg.Wait()
@@ -306,6 +311,9 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		ls.publishInfo()
 	case agent.EventUsageLimit:
 		ls.onUsageLimit(*e.UsageLimit)
+	case agent.EventSubagent:
+		ls.refreshDiffStats() // an agent's tools change files too
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SubagentUpdated{SubagentUpdated: &agentv1.SubagentUpdated{Agent: subagentToProto(*e.Subagent)}}})
 	case agent.EventNotice:
 		lv := map[string]agentv1.Notice_Level{"info": agentv1.Notice_LEVEL_INFO, "warning": agentv1.Notice_LEVEL_WARNING, "error": agentv1.Notice_LEVEL_ERROR}
 		ls.notice(lv[e.Notice.Level], e.Notice.Kind, NoticeText(e.Notice))
@@ -453,7 +461,7 @@ func (ls *liveSession) Ask(ctx context.Context, req permissions.Request) (permis
 		ls.mu.Unlock()
 	}()
 	pr := &agentv1.PermissionRequest{RequestId: id, ToolUseId: req.ToolUseID, ToolName: req.ToolName, InputJson: string(req.Input),
-		SuggestedRules: req.Suggestions, Reason: req.Reason}
+		SuggestedRules: req.Suggestions, Reason: req.Reason, AgentId: req.AgentID, AgentName: req.AgentName}
 	ls.beginWait()
 	defer ls.endWait()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionRequest{PermissionRequest: pr}})
@@ -537,6 +545,10 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "Bash " + c
 	case "Glob", "Grep":
 		return name + " " + jsonField(input, "pattern")
+	case "Agent":
+		return "Agent " + truncateRunes(jsonField(input, "description"), 80)
+	case "SendMessage":
+		return "SendMessage " + jsonField(input, "to")
 	case "TaskStop", "TaskOutput":
 		return name + " " + jsonField(input, "task_id")
 	case "Wait":

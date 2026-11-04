@@ -121,6 +121,16 @@ func Run(ctx context.Context, o Options) int {
 		return r.compact(ctx, focus)
 	}
 	res := sess.Agent.RunTurn(ctx, []llm.ContentBlock{llm.TextBlock(prompt)})
+	// The process ends with the run: agents still at work get to finish, and the model answers their reports.
+	for !res.Interrupted && (sess.Subagents.Active() > 0 || sess.Agent.HasReminders()) {
+		if err := sess.Subagents.WaitIdle(ctx); err != nil {
+			break
+		}
+		if !sess.Agent.HasReminders() {
+			break
+		}
+		res = sess.Agent.RunTurn(ctx, nil)
+	}
 	r.emitResult(res)
 	if res.IsError {
 		return 1

@@ -81,6 +81,8 @@ const (
 	EventNotice
 	// EventUsageLimit carries a usage-limit state of the session's provider (UsageLimit).
 	EventUsageLimit
+	// EventSubagent carries a subagent as it is now (Subagent).
+	EventSubagent
 )
 
 // Notice is an informational event.
@@ -153,6 +155,7 @@ type Event struct {
 	Mode       string
 	Notice     *Notice
 	UsageLimit *usagelimit.Status
+	Subagent   *tools.AgentInfo
 }
 
 // ModelUsage aggregates usage per model.
@@ -235,6 +238,10 @@ type Config struct {
 	RefreshBundle func(ctx context.Context) (*prompts.Bundle, error)
 
 	SessionID string
+	// RequestClass labels the model requests of the main loop (default "main"); AgentID says which subagent runs
+	// this loop. Both travel in the request metadata.
+	RequestClass string
+	AgentID      string
 	// Vars are the placeholder values for dynamic system sections.
 	Vars map[string]string
 	// ProjectContext is the {{content}} of the project_instructions reminder
@@ -1065,6 +1072,10 @@ func (a *Agent) buildRequest() *llm.Request {
 		mark(n-1, len(msgs[n-1].Content)-1)
 	}
 
+	requestClass := a.cfg.RequestClass
+	if requestClass == "" {
+		requestClass = "main"
+	}
 	return &llm.Request{
 		Model:     model,
 		MaxTokens: a.cfg.MaxTokens,
@@ -1076,7 +1087,8 @@ func (a *Agent) buildRequest() *llm.Request {
 		Stream:    true,
 		Metadata: &llm.Metadata{
 			SessionID:           a.cfg.SessionID,
-			RequestClass:        "main",
+			RequestClass:        requestClass,
+			AgentID:             a.cfg.AgentID,
 			PromptBundleVersion: bundle.Version,
 		},
 	}

@@ -9,6 +9,7 @@
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
+import { SubagentState, SubagentStepStatus, type SubagentInfo } from '~/gen/harness/agent/v1/subagents_pb'
 import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
 import {
   BackgroundReason,
@@ -27,6 +28,9 @@ import {
   UsageLimit_State
 } from '~/gen/harness/agent/v1/agent_pb'
 import type {
+  SubagentStateName,
+  SubagentStep,
+  SubagentVM,
   AssistantItem,
   Attachment,
   BackgroundReasonName,
@@ -101,6 +105,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     index: {},
     tasks: {},
     taskOrder: [],
+    subagents: {},
+    subagentOrder: [],
     todos: [],
     queue: [],
     delivered: {},
@@ -516,7 +522,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
           suggestedRules: [...p.suggestedRules],
           reason: p.reason,
           state: 'pending',
-          resolvedBy: ''
+          resolvedBy: '',
+          agentName: p.agentName
         })
       }
       s.pendingPermission = p.requestId
@@ -686,6 +693,29 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         text: n.text
       })
       if (n.kind === 'connection_lost') setStatus(s, 'waiting_for_connection')
+      break
+    }
+
+    case 'subagentUpdated': {
+      const a = e.value.agent && subagentVM(e.value.agent)
+      if (!a) break
+      const prev = s.subagents[a.id]
+      if (!prev) s.subagentOrder.push(a.id)
+      s.subagents[a.id] = a
+      // The agent's model requests count toward the session.
+      s.costUsd += a.costUsd - (prev?.costUsd ?? 0)
+      s.usage = {
+        ...s.usage,
+        inputTokens: s.usage.inputTokens + a.inputTokens - (prev?.inputTokens ?? 0),
+        outputTokens: s.usage.outputTokens + a.outputTokens - (prev?.outputTokens ?? 0)
+      }
+      const item = find(s, 'tool', a.toolUseId)
+      if (item) {
+        item.subagent = {
+          steps: a.steps, tokens: a.tokens, toolCalls: a.toolCalls, model: a.model, active: a.steps.filter(st => st.status === 'running').length,
+          agentId: a.id, state: a.state, report: a.report
+        }
+      }
       break
     }
 
@@ -872,6 +902,50 @@ function toolOwner(s: SessionState, toolUseId: string) {
     if (it.kind === 'assistant' && it.toolUseIds.includes(toolUseId)) return { messageId: it.id, count: it.toolUseIds.length }
   }
   return { messageId: '', count: 1 }
+}
+
+const SUBAGENT_STATES: Record<SubagentState, SubagentStateName> = {
+  [SubagentState.UNSPECIFIED]: 'queued',
+  [SubagentState.QUEUED]: 'queued',
+  [SubagentState.RUNNING]: 'running',
+  [SubagentState.FINISHED]: 'finished',
+  [SubagentState.FAILED]: 'failed',
+  [SubagentState.STOPPED]: 'stopped',
+  [SubagentState.INTERRUPTED]: 'interrupted'
+}
+
+const SUBAGENT_STEP_STATUS: Record<SubagentStepStatus, SubagentStep['status']> = {
+  [SubagentStepStatus.UNSPECIFIED]: 'waiting',
+  [SubagentStepStatus.RUNNING]: 'running',
+  [SubagentStepStatus.DONE]: 'done',
+  [SubagentStepStatus.FAILED]: 'failed'
+}
+
+export function subagentVM(a: SubagentInfo): SubagentVM {
+  const inputTokens = Number(a.inputTokens)
+  const outputTokens = Number(a.outputTokens)
+  return {
+    id: a.id,
+    parentId: a.parentId,
+    toolUseId: a.toolUseId,
+    name: a.name,
+    type: a.type,
+    model: a.model,
+    state: SUBAGENT_STATES[a.state],
+    currentTool: a.currentTool,
+    steps: a.steps.map(st => ({ id: st.toolUseId, tool: st.tool, target: st.target, status: SUBAGENT_STEP_STATUS[st.status] })),
+    toolCalls: a.toolCalls,
+    inputTokens,
+    outputTokens,
+    tokens: inputTokens + outputTokens,
+    costUsd: a.costUsd,
+    startedAt: a.startedAt ? Date.parse(a.startedAt) : 0,
+    finishedAt: a.finishedAt ? Date.parse(a.finishedAt) : 0,
+    report: a.report,
+    error: a.error,
+    worktreePath: a.worktreePath,
+    worktreeBranch: a.worktreeBranch
+  }
 }
 
 export function isSubagent(t: ToolItem) {
