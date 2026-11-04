@@ -106,6 +106,24 @@ func (m *Manager) Lookup(sessionID string) *Browser {
 	return m.browsers[sessionID]
 }
 
+// OpenPage opens a page in the session's browser, starting it if needed, for tools that are not Browser* tools but
+// lead there (preview). Its permission check is the caller's. The user's take-over holds as for any agent action.
+func (m *Manager) OpenPage(ctx context.Context, sessionID, u string) error {
+	b := m.Lookup(sessionID)
+	if b == nil {
+		return ErrNotFound
+	}
+	if err := b.checkControl(); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
+	if err := b.Ensure(ctx); err != nil {
+		return err
+	}
+	return b.showPage(ctx, u)
+}
+
 // CloseSession stops the session's browser and forgets it (the profile stays on disk).
 func (m *Manager) CloseSession(sessionID string) {
 	m.mu.Lock()

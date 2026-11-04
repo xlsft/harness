@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of a server in .harness/launch.json to start, or to reuse if it already runs"
+    },
+    "url": {
+      "type": "string",
+      "description": "Instead of name: a page to open in the Browser pane, starting nothing"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": [
+    "description"
+  ],
+  "additionalProperties": false
+}

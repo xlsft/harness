@@ -19,11 +19,14 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent') return 'loading'
   if (t.status === 'error' && t.name === 'Bash') return 'x'
   if (mcpParts(t.name)) return 'box'
-  if (t.name.startsWith('Browser')) return 'globe'
+  if (t.name.startsWith('Browser') || t.name === 'PreviewStart') return 'globe'
   switch (t.name) {
     case 'Bash':
     case 'TaskOutput': return 'term'
     case 'Wait': return 'clock'
+    case 'PreviewStop':
+    case 'PreviewList':
+    case 'PreviewLogs': return 'term'
     case 'Read': return 'file'
     case 'Glob':
     case 'LS': return 'folder'
@@ -78,6 +81,9 @@ export function toolTarget(t: ToolItem): string {
     }
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
+    case 'PreviewStart': return String(i.name ?? i.url ?? t.summary)
+    case 'PreviewStop':
+    case 'PreviewLogs': return String(i.server_id ?? t.summary)
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

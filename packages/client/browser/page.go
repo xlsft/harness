@@ -417,6 +417,41 @@ func (b *Browser) NewTab(ctx context.Context, u string) (string, error) {
 	return id, b.SwitchTab(ctx, id)
 }
 
+// showPage brings up a page of u's origin: the active tab if it is there or blank, else a tab that is there, else a
+// new tab, so the user's other pages stay as they are.
+func (b *Browser) showPage(ctx context.Context, u string) error {
+	origin := func(raw string) string {
+		p, err := url.Parse(raw)
+		if err != nil {
+			return ""
+		}
+		return p.Scheme + "://" + p.Host
+	}
+	want := origin(u)
+	b.mu.Lock()
+	active, other := "", ""
+	if t := b.tabs[b.active]; t != nil {
+		active = t.url
+	}
+	for _, id := range b.order {
+		if t := b.tabs[id]; t != nil && other == "" && origin(t.url) == want {
+			other = id
+		}
+	}
+	b.mu.Unlock()
+	switch {
+	case active == "" || active == "about:blank":
+		_, err := b.Navigate(ctx, u, true)
+		return err
+	case origin(active) == want:
+		return nil
+	case other != "":
+		return b.SwitchTab(ctx, other)
+	}
+	_, err := b.NewTab(ctx, u)
+	return err
+}
+
 // CloseTab closes a tab ("" closes the active one).
 func (b *Browser) CloseTab(ctx context.Context, id string) error {
 	b.mu.Lock()

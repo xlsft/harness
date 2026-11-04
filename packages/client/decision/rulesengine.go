@@ -3215,7 +3215,7 @@ func isSafeCmd(c *Cmd, ctx *rulesCtx, extraAllow []*regexp.Regexp) bool {
 // ---------------------------------------------------------------------------------------------------
 
 var (
-	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent")
+	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "PreviewStop", "PreviewList", "PreviewLogs", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent")
 	writeTools = setOf("Write", "Edit", "MultiEdit", "NotebookEdit")
 )
 

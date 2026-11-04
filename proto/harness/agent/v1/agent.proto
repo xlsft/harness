@@ -7,6 +7,7 @@ import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
+import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
@@ -271,6 +272,11 @@ service AgentService {
   // What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
   // FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
+
+  // Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
+  rpc ListPreviewServers(ListPreviewServersRequest) returns (ListPreviewServersResponse);
+  rpc StopPreviewServer(StopPreviewServerRequest) returns (StopPreviewServerResponse);
+  rpc GetPreviewLogs(GetPreviewLogsRequest) returns (GetPreviewLogsResponse);
 }
 
 enum PermissionMode {

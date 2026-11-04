@@ -6,6 +6,8 @@
 
 import type { BrowserAction, BrowserAvailability, BrowserState, BrowserTab, BrowserViewport } from '~/gen/harness/agent/v1/browser_pb'
 import { BrowserAction_Phase, BrowserAvailability_Source, BrowserViewport_Preset } from '~/gen/harness/agent/v1/browser_pb'
+import type { PreviewServer } from '~/gen/harness/agent/v1/preview_pb'
+import { PreviewServer_Status } from '~/gen/harness/agent/v1/preview_pb'
 import type { BrowserConnection, BrowserConnectionOptions } from './connection'
 
 export type ViewportPreset = 'desktop' | 'tablet' | 'mobile' | 'custom'
@@ -135,6 +137,17 @@ export interface BrowserInstallHandle {
   cancel: () => void
 }
 
+// A dev server the client runs for the session (the agent's Preview* tools; preview.proto).
+export interface PreviewServerVM {
+  id: string
+  name: string
+  commandLine: string
+  port: number
+  url: string
+  status: 'starting' | 'running' | 'exited' | 'stopped'
+  exitCode: number
+}
+
 export interface BrowserApi {
   // Which browser would run, or that none is found (then offer install()).
   availability(): Promise<BrowserAvailabilityVM>
@@ -148,9 +161,26 @@ export interface BrowserApi {
   close(sessionId: string): Promise<void>
   // Deletes cookies, cache and site storage of the session's browser profile.
   clearData(sessionId: string): Promise<void>
+  // The session's dev servers, oldest first, including ended ones.
+  previewServers(sessionId: string): Promise<PreviewServerVM[]>
+  stopPreview(sessionId: string, serverId: string): Promise<void>
+  // A server's recent output, line by line.
+  previewLogs(sessionId: string, serverId: string, opts?: { errorsOnly?: boolean }): Promise<string[]>
 }
 
 // ── conversions ──────────────────────────────────────────────────────────────
+
+const PREVIEW_STATUS: Record<PreviewServer_Status, PreviewServerVM['status']> = {
+  [PreviewServer_Status.UNSPECIFIED]: 'stopped',
+  [PreviewServer_Status.STARTING]: 'starting',
+  [PreviewServer_Status.RUNNING]: 'running',
+  [PreviewServer_Status.EXITED]: 'exited',
+  [PreviewServer_Status.STOPPED]: 'stopped'
+}
+
+export function previewServerView(s: PreviewServer): PreviewServerVM {
+  return { id: s.serverId, name: s.name, commandLine: s.commandLine, port: s.port, url: s.url, status: PREVIEW_STATUS[s.status], exitCode: s.exitCode }
+}
 
 const PRESET: Record<BrowserViewport_Preset, ViewportPreset> = {
   [BrowserViewport_Preset.UNSPECIFIED]: 'desktop',

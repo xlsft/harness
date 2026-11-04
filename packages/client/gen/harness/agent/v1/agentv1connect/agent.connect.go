@@ -285,6 +285,15 @@ const (
 	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionDiff RPC.
 	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
+	// AgentServiceListPreviewServersProcedure is the fully-qualified name of the AgentService's
+	// ListPreviewServers RPC.
+	AgentServiceListPreviewServersProcedure = "/harness.agent.v1.AgentService/ListPreviewServers"
+	// AgentServiceStopPreviewServerProcedure is the fully-qualified name of the AgentService's
+	// StopPreviewServer RPC.
+	AgentServiceStopPreviewServerProcedure = "/harness.agent.v1.AgentService/StopPreviewServer"
+	// AgentServiceGetPreviewLogsProcedure is the fully-qualified name of the AgentService's
+	// GetPreviewLogs RPC.
+	AgentServiceGetPreviewLogsProcedure = "/harness.agent.v1.AgentService/GetPreviewLogs"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -514,6 +523,10 @@ type AgentServiceClient interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
+	ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error)
+	StopPreviewServer(context.Context, *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error)
+	GetPreviewLogs(context.Context, *connect.Request[v1.GetPreviewLogsRequest]) (*connect.Response[v1.GetPreviewLogsResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1055,6 +1068,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		listPreviewServers: connect.NewClient[v1.ListPreviewServersRequest, v1.ListPreviewServersResponse](
+			httpClient,
+			baseURL+AgentServiceListPreviewServersProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListPreviewServers")),
+			connect.WithClientOptions(opts...),
+		),
+		stopPreviewServer: connect.NewClient[v1.StopPreviewServerRequest, v1.StopPreviewServerResponse](
+			httpClient,
+			baseURL+AgentServiceStopPreviewServerProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopPreviewServer")),
+			connect.WithClientOptions(opts...),
+		),
+		getPreviewLogs: connect.NewClient[v1.GetPreviewLogsRequest, v1.GetPreviewLogsResponse](
+			httpClient,
+			baseURL+AgentServiceGetPreviewLogsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetPreviewLogs")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1148,6 +1179,9 @@ type agentServiceClient struct {
 	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 	setAutoContinue        *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
 	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
+	listPreviewServers     *connect.Client[v1.ListPreviewServersRequest, v1.ListPreviewServersResponse]
+	stopPreviewServer      *connect.Client[v1.StopPreviewServerRequest, v1.StopPreviewServerResponse]
+	getPreviewLogs         *connect.Client[v1.GetPreviewLogsRequest, v1.GetPreviewLogsResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1590,6 +1624,21 @@ func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Re
 	return c.getSessionDiff.CallUnary(ctx, req)
 }
 
+// ListPreviewServers calls harness.agent.v1.AgentService.ListPreviewServers.
+func (c *agentServiceClient) ListPreviewServers(ctx context.Context, req *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error) {
+	return c.listPreviewServers.CallUnary(ctx, req)
+}
+
+// StopPreviewServer calls harness.agent.v1.AgentService.StopPreviewServer.
+func (c *agentServiceClient) StopPreviewServer(ctx context.Context, req *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error) {
+	return c.stopPreviewServer.CallUnary(ctx, req)
+}
+
+// GetPreviewLogs calls harness.agent.v1.AgentService.GetPreviewLogs.
+func (c *agentServiceClient) GetPreviewLogs(ctx context.Context, req *connect.Request[v1.GetPreviewLogsRequest]) (*connect.Response[v1.GetPreviewLogsResponse], error) {
+	return c.getPreviewLogs.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1817,6 +1866,10 @@ type AgentServiceHandler interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
+	ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error)
+	StopPreviewServer(context.Context, *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error)
+	GetPreviewLogs(context.Context, *connect.Request[v1.GetPreviewLogsRequest]) (*connect.Response[v1.GetPreviewLogsResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2354,6 +2407,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListPreviewServersHandler := connect.NewUnaryHandler(
+		AgentServiceListPreviewServersProcedure,
+		svc.ListPreviewServers,
+		connect.WithSchema(agentServiceMethods.ByName("ListPreviewServers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceStopPreviewServerHandler := connect.NewUnaryHandler(
+		AgentServiceStopPreviewServerProcedure,
+		svc.StopPreviewServer,
+		connect.WithSchema(agentServiceMethods.ByName("StopPreviewServer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetPreviewLogsHandler := connect.NewUnaryHandler(
+		AgentServiceGetPreviewLogsProcedure,
+		svc.GetPreviewLogs,
+		connect.WithSchema(agentServiceMethods.ByName("GetPreviewLogs")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2532,6 +2603,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetAutoContinueHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionDiffProcedure:
 			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
+		case AgentServiceListPreviewServersProcedure:
+			agentServiceListPreviewServersHandler.ServeHTTP(w, r)
+		case AgentServiceStopPreviewServerProcedure:
+			agentServiceStopPreviewServerHandler.ServeHTTP(w, r)
+		case AgentServiceGetPreviewLogsProcedure:
+			agentServiceGetPreviewLogsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2891,4 +2968,16 @@ func (UnimplementedAgentServiceHandler) SetAutoContinue(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListPreviewServers is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopPreviewServer(context.Context, *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopPreviewServer is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetPreviewLogs(context.Context, *connect.Request[v1.GetPreviewLogsRequest]) (*connect.Response[v1.GetPreviewLogsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetPreviewLogs is not implemented"))
 }

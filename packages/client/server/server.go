@@ -35,6 +35,7 @@ import (
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/preview"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/syncclient"
@@ -110,6 +111,8 @@ type Server struct {
 	terms    *terminal.Manager
 	// Browsers runs the sessions' browsers (browsers.go); nil: created on first use under HARNESS_HOME/browser.
 	Browsers    *browser.Manager
+	previewOnce sync.Once
+	previewMgr  *preview.Manager
 	browserOnce sync.Once
 
 	// sides tracks the running side chat answers (sidechats.go).
@@ -168,6 +171,7 @@ func (s *Server) Close() {
 	s.closeAcp()
 	s.terminals().Close()
 	s.browsers().Close()
+	s.previews().Close()
 }
 
 // ServeUnix serves AgentService over h2c on a unix socket until ctx ends.
@@ -365,6 +369,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls := newLiveSession(s)
 	if opts.Browser == nil {
 		opts.Browser = s.browsers()
+	}
+	if opts.Preview == nil {
+		opts.Preview = s.previews()
 	}
 	opts.OnEvent = ls.onEvent
 	opts.Logger = s.log()

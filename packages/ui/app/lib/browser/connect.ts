@@ -6,7 +6,7 @@ import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { AgentService } from '~/gen/harness/agent/v1/agent_pb'
 import { BrowserViewportSchema } from '~/gen/harness/agent/v1/browser_pb'
 import { BrowserConnection, webSocketOpener, type BrowserLink } from './connection'
-import { availabilityView, presetPb, stateView, type BrowserApi, type BrowserAvailabilityVM, type BrowserInstallHandle, type OpenBrowserOptions } from './types'
+import { availabilityView, presetPb, previewServerView, stateView, type BrowserApi, type BrowserAvailabilityVM, type BrowserInstallHandle, type OpenBrowserOptions } from './types'
 
 export class ConnectBrowserApi implements BrowserApi {
   private client: Client<typeof AgentService>
@@ -63,5 +63,17 @@ export class ConnectBrowserApi implements BrowserApi {
 
   async clearData(sessionId: string) {
     await this.client.clearBrowserData({ sessionId })
+  }
+
+  async previewServers(sessionId: string) {
+    return (await this.client.listPreviewServers({ sessionId })).servers.map(previewServerView)
+  }
+
+  async stopPreview(sessionId: string, serverId: string) {
+    await this.client.stopPreviewServer({ sessionId, serverId })
+  }
+
+  async previewLogs(sessionId: string, serverId: string, opts: { errorsOnly?: boolean } = {}) {
+    return (await this.client.getPreviewLogs({ sessionId, serverId, errorsOnly: !!opts.errorsOnly })).lines
   }
 }

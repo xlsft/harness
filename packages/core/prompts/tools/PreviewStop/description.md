@@ -1,0 +1,1 @@
+Stops a dev server this session started with PreviewStart: its whole process group, asked politely first and killed if it does not go. It cannot touch any other process. Its logs stay readable until that name is started again.

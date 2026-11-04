@@ -358,6 +358,7 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 	_ = os.RemoveAll(bootstrap.FolderBaselineDir(id))
 	_ = os.RemoveAll(bootstrap.PlansDir(id))
 	_ = s.browsers().DeleteProfile(id)
+	s.previews().CloseSession(id)
 	s.removeChatDir(id)
 	s.setState(id, userState{})
 	s.forgetListed(id)

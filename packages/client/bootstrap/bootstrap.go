@@ -30,6 +30,7 @@ import (
 	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/outputstyle"
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/preview"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/session"
@@ -128,6 +129,9 @@ type Options struct {
 	// HARNESS_NO_MCP=1) disables MCP servers.
 	MCP   *mcp.Client
 	NoMCP bool
+	// Preview, when set, gives the session the Preview* tools: dev servers the client runs, across the session's
+	// close and resume.
+	Preview *preview.Manager
 	// Browser, when set, gives the session a browser (the Browser* tools; HARNESS_NO_BROWSER=1 leaves them out).
 	// The session's browser stops when the session closes.
 	Browser *browser.Manager
@@ -499,6 +503,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	s.registerWebTools(o)
+	if o.Preview != nil {
+		for _, t := range o.Preview.Tools() {
+			s.Tools.Register(t)
+		}
+	}
 	useBrowser := o.Browser != nil && os.Getenv("HARNESS_NO_BROWSER") != "1"
 	if useBrowser {
 		for _, t := range o.Browser.Tools() {
