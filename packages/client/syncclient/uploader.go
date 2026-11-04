@@ -383,23 +383,35 @@ func (u *Uploader) Pending() []string {
 		if json.Unmarshal(b, &st) != nil || st.SessionID == "" {
 			continue
 		}
-		if !st.Upserted || len(st.Dirty) > 0 {
+		if st.pending() {
 			out = append(out, st.SessionID)
-			continue
-		}
-		if hasCompleteLine(st.Path, st.Offset) {
-			out = append(out, st.SessionID)
-			continue
-		}
-		for agentID, path := range agentTranscripts(st.Path) {
-			if hasCompleteLine(path, st.AgentOffsets[agentID]) {
-				out = append(out, st.SessionID)
-				break
-			}
 		}
 	}
 	sort.Strings(out)
 	return out
+}
+
+// pending reports whether the session has data the server has not acknowledged.
+func (st *uploadState) pending() bool {
+	if !st.Upserted || len(st.Dirty) > 0 || hasCompleteLine(st.Path, st.Offset) {
+		return true
+	}
+	for agentID, path := range agentTranscripts(st.Path) {
+		if hasCompleteLine(path, st.AgentOffsets[agentID]) {
+			return true
+		}
+	}
+	return false
+}
+
+// Uploaded reports whether the server has everything of a session's local copy; false for a session without upload
+// state. stateDir "" is the default state directory. It only reads.
+func Uploaded(stateDir, sessionID string) bool {
+	if stateDir == "" {
+		stateDir = filepath.Join(DefaultDir(), "sessions")
+	}
+	st, err := loadState(stateDir, sessionID)
+	return err == nil && !st.pending()
 }
 
 // hasCompleteLine reports whether path has a newline-terminated line after offset.
