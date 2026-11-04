@@ -127,9 +127,15 @@ type ExecResult struct {
 	TimedOut       bool
 	Interrupted    bool
 	Truncated      bool
-	CwdReset       string
+	// CwdReset is where the shell went back to when the command left the working directories, or when the
+	// directory it should have started in no longer exists.
+	CwdReset string
 	// StartCwd is the directory the command started in.
 	StartCwd string
+	// EndCwd is the directory the command ended in, when that is not StartCwd (with CwdReset: where it was left).
+	EndCwd string
+	// CwdGone is set when the shell's directory had disappeared before the command (EndCwd names it).
+	CwdGone bool
 	// Background is set when the command was moved to the background.
 	Background *TaskInfo
 	// BackgroundReason is BackgroundAuto (timeout), BackgroundUser or
@@ -297,8 +303,12 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	s.mu.Lock()
 	cwd := s.cwd
 	s.mu.Unlock()
+	gone := ""
 	if st, err := os.Stat(cwd); err != nil || !st.IsDir() {
-		cwd = s.env.Cwd
+		gone, cwd = cwd, s.env.Cwd
+		s.mu.Lock()
+		s.cwd = cwd
+		s.mu.Unlock()
 	}
 	cwdFile := ""
 	if s.env.ScratchDir != "" {
@@ -350,6 +360,9 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	defer timer.Stop()
 
 	res := ExecResult{StartCwd: cwd}
+	if gone != "" {
+		res.CwdReset, res.EndCwd, res.CwdGone = cwd, gone, true
+	}
 	handoff := func(reason string) (ExecResult, error) {
 		id := newTaskID()
 		f, path, err := o.Tasks.outputFile(id)
@@ -408,23 +421,51 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 		return res, err
 	}
 
+	// A stopped command leaves the directory as it was: the shell's EXIT trap may not have run. A failed one
+	// moves it like any other, its `cd` did happen.
 	if cwdFile != "" && !res.Interrupted && !res.TimedOut {
 		if data, err := os.ReadFile(cwdFile); err == nil {
 			if nd := strings.TrimSpace(string(data)); nd != "" {
-				if within(nd, s.env.WorkingDirs()) {
-					s.mu.Lock()
-					s.cwd = nd
-					s.mu.Unlock()
-				} else {
-					s.mu.Lock()
-					s.cwd = s.env.Cwd
-					s.mu.Unlock()
-					res.CwdReset = s.env.Cwd
-				}
+				s.settleCwd(&res, nd)
 			}
 		}
 	}
 	return res, nil
+}
+
+// settleCwd records the directory a command ended in: the shell stays there inside the working directories and
+// goes back to the primary one outside them. pwd -P prints the resolved path while the start may go through a
+// symlink, so "the same directory" compares resolved paths.
+func (s *Shell) settleCwd(res *ExecResult, end string) {
+	inside := within(end, s.env.WorkingDirs())
+	s.mu.Lock()
+	if inside {
+		s.cwd = end
+	} else {
+		s.cwd = s.env.Cwd
+	}
+	s.mu.Unlock()
+	if evalPath(end) == evalPath(res.StartCwd) && inside {
+		return
+	}
+	res.EndCwd, res.CwdGone = end, false
+	res.CwdReset = ""
+	if !inside {
+		res.CwdReset = s.env.Cwd
+	}
+}
+
+// CwdNote is the line that closes a Bash result when the command ended in another directory ("" when it did not).
+func (r ExecResult) CwdNote() string {
+	switch {
+	case r.CwdGone:
+		return fmt.Sprintf("Shell cwd was reset to %s: %s no longer exists.", r.CwdReset, r.EndCwd)
+	case r.CwdReset != "":
+		return fmt.Sprintf("Shell cwd was reset to %s: %s is outside the working directories.", r.CwdReset, r.EndCwd)
+	case r.EndCwd != "":
+		return "Shell now stays in " + r.EndCwd + "."
+	}
+	return ""
 }
 
 // startsWithSleep reports whether the command line starts with sleep (such
@@ -482,6 +523,10 @@ func envDuration(name string, def time.Duration) time.Duration {
 	return def
 }
 
+func backgroundCwdNote(cwd string) string {
+	return fmt.Sprintf("Session cwd remains %s; directory changes made by the backgrounded command do not apply to subsequent commands.", cwd)
+}
+
 func changesDir(command string) bool {
 	for _, c := range permissions.SplitCommand(command) {
 		if n := c.Normalize().Name(); n == "cd" || n == "pushd" || n == "popd" || n == "chdir" {
@@ -524,7 +569,11 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		if err != nil {
 			return ErrorResult("failed to start background command: %v", err)
 		}
-		r := TextResult(BackgroundNote(env, BackgroundAgent, info.ID, info.OutputPath, 0),
+		msg := BackgroundNote(env, BackgroundAgent, info.ID, info.OutputPath, 0)
+		if changesDir(in.Command) {
+			msg += "\n" + backgroundCwdNote(env.Shell.Cwd())
+		}
+		r := TextResult(msg,
 			map[string]any{"stdout": "", "stderr": "", "interrupted": false, "backgroundTaskId": info.ID, "outputFile": info.OutputPath, "backgroundReason": BackgroundAgent})
 		r.Summary = "Started background task " + info.ID
 		return r
@@ -536,7 +585,7 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	if bg := res.Background; bg != nil {
 		msg := BackgroundNote(env, res.BackgroundReason, bg.ID, bg.OutputPath, timeout)
 		if changesDir(in.Command) {
-			msg += fmt.Sprintf("\nSession cwd remains %s; directory changes made by the backgrounded command do not apply to subsequent commands.", res.StartCwd)
+			msg += "\n" + backgroundCwdNote(res.StartCwd)
 		}
 		r := TextResult(msg, map[string]any{"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": false, "backgroundTaskId": bg.ID, "outputFile": bg.OutputPath, "backgroundReason": res.BackgroundReason})
 		r.Summary = "Moved to background task " + bg.ID
@@ -575,8 +624,9 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	if res.Truncated {
 		notes = append(notes, "[output exceeded capture limit and was cut]")
 	}
-	if res.CwdReset != "" {
-		notes = append(notes, "Shell cwd was reset to "+res.CwdReset)
+	if note := res.CwdNote(); note != "" {
+		notes = append(notes, note)
+		structured["cwdNote"] = note
 	}
 
 	if isErr {

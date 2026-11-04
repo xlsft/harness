@@ -537,6 +537,8 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "Bash " + c
 	case "Glob", "Grep":
 		return name + " " + jsonField(input, "pattern")
+	case "NotebookEdit":
+		return name + " " + rel(tools.FilePath(input))
 	case "TaskStop", "TaskOutput":
 		return name + " " + jsonField(input, "task_id")
 	case "Wait":

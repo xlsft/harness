@@ -23,13 +23,15 @@ export function toolIcon(t: ToolItem): IconName {
   switch (t.name) {
     case 'Bash':
     case 'TaskOutput': return 'term'
-    case 'Wait': return 'clock'
+    case 'Wait':
+    case 'Monitor': return 'clock'
     case 'Read': return 'file'
     case 'Glob':
     case 'LS': return 'folder'
     case 'Grep': return 'search'
     case 'Edit':
     case 'MultiEdit':
+    case 'NotebookEdit':
     case 'Write': return 'edit'
     case 'WebSearch':
     case 'WebFetch': return 'web-search'
@@ -65,6 +67,7 @@ export function toolTarget(t: ToolItem): string {
     case 'Edit':
     case 'MultiEdit':
     case 'Write': return String(i.file_path ?? t.summary)
+    case 'NotebookEdit': return String(i.notebook_path ?? t.summary)
     case 'Glob': return String(i.pattern ?? t.summary)
     case 'Grep': return `"${String(i.pattern ?? '')}"`
     case 'WebSearch': return `"${String(i.query ?? t.summary)}"`
@@ -78,6 +81,7 @@ export function toolTarget(t: ToolItem): string {
     }
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
+    case 'Monitor': return (i.task_id ? `task ${String(i.task_id)}` : String(i.command ?? t.summary)) + patternSuffix(i.pattern)
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':
@@ -106,6 +110,31 @@ function waitTarget(i: Record<string, unknown>): string {
       ? `task ${String(i.task_id)}${patternSuffix(i.pattern)}`
       : i.path ? `${String(i.path).split('/').pop()}${i.changed ? ' to change' : ''}${patternSuffix(i.pattern)}` : ''
   return [limit, what].filter(Boolean).join(' · ')
+}
+
+// The tools whose results carry a structuredPatch of one file, and that file.
+const EDIT_TOOLS = ['Edit', 'MultiEdit', 'Write', 'NotebookEdit']
+export const isEditTool = (name: string) => EDIT_TOOLS.includes(name)
+export const editedPath = (t: ToolItem) => String((t.name === 'NotebookEdit' ? t.input.notebook_path : t.input.file_path) ?? '')
+
+// What a notebook edit did: "replace cell 3f2a", "insert cell 2" (its diff shows the cell's source, not the JSON).
+export function notebookCellLabel(t: ToolItem): string {
+  const r = t.result ?? {}
+  const mode = String(r.editMode ?? t.input.edit_mode ?? 'replace')
+  const cell = r.cellId || (r.cellIndex ?? t.input.cell_id ?? t.input.cell_index)
+  return cell === undefined || cell === null || cell === '' ? `${mode} cell` : `${mode} cell ${String(cell)}`
+}
+
+// The line that closes a Bash result when the command ended in another directory; the client sets it apart from the
+// output so it can be drawn dimmed. In a failed call's text it is the last line: withoutCwdNote takes it off.
+export function bashCwdNote(t: ToolItem): string {
+  const n = t.result?.cwdNote
+  return typeof n === 'string' ? n : ''
+}
+
+export function withoutCwdNote(text: string, note: string): string {
+  const s = text.trimEnd()
+  return note && s.endsWith(note) ? s.slice(0, -note.length).trimEnd() : text
 }
 
 export interface PatchHunk {
@@ -207,12 +236,17 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
       // Running out the time is a normal end (a wait used as a timer), not a failure.
       return r.met === false ? { text: `waited ${elapsed}`, cls: 'text-muted' } : { text: `ready · ${elapsed}`, cls: 'text-ok' }
     }
+    case 'Monitor': {
+      if (t.status === 'error') return { text: t.resultSummary || 'error', cls: 'text-bad' }
+      return { text: r.persistent ? 'watching' : 'until first match', cls: 'text-muted' }
+    }
     case 'Read': {
       const f = r.file as { numLines?: number } | undefined
       return { text: f?.numLines ? `${f.numLines} lines` : t.resultSummary, cls: '' }
     }
     case 'Edit':
     case 'MultiEdit':
+    case 'NotebookEdit':
     case 'Write': {
       const s = patchStats(patchOf(t))
       return { text: `+${s.add} −${s.del}`, cls: 'diff' }
@@ -238,8 +272,8 @@ export interface FileChange {
 export function fileChanges(tools: ToolItem[]): FileChange[] {
   const map = new Map<string, FileChange>()
   for (const t of tools) {
-    if (!['Edit', 'MultiEdit', 'Write'].includes(t.name) || t.status !== 'ok') continue
-    const path = String(t.input.file_path ?? '')
+    if (!isEditTool(t.name) || t.status !== 'ok') continue
+    const path = editedPath(t)
     if (!path) continue
     const s = patchStats(patchOf(t))
     const prev = map.get(path)

@@ -23,7 +23,7 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
+      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Monitor", "NotebookEdit", "Read", "Show", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -40,6 +40,8 @@ describe("bundle builder", () => {
       plan_approved: ["plan_file_path"],
       plan_rejected: ["feedback"],
       background_task_done: ["task_id", "command", "status", "tail", "output_path"],
+      monitor_match: ["task_id", "description", "pattern", "count", "lines", "status"],
+      monitor_stopped: ["task_id", "description", "pattern", "reason"],
       compacted: [],
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],

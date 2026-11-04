@@ -39,6 +39,8 @@ type Driver struct {
 	stopped   bool
 	// held: see SetHeld. wakeMissed: Wake was called while held (a background task's notification waits).
 	held, wakeMissed bool
+	// wakeAfterTurn: Wake was called during a turn; if its reminder missed the turn's last request, a turn follows.
+	wakeAfterTurn bool
 }
 
 // NewDriver creates a driver whose turns run under ctx.
@@ -71,8 +73,9 @@ func (d *Driver) Submit(id string, blocks []llm.ContentBlock) (queued bool) {
 }
 
 // Wake starts a turn without a message when the session is idle and the agent has reminders waiting (a
-// background task that finished): the model answers the notification. No-op while a turn runs (the reminder
-// rides on its next request) or after Stop; while held it waits for Release.
+// background task that finished): the model answers the notification. While a turn runs the reminder rides on its
+// next request, and when that turn has no further request a turn follows it. No-op after Stop; while held it waits
+// for Release.
 func (d *Driver) Wake() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -80,7 +83,11 @@ func (d *Driver) Wake() {
 		d.wakeMissed = true
 		return
 	}
-	if d.running || d.stopped || d.ctx.Err() != nil || !d.Agent.HasReminders() {
+	if d.running {
+		d.wakeAfterTurn = true
+		return
+	}
+	if d.stopped || d.ctx.Err() != nil || !d.Agent.HasReminders() {
 		return
 	}
 	d.running = true
@@ -106,6 +113,18 @@ func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 		var nextIDs []string
 		if !d.held {
 			next, nextIDs = d.Agent.takeQueue()
+		}
+		wake := d.wakeAfterTurn && len(next) == 0
+		d.wakeAfterTurn = false
+		if wake && d.held {
+			d.wakeMissed = true
+		}
+		// The reminder arrived too late for the turn's last request. Not after a stop: the user ended the turn.
+		if wake && !d.held && !d.stopped && !res.Interrupted && d.ctx.Err() == nil && d.Agent.HasReminders() {
+			d.interrupts = 0
+			d.mu.Unlock()
+			blocks, ids = nil, nil
+			continue
 		}
 		if len(next) == 0 || d.ctx.Err() != nil {
 			d.running = false

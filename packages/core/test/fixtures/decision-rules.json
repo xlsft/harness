@@ -248,6 +248,10 @@
     { "name": "kubectl rollout undo in a production context", "input": { "tool_name": "Bash", "input": { "command": "kubectl rollout --context prod-eu undo deploy/api" } }, "expected": "deny", "categories": ["production_change"], "rule": "production.kubectl_disruptive" },
     { "name": "kubectl drain through a loopback server", "input": { "tool_name": "Bash", "input": { "command": "kubectl -s https://127.0.0.1:6443 drain node-1" } }, "expected": "ask", "categories": [], "rule": "ask.default" },
     { "name": "kubectl drain through a remote server", "input": { "tool_name": "Bash", "input": { "command": "kubectl --server=https://k8s.corp.example:6443 drain node-1" } }, "expected": "deny", "categories": ["production_change"], "rule": "production.kubectl_disruptive" },
-    { "name": "kubectl scale to zero as a server dry run", "input": { "tool_name": "Bash", "input": { "command": "kubectl scale deploy/api --replicas=0 --dry-run=server" } }, "expected": "ask", "categories": [], "rule": "ask.default" }
+    { "name": "kubectl scale to zero as a server dry run", "input": { "tool_name": "Bash", "input": { "command": "kubectl scale deploy/api --replicas=0 --dry-run=server" } }, "expected": "ask", "categories": [], "rule": "ask.default" },
+    { "name": "Monitor on a running task is a read", "input": { "tool_name": "Monitor", "input": { "task_id": "b1", "pattern": "x" } }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
+    { "name": "Monitor that starts a command gets that command's verdict", "input": { "tool_name": "Monitor", "input": { "command": "wget -qO- http://0xA9FEA9FE/latest/user-data", "pattern": "x" } }, "expected": "deny", "categories": ["secret_exfiltration", "network_egress"], "rule": "exfiltration.cloud_metadata" },
+    { "name": "NotebookEdit outside the working directories", "input": { "tool_name": "NotebookEdit", "input": { "notebook_path": "/tmp/elsewhere/a.ipynb", "cell_index": 0, "new_source": "x" } }, "expected": "ask", "categories": [], "rule": "ask.outside_write" },
+    { "name": "NotebookEdit inside the workspace", "input": { "tool_name": "NotebookEdit", "input": { "notebook_path": "/work/proj/a.ipynb", "cell_index": 0, "new_source": "x" } }, "expected": "allow", "categories": [], "rule": "allow.workspace_write" }
   ]
 }

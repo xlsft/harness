@@ -88,7 +88,7 @@ function clearFinished() {
         class="text-muted"
       />
       <span class="text-strong">No background tasks</span>
-      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Dev servers, watchers and long test runs the agent starts in the background show up here.</span>
+      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Dev servers, watchers, long test runs and monitors the agent starts in the background show up here.</span>
     </div>
 
     <div

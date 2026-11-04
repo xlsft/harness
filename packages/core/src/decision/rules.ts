@@ -1921,7 +1921,7 @@ function isSafeCmd(c: Cmd, ctx: Ctx, extraAllow: RegExp[]): boolean {
 // Entry point
 // ---------------------------------------------------------------------------------------------------
 
-const READ_TOOLS = new Set(["Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent"]);
+const READ_TOOLS = new Set(["Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "TaskStop", "TaskOutput", "Monitor", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent"]);
 const WRITE_TOOLS = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
 
 function ask(reason: string, rule = "ask.default"): RulesResult {
@@ -1982,7 +1982,8 @@ export function evaluateRules(req: RulesInput, opts: RulesOptions = {}): RulesRe
   };
   const extraAllow = compile(opts.extraAllow);
   const extraDeny = (opts.extraDeny ?? []).flatMap((r) => compile([r.pattern]).map((re) => ({ re, r })));
-  const tool = req.tool_name;
+  // A Monitor that starts a command runs it in a shell, whatever else it does.
+  const tool = req.tool_name === "Monitor" && input.command ? "Bash" : req.tool_name;
 
   if (tool !== "Bash") {
     const subject = `${tool} ${typeof req.input === "string" ? req.input : JSON.stringify(req.input)}`;

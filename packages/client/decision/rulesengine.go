@@ -3215,7 +3215,7 @@ func isSafeCmd(c *Cmd, ctx *rulesCtx, extraAllow []*regexp.Regexp) bool {
 // ---------------------------------------------------------------------------------------------------
 
 var (
-	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent")
+	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "Monitor", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent")
 	writeTools = setOf("Write", "Edit", "MultiEdit", "NotebookEdit")
 )
 
@@ -3318,6 +3318,10 @@ func EvaluateRules(req RulesInput, opts RulesOptions) RulesResult {
 		}
 	}
 	tool := req.ToolName
+	// A Monitor that starts a command runs it in a shell, whatever else it does.
+	if c, _ := input["command"].(string); tool == "Monitor" && c != "" {
+		tool = "Bash"
+	}
 
 	if tool != "Bash" {
 		subject := tool + " " + compactJSON(req.Input)

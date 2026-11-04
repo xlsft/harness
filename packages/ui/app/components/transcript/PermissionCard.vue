@@ -9,7 +9,7 @@ const store = useSessionStore()
 
 const command = computed(() => {
   const i = props.item.input
-  return String(i.command ?? i.file_path ?? i.url ?? i.pattern ?? JSON.stringify(i))
+  return String(i.command ?? i.file_path ?? i.notebook_path ?? i.url ?? i.pattern ?? JSON.stringify(i))
 })
 const rule = computed(() => props.item.suggestedRules[0] ?? '')
 const ruleLabel = computed(() => rule.value.replace(/^\w+\((.*)\)$/, '$1') || props.item.toolName)
