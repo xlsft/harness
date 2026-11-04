@@ -58,6 +58,8 @@ onMounted(() => {
   }
   img.src = props.url
   if (stage.value) {
+    const r = stage.value.getBoundingClientRect()
+    stageSize.value = { width: r.width, height: r.height }
     observer = new ResizeObserver(([e]) => {
       stageSize.value = { width: e!.contentRect.width, height: e!.contentRect.height }
     })
@@ -80,11 +82,8 @@ function repaint() {
   flatten(ctx, image.value, size.value, draft ? [...shapes.value, draft] : shapes.value)
 }
 watch(shapes, repaint)
-async function edit() {
-  editing.value = true
-  await nextTick()
-  repaint()
-}
+// The canvas appears empty, whenever it appears.
+watch(canvas, repaint, { flush: 'post' })
 
 function pointOf(e: PointerEvent): Point {
   const r = canvas.value!.getBoundingClientRect()
@@ -228,6 +227,7 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
               :height="size.height"
               class="block size-full touch-none"
               :class="tool ? (tool === 'text' ? 'cursor-text' : 'cursor-crosshair') : ''"
+              @mousedown.prevent
               @pointerdown="onDown"
               @pointermove="onMove"
               @pointerup="onUp"
@@ -427,7 +427,7 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
         label="Edit"
         :size="30"
         class="absolute top-[50px] right-3"
-        @click="edit"
+        @click="editing = true"
       />
 
       <div

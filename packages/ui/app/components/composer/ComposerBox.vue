@@ -412,6 +412,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           :key="i"
           :file="f"
           :url="f.file ? thumbs.get(f.file) : undefined"
+          :covered="!!previewing"
           @open="previewing = f"
           @remove="files = files.filter((_, at) => at !== i)"
         />

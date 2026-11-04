@@ -103,7 +103,7 @@ interface MockSession {
   seq: number
   listeners: Set<SubscribeHandlers>
   working: boolean
-  queue: { uuid: string, text: string, queuedAt: number, held?: boolean }[]
+  queue: { uuid: string, text: string, queuedAt: number, held?: boolean, attachments?: OutgoingAttachment[] }[]
   timers: ReturnType<typeof setTimeout>[]
   // The provider of the model is out of usage (REACHED): messages are held until the reset timer or a model switch.
   limit?: { timer: ReturnType<typeof setTimeout>, model: string, providerName: string } | null
@@ -514,7 +514,7 @@ export class MockTransport implements SessionTransport {
     if (s.limit) {
       // Held, like the client; Send now tries at once, and the mock's provider refuses until the reset.
       if (!s.queue.some(q => q.uuid === uuid)) {
-        s.queue.push({ uuid, text, queuedAt: this.now(), held: true })
+        s.queue.push({ uuid, text, queuedAt: this.now(), held: true, attachments })
         this.emit(s, b => b.queue(s.queue))
       }
       if (delivery === SendUserMessageRequest_Delivery.NOW) {
@@ -525,7 +525,7 @@ export class MockTransport implements SessionTransport {
     if (s.working) {
       // Queued (QueueChanged); NOW stops the turn so the message starts the next one, like the client.
       if (!s.queue.some(q => q.uuid === uuid)) {
-        s.queue.push({ uuid, text, queuedAt: this.now() })
+        s.queue.push({ uuid, text, queuedAt: this.now(), attachments })
         this.emit(s, b => b.queue(s.queue))
       }
       if (delivery === SendUserMessageRequest_Delivery.NOW) {
@@ -547,6 +547,7 @@ export class MockTransport implements SessionTransport {
     const before = s.queue.length
     s.queue = s.queue.filter(q => q.uuid !== uuid)
     if (s.queue.length === before) return false
+    this.sentFiles.delete(uuid)
     this.emit(s, b => b.queue(s.queue))
     return true
   }

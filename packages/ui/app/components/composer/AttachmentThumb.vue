@@ -6,7 +6,8 @@ import { fileExtension } from '~/lib/session/attachments'
 import type { ComposerFile } from '~/utils/composer'
 import type { IconName } from '~/utils/icons'
 
-const props = defineProps<{ file: ComposerFile, url?: string }>()
+// `covered`: the preview is over it, and the tooltip of the click that opened it must not stay on top.
+const props = defineProps<{ file: ComposerFile, url?: string, covered?: boolean }>()
 defineEmits<{ open: [], remove: [] }>()
 
 // An image the browser cannot decode falls back to the icon, and opens nothing.
@@ -36,6 +37,7 @@ const frame = computed(() => [
   <div class="relative size-14 shrink-0">
     <UTooltip
       :text="tooltip"
+      :disabled="covered"
       :delay-duration="300"
       :content="{ side: 'top', sideOffset: 4 }"
     >
