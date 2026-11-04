@@ -2006,7 +2006,10 @@ type CreateSessionRequest struct {
 	Worktree *WorktreeOptions `protobuf:"bytes,12,opt,name=worktree,proto3,oneof" json:"worktree,omitempty"`
 	// The session engine: empty or "harness" for the harness agent loop, "acp:<agent id>" for an installed ACP
 	// agent (acp.proto). Recorded with the session: a resume uses the recorded engine and ignores this field.
-	Engine        string `protobuf:"bytes,13,opt,name=engine,proto3" json:"engine,omitempty"`
+	// On an ACP agent, `model` is one of AcpAgent.models; effort and permission_mode do not apply.
+	Engine string `protobuf:"bytes,13,opt,name=engine,proto3" json:"engine,omitempty"`
+	// On an ACP agent: the mode to start in, one of AcpAgent.modes (empty: the agent's default).
+	AcpModeId     string `protobuf:"bytes,14,opt,name=acp_mode_id,json=acpModeId,proto3" json:"acp_mode_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2128,6 +2131,13 @@ func (x *CreateSessionRequest) GetWorktree() *WorktreeOptions {
 func (x *CreateSessionRequest) GetEngine() string {
 	if x != nil {
 		return x.Engine
+	}
+	return ""
+}
+
+func (x *CreateSessionRequest) GetAcpModeId() string {
+	if x != nil {
+		return x.AcpModeId
 	}
 	return ""
 }
@@ -6736,9 +6746,12 @@ func (*AnswerQuestionResponse) Descriptor() ([]byte, []int) {
 }
 
 type SetModelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Model         string                 `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Model     string                 `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	// The engine the model belongs to ("acp:<agent id>" for an agent's model); empty means the session's own engine.
+	// A session stays on its engine: anything else fails with FAILED_PRECONDITION.
+	Engine        string `protobuf:"bytes,3,opt,name=engine,proto3" json:"engine,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6783,6 +6796,13 @@ func (x *SetModelRequest) GetSessionId() string {
 func (x *SetModelRequest) GetModel() string {
 	if x != nil {
 		return x.Model
+	}
+	return ""
+}
+
+func (x *SetModelRequest) GetEngine() string {
+	if x != nil {
+		return x.Engine
 	}
 	return ""
 }
@@ -10376,7 +10396,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"STATE_OPEN\x10\x01\x12\x0f\n" +
 	"\vSTATE_DRAFT\x10\x02\x12\x10\n" +
 	"\fSTATE_MERGED\x10\x03\x12\x10\n" +
-	"\fSTATE_CLOSED\x10\x04\"\xb9\x04\n" +
+	"\fSTATE_CLOSED\x10\x04\"\xd9\x04\n" +
 	"\x14CreateSessionRequest\x12\x10\n" +
 	"\x03cwd\x18\x01 \x01(\tR\x03cwd\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12I\n" +
@@ -10391,7 +10411,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	" \x03(\tR\x15additionalDirectories\x121\n" +
 	"\x15fork_at_checkpoint_id\x18\v \x01(\tR\x12forkAtCheckpointId\x12B\n" +
 	"\bworktree\x18\f \x01(\v2!.harness.agent.v1.WorktreeOptionsH\x00R\bworktree\x88\x01\x01\x12\x16\n" +
-	"\x06engine\x18\r \x01(\tR\x06engineB\v\n" +
+	"\x06engine\x18\r \x01(\tR\x06engine\x12\x1e\n" +
+	"\vacp_mode_id\x18\x0e \x01(\tR\tacpModeIdB\v\n" +
 	"\t_worktree\"X\n" +
 	"\x0fWorktreeOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
@@ -10809,11 +10830,12 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\bselected\x18\x01 \x03(\tR\bselected\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x12\x18\n" +
 	"\askipped\x18\x03 \x01(\bR\askipped\"\x18\n" +
-	"\x16AnswerQuestionResponse\"F\n" +
+	"\x16AnswerQuestionResponse\"^\n" +
 	"\x0fSetModelRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x14\n" +
-	"\x05model\x18\x02 \x01(\tR\x05model\"\x12\n" +
+	"\x05model\x18\x02 \x01(\tR\x05model\x12\x16\n" +
+	"\x06engine\x18\x03 \x01(\tR\x06engine\"\x12\n" +
 	"\x10SetModelResponse\"Q\n" +
 	"\x16SetAutoContinueRequest\x12\x1d\n" +
 	"\n" +

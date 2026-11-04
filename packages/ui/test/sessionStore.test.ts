@@ -161,3 +161,42 @@ async function waitFor(cond: () => boolean, ms = 3000) {
     await new Promise(r => setTimeout(r, 5))
   }
 }
+
+describe('the session store and ACP agents', () => {
+  it('lists the agents, and starts a session on one', async () => {
+    const { store } = await setup()
+    await store.refreshAcpAgents()
+    expect(store.acpLoaded).toBe(true)
+    expect(store.acpSwitchRefusal).toBe('Start a new session to use this agent')
+    expect(store.acpAgents.filter(a => a.selectable).map(a => a.id)).toEqual(['codex-acp'])
+    const id = await store.createSession({ cwd: '/tmp/p', model: 'gpt-5.2', engine: 'acp:codex-acp', acpModeId: 'read-only' })
+    const meta = store.sessions[id]!.meta
+    expect(meta.engine).toBe('acp:codex-acp')
+    expect(meta.acp?.currentModelId).toBe('gpt-5.2')
+    expect(meta.acp?.currentModeId).toBe('read-only')
+    expect(meta.unsupported).toEqual(expect.arrayContaining(['rewind', 'fork', 'side_chat', 'effort', 'worktree', 'shell_commands']))
+  })
+
+  it('shows a model or mode at once and takes it back when the client refuses', async () => {
+    const { store } = await setup()
+    const id = await store.createSession({ cwd: '/tmp/p', engine: 'acp:codex-acp' })
+    await store.setModel(id, 'gpt-5.2-mini', 'acp:codex-acp')
+    expect(store.sessions[id]!.meta.acp?.currentModelId).toBe('gpt-5.2-mini')
+    await store.setModel(id, 'somebody-elses')
+    expect(store.sessions[id]!.meta.acp?.currentModelId).toBe('gpt-5.2-mini')
+    expect(store.error).toMatch(/start a new session/)
+    await store.setAcpMode(id, 'read-only')
+    expect(store.sessions[id]!.meta.acp?.currentModeId).toBe('read-only')
+    await store.setAcpMode(id, 'nope')
+    expect(store.sessions[id]!.meta.acp?.currentModeId).toBe('read-only')
+  })
+
+  it('cycles the agent\'s own modes', async () => {
+    const { store } = await setup()
+    const id = await store.createSession({ cwd: '/tmp/p', engine: 'acp:codex-acp' })
+    expect(store.sessions[id]!.meta.acp?.currentModeId).toBe('auto')
+    store.cycleMode(id)
+    await new Promise(r => setTimeout(r, 0))
+    expect(store.sessions[id]!.meta.acp?.currentModeId).toBe('full-access')
+  })
+})

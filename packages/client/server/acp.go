@@ -37,6 +37,8 @@ type acpState struct {
 	reg  *registry.Manager
 	mu   sync.Mutex
 	live map[string]*acpLive
+	// probes finds out the agents' models (acp_models.go).
+	probes acpProbes
 }
 
 // AcpRegistry returns the ACP agent manager (HARNESS_HOME/acp); tests may set it with SetAcpRegistry first.
@@ -70,6 +72,7 @@ func (s *Server) closeAcp() {
 	for _, l := range live {
 		l.close("host_shutdown")
 	}
+	s.acp.probes.wait()
 }
 
 // acpLive is an open ACP session.
@@ -91,6 +94,8 @@ type acpLive struct {
 	closed bool
 	diffAt time.Time
 	diffGo bool
+	// reported is the last models and modes this session told the agent's catalog about.
+	reported string
 }
 
 // ---- acp.Sink ----
@@ -112,7 +117,10 @@ func (l *acpLive) Publish(ev *agentv1.SessionEvent) {
 
 func (l *acpLive) PublishEphemeral(ev *agentv1.SessionEvent) { l.hub.publishEphemeral(ev) }
 
-func (l *acpLive) Changed() { l.publishInfo() }
+func (l *acpLive) Changed() {
+	l.observeState()
+	l.publishInfo()
+}
 
 // FilesChanged recomputes the diff stats (at most every second) for the Changes pane and the session list.
 func (l *acpLive) FilesChanged() {
@@ -164,7 +172,7 @@ func (l *acpLive) info() *agentv1.SessionInfo {
 		Id: l.id, Title: title, Cwd: m.Cwd, GitBranch: l.branch, Model: m.AgentName, Status: st.Status,
 		PermissionMode: acp.PermissionModeOf(st.CurrentMode), UpdatedAt: m.UpdatedAt.UTC().Format(time.RFC3339),
 		DiffStats: l.diff, NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(),
-		Acp: acp.StateToProto(l.sess.Config(), st), DeviceId: l.srv.DeviceID,
+		Acp: l.srv.acpSessionState(l.sess.Config(), st), DeviceId: l.srv.DeviceID,
 		UsageLimit: st.UsageLimit, KeepAwake: l.srv.keepAwake().Wanted(l.id),
 	}
 	l.mu.Unlock()
@@ -255,6 +263,7 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 		}
 		now := time.Now().UTC()
 		meta = acpMeta{ID: id, Engine: enginePrefix + agentID, AgentID: agentID, AgentName: name, AgentVersion: st.Installed.Version,
+			Model: strings.TrimSpace(req.GetModel()), Mode: strings.TrimSpace(req.GetAcpModeId()),
 			Cwd: chat.cwd, NoFolder: chat.noFolder, CreatedAt: now, UpdatedAt: now}
 	}
 	if err := writeAcpMeta(meta); err != nil {
@@ -283,7 +292,7 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 	cfg := acp.Config{
 		AgentID: agentID, AgentName: name, AgentVersion: st.Installed.Version, Launch: launch,
 		Cwd: meta.Cwd, AdditionalDirs: opts.AdditionalDirs, Env: opts.Env, ResumeAgentSessionID: meta.AgentSessionID,
-		Model: name, Sink: l, Logger: s.log(),
+		Model: name, InitialModel: meta.Model, InitialMode: meta.Mode, Sink: l, Logger: s.log(),
 		OnAuth: func(state registry.AuthState, methods []registry.AuthMethod) {
 			_ = reg.SetAuth(agentID, state, methods)
 		},
@@ -607,11 +616,14 @@ func (r acpRouted) SetAcpMode(ctx context.Context, req *connect.Request[agentv1.
 
 func (r acpRouted) SetModel(ctx context.Context, req *connect.Request[agentv1.SetModelRequest]) (*connect.Response[agentv1.SetModelResponse], error) {
 	l, err := r.acpTarget(req.Msg.GetSessionId())
-	if err != nil || l == nil {
-		if err != nil {
-			return nil, err
-		}
-		return r.routed.SetModel(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if l == nil {
+		return r.setHarnessModel(ctx, req)
+	}
+	if err := l.modelRefusal(req.Msg.GetEngine(), req.Msg.GetModel()); err != nil {
+		return nil, err
 	}
 	if err := l.sess.SetModel(ctx, req.Msg.GetModel()); err != nil {
 		return nil, acpError(err)
@@ -702,7 +714,8 @@ func (r acpRouted) UpdateSession(ctx context.Context, req *connect.Request[agent
 		} else {
 			info = r.storedAcpInfo(*meta)
 		}
-		info.Acp = nil // device-local: never leaves the client
+		// Device-local: the agent's state and its models never leave the client.
+		info.Acp, info.Model = nil, meta.AgentName
 		info.Pinned, info.Unread, info.Archived = st.pinned, st.unread, st.archived
 		cctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 		_, err := r.Sync.UpsertSession(cctx, &syncv1.UpsertSessionRequest{Session: &syncv1.SessionMetadata{Info: info}, UpdatePaths: paths})

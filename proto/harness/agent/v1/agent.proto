@@ -556,7 +556,10 @@ message CreateSessionRequest {
   optional WorktreeOptions worktree = 12;
   // The session engine: empty or "harness" for the harness agent loop, "acp:<agent id>" for an installed ACP
   // agent (acp.proto). Recorded with the session: a resume uses the recorded engine and ignores this field.
+  // On an ACP agent, `model` is one of AcpAgent.models; effort and permission_mode do not apply.
   string engine = 13;
+  // On an ACP agent: the mode to start in, one of AcpAgent.modes (empty: the agent's default).
+  string acp_mode_id = 14;
 }
 
 message WorktreeOptions {
@@ -1223,6 +1226,9 @@ message AnswerQuestionResponse {}
 message SetModelRequest {
   string session_id = 1;
   string model = 2;
+  // The engine the model belongs to ("acp:<agent id>" for an agent's model); empty means the session's own engine.
+  // A session stays on its engine: anything else fails with FAILED_PRECONDITION.
+  string engine = 3;
 }
 
 message SetModelResponse {}

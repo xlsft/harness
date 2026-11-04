@@ -259,3 +259,10 @@ describe('held messages', () => {
     expect(messageActions('held', { busy: false, readOnly: true })).toMatchObject({ cancel: 'hidden', sendNow: 'hidden' })
   })
 })
+
+describe('what the engine cannot do', () => {
+  it('takes away rewind and fork', () => {
+    const a = messageActions('read', { busy: false, readOnly: false, unsupported: ['rewind', 'fork'] })
+    expect([a.copy, a.rewind, a.fork]).toEqual(['enabled', 'hidden', 'hidden'])
+  })
+})

@@ -45,9 +45,12 @@ type Config struct {
 	// ResumeAgentSessionID is the agent's session to restore (session/load) when the agent supports it.
 	ResumeAgentSessionID string
 	// Model is shown as the model of turns and messages; the agent name when empty.
-	Model  string
-	Sink   Sink
-	Logger *slog.Logger
+	Model string
+	// InitialModel and InitialMode are the agent's model and mode to start on; the agent's defaults when empty.
+	// One the agent no longer offers leaves its default in place, with a notice.
+	InitialModel, InitialMode string
+	Sink                      Sink
+	Logger                    *slog.Logger
 	// OnAuth records what was learned about the agent's sign-in (device-local state).
 	OnAuth func(state registry.AuthState, methods []registry.AuthMethod)
 	// OnLimits records a subscription-limit snapshot the agent reported (device-local state).
@@ -59,13 +62,13 @@ type Config struct {
 }
 
 // Mode is one of the agent's session modes.
-type Mode struct{ ID, Name, Description string }
+type Mode = registry.Mode
 
 // Command is a slash command the agent advertises.
 type Command struct{ Name, Description, InputHint string }
 
 // Model is one of the agent's model choices.
-type Model struct{ ID, Name, Description string }
+type Model = registry.Model
 
 // State is a snapshot of the engine.
 type State struct {
@@ -134,24 +137,27 @@ type Session struct {
 	// Events are built under mu into outbox and delivered in order by one caller of unlock at a time (delivering).
 	delivering bool
 
-	mu         sync.Mutex
-	outbox     []func()
-	proc       *process
-	caps       sdk.AgentCapabilities
-	sessionID  sdk.SessionId
-	ready      bool
-	starting   bool
-	loading    bool
-	needsAuth  bool
-	authM      []registry.AuthMethod
-	startErr   string
-	fresh      bool
-	modes      []Mode
-	curMode    string
-	commands   []Command
-	models     []Model
-	curModel   string
-	modelOpt   string
+	mu        sync.Mutex
+	outbox    []func()
+	proc      *process
+	caps      sdk.AgentCapabilities
+	sessionID sdk.SessionId
+	ready     bool
+	starting  bool
+	loading   bool
+	needsAuth bool
+	authM     []registry.AuthMethod
+	startErr  string
+	fresh     bool
+	modes     []Mode
+	curMode   string
+	commands  []Command
+	models    []Model
+	curModel  string
+	modelOpt  string
+	// wantModel and wantMode are the choices to apply once the agent session is open.
+	wantModel  string
+	wantMode   string
 	ctxUsed    int64
 	ctxSize    int64
 	title      string
@@ -180,7 +186,8 @@ type Session struct {
 func New(cfg Config) *Session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Session{cfg: cfg, log: cfg.Logger, ctx: ctx, cancel: cancel, wake: make(chan struct{}, 1),
-		tools: map[string]*toolState{}, perms: map[string]*pendingPerm{}, writes: map[string]writeRecord{}, starting: true}
+		tools: map[string]*toolState{}, perms: map[string]*pendingPerm{}, writes: map[string]writeRecord{}, starting: true,
+		wantModel: cfg.InitialModel, wantMode: cfg.InitialMode}
 	if s.log == nil {
 		s.log = slog.Default()
 	}
@@ -267,6 +274,12 @@ func (s *Session) State() State {
 		Modes: s.modes, CurrentMode: s.curMode, Commands: s.commands, Models: s.models, CurrentModel: s.curModel,
 		ContextUsed: s.ctxUsed, ContextSize: s.ctxSize, AgentSessionID: string(s.sessionID), LoadSupported: s.caps.LoadSession,
 		Fresh: s.fresh, Title: s.title, Limits: s.limits, UsageLimit: s.usageLimit}
+	if s.wantModel != "" {
+		st.CurrentModel = s.wantModel
+	}
+	if s.wantMode != "" {
+		st.CurrentMode = s.wantMode
+	}
 	for _, q := range s.queue {
 		st.Queue = append(st.Queue, &agentv1.UserMessage{Uuid: q.uuid, Content: q.content, QueuedAt: q.queuedAt.UTC().Format(time.RFC3339Nano)})
 	}
@@ -466,11 +479,17 @@ func (s *Session) openSession(ctx context.Context) error {
 		}
 		return p.failure(octx, err)
 	}
+	// Before the session is ready: the first prompt must not reach the agent ahead of the chosen model.
+	s.applyWanted(octx, p)
 	s.mu.Lock()
 	s.ready, s.needsAuth = true, false
 	id := string(s.sessionID)
 	methods := s.authM
+	again := s.wantModel != "" || s.wantMode != ""
 	s.mu.Unlock()
+	if again {
+		s.applyWanted(octx, p)
+	}
 	if s.cfg.OnAuth != nil {
 		s.cfg.OnAuth(registry.AuthNotRequired, methods)
 	}
@@ -565,7 +584,7 @@ func (s *Session) applyModesLocked(m *sdk.SessionModeState) {
 	if m == nil {
 		return
 	}
-	s.modes = s.modes[:0]
+	s.modes = nil // State() snapshots share the old list
 	for _, x := range m.AvailableModes {
 		d := ""
 		if x.Description != nil {
@@ -607,10 +626,99 @@ func (s *Session) applyConfigLocked(opts []sdk.SessionConfigOption) {
 	}
 }
 
-// SetMode switches the agent's session mode.
+// waitingToOpenLocked reports whether a choice can still wait for the agent session: it starts or waits for a sign-in.
+func (s *Session) waitingToOpenLocked() bool {
+	return !s.ready && !s.closed && (s.starting || s.needsAuth)
+}
+
+// applyWanted applies the model and mode chosen before the agent session opened. What cannot be applied becomes a
+// notice: the session runs on the agent's default rather than not at all.
+func (s *Session) applyWanted(ctx context.Context, p *process) {
+	s.mu.Lock()
+	model, mode := s.wantModel, s.wantMode
+	s.wantModel, s.wantMode = "", ""
+	cur, curMode, opt := s.curModel, s.curMode, s.modelOpt
+	offered := hasModel(s.models, model)
+	offeredMode := false
+	for _, m := range s.modes {
+		offeredMode = offeredMode || m.ID == mode
+	}
+	s.mu.Unlock()
+	name := s.cfg.AgentName
+	if model != "" && model != cur && !(opt == "" && model == DefaultModelID) {
+		switch {
+		case !offered:
+			s.Notice(agentv1.Notice_LEVEL_WARNING, "acp_model_unavailable", fmt.Sprintf("%s does not offer the model %s any more; the session uses its default.", name, model))
+		default:
+			if err := s.setModelOption(ctx, p, model); err != nil {
+				s.Notice(agentv1.Notice_LEVEL_WARNING, "acp_model_unavailable", fmt.Sprintf("%s could not switch to the model %s: %v", name, model, err))
+			}
+		}
+	}
+	if mode != "" && mode != curMode {
+		switch {
+		case !offeredMode:
+			s.Notice(agentv1.Notice_LEVEL_WARNING, "acp_mode_unavailable", fmt.Sprintf("%s does not offer the mode %s any more; the session uses its default.", name, mode))
+		default:
+			if err := s.setModeOption(ctx, p, mode); err != nil {
+				s.Notice(agentv1.Notice_LEVEL_WARNING, "acp_mode_unavailable", fmt.Sprintf("%s could not switch to the mode %s: %v", name, mode, err))
+			}
+		}
+	}
+	s.mu.Lock()
+	s.changedLocked()
+	s.unlock()
+}
+
+func hasModel(models []Model, id string) bool {
+	for _, m := range models {
+		if m.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// setModeOption sends session/set_mode.
+func (s *Session) setModeOption(ctx context.Context, p *process, modeID string) error {
+	s.mu.Lock()
+	id := s.sessionID
+	s.mu.Unlock()
+	if _, err := p.conn.SetSessionMode(ctx, sdk.SetSessionModeRequest{SessionId: id, ModeId: sdk.SessionModeId(modeID)}); err != nil {
+		return p.failure(ctx, err)
+	}
+	s.setCurrentMode(modeID)
+	return nil
+}
+
+// setModelOption sets the agent's model config option.
+func (s *Session) setModelOption(ctx context.Context, p *process, modelID string) error {
+	s.mu.Lock()
+	id, opt := s.sessionID, s.modelOpt
+	s.mu.Unlock()
+	res, err := p.conn.SetSessionConfigOption(ctx, sdk.SetSessionConfigOptionRequest{ValueId: &sdk.SetSessionConfigOptionValueId{
+		SessionId: id, ConfigId: sdk.SessionConfigId(opt), Value: sdk.SessionConfigValueId(modelID)}})
+	if err != nil {
+		return p.failure(ctx, err)
+	}
+	s.mu.Lock()
+	s.curModel = modelID
+	s.applyConfigLocked(res.ConfigOptions)
+	s.changedLocked()
+	s.unlock()
+	return nil
+}
+
+// SetMode switches the agent's session mode. While the agent session is not open yet, the choice waits for it.
 func (s *Session) SetMode(ctx context.Context, modeID string) error {
 	s.mu.Lock()
-	p, id, ready := s.proc, s.sessionID, s.ready
+	if s.waitingToOpenLocked() {
+		s.wantMode = modeID
+		s.changedLocked()
+		s.unlock()
+		return nil
+	}
+	p, ready := s.proc, s.ready
 	known := false
 	for _, m := range s.modes {
 		known = known || m.ID == modeID
@@ -622,11 +730,7 @@ func (s *Session) SetMode(ctx context.Context, modeID string) error {
 	if !known {
 		return fmt.Errorf("%s has no mode %q", s.cfg.AgentName, modeID)
 	}
-	if _, err := p.conn.SetSessionMode(ctx, sdk.SetSessionModeRequest{SessionId: id, ModeId: sdk.SessionModeId(modeID)}); err != nil {
-		return p.failure(ctx, err)
-	}
-	s.setCurrentMode(modeID)
-	return nil
+	return s.setModeOption(ctx, p, modeID)
 }
 
 // SetPermissionMode switches to the agent mode matching a harness permission mode.
@@ -650,35 +754,33 @@ func (s *Session) setCurrentMode(modeID string) {
 	s.unlock()
 }
 
-// SetModel picks one of the agent's models (its model config option).
+// SetModel picks one of the agent's models (its model config option). While the agent session is not open yet, the
+// choice waits for it.
 func (s *Session) SetModel(ctx context.Context, modelID string) error {
 	s.mu.Lock()
-	p, id, ready, opt := s.proc, s.sessionID, s.ready, s.modelOpt
-	known := false
-	for _, m := range s.models {
-		known = known || m.ID == modelID
+	if s.waitingToOpenLocked() {
+		s.wantModel = modelID
+		s.changedLocked()
+		s.unlock()
+		return nil
 	}
+	p, ready, opt := s.proc, s.ready, s.modelOpt
+	known := hasModel(s.models, modelID)
 	s.mu.Unlock()
 	if !ready || p == nil {
 		return ErrNotReady
 	}
 	if opt == "" {
+		// The single "Default" entry of an agent without a model option: already on it.
+		if modelID == DefaultModelID {
+			return nil
+		}
 		return fmt.Errorf("%s does not offer a model choice", s.cfg.AgentName)
 	}
 	if !known {
 		return fmt.Errorf("%s has no model %q", s.cfg.AgentName, modelID)
 	}
-	res, err := p.conn.SetSessionConfigOption(ctx, sdk.SetSessionConfigOptionRequest{ValueId: &sdk.SetSessionConfigOptionValueId{
-		SessionId: id, ConfigId: sdk.SessionConfigId(opt), Value: sdk.SessionConfigValueId(modelID)}})
-	if err != nil {
-		return p.failure(ctx, err)
-	}
-	s.mu.Lock()
-	s.curModel = modelID
-	s.applyConfigLocked(res.ConfigOptions)
-	s.changedLocked()
-	s.unlock()
-	return nil
+	return s.setModelOption(ctx, p, modelID)
 }
 
 // ---- prompts ----

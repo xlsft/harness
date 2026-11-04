@@ -10,9 +10,13 @@
 //	"limits" sends a rate-limit snapshot in an extension notification
 //	"nearlimit" sends a snapshot with the 5h window 98% used
 //	"ratelimited" fails the prompt with a usage-limit error
+//	"newmodels" reports the models of FAKE_MODELS_FILE again in a config_option_update
 //
 // Environment: FAKE_AUTH=1 refuses session/new until "login" (agent auth) ran or FAKE_AUTH_FILE exists
-// (terminal auth: `fakeagent --login` creates it); FAKE_LOAD=1 advertises loadSession.
+// (terminal auth: `fakeagent --login` creates it); FAKE_LOAD=1 advertises loadSession; FAKE_MODELS_FILE holds the
+// model config option, one "id=Name" per line, the first one current (no file or an empty one: no model option, as
+// with an agent that has none); while FAKE_FAIL_FILE exists session/new fails; FAKE_LOG appends one line per
+// process start and per request that matters to tests.
 package main
 
 import (
@@ -22,6 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	sdk "github.com/coder/acp-go-sdk"
 )
@@ -33,7 +38,45 @@ type agent struct {
 	authed  bool
 	cancels map[sdk.SessionId]context.CancelFunc
 	cwd     map[sdk.SessionId]string
+	model   map[sdk.SessionId]string
 	n       int
+}
+
+// logLine records what happened for the test that set FAKE_LOG.
+func logLine(format string, args ...any) {
+	f := os.Getenv("FAKE_LOG")
+	if f == "" {
+		return
+	}
+	w, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return
+	}
+	defer w.Close()
+	fmt.Fprintf(w, format+"\n", args...)
+}
+
+// modelOption is the agent's model config option as FAKE_MODELS_FILE has it now; current empty is its first model.
+func modelOption(current string) []sdk.SessionConfigOption {
+	b, err := os.ReadFile(os.Getenv("FAKE_MODELS_FILE"))
+	if err != nil {
+		return nil
+	}
+	var opts sdk.SessionConfigSelectOptionsUngrouped
+	for _, line := range strings.Split(string(b), "\n") {
+		if id, name, ok := strings.Cut(strings.TrimSpace(line), "="); ok {
+			opts = append(opts, sdk.SessionConfigSelectOption{Value: sdk.SessionConfigValueId(id), Name: name})
+		}
+	}
+	if len(opts) == 0 {
+		return nil
+	}
+	if current == "" {
+		current = string(opts[0].Value)
+	}
+	category := sdk.SessionConfigOptionCategoryModel
+	return []sdk.SessionConfigOption{{Select: &sdk.SessionConfigOptionSelect{Id: "model", Name: "Model", Type: "select", Category: &category,
+		CurrentValue: sdk.SessionConfigValueId(current), Options: sdk.SessionConfigSelectOptions{Ungrouped: &opts}}}}
 }
 
 func main() {
@@ -44,7 +87,8 @@ func main() {
 		fmt.Println("logged in")
 		return
 	}
-	a := &agent{cancels: map[sdk.SessionId]context.CancelFunc{}, cwd: map[sdk.SessionId]string{}}
+	logLine("spawn")
+	a := &agent{cancels: map[sdk.SessionId]context.CancelFunc{}, cwd: map[sdk.SessionId]string{}, model: map[sdk.SessionId]string{}}
 	a.conn = sdk.NewAgentSideConnection(a, os.Stdout, os.Stdin)
 	<-a.conn.Done()
 }
@@ -54,8 +98,9 @@ func (a *agent) Initialize(ctx context.Context, p sdk.InitializeRequest) (sdk.In
 	return sdk.InitializeResponse{
 		ProtocolVersion: sdk.ProtocolVersionNumber,
 		AgentCapabilities: sdk.AgentCapabilities{
-			LoadSession:        os.Getenv("FAKE_LOAD") == "1",
-			PromptCapabilities: sdk.PromptCapabilities{Image: false},
+			LoadSession:         os.Getenv("FAKE_LOAD") == "1",
+			PromptCapabilities:  sdk.PromptCapabilities{Image: false},
+			SessionCapabilities: sdk.SessionCapabilities{Close: &sdk.SessionCloseCapabilities{}},
 		},
 		AgentInfo: &sdk.Implementation{Name: "fake", Version: "1.0.0"},
 		AuthMethods: []sdk.AuthMethod{
@@ -99,8 +144,14 @@ func modes() *sdk.SessionModeState {
 
 func (a *agent) NewSession(ctx context.Context, p sdk.NewSessionRequest) (sdk.NewSessionResponse, error) {
 	if a.needsAuth() {
+		logLine("session/new auth required")
 		return sdk.NewSessionResponse{}, sdk.NewAuthRequired(nil)
 	}
+	if _, err := os.Stat(os.Getenv("FAKE_FAIL_FILE")); err == nil {
+		logLine("session/new failed")
+		return sdk.NewSessionResponse{}, sdk.NewInternalError(map[string]any{"error": "the fake agent is broken"})
+	}
+	logLine("session/new %s", p.Cwd)
 	a.mu.Lock()
 	a.n++
 	id := sdk.SessionId(fmt.Sprintf("fake-%d", a.n))
@@ -111,7 +162,7 @@ func (a *agent) NewSession(ctx context.Context, p sdk.NewSessionRequest) (sdk.Ne
 			AvailableCommandsUpdate: &sdk.SessionAvailableCommandsUpdate{SessionUpdate: "available_commands_update",
 				AvailableCommands: []sdk.AvailableCommand{{Name: "review", Description: "Review the changes"}}}}})
 	}()
-	return sdk.NewSessionResponse{SessionId: id, Modes: modes()}, nil
+	return sdk.NewSessionResponse{SessionId: id, Modes: modes(), ConfigOptions: modelOption("")}, nil
 }
 
 func (a *agent) LoadSession(ctx context.Context, p sdk.LoadSessionRequest) (sdk.LoadSessionResponse, error) {
@@ -145,6 +196,9 @@ func (a *agent) Prompt(ctx context.Context, p sdk.PromptRequest) (sdk.PromptResp
 			text += b.Text.Text
 		}
 	}
+	a.mu.Lock()
+	logLine("prompt model=%s", a.model[p.SessionId])
+	a.mu.Unlock()
 	tctx, cancel := context.WithCancel(context.Background())
 	a.mu.Lock()
 	a.cancels[p.SessionId] = cancel
@@ -154,6 +208,11 @@ func (a *agent) Prompt(ctx context.Context, p sdk.PromptRequest) (sdk.PromptResp
 	id := p.SessionId
 	usage := &sdk.Usage{InputTokens: 100, OutputTokens: 20, TotalTokens: 120}
 	switch {
+	case strings.Contains(text, "newmodels"):
+		a.send(ctx, id, sdk.SessionUpdate{ConfigOptionUpdate: &sdk.SessionConfigOptionUpdate{SessionUpdate: "config_option_update", ConfigOptions: modelOption("")}})
+		// The client handles the update after this answer otherwise.
+		time.Sleep(20 * time.Millisecond)
+		return sdk.PromptResponse{StopReason: sdk.StopReasonEndTurn}, nil
 	case strings.Contains(text, "hello"):
 		a.send(ctx, id, sdk.UpdateAgentThoughtText("Thinking it over."))
 		a.send(ctx, id, sdk.UpdateAgentMessageText("Hello "))
@@ -233,6 +292,7 @@ func (a *agent) toolTurn(ctx, tctx context.Context, id sdk.SessionId, cwd string
 }
 
 func (a *agent) SetSessionMode(ctx context.Context, p sdk.SetSessionModeRequest) (sdk.SetSessionModeResponse, error) {
+	logLine("set_mode %s", p.ModeId)
 	return sdk.SetSessionModeResponse{}, nil
 }
 
@@ -241,6 +301,7 @@ func (a *agent) Logout(ctx context.Context, p sdk.LogoutRequest) (sdk.LogoutResp
 }
 
 func (a *agent) CloseSession(ctx context.Context, p sdk.CloseSessionRequest) (sdk.CloseSessionResponse, error) {
+	logLine("session/close")
 	return sdk.CloseSessionResponse{}, nil
 }
 
@@ -253,5 +314,16 @@ func (a *agent) ResumeSession(ctx context.Context, p sdk.ResumeSessionRequest) (
 }
 
 func (a *agent) SetSessionConfigOption(ctx context.Context, p sdk.SetSessionConfigOptionRequest) (sdk.SetSessionConfigOptionResponse, error) {
-	return sdk.SetSessionConfigOptionResponse{}, nil
+	if p.ValueId == nil {
+		return sdk.SetSessionConfigOptionResponse{}, sdk.NewInvalidParams(map[string]any{"error": "a value is required"})
+	}
+	logLine("set_model %s", p.ValueId.Value)
+	a.mu.Lock()
+	a.model[p.ValueId.SessionId] = string(p.ValueId.Value)
+	a.mu.Unlock()
+	opts := modelOption(string(p.ValueId.Value))
+	if opts == nil {
+		opts = []sdk.SessionConfigOption{}
+	}
+	return sdk.SetSessionConfigOptionResponse{ConfigOptions: opts}, nil
 }

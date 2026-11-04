@@ -14,7 +14,9 @@ export function useShortcuts() {
     'meta_j': () => togglePane('terminal'),
     'meta_shift_b': () => togglePane('browser'),
     'meta_shift_e': () => togglePane('files'),
-    'meta_;': () => togglePane('sidechat'),
+    'meta_;': () => {
+      if (!store.current?.meta.unsupported.includes('side_chat')) togglePane('sidechat')
+    },
     'meta_b': () => {
       collapsed.value = !collapsed.value
     },
@@ -30,8 +32,7 @@ export function useShortcuts() {
       handler: () => {
         const s = store.current
         if (!s) return
-        // The client's cycle, without the modes the server's policy disables.
-        store.setPermissionMode(s.meta.id, nextMode(s.meta.permissionMode, store.permissionModes, store.disabledModes))
+        store.cycleMode(s.meta.id)
       }
     },
     'escape': {

@@ -3,11 +3,11 @@
 // ...) that run a whole session on your own subscription. Installed agents first, with their sign-in, version and
 // the subscription limits they report; the rest of the registry below, filtered. Installs, sign-ins and limits
 // stay on this computer: nothing is synced, nobody else sees them.
-import { AcpAuthMethod_Kind, AcpAuthState, type AcpAgent, type AcpAgentList, type AcpApi, type AcpAuthMethod } from '~/lib/acp/types'
+import { AcpAuthMethod_Kind, AcpAuthState, AcpModelsStatus, type AcpAgent, type AcpAgentList, type AcpApi, type AcpAuthMethod } from '~/lib/acp/types'
 
 const store = useSessionStore()
 const toast = useToast()
-const list = ref<AcpAgentList>({ agents: [], registryFetchedAt: '', registryError: '', runtimes: [] })
+const list = ref<AcpAgentList>({ agents: [], registryFetchedAt: '', registryError: '', runtimes: [], sessionSwitchRefusal: '' })
 const loading = ref(true)
 const error = ref('')
 const filter = ref('')
@@ -22,7 +22,8 @@ function message(e: unknown) {
 }
 async function load(refresh = false) {
   try {
-    list.value = await api().listAgents({ refresh })
+    const next = await store.refreshAcpAgents({ refresh })
+    if (next) list.value = next
     error.value = ''
   } catch (e) {
     error.value = message(e)
@@ -31,6 +32,10 @@ async function load(refresh = false) {
   }
 }
 onMounted(() => load())
+// Model probes finish on their own: the store lists the agents again while one runs.
+watch(() => store.acpAgents, (agents) => {
+  if (!loading.value) list.value.agents = agents
+})
 
 const installed = computed(() => list.value.agents.filter(a => a.installed))
 const others = computed(() => {
@@ -40,6 +45,7 @@ const others = computed(() => {
 
 function replace(a: AcpAgent) {
   list.value.agents = list.value.agents.map(x => (x.id === a.id ? a : x))
+  store.putAcpAgent(a)
 }
 
 // Install / update with progress.
@@ -104,6 +110,16 @@ function stateText(a: AcpAgent) {
   if (a.authState === AcpAuthState.REQUIRED) return 'sign-in needed'
   if (a.authState === AcpAuthState.AUTHENTICATED) return 'signed in'
   return 'ready'
+}
+// The agent's models as the client knows them, for the installed agent's row.
+function modelsText(a: AcpAgent) {
+  const names = a.models.map(m => m.name).join(', ')
+  switch (a.modelsStatus) {
+    case AcpModelsStatus.PROBING: return names ? `${names} · checking…` : 'Finding models…'
+    case AcpModelsStatus.FAILED: return `${names ? `${names} · ` : ''}could not read its models: ${a.modelsError}`
+    case AcpModelsStatus.OK: return names
+    default: return ''
+  }
 }
 function resets(at: string) {
   const ms = Date.parse(at) - Date.now()
@@ -185,6 +201,12 @@ function resets(at: string) {
               <span class="text-[11px] text-muted">{{ a.installedVersion }}</span>
             </span>
             <span class="truncate text-[11.5px] text-muted">{{ a.description }}</span>
+            <span
+              v-if="modelsText(a)"
+              class="truncate text-[11.5px]"
+              :class="a.modelsStatus === AcpModelsStatus.FAILED ? 'text-warn' : 'text-muted'"
+              :title="modelsText(a)"
+            >{{ modelsText(a) }}</span>
           </span>
           <HBtn
             v-if="a.updateAvailable && !progress[a.id]"

@@ -19,6 +19,7 @@ const ctxWindow = computed(() => usage.value?.window || model.value?.contextWind
 const swatches = computed(() => usage.value ? categorySwatches(usage.value.categories) : [])
 const compacting = computed(() => !!store.compacting[props.session.meta.id] || !!usage.value?.compacting)
 const canCompact = computed(() => !props.session.meta.remote && props.session.meta.status === 'idle' && !compacting.value)
+const hasCompaction = computed(() => !props.session.meta.unsupported.includes('compaction'))
 
 let request = 0
 async function load() {
@@ -186,6 +187,7 @@ function share(n: number) {
       <div class="mt-2 flex items-center gap-2">
         <span class="min-w-0 flex-1 truncate text-[11.5px] text-muted tabular-nums">{{ usage.autocompactThreshold ? `${tok(usage.untilAutocompact)} until auto-compact` : 'Auto-compact off' }}</span>
         <HBtn
+          v-if="hasCompaction"
           :disabled="!canCompact"
           :aria-busy="compacting"
           @click="compact"

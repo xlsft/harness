@@ -6,6 +6,9 @@ export interface SessionDefaults {
   cwd?: string
   worktree?: boolean
   model?: string
+  // The model's engine when it is an ACP agent's ("acp:<agent id>"), and that agent's mode to start in.
+  engine?: string
+  acpMode?: string
   effort?: EffortName
   mode?: PermissionModeName
   // Default effort per model; levels differ between models.
@@ -26,7 +29,8 @@ export function useSessionDefaults() {
   }
 
   function save<K extends keyof SessionDefaults>(key: K, value: SessionDefaults[K]) {
-    prefs.value = { ...prefs.value, [key]: value }
+    // A default chosen in Settings is a server's model: it replaces a remembered agent's.
+    prefs.value = { ...prefs.value, ...(key === 'model' && { engine: '' }), [key]: value }
     try {
       localStorage.setItem(KEY, JSON.stringify(prefs.value))
     } catch {

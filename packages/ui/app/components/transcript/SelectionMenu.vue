@@ -4,6 +4,8 @@
 // hides when the selection goes away or the transcript scrolls.
 const props = defineProps<{ root: HTMLElement | null }>()
 const { replyWith, startSideChat } = useQuoteRequests()
+const store = useSessionStore()
+const sideChats = computed(() => !store.current?.meta.unsupported.includes('side_chat'))
 
 const at = ref<{ x: number, y: number } | null>(null)
 const picked = ref('')
@@ -75,15 +77,17 @@ function act(fn: (t: string) => void) {
       class="fixed z-50 flex -translate-x-1/2 -translate-y-[calc(100%+8px)] items-center border border-accented bg-hover text-[12.5px] shadow-none"
       :style="{ left: `${at.x}px`, top: `${at.y}px` }"
     >
-      <button
-        type="button"
-        role="menuitem"
-        class="h-8 rounded-none px-3 text-strong hover:bg-raised"
-        @click="act(startSideChat)"
-      >
-        Start a side chat
-      </button>
-      <span class="h-4 w-px bg-line" />
+      <template v-if="sideChats">
+        <button
+          type="button"
+          role="menuitem"
+          class="h-8 rounded-none px-3 text-strong hover:bg-raised"
+          @click="act(startSideChat)"
+        >
+          Start a side chat
+        </button>
+        <span class="h-4 w-px bg-line" />
+      </template>
       <button
         type="button"
         role="menuitem"

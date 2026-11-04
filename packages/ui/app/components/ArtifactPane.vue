@@ -74,6 +74,7 @@ const mono = '\'JetBrains Mono\', monospace'
       <button
         type="button"
         class="flex h-[30px] items-center gap-1.5 bg-raised px-[9px] text-[12px] text-strong"
+        :class="session.meta.unsupported.includes('side_chat') && 'hidden'"
         @click="openPane('sidechat')"
       >
         <HIcon

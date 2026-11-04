@@ -14,11 +14,13 @@ const props = defineProps<{
   busy: boolean
   readOnly: boolean
   visible: boolean
+  // What the session's engine cannot do (SessionMeta.unsupported).
+  unsupported?: string[]
 }>()
 const emit = defineEmits<{ copy: [], rewind: [], fork: [], cancel: [], sendNow: [] }>()
 
 const now = useNow()
-const actions = computed(() => messageActions(props.delivery, { busy: props.busy, readOnly: props.readOnly }))
+const actions = computed(() => messageActions(props.delivery, { busy: props.busy, readOnly: props.readOnly, unsupported: props.unsupported }))
 const label = computed(() => {
   switch (props.delivery) {
     case 'queued': return (props.waiting ?? 0) > 1 && props.position ? `queued · ${props.position} of ${props.waiting}` : 'queued'

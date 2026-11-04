@@ -145,7 +145,8 @@ const folderMenu = computed<(RowMenuItem | null)[]>(() => {
     ...(web ? [{ label: `Open repository on ${repoHost.value}`, run: () => openExternal(web) }] : []),
     null,
     { label: 'Copy path', run: () => copy(cwd, 'Path') },
-    ...(local
+    // A session on an ACP agent stays in the folder it started in: the client refuses both.
+    ...(local && !props.session.meta.unsupported.includes('move_folder')
       ? [
           { label: 'Change folder…', run: () => pick('change'), disabled: props.session.meta.status === 'working' || props.session.meta.status === 'needs_input' },
           { label: 'Add folder…', run: () => pick('add') }
@@ -212,8 +213,14 @@ function taskMeta(command: string, tail: string) {
         <HIcon name="monitor" /><span class="min-w-0 truncate">local · {{ session.meta.deviceName || 'this machine' }}</span>
       </div>
       <!-- No folder yet: pick one, as on the new-session screen (the session moves there) -->
+      <div
+        v-if="noFolder && session.meta.unsupported.includes('move_folder')"
+        class="nav-row"
+      >
+        <HIcon name="chat" /><span class="min-w-0 flex-1 truncate">No folder</span>
+      </div>
       <UPopover
-        v-if="noFolder && !session.meta.remote"
+        v-else-if="noFolder && !session.meta.remote"
         v-model:open="assigning"
         :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
       >
@@ -358,7 +365,10 @@ function taskMeta(command: string, tail: string) {
       </div>
     </section>
 
-    <section class="flex flex-col border-b border-default px-[13px] py-3">
+    <section
+      v-if="!session.meta.unsupported.includes('sub_sessions')"
+      class="flex flex-col border-b border-default px-[13px] py-3"
+    >
       <div class="flex items-center pb-1">
         <span class="truncate text-[12px] text-muted">Agents</span><span class="flex-1" /><span class="shrink-0 pl-2 text-[10.5px] text-muted">{{ runningAgents.length }} running</span>
       </div>
@@ -378,7 +388,10 @@ function taskMeta(command: string, tail: string) {
       </div>
     </section>
 
-    <section class="flex flex-col px-[13px] py-3">
+    <section
+      v-if="!session.meta.unsupported.includes('background_tasks')"
+      class="flex flex-col px-[13px] py-3"
+    >
       <div class="flex items-center pb-1">
         <span class="truncate text-[12px] text-muted">Background tasks</span><span class="flex-1" /><span class="shrink-0 pl-2 text-[10.5px] text-muted">{{ runningTasks.length }} running</span>
       </div>

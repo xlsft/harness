@@ -1,0 +1,530 @@
+package server_test
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"connectrpc.com/connect"
+
+	"github.com/xlsft/harness/packages/client/acp/registry"
+	"github.com/xlsft/harness/packages/client/auth"
+	"github.com/xlsft/harness/packages/client/bootstrap"
+	"github.com/xlsft/harness/packages/client/gateway/connectgw"
+	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
+	fg "github.com/xlsft/harness/packages/client/internal/fakegateway"
+	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/server"
+)
+
+// acpModels is a client with the fake agent in its registry (not installed yet); the agent's models, failures and
+// what it was asked are in files of the test.
+type acpModels struct {
+	t      *testing.T
+	ctx    context.Context
+	home   string
+	client agentv1connect.AgentServiceClient
+	srv    *server.Server
+	models string
+	fail   string
+	log    string
+	// version is what the registry offers.
+	version atomic.Value
+}
+
+func newAcpModels(t *testing.T) *acpModels {
+	t.Helper()
+	bin := fakeAgent(t)
+	home := t.TempDir()
+	dir := t.TempDir()
+	t.Setenv("HARNESS_HOME", home)
+	t.Setenv("HARNESS_KEYRING", "0")
+	a := &acpModels{t: t, ctx: context.Background(), home: home, models: filepath.Join(dir, "models"), fail: filepath.Join(dir, "fail"), log: filepath.Join(dir, "log")}
+	a.version.Store("1.0.0")
+	t.Setenv("FAKE_MODELS_FILE", a.models)
+	t.Setenv("FAKE_FAIL_FILE", a.fail)
+	t.Setenv("FAKE_LOG", a.log)
+	body, err := os.ReadFile(bin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reg *httptest.Server
+	reg = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/registry.json":
+			fmt.Fprintf(w, `{"version":"1","agents":[{"id":"fake","name":"Fake Agent","version":%q,"description":"test",
+			  "distribution":{"binary":{%q:{"archive":"%s/fakeagent","cmd":"./fakeagent"}}}}]}`, a.version.Load(), registry.Platform(), reg.URL)
+		case "/fakeagent":
+			w.Write(body)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(reg.Close)
+	t.Setenv("HARNESS_TMPDIR", t.TempDir())
+	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
+	_, gw := fg.Start(t, fg.Sequence())
+	tok := auth.StaticToken("hat_test")
+	a.srv = server.New(bootstrap.Options{Gateway: connectgw.New(gw, nil, tok), Prompts: prompts.NewConnectSource(gw, nil, tok)})
+	a.srv.SetAcpRegistry(&registry.Manager{Dir: filepath.Join(home, "acp"), URL: reg.URL + "/registry.json"})
+	t.Cleanup(a.srv.Close)
+	path, h := a.srv.Handler()
+	mux := http.NewServeMux()
+	mux.Handle(path, h)
+	hs := httptest.NewServer(mux)
+	t.Cleanup(hs.Close)
+	a.client = agentv1connect.NewAgentServiceClient(hs.Client(), hs.URL)
+	return a
+}
+
+func (a *acpModels) setModels(lines ...string) {
+	a.t.Helper()
+	if err := os.WriteFile(a.models, []byte(strings.Join(lines, "\n")), 0o600); err != nil {
+		a.t.Fatal(err)
+	}
+}
+
+func (a *acpModels) install() *agentv1.AcpAgent {
+	a.t.Helper()
+	inst, err := a.client.InstallAcpAgent(a.ctx, connect.NewRequest(&agentv1.InstallAcpAgentRequest{AgentId: "fake"}))
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	var last *agentv1.InstallAcpAgentResponse
+	for inst.Receive() {
+		last = inst.Msg()
+	}
+	if inst.Err() != nil || last == nil || !last.Done {
+		a.t.Fatalf("install: %v %v", inst.Err(), last)
+	}
+	return last.Agent
+}
+
+func (a *acpModels) list(refresh bool) *agentv1.AcpAgent {
+	a.t.Helper()
+	res, err := a.client.ListAcpAgents(a.ctx, connect.NewRequest(&agentv1.ListAcpAgentsRequest{Refresh: refresh, CachedOnly: !refresh}))
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	for _, x := range res.Msg.Agents {
+		if x.Id == "fake" {
+			return x
+		}
+	}
+	a.t.Fatalf("no agent: %v", res.Msg)
+	return nil
+}
+
+// settled lists until no probe is running, and returns the agent.
+func (a *acpModels) settled() *agentv1.AcpAgent {
+	a.t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		if x := a.list(false); x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_PROBING {
+			return x
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	a.t.Fatal("the probe did not finish")
+	return nil
+}
+
+func (a *acpModels) logged() []string {
+	b, err := os.ReadFile(a.log)
+	if err != nil {
+		return nil
+	}
+	return strings.Split(strings.TrimSpace(string(b)), "\n")
+}
+
+func (a *acpModels) count(prefix string) int {
+	n := 0
+	for _, l := range a.logged() {
+		if strings.HasPrefix(l, prefix) {
+			n++
+		}
+	}
+	return n
+}
+
+// waitFor polls until cond holds.
+func (a *acpModels) waitFor(what string, cond func() bool) {
+	a.t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	a.t.Fatalf("timed out waiting for %s (agent log: %v)", what, a.logged())
+}
+
+func modelIDs(ms []*agentv1.AcpModel) []string {
+	out := []string{}
+	for _, m := range ms {
+		out = append(out, m.Id)
+	}
+	return out
+}
+
+func TestAcpProbeFindsModelsOnInstallWithoutAPrompt(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast", "deep=Deep")
+	if x := a.list(true); x.Selectable || x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_NOT_PROBED {
+		t.Fatalf("not installed: %v", x)
+	}
+	if a.count("spawn") != 0 {
+		t.Fatalf("an agent that is not installed was started: %v", a.logged())
+	}
+	if x := a.install(); x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_PROBING && x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_OK {
+		t.Fatalf("after install: %v", x.ModelsStatus)
+	}
+	x := a.settled()
+	if got := modelIDs(x.Models); !slices.Equal(got, []string{"fast", "deep"}) || x.CurrentModelId != "fast" {
+		t.Fatalf("models: %v current %q", got, x.CurrentModelId)
+	}
+	if x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_OK || x.ModelsUpdatedAt == "" || !x.Selectable {
+		t.Fatalf("agent: %v", x)
+	}
+	if x.CurrentModeId != "default" || len(x.Modes) != 3 {
+		t.Fatalf("modes: %v %q", x.Modes, x.CurrentModeId)
+	}
+	if !slices.Contains(x.UnsupportedFeatures, agentv1.SessionFeature_SESSION_FEATURE_WORKTREE) {
+		t.Fatalf("features: %v", x.UnsupportedFeatures)
+	}
+	// Closed, in a temp folder, with no prompt.
+	if a.count("spawn") != 1 || a.count("session/close") != 1 || a.count("prompt") != 0 {
+		t.Fatalf("log: %v", a.logged())
+	}
+	for _, l := range a.logged() {
+		if cwd, ok := strings.CutPrefix(l, "session/new "); ok {
+			if !strings.Contains(filepath.Base(cwd), "harness-acp-probe-") {
+				t.Fatalf("probe folder: %s", cwd)
+			}
+			if _, err := os.Stat(cwd); !os.IsNotExist(err) {
+				t.Fatalf("probe folder kept: %v", err)
+			}
+		}
+	}
+	// Cached in the device-local state; a listing does not start the agent again.
+	b, err := os.ReadFile(filepath.Join(a.home, "acp", "state.json"))
+	if err != nil || !strings.Contains(string(b), `"fast"`) {
+		t.Fatalf("state: %v %s", err, b)
+	}
+	a.list(false)
+	if a.count("spawn") != 1 {
+		t.Fatalf("listing probed again: %v", a.logged())
+	}
+}
+
+func TestAcpAgentWithoutModelOptionsHasDefault(t *testing.T) {
+	a := newAcpModels(t)
+	a.install()
+	x := a.settled()
+	if len(x.Models) != 1 || x.Models[0].Id != "default" || x.Models[0].Name != "Default" {
+		t.Fatalf("models: %v", x.Models)
+	}
+	// The session starts on it, and takes it.
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: t.TempDir(), Engine: "acp:fake", Model: "default"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	a.waitFor("the session to open", func() bool { return !a.sessionState(sid).GetStarting() })
+	st := a.sessionState(sid)
+	if !slices.Equal(modelIDs(st.Models), []string{"default"}) || st.CurrentModelId != "default" {
+		t.Fatalf("session models: %v %q", st.Models, st.CurrentModelId)
+	}
+	if _, err := a.client.SetModel(a.ctx, connect.NewRequest(&agentv1.SetModelRequest{SessionId: sid, Model: "default"})); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAcpProbeRefreshesAndFailureKeepsTheList(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.install()
+	a.settled()
+
+	// A manual refresh sees new models.
+	a.setModels("fast=Fast", "deep=Deep")
+	a.list(true)
+	x := a.settled()
+	if !slices.Equal(modelIDs(x.Models), []string{"fast", "deep"}) {
+		t.Fatalf("after refresh: %v", x.Models)
+	}
+
+	// A failed probe keeps them and says why; the agent is not started again until something changes.
+	if err := os.WriteFile(a.fail, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	a.setModels("other=Other")
+	a.list(true)
+	x = a.settled()
+	if !slices.Equal(modelIDs(x.Models), []string{"fast", "deep"}) || x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_FAILED || x.ModelsError == "" {
+		t.Fatalf("failure: %v %v %q", x.Models, x.ModelsStatus, x.ModelsError)
+	}
+	spawns := a.count("spawn")
+	a.list(false)
+	time.Sleep(50 * time.Millisecond)
+	if a.count("spawn") != spawns {
+		t.Fatalf("a listing retried a failed probe: %v", a.logged())
+	}
+
+	// Refreshing after the agent recovers clears it.
+	os.Remove(a.fail)
+	a.list(true)
+	x = a.settled()
+	if !slices.Equal(modelIDs(x.Models), []string{"other"}) || x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_OK || x.ModelsError != "" {
+		t.Fatalf("recovered: %v %v %q", x.Models, x.ModelsStatus, x.ModelsError)
+	}
+}
+
+func TestAcpUpdateProbesTheNewVersion(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.install()
+	a.settled()
+	a.setModels("next=Next")
+	a.version.Store("2.0.0")
+	up, err := a.client.UpdateAcpAgent(a.ctx, connect.NewRequest(&agentv1.UpdateAcpAgentRequest{AgentId: "fake"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for up.Receive() {
+	}
+	if up.Err() != nil {
+		t.Fatal(up.Err())
+	}
+	x := a.settled()
+	if x.InstalledVersion != "2.0.0" || !slices.Equal(modelIDs(x.Models), []string{"next"}) {
+		t.Fatalf("after update: %v %v", x.InstalledVersion, x.Models)
+	}
+}
+
+func TestAcpUninstallForgetsTheModels(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.install()
+	a.settled()
+	if _, err := a.client.UninstallAcpAgent(a.ctx, connect.NewRequest(&agentv1.UninstallAcpAgentRequest{AgentId: "fake"})); err != nil {
+		t.Fatal(err)
+	}
+	if x := a.list(false); len(x.Models) != 0 || x.Selectable || x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_NOT_PROBED {
+		t.Fatalf("uninstalled: %v", x)
+	}
+}
+
+func TestAcpProbeStopsAtSignInAndRunsAfterIt(t *testing.T) {
+	t.Setenv("FAKE_AUTH", "1")
+	a := newAcpModels(t)
+	login := filepath.Join(t.TempDir(), "logged-in")
+	t.Setenv("FAKE_AUTH_FILE", login)
+	a.setModels("fast=Fast")
+	a.install()
+	x := a.settled()
+	if x.Selectable || len(x.Models) != 0 || x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_NEEDS_AUTH || x.AuthState != agentv1.AcpAuthState_ACP_AUTH_STATE_REQUIRED {
+		t.Fatalf("sign-in needed: %v", x)
+	}
+	// While it asks, a listing does not start it again.
+	spawns := a.count("spawn")
+	a.list(false)
+	time.Sleep(50 * time.Millisecond)
+	if a.count("spawn") != spawns {
+		t.Fatalf("listing probed an agent that waits for a sign-in: %v", a.logged())
+	}
+	// The terminal login finished: the check starts a probe.
+	if err := os.WriteFile(login, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := a.client.AuthenticateAcpAgent(a.ctx, connect.NewRequest(&agentv1.AuthenticateAcpAgentRequest{AgentId: "fake", Verify: true}))
+	if err != nil || !res.Msg.Authenticated {
+		t.Fatalf("verify: %v %v", err, res)
+	}
+	x = a.settled()
+	if !x.Selectable || !slices.Equal(modelIDs(x.Models), []string{"fast"}) || x.ModelsStatus != agentv1.AcpModelsStatus_ACP_MODELS_STATUS_OK {
+		t.Fatalf("after sign-in: %v", x)
+	}
+}
+
+func (a *acpModels) sessionState(id string) *agentv1.AcpSessionState {
+	a.t.Helper()
+	ls, err := a.client.ListSessions(a.ctx, connect.NewRequest(&agentv1.ListSessionsRequest{}))
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	for _, s := range ls.Msg.Sessions {
+		if s.Id == id {
+			return s.Acp
+		}
+	}
+	a.t.Fatalf("session %s not listed", id)
+	return nil
+}
+
+func TestAcpSessionStartsWithTheChosenModelAndMode(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast", "deep=Deep")
+	a.install()
+	a.settled()
+	proj, _ := filepath.EvalSymlinks(t.TempDir())
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: proj, Engine: "acp:fake", Model: "deep", AcpModeId: "plan"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := cs.Msg.Session
+	// The choice shows from the first moment, and the list is the cached one until the agent answers.
+	if info.Engine != "acp:fake" || info.Acp.CurrentModelId != "deep" || !slices.Equal(modelIDs(info.Acp.Models), []string{"fast", "deep"}) {
+		t.Fatalf("session: %v", info)
+	}
+	sid := info.Id
+	// A message sent right away reaches the agent on the chosen model.
+	if _, err := a.client.SendUserMessage(a.ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: "u1", Content: text("hello")})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the prompt", func() bool { return a.count("prompt") > 0 })
+	if !slices.Contains(a.logged(), "prompt model=deep") || !slices.Contains(a.logged(), "set_mode plan") {
+		t.Fatalf("agent log: %v", a.logged())
+	}
+	st := a.sessionState(sid)
+	if st.CurrentModelId != "deep" || st.CurrentModeId != "plan" {
+		t.Fatalf("state: %v", st)
+	}
+	// Recorded: a resume goes back to them.
+	if _, err := a.client.CloseSession(a.ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: sid})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{ResumeSessionId: sid})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the second set_model", func() bool { return a.count("set_model deep") == 2 })
+	// The model a server catalog would know is not sent to the agent.
+	cs, err = a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: proj, Engine: "acp:fake", Model: "gone"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the session on its default", func() bool {
+		st := a.sessionState(cs.Msg.Session.Id)
+		return !st.Starting && st.CurrentModelId == "fast"
+	})
+	if a.count("set_model gone") != 0 {
+		t.Fatalf("agent log: %v", a.logged())
+	}
+}
+
+func TestAcpSessionReportingOtherModelsUpdatesTheCache(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.install()
+	a.settled()
+	spawns := a.count("spawn")
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: t.TempDir(), Engine: "acp:fake"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	a.waitFor("the session to open", func() bool { return !a.sessionState(sid).GetStarting() })
+	// The agent's list changes under a running session.
+	a.setModels("fast=Fast", "new=New")
+	if _, err := a.client.SendUserMessage(a.ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: "u1", Content: text("newmodels")})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the cache to change", func() bool { return slices.Equal(modelIDs(a.list(false).Models), []string{"fast", "new"}) })
+	if !slices.Equal(modelIDs(a.sessionState(sid).Models), []string{"fast", "new"}) {
+		t.Fatalf("session: %v", a.sessionState(sid).Models)
+	}
+	// One process for the session, none for the update.
+	if got := a.count("spawn"); got != spawns+1 {
+		t.Fatalf("spawns: %d, want %d: %v", got, spawns+1, a.logged())
+	}
+}
+
+func TestAcpSessionsDoNotCrossEngines(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast", "deep=Deep")
+	a.install()
+	a.settled()
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: t.TempDir(), Engine: "acp:fake"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	a.waitFor("the session to open", func() bool { return !a.sessionState(sid).GetStarting() })
+	set := func(model, engine string) error {
+		_, err := a.client.SetModel(a.ctx, connect.NewRequest(&agentv1.SetModelRequest{SessionId: sid, Model: model, Engine: engine}))
+		return err
+	}
+	for _, c := range []struct{ model, engine, want string }{
+		{"server-model", "", "not one of its models"},
+		{"fast", "harness", "the server's model"},
+		{"fast", "acp:other", "another agent"},
+	} {
+		err := set(c.model, c.engine)
+		if connect.CodeOf(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), c.want) || !strings.Contains(err.Error(), "start a new session") {
+			t.Fatalf("%s on %q: %v", c.model, c.engine, err)
+		}
+	}
+	if a.count("set_model") != 0 {
+		t.Fatalf("a refused model reached the agent: %v", a.logged())
+	}
+	// Its own model passes, with or without the engine.
+	if err := set("deep", "acp:fake"); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the switch", func() bool { return a.sessionState(sid).CurrentModelId == "deep" })
+	if err := set("fast", ""); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHarnessSessionCannotPickAnAgentsModel(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("agent-only=Agent only")
+	a.install()
+	a.settled()
+	res, err := a.client.ListAcpAgents(a.ctx, connect.NewRequest(&agentv1.ListAcpAgentsRequest{CachedOnly: true}))
+	if err != nil || res.Msg.SessionSwitchRefusal != "Start a new session to use this agent" {
+		t.Fatalf("refusal: %v %v", err, res)
+	}
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: t.TempDir()}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	for _, c := range []struct{ model, engine string }{{"agent-only", "acp:fake"}, {"agent-only", ""}} {
+		_, err := a.client.SetModel(a.ctx, connect.NewRequest(&agentv1.SetModelRequest{SessionId: sid, Model: c.model, Engine: c.engine}))
+		if connect.CodeOf(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), "start a new session") {
+			t.Fatalf("%s on %q: %v", c.model, c.engine, err)
+		}
+	}
+	// A model nobody has stays the catalog's plain error.
+	_, err = a.client.SetModel(a.ctx, connect.NewRequest(&agentv1.SetModelRequest{SessionId: sid, Model: "nope"}))
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("unknown model: %v", err)
+	}
+}
+
+// The probe's outcome is device-local: it reaches frontends only through ListAcpAgents.
+func TestAcpModelsAreNotInTheCatalog(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("agent-only=Agent only")
+	a.install()
+	a.settled()
+	init, err := a.client.Initialize(a.ctx, connect.NewRequest(&agentv1.InitializeRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(init.Msg.ModelIds, "agent-only") {
+		t.Fatalf("the catalog lists an agent's model: %v", init.Msg.ModelIds)
+	}
+}

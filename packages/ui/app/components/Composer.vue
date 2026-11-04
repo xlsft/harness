@@ -153,8 +153,11 @@ const multiline = computed(() => text.value.includes('\n'))
 const hasText = computed(() => text.value.trim().length > 0)
 const uploading = computed(() => files.value.filter(f => f.progress !== undefined && f.progress < 100).length)
 
-const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
-const contextPct = computed(() => Math.round((props.session.contextTokens / (model.value?.contextWindow || 200_000)) * 100))
+const model = computed(() => props.session.meta.engine === 'harness' ? store.models.find(m => m.id === props.session.meta.model) : undefined)
+const contextPct = computed(() => {
+  const agent = props.session.meta.acp
+  return Math.round(((Number(agent?.contextUsedTokens ?? 0) || props.session.contextTokens) / (Number(agent?.contextWindowTokens ?? 0) || model.value?.contextWindow || 200_000)) * 100)
+})
 
 // The token being typed at the cursor decides which menu is open.
 const token = computed(() => {
@@ -169,7 +172,15 @@ const menu = computed<'slash' | 'mention' | ''>(() => {
   if (token.value.startsWith('@')) return 'mention'
   return ''
 })
-const slashOptions = computed(() => SLASH_COMMANDS.filter(c => c.label.startsWith(token.value || '/')).slice(0, 4))
+// A session on an ACP agent lists the commands the agent advertises; they go to it as the prompt's text.
+const acp = computed(() => props.session.meta.acp)
+const onAgent = computed(() => props.session.meta.engine !== 'harness')
+const commands = computed<MenuOption[]>(() => onAgent.value
+  ? (acp.value?.commands ?? []).map(c => ({ key: `/${c.name}`, label: `/${c.name}`, detail: c.description, tag: 'agent' }))
+  : SLASH_COMMANDS)
+const slashOptions = computed(() => commands.value.filter(c => c.label.startsWith(token.value || '/')).slice(0, 4))
+const hasShell = computed(() => !props.session.meta.unsupported.includes('shell_commands'))
+const hasCompaction = computed(() => !props.session.meta.unsupported.includes('compaction'))
 const options = computed(() => menu.value === 'slash' ? slashOptions.value : mentionOptions.value)
 
 watch([menu, token], async () => {
@@ -196,7 +207,7 @@ const placeholder = computed(() => {
   if (planMode.value && !busy.value) return 'Describe what to plan. Nothing will be changed.'
   if (queue.value.length) return `${queue.value.length} queued · type to add another`
   if (busy.value) return 'Type to queue a message for after this turn'
-  return 'Message agent · / commands · @ files · $ shell'
+  return hasShell.value ? 'Message agent · / commands · @ files · $ shell' : 'Message agent · / commands · @ files'
 })
 
 // Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.
@@ -253,7 +264,8 @@ async function submit() {
     else if (route) await safeSend(route.text)
     return
   }
-  const compactFocus = compactCommand(body)
+  // Without compaction here, "/compact" is the text of a prompt: an agent may have such a command of its own.
+  const compactFocus = hasCompaction.value ? compactCommand(body) : null
   if (compactFocus !== null) {
     if (busy.value) {
       error.value = 'Wait for the turn to finish, then /compact.'
@@ -367,7 +379,7 @@ function syncMirror() {
 function onInput(e: Event) {
   const v = (e.target as HTMLTextAreaElement).value
   // A leading $ (or !) switches to a shell command, # to memory.
-  if (mode.value === 'normal' && (v === '$' || v === '!' || v === '#')) {
+  if (mode.value === 'normal' && (v === '#' || (hasShell.value && (v === '$' || v === '!')))) {
     mode.value = v === '#' ? 'memory' : 'shell'
     text.value = ''
     return
@@ -439,7 +451,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
 
     <!-- context almost full -->
     <div
-      v-if="contextPct >= 90 && !busy"
+      v-if="contextPct >= 90 && !busy && hasCompaction"
       class="flex items-center gap-[9px] border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12px]"
     >
       <HIcon
@@ -682,6 +694,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
                 Slash commands
               </PaneMenuItem>
               <PaneMenuItem
+                v-if="hasShell"
                 icon="term"
                 @click="plus('shell')"
               >

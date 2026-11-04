@@ -15,7 +15,7 @@ import type {
 import type { TerminalInfo } from '~/gen/harness/agent/v1/terminal_pb'
 
 export type { AcpAgent, AcpAgentLimits, AcpAuthMethod, AcpSessionState, AcpTerminalCommand, InstallAcpAgentResponse } from '~/gen/harness/agent/v1/acp_pb'
-export { AcpAuthMethod_Kind, AcpAuthState, AcpDistribution, InstallAcpAgentResponse_Phase, SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
+export { AcpAuthMethod_Kind, AcpAuthState, AcpDistribution, AcpModelsStatus, InstallAcpAgentResponse_Phase, SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 
 export interface AcpAgentList {
   agents: AcpAgent[]
@@ -25,6 +25,8 @@ export interface AcpAgentList {
   registryError: string
   // Runtimes found on the client's PATH ("npx", "uvx").
   runtimes: string[]
+  // Why a running harness session cannot pick an agent's model (shown with those models, disabled).
+  sessionSwitchRefusal: string
 }
 
 // Install / update progress; the last one has done = true and the agent's new state.
@@ -54,8 +56,10 @@ export interface AcpAuthResult {
 }
 
 export interface AcpApi {
-  // The registry's agents merged with the client's installs, runtimes, sign-in and limits.
-  listAgents(opts?: { refresh?: boolean }): Promise<AcpAgentList>
+  // The registry's agents merged with the client's installs, runtimes, sign-in, limits and cached models. Never waits
+  // for a model probe: an agent's modelsStatus says one is running, and listing again shows how it went. refresh also
+  // probes every installed agent again; cachedOnly stays off the network (polling).
+  listAgents(opts?: { refresh?: boolean, cachedOnly?: boolean }): Promise<AcpAgentList>
   // Install / update stream progress to onProgress and resolve with the agent once done.
   installAgent(agentId: string, onProgress?: (p: AcpInstallProgress) => void): Promise<AcpAgent>
   updateAgent(agentId: string, onProgress?: (p: AcpInstallProgress) => void): Promise<AcpAgent>

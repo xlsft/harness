@@ -54,6 +54,8 @@ enum SessionFeature {
   SESSION_FEATURE_QUESTIONS = 13;
   // SetSessionFolder (moving the session to another folder).
   SESSION_FEATURE_MOVE_FOLDER = 14;
+  // CreateSession with worktree. Also in AcpAgent.unsupported_features, where it matters: before a session exists.
+  SESSION_FEATURE_WORKTREE = 15;
 }
 
 // How an agent is distributed for this platform.
@@ -78,6 +80,23 @@ enum AcpAuthState {
   ACP_AUTH_STATE_REQUIRED = 3;
   // The user signed in through the client (AuthenticateAcpAgent) and a session started afterwards.
   ACP_AUTH_STATE_AUTHENTICATED = 4;
+}
+
+// How far the client got finding out an agent's models (AcpAgent.models). Models are only known once the agent has a
+// session, so the client asks it with a short-lived probe: start the agent in a neutral temp directory, create a
+// session, read its config options, close; no prompt is sent. The outcome is cached in HARNESS_HOME/acp/state.json.
+enum AcpModelsStatus {
+  ACP_MODELS_STATUS_UNSPECIFIED = 0;
+  // Not probed for the installed version yet (not installed, or it cannot run here).
+  ACP_MODELS_STATUS_NOT_PROBED = 1;
+  // A probe is running; models holds the previous list. List again to see the outcome.
+  ACP_MODELS_STATUS_PROBING = 2;
+  // models is what the agent last reported, to a probe or to a real session.
+  ACP_MODELS_STATUS_OK = 3;
+  // The last probe failed (models_error says why); models keeps the previous list.
+  ACP_MODELS_STATUS_FAILED = 4;
+  // The agent wants a sign-in first; models keeps the previous list.
+  ACP_MODELS_STATUS_NEEDS_AUTH = 5;
 }
 
 // A way to authenticate the agent offered in its initialize response.
@@ -135,6 +154,24 @@ message AcpAgent {
   string engine = 20;
   // The latest subscription limits the agent reported on this machine; absent when it never reported any.
   optional AcpAgentLimits limits = 21;
+  // The agent belongs in the model list: it is installed, can run here and is known to start sessions (no sign-in
+  // needed, or signed in). The client decides; frontends list the agents that have this set.
+  bool selectable = 22;
+  // The agent's own models, cached per agent on this machine. An agent that reports no model options has one entry,
+  // "Default". Never blocks on a probe: this is the cached list, see models_status.
+  repeated AcpModel models = 23;
+  // The model and the session mode a new session on the agent starts with, and its modes (SetAcpMode, or
+  // CreateSessionRequest.acp_mode_id), as last reported.
+  string current_model_id = 24;
+  repeated AcpMode modes = 25;
+  string current_mode_id = 26;
+  AcpModelsStatus models_status = 27;
+  // ACP_MODELS_STATUS_FAILED: why.
+  string models_error = 28;
+  // RFC 3339, UTC: when the agent last reported models successfully; empty when it never did.
+  string models_updated_at = 29;
+  // What a session on the agent cannot do, known before a session exists (SessionInfo.unsupported_features).
+  repeated SessionFeature unsupported_features = 30;
 }
 
 // Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
@@ -181,7 +218,9 @@ message AcpSessionState {
   int64 context_window_tokens = 11;
   // The agent process is starting (spawn, initialize, session/new or session/load); messages sent meanwhile wait.
   bool starting = 12;
-  // The agent's model choices when it offers a model option; SetModel picks one by id.
+  // The models this session can switch to, the only ones it accepts (SetModel picks one by id): what the agent
+  // offers, the cached list while it starts or the session is not open, and a single "Default" for an agent without
+  // a model option.
   repeated AcpModel models = 13;
   string current_model_id = 14;
   // The latest subscription limits the agent reported (also kept per agent, AcpAgent.limits).
@@ -219,8 +258,11 @@ message AcpTerminalCommand {
 }
 
 message ListAcpAgentsRequest {
-  // Fetch the registry now instead of using a cache younger than its TTL. Offline, the cache is used anyway.
+  // A manual refresh: fetch the registry now instead of using a cache younger than its TTL (offline, the cache is
+  // used anyway) and probe every installed agent for its models again. The call does not wait for the probes.
   bool refresh = 1;
+  // Answer from the cached registry, even an expired one, without the network (polling while a probe runs).
+  bool cached_only = 2;
 }
 
 message ListAcpAgentsResponse {
@@ -231,6 +273,10 @@ message ListAcpAgentsResponse {
   string registry_error = 3;
   // Runtimes found on PATH: "npx", "uvx".
   repeated string runtimes = 4;
+  // Why a running harness session cannot pick an agent's model: a session stays on its engine. Frontends show the
+  // models of selectable agents disabled with this text there; SetModel refuses them. An ACP session offers
+  // AcpSessionState.models and nothing else.
+  string session_switch_refusal = 5;
 }
 
 message InstallAcpAgentRequest {

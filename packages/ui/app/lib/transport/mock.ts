@@ -52,8 +52,7 @@ import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
 import { diffVersion, type DiffBaseChoice, type DiffBases, type SessionDiff, type SessionFileDiff } from '~/lib/files/sessionDiff'
 import { MockSpeechApi } from '~/lib/speech/mock'
-import { MockAcpApi } from '~/lib/acp/mock'
-import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
+import { ACP_SWITCH_REFUSAL, ACP_UNSUPPORTED, MockAcpApi } from '~/lib/acp/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
@@ -1085,8 +1084,11 @@ export class MockTransport implements SessionTransport {
     this.resume(sessionId, requestId, decision)
   }
 
-  async setModel(sessionId: string, model: string) {
+  async setModel(sessionId: string, model: string, engine?: string) {
     const s = this.get(sessionId)
+    // A session stays on its engine, like on the client.
+    if (this.isAcp(sessionId)) return this.acpSetModel(s, model, engine)
+    if (engine?.startsWith('acp:')) throw new Error(`[failed_precondition] this session does not run on ${engine.slice(4)} and cannot switch to its model "${model}": ${ACP_SWITCH_REFUSAL.toLowerCase()}`)
     s.info = { ...s.info, model }
     this.emit(s, b => b.sessionUpdated(s.info))
     // A model of another provider ends the limit for this session; one of the same provider changes nothing.
@@ -1412,13 +1414,6 @@ export class MockTransport implements SessionTransport {
     if (this.isAcp(id)) throw new Error(`[failed_precondition] ${what} is not available in sessions that run on an ACP agent`)
   }
 
-  private static readonly ACP_UNSUPPORTED = [
-    SessionFeature.REWIND, SessionFeature.FORK, SessionFeature.SUB_SESSIONS, SessionFeature.SIDE_CHAT, SessionFeature.COMPACTION,
-    SessionFeature.CONTEXT_BREAKDOWN, SessionFeature.CLASSIFIER, SessionFeature.EFFORT, SessionFeature.OUTPUT_STYLES,
-    SessionFeature.SHELL_COMMANDS, SessionFeature.BACKGROUND_TASKS, SessionFeature.MODEL_CATALOG, SessionFeature.QUESTIONS,
-    SessionFeature.MOVE_FOLDER
-  ]
-
   private static acpPermissionMode(modeId: string) {
     switch (modeId) {
       case 'acceptEdits': return PermissionModePb.ACCEPT_EDITS
@@ -1441,7 +1436,7 @@ export class MockTransport implements SessionTransport {
       gitBranch: 'main',
       model: agent.name,
       engine: agent.engine,
-      unsupportedFeatures: MockTransport.ACP_UNSUPPORTED,
+      unsupportedFeatures: ACP_UNSUPPORTED,
       acp,
       permissionMode: MockTransport.acpPermissionMode(acp.currentModeId),
       status: acp.needsAuth ? SessionStatus.NEEDS_INPUT : SessionStatus.IDLE,
@@ -1455,6 +1450,13 @@ export class MockTransport implements SessionTransport {
     const id = `ses_mock_${this.sessions.size + 1}`
     const info = this.acpInfo(id, agentId, opts.cwd || mockChatDir(id), 'New session')
     if (!opts.cwd) info.noFolder = true
+    // The chosen model and mode, when the agent still offers them; its defaults otherwise.
+    if (info.acp) {
+      if (opts.model && info.acp.models.some(m => m.id === opts.model)) info.acp.currentModelId = opts.model
+      if (opts.acpModeId && info.acp.modes.some(m => m.id === opts.acpModeId)) info.acp.currentModeId = opts.acpModeId
+      info.model = info.acp.currentModelId || info.model
+      info.permissionMode = MockTransport.acpPermissionMode(info.acp.currentModeId)
+    }
     const s: MockSession = { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null }
     this.sessions.set(id, s)
     this.emit(s, b => b.sessionUpdated(info))
@@ -1488,6 +1490,16 @@ export class MockTransport implements SessionTransport {
     const s = this.sessions.get(id)
     if (!s?.info.acp) return
     s.info = create(SessionInfoSchema, { ...s.info, status: SessionStatus.IDLE, acp: { ...s.info.acp, needsAuth: false } })
+    this.emit(s, b => b.sessionUpdated(s.info))
+  }
+
+  private acpSetModel(s: MockSession, model: string, engine?: string) {
+    const acp = s.info.acp!
+    const own = engine === undefined || engine === '' || engine === s.info.engine
+    if (!own || !acp.models.some(m => m.id === model)) {
+      throw new Error(`[failed_precondition] this session runs on ${acp.agentName} and cannot switch to "${model}"; start a new session to use it`)
+    }
+    s.info = create(SessionInfoSchema, { ...s.info, model, acp: { ...acp, currentModelId: model } })
     this.emit(s, b => b.sessionUpdated(s.info))
   }
 

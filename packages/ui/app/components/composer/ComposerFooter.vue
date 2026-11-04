@@ -3,6 +3,7 @@
 
 <script setup lang="ts">
 // Composer footer (Composer.dc.html): hint · model · effort · mode · usage ring, with the model and mode pickers.
+import type { ModelScope } from '~/lib/acp/modelChoices'
 import type { EffortName, SessionState } from '~/lib/session/types'
 
 export type Hint = { keys?: string, text: string }[]
@@ -13,11 +14,20 @@ const store = useSessionStore()
 const contextOpen = ref(false)
 
 const id = computed(() => props.session.meta.id)
-const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
-const efforts = computed(() => modelEfforts(model.value))
+// A session on an ACP agent shows the agent's own model, modes and context: its model ids say nothing about the
+// server's catalog, even an equal one.
+const acp = computed(() => props.session.meta.acp)
+const onAgent = computed(() => props.session.meta.engine !== 'harness')
+const model = computed(() => onAgent.value ? undefined : store.models.find(m => m.id === props.session.meta.model))
+const scope = computed<ModelScope>(() => ({ kind: 'session', engine: props.session.meta.engine, acp: acp.value }))
+const label = computed(() => acp.value?.models.find(m => m.id === acp.value!.currentModelId)?.name || acp.value?.currentModelId || model.value?.displayName || props.session.meta.model)
+const selected = computed(() => onAgent.value ? acp.value?.currentModelId ?? '' : props.session.meta.model)
+const acpModes = computed(() => onAgent.value ? { modes: acp.value?.modes ?? [], current: acp.value?.currentModeId ?? '' } : undefined)
+const efforts = computed(() => props.session.meta.unsupported.includes('effort') ? [] : modelEfforts(model.value))
 const effort = computed(() => fitEffort((props.session.meta.effort || store.effort[id.value] || 'medium') as EffortName, efforts.value))
-const contextWindow = computed(() => model.value?.contextWindow || 200_000)
-const pct = computed(() => Math.min(100, Math.round((props.session.contextTokens / contextWindow.value) * 100)))
+const contextWindow = computed(() => Number(acp.value?.contextWindowTokens ?? 0) || model.value?.contextWindow || 200_000)
+const contextUsed = computed(() => Number(acp.value?.contextUsedTokens ?? 0) || props.session.contextTokens)
+const pct = computed(() => Math.min(100, Math.round((contextUsed.value / contextWindow.value) * 100)))
 const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whitespace-nowrap text-muted hover:bg-hover hover:text-toned'
 </script>
 
@@ -37,13 +47,17 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
     </span>
 
     <SessionControls
-      :model="session.meta.model"
-      :label="model?.displayName || session.meta.model"
+      :model="selected"
+      :model-engine="onAgent ? session.meta.engine : ''"
+      :label="label"
       :provider="model?.provider"
+      :scope="scope"
+      :acp-modes="acpModes"
       :efforts="efforts"
       :effort="effort"
       :mode="session.meta.permissionMode"
-      @update:model="store.setModel(id, $event)"
+      @update:model="(m, engine) => store.setModel(id, m, engine)"
+      @update:acp-mode="store.setAcpMode(id, $event)"
       @update:effort="store.setEffort(id, $event)"
       @update:mode="store.setPermissionMode(id, $event)"
     />
@@ -91,7 +105,16 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
           <div class="mb-2.5 text-[12px] text-muted">
             Context
           </div>
-          <ContextBreakdown :session="session" />
+          <ContextBreakdown
+            v-if="!session.meta.unsupported.includes('context_breakdown')"
+            :session="session"
+          />
+          <p
+            v-else
+            class="m-0 text-muted"
+          >
+            {{ contextUsed.toLocaleString() }} of {{ contextWindow.toLocaleString() }} tokens
+          </p>
           <LimitsBlock :session="session" />
         </div>
       </template>

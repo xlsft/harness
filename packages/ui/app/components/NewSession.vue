@@ -6,10 +6,14 @@
 // on a client with no sessions. It always starts with no folder (a chat: the client gives the session a private
 // directory); ?cwd= (a sidebar group's "+") preselects a folder. Worktree and the folder's environment need a
 // folder, so they are hidden without one. Model, effort and mode are remembered; the folder is not.
+// Picking an ACP agent's model starts the session on that agent: the mode chip then lists the agent's modes, and what
+// the agent cannot do (effort, worktree) is hidden.
 // With ?fork=<id> ("Continue here" on a session of another machine) the new session starts from a copy of that
 // session's transcript, in the folder picked here.
 import type { Branch, RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
+import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
+import { fitAcpChoice, newSessionChoice, type ModelScope } from '~/lib/acp/modelChoices'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 
 const store = useSessionStore()
@@ -27,6 +31,9 @@ const baseRef = ref('')
 const branches = ref<Branch[]>([])
 const current = ref('')
 const model = ref('')
+// The engine of the chosen model when it is an ACP agent's ("acp:<id>"), and that agent's mode to start in.
+const engine = ref('')
+const acpMode = ref('')
 const effort = ref<EffortName>('medium')
 const mode = ref<PermissionModeName>('auto')
 const text = ref('')
@@ -92,9 +99,12 @@ async function loadBranches() {
 }
 
 onMounted(async () => {
-  const prefs = readJSON<{ worktree?: boolean, model?: string, effort?: EffortName, mode?: PermissionModeName }>(PREFS, {})
+  const prefs = readJSON<{ worktree?: boolean, model?: string, engine?: string, acpMode?: string, effort?: EffortName, mode?: PermissionModeName }>(PREFS, {})
   worktree.value = prefs.worktree ?? false
   model.value = prefs.model ?? ''
+  engine.value = prefs.engine ?? ''
+  acpMode.value = prefs.acpMode ?? ''
+  fitChoice()
   effort.value = prefs.effort ?? 'medium'
   mode.value = fitMode(prefs.mode ?? 'auto', store.disabledModes)
   await loadFolders()
@@ -138,11 +148,41 @@ function choose(path: string) {
   if (path && !folders.value.some(f => f.path === path)) folders.value.unshift({ path, name: name(path), exists: true } as RecentFolder)
 }
 
+// The chosen agent; a session continuing another machine's transcript cannot run on one.
+const agent = computed(() => engine.value ? store.acpAgents.find(a => a.engine === engine.value) : undefined)
+const scope = computed<ModelScope>(() => ({ kind: forkOf.value ? 'server' : 'new' }))
+const noWorktree = computed(() => !!agent.value?.unsupportedFeatures.includes(SessionFeature.WORKTREE))
+
+// A remembered agent may be gone, signed out or without that model: back to what still can run. Not before the agents
+// are known.
+function fitChoice() {
+  if (forkOf.value && engine.value) {
+    engine.value = ''
+    model.value = ''
+  }
+  if (!store.acpLoaded || !engine.value) return
+  const fit = fitAcpChoice({ engine: engine.value, model: model.value }, store.acpAgents)
+  engine.value = fit.engine
+  model.value = fit.model
+}
+watch(() => [store.acpLoaded, store.acpAgents, forkOf.value], fitChoice)
+watch(agent, (a) => {
+  if (a && !a.modes.some(m => m.id === acpMode.value)) acpMode.value = ''
+})
+const acpModes = computed(() => agent.value ? { modes: agent.value.modes, current: acpMode.value || agent.value.currentModeId } : undefined)
+
+function pickModel(id: string, from: string) {
+  model.value = id
+  engine.value = from
+  acpMode.value = ''
+}
+
 const modelLabel = computed(() => {
+  if (engine.value) return agent.value?.models.find(m => m.id === model.value)?.name || model.value || agent.value?.name || 'Agent'
   const m = store.models.find(x => x.id === model.value) ?? (model.value ? undefined : store.models[0])
   return m?.displayName || model.value || m?.id || 'default model'
 })
-const efforts = computed(() => modelEfforts(store.models.find(m => m.id === (model.value || store.models[0]?.id))))
+const efforts = computed(() => engine.value ? [] : modelEfforts(store.models.find(m => m.id === (model.value || store.models[0]?.id))))
 // Each model starts at its own remembered effort (Settings → Models), else the nearest level it offers.
 watch([model, efforts], () => {
   const own = readJSON<{ effortByModel?: Record<string, EffortName> }>(PREFS, {}).effortByModel?.[model.value || store.models[0]?.id || '']
@@ -158,13 +198,18 @@ async function start() {
     const id = await store.createSession({
       cwd: cwd.value,
       model: model.value,
-      effort: efforts.value.length ? effort.value : undefined,
-      mode: mode.value,
-      worktree: cwd.value && worktree.value ? { baseRef: baseRef.value } : undefined,
-      forkOf: forkOf.value?.meta.id
+      forkOf: forkOf.value?.meta.id,
+      ...newSessionChoice({
+        engine: engine.value,
+        agent: agent.value,
+        acpMode: acpMode.value,
+        effort: efforts.value.length ? effort.value : undefined,
+        mode: mode.value,
+        worktree: cwd.value && worktree.value ? { baseRef: baseRef.value } : undefined
+      })
     })
     const { cwd: _old, ...prefs } = readJSON<Record<string, unknown>>(PREFS, {})
-    writeJSON(PREFS, { ...prefs, model: model.value, effort: effort.value, mode: mode.value, ...(cwd.value && { worktree: worktree.value }) })
+    writeJSON(PREFS, { ...prefs, model: model.value, engine: engine.value, acpMode: acpMode.value, effort: effort.value, mode: mode.value, ...(cwd.value && !noWorktree.value && { worktree: worktree.value }) })
     if (cwd.value) writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
     const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
@@ -308,7 +353,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
       </div>
 
       <button
-        v-if="cwd"
+        v-if="cwd && !noWorktree"
         type="button"
         role="switch"
         :aria-checked="worktree"
@@ -416,7 +461,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           </UPopover>
 
           <button
-            v-if="cwd"
+            v-if="cwd && !noWorktree"
             type="button"
             role="switch"
             :aria-checked="worktree"
@@ -433,14 +478,18 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           <span class="flex-1" />
 
           <SessionControls
-            :model="model || store.models[0]?.id || ''"
+            :model="engine ? model : model || store.models[0]?.id || ''"
+            :model-engine="engine"
             :label="modelLabel"
+            :scope="scope"
             :efforts="efforts"
             :effort="efforts.length ? effort : undefined"
             :mode="mode"
-            @update:model="model = $event"
+            :acp-modes="acpModes"
+            @update:model="pickModel"
             @update:effort="effort = $event"
             @update:mode="mode = $event"
+            @update:acp-mode="acpMode = $event"
           />
         </div>
       </div>

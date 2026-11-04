@@ -18,7 +18,9 @@ const awake = computed({
   }
 })
 
-const items: { pane: PaneName, label: string, icon: IconName, kbd?: string }[] = [
+// Panes of features the session's engine has not got are not offered.
+const FEATURE_OF: Partial<Record<PaneName, string>> = { sidechat: 'side_chat', tasks: 'background_tasks', agents: 'sub_sessions' }
+const allItems: { pane: PaneName, label: string, icon: IconName, kbd?: string }[] = [
   { pane: 'terminal', label: 'Terminal', icon: 'term', kbd: 'meta+j' },
   { pane: 'browser', label: 'Browser', icon: 'globe-stand', kbd: 'meta+shift+b' },
   { pane: 'files', label: 'Files', icon: 'folder', kbd: 'meta+shift+e' },
@@ -27,6 +29,7 @@ const items: { pane: PaneName, label: string, icon: IconName, kbd?: string }[] =
   { pane: 'tasks', label: 'Background tasks', icon: 'diamond' },
   { pane: 'agents', label: 'Agents', icon: 'ai' }
 ]
+const items = computed(() => allItems.filter(i => !current.value?.meta.unsupported.includes(FEATURE_OF[i.pane] ?? '')))
 
 function choose(p: PaneName) {
   togglePane(p)

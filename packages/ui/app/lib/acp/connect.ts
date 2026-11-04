@@ -12,9 +12,9 @@ export class ConnectAcpApi implements AcpApi {
     this.client = createClient(AgentService, transport)
   }
 
-  async listAgents(opts: { refresh?: boolean } = {}) {
-    const res = await this.client.listAcpAgents({ refresh: opts.refresh ?? false })
-    return { agents: res.agents, registryFetchedAt: res.registryFetchedAt, registryError: res.registryError, runtimes: res.runtimes }
+  async listAgents(opts: { refresh?: boolean, cachedOnly?: boolean } = {}) {
+    const res = await this.client.listAcpAgents({ refresh: opts.refresh ?? false, cachedOnly: opts.cachedOnly ?? false })
+    return { agents: res.agents, registryFetchedAt: res.registryFetchedAt, registryError: res.registryError, runtimes: res.runtimes, sessionSwitchRefusal: res.sessionSwitchRefusal }
   }
 
   async installAgent(agentId: string, onProgress?: (p: AcpInstallProgress) => void) {
