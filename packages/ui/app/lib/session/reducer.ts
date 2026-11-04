@@ -43,7 +43,8 @@ import type {
   Usage,
   UsageLimitStateName,
   UsageLimitVM,
-  UserShellItem
+  UserShellItem,
+  SessionProposalVM
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
 import { actionView } from '~/lib/browser/types'

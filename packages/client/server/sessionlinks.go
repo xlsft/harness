@@ -135,6 +135,12 @@ func (ls *liveSession) withLinks(fn func(f *sessionLinks) bool) error {
 	if !ls.links.loaded {
 		ls.links.file = readSessionLinks(ls.sess.ID)
 		ls.links.loaded = true
+		for _, p := range ls.links.file.Proposals {
+			// A start the client did not live to finish: the proposal waits again.
+			if p.State == proposalStarting {
+				p.State = proposalPending
+			}
+		}
 	}
 	if !fn(&ls.links.file) {
 		return nil

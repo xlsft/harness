@@ -87,7 +87,7 @@ const STATE_TEXT = { dismissed: 'Dismissed', expired: 'Expired' } as const
     <span
       v-else
       class="text-[12px] text-muted"
-    >{{ card.proposal && card.proposal.state !== 'pending' && card.proposal.state !== 'started' ? STATE_TEXT[card.proposal.state] : 'Not available here' }}</span>
+    >{{ card.proposal?.state === 'dismissed' || card.proposal?.state === 'expired' ? STATE_TEXT[card.proposal.state] : 'Not available here' }}</span>
   </div>
   <div
     v-else-if="card.kind === 'status'"
