@@ -52,7 +52,7 @@ func TestClaudeRateLimitEvent(t *testing.T) {
 	l := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{
 		"status": "allowed_warning", "rateLimitType": "five_hour", "utilization": 0.82, "resetsAt": float64(1_800_003_600),
 	}}, now)
-	if l == nil || !l.Partial || len(l.Windows) != 1 || l.Windows[0].Label != "5h" || int(l.Windows[0].UsedPercent) != 82 {
+	if l == nil || !l.Partial || len(l.Windows) != 1 || l.Windows[0].Label != "5-hour limit" || int(l.Windows[0].UsedPercent) != 82 {
 		t.Fatalf("event: %+v", l)
 	}
 	if !l.Windows[0].ResetsAt.Equal(time.Unix(1_800_003_600, 0)) {
@@ -65,7 +65,7 @@ func TestClaudeRateLimitEvent(t *testing.T) {
 	// One window at a time: the others keep their numbers.
 	week := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"rateLimitType": "seven_day", "utilization": 0.4}}, now)
 	merged := week.Merge(l)
-	if len(merged.Windows) != 2 || merged.Windows[0].Label != "7d" || merged.Windows[1].Label != "5h" || merged.Partial {
+	if len(merged.Windows) != 2 || merged.Windows[0].Label != "5-hour limit" || merged.Windows[1].Label != "Weekly · all models" || merged.Partial {
 		t.Fatalf("merged: %+v", merged)
 	}
 	again := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"rateLimitType": "five_hour", "utilization": 0.9}}, now).Merge(merged)

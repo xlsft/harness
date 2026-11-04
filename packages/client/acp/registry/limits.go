@@ -38,17 +38,31 @@ func (l *Limits) Merge(old *Limits) *Limits {
 		out.PlanName = old.PlanName
 	}
 	for _, w := range old.Windows {
-		if !slices.ContainsFunc(l.Windows, func(n LimitWindow) bool { return n.Label == w.Label }) {
+		if !oldWindowLabels[w.Label] && !slices.ContainsFunc(l.Windows, func(n LimitWindow) bool { return n.Label == w.Label }) {
 			out.Windows = append(out.Windows, w)
 		}
 	}
+	slices.SortStableFunc(out.Windows, func(a, b LimitWindow) int { return windowOrder(a.Label) - windowOrder(b.Label) })
 	return &out
 }
 
 // singleWindowLabels names the windows of an agent that reports one at a time, as rateLimitType and a utilization
 // (Claude's rate_limit_event, in `_claude/rateLimit`).
 var singleWindowLabels = map[string]string{
-	"five_hour": "5h", "seven_day": "7d", "seven_day_opus": "7d Opus", "seven_day_sonnet": "7d Sonnet",
+	"five_hour": "5-hour limit", "seven_day": "Weekly · all models", "seven_day_opus": "Weekly · Opus", "seven_day_sonnet": "Weekly · Sonnet",
+}
+
+// oldWindowLabels are what these windows were called before; a stored report with them is out of date.
+var oldWindowLabels = map[string]bool{"5h": true, "7d": true, "7d Opus": true, "7d Sonnet": true}
+
+// windowOrder puts the shortest window first, as they read best.
+func windowOrder(label string) int {
+	for i, l := range []string{"5-hour limit", "Weekly · all models", "Weekly · Opus", "Weekly · Sonnet"} {
+		if l == label {
+			return i
+		}
+	}
+	return 4
 }
 
 func singleWindow(m map[string]any, now time.Time) *Limits {

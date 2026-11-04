@@ -39,6 +39,14 @@ function resets(at: string) {
   const h = Math.floor(ms / 3_600_000)
   return h >= 24 ? `resets in ${Math.round(h / 24)}d` : h ? `resets in ${h}h` : `resets in ${Math.max(1, Math.round(ms / 60_000))}m`
 }
+// Windows read as words, whatever short name the provider or the agent gives them.
+const WINDOW_NAMES: Record<string, string> = {
+  '1m': 'Per minute', '1h': 'Hourly', '5h': '5-hour limit', '1d': 'Daily', '24h': 'Daily', '7d': 'Weekly', '30d': 'Monthly',
+  '7d Opus': 'Weekly · Opus', '7d Sonnet': 'Weekly · Sonnet'
+}
+const windowName = (label: string) => WINDOW_NAMES[label] ?? label
+const TRACK = 'block h-1 overflow-hidden rounded-chip bg-raised'
+const BAR = 'block h-full rounded-chip'
 const tone = (pct: number) => pct >= 90 ? 'bg-bad' : pct >= 70 ? 'bg-warn' : 'bg-accent'
 const balance = computed(() => view.value?.balance)
 const spend = computed(() => view.value?.spend)
@@ -48,70 +56,62 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
 <template>
   <div
     v-if="shown"
-    class="-mx-[13px] mt-3 flex flex-col gap-1.5 border-t border-default px-[13px] pt-3 text-[12px]"
+    class="-mx-[13px] mt-3 flex flex-col gap-3 border-t border-default px-[13px] pt-3 text-[12px]"
   >
-    <div class="flex items-center gap-2">
-      <span class="text-muted">Limits</span>
-      <span class="min-w-0 flex-1 truncate text-right text-muted">{{ title }}</span>
-    </div>
+    <span class="truncate text-muted">{{ title || 'Limits' }}</span>
     <div
       v-if="balance && !balance.error && balance.balance !== undefined"
-      class="flex items-center gap-2"
+      class="flex flex-col gap-1.5"
     >
-      <span class="w-[74px] shrink-0 whitespace-nowrap text-muted">Balance</span>
+      <div class="flex items-baseline gap-2">
+        <span class="min-w-0 flex-1 truncate text-strong">Balance</span>
+        <span class="shrink-0 text-strong tabular-nums">{{ money(balance.balance, balance.currency) }}<template v-if="balance.total">
+          <span class="text-muted"> of {{ money(balance.total, balance.currency) }}</span>
+        </template></span>
+      </div>
       <span
         v-if="balance.total"
-        class="h-1.5 flex-1 bg-raised"
+        :class="TRACK"
       ><span
-        class="block h-full"
-        :class="tone(100 - (balance.balance / balance.total) * 100)"
+        :class="[BAR, tone(100 - (balance.balance / balance.total) * 100)]"
         :style="{ width: `${Math.min(100, (balance.balance / balance.total) * 100)}%` }"
       /></span>
-      <span
-        v-else
-        class="flex-1"
-      />
-      <span class="shrink-0 text-strong tabular-nums">{{ money(balance.balance, balance.currency) }}<template v-if="balance.total">
-        <span class="text-muted"> of {{ money(balance.total, balance.currency) }}</span>
-      </template></span>
     </div>
     <div
       v-if="spend"
-      class="flex items-center gap-2"
+      class="flex flex-col gap-1.5"
     >
-      <span class="w-[74px] shrink-0 whitespace-nowrap text-muted">This month</span>
+      <div class="flex items-baseline gap-2">
+        <span class="min-w-0 flex-1 truncate text-strong">This month</span>
+        <span
+          class="shrink-0 text-strong tabular-nums"
+          :title="spend.partial ? 'Some requests had no price; this is a lower bound' : undefined"
+        >{{ spend.partial ? '≥' : '' }}{{ money(spend.spent, spend.currency) }}<template v-if="spend.budget">
+          <span class="text-muted"> of {{ money(spend.budget, spend.currency) }}</span>
+        </template></span>
+      </div>
       <span
         v-if="spend.budget"
-        class="h-1.5 flex-1 bg-raised"
+        :class="TRACK"
       ><span
-        class="block h-full"
-        :class="tone((spend.spent / spend.budget) * 100)"
+        :class="[BAR, tone((spend.spent / spend.budget) * 100)]"
         :style="{ width: `${Math.min(100, (spend.spent / spend.budget) * 100)}%` }"
       /></span>
-      <span
-        v-else
-        class="flex-1"
-      />
-      <span
-        class="shrink-0 text-strong tabular-nums"
-        :title="spend.partial ? 'Some requests had no price; this is a lower bound' : undefined"
-      >{{ spend.partial ? '≥' : '' }}{{ money(spend.spent, spend.currency) }}<template v-if="spend.budget">
-        <span class="text-muted"> of {{ money(spend.budget, spend.currency) }}</span>
-      </template></span>
     </div>
     <div
       v-for="w in windows"
       :key="w.label"
-      class="flex items-center gap-2"
+      class="flex flex-col gap-1.5"
     >
-      <span class="w-[74px] shrink-0 truncate text-muted">{{ w.label }}</span>
-      <span class="h-1.5 flex-1 bg-raised"><span
-        class="block h-full"
-        :class="tone(w.usedPercent)"
+      <div class="flex items-baseline gap-2">
+        <span class="min-w-0 flex-1 truncate text-strong">{{ windowName(w.label) }}</span>
+        <span class="shrink-0 text-[11.5px] text-muted">{{ resets(w.resetsAt) }}</span>
+        <span class="shrink-0 text-muted tabular-nums">{{ Math.round(w.usedPercent) }}%</span>
+      </div>
+      <span :class="TRACK"><span
+        :class="[BAR, tone(w.usedPercent)]"
         :style="{ width: `${Math.min(100, w.usedPercent)}%` }"
       /></span>
-      <span class="w-9 shrink-0 text-right text-strong tabular-nums">{{ Math.round(w.usedPercent) }}%</span>
-      <span class="w-[86px] shrink-0 text-right text-[11.5px] text-muted">{{ resets(w.resetsAt) }}</span>
     </div>
   </div>
 </template>
