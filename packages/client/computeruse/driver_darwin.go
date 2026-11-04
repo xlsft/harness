@@ -179,12 +179,10 @@ func (d *darwinDriver) call(ctx context.Context, op string, params map[string]an
 	select {
 	case res = <-ch:
 	case <-ctx.Done():
-		d.proc.kill()
-		d.proc = nil
+		d.abort(op)
 		return ctx.Err()
 	case <-timer.C:
-		d.proc.kill()
-		d.proc = nil
+		d.abort(op)
 		return errors.New("the computer use helper did not answer in time")
 	}
 	if res.err != nil {
@@ -209,6 +207,35 @@ func (d *darwinDriver) call(ctx context.Context, op string, params map[string]an
 		return json.Unmarshal(r.Result, out)
 	}
 	return nil
+}
+
+// abort kills the helper in the middle of op. A click or drag may have left a mouse button down, which would make the
+// user's next move a drag, so a fresh helper lets go of it.
+func (d *darwinDriver) abort(op string) {
+	d.proc.kill()
+	d.proc = nil
+	if op != "click" && op != "drag" {
+		return
+	}
+	p, err := d.start()
+	if err != nil {
+		return
+	}
+	d.proc = p
+	if _, err := p.stdin.Write([]byte(`{"op":"release_mouse"}` + "\n")); err != nil {
+		return
+	}
+	done := make(chan struct{})
+	go func() {
+		_, _ = p.out.ReadBytes('\n')
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		p.kill()
+		d.proc = nil
+	}
 }
 
 func (d *darwinDriver) Permissions(ctx context.Context) (Permissions, error) {

@@ -340,6 +340,17 @@ func drag(from: CGPoint, to: CGPoint, expect: String) throws {
     try post(CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: to, mouseButton: .left))
 }
 
+/// Lets go of a mouse button left down by a helper killed in the middle of a click or drag.
+func releaseMouse() throws {
+    let at = CGEvent(source: nil)?.location ?? .zero
+    if CGEventSource.buttonState(.combinedSessionState, button: .left) {
+        try post(CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: at, mouseButton: .left))
+    }
+    if CGEventSource.buttonState(.combinedSessionState, button: .right) {
+        try post(CGEvent(mouseEventSource: nil, mouseType: .rightMouseUp, mouseCursorPosition: at, mouseButton: .right))
+    }
+}
+
 func scroll(at point: CGPoint, dx: Int, dy: Int, expect: String) throws {
     try guardInput(expect: expect)
     try post(CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left))
@@ -435,6 +446,10 @@ func handle(_ req: [String: Any]) throws -> Any? {
         try click(at: point(), right: text("button") == "right", count: int("count"), modifiers: req["modifiers"] as? [String] ?? [], expect: text("expect"))
         return nil
     case "drag": try drag(from: point(), to: point("x2", "y2"), expect: text("expect")); return nil
+    case "release_mouse":
+        guard AXIsProcessTrusted() else { throw Refusal("no_permission", "Accessibility is not allowed") }
+        try releaseMouse()
+        return nil
     case "scroll": try scroll(at: point(), dx: int("dx"), dy: int("dy"), expect: text("expect")); return nil
     case "type": try typeText(text("text"), expect: text("expect"), refuseSecure: flag("refuse_secure")); return nil
     case "key": try pressCombo(text("combo"), repeatCount: int("repeat"), expect: text("expect"), refuseSecure: flag("refuse_secure")); return nil

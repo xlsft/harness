@@ -91,7 +91,7 @@ async function save(v: boolean) {
         >{{ p.howToGrant }}</span>
       </div>
       <span
-        class="text-[12px]"
+        class="shrink-0 text-[12px] whitespace-nowrap"
         :class="p.granted ? 'text-ok' : 'text-warn'"
       >{{ p.granted ? 'Allowed' : 'Not allowed' }}</span>
     </div>
