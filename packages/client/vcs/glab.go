@@ -99,7 +99,7 @@ func (g *GLab) Snapshot(ctx context.Context, repo Repo, branch string) (*Snapsho
 	if branch == "" {
 		return nil, errors.New("no branch")
 	}
-	project := "projects/" + url.PathEscape(repo.Path)
+	project := glabProject(repo)
 	q := url.Values{}
 	q.Set("source_branch", branch)
 	q.Set("state", "all")
@@ -127,21 +127,9 @@ func (g *GLab) Snapshot(ctx context.Context, repo Repo, branch string) (*Snapsho
 	if err := g.api(ctx, repo.Host, project+"/merge_requests/"+strconv.FormatInt(top.Number, 10), &detail); err != nil {
 		return nil, err
 	}
-	checks := []*vcsv1.Check{}
-	if pl := detail.HeadPipeline; pl != nil && pl.ID > 0 {
-		var jobs []glabJob
-		if err := g.api(ctx, repo.Host, project+"/pipelines/"+strconv.FormatInt(pl.ID, 10)+"/jobs?per_page=100", &jobs); err != nil {
-			return nil, err
-		}
-		for _, j := range jobs {
-			checks = append(checks, j.toProto())
-		}
-		if len(checks) == 0 { // a pipeline without visible jobs: report the pipeline itself
-			checks = append(checks, &vcsv1.Check{
-				Id: strconv.FormatInt(pl.ID, 10), Name: "pipeline", Url: pl.WebURL,
-				State: glabJobState(pl.Status, false),
-			})
-		}
+	checks, err := g.pipelineChecks(ctx, repo, &detail)
+	if err != nil {
+		return nil, err
 	}
 	top.Checks = summarize(checks)
 	if detail.IID == top.Number { // the single MR is fresher than the list item

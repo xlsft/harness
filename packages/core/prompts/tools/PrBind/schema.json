@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "pr": {
+      "type": "string",
+      "description": "A number (12) or the web URL of the PR."
+    }
+  },
+  "required": [
+    "pr"
+  ],
+  "additionalProperties": false
+}

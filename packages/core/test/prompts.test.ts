@@ -23,7 +23,7 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
+      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "Read", "Show", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -48,6 +48,8 @@ describe("bundle builder", () => {
       user_shell_command: ["cwd", "command", "exit_code", "output", "status"],
       usage_limit_wrap_up: ["provider", "detail", "resets"],
       usage_limit_returned: ["provider"],
+      pr_activity: ["number", "url", "events", "external"],
+      pr_detected: ["number", "url"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason

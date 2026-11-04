@@ -23,6 +23,20 @@ const relay = computed({
     }
   }
 })
+// The auto-fix switch: on, the client watches the session's pull request and wakes the session when CI fails, the branch
+// conflicts or a comment arrives. The client decides everything; a refusal (no PR, no gh or glab) comes back as an error.
+const autoFix = computed({
+  get: () => props.session.meta.pullRequest?.monitoring ?? false,
+  set: async (on: boolean) => {
+    try {
+      await store.setPrMonitor(props.session.meta.id, on)
+    } catch (e) {
+      toast.add({ title: on ? 'Could not turn on auto-fix' : 'Could not turn off auto-fix', description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
+    }
+  }
+})
+const showAutoFix = computed(() => !props.session.meta.noFolder && !props.session.meta.remote && props.session.meta.engine === 'harness')
+const pr = computed(() => props.session.meta.pullRequest)
 const relayLocked = computed(() => props.session.meta.remote ? `Switched on ${props.session.meta.deviceName || 'its own machine'}` : props.session.meta.relayAvailable ? '' : props.session.meta.relayReason || 'Remote control is not available')
 
 const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool'))
@@ -279,6 +293,16 @@ function taskMeta(command: string, tail: string) {
           /></span>
         </UTooltip>
       </div>
+      <div
+        v-if="showAutoFix"
+        class="nav-row"
+        title="Watch this session's pull request: a CI failure, a conflict or a new comment wakes the session"
+      >
+        <HIcon name="pull-request" /><span class="min-w-0 truncate">Auto-fix</span><span class="flex-1" /><span class="flex"><HToggle
+          v-model="autoFix"
+          label="Auto-fix"
+        /></span>
+      </div>
     </section>
 
     <DetailsContext :session="session" />
@@ -310,11 +334,20 @@ function taskMeta(command: string, tail: string) {
         </button>
         <span class="flex-1" />
         <button
-          v-if="!noFolder"
+          v-if="pr"
+          type="button"
+          class="min-w-0 shrink-0 truncate border border-default px-2.5 py-1 text-[11.5px] text-strong hover:bg-hover"
+          :title="prDetails(pr)"
+          @click="openExternal(pr.url)"
+        >
+          PR {{ pr.number }} <span :class="prChip(pr).cls">{{ prChip(pr).text }}</span>
+        </button>
+        <button
+          v-else-if="!noFolder"
           type="button"
           class="shrink-0 border border-default px-2.5 py-1 text-[11.5px] text-strong hover:bg-hover"
         >
-          {{ session.meta.pullRequest ? `PR ${session.meta.pullRequest.number}` : 'Create PR' }}
+          Create PR
         </button>
       </div>
     </section>

@@ -36,6 +36,11 @@ export function toolIcon(t: ToolItem): IconName {
     case 'Task':
     case 'Agent': return 'agent'
     case 'Show': return t.input.target === 'url' ? 'globe' : t.input.target === 'diff' ? 'diff' : 'file'
+    case 'PrStatus':
+    case 'PrBind':
+    case 'PrUnbind':
+    case 'PrMonitor':
+    case 'PrAutoMerge': return 'pull-request'
     default: return 'box'
   }
 }
@@ -78,6 +83,10 @@ export function toolTarget(t: ToolItem): string {
     }
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
+    case 'PrStatus':
+    case 'PrBind': return String(i.pr ?? t.summary ?? '') || t.name
+    case 'PrMonitor': return i.enabled ? 'Watch the pull request' : 'Stop watching the pull request'
+    case 'PrAutoMerge': return i.enabled ? `Turn on auto-merge${i.method ? ` (${String(i.method)})` : ''}` : 'Turn off auto-merge'
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

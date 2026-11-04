@@ -978,6 +978,18 @@ export class MockTransport implements SessionTransport {
     if (s.limit && provider !== s.limit.providerName) this.limitReturned(s, false, provider ?? model)
   }
 
+  async setPrMonitor(sessionId: string, enabled: boolean) {
+    const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Watching a pull request')
+    const pr = s.info.pullRequest
+    if (!pr) {
+      if (enabled) throw new Error('[failed_precondition] this branch has no pull request')
+      return
+    }
+    s.info = create(SessionInfoSchema, { ...s.info, pullRequest: { ...pr, monitoring: enabled } })
+    this.emit(s, b => b.sessionUpdated(s.info))
+  }
+
   async setAutoContinue(sessionId: string, enabled: boolean) {
     const s = this.get(sessionId)
     this.refuseAcp(sessionId, 'Continuing when limits return')

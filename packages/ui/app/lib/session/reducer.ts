@@ -200,7 +200,25 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     additions: info.diffStats?.additions ?? 0,
     deletions: info.diffStats?.deletions ?? 0,
     filesChanged: info.diffStats?.filesChanged ?? 0,
-    pullRequest: pr ? { number: pr.number, url: pr.url, state: prState } : null,
+    pullRequest: pr
+      ? {
+          number: pr.number,
+          url: pr.url,
+          state: prState,
+          title: pr.title,
+          checksState: pr.checksState,
+          checksTotal: pr.checksTotal,
+          checksPassed: pr.checksPassed,
+          checksFailed: pr.checksFailed,
+          mergeable: pr.mergeable,
+          hasConflicts: pr.hasConflicts,
+          reviewDecision: pr.reviewDecision,
+          unresolvedComments: pr.unresolvedComments,
+          monitoring: pr.monitoring,
+          autoMerge: pr.autoMerge,
+          problem: pr.problem
+        }
+      : null,
     pinned: info.pinned,
     unread: info.unread,
     archived: info.archived,

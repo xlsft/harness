@@ -321,7 +321,25 @@ export interface SessionMeta {
   additions: number
   deletions: number
   filesChanged: number
-  pullRequest: { number: number, url: string, state: 'open' | 'draft' | 'merged' | 'closed' } | null
+  // The session's bound pull request, with what the client last read from the code host. monitoring is the auto-fix
+  // switch (setPrMonitor); problem says why the client could not read it.
+  pullRequest: {
+    number: number
+    url: string
+    state: 'open' | 'draft' | 'merged' | 'closed'
+    title: string
+    checksState: string
+    checksTotal: number
+    checksPassed: number
+    checksFailed: number
+    mergeable: boolean
+    hasConflicts: boolean
+    reviewDecision: string
+    unresolvedComments: number
+    monitoring: boolean
+    autoMerge: boolean
+    problem: string
+  } | null
   // Per-user state kept on the harness server (title includes a rename).
   pinned: boolean
   unread: boolean

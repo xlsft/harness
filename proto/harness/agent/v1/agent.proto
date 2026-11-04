@@ -7,6 +7,7 @@ import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
+import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
@@ -271,6 +272,13 @@ service AgentService {
   // What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
   // FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
+
+  // --- Pull requests ---
+
+  // Turns watching the session's bound pull request on or off (pr.proto). On, with no PR bound, binds the open PR
+  // of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
+  // glab is missing or not logged in; NOT_FOUND for a session that is not open here.
+  rpc SetPrMonitor(SetPrMonitorRequest) returns (SetPrMonitorResponse);
 }
 
 enum PermissionMode {
@@ -436,6 +444,24 @@ message PullRequest {
   string url = 1;
   int32 number = 2;
   State state = 3;
+  // The rest is set by the local client for the PR a session is bound to (PrBind), from the code host through
+  // gh / glab. Empty until its first poll.
+  string title = 4;
+  // "none", "running", "passing" or "failing".
+  string checks_state = 5;
+  int32 checks_total = 6;
+  int32 checks_passed = 7;
+  int32 checks_failed = 8;
+  bool mergeable = 9;
+  bool has_conflicts = 10;
+  // "approved", "changes_requested", "review_required" or "none".
+  string review_decision = 11;
+  int32 unresolved_comments = 12;
+  // The client watches it and wakes the session on CI failures, conflicts and new comments (SetPrMonitor).
+  bool monitoring = 13;
+  bool auto_merge = 14;
+  // Why the last poll failed (gh missing, not logged in...); empty when it worked.
+  string problem = 15;
 }
 
 message CreateSessionRequest {

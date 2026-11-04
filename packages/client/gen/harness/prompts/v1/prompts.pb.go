@@ -162,6 +162,9 @@ type PromptBundle struct {
 	//	environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
 	//	user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
 	//	                      the composer's shell mode (RunShellCommand); rides on the next model request
+	//	pr_activity           {{number}} {{url}} {{events}} {{external}}  the session's monitored PR had a CI failure,
+	//	                      a conflict or new comments, or ended; external is code-host text marked as data
+	//	pr_detected           {{number}} {{url}}     a shell command opened a PR for the session's branch
 	//	usage_limit_wrap_up   {{provider}} {{detail}} {{resets}}  the session's provider is nearly out of usage
 	//	                      (harness.agent.v1.UsageLimit WRAP_UP): once per turn, while the turn goes on
 	//	side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)

@@ -50,7 +50,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderPRActivity {
 			if id == "environment_changed" {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}
@@ -235,6 +235,12 @@ func (a *Agent) injectReminders(promptID string) {
 		}
 		if r.id == ReminderUsageReturned {
 			tmpl, ok = bundle.Reminder(r.id, usagelimit.ReturnedFallback), true
+		}
+		if r.id == ReminderPRActivity {
+			tmpl, ok = bundle.Reminder(r.id, PRActivityFallback), true
+		}
+		if r.id == ReminderPRDetected {
+			tmpl, ok = bundle.Reminder(r.id, PRDetectedFallback), true
 		}
 		if !ok || tmpl == "" {
 			continue

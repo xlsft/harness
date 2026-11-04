@@ -31,6 +31,15 @@ case "$*" in
   "auth status --all") c=auth-all ;;
   "auth status") c=auth ;;
   "pr list "*) c=pr-list ;;
+  "pr view "*) c=pr-view ;;
+  "pr merge "*) c=pr-merge ;;
+  "repo view "*) c=repo-view ;;
+  "run view "*) c=run-view ;;
+  "api graphql "*) c=graphql ;;
+  "api --hostname "*" -X PUT "*) c=api-merge ;;
+  "api --hostname "*" -X POST "*) c=api-cancel ;;
+  "api --hostname "*"/discussions"*) c=api-discussions ;;
+  "api --hostname "*"/trace"*) c=api-trace ;;
   "api --hostname "*"/jobs"*) c=api-jobs ;;
   "api --hostname "*"/merge_requests?"*) c=api-mrs ;;
   "api --hostname "*"/merge_requests/"*) c=api-mr ;;

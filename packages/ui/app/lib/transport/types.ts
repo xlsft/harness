@@ -143,6 +143,8 @@ export interface SessionTransport {
   // "Continue when limits return": when the limit resets and the last turn was cut off by it, the client continues the
   // work by itself. Off by default; held messages go out at the reset either way.
   setAutoContinue(sessionId: string, enabled: boolean): Promise<void>
+  // The auto-fix switch: the client watches the session's pull request and wakes the session.
+  setPrMonitor(sessionId: string, enabled: boolean): Promise<void>
 
   suggestFiles(sessionId: string, query: string, limit: number): Promise<string[]>
   compact(sessionId: string, instructions?: string): Promise<void>

@@ -5,8 +5,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 
+	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/auth"
+	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/vcs"
 )
 
@@ -21,4 +25,46 @@ func startVCS(s *Session, url string, hc *http.Client, tokens auth.TokenSource, 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() { _ = w.Run(ctx) }()
 	return w, cancel
+}
+
+// PRStateDir holds the sessions' pull request bindings (device-local).
+func PRStateDir() string { return filepath.Join(config.Home(), "pr-watch") }
+
+// registerPRTools creates the session's pull request tracker and its tools.
+func (s *Session) registerPRTools(o Options, log *slog.Logger) {
+	s.PR = vcs.NewTracker(vcs.TrackerOptions{
+		SessionID: s.ID, Dir: s.Cwd, StateDir: PRStateDir(), Disabled: os.Getenv("HARNESS_NO_VCS") == "1",
+		Providers: o.VCSProviders, Schedule: o.VCSSchedule, Logger: log,
+	})
+	for _, t := range vcs.PRTools(s.PR) {
+		s.Tools.Register(t)
+	}
+}
+
+// ConnectPR sends what the tracker sees to the session: notes as reminders, a state change to onChange.
+func (s *Session) ConnectPR(onChange func()) {
+	s.PR.SetHooks(vcs.TrackerHooks{
+		OnChange: onChange,
+		OnNote: func(n vcs.PRNote) {
+			s.Agent.NotePRActivity(n.Number, n.URL, n.Events, n.External, n.Wake)
+		},
+		OnDetected: func(number int64, url string) {
+			s.Agent.NotePRDetected(number, url)
+			if s.VCS != nil {
+				s.VCS.Poke()
+			}
+		},
+	})
+}
+
+// watchPRCommands shows the tracker every finished shell command, so one that opens a PR is noticed without polling.
+func (s *Session) watchPRCommands(next func(agent.Event)) func(agent.Event) {
+	return func(e agent.Event) {
+		if next != nil {
+			next(e)
+		}
+		if e.Kind == agent.EventToolEnd && e.ToolName == "Bash" && !e.IsError {
+			s.PR.ObserveCommand(tools.BashCommand(e.Input))
+		}
+	}
 }

@@ -1110,7 +1110,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			d = time.Since(started[i])
 		}
 		b := outcomes[i].block
-		a.emit(Event{Kind: EventToolEnd, ToolUseID: uses[i].ID, ToolName: uses[i].Name, IsError: b.IsError, Interrupted: interrupted,
+		a.emit(Event{Kind: EventToolEnd, ToolUseID: uses[i].ID, ToolName: uses[i].Name, Input: uses[i].Input, IsError: b.IsError, Interrupted: interrupted,
 			Content: b.Content, Duration: d, Structured: outcomes[i].structured, Summary: summary})
 	}
 	synthetic := func(i int) {

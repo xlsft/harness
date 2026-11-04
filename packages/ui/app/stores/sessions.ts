@@ -748,6 +748,10 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.setModel(id, model)
     },
 
+    async setPrMonitor(id: string, on: boolean) {
+      await this.transport?.setPrMonitor(id, on)
+    },
+
     async setAutoContinue(id: string, on: boolean) {
       await this.transport?.setAutoContinue(id, on)
     },

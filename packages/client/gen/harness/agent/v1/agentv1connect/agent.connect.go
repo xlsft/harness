@@ -285,6 +285,9 @@ const (
 	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionDiff RPC.
 	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
+	// AgentServiceSetPrMonitorProcedure is the fully-qualified name of the AgentService's SetPrMonitor
+	// RPC.
+	AgentServiceSetPrMonitorProcedure = "/harness.agent.v1.AgentService/SetPrMonitor"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -514,6 +517,10 @@ type AgentServiceClient interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Turns watching the session's bound pull request on or off (pr.proto). On, with no PR bound, binds the open PR
+	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
+	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
+	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1055,6 +1062,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		setPrMonitor: connect.NewClient[v1.SetPrMonitorRequest, v1.SetPrMonitorResponse](
+			httpClient,
+			baseURL+AgentServiceSetPrMonitorProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1148,6 +1161,7 @@ type agentServiceClient struct {
 	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 	setAutoContinue        *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
 	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
+	setPrMonitor           *connect.Client[v1.SetPrMonitorRequest, v1.SetPrMonitorResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1590,6 +1604,11 @@ func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Re
 	return c.getSessionDiff.CallUnary(ctx, req)
 }
 
+// SetPrMonitor calls harness.agent.v1.AgentService.SetPrMonitor.
+func (c *agentServiceClient) SetPrMonitor(ctx context.Context, req *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error) {
+	return c.setPrMonitor.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1817,6 +1836,10 @@ type AgentServiceHandler interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Turns watching the session's bound pull request on or off (pr.proto). On, with no PR bound, binds the open PR
+	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
+	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
+	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2354,6 +2377,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceSetPrMonitorHandler := connect.NewUnaryHandler(
+		AgentServiceSetPrMonitorProcedure,
+		svc.SetPrMonitor,
+		connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2532,6 +2561,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetAutoContinueHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionDiffProcedure:
 			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
+		case AgentServiceSetPrMonitorProcedure:
+			agentServiceSetPrMonitorHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2891,4 +2922,8 @@ func (UnimplementedAgentServiceHandler) SetAutoContinue(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetPrMonitor is not implemented"))
 }

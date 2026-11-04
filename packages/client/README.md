@@ -167,6 +167,10 @@ Each session in REACHED has one timer (`server/usagelimit.go`, `Server.UsageWatc
 
 ACP sessions do not hold messages: the agent runs its own loop, and only a turn sent to it can tell whether its limit is over. They publish `UsageLimit` as before, and `SetAutoContinue` fails with `FAILED_PRECONDITION`.
 
+## Pull requests
+
+`PrStatus`, `PrBind`, `PrUnbind`, `PrMonitor` and `PrAutoMerge` (`vcs/prtools.go`) act through `vcs.Tracker` (`vcs/tracker.go`), which uses the same `gh` / `glab` layer, schedule and detection cache as the `vcs.Watcher` that uploads branch state; both CLIs keep their own auth. The binding is device-local (`HARNESS_HOME/pr-watch/<session id>.json`, removed with the session). SessionInfo.pull_request shows it. While a PR is bound and open it is polled on `vcs.DefaultSchedule` (15 s up to 1 min while CI runs, 2 min when settled, backing off on errors); the poll stops at merge, close or session close. With monitoring on (`PrMonitor`, or the UI's auto-fix switch through `SetPrMonitor`) a CI failure (once the run settles, or after 10 minutes), a merge conflict or a new comment from someone else queues the `pr_activity` reminder and wakes the session, at most 6 times an hour; code-host text in it is marked and escaped as external data. A client start reopens the sessions that were monitoring, unless they were closed on purpose. A Bash call running `gh pr create` or `glab mr create` makes the tracker look up the branch's PR once and offer it (`pr_detected`). `HARNESS_NO_VCS=1` turns all of this off. `PrAutoMerge` always asks the user (`tools.AlwaysAsker`).
+
 ## Local end-to-end run without the real server
 
 ```bash

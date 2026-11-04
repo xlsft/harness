@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// AgentService.SetPrMonitor: the per-session auto-fix switch. On, the client watches the session's pull request
+// through the local gh / glab CLI and, on a CI failure, a merge conflict or a new review comment, wakes the session
+// with a reminder. The client owns the decision and the state (SessionInfo.pull_request); frontends send the intent.
+
+message SetPrMonitorRequest {
+  string session_id = 1;
+  bool enabled = 2;
+}
+
+message SetPrMonitorResponse {}

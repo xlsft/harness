@@ -131,6 +131,9 @@ type Options struct {
 	// Browser, when set, gives the session a browser (the Browser* tools; HARNESS_NO_BROWSER=1 leaves them out).
 	// The session's browser stops when the session closes.
 	Browser *browser.Manager
+	// VCSProviders and VCSSchedule override the pull request tracker's CLIs and poll intervals (tests).
+	VCSProviders []vcs.Provider
+	VCSSchedule  vcs.Schedule
 
 	// UsageMonitor follows the usage limits of the session provider (agent.Config.UsageMonitor; may be nil).
 	UsageMonitor agent.UsageMonitor
@@ -177,6 +180,8 @@ type Session struct {
 	// VCS polls PR/CI state through gh/glab and uploads it (nil without sync or HARNESS_NO_VCS=1).
 	// Poke it after a push or PR creation for an immediate poll.
 	VCS *vcs.Watcher
+	// PR is the session's bound pull request (never nil).
+	PR *vcs.Tracker
 	// Warnings are problems found while opening (e.g. an unknown output
 	// style); frontends show them as notices.
 	Warnings  []string
@@ -210,6 +215,9 @@ func (s *Session) Close() error {
 	}
 	if s.stopVCS != nil {
 		s.stopVCS()
+	}
+	if s.PR != nil {
+		s.PR.Stop()
 	}
 	return err
 }
@@ -499,6 +507,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	s.registerWebTools(o)
+	s.registerPRTools(o, log)
 	useBrowser := o.Browser != nil && os.Getenv("HARNESS_NO_BROWSER") != "1"
 	if useBrowser {
 		for _, t := range o.Browser.Tools() {
@@ -577,6 +586,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			}
 		}
 	}
+	onEvent = s.watchPRCommands(onEvent)
 	s.FileHistory = session.NewFileHistory(FileHistoryDir(s.ID), s.Transcript, conv.Snapshots)
 	s.ToolEnv.BeforeEdit = s.FileHistory.TrackEdit
 
@@ -614,6 +624,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if startVCSPoller != nil {
 		startVCSPoller()
 	}
+	s.ConnectPR(nil)
 	s.startMCP(conv)
 	return s, nil
 }

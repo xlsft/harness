@@ -233,6 +233,10 @@ export class ConnectTransport implements SessionTransport {
     await this.client.setAutoContinue({ sessionId, enabled })
   }
 
+  async setPrMonitor(sessionId: string, enabled: boolean) {
+    await this.client.setPrMonitor({ sessionId, enabled })
+  }
+
   async setSessionRelay(sessionId: string, enabled: boolean) {
     const res = await this.client.setSessionRelay({ sessionId, enabled })
     if (!res.session) throw new Error('the client returned no session')

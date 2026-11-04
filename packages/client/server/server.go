@@ -41,6 +41,7 @@ import (
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/usagelimit"
+	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -124,6 +125,8 @@ type Server struct {
 	LocalModels *localmodels.Registry
 	// acp holds the ACP agents and the sessions running on them (acp.go).
 	acp acpState
+	// prResume reopens sessions watching their PR once (prs.go).
+	prResume sync.Once
 	// UsageWatch tunes the watch over sessions whose provider is out of usage (usagelimit.go).
 	UsageWatch UsageWatchTimings
 }
@@ -211,6 +214,7 @@ func (s *Server) mux() *http.ServeMux {
 // closes all sessions.
 func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handler) error {
 	sweepFolderBaselines()
+	go s.prResume.Do(s.resumePRWatches)
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
 	p.SetUnencryptedHTTP2(true)
@@ -436,6 +440,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TodosUpdated{TodosUpdated: &agentv1.TodosUpdated{Todos: todosToProto(todos)}}})
 	}
 	ls.startUsageWatch()
+	ls.startPR()
 	s.sessionOpened(sess.ID)
 	return connect.NewResponse(&agentv1.CreateSessionResponse{Session: ls.info()}), nil
 }
@@ -487,6 +492,9 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 	for _, v := range out {
 		s.applyState(v)
 		v.NoFolder = v.NoFolder || isNoFolder(v.Id, v.Cwd)
+		if v.PullRequest == nil && !v.Remote {
+			v.PullRequest = vcs.LoadPRInfo(bootstrap.PRStateDir(), v.Id)
+		}
 		if v.Archived && !req.Msg.GetIncludeArchived() {
 			continue
 		}
@@ -1023,6 +1031,7 @@ func (s *Server) closeLive(id, reason string) bool {
 	}
 	// TODO(worktree): offer to remove the session's worktree (ls.sess.Worktree) here when it is clean and its
 	// branch has no commits beyond base_ref; worktrees are never removed automatically today.
+	ls.sess.PR.Park()
 	ls.close(reason)
 	s.terminals().KillSession(id)
 	return true
