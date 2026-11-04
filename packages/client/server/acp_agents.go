@@ -36,7 +36,9 @@ func (s *Server) acpAgentProto(id string, a *registry.Agent) *agentv1.AcpAgent {
 	reg := s.AcpRegistry()
 	st := reg.State(id)
 	out := &agentv1.AcpAgent{Id: id, Name: id, Engine: enginePrefix + id, AuthState: acp.AuthStateToProto(st.Auth),
-		AuthMethods: acp.AuthMethodsToProto(st.AuthMethods), IconSvg: reg.IconSVG(id), Limits: acp.LimitsToProto(st.Limits)}
+		AuthMethods: acp.AuthMethodsToProto(st.AuthMethods), IconSvg: reg.IconSVG(id), Limits: acp.LimitsToProto(st.Limits),
+		UnsupportedFeatures: acp.UnsupportedFeatures()}
+	s.applyAcpModels(out, id, st)
 	if a != nil {
 		out.Name, out.Description, out.LatestVersion = a.Name, a.Description, a.Version
 		out.Repository, out.Website, out.License, out.Authors, out.IconUrl = a.Repository, a.Website, a.License, a.Authors, a.Icon
@@ -60,8 +62,14 @@ func (s *Server) acpAgentProto(id string, a *registry.Agent) *agentv1.AcpAgent {
 
 func (s *Server) ListAcpAgents(ctx context.Context, req *connect.Request[agentv1.ListAcpAgentsRequest]) (*connect.Response[agentv1.ListAcpAgentsResponse], error) {
 	reg := s.AcpRegistry()
-	snap := reg.Load(ctx, req.Msg.GetRefresh())
-	resp := &agentv1.ListAcpAgentsResponse{Runtimes: reg.Runtimes()}
+	var snap registry.Snapshot
+	if req.Msg.GetCachedOnly() && !req.Msg.GetRefresh() {
+		snap.Registry = reg.Cached()
+	} else {
+		snap = reg.Load(ctx, req.Msg.GetRefresh())
+	}
+	s.scheduleAcpProbes(req.Msg.GetRefresh())
+	resp := &agentv1.ListAcpAgentsResponse{Runtimes: reg.Runtimes(), SessionSwitchRefusal: acpSessionSwitchRefusal}
 	if !snap.FetchedAt.IsZero() {
 		resp.RegistryFetchedAt = snap.FetchedAt.UTC().Format(time.RFC3339)
 	}
@@ -137,6 +145,7 @@ func (s *Server) installAcp(ctx context.Context, a registry.Agent, send func(*ag
 	if sendErr != nil {
 		return sendErr
 	}
+	s.probeAcpModels(a.ID)
 	return send(&agentv1.InstallAcpAgentResponse{Phase: agentv1.InstallAcpAgentResponse_PHASE_DONE, Done: true,
 		Message: a.Name + " " + a.Version + " installed", Agent: s.acpAgentProto(a.ID, &a)})
 }
@@ -233,6 +242,10 @@ func (s *Server) AuthenticateAcpAgent(ctx context.Context, req *connect.Request[
 	}
 	resp := &agentv1.AuthenticateAcpAgentResponse{}
 	done := func() (*connect.Response[agentv1.AuthenticateAcpAgentResponse], error) {
+		// A session waiting for the sign-in reports the models itself once it runs, in its own environment.
+		if resp.Authenticated && live == nil {
+			s.probeAcpModels(id)
+		}
 		var entry *registry.Agent
 		if a, ok := reg.Cached().Find(id); ok {
 			entry = &a

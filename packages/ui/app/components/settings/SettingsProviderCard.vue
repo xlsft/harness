@@ -9,7 +9,7 @@ import { contextLabel } from '~/lib/providers/types'
 const sessions = useSessionStore()
 const { prefs, save: saveDefault, effortOf, setEffort } = useSessionDefaults()
 // The model new sessions start with: the one chosen here, else the server's default.
-const isDefault = (id: string) => (prefs.value.model || sessions.defaultModel || sessions.models[0]?.id) === id
+const isDefault = (id: string) => ((!prefs.value.engine && prefs.value.model) || sessions.defaultModel || sessions.models[0]?.id) === id
 function toggleDefault(id: string) {
   saveDefault('model', prefs.value.model === id ? '' : id)
 }

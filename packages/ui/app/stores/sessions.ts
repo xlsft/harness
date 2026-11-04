@@ -10,6 +10,7 @@ import {
   SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import type { SessionEvent, SessionInfo } from '~/gen/harness/agent/v1/agent_pb'
+import { AcpModelsStatus, type AcpAgent } from '~/gen/harness/agent/v1/acp_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { applyLiveInfo, createSessionState, permissionModeName, reduce, sessionMeta, settleTurn } from '~/lib/session/reducer'
 import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
@@ -17,7 +18,7 @@ import { liveOutbox, type OutboxEntry } from '~/lib/session/delivery'
 import { descendants } from '~/lib/session/tree'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 import type { DeviceSettings, SessionPatch } from '~/lib/transport/types'
-import { allowedModes } from '~/utils/composer'
+import { allowedModes, nextMode } from '~/utils/composer'
 
 const MODE_TO_PB: Record<PermissionModeName, PermissionMode> = {
   default: PermissionMode.DEFAULT,
@@ -39,6 +40,9 @@ const EFFORT_TO_PB: Record<EffortName, Effort> = {
 // Event streams kept open at once (see trimStreams) and how often the list refreshes the other sessions.
 const MAX_STREAMS = 4
 const LIST_POLL_MS = 4000
+// How often the ACP agents are listed again while a model probe runs.
+const ACP_PROBE_POLL_MS = 1500
+let acpProbePoll: ReturnType<typeof setTimeout> | undefined
 // How often the permission mode policy is read again (an admin may change it while the app runs).
 const MODES_POLL_MS = 30_000
 // Stream liveness. A stream that sent control messages beats every 15 s: one silent for STALL_MS is dead (a sleep,
@@ -143,6 +147,11 @@ export const useSessionStore = defineStore('sessions', {
     // Remote sessions the user chose to drive from here ("Continue via remote control"): the composer replaces
     // the "Running on <device>" notice while the session stays remote-controllable.
     remoteControl: {} as Record<string, boolean>,
+    // The client's ACP agents, for the model list and Settings (device-local, never synced), and why a harness session
+    // cannot pick their models.
+    acpAgents: [] as AcpAgent[],
+    acpSwitchRefusal: '',
+    acpLoaded: false,
     // Sessions with a compaction requested from here (button or /compact) that has not returned yet.
     compacting: {} as Record<string, boolean>,
     unsubscribers: {} as Record<string, () => void>,
@@ -183,6 +192,7 @@ export const useSessionStore = defineStore('sessions', {
         await this.refreshList()
         this.ready = true
         this.quietly(this.refreshDeviceSettings())
+        this.quietly(this.refreshAcpAgents())
         if (import.meta.client) {
           setInterval(() => this.quietly(this.refreshList()), LIST_POLL_MS)
           setInterval(() => this.refreshModes(), MODES_POLL_MS)
@@ -194,7 +204,7 @@ export const useSessionStore = defineStore('sessions', {
 
     // Starts a session on the client and opens it; it goes to the top of the list. `forkOf` continues a copy of
     // that session's transcript (a remote session's is downloaded from the harness server: "Continue here").
-    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string }, forkOf?: string }) {
+    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string }, forkOf?: string, engine?: string, acpModeId?: string }) {
       if (!this.transport) throw new Error('not connected')
       const info = await this.transport.createSession({
         cwd: opts.cwd,
@@ -202,6 +212,8 @@ export const useSessionStore = defineStore('sessions', {
         effort: opts.effort ? EFFORT_TO_PB[opts.effort] : undefined,
         permissionMode: opts.mode ? MODE_TO_PB[opts.mode] : undefined,
         worktree: opts.worktree,
+        engine: opts.engine,
+        acpModeId: opts.acpModeId,
         ...(opts.forkOf && { resumeSessionId: opts.forkOf, fork: true })
       })
       if (opts.effort) this.effort[info.id] = opts.effort
@@ -766,10 +778,78 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.respondToPlan(id, requestId, d, feedback)
     },
 
-    async setModel(id: string, model: string) {
+    // engine: the engine of the picked model; omitted means the session's own. Shows at once, rolled back when the
+    // client refuses it.
+    async setModel(id: string, model: string, engine?: string) {
       const s = this.sessions[id]
-      if (s) s.meta.model = model
-      await this.transport?.setModel(id, model)
+      const prev = s?.meta.model
+      const prevAcp = s?.meta.acp
+      if (s) {
+        s.meta.model = model
+        if (s.meta.acp) s.meta.acp = { ...s.meta.acp, currentModelId: model }
+      }
+      try {
+        await this.transport?.setModel(id, model, engine)
+      } catch (err) {
+        if (s) {
+          s.meta.model = prev ?? s.meta.model
+          s.meta.acp = prevAcp ?? null
+        }
+        this.error = err instanceof Error ? err.message : String(err)
+      }
+    },
+
+    // Switches an ACP session to one of its agent's modes. Shows at once, rolled back when the client refuses it.
+    async setAcpMode(id: string, modeId: string) {
+      const s = this.sessions[id]
+      const prev = s?.meta.acp
+      if (s?.meta.acp) s.meta.acp = { ...s.meta.acp, currentModeId: modeId }
+      try {
+        await this.transport?.acp().setMode(id, modeId)
+      } catch (err) {
+        if (s) s.meta.acp = prev ?? null
+        this.error = err instanceof Error ? err.message : String(err)
+      }
+    },
+
+    // The next mode for Shift+Tab: the agent's own modes in a session on an agent, the client's cycle otherwise.
+    cycleMode(id: string) {
+      const s = this.sessions[id]
+      if (!s) return
+      if (s.meta.engine === 'harness') {
+        this.quietly(this.setPermissionMode(id, nextMode(s.meta.permissionMode, this.permissionModes, this.disabledModes)))
+        return
+      }
+      const modes = s.meta.acp?.modes ?? []
+      if (!modes.length) return
+      const at = modes.findIndex(m => m.id === s.meta.acp!.currentModeId)
+      this.quietly(this.setAcpMode(id, modes[(at + 1) % modes.length]!.id))
+    },
+
+    // The ACP agents on this client (Settings, and the model list's groups). The list never waits for a model probe:
+    // while an agent has one running it is listed again shortly, the only way the client tells how a probe went.
+    async refreshAcpAgents(opts: { refresh?: boolean, cachedOnly?: boolean } = {}) {
+      if (!this.transport) return undefined
+      const list = await this.transport.acp().listAgents(opts)
+      this.acpAgents = list.agents
+      this.acpSwitchRefusal = list.sessionSwitchRefusal
+      this.acpLoaded = true
+      this.watchAcpProbes()
+      return list
+    },
+
+    // An agent an action returned (install, sign-in): its probe may have just started.
+    putAcpAgent(agent: AcpAgent) {
+      this.acpAgents = this.acpAgents.some(a => a.id === agent.id) ? this.acpAgents.map(a => a.id === agent.id ? agent : a) : [...this.acpAgents, agent]
+      this.watchAcpProbes()
+    },
+
+    watchAcpProbes() {
+      if (acpProbePoll || !this.acpAgents.some(a => a.modelsStatus === AcpModelsStatus.PROBING)) return
+      acpProbePoll = setTimeout(() => {
+        acpProbePoll = undefined
+        this.quietly(this.refreshAcpAgents({ cachedOnly: true }))
+      }, ACP_PROBE_POLL_MS)
     },
 
     async setPrMonitor(id: string, on: boolean) {

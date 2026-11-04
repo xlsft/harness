@@ -81,16 +81,17 @@ export interface MessageActions {
 // - Fork: on read and waiting messages (a waiting one forks the whole conversation and puts its text in the
 //   fork's composer), disabled while it is being handed over;
 // - Cancel and Send now: only on waiting (queued or held) messages.
-// A read-only session (another machine's) offers Copy only.
-export function messageActions(delivery: Delivery, ctx: { busy: boolean, readOnly: boolean }): MessageActions {
+// A read-only session (another machine's) offers Copy only; `unsupported` (the engine's, SessionMeta.unsupported) takes
+// away Rewind and Fork.
+export function messageActions(delivery: Delivery, ctx: { busy: boolean, readOnly: boolean, unsupported?: string[] }): MessageActions {
   const queued = delivery === 'queued' || delivery === 'held'
   const read = delivery === 'read'
   if (ctx.readOnly) return { copy: 'enabled', rewind: 'hidden', fork: 'hidden', cancel: 'hidden', sendNow: 'hidden', rewindHint: '' }
   const rewindHint = !read ? 'Not sent yet' : ctx.busy ? 'Stop the turn to rewind' : ''
   return {
     copy: 'enabled',
-    rewind: rewindHint ? 'disabled' : 'enabled',
-    fork: read || queued ? 'enabled' : 'disabled',
+    rewind: ctx.unsupported?.includes('rewind') ? 'hidden' : rewindHint ? 'disabled' : 'enabled',
+    fork: ctx.unsupported?.includes('fork') ? 'hidden' : read || queued ? 'enabled' : 'disabled',
     cancel: queued ? 'enabled' : 'hidden',
     sendNow: queued ? 'enabled' : 'hidden',
     rewindHint

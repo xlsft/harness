@@ -11,6 +11,8 @@ const props = defineProps<{
   speaking?: boolean
   // Its audio is being made (before any sound).
   speechLoading?: boolean
+  // The session's engine cannot fork.
+  noFork?: boolean
 }>()
 const summaryOpen = ref(false)
 const emit = defineEmits<{ retry: [], switchModel: [], copy: [], fork: [], readAloud: [] }>()
@@ -168,6 +170,7 @@ const usageLine = computed(() => {
       />
     </button>
     <button
+      v-if="!noFork"
       type="button"
       aria-label="Fork from here"
       class="flex size-[26px] items-center justify-center hover:text-highlighted"

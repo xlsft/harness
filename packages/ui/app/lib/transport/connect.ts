@@ -137,7 +137,8 @@ export class ConnectTransport implements SessionTransport {
       fork: opts.fork ?? false,
       forkAtCheckpointId: opts.forkAtMessageId ?? '',
       worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined,
-      engine: opts.engine ?? ''
+      engine: opts.engine ?? '',
+      acpModeId: opts.acpModeId ?? ''
     })
     if (!res.session) throw new Error('the client returned no session')
     return res.session
@@ -225,8 +226,8 @@ export class ConnectTransport implements SessionTransport {
     await this.client.respondToPlan({ sessionId, requestId, decision, feedback })
   }
 
-  async setModel(sessionId: string, model: string) {
-    await this.client.setModel({ sessionId, model })
+  async setModel(sessionId: string, model: string, engine?: string) {
+    await this.client.setModel({ sessionId, model, engine: engine ?? '' })
   }
 
   async setEffort(sessionId: string, effort: Effort) {

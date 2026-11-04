@@ -1,7 +1,8 @@
 // MockAcpApi: a few registry agents with install and sign-in states, for the mock transport.
 //
-// - claude-acp: installed (npx), needs a sign-in (an agent method and a terminal login);
-// - codex-acp: installed (npx), signed in, reports subscription limits (5h window at 42%, weekly at 18%);
+// - claude-acp: installed (npx), needs a sign-in (an agent method and a terminal login), then lists its models;
+// - codex-acp: installed (npx), signed in with its models known, reports subscription limits (5h window at 42%,
+//   weekly at 18%);
 // - gemini: not installed (npx); goose: not installed (binary, downloads with progress);
 // - fast-agent: unavailable (uv is not on PATH).
 // Installs stream progress on a timer; an agent sign-in succeeds at once, a terminal login returns the command
@@ -14,6 +15,9 @@ import {
   AcpAuthMethod_Kind,
   AcpAuthState,
   AcpDistribution,
+  AcpModeSchema,
+  AcpModelSchema,
+  AcpModelsStatus,
   AcpSessionStateSchema,
   AcpTerminalCommandSchema,
   InstallAcpAgentResponseSchema,
@@ -21,12 +25,34 @@ import {
   type AcpAgent,
   type AcpSessionState
 } from '~/gen/harness/agent/v1/acp_pb'
+import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 import type { AcpApi, AcpAuthRequest, AcpAuthResult, AcpInstallProgress } from './types'
 
 const ICON = (letter: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="4" fill="currentColor" opacity=".15"/><text x="8" y="11.5" font-size="9" text-anchor="middle" fill="currentColor">${letter}</text></svg>`
 
 const CDN = 'https://cdn.agentclientprotocol.com/registry/v1/latest'
+
+export const ACP_SWITCH_REFUSAL = 'Start a new session to use this agent'
+
+// What a session on an agent cannot do (the client's acp.UnsupportedFeatures).
+export const ACP_UNSUPPORTED = [
+  SessionFeature.REWIND, SessionFeature.FORK, SessionFeature.SUB_SESSIONS, SessionFeature.SIDE_CHAT, SessionFeature.COMPACTION,
+  SessionFeature.CONTEXT_BREAKDOWN, SessionFeature.CLASSIFIER, SessionFeature.EFFORT, SessionFeature.OUTPUT_STYLES,
+  SessionFeature.SHELL_COMMANDS, SessionFeature.BACKGROUND_TASKS, SessionFeature.MODEL_CATALOG, SessionFeature.QUESTIONS,
+  SessionFeature.MOVE_FOLDER, SessionFeature.WORKTREE
+]
+
+// What each agent reports once it runs: its models and modes.
+const MODELS: Record<string, { id: string, name: string, description?: string }[]> = {
+  'claude-acp': [{ id: 'default', name: 'Default (recommended)' }, { id: 'opus', name: 'Opus' }, { id: 'sonnet', name: 'Sonnet' }],
+  'codex-acp': [{ id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', description: 'Optimized for coding' }, { id: 'gpt-5.2', name: 'GPT-5.2' }, { id: 'gpt-5.2-mini', name: 'GPT-5.2 Mini' }]
+}
+const MODES: Record<string, { id: string, name: string }[]> = {
+  'claude-acp': [{ id: 'default', name: 'Default' }, { id: 'acceptEdits', name: 'Accept Edits' }, { id: 'plan', name: 'Plan Mode' }, { id: 'bypassPermissions', name: 'Bypass Permissions' }],
+  'codex-acp': [{ id: 'read-only', name: 'Read Only' }, { id: 'auto', name: 'Auto' }, { id: 'full-access', name: 'Full Access' }]
+}
+const CURRENT_MODE: Record<string, string> = { 'claude-acp': 'default', 'codex-acp': 'auto' }
 
 export interface MockAcpHooks {
   now?: () => number
@@ -36,6 +62,15 @@ export interface MockAcpHooks {
   onSessionAuthenticated?: (sessionId: string) => void
   // Switches a mock session's mode.
   setSessionMode?: (sessionId: string, modeId: string) => void
+}
+
+// An installed agent that answered a probe.
+function reported(id: string, now: number) {
+  const models = (MODELS[id] ?? [{ id: 'default', name: 'Default' }]).map(m => create(AcpModelSchema, m))
+  return {
+    selectable: true, models, currentModelId: models[0]!.id, modes: (MODES[id] ?? []).map(m => create(AcpModeSchema, m)), currentModeId: CURRENT_MODE[id] ?? '',
+    modelsStatus: AcpModelsStatus.OK, modelsUpdatedAt: new Date(now - 60_000).toISOString()
+  }
 }
 
 function limits(now: number) {
@@ -59,14 +94,15 @@ export class MockAcpApi implements AcpApi {
     this.tick = hooks.tick ?? 120
     const now = this.now()
     const agent = (a: MessageInitShape<typeof AcpAgentSchema> & { id: string, name: string }) => create(AcpAgentSchema, {
-      engine: `acp:${a.id}`, iconUrl: `${CDN}/${a.id}.svg`, iconSvg: ICON(a.name[0]!), available: true, authState: AcpAuthState.UNKNOWN, ...a
+      engine: `acp:${a.id}`, iconUrl: `${CDN}/${a.id}.svg`, iconSvg: ICON(a.name[0]!), available: true, authState: AcpAuthState.UNKNOWN,
+      modelsStatus: AcpModelsStatus.NOT_PROBED, unsupportedFeatures: ACP_UNSUPPORTED, ...a
     })
     for (const a of [
       agent({
         id: 'claude-acp', name: 'Claude Agent', description: 'ACP wrapper for Anthropic\'s Claude', latestVersion: '0.100.0',
         repository: 'https://github.com/agentclientprotocol/claude-agent-acp', license: 'proprietary', authors: ['Anthropic', 'Zed Industries'],
         distribution: AcpDistribution.NPX, runtime: 'npx', installed: true, installedVersion: '0.99.2', updateAvailable: true,
-        authState: AcpAuthState.REQUIRED,
+        authState: AcpAuthState.REQUIRED, modelsStatus: AcpModelsStatus.NEEDS_AUTH,
         authMethods: [
           { id: 'claude-login', name: 'Log in with Claude', description: 'Opens claude.ai in the browser', kind: AcpAuthMethod_Kind.AGENT },
           { id: 'claude-terminal', name: 'Log in in a terminal', description: 'Runs the interactive login', kind: AcpAuthMethod_Kind.TERMINAL }
@@ -76,6 +112,7 @@ export class MockAcpApi implements AcpApi {
         id: 'codex-acp', name: 'Codex', description: 'ACP adapter for OpenAI\'s coding assistant', latestVersion: '2.5.0',
         repository: 'https://github.com/agentclientprotocol/codex-acp', license: 'Apache-2.0', authors: ['OpenAI', 'Zed Industries'],
         distribution: AcpDistribution.NPX, runtime: 'npx', installed: true, installedVersion: '2.5.0', authState: AcpAuthState.AUTHENTICATED,
+        ...reported('codex-acp', now),
         authMethods: [
           { id: 'chatgpt', name: 'Sign in with ChatGPT', kind: AcpAuthMethod_Kind.AGENT },
           { id: 'openai-api-key', name: 'Use an API key', kind: AcpAuthMethod_Kind.ENV_VAR, envVars: ['OPENAI_API_KEY'], link: 'https://platform.openai.com/api-keys' }
@@ -112,24 +149,23 @@ export class MockAcpApi implements AcpApi {
       agentId,
       agentName: a.name,
       agentVersion: a.installedVersion,
-      modes: claude
-        ? [{ id: 'default', name: 'Default' }, { id: 'acceptEdits', name: 'Accept Edits' }, { id: 'plan', name: 'Plan Mode' }, { id: 'bypassPermissions', name: 'Bypass Permissions' }]
-        : [{ id: 'read-only', name: 'Read Only' }, { id: 'auto', name: 'Auto' }, { id: 'full-access', name: 'Full Access' }],
-      currentModeId: claude ? 'default' : 'auto',
+      modes: MODES[agentId] ?? [],
+      currentModeId: CURRENT_MODE[agentId] ?? '',
       commands: claude
         ? [{ name: 'review', description: 'Review the current changes' }, { name: 'init', description: 'Write a CLAUDE.md for this repository' }]
         : [{ name: 'review', description: 'Review my current changes and find issues' }, { name: 'compact', description: 'Summarize the conversation' }],
       needsAuth: a.authState === AcpAuthState.REQUIRED,
       authMethods: a.authMethods,
       contextWindowTokens: claude ? 200_000n : 272_000n,
-      models: claude ? [{ id: 'default', name: 'Default (recommended)' }, { id: 'opus', name: 'Opus' }, { id: 'sonnet', name: 'Sonnet' }] : [],
-      currentModelId: claude ? 'default' : '',
+      // An agent without a model option has the single entry the client lists for it.
+      models: MODELS[agentId] ?? [{ id: 'default', name: 'Default' }],
+      currentModelId: (MODELS[agentId] ?? [{ id: 'default' }])[0]!.id,
       limits: a.limits
     })
   }
 
   async listAgents() {
-    return { agents: [...this.agents.values()], registryFetchedAt: new Date(this.now() - 20 * 60_000).toISOString(), registryError: '', runtimes: ['npx'] }
+    return { agents: [...this.agents.values()], registryFetchedAt: new Date(this.now() - 20 * 60_000).toISOString(), registryError: '', runtimes: ['npx'], sessionSwitchRefusal: ACP_SWITCH_REFUSAL }
   }
 
   private get(id: string) {
@@ -158,7 +194,7 @@ export class MockAcpApi implements AcpApi {
           else step()
           return
         }
-        const next = create(AcpAgentSchema, { ...a, installed: true, installedVersion: a.latestVersion, updateAvailable: false })
+        const next = create(AcpAgentSchema, { ...a, installed: true, installedVersion: a.latestVersion, updateAvailable: false, ...(a.authState !== AcpAuthState.REQUIRED && reported(id, this.now())) })
         this.agents.set(id, next)
         onProgress?.(create(InstallAcpAgentResponseSchema, { phase: InstallAcpAgentResponse_Phase.DONE, done: true, message: `${a.name} ${a.latestVersion} installed`, agent: next }))
         resolve(next)
@@ -185,7 +221,7 @@ export class MockAcpApi implements AcpApi {
   async uninstallAgent(agentId: string) {
     const a = this.get(agentId)
     if (!a.installed) throw new Error(`[not_found] ACP agent ${agentId} is not installed`)
-    const next = create(AcpAgentSchema, { ...a, installed: false, installedVersion: '', updateAvailable: false })
+    const next = create(AcpAgentSchema, { ...a, installed: false, installedVersion: '', updateAvailable: false, selectable: false, models: [], currentModelId: '', modes: [], currentModeId: '', modelsStatus: AcpModelsStatus.NOT_PROBED, modelsUpdatedAt: '' })
     this.agents.set(agentId, next)
     return next
   }
@@ -193,7 +229,7 @@ export class MockAcpApi implements AcpApi {
   async authenticate(req: AcpAuthRequest): Promise<AcpAuthResult> {
     const a = this.get(req.agentId)
     const signedIn = () => {
-      const next = create(AcpAgentSchema, { ...a, authState: AcpAuthState.AUTHENTICATED })
+      const next = create(AcpAgentSchema, { ...a, authState: AcpAuthState.AUTHENTICATED, ...reported(a.id, this.now()) })
       this.agents.set(a.id, next)
       if (req.sessionId) this.hooks.onSessionAuthenticated?.(req.sessionId)
       return { authenticated: true, envVars: [], agent: next }

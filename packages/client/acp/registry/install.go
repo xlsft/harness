@@ -120,7 +120,7 @@ func (m *Manager) Uninstall(id string) error {
 			return ErrNotInstalled
 		}
 		old = s.Installed
-		s.Installed = nil
+		s.Installed, s.Catalog = nil, nil
 		return nil
 	}); err != nil {
 		return err

@@ -10,10 +10,13 @@ const store = useSessionStore()
 const open = ref(false)
 const usage = ref<ContextUsageVM | null>(null)
 
-const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
-// Collapsed, the row uses the last reported usage; the breakdown's own count once it is loaded.
-const ctxWindow = computed(() => usage.value?.window || model.value?.contextWindow || 200_000)
-const used = computed(() => usage.value?.used ?? props.session.contextTokens)
+const model = computed(() => props.session.meta.engine === 'harness' ? store.models.find(m => m.id === props.session.meta.model) : undefined)
+// Collapsed, the row uses the last reported usage; the breakdown's own count once it is loaded. An agent reports its
+// totals only, so a session on one has no breakdown to expand into.
+const acp = computed(() => props.session.meta.acp)
+const breakdown = computed(() => !props.session.meta.unsupported.includes('context_breakdown'))
+const ctxWindow = computed(() => usage.value?.window || Number(acp.value?.contextWindowTokens ?? 0) || model.value?.contextWindow || 200_000)
+const used = computed(() => usage.value?.used ?? (Number(acp.value?.contextUsedTokens ?? 0) || props.session.contextTokens))
 const pct = computed(() => Math.min(100, percentOf(used.value, ctxWindow.value)))
 watch(() => props.session.meta.id, () => (usage.value = null))
 </script>
@@ -23,11 +26,13 @@ watch(() => props.session.meta.id, () => (usage.value = null))
     <button
       type="button"
       class="-mx-[9px] -my-1 flex items-center gap-2 rounded-none px-[9px] py-1 text-left hover:bg-hover"
-      :aria-expanded="open"
+      :aria-expanded="breakdown ? open : undefined"
+      :disabled="!breakdown"
       @click="open = !open"
     >
       <span class="text-[12px] text-muted">Context</span>
       <HIcon
+        v-if="breakdown"
         name="right"
         :size="12"
         class="shrink-0 text-muted transition-transform"
@@ -44,7 +49,7 @@ watch(() => props.session.meta.id, () => (usage.value = null))
     </button>
 
     <div
-      v-if="open"
+      v-if="open && breakdown"
       class="flex flex-col pt-2.5"
     >
       <ContextBreakdown

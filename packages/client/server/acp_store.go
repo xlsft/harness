@@ -22,18 +22,21 @@ import (
 
 // acpMeta is what is recorded about an ACP session.
 type acpMeta struct {
-	ID             string    `json:"id"`
-	Engine         string    `json:"engine"`
-	AgentID        string    `json:"agentId"`
-	AgentName      string    `json:"agentName"`
-	AgentVersion   string    `json:"agentVersion,omitempty"`
-	AgentSessionID string    `json:"agentSessionId,omitempty"`
-	Cwd            string    `json:"cwd"`
-	NoFolder       bool      `json:"noFolder,omitempty"`
-	Title          string    `json:"title,omitempty"`
-	CustomTitle    bool      `json:"customTitle,omitempty"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID             string `json:"id"`
+	Engine         string `json:"engine"`
+	AgentID        string `json:"agentId"`
+	AgentName      string `json:"agentName"`
+	AgentVersion   string `json:"agentVersion,omitempty"`
+	AgentSessionID string `json:"agentSessionId,omitempty"`
+	Cwd            string `json:"cwd"`
+	NoFolder       bool   `json:"noFolder,omitempty"`
+	// Model and Mode are the agent's model and mode the session last ran on, restored when it is resumed.
+	Model       string    `json:"model,omitempty"`
+	Mode        string    `json:"mode,omitempty"`
+	Title       string    `json:"title,omitempty"`
+	CustomTitle bool      `json:"customTitle,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 func acpSessionsDir() string { return filepath.Join(config.Home(), "acp", "sessions") }

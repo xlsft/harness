@@ -59,11 +59,13 @@ function openInTab() {
   window.open(url.toString(), '_blank', 'noopener')
 }
 
+const canFork = computed(() => !store.sessions[id.value]?.meta.unsupported.includes('fork'))
 const actions: Record<string, () => unknown> = {
   p: () => store.setPinned(id.value, !pinned.value),
   u: () => store.setUnread(id.value, !unread.value),
   r: () => emit('rename'),
   f: async () => {
+    if (!canFork.value) return
     if (remote.value) return navigateTo({ path: '/', query: { new: '1', fork: id.value } })
     await store.fork(id.value)
     if (route.path !== '/') await navigateTo('/')
@@ -190,6 +192,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           Rename
         </PaneMenuItem>
         <PaneMenuItem
+          v-if="canFork"
           icon="branch"
           value="F"
           @click="run(actions.f!)"

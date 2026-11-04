@@ -378,6 +378,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
             >
               <ModelList
                 :selected="modelId"
+                :scope="{ kind: 'server' }"
                 @pick="pickModel"
               />
             </div>

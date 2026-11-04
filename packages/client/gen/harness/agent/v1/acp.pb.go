@@ -56,6 +56,8 @@ const (
 	SessionFeature_SESSION_FEATURE_QUESTIONS SessionFeature = 13
 	// SetSessionFolder (moving the session to another folder).
 	SessionFeature_SESSION_FEATURE_MOVE_FOLDER SessionFeature = 14
+	// CreateSession with worktree. Also in AcpAgent.unsupported_features, where it matters: before a session exists.
+	SessionFeature_SESSION_FEATURE_WORKTREE SessionFeature = 15
 )
 
 // Enum value maps for SessionFeature.
@@ -76,6 +78,7 @@ var (
 		12: "SESSION_FEATURE_MODEL_CATALOG",
 		13: "SESSION_FEATURE_QUESTIONS",
 		14: "SESSION_FEATURE_MOVE_FOLDER",
+		15: "SESSION_FEATURE_WORKTREE",
 	}
 	SessionFeature_value = map[string]int32{
 		"SESSION_FEATURE_UNSPECIFIED":       0,
@@ -93,6 +96,7 @@ var (
 		"SESSION_FEATURE_MODEL_CATALOG":     12,
 		"SESSION_FEATURE_QUESTIONS":         13,
 		"SESSION_FEATURE_MOVE_FOLDER":       14,
+		"SESSION_FEATURE_WORKTREE":          15,
 	}
 )
 
@@ -239,6 +243,72 @@ func (AcpAuthState) EnumDescriptor() ([]byte, []int) {
 	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{2}
 }
 
+// How far the client got finding out an agent's models (AcpAgent.models). Models are only known once the agent has a
+// session, so the client asks it with a short-lived probe: start the agent in a neutral temp directory, create a
+// session, read its config options, close; no prompt is sent. The outcome is cached in HARNESS_HOME/acp/state.json.
+type AcpModelsStatus int32
+
+const (
+	AcpModelsStatus_ACP_MODELS_STATUS_UNSPECIFIED AcpModelsStatus = 0
+	// Not probed for the installed version yet (not installed, or it cannot run here).
+	AcpModelsStatus_ACP_MODELS_STATUS_NOT_PROBED AcpModelsStatus = 1
+	// A probe is running; models holds the previous list. List again to see the outcome.
+	AcpModelsStatus_ACP_MODELS_STATUS_PROBING AcpModelsStatus = 2
+	// models is what the agent last reported, to a probe or to a real session.
+	AcpModelsStatus_ACP_MODELS_STATUS_OK AcpModelsStatus = 3
+	// The last probe failed (models_error says why); models keeps the previous list.
+	AcpModelsStatus_ACP_MODELS_STATUS_FAILED AcpModelsStatus = 4
+	// The agent wants a sign-in first; models keeps the previous list.
+	AcpModelsStatus_ACP_MODELS_STATUS_NEEDS_AUTH AcpModelsStatus = 5
+)
+
+// Enum value maps for AcpModelsStatus.
+var (
+	AcpModelsStatus_name = map[int32]string{
+		0: "ACP_MODELS_STATUS_UNSPECIFIED",
+		1: "ACP_MODELS_STATUS_NOT_PROBED",
+		2: "ACP_MODELS_STATUS_PROBING",
+		3: "ACP_MODELS_STATUS_OK",
+		4: "ACP_MODELS_STATUS_FAILED",
+		5: "ACP_MODELS_STATUS_NEEDS_AUTH",
+	}
+	AcpModelsStatus_value = map[string]int32{
+		"ACP_MODELS_STATUS_UNSPECIFIED": 0,
+		"ACP_MODELS_STATUS_NOT_PROBED":  1,
+		"ACP_MODELS_STATUS_PROBING":     2,
+		"ACP_MODELS_STATUS_OK":          3,
+		"ACP_MODELS_STATUS_FAILED":      4,
+		"ACP_MODELS_STATUS_NEEDS_AUTH":  5,
+	}
+)
+
+func (x AcpModelsStatus) Enum() *AcpModelsStatus {
+	p := new(AcpModelsStatus)
+	*p = x
+	return p
+}
+
+func (x AcpModelsStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AcpModelsStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_acp_proto_enumTypes[3].Descriptor()
+}
+
+func (AcpModelsStatus) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_acp_proto_enumTypes[3]
+}
+
+func (x AcpModelsStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AcpModelsStatus.Descriptor instead.
+func (AcpModelsStatus) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_acp_proto_rawDescGZIP(), []int{3}
+}
+
 type AcpAuthMethod_Kind int32
 
 const (
@@ -278,11 +348,11 @@ func (x AcpAuthMethod_Kind) String() string {
 }
 
 func (AcpAuthMethod_Kind) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_acp_proto_enumTypes[3].Descriptor()
+	return file_harness_agent_v1_acp_proto_enumTypes[4].Descriptor()
 }
 
 func (AcpAuthMethod_Kind) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_acp_proto_enumTypes[3]
+	return &file_harness_agent_v1_acp_proto_enumTypes[4]
 }
 
 func (x AcpAuthMethod_Kind) Number() protoreflect.EnumNumber {
@@ -336,11 +406,11 @@ func (x InstallAcpAgentResponse_Phase) String() string {
 }
 
 func (InstallAcpAgentResponse_Phase) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_acp_proto_enumTypes[4].Descriptor()
+	return file_harness_agent_v1_acp_proto_enumTypes[5].Descriptor()
 }
 
 func (InstallAcpAgentResponse_Phase) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_acp_proto_enumTypes[4]
+	return &file_harness_agent_v1_acp_proto_enumTypes[5]
 }
 
 func (x InstallAcpAgentResponse_Phase) Number() protoreflect.EnumNumber {
@@ -473,9 +543,27 @@ type AcpAgent struct {
 	// The engine id to pass in CreateSessionRequest.engine: "acp:<id>".
 	Engine string `protobuf:"bytes,20,opt,name=engine,proto3" json:"engine,omitempty"`
 	// The latest subscription limits the agent reported on this machine; absent when it never reported any.
-	Limits        *AcpAgentLimits `protobuf:"bytes,21,opt,name=limits,proto3,oneof" json:"limits,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Limits *AcpAgentLimits `protobuf:"bytes,21,opt,name=limits,proto3,oneof" json:"limits,omitempty"`
+	// The agent belongs in the model list: it is installed, can run here and is known to start sessions (no sign-in
+	// needed, or signed in). The client decides; frontends list the agents that have this set.
+	Selectable bool `protobuf:"varint,22,opt,name=selectable,proto3" json:"selectable,omitempty"`
+	// The agent's own models, cached per agent on this machine. An agent that reports no model options has one entry,
+	// "Default". Never blocks on a probe: this is the cached list, see models_status.
+	Models []*AcpModel `protobuf:"bytes,23,rep,name=models,proto3" json:"models,omitempty"`
+	// The model and the session mode a new session on the agent starts with, and its modes (SetAcpMode, or
+	// CreateSessionRequest.acp_mode_id), as last reported.
+	CurrentModelId string          `protobuf:"bytes,24,opt,name=current_model_id,json=currentModelId,proto3" json:"current_model_id,omitempty"`
+	Modes          []*AcpMode      `protobuf:"bytes,25,rep,name=modes,proto3" json:"modes,omitempty"`
+	CurrentModeId  string          `protobuf:"bytes,26,opt,name=current_mode_id,json=currentModeId,proto3" json:"current_mode_id,omitempty"`
+	ModelsStatus   AcpModelsStatus `protobuf:"varint,27,opt,name=models_status,json=modelsStatus,proto3,enum=harness.agent.v1.AcpModelsStatus" json:"models_status,omitempty"`
+	// ACP_MODELS_STATUS_FAILED: why.
+	ModelsError string `protobuf:"bytes,28,opt,name=models_error,json=modelsError,proto3" json:"models_error,omitempty"`
+	// RFC 3339, UTC: when the agent last reported models successfully; empty when it never did.
+	ModelsUpdatedAt string `protobuf:"bytes,29,opt,name=models_updated_at,json=modelsUpdatedAt,proto3" json:"models_updated_at,omitempty"`
+	// What a session on the agent cannot do, known before a session exists (SessionInfo.unsupported_features).
+	UnsupportedFeatures []SessionFeature `protobuf:"varint,30,rep,packed,name=unsupported_features,json=unsupportedFeatures,proto3,enum=harness.agent.v1.SessionFeature" json:"unsupported_features,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *AcpAgent) Reset() {
@@ -655,6 +743,69 @@ func (x *AcpAgent) GetLimits() *AcpAgentLimits {
 	return nil
 }
 
+func (x *AcpAgent) GetSelectable() bool {
+	if x != nil {
+		return x.Selectable
+	}
+	return false
+}
+
+func (x *AcpAgent) GetModels() []*AcpModel {
+	if x != nil {
+		return x.Models
+	}
+	return nil
+}
+
+func (x *AcpAgent) GetCurrentModelId() string {
+	if x != nil {
+		return x.CurrentModelId
+	}
+	return ""
+}
+
+func (x *AcpAgent) GetModes() []*AcpMode {
+	if x != nil {
+		return x.Modes
+	}
+	return nil
+}
+
+func (x *AcpAgent) GetCurrentModeId() string {
+	if x != nil {
+		return x.CurrentModeId
+	}
+	return ""
+}
+
+func (x *AcpAgent) GetModelsStatus() AcpModelsStatus {
+	if x != nil {
+		return x.ModelsStatus
+	}
+	return AcpModelsStatus_ACP_MODELS_STATUS_UNSPECIFIED
+}
+
+func (x *AcpAgent) GetModelsError() string {
+	if x != nil {
+		return x.ModelsError
+	}
+	return ""
+}
+
+func (x *AcpAgent) GetModelsUpdatedAt() string {
+	if x != nil {
+		return x.ModelsUpdatedAt
+	}
+	return ""
+}
+
+func (x *AcpAgent) GetUnsupportedFeatures() []SessionFeature {
+	if x != nil {
+		return x.UnsupportedFeatures
+	}
+	return nil
+}
+
 // Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
 // Captured from what the agent sends over ACP (its `_meta` fields and extension notifications); the client never
 // asks the provider itself nor reads the agent's credentials. Device-local, like everything about ACP agents.
@@ -815,7 +966,9 @@ type AcpSessionState struct {
 	ContextWindowTokens int64 `protobuf:"varint,11,opt,name=context_window_tokens,json=contextWindowTokens,proto3" json:"context_window_tokens,omitempty"`
 	// The agent process is starting (spawn, initialize, session/new or session/load); messages sent meanwhile wait.
 	Starting bool `protobuf:"varint,12,opt,name=starting,proto3" json:"starting,omitempty"`
-	// The agent's model choices when it offers a model option; SetModel picks one by id.
+	// The models this session can switch to, the only ones it accepts (SetModel picks one by id): what the agent
+	// offers, the cached list while it starts or the session is not open, and a single "Default" for an agent without
+	// a model option.
 	Models         []*AcpModel `protobuf:"bytes,13,rep,name=models,proto3" json:"models,omitempty"`
 	CurrentModelId string      `protobuf:"bytes,14,opt,name=current_model_id,json=currentModelId,proto3" json:"current_model_id,omitempty"`
 	// The latest subscription limits the agent reported (also kept per agent, AcpAgent.limits).
@@ -1221,8 +1374,11 @@ func (x *AcpTerminalCommand) GetShellLine() string {
 
 type ListAcpAgentsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Fetch the registry now instead of using a cache younger than its TTL. Offline, the cache is used anyway.
-	Refresh       bool `protobuf:"varint,1,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	// A manual refresh: fetch the registry now instead of using a cache younger than its TTL (offline, the cache is
+	// used anyway) and probe every installed agent for its models again. The call does not wait for the probes.
+	Refresh bool `protobuf:"varint,1,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	// Answer from the cached registry, even an expired one, without the network (polling while a probe runs).
+	CachedOnly    bool `protobuf:"varint,2,opt,name=cached_only,json=cachedOnly,proto3" json:"cached_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1264,6 +1420,13 @@ func (x *ListAcpAgentsRequest) GetRefresh() bool {
 	return false
 }
 
+func (x *ListAcpAgentsRequest) GetCachedOnly() bool {
+	if x != nil {
+		return x.CachedOnly
+	}
+	return false
+}
+
 type ListAcpAgentsResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Agents []*AcpAgent            `protobuf:"bytes,1,rep,name=agents,proto3" json:"agents,omitempty"`
@@ -1272,9 +1435,13 @@ type ListAcpAgentsResponse struct {
 	// The registry could not be fetched; the agents come from the cache (or are empty without one).
 	RegistryError string `protobuf:"bytes,3,opt,name=registry_error,json=registryError,proto3" json:"registry_error,omitempty"`
 	// Runtimes found on PATH: "npx", "uvx".
-	Runtimes      []string `protobuf:"bytes,4,rep,name=runtimes,proto3" json:"runtimes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Runtimes []string `protobuf:"bytes,4,rep,name=runtimes,proto3" json:"runtimes,omitempty"`
+	// Why a running harness session cannot pick an agent's model: a session stays on its engine. Frontends show the
+	// models of selectable agents disabled with this text there; SetModel refuses them. An ACP session offers
+	// AcpSessionState.models and nothing else.
+	SessionSwitchRefusal string `protobuf:"bytes,5,opt,name=session_switch_refusal,json=sessionSwitchRefusal,proto3" json:"session_switch_refusal,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ListAcpAgentsResponse) Reset() {
@@ -1333,6 +1500,13 @@ func (x *ListAcpAgentsResponse) GetRuntimes() []string {
 		return x.Runtimes
 	}
 	return nil
+}
+
+func (x *ListAcpAgentsResponse) GetSessionSwitchRefusal() string {
+	if x != nil {
+		return x.SessionSwitchRefusal
+	}
+	return ""
 }
 
 type InstallAcpAgentRequest struct {
@@ -1917,7 +2091,7 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\n" +
 	"KIND_AGENT\x10\x01\x12\x11\n" +
 	"\rKIND_TERMINAL\x10\x02\x12\x10\n" +
-	"\fKIND_ENV_VAR\x10\x03\"\xa4\x06\n" +
+	"\fKIND_ENV_VAR\x10\x03\"\xe7\t\n" +
 	"\bAcpAgent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1943,7 +2117,18 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"auth_state\x18\x12 \x01(\x0e2\x1e.harness.agent.v1.AcpAuthStateR\tauthState\x12B\n" +
 	"\fauth_methods\x18\x13 \x03(\v2\x1f.harness.agent.v1.AcpAuthMethodR\vauthMethods\x12\x16\n" +
 	"\x06engine\x18\x14 \x01(\tR\x06engine\x12=\n" +
-	"\x06limits\x18\x15 \x01(\v2 .harness.agent.v1.AcpAgentLimitsH\x00R\x06limits\x88\x01\x01B\t\n" +
+	"\x06limits\x18\x15 \x01(\v2 .harness.agent.v1.AcpAgentLimitsH\x00R\x06limits\x88\x01\x01\x12\x1e\n" +
+	"\n" +
+	"selectable\x18\x16 \x01(\bR\n" +
+	"selectable\x122\n" +
+	"\x06models\x18\x17 \x03(\v2\x1a.harness.agent.v1.AcpModelR\x06models\x12(\n" +
+	"\x10current_model_id\x18\x18 \x01(\tR\x0ecurrentModelId\x12/\n" +
+	"\x05modes\x18\x19 \x03(\v2\x19.harness.agent.v1.AcpModeR\x05modes\x12&\n" +
+	"\x0fcurrent_mode_id\x18\x1a \x01(\tR\rcurrentModeId\x12F\n" +
+	"\rmodels_status\x18\x1b \x01(\x0e2!.harness.agent.v1.AcpModelsStatusR\fmodelsStatus\x12!\n" +
+	"\fmodels_error\x18\x1c \x01(\tR\vmodelsError\x12*\n" +
+	"\x11models_updated_at\x18\x1d \x01(\tR\x0fmodelsUpdatedAt\x12S\n" +
+	"\x14unsupported_features\x18\x1e \x03(\x0e2 .harness.agent.v1.SessionFeatureR\x13unsupportedFeaturesB\t\n" +
 	"\a_limits\"\x88\x01\n" +
 	"\x0eAcpAgentLimits\x12:\n" +
 	"\awindows\x18\x01 \x03(\v2 .harness.agent.v1.AcpLimitWindowR\awindows\x12\x1b\n" +
@@ -1998,14 +2183,17 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"shell_line\x18\x05 \x01(\tR\tshellLine\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"Q\n" +
 	"\x14ListAcpAgentsRequest\x12\x18\n" +
-	"\arefresh\x18\x01 \x01(\bR\arefresh\"\xbe\x01\n" +
+	"\arefresh\x18\x01 \x01(\bR\arefresh\x12\x1f\n" +
+	"\vcached_only\x18\x02 \x01(\bR\n" +
+	"cachedOnly\"\xf4\x01\n" +
 	"\x15ListAcpAgentsResponse\x122\n" +
 	"\x06agents\x18\x01 \x03(\v2\x1a.harness.agent.v1.AcpAgentR\x06agents\x12.\n" +
 	"\x13registry_fetched_at\x18\x02 \x01(\tR\x11registryFetchedAt\x12%\n" +
 	"\x0eregistry_error\x18\x03 \x01(\tR\rregistryError\x12\x1a\n" +
-	"\bruntimes\x18\x04 \x03(\tR\bruntimes\"3\n" +
+	"\bruntimes\x18\x04 \x03(\tR\bruntimes\x124\n" +
+	"\x16session_switch_refusal\x18\x05 \x01(\tR\x14sessionSwitchRefusal\"3\n" +
 	"\x16InstallAcpAgentRequest\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\"\x88\x03\n" +
 	"\x17InstallAcpAgentResponse\x12E\n" +
@@ -2053,7 +2241,7 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x17\n" +
 	"\amode_id\x18\x02 \x01(\tR\x06modeId\"\x14\n" +
-	"\x12SetAcpModeResponse*\xfb\x03\n" +
+	"\x12SetAcpModeResponse*\x99\x04\n" +
 	"\x0eSessionFeature\x12\x1f\n" +
 	"\x1bSESSION_FEATURE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16SESSION_FEATURE_REWIND\x10\x01\x12\x18\n" +
@@ -2070,7 +2258,8 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	" SESSION_FEATURE_BACKGROUND_TASKS\x10\v\x12!\n" +
 	"\x1dSESSION_FEATURE_MODEL_CATALOG\x10\f\x12\x1d\n" +
 	"\x19SESSION_FEATURE_QUESTIONS\x10\r\x12\x1f\n" +
-	"\x1bSESSION_FEATURE_MOVE_FOLDER\x10\x0e*\x84\x01\n" +
+	"\x1bSESSION_FEATURE_MOVE_FOLDER\x10\x0e\x12\x1c\n" +
+	"\x18SESSION_FEATURE_WORKTREE\x10\x0f*\x84\x01\n" +
 	"\x0fAcpDistribution\x12 \n" +
 	"\x1cACP_DISTRIBUTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17ACP_DISTRIBUTION_BINARY\x10\x01\x12\x18\n" +
@@ -2081,7 +2270,14 @@ const file_harness_agent_v1_acp_proto_rawDesc = "" +
 	"\x16ACP_AUTH_STATE_UNKNOWN\x10\x01\x12\x1f\n" +
 	"\x1bACP_AUTH_STATE_NOT_REQUIRED\x10\x02\x12\x1b\n" +
 	"\x17ACP_AUTH_STATE_REQUIRED\x10\x03\x12 \n" +
-	"\x1cACP_AUTH_STATE_AUTHENTICATED\x10\x04B\xc9\x01\n" +
+	"\x1cACP_AUTH_STATE_AUTHENTICATED\x10\x04*\xcf\x01\n" +
+	"\x0fAcpModelsStatus\x12!\n" +
+	"\x1dACP_MODELS_STATUS_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cACP_MODELS_STATUS_NOT_PROBED\x10\x01\x12\x1d\n" +
+	"\x19ACP_MODELS_STATUS_PROBING\x10\x02\x12\x18\n" +
+	"\x14ACP_MODELS_STATUS_OK\x10\x03\x12\x1c\n" +
+	"\x18ACP_MODELS_STATUS_FAILED\x10\x04\x12 \n" +
+	"\x1cACP_MODELS_STATUS_NEEDS_AUTH\x10\x05B\xc9\x01\n" +
 	"\x14com.harness.agent.v1B\bAcpProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (
@@ -2096,64 +2292,69 @@ func file_harness_agent_v1_acp_proto_rawDescGZIP() []byte {
 	return file_harness_agent_v1_acp_proto_rawDescData
 }
 
-var file_harness_agent_v1_acp_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_harness_agent_v1_acp_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_harness_agent_v1_acp_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_harness_agent_v1_acp_proto_goTypes = []any{
 	(SessionFeature)(0),                  // 0: harness.agent.v1.SessionFeature
 	(AcpDistribution)(0),                 // 1: harness.agent.v1.AcpDistribution
 	(AcpAuthState)(0),                    // 2: harness.agent.v1.AcpAuthState
-	(AcpAuthMethod_Kind)(0),              // 3: harness.agent.v1.AcpAuthMethod.Kind
-	(InstallAcpAgentResponse_Phase)(0),   // 4: harness.agent.v1.InstallAcpAgentResponse.Phase
-	(*AcpAuthMethod)(nil),                // 5: harness.agent.v1.AcpAuthMethod
-	(*AcpAgent)(nil),                     // 6: harness.agent.v1.AcpAgent
-	(*AcpAgentLimits)(nil),               // 7: harness.agent.v1.AcpAgentLimits
-	(*AcpLimitWindow)(nil),               // 8: harness.agent.v1.AcpLimitWindow
-	(*AcpSessionState)(nil),              // 9: harness.agent.v1.AcpSessionState
-	(*AcpMode)(nil),                      // 10: harness.agent.v1.AcpMode
-	(*AcpCommand)(nil),                   // 11: harness.agent.v1.AcpCommand
-	(*AcpModel)(nil),                     // 12: harness.agent.v1.AcpModel
-	(*AcpTerminalCommand)(nil),           // 13: harness.agent.v1.AcpTerminalCommand
-	(*ListAcpAgentsRequest)(nil),         // 14: harness.agent.v1.ListAcpAgentsRequest
-	(*ListAcpAgentsResponse)(nil),        // 15: harness.agent.v1.ListAcpAgentsResponse
-	(*InstallAcpAgentRequest)(nil),       // 16: harness.agent.v1.InstallAcpAgentRequest
-	(*InstallAcpAgentResponse)(nil),      // 17: harness.agent.v1.InstallAcpAgentResponse
-	(*UpdateAcpAgentRequest)(nil),        // 18: harness.agent.v1.UpdateAcpAgentRequest
-	(*UpdateAcpAgentResponse)(nil),       // 19: harness.agent.v1.UpdateAcpAgentResponse
-	(*UninstallAcpAgentRequest)(nil),     // 20: harness.agent.v1.UninstallAcpAgentRequest
-	(*UninstallAcpAgentResponse)(nil),    // 21: harness.agent.v1.UninstallAcpAgentResponse
-	(*AuthenticateAcpAgentRequest)(nil),  // 22: harness.agent.v1.AuthenticateAcpAgentRequest
-	(*AuthenticateAcpAgentResponse)(nil), // 23: harness.agent.v1.AuthenticateAcpAgentResponse
-	(*SetAcpModeRequest)(nil),            // 24: harness.agent.v1.SetAcpModeRequest
-	(*SetAcpModeResponse)(nil),           // 25: harness.agent.v1.SetAcpModeResponse
-	nil,                                  // 26: harness.agent.v1.AcpTerminalCommand.EnvEntry
-	(*TerminalInfo)(nil),                 // 27: harness.agent.v1.TerminalInfo
+	(AcpModelsStatus)(0),                 // 3: harness.agent.v1.AcpModelsStatus
+	(AcpAuthMethod_Kind)(0),              // 4: harness.agent.v1.AcpAuthMethod.Kind
+	(InstallAcpAgentResponse_Phase)(0),   // 5: harness.agent.v1.InstallAcpAgentResponse.Phase
+	(*AcpAuthMethod)(nil),                // 6: harness.agent.v1.AcpAuthMethod
+	(*AcpAgent)(nil),                     // 7: harness.agent.v1.AcpAgent
+	(*AcpAgentLimits)(nil),               // 8: harness.agent.v1.AcpAgentLimits
+	(*AcpLimitWindow)(nil),               // 9: harness.agent.v1.AcpLimitWindow
+	(*AcpSessionState)(nil),              // 10: harness.agent.v1.AcpSessionState
+	(*AcpMode)(nil),                      // 11: harness.agent.v1.AcpMode
+	(*AcpCommand)(nil),                   // 12: harness.agent.v1.AcpCommand
+	(*AcpModel)(nil),                     // 13: harness.agent.v1.AcpModel
+	(*AcpTerminalCommand)(nil),           // 14: harness.agent.v1.AcpTerminalCommand
+	(*ListAcpAgentsRequest)(nil),         // 15: harness.agent.v1.ListAcpAgentsRequest
+	(*ListAcpAgentsResponse)(nil),        // 16: harness.agent.v1.ListAcpAgentsResponse
+	(*InstallAcpAgentRequest)(nil),       // 17: harness.agent.v1.InstallAcpAgentRequest
+	(*InstallAcpAgentResponse)(nil),      // 18: harness.agent.v1.InstallAcpAgentResponse
+	(*UpdateAcpAgentRequest)(nil),        // 19: harness.agent.v1.UpdateAcpAgentRequest
+	(*UpdateAcpAgentResponse)(nil),       // 20: harness.agent.v1.UpdateAcpAgentResponse
+	(*UninstallAcpAgentRequest)(nil),     // 21: harness.agent.v1.UninstallAcpAgentRequest
+	(*UninstallAcpAgentResponse)(nil),    // 22: harness.agent.v1.UninstallAcpAgentResponse
+	(*AuthenticateAcpAgentRequest)(nil),  // 23: harness.agent.v1.AuthenticateAcpAgentRequest
+	(*AuthenticateAcpAgentResponse)(nil), // 24: harness.agent.v1.AuthenticateAcpAgentResponse
+	(*SetAcpModeRequest)(nil),            // 25: harness.agent.v1.SetAcpModeRequest
+	(*SetAcpModeResponse)(nil),           // 26: harness.agent.v1.SetAcpModeResponse
+	nil,                                  // 27: harness.agent.v1.AcpTerminalCommand.EnvEntry
+	(*TerminalInfo)(nil),                 // 28: harness.agent.v1.TerminalInfo
 }
 var file_harness_agent_v1_acp_proto_depIdxs = []int32{
-	3,  // 0: harness.agent.v1.AcpAuthMethod.kind:type_name -> harness.agent.v1.AcpAuthMethod.Kind
+	4,  // 0: harness.agent.v1.AcpAuthMethod.kind:type_name -> harness.agent.v1.AcpAuthMethod.Kind
 	1,  // 1: harness.agent.v1.AcpAgent.distribution:type_name -> harness.agent.v1.AcpDistribution
 	2,  // 2: harness.agent.v1.AcpAgent.auth_state:type_name -> harness.agent.v1.AcpAuthState
-	5,  // 3: harness.agent.v1.AcpAgent.auth_methods:type_name -> harness.agent.v1.AcpAuthMethod
-	7,  // 4: harness.agent.v1.AcpAgent.limits:type_name -> harness.agent.v1.AcpAgentLimits
-	8,  // 5: harness.agent.v1.AcpAgentLimits.windows:type_name -> harness.agent.v1.AcpLimitWindow
-	10, // 6: harness.agent.v1.AcpSessionState.modes:type_name -> harness.agent.v1.AcpMode
-	11, // 7: harness.agent.v1.AcpSessionState.commands:type_name -> harness.agent.v1.AcpCommand
-	5,  // 8: harness.agent.v1.AcpSessionState.auth_methods:type_name -> harness.agent.v1.AcpAuthMethod
-	12, // 9: harness.agent.v1.AcpSessionState.models:type_name -> harness.agent.v1.AcpModel
-	7,  // 10: harness.agent.v1.AcpSessionState.limits:type_name -> harness.agent.v1.AcpAgentLimits
-	26, // 11: harness.agent.v1.AcpTerminalCommand.env:type_name -> harness.agent.v1.AcpTerminalCommand.EnvEntry
-	6,  // 12: harness.agent.v1.ListAcpAgentsResponse.agents:type_name -> harness.agent.v1.AcpAgent
-	4,  // 13: harness.agent.v1.InstallAcpAgentResponse.phase:type_name -> harness.agent.v1.InstallAcpAgentResponse.Phase
-	6,  // 14: harness.agent.v1.InstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
-	17, // 15: harness.agent.v1.UpdateAcpAgentResponse.progress:type_name -> harness.agent.v1.InstallAcpAgentResponse
-	6,  // 16: harness.agent.v1.UninstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
-	13, // 17: harness.agent.v1.AuthenticateAcpAgentResponse.terminal:type_name -> harness.agent.v1.AcpTerminalCommand
-	27, // 18: harness.agent.v1.AuthenticateAcpAgentResponse.terminal_info:type_name -> harness.agent.v1.TerminalInfo
-	6,  // 19: harness.agent.v1.AuthenticateAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	6,  // 3: harness.agent.v1.AcpAgent.auth_methods:type_name -> harness.agent.v1.AcpAuthMethod
+	8,  // 4: harness.agent.v1.AcpAgent.limits:type_name -> harness.agent.v1.AcpAgentLimits
+	13, // 5: harness.agent.v1.AcpAgent.models:type_name -> harness.agent.v1.AcpModel
+	11, // 6: harness.agent.v1.AcpAgent.modes:type_name -> harness.agent.v1.AcpMode
+	3,  // 7: harness.agent.v1.AcpAgent.models_status:type_name -> harness.agent.v1.AcpModelsStatus
+	0,  // 8: harness.agent.v1.AcpAgent.unsupported_features:type_name -> harness.agent.v1.SessionFeature
+	9,  // 9: harness.agent.v1.AcpAgentLimits.windows:type_name -> harness.agent.v1.AcpLimitWindow
+	11, // 10: harness.agent.v1.AcpSessionState.modes:type_name -> harness.agent.v1.AcpMode
+	12, // 11: harness.agent.v1.AcpSessionState.commands:type_name -> harness.agent.v1.AcpCommand
+	6,  // 12: harness.agent.v1.AcpSessionState.auth_methods:type_name -> harness.agent.v1.AcpAuthMethod
+	13, // 13: harness.agent.v1.AcpSessionState.models:type_name -> harness.agent.v1.AcpModel
+	8,  // 14: harness.agent.v1.AcpSessionState.limits:type_name -> harness.agent.v1.AcpAgentLimits
+	27, // 15: harness.agent.v1.AcpTerminalCommand.env:type_name -> harness.agent.v1.AcpTerminalCommand.EnvEntry
+	7,  // 16: harness.agent.v1.ListAcpAgentsResponse.agents:type_name -> harness.agent.v1.AcpAgent
+	5,  // 17: harness.agent.v1.InstallAcpAgentResponse.phase:type_name -> harness.agent.v1.InstallAcpAgentResponse.Phase
+	7,  // 18: harness.agent.v1.InstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
+	18, // 19: harness.agent.v1.UpdateAcpAgentResponse.progress:type_name -> harness.agent.v1.InstallAcpAgentResponse
+	7,  // 20: harness.agent.v1.UninstallAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
+	14, // 21: harness.agent.v1.AuthenticateAcpAgentResponse.terminal:type_name -> harness.agent.v1.AcpTerminalCommand
+	28, // 22: harness.agent.v1.AuthenticateAcpAgentResponse.terminal_info:type_name -> harness.agent.v1.TerminalInfo
+	7,  // 23: harness.agent.v1.AuthenticateAcpAgentResponse.agent:type_name -> harness.agent.v1.AcpAgent
+	24, // [24:24] is the sub-list for method output_type
+	24, // [24:24] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_acp_proto_init() }
@@ -2170,7 +2371,7 @@ func file_harness_agent_v1_acp_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_acp_proto_rawDesc), len(file_harness_agent_v1_acp_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      6,
 			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -49,6 +49,35 @@ type Installed struct {
 	InstalledAt time.Time         `json:"installedAt"`
 }
 
+// Model is one of an agent's model choices.
+type Model struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// Mode is one of an agent's session modes.
+type Mode struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// Catalog is what an agent last reported about itself, to a model probe or to a real session.
+type Catalog struct {
+	Models       []Model `json:"models,omitempty"`
+	CurrentModel string  `json:"currentModel,omitempty"`
+	Modes        []Mode  `json:"modes,omitempty"`
+	CurrentMode  string  `json:"currentMode,omitempty"`
+	// UpdatedAt is when the agent last reported successfully.
+	UpdatedAt time.Time `json:"updatedAt,omitzero"`
+	// Version is the installed version this was last checked against: a new one is probed again.
+	Version string `json:"version,omitempty"`
+	// Error says why the last probe failed; NeedsAuth that it stopped at a sign-in. The lists above stay.
+	Error     string `json:"error,omitempty"`
+	NeedsAuth bool   `json:"needsAuth,omitempty"`
+}
+
 // AgentState is everything stored about one agent.
 type AgentState struct {
 	Installed   *Installed   `json:"installed,omitempty"`
@@ -56,6 +85,8 @@ type AgentState struct {
 	AuthMethods []AuthMethod `json:"authMethods,omitempty"`
 	// Limits is the latest subscription-limit snapshot the agent reported.
 	Limits *Limits `json:"limits,omitempty"`
+	// Catalog is the agent's models and modes as last reported (nil before any).
+	Catalog *Catalog `json:"catalog,omitempty"`
 }
 
 type stateFile struct {
@@ -130,6 +161,26 @@ func (m *Manager) SetAuth(id string, state AuthState, methods []AuthMethod) erro
 		}
 		return nil
 	})
+}
+
+// UpdateCatalog changes the stored catalog of an agent installed at version. It does nothing and returns false when
+// the agent is no longer installed at that version: a probe or a session that finished after an uninstall or an
+// update has nothing to say about what is installed now.
+func (m *Manager) UpdateCatalog(id, version string, update func(c *Catalog)) (bool, error) {
+	done := false
+	err := m.updateState(func(st *stateFile) error {
+		s := st.Agents[id]
+		if s == nil || s.Installed == nil || s.Installed.Version != version {
+			return nil
+		}
+		if s.Catalog == nil {
+			s.Catalog = &Catalog{}
+		}
+		update(s.Catalog)
+		done = true
+		return nil
+	})
+	return done, err
 }
 
 // Launch is how to start an installed agent.

@@ -74,8 +74,10 @@ export interface NewSessionOptions {
   // Run in a new git worktree of the repository containing cwd.
   worktree?: { name?: string, branch?: string, baseRef?: string }
   // The session engine: omitted or 'harness' for the harness agent loop, 'acp:<agent id>' for an installed ACP agent
-  // (AcpAgent.engine). A resume keeps the session's recorded engine.
+  // (AcpAgent.engine). A resume keeps the session's recorded engine. On an agent, `model` is one of AcpAgent.models.
   engine?: string
+  // On an agent: the mode to start in (AcpAgent.modes).
+  acpModeId?: string
 }
 
 // Per-user preferences the client honours for every session (stored in the user's synced settings).
@@ -158,7 +160,8 @@ export interface SessionTransport {
   stopComputerUse(sessionId: string): Promise<void>
   respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback?: string): Promise<void>
 
-  setModel(sessionId: string, model: string): Promise<void>
+  // engine: the engine the picked model belongs to; omitted means the session's own. The client refuses any other.
+  setModel(sessionId: string, model: string, engine?: string): Promise<void>
   setEffort(sessionId: string, effort: Effort): Promise<void>
   setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void>
   // Turns remote control (mirroring to the harness server) on or off for an open local session; returns the

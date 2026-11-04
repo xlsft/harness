@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/acp.proto.
  */
 export const file_harness_agent_v1_acp: GenFile = /*@__PURE__*/
-  fileDesc("ChpoYXJuZXNzL2FnZW50L3YxL2FjcC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSLlAQoNQWNwQXV0aE1ldGhvZBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEjIKBGtpbmQYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QuS2luZBIQCghlbnZfdmFycxgFIAMoCRIMCgRsaW5rGAYgASgJIlEKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg4KCktJTkRfQUdFTlQQARIRCg1LSU5EX1RFUk1JTkFMEAISEAoMS0lORF9FTlZfVkFSEAMiugQKCEFjcEFnZW50EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSFgoObGF0ZXN0X3ZlcnNpb24YBCABKAkSEgoKcmVwb3NpdG9yeRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJEg8KB2xpY2Vuc2UYByABKAkSDwoHYXV0aG9ycxgIIAMoCRIQCghpY29uX3VybBgJIAEoCRIQCghpY29uX3N2ZxgKIAEoCRI3CgxkaXN0cmlidXRpb24YCyABKA4yIS5oYXJuZXNzLmFnZW50LnYxLkFjcERpc3RyaWJ1dGlvbhIRCglpbnN0YWxsZWQYDCABKAgSGQoRaW5zdGFsbGVkX3ZlcnNpb24YDSABKAkSGAoQdXBkYXRlX2F2YWlsYWJsZRgOIAEoCBIRCglhdmFpbGFibGUYDyABKAgSGgoSdW5hdmFpbGFibGVfcmVhc29uGBAgASgJEg8KB3J1bnRpbWUYESABKAkSMgoKYXV0aF9zdGF0ZRgSIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aFN0YXRlEjUKDGF1dGhfbWV0aG9kcxgTIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aE1ldGhvZBIOCgZlbmdpbmUYFCABKAkSNQoGbGltaXRzGBUgASgLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudExpbWl0c0gAiAEBQgkKB19saW1pdHMiagoOQWNwQWdlbnRMaW1pdHMSMQoHd2luZG93cxgBIAMoCzIgLmhhcm5lc3MuYWdlbnQudjEuQWNwTGltaXRXaW5kb3cSEQoJcGxhbl9uYW1lGAIgASgJEhIKCnVwZGF0ZWRfYXQYAyABKAkiYAoOQWNwTGltaXRXaW5kb3cSDQoFbGFiZWwYASABKAkSFAoMdXNlZF9wZXJjZW50GAIgASgBEhEKCXJlc2V0c19hdBgDIAEoCRIWCg53aW5kb3dfbWludXRlcxgEIAEoAyL/AwoPQWNwU2Vzc2lvblN0YXRlEhAKCGFnZW50X2lkGAEgASgJEhIKCmFnZW50X25hbWUYAiABKAkSFQoNYWdlbnRfdmVyc2lvbhgDIAEoCRIoCgVtb2RlcxgEIAMoCzIZLmhhcm5lc3MuYWdlbnQudjEuQWNwTW9kZRIXCg9jdXJyZW50X21vZGVfaWQYBSABKAkSLgoIY29tbWFuZHMYBiADKAsyHC5oYXJuZXNzLmFnZW50LnYxLkFjcENvbW1hbmQSEgoKbmVlZHNfYXV0aBgHIAEoCBI1CgxhdXRoX21ldGhvZHMYCCADKAsyHy5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QSGwoTZnJlc2hfYWdlbnRfc2Vzc2lvbhgJIAEoCBIbChNjb250ZXh0X3VzZWRfdG9rZW5zGAogASgDEh0KFWNvbnRleHRfd2luZG93X3Rva2VucxgLIAEoAxIQCghzdGFydGluZxgMIAEoCBIqCgZtb2RlbHMYDSADKAsyGi5oYXJuZXNzLmFnZW50LnYxLkFjcE1vZGVsEhgKEGN1cnJlbnRfbW9kZWxfaWQYDiABKAkSNQoGbGltaXRzGA8gASgLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudExpbWl0c0gAiAEBQgkKB19saW1pdHMiOAoHQWNwTW9kZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIkMKCkFjcENvbW1hbmQSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRISCgppbnB1dF9oaW50GAMgASgJIjkKCEFjcE1vZGVsEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkivAEKEkFjcFRlcm1pbmFsQ29tbWFuZBIPCgdjb21tYW5kGAEgASgJEgwKBGFyZ3MYAiADKAkSOgoDZW52GAMgAygLMi0uaGFybmVzcy5hZ2VudC52MS5BY3BUZXJtaW5hbENvbW1hbmQuRW52RW50cnkSCwoDY3dkGAQgASgJEhIKCnNoZWxsX2xpbmUYBSABKAkaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASInChRMaXN0QWNwQWdlbnRzUmVxdWVzdBIPCgdyZWZyZXNoGAEgASgIIooBChVMaXN0QWNwQWdlbnRzUmVzcG9uc2USKgoGYWdlbnRzGAEgAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudBIbChNyZWdpc3RyeV9mZXRjaGVkX2F0GAIgASgJEhYKDnJlZ2lzdHJ5X2Vycm9yGAMgASgJEhAKCHJ1bnRpbWVzGAQgAygJIioKFkluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAki1AIKF0luc3RhbGxBY3BBZ2VudFJlc3BvbnNlEj4KBXBoYXNlGAEgASgOMi8uaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZS5QaGFzZRISCgpieXRlc19kb25lGAIgASgDEhMKC2J5dGVzX3RvdGFsGAMgASgDEg8KB21lc3NhZ2UYBCABKAkSDAoEZG9uZRgFIAEoCBIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQihQEKBVBoYXNlEhUKEVBIQVNFX1VOU1BFQ0lGSUVEEAASEwoPUEhBU0VfUkVTT0xWSU5HEAESFQoRUEhBU0VfRE9XTkxPQURJTkcQAhITCg9QSEFTRV9WRVJJRllJTkcQAxIUChBQSEFTRV9FWFRSQUNUSU5HEAQSDgoKUEhBU0VfRE9ORRAFIikKFVVwZGF0ZUFjcEFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCSJVChZVcGRhdGVBY3BBZ2VudFJlc3BvbnNlEjsKCHByb2dyZXNzGAEgASgLMikuaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZSIsChhVbmluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAkiRgoZVW5pbnN0YWxsQWNwQWdlbnRSZXNwb25zZRIpCgVhZ2VudBgBIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQifQobQXV0aGVudGljYXRlQWNwQWdlbnRSZXF1ZXN0EhAKCGFnZW50X2lkGAEgASgJEhEKCW1ldGhvZF9pZBgCIAEoCRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBnZlcmlmeRgEIAEoCBIVCg1vcGVuX3Rlcm1pbmFsGAUgASgIIqMCChxBdXRoZW50aWNhdGVBY3BBZ2VudFJlc3BvbnNlEhUKDWF1dGhlbnRpY2F0ZWQYASABKAgSOwoIdGVybWluYWwYAiABKAsyJC5oYXJuZXNzLmFnZW50LnYxLkFjcFRlcm1pbmFsQ29tbWFuZEgAiAEBEjoKDXRlcm1pbmFsX2luZm8YAyABKAsyHi5oYXJuZXNzLmFnZW50LnYxLlRlcm1pbmFsSW5mb0gBiAEBEhcKD3Rlcm1pbmFsX3RpY2tldBgEIAEoCRIQCghlbnZfdmFycxgFIAMoCRIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnRCCwoJX3Rlcm1pbmFsQhAKDl90ZXJtaW5hbF9pbmZvIjgKEVNldEFjcE1vZGVSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSDwoHbW9kZV9pZBgCIAEoCSIUChJTZXRBY3BNb2RlUmVzcG9uc2Uq+wMKDlNlc3Npb25GZWF0dXJlEh8KG1NFU1NJT05fRkVBVFVSRV9VTlNQRUNJRklFRBAAEhoKFlNFU1NJT05fRkVBVFVSRV9SRVdJTkQQARIYChRTRVNTSU9OX0ZFQVRVUkVfRk9SSxACEiAKHFNFU1NJT05fRkVBVFVSRV9TVUJfU0VTU0lPTlMQAxIdChlTRVNTSU9OX0ZFQVRVUkVfU0lERV9DSEFUEAQSHgoaU0VTU0lPTl9GRUFUVVJFX0NPTVBBQ1RJT04QBRIlCiFTRVNTSU9OX0ZFQVRVUkVfQ09OVEVYVF9CUkVBS0RPV04QBhIeChpTRVNTSU9OX0ZFQVRVUkVfQ0xBU1NJRklFUhAHEhoKFlNFU1NJT05fRkVBVFVSRV9FRkZPUlQQCBIhCh1TRVNTSU9OX0ZFQVRVUkVfT1VUUFVUX1NUWUxFUxAJEiIKHlNFU1NJT05fRkVBVFVSRV9TSEVMTF9DT01NQU5EUxAKEiQKIFNFU1NJT05fRkVBVFVSRV9CQUNLR1JPVU5EX1RBU0tTEAsSIQodU0VTU0lPTl9GRUFUVVJFX01PREVMX0NBVEFMT0cQDBIdChlTRVNTSU9OX0ZFQVRVUkVfUVVFU1RJT05TEA0SHwobU0VTU0lPTl9GRUFUVVJFX01PVkVfRk9MREVSEA4qhAEKD0FjcERpc3RyaWJ1dGlvbhIgChxBQ1BfRElTVFJJQlVUSU9OX1VOU1BFQ0lGSUVEEAASGwoXQUNQX0RJU1RSSUJVVElPTl9CSU5BUlkQARIYChRBQ1BfRElTVFJJQlVUSU9OX05QWBACEhgKFEFDUF9ESVNUUklCVVRJT05fVVZYEAMqqgEKDEFjcEF1dGhTdGF0ZRIeChpBQ1BfQVVUSF9TVEFURV9VTlNQRUNJRklFRBAAEhoKFkFDUF9BVVRIX1NUQVRFX1VOS05PV04QARIfChtBQ1BfQVVUSF9TVEFURV9OT1RfUkVRVUlSRUQQAhIbChdBQ1BfQVVUSF9TVEFURV9SRVFVSVJFRBADEiAKHEFDUF9BVVRIX1NUQVRFX0FVVEhFTlRJQ0FURUQQBELJAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCCEFjcFByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z", [file_harness_agent_v1_terminal]);
+  fileDesc("ChpoYXJuZXNzL2FnZW50L3YxL2FjcC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSLlAQoNQWNwQXV0aE1ldGhvZBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEjIKBGtpbmQYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QuS2luZBIQCghlbnZfdmFycxgFIAMoCRIMCgRsaW5rGAYgASgJIlEKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg4KCktJTkRfQUdFTlQQARIRCg1LSU5EX1RFUk1JTkFMEAISEAoMS0lORF9FTlZfVkFSEAMiggcKCEFjcEFnZW50EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSFgoObGF0ZXN0X3ZlcnNpb24YBCABKAkSEgoKcmVwb3NpdG9yeRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJEg8KB2xpY2Vuc2UYByABKAkSDwoHYXV0aG9ycxgIIAMoCRIQCghpY29uX3VybBgJIAEoCRIQCghpY29uX3N2ZxgKIAEoCRI3CgxkaXN0cmlidXRpb24YCyABKA4yIS5oYXJuZXNzLmFnZW50LnYxLkFjcERpc3RyaWJ1dGlvbhIRCglpbnN0YWxsZWQYDCABKAgSGQoRaW5zdGFsbGVkX3ZlcnNpb24YDSABKAkSGAoQdXBkYXRlX2F2YWlsYWJsZRgOIAEoCBIRCglhdmFpbGFibGUYDyABKAgSGgoSdW5hdmFpbGFibGVfcmVhc29uGBAgASgJEg8KB3J1bnRpbWUYESABKAkSMgoKYXV0aF9zdGF0ZRgSIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aFN0YXRlEjUKDGF1dGhfbWV0aG9kcxgTIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aE1ldGhvZBIOCgZlbmdpbmUYFCABKAkSNQoGbGltaXRzGBUgASgLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudExpbWl0c0gAiAEBEhIKCnNlbGVjdGFibGUYFiABKAgSKgoGbW9kZWxzGBcgAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbBIYChBjdXJyZW50X21vZGVsX2lkGBggASgJEigKBW1vZGVzGBkgAygLMhkuaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlEhcKD2N1cnJlbnRfbW9kZV9pZBgaIAEoCRI4Cg1tb2RlbHNfc3RhdHVzGBsgASgOMiEuaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbHNTdGF0dXMSFAoMbW9kZWxzX2Vycm9yGBwgASgJEhkKEW1vZGVsc191cGRhdGVkX2F0GB0gASgJEj4KFHVuc3VwcG9ydGVkX2ZlYXR1cmVzGB4gAygOMiAuaGFybmVzcy5hZ2VudC52MS5TZXNzaW9uRmVhdHVyZUIJCgdfbGltaXRzImoKDkFjcEFnZW50TGltaXRzEjEKB3dpbmRvd3MYASADKAsyIC5oYXJuZXNzLmFnZW50LnYxLkFjcExpbWl0V2luZG93EhEKCXBsYW5fbmFtZRgCIAEoCRISCgp1cGRhdGVkX2F0GAMgASgJImAKDkFjcExpbWl0V2luZG93Eg0KBWxhYmVsGAEgASgJEhQKDHVzZWRfcGVyY2VudBgCIAEoARIRCglyZXNldHNfYXQYAyABKAkSFgoOd2luZG93X21pbnV0ZXMYBCABKAMi/wMKD0FjcFNlc3Npb25TdGF0ZRIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEhUKDWFnZW50X3ZlcnNpb24YAyABKAkSKAoFbW9kZXMYBCADKAsyGS5oYXJuZXNzLmFnZW50LnYxLkFjcE1vZGUSFwoPY3VycmVudF9tb2RlX2lkGAUgASgJEi4KCGNvbW1hbmRzGAYgAygLMhwuaGFybmVzcy5hZ2VudC52MS5BY3BDb21tYW5kEhIKCm5lZWRzX2F1dGgYByABKAgSNQoMYXV0aF9tZXRob2RzGAggAygLMh8uaGFybmVzcy5hZ2VudC52MS5BY3BBdXRoTWV0aG9kEhsKE2ZyZXNoX2FnZW50X3Nlc3Npb24YCSABKAgSGwoTY29udGV4dF91c2VkX3Rva2VucxgKIAEoAxIdChVjb250ZXh0X3dpbmRvd190b2tlbnMYCyABKAMSEAoIc3RhcnRpbmcYDCABKAgSKgoGbW9kZWxzGA0gAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbBIYChBjdXJyZW50X21vZGVsX2lkGA4gASgJEjUKBmxpbWl0cxgPIAEoCzIgLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnRMaW1pdHNIAIgBAUIJCgdfbGltaXRzIjgKB0FjcE1vZGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCSJDCgpBY3BDb21tYW5kEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEgoKaW5wdXRfaGludBgDIAEoCSI5CghBY3BNb2RlbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIrwBChJBY3BUZXJtaW5hbENvbW1hbmQSDwoHY29tbWFuZBgBIAEoCRIMCgRhcmdzGAIgAygJEjoKA2VudhgDIAMoCzItLmhhcm5lc3MuYWdlbnQudjEuQWNwVGVybWluYWxDb21tYW5kLkVudkVudHJ5EgsKA2N3ZBgEIAEoCRISCgpzaGVsbF9saW5lGAUgASgJGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPAoUTGlzdEFjcEFnZW50c1JlcXVlc3QSDwoHcmVmcmVzaBgBIAEoCBITCgtjYWNoZWRfb25seRgCIAEoCCKqAQoVTGlzdEFjcEFnZW50c1Jlc3BvbnNlEioKBmFnZW50cxgBIAMoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQSGwoTcmVnaXN0cnlfZmV0Y2hlZF9hdBgCIAEoCRIWCg5yZWdpc3RyeV9lcnJvchgDIAEoCRIQCghydW50aW1lcxgEIAMoCRIeChZzZXNzaW9uX3N3aXRjaF9yZWZ1c2FsGAUgASgJIioKFkluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAki1AIKF0luc3RhbGxBY3BBZ2VudFJlc3BvbnNlEj4KBXBoYXNlGAEgASgOMi8uaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZS5QaGFzZRISCgpieXRlc19kb25lGAIgASgDEhMKC2J5dGVzX3RvdGFsGAMgASgDEg8KB21lc3NhZ2UYBCABKAkSDAoEZG9uZRgFIAEoCBIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQihQEKBVBoYXNlEhUKEVBIQVNFX1VOU1BFQ0lGSUVEEAASEwoPUEhBU0VfUkVTT0xWSU5HEAESFQoRUEhBU0VfRE9XTkxPQURJTkcQAhITCg9QSEFTRV9WRVJJRllJTkcQAxIUChBQSEFTRV9FWFRSQUNUSU5HEAQSDgoKUEhBU0VfRE9ORRAFIikKFVVwZGF0ZUFjcEFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCSJVChZVcGRhdGVBY3BBZ2VudFJlc3BvbnNlEjsKCHByb2dyZXNzGAEgASgLMikuaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZSIsChhVbmluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAkiRgoZVW5pbnN0YWxsQWNwQWdlbnRSZXNwb25zZRIpCgVhZ2VudBgBIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQifQobQXV0aGVudGljYXRlQWNwQWdlbnRSZXF1ZXN0EhAKCGFnZW50X2lkGAEgASgJEhEKCW1ldGhvZF9pZBgCIAEoCRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBnZlcmlmeRgEIAEoCBIVCg1vcGVuX3Rlcm1pbmFsGAUgASgIIqMCChxBdXRoZW50aWNhdGVBY3BBZ2VudFJlc3BvbnNlEhUKDWF1dGhlbnRpY2F0ZWQYASABKAgSOwoIdGVybWluYWwYAiABKAsyJC5oYXJuZXNzLmFnZW50LnYxLkFjcFRlcm1pbmFsQ29tbWFuZEgAiAEBEjoKDXRlcm1pbmFsX2luZm8YAyABKAsyHi5oYXJuZXNzLmFnZW50LnYxLlRlcm1pbmFsSW5mb0gBiAEBEhcKD3Rlcm1pbmFsX3RpY2tldBgEIAEoCRIQCghlbnZfdmFycxgFIAMoCRIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnRCCwoJX3Rlcm1pbmFsQhAKDl90ZXJtaW5hbF9pbmZvIjgKEVNldEFjcE1vZGVSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSDwoHbW9kZV9pZBgCIAEoCSIUChJTZXRBY3BNb2RlUmVzcG9uc2UqmQQKDlNlc3Npb25GZWF0dXJlEh8KG1NFU1NJT05fRkVBVFVSRV9VTlNQRUNJRklFRBAAEhoKFlNFU1NJT05fRkVBVFVSRV9SRVdJTkQQARIYChRTRVNTSU9OX0ZFQVRVUkVfRk9SSxACEiAKHFNFU1NJT05fRkVBVFVSRV9TVUJfU0VTU0lPTlMQAxIdChlTRVNTSU9OX0ZFQVRVUkVfU0lERV9DSEFUEAQSHgoaU0VTU0lPTl9GRUFUVVJFX0NPTVBBQ1RJT04QBRIlCiFTRVNTSU9OX0ZFQVRVUkVfQ09OVEVYVF9CUkVBS0RPV04QBhIeChpTRVNTSU9OX0ZFQVRVUkVfQ0xBU1NJRklFUhAHEhoKFlNFU1NJT05fRkVBVFVSRV9FRkZPUlQQCBIhCh1TRVNTSU9OX0ZFQVRVUkVfT1VUUFVUX1NUWUxFUxAJEiIKHlNFU1NJT05fRkVBVFVSRV9TSEVMTF9DT01NQU5EUxAKEiQKIFNFU1NJT05fRkVBVFVSRV9CQUNLR1JPVU5EX1RBU0tTEAsSIQodU0VTU0lPTl9GRUFUVVJFX01PREVMX0NBVEFMT0cQDBIdChlTRVNTSU9OX0ZFQVRVUkVfUVVFU1RJT05TEA0SHwobU0VTU0lPTl9GRUFUVVJFX01PVkVfRk9MREVSEA4SHAoYU0VTU0lPTl9GRUFUVVJFX1dPUktUUkVFEA8qhAEKD0FjcERpc3RyaWJ1dGlvbhIgChxBQ1BfRElTVFJJQlVUSU9OX1VOU1BFQ0lGSUVEEAASGwoXQUNQX0RJU1RSSUJVVElPTl9CSU5BUlkQARIYChRBQ1BfRElTVFJJQlVUSU9OX05QWBACEhgKFEFDUF9ESVNUUklCVVRJT05fVVZYEAMqqgEKDEFjcEF1dGhTdGF0ZRIeChpBQ1BfQVVUSF9TVEFURV9VTlNQRUNJRklFRBAAEhoKFkFDUF9BVVRIX1NUQVRFX1VOS05PV04QARIfChtBQ1BfQVVUSF9TVEFURV9OT1RfUkVRVUlSRUQQAhIbChdBQ1BfQVVUSF9TVEFURV9SRVFVSVJFRBADEiAKHEFDUF9BVVRIX1NUQVRFX0FVVEhFTlRJQ0FURUQQBCrPAQoPQWNwTW9kZWxzU3RhdHVzEiEKHUFDUF9NT0RFTFNfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIAocQUNQX01PREVMU19TVEFUVVNfTk9UX1BST0JFRBABEh0KGUFDUF9NT0RFTFNfU1RBVFVTX1BST0JJTkcQAhIYChRBQ1BfTU9ERUxTX1NUQVRVU19PSxADEhwKGEFDUF9NT0RFTFNfU1RBVFVTX0ZBSUxFRBAEEiAKHEFDUF9NT0RFTFNfU1RBVFVTX05FRURTX0FVVEgQBULJAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCCEFjcFByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z", [file_harness_agent_v1_terminal]);
 
 /**
  * A way to authenticate the agent offered in its initialize response.
@@ -231,6 +231,66 @@ export type AcpAgent = Message<"harness.agent.v1.AcpAgent"> & {
    * @generated from field: optional harness.agent.v1.AcpAgentLimits limits = 21;
    */
   limits?: AcpAgentLimits | undefined;
+
+  /**
+   * The agent belongs in the model list: it is installed, can run here and is known to start sessions (no sign-in
+   * needed, or signed in). The client decides; frontends list the agents that have this set.
+   *
+   * @generated from field: bool selectable = 22;
+   */
+  selectable: boolean;
+
+  /**
+   * The agent's own models, cached per agent on this machine. An agent that reports no model options has one entry,
+   * "Default". Never blocks on a probe: this is the cached list, see models_status.
+   *
+   * @generated from field: repeated harness.agent.v1.AcpModel models = 23;
+   */
+  models: AcpModel[];
+
+  /**
+   * The model and the session mode a new session on the agent starts with, and its modes (SetAcpMode, or
+   * CreateSessionRequest.acp_mode_id), as last reported.
+   *
+   * @generated from field: string current_model_id = 24;
+   */
+  currentModelId: string;
+
+  /**
+   * @generated from field: repeated harness.agent.v1.AcpMode modes = 25;
+   */
+  modes: AcpMode[];
+
+  /**
+   * @generated from field: string current_mode_id = 26;
+   */
+  currentModeId: string;
+
+  /**
+   * @generated from field: harness.agent.v1.AcpModelsStatus models_status = 27;
+   */
+  modelsStatus: AcpModelsStatus;
+
+  /**
+   * ACP_MODELS_STATUS_FAILED: why.
+   *
+   * @generated from field: string models_error = 28;
+   */
+  modelsError: string;
+
+  /**
+   * RFC 3339, UTC: when the agent last reported models successfully; empty when it never did.
+   *
+   * @generated from field: string models_updated_at = 29;
+   */
+  modelsUpdatedAt: string;
+
+  /**
+   * What a session on the agent cannot do, known before a session exists (SessionInfo.unsupported_features).
+   *
+   * @generated from field: repeated harness.agent.v1.SessionFeature unsupported_features = 30;
+   */
+  unsupportedFeatures: SessionFeature[];
 };
 
 /**
@@ -396,7 +456,9 @@ export type AcpSessionState = Message<"harness.agent.v1.AcpSessionState"> & {
   starting: boolean;
 
   /**
-   * The agent's model choices when it offers a model option; SetModel picks one by id.
+   * The models this session can switch to, the only ones it accepts (SetModel picks one by id): what the agent
+   * offers, the cached list while it starts or the session is not open, and a single "Default" for an agent without
+   * a model option.
    *
    * @generated from field: repeated harness.agent.v1.AcpModel models = 13;
    */
@@ -552,11 +614,19 @@ export const AcpTerminalCommandSchema: GenMessage<AcpTerminalCommand> = /*@__PUR
  */
 export type ListAcpAgentsRequest = Message<"harness.agent.v1.ListAcpAgentsRequest"> & {
   /**
-   * Fetch the registry now instead of using a cache younger than its TTL. Offline, the cache is used anyway.
+   * A manual refresh: fetch the registry now instead of using a cache younger than its TTL (offline, the cache is
+   * used anyway) and probe every installed agent for its models again. The call does not wait for the probes.
    *
    * @generated from field: bool refresh = 1;
    */
   refresh: boolean;
+
+  /**
+   * Answer from the cached registry, even an expired one, without the network (polling while a probe runs).
+   *
+   * @generated from field: bool cached_only = 2;
+   */
+  cachedOnly: boolean;
 };
 
 /**
@@ -595,6 +665,15 @@ export type ListAcpAgentsResponse = Message<"harness.agent.v1.ListAcpAgentsRespo
    * @generated from field: repeated string runtimes = 4;
    */
   runtimes: string[];
+
+  /**
+   * Why a running harness session cannot pick an agent's model: a session stays on its engine. Frontends show the
+   * models of selectable agents disabled with this text there; SetModel refuses them. An ACP session offers
+   * AcpSessionState.models and nothing else.
+   *
+   * @generated from field: string session_switch_refusal = 5;
+   */
+  sessionSwitchRefusal: string;
 };
 
 /**
@@ -1021,6 +1100,13 @@ export enum SessionFeature {
    * @generated from enum value: SESSION_FEATURE_MOVE_FOLDER = 14;
    */
   MOVE_FOLDER = 14,
+
+  /**
+   * CreateSession with worktree. Also in AcpAgent.unsupported_features, where it matters: before a session exists.
+   *
+   * @generated from enum value: SESSION_FEATURE_WORKTREE = 15;
+   */
+  WORKTREE = 15,
 }
 
 /**
@@ -1112,4 +1198,59 @@ export enum AcpAuthState {
  */
 export const AcpAuthStateSchema: GenEnum<AcpAuthState> = /*@__PURE__*/
   enumDesc(file_harness_agent_v1_acp, 2);
+
+/**
+ * How far the client got finding out an agent's models (AcpAgent.models). Models are only known once the agent has a
+ * session, so the client asks it with a short-lived probe: start the agent in a neutral temp directory, create a
+ * session, read its config options, close; no prompt is sent. The outcome is cached in HARNESS_HOME/acp/state.json.
+ *
+ * @generated from enum harness.agent.v1.AcpModelsStatus
+ */
+export enum AcpModelsStatus {
+  /**
+   * @generated from enum value: ACP_MODELS_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Not probed for the installed version yet (not installed, or it cannot run here).
+   *
+   * @generated from enum value: ACP_MODELS_STATUS_NOT_PROBED = 1;
+   */
+  NOT_PROBED = 1,
+
+  /**
+   * A probe is running; models holds the previous list. List again to see the outcome.
+   *
+   * @generated from enum value: ACP_MODELS_STATUS_PROBING = 2;
+   */
+  PROBING = 2,
+
+  /**
+   * models is what the agent last reported, to a probe or to a real session.
+   *
+   * @generated from enum value: ACP_MODELS_STATUS_OK = 3;
+   */
+  OK = 3,
+
+  /**
+   * The last probe failed (models_error says why); models keeps the previous list.
+   *
+   * @generated from enum value: ACP_MODELS_STATUS_FAILED = 4;
+   */
+  FAILED = 4,
+
+  /**
+   * The agent wants a sign-in first; models keeps the previous list.
+   *
+   * @generated from enum value: ACP_MODELS_STATUS_NEEDS_AUTH = 5;
+   */
+  NEEDS_AUTH = 5,
+}
+
+/**
+ * Describes the enum harness.agent.v1.AcpModelsStatus.
+ */
+export const AcpModelsStatusSchema: GenEnum<AcpModelsStatus> = /*@__PURE__*/
+  enumDesc(file_harness_agent_v1_acp, 3);
 

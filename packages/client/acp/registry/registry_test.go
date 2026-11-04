@@ -308,3 +308,35 @@ func TestPlatformKey(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateCatalogOnlyForTheInstalledVersion(t *testing.T) {
+	m := New(t.TempDir())
+	set := func(version string) bool {
+		ok, err := m.UpdateCatalog("a", version, func(c *Catalog) { c.Models = []Model{{ID: version}} })
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ok
+	}
+	if set("1") {
+		t.Fatal("recorded for an agent that is not installed")
+	}
+	if err := m.updateState(func(st *stateFile) error {
+		st.Agents["a"] = &AgentState{Installed: &Installed{ID: "a", Version: "1", Kind: KindNpx, Package: "p"}}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !set("1") || set("0") {
+		t.Fatal("recorded for the wrong version")
+	}
+	if got := m.State("a").Catalog.Models; len(got) != 1 || got[0].ID != "1" {
+		t.Fatalf("catalog: %v", got)
+	}
+	if err := m.Uninstall("a"); err != nil {
+		t.Fatal(err)
+	}
+	if m.State("a").Catalog != nil {
+		t.Fatal("the catalog outlived the install")
+	}
+}

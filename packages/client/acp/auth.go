@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	sdk "github.com/coder/acp-go-sdk"
+
 	"github.com/xlsft/harness/packages/client/acp/registry"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 )
@@ -26,6 +28,59 @@ func VerifyScratch(ctx context.Context, cfg Config) error {
 	return s.Open(ctx)
 }
 
+// DefaultModelID and DefaultModelName are the one entry listed for an agent that reports no model options.
+const (
+	DefaultModelID   = "default"
+	DefaultModelName = "Default"
+)
+
+// ModelsOrDefault returns what an agent with an open session offers: its models, else the single "Default" entry.
+func ModelsOrDefault(models []Model) []Model {
+	if len(models) > 0 {
+		return models
+	}
+	return []Model{{ID: DefaultModelID, Name: DefaultModelName}}
+}
+
+// Probe is what a model probe learned about an agent.
+type Probe struct {
+	Models       []Model
+	CurrentModel string
+	Modes        []Mode
+	CurrentMode  string
+}
+
+// ProbeModels finds out an agent's models and modes: it starts the agent in cfg.Cwd, creates a session, reads its
+// config options and closes it. No prompt is sent. ErrAuthRequired when the agent asks for a sign-in first.
+func ProbeModels(ctx context.Context, cfg Config) (Probe, error) {
+	cfg.ResumeAgentSessionID, cfg.InitialModel, cfg.InitialMode = "", "", ""
+	cfg.Sink, cfg.OnLimits, cfg.OnAgentSession = nil, nil, nil
+	s := New(cfg)
+	defer s.Close()
+	if err := s.Open(ctx); err != nil {
+		return Probe{}, err
+	}
+	s.closeAgentSession(ctx)
+	st := s.State()
+	return Probe{Models: ModelsOrDefault(st.Models), CurrentModel: st.CurrentModel, Modes: st.Modes, CurrentMode: st.CurrentMode}, nil
+}
+
+// closeAgentSession ends the agent's session when the agent supports session/close, so that a probe leaves no
+// session behind in the agent's own records; stopping the process follows either way.
+func (s *Session) closeAgentSession(ctx context.Context) {
+	s.mu.Lock()
+	p, id, supported := s.proc, s.sessionID, s.caps.SessionCapabilities.Close != nil
+	s.mu.Unlock()
+	if p == nil || id == "" || !supported {
+		return
+	}
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if _, err := p.conn.CloseSession(cctx, sdk.CloseSessionRequest{SessionId: id}); err != nil {
+		s.log.Debug("acp session/close failed", "agent", s.cfg.AgentID, "err", err)
+	}
+}
+
 // StateToProto converts a snapshot for SessionInfo.acp.
 func StateToProto(cfg Config, st State) *agentv1.AcpSessionState {
 	out := &agentv1.AcpSessionState{
@@ -34,14 +89,36 @@ func StateToProto(cfg Config, st State) *agentv1.AcpSessionState {
 		FreshAgentSession: st.Fresh, ContextUsedTokens: st.ContextUsed, ContextWindowTokens: st.ContextSize,
 		Starting: st.Starting, CurrentModelId: st.CurrentModel, Limits: LimitsToProto(st.Limits),
 	}
-	for _, m := range st.Modes {
-		out.Modes = append(out.Modes, &agentv1.AcpMode{Id: m.ID, Name: m.Name, Description: m.Description})
-	}
+	out.Modes = ModesToProto(st.Modes)
 	for _, c := range st.Commands {
 		out.Commands = append(out.Commands, &agentv1.AcpCommand{Name: c.Name, Description: c.Description, InputHint: c.InputHint})
 	}
-	for _, m := range st.Models {
-		out.Models = append(out.Models, &agentv1.AcpModel{Id: m.ID, Name: m.Name, Description: m.Description})
+	models := st.Models
+	// Open, the agent's list is final: no model option means the single "Default" entry.
+	if st.AgentSessionID != "" && !st.Starting && !st.NeedsAuth {
+		models = ModelsOrDefault(models)
+		if out.CurrentModelId == "" && len(st.Models) == 0 {
+			out.CurrentModelId = DefaultModelID
+		}
+	}
+	out.Models = ModelsToProto(models)
+	return out
+}
+
+// ModelsToProto converts model choices.
+func ModelsToProto(models []Model) []*agentv1.AcpModel {
+	var out []*agentv1.AcpModel
+	for _, m := range models {
+		out = append(out, &agentv1.AcpModel{Id: m.ID, Name: m.Name, Description: m.Description})
+	}
+	return out
+}
+
+// ModesToProto converts session modes.
+func ModesToProto(modes []Mode) []*agentv1.AcpMode {
+	var out []*agentv1.AcpMode
+	for _, m := range modes {
+		out = append(out, &agentv1.AcpMode{Id: m.ID, Name: m.Name, Description: m.Description})
 	}
 	return out
 }
@@ -66,6 +143,7 @@ func UnsupportedFeatures() []agentv1.SessionFeature {
 		agentv1.SessionFeature_SESSION_FEATURE_MODEL_CATALOG,
 		agentv1.SessionFeature_SESSION_FEATURE_QUESTIONS,
 		agentv1.SessionFeature_SESSION_FEATURE_MOVE_FOLDER,
+		agentv1.SessionFeature_SESSION_FEATURE_WORKTREE,
 	}
 }
 
