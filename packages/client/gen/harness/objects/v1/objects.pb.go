@@ -773,8 +773,12 @@ func (x *ListSessionObjectsResponse) GetNextPageToken() string {
 type DeleteObjectRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Sha256 string                 `protobuf:"bytes,1,opt,name=sha256,proto3" json:"sha256,omitempty"`
-	// Empty: every record of the object, everywhere. Else only the records of this session.
-	SessionId     string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// Empty: every record of the object, everywhere. Else only the records of this session,
+	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// and when set, of this kind
+	Kind ObjectKind `protobuf:"varint,3,opt,name=kind,proto3,enum=harness.objects.v1.ObjectKind" json:"kind,omitempty"`
+	// and name (an earlier version of a scratch file).
+	Name          string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -819,6 +823,20 @@ func (x *DeleteObjectRequest) GetSha256() string {
 func (x *DeleteObjectRequest) GetSessionId() string {
 	if x != nil {
 		return x.SessionId
+	}
+	return ""
+}
+
+func (x *DeleteObjectRequest) GetKind() ObjectKind {
+	if x != nil {
+		return x.Kind
+	}
+	return ObjectKind_OBJECT_KIND_UNSPECIFIED
+}
+
+func (x *DeleteObjectRequest) GetName() string {
+	if x != nil {
+		return x.Name
 	}
 	return ""
 }
@@ -1019,11 +1037,13 @@ const file_harness_objects_v1_objects_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\"\x80\x01\n" +
 	"\x1aListSessionObjectsResponse\x12:\n" +
 	"\arecords\x18\x01 \x03(\v2 .harness.objects.v1.ObjectRecordR\arecords\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"L\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x94\x01\n" +
 	"\x13DeleteObjectRequest\x12\x16\n" +
 	"\x06sha256\x18\x01 \x01(\tR\x06sha256\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\"\x16\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x122\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x1e.harness.objects.v1.ObjectKindR\x04kind\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\"\x16\n" +
 	"\x14DeleteObjectResponse\"\x18\n" +
 	"\x16GetObjectLimitsRequest\"\x9e\x01\n" +
 	"\x17GetObjectLimitsResponse\x12$\n" +
@@ -1098,25 +1118,26 @@ var file_harness_objects_v1_objects_proto_depIdxs = []int32{
 	1,  // 6: harness.objects.v1.FinishUploadResponse.record:type_name -> harness.objects.v1.ObjectRecord
 	17, // 7: harness.objects.v1.StatObjectResponse.ref:type_name -> harness.common.v1.ObjectRef
 	1,  // 8: harness.objects.v1.ListSessionObjectsResponse.records:type_name -> harness.objects.v1.ObjectRecord
-	3,  // 9: harness.objects.v1.ObjectsService.StartUpload:input_type -> harness.objects.v1.StartUploadRequest
-	5,  // 10: harness.objects.v1.ObjectsService.UploadChunk:input_type -> harness.objects.v1.UploadChunkRequest
-	7,  // 11: harness.objects.v1.ObjectsService.FinishUpload:input_type -> harness.objects.v1.FinishUploadRequest
-	9,  // 12: harness.objects.v1.ObjectsService.StatObject:input_type -> harness.objects.v1.StatObjectRequest
-	11, // 13: harness.objects.v1.ObjectsService.ListSessionObjects:input_type -> harness.objects.v1.ListSessionObjectsRequest
-	13, // 14: harness.objects.v1.ObjectsService.DeleteObject:input_type -> harness.objects.v1.DeleteObjectRequest
-	15, // 15: harness.objects.v1.ObjectsService.GetObjectLimits:input_type -> harness.objects.v1.GetObjectLimitsRequest
-	4,  // 16: harness.objects.v1.ObjectsService.StartUpload:output_type -> harness.objects.v1.StartUploadResponse
-	6,  // 17: harness.objects.v1.ObjectsService.UploadChunk:output_type -> harness.objects.v1.UploadChunkResponse
-	8,  // 18: harness.objects.v1.ObjectsService.FinishUpload:output_type -> harness.objects.v1.FinishUploadResponse
-	10, // 19: harness.objects.v1.ObjectsService.StatObject:output_type -> harness.objects.v1.StatObjectResponse
-	12, // 20: harness.objects.v1.ObjectsService.ListSessionObjects:output_type -> harness.objects.v1.ListSessionObjectsResponse
-	14, // 21: harness.objects.v1.ObjectsService.DeleteObject:output_type -> harness.objects.v1.DeleteObjectResponse
-	16, // 22: harness.objects.v1.ObjectsService.GetObjectLimits:output_type -> harness.objects.v1.GetObjectLimitsResponse
-	16, // [16:23] is the sub-list for method output_type
-	9,  // [9:16] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	0,  // 9: harness.objects.v1.DeleteObjectRequest.kind:type_name -> harness.objects.v1.ObjectKind
+	3,  // 10: harness.objects.v1.ObjectsService.StartUpload:input_type -> harness.objects.v1.StartUploadRequest
+	5,  // 11: harness.objects.v1.ObjectsService.UploadChunk:input_type -> harness.objects.v1.UploadChunkRequest
+	7,  // 12: harness.objects.v1.ObjectsService.FinishUpload:input_type -> harness.objects.v1.FinishUploadRequest
+	9,  // 13: harness.objects.v1.ObjectsService.StatObject:input_type -> harness.objects.v1.StatObjectRequest
+	11, // 14: harness.objects.v1.ObjectsService.ListSessionObjects:input_type -> harness.objects.v1.ListSessionObjectsRequest
+	13, // 15: harness.objects.v1.ObjectsService.DeleteObject:input_type -> harness.objects.v1.DeleteObjectRequest
+	15, // 16: harness.objects.v1.ObjectsService.GetObjectLimits:input_type -> harness.objects.v1.GetObjectLimitsRequest
+	4,  // 17: harness.objects.v1.ObjectsService.StartUpload:output_type -> harness.objects.v1.StartUploadResponse
+	6,  // 18: harness.objects.v1.ObjectsService.UploadChunk:output_type -> harness.objects.v1.UploadChunkResponse
+	8,  // 19: harness.objects.v1.ObjectsService.FinishUpload:output_type -> harness.objects.v1.FinishUploadResponse
+	10, // 20: harness.objects.v1.ObjectsService.StatObject:output_type -> harness.objects.v1.StatObjectResponse
+	12, // 21: harness.objects.v1.ObjectsService.ListSessionObjects:output_type -> harness.objects.v1.ListSessionObjectsResponse
+	14, // 22: harness.objects.v1.ObjectsService.DeleteObject:output_type -> harness.objects.v1.DeleteObjectResponse
+	16, // 23: harness.objects.v1.ObjectsService.GetObjectLimits:output_type -> harness.objects.v1.GetObjectLimitsResponse
+	17, // [17:24] is the sub-list for method output_type
+	10, // [10:17] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_harness_objects_v1_objects_proto_init() }

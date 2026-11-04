@@ -37,6 +37,9 @@ message ContentBlock {
 message TextBlock {
   string text = 1;
   bool cache = 2;
+  // This text stands in for an image or a document in the object store: on what left the session's machine, its bytes
+  // are there. Whatever does not know objects, a model or an older frontend, reads the sentence in text.
+  harness.common.v1.ObjectRef object = 3;
 }
 
 message ImageBlock {
@@ -44,8 +47,6 @@ message ImageBlock {
   string media_type = 1;
   bytes data = 2;
   bool cache = 3;
-  // The image lives in the object store instead: on events that left the session's machine, data is empty.
-  harness.common.v1.ObjectRef object = 4;
 }
 
 message DocumentBlock {
@@ -54,8 +55,6 @@ message DocumentBlock {
   bytes data = 2;
   string title = 3;
   bool cache = 4;
-  // Like ImageBlock.object.
-  harness.common.v1.ObjectRef object = 5;
 }
 
 // Thinking blocks must be sent back in history unchanged: Anthropic validates the signature.

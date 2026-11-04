@@ -512,9 +512,12 @@ func (*ContentBlock_ToolUse) isContentBlock_Block() {}
 func (*ContentBlock_ToolResult) isContentBlock_Block() {}
 
 type TextBlock struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
-	Cache         bool                   `protobuf:"varint,2,opt,name=cache,proto3" json:"cache,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Text  string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	Cache bool                   `protobuf:"varint,2,opt,name=cache,proto3" json:"cache,omitempty"`
+	// This text stands in for an image or a document in the object store: on what left the session's machine, its bytes
+	// are there. Whatever does not know objects, a model or an older frontend, reads the sentence in text.
+	Object        *v1.ObjectRef `protobuf:"bytes,3,opt,name=object,proto3" json:"object,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -563,14 +566,19 @@ func (x *TextBlock) GetCache() bool {
 	return false
 }
 
+func (x *TextBlock) GetObject() *v1.ObjectRef {
+	if x != nil {
+		return x.Object
+	}
+	return nil
+}
+
 type ImageBlock struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// image/png, image/jpeg, image/gif or image/webp.
-	MediaType string `protobuf:"bytes,1,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
-	Data      []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Cache     bool   `protobuf:"varint,3,opt,name=cache,proto3" json:"cache,omitempty"`
-	// The image lives in the object store instead: on events that left the session's machine, data is empty.
-	Object        *v1.ObjectRef `protobuf:"bytes,4,opt,name=object,proto3" json:"object,omitempty"`
+	MediaType     string `protobuf:"bytes,1,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
+	Data          []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Cache         bool   `protobuf:"varint,3,opt,name=cache,proto3" json:"cache,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -626,22 +634,13 @@ func (x *ImageBlock) GetCache() bool {
 	return false
 }
 
-func (x *ImageBlock) GetObject() *v1.ObjectRef {
-	if x != nil {
-		return x.Object
-	}
-	return nil
-}
-
 type DocumentBlock struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// application/pdf (M0).
-	MediaType string `protobuf:"bytes,1,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
-	Data      []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Title     string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Cache     bool   `protobuf:"varint,4,opt,name=cache,proto3" json:"cache,omitempty"`
-	// Like ImageBlock.object.
-	Object        *v1.ObjectRef `protobuf:"bytes,5,opt,name=object,proto3" json:"object,omitempty"`
+	MediaType     string `protobuf:"bytes,1,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
+	Data          []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Title         string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Cache         bool   `protobuf:"varint,4,opt,name=cache,proto3" json:"cache,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -702,13 +701,6 @@ func (x *DocumentBlock) GetCache() bool {
 		return x.Cache
 	}
 	return false
-}
-
-func (x *DocumentBlock) GetObject() *v1.ObjectRef {
-	if x != nil {
-		return x.Object
-	}
-	return nil
 }
 
 // Thinking blocks must be sent back in history unchanged: Anthropic validates the signature.
@@ -1205,24 +1197,23 @@ const file_harness_llm_v1_content_proto_rawDesc = "" +
 	"\btool_use\x18\x06 \x01(\v2\x1c.harness.llm.v1.ToolUseBlockH\x00R\atoolUse\x12B\n" +
 	"\vtool_result\x18\a \x01(\v2\x1f.harness.llm.v1.ToolResultBlockH\x00R\n" +
 	"toolResultB\a\n" +
-	"\x05block\"5\n" +
+	"\x05block\"k\n" +
 	"\tTextBlock\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x14\n" +
-	"\x05cache\x18\x02 \x01(\bR\x05cache\"\x8b\x01\n" +
+	"\x05cache\x18\x02 \x01(\bR\x05cache\x124\n" +
+	"\x06object\x18\x03 \x01(\v2\x1c.harness.common.v1.ObjectRefR\x06object\"U\n" +
 	"\n" +
 	"ImageBlock\x12\x1d\n" +
 	"\n" +
 	"media_type\x18\x01 \x01(\tR\tmediaType\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x14\n" +
-	"\x05cache\x18\x03 \x01(\bR\x05cache\x124\n" +
-	"\x06object\x18\x04 \x01(\v2\x1c.harness.common.v1.ObjectRefR\x06object\"\xa4\x01\n" +
+	"\x05cache\x18\x03 \x01(\bR\x05cache\"n\n" +
 	"\rDocumentBlock\x12\x1d\n" +
 	"\n" +
 	"media_type\x18\x01 \x01(\tR\tmediaType\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12\x14\n" +
-	"\x05cache\x18\x04 \x01(\bR\x05cache\x124\n" +
-	"\x06object\x18\x05 \x01(\v2\x1c.harness.common.v1.ObjectRefR\x06object\"I\n" +
+	"\x05cache\x18\x04 \x01(\bR\x05cache\"I\n" +
 	"\rThinkingBlock\x12\x1a\n" +
 	"\bthinking\x18\x01 \x01(\tR\bthinking\x12\x1c\n" +
 	"\tsignature\x18\x02 \x01(\tR\tsignature\"+\n" +
@@ -1335,16 +1326,15 @@ var file_harness_llm_v1_content_proto_depIdxs = []int32{
 	11, // 6: harness.llm.v1.ContentBlock.redacted_thinking:type_name -> harness.llm.v1.RedactedThinkingBlock
 	12, // 7: harness.llm.v1.ContentBlock.tool_use:type_name -> harness.llm.v1.ToolUseBlock
 	13, // 8: harness.llm.v1.ContentBlock.tool_result:type_name -> harness.llm.v1.ToolResultBlock
-	18, // 9: harness.llm.v1.ImageBlock.object:type_name -> harness.common.v1.ObjectRef
-	18, // 10: harness.llm.v1.DocumentBlock.object:type_name -> harness.common.v1.ObjectRef
-	6,  // 11: harness.llm.v1.ToolResultBlock.content:type_name -> harness.llm.v1.ContentBlock
-	3,  // 12: harness.llm.v1.ToolChoice.mode:type_name -> harness.llm.v1.ToolChoice.Mode
-	4,  // 13: harness.llm.v1.Thinking.mode:type_name -> harness.llm.v1.Thinking.Mode
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	18, // 9: harness.llm.v1.TextBlock.object:type_name -> harness.common.v1.ObjectRef
+	6,  // 10: harness.llm.v1.ToolResultBlock.content:type_name -> harness.llm.v1.ContentBlock
+	3,  // 11: harness.llm.v1.ToolChoice.mode:type_name -> harness.llm.v1.ToolChoice.Mode
+	4,  // 12: harness.llm.v1.Thinking.mode:type_name -> harness.llm.v1.Thinking.Mode
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_content_proto_init() }

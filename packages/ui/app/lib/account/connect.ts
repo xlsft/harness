@@ -12,6 +12,7 @@ export function profileView(u: User | undefined): AccountProfile {
     email: u?.email ?? '',
     name: u?.name ?? '',
     image: u?.image ?? '',
+    imageObject: u?.imageObject ? { sha256: u.imageObject.sha256, size: Number(u.imageObject.size), mediaType: u.imageObject.mediaType } : undefined,
     role: u?.role === User_Role.ADMIN ? 'admin' : 'user',
     source: u?.source === UserSource.LDAP ? 'ldap' : 'local',
     createdAt: u?.createdAt ?? '',

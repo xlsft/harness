@@ -62,7 +62,7 @@ export class ConnectTransport implements SessionTransport {
   private usageApi: ConnectUsageApi
   private terminalsApi: ConnectTerminalsApi
 
-  constructor(baseUrl: string, token = '') {
+  constructor(private readonly baseUrl: string, token = '') {
     const interceptors: Interceptor[] = token ? [bearer(token)] : []
     const transport = createConnectTransport({ baseUrl, interceptors })
     this.transport = transport
@@ -385,6 +385,11 @@ export class ConnectTransport implements SessionTransport {
 
   async updateViewerPresence(sessionId: string, viewerId: string, focused: boolean) {
     await this.client.updateViewerPresence({ sessionId, viewerId, focused })
+  }
+
+  async createObjectTicket() {
+    const r = await this.client.createObjectTicket({})
+    return { available: r.available, ticket: r.ticket, expiresAt: r.expiresAt, baseUrl: this.baseUrl }
   }
 
   async readSentFile(sessionId: string, path: string) {

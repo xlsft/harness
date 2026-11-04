@@ -15,6 +15,8 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/xlsft/harness/packages/client/config"
+	objectsv1 "github.com/xlsft/harness/packages/client/gen/harness/objects/v1"
+	"github.com/xlsft/harness/packages/client/gen/harness/objects/v1/objectsv1connect"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/sync/v1/syncv1connect"
 	"github.com/xlsft/harness/packages/client/llm"
@@ -27,8 +29,9 @@ func DefaultDir() string { return filepath.Join(config.Home(), "cache", "sync") 
 // Client calls SyncService with bearer auth (one refresh-and-retry on
 // UNAUTHENTICATED). Errors of unary calls are *llm.APIError.
 type Client struct {
-	rpc    syncv1connect.SyncServiceClient
-	tokens rpc.Tokens
+	rpc     syncv1connect.SyncServiceClient
+	objects objectsv1connect.ObjectsServiceClient
+	tokens  rpc.Tokens
 }
 
 // NewClient creates a client. httpClient may be nil; tokens may be nil for
@@ -37,7 +40,11 @@ func NewClient(baseURL string, httpClient *http.Client, tokens rpc.Tokens) *Clie
 	if httpClient == nil {
 		httpClient = rpc.HTTPClient(baseURL)
 	}
-	return &Client{rpc: syncv1connect.NewSyncServiceClient(httpClient, baseURL, rpc.ClientOptions()...), tokens: tokens}
+	return &Client{
+		rpc:     syncv1connect.NewSyncServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		objects: objectsv1connect.NewObjectsServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		tokens:  tokens,
+	}
 }
 
 func unary[Req, Res any](ctx context.Context, c *Client, msg *Req, call func(context.Context, *connect.Request[Req]) (*connect.Response[Res], error)) (*Res, error) {
@@ -94,6 +101,26 @@ func (c *Client) GetSessionTranscript(ctx context.Context, req *syncv1.GetSessio
 
 func (c *Client) DeleteSession(ctx context.Context, req *syncv1.DeleteSessionRequest) (*syncv1.DeleteSessionResponse, error) {
 	return unary(ctx, c, req, c.rpc.DeleteSession)
+}
+
+func (c *Client) StartUpload(ctx context.Context, req *objectsv1.StartUploadRequest) (*objectsv1.StartUploadResponse, error) {
+	return unary(ctx, c, req, c.objects.StartUpload)
+}
+
+func (c *Client) UploadChunk(ctx context.Context, req *objectsv1.UploadChunkRequest) (*objectsv1.UploadChunkResponse, error) {
+	return unary(ctx, c, req, c.objects.UploadChunk)
+}
+
+func (c *Client) FinishUpload(ctx context.Context, req *objectsv1.FinishUploadRequest) (*objectsv1.FinishUploadResponse, error) {
+	return unary(ctx, c, req, c.objects.FinishUpload)
+}
+
+func (c *Client) DeleteObject(ctx context.Context, req *objectsv1.DeleteObjectRequest) (*objectsv1.DeleteObjectResponse, error) {
+	return unary(ctx, c, req, c.objects.DeleteObject)
+}
+
+func (c *Client) GetObjectLimits(ctx context.Context, req *objectsv1.GetObjectLimitsRequest) (*objectsv1.GetObjectLimitsResponse, error) {
+	return unary(ctx, c, req, c.objects.GetObjectLimits)
 }
 
 // watch opens a WatchChanges stream with the current token. Errors

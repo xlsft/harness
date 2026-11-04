@@ -22,9 +22,9 @@ const (
 	MaxSentFileBytes = 50 << 20
 	maxSentFiles     = 10
 	maxSentCaption   = 1000
-	// maxSentFilesSynced is how many bytes of one call travel inside its result. Core has no attachment store; the
-	// result is the only thing that reaches another device (live over the relay, durably in the uploaded transcript).
-	// Same size as a Visual's HTML, which takes the same way.
+	// maxSentFilesSynced is how many bytes of one call travel inside its result when the server has no object store (or
+	// there is no server): the result is then the only thing that reaches another device (live over the relay, durably
+	// in the uploaded transcript). Same size as a Visual's HTML, which takes the same way.
 	maxSentFilesSynced = 512 << 10
 )
 
@@ -66,6 +66,14 @@ func SentFileMime(path string, data []byte) string {
 	return http.DetectContentType(data[:min(len(data), 512)])
 }
 
+// ObjectStore takes files to the server's object store in the background (syncclient.ObjectQueue).
+type ObjectStore interface {
+	// Available reports whether the server has a store.
+	Available() bool
+	// AddSentFile queues a file as it was sent; false when it stays on this machine (a sensitive path).
+	AddSentFile(sessionID, path, mediaType string, data []byte) bool
+}
+
 // sentFile is one card entry, in the call's structured result.
 type sentFile struct {
 	Name string `json:"name"`
@@ -76,12 +84,15 @@ type sentFile struct {
 	Kind    string `json:"kind"`
 	Display string `json:"display"`
 	SHA256  string `json:"sha256"`
-	// Data is the file, base64, when it fits the call's budget: then other devices can see it.
+	// Data is the file, base64, when it fits the call's budget and the server has no store: then other devices can see it.
 	Data string `json:"data,omitempty"`
+	// Stored: the file went to the object store, and other devices read it from there by SHA256.
+	Stored bool `json:"stored,omitempty"`
 }
 
-// SendUserFile surfaces files as cards in the transcript. The frontends read them; nothing leaves the session's scope
-// except the small copies that sync with the transcript, like everything else the model reads. Read deny rules hold.
+// SendUserFile surfaces files as cards in the transcript. The frontends read them, on other devices through the object
+// store when the server has one (sensitive paths stay out of it), else through the small copies that sync with the
+// transcript. Read deny rules hold.
 type SendUserFile struct{}
 
 func (*SendUserFile) Name() string                  { return "SendUserFile" }
@@ -174,7 +185,9 @@ func (*SendUserFile) Run(ctx context.Context, env *Env, call Call) Result {
 			display = sentAttachment
 		}
 		f := sentFile{Name: filepath.Base(p), Path: p, Size: int64(len(data)), Mime: SentFileMime(p, data), Kind: kind, Display: display, SHA256: hex.EncodeToString(sum[:])}
-		if len(data) <= budget {
+		if env.Objects != nil && env.Objects.Available() {
+			f.Stored = env.Objects.AddSentFile(env.SessionID, p, f.Mime, data)
+		} else if len(data) <= budget {
 			budget -= len(data)
 			f.Data = base64.StdEncoding.EncodeToString(data)
 		}
@@ -198,7 +211,7 @@ func (*SendUserFile) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	var localOnly []string
 	for _, f := range files {
-		if f.Data == "" {
+		if f.Data == "" && !f.Stored {
 			localOnly = append(localOnly, f.Name)
 		}
 	}

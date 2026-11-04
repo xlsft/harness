@@ -240,10 +240,16 @@ func cmdServe(ctx context.Context, args []string) int {
 		srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
 		// Settings screens (providers, classifier) reach the server through this client.
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
+		// Frontends read the object store through this client, with a ticket instead of the agent token (<img>, <video>).
+		srv.Objects = server.NewObjectProxy(url, rpc.HTTPClient(url), tokens)
 		// Dictation and read-aloud with the server's global speech providers (local engines need no server).
 		srv.SpeechCore = speech.NewCore(url, rpc.HTTPClient(url), tokens)
 		if srv.RelayOffReason = relay.DisabledReason(*remote, url, tokens != nil); srv.RelayOffReason == "" {
-			relay.Attach(ctx, srv, relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log})
+			o := relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log}
+			if os.Getenv("HARNESS_NO_SYNC") != "1" && tokens != nil {
+				o.Objects = syncclient.SharedObjectQueue(syncclient.NewClient(url, rpc.HTTPClient(url), tokens), log)
+			}
+			relay.Attach(ctx, srv, o)
 		}
 		// Per-user session state (pin, unread, archive, rename) and session deletes go to the server.
 		if os.Getenv("HARNESS_NO_SYNC") != "1" && url != "" && tokens != nil {

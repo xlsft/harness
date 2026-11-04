@@ -160,6 +160,9 @@ type UploaderOptions struct {
 	// ResolveRepo maps a cwd to the normalized repo; default workspace.Repo.
 	ResolveRepo func(ctx context.Context, cwd string) string
 	Logger      *slog.Logger
+	// Objects takes images and documents out of uploaded lines (nil: without a store, images of computer use are
+	// dropped and the rest stay inline).
+	Objects *ObjectQueue
 }
 
 // Uploader uploads local JSONL transcripts to the server. Uploads are
@@ -200,6 +203,9 @@ func NewUploader(o UploaderOptions) *Uploader {
 	}
 	return &Uploader{o: o, log: log, pending: map[string]bool{}, wake: make(chan struct{}, 1)}
 }
+
+// Objects returns the object queue (nil without one).
+func (u *Uploader) Objects() *ObjectQueue { return u.o.Objects }
 
 func statePath(dir, id string) string { return filepath.Join(dir, fileName(id)) }
 
@@ -251,6 +257,7 @@ func Forget(stateDir, sessionID string) error {
 	if stateDir == "" {
 		stateDir = filepath.Join(DefaultDir(), "sessions")
 	}
+	forgetObjects(filepath.Join(filepath.Dir(stateDir), "objects"), sessionID)
 	if err := os.Remove(statePath(stateDir, sessionID)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -525,6 +532,7 @@ func (u *Uploader) Flush(ctx context.Context, sessionID string) error {
 
 // uploadThread uploads the complete lines of one transcript file: the main thread for agentID "", else that subagent's.
 func (u *Uploader) uploadThread(ctx context.Context, st *uploadState, path, agentID string) error {
+	u.o.Objects.Probe(ctx) // what readBatch does with images depends on the answer
 	sessionID := st.SessionID
 	for {
 		offset := st.Offset
@@ -620,7 +628,12 @@ func (u *Uploader) readBatch(sessionID, agentID, path string, startOffset int64)
 			// EOF or a partial last line: stop before it.
 			break
 		}
-		text := scrubComputerUse(strings.TrimRight(string(line), "\r\n"))
+		text := strings.TrimRight(string(line), "\r\n")
+		if u.o.Objects.Available() {
+			text = u.o.Objects.referObjects(sessionID, text)
+		} else {
+			text = scrubComputerUse(text)
+		}
 		if len(text)+256 > u.o.MaxBytes {
 			u.log.Warn("sync: transcript line too large to upload; skipped", "session", sessionID, "bytes", len(text))
 			consumed += int64(len(line))

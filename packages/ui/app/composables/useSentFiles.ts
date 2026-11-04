@@ -1,5 +1,7 @@
 // SendUserFile: opening a file in the side pane and getting its bytes. On the session's machine they come from the file
-// (ReadSentFile); on another device, or when the file is gone, from the copy in the call's result when it has one.
+// (ReadSentFile); on another device, or when the file is gone, from the object store, or from the copy in the call's
+// result when it has one (sent while the server had no store).
+import { fetchObject } from '~/lib/session/objects'
 import { decodeBase64, type SentFile } from '~/lib/session/userTools'
 
 export interface SentFileBytes {
@@ -38,6 +40,7 @@ export function useSentFiles() {
       }
     }
     if (file.data) return { bytes: decodeBase64(file.data), changed: false }
+    if (file.stored) return { bytes: await fetchObject(file), changed: false }
     throw failure
   }
 

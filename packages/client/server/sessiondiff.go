@@ -23,6 +23,7 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
 )
 
@@ -345,8 +346,7 @@ func (b *diffBuilder) findRepos(ctx context.Context) []diffFolder {
 // scratchInternal names what the client itself keeps in a session's scratch directory: output files of background
 // tasks, saved tool results, the shell's state.
 func scratchInternal(rel string) bool {
-	first, _, _ := strings.Cut(rel, "/")
-	return first == "tasks" || first == "tool-results" || strings.HasPrefix(first, "shell-snapshot.") || strings.HasPrefix(first, "cwd-")
+	return strings.HasPrefix(rel, "tool-results/") || rel == "tool-results" || syncclient.ClientScratchFile(rel)
 }
 
 // diffRepo is a repository of the session: top is resolved, root the same directory as the session knows it.

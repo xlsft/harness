@@ -205,7 +205,7 @@ docker exec -it harness psql -U harness harness       # SQL shell (as the app ro
 docker exec -it harness psql -U postgres              # superuser
 docker exec harness /command/s6-rc -a list           # running services
 docker exec harness /command/s6-svc -r /run/service/core   # restart core only
-docker exec harness garage -c /etc/harness/garage/garage.toml status   # object store (needs GARAGE_RPC_SECRET_FILE=/data/objects/rpc_secret)
+docker exec -e GARAGE_RPC_SECRET_FILE=/data/objects/rpc_secret harness garage -c /etc/harness/garage/garage.toml status   # object store
 docker logs -f harness                                # all four processes
 ```
 

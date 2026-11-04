@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // SendUserFile: the files as rows of one card. A file that can be rendered opens in the side pane; every file can be
-// downloaded. A file too large to travel with the transcript is available only on the session's machine.
+// downloaded. Other devices read a file from the object store; one that did not go there (no store on the server and too
+// large to travel with the transcript, or a sensitive path) is available only on the session's machine.
 import type { ToolItem } from '~/lib/session/types'
 import { formatFileSize, sentFilesOf, type SentFile } from '~/lib/session/userTools'
 
@@ -14,7 +15,7 @@ const caption = computed(() => String(props.tool.result?.caption ?? ''))
 const proactive = computed(() => props.tool.result?.status === 'proactive')
 const meta = computed(() => store.sessions[props.sessionId]?.meta)
 // Only the machine that runs the session has the file itself.
-const unavailable = (f: SentFile) => !!meta.value?.remote && !f.data
+const unavailable = (f: SentFile) => !!meta.value?.remote && !f.data && !f.stored
 
 async function save(f: SentFile) {
   try {

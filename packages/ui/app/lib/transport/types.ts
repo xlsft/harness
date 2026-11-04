@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { ObjectTicket } from '~/lib/session/objects'
 import type { ComputerPermissionVM, ComputerProfileVM, ComputerTierName, EffortName, QuestionReply } from '~/lib/session/types'
 import type {
   InitializeResponse,
@@ -267,6 +268,8 @@ export interface SessionTransport {
   // The bytes of a file in the session's scope, for SendUserFile cards (AgentService ReadSentFile). Fails for a session
   // of another machine.
   readSentFile(sessionId: string, path: string): Promise<{ bytes: Uint8Array<ArrayBuffer>, mime: string, sha256: string }>
+  // A ticket for reading the object store through the client (lib/session/objects.ts).
+  createObjectTicket(): Promise<ObjectTicket>
 
   // Dictation and "Read aloud" (~/lib/speech): providers (local engines of the client's machine and the server's
   // global providers), the synced / device settings, transcribe, streamed synthesis, local model downloads, and the

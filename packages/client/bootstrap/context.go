@@ -40,7 +40,7 @@ func startSync(ctx context.Context, o Options, url string, hc *http.Client, toke
 	runCtx, cancel := context.WithCancel(context.Background())
 	go func() { _ = syncer.Run(runCtx) }()
 	host, _ := os.Hostname()
-	up := syncclient.NewUploader(syncclient.UploaderOptions{API: syncer.Client(), DeviceID: deviceID, DeviceName: host, Logger: log})
+	up := syncclient.NewUploader(syncclient.UploaderOptions{API: syncer.Client(), DeviceID: deviceID, DeviceName: host, Logger: log, Objects: syncclient.SharedObjectQueue(syncer.Client(), log)})
 	go func() { _ = up.Run(runCtx) }()
 	return syncer, up, cancel
 }

@@ -85,7 +85,7 @@ export function registerObjectsService(router: ConnectRouter): void {
 
     deleteObject: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      await deleteObject(p, { sha256: req.sha256, session_id: req.sessionId });
+      await deleteObject(p, { sha256: req.sha256, session_id: req.sessionId, kind: KIND_NAME[req.kind], name: req.name });
       return {};
     }),
 

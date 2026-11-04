@@ -287,7 +287,8 @@ function usageOf(u: PbUsage | undefined): Usage {
 export function textOf(blocks: ContentBlock[]): string {
   const parts: string[] = []
   for (const b of blocks) {
-    if (b.block.case === 'text') parts.push(b.block.value.text)
+    // A text with an object stands in for bytes in the object store: it is not something anyone wrote.
+    if (b.block.case === 'text' && !b.block.value.object) parts.push(b.block.value.text)
     else if (b.block.case === 'toolResult') parts.push(textOf(b.block.value.content))
   }
   return parts.join('\n')
@@ -315,6 +316,11 @@ function showTarget(r: ShowRequested): ShowTarget | null {
 
 function userItem(id: string, msg: UserMessage, at: number): TranscriptItem {
   const attachments = msg.content.flatMap((b): Attachment[] => {
+    if (b.block.case === 'text' && b.block.value.object) {
+      const o = b.block.value.object
+      const object = { sha256: o.sha256, size: Number(o.size), mediaType: o.mediaType, name: o.name }
+      return [{ kind: o.mediaType.startsWith('image/') ? 'image' as const : 'document' as const, name: o.name || (o.mediaType.startsWith('image/') ? 'image' : 'document'), mediaType: o.mediaType, size: object.size, object }]
+    }
     if (b.block.case === 'image') return [{ kind: 'image' as const, name: 'image', mediaType: b.block.value.mediaType, size: b.block.value.data.length }]
     if (b.block.case === 'document') return [{ kind: 'document' as const, name: b.block.value.title || 'document', mediaType: b.block.value.mediaType, size: b.block.value.data.length }]
     return []

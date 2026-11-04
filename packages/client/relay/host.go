@@ -76,6 +76,8 @@ type Options struct {
 	HeartbeatInterval time.Duration
 	// MinBackoff / MaxBackoff bound reconnect delays (default 500 ms / 30 s).
 	MinBackoff, MaxBackoff time.Duration
+	// Objects takes images and documents out of events (nil: no store, see scrubDeviceLocal).
+	Objects ObjectSink
 }
 
 // Host is one relay host (one per client process).

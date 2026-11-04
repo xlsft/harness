@@ -3,6 +3,8 @@
 // its own credentials, so "the current device" is the client the UI talks to. Two implementations: connect.ts
 // (the real service through the client) and mock.ts (in memory, for the mock transport).
 
+import { objectUrl, type ObjectRef } from '~/lib/session/objects'
+
 export type AccountRole = 'admin' | 'user'
 
 export interface AccountProfile {
@@ -13,6 +15,8 @@ export interface AccountProfile {
   name: string
   // Avatar as a data URL (usable as an <img> src); '' when none is set.
   image: string
+  // The avatar in the object store, once it has moved there. Show avatarUrl(profile).
+  imageObject?: ObjectRef
   role: AccountRole
   // 'ldap': signs in through the directory; the name and password are managed there.
   source: 'local' | 'ldap'
@@ -60,4 +64,10 @@ export interface AccountApi {
   devices(): Promise<AccountDevice[]>
   // Rejects the current device.
   revokeDevice(deviceId: string): Promise<void>
+}
+
+/** What an <img> shows for a profile: the object store's copy, else the one that came with the profile. */
+export function avatarUrl(p: Pick<AccountProfile, 'image' | 'imageObject'> | null | undefined): string {
+  if (!p) return ''
+  return objectUrl(p.imageObject) || p.image
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Tool call card (Tool.dc.html): bash and TaskOutput (output, running, error), read / glob / Wait rows, grep matches, web results,
 // MCP input / output, edits as diffs (DiffView) and subagents (AgentCard). Output bodies scroll past 320px.
+import { objectUrl } from '~/lib/session/objects'
 import type { ToolItem } from '~/lib/session/types'
 
 // `headless`: just the body, under a row drawn by the parent (an expanded item of a ToolGroup).
@@ -434,7 +435,7 @@ v-for="(tk, j) in highlightJson(tool.result ?? tool.output)"
       <img
         v-for="(img, i) in tool.images"
         :key="i"
-        :src="img.url"
+        :src="img.object ? objectUrl(img.object) : img.url"
         alt="Screenshot of an app"
         class="max-h-[420px] max-w-full self-start border border-default object-contain"
       >

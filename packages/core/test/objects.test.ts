@@ -286,6 +286,10 @@ describe.each(backends)("object store on $name", ({ env }) => {
 
   it("deletes an object explicitly", async () => {
     const { sum } = await upload(token, new TextEncoder().encode("delete me"));
+    // Only the use asked for goes while another one remains.
+    await upload(token, new TextEncoder().encode("delete me"), use({ name: "second.bin" }));
+    await api.deleteObject({ sha256: sum, sessionId: "ses_a", kind: ObjectKind.SCRATCH, name: "second.bin" });
+    expect((await get(sum, token)).status).toBe(200);
     await api.deleteObject({ sha256: sum });
     expect((await get(sum, token)).status).toBe(404);
     await expect(api.deleteObject({ sha256: sum })).rejects.toThrow(/not found/i);

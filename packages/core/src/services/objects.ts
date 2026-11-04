@@ -308,12 +308,16 @@ async function dropUnreferenced(owner: string, sha256s: Iterable<string>): Promi
   }
 }
 
-export async function deleteObject(p: Principal, input: { sha256: string; session_id?: string }): Promise<void> {
+export async function deleteObject(p: Principal, input: { sha256: string; session_id?: string; kind?: ObjectKindName; name?: string }): Promise<void> {
   await ensureDb();
   checkSha256(input.sha256);
   const o = schema.storedObject;
   const where = [eq(o.ownerId, p.user.id), eq(o.sha256, input.sha256)];
-  if (input.session_id) where.push(eq(o.sessionId, input.session_id));
+  if (input.session_id) {
+    where.push(eq(o.sessionId, input.session_id));
+    if (input.kind) where.push(eq(o.kind, input.kind));
+    if (input.name) where.push(eq(o.name, input.name));
+  }
   const rows = await getDb().delete(o).where(and(...where)).returning({ sha256: o.sha256 });
   if (!rows.length) throw new ApiError("not_found", `Object ${input.sha256} not found`);
   await dropUnreferenced(p.user.id, [input.sha256]);

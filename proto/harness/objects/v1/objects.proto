@@ -120,8 +120,12 @@ message ListSessionObjectsResponse {
 
 message DeleteObjectRequest {
   string sha256 = 1;
-  // Empty: every record of the object, everywhere. Else only the records of this session.
+  // Empty: every record of the object, everywhere. Else only the records of this session,
   string session_id = 2;
+  // and when set, of this kind
+  ObjectKind kind = 3;
+  // and name (an earlier version of a scratch file).
+  string name = 4;
 }
 
 message DeleteObjectResponse {}

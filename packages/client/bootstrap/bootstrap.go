@@ -255,6 +255,8 @@ func (s *Session) Close() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		_ = s.Uploader.UpdateMeta(s.ID, func(m *syncclient.SessionMeta) { m.Status = agentv1.SessionStatus_SESSION_STATUS_IDLE })
 		_ = s.Uploader.Flush(ctx, s.ID)
+		s.Uploader.Objects().CloseScratch(s.ID)
+		s.Uploader.Objects().Flush(ctx)
 		cancel()
 	}
 	if s.stopSync != nil {
@@ -645,6 +647,13 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, Cwd: cwd, Worktree: s.Worktree})
 	}
 	trackUpload(ctx, s.Uploader, s, path, branch)
+	if s.Uploader != nil {
+		// A nil queue must not become a non-nil interface.
+		if q := s.Uploader.Objects(); q != nil {
+			s.ToolEnv.Objects = q
+			_ = q.TrackScratch(s.ID, s.ToolEnv.ScratchDir)
+		}
+	}
 	onEvent := o.OnEvent
 	if s.Uploader != nil {
 		up, id := s.Uploader, s.ID

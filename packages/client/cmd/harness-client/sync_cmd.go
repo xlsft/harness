@@ -90,7 +90,8 @@ func runSync(args []string) int {
 		fmt.Printf("  %-28s %d\n", k, counts[k])
 	}
 
-	up := syncclient.NewUploader(syncclient.UploaderOptions{API: s.Client(), DeviceID: deviceID, DeviceName: deviceName, Logger: log})
+	objects := syncclient.SharedObjectQueue(s.Client(), log)
+	up := syncclient.NewUploader(syncclient.UploaderOptions{API: s.Client(), DeviceID: deviceID, DeviceName: deviceName, Logger: log, Objects: objects})
 	failed := 0
 	pending := up.Pending()
 	for _, id := range pending {
@@ -101,6 +102,10 @@ func runSync(args []string) int {
 	}
 	if len(pending) > 0 {
 		fmt.Printf("sessions: %d uploaded, %d pending\n", len(pending)-failed, failed)
+	}
+	objects.Flush(ctx)
+	if n := objects.Pending(); n > 0 {
+		fmt.Printf("objects: %d pending\n", n)
 	}
 	if !*watch {
 		if failed > 0 {
