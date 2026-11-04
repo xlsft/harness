@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { takeShowRequest } from '~/composables/useShow'
 import { createSessionState, reduceAll } from '~/lib/session/reducer'
 import { EventBuilder } from '~/lib/transport/events'
-import { showLabel, showPane, showTargetOf } from '~/utils/show'
+import { showLabel, showPane, showPaneTitle, showTargetOf, terminalTargetOf } from '~/utils/show'
 
 const T0 = Date.parse('2026-11-02T12:00:00Z')
 
@@ -40,6 +40,16 @@ describe('takeShowRequest', () => {
     expect(takeShowRequest(null, [])).toBeNull()
     expect(takeShowRequest(req, ['t0'])).toEqual(['t0', 't1'])
     expect(takeShowRequest(req, ['t0', 't1'])).toBeNull()
+  })
+
+  it('knows the tab of a terminal tool', () => {
+    const target = terminalTargetOf({ tab_id: 'term_1', title: 'dev' })
+    expect(target).toEqual({ kind: 'terminal', terminalId: 'term_1' })
+    expect(showPane(target!)).toBe('terminal')
+    expect(showPaneTitle('terminal')).toBe('Terminal')
+    expect(showLabel(target!, '/p')).toBe('Terminal tab')
+    expect(terminalTargetOf({ tabs: [] })).toBeNull()
+    expect(terminalTargetOf(null)).toBeNull()
   })
 
   it('keeps a bounded list of applied ids', () => {

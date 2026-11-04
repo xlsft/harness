@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "cwd": {
+      "type": "string",
+      "description": "Absolute path of the directory to start in, inside the working directories"
+    },
+    "title": {
+      "type": "string",
+      "description": "The tab's short title; by default the directory's name"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": [
+    "description"
+  ],
+  "additionalProperties": false
+}

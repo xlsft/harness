@@ -1179,6 +1179,10 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 					req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
 				}
 			}
+			if sc, ok := t.(tools.ShellChecked); ok {
+				req.ToolName = "Bash"
+				req.Command, req.Cwd = sc.ShellCheck(a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: u.Input})
+			}
 			req.SessionID, req.RecentUserMessages, req.Rationale = a.cfg.SessionID, a.recentPrompts(), rationale[u.ID]
 			d := a.cfg.Permissions.Check(ctx, req)
 			if ctx.Err() != nil {

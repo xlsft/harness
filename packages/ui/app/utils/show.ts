@@ -1,14 +1,15 @@
-// Targets of the Show tool (ShowRequested events and Show tool calls): what to open, in which pane, and its label.
+// Targets of the Show tool and the terminal tools (ShowRequested events and those tool calls): what to open, in which
+// pane, and its label.
 import type { ShowTarget } from '~/lib/session/types'
 import type { PaneName } from '~/composables/usePanes'
 
 export function showPane(t: ShowTarget): PaneName {
-  return t.kind === 'file' ? 'files' : t.kind === 'diff' ? 'diff' : 'browser'
+  return t.kind === 'file' ? 'files' : t.kind === 'diff' ? 'diff' : t.kind === 'terminal' ? 'terminal' : 'browser'
 }
 
 /** The pane's title, as the client names it in the tool result ("Opened … in the Files pane"). */
 export function showPaneTitle(kind: ShowTarget['kind']): string {
-  return kind === 'file' ? 'Files' : kind === 'diff' ? 'Changes' : 'Browser'
+  return kind === 'file' ? 'Files' : kind === 'diff' ? 'Changes' : kind === 'terminal' ? 'Terminal' : 'Browser'
 }
 
 const relativeTo = (cwd: string, path: string) => {
@@ -21,10 +22,17 @@ const absoluteIn = (cwd: string, path: string) => path.startsWith('/') || !cwd ?
 /** "src/x.go:10-20", "Diff src/x.go", "Diff", or the URL. */
 export function showLabel(t: ShowTarget, cwd: string): string {
   if (t.kind === 'url') return t.url
+  if (t.kind === 'terminal') return 'Terminal tab'
   if (t.kind === 'diff') return t.path ? `Diff ${relativeTo(cwd, t.path)}` : 'Diff'
   const p = relativeTo(cwd, t.path)
   if (t.lineEnd > t.lineStart) return `${p}:${t.lineStart}-${t.lineEnd}`
   return t.lineStart > 0 ? `${p}:${t.lineStart}` : p
+}
+
+/** The tab a terminal tool's result names (TerminalRun, TerminalOpen, TerminalRead, TerminalStop). */
+export function terminalTargetOf(result: Record<string, unknown> | null | undefined): ShowTarget | null {
+  const id = result?.tab_id
+  return typeof id === 'string' && id ? { kind: 'terminal', terminalId: id } : null
 }
 
 const int = (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v > 0 ? v : 0

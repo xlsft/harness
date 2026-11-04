@@ -491,6 +491,8 @@ const (
 	ShowRequested_KIND_DIFF ShowRequested_Kind = 2
 	// A web page: `url` (http or https).
 	ShowRequested_KIND_URL ShowRequested_Kind = 3
+	// A tab of the Terminal pane: `terminal_id`.
+	ShowRequested_KIND_TERMINAL ShowRequested_Kind = 4
 )
 
 // Enum value maps for ShowRequested_Kind.
@@ -500,12 +502,14 @@ var (
 		1: "KIND_FILE",
 		2: "KIND_DIFF",
 		3: "KIND_URL",
+		4: "KIND_TERMINAL",
 	}
 	ShowRequested_Kind_value = map[string]int32{
 		"KIND_UNSPECIFIED": 0,
 		"KIND_FILE":        1,
 		"KIND_DIFF":        2,
 		"KIND_URL":         3,
+		"KIND_TERMINAL":    4,
 	}
 )
 
@@ -4478,8 +4482,8 @@ func (x *PermissionModeChanged) GetMode() PermissionMode {
 	return PermissionMode_PERMISSION_MODE_UNSPECIFIED
 }
 
-// Emitted when the model calls Show: a frontend viewing the session opens the matching pane (Files, Diff
-// or Browser) and brings the target into view. It only opens; nothing changes. Frontends apply it once,
+// Emitted when the model calls Show or starts something in a terminal tab: a frontend viewing the session opens
+// the matching pane (Files, Diff, Browser or Terminal) and brings the target into view. It only opens; nothing changes. Frontends apply it once,
 // when the session is open: a request for a session that is not open waits until the user opens it.
 // Transcript replays do not emit it (the Show tool call carries the same target).
 type ShowRequested struct {
@@ -4492,6 +4496,7 @@ type ShowRequested struct {
 	LineStart     int32  `protobuf:"varint,4,opt,name=line_start,json=lineStart,proto3" json:"line_start,omitempty"`
 	LineEnd       int32  `protobuf:"varint,5,opt,name=line_end,json=lineEnd,proto3" json:"line_end,omitempty"`
 	Url           string `protobuf:"bytes,6,opt,name=url,proto3" json:"url,omitempty"`
+	TerminalId    string `protobuf:"bytes,7,opt,name=terminal_id,json=terminalId,proto3" json:"terminal_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4564,6 +4569,13 @@ func (x *ShowRequested) GetLineEnd() int32 {
 func (x *ShowRequested) GetUrl() string {
 	if x != nil {
 		return x.Url
+	}
+	return ""
+}
+
+func (x *ShowRequested) GetTerminalId() string {
+	if x != nil {
+		return x.TerminalId
 	}
 	return ""
 }
@@ -10245,7 +10257,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0eTRIGGER_REWIND\x10\x03\x12\x10\n" +
 	"\fTRIGGER_IDLE\x10\x04\"M\n" +
 	"\x15PermissionModeChanged\x124\n" +
-	"\x04mode\x18\x01 \x01(\x0e2 .harness.agent.v1.PermissionModeR\x04mode\"\x93\x02\n" +
+	"\x04mode\x18\x01 \x01(\x0e2 .harness.agent.v1.PermissionModeR\x04mode\"\xc7\x02\n" +
 	"\rShowRequested\x12\x1e\n" +
 	"\vtool_use_id\x18\x01 \x01(\tR\ttoolUseId\x128\n" +
 	"\x04kind\x18\x02 \x01(\x0e2$.harness.agent.v1.ShowRequested.KindR\x04kind\x12\x12\n" +
@@ -10253,12 +10265,15 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"line_start\x18\x04 \x01(\x05R\tlineStart\x12\x19\n" +
 	"\bline_end\x18\x05 \x01(\x05R\alineEnd\x12\x10\n" +
-	"\x03url\x18\x06 \x01(\tR\x03url\"H\n" +
+	"\x03url\x18\x06 \x01(\tR\x03url\x12\x1f\n" +
+	"\vterminal_id\x18\a \x01(\tR\n" +
+	"terminalId\"[\n" +
 	"\x04Kind\x12\x14\n" +
 	"\x10KIND_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tKIND_FILE\x10\x01\x12\r\n" +
 	"\tKIND_DIFF\x10\x02\x12\f\n" +
-	"\bKIND_URL\x10\x03\"\xad\x01\n" +
+	"\bKIND_URL\x10\x03\x12\x11\n" +
+	"\rKIND_TERMINAL\x10\x04\"\xad\x01\n" +
 	"\vUserMessage\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x126\n" +
 	"\acontent\x18\x02 \x03(\v2\x1c.harness.llm.v1.ContentBlockR\acontent\x12!\n" +

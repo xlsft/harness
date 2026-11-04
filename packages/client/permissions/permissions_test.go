@@ -270,6 +270,20 @@ func TestEngineRules(t *testing.T) {
 	}
 }
 
+// TerminalRun is checked as Bash, so a rule that removes Bash must not leave it on the tool list.
+func TestBareBashDenyRemovesTerminalRun(t *testing.T) {
+	e := New(Config{Cwd: t.TempDir(), Deny: []string{"Bash"}})
+	if !e.IsDisabled("TerminalRun") {
+		t.Fatal("deny Bash leaves TerminalRun")
+	}
+	if e.IsDisabled("TerminalRead") {
+		t.Fatal("reading a terminal is not running anything")
+	}
+	if e = New(Config{Cwd: t.TempDir(), Deny: []string{"Bash(rm *)"}}); e.IsDisabled("TerminalRun") {
+		t.Fatal("a rule with a pattern keeps the tool")
+	}
+}
+
 type fixedAsker struct {
 	d    Decision
 	last *Request

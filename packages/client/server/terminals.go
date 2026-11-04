@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/xlsft/harness/packages/client/agent"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/terminal"
@@ -30,8 +31,41 @@ func (s *Server) terminals() *terminal.Manager {
 		if s.terms == nil {
 			s.terms = &terminal.Manager{}
 		}
+		s.terms.OnRunFinished = s.onTerminalRunFinished
+		s.terms.Refuse = s.refuseTerminals
 	})
 	return s.terms
+}
+
+// onTerminalRunFinished tells the session's model that a command it started in a tab has ended, in its next request,
+// which the end starts itself when the session is idle (like a background task). The session is looked up now, so a
+// tab that outlived the agent it started with (a resume) still reaches the model.
+func (s *Server) onTerminalRunFinished(f terminal.RunFinished) {
+	s.mu.Lock()
+	ls := s.live[f.SessionID]
+	s.mu.Unlock()
+	if ls == nil {
+		return
+	}
+	ls.sess.Agent.Remind(agent.ReminderTerminalDone, map[string]string{
+		"tab_id": f.TerminalID, "title": f.Title, "command": truncateRunes(f.Command, 200), "status": f.Status, "tail": f.TailBlock(),
+	})
+	ls.driver.Wake()
+}
+
+// refuseTerminals says why an agent cannot use terminals: its session runs on another machine, and terminals are
+// local to the machine they run on.
+func (s *Server) refuseTerminals(id string) error {
+	s.mu.Lock()
+	ls := s.live[id]
+	s.mu.Unlock()
+	if ls != nil {
+		return nil
+	}
+	if remote := s.remoteInfo(id); remote != nil {
+		return fmt.Errorf("session %s runs on %s; terminals are local to the machine they run on and are only available for sessions of this machine", id, deviceLabel(remote))
+	}
+	return nil
 }
 
 // registerTerminalSocket serves the terminal WebSocket on mux; requests with an Origin header must come from

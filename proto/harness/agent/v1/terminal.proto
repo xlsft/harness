@@ -16,6 +16,8 @@ package harness.agent.v1;
 // A terminal belongs to a session of this machine or is standalone. It keeps running when the UI disconnects
 // (reattach with AttachTerminal) and ends when it is killed, when its session is closed, or when the client stops.
 // Sessions of other machines (SessionInfo.remote) cannot have terminals here: FAILED_PRECONDITION.
+// The session's agent shares its terminals through the Terminal* tools; a tab it starts comes up in the pane through
+// ShowRequested KIND_TERMINAL.
 
 message TerminalInfo {
   string terminal_id = 1;

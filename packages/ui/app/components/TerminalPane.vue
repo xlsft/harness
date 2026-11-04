@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Terminal pane: the session's terminals as tabs, each a real shell on this computer (TerminalView, the client's
 // PTY). Terminals keep running when the pane closes and come back when it opens; closing a tab kills its shell.
-// "+" and "Open in terminal" (useTerminalRequests) start new ones; an exited shell can be restarted in place.
+// "+" and "Open in terminal" (useTerminalRequests) start new ones; an exited shell can be restarted in place. The agent
+// shares these tabs: a tab it started comes up through a Show target ('terminal').
 import { usePanes } from '~/composables/usePanes'
 import type { SessionState } from '~/lib/session/types'
 import type { TerminalConnectionState } from '~/lib/terminal/connection'
@@ -14,6 +15,7 @@ const store = useSessionStore()
 const toast = useToast()
 const { closePane } = usePanes()
 const { request } = useTerminalRequests()
+const { target: showTarget } = useShow()
 
 interface Tab { info: TerminalInfo, ticket?: string, exitCode?: number, state?: TerminalConnectionState }
 const tabs = ref<Tab[]>([])
@@ -38,13 +40,20 @@ async function create(cwd?: string) {
   }
 }
 
+const asTab = (info: TerminalInfo): Tab => ({ info, exitCode: info.running ? undefined : info.exitCode })
+
 // The session's terminals that still exist (they outlive the pane); a new one when there are none.
+let loaded = false
+let wanted = ''
 async function load() {
+  loaded = false
   if (!store.transport || remote.value) return
   try {
     const list = await store.whenOpen(props.session.meta.id, () => store.transport!.terminals().list(props.session.meta.id))
-    tabs.value = list.map(info => ({ info, exitCode: info.running ? undefined : info.exitCode }))
+    tabs.value = list.map(asTab)
     selected.value = tabs.value.at(-1)?.info.id ?? ''
+    loaded = true
+    if (wanted) await reveal(wanted)
     if (!tabs.value.length && !request.value) await create()
   } catch (e) {
     error.value = message(e)
@@ -52,6 +61,25 @@ async function load() {
 }
 onMounted(load)
 watch(() => props.session.meta.id, load)
+
+// Brings up a tab the agent started or a tool row links to: it may be newer than the list, or long gone.
+async function reveal(id: string) {
+  wanted = ''
+  if (!tabs.value.some(t => t.info.id === id) && store.transport) {
+    const list = await store.whenOpen(props.session.meta.id, () => store.transport!.terminals().list(props.session.meta.id))
+    for (const info of list) {
+      if (!tabs.value.some(t => t.info.id === info.id)) tabs.value.push(asTab(info))
+    }
+  }
+  if (tabs.value.some(t => t.info.id === id)) selected.value = id
+  else toast.add({ title: 'That terminal tab has ended', color: 'neutral' })
+}
+watch(showTarget, (t) => {
+  if (t?.kind !== 'terminal') return
+  showTarget.value = null
+  if (loaded) reveal(t.terminalId).catch(e => error.value = message(e))
+  else wanted = t.terminalId
+}, { immediate: true })
 
 watch(request, (r) => {
   if (r) {

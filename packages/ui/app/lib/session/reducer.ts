@@ -274,6 +274,7 @@ function showTarget(r: ShowRequested): ShowTarget | null {
     case ShowRequested_Kind.FILE: return r.path ? { kind: 'file', path: r.path, lineStart: r.lineStart, lineEnd: r.lineEnd } : null
     case ShowRequested_Kind.DIFF: return { kind: 'diff', path: r.path }
     case ShowRequested_Kind.URL: return r.url ? { kind: 'url', url: r.url } : null
+    case ShowRequested_Kind.TERMINAL: return r.terminalId ? { kind: 'terminal', terminalId: r.terminalId } : null
     default: return null
   }
 }

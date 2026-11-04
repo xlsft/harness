@@ -50,7 +50,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderTerminalDone {
 			if id == "environment_changed" {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}
@@ -89,6 +89,9 @@ func (a *Agent) SetInteractor(ia tools.Interactor) {
 	a.interactor = ia
 	a.mu.Unlock()
 }
+
+// ReminderTerminalDone tells the model that a command it typed into a terminal tab has ended.
+const ReminderTerminalDone = "terminal_command_done"
 
 // Background task completion notice: the tail of the output it carries.
 const (

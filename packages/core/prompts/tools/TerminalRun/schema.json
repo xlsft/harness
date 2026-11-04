@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "The shell command line to type and submit"
+    },
+    "tab_id": {
+      "type": "string",
+      "description": "The tab to type into; leave it out to open a new tab"
+    },
+    "title": {
+      "type": "string",
+      "description": "For a new tab: its short title, such as dev server"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": [
+    "command",
+    "description"
+  ],
+  "additionalProperties": false
+}

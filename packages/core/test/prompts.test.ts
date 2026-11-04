@@ -24,7 +24,7 @@ describe("bundle builder", () => {
       "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
       "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
-      "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
+      "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
     const reminders: Record<string, string[]> = {
@@ -40,6 +40,7 @@ describe("bundle builder", () => {
       plan_approved: ["plan_file_path"],
       plan_rejected: ["feedback"],
       background_task_done: ["task_id", "command", "status", "tail", "output_path"],
+      terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
       compacted: [],
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],
@@ -133,6 +134,12 @@ describe("bundle builder", () => {
       if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
+    expect(props("TerminalRead")).toEqual(["tab_id", "lines", "wait_for_output_ms", "description"]);
+    expect(props("TerminalRun")).toEqual(["command", "tab_id", "title", "description"]);
+    expect(b.tools.TerminalRun!.input_schema.required).toEqual(["command", "description"]);
+    expect(b.tools.TerminalStop!.input_schema.required).toEqual(["tab_id", "description"]);
+    for (const n of ["TerminalRead", "TerminalRun"]) expect(b.tools[n]!.description).toMatch(/untrusted/i);
+    expect(b.tools.TerminalRun!.description).toMatch(/same permission/);
     expect(b.tools.Visual!.description).toMatch(/harness\.send/);
     expect(props("TaskOutput")).toEqual(["task_id", "offset", "block", "pattern", "timeout", "description"]);
     expect(b.tools.TaskOutput!.input_schema.required).toEqual(["task_id", "description"]);

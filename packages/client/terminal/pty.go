@@ -30,3 +30,15 @@ type startSpec struct {
 	Env        []string
 	Cols, Rows uint16
 }
+
+// inspector is implemented where the PTY can tell what runs in it (not on Windows).
+type inspector interface {
+	// foregroundGroup is the process group that owns the terminal; the shell's own pid while it waits at its prompt.
+	foregroundGroup() (int, error)
+	// signalGroup sends the group an interrupt (stage 0), a termination request (1) or a kill (2).
+	signalGroup(pgid, stage int) error
+	// groupCommand is the command line of the group's leader ("" when unknown).
+	groupCommand(pgid int) string
+	// currentDir is the shell's current directory ("" when unknown).
+	currentDir() string
+}

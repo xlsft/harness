@@ -74,6 +74,13 @@ type PermissionHinter interface {
 	PermissionHints(ctx context.Context, env *Env, call Call) PermissionHints
 }
 
+// ShellChecked is implemented by tools that run a shell command somewhere else than the Bash tool does (a terminal
+// tab). The permission check treats the call as Bash with this command and working directory: the same rules, the
+// same classification, the same prompt. The tool's input must carry the command in `command`, as Bash's does.
+type ShellChecked interface {
+	ShellCheck(env *Env, call Call) (command, cwd string)
+}
+
 // Call identifies one tool invocation.
 type Call struct {
 	ID    string

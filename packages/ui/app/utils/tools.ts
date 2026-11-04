@@ -20,6 +20,7 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.status === 'error' && t.name === 'Bash') return 'x'
   if (mcpParts(t.name)) return 'box'
   if (t.name.startsWith('Browser')) return 'globe'
+  if (t.name.startsWith('Terminal')) return 'term'
   switch (t.name) {
     case 'Bash':
     case 'TaskOutput': return 'term'
@@ -78,6 +79,7 @@ export function toolTarget(t: ToolItem): string {
     }
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
+    case 'TerminalRun': return String(i.command ?? t.summary)
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':
