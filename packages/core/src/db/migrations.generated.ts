@@ -173,5 +173,18 @@ export const migrations: { id: string; statements: string[] }[] = [
     "statements": [
       "ALTER TABLE \"usage_record\" ADD COLUMN \"priced\" boolean;"
     ]
+  },
+  {
+    "id": "0010_objects",
+    "statements": [
+      "CREATE TABLE \"object_upload\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"owner_id\" text NOT NULL,\n\t\"sha256\" text NOT NULL,\n\t\"size\" bigint NOT NULL,\n\t\"store_upload_id\" text NOT NULL,\n\t\"parts\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"stored_object\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"owner_id\" text NOT NULL,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"kind\" text NOT NULL,\n\t\"name\" text DEFAULT '' NOT NULL,\n\t\"sha256\" text NOT NULL,\n\t\"size\" bigint NOT NULL,\n\t\"content_type\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"stored_object\" ADD CONSTRAINT \"stored_object_owner_id_user_id_fk\" FOREIGN KEY (\"owner_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE UNIQUE INDEX \"object_upload_owner_sha_idx\" ON \"object_upload\" USING btree (\"owner_id\",\"sha256\");",
+      "CREATE INDEX \"object_upload_updated_idx\" ON \"object_upload\" USING btree (\"updated_at\");",
+      "CREATE UNIQUE INDEX \"stored_object_use_idx\" ON \"stored_object\" USING btree (\"owner_id\",\"session_id\",\"kind\",\"sha256\",\"name\");",
+      "CREATE INDEX \"stored_object_owner_sha_idx\" ON \"stored_object\" USING btree (\"owner_id\",\"sha256\");",
+      "CREATE INDEX \"stored_object_session_idx\" ON \"stored_object\" USING btree (\"owner_id\",\"session_id\");"
+    ]
   }
 ];

@@ -1,0 +1,19 @@
+# The bundled object store. One node, no replication: the volume's backups are the second copy (deploy/README.md).
+metadata_dir = "/data/objects/meta"
+data_dir = "/data/objects/data"
+
+# SQLite, not the default LMDB: Garage's manual warns that LMDB corrupts on unclean shutdown and that its files do not move
+# between CPU architectures, and it advises LMDB for clusters that can rebuild a node from the others. This node has no
+# others, and it does not need the speed.
+db_engine = "sqlite"
+metadata_fsync = true
+data_fsync = true
+metadata_auto_snapshot_interval = "24h"
+
+replication_factor = 1
+rpc_bind_addr = "127.0.0.1:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "127.0.0.1:3900"

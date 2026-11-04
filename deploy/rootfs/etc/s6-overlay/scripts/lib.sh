@@ -23,6 +23,14 @@ internal_searxng() {
   esac
 }
 
+# The internal object store runs unless HARNESS_S3_ENDPOINT points somewhere else (an external S3), or is emptied.
+internal_objects() {
+  case "${HARNESS_S3_ENDPOINT:-}" in
+    http://127.0.0.1:3900 | http://127.0.0.1:3900/ | http://localhost:3900 | http://localhost:3900/) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # ensure_dir <path> <user:group> <mode>: create the directory and fix ownership when it is wrong
 # (a fresh named volume is root-owned). The recursive chown runs only on a mismatch.
 ensure_dir() {

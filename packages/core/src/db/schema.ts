@@ -955,3 +955,53 @@ export const relayCommand = pgTable(
     index("relay_command_host_idx").on(t.hostId, t.state),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// Object store (src/services/objects.ts). The bytes live in S3 under u/<owner>/<sha256>.
+// ---------------------------------------------------------------------------
+
+/**
+ * One use of an object: the same bytes in two sessions are two rows and one stored object. session_id "" belongs to no
+ * session (avatars); it has no foreign key because uploads do not wait for the transcript (the sweep removes rows whose
+ * session never arrives).
+ */
+export const storedObject = pgTable(
+  "stored_object",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").notNull().default(""),
+    /** attachment | avatar | scratch | tool_result | image | sent_file */
+    kind: text("kind").notNull(),
+    name: text("name").notNull().default(""),
+    sha256: text("sha256").notNull(),
+    size: int8("size").notNull(),
+    contentType: text("content_type").notNull(),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("stored_object_use_idx").on(t.ownerId, t.sessionId, t.kind, t.sha256, t.name),
+    index("stored_object_owner_sha_idx").on(t.ownerId, t.sha256),
+    index("stored_object_session_idx").on(t.ownerId, t.sessionId),
+  ],
+);
+
+/** A resumable upload in progress: one S3 multipart upload. No foreign key: the sweep must still abort it after its owner is deleted. */
+export const objectUpload = pgTable(
+  "object_upload",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    sha256: text("sha256").notNull(),
+    size: int8("size").notNull(),
+    storeUploadId: text("store_upload_id").notNull(),
+    /** Part etags received so far, by chunk index. */
+    parts: jsonb("parts").notNull().default({}),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [uniqueIndex("object_upload_owner_sha_idx").on(t.ownerId, t.sha256), index("object_upload_updated_idx").on(t.updatedAt)],
+);

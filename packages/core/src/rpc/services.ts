@@ -38,6 +38,7 @@ import { registerRelayService } from "./relay.ts";
 import { registerSearchService } from "./search.ts";
 import { registerSpeechService } from "./speech.ts";
 import { registerSyncService } from "./sync.ts";
+import { registerObjectsService } from "./objects.ts";
 import { registerUsageService } from "./usage.ts";
 import { registerVcsService } from "./vcs.ts";
 import { registerProviderLimitsService } from "./limits.ts";
@@ -72,6 +73,7 @@ function profileToProto(p: Profile) {
     ...userToProto(p),
     username: p.username,
     image: p.image,
+    imageObject: p.image_object ? { sha256: p.image_object.sha256, size: BigInt(p.image_object.size), mediaType: p.image_object.media_type } : undefined,
     source: p.source === "ldap" ? UserSource.LDAP : UserSource.LOCAL,
     createdAt: p.created_at,
     lastSignInAt: p.last_sign_in_at,
@@ -237,6 +239,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   });
 
   registerProviderService(router);
+  registerObjectsService(router);
   registerUsageService(router);
   registerAdminService(router);
   registerSyncService(router);

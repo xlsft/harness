@@ -176,10 +176,11 @@ Everything runs in **one image** under the [s6-overlay](https://github.com/just-
 | `core` | Nitro server: API (Connect), web UI, relay | `:3000` (public); optional h2c gRPC port |
 | `postgres` | Database; `initdb` into `/data/postgres` on first start, migrations applied by core | unix socket only |
 | `searxng` | Default web search provider | `127.0.0.1` only |
+| `objects` | Object store (Garage, S3 API): user files, core is its only client | `127.0.0.1` only |
 
 - s6 starts Postgres first, waits for readiness, then core. SearXNG is independent: search reports itself unhealthy until it is up. Every process restarts on crash. On SIGTERM, core drains, then Postgres shuts down cleanly.
-- All state lives in one volume: `/data/{postgres,attachments,secret}`. A backup is the volume, or `pg_dump` via `docker exec`.
-- Overrides: set `DATABASE_URL` to use an external Postgres (the internal one is then not started), and `HARNESS_SEARXNG_URL` to point at an external SearXNG.
+- All state lives in one volume: `/data/{postgres,objects,core,searxng}`. A backup is the volume, or `pg_dump` plus the object store via `docker exec` (`deploy/README.md`).
+- Overrides: set `DATABASE_URL` to use an external Postgres (the internal one is then not started), `HARNESS_SEARXNG_URL` to point at an external SearXNG, and `HARNESS_S3_ENDPOINT` to use an external S3.
 
 ```bash
 docker run -d --name harness -p 3000:3000 -v harness-data:/data \
@@ -321,7 +322,7 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 - Admin screens: providers, models, prompt registry, users, policies, usage.
 
 ### M4 — Deployment and advanced
-- Single-container image (s6-overlay: core + Postgres + SearXNG, see §1.7), backups, client updates (binary self-update, auto-update on SSH hosts).
+- Single-container image (s6-overlay: core + Postgres + SearXNG + object store, see §1.7), backups, client updates (binary self-update, auto-update on SSH hosts).
 - **Code hosts (`VcsService`):** pluggable providers. Server providers: GitHub (GitHub App, one-click manifest registration, webhooks) and GitLab (gitlab.com and self-managed, OAuth app or access token, webhooks). Device providers: `gh` and `glab` on the client, polling PR/CI for linked sessions and uploading snapshots. PR/MR and CI status on sessions on every device, push on CI failure / review / merge, create/merge PRs through the server, auto-fix of CI failures and review comments via the relay or a daemon-spawned session.
 - Git panels, worktrees, sandbox runtime, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
 - **Artifacts (server-side):** publish/update pages from sessions, comments, artifact databases and assets, artifact types (including a design canvas); rendered in the UI's artifact pane and artifacts page.

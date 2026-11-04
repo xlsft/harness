@@ -9,6 +9,7 @@ import { PullRequestSchema, SessionInfoSchema, type PullRequest_State, type Sess
 import { Mutex } from "../lib/async.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { Principal } from "./devices.ts";
+import { deleteSessionObjects } from "./objects.ts";
 
 export type SessionRow = typeof schema.syncSession.$inferSelect;
 export type EntryRow = typeof schema.syncSessionEntry.$inferSelect;
@@ -243,7 +244,7 @@ export async function getSession(p: Principal, sessionId: string): Promise<Sessi
   return sessionView(await ownedSession(p, sessionId));
 }
 
-/** Deletes a session of the caller with its transcript (entries and PR links cascade). */
+/** Deletes a session of the caller with its transcript (entries and PR links cascade) and its objects. */
 export async function deleteSession(p: Principal, sessionId: string): Promise<void> {
   if (!sessionId) throw new ApiError("invalid_request", "session_id is required");
   await ensureDb();
@@ -255,6 +256,7 @@ export async function deleteSession(p: Principal, sessionId: string): Promise<vo
       .returning({ id: s.id });
     if (!rows.length) throw new ApiError("not_found", `Session ${sessionId} not found`);
   });
+  await deleteSessionObjects(p.user.id, sessionId).catch((err) => console.error("[harness] deleting the objects of a session failed; the sweep will retry", err));
 }
 
 export interface ListSessionsInput {
