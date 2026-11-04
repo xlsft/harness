@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package harness.objects.v1;
+
+import "harness/common/v1/object.proto";
+
+// ObjectsService is served by core, which owns the object store (docs/PLAN.md §1.7): everything users upload and every
+// file the model made for itself. Nothing but core talks to the S3 port; clients write through this service and read
+// through the authenticated HTTP route GET/HEAD /api/objects/<sha256> (ranges, safe content types).
+//
+// Objects are content-addressed per owner: the bytes live once per (owner, sha256), and each use of them (a session, a
+// kind, a name) is one record. A record whose bytes are already stored costs nothing, and the bytes go when the last
+// record does. Deleting a session deletes its records.
+//
+// Upload: StartUpload (answers already_stored when there is nothing to send), UploadChunk for every chunk it does not
+// list as received, FinishUpload. An upload survives a restart of either side: StartUpload of the same sha256 resumes
+// it and says which chunks to skip. Chunks are chunk_size bytes each, the last one is what remains; core checks the
+// whole file against sha256 at FinishUpload.
+service ObjectsService {
+  rpc StartUpload(StartUploadRequest) returns (StartUploadResponse);
+  rpc UploadChunk(UploadChunkRequest) returns (UploadChunkResponse);
+  rpc FinishUpload(FinishUploadRequest) returns (FinishUploadResponse);
+  rpc StatObject(StatObjectRequest) returns (StatObjectResponse);
+  rpc ListSessionObjects(ListSessionObjectsRequest) returns (ListSessionObjectsResponse);
+  rpc DeleteObject(DeleteObjectRequest) returns (DeleteObjectResponse);
+  // The caller's limits and usage. A client also learns from it that the server has a store at all: a server without
+  // this service answers UNIMPLEMENTED or NOT_FOUND, and the client then keeps its files local.
+  rpc GetObjectLimits(GetObjectLimitsRequest) returns (GetObjectLimitsResponse);
+}
+
+enum ObjectKind {
+  OBJECT_KIND_UNSPECIFIED = 0;
+  // Attached to a user message.
+  OBJECT_KIND_ATTACHMENT = 1;
+  OBJECT_KIND_AVATAR = 2;
+  // A file of the session's scratch directory.
+  OBJECT_KIND_SCRATCH = 3;
+  // A tool result saved to a file.
+  OBJECT_KIND_TOOL_RESULT = 4;
+  // An image the model read or captured: browser and computer use screenshots, images read from disk.
+  OBJECT_KIND_IMAGE = 5;
+  // A file of a SendUserFile call.
+  OBJECT_KIND_SENT_FILE = 6;
+}
+
+// One use of an object.
+message ObjectRecord {
+  harness.common.v1.ObjectRef ref = 1;
+  // Empty for what belongs to no session (an avatar).
+  string session_id = 2;
+  ObjectKind kind = 3;
+  // RFC 3339.
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+// The record's fields. session_id may name a session the server does not know yet: uploads don't wait for the
+// transcript (a record whose session never appears is swept after a grace period).
+message ObjectUse {
+  string session_id = 1;
+  ObjectKind kind = 2;
+  string name = 3;
+  // What the bytes are, by the client's reading. The read route never trusts it for rendering.
+  string content_type = 4;
+}
+
+message StartUploadRequest {
+  string sha256 = 1;
+  int64 size = 2;
+  ObjectUse use = 3;
+}
+
+message StartUploadResponse {
+  // Nothing to send: the record was added and is in `record`.
+  bool already_stored = 1;
+  ObjectRecord record = 2;
+  string upload_id = 3;
+  int64 chunk_size = 4;
+  // Chunk indexes (from 0) core already has: skip them.
+  repeated int32 received_chunks = 5;
+}
+
+message UploadChunkRequest {
+  string upload_id = 1;
+  int32 index = 2;
+  bytes data = 3;
+}
+
+message UploadChunkResponse {}
+
+message FinishUploadRequest {
+  string upload_id = 1;
+  ObjectUse use = 2;
+}
+
+message FinishUploadResponse {
+  ObjectRecord record = 1;
+}
+
+message StatObjectRequest {
+  string sha256 = 1;
+}
+
+message StatObjectResponse {
+  // NOT_FOUND when the caller has no such object.
+  harness.common.v1.ObjectRef ref = 1;
+}
+
+message ListSessionObjectsRequest {
+  string session_id = 1;
+  // Default 100, at most 500.
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListSessionObjectsResponse {
+  repeated ObjectRecord records = 1;
+  string next_page_token = 2;
+}
+
+message DeleteObjectRequest {
+  string sha256 = 1;
+  // Empty: every record of the object, everywhere. Else only the records of this session.
+  string session_id = 2;
+}
+
+message DeleteObjectResponse {}
+
+message GetObjectLimitsRequest {}
+
+message GetObjectLimitsResponse {
+  // Largest file core takes.
+  int64 max_file_bytes = 1;
+  // The caller's quota; negative: unlimited.
+  int64 quota_bytes = 2;
+  // Bytes the caller's objects take, each stored object once.
+  int64 used_bytes = 3;
+  int64 chunk_size = 4;
+}

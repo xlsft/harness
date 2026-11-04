@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package harness.common.v1;
+
+// A file in the server's object store, as a transcript, an event or a card names it. Objects are content-addressed per
+// owner, so sha256 is the whole address: the caller's identity decides whose object it is. Bytes come from the
+// authenticated read route (GET /api/objects/<sha256> on core; frontends use GET /objects/<sha256> on their client).
+message ObjectRef {
+  // Lowercase hex.
+  string sha256 = 1;
+  int64 size = 2;
+  string media_type = 3;
+  // File name, when it has one (download name). Not part of the address.
+  string name = 4;
+}

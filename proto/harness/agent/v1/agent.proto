@@ -333,6 +333,20 @@ service AgentService {
   rpc ListDiffBases(ListDiffBasesRequest) returns (ListDiffBasesResponse);
   // One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionFileDiff(GetSessionFileDiffRequest) returns (GetSessionFileDiffResponse);
+
+  // A ticket for reading the object store through this client: GET /objects/<sha256>?ticket=<ticket>. An <img> or a
+  // <video> cannot send the agent token, and frontends never hold server credentials, so the client signs short-lived
+  // read tickets and fetches the bytes with its own. available is false without a server.
+  rpc CreateObjectTicket(CreateObjectTicketRequest) returns (CreateObjectTicketResponse);
+}
+
+message CreateObjectTicketRequest {}
+
+message CreateObjectTicketResponse {
+  bool available = 1;
+  string ticket = 2;
+  // RFC 3339.
+  string expires_at = 3;
 }
 
 enum PermissionMode {
