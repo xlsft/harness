@@ -285,6 +285,12 @@ const (
 	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionDiff RPC.
 	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
+	// AgentServiceUpdateViewerPresenceProcedure is the fully-qualified name of the AgentService's
+	// UpdateViewerPresence RPC.
+	AgentServiceUpdateViewerPresenceProcedure = "/harness.agent.v1.AgentService/UpdateViewerPresence"
+	// AgentServiceReadSentFileProcedure is the fully-qualified name of the AgentService's ReadSentFile
+	// RPC.
+	AgentServiceReadSentFileProcedure = "/harness.agent.v1.AgentService/ReadSentFile"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -514,6 +520,10 @@ type AgentServiceClient interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Whether the user is looking at a session in this frontend; PushNotification stays quiet while they are.
+	UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error)
+	// The bytes of a file in the session's scope, for SendUserFile cards.
+	ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1055,6 +1065,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		updateViewerPresence: connect.NewClient[v1.UpdateViewerPresenceRequest, v1.UpdateViewerPresenceResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateViewerPresenceProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateViewerPresence")),
+			connect.WithClientOptions(opts...),
+		),
+		readSentFile: connect.NewClient[v1.ReadSentFileRequest, v1.ReadSentFileResponse](
+			httpClient,
+			baseURL+AgentServiceReadSentFileProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ReadSentFile")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1148,6 +1170,8 @@ type agentServiceClient struct {
 	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 	setAutoContinue        *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
 	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
+	updateViewerPresence   *connect.Client[v1.UpdateViewerPresenceRequest, v1.UpdateViewerPresenceResponse]
+	readSentFile           *connect.Client[v1.ReadSentFileRequest, v1.ReadSentFileResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1590,6 +1614,16 @@ func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Re
 	return c.getSessionDiff.CallUnary(ctx, req)
 }
 
+// UpdateViewerPresence calls harness.agent.v1.AgentService.UpdateViewerPresence.
+func (c *agentServiceClient) UpdateViewerPresence(ctx context.Context, req *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error) {
+	return c.updateViewerPresence.CallUnary(ctx, req)
+}
+
+// ReadSentFile calls harness.agent.v1.AgentService.ReadSentFile.
+func (c *agentServiceClient) ReadSentFile(ctx context.Context, req *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error) {
+	return c.readSentFile.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1817,6 +1851,10 @@ type AgentServiceHandler interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Whether the user is looking at a session in this frontend; PushNotification stays quiet while they are.
+	UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error)
+	// The bytes of a file in the session's scope, for SendUserFile cards.
+	ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2354,6 +2392,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceUpdateViewerPresenceHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateViewerPresenceProcedure,
+		svc.UpdateViewerPresence,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateViewerPresence")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceReadSentFileHandler := connect.NewUnaryHandler(
+		AgentServiceReadSentFileProcedure,
+		svc.ReadSentFile,
+		connect.WithSchema(agentServiceMethods.ByName("ReadSentFile")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2532,6 +2582,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetAutoContinueHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionDiffProcedure:
 			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateViewerPresenceProcedure:
+			agentServiceUpdateViewerPresenceHandler.ServeHTTP(w, r)
+		case AgentServiceReadSentFileProcedure:
+			agentServiceReadSentFileHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2891,4 +2945,12 @@ func (UnimplementedAgentServiceHandler) SetAutoContinue(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateViewerPresence is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ReadSentFile is not implemented"))
 }

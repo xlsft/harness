@@ -12,6 +12,7 @@ import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/terminal.proto";
+import "harness/agent/v1/user_tools.proto";
 import "harness/llm/v1/content.proto";
 
 // AgentService is served by the local client (packages/client) to frontends:
@@ -271,6 +272,13 @@ service AgentService {
   // What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
   // FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
+
+  // --- Tools that reach the user (user_tools.proto) ---
+
+  // Whether the user is looking at a session in this frontend; PushNotification stays quiet while they are.
+  rpc UpdateViewerPresence(UpdateViewerPresenceRequest) returns (UpdateViewerPresenceResponse);
+  // The bytes of a file in the session's scope, for SendUserFile cards.
+  rpc ReadSentFile(ReadSentFileRequest) returns (ReadSentFileResponse);
 }
 
 enum PermissionMode {
@@ -647,6 +655,8 @@ message SessionEvent {
     // The agent acting in the session's browser (browser.proto), for the Browser pane's overlay; numbered
     // apart like the shell events.
     BrowserAction browser_action = 60;
+    // A notification for the user (user_tools.proto), from the PushNotification tool.
+    UserNotification user_notification = 70;
   }
 }
 

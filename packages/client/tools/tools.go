@@ -104,6 +104,11 @@ type Env struct {
 	RipgrepPath string
 	// BeforeEdit is called before a file tool modifies path (checkpoints).
 	BeforeEdit func(path string)
+	// ReadDenied reports whether a permission rule denies reading path (nil: none does).
+	ReadDenied func(path string) bool
+
+	push     pushThrottle
+	findings findingsState
 
 	mu   sync.Mutex
 	host Host
@@ -237,7 +242,8 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{},
+		&PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{})
 }
 
 // Register adds or replaces a tool.

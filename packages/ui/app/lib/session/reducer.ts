@@ -770,6 +770,10 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    case 'userNotification':
+      s.userNotification = { id: e.value.id, title: e.value.title, body: e.value.body, at }
+      break
+
     case 'browserAction': {
       const a = actionView(e.value)
       if (a.phase === 'started') {

@@ -435,6 +435,8 @@ type Conversation struct {
 	// Todos is the input of the last TodoWrite call on the active branch
 	// (followed across compactions); nil when there is none.
 	Todos json.RawMessage
+	// Findings is the structured result of the last ReportFindings call on the active branch.
+	Findings json.RawMessage
 	// Snapshots are the file-history snapshots (last record per message id),
 	// in creation order.
 	Snapshots []FileSnapshot
@@ -532,10 +534,23 @@ func Rebuild(entries []Entry) Conversation {
 		}
 	}
 	extended := ActiveChain(entries, true)
+	findingCalls := map[string]bool{}
 	for _, e := range extended {
 		c.Chain = append(c.Chain, e.UUID)
+		if e.Type == TypeUser && e.ToolUseResult != nil && len(findingCalls) > 0 {
+			for _, b := range e.Blocks() {
+				if b.Type == llm.BlockToolResult && findingCalls[b.ToolUseID] {
+					if raw, err := json.Marshal(e.ToolUseResult); err == nil {
+						c.Findings = raw
+					}
+				}
+			}
+		}
 		if e.Type == TypeAssistant {
 			for _, b := range e.Blocks() {
+				if b.Type == llm.BlockToolUse && b.Name == "ReportFindings" {
+					findingCalls[b.ID] = true
+				}
 				if b.Type == llm.BlockToolUse && b.Name == "TodoWrite" {
 					var in struct {
 						Todos json.RawMessage `json:"todos"`

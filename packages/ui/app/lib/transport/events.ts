@@ -226,6 +226,10 @@ export class EventBuilder {
     return this.emit({ case: 'showRequested', value: value as never })
   }
 
+  userNotification(id: string, title: string, body: string) {
+    return this.emit({ case: 'userNotification', value: { id, title, body } as never })
+  }
+
   queue(messages: { uuid: string, text: string, queuedAt?: number, held?: boolean }[]) {
     return this.emit({ case: 'queueChanged', value: { queued: messages.map(m => ({ uuid: m.uuid, content: [text(m.text)], queuedAt: m.queuedAt ? new Date(m.queuedAt).toISOString() : '', held: !!m.held })) } as never })
   }

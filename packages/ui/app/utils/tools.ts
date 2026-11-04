@@ -35,6 +35,10 @@ export function toolIcon(t: ToolItem): IconName {
     case 'WebFetch': return 'web-search'
     case 'Task':
     case 'Agent': return 'agent'
+    case 'PushNotification':
+    case 'ReadNotifications': return 'alert'
+    case 'SendUserFile': return 'file'
+    case 'ReportFindings': return 'search'
     case 'Show': return t.input.target === 'url' ? 'globe' : t.input.target === 'diff' ? 'diff' : 'file'
     default: return 'box'
   }
@@ -76,6 +80,8 @@ export function toolTarget(t: ToolItem): string {
       const target = showTargetOf(i, null, '')
       return target ? showLabel(target, '') : t.summary
     }
+    case 'PushNotification': return String(i.title ?? t.summary)
+    case 'SendUserFile': return Array.isArray(i.files) ? i.files.join(', ') : t.summary
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)

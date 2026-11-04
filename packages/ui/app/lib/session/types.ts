@@ -373,6 +373,14 @@ export interface BrowserActionOverlay extends BrowserActionVM {
   step: number
 }
 
+export interface UserNotificationVM {
+  // The tool call's id.
+  id: string
+  title: string
+  body: string
+  at: number
+}
+
 export interface SessionState {
   meta: SessionMeta
   // The client's event log that lastSeq counts in (SubscribeResponse.log_id); empty until a stream said it.
@@ -403,6 +411,8 @@ export interface SessionState {
   pendingPlan: string | null
   // The latest Show request not yet followed by a user message; the UI opens it once the session is open.
   showRequest: ShowRequest | null
+  // The latest PushNotification that went out (useUserNotifications shows it).
+  userNotification?: UserNotificationVM
   // The latest usage-limit state of the session's provider; undefined until one was reported.
   usageLimit?: UsageLimitVM
   // The history is being replayed (first open): the transcript waits for it.

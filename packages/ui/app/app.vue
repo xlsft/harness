@@ -13,6 +13,7 @@ useSeoMeta({
 const store = useSessionStore()
 const desktop = isDesktop()
 useTurnNotifications()
+useUserNotifications()
 // Keep computer awake (Tools menu, desktop): the computer stays up while a session that has it on is working.
 const awakeSessions = useState<string[]>('keep-awake', () => [])
 watch(() => awakeSessions.value.some(id => store.isBusy(id)), on => void keepAwake(on).catch(() => {}), { immediate: true })

@@ -42,6 +42,8 @@ type liveSession struct {
 	driver *agent.Driver
 	hub    *hub
 	files  fileCache
+	// Who looks at the session (UpdateViewerPresence).
+	presence viewerPresence
 
 	// infoMu orders SessionUpdated events: the snapshot is taken and
 	// published under it, so an older snapshot never follows a newer one.

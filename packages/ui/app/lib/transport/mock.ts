@@ -1090,6 +1090,13 @@ export class MockTransport implements SessionTransport {
     return this.filesApi
   }
 
+  async updateViewerPresence() {}
+
+  // The mock has no disk: cards fall back to the copy in the call's result.
+  async readSentFile(_sessionId: string, path: string): Promise<{ bytes: Uint8Array<ArrayBuffer>, mime: string, sha256: string }> {
+    throw new Error(`[not_found] ${path}`)
+  }
+
   // As the client measures it: the mock has no disk, so its "disk" is what the session's Edit / Write calls reported
   // (later reports of a file add to the earlier ones) and what MockFilesApi.write changed.
   async sessionDiff(sessionId: string, opts: { ifNoneMatch?: string } = {}): Promise<SessionDiff> {

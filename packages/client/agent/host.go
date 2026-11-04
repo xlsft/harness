@@ -129,6 +129,35 @@ func (a *Agent) OnTaskEvent(e tools.TaskEvent) {
 	}
 }
 
+// ReminderNotifications tells the model that notifications wait for ReadNotifications.
+const ReminderNotifications = "notifications_pending"
+
+// OnNotification hears about notifications queued for this session (tools.Notify): a reminder for the next model
+// request, and a turn when the session is idle. A bundle without the reminder (an older server) has no way to read them
+// either, so they stay queued.
+func (a *Agent) OnNotification() {
+	if b := a.Bundle(); b == nil || b.Reminders[ReminderNotifications] == "" {
+		return
+	}
+	a.Remind(ReminderNotifications, nil)
+	a.mu.Lock()
+	wake := a.wake
+	a.mu.Unlock()
+	if wake != nil {
+		go wake()
+	}
+}
+
+// WakeIfNotified starts a turn when notifications were queued before the session opened.
+func (a *Agent) WakeIfNotified() {
+	a.mu.Lock()
+	wake := a.wake
+	a.mu.Unlock()
+	if wake != nil && tools.HasNotifications(a.cfg.SessionID) {
+		go wake()
+	}
+}
+
 // SetWake sets what starts a turn for a notification while the session is idle (Driver.Wake).
 func (a *Agent) SetWake(f func()) {
 	a.mu.Lock()

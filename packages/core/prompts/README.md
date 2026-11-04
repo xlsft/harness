@@ -89,6 +89,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `bash_background_queued_message` | `task_id`, `output_path` | not a reminder: the Bash tool_result when the running command was moved to the background so a message the user sent meanwhile is delivered now (SendUserMessage DELIVERY_NOW, or BackgroundToolCall with reason QUEUED_MESSAGE) |
 | `bash_background_agent` | `task_id`, `output_path` | not a reminder: the Bash tool_result of a `run_in_background` call |
 | `bash_background_timeout` | `timeout`, `task_id`, `output_path` | not a reminder: the Bash tool_result when a foreground command hit its timeout (e.g. "2m0s", "300ms") and was moved to the background |
+| `notifications_pending` | — | notifications wait for ReadNotifications (`tools.Notify`). Rides on the next model request of a running turn; starts a turn when the session is idle (Driver.Wake), or when the session opens with some already queued |
 | `side_chat` | — | not a reminder: the system prompt of side chats (AgentService AskSideChat). The client sends it as the first system block of a tool-less `auxiliary` request, followed by a block with a read-only rendering of the main session inside `<main_session>`, then the side chat's history and the question (with its quoted excerpt). Not wrapped in `<system-reminder>` |
 
 Each placeholder appears once per reminder (the tests compare the list of placeholders). `interrupted` must stay
@@ -107,6 +108,10 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `TodoWrite` | `todos: [{content, activeForm, status}]` | full replacement; exactly one `in_progress` |
 | `AskUserQuestion` | `questions: [{question, header (≤12), type: single\|multi\|text\|yes_no, options: [{label, description?, recommended?}] (2–6, single/multi only), min?, max? (multi), allowOther? (default true)}] (1–4)` | |
 | `WrapUp` | `recap`, `ask`, `actions` (1–2) | closes a turn: the box under the last message; a button sends its label as the user's reply |
+| `PushNotification` | `title` (≤80), `body` (≤300) | system notification through the frontends (UserNotification event); the client holds it back while a frontend reports the session focused and limits it to one a minute, ten an hour, per session. The result says whether it went out |
+| `ReadNotifications` | `{}` | returns and clears what `tools.Notify` queued, oldest first, about 32 KB per call; bodies are escaped, in `<notification source trust="external-data">` blocks |
+| `SendUserFile` | `files` (1–10), `caption?`, `status: normal\|proactive`, `display?: auto\|inline\|attachment` | cards in the transcript; files must be regular, inside the working directories or scratchpad, ≤50 MB and not denied by a Read rule, or the whole call is refused. Up to 512 KB per call travels in the result, so other devices see it; the rest is viewable on the session's machine (AgentService ReadSentFile). A proactive file also notifies |
+| `ReportFindings` | `findings: [{file, line, summary, failure_scenario, category?, verdict?, outcome?, short_summary?}]`, `level?` | merged into the session's list by file and summary, ordered by the severity the client derives from category and verdict; the frontends draw the latest result as one list linked to the Files pane |
 | `EnterPlanMode` | `{}` | |
 | `ExitPlanMode` | `plan` (Markdown) | the client writes it to the plan file and asks the user to approve |
 | `ToolSearch` | `query`, `max_results` | offered only while MCP tools are deferred; `select:a,b` or keywords; returns full definitions and makes those tools callable |

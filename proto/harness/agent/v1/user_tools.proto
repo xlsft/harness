@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// What the tools that reach the user need from their frontends: PushNotification (UserNotification, and presence so
+// the client can hold a notification back while someone is looking) and SendUserFile (ReadSentFile).
+
+// A PushNotification call that passed the client's throttle and presence checks: the frontends show a system
+// notification. Published on the session's stream, so a viewer on another device following the session through the
+// relay gets it too; each frontend still skips it while it has this session open and focused. Replays carry it again:
+// frontends act on it once (`id`) and only while it is fresh (SessionEvent.timestamp).
+message UserNotification {
+  // The tool call's id.
+  string id = 1;
+  string title = 2;
+  string body = 3;
+}
+
+// One frontend says whether the user is looking at the session in it. A frontend reports again at least every 20 s
+// while focused; a report that is not renewed within 45 s counts as not focused. Sessions of other machines: accepted
+// and ignored (the host cannot see this client's viewers).
+message UpdateViewerPresenceRequest {
+  string session_id = 1;
+  // Identifies this frontend (a tab, a window): random, kept while it runs.
+  string viewer_id = 2;
+  bool focused = 3;
+}
+
+message UpdateViewerPresenceResponse {}
+
+// The bytes of a file in the session's scope, for the side pane and the download of a SendUserFile card. Same scope as
+// ReadFile (files.proto): PERMISSION_DENIED outside it, NOT_FOUND when the file is gone, FAILED_PRECONDITION for a
+// session of another machine. Unlike ReadFile it returns every type (PDFs, archives...), up to 50 MB
+// (RESOURCE_EXHAUSTED above that).
+message ReadSentFileRequest {
+  string session_id = 1;
+  // Absolute, or relative to the session's cwd.
+  string path = 2;
+}
+
+message ReadSentFileResponse {
+  bytes content = 1;
+  string mime = 2;
+  // Hex SHA-256 of content: differs from the card's sha256 when the file changed after it was sent.
+  string sha256 = 3;
+}

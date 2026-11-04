@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "description": "Paths of the files to hand over, absolute or relative to the working directory.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "maxItems": 10
+    },
+    "caption": { "type": "string", "description": "One or two sentences on what the files are." },
+    "status": { "type": "string", "enum": ["normal", "proactive"], "description": "normal: the user asked for this. proactive: you send it unasked; it also notifies them." },
+    "display": { "type": "string", "enum": ["auto", "inline", "attachment"], "description": "auto (default): render what can be rendered, offer the rest as downloads. attachment: downloads only. inline: render wherever the type allows it." }
+  },
+  "required": ["files", "status"],
+  "additionalProperties": false
+}
