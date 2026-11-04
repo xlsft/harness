@@ -113,6 +113,8 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
    *   environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
+   *   session_moved         {{cwd}} {{previous}} {{branch}} {{directories}} {{details}}  the session moved itself
+   *                         to another folder or worktree while running
    *   user_shell_command    {{cwd}} {{command}} {{exit_code}} {{output}} {{status}}  the user ran a command in
    *                         the composer's shell mode (RunShellCommand); rides on the next model request
    *   usage_limit_wrap_up   {{provider}} {{detail}} {{resets}}  the session's provider is nearly out of usage
