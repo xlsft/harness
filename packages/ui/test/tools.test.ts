@@ -6,6 +6,27 @@ const tool = (name: string, input: Record<string, unknown>, result: Record<strin
   kind: 'tool', id: 't', name, input, summary: '', status, output: '', result, resultSummary: '', durationMs: 900, startedAt: 0, messageId: 'm', grouped: false
 })
 
+describe('session and system tool rows', () => {
+  it('names what changes', () => {
+    expect(toolTarget(tool('SettingsSet', { key: 'theme', value: 'dark' }))).toBe('theme = dark')
+    expect(toolTarget(tool('SettingsGet', {}))).toBe('Settings')
+    expect(toolTarget(tool('OpenInEditor', { path: 'a.go', line: 3 }))).toBe('a.go:3')
+    expect(toolTarget(tool('RevealPath', { path: 'dir' }))).toBe('dir')
+    expect(toolTarget(tool('KeepAwake', { enabled: false }))).toBe('Allow sleep')
+    expect(toolTarget(tool('SessionSetModel', { model: 'm1' }))).toBe('Model: m1')
+    expect(toolTarget(tool('SessionSetEffort', { effort: 'high' }))).toBe('Effort: high')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'plan' }))).toBe('Mode: plan')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'acceptEdits' }))).toBe('Mode: accept edits')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'dontAsk' }))).toBe('Mode: don\'t ask')
+    expect(toolTarget(tool('SessionSetTitle', { title: 'T' }))).toBe('Title: T')
+  })
+  it('has its own icons', () => {
+    expect(toolIcon(tool('SettingsSet', {}))).toBe('settings')
+    expect(toolIcon(tool('KeepAwake', {}))).toBe('sun')
+    expect(toolIcon(tool('SessionSetMode', {}))).toBe('sliders')
+  })
+})
+
 describe('Wait rows', () => {
   it('shows how long it may wait, then the target (a file by name)', () => {
     expect(toolTarget(tool('Wait', { port: 3000, timeout: 5000 }))).toBe('up to 5s · port 3000')

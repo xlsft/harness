@@ -215,6 +215,9 @@ const (
 // writes it into the user's synced settings document (UserSettingsKey).
 const KeyCompactIdleSessions = "compactIdleSessions"
 
+// KeyInterruptReply is the settings key of Settings.InterruptReply.
+const KeyInterruptReply = "interruptReply"
+
 // KeyRemoteControl is the settings key of the remote control default (true when absent): false keeps new and
 // resumed sessions off the relay until the session switch turns it on; false in a policy document turns it off
 // for good (Settings.RemoteControlPolicyOff).

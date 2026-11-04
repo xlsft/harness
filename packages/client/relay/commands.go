@@ -12,6 +12,7 @@ import (
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	relayv1 "github.com/xlsft/harness/packages/client/gen/harness/relay/v1"
+	"github.com/xlsft/harness/packages/client/server"
 )
 
 // epochWait bounds how long a command routed to a newer epoch waits for this
@@ -190,7 +191,7 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 	case *relayv1.Command_SendUserMessage:
 		m := clone(p.SendUserMessage).(*agentv1.SendUserMessageRequest)
 		m.SessionId = sid
-		_, err := b.SendUserMessage(ctx, connect.NewRequest(m))
+		_, err := b.SendUserMessage(server.WithRelayOrigin(ctx), connect.NewRequest(m))
 		return errAck(id, err, false)
 	case *relayv1.Command_Interrupt:
 		_, err := b.Interrupt(ctx, connect.NewRequest(&agentv1.InterruptRequest{SessionId: sid}))

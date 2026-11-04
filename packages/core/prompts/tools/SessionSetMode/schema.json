@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "default",
+        "acceptEdits",
+        "plan",
+        "auto",
+        "dontAsk"
+      ],
+      "description": "The mode: default asks for each risky action, acceptEdits allows edits in the session's folders, plan is read-only, auto lets a classifier decide, dontAsk refuses whatever would have prompted."
+    }
+  },
+  "required": [
+    "mode"
+  ],
+  "additionalProperties": false
+}

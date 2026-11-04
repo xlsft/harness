@@ -3,7 +3,7 @@
 
 <script setup lang="ts">
 // Composer footer (Composer.dc.html): hint · model · effort · mode · usage ring, with the model and mode pickers.
-import type { SessionState } from '~/lib/session/types'
+import type { EffortName, SessionState } from '~/lib/session/types'
 
 export type Hint = { keys?: string, text: string }[]
 
@@ -15,7 +15,7 @@ const contextOpen = ref(false)
 const id = computed(() => props.session.meta.id)
 const model = computed(() => store.models.find(m => m.id === props.session.meta.model))
 const efforts = computed(() => modelEfforts(model.value))
-const effort = computed(() => fitEffort(store.effort[id.value] ?? 'medium', efforts.value))
+const effort = computed(() => fitEffort((props.session.meta.effort || store.effort[id.value] || 'medium') as EffortName, efforts.value))
 const contextWindow = computed(() => model.value?.contextWindow || 200_000)
 const pct = computed(() => Math.min(100, Math.round((props.session.contextTokens / contextWindow.value) * 100)))
 const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whitespace-nowrap text-muted hover:bg-hover hover:text-toned'

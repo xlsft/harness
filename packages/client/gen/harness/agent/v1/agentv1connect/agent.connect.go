@@ -285,6 +285,15 @@ const (
 	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionDiff RPC.
 	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
+	// AgentServiceGetDeviceSettingsProcedure is the fully-qualified name of the AgentService's
+	// GetDeviceSettings RPC.
+	AgentServiceGetDeviceSettingsProcedure = "/harness.agent.v1.AgentService/GetDeviceSettings"
+	// AgentServiceUpdateDeviceSettingsProcedure is the fully-qualified name of the AgentService's
+	// UpdateDeviceSettings RPC.
+	AgentServiceUpdateDeviceSettingsProcedure = "/harness.agent.v1.AgentService/UpdateDeviceSettings"
+	// AgentServiceSetKeepAwakeProcedure is the fully-qualified name of the AgentService's SetKeepAwake
+	// RPC.
+	AgentServiceSetKeepAwakeProcedure = "/harness.agent.v1.AgentService/SetKeepAwake"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -514,6 +523,11 @@ type AgentServiceClient interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
+	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
+	// Holds off sleep while the session works, until it is turned off or the session closes. SessionInfo.keep_awake
+	// reports it. FAILED_PRECONDITION for a session of another machine.
+	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1055,6 +1069,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		getDeviceSettings: connect.NewClient[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse](
+			httpClient,
+			baseURL+AgentServiceGetDeviceSettingsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetDeviceSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		updateDeviceSettings: connect.NewClient[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateDeviceSettingsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateDeviceSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		setKeepAwake: connect.NewClient[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse](
+			httpClient,
+			baseURL+AgentServiceSetKeepAwakeProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetKeepAwake")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1148,6 +1180,9 @@ type agentServiceClient struct {
 	clearBrowserData       *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 	setAutoContinue        *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
 	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
+	getDeviceSettings      *connect.Client[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse]
+	updateDeviceSettings   *connect.Client[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse]
+	setKeepAwake           *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1590,6 +1625,21 @@ func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Re
 	return c.getSessionDiff.CallUnary(ctx, req)
 }
 
+// GetDeviceSettings calls harness.agent.v1.AgentService.GetDeviceSettings.
+func (c *agentServiceClient) GetDeviceSettings(ctx context.Context, req *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {
+	return c.getDeviceSettings.CallUnary(ctx, req)
+}
+
+// UpdateDeviceSettings calls harness.agent.v1.AgentService.UpdateDeviceSettings.
+func (c *agentServiceClient) UpdateDeviceSettings(ctx context.Context, req *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error) {
+	return c.updateDeviceSettings.CallUnary(ctx, req)
+}
+
+// SetKeepAwake calls harness.agent.v1.AgentService.SetKeepAwake.
+func (c *agentServiceClient) SetKeepAwake(ctx context.Context, req *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
+	return c.setKeepAwake.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1817,6 +1867,11 @@ type AgentServiceHandler interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
+	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
+	// Holds off sleep while the session works, until it is turned off or the session closes. SessionInfo.keep_awake
+	// reports it. FAILED_PRECONDITION for a session of another machine.
+	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2354,6 +2409,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetDeviceSettingsHandler := connect.NewUnaryHandler(
+		AgentServiceGetDeviceSettingsProcedure,
+		svc.GetDeviceSettings,
+		connect.WithSchema(agentServiceMethods.ByName("GetDeviceSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateDeviceSettingsHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateDeviceSettingsProcedure,
+		svc.UpdateDeviceSettings,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateDeviceSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetKeepAwakeHandler := connect.NewUnaryHandler(
+		AgentServiceSetKeepAwakeProcedure,
+		svc.SetKeepAwake,
+		connect.WithSchema(agentServiceMethods.ByName("SetKeepAwake")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2532,6 +2605,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetAutoContinueHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionDiffProcedure:
 			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
+		case AgentServiceGetDeviceSettingsProcedure:
+			agentServiceGetDeviceSettingsHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateDeviceSettingsProcedure:
+			agentServiceUpdateDeviceSettingsHandler.ServeHTTP(w, r)
+		case AgentServiceSetKeepAwakeProcedure:
+			agentServiceSetKeepAwakeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2891,4 +2970,16 @@ func (UnimplementedAgentServiceHandler) SetAutoContinue(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetDeviceSettings is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateDeviceSettings is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetKeepAwake is not implemented"))
 }

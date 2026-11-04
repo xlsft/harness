@@ -52,7 +52,7 @@ import { MockAcpApi } from '~/lib/acp/mock'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
-import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { DeviceSettings, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import type { BackgroundReasonName, QuestionReply } from '~/lib/session/types'
@@ -148,6 +148,7 @@ export class MockTransport implements SessionTransport {
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
   private preferences: UserPreferences = { compactIdleSessions: true }
+  private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
   private now: () => number
 
@@ -1074,6 +1075,21 @@ export class MockTransport implements SessionTransport {
   async updateUserPreferences(patch: Partial<UserPreferences>) {
     this.preferences = { ...this.preferences, ...patch }
     return { ...this.preferences }
+  }
+
+  async getDeviceSettings() {
+    return { ...this.deviceSettings }
+  }
+
+  async updateDeviceSettings(patch: Partial<DeviceSettings>) {
+    this.deviceSettings = { ...this.deviceSettings, ...patch }
+    return { ...this.deviceSettings }
+  }
+
+  async setKeepAwake(sessionId: string, enabled: boolean) {
+    const s = this.get(sessionId)
+    s.info = { ...s.info, keepAwake: enabled }
+    this.emit(s, b => b.sessionUpdated(s.info))
   }
 
   async listTasks() {

@@ -51,6 +51,38 @@ func ParseMode(s string) (Mode, error) {
 // ModeCycle is the order frontends cycle through with Shift+Tab.
 func ModeCycle() []Mode { return []Mode{ModeDefault, ModeAcceptEdits, ModePlan, ModeAuto} }
 
+// ModeLabel is the mode's name as frontends show it.
+func ModeLabel(m Mode) string {
+	switch m {
+	case ModeAcceptEdits:
+		return "Accept edits"
+	case ModePlan:
+		return "Plan"
+	case ModeAuto:
+		return "Auto"
+	case ModeDontAsk:
+		return "Don't ask"
+	case ModeBypassPermissions:
+		return "Bypass"
+	}
+	return "Ask"
+}
+
+// modePermissiveness orders the modes by how much runs without the user's say.
+var modePermissiveness = map[Mode]int{ModePlan: 0, ModeDefault: 1, ModeAcceptEdits: 2, ModeAuto: 3, ModeBypassPermissions: 4}
+
+// WidensMode reports whether a switch from one mode to another lets more run without the user's approval. Don't ask
+// mode is not on the scale (no prompts, but it refuses what would have prompted): every move to it or out of it
+// counts as widening, except the move to plan mode, which is the strictest there is. An unknown mode counts too.
+func WidensMode(from, to Mode) bool {
+	if from == to || to == ModePlan {
+		return false
+	}
+	a, okFrom := modePermissiveness[from]
+	b, okTo := modePermissiveness[to]
+	return !okFrom || !okTo || b > a
+}
+
 // NextMode returns the mode after cur in ModeCycle, skipping auto when it is
 // not available. Modes outside the cycle (dontAsk, bypassPermissions) go
 // back to default.

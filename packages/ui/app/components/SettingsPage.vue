@@ -62,6 +62,11 @@ const section = computed<Section>({
 const { prefs: defaults, save } = useSessionDefaults()
 const prefs = computed(() => defaults.value)
 const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => save('worktree', v) })
+const sessionStore = useSessionStore()
+const notifications = computed({
+  get: () => sessionStore.deviceSettings.notifications,
+  set: v => sessionStore.quietly(sessionStore.updateDeviceSettings({ notifications: v }))
+})
 </script>
 
 <template>
@@ -129,6 +134,16 @@ const worktree = computed({ get: () => prefs.value.worktree ?? false, set: v => 
           <HToggle
             v-model="worktree"
             label="Worktree by default"
+          />
+        </div>
+        <div class="set-row">
+          <div class="set-label">
+            <span>Notifications</span>
+            <span class="set-desc">Tell this device when a session finishes or needs you. Not synced.</span>
+          </div>
+          <HToggle
+            v-model="notifications"
+            label="Notifications"
           />
         </div>
         <SettingsCompaction />

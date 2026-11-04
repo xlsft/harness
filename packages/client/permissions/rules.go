@@ -82,8 +82,9 @@ var (
 	editTools = map[string]bool{"Edit": true, "Write": true, "NotebookEdit": true, "MultiEdit": true}
 	readTools = map[string]bool{"Read": true, "Glob": true, "Grep": true, "LS": true, "NotebookRead": true}
 	// pathObservers read a file only when their input names one (Wait on a
-	// path): that path gets the read-tool directory check.
-	pathObservers = map[string]bool{"Wait": true}
+	// path) or show one to the user (OpenInEditor, RevealPath): that path gets
+	// the read-tool directory check, and Read deny rules cover them.
+	pathObservers = map[string]bool{"Wait": true, "OpenInEditor": true, "RevealPath": true}
 )
 
 // IsEditTool reports whether name modifies files.

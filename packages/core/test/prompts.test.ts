@@ -23,7 +23,8 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "McpAuthenticate", "Read", "Show", "TaskOutput",
+      "Edit", "EnterPlanMode", "ExitPlanMode", "Glob", "Grep", "KeepAwake", "McpAuthenticate", "OpenInEditor", "Read", "RevealPath",
+      "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SettingsGet", "SettingsSet", "Show", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders

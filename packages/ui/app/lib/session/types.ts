@@ -330,6 +330,10 @@ export interface SessionMeta {
   parentId: string
   // "Continue when limits return" is on for the session (setAutoContinue).
   autoContinue: boolean
+  // The session's effort level as the client has it; empty when none was set or the session is not open.
+  effort: string
+  // "Keep computer awake" is on for the session (the client holds off sleep while it works).
+  keepAwake: boolean
   // Started without a folder: cwd is a private directory the client made for it (shown as "No folder", listed
   // under Chats, no repository).
   noFolder: boolean

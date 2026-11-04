@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "The preference to change: theme, notifications, outputStyle, keepAwake, compactIdleSessions or interruptReply."
+    },
+    "value": {
+      "type": [
+        "string",
+        "boolean"
+      ],
+      "description": "The new value: true or false for a switch, otherwise one of the values SettingsGet lists."
+    }
+  },
+  "required": [
+    "key",
+    "value"
+  ],
+  "additionalProperties": false
+}

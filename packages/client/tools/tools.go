@@ -66,6 +66,10 @@ type PermissionHints struct {
 	URL string
 	// Sensitive, when set, says why only the user may approve the call (typing into a password field...).
 	Sensitive string
+	// ReadOnly makes the check treat this call as read-only, whatever the tool's own classification says (the tool
+	// knows from its input and the session's state that it is harmless). With Sensitive set, the user is asked even
+	// in plan mode rather than the call being refused there.
+	ReadOnly bool
 }
 
 // PermissionHinter is implemented by tools whose permission check depends on state outside the input (the
@@ -237,7 +241,8 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{},
+		&SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{})
 }
 
 // Register adds or replaces a tool.

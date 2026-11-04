@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "One preference to read. Leave it out to read all of them."
+    }
+  },
+  "additionalProperties": false
+}

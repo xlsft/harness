@@ -15,7 +15,7 @@ import {
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
-import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { DeviceSettings, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb } from '~/lib/session/reducer'
 import type { EffortName, QuestionReply } from '~/lib/session/types'
@@ -231,6 +231,20 @@ export class ConnectTransport implements SessionTransport {
 
   async setAutoContinue(sessionId: string, enabled: boolean) {
     await this.client.setAutoContinue({ sessionId, enabled })
+  }
+
+  async setKeepAwake(sessionId: string, enabled: boolean) {
+    await this.client.setKeepAwake({ sessionId, enabled })
+  }
+
+  async getDeviceSettings(): Promise<DeviceSettings> {
+    const res = await this.client.getDeviceSettings({})
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
+  }
+
+  async updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings> {
+    const res = await this.client.updateDeviceSettings({ theme: patch.theme, notifications: patch.notifications })
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
   }
 
   async setSessionRelay(sessionId: string, enabled: boolean) {
