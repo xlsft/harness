@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // The model, effort and permission mode chips with their menus: the same on the new-session screen and in a session.
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
+import { EFFORT_LABEL } from '~/utils/composer'
 
 defineProps<{ model: string, label: string, provider?: string, efforts: EffortName[], effort?: EffortName, mode: PermissionModeName }>()
 const emit = defineEmits<{ 'update:model': [id: string], 'update:effort': [level: EffortName], 'update:mode': [mode: PermissionModeName] }>()
@@ -53,7 +54,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
       aria-label="Effort"
       :class="[CHIP, menu === 'effort' && 'bg-hover', 'max-sm:hidden @max-[560px]:hidden']"
     >
-      effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span>
+      {{ EFFORT_LABEL[effort] }}
     </button>
     <template #content>
       <div class="overflow-hidden border border-accented bg-hover">

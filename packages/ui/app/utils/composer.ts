@@ -89,6 +89,8 @@ export const MODE_LABEL: Record<PermissionModeName, string> = {
   bypass: 'Bypass'
 }
 
+export const EFFORT_LABEL: Record<EffortName, string> = { low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Extra high', max: 'Max' }
+
 export const EFFORTS: EffortName[] = ['low', 'medium', 'high']
 const ALL_EFFORTS: EffortName[] = ['low', 'medium', 'high', 'xhigh', 'max']
 

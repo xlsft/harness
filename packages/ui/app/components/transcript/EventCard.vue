@@ -32,10 +32,12 @@ const error = computed(() => {
   return { title: title ?? '', detail: detail ?? '' }
 })
 
+const store = useSessionStore()
 const usageLine = computed(() => {
   const t = props.turn
   if (!t) return ''
-  return [t.model, `${formatTokens(t.usage.inputTokens + t.usage.cacheReadTokens)} in`, `${formatTokens(t.usage.outputTokens)} out`, formatCost(t.costUsd), formatDuration(t.durationMs)].filter(Boolean).join(' · ')
+  const model = store.models.find(m => m.id === t.model)?.displayName || t.model
+  return [model, `${formatTokens(t.usage.inputTokens + t.usage.cacheReadTokens)} in`, `${formatTokens(t.usage.outputTokens)} out`, formatCost(t.costUsd), formatDuration(t.durationMs)].filter(Boolean).join(' · ')
 })
 </script>
 

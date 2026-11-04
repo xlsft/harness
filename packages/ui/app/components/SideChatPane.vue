@@ -394,7 +394,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
             aria-label="Side chat effort"
             :class="[BTN, effortOpen ? 'border-accent' : 'border-transparent', 'max-sm:hidden']"
           >
-            effort <span :class="effort === efforts.at(-1) && efforts.length > 1 ? 'text-accent' : 'text-strong'">{{ effort }}</span><HIcon
+            {{ EFFORT_LABEL[effort] }}<HIcon
               name="down"
               :size="11"
             />

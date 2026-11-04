@@ -2,11 +2,12 @@
 // Effort as a slider over the levels the model offers (lowest first): a thick track with a square thumb inside
 // it. Click, drag or use the arrow keys.
 import type { EffortName } from '~/lib/session/types'
+import { EFFORT_LABEL } from '~/utils/composer'
 
 const props = defineProps<{ levels: EffortName[] }>()
 const model = defineModel<EffortName>({ required: true })
 
-const LABEL: Record<EffortName, string> = { low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Extra high', max: 'Max' }
+const LABEL = EFFORT_LABEL
 
 const index = computed(() => Math.max(0, props.levels.indexOf(model.value)))
 const last = computed(() => props.levels.length - 1)
@@ -60,11 +61,11 @@ function onKey(e: KeyboardEvent) {
     >
       <!-- Fill up to the thumb's right edge. -->
       <div
-        class="absolute inset-y-0 left-0 bg-accent transition-[width] duration-150"
+        class="absolute inset-y-0 left-0 rounded-control bg-accent transition-[width] duration-150"
         :style="{ width: `calc((100% - 14px) * ${share(index)} + 14px)` }"
       />
       <span
-        class="absolute inset-y-0 w-3.5 rounded-control border-2 border-default bg-strong transition-[left] duration-150"
+        class="absolute inset-y-0 w-3.5 rounded-control bg-strong transition-[left] duration-150"
         :style="{ left: `calc((100% - 14px) * ${share(index)})` }"
       />
     </div>
