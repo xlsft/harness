@@ -563,3 +563,18 @@ func TestAgentWithoutEffortOptionRefuses(t *testing.T) {
 		t.Fatal("features")
 	}
 }
+
+func TestModelNameLocked(t *testing.T) {
+	s := &Session{cfg: Config{Model: "Claude Agent"}}
+	if got := s.modelNameLocked(); got != "Claude Agent" {
+		t.Fatalf("no models: %q", got)
+	}
+	s.models, s.curModel = []Model{{ID: "opus", Name: "Opus 5.5"}}, "opus"
+	if got := s.modelNameLocked(); got != "Opus 5.5" {
+		t.Fatalf("named: %q", got)
+	}
+	s.curModel = "other"
+	if got := s.modelNameLocked(); got != "other" {
+		t.Fatalf("unlisted: %q", got)
+	}
+}

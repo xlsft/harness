@@ -716,6 +716,19 @@ func (s *Session) applyWanted(ctx context.Context, p *process) {
 	s.unlock()
 }
 
+// modelNameLocked names what answers a turn: the agent's current model, or the agent when it reports none.
+func (s *Session) modelNameLocked() string {
+	for _, m := range s.models {
+		if m.ID == s.curModel && m.Name != "" {
+			return m.Name
+		}
+	}
+	if s.curModel != "" {
+		return s.curModel
+	}
+	return s.cfg.Model
+}
+
 func hasModel(models []Model, id string) bool {
 	for _, m := range models {
 		if m.ID == id {
@@ -1004,7 +1017,7 @@ func (s *Session) runTurn(q queued) {
 		s.emitQueueLocked()
 	}
 	s.emitLocked(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: q.uuid, Content: q.content, ClientUuids: []string{q.uuid}}}}, false)
-	s.emitLocked(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnStarted{TurnStarted: &agentv1.TurnStarted{UserMessageUuid: q.uuid, Model: s.cfg.Model}}}, false)
+	s.emitLocked(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnStarted{TurnStarted: &agentv1.TurnStarted{UserMessageUuid: q.uuid, Model: s.modelNameLocked()}}}, false)
 	s.changedLocked()
 	s.unlock()
 
@@ -1105,7 +1118,7 @@ func (s *Session) flushMessageLocked(reason sdk.StopReason) {
 		stop = llmv1.StopReason_STOP_REASON_TOOL_USE
 	}
 	s.emitLocked(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_AssistantMessage{AssistantMessage: &agentv1.AssistantMessage{
-		MessageId: s.msgID, Model: s.cfg.Model, Content: content, StopReason: stop}}}, false)
+		MessageId: s.msgID, Model: s.modelNameLocked(), Content: content, StopReason: stop}}}, false)
 	s.msgID, s.blocks, s.pendingTU = "", nil, nil
 }
 
