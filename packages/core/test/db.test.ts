@@ -1,4 +1,4 @@
-/** Embedded PGlite fallback: file-backed persistence, idempotent migrations, the data dir lock file. */
+/** Embedded PGlite fallback: file-backed persistence, idempotent migrations, the data dir lock file, upgrades. */
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -26,6 +26,23 @@ describe("PGlite on disk", () => {
       expect(row?.updatedAt.getTime()).toBe(1_700_000_000_123);
     } finally {
       await b.close();
+    }
+  });
+
+  it("adds the object store to an existing database without touching what is there", async () => {
+    const dir = join(mkdtempSync(join(tmpdir(), "harness-pglite-")), "pglite");
+    const before = migrations.filter((m) => m.id < "0010_objects");
+    const db = openDb({ driver: "pglite", dataDir: dir });
+    try {
+      await runMigrations(db.inTransaction, before);
+      const now = new Date();
+      await db.db.insert(schema.user).values({ id: "u1", name: "Old", email: "old@test.local", emailVerified: true, image: "data:image/png;base64,AAAA", createdAt: now, updatedAt: now });
+      expect(await runMigrations(db.inTransaction)).toContain("0010_objects");
+      const row = await db.db.query.user.findFirst({ where: eq(schema.user.id, "u1") });
+      expect(row?.image).toBe("data:image/png;base64,AAAA");
+      expect(await db.db.select().from(schema.storedObject)).toEqual([]);
+    } finally {
+      await db.close();
     }
   });
 });

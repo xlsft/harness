@@ -173,9 +173,9 @@ export const useSessionStore = defineStore('sessions', {
         String(config.public.transport),
         String(config.public.agentUrl),
         browserAgentToken(String(config.public.agentToken ?? ''))
+      ))
       const tickets = this.transport
       setObjectTicketSource(() => tickets.createObjectTicket(), shallowRef(null))
-      ))
       try {
         const init = await this.transport.initialize()
         this.userEmail = init.userEmail

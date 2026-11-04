@@ -64,6 +64,8 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_DATA_DIR` | `./.data` | Generated secret, embedded PGlite database |
 | `HARNESS_ADMIN_EMAIL`, `HARNESS_ADMIN_PASSWORD`, `HARNESS_ADMIN_USERNAME` | — | Admin bootstrap on start (the username defaults to the email's local part) |
 | `HARNESS_GRPC_PORT` | off | Extra h2c listener with plain gRPC (see Transport) |
+| `HARNESS_S3_ENDPOINT`, `HARNESS_S3_ACCESS_KEY`, `HARNESS_S3_SECRET_KEY` (or `HARNESS_S3_CREDENTIALS_FILE`), `HARNESS_S3_BUCKET`, `HARNESS_S3_REGION` | unset: files in `$HARNESS_DATA_DIR/objects` | The object store (`src/services/blobstore.ts`); the image sets them for its Garage, see [`deploy/README.md`](../../deploy/README.md) |
+| `HARNESS_OBJECTS_MAX_FILE_BYTES`, `HARNESS_OBJECTS_QUOTA_BYTES`, `HARNESS_OBJECTS_SWEEP_MS` | 1 GiB, 10 GiB, 6 hours | Largest file, per-user quota (negative: unlimited; per user or role: `objects_bytes` in `/api/admin/quotas`), how often orphans are removed (`0`: never) |
 | `HARNESS_PROMPTS_DIR` | `./prompts` | Prompt files (see [`prompts/README.md`](prompts/README.md)) |
 | `HARNESS_DEVICE_RATE_LIMIT_PER_MIN` | `30` | Per-IP token bucket (burst and refill per minute) for `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, each limited separately; `0` disables |
 | `HARNESS_TRUST_PROXY` | `false` | Take the client IP from the rightmost `X-Forwarded-For` entry (set when behind a reverse proxy) |

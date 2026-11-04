@@ -30,13 +30,15 @@ let pending = false
 
 function renew() {
   if (!source || pending) return
+  const cell = ticket
   pending = true
   source().then((t) => {
-    ticket.value = t
+    cell.value = t
   }).catch(() => {
     // No client right now: the next objectUrl asks again.
   }).finally(() => {
-    pending = false
+    // An answer for a transport that has been replaced says nothing about the new one.
+    if (cell === ticket) pending = false
   })
 }
 
@@ -44,6 +46,7 @@ function renew() {
 export function setObjectTicketSource(s: ObjectTicketSource | null, cell: { value: ObjectTicket | null } = { value: null }) {
   source = s
   ticket = cell
+  pending = false
   renew()
 }
 

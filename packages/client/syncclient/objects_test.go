@@ -1,7 +1,9 @@
 package syncclient
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -462,5 +464,50 @@ func TestReferObjectsReplacesBytes(t *testing.T) {
 	}
 	if bad := `{"source":{"type":"base64"`; q.referObjects("s1", bad) != bad {
 		t.Fatal("a broken line changed")
+	}
+}
+
+type staticTokens string
+
+func (t staticTokens) Token(context.Context) (string, error)   { return string(t), nil }
+func (t staticTokens) Refresh(context.Context) (string, error) { return string(t), nil }
+
+// A real core, when given one: HARNESS_TEST_OBJECTS_URL and HARNESS_TEST_OBJECTS_TOKEN (a device access token). Skipped
+// otherwise; the rest of this file runs against the fake.
+func TestObjectQueueAgainstRealServer(t *testing.T) {
+	url, token := os.Getenv("HARNESS_TEST_OBJECTS_URL"), os.Getenv("HARNESS_TEST_OBJECTS_TOKEN")
+	if url == "" || token == "" {
+		t.Skip("no server given")
+	}
+	ctx := context.Background()
+	q := NewObjectQueue(ObjectQueueOptions{API: NewClient(url, nil, staticTokens(token)), Dir: t.TempDir()})
+	if !q.Probe(ctx) {
+		t.Fatal("no store on the server")
+	}
+	data := make([]byte, 17<<20+5)
+	if _, err := rand.Read(data); err != nil {
+		t.Fatal(err)
+	}
+	ref, err := q.AddBytes("ses_go", ObjectSentFile, "random.bin", "application/octet-stream", data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q.Flush(ctx)
+	if q.Pending() != 0 {
+		t.Fatal("still pending")
+	}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url+"/api/objects/"+ref.GetSha256(), nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	got, err := io.ReadAll(res.Body)
+	if err != nil || res.StatusCode != 200 || !bytes.Equal(got, data) {
+		t.Fatalf("%d, %d bytes, err %v", res.StatusCode, len(got), err)
+	}
+	if _, err := q.o.API.DeleteObject(ctx, &objectsv1.DeleteObjectRequest{Sha256: ref.GetSha256()}); err != nil {
+		t.Fatal(err)
 	}
 }
