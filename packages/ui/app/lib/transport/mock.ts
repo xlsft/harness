@@ -52,7 +52,7 @@ import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
 import { diffVersion, type DiffBaseChoice, type DiffBases, type SessionDiff, type SessionFileDiff } from '~/lib/files/sessionDiff'
 import { MockSpeechApi } from '~/lib/speech/mock'
-import { ACP_SWITCH_REFUSAL, ACP_UNSUPPORTED, MockAcpApi } from '~/lib/acp/mock'
+import { ACP_SWITCH_REFUSAL, acpUnsupported, MockAcpApi } from '~/lib/acp/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
@@ -1125,7 +1125,9 @@ export class MockTransport implements SessionTransport {
     })
   }
 
-  async setEffort(_sessionId: string, _effort: Effort) {}
+  async setEffort(sessionId: string, _effort: Effort, levelId?: string) {
+    if (this.isAcp(sessionId)) this.acpSetEffort(this.get(sessionId), levelId ?? '')
+  }
 
   async setSessionRelay(sessionId: string, enabled: boolean) {
     const s = this.get(sessionId)
@@ -1440,7 +1442,7 @@ export class MockTransport implements SessionTransport {
       gitBranch: 'main',
       model: agent.name,
       engine: agent.engine,
-      unsupportedFeatures: ACP_UNSUPPORTED,
+      unsupportedFeatures: acpUnsupported(acp.efforts.length > 0),
       acp,
       permissionMode: MockTransport.acpPermissionMode(acp.currentModeId),
       status: acp.needsAuth ? SessionStatus.NEEDS_INPUT : SessionStatus.IDLE,
@@ -1458,6 +1460,7 @@ export class MockTransport implements SessionTransport {
     if (info.acp) {
       if (opts.model && info.acp.models.some(m => m.id === opts.model)) info.acp.currentModelId = opts.model
       if (opts.acpModeId && info.acp.modes.some(m => m.id === opts.acpModeId)) info.acp.currentModeId = opts.acpModeId
+      if (opts.acpEffortId && info.acp.efforts.some(e => e.id === opts.acpEffortId)) info.acp.currentEffortId = opts.acpEffortId
       info.model = info.acp.currentModelId || info.model
       info.permissionMode = MockTransport.acpPermissionMode(info.acp.currentModeId)
     }
@@ -1504,6 +1507,14 @@ export class MockTransport implements SessionTransport {
       throw new Error(`[failed_precondition] this session runs on ${acp.agentName} and cannot switch to "${model}"; start a new session to use it`)
     }
     s.info = create(SessionInfoSchema, { ...s.info, model, acp: { ...acp, currentModelId: model } })
+    this.emit(s, b => b.sessionUpdated(s.info))
+  }
+
+  private acpSetEffort(s: MockSession, levelId: string) {
+    const acp = s.info.acp!
+    if (!acp.efforts.length) throw new Error(`[failed_precondition] ${acp.agentName} does not offer effort levels`)
+    if (!acp.efforts.some(e => e.id === levelId)) throw new Error(`[failed_precondition] ${acp.agentName} has no effort level "${levelId}"`)
+    s.info = create(SessionInfoSchema, { ...s.info, acp: { ...acp, currentEffortId: levelId } })
     this.emit(s, b => b.sessionUpdated(s.info))
   }
 

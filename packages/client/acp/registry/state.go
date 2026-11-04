@@ -63,12 +63,22 @@ type Mode struct {
 	Description string `json:"description,omitempty"`
 }
 
+// Effort is one of an agent's effort levels (its thought-level option), named the agent's own way.
+type Effort struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
 // Catalog is what an agent last reported about itself, to a model probe or to a real session.
 type Catalog struct {
 	Models       []Model `json:"models,omitempty"`
 	CurrentModel string  `json:"currentModel,omitempty"`
 	Modes        []Mode  `json:"modes,omitempty"`
 	CurrentMode  string  `json:"currentMode,omitempty"`
+	// Efforts is empty for an agent without an effort option.
+	Efforts       []Effort `json:"efforts,omitempty"`
+	CurrentEffort string   `json:"currentEffort,omitempty"`
 	// UpdatedAt is when the agent last reported successfully.
 	UpdatedAt time.Time `json:"updatedAt,omitzero"`
 	// Version is the installed version this was last checked against: a new one is probed again.

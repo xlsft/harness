@@ -36,9 +36,9 @@ func (s *Server) acpAgentProto(id string, a *registry.Agent) *agentv1.AcpAgent {
 	reg := s.AcpRegistry()
 	st := reg.State(id)
 	out := &agentv1.AcpAgent{Id: id, Name: id, Engine: enginePrefix + id, AuthState: acp.AuthStateToProto(st.Auth),
-		AuthMethods: acp.AuthMethodsToProto(st.AuthMethods), IconSvg: reg.IconSVG(id), Limits: acp.LimitsToProto(st.Limits),
-		UnsupportedFeatures: acp.UnsupportedFeatures()}
+		AuthMethods: acp.AuthMethodsToProto(st.AuthMethods), IconSvg: reg.IconSVG(id), Limits: acp.LimitsToProto(st.Limits)}
 	s.applyAcpModels(out, id, st)
+	out.UnsupportedFeatures = acp.UnsupportedFeatures(len(out.Efforts) > 0)
 	if a != nil {
 		out.Name, out.Description, out.LatestVersion = a.Name, a.Description, a.Version
 		out.Repository, out.Website, out.License, out.Authors, out.IconUrl = a.Repository, a.Website, a.License, a.Authors, a.Icon

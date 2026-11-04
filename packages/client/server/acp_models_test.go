@@ -35,6 +35,7 @@ type acpModels struct {
 	client agentv1connect.AgentServiceClient
 	srv    *server.Server
 	models string
+	effort string
 	fail   string
 	log    string
 	// version is what the registry offers.
@@ -48,9 +49,10 @@ func newAcpModels(t *testing.T) *acpModels {
 	dir := t.TempDir()
 	t.Setenv("HARNESS_HOME", home)
 	t.Setenv("HARNESS_KEYRING", "0")
-	a := &acpModels{t: t, ctx: context.Background(), home: home, models: filepath.Join(dir, "models"), fail: filepath.Join(dir, "fail"), log: filepath.Join(dir, "log")}
+	a := &acpModels{t: t, ctx: context.Background(), home: home, models: filepath.Join(dir, "models"), effort: filepath.Join(dir, "efforts"), fail: filepath.Join(dir, "fail"), log: filepath.Join(dir, "log")}
 	a.version.Store("1.0.0")
 	t.Setenv("FAKE_MODELS_FILE", a.models)
+	t.Setenv("FAKE_EFFORTS_FILE", a.effort)
 	t.Setenv("FAKE_FAIL_FILE", a.fail)
 	t.Setenv("FAKE_LOG", a.log)
 	body, err := os.ReadFile(bin)
@@ -527,4 +529,192 @@ func TestAcpModelsAreNotInTheCatalog(t *testing.T) {
 	if slices.Contains(init.Msg.ModelIds, "agent-only") {
 		t.Fatalf("the catalog lists an agent's model: %v", init.Msg.ModelIds)
 	}
+}
+
+func (a *acpModels) setEfforts(lines ...string) {
+	a.t.Helper()
+	if err := os.WriteFile(a.effort, []byte(strings.Join(lines, "\n")), 0o644); err != nil {
+		a.t.Fatal(err)
+	}
+}
+
+func effortIDs(es []*agentv1.AcpEffort) []string {
+	var out []string
+	for _, e := range es {
+		out = append(out, e.Id)
+	}
+	return out
+}
+
+func hasEffortFeature(fs []agentv1.SessionFeature) bool {
+	return slices.Contains(fs, agentv1.SessionFeature_SESSION_FEATURE_EFFORT)
+}
+
+func TestAcpProbeFindsTheAgentsEffortLevels(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.setEfforts("think=Think", "ultra=Ultrathink")
+	a.install()
+	x := a.settled()
+	if !slices.Equal(effortIDs(x.Efforts), []string{"think", "ultra"}) || x.Efforts[1].Name != "Ultrathink" || x.CurrentEffortId != "think" {
+		t.Fatalf("efforts: %v %q", x.Efforts, x.CurrentEffortId)
+	}
+	if hasEffortFeature(x.UnsupportedFeatures) {
+		t.Fatalf("features: %v", x.UnsupportedFeatures)
+	}
+}
+
+func TestAcpSessionStartsWithTheChosenEffort(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.setEfforts("think=Think", "ultra=Ultrathink")
+	a.install()
+	a.settled()
+	proj, _ := filepath.EvalSymlinks(t.TempDir())
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: proj, Engine: "acp:fake", AcpEffortId: "ultra"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := cs.Msg.Session
+	// The choice shows from the first moment, and the levels are the cached ones until the agent answers.
+	if info.Acp.CurrentEffortId != "ultra" || !slices.Equal(effortIDs(info.Acp.Efforts), []string{"think", "ultra"}) || hasEffortFeature(info.UnsupportedFeatures) {
+		t.Fatalf("session: %v", info)
+	}
+	sid := info.Id
+	// A message sent right away reaches the agent on the chosen effort.
+	if _, err := a.client.SendUserMessage(a.ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: "u1", Content: text("hello")})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the prompt", func() bool { return a.count("prompt") > 0 })
+	if !slices.Contains(a.logged(), "effort at prompt ultra") {
+		t.Fatalf("agent log: %v", a.logged())
+	}
+	// Switched in the session, by the agent's own id; a level it does not have is refused.
+	a.waitFor("the turn to end", func() bool { return a.sessionStatus(sid) == agentv1.SessionStatus_SESSION_STATUS_IDLE })
+	if _, err := a.client.SetEffort(a.ctx, connect.NewRequest(&agentv1.SetEffortRequest{SessionId: sid, LevelId: "think"})); err != nil {
+		t.Fatal(err)
+	}
+	if st := a.sessionState(sid); st.CurrentEffortId != "think" {
+		t.Fatalf("state: %v", st)
+	}
+	_, err = a.client.SetEffort(a.ctx, connect.NewRequest(&agentv1.SetEffortRequest{SessionId: sid, LevelId: "medium"}))
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), `no effort level "medium"`) {
+		t.Fatalf("set: %v", err)
+	}
+	// Recorded: a resume goes back to it, not to the agent's default.
+	if _, err := a.client.SetEffort(a.ctx, connect.NewRequest(&agentv1.SetEffortRequest{SessionId: sid, LevelId: "ultra"})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the record", func() bool { return strings.Contains(a.sessionMeta(sid), `"effort": "ultra"`) })
+	if _, err := a.client.CloseSession(a.ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: sid})); err != nil {
+		t.Fatal(err)
+	}
+	sets := a.count("set_effort ultra")
+	if _, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{ResumeSessionId: sid})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the effort restored", func() bool {
+		return a.count("set_effort ultra") == sets+1 && strings.Contains(a.sessionMeta(sid), `"effort": "ultra"`)
+	})
+	if _, err := a.client.CloseSession(a.ctx, connect.NewRequest(&agentv1.CloseSessionRequest{SessionId: sid})); err != nil {
+		t.Fatal(err)
+	}
+	// The agent no longer offers it: the session runs on its default (the notice: TestEffortOption in package acp).
+	a.setEfforts("think=Think", "deep=Deep")
+	if _, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{ResumeSessionId: sid})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the session on the default", func() bool {
+		st := a.sessionState(sid)
+		return !st.GetStarting() && st.GetCurrentEffortId() == "think" && slices.Equal(effortIDs(st.GetEfforts()), []string{"think", "deep"})
+	})
+}
+
+func TestAcpAgentWithoutEffortRefusesIt(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.install()
+	x := a.settled()
+	if len(x.Efforts) != 0 || !hasEffortFeature(x.UnsupportedFeatures) {
+		t.Fatalf("agent: %v", x)
+	}
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: t.TempDir(), Engine: "acp:fake"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	if !hasEffortFeature(cs.Msg.Session.UnsupportedFeatures) {
+		t.Fatalf("session: %v", cs.Msg.Session)
+	}
+	a.waitFor("the session to open", func() bool { return !a.sessionState(sid).GetStarting() })
+	_, err = a.client.SetEffort(a.ctx, connect.NewRequest(&agentv1.SetEffortRequest{SessionId: sid, LevelId: "ultra"}))
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), "Fake Agent does not offer effort levels") {
+		t.Fatalf("set: %v", err)
+	}
+	if a.count("set_effort") != 0 {
+		t.Fatalf("agent log: %v", a.logged())
+	}
+}
+
+func TestAcpSessionReportingEffortsUpdatesTheCache(t *testing.T) {
+	a := newAcpModels(t)
+	a.setModels("fast=Fast")
+	a.install()
+	a.settled()
+	cs, err := a.client.CreateSession(a.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: t.TempDir(), Engine: "acp:fake"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	a.waitFor("the session to open", func() bool { return !a.sessionState(sid).GetStarting() })
+	// The agent gains the option under a running session: it is known from then on, also for the next session.
+	a.setEfforts("think=Think", "ultra=Ultrathink")
+	if _, err := a.client.SendUserMessage(a.ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: "u1", Content: text("newmodels")})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the cache to change", func() bool {
+		x := a.list(false)
+		return slices.Equal(effortIDs(x.Efforts), []string{"think", "ultra"}) && !hasEffortFeature(x.UnsupportedFeatures)
+	})
+	ls, err := a.client.ListSessions(a.ctx, connect.NewRequest(&agentv1.ListSessionsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range ls.Msg.Sessions {
+		if s.Id == sid && hasEffortFeature(s.UnsupportedFeatures) {
+			t.Fatalf("session: %v", s)
+		}
+	}
+	// Levels can go with a model: a session reporting none leaves the agent's cached ones.
+	a.setEfforts()
+	if _, err := a.client.SendUserMessage(a.ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: "u2", Content: text("newmodels")})); err != nil {
+		t.Fatal(err)
+	}
+	a.waitFor("the option gone from the session", func() bool { return len(a.sessionState(sid).GetEfforts()) == 0 })
+	_, err = a.client.SetEffort(a.ctx, connect.NewRequest(&agentv1.SetEffortRequest{SessionId: sid, LevelId: "ultra"}))
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("set: %v", err)
+	}
+	if x := a.list(false); len(x.Efforts) != 2 {
+		t.Fatalf("cache: %v", x.Efforts)
+	}
+}
+
+func (a *acpModels) sessionStatus(id string) agentv1.SessionStatus {
+	a.t.Helper()
+	ls, err := a.client.ListSessions(a.ctx, connect.NewRequest(&agentv1.ListSessionsRequest{}))
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	for _, s := range ls.Msg.Sessions {
+		if s.Id == id {
+			return s.Status
+		}
+	}
+	return agentv1.SessionStatus_SESSION_STATUS_UNSPECIFIED
+}
+
+func (a *acpModels) sessionMeta(id string) string {
+	b, _ := os.ReadFile(filepath.Join(a.home, "acp", "sessions", id, "meta.json"))
+	return string(b)
 }

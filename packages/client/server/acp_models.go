@@ -137,6 +137,7 @@ func (s *Server) runAcpProbe(id string) {
 		switch {
 		case err == nil:
 			c.Models, c.CurrentModel, c.Modes, c.CurrentMode = res.Models, res.CurrentModel, res.Modes, res.CurrentMode
+			c.Efforts, c.CurrentEffort = res.Efforts, res.CurrentEffort
 			if c.CurrentModel == "" && len(c.Models) > 0 {
 				c.CurrentModel = c.Models[0].ID
 			}
@@ -198,6 +199,7 @@ func (s *Server) applyAcpModels(out *agentv1.AcpAgent, id string, st registry.Ag
 	if c := st.Catalog; c != nil {
 		out.Models, out.CurrentModelId = acp.ModelsToProto(c.Models), c.CurrentModel
 		out.Modes, out.CurrentModeId = acp.ModesToProto(c.Modes), c.CurrentMode
+		out.Efforts, out.CurrentEffortId = acp.EffortsToProto(c.Efforts), c.CurrentEffort
 		if !c.UpdatedAt.IsZero() {
 			out.ModelsUpdatedAt = c.UpdatedAt.UTC().Format(time.RFC3339)
 		}
@@ -219,14 +221,20 @@ func (s *Server) applyAcpModels(out *agentv1.AcpAgent, id string, st registry.Ag
 }
 
 // acpSessionState is SessionInfo.acp of an open session. While the agent has not said (it starts, or waits for a
-// sign-in), what it last reported stands in, so the session offers its models and modes from the first moment.
+// sign-in), what it last reported stands in, so the session offers its models, modes and efforts from the first moment.
 func (s *Server) acpSessionState(cfg acp.Config, st acp.State) *agentv1.AcpSessionState {
 	out := acp.StateToProto(cfg, st)
-	if len(out.Models) > 0 {
-		return out
-	}
 	c := s.AcpRegistry().State(cfg.AgentID).Catalog
 	if c == nil {
+		return out
+	}
+	if open := st.AgentSessionID != "" && !st.Starting && !st.NeedsAuth; !open && len(out.Efforts) == 0 {
+		out.Efforts = acp.EffortsToProto(c.Efforts)
+		if out.CurrentEffortId == "" {
+			out.CurrentEffortId = c.CurrentEffort
+		}
+	}
+	if len(out.Models) > 0 {
 		return out
 	}
 	out.Models = acp.ModelsToProto(c.Models)
@@ -242,7 +250,7 @@ func (s *Server) acpSessionState(cfg acp.Config, st acp.State) *agentv1.AcpSessi
 	return out
 }
 
-// observeState keeps what follows from a session's state: the model and mode to restore on a resume, and the agent's
+// observeState keeps what follows from a session's state: the model, mode and effort to restore on a resume, and the agent's
 // catalog when the agent offers something else than last reported. Off this goroutine, which delivers the session's
 // events: the registry's lock can be held across a registry fetch.
 func (l *acpLive) observeState() {
@@ -251,13 +259,13 @@ func (l *acpLive) observeState() {
 		return
 	}
 	models := acp.ModelsOrDefault(st.Models)
-	key := fmt.Sprint(models, st.Modes)
+	key := fmt.Sprint(models, st.Modes, st.Efforts)
 	l.mu.Lock()
 	first, changed := l.reported == "", l.reported != key
 	l.reported = key
-	stored := l.meta.Model != st.CurrentModel || l.meta.Mode != st.CurrentMode
+	stored := l.meta.Model != st.CurrentModel || l.meta.Mode != st.CurrentMode || l.meta.Effort != st.CurrentEffort
 	if stored {
-		l.meta.Model, l.meta.Mode = st.CurrentModel, st.CurrentMode
+		l.meta.Model, l.meta.Mode, l.meta.Effort = st.CurrentModel, st.CurrentMode, st.CurrentEffort
 	}
 	meta := l.meta
 	closed := l.closed
@@ -284,6 +292,13 @@ func (l *acpLive) observeState() {
 			if !hasAcpMode(st.Modes, c.CurrentMode) {
 				c.CurrentMode = st.CurrentMode
 			}
+			// Levels can depend on the session's model: one without any says nothing about the agent's other models.
+			if len(st.Efforts) > 0 {
+				c.Efforts = st.Efforts
+				if !hasAcpEffort(st.Efforts, c.CurrentEffort) {
+					c.CurrentEffort = st.CurrentEffort
+				}
+			}
 			c.Version, c.Error, c.NeedsAuth = cfg.AgentVersion, "", false
 			c.UpdatedAt = time.Now().UTC()
 		})
@@ -309,6 +324,35 @@ func hasAcpMode(modes []acp.Mode, id string) bool {
 		}
 	}
 	return false
+}
+
+func hasAcpEffort(efforts []acp.Effort, id string) bool {
+	for _, e := range efforts {
+		if e.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// effortRefusal says why an ACP session cannot take an effort level: only the agent's own levels exist there.
+func (l *acpLive) effortRefusal(level string) error {
+	cfg := l.sess.Config()
+	st := l.srv.acpSessionState(cfg, l.sess.State())
+	refuse := func(why string) error { return connect.NewError(connect.CodeFailedPrecondition, errors.New(why)) }
+	offered := st.GetEfforts()
+	if len(offered) == 0 {
+		if st.GetStarting() || st.GetNeedsAuth() {
+			return nil // Nothing known yet: the choice waits for the agent, which has the last word.
+		}
+		return refuse(fmt.Sprintf("%s does not offer effort levels", cfg.AgentName))
+	}
+	for _, e := range offered {
+		if e.GetId() == level {
+			return nil
+		}
+	}
+	return refuse(fmt.Sprintf("%s has no effort level %q", cfg.AgentName, level))
 }
 
 // modelRefusal says why an ACP session cannot take a model: a session stays on its agent. engine is the engine the

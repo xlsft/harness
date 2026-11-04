@@ -10,7 +10,7 @@ import { joinUrl } from "../gateway/adapters/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
-import type { ModelPricing } from "./models.ts";
+import { backfilledCapabilities, EFFORT_LEVELS, type Effort, type ListedCapabilities, type ModelPricing } from "./models.ts";
 import { presetOf } from "./presets.ts";
 import { loadProviderRuntime, providerForUser, redactSecrets, type ProviderRuntime } from "./providers.ts";
 
@@ -23,6 +23,8 @@ export interface ModelCandidate {
   max_output_tokens?: number;
   /** USD per 1M tokens, when the upstream's list says (OpenRouter `pricing`, per token there). */
   pricing?: ModelPricing;
+  /** What the upstream's list says the model can do (see listedCapabilities). */
+  capabilities?: ListedCapabilities;
   created_at?: string;
   owned_by?: string;
   /** Catalog aliases that already point at this provider + upstream model. */
@@ -37,6 +39,14 @@ const listedPrices = new Map<string, Map<string, ModelPricing>>();
 /** The price the provider's last model list gave for a model (a user adds models from that list). */
 export function listedPriceOf(providerId: string, upstreamModel: string): ModelPricing | undefined {
   return listedPrices.get(providerId)?.get(upstreamModel);
+}
+
+/** The capabilities of each provider's last model list, by upstream model. */
+const listedCaps = new Map<string, Map<string, ListedCapabilities>>();
+
+/** The capabilities the provider's last model list gave for a model (a user adds models from that list). */
+export function listedCapabilitiesOf(providerId: string, upstreamModel: string): ListedCapabilities | undefined {
+  return listedCaps.get(providerId)?.get(upstreamModel);
 }
 
 function num(v: unknown): number | undefined {
@@ -101,6 +111,42 @@ function listedPricing(p: unknown): ModelPricing | undefined {
   return out;
 }
 
+/** The levels to offer when a list says a model reasons but not at which levels. */
+const BASIC_EFFORTS: Effort[] = ["low", "medium", "high"];
+
+/**
+ * What one entry of a model list says the model can do; only what it says yes to. Two formats:
+ *   - OpenRouter style: `reasoning` (`supported_efforts`, highest first, null for no allowlist), else
+ *     `supported_parameters`, and `architecture.input_modalities`. Levels harness has no name for ("minimal",
+ *     "none") are left out.
+ *   - Anthropic: `capabilities`, an object of `{supported: boolean}` per capability and per effort level.
+ */
+export function listedCapabilities(m: Record<string, any>): ListedCapabilities | undefined {
+  const c: ListedCapabilities = {};
+  const params: unknown[] = Array.isArray(m.supported_parameters) ? m.supported_parameters : [];
+  const modalities: unknown[] = Array.isArray(m.architecture?.input_modalities) ? m.architecture.input_modalities : [];
+  if (m.reasoning && typeof m.reasoning === "object") {
+    c.thinking = true;
+    const levels: unknown[] | undefined = Array.isArray(m.reasoning.supported_efforts) ? m.reasoning.supported_efforts : undefined;
+    c.effort = levels ? EFFORT_LEVELS.filter((l) => levels.includes(l)) : BASIC_EFFORTS;
+  } else if (["reasoning", "include_reasoning", "reasoning_effort"].some((p) => params.includes(p))) {
+    c.thinking = true;
+    c.effort = BASIC_EFFORTS;
+  }
+  if (modalities.includes("image")) c.images = true;
+  if (modalities.includes("file")) c.pdf = true;
+
+  const caps = m.capabilities;
+  if (caps && typeof caps === "object" && !Array.isArray(caps)) {
+    if (caps.thinking?.supported === true) c.thinking = true;
+    if (caps.effort?.supported === true) c.effort = EFFORT_LEVELS.filter((l) => caps.effort[l]?.supported === true);
+    if (caps.image_input?.supported === true) c.images = true;
+    if (caps.pdf_input?.supported === true) c.pdf = true;
+  }
+  if (!c.effort?.length) delete c.effort;
+  return Object.keys(c).length ? c : undefined;
+}
+
 /** Maps one entry of an Anthropic or OpenAI-style model list to a candidate. */
 export function toCandidate(m: Record<string, any>): Omit<ModelCandidate, "catalog_ids"> | undefined {
   const id = typeof m.id === "string" ? m.id : typeof m.name === "string" ? m.name : undefined;
@@ -115,6 +161,8 @@ export function toCandidate(m: Record<string, any>): Omit<ModelCandidate, "catal
   if (out) c.max_output_tokens = out;
   const pricing = listedPricing(m.pricing);
   if (pricing) c.pricing = pricing;
+  const capabilities = listedCapabilities(m);
+  if (capabilities) c.capabilities = capabilities;
   if (typeof m.created_at === "string") c.created_at = m.created_at;
   else if (typeof m.created === "number") c.created_at = new Date(m.created * 1000).toISOString();
   if (typeof m.owned_by === "string") c.owned_by = m.owned_by;
@@ -172,12 +220,21 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
     models.push({ ...c, catalog_ids: catalog.filter((e) => e.upstreamModel === c.upstream_model).map((e) => e.id) });
   }
   models.sort((a, b) => a.upstream_model.localeCompare(b.upstream_model));
-  // What the list says about prices: for a model added from it next, and for the ones already added without any.
+  // What the list says about prices and capabilities: for a model added from it next, and for the ones already added
+  // without them. A list that says nothing changes nothing.
   const prices = new Map(models.flatMap((m) => (m.pricing ? [[m.upstream_model, m.pricing] as const] : [])));
   listedPrices.set(providerId, prices);
+  const caps = new Map(models.flatMap((m) => (m.capabilities ? [[m.upstream_model, m.capabilities] as const] : [])));
+  listedCaps.set(providerId, caps);
   for (const e of catalog) {
-    const pricing = prices.get(e.upstreamModel);
-    if (!e.pricing && pricing) await getDb().update(schema.model).set({ pricing }).where(eq(schema.model.id, e.id));
+    const pricing = e.pricing ? undefined : prices.get(e.upstreamModel);
+    const capabilities = backfilledCapabilities(e.capabilities, caps.get(e.upstreamModel));
+    if (pricing || capabilities) {
+      await getDb()
+        .update(schema.model)
+        .set({ ...(pricing && { pricing }), ...(capabilities && { capabilities }) })
+        .where(eq(schema.model.id, e.id));
+    }
   }
   return { provider_id: providerId, models };
 }

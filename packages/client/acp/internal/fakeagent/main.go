@@ -10,12 +10,13 @@
 //	"limits" sends a rate-limit snapshot in an extension notification
 //	"nearlimit" sends a snapshot with the 5h window 98% used
 //	"ratelimited" fails the prompt with a usage-limit error
-//	"newmodels" reports the models of FAKE_MODELS_FILE again in a config_option_update
+//	"newmodels" reports the models of FAKE_MODELS_FILE and the levels of FAKE_EFFORTS_FILE again in a config_option_update
 //
 // Environment: FAKE_AUTH=1 refuses session/new until "login" (agent auth) ran or FAKE_AUTH_FILE exists
 // (terminal auth: `fakeagent --login` creates it); FAKE_LOAD=1 advertises loadSession; FAKE_MODELS_FILE holds the
 // model config option, one "id=Name" per line, the first one current (no file or an empty one: no model option, as
-// with an agent that has none); while FAKE_FAIL_FILE exists session/new fails; FAKE_LOG appends one line per
+// with an agent that has none); FAKE_EFFORTS_FILE holds its effort config option the same way, under the agent's own
+// names; while FAKE_FAIL_FILE exists session/new fails; FAKE_LOG appends one line per
 // process start and per request that matters to tests.
 package main
 
@@ -39,6 +40,7 @@ type agent struct {
 	cancels map[sdk.SessionId]context.CancelFunc
 	cwd     map[sdk.SessionId]string
 	model   map[sdk.SessionId]string
+	effort  map[sdk.SessionId]string
 	n       int
 }
 
@@ -56,9 +58,10 @@ func logLine(format string, args ...any) {
 	fmt.Fprintf(w, format+"\n", args...)
 }
 
-// modelOption is the agent's model config option as FAKE_MODELS_FILE has it now; current empty is its first model.
-func modelOption(current string) []sdk.SessionConfigOption {
-	b, err := os.ReadFile(os.Getenv("FAKE_MODELS_FILE"))
+// selectOption is a config option as a file has it now, one "id=Name" per line; current empty is its first choice.
+// nil without a file or choices.
+func selectOption(file, id, name string, category sdk.SessionConfigOptionCategory, current string) []sdk.SessionConfigOption {
+	b, err := os.ReadFile(file)
 	if err != nil {
 		return nil
 	}
@@ -74,9 +77,17 @@ func modelOption(current string) []sdk.SessionConfigOption {
 	if current == "" {
 		current = string(opts[0].Value)
 	}
-	category := sdk.SessionConfigOptionCategoryModel
-	return []sdk.SessionConfigOption{{Select: &sdk.SessionConfigOptionSelect{Id: "model", Name: "Model", Type: "select", Category: &category,
+	return []sdk.SessionConfigOption{{Select: &sdk.SessionConfigOptionSelect{Id: sdk.SessionConfigId(id), Name: name, Type: "select", Category: &category,
 		CurrentValue: sdk.SessionConfigValueId(current), Options: sdk.SessionConfigSelectOptions{Ungrouped: &opts}}}}
+}
+
+func effortOption(current string) []sdk.SessionConfigOption {
+	return selectOption(os.Getenv("FAKE_EFFORTS_FILE"), "thoughts", "Thinking", sdk.SessionConfigOptionCategoryThoughtLevel, current)
+}
+
+// configOptions is the agent's config options as its files have them now.
+func configOptions(model, effort string) []sdk.SessionConfigOption {
+	return append(selectOption(os.Getenv("FAKE_MODELS_FILE"), "model", "Model", sdk.SessionConfigOptionCategoryModel, model), effortOption(effort)...)
 }
 
 func main() {
@@ -88,7 +99,7 @@ func main() {
 		return
 	}
 	logLine("spawn")
-	a := &agent{cancels: map[sdk.SessionId]context.CancelFunc{}, cwd: map[sdk.SessionId]string{}, model: map[sdk.SessionId]string{}}
+	a := &agent{cancels: map[sdk.SessionId]context.CancelFunc{}, cwd: map[sdk.SessionId]string{}, model: map[sdk.SessionId]string{}, effort: map[sdk.SessionId]string{}}
 	a.conn = sdk.NewAgentSideConnection(a, os.Stdout, os.Stdin)
 	<-a.conn.Done()
 }
@@ -162,7 +173,7 @@ func (a *agent) NewSession(ctx context.Context, p sdk.NewSessionRequest) (sdk.Ne
 			AvailableCommandsUpdate: &sdk.SessionAvailableCommandsUpdate{SessionUpdate: "available_commands_update",
 				AvailableCommands: []sdk.AvailableCommand{{Name: "review", Description: "Review the changes"}}}}})
 	}()
-	return sdk.NewSessionResponse{SessionId: id, Modes: modes(), ConfigOptions: modelOption("")}, nil
+	return sdk.NewSessionResponse{SessionId: id, Modes: modes(), ConfigOptions: configOptions("", "")}, nil
 }
 
 func (a *agent) LoadSession(ctx context.Context, p sdk.LoadSessionRequest) (sdk.LoadSessionResponse, error) {
@@ -172,7 +183,7 @@ func (a *agent) LoadSession(ctx context.Context, p sdk.LoadSessionRequest) (sdk.
 	// Replays the conversation; the client ignores it.
 	_ = a.conn.SessionUpdate(ctx, sdk.SessionNotification{SessionId: p.SessionId, Update: sdk.UpdateUserMessageText("old prompt")})
 	_ = a.conn.SessionUpdate(ctx, sdk.SessionNotification{SessionId: p.SessionId, Update: sdk.UpdateAgentMessageText("old reply")})
-	return sdk.LoadSessionResponse{Modes: modes()}, nil
+	return sdk.LoadSessionResponse{Modes: modes(), ConfigOptions: effortOption("")}, nil
 }
 
 func (a *agent) Cancel(ctx context.Context, p sdk.CancelNotification) error {
@@ -198,6 +209,9 @@ func (a *agent) Prompt(ctx context.Context, p sdk.PromptRequest) (sdk.PromptResp
 	}
 	a.mu.Lock()
 	logLine("prompt model=%s", a.model[p.SessionId])
+	if e := a.effort[p.SessionId]; e != "" {
+		logLine("effort at prompt %s", e)
+	}
 	a.mu.Unlock()
 	tctx, cancel := context.WithCancel(context.Background())
 	a.mu.Lock()
@@ -209,7 +223,7 @@ func (a *agent) Prompt(ctx context.Context, p sdk.PromptRequest) (sdk.PromptResp
 	usage := &sdk.Usage{InputTokens: 100, OutputTokens: 20, TotalTokens: 120}
 	switch {
 	case strings.Contains(text, "newmodels"):
-		a.send(ctx, id, sdk.SessionUpdate{ConfigOptionUpdate: &sdk.SessionConfigOptionUpdate{SessionUpdate: "config_option_update", ConfigOptions: modelOption("")}})
+		a.send(ctx, id, sdk.SessionUpdate{ConfigOptionUpdate: &sdk.SessionConfigOptionUpdate{SessionUpdate: "config_option_update", ConfigOptions: configOptions("", "")}})
 		// The client handles the update after this answer otherwise.
 		time.Sleep(20 * time.Millisecond)
 		return sdk.PromptResponse{StopReason: sdk.StopReasonEndTurn}, nil
@@ -317,11 +331,16 @@ func (a *agent) SetSessionConfigOption(ctx context.Context, p sdk.SetSessionConf
 	if p.ValueId == nil {
 		return sdk.SetSessionConfigOptionResponse{}, sdk.NewInvalidParams(map[string]any{"error": "a value is required"})
 	}
-	logLine("set_model %s", p.ValueId.Value)
 	a.mu.Lock()
-	a.model[p.ValueId.SessionId] = string(p.ValueId.Value)
+	if p.ValueId.ConfigId == "thoughts" {
+		logLine("set_effort %s", p.ValueId.Value)
+		a.effort[p.ValueId.SessionId] = string(p.ValueId.Value)
+	} else {
+		logLine("set_model %s", p.ValueId.Value)
+		a.model[p.ValueId.SessionId] = string(p.ValueId.Value)
+	}
+	opts := configOptions(a.model[p.ValueId.SessionId], a.effort[p.ValueId.SessionId])
 	a.mu.Unlock()
-	opts := modelOption(string(p.ValueId.Value))
 	if opts == nil {
 		opts = []sdk.SessionConfigOption{}
 	}

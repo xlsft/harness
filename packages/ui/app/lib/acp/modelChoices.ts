@@ -4,7 +4,9 @@
 // identified by its key: "<engine>/<id>" for an agent's model, the id for a server's.
 
 import { AcpModelsStatus, SessionFeature, type AcpAgent, type AcpSessionState } from '~/gen/harness/agent/v1/acp_pb'
+import type { EffortName } from '~/lib/session/types'
 import type { ModelInfo } from '~/lib/transport/types'
+import { fitEffort, harnessEffortLevels, type EffortLevel } from '~/utils/composer'
 
 // What the list is for.
 export type ModelScope
@@ -124,16 +126,38 @@ export function firstPickable(sections: ModelSection[]): ModelRow | undefined {
   return sections.flatMap(s => s.rows).find(r => !r.offline && !r.disabledReason)
 }
 
+// An agent's effort levels as the chip shows them: the agent's ids and names, whatever it calls them.
+export function agentEffortLevels(efforts: { id: string, name: string }[]): EffortLevel[] {
+  return efforts.map(e => ({ id: e.id, label: e.name || e.id }))
+}
+
+// The effort chip of a running session: the agent's levels on an agent, the model's on harness, nothing where the
+// client says the session has no effort.
+export function sessionEffort(c: { onAgent: boolean, unsupported: boolean, acp?: AcpSessionState | null, harness: EffortName[], chosen: EffortName }): { levels: EffortLevel[], current?: string } {
+  if (c.unsupported) return { levels: [] }
+  if (c.onAgent) return { levels: agentEffortLevels(c.acp?.efforts ?? []), current: c.acp?.currentEffortId || undefined }
+  return { levels: harnessEffortLevels(c.harness), current: fitEffort(c.chosen, c.harness) }
+}
+
+// The effort chip of the new-session screen on an agent, from what the client has cached about it: the level chosen
+// here while the agent still lists it, else the one it starts on.
+export function newSessionAgentEffort(agent: AcpAgent | undefined, chosen: string): { levels: EffortLevel[], current?: string } {
+  if (!agent || agent.unsupportedFeatures.includes(SessionFeature.EFFORT)) return { levels: [] }
+  const current = agent.efforts.some(e => e.id === chosen) ? chosen : agent.currentEffortId
+  return { levels: agentEffortLevels(agent.efforts), current: current || undefined }
+}
+
 // What the new-session screen starts a session with. On an agent the server's effort and permission mode do not apply,
-// the agent's mode does, and only what the agent supports goes along.
-export function newSessionChoice<E, M>(c: { engine: string, agent?: AcpAgent, acpMode: string, effort?: E, mode: M, worktree?: { baseRef: string } }) {
-  if (!c.engine) return { effort: c.effort, mode: c.mode, worktree: c.worktree, engine: undefined, acpModeId: undefined }
+// the agent's mode and effort do, and only what the agent supports goes along.
+export function newSessionChoice<E, M>(c: { engine: string, agent?: AcpAgent, acpMode: string, acpEffort?: string, effort?: E, mode: M, worktree?: { baseRef: string } }) {
+  if (!c.engine) return { effort: c.effort, mode: c.mode, worktree: c.worktree, engine: undefined, acpModeId: undefined, acpEffortId: undefined }
   return {
     effort: undefined,
     mode: undefined,
     worktree: c.agent?.unsupportedFeatures.includes(SessionFeature.WORKTREE) ? undefined : c.worktree,
     engine: c.engine,
-    acpModeId: c.acpMode || undefined
+    acpModeId: c.acpMode || undefined,
+    acpEffortId: c.agent?.unsupportedFeatures.includes(SessionFeature.EFFORT) ? undefined : c.acpEffort || undefined
   }
 }
 

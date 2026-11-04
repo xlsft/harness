@@ -3,7 +3,7 @@
 
 <script setup lang="ts">
 // Composer footer (Composer.dc.html): hint · model · effort · mode · usage ring, with the model and mode pickers.
-import type { ModelScope } from '~/lib/acp/modelChoices'
+import { sessionEffort, type ModelScope } from '~/lib/acp/modelChoices'
 import type { EffortName, SessionState } from '~/lib/session/types'
 
 export type Hint = { keys?: string, text: string }[]
@@ -23,8 +23,17 @@ const scope = computed<ModelScope>(() => ({ kind: 'session', engine: props.sessi
 const label = computed(() => acp.value?.models.find(m => m.id === acp.value!.currentModelId)?.name || acp.value?.currentModelId || model.value?.displayName || props.session.meta.model)
 const selected = computed(() => onAgent.value ? acp.value?.currentModelId ?? '' : props.session.meta.model)
 const acpModes = computed(() => onAgent.value ? { modes: acp.value?.modes ?? [], current: acp.value?.currentModeId ?? '' } : undefined)
-const efforts = computed(() => props.session.meta.unsupported.includes('effort') ? [] : modelEfforts(model.value))
-const effort = computed(() => fitEffort((props.session.meta.effort || store.effort[id.value] || 'medium') as EffortName, efforts.value))
+const effortChoice = computed(() => sessionEffort({
+  onAgent: onAgent.value,
+  unsupported: props.session.meta.unsupported.includes('effort'),
+  acp: acp.value,
+  harness: modelEfforts(model.value),
+  chosen: (props.session.meta.effort || store.effort[id.value] || 'medium') as EffortName
+}))
+function pickEffort(level: string) {
+  if (onAgent.value) void store.setAcpEffort(id.value, level)
+  else void store.setEffort(id.value, level as EffortName)
+}
 const contextWindow = computed(() => Number(acp.value?.contextWindowTokens ?? 0) || model.value?.contextWindow || 200_000)
 const contextUsed = computed(() => Number(acp.value?.contextUsedTokens ?? 0) || props.session.contextTokens)
 const pct = computed(() => Math.min(100, Math.round((contextUsed.value / contextWindow.value) * 100)))
@@ -53,12 +62,12 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
       :provider="model?.provider"
       :scope="scope"
       :acp-modes="acpModes"
-      :efforts="efforts"
-      :effort="effort"
+      :efforts="effortChoice.levels"
+      :effort="effortChoice.current"
       :mode="session.meta.permissionMode"
       @update:model="(m, engine) => store.setModel(id, m, engine)"
       @update:acp-mode="store.setAcpMode(id, $event)"
-      @update:effort="store.setEffort(id, $event)"
+      @update:effort="pickEffort"
       @update:mode="store.setPermissionMode(id, $event)"
     />
 

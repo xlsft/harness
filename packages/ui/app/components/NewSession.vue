@@ -13,7 +13,7 @@
 import type { Branch, RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
-import { fitAcpChoice, newSessionChoice, type ModelScope } from '~/lib/acp/modelChoices'
+import { fitAcpChoice, newSessionAgentEffort, newSessionChoice, type ModelScope } from '~/lib/acp/modelChoices'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 
 const store = useSessionStore()
@@ -31,9 +31,10 @@ const baseRef = ref('')
 const branches = ref<Branch[]>([])
 const current = ref('')
 const model = ref('')
-// The engine of the chosen model when it is an ACP agent's ("acp:<id>"), and that agent's mode to start in.
+// The engine of the chosen model when it is an ACP agent's ("acp:<id>"), and that agent's mode and effort to start on.
 const engine = ref('')
 const acpMode = ref('')
+const acpEffort = ref('')
 const effort = ref<EffortName>('medium')
 const mode = ref<PermissionModeName>('auto')
 const text = ref('')
@@ -99,11 +100,12 @@ async function loadBranches() {
 }
 
 onMounted(async () => {
-  const prefs = readJSON<{ worktree?: boolean, model?: string, engine?: string, acpMode?: string, effort?: EffortName, mode?: PermissionModeName }>(PREFS, {})
+  const prefs = readJSON<{ worktree?: boolean, model?: string, engine?: string, acpMode?: string, acpEffort?: string, effort?: EffortName, mode?: PermissionModeName }>(PREFS, {})
   worktree.value = prefs.worktree ?? false
   model.value = prefs.model ?? ''
   engine.value = prefs.engine ?? ''
   acpMode.value = prefs.acpMode ?? ''
+  acpEffort.value = prefs.acpEffort ?? ''
   fitChoice()
   effort.value = prefs.effort ?? 'medium'
   mode.value = fitMode(prefs.mode ?? 'auto', store.disabledModes)
@@ -168,6 +170,7 @@ function fitChoice() {
 watch(() => [store.acpLoaded, store.acpAgents, forkOf.value], fitChoice)
 watch(agent, (a) => {
   if (a && !a.modes.some(m => m.id === acpMode.value)) acpMode.value = ''
+  if (a && !a.efforts.some(e => e.id === acpEffort.value)) acpEffort.value = ''
 })
 const acpModes = computed(() => agent.value ? { modes: agent.value.modes, current: acpMode.value || agent.value.currentModeId } : undefined)
 
@@ -175,6 +178,7 @@ function pickModel(id: string, from: string) {
   model.value = id
   engine.value = from
   acpMode.value = ''
+  acpEffort.value = ''
 }
 
 const modelLabel = computed(() => {
@@ -183,6 +187,14 @@ const modelLabel = computed(() => {
   return m?.displayName || model.value || m?.id || 'default model'
 })
 const efforts = computed(() => engine.value ? [] : modelEfforts(store.models.find(m => m.id === (model.value || store.models[0]?.id))))
+// The effort chip: the agent's own levels on an agent, from the cached catalog.
+const effortChoice = computed(() => engine.value
+  ? newSessionAgentEffort(agent.value, acpEffort.value)
+  : { levels: harnessEffortLevels(efforts.value), current: efforts.value.length ? effort.value : undefined })
+function pickEffort(level: string) {
+  if (engine.value) acpEffort.value = level
+  else effort.value = level as EffortName
+}
 // Each model starts at its own remembered effort (Settings → Models), else the nearest level it offers.
 watch([model, efforts], () => {
   const own = readJSON<{ effortByModel?: Record<string, EffortName> }>(PREFS, {}).effortByModel?.[model.value || store.models[0]?.id || '']
@@ -203,13 +215,14 @@ async function start() {
         engine: engine.value,
         agent: agent.value,
         acpMode: acpMode.value,
+        acpEffort: acpEffort.value,
         effort: efforts.value.length ? effort.value : undefined,
         mode: mode.value,
         worktree: cwd.value && worktree.value ? { baseRef: baseRef.value } : undefined
       })
     })
     const { cwd: _old, ...prefs } = readJSON<Record<string, unknown>>(PREFS, {})
-    writeJSON(PREFS, { ...prefs, model: model.value, engine: engine.value, acpMode: acpMode.value, effort: effort.value, mode: mode.value, ...(cwd.value && !noWorktree.value && { worktree: worktree.value }) })
+    writeJSON(PREFS, { ...prefs, model: model.value, engine: engine.value, acpMode: acpMode.value, acpEffort: acpEffort.value, effort: effort.value, mode: mode.value, ...(cwd.value && !noWorktree.value && { worktree: worktree.value }) })
     if (cwd.value) writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
     const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
@@ -482,12 +495,12 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
             :model-engine="engine"
             :label="modelLabel"
             :scope="scope"
-            :efforts="efforts"
-            :effort="efforts.length ? effort : undefined"
+            :efforts="effortChoice.levels"
+            :effort="effortChoice.current"
             :mode="mode"
             :acp-modes="acpModes"
             @update:model="pickModel"
-            @update:effort="effort = $event"
+            @update:effort="pickEffort"
             @update:mode="mode = $event"
             @update:acp-mode="acpMode = $event"
           />

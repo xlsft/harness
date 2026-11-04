@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/acp.proto.
  */
 export const file_harness_agent_v1_acp: GenFile = /*@__PURE__*/
-  fileDesc("ChpoYXJuZXNzL2FnZW50L3YxL2FjcC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSLlAQoNQWNwQXV0aE1ldGhvZBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEjIKBGtpbmQYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QuS2luZBIQCghlbnZfdmFycxgFIAMoCRIMCgRsaW5rGAYgASgJIlEKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg4KCktJTkRfQUdFTlQQARIRCg1LSU5EX1RFUk1JTkFMEAISEAoMS0lORF9FTlZfVkFSEAMiggcKCEFjcEFnZW50EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSFgoObGF0ZXN0X3ZlcnNpb24YBCABKAkSEgoKcmVwb3NpdG9yeRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJEg8KB2xpY2Vuc2UYByABKAkSDwoHYXV0aG9ycxgIIAMoCRIQCghpY29uX3VybBgJIAEoCRIQCghpY29uX3N2ZxgKIAEoCRI3CgxkaXN0cmlidXRpb24YCyABKA4yIS5oYXJuZXNzLmFnZW50LnYxLkFjcERpc3RyaWJ1dGlvbhIRCglpbnN0YWxsZWQYDCABKAgSGQoRaW5zdGFsbGVkX3ZlcnNpb24YDSABKAkSGAoQdXBkYXRlX2F2YWlsYWJsZRgOIAEoCBIRCglhdmFpbGFibGUYDyABKAgSGgoSdW5hdmFpbGFibGVfcmVhc29uGBAgASgJEg8KB3J1bnRpbWUYESABKAkSMgoKYXV0aF9zdGF0ZRgSIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aFN0YXRlEjUKDGF1dGhfbWV0aG9kcxgTIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aE1ldGhvZBIOCgZlbmdpbmUYFCABKAkSNQoGbGltaXRzGBUgASgLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudExpbWl0c0gAiAEBEhIKCnNlbGVjdGFibGUYFiABKAgSKgoGbW9kZWxzGBcgAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbBIYChBjdXJyZW50X21vZGVsX2lkGBggASgJEigKBW1vZGVzGBkgAygLMhkuaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlEhcKD2N1cnJlbnRfbW9kZV9pZBgaIAEoCRI4Cg1tb2RlbHNfc3RhdHVzGBsgASgOMiEuaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbHNTdGF0dXMSFAoMbW9kZWxzX2Vycm9yGBwgASgJEhkKEW1vZGVsc191cGRhdGVkX2F0GB0gASgJEj4KFHVuc3VwcG9ydGVkX2ZlYXR1cmVzGB4gAygOMiAuaGFybmVzcy5hZ2VudC52MS5TZXNzaW9uRmVhdHVyZUIJCgdfbGltaXRzImoKDkFjcEFnZW50TGltaXRzEjEKB3dpbmRvd3MYASADKAsyIC5oYXJuZXNzLmFnZW50LnYxLkFjcExpbWl0V2luZG93EhEKCXBsYW5fbmFtZRgCIAEoCRISCgp1cGRhdGVkX2F0GAMgASgJImAKDkFjcExpbWl0V2luZG93Eg0KBWxhYmVsGAEgASgJEhQKDHVzZWRfcGVyY2VudBgCIAEoARIRCglyZXNldHNfYXQYAyABKAkSFgoOd2luZG93X21pbnV0ZXMYBCABKAMi/wMKD0FjcFNlc3Npb25TdGF0ZRIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEhUKDWFnZW50X3ZlcnNpb24YAyABKAkSKAoFbW9kZXMYBCADKAsyGS5oYXJuZXNzLmFnZW50LnYxLkFjcE1vZGUSFwoPY3VycmVudF9tb2RlX2lkGAUgASgJEi4KCGNvbW1hbmRzGAYgAygLMhwuaGFybmVzcy5hZ2VudC52MS5BY3BDb21tYW5kEhIKCm5lZWRzX2F1dGgYByABKAgSNQoMYXV0aF9tZXRob2RzGAggAygLMh8uaGFybmVzcy5hZ2VudC52MS5BY3BBdXRoTWV0aG9kEhsKE2ZyZXNoX2FnZW50X3Nlc3Npb24YCSABKAgSGwoTY29udGV4dF91c2VkX3Rva2VucxgKIAEoAxIdChVjb250ZXh0X3dpbmRvd190b2tlbnMYCyABKAMSEAoIc3RhcnRpbmcYDCABKAgSKgoGbW9kZWxzGA0gAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbBIYChBjdXJyZW50X21vZGVsX2lkGA4gASgJEjUKBmxpbWl0cxgPIAEoCzIgLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnRMaW1pdHNIAIgBAUIJCgdfbGltaXRzIjgKB0FjcE1vZGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCSJDCgpBY3BDb21tYW5kEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEgoKaW5wdXRfaGludBgDIAEoCSI5CghBY3BNb2RlbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIrwBChJBY3BUZXJtaW5hbENvbW1hbmQSDwoHY29tbWFuZBgBIAEoCRIMCgRhcmdzGAIgAygJEjoKA2VudhgDIAMoCzItLmhhcm5lc3MuYWdlbnQudjEuQWNwVGVybWluYWxDb21tYW5kLkVudkVudHJ5EgsKA2N3ZBgEIAEoCRISCgpzaGVsbF9saW5lGAUgASgJGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPAoUTGlzdEFjcEFnZW50c1JlcXVlc3QSDwoHcmVmcmVzaBgBIAEoCBITCgtjYWNoZWRfb25seRgCIAEoCCKqAQoVTGlzdEFjcEFnZW50c1Jlc3BvbnNlEioKBmFnZW50cxgBIAMoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQSGwoTcmVnaXN0cnlfZmV0Y2hlZF9hdBgCIAEoCRIWCg5yZWdpc3RyeV9lcnJvchgDIAEoCRIQCghydW50aW1lcxgEIAMoCRIeChZzZXNzaW9uX3N3aXRjaF9yZWZ1c2FsGAUgASgJIioKFkluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAki1AIKF0luc3RhbGxBY3BBZ2VudFJlc3BvbnNlEj4KBXBoYXNlGAEgASgOMi8uaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZS5QaGFzZRISCgpieXRlc19kb25lGAIgASgDEhMKC2J5dGVzX3RvdGFsGAMgASgDEg8KB21lc3NhZ2UYBCABKAkSDAoEZG9uZRgFIAEoCBIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQihQEKBVBoYXNlEhUKEVBIQVNFX1VOU1BFQ0lGSUVEEAASEwoPUEhBU0VfUkVTT0xWSU5HEAESFQoRUEhBU0VfRE9XTkxPQURJTkcQAhITCg9QSEFTRV9WRVJJRllJTkcQAxIUChBQSEFTRV9FWFRSQUNUSU5HEAQSDgoKUEhBU0VfRE9ORRAFIikKFVVwZGF0ZUFjcEFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCSJVChZVcGRhdGVBY3BBZ2VudFJlc3BvbnNlEjsKCHByb2dyZXNzGAEgASgLMikuaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsQWNwQWdlbnRSZXNwb25zZSIsChhVbmluc3RhbGxBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAkiRgoZVW5pbnN0YWxsQWNwQWdlbnRSZXNwb25zZRIpCgVhZ2VudBgBIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnQifQobQXV0aGVudGljYXRlQWNwQWdlbnRSZXF1ZXN0EhAKCGFnZW50X2lkGAEgASgJEhEKCW1ldGhvZF9pZBgCIAEoCRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBnZlcmlmeRgEIAEoCBIVCg1vcGVuX3Rlcm1pbmFsGAUgASgIIqMCChxBdXRoZW50aWNhdGVBY3BBZ2VudFJlc3BvbnNlEhUKDWF1dGhlbnRpY2F0ZWQYASABKAgSOwoIdGVybWluYWwYAiABKAsyJC5oYXJuZXNzLmFnZW50LnYxLkFjcFRlcm1pbmFsQ29tbWFuZEgAiAEBEjoKDXRlcm1pbmFsX2luZm8YAyABKAsyHi5oYXJuZXNzLmFnZW50LnYxLlRlcm1pbmFsSW5mb0gBiAEBEhcKD3Rlcm1pbmFsX3RpY2tldBgEIAEoCRIQCghlbnZfdmFycxgFIAMoCRIpCgVhZ2VudBgGIAEoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwQWdlbnRCCwoJX3Rlcm1pbmFsQhAKDl90ZXJtaW5hbF9pbmZvIjgKEVNldEFjcE1vZGVSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSDwoHbW9kZV9pZBgCIAEoCSIUChJTZXRBY3BNb2RlUmVzcG9uc2UqmQQKDlNlc3Npb25GZWF0dXJlEh8KG1NFU1NJT05fRkVBVFVSRV9VTlNQRUNJRklFRBAAEhoKFlNFU1NJT05fRkVBVFVSRV9SRVdJTkQQARIYChRTRVNTSU9OX0ZFQVRVUkVfRk9SSxACEiAKHFNFU1NJT05fRkVBVFVSRV9TVUJfU0VTU0lPTlMQAxIdChlTRVNTSU9OX0ZFQVRVUkVfU0lERV9DSEFUEAQSHgoaU0VTU0lPTl9GRUFUVVJFX0NPTVBBQ1RJT04QBRIlCiFTRVNTSU9OX0ZFQVRVUkVfQ09OVEVYVF9CUkVBS0RPV04QBhIeChpTRVNTSU9OX0ZFQVRVUkVfQ0xBU1NJRklFUhAHEhoKFlNFU1NJT05fRkVBVFVSRV9FRkZPUlQQCBIhCh1TRVNTSU9OX0ZFQVRVUkVfT1VUUFVUX1NUWUxFUxAJEiIKHlNFU1NJT05fRkVBVFVSRV9TSEVMTF9DT01NQU5EUxAKEiQKIFNFU1NJT05fRkVBVFVSRV9CQUNLR1JPVU5EX1RBU0tTEAsSIQodU0VTU0lPTl9GRUFUVVJFX01PREVMX0NBVEFMT0cQDBIdChlTRVNTSU9OX0ZFQVRVUkVfUVVFU1RJT05TEA0SHwobU0VTU0lPTl9GRUFUVVJFX01PVkVfRk9MREVSEA4SHAoYU0VTU0lPTl9GRUFUVVJFX1dPUktUUkVFEA8qhAEKD0FjcERpc3RyaWJ1dGlvbhIgChxBQ1BfRElTVFJJQlVUSU9OX1VOU1BFQ0lGSUVEEAASGwoXQUNQX0RJU1RSSUJVVElPTl9CSU5BUlkQARIYChRBQ1BfRElTVFJJQlVUSU9OX05QWBACEhgKFEFDUF9ESVNUUklCVVRJT05fVVZYEAMqqgEKDEFjcEF1dGhTdGF0ZRIeChpBQ1BfQVVUSF9TVEFURV9VTlNQRUNJRklFRBAAEhoKFkFDUF9BVVRIX1NUQVRFX1VOS05PV04QARIfChtBQ1BfQVVUSF9TVEFURV9OT1RfUkVRVUlSRUQQAhIbChdBQ1BfQVVUSF9TVEFURV9SRVFVSVJFRBADEiAKHEFDUF9BVVRIX1NUQVRFX0FVVEhFTlRJQ0FURUQQBCrPAQoPQWNwTW9kZWxzU3RhdHVzEiEKHUFDUF9NT0RFTFNfU1RBVFVTX1VOU1BFQ0lGSUVEEAASIAocQUNQX01PREVMU19TVEFUVVNfTk9UX1BST0JFRBABEh0KGUFDUF9NT0RFTFNfU1RBVFVTX1BST0JJTkcQAhIYChRBQ1BfTU9ERUxTX1NUQVRVU19PSxADEhwKGEFDUF9NT0RFTFNfU1RBVFVTX0ZBSUxFRBAEEiAKHEFDUF9NT0RFTFNfU1RBVFVTX05FRURTX0FVVEgQBULJAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCCEFjcFByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z", [file_harness_agent_v1_terminal]);
+  fileDesc("ChpoYXJuZXNzL2FnZW50L3YxL2FjcC5wcm90bxIQaGFybmVzcy5hZ2VudC52MSLlAQoNQWNwQXV0aE1ldGhvZBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEjIKBGtpbmQYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkFjcEF1dGhNZXRob2QuS2luZBIQCghlbnZfdmFycxgFIAMoCRIMCgRsaW5rGAYgASgJIlEKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg4KCktJTkRfQUdFTlQQARIRCg1LSU5EX1RFUk1JTkFMEAISEAoMS0lORF9FTlZfVkFSEAMiywcKCEFjcEFnZW50EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSFgoObGF0ZXN0X3ZlcnNpb24YBCABKAkSEgoKcmVwb3NpdG9yeRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJEg8KB2xpY2Vuc2UYByABKAkSDwoHYXV0aG9ycxgIIAMoCRIQCghpY29uX3VybBgJIAEoCRIQCghpY29uX3N2ZxgKIAEoCRI3CgxkaXN0cmlidXRpb24YCyABKA4yIS5oYXJuZXNzLmFnZW50LnYxLkFjcERpc3RyaWJ1dGlvbhIRCglpbnN0YWxsZWQYDCABKAgSGQoRaW5zdGFsbGVkX3ZlcnNpb24YDSABKAkSGAoQdXBkYXRlX2F2YWlsYWJsZRgOIAEoCBIRCglhdmFpbGFibGUYDyABKAgSGgoSdW5hdmFpbGFibGVfcmVhc29uGBAgASgJEg8KB3J1bnRpbWUYESABKAkSMgoKYXV0aF9zdGF0ZRgSIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aFN0YXRlEjUKDGF1dGhfbWV0aG9kcxgTIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aE1ldGhvZBIOCgZlbmdpbmUYFCABKAkSNQoGbGltaXRzGBUgASgLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudExpbWl0c0gAiAEBEhIKCnNlbGVjdGFibGUYFiABKAgSKgoGbW9kZWxzGBcgAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbBIYChBjdXJyZW50X21vZGVsX2lkGBggASgJEigKBW1vZGVzGBkgAygLMhkuaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlEhcKD2N1cnJlbnRfbW9kZV9pZBgaIAEoCRI4Cg1tb2RlbHNfc3RhdHVzGBsgASgOMiEuaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlbHNTdGF0dXMSFAoMbW9kZWxzX2Vycm9yGBwgASgJEhkKEW1vZGVsc191cGRhdGVkX2F0GB0gASgJEj4KFHVuc3VwcG9ydGVkX2ZlYXR1cmVzGB4gAygOMiAuaGFybmVzcy5hZ2VudC52MS5TZXNzaW9uRmVhdHVyZRIsCgdlZmZvcnRzGB8gAygLMhsuaGFybmVzcy5hZ2VudC52MS5BY3BFZmZvcnQSGQoRY3VycmVudF9lZmZvcnRfaWQYICABKAlCCQoHX2xpbWl0cyJqCg5BY3BBZ2VudExpbWl0cxIxCgd3aW5kb3dzGAEgAygLMiAuaGFybmVzcy5hZ2VudC52MS5BY3BMaW1pdFdpbmRvdxIRCglwbGFuX25hbWUYAiABKAkSEgoKdXBkYXRlZF9hdBgDIAEoCSJgCg5BY3BMaW1pdFdpbmRvdxINCgVsYWJlbBgBIAEoCRIUCgx1c2VkX3BlcmNlbnQYAiABKAESEQoJcmVzZXRzX2F0GAMgASgJEhYKDndpbmRvd19taW51dGVzGAQgASgDIsgECg9BY3BTZXNzaW9uU3RhdGUSEAoIYWdlbnRfaWQYASABKAkSEgoKYWdlbnRfbmFtZRgCIAEoCRIVCg1hZ2VudF92ZXJzaW9uGAMgASgJEigKBW1vZGVzGAQgAygLMhkuaGFybmVzcy5hZ2VudC52MS5BY3BNb2RlEhcKD2N1cnJlbnRfbW9kZV9pZBgFIAEoCRIuCghjb21tYW5kcxgGIAMoCzIcLmhhcm5lc3MuYWdlbnQudjEuQWNwQ29tbWFuZBISCgpuZWVkc19hdXRoGAcgASgIEjUKDGF1dGhfbWV0aG9kcxgIIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuQWNwQXV0aE1ldGhvZBIbChNmcmVzaF9hZ2VudF9zZXNzaW9uGAkgASgIEhsKE2NvbnRleHRfdXNlZF90b2tlbnMYCiABKAMSHQoVY29udGV4dF93aW5kb3dfdG9rZW5zGAsgASgDEhAKCHN0YXJ0aW5nGAwgASgIEioKBm1vZGVscxgNIAMoCzIaLmhhcm5lc3MuYWdlbnQudjEuQWNwTW9kZWwSGAoQY3VycmVudF9tb2RlbF9pZBgOIAEoCRI1CgZsaW1pdHMYDyABKAsyIC5oYXJuZXNzLmFnZW50LnYxLkFjcEFnZW50TGltaXRzSACIAQESLAoHZWZmb3J0cxgQIAMoCzIbLmhhcm5lc3MuYWdlbnQudjEuQWNwRWZmb3J0EhkKEWN1cnJlbnRfZWZmb3J0X2lkGBEgASgJQgkKB19saW1pdHMiOAoHQWNwTW9kZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIkMKCkFjcENvbW1hbmQSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRISCgppbnB1dF9oaW50GAMgASgJIjkKCEFjcE1vZGVsEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkiOgoJQWNwRWZmb3J0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkivAEKEkFjcFRlcm1pbmFsQ29tbWFuZBIPCgdjb21tYW5kGAEgASgJEgwKBGFyZ3MYAiADKAkSOgoDZW52GAMgAygLMi0uaGFybmVzcy5hZ2VudC52MS5BY3BUZXJtaW5hbENvbW1hbmQuRW52RW50cnkSCwoDY3dkGAQgASgJEhIKCnNoZWxsX2xpbmUYBSABKAkaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI8ChRMaXN0QWNwQWdlbnRzUmVxdWVzdBIPCgdyZWZyZXNoGAEgASgIEhMKC2NhY2hlZF9vbmx5GAIgASgIIqoBChVMaXN0QWNwQWdlbnRzUmVzcG9uc2USKgoGYWdlbnRzGAEgAygLMhouaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudBIbChNyZWdpc3RyeV9mZXRjaGVkX2F0GAIgASgJEhYKDnJlZ2lzdHJ5X2Vycm9yGAMgASgJEhAKCHJ1bnRpbWVzGAQgAygJEh4KFnNlc3Npb25fc3dpdGNoX3JlZnVzYWwYBSABKAkiKgoWSW5zdGFsbEFjcEFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCSLUAgoXSW5zdGFsbEFjcEFnZW50UmVzcG9uc2USPgoFcGhhc2UYASABKA4yLy5oYXJuZXNzLmFnZW50LnYxLkluc3RhbGxBY3BBZ2VudFJlc3BvbnNlLlBoYXNlEhIKCmJ5dGVzX2RvbmUYAiABKAMSEwoLYnl0ZXNfdG90YWwYAyABKAMSDwoHbWVzc2FnZRgEIAEoCRIMCgRkb25lGAUgASgIEikKBWFnZW50GAYgASgLMhouaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudCKFAQoFUGhhc2USFQoRUEhBU0VfVU5TUEVDSUZJRUQQABITCg9QSEFTRV9SRVNPTFZJTkcQARIVChFQSEFTRV9ET1dOTE9BRElORxACEhMKD1BIQVNFX1ZFUklGWUlORxADEhQKEFBIQVNFX0VYVFJBQ1RJTkcQBBIOCgpQSEFTRV9ET05FEAUiKQoVVXBkYXRlQWNwQWdlbnRSZXF1ZXN0EhAKCGFnZW50X2lkGAEgASgJIlUKFlVwZGF0ZUFjcEFnZW50UmVzcG9uc2USOwoIcHJvZ3Jlc3MYASABKAsyKS5oYXJuZXNzLmFnZW50LnYxLkluc3RhbGxBY3BBZ2VudFJlc3BvbnNlIiwKGFVuaW5zdGFsbEFjcEFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCSJGChlVbmluc3RhbGxBY3BBZ2VudFJlc3BvbnNlEikKBWFnZW50GAEgASgLMhouaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudCJ9ChtBdXRoZW50aWNhdGVBY3BBZ2VudFJlcXVlc3QSEAoIYWdlbnRfaWQYASABKAkSEQoJbWV0aG9kX2lkGAIgASgJEhIKCnNlc3Npb25faWQYAyABKAkSDgoGdmVyaWZ5GAQgASgIEhUKDW9wZW5fdGVybWluYWwYBSABKAgiowIKHEF1dGhlbnRpY2F0ZUFjcEFnZW50UmVzcG9uc2USFQoNYXV0aGVudGljYXRlZBgBIAEoCBI7Cgh0ZXJtaW5hbBgCIAEoCzIkLmhhcm5lc3MuYWdlbnQudjEuQWNwVGVybWluYWxDb21tYW5kSACIAQESOgoNdGVybWluYWxfaW5mbxgDIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuVGVybWluYWxJbmZvSAGIAQESFwoPdGVybWluYWxfdGlja2V0GAQgASgJEhAKCGVudl92YXJzGAUgAygJEikKBWFnZW50GAYgASgLMhouaGFybmVzcy5hZ2VudC52MS5BY3BBZ2VudEILCglfdGVybWluYWxCEAoOX3Rlcm1pbmFsX2luZm8iOAoRU2V0QWNwTW9kZVJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRIPCgdtb2RlX2lkGAIgASgJIhQKElNldEFjcE1vZGVSZXNwb25zZSqZBAoOU2Vzc2lvbkZlYXR1cmUSHwobU0VTU0lPTl9GRUFUVVJFX1VOU1BFQ0lGSUVEEAASGgoWU0VTU0lPTl9GRUFUVVJFX1JFV0lORBABEhgKFFNFU1NJT05fRkVBVFVSRV9GT1JLEAISIAocU0VTU0lPTl9GRUFUVVJFX1NVQl9TRVNTSU9OUxADEh0KGVNFU1NJT05fRkVBVFVSRV9TSURFX0NIQVQQBBIeChpTRVNTSU9OX0ZFQVRVUkVfQ09NUEFDVElPThAFEiUKIVNFU1NJT05fRkVBVFVSRV9DT05URVhUX0JSRUFLRE9XThAGEh4KGlNFU1NJT05fRkVBVFVSRV9DTEFTU0lGSUVSEAcSGgoWU0VTU0lPTl9GRUFUVVJFX0VGRk9SVBAIEiEKHVNFU1NJT05fRkVBVFVSRV9PVVRQVVRfU1RZTEVTEAkSIgoeU0VTU0lPTl9GRUFUVVJFX1NIRUxMX0NPTU1BTkRTEAoSJAogU0VTU0lPTl9GRUFUVVJFX0JBQ0tHUk9VTkRfVEFTS1MQCxIhCh1TRVNTSU9OX0ZFQVRVUkVfTU9ERUxfQ0FUQUxPRxAMEh0KGVNFU1NJT05fRkVBVFVSRV9RVUVTVElPTlMQDRIfChtTRVNTSU9OX0ZFQVRVUkVfTU9WRV9GT0xERVIQDhIcChhTRVNTSU9OX0ZFQVRVUkVfV09SS1RSRUUQDyqEAQoPQWNwRGlzdHJpYnV0aW9uEiAKHEFDUF9ESVNUUklCVVRJT05fVU5TUEVDSUZJRUQQABIbChdBQ1BfRElTVFJJQlVUSU9OX0JJTkFSWRABEhgKFEFDUF9ESVNUUklCVVRJT05fTlBYEAISGAoUQUNQX0RJU1RSSUJVVElPTl9VVlgQAyqqAQoMQWNwQXV0aFN0YXRlEh4KGkFDUF9BVVRIX1NUQVRFX1VOU1BFQ0lGSUVEEAASGgoWQUNQX0FVVEhfU1RBVEVfVU5LTk9XThABEh8KG0FDUF9BVVRIX1NUQVRFX05PVF9SRVFVSVJFRBACEhsKF0FDUF9BVVRIX1NUQVRFX1JFUVVJUkVEEAMSIAocQUNQX0FVVEhfU1RBVEVfQVVUSEVOVElDQVRFRBAEKs8BCg9BY3BNb2RlbHNTdGF0dXMSIQodQUNQX01PREVMU19TVEFUVVNfVU5TUEVDSUZJRUQQABIgChxBQ1BfTU9ERUxTX1NUQVRVU19OT1RfUFJPQkVEEAESHQoZQUNQX01PREVMU19TVEFUVVNfUFJPQklORxACEhgKFEFDUF9NT0RFTFNfU1RBVFVTX09LEAMSHAoYQUNQX01PREVMU19TVEFUVVNfRkFJTEVEEAQSIAocQUNQX01PREVMU19TVEFUVVNfTkVFRFNfQVVUSBAFQskBChRjb20uaGFybmVzcy5hZ2VudC52MUIIQWNwUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM", [file_harness_agent_v1_terminal]);
 
 /**
  * A way to authenticate the agent offered in its initialize response.
@@ -291,6 +291,19 @@ export type AcpAgent = Message<"harness.agent.v1.AcpAgent"> & {
    * @generated from field: repeated harness.agent.v1.SessionFeature unsupported_features = 30;
    */
   unsupportedFeatures: SessionFeature[];
+
+  /**
+   * The agent's own effort levels as last reported, in its order, and the one a new session starts on
+   * (CreateSessionRequest.acp_effort_id). Empty: the agent offers no effort option.
+   *
+   * @generated from field: repeated harness.agent.v1.AcpEffort efforts = 31;
+   */
+  efforts: AcpEffort[];
+
+  /**
+   * @generated from field: string current_effort_id = 32;
+   */
+  currentEffortId: string;
 };
 
 /**
@@ -475,6 +488,19 @@ export type AcpSessionState = Message<"harness.agent.v1.AcpSessionState"> & {
    * @generated from field: optional harness.agent.v1.AcpAgentLimits limits = 15;
    */
   limits?: AcpAgentLimits | undefined;
+
+  /**
+   * The agent's own effort levels (its thought-level option), in its order, and the current one (SetEffort.level_id).
+   * Empty: the agent offers no such option. The cached list while it starts or the session is not open.
+   *
+   * @generated from field: repeated harness.agent.v1.AcpEffort efforts = 16;
+   */
+  efforts: AcpEffort[];
+
+  /**
+   * @generated from field: string current_effort_id = 17;
+   */
+  currentEffortId: string;
 };
 
 /**
@@ -568,6 +594,35 @@ export const AcpModelSchema: GenMessage<AcpModel> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_acp, 7);
 
 /**
+ * One of an agent's effort levels. The agent names them its own way, so an id means nothing outside that agent.
+ *
+ * @generated from message harness.agent.v1.AcpEffort
+ */
+export type AcpEffort = Message<"harness.agent.v1.AcpEffort"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.AcpEffort.
+ * Use `create(AcpEffortSchema)` to create a new message.
+ */
+export const AcpEffortSchema: GenMessage<AcpEffort> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_acp, 8);
+
+/**
  * A command for an interactive terminal (terminal-auth methods): the agent's own launch command with the
  * method's extra arguments and environment.
  *
@@ -607,7 +662,7 @@ export type AcpTerminalCommand = Message<"harness.agent.v1.AcpTerminalCommand"> 
  * Use `create(AcpTerminalCommandSchema)` to create a new message.
  */
 export const AcpTerminalCommandSchema: GenMessage<AcpTerminalCommand> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 8);
+  messageDesc(file_harness_agent_v1_acp, 9);
 
 /**
  * @generated from message harness.agent.v1.ListAcpAgentsRequest
@@ -634,7 +689,7 @@ export type ListAcpAgentsRequest = Message<"harness.agent.v1.ListAcpAgentsReques
  * Use `create(ListAcpAgentsRequestSchema)` to create a new message.
  */
 export const ListAcpAgentsRequestSchema: GenMessage<ListAcpAgentsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 9);
+  messageDesc(file_harness_agent_v1_acp, 10);
 
 /**
  * @generated from message harness.agent.v1.ListAcpAgentsResponse
@@ -681,7 +736,7 @@ export type ListAcpAgentsResponse = Message<"harness.agent.v1.ListAcpAgentsRespo
  * Use `create(ListAcpAgentsResponseSchema)` to create a new message.
  */
 export const ListAcpAgentsResponseSchema: GenMessage<ListAcpAgentsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 10);
+  messageDesc(file_harness_agent_v1_acp, 11);
 
 /**
  * @generated from message harness.agent.v1.InstallAcpAgentRequest
@@ -698,7 +753,7 @@ export type InstallAcpAgentRequest = Message<"harness.agent.v1.InstallAcpAgentRe
  * Use `create(InstallAcpAgentRequestSchema)` to create a new message.
  */
 export const InstallAcpAgentRequestSchema: GenMessage<InstallAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 11);
+  messageDesc(file_harness_agent_v1_acp, 12);
 
 /**
  * Progress of InstallAcpAgent / UpdateAcpAgent. The last message has done = true and the agent's new state.
@@ -744,7 +799,7 @@ export type InstallAcpAgentResponse = Message<"harness.agent.v1.InstallAcpAgentR
  * Use `create(InstallAcpAgentResponseSchema)` to create a new message.
  */
 export const InstallAcpAgentResponseSchema: GenMessage<InstallAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 12);
+  messageDesc(file_harness_agent_v1_acp, 13);
 
 /**
  * @generated from enum harness.agent.v1.InstallAcpAgentResponse.Phase
@@ -785,7 +840,7 @@ export enum InstallAcpAgentResponse_Phase {
  * Describes the enum harness.agent.v1.InstallAcpAgentResponse.Phase.
  */
 export const InstallAcpAgentResponse_PhaseSchema: GenEnum<InstallAcpAgentResponse_Phase> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_acp, 12, 0);
+  enumDesc(file_harness_agent_v1_acp, 13, 0);
 
 /**
  * @generated from message harness.agent.v1.UpdateAcpAgentRequest
@@ -802,7 +857,7 @@ export type UpdateAcpAgentRequest = Message<"harness.agent.v1.UpdateAcpAgentRequ
  * Use `create(UpdateAcpAgentRequestSchema)` to create a new message.
  */
 export const UpdateAcpAgentRequestSchema: GenMessage<UpdateAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 13);
+  messageDesc(file_harness_agent_v1_acp, 14);
 
 /**
  * Same shape as InstallAcpAgentResponse.
@@ -821,7 +876,7 @@ export type UpdateAcpAgentResponse = Message<"harness.agent.v1.UpdateAcpAgentRes
  * Use `create(UpdateAcpAgentResponseSchema)` to create a new message.
  */
 export const UpdateAcpAgentResponseSchema: GenMessage<UpdateAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 14);
+  messageDesc(file_harness_agent_v1_acp, 15);
 
 /**
  * @generated from message harness.agent.v1.UninstallAcpAgentRequest
@@ -838,7 +893,7 @@ export type UninstallAcpAgentRequest = Message<"harness.agent.v1.UninstallAcpAge
  * Use `create(UninstallAcpAgentRequestSchema)` to create a new message.
  */
 export const UninstallAcpAgentRequestSchema: GenMessage<UninstallAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 15);
+  messageDesc(file_harness_agent_v1_acp, 16);
 
 /**
  * @generated from message harness.agent.v1.UninstallAcpAgentResponse
@@ -855,7 +910,7 @@ export type UninstallAcpAgentResponse = Message<"harness.agent.v1.UninstallAcpAg
  * Use `create(UninstallAcpAgentResponseSchema)` to create a new message.
  */
 export const UninstallAcpAgentResponseSchema: GenMessage<UninstallAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 16);
+  messageDesc(file_harness_agent_v1_acp, 17);
 
 /**
  * @generated from message harness.agent.v1.AuthenticateAcpAgentRequest
@@ -901,7 +956,7 @@ export type AuthenticateAcpAgentRequest = Message<"harness.agent.v1.Authenticate
  * Use `create(AuthenticateAcpAgentRequestSchema)` to create a new message.
  */
 export const AuthenticateAcpAgentRequestSchema: GenMessage<AuthenticateAcpAgentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 17);
+  messageDesc(file_harness_agent_v1_acp, 18);
 
 /**
  * @generated from message harness.agent.v1.AuthenticateAcpAgentResponse
@@ -951,7 +1006,7 @@ export type AuthenticateAcpAgentResponse = Message<"harness.agent.v1.Authenticat
  * Use `create(AuthenticateAcpAgentResponseSchema)` to create a new message.
  */
 export const AuthenticateAcpAgentResponseSchema: GenMessage<AuthenticateAcpAgentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 18);
+  messageDesc(file_harness_agent_v1_acp, 19);
 
 /**
  * @generated from message harness.agent.v1.SetAcpModeRequest
@@ -975,7 +1030,7 @@ export type SetAcpModeRequest = Message<"harness.agent.v1.SetAcpModeRequest"> & 
  * Use `create(SetAcpModeRequestSchema)` to create a new message.
  */
 export const SetAcpModeRequestSchema: GenMessage<SetAcpModeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 19);
+  messageDesc(file_harness_agent_v1_acp, 20);
 
 /**
  * @generated from message harness.agent.v1.SetAcpModeResponse
@@ -988,7 +1043,7 @@ export type SetAcpModeResponse = Message<"harness.agent.v1.SetAcpModeResponse"> 
  * Use `create(SetAcpModeResponseSchema)` to create a new message.
  */
 export const SetAcpModeResponseSchema: GenMessage<SetAcpModeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_acp, 20);
+  messageDesc(file_harness_agent_v1_acp, 21);
 
 /**
  * A feature of the session engine that a session may not support. Frontends hide what a session lists in
@@ -1052,7 +1107,7 @@ export enum SessionFeature {
   CLASSIFIER = 7,
 
   /**
-   * SetEffort.
+   * SetEffort. An ACP agent has it when it offers an effort option (AcpSessionState.efforts).
    *
    * @generated from enum value: SESSION_FEATURE_EFFORT = 8;
    */

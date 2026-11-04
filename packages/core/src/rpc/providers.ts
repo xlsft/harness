@@ -17,7 +17,7 @@ import {
 } from "../decision/classifier.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
-import { discoverModelsForUser, listedPriceOf, testLlmProvider } from "../services/discovery.ts";
+import { discoverModelsForUser, listedCapabilitiesOf, listedPriceOf, testLlmProvider } from "../services/discovery.ts";
 import {
   ROLE_SLOT_NAMES,
   addProviderModel,
@@ -25,6 +25,7 @@ import {
   listModelsForUser,
   listProviderModels,
   removeProviderModel,
+  setProviderModelEfforts,
   setSlots,
   type ModelEntry,
   type Slots,
@@ -42,6 +43,7 @@ import {
   type PublicProvider,
 } from "../services/providers.ts";
 import { checkClientVersion, requirePrincipal } from "./context.ts";
+import { effortName, effortToProto } from "./convert.ts";
 import { guard } from "./errors.ts";
 
 function modelToProto(m: ModelEntry) {
@@ -52,6 +54,7 @@ function modelToProto(m: ModelEntry) {
     contextWindow: BigInt(m.contextWindow),
     maxOutputTokens: BigInt(m.maxOutputTokens),
     enabled: m.enabled,
+    efforts: m.capabilities.effort.map(effortToProto),
   };
 }
 
@@ -268,7 +271,9 @@ export function registerProviderService(router: ConnectRouter): void {
           display_name: req.displayName,
           context_window: Number(req.contextWindow),
           max_output_tokens: Number(req.maxOutputTokens),
-          capabilities: { thinking: req.thinking, images: req.images },
+          // False says nothing here (the field is not optional, and the settings screens leave it out).
+          capabilities: { ...(req.thinking && { thinking: true }), ...(req.images && { images: true }) },
+          listed: listedCapabilitiesOf(req.providerId, req.upstreamModel),
           pricing: listedPriceOf(req.providerId, req.upstreamModel),
         },
         user,
@@ -289,6 +294,11 @@ export function registerProviderService(router: ConnectRouter): void {
       const r =
         row.kind === "classifier" ? await testClassifierProvider(row.id, p) : row.kind === "search" ? await testSearchProvider(row.id) : await testLlmProvider(row.id);
       return { ok: r.ok, message: r.message, modelCount: r.model_count };
+    }),
+
+    setModelEfforts: guard(async (req, ctx: HandlerContext) => {
+      const user = await principal(ctx);
+      return { model: modelToProto(await setProviderModelEfforts(req.modelId, req.efforts.map(effortName), user)) };
     }),
 
     removeModel: guard(async (req, ctx: HandlerContext) => {

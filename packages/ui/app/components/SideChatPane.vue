@@ -404,8 +404,8 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
             <div class="border border-accented bg-hover">
               <EffortSlider
                 :model-value="effort"
-                :levels="efforts"
-                @update:model-value="pickEffort"
+                :levels="harnessEffortLevels(efforts)"
+                @update:model-value="pickEffort($event as EffortName)"
               />
             </div>
           </template>

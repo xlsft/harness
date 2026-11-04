@@ -91,8 +91,18 @@ export const MODE_LABEL: Record<PermissionModeName, string> = {
 
 export const EFFORT_LABEL: Record<EffortName, string> = { low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Extra high', max: 'Max' }
 
+// A level of the effort chip and slider: a harness level with its standard label, or an agent's own.
+export interface EffortLevel {
+  id: string
+  label: string
+}
+
 export const EFFORTS: EffortName[] = ['low', 'medium', 'high']
-const ALL_EFFORTS: EffortName[] = ['low', 'medium', 'high', 'xhigh', 'max']
+export const ALL_EFFORTS: EffortName[] = ['low', 'medium', 'high', 'xhigh', 'max']
+
+export function harnessEffortLevels(names: EffortName[]): EffortLevel[] {
+  return names.map(id => ({ id, label: EFFORT_LABEL[id] }))
+}
 
 /** The effort levels a model offers; an older client without capabilities gets the basic three. */
 export function modelEfforts(m?: { efforts?: EffortName[] }): EffortName[] {

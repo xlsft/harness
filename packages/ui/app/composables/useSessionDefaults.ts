@@ -9,6 +9,7 @@ export interface SessionDefaults {
   // The model's engine when it is an ACP agent's ("acp:<agent id>"), and that agent's mode to start in.
   engine?: string
   acpMode?: string
+  acpEffort?: string
   effort?: EffortName
   mode?: PermissionModeName
   // Default effort per model; levels differ between models.

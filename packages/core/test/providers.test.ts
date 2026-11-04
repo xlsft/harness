@@ -1,4 +1,4 @@
-import { toCandidate } from "../src/services/discovery.ts";
+import { listedCapabilities, toCandidate } from "../src/services/discovery.ts";
 /**
  * ProviderService (global and personal providers) and its authorization: a user never sees, changes or
  * uses another user's providers or keys; admins see a user's providers with key_set only and cannot use
@@ -7,7 +7,7 @@ import { toCandidate } from "../src/services/discovery.ts";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Role } from "../src/gen/harness/llm/v1/content_pb.ts";
+import { Effort, Role } from "../src/gen/harness/llm/v1/content_pb.ts";
 import { ProviderScope } from "../src/gen/harness/llm/v1/providers_pb.ts";
 import { anthropicThinkingText } from "./fixtures/upstream.ts";
 import { MockUpstream } from "./helpers/mock-upstream.ts";
@@ -304,5 +304,116 @@ describe("model list prices", () => {
     expect(toCandidate({ id: "router", pricing: { prompt: "-1", completion: "-1" } })?.pricing).toBeUndefined();
     expect(toCandidate({ id: "half", pricing: { prompt: "0.1" } })?.pricing).toBeUndefined();
     expect(toCandidate({ id: "none" })?.pricing).toBeUndefined();
+  });
+});
+
+describe("model list capabilities", () => {
+  it("reads OpenRouter's reasoning block and modalities", () => {
+    expect(
+      listedCapabilities({
+        id: "a/b",
+        supported_parameters: ["tools", "reasoning"],
+        reasoning: { mandatory: false, supported_efforts: ["max", "xhigh", "high", "medium", "low", "minimal", "none"], default_effort: "medium" },
+        architecture: { input_modalities: ["text", "image", "file"] },
+      }),
+    ).toEqual({ thinking: true, effort: ["low", "medium", "high", "xhigh", "max"], images: true, pdf: true });
+    // No allowlist: the basic levels. An allowlist of levels harness has no name for: thinking without levels.
+    expect(listedCapabilities({ id: "a", reasoning: { mandatory: false, supported_efforts: null } })).toEqual({ thinking: true, effort: ["low", "medium", "high"] });
+    expect(listedCapabilities({ id: "a", reasoning: { mandatory: true, supported_efforts: ["minimal"] } })).toEqual({ thinking: true });
+  });
+  it("falls back to supported_parameters without the block", () => {
+    for (const p of ["reasoning", "include_reasoning", "reasoning_effort"]) {
+      expect(listedCapabilities({ id: "a", supported_parameters: [p] })).toEqual({ thinking: true, effort: ["low", "medium", "high"] });
+    }
+    expect(listedCapabilities({ id: "a", supported_parameters: ["tools"], architecture: { input_modalities: ["text"] } })).toBeUndefined();
+  });
+  it("reads Anthropic's capabilities object", () => {
+    const yes = { supported: true };
+    const no = { supported: false };
+    expect(
+      listedCapabilities({
+        id: "claude",
+        capabilities: { thinking: yes, effort: { supported: true, low: yes, medium: yes, high: yes, max: no, xhigh: null }, image_input: yes, pdf_input: no },
+      }),
+    ).toEqual({ thinking: true, effort: ["low", "medium", "high"], images: true });
+    expect(listedCapabilities({ id: "claude", capabilities: { thinking: no, effort: { supported: false, low: no }, image_input: no, pdf_input: no } })).toBeUndefined();
+    expect(listedCapabilities({ id: "claude", capabilities: null })).toBeUndefined();
+  });
+  it("says nothing for a list that says nothing", () => {
+    expect(toCandidate({ id: "gpt-x", owned_by: "openai" })?.capabilities).toBeUndefined();
+  });
+});
+
+describe("capabilities of added models", () => {
+  const LIST = {
+    data: [
+      { id: "think", reasoning: { supported_efforts: ["high", "low"] }, architecture: { input_modalities: ["text", "image"] } },
+      { id: "plain", architecture: { input_modalities: ["text"] } },
+      { id: "silent" },
+      { id: "by-hand", reasoning: { supported_efforts: null }, architecture: { input_modalities: ["image"] } },
+      { id: "cleared", reasoning: { supported_efforts: null } },
+      { id: "late", reasoning: { supported_efforts: null }, architecture: { input_modalities: ["image", "file"] } },
+    ],
+  };
+  const capsOf = async (id: string) => (await admin.gateway.listModels({})).models.find((m) => m.id === id)!.capabilities!;
+  const { LOW, MEDIUM, HIGH, MAX } = Effort;
+
+  beforeAll(async () => {
+    await admin.providers.createProvider({ scope: ProviderScope.GLOBAL, id: "caps-list", type: "openai-chat", baseUrl: up.url, apiKey: GLOBAL_KEY, allowPrivateNetwork: true });
+  });
+
+  it("come from the list when added and fill in what nobody set at discovery", async () => {
+    // Added before any listing: nothing known yet, and an admin's choices.
+    await admin.providers.addModel({ providerId: "caps-list", upstreamModel: "late", id: "router-late" });
+    await admin.providers.addModel({ providerId: "caps-list", upstreamModel: "by-hand", id: "router-by-hand" });
+    await admin.providers.setModelEfforts({ modelId: "router-by-hand", efforts: [MAX] });
+    await admin.providers.addModel({ providerId: "caps-list", upstreamModel: "cleared", id: "router-cleared" });
+    await admin.providers.setModelEfforts({ modelId: "router-cleared", efforts: [] });
+    expect((await capsOf("router-late")).effort).toEqual([]);
+
+    up.enqueue({ json: LIST });
+    await admin.providers.discoverModels({ providerId: "caps-list" });
+
+    // Added from the list.
+    await admin.providers.addModel({ providerId: "caps-list", upstreamModel: "think", id: "router-think" });
+    await admin.providers.addModel({ providerId: "caps-list", upstreamModel: "plain", id: "router-plain" });
+    await admin.providers.addModel({ providerId: "caps-list", upstreamModel: "silent", id: "router-silent" });
+    expect(await capsOf("router-think")).toMatchObject({ thinking: true, effort: [LOW, HIGH], images: true, pdf: false });
+    expect(await capsOf("router-plain")).toMatchObject({ thinking: false, effort: [], images: false });
+    expect(await capsOf("router-silent")).toMatchObject({ thinking: false, effort: [], images: false });
+
+    // Filled in at discovery.
+    expect(await capsOf("router-late")).toMatchObject({ thinking: true, effort: [LOW, MEDIUM, HIGH], images: true, pdf: true });
+    // What was set stays, also when it is nothing; the rest of the model is still filled in.
+    expect(await capsOf("router-by-hand")).toMatchObject({ thinking: true, effort: [MAX], images: true });
+    expect(await capsOf("router-cleared")).toMatchObject({ thinking: true, effort: [] });
+
+    // Only what the list says yes to changes: a later list without them takes nothing away.
+    up.enqueue({ json: { data: [{ id: "late" }, { id: "think" }] } });
+    await admin.providers.discoverModels({ providerId: "caps-list" });
+    expect(await capsOf("router-late")).toMatchObject({ thinking: true, effort: [LOW, MEDIUM, HIGH], images: true });
+  });
+
+  it("do not show as a marker to anyone", async () => {
+    const m = await adminApi(ts.url, adminToken, "GET", "/api/admin/models/router-by-hand");
+    expect(m.body.capabilities.effort).toEqual(["max"]);
+    expect(m.body.capabilities.set_by_hand).toBeUndefined();
+  });
+
+  it("can be set by hand only by who may change the provider", async () => {
+    expect(await code(alice.providers.setModelEfforts({ modelId: "router-think", efforts: [LOW] }))).toBe(Code.PermissionDenied);
+    const own = (await alice.providers.addModel({ providerId: aliceProvider, upstreamModel: "own-effort" })).model!;
+    const set = await alice.providers.setModelEfforts({ modelId: own.id, efforts: [HIGH, LOW] });
+    expect(set.model?.efforts).toEqual([LOW, HIGH]);
+    expect((await alice.providers.listProviders({})).providers.find((p) => p.id === aliceProvider)!.models.find((m) => m.id === own.id)?.efforts).toEqual([LOW, HIGH]);
+    expect(await code(bob.providers.setModelEfforts({ modelId: own.id, efforts: [LOW] }))).toBe(Code.NotFound);
+    expect(await code(admin.providers.setModelEfforts({ modelId: "nope", efforts: [] }))).toBe(Code.NotFound);
+  });
+
+  it("keep an admin API choice too", async () => {
+    await adminApi(ts.url, adminToken, "PATCH", "/api/admin/models/router-plain", { capabilities: { images: false, effort: [] } });
+    up.enqueue({ json: { data: [{ id: "plain", reasoning: { supported_efforts: null }, architecture: { input_modalities: ["image"] } }] } });
+    await admin.providers.discoverModels({ providerId: "caps-list" });
+    expect(await capsOf("router-plain")).toMatchObject({ thinking: true, effort: [], images: false });
   });
 });

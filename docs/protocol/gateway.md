@@ -51,7 +51,7 @@ Providers and their API keys are configured in the apps' settings through `harne
 
 ## Model discovery
 
-`POST /api/admin/providers/:id/discover` (admin JSON API, global providers) and `ProviderService.DiscoverModels` (any provider the caller may change) list the upstream's models through the SSRF guard: Anthropic `/v1/models` (paginated), OpenAI-compatible `/models`. They return candidates to add to the catalog.
+`POST /api/admin/providers/:id/discover` (admin JSON API, global providers) and `ProviderService.DiscoverModels` (any provider the caller may change) list the upstream's models through the SSRF guard: Anthropic `/v1/models` (paginated), OpenAI-compatible `/models`. They return candidates to add to the catalog. Where a list says so, a candidate carries prices and capabilities: OpenRouter's `reasoning`, `supported_parameters` and `architecture.input_modalities`, Anthropic's `capabilities`. A model added from the list starts with them, and each discovery fills them in on models already added, only where the value is still the empty default and nobody set it by hand; a list that says nothing changes nothing. `ProviderService.SetModelEfforts` sets a model's effort levels by hand for lists that do not report them (OpenAI's), and is kept from then on, also when it is none.
 
 ## Limits
 

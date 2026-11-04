@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // The model, effort and permission mode chips with their menus: the same on the new-session screen and in a session.
-// With an ACP agent's model (acpModes set) the mode chip follows what the agent reports, and goes away without modes.
+// With an ACP agent's model (acpModes set) the mode chip follows what the agent reports, and goes away without modes;
+// the effort levels are whatever the caller was told, the agent's own included.
 import type { AcpMode } from '~/gen/harness/agent/v1/acp_pb'
 import type { ModelScope } from '~/lib/acp/modelChoices'
-import type { EffortName, PermissionModeName } from '~/lib/session/types'
-import { EFFORT_LABEL } from '~/utils/composer'
+import type { PermissionModeName } from '~/lib/session/types'
+import type { EffortLevel } from '~/utils/composer'
 
 const props = defineProps<{
   model: string
@@ -12,19 +13,20 @@ const props = defineProps<{
   modelEngine?: string
   label: string
   provider?: string
-  efforts: EffortName[]
-  effort?: EffortName
+  efforts: EffortLevel[]
+  effort?: string
   mode?: PermissionModeName
   scope?: ModelScope
   acpModes?: { modes: AcpMode[], current: string }
 }>()
 const emit = defineEmits<{
   'update:model': [id: string, engine: string]
-  'update:effort': [level: EffortName]
+  'update:effort': [level: string]
   'update:mode': [mode: PermissionModeName]
   'update:acpMode': [modeId: string]
 }>()
 const currentAcpMode = computed(() => props.acpModes?.modes.find(m => m.id === props.acpModes!.current))
+const effortLabel = computed(() => props.efforts.find(l => l.id === props.effort)?.label ?? props.effort)
 const store = useSessionStore()
 const menu = ref<'' | 'model' | 'effort' | 'mode'>('')
 const open = (m: 'model' | 'effort' | 'mode') => ({
@@ -76,7 +78,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
       aria-label="Effort"
       :class="[CHIP, menu === 'effort' && 'bg-hover', 'max-sm:hidden @max-[560px]:hidden']"
     >
-      {{ EFFORT_LABEL[effort] }}
+      {{ effortLabel }}
     </button>
     <template #content>
       <div class="overflow-hidden border border-accented bg-hover">

@@ -27,6 +27,13 @@ export interface ModelCapabilities {
   prompt_cache: boolean;
 }
 
+/** What a provider's model list can say about a model. A list only ever turns these on. */
+const LISTED_CAPS = ["thinking", "effort", "images", "pdf"] as const;
+export type ListedCapabilities = Partial<Pick<ModelCapabilities, (typeof LISTED_CAPS)[number]>>;
+
+/** As stored: `set_by_hand` names the capabilities someone set, which a model list leaves alone even when empty. */
+type StoredCapabilities = Partial<ModelCapabilities> & { set_by_hand?: string[] };
+
 /** USD per 1M tokens. */
 export interface ModelPricing {
   input: number;
@@ -43,6 +50,8 @@ export interface ModelEntry {
   contextWindow: number;
   maxOutputTokens: number;
   capabilities: ModelCapabilities;
+  /** The capabilities someone set by hand. */
+  setByHand?: string[];
   pricing: ModelPricing | null;
   fallbacks: string[];
   extraBody: Record<string, unknown> | null;
@@ -73,6 +82,7 @@ const DEFAULT_CAPS: ModelCapabilities = {
 type Row = typeof schema.model.$inferSelect;
 
 function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
+  const { set_by_hand, ...capabilities } = (r.capabilities ?? {}) as StoredCapabilities;
   return {
     ownerUserId,
     id: r.id,
@@ -81,7 +91,8 @@ function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
     upstreamModel: r.upstreamModel,
     contextWindow: r.contextWindow,
     maxOutputTokens: r.maxOutputTokens,
-    capabilities: { ...DEFAULT_CAPS, ...(r.capabilities as Partial<ModelCapabilities>) },
+    capabilities: { ...DEFAULT_CAPS, ...capabilities },
+    setByHand: set_by_hand,
     pricing: (r.pricing as ModelPricing | null) ?? null,
     fallbacks: (r.fallbacks as string[]) ?? [],
     extraBody: (r.extraBody as Record<string, unknown> | null) ?? null,
@@ -213,6 +224,27 @@ function validateCaps(c: unknown): Partial<ModelCapabilities> {
   return out;
 }
 
+/** `caps` with the capabilities given by hand on top of the ones already recorded as such. */
+function markSetByHand(caps: Partial<ModelCapabilities>, given: Partial<ModelCapabilities>, before: string[] = []): StoredCapabilities {
+  const set = [...new Set([...before, ...LISTED_CAPS.filter((k) => given[k] !== undefined)])];
+  return set.length ? { ...caps, set_by_hand: set } : caps;
+}
+
+/**
+ * What a model list adds to a model already in the catalog: what it reports and the model has at its empty default,
+ * unless someone set that by hand. Undefined when nothing changes.
+ */
+export function backfilledCapabilities(stored: unknown, listed: ListedCapabilities | undefined): StoredCapabilities | undefined {
+  if (!listed) return undefined;
+  const caps = (stored ?? {}) as StoredCapabilities;
+  const added: ListedCapabilities = {};
+  if (listed.thinking && !caps.thinking && !caps.set_by_hand?.includes("thinking")) added.thinking = true;
+  if (listed.effort?.length && !caps.effort?.length && !caps.set_by_hand?.includes("effort")) added.effort = listed.effort;
+  if (listed.images && !caps.images && !caps.set_by_hand?.includes("images")) added.images = true;
+  if (listed.pdf && !caps.pdf && !caps.set_by_hand?.includes("pdf")) added.pdf = true;
+  return Object.keys(added).length ? { ...caps, ...added } : undefined;
+}
+
 function validatePricing(p: unknown): ModelPricing | null {
   if (p === null || p === undefined) return null;
   const o = p as Record<string, unknown>;
@@ -271,7 +303,7 @@ export async function createModel(input: ModelInput) {
   return getModelAdmin(input.id);
 }
 
-async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string }) {
+async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string; listed?: ListedCapabilities }) {
   if (await findModel(input.id)) throw new ApiError("invalid_request", `Model ${input.id} already exists`, { status: 409 });
   const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, input.provider_id) });
   if (provider?.kind === "classifier") throw new ApiError("invalid_request", "Classifier providers serve no chat models");
@@ -287,7 +319,7 @@ async function insertModel(input: ModelInput & { id: string; provider_id: string
       upstreamModel: input.upstream_model,
       contextWindow: positiveInt(input.context_window ?? 128_000, "context_window"),
       maxOutputTokens: positiveInt(input.max_output_tokens ?? 8192, "max_output_tokens"),
-      capabilities: { ...DEFAULT_CAPS, ...validateCaps(input.capabilities) },
+      capabilities: markSetByHand({ ...DEFAULT_CAPS, ...input.listed, ...validateCaps(input.capabilities) }, validateCaps(input.capabilities)),
       pricing: validatePricing(input.pricing),
       fallbacks: validateFallbacks(input.fallbacks, input.id),
       extraBody: input.extra_body ?? null,
@@ -318,7 +350,10 @@ export async function updateModel(id: string, input: ModelInput) {
   if (input.upstream_model !== undefined) patch.upstreamModel = input.upstream_model;
   if (input.context_window !== undefined) patch.contextWindow = positiveInt(input.context_window, "context_window");
   if (input.max_output_tokens !== undefined) patch.maxOutputTokens = positiveInt(input.max_output_tokens, "max_output_tokens");
-  if (input.capabilities !== undefined) patch.capabilities = { ...cur.capabilities, ...validateCaps(input.capabilities) };
+  if (input.capabilities !== undefined) {
+    const given = validateCaps(input.capabilities);
+    patch.capabilities = markSetByHand({ ...cur.capabilities, ...given }, given, cur.setByHand);
+  }
   if (input.pricing !== undefined) patch.pricing = validatePricing(input.pricing);
   if (input.fallbacks !== undefined) patch.fallbacks = validateFallbacks(input.fallbacks, id);
   if (input.extra_body !== undefined) patch.extraBody = input.extra_body;
@@ -348,6 +383,8 @@ export interface ProviderModelInput {
   context_window?: number;
   max_output_tokens?: number;
   capabilities?: Partial<ModelCapabilities>;
+  /** What the provider's model list says it can do; `capabilities` goes over it. */
+  listed?: ListedCapabilities;
   /** What the provider's model list says it costs. */
   pricing?: ModelPricing;
 }
@@ -393,13 +430,14 @@ export async function addProviderModel(providerId: string, input: ProviderModelI
     context_window: input.context_window || undefined,
     max_output_tokens: input.max_output_tokens || undefined,
     capabilities: input.capabilities,
+    listed: input.listed,
     pricing: input.pricing,
   });
   return (await findModel(id))!;
 }
 
-/** Removes a model from a provider the user may change (a global one only as admin). */
-export async function removeProviderModel(modelId: string, user: PublicUser) {
+/** A model of a provider the user may change (a global one only as admin). */
+async function writableModel(modelId: string, user: PublicUser): Promise<ModelEntry> {
   const m = await findModel(modelId);
   if (!m) throw new ApiError("not_found", `Model ${modelId} not found`);
   // Throws not_found for another user's provider.
@@ -407,6 +445,25 @@ export async function removeProviderModel(modelId: string, user: PublicUser) {
     throw new ApiError("not_found", `Model ${modelId} not found`);
   });
   if (!writable) throw new ApiError("permission", "Only admins can change global providers");
+  return m;
+}
+
+/**
+ * Sets a model's effort levels by hand. Kept from then on, also none; a refusal remembered from the upstream goes,
+ * so the levels are tried again.
+ */
+export async function setProviderModelEfforts(modelId: string, efforts: string[], user: PublicUser): Promise<ModelEntry> {
+  const m = await writableModel(modelId, user);
+  const given = validateCaps({ effort: efforts });
+  const capabilities = markSetByHand({ ...m.capabilities, ...given }, given, m.setByHand);
+  await getDb().update(schema.model).set({ capabilities, updatedAt: new Date() }).where(eq(schema.model.id, modelId));
+  await clearNegotiation(modelId, "effort");
+  return (await findModel(modelId))!;
+}
+
+/** Removes a model from a provider the user may change (a global one only as admin). */
+export async function removeProviderModel(modelId: string, user: PublicUser) {
+  await writableModel(modelId, user);
   await getDb().delete(schema.model).where(eq(schema.model.id, modelId));
   negotiationCache.delete(modelId);
   return { deleted: true };

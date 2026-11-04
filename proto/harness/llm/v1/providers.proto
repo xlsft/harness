@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package harness.llm.v1;
 
+import "harness/llm/v1/content.proto";
 import "harness/llm/v1/gateway.proto";
 
 // ProviderService manages the LLM providers (upstream API + key) whose models GatewayService offers, for the
@@ -41,6 +42,9 @@ service ProviderService {
   // Same access as DiscoverModels.
   rpc TestProvider(TestProviderRequest) returns (TestProviderResponse);
   rpc RemoveModel(RemoveModelRequest) returns (RemoveModelResponse);
+  // Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them.
+  // What is set here, also none, is kept: discovery only fills in what nobody set.
+  rpc SetModelEfforts(SetModelEffortsRequest) returns (SetModelEffortsResponse);
 
   // The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
   // typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
@@ -123,6 +127,8 @@ message ProviderModel {
   int64 context_window = 4;
   int64 max_output_tokens = 5;
   bool enabled = 6;
+  // Effort levels the model takes, lowest first; empty when it has none.
+  repeated Effort efforts = 7;
 }
 
 message ListPresetsRequest {}
@@ -319,11 +325,22 @@ message AddModelRequest {
   // 0: server defaults.
   int64 context_window = 5;
   int64 max_output_tokens = 6;
+  // On top of what the provider's model list says about the model (false leaves the list's say).
   bool thinking = 7;
   bool images = 8;
 }
 
 message AddModelResponse {
+  ProviderModel model = 1;
+}
+
+message SetModelEffortsRequest {
+  string model_id = 1;
+  // The whole set; empty: the model takes no effort.
+  repeated Effort efforts = 2;
+}
+
+message SetModelEffortsResponse {
   ProviderModel model = 1;
 }
 

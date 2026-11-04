@@ -89,6 +89,8 @@ export interface NewSessionOptions {
   engine?: string
   // On an agent: the mode to start in (AcpAgent.modes).
   acpModeId?: string
+  // On an agent: its effort to start on, an id of AcpAgent.efforts (omitted: the agent's default).
+  acpEffortId?: string
 }
 
 // Per-user preferences the client honours for every session (stored in the user's synced settings).
@@ -179,7 +181,8 @@ export interface SessionTransport {
 
   // engine: the engine the picked model belongs to; omitted means the session's own. The client refuses any other.
   setModel(sessionId: string, model: string, engine?: string): Promise<void>
-  setEffort(sessionId: string, effort: Effort): Promise<void>
+  // On a session on an ACP agent `levelId` is one of AcpSessionState.efforts, and `effort` says nothing.
+  setEffort(sessionId: string, effort: Effort, levelId?: string): Promise<void>
   setPermissionMode(sessionId: string, mode: PermissionMode): Promise<void>
   // Turns remote control (mirroring to the harness server) on or off for an open local session; returns the
   // session as it is now (relayEnabled). Refused when remote control is not available.

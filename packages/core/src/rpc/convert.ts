@@ -64,6 +64,10 @@ export function effortToProto(e: string): Effort {
   return EFFORT_FROM_STR[e] ?? Effort.UNSPECIFIED;
 }
 
+export function effortName(e: Effort): string {
+  return EFFORT_TO_STR[e] ?? "";
+}
+
 // --- request: proto -> canonical ------------------------------------------------------
 
 function b64(data: Uint8Array): string {

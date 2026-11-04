@@ -30,9 +30,10 @@ type acpMeta struct {
 	AgentSessionID string `json:"agentSessionId,omitempty"`
 	Cwd            string `json:"cwd"`
 	NoFolder       bool   `json:"noFolder,omitempty"`
-	// Model and Mode are the agent's model and mode the session last ran on, restored when it is resumed.
+	// Model, Mode and Effort are the agent's model, mode and effort the session last ran on, restored when it is resumed.
 	Model       string    `json:"model,omitempty"`
 	Mode        string    `json:"mode,omitempty"`
+	Effort      string    `json:"effort,omitempty"`
 	Title       string    `json:"title,omitempty"`
 	CustomTitle bool      `json:"customTitle,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`

@@ -2,6 +2,8 @@
 // AgentService: the client forwards these calls to the server (packages/client/server/coreproxy.go).
 
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
+import { Effort } from '~/gen/harness/llm/v1/content_pb'
+import type { EffortName } from '~/lib/session/types'
 import {
   ProviderScope,
   ProviderService,
@@ -15,6 +17,8 @@ import {
 import type { Slots } from '~/gen/harness/llm/v1/gateway_pb'
 import type { BillingName, ClassifierOverride, ClassifierSettings, ModelSlots, MyClassifier, PresetView, ProviderGroupName, ProviderView, ProvidersApi, SearchSettings } from './types'
 
+const EFFORT_PB: Record<EffortName, Effort> = { low: Effort.LOW, medium: Effort.MEDIUM, high: Effort.HIGH, xhigh: Effort.XHIGH, max: Effort.MAX }
+const EFFORT_NAME = Object.fromEntries(Object.entries(EFFORT_PB).map(([k, v]) => [v, k as EffortName])) as Partial<Record<Effort, EffortName>>
 const group = (g: string): ProviderGroupName => g === 'classifier' || g === 'search' ? g : 'llm'
 const billing = (b: string): BillingName => b === 'metered' || b === 'plan' ? b : ''
 
@@ -33,7 +37,7 @@ export function providerView(p: Provider): ProviderView {
     enabled: p.enabled,
     allowPrivateNetwork: p.allowPrivateNetwork,
     editable: p.editable,
-    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow) })),
+    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow), efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e) })),
     options: { ...p.options },
     billing: billing(p.billing)
   }
@@ -186,6 +190,10 @@ export class ConnectProvidersApi implements ProvidersApi {
       id: m.id ?? '',
       contextWindow: BigInt(m.contextWindow ?? 0)
     })
+  }
+
+  async setModelEfforts(modelId: string, efforts: EffortName[]) {
+    await this.client.setModelEfforts({ modelId, efforts: efforts.map(e => EFFORT_PB[e]) })
   }
 
   async removeModel(modelId: string) {

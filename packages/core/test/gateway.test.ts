@@ -18,7 +18,7 @@ import {
   openaiText,
   openaiToolCalls,
 } from "./fixtures/upstream.ts";
-import { MockUpstream } from "./helpers/mock-upstream.ts";
+import { MockUpstream, type RecordedRequest } from "./helpers/mock-upstream.ts";
 import { adminApi, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";
 
 let ts: TestServer;
@@ -383,6 +383,26 @@ describe("reliability", () => {
 
     const admin = await adminApi(ts.url, token, "GET", "/api/admin/models/claude-nt");
     expect(admin.body.negotiated_off.map((n: { feature: string }) => n.feature)).toEqual(["thinking"]);
+  });
+
+  it("a wrongly guessed effort level fails soft: it is dropped and remembered", async () => {
+    const reject = (req: RecordedRequest) =>
+      req.body.reasoning_effort
+        ? { status: 400, json: { error: { type: "invalid_request_error", message: "Reasoning is not supported by this model" } } }
+        : { sse: openaiText };
+    up.enqueue(reject, reject);
+    const req = { model: "gpt-t", maxTokens: 100, messages: [userText("hi")], effort: Effort.HIGH };
+    const first = await collect(req);
+    expect(first.error).toBeUndefined();
+    expect(up.requests[0]!.body.reasoning_effort).toBe("high");
+    expect(up.requests[1]!.body.reasoning_effort).toBeUndefined();
+
+    up.reset();
+    up.enqueue(reject);
+    expect((await collect(req)).error).toBeUndefined();
+    expect(up.requests).toHaveLength(1);
+    expect(up.requests[0]!.body.reasoning_effort).toBeUndefined();
+    await adminApi(ts.url, token, "PATCH", "/api/admin/models/gpt-t", { reset_negotiation: true });
   });
 
   it("falls back to the next model on persistent overload, skipping smaller context windows", async () => {

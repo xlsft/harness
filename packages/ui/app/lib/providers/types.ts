@@ -5,6 +5,8 @@
 // Two implementations: connect.ts (the real service through the client) and mock.ts (in memory, for the
 // mock transport).
 
+import type { EffortName } from '~/lib/session/types'
+
 export type ProviderScopeName = 'global' | 'personal'
 export type ProviderGroupName = 'llm' | 'classifier' | 'search'
 // LLM providers: 'metered' (pay as you go: priced models count cost) or 'plan' (a subscription / coding plan:
@@ -16,6 +18,8 @@ export interface ProviderModelView {
   name: string
   upstream: string
   contextWindow: number
+  // Effort levels the model takes, lowest first.
+  efforts: EffortName[]
 }
 
 export interface ProviderView {
@@ -236,6 +240,8 @@ export interface ProvidersApi {
   discover(id: string): Promise<ModelCandidateView[]>
   test(id: string): Promise<TestResult>
   addModel(providerId: string, model: NewModel): Promise<void>
+  // Sets by hand the levels a model takes, for lists that do not say.
+  setModelEfforts(modelId: string, efforts: EffortName[]): Promise<void>
   removeModel(modelId: string): Promise<void>
   getSlots(): Promise<SlotSettings>
   // Admin only: replaces main, small, plan and title.
