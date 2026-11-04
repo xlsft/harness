@@ -197,6 +197,8 @@ export const useSessionStore = defineStore('sessions', {
         this.quietly(this.refreshDeviceSettings())
         this.quietly(this.refreshAcpAgents())
         if (import.meta.client) {
+          // The catalog changes on the server (an admin, a provider's list): coming back to the app picks it up.
+          window.addEventListener('focus', () => this.quietly(this.refreshModels()))
           setInterval(() => this.quietly(this.refreshList()), LIST_POLL_MS)
           setInterval(() => this.refreshModes(), MODES_POLL_MS)
         }
@@ -229,6 +231,10 @@ export const useSessionStore = defineStore('sessions', {
 
     // The session list, and the state of sessions without an event stream (their status, title, marks). A busy
     // session that went idle while not open is left unread (a remote one only by its own machine).
+    async refreshModels() {
+      if (this.transport) this.models = await this.transport.listModels()
+    },
+
     async refreshList() {
       if (!this.transport) return
       const list = await this.transport.listSessions()

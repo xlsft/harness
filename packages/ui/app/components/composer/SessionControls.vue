@@ -29,6 +29,9 @@ const currentAcpMode = computed(() => props.acpModes?.modes.find(m => m.id === p
 const effortLabel = computed(() => props.efforts.find(l => l.id === props.effort)?.label ?? props.effort)
 const store = useSessionStore()
 const menu = ref<'' | 'model' | 'effort' | 'mode'>('')
+watch(menu, (m) => {
+  if (m === 'model') void store.refreshModels().catch(() => {})
+})
 const open = (m: 'model' | 'effort' | 'mode') => ({
   'open': menu.value === m,
   'onUpdate:open': (v: boolean) => (menu.value = v ? m : '')
