@@ -10,6 +10,7 @@ import { joinUrl } from "../gateway/adapters/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
+import type { ModelPricing } from "./models.ts";
 import { presetOf } from "./presets.ts";
 import { loadProviderRuntime, providerForUser, redactSecrets, type ProviderRuntime } from "./providers.ts";
 
@@ -20,6 +21,8 @@ export interface ModelCandidate {
   /** Present when the upstream reports it (OpenRouter `context_length`, vLLM `max_model_len`, ...). */
   context_window?: number;
   max_output_tokens?: number;
+  /** USD per 1M tokens, when the upstream's list says (OpenRouter `pricing`, per token there). */
+  pricing?: ModelPricing;
   created_at?: string;
   owned_by?: string;
   /** Catalog aliases that already point at this provider + upstream model. */
@@ -27,6 +30,14 @@ export interface ModelCandidate {
 }
 
 const MAX_PAGES = 20;
+
+/** The prices of each provider's last model list, by upstream model. */
+const listedPrices = new Map<string, Map<string, ModelPricing>>();
+
+/** The price the provider's last model list gave for a model (a user adds models from that list). */
+export function listedPriceOf(providerId: string, upstreamModel: string): ModelPricing | undefined {
+  return listedPrices.get(providerId)?.get(upstreamModel);
+}
 
 function num(v: unknown): number | undefined {
   const n = typeof v === "string" ? Number(v) : v;
@@ -70,6 +81,26 @@ async function fetchJson(p: ProviderRuntime, url: string): Promise<Record<string
   }
 }
 
+/** A model list's per-token prices as USD per 1M tokens; undefined without both, or for a router's "-1" (varies). */
+function listedPricing(p: unknown): ModelPricing | undefined {
+  if (!p || typeof p !== "object") return undefined;
+  const o = p as Record<string, unknown>;
+  const perMillion = (v: unknown) => {
+    const n = typeof v === "string" ? Number(v) : v;
+    if (typeof n !== "number" || !Number.isFinite(n) || n < 0 || v === "") return undefined;
+    return Math.round(n * 1e6 * 1e6) / 1e6;
+  };
+  const input = perMillion(o.prompt);
+  const output = perMillion(o.completion);
+  if (input === undefined || output === undefined) return undefined;
+  const out: ModelPricing = { input, output };
+  const read = perMillion(o.input_cache_read);
+  const write = perMillion(o.input_cache_write);
+  if (read) out.cache_read = read;
+  if (write) out.cache_write = write;
+  return out;
+}
+
 /** Maps one entry of an Anthropic or OpenAI-style model list to a candidate. */
 export function toCandidate(m: Record<string, any>): Omit<ModelCandidate, "catalog_ids"> | undefined {
   const id = typeof m.id === "string" ? m.id : typeof m.name === "string" ? m.name : undefined;
@@ -82,6 +113,8 @@ export function toCandidate(m: Record<string, any>): Omit<ModelCandidate, "catal
   if (ctx) c.context_window = ctx;
   const out = num(m.max_output_tokens) ?? num(m.max_tokens) ?? num(m.top_provider?.max_completion_tokens);
   if (out) c.max_output_tokens = out;
+  const pricing = listedPricing(m.pricing);
+  if (pricing) c.pricing = pricing;
   if (typeof m.created_at === "string") c.created_at = m.created_at;
   else if (typeof m.created === "number") c.created_at = new Date(m.created * 1000).toISOString();
   if (typeof m.owned_by === "string") c.owned_by = m.owned_by;
@@ -139,6 +172,13 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
     models.push({ ...c, catalog_ids: catalog.filter((e) => e.upstreamModel === c.upstream_model).map((e) => e.id) });
   }
   models.sort((a, b) => a.upstream_model.localeCompare(b.upstream_model));
+  // What the list says about prices: for a model added from it next, and for the ones already added without any.
+  const prices = new Map(models.flatMap((m) => (m.pricing ? [[m.upstream_model, m.pricing] as const] : [])));
+  listedPrices.set(providerId, prices);
+  for (const e of catalog) {
+    const pricing = prices.get(e.upstreamModel);
+    if (!e.pricing && pricing) await getDb().update(schema.model).set({ pricing }).where(eq(schema.model.id, e.id));
+  }
   return { provider_id: providerId, models };
 }
 

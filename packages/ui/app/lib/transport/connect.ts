@@ -347,7 +347,7 @@ export class ConnectTransport implements SessionTransport {
       provider: m.provider,
       displayName: m.displayName,
       contextWindow: Number(m.contextWindow),
-      price: m.inputPrice !== undefined && m.outputPrice !== undefined ? `${fmt(m.inputPrice)} / ${fmt(m.outputPrice)}` : '',
+      price: m.inputPrice === undefined || m.outputPrice === undefined ? '' : m.inputPrice === 0 && m.outputPrice === 0 ? 'Free' : `${fmt(m.inputPrice)} / ${fmt(m.outputPrice)}`,
       efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e),
       thinking: m.thinking,
       ...(m.local ? { local: true, price: '' } : {})

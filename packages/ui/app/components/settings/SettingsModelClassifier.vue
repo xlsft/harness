@@ -45,7 +45,7 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
     <div class="flex items-center gap-3 px-3 py-2.5">
       <span
         aria-hidden="true"
-        class="flex size-7 shrink-0 items-center justify-center rounded-control border border-line bg-raised text-strong"
+        class="flex size-7 shrink-0 items-center justify-center border border-line text-[11px] bg-raised text-strong"
       ><HIcon
         name="ai"
         :size="15"

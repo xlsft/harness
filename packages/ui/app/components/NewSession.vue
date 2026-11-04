@@ -138,7 +138,10 @@ function choose(path: string) {
   if (path && !folders.value.some(f => f.path === path)) folders.value.unshift({ path, name: name(path), exists: true } as RecentFolder)
 }
 
-const modelLabel = computed(() => model.value || store.models[0]?.id || 'default model')
+const modelLabel = computed(() => {
+  const m = store.models.find(x => x.id === model.value) ?? (model.value ? undefined : store.models[0])
+  return m?.displayName || model.value || m?.id || 'default model'
+})
 const efforts = computed(() => modelEfforts(store.models.find(m => m.id === (model.value || store.models[0]?.id))))
 // Each model starts at its own remembered effort (Settings → Models), else the nearest level it offers.
 watch([model, efforts], () => {

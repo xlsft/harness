@@ -42,6 +42,9 @@ async function save() {
     <h2 class="set-h">
       Pull requests
     </h2>
+    <p class="set-sub">
+      Saved to your account on the server, so it applies on every machine.
+    </p>
     <p
       v-if="error"
       role="alert"

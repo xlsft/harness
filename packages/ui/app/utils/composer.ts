@@ -81,12 +81,12 @@ export function nextMode(cur: PermissionModeName, cycle: readonly PermissionMode
 }
 
 export const MODE_LABEL: Record<PermissionModeName, string> = {
-  default: 'ask',
-  accept_edits: 'accept edits',
-  auto: 'auto',
-  plan: 'plan',
-  dont_ask: 'don\'t ask',
-  bypass: 'bypass'
+  default: 'Ask',
+  accept_edits: 'Accept edits',
+  auto: 'Auto',
+  plan: 'Plan',
+  dont_ask: 'Don\'t ask',
+  bypass: 'Bypass'
 }
 
 export const EFFORTS: EffortName[] = ['low', 'medium', 'high']

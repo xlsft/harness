@@ -348,6 +348,8 @@ export interface ProviderModelInput {
   context_window?: number;
   max_output_tokens?: number;
   capabilities?: Partial<ModelCapabilities>;
+  /** What the provider's model list says it costs. */
+  pricing?: ModelPricing;
 }
 
 /**
@@ -391,6 +393,7 @@ export async function addProviderModel(providerId: string, input: ProviderModelI
     context_window: input.context_window || undefined,
     max_output_tokens: input.max_output_tokens || undefined,
     capabilities: input.capabilities,
+    pricing: input.pricing,
   });
   return (await findModel(id))!;
 }

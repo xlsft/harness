@@ -2,6 +2,7 @@
 // Model picker list (composer footer, new-session screen): search over every model of the connected
 // providers (name, id, provider), starred favorites first, then models by provider. Favorites are kept in
 // this browser. Enter picks the first match.
+import { contextLabel } from '~/lib/providers/types'
 import type { ModelInfo } from '~/lib/transport'
 
 defineProps<{ selected: string }>()
@@ -53,10 +54,6 @@ const sections = computed(() => {
 function pickFirst() {
   const m = sections.value[0]?.models.find(x => !x.offline)
   if (m) emit('pick', m.id)
-}
-
-function ctx(n: number) {
-  return n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}k`
 }
 </script>
 
@@ -111,7 +108,7 @@ function ctx(n: number) {
           <span
             v-else-if="m.contextWindow"
             class="shrink-0 text-[11px] text-muted tabular-nums"
-          >{{ ctx(m.contextWindow) }}{{ m.price ? ` · ${m.price}` : '' }}</span>
+          >{{ contextLabel(m.contextWindow) }}{{ m.price ? ` · ${m.price}` : '' }}</span>
           <button
             type="button"
             :aria-label="favorites.includes(m.id) ? `Remove ${nameOf(m)} from favorites` : `Add ${nameOf(m)} to favorites`"

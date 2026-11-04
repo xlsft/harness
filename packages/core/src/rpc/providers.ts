@@ -17,7 +17,7 @@ import {
 } from "../decision/classifier.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
-import { discoverModelsForUser, testLlmProvider } from "../services/discovery.ts";
+import { discoverModelsForUser, listedPriceOf, testLlmProvider } from "../services/discovery.ts";
 import {
   ROLE_SLOT_NAMES,
   addProviderModel,
@@ -269,6 +269,7 @@ export function registerProviderService(router: ConnectRouter): void {
           context_window: Number(req.contextWindow),
           max_output_tokens: Number(req.maxOutputTokens),
           capabilities: { thinking: req.thinking, images: req.images },
+          pricing: listedPriceOf(req.providerId, req.upstreamModel),
         },
         user,
       );

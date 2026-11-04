@@ -38,7 +38,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
 
     <SessionControls
       :model="session.meta.model"
-      :label="session.meta.model"
+      :label="model?.displayName || session.meta.model"
       :provider="model?.provider"
       :efforts="efforts"
       :effort="effort"

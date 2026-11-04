@@ -90,7 +90,7 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
       >
         <span
           aria-hidden="true"
-          class="flex size-7 shrink-0 items-center justify-center rounded-control border border-line bg-raised"
+          class="flex size-7 shrink-0 items-center justify-center border border-line text-[11px] bg-raised"
           :class="isOff(m.key) ? 'text-dimmed' : 'text-strong'"
         ><HIcon
           :name="ICONS[m.key]"

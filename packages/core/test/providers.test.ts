@@ -1,3 +1,4 @@
+import { toCandidate } from "../src/services/discovery.ts";
 /**
  * ProviderService (global and personal providers) and its authorization: a user never sees, changes or
  * uses another user's providers or keys; admins see a user's providers with key_set only and cannot use
@@ -290,5 +291,18 @@ describe("slots", () => {
 
     await admin.providers.setSlots({ slots: { main: "slot-big", small: "slot-tiny" } });
     expect((await api("GET", "/api/admin/slots")).body.slots).toEqual({ main: "slot-big", small: "slot-tiny", classifier: "slot-tiny" });
+  });
+});
+
+describe("model list prices", () => {
+  it("reads per-token prices as USD per 1M tokens", () => {
+    const c = toCandidate({ id: "a/b", context_length: 1048576, pricing: { prompt: "0.0000003", completion: "0.0000025", input_cache_read: "0.00000003" } });
+    expect(c?.pricing).toEqual({ input: 0.3, output: 2.5, cache_read: 0.03 });
+    expect(toCandidate({ id: "free", pricing: { prompt: "0", completion: "0" } })?.pricing).toEqual({ input: 0, output: 0 });
+  });
+  it("leaves out what is not a price", () => {
+    expect(toCandidate({ id: "router", pricing: { prompt: "-1", completion: "-1" } })?.pricing).toBeUndefined();
+    expect(toCandidate({ id: "half", pricing: { prompt: "0.1" } })?.pricing).toBeUndefined();
+    expect(toCandidate({ id: "none" })?.pricing).toBeUndefined();
   });
 });

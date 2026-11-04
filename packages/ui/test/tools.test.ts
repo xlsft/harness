@@ -36,9 +36,9 @@ describe('session and system tool rows', () => {
     expect(toolTarget(tool('KeepAwake', { enabled: false }))).toBe('Allow sleep')
     expect(toolTarget(tool('SessionSetModel', { model: 'm1' }))).toBe('Model: m1')
     expect(toolTarget(tool('SessionSetEffort', { effort: 'high' }))).toBe('Effort: high')
-    expect(toolTarget(tool('SessionSetMode', { mode: 'plan' }))).toBe('Mode: plan')
-    expect(toolTarget(tool('SessionSetMode', { mode: 'acceptEdits' }))).toBe('Mode: accept edits')
-    expect(toolTarget(tool('SessionSetMode', { mode: 'dontAsk' }))).toBe('Mode: don\'t ask')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'plan' }))).toBe('Mode: Plan')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'acceptEdits' }))).toBe('Mode: Accept edits')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'dontAsk' }))).toBe('Mode: Don\'t ask')
     expect(toolTarget(tool('SessionSetTitle', { title: 'T' }))).toBe('Title: T')
   })
   it('has its own icons', () => {
