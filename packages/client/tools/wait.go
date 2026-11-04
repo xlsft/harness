@@ -108,7 +108,7 @@ func (*Wait) Run(ctx context.Context, env *Env, call Call) Result {
 	case in.Port != nil:
 		w, err = waitPort(ctx, in.Host, *in.Port, timeout)
 	default:
-		w, err = waitFile(ctx, resolvePath(env.Cwd, in.Path), in.Changed, re, timeout)
+		w, err = waitFile(ctx, resolvePath(env.CurrentDir(), in.Path), in.Changed, re, timeout)
 	}
 	if err != nil {
 		if ctx.Err() != nil {

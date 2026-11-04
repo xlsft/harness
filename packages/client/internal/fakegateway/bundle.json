@@ -439,6 +439,7 @@
     "compacted": "<system-reminder>The conversation above was compacted into a summary.</system-reminder>",
     "output_style": "<system-reminder>\nOutput style: {{name}}\n{{content}}\n</system-reminder>",
     "environment_changed": "<system-reminder>\nEnvironment changed.\nWorking directories:\n{{directories}}\nVariables: {{variables}}\n</system-reminder>",
+    "session_moved": "<system-reminder>\nMoved to {{cwd}} from {{previous}}, branch {{branch}}.\n{{directories}}{{details}}\n</system-reminder>",
     "user_shell_command": "<user-shell-command cwd=\"{{cwd}}\">{{command}}</user-shell-command>\n<user-shell-output exit=\"{{exit_code}}\">{{output}}</user-shell-output>\n<system-reminder>The user ran this command in their shell. {{status}}</system-reminder>"
   },
   "compaction": {

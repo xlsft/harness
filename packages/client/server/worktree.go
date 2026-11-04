@@ -119,6 +119,9 @@ func transcriptHead(path string, stopAtCwd bool) (string, *session.Worktree) {
 			}
 		}
 	}
+	if wt != nil && wt.Path == "" {
+		wt = nil // the session left its worktree
+	}
 	return cwd, wt
 }
 

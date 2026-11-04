@@ -84,6 +84,9 @@ var (
 	// pathObservers read a file only when their input names one (Wait on a
 	// path): that path gets the read-tool directory check.
 	pathObservers = map[string]bool{"Wait": true}
+	// worktreeTools change only the session's own worktree and branch: accept-edits mode lets them through. Throwing
+	// away uncommitted work is marked Sensitive by the tool and always asks.
+	worktreeTools = map[string]bool{"EnterWorktree": true, "ExitWorktree": true, "SyncWithBase": true}
 )
 
 // IsEditTool reports whether name modifies files.

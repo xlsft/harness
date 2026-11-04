@@ -52,7 +52,7 @@ func (s *Server) ListRecentFolders(ctx context.Context, req *connect.Request[age
 	for _, ls := range s.live {
 		info := ls.info()
 		at, _ := time.Parse(time.RFC3339, info.GetUpdatedAt())
-		note(recentFolder(ls.sess.Cwd, ls.sess.Worktree), at)
+		note(recentFolder(ls.sess.Dir(), ls.sess.CurrentWorktree()), at)
 	}
 	s.mu.Unlock()
 

@@ -89,6 +89,7 @@ func (ls *liveSession) attachEnvironment(senv sessionEnv) {
 		ls.sess.Warnings = append(ls.sess.Warnings, senv.warning)
 	}
 	senv.applied = envFingerprint(ls.sess.ToolEnv.WorkingDirs(), ls.sess.ToolEnv.ExtraEnv())
+	senv.requested = mergeDirList("", senv.requested, ls.sess.AllowedDirs())
 	ls.mu.Lock()
 	ls.env = senv
 	ls.mu.Unlock()
@@ -106,9 +107,9 @@ func (ls *liveSession) applyEnvironment(env *environment.Environment) {
 	}
 	ls.mu.Lock()
 	ls.env.env = add
-	dirs := mergeDirList(ls.sess.Cwd, ls.env.requested, add)
+	dirs := mergeDirList(ls.sess.Dir(), ls.env.requested, add)
 	environ := environment.Environ(vars)
-	fp := envFingerprint(append([]string{ls.sess.Cwd}, dirs...), environ)
+	fp := envFingerprint(append([]string{ls.sess.Dir()}, dirs...), environ)
 	changed := fp != ls.env.applied
 	ls.env.applied = fp
 	ls.mu.Unlock()
@@ -127,7 +128,7 @@ func (ls *liveSession) applyEnvironment(env *environment.Environment) {
 		list = strings.Join(names, ", ")
 	}
 	ls.sess.Agent.Remind("environment_changed", map[string]string{
-		"directories": strings.Join(append([]string{ls.sess.Cwd}, dirs...), "\n"),
+		"directories": strings.Join(append([]string{ls.sess.Dir()}, dirs...), "\n"),
 		"variables":   list,
 	})
 	ls.notice(agentv1.Notice_LEVEL_INFO, "environment_applied", fmt.Sprintf(
@@ -366,7 +367,7 @@ func (s *Server) SetSessionFolder(ctx context.Context, req *connect.Request[agen
 	reopen := &agentv1.CreateSessionRequest{ResumeSessionId: id}
 	var oldCwd string
 	if ls != nil {
-		if ls.sess.Worktree != nil {
+		if ls.sess.CurrentWorktree() != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the session runs in a git worktree; start a new session in the other folder instead"))
 		}
 		ls.mu.Lock()
@@ -375,7 +376,7 @@ func (s *Server) SetSessionFolder(ctx context.Context, req *connect.Request[agen
 		if busy || ls.driver.Busy() {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the session is working; change its folder once it is idle"))
 		}
-		oldCwd = ls.sess.Cwd
+		oldCwd = ls.sess.Dir()
 		reopen.Model = ls.sess.Agent.Model()
 		reopen.PermissionMode = modeToProto(ls.sess.Permissions.Mode())
 		reopen.Effort = pbconv.Effort(ls.sess.Agent.Effort())
@@ -425,7 +426,7 @@ func (s *Server) SetSessionFolder(ctx context.Context, req *connect.Request[agen
 	if nls, err := s.get(id); err == nil && moved {
 		// Readers of the transcript (ListSessions without a cwd) take the folder from the last recorded cwd of
 		// a transcript that is not in its first folder's project directory.
-		_, _ = nls.sess.Transcript.Append(session.Entry{Type: session.TypeMeta, Cwd: nls.sess.Cwd})
+		_, _ = nls.sess.Transcript.Append(session.Entry{Type: session.TypeMeta, Cwd: nls.sess.Dir()})
 	}
 	return connect.NewResponse(&agentv1.SetSessionFolderResponse{Session: resp.Msg.Session}), nil
 }
@@ -443,24 +444,7 @@ func (s *Server) reopenAfterFailedMove(ctx context.Context, was *liveSession, ol
 }
 
 // moveTranscript moves a transcript file and its sibling directory (same name without .jsonl) when present.
-func moveTranscript(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
-		return err
-	}
-	if _, err := os.Stat(dst); err == nil {
-		return fmt.Errorf("%s already exists", dst)
-	}
-	if err := os.Rename(src, dst); err != nil {
-		return err
-	}
-	sd, dd := strings.TrimSuffix(src, ".jsonl"), strings.TrimSuffix(dst, ".jsonl")
-	if st, err := os.Stat(sd); err == nil && st.IsDir() {
-		if err := os.Rename(sd, dd); err != nil {
-			return err
-		}
-	}
-	return nil
-}
+func moveTranscript(src, dst string) error { return session.MoveFiles(src, dst) }
 
 // folderArg resolves a folder argument: required, "~" expanded, absolute.
 func folderArg(p string) (string, error) {

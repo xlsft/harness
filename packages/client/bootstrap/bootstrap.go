@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/xlsft/harness/packages/client/agent"
@@ -184,6 +185,18 @@ type Session struct {
 	stopVCS   context.CancelFunc
 	styleOpts outputstyle.Options
 	browsers  *browser.Manager
+
+	// Moving the running session (move.go): open is what it was opened with (fixedSources: with its own permission
+	// sources, which then stay); moveMu orders moves; placeMu guards Cwd, Worktree, allowedDirs, Trusted and hooks once
+	// it runs. instructions is the text of the project instructions the model has.
+	open         Options
+	fixedSources bool
+	log          *slog.Logger
+	moveMu       sync.Mutex
+	placeMu      sync.RWMutex
+	allowedDirs  []string
+	hooks        PlaceHooks
+	instructions string
 }
 
 // Close kills background tasks, closes the transcript and flushes the transcript upload.
@@ -386,6 +399,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		w := *o.Worktree
 		s.Worktree = &w
 	}
+	s.allowedDirs = conv.AllowedDirs
+	o.AdditionalDirs = slices.DeleteFunc(mergeDirs(o.AdditionalDirs, conv.AllowedDirs), func(d string) bool { return filepath.Clean(d) == filepath.Clean(cwd) })
 
 	// Workspace trust and the settings hierarchy (policy > CLI > local > project > user > org).
 	if o.NoFolder {
@@ -403,6 +418,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	if s.Sync != nil {
 		docs, memDocs = s.Sync.Cache(), s.Sync.Cache()
 	}
+	s.fixedSources = len(o.PermissionSources) > 0
 	st, settingsSources := loadSettings(ctx, o, cwd, s.Trusted, docs, log)
 	s.Settings = st
 	applySettingsEnv(st)
@@ -476,6 +492,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		gitForContext = env.GitStatus
 	}
 	s.Memory = projectMemory(ctx, cwd, o.AdditionalDirs, st, memDocs, o.NoFolder)
+	s.instructions = instructionText(s.Memory.Initial())
 	var styleDocs outputstyle.DocSource
 	if s.Sync != nil {
 		styleDocs = s.Sync.Cache()
@@ -492,6 +509,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ToolEnv.SetExtraEnv(o.Env)
 	s.ToolEnv.SessionID = s.ID
 	s.ToolEnv.PlansDir = plans
+	s.ToolEnv.SetMover(mover{s})
 	if os.Getenv("HARNESS_DISABLE_BACKGROUND_TASKS") != "1" {
 		s.Tasks = tools.NewTaskManager(filepath.Join(scratch, "tasks"))
 		s.Tasks.Unattended = o.Unattended
@@ -615,6 +633,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		startVCSPoller()
 	}
 	s.startMCP(conv)
+	s.open, s.log = o, log
 	return s, nil
 }
 

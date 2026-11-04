@@ -66,7 +66,7 @@ func (s *Server) fileScope(id string) (*fileScope, error) {
 		}
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open; call CreateSession first", id))
 	}
-	sc := &fileScope{cwd: ls.sess.Cwd, dirs: []string{ls.sess.Cwd}}
+	sc := &fileScope{cwd: ls.sess.Dir(), dirs: []string{ls.sess.Dir()}}
 	if ls.sess.Permissions != nil {
 		if d := ls.sess.Permissions.WorkingDirs(); len(d) > 0 {
 			sc.dirs = d

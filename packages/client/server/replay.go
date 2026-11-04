@@ -194,6 +194,8 @@ func (r *replayer) entry(e session.Entry) {
 				text = "Conversation rewound"
 			}
 			r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_Notice{Notice: &agentv1.Notice{Level: agentv1.Notice_LEVEL_INFO, Kind: "rewind", Text: text}}})
+		case session.SubtypeSessionMoved:
+			r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_Notice{Notice: &agentv1.Notice{Level: agentv1.Notice_LEVEL_INFO, Kind: session.SubtypeSessionMoved, Text: e.Content}}})
 		case "api_error":
 			if r.cur != nil {
 				r.cur.errMsg = e.Content

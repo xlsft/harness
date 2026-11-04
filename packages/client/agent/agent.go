@@ -690,9 +690,31 @@ func userEntryMessage(blocks []llm.ContentBlock) *session.Message {
 	return session.UserBlocks(blocks)
 }
 
+// ProjectContext returns the project instructions of the session's folder.
+func (a *Agent) ProjectContext() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.cfg.ProjectContext
+}
+
+// SetPlace updates what the system prompt and later compactions say about the session's folder: vars override the
+// placeholders of the dynamic sections. The session moved (bootstrap/move.go).
+func (a *Agent) SetPlace(vars map[string]string, projectContext string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	m := make(map[string]string, len(a.cfg.Vars)+len(vars))
+	for k, v := range a.cfg.Vars {
+		m[k] = v
+	}
+	for k, v := range vars {
+		m[k] = v
+	}
+	a.cfg.Vars, a.cfg.ProjectContext = m, projectContext
+}
+
 func (a *Agent) projectContextBlock() llm.ContentBlock {
 	tmpl := a.Bundle().Reminder("project_instructions", "{{content}}")
-	return llm.TextBlock(prompts.Render(tmpl, map[string]string{"content": a.cfg.ProjectContext}, nil))
+	return llm.TextBlock(prompts.Render(tmpl, map[string]string{"content": a.ProjectContext()}, nil))
 }
 
 // RunTurn runs one turn for the given user input and blocks until the model
@@ -1010,9 +1032,11 @@ func (a *Agent) toolDefs(bundle *prompts.Bundle) []llm.ToolDef {
 
 func (a *Agent) systemBlocks(model, display string) []llm.SystemBlock {
 	vars := map[string]string{}
+	a.mu.Lock()
 	for k, v := range a.cfg.Vars {
 		vars[k] = v
 	}
+	a.mu.Unlock()
 	vars["model"], vars["model_id"] = model, model
 	if display == "" {
 		display = model

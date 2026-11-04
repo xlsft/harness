@@ -101,7 +101,7 @@ func (*Grep) Run(ctx context.Context, env *Env, call Call) Result {
 	default:
 		return ErrorResult("InputValidationError: output_mode must be files_with_matches, content or count")
 	}
-	target := env.Cwd
+	target := env.CurrentDir()
 	if in.Path != "" {
 		target = resolvePath(env.Shell.Cwd(), in.Path)
 	}

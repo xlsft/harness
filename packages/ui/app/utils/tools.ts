@@ -25,6 +25,12 @@ export function toolIcon(t: ToolItem): IconName {
     case 'TaskOutput': return 'term'
     case 'Wait': return 'clock'
     case 'Read': return 'file'
+    case 'EnterWorktree':
+    case 'ExitWorktree':
+    case 'ProposeBranch': return 'branch'
+    case 'SyncWithBase': return 'diff'
+    case 'ChangeDirectory':
+    case 'RequestDirectory': return 'folder'
     case 'Glob':
     case 'LS': return 'folder'
     case 'Grep': return 'search'
@@ -78,6 +84,12 @@ export function toolTarget(t: ToolItem): string {
     }
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
+    case 'EnterWorktree': return `Enter worktree${i.name ? ` ${String(i.name)}` : ''}${i.base_ref ? ` from ${String(i.base_ref)}` : ''}`
+    case 'ExitWorktree': return i.action === 'remove' ? (i.discard_changes ? 'Remove worktree, discarding changes' : 'Remove worktree') : 'Leave worktree'
+    case 'ChangeDirectory': return `Move to ${String(i.path ?? '')}`
+    case 'RequestDirectory': return `Ask for ${String(i.path ?? '')}`
+    case 'ProposeBranch': return `Suggest branch ${String(i.name ?? '')}`
+    case 'SyncWithBase': return `Sync with ${i.base_ref ? String(i.base_ref) : 'base'}`
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

@@ -215,14 +215,16 @@ type Engine struct {
 	policy        map[Mode]bool
 	decider       Decider
 	localPath     string
-	localRoot     string
-	sources       []Source
-	allow         []Rule
-	ask           []Rule
-	deny          []Rule
-	asker         Asker
-	onMode        func(Mode)
-	netGuard      *netguard.Guard
+	// localFixed: LocalSettingsPath was given, so the file stays when the session moves.
+	localFixed bool
+	localRoot  string
+	sources    []Source
+	allow      []Rule
+	ask        []Rule
+	deny       []Rule
+	asker      Asker
+	onMode     func(Mode)
+	netGuard   *netguard.Guard
 	// sites are the hosts the user approved for the browser tools in this session (browser.go).
 	sites map[string]bool
 }
@@ -246,6 +248,7 @@ func New(cfg Config) *Engine {
 	}
 	e.workDirs = append([]string{e.cwd}, cfg.AdditionalDirectories...)
 	e.localPath = cfg.LocalSettingsPath
+	e.localFixed = e.localPath != ""
 	if e.localPath == "" {
 		e.localPath = filepath.Join(RepoRoot(e.cwd), ".claude", "settings.local.json")
 	}
@@ -435,6 +438,44 @@ func (e *Engine) SetAdditionalDirectories(dirs []string) {
 	e.mu.Lock()
 	e.workDirs = append([]string{e.cwd}, dirs...)
 	e.mu.Unlock()
+}
+
+// Relocation is where a running session moved to.
+type Relocation struct {
+	Cwd        string
+	Additional []string
+	// Sources are the settings' rule sources as seen from Cwd.
+	Sources []Source
+	Trusted bool
+}
+
+// Relocate moves the engine to another primary folder: paths and rules resolve against it from the next check on, and
+// the settings' sources are those of the new folder, so a project's deny rules apply where they were written for. Rules
+// the user approved for this session keep the folder they were approved in.
+func (e *Engine) Relocate(r Relocation) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	old := e.sources
+	e.sources = nil
+	for _, s := range old {
+		if s.Name == "cliArg" {
+			s.Root = r.Cwd
+			e.sources = append(e.sources, s)
+		}
+	}
+	e.sources = append(e.sources, r.Sources...)
+	for _, s := range old {
+		if s.Name == "session" {
+			e.sources = append(e.sources, s)
+		}
+	}
+	e.cwd, e.trusted = r.Cwd, r.Trusted
+	e.workDirs = append([]string{r.Cwd}, r.Additional...)
+	if !e.localFixed {
+		e.localPath = filepath.Join(RepoRoot(r.Cwd), ".claude", "settings.local.json")
+		e.localRoot = filepath.Dir(filepath.Dir(e.localPath))
+	}
+	e.rebuild()
 }
 
 // AddReadableDir lets the model read dir without asking.
@@ -723,6 +764,9 @@ func (e *Engine) Evaluate(req Request) Decision {
 	}
 	if r, ok := allowRule(false); ok {
 		return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
+	}
+	if e.mode == ModeAcceptEdits && worktreeTools[req.ToolName] {
+		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
 	return Decision{Behavior: Ask}
 }

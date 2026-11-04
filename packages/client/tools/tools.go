@@ -105,8 +105,9 @@ type Env struct {
 	// BeforeEdit is called before a file tool modifies path (checkpoints).
 	BeforeEdit func(path string)
 
-	mu   sync.Mutex
-	host Host
+	mu    sync.Mutex
+	host  Host
+	mover Mover
 	// extraEnv is added to the environment of spawned processes (mu).
 	extraEnv []string
 }
@@ -153,6 +154,40 @@ func (e *Env) Host() Host {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.host
+}
+
+// SetMover installs the session side of the tools that move the session (places.go).
+func (e *Env) SetMover(m Mover) {
+	e.mu.Lock()
+	e.mover = m
+	e.mu.Unlock()
+}
+
+// Mover returns the session's Mover, or nil where the session cannot move.
+func (e *Env) Mover() Mover {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.mover
+}
+
+// CurrentDir returns the primary working directory. Cwd changes while a session runs (Relocate), so tools read it
+// here.
+func (e *Env) CurrentDir() string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.Cwd
+}
+
+// Relocate makes cwd the primary working directory, from the next tool call on, and moves the shell there.
+func (e *Env) Relocate(cwd string, additional []string) {
+	e.mu.Lock()
+	e.Cwd = cwd
+	e.AdditionalDirs = append([]string(nil), additional...)
+	sh := e.Shell
+	e.mu.Unlock()
+	if sh != nil {
+		sh.relocate(cwd)
+	}
 }
 
 // WorkingDirs returns Cwd plus AdditionalDirs.
@@ -237,7 +272,8 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{},
+		&EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{})
 }
 
 // Register adds or replaces a tool.

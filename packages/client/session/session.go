@@ -57,6 +57,9 @@ const (
 	// SubtypeUsageLimit records a usage-limit state of the session's provider (usageLimit holds it), replayed
 	// as SessionEvent.usage_limit.
 	SubtypeUsageLimit = "usage_limit"
+	// SubtypeSessionMoved records that the running session moved to another folder or branch (content says where);
+	// replays show it as a notice.
+	SubtypeSessionMoved = "session_moved"
 )
 
 // unchained entry types carry no uuid/parentUuid.
@@ -152,9 +155,15 @@ type Entry struct {
 	// McpCatalogVersion is the MCP tool catalog snapshot the session uses
 	// (frozen per session; the last one on record wins on resume).
 	McpCatalogVersion string `json:"mcpCatalogVersion,omitempty"`
-	// Worktree is the git worktree the session runs in (written once when
-	// the client creates it; the last one on record wins).
+	// Worktree is the git worktree the session runs in (written when the client creates it or the session moves;
+	// the last one on record wins). A record without a path means the session left its worktree.
 	Worktree *Worktree `json:"worktree,omitempty"`
+	// AllowedDirs are the working directories the session gained while it ran: folders the user allowed and
+	// folders it moved away from (the whole list; the last one on record wins on resume).
+	AllowedDirs []string `json:"allowedDirs,omitempty"`
+	// Moved marks the record of a move the session made itself, in cwd: it resumes there. AllowedDirs of such a record
+	// is complete even when empty.
+	Moved bool `json:"moved,omitempty"`
 	// RemoteControl is the session's remote control switch (SetSessionRelay); the last one on record wins on
 	// resume, and without one the settings decide.
 	RemoteControl *bool `json:"remoteControl,omitempty"`
@@ -285,6 +294,9 @@ type Worktree struct {
 	BaseRef string `json:"baseRef,omitempty"`
 	// RepositoryPath is the main checkout of the repository.
 	RepositoryPath string `json:"repositoryPath"`
+	// OriginalCwd is the folder the session entered the worktree from, where leaving it goes back to ("" for a
+	// session created in the worktree: the same subdirectory of the main checkout).
+	OriginalCwd string `json:"originalCwd,omitempty"`
 }
 
 // UserShell is a finished user shell command (composer shell mode). Stdout and stderr are bounded (head and
@@ -432,6 +444,8 @@ type Conversation struct {
 	// Worktree is the last recorded worktree (nil when the session does not
 	// run in one).
 	Worktree *Worktree
+	// AllowedDirs is the last recorded list of working directories gained while running.
+	AllowedDirs []string
 	// Todos is the input of the last TodoWrite call on the active branch
 	// (followed across compactions); nil when there is none.
 	Todos json.RawMessage
@@ -518,6 +532,12 @@ func Rebuild(entries []Entry) Conversation {
 			if e.Worktree != nil {
 				w := *e.Worktree
 				c.Worktree = &w
+				if w.Path == "" {
+					c.Worktree = nil
+				}
+			}
+			if e.Moved || e.AllowedDirs != nil {
+				c.AllowedDirs = e.AllowedDirs
 			}
 		case TypeFileHistorySnapshot:
 			if e.Snapshot == nil {
@@ -741,6 +761,67 @@ func (w *Writer) appendLocked(e Entry, parent *string) (string, error) {
 		return "", err
 	}
 	return e.UUID, nil
+}
+
+// SetLocation changes the folder and branch stamped on the entries written from now on.
+func (w *Writer) SetLocation(cwd, gitBranch string) {
+	w.mu.Lock()
+	w.cwd, w.gitBranch = cwd, gitBranch
+	w.mu.Unlock()
+}
+
+// Move moves the transcript file (and its sibling directory) to dst while the writer stays open; the writer goes
+// on appending there. When the new file cannot be opened the move is undone.
+func (w *Writer) Move(dst string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if dst == w.path {
+		return nil
+	}
+	if w.disabled {
+		w.path = dst
+		return nil
+	}
+	if err := w.f.Close(); err != nil {
+		return err
+	}
+	src := w.path
+	moveErr := MoveFiles(src, dst)
+	if moveErr == nil {
+		w.path = dst
+	}
+	f, err := os.OpenFile(w.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil && moveErr == nil {
+		moveErr = err
+		if MoveFiles(dst, src) == nil {
+			w.path = src
+		}
+		f, err = os.OpenFile(w.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	}
+	if err == nil {
+		w.f = f
+	}
+	return moveErr
+}
+
+// MoveFiles moves a transcript file and its sibling directory (same name without .jsonl) when present.
+func MoveFiles(src, dst string) error {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
+		return err
+	}
+	if _, err := os.Stat(dst); err == nil {
+		return fmt.Errorf("%s already exists", dst)
+	}
+	if err := os.Rename(src, dst); err != nil {
+		return err
+	}
+	sd, dd := strings.TrimSuffix(src, ".jsonl"), strings.TrimSuffix(dst, ".jsonl")
+	if st, err := os.Stat(sd); err == nil && st.IsDir() {
+		if err := os.Rename(sd, dd); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Entries returns a copy of all entries of the transcript (loaded and

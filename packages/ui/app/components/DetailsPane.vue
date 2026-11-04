@@ -53,7 +53,7 @@ const browsing = ref<'' | 'change' | 'add'>('')
 // Git facts of the folder (its web page for "Open repository…"), and the server's web address for the relay links.
 const folder = ref<FolderInfo | null>(null)
 const webUrl = ref('')
-watch(() => [props.session.meta.id, props.session.meta.cwd], async () => {
+watch(() => [props.session.meta.id, props.session.meta.cwd, props.session.meta.gitBranch], async () => {
   folder.value = null
   if (!store.transport || props.session.meta.remote) return
   try {
@@ -253,6 +253,13 @@ function taskMeta(command: string, tail: string) {
           <HIcon name="branch" /><span class="min-w-0 truncate">{{ session.meta.gitBranch || 'main' }}</span>
         </button>
       </RowMenu>
+      <div
+        v-if="session.meta.worktree"
+        class="nav-row"
+        :title="session.meta.worktree.path"
+      >
+        <HIcon name="diff" /><span class="min-w-0 truncate">Worktree</span><span class="min-w-0 truncate text-[11px] text-muted">from {{ session.meta.worktree.baseRef }}</span>
+      </div>
       <div class="nav-row">
         <HIcon name="relay" /><span class="min-w-0 truncate">Session relay</span><span class="flex-1" /><RowMenu
           v-if="sessionLink && relayMenu.length"

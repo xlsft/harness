@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "base_ref": {
+      "type": "string",
+      "description": "A branch to sync with instead of the worktree's base; it becomes the new base."
+    }
+  },
+  "additionalProperties": false
+}

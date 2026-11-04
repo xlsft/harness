@@ -33,3 +33,17 @@ describe('TaskOutput rows', () => {
     expect(toolMeta(tool('TaskOutput', {}, { status: 'killed', exit_code: -1 }), 0).text).toBe('killed')
   })
 })
+
+describe('tools that move the session', () => {
+  it('say where to, with an icon of their own', () => {
+    expect(toolTarget(tool('EnterWorktree', { name: 'feat', base_ref: 'main' }))).toBe('Enter worktree feat from main')
+    expect(toolTarget(tool('ExitWorktree', { action: 'keep' }))).toBe('Leave worktree')
+    expect(toolTarget(tool('ExitWorktree', { action: 'remove', discard_changes: true }))).toBe('Remove worktree, discarding changes')
+    expect(toolTarget(tool('ChangeDirectory', { path: '/a' }))).toBe('Move to /a')
+    expect(toolTarget(tool('RequestDirectory', { path: '/a' }))).toBe('Ask for /a')
+    expect(toolTarget(tool('ProposeBranch', { name: 'b' }))).toBe('Suggest branch b')
+    expect(toolTarget(tool('SyncWithBase', {}))).toBe('Sync with base')
+    expect(toolIcon(tool('EnterWorktree', {}))).toBe('branch')
+    expect(toolIcon(tool('RequestDirectory', {}))).toBe('folder')
+  })
+})

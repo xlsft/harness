@@ -314,6 +314,12 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		return nil, err
 	}
 	opts.Cwd, opts.SessionID, opts.NoFolder = chat.cwd, chat.id, chat.noFolder
+	moved := ""
+	if id := m.GetResumeSessionId(); id != "" && !m.GetFork() && remote == nil {
+		if moved = movedFolder(id); moved != "" { // it moved itself: it resumes where it went, whatever the request says
+			opts.Cwd, opts.NoFolder = moved, config.IsChatDir(moved)
+		}
+	}
 	if m.GetModel() != "" {
 		opts.Model = m.GetModel()
 	}
@@ -349,7 +355,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		opts.Cwd, opts.Worktree = wt.Cwd, wtMeta
 	}
 	envFolder := m.GetCwd()
-	if chat.noFolder {
+	if chat.noFolder || moved != "" {
 		envFolder = opts.Cwd // per-session: keyed by the private directory
 	}
 	senv := s.prepareEnvironment(envFolder, &opts)
@@ -378,6 +384,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		return nil, modeError(err, connect.CodeFailedPrecondition)
 	}
 	ls.sess = sess
+	sess.SetPlaceHooks(ls.placeHooks())
 	ls.attachEnvironment(senv)
 	ls.branch = workspace.GitBranch(ctx, sess.Cwd)
 	ls.hub.sessionID = sess.ID
@@ -470,7 +477,7 @@ func (s *Server) ListSessions(ctx context.Context, req *connect.Request[agentv1.
 	}
 	s.mu.Lock()
 	for id, ls := range s.live {
-		if cwd == "" || ls.sess.Cwd == cwd {
+		if cwd == "" || ls.sess.Dir() == cwd {
 			info := ls.info()
 			if old, ok := out[id]; ok && info.Title == "" {
 				info.Title = old.Title
@@ -911,7 +918,7 @@ func (s *Server) SuggestFiles(ctx context.Context, req *connect.Request[agentv1.
 	if limit <= 0 {
 		limit = 20
 	}
-	files := ls.files.list(ctx, ls.sess.Cwd)
+	files := ls.files.list(ctx, ls.sess.Dir())
 	return connect.NewResponse(&agentv1.SuggestFilesResponse{Paths: FuzzyFilter(files, req.Msg.GetQuery(), limit)}), nil
 }
 

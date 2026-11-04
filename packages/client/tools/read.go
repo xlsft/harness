@@ -56,7 +56,7 @@ func (*Read) Run(ctx context.Context, env *Env, call Call) Result {
 	path := filepath.Clean(in.FilePath)
 	st, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		return ErrorResult("File does not exist. Current working directory: %s", env.Cwd)
+		return ErrorResult("File does not exist. Current working directory: %s", env.CurrentDir())
 	}
 	if err != nil {
 		return ErrorResult("%v", err)

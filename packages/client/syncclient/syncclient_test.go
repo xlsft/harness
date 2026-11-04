@@ -603,3 +603,57 @@ func TestUploaderWorktreeMeta(t *testing.T) {
 		t.Fatalf("paths %v", last)
 	}
 }
+
+func TestUploaderFollowsAMovedTranscript(t *testing.T) {
+	fs := synctest.New()
+	srv := fs.Start()
+	defer srv.Close()
+	dir := t.TempDir()
+	from := filepath.Join(dir, "a", "s1.jsonl")
+	to := filepath.Join(dir, "b", "s1.jsonl")
+	if err := os.MkdirAll(filepath.Dir(from), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	appendFile(t, from, line("u1", "", "user", `,"message":{"role":"user","content":"hi"}`))
+	u := NewUploader(UploaderOptions{API: NewClient(srv.URL, nil, nil), StateDir: filepath.Join(dir, "state"), Logger: quiet,
+		ResolveRepo: func(context.Context, string) string { return "" }})
+	wt := &Worktree{Path: "/r/.harness/worktrees/x", Branch: "harness/x", BaseRef: "main", RepositoryPath: "/r"}
+	if err := u.Track("s1", from, SessionMeta{Cwd: "/r", Branch: "main"}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	// Into a worktree.
+	err := u.MoveTranscript("s1", to, func() error {
+		if err := os.MkdirAll(filepath.Dir(to), 0o700); err != nil {
+			return err
+		}
+		return os.Rename(from, to)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	appendFile(t, to, line("u2", "u1", "user", `,"message":{"role":"user","content":"again"}`))
+	if err := u.UpdateMeta("s1", func(m *SessionMeta) { m.Cwd, m.Branch, m.Worktree = wt.Path, wt.Branch, wt }); err != nil {
+		t.Fatal(err)
+	}
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	ss := fs.Session("s1")
+	if len(ss.Entries) != 2 || ss.Meta.GetInfo().GetCwd() != wt.Path || ss.Meta.GetInfo().GetGitBranch() != wt.Branch || ss.Meta.GetInfo().GetWorktree().GetPath() != wt.Path {
+		t.Fatalf("after entering: %d entries, %+v", len(ss.Entries), ss.Meta.GetInfo())
+	}
+	// And out: the worktree clears.
+	if err := u.UpdateMeta("s1", func(m *SessionMeta) { m.Cwd, m.Branch, m.Worktree = "/r", "main", nil }); err != nil {
+		t.Fatal(err)
+	}
+	if err := u.Flush(ctx, "s1"); err != nil {
+		t.Fatal(err)
+	}
+	if info := fs.Session("s1").Meta.GetInfo(); info.GetCwd() != "/r" || info.GetWorktree().GetPath() != "" {
+		t.Fatalf("after leaving: %+v", info)
+	}
+}
