@@ -59,6 +59,9 @@ export interface ModelInfo {
   // Human name from the catalog; empty when the server has none (the id is shown then).
   displayName?: string
   provider: string
+  // For showing: the provider's name, and the id as a person reads it (`id` is what requests send).
+  providerName?: string
+  displayId?: string
   contextWindow: number
   // e.g. "$0.60/M"; empty when unknown.
   price: string

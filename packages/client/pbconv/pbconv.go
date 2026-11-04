@@ -244,7 +244,7 @@ func FromStreamRequest(r *llmv1.StreamMessageRequest) *llm.Request {
 
 // Model converts a catalog entry.
 func FromModel(m *llmv1.Model) llm.Model {
-	out := llm.Model{ID: m.GetId(), DisplayName: m.GetDisplayName(), Provider: m.GetProvider(), ContextWindow: int(m.GetContextWindow()), MaxOutputTokens: int(m.GetMaxOutputTokens())}
+	out := llm.Model{ID: m.GetId(), DisplayName: m.GetDisplayName(), Provider: m.GetProvider(), ProviderName: m.GetProviderName(), DisplayID: m.GetDisplayId(), ContextWindow: int(m.GetContextWindow()), MaxOutputTokens: int(m.GetMaxOutputTokens())}
 	if c := m.GetCapabilities(); c != nil {
 		out.Capabilities.Thinking = c.GetThinking()
 		out.Capabilities.Images = c.GetImages()

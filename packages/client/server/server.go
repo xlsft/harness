@@ -288,6 +288,8 @@ func modelInfo(m llm.Model) *agentv1.ModelInfo {
 		Id:            m.ID,
 		DisplayName:   m.DisplayName,
 		Provider:      m.Provider,
+		ProviderName:  m.ProviderName,
+		DisplayId:     m.DisplayID,
 		ContextWindow: int64(m.ContextWindow),
 		Thinking:      m.Capabilities.Thinking,
 		Images:        m.Capabilities.Images,

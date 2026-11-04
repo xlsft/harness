@@ -418,6 +418,9 @@ message ModelInfo {
   // A model of a local provider on this machine (localmodels.proto; id "local:<provider>/<name>"): free, and
   // per device.
   bool local = 10;
+  // For showing: the provider's name, and the id as a person reads it (id stays what requests send).
+  string provider_name = 11;
+  string display_id = 12;
 }
 
 message SessionInfo {

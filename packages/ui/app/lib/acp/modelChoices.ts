@@ -58,7 +58,7 @@ function serverRow(m: ModelInfo): ModelRow {
     key: m.id,
     id: m.id,
     name: m.displayName || m.id,
-    detail: m.displayName && m.displayName !== m.id ? m.id : '',
+    detail: m.displayName && m.displayName !== m.id ? m.displayId || m.id : '',
     engine: '',
     offline: !!m.offline,
     contextWindow: m.contextWindow,
@@ -92,7 +92,7 @@ export function modelSections(input: ModelChoicesInput): ModelSection[] {
   } else {
     const byProvider = new Map<string, ModelRow[]>()
     for (const m of input.models) {
-      const p = m.provider || 'Models'
+      const p = m.providerName || m.provider || 'Models'
       if (!byProvider.has(p)) byProvider.set(p, [])
       byProvider.get(p)!.push(serverRow(m))
     }

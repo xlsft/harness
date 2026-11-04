@@ -290,6 +290,8 @@ type Model struct {
 	ID              string `json:"id"`
 	DisplayName     string `json:"display_name"`
 	Provider        string `json:"provider,omitempty"`
+	ProviderName    string `json:"provider_name,omitempty"`
+	DisplayID       string `json:"display_id,omitempty"`
 	ContextWindow   int    `json:"context_window,omitempty"`
 	MaxOutputTokens int    `json:"max_output_tokens,omitempty"`
 	Capabilities    struct {

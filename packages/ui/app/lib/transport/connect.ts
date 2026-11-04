@@ -361,6 +361,8 @@ export class ConnectTransport implements SessionTransport {
     return init.models.map(m => ({
       id: m.id,
       provider: m.provider,
+      providerName: m.providerName,
+      displayId: m.displayId,
       displayName: m.displayName,
       contextWindow: Number(m.contextWindow),
       price: m.inputPrice === undefined || m.outputPrice === undefined ? '' : m.inputPrice === 0 && m.outputPrice === 0 ? 'Free' : `${fmt(m.inputPrice)} / ${fmt(m.outputPrice)}`,

@@ -322,6 +322,8 @@ export function modelsToProto(r: {
       id: m.id,
       displayName: m.display_name,
       provider: m.provider,
+      providerName: m.provider_name,
+      displayId: m.display_id,
       contextWindow: BigInt(m.context_window),
       maxOutputTokens: BigInt(m.max_output_tokens),
       capabilities: {

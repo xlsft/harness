@@ -13,6 +13,7 @@ import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "./devices.ts";
+import { presetOf } from "./presets.ts";
 import { PERSONAL_PREFIX, providerForUser } from "./providers.ts";
 
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
@@ -53,6 +54,9 @@ export interface ModelEntry {
   /** The capabilities someone set by hand. */
   setByHand?: string[];
   pricing: ModelPricing | null;
+  /** For showing (shownAs): the provider's name and the model's id as a person reads it. */
+  providerName?: string;
+  displayId?: string;
   fallbacks: string[];
   extraBody: Record<string, unknown> | null;
   roles: string[] | null;
@@ -81,6 +85,14 @@ const DEFAULT_CAPS: ModelCapabilities = {
 
 type Row = typeof schema.model.$inferSelect;
 
+/** What the UI shows for a model's provider and id: a personal provider's generated `u-...` id means nothing to anyone. */
+function shownAs(r: Row, provider: typeof schema.provider.$inferSelect) {
+  const preset = presetOf(provider);
+  const providerName = provider.displayName || preset?.display_name || provider.id;
+  const slug = preset?.id || providerName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return { providerName, displayId: provider.ownerUserId ? `${slug}/${r.upstreamModel}` : r.id };
+}
+
 function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
   const { set_by_hand, ...capabilities } = (r.capabilities ?? {}) as StoredCapabilities;
   return {
@@ -107,6 +119,8 @@ export function catalogEntry(m: ModelEntry) {
     id: m.id,
     display_name: m.displayName,
     provider: m.providerId,
+    provider_name: m.providerName || m.providerId,
+    display_id: m.displayId || m.id,
     context_window: m.contextWindow,
     max_output_tokens: m.maxOutputTokens,
     capabilities: m.capabilities,
@@ -145,7 +159,7 @@ export async function listModelsForUser(user: PublicUser) {
     .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
     .where(and(eq(schema.provider.enabled, true), or(isNull(schema.provider.ownerUserId), eq(schema.provider.ownerUserId, user.id))))
     .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
-  const entries = rows.map((r) => toEntry(r.model, r.provider.ownerUserId)).filter((m) => canSee(m, user));
+  const entries = rows.map((r) => ({ ...toEntry(r.model, r.provider.ownerUserId), ...shownAs(r.model, r.provider) })).filter((m) => canSee(m, user));
   const visible = [...entries.filter((m) => !m.ownerUserId), ...entries.filter((m) => m.ownerUserId)];
   const ids = new Set(visible.map((m) => m.id));
   const slots = await getSlots();

@@ -176,7 +176,10 @@ type Model struct {
 	MaxOutputTokens int64         `protobuf:"varint,5,opt,name=max_output_tokens,json=maxOutputTokens,proto3" json:"max_output_tokens,omitempty"`
 	Capabilities    *Capabilities `protobuf:"bytes,6,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
 	// Absent when the admin did not configure prices.
-	Pricing       *Pricing `protobuf:"bytes,7,opt,name=pricing,proto3,oneof" json:"pricing,omitempty"`
+	Pricing *Pricing `protobuf:"bytes,7,opt,name=pricing,proto3,oneof" json:"pricing,omitempty"`
+	// For showing: the provider's name, and the model's id as a person reads it ("anthropic/claude-opus-5-5").
+	ProviderName  string `protobuf:"bytes,8,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	DisplayId     string `protobuf:"bytes,9,opt,name=display_id,json=displayId,proto3" json:"display_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -258,6 +261,20 @@ func (x *Model) GetPricing() *Pricing {
 		return x.Pricing
 	}
 	return nil
+}
+
+func (x *Model) GetProviderName() string {
+	if x != nil {
+		return x.ProviderName
+	}
+	return ""
+}
+
+func (x *Model) GetDisplayId() string {
+	if x != nil {
+		return x.DisplayId
+	}
+	return ""
 }
 
 type Capabilities struct {
@@ -1513,7 +1530,7 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\x11ListModelsRequest\"p\n" +
 	"\x12ListModelsResponse\x12-\n" +
 	"\x06models\x18\x01 \x03(\v2\x15.harness.llm.v1.ModelR\x06models\x12+\n" +
-	"\x05slots\x18\x02 \x01(\v2\x15.harness.llm.v1.SlotsR\x05slots\"\xaf\x02\n" +
+	"\x05slots\x18\x02 \x01(\v2\x15.harness.llm.v1.SlotsR\x05slots\"\xf3\x02\n" +
 	"\x05Model\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
@@ -1521,7 +1538,10 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\x0econtext_window\x18\x04 \x01(\x03R\rcontextWindow\x12*\n" +
 	"\x11max_output_tokens\x18\x05 \x01(\x03R\x0fmaxOutputTokens\x12@\n" +
 	"\fcapabilities\x18\x06 \x01(\v2\x1c.harness.llm.v1.CapabilitiesR\fcapabilities\x126\n" +
-	"\apricing\x18\a \x01(\v2\x17.harness.llm.v1.PricingH\x00R\apricing\x88\x01\x01B\n" +
+	"\apricing\x18\a \x01(\v2\x17.harness.llm.v1.PricingH\x00R\apricing\x88\x01\x01\x12#\n" +
+	"\rprovider_name\x18\b \x01(\tR\fproviderName\x12\x1d\n" +
+	"\n" +
+	"display_id\x18\t \x01(\tR\tdisplayIdB\n" +
 	"\n" +
 	"\b_pricing\"\xd7\x01\n" +
 	"\fCapabilities\x12\x1a\n" +

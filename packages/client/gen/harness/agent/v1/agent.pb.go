@@ -1332,7 +1332,10 @@ type ModelInfo struct {
 	OutputPrice *float64 `protobuf:"fixed64,9,opt,name=output_price,json=outputPrice,proto3,oneof" json:"output_price,omitempty"`
 	// A model of a local provider on this machine (localmodels.proto; id "local:<provider>/<name>"): free, and
 	// per device.
-	Local         bool `protobuf:"varint,10,opt,name=local,proto3" json:"local,omitempty"`
+	Local bool `protobuf:"varint,10,opt,name=local,proto3" json:"local,omitempty"`
+	// For showing: the provider's name, and the id as a person reads it (id stays what requests send).
+	ProviderName  string `protobuf:"bytes,11,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	DisplayId     string `protobuf:"bytes,12,opt,name=display_id,json=displayId,proto3" json:"display_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1435,6 +1438,20 @@ func (x *ModelInfo) GetLocal() bool {
 		return x.Local
 	}
 	return false
+}
+
+func (x *ModelInfo) GetProviderName() string {
+	if x != nil {
+		return x.ProviderName
+	}
+	return ""
+}
+
+func (x *ModelInfo) GetDisplayId() string {
+	if x != nil {
+		return x.DisplayId
+	}
+	return ""
 }
 
 type SessionInfo struct {
@@ -10454,7 +10471,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x06models\x18\x05 \x03(\v2\x1b.harness.agent.v1.ModelInfoR\x06models\x12#\n" +
 	"\rdefault_model\x18\x06 \x01(\tR\fdefaultModel\x12\\\n" +
 	"\x19disabled_permission_modes\x18\a \x03(\x0e2 .harness.agent.v1.PermissionModeR\x17disabledPermissionModes\x12\x17\n" +
-	"\aweb_url\x18\b \x01(\tR\x06webUrl\"\xec\x02\n" +
+	"\aweb_url\x18\b \x01(\tR\x06webUrl\"\xb0\x03\n" +
 	"\tModelInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
@@ -10467,7 +10484,10 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"inputPrice\x88\x01\x01\x12&\n" +
 	"\foutput_price\x18\t \x01(\x01H\x01R\voutputPrice\x88\x01\x01\x12\x14\n" +
 	"\x05local\x18\n" +
-	" \x01(\bR\x05localB\x0e\n" +
+	" \x01(\bR\x05local\x12#\n" +
+	"\rprovider_name\x18\v \x01(\tR\fproviderName\x12\x1d\n" +
+	"\n" +
+	"display_id\x18\f \x01(\tR\tdisplayIdB\x0e\n" +
 	"\f_input_priceB\x0f\n" +
 	"\r_output_price\"\xf1\n" +
 	"\n" +
