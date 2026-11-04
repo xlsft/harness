@@ -1,15 +1,17 @@
 <script setup lang="ts">
-// Every image the session's tools returned, one at a time over the whole window: a caption saying what produced it,
+// Every image of the session, from its tools and its messages, one at a time over the whole window: a caption saying what produced it,
 // the arrows and arrow keys walk through them, Esc or a click outside the image closes.
 import { imageSrc } from '~/lib/session/objects'
-import type { SessionState, ToolItem } from '~/lib/session/types'
+import type { SessionState } from '~/lib/session/types'
 
 const props = defineProps<{ session: SessionState }>()
 const { url, close } = useImageViewer()
 
-const images = computed(() => props.session.items
-  .filter((i): i is ToolItem => i.kind === 'tool' && !!i.images?.length)
-  .flatMap(t => t.images!.map(img => ({ url: imageSrc(img), caption: toolLabel(t) || t.name }))))
+const images = computed(() => props.session.items.flatMap((i) => {
+  if (i.kind === 'tool') return (i.images ?? []).map(img => ({ url: imageSrc(img), caption: toolLabel(i) || i.name }))
+  if (i.kind !== 'user') return []
+  return i.attachments.filter(a => a.kind === 'image').map(a => ({ url: imageSrc({ url: a.url ?? '', object: a.object }), caption: a.name }))
+}))
 const at = computed(() => images.value.findIndex(i => i.url === url.value))
 const current = computed(() => images.value[at.value])
 

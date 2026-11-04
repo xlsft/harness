@@ -2,6 +2,7 @@
 
 import type { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import { create } from '@bufbuild/protobuf'
+import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SubagentState, SubagentStepStatus } from '~/gen/harness/agent/v1/subagents_pb'
 import {
   Compacted_Trigger,
@@ -131,8 +132,8 @@ export class EventBuilder {
   }
 
   // clientUuids: the frontend ids of the messages this entry carries (read receipts).
-  user(uuid: string, body: string, clientUuids: string[] = []) {
-    return this.emit({ case: 'userMessage', value: { uuid, content: [text(body)], clientUuids } as never })
+  user(uuid: string, body: string, clientUuids: string[] = [], attachments: OutgoingAttachment[] = []) {
+    return this.emit({ case: 'userMessage', value: { uuid, content: messageContent(body, attachments), clientUuids } as never })
   }
 
   turnStarted(userMessageUuid: string, model: string) {
@@ -250,8 +251,8 @@ export class EventBuilder {
     return this.emit({ case: 'userNotification', value: { id, title, body } as never })
   }
 
-  queue(messages: { uuid: string, text: string, queuedAt?: number, held?: boolean }[]) {
-    return this.emit({ case: 'queueChanged', value: { queued: messages.map(m => ({ uuid: m.uuid, content: [text(m.text)], queuedAt: m.queuedAt ? new Date(m.queuedAt).toISOString() : '', held: !!m.held })) } as never })
+  queue(messages: { uuid: string, text: string, queuedAt?: number, held?: boolean, attachments?: OutgoingAttachment[] }[]) {
+    return this.emit({ case: 'queueChanged', value: { queued: messages.map(m => ({ uuid: m.uuid, content: messageContent(m.text, m.attachments), queuedAt: m.queuedAt ? new Date(m.queuedAt).toISOString() : '', held: !!m.held })) } as never })
   }
 
   checkpoint(id: string, preview = '') {

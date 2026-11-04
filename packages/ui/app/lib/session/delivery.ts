@@ -11,7 +11,7 @@
 //   A UserMessage event carries the frontend ids it took (client_uuids), and every user message of the
 //   transcript is read, also after a reload.
 
-import type { SessionState, UserItem } from './types'
+import type { SessionState, UserItem, Attachment } from './types'
 
 export type Delivery = 'queued' | 'held' | 'sending' | 'sent' | 'read'
 
@@ -19,6 +19,7 @@ export type Delivery = 'queued' | 'held' | 'sending' | 'sent' | 'read'
 export interface OutboxEntry {
   id: string
   text: string
+  attachments?: Attachment[]
   at: number
   state: 'sending' | 'sent'
 }
@@ -28,6 +29,7 @@ export interface PendingMessage {
   // Frontend message id (SendUserMessageRequest.uuid).
   id: string
   text: string
+  attachments?: Attachment[]
   delivery: Exclude<Delivery, 'read'>
   // Where it waits: the browser's queue, the client's queue, or handed over (sending / sent).
   where: 'client' | 'outbox'
@@ -43,10 +45,10 @@ export function pendingMessages(s: SessionState, outbox: OutboxEntry[] = []): Pe
   const handed = outbox.filter(o => !s.delivered[o.id] && !inClient.has(o.id))
   const sentAt = new Map(outbox.map(o => [o.id, o.at]))
   const waiting = [
-    ...s.queue.filter(q => !s.delivered[q.id]).map(q => ({ id: q.id, text: q.text, held: !!q.held, where: 'client' as const, at: q.at || sentAt.get(q.id) || 0 }))
+    ...s.queue.filter(q => !s.delivered[q.id]).map(q => ({ id: q.id, text: q.text, attachments: q.attachments, held: !!q.held, where: 'client' as const, at: q.at || sentAt.get(q.id) || 0 }))
   ]
   return [
-    ...handed.map(o => ({ id: o.id, text: o.text, delivery: o.state, where: 'outbox' as const, at: o.at, position: 0 })),
+    ...handed.map(o => ({ id: o.id, text: o.text, attachments: o.attachments, delivery: o.state, where: 'outbox' as const, at: o.at, position: 0 })),
     ...waiting.map(({ held, ...q }, i) => ({ ...q, delivery: held ? 'held' as const : 'queued' as const, position: i + 1 }))
   ]
 }

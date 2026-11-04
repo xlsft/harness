@@ -2,7 +2,7 @@
 // Listboxes above the composer (Composer.dc.html "slash" and "mention"): arrows move, Enter picks, Esc closes.
 import type { MenuOption } from '~/utils/composer'
 
-defineProps<{ kind: 'slash' | 'mention', options: MenuOption[], active: number }>()
+defineProps<{ kind: 'slash' | 'mention', options: MenuOption[], active: number, empty?: string }>()
 defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
 </script>
 
@@ -49,7 +49,7 @@ defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
       v-if="!options.length"
       class="px-2.5 py-1.5 text-muted"
     >
-      No matches
+      {{ empty || 'No matches' }}
     </div>
   </div>
 </template>

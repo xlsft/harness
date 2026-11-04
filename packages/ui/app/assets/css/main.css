@@ -523,6 +523,9 @@
 .rounded-none {
   border-radius: 0;
 }
+.rounded-chip {
+  border-radius: var(--radius-chip);
+}
 /* Rows of a list and cells of a tab strip (separated by a single rule on some sides) are square: the list's or
    strip's own border carries the corners. */
 :where([class~="border-b"], [class~="border-t"], [class~="border-x"], [class~="border-y"], [class~="border-l"], [class~="border-r"]):not([class~="border"]) {

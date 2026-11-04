@@ -1,5 +1,7 @@
 // Composer data: slash commands, permission modes and efforts (Composer.dc.html).
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
+import { attachmentError, attachmentKind } from '~/lib/session/attachments'
+import { basename } from './format'
 import type { IconName } from './icons'
 
 export interface MenuOption {
@@ -9,6 +11,23 @@ export interface MenuOption {
   tag?: string
   icon?: IconName
   iconCls?: string
+  // Picking it does this instead of inserting anything (the "Choose folder…" row before a folder is chosen).
+  run?: () => void
+}
+
+// A file in the composer; `file` holds its bytes until the message goes.
+export interface ComposerFile {
+  name: string
+  size: number
+  progress?: number
+  error?: string
+  image?: boolean
+  file?: File
+}
+
+/** A file as the composer holds it. */
+export function composerFile(f: File): ComposerFile {
+  return { name: f.name, size: f.size, image: attachmentKind(f) === 'image', error: attachmentError(f), file: f }
 }
 
 // Built-in commands; skills and project commands come from the client in M2.
@@ -20,6 +39,9 @@ export const SLASH_COMMANDS: MenuOption[] = [
   { key: '/clear', label: '/clear', detail: 'Start a new session with an empty context', tag: 'built-in' },
   { key: '/rewind', label: '/rewind', detail: 'Restore code or conversation to a checkpoint', tag: 'built-in' }
 ]
+
+// Before a session exists: what needs a conversation is left out.
+export const NEW_SESSION_COMMANDS = SLASH_COMMANDS.filter(c => !['/compact', '/clear', '/rewind'].includes(c.key))
 
 // "/compact [focus instructions]": the instructions ('' for none), or null when the text is not the command.
 export function compactCommand(text: string): string | null {
@@ -46,6 +68,32 @@ export const MENTION_EXTRAS: MenuOption[] = [
   { key: 'agent:code-reviewer', label: 'code-reviewer', detail: 'agent', icon: 'ai', iconCls: 'text-accent' },
   { key: 'mcp:youtrack:HRN-42', label: 'youtrack:HRN-42', detail: 'MCP resource', icon: 'box', iconCls: 'text-muted' }
 ]
+
+/** Rows of the mention menu for paths; a path ending in "/" is a folder. */
+export function fileMentionOptions(paths: string[]): MenuOption[] {
+  return paths.map(p => ({
+    key: p,
+    label: basename(p) + (p.endsWith('/') ? '/' : ''),
+    detail: p.replace(/\/?[^/]+\/?$/, ''),
+    icon: p.endsWith('/') ? 'folder' as const : 'file' as const,
+    iconCls: p.endsWith('/') ? 'text-muted' : 'text-strong'
+  }))
+}
+
+/** A picked folder as the text of an @mention: relative to `cwd` when inside it. */
+export function folderMention(path: string, cwd: string): string {
+  const root = cwd.replace(/\/+$/, '')
+  if (!root) return `@${path}/ `
+  const rel = path === root ? '.' : path.startsWith(`${root}/`) ? path.slice(root.length + 1) : path
+  return `@${rel}/ `
+}
+
+/** What an @ query means under a folder: the directory to list, the query's path so far, what the names must contain. */
+export function folderLookup(cwd: string, query: string) {
+  const sub = query.slice(0, query.lastIndexOf('/') + 1)
+  const dir = sub.startsWith('/') ? sub : `${cwd.replace(/\/+$/, '')}/${sub}`
+  return { dir: dir.replace(/\/+$/, '') || '/', sub, match: query.slice(sub.length).toLowerCase() }
+}
 
 export const MODES: { key: PermissionModeName, label: string, detail: string, cls: string, sep?: boolean }[] = [
   { key: 'default', label: 'Ask', detail: 'Approve every edit and command', cls: 'text-strong' },
@@ -146,5 +194,5 @@ export interface ComposerPreset {
   recording?: boolean
   error?: string
   focused?: boolean
-  files?: { name: string, size: number, progress?: number, error?: string, image?: boolean }[]
+  files?: ComposerFile[]
 }

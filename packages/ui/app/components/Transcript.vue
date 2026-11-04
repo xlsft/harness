@@ -458,6 +458,7 @@ function toBottom() {
         >
           <UserMessage
             :text="q.text"
+            :attachments="q.attachments"
             :queued="q.delivery === 'queued' || q.delivery === 'held'"
             :pending="q.delivery !== 'queued' && q.delivery !== 'held'"
             @edit="edit(q.id)"

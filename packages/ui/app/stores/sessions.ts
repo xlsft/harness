@@ -1,5 +1,6 @@
 // Session store: one SessionState per session, fed by the transport's Subscribe stream through the reducer.
 
+import { attachmentFiles, blockAttachments, messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import { defineStore } from 'pinia'
 import { markRaw, toRaw } from 'vue'
 import {
@@ -138,6 +139,8 @@ export const useSessionStore = defineStore('sessions', {
     currentId: '',
     // Messages handed to the client (SendUserMessage) until the stream shows them queued or read (delivery.ts).
     outbox: {} as Record<string, OutboxEntry[]>,
+    // Files going back into a session's composer with its draft (a queued message taken back to edit).
+    draftFiles: {} as Record<string, File[]>,
     // Text to put into a session's composer (a rewound or forked message, a queued message taken back to edit);
     // the composer takes it and clears the entry.
     drafts: {} as Record<string, string>,
@@ -645,23 +648,23 @@ export const useSessionStore = defineStore('sessions', {
     // While a turn runs the message waits in the local queue; when idle it is sent right away. While a question
     // waits for an answer it goes to the client's queue instead: it does not end the wait, follows the answer
     // in the same turn (or becomes it with "Answer with message") and survives a reload.
-    async send(id: string, text: string) {
+    async send(id: string, text: string, attachments?: OutgoingAttachment[]) {
       const body = text.trim()
-      if (!body || !this.transport) return
+      if ((!body && !attachments?.length) || !this.transport) return
       // The session gets a stream for the turn this starts, even when it is not the open one.
       this.subscribe(id)
       // Always to the client: it decides when the agent reads it (queues it, moves a command to the background, ...).
-      await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
+      await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE, attachments)
     },
 
     // Hands a message to the client, tracked in the outbox (sending, then sent) until the stream shows it queued
     // or read. A refused message leaves the outbox and the error is thrown.
-    async deliver(id: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
+    async deliver(id: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery, attachments?: OutgoingAttachment[]) {
       if (!this.transport) return
       const box = this.outbox[id] ?? (this.outbox[id] = [])
-      box.push({ id: uuid, text, at: Date.now(), state: 'sending' })
+      box.push({ id: uuid, text, ...(attachments?.length && { attachments: blockAttachments(messageContent('', attachments)) }), at: Date.now(), state: 'sending' })
       try {
-        await this.transport.sendUserMessage(id, uuid, text, delivery)
+        await (attachments?.length ? this.transport.sendUserMessage(id, uuid, text, delivery, attachments) : this.transport.sendUserMessage(id, uuid, text, delivery))
         const e = this.outbox[id]?.find(o => o.id === uuid)
         if (e) e.state = 'sent'
       } catch (err) {
@@ -690,9 +693,12 @@ export const useSessionStore = defineStore('sessions', {
       return removed
     },
     async editQueued(id: string, queuedId: string) {
-      const text = this.sessions[id]?.queue.find(q => q.id === queuedId)?.text
-      if (text === undefined) return
-      if (await this.removeQueued(id, queuedId)) this.drafts[id] = text
+      const q = this.sessions[id]?.queue.find(q => q.id === queuedId)
+      if (!q) return
+      const files = await attachmentFiles(q.attachments ?? [])
+      if (!await this.removeQueued(id, queuedId)) return
+      this.drafts[id] = q.text
+      if (files.length) this.draftFiles[id] = files
     },
     // Asks the client to deliver a queued message now (it moves a running command to the background, or stops the turn).
     async sendNow(id: string, queuedId: string) {

@@ -26,7 +26,7 @@ func Block(b llm.ContentBlock) *llmv1.ContentBlock {
 		return &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Image{Image: &llmv1.ImageBlock{MediaType: mt, Data: data, Cache: b.Cache}}}
 	case llm.BlockDocument:
 		mt, data := source(b.Source)
-		return &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Document{Document: &llmv1.DocumentBlock{MediaType: mt, Data: data, Cache: b.Cache}}}
+		return &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Document{Document: &llmv1.DocumentBlock{MediaType: mt, Data: data, Title: b.Title, Cache: b.Cache}}}
 	case llm.BlockThinking:
 		return &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Thinking{Thinking: &llmv1.ThinkingBlock{Thinking: b.Thinking, Signature: b.Signature}}}
 	case llm.BlockRedactedThinking:
@@ -74,7 +74,7 @@ func FromBlock(b *llmv1.ContentBlock) llm.ContentBlock {
 	case *llmv1.ContentBlock_Image:
 		return llm.ContentBlock{Type: llm.BlockImage, Cache: v.Image.GetCache(), Source: &llm.Source{Type: "base64", MediaType: v.Image.GetMediaType(), Data: base64.StdEncoding.EncodeToString(v.Image.GetData())}}
 	case *llmv1.ContentBlock_Document:
-		return llm.ContentBlock{Type: llm.BlockDocument, Cache: v.Document.GetCache(), Source: &llm.Source{Type: "base64", MediaType: v.Document.GetMediaType(), Data: base64.StdEncoding.EncodeToString(v.Document.GetData())}}
+		return llm.ContentBlock{Type: llm.BlockDocument, Title: v.Document.GetTitle(), Cache: v.Document.GetCache(), Source: &llm.Source{Type: "base64", MediaType: v.Document.GetMediaType(), Data: base64.StdEncoding.EncodeToString(v.Document.GetData())}}
 	case *llmv1.ContentBlock_Thinking:
 		return llm.ContentBlock{Type: llm.BlockThinking, Thinking: v.Thinking.GetThinking(), Signature: v.Thinking.GetSignature()}
 	case *llmv1.ContentBlock_RedactedThinking:

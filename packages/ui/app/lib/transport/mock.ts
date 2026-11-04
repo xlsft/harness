@@ -38,6 +38,7 @@ import {
 } from '~/gen/harness/agent/v1/agent_pb'
 import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
+import type { OutgoingAttachment } from '~/lib/session/attachments'
 import { runMockShell } from './mockShell'
 import { MockProvidersApi } from '~/lib/providers/mock'
 import { MockUsersApi } from '~/lib/users/mock'
@@ -102,7 +103,7 @@ interface MockSession {
   seq: number
   listeners: Set<SubscribeHandlers>
   working: boolean
-  queue: { uuid: string, text: string, queuedAt: number, held?: boolean }[]
+  queue: { uuid: string, text: string, queuedAt: number, held?: boolean, attachments?: OutgoingAttachment[] }[]
   timers: ReturnType<typeof setTimeout>[]
   // The provider of the model is out of usage (REACHED): messages are held until the reset timer or a model switch.
   limit?: { timer: ReturnType<typeof setTimeout>, model: string, providerName: string } | null
@@ -496,13 +497,24 @@ export class MockTransport implements SessionTransport {
     step()
   }
 
-  async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
+  // Files of the messages not read yet, by message id: the queue, like the client's, holds a message whole.
+  private sentFiles = new Map<string, OutgoingAttachment[]>()
+  private takeFiles(ids: string[]) {
+    return ids.flatMap((id) => {
+      const files = this.sentFiles.get(id) ?? []
+      this.sentFiles.delete(id)
+      return files
+    })
+  }
+
+  async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery, attachments?: OutgoingAttachment[]) {
     const s = this.get(sessionId)
+    if (attachments?.length) this.sentFiles.set(uuid, attachments)
     if (s.info.acp?.needsAuth) throw new Error(`[failed_precondition] ${s.info.acp.agentName} needs you to sign in first`)
     if (s.limit) {
       // Held, like the client; Send now tries at once, and the mock's provider refuses until the reset.
       if (!s.queue.some(q => q.uuid === uuid)) {
-        s.queue.push({ uuid, text, queuedAt: this.now(), held: true })
+        s.queue.push({ uuid, text, queuedAt: this.now(), held: true, attachments })
         this.emit(s, b => b.queue(s.queue))
       }
       if (delivery === SendUserMessageRequest_Delivery.NOW) {
@@ -513,7 +525,7 @@ export class MockTransport implements SessionTransport {
     if (s.working) {
       // Queued (QueueChanged); NOW stops the turn so the message starts the next one, like the client.
       if (!s.queue.some(q => q.uuid === uuid)) {
-        s.queue.push({ uuid, text, queuedAt: this.now() })
+        s.queue.push({ uuid, text, queuedAt: this.now(), attachments })
         this.emit(s, b => b.queue(s.queue))
       }
       if (delivery === SendUserMessageRequest_Delivery.NOW) {
@@ -535,6 +547,7 @@ export class MockTransport implements SessionTransport {
     const before = s.queue.length
     s.queue = s.queue.filter(q => q.uuid !== uuid)
     if (s.queue.length === before) return false
+    this.sentFiles.delete(uuid)
     this.emit(s, b => b.queue(s.queue))
     return true
   }
@@ -560,7 +573,7 @@ export class MockTransport implements SessionTransport {
     const msg = `live-${n}`
     this.emit(s, (b) => {
       b.checkpoint(uuid, body)
-      b.user(uuid, body, clientIds)
+      b.user(uuid, body, clientIds, this.takeFiles(clientIds))
       b.turnStarted(uuid, s.info.model)
     })
 
@@ -749,7 +762,7 @@ export class MockTransport implements SessionTransport {
           // The queued messages are read in this turn, right after the tool result.
           this.emit(s, (b) => {
             b.queue([])
-            b.user(`${msg}-queued`, delivered.map(q => q.text).join('\n\n'), delivered.map(q => q.uuid))
+            b.user(`${msg}-queued`, delivered.map(q => q.text).join('\n\n'), delivered.map(q => q.uuid), this.takeFiles(delivered.map(q => q.uuid)))
           })
         }
         const body = !reason
@@ -1556,7 +1569,7 @@ export class MockTransport implements SessionTransport {
     const startedAt = this.now()
     const model = s.info.model
     this.emit(s, (b) => {
-      b.user(uuid, body, [uuid])
+      b.user(uuid, body, [uuid], this.takeFiles([uuid]))
       b.turnStarted(uuid, model)
     })
     const thinking = 'The retry helper lives in the gateway. Check how it is called, then make the change in one place.'

@@ -6,8 +6,8 @@ import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/ses
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
 import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
+import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
-import { create } from '@bufbuild/protobuf'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
@@ -19,7 +19,7 @@ import {
   type RewindRequest_Mode,
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
-import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
+import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb } from '~/lib/session/reducer'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
@@ -176,9 +176,8 @@ export class ConnectTransport implements SessionTransport {
     return () => abort.abort()
   }
 
-  async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
-    const content = [create(ContentBlockSchema, { block: { case: 'text', value: { text } } })]
-    await this.client.sendUserMessage({ sessionId, uuid, content, delivery })
+  async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery, attachments?: OutgoingAttachment[]) {
+    await this.client.sendUserMessage({ sessionId, uuid, content: messageContent(text, attachments), delivery })
   }
 
   async removeQueuedMessage(sessionId: string, uuid: string) {

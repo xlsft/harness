@@ -4,6 +4,7 @@ import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import type { ComputerAccessRequested, ComputerUsePermission, ComputerUseProfile, ComputerUseState } from '~/gen/harness/agent/v1/computer_use_pb'
 import type { ContentBlock } from '~/gen/harness/llm/v1/content_pb'
 import type { ObjectRef as ObjectRefPb } from '~/gen/harness/common/v1/object_pb'
+import { base64 } from './attachments'
 import type { ObjectRef } from './objects'
 import type { ComputerAccessItem, ComputerPermissionVM, ComputerProfileVM, ComputerTierName, ComputerUseVM, ToolImage } from './types'
 
@@ -76,13 +77,6 @@ export function accessItem(r: ComputerAccessRequested): ComputerAccessItem {
 
 export function computerUseVM(s: ComputerUseState): ComputerUseVM {
   return { controlling: s.controlling, action: s.action, grants: s.grants.map(g => ({ id: g.appId, name: g.appName, tier: tierName(g.tier) })) }
-}
-
-function base64(data: Uint8Array): string {
-  let bin = ''
-  const step = 0x8000
-  for (let i = 0; i < data.length; i += step) bin += String.fromCharCode(...data.subarray(i, i + step))
-  return btoa(bin)
 }
 
 function objectRefVM(r: ObjectRefPb): ObjectRef {

@@ -622,7 +622,8 @@ func sessionTitle(path string) string {
 // titleOf is the provisional title of a prompt.
 func titleOf(blocks []llm.ContentBlock) string {
 	for _, b := range blocks {
-		if b.Type == llm.BlockText && strings.TrimSpace(b.Text) != "" {
+		// An attached text file (composer: messageContent) is not what the session is about.
+		if b.Type == llm.BlockText && strings.TrimSpace(b.Text) != "" && !strings.HasPrefix(b.Text, "<file name=") {
 			return provisionalTitle(b.Text)
 		}
 	}

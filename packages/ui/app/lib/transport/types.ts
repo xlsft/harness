@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { OutgoingAttachment } from '~/lib/session/attachments'
 import type { ObjectTicket } from '~/lib/session/objects'
 import type { ComputerPermissionVM, ComputerProfileVM, ComputerTierName, EffortName, QuestionReply } from '~/lib/session/types'
 import type {
@@ -161,7 +162,7 @@ export interface SessionTransport {
   // Replays events after `afterSeq`, then streams live ones. Returns an unsubscribe function.
   subscribe(sessionId: string, afterSeq: number, handlers: SubscribeHandlers): () => void
 
-  sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery): Promise<void>
+  sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery, attachments?: OutgoingAttachment[]): Promise<void>
   // Takes back a message still in the client's queue; false when it was already injected into the turn.
   removeQueuedMessage(sessionId: string, uuid: string): Promise<boolean>
   // Restores code and/or conversation to the checkpoint of a user message (the session must be idle); the
