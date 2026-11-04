@@ -111,7 +111,9 @@ type Entry struct {
 	AgentID     string  `json:"agentId,omitempty"`
 	// Subagent is a record of a subagent's state on a harness-meta entry (tools.AgentInfo as JSON): what another
 	// machine lists the session's agents from.
-	Subagent                json.RawMessage `json:"subagent,omitempty"`
+	Subagent json.RawMessage `json:"subagent,omitempty"`
+	// Workflow is the same for a run of the Workflow tool (tools.WorkflowInfo as JSON).
+	Workflow                json.RawMessage `json:"workflow,omitempty"`
 	UserType                string          `json:"userType,omitempty"`
 	Cwd                     string          `json:"cwd,omitempty"`
 	SessionID               string          `json:"sessionId"`

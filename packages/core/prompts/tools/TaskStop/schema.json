@@ -4,7 +4,7 @@
   "properties": {
     "task_id": {
       "type": "string",
-      "description": "ID of the background task or agent to stop"
+      "description": "ID of the background task, agent or workflow run to stop"
     },
     "description": {
       "type": "string",

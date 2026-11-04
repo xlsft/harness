@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package harness.relay.v1;
+
+import "harness/agent/v1/workflows.proto";
+
+// Stopping a run of the Workflow tool on the machine running the session. A query command like StopSubagent: the
+// result is the run as it ended up. Its status reaches other machines as WorkflowUpdated events.
+message StopWorkflowRequest {
+  harness.agent.v1.StopWorkflowRequest request = 1;
+}
+
+message StopWorkflowResponse {
+  harness.agent.v1.StopWorkflowResponse response = 1;
+}

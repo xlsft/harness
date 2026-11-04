@@ -58,6 +58,10 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		s.problem(src, KeySubagentMaxRunning, "must be between 1 and %d", MaxSubagentMaxRunning)
 		l.subagentRunning = nil
 	}
+	if l.workflowAgents = s.integer(src, raw, KeyWorkflowMaxAgents); l.workflowAgents != nil && !ValidWorkflowMaxAgents(*l.workflowAgents) {
+		s.problem(src, KeyWorkflowMaxAgents, "must be between 1 and %d", MaxWorkflowMaxAgents)
+		l.workflowAgents = nil
+	}
 	if v, ok := raw["attribution"]; ok {
 		var a map[string]json.RawMessage
 		if err := json.Unmarshal(v, &a); err != nil {
@@ -301,6 +305,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.subagentRunning != nil {
 			s.SubagentMaxRunning = *l.subagentRunning
+		}
+		if l.workflowAgents != nil {
+			s.WorkflowMaxAgents = *l.workflowAgents
 		}
 		if l.attrCommit != nil {
 			v := *l.attrCommit

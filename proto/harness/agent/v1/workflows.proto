@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/agent/v1/subagents.proto";
+
+// Workflows: scripts the session's model writes (the Workflow tool) to run many subagents deterministically. A run
+// lives on the client in the background; its agents are ordinary subagents, listed by SubagentUpdated too.
+
+enum WorkflowState {
+  WORKFLOW_STATE_UNSPECIFIED = 0;
+  WORKFLOW_STATE_RUNNING = 1;
+  // The script returned; `result` is what it returned.
+  WORKFLOW_STATE_FINISHED = 2;
+  // The script threw, or hit a limit (`error`).
+  WORKFLOW_STATE_FAILED = 3;
+  // Stopped on request (TaskStop, StopWorkflow), with its agents.
+  WORKFLOW_STATE_STOPPED = 4;
+  // Was running when the client stopped or the session closed. The Workflow tool's resume_from continues it.
+  WORKFLOW_STATE_INTERRUPTED = 5;
+}
+
+// One agent() call of a run.
+message WorkflowAgent {
+  // The subagent; empty when the call was answered from the run's cache.
+  string agent_id = 1;
+  string label = 2;
+  string phase = 3;
+  SubagentState state = 4;
+  // Answered from the run's cache (a resume): no agent ran.
+  bool cached = 5;
+  string error = 6;
+}
+
+message WorkflowInfo {
+  string id = 1;
+  // The Workflow tool call that started the run, or its latest resume.
+  string tool_use_id = 2;
+  // From the script's meta: written by the model.
+  string name = 3;
+  string description = 4;
+  // The declared phases, then those the script named as it went.
+  repeated string phases = 5;
+  string current_phase = 6;
+  WorkflowState state = 7;
+  repeated WorkflowAgent agents = 8;
+  // What the script logged (the latest lines; bounded).
+  repeated string log = 9;
+  // RFC 3339, UTC.
+  string started_at = 10;
+  string finished_at = 11;
+  string error = 12;
+  // What the script returned (bounded). Built from agents' reports: model output.
+  string result = 13;
+  // Totals of the run's agents. They count toward the session (the requests carry its id).
+  int64 input_tokens = 14;
+  int64 output_tokens = 15;
+  double cost_usd = 16;
+}
+
+// A run was started or changed. Carries it as it is now. A resumed session publishes one per run on record, after the
+// replayed history.
+message WorkflowUpdated {
+  WorkflowInfo workflow = 1;
+}
+
+message StopWorkflowRequest {
+  string session_id = 1;
+  string workflow_id = 2;
+}
+
+message StopWorkflowResponse {
+  WorkflowInfo workflow = 1;
+}

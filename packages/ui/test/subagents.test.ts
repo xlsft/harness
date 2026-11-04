@@ -3,6 +3,7 @@ import { createSessionState, reduce } from '../app/lib/session/reducer'
 import { MockTransport } from '../app/lib/transport/mock'
 import type { SessionEvent } from '../app/gen/harness/agent/v1/agent_pb'
 import { SubagentState, SubagentStepStatus } from '../app/gen/harness/agent/v1/subagents_pb'
+import { WorkflowState } from '../app/gen/harness/agent/v1/workflows_pb'
 
 function agent(over: Record<string, unknown> = {}) {
   return {
@@ -16,6 +17,30 @@ function agent(over: Record<string, unknown> = {}) {
 function event(n: number, a: unknown): SessionEvent {
   return { seq: BigInt(n), timestamp: '2026-11-04T00:00:01Z', event: { case: 'subagentUpdated', value: { agent: a } } } as unknown as SessionEvent
 }
+
+describe('workflows', () => {
+  const run = (over: Record<string, unknown> = {}) => ({
+    id: 'w1', toolUseId: 't9', name: 'review', description: 'Reviews', phases: ['One'], currentPhase: 'One', state: WorkflowState.RUNNING,
+    agents: [{ agentId: 'a1', label: 'first', phase: 'One', state: SubagentState.RUNNING, cached: false, error: '' }], log: ['hello'],
+    startedAt: '2026-11-04T00:00:00Z', finishedAt: '', error: '', result: '', inputTokens: 100n, outputTokens: 20n, costUsd: 0.5, ...over
+  })
+  const update = (n: number, w: unknown) => ({ seq: BigInt(n), timestamp: '2026-11-04T00:00:01Z', event: { case: 'workflowUpdated', value: { workflow: w } } }) as unknown as SessionEvent
+
+  it('keeps runs in order, as they are now, without counting usage twice', () => {
+    const s = createSessionState('s1')
+    reduce(s, update(1, run()))
+    reduce(s, update(2, run({ state: WorkflowState.FINISHED, result: 'done', finishedAt: '2026-11-04T00:01:00Z' })))
+    reduce(s, update(3, run({ id: 'w2' })))
+    expect(s.workflowOrder).toEqual(['w1', 'w2'])
+    const w = s.workflows.w1!
+    expect(w.state).toBe('finished')
+    expect(w.result).toBe('done')
+    expect(w.tokens).toBe(120)
+    expect(w.agents[0]).toMatchObject({ agentId: 'a1', label: 'first', state: 'running' })
+    expect(s.costUsd).toBe(0)
+    expect(s.usage.inputTokens).toBe(0)
+  })
+})
 
 describe('subagent limits', () => {
   it('are validated preferences with the defaults', async () => {

@@ -160,6 +160,18 @@ func (h *Handle) Wait(ctx context.Context) (Result, error) {
 	}
 }
 
+// ValidateOutput checks an output kept from an earlier run against its schema.
+func ValidateOutput(schema, output json.RawMessage) error {
+	resolved, err := compileSchema(schema)
+	if err != nil {
+		return err
+	}
+	if _, problem := checkOutput(resolved, string(output)); problem != nil {
+		return problem
+	}
+	return nil
+}
+
 // compileSchema prepares an output schema for validation.
 func compileSchema(raw json.RawMessage) (*jsonschema.Resolved, error) {
 	var s jsonschema.Schema
@@ -254,6 +266,8 @@ type record struct {
 	Cwd      string           `json:"cwd"`
 	ReadOnly bool             `json:"read_only,omitempty"`
 	Worktree *worktree.Result `json:"worktree,omitempty"`
+	// Silent: it reports to the code that started it, which goes with the client.
+	Silent bool `json:"silent,omitempty"`
 	// Unreported: it was cut off when the session closed, and the main agent has not been told.
 	Unreported bool `json:"unreported,omitempty"`
 }
@@ -334,7 +348,7 @@ func (m *Manager) save(a *sub) {
 	if m.cfg.NoPersistence || m.cfg.Dir == "" {
 		return
 	}
-	data, err := json.Marshal(record{Info: a.snapshot(), Depth: a.depth, Cwd: a.cwd, ReadOnly: a.readOnly, Worktree: a.wt, Unreported: a.unreported})
+	data, err := json.Marshal(record{Info: a.snapshot(), Depth: a.depth, Cwd: a.cwd, ReadOnly: a.readOnly, Worktree: a.wt, Silent: a.silent, Unreported: a.unreported})
 	if err != nil {
 		return
 	}
@@ -368,10 +382,12 @@ func (m *Manager) load() {
 		if json.Unmarshal(data, &r) != nil || r.Info.ID == "" {
 			continue
 		}
-		a := &sub{info: r.Info, depth: r.Depth, cwd: r.Cwd, readOnly: r.ReadOnly, wt: r.Worktree, typeName: r.Info.Type, settled: closedChan(), isSettled: true}
+		a := &sub{info: r.Info, depth: r.Depth, cwd: r.Cwd, readOnly: r.ReadOnly, wt: r.Worktree, typeName: r.Info.Type, silent: r.Silent, settled: closedChan(), isSettled: true}
 		if a.info.State.Active() || r.Unreported {
 			m.settleLocked(a, tools.AgentInterrupted)
-			lost = append(lost, a)
+			if !a.silent {
+				lost = append(lost, a)
+			}
 		}
 		m.subs[a.info.ID] = a
 		m.order = append(m.order, a)
@@ -595,9 +611,12 @@ func (m *Manager) wrapMessage(to *sub, from, text string) string {
 	return prompts.Render(tmpl, map[string]string{"from": defuse(m.senderName(from)), "message": defuse(text)}, nil)
 }
 
+// Defuse is defuse, for what carries model output to an agent from elsewhere (package workflow).
+func Defuse(s string) string { return defuse(s) }
+
 // defuse keeps model output from closing or opening the blocks the application marks things with.
 func defuse(s string) string {
-	for _, tag := range []string{"agent_message", "agent_report", "system-reminder"} {
+	for _, tag := range []string{"agent_message", "agent_report", "workflow_report", "system-reminder"} {
 		s = strings.ReplaceAll(s, "</"+tag, "&lt;/"+tag)
 		s = strings.ReplaceAll(s, "<"+tag, "&lt;"+tag)
 	}
@@ -1144,6 +1163,8 @@ func (m *Manager) Send(ctx context.Context, caller, to, message string) (tools.A
 		a.pending = append(a.pending, input...)
 		queued = true
 	default:
+		// Whoever continues it wants the report, also of an agent that first ran for code.
+		a.silent = false
 		m.launchLocked(a, input)
 		m.save(a)
 	}

@@ -406,6 +406,7 @@ func (s *Server) remoteHistory(ctx context.Context, info *agentv1.SessionInfo) (
 	evs := replayHistory(entries, replayOptions{Cwd: info.Cwd, Interrupts: []string{agent.InterruptedFallback},
 		InterruptPrefixes: []string{interruptedToolUsePrefix}, MaxTurns: s.HistoryTurns, MaxEvents: s.HistoryEvents})
 	evs = append(evs, recordedSubagents(entries)...)
+	evs = append(evs, recordedWorkflows(entries)...)
 	s.applyState(info)
 	evs = append(evs, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: info}})
 	now := time.Now().UTC().Format(time.RFC3339Nano)
@@ -736,6 +737,14 @@ func (r routed) StopSubagent(ctx context.Context, req *connect.Request[agentv1.S
 			return &relayv1.StopSubagentRequest{Request: m}
 		},
 		func(res *relayv1.StopSubagentResponse) *agentv1.StopSubagentResponse { return res.GetResponse() })
+}
+
+func (r routed) StopWorkflow(ctx context.Context, req *connect.Request[agentv1.StopWorkflowRequest]) (*connect.Response[agentv1.StopWorkflowResponse], error) {
+	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.StopWorkflow, relayv1connect.RelayServiceClient.StopWorkflow,
+		func(m *agentv1.StopWorkflowRequest) *relayv1.StopWorkflowRequest {
+			return &relayv1.StopWorkflowRequest{Request: m}
+		},
+		func(res *relayv1.StopWorkflowResponse) *agentv1.StopWorkflowResponse { return res.GetResponse() })
 }
 
 // GetSubagentTranscript reads a remote agent's transcript from the machine running it when it can be reached (it has

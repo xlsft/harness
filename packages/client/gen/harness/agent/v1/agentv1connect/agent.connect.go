@@ -345,6 +345,9 @@ const (
 	// AgentServiceGetSessionFileDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionFileDiff RPC.
 	AgentServiceGetSessionFileDiffProcedure = "/harness.agent.v1.AgentService/GetSessionFileDiff"
+	// AgentServiceStopWorkflowProcedure is the fully-qualified name of the AgentService's StopWorkflow
+	// RPC.
+	AgentServiceStopWorkflowProcedure = "/harness.agent.v1.AgentService/StopWorkflow"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -616,6 +619,9 @@ type AgentServiceClient interface {
 	ListDiffBases(context.Context, *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error)
 	// One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
 	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
+	// Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
+	// ended comes back as it ended.
+	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1277,6 +1283,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionFileDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		stopWorkflow: connect.NewClient[v1.StopWorkflowRequest, v1.StopWorkflowResponse](
+			httpClient,
+			baseURL+AgentServiceStopWorkflowProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StopWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1390,6 +1402,7 @@ type agentServiceClient struct {
 	setKeepAwake            *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
 	listDiffBases           *connect.Client[v1.ListDiffBasesRequest, v1.ListDiffBasesResponse]
 	getSessionFileDiff      *connect.Client[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse]
+	stopWorkflow            *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1932,6 +1945,11 @@ func (c *agentServiceClient) GetSessionFileDiff(ctx context.Context, req *connec
 	return c.getSessionFileDiff.CallUnary(ctx, req)
 }
 
+// StopWorkflow calls harness.agent.v1.AgentService.StopWorkflow.
+func (c *agentServiceClient) StopWorkflow(ctx context.Context, req *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error) {
+	return c.stopWorkflow.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2201,6 +2219,9 @@ type AgentServiceHandler interface {
 	ListDiffBases(context.Context, *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error)
 	// One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
 	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
+	// Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
+	// ended comes back as it ended.
+	StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2858,6 +2879,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionFileDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceStopWorkflowHandler := connect.NewUnaryHandler(
+		AgentServiceStopWorkflowProcedure,
+		svc.StopWorkflow,
+		connect.WithSchema(agentServiceMethods.ByName("StopWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3076,6 +3103,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceListDiffBasesHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionFileDiffProcedure:
 			agentServiceGetSessionFileDiffHandler.ServeHTTP(w, r)
+		case AgentServiceStopWorkflowProcedure:
+			agentServiceStopWorkflowHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3515,4 +3544,8 @@ func (UnimplementedAgentServiceHandler) ListDiffBases(context.Context, *connect.
 
 func (UnimplementedAgentServiceHandler) GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionFileDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StopWorkflow(context.Context, *connect.Request[v1.StopWorkflowRequest]) (*connect.Response[v1.StopWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopWorkflow is not implemented"))
 }

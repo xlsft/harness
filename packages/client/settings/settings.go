@@ -154,10 +154,13 @@ type Settings struct {
 	// (subagentMaxDepth, subagentMaxRunning; per-user preferences, see UserPreferences).
 	SubagentMaxDepth   int
 	SubagentMaxRunning int
-	ClaudeMdMode       memory.Mode
-	Attribution        Attribution
-	Env                map[string]string
-	Permissions        Permissions
+	// WorkflowMaxAgents is the hard cap on agent() calls in one run of the Workflow tool (workflowMaxAgents; a per-user
+	// preference, see UserPreferences).
+	WorkflowMaxAgents int
+	ClaudeMdMode      memory.Mode
+	Attribution       Attribution
+	Env               map[string]string
+	Permissions       Permissions
 	// AvailableModels is the policy allowlist of models (empty: any).
 	AvailableModels []string
 	// RemoteControlPolicyOff: a policy document says "remoteControl": false, so sessions are never mirrored to the
@@ -236,6 +239,8 @@ const (
 	MaxSubagentMaxDepth       = 5
 	DefaultSubagentMaxRunning = 8
 	MaxSubagentMaxRunning     = 32
+	DefaultWorkflowMaxAgents  = 30
+	MaxWorkflowMaxAgents      = 200
 )
 
 // ValidSubagentMaxDepth reports whether n can be Settings.SubagentMaxDepth.
@@ -244,10 +249,14 @@ func ValidSubagentMaxDepth(n int) bool { return n >= 1 && n <= MaxSubagentMaxDep
 // ValidSubagentMaxRunning reports whether n can be Settings.SubagentMaxRunning.
 func ValidSubagentMaxRunning(n int) bool { return n >= 1 && n <= MaxSubagentMaxRunning }
 
-// The settings keys of Settings.SubagentMaxDepth and Settings.SubagentMaxRunning.
+// ValidWorkflowMaxAgents reports whether n can be Settings.WorkflowMaxAgents.
+func ValidWorkflowMaxAgents(n int) bool { return n >= 1 && n <= MaxWorkflowMaxAgents }
+
+// The settings keys of Settings.SubagentMaxDepth, Settings.SubagentMaxRunning and Settings.WorkflowMaxAgents.
 const (
 	KeySubagentMaxDepth   = "subagentMaxDepth"
 	KeySubagentMaxRunning = "subagentMaxRunning"
+	KeyWorkflowMaxAgents  = "workflowMaxAgents"
 )
 
 // KeyPRMonitorWakesPerHour is the settings key of Settings.PRMonitorWakesPerHour, written the same way.
@@ -278,7 +287,7 @@ type layer struct {
 
 	model, effort, outputStyle, claudeMdMode, defaultMode *string
 	autoCompactWindow, cleanupPeriodDays, prWakes         *int
-	subagentDepth, subagentRunning                        *int
+	subagentDepth, subagentRunning, workflowAgents        *int
 	includeGit, interruptReply, compactIdle               *bool
 	attrCommit, attrPR                                    *string
 	env                                                   map[string]string
@@ -312,7 +321,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
 		CompactIdleSessions: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
-		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning}
+		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {
 		if l != nil {

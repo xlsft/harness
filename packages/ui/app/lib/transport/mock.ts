@@ -160,7 +160,7 @@ export class MockTransport implements SessionTransport {
   private sessions = new Map<string, MockSession>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8 }
+  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30 }
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
   private now: () => number
@@ -1211,6 +1211,8 @@ export class MockTransport implements SessionTransport {
     if (d !== undefined && (!Number.isInteger(d) || d < 1 || d > 5)) throw new Error('[invalid_argument] agent nesting depth must be between 1 and 5')
     const r = patch.subagentMaxRunning
     if (r !== undefined && (!Number.isInteger(r) || r < 1 || r > 32)) throw new Error('[invalid_argument] agents running at once must be between 1 and 32')
+    const w = patch.workflowMaxAgents
+    if (w !== undefined && (!Number.isInteger(w) || w < 1 || w > 200)) throw new Error('[invalid_argument] agents per workflow must be between 1 and 200')
     this.preferences = { ...this.preferences, ...patch }
     return { ...this.preferences }
   }
@@ -1240,6 +1242,8 @@ export class MockTransport implements SessionTransport {
   }
 
   async stopSubagent() {}
+
+  async stopWorkflow() {}
 
   async subagentTranscript() {
     return []

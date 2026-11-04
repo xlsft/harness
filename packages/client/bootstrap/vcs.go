@@ -71,6 +71,19 @@ func (s *Session) subagentLimits() (depth, running int) {
 	return st.SubagentMaxDepth, st.SubagentMaxRunning
 }
 
+// workflowMaxAgents reads the hard cap on agent() calls per run, like subagentLimits.
+func (s *Session) workflowMaxAgents() int {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Dir(), Docs: docs, Trusted: s.Trusted})
+	if err != nil {
+		return settings.DefaultWorkflowMaxAgents
+	}
+	return st.WorkflowMaxAgents
+}
+
 // ConnectPR sends what the tracker sees to the session: notes as reminders, a state change to onChange.
 func (s *Session) ConnectPR(onChange func()) {
 	s.PR.SetHooks(vcs.TrackerHooks{

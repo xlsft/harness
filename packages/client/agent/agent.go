@@ -84,6 +84,8 @@ const (
 	EventUsageLimit
 	// EventSubagent carries a subagent as it is now (Subagent).
 	EventSubagent
+	// EventWorkflow carries a run of the Workflow tool as it is now (Workflow).
+	EventWorkflow
 )
 
 // Notice is an informational event.
@@ -157,6 +159,7 @@ type Event struct {
 	Notice     *Notice
 	UsageLimit *usagelimit.Status
 	Subagent   *tools.AgentInfo
+	Workflow   *tools.WorkflowInfo
 }
 
 // ModelUsage aggregates usage per model.

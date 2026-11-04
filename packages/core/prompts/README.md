@@ -76,6 +76,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `plan_approved` | `plan_file_path` | the user approved the plan (ExitPlanMode) |
 | `plan_rejected` | `feedback` | the user asked to keep planning |
 | `agent_report` | `agent_id`, `name`, `agent_type`, `status`, `report`, `details` | a subagent ended: its final message, marked as model output. Rides on the next model request and starts a turn when idle, unless the agent was stopped on request |
+| `workflow_report` | `run_id`, `name`, `status`, `result`, `details` | a run of the Workflow tool ended: what its script returned, marked as model output, and how its agents ended. Rides on the next model request and starts a turn when idle, unless the run was stopped on request. |
 | `agent_message` | `from`, `message` | the wrapper of what one agent tells another (the task of a new agent, SendMessage); not wrapped in `<system-reminder>` |
 | `agent_context` | `agent_id`, `agent_type`, `instructions` | starts the first message of a subagent: what it is, who speaks to it, how to report |
 | `agent_output_invalid` | `error`, `schema` | sends an agent back once when its final message does not validate against the output schema its caller asked for |
@@ -118,6 +119,7 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `TaskStop` | `task_id` | stops a background task, or an agent by its id |
 | `Agent` | `description`, `prompt`, `subagent_type`, `model`, `isolation` | starts a subagent in the background and returns its id; its final message arrives as `agent_report` and wakes an idle session |
 | `SendMessage` | `to`, `message`, `description` | gives a running agent a message after its current tool calls, or continues an ended one with its context |
+| `Workflow` | `script`, `script_path`, `name`, `args`, `resume_from` | runs a script that drives many agents, in the background, once the user approved it (name, description and phases in the prompt; not in bypass mode; plan mode refuses). Returns a run id; the result arrives as `workflow_report` and wakes an idle session. TaskStop stops a run. |
 | `ListAgents` | `description` | the session's agents and the types that can be started |
 | `TaskOutput` | `task_id`, `offset`, `block`, `pattern`, `timeout` | new output since the last TaskOutput read of that task (or from `offset`), with the status; `block` waits for the finish, `pattern` for a new matching line; timeout default 30 s, max 10 min; over 30000 characters keeps the end with a note |
 | `Wait` | `task_id` \| `port` (+`host`) \| `path` (+`changed`), `pattern`, `timeout` (required, max 10 min) | waits for a task to finish or print a matching line, a TCP port to accept connections, or a file to exist / change / match; a timeout is a normal result. Read-only, except a port on a host other than this machine (normal permission check); a path outside the working directories is checked like Read |

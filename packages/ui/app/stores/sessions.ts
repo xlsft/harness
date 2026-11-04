@@ -875,6 +875,10 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.stopSubagent(id, agentId)
     },
 
+    async stopWorkflow(id: string, workflowId: string) {
+      await this.transport?.stopWorkflow(id, workflowId)
+    },
+
     async subagentTranscript(id: string, agentId: string) {
       if (!this.transport) throw new Error('not connected')
       return this.transport.subagentTranscript(id, agentId)

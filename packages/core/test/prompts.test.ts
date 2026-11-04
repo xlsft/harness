@@ -46,7 +46,7 @@ describe("bundle builder", () => {
       "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
       "Show", "SyncWithBase", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
-      "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
+      "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
     const reminders: Record<string, string[]> = {
@@ -72,6 +72,7 @@ describe("bundle builder", () => {
       usage_limit_wrap_up: ["provider", "detail", "resets"],
       usage_limit_returned: ["provider"],
       agent_report: ["agent_id", "name", "agent_type", "status", "report", "details"],
+      workflow_report: ["run_id", "name", "status", "result", "details"],
       agent_message: ["from", "message"],
       agent_context: ["agent_id", "agent_type", "instructions"],
       agent_output_invalid: ["error", "schema"],

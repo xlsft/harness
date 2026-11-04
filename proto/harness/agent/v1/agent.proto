@@ -17,6 +17,7 @@ import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/subagents.proto";
+import "harness/agent/v1/workflows.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/agent/v1/user_tools.proto";
 import "harness/llm/v1/content.proto";
@@ -333,6 +334,10 @@ service AgentService {
   rpc ListDiffBases(ListDiffBasesRequest) returns (ListDiffBasesResponse);
   // One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionFileDiff(GetSessionFileDiffRequest) returns (GetSessionFileDiffResponse);
+
+  // Stops a run of the Workflow tool with its agents (workflows.proto). NOT_FOUND for an unknown run; a run that has
+  // ended comes back as it ended.
+  rpc StopWorkflow(StopWorkflowRequest) returns (StopWorkflowResponse);
 }
 
 enum PermissionMode {
@@ -745,6 +750,8 @@ message SessionEvent {
     ComputerUseState computer_use_state = 80;
     // Numbered apart like the shell events.
     DeviceSettingsChanged device_settings_changed = 77;
+    // Runs of the Workflow tool (workflows.proto); numbered apart like the shell events.
+    WorkflowUpdated workflow_updated = 90;
   }
 }
 
@@ -1398,6 +1405,8 @@ message UserPreferences {
   int32 subagent_max_depth = 3;
   // How many subagents of a session run at once (settings key subagentMaxRunning), 1 to 32. Default 8; the others wait.
   int32 subagent_max_running = 4;
+  // How many agent() calls a run of the Workflow tool may make (settings key workflowMaxAgents), 1 to 200. Default 30.
+  int32 workflow_max_agents = 5;
 }
 
 message GetUserPreferencesRequest {}
@@ -1415,6 +1424,8 @@ message UpdateUserPreferencesRequest {
   optional int32 subagent_max_depth = 3;
   // INVALID_ARGUMENT outside 1 to 32.
   optional int32 subagent_max_running = 4;
+  // INVALID_ARGUMENT outside 1 to 200.
+  optional int32 workflow_max_agents = 5;
 }
 
 message UpdateUserPreferencesResponse {

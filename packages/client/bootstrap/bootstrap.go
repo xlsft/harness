@@ -44,6 +44,7 @@ import (
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/web"
+	"github.com/xlsft/harness/packages/client/workflow"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -188,6 +189,8 @@ type Session struct {
 	Memory *memory.Loader
 	// Subagents runs the agents the model starts with the Agent tool; SpawnSubagent is its entry point for code.
 	Subagents *subagent.Manager
+	// Workflows runs the scripts of the Workflow tool.
+	Workflows *workflow.Manager
 	// MCP holds the session's MCP servers and tools (nil when MCP is off).
 	MCP *mcp.Manager
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
@@ -233,6 +236,9 @@ func computerSettingsGuard(m *computeruse.Manager) func() (string, bool) {
 
 // Close kills background tasks, closes the transcript and flushes the transcript upload.
 func (s *Session) Close() error {
+	if s.Workflows != nil {
+		s.Workflows.Shutdown()
+	}
 	if s.Subagents != nil {
 		s.Subagents.Shutdown()
 	}
@@ -712,6 +718,14 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	})
 	s.Subagents.Attach(s.Agent)
 	s.ToolEnv.Agents = s.Subagents
+	s.Workflows = workflow.New(workflow.Config{
+		Dir: filepath.Join(strings.TrimSuffix(path, ".jsonl"), "workflows"), NoPersistence: o.NoPersistence,
+		LeadTranscript: s.Transcript, Agents: s.Subagents, Env: s.ToolEnv, MaxAgents: s.workflowMaxAgents,
+		SearchDirs: func() []string { return workflow.SearchDirs(config.Home(), homeDir(), s.Dir(), s.Trusted) },
+		Logger:     log,
+	})
+	s.Workflows.Attach(s.Agent)
+	s.ToolEnv.Workflows = s.Workflows
 	if s.Tasks != nil {
 		s.Tasks.OnEvent = s.Agent.OnTaskEvent
 	}

@@ -1,6 +1,6 @@
-Stops a running background task, such as a Bash command started with `run_in_background`, or a running agent.
+Stops a running background task, such as a Bash command started with `run_in_background`, a running agent, or a run of the Workflow tool.
 
-- Pass the `task_id` you got when the task started, or the agent id from the Agent tool. A stopped agent keeps its context: SendMessage continues it, and the agents it started stop with it.
+- Pass the `task_id` you got when the task started, or the agent id from the Agent tool. A stopped agent keeps its context: SendMessage continues it, and the agents it started stop with it. A stopped workflow run stops its agents; Workflow with `resume_from` goes on without repeating finished ones.
 - The task's process and its child processes are terminated. The output written so far stays in the task's output file, which you can still read.
 - Use it when you no longer need a task, when it is stuck, must be restarted with different arguments, or when the user asked you to stop it. If the user asked you to stop a server when you are done, call this before your final answer.
 - It only knows tasks started with `run_in_background`. A process started with `&` in a Bash command is not a task and cannot be stopped here.

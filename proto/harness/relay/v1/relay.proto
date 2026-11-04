@@ -5,6 +5,8 @@ package harness.relay.v1;
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/subagents.proto";
+import "harness/agent/v1/workflows.proto";
+import "harness/relay/v1/workflows.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/common/v1/errors.proto";
 
@@ -148,6 +150,9 @@ service RelayService {
   // Starts or dismisses a proposal of a session (harness.agent.v1.ResolveSessionProposalRequest): held for the host's
   // ack, and the session's SessionProposal event follows.
   rpc ResolveSessionProposal(ResolveSessionProposalRequest) returns (ResolveSessionProposalResponse);
+
+  // Stops a run of the Workflow tool on the machine running the session: a query command like StopSubagent.
+  rpc StopWorkflow(StopWorkflowRequest) returns (StopWorkflowResponse);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -227,6 +232,7 @@ message Command {
     harness.agent.v1.GetSubagentTranscriptRequest get_subagent_transcript = 62;
     harness.agent.v1.DeliverSessionNoteRequest deliver_session_note = 75;
     harness.agent.v1.ResolveSessionProposalRequest resolve_session_proposal = 76;
+    harness.agent.v1.StopWorkflowRequest stop_workflow = 90;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -334,6 +340,7 @@ message CommandAck {
     harness.agent.v1.ListOutputStylesResponse list_output_styles = 18;
     harness.agent.v1.StopSubagentResponse stop_subagent = 30;
     harness.agent.v1.GetSubagentTranscriptResponse get_subagent_transcript = 31;
+    harness.agent.v1.StopWorkflowResponse stop_workflow = 40;
   }
 }
 
