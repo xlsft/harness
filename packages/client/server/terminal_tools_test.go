@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -30,32 +31,64 @@ func say(text string) func(*llm.Request) fg.Reply {
 	return func(*llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text(text))} }
 }
 
+// byMessage answers a user message that holds a key with its tool call, and everything else with text: a denial also
+// sends the interrupt reply request at its own moment, so the requests cannot be scripted by their order.
+func byMessage(calls map[string]fg.BlockSpec) fg.Responder {
+	return func(n int, r *llm.Request) fg.Reply {
+		last := r.Messages[len(r.Messages)-1]
+		text := allText(&llm.Request{Messages: []llm.Message{last}})
+		if last.Content[0].Type != llm.BlockToolResult && !strings.Contains(text, "The user stopped you") {
+			for key, call := range calls {
+				if strings.Contains(text, key) {
+					return fg.Reply{Events: fg.Message("m", call)}
+				}
+			}
+		}
+		return fg.Reply{Events: fg.Message("m", fg.Text("ok"))}
+	}
+}
+
+func anyRequestHolds(h *harness, text string) bool {
+	for _, r := range h.gw.Requests() {
+		if strings.Contains(allText(r), text) {
+			return true
+		}
+	}
+	return false
+}
+
+func terminalRunCall(command string) fg.BlockSpec {
+	return fg.ToolUse("toolu_term", "TerminalRun", map[string]any{"command": command, "title": "agent", "description": "a command"})
+}
+
 // TerminalRun has Bash's permission check: the prompt shows the command as a Bash call, a refusal types nothing, a
 // Bash rule applies, and what it runs comes back in the result. The pane is asked to show the tab.
 func TestTerminalRunPermissions(t *testing.T) {
 	t.Setenv("SHELL", "/bin/sh")
-	h := startHarness(t, fg.Sequence(
-		terminalRun("touch denied.txt"), say("ok"),
-		terminalRun("touch approved.txt"), say("ok"),
-		terminalRun("touch ruled.txt"), say("ok"),
-	), func(o *bootstrap.Options) { o.DisallowedTools = []string{"Bash(touch ruled.txt)"} })
-	sid, ch := h.create(&agentv1.CreateSessionRequest{})
-	tabs := func() []*agentv1.TerminalInfo {
-		l, err := h.client.ListTerminals(h.ctx, connect.NewRequest(&agentv1.ListTerminalsRequest{SessionId: sid}))
+	h := startHarness(t, byMessage(map[string]fg.BlockSpec{
+		"run-denied":   terminalRunCall("touch denied.txt"),
+		"run-approved": terminalRunCall("touch approved.txt"),
+		"run-ruled":    terminalRunCall("touch ruled.txt"),
+	}), func(o *bootstrap.Options) { o.DisallowedTools = []string{"Bash(touch ruled.txt)"} })
+	tabsOf := func(id string) []*agentv1.TerminalInfo {
+		l, err := h.client.ListTerminals(h.ctx, connect.NewRequest(&agentv1.ListTerminalsRequest{SessionId: id}))
 		if err != nil {
 			t.Fatal(err)
 		}
 		return l.Msg.Terminals
 	}
 
-	if asked := h.turn(sid, ch, "one", agentv1.RespondToPermissionRequest_DECISION_DENY); len(asked) != 1 || asked[0] != "Bash" {
+	// A denial in a session of its own: its interrupt reply must not meet the next message.
+	denied, deniedCh := h.create(&agentv1.CreateSessionRequest{})
+	if asked := h.turn(denied, deniedCh, "run-denied", agentv1.RespondToPermissionRequest_DECISION_DENY); len(asked) != 1 || asked[0] != "Bash" {
 		t.Fatalf("asked: %v", asked)
 	}
-	if n := len(tabs()); n != 0 {
+	if n := len(tabsOf(denied)); n != 0 {
 		t.Fatalf("a denied call opened %d tabs", n)
 	}
 
-	h.send(sid, "two")
+	sid, ch := h.create(&agentv1.CreateSessionRequest{})
+	h.send(sid, "run-approved")
 	var shown *agentv1.ShowRequested
 	h.until(ch, func(ev *agentv1.SessionEvent) bool {
 		if p := ev.GetPermissionRequest(); p != nil {
@@ -66,7 +99,7 @@ func TestTerminalRunPermissions(t *testing.T) {
 		}
 		return isTurnFinished(ev)
 	})
-	l := tabs()
+	l := tabsOf(sid)
 	if len(l) != 1 || l[0].Title != "agent" {
 		t.Fatalf("tabs: %+v", l)
 	}
@@ -76,18 +109,16 @@ func TestTerminalRunPermissions(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(h.proj, "approved.txt")); err != nil {
 		t.Fatalf("the command ran in the session's folder: %v", err)
 	}
-	reqs := h.gw.Requests()
-	if res := lastResultText(reqs[len(reqs)-1]); !strings.Contains(res, l[0].TerminalId) {
-		t.Fatalf("the result names the tab: %s", res)
+	if !anyRequestHolds(h, l[0].TerminalId) {
+		t.Fatal("no result names the tab")
 	}
 
 	// A Bash deny rule stops it before any prompt.
-	if asked := h.turn(sid, ch, "three", agentv1.RespondToPermissionRequest_DECISION_ALLOW); len(asked) != 0 {
+	if asked := h.turn(sid, ch, "run-ruled", agentv1.RespondToPermissionRequest_DECISION_ALLOW); len(asked) != 0 {
 		t.Fatalf("asked: %v", asked)
 	}
-	reqs = h.gw.Requests()
-	if res := lastResultText(reqs[len(reqs)-1]); !strings.Contains(res, "denied by rule") {
-		t.Fatalf("result: %s", res)
+	if !anyRequestHolds(h, "denied by rule") {
+		t.Fatal("no result says the rule denied it")
 	}
 	if _, err := os.Stat(filepath.Join(h.proj, "ruled.txt")); err == nil {
 		t.Fatal("a denied command ran")
@@ -143,27 +174,36 @@ func TestTerminalToolsRefusedForRemoteSessions(t *testing.T) {
 // TerminalStop asks before it touches a tab of the user's, also in bypass mode; a refusal leaves the command running.
 func TestTerminalStopAsksForTheUsersTab(t *testing.T) {
 	t.Setenv("SHELL", "/bin/sh")
-	var tab string
-	stop := func(*llm.Request) fg.Reply {
-		return fg.Reply{Events: fg.Message("m", fg.ToolUse("toolu_stop", "TerminalStop", map[string]any{"tab_id": tab, "description": "the dev server"}))}
+	var mu sync.Mutex
+	tabs := map[string]string{}
+	h := startHarness(t, func(n int, r *llm.Request) fg.Reply {
+		mu.Lock()
+		defer mu.Unlock()
+		calls := map[string]fg.BlockSpec{}
+		for key, tab := range tabs {
+			calls[key] = fg.ToolUse("toolu_stop", "TerminalStop", map[string]any{"tab_id": tab, "description": "the dev server"})
+		}
+		return byMessage(calls)(n, r)
+	}, nil)
+	// Each answer in a session of its own: a denied turn's interrupt reply must not meet the next message.
+	for key, d := range map[string]agentv1.RespondToPermissionRequest_Decision{
+		"stop-denied": agentv1.RespondToPermissionRequest_DECISION_DENY, "stop-allowed": agentv1.RespondToPermissionRequest_DECISION_ALLOW,
+	} {
+		sid, ch := h.create(&agentv1.CreateSessionRequest{PermissionMode: agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS})
+		ct, err := h.client.CreateTerminal(h.ctx, connect.NewRequest(&agentv1.CreateTerminalRequest{SessionId: sid}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		mu.Lock()
+		tabs[key] = ct.Msg.Terminal.TerminalId
+		mu.Unlock()
+		if asked := h.turn(sid, ch, key, d); len(asked) != 1 || asked[0] != "TerminalStop" {
+			t.Fatalf("%s: asked: %v", key, asked)
+		}
 	}
-	h := startHarness(t, fg.Sequence(stop, say("ok"), stop, say("ok")), nil)
-	sid, ch := h.create(&agentv1.CreateSessionRequest{PermissionMode: agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS})
-	ct, err := h.client.CreateTerminal(h.ctx, connect.NewRequest(&agentv1.CreateTerminalRequest{SessionId: sid}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	tab = ct.Msg.Terminal.TerminalId
-	if asked := h.turn(sid, ch, "stop it", agentv1.RespondToPermissionRequest_DECISION_DENY); len(asked) != 1 || asked[0] != "TerminalStop" {
-		t.Fatalf("asked: %v", asked)
-	}
-	if asked := h.turn(sid, ch, "stop it", agentv1.RespondToPermissionRequest_DECISION_ALLOW); len(asked) != 1 {
-		t.Fatalf("asked: %v", asked)
-	}
-	reqs := h.gw.Requests()
 	// Nothing runs in the fresh tab, so the approved call reports that; it got past the check.
-	if res := lastResultText(reqs[len(reqs)-1]); !strings.Contains(res, "nothing is running") {
-		t.Fatalf("result: %s", res)
+	if !anyRequestHolds(h, "nothing is running") {
+		t.Fatal("the approved call did not run")
 	}
 }
 
