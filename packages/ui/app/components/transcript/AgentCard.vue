@@ -14,6 +14,10 @@ const running = computed(() => agent.value ? agent.value.state === 'running' || 
 const failed = computed(() => agent.value ? agent.value.state !== 'finished' && !running.value : props.tool.status === 'error')
 const stateLabel = computed(() => agent.value && agent.value.state !== 'finished' ? agent.value.state : running.value ? 'running' : failed.value ? 'failed' : 'done')
 const report = computed(() => agent.value ? agent.value.report || agent.value.error : props.tool.output)
+const canStop = computed(() => {
+  const meta = store.sessions[props.sessionId]?.meta
+  return !meta?.remote || meta.remoteControllable
+})
 const type = computed(() => String(props.tool.input.subagent_type ?? 'general-purpose'))
 const sub = computed(() => props.tool.subagent)
 const elapsed = computed(() => {
@@ -87,7 +91,7 @@ const footer = computed(() => {
         @click.prevent="openPane('agents')"
       >Open transcript</a>
       <HBtn
-        v-if="running && agent"
+        v-if="running && agent && canStop"
         @click="store.stopSubagent(sessionId, agent.id)"
       >
         Stop

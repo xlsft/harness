@@ -140,6 +140,8 @@ type uploadState struct {
 	Dirty     []string    `json:"dirty,omitempty"` // update paths not yet sent
 	// Derive fills empty metadata from the transcript (imported sessions).
 	Derive bool `json:"derive,omitempty"`
+	// AgentOffsets are the acknowledged bytes of the subagent transcripts, by agent id.
+	AgentOffsets map[string]int64 `json:"agent_offsets,omitempty"`
 }
 
 // UploaderOptions configure an Uploader.
@@ -380,6 +382,13 @@ func (u *Uploader) Pending() []string {
 		}
 		if hasCompleteLine(st.Path, st.Offset) {
 			out = append(out, st.SessionID)
+			continue
+		}
+		for agentID, path := range agentTranscripts(st.Path) {
+			if hasCompleteLine(path, st.AgentOffsets[agentID]) {
+				out = append(out, st.SessionID)
+				break
+			}
 		}
 	}
 	sort.Strings(out)
@@ -459,8 +468,29 @@ func (u *Uploader) Run(ctx context.Context) error {
 	}
 }
 
+// agentTranscripts finds the subagent transcripts of a session transcript, by agent id:
+// <transcript without .jsonl>/subagents/agent-<id>.jsonl. They are looked up each time, so they follow the session
+// when its transcript moves.
+func agentTranscripts(path string) map[string]string {
+	if path == "" {
+		return nil
+	}
+	files, _ := filepath.Glob(filepath.Join(strings.TrimSuffix(path, ".jsonl"), "subagents", "agent-*.jsonl"))
+	out := make(map[string]string, len(files))
+	for _, f := range files {
+		id := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(f), "agent-"), ".jsonl")
+		if id != "" && len(id) <= maxAgentIDLen {
+			out[id] = f
+		}
+	}
+	return out
+}
+
+// maxAgentIDLen is the longest agent id the server stores.
+const maxAgentIDLen = 128
+
 // Flush synchronously uploads everything pending for sessionID: the
-// metadata upsert (if needed) and all complete transcript lines.
+// metadata upsert (if needed) and all complete transcript lines, of the session and of its subagents.
 func (u *Uploader) Flush(ctx context.Context, sessionID string) error {
 	u.flushMu.Lock()
 	defer u.flushMu.Unlock()
@@ -476,8 +506,32 @@ func (u *Uploader) Flush(ctx context.Context, sessionID string) error {
 			return err
 		}
 	}
+	if err := u.uploadThread(ctx, st, st.Path, ""); err != nil {
+		return err
+	}
+	threads := agentTranscripts(st.Path)
+	ids := make([]string, 0, len(threads))
+	for id := range threads {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		if err := u.uploadThread(ctx, st, threads[id], id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// uploadThread uploads the complete lines of one transcript file: the main thread for agentID "", else that subagent's.
+func (u *Uploader) uploadThread(ctx context.Context, st *uploadState, path, agentID string) error {
+	sessionID := st.SessionID
 	for {
-		entries, consumed, err := u.readBatch(st)
+		offset := st.Offset
+		if agentID != "" {
+			offset = st.AgentOffsets[agentID]
+		}
+		entries, consumed, err := u.readBatch(st.SessionID, agentID, path, offset)
 		if err != nil {
 			return err
 		}
@@ -499,7 +553,14 @@ func (u *Uploader) Flush(ctx context.Context, sessionID string) error {
 			}
 			st.LastSeq = resp.GetLastSeq()
 		}
-		st.Offset += consumed
+		if agentID == "" {
+			st.Offset += consumed
+		} else {
+			if st.AgentOffsets == nil {
+				st.AgentOffsets = map[string]int64{}
+			}
+			st.AgentOffsets[agentID] += consumed
+		}
 		if err := saveState(u.o.StateDir, st); err != nil {
 			return err
 		}
@@ -538,15 +599,15 @@ func (u *Uploader) upsert(ctx context.Context, st *uploadState) error {
 	return saveState(u.o.StateDir, st)
 }
 
-// readBatch reads complete lines after st.Offset up to the batch limits.
+// readBatch reads complete lines of a transcript file after startOffset up to the batch limits.
 // consumed counts bytes of all lines read (including skipped ones).
-func (u *Uploader) readBatch(st *uploadState) ([]*syncv1.TranscriptEntry, int64, error) {
-	f, err := os.Open(st.Path)
+func (u *Uploader) readBatch(sessionID, agentID, path string, startOffset int64) ([]*syncv1.TranscriptEntry, int64, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer f.Close()
-	if _, err := f.Seek(st.Offset, io.SeekStart); err != nil {
+	if _, err := f.Seek(startOffset, io.SeekStart); err != nil {
 		return nil, 0, err
 	}
 	r := bufio.NewReaderSize(f, 64<<10)
@@ -561,23 +622,29 @@ func (u *Uploader) readBatch(st *uploadState) ([]*syncv1.TranscriptEntry, int64,
 		}
 		text := scrubComputerUse(strings.TrimRight(string(line), "\r\n"))
 		if len(text)+256 > u.o.MaxBytes {
-			u.log.Warn("sync: transcript line too large to upload; skipped", "session", st.SessionID, "bytes", len(text))
+			u.log.Warn("sync: transcript line too large to upload; skipped", "session", sessionID, "bytes", len(text))
 			consumed += int64(len(line))
 			continue
 		}
 		if size+len(text)+256 > u.o.MaxBytes && len(entries) > 0 {
 			break
 		}
-		offset := st.Offset + consumed
+		offset := startOffset + consumed
 		consumed += int64(len(line))
 		if strings.TrimSpace(text) == "" {
 			continue
 		}
-		e, ok := entryFromLine(st.SessionID, offset, text)
+		// A line without a uuid gets one from its place in the file, which agents' files repeat.
+		key := sessionID
+		if agentID != "" {
+			key += "/" + agentID
+		}
+		e, ok := entryFromLine(key, offset, text)
 		if !ok {
-			u.log.Warn("sync: malformed transcript line skipped", "session", st.SessionID, "offset", offset)
+			u.log.Warn("sync: malformed transcript line skipped", "session", sessionID, "offset", offset)
 			continue
 		}
+		e.AgentId = agentID
 		size += len(text) + 256
 		entries = append(entries, e)
 	}

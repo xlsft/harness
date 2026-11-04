@@ -50,6 +50,14 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		s.problem(src, KeyPRMonitorWakesPerHour, "must be between 1 and %d", MaxPRMonitorWakesPerHour)
 		l.prWakes = nil
 	}
+	if l.subagentDepth = s.integer(src, raw, KeySubagentMaxDepth); l.subagentDepth != nil && !ValidSubagentMaxDepth(*l.subagentDepth) {
+		s.problem(src, KeySubagentMaxDepth, "must be between 1 and %d", MaxSubagentMaxDepth)
+		l.subagentDepth = nil
+	}
+	if l.subagentRunning = s.integer(src, raw, KeySubagentMaxRunning); l.subagentRunning != nil && !ValidSubagentMaxRunning(*l.subagentRunning) {
+		s.problem(src, KeySubagentMaxRunning, "must be between 1 and %d", MaxSubagentMaxRunning)
+		l.subagentRunning = nil
+	}
 	if v, ok := raw["attribution"]; ok {
 		var a map[string]json.RawMessage
 		if err := json.Unmarshal(v, &a); err != nil {
@@ -287,6 +295,12 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.prWakes != nil {
 			s.PRMonitorWakesPerHour = *l.prWakes
+		}
+		if l.subagentDepth != nil {
+			s.SubagentMaxDepth = *l.subagentDepth
+		}
+		if l.subagentRunning != nil {
+			s.SubagentMaxRunning = *l.subagentRunning
 		}
 		if l.attrCommit != nil {
 			v := *l.attrCommit

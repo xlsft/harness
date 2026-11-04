@@ -74,6 +74,7 @@ describe("bundle builder", () => {
       agent_report: ["agent_id", "name", "agent_type", "status", "report", "details"],
       agent_message: ["from", "message"],
       agent_context: ["agent_id", "agent_type", "instructions"],
+      agent_output_invalid: ["error", "schema"],
       agent_type_general: [],
       agent_type_explore: [],
       agent_type_plan: [],

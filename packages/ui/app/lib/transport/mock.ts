@@ -149,7 +149,7 @@ export class MockTransport implements SessionTransport {
   private sessions = new Map<string, MockSession>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30 }
+  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8 }
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
   private now: () => number
@@ -1173,6 +1173,10 @@ export class MockTransport implements SessionTransport {
   async updateUserPreferences(patch: Partial<UserPreferences>) {
     const n = patch.prMonitorWakesPerHour
     if (n !== undefined && (!Number.isInteger(n) || n < 1 || n > 240)) throw new Error('[invalid_argument] wakes per hour must be between 1 and 240')
+    const d = patch.subagentMaxDepth
+    if (d !== undefined && (!Number.isInteger(d) || d < 1 || d > 5)) throw new Error('[invalid_argument] agent nesting depth must be between 1 and 5')
+    const r = patch.subagentMaxRunning
+    if (r !== undefined && (!Number.isInteger(r) || r < 1 || r > 32)) throw new Error('[invalid_argument] agents running at once must be between 1 and 32')
     this.preferences = { ...this.preferences, ...patch }
     return { ...this.preferences }
   }

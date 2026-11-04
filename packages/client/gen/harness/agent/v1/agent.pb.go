@@ -7836,8 +7836,13 @@ type UserPreferences struct {
 	// How many times per hour a monitored pull request may wake a session (settings key prMonitorWakesPerHour),
 	// 1 to 240. Default 30. It stops a loop of the agent waking itself; what is over it waits for a later poll.
 	PrMonitorWakesPerHour int32 `protobuf:"varint,2,opt,name=pr_monitor_wakes_per_hour,json=prMonitorWakesPerHour,proto3" json:"pr_monitor_wakes_per_hour,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// How deep subagents nest (settings key subagentMaxDepth), 1 to 5. Default 2: the session's agent starts agents,
+	// and those may start agents. Read when an agent starts.
+	SubagentMaxDepth int32 `protobuf:"varint,3,opt,name=subagent_max_depth,json=subagentMaxDepth,proto3" json:"subagent_max_depth,omitempty"`
+	// How many subagents of a session run at once (settings key subagentMaxRunning), 1 to 32. Default 8; the others wait.
+	SubagentMaxRunning int32 `protobuf:"varint,4,opt,name=subagent_max_running,json=subagentMaxRunning,proto3" json:"subagent_max_running,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UserPreferences) Reset() {
@@ -7880,6 +7885,20 @@ func (x *UserPreferences) GetCompactIdleSessions() bool {
 func (x *UserPreferences) GetPrMonitorWakesPerHour() int32 {
 	if x != nil {
 		return x.PrMonitorWakesPerHour
+	}
+	return 0
+}
+
+func (x *UserPreferences) GetSubagentMaxDepth() int32 {
+	if x != nil {
+		return x.SubagentMaxDepth
+	}
+	return 0
+}
+
+func (x *UserPreferences) GetSubagentMaxRunning() int32 {
+	if x != nil {
+		return x.SubagentMaxRunning
 	}
 	return 0
 }
@@ -7970,8 +7989,12 @@ type UpdateUserPreferencesRequest struct {
 	CompactIdleSessions *bool                  `protobuf:"varint,1,opt,name=compact_idle_sessions,json=compactIdleSessions,proto3,oneof" json:"compact_idle_sessions,omitempty"`
 	// INVALID_ARGUMENT outside 1 to 240.
 	PrMonitorWakesPerHour *int32 `protobuf:"varint,2,opt,name=pr_monitor_wakes_per_hour,json=prMonitorWakesPerHour,proto3,oneof" json:"pr_monitor_wakes_per_hour,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// INVALID_ARGUMENT outside 1 to 5.
+	SubagentMaxDepth *int32 `protobuf:"varint,3,opt,name=subagent_max_depth,json=subagentMaxDepth,proto3,oneof" json:"subagent_max_depth,omitempty"`
+	// INVALID_ARGUMENT outside 1 to 32.
+	SubagentMaxRunning *int32 `protobuf:"varint,4,opt,name=subagent_max_running,json=subagentMaxRunning,proto3,oneof" json:"subagent_max_running,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UpdateUserPreferencesRequest) Reset() {
@@ -8014,6 +8037,20 @@ func (x *UpdateUserPreferencesRequest) GetCompactIdleSessions() bool {
 func (x *UpdateUserPreferencesRequest) GetPrMonitorWakesPerHour() int32 {
 	if x != nil && x.PrMonitorWakesPerHour != nil {
 		return *x.PrMonitorWakesPerHour
+	}
+	return 0
+}
+
+func (x *UpdateUserPreferencesRequest) GetSubagentMaxDepth() int32 {
+	if x != nil && x.SubagentMaxDepth != nil {
+		return *x.SubagentMaxDepth
+	}
+	return 0
+}
+
+func (x *UpdateUserPreferencesRequest) GetSubagentMaxRunning() int32 {
+	if x != nil && x.SubagentMaxRunning != nil {
+		return *x.SubagentMaxRunning
 	}
 	return 0
 }
@@ -10882,18 +10919,24 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fCATEGORY_SKILLS\x10\x05\x12$\n" +
 	" CATEGORY_MCP_SERVER_INSTRUCTIONS\x10\x06\x12\x1f\n" +
 	"\x1bCATEGORY_AUTOCOMPACT_BUFFER\x10\a\x12\x17\n" +
-	"\x13CATEGORY_FREE_SPACE\x10\b\"\x7f\n" +
+	"\x13CATEGORY_FREE_SPACE\x10\b\"\xdf\x01\n" +
 	"\x0fUserPreferences\x122\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\x128\n" +
-	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\"\x1b\n" +
+	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\x12,\n" +
+	"\x12subagent_max_depth\x18\x03 \x01(\x05R\x10subagentMaxDepth\x120\n" +
+	"\x14subagent_max_running\x18\x04 \x01(\x05R\x12subagentMaxRunning\"\x1b\n" +
 	"\x19GetUserPreferencesRequest\"a\n" +
 	"\x1aGetUserPreferencesResponse\x12C\n" +
-	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xce\x01\n" +
+	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xe8\x02\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +
-	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01B\x18\n" +
+	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01\x121\n" +
+	"\x12subagent_max_depth\x18\x03 \x01(\x05H\x02R\x10subagentMaxDepth\x88\x01\x01\x125\n" +
+	"\x14subagent_max_running\x18\x04 \x01(\x05H\x03R\x12subagentMaxRunning\x88\x01\x01B\x18\n" +
 	"\x16_compact_idle_sessionsB\x1c\n" +
-	"\x1a_pr_monitor_wakes_per_hour\"d\n" +
+	"\x1a_pr_monitor_wakes_per_hourB\x15\n" +
+	"\x13_subagent_max_depthB\x17\n" +
+	"\x15_subagent_max_running\"d\n" +
 	"\x1dUpdateUserPreferencesResponse\x12C\n" +
 	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc9\x02\n" +
 	"\x0eBackgroundTask\x12\x17\n" +

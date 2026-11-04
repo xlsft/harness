@@ -20,10 +20,10 @@ require (
 
 require (
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
-	github.com/coder/acp-go-sdk v0.13.5 // indirect
+	github.com/coder/acp-go-sdk v0.13.5
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
-	github.com/google/jsonschema-go v0.4.3 // indirect
+	github.com/google/jsonschema-go v0.4.3
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect

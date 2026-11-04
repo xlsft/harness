@@ -15,7 +15,7 @@ enum SubagentState {
   SUBAGENT_STATE_FINISHED = 3;
   // Ended on an error (`error`).
   SUBAGENT_STATE_FAILED = 4;
-  // Stopped on request (TaskStop, StopSubagent, Interrupt).
+  // Stopped on request (TaskStop, StopSubagent). Interrupting the session's turn leaves agents running.
   SUBAGENT_STATE_STOPPED = 5;
   // Was running when the client stopped or the session closed.
   SUBAGENT_STATE_INTERRUPTED = 6;

@@ -766,6 +766,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             v-if="busy"
             type="button"
             aria-label="Stop"
+            title="Stop this turn. Agents keep running: stop them in the Agents pane"
             :class="ICON_BTN"
             class="bg-warn text-black"
             @click="store.interrupt(id)"

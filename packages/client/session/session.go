@@ -106,29 +106,32 @@ type Message struct {
 
 // Entry is one JSONL line.
 type Entry struct {
-	ParentUUID              *string  `json:"parentUuid"`
-	IsSidechain             bool     `json:"isSidechain"`
-	AgentID                 string   `json:"agentId,omitempty"`
-	UserType                string   `json:"userType,omitempty"`
-	Cwd                     string   `json:"cwd,omitempty"`
-	SessionID               string   `json:"sessionId"`
-	Version                 string   `json:"version,omitempty"`
-	GitBranch               string   `json:"gitBranch,omitempty"`
-	Entrypoint              string   `json:"entrypoint,omitempty"`
-	Type                    string   `json:"type"`
-	Subtype                 string   `json:"subtype,omitempty"`
-	Message                 *Message `json:"message,omitempty"`
-	Content                 string   `json:"content,omitempty"`
-	Level                   string   `json:"level,omitempty"`
-	IsMeta                  bool     `json:"isMeta,omitempty"`
-	PromptID                string   `json:"promptId,omitempty"`
-	PermissionMode          string   `json:"permissionMode,omitempty"`
-	RequestID               string   `json:"requestId,omitempty"`
-	ToolUseResult           any      `json:"toolUseResult,omitempty"`
-	SourceToolAssistantUUID string   `json:"sourceToolAssistantUUID,omitempty"`
-	IsAPIErrorMessage       bool     `json:"isApiErrorMessage,omitempty"`
-	UUID                    string   `json:"uuid,omitempty"`
-	Timestamp               string   `json:"timestamp"`
+	ParentUUID  *string `json:"parentUuid"`
+	IsSidechain bool    `json:"isSidechain"`
+	AgentID     string  `json:"agentId,omitempty"`
+	// Subagent is a record of a subagent's state on a harness-meta entry (tools.AgentInfo as JSON): what another
+	// machine lists the session's agents from.
+	Subagent                json.RawMessage `json:"subagent,omitempty"`
+	UserType                string          `json:"userType,omitempty"`
+	Cwd                     string          `json:"cwd,omitempty"`
+	SessionID               string          `json:"sessionId"`
+	Version                 string          `json:"version,omitempty"`
+	GitBranch               string          `json:"gitBranch,omitempty"`
+	Entrypoint              string          `json:"entrypoint,omitempty"`
+	Type                    string          `json:"type"`
+	Subtype                 string          `json:"subtype,omitempty"`
+	Message                 *Message        `json:"message,omitempty"`
+	Content                 string          `json:"content,omitempty"`
+	Level                   string          `json:"level,omitempty"`
+	IsMeta                  bool            `json:"isMeta,omitempty"`
+	PromptID                string          `json:"promptId,omitempty"`
+	PermissionMode          string          `json:"permissionMode,omitempty"`
+	RequestID               string          `json:"requestId,omitempty"`
+	ToolUseResult           any             `json:"toolUseResult,omitempty"`
+	SourceToolAssistantUUID string          `json:"sourceToolAssistantUUID,omitempty"`
+	IsAPIErrorMessage       bool            `json:"isApiErrorMessage,omitempty"`
+	UUID                    string          `json:"uuid,omitempty"`
+	Timestamp               string          `json:"timestamp"`
 
 	// ClientUUIDs are the frontend ids (SendUserMessageRequest.uuid) of the
 	// messages a user entry carries: one for a prompt, one per message for

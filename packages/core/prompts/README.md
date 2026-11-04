@@ -78,6 +78,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `agent_report` | `agent_id`, `name`, `agent_type`, `status`, `report`, `details` | a subagent ended: its final message, marked as model output. Rides on the next model request and starts a turn when idle, unless the agent was stopped on request |
 | `agent_message` | `from`, `message` | the wrapper of what one agent tells another (the task of a new agent, SendMessage); not wrapped in `<system-reminder>` |
 | `agent_context` | `agent_id`, `agent_type`, `instructions` | starts the first message of a subagent: what it is, who speaks to it, how to report |
+| `agent_output_invalid` | `error`, `schema` | sends an agent back once when its final message does not validate against the output schema its caller asked for |
 | `agent_type_general`, `agent_type_explore`, `agent_type_plan` | none | the `instructions` of the built-in agent types |
 | `background_task_done` | `task_id`, `command`, `status`, `tail`, `output_path` | a background Bash command finished: `status` is "exited with code N" or how it was killed, `tail` its last lines ("(no output)" when empty). Rides on the next model request (the next turn when idle; it never starts a turn); skipped when a TaskOutput or Wait result already reported the finish |
 | `monitor_match` | `task_id`, `description`, `pattern`, `count`, `lines`, `status` | a Monitor found matching lines: a burst is one notice, at most 20 lines. `status` says whether the monitor goes on. Starts a turn when the session is idle |

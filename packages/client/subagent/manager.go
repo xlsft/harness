@@ -21,23 +21,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/jsonschema-go/jsonschema"
+
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/gateway"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/worktree"
 )
 
 // Limits.
 const (
-	// MaxDepth is how deep agents nest: the session's main agent starts agents (depth 1), those may start agents
-	// (depth 2), and those may not.
-	MaxDepth = 2
-	// MaxConcurrent is how many agents of a session run at once; the others wait their turn.
-	MaxConcurrent = 8
 	// maxSteps is how many of an agent's latest tool calls its info carries.
 	maxSteps = 12
 	// maxReportChars bounds a report in a reminder; the transcript has all of it.
@@ -55,6 +53,12 @@ type Config struct {
 	Dir string
 	// NoPersistence keeps transcripts and records in memory.
 	NoPersistence bool
+	// LeadTranscript is the session's transcript: it records the agents' states, so that they sync with it and another
+	// machine can list them.
+	LeadTranscript *session.Writer
+	// Limits reads how deep agents nest (the session's main agent starts agents at depth 1) and how many run at once;
+	// called when an agent starts. Nil: the defaults.
+	Limits func() (depth, running int)
 	// Common fields of transcript entries.
 	Cwd, GitBranch, Version, Entrypoint string
 
@@ -88,7 +92,9 @@ type Options struct {
 	tools.AgentSpec
 	// ParentID is the agent that starts it; empty for the session's main agent.
 	ParentID string
-	// OutputSchema, when set, tells the agent to finish with one JSON value of this shape; Result.Output is the value.
+	// OutputSchema, when set, tells the agent to finish with one JSON value valid against this JSON schema. A final
+	// message that is not gets the agent one more try with the error; Result.Output is the value, or Result.OutputError
+	// says why there is none and the agent reads as failed. A schema that cannot be used fails SpawnSubagent.
 	OutputSchema json.RawMessage
 	// Silent sends no report to the parent and wakes nobody: the caller collects the result with Handle.Wait.
 	Silent bool
@@ -99,8 +105,26 @@ type Result struct {
 	Info tools.AgentInfo
 	// Output is the JSON value of the final message, with Options.OutputSchema; OutputError says why there is none.
 	Output      json.RawMessage
-	OutputError string
+	OutputError *OutputError
 }
+
+// Codes of OutputError.
+const (
+	OutputNotJSON = "not_json"
+	OutputInvalid = "schema_violation"
+)
+
+// OutputError says why an agent's final message is not the output asked for.
+type OutputError struct {
+	// Code is OutputNotJSON or OutputInvalid.
+	Code string `json:"code"`
+	// Message is the parser's or the validator's error.
+	Message string `json:"message"`
+	// Attempts counts the final messages the agent gave.
+	Attempts int `json:"attempts"`
+}
+
+func (e *OutputError) Error() string { return e.Code + ": " + e.Message }
 
 // Handle follows a started agent.
 type Handle struct {
@@ -123,14 +147,10 @@ func (h *Handle) Wait(ctx context.Context) (Result, error) {
 		settled := h.a.settled
 		active := !h.a.isSettled
 		info := h.a.snapshot()
-		wantJSON := len(h.a.schema) > 0
+		output, outputErr := h.a.output, h.a.outputErr
 		h.m.mu.Unlock()
 		if !active {
-			res := Result{Info: info}
-			if wantJSON {
-				res.Output, res.OutputError = parseOutput(info.Report)
-			}
-			return res, nil
+			return Result{Info: info, Output: output, OutputError: outputErr}, nil
 		}
 		select {
 		case <-settled:
@@ -138,6 +158,35 @@ func (h *Handle) Wait(ctx context.Context) (Result, error) {
 			return Result{Info: info}, ctx.Err()
 		}
 	}
+}
+
+// compileSchema prepares an output schema for validation.
+func compileSchema(raw json.RawMessage) (*jsonschema.Resolved, error) {
+	var s jsonschema.Schema
+	if err := json.Unmarshal(raw, &s); err != nil {
+		return nil, fmt.Errorf("the output schema is not a JSON schema: %w", err)
+	}
+	r, err := s.Resolve(nil)
+	if err != nil {
+		return nil, fmt.Errorf("the output schema cannot be used: %w", err)
+	}
+	return r, nil
+}
+
+// checkOutput validates a final message against the output schema.
+func checkOutput(schema *jsonschema.Resolved, report string) (json.RawMessage, *OutputError) {
+	out, problem := parseOutput(report)
+	if problem != "" {
+		return nil, &OutputError{Code: OutputNotJSON, Message: problem}
+	}
+	var v any
+	if err := json.Unmarshal(out, &v); err != nil {
+		return nil, &OutputError{Code: OutputNotJSON, Message: err.Error()}
+	}
+	if err := schema.Validate(v); err != nil {
+		return nil, &OutputError{Code: OutputInvalid, Message: err.Error()}
+	}
+	return out, nil
 }
 
 // parseOutput reads the JSON value of a final message, in a code fence or not.
@@ -165,6 +214,14 @@ type sub struct {
 	wt       *worktree.Result
 	silent   bool
 	schema   json.RawMessage
+	// resolved is schema, ready to validate with; retried: this run had its second try. output and outputErr are the
+	// run's result.
+	resolved  *jsonschema.Resolved
+	retried   bool
+	output    json.RawMessage
+	outputErr *OutputError
+	// recorded is the state last written to the session's transcript.
+	recorded tools.AgentState
 
 	ag     *agent.Agent
 	drv    *agent.Driver
@@ -216,6 +273,8 @@ type Manager struct {
 	queue   []*sub
 	running int
 	closed  bool
+	// maxDepth and maxRunning are the limits as last read (refreshLimits).
+	maxDepth, maxRunning int
 	// reviveMu orders rebuilding agents of an earlier run of the client.
 	reviveMu sync.Mutex
 	// pubMu orders the published snapshots.
@@ -227,7 +286,19 @@ var _ tools.Agents = (*Manager)(nil)
 // New creates a manager. Attach it to the session's main agent before use.
 func New(cfg Config) *Manager {
 	ctx, stop := context.WithCancel(context.Background())
-	return &Manager{cfg: cfg, ctx: ctx, stop: stop, subs: map[string]*sub{}}
+	return &Manager{cfg: cfg, ctx: ctx, stop: stop, subs: map[string]*sub{}, maxDepth: settings.DefaultSubagentMaxDepth, maxRunning: settings.DefaultSubagentMaxRunning}
+}
+
+// refreshLimits reads the limits again and returns the depth limit.
+func (m *Manager) refreshLimits() int {
+	depth, running := settings.DefaultSubagentMaxDepth, settings.DefaultSubagentMaxRunning
+	if m.cfg.Limits != nil {
+		depth, running = m.cfg.Limits()
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.maxDepth, m.maxRunning = depth, running
+	return depth
 }
 
 // Attach sets the session's main agent and loads the agents of an earlier run: those that were running read as
@@ -252,8 +323,14 @@ func (m *Manager) transcriptPath(id string) string {
 	return filepath.Join(m.cfg.Dir, "agent-"+id+".jsonl")
 }
 
-// save writes the agent's record (m.mu held).
+// save writes the agent's record (m.mu held), and into the session's transcript when its state changed.
 func (m *Manager) save(a *sub) {
+	if w := m.cfg.LeadTranscript; w != nil && a.recorded != a.info.State {
+		a.recorded = a.info.State
+		if data, err := json.Marshal(a.snapshot()); err == nil {
+			_, _ = w.Append(session.Entry{Type: session.TypeMeta, Subagent: data})
+		}
+	}
 	if m.cfg.NoPersistence || m.cfg.Dir == "" {
 		return
 	}
@@ -386,6 +463,14 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 		}
 		return nil, fmt.Errorf("unknown subagent_type %q; available: %s", typeName, strings.Join(names, ", "))
 	}
+	var resolved *jsonschema.Resolved
+	if len(o.OutputSchema) > 0 {
+		var err error
+		if resolved, err = compileSchema(o.OutputSchema); err != nil {
+			return nil, err
+		}
+	}
+	maxDepth := m.refreshLimits()
 	depth := 1
 	m.mu.Lock()
 	if m.closed {
@@ -401,8 +486,8 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 		depth = p.depth + 1
 	}
 	m.mu.Unlock()
-	if depth > MaxDepth {
-		return nil, fmt.Errorf("agents nest at most %d levels deep: this one cannot start another", MaxDepth)
+	if depth > maxDepth {
+		return nil, fmt.Errorf("agents nest at most %d levels deep: this one cannot start another", maxDepth)
 	}
 	want := o.Model
 	if want == "" {
@@ -413,7 +498,7 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 		return nil, err
 	}
 	id := newID()
-	a := &sub{depth: depth, typeName: t.Name, readOnly: t.ReadOnly, cwd: m.cfg.Cwd, silent: o.Silent, schema: o.OutputSchema, isSettled: true, settled: closedChan(),
+	a := &sub{depth: depth, typeName: t.Name, readOnly: t.ReadOnly, cwd: m.cfg.Cwd, silent: o.Silent, schema: o.OutputSchema, resolved: resolved, isSettled: true, settled: closedChan(),
 		info: tools.AgentInfo{ID: id, ParentID: o.ParentID, ToolUseID: o.ToolUseID, Name: o.Description, Type: t.Name, Model: model, State: tools.AgentQueued, StartedAt: rfc3339(time.Now())}}
 	if o.Isolation == tools.IsolationWorktree {
 		r, err := worktree.Create(ctx, m.cfg.Cwd, worktree.Options{Name: "agent-" + id})
@@ -487,6 +572,7 @@ func (m *Manager) bundleOf(a *sub) *prompts.Bundle {
 const (
 	agentContextFallback = "You are subagent {{agent_id}} ({{agent_type}}). Finish with a final message reporting what you found or did.\n{{instructions}}"
 	agentMessageFallback = "<agent_message from=\"{{from}}\">\n{{message}}\n</agent_message>"
+	agentOutputFallback  = "Your final message is not the output asked for ({{error}}). Reply with one JSON value and nothing else, matching this JSON schema:\n{{schema}}"
 )
 
 // senderName names an agent in the message blocks.
@@ -524,12 +610,15 @@ func (m *Manager) registryFor(t Type, depth int) *tools.Registry {
 	for _, n := range t.Tools {
 		allowed[n] = true
 	}
+	m.mu.Lock()
+	maxDepth := m.maxDepth
+	m.mu.Unlock()
 	reg := tools.NewRegistry()
 	for _, n := range m.cfg.Tools.Names() {
 		if leadOnlyTools[n] || (t.Tools != nil && !allowed[n]) {
 			continue
 		}
-		if n == "Agent" && depth >= MaxDepth {
+		if n == "Agent" && depth >= maxDepth {
 			continue
 		}
 		if t.ReadOnly && (n == "Agent" || n == "SendMessage" || n == "ListAgents") {
@@ -679,6 +768,7 @@ func (m *Manager) agentMode() string {
 func (m *Manager) launchLocked(a *sub, input []llm.ContentBlock) {
 	a.pending = append(a.pending, input...)
 	a.stopping = false
+	a.retried, a.output, a.outputErr = false, nil, nil
 	a.info.State = tools.AgentQueued
 	a.info.FinishedAt = ""
 	a.info.Error = ""
@@ -694,7 +784,7 @@ func (m *Manager) launchLocked(a *sub, input []llm.ContentBlock) {
 
 // pumpLocked starts waiting runs while there are free slots (m.mu held).
 func (m *Manager) pumpLocked() {
-	for m.running < MaxConcurrent && len(m.queue) > 0 && !m.closed {
+	for m.running < m.maxRunning && len(m.queue) > 0 && !m.closed {
 		a := m.queue[0]
 		m.queue = m.queue[1:]
 		a.waiting = false
@@ -751,6 +841,31 @@ func (m *Manager) onResult(a *sub, res agent.TurnResult) {
 		return
 	}
 	closing := m.closed
+	if a.resolved != nil && !closing && !a.stopping && !res.Interrupted && !res.IsError {
+		out, problem := checkOutput(a.resolved, res.Result)
+		if problem != nil && !a.retried {
+			// One more try, told what was wrong. The run goes on.
+			a.retried = true
+			m.mu.Unlock()
+			input := m.outputRetry(a, problem)
+			m.mu.Lock()
+			if !m.closed {
+				a.drv.Submit("", input)
+				m.mu.Unlock()
+				return
+			}
+			closing = true
+		} else {
+			a.output = out
+			if problem != nil {
+				problem.Attempts = 2
+				a.outputErr = problem
+				a.info.Error = "the output is not what was asked for: " + problem.Error()
+				res.IsError = true
+				res.Errors = []string{a.info.Error}
+			}
+		}
+	}
 	state := tools.AgentFinished
 	switch {
 	case closing:
@@ -788,6 +903,12 @@ func truncateReport(s string) string {
 		return string(r[:maxReportChars]) + "\n[The report continues in the agent's transcript.]"
 	}
 	return s
+}
+
+// outputRetry is the message that sends an agent back to fix its output.
+func (m *Manager) outputRetry(a *sub, problem *OutputError) []llm.ContentBlock {
+	tmpl := m.bundleOf(a).Reminder("agent_output_invalid", agentOutputFallback)
+	return []llm.ContentBlock{llm.TextBlock(prompts.Render(tmpl, map[string]string{"error": defuse(problem.Error()), "schema": defuse(string(a.schema))}, nil))}
 }
 
 // reportVars fills the agent_report reminder.
@@ -975,6 +1096,7 @@ func (m *Manager) revive(ctx context.Context, a *sub) error {
 	if err != nil {
 		return fmt.Errorf("cannot read the transcript of agent %s: %w", a.info.ID, err)
 	}
+	m.refreshLimits()
 	t, ok := m.typeOf(a.typeName)
 	if !ok {
 		// A definition that is gone: the agent goes on under the rules it is recorded with.
@@ -1116,27 +1238,6 @@ func (m *Manager) stopOne(a *sub) {
 		case <-tick.C:
 		}
 	}
-}
-
-// StopAll stops every running agent (the user stopped the session's work).
-func (m *Manager) StopAll() {
-	m.mu.Lock()
-	var ids []string
-	for _, a := range m.order {
-		if a.info.State.Active() && a.info.ParentID == "" {
-			ids = append(ids, a.info.ID)
-		}
-	}
-	m.mu.Unlock()
-	var wg sync.WaitGroup
-	for _, id := range ids {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			_, _ = m.Stop("", id)
-		}()
-	}
-	wg.Wait()
 }
 
 // Get implements tools.Agents.

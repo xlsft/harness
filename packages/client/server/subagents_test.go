@@ -1,6 +1,9 @@
 package server_test
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,10 +17,13 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
+	relayv1 "github.com/xlsft/harness/packages/client/gen/harness/relay/v1"
+	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	fg "github.com/xlsft/harness/packages/client/internal/fakegateway"
 	"github.com/xlsft/harness/packages/client/internal/gittest"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/tools"
 )
 
 func isAgentRequest(r *llm.Request) bool {
@@ -509,24 +515,61 @@ func TestSubagentInterruptedOnResume(t *testing.T) {
 	h.closeSession(sid)
 }
 
-// Interrupt stops the session's agents with the turn.
-func TestInterruptStopsAgents(t *testing.T) {
+// Stop leaves agents alone: the turn ends, the agent goes on, and its report still reaches the parent.
+func TestInterruptLeavesAgentsRunning(t *testing.T) {
+	release := make(chan struct{})
+	var parentTurnHeld atomic.Bool
 	h := startHarness(t, func(n int, r *llm.Request) fg.Reply {
 		if isAgentRequest(r) {
-			return fg.Reply{Hold: true}
+			<-release
+			return fg.Reply{Events: fg.Message("c", fg.Text("still did it"))}
 		}
-		if hasToolResult(r) {
-			return fg.Reply{Events: fg.Message("p", fg.Text("idle"))}
+		if strings.Contains(lastUserText(r), "<agent_report>") {
+			return fg.Reply{Events: fg.Message("p", fg.Text("got the report"))}
 		}
-		return fg.Reply{Events: spawnCall("a1", "hang", nil)}
+		if hasToolResult(r) && parentTurnHeld.CompareAndSwap(false, true) {
+			return fg.Reply{Hold: true} // the turn the user stops
+		}
+		if parentTurnHeld.Load() {
+			return fg.Reply{Events: fg.Message("p", fg.Text("stopped"))} // the reply to the interruption
+		}
+		return fg.Reply{Events: spawnCall("a1", "work", nil)}
 	}, nil)
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "go")
 	waitAgentState(h, ch, agentv1.SubagentState_SUBAGENT_STATE_RUNNING)
+	for !parentTurnHeld.Load() {
+		time.Sleep(10 * time.Millisecond)
+	}
 	if _, err := h.client.Interrupt(h.ctx, connect.NewRequest(&agentv1.InterruptRequest{SessionId: sid})); err != nil {
 		t.Fatal(err)
 	}
-	waitAgentState(h, ch, agentv1.SubagentState_SUBAGENT_STATE_STOPPED)
+	h.until(ch, isTurnFinished)
+	close(release)
+	h.until(ch, func(ev *agentv1.SessionEvent) bool {
+		u := ev.GetSubagentUpdated()
+		if u == nil {
+			return false
+		}
+		if u.Agent.State == agentv1.SubagentState_SUBAGENT_STATE_STOPPED {
+			t.Fatal("Interrupt stopped the agent")
+		}
+		return u.Agent.State == agentv1.SubagentState_SUBAGENT_STATE_FINISHED
+	})
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		told := false
+		for _, r := range h.gw.Requests() {
+			told = told || (!isAgentRequest(r) && strings.Contains(requestText(r), "still did it"))
+		}
+		if told {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the report did not reach the parent")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 	h.closeSession(sid)
 }
 
@@ -560,5 +603,104 @@ func TestSubagentWorktree(t *testing.T) {
 	h.closeSession(sid)
 	if _, err := os.Stat(info.WorktreePath); !os.IsNotExist(err) {
 		t.Fatalf("untouched worktree left behind: %v", err)
+	}
+}
+
+// The agents of a session of another machine read from what synced: the list from the records in its transcript, a
+// transcript from its own thread. Nothing can be stopped from here.
+func TestRemoteReadOnlyAgents(t *testing.T) {
+	h := startRemoteHarness(t, nil)
+	remote := h.seedRemoteAgent()
+	h.listAll()
+
+	evs, err := h.drain(remote, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var agents []*agentv1.SubagentInfo
+	for _, ev := range evs {
+		if u := ev.GetSubagentUpdated(); u != nil {
+			agents = append(agents, u.Agent)
+		}
+	}
+	if len(agents) != 1 || agents[0].Id != "a1" || agents[0].State != agentv1.SubagentState_SUBAGENT_STATE_FINISHED || agents[0].Report != "found it" {
+		t.Fatalf("agents: %+v", agents)
+	}
+	if evs[len(evs)-1].GetSessionUpdated() == nil {
+		t.Fatalf("the agents must come before the final SessionUpdated: %s", kinds(evs))
+	}
+	tr, err := h.client.GetSubagentTranscript(h.ctx, connect.NewRequest(&agentv1.GetSubagentTranscriptRequest{SessionId: remote, AgentId: "a1"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tr.Msg.Items) != 1 || tr.Msg.Items[0].Text != "agent words" || tr.Msg.Items[0].Kind != agentv1.SubagentTranscriptItem_KIND_ASSISTANT {
+		t.Fatalf("transcript: %+v", tr.Msg.Items)
+	}
+	if _, err := h.client.StopSubagent(h.ctx, connect.NewRequest(&agentv1.StopSubagentRequest{SessionId: remote, AgentId: "a1"})); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("stop on a read-only session: %v", err)
+	}
+}
+
+// seedRemoteAgent stores a session of another machine with one finished agent, as the client uploads it.
+func (h *remoteHarness) seedRemoteAgent() string {
+	h.t.Helper()
+	id := h.seedRemote(otherDevice, "/remote/proj", "hello", "hi")
+	record, _ := json.Marshal(map[string]any{"type": "harness-meta", "sessionId": id, "subagent": tools.AgentInfo{
+		ID: "a1", Name: "look around", Type: "Explore", Model: "m", State: tools.AgentFinished, Report: "found it", StartedAt: "2026-11-01T10:00:01Z"}})
+	assistant, _ := json.Marshal(map[string]any{"type": "assistant", "uuid": "ca1", "agentId": "a1", "isSidechain": true, "timestamp": "2026-11-01T10:00:02.000Z",
+		"message": map[string]any{"id": "msg_c", "role": "assistant", "model": "m", "content": []map[string]any{{"type": "text", "text": "agent words"}}}})
+	if _, err := h.api.AppendSessionEvents(h.ctx, &syncv1.AppendSessionEventsRequest{SessionId: id, Entries: []*syncv1.TranscriptEntry{
+		{Uuid: "meta-a1", Type: "harness-meta", EntryJson: string(record)},
+		{Uuid: "ca1", Type: "assistant", AgentId: "a1", EntryJson: string(assistant)},
+	}}); err != nil {
+		h.t.Fatal(err)
+	}
+	return id
+}
+
+func (f *fakeRelay) StopSubagent(ctx context.Context, req *connect.Request[relayv1.StopSubagentRequest]) (*connect.Response[relayv1.StopSubagentResponse], error) {
+	return connect.NewResponse(&relayv1.StopSubagentResponse{Response: &agentv1.StopSubagentResponse{Agent: &agentv1.SubagentInfo{
+		Id: req.Msg.GetRequest().GetAgentId(), State: agentv1.SubagentState_SUBAGENT_STATE_STOPPED}}}), nil
+}
+
+func (f *fakeRelay) GetSubagentTranscript(ctx context.Context, req *connect.Request[relayv1.GetSubagentTranscriptRequest]) (*connect.Response[relayv1.GetSubagentTranscriptResponse], error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.transcriptDown {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("host offline"))
+	}
+	return connect.NewResponse(&relayv1.GetSubagentTranscriptResponse{Response: &agentv1.GetSubagentTranscriptResponse{Items: []*agentv1.SubagentTranscriptItem{
+		{Kind: agentv1.SubagentTranscriptItem_KIND_ASSISTANT, Text: "from the host"}}}}), nil
+}
+
+// A remote-controlled session's Agents pane goes through the relay; if the host does not answer a transcript request,
+// the synced copy still does.
+func TestRemoteControlledAgents(t *testing.T) {
+	relay := &fakeRelay{online: true}
+	h := startRemoteHarness(t, relay)
+	remote := h.seedRemoteAgent()
+	relay.sessions = []*agentv1.SessionInfo{{Id: remote, Status: agentv1.SessionStatus_SESSION_STATUS_WORKING}}
+	if r := h.listAll()[remote]; r == nil || !r.RemoteControllable {
+		t.Fatalf("session %+v", r)
+	}
+	stop, err := h.client.StopSubagent(h.ctx, connect.NewRequest(&agentv1.StopSubagentRequest{SessionId: remote, AgentId: "a1"}))
+	if err != nil || stop.Msg.Agent.State != agentv1.SubagentState_SUBAGENT_STATE_STOPPED {
+		t.Fatalf("stop: %+v %v", stop, err)
+	}
+	read := func() string {
+		res, err := h.client.GetSubagentTranscript(h.ctx, connect.NewRequest(&agentv1.GetSubagentTranscriptRequest{SessionId: remote, AgentId: "a1"}))
+		if err != nil || len(res.Msg.Items) != 1 {
+			t.Fatalf("transcript: %+v %v", res, err)
+		}
+		return res.Msg.Items[0].Text
+	}
+	if got := read(); got != "from the host" {
+		t.Fatalf("through the relay: %q", got)
+	}
+	relay.mu.Lock()
+	relay.transcriptDown = true
+	relay.mu.Unlock()
+	if got := read(); got != "agent words" {
+		t.Fatalf("from the synced copy: %q", got)
 	}
 }

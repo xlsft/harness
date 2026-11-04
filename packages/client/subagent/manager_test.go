@@ -19,6 +19,8 @@ import (
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/tools"
 )
@@ -71,7 +73,7 @@ func TestSpawnManyRespectsTheCap(t *testing.T) {
 		return fg.Reply{Events: fg.Message("c", fg.Text(`{"ok": true}`))}
 	}, nil)
 	ctx := context.Background()
-	const total = subagent.MaxConcurrent + 4
+	const total = settings.DefaultSubagentMaxRunning + 4
 	var handles []*subagent.Handle
 	sawQueued := false
 	for i := 0; i < total; i++ {
@@ -93,11 +95,11 @@ func TestSpawnManyRespectsTheCap(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if res.Info.State != tools.AgentFinished || string(res.Output) != `{"ok": true}` || res.OutputError != "" {
+		if res.Info.State != tools.AgentFinished || string(res.Output) != `{"ok": true}` || res.OutputError != nil {
 			t.Fatalf("result %+v", res)
 		}
 	}
-	if p := peak.Load(); p > subagent.MaxConcurrent || p < 2 {
+	if p := peak.Load(); p > settings.DefaultSubagentMaxRunning || p < 2 {
 		t.Fatalf("peak %d", p)
 	}
 	if s.Agent.HasReminders() || reminders.Load() != 0 {
@@ -295,4 +297,143 @@ func TestWakeDuringTheLastRequest(t *testing.T) {
 		t.Fatal("no turn for the notification")
 	}
 	drv.Wait()
+}
+
+const pointSchema = `{"type":"object","properties":{"x":{"type":"integer"}},"required":["x"],"additionalProperties":false}`
+
+func spawnWithSchema(t *testing.T, s *bootstrap.Session, schema string) subagent.Result {
+	t.Helper()
+	h, err := s.Subagents.SpawnSubagent(context.Background(), subagent.Options{AgentSpec: tools.AgentSpec{Description: "d", Prompt: "p"}, Silent: true, OutputSchema: json.RawMessage(schema)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := h.Wait(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res
+}
+
+// A result that does not fit the schema gets one more try, told what was wrong.
+func TestOutputSchemaRetriesOnce(t *testing.T) {
+	var retry atomic.Value
+	var n atomic.Int32
+	s := open(t, func(_ int, r *llm.Request) fg.Reply {
+		if n.Add(1) == 1 {
+			return fg.Reply{Events: fg.Message("c", fg.Text(`{"x": "not a number"}`))}
+		}
+		retry.Store(r.Messages[len(r.Messages)-1].Text())
+		return fg.Reply{Events: fg.Message("c", fg.Text("```json\n{\"x\": 3}\n```"))}
+	}, nil)
+	res := spawnWithSchema(t, s, pointSchema)
+	if res.OutputError != nil || string(res.Output) != `{"x": 3}` || res.Info.State != tools.AgentFinished {
+		t.Fatalf("result %+v, error %+v", res, res.OutputError)
+	}
+	got, _ := retry.Load().(string)
+	if !strings.Contains(got, subagent.OutputInvalid) || !strings.Contains(got, `"required"`) {
+		t.Fatalf("retry message %q", got)
+	}
+}
+
+// A second bad result ends the agent with a structured error, and there is no third request.
+func TestOutputSchemaFailsAfterTheRetry(t *testing.T) {
+	for _, c := range []struct{ reply, code string }{{`{"y": 1}`, subagent.OutputInvalid}, {"plain words", subagent.OutputNotJSON}} {
+		var n atomic.Int32
+		s := open(t, func(int, *llm.Request) fg.Reply {
+			n.Add(1)
+			return fg.Reply{Events: fg.Message("c", fg.Text(c.reply))}
+		}, nil)
+		res := spawnWithSchema(t, s, pointSchema)
+		if res.OutputError == nil || res.OutputError.Code != c.code || res.OutputError.Attempts != 2 || res.OutputError.Message == "" {
+			t.Fatalf("%q: error %+v", c.reply, res.OutputError)
+		}
+		if res.Output != nil || res.Info.State != tools.AgentFailed || n.Load() != 2 {
+			t.Fatalf("%q: output %s, state %s, %d requests", c.reply, res.Output, res.Info.State, n.Load())
+		}
+	}
+}
+
+// A schema that cannot be used fails at the start, not after the agent's work.
+func TestBadOutputSchemaFailsTheSpawn(t *testing.T) {
+	s := open(t, func(int, *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("c", fg.Text("{}"))} }, nil)
+	for _, bad := range []string{`not json`, `{"type": 3}`, `{"$ref": "http://elsewhere.example/schema"}`} {
+		if _, err := s.Subagents.SpawnSubagent(context.Background(), subagent.Options{AgentSpec: tools.AgentSpec{Description: "d", Prompt: "p"}, OutputSchema: json.RawMessage(bad)}); err == nil {
+			t.Fatalf("schema %s accepted", bad)
+		}
+	}
+	if len(s.Subagents.List()) != 0 {
+		t.Fatal("an agent started anyway")
+	}
+}
+
+// The limits come from settings, read when an agent starts.
+func TestLimitsFromSettings(t *testing.T) {
+	var running, peak atomic.Int32
+	var cwd string
+	write := func(content string) {
+		dir := filepath.Join(cwd, ".harness")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "settings.local.json"), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := open(t, func(int, *llm.Request) fg.Reply {
+		cur := running.Add(1)
+		if cur > peak.Load() {
+			peak.Store(cur)
+		}
+		time.Sleep(40 * time.Millisecond)
+		running.Add(-1)
+		return fg.Reply{Events: fg.Message("c", fg.Text("done"))}
+	}, func(o *bootstrap.Options) { cwd = o.Cwd })
+	write(`{"subagentMaxDepth": 1, "subagentMaxRunning": 1}`)
+	ctx := context.Background()
+	spawn := func(parent string) (*subagent.Handle, error) {
+		return s.Subagents.SpawnSubagent(ctx, subagent.Options{AgentSpec: tools.AgentSpec{Description: "d", Prompt: "p"}, ParentID: parent, Silent: true})
+	}
+	var hs []*subagent.Handle
+	for range 3 {
+		h, err := spawn("")
+		if err != nil {
+			t.Fatal(err)
+		}
+		hs = append(hs, h)
+	}
+	if _, err := spawn(hs[0].ID); err == nil {
+		t.Fatal("depth 1 lets an agent start another")
+	}
+	for _, h := range hs {
+		if _, err := h.Wait(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if peak.Load() != 1 {
+		t.Fatalf("peak %d with a limit of 1", peak.Load())
+	}
+	// A value out of range is ignored; the next agent reads the change.
+	write(`{"subagentMaxDepth": 99}`)
+	if _, err := spawn(hs[0].ID); err != nil {
+		t.Fatalf("default depth after a bad value: %v", err)
+	}
+}
+
+// An agent's states are recorded in the session's transcript, which is how they reach other machines.
+func TestStatesRecordedInTheSessionTranscript(t *testing.T) {
+	s := open(t, func(int, *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("c", fg.Text("done"))} }, nil)
+	spawnWithSchema(t, s, `{}`)
+	var states []string
+	for _, e := range s.Transcript.Entries() {
+		if e.Type == session.TypeMeta && len(e.Subagent) > 0 {
+			var a tools.AgentInfo
+			if err := json.Unmarshal(e.Subagent, &a); err != nil {
+				t.Fatal(err)
+			}
+			states = append(states, string(a.State))
+		}
+	}
+	if len(states) == 0 || states[len(states)-1] != string(tools.AgentFailed) {
+		t.Fatalf("states %v", states)
+	}
 }

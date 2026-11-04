@@ -640,7 +640,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			if o.OnEvent != nil {
 				o.OnEvent(e)
 			}
-			if e.Kind == agent.EventAssistant || e.Kind == agent.EventCompacted || e.Kind == agent.EventRewound {
+			if e.Kind == agent.EventAssistant || e.Kind == agent.EventCompacted || e.Kind == agent.EventRewound || e.Kind == agent.EventSubagent {
 				up.Notify(id)
 			}
 		}
@@ -684,6 +684,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ToolEnv.Reminders = func(k string) string { return s.Agent.Bundle().Reminder(k, "") }
 	s.Subagents = subagent.New(subagent.Config{
 		SessionID: s.ID, Dir: filepath.Join(strings.TrimSuffix(path, ".jsonl"), "subagents"), NoPersistence: o.NoPersistence,
+		LeadTranscript: s.Transcript, Limits: s.subagentLimits,
 		Cwd: cwd, GitBranch: branch, Version: config.Version, Entrypoint: o.Entrypoint,
 		Gateway: gw, Catalog: catalog,
 		Bundle: func(ctx context.Context, m string) (*prompts.Bundle, error) {

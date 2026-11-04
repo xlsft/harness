@@ -32,7 +32,7 @@ const (
 	SubagentState_SUBAGENT_STATE_FINISHED SubagentState = 3
 	// Ended on an error (`error`).
 	SubagentState_SUBAGENT_STATE_FAILED SubagentState = 4
-	// Stopped on request (TaskStop, StopSubagent, Interrupt).
+	// Stopped on request (TaskStop, StopSubagent). Interrupting the session's turn leaves agents running.
 	SubagentState_SUBAGENT_STATE_STOPPED SubagentState = 5
 	// Was running when the client stopped or the session closed.
 	SubagentState_SUBAGENT_STATE_INTERRUPTED SubagentState = 6

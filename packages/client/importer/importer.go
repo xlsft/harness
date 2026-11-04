@@ -594,7 +594,7 @@ func (r *run) sessions(ctx context.Context) {
 		r.add(Item{Kind: "session", Key: key, Status: StatusQueued, Note: note})
 	}
 	if subagents > 0 {
-		r.add(Item{Kind: "session", Key: "(subagent transcripts)", Status: StatusNoted, Note: fmt.Sprintf("%d files copied with their sessions, not uploaded separately", subagents)})
+		r.add(Item{Kind: "session", Key: "(subagent transcripts)", Status: StatusNoted, Note: fmt.Sprintf("%d files copied and uploaded with their sessions", subagents)})
 	}
 }
 

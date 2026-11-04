@@ -29,6 +29,9 @@ function clearFinished() {
   cleared.value = [...cleared.value, ...finished.value.map(a => a.id)]
 }
 
+// A session of another machine that this client cannot drive shows what synced, read-only.
+const canStop = computed(() => !props.session.meta.remote || props.session.meta.remoteControllable)
+
 function stop(a: SubagentVM) {
   store.stopSubagent(props.session.meta.id, a.id)
 }
@@ -139,6 +142,7 @@ function elapsed(a: SubagentVM) {
           <span class="text-[11px] whitespace-nowrap text-muted">{{ a.state === 'queued' ? 'queued' : a.currentTool || a.model }}</span>
           <span class="text-[11.5px] whitespace-nowrap text-muted">{{ elapsed(a) }}</span>
           <button
+            v-if="canStop"
             type="button"
             aria-label="Stop agent"
             title="Stop agent"

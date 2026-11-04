@@ -4,6 +4,7 @@ package harness.relay.v1;
 
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/subagents.proto";
 import "harness/common/v1/errors.proto";
 
 // RelayService is served by core and implements remote control without bidirectional streaming
@@ -133,6 +134,11 @@ service RelayService {
 
   // "Keep computer awake" for the session, on the machine running it.
   rpc SetKeepAwake(SetKeepAwakeRequest) returns (SetKeepAwakeResponse);
+
+  // The session's subagents, on the machine running it. Query commands like ListTasks: the stop's result is the agent
+  // as it ended up.
+  rpc StopSubagent(StopSubagentRequest) returns (StopSubagentResponse);
+  rpc GetSubagentTranscript(GetSubagentTranscriptRequest) returns (GetSubagentTranscriptResponse);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -208,6 +214,8 @@ message Command {
     harness.agent.v1.ListOutputStylesRequest list_output_styles = 29;
     harness.agent.v1.SetAutoContinueRequest set_auto_continue = 30;
     harness.agent.v1.SetKeepAwakeRequest set_keep_awake = 60;
+    harness.agent.v1.StopSubagentRequest stop_subagent = 61;
+    harness.agent.v1.GetSubagentTranscriptRequest get_subagent_transcript = 62;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -313,6 +321,8 @@ message CommandAck {
     harness.agent.v1.ListCheckpointsResponse list_checkpoints = 16;
     harness.agent.v1.ListTasksResponse list_tasks = 17;
     harness.agent.v1.ListOutputStylesResponse list_output_styles = 18;
+    harness.agent.v1.StopSubagentResponse stop_subagent = 30;
+    harness.agent.v1.GetSubagentTranscriptResponse get_subagent_transcript = 31;
   }
 }
 
@@ -598,6 +608,22 @@ message SetAutoContinueRequest {
 
 message SetAutoContinueResponse {
   CommandResult result = 1;
+}
+
+message StopSubagentRequest {
+  harness.agent.v1.StopSubagentRequest request = 1;
+}
+
+message StopSubagentResponse {
+  harness.agent.v1.StopSubagentResponse response = 1;
+}
+
+message GetSubagentTranscriptRequest {
+  harness.agent.v1.GetSubagentTranscriptRequest request = 1;
+}
+
+message GetSubagentTranscriptResponse {
+  harness.agent.v1.GetSubagentTranscriptResponse response = 1;
 }
 
 message SetKeepAwakeRequest {

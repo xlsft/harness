@@ -57,6 +57,20 @@ func (s *Session) prWakesPerHour() int {
 	return st.PRMonitorWakesPerHour
 }
 
+// subagentLimits reads the merged settings of the session's folder again, so a change of the user's synced settings
+// document applies to the next agent started.
+func (s *Session) subagentLimits() (depth, running int) {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Cwd, Docs: docs, Trusted: s.Trusted})
+	if err != nil {
+		return settings.DefaultSubagentMaxDepth, settings.DefaultSubagentMaxRunning
+	}
+	return st.SubagentMaxDepth, st.SubagentMaxRunning
+}
+
 // ConnectPR sends what the tracker sees to the session: notes as reminders, a state change to onChange.
 func (s *Session) ConnectPR(onChange func()) {
 	s.PR.SetHooks(vcs.TrackerHooks{

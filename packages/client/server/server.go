@@ -784,7 +784,6 @@ func (s *Server) Interrupt(ctx context.Context, req *connect.Request[agentv1.Int
 	}
 	idle := !ls.driver.Busy()
 	ls.driver.Interrupt()
-	ls.sess.Subagents.StopAll()
 	if idle {
 		// Nothing to stop: the frontend missed the end of a turn (or never saw
 		// it start); tell it the session is idle.

@@ -208,8 +208,12 @@ func TestImportUploads(t *testing.T) {
 	if it := find(rep, "session", "-w/"+sessionID+".jsonl"); it.Status != StatusUploaded || !strings.Contains(it.Note, "already copied") {
 		t.Fatalf("second run session: %+v", it)
 	}
-	if ss := fs.Session(sessionID); len(ss.Entries) != 2 {
-		t.Fatalf("session re-upload duplicated entries: %d", len(ss.Entries))
+	threads := map[string]int{}
+	for _, e := range fs.Session(sessionID).Entries {
+		threads[e.GetAgentId()]++
+	}
+	if threads[""] != 2 || threads["1"] != 1 || len(threads) != 2 {
+		t.Fatalf("session re-upload duplicated entries: %v", threads)
 	}
 
 	// --force overwrites; --include-secrets keeps env secrets.

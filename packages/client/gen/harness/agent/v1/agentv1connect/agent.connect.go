@@ -563,8 +563,10 @@ type AgentServiceClient interface {
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 	// Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
+	// Nothing else from a frontend stops an agent but closing or deleting the session: Interrupt leaves them running.
 	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
-	// What a subagent did, for reading.
+	// What a subagent did, for reading. For a session of another machine it comes through the relay, or from the
+	// synced transcript when that machine cannot be reached.
 	GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error)
 	// Starts or dismisses a proposal of the session (SessionProposal). The started session is linked to this one and
 	// appears in ListSessions; a SessionProposal event follows either way. NOT_FOUND for an unknown proposal or a
@@ -2090,8 +2092,10 @@ type AgentServiceHandler interface {
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 	// Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
+	// Nothing else from a frontend stops an agent but closing or deleting the session: Interrupt leaves them running.
 	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
-	// What a subagent did, for reading.
+	// What a subagent did, for reading. For a session of another machine it comes through the relay, or from the
+	// synced transcript when that machine cannot be reached.
 	GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error)
 	// Starts or dismisses a proposal of the session (SessionProposal). The started session is linked to this one and
 	// appears in ListSessions; a SessionProposal event follows either way. NOT_FOUND for an unknown proposal or a

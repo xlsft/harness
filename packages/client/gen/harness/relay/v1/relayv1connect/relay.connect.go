@@ -132,6 +132,12 @@ const (
 	// RelayServiceSetKeepAwakeProcedure is the fully-qualified name of the RelayService's SetKeepAwake
 	// RPC.
 	RelayServiceSetKeepAwakeProcedure = "/harness.relay.v1.RelayService/SetKeepAwake"
+	// RelayServiceStopSubagentProcedure is the fully-qualified name of the RelayService's StopSubagent
+	// RPC.
+	RelayServiceStopSubagentProcedure = "/harness.relay.v1.RelayService/StopSubagent"
+	// RelayServiceGetSubagentTranscriptProcedure is the fully-qualified name of the RelayService's
+	// GetSubagentTranscript RPC.
+	RelayServiceGetSubagentTranscriptProcedure = "/harness.relay.v1.RelayService/GetSubagentTranscript"
 )
 
 // RelayServiceClient is a client for the harness.relay.v1.RelayService service.
@@ -205,6 +211,10 @@ type RelayServiceClient interface {
 	AuthorizeTunnel(context.Context, *connect.Request[v1.AuthorizeTunnelRequest]) (*connect.Response[v1.AuthorizeTunnelResponse], error)
 	// "Keep computer awake" for the session, on the machine running it.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
+	// The session's subagents, on the machine running it. Query commands like ListTasks: the stop's result is the agent
+	// as it ended up.
+	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
+	GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error)
 }
 
 // NewRelayServiceClient constructs a client for the harness.relay.v1.RelayService service. By
@@ -434,47 +444,61 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("SetKeepAwake")),
 			connect.WithClientOptions(opts...),
 		),
+		stopSubagent: connect.NewClient[v1.StopSubagentRequest, v1.StopSubagentResponse](
+			httpClient,
+			baseURL+RelayServiceStopSubagentProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("StopSubagent")),
+			connect.WithClientOptions(opts...),
+		),
+		getSubagentTranscript: connect.NewClient[v1.GetSubagentTranscriptRequest, v1.GetSubagentTranscriptResponse](
+			httpClient,
+			baseURL+RelayServiceGetSubagentTranscriptProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("GetSubagentTranscript")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // relayServiceClient implements RelayServiceClient.
 type relayServiceClient struct {
-	registerHost        *connect.Client[v1.RegisterHostRequest, v1.RegisterHostResponse]
-	openHostStream      *connect.Client[v1.OpenHostStreamRequest, v1.OpenHostStreamResponse]
-	registerSession     *connect.Client[v1.RegisterSessionRequest, v1.RegisterSessionResponse]
-	unregisterSession   *connect.Client[v1.UnregisterSessionRequest, v1.UnregisterSessionResponse]
-	publishEvents       *connect.Client[v1.PublishEventsRequest, v1.PublishEventsResponse]
-	ackCommands         *connect.Client[v1.AckCommandsRequest, v1.AckCommandsResponse]
-	heartbeat           *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
-	registerTunnel      *connect.Client[v1.RegisterTunnelRequest, v1.RegisterTunnelResponse]
-	closeTunnel         *connect.Client[v1.CloseTunnelRequest, v1.CloseTunnelResponse]
-	listHosts           *connect.Client[v1.ListHostsRequest, v1.ListHostsResponse]
-	subscribeSession    *connect.Client[v1.SubscribeSessionRequest, v1.SubscribeSessionResponse]
-	updatePresence      *connect.Client[v1.UpdatePresenceRequest, v1.UpdatePresenceResponse]
-	sendUserMessage     *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
-	interrupt           *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
-	respondToPermission *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
-	answerQuestion      *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
-	setModel            *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
-	setEffort           *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
-	setPermissionMode   *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
-	setOutputStyle      *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
-	setAutoContinue     *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
-	removeQueuedMessage *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
-	respondToPlan       *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
-	stopTask            *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
-	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
-	compact             *connect.Client[v1.CompactRequest, v1.CompactResponse]
-	rewind              *connect.Client[v1.RewindRequest, v1.RewindResponse]
-	suggestFiles        *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
-	listCheckpoints     *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
-	listTasks           *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
-	listOutputStyles    *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
-	spawnSession        *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
-	requestTunnel       *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
-	listTunnels         *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
-	authorizeTunnel     *connect.Client[v1.AuthorizeTunnelRequest, v1.AuthorizeTunnelResponse]
-	setKeepAwake        *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
+	registerHost          *connect.Client[v1.RegisterHostRequest, v1.RegisterHostResponse]
+	openHostStream        *connect.Client[v1.OpenHostStreamRequest, v1.OpenHostStreamResponse]
+	registerSession       *connect.Client[v1.RegisterSessionRequest, v1.RegisterSessionResponse]
+	unregisterSession     *connect.Client[v1.UnregisterSessionRequest, v1.UnregisterSessionResponse]
+	publishEvents         *connect.Client[v1.PublishEventsRequest, v1.PublishEventsResponse]
+	ackCommands           *connect.Client[v1.AckCommandsRequest, v1.AckCommandsResponse]
+	heartbeat             *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
+	registerTunnel        *connect.Client[v1.RegisterTunnelRequest, v1.RegisterTunnelResponse]
+	closeTunnel           *connect.Client[v1.CloseTunnelRequest, v1.CloseTunnelResponse]
+	listHosts             *connect.Client[v1.ListHostsRequest, v1.ListHostsResponse]
+	subscribeSession      *connect.Client[v1.SubscribeSessionRequest, v1.SubscribeSessionResponse]
+	updatePresence        *connect.Client[v1.UpdatePresenceRequest, v1.UpdatePresenceResponse]
+	sendUserMessage       *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
+	interrupt             *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
+	respondToPermission   *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
+	answerQuestion        *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
+	setModel              *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
+	setEffort             *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
+	setPermissionMode     *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
+	setOutputStyle        *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
+	setAutoContinue       *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
+	removeQueuedMessage   *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
+	respondToPlan         *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
+	stopTask              *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
+	closeSession          *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
+	compact               *connect.Client[v1.CompactRequest, v1.CompactResponse]
+	rewind                *connect.Client[v1.RewindRequest, v1.RewindResponse]
+	suggestFiles          *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
+	listCheckpoints       *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
+	listTasks             *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	listOutputStyles      *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
+	spawnSession          *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
+	requestTunnel         *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
+	listTunnels           *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
+	authorizeTunnel       *connect.Client[v1.AuthorizeTunnelRequest, v1.AuthorizeTunnelResponse]
+	setKeepAwake          *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
+	stopSubagent          *connect.Client[v1.StopSubagentRequest, v1.StopSubagentResponse]
+	getSubagentTranscript *connect.Client[v1.GetSubagentTranscriptRequest, v1.GetSubagentTranscriptResponse]
 }
 
 // RegisterHost calls harness.relay.v1.RelayService.RegisterHost.
@@ -657,6 +681,16 @@ func (c *relayServiceClient) SetKeepAwake(ctx context.Context, req *connect.Requ
 	return c.setKeepAwake.CallUnary(ctx, req)
 }
 
+// StopSubagent calls harness.relay.v1.RelayService.StopSubagent.
+func (c *relayServiceClient) StopSubagent(ctx context.Context, req *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error) {
+	return c.stopSubagent.CallUnary(ctx, req)
+}
+
+// GetSubagentTranscript calls harness.relay.v1.RelayService.GetSubagentTranscript.
+func (c *relayServiceClient) GetSubagentTranscript(ctx context.Context, req *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error) {
+	return c.getSubagentTranscript.CallUnary(ctx, req)
+}
+
 // RelayServiceHandler is an implementation of the harness.relay.v1.RelayService service.
 type RelayServiceHandler interface {
 	// --- Host side --------------------------------------------------------------------------------------
@@ -728,6 +762,10 @@ type RelayServiceHandler interface {
 	AuthorizeTunnel(context.Context, *connect.Request[v1.AuthorizeTunnelRequest]) (*connect.Response[v1.AuthorizeTunnelResponse], error)
 	// "Keep computer awake" for the session, on the machine running it.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
+	// The session's subagents, on the machine running it. Query commands like ListTasks: the stop's result is the agent
+	// as it ended up.
+	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
+	GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error)
 }
 
 // NewRelayServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -953,6 +991,18 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("SetKeepAwake")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceStopSubagentHandler := connect.NewUnaryHandler(
+		RelayServiceStopSubagentProcedure,
+		svc.StopSubagent,
+		connect.WithSchema(relayServiceMethods.ByName("StopSubagent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceGetSubagentTranscriptHandler := connect.NewUnaryHandler(
+		RelayServiceGetSubagentTranscriptProcedure,
+		svc.GetSubagentTranscript,
+		connect.WithSchema(relayServiceMethods.ByName("GetSubagentTranscript")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.RelayService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RelayServiceRegisterHostProcedure:
@@ -1027,6 +1077,10 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceAuthorizeTunnelHandler.ServeHTTP(w, r)
 		case RelayServiceSetKeepAwakeProcedure:
 			relayServiceSetKeepAwakeHandler.ServeHTTP(w, r)
+		case RelayServiceStopSubagentProcedure:
+			relayServiceStopSubagentHandler.ServeHTTP(w, r)
+		case RelayServiceGetSubagentTranscriptProcedure:
+			relayServiceGetSubagentTranscriptHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1178,4 +1232,12 @@ func (UnimplementedRelayServiceHandler) AuthorizeTunnel(context.Context, *connec
 
 func (UnimplementedRelayServiceHandler) SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SetKeepAwake is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.StopSubagent is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) GetSubagentTranscript(context.Context, *connect.Request[v1.GetSubagentTranscriptRequest]) (*connect.Response[v1.GetSubagentTranscriptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.GetSubagentTranscript is not implemented"))
 }
