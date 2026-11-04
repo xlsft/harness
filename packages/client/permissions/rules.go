@@ -115,6 +115,7 @@ func (r Rule) toolMatches(name string, allowImplied bool) bool {
 	case r.Tool == BrowserRuleTool && browserSiteTools[name]:
 		return true
 	case r.Tool == ComputerRuleTool && isComputerTool(name):
+		return true
 	case r.Tool == "Bash" && name == "TerminalRun": // a shell command too: a rule that removes Bash removes it
 		return true
 	}

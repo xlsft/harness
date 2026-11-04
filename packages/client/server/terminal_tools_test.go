@@ -28,7 +28,7 @@ func terminalRun(command string) func(*llm.Request) fg.Reply {
 	}
 }
 
-func say(text string) func(*llm.Request) fg.Reply {
+func terminalSay(text string) func(*llm.Request) fg.Reply {
 	return func(*llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text(text))} }
 }
 
@@ -151,7 +151,7 @@ func TestTerminalRunPermissions(t *testing.T) {
 // A command that outlives the tool call: its end starts a turn in the idle session, with a notice in the request.
 func TestTerminalRunWakesTheSession(t *testing.T) {
 	t.Setenv("SHELL", "/bin/sh")
-	h := startHarness(t, fg.Sequence(terminalRun("sleep 3; echo finished-marker"), say("started"), say("it finished")), nil)
+	h := startHarness(t, fg.Sequence(terminalRun("sleep 3; echo finished-marker"), terminalSay("started"), terminalSay("it finished")), nil)
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.turn(sid, ch, "go", agentv1.RespondToPermissionRequest_DECISION_ALLOW)
 	reqs := h.gw.Requests()
@@ -237,7 +237,7 @@ func TestTerminalToolsAfterResume(t *testing.T) {
 	read := func(*llm.Request) fg.Reply {
 		return fg.Reply{Events: fg.Message("m", fg.ToolUse("toolu_read", "TerminalRead", map[string]any{"tab_id": old, "description": "the old tab"}))}
 	}
-	h := startHarness(t, fg.Sequence(terminalRun("echo hi"), say("ok"), read, say("ok"), terminalRun("echo again-$((1+1))"), say("ok")), nil)
+	h := startHarness(t, fg.Sequence(terminalRun("echo hi"), terminalSay("ok"), read, terminalSay("ok"), terminalRun("echo again-$((1+1))"), terminalSay("ok")), nil)
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.turn(sid, ch, "go", agentv1.RespondToPermissionRequest_DECISION_ALLOW)
 	l, err := h.client.ListTerminals(h.ctx, connect.NewRequest(&agentv1.ListTerminalsRequest{SessionId: sid}))

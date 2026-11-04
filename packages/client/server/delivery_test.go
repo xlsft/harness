@@ -53,7 +53,7 @@ func TestDeliveryClientUUIDs(t *testing.T) {
 		lb := last.Content[len(last.Content)-1]
 		switch {
 		case lb.Type == llm.BlockText && lb.Text == "start":
-			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b", "Bash", map[string]any{"description": "test", "command": "sleep 1"}))}
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse("b", "Bash", map[string]any{"description": "test", "command": "sleep 0.5"}))}
 		case lb.Type == llm.BlockText && lb.Text == "hold":
 			return fg.Reply{Events: fg.Partial("h", false, fg.Text("thinking...")), Hold: true}
 		}
