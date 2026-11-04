@@ -1,0 +1,1 @@
+Scrolls in an app you have access to, at a point of its last screenshot, or at the middle of it without one. Positive `dy` scrolls down and positive `dx` scrolls right, in lines. Take a new screenshot to see the result.

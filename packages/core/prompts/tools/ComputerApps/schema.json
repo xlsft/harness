@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "installed": {
+      "type": "boolean",
+      "description": "Also list installed apps that are not running."
+    }
+  },
+  "additionalProperties": false
+}

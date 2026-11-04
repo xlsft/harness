@@ -143,9 +143,44 @@ export interface ToolItem {
   // Set when the Bash command runs on as background task `taskId` (ToolCallFinished.background); the card shows
   // a short note about it inside the output.
   background?: { taskId: string, reason: BackgroundReasonName }
+  // Computer tools: the screenshots of the result.
+  images?: ToolImage[]
   // Subagents (Task / Agent tool): progress reported by the client. The Agent call itself ends at once; `agentId`
   // and `state` follow the agent it started.
   subagent?: { steps: SubagentStep[], tokens: number, toolCalls: number, model: string, active: number, agentId?: string, state?: SubagentStateName, report?: string }
+}
+
+export interface ToolImage {
+  url: string
+}
+
+export type ComputerTierName = 'read' | 'click' | 'full'
+
+export interface ComputerPermissionVM {
+  id: string
+  name: string
+  granted: boolean
+  howToGrant: string
+}
+
+// The access card of computer use (ComputerAccessRequested).
+export interface ComputerAccessItem {
+  kind: 'computerAccess'
+  id: string
+  toolUseId: string
+  reason: string
+  apps: { id: string, name: string, tier: ComputerTierName, note: string }[]
+  // Permissions of the operating system still to grant.
+  missing: ComputerPermissionVM[]
+  state: 'pending' | 'resolved' | 'cancelled'
+  approved: string[]
+}
+
+// The session's computer use (ComputerUseState): the indicator and the apps with access.
+export interface ComputerUseVM {
+  controlling: boolean
+  action: string
+  grants: { id: string, name: string, tier: ComputerTierName }[]
 }
 
 export type PermissionState = 'pending' | 'allowed' | 'allowed_always' | 'denied'
@@ -334,6 +369,7 @@ export type TranscriptItem
     | ToolItem
     | PermissionItem
     | QuestionItem
+    | ComputerAccessItem
     | PlanItem
     | TodosItem
     | NoticeItem
@@ -475,6 +511,9 @@ export interface SessionState {
   pendingPermission: string | null
   pendingQuestion: string | null
   pendingPlan: string | null
+  pendingComputerAccess: string | null
+  // Computer use in this session; undefined until the client reported any.
+  computerUse?: ComputerUseVM
   // The latest Show request not yet followed by a user message; the UI opens it once the session is open.
   showRequest: ShowRequest | null
   // The latest PushNotification that went out (useUserNotifications shows it).

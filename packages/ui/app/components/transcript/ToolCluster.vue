@@ -28,13 +28,15 @@ function action(t: ToolItem) {
 }
 
 const BROWSER_TOOLS_LIST = ['BrowserNavigate', 'BrowserSnapshot', 'BrowserClick', 'BrowserType', 'BrowserKey', 'BrowserScroll', 'BrowserScreenshot', 'BrowserEval', 'BrowserTabs', 'BrowserConsole', 'BrowserNetwork', 'BrowserWait']
+const COMPUTER_TOOLS_LIST = ['ComputerApps', 'ComputerAccess', 'ComputerScreenshot', 'ComputerClick', 'ComputerDrag', 'ComputerScroll', 'ComputerType', 'ComputerKey', 'ComputerActivate', 'ComputerFind', 'ComputerMenu', 'ComputerBatch']
 const GROUPS: { names: string[], one: string, many: (n: number) => string }[] = [
   { names: ['Bash'], one: 'ran a command', many: n => `ran ${n} commands` },
   { names: ['Read'], one: 'read a file', many: n => `read ${n} files` },
   { names: ['Edit', 'MultiEdit', 'Write', 'NotebookEdit'], one: 'edited a file', many: n => `edited ${n} files` },
   { names: ['Grep', 'Glob', 'LS'], one: 'searched once', many: n => `searched ${n} times` },
   { names: ['WebFetch', 'WebSearch'], one: 'looked up the web', many: n => `looked up the web ${n} times` },
-  { names: BROWSER_TOOLS_LIST, one: 'used the browser', many: n => `took ${n} browser steps` }
+  { names: BROWSER_TOOLS_LIST, one: 'used the browser', many: n => `took ${n} browser steps` },
+  { names: COMPUTER_TOOLS_LIST, one: computerGroupLabel(1), many: computerGroupLabel }
 ]
 const summary = computed(() => {
   if (tools.value.length === 1) return action(tools.value[0]!)

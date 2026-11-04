@@ -10,6 +10,7 @@
 
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
 import { sessionNoteOf } from './links'
+import { accessItem, computerUseVM, toolImages } from './computer'
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
 import { SubagentState, SubagentStepStatus, type SubagentInfo } from '~/gen/harness/agent/v1/subagents_pb'
 import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
@@ -123,6 +124,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     pendingPermission: null,
     pendingQuestion: null,
     pendingPlan: null,
+    pendingComputerAccess: null,
     showRequest: null,
     browserAction: null,
     browserSteps: 0,
@@ -346,7 +348,7 @@ function setStatus(s: SessionState, status: Status) {
 }
 
 function blockingStatus(s: SessionState): Status {
-  return s.pendingPermission || s.pendingQuestion || s.pendingPlan ? 'needs_input' : 'working'
+  return s.pendingPermission || s.pendingQuestion || s.pendingPlan || s.pendingComputerAccess ? 'needs_input' : 'working'
 }
 
 // A reply streamed outside a turn (the model's answer to a Stop) that was cancelled leaves deltas with no final
@@ -371,11 +373,14 @@ export function settleTurn(s: SessionState) {
     if (it.kind === 'tool' && it.status === 'running') it.status = 'interrupted'
     if (it.kind === 'assistant') it.streaming = false
     if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
+    if (it.kind === 'computerAccess' && it.state === 'pending') it.state = 'cancelled'
   }
   s.turnStartedAt = 0
   s.pendingPermission = null
   s.pendingQuestion = null
   s.pendingPlan = null
+  s.pendingComputerAccess = null
+  if (s.computerUse) s.computerUse = { ...s.computerUse, controlling: false, action: '' }
   s.browserAction = null
   if (isBusy(s.meta.status) || s.meta.status === 'waiting_for_connection') setStatus(s, 'idle')
 }
@@ -527,6 +532,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       item.output = textOf(t.content)
       item.result = parseJson(t.structuredResultJson)
       item.resultSummary = t.summary
+      if (item.name.startsWith('Computer')) item.images = toolImages(t.content)
       item.durationMs = Number(t.durationMs)
       if (t.background?.taskId) item.background = { taskId: t.background.taskId, reason: backgroundReasonName(t.background.reason) }
       break
@@ -596,6 +602,29 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       }
       if (s.pendingQuestion === e.value.requestId) s.pendingQuestion = null
       if (s.meta.status === 'needs_input') setStatus(s, blockingStatus(s))
+      break
+    }
+
+    case 'computerAccessRequested': {
+      if (!find(s, 'computerAccess', e.value.requestId)) push(s, accessItem(e.value))
+      s.pendingComputerAccess = e.value.requestId
+      setStatus(s, 'needs_input')
+      break
+    }
+
+    case 'computerAccessResolved': {
+      const item = find(s, 'computerAccess', e.value.requestId)
+      if (item) {
+        item.state = e.value.resolvedBy === 'interrupt' ? 'cancelled' : 'resolved'
+        item.approved = [...e.value.approvedAppIds]
+      }
+      if (s.pendingComputerAccess === e.value.requestId) s.pendingComputerAccess = null
+      if (s.meta.status === 'needs_input') setStatus(s, blockingStatus(s))
+      break
+    }
+
+    case 'computerUseState': {
+      s.computerUse = computerUseVM(e.value)
       break
     }
 
@@ -671,11 +700,14 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         if (it.kind === 'assistant') it.streaming = false
         // A question still open when the turn ends can no longer be answered.
         if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
+        if (it.kind === 'computerAccess' && it.state === 'pending') it.state = 'cancelled'
       }
       s.turnStartedAt = 0
       s.pendingPermission = null
       s.pendingQuestion = null
       s.pendingPlan = null
+      s.pendingComputerAccess = null
+      if (s.computerUse) s.computerUse = { ...s.computerUse, controlling: false, action: '' }
       setStatus(s, result === 'error' || result === 'max_turns' ? 'error' : 'idle')
       break
     }

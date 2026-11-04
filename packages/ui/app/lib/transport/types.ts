@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { ComputerPermissionVM, EffortName, QuestionReply } from '~/lib/session/types'
 import type {
   InitializeResponse,
   ListBranchesResponse,
@@ -33,6 +34,15 @@ import type { LocalModelsApi } from './localModels'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { BrowserApi } from '~/lib/browser/types'
+
+// Computer use on this device (GetComputerUseStatus).
+export interface ComputerUseStatusVM {
+  enabled: boolean
+  supported: boolean
+  platform: string
+  unavailableReason: string
+  permissions: ComputerPermissionVM[]
+}
 
 export interface ModelInfo {
   id: string
@@ -135,6 +145,11 @@ export interface SessionTransport {
   deleteSession(sessionId: string): Promise<void>
   respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision, rule?: string, comment?: string): Promise<void>
   answerQuestion(sessionId: string, requestId: string, reply: QuestionReply): Promise<void>
+  // Computer use (device-local). The status is only read, which never makes the system prompt.
+  getComputerUseStatus(): Promise<ComputerUseStatusVM>
+  setComputerUseEnabled(enabled: boolean): Promise<ComputerUseStatusVM>
+  respondToComputerAccess(sessionId: string, requestId: string, approvedAppIds: string[]): Promise<void>
+  stopComputerUse(sessionId: string): Promise<void>
   respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback?: string): Promise<void>
 
   setModel(sessionId: string, model: string): Promise<void>

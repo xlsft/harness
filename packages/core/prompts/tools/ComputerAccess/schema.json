@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "apps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Apps by name or id, as ComputerApps lists them.",
+      "minItems": 1,
+      "maxItems": 20
+    },
+    "reason": {
+      "type": "string",
+      "description": "One short sentence for the user: what you will do in these apps."
+    }
+  },
+  "required": [
+    "apps",
+    "reason"
+  ],
+  "additionalProperties": false
+}

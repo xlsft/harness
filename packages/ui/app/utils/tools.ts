@@ -15,11 +15,15 @@ export function mcpParts(name: string) {
   return m ? { server: m[1]!, tool: m[2]! } : null
 }
 
+export const computerGroupLabel = (n: number) => n === 1 ? 'used the computer' : `took ${n} computer steps`
+
 export function toolIcon(t: ToolItem): IconName {
   if (t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent') return 'loading'
   if (t.status === 'error' && t.name === 'Bash') return 'x'
   if (mcpParts(t.name)) return 'box'
   if (t.name.startsWith('Browser') || t.name === 'PreviewStart') return 'globe'
+  if (t.name === 'ComputerClick' || t.name === 'ComputerDrag') return 'cursor'
+  if (t.name.startsWith('Computer')) return 'monitor'
   switch (t.name) {
     case 'Bash':
     case 'TaskOutput': return 'term'
@@ -134,6 +138,18 @@ export function toolTarget(t: ToolItem): string {
     case 'PreviewStart': return String(i.name ?? i.url ?? t.summary)
     case 'PreviewStop':
     case 'PreviewLogs': return String(i.server_id ?? t.summary)
+    case 'ComputerAccess': return Array.isArray(i.apps) ? i.apps.join(', ') : t.summary
+    case 'ComputerType': return `${String(i.app ?? '')}: "${String(i.text ?? '').split('\n')[0]!.slice(0, 80)}"`
+    case 'ComputerKey': return `${String(i.app ?? '')}: ${String(i.keys ?? '')}`
+    case 'ComputerMenu': return `${String(i.app ?? '')}: ${Array.isArray(i.path) ? i.path.join(' > ') : ''}`
+    case 'ComputerApps': return 'apps on this machine'
+    case 'ComputerClick':
+    case 'ComputerDrag':
+    case 'ComputerScroll':
+    case 'ComputerScreenshot':
+    case 'ComputerActivate':
+    case 'ComputerFind':
+    case 'ComputerBatch': return String(i.app ?? t.summary)
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

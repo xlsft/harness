@@ -3,6 +3,9 @@
 // serves it. Every call carries `Authorization: Bearer <token>` when a token is given (see token.ts).
 
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
+import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
+import { permissionVM } from '~/lib/session/computer'
+import type { ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { create } from '@bufbuild/protobuf'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
@@ -16,7 +19,6 @@ import {
   type SendUserMessageRequest_Delivery
 } from '~/gen/harness/agent/v1/agent_pb'
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
-import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb } from '~/lib/session/reducer'
 import type { EffortName, QuestionReply } from '~/lib/session/types'
@@ -40,6 +42,11 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.HIGH]: 'high',
   [Effort.XHIGH]: 'xhigh',
   [Effort.MAX]: 'max'
+}
+
+function computerStatusVM(s: ComputerUseStatus | undefined): ComputerUseStatusVM {
+  if (!s) throw new Error('the client returned no status')
+  return { enabled: s.enabled, supported: s.supported, platform: s.platform, unavailableReason: s.unavailableReason, permissions: s.permissions.map(permissionVM) }
 }
 
 export class ConnectTransport implements SessionTransport {
@@ -228,6 +235,22 @@ export class ConnectTransport implements SessionTransport {
 
   async setPermissionMode(sessionId: string, mode: PermissionMode) {
     await this.client.setPermissionMode({ sessionId, mode })
+  }
+
+  async getComputerUseStatus() {
+    return computerStatusVM((await this.client.getComputerUseStatus({})).status)
+  }
+
+  async setComputerUseEnabled(enabled: boolean) {
+    return computerStatusVM((await this.client.setComputerUseEnabled({ enabled })).status)
+  }
+
+  async respondToComputerAccess(sessionId: string, requestId: string, approvedAppIds: string[]) {
+    await this.client.respondToComputerAccess({ sessionId, requestId, approvedAppIds })
+  }
+
+  async stopComputerUse(sessionId: string) {
+    await this.client.stopComputerUse({ sessionId })
   }
 
   async setAutoContinue(sessionId: string, enabled: boolean) {

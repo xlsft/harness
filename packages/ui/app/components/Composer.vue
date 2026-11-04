@@ -435,6 +435,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
     @dragover.prevent
   >
     <UsageLimitBanner :session="session" />
+    <ComputerUseBar :session="session" />
 
     <!-- context almost full -->
     <div

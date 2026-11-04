@@ -3215,7 +3215,7 @@ func isSafeCmd(c *Cmd, ctx *rulesCtx, extraAllow []*regexp.Regexp) bool {
 // ---------------------------------------------------------------------------------------------------
 
 var (
-	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent", "EnterWorktree", "ChangeDirectory", "RequestDirectory", "ProposeBranch", "SyncWithBase", "SendMessage", "ListAgents", "Monitor", "MarkChapter", "SessionList", "SessionDismiss", "PushNotification", "ReadNotifications", "SendUserFile", "ReportFindings", "PrStatus", "PrBind", "PrUnbind", "PreviewStop", "PreviewList", "PreviewLogs")
+	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent", "EnterWorktree", "ChangeDirectory", "RequestDirectory", "ProposeBranch", "SyncWithBase", "SendMessage", "ListAgents", "Monitor", "MarkChapter", "SessionList", "SessionDismiss", "PushNotification", "ReadNotifications", "SendUserFile", "ReportFindings", "PrStatus", "PrBind", "PrUnbind", "PreviewStop", "PreviewList", "PreviewLogs", "ComputerApps", "ComputerScreenshot", "ComputerFind")
 	writeTools = setOf("Write", "Edit", "MultiEdit", "NotebookEdit")
 )
 

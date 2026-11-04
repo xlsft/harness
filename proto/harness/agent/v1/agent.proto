@@ -4,6 +4,7 @@ package harness.agent.v1;
 
 import "harness/agent/v1/acp.proto";
 import "harness/agent/v1/browser.proto";
+import "harness/agent/v1/computer_use.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
@@ -305,6 +306,14 @@ service AgentService {
   rpc ListPreviewServers(ListPreviewServersRequest) returns (ListPreviewServersResponse);
   rpc StopPreviewServer(StopPreviewServerRequest) returns (StopPreviewServerResponse);
   rpc GetPreviewLogs(GetPreviewLogsRequest) returns (GetPreviewLogsResponse);
+  // --- Computer use (computer_use.proto) ---
+
+  // The device-local switch and what the operating system allows. Never prompts for a permission.
+  rpc GetComputerUseStatus(GetComputerUseStatusRequest) returns (GetComputerUseStatusResponse);
+  rpc SetComputerUseEnabled(SetComputerUseEnabledRequest) returns (SetComputerUseEnabledResponse);
+  // The user's answer to ComputerAccessRequested.
+  rpc RespondToComputerAccess(RespondToComputerAccessRequest) returns (RespondToComputerAccessResponse);
+  rpc StopComputerUse(StopComputerUseRequest) returns (StopComputerUseResponse);
 }
 
 enum PermissionMode {
@@ -707,6 +716,10 @@ message SessionEvent {
     SessionProposal session_proposal = 75;
     // A notification for the user (user_tools.proto), from the PushNotification tool.
     UserNotification user_notification = 76;
+    // Computer use (computer_use.proto); numbered apart like the shell and browser events.
+    ComputerAccessRequested computer_access_requested = 78;
+    ComputerAccessResolved computer_access_resolved = 79;
+    ComputerUseState computer_use_state = 80;
   }
 }
 

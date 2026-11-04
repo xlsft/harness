@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "externalBin": [
+      "binaries/harness-client",
+      "binaries/harness-computer-helper"
+    ]
+  }
+}

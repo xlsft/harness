@@ -26,6 +26,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/bootstrap"
+	"github.com/xlsft/harness/packages/client/computeruse"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/environment"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
@@ -115,6 +116,9 @@ type Server struct {
 	previewOnce sync.Once
 	previewMgr  *preview.Manager
 	browserOnce sync.Once
+	// ComputerUse is computer use on this client (computeruse.go); nil: created on first use under HARNESS_HOME/computer-use.
+	ComputerUse  *computeruse.Manager
+	computerOnce sync.Once
 
 	// sides tracks the running side chat answers (sidechats.go).
 	sides sideChatRuns
@@ -175,6 +179,7 @@ func (s *Server) Close() {
 	s.terminals().Close()
 	s.browsers().Close()
 	s.previews().Close()
+	s.computerUse().StopAll()
 }
 
 // ServeUnix serves AgentService over h2c on a unix socket until ctx ends.
@@ -382,6 +387,10 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	if opts.Preview == nil {
 		opts.Preview = s.previews()
+	}
+	// The terminal UI has no access card or indicator.
+	if opts.ComputerUse == nil && !s.NoPanes {
+		opts.ComputerUse = s.computerUse()
 	}
 	opts.OnEvent = ls.onEvent
 	opts.Logger = s.log()
@@ -648,6 +657,7 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 		return nil, err
 	}
 	ls.userSpoke()
+	s.noteMessageOrigin(ctx, ls.sess.ID, req.Peer().Addr)
 	return s.submitMessage(ls, req)
 }
 

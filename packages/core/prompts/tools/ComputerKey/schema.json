@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "string",
+      "description": "The app, by name or id."
+    },
+    "keys": {
+      "type": "string",
+      "description": "Combinations separated by spaces."
+    },
+    "repeat": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Times to press the whole sequence. Default 1."
+    }
+  },
+  "required": [
+    "app",
+    "keys"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "string",
+      "description": "The app, by name or id."
+    },
+    "x": {
+      "type": "number",
+      "description": "Pixels from the left of the last screenshot."
+    },
+    "y": {
+      "type": "number",
+      "description": "Pixels from the top of the last screenshot."
+    },
+    "button": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right"
+      ],
+      "description": "Default left."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "2 for a double click. Default 1."
+    },
+    "modifiers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "cmd",
+          "ctrl",
+          "alt",
+          "shift"
+        ]
+      },
+      "description": "Keys held during the click."
+    }
+  },
+  "required": [
+    "app",
+    "x",
+    "y"
+  ],
+  "additionalProperties": false
+}

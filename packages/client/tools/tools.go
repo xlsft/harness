@@ -59,6 +59,12 @@ type AlwaysAsker interface {
 	AlwaysAsk() bool
 }
 
+// ModelHider is implemented by tools that are offered to the model only while something holds (computer use: a
+// device-local switch and what the platform's driver can do). The tool stays registered, and its Run must refuse by itself.
+type ModelHider interface {
+	HiddenFromModel() bool
+}
+
 // PermissionHints are facts about a call that the permission check needs and only the tool can tell: the page a
 // browser action acts on, or why its target is a sensitive field.
 type PermissionHints struct {

@@ -167,6 +167,18 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `BrowserTabs` | `action` (`list` \| `new` \| `switch` \| `close`), `tab_id`, `url` | tab ids `t1`...; list is read-only |
 | `BrowserConsole` | `level`, `pattern`, `limit` (≤200), `clear` | console messages, exceptions and browser log entries of the active tab (last 500 kept); read-only |
 | `BrowserNetwork` | `filter`, `type`, `status` (`failed` \| `error` \| `2xx`...), `limit`, `clear` | requests of the active tab (last 500 kept), no headers or bodies; read-only |
+| `ComputerApps` | `installed` | the machine's apps with their tier and whether they have access, windows of those that do, missing OS permissions; read-only. Computer tools are offered only while the device-local switch is on and the driver can do what they need (packages/client/computeruse) |
+| `ComputerAccess` | `apps` (ids or names, ≤20), `reason` | shows the access card and waits; the user approves each app for the session, at the tier the client gives it. Blocklisted apps are not offered. The grant is the permission: the engine does not ask on each action |
+| `ComputerScreenshot` | `app`, `window_id` | image block (JPEG, ≤1568 px) of one window of a granted app; later coordinates are its pixels; read-only |
+| `ComputerClick` | `app`, `x`, `y`, `button`, `count`, `modifiers` | checks grant, tier, front app and the app under the point on every call; click tier: plain left clicks only |
+| `ComputerDrag` | `app`, `from_x`, `from_y`, `to_x`, `to_y` | both ends must be on the app; full tier |
+| `ComputerScroll` | `app`, `x`, `y`, `dx`, `dy` | lines; click tier and up |
+| `ComputerType` | `app`, `text` | refused in a secure field; full tier |
+| `ComputerKey` | `app`, `keys` (space-separated combos), `repeat` | combos that reach past the app (system search, app switching, log out) are refused; full tier |
+| `ComputerActivate` | `app`, `window_id` | brings a granted app or window forward, starting it if needed; any tier |
+| `ComputerFind` | `app`, `query`, `role`, `limit` (≤200) | accessibility tree of the window of the last screenshot, positions in its pixels, wrapped in `<untrusted-app-content>`, secure values never returned; read-only |
+| `ComputerMenu` | `app`, `path` | an item of the app's menu bar, not the system menu; full tier |
+| `ComputerBatch` | `app`, `steps` (≤30; `click` \| `drag` \| `scroll` \| `type` \| `key` \| `wait` \| `screenshot`) | each step passes all the checks of its tool; the first refusal ends the batch |
 | `BrowserWait` | one of `text`, `text_gone`, `selector`, `url`, `navigation`; `timeout` (ms, ≤60000) | a timeout is a normal result; read-only |
 | `McpAuthenticate` | `{}` | template of `mcp__<server>__authenticate` for a remote MCP server that needs authorization; `{{server}}` in the description is filled by the client |
 
