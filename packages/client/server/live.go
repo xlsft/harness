@@ -89,6 +89,8 @@ type liveSession struct {
 	usage        usageWatch
 	autoContinue bool
 	heldOnRecord bool
+	// links are the sessions linked to this one and the notes waiting for it (sessionlinks.go).
+	links linkState
 
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.
@@ -372,6 +374,7 @@ func (ls *liveSession) onResult(res agent.TurnResult) {
 	}
 	ls.refreshDiffStats()
 	ls.afterTurn()
+	ls.reportToParent(res)
 }
 
 // refreshDiffStats measures the session's changes in the background and publishes SessionUpdated when they changed.
@@ -570,6 +573,10 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "BrowserKey " + truncateRunes(jsonField(input, "keys"), 60)
 	case "BrowserTabs":
 		return "BrowserTabs " + jsonField(input, "action")
+	case "SessionStart", "SessionHandoff", "MarkChapter":
+		return name + " " + truncateRunes(jsonField(input, "title"), 80)
+	case "SessionSend":
+		return name + " " + jsonField(input, "to")
 	case "Show":
 		if t := jsonField(input, "url"); t != "" {
 			return "Show " + t

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Sessions started from a session (the SessionStart and SessionHandoff tools, packages/client/server/sessionlinks.go).
+// A proposal is a session the model suggests by itself (initiation "own_initiative"): a card in the transcript the user
+// may start later. It lives on the machine of the session that made it and expires.
+
+message SessionProposal {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    // Waits for the user.
+    STATE_PENDING = 1;
+    // The user started it: session_id and session_name are set.
+    STATE_STARTED = 2;
+    // Withdrawn by the model (SessionDismiss) or dismissed by the user.
+    STATE_DISMISSED = 3;
+    // Nobody started it in time.
+    STATE_EXPIRED = 4;
+  }
+  string id = 1;
+  // The SessionStart call that made it: the card belongs to that tool call.
+  string tool_use_id = 2;
+  string title = 3;
+  State state = 4;
+  // RFC 3339, UTC.
+  string expires_at = 5;
+  string session_id = 6;
+  string session_name = 7;
+}
+
+message ResolveSessionProposalRequest {
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_START = 1;
+    ACTION_DISMISS = 2;
+  }
+  string session_id = 1;
+  string proposal_id = 2;
+  Action action = 3;
+}
+
+message ResolveSessionProposalResponse {
+  SessionProposal proposal = 1;
+}

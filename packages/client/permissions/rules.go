@@ -84,6 +84,9 @@ var (
 	// pathObservers read a file only when their input names one (Wait on a
 	// path): that path gets the read-tool directory check.
 	pathObservers = map[string]bool{"Wait": true}
+	// sessionTools start or reach other sessions. They change nothing here and those sessions keep their own permission
+	// checks, so they run without a prompt, except in plan mode. SessionArchive is not one of them: it always asks.
+	sessionTools = map[string]bool{"SessionStart": true, "SessionHandoff": true, "SessionSend": true}
 )
 
 // IsEditTool reports whether name modifies files.

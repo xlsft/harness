@@ -143,6 +143,8 @@ export interface SessionTransport {
   // "Continue when limits return": when the limit resets and the last turn was cut off by it, the client continues the
   // work by itself. Off by default; held messages go out at the reset either way.
   setAutoContinue(sessionId: string, enabled: boolean): Promise<void>
+  // The user's click on a proposal's card; a SessionProposal event follows.
+  resolveSessionProposal(sessionId: string, proposalId: string, action: 'start' | 'dismiss'): Promise<void>
 
   suggestFiles(sessionId: string, query: string, limit: number): Promise<string[]>
   compact(sessionId: string, instructions?: string): Promise<void>

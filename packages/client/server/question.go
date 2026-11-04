@@ -213,6 +213,9 @@ func (ls *liveSession) takeQueued(uuids []string) []llm.ContentBlock {
 	return out
 }
 
+// isQuestionTool reports the tools that ask with a Question card: AskUserQuestion, and SessionStart with an offer.
+func isQuestionTool(name string) bool { return name == "AskUserQuestion" || name == "SessionStart" }
+
 // questionCard rebuilds the question card of a replayed AskUserQuestion
 // call: the card as asked plus its outcome. structured is the recorded
 // toolUseResult; cancelled marks a call that was interrupted or never got a
@@ -235,6 +238,9 @@ func questionCard(toolUseID string, input json.RawMessage, structured any, cance
 			return nil
 		}
 		qs = in.Questions
+		if len(qs) == 0 {
+			qs = tools.SessionOfferQuestions(input)
+		}
 	}
 	qs, err := tools.NormalizeQuestions(qs)
 	if err != nil {

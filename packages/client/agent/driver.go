@@ -39,6 +39,8 @@ type Driver struct {
 	stopped   bool
 	// held: see SetHeld. wakeMissed: Wake was called while held (a background task's notification waits).
 	held, wakeMissed bool
+	// wakeAgain: WakeAfterTurn was called during the running turn.
+	wakeAgain bool
 }
 
 // NewDriver creates a driver whose turns run under ctx.
@@ -88,6 +90,20 @@ func (d *Driver) Wake() {
 	go d.loop(nil, nil)
 }
 
+// WakeAfterTurn is Wake for a notification that must not be left behind: while a turn runs, its reminder may arrive after
+// the turn's last model request, so the driver checks when the turn ends and, if the reminder is still waiting, runs one
+// more turn for it. A turn the user interrupted does not continue.
+func (d *Driver) WakeAfterTurn() {
+	d.mu.Lock()
+	if d.running {
+		d.wakeAgain = true
+		d.mu.Unlock()
+		return
+	}
+	d.mu.Unlock()
+	d.Wake()
+}
+
 func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 	for {
 		res := d.Agent.RunTurnWithIDs(d.ctx, blocks, ids)
@@ -107,7 +123,12 @@ func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 		if !d.held {
 			next, nextIDs = d.Agent.takeQueue()
 		}
-		if len(next) == 0 || d.ctx.Err() != nil {
+		again := d.wakeAgain && !res.Interrupted && !d.stopped && d.Agent.HasReminders()
+		d.wakeAgain = false
+		if d.held && again {
+			d.wakeMissed, again = true, false
+		}
+		if (len(next) == 0 && !again) || d.ctx.Err() != nil {
 			d.running = false
 			d.idle.Broadcast()
 			d.mu.Unlock()

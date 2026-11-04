@@ -36,6 +36,13 @@ export function toolIcon(t: ToolItem): IconName {
     case 'Task':
     case 'Agent': return 'agent'
     case 'Show': return t.input.target === 'url' ? 'globe' : t.input.target === 'diff' ? 'diff' : 'file'
+    case 'SessionStart':
+    case 'SessionHandoff': return 'branch'
+    case 'SessionList': return 'list'
+    case 'SessionSend': return 'session'
+    case 'SessionDismiss': return 'close'
+    case 'SessionArchive': return 'archive'
+    case 'MarkChapter': return 'flag'
     default: return 'box'
   }
 }
@@ -78,6 +85,12 @@ export function toolTarget(t: ToolItem): string {
     }
     case 'TaskOutput': return String(i.task_id ?? t.summary) + patternSuffix(i.pattern)
     case 'Wait': return waitTarget(i) || t.summary
+    case 'SessionStart':
+    case 'SessionHandoff':
+    case 'MarkChapter': return String(i.title ?? t.summary)
+    case 'SessionSend': return String(i.to ?? t.summary)
+    case 'SessionArchive': return String(i.id ?? t.summary)
+    case 'SessionDismiss': return String(i.task_id ?? t.summary)
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

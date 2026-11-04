@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "to": {
+      "type": "string",
+      "description": "Session id, or the short name of a linked session."
+    },
+    "message": {
+      "type": "string",
+      "description": "The message. Self-contained: the other session has not seen this conversation unless it is a fork."
+    }
+  },
+  "required": [
+    "to",
+    "message"
+  ],
+  "additionalProperties": false
+}

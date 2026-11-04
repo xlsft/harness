@@ -1,0 +1,1 @@
+Archives a session started from this one: it stops, and leaves the session list. Only sessions you started can be archived from here, and the user is asked to confirm each call. Use it to clear away a linked session whose work is finished, not one that may still be needed.

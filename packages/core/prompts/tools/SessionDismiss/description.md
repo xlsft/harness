@@ -1,0 +1,1 @@
+Withdraws a proposal you made with SessionStart (initiation `own_initiative`) that the user has not started. Use it when the work got done here after all, turned out unnecessary, or a better proposal replaces it.
