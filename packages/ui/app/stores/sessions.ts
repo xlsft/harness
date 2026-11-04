@@ -204,7 +204,7 @@ export const useSessionStore = defineStore('sessions', {
 
     // Starts a session on the client and opens it; it goes to the top of the list. `forkOf` continues a copy of
     // that session's transcript (a remote session's is downloaded from the harness server: "Continue here").
-    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string }, forkOf?: string, engine?: string, acpModeId?: string }) {
+    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string }, forkOf?: string, engine?: string, acpModeId?: string, acpEffortId?: string }) {
       if (!this.transport) throw new Error('not connected')
       const info = await this.transport.createSession({
         cwd: opts.cwd,
@@ -214,6 +214,7 @@ export const useSessionStore = defineStore('sessions', {
         worktree: opts.worktree,
         engine: opts.engine,
         acpModeId: opts.acpModeId,
+        acpEffortId: opts.acpEffortId,
         ...(opts.forkOf && { resumeSessionId: opts.forkOf, fork: true })
       })
       if (opts.effort) this.effort[info.id] = opts.effort
@@ -806,6 +807,19 @@ export const useSessionStore = defineStore('sessions', {
       if (s?.meta.acp) s.meta.acp = { ...s.meta.acp, currentModeId: modeId }
       try {
         await this.transport?.acp().setMode(id, modeId)
+      } catch (err) {
+        if (s) s.meta.acp = prev ?? null
+        this.error = err instanceof Error ? err.message : String(err)
+      }
+    },
+
+    // One of the agent's own effort levels; shows at once, rolled back when the client refuses it.
+    async setAcpEffort(id: string, levelId: string) {
+      const s = this.sessions[id]
+      const prev = s?.meta.acp
+      if (s?.meta.acp) s.meta.acp = { ...s.meta.acp, currentEffortId: levelId }
+      try {
+        await this.transport?.setEffort(id, Effort.UNSPECIFIED, levelId)
       } catch (err) {
         if (s) s.meta.acp = prev ?? null
         this.error = err instanceof Error ? err.message : String(err)

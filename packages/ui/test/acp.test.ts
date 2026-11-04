@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SessionEvent } from '~/gen/harness/agent/v1/agent_pb'
 import { RespondToPermissionRequest_Decision, SendUserMessageRequest_Delivery, PermissionMode, RewindRequest_Mode } from '~/gen/harness/agent/v1/agent_pb'
 import { AcpAuthMethod_Kind, AcpAuthState, AcpModelsStatus, InstallAcpAgentResponse_Phase, SessionFeature, acpAgentOf, acpEngine } from '~/lib/acp/types'
-import { firstPickable, fitAcpChoice, modelKey, modelSections, newSessionChoice, type ModelScope } from '~/lib/acp/modelChoices'
+import { firstPickable, fitAcpChoice, modelKey, modelSections, newSessionAgentEffort, newSessionChoice, sessionEffort, type ModelScope } from '~/lib/acp/modelChoices'
 import { MockTransport } from '~/lib/transport/mock'
 import type { ModelInfo } from '~/lib/transport/types'
 
@@ -226,5 +226,54 @@ describe('sessions keep to their engine in the mock transport', () => {
     expect(r.agent?.selectable).toBe(true)
     expect(r.agent?.models.map(m => m.id)).toEqual(['default', 'opus', 'sonnet'])
     expect((await t.acp().uninstallAgent('claude-acp')).selectable).toBe(false)
+  })
+})
+
+describe('effort on an agent', () => {
+  it('offers the levels the agent reports, under its names, and what the client says it has', async () => {
+    const t = new MockTransport({ tick: 0 })
+    const { agents } = await t.acp().listAgents()
+    const codex = agents.find(a => a.id === 'codex-acp')!
+    const claude = agents.find(a => a.id === 'claude-acp')!
+    expect(newSessionAgentEffort(codex, '')).toEqual({
+      levels: [{ id: 'quick', label: 'Quick' }, { id: 'balanced', label: 'Balanced' }, { id: 'deep', label: 'Think deeply' }],
+      current: 'balanced'
+    })
+    expect(newSessionAgentEffort(codex, 'deep').current).toBe('deep')
+    expect(newSessionAgentEffort(codex, 'gone').current).toBe('balanced')
+    expect(newSessionAgentEffort(claude, '')).toEqual({ levels: [] })
+    expect(codex.unsupportedFeatures).not.toContain(SessionFeature.EFFORT)
+    expect(claude.unsupportedFeatures).toContain(SessionFeature.EFFORT)
+  })
+
+  it('starts on the chosen level, switches and refuses what the agent does not have', async () => {
+    const t = new MockTransport({ tick: 0 })
+    const info = await t.createSession({ cwd: CWD, engine: 'acp:codex-acp', acpEffortId: 'deep' })
+    expect(info.acp?.currentEffortId).toBe('deep')
+    expect(info.unsupportedFeatures).not.toContain(SessionFeature.EFFORT)
+    await t.setEffort(info.id, 0, 'quick')
+    expect((await t.listSessions()).find(s => s.id === info.id)!.acp?.currentEffortId).toBe('quick')
+    await expect(t.setEffort(info.id, 0, 'medium')).rejects.toThrow(/no effort level "medium"/)
+    const other = await t.createSession({ cwd: CWD, engine: 'acp:claude-acp' })
+    expect(other.unsupportedFeatures).toContain(SessionFeature.EFFORT)
+    await expect(t.setEffort(other.id, 0, 'quick')).rejects.toThrow(/does not offer effort levels/)
+  })
+
+  it('shows the chip from what the session says', () => {
+    const acp = { efforts: [{ id: 'a', name: 'Aa' }, { id: 'b', name: '' }], currentEffortId: 'b' } as never
+    const base = { onAgent: true, unsupported: false, acp, harness: [], chosen: 'medium' as const }
+    expect(sessionEffort(base)).toEqual({ levels: [{ id: 'a', label: 'Aa' }, { id: 'b', label: 'b' }], current: 'b' })
+    expect(sessionEffort({ ...base, unsupported: true })).toEqual({ levels: [] })
+    expect(sessionEffort({ onAgent: false, unsupported: false, harness: ['low', 'high'], chosen: 'medium' }))
+      .toEqual({ levels: [{ id: 'low', label: 'Low' }, { id: 'high', label: 'High' }], current: 'low' })
+  })
+
+  it('goes along to a new session only on an agent that has it', async () => {
+    const { agents } = await new MockTransport({ tick: 0 }).acp().listAgents()
+    const codex = agents.find(a => a.id === 'codex-acp')!
+    const claude = agents.find(a => a.id === 'claude-acp')!
+    expect(newSessionChoice({ engine: codex.engine, agent: codex, acpMode: '', acpEffort: 'deep', mode: 'auto' }).acpEffortId).toBe('deep')
+    expect(newSessionChoice({ engine: claude.engine, agent: claude, acpMode: '', acpEffort: 'deep', mode: 'auto' }).acpEffortId).toBeUndefined()
+    expect(newSessionChoice({ engine: '', acpMode: '', acpEffort: 'deep', effort: 'high', mode: 'auto' })).toMatchObject({ effort: 'high', acpEffortId: undefined })
   })
 })

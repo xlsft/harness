@@ -5,6 +5,7 @@
 // their decision models. Global providers are read-only for non-admins.
 import type { ModelCandidateView, PresetView, ProtocolView, ProviderPatch, ProviderView, ProvidersApi, TestResult } from '~/lib/providers/types'
 import { contextLabel } from '~/lib/providers/types'
+import type { EffortName } from '~/lib/session/types'
 
 const sessions = useSessionStore()
 const { prefs, save: saveDefault, effortOf, setEffort } = useSessionDefaults()
@@ -78,9 +79,11 @@ const manual = ref('')
 async function openModels() {
   open.value = !open.value
   if (open.value && !candidates.value) {
-    await run('models', async () => {
+    const ok = await run('models', async () => {
       candidates.value = await props.api.discover(p.value.id)
     })
+    // The service's list may have told more about the models already on (efforts, images).
+    if (ok && p.value.models.length) emit('changed')
   }
 }
 onMounted(() => {
@@ -111,6 +114,13 @@ async function addManual() {
   if (!id) return
   await setModel({ upstream: id }, true)
   manual.value = ''
+}
+
+// The levels a model takes, set by hand: many services do not say in their model lists. Kept from then on.
+const editingLevels = ref('')
+async function toggleLevel(m: { id: string, efforts: EffortName[] }, level: EffortName) {
+  const next = ALL_EFFORTS.filter(e => e === level ? !m.efforts.includes(e) : m.efforts.includes(e))
+  if (await run(`levels:${m.id}`, () => props.api.setModelEfforts(m.id, next))) emit('changed')
 }
 
 // Decision models of a classifier provider (the preset's list; a custom one is set in the classifier).
@@ -359,60 +369,93 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
           v-if="!open"
           class="flex flex-col overflow-hidden border border-default"
         >
-          <div
+          <template
             v-for="m in p.models"
             :key="m.id"
-            class="flex min-h-8 items-center gap-3 border-b border-default px-2.5 text-[12px] last:border-b-0"
           >
-            <span
-              class="min-w-0 flex-1 truncate text-strong"
-              :title="m.id"
-            >{{ m.name }}</span>
-            <!-- One model is the default for new sessions (this browser); none set means the server's. -->
-            <button
-              type="button"
-              role="switch"
-              :aria-checked="isDefault(m.id)"
-              :aria-label="`Use ${m.name} by default`"
-              class="flex shrink-0 items-center gap-1.5 text-[11px]"
-              :class="isDefault(m.id) ? 'text-strong' : 'text-muted hover:text-strong'"
-              @click="toggleDefault(m.id)"
-            >
+            <div class="flex min-h-8 items-center gap-3 border-b border-default px-2.5 text-[12px] last:border-b-0">
               <span
-                class="flex size-3.5 items-center justify-center border"
-                :class="isDefault(m.id) ? 'border-accent bg-accent' : 'border-accented'"
-              ><HIcon
-                v-if="isDefault(m.id)"
-                name="check"
-                :size="10"
-                class="text-strong"
-              /></span>
-              default
-            </button>
-            <div
-              v-if="levelsOf(m.id).length"
-              role="radiogroup"
-              :aria-label="`Default effort for ${m.name}`"
-              class="flex gap-[2px]"
-            >
+                class="min-w-0 flex-1 truncate text-strong"
+                :title="m.id"
+              >{{ m.name }}</span>
+              <!-- One model is the default for new sessions (this browser); none set means the server's. -->
               <button
-                v-for="e in levelsOf(m.id)"
+                type="button"
+                role="switch"
+                :aria-checked="isDefault(m.id)"
+                :aria-label="`Use ${m.name} by default`"
+                class="flex shrink-0 items-center gap-1.5 text-[11px]"
+                :class="isDefault(m.id) ? 'text-strong' : 'text-muted hover:text-strong'"
+                @click="toggleDefault(m.id)"
+              >
+                <span
+                  class="flex size-3.5 items-center justify-center border"
+                  :class="isDefault(m.id) ? 'border-accent bg-accent' : 'border-accented'"
+                ><HIcon
+                  v-if="isDefault(m.id)"
+                  name="check"
+                  :size="10"
+                  class="text-strong"
+                /></span>
+                default
+              </button>
+              <div
+                v-if="levelsOf(m.id).length"
+                role="radiogroup"
+                :aria-label="`Default effort for ${m.name}`"
+                class="flex gap-[2px]"
+              >
+                <button
+                  v-for="e in levelsOf(m.id)"
+                  :key="e"
+                  type="button"
+                  role="radio"
+                  :aria-checked="effortOf(catalogOf(m.id)!) === e"
+                  class="border px-1.5 py-px text-[11px]"
+                  :class="effortOf(catalogOf(m.id)!) === e ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
+                  @click="setEffort(m.id, e)"
+                >
+                  {{ e }}
+                </button>
+              </div>
+              <span
+                v-else
+                class="text-[11px] text-dimmed"
+              >no effort levels</span>
+              <button
+                v-if="p.editable"
+                type="button"
+                :aria-expanded="editingLevels === m.id"
+                :aria-label="`Effort levels ${m.name} takes`"
+                class="shrink-0 text-[11px]"
+                :class="editingLevels === m.id ? 'text-strong' : 'text-muted hover:text-strong'"
+                @click="editingLevels = editingLevels === m.id ? '' : m.id"
+              >
+                levels
+              </button>
+            </div>
+            <div
+              v-if="editingLevels === m.id"
+              role="group"
+              :aria-label="`Effort levels ${m.name} takes`"
+              class="flex flex-wrap items-center gap-[2px] border-b border-default px-2.5 py-1 text-[11px] last:border-b-0"
+            >
+              <span class="mr-1.5 text-muted">Takes</span>
+              <button
+                v-for="e in ALL_EFFORTS"
                 :key="e"
                 type="button"
-                role="radio"
-                :aria-checked="effortOf(catalogOf(m.id)!) === e"
-                class="border px-1.5 py-px text-[11px]"
-                :class="effortOf(catalogOf(m.id)!) === e ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
-                @click="setEffort(m.id, e)"
+                role="switch"
+                :aria-checked="m.efforts.includes(e)"
+                :disabled="busy === `levels:${m.id}`"
+                class="border px-1.5 py-px"
+                :class="m.efforts.includes(e) ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
+                @click="toggleLevel(m, e)"
               >
                 {{ e }}
               </button>
             </div>
-            <span
-              v-else
-              class="text-[11px] text-dimmed"
-            >no effort levels</span>
-          </div>
+          </template>
         </div>
 
         <div

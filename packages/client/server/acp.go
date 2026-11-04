@@ -168,11 +168,12 @@ func (l *acpLive) info() *agentv1.SessionInfo {
 	if st.Title != "" && !m.CustomTitle {
 		title = st.Title
 	}
+	state := l.srv.acpSessionState(l.sess.Config(), st)
 	info := &agentv1.SessionInfo{
 		Id: l.id, Title: title, Cwd: m.Cwd, GitBranch: l.branch, Model: m.AgentName, Status: st.Status,
 		PermissionMode: acp.PermissionModeOf(st.CurrentMode), UpdatedAt: m.UpdatedAt.UTC().Format(time.RFC3339),
-		DiffStats: l.diff, NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(),
-		Acp: l.srv.acpSessionState(l.sess.Config(), st), DeviceId: l.srv.DeviceID,
+		DiffStats: l.diff, NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(len(state.GetEfforts()) > 0),
+		Acp: state, DeviceId: l.srv.DeviceID,
 		UsageLimit: st.UsageLimit, KeepAwake: l.srv.keepAwake().Wanted(l.id),
 	}
 	l.mu.Unlock()
@@ -210,9 +211,14 @@ func (l *acpLive) close(reason string) {
 
 // storedAcpInfo is the listing of a recorded ACP session that is not open.
 func (s *Server) storedAcpInfo(m acpMeta) *agentv1.SessionInfo {
+	var efforts []acp.Effort
+	if c := s.AcpRegistry().State(m.AgentID).Catalog; c != nil {
+		efforts = c.Efforts
+	}
 	info := &agentv1.SessionInfo{Id: m.ID, Title: m.Title, Cwd: m.Cwd, Model: m.AgentName, Status: agentv1.SessionStatus_SESSION_STATUS_IDLE,
-		UpdatedAt: m.UpdatedAt.UTC().Format(time.RFC3339), NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(),
-		Acp: &agentv1.AcpSessionState{AgentId: m.AgentID, AgentName: m.AgentName, AgentVersion: m.AgentVersion}, DeviceId: s.DeviceID}
+		UpdatedAt: m.UpdatedAt.UTC().Format(time.RFC3339), NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(len(efforts) > 0),
+		Acp: &agentv1.AcpSessionState{AgentId: m.AgentID, AgentName: m.AgentName, AgentVersion: m.AgentVersion,
+			Efforts: acp.EffortsToProto(efforts), CurrentEffortId: m.Effort}, DeviceId: s.DeviceID}
 	s.applyState(info)
 	return info
 }
@@ -263,7 +269,7 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 		}
 		now := time.Now().UTC()
 		meta = acpMeta{ID: id, Engine: enginePrefix + agentID, AgentID: agentID, AgentName: name, AgentVersion: st.Installed.Version,
-			Model: strings.TrimSpace(req.GetModel()), Mode: strings.TrimSpace(req.GetAcpModeId()),
+			Model: strings.TrimSpace(req.GetModel()), Mode: strings.TrimSpace(req.GetAcpModeId()), Effort: strings.TrimSpace(req.GetAcpEffortId()),
 			Cwd: chat.cwd, NoFolder: chat.noFolder, CreatedAt: now, UpdatedAt: now}
 	}
 	if err := writeAcpMeta(meta); err != nil {
@@ -292,7 +298,7 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 	cfg := acp.Config{
 		AgentID: agentID, AgentName: name, AgentVersion: st.Installed.Version, Launch: launch,
 		Cwd: meta.Cwd, AdditionalDirs: opts.AdditionalDirs, Env: opts.Env, ResumeAgentSessionID: meta.AgentSessionID,
-		Model: name, InitialModel: meta.Model, InitialMode: meta.Mode, Sink: l, Logger: s.log(),
+		Model: name, InitialModel: meta.Model, InitialMode: meta.Mode, InitialEffort: meta.Effort, Sink: l, Logger: s.log(),
 		OnAuth: func(state registry.AuthState, methods []registry.AuthMethod) {
 			_ = reg.SetAuth(agentID, state, methods)
 		},
@@ -813,10 +819,24 @@ func (r acpRouted) RespondToPlan(ctx context.Context, req *connect.Request[agent
 }
 
 func (r acpRouted) SetEffort(ctx context.Context, req *connect.Request[agentv1.SetEffortRequest]) (*connect.Response[agentv1.SetEffortResponse], error) {
-	if r.isAcp(req.Msg.GetSessionId()) {
-		return nil, unsupported("Effort")
+	l, err := r.acpTarget(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, err
 	}
-	return r.routed.SetEffort(ctx, req)
+	if l == nil {
+		return r.routed.SetEffort(ctx, req)
+	}
+	level := req.Msg.GetLevelId()
+	if level == "" {
+		level = pbconv.FromEffort(req.Msg.GetEffort())
+	}
+	if err := l.effortRefusal(level); err != nil {
+		return nil, err
+	}
+	if err := l.sess.SetEffort(ctx, level); err != nil {
+		return nil, acpError(err)
+	}
+	return connect.NewResponse(&agentv1.SetEffortResponse{}), nil
 }
 
 func (r acpRouted) SetOutputStyle(ctx context.Context, req *connect.Request[agentv1.SetOutputStyleRequest]) (*connect.Response[agentv1.SetOutputStyleResponse], error) {

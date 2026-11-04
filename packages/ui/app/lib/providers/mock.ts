@@ -20,6 +20,7 @@ import type {
   ProvidersApi,
   PresetOptionView
 } from './types'
+import type { EffortName } from '~/lib/session/types'
 import { BUILTIN_SEARCH_ID, emptySlots } from './types'
 
 const TYPES = ['anthropic', 'openai-chat', 'openai-responses']
@@ -252,7 +253,7 @@ export class MockProvidersApi implements ProvidersApi {
         enabled: true,
         allowPrivateNetwork: false,
         editable: admin,
-        models: [{ id: 'claude-haiku', name: 'Claude Haiku 5.5', upstream: 'anthropic/claude-haiku-5.5', contextWindow: 200_000 }]
+        models: [{ id: 'claude-haiku', name: 'Claude Haiku 5.5', upstream: 'anthropic/claude-haiku-5.5', contextWindow: 200_000, efforts: ['low', 'medium', 'high'] }]
       },
       {
         id: 'openrouter-decisions',
@@ -411,7 +412,14 @@ export class MockProvidersApi implements ProvidersApi {
     if (p.group === 'search') throw new Error('Search providers serve no chat models')
     const id = p.scope === 'personal' ? `${p.id}/${m.upstream}` : m.id || m.upstream
     if (this.providers.some(x => x.models.some(y => y.id === id))) throw new Error(`Model ${id} already exists`)
-    p.models.push({ id, name: m.name || m.upstream, upstream: m.upstream, contextWindow: m.contextWindow || 128_000 })
+    p.models.push({ id, name: m.name || m.upstream, upstream: m.upstream, contextWindow: m.contextWindow || 128_000, efforts: [] })
+  }
+
+  async setModelEfforts(modelId: string, efforts: EffortName[]) {
+    const p = this.providers.find(x => x.models.some(m => m.id === modelId))
+    if (!p) throw new Error(`Model ${modelId} not found`)
+    this.writable(p.id)
+    p.models.find(m => m.id === modelId)!.efforts = efforts
   }
 
   async removeModel(modelId: string) {

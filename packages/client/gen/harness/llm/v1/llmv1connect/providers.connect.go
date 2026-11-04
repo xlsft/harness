@@ -60,6 +60,9 @@ const (
 	// ProviderServiceRemoveModelProcedure is the fully-qualified name of the ProviderService's
 	// RemoveModel RPC.
 	ProviderServiceRemoveModelProcedure = "/harness.llm.v1.ProviderService/RemoveModel"
+	// ProviderServiceSetModelEffortsProcedure is the fully-qualified name of the ProviderService's
+	// SetModelEfforts RPC.
+	ProviderServiceSetModelEffortsProcedure = "/harness.llm.v1.ProviderService/SetModelEfforts"
 	// ProviderServiceGetClassifierProcedure is the fully-qualified name of the ProviderService's
 	// GetClassifier RPC.
 	ProviderServiceGetClassifierProcedure = "/harness.llm.v1.ProviderService/GetClassifier"
@@ -113,6 +116,9 @@ type ProviderServiceClient interface {
 	// Same access as DiscoverModels.
 	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
+	// Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them.
+	// What is set here, also none, is kept: discovery only fills in what nobody set.
+	SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
 	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
 	// server default for everyone. Admin only.
@@ -201,6 +207,12 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(providerServiceMethods.ByName("RemoveModel")),
 			connect.WithClientOptions(opts...),
 		),
+		setModelEfforts: connect.NewClient[v1.SetModelEffortsRequest, v1.SetModelEffortsResponse](
+			httpClient,
+			baseURL+ProviderServiceSetModelEffortsProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("SetModelEfforts")),
+			connect.WithClientOptions(opts...),
+		),
 		getClassifier: connect.NewClient[v1.GetClassifierRequest, v1.GetClassifierResponse](
 			httpClient,
 			baseURL+ProviderServiceGetClassifierProcedure,
@@ -269,6 +281,7 @@ type providerServiceClient struct {
 	addModel         *connect.Client[v1.AddModelRequest, v1.AddModelResponse]
 	testProvider     *connect.Client[v1.TestProviderRequest, v1.TestProviderResponse]
 	removeModel      *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
+	setModelEfforts  *connect.Client[v1.SetModelEffortsRequest, v1.SetModelEffortsResponse]
 	getClassifier    *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
 	setClassifier    *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
 	getMyClassifier  *connect.Client[v1.GetMyClassifierRequest, v1.GetMyClassifierResponse]
@@ -323,6 +336,11 @@ func (c *providerServiceClient) TestProvider(ctx context.Context, req *connect.R
 // RemoveModel calls harness.llm.v1.ProviderService.RemoveModel.
 func (c *providerServiceClient) RemoveModel(ctx context.Context, req *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error) {
 	return c.removeModel.CallUnary(ctx, req)
+}
+
+// SetModelEfforts calls harness.llm.v1.ProviderService.SetModelEfforts.
+func (c *providerServiceClient) SetModelEfforts(ctx context.Context, req *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error) {
+	return c.setModelEfforts.CallUnary(ctx, req)
 }
 
 // GetClassifier calls harness.llm.v1.ProviderService.GetClassifier.
@@ -394,6 +412,9 @@ type ProviderServiceHandler interface {
 	// Same access as DiscoverModels.
 	TestProvider(context.Context, *connect.Request[v1.TestProviderRequest]) (*connect.Response[v1.TestProviderResponse], error)
 	RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error)
+	// Sets by hand the effort levels of a model of a provider the caller may change, for lists that do not report them.
+	// What is set here, also none, is kept: discovery only fills in what nobody set.
+	SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
 	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
 	// server default for everyone. Admin only.
@@ -478,6 +499,12 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 		connect.WithSchema(providerServiceMethods.ByName("RemoveModel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	providerServiceSetModelEffortsHandler := connect.NewUnaryHandler(
+		ProviderServiceSetModelEffortsProcedure,
+		svc.SetModelEfforts,
+		connect.WithSchema(providerServiceMethods.ByName("SetModelEfforts")),
+		connect.WithHandlerOptions(opts...),
+	)
 	providerServiceGetClassifierHandler := connect.NewUnaryHandler(
 		ProviderServiceGetClassifierProcedure,
 		svc.GetClassifier,
@@ -552,6 +579,8 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 			providerServiceTestProviderHandler.ServeHTTP(w, r)
 		case ProviderServiceRemoveModelProcedure:
 			providerServiceRemoveModelHandler.ServeHTTP(w, r)
+		case ProviderServiceSetModelEffortsProcedure:
+			providerServiceSetModelEffortsHandler.ServeHTTP(w, r)
 		case ProviderServiceGetClassifierProcedure:
 			providerServiceGetClassifierHandler.ServeHTTP(w, r)
 		case ProviderServiceSetClassifierProcedure:
@@ -613,6 +642,10 @@ func (UnimplementedProviderServiceHandler) TestProvider(context.Context, *connec
 
 func (UnimplementedProviderServiceHandler) RemoveModel(context.Context, *connect.Request[v1.RemoveModelRequest]) (*connect.Response[v1.RemoveModelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.RemoveModel is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetModelEfforts is not implemented"))
 }
 
 func (UnimplementedProviderServiceHandler) GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error) {

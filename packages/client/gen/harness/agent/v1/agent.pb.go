@@ -2009,7 +2009,9 @@ type CreateSessionRequest struct {
 	// On an ACP agent, `model` is one of AcpAgent.models; effort and permission_mode do not apply.
 	Engine string `protobuf:"bytes,13,opt,name=engine,proto3" json:"engine,omitempty"`
 	// On an ACP agent: the mode to start in, one of AcpAgent.modes (empty: the agent's default).
-	AcpModeId     string `protobuf:"bytes,14,opt,name=acp_mode_id,json=acpModeId,proto3" json:"acp_mode_id,omitempty"`
+	AcpModeId string `protobuf:"bytes,14,opt,name=acp_mode_id,json=acpModeId,proto3" json:"acp_mode_id,omitempty"`
+	// On an ACP agent: the effort to start on, one of AcpAgent.efforts (empty: the agent's default).
+	AcpEffortId   string `protobuf:"bytes,15,opt,name=acp_effort_id,json=acpEffortId,proto3" json:"acp_effort_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2138,6 +2140,13 @@ func (x *CreateSessionRequest) GetEngine() string {
 func (x *CreateSessionRequest) GetAcpModeId() string {
 	if x != nil {
 		return x.AcpModeId
+	}
+	return ""
+}
+
+func (x *CreateSessionRequest) GetAcpEffortId() string {
+	if x != nil {
+		return x.AcpEffortId
 	}
 	return ""
 }
@@ -6932,9 +6941,11 @@ func (*SetAutoContinueResponse) Descriptor() ([]byte, []int) {
 }
 
 type SetEffortRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Effort        v1.Effort              `protobuf:"varint,2,opt,name=effort,proto3,enum=harness.llm.v1.Effort" json:"effort,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Effort    v1.Effort              `protobuf:"varint,2,opt,name=effort,proto3,enum=harness.llm.v1.Effort" json:"effort,omitempty"`
+	// A session on an ACP agent: one of AcpSessionState.efforts. Empty there: the level named like `effort`, if any.
+	LevelId       string `protobuf:"bytes,3,opt,name=level_id,json=levelId,proto3" json:"level_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6981,6 +6992,13 @@ func (x *SetEffortRequest) GetEffort() v1.Effort {
 		return x.Effort
 	}
 	return v1.Effort(0)
+}
+
+func (x *SetEffortRequest) GetLevelId() string {
+	if x != nil {
+		return x.LevelId
+	}
+	return ""
 }
 
 type SetEffortResponse struct {
@@ -10396,7 +10414,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"STATE_OPEN\x10\x01\x12\x0f\n" +
 	"\vSTATE_DRAFT\x10\x02\x12\x10\n" +
 	"\fSTATE_MERGED\x10\x03\x12\x10\n" +
-	"\fSTATE_CLOSED\x10\x04\"\xd9\x04\n" +
+	"\fSTATE_CLOSED\x10\x04\"\xfd\x04\n" +
 	"\x14CreateSessionRequest\x12\x10\n" +
 	"\x03cwd\x18\x01 \x01(\tR\x03cwd\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12I\n" +
@@ -10412,7 +10430,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x15fork_at_checkpoint_id\x18\v \x01(\tR\x12forkAtCheckpointId\x12B\n" +
 	"\bworktree\x18\f \x01(\v2!.harness.agent.v1.WorktreeOptionsH\x00R\bworktree\x88\x01\x01\x12\x16\n" +
 	"\x06engine\x18\r \x01(\tR\x06engine\x12\x1e\n" +
-	"\vacp_mode_id\x18\x0e \x01(\tR\tacpModeIdB\v\n" +
+	"\vacp_mode_id\x18\x0e \x01(\tR\tacpModeId\x12\"\n" +
+	"\racp_effort_id\x18\x0f \x01(\tR\vacpEffortIdB\v\n" +
 	"\t_worktree\"X\n" +
 	"\x0fWorktreeOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
@@ -10841,11 +10860,12 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"\x19\n" +
-	"\x17SetAutoContinueResponse\"a\n" +
+	"\x17SetAutoContinueResponse\"|\n" +
 	"\x10SetEffortRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12.\n" +
-	"\x06effort\x18\x02 \x01(\x0e2\x16.harness.llm.v1.EffortR\x06effort\"\x13\n" +
+	"\x06effort\x18\x02 \x01(\x0e2\x16.harness.llm.v1.EffortR\x06effort\x12\x19\n" +
+	"\blevel_id\x18\x03 \x01(\tR\alevelId\"\x13\n" +
 	"\x11SetEffortResponse\"o\n" +
 	"\x18SetPermissionModeRequest\x12\x1d\n" +
 	"\n" +

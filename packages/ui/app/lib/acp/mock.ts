@@ -1,8 +1,8 @@
 // MockAcpApi: a few registry agents with install and sign-in states, for the mock transport.
 //
 // - claude-acp: installed (npx), needs a sign-in (an agent method and a terminal login), then lists its models;
-// - codex-acp: installed (npx), signed in with its models known, reports subscription limits (5h window at 42%,
-//   weekly at 18%);
+// - codex-acp: installed (npx), signed in with its models known, has effort levels under its own names, reports
+//   subscription limits (5h window at 42%, weekly at 18%);
 // - gemini: not installed (npx); goose: not installed (binary, downloads with progress);
 // - fast-agent: unavailable (uv is not on PATH).
 // Installs stream progress on a timer; an agent sign-in succeeds at once, a terminal login returns the command
@@ -15,6 +15,7 @@ import {
   AcpAuthMethod_Kind,
   AcpAuthState,
   AcpDistribution,
+  AcpEffortSchema,
   AcpModeSchema,
   AcpModelSchema,
   AcpModelsStatus,
@@ -35,13 +36,15 @@ const CDN = 'https://cdn.agentclientprotocol.com/registry/v1/latest'
 
 export const ACP_SWITCH_REFUSAL = 'Start a new session to use this agent'
 
-// What a session on an agent cannot do (the client's acp.UnsupportedFeatures).
-export const ACP_UNSUPPORTED = [
-  SessionFeature.REWIND, SessionFeature.FORK, SessionFeature.SUB_SESSIONS, SessionFeature.SIDE_CHAT, SessionFeature.COMPACTION,
-  SessionFeature.CONTEXT_BREAKDOWN, SessionFeature.CLASSIFIER, SessionFeature.EFFORT, SessionFeature.OUTPUT_STYLES,
-  SessionFeature.SHELL_COMMANDS, SessionFeature.BACKGROUND_TASKS, SessionFeature.MODEL_CATALOG, SessionFeature.QUESTIONS,
-  SessionFeature.MOVE_FOLDER, SessionFeature.WORKTREE
-]
+// What a session on an agent cannot do (the client's acp.UnsupportedFeatures): effort only without an option for it.
+export function acpUnsupported(effort: boolean) {
+  return [
+    SessionFeature.REWIND, SessionFeature.FORK, SessionFeature.SUB_SESSIONS, SessionFeature.SIDE_CHAT, SessionFeature.COMPACTION,
+    SessionFeature.CONTEXT_BREAKDOWN, SessionFeature.CLASSIFIER, ...(effort ? [] : [SessionFeature.EFFORT]), SessionFeature.OUTPUT_STYLES,
+    SessionFeature.SHELL_COMMANDS, SessionFeature.BACKGROUND_TASKS, SessionFeature.MODEL_CATALOG, SessionFeature.QUESTIONS,
+    SessionFeature.MOVE_FOLDER, SessionFeature.WORKTREE
+  ]
+}
 
 // What each agent reports once it runs: its models and modes.
 const MODELS: Record<string, { id: string, name: string, description?: string }[]> = {
@@ -53,6 +56,11 @@ const MODES: Record<string, { id: string, name: string }[]> = {
   'codex-acp': [{ id: 'read-only', name: 'Read Only' }, { id: 'auto', name: 'Auto' }, { id: 'full-access', name: 'Full Access' }]
 }
 const CURRENT_MODE: Record<string, string> = { 'claude-acp': 'default', 'codex-acp': 'auto' }
+// The effort levels an agent offers, under its own names; the others have no effort option.
+const EFFORTS: Record<string, { id: string, name: string, description?: string }[]> = {
+  'codex-acp': [{ id: 'quick', name: 'Quick' }, { id: 'balanced', name: 'Balanced' }, { id: 'deep', name: 'Think deeply' }]
+}
+const CURRENT_EFFORT: Record<string, string> = { 'codex-acp': 'balanced' }
 
 export interface MockAcpHooks {
   now?: () => number
@@ -67,8 +75,10 @@ export interface MockAcpHooks {
 // An installed agent that answered a probe.
 function reported(id: string, now: number) {
   const models = (MODELS[id] ?? [{ id: 'default', name: 'Default' }]).map(m => create(AcpModelSchema, m))
+  const efforts = (EFFORTS[id] ?? []).map(e => create(AcpEffortSchema, e))
   return {
     selectable: true, models, currentModelId: models[0]!.id, modes: (MODES[id] ?? []).map(m => create(AcpModeSchema, m)), currentModeId: CURRENT_MODE[id] ?? '',
+    efforts, currentEffortId: CURRENT_EFFORT[id] ?? '', unsupportedFeatures: acpUnsupported(efforts.length > 0),
     modelsStatus: AcpModelsStatus.OK, modelsUpdatedAt: new Date(now - 60_000).toISOString()
   }
 }
@@ -95,7 +105,7 @@ export class MockAcpApi implements AcpApi {
     const now = this.now()
     const agent = (a: MessageInitShape<typeof AcpAgentSchema> & { id: string, name: string }) => create(AcpAgentSchema, {
       engine: `acp:${a.id}`, iconUrl: `${CDN}/${a.id}.svg`, iconSvg: ICON(a.name[0]!), available: true, authState: AcpAuthState.UNKNOWN,
-      modelsStatus: AcpModelsStatus.NOT_PROBED, unsupportedFeatures: ACP_UNSUPPORTED, ...a
+      modelsStatus: AcpModelsStatus.NOT_PROBED, unsupportedFeatures: acpUnsupported(false), ...a
     })
     for (const a of [
       agent({
@@ -160,6 +170,8 @@ export class MockAcpApi implements AcpApi {
       // An agent without a model option has the single entry the client lists for it.
       models: MODELS[agentId] ?? [{ id: 'default', name: 'Default' }],
       currentModelId: (MODELS[agentId] ?? [{ id: 'default' }])[0]!.id,
+      efforts: EFFORTS[agentId] ?? [],
+      currentEffortId: CURRENT_EFFORT[agentId] ?? '',
       limits: a.limits
     })
   }

@@ -44,16 +44,18 @@ func ModelsOrDefault(models []Model) []Model {
 
 // Probe is what a model probe learned about an agent.
 type Probe struct {
-	Models       []Model
-	CurrentModel string
-	Modes        []Mode
-	CurrentMode  string
+	Models        []Model
+	CurrentModel  string
+	Modes         []Mode
+	CurrentMode   string
+	Efforts       []Effort
+	CurrentEffort string
 }
 
 // ProbeModels finds out an agent's models and modes: it starts the agent in cfg.Cwd, creates a session, reads its
 // config options and closes it. No prompt is sent. ErrAuthRequired when the agent asks for a sign-in first.
 func ProbeModels(ctx context.Context, cfg Config) (Probe, error) {
-	cfg.ResumeAgentSessionID, cfg.InitialModel, cfg.InitialMode = "", "", ""
+	cfg.ResumeAgentSessionID, cfg.InitialModel, cfg.InitialMode, cfg.InitialEffort = "", "", "", ""
 	cfg.Sink, cfg.OnLimits, cfg.OnAgentSession = nil, nil, nil
 	s := New(cfg)
 	defer s.Close()
@@ -62,7 +64,8 @@ func ProbeModels(ctx context.Context, cfg Config) (Probe, error) {
 	}
 	s.closeAgentSession(ctx)
 	st := s.State()
-	return Probe{Models: ModelsOrDefault(st.Models), CurrentModel: st.CurrentModel, Modes: st.Modes, CurrentMode: st.CurrentMode}, nil
+	return Probe{Models: ModelsOrDefault(st.Models), CurrentModel: st.CurrentModel, Modes: st.Modes, CurrentMode: st.CurrentMode,
+		Efforts: st.Efforts, CurrentEffort: st.CurrentEffort}, nil
 }
 
 // closeAgentSession ends the agent's session when the agent supports session/close, so that a probe leaves no
@@ -90,6 +93,7 @@ func StateToProto(cfg Config, st State) *agentv1.AcpSessionState {
 		Starting: st.Starting, CurrentModelId: st.CurrentModel, Limits: LimitsToProto(st.Limits),
 	}
 	out.Modes = ModesToProto(st.Modes)
+	out.Efforts, out.CurrentEffortId = EffortsToProto(st.Efforts), st.CurrentEffort
 	for _, c := range st.Commands {
 		out.Commands = append(out.Commands, &agentv1.AcpCommand{Name: c.Name, Description: c.Description, InputHint: c.InputHint})
 	}
@@ -114,6 +118,15 @@ func ModelsToProto(models []Model) []*agentv1.AcpModel {
 	return out
 }
 
+// EffortsToProto converts effort levels.
+func EffortsToProto(efforts []Effort) []*agentv1.AcpEffort {
+	var out []*agentv1.AcpEffort
+	for _, e := range efforts {
+		out = append(out, &agentv1.AcpEffort{Id: e.ID, Name: e.Name, Description: e.Description})
+	}
+	return out
+}
+
 // ModesToProto converts session modes.
 func ModesToProto(modes []Mode) []*agentv1.AcpMode {
 	var out []*agentv1.AcpMode
@@ -126,9 +139,10 @@ func ModesToProto(modes []Mode) []*agentv1.AcpMode {
 // Config returns the session's configuration.
 func (s *Session) Config() Config { return s.cfg }
 
-// UnsupportedFeatures are the harness features an ACP session does not have.
-func UnsupportedFeatures() []agentv1.SessionFeature {
-	return []agentv1.SessionFeature{
+// UnsupportedFeatures are the harness features an ACP session does not have. Effort depends on the agent: it has it
+// with an effort option of its own (effort).
+func UnsupportedFeatures(effort bool) []agentv1.SessionFeature {
+	out := []agentv1.SessionFeature{
 		agentv1.SessionFeature_SESSION_FEATURE_REWIND,
 		agentv1.SessionFeature_SESSION_FEATURE_FORK,
 		agentv1.SessionFeature_SESSION_FEATURE_SUB_SESSIONS,
@@ -136,7 +150,6 @@ func UnsupportedFeatures() []agentv1.SessionFeature {
 		agentv1.SessionFeature_SESSION_FEATURE_COMPACTION,
 		agentv1.SessionFeature_SESSION_FEATURE_CONTEXT_BREAKDOWN,
 		agentv1.SessionFeature_SESSION_FEATURE_CLASSIFIER,
-		agentv1.SessionFeature_SESSION_FEATURE_EFFORT,
 		agentv1.SessionFeature_SESSION_FEATURE_OUTPUT_STYLES,
 		agentv1.SessionFeature_SESSION_FEATURE_SHELL_COMMANDS,
 		agentv1.SessionFeature_SESSION_FEATURE_BACKGROUND_TASKS,
@@ -145,6 +158,10 @@ func UnsupportedFeatures() []agentv1.SessionFeature {
 		agentv1.SessionFeature_SESSION_FEATURE_MOVE_FOLDER,
 		agentv1.SessionFeature_SESSION_FEATURE_WORKTREE,
 	}
+	if !effort {
+		out = append(out, agentv1.SessionFeature_SESSION_FEATURE_EFFORT)
+	}
+	return out
 }
 
 // AuthStateToProto converts a stored sign-in state.

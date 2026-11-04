@@ -174,7 +174,19 @@ describe('the session store and ACP agents', () => {
     expect(meta.engine).toBe('acp:codex-acp')
     expect(meta.acp?.currentModelId).toBe('gpt-5.2')
     expect(meta.acp?.currentModeId).toBe('read-only')
-    expect(meta.unsupported).toEqual(expect.arrayContaining(['rewind', 'fork', 'side_chat', 'effort', 'worktree', 'shell_commands']))
+    expect(meta.unsupported).toEqual(expect.arrayContaining(['rewind', 'fork', 'side_chat', 'worktree', 'shell_commands']))
+    expect(meta.unsupported).not.toContain('effort')
+  })
+
+  it('shows an agent\'s effort level at once and takes it back when the client refuses', async () => {
+    const { store } = await setup()
+    const id = await store.createSession({ cwd: '/tmp/p', engine: 'acp:codex-acp', acpEffortId: 'deep' })
+    expect(store.sessions[id]!.meta.acp?.currentEffortId).toBe('deep')
+    await store.setAcpEffort(id, 'quick')
+    expect(store.sessions[id]!.meta.acp?.currentEffortId).toBe('quick')
+    await store.setAcpEffort(id, 'medium')
+    expect(store.sessions[id]!.meta.acp?.currentEffortId).toBe('quick')
+    expect(store.error).toMatch(/no effort level "medium"/)
   })
 
   it('shows a model or mode at once and takes it back when the client refuses', async () => {

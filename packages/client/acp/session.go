@@ -46,11 +46,11 @@ type Config struct {
 	ResumeAgentSessionID string
 	// Model is shown as the model of turns and messages; the agent name when empty.
 	Model string
-	// InitialModel and InitialMode are the agent's model and mode to start on; the agent's defaults when empty.
-	// One the agent no longer offers leaves its default in place, with a notice.
-	InitialModel, InitialMode string
-	Sink                      Sink
-	Logger                    *slog.Logger
+	// InitialModel, InitialMode and InitialEffort are the agent's model, mode and effort to start on; the agent's
+	// defaults when empty. One the agent no longer offers leaves its default in place, with a notice.
+	InitialModel, InitialMode, InitialEffort string
+	Sink                                     Sink
+	Logger                                   *slog.Logger
 	// OnAuth records what was learned about the agent's sign-in (device-local state).
 	OnAuth func(state registry.AuthState, methods []registry.AuthMethod)
 	// OnLimits records a subscription-limit snapshot the agent reported (device-local state).
@@ -70,6 +70,9 @@ type Command struct{ Name, Description, InputHint string }
 // Model is one of the agent's model choices.
 type Model = registry.Model
 
+// Effort is one of the agent's effort levels.
+type Effort = registry.Effort
+
 // State is a snapshot of the engine.
 type State struct {
 	Status         agentv1.SessionStatus
@@ -82,6 +85,8 @@ type State struct {
 	Commands       []Command
 	Models         []Model
 	CurrentModel   string
+	Efforts        []Effort
+	CurrentEffort  string
 	ContextUsed    int64
 	ContextSize    int64
 	AgentSessionID string
@@ -155,9 +160,13 @@ type Session struct {
 	models    []Model
 	curModel  string
 	modelOpt  string
-	// wantModel and wantMode are the choices to apply once the agent session is open.
+	efforts   []Effort
+	curEffort string
+	effortOpt string
+	// wantModel, wantMode and wantEffort are the choices to apply once the agent session is open.
 	wantModel  string
 	wantMode   string
+	wantEffort string
 	ctxUsed    int64
 	ctxSize    int64
 	title      string
@@ -187,7 +196,7 @@ func New(cfg Config) *Session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Session{cfg: cfg, log: cfg.Logger, ctx: ctx, cancel: cancel, wake: make(chan struct{}, 1),
 		tools: map[string]*toolState{}, perms: map[string]*pendingPerm{}, writes: map[string]writeRecord{}, starting: true,
-		wantModel: cfg.InitialModel, wantMode: cfg.InitialMode}
+		wantModel: cfg.InitialModel, wantMode: cfg.InitialMode, wantEffort: cfg.InitialEffort}
 	if s.log == nil {
 		s.log = slog.Default()
 	}
@@ -271,7 +280,7 @@ func (s *Session) State() State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st := State{Starting: s.starting, NeedsAuth: s.needsAuth, AuthMethods: s.authM, StartError: s.startErr,
-		Modes: s.modes, CurrentMode: s.curMode, Commands: s.commands, Models: s.models, CurrentModel: s.curModel,
+		Modes: s.modes, CurrentMode: s.curMode, Commands: s.commands, Models: s.models, CurrentModel: s.curModel, Efforts: s.efforts, CurrentEffort: s.curEffort,
 		ContextUsed: s.ctxUsed, ContextSize: s.ctxSize, AgentSessionID: string(s.sessionID), LoadSupported: s.caps.LoadSession,
 		Fresh: s.fresh, Title: s.title, Limits: s.limits, UsageLimit: s.usageLimit}
 	if s.wantModel != "" {
@@ -279,6 +288,9 @@ func (s *Session) State() State {
 	}
 	if s.wantMode != "" {
 		st.CurrentMode = s.wantMode
+	}
+	if s.wantEffort != "" {
+		st.CurrentEffort = s.wantEffort
 	}
 	for _, q := range s.queue {
 		st.Queue = append(st.Queue, &agentv1.UserMessage{Uuid: q.uuid, Content: q.content, QueuedAt: q.queuedAt.UTC().Format(time.RFC3339Nano)})
@@ -485,7 +497,7 @@ func (s *Session) openSession(ctx context.Context) error {
 	s.ready, s.needsAuth = true, false
 	id := string(s.sessionID)
 	methods := s.authM
-	again := s.wantModel != "" || s.wantMode != ""
+	again := s.wantModel != "" || s.wantMode != "" || s.wantEffort != ""
 	s.mu.Unlock()
 	if again {
 		s.applyWanted(octx, p)
@@ -595,35 +607,54 @@ func (s *Session) applyModesLocked(m *sdk.SessionModeState) {
 	s.curMode = string(m.CurrentModeId)
 }
 
-// applyConfigLocked picks the model option out of the agent's config options.
+// applyConfigLocked picks the model and effort options out of the agent's config options. Each report is the agent's
+// whole set, so an effort option that is not in it is gone (another model may have none); no report changes nothing.
 func (s *Session) applyConfigLocked(opts []sdk.SessionConfigOption) {
-	for _, o := range opts {
-		sel := o.Select
-		if sel == nil || sel.Category == nil || *sel.Category != sdk.SessionConfigOptionCategoryModel {
-			continue
-		}
-		s.modelOpt, s.curModel, s.models = string(sel.Id), string(sel.CurrentValue), nil
-		add := func(o sdk.SessionConfigSelectOption) {
-			d := ""
-			if o.Description != nil {
-				d = *o.Description
-			}
-			s.models = append(s.models, Model{ID: string(o.Value), Name: o.Name, Description: d})
-		}
-		if u := sel.Options.Ungrouped; u != nil {
-			for _, o := range *u {
-				add(o)
-			}
-		}
-		if g := sel.Options.Grouped; g != nil {
-			for _, grp := range *g {
-				for _, o := range grp.Options {
-					add(o)
-				}
-			}
-		}
+	if len(opts) == 0 {
 		return
 	}
+	s.effortOpt, s.curEffort, s.efforts = "", "", nil
+	model := false
+	for _, o := range opts {
+		sel := o.Select
+		if sel == nil || sel.Category == nil {
+			continue
+		}
+		switch {
+		case *sel.Category == sdk.SessionConfigOptionCategoryModel && !model:
+			model = true
+			s.modelOpt, s.curModel, s.models = string(sel.Id), string(sel.CurrentValue), nil
+			for _, c := range selectChoices(sel) {
+				s.models = append(s.models, Model{ID: string(c.Value), Name: c.Name, Description: choiceDescription(c)})
+			}
+		case *sel.Category == sdk.SessionConfigOptionCategoryThoughtLevel && s.effortOpt == "":
+			s.effortOpt, s.curEffort = string(sel.Id), string(sel.CurrentValue)
+			for _, c := range selectChoices(sel) {
+				s.efforts = append(s.efforts, Effort{ID: string(c.Value), Name: c.Name, Description: choiceDescription(c)})
+			}
+		}
+	}
+}
+
+// selectChoices lists a select option's choices, grouped or not.
+func selectChoices(sel *sdk.SessionConfigOptionSelect) []sdk.SessionConfigSelectOption {
+	var out []sdk.SessionConfigSelectOption
+	if u := sel.Options.Ungrouped; u != nil {
+		out = append(out, *u...)
+	}
+	if g := sel.Options.Grouped; g != nil {
+		for _, grp := range *g {
+			out = append(out, grp.Options...)
+		}
+	}
+	return out
+}
+
+func choiceDescription(c sdk.SessionConfigSelectOption) string {
+	if c.Description != nil {
+		return *c.Description
+	}
+	return ""
 }
 
 // waitingToOpenLocked reports whether a choice can still wait for the agent session: it starts or waits for a sign-in.
@@ -631,12 +662,13 @@ func (s *Session) waitingToOpenLocked() bool {
 	return !s.ready && !s.closed && (s.starting || s.needsAuth)
 }
 
-// applyWanted applies the model and mode chosen before the agent session opened. What cannot be applied becomes a
+// applyWanted applies the model, mode and effort chosen before the agent session opened: the effort last, since the
+// levels can depend on the model. What cannot be applied becomes a
 // notice: the session runs on the agent's default rather than not at all.
 func (s *Session) applyWanted(ctx context.Context, p *process) {
 	s.mu.Lock()
-	model, mode := s.wantModel, s.wantMode
-	s.wantModel, s.wantMode = "", ""
+	model, mode, effort := s.wantModel, s.wantMode, s.wantEffort
+	s.wantModel, s.wantMode, s.wantEffort = "", "", ""
 	cur, curMode, opt := s.curModel, s.curMode, s.modelOpt
 	offered := hasModel(s.models, model)
 	offeredMode := false
@@ -666,6 +698,20 @@ func (s *Session) applyWanted(ctx context.Context, p *process) {
 		}
 	}
 	s.mu.Lock()
+	curEffort := s.curEffort
+	offeredEffort := hasEffort(s.efforts, effort)
+	s.mu.Unlock()
+	if effort != "" && effort != curEffort {
+		switch {
+		case !offeredEffort:
+			s.Notice(agentv1.Notice_LEVEL_WARNING, "acp_effort_unavailable", fmt.Sprintf("%s does not offer the effort %s any more; the session uses its default.", name, effort))
+		default:
+			if err := s.setEffortOption(ctx, p, effort); err != nil {
+				s.Notice(agentv1.Notice_LEVEL_WARNING, "acp_effort_unavailable", fmt.Sprintf("%s could not switch to the effort %s: %v", name, effort, err))
+			}
+		}
+	}
+	s.mu.Lock()
 	s.changedLocked()
 	s.unlock()
 }
@@ -673,6 +719,15 @@ func (s *Session) applyWanted(ctx context.Context, p *process) {
 func hasModel(models []Model, id string) bool {
 	for _, m := range models {
 		if m.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func hasEffort(efforts []Effort, id string) bool {
+	for _, e := range efforts {
+		if e.ID == id {
 			return true
 		}
 	}
@@ -703,6 +758,24 @@ func (s *Session) setModelOption(ctx context.Context, p *process, modelID string
 	}
 	s.mu.Lock()
 	s.curModel = modelID
+	s.applyConfigLocked(res.ConfigOptions)
+	s.changedLocked()
+	s.unlock()
+	return nil
+}
+
+// setEffortOption sets the agent's effort config option.
+func (s *Session) setEffortOption(ctx context.Context, p *process, effortID string) error {
+	s.mu.Lock()
+	id, opt := s.sessionID, s.effortOpt
+	s.mu.Unlock()
+	res, err := p.conn.SetSessionConfigOption(ctx, sdk.SetSessionConfigOptionRequest{ValueId: &sdk.SetSessionConfigOptionValueId{
+		SessionId: id, ConfigId: sdk.SessionConfigId(opt), Value: sdk.SessionConfigValueId(effortID)}})
+	if err != nil {
+		return p.failure(ctx, err)
+	}
+	s.mu.Lock()
+	s.curEffort = effortID
 	s.applyConfigLocked(res.ConfigOptions)
 	s.changedLocked()
 	s.unlock()
@@ -781,6 +854,31 @@ func (s *Session) SetModel(ctx context.Context, modelID string) error {
 		return fmt.Errorf("%s has no model %q", s.cfg.AgentName, modelID)
 	}
 	return s.setModelOption(ctx, p, modelID)
+}
+
+// SetEffort picks one of the agent's effort levels (its thought-level config option). While the agent session is not
+// open yet, the choice waits for it.
+func (s *Session) SetEffort(ctx context.Context, effortID string) error {
+	s.mu.Lock()
+	if s.waitingToOpenLocked() {
+		s.wantEffort = effortID
+		s.changedLocked()
+		s.unlock()
+		return nil
+	}
+	p, ready, opt := s.proc, s.ready, s.effortOpt
+	known := hasEffort(s.efforts, effortID)
+	s.mu.Unlock()
+	if !ready || p == nil {
+		return ErrNotReady
+	}
+	if opt == "" {
+		return fmt.Errorf("%s does not offer effort levels", s.cfg.AgentName)
+	}
+	if !known {
+		return fmt.Errorf("%s has no effort level %q", s.cfg.AgentName, effortID)
+	}
+	return s.setEffortOption(ctx, p, effortID)
 }
 
 // ---- prompts ----

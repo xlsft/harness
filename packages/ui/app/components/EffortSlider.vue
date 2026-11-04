@@ -1,15 +1,13 @@
 <script setup lang="ts">
-// Effort as a slider over the levels the model offers (lowest first): a thick track with a square thumb inside
-// it. Click, drag or use the arrow keys.
-import type { EffortName } from '~/lib/session/types'
-import { EFFORT_LABEL } from '~/utils/composer'
+// Effort as a slider over the levels the model or agent offers (lowest first, an agent's in its order): a thick track
+// with a square thumb inside it. Click, drag or use the arrow keys.
+import type { EffortLevel } from '~/utils/composer'
 
-const props = defineProps<{ levels: EffortName[] }>()
-const model = defineModel<EffortName>({ required: true })
+const props = defineProps<{ levels: EffortLevel[] }>()
+const model = defineModel<string>({ required: true })
 
-const LABEL = EFFORT_LABEL
-
-const index = computed(() => Math.max(0, props.levels.indexOf(model.value)))
+const index = computed(() => Math.max(0, props.levels.findIndex(l => l.id === model.value)))
+const label = computed(() => props.levels.find(l => l.id === model.value)?.label ?? model.value)
 const last = computed(() => props.levels.length - 1)
 // The thumb's left edge, as a share of the track minus the thumb.
 const share = (i: number) => (last.value ? i / last.value : 0)
@@ -20,7 +18,7 @@ function pickAt(clientX: number) {
   const r = track.value?.getBoundingClientRect()
   if (!r || !props.levels.length) return
   const i = Math.round(Math.min(1, Math.max(0, (clientX - r.left) / r.width)) * last.value)
-  model.value = props.levels[i]!
+  model.value = props.levels[i]!.id
 }
 function onDown(e: PointerEvent) {
   pickAt(e.clientX)
@@ -36,7 +34,7 @@ function onKey(e: KeyboardEvent) {
   const step = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -1 : 0
   if (!step) return
   e.preventDefault()
-  model.value = props.levels[Math.min(last.value, Math.max(0, index.value + step))]!
+  model.value = props.levels[Math.min(last.value, Math.max(0, index.value + step))]!.id
 }
 </script>
 
@@ -44,7 +42,7 @@ function onKey(e: KeyboardEvent) {
   <div class="flex w-[220px] flex-col gap-2 p-2.5">
     <div class="flex items-baseline justify-between text-[11.5px]">
       <span class="text-muted">Effort</span>
-      <span :class="atMax ? 'text-accent' : 'text-strong'">{{ LABEL[model] }}</span>
+      <span :class="atMax ? 'text-accent' : 'text-strong'">{{ label }}</span>
     </div>
     <div
       ref="track"
@@ -54,7 +52,7 @@ function onKey(e: KeyboardEvent) {
       :aria-valuemin="0"
       :aria-valuemax="last"
       :aria-valuenow="index"
-      :aria-valuetext="LABEL[model]"
+      :aria-valuetext="label"
       class="relative h-3.5 cursor-pointer touch-none overflow-hidden rounded-control bg-line outline-none focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-accent"
       @pointerdown="onDown"
       @keydown="onKey"

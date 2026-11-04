@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -485,5 +486,80 @@ func TestUsageLimitPassthrough(t *testing.T) {
 	}
 	if last := evs[len(evs)-1]; last.GetTurnFinished() == nil {
 		t.Fatalf("REACHED must come before TurnFinished: %v", last)
+	}
+}
+
+func TestEffortOption(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "efforts")
+	if err := os.WriteFile(file, []byte("think=Think\nultra=Ultrathink\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, _, _ := newTestSession(t, "FAKE_EFFORTS_FILE="+file)
+	if err := s.SetEffort(context.Background(), "ultra"); err != nil {
+		t.Fatal(err) // Not open yet: waits for the agent.
+	}
+	if st := s.State(); st.CurrentEffort != "ultra" {
+		t.Fatalf("state: %+v", st)
+	}
+	if err := s.Open(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	st := s.State()
+	if st.CurrentEffort != "ultra" || len(st.Efforts) != 2 || st.Efforts[1] != (Effort{ID: "ultra", Name: "Ultrathink"}) {
+		t.Fatalf("state: %+v", st)
+	}
+	// Ids are the agent's: the names harness has for its levels are not levels here.
+	if err := s.SetEffort(context.Background(), "medium"); err == nil || !strings.Contains(err.Error(), `no effort level "medium"`) {
+		t.Fatalf("set: %v", err)
+	}
+	if err := s.SetEffort(context.Background(), "think"); err != nil {
+		t.Fatal(err)
+	}
+	if st := s.State(); st.CurrentEffort != "think" {
+		t.Fatalf("state: %+v", st)
+	}
+	// A report without any options says nothing about them.
+	s.mu.Lock()
+	s.applyConfigLocked(nil)
+	kept := s.effortOpt != ""
+	s.mu.Unlock()
+	if !kept {
+		t.Fatal("no report took the option away")
+	}
+}
+
+func TestEffortNoLongerOfferedFallsBackWithANotice(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "efforts")
+	if err := os.WriteFile(file, []byte("think=Think\ndeep=Deep\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rec := &recorder{}
+	s := New(Config{AgentID: "fake", AgentName: "Fake", Launch: registry.Launch{Command: fakeAgentBin}, Cwd: t.TempDir(),
+		Env: []string{"FAKE_EFFORTS_FILE=" + file}, Sink: rec, InitialEffort: "ultra"})
+	defer s.Close()
+	if err := s.Open(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if st := s.State(); st.CurrentEffort != "think" {
+		t.Fatalf("state: %+v", st)
+	}
+	rec.waitFor(t, "the notice", func(evs []*agentv1.SessionEvent) bool {
+		return count(evs, func(e *agentv1.SessionEvent) bool { return e.GetNotice().GetKind() == "acp_effort_unavailable" }) == 1
+	})
+}
+
+func TestAgentWithoutEffortOptionRefuses(t *testing.T) {
+	s, _, _ := newTestSession(t)
+	if err := s.Open(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if st := s.State(); len(st.Efforts) != 0 || st.CurrentEffort != "" {
+		t.Fatalf("state: %+v", st)
+	}
+	if err := s.SetEffort(context.Background(), "think"); err == nil || !strings.Contains(err.Error(), "does not offer effort levels") {
+		t.Fatalf("set: %v", err)
+	}
+	if !slices.Contains(UnsupportedFeatures(false), agentv1.SessionFeature_SESSION_FEATURE_EFFORT) || slices.Contains(UnsupportedFeatures(true), agentv1.SessionFeature_SESSION_FEATURE_EFFORT) {
+		t.Fatal("features")
 	}
 }

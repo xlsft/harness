@@ -39,7 +39,7 @@ enum SessionFeature {
   SESSION_FEATURE_CONTEXT_BREAKDOWN = 6;
   // The harness auto-mode classifier (PERMISSION_MODE_AUTO).
   SESSION_FEATURE_CLASSIFIER = 7;
-  // SetEffort.
+  // SetEffort. An ACP agent has it when it offers an effort option (AcpSessionState.efforts).
   SESSION_FEATURE_EFFORT = 8;
   // SetOutputStyle / ListOutputStyles.
   SESSION_FEATURE_OUTPUT_STYLES = 9;
@@ -172,6 +172,10 @@ message AcpAgent {
   string models_updated_at = 29;
   // What a session on the agent cannot do, known before a session exists (SessionInfo.unsupported_features).
   repeated SessionFeature unsupported_features = 30;
+  // The agent's own effort levels as last reported, in its order, and the one a new session starts on
+  // (CreateSessionRequest.acp_effort_id). Empty: the agent offers no effort option.
+  repeated AcpEffort efforts = 31;
+  string current_effort_id = 32;
 }
 
 // Subscription / rate limits an agent reported about the user's plan (e.g. codex: a 5-hour and a weekly window).
@@ -225,6 +229,10 @@ message AcpSessionState {
   string current_model_id = 14;
   // The latest subscription limits the agent reported (also kept per agent, AcpAgent.limits).
   optional AcpAgentLimits limits = 15;
+  // The agent's own effort levels (its thought-level option), in its order, and the current one (SetEffort.level_id).
+  // Empty: the agent offers no such option. The cached list while it starts or the session is not open.
+  repeated AcpEffort efforts = 16;
+  string current_effort_id = 17;
 }
 
 message AcpMode {
@@ -241,6 +249,13 @@ message AcpCommand {
 }
 
 message AcpModel {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+// One of an agent's effort levels. The agent names them its own way, so an id means nothing outside that agent.
+message AcpEffort {
   string id = 1;
   string name = 2;
   string description = 3;

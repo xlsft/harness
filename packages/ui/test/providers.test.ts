@@ -20,7 +20,7 @@ describe('providerView', () => {
       models: [{ id: 'u-abc/qwen/qwen3.7-flash', upstreamModel: 'qwen/qwen3.7-flash', contextWindow: 1_000_000n }]
     }))
     expect(v).toMatchObject({ id: 'u-abc', scope: 'personal', name: 'u-abc', keySet: true, keyHint: '…1234', editable: true })
-    expect(v.models).toEqual([{ id: 'u-abc/qwen/qwen3.7-flash', name: 'u-abc/qwen/qwen3.7-flash', upstream: 'qwen/qwen3.7-flash', contextWindow: 1_000_000 }])
+    expect(v.models).toEqual([{ id: 'u-abc/qwen/qwen3.7-flash', name: 'u-abc/qwen/qwen3.7-flash', upstream: 'qwen/qwen3.7-flash', contextWindow: 1_000_000, efforts: [] }])
   })
 
   it('maps the group and preset, defaulting to an LLM custom provider', () => {

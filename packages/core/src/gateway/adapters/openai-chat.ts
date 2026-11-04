@@ -431,7 +431,7 @@ export const openaiChatAdapter: Adapter = {
     const m = failure.raw ?? failure.message;
     const msgs = (sent.body.messages as OAMessage[]) ?? [];
     if (/reasoning_content/i.test(m) && msgs.some((x) => x.role === "assistant" && x.reasoning_content)) return "thinking";
-    if (sent.body.reasoning_effort && /reasoning[_ ]effort|effort/i.test(m)) return "effort";
+    if (sent.body.reasoning_effort && /reasoning|effort/i.test(m)) return "effort";
     if (sent.body.stream_options && /stream_options|include_usage/i.test(m)) return "stream_usage";
     if (sent.body.max_tokens !== undefined && /max_completion_tokens/i.test(m)) return "max_tokens_param";
     if (sent.body.parallel_tool_calls !== undefined && /parallel_tool_calls/i.test(m)) return "parallel_tool_calls";

@@ -560,6 +560,8 @@ message CreateSessionRequest {
   string engine = 13;
   // On an ACP agent: the mode to start in, one of AcpAgent.modes (empty: the agent's default).
   string acp_mode_id = 14;
+  // On an ACP agent: the effort to start on, one of AcpAgent.efforts (empty: the agent's default).
+  string acp_effort_id = 15;
 }
 
 message WorktreeOptions {
@@ -1243,6 +1245,8 @@ message SetAutoContinueResponse {}
 message SetEffortRequest {
   string session_id = 1;
   harness.llm.v1.Effort effort = 2;
+  // A session on an ACP agent: one of AcpSessionState.efforts. Empty there: the level named like `effort`, if any.
+  string level_id = 3;
 }
 
 message SetEffortResponse {}
