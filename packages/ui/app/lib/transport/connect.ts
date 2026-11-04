@@ -29,7 +29,8 @@ import { ConnectUsageApi } from '~/lib/usage/connect'
 import { ConnectTerminalsApi } from '~/lib/terminal/connect'
 import { ConnectSideChatsApi } from '~/lib/sidechat/connect'
 import { ConnectEnvironmentApi } from '~/lib/environment/connect'
-import { ConnectFilesApi, sessionDiffView } from '~/lib/files/connect'
+import { ConnectFilesApi, diffBaseMessage, diffBasesView, sessionDiffView, sessionFileDiffView } from '~/lib/files/connect'
+import type { DiffBaseChoice } from '~/lib/files/sessionDiff'
 import { ConnectSpeechApi } from '~/lib/speech/connect'
 import { ConnectLocalModelsApi } from './localModels'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
@@ -359,8 +360,18 @@ export class ConnectTransport implements SessionTransport {
     return this.filesApi
   }
 
-  async sessionDiff(sessionId: string, opts: { ifNoneMatch?: string } = {}) {
-    return sessionDiffView(await this.client.getSessionDiff({ sessionId, ifNoneMatch: opts.ifNoneMatch ?? '' }))
+  async sessionDiff(sessionId: string, opts: { ifNoneMatch?: string, base?: DiffBaseChoice } = {}) {
+    return sessionDiffView(await this.client.getSessionDiff({ sessionId, ifNoneMatch: opts.ifNoneMatch ?? '', base: diffBaseMessage(opts.base) }))
+  }
+
+  async sessionFileDiff(sessionId: string, path: string, base?: DiffBaseChoice) {
+    const r = await this.client.getSessionFileDiff({ sessionId, path, base: diffBaseMessage(base) })
+    if (!r.file) throw new Error(`[not_found] ${path}`)
+    return sessionFileDiffView(r.file)
+  }
+
+  async listDiffBases(sessionId: string) {
+    return diffBasesView(await this.client.listDiffBases({ sessionId }))
   }
 
   async updateViewerPresence(sessionId: string, viewerId: string, focused: boolean) {

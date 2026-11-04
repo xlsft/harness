@@ -323,6 +323,11 @@ service AgentService {
   // SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
   // for any other session of another machine.
   rpc SetKeepAwake(SetKeepAwakeRequest) returns (SetKeepAwakeResponse);
+  // What the Changes pane can compare a session with: branches, the default base, the commits since it.
+  // FAILED_PRECONDITION for a session of another machine.
+  rpc ListDiffBases(ListDiffBasesRequest) returns (ListDiffBasesResponse);
+  // One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
+  rpc GetSessionFileDiff(GetSessionFileDiffRequest) returns (GetSessionFileDiffResponse);
 }
 
 enum PermissionMode {

@@ -21,6 +21,68 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type DiffBaseKind int32
+
+const (
+	// Same as ALL.
+	DiffBaseKind_DIFF_BASE_KIND_UNSPECIFIED DiffBaseKind = 0
+	// All changes against the base branch: the merge base of its base ref in a worktree the client created; otherwise
+	// the merge base with the default branch (origin/HEAD, then main, then master), or HEAD on that branch itself, or
+	// when there is none. Outside git the snapshot rules above, whatever was asked for.
+	DiffBaseKind_DIFF_BASE_KIND_ALL DiffBaseKind = 1
+	// The working tree against HEAD, staged and untracked files included.
+	DiffBaseKind_DIFF_BASE_KIND_UNCOMMITTED DiffBaseKind = 2
+	// The working tree against the merge base with DiffBase.ref.
+	DiffBaseKind_DIFF_BASE_KIND_REF DiffBaseKind = 3
+	// What the commit DiffBase.sha changed against its first parent; the working tree is not involved.
+	DiffBaseKind_DIFF_BASE_KIND_COMMIT DiffBaseKind = 4
+)
+
+// Enum value maps for DiffBaseKind.
+var (
+	DiffBaseKind_name = map[int32]string{
+		0: "DIFF_BASE_KIND_UNSPECIFIED",
+		1: "DIFF_BASE_KIND_ALL",
+		2: "DIFF_BASE_KIND_UNCOMMITTED",
+		3: "DIFF_BASE_KIND_REF",
+		4: "DIFF_BASE_KIND_COMMIT",
+	}
+	DiffBaseKind_value = map[string]int32{
+		"DIFF_BASE_KIND_UNSPECIFIED": 0,
+		"DIFF_BASE_KIND_ALL":         1,
+		"DIFF_BASE_KIND_UNCOMMITTED": 2,
+		"DIFF_BASE_KIND_REF":         3,
+		"DIFF_BASE_KIND_COMMIT":      4,
+	}
+)
+
+func (x DiffBaseKind) Enum() *DiffBaseKind {
+	p := new(DiffBaseKind)
+	*p = x
+	return p
+}
+
+func (x DiffBaseKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DiffBaseKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_session_diff_proto_enumTypes[0].Descriptor()
+}
+
+func (DiffBaseKind) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_session_diff_proto_enumTypes[0]
+}
+
+func (x DiffBaseKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DiffBaseKind.Descriptor instead.
+func (DiffBaseKind) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{0}
+}
+
 type FileDiffStatus int32
 
 const (
@@ -60,11 +122,11 @@ func (x FileDiffStatus) String() string {
 }
 
 func (FileDiffStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_session_diff_proto_enumTypes[0].Descriptor()
+	return file_harness_agent_v1_session_diff_proto_enumTypes[1].Descriptor()
 }
 
 func (FileDiffStatus) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_session_diff_proto_enumTypes[0]
+	return &file_harness_agent_v1_session_diff_proto_enumTypes[1]
 }
 
 func (x FileDiffStatus) Number() protoreflect.EnumNumber {
@@ -73,7 +135,7 @@ func (x FileDiffStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileDiffStatus.Descriptor instead.
 func (FileDiffStatus) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{0}
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{1}
 }
 
 // Where a file's baseline came from.
@@ -115,11 +177,11 @@ func (x FileDiffSource) String() string {
 }
 
 func (FileDiffSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_session_diff_proto_enumTypes[1].Descriptor()
+	return file_harness_agent_v1_session_diff_proto_enumTypes[2].Descriptor()
 }
 
 func (FileDiffSource) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_session_diff_proto_enumTypes[1]
+	return &file_harness_agent_v1_session_diff_proto_enumTypes[2]
 }
 
 func (x FileDiffSource) Number() protoreflect.EnumNumber {
@@ -128,21 +190,89 @@ func (x FileDiffSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileDiffSource.Descriptor instead.
 func (FileDiffSource) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{1}
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{2}
+}
+
+// What a view compares with. With several repositories, UNCOMMITTED applies to each; REF to those that have the ref
+// (the others use ALL; NOT_FOUND when none does); COMMIT to the first that has the commit, and nothing else is listed.
+// Files outside git keep the snapshot rules, except under COMMIT.
+type DiffBase struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Kind  DiffBaseKind           `protobuf:"varint,1,opt,name=kind,proto3,enum=harness.agent.v1.DiffBaseKind" json:"kind,omitempty"`
+	// REF: a plain ref name such as main or origin/main; INVALID_ARGUMENT for one starting with "-" or with revision
+	// syntax (~ ^ : .. @{ and so on).
+	Ref string `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
+	// COMMIT: the commit's hex name, at least 4 digits.
+	Sha           string `protobuf:"bytes,3,opt,name=sha,proto3" json:"sha,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiffBase) Reset() {
+	*x = DiffBase{}
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiffBase) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiffBase) ProtoMessage() {}
+
+func (x *DiffBase) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiffBase.ProtoReflect.Descriptor instead.
+func (*DiffBase) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *DiffBase) GetKind() DiffBaseKind {
+	if x != nil {
+		return x.Kind
+	}
+	return DiffBaseKind_DIFF_BASE_KIND_UNSPECIFIED
+}
+
+func (x *DiffBase) GetRef() string {
+	if x != nil {
+		return x.Ref
+	}
+	return ""
+}
+
+func (x *DiffBase) GetSha() string {
+	if x != nil {
+		return x.Sha
+	}
+	return ""
 }
 
 type GetSessionDiffRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// A version from an earlier response: when nothing changed the response has not_modified set and no files.
-	IfNoneMatch   string `protobuf:"bytes,2,opt,name=if_none_match,json=ifNoneMatch,proto3" json:"if_none_match,omitempty"`
+	IfNoneMatch string `protobuf:"bytes,2,opt,name=if_none_match,json=ifNoneMatch,proto3" json:"if_none_match,omitempty"`
+	// Unset means ALL.
+	Base          *DiffBase `protobuf:"bytes,3,opt,name=base,proto3" json:"base,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetSessionDiffRequest) Reset() {
 	*x = GetSessionDiffRequest{}
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[0]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +284,7 @@ func (x *GetSessionDiffRequest) String() string {
 func (*GetSessionDiffRequest) ProtoMessage() {}
 
 func (x *GetSessionDiffRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[0]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -167,7 +297,7 @@ func (x *GetSessionDiffRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionDiffRequest.ProtoReflect.Descriptor instead.
 func (*GetSessionDiffRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{0}
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetSessionDiffRequest) GetSessionId() string {
@@ -184,24 +314,42 @@ func (x *GetSessionDiffRequest) GetIfNoneMatch() string {
 	return ""
 }
 
+func (x *GetSessionDiffRequest) GetBase() *DiffBase {
+	if x != nil {
+		return x.Base
+	}
+	return nil
+}
+
 type GetSessionDiffResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Files []*FileDiff            `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
-	// Hash of the files and truncated: equal versions mean nothing changed.
-	Version     string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	NotModified bool   `protobuf:"varint,3,opt,name=not_modified,json=notModified,proto3" json:"not_modified,omitempty"`
+	// Hash of what changed as git and stat report it, and of the base: equal versions mean nothing changed.
+	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	// The request's if_none_match is current: no files; everything else in the response is still filled in.
+	NotModified bool `protobuf:"varint,3,opt,name=not_modified,json=notModified,proto3" json:"not_modified,omitempty"`
 	// More files changed than are listed (the totals count the listed ones).
-	Truncated     bool  `protobuf:"varint,4,opt,name=truncated,proto3" json:"truncated,omitempty"`
-	FilesChanged  int32 `protobuf:"varint,5,opt,name=files_changed,json=filesChanged,proto3" json:"files_changed,omitempty"`
-	Additions     int32 `protobuf:"varint,6,opt,name=additions,proto3" json:"additions,omitempty"`
-	Deletions     int32 `protobuf:"varint,7,opt,name=deletions,proto3" json:"deletions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Truncated    bool  `protobuf:"varint,4,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	FilesChanged int32 `protobuf:"varint,5,opt,name=files_changed,json=filesChanged,proto3" json:"files_changed,omitempty"`
+	Additions    int32 `protobuf:"varint,6,opt,name=additions,proto3" json:"additions,omitempty"`
+	Deletions    int32 `protobuf:"varint,7,opt,name=deletions,proto3" json:"deletions,omitempty"`
+	// What was compared, for showing: "main" and "working tree", say. With several repositories, those of the first that
+	// the base applies to.
+	BaseLabel string `protobuf:"bytes,8,opt,name=base_label,json=baseLabel,proto3" json:"base_label,omitempty"`
+	HeadLabel string `protobuf:"bytes,9,opt,name=head_label,json=headLabel,proto3" json:"head_label,omitempty"`
+	// The base in effect: ALL outside git, whatever the request asked for. Never UNSPECIFIED.
+	BaseKind DiffBaseKind `protobuf:"varint,10,opt,name=base_kind,json=baseKind,proto3,enum=harness.agent.v1.DiffBaseKind" json:"base_kind,omitempty"`
+	// Past the client's thresholds: files have their path, status, counts and flags but no hunks.
+	Large bool `protobuf:"varint,11,opt,name=large,proto3" json:"large,omitempty"`
+	// When to ask again: the poll the client suggests for this state.
+	RefreshAfterMs int32 `protobuf:"varint,12,opt,name=refresh_after_ms,json=refreshAfterMs,proto3" json:"refresh_after_ms,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetSessionDiffResponse) Reset() {
 	*x = GetSessionDiffResponse{}
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[1]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +361,7 @@ func (x *GetSessionDiffResponse) String() string {
 func (*GetSessionDiffResponse) ProtoMessage() {}
 
 func (x *GetSessionDiffResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[1]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,7 +374,7 @@ func (x *GetSessionDiffResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionDiffResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionDiffResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{1}
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetSessionDiffResponse) GetFiles() []*FileDiff {
@@ -278,6 +426,424 @@ func (x *GetSessionDiffResponse) GetDeletions() int32 {
 	return 0
 }
 
+func (x *GetSessionDiffResponse) GetBaseLabel() string {
+	if x != nil {
+		return x.BaseLabel
+	}
+	return ""
+}
+
+func (x *GetSessionDiffResponse) GetHeadLabel() string {
+	if x != nil {
+		return x.HeadLabel
+	}
+	return ""
+}
+
+func (x *GetSessionDiffResponse) GetBaseKind() DiffBaseKind {
+	if x != nil {
+		return x.BaseKind
+	}
+	return DiffBaseKind_DIFF_BASE_KIND_UNSPECIFIED
+}
+
+func (x *GetSessionDiffResponse) GetLarge() bool {
+	if x != nil {
+		return x.Large
+	}
+	return false
+}
+
+func (x *GetSessionDiffResponse) GetRefreshAfterMs() int32 {
+	if x != nil {
+		return x.RefreshAfterMs
+	}
+	return 0
+}
+
+// AgentService.GetSessionFileDiff: one listed file's hunks, for a large diff.
+type GetSessionFileDiffRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// FileDiff.path of a changed file; NOT_FOUND for any other, so this never reads a file that is not in the diff.
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	// The same base as the listing.
+	Base          *DiffBase `protobuf:"bytes,3,opt,name=base,proto3" json:"base,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSessionFileDiffRequest) Reset() {
+	*x = GetSessionFileDiffRequest{}
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSessionFileDiffRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSessionFileDiffRequest) ProtoMessage() {}
+
+func (x *GetSessionFileDiffRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSessionFileDiffRequest.ProtoReflect.Descriptor instead.
+func (*GetSessionFileDiffRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetSessionFileDiffRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *GetSessionFileDiffRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GetSessionFileDiffRequest) GetBase() *DiffBase {
+	if x != nil {
+		return x.Base
+	}
+	return nil
+}
+
+type GetSessionFileDiffResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The per-file rules hold: a binary or too large file comes flagged, without hunks.
+	File          *FileDiff `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSessionFileDiffResponse) Reset() {
+	*x = GetSessionFileDiffResponse{}
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSessionFileDiffResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSessionFileDiffResponse) ProtoMessage() {}
+
+func (x *GetSessionFileDiffResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSessionFileDiffResponse.ProtoReflect.Descriptor instead.
+func (*GetSessionFileDiffResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetSessionFileDiffResponse) GetFile() *FileDiff {
+	if x != nil {
+		return x.File
+	}
+	return nil
+}
+
+// AgentService.ListDiffBases: what a view can compare with.
+type ListDiffBasesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDiffBasesRequest) Reset() {
+	*x = ListDiffBasesRequest{}
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDiffBasesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDiffBasesRequest) ProtoMessage() {}
+
+func (x *ListDiffBasesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDiffBasesRequest.ProtoReflect.Descriptor instead.
+func (*ListDiffBasesRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListDiffBasesRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type ListDiffBasesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the session's directories are in git at all. When false, only ALL applies and the rest is empty. Everything
+	// below describes the repository of the cwd, or of the first working directory that has one.
+	InGit bool `protobuf:"varint,1,opt,name=in_git,json=inGit,proto3" json:"in_git,omitempty"`
+	// Local branches first, then remote-tracking ones, each most recently committed first; at most 500.
+	Branches          []*DiffBranch `protobuf:"bytes,2,rep,name=branches,proto3" json:"branches,omitempty"`
+	BranchesTruncated bool          `protobuf:"varint,3,opt,name=branches_truncated,json=branchesTruncated,proto3" json:"branches_truncated,omitempty"`
+	// What ALL compares with: its ref ("main", "origin/main", "HEAD"; empty before the first commit), the label a response
+	// gives it, and its commit (empty before the first commit).
+	DefaultBaseRef   string `protobuf:"bytes,4,opt,name=default_base_ref,json=defaultBaseRef,proto3" json:"default_base_ref,omitempty"`
+	DefaultBaseLabel string `protobuf:"bytes,5,opt,name=default_base_label,json=defaultBaseLabel,proto3" json:"default_base_label,omitempty"`
+	DefaultBaseSha   string `protobuf:"bytes,6,opt,name=default_base_sha,json=defaultBaseSha,proto3" json:"default_base_sha,omitempty"`
+	// The commits on this branch since that base, newest first; at most 200.
+	Commits          []*DiffCommit `protobuf:"bytes,7,rep,name=commits,proto3" json:"commits,omitempty"`
+	CommitsTruncated bool          `protobuf:"varint,8,opt,name=commits_truncated,json=commitsTruncated,proto3" json:"commits_truncated,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ListDiffBasesResponse) Reset() {
+	*x = ListDiffBasesResponse{}
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDiffBasesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDiffBasesResponse) ProtoMessage() {}
+
+func (x *ListDiffBasesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDiffBasesResponse.ProtoReflect.Descriptor instead.
+func (*ListDiffBasesResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListDiffBasesResponse) GetInGit() bool {
+	if x != nil {
+		return x.InGit
+	}
+	return false
+}
+
+func (x *ListDiffBasesResponse) GetBranches() []*DiffBranch {
+	if x != nil {
+		return x.Branches
+	}
+	return nil
+}
+
+func (x *ListDiffBasesResponse) GetBranchesTruncated() bool {
+	if x != nil {
+		return x.BranchesTruncated
+	}
+	return false
+}
+
+func (x *ListDiffBasesResponse) GetDefaultBaseRef() string {
+	if x != nil {
+		return x.DefaultBaseRef
+	}
+	return ""
+}
+
+func (x *ListDiffBasesResponse) GetDefaultBaseLabel() string {
+	if x != nil {
+		return x.DefaultBaseLabel
+	}
+	return ""
+}
+
+func (x *ListDiffBasesResponse) GetDefaultBaseSha() string {
+	if x != nil {
+		return x.DefaultBaseSha
+	}
+	return ""
+}
+
+func (x *ListDiffBasesResponse) GetCommits() []*DiffCommit {
+	if x != nil {
+		return x.Commits
+	}
+	return nil
+}
+
+func (x *ListDiffBasesResponse) GetCommitsTruncated() bool {
+	if x != nil {
+		return x.CommitsTruncated
+	}
+	return false
+}
+
+type DiffBranch struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// For DiffBase.ref.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// HEAD is on it.
+	Current bool `protobuf:"varint,2,opt,name=current,proto3" json:"current,omitempty"`
+	// A remote-tracking branch.
+	Remote        bool `protobuf:"varint,3,opt,name=remote,proto3" json:"remote,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiffBranch) Reset() {
+	*x = DiffBranch{}
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiffBranch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiffBranch) ProtoMessage() {}
+
+func (x *DiffBranch) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiffBranch.ProtoReflect.Descriptor instead.
+func (*DiffBranch) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DiffBranch) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *DiffBranch) GetCurrent() bool {
+	if x != nil {
+		return x.Current
+	}
+	return false
+}
+
+func (x *DiffBranch) GetRemote() bool {
+	if x != nil {
+		return x.Remote
+	}
+	return false
+}
+
+type DiffCommit struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Sha     string                 `protobuf:"bytes,1,opt,name=sha,proto3" json:"sha,omitempty"`
+	Subject string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
+	// RFC 3339, UTC: commit time.
+	CommittedAt   string `protobuf:"bytes,3,opt,name=committed_at,json=committedAt,proto3" json:"committed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiffCommit) Reset() {
+	*x = DiffCommit{}
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiffCommit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiffCommit) ProtoMessage() {}
+
+func (x *DiffCommit) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiffCommit.ProtoReflect.Descriptor instead.
+func (*DiffCommit) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DiffCommit) GetSha() string {
+	if x != nil {
+		return x.Sha
+	}
+	return ""
+}
+
+func (x *DiffCommit) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *DiffCommit) GetCommittedAt() string {
+	if x != nil {
+		return x.CommittedAt
+	}
+	return ""
+}
+
 type FileDiffHunk struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	OldStart int32                  `protobuf:"varint,1,opt,name=old_start,json=oldStart,proto3" json:"old_start,omitempty"`
@@ -294,7 +860,7 @@ type FileDiffHunk struct {
 
 func (x *FileDiffHunk) Reset() {
 	*x = FileDiffHunk{}
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -306,7 +872,7 @@ func (x *FileDiffHunk) String() string {
 func (*FileDiffHunk) ProtoMessage() {}
 
 func (x *FileDiffHunk) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -319,7 +885,7 @@ func (x *FileDiffHunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileDiffHunk.ProtoReflect.Descriptor instead.
 func (*FileDiffHunk) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{2}
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *FileDiffHunk) GetOldStart() int32 {
@@ -386,7 +952,7 @@ type FileDiff struct {
 
 func (x *FileDiff) Reset() {
 	*x = FileDiff{}
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +964,7 @@ func (x *FileDiff) String() string {
 func (*FileDiff) ProtoMessage() {}
 
 func (x *FileDiff) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_session_diff_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +977,7 @@ func (x *FileDiff) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileDiff.ProtoReflect.Descriptor instead.
 func (*FileDiff) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{3}
+	return file_harness_agent_v1_session_diff_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *FileDiff) GetPath() string {
@@ -488,11 +1054,16 @@ var File_harness_agent_v1_session_diff_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_session_diff_proto_rawDesc = "" +
 	"\n" +
-	"#harness/agent/v1/session_diff.proto\x12\x10harness.agent.v1\"Z\n" +
+	"#harness/agent/v1/session_diff.proto\x12\x10harness.agent.v1\"b\n" +
+	"\bDiffBase\x122\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x1e.harness.agent.v1.DiffBaseKindR\x04kind\x12\x10\n" +
+	"\x03ref\x18\x02 \x01(\tR\x03ref\x12\x10\n" +
+	"\x03sha\x18\x03 \x01(\tR\x03sha\"\x8a\x01\n" +
 	"\x15GetSessionDiffRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\"\n" +
-	"\rif_none_match\x18\x02 \x01(\tR\vifNoneMatch\"\x86\x02\n" +
+	"\rif_none_match\x18\x02 \x01(\tR\vifNoneMatch\x12.\n" +
+	"\x04base\x18\x03 \x01(\v2\x1a.harness.agent.v1.DiffBaseR\x04base\"\xc1\x03\n" +
 	"\x16GetSessionDiffResponse\x120\n" +
 	"\x05files\x18\x01 \x03(\v2\x1a.harness.agent.v1.FileDiffR\x05files\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12!\n" +
@@ -500,7 +1071,44 @@ const file_harness_agent_v1_session_diff_proto_rawDesc = "" +
 	"\ttruncated\x18\x04 \x01(\bR\ttruncated\x12#\n" +
 	"\rfiles_changed\x18\x05 \x01(\x05R\ffilesChanged\x12\x1c\n" +
 	"\tadditions\x18\x06 \x01(\x05R\tadditions\x12\x1c\n" +
-	"\tdeletions\x18\a \x01(\x05R\tdeletions\"\xb0\x01\n" +
+	"\tdeletions\x18\a \x01(\x05R\tdeletions\x12\x1d\n" +
+	"\n" +
+	"base_label\x18\b \x01(\tR\tbaseLabel\x12\x1d\n" +
+	"\n" +
+	"head_label\x18\t \x01(\tR\theadLabel\x12;\n" +
+	"\tbase_kind\x18\n" +
+	" \x01(\x0e2\x1e.harness.agent.v1.DiffBaseKindR\bbaseKind\x12\x14\n" +
+	"\x05large\x18\v \x01(\bR\x05large\x12(\n" +
+	"\x10refresh_after_ms\x18\f \x01(\x05R\x0erefreshAfterMs\"~\n" +
+	"\x19GetSessionFileDiffRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12.\n" +
+	"\x04base\x18\x03 \x01(\v2\x1a.harness.agent.v1.DiffBaseR\x04base\"L\n" +
+	"\x1aGetSessionFileDiffResponse\x12.\n" +
+	"\x04file\x18\x01 \x01(\v2\x1a.harness.agent.v1.FileDiffR\x04file\"5\n" +
+	"\x14ListDiffBasesRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\xfe\x02\n" +
+	"\x15ListDiffBasesResponse\x12\x15\n" +
+	"\x06in_git\x18\x01 \x01(\bR\x05inGit\x128\n" +
+	"\bbranches\x18\x02 \x03(\v2\x1c.harness.agent.v1.DiffBranchR\bbranches\x12-\n" +
+	"\x12branches_truncated\x18\x03 \x01(\bR\x11branchesTruncated\x12(\n" +
+	"\x10default_base_ref\x18\x04 \x01(\tR\x0edefaultBaseRef\x12,\n" +
+	"\x12default_base_label\x18\x05 \x01(\tR\x10defaultBaseLabel\x12(\n" +
+	"\x10default_base_sha\x18\x06 \x01(\tR\x0edefaultBaseSha\x126\n" +
+	"\acommits\x18\a \x03(\v2\x1c.harness.agent.v1.DiffCommitR\acommits\x12+\n" +
+	"\x11commits_truncated\x18\b \x01(\bR\x10commitsTruncated\"R\n" +
+	"\n" +
+	"DiffBranch\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\acurrent\x18\x02 \x01(\bR\acurrent\x12\x16\n" +
+	"\x06remote\x18\x03 \x01(\bR\x06remote\"[\n" +
+	"\n" +
+	"DiffCommit\x12\x10\n" +
+	"\x03sha\x18\x01 \x01(\tR\x03sha\x12\x18\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\x12!\n" +
+	"\fcommitted_at\x18\x03 \x01(\tR\vcommittedAt\"\xb0\x01\n" +
 	"\fFileDiffHunk\x12\x1b\n" +
 	"\told_start\x18\x01 \x01(\x05R\boldStart\x12\x1b\n" +
 	"\told_lines\x18\x02 \x01(\x05R\boldLines\x12\x1b\n" +
@@ -519,7 +1127,13 @@ const file_harness_agent_v1_session_diff_proto_rawDesc = "" +
 	"\x06binary\x18\b \x01(\bR\x06binary\x12\x1b\n" +
 	"\ttoo_large\x18\t \x01(\bR\btooLarge\x128\n" +
 	"\x06source\x18\n" +
-	" \x01(\x0e2 .harness.agent.v1.FileDiffSourceR\x06source*\xa9\x01\n" +
+	" \x01(\x0e2 .harness.agent.v1.FileDiffSourceR\x06source*\x99\x01\n" +
+	"\fDiffBaseKind\x12\x1e\n" +
+	"\x1aDIFF_BASE_KIND_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12DIFF_BASE_KIND_ALL\x10\x01\x12\x1e\n" +
+	"\x1aDIFF_BASE_KIND_UNCOMMITTED\x10\x02\x12\x16\n" +
+	"\x12DIFF_BASE_KIND_REF\x10\x03\x12\x19\n" +
+	"\x15DIFF_BASE_KIND_COMMIT\x10\x04*\xa9\x01\n" +
 	"\x0eFileDiffStatus\x12 \n" +
 	"\x1cFILE_DIFF_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16FILE_DIFF_STATUS_ADDED\x10\x01\x12\x1d\n" +
@@ -545,26 +1159,41 @@ func file_harness_agent_v1_session_diff_proto_rawDescGZIP() []byte {
 	return file_harness_agent_v1_session_diff_proto_rawDescData
 }
 
-var file_harness_agent_v1_session_diff_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_harness_agent_v1_session_diff_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_harness_agent_v1_session_diff_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_harness_agent_v1_session_diff_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_harness_agent_v1_session_diff_proto_goTypes = []any{
-	(FileDiffStatus)(0),            // 0: harness.agent.v1.FileDiffStatus
-	(FileDiffSource)(0),            // 1: harness.agent.v1.FileDiffSource
-	(*GetSessionDiffRequest)(nil),  // 2: harness.agent.v1.GetSessionDiffRequest
-	(*GetSessionDiffResponse)(nil), // 3: harness.agent.v1.GetSessionDiffResponse
-	(*FileDiffHunk)(nil),           // 4: harness.agent.v1.FileDiffHunk
-	(*FileDiff)(nil),               // 5: harness.agent.v1.FileDiff
+	(DiffBaseKind)(0),                  // 0: harness.agent.v1.DiffBaseKind
+	(FileDiffStatus)(0),                // 1: harness.agent.v1.FileDiffStatus
+	(FileDiffSource)(0),                // 2: harness.agent.v1.FileDiffSource
+	(*DiffBase)(nil),                   // 3: harness.agent.v1.DiffBase
+	(*GetSessionDiffRequest)(nil),      // 4: harness.agent.v1.GetSessionDiffRequest
+	(*GetSessionDiffResponse)(nil),     // 5: harness.agent.v1.GetSessionDiffResponse
+	(*GetSessionFileDiffRequest)(nil),  // 6: harness.agent.v1.GetSessionFileDiffRequest
+	(*GetSessionFileDiffResponse)(nil), // 7: harness.agent.v1.GetSessionFileDiffResponse
+	(*ListDiffBasesRequest)(nil),       // 8: harness.agent.v1.ListDiffBasesRequest
+	(*ListDiffBasesResponse)(nil),      // 9: harness.agent.v1.ListDiffBasesResponse
+	(*DiffBranch)(nil),                 // 10: harness.agent.v1.DiffBranch
+	(*DiffCommit)(nil),                 // 11: harness.agent.v1.DiffCommit
+	(*FileDiffHunk)(nil),               // 12: harness.agent.v1.FileDiffHunk
+	(*FileDiff)(nil),                   // 13: harness.agent.v1.FileDiff
 }
 var file_harness_agent_v1_session_diff_proto_depIdxs = []int32{
-	5, // 0: harness.agent.v1.GetSessionDiffResponse.files:type_name -> harness.agent.v1.FileDiff
-	0, // 1: harness.agent.v1.FileDiff.status:type_name -> harness.agent.v1.FileDiffStatus
-	4, // 2: harness.agent.v1.FileDiff.hunks:type_name -> harness.agent.v1.FileDiffHunk
-	1, // 3: harness.agent.v1.FileDiff.source:type_name -> harness.agent.v1.FileDiffSource
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: harness.agent.v1.DiffBase.kind:type_name -> harness.agent.v1.DiffBaseKind
+	3,  // 1: harness.agent.v1.GetSessionDiffRequest.base:type_name -> harness.agent.v1.DiffBase
+	13, // 2: harness.agent.v1.GetSessionDiffResponse.files:type_name -> harness.agent.v1.FileDiff
+	0,  // 3: harness.agent.v1.GetSessionDiffResponse.base_kind:type_name -> harness.agent.v1.DiffBaseKind
+	3,  // 4: harness.agent.v1.GetSessionFileDiffRequest.base:type_name -> harness.agent.v1.DiffBase
+	13, // 5: harness.agent.v1.GetSessionFileDiffResponse.file:type_name -> harness.agent.v1.FileDiff
+	10, // 6: harness.agent.v1.ListDiffBasesResponse.branches:type_name -> harness.agent.v1.DiffBranch
+	11, // 7: harness.agent.v1.ListDiffBasesResponse.commits:type_name -> harness.agent.v1.DiffCommit
+	1,  // 8: harness.agent.v1.FileDiff.status:type_name -> harness.agent.v1.FileDiffStatus
+	12, // 9: harness.agent.v1.FileDiff.hunks:type_name -> harness.agent.v1.FileDiffHunk
+	2,  // 10: harness.agent.v1.FileDiff.source:type_name -> harness.agent.v1.FileDiffSource
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_session_diff_proto_init() }
@@ -577,8 +1206,8 @@ func file_harness_agent_v1_session_diff_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_session_diff_proto_rawDesc), len(file_harness_agent_v1_session_diff_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   4,
+			NumEnums:      3,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

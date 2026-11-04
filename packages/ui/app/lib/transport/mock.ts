@@ -49,7 +49,7 @@ import { MockSideChatsApi } from '~/lib/sidechat/mock'
 
 import { MockEnvironmentApi } from '~/lib/environment/mock'
 import { MockFilesApi } from '~/lib/files/mock'
-import { diffVersion, type SessionDiff, type SessionFileDiff } from '~/lib/files/sessionDiff'
+import { diffVersion, type DiffBaseChoice, type DiffBases, type SessionDiff, type SessionFileDiff } from '~/lib/files/sessionDiff'
 import { MockSpeechApi } from '~/lib/speech/mock'
 import { MockAcpApi } from '~/lib/acp/mock'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
@@ -143,6 +143,17 @@ export interface MockOptions {
   tick?: number
   now?: () => number
 }
+
+// As the client's own thresholds (sessiondiff.go): the mock decides like it, with fixed numbers.
+const MOCK_LARGE_DIFF_FILES = 40
+const MOCK_LARGE_DIFF_LINES = 3000
+const MOCK_BRANCHES = [
+  { name: 'agent/session-work', current: true, remote: false },
+  { name: 'main', current: false, remote: false },
+  { name: 'release/1.4', current: false, remote: false },
+  { name: 'origin/main', current: false, remote: true },
+  { name: 'origin/release/1.4', current: false, remote: true }
+]
 
 export class MockTransport implements SessionTransport {
   readonly kind = 'mock' as const
@@ -1220,13 +1231,14 @@ export class MockTransport implements SessionTransport {
   }
 
   // As the client measures it: the mock has no disk, so its "disk" is what the session's Edit / Write calls reported
-  // (later reports of a file add to the earlier ones) and what MockFilesApi.write changed.
-  async sessionDiff(sessionId: string, opts: { ifNoneMatch?: string } = {}): Promise<SessionDiff> {
+  // (later reports of a file add to the earlier ones) and what MockFilesApi.write changed. Of those, Edit / Write count
+  // as the branch's commits and write() as the uncommitted part, so each base has something of its own to show.
+  private diffParts(sessionId: string) {
     const s = this.get(sessionId)
     if (s.info.remote) throw new Error(`[failed_precondition] session ${sessionId} runs on ${s.info.deviceName || 'another machine'}; its files can only be browsed on that machine`)
     const cwd = s.info.cwd.replace(/\/+$/, '')
     const started = new Map<string, { name: string, input: Record<string, unknown> }>()
-    const byPath = new Map<string, SessionFileDiff>()
+    const committed = new Map<string, SessionFileDiff>()
     for (const { event } of s.history) {
       if (event.case === 'toolCallStarted') {
         started.set(event.value.toolUseId, { name: event.value.name, input: JSON.parse(event.value.inputJson || '{}') })
@@ -1239,29 +1251,83 @@ export class MockTransport implements SessionTransport {
         const given = call.input.file_path
         const path = given.startsWith('/') ? given : `${cwd}/${given}`
         const { add, del } = patchStats(hunks)
-        const known = byPath.get(path)
+        const known = committed.get(path)
         if (known) {
           known.hunks = [...known.hunks, ...hunks]
           known.add += add
           known.del += del
         } else {
-          byPath.set(path, { path, label: path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path, kind: call.name === 'Write' && !del ? 'A' : 'M', oldPath: '', add, del, hunks, binary: false, tooLarge: false })
+          committed.set(path, { path, label: path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path, kind: call.name === 'Write' && !del ? 'A' : 'M', oldPath: '', add, del, hunks, binary: false, tooLarge: false })
         }
       }
     }
-    for (const f of this.filesApi.changes(sessionId)) byPath.set(f.path, f)
-    const files = [...byPath.values()].sort((a, b) => a.path < b.path ? -1 : 1)
-    const version = diffVersion(files)
+    const sorted = (m: Map<string, SessionFileDiff>) => [...m.values()].sort((a, b) => a.path < b.path ? -1 : 1)
+    const uncommitted = new Map(this.filesApi.changes(sessionId).map(f => [f.path, f]))
+    return { committed: sorted(committed), uncommitted: sorted(uncommitted), all: sorted(new Map([...committed, ...uncommitted])) }
+  }
+
+  // The commits of the mock's fake branch, newest first: the session's edits, split in two.
+  private diffCommits(committed: SessionFileDiff[]) {
+    const at = (ago: number) => new Date(this.now() - ago).toISOString().replace(/\.\d+Z$/, 'Z')
+    const split = Math.ceil(committed.length / 2)
+    return [
+      { sha: 'c0ffee1d2e3f405162738495a6b7c8d9e0f1a2b3', subject: 'Follow up on the review', committedAt: at(40 * 60_000), files: committed.slice(split) },
+      { sha: 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678', subject: 'First pass at the change', committedAt: at(3 * 3_600_000), files: committed.slice(0, split) }
+    ].filter(c => c.files.length)
+  }
+
+  private diffFiles(sessionId: string, base?: DiffBaseChoice) {
+    const parts = this.diffParts(sessionId)
+    switch (base?.kind) {
+      case 'uncommitted':
+        return { files: parts.uncommitted, baseLabel: 'HEAD', headLabel: 'working tree' }
+      case 'ref':
+        if (base.ref.startsWith('-') || /[\s~^:?*[\\]|\.\.|@\{/.test(base.ref)) throw new Error(`[invalid_argument] invalid ref "${base.ref}"`)
+        if (!MOCK_BRANCHES.some(b => b.name === base.ref)) throw new Error(`[not_found] ${base.ref} is not in the session's repositories`)
+        return { files: parts.all, baseLabel: base.ref, headLabel: 'working tree' }
+      case 'commit': {
+        if (!/^[0-9a-fA-F]{4,64}$/.test(base.sha)) throw new Error(`[invalid_argument] invalid commit "${base.sha}"`)
+        const commit = this.diffCommits(parts.committed).find(c => c.sha.startsWith(base.sha.toLowerCase()))
+        if (!commit) throw new Error(`[not_found] ${base.sha} is not in the session's repositories`)
+        return { files: commit.files, baseLabel: 'b7e4a10', headLabel: commit.sha.slice(0, 7) }
+      }
+    }
+    return { files: parts.all, baseLabel: 'main', headLabel: 'working tree' }
+  }
+
+  async sessionDiff(sessionId: string, opts: { ifNoneMatch?: string, base?: DiffBaseChoice } = {}): Promise<SessionDiff> {
+    const { files, baseLabel, headLabel } = this.diffFiles(sessionId, opts.base)
+    const additions = files.reduce((n, f) => n + f.add, 0)
+    const deletions = files.reduce((n, f) => n + f.del, 0)
+    const large = files.length > MOCK_LARGE_DIFF_FILES || additions + deletions > MOCK_LARGE_DIFF_LINES
+    const version = diffVersion(files, false, opts.base?.kind ?? 'all')
     const notModified = opts.ifNoneMatch === version
     return {
       version,
       notModified,
       truncated: false,
-      files: notModified ? [] : files,
+      files: notModified ? [] : large ? files.map(f => ({ ...f, hunks: [] })) : files,
       filesChanged: files.length,
-      additions: files.reduce((n, f) => n + f.add, 0),
-      deletions: files.reduce((n, f) => n + f.del, 0)
+      additions,
+      deletions,
+      baseLabel,
+      headLabel,
+      baseKind: opts.base?.kind ?? 'all',
+      large,
+      refreshAfterMs: large ? 30000 : 5000
     }
+  }
+
+  async sessionFileDiff(sessionId: string, path: string, base?: DiffBaseChoice): Promise<SessionFileDiff> {
+    const file = this.diffFiles(sessionId, base).files.find(f => f.path === path)
+    if (!file) throw new Error(`[not_found] ${path} has no changes against this base`)
+    return file
+  }
+
+  async listDiffBases(sessionId: string): Promise<DiffBases> {
+    const { committed } = this.diffParts(sessionId)
+    const commits = this.diffCommits(committed).map(({ sha, subject, committedAt }) => ({ sha, subject, committedAt }))
+    return { inGit: true, branches: MOCK_BRANCHES, branchesTruncated: false, defaultRef: 'main', defaultLabel: 'main', defaultSha: '5eed0f1a2b3c4d5e6f708192a3b4c5d6e7f80912', commits, commitsTruncated: false }
   }
 
   // User shell commands (runMockShell): the result streams after a short delay, `sleep N` runs N seconds

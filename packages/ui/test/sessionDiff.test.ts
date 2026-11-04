@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { create } from '@bufbuild/protobuf'
-import { FileDiffStatus, GetSessionDiffResponseSchema } from '~/gen/harness/agent/v1/session_diff_pb'
-import { sessionDiffView } from '~/lib/files/connect'
+import { DiffBaseKind, FileDiffStatus, GetSessionDiffResponseSchema, ListDiffBasesResponseSchema } from '~/gen/harness/agent/v1/session_diff_pb'
+import { diffBaseMessage, diffBasesView, sessionDiffView } from '~/lib/files/connect'
 import { diffVersion, SessionDiffLoader, type SessionDiff } from '~/lib/files/sessionDiff'
 import { MockTransport } from '~/lib/transport/mock'
 
 function diff(version: string, extra: Partial<SessionDiff> = {}): SessionDiff {
-  return { version, notModified: false, files: [], truncated: false, filesChanged: 0, additions: 0, deletions: 0, ...extra }
+  return { version, notModified: false, files: [], truncated: false, filesChanged: 0, additions: 0, deletions: 0, baseLabel: 'main', headLabel: 'working tree', baseKind: 'all', large: false, refreshAfterMs: 5000, ...extra }
 }
 
 function deferred<T>() {
@@ -103,6 +103,125 @@ describe('SessionDiffLoader', () => {
   })
 })
 
+describe('SessionDiffLoader with a base and a pace', () => {
+  function setup(answers: (base: unknown) => SessionDiff) {
+    const asked: unknown[][] = []
+    const changes: string[] = []
+    let visible = true
+    const loader = new SessionDiffLoader({
+      fetch: async (known, base) => {
+        asked.push([known, base])
+        return answers(base)
+      },
+      onChange: d => changes.push(d.version),
+      onError: () => {},
+      shouldPoll: () => visible
+    })
+    return { asked, changes, loader, hide: (hidden: boolean) => {
+      visible = !hidden
+    } }
+  }
+
+  it('passes the base, and a new base starts over', async () => {
+    const { asked, changes, loader } = setup(() => diff('v1'))
+    await loader.load()
+    expect(asked[0]).toEqual(['', undefined])
+    loader.setBase({ kind: 'ref', ref: 'main' })
+    await loader.load()
+    expect(asked[1]).toEqual(['', { kind: 'ref', ref: 'main' }])
+    // The same answer counts as new: it is of another base.
+    expect(changes).toEqual(['v1', 'v1'])
+    // The same base again changes nothing.
+    loader.setBase({ kind: 'ref', ref: 'main' })
+    await loader.load()
+    expect(asked[2]).toEqual(['v1', { kind: 'ref', ref: 'main' }])
+  })
+
+  it('drops an answer for the base it left', async () => {
+    const answers: ((d: SessionDiff) => void)[] = []
+    const changes: string[] = []
+    const loader = new SessionDiffLoader({
+      fetch: () => new Promise(r => answers.push(r)),
+      onChange: d => changes.push(d.version),
+      onError: () => {}
+    })
+    const stale = loader.load()
+    loader.setBase({ kind: 'uncommitted' })
+    const p = loader.load()
+    answers[0]!(diff('old', { refreshAfterMs: 30000 }))
+    await stale
+    expect(loader.refreshAfterMs).toBe(5000)
+    answers[1]!(diff('new'))
+    await p
+    expect(changes).toEqual(['new'])
+  })
+
+  it('polls at the pace the answers set, not-modified ones included', async () => {
+    vi.useFakeTimers()
+    try {
+      let answer = diff('v1', { large: true, refreshAfterMs: 30000 })
+      const { asked, loader, hide } = setup(() => answer)
+      loader.start()
+      expect(asked).toHaveLength(0)
+      await vi.advanceTimersByTimeAsync(5000) // the pace before any answer
+      expect(asked).toHaveLength(1)
+      expect(loader.refreshAfterMs).toBe(30000)
+      await vi.advanceTimersByTimeAsync(29999)
+      expect(asked).toHaveLength(1)
+      answer = diff('v1', { notModified: true, large: false, refreshAfterMs: 5000 })
+      await vi.advanceTimersByTimeAsync(1)
+      expect(asked).toHaveLength(2)
+      await vi.advanceTimersByTimeAsync(5000)
+      expect(asked).toHaveLength(3)
+      // Asked for at once: the pace counts from that answer.
+      await vi.advanceTimersByTimeAsync(4000)
+      await loader.load()
+      expect(asked).toHaveLength(4)
+      await vi.advanceTimersByTimeAsync(4000)
+      expect(asked).toHaveLength(4)
+      // Hidden: no asking, and it resumes.
+      hide(true)
+      await vi.advanceTimersByTimeAsync(20000)
+      expect(asked).toHaveLength(4)
+      hide(false)
+      await vi.advanceTimersByTimeAsync(5000)
+      expect(asked).toHaveLength(5)
+      loader.stop()
+      await vi.advanceTimersByTimeAsync(60000)
+      expect(asked).toHaveLength(5)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('the base over the wire', () => {
+  it('builds the request', () => {
+    expect(diffBaseMessage()).toBeUndefined()
+    expect(diffBaseMessage({ kind: 'all' })).toEqual({ kind: DiffBaseKind.ALL })
+    expect(diffBaseMessage({ kind: 'uncommitted' })).toEqual({ kind: DiffBaseKind.UNCOMMITTED })
+    expect(diffBaseMessage({ kind: 'ref', ref: 'main' })).toEqual({ kind: DiffBaseKind.REF, ref: 'main' })
+    expect(diffBaseMessage({ kind: 'commit', sha: 'abcd' })).toEqual({ kind: DiffBaseKind.COMMIT, sha: 'abcd' })
+  })
+
+  it('maps the answers', () => {
+    const v = sessionDiffView(create(GetSessionDiffResponseSchema, { baseLabel: 'main', headLabel: 'working tree', baseKind: DiffBaseKind.REF, large: true, refreshAfterMs: 30000 }))
+    expect(v).toMatchObject({ baseLabel: 'main', headLabel: 'working tree', baseKind: 'ref', large: true, refreshAfterMs: 30000 })
+    const b = diffBasesView(create(ListDiffBasesResponseSchema, {
+      inGit: true,
+      branches: [{ name: 'main', current: true }],
+      defaultBaseRef: 'main',
+      defaultBaseLabel: 'main',
+      defaultBaseSha: 'abc',
+      commits: [{ sha: 'def', subject: 'A commit', committedAt: '2026-01-02T03:04:05Z' }]
+    }))
+    expect(b).toEqual({
+      inGit: true, branches: [{ name: 'main', current: true, remote: false }], branchesTruncated: false, defaultRef: 'main', defaultLabel: 'main', defaultSha: 'abc',
+      commits: [{ sha: 'def', subject: 'A commit', committedAt: '2026-01-02T03:04:05Z' }], commitsTruncated: false
+    })
+  })
+})
+
 describe('sessionDiffView', () => {
   it('maps the response', async () => {
     const res = create(GetSessionDiffResponseSchema, {
@@ -176,6 +295,47 @@ describe('the mock transport', () => {
     const remote = (await t.listSessions()).find(s => s.remote)
     expect(remote).toBeTruthy()
     await expect(t.sessionDiff(remote!.id)).rejects.toThrow(/failed_precondition/)
+  })
+
+  it('compares with each base', async () => {
+    const t = new MockTransport({ tick: 0 })
+    const list = await t.listSessions()
+    let id = ''
+    for (const s of list.filter(s => !s.remote)) if ((await t.sessionDiff(s.id)).files.length) id = s.id
+    expect(id).toBeTruthy()
+    t.files().write(id, 'made.txt', 'a\nb\n')
+
+    const all = await t.sessionDiff(id)
+    expect(all).toMatchObject({ baseKind: 'all', baseLabel: 'main', headLabel: 'working tree', large: false, refreshAfterMs: 5000 })
+    const uncommitted = await t.sessionDiff(id, { base: { kind: 'uncommitted' } })
+    expect(uncommitted.files.map(f => f.label)).toEqual(['made.txt'])
+    expect(uncommitted).toMatchObject({ baseKind: 'uncommitted', baseLabel: 'HEAD' })
+    expect(uncommitted.version).not.toBe(all.version)
+    expect(await t.sessionDiff(id, { base: { kind: 'ref', ref: 'release/1.4' } })).toMatchObject({ baseKind: 'ref', baseLabel: 'release/1.4' })
+    await expect(t.sessionDiff(id, { base: { kind: 'ref', ref: 'nope' } })).rejects.toThrow(/not_found/)
+    await expect(t.sessionDiff(id, { base: { kind: 'ref', ref: '--output=x' } })).rejects.toThrow(/invalid_argument/)
+
+    const bases = await t.listDiffBases(id)
+    expect(bases.inGit).toBe(true)
+    expect(bases.defaultLabel).toBe('main')
+    expect(bases.commits.length).toBeGreaterThan(0)
+    const commit = await t.sessionDiff(id, { base: { kind: 'commit', sha: bases.commits[0]!.sha } })
+    expect(commit.baseKind).toBe('commit')
+    expect(commit.headLabel).toBe(bases.commits[0]!.sha.slice(0, 7))
+    expect(commit.files.some(f => f.label === 'made.txt')).toBe(false)
+    await expect(t.sessionDiff(id, { base: { kind: 'commit', sha: 'deadbeef' } })).rejects.toThrow(/not_found/)
+  })
+
+  it('answers a large diff without hunks, and each file on demand', async () => {
+    const { t, id } = await session()
+    for (let i = 0; i < 41; i++) t.files().write(id, `many/f${i}.txt`, 'a\nb\n')
+    const large = await t.sessionDiff(id)
+    expect(large).toMatchObject({ large: true, refreshAfterMs: 30000, filesChanged: 41, additions: 82 })
+    expect(large.files.every(f => f.hunks.length === 0)).toBe(true)
+    const file = await t.sessionFileDiff(id, large.files[0]!.path)
+    expect(file.hunks.length).toBe(1)
+    await expect(t.sessionFileDiff(id, '/etc/hosts')).rejects.toThrow(/not_found/)
+    expect(await t.sessionDiff(id, { ifNoneMatch: large.version })).toMatchObject({ notModified: true, large: true, refreshAfterMs: 30000, additions: 82, files: [] })
   })
 
   it('has a version that depends on the content', () => {

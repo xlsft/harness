@@ -13,23 +13,122 @@ package harness.agent.v1;
 //   of a working directory, a snapshot taken when the session first measured it (a file too big to copy is listed
 //   as changed without hunks; a directory too big to walk compares only the files reached, finding no new ones);
 //   files in the session's scratch dir and private no-folder dir without a snapshot count as new.
+//
+// In a repository the request's DiffBase picks what the working tree compares with. The choice belongs to one view:
+// SessionInfo.diff_stats always counts the default (DIFF_BASE_KIND_ALL), and nothing is kept for the session.
+//
+// A large diff (the client's thresholds, GetSessionDiffResponse.large) lists its files without hunks; those come per
+// file from GetSessionFileDiff. An unchanged state costs no patch whatever its size: the version comes from what git
+// and stat report, without producing a diff.
+
+enum DiffBaseKind {
+  // Same as ALL.
+  DIFF_BASE_KIND_UNSPECIFIED = 0;
+  // All changes against the base branch: the merge base of its base ref in a worktree the client created; otherwise
+  // the merge base with the default branch (origin/HEAD, then main, then master), or HEAD on that branch itself, or
+  // when there is none. Outside git the snapshot rules above, whatever was asked for.
+  DIFF_BASE_KIND_ALL = 1;
+  // The working tree against HEAD, staged and untracked files included.
+  DIFF_BASE_KIND_UNCOMMITTED = 2;
+  // The working tree against the merge base with DiffBase.ref.
+  DIFF_BASE_KIND_REF = 3;
+  // What the commit DiffBase.sha changed against its first parent; the working tree is not involved.
+  DIFF_BASE_KIND_COMMIT = 4;
+}
+
+// What a view compares with. With several repositories, UNCOMMITTED applies to each; REF to those that have the ref
+// (the others use ALL; NOT_FOUND when none does); COMMIT to the first that has the commit, and nothing else is listed.
+// Files outside git keep the snapshot rules, except under COMMIT.
+message DiffBase {
+  DiffBaseKind kind = 1;
+  // REF: a plain ref name such as main or origin/main; INVALID_ARGUMENT for one starting with "-" or with revision
+  // syntax (~ ^ : .. @{ and so on).
+  string ref = 2;
+  // COMMIT: the commit's hex name, at least 4 digits.
+  string sha = 3;
+}
 
 message GetSessionDiffRequest {
   string session_id = 1;
   // A version from an earlier response: when nothing changed the response has not_modified set and no files.
   string if_none_match = 2;
+  // Unset means ALL.
+  DiffBase base = 3;
 }
 
 message GetSessionDiffResponse {
   repeated FileDiff files = 1;
-  // Hash of the files and truncated: equal versions mean nothing changed.
+  // Hash of what changed as git and stat report it, and of the base: equal versions mean nothing changed.
   string version = 2;
+  // The request's if_none_match is current: no files; everything else in the response is still filled in.
   bool not_modified = 3;
   // More files changed than are listed (the totals count the listed ones).
   bool truncated = 4;
   int32 files_changed = 5;
   int32 additions = 6;
   int32 deletions = 7;
+  // What was compared, for showing: "main" and "working tree", say. With several repositories, those of the first that
+  // the base applies to.
+  string base_label = 8;
+  string head_label = 9;
+  // The base in effect: ALL outside git, whatever the request asked for. Never UNSPECIFIED.
+  DiffBaseKind base_kind = 10;
+  // Past the client's thresholds: files have their path, status, counts and flags but no hunks.
+  bool large = 11;
+  // When to ask again: the poll the client suggests for this state.
+  int32 refresh_after_ms = 12;
+}
+
+// AgentService.GetSessionFileDiff: one listed file's hunks, for a large diff.
+message GetSessionFileDiffRequest {
+  string session_id = 1;
+  // FileDiff.path of a changed file; NOT_FOUND for any other, so this never reads a file that is not in the diff.
+  string path = 2;
+  // The same base as the listing.
+  DiffBase base = 3;
+}
+
+message GetSessionFileDiffResponse {
+  // The per-file rules hold: a binary or too large file comes flagged, without hunks.
+  FileDiff file = 1;
+}
+
+// AgentService.ListDiffBases: what a view can compare with.
+message ListDiffBasesRequest {
+  string session_id = 1;
+}
+
+message ListDiffBasesResponse {
+  // Whether the session's directories are in git at all. When false, only ALL applies and the rest is empty. Everything
+  // below describes the repository of the cwd, or of the first working directory that has one.
+  bool in_git = 1;
+  // Local branches first, then remote-tracking ones, each most recently committed first; at most 500.
+  repeated DiffBranch branches = 2;
+  bool branches_truncated = 3;
+  // What ALL compares with: its ref ("main", "origin/main", "HEAD"; empty before the first commit), the label a response
+  // gives it, and its commit (empty before the first commit).
+  string default_base_ref = 4;
+  string default_base_label = 5;
+  string default_base_sha = 6;
+  // The commits on this branch since that base, newest first; at most 200.
+  repeated DiffCommit commits = 7;
+  bool commits_truncated = 8;
+}
+
+message DiffBranch {
+  // For DiffBase.ref.
+  string name = 1;
+  // HEAD is on it.
+  bool current = 2;
+  // A remote-tracking branch.
+  bool remote = 3;
+}
+
+message DiffCommit {
+  string sha = 1;
+  string subject = 2;
+  // RFC 3339, UTC: commit time.
+  string committed_at = 3;
 }
 
 enum FileDiffStatus {

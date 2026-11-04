@@ -214,8 +214,9 @@ func folderTooBroad(real string) bool {
 	return err == nil && resolvedPath(home) == real
 }
 
-// addFolder adds what changed in the directory (clean as the session knows it, real resolved) since its snapshot.
-func (b *diffBuilder) addFolder(ctx context.Context, clean, real string) {
+// scanFolder notes what may have changed in the directory (clean as the session knows it, real resolved) since its
+// snapshot: the files whose size or mtime moved, and those it does not know. Taking the snapshot is the only reading.
+func (b *diffBuilder) scanFolder(ctx context.Context, clean, real string) {
 	skip := b.folderSkips()
 	if skip[real] || folderTooBroad(real) {
 		return
@@ -237,20 +238,13 @@ func (b *diffBuilder) addFolder(ctx context.Context, clean, real string) {
 		if err == nil && st.Size() == f.Size && st.ModTime().UnixNano() == f.Mtime {
 			continue
 		}
-		if b.full() {
-			continue
-		}
-		path := lexicalPath(clean, real, p)
+		c := diskCandidate{path: lexicalPath(clean, real, p), real: p, source: agentv1.FileDiffSource_FILE_DIFF_SOURCE_HISTORY}
 		if f.Blob != "" {
-			b.add(b.diffOnDisk(path, p, filepath.Join(fb.store, f.Blob), agentv1.FileDiffSource_FILE_DIFF_SOURCE_HISTORY))
-			continue
+			c.baseline = filepath.Join(fb.store, f.Blob)
+		} else {
+			c.noCopy = true
 		}
-		// Not copied: known to have changed, not how.
-		d := &agentv1.FileDiff{Path: sanitizeUTF8(path), Status: agentv1.FileDiffStatus_FILE_DIFF_STATUS_MODIFIED, TooLarge: true, Source: agentv1.FileDiffSource_FILE_DIFF_SOURCE_HISTORY}
-		if err != nil {
-			d.Status = agentv1.FileDiffStatus_FILE_DIFF_STATUS_DELETED
-		}
-		b.add(d)
+		b.addCandidate(c)
 	}
 	if fb.Partial {
 		return
@@ -260,10 +254,7 @@ func (b *diffBuilder) addFolder(ctx context.Context, clean, real string) {
 			return true
 		}
 		b.seen[p] = true
-		if b.full() {
-			return false
-		}
-		b.add(b.diffOnDisk(lexicalPath(clean, real, p), p, "", agentv1.FileDiffSource_FILE_DIFF_SOURCE_NEW_FILE))
+		b.addCandidate(diskCandidate{path: lexicalPath(clean, real, p), real: p, source: agentv1.FileDiffSource_FILE_DIFF_SOURCE_NEW_FILE})
 		return true
 	})
 	if !finished && ctx.Err() == nil {

@@ -27,7 +27,7 @@ import type { SideChatsApi } from '~/lib/sidechat/types'
 import type { EnvironmentApi } from '~/lib/environment/types'
 import type { ContextUsageVM } from '~/lib/session/context'
 import type { FilesApi } from '~/lib/files/types'
-import type { SessionDiff } from '~/lib/files/sessionDiff'
+import type { DiffBaseChoice, DiffBases, SessionDiff, SessionFileDiff } from '~/lib/files/sessionDiff'
 import type { SpeechApi } from '~/lib/speech/types'
 import type { LocalModelsApi } from './localModels'
 import type { LimitsApi } from '~/lib/limits/types'
@@ -237,8 +237,14 @@ export interface SessionTransport {
 
   // The session's changes as they are on disk, shell commands' edits included (AgentService GetSessionDiff,
   // ~/lib/files/sessionDiff). Fails for a session of another machine. With ifNoneMatch, an unchanged state comes
-  // back as notModified.
-  sessionDiff(sessionId: string, opts?: { ifNoneMatch?: string }): Promise<SessionDiff>
+  // back as notModified. base picks what it compares with, for this answer alone (unset: 'all'). A large answer has
+  // no hunks; refreshAfterMs says when to ask again.
+  sessionDiff(sessionId: string, opts?: { ifNoneMatch?: string, base?: DiffBaseChoice }): Promise<SessionDiff>
+  // One changed file with its hunks, for a large diff, against the same base (AgentService GetSessionFileDiff). Fails
+  // with not_found for a file without changes against it.
+  sessionFileDiff(sessionId: string, path: string, base?: DiffBaseChoice): Promise<SessionFileDiff>
+  // What sessionDiff can compare with: branches, the default base, the commits since it (AgentService ListDiffBases).
+  listDiffBases(sessionId: string): Promise<DiffBases>
 
   // Whether the user is looking at a session in this frontend (AgentService UpdateViewerPresence); renewed while focused.
   updateViewerPresence(sessionId: string, viewerId: string, focused: boolean): Promise<void>

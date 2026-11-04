@@ -19,7 +19,7 @@ import (
 
 func diffOf(t *testing.T, src *diffSources) *agentv1.GetSessionDiffResponse {
 	t.Helper()
-	r, err := computeSessionDiff(context.Background(), src)
+	r, err := computeSessionDiff(context.Background(), src, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,9 +195,6 @@ func TestSessionDiffUnbornHeadAndWorktreeBase(t *testing.T) {
 	writeTree(t, filepath.Join(repo, "committed.txt"), "c\n")
 	gittest.Run(t, repo, "add", ".")
 	gittest.Run(t, repo, "commit", "-q", "-m", "work")
-	if r := diffOf(t, &diffSources{cwd: repo, dirs: []string{repo}}); len(r.Files) != 0 {
-		t.Fatalf("against HEAD: %+v", r.Files)
-	}
 	r = diffOf(t, &diffSources{cwd: repo, dirs: []string{repo}, baseRef: "main"})
 	wantDiff(t, r, "committed.txt")
 }

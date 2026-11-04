@@ -1,11 +1,12 @@
 // FilesApi over AgentService's files RPCs (packages/client/server/filebrowser.go), on the same connect transport
 // (and agent token) as the rest of AgentService. Search reuses SuggestFiles (the composer's @-mentions).
 
+import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { AgentService } from '~/gen/harness/agent/v1/agent_pb'
 import { FileKind, GitFileStatus, type FileEntry as FileEntryPb } from '~/gen/harness/agent/v1/files_pb'
-import { FileDiffStatus, type GetSessionDiffResponse } from '~/gen/harness/agent/v1/session_diff_pb'
-import type { SessionDiff, SessionFileDiff } from './sessionDiff'
+import { DiffBaseKind as DiffBaseKindPb, FileDiffStatus, type DiffBaseSchema, type FileDiff, type GetSessionDiffResponse, type ListDiffBasesResponse } from '~/gen/harness/agent/v1/session_diff_pb'
+import type { DiffBaseChoice, DiffBaseKind, DiffBases, SessionDiff, SessionFileDiff } from './sessionDiff'
 import type { EntryKind, FileContent, FileEntry, FilesApi, GitStatus } from './types'
 
 const STATUS: Record<GitFileStatus, GitStatus> = {
@@ -52,6 +53,39 @@ const DIFF_KIND: Record<FileDiffStatus, SessionFileDiff['kind']> = {
   [FileDiffStatus.RENAMED]: 'R'
 }
 
+const BASE_KIND: Record<DiffBaseKindPb, DiffBaseKind> = {
+  [DiffBaseKindPb.UNSPECIFIED]: 'all',
+  [DiffBaseKindPb.ALL]: 'all',
+  [DiffBaseKindPb.UNCOMMITTED]: 'uncommitted',
+  [DiffBaseKindPb.REF]: 'ref',
+  [DiffBaseKindPb.COMMIT]: 'commit'
+}
+
+// The request's form of a choice; undefined stays unset, which the client reads as 'all'.
+export function diffBaseMessage(base?: DiffBaseChoice): MessageInitShape<typeof DiffBaseSchema> | undefined {
+  switch (base?.kind) {
+    case 'all': return { kind: DiffBaseKindPb.ALL }
+    case 'uncommitted': return { kind: DiffBaseKindPb.UNCOMMITTED }
+    case 'ref': return { kind: DiffBaseKindPb.REF, ref: base.ref }
+    case 'commit': return { kind: DiffBaseKindPb.COMMIT, sha: base.sha }
+  }
+  return undefined
+}
+
+export function sessionFileDiffView(f: FileDiff): SessionFileDiff {
+  return {
+    path: f.path,
+    label: f.displayPath || f.path,
+    kind: DIFF_KIND[f.status] ?? 'M',
+    oldPath: f.oldPath,
+    add: f.additions,
+    del: f.deletions,
+    binary: f.binary,
+    tooLarge: f.tooLarge,
+    hunks: f.hunks.map(h => ({ oldStart: h.oldStart, oldLines: h.oldLines, newStart: h.newStart, newLines: h.newLines, lines: h.lines, ...(h.header ? { header: h.header } : {}) }))
+  }
+}
+
 export function sessionDiffView(r: GetSessionDiffResponse): SessionDiff {
   return {
     version: r.version,
@@ -60,17 +94,25 @@ export function sessionDiffView(r: GetSessionDiffResponse): SessionDiff {
     filesChanged: r.filesChanged,
     additions: r.additions,
     deletions: r.deletions,
-    files: r.files.map(f => ({
-      path: f.path,
-      label: f.displayPath || f.path,
-      kind: DIFF_KIND[f.status] ?? 'M',
-      oldPath: f.oldPath,
-      add: f.additions,
-      del: f.deletions,
-      binary: f.binary,
-      tooLarge: f.tooLarge,
-      hunks: f.hunks.map(h => ({ oldStart: h.oldStart, oldLines: h.oldLines, newStart: h.newStart, newLines: h.newLines, lines: h.lines, ...(h.header ? { header: h.header } : {}) }))
-    }))
+    baseLabel: r.baseLabel,
+    headLabel: r.headLabel,
+    baseKind: BASE_KIND[r.baseKind] ?? 'all',
+    large: r.large,
+    refreshAfterMs: r.refreshAfterMs,
+    files: r.files.map(sessionFileDiffView)
+  }
+}
+
+export function diffBasesView(r: ListDiffBasesResponse): DiffBases {
+  return {
+    inGit: r.inGit,
+    branches: r.branches.map(b => ({ name: b.name, current: b.current, remote: b.remote })),
+    branchesTruncated: r.branchesTruncated,
+    defaultRef: r.defaultBaseRef,
+    defaultLabel: r.defaultBaseLabel,
+    defaultSha: r.defaultBaseSha,
+    commits: r.commits.map(c => ({ sha: c.sha, subject: c.subject, committedAt: c.committedAt })),
+    commitsTruncated: r.commitsTruncated
   }
 }
 

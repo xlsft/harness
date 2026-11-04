@@ -11060,7 +11060,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x16BACKGROUND_REASON_USER\x10\x01\x12$\n" +
 	" BACKGROUND_REASON_QUEUED_MESSAGE\x10\x02\x12\x1b\n" +
 	"\x17BACKGROUND_REASON_AGENT\x10\x03\x12\x1a\n" +
-	"\x16BACKGROUND_REASON_AUTO\x10\x042\xbdT\n" +
+	"\x16BACKGROUND_REASON_AUTO\x10\x042\x90V\n" +
 	"\fAgentService\x12W\n" +
 	"\n" +
 	"Initialize\x12#.harness.agent.v1.InitializeRequest\x1a$.harness.agent.v1.InitializeResponse\x12`\n" +
@@ -11167,7 +11167,9 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fStopComputerUse\x12(.harness.agent.v1.StopComputerUseRequest\x1a).harness.agent.v1.StopComputerUseResponse\x12l\n" +
 	"\x11GetDeviceSettings\x12*.harness.agent.v1.GetDeviceSettingsRequest\x1a+.harness.agent.v1.GetDeviceSettingsResponse\x12u\n" +
 	"\x14UpdateDeviceSettings\x12-.harness.agent.v1.UpdateDeviceSettingsRequest\x1a..harness.agent.v1.UpdateDeviceSettingsResponse\x12]\n" +
-	"\fSetKeepAwake\x12%.harness.agent.v1.SetKeepAwakeRequest\x1a&.harness.agent.v1.SetKeepAwakeResponseB\xcb\x01\n" +
+	"\fSetKeepAwake\x12%.harness.agent.v1.SetKeepAwakeRequest\x1a&.harness.agent.v1.SetKeepAwakeResponse\x12`\n" +
+	"\rListDiffBases\x12&.harness.agent.v1.ListDiffBasesRequest\x1a'.harness.agent.v1.ListDiffBasesResponse\x12o\n" +
+	"\x12GetSessionFileDiff\x12+.harness.agent.v1.GetSessionFileDiffRequest\x1a,.harness.agent.v1.GetSessionFileDiffResponseB\xcb\x01\n" +
 	"\x14com.harness.agent.v1B\n" +
 	"AgentProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
@@ -11418,70 +11420,74 @@ var file_harness_agent_v1_agent_proto_goTypes = []any{
 	(*GetDeviceSettingsRequest)(nil),         // 229: harness.agent.v1.GetDeviceSettingsRequest
 	(*UpdateDeviceSettingsRequest)(nil),      // 230: harness.agent.v1.UpdateDeviceSettingsRequest
 	(*SetKeepAwakeRequest)(nil),              // 231: harness.agent.v1.SetKeepAwakeRequest
-	(*CreateTerminalResponse)(nil),           // 232: harness.agent.v1.CreateTerminalResponse
-	(*AttachTerminalResponse)(nil),           // 233: harness.agent.v1.AttachTerminalResponse
-	(*ListTerminalsResponse)(nil),            // 234: harness.agent.v1.ListTerminalsResponse
-	(*KillTerminalResponse)(nil),             // 235: harness.agent.v1.KillTerminalResponse
-	(*ResizeTerminalResponse)(nil),           // 236: harness.agent.v1.ResizeTerminalResponse
-	(*ListFileRootsResponse)(nil),            // 237: harness.agent.v1.ListFileRootsResponse
-	(*ListFilesResponse)(nil),                // 238: harness.agent.v1.ListFilesResponse
-	(*ReadFileResponse)(nil),                 // 239: harness.agent.v1.ReadFileResponse
-	(*GetGitStatusResponse)(nil),             // 240: harness.agent.v1.GetGitStatusResponse
-	(*RunShellCommandResponse)(nil),          // 241: harness.agent.v1.RunShellCommandResponse
-	(*StopShellCommandResponse)(nil),         // 242: harness.agent.v1.StopShellCommandResponse
-	(*ListSideChatsResponse)(nil),            // 243: harness.agent.v1.ListSideChatsResponse
-	(*CreateSideChatResponse)(nil),           // 244: harness.agent.v1.CreateSideChatResponse
-	(*GetSideChatResponse)(nil),              // 245: harness.agent.v1.GetSideChatResponse
-	(*UpdateSideChatResponse)(nil),           // 246: harness.agent.v1.UpdateSideChatResponse
-	(*DeleteSideChatResponse)(nil),           // 247: harness.agent.v1.DeleteSideChatResponse
-	(*AskSideChatResponse)(nil),              // 248: harness.agent.v1.AskSideChatResponse
-	(*StopSideChatResponse)(nil),             // 249: harness.agent.v1.StopSideChatResponse
-	(*ListSpeechProvidersResponse)(nil),      // 250: harness.agent.v1.ListSpeechProvidersResponse
-	(*ListSpeechVoicesResponse)(nil),         // 251: harness.agent.v1.ListSpeechVoicesResponse
-	(*GetSpeechSettingsResponse)(nil),        // 252: harness.agent.v1.GetSpeechSettingsResponse
-	(*UpdateSpeechSettingsResponse)(nil),     // 253: harness.agent.v1.UpdateSpeechSettingsResponse
-	(*TranscribeAudioResponse)(nil),          // 254: harness.agent.v1.TranscribeAudioResponse
-	(*SynthesizeSpeechResponse)(nil),         // 255: harness.agent.v1.SynthesizeSpeechResponse
-	(*ListLocalSpeechModelsResponse)(nil),    // 256: harness.agent.v1.ListLocalSpeechModelsResponse
-	(*DownloadSpeechModelResponse)(nil),      // 257: harness.agent.v1.DownloadSpeechModelResponse
-	(*DeleteSpeechModelResponse)(nil),        // 258: harness.agent.v1.DeleteSpeechModelResponse
-	(*ListLocalProvidersResponse)(nil),       // 259: harness.agent.v1.ListLocalProvidersResponse
-	(*AddLocalProviderResponse)(nil),         // 260: harness.agent.v1.AddLocalProviderResponse
-	(*UpdateLocalProviderResponse)(nil),      // 261: harness.agent.v1.UpdateLocalProviderResponse
-	(*RemoveLocalProviderResponse)(nil),      // 262: harness.agent.v1.RemoveLocalProviderResponse
-	(*RefreshLocalProvidersResponse)(nil),    // 263: harness.agent.v1.RefreshLocalProvidersResponse
-	(*PullOllamaModelResponse)(nil),          // 264: harness.agent.v1.PullOllamaModelResponse
-	(*DeleteOllamaModelResponse)(nil),        // 265: harness.agent.v1.DeleteOllamaModelResponse
-	(*GetProviderLimitsResponse)(nil),        // 266: harness.agent.v1.GetProviderLimitsResponse
-	(*ListAcpAgentsResponse)(nil),            // 267: harness.agent.v1.ListAcpAgentsResponse
-	(*InstallAcpAgentResponse)(nil),          // 268: harness.agent.v1.InstallAcpAgentResponse
-	(*UpdateAcpAgentResponse)(nil),           // 269: harness.agent.v1.UpdateAcpAgentResponse
-	(*UninstallAcpAgentResponse)(nil),        // 270: harness.agent.v1.UninstallAcpAgentResponse
-	(*AuthenticateAcpAgentResponse)(nil),     // 271: harness.agent.v1.AuthenticateAcpAgentResponse
-	(*SetAcpModeResponse)(nil),               // 272: harness.agent.v1.SetAcpModeResponse
-	(*GetBrowserAvailabilityResponse)(nil),   // 273: harness.agent.v1.GetBrowserAvailabilityResponse
-	(*InstallBrowserResponse)(nil),           // 274: harness.agent.v1.InstallBrowserResponse
-	(*OpenBrowserResponse)(nil),              // 275: harness.agent.v1.OpenBrowserResponse
-	(*ListBrowserTabsResponse)(nil),          // 276: harness.agent.v1.ListBrowserTabsResponse
-	(*CloseBrowserResponse)(nil),             // 277: harness.agent.v1.CloseBrowserResponse
-	(*ClearBrowserDataResponse)(nil),         // 278: harness.agent.v1.ClearBrowserDataResponse
-	(*GetSessionDiffResponse)(nil),           // 279: harness.agent.v1.GetSessionDiffResponse
-	(*StopSubagentResponse)(nil),             // 280: harness.agent.v1.StopSubagentResponse
-	(*GetSubagentTranscriptResponse)(nil),    // 281: harness.agent.v1.GetSubagentTranscriptResponse
-	(*ResolveSessionProposalResponse)(nil),   // 282: harness.agent.v1.ResolveSessionProposalResponse
-	(*UpdateViewerPresenceResponse)(nil),     // 283: harness.agent.v1.UpdateViewerPresenceResponse
-	(*ReadSentFileResponse)(nil),             // 284: harness.agent.v1.ReadSentFileResponse
-	(*SetPrMonitorResponse)(nil),             // 285: harness.agent.v1.SetPrMonitorResponse
-	(*ListPreviewServersResponse)(nil),       // 286: harness.agent.v1.ListPreviewServersResponse
-	(*StopPreviewServerResponse)(nil),        // 287: harness.agent.v1.StopPreviewServerResponse
-	(*GetPreviewLogsResponse)(nil),           // 288: harness.agent.v1.GetPreviewLogsResponse
-	(*GetComputerUseStatusResponse)(nil),     // 289: harness.agent.v1.GetComputerUseStatusResponse
-	(*SetComputerUseEnabledResponse)(nil),    // 290: harness.agent.v1.SetComputerUseEnabledResponse
-	(*RespondToComputerAccessResponse)(nil),  // 291: harness.agent.v1.RespondToComputerAccessResponse
-	(*StopComputerUseResponse)(nil),          // 292: harness.agent.v1.StopComputerUseResponse
-	(*GetDeviceSettingsResponse)(nil),        // 293: harness.agent.v1.GetDeviceSettingsResponse
-	(*UpdateDeviceSettingsResponse)(nil),     // 294: harness.agent.v1.UpdateDeviceSettingsResponse
-	(*SetKeepAwakeResponse)(nil),             // 295: harness.agent.v1.SetKeepAwakeResponse
+	(*ListDiffBasesRequest)(nil),             // 232: harness.agent.v1.ListDiffBasesRequest
+	(*GetSessionFileDiffRequest)(nil),        // 233: harness.agent.v1.GetSessionFileDiffRequest
+	(*CreateTerminalResponse)(nil),           // 234: harness.agent.v1.CreateTerminalResponse
+	(*AttachTerminalResponse)(nil),           // 235: harness.agent.v1.AttachTerminalResponse
+	(*ListTerminalsResponse)(nil),            // 236: harness.agent.v1.ListTerminalsResponse
+	(*KillTerminalResponse)(nil),             // 237: harness.agent.v1.KillTerminalResponse
+	(*ResizeTerminalResponse)(nil),           // 238: harness.agent.v1.ResizeTerminalResponse
+	(*ListFileRootsResponse)(nil),            // 239: harness.agent.v1.ListFileRootsResponse
+	(*ListFilesResponse)(nil),                // 240: harness.agent.v1.ListFilesResponse
+	(*ReadFileResponse)(nil),                 // 241: harness.agent.v1.ReadFileResponse
+	(*GetGitStatusResponse)(nil),             // 242: harness.agent.v1.GetGitStatusResponse
+	(*RunShellCommandResponse)(nil),          // 243: harness.agent.v1.RunShellCommandResponse
+	(*StopShellCommandResponse)(nil),         // 244: harness.agent.v1.StopShellCommandResponse
+	(*ListSideChatsResponse)(nil),            // 245: harness.agent.v1.ListSideChatsResponse
+	(*CreateSideChatResponse)(nil),           // 246: harness.agent.v1.CreateSideChatResponse
+	(*GetSideChatResponse)(nil),              // 247: harness.agent.v1.GetSideChatResponse
+	(*UpdateSideChatResponse)(nil),           // 248: harness.agent.v1.UpdateSideChatResponse
+	(*DeleteSideChatResponse)(nil),           // 249: harness.agent.v1.DeleteSideChatResponse
+	(*AskSideChatResponse)(nil),              // 250: harness.agent.v1.AskSideChatResponse
+	(*StopSideChatResponse)(nil),             // 251: harness.agent.v1.StopSideChatResponse
+	(*ListSpeechProvidersResponse)(nil),      // 252: harness.agent.v1.ListSpeechProvidersResponse
+	(*ListSpeechVoicesResponse)(nil),         // 253: harness.agent.v1.ListSpeechVoicesResponse
+	(*GetSpeechSettingsResponse)(nil),        // 254: harness.agent.v1.GetSpeechSettingsResponse
+	(*UpdateSpeechSettingsResponse)(nil),     // 255: harness.agent.v1.UpdateSpeechSettingsResponse
+	(*TranscribeAudioResponse)(nil),          // 256: harness.agent.v1.TranscribeAudioResponse
+	(*SynthesizeSpeechResponse)(nil),         // 257: harness.agent.v1.SynthesizeSpeechResponse
+	(*ListLocalSpeechModelsResponse)(nil),    // 258: harness.agent.v1.ListLocalSpeechModelsResponse
+	(*DownloadSpeechModelResponse)(nil),      // 259: harness.agent.v1.DownloadSpeechModelResponse
+	(*DeleteSpeechModelResponse)(nil),        // 260: harness.agent.v1.DeleteSpeechModelResponse
+	(*ListLocalProvidersResponse)(nil),       // 261: harness.agent.v1.ListLocalProvidersResponse
+	(*AddLocalProviderResponse)(nil),         // 262: harness.agent.v1.AddLocalProviderResponse
+	(*UpdateLocalProviderResponse)(nil),      // 263: harness.agent.v1.UpdateLocalProviderResponse
+	(*RemoveLocalProviderResponse)(nil),      // 264: harness.agent.v1.RemoveLocalProviderResponse
+	(*RefreshLocalProvidersResponse)(nil),    // 265: harness.agent.v1.RefreshLocalProvidersResponse
+	(*PullOllamaModelResponse)(nil),          // 266: harness.agent.v1.PullOllamaModelResponse
+	(*DeleteOllamaModelResponse)(nil),        // 267: harness.agent.v1.DeleteOllamaModelResponse
+	(*GetProviderLimitsResponse)(nil),        // 268: harness.agent.v1.GetProviderLimitsResponse
+	(*ListAcpAgentsResponse)(nil),            // 269: harness.agent.v1.ListAcpAgentsResponse
+	(*InstallAcpAgentResponse)(nil),          // 270: harness.agent.v1.InstallAcpAgentResponse
+	(*UpdateAcpAgentResponse)(nil),           // 271: harness.agent.v1.UpdateAcpAgentResponse
+	(*UninstallAcpAgentResponse)(nil),        // 272: harness.agent.v1.UninstallAcpAgentResponse
+	(*AuthenticateAcpAgentResponse)(nil),     // 273: harness.agent.v1.AuthenticateAcpAgentResponse
+	(*SetAcpModeResponse)(nil),               // 274: harness.agent.v1.SetAcpModeResponse
+	(*GetBrowserAvailabilityResponse)(nil),   // 275: harness.agent.v1.GetBrowserAvailabilityResponse
+	(*InstallBrowserResponse)(nil),           // 276: harness.agent.v1.InstallBrowserResponse
+	(*OpenBrowserResponse)(nil),              // 277: harness.agent.v1.OpenBrowserResponse
+	(*ListBrowserTabsResponse)(nil),          // 278: harness.agent.v1.ListBrowserTabsResponse
+	(*CloseBrowserResponse)(nil),             // 279: harness.agent.v1.CloseBrowserResponse
+	(*ClearBrowserDataResponse)(nil),         // 280: harness.agent.v1.ClearBrowserDataResponse
+	(*GetSessionDiffResponse)(nil),           // 281: harness.agent.v1.GetSessionDiffResponse
+	(*StopSubagentResponse)(nil),             // 282: harness.agent.v1.StopSubagentResponse
+	(*GetSubagentTranscriptResponse)(nil),    // 283: harness.agent.v1.GetSubagentTranscriptResponse
+	(*ResolveSessionProposalResponse)(nil),   // 284: harness.agent.v1.ResolveSessionProposalResponse
+	(*UpdateViewerPresenceResponse)(nil),     // 285: harness.agent.v1.UpdateViewerPresenceResponse
+	(*ReadSentFileResponse)(nil),             // 286: harness.agent.v1.ReadSentFileResponse
+	(*SetPrMonitorResponse)(nil),             // 287: harness.agent.v1.SetPrMonitorResponse
+	(*ListPreviewServersResponse)(nil),       // 288: harness.agent.v1.ListPreviewServersResponse
+	(*StopPreviewServerResponse)(nil),        // 289: harness.agent.v1.StopPreviewServerResponse
+	(*GetPreviewLogsResponse)(nil),           // 290: harness.agent.v1.GetPreviewLogsResponse
+	(*GetComputerUseStatusResponse)(nil),     // 291: harness.agent.v1.GetComputerUseStatusResponse
+	(*SetComputerUseEnabledResponse)(nil),    // 292: harness.agent.v1.SetComputerUseEnabledResponse
+	(*RespondToComputerAccessResponse)(nil),  // 293: harness.agent.v1.RespondToComputerAccessResponse
+	(*StopComputerUseResponse)(nil),          // 294: harness.agent.v1.StopComputerUseResponse
+	(*GetDeviceSettingsResponse)(nil),        // 295: harness.agent.v1.GetDeviceSettingsResponse
+	(*UpdateDeviceSettingsResponse)(nil),     // 296: harness.agent.v1.UpdateDeviceSettingsResponse
+	(*SetKeepAwakeResponse)(nil),             // 297: harness.agent.v1.SetKeepAwakeResponse
+	(*ListDiffBasesResponse)(nil),            // 298: harness.agent.v1.ListDiffBasesResponse
+	(*GetSessionFileDiffResponse)(nil),       // 299: harness.agent.v1.GetSessionFileDiffResponse
 }
 var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	0,   // 0: harness.agent.v1.InitializeResponse.permission_modes:type_name -> harness.agent.v1.PermissionMode
@@ -11707,112 +11713,116 @@ var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	229, // 220: harness.agent.v1.AgentService.GetDeviceSettings:input_type -> harness.agent.v1.GetDeviceSettingsRequest
 	230, // 221: harness.agent.v1.AgentService.UpdateDeviceSettings:input_type -> harness.agent.v1.UpdateDeviceSettingsRequest
 	231, // 222: harness.agent.v1.AgentService.SetKeepAwake:input_type -> harness.agent.v1.SetKeepAwakeRequest
-	19,  // 223: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
-	36,  // 224: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
-	38,  // 225: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
-	40,  // 226: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
-	42,  // 227: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
-	28,  // 228: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
-	31,  // 229: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
-	34,  // 230: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
-	44,  // 231: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
-	77,  // 232: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
-	79,  // 233: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
-	81,  // 234: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
-	83,  // 235: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
-	86,  // 236: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
-	88,  // 237: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
-	92,  // 238: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
-	94,  // 239: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
-	125, // 240: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
-	127, // 241: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
-	96,  // 242: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
-	98,  // 243: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
-	100, // 244: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
-	102, // 245: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
-	104, // 246: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
-	106, // 247: harness.agent.v1.AgentService.GetContextUsage:output_type -> harness.agent.v1.GetContextUsageResponse
-	110, // 248: harness.agent.v1.AgentService.GetUserPreferences:output_type -> harness.agent.v1.GetUserPreferencesResponse
-	112, // 249: harness.agent.v1.AgentService.UpdateUserPreferences:output_type -> harness.agent.v1.UpdateUserPreferencesResponse
-	115, // 250: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
-	117, // 251: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
-	119, // 252: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
-	121, // 253: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
-	123, // 254: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
-	232, // 255: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
-	233, // 256: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
-	234, // 257: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
-	235, // 258: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
-	236, // 259: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
-	134, // 260: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
-	136, // 261: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
-	138, // 262: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
-	140, // 263: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
-	142, // 264: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
-	237, // 265: harness.agent.v1.AgentService.ListFileRoots:output_type -> harness.agent.v1.ListFileRootsResponse
-	238, // 266: harness.agent.v1.AgentService.ListFiles:output_type -> harness.agent.v1.ListFilesResponse
-	239, // 267: harness.agent.v1.AgentService.ReadFile:output_type -> harness.agent.v1.ReadFileResponse
-	240, // 268: harness.agent.v1.AgentService.GetGitStatus:output_type -> harness.agent.v1.GetGitStatusResponse
-	241, // 269: harness.agent.v1.AgentService.RunShellCommand:output_type -> harness.agent.v1.RunShellCommandResponse
-	242, // 270: harness.agent.v1.AgentService.StopShellCommand:output_type -> harness.agent.v1.StopShellCommandResponse
-	243, // 271: harness.agent.v1.AgentService.ListSideChats:output_type -> harness.agent.v1.ListSideChatsResponse
-	244, // 272: harness.agent.v1.AgentService.CreateSideChat:output_type -> harness.agent.v1.CreateSideChatResponse
-	245, // 273: harness.agent.v1.AgentService.GetSideChat:output_type -> harness.agent.v1.GetSideChatResponse
-	246, // 274: harness.agent.v1.AgentService.UpdateSideChat:output_type -> harness.agent.v1.UpdateSideChatResponse
-	247, // 275: harness.agent.v1.AgentService.DeleteSideChat:output_type -> harness.agent.v1.DeleteSideChatResponse
-	248, // 276: harness.agent.v1.AgentService.AskSideChat:output_type -> harness.agent.v1.AskSideChatResponse
-	249, // 277: harness.agent.v1.AgentService.StopSideChat:output_type -> harness.agent.v1.StopSideChatResponse
-	250, // 278: harness.agent.v1.AgentService.ListSpeechProviders:output_type -> harness.agent.v1.ListSpeechProvidersResponse
-	251, // 279: harness.agent.v1.AgentService.ListSpeechVoices:output_type -> harness.agent.v1.ListSpeechVoicesResponse
-	252, // 280: harness.agent.v1.AgentService.GetSpeechSettings:output_type -> harness.agent.v1.GetSpeechSettingsResponse
-	253, // 281: harness.agent.v1.AgentService.UpdateSpeechSettings:output_type -> harness.agent.v1.UpdateSpeechSettingsResponse
-	254, // 282: harness.agent.v1.AgentService.TranscribeAudio:output_type -> harness.agent.v1.TranscribeAudioResponse
-	255, // 283: harness.agent.v1.AgentService.SynthesizeSpeech:output_type -> harness.agent.v1.SynthesizeSpeechResponse
-	256, // 284: harness.agent.v1.AgentService.ListLocalSpeechModels:output_type -> harness.agent.v1.ListLocalSpeechModelsResponse
-	257, // 285: harness.agent.v1.AgentService.DownloadSpeechModel:output_type -> harness.agent.v1.DownloadSpeechModelResponse
-	258, // 286: harness.agent.v1.AgentService.DeleteSpeechModel:output_type -> harness.agent.v1.DeleteSpeechModelResponse
-	259, // 287: harness.agent.v1.AgentService.ListLocalProviders:output_type -> harness.agent.v1.ListLocalProvidersResponse
-	260, // 288: harness.agent.v1.AgentService.AddLocalProvider:output_type -> harness.agent.v1.AddLocalProviderResponse
-	261, // 289: harness.agent.v1.AgentService.UpdateLocalProvider:output_type -> harness.agent.v1.UpdateLocalProviderResponse
-	262, // 290: harness.agent.v1.AgentService.RemoveLocalProvider:output_type -> harness.agent.v1.RemoveLocalProviderResponse
-	263, // 291: harness.agent.v1.AgentService.RefreshLocalProviders:output_type -> harness.agent.v1.RefreshLocalProvidersResponse
-	264, // 292: harness.agent.v1.AgentService.PullOllamaModel:output_type -> harness.agent.v1.PullOllamaModelResponse
-	265, // 293: harness.agent.v1.AgentService.DeleteOllamaModel:output_type -> harness.agent.v1.DeleteOllamaModelResponse
-	266, // 294: harness.agent.v1.AgentService.GetProviderLimits:output_type -> harness.agent.v1.GetProviderLimitsResponse
-	146, // 295: harness.agent.v1.AgentService.BackgroundToolCall:output_type -> harness.agent.v1.BackgroundToolCallResponse
-	267, // 296: harness.agent.v1.AgentService.ListAcpAgents:output_type -> harness.agent.v1.ListAcpAgentsResponse
-	268, // 297: harness.agent.v1.AgentService.InstallAcpAgent:output_type -> harness.agent.v1.InstallAcpAgentResponse
-	269, // 298: harness.agent.v1.AgentService.UpdateAcpAgent:output_type -> harness.agent.v1.UpdateAcpAgentResponse
-	270, // 299: harness.agent.v1.AgentService.UninstallAcpAgent:output_type -> harness.agent.v1.UninstallAcpAgentResponse
-	271, // 300: harness.agent.v1.AgentService.AuthenticateAcpAgent:output_type -> harness.agent.v1.AuthenticateAcpAgentResponse
-	272, // 301: harness.agent.v1.AgentService.SetAcpMode:output_type -> harness.agent.v1.SetAcpModeResponse
-	148, // 302: harness.agent.v1.AgentService.SetSessionRelay:output_type -> harness.agent.v1.SetSessionRelayResponse
-	273, // 303: harness.agent.v1.AgentService.GetBrowserAvailability:output_type -> harness.agent.v1.GetBrowserAvailabilityResponse
-	274, // 304: harness.agent.v1.AgentService.InstallBrowser:output_type -> harness.agent.v1.InstallBrowserResponse
-	275, // 305: harness.agent.v1.AgentService.OpenBrowser:output_type -> harness.agent.v1.OpenBrowserResponse
-	276, // 306: harness.agent.v1.AgentService.ListBrowserTabs:output_type -> harness.agent.v1.ListBrowserTabsResponse
-	277, // 307: harness.agent.v1.AgentService.CloseBrowser:output_type -> harness.agent.v1.CloseBrowserResponse
-	278, // 308: harness.agent.v1.AgentService.ClearBrowserData:output_type -> harness.agent.v1.ClearBrowserDataResponse
-	90,  // 309: harness.agent.v1.AgentService.SetAutoContinue:output_type -> harness.agent.v1.SetAutoContinueResponse
-	279, // 310: harness.agent.v1.AgentService.GetSessionDiff:output_type -> harness.agent.v1.GetSessionDiffResponse
-	280, // 311: harness.agent.v1.AgentService.StopSubagent:output_type -> harness.agent.v1.StopSubagentResponse
-	281, // 312: harness.agent.v1.AgentService.GetSubagentTranscript:output_type -> harness.agent.v1.GetSubagentTranscriptResponse
-	282, // 313: harness.agent.v1.AgentService.ResolveSessionProposal:output_type -> harness.agent.v1.ResolveSessionProposalResponse
-	283, // 314: harness.agent.v1.AgentService.UpdateViewerPresence:output_type -> harness.agent.v1.UpdateViewerPresenceResponse
-	284, // 315: harness.agent.v1.AgentService.ReadSentFile:output_type -> harness.agent.v1.ReadSentFileResponse
-	285, // 316: harness.agent.v1.AgentService.SetPrMonitor:output_type -> harness.agent.v1.SetPrMonitorResponse
-	286, // 317: harness.agent.v1.AgentService.ListPreviewServers:output_type -> harness.agent.v1.ListPreviewServersResponse
-	287, // 318: harness.agent.v1.AgentService.StopPreviewServer:output_type -> harness.agent.v1.StopPreviewServerResponse
-	288, // 319: harness.agent.v1.AgentService.GetPreviewLogs:output_type -> harness.agent.v1.GetPreviewLogsResponse
-	289, // 320: harness.agent.v1.AgentService.GetComputerUseStatus:output_type -> harness.agent.v1.GetComputerUseStatusResponse
-	290, // 321: harness.agent.v1.AgentService.SetComputerUseEnabled:output_type -> harness.agent.v1.SetComputerUseEnabledResponse
-	291, // 322: harness.agent.v1.AgentService.RespondToComputerAccess:output_type -> harness.agent.v1.RespondToComputerAccessResponse
-	292, // 323: harness.agent.v1.AgentService.StopComputerUse:output_type -> harness.agent.v1.StopComputerUseResponse
-	293, // 324: harness.agent.v1.AgentService.GetDeviceSettings:output_type -> harness.agent.v1.GetDeviceSettingsResponse
-	294, // 325: harness.agent.v1.AgentService.UpdateDeviceSettings:output_type -> harness.agent.v1.UpdateDeviceSettingsResponse
-	295, // 326: harness.agent.v1.AgentService.SetKeepAwake:output_type -> harness.agent.v1.SetKeepAwakeResponse
-	223, // [223:327] is the sub-list for method output_type
-	119, // [119:223] is the sub-list for method input_type
+	232, // 223: harness.agent.v1.AgentService.ListDiffBases:input_type -> harness.agent.v1.ListDiffBasesRequest
+	233, // 224: harness.agent.v1.AgentService.GetSessionFileDiff:input_type -> harness.agent.v1.GetSessionFileDiffRequest
+	19,  // 225: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
+	36,  // 226: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
+	38,  // 227: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
+	40,  // 228: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
+	42,  // 229: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
+	28,  // 230: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
+	31,  // 231: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
+	34,  // 232: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
+	44,  // 233: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
+	77,  // 234: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
+	79,  // 235: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
+	81,  // 236: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
+	83,  // 237: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
+	86,  // 238: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
+	88,  // 239: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
+	92,  // 240: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
+	94,  // 241: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
+	125, // 242: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
+	127, // 243: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
+	96,  // 244: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
+	98,  // 245: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
+	100, // 246: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
+	102, // 247: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
+	104, // 248: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
+	106, // 249: harness.agent.v1.AgentService.GetContextUsage:output_type -> harness.agent.v1.GetContextUsageResponse
+	110, // 250: harness.agent.v1.AgentService.GetUserPreferences:output_type -> harness.agent.v1.GetUserPreferencesResponse
+	112, // 251: harness.agent.v1.AgentService.UpdateUserPreferences:output_type -> harness.agent.v1.UpdateUserPreferencesResponse
+	115, // 252: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
+	117, // 253: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
+	119, // 254: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
+	121, // 255: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
+	123, // 256: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
+	234, // 257: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
+	235, // 258: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
+	236, // 259: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
+	237, // 260: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
+	238, // 261: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
+	134, // 262: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
+	136, // 263: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
+	138, // 264: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
+	140, // 265: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
+	142, // 266: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
+	239, // 267: harness.agent.v1.AgentService.ListFileRoots:output_type -> harness.agent.v1.ListFileRootsResponse
+	240, // 268: harness.agent.v1.AgentService.ListFiles:output_type -> harness.agent.v1.ListFilesResponse
+	241, // 269: harness.agent.v1.AgentService.ReadFile:output_type -> harness.agent.v1.ReadFileResponse
+	242, // 270: harness.agent.v1.AgentService.GetGitStatus:output_type -> harness.agent.v1.GetGitStatusResponse
+	243, // 271: harness.agent.v1.AgentService.RunShellCommand:output_type -> harness.agent.v1.RunShellCommandResponse
+	244, // 272: harness.agent.v1.AgentService.StopShellCommand:output_type -> harness.agent.v1.StopShellCommandResponse
+	245, // 273: harness.agent.v1.AgentService.ListSideChats:output_type -> harness.agent.v1.ListSideChatsResponse
+	246, // 274: harness.agent.v1.AgentService.CreateSideChat:output_type -> harness.agent.v1.CreateSideChatResponse
+	247, // 275: harness.agent.v1.AgentService.GetSideChat:output_type -> harness.agent.v1.GetSideChatResponse
+	248, // 276: harness.agent.v1.AgentService.UpdateSideChat:output_type -> harness.agent.v1.UpdateSideChatResponse
+	249, // 277: harness.agent.v1.AgentService.DeleteSideChat:output_type -> harness.agent.v1.DeleteSideChatResponse
+	250, // 278: harness.agent.v1.AgentService.AskSideChat:output_type -> harness.agent.v1.AskSideChatResponse
+	251, // 279: harness.agent.v1.AgentService.StopSideChat:output_type -> harness.agent.v1.StopSideChatResponse
+	252, // 280: harness.agent.v1.AgentService.ListSpeechProviders:output_type -> harness.agent.v1.ListSpeechProvidersResponse
+	253, // 281: harness.agent.v1.AgentService.ListSpeechVoices:output_type -> harness.agent.v1.ListSpeechVoicesResponse
+	254, // 282: harness.agent.v1.AgentService.GetSpeechSettings:output_type -> harness.agent.v1.GetSpeechSettingsResponse
+	255, // 283: harness.agent.v1.AgentService.UpdateSpeechSettings:output_type -> harness.agent.v1.UpdateSpeechSettingsResponse
+	256, // 284: harness.agent.v1.AgentService.TranscribeAudio:output_type -> harness.agent.v1.TranscribeAudioResponse
+	257, // 285: harness.agent.v1.AgentService.SynthesizeSpeech:output_type -> harness.agent.v1.SynthesizeSpeechResponse
+	258, // 286: harness.agent.v1.AgentService.ListLocalSpeechModels:output_type -> harness.agent.v1.ListLocalSpeechModelsResponse
+	259, // 287: harness.agent.v1.AgentService.DownloadSpeechModel:output_type -> harness.agent.v1.DownloadSpeechModelResponse
+	260, // 288: harness.agent.v1.AgentService.DeleteSpeechModel:output_type -> harness.agent.v1.DeleteSpeechModelResponse
+	261, // 289: harness.agent.v1.AgentService.ListLocalProviders:output_type -> harness.agent.v1.ListLocalProvidersResponse
+	262, // 290: harness.agent.v1.AgentService.AddLocalProvider:output_type -> harness.agent.v1.AddLocalProviderResponse
+	263, // 291: harness.agent.v1.AgentService.UpdateLocalProvider:output_type -> harness.agent.v1.UpdateLocalProviderResponse
+	264, // 292: harness.agent.v1.AgentService.RemoveLocalProvider:output_type -> harness.agent.v1.RemoveLocalProviderResponse
+	265, // 293: harness.agent.v1.AgentService.RefreshLocalProviders:output_type -> harness.agent.v1.RefreshLocalProvidersResponse
+	266, // 294: harness.agent.v1.AgentService.PullOllamaModel:output_type -> harness.agent.v1.PullOllamaModelResponse
+	267, // 295: harness.agent.v1.AgentService.DeleteOllamaModel:output_type -> harness.agent.v1.DeleteOllamaModelResponse
+	268, // 296: harness.agent.v1.AgentService.GetProviderLimits:output_type -> harness.agent.v1.GetProviderLimitsResponse
+	146, // 297: harness.agent.v1.AgentService.BackgroundToolCall:output_type -> harness.agent.v1.BackgroundToolCallResponse
+	269, // 298: harness.agent.v1.AgentService.ListAcpAgents:output_type -> harness.agent.v1.ListAcpAgentsResponse
+	270, // 299: harness.agent.v1.AgentService.InstallAcpAgent:output_type -> harness.agent.v1.InstallAcpAgentResponse
+	271, // 300: harness.agent.v1.AgentService.UpdateAcpAgent:output_type -> harness.agent.v1.UpdateAcpAgentResponse
+	272, // 301: harness.agent.v1.AgentService.UninstallAcpAgent:output_type -> harness.agent.v1.UninstallAcpAgentResponse
+	273, // 302: harness.agent.v1.AgentService.AuthenticateAcpAgent:output_type -> harness.agent.v1.AuthenticateAcpAgentResponse
+	274, // 303: harness.agent.v1.AgentService.SetAcpMode:output_type -> harness.agent.v1.SetAcpModeResponse
+	148, // 304: harness.agent.v1.AgentService.SetSessionRelay:output_type -> harness.agent.v1.SetSessionRelayResponse
+	275, // 305: harness.agent.v1.AgentService.GetBrowserAvailability:output_type -> harness.agent.v1.GetBrowserAvailabilityResponse
+	276, // 306: harness.agent.v1.AgentService.InstallBrowser:output_type -> harness.agent.v1.InstallBrowserResponse
+	277, // 307: harness.agent.v1.AgentService.OpenBrowser:output_type -> harness.agent.v1.OpenBrowserResponse
+	278, // 308: harness.agent.v1.AgentService.ListBrowserTabs:output_type -> harness.agent.v1.ListBrowserTabsResponse
+	279, // 309: harness.agent.v1.AgentService.CloseBrowser:output_type -> harness.agent.v1.CloseBrowserResponse
+	280, // 310: harness.agent.v1.AgentService.ClearBrowserData:output_type -> harness.agent.v1.ClearBrowserDataResponse
+	90,  // 311: harness.agent.v1.AgentService.SetAutoContinue:output_type -> harness.agent.v1.SetAutoContinueResponse
+	281, // 312: harness.agent.v1.AgentService.GetSessionDiff:output_type -> harness.agent.v1.GetSessionDiffResponse
+	282, // 313: harness.agent.v1.AgentService.StopSubagent:output_type -> harness.agent.v1.StopSubagentResponse
+	283, // 314: harness.agent.v1.AgentService.GetSubagentTranscript:output_type -> harness.agent.v1.GetSubagentTranscriptResponse
+	284, // 315: harness.agent.v1.AgentService.ResolveSessionProposal:output_type -> harness.agent.v1.ResolveSessionProposalResponse
+	285, // 316: harness.agent.v1.AgentService.UpdateViewerPresence:output_type -> harness.agent.v1.UpdateViewerPresenceResponse
+	286, // 317: harness.agent.v1.AgentService.ReadSentFile:output_type -> harness.agent.v1.ReadSentFileResponse
+	287, // 318: harness.agent.v1.AgentService.SetPrMonitor:output_type -> harness.agent.v1.SetPrMonitorResponse
+	288, // 319: harness.agent.v1.AgentService.ListPreviewServers:output_type -> harness.agent.v1.ListPreviewServersResponse
+	289, // 320: harness.agent.v1.AgentService.StopPreviewServer:output_type -> harness.agent.v1.StopPreviewServerResponse
+	290, // 321: harness.agent.v1.AgentService.GetPreviewLogs:output_type -> harness.agent.v1.GetPreviewLogsResponse
+	291, // 322: harness.agent.v1.AgentService.GetComputerUseStatus:output_type -> harness.agent.v1.GetComputerUseStatusResponse
+	292, // 323: harness.agent.v1.AgentService.SetComputerUseEnabled:output_type -> harness.agent.v1.SetComputerUseEnabledResponse
+	293, // 324: harness.agent.v1.AgentService.RespondToComputerAccess:output_type -> harness.agent.v1.RespondToComputerAccessResponse
+	294, // 325: harness.agent.v1.AgentService.StopComputerUse:output_type -> harness.agent.v1.StopComputerUseResponse
+	295, // 326: harness.agent.v1.AgentService.GetDeviceSettings:output_type -> harness.agent.v1.GetDeviceSettingsResponse
+	296, // 327: harness.agent.v1.AgentService.UpdateDeviceSettings:output_type -> harness.agent.v1.UpdateDeviceSettingsResponse
+	297, // 328: harness.agent.v1.AgentService.SetKeepAwake:output_type -> harness.agent.v1.SetKeepAwakeResponse
+	298, // 329: harness.agent.v1.AgentService.ListDiffBases:output_type -> harness.agent.v1.ListDiffBasesResponse
+	299, // 330: harness.agent.v1.AgentService.GetSessionFileDiff:output_type -> harness.agent.v1.GetSessionFileDiffResponse
+	225, // [225:331] is the sub-list for method output_type
+	119, // [119:225] is the sub-list for method input_type
 	119, // [119:119] is the sub-list for extension type_name
 	119, // [119:119] is the sub-list for extension extendee
 	0,   // [0:119] is the sub-list for field type_name
