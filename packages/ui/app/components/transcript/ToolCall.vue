@@ -127,6 +127,7 @@ const hasBody = computed(() => !!concrete.value || !!t.value.images?.length || (
 const noIcon = reactive<Record<string, boolean>>({})
 
 const host = (url: string) => url.replace(/^https?:\/\//, '').split('/')[0]
+const { open: openImage } = useImageViewer()
 </script>
 
 <template>
@@ -426,18 +427,25 @@ v-for="(tk, j) in highlightJson(tool.result ?? tool.output)"
       </div>
     </div>
 
-    <!-- computer use: what the agent saw -->
+    <!-- images the tool returned: what the agent saw -->
     <div
       v-if="tool.images?.length"
       class="flex flex-col gap-1.5 border-t border-default bg-surface p-2"
     >
-      <img
+      <button
         v-for="(img, i) in tool.images"
         :key="i"
-        :src="img.url"
-        alt="Screenshot of an app"
-        class="max-h-[420px] max-w-full self-start border border-default object-contain"
+        type="button"
+        aria-label="Open image"
+        class="self-start"
+        @click.stop="openImage(img.url)"
       >
+        <img
+          :src="img.url"
+          alt="What the tool returned"
+          class="max-h-[420px] max-w-full border border-default object-contain"
+        >
+      </button>
     </div>
   </div>
 </template>

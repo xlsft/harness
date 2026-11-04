@@ -537,7 +537,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       item.output = textOf(t.content)
       item.result = parseJson(t.structuredResultJson)
       item.resultSummary = t.summary
-      if (item.name.startsWith('Computer')) item.images = toolImages(t.content)
+      item.images = toolImages(t.content)
       item.durationMs = Number(t.durationMs)
       if (t.background?.taskId) item.background = { taskId: t.background.taskId, reason: backgroundReasonName(t.background.reason) }
       break

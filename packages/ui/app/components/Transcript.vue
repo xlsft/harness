@@ -267,6 +267,7 @@ function toBottom() {
       @scroll="onScroll"
     >
       <SelectionMenu :root="scroller" />
+      <ImageViewer :session="session" />
       <!-- The history is being replayed (first open): shown at once when it is in -->
       <div
         v-if="session.loading"

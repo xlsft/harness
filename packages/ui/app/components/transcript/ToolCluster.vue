@@ -16,6 +16,9 @@ const open = computed(() => opened.value || verbose.value)
 const notes = ref<Record<string, boolean>>({})
 
 const tools = computed(() => props.entries.flatMap(e => e.kind === 'tool' ? [e.tool] : []))
+// The last image the group's tools returned: shown on the line, it opens the viewer.
+const lastImage = computed(() => tools.value.flatMap(t => t.images ?? []).at(-1))
+const { open: openImage } = useImageViewer()
 const current = computed(() => tools.value.findLast(t => t.status === 'running'))
 const failed = computed(() => tools.value.filter(t => t.status === 'error').length)
 
@@ -80,6 +83,19 @@ const time = computed(() => {
           class="shrink-0 transition-transform"
           :class="open && 'rotate-90'"
         />
+      </button>
+      <button
+        v-if="lastImage"
+        type="button"
+        aria-label="Open image"
+        class="-my-1 shrink-0"
+        @click="openImage(lastImage.url)"
+      >
+        <img
+          :src="lastImage.url"
+          alt=""
+          class="h-7 w-12 border border-default object-cover"
+        >
       </button>
     </div>
     <div
