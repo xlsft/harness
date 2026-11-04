@@ -6052,8 +6052,9 @@ export const AgentService: GenService<{
     output: typeof UpdateDeviceSettingsResponseSchema;
   },
   /**
-   * Holds off sleep while the session works, until it is turned off or the session closes. SessionInfo.keep_awake
-   * reports it. FAILED_PRECONDITION for a session of another machine.
+   * Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
+   * SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
+   * for any other session of another machine.
    *
    * @generated from rpc harness.agent.v1.AgentService.SetKeepAwake
    */

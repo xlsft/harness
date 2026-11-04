@@ -525,8 +525,9 @@ type AgentServiceClient interface {
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
-	// Holds off sleep while the session works, until it is turned off or the session closes. SessionInfo.keep_awake
-	// reports it. FAILED_PRECONDITION for a session of another machine.
+	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
+	// SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
+	// for any other session of another machine.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 
@@ -1869,8 +1870,9 @@ type AgentServiceHandler interface {
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
-	// Holds off sleep while the session works, until it is turned off or the session closes. SessionInfo.keep_awake
-	// reports it. FAILED_PRECONDITION for a session of another machine.
+	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
+	// SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
+	// for any other session of another machine.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 

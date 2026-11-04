@@ -1,9 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import type { ToolItem } from '~/lib/session/types'
+import { keepAwakeAvailable } from '~/utils/keepAwake'
 import { toolIcon, toolMeta, toolTarget } from '~/utils/tools'
 
 const tool = (name: string, input: Record<string, unknown>, result: Record<string, unknown> | null = null, status: ToolItem['status'] = 'ok'): ToolItem => ({
   kind: 'tool', id: 't', name, input, summary: '', status, output: '', result, resultSummary: '', durationMs: 900, startedAt: 0, messageId: 'm', grouped: false
+})
+
+describe('who gets the keep-awake switch', () => {
+  const local = { remote: false, remoteControllable: false, relayEnabled: false }
+  const web = { desktop: false, controlling: false }
+  it('shows in the desktop app', () => {
+    expect(keepAwakeAvailable(local, { ...web, desktop: true })).toBe(true)
+  })
+  it('shows on the web only for a session on the relay', () => {
+    expect(keepAwakeAvailable(local, web)).toBe(false)
+    expect(keepAwakeAvailable({ ...local, relayEnabled: true }, web)).toBe(true)
+  })
+  it('shows for a session of another machine only while driving it through the relay', () => {
+    const remote = { remote: true, remoteControllable: true, relayEnabled: false }
+    for (const desktop of [false, true]) {
+      expect(keepAwakeAvailable(remote, { desktop, controlling: true })).toBe(true)
+      expect(keepAwakeAvailable(remote, { desktop, controlling: false })).toBe(false)
+      expect(keepAwakeAvailable({ ...remote, remoteControllable: false }, { desktop, controlling: true })).toBe(false)
+    }
+  })
 })
 
 describe('session and system tool rows', () => {

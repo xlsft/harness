@@ -114,7 +114,7 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `KeepAwake` | `enabled` | the session's "Keep computer awake" switch, the Tools menu's; held while the session works, released when it closes |
 | `SessionSetModel` | `model` | from the next model request; within the providers, the policy's list and the usage limits |
 | `SessionSetEffort` | `effort` | from the next model request; a level the model offers |
-| `SessionSetMode` | `mode` | a stricter mode at once, a more permissive one asks the user, bypass is refused |
+| `SessionSetMode` | `mode` | a stricter mode at once, a more permissive one asks the user, bypass is refused; leaves plan mode only when the user asked, else ExitPlanMode |
 | `SessionSetTitle` | `title` | a rename: the automatic title never replaces it |
 | `EnterPlanMode` | `{}` | |
 | `ExitPlanMode` | `plan` (Markdown) | the client writes it to the plan file and asks the user to approve |

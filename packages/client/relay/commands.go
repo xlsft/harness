@@ -226,6 +226,9 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 	case *relayv1.Command_SetAutoContinue:
 		_, err := b.SetAutoContinue(ctx, connect.NewRequest(&agentv1.SetAutoContinueRequest{SessionId: sid, Enabled: p.SetAutoContinue.GetEnabled()}))
 		return errAck(id, err, false)
+	case *relayv1.Command_SetKeepAwake:
+		_, err := b.SetKeepAwake(ctx, connect.NewRequest(&agentv1.SetKeepAwakeRequest{SessionId: sid, Enabled: p.SetKeepAwake.GetEnabled()}))
+		return errAck(id, err, false)
 	case *relayv1.Command_RemoveQueuedMessage:
 		res, err := b.RemoveQueuedMessage(ctx, connect.NewRequest(&agentv1.RemoveQueuedMessageRequest{SessionId: sid, Uuid: p.RemoveQueuedMessage.GetUuid()}))
 		a := errAck(id, err, false)

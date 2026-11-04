@@ -138,6 +138,7 @@ export function registerRelayService(router: ConnectRouter): void {
     setPermissionMode: command("setPermissionMode"),
     setOutputStyle: command("setOutputStyle"),
     setAutoContinue: command("setAutoContinue"),
+    setKeepAwake: command("setKeepAwake"),
     removeQueuedMessage: command("removeQueuedMessage"),
     stopTask: command("stopTask"),
     closeSession: command("closeSession"),

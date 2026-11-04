@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.relay.v1;
 
 import "harness/agent/v1/agent.proto";
+import "harness/agent/v1/device_settings.proto";
 import "harness/common/v1/errors.proto";
 
 // RelayService is served by core and implements remote control without bidirectional streaming
@@ -129,6 +130,9 @@ service RelayService {
   // Issues a short-lived, single-use access URL for the browser (sets an owner-only cookie on the preview
   // origin). Only the tunnel owner may call it.
   rpc AuthorizeTunnel(AuthorizeTunnelRequest) returns (AuthorizeTunnelResponse);
+
+  // "Keep computer awake" for the session, on the machine running it.
+  rpc SetKeepAwake(SetKeepAwakeRequest) returns (SetKeepAwakeResponse);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -203,6 +207,7 @@ message Command {
     harness.agent.v1.ListTasksRequest list_tasks = 28;
     harness.agent.v1.ListOutputStylesRequest list_output_styles = 29;
     harness.agent.v1.SetAutoContinueRequest set_auto_continue = 30;
+    harness.agent.v1.SetKeepAwakeRequest set_keep_awake = 60;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -592,6 +597,15 @@ message SetAutoContinueRequest {
 }
 
 message SetAutoContinueResponse {
+  CommandResult result = 1;
+}
+
+message SetKeepAwakeRequest {
+  harness.agent.v1.SetKeepAwakeRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SetKeepAwakeResponse {
   CommandResult result = 1;
 }
 

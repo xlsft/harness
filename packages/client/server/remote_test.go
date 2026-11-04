@@ -39,7 +39,15 @@ type fakeRelay struct {
 	sessions []*agentv1.SessionInfo
 	events   []*relayv1.SubscribeSessionResponse
 	sent     []*agentv1.SendUserMessageRequest
+	awake    []*agentv1.SetKeepAwakeRequest
 	outcome  relayv1.CommandAck_Outcome
+}
+
+func (f *fakeRelay) SetKeepAwake(ctx context.Context, req *connect.Request[relayv1.SetKeepAwakeRequest]) (*connect.Response[relayv1.SetKeepAwakeResponse], error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.awake = append(f.awake, req.Msg.GetRequest())
+	return connect.NewResponse(&relayv1.SetKeepAwakeResponse{Result: &relayv1.CommandResult{CommandId: "cmd_2", Delivery: relayv1.DeliveryState_DELIVERY_STATE_QUEUED}}), nil
 }
 
 func (f *fakeRelay) ListHosts(ctx context.Context, req *connect.Request[relayv1.ListHostsRequest]) (*connect.Response[relayv1.ListHostsResponse], error) {
@@ -372,6 +380,22 @@ func TestRemoteControlThroughRelay(t *testing.T) {
 	if len(relay.sent) != 1 || relay.sent[0].GetSessionId() != remote || relay.sent[0].GetContent()[0].GetText().GetText() != "from the desktop" {
 		t.Fatalf("relayed messages: %+v", relay.sent)
 	}
+	relay.mu.Unlock()
+
+	// The keep-awake switch keeps the session's own machine awake.
+	if _, err := h.client.SetKeepAwake(h.ctx, connect.NewRequest(&agentv1.SetKeepAwakeRequest{SessionId: remote, Enabled: true})); err != nil {
+		t.Fatal(err)
+	}
+	relay.mu.Lock()
+	if len(relay.awake) != 1 || relay.awake[0].GetSessionId() != remote || !relay.awake[0].GetEnabled() {
+		t.Fatalf("relayed keep awake: %+v", relay.awake)
+	}
+	relay.mu.Unlock()
+	if _, err := h.client.SetKeepAwake(h.ctx, connect.NewRequest(&agentv1.SetKeepAwakeRequest{SessionId: idle, Enabled: true})); connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("keep awake of a remote session not open there: %v", err)
+	}
+
+	relay.mu.Lock()
 	relay.outcome = relayv1.CommandAck_OUTCOME_ALREADY_RESOLVED
 	relay.mu.Unlock()
 	_, err = h.client.RespondToPermission(h.ctx, connect.NewRequest(&agentv1.RespondToPermissionRequest{SessionId: remote, RequestId: "perm_1", Decision: agentv1.RespondToPermissionRequest_DECISION_ALLOW}))

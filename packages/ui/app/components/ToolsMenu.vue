@@ -1,13 +1,16 @@
 <script setup lang="ts">
 // Tools menu (HeaderMenu.dc.html): opens or closes a right pane; the check marks the panes open now. Keep
-// computer awake holds off sleep while this session works: the client does it, the switch shows what it reports.
+// computer awake holds off sleep while this session works: the client does it, the switch shows what it reports, and
+// keepAwakeAvailable says who gets the switch.
 import type { IconName } from '~/utils/icons'
 import type { PaneName } from '~/composables/usePanes'
+import { isDesktop } from '~/lib/desktop'
 
 const emit = defineEmits<{ select: [] }>()
 const { isOpen, togglePane } = usePanes()
 const store = useSessionStore()
 const current = computed(() => store.sessions[store.currentId])
+const showAwake = computed(() => !!current.value && keepAwakeAvailable(current.value.meta, { desktop: isDesktop(), controlling: !!store.remoteControl[store.currentId] }))
 const awake = computed({
   get: () => !!current.value?.meta.keepAwake,
   set: (on: boolean) => {
@@ -58,7 +61,7 @@ function choose(p: PaneName) {
         class="text-accent"
       />
     </div>
-    <template v-if="current && !current.meta.remote">
+    <template v-if="showAwake">
       <div class="h-px bg-line" />
       <div
         role="menuitemcheckbox"
