@@ -267,6 +267,10 @@ func (l *acpLive) observeState() {
 	if stored {
 		l.meta.Model, l.meta.Mode, l.meta.Effort = st.CurrentModel, st.CurrentMode, st.CurrentEffort
 	}
+	if l.meta.ContextUsed != st.ContextUsed || l.meta.ContextSize != st.ContextSize {
+		l.meta.ContextUsed, l.meta.ContextSize = st.ContextUsed, st.ContextSize
+		stored = true
+	}
 	meta := l.meta
 	closed := l.closed
 	l.mu.Unlock()

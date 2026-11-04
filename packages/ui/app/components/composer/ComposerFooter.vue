@@ -34,9 +34,10 @@ function pickEffort(level: string) {
   if (onAgent.value) void store.setAcpEffort(id.value, level)
   else void store.setEffort(id.value, level as EffortName)
 }
-const contextWindow = computed(() => Number(acp.value?.contextWindowTokens ?? 0) || model.value?.contextWindow || 200_000)
+// An agent's window is what it reports, 0 until it does: no number of our own stands in for it.
+const contextWindow = computed(() => onAgent.value ? Number(acp.value?.contextWindowTokens ?? 0) : model.value?.contextWindow || 200_000)
 const contextUsed = computed(() => Number(acp.value?.contextUsedTokens ?? 0) || props.session.contextTokens)
-const pct = computed(() => Math.min(100, Math.round((contextUsed.value / contextWindow.value) * 100)))
+const pct = computed(() => contextWindow.value ? Math.min(100, Math.round((contextUsed.value / contextWindow.value) * 100)) : 0)
 const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whitespace-nowrap text-muted hover:bg-hover hover:text-toned'
 </script>
 
@@ -122,7 +123,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
             v-else
             class="m-0 text-muted"
           >
-            {{ contextUsed.toLocaleString() }} of {{ contextWindow.toLocaleString() }} tokens
+            {{ contextUsed.toLocaleString() }}{{ contextWindow ? ` of ${contextWindow.toLocaleString()}` : '' }} tokens
           </p>
           <LimitsBlock :session="session" />
         </div>

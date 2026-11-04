@@ -46,3 +46,30 @@ func TestParseLimitsCamelCaseArrayAndNone(t *testing.T) {
 		t.Fatal("found limits where there are none")
 	}
 }
+
+func TestClaudeRateLimitEvent(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	l := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{
+		"status": "allowed_warning", "rateLimitType": "five_hour", "utilization": 0.82, "resetsAt": float64(1_800_003_600),
+	}}, now)
+	if l == nil || !l.Partial || len(l.Windows) != 1 || l.Windows[0].Label != "5h" || int(l.Windows[0].UsedPercent) != 82 {
+		t.Fatalf("event: %+v", l)
+	}
+	if !l.Windows[0].ResetsAt.Equal(time.Unix(1_800_003_600, 0)) {
+		t.Fatalf("resets: %v", l.Windows[0].ResetsAt)
+	}
+	// Without a number it says nothing about how much is used.
+	if got := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"status": "allowed", "rateLimitType": "five_hour"}}, now); got != nil {
+		t.Fatalf("no utilization: %+v", got)
+	}
+	// One window at a time: the others keep their numbers.
+	week := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"rateLimitType": "seven_day", "utilization": 0.4}}, now)
+	merged := week.Merge(l)
+	if len(merged.Windows) != 2 || merged.Windows[0].Label != "7d" || merged.Windows[1].Label != "5h" || merged.Partial {
+		t.Fatalf("merged: %+v", merged)
+	}
+	again := ParseLimits(map[string]any{"_claude/rateLimit": map[string]any{"rateLimitType": "five_hour", "utilization": 0.9}}, now).Merge(merged)
+	if len(again.Windows) != 2 || int(again.Windows[0].UsedPercent) != 90 {
+		t.Fatalf("replaced: %+v", again)
+	}
+}

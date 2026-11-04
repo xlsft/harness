@@ -578,3 +578,10 @@ func TestModelNameLocked(t *testing.T) {
 		t.Fatalf("unlisted: %q", got)
 	}
 }
+
+func TestContextKeepsWhatItKnows(t *testing.T) {
+	s := &Session{cfg: Config{InitialContextUsed: 100, InitialContextSize: 1_000_000}, ctxUsed: 100, ctxSize: 1_000_000}
+	if st := s.State(); st.ContextUsed != 100 || st.ContextSize != 1_000_000 {
+		t.Fatalf("seed: %+v", st)
+	}
+}

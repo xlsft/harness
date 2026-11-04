@@ -49,8 +49,13 @@ type Config struct {
 	// InitialModel, InitialMode and InitialEffort are the agent's model, mode and effort to start on; the agent's
 	// defaults when empty. One the agent no longer offers leaves its default in place, with a notice.
 	InitialModel, InitialMode, InitialEffort string
-	Sink                                     Sink
-	Logger                                   *slog.Logger
+	// InitialLimits and InitialContextUsed are what is known before the agent reports anything: its last limits, and
+	// how full the context was when a resumed session last ended.
+	InitialLimits      *registry.Limits
+	InitialContextUsed int64
+	InitialContextSize int64
+	Sink               Sink
+	Logger             *slog.Logger
 	// OnAuth records what was learned about the agent's sign-in (device-local state).
 	OnAuth func(state registry.AuthState, methods []registry.AuthMethod)
 	// OnLimits records a subscription-limit snapshot the agent reported (device-local state).
@@ -169,6 +174,8 @@ type Session struct {
 	wantEffort string
 	ctxUsed    int64
 	ctxSize    int64
+	// ctxFresh: the agent reported how full the context is during this turn.
+	ctxFresh   bool
 	title      string
 	queue      []queued
 	busy       bool
@@ -196,7 +203,8 @@ func New(cfg Config) *Session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Session{cfg: cfg, log: cfg.Logger, ctx: ctx, cancel: cancel, wake: make(chan struct{}, 1),
 		tools: map[string]*toolState{}, perms: map[string]*pendingPerm{}, writes: map[string]writeRecord{}, starting: true,
-		wantModel: cfg.InitialModel, wantMode: cfg.InitialMode, wantEffort: cfg.InitialEffort}
+		wantModel: cfg.InitialModel, wantMode: cfg.InitialMode, wantEffort: cfg.InitialEffort,
+		limits: cfg.InitialLimits, ctxUsed: cfg.InitialContextUsed, ctxSize: cfg.InitialContextSize}
 	if s.log == nil {
 		s.log = slog.Default()
 	}
@@ -1012,6 +1020,7 @@ func (s *Session) runTurn(q queued) {
 	s.turnStart = s.now()
 	s.writes = map[string]writeRecord{}
 	s.lastUsage = nil
+	s.ctxFresh = false
 	s.turnTokens = 0
 	if q.waited {
 		s.emitQueueLocked()
@@ -1053,6 +1062,12 @@ func (s *Session) runTurn(q queued) {
 	usage := usageProto(res.Usage)
 	if usage == nil {
 		usage = usageProto(s.lastUsage)
+	}
+	// An agent that said nothing about the context during the turn: what the turn's request held is the next best.
+	if !s.ctxFresh && usage != nil {
+		if n := usage.GetInputTokens() + usage.GetCacheReadInputTokens() + usage.GetCacheCreationInputTokens(); n > 0 {
+			s.ctxUsed = n
+		}
 	}
 	s.emitLocked(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnFinished{TurnFinished: &agentv1.TurnFinished{
 		Result: result, NumTurns: 1, Usage: usage, CostUsd: 0, DurationMs: s.now().Sub(s.turnStart).Milliseconds(), ErrorMessage: msg}}}, false)
@@ -1252,7 +1267,11 @@ func (s *Session) update(n sdk.SessionNotification) {
 		s.applyConfigLocked(u.ConfigOptionUpdate.ConfigOptions)
 		s.changedLocked()
 	case u.UsageUpdate != nil:
-		s.ctxUsed, s.ctxSize = int64(u.UsageUpdate.Used), int64(u.UsageUpdate.Size)
+		// 0 means the agent does not know (Claude's frames without a token count): what we have stays.
+		if u.UsageUpdate.Used > 0 {
+			s.ctxUsed, s.ctxFresh = int64(u.UsageUpdate.Used), true
+		}
+		s.ctxSize = int64(u.UsageUpdate.Size)
 		s.changedLocked()
 	case u.SessionInfoUpdate != nil:
 		if t := u.SessionInfoUpdate.Title; t != nil && strings.TrimSpace(*t) != "" {
@@ -1426,6 +1445,7 @@ func (s *Session) limitsLocked(v any) bool {
 	if l == nil {
 		return false
 	}
+	l = l.Merge(s.limits)
 	s.limits = l
 	if f := s.cfg.OnLimits; f != nil {
 		s.outbox = append(s.outbox, func() { f(l) })

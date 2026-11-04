@@ -31,9 +31,12 @@ type acpMeta struct {
 	Cwd            string `json:"cwd"`
 	NoFolder       bool   `json:"noFolder,omitempty"`
 	// Model, Mode and Effort are the agent's model, mode and effort the session last ran on, restored when it is resumed.
-	Model       string    `json:"model,omitempty"`
-	Mode        string    `json:"mode,omitempty"`
-	Effort      string    `json:"effort,omitempty"`
+	Model  string `json:"model,omitempty"`
+	Mode   string `json:"mode,omitempty"`
+	Effort string `json:"effort,omitempty"`
+	// ContextUsed and ContextSize: how full the agent's context was last, known again before it next reports.
+	ContextUsed int64     `json:"contextUsed,omitempty"`
+	ContextSize int64     `json:"contextSize,omitempty"`
 	Title       string    `json:"title,omitempty"`
 	CustomTitle bool      `json:"customTitle,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`

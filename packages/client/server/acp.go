@@ -290,15 +290,20 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 		dirs: append([]string{meta.Cwd}, mergeDirList(meta.Cwd, opts.AdditionalDirs)...)}
 	l.hub.sessionID = meta.ID
 	l.branch = workspace.GitBranch(ctx, meta.Cwd)
+	contextUsed := meta.ContextUsed
 	if resume != nil {
 		for _, ev := range readAcpEvents(meta.ID) {
 			l.hub.publish(ev)
+			// Sessions from before the meta kept it: the last turn's request is the next best.
+			if u := ev.GetTurnFinished().GetUsage(); u != nil && meta.ContextUsed == 0 {
+				contextUsed = u.GetInputTokens() + u.GetCacheReadInputTokens() + u.GetCacheCreationInputTokens()
+			}
 		}
 	}
 	cfg := acp.Config{
 		AgentID: agentID, AgentName: name, AgentVersion: st.Installed.Version, Launch: launch,
 		Cwd: meta.Cwd, AdditionalDirs: opts.AdditionalDirs, Env: opts.Env, ResumeAgentSessionID: meta.AgentSessionID,
-		Model: name, InitialModel: meta.Model, InitialMode: meta.Mode, InitialEffort: meta.Effort, Sink: l, Logger: s.log(),
+		Model: name, InitialModel: meta.Model, InitialMode: meta.Mode, InitialEffort: meta.Effort, InitialLimits: st.Limits, InitialContextUsed: contextUsed, InitialContextSize: meta.ContextSize, Sink: l, Logger: s.log(),
 		OnAuth: func(state registry.AuthState, methods []registry.AuthMethod) {
 			_ = reg.SetAuth(agentID, state, methods)
 		},

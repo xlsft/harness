@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,6 +23,53 @@ type Limits struct {
 	Windows   []LimitWindow `json:"windows"`
 	PlanName  string        `json:"planName,omitempty"`
 	UpdatedAt time.Time     `json:"updatedAt"`
+	// Partial: this report covers only the windows it lists, the others keep their last numbers (Merge).
+	Partial bool `json:"-"`
+}
+
+// Merge is l on top of what an earlier report said: l's windows replace those of the same label, the rest stay.
+func (l *Limits) Merge(old *Limits) *Limits {
+	if l == nil || !l.Partial || old == nil {
+		return l
+	}
+	out := *l
+	out.Partial = false
+	if out.PlanName == "" {
+		out.PlanName = old.PlanName
+	}
+	for _, w := range old.Windows {
+		if !slices.ContainsFunc(l.Windows, func(n LimitWindow) bool { return n.Label == w.Label }) {
+			out.Windows = append(out.Windows, w)
+		}
+	}
+	return &out
+}
+
+// singleWindowLabels names the windows of an agent that reports one at a time, as rateLimitType and a utilization
+// (Claude's rate_limit_event, in `_claude/rateLimit`).
+var singleWindowLabels = map[string]string{
+	"five_hour": "5h", "seven_day": "7d", "seven_day_opus": "7d Opus", "seven_day_sonnet": "7d Sonnet",
+}
+
+func singleWindow(m map[string]any, now time.Time) *Limits {
+	kind, _ := m["rateLimitType"].(string)
+	if kind == "" {
+		kind, _ = m["rate_limit_type"].(string)
+	}
+	pct, ok := number(m, "utilization")
+	if kind == "" || !ok {
+		return nil
+	}
+	if pct <= 1 {
+		pct *= 100
+	}
+	label := singleWindowLabels[kind]
+	if label == "" {
+		label = strings.ReplaceAll(kind, "_", " ")
+	}
+	return &Limits{Partial: true, UpdatedAt: now.UTC(), Windows: []LimitWindow{{
+		Label: label, UsedPercent: math.Max(0, math.Min(100, pct)), ResetsAt: resetTime(m, now),
+	}}}
 }
 
 // SetLimits stores an agent's latest limits snapshot (device-local).
@@ -60,6 +108,9 @@ func findLimits(v any, now time.Time, depth int) *Limits {
 	}
 	switch x := v.(type) {
 	case map[string]any:
+		if l := singleWindow(x, now); l != nil {
+			return l
+		}
 		for k, child := range x {
 			if limitKeys[norm(k)] {
 				if l := windowsOf(child, now); l != nil {
