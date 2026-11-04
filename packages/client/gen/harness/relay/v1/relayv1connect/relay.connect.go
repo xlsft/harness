@@ -132,6 +132,12 @@ const (
 	// RelayServiceSetKeepAwakeProcedure is the fully-qualified name of the RelayService's SetKeepAwake
 	// RPC.
 	RelayServiceSetKeepAwakeProcedure = "/harness.relay.v1.RelayService/SetKeepAwake"
+	// RelayServiceSendSessionNoteProcedure is the fully-qualified name of the RelayService's
+	// SendSessionNote RPC.
+	RelayServiceSendSessionNoteProcedure = "/harness.relay.v1.RelayService/SendSessionNote"
+	// RelayServiceResolveSessionProposalProcedure is the fully-qualified name of the RelayService's
+	// ResolveSessionProposal RPC.
+	RelayServiceResolveSessionProposalProcedure = "/harness.relay.v1.RelayService/ResolveSessionProposal"
 )
 
 // RelayServiceClient is a client for the harness.relay.v1.RelayService service.
@@ -205,6 +211,14 @@ type RelayServiceClient interface {
 	AuthorizeTunnel(context.Context, *connect.Request[v1.AuthorizeTunnelRequest]) (*connect.Response[v1.AuthorizeTunnelResponse], error)
 	// "Keep computer awake" for the session, on the machine running it.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
+	// A note from another session of the user. Delivered as a reminder on the far side, never as a user message. It waits
+	// for an offline host for up to 30 days (options.ttl_seconds does not shorten or extend that), and for the session's
+	// new owner if it moves. FAILED_PRECONDITION when the session is closed: the caller leaves the note in the user's
+	// SESSION_NOTES document instead.
+	SendSessionNote(context.Context, *connect.Request[v1.SendSessionNoteRequest]) (*connect.Response[v1.SendSessionNoteResponse], error)
+	// Starts or dismisses a proposal of a session (harness.agent.v1.ResolveSessionProposalRequest): held for the host's
+	// ack, and the session's SessionProposal event follows.
+	ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error)
 }
 
 // NewRelayServiceClient constructs a client for the harness.relay.v1.RelayService service. By
@@ -434,47 +448,61 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("SetKeepAwake")),
 			connect.WithClientOptions(opts...),
 		),
+		sendSessionNote: connect.NewClient[v1.SendSessionNoteRequest, v1.SendSessionNoteResponse](
+			httpClient,
+			baseURL+RelayServiceSendSessionNoteProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("SendSessionNote")),
+			connect.WithClientOptions(opts...),
+		),
+		resolveSessionProposal: connect.NewClient[v1.ResolveSessionProposalRequest, v1.ResolveSessionProposalResponse](
+			httpClient,
+			baseURL+RelayServiceResolveSessionProposalProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("ResolveSessionProposal")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // relayServiceClient implements RelayServiceClient.
 type relayServiceClient struct {
-	registerHost        *connect.Client[v1.RegisterHostRequest, v1.RegisterHostResponse]
-	openHostStream      *connect.Client[v1.OpenHostStreamRequest, v1.OpenHostStreamResponse]
-	registerSession     *connect.Client[v1.RegisterSessionRequest, v1.RegisterSessionResponse]
-	unregisterSession   *connect.Client[v1.UnregisterSessionRequest, v1.UnregisterSessionResponse]
-	publishEvents       *connect.Client[v1.PublishEventsRequest, v1.PublishEventsResponse]
-	ackCommands         *connect.Client[v1.AckCommandsRequest, v1.AckCommandsResponse]
-	heartbeat           *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
-	registerTunnel      *connect.Client[v1.RegisterTunnelRequest, v1.RegisterTunnelResponse]
-	closeTunnel         *connect.Client[v1.CloseTunnelRequest, v1.CloseTunnelResponse]
-	listHosts           *connect.Client[v1.ListHostsRequest, v1.ListHostsResponse]
-	subscribeSession    *connect.Client[v1.SubscribeSessionRequest, v1.SubscribeSessionResponse]
-	updatePresence      *connect.Client[v1.UpdatePresenceRequest, v1.UpdatePresenceResponse]
-	sendUserMessage     *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
-	interrupt           *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
-	respondToPermission *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
-	answerQuestion      *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
-	setModel            *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
-	setEffort           *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
-	setPermissionMode   *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
-	setOutputStyle      *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
-	setAutoContinue     *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
-	removeQueuedMessage *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
-	respondToPlan       *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
-	stopTask            *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
-	closeSession        *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
-	compact             *connect.Client[v1.CompactRequest, v1.CompactResponse]
-	rewind              *connect.Client[v1.RewindRequest, v1.RewindResponse]
-	suggestFiles        *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
-	listCheckpoints     *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
-	listTasks           *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
-	listOutputStyles    *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
-	spawnSession        *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
-	requestTunnel       *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
-	listTunnels         *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
-	authorizeTunnel     *connect.Client[v1.AuthorizeTunnelRequest, v1.AuthorizeTunnelResponse]
-	setKeepAwake        *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
+	registerHost           *connect.Client[v1.RegisterHostRequest, v1.RegisterHostResponse]
+	openHostStream         *connect.Client[v1.OpenHostStreamRequest, v1.OpenHostStreamResponse]
+	registerSession        *connect.Client[v1.RegisterSessionRequest, v1.RegisterSessionResponse]
+	unregisterSession      *connect.Client[v1.UnregisterSessionRequest, v1.UnregisterSessionResponse]
+	publishEvents          *connect.Client[v1.PublishEventsRequest, v1.PublishEventsResponse]
+	ackCommands            *connect.Client[v1.AckCommandsRequest, v1.AckCommandsResponse]
+	heartbeat              *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
+	registerTunnel         *connect.Client[v1.RegisterTunnelRequest, v1.RegisterTunnelResponse]
+	closeTunnel            *connect.Client[v1.CloseTunnelRequest, v1.CloseTunnelResponse]
+	listHosts              *connect.Client[v1.ListHostsRequest, v1.ListHostsResponse]
+	subscribeSession       *connect.Client[v1.SubscribeSessionRequest, v1.SubscribeSessionResponse]
+	updatePresence         *connect.Client[v1.UpdatePresenceRequest, v1.UpdatePresenceResponse]
+	sendUserMessage        *connect.Client[v1.SendUserMessageRequest, v1.SendUserMessageResponse]
+	interrupt              *connect.Client[v1.InterruptRequest, v1.InterruptResponse]
+	respondToPermission    *connect.Client[v1.RespondToPermissionRequest, v1.RespondToPermissionResponse]
+	answerQuestion         *connect.Client[v1.AnswerQuestionRequest, v1.AnswerQuestionResponse]
+	setModel               *connect.Client[v1.SetModelRequest, v1.SetModelResponse]
+	setEffort              *connect.Client[v1.SetEffortRequest, v1.SetEffortResponse]
+	setPermissionMode      *connect.Client[v1.SetPermissionModeRequest, v1.SetPermissionModeResponse]
+	setOutputStyle         *connect.Client[v1.SetOutputStyleRequest, v1.SetOutputStyleResponse]
+	setAutoContinue        *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
+	removeQueuedMessage    *connect.Client[v1.RemoveQueuedMessageRequest, v1.RemoveQueuedMessageResponse]
+	respondToPlan          *connect.Client[v1.RespondToPlanRequest, v1.RespondToPlanResponse]
+	stopTask               *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
+	closeSession           *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
+	compact                *connect.Client[v1.CompactRequest, v1.CompactResponse]
+	rewind                 *connect.Client[v1.RewindRequest, v1.RewindResponse]
+	suggestFiles           *connect.Client[v1.SuggestFilesRequest, v1.SuggestFilesResponse]
+	listCheckpoints        *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
+	listTasks              *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	listOutputStyles       *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
+	spawnSession           *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
+	requestTunnel          *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
+	listTunnels            *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
+	authorizeTunnel        *connect.Client[v1.AuthorizeTunnelRequest, v1.AuthorizeTunnelResponse]
+	setKeepAwake           *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
+	sendSessionNote        *connect.Client[v1.SendSessionNoteRequest, v1.SendSessionNoteResponse]
+	resolveSessionProposal *connect.Client[v1.ResolveSessionProposalRequest, v1.ResolveSessionProposalResponse]
 }
 
 // RegisterHost calls harness.relay.v1.RelayService.RegisterHost.
@@ -657,6 +685,16 @@ func (c *relayServiceClient) SetKeepAwake(ctx context.Context, req *connect.Requ
 	return c.setKeepAwake.CallUnary(ctx, req)
 }
 
+// SendSessionNote calls harness.relay.v1.RelayService.SendSessionNote.
+func (c *relayServiceClient) SendSessionNote(ctx context.Context, req *connect.Request[v1.SendSessionNoteRequest]) (*connect.Response[v1.SendSessionNoteResponse], error) {
+	return c.sendSessionNote.CallUnary(ctx, req)
+}
+
+// ResolveSessionProposal calls harness.relay.v1.RelayService.ResolveSessionProposal.
+func (c *relayServiceClient) ResolveSessionProposal(ctx context.Context, req *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error) {
+	return c.resolveSessionProposal.CallUnary(ctx, req)
+}
+
 // RelayServiceHandler is an implementation of the harness.relay.v1.RelayService service.
 type RelayServiceHandler interface {
 	// --- Host side --------------------------------------------------------------------------------------
@@ -728,6 +766,14 @@ type RelayServiceHandler interface {
 	AuthorizeTunnel(context.Context, *connect.Request[v1.AuthorizeTunnelRequest]) (*connect.Response[v1.AuthorizeTunnelResponse], error)
 	// "Keep computer awake" for the session, on the machine running it.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
+	// A note from another session of the user. Delivered as a reminder on the far side, never as a user message. It waits
+	// for an offline host for up to 30 days (options.ttl_seconds does not shorten or extend that), and for the session's
+	// new owner if it moves. FAILED_PRECONDITION when the session is closed: the caller leaves the note in the user's
+	// SESSION_NOTES document instead.
+	SendSessionNote(context.Context, *connect.Request[v1.SendSessionNoteRequest]) (*connect.Response[v1.SendSessionNoteResponse], error)
+	// Starts or dismisses a proposal of a session (harness.agent.v1.ResolveSessionProposalRequest): held for the host's
+	// ack, and the session's SessionProposal event follows.
+	ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error)
 }
 
 // NewRelayServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -953,6 +999,18 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("SetKeepAwake")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceSendSessionNoteHandler := connect.NewUnaryHandler(
+		RelayServiceSendSessionNoteProcedure,
+		svc.SendSessionNote,
+		connect.WithSchema(relayServiceMethods.ByName("SendSessionNote")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceResolveSessionProposalHandler := connect.NewUnaryHandler(
+		RelayServiceResolveSessionProposalProcedure,
+		svc.ResolveSessionProposal,
+		connect.WithSchema(relayServiceMethods.ByName("ResolveSessionProposal")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.RelayService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RelayServiceRegisterHostProcedure:
@@ -1027,6 +1085,10 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceAuthorizeTunnelHandler.ServeHTTP(w, r)
 		case RelayServiceSetKeepAwakeProcedure:
 			relayServiceSetKeepAwakeHandler.ServeHTTP(w, r)
+		case RelayServiceSendSessionNoteProcedure:
+			relayServiceSendSessionNoteHandler.ServeHTTP(w, r)
+		case RelayServiceResolveSessionProposalProcedure:
+			relayServiceResolveSessionProposalHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1178,4 +1240,12 @@ func (UnimplementedRelayServiceHandler) AuthorizeTunnel(context.Context, *connec
 
 func (UnimplementedRelayServiceHandler) SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SetKeepAwake is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) SendSessionNote(context.Context, *connect.Request[v1.SendSessionNoteRequest]) (*connect.Response[v1.SendSessionNoteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SendSessionNote is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) ResolveSessionProposal(context.Context, *connect.Request[v1.ResolveSessionProposalRequest]) (*connect.Response[v1.ResolveSessionProposalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ResolveSessionProposal is not implemented"))
 }

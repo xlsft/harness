@@ -699,3 +699,58 @@ func TestUnderRoots(t *testing.T) {
 		}
 	}
 }
+
+// noteBackend is a backend that takes notes from other sessions.
+type noteBackend struct {
+	*fakeBackend
+	mu    sync.Mutex
+	notes []*agentv1.DeliverSessionNoteRequest
+}
+
+func (b *noteBackend) DeliverSessionNote(_ context.Context, req *agentv1.DeliverSessionNoteRequest) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.notes = append(b.notes, req)
+	return nil
+}
+
+func (b *noteBackend) count() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return len(b.notes)
+}
+
+func TestSessionNoteCommandIsNotAUserMessage(t *testing.T) {
+	b := &noteBackend{}
+	r := newRig(t, func(o *Options) {
+		b.fakeBackend = o.Backend.(*fakeBackend)
+		o.Backend = b
+	})
+	r.addSession("s1")
+	r.fake.waitFor(t, "registration", func() bool { return r.fake.epochs["s1"] == 1 })
+	note := func(id, session string) *relayv1.Command {
+		return &relayv1.Command{CommandId: id, SessionId: session, Epoch: 1, ExpiresAt: future(), Payload: &relayv1.Command_DeliverSessionNote{DeliverSessionNote: &agentv1.DeliverSessionNoteRequest{
+			SessionId: "other", Note: &agentv1.SessionNote{Id: "note_1", Kind: agentv1.SessionNote_KIND_MESSAGE, FromId: "p", Text: "hi"}}}}
+	}
+	r.send(note("cmd_n1", "s1"))
+	r.fake.waitFor(t, "ack", func() bool { return r.fake.ackFor("cmd_n1") != nil })
+	if a := r.fake.ackFor("cmd_n1"); a.GetOutcome() != relayv1.CommandAck_OUTCOME_OK {
+		t.Fatalf("ack = %v", a)
+	}
+	if b.count() != 1 || b.notes[0].GetSessionId() != "s1" {
+		t.Fatalf("notes %v", b.notes)
+	}
+	if n := r.backend.messageCount(); n != 0 {
+		t.Fatalf("SendUserMessage ran %d times for a note", n)
+	}
+	// A session not open here any more (it waited in core through a restart) still gets it; other commands stay queued.
+	r.send(note("cmd_n2", "closed"))
+	r.fake.waitFor(t, "ack of the closed session's note", func() bool { return r.fake.ackFor("cmd_n2") != nil })
+	if b.count() != 2 || b.notes[1].GetSessionId() != "closed" {
+		t.Fatalf("notes %v", b.notes)
+	}
+	// A proposal command reaches the backend and gets its ack.
+	r.send(&relayv1.Command{CommandId: "cmd_p", SessionId: "s1", Epoch: 1, ExpiresAt: future(), Payload: &relayv1.Command_ResolveSessionProposal{ResolveSessionProposal: &agentv1.ResolveSessionProposalRequest{
+		SessionId: "other", ProposalId: "prop_1", Action: agentv1.ResolveSessionProposalRequest_ACTION_START}}})
+	r.fake.waitFor(t, "ack of the proposal", func() bool { return r.fake.ackFor("cmd_p") != nil })
+}

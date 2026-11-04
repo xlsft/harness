@@ -129,6 +129,57 @@ func (ResolveSessionProposalRequest_Action) EnumDescriptor() ([]byte, []int) {
 	return file_harness_agent_v1_session_links_proto_rawDescGZIP(), []int{1, 0}
 }
 
+type SessionNote_Kind int32
+
+const (
+	SessionNote_KIND_UNSPECIFIED SessionNote_Kind = 0
+	// SessionSend.
+	SessionNote_KIND_MESSAGE SessionNote_Kind = 1
+	// A session started from this one ended a turn.
+	SessionNote_KIND_REPORT SessionNote_Kind = 2
+)
+
+// Enum value maps for SessionNote_Kind.
+var (
+	SessionNote_Kind_name = map[int32]string{
+		0: "KIND_UNSPECIFIED",
+		1: "KIND_MESSAGE",
+		2: "KIND_REPORT",
+	}
+	SessionNote_Kind_value = map[string]int32{
+		"KIND_UNSPECIFIED": 0,
+		"KIND_MESSAGE":     1,
+		"KIND_REPORT":      2,
+	}
+)
+
+func (x SessionNote_Kind) Enum() *SessionNote_Kind {
+	p := new(SessionNote_Kind)
+	*p = x
+	return p
+}
+
+func (x SessionNote_Kind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SessionNote_Kind) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_session_links_proto_enumTypes[2].Descriptor()
+}
+
+func (SessionNote_Kind) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_session_links_proto_enumTypes[2]
+}
+
+func (x SessionNote_Kind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SessionNote_Kind.Descriptor instead.
+func (SessionNote_Kind) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_links_proto_rawDescGZIP(), []int{3, 0}
+}
+
 type SessionProposal struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -327,6 +378,192 @@ func (x *ResolveSessionProposalResponse) GetProposal() *SessionProposal {
 	return nil
 }
 
+// A message or turn report from another session. It reaches the model as a reminder and the user as a notice: never as
+// a user message, so it carries no user authority wherever it is delivered.
+type SessionNote struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// note_...; a note is delivered once, however many routes or retries carry it.
+	Id        string           `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Kind      SessionNote_Kind `protobuf:"varint,2,opt,name=kind,proto3,enum=harness.agent.v1.SessionNote_Kind" json:"kind,omitempty"`
+	FromId    string           `protobuf:"bytes,3,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	FromName  string           `protobuf:"bytes,4,opt,name=from_name,json=fromName,proto3" json:"from_name,omitempty"`
+	FromTitle string           `protobuf:"bytes,5,opt,name=from_title,json=fromTitle,proto3" json:"from_title,omitempty"`
+	// How the turn ended (reports).
+	Status        string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	Text          string `protobuf:"bytes,7,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionNote) Reset() {
+	*x = SessionNote{}
+	mi := &file_harness_agent_v1_session_links_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionNote) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionNote) ProtoMessage() {}
+
+func (x *SessionNote) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_links_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionNote.ProtoReflect.Descriptor instead.
+func (*SessionNote) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_links_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SessionNote) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SessionNote) GetKind() SessionNote_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return SessionNote_KIND_UNSPECIFIED
+}
+
+func (x *SessionNote) GetFromId() string {
+	if x != nil {
+		return x.FromId
+	}
+	return ""
+}
+
+func (x *SessionNote) GetFromName() string {
+	if x != nil {
+		return x.FromName
+	}
+	return ""
+}
+
+func (x *SessionNote) GetFromTitle() string {
+	if x != nil {
+		return x.FromTitle
+	}
+	return ""
+}
+
+func (x *SessionNote) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *SessionNote) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+// Carries a note to a session of another machine (harness.relay.v1.Command.deliver_session_note). Not part of
+// AgentService: frontends have no way to send one.
+type DeliverSessionNoteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Note          *SessionNote           `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeliverSessionNoteRequest) Reset() {
+	*x = DeliverSessionNoteRequest{}
+	mi := &file_harness_agent_v1_session_links_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeliverSessionNoteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeliverSessionNoteRequest) ProtoMessage() {}
+
+func (x *DeliverSessionNoteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_links_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeliverSessionNoteRequest.ProtoReflect.Descriptor instead.
+func (*DeliverSessionNoteRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_links_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DeliverSessionNoteRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *DeliverSessionNoteRequest) GetNote() *SessionNote {
+	if x != nil {
+		return x.Note
+	}
+	return nil
+}
+
+type DeliverSessionNoteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeliverSessionNoteResponse) Reset() {
+	*x = DeliverSessionNoteResponse{}
+	mi := &file_harness_agent_v1_session_links_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeliverSessionNoteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeliverSessionNoteResponse) ProtoMessage() {}
+
+func (x *DeliverSessionNoteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_session_links_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeliverSessionNoteResponse.ProtoReflect.Descriptor instead.
+func (*DeliverSessionNoteResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_session_links_proto_rawDescGZIP(), []int{5}
+}
+
 var File_harness_agent_v1_session_links_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_session_links_proto_rawDesc = "" +
@@ -359,7 +596,25 @@ const file_harness_agent_v1_session_links_proto_rawDesc = "" +
 	"\fACTION_START\x10\x01\x12\x12\n" +
 	"\x0eACTION_DISMISS\x10\x02\"_\n" +
 	"\x1eResolveSessionProposalResponse\x12=\n" +
-	"\bproposal\x18\x01 \x01(\v2!.harness.agent.v1.SessionProposalR\bproposalB\xd2\x01\n" +
+	"\bproposal\x18\x01 \x01(\v2!.harness.agent.v1.SessionProposalR\bproposal\"\x97\x02\n" +
+	"\vSessionNote\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x126\n" +
+	"\x04kind\x18\x02 \x01(\x0e2\".harness.agent.v1.SessionNote.KindR\x04kind\x12\x17\n" +
+	"\afrom_id\x18\x03 \x01(\tR\x06fromId\x12\x1b\n" +
+	"\tfrom_name\x18\x04 \x01(\tR\bfromName\x12\x1d\n" +
+	"\n" +
+	"from_title\x18\x05 \x01(\tR\tfromTitle\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12\x12\n" +
+	"\x04text\x18\a \x01(\tR\x04text\"?\n" +
+	"\x04Kind\x12\x14\n" +
+	"\x10KIND_UNSPECIFIED\x10\x00\x12\x10\n" +
+	"\fKIND_MESSAGE\x10\x01\x12\x0f\n" +
+	"\vKIND_REPORT\x10\x02\"m\n" +
+	"\x19DeliverSessionNoteRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x121\n" +
+	"\x04note\x18\x02 \x01(\v2\x1d.harness.agent.v1.SessionNoteR\x04note\"\x1c\n" +
+	"\x1aDeliverSessionNoteResponseB\xd2\x01\n" +
 	"\x14com.harness.agent.v1B\x11SessionLinksProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (
@@ -374,24 +629,30 @@ func file_harness_agent_v1_session_links_proto_rawDescGZIP() []byte {
 	return file_harness_agent_v1_session_links_proto_rawDescData
 }
 
-var file_harness_agent_v1_session_links_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_harness_agent_v1_session_links_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_harness_agent_v1_session_links_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_harness_agent_v1_session_links_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_harness_agent_v1_session_links_proto_goTypes = []any{
 	(SessionProposal_State)(0),                // 0: harness.agent.v1.SessionProposal.State
 	(ResolveSessionProposalRequest_Action)(0), // 1: harness.agent.v1.ResolveSessionProposalRequest.Action
-	(*SessionProposal)(nil),                   // 2: harness.agent.v1.SessionProposal
-	(*ResolveSessionProposalRequest)(nil),     // 3: harness.agent.v1.ResolveSessionProposalRequest
-	(*ResolveSessionProposalResponse)(nil),    // 4: harness.agent.v1.ResolveSessionProposalResponse
+	(SessionNote_Kind)(0),                     // 2: harness.agent.v1.SessionNote.Kind
+	(*SessionProposal)(nil),                   // 3: harness.agent.v1.SessionProposal
+	(*ResolveSessionProposalRequest)(nil),     // 4: harness.agent.v1.ResolveSessionProposalRequest
+	(*ResolveSessionProposalResponse)(nil),    // 5: harness.agent.v1.ResolveSessionProposalResponse
+	(*SessionNote)(nil),                       // 6: harness.agent.v1.SessionNote
+	(*DeliverSessionNoteRequest)(nil),         // 7: harness.agent.v1.DeliverSessionNoteRequest
+	(*DeliverSessionNoteResponse)(nil),        // 8: harness.agent.v1.DeliverSessionNoteResponse
 }
 var file_harness_agent_v1_session_links_proto_depIdxs = []int32{
 	0, // 0: harness.agent.v1.SessionProposal.state:type_name -> harness.agent.v1.SessionProposal.State
 	1, // 1: harness.agent.v1.ResolveSessionProposalRequest.action:type_name -> harness.agent.v1.ResolveSessionProposalRequest.Action
-	2, // 2: harness.agent.v1.ResolveSessionProposalResponse.proposal:type_name -> harness.agent.v1.SessionProposal
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3, // 2: harness.agent.v1.ResolveSessionProposalResponse.proposal:type_name -> harness.agent.v1.SessionProposal
+	2, // 3: harness.agent.v1.SessionNote.kind:type_name -> harness.agent.v1.SessionNote.Kind
+	6, // 4: harness.agent.v1.DeliverSessionNoteRequest.note:type_name -> harness.agent.v1.SessionNote
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_session_links_proto_init() }
@@ -404,8 +665,8 @@ func file_harness_agent_v1_session_links_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_session_links_proto_rawDesc), len(file_harness_agent_v1_session_links_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   3,
+			NumEnums:      3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

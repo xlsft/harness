@@ -64,6 +64,12 @@ func (h *Host) dispatch(ctx context.Context, c *relayv1.Command) {
 	// ours: leave the command to its owner. An older epoch on a session we
 	// still own is a redelivery from before our last registration and runs.
 	hs := h.session(c.GetSessionId())
+	if hs == nil && c.GetDeliverSessionNote() != nil {
+		// A note is for the session whether or not it is open here now (it may have waited in core through a restart).
+		h.markRunning(id, true)
+		go func() { h.ack(h.exec(ctx, c)) }()
+		return
+	}
 	if hs == nil {
 		// Open here with remote control turned off: refuse rather than leave the viewer waiting.
 		if f, ok := h.o.Backend.SessionFeed(c.GetSessionId()); ok && !f.Closed() && !f.RemoteControl() {
@@ -226,6 +232,22 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 		return errAck(id, err, false)
 	case *relayv1.Command_SetAutoContinue:
 		_, err := b.SetAutoContinue(ctx, connect.NewRequest(&agentv1.SetAutoContinueRequest{SessionId: sid, Enabled: p.SetAutoContinue.GetEnabled()}))
+		return errAck(id, err, false)
+	case *relayv1.Command_DeliverSessionNote:
+		// Not a user message: the backend delivers it as a reminder.
+		d, ok := b.(interface {
+			DeliverSessionNote(context.Context, *agentv1.DeliverSessionNoteRequest) error
+		})
+		if !ok {
+			return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "this client cannot take notes from other sessions")
+		}
+		m := clone(p.DeliverSessionNote).(*agentv1.DeliverSessionNoteRequest)
+		m.SessionId = sid
+		return errAck(id, d.DeliverSessionNote(ctx, m), false)
+	case *relayv1.Command_ResolveSessionProposal:
+		m := clone(p.ResolveSessionProposal).(*agentv1.ResolveSessionProposalRequest)
+		m.SessionId = sid
+		_, err := b.ResolveSessionProposal(ctx, connect.NewRequest(m))
 		return errAck(id, err, false)
 	case *relayv1.Command_SetKeepAwake:
 		_, err := b.SetKeepAwake(ctx, connect.NewRequest(&agentv1.SetKeepAwakeRequest{SessionId: sid, Enabled: p.SetKeepAwake.GetEnabled()}))

@@ -4,6 +4,7 @@ package harness.relay.v1;
 
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/session_links.proto";
 import "harness/common/v1/errors.proto";
 
 // RelayService is served by core and implements remote control without bidirectional streaming
@@ -133,6 +134,14 @@ service RelayService {
 
   // "Keep computer awake" for the session, on the machine running it.
   rpc SetKeepAwake(SetKeepAwakeRequest) returns (SetKeepAwakeResponse);
+  // A note from another session of the user. Delivered as a reminder on the far side, never as a user message. It waits
+  // for an offline host for up to 30 days (options.ttl_seconds does not shorten or extend that), and for the session's
+  // new owner if it moves. FAILED_PRECONDITION when the session is closed: the caller leaves the note in the user's
+  // SESSION_NOTES document instead.
+  rpc SendSessionNote(SendSessionNoteRequest) returns (SendSessionNoteResponse);
+  // Starts or dismisses a proposal of a session (harness.agent.v1.ResolveSessionProposalRequest): held for the host's
+  // ack, and the session's SessionProposal event follows.
+  rpc ResolveSessionProposal(ResolveSessionProposalRequest) returns (ResolveSessionProposalResponse);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -208,6 +217,8 @@ message Command {
     harness.agent.v1.ListOutputStylesRequest list_output_styles = 29;
     harness.agent.v1.SetAutoContinueRequest set_auto_continue = 30;
     harness.agent.v1.SetKeepAwakeRequest set_keep_awake = 60;
+    harness.agent.v1.DeliverSessionNoteRequest deliver_session_note = 75;
+    harness.agent.v1.ResolveSessionProposalRequest resolve_session_proposal = 76;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -606,6 +617,24 @@ message SetKeepAwakeRequest {
 }
 
 message SetKeepAwakeResponse {
+  CommandResult result = 1;
+}
+
+message SendSessionNoteRequest {
+  harness.agent.v1.DeliverSessionNoteRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message SendSessionNoteResponse {
+  CommandResult result = 1;
+}
+
+message ResolveSessionProposalRequest {
+  harness.agent.v1.ResolveSessionProposalRequest request = 1;
+  CommandOptions options = 2;
+}
+
+message ResolveSessionProposalResponse {
   CommandResult result = 1;
 }
 

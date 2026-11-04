@@ -3,6 +3,7 @@ package tui
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -145,6 +146,18 @@ func (m *Model) onEvent(ev *agentv1.SessionEvent) tea.Cmd {
 
 	case *agentv1.SessionEvent_TurnFinished:
 		return m.finishTurn(e.TurnFinished)
+
+	case *agentv1.SessionEvent_SessionProposal:
+		p := e.SessionProposal
+		if i := slices.IndexFunc(m.proposals, func(x *agentv1.SessionProposal) bool { return x.GetId() == p.GetId() }); i >= 0 {
+			m.proposals[i] = p
+		} else {
+			m.proposals = append(m.proposals, p)
+			if p.GetState() == agentv1.SessionProposal_STATE_PENDING {
+				m.closeOpen()
+				m.push(&item{kind: itemNotice, text: "The agent proposes a session: " + p.GetTitle() + ". See /proposals."})
+			}
+		}
 
 	case *agentv1.SessionEvent_Notice:
 		n := e.Notice

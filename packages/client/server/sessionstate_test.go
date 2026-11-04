@@ -243,8 +243,8 @@ func TestDeleteSessionRemovesFilesAndServerCopy(t *testing.T) {
 func TestUpdateSessionWithoutSync(t *testing.T) {
 	h := startHarness(t, fg.Sequence(), nil)
 	sid, _ := h.create(&agentv1.CreateSessionRequest{})
-	if _, err := h.update(&agentv1.UpdateSessionRequest{SessionId: sid, Pinned: ptr(true)}); connect.CodeOf(err) != connect.CodeFailedPrecondition {
-		t.Fatalf("pin without sync: %v", err)
+	if info, err := h.update(&agentv1.UpdateSessionRequest{SessionId: sid, Pinned: ptr(true)}); err != nil || !info.Pinned {
+		t.Fatalf("pin without sync: %v %+v", err, info)
 	}
 	if info, err := h.update(&agentv1.UpdateSessionRequest{SessionId: sid, Title: ptr("Local name")}); err != nil || info.Title != "Local name" {
 		t.Fatalf("rename without sync: %v %+v", err, info)

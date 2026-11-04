@@ -5332,8 +5332,8 @@ export const AgentService: GenService<{
   },
   /**
    * Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
-   * stored on the harness server (SyncService), for remote sessions too; without a server connection only a rename
-   * can be applied (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed
+   * stored on the harness server (SyncService), for remote sessions too. Without a server it is kept on this machine,
+   * and the first server the client signs in to gets it. When a server is configured but unreachable nothing is changed
    * (UNAVAILABLE).
    *
    * @generated from rpc harness.agent.v1.AgentService.UpdateSession

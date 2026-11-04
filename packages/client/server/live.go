@@ -397,6 +397,7 @@ func (ls *liveSession) onResult(res agent.TurnResult) {
 	ls.refreshDiffStats()
 	ls.afterTurn()
 	ls.reportToParent(res)
+	ls.drainNotes()
 }
 
 // refreshDiffStats measures the session's changes in the background and publishes SessionUpdated when they changed.

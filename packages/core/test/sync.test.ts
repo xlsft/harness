@@ -100,6 +100,35 @@ describe("documents: CAS writes", () => {
     expect((await A.getDocument({ selector: { case: "id", value: v1.id } })).document!.content).toBe('{"model":"c"}');
   });
 
+  it("keeps a session's notes in a user document, per user, written with a version check", async () => {
+    const ref = { scope: Scope.USER, kind: DocumentKind.SESSION_NOTES, key: "11111111-2222-3333-4444-555555555555", projectKey: "" };
+    const put = await A.putDocument({ ref, content: JSON.stringify({ notes: [{ id: "note_1", kind: "report", text: "done" }] }), baseVersion: 0n });
+    expect(put.result.case).toBe("document");
+    const doc = put.result.value as { id: string; version: bigint };
+    // Another device wrote first: a conflict, not a lost note.
+    const stale = await A.putDocument({ ref, content: "{\"notes\":[]}", baseVersion: 0n });
+    expect(stale.result.case).toBe("conflict");
+    // Only this user reads it.
+    await B.getDocument({ selector: { case: "ref", value: ref } }).then(
+      () => expect.unreachable(),
+      (e: ConnectError) => expect(e.code).toBe(Code.NotFound),
+    );
+    await A.deleteDocument({ id: doc.id, baseVersion: doc.version });
+    await A.getDocument({ selector: { case: "ref", value: ref } }).then(
+      () => expect.unreachable(),
+      (e: ConnectError) => expect(e.code).toBe(Code.NotFound),
+    );
+    // Content must be JSON, and the kind exists at user scope only.
+    await A.putDocument({ ref, content: "not json" }).then(
+      () => expect.unreachable(),
+      (e: ConnectError) => expect(e.code).toBe(Code.InvalidArgument),
+    );
+    await ADM.putDocument({ ref: { ...ref, scope: Scope.ORG }, content: "{}" }).then(
+      () => expect.unreachable(),
+      (e: ConnectError) => expect(e.code).toBe(Code.InvalidArgument),
+    );
+  });
+
   it("validates refs, content and permissions", async () => {
     const bad = (req: PutInit, code = Code.InvalidArgument) => expectError(A.putDocument(req), code);
     await bad({ ref: { scope: Scope.USER, kind: DocumentKind.POLICY, key: "default" }, content: "{}" });

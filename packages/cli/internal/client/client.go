@@ -348,6 +348,16 @@ func (c *Conn) RespondToPermission(ctx context.Context, requestID string, d agen
 	return err
 }
 
+// ResolveProposal starts or dismisses a proposal of the session (a SessionProposal event follows).
+func (c *Conn) ResolveProposal(ctx context.Context, id string, start bool) error {
+	action := agentv1.ResolveSessionProposalRequest_ACTION_DISMISS
+	if start {
+		action = agentv1.ResolveSessionProposalRequest_ACTION_START
+	}
+	_, err := c.api.ResolveSessionProposal(ctx, connect.NewRequest(&agentv1.ResolveSessionProposalRequest{SessionId: c.sid(), ProposalId: id, Action: action}))
+	return err
+}
+
 // AnswerQuestion answers an AskUserQuestion prompt.
 // Each answer is the chosen option labels plus an optional free-text answer.
 func (c *Conn) AnswerQuestion(ctx context.Context, requestID string, answers []Answer) error {

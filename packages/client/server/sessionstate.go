@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,7 +33,8 @@ import (
 // state when the server does not answer) and overlays it on the local sessions. UpdateSession writes to the
 // server first and changes nothing locally when that fails; there is no offline queue for this state. A rename
 // is also recorded as a custom-title transcript entry, which wins over AI titles and travels with the
-// transcript (local list, resume, the uploaded copy).
+// transcript (local list, resume, the uploaded copy). Without a server the state is kept in
+// HARNESS_HOME/session-state.json, and the first server this client signs in to gets it (uploadLocalStates).
 
 // SessionSync is the part of harness.sync.v1.SyncService that keeps the user state, lists and reads the sessions
 // of the user's other machines (remote.go) and deletes server copies (implemented by *syncclient.Client).
@@ -59,20 +61,111 @@ const (
 func (s *Server) stateOf(id string) userState {
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
+	s.loadLocalStatesLocked()
 	return s.states[id]
+}
+
+// localStateFile is the on-disk form of the state of a client without a server.
+type localStateFile struct {
+	Pinned   bool `json:"pinned,omitempty"`
+	Unread   bool `json:"unread,omitempty"`
+	Archived bool `json:"archived,omitempty"`
+}
+
+func localStatesPath() string { return filepath.Join(config.Home(), "session-state.json") }
+
+// loadLocalStatesLocked reads the state kept without a server, once (stateMu held).
+func (s *Server) loadLocalStatesLocked() {
+	if s.localLoaded {
+		return
+	}
+	s.localLoaded = true
+	data, err := os.ReadFile(localStatesPath())
+	if err != nil {
+		return
+	}
+	var file map[string]localStateFile
+	if json.Unmarshal(data, &file) != nil {
+		return
+	}
+	s.localStates = map[string]userState{}
+	if s.states == nil {
+		s.states = map[string]userState{}
+	}
+	for id, st := range file {
+		u := userState{pinned: st.Pinned, unread: st.Unread, archived: st.Archived}
+		s.localStates[id] = u
+		s.states[id] = u
+	}
+}
+
+// saveLocalStatesLocked writes the state kept without a server (stateMu held).
+func (s *Server) saveLocalStatesLocked() {
+	file := map[string]localStateFile{}
+	for id, st := range s.localStates {
+		file[id] = localStateFile{Pinned: st.pinned, Unread: st.unread, Archived: st.archived}
+	}
+	data, err := json.Marshal(file)
+	if err == nil {
+		err = writeLinksFile(localStatesPath(), data)
+	}
+	if err != nil {
+		s.log().Warn("session state not saved", "err", err)
+	}
+}
+
+// uploadLocalStates gives the server the state kept while there was none; what it took is no longer kept here.
+func (s *Server) uploadLocalStates(ctx context.Context) {
+	s.stateMu.Lock()
+	s.loadLocalStatesLocked()
+	pending := maps.Clone(s.localStates)
+	s.stateMu.Unlock()
+	for id, st := range pending {
+		ls, path := s.locate(id)
+		if ls != nil || path != "" {
+			var info *agentv1.SessionInfo
+			if ls != nil {
+				info = ls.info()
+			} else {
+				info = fileInfo(path)
+			}
+			info.Pinned, info.Unread, info.Archived = st.pinned, st.unread, st.archived
+			if _, err := s.Sync.UpsertSession(ctx, &syncv1.UpsertSessionRequest{Session: &syncv1.SessionMetadata{Info: info},
+				UpdatePaths: []string{"info.pinned", "info.unread", "info.archived"}}); err != nil {
+				s.log().Debug("session state: upload failed; trying again later", "err", err)
+				return
+			}
+		}
+		s.stateMu.Lock()
+		delete(s.localStates, id)
+		s.saveLocalStatesLocked()
+		s.stateMu.Unlock()
+	}
 }
 
 func (s *Server) setState(id string, st userState) {
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
+	s.loadLocalStatesLocked()
 	if s.states == nil {
 		s.states = map[string]userState{}
 	}
 	if st == (userState{}) {
 		delete(s.states, id)
-		return
+	} else {
+		s.states[id] = st
 	}
-	s.states[id] = st
+	if s.Sync == nil {
+		if s.localStates == nil {
+			s.localStates = map[string]userState{}
+		}
+		if st == (userState{}) {
+			delete(s.localStates, id)
+		} else {
+			s.localStates[id] = st
+		}
+		s.saveLocalStatesLocked()
+	}
 }
 
 // applyState copies the known user state of the session into info.
@@ -89,6 +182,7 @@ func (s *Server) refreshStates(ctx context.Context, cwd string) {
 	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
+	s.uploadLocalStates(ctx)
 	got := map[string]userState{}
 	infos := map[string]*agentv1.SessionInfo{}
 	token := ""
@@ -201,10 +295,6 @@ func (s *Server) UpdateSession(ctx context.Context, req *connect.Request[agentv1
 			return s.updateRemote(ctx, info, m, title)
 		}
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s not found", id))
-	}
-	flags := m.Pinned != nil || m.Unread != nil || m.Archived != nil
-	if flags && s.Sync == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("pin, unread and archive are stored on the harness server, and this client does not sync with it (not signed in, or sync disabled)"))
 	}
 	st := s.stateOf(id)
 	var paths []string
@@ -360,6 +450,7 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 	_ = os.RemoveAll(bootstrap.FolderBaselineDir(id))
 	_ = os.RemoveAll(bootstrap.PlansDir(id))
 	_ = os.Remove(sessionLinksPath(id))
+	_ = os.Remove(pendingNotesPath(id))
 	_ = s.browsers().DeleteProfile(id)
 	s.previews().CloseSession(id)
 	s.removeChatDir(id)

@@ -689,9 +689,10 @@ func TestSessionToolsAcrossMachines(t *testing.T) {
 		t.Fatalf("remote row %v in %v", row, res)
 	}
 	h.send(sid, callText("SessionSend", map[string]any{"to": remote, "message": "hi"}))
-	fin, _ := h.toolResult(ch)
-	if !fin.GetIsError() || !strings.Contains(fin.GetContent()[0].GetText().GetText(), "laptop") {
-		t.Fatalf("send to a remote session: %v", fin.GetContent())
+	// No relay here: the note waits in the user's document on the server.
+	fin, sent := h.toolResult(ch)
+	if fin.GetIsError() || sent["queued"] != true || fake.Document(notesRef(remote)) == nil {
+		t.Fatalf("send to a remote session: %v %v", fin.GetContent(), sent)
 	}
 }
 
