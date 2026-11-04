@@ -120,7 +120,7 @@ func (t *appsTool) Run(ctx context.Context, env *tools.Env, call tools.Call) too
 		fmt.Fprintf(&b, "%s (%s): ", a.Name, a.ID)
 		switch {
 		case a.Tier == TierBlocked:
-			b.WriteString("never controllable")
+			b.WriteString("blocked by the current security profile")
 		case a.Granted:
 			fmt.Fprintf(&b, "access granted, %s tier", a.Tier)
 		default:
@@ -182,14 +182,14 @@ func (t *accessTool) Run(ctx context.Context, env *tools.Env, call tools.Call) t
 	var b strings.Builder
 	granted := map[string]any{}
 	for _, g := range res.Granted {
-		fmt.Fprintf(&b, "%s: granted for this session. %s\n", g.App.Name, g.Tier.Note())
+		fmt.Fprintf(&b, "%s: granted for this session. %s\n", g.App.Name, TierNote(t.m.Profile(), g.App))
 		granted[g.App.ID] = g.Tier.String()
 	}
 	for _, a := range res.Denied {
 		fmt.Fprintf(&b, "%s: the user denied access. Do not ask again unless they bring it up.\n", a.Name)
 	}
 	for _, a := range res.Blocked {
-		fmt.Fprintf(&b, "%s: never controllable (a password manager or a system security setting). Ask the user to do this part.\n", a.Name)
+		fmt.Fprintf(&b, "%s: blocked by the current security profile. Ask the user to do this part.\n", a.Name)
 	}
 	for _, n := range res.Unknown {
 		fmt.Fprintf(&b, "%s: no such app. ComputerApps with installed lists them.\n", n)

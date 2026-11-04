@@ -220,6 +220,17 @@ type Session struct {
 	computer     *computeruse.Manager
 }
 
+// computerSettingsGuard is the permission engine's view of the computer use settings. A session without computer use
+// (the terminal UI) still keeps the file protected: it belongs to the same machine.
+func computerSettingsGuard(m *computeruse.Manager) func() (string, bool) {
+	return func() (string, bool) {
+		if m != nil && m.Dir != "" {
+			return m.SettingsGuard()
+		}
+		return filepath.Join(config.Home(), "computer-use"), true
+	}
+}
+
 // Close kills background tasks, closes the transcript and flushes the transcript upload.
 func (s *Session) Close() error {
 	if s.Subagents != nil {
@@ -589,7 +600,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,
 		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, DisableAutoMode: o.DisableAutoMode,
 		DisabledModes: disabledModes, Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
-		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
+		ComputerSettings: computerSettingsGuard(o.ComputerUse),
+		ScratchDirs:      []string{scratch}, ReadableDirs: []string{plans},
 	})
 	if useBrowser {
 		if b, err := o.Browser.Session(s.ID); err == nil {

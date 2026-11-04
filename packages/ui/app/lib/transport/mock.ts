@@ -13,8 +13,9 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import type { ComputerProfileVM, BackgroundReasonName, QuestionReply } from '~/lib/session/types'
+import type { ComputerUseAppVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
-import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { patchStats, type PatchHunk } from '~/utils/tools'
 import {
   ContextUsage_Category,
@@ -57,7 +58,6 @@ import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
-import type { BackgroundReasonName, QuestionReply } from '~/lib/session/types'
 import { backgroundReasonPb, permissionModeName, permissionModePb, usageLimitVM } from '~/lib/session/reducer'
 
 // Folders and a small directory tree for the new-session pickers.
@@ -1003,16 +1003,39 @@ export class MockTransport implements SessionTransport {
   }
 
   private computerEnabled = false
+  private computerActive = 'strict'
+  private computerCustom: ComputerProfileVM = { id: 'custom', name: 'Custom', browsers: 'read', terminals: 'click', other: 'full', apps: [], lifted: [], allowSecureTyping: false, allowRemoteOrigin: false, allowSystemShortcuts: false, allowSettingsEdit: false }
   private computerApproved: string[] = []
 
   async getComputerUseStatus(): Promise<ComputerUseStatusVM> {
     return {
       enabled: this.computerEnabled, supported: true, platform: 'macos', unavailableReason: '',
+      activeProfileId: this.computerActive,
+      profiles: [
+        { ...this.computerCustom, id: 'strict', name: 'Strict', browsers: 'read', terminals: 'click', other: 'full', apps: [], lifted: [], allowSecureTyping: false, allowRemoteOrigin: false, allowSystemShortcuts: false, allowSettingsEdit: false },
+        { ...this.computerCustom, id: 'standard', name: 'Standard', browsers: 'full', terminals: 'click', other: 'full', apps: [], lifted: [], allowSecureTyping: false, allowRemoteOrigin: false, allowSystemShortcuts: false, allowSettingsEdit: false },
+        { ...this.computerCustom, id: 'full', name: 'Full', browsers: 'full', terminals: 'full', other: 'full', apps: [], lifted: [], allowSecureTyping: false, allowRemoteOrigin: false, allowSystemShortcuts: false, allowSettingsEdit: false },
+        this.computerCustom
+      ],
+      blockEntries: [
+        { id: '1password', label: '1Password', warning: 'The agent could read and use every password in it, and text it sees in other apps could steer it there.' },
+        { id: 'system_settings', label: 'System Settings', warning: 'The agent could change security and privacy settings, and give itself more permissions.' }
+      ],
       permissions: [
         { id: 'screen_recording', name: 'Screen Recording', granted: true, howToGrant: '' },
         { id: 'accessibility', name: 'Accessibility', granted: false, howToGrant: 'Turn it on for the Harness app in System Settings > Privacy & Security > Accessibility, then restart Harness.' }
       ]
     }
+  }
+
+  async setComputerUseProfile(activeProfileId: string, custom?: ComputerProfileVM) {
+    this.computerActive = activeProfileId
+    if (custom) this.computerCustom = custom
+    return this.getComputerUseStatus()
+  }
+
+  async listComputerUseApps(): Promise<ComputerUseAppVM[]> {
+    return [{ id: 'com.apple.Notes', name: 'Notes', tier: 'full' }, { id: 'com.apple.Safari', name: 'Safari', tier: 'read' }]
   }
 
   async setComputerUseEnabled(enabled: boolean) {

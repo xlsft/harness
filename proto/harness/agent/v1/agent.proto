@@ -317,6 +317,9 @@ service AgentService {
   // The user's answer to ComputerAccessRequested.
   rpc RespondToComputerAccess(RespondToComputerAccessRequest) returns (RespondToComputerAccessResponse);
   rpc StopComputerUse(StopComputerUseRequest) returns (StopComputerUseResponse);
+  // Picks the security profile and edits the custom one. Device-local; only from this machine.
+  rpc SetComputerUseProfile(SetComputerUseProfileRequest) returns (SetComputerUseProfileResponse);
+  rpc ListComputerUseApps(ListComputerUseAppsRequest) returns (ListComputerUseAppsResponse);
   // --- This device (device_settings.proto) ---
 
   rpc GetDeviceSettings(GetDeviceSettingsRequest) returns (GetDeviceSettingsResponse);

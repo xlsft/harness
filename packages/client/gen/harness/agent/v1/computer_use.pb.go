@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// What the model may do in an app. Set by the client from what the app is, never by a frontend.
+// What the model may do in an app. Set by the client from what the app is and the user's active profile, never by the model.
 type ComputerAccessTier int32
 
 const (
@@ -31,6 +31,8 @@ const (
 	// Plain clicks and scrolling on top of that, no typing or right click (terminals, IDEs, script runners).
 	ComputerAccessTier_COMPUTER_ACCESS_TIER_CLICK ComputerAccessTier = 2
 	ComputerAccessTier_COMPUTER_ACCESS_TIER_FULL  ComputerAccessTier = 3
+	// Not controllable, and not offered on a card.
+	ComputerAccessTier_COMPUTER_ACCESS_TIER_BLOCKED ComputerAccessTier = 4
 )
 
 // Enum value maps for ComputerAccessTier.
@@ -40,12 +42,14 @@ var (
 		1: "COMPUTER_ACCESS_TIER_READ",
 		2: "COMPUTER_ACCESS_TIER_CLICK",
 		3: "COMPUTER_ACCESS_TIER_FULL",
+		4: "COMPUTER_ACCESS_TIER_BLOCKED",
 	}
 	ComputerAccessTier_value = map[string]int32{
 		"COMPUTER_ACCESS_TIER_UNSPECIFIED": 0,
 		"COMPUTER_ACCESS_TIER_READ":        1,
 		"COMPUTER_ACCESS_TIER_CLICK":       2,
 		"COMPUTER_ACCESS_TIER_FULL":        3,
+		"COMPUTER_ACCESS_TIER_BLOCKED":     4,
 	}
 )
 
@@ -158,8 +162,13 @@ type ComputerUseStatus struct {
 	// Why it cannot work right now: no driver for the platform, or its helper program is missing.
 	UnavailableReason string                   `protobuf:"bytes,4,opt,name=unavailable_reason,json=unavailableReason,proto3" json:"unavailable_reason,omitempty"`
 	Permissions       []*ComputerUsePermission `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// The active security profile and the ones to pick from: the built-in ones and the custom one the user edits.
+	ActiveProfileId string                `protobuf:"bytes,6,opt,name=active_profile_id,json=activeProfileId,proto3" json:"active_profile_id,omitempty"`
+	Profiles        []*ComputerUseProfile `protobuf:"bytes,7,rep,name=profiles,proto3" json:"profiles,omitempty"`
+	// The blocklist, each entry a switch of the custom profile.
+	BlockEntries  []*ComputerUseBlockEntry `protobuf:"bytes,8,rep,name=block_entries,json=blockEntries,proto3" json:"block_entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ComputerUseStatus) Reset() {
@@ -227,6 +236,459 @@ func (x *ComputerUseStatus) GetPermissions() []*ComputerUsePermission {
 	return nil
 }
 
+func (x *ComputerUseStatus) GetActiveProfileId() string {
+	if x != nil {
+		return x.ActiveProfileId
+	}
+	return ""
+}
+
+func (x *ComputerUseStatus) GetProfiles() []*ComputerUseProfile {
+	if x != nil {
+		return x.Profiles
+	}
+	return nil
+}
+
+func (x *ComputerUseStatus) GetBlockEntries() []*ComputerUseBlockEntry {
+	if x != nil {
+		return x.BlockEntries
+	}
+	return nil
+}
+
+// A named set of decisions on what computer use may do. Everything is blocked by default; only the user loosens it.
+type ComputerUseProfile struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "strict" (the default), "standard", "full", "custom".
+	Id   string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Tiers by kind of app.
+	Browsers  ComputerAccessTier `protobuf:"varint,3,opt,name=browsers,proto3,enum=harness.agent.v1.ComputerAccessTier" json:"browsers,omitempty"`
+	Terminals ComputerAccessTier `protobuf:"varint,4,opt,name=terminals,proto3,enum=harness.agent.v1.ComputerAccessTier" json:"terminals,omitempty"`
+	Other     ComputerAccessTier `protobuf:"varint,5,opt,name=other,proto3,enum=harness.agent.v1.ComputerAccessTier" json:"other,omitempty"`
+	// Tiers of single apps. They do not reach an app on the blocklist or Harness itself.
+	AppTiers []*ComputerUseAppTier `protobuf:"bytes,6,rep,name=app_tiers,json=appTiers,proto3" json:"app_tiers,omitempty"`
+	// Ids of the blocklist entries lifted. Harness's own app is not on the list: nothing lifts it.
+	LiftedBlocks []string `protobuf:"bytes,7,rep,name=lifted_blocks,json=liftedBlocks,proto3" json:"lifted_blocks,omitempty"`
+	// Lifts the refusal to type into a secure field.
+	AllowSecureTyping bool `protobuf:"varint,8,opt,name=allow_secure_typing,json=allowSecureTyping,proto3" json:"allow_secure_typing,omitempty"`
+	// Lifts the rule that turns computer use off when the session's last message came from another device.
+	AllowRemoteOrigin bool `protobuf:"varint,9,opt,name=allow_remote_origin,json=allowRemoteOrigin,proto3" json:"allow_remote_origin,omitempty"`
+	// Lifts the refusal of key combinations that reach past the app, such as app switching, and of the system menu.
+	AllowSystemShortcuts bool `protobuf:"varint,10,opt,name=allow_system_shortcuts,json=allowSystemShortcuts,proto3" json:"allow_system_shortcuts,omitempty"`
+	// Lets the agent's file tools and shell write these settings without the user-only prompt.
+	AllowSettingsEdit bool `protobuf:"varint,11,opt,name=allow_settings_edit,json=allowSettingsEdit,proto3" json:"allow_settings_edit,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ComputerUseProfile) Reset() {
+	*x = ComputerUseProfile{}
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComputerUseProfile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComputerUseProfile) ProtoMessage() {}
+
+func (x *ComputerUseProfile) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComputerUseProfile.ProtoReflect.Descriptor instead.
+func (*ComputerUseProfile) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ComputerUseProfile) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ComputerUseProfile) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ComputerUseProfile) GetBrowsers() ComputerAccessTier {
+	if x != nil {
+		return x.Browsers
+	}
+	return ComputerAccessTier_COMPUTER_ACCESS_TIER_UNSPECIFIED
+}
+
+func (x *ComputerUseProfile) GetTerminals() ComputerAccessTier {
+	if x != nil {
+		return x.Terminals
+	}
+	return ComputerAccessTier_COMPUTER_ACCESS_TIER_UNSPECIFIED
+}
+
+func (x *ComputerUseProfile) GetOther() ComputerAccessTier {
+	if x != nil {
+		return x.Other
+	}
+	return ComputerAccessTier_COMPUTER_ACCESS_TIER_UNSPECIFIED
+}
+
+func (x *ComputerUseProfile) GetAppTiers() []*ComputerUseAppTier {
+	if x != nil {
+		return x.AppTiers
+	}
+	return nil
+}
+
+func (x *ComputerUseProfile) GetLiftedBlocks() []string {
+	if x != nil {
+		return x.LiftedBlocks
+	}
+	return nil
+}
+
+func (x *ComputerUseProfile) GetAllowSecureTyping() bool {
+	if x != nil {
+		return x.AllowSecureTyping
+	}
+	return false
+}
+
+func (x *ComputerUseProfile) GetAllowRemoteOrigin() bool {
+	if x != nil {
+		return x.AllowRemoteOrigin
+	}
+	return false
+}
+
+func (x *ComputerUseProfile) GetAllowSystemShortcuts() bool {
+	if x != nil {
+		return x.AllowSystemShortcuts
+	}
+	return false
+}
+
+func (x *ComputerUseProfile) GetAllowSettingsEdit() bool {
+	if x != nil {
+		return x.AllowSettingsEdit
+	}
+	return false
+}
+
+type ComputerUseAppTier struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	AppName       string                 `protobuf:"bytes,2,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	Tier          ComputerAccessTier     `protobuf:"varint,3,opt,name=tier,proto3,enum=harness.agent.v1.ComputerAccessTier" json:"tier,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComputerUseAppTier) Reset() {
+	*x = ComputerUseAppTier{}
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComputerUseAppTier) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComputerUseAppTier) ProtoMessage() {}
+
+func (x *ComputerUseAppTier) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComputerUseAppTier.ProtoReflect.Descriptor instead.
+func (*ComputerUseAppTier) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ComputerUseAppTier) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *ComputerUseAppTier) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+func (x *ComputerUseAppTier) GetTier() ComputerAccessTier {
+	if x != nil {
+		return x.Tier
+	}
+	return ComputerAccessTier_COMPUTER_ACCESS_TIER_UNSPECIFIED
+}
+
+type ComputerUseBlockEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Label string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// What the user reads before lifting it.
+	Warning       string `protobuf:"bytes,3,opt,name=warning,proto3" json:"warning,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComputerUseBlockEntry) Reset() {
+	*x = ComputerUseBlockEntry{}
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComputerUseBlockEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComputerUseBlockEntry) ProtoMessage() {}
+
+func (x *ComputerUseBlockEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComputerUseBlockEntry.ProtoReflect.Descriptor instead.
+func (*ComputerUseBlockEntry) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ComputerUseBlockEntry) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ComputerUseBlockEntry) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *ComputerUseBlockEntry) GetWarning() string {
+	if x != nil {
+		return x.Warning
+	}
+	return ""
+}
+
+// Picks the active profile and, when custom is set, replaces the custom profile. No tool of the model reaches this.
+type SetComputerUseProfileRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ActiveProfileId string                 `protobuf:"bytes,1,opt,name=active_profile_id,json=activeProfileId,proto3" json:"active_profile_id,omitempty"`
+	Custom          *ComputerUseProfile    `protobuf:"bytes,2,opt,name=custom,proto3" json:"custom,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *SetComputerUseProfileRequest) Reset() {
+	*x = SetComputerUseProfileRequest{}
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetComputerUseProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetComputerUseProfileRequest) ProtoMessage() {}
+
+func (x *SetComputerUseProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetComputerUseProfileRequest.ProtoReflect.Descriptor instead.
+func (*SetComputerUseProfileRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SetComputerUseProfileRequest) GetActiveProfileId() string {
+	if x != nil {
+		return x.ActiveProfileId
+	}
+	return ""
+}
+
+func (x *SetComputerUseProfileRequest) GetCustom() *ComputerUseProfile {
+	if x != nil {
+		return x.Custom
+	}
+	return nil
+}
+
+type SetComputerUseProfileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *ComputerUseStatus     `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetComputerUseProfileResponse) Reset() {
+	*x = SetComputerUseProfileResponse{}
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetComputerUseProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetComputerUseProfileResponse) ProtoMessage() {}
+
+func (x *SetComputerUseProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetComputerUseProfileResponse.ProtoReflect.Descriptor instead.
+func (*SetComputerUseProfileResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SetComputerUseProfileResponse) GetStatus() *ComputerUseStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type ListComputerUseAppsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListComputerUseAppsRequest) Reset() {
+	*x = ListComputerUseAppsRequest{}
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListComputerUseAppsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListComputerUseAppsRequest) ProtoMessage() {}
+
+func (x *ListComputerUseAppsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListComputerUseAppsRequest.ProtoReflect.Descriptor instead.
+func (*ListComputerUseAppsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{7}
+}
+
+// The apps of this machine with the tier the active profile gives them, for the profile editor.
+type ListComputerUseAppsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Apps          []*ComputerAccessApp   `protobuf:"bytes,1,rep,name=apps,proto3" json:"apps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListComputerUseAppsResponse) Reset() {
+	*x = ListComputerUseAppsResponse{}
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListComputerUseAppsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListComputerUseAppsResponse) ProtoMessage() {}
+
+func (x *ListComputerUseAppsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListComputerUseAppsResponse.ProtoReflect.Descriptor instead.
+func (*ListComputerUseAppsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ListComputerUseAppsResponse) GetApps() []*ComputerAccessApp {
+	if x != nil {
+		return x.Apps
+	}
+	return nil
+}
+
 type GetComputerUseStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -235,7 +697,7 @@ type GetComputerUseStatusRequest struct {
 
 func (x *GetComputerUseStatusRequest) Reset() {
 	*x = GetComputerUseStatusRequest{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -247,7 +709,7 @@ func (x *GetComputerUseStatusRequest) String() string {
 func (*GetComputerUseStatusRequest) ProtoMessage() {}
 
 func (x *GetComputerUseStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -260,7 +722,7 @@ func (x *GetComputerUseStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetComputerUseStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetComputerUseStatusRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{2}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{9}
 }
 
 type GetComputerUseStatusResponse struct {
@@ -272,7 +734,7 @@ type GetComputerUseStatusResponse struct {
 
 func (x *GetComputerUseStatusResponse) Reset() {
 	*x = GetComputerUseStatusResponse{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -284,7 +746,7 @@ func (x *GetComputerUseStatusResponse) String() string {
 func (*GetComputerUseStatusResponse) ProtoMessage() {}
 
 func (x *GetComputerUseStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -297,7 +759,7 @@ func (x *GetComputerUseStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetComputerUseStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetComputerUseStatusResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{3}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetComputerUseStatusResponse) GetStatus() *ComputerUseStatus {
@@ -316,7 +778,7 @@ type SetComputerUseEnabledRequest struct {
 
 func (x *SetComputerUseEnabledRequest) Reset() {
 	*x = SetComputerUseEnabledRequest{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -328,7 +790,7 @@ func (x *SetComputerUseEnabledRequest) String() string {
 func (*SetComputerUseEnabledRequest) ProtoMessage() {}
 
 func (x *SetComputerUseEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -341,7 +803,7 @@ func (x *SetComputerUseEnabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetComputerUseEnabledRequest.ProtoReflect.Descriptor instead.
 func (*SetComputerUseEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{4}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SetComputerUseEnabledRequest) GetEnabled() bool {
@@ -360,7 +822,7 @@ type SetComputerUseEnabledResponse struct {
 
 func (x *SetComputerUseEnabledResponse) Reset() {
 	*x = SetComputerUseEnabledResponse{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -372,7 +834,7 @@ func (x *SetComputerUseEnabledResponse) String() string {
 func (*SetComputerUseEnabledResponse) ProtoMessage() {}
 
 func (x *SetComputerUseEnabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -385,7 +847,7 @@ func (x *SetComputerUseEnabledResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetComputerUseEnabledResponse.ProtoReflect.Descriptor instead.
 func (*SetComputerUseEnabledResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{5}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetComputerUseEnabledResponse) GetStatus() *ComputerUseStatus {
@@ -410,7 +872,7 @@ type ComputerAccessApp struct {
 
 func (x *ComputerAccessApp) Reset() {
 	*x = ComputerAccessApp{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +884,7 @@ func (x *ComputerAccessApp) String() string {
 func (*ComputerAccessApp) ProtoMessage() {}
 
 func (x *ComputerAccessApp) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +897,7 @@ func (x *ComputerAccessApp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputerAccessApp.ProtoReflect.Descriptor instead.
 func (*ComputerAccessApp) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{6}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ComputerAccessApp) GetId() string {
@@ -476,13 +938,15 @@ type ComputerAccessRequested struct {
 	Apps   []*ComputerAccessApp `protobuf:"bytes,4,rep,name=apps,proto3" json:"apps,omitempty"`
 	// Permissions of the operating system that are still missing.
 	MissingPermissions []*ComputerUsePermission `protobuf:"bytes,5,rep,name=missing_permissions,json=missingPermissions,proto3" json:"missing_permissions,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// The security profile that gave the tiers.
+	ProfileName   string `protobuf:"bytes,6,opt,name=profile_name,json=profileName,proto3" json:"profile_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ComputerAccessRequested) Reset() {
 	*x = ComputerAccessRequested{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -494,7 +958,7 @@ func (x *ComputerAccessRequested) String() string {
 func (*ComputerAccessRequested) ProtoMessage() {}
 
 func (x *ComputerAccessRequested) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -507,7 +971,7 @@ func (x *ComputerAccessRequested) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputerAccessRequested.ProtoReflect.Descriptor instead.
 func (*ComputerAccessRequested) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{7}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ComputerAccessRequested) GetRequestId() string {
@@ -545,6 +1009,13 @@ func (x *ComputerAccessRequested) GetMissingPermissions() []*ComputerUsePermissi
 	return nil
 }
 
+func (x *ComputerAccessRequested) GetProfileName() string {
+	if x != nil {
+		return x.ProfileName
+	}
+	return ""
+}
+
 type ComputerAccessResolved struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	RequestId string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
@@ -558,7 +1029,7 @@ type ComputerAccessResolved struct {
 
 func (x *ComputerAccessResolved) Reset() {
 	*x = ComputerAccessResolved{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -570,7 +1041,7 @@ func (x *ComputerAccessResolved) String() string {
 func (*ComputerAccessResolved) ProtoMessage() {}
 
 func (x *ComputerAccessResolved) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -583,7 +1054,7 @@ func (x *ComputerAccessResolved) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputerAccessResolved.ProtoReflect.Descriptor instead.
 func (*ComputerAccessResolved) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{8}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ComputerAccessResolved) GetRequestId() string {
@@ -619,7 +1090,7 @@ type ComputerUseGrant struct {
 
 func (x *ComputerUseGrant) Reset() {
 	*x = ComputerUseGrant{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -631,7 +1102,7 @@ func (x *ComputerUseGrant) String() string {
 func (*ComputerUseGrant) ProtoMessage() {}
 
 func (x *ComputerUseGrant) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -644,7 +1115,7 @@ func (x *ComputerUseGrant) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputerUseGrant.ProtoReflect.Descriptor instead.
 func (*ComputerUseGrant) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{9}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ComputerUseGrant) GetAppId() string {
@@ -682,7 +1153,7 @@ type ComputerUseState struct {
 
 func (x *ComputerUseState) Reset() {
 	*x = ComputerUseState{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -694,7 +1165,7 @@ func (x *ComputerUseState) String() string {
 func (*ComputerUseState) ProtoMessage() {}
 
 func (x *ComputerUseState) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -707,7 +1178,7 @@ func (x *ComputerUseState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputerUseState.ProtoReflect.Descriptor instead.
 func (*ComputerUseState) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{10}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ComputerUseState) GetControlling() bool {
@@ -743,7 +1214,7 @@ type RespondToComputerAccessRequest struct {
 
 func (x *RespondToComputerAccessRequest) Reset() {
 	*x = RespondToComputerAccessRequest{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -755,7 +1226,7 @@ func (x *RespondToComputerAccessRequest) String() string {
 func (*RespondToComputerAccessRequest) ProtoMessage() {}
 
 func (x *RespondToComputerAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -768,7 +1239,7 @@ func (x *RespondToComputerAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondToComputerAccessRequest.ProtoReflect.Descriptor instead.
 func (*RespondToComputerAccessRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{11}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RespondToComputerAccessRequest) GetSessionId() string {
@@ -800,7 +1271,7 @@ type RespondToComputerAccessResponse struct {
 
 func (x *RespondToComputerAccessResponse) Reset() {
 	*x = RespondToComputerAccessResponse{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -812,7 +1283,7 @@ func (x *RespondToComputerAccessResponse) String() string {
 func (*RespondToComputerAccessResponse) ProtoMessage() {}
 
 func (x *RespondToComputerAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -825,7 +1296,7 @@ func (x *RespondToComputerAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondToComputerAccessResponse.ProtoReflect.Descriptor instead.
 func (*RespondToComputerAccessResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{12}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{19}
 }
 
 // Stops computer use in the session at once: cancels the action in flight, revokes the session's grants and interrupts
@@ -839,7 +1310,7 @@ type StopComputerUseRequest struct {
 
 func (x *StopComputerUseRequest) Reset() {
 	*x = StopComputerUseRequest{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -851,7 +1322,7 @@ func (x *StopComputerUseRequest) String() string {
 func (*StopComputerUseRequest) ProtoMessage() {}
 
 func (x *StopComputerUseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,7 +1335,7 @@ func (x *StopComputerUseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopComputerUseRequest.ProtoReflect.Descriptor instead.
 func (*StopComputerUseRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{13}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *StopComputerUseRequest) GetSessionId() string {
@@ -882,7 +1353,7 @@ type StopComputerUseResponse struct {
 
 func (x *StopComputerUseResponse) Reset() {
 	*x = StopComputerUseResponse{}
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +1365,7 @@ func (x *StopComputerUseResponse) String() string {
 func (*StopComputerUseResponse) ProtoMessage() {}
 
 func (x *StopComputerUseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_computer_use_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -907,7 +1378,7 @@ func (x *StopComputerUseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopComputerUseResponse.ProtoReflect.Descriptor instead.
 func (*StopComputerUseResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{14}
+	return file_harness_agent_v1_computer_use_proto_rawDescGZIP(), []int{21}
 }
 
 var File_harness_agent_v1_computer_use_proto protoreflect.FileDescriptor
@@ -920,13 +1391,45 @@ const file_harness_agent_v1_computer_use_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
 	"\agranted\x18\x03 \x01(\bR\agranted\x12 \n" +
 	"\fhow_to_grant\x18\x04 \x01(\tR\n" +
-	"howToGrant\"\xe1\x01\n" +
+	"howToGrant\"\x9d\x03\n" +
 	"\x11ComputerUseStatus\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1c\n" +
 	"\tsupported\x18\x02 \x01(\bR\tsupported\x12\x1a\n" +
 	"\bplatform\x18\x03 \x01(\tR\bplatform\x12-\n" +
 	"\x12unavailable_reason\x18\x04 \x01(\tR\x11unavailableReason\x12I\n" +
-	"\vpermissions\x18\x05 \x03(\v2'.harness.agent.v1.ComputerUsePermissionR\vpermissions\"\x1d\n" +
+	"\vpermissions\x18\x05 \x03(\v2'.harness.agent.v1.ComputerUsePermissionR\vpermissions\x12*\n" +
+	"\x11active_profile_id\x18\x06 \x01(\tR\x0factiveProfileId\x12@\n" +
+	"\bprofiles\x18\a \x03(\v2$.harness.agent.v1.ComputerUseProfileR\bprofiles\x12L\n" +
+	"\rblock_entries\x18\b \x03(\v2'.harness.agent.v1.ComputerUseBlockEntryR\fblockEntries\"\xa8\x04\n" +
+	"\x12ComputerUseProfile\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12@\n" +
+	"\bbrowsers\x18\x03 \x01(\x0e2$.harness.agent.v1.ComputerAccessTierR\bbrowsers\x12B\n" +
+	"\tterminals\x18\x04 \x01(\x0e2$.harness.agent.v1.ComputerAccessTierR\tterminals\x12:\n" +
+	"\x05other\x18\x05 \x01(\x0e2$.harness.agent.v1.ComputerAccessTierR\x05other\x12A\n" +
+	"\tapp_tiers\x18\x06 \x03(\v2$.harness.agent.v1.ComputerUseAppTierR\bappTiers\x12#\n" +
+	"\rlifted_blocks\x18\a \x03(\tR\fliftedBlocks\x12.\n" +
+	"\x13allow_secure_typing\x18\b \x01(\bR\x11allowSecureTyping\x12.\n" +
+	"\x13allow_remote_origin\x18\t \x01(\bR\x11allowRemoteOrigin\x124\n" +
+	"\x16allow_system_shortcuts\x18\n" +
+	" \x01(\bR\x14allowSystemShortcuts\x12.\n" +
+	"\x13allow_settings_edit\x18\v \x01(\bR\x11allowSettingsEdit\"\x80\x01\n" +
+	"\x12ComputerUseAppTier\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x19\n" +
+	"\bapp_name\x18\x02 \x01(\tR\aappName\x128\n" +
+	"\x04tier\x18\x03 \x01(\x0e2$.harness.agent.v1.ComputerAccessTierR\x04tier\"W\n" +
+	"\x15ComputerUseBlockEntry\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
+	"\awarning\x18\x03 \x01(\tR\awarning\"\x88\x01\n" +
+	"\x1cSetComputerUseProfileRequest\x12*\n" +
+	"\x11active_profile_id\x18\x01 \x01(\tR\x0factiveProfileId\x12<\n" +
+	"\x06custom\x18\x02 \x01(\v2$.harness.agent.v1.ComputerUseProfileR\x06custom\"\\\n" +
+	"\x1dSetComputerUseProfileResponse\x12;\n" +
+	"\x06status\x18\x01 \x01(\v2#.harness.agent.v1.ComputerUseStatusR\x06status\"\x1c\n" +
+	"\x1aListComputerUseAppsRequest\"V\n" +
+	"\x1bListComputerUseAppsResponse\x127\n" +
+	"\x04apps\x18\x01 \x03(\v2#.harness.agent.v1.ComputerAccessAppR\x04apps\"\x1d\n" +
 	"\x1bGetComputerUseStatusRequest\"[\n" +
 	"\x1cGetComputerUseStatusResponse\x12;\n" +
 	"\x06status\x18\x01 \x01(\v2#.harness.agent.v1.ComputerUseStatusR\x06status\"8\n" +
@@ -938,14 +1441,15 @@ const file_harness_agent_v1_computer_use_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x128\n" +
 	"\x04tier\x18\x03 \x01(\x0e2$.harness.agent.v1.ComputerAccessTierR\x04tier\x12\x1b\n" +
-	"\ttier_note\x18\x04 \x01(\tR\btierNote\"\x83\x02\n" +
+	"\ttier_note\x18\x04 \x01(\tR\btierNote\"\xa6\x02\n" +
 	"\x17ComputerAccessRequested\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x1e\n" +
 	"\vtool_use_id\x18\x02 \x01(\tR\ttoolUseId\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\x127\n" +
 	"\x04apps\x18\x04 \x03(\v2#.harness.agent.v1.ComputerAccessAppR\x04apps\x12X\n" +
-	"\x13missing_permissions\x18\x05 \x03(\v2'.harness.agent.v1.ComputerUsePermissionR\x12missingPermissions\"\x82\x01\n" +
+	"\x13missing_permissions\x18\x05 \x03(\v2'.harness.agent.v1.ComputerUsePermissionR\x12missingPermissions\x12!\n" +
+	"\fprofile_name\x18\x06 \x01(\tR\vprofileName\"\x82\x01\n" +
 	"\x16ComputerAccessResolved\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12(\n" +
@@ -970,12 +1474,13 @@ const file_harness_agent_v1_computer_use_proto_rawDesc = "" +
 	"\x16StopComputerUseRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x19\n" +
-	"\x17StopComputerUseResponse*\x98\x01\n" +
+	"\x17StopComputerUseResponse*\xba\x01\n" +
 	"\x12ComputerAccessTier\x12$\n" +
 	" COMPUTER_ACCESS_TIER_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19COMPUTER_ACCESS_TIER_READ\x10\x01\x12\x1e\n" +
 	"\x1aCOMPUTER_ACCESS_TIER_CLICK\x10\x02\x12\x1d\n" +
-	"\x19COMPUTER_ACCESS_TIER_FULL\x10\x03B\xd1\x01\n" +
+	"\x19COMPUTER_ACCESS_TIER_FULL\x10\x03\x12 \n" +
+	"\x1cCOMPUTER_ACCESS_TIER_BLOCKED\x10\x04B\xd1\x01\n" +
 	"\x14com.harness.agent.v1B\x10ComputerUseProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (
@@ -991,39 +1496,56 @@ func file_harness_agent_v1_computer_use_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_computer_use_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_agent_v1_computer_use_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_harness_agent_v1_computer_use_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_harness_agent_v1_computer_use_proto_goTypes = []any{
 	(ComputerAccessTier)(0),                 // 0: harness.agent.v1.ComputerAccessTier
 	(*ComputerUsePermission)(nil),           // 1: harness.agent.v1.ComputerUsePermission
 	(*ComputerUseStatus)(nil),               // 2: harness.agent.v1.ComputerUseStatus
-	(*GetComputerUseStatusRequest)(nil),     // 3: harness.agent.v1.GetComputerUseStatusRequest
-	(*GetComputerUseStatusResponse)(nil),    // 4: harness.agent.v1.GetComputerUseStatusResponse
-	(*SetComputerUseEnabledRequest)(nil),    // 5: harness.agent.v1.SetComputerUseEnabledRequest
-	(*SetComputerUseEnabledResponse)(nil),   // 6: harness.agent.v1.SetComputerUseEnabledResponse
-	(*ComputerAccessApp)(nil),               // 7: harness.agent.v1.ComputerAccessApp
-	(*ComputerAccessRequested)(nil),         // 8: harness.agent.v1.ComputerAccessRequested
-	(*ComputerAccessResolved)(nil),          // 9: harness.agent.v1.ComputerAccessResolved
-	(*ComputerUseGrant)(nil),                // 10: harness.agent.v1.ComputerUseGrant
-	(*ComputerUseState)(nil),                // 11: harness.agent.v1.ComputerUseState
-	(*RespondToComputerAccessRequest)(nil),  // 12: harness.agent.v1.RespondToComputerAccessRequest
-	(*RespondToComputerAccessResponse)(nil), // 13: harness.agent.v1.RespondToComputerAccessResponse
-	(*StopComputerUseRequest)(nil),          // 14: harness.agent.v1.StopComputerUseRequest
-	(*StopComputerUseResponse)(nil),         // 15: harness.agent.v1.StopComputerUseResponse
+	(*ComputerUseProfile)(nil),              // 3: harness.agent.v1.ComputerUseProfile
+	(*ComputerUseAppTier)(nil),              // 4: harness.agent.v1.ComputerUseAppTier
+	(*ComputerUseBlockEntry)(nil),           // 5: harness.agent.v1.ComputerUseBlockEntry
+	(*SetComputerUseProfileRequest)(nil),    // 6: harness.agent.v1.SetComputerUseProfileRequest
+	(*SetComputerUseProfileResponse)(nil),   // 7: harness.agent.v1.SetComputerUseProfileResponse
+	(*ListComputerUseAppsRequest)(nil),      // 8: harness.agent.v1.ListComputerUseAppsRequest
+	(*ListComputerUseAppsResponse)(nil),     // 9: harness.agent.v1.ListComputerUseAppsResponse
+	(*GetComputerUseStatusRequest)(nil),     // 10: harness.agent.v1.GetComputerUseStatusRequest
+	(*GetComputerUseStatusResponse)(nil),    // 11: harness.agent.v1.GetComputerUseStatusResponse
+	(*SetComputerUseEnabledRequest)(nil),    // 12: harness.agent.v1.SetComputerUseEnabledRequest
+	(*SetComputerUseEnabledResponse)(nil),   // 13: harness.agent.v1.SetComputerUseEnabledResponse
+	(*ComputerAccessApp)(nil),               // 14: harness.agent.v1.ComputerAccessApp
+	(*ComputerAccessRequested)(nil),         // 15: harness.agent.v1.ComputerAccessRequested
+	(*ComputerAccessResolved)(nil),          // 16: harness.agent.v1.ComputerAccessResolved
+	(*ComputerUseGrant)(nil),                // 17: harness.agent.v1.ComputerUseGrant
+	(*ComputerUseState)(nil),                // 18: harness.agent.v1.ComputerUseState
+	(*RespondToComputerAccessRequest)(nil),  // 19: harness.agent.v1.RespondToComputerAccessRequest
+	(*RespondToComputerAccessResponse)(nil), // 20: harness.agent.v1.RespondToComputerAccessResponse
+	(*StopComputerUseRequest)(nil),          // 21: harness.agent.v1.StopComputerUseRequest
+	(*StopComputerUseResponse)(nil),         // 22: harness.agent.v1.StopComputerUseResponse
 }
 var file_harness_agent_v1_computer_use_proto_depIdxs = []int32{
 	1,  // 0: harness.agent.v1.ComputerUseStatus.permissions:type_name -> harness.agent.v1.ComputerUsePermission
-	2,  // 1: harness.agent.v1.GetComputerUseStatusResponse.status:type_name -> harness.agent.v1.ComputerUseStatus
-	2,  // 2: harness.agent.v1.SetComputerUseEnabledResponse.status:type_name -> harness.agent.v1.ComputerUseStatus
-	0,  // 3: harness.agent.v1.ComputerAccessApp.tier:type_name -> harness.agent.v1.ComputerAccessTier
-	7,  // 4: harness.agent.v1.ComputerAccessRequested.apps:type_name -> harness.agent.v1.ComputerAccessApp
-	1,  // 5: harness.agent.v1.ComputerAccessRequested.missing_permissions:type_name -> harness.agent.v1.ComputerUsePermission
-	0,  // 6: harness.agent.v1.ComputerUseGrant.tier:type_name -> harness.agent.v1.ComputerAccessTier
-	10, // 7: harness.agent.v1.ComputerUseState.grants:type_name -> harness.agent.v1.ComputerUseGrant
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	3,  // 1: harness.agent.v1.ComputerUseStatus.profiles:type_name -> harness.agent.v1.ComputerUseProfile
+	5,  // 2: harness.agent.v1.ComputerUseStatus.block_entries:type_name -> harness.agent.v1.ComputerUseBlockEntry
+	0,  // 3: harness.agent.v1.ComputerUseProfile.browsers:type_name -> harness.agent.v1.ComputerAccessTier
+	0,  // 4: harness.agent.v1.ComputerUseProfile.terminals:type_name -> harness.agent.v1.ComputerAccessTier
+	0,  // 5: harness.agent.v1.ComputerUseProfile.other:type_name -> harness.agent.v1.ComputerAccessTier
+	4,  // 6: harness.agent.v1.ComputerUseProfile.app_tiers:type_name -> harness.agent.v1.ComputerUseAppTier
+	0,  // 7: harness.agent.v1.ComputerUseAppTier.tier:type_name -> harness.agent.v1.ComputerAccessTier
+	3,  // 8: harness.agent.v1.SetComputerUseProfileRequest.custom:type_name -> harness.agent.v1.ComputerUseProfile
+	2,  // 9: harness.agent.v1.SetComputerUseProfileResponse.status:type_name -> harness.agent.v1.ComputerUseStatus
+	14, // 10: harness.agent.v1.ListComputerUseAppsResponse.apps:type_name -> harness.agent.v1.ComputerAccessApp
+	2,  // 11: harness.agent.v1.GetComputerUseStatusResponse.status:type_name -> harness.agent.v1.ComputerUseStatus
+	2,  // 12: harness.agent.v1.SetComputerUseEnabledResponse.status:type_name -> harness.agent.v1.ComputerUseStatus
+	0,  // 13: harness.agent.v1.ComputerAccessApp.tier:type_name -> harness.agent.v1.ComputerAccessTier
+	14, // 14: harness.agent.v1.ComputerAccessRequested.apps:type_name -> harness.agent.v1.ComputerAccessApp
+	1,  // 15: harness.agent.v1.ComputerAccessRequested.missing_permissions:type_name -> harness.agent.v1.ComputerUsePermission
+	0,  // 16: harness.agent.v1.ComputerUseGrant.tier:type_name -> harness.agent.v1.ComputerAccessTier
+	17, // 17: harness.agent.v1.ComputerUseState.grants:type_name -> harness.agent.v1.ComputerUseGrant
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_computer_use_proto_init() }
@@ -1037,7 +1559,7 @@ func file_harness_agent_v1_computer_use_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_computer_use_proto_rawDesc), len(file_harness_agent_v1_computer_use_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   15,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

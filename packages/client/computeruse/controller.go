@@ -13,14 +13,16 @@ import (
 // Controller is one session's computer use: its grants and the checks made on every action. Nothing reaches the driver
 // except through it. The rules:
 //
-//   - Off unless the user turned the setting on, and refused when the session's last message came from another device.
+//   - Off unless the user turned the setting on, and refused when the session's last message came from another device
+//     (unless the profile allows that).
 //   - Every action names an app, which needs a grant from this session, given by the user in the access card.
-//   - The tier is the app's own (Classify) and is looked up again for each action.
+//   - The tier comes from the active profile (profile.go) and is looked up again for each action.
 //   - Input goes to the app it names, which must be frontmost at that moment: the Controller asks the driver, brings the
 //     app forward if it is not, checks again and refuses if something else stays in front; the driver checks a last
 //     time when it posts the events (Expect). A pointer action also needs the point to be on that app's window. So a
 //     focus switch nobody saw, between two actions or during one, cannot send input to the wrong app.
-//   - No typing into a secure field: refused when the focused element reports one, and when the OS says so otherwise.
+//   - No typing into a secure field: refused when the focused element reports one, and when the OS says so otherwise
+//     (unless the profile allows it).
 //   - Stop cancels what is in flight and revokes the grants; the session's Stop cancels through ctx.
 type Controller struct {
 	m         *Manager
@@ -87,8 +89,13 @@ func (c *Controller) State() State {
 func (c *Controller) stateLocked() State {
 	keys := slices.Sorted(maps.Keys(c.grants))
 	st := State{Controlling: c.controlling, Action: c.action}
+	profile := c.m.Profile()
 	for _, k := range keys {
-		st.Grants = append(st.Grants, c.grants[k])
+		g := c.grants[k]
+		// As the profile has it now; one it blocks since the card has no access at the moment.
+		if g.Tier = profile.TierFor(g.App); g.Tier != TierBlocked {
+			st.Grants = append(st.Grants, g)
+		}
 	}
 	return st
 }
@@ -111,7 +118,7 @@ func (c *Controller) allowed() error {
 	c.mu.Lock()
 	remote := c.remote
 	c.mu.Unlock()
-	if remote {
+	if remote && !c.m.Profile().AllowRemoteOrigin {
 		return ErrRemote
 	}
 	return nil
@@ -173,8 +180,8 @@ func (c *Controller) EndTurn() {
 	}
 }
 
-// grantFor finds the grant an action's `app` names, by id or name. The tier comes from Classify, not from the grant's
-// record, so a change to the tables or a blocklisted app can never keep an older answer.
+// grantFor finds the grant an action's `app` names, by id or name. The tier comes from the active profile, not from the
+// grant's record, so a stricter profile or a blocklisted app can never keep an older answer.
 func (c *Controller) grantFor(ref string) (Grant, error) {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {
@@ -194,9 +201,9 @@ func (c *Controller) grantFor(ref string) (Grant, error) {
 	if !ok {
 		return Grant{}, fmt.Errorf("%s has no access in this session. Ask the user with ComputerAccess first", ref)
 	}
-	g.Tier = Classify(g.App)
+	g.Tier = c.m.Profile().TierFor(g.App)
 	if g.Tier == TierBlocked {
-		return Grant{}, fmt.Errorf("%s is never controllable", g.App.Name)
+		return Grant{}, fmt.Errorf("%s is blocked in the current security profile", g.App.Name)
 	}
 	return g, nil
 }
@@ -208,8 +215,14 @@ func tierCheck(g Grant, a Action) error {
 	}
 	switch g.Tier {
 	case TierRead:
+		if !isBrowser(g.App) {
+			return fmt.Errorf("%s has read-only access in the current security profile, so %s is refused", g.App.Name, a)
+		}
 		return fmt.Errorf("%s has read-only access, so %s is refused: it is a browser. You can take screenshots of it; use the Browser tools to work on a web page", g.App.Name, a)
 	case TierClick:
+		if !isTerminal(g.App) {
+			return fmt.Errorf("%s has click-only access in the current security profile, so %s is refused", g.App.Name, a)
+		}
 		return fmt.Errorf("%s has click-only access, so %s is refused: typing there could run commands. Use Bash or the file tools for that work", g.App.Name, a)
 	}
 	return fmt.Errorf("%s: %s is refused", g.App.Name, a)
@@ -473,7 +486,7 @@ func (c *Controller) checkFocus(ctx context.Context, g Grant) error {
 	if err != nil {
 		return fmt.Errorf("cannot tell what has the keyboard focus, so nothing was sent: %w", err)
 	}
-	if f.Secure {
+	if f.Secure && !c.m.Profile().AllowSecureTyping {
 		return ErrSecureField
 	}
 	if f.AppID != "" && f.AppID != g.App.ID {
@@ -504,7 +517,7 @@ func (c *Controller) Type(ctx context.Context, app, text string) (string, error)
 	if err := c.checkFocus(ctx, g); err != nil {
 		return "", err
 	}
-	if err := c.d.Type(ctx, TypeText{Text: text, Expect: g.App.ID, RefuseSecure: true}); err != nil {
+	if err := c.d.Type(ctx, TypeText{Text: text, Expect: g.App.ID, RefuseSecure: !c.m.Profile().AllowSecureTyping}); err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("Typed %d characters in %s.%s", len([]rune(text)), g.App.Name, c.after(ctx, g)), nil
@@ -531,7 +544,7 @@ func (c *Controller) Key(ctx context.Context, app, keys string, repeat int) (str
 		if err != nil {
 			return "", fmt.Errorf("InputValidationError: %v", err)
 		}
-		if why := BlockedCombo(combo); why != "" {
+		if why := BlockedCombo(combo); why != "" && !c.m.Profile().AllowSystemShortcuts {
 			return "", fmt.Errorf("%s is refused: it %s, outside the app. Use ComputerActivate to change app", combo, why)
 		}
 		combos[i] = combo
@@ -550,7 +563,7 @@ func (c *Controller) Key(ctx context.Context, app, keys string, repeat int) (str
 			if err := c.ensureFront(ctx, g); err != nil {
 				return "", err
 			}
-			secureOK := harmlessInSecureField[combo]
+			secureOK := harmlessInSecureField[combo] || c.m.Profile().AllowSecureTyping
 			if err := c.checkFocus(ctx, g); err != nil && !(secureOK && errors.Is(err, ErrSecureField)) {
 				return "", err
 			}
@@ -571,7 +584,7 @@ func (c *Controller) Menu(ctx context.Context, app string, path []string) (strin
 		return "", errors.New("InputValidationError: path needs a menu and an item")
 	}
 	// The first menu of the bar belongs to the system, with its settings and log out.
-	if p := strings.TrimSpace(path[0]); p == "" || strings.EqualFold(p, "Apple") || p == "" {
+	if p := strings.TrimSpace(path[0]); !c.m.Profile().AllowSystemShortcuts && (p == "" || strings.EqualFold(p, "Apple") || p == "") {
 		return "", errors.New("the system menu is refused")
 	}
 	ctx, g, done, err := c.input(ctx, app, ActionMenu, "Using the menu of")
@@ -799,9 +812,10 @@ func (c *Controller) Apps(ctx context.Context, installed bool) ([]ListedApp, Per
 	if err != nil {
 		return nil, perms, err
 	}
+	profile := c.m.Profile()
 	out := make([]ListedApp, 0, len(apps))
 	for _, a := range apps {
-		l := ListedApp{App: a, Tier: Classify(a)}
+		l := ListedApp{App: a, Tier: profile.TierFor(a)}
 		c.mu.Lock()
 		_, l.Granted = c.grants[a.ID]
 		c.mu.Unlock()
@@ -819,13 +833,17 @@ func (c *Controller) Apps(ctx context.Context, installed bool) ([]ListedApp, Per
 type AccessApp struct {
 	App  App
 	Tier Tier
+	// Note says what the tier means here, and warns of a blocklist entry the profile lifted.
+	Note string
 }
 
 // AccessRequest is what the user sees in the access card.
 type AccessRequest struct {
 	ToolUseID string
 	Reason    string
-	Apps      []AccessApp
+	// Profile names the security profile that gave the tiers.
+	Profile string
+	Apps    []AccessApp
 	// Missing are permissions of the OS still to grant.
 	Missing []Permission
 }
@@ -867,6 +885,7 @@ func (c *Controller) RequestAccess(ctx context.Context, asker AccessAsker, toolU
 	if err != nil {
 		return res, err
 	}
+	profile := c.m.Profile()
 	var ask []AccessApp
 	for _, ref := range refs {
 		a, ok := resolveApp(apps, ref)
@@ -874,7 +893,8 @@ func (c *Controller) RequestAccess(ctx context.Context, asker AccessAsker, toolU
 			res.Unknown = append(res.Unknown, ref)
 			continue
 		}
-		if Classify(a) == TierBlocked {
+		tier := profile.TierFor(a)
+		if tier == TierBlocked {
 			res.Blocked = append(res.Blocked, a)
 			continue
 		}
@@ -886,7 +906,7 @@ func (c *Controller) RequestAccess(ctx context.Context, asker AccessAsker, toolU
 			continue
 		}
 		if !slices.ContainsFunc(ask, func(x AccessApp) bool { return x.App.ID == a.ID }) {
-			ask = append(ask, AccessApp{App: a, Tier: Classify(a)})
+			ask = append(ask, AccessApp{App: a, Tier: tier, Note: TierNote(profile, a)})
 		}
 	}
 	for _, p := range perms.Items {
@@ -897,11 +917,11 @@ func (c *Controller) RequestAccess(ctx context.Context, asker AccessAsker, toolU
 	if len(ask) == 0 {
 		return res, nil
 	}
-	approved, err := asker.AskComputerAccess(ctx, AccessRequest{ToolUseID: toolUseID, Reason: reason, Apps: ask, Missing: res.Missing})
+	approved, err := asker.AskComputerAccess(ctx, AccessRequest{ToolUseID: toolUseID, Reason: reason, Profile: profile.Name, Apps: ask, Missing: res.Missing})
 	if err != nil {
 		return res, err
 	}
-	// Only what was asked can be approved, and at its own tier, whatever the frontend sent.
+	// Only what was asked can be approved, whatever the frontend sent. The tier is read from the profile on each action.
 	c.mu.Lock()
 	for _, x := range ask {
 		if slices.Contains(approved, x.App.ID) {

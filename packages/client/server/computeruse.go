@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"path/filepath"
 	"slices"
@@ -63,9 +64,50 @@ func (s *Server) noteMessageOrigin(ctx context.Context, sessionID, peer string) 
 }
 
 var computerTiers = map[computeruse.Tier]agentv1.ComputerAccessTier{
-	computeruse.TierRead:  agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_READ,
-	computeruse.TierClick: agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_CLICK,
-	computeruse.TierFull:  agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_FULL,
+	computeruse.TierRead:    agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_READ,
+	computeruse.TierClick:   agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_CLICK,
+	computeruse.TierFull:    agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_FULL,
+	computeruse.TierBlocked: agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_BLOCKED,
+}
+
+// computerTierFromProto: anything unclear is blocked.
+func computerTierFromProto(t agentv1.ComputerAccessTier) computeruse.Tier {
+	switch t {
+	case agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_READ:
+		return computeruse.TierRead
+	case agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_CLICK:
+		return computeruse.TierClick
+	case agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_FULL:
+		return computeruse.TierFull
+	}
+	return computeruse.TierBlocked
+}
+
+func computerProfileToProto(p computeruse.Profile) *agentv1.ComputerUseProfile {
+	out := &agentv1.ComputerUseProfile{
+		Id: p.ID, Name: p.Name, Browsers: computerTiers[p.Browsers], Terminals: computerTiers[p.Terminals], Other: computerTiers[p.Other],
+		LiftedBlocks: p.Lifted, AllowSecureTyping: p.AllowSecureTyping, AllowRemoteOrigin: p.AllowRemoteOrigin,
+		AllowSystemShortcuts: p.AllowSystemShortcuts, AllowSettingsEdit: p.AllowSettingsEdit,
+	}
+	for _, id := range slices.Sorted(maps.Keys(p.Apps)) {
+		out.AppTiers = append(out.AppTiers, &agentv1.ComputerUseAppTier{AppId: id, Tier: computerTiers[p.Apps[id]]})
+	}
+	return out
+}
+
+func computerProfileFromProto(m *agentv1.ComputerUseProfile) *computeruse.Profile {
+	p := &computeruse.Profile{
+		Browsers: computerTierFromProto(m.GetBrowsers()), Terminals: computerTierFromProto(m.GetTerminals()), Other: computerTierFromProto(m.GetOther()),
+		Lifted: m.GetLiftedBlocks(), AllowSecureTyping: m.GetAllowSecureTyping(), AllowRemoteOrigin: m.GetAllowRemoteOrigin(),
+		AllowSystemShortcuts: m.GetAllowSystemShortcuts(), AllowSettingsEdit: m.GetAllowSettingsEdit(),
+	}
+	for _, a := range m.GetAppTiers() {
+		if p.Apps == nil {
+			p.Apps = map[string]computeruse.Tier{}
+		}
+		p.Apps[a.GetAppId()] = computerTierFromProto(a.GetTier())
+	}
+	return p
 }
 
 func computerPermsToProto(items []computeruse.Permission) []*agentv1.ComputerUsePermission {
@@ -118,10 +160,10 @@ type pendingComputerAccess struct {
 func (ls *liveSession) AskComputerAccess(ctx context.Context, req computeruse.AccessRequest) ([]string, error) {
 	id := newUUID("ca_")
 	p := &pendingComputerAccess{ch: make(chan []string, 1)}
-	ev := &agentv1.ComputerAccessRequested{RequestId: id, ToolUseId: req.ToolUseID, Reason: req.Reason, MissingPermissions: computerPermsToProto(req.Missing)}
+	ev := &agentv1.ComputerAccessRequested{RequestId: id, ToolUseId: req.ToolUseID, Reason: req.Reason, ProfileName: req.Profile, MissingPermissions: computerPermsToProto(req.Missing)}
 	for _, a := range req.Apps {
 		p.ids = append(p.ids, a.App.ID)
-		ev.Apps = append(ev.Apps, &agentv1.ComputerAccessApp{Id: a.App.ID, Name: a.App.Name, Tier: computerTiers[a.Tier], TierNote: a.Tier.Note()})
+		ev.Apps = append(ev.Apps, &agentv1.ComputerAccessApp{Id: a.App.ID, Name: a.App.Name, Tier: computerTiers[a.Tier], TierNote: a.Note})
 	}
 	ls.mu.Lock()
 	if ls.pendingAccess == nil {
@@ -184,6 +226,14 @@ func (s *Server) computerStatus(ctx context.Context) *agentv1.ComputerUseStatus 
 	m := s.computerUse()
 	info := m.Info()
 	st := &agentv1.ComputerUseStatus{Enabled: m.Enabled(), Supported: info.Supported, Platform: info.Platform, UnavailableReason: info.Reason}
+	profiles, active := m.Profiles()
+	st.ActiveProfileId = active
+	for _, p := range profiles {
+		st.Profiles = append(st.Profiles, computerProfileToProto(p))
+	}
+	for _, e := range computeruse.BlockEntries() {
+		st.BlockEntries = append(st.BlockEntries, &agentv1.ComputerUseBlockEntry{Id: e.ID, Label: e.Label, Warning: e.Warning})
+	}
 	if !info.Supported {
 		return st
 	}
@@ -217,6 +267,40 @@ func (s *Server) SetComputerUseEnabled(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&agentv1.SetComputerUseEnabledResponse{Status: s.computerStatus(ctx)}), nil
+}
+
+// SetComputerUseProfile picks the security profile and edits the custom one. Only a frontend on this machine reaches it,
+// and no tool of the model does.
+func (s *Server) SetComputerUseProfile(ctx context.Context, req *connect.Request[agentv1.SetComputerUseProfileRequest]) (*connect.Response[agentv1.SetComputerUseProfileResponse], error) {
+	if err := refuseRemotePeer(req.Peer().Addr); err != nil {
+		return nil, err
+	}
+	var custom *computeruse.Profile
+	if req.Msg.GetCustom() != nil {
+		custom = computerProfileFromProto(req.Msg.GetCustom())
+	}
+	if err := s.computerUse().SetProfile(req.Msg.GetActiveProfileId(), custom); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&agentv1.SetComputerUseProfileResponse{Status: s.computerStatus(ctx)}), nil
+}
+
+// ListComputerUseApps lists this machine's apps for the profile editor, with the tier the active profile gives them.
+func (s *Server) ListComputerUseApps(ctx context.Context, req *connect.Request[agentv1.ListComputerUseAppsRequest]) (*connect.Response[agentv1.ListComputerUseAppsResponse], error) {
+	if err := refuseRemotePeer(req.Peer().Addr); err != nil {
+		return nil, err
+	}
+	m := s.computerUse()
+	apps, err := m.Apps(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	profile := m.Profile()
+	out := &agentv1.ListComputerUseAppsResponse{}
+	for _, a := range apps {
+		out.Apps = append(out.Apps, &agentv1.ComputerAccessApp{Id: a.ID, Name: a.Name, Tier: computerTiers[profile.TierFor(a)], TierNote: computeruse.TierNote(profile, a)})
+	}
+	return connect.NewResponse(out), nil
 }
 
 // RespondToComputerAccess is the user's answer to an access card. Apps not in the request are ignored.

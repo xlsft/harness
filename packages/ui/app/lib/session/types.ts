@@ -154,7 +154,22 @@ export interface ToolImage {
   url: string
 }
 
-export type ComputerTierName = 'read' | 'click' | 'full'
+export type ComputerTierName = 'blocked' | 'read' | 'click' | 'full'
+
+// A security profile of computer use (ComputerUseProfile).
+export interface ComputerProfileVM {
+  id: string
+  name: string
+  browsers: ComputerTierName
+  terminals: ComputerTierName
+  other: ComputerTierName
+  apps: { id: string, name: string, tier: ComputerTierName }[]
+  lifted: string[]
+  allowSecureTyping: boolean
+  allowRemoteOrigin: boolean
+  allowSystemShortcuts: boolean
+  allowSettingsEdit: boolean
+}
 
 export interface ComputerPermissionVM {
   id: string
@@ -169,6 +184,8 @@ export interface ComputerAccessItem {
   id: string
   toolUseId: string
   reason: string
+  // The security profile that gave the tiers.
+  profileName: string
   apps: { id: string, name: string, tier: ComputerTierName, note: string }[]
   // Permissions of the operating system still to grant.
   missing: ComputerPermissionVM[]

@@ -51,7 +51,8 @@ func ParseCombo(s string) (string, error) {
 }
 
 // blockedCombos reach past the app in front: they switch apps, open a system-wide search that takes the following
-// typing, or end the user's work. Refused on every tier. To change app the model uses ComputerActivate, which is checked.
+// typing, or end the user's work. Refused on every tier unless the profile allows them (AllowSystemShortcuts). To change
+// app the model uses ComputerActivate, which is checked.
 var blockedCombos = map[string]string{
 	"cmd+space":            "opens system search",
 	"alt+cmd+space":        "opens a system search window",

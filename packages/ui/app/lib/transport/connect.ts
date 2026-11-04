@@ -4,7 +4,8 @@
 
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
-import { permissionVM } from '~/lib/session/computer'
+import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
+import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
 import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { create } from '@bufbuild/protobuf'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
@@ -21,7 +22,6 @@ import {
 import { ContentBlockSchema, Effort } from '~/gen/harness/llm/v1/content_pb'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb } from '~/lib/session/reducer'
-import type { EffortName, QuestionReply } from '~/lib/session/types'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
 import { ConnectUsersApi } from '~/lib/users/connect'
 import { ConnectAccountApi } from '~/lib/account/connect'
@@ -46,7 +46,8 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 
 function computerStatusVM(s: ComputerUseStatus | undefined): ComputerUseStatusVM {
   if (!s) throw new Error('the client returned no status')
-  return { enabled: s.enabled, supported: s.supported, platform: s.platform, unavailableReason: s.unavailableReason, permissions: s.permissions.map(permissionVM) }
+  return { enabled: s.enabled, supported: s.supported, platform: s.platform, unavailableReason: s.unavailableReason, permissions: s.permissions.map(permissionVM),
+    activeProfileId: s.activeProfileId, profiles: s.profiles.map(profileVM), blockEntries: s.blockEntries.map(e => ({ id: e.id, label: e.label, warning: e.warning })) }
 }
 
 export class ConnectTransport implements SessionTransport {
@@ -243,6 +244,14 @@ export class ConnectTransport implements SessionTransport {
 
   async setComputerUseEnabled(enabled: boolean) {
     return computerStatusVM((await this.client.setComputerUseEnabled({ enabled })).status)
+  }
+
+  async setComputerUseProfile(activeProfileId: string, custom?: ComputerProfileVM) {
+    return computerStatusVM((await this.client.setComputerUseProfile({ activeProfileId, custom: custom && profileMessage(custom) })).status)
+  }
+
+  async listComputerUseApps() {
+    return (await this.client.listComputerUseApps({})).apps.map(a => ({ id: a.id, name: a.name, tier: tierName(a.tier) }))
   }
 
   async respondToComputerAccess(sessionId: string, requestId: string, approvedAppIds: string[]) {

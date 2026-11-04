@@ -242,6 +242,7 @@ func (hs *hostSession) envelope(ev *agentv1.SessionEvent, base int64) *relayv1.E
 
 // scrubDeviceLocal takes computer use off an event going to the server: its cards and state are empty there, and its
 // screenshots stay on this machine. An emptied event keeps its seq, so viewers see no gap in the log.
+// Screenshots go to object storage when it exists; until then they are left out here.
 func scrubDeviceLocal(c *agentv1.SessionEvent) {
 	switch e := c.GetEvent().(type) {
 	case *agentv1.SessionEvent_ComputerAccessRequested, *agentv1.SessionEvent_ComputerAccessResolved, *agentv1.SessionEvent_ComputerUseState:

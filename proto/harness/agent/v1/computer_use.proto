@@ -6,7 +6,7 @@ package harness.agent.v1;
 // here is device-local: nothing is kept in the user's synced settings, the events do not go to the relay mirror, and
 // these RPCs refuse a session of another machine and a frontend that is not on this machine (FAILED_PRECONDITION).
 
-// What the model may do in an app. Set by the client from what the app is, never by a frontend.
+// What the model may do in an app. Set by the client from what the app is and the user's active profile, never by the model.
 enum ComputerAccessTier {
   COMPUTER_ACCESS_TIER_UNSPECIFIED = 0;
   // Screenshots and accessibility reads only (browsers).
@@ -14,6 +14,8 @@ enum ComputerAccessTier {
   // Plain clicks and scrolling on top of that, no typing or right click (terminals, IDEs, script runners).
   COMPUTER_ACCESS_TIER_CLICK = 2;
   COMPUTER_ACCESS_TIER_FULL = 3;
+  // Not controllable, and not offered on a card.
+  COMPUTER_ACCESS_TIER_BLOCKED = 4;
 }
 
 // A permission of the operating system (TCC on macOS) the driver needs.
@@ -36,6 +38,64 @@ message ComputerUseStatus {
   // Why it cannot work right now: no driver for the platform, or its helper program is missing.
   string unavailable_reason = 4;
   repeated ComputerUsePermission permissions = 5;
+  // The active security profile and the ones to pick from: the built-in ones and the custom one the user edits.
+  string active_profile_id = 6;
+  repeated ComputerUseProfile profiles = 7;
+  // The blocklist, each entry a switch of the custom profile.
+  repeated ComputerUseBlockEntry block_entries = 8;
+}
+
+// A named set of decisions on what computer use may do. Everything is blocked by default; only the user loosens it.
+message ComputerUseProfile {
+  // "strict" (the default), "standard", "full", "custom".
+  string id = 1;
+  string name = 2;
+  // Tiers by kind of app.
+  ComputerAccessTier browsers = 3;
+  ComputerAccessTier terminals = 4;
+  ComputerAccessTier other = 5;
+  // Tiers of single apps. They do not reach an app on the blocklist or Harness itself.
+  repeated ComputerUseAppTier app_tiers = 6;
+  // Ids of the blocklist entries lifted. Harness's own app is not on the list: nothing lifts it.
+  repeated string lifted_blocks = 7;
+  // Lifts the refusal to type into a secure field.
+  bool allow_secure_typing = 8;
+  // Lifts the rule that turns computer use off when the session's last message came from another device.
+  bool allow_remote_origin = 9;
+  // Lifts the refusal of key combinations that reach past the app, such as app switching, and of the system menu.
+  bool allow_system_shortcuts = 10;
+  // Lets the agent's file tools and shell write these settings without the user-only prompt.
+  bool allow_settings_edit = 11;
+}
+
+message ComputerUseAppTier {
+  string app_id = 1;
+  string app_name = 2;
+  ComputerAccessTier tier = 3;
+}
+
+message ComputerUseBlockEntry {
+  string id = 1;
+  string label = 2;
+  // What the user reads before lifting it.
+  string warning = 3;
+}
+
+// Picks the active profile and, when custom is set, replaces the custom profile. No tool of the model reaches this.
+message SetComputerUseProfileRequest {
+  string active_profile_id = 1;
+  ComputerUseProfile custom = 2;
+}
+
+message SetComputerUseProfileResponse {
+  ComputerUseStatus status = 1;
+}
+
+message ListComputerUseAppsRequest {}
+
+// The apps of this machine with the tier the active profile gives them, for the profile editor.
+message ListComputerUseAppsResponse {
+  repeated ComputerAccessApp apps = 1;
 }
 
 message GetComputerUseStatusRequest {}
@@ -71,6 +131,8 @@ message ComputerAccessRequested {
   repeated ComputerAccessApp apps = 4;
   // Permissions of the operating system that are still missing.
   repeated ComputerUsePermission missing_permissions = 5;
+  // The security profile that gave the tiers.
+  string profile_name = 6;
 }
 
 message ComputerAccessResolved {

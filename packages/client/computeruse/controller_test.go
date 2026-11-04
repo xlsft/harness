@@ -897,14 +897,14 @@ func TestToolsFlow(t *testing.T) {
 		t.Fatalf("%+v", r)
 	}
 	r := runTool(t, m, a, ToolAccess, map[string]any{"apps": []string{"Notes", "Safari", "1Password"}, "reason": "to work"})
-	if r.IsError || !strings.Contains(resultText(r), "Notes: granted") || !strings.Contains(resultText(r), "Read-only") || !strings.Contains(resultText(r), "1Password: never controllable") {
+	if r.IsError || !strings.Contains(resultText(r), "Notes: granted") || !strings.Contains(resultText(r), "Read-only") || !strings.Contains(resultText(r), "1Password: blocked") {
 		t.Fatalf("%s", resultText(r))
 	}
 	if a.asked[0].ToolUseID != "tu1" || a.asked[0].Reason != "to work" {
 		t.Fatalf("%+v", a.asked[0])
 	}
 	r = runTool(t, m, a, ToolApps, map[string]any{})
-	if out := resultText(r); !strings.Contains(out, "Notes (com.apple.Notes): access granted, full tier") || !strings.Contains(out, "1Password") || !strings.Contains(out, "never controllable") || !strings.Contains(out, "window 11") {
+	if out := resultText(r); !strings.Contains(out, "Notes (com.apple.Notes): access granted, full tier") || !strings.Contains(out, "1Password") || !strings.Contains(out, "blocked by the current security profile") || !strings.Contains(out, "window 11") {
 		t.Fatalf("%s", out)
 	}
 	r = runTool(t, m, a, ToolScreenshot, map[string]any{"app": "Notes"})

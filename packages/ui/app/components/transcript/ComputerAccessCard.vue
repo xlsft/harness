@@ -87,7 +87,7 @@ const summary = computed(() => {
       >
         <span class="text-strong">{{ p.name }} is not allowed yet.</span> {{ p.howToGrant }}
       </div>
-      <span class="text-[11.5px] text-muted">Lasts for this session. You can stop it at any time.</span>
+      <span class="text-[11.5px] text-muted">Lasts for this session. You can stop it at any time. Tiers come from your {{ item.profileName || 'security' }} profile, in Settings &gt; Computer use.</span>
       <p
         v-if="error"
         role="alert"
