@@ -4,7 +4,11 @@ import type { Chapter } from '~/lib/session/links'
 
 const props = defineProps<{ chapters: Chapter[], root: HTMLElement | null }>()
 const open = ref(false)
-function jump(id: string) {
+// A divider may be above what the transcript has mounted so far.
+const showAll = useState<boolean>('transcript-show-all', () => false)
+async function jump(id: string) {
+  showAll.value = true
+  await nextTick()
   props.root?.querySelector(`[data-chapter="${CSS.escape(id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   open.value = false
 }

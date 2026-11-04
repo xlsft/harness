@@ -3,6 +3,7 @@
 // markdown rendered or as source, images (SVG as an image, or its source), and for binary or too large files
 // their size with ways to open them elsewhere. Lines from Show are highlighted and scrolled to; a re-read of
 // the same file keeps the scroll position.
+import { Virtualizer } from 'virtua/vue'
 import type { FileContent } from '~/lib/files/types'
 import { FILE_LIMITS } from '~/lib/files/types'
 import { fileKind, formatSize, languageOf } from '~/lib/files/tree'
@@ -43,10 +44,16 @@ const view = computed<'loading' | 'error' | 'none' | 'image' | 'markdown' | 'cod
 
 const textLines = computed(() => (props.content?.text ?? '').replace(/\n$/, '').split('\n'))
 const lineCount = computed(() => textLines.value.length)
+// A line is highlighted when it first comes on screen, and remembered for as long as the text stays.
 const rows = computed(() => {
   const hl = lineCount.value <= MAX_HIGHLIGHT
-  return textLines.value.map(l => hl ? highlightLine(l, lang.value.lang) : [{ t: l, c: 'var(--color-text)' }])
+  const language = lang.value.lang
+  return textLines.value.map((line) => {
+    let spans: ReturnType<typeof highlightLine> | null = null
+    return { spans: () => spans ??= hl ? highlightLine(line, language) : [{ t: line, c: 'var(--color-text)' }] }
+  })
 })
+const lineList = ref<InstanceType<typeof Virtualizer> | null>(null)
 
 // An object URL for an image's bytes or an SVG's text, revoked when it changes.
 const imageUrl = ref('')
@@ -81,7 +88,7 @@ watch(() => props.content, async () => {
 watch(() => [props.scrollRequest, view.value] as const, async () => {
   if (!props.lines || view.value !== 'code') return
   await nextTick()
-  scroller.value?.querySelector(`[data-line="${props.lines.start}"]`)?.scrollIntoView({ block: 'center' })
+  lineList.value?.scrollToIndex(props.lines.start - 1, { align: 'center' })
 }, { immediate: true })
 
 const isShown = (n: number) => !!props.lines && n >= props.lines.start && n <= props.lines.end
@@ -192,28 +199,34 @@ const gutter = computed(() => `${Math.max(2, String(lineCount.value).length) + 2
       class="min-h-0 flex-1 overflow-auto py-2 font-mono text-[12px] leading-[1.65]"
       :aria-label="`${path}, ${lang.label}`"
     >
-      <div
-        v-for="(l, i) in rows"
-        :key="i"
-        class="flex min-h-[1.65em]"
-        :class="[isShown(i + 1) && 'bg-accent/15', !wrap && 'w-max min-w-full']"
-        :data-line="i + 1"
+      <Virtualizer
+        ref="lineList"
+        v-slot="{ item: l, index: i }"
+        :data="rows"
+        :start-margin="8"
       >
-        <span
-          class="shrink-0 pr-3 text-right select-none"
-          :class="isShown(i + 1) ? 'text-strong' : 'text-dimmed'"
-          :style="{ width: gutter }"
-        >{{ i + 1 }}</span>
-        <span
-          class="min-w-0 flex-1 pr-2.5"
-          :class="wrap ? 'break-words whitespace-pre-wrap' : 'whitespace-pre'"
-          :style="{ tabSize }"
-        ><span
-          v-for="(s, j) in l"
-          :key="j"
-          :style="{ color: s.c }"
-        >{{ s.t }}</span></span>
-      </div>
+        <div
+          :key="i"
+          class="flex min-h-[1.65em]"
+          :class="[isShown(i + 1) && 'bg-accent/15', !wrap && 'w-max min-w-full']"
+          :data-line="i + 1"
+        >
+          <span
+            class="shrink-0 pr-3 text-right select-none"
+            :class="isShown(i + 1) ? 'text-strong' : 'text-dimmed'"
+            :style="{ width: gutter }"
+          >{{ i + 1 }}</span>
+          <span
+            class="min-w-0 flex-1 pr-2.5"
+            :class="wrap ? 'break-words whitespace-pre-wrap' : 'whitespace-pre'"
+            :style="{ tabSize }"
+          ><span
+            v-for="(s, j) in l.spans()"
+            :key="j"
+            :style="{ color: s.c }"
+          >{{ s.t }}</span></span>
+        </div>
+      </Virtualizer>
     </div>
 
     <div

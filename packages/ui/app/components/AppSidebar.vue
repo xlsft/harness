@@ -259,7 +259,7 @@ const nav = [
           <a
             v-else
             href="#"
-            class="group/row nav-row relative pr-[9px] hover:bg-hover"
+            class="group/row nav-row relative pr-[9px] [contain-intrinsic-size:auto_28px] [content-visibility:auto] hover:bg-hover"
             :class="[!onPage && s.meta.id === store.currentId ? 'nav-row-current' : '', menuFor === s.meta.id ? 'bg-hover' : '']"
             :style="indent(depth)"
             :data-depth="depth"

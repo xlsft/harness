@@ -78,7 +78,7 @@ function clustered(blocks: Block[]): Block[] {
 // ReportFindings: each result is the whole list, so one card, at the latest report.
 const latestFindings = computed(() => props.session.items.findLast(i => i.kind === 'tool' && !!findingsOf(i)))
 
-const blocks = computed<Block[]>(() => {
+const allBlocks = computed<Block[]>(() => {
   const out: Block[] = []
   for (const item of props.session.items) {
     if (item.kind === 'tool' && sentFilesOf(item)) {
@@ -225,6 +225,16 @@ watch(lastTurn, (turn, before) => {
 })
 watch(sid, () => readAloud.stop())
 const edit = (id: string) => act('Could not edit the message', () => store.editQueued(sid.value, id))
+// A long history mounts from the newest end, more as the view nears the top; column-reverse keeps the position.
+const BLOCKS_STEP = 120
+const blockLimit = ref(BLOCKS_STEP)
+const showAll = useState<boolean>('transcript-show-all', () => false)
+watch(() => props.session.meta.id, () => {
+  blockLimit.value = BLOCKS_STEP
+  showAll.value = false
+})
+const blocks = computed(() => showAll.value ? allBlocks.value : allBlocks.value.slice(-blockLimit.value))
+
 // A new message (yours, a queued one or the model's next one) brings the view down to it, even when it was
 // scrolled up. column-reverse puts the newest edge at scrollTop 0. Streaming into the same message does not.
 const scroller = ref<HTMLElement | null>(null)
@@ -240,7 +250,9 @@ watch(lastKey, (now, before) => {
 // column-reverse: the newest edge is scrollTop 0, scrolling up goes negative.
 const scrolledUp = ref(false)
 function onScroll() {
-  scrolledUp.value = (scroller.value?.scrollTop ?? 0) < -120
+  const el = scroller.value
+  scrolledUp.value = (el?.scrollTop ?? 0) < -120
+  if (el && blockLimit.value < allBlocks.value.length && el.scrollHeight - el.clientHeight + el.scrollTop < 800) blockLimit.value += BLOCKS_STEP
 }
 function toBottom() {
   scroller.value?.scrollTo({ top: 0, behavior: 'smooth' })

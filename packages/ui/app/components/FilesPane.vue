@@ -5,6 +5,7 @@
 // preview tab, a double click keeps it). The filter searches file names (fuzzy, the loaded tree plus SuggestFiles).
 // The tree, git status and the open file refresh after the agent's file edits, when a turn ends and every few
 // seconds while the pane is visible; Show and "Open file" from other panes open files here, at their lines.
+import { Virtualizer } from 'virtua/vue'
 import { usePanes } from '~/composables/usePanes'
 import type { SessionState, ToolItem } from '~/lib/session/types'
 import type { FileContent, FileEntry, FileRoot, GitStatus } from '~/lib/files/types'
@@ -653,23 +654,29 @@ const remoteText = computed(() => {
           aria-label="Matching files"
           class="min-h-0 flex-1 overflow-y-auto p-1 text-[12.5px]"
         >
-          <div
-            v-for="h in hits"
-            :key="h.path"
-            role="option"
-            :aria-selected="h.path === vs.selected"
-            :title="h.path"
-            class="flex h-[26px] cursor-pointer items-center gap-[7px] overflow-hidden px-1.5 whitespace-nowrap text-toned hover:bg-hover"
-            @click="openHit(h)"
+          <Virtualizer
+            v-slot="{ item: h }"
+            :data="hits"
+            :item-size="26"
+            :start-margin="4"
           >
-            <HIcon
-              :name="h.dir ? 'folder' : 'file'"
-              :size="13"
-              class="text-muted"
-            />
-            <span class="shrink-0 text-strong">{{ baseName(h.rel) }}</span>
-            <span class="truncate text-[11.5px] text-muted">{{ h.rel.includes('/') ? h.rel.slice(0, h.rel.lastIndexOf('/')) : '' }}</span>
-          </div>
+            <div
+              :key="h.path"
+              role="option"
+              :aria-selected="h.path === vs.selected"
+              :title="h.path"
+              class="flex h-[26px] cursor-pointer items-center gap-[7px] overflow-hidden px-1.5 whitespace-nowrap text-toned hover:bg-hover"
+              @click="openHit(h)"
+            >
+              <HIcon
+                :name="h.dir ? 'folder' : 'file'"
+                :size="13"
+                class="text-muted"
+              />
+              <span class="shrink-0 text-strong">{{ baseName(h.rel) }}</span>
+              <span class="truncate text-[11.5px] text-muted">{{ h.rel.includes('/') ? h.rel.slice(0, h.rel.lastIndexOf('/')) : '' }}</span>
+            </div>
+          </Virtualizer>
           <div
             v-if="!hits.length && !searching"
             class="px-2 py-1.5 text-[12px] text-muted"
