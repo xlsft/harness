@@ -21,9 +21,9 @@ export default defineAppConfig({
         kbds: 'gap-0.5'
       }
     },
-    // Shortcuts everywhere (hints, menus, tooltips) are UKbd: square, hairline, monospace.
+    // Shortcuts everywhere (hints, menus, tooltips) are UKbd: hairline, monospace, with the theme's chip corners.
     kbd: {
-      base: 'rounded-none font-mono font-normal',
+      base: 'font-mono font-normal',
       variants: {
         size: {
           sm: 'h-4 min-w-4 px-1 text-[10px]',

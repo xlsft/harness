@@ -10,6 +10,7 @@ import type { SessionState, ToolItem } from '~/lib/session/types'
 import type { DiffComment, ThreadEntry } from '~/components/transcript/DiffView.vue'
 import type { FileChange, PatchHunk } from '~/utils/tools'
 import { isDesktop, openWithDefaultApp, revealInFolder } from '~/lib/desktop'
+import { VList } from 'virtua/vue'
 import { SessionDiffLoader, type SessionDiff } from '~/lib/files/sessionDiff'
 
 const props = defineProps<{ session: SessionState }>()
@@ -200,6 +201,34 @@ function toggleViewed(path: string) {
   collapsed.value[path] = viewed.value[path]!
 }
 
+// A collapsed file mounts no diff. Until the user says otherwise, a large diff starts with every file collapsed.
+const isCollapsed = (path: string) => collapsed.value[path] ?? !!live.value?.large
+
+// Long files open in parts: a diff of many thousand lines is more than a page should lay out at once.
+const LINES_STEP = 1000
+const shownLines = reactive<Record<string, number>>({})
+const lineCount = (g: DiffGroup) => g.hunks.reduce((n, h) => n + h.lines.length, 0)
+function visibleHunks(g: DiffGroup): PatchHunk[] {
+  let left = shownLines[g.path] ?? LINES_STEP
+  if (lineCount(g) <= left) return g.hunks
+  const out: PatchHunk[] = []
+  for (const h of g.hunks) {
+    if (left <= 0) break
+    out.push(h.lines.length > left ? { ...h, lines: h.lines.slice(0, left) } : h)
+    left -= h.lines.length
+  }
+  return out
+}
+const hiddenLines = (g: DiffGroup) => Math.max(0, lineCount(g) - (shownLines[g.path] ?? LINES_STEP))
+
+// The pane's list: the summary, the note, then a row per file; only what is on screen is rendered.
+type DiffRow = { kind: 'summary' } | { kind: 'truncated' } | { kind: 'file', group: DiffGroup }
+const rows = computed<DiffRow[]>(() => [
+  { kind: 'summary' },
+  ...(live.value?.truncated ? [{ kind: 'truncated' as const }] : []),
+  ...groups.value.map(group => ({ kind: 'file' as const, group }))
+])
+
 function openFile(path: string) {
   filesOpen.value = path
   openPane('files')
@@ -207,16 +236,15 @@ function openFile(path: string) {
 }
 
 // Show: scroll to one file's changes (expanded), or to the top for the whole diff.
-const scroller = ref<HTMLElement | null>(null)
+const list = ref<InstanceType<typeof VList> | null>(null)
 const { target: showTarget } = useShow()
 watch(showTarget, async (t) => {
   if (t?.kind !== 'diff') return
   showTarget.value = null
   if (t.path) collapsed.value[t.path] = false
   await nextTick()
-  const el = t.path ? document.getElementById(`diff-${t.path}`) : null
-  if (el) el.scrollIntoView({ block: 'start' })
-  else scroller.value?.scrollTo({ top: 0 })
+  const at = t.path ? rows.value.findIndex(r => r.kind === 'file' && r.group.path === t.path) : -1
+  list.value?.scrollToIndex(Math.max(at, 0))
 }, { immediate: true })
 
 // Why a file has no hunks to show.
@@ -313,79 +341,81 @@ async function copy(text: string) {
       <span class="text-strong">No changes yet</span>
       <span class="max-w-80 text-[12px] leading-[1.55] text-muted">{{ live ? 'Files changed in this session show up here for review.' : 'Edits the agent makes in this session show up here for review.' }}</span>
     </div>
-    <div
+    <VList
       v-else
-      ref="scroller"
-      class="flex min-h-0 flex-1 flex-col overflow-y-auto"
+      ref="list"
+      v-slot="{ item: row }"
+      :data="rows"
+      class="min-h-0 flex-1"
     >
       <DiffSummary
+        v-if="row.kind === 'summary'"
         :files="summary"
         flush
         total-only
       />
       <div
-        v-if="live?.truncated"
+        v-else-if="row.kind === 'truncated'"
         class="border-b border-default px-3 py-[5px] text-[12px] text-muted"
       >
         Too many changed files: showing the first {{ groups.length }}.
       </div>
       <section
-        v-for="g in groups"
-        :id="`diff-${g.path}`"
-        :key="g.path"
-        class="not-first-of-type:border-t not-first-of-type:border-default"
+        v-else
+        :key="row.group.path"
+        class="border-b border-default"
       >
         <div
-          :title="g.oldPath ? `${g.oldPath} → ${g.path}` : g.path"
+          :title="row.group.oldPath ? `${row.group.oldPath} → ${row.group.path}` : row.group.path"
           class="sticky top-0 z-10 flex cursor-pointer items-center gap-2 border-b border-default bg-surface py-[3px] pr-1.5 pl-2 text-[12px] text-toned"
-          @click="collapsed[g.path] = !collapsed[g.path]"
+          @click="collapsed[row.group.path] = !isCollapsed(row.group.path)"
         >
           <HIcon
             name="down"
             :size="12"
             class="shrink-0 text-muted transition-transform"
-            :class="collapsed[g.path] && '-rotate-90'"
+            :class="isCollapsed(row.group.path) && '-rotate-90'"
           />
           <span
             class="w-3 shrink-0"
-            :class="g.kind === 'A' ? 'text-ok' : g.kind === 'D' ? 'text-bad' : 'text-warn'"
-          >{{ g.kind }}</span>
+            :class="row.group.kind === 'A' ? 'text-ok' : row.group.kind === 'D' ? 'text-bad' : 'text-warn'"
+          >{{ row.group.kind }}</span>
           <span
             class="min-w-0 flex-1 truncate"
-            :class="viewed[g.path] && 'text-muted'"
-          >{{ g.label }}</span>
-          <span class="text-ok">+{{ g.stats.add }}</span><span class="text-bad">−{{ g.stats.del }}</span>
+            :class="viewed[row.group.path] && 'text-muted'"
+          >{{ row.group.label }}</span>
+          <span class="text-ok">+{{ row.group.stats.add }}</span><span class="text-bad">−{{ row.group.stats.del }}</span>
           <div
             class="flex items-center"
             @click.stop
           >
             <HIconBtn
               icon="check"
-              :label="viewed[g.path] ? 'Mark as not viewed' : 'Mark as viewed'"
+              :label="viewed[row.group.path] ? 'Mark as not viewed' : 'Mark as viewed'"
               :size="26"
               :icon-size="13"
-              :pressed="viewed[g.path]"
-              :class="viewed[g.path] && 'text-accent'"
-              @click="toggleViewed(g.path)"
+              :pressed="viewed[row.group.path]"
+              :class="viewed[row.group.path] && 'text-accent'"
+              @click="toggleViewed(row.group.path)"
             />
             <HIconBtn
               icon="arrow-up-right"
               label="Open file"
               :size="26"
               :icon-size="13"
-              @click="openFile(g.path)"
+              @click="openFile(row.group.path)"
             />
             <UPopover
-              :open="fileMenu === g.path"
+              :open="fileMenu === row.group.path"
               :content="{ side: 'bottom', align: 'end', sideOffset: 4 }"
-              @update:open="fileMenu = $event ? g.path : ''"
+              @update:open="fileMenu = $event ? row.group.path : ''"
             >
               <HIconBtn
                 icon="more"
                 label="File actions"
                 :size="26"
                 :icon-size="13"
-                :pressed="fileMenu === g.path"
+                :pressed="fileMenu === row.group.path"
               />
               <template #content>
                 <div
@@ -393,7 +423,7 @@ async function copy(text: string) {
                   aria-label="File actions"
                   class="w-[250px] border border-accented bg-hover py-1 text-[12.5px]"
                 >
-                  <PaneMenuItem @click="attach = [...attach, relative(g.path)]; fileMenu = ''">
+                  <PaneMenuItem @click="attach = [...attach, relative(row.group.path)]; fileMenu = ''">
                     Attach as context
                   </PaneMenuItem>
                   <UPopover
@@ -409,40 +439,40 @@ async function copy(text: string) {
                         aria-label="Copy"
                         class="w-[180px] border border-accented bg-hover py-1 text-[12.5px]"
                       >
-                        <PaneMenuItem @click="copy(relative(g.path))">
+                        <PaneMenuItem @click="copy(relative(row.group.path))">
                           Relative path
                         </PaneMenuItem>
-                        <PaneMenuItem @click="copy(g.path)">
+                        <PaneMenuItem @click="copy(row.group.path)">
                           Absolute path
                         </PaneMenuItem>
-                        <PaneMenuItem @click="copy(diffText(g))">
+                        <PaneMenuItem @click="copy(diffText(row.group))">
                           Diff
                         </PaneMenuItem>
                       </div>
                     </template>
                   </UPopover>
                   <div class="my-1 h-px bg-line" />
-                  <PaneMenuItem @click="openFile(g.path)">
+                  <PaneMenuItem @click="openFile(row.group.path)">
                     Show whole file
                   </PaneMenuItem>
-                  <PaneMenuItem @click="toggleViewed(g.path); fileMenu = ''">
-                    {{ viewed[g.path] ? 'Mark as not viewed' : 'Mark as viewed' }}
+                  <PaneMenuItem @click="toggleViewed(row.group.path); fileMenu = ''">
+                    {{ viewed[row.group.path] ? 'Mark as not viewed' : 'Mark as viewed' }}
                   </PaneMenuItem>
                   <div class="my-1 h-px bg-line" />
-                  <PaneMenuItem @click="openFile(g.path)">
+                  <PaneMenuItem @click="openFile(row.group.path)">
                     Open file
                   </PaneMenuItem>
                   <PaneMenuItem
                     :disabled="!desktop"
                     :value="desktop ? '' : 'desktop'"
-                    @click="desktop && (openWithDefaultApp(g.path), fileMenu = '')"
+                    @click="desktop && (openWithDefaultApp(row.group.path), fileMenu = '')"
                   >
                     Open in default app
                   </PaneMenuItem>
                   <PaneMenuItem
                     :disabled="!desktop"
                     :value="desktop ? '' : 'desktop'"
-                    @click="desktop && (revealInFolder(g.path), fileMenu = '')"
+                    @click="desktop && (revealInFolder(row.group.path), fileMenu = '')"
                   >
                     Show in Finder
                   </PaneMenuItem>
@@ -452,25 +482,32 @@ async function copy(text: string) {
           </div>
         </div>
         <div
-          v-if="noHunks(g)"
-          v-show="!collapsed[g.path]"
+          v-if="!isCollapsed(row.group.path) && noHunks(row.group)"
           class="px-3 py-2 text-[12px] text-muted"
         >
-          {{ noHunks(g) }}
+          {{ noHunks(row.group) }}
         </div>
-        <DiffView
-          v-else
-          v-show="!collapsed[g.path]"
-          v-model:comments="comments"
-          :path="g.path"
-          :hunks="g.hunks"
-          :mode="view"
-          :thread-of="threadOf"
-          bare
-          commentable
-          @reply="onReply"
-        />
+        <template v-else-if="!isCollapsed(row.group.path)">
+          <DiffView
+            v-model:comments="comments"
+            :path="row.group.path"
+            :hunks="visibleHunks(row.group)"
+            :mode="view"
+            :thread-of="threadOf"
+            bare
+            commentable
+            @reply="onReply"
+          />
+          <button
+            v-if="hiddenLines(row.group)"
+            type="button"
+            class="w-full border-t border-default px-3 py-1.5 text-left text-[12px] text-muted hover:bg-hover"
+            @click="shownLines[row.group.path] = (shownLines[row.group.path] ?? LINES_STEP) + LINES_STEP"
+          >
+            Show {{ Math.min(hiddenLines(row.group), LINES_STEP) }} more of {{ hiddenLines(row.group) }} lines
+          </button>
+        </template>
       </section>
-    </div>
+    </VList>
   </section>
 </template>

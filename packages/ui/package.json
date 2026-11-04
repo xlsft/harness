@@ -32,7 +32,8 @@
     "nuxt": "^4.6.3",
     "pinia": "^4.1.0",
     "reka-ui": "2.11.0",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "virtua": "0.53.6"
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.16.0",

@@ -25,6 +25,8 @@ export interface SessionDiff {
   notModified: boolean
   files: SessionFileDiff[]
   truncated: boolean
+  // Past the client's thresholds: files start collapsed.
+  large?: boolean
   filesChanged: number
   additions: number
   deletions: number
