@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/session_links.proto.
  */
 export const file_harness_agent_v1_session_links: GenFile = /*@__PURE__*/
-  fileDesc("CiRoYXJuZXNzL2FnZW50L3YxL3Nlc3Npb25fbGlua3MucHJvdG8SEGhhcm5lc3MuYWdlbnQudjEipQIKD1Nlc3Npb25Qcm9wb3NhbBIKCgJpZBgBIAEoCRITCgt0b29sX3VzZV9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRI2CgVzdGF0ZRgEIAEoDjInLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvblByb3Bvc2FsLlN0YXRlEhIKCmV4cGlyZXNfYXQYBSABKAkSEgoKc2Vzc2lvbl9pZBgGIAEoCRIUCgxzZXNzaW9uX25hbWUYByABKAkibAoFU3RhdGUSFQoRU1RBVEVfVU5TUEVDSUZJRUQQABIRCg1TVEFURV9QRU5ESU5HEAESEQoNU1RBVEVfU1RBUlRFRBACEhMKD1NUQVRFX0RJU01JU1NFRBADEhEKDVNUQVRFX0VYUElSRUQQBCLYAQodUmVzb2x2ZVNlc3Npb25Qcm9wb3NhbFJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRITCgtwcm9wb3NhbF9pZBgCIAEoCRJGCgZhY3Rpb24YAyABKA4yNi5oYXJuZXNzLmFnZW50LnYxLlJlc29sdmVTZXNzaW9uUHJvcG9zYWxSZXF1ZXN0LkFjdGlvbiJGCgZBY3Rpb24SFgoSQUNUSU9OX1VOU1BFQ0lGSUVEEAASEAoMQUNUSU9OX1NUQVJUEAESEgoOQUNUSU9OX0RJU01JU1MQAiJVCh5SZXNvbHZlU2Vzc2lvblByb3Bvc2FsUmVzcG9uc2USMwoIcHJvcG9zYWwYASABKAsyIS5oYXJuZXNzLmFnZW50LnYxLlNlc3Npb25Qcm9wb3NhbELSAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCEVNlc3Npb25MaW5rc1Byb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z");
+  fileDesc("CiRoYXJuZXNzL2FnZW50L3YxL3Nlc3Npb25fbGlua3MucHJvdG8SEGhhcm5lc3MuYWdlbnQudjEipQIKD1Nlc3Npb25Qcm9wb3NhbBIKCgJpZBgBIAEoCRITCgt0b29sX3VzZV9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRI2CgVzdGF0ZRgEIAEoDjInLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvblByb3Bvc2FsLlN0YXRlEhIKCmV4cGlyZXNfYXQYBSABKAkSEgoKc2Vzc2lvbl9pZBgGIAEoCRIUCgxzZXNzaW9uX25hbWUYByABKAkibAoFU3RhdGUSFQoRU1RBVEVfVU5TUEVDSUZJRUQQABIRCg1TVEFURV9QRU5ESU5HEAESEQoNU1RBVEVfU1RBUlRFRBACEhMKD1NUQVRFX0RJU01JU1NFRBADEhEKDVNUQVRFX0VYUElSRUQQBCLYAQodUmVzb2x2ZVNlc3Npb25Qcm9wb3NhbFJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRITCgtwcm9wb3NhbF9pZBgCIAEoCRJGCgZhY3Rpb24YAyABKA4yNi5oYXJuZXNzLmFnZW50LnYxLlJlc29sdmVTZXNzaW9uUHJvcG9zYWxSZXF1ZXN0LkFjdGlvbiJGCgZBY3Rpb24SFgoSQUNUSU9OX1VOU1BFQ0lGSUVEEAASEAoMQUNUSU9OX1NUQVJUEAESEgoOQUNUSU9OX0RJU01JU1MQAiJVCh5SZXNvbHZlU2Vzc2lvblByb3Bvc2FsUmVzcG9uc2USMwoIcHJvcG9zYWwYASABKAsyIS5oYXJuZXNzLmFnZW50LnYxLlNlc3Npb25Qcm9wb3NhbCLiAQoLU2Vzc2lvbk5vdGUSCgoCaWQYASABKAkSMAoEa2luZBgCIAEoDjIiLmhhcm5lc3MuYWdlbnQudjEuU2Vzc2lvbk5vdGUuS2luZBIPCgdmcm9tX2lkGAMgASgJEhEKCWZyb21fbmFtZRgEIAEoCRISCgpmcm9tX3RpdGxlGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIMCgR0ZXh0GAcgASgJIj8KBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEhAKDEtJTkRfTUVTU0FHRRABEg8KC0tJTkRfUkVQT1JUEAIiXAoZRGVsaXZlclNlc3Npb25Ob3RlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEisKBG5vdGUYAiABKAsyHS5oYXJuZXNzLmFnZW50LnYxLlNlc3Npb25Ob3RlIhwKGkRlbGl2ZXJTZXNzaW9uTm90ZVJlc3BvbnNlQtIBChRjb20uaGFybmVzcy5hZ2VudC52MUIRU2Vzc2lvbkxpbmtzUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message harness.agent.v1.SessionProposal
@@ -176,4 +176,126 @@ export type ResolveSessionProposalResponse = Message<"harness.agent.v1.ResolveSe
  */
 export const ResolveSessionProposalResponseSchema: GenMessage<ResolveSessionProposalResponse> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_session_links, 2);
+
+/**
+ * A message or turn report from another session. It reaches the model as a reminder and the user as a notice: never as
+ * a user message, so it carries no user authority wherever it is delivered.
+ *
+ * @generated from message harness.agent.v1.SessionNote
+ */
+export type SessionNote = Message<"harness.agent.v1.SessionNote"> & {
+  /**
+   * note_...; a note is delivered once, however many routes or retries carry it.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: harness.agent.v1.SessionNote.Kind kind = 2;
+   */
+  kind: SessionNote_Kind;
+
+  /**
+   * @generated from field: string from_id = 3;
+   */
+  fromId: string;
+
+  /**
+   * @generated from field: string from_name = 4;
+   */
+  fromName: string;
+
+  /**
+   * @generated from field: string from_title = 5;
+   */
+  fromTitle: string;
+
+  /**
+   * How the turn ended (reports).
+   *
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string text = 7;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.SessionNote.
+ * Use `create(SessionNoteSchema)` to create a new message.
+ */
+export const SessionNoteSchema: GenMessage<SessionNote> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_links, 3);
+
+/**
+ * @generated from enum harness.agent.v1.SessionNote.Kind
+ */
+export enum SessionNote_Kind {
+  /**
+   * @generated from enum value: KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * SessionSend.
+   *
+   * @generated from enum value: KIND_MESSAGE = 1;
+   */
+  MESSAGE = 1,
+
+  /**
+   * A session started from this one ended a turn.
+   *
+   * @generated from enum value: KIND_REPORT = 2;
+   */
+  REPORT = 2,
+}
+
+/**
+ * Describes the enum harness.agent.v1.SessionNote.Kind.
+ */
+export const SessionNote_KindSchema: GenEnum<SessionNote_Kind> = /*@__PURE__*/
+  enumDesc(file_harness_agent_v1_session_links, 3, 0);
+
+/**
+ * Carries a note to a session of another machine (harness.relay.v1.Command.deliver_session_note). Not part of
+ * AgentService: frontends have no way to send one.
+ *
+ * @generated from message harness.agent.v1.DeliverSessionNoteRequest
+ */
+export type DeliverSessionNoteRequest = Message<"harness.agent.v1.DeliverSessionNoteRequest"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: harness.agent.v1.SessionNote note = 2;
+   */
+  note?: SessionNote | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.DeliverSessionNoteRequest.
+ * Use `create(DeliverSessionNoteRequestSchema)` to create a new message.
+ */
+export const DeliverSessionNoteRequestSchema: GenMessage<DeliverSessionNoteRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_links, 4);
+
+/**
+ * @generated from message harness.agent.v1.DeliverSessionNoteResponse
+ */
+export type DeliverSessionNoteResponse = Message<"harness.agent.v1.DeliverSessionNoteResponse"> & {
+};
+
+/**
+ * Describes the message harness.agent.v1.DeliverSessionNoteResponse.
+ * Use `create(DeliverSessionNoteResponseSchema)` to create a new message.
+ */
+export const DeliverSessionNoteResponseSchema: GenMessage<DeliverSessionNoteResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_links, 5);
 

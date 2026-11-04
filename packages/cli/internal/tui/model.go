@@ -115,6 +115,9 @@ type Options struct {
 
 // Model is the Bubble Tea model.
 type Model struct {
+	// proposals are the sessions the agent proposed here, as last reported (/proposals).
+	proposals []*agentv1.SessionProposal
+
 	conn *client.Conn
 	st   *render.Styles
 	ctx  context.Context

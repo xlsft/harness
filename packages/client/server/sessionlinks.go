@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -38,7 +39,8 @@ import (
 // messages: they do not enter the message queue, so they can never become the answer to a question, and they are not
 // prompts, so the auto mode decider does not read them as the user's wishes. A note wakes an idle session (Driver.Wake),
 // a report only when none of the session's children is still working. After maxLinkedWakes wakes in a row without a
-// user message notes wait, in memory, for the next user message to one of the two sessions.
+// user message notes wait, on record, for the next user message to one of the two sessions. A note for a session that
+// is not open here takes the routes in sessionnotes.go.
 
 const (
 	// proposalTTL is how long a proposal waits for the user.
@@ -97,6 +99,12 @@ type sessionLinks struct {
 	Parent    string            `json:"parent,omitempty"`
 	Children  []linkedSession   `json:"children,omitempty"`
 	Proposals []*proposalRecord `json:"proposals,omitempty"`
+	// Wakes counts the notes that woke the session since its last user message; Held are the notes past the limit.
+	Wakes int                   `json:"wakes,omitempty"`
+	Held  []session.SessionNote `json:"held,omitempty"`
+	// Seen are the ids of the notes delivered lately; Outbox are notes for other sessions that had no route yet.
+	Seen   []string     `json:"seen,omitempty"`
+	Outbox []outboxNote `json:"outbox,omitempty"`
 }
 
 // linkState is the links state of a live session.
@@ -108,9 +116,9 @@ type linkState struct {
 	mu     sync.Mutex
 	loaded bool
 	file   sessionLinks
-	// wakes counts the notes that woke the session since its last user message; held are the notes past the limit.
-	wakes int
-	held  []session.SessionNote
+	// draining: drainNotes is running. forkOf is the session of another machine this one is a fork of.
+	draining atomic.Bool
+	forkOf   string
 }
 
 func sessionLinksPath(id string) string {
@@ -149,7 +157,10 @@ func (ls *liveSession) withLinks(fn func(f *sessionLinks) bool) error {
 	if err != nil {
 		return err
 	}
-	path := sessionLinksPath(ls.sess.ID)
+	return writeLinksFile(sessionLinksPath(ls.sess.ID), data)
+}
+
+func writeLinksFile(path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
@@ -187,6 +198,10 @@ func (ls *liveSession) StartSession(ctx context.Context, r tools.SessionRequest)
 	}
 	if m.Model == "" {
 		m.Model = ls.sess.Agent.Model()
+	}
+	// Bypass is never turned on from another device, also not by way of a new session.
+	if remote, _ := ctx.Value(remoteOriginKey{}).(bool); remote && m.PermissionMode == agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS {
+		m.PermissionMode = agentv1.PermissionMode_PERMISSION_MODE_DEFAULT
 	}
 	if o := ls.links.origin; o != nil {
 		m.AllowedTools, m.DisallowedTools, m.AdditionalDirectories = o.GetAllowedTools(), o.GetDisallowedTools(), o.GetAdditionalDirectories()
@@ -579,23 +594,29 @@ func (ls *liveSession) working() bool {
 }
 
 // receiveNote delivers a note, or holds it past the wake limit. A message counts against the limit whether or not it
-// wakes the session (two running turns could otherwise feed each other forever); a report counts when it wakes it.
+// wakes the session (two running turns could otherwise feed each other forever); a report counts when it wakes it. The
+// count and the held notes are on record, so a restart neither resets the limit nor loses them.
 func (ls *liveSession) receiveNote(n session.SessionNote) (woke, held bool) {
 	busy := ls.driver.Busy()
-	wakes := n.Kind == noteMessage || !busy
-	ls.links.mu.Lock()
-	if wakes && ls.links.wakes >= maxLinkedWakes {
-		ls.links.held = append(ls.links.held, n)
-		if len(ls.links.held) > maxHeldNotes {
-			ls.links.held = slices.Clone(ls.links.held[len(ls.links.held)-maxHeldNotes:])
+	counts := n.Kind == noteMessage || !busy
+	_ = ls.withLinks(func(f *sessionLinks) bool {
+		if counts && f.Wakes >= maxLinkedWakes {
+			f.Held = append(f.Held, n)
+			if len(f.Held) > maxHeldNotes {
+				f.Held = slices.Clone(f.Held[len(f.Held)-maxHeldNotes:])
+			}
+			held = true
+			return true
 		}
-		ls.links.mu.Unlock()
+		if n.Kind == noteMessage {
+			f.Wakes++
+			return true
+		}
+		return false
+	})
+	if held {
 		return false, true
 	}
-	if n.Kind == noteMessage {
-		ls.links.wakes++
-	}
-	ls.links.mu.Unlock()
 	ls.recordNote(n)
 	if n.Kind == noteReport && ls.childWorking() {
 		return false, false
@@ -605,9 +626,10 @@ func (ls *liveSession) receiveNote(n session.SessionNote) (woke, held bool) {
 		return false, false
 	}
 	if n.Kind == noteReport {
-		ls.links.mu.Lock()
-		ls.links.wakes++
-		ls.links.mu.Unlock()
+		_ = ls.withLinks(func(f *sessionLinks) bool {
+			f.Wakes++
+			return true
+		})
 	}
 	ls.driver.Wake()
 	return true, false
@@ -625,14 +647,16 @@ func (ls *liveSession) userSpoke() {
 }
 
 func (ls *liveSession) releaseNotes(wake bool) {
-	ls.links.mu.Lock()
-	ls.links.wakes = 0
-	held := ls.links.held
-	ls.links.held = nil
-	if len(held) > 0 && wake {
-		ls.links.wakes = 1
-	}
-	ls.links.mu.Unlock()
+	var held []session.SessionNote
+	_ = ls.withLinks(func(f *sessionLinks) bool {
+		changed := f.Wakes != 0 || len(f.Held) > 0
+		held, f.Held = f.Held, nil
+		f.Wakes = 0
+		if len(held) > 0 && wake {
+			f.Wakes = 1
+		}
+		return changed
+	})
 	for _, n := range held {
 		ls.recordNote(n)
 	}
@@ -651,8 +675,7 @@ func (ls *liveSession) reportToParent(res agent.TurnResult) {
 	detached := ls.sess.ParentSessionID != f.Parent
 	title := ls.title
 	ls.mu.Unlock()
-	parent := ls.srv.liveSession(f.Parent)
-	if detached || parent == nil {
+	if detached {
 		return
 	}
 	status := "finished"
@@ -669,7 +692,19 @@ func (ls *liveSession) reportToParent(res agent.TurnResult) {
 	if strings.TrimSpace(report) == "" {
 		report = "(no text)"
 	}
-	parent.receiveNote(session.SessionNote{Kind: noteReport, FromID: ls.sess.ID, FromName: f.Name, FromTitle: title, Status: status, Text: truncateRunes(report, sessionReportChars)})
+	n := session.SessionNote{ID: newUUID("note_"), Kind: noteReport, FromID: ls.sess.ID, FromName: f.Name, FromTitle: title, Status: status, Text: truncateRunes(report, sessionReportChars)}
+	if parent := ls.srv.liveSession(f.Parent); parent != nil {
+		parent.deliverNote(n)
+		return
+	}
+	// Not open here: it waits for the parent, on whichever device opens it. The turn does not wait for the network.
+	ls.bg.Add(1)
+	go func() {
+		defer ls.bg.Done()
+		ctx, cancel := context.WithTimeout(ls.srv.ctx, 2*sessionSyncTimeout)
+		defer cancel()
+		ls.routeOrKeep(ctx, f.Parent, n)
+	}()
 }
 
 // SendToSession implements tools.SessionCoordinator.
@@ -686,22 +721,37 @@ func (ls *liveSession) SendToSession(ctx context.Context, to, message string) (t
 	if id == ls.sess.ID {
 		return none, errors.New("that is this session")
 	}
-	target, err := s.openForNote(ctx, id)
-	if err != nil {
-		return none, err
-	}
 	f := ls.readLinks()
 	ls.mu.Lock()
 	title := ls.title
 	ls.mu.Unlock()
-	woke, held := target.receiveNote(session.SessionNote{Kind: noteMessage, FromID: ls.sess.ID, FromName: f.Name, FromTitle: title, Text: message})
+	n := session.SessionNote{ID: newUUID("note_"), Kind: noteMessage, FromID: ls.sess.ID, FromName: f.Name, FromTitle: title, Text: message}
+	// A session of another machine: the relay or the server keeps the note until it can be read.
+	if s.liveSession(id) == nil && s.acpLive(id) == nil {
+		if _, path := s.locate(id); path == "" {
+			s.refreshListing(ctx, "")
+			if info := s.remoteInfo(id); info != nil {
+				if s.stateOf(id).archived {
+					return none, fmt.Errorf("session %s is archived", id)
+				}
+				if err := s.routeNote(ctx, id, n); err != nil {
+					return none, fmt.Errorf("session %s runs on %s and the message could not be left for it: %w", id, deviceLabel(info), err)
+				}
+				return tools.SessionDelivery{ID: id, Title: info.GetTitle(), Queued: true}, nil
+			}
+		}
+	}
+	target, err := s.openForNote(ctx, id)
+	if err != nil {
+		return none, err
+	}
+	woke, held := target.deliverNote(n)
 	info := target.info()
 	return tools.SessionDelivery{ID: id, Name: target.readLinks().Name, Title: info.GetTitle(), Woke: woke, Held: held}, nil
 }
 
-// openForNote returns the live session id, reopening it if it is closed. What cannot take a note is refused: a session
-// of another machine (the relay carries user messages only, and a note must never read as one), an ACP session (the
-// external agent has no such channel) and an archived one.
+// openForNote returns the live session id, reopening it if it is closed. What cannot take a note is refused: an ACP
+// session (the external agent has no such channel) and an archived one.
 func (s *Server) openForNote(ctx context.Context, id string) (*liveSession, error) {
 	if ls := s.liveSession(id); ls != nil {
 		return ls, nil
@@ -711,10 +761,6 @@ func (s *Server) openForNote(ctx context.Context, id string) (*liveSession, erro
 	}
 	_, path := s.locate(id)
 	if path == "" {
-		s.refreshListing(ctx, "")
-		if info := s.remoteInfo(id); info != nil {
-			return nil, fmt.Errorf("session %s runs on %s and cannot be messaged from here: the relay only carries the user's own messages, and this one must not read as coming from the user", id, deviceLabel(info))
-		}
 		return nil, fmt.Errorf("session %s not found", id)
 	}
 	if s.stateOf(id).archived {

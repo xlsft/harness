@@ -69,6 +69,9 @@ const (
 	// key: rule file path relative to the rules root (e.g. "frontend/react.md"). content: rule markdown with
 	// optional `paths:` frontmatter. SCOPE_USER: analogue of ~/.claude/rules/**.
 	DocumentKind_DOCUMENT_KIND_RULE DocumentKind = 12
+	// User scope only. key: session id. content: JSON {"notes": [{"id", "kind": "message"|"report", "fromId", "fromName",
+	// "fromTitle", "status", "text"}]}, the notes waiting for a session that is not open anywhere; the device that opens it delivers them and deletes the document.
+	DocumentKind_DOCUMENT_KIND_SESSION_NOTES DocumentKind = 13
 )
 
 // Enum value maps for DocumentKind.
@@ -87,6 +90,7 @@ var (
 		10: "DOCUMENT_KIND_MCP_SERVER",
 		11: "DOCUMENT_KIND_POLICY",
 		12: "DOCUMENT_KIND_RULE",
+		13: "DOCUMENT_KIND_SESSION_NOTES",
 	}
 	DocumentKind_value = map[string]int32{
 		"DOCUMENT_KIND_UNSPECIFIED":      0,
@@ -102,6 +106,7 @@ var (
 		"DOCUMENT_KIND_MCP_SERVER":       10,
 		"DOCUMENT_KIND_POLICY":           11,
 		"DOCUMENT_KIND_RULE":             12,
+		"DOCUMENT_KIND_SESSION_NOTES":    13,
 	}
 )
 
@@ -2832,7 +2837,7 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\x14DeleteSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
-	"\x15DeleteSessionResponse*\xf8\x02\n" +
+	"\x15DeleteSessionResponse*\x99\x03\n" +
 	"\fDocumentKind\x12\x1d\n" +
 	"\x19DOCUMENT_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16DOCUMENT_KIND_SETTINGS\x10\x01\x12\"\n" +
@@ -2847,7 +2852,8 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\x18DOCUMENT_KIND_MCP_SERVER\x10\n" +
 	"\x12\x18\n" +
 	"\x14DOCUMENT_KIND_POLICY\x10\v\x12\x16\n" +
-	"\x12DOCUMENT_KIND_RULE\x10\f2\xa4\t\n" +
+	"\x12DOCUMENT_KIND_RULE\x10\f\x12\x1f\n" +
+	"\x1bDOCUMENT_KIND_SESSION_NOTES\x10\r2\xa4\t\n" +
 	"\vSyncService\x12X\n" +
 	"\vListChanges\x12#.harness.sync.v1.ListChangesRequest\x1a$.harness.sync.v1.ListChangesResponse\x12]\n" +
 	"\fWatchChanges\x12$.harness.sync.v1.WatchChangesRequest\x1a%.harness.sync.v1.WatchChangesResponse0\x01\x12X\n" +

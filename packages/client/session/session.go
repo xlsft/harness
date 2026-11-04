@@ -295,6 +295,8 @@ func ReadHeldMessages(entries []Entry) []HeldMessage {
 
 // SessionNote is a message or a turn report from another session.
 type SessionNote struct {
+	// ID makes delivery idempotent across routes and retries.
+	ID string `json:"id,omitempty"`
 	// Kind is "message" or "report".
 	Kind      string `json:"kind"`
 	FromID    string `json:"fromId"`

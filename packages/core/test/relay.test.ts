@@ -14,6 +14,7 @@ import {
   type OpenHostStreamResponse,
   type SubscribeSessionResponse,
 } from "../src/gen/harness/relay/v1/relay_pb.ts";
+import { ResolveSessionProposalRequest_Action, SessionNote_Kind } from "../src/gen/harness/agent/v1/session_links_pb.ts";
 import { isUnderRoot } from "../src/relay/service.ts";
 import { createUserAndLogin, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";
 
@@ -344,6 +345,48 @@ describe("commands", () => {
     expect(r.result!.ack!.outcome).toBe(CommandAck_Outcome.OK);
     // the idempotent retry now reports the ack
     expect((await A1.sendUserMessage({ request: msg, options: { idempotencyKey: `k-${s.id}` } })).result!.delivery).toBe(DeliveryState.ACKED);
+    st.close();
+  });
+
+  it("carries a session note: waits for an offline host far past a command's limit, and refuses a closed session", async () => {
+    const h = await newHost(A1);
+    const s = await newSession(A1, h);
+    const note = { sessionId: s.id, note: { id: `note_${s.id}`, kind: SessionNote_Kind.MESSAGE, fromId: "parent", text: "hello there" } };
+    // The caller's ttl neither shortens nor extends it.
+    const sent = await A2.sendSessionNote({ request: note, options: { idempotencyKey: note.note.id, ttlSeconds: 1 } });
+    expect(sent.result!.delivery).toBe(DeliveryState.QUEUED);
+    const again = await A2.sendSessionNote({ request: note, options: { idempotencyKey: note.note.id } });
+    expect(again.result!.commandId).toBe(sent.result!.commandId);
+    await new Promise((r) => setTimeout(r, 1100));
+
+    // Another user cannot reach it.
+    await expectError(B.sendSessionNote({ request: note }), Code.NotFound);
+
+    // The host reconnects: it arrives as its own payload, not as a user message.
+    const st = hostStream(A1, h);
+    const c = (await st.until(isCommand)).event.value as { commandId: string; expiresAt: string; payload: { case: string; value: { note: { text: string } } } };
+    expect(c.payload.case).toBe("deliverSessionNote");
+    expect(c.payload.value.note.text).toBe("hello there");
+    expect(Date.parse(c.expiresAt) - Date.now()).toBeGreaterThan(25 * 24 * 3600 * 1000);
+    await A1.ackCommands({ hostId: h, acks: [{ commandId: c.commandId, outcome: CommandAck_Outcome.OK }] });
+    st.close();
+
+    // Closed on its machine: the caller leaves it in the user's document instead.
+    await A1.unregisterSession({ hostId: h, sessionId: s.id, epoch: s.epoch });
+    await expectError(A2.sendSessionNote({ request: { ...note, note: { ...note.note, id: "note_2" } } }), Code.FailedPrecondition);
+  });
+
+  it("starts a proposal from another device: held for the host's ack", async () => {
+    const h = await newHost(A1);
+    const s = await newSession(A1, h);
+    const st = hostStream(A1, h);
+    const held = A2.resolveSessionProposal({ request: { sessionId: s.id, proposalId: "prop_1", action: ResolveSessionProposalRequest_Action.START } });
+    const c = (await st.until(isCommand)).event.value as { commandId: string; payload: { case: string; value: { proposalId: string } } };
+    expect(c.payload.case).toBe("resolveSessionProposal");
+    expect(c.payload.value.proposalId).toBe("prop_1");
+    await A1.ackCommands({ hostId: h, acks: [{ commandId: c.commandId, outcome: CommandAck_Outcome.OK }] });
+    const r = await held;
+    expect(r.result!.delivery).toBe(DeliveryState.ACKED);
     st.close();
   });
 

@@ -352,8 +352,8 @@ type AgentServiceClient interface {
 	// include_archived.
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	// Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
-	// stored on the harness server (SyncService), for remote sessions too; without a server connection only a rename
-	// can be applied (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed
+	// stored on the harness server (SyncService), for remote sessions too. Without a server it is kept on this machine,
+	// and the first server the client signs in to gets it. When a server is configured but unreachable nothing is changed
 	// (UNAVAILABLE).
 	UpdateSession(context.Context, *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error)
 	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files (a
@@ -1908,8 +1908,8 @@ type AgentServiceHandler interface {
 	// include_archived.
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	// Changes the per-user state of a session: pin, unread, archive (which also stops it), or a rename. The state is
-	// stored on the harness server (SyncService), for remote sessions too; without a server connection only a rename
-	// can be applied (FAILED_PRECONDITION for the rest), and when the server is unreachable nothing is changed
+	// stored on the harness server (SyncService), for remote sessions too. Without a server it is kept on this machine,
+	// and the first server the client signs in to gets it. When a server is configured but unreachable nothing is changed
 	// (UNAVAILABLE).
 	UpdateSession(context.Context, *connect.Request[v1.UpdateSessionRequest]) (*connect.Response[v1.UpdateSessionResponse], error)
 	// Deletes a session for good: stops it if live, deletes its server copy and its local transcript files (a

@@ -55,6 +55,8 @@ export const MAX_PUBLISH_EVENTS = 500;
 export const MAX_PUBLISH_BYTES = 4 << 20;
 const DEFAULT_TTL_S = 600;
 const MAX_TTL_S = 24 * 3600;
+/** A note from another session waits for its machine far longer than a command someone is watching. */
+const SESSION_NOTE_TTL_S = 30 * 24 * 3600;
 const REPLAY_PAGE = 500;
 /** Missed heartbeats after which a host without an open stream is offline. */
 const MISSED_HEARTBEATS = 3;
@@ -887,7 +889,7 @@ export async function sendSessionCommand(
   const session = await requireUserSession(p, payloadSessionId(payload));
   if (!session.active) throw new ApiError("failed_precondition", `Session ${session.id} is no longer remote-controllable`);
   // Query results are only useful to the waiting caller: they expire with the wait.
-  const ttlMs = hold === "query" ? ackWaitMs() : ttlSeconds(opts) * 1000;
+  const ttlMs = hold === "query" ? ackWaitMs() : (payload.case === "deliverSessionNote" ? SESSION_NOTE_TTL_S : ttlSeconds(opts)) * 1000;
   const { row } = await enqueue(p, { session }, payload, opts, ttlMs, frontend);
   const wait = hold === "optional" ? opts?.waitForAck : true;
   return outcomeOf(row, wait ? Date.now() + ackWaitMs() : undefined);

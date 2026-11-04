@@ -129,7 +129,7 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `SessionHandoff` | `title`, `remaining_plan` | moves the task in progress to a fork |
 | `SessionDismiss` | `task_id` | withdraws an unstarted proposal |
 | `SessionList` | `linked?` | the user's sessions: id, title, state, short name |
-| `SessionSend` | `to`, `message` | delivers a `session_message`; another machine's session is refused |
+| `SessionSend` | `to`, `message` | delivers a `session_message`; for a session on another machine it waits in the relay or the user's `SESSION_NOTES` document |
 | `SessionArchive` | `id` | only sessions started from this one; every call asks the user |
 | `MarkChapter` | `title`, `summary?` | transcript divider and table of contents entry, read from the call |
 | `WrapUp` | `recap`, `ask`, `actions` (1–2) | closes a turn: the box under the last message; a button sends its label as the user's reply |

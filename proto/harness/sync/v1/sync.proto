@@ -118,6 +118,9 @@ enum DocumentKind {
   // key: rule file path relative to the rules root (e.g. "frontend/react.md"). content: rule markdown with
   // optional `paths:` frontmatter. SCOPE_USER: analogue of ~/.claude/rules/**.
   DOCUMENT_KIND_RULE = 12;
+  // User scope only. key: session id. content: JSON {"notes": [{"id", "kind": "message"|"report", "fromId", "fromName",
+  // "fromTitle", "status", "text"}]}, the notes waiting for a session that is not open anywhere; the device that opens it delivers them and deletes the document.
+  DOCUMENT_KIND_SESSION_NOTES = 13;
 }
 
 message Document {

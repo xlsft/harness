@@ -90,6 +90,9 @@ type SessionDelivery struct {
 	Woke bool
 	// Held: too many wakes in a row without a user message; it waits for the next user turn.
 	Held bool
+	// Queued: the session is on another machine; the message is left for it and arrives when that machine or session
+	// next comes up.
+	Queued bool
 }
 
 // SessionCoordinator is implemented by an Interactor whose sessions can start and reach other sessions (AgentService).
@@ -429,12 +432,14 @@ func (*SessionSend) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	text, summary := "Delivered: that session reads it with its next model request.", "Delivered"
 	switch {
+	case d.Queued:
+		text, summary = "Left for that session, which runs on another machine: it reads the message as soon as that machine is connected and the session is open. You are not told when; do not wait for it.", "Left for the other machine"
 	case d.Held:
 		text, summary = "Not delivered yet: the sessions have woken each other several times in a row with no user message, so the message waits for the next user turn. Stop here and tell the user where things stand.", "Held for the next user turn"
 	case d.Woke:
 		text, summary = "Delivered: that session was idle and started a turn to read it.", "Delivered, woke it"
 	}
-	r := TextResult(text, map[string]any{"session_id": d.ID, "name": d.Name, "title": d.Title, "woke": d.Woke, "held": d.Held})
+	r := TextResult(text, map[string]any{"session_id": d.ID, "name": d.Name, "title": d.Title, "woke": d.Woke, "held": d.Held, "queued": d.Queued})
 	r.Summary = summary
 	return r
 }

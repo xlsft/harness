@@ -110,6 +110,9 @@ type Server struct {
 	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
 	stateMu sync.Mutex
 	states  map[string]userState
+	// localStates is the state kept in HARNESS_HOME/session-state.json without a server, until one takes it (stateMu).
+	localStates map[string]userState
+	localLoaded bool
 	// listed is the last known server copy of the caller's sessions, by id (stateMu); presence is the last
 	// relay presence (stateMu).
 	listed   map[string]*agentv1.SessionInfo
@@ -475,6 +478,10 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls.publishInfo()
 	ls.links.origin = m
 	ls.publishProposals()
+	if remote != nil {
+		ls.links.forkOf = remote.Id
+	}
+	ls.drainNotes()
 	for _, w := range sess.Warnings {
 		ls.notice(agentv1.Notice_LEVEL_WARNING, "session_warning", w)
 	}

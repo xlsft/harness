@@ -43,3 +43,33 @@ message ResolveSessionProposalRequest {
 message ResolveSessionProposalResponse {
   SessionProposal proposal = 1;
 }
+
+// A message or turn report from another session. It reaches the model as a reminder and the user as a notice: never as
+// a user message, so it carries no user authority wherever it is delivered.
+message SessionNote {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // SessionSend.
+    KIND_MESSAGE = 1;
+    // A session started from this one ended a turn.
+    KIND_REPORT = 2;
+  }
+  // note_...; a note is delivered once, however many routes or retries carry it.
+  string id = 1;
+  Kind kind = 2;
+  string from_id = 3;
+  string from_name = 4;
+  string from_title = 5;
+  // How the turn ended (reports).
+  string status = 6;
+  string text = 7;
+}
+
+// Carries a note to a session of another machine (harness.relay.v1.Command.deliver_session_note). Not part of
+// AgentService: frontends have no way to send one.
+message DeliverSessionNoteRequest {
+  string session_id = 1;
+  SessionNote note = 2;
+}
+
+message DeliverSessionNoteResponse {}

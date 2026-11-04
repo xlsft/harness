@@ -790,6 +790,13 @@ func (r routed) SetOutputStyle(ctx context.Context, req *connect.Request[agentv1
 		}, nil)
 }
 
+func (r routed) ResolveSessionProposal(ctx context.Context, req *connect.Request[agentv1.ResolveSessionProposalRequest]) (*connect.Response[agentv1.ResolveSessionProposalResponse], error) {
+	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.ResolveSessionProposal, relayv1connect.RelayServiceClient.ResolveSessionProposal,
+		func(m *agentv1.ResolveSessionProposalRequest) *relayv1.ResolveSessionProposalRequest {
+			return &relayv1.ResolveSessionProposalRequest{Request: m, Options: commandOptions("")}
+		}, nil)
+}
+
 func (r routed) SetKeepAwake(ctx context.Context, req *connect.Request[agentv1.SetKeepAwakeRequest]) (*connect.Response[agentv1.SetKeepAwakeResponse], error) {
 	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.SetKeepAwake, relayv1connect.RelayServiceClient.SetKeepAwake,
 		func(m *agentv1.SetKeepAwakeRequest) *relayv1.SetKeepAwakeRequest {

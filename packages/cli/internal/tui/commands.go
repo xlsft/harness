@@ -32,6 +32,7 @@ func init() {
 		{"/rewind", "Restore the code and/or conversation to an earlier point", func(m *Model, _ string) tea.Cmd { return m.rewindCmd() }},
 		{"/status", "Show session, model, account and context usage", (*Model).cmdStatus},
 		{"/tasks", "List background tasks", (*Model).cmdTasks},
+		{"/proposals", "List sessions the agent proposed; start or dismiss <id>", (*Model).cmdProposals},
 		{"/exit", "Exit harness", func(m *Model, _ string) tea.Cmd { return m.quit() }},
 	}
 }
@@ -195,6 +196,34 @@ func (m *Model) cmdTasks(string) tea.Cmd {
 			fmt.Fprintf(&b, "%s  %s  %s\n", t.GetTaskId(), state, t.GetCommand())
 		}
 		return infoMsg{"/tasks", b.String()}
+	}
+}
+
+// cmdProposals lists the waiting proposals of this session, or starts or dismisses one.
+func (m *Model) cmdProposals(args string) tea.Cmd {
+	verb, id, _ := strings.Cut(args, " ")
+	id = strings.TrimSpace(id)
+	if verb == "" {
+		var b strings.Builder
+		for _, p := range m.proposals {
+			if p.GetState() == agentv1.SessionProposal_STATE_PENDING {
+				fmt.Fprintf(&b, "%s  %s\n", p.GetId(), p.GetTitle())
+			}
+		}
+		if b.Len() == 0 {
+			return m.command("/proposals", "No proposals are waiting.")
+		}
+		return m.command("/proposals", b.String()+"Use /proposals start <id> or /proposals dismiss <id>.")
+	}
+	if (verb != "start" && verb != "dismiss") || id == "" {
+		return m.command("/proposals", "Use /proposals, /proposals start <id> or /proposals dismiss <id>.")
+	}
+	ctx := m.ctx
+	return func() tea.Msg {
+		if err := m.conn.ResolveProposal(ctx, id, verb == "start"); err != nil {
+			return errMsg{err}
+		}
+		return nil
 	}
 }
 

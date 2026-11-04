@@ -74,7 +74,7 @@ const SINGLETON_KINDS = new Set([DocumentKind.SETTINGS, DocumentKind.PERMISSION_
 /** Keys allowed in SETTINGS.permissions; allow/ask/deny rules live in PERMISSION_RULES. */
 const SETTINGS_PERMISSION_KEYS = new Set(["defaultMode", "additionalDirectories", "disableBypassPermissionsMode"]);
 /** Kinds whose content must be a JSON object. */
-const JSON_KINDS = new Set([DocumentKind.SETTINGS, DocumentKind.PERMISSION_RULES, DocumentKind.HOOK, DocumentKind.SSH_HOST, DocumentKind.POLICY]);
+const JSON_KINDS = new Set([DocumentKind.SETTINGS, DocumentKind.PERMISSION_RULES, DocumentKind.HOOK, DocumentKind.SSH_HOST, DocumentKind.POLICY, DocumentKind.SESSION_NOTES]);
 
 const writeMutex = new Mutex();
 
@@ -183,6 +183,7 @@ function validateRef(p: Principal, ref: DocRef | undefined): { ownerId: string }
   if (!Object.values(DocumentKind).includes(ref.kind) || ref.kind === DocumentKind.UNSPECIFIED) {
     throw new ApiError("invalid_request", "kind is required");
   }
+  if (ref.kind === DocumentKind.SESSION_NOTES && ref.scope !== Scope.USER) throw new ApiError("invalid_request", "SESSION_NOTES documents exist only at user scope");
   if (ref.kind === DocumentKind.POLICY && ref.scope !== Scope.ORG) throw new ApiError("invalid_request", "POLICY documents exist only at org scope");
   if (ref.scope === Scope.PROJECT) {
     if (!ref.projectKey) throw new ApiError("invalid_request", "project_key is required for project scope");
