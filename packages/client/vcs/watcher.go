@@ -114,6 +114,10 @@ type Watcher struct {
 	log   *slog.Logger
 	poke  chan struct{}
 
+	// dir is the session's current directory (Options.Dir until SetDir).
+	dirMu sync.Mutex
+	dir   string
+
 	// Poll state (owned by Run).
 	reported      []byte // fingerprint of the last successful ReportDeviceProviders
 	lastUpload    []byte
@@ -146,6 +150,24 @@ func NewWatcher(o Options) *Watcher {
 		log = slog.Default()
 	}
 	return &Watcher{o: o, sched: o.Schedule.withDefaults(), log: log.With("component", "vcs"), poke: make(chan struct{}, 1)}
+}
+
+// Dir returns the directory the watcher follows.
+func (w *Watcher) Dir() string {
+	w.dirMu.Lock()
+	defer w.dirMu.Unlock()
+	if w.dir == "" {
+		return w.o.Dir
+	}
+	return w.dir
+}
+
+// SetDir follows the session to another directory, from the next poll on (which it triggers).
+func (w *Watcher) SetDir(dir string) {
+	w.dirMu.Lock()
+	w.dir = dir
+	w.dirMu.Unlock()
+	w.Poke()
 }
 
 // Poke asks for a poll now (e.g. after a push or `gh pr create`). It never blocks.
@@ -184,7 +206,7 @@ func (w *Watcher) wait(ctx context.Context, d time.Duration) error {
 		case <-w.poke:
 			return nil
 		case <-check.C:
-			if w.o.Branch(ctx, w.o.Dir) != w.lastBranch || w.o.Remote(ctx, w.o.Dir) != w.lastRemote {
+			if w.o.Branch(ctx, w.Dir()) != w.lastBranch || w.o.Remote(ctx, w.Dir()) != w.lastRemote {
 				return nil
 			}
 		}
@@ -201,8 +223,8 @@ func (w *Watcher) jitter(d time.Duration) time.Duration {
 
 // Tick runs one poll and returns the delay until the next one.
 func (w *Watcher) Tick(ctx context.Context) time.Duration {
-	remote := w.o.Remote(ctx, w.o.Dir)
-	branch := w.o.Branch(ctx, w.o.Dir)
+	remote := w.o.Remote(ctx, w.Dir())
+	branch := w.o.Branch(ctx, w.Dir())
 	if remote != w.lastRemote || branch != w.lastBranch {
 		w.pendingStreak = 0
 		w.lastUpload = nil

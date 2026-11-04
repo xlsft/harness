@@ -40,6 +40,8 @@ type Shell struct {
 	cwd  string
 	path string
 	kind string // bash | zsh | sh
+	// moves counts the session's moves (relocate): a command that started before one does not set cwd when it ends.
+	moves int
 
 	snapOnce sync.Once
 	snapPath string
@@ -53,6 +55,15 @@ func NewShell(env *Env) *Shell {
 	s := &Shell{env: env, cwd: env.Cwd}
 	s.path, s.kind = detectShell()
 	return s
+}
+
+// relocate moves the shell with the session, also while a command runs: that one finishes where it is, and the next
+// starts in dir.
+func (s *Shell) relocate(dir string) {
+	s.mu.Lock()
+	s.cwd = dir
+	s.moves++
+	s.mu.Unlock()
 }
 
 // Cwd returns the current shell directory.
@@ -107,7 +118,7 @@ func (s *Shell) snapshot() string {
 		ctx, cancel := context.WithTimeout(context.Background(), bashSnapshotDeadline)
 		defer cancel()
 		cmd := exec.CommandContext(ctx, s.path, "-l", "-i", "-c", snapshotScript(s.kind, path))
-		cmd.Dir = s.env.Cwd
+		cmd.Dir = s.env.CurrentDir()
 		setNewSession(cmd)
 		cmd.WaitDelay = time.Second
 		if err := cmd.Run(); err != nil {
@@ -295,10 +306,10 @@ func (s *Shell) Exec(ctx context.Context, command string, timeout time.Duration)
 // move to the background instead of being killed.
 func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecResult, error) {
 	s.mu.Lock()
-	cwd := s.cwd
+	cwd, moves := s.cwd, s.moves
 	s.mu.Unlock()
 	if st, err := os.Stat(cwd); err != nil || !st.IsDir() {
-		cwd = s.env.Cwd
+		cwd = s.env.CurrentDir()
 	}
 	cwdFile := ""
 	if s.env.ScratchDir != "" {
@@ -411,15 +422,22 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	if cwdFile != "" && !res.Interrupted && !res.TimedOut {
 		if data, err := os.ReadFile(cwdFile); err == nil {
 			if nd := strings.TrimSpace(string(data)); nd != "" {
-				if within(nd, s.env.WorkingDirs()) {
+				s.mu.Lock()
+				moved := s.moves != moves
+				s.mu.Unlock()
+				switch {
+				case moved:
+					// The session moved while the command ran: the shell stays where the move put it.
+				case within(nd, s.env.WorkingDirs()):
 					s.mu.Lock()
 					s.cwd = nd
 					s.mu.Unlock()
-				} else {
+				default:
+					home := s.env.CurrentDir()
 					s.mu.Lock()
-					s.cwd = s.env.Cwd
+					s.cwd = home
 					s.mu.Unlock()
-					res.CwdReset = s.env.Cwd
+					res.CwdReset = home
 				}
 			}
 		}

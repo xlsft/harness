@@ -3215,7 +3215,7 @@ func isSafeCmd(c *Cmd, ctx *rulesCtx, extraAllow []*regexp.Regexp) bool {
 // ---------------------------------------------------------------------------------------------------
 
 var (
-	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent")
+	readTools  = setOf("Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent", "EnterWorktree", "ChangeDirectory", "RequestDirectory", "ProposeBranch", "SyncWithBase")
 	writeTools = setOf("Write", "Edit", "MultiEdit", "NotebookEdit")
 )
 
@@ -3482,6 +3482,12 @@ func rawFallback(src string) []hit {
 var gitInternalRe = jsRe(`(^|\/)\.git\/(hooks|config)(\/|$)`)
 
 func evaluateTool(tool string, input map[string]any, ctx *rulesCtx, facts RulesFacts, adminAllowed bool) RulesResult {
+	if tool == "ExitWorktree" {
+		if discard, _ := input["discard_changes"].(bool); discard {
+			return ask("Discards uncommitted work in a worktree", "ask.discard_worktree")
+		}
+		return RulesResult{Decision: RuleAllow, Reason: "Leaves the session's worktree without discarding work", Categories: []string{}, Rule: "allow.leave_worktree"}
+	}
 	if writeTools[tool] {
 		raw := ""
 		if s, ok := input["file_path"].(string); ok {

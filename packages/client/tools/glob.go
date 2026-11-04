@@ -46,7 +46,7 @@ func (*Glob) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	base := resolvePath(env.Shell.Cwd(), in.Path)
 	if in.Path == "" {
-		base = env.Cwd
+		base = env.CurrentDir()
 	}
 	pattern := in.Pattern
 	if filepath.IsAbs(pattern) {

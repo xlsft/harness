@@ -63,7 +63,7 @@ type diffSources struct {
 }
 
 func (ls *liveSession) diffSources() *diffSources {
-	src := &diffSources{cwd: ls.sess.Cwd, dirs: []string{ls.sess.Cwd}, folderStore: bootstrap.FolderBaselineDir(ls.sess.ID), harnessHome: config.Home()}
+	src := &diffSources{cwd: ls.sess.Dir(), dirs: []string{ls.sess.Dir()}, folderStore: bootstrap.FolderBaselineDir(ls.sess.ID), harnessHome: config.Home()}
 	if ls.sess.Permissions != nil {
 		if d := ls.sess.Permissions.WorkingDirs(); len(d) > 0 {
 			src.dirs = d
@@ -72,11 +72,11 @@ func (ls *liveSession) diffSources() *diffSources {
 	if env := ls.sess.ToolEnv; env != nil {
 		src.scratch = env.ScratchDir
 	}
-	if isNoFolder(ls.sess.ID, ls.sess.Cwd) {
-		src.private = ls.sess.Cwd
+	if isNoFolder(ls.sess.ID, ls.sess.Dir()) {
+		src.private = ls.sess.Dir()
 	}
-	if ls.sess.Worktree != nil {
-		src.baseRef = ls.sess.Worktree.BaseRef
+	if w := ls.sess.CurrentWorktree(); w != nil {
+		src.baseRef = w.BaseRef
 	}
 	if ls.sess.FileHistory != nil {
 		src.baselines = ls.sess.FileHistory.Baselines()
@@ -317,7 +317,7 @@ func (b *diffBuilder) addHistory() {
 	sort.Strings(paths)
 	for _, p := range paths {
 		real := resolvedPath(p)
-		if b.seen[real] || b.inRepo(real) {
+		if b.seen[real] || b.inRepo(real) || removedWorktreeFile(p) {
 			continue
 		}
 		b.seen[real] = true

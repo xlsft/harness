@@ -139,7 +139,7 @@ func (*Edit) Run(ctx context.Context, env *Env, call Call) Result {
 			r.Summary = "Created file"
 			return r
 		}
-		return ErrorResult("File does not exist. Current working directory: %s", env.Cwd)
+		return ErrorResult("File does not exist. Current working directory: %s", env.CurrentDir())
 	}
 	if err != nil {
 		return ErrorResult("%v", err)

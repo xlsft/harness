@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the worktree folder and the end of its branch: letters, digits, dots, underscores and hyphens, starting with a letter or digit. Left out, the client picks one."
+    },
+    "base_ref": {
+      "type": "string",
+      "description": "Branch or commit the new branch starts from. Left out, what the current checkout is on."
+    }
+  },
+  "additionalProperties": false
+}

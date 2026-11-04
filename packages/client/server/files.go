@@ -30,6 +30,13 @@ type fileCache struct {
 	files []string
 }
 
+// reset forgets the list: the session moved.
+func (c *fileCache) reset() {
+	c.mu.Lock()
+	c.files = nil
+	c.mu.Unlock()
+}
+
 func (c *fileCache) list(ctx context.Context, cwd string) []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -1921,7 +1921,7 @@ function isSafeCmd(c: Cmd, ctx: Ctx, extraAllow: RegExp[]): boolean {
 // Entry point
 // ---------------------------------------------------------------------------------------------------
 
-const READ_TOOLS = new Set(["Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent"]);
+const READ_TOOLS = new Set(["Read", "Glob", "Grep", "LS", "NotebookRead", "TodoWrite", "WrapUp", "TaskStop", "TaskOutput", "BashOutput", "KillShell", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebSearch", "Task", "Agent", "EnterWorktree", "ChangeDirectory", "RequestDirectory", "ProposeBranch", "SyncWithBase"]);
 const WRITE_TOOLS = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
 
 function ask(reason: string, rule = "ask.default"): RulesResult {
@@ -2073,6 +2073,10 @@ function rawFallback(src: string): Hit[] {
 }
 
 function evaluateTool(tool: string, input: Record<string, unknown>, ctx: Ctx, facts: RulesFacts, adminAllowed: boolean): RulesResult {
+  if (tool === "ExitWorktree") {
+    if (input.discard_changes === true) return ask("Discards uncommitted work in a worktree", "ask.discard_worktree");
+    return { decision: "allow", reason: "Leaves the session's worktree without discarding work", categories: [], rule: "allow.leave_worktree" };
+  }
   if (WRITE_TOOLS.has(tool)) {
     const raw = typeof input.file_path === "string" ? input.file_path : typeof input.notebook_path === "string" ? input.notebook_path : undefined;
     if (!raw) return ask("Write without a target path", "ask.bad_input");

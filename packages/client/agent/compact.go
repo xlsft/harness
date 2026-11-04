@@ -311,7 +311,7 @@ func (a *Agent) compact(ctx context.Context, instructions, trigger string) (Comp
 			Level: "info", LogicalParentUUID: leaf, CompactMetadata: &session.CompactMetadata{Trigger: trigger, PreTokens: before}}, nil)
 	}
 	injected := false
-	if a.cfg.ProjectContext != "" {
+	if a.ProjectContext() != "" {
 		block := a.projectContextBlock()
 		msgBlocks = append(msgBlocks, block)
 		a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks([]llm.ContentBlock{block}), IsMeta: true})

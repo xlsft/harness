@@ -117,11 +117,11 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		updated = time.Now()
 	}
 	info := &agentv1.SessionInfo{
-		Id: ls.sess.ID, Cwd: ls.sess.Cwd, Model: ls.sess.Agent.Model(), GitBranch: ls.branch, Title: ls.title,
+		Id: ls.sess.ID, Cwd: ls.sess.Dir(), Model: ls.sess.Agent.Model(), GitBranch: ls.branch, Title: ls.title,
 		PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Status: ls.statusLocked(),
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
-		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.Worktree), DiffStats: ls.diff,
-		NoFolder:   isNoFolder(ls.sess.ID, ls.sess.Cwd),
+		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.CurrentWorktree()), DiffStats: ls.diff,
+		NoFolder:   isNoFolder(ls.sess.ID, ls.sess.Dir()),
 		UsageLimit: ls.usageLimit, AutoContinue: ls.autoContinue,
 	}
 	ls.relayStateLocked(info)
@@ -262,7 +262,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_AssistantMessage{AssistantMessage: am}})
 	case agent.EventToolStart:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallStarted{ToolCallStarted: &agentv1.ToolCallStarted{
-			ToolUseId: e.ToolUseID, Name: e.ToolName, InputJson: string(e.Input), Summary: toolSummary(e.ToolName, e.Input, ls.sess.Cwd),
+			ToolUseId: e.ToolUseID, Name: e.ToolName, InputJson: string(e.Input), Summary: toolSummary(e.ToolName, e.Input, ls.sess.Dir()),
 		}}})
 	case agent.EventToolEnd:
 		ls.refreshDiffStats() // any tool may have changed files (a shell command, most of all)

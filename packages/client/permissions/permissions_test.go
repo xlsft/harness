@@ -453,3 +453,27 @@ func TestProtectedRelativeToWorkdir(t *testing.T) {
 		t.Fatal("shell rc and ~/.claude are protected")
 	}
 }
+
+func TestRelocateFollowsTheFolder(t *testing.T) {
+	a, b := t.TempDir(), t.TempDir()
+	e := New(Config{Cwd: a, Trusted: true, DefaultMode: ModeAcceptEdits, Sources: []Source{{Name: "projectSettings", Root: a, Deny: []string{"Edit(/secret/**)"}}}})
+	edit := func(p string) Request {
+		return Request{ToolName: "Edit", FilePath: p, Input: []byte(`{"file_path":"` + p + `"}`)}
+	}
+	if e.Evaluate(edit(filepath.Join(a, "x.go"))).Behavior != Allow || e.Evaluate(edit(filepath.Join(b, "x.go"))).Behavior != Ask {
+		t.Fatal("before the move")
+	}
+	if e.Evaluate(edit(filepath.Join(a, "secret", "k"))).Behavior != Deny {
+		t.Fatal("deny rule of the first folder")
+	}
+	e.Relocate(Relocation{Cwd: b, Sources: []Source{{Name: "projectSettings", Root: b, Deny: []string{"Edit(/secret/**)"}}}, Trusted: true})
+	if e.Evaluate(edit(filepath.Join(b, "x.go"))).Behavior != Allow || e.Evaluate(edit(filepath.Join(a, "x.go"))).Behavior != Ask {
+		t.Fatal("working directories did not follow")
+	}
+	if e.Evaluate(edit(filepath.Join(b, "secret", "k"))).Behavior != Deny {
+		t.Fatal("the project's deny rule must apply in the new folder")
+	}
+	if d := e.WorkingDirs(); len(d) != 1 || d[0] != b {
+		t.Fatalf("dirs %v", d)
+	}
+}

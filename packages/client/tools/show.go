@@ -88,7 +88,7 @@ func ParseShow(env *Env, input json.RawMessage) (ShowTarget, error) {
 		if strings.TrimSpace(in.Path) == "" {
 			return bad("path is required for target \"file\"")
 		}
-		t.Path = resolvePath(env.Cwd, in.Path)
+		t.Path = resolvePath(env.CurrentDir(), in.Path)
 		if !within(t.Path, env.WorkingDirs()) {
 			return bad("%s is outside the working directories", t.Path)
 		}
@@ -123,7 +123,7 @@ func ParseShow(env *Env, input json.RawMessage) (ShowTarget, error) {
 		t.LineStart, t.LineEnd = in.Line, in.EndLine
 	case ShowDiff:
 		if strings.TrimSpace(in.Path) != "" {
-			t.Path = resolvePath(env.Cwd, in.Path)
+			t.Path = resolvePath(env.CurrentDir(), in.Path)
 			if !within(t.Path, env.WorkingDirs()) {
 				return bad("%s is outside the working directories", t.Path)
 			}
@@ -186,7 +186,7 @@ func (*Show) Run(ctx context.Context, env *Env, call Call) Result {
 	if err != nil {
 		return ErrorResult("%v", err)
 	}
-	label := ShowLabel(t, env.Cwd)
+	label := ShowLabel(t, env.CurrentDir())
 	structured := map[string]any{"target": t.Kind, "label": label}
 	if t.Path != "" {
 		structured["path"] = t.Path

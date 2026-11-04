@@ -307,6 +307,22 @@ func (u *Uploader) mergeMeta(st *uploadState, meta SessionMeta) {
 	st.Meta = meta
 }
 
+// MoveTranscript runs move, which moves the session's transcript file to path, and uploads from there afterwards.
+// Uploads wait meanwhile, so none finds the file gone. An untracked session is only moved.
+func (u *Uploader) MoveTranscript(sessionID, path string, move func() error) error {
+	u.flushMu.Lock()
+	defer u.flushMu.Unlock()
+	if err := move(); err != nil {
+		return err
+	}
+	st, err := loadState(u.o.StateDir, sessionID)
+	if err != nil {
+		return nil
+	}
+	st.Path = path
+	return saveState(u.o.StateDir, st)
+}
+
 // UpdateMeta changes the metadata of a tracked session (title, status,
 // branch, diff stats, ...) and schedules an upsert of the changed fields.
 func (u *Uploader) UpdateMeta(sessionID string, fn func(*SessionMeta)) error {

@@ -57,7 +57,7 @@ func (s *Server) CreateTerminal(ctx context.Context, req *connect.Request[agentv
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("session %s is not open; call CreateSession first", id))
 		}
 		if ls != nil {
-			defaultCwd, dirs = ls.sess.Cwd, []string{ls.sess.Cwd}
+			defaultCwd, dirs = ls.sess.Dir(), []string{ls.sess.Dir()}
 			if ls.sess.Permissions != nil {
 				dirs = ls.sess.Permissions.WorkingDirs()
 			}

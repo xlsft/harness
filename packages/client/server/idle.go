@@ -103,7 +103,7 @@ func (ls *liveSession) idleCompactionEnabled() bool {
 	if ls.sess.Sync != nil {
 		docs = ls.sess.Sync.Cache()
 	}
-	st, err := settings.Load(ls.ctx, settings.Options{Cwd: ls.sess.Cwd, Docs: docs, Trusted: ls.sess.Trusted})
+	st, err := settings.Load(ls.ctx, settings.Options{Cwd: ls.sess.Dir(), Docs: docs, Trusted: ls.sess.IsTrusted()})
 	return err == nil && st.CompactIdleSessions
 }
 

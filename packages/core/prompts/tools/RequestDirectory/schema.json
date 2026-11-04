@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "The folder to ask for, absolute or relative to the working directory."
+    },
+    "reason": {
+      "type": "string",
+      "description": "One sentence on why the task needs this folder, shown to the user."
+    },
+    "move": {
+      "type": "boolean",
+      "description": "Also move the session there once the user allows it."
+    }
+  },
+  "required": [
+    "path",
+    "reason"
+  ],
+  "additionalProperties": false
+}
