@@ -2,6 +2,7 @@
 
 import type { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import { create } from '@bufbuild/protobuf'
+import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SubagentState, SubagentStepStatus } from '~/gen/harness/agent/v1/subagents_pb'
 import {
   Compacted_Trigger,
@@ -131,8 +132,8 @@ export class EventBuilder {
   }
 
   // clientUuids: the frontend ids of the messages this entry carries (read receipts).
-  user(uuid: string, body: string, clientUuids: string[] = []) {
-    return this.emit({ case: 'userMessage', value: { uuid, content: [text(body)], clientUuids } as never })
+  user(uuid: string, body: string, clientUuids: string[] = [], attachments: OutgoingAttachment[] = []) {
+    return this.emit({ case: 'userMessage', value: { uuid, content: messageContent(body, attachments), clientUuids } as never })
   }
 
   turnStarted(userMessageUuid: string, model: string) {

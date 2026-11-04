@@ -10,10 +10,15 @@
 // the agent cannot do (effort, worktree) is hidden.
 // With ?fork=<id> ("Continue here" on a session of another machine) the new session starts from a copy of that
 // session's transcript, in the folder picked here.
+// The text box is the session's (ComposerBox), less what needs a session: no shell or memory, the commands known
+// without one (none for an agent: it advertises them once started), and @ lists the folders of the chosen folder, for
+// ListDirectory shows folders and SuggestFiles needs a session; with no folder chosen @ offers the folder picker.
 import type { Branch, RecentFolder } from '~/gen/harness/agent/v1/agent_pb'
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 import { fitAcpChoice, newSessionAgentEffort, newSessionChoice, type ModelScope } from '~/lib/acp/modelChoices'
+import { readAttachments } from '~/lib/session/attachments'
+import type { ComposerFile, MenuOption } from '~/utils/composer'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 
 const store = useSessionStore()
@@ -38,22 +43,14 @@ const acpEffort = ref('')
 const effort = ref<EffortName>('medium')
 const mode = ref<PermissionModeName>('auto')
 const text = ref('')
+const files = ref<ComposerFile[]>([])
 const busy = ref(false)
 const error = ref('')
 // One open menu at a time; the environment menu has two triggers (centre card and footer chip).
 const menu = ref<'' | 'env' | 'env-centre' | 'folder' | 'model' | 'effort' | 'mode'>('')
 const browsing = ref(false)
-const input = ref<HTMLTextAreaElement | null>(null)
-
-// Grows with the text up to 8 lines (8 × 20.8px), then scrolls, like the session composer.
-function autosize() {
-  const el = input.value
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = text.value ? `${Math.min(el.scrollHeight, 173)}px` : ''
-  el.style.overflowY = el.scrollHeight > 173 ? 'auto' : 'hidden'
-}
-watch(text, () => nextTick(autosize))
+const box = ref<{ focusEnd: () => void } | null>(null)
+const toast = useToast()
 
 const name = (p: string) => p.replace(/\/+$/, '').split('/').pop() || p
 
@@ -113,7 +110,7 @@ onMounted(async () => {
   const asked = newSessionFolder(route.query)
   cwd.value = asked
   if (asked && !folders.value.some(f => f.path === asked)) folders.value.unshift({ path: asked, name: name(asked), exists: true } as RecentFolder)
-  input.value?.focus()
+  box.value?.focusEnd()
 })
 
 // The server's policy can disable the chosen mode while this screen is open.
@@ -147,8 +144,24 @@ function choose(path: string) {
   cwd.value = path
   menu.value = ''
   browsing.value = false
+  box.value?.focusEnd()
   if (path && !folders.value.some(f => f.path === path)) folders.value.unshift({ path, name: name(path), exists: true } as RecentFolder)
 }
+
+const commands = computed(() => engine.value ? [] : NEW_SESSION_COMMANDS)
+const suggest = computed(() => {
+  const folder = cwd.value
+  return async (q: string): Promise<MenuOption[]> => {
+    if (!folder) return [{ key: 'choose-folder', label: 'Choose folder…', detail: 'to mention what is in it', icon: 'folder', iconCls: 'text-muted', run: browse }]
+    const { dir, sub, match } = folderLookup(folder, q)
+    try {
+      const { entries } = await store.transport!.listDirectory(dir)
+      return fileMentionOptions(entries.filter(e => e.name.toLowerCase().includes(match)).slice(0, 8).map(e => `${sub}${e.name}/`))
+    } catch {
+      return []
+    }
+  }
+})
 
 // The chosen agent; a session continuing another machine's transcript cannot run on one.
 const agent = computed(() => engine.value ? store.acpAgents.find(a => a.engine === engine.value) : undefined)
@@ -207,6 +220,8 @@ async function start() {
   busy.value = true
   error.value = ''
   try {
+    // Before the session exists: a file that cannot be sent leaves no empty session behind.
+    const attachments = await readAttachments(files.value)
     const id = await store.createSession({
       cwd: cwd.value,
       model: model.value,
@@ -225,20 +240,18 @@ async function start() {
     writeJSON(PREFS, { ...prefs, model: model.value, engine: engine.value, acpMode: acpMode.value, acpEffort: acpEffort.value, effort: effort.value, mode: mode.value, ...(cwd.value && !noWorktree.value && { worktree: worktree.value }) })
     if (cwd.value) writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
     text.value = ''
+    files.value = []
     const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
     await router.replace({ query: { ...rest, session: id } })
-    await store.send(id, msg)
+    // This screen is gone by now: the text goes back into the session's composer.
+    await store.send(id, msg, attachments).catch((err) => {
+      store.drafts[id] = msg
+      toast.add({ title: 'Could not send the first message', description: `${err instanceof Error ? err.message : String(err)}${attachments.length ? ' Attach the files again.' : ''}`, color: 'error' })
+    })
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
   } finally {
     busy.value = false
-  }
-}
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-    e.preventDefault()
-    start()
   }
 }
 
@@ -386,125 +399,114 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
 
     <div class="shrink-0 px-5 pb-[11px]">
       <div class="mx-auto flex max-w-[790px] flex-col gap-1.5">
-        <p
-          v-if="error"
-          class="m-0 border border-bad px-2.5 py-1.5 text-[12px] text-bad"
+        <ComposerBox
+          ref="box"
+          v-model:text="text"
+          v-model:files="files"
+          :commands="commands"
+          :no-commands="engine ? 'Agent commands appear once the session starts' : undefined"
+          :suggest="suggest"
+          placeholder="Message agent · / commands · @ files"
+          :cwd="cwd"
+          :sending="busy"
+          :error="!!error"
+          send-label="Start session"
+          @submit="start"
+          @retry="start"
         >
-          {{ error }}
-        </p>
-        <div
-          class="flex min-h-[42px] items-end gap-1.5 border bg-surface px-2.5 py-[7px]"
-          :class="text ? 'border-accent' : 'border-accented'"
-        >
-          <HIcon
-            name="plus"
-            class="mb-1.5 shrink-0 text-muted"
-          />
-          <textarea
-            ref="input"
-            v-model="text"
-            rows="1"
-            aria-label="First message"
-            placeholder="Describe a task or ask a question"
-            class="min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-[3px] text-[13px] leading-[1.6] text-strong outline-none placeholder:truncate placeholder:text-muted"
-            @keydown="onKeydown"
-          />
-          <button
-            type="button"
-            aria-label="Start session"
-            :disabled="!text.trim() || busy"
-            class="flex size-7 shrink-0 items-center justify-center bg-accent text-on-accent disabled:bg-raised disabled:text-muted"
-            @click="start"
+          <template
+            v-if="error"
+            #top
           >
-            <HIcon
-              :name="busy ? 'loading' : 'up'"
-              :spin="busy"
-            />
-          </button>
-        </div>
+            <p class="m-0 border border-bad px-2.5 py-1.5 text-[12px] text-bad">
+              {{ error }}
+            </p>
+          </template>
+          <template #bottom>
+            <div class="flex min-w-0 items-center gap-1 overflow-hidden text-muted">
+              <UPopover
+                :open="menu === 'env'"
+                :content="{ side: 'top', align: 'start', sideOffset: 6 }"
+                @update:open="menu = $event ? 'env' : ''"
+              >
+                <button
+                  type="button"
+                  :class="[CHIP, menu === 'env' && 'bg-hover']"
+                >
+                  <HIcon
+                    name="monitor"
+                    :size="12"
+                  />This computer
+                </button>
+                <template #content>
+                  <NewEnvMenu @close="menu = ''" />
+                </template>
+              </UPopover>
 
-        <div class="flex min-w-0 items-center gap-1 overflow-hidden text-muted">
-          <UPopover
-            :open="menu === 'env'"
-            :content="{ side: 'top', align: 'start', sideOffset: 6 }"
-            @update:open="menu = $event ? 'env' : ''"
-          >
-            <button
-              type="button"
-              :class="[CHIP, menu === 'env' && 'bg-hover']"
-            >
-              <HIcon
-                name="monitor"
-                :size="12"
-              />This computer
-            </button>
-            <template #content>
-              <NewEnvMenu @close="menu = ''" />
-            </template>
-          </UPopover>
+              <UPopover
+                :open="menu === 'folder'"
+                :content="{ side: 'top', align: 'start', sideOffset: 6 }"
+                @update:open="menu = $event ? 'folder' : ''"
+              >
+                <button
+                  type="button"
+                  :title="cwd || 'No folder: the session gets a private folder of its own'"
+                  :class="[CHIP, menu === 'folder' && 'bg-hover']"
+                >
+                  <HIcon
+                    :name="cwd ? 'folder' : 'chat'"
+                    :size="12"
+                  /><span class="max-w-[160px] truncate text-strong">{{ cwd ? name(cwd) : 'No folder' }}</span>
+                </button>
+                <template #content>
+                  <NewFolderMenu
+                    :folders="folders"
+                    :cwd="cwd"
+                    :branches="branches"
+                    :current="current"
+                    :base-ref="baseRef"
+                    :worktree="worktree"
+                    @select="choose"
+                    @browse="browse"
+                    @branch="baseRef = $event"
+                  />
+                </template>
+              </UPopover>
 
-          <UPopover
-            :open="menu === 'folder'"
-            :content="{ side: 'top', align: 'start', sideOffset: 6 }"
-            @update:open="menu = $event ? 'folder' : ''"
-          >
-            <button
-              type="button"
-              :title="cwd || 'No folder: the session gets a private folder of its own'"
-              :class="[CHIP, menu === 'folder' && 'bg-hover']"
-            >
-              <HIcon
-                :name="cwd ? 'folder' : 'chat'"
-                :size="12"
-              /><span class="max-w-[160px] truncate text-strong">{{ cwd ? name(cwd) : 'No folder' }}</span>
-            </button>
-            <template #content>
-              <NewFolderMenu
-                :folders="folders"
-                :cwd="cwd"
-                :branches="branches"
-                :current="current"
-                :base-ref="baseRef"
-                :worktree="worktree"
-                @select="choose"
-                @browse="browse"
-                @branch="baseRef = $event"
+              <button
+                v-if="cwd && !noWorktree"
+                type="button"
+                role="switch"
+                :aria-checked="worktree"
+                :class="[CHIP, 'border-transparent']"
+                @click="worktree = !worktree"
+              >
+                <HIcon
+                  :name="worktree ? 'checkbox-checked' : 'checkbox'"
+                  :size="12"
+                  :class="worktree && 'text-accent'"
+                /><span :class="worktree && 'text-strong'">Worktree</span>
+              </button>
+
+              <span class="flex-1" />
+
+              <SessionControls
+                :model="engine ? model : model || store.models[0]?.id || ''"
+                :model-engine="engine"
+                :label="modelLabel"
+                :scope="scope"
+                :efforts="effortChoice.levels"
+                :effort="effortChoice.current"
+                :mode="mode"
+                :acp-modes="acpModes"
+                @update:model="pickModel"
+                @update:effort="pickEffort"
+                @update:mode="mode = $event"
+                @update:acp-mode="acpMode = $event"
               />
-            </template>
-          </UPopover>
-
-          <button
-            v-if="cwd && !noWorktree"
-            type="button"
-            role="switch"
-            :aria-checked="worktree"
-            :class="[CHIP, 'border-transparent']"
-            @click="worktree = !worktree"
-          >
-            <HIcon
-              :name="worktree ? 'checkbox-checked' : 'checkbox'"
-              :size="12"
-              :class="worktree && 'text-accent'"
-            /><span :class="worktree && 'text-strong'">Worktree</span>
-          </button>
-
-          <span class="flex-1" />
-
-          <SessionControls
-            :model="engine ? model : model || store.models[0]?.id || ''"
-            :model-engine="engine"
-            :label="modelLabel"
-            :scope="scope"
-            :efforts="effortChoice.levels"
-            :effort="effortChoice.current"
-            :mode="mode"
-            :acp-modes="acpModes"
-            @update:model="pickModel"
-            @update:effort="pickEffort"
-            @update:mode="mode = $event"
-            @update:acp-mode="acpMode = $event"
-          />
-        </div>
+            </div>
+          </template>
+        </ComposerBox>
       </div>
     </div>
 

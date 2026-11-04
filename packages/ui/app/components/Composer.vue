@@ -4,16 +4,18 @@
 // menus, `$` (or `!`) runs a shell command in the session's shell on the client (RunShellCommand: at once, no turn;
 // the model sees it next), `#` saves to memory; `+` opens a menu for these. Status line, store drafts (rewind, fork,
 // edit a queued message), attachments, drop, voice, context warning, permission waiting, offline and ended states.
+// The field itself is ComposerBox, shared with the new-session screen; this is what it means in a session.
 import type { Hint } from '~/components/composer/ComposerFooter.vue'
+import { readAttachments } from '~/lib/session/attachments'
 import type { SessionState } from '~/lib/session/types'
-import type { ComposerMode, ComposerPreset, MenuOption } from '~/utils/composer'
-import { isDesktop, pickFolder } from '~/lib/desktop'
+import type { ComposerFile, ComposerMode, ComposerPreset, MenuOption } from '~/utils/composer'
 
 const props = defineProps<{ session: SessionState, preset?: ComposerPreset }>()
 const store = useSessionStore()
-const now = useNow()
 
+const box = ref<{ focusEnd: () => void } | null>(null)
 const text = ref(props.preset?.text ?? '')
+const focusEnd = () => box.value?.focusEnd()
 
 // "Attach as context" from other panes: each path becomes an @mention at the end of the draft.
 const attach = useState<string[]>('composer-attach', () => [])
@@ -22,78 +24,27 @@ watch(attach, (paths) => {
   const mentions = paths.map(p => `@${p}`).join(' ')
   text.value = text.value && !text.value.endsWith(' ') ? `${text.value} ${mentions} ` : `${text.value}${mentions} `
   attach.value = []
-  nextTick(() => input.value?.focus())
+  nextTick(focusEnd)
 }, { deep: true })
 // "Reply" on text picked in the transcript: a Markdown quote ("> …" and a blank line) at the end of the text, so
-// quotes and answers can alternate; the field shows quote lines as quotes (quoteLines).
+// quotes and answers can alternate; the field shows quote lines as quotes.
 const { reply } = useQuoteRequests()
 watch(reply, (q) => {
   if (!q) return
   const before = text.value.replace(/\s*$/, '')
   text.value = `${before ? `${before}\n\n` : ''}> ${quoteLine(q)}\n\n`
   reply.value = ''
-  nextTick(() => {
-    const el = input.value
-    if (!el) return
-    el.focus()
-    el.setSelectionRange(el.value.length, el.value.length)
-  })
+  nextTick(focusEnd)
 })
 const mode = ref<ComposerMode>('normal')
 
-// The "+" menu: attach files, mention a folder, start a slash command, or a shell command.
-const plusOpen = ref(false)
-const browsingFolder = ref(false)
-function focusEnd() {
-  nextTick(() => {
-    const el = input.value
-    if (!el) return
-    el.focus()
-    el.setSelectionRange(el.value.length, el.value.length)
-  })
-}
-function insertText(t: string) {
-  text.value = text.value && !/\s$/.test(text.value) ? `${text.value} ${t}` : `${text.value}${t}`
-  focusEnd()
-}
-// A folder as an @mention, relative to the session's folder when inside it.
-function mentionFolder(path: string | null) {
-  browsingFolder.value = false
-  if (!path) return
-  const cwd = props.session.meta.cwd.replace(/\/+$/, '')
-  const rel = path === cwd ? '.' : path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path
-  insertText(`@${rel}/ `)
-}
-async function plus(action: 'files' | 'folder' | 'slash' | 'shell') {
-  plusOpen.value = false
-  if (action === 'files') fileInput.value?.click()
-  else if (action === 'folder') {
-    if (isDesktop()) mentionFolder(await pickFolder(props.session.meta.cwd))
-    else browsingFolder.value = true
-  } else if (action === 'slash') {
-    mode.value = 'normal'
-    text.value = '/'
-    focusEnd()
-  } else {
-    mode.value = 'shell'
-    focusEnd()
-  }
-}
-defineShortcuts({ meta_u: () => plus('files') })
-const focused = ref(!!props.preset?.focused)
 const error = ref(props.preset?.error ?? '')
 const failedText = ref('')
-// The failed submission was a shell command (Retry runs it again).
+// The failed submission's files, and whether it was a shell command (Retry runs it again).
+const failedFiles = ref<ComposerFile[]>([])
 const failedShell = ref(false)
-const files = ref(props.preset?.files ?? [])
-const dragging = ref(props.preset?.drop ?? 0)
-const recording = ref(!!props.preset?.recording)
-const recordStart = ref(Date.now())
-const menuIndex = ref(0)
-const mentionOptions = ref<MenuOption[]>([])
+const files = ref<ComposerFile[]>(props.preset?.files ?? [])
 const memoryTarget = ref('CLAUDE.md')
-const input = ref<HTMLTextAreaElement | null>(null)
-const fileInput = ref<HTMLInputElement | null>(null)
 
 const id = computed(() => props.session.meta.id)
 
@@ -142,15 +93,9 @@ watch(() => store.drafts[id.value], (draft) => {
   if (draft === undefined) return
   text.value = draft
   Reflect.deleteProperty(store.drafts, id.value)
-  nextTick(() => {
-    const el = input.value
-    if (!el) return
-    el.focus()
-    el.setSelectionRange(el.value.length, el.value.length)
-  })
+  nextTick(focusEnd)
 }, { immediate: true })
 const multiline = computed(() => text.value.includes('\n'))
-const hasText = computed(() => text.value.trim().length > 0)
 const uploading = computed(() => files.value.filter(f => f.progress !== undefined && f.progress < 100).length)
 
 const model = computed(() => props.session.meta.engine === 'harness' ? store.models.find(m => m.id === props.session.meta.model) : undefined)
@@ -159,51 +104,24 @@ const contextPct = computed(() => {
   return Math.round(((Number(agent?.contextUsedTokens ?? 0) || props.session.contextTokens) / (Number(agent?.contextWindowTokens ?? 0) || model.value?.contextWindow || 200_000)) * 100)
 })
 
-// The token being typed at the cursor decides which menu is open.
-const token = computed(() => {
-  const m = text.value.match(/(^|\s)([/@][^\s]*)$/)
-  return m ? m[2]! : ''
-})
-const forcedMenu = ref(props.preset?.menu === 'slash' || props.preset?.menu === 'mention' ? props.preset.menu : '')
-const menu = computed<'slash' | 'mention' | ''>(() => {
-  if (mode.value !== 'normal') return ''
-  if (forcedMenu.value) return forcedMenu.value as 'slash' | 'mention'
-  if (token.value.startsWith('/') && text.value.trimStart() === token.value) return 'slash'
-  if (token.value.startsWith('@')) return 'mention'
-  return ''
-})
 // A session on an ACP agent lists the commands the agent advertises; they go to it as the prompt's text.
 const acp = computed(() => props.session.meta.acp)
 const onAgent = computed(() => props.session.meta.engine !== 'harness')
 const commands = computed<MenuOption[]>(() => onAgent.value
   ? (acp.value?.commands ?? []).map(c => ({ key: `/${c.name}`, label: `/${c.name}`, detail: c.description, tag: 'agent' }))
   : SLASH_COMMANDS)
-const slashOptions = computed(() => commands.value.filter(c => c.label.startsWith(token.value || '/')).slice(0, 4))
 const hasShell = computed(() => !props.session.meta.unsupported.includes('shell_commands'))
 const hasCompaction = computed(() => !props.session.meta.unsupported.includes('compaction'))
-const options = computed(() => menu.value === 'slash' ? slashOptions.value : mentionOptions.value)
 
-watch([menu, token], async () => {
-  menuIndex.value = 0
-  if (menu.value !== 'mention') return
-  const q = token.value.slice(1)
-  const paths = await store.suggestFiles(id.value, q || 'trans')
-  mentionOptions.value = [
-    ...paths.slice(0, 2).map(p => ({
-      key: p,
-      label: basename(p) + (p.endsWith('/') ? '/' : ''),
-      detail: p.replace(/\/?[^/]+\/?$/, ''),
-      icon: p.endsWith('/') ? 'folder' as const : 'file' as const,
-      iconCls: p.endsWith('/') ? 'text-muted' : 'text-strong'
-    })),
+const suggest = computed(() => {
+  const sid = id.value
+  return async (q: string): Promise<MenuOption[]> => [
+    ...fileMentionOptions((await store.suggestFiles(sid, q || 'trans')).slice(0, 2)),
     ...MENTION_EXTRAS.filter(e => !q || e.label.includes(q))
   ]
-}, { immediate: true })
+})
 
 const placeholder = computed(() => {
-  if (dictation.state.value === 'transcribing') return 'Transcribing…'
-  if (mode.value === 'shell') return 'Run a command'
-  if (mode.value === 'memory') return 'Something to remember'
   if (planMode.value && !busy.value) return 'Describe what to plan. Nothing will be changed.'
   if (queue.value.length) return `${queue.value.length} queued · type to add another`
   if (busy.value) return 'Type to queue a message for after this turn'
@@ -213,43 +131,13 @@ const placeholder = computed(() => {
 // Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.
 const hint = computed<Hint>(() => {
   if (mode.value === 'shell') return [{ text: 'output goes to context ·' }, { keys: 'backspace', text: 'on empty to exit' }]
+  if (files.value.some(f => f.error)) return [{ text: 'remove the files that cannot be sent' }]
   if (uploading.value) return [{ text: `waiting for ${uploading.value} upload${uploading.value > 1 ? 's' : ''}` }]
   if (multiline.value) return [{ keys: 'shift+enter', text: 'new line' }]
   if (planMode.value) return [{ keys: 'shift+tab', text: 'cycle mode' }]
   if (busy.value || queue.value.length) return [{ keys: 'meta+enter', text: 'queues a message' }]
   if (contextPct.value >= 90) return [{ keys: 'enter', text: 'send' }, { keys: 'meta+enter', text: 'queue for later' }]
   return [{ keys: 'enter', text: 'send' }, { keys: 'meta+enter', text: 'queue' }]
-})
-
-const frame = computed(() => {
-  if (error.value) return 'border-bad'
-  if (mode.value === 'shell') return 'border-orange'
-  if (mode.value === 'memory') return 'border-pink'
-  if (recording.value) return 'border-bad'
-  if (planMode.value && !busy.value) return 'border-cyan'
-  if (menu.value || (focused.value && hasText.value)) return 'border-accent'
-  return 'border-accented'
-})
-
-function autosize() {
-  const el = input.value
-  if (!el) return
-  el.style.height = 'auto'
-  // Empty: one line (a narrow composer would otherwise grow to fit the wrapped placeholder).
-  // Otherwise grows up to 8 lines (8 × 20.8px), then scrolls.
-  el.style.height = text.value ? `${Math.min(el.scrollHeight, 167)}px` : ''
-}
-watch(text, () => nextTick(autosize))
-// Re-measure when the composer is resized (window, sidebar or pane splits).
-let resizeObserver: ResizeObserver | undefined
-onBeforeUnmount(() => resizeObserver?.disconnect())
-onMounted(() => {
-  if (input.value) {
-    resizeObserver = new ResizeObserver(() => autosize())
-    resizeObserver.observe(input.value)
-  }
-  autosize()
-  if (props.preset?.focused) input.value?.focus()
 })
 
 async function submit() {
@@ -281,18 +169,21 @@ async function submit() {
     return
   }
   text.value = ''
+  const sent = files.value
   files.value = []
-  await safeSend(body)
+  await safeSend(body, sent)
 }
 
-async function safeSend(body: string) {
+async function safeSend(body: string, sent: ComposerFile[] = []) {
   failedShell.value = false
   try {
-    await store.send(id.value, body)
+    await store.send(id.value, body, await readAttachments(sent))
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
     failedText.value = body
+    failedFiles.value = sent
     text.value = body
+    files.value = sent
   }
 }
 
@@ -317,530 +208,116 @@ function retry() {
     mode.value = 'normal'
     safeRun(failedText.value)
   } else {
-    safeSend(failedText.value)
+    files.value = []
+    safeSend(failedText.value, failedFiles.value)
   }
 }
-
-function pick(o: MenuOption) {
-  if (menu.value === 'slash') text.value = o.label + ' '
-  else text.value = text.value.replace(/@[^\s]*$/, `@${o.key.startsWith('agent:') || o.key.startsWith('mcp:') ? o.label : o.key} `)
-  forcedMenu.value = ''
-  input.value?.focus()
-}
-
-function onKeydown(e: KeyboardEvent) {
-  if (menu.value && options.value.length) {
-    if (e.key === 'ArrowDown') {
-      menuIndex.value = (menuIndex.value + 1) % options.value.length
-      e.preventDefault()
-      return
-    }
-    if (e.key === 'ArrowUp') {
-      menuIndex.value = (menuIndex.value - 1 + options.value.length) % options.value.length
-      e.preventDefault()
-      return
-    }
-    if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
-      pick(options.value[menuIndex.value]!)
-      e.preventDefault()
-      return
-    }
-  }
-  if (e.key === 'Escape' && (menu.value || mode.value !== 'normal')) {
-    forcedMenu.value = ''
-    if (menu.value) text.value = text.value.replace(/[/@][^\s]*$/, '')
-    else mode.value = 'normal'
-    e.preventDefault()
-    e.stopPropagation()
-    return
-  }
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    submit()
-    return
-  }
-  if (e.key === 'Backspace' && !text.value && mode.value !== 'normal') {
-    mode.value = 'normal'
-    e.preventDefault()
-  }
-}
-
-// Quote lines of the text ("> …"), drawn under the field.
-const quoteLines = computed(() => text.value.split('\n').map((l) => {
-  const mark = l.match(/^>\s?/)?.[0] ?? ''
-  return { text: l, quote: !!mark, mark }
-}))
-const hasQuotes = computed(() => mode.value === 'normal' && quoteLines.value.some(l => l.quote))
-const mirror = ref<HTMLElement | null>(null)
-function syncMirror() {
-  if (mirror.value && input.value) mirror.value.scrollTop = input.value.scrollTop
-}
-
-function onInput(e: Event) {
-  const v = (e.target as HTMLTextAreaElement).value
-  // A leading $ (or !) switches to a shell command, # to memory.
-  if (mode.value === 'normal' && (v === '#' || (hasShell.value && (v === '$' || v === '!')))) {
-    mode.value = v === '#' ? 'memory' : 'shell'
-    text.value = ''
-    return
-  }
-  text.value = v
-}
-
-function addFiles(list: FileList | null | undefined) {
-  if (!list) return
-  for (const f of Array.from(list)) {
-    files.value.push({
-      name: f.name,
-      size: f.size,
-      image: f.type.startsWith('image/'),
-      error: f.size > 50 * 1024 * 1024 ? `too large · ${Math.round(f.size / 1024 / 1024)} MB` : undefined
-    })
-  }
-}
-
-function onDrop(e: DragEvent) {
-  dragging.value = 0
-  addFiles(e.dataTransfer?.files)
-}
-
-function sizeLabel(n: number) {
-  return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`
-}
-
-const wave = [4, 8, 14, 10, 18, 22, 16, 9, 6, 12, 20, 24, 18, 11, 7, 5, 9, 15, 21, 17, 12, 8, 6, 10, 16, 22, 19, 13, 8, 5, 7, 12, 18, 23, 20, 14, 9, 6, 4, 8, 13, 19, 24, 18, 12, 7, 5, 9, 14, 20, 16, 10, 6, 4, 7, 11, 15, 10, 6, 4]
-function mmss(ms: number) {
-  const sec = Math.max(0, Math.floor(ms / 1000))
-  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
-}
-// Dictation (useDictation): the microphone, then the speech-to-text provider of Settings › Speech.
-const dictation = useDictation()
-const toast = useToast()
-async function startRecording() {
-  try {
-    await dictation.start()
-    recording.value = true
-    recordStart.value = dictation.startedAt.value
-  } catch (e) {
-    toast.add({ title: 'Dictation', description: e instanceof Error ? e.message : String(e), color: 'error' })
-  }
-}
-// keep: insert the text; send: and send it.
-async function stopRecording(keep: boolean, send = false) {
-  recording.value = false
-  try {
-    const said = await dictation.stop(keep)
-    if (said) text.value = (text.value ? text.value.replace(/\s*$/, ' ') : '') + said
-    if (said && send) await submit()
-  } catch (e) {
-    toast.add({ title: 'Could not transcribe', description: e instanceof Error ? e.message : String(e), color: 'error' })
-  }
-}
-
-const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
 </script>
 
 <template>
-  <div
-    class="flex flex-col gap-1.5"
-    @dragenter.prevent="dragging = Math.max(1, dragging)"
-    @dragover.prevent
+  <ComposerBox
+    ref="box"
+    v-model:text="text"
+    v-model:mode="mode"
+    v-model:files="files"
+    :commands="commands"
+    :suggest="suggest"
+    :placeholder="placeholder"
+    :cwd="session.meta.cwd"
+    :busy="busy"
+    :plan-mode="planMode"
+    :has-shell="hasShell"
+    has-memory
+    :error="!!error"
+    :preset="preset"
+    @submit="submit"
+    @stop="store.interrupt(id)"
+    @retry="retry"
   >
-    <UsageLimitBanner :session="session" />
-    <ComputerUseBar :session="session" />
+    <template #top>
+      <UsageLimitBanner :session="session" />
+      <ComputerUseBar :session="session" />
 
-    <!-- context almost full -->
-    <div
-      v-if="contextPct >= 90 && !busy && hasCompaction"
-      class="flex items-center gap-[9px] border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12px]"
-    >
-      <HIcon
-        name="warn"
-        :size="14"
-        class="text-warn"
-      />
-      <span class="text-strong">Context {{ contextPct }}% full</span><span class="text-muted">auto-compact at 95%</span>
-      <span class="flex-1" /><HBtn @click="store.compact(id)">
-        Compact now
-      </HBtn>
-    </div>
-
-    <!-- menus -->
-    <ComposerMenus
-      v-if="menu"
-      :kind="menu"
-      :options="options"
-      :active="menuIndex"
-      @pick="pick"
-      @hover="menuIndex = $event"
-    />
-
-    <!-- offline -->
-    <div
-      v-if="offline"
-      aria-disabled="true"
-      class="flex min-h-11 items-center gap-2 border border-default bg-default px-2.5 text-muted"
-    >
-      <HIcon name="wifi" />
-      <span class="flex-1">Reconnecting to {{ session.meta.deviceName || 'the' }} client…</span>
-      <HBtn
-        size="sm"
-        @click="store.open(id)"
-      >
-        Reconnect now
-      </HBtn>
-    </div>
-
-    <!-- ended / read-only -->
-    <div
-      v-else-if="ended"
-      class="flex min-h-11 items-center gap-2 border border-default px-2.5 text-muted"
-    >
-      <HIcon name="lock" />
-      <span class="flex-1">Session ended · {{ session.endedReason || 'closed' }}</span>
-      <HBtn
-        variant="primary"
-        size="sm"
-      >
-        Fork to continue
-      </HBtn>
-    </div>
-
-    <!-- drop target -->
-    <div
-      v-else-if="dragging"
-      class="flex min-h-[88px] flex-col items-center justify-center gap-1.5 border border-dashed border-accent bg-accent/8 text-[12.5px] text-strong"
-      @dragleave.prevent="dragging = 0"
-      @drop.prevent="onDrop"
-    >
-      <HIcon
-        name="upload"
-        :size="20"
-        class="text-accent"
-      />
-      Drop {{ dragging > 1 ? `${dragging} files` : 'files' }} to attach<span class="text-[11px] text-muted">images, video, audio, code, archives up to 50 MB</span>
-    </div>
-
-    <!-- voice recording -->
-    <div
-      v-else-if="recording"
-      class="flex min-h-11 items-center gap-2.5 border border-bad bg-surface px-2"
-    >
-      <span class="size-2 bg-bad" /><span class="text-[12px] text-strong">{{ mmss(now - recordStart) }}</span>
-      <div class="flex h-6 min-w-0 flex-1 items-center justify-end gap-0.5 overflow-hidden">
-        <span
-          v-for="(h, i) in (dictation.state.value === 'recording' ? dictation.levels.value.map(l => 2 + l * 22) : wave)"
-          :key="i"
-          class="w-0.5 shrink-0 bg-bad"
-          :style="{ height: `${h}px` }"
-        />
-      </div>
-      <button
-        type="button"
-        aria-label="Cancel recording"
-        :class="ICON_BTN"
-        class="border border-default text-muted"
-        @click="stopRecording(false)"
+      <!-- context almost full -->
+      <div
+        v-if="contextPct >= 90 && !busy && hasCompaction"
+        class="flex items-center gap-[9px] border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12px]"
       >
         <HIcon
-          name="close"
-          :size="13"
-        />
-      </button>
-      <button
-        type="button"
-        aria-label="Insert the text"
-        title="Insert the text without sending"
-        :class="ICON_BTN"
-        class="border border-default text-strong"
-        @click="stopRecording(true)"
-      >
-        <HIcon
-          name="check"
+          name="warn"
           :size="14"
+          class="text-warn"
         />
-      </button>
-      <button
-        type="button"
-        aria-label="Send"
-        title="Send what you said"
-        :class="ICON_BTN"
-        class="bg-accent text-on-accent"
-        @click="stopRecording(true, true)"
-      >
-        <HIcon name="up" />
-      </button>
-    </div>
+        <span class="text-strong">Context {{ contextPct }}% full</span><span class="text-muted">auto-compact at 95%</span>
+        <span class="flex-1" /><HBtn @click="store.compact(id)">
+          Compact now
+        </HBtn>
+      </div>
+    </template>
 
-    <!-- input -->
-    <div
-      v-else
-      class="border bg-surface"
-      :class="frame"
-      @drop.prevent="onDrop"
+    <template
+      v-if="offline || ended"
+      #instead
     >
       <div
-        v-if="files.length"
-        class="flex flex-wrap gap-1.5 px-2 pt-2"
+        v-if="offline"
+        aria-disabled="true"
+        class="flex min-h-11 items-center gap-2 border border-default bg-default px-2.5 text-muted"
       >
-        <span
-          v-for="(f, i) in files"
-          :key="i"
-          class="flex items-center gap-2 border bg-hover text-[12px]"
-          :class="[f.error ? 'border-bad' : 'border-default', f.image ? 'py-1 pr-1.5 pl-1' : 'px-1.5 py-1', f.progress !== undefined && f.progress < 100 ? 'min-w-[150px] flex-col items-stretch gap-[3px]' : '']"
+        <HIcon name="wifi" />
+        <span class="flex-1">Reconnecting to {{ session.meta.deviceName || 'the' }} client…</span>
+        <HBtn
+          size="sm"
+          @click="store.open(id)"
         >
-          <template v-if="f.progress !== undefined && f.progress < 100">
-            <span class="flex gap-2"><span class="text-strong">{{ f.name }}</span><span class="flex-1" /><span class="text-accent">{{ f.progress }}%</span></span>
-            <span class="flex h-0.5 bg-line"><span
-              class="bg-accent"
-              :style="{ width: `${f.progress}%` }"
-            /></span>
-          </template>
-          <template v-else>
-            <span
-              v-if="f.image"
-              role="img"
-              aria-label="Image thumbnail"
-              class="size-[26px] bg-raised bg-[repeating-linear-gradient(135deg,var(--color-line)_0_1px,transparent_1px_6px)]"
-            />
-            <HIcon
-              v-else-if="!f.error"
-              name="file"
-              :size="14"
-              class="text-strong"
-            />
-            <span class="text-strong">{{ f.name }}</span>
-            <span
-              v-if="f.error"
-              class="text-bad"
-            >{{ f.error }}</span>
-            <span
-              v-else-if="!f.image"
-              class="text-muted"
-            >{{ sizeLabel(f.size) }}</span>
-            <button
-              type="button"
-              :aria-label="`Remove ${f.name}`"
-              class="text-muted hover:text-highlighted"
-              @click="files.splice(i, 1)"
-            ><HIcon
-              name="close"
-              :size="12"
-            /></button>
-          </template>
-        </span>
+          Reconnect now
+        </HBtn>
+      </div>
+
+      <!-- ended / read-only -->
+      <div
+        v-else
+        class="flex min-h-11 items-center gap-2 border border-default px-2.5 text-muted"
+      >
+        <HIcon name="lock" />
+        <span class="flex-1">Session ended · {{ session.endedReason || 'closed' }}</span>
+        <HBtn
+          variant="primary"
+          size="sm"
+        >
+          Fork to continue
+        </HBtn>
+      </div>
+    </template>
+
+    <template #bottom>
+      <div
+        v-if="error"
+        class="text-[11.5px] text-bad"
+      >
+        {{ error }} Your message wasn't sent.
       </div>
       <div
-        class="flex gap-1.5 px-2"
-        :class="multiline ? 'items-end py-2' : 'min-h-[42px] items-center'"
-        :style="!files.length && !multiline ? { minHeight: '42px' } : undefined"
+        v-if="mode === 'memory'"
+        class="flex flex-wrap gap-2 text-[11.5px] text-muted"
       >
-        <span
-          v-if="mode === 'shell'"
-          title="Shell command"
-          aria-label="Shell command"
-          class="flex items-center border border-orange px-[3px] py-px text-[11px] text-orange"
-        ><HIcon
-          name="term"
-          :size="12"
-        /></span>
-        <span
-          v-else-if="mode === 'memory'"
-          class="flex items-center gap-1 border border-pink px-[5px] text-[11px] text-pink"
-        ><HIcon
-          name="hash"
-          :size="12"
-        />memory</span>
-        <span
-          v-else-if="planMode && !busy"
-          class="border border-cyan px-[5px] text-[11px] text-cyan"
-        >plan</span>
-        <UPopover
-          v-else
-          v-model:open="plusOpen"
-          :content="{ side: 'top', align: 'start', sideOffset: 6 }"
+        <span>save to</span>
+        <button
+          v-for="t in ['CLAUDE.md', 'user memory', '.claude/rules']"
+          :key="t"
+          type="button"
+          class="border px-1.5"
+          :class="memoryTarget === t ? 'border-pink text-strong' : 'border-default'"
+          @click="memoryTarget = t"
         >
-          <button
-            type="button"
-            aria-label="Add"
-            :class="ICON_BTN"
-            class="text-muted hover:text-highlighted"
-          >
-            <HIcon name="plus" />
-          </button>
-          <template #content>
-            <div
-              role="menu"
-              aria-label="Add"
-              class="w-[230px] border border-accented bg-hover py-1 text-[12.5px]"
-            >
-              <PaneMenuItem
-                icon="attach"
-                kbd="meta+u"
-                @click="plus('files')"
-              >
-                Add files or photos
-              </PaneMenuItem>
-              <PaneMenuItem
-                icon="folder"
-                @click="plus('folder')"
-              >
-                Add folder
-              </PaneMenuItem>
-              <PaneMenuItem
-                icon="slash"
-                @click="plus('slash')"
-              >
-                Slash commands
-              </PaneMenuItem>
-              <PaneMenuItem
-                v-if="hasShell"
-                icon="term"
-                @click="plus('shell')"
-              >
-                Execute shell
-              </PaneMenuItem>
-            </div>
-          </template>
-        </UPopover>
-        <input
-          ref="fileInput"
-          type="file"
-          multiple
-          class="hidden"
-          @change="addFiles(($event.target as HTMLInputElement).files)"
-        >
-        <div class="relative grid min-w-0 flex-1">
-          <!-- What the field shows when it has quotes: quote lines dimmed with a rule, under the transparent text -->
-          <div
-            v-if="hasQuotes"
-            ref="mirror"
-            aria-hidden="true"
-            class="pointer-events-none col-start-1 row-start-1 max-h-[167px] overflow-hidden py-[3px] leading-[1.6] break-words whitespace-pre-wrap text-strong"
-          >
-            <span
-              v-for="(l, i) in quoteLines"
-              :key="i"
-              :class="l.quote && 'text-muted shadow-[inset_2px_0_0_var(--color-accent)]'"
-            ><span
-              v-if="l.mark"
-              class="text-transparent"
-            >{{ l.mark }}</span>{{ l.text.slice(l.mark.length) + (i < quoteLines.length - 1 ? '\n' : '\u200b') }}</span>
-          </div>
-          <textarea
-            ref="input"
-            :value="text"
-            rows="1"
-            :placeholder="placeholder"
-            aria-label="Message"
-            class="col-start-1 row-start-1 min-w-0 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:truncate placeholder:text-muted"
-            :class="[hasQuotes ? 'text-transparent caret-(--color-strong)' : menu === 'slash' ? 'text-accent' : 'text-strong', !text && 'overflow-hidden']"
-            @input="onInput"
-            @keydown="onKeydown"
-            @focus="focused = true"
-            @blur="focused = false"
-            @scroll="syncMirror"
-          />
-        </div>
-        <template v-if="error">
-          <button
-            type="button"
-            class="flex items-center gap-1.5 border border-bad px-2.5 py-1 text-[12px] text-strong"
-            @click="retry"
-          >
-            <HIcon
-              name="retry"
-              :size="13"
-            />Retry
-          </button>
-        </template>
-        <template v-else>
-          <button
-            v-if="!multiline && !busy && mode === 'normal'"
-            type="button"
-            aria-label="Voice"
-            :class="ICON_BTN"
-            class="text-muted hover:text-highlighted"
-            @click="startRecording"
-          >
-            <HIcon name="mic" />
-          </button>
-          <button
-            v-if="busy && hasText"
-            type="button"
-            aria-label="Queue"
-            :class="ICON_BTN"
-            class="bg-accent text-on-accent"
-            @click="submit"
-          >
-            <HIcon name="up" />
-          </button>
-          <button
-            v-if="busy"
-            type="button"
-            aria-label="Stop"
-            title="Stop this turn. Agents keep running: stop them in the Agents pane"
-            :class="ICON_BTN"
-            class="bg-warn text-black"
-            @click="store.interrupt(id)"
-          >
-            <HIcon
-              name="stop"
-              :size="13"
-            />
-          </button>
-          <button
-            v-else
-            type="button"
-            :aria-label="mode === 'shell' ? 'Run' : 'Send'"
-            :disabled="!hasText || uploading > 0"
-            :class="[ICON_BTN, !hasText || uploading ? 'bg-raised text-disabled' : mode === 'shell' ? 'bg-orange text-black' : mode === 'memory' ? 'bg-pink text-on-accent' : 'bg-accent text-on-accent']"
-            @click="submit"
-          >
-            <HIcon name="up" />
-          </button>
-        </template>
+          {{ t }}
+        </button>
       </div>
-    </div>
 
-    <div
-      v-if="error"
-      class="text-[11.5px] text-bad"
-    >
-      {{ error }} Your message wasn't sent.
-    </div>
-    <div
-      v-if="mode === 'memory'"
-      class="flex flex-wrap gap-2 text-[11.5px] text-muted"
-    >
-      <span>save to</span>
-      <button
-        v-for="t in ['CLAUDE.md', 'user memory', '.claude/rules']"
-        :key="t"
-        type="button"
-        class="border px-1.5"
-        :class="memoryTarget === t ? 'border-pink text-strong' : 'border-default'"
-        @click="memoryTarget = t"
-      >
-        {{ t }}
-      </button>
-    </div>
-
-    <ComposerFooter
-      :session="session"
-      :hint="hint"
-    />
-    <UModal
-      v-model:open="browsingFolder"
-      :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"
-    >
-      <template #content>
-        <NewDirectoryBrowser
-          :start="session.meta.cwd"
-          @pick="mentionFolder"
-          @close="browsingFolder = false"
-        />
-      </template>
-    </UModal>
-  </div>
+      <ComposerFooter
+        :session="session"
+        :hint="hint"
+      />
+    </template>
+  </ComposerBox>
 </template>

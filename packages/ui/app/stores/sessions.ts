@@ -1,5 +1,6 @@
 // Session store: one SessionState per session, fed by the transport's Subscribe stream through the reducer.
 
+import type { OutgoingAttachment } from '~/lib/session/attachments'
 import { defineStore } from 'pinia'
 import { markRaw, toRaw } from 'vue'
 import {
@@ -645,23 +646,23 @@ export const useSessionStore = defineStore('sessions', {
     // While a turn runs the message waits in the local queue; when idle it is sent right away. While a question
     // waits for an answer it goes to the client's queue instead: it does not end the wait, follows the answer
     // in the same turn (or becomes it with "Answer with message") and survives a reload.
-    async send(id: string, text: string) {
+    async send(id: string, text: string, attachments?: OutgoingAttachment[]) {
       const body = text.trim()
       if (!body || !this.transport) return
       // The session gets a stream for the turn this starts, even when it is not the open one.
       this.subscribe(id)
       // Always to the client: it decides when the agent reads it (queues it, moves a command to the background, ...).
-      await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE)
+      await this.deliver(id, newUuid(), body, SendUserMessageRequest_Delivery.QUEUE, attachments)
     },
 
     // Hands a message to the client, tracked in the outbox (sending, then sent) until the stream shows it queued
     // or read. A refused message leaves the outbox and the error is thrown.
-    async deliver(id: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery) {
+    async deliver(id: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery, attachments?: OutgoingAttachment[]) {
       if (!this.transport) return
       const box = this.outbox[id] ?? (this.outbox[id] = [])
       box.push({ id: uuid, text, at: Date.now(), state: 'sending' })
       try {
-        await this.transport.sendUserMessage(id, uuid, text, delivery)
+        await (attachments?.length ? this.transport.sendUserMessage(id, uuid, text, delivery, attachments) : this.transport.sendUserMessage(id, uuid, text, delivery))
         const e = this.outbox[id]?.find(o => o.id === uuid)
         if (e) e.state = 'sent'
       } catch (err) {
