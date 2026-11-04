@@ -45,6 +45,8 @@ export interface Attachment {
   name: string
   mediaType: string
   size: number
+  // The bytes as a data URL, when the message carries them.
+  url?: string
   // In the object store (a message seen from another device).
   object?: ObjectRef
 }
@@ -504,6 +506,7 @@ export interface SessionMeta {
 export interface QueuedMessage {
   id: string
   text: string
+  attachments?: Attachment[]
   // When the client queued it (ms; 0 when unknown).
   at?: number
   // The usage limit holds it: it goes out by itself when the limit resets or the model moves to a provider that is fine.

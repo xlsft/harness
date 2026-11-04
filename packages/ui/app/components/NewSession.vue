@@ -231,7 +231,7 @@ watch([model, efforts, recommended], fitStartEffort)
 
 async function start() {
   const msg = text.value.trim()
-  if (!msg || busy.value) return
+  if ((!msg && !files.value.length) || busy.value) return
   busy.value = true
   error.value = ''
   try {

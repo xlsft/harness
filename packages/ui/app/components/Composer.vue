@@ -95,6 +95,11 @@ watch(() => store.drafts[id.value], (draft) => {
   Reflect.deleteProperty(store.drafts, id.value)
   nextTick(focusEnd)
 }, { immediate: true })
+watch(() => store.draftFiles[id.value], (back) => {
+  if (!back) return
+  files.value = [...files.value, ...back.map(composerFile)]
+  Reflect.deleteProperty(store.draftFiles, id.value)
+}, { immediate: true })
 const multiline = computed(() => text.value.includes('\n'))
 const uploading = computed(() => files.value.filter(f => f.progress !== undefined && f.progress < 100).length)
 
@@ -142,7 +147,7 @@ const hint = computed<Hint>(() => {
 
 async function submit() {
   const body = text.value
-  if (!body.trim() || ended.value) return
+  if ((!body.trim() && (mode.value !== 'normal' || !files.value.length)) || ended.value) return
   error.value = ''
   if (mode.value !== 'normal') {
     const route = composerRoute(mode.value, body, memoryTarget.value)

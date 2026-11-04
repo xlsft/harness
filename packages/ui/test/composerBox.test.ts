@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SendUserMessageRequest_Delivery, type SessionEvent } from '~/gen/harness/agent/v1/agent_pb'
-import { attachmentError, attachmentKind, messageContent, readAttachments } from '~/lib/session/attachments'
+import { attachmentError, attachmentFiles, attachmentKind, blockAttachments, clipboardFiles, messageContent, readAttachments, sniffImageType } from '~/lib/session/attachments'
 import { textOf } from '~/lib/session/reducer'
 import { MockTransport } from '~/lib/transport/mock'
 import { fileMentionOptions, folderLookup, folderMention, NEW_SESSION_COMMANDS, SLASH_COMMANDS } from '~/utils/composer'
@@ -77,6 +77,42 @@ describe('attachments', () => {
     expect(messageContent('just text').map(b => b.block.case)).toEqual(['text'])
   })
 
+  it('takes a type from the name when a webview gives none', () => {
+    expect(attachmentKind({ name: 'shot.PNG', type: '' })).toBe('image')
+    expect(attachmentKind({ name: 'a.jpg', type: 'image/jpg' })).toBe('image')
+    expect(attachmentKind({ name: 'a.pdf', type: '' })).toBe('document')
+    expect(attachmentError({ name: 'a.heic', type: 'image/heic', size: 1 })).toMatch(/PNG, JPEG/)
+  })
+
+  it('sends an image as what its bytes are, whatever its name says', async () => {
+    const jpeg = new File([new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0])], 'a.png', { type: 'image/png' })
+    const [a] = await readAttachments([{ file: jpeg }])
+    expect(a!.mediaType).toBe('image/jpeg')
+    expect(sniffImageType(new Uint8Array([1, 2, 3]))).toBeUndefined()
+  })
+
+  it('goes without text when there is none: a provider refuses an empty block', () => {
+    const data = new Uint8Array([1])
+    expect(messageContent('  ', [{ name: 'a.png', kind: 'image', mediaType: 'image/png', data }]).map(b => b.block.case)).toEqual(['image'])
+  })
+
+  it('shows in the message: an image with its bytes, a text file as a file rather than as words', () => {
+    const data = new Uint8Array([1, 2, 3])
+    const blocks = messageContent('look', [
+      { name: 'a.png', kind: 'image', mediaType: 'image/png', data },
+      { name: 'a.log', kind: 'text', mediaType: 'text/plain', data: new TextEncoder().encode('line') }
+    ])
+    const [image, file] = blockAttachments(blocks)
+    expect(image).toMatchObject({ kind: 'image', mediaType: 'image/png', size: 3, url: 'data:image/png;base64,AQID' })
+    expect(file).toMatchObject({ kind: 'document', name: 'a.log', mediaType: 'text/plain', size: 4 })
+  })
+
+  it('come back as files with their bytes when a queued message is taken back', async () => {
+    const [f] = await attachmentFiles([{ kind: 'image', name: 'image', mediaType: 'image/png', size: 3, url: 'data:image/png;base64,AQID' }])
+    expect(f!.name).toBe('image.png')
+    expect([...new Uint8Array(await f!.arrayBuffer())]).toEqual([1, 2, 3])
+  })
+
   it('reach the session through the transport, also from the queue', async () => {
     const t = new MockTransport({ tick: 1 })
     const { id } = await t.createSession({ cwd: '' })
@@ -87,5 +123,36 @@ describe('attachments', () => {
     stop()
     const user = events.find(e => e.event.case === 'userMessage')!
     expect(user.event.case === 'userMessage' && user.event.value.content.map(b => b.block.case)).toEqual(['image', 'text'])
+  })
+})
+
+describe('pasting', () => {
+  const png = new File([new Uint8Array([1])], 'image.png', { type: 'image/png' })
+  const clip = (d: { types?: string[], files?: File[], items?: { kind: string, getAsFile: () => File | null }[], plain?: string }) => ({
+    types: d.types ?? [],
+    files: d.files ?? [],
+    items: d.items ?? [],
+    getData: (t: string) => t === 'text/plain' ? d.plain ?? '' : ''
+  }) as unknown as DataTransfer
+
+  it('leaves plain text to the field', () => {
+    expect(clipboardFiles(clip({ types: ['text/plain'], plain: 'hello' }))).toEqual([])
+  })
+
+  it('takes an image from the clipboard', () => {
+    expect(clipboardFiles(clip({ types: ['Files'], files: [png] }))).toEqual([png])
+    expect(clipboardFiles(clip({ types: ['text/html', 'Files'], files: [png] }))).toEqual([png])
+  })
+
+  it('finds it among the items when the list of files is empty', () => {
+    expect(clipboardFiles(clip({ types: ['Files'], items: [{ kind: 'string', getAsFile: () => null }, { kind: 'file', getAsFile: () => png }] }))).toEqual([png])
+  })
+
+  it('takes a file copied in a file manager, whose name comes along as text', () => {
+    expect(clipboardFiles(clip({ types: ['text/plain', 'Files'], files: [png], plain: 'image.png' }))).toEqual([png])
+  })
+
+  it('keeps cells and rich text as text, though they carry a picture of themselves', () => {
+    expect(clipboardFiles(clip({ types: ['text/plain', 'text/html', 'Files'], files: [png], plain: 'a\tb' }))).toEqual([])
   })
 })

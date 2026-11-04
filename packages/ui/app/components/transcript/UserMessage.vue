@@ -3,6 +3,7 @@
 // a leading "> quote" line renders as a reply-to fragment, `queued` uses the dashed waiting style (a click takes it
 // back into the composer: `edit`), `pending` (handed to the client, not read yet) a plain muted one.
 import type { Attachment } from '~/lib/session/types'
+import { imageSrc } from '~/lib/session/objects'
 import { FROM_VISUAL } from '~/lib/visual'
 import { RAN_PREFIX } from '~/stores/sessions'
 
@@ -13,6 +14,14 @@ const props = withDefaults(defineProps<{
   pending?: boolean
 }>(), { attachments: () => [], queued: false, pending: false })
 const emit = defineEmits<{ edit: [] }>()
+
+// Images show as images; a message still waiting is not in the viewer's list yet, so it opens nothing.
+const images = computed(() => props.attachments.flatMap((a) => {
+  const src = a.kind === 'image' ? imageSrc({ url: a.url ?? '', object: a.object }) : ''
+  return src ? [{ src, name: a.name }] : []
+}))
+const others = computed(() => props.attachments.filter(a => a.kind !== 'image' || !imageSrc({ url: a.url ?? '', object: a.object })))
+const { open: openImage } = useImageViewer()
 
 // Review comments from the diff pane get their own card.
 const review = computed(() => parseReview(props.text))
@@ -75,9 +84,28 @@ const parsed = computed(() => {
 
 <template>
   <div class="flex flex-col items-end gap-1.5">
+    <div
+      v-if="images.length"
+      class="flex max-w-[78%] flex-wrap justify-end gap-1.5"
+    >
+      <component
+        :is="queued || pending ? 'span' : 'button'"
+        v-for="(img, i) in images"
+        :key="i"
+        :type="queued || pending ? undefined : 'button'"
+        :aria-label="queued || pending ? undefined : `Open ${img.name}`"
+        @click="!queued && !pending && openImage(img.src)"
+      >
+        <img
+          :src="img.src"
+          :alt="img.name"
+          class="max-h-[240px] max-w-full border border-default object-contain"
+        >
+      </component>
+    </div>
     <MediaAttachment
-      v-if="attachments.length"
-      :files="attachments"
+      v-if="others.length"
+      :files="others"
       side="right"
     />
     <button
@@ -87,6 +115,10 @@ const parsed = computed(() => {
       class="flex max-w-[78%] cursor-text flex-col gap-[7px] self-end border border-dashed border-accented px-3 py-[9px] text-left leading-[1.55] text-toned hover:border-accent"
       @click="emit('edit')"
     >
+      <span
+        v-if="!parsed.blocks.length"
+        class="text-muted"
+      >Files only</span>
       <template
         v-for="(b, bi) in parsed.blocks"
         :key="bi"
@@ -110,6 +142,7 @@ const parsed = computed(() => {
         >{{ p.t }}</span><template v-else>{{ p.t }}</template></template></span>
       </template>
     </button>
+    <template v-else-if="!parsed.blocks.length && attachments.length" />
     <div
       v-else-if="pending"
       class="flex max-w-[78%] flex-col gap-[7px] self-end border border-default px-3 py-[9px] leading-[1.55] text-toned"

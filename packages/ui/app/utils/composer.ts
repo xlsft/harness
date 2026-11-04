@@ -1,5 +1,6 @@
 // Composer data: slash commands, permission modes and efforts (Composer.dc.html).
 import type { EffortName, PermissionModeName } from '~/lib/session/types'
+import { attachmentError, attachmentKind } from '~/lib/session/attachments'
 import { basename } from './format'
 import type { IconName } from './icons'
 
@@ -22,6 +23,11 @@ export interface ComposerFile {
   error?: string
   image?: boolean
   file?: File
+}
+
+/** A file as the composer holds it. */
+export function composerFile(f: File): ComposerFile {
+  return { name: f.name, size: f.size, image: attachmentKind(f) === 'image', error: attachmentError(f), file: f }
 }
 
 // Built-in commands; skills and project commands come from the client in M2.

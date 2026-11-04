@@ -5,7 +5,7 @@
 // `sending` a send under way; the #top, #instead (in place of the field) and #bottom slots sit in the same column.
 import type { ComposerFile, ComposerMode, ComposerPreset, MenuOption } from '~/utils/composer'
 import { isDesktop, pickFolder } from '~/lib/desktop'
-import { attachmentError } from '~/lib/session/attachments'
+import { clipboardFiles } from '~/lib/session/attachments'
 
 const props = withDefaults(defineProps<{
   commands: MenuOption[]
@@ -66,7 +66,7 @@ async function plus(action: 'files' | 'folder' | 'slash' | 'shell') {
     focusEnd()
   }
 }
-defineShortcuts({ meta_u: () => plus('files') })
+defineShortcuts({ meta_u: () => previewing.value || plus('files') })
 const focused = ref(!!props.preset?.focused)
 const dragging = ref(props.preset?.drop ?? 0)
 const recording = ref(!!props.preset?.recording)
@@ -78,6 +78,8 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 const multiline = computed(() => text.value.includes('\n'))
 const hasText = computed(() => text.value.trim().length > 0)
+// A message of files alone goes too; shell and memory are text.
+const hasContent = computed(() => hasText.value || (mode.value === 'normal' && files.value.length > 0))
 const uploading = computed(() => files.value.filter(f => f.progress !== undefined && f.progress < 100).length)
 // A file that cannot go holds the message back rather than leaving it out.
 const rejected = computed(() => files.value.some(f => f.error))
@@ -216,24 +218,59 @@ function onInput(e: Event) {
   text.value = v
 }
 
-function addFiles(list: FileList | null | undefined) {
+function addFiles(list: ArrayLike<File> | null | undefined) {
   if (!list) return
-  files.value = [...files.value, ...Array.from(list, f => ({
-    name: f.name,
-    size: f.size,
-    image: f.type.startsWith('image/'),
-    error: attachmentError(f),
-    file: f
-  }))]
+  files.value = [...files.value, ...Array.from(list, composerFile)]
+}
+
+function onPicked(e: Event) {
+  const el = e.target as HTMLInputElement
+  addFiles(el.files)
+  // The same file can be picked again after removing it.
+  el.value = ''
+}
+
+// A paste with files attaches them; everything else stays the field's own paste.
+function onPaste(e: ClipboardEvent) {
+  if (mode.value !== 'normal' || !e.clipboardData) return
+  const pasted = clipboardFiles(e.clipboardData)
+  if (!pasted.length) return
+  e.preventDefault()
+  addFiles(pasted)
+}
+
+// The thumbnails: one object URL per attached file, for as long as it is attached.
+const thumbs = shallowRef(new Map<File, string>())
+watch(files, (now) => {
+  const held = new Set(now.flatMap(f => f.file ? [f.file] : []))
+  const next = new Map<File, string>()
+  for (const [f, url] of thumbs.value) {
+    if (held.has(f)) next.set(f, url)
+    else URL.revokeObjectURL(url)
+  }
+  for (const f of held) {
+    if (!next.has(f)) next.set(f, URL.createObjectURL(f))
+  }
+  thumbs.value = next
+}, { immediate: true })
+onBeforeUnmount(() => thumbs.value.forEach(url => URL.revokeObjectURL(url)))
+
+// The image open over the window; saving its edit replaces the file.
+const previewing = shallowRef<ComposerFile | null>(null)
+function saveEdit(file: File) {
+  const open = previewing.value
+  previewing.value = null
+  if (open) files.value = files.value.map(f => f === open ? composerFile(file) : f)
+  focusEnd()
+}
+function closePreview() {
+  previewing.value = null
+  focusEnd()
 }
 
 function onDrop(e: DragEvent) {
   dragging.value = 0
   addFiles(e.dataTransfer?.files)
-}
-
-function sizeLabel(n: number) {
-  return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`
 }
 
 const wave = [4, 8, 14, 10, 18, 22, 16, 9, 6, 12, 20, 24, 18, 11, 7, 5, 9, 15, 21, 17, 12, 8, 6, 10, 16, 22, 19, 13, 8, 5, 7, 12, 18, 23, 20, 14, 9, 6, 4, 8, 13, 19, 24, 18, 12, 7, 5, 9, 14, 20, 16, 10, 6, 4, 7, 11, 15, 10, 6, 4]
@@ -370,52 +407,14 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         v-if="files.length"
         class="flex flex-wrap gap-1.5 px-2 pt-2"
       >
-        <span
+        <AttachmentThumb
           v-for="(f, i) in files"
           :key="i"
-          class="flex items-center gap-2 border bg-hover text-[12px]"
-          :class="[f.error ? 'border-bad' : 'border-default', f.image ? 'py-1 pr-1.5 pl-1' : 'px-1.5 py-1', f.progress !== undefined && f.progress < 100 ? 'min-w-[150px] flex-col items-stretch gap-[3px]' : '']"
-        >
-          <template v-if="f.progress !== undefined && f.progress < 100">
-            <span class="flex gap-2"><span class="text-strong">{{ f.name }}</span><span class="flex-1" /><span class="text-accent">{{ f.progress }}%</span></span>
-            <span class="flex h-0.5 bg-line"><span
-              class="bg-accent"
-              :style="{ width: `${f.progress}%` }"
-            /></span>
-          </template>
-          <template v-else>
-            <span
-              v-if="f.image"
-              role="img"
-              aria-label="Image thumbnail"
-              class="size-[26px] bg-raised bg-[repeating-linear-gradient(135deg,var(--color-line)_0_1px,transparent_1px_6px)]"
-            />
-            <HIcon
-              v-else-if="!f.error"
-              name="file"
-              :size="14"
-              class="text-strong"
-            />
-            <span class="text-strong">{{ f.name }}</span>
-            <span
-              v-if="f.error"
-              class="text-bad"
-            >{{ f.error }}</span>
-            <span
-              v-else-if="!f.image"
-              class="text-muted"
-            >{{ sizeLabel(f.size) }}</span>
-            <button
-              type="button"
-              :aria-label="`Remove ${f.name}`"
-              class="text-muted hover:text-highlighted"
-              @click="files = files.filter((_, at) => at !== i)"
-            ><HIcon
-              name="close"
-              :size="12"
-            /></button>
-          </template>
-        </span>
+          :file="f"
+          :url="f.file ? thumbs.get(f.file) : undefined"
+          @open="previewing = f"
+          @remove="files = files.filter((_, at) => at !== i)"
+        />
       </div>
       <div
         class="flex gap-1.5 px-2"
@@ -495,7 +494,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           type="file"
           multiple
           class="hidden"
-          @change="addFiles(($event.target as HTMLInputElement).files)"
+          @change="onPicked"
         >
         <div class="relative grid min-w-0 flex-1">
           <!-- What the field shows when it has quotes: quote lines dimmed with a rule, under the transparent text -->
@@ -524,6 +523,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             :class="[hasQuotes ? 'text-transparent caret-(--color-strong)' : menu === 'slash' ? 'text-accent' : 'text-strong', !text && 'overflow-hidden']"
             @input="onInput"
             @keydown="onKeydown"
+            @paste="onPaste"
             @focus="focused = true"
             @blur="focused = false"
             @scroll="syncMirror"
@@ -553,7 +553,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             <HIcon name="mic" />
           </button>
           <button
-            v-if="busy && hasText"
+            v-if="busy && hasContent"
             type="button"
             aria-label="Queue"
             :class="ICON_BTN"
@@ -580,8 +580,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             v-else
             type="button"
             :aria-label="mode === 'shell' ? 'Run' : sendLabel"
-            :disabled="!hasText || uploading > 0 || rejected || sending"
-            :class="[ICON_BTN, !hasText || uploading || rejected ? 'bg-raised text-disabled' : mode === 'shell' ? 'bg-orange text-black' : mode === 'memory' ? 'bg-pink text-on-accent' : 'bg-accent text-on-accent']"
+            :disabled="!hasContent || uploading > 0 || rejected || sending"
+            :class="[ICON_BTN, !hasContent || uploading || rejected ? 'bg-raised text-disabled' : mode === 'shell' ? 'bg-orange text-black' : mode === 'memory' ? 'bg-pink text-on-accent' : 'bg-accent text-on-accent']"
             @click="send"
           >
             <HIcon
@@ -607,5 +607,13 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         />
       </template>
     </UModal>
+
+    <AttachmentPreview
+      v-if="previewing?.file"
+      :file="previewing.file"
+      :url="thumbs.get(previewing.file) ?? ''"
+      @close="closePreview"
+      @save="saveEdit"
+    />
   </div>
 </template>

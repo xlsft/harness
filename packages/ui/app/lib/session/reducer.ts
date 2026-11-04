@@ -10,6 +10,7 @@
 
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
 import { sessionNoteOf } from './links'
+import { blockAttachments, isFileBlock } from './attachments'
 import { accessItem, computerUseVM, toolImages } from './computer'
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
 import { SubagentState, SubagentStepStatus, type SubagentInfo } from '~/gen/harness/agent/v1/subagents_pb'
@@ -38,7 +39,6 @@ import type {
   WorkflowStateName,
   WorkflowVM,
   AssistantItem,
-  Attachment,
   BackgroundReasonName,
   CompactItem,
   PermissionModeName,
@@ -299,6 +299,16 @@ export function textOf(blocks: ContentBlock[]): string {
   return parts.join('\n')
 }
 
+// What the user wrote: an attached text file is not part of the bubble.
+function typedText(blocks: ContentBlock[]): string {
+  return textOf(blocks.filter(b => !(b.block.case === 'text' && isFileBlock(b.block.value.text))))
+}
+
+function withAttachments(blocks: ContentBlock[]) {
+  const attachments = blockAttachments(blocks)
+  return attachments.length ? { attachments } : {}
+}
+
 function parseJson(json: string): Record<string, unknown> | null {
   if (!json) return null
   try {
@@ -320,17 +330,7 @@ function showTarget(r: ShowRequested): ShowTarget | null {
 }
 
 function userItem(id: string, msg: UserMessage, at: number): TranscriptItem {
-  const attachments = msg.content.flatMap((b): Attachment[] => {
-    if (b.block.case === 'text' && b.block.value.object) {
-      const o = b.block.value.object
-      const object = { sha256: o.sha256, size: Number(o.size), mediaType: o.mediaType, name: o.name }
-      return [{ kind: o.mediaType.startsWith('image/') ? 'image' as const : 'document' as const, name: o.name || (o.mediaType.startsWith('image/') ? 'image' : 'document'), mediaType: o.mediaType, size: object.size, object }]
-    }
-    if (b.block.case === 'image') return [{ kind: 'image' as const, name: 'image', mediaType: b.block.value.mediaType, size: b.block.value.data.length }]
-    if (b.block.case === 'document') return [{ kind: 'document' as const, name: b.block.value.title || 'document', mediaType: b.block.value.mediaType, size: b.block.value.data.length }]
-    return []
-  })
-  return { kind: 'user' as const, id, text: textOf(msg.content), attachments, at, clientIds: [...msg.clientUuids] }
+  return { kind: 'user' as const, id, text: typedText(msg.content), attachments: blockAttachments(msg.content), at, clientIds: [...msg.clientUuids] }
 }
 
 // ── item helpers ─────────────────────────────────────────────────────────────
@@ -669,7 +669,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     }
 
     case 'queueChanged':
-      s.queue = e.value.queued.map((m, i) => ({ id: m.uuid || 'q' + i, text: textOf(m.content), ...(m.queuedAt && { at: Date.parse(m.queuedAt) }), ...(m.held && { held: true }) }))
+      s.queue = e.value.queued.map((m, i) => ({ id: m.uuid || 'q' + i, text: typedText(m.content), ...withAttachments(m.content), ...(m.queuedAt && { at: Date.parse(m.queuedAt) }), ...(m.held && { held: true }) }))
       break
 
     case 'todosUpdated': {
