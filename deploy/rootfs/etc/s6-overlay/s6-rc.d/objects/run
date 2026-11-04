@@ -1,0 +1,21 @@
+#!/command/with-contenv sh
+# Garage, the S3 object store, on 127.0.0.1 only. Core is its only client: every read and write of user files goes through
+# core's checks. --single-node and --default-bucket set up the one-node layout, the key and the bucket on first start, and
+# leave them alone after that. The keys come from the file init-data generated; they are in this process's environment
+# only.
+LOG_TAG=objects
+. /etc/s6-overlay/scripts/lib.sh
+
+if ! internal_objects; then
+  s6-svc -O .
+  exit 0
+fi
+
+read -r GARAGE_DEFAULT_ACCESS_KEY GARAGE_DEFAULT_SECRET_KEY </data/objects/s3-credentials
+export GARAGE_DEFAULT_ACCESS_KEY GARAGE_DEFAULT_SECRET_KEY
+export GARAGE_DEFAULT_BUCKET="${HARNESS_S3_BUCKET:-harness-objects}"
+export GARAGE_CONFIG_FILE=/etc/harness/garage/garage.toml
+export GARAGE_RPC_SECRET_FILE=/data/objects/rpc_secret
+export RUST_LOG="${RUST_LOG:-garage=warn}"
+
+exec s6-setuidgid harness /usr/local/bin/garage server --single-node --default-bucket

@@ -5,6 +5,7 @@ package pbconv
 import (
 	"encoding/base64"
 	"encoding/json"
+	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	"strings"
 
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
@@ -15,7 +16,11 @@ import (
 func Block(b llm.ContentBlock) *llmv1.ContentBlock {
 	switch b.Type {
 	case llm.BlockText:
-		return &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Text{Text: &llmv1.TextBlock{Text: b.Text, Cache: b.Cache}}}
+		t := &llmv1.TextBlock{Text: b.Text, Cache: b.Cache}
+		if o := b.Object; o != nil {
+			t.Object = &commonv1.ObjectRef{Sha256: o.SHA256, Size: o.Size, MediaType: o.MediaType, Name: o.Name}
+		}
+		return &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Text{Text: t}}
 	case llm.BlockImage:
 		mt, data := source(b.Source)
 		return &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Image{Image: &llmv1.ImageBlock{MediaType: mt, Data: data, Cache: b.Cache}}}
@@ -61,7 +66,11 @@ func Blocks(in []llm.ContentBlock) []*llmv1.ContentBlock {
 func FromBlock(b *llmv1.ContentBlock) llm.ContentBlock {
 	switch v := b.GetBlock().(type) {
 	case *llmv1.ContentBlock_Text:
-		return llm.ContentBlock{Type: llm.BlockText, Text: v.Text.GetText(), Cache: v.Text.GetCache()}
+		out := llm.ContentBlock{Type: llm.BlockText, Text: v.Text.GetText(), Cache: v.Text.GetCache()}
+		if o := v.Text.GetObject(); o != nil {
+			out.Object = &llm.ObjectRef{SHA256: o.GetSha256(), Size: o.GetSize(), MediaType: o.GetMediaType(), Name: o.GetName()}
+		}
+		return out
 	case *llmv1.ContentBlock_Image:
 		return llm.ContentBlock{Type: llm.BlockImage, Cache: v.Image.GetCache(), Source: &llm.Source{Type: "base64", MediaType: v.Image.GetMediaType(), Data: base64.StdEncoding.EncodeToString(v.Image.GetData())}}
 	case *llmv1.ContentBlock_Document:

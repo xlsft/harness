@@ -16,6 +16,7 @@ import { applyLiveInfo, createSessionState, permissionModeName, reduce, sessionM
 import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } from '~/lib/session/types'
 import { liveOutbox, type OutboxEntry } from '~/lib/session/delivery'
 import { descendants } from '~/lib/session/tree'
+import { setObjectTicketSource } from '~/lib/session/objects'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 import type { DeviceSettings, SessionPatch } from '~/lib/transport/types'
 import { allowedModes, nextMode } from '~/utils/composer'
@@ -182,6 +183,8 @@ export const useSessionStore = defineStore('sessions', {
         String(config.public.agentUrl),
         browserAgentToken(String(config.public.agentToken ?? ''))
       ))
+      const tickets = this.transport
+      setObjectTicketSource(() => tickets.createObjectTicket(), shallowRef(null))
       try {
         const init = await this.transport.initialize()
         this.userEmail = init.userEmail

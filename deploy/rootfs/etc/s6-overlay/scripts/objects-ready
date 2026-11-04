@@ -1,0 +1,18 @@
+#!/command/with-contenv sh
+# One-shot between objects and core: waits until the S3 port answers. A store that does not come up is no reason to keep
+# the server down: core reports it on the calls that need it, and clients keep their files until it is back.
+LOG_TAG=objects-ready
+. /etc/s6-overlay/scripts/lib.sh
+
+internal_objects || exit 0
+
+i=0
+until node -e "fetch('http://127.0.0.1:3900/').then(()=>process.exit(0),()=>process.exit(1))" 2>/dev/null; do
+  i=$((i + 1))
+  if [ "$i" -ge 120 ]; then
+    log "WARNING: the object store did not answer within 60 s; starting core anyway"
+    exit 0
+  fi
+  sleep 0.5
+done
+log "the object store is ready"

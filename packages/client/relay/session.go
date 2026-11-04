@@ -2,6 +2,7 @@ package relay
 
 import (
 	"context"
+	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	"slices"
 	"strconv"
 	"strings"
@@ -230,7 +231,7 @@ func (hs *hostSession) run(ctx context.Context) {
 // envelope converts a local event for the wire without touching the shared original.
 func (hs *hostSession) envelope(ev *agentv1.SessionEvent, base int64) *relayv1.EventEnvelope {
 	c := proto.Clone(ev).(*agentv1.SessionEvent)
-	scrubDeviceLocal(c)
+	scrubDeviceLocal(c, hs.h.o.Objects, hs.id)
 	c.SessionId = hs.id
 	c.Seq = base + ev.GetSeq()
 	id := uuid.NewString()
@@ -240,15 +241,54 @@ func (hs *hostSession) envelope(ev *agentv1.SessionEvent, base int64) *relayv1.E
 	return &relayv1.EventEnvelope{Uuid: id, Event: c}
 }
 
-// scrubDeviceLocal takes computer use off an event going to the server: its cards and state are empty there, and its
-// screenshots stay on this machine. An emptied event keeps its seq, so viewers see no gap in the log.
-// Screenshots go to object storage when it exists; until then they are left out here.
-func scrubDeviceLocal(c *agentv1.SessionEvent) {
+// ObjectSink takes the bytes of an event's images and documents to the object store (syncclient.ObjectQueue).
+type ObjectSink interface {
+	Available() bool
+	AddBytes(sessionID, kind, name, mediaType string, data []byte) (*commonv1.ObjectRef, error)
+}
+
+// referObjects replaces the images and documents in blocks by references to the store, so events stay small and viewers
+// fetch them. A block that cannot be queued goes as a sentence saying so.
+func referObjects(blocks []*llmv1.ContentBlock, sink ObjectSink, sessionID, kind string) {
+	for _, b := range blocks {
+		var mediaType, name string
+		var data []byte
+		switch v := b.GetBlock().(type) {
+		case *llmv1.ContentBlock_Image:
+			mediaType, data = v.Image.GetMediaType(), v.Image.GetData()
+		case *llmv1.ContentBlock_Document:
+			mediaType, name, data = v.Document.GetMediaType(), v.Document.GetTitle(), v.Document.GetData()
+		default:
+			continue
+		}
+		ref, err := sink.AddBytes(sessionID, kind, name, mediaType, data)
+		text := &llmv1.TextBlock{Text: "[a file kept on the machine that made it]"}
+		if err == nil {
+			text = &llmv1.TextBlock{Text: "[" + mediaType + " stored as object " + ref.GetSha256() + "]", Object: ref}
+		}
+		b.Block = &llmv1.ContentBlock_Text{Text: text}
+	}
+}
+
+// scrubDeviceLocal takes computer use off an event going to the server: its cards and state are empty there. An emptied
+// event keeps its seq, so viewers see no gap in the log. With an object store, the images and documents of tool results
+// and user messages go there, and the event carries references; without one, computer use screenshots stay on this
+// machine and the rest travels inline.
+func scrubDeviceLocal(c *agentv1.SessionEvent, sink ObjectSink, sessionID string) {
+	stored := sink != nil && sink.Available()
 	switch e := c.GetEvent().(type) {
 	case *agentv1.SessionEvent_ComputerAccessRequested, *agentv1.SessionEvent_ComputerAccessResolved, *agentv1.SessionEvent_ComputerUseState:
 		c.Event = nil
+	case *agentv1.SessionEvent_UserMessage:
+		if stored {
+			referObjects(e.UserMessage.GetContent(), sink, sessionID, "attachment")
+		}
 	case *agentv1.SessionEvent_ToolCallFinished:
 		tf := e.ToolCallFinished
+		if stored {
+			referObjects(tf.GetContent(), sink, sessionID, "image")
+			return
+		}
 		if !strings.Contains(tf.GetStructuredResultJson(), `"computer_use":true`) {
 			return
 		}

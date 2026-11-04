@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Settings > Account: who you are (avatar, name, handle, role, how you sign in), your password (local accounts),
 // the devices signed in to your account, and signing out of this computer (desktop).
-import { AVATAR_MAX_BYTES, AVATAR_MAX_SIDE, AVATAR_TYPES, type AccountDevice } from '~/lib/account/types'
+import { AVATAR_MAX_BYTES, AVATAR_MAX_SIDE, AVATAR_TYPES, avatarUrl, type AccountDevice } from '~/lib/account/types'
 import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
 
 const store = useSessionStore()
@@ -174,7 +174,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
     >
       <img
         v-if="profile?.image"
-        :src="profile.image"
+        :src="avatarUrl(profile)"
         alt=""
         class="size-full object-cover"
       >

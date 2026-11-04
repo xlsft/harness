@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1
 #
-# harness server: one container, three processes under s6-overlay (docs/PLAN.md §1.7):
+# harness server: one container, four processes under s6-overlay (docs/PLAN.md §1.7):
 #   core      Nitro server (packages/core), Node 24, public :3000
 #   postgres  Postgres 17, unix socket /run/postgresql only, data in /data/postgres
 #   searxng   SearXNG under granian, 127.0.0.1:8888 only
+#   objects   Garage, the S3 object store, 127.0.0.1:3900 only, data in /data/objects
 #
 # Build from the repo root:  docker build -f deploy/Dockerfile -t harness/server .
 #
@@ -79,6 +80,27 @@ RUN set -eu; \
     tar -C /s6root -Jxpf /tmp/arch.tar.xz
 
 # ---------------------------------------------------------------------------------------------
+# Garage (object store): the project's static musl binary, pinned and checksum-verified. Upstream publishes no checksum
+# files, so these were computed from the release downloads; why Garage: deploy/README.md.
+FROM debian:${DEBIAN_TAG} AS garage
+ARG GARAGE_VERSION=v2.5.0
+ARG GARAGE_X86_64_SHA256=2ff667286217cd73ebcb1c03af993822365000441dfe31a80cb64c5189a9dea8
+ARG GARAGE_AARCH64_SHA256=69b6040cef428b993500c17dd0d0c1240acf2f3f667b9b05ceba4b9660db4e8c
+ARG TARGETARCH
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+      amd64) arch=x86_64; sum="${GARAGE_X86_64_SHA256}" ;; \
+      arm64) arch=aarch64; sum="${GARAGE_AARCH64_SHA256}" ;; \
+      *) echo "unsupported TARGETARCH ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSLo /tmp/garage "https://garagehq.deuxfleurs.fr/_releases/${GARAGE_VERSION}/${arch}-unknown-linux-musl/garage"; \
+    echo "${sum}  /tmp/garage" | sha256sum -c -; \
+    install -D -m 0755 /tmp/garage /garage/usr/local/bin/garage
+
+# ---------------------------------------------------------------------------------------------
 FROM node:${NODE_VERSION}-trixie-slim AS node
 
 # ---------------------------------------------------------------------------------------------
@@ -101,6 +123,7 @@ RUN set -eux; \
 COPY --from=s6 /s6root/ /
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=searxng-build /opt/searxng /opt/searxng
+COPY --from=garage /garage/ /
 COPY --from=core-build /src/.output /app
 COPY --from=core-build /src/prompts /app/prompts
 COPY deploy/rootfs/ /
@@ -112,6 +135,8 @@ ENV PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:${PATH}" \
     HARNESS_PROMPTS_DIR=/app/prompts \
     HARNESS_PUBLIC_URL=http://localhost:3000 \
     HARNESS_SEARXNG_URL=http://127.0.0.1:8888 \
+    HARNESS_S3_ENDPOINT=http://127.0.0.1:3900 \
+    HARNESS_S3_CREDENTIALS_FILE=/data/objects/s3-credentials \
     DATABASE_URL="postgres://harness@/harness?host=/run/postgresql" \
     PGHOST=/run/postgresql \
     # s6-overlay: wait as long as first-start initdb needs, stop the container if init fails,

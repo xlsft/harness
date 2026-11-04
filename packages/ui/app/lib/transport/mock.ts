@@ -1255,6 +1255,10 @@ export class MockTransport implements SessionTransport {
   async updateViewerPresence() {}
 
   // The mock has no disk: cards fall back to the copy in the call's result.
+  async createObjectTicket() {
+    return { available: false, ticket: '', expiresAt: '', baseUrl: '' }
+  }
+
   async readSentFile(_sessionId: string, path: string): Promise<{ bytes: Uint8Array<ArrayBuffer>, mime: string, sha256: string }> {
     throw new Error(`[not_found] ${path}`)
   }

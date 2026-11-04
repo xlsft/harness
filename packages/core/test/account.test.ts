@@ -138,6 +138,49 @@ describe("profile", () => {
     expect(await code(ts.auth.updateMe({ name: "anon" }))).toBe(Code.Unauthenticated);
   });
 
+  it("keeps avatars in the object store, and moves the ones from before it there", async () => {
+    const { accessToken } = await createUserAndLogin(ts, adminCookie, "store@test.local");
+    const c = ts.as(accessToken).auth;
+    const avatar = dataUrl("png", png(64, 64));
+    let r = await c.updateMe({ image: avatar });
+    expect(r.user!.image).toBe(avatar);
+    const ref = r.user!.imageObject!;
+    expect(ref.mediaType).toBe("image/png");
+    const served = await fetch(`${ts.url}/api/objects/${ref.sha256}`, { headers: { authorization: `Bearer ${accessToken}` } });
+    expect(served.status).toBe(200);
+    expect(served.headers.get("content-type")).toBe("image/png");
+    expect(Buffer.from(await served.arrayBuffer()).equals(png(64, 64))).toBe(true);
+
+    // A new picture replaces the old one in the store too.
+    r = await c.updateMe({ image: dataUrl("png", png(32, 32)) });
+    expect(r.user!.imageObject!.sha256).not.toBe(ref.sha256);
+    expect((await fetch(`${ts.url}/api/objects/${ref.sha256}`, { headers: { authorization: `Bearer ${accessToken}` } })).status).toBe(404);
+
+    // A row from before the store: served as it is, then moved.
+    const { getDb, schema } = await import("../src/db/index.ts");
+    const { eq } = await import("drizzle-orm");
+    const { migrateAvatars } = await import("../src/services/account.ts");
+    const db = getDb();
+    const me = r.user!;
+    await db.update(schema.user).set({ image: avatar }).where(eq(schema.user.id, me.id));
+    let got = await c.getMe({});
+    expect(got.user!.image).toBe(avatar);
+    expect(got.user!.imageObject).toBeUndefined();
+    await migrateAvatars();
+    const row = await db.query.user.findFirst({ where: eq(schema.user.id, me.id) });
+    expect(row!.image).toBe(`object:${ref.sha256}`);
+    got = await c.getMe({});
+    expect(got.user!.image).toBe(avatar);
+    expect(got.user!.imageObject!.sha256).toBe(ref.sha256);
+    // Nothing left to do, nothing broken.
+    await migrateAvatars();
+    expect((await c.getMe({})).user!.image).toBe(avatar);
+
+    await c.updateMe({ image: "" });
+    expect((await c.getMe({})).user!.imageObject).toBeUndefined();
+    expect((await fetch(`${ts.url}/api/objects/${ref.sha256}`, { headers: { authorization: `Bearer ${accessToken}` } })).status).toBe(404);
+  });
+
   it("directory users cannot change their name but can set an avatar", async () => {
     const u = await createUserAndLogin(ts, adminCookie, "dir-user@test.local");
     await linkLdap(u.user!.id, "dir-user");

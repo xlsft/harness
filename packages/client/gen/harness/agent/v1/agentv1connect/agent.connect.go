@@ -345,6 +345,9 @@ const (
 	// AgentServiceGetSessionFileDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionFileDiff RPC.
 	AgentServiceGetSessionFileDiffProcedure = "/harness.agent.v1.AgentService/GetSessionFileDiff"
+	// AgentServiceCreateObjectTicketProcedure is the fully-qualified name of the AgentService's
+	// CreateObjectTicket RPC.
+	AgentServiceCreateObjectTicketProcedure = "/harness.agent.v1.AgentService/CreateObjectTicket"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -616,6 +619,10 @@ type AgentServiceClient interface {
 	ListDiffBases(context.Context, *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error)
 	// One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
 	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
+	// A ticket for reading the object store through this client: GET /objects/<sha256>?ticket=<ticket>. An <img> or a
+	// <video> cannot send the agent token, and frontends never hold server credentials, so the client signs short-lived
+	// read tickets and fetches the bytes with its own. available is false without a server.
+	CreateObjectTicket(context.Context, *connect.Request[v1.CreateObjectTicketRequest]) (*connect.Response[v1.CreateObjectTicketResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1277,6 +1284,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionFileDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		createObjectTicket: connect.NewClient[v1.CreateObjectTicketRequest, v1.CreateObjectTicketResponse](
+			httpClient,
+			baseURL+AgentServiceCreateObjectTicketProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreateObjectTicket")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1390,6 +1403,7 @@ type agentServiceClient struct {
 	setKeepAwake            *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
 	listDiffBases           *connect.Client[v1.ListDiffBasesRequest, v1.ListDiffBasesResponse]
 	getSessionFileDiff      *connect.Client[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse]
+	createObjectTicket      *connect.Client[v1.CreateObjectTicketRequest, v1.CreateObjectTicketResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1932,6 +1946,11 @@ func (c *agentServiceClient) GetSessionFileDiff(ctx context.Context, req *connec
 	return c.getSessionFileDiff.CallUnary(ctx, req)
 }
 
+// CreateObjectTicket calls harness.agent.v1.AgentService.CreateObjectTicket.
+func (c *agentServiceClient) CreateObjectTicket(ctx context.Context, req *connect.Request[v1.CreateObjectTicketRequest]) (*connect.Response[v1.CreateObjectTicketResponse], error) {
+	return c.createObjectTicket.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2201,6 +2220,10 @@ type AgentServiceHandler interface {
 	ListDiffBases(context.Context, *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error)
 	// One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
 	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
+	// A ticket for reading the object store through this client: GET /objects/<sha256>?ticket=<ticket>. An <img> or a
+	// <video> cannot send the agent token, and frontends never hold server credentials, so the client signs short-lived
+	// read tickets and fetches the bytes with its own. available is false without a server.
+	CreateObjectTicket(context.Context, *connect.Request[v1.CreateObjectTicketRequest]) (*connect.Response[v1.CreateObjectTicketResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2858,6 +2881,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionFileDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceCreateObjectTicketHandler := connect.NewUnaryHandler(
+		AgentServiceCreateObjectTicketProcedure,
+		svc.CreateObjectTicket,
+		connect.WithSchema(agentServiceMethods.ByName("CreateObjectTicket")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3076,6 +3105,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceListDiffBasesHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionFileDiffProcedure:
 			agentServiceGetSessionFileDiffHandler.ServeHTTP(w, r)
+		case AgentServiceCreateObjectTicketProcedure:
+			agentServiceCreateObjectTicketHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3515,4 +3546,8 @@ func (UnimplementedAgentServiceHandler) ListDiffBases(context.Context, *connect.
 
 func (UnimplementedAgentServiceHandler) GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionFileDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreateObjectTicket(context.Context, *connect.Request[v1.CreateObjectTicketRequest]) (*connect.Response[v1.CreateObjectTicketResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreateObjectTicket is not implemented"))
 }

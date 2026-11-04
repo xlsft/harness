@@ -7,6 +7,7 @@
 package llmv1
 
 import (
+	v1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -511,9 +512,12 @@ func (*ContentBlock_ToolUse) isContentBlock_Block() {}
 func (*ContentBlock_ToolResult) isContentBlock_Block() {}
 
 type TextBlock struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
-	Cache         bool                   `protobuf:"varint,2,opt,name=cache,proto3" json:"cache,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Text  string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	Cache bool                   `protobuf:"varint,2,opt,name=cache,proto3" json:"cache,omitempty"`
+	// This text stands in for an image or a document in the object store: on what left the session's machine, its bytes
+	// are there. Whatever does not know objects, a model or an older frontend, reads the sentence in text.
+	Object        *v1.ObjectRef `protobuf:"bytes,3,opt,name=object,proto3" json:"object,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -560,6 +564,13 @@ func (x *TextBlock) GetCache() bool {
 		return x.Cache
 	}
 	return false
+}
+
+func (x *TextBlock) GetObject() *v1.ObjectRef {
+	if x != nil {
+		return x.Object
+	}
+	return nil
 }
 
 type ImageBlock struct {
@@ -1173,7 +1184,7 @@ var File_harness_llm_v1_content_proto protoreflect.FileDescriptor
 
 const file_harness_llm_v1_content_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/llm/v1/content.proto\x12\x0eharness.llm.v1\"k\n" +
+	"\x1charness/llm/v1/content.proto\x12\x0eharness.llm.v1\x1a\x1eharness/common/v1/object.proto\"k\n" +
 	"\aMessage\x12(\n" +
 	"\x04role\x18\x01 \x01(\x0e2\x14.harness.llm.v1.RoleR\x04role\x126\n" +
 	"\acontent\x18\x02 \x03(\v2\x1c.harness.llm.v1.ContentBlockR\acontent\"\xcb\x03\n" +
@@ -1186,10 +1197,11 @@ const file_harness_llm_v1_content_proto_rawDesc = "" +
 	"\btool_use\x18\x06 \x01(\v2\x1c.harness.llm.v1.ToolUseBlockH\x00R\atoolUse\x12B\n" +
 	"\vtool_result\x18\a \x01(\v2\x1f.harness.llm.v1.ToolResultBlockH\x00R\n" +
 	"toolResultB\a\n" +
-	"\x05block\"5\n" +
+	"\x05block\"k\n" +
 	"\tTextBlock\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x14\n" +
-	"\x05cache\x18\x02 \x01(\bR\x05cache\"U\n" +
+	"\x05cache\x18\x02 \x01(\bR\x05cache\x124\n" +
+	"\x06object\x18\x03 \x01(\v2\x1c.harness.common.v1.ObjectRefR\x06object\"U\n" +
 	"\n" +
 	"ImageBlock\x12\x1d\n" +
 	"\n" +
@@ -1302,6 +1314,7 @@ var file_harness_llm_v1_content_proto_goTypes = []any{
 	(*ToolChoice)(nil),            // 15: harness.llm.v1.ToolChoice
 	(*Thinking)(nil),              // 16: harness.llm.v1.Thinking
 	(*Usage)(nil),                 // 17: harness.llm.v1.Usage
+	(*v1.ObjectRef)(nil),          // 18: harness.common.v1.ObjectRef
 }
 var file_harness_llm_v1_content_proto_depIdxs = []int32{
 	0,  // 0: harness.llm.v1.Message.role:type_name -> harness.llm.v1.Role
@@ -1313,14 +1326,15 @@ var file_harness_llm_v1_content_proto_depIdxs = []int32{
 	11, // 6: harness.llm.v1.ContentBlock.redacted_thinking:type_name -> harness.llm.v1.RedactedThinkingBlock
 	12, // 7: harness.llm.v1.ContentBlock.tool_use:type_name -> harness.llm.v1.ToolUseBlock
 	13, // 8: harness.llm.v1.ContentBlock.tool_result:type_name -> harness.llm.v1.ToolResultBlock
-	6,  // 9: harness.llm.v1.ToolResultBlock.content:type_name -> harness.llm.v1.ContentBlock
-	3,  // 10: harness.llm.v1.ToolChoice.mode:type_name -> harness.llm.v1.ToolChoice.Mode
-	4,  // 11: harness.llm.v1.Thinking.mode:type_name -> harness.llm.v1.Thinking.Mode
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	18, // 9: harness.llm.v1.TextBlock.object:type_name -> harness.common.v1.ObjectRef
+	6,  // 10: harness.llm.v1.ToolResultBlock.content:type_name -> harness.llm.v1.ContentBlock
+	3,  // 11: harness.llm.v1.ToolChoice.mode:type_name -> harness.llm.v1.ToolChoice.Mode
+	4,  // 12: harness.llm.v1.Thinking.mode:type_name -> harness.llm.v1.Thinking.Mode
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_content_proto_init() }

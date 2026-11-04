@@ -11,8 +11,11 @@ export interface SentFile {
   kind: 'image' | 'svg' | 'html' | 'pdf' | 'markdown' | 'file'
   display: 'inline' | 'attachment'
   sha256: string
-  // The file, base64, when it was small enough to travel with the result: other devices read it from here.
+  // The file, base64, when it was small enough to travel with the result and the server has no object store: other devices
+  // read it from here.
   data?: string
+  // The file went to the object store: other devices read it from there, by sha256.
+  stored?: boolean
 }
 
 export interface Finding {

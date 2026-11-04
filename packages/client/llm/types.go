@@ -35,12 +35,22 @@ type Source struct {
 	Data      string `json:"data"`
 }
 
+// ObjectRef names a file in the server's object store (harness.common.v1.ObjectRef).
+type ObjectRef struct {
+	SHA256    string `json:"sha256"`
+	Size      int64  `json:"size"`
+	MediaType string `json:"media_type,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
 // ContentBlock is a single content block. Only the fields relevant to Type are set.
 type ContentBlock struct {
 	Type string `json:"type"`
 
 	// text
 	Text string `json:"text,omitempty"`
+	// Object: this text stands in for bytes in the object store (transcripts from the server).
+	Object *ObjectRef `json:"object,omitempty"`
 
 	// thinking / redacted_thinking
 	Thinking  string `json:"thinking,omitempty"`

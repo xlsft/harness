@@ -3,6 +3,8 @@
 import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import type { ComputerAccessRequested, ComputerUsePermission, ComputerUseProfile, ComputerUseState } from '~/gen/harness/agent/v1/computer_use_pb'
 import type { ContentBlock } from '~/gen/harness/llm/v1/content_pb'
+import type { ObjectRef as ObjectRefPb } from '~/gen/harness/common/v1/object_pb'
+import type { ObjectRef } from './objects'
 import type { ComputerAccessItem, ComputerPermissionVM, ComputerProfileVM, ComputerTierName, ComputerUseVM, ToolImage } from './types'
 
 export function tierName(t: ComputerAccessTier): ComputerTierName {
@@ -83,10 +85,17 @@ function base64(data: Uint8Array): string {
   return btoa(bin)
 }
 
-// The images of a tool result, as URLs an <img> can show.
+function objectRefVM(r: ObjectRefPb): ObjectRef {
+  return { sha256: r.sha256, size: Number(r.size), mediaType: r.mediaType, name: r.name }
+}
+
+// The images of a tool result. Those on this machine are URLs an <img> can show; those in the object store (a session
+// seen from another device) have `object`: show objectUrl(image.object).
 export function toolImages(blocks: ContentBlock[]): ToolImage[] {
   const out: ToolImage[] = []
   for (const b of blocks) {
+    const object = b.block.case === 'text' ? b.block.value.object : undefined
+    if (object) out.push({ url: '', object: objectRefVM(object) })
     if (b.block.case !== 'image') continue
     out.push({ url: `data:${b.block.value.mediaType || 'image/jpeg'};base64,${base64(b.block.value.data)}` })
   }

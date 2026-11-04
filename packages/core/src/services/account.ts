@@ -4,8 +4,10 @@
  * password hasher, the same primitives its /change-password endpoint uses (that endpoint needs a cookie
  * session, while the apps call with device access tokens).
  *
- * The avatar is Better Auth's `user.image`, stored as a small data URL the client has already resized, so it
- * is returned inline with the profile and needs no separate file serving.
+ * The avatar lives in the object store; Better Auth's `user.image` says which one (`object:<sha256>`). Profiles still
+ * carry it inline as a small data URL the client has already resized, so frontends older than the store keep showing
+ * it; `image_object` names the object for those that read it through the object route. Rows from before the store hold
+ * the data URL itself until migrateAvatars has moved them, and work in the meantime.
  */
 import { and, eq, max, ne } from "drizzle-orm";
 import { getAuth } from "../auth/better-auth.ts";
@@ -14,11 +16,14 @@ import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import { TokenBucketLimiter } from "../lib/rate-limit.ts";
 import { revokeDevice, toPublicUser, type Principal, type PublicUser } from "./devices.ts";
+import { deleteOtherObjects, putObject, readObjectBytes, statObjectOf, usersWithInlineAvatars } from "./objects.ts";
 
 export interface Profile extends PublicUser {
   username: string;
   /** Data URL; "" when none is set. */
   image: string;
+  /** The avatar in the object store; undefined when none is set, or it has not moved there yet. */
+  image_object?: { sha256: string; size: number; media_type: string };
   source: "local" | "ldap";
   created_at: string;
   /** Latest web sign-in; "" when never. */
@@ -55,7 +60,7 @@ async function profileOf(u: UserRow): Promise<Profile> {
   return {
     ...toPublicUser(u),
     username: u.username ?? "",
-    image: u.image ?? "",
+    ...(await avatarOf(u)),
     source: (await isLdapUser(u.id)) ? "ldap" : "local",
     created_at: u.createdAt.toISOString(),
     last_sign_in_at: s?.signIn ? s.signIn.toISOString() : "",
@@ -86,16 +91,74 @@ export async function updateProfile(p: Principal, patch: ProfilePatch): Promise<
     }
   }
   if (patch.image !== undefined) {
-    const image = patch.image === "" ? null : parseAvatar(patch.image);
+    const image = patch.image === "" ? null : await storeAvatar(u.id, parseAvatar(patch.image));
     if (image !== u.image) set.image = image;
   }
   if (!Object.keys(set).length) return profileOf(u);
   const ctx = await getAuth().$context;
   await ctx.internalAdapter.updateUser(u.id, { ...set, updatedAt: new Date() });
+  if (set.image !== undefined) {
+    await deleteOtherObjects(u.id, "avatar", set.image?.slice(OBJECT_PREFIX.length) ?? "").catch((err) => console.error("[harness] removing the previous avatar failed", err));
+  }
   return getProfile(p);
 }
 
 // --- avatar ---------------------------------------------------------------------------------------------
+
+const OBJECT_PREFIX = "object:";
+
+/** Decoded avatars by sha256: profiles are read often, and these never change. Small: one per active user. */
+const avatarCache = new Map<string, string>();
+const AVATAR_CACHE_MAX = 256;
+
+/** Stores a validated data URL and returns the value of `user.image` for it. */
+async function storeAvatar(userId: string, dataUrl: string): Promise<string> {
+  const m = /^data:(image\/[a-z]+);base64,(.+)$/.exec(dataUrl)!;
+  const row = await putObject(userId, Buffer.from(m[2]!, "base64"), { session_id: "", kind: "avatar", name: "avatar", content_type: m[1]! });
+  return OBJECT_PREFIX + row.sha256;
+}
+
+/** The profile's avatar fields. A store that cannot be read costs the picture, not the profile. */
+async function avatarOf(u: UserRow): Promise<Pick<Profile, "image" | "image_object">> {
+  const image = u.image ?? "";
+  if (!image.startsWith(OBJECT_PREFIX)) return { image };
+  const sha256 = image.slice(OBJECT_PREFIX.length);
+  try {
+    const row = await statObjectOf(u.id, sha256);
+    if (!row) return { image: "" };
+    let url = avatarCache.get(`${u.id}/${sha256}`);
+    if (!url) {
+      const bytes = await readObjectBytes(u.id, sha256);
+      if (!bytes) return { image: "" };
+      url = `data:${row.contentType};base64,${Buffer.from(bytes).toString("base64")}`;
+      if (avatarCache.size >= AVATAR_CACHE_MAX) avatarCache.clear();
+      avatarCache.set(`${u.id}/${sha256}`, url);
+    }
+    return { image: url, image_object: { sha256, size: row.size, media_type: row.contentType } };
+  } catch (err) {
+    console.error("[harness] reading an avatar failed", err);
+    return { image: "" };
+  }
+}
+
+/**
+ * Moves avatars still held in the user table into the store. Runs at startup and with every sweep until none is left, so
+ * a store that was down, or a database restored from before the store, catches up by itself. A value that does not
+ * pass today's checks stays as it is: it keeps working, it is just not moved.
+ */
+export async function migrateAvatars(): Promise<void> {
+  const db = getDb();
+  for (const u of await usersWithInlineAvatars()) {
+    let valid: string;
+    try {
+      valid = parseAvatar(u.image);
+    } catch {
+      continue;
+    }
+    const image = await storeAvatar(u.id, valid);
+    await db.update(schema.user).set({ image }).where(eq(schema.user.id, u.id));
+  }
+}
 
 type ImageType = "png" | "jpeg" | "webp";
 

@@ -50,7 +50,7 @@
 | A7 | UI | One Nuxt app `packages/ui` for desktop and mobile (and web) with a `SessionTransport`: `ipc` (desktop → local Go client over stdio), `relay` (web/mobile → server → client on the machine) | All GUI clients look the same, as in CC |
 | A8 | Canonical message model | **Anthropic-like content blocks** (`text`, `thinking`+`signature`, `tool_use`, `tool_result`, `image`) — in both the client and the gateway API | Reducing rich to poor is easier. tool_use/tool_result pairs and thinking signatures are respected |
 | A9 | Auth | **Better Auth** on the server (login, password, optional OAuth and 2FA, roles). `harness login` — device-flow → device token (revocable) + short-lived access token with refresh | Ordinary client login, like `claude login` |
-| A10 | Storage | **Server:** Postgres (Drizzle, pg dialect) running inside the single harness container, data in the `/data` volume; an external `DATABASE_URL` is optional; tests use PGlite. Attachments in `/data`. **Client:** cache in `~/.harness/` + local CC-format JSONL (offline writes, synced to the server) | One container, nothing to configure, a real Postgres under the hood. A session is not lost when the connection drops |
+| A10 | Storage | **Server:** Postgres (Drizzle, pg dialect) running inside the single harness container, data in the `/data` volume; an external `DATABASE_URL` is optional; tests use PGlite. User files in the object store (Garage, same container, §1.7). **Client:** cache in `~/.harness/` + local CC-format JSONL (offline writes, synced to the server) | One container, nothing to configure, a real Postgres under the hood. A session is not lost when the connection drops |
 | A11 | CC compatibility | Project `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json` are read from the repository. User-level `~/.claude` — a one-time **import to the server** (`harness import claude`) | The project is portable. After import, the user level lives on the server |
 | A12 | Languages and distribution | **Server** — TypeScript on Nitro v3. **Client and CLI** — Go: a single static binary for all OSes and architectures (cross-compile without CGO). The CLI imports the client as a Go package. Desktop and mobile use the client as a sidecar binary | One file is easy to install and push over SSH, fast startup, solid process/pty primitives. The charm.land toolchain gives a CC-level TUI |
 | A13 | Legal | Clean-room: compatible formats and protocols — yes, CC code and prompts verbatim — no | See feature-parity §17–18 |
@@ -176,10 +176,11 @@ Everything runs in **one image** under the [s6-overlay](https://github.com/just-
 | `core` | Nitro server: API (Connect), web UI, relay | `:3000` (public); optional h2c gRPC port |
 | `postgres` | Database; `initdb` into `/data/postgres` on first start, migrations applied by core | unix socket only |
 | `searxng` | Default web search provider | `127.0.0.1` only |
+| `objects` | Object store (Garage, S3 API): user files, core is its only client | `127.0.0.1` only |
 
 - s6 starts Postgres first, waits for readiness, then core. SearXNG is independent: search reports itself unhealthy until it is up. Every process restarts on crash. On SIGTERM, core drains, then Postgres shuts down cleanly.
-- All state lives in one volume: `/data/{postgres,attachments,secret}`. A backup is the volume, or `pg_dump` via `docker exec`.
-- Overrides: set `DATABASE_URL` to use an external Postgres (the internal one is then not started), and `HARNESS_SEARXNG_URL` to point at an external SearXNG.
+- All state lives in one volume: `/data/{postgres,objects,core,searxng}`. A backup is the volume, or `pg_dump` plus the object store via `docker exec` (`deploy/README.md`).
+- Overrides: set `DATABASE_URL` to use an external Postgres (the internal one is then not started), `HARNESS_SEARXNG_URL` to point at an external SearXNG, and `HARNESS_S3_ENDPOINT` to use an external S3.
 
 ```bash
 docker run -d --name harness -p 3000:3000 -v harness-data:/data \
@@ -321,7 +322,7 @@ Order: **core (`core` + `client`) → frontends (`cli`, `ui`) → deployment.** 
 - Admin screens: providers, models, prompt registry, users, policies, usage.
 
 ### M4 — Deployment and advanced
-- Single-container image (s6-overlay: core + Postgres + SearXNG, see §1.7), backups, client updates (binary self-update, auto-update on SSH hosts).
+- Single-container image (s6-overlay: core + Postgres + SearXNG + object store, see §1.7), backups, client updates (binary self-update, auto-update on SSH hosts).
 - **Code hosts (`VcsService`):** pluggable providers. Server providers: GitHub (GitHub App, one-click manifest registration, webhooks) and GitLab (gitlab.com and self-managed, OAuth app or access token, webhooks). Device providers: `gh` and `glab` on the client, polling PR/CI for linked sessions and uploading snapshots. PR/MR and CI status on sessions on every device, push on CI failure / review / merge, create/merge PRs through the server, auto-fix of CI failures and review comments via the relay or a daemon-spawned session.
 - Git panels, worktrees, sandbox runtime, Monitor/Cron, `SendMessage`, auto memory, plugins/marketplace, LSP, prompt A/B.
 - **Artifacts (server-side):** publish/update pages from sessions, comments, artifact databases and assets, artifact types (including a design canvas); rendered in the UI's artifact pane and artifacts page.

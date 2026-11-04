@@ -13,7 +13,7 @@ export const routes: RouteDef[] = [
 
   // Connect services (proto/harness/**): DeviceAuthService, AdminService, GatewayService, ProviderService, UsageService,
   // PromptService, SyncService, SearchService, SpeechService, DecisionService, McpService, VcsService,
-  // RelayService, ProviderLimitsService
+  // RelayService, ProviderLimitsService, ObjectsService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.AdminService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
@@ -28,6 +28,10 @@ export const routes: RouteDef[] = [
   { route: "/harness.relay.v1.RelayService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.vcs.v1.VcsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.ProviderLimitsService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.objects.v1.ObjectsService/**", handler: "./src/http/routes/rpc.ts" },
+
+  // Object bytes (ObjectsService writes): ranges, safe content types
+  { route: "/api/objects/:sha256", handler: "./src/http/routes/object.ts" },
 
   // Better Auth (web sessions, admin plugin) and the device approval page stay plain HTTP
   { route: "/api/auth/**", handler: "./src/http/routes/better-auth.ts" },

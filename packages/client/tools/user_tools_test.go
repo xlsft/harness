@@ -407,3 +407,49 @@ func TestReportFindingsValidation(t *testing.T) {
 		t.Fatalf("%s", r.Content[0].Text)
 	}
 }
+
+type fakeObjectStore struct {
+	available bool
+	refuse    string
+	added     []string
+}
+
+func (f *fakeObjectStore) Available() bool { return f.available }
+
+func (f *fakeObjectStore) AddSentFile(sessionID, path, mediaType string, data []byte) bool {
+	if strings.HasSuffix(path, f.refuse) && f.refuse != "" {
+		return false
+	}
+	f.added = append(f.added, sessionID+"|"+filepath.Base(path)+"|"+mediaType)
+	return true
+}
+
+func TestSendUserFileGoesToTheObjectStore(t *testing.T) {
+	env := newEnv(t)
+	env.SetHost(&fakeHost{ia: &notifyIA{connected: true}})
+	env.SessionID = "s1"
+	write(t, filepath.Join(env.Cwd, "large.png"), strings.Repeat("x", maxSentFilesSynced+1))
+	write(t, filepath.Join(env.Cwd, ".env"), "SECRET=1")
+	store := &fakeObjectStore{available: true, refuse: ".env"}
+	env.Objects = store
+	r := call(t, env, &SendUserFile{}, map[string]any{"files": []string{"large.png", ".env"}, "status": "normal"})
+	files := structuredOf(t, r)["files"].([]any)
+	large, secret := files[0].(map[string]any), files[1].(map[string]any)
+	if large["stored"] != true || large["data"] != nil || secret["stored"] != nil || secret["data"] != nil {
+		t.Fatalf("%v", files)
+	}
+	if len(store.added) != 1 || store.added[0] != "s1|large.png|image/png" {
+		t.Fatalf("%v", store.added)
+	}
+	if text := r.Content[0].Text; strings.Contains(text, "large.png") || !strings.Contains(text, "this machine only: .env") {
+		t.Fatalf("only what stayed local is named: %s", text)
+	}
+
+	// A server without a store: as before.
+	env.Objects = &fakeObjectStore{}
+	write(t, filepath.Join(env.Cwd, "small.txt"), "hello")
+	f := structuredOf(t, call(t, env, &SendUserFile{}, map[string]any{"files": []string{"small.txt"}, "status": "normal"}))["files"].([]any)[0].(map[string]any)
+	if f["data"] == nil || f["stored"] != nil {
+		t.Fatalf("%v", f)
+	}
+}

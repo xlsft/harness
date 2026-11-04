@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package harness.auth.v1;
 
+import "harness/common/v1/object.proto";
+
 // Device authorization for clients (CLI, desktop, SSH runners), modeled on RFC 8628.
 // Web sign-in uses regular Better Auth sessions and is not part of this service.
 //
@@ -157,6 +159,9 @@ message User {
   // RFC 3339, UTC. last_sign_in_at is the latest web sign-in (devices are approved from one); empty when never.
   string created_at = 8;
   string last_sign_in_at = 9;
+  // The avatar in the object store, set with image once it has moved there: a frontend reads it through the object
+  // route. image stays for frontends older than the store.
+  harness.common.v1.ObjectRef image_object = 10;
 }
 
 enum UserSource {

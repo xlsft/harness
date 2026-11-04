@@ -2,6 +2,7 @@
 // Sessions sidebar (Main.dc.html): window row, wordmark, primary nav, sessions grouped by project (sessions
 // without a folder under Chats, first), account footer.
 // Sub-sessions (forks) are listed under their parent with an └ connector; a parent row folds them (▾/▸).
+import { avatarUrl } from '~/lib/account/types'
 import { isDesktop } from '~/lib/desktop'
 import type { SessionState } from '~/lib/session/types'
 import { groupSessions, limitTree, sessionTree } from '~/lib/session/tree'
@@ -337,7 +338,7 @@ const nav = [
     <template #footer>
       <img
         v-if="profile?.image"
-        :src="profile.image"
+        :src="avatarUrl(profile)"
         alt=""
         class="size-[22px] shrink-0 rounded-chip object-cover"
       >

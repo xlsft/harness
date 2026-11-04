@@ -19,6 +19,8 @@ import type { PublicUser } from "./devices.ts";
 export interface SpendLimits {
   daily_usd?: number;
   monthly_usd?: number;
+  /** Object store quota in bytes (src/services/objects.ts), not a spend limit, but set the same way. */
+  objects_bytes?: number;
 }
 
 export interface QuotaConfig {
@@ -46,13 +48,15 @@ function validLimits(v: unknown, field: string): SpendLimits | undefined {
   if (typeof v !== "object" || Array.isArray(v)) throw new ApiError("invalid_request", `${field} must be an object`);
   const o = v as Record<string, unknown>;
   for (const k of Object.keys(o)) {
-    if (k !== "daily_usd" && k !== "monthly_usd") throw new ApiError("invalid_request", `Unknown field ${field}.${k}`);
+    if (k !== "daily_usd" && k !== "monthly_usd" && k !== "objects_bytes") throw new ApiError("invalid_request", `Unknown field ${field}.${k}`);
   }
   const out: SpendLimits = {};
   const d = validLimit(o.daily_usd, `${field}.daily_usd`);
   const m = validLimit(o.monthly_usd, `${field}.monthly_usd`);
   if (d !== undefined) out.daily_usd = d;
   if (m !== undefined) out.monthly_usd = m;
+  const b = validLimit(o.objects_bytes, `${field}.objects_bytes`);
+  if (b !== undefined) out.objects_bytes = b;
   return Object.keys(out).length ? out : undefined;
 }
 
@@ -199,4 +203,10 @@ export async function enforceQuotas(user: PublicUser, sessionId: string | undefi
       throw new ApiError("quota_exceeded", `Session budget reached (${fmt(spent)} of ${fmt(budget)}); start a new session to continue`);
     }
   }
+}
+
+/** The user's object store quota in bytes: their own value, else their role's, else `fallback` (negative: unlimited). */
+export async function objectQuotaFor(user: Pick<PublicUser, "id" | "role">, fallback: number): Promise<number> {
+  const cfg = await getQuotaConfig();
+  return cfg.users[user.id]?.objects_bytes ?? cfg.roles[user.role]?.objects_bytes ?? fallback;
 }

@@ -157,7 +157,9 @@ var (
 //     Connect "unauthenticated" error otherwise). The terminal WebSocket
 //     (terminal.SocketPath) and the browser WebSocket (browser.SocketPath) are
 //     let through without it: browsers cannot set headers on a WebSocket, so
-//     they check a one-time ticket instead.
+//     they check a one-time ticket instead. So is the object route
+//     (ObjectProxyPath), for the same reason of an <img> or a <video>: it
+//     checks a read ticket.
 func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 	origins := map[string]bool{}
 	for _, o := range opts.AllowedOrigins {
@@ -217,7 +219,7 @@ func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 				return
 			}
 		}
-		if r.URL.Path != terminal.SocketPath && r.URL.Path != browser.SocketPath && !tokenMatches(r.Header.Get("Authorization"), want) {
+		if r.URL.Path != terminal.SocketPath && r.URL.Path != browser.SocketPath && !strings.HasPrefix(r.URL.Path, ObjectProxyPath) && !tokenMatches(r.Header.Get("Authorization"), want) {
 			w.Header().Set("WWW-Authenticate", `Bearer realm="harness-client"`)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)

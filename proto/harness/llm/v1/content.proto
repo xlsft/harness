@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package harness.llm.v1;
 
+import "harness/common/v1/object.proto";
+
 // Canonical conversation model, shaped after the Anthropic Messages API.
 // The server translates it to each upstream provider; clients see one format for every model.
 
@@ -35,6 +37,9 @@ message ContentBlock {
 message TextBlock {
   string text = 1;
   bool cache = 2;
+  // This text stands in for an image or a document in the object store: on what left the session's machine, its bytes
+  // are there. Whatever does not know objects, a model or an older frontend, reads the sentence in text.
+  harness.common.v1.ObjectRef object = 3;
 }
 
 message ImageBlock {

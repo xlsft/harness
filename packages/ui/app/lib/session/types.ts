@@ -1,5 +1,6 @@
 // View model of one session, built from harness.agent.v1 SessionEvents by the reducer (./reducer.ts).
 // It is plain data (no protobuf messages) so it can live in a Pinia store and be rendered directly.
+import type { ObjectRef } from './objects'
 import type { BrowserActionVM } from '~/lib/browser/types'
 import type { AcpSessionState } from '~/gen/harness/agent/v1/acp_pb'
 
@@ -44,6 +45,8 @@ export interface Attachment {
   name: string
   mediaType: string
   size: number
+  // In the object store (a message seen from another device).
+  object?: ObjectRef
 }
 
 export interface UserItem {
@@ -151,7 +154,9 @@ export interface ToolItem {
 }
 
 export interface ToolImage {
+  // '' when it is in the object store: see `object`.
   url: string
+  object?: ObjectRef
 }
 
 export type ComputerTierName = 'blocked' | 'read' | 'click' | 'full'

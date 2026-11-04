@@ -130,6 +130,8 @@ type Env struct {
 	AgentID string
 	// ReadDenied reports whether a permission rule denies reading path (nil: none does).
 	ReadDenied func(path string) bool
+	// Objects is the object store (nil without a server).
+	Objects ObjectStore
 
 	push     pushThrottle
 	findings findingsState

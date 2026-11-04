@@ -85,6 +85,8 @@ type Server struct {
 	observer func(sessionID string)
 	// Core, when set, forwards the settings screens' server calls (CoreProxy).
 	Core *CoreProxy
+	// Objects, when set, serves the object store's bytes to frontends (ObjectProxy).
+	Objects *ObjectProxy
 
 	// DeviceID is this machine's device id (dev_...): sessions the server lists for another device are remote
 	// (remote.go). Empty when unknown; then only the local transcripts decide.
@@ -225,6 +227,9 @@ func (s *Server) mux() *http.ServeMux {
 	mux.Handle(path, h)
 	if s.Core != nil {
 		s.Core.register(mux)
+	}
+	if s.Objects != nil {
+		mux.Handle(ObjectProxyPath, s.Objects)
 	}
 	return mux
 }

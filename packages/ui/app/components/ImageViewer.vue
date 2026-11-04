@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Every image the session's tools returned, one at a time over the whole window: a caption saying what produced it,
 // the arrows and arrow keys walk through them, Esc or a click outside the image closes.
+import { imageSrc } from '~/lib/session/objects'
 import type { SessionState, ToolItem } from '~/lib/session/types'
 
 const props = defineProps<{ session: SessionState }>()
@@ -8,7 +9,7 @@ const { url, close } = useImageViewer()
 
 const images = computed(() => props.session.items
   .filter((i): i is ToolItem => i.kind === 'tool' && !!i.images?.length)
-  .flatMap(t => t.images!.map(img => ({ url: img.url, caption: toolLabel(t) || t.name }))))
+  .flatMap(t => t.images!.map(img => ({ url: imageSrc(img), caption: toolLabel(t) || t.name }))))
 const at = computed(() => images.value.findIndex(i => i.url === url.value))
 const current = computed(() => images.value[at.value])
 

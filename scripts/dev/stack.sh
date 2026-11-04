@@ -8,6 +8,10 @@
 #   scripts/dev/stack.sh stop   # stop the stack started by this script
 #
 # State lives in packages/core/.data-dev (server) and .dev/home (client), both git-ignored.
+#
+# Object store: Garage publishes Linux binaries only, so instead of a fourth process core uses its file backend behind the
+# same interface (packages/core/.data-dev/objects). To try a real S3, export HARNESS_S3_ENDPOINT, HARNESS_S3_ACCESS_KEY and
+# HARNESS_S3_SECRET_KEY before starting, for example against the image's Garage (deploy/README.md).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -89,4 +93,5 @@ log "ready"
 echo "  server:   $URL  (admin: $ADMIN_EMAIL, password in .dev/admin-password)"
 echo "  client:   HARNESS_HOME=$DEV/home HARNESS_KEYRING=0 $DEV/harness-client -p \"...\" --model <id>"
 echo "  models:   $("$DEV/harness-client" whoami >/dev/null && curl -fsS -b "$JAR" "$URL/api/admin/models" | jq -r '[.models[]?.id // .[]?.id] | join(", ")' 2>/dev/null || echo '?')"
+echo "  objects:  ${HARNESS_S3_ENDPOINT:-files in packages/core/.data-dev/objects (dev fallback)}"
 echo "  stop:     scripts/dev/stack.sh stop"

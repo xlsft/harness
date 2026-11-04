@@ -2,6 +2,7 @@
 // Tool calls in a row (one or more), with what the model said between them, folded into one line: the current action and
 // the time while it runs, what was done once it is over. Open, a list: a row per call (expands into its card) and a
 // line per remark (expands in place). Ctrl+O (verbose) opens them all.
+import { imageSrc } from '~/lib/session/objects'
 import type { ToolItem } from '~/lib/session/types'
 
 export type ClusterEntry
@@ -17,7 +18,10 @@ const notes = ref<Record<string, boolean>>({})
 
 const tools = computed(() => props.entries.flatMap(e => e.kind === 'tool' ? [e.tool] : []))
 // The last image the group's tools returned: shown on the line, it opens the viewer.
-const lastImage = computed(() => tools.value.flatMap(t => t.images ?? []).at(-1))
+const lastImage = computed(() => {
+  const img = tools.value.flatMap(t => t.images ?? []).at(-1)
+  return img && imageSrc(img)
+})
 const { open: openImage } = useImageViewer()
 const current = computed(() => tools.value.findLast(t => t.status === 'running'))
 const failed = computed(() => tools.value.filter(t => t.status === 'error').length)
@@ -89,10 +93,10 @@ const time = computed(() => {
         type="button"
         aria-label="Open image"
         class="-my-1 shrink-0"
-        @click="openImage(lastImage.url)"
+        @click="openImage(lastImage)"
       >
         <img
-          :src="lastImage.url"
+          :src="lastImage"
           alt=""
           class="h-7 w-12 border border-default object-cover"
         >

@@ -7,6 +7,7 @@
 package authv1
 
 import (
+	v1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -1149,8 +1150,11 @@ type User struct {
 	Image  string     `protobuf:"bytes,6,opt,name=image,proto3" json:"image,omitempty"`
 	Source UserSource `protobuf:"varint,7,opt,name=source,proto3,enum=harness.auth.v1.UserSource" json:"source,omitempty"`
 	// RFC 3339, UTC. last_sign_in_at is the latest web sign-in (devices are approved from one); empty when never.
-	CreatedAt     string `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	LastSignInAt  string `protobuf:"bytes,9,opt,name=last_sign_in_at,json=lastSignInAt,proto3" json:"last_sign_in_at,omitempty"`
+	CreatedAt    string `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LastSignInAt string `protobuf:"bytes,9,opt,name=last_sign_in_at,json=lastSignInAt,proto3" json:"last_sign_in_at,omitempty"`
+	// The avatar in the object store, set with image once it has moved there: a frontend reads it through the object
+	// route. image stays for frontends older than the store.
+	ImageObject   *v1.ObjectRef `protobuf:"bytes,10,opt,name=image_object,json=imageObject,proto3" json:"image_object,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1246,6 +1250,13 @@ func (x *User) GetLastSignInAt() string {
 		return x.LastSignInAt
 	}
 	return ""
+}
+
+func (x *User) GetImageObject() *v1.ObjectRef {
+	if x != nil {
+		return x.ImageObject
+	}
+	return nil
 }
 
 type Device struct {
@@ -1355,7 +1366,7 @@ var File_harness_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x1aharness/auth/v1/auth.proto\x12\x0fharness.auth.v1\"-\n" +
+	"\x1aharness/auth/v1/auth.proto\x12\x0fharness.auth.v1\x1a\x1eharness/common/v1/object.proto\"-\n" +
 	"\x12ListDevicesRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"H\n" +
 	"\x13ListDevicesResponse\x121\n" +
@@ -1420,7 +1431,7 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\x15revoke_other_sessions\x18\x03 \x01(\bR\x13revokeOtherSessions\"\x18\n" +
 	"\x16ChangePasswordResponse\"\x0f\n" +
 	"\rLogoutRequest\"\x10\n" +
-	"\x0eLogoutResponse\"\xda\x02\n" +
+	"\x0eLogoutResponse\"\x9b\x03\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -1431,7 +1442,9 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\x06source\x18\a \x01(\x0e2\x1b.harness.auth.v1.UserSourceR\x06source\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\b \x01(\tR\tcreatedAt\x12%\n" +
-	"\x0flast_sign_in_at\x18\t \x01(\tR\flastSignInAt\";\n" +
+	"\x0flast_sign_in_at\x18\t \x01(\tR\flastSignInAt\x12?\n" +
+	"\fimage_object\x18\n" +
+	" \x01(\v2\x1c.harness.common.v1.ObjectRefR\vimageObject\";\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tROLE_USER\x10\x01\x12\x0e\n" +
@@ -1505,6 +1518,7 @@ var file_harness_auth_v1_auth_proto_goTypes = []any{
 	(*LogoutResponse)(nil),             // 21: harness.auth.v1.LogoutResponse
 	(*User)(nil),                       // 22: harness.auth.v1.User
 	(*Device)(nil),                     // 23: harness.auth.v1.Device
+	(*v1.ObjectRef)(nil),               // 24: harness.common.v1.ObjectRef
 }
 var file_harness_auth_v1_auth_proto_depIdxs = []int32{
 	23, // 0: harness.auth.v1.ListDevicesResponse.devices:type_name -> harness.auth.v1.Device
@@ -1516,29 +1530,30 @@ var file_harness_auth_v1_auth_proto_depIdxs = []int32{
 	22, // 6: harness.auth.v1.UpdateMeResponse.user:type_name -> harness.auth.v1.User
 	2,  // 7: harness.auth.v1.User.role:type_name -> harness.auth.v1.User.Role
 	0,  // 8: harness.auth.v1.User.source:type_name -> harness.auth.v1.UserSource
-	7,  // 9: harness.auth.v1.DeviceAuthService.StartDeviceAuth:input_type -> harness.auth.v1.StartDeviceAuthRequest
-	9,  // 10: harness.auth.v1.DeviceAuthService.PollDeviceAuth:input_type -> harness.auth.v1.PollDeviceAuthRequest
-	12, // 11: harness.auth.v1.DeviceAuthService.RefreshAccessToken:input_type -> harness.auth.v1.RefreshAccessTokenRequest
-	14, // 12: harness.auth.v1.DeviceAuthService.GetMe:input_type -> harness.auth.v1.GetMeRequest
-	16, // 13: harness.auth.v1.DeviceAuthService.UpdateMe:input_type -> harness.auth.v1.UpdateMeRequest
-	18, // 14: harness.auth.v1.DeviceAuthService.ChangePassword:input_type -> harness.auth.v1.ChangePasswordRequest
-	20, // 15: harness.auth.v1.DeviceAuthService.Logout:input_type -> harness.auth.v1.LogoutRequest
-	3,  // 16: harness.auth.v1.DeviceAuthService.ListDevices:input_type -> harness.auth.v1.ListDevicesRequest
-	5,  // 17: harness.auth.v1.DeviceAuthService.RevokeDevice:input_type -> harness.auth.v1.RevokeDeviceRequest
-	8,  // 18: harness.auth.v1.DeviceAuthService.StartDeviceAuth:output_type -> harness.auth.v1.StartDeviceAuthResponse
-	10, // 19: harness.auth.v1.DeviceAuthService.PollDeviceAuth:output_type -> harness.auth.v1.PollDeviceAuthResponse
-	13, // 20: harness.auth.v1.DeviceAuthService.RefreshAccessToken:output_type -> harness.auth.v1.RefreshAccessTokenResponse
-	15, // 21: harness.auth.v1.DeviceAuthService.GetMe:output_type -> harness.auth.v1.GetMeResponse
-	17, // 22: harness.auth.v1.DeviceAuthService.UpdateMe:output_type -> harness.auth.v1.UpdateMeResponse
-	19, // 23: harness.auth.v1.DeviceAuthService.ChangePassword:output_type -> harness.auth.v1.ChangePasswordResponse
-	21, // 24: harness.auth.v1.DeviceAuthService.Logout:output_type -> harness.auth.v1.LogoutResponse
-	4,  // 25: harness.auth.v1.DeviceAuthService.ListDevices:output_type -> harness.auth.v1.ListDevicesResponse
-	6,  // 26: harness.auth.v1.DeviceAuthService.RevokeDevice:output_type -> harness.auth.v1.RevokeDeviceResponse
-	18, // [18:27] is the sub-list for method output_type
-	9,  // [9:18] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	24, // 9: harness.auth.v1.User.image_object:type_name -> harness.common.v1.ObjectRef
+	7,  // 10: harness.auth.v1.DeviceAuthService.StartDeviceAuth:input_type -> harness.auth.v1.StartDeviceAuthRequest
+	9,  // 11: harness.auth.v1.DeviceAuthService.PollDeviceAuth:input_type -> harness.auth.v1.PollDeviceAuthRequest
+	12, // 12: harness.auth.v1.DeviceAuthService.RefreshAccessToken:input_type -> harness.auth.v1.RefreshAccessTokenRequest
+	14, // 13: harness.auth.v1.DeviceAuthService.GetMe:input_type -> harness.auth.v1.GetMeRequest
+	16, // 14: harness.auth.v1.DeviceAuthService.UpdateMe:input_type -> harness.auth.v1.UpdateMeRequest
+	18, // 15: harness.auth.v1.DeviceAuthService.ChangePassword:input_type -> harness.auth.v1.ChangePasswordRequest
+	20, // 16: harness.auth.v1.DeviceAuthService.Logout:input_type -> harness.auth.v1.LogoutRequest
+	3,  // 17: harness.auth.v1.DeviceAuthService.ListDevices:input_type -> harness.auth.v1.ListDevicesRequest
+	5,  // 18: harness.auth.v1.DeviceAuthService.RevokeDevice:input_type -> harness.auth.v1.RevokeDeviceRequest
+	8,  // 19: harness.auth.v1.DeviceAuthService.StartDeviceAuth:output_type -> harness.auth.v1.StartDeviceAuthResponse
+	10, // 20: harness.auth.v1.DeviceAuthService.PollDeviceAuth:output_type -> harness.auth.v1.PollDeviceAuthResponse
+	13, // 21: harness.auth.v1.DeviceAuthService.RefreshAccessToken:output_type -> harness.auth.v1.RefreshAccessTokenResponse
+	15, // 22: harness.auth.v1.DeviceAuthService.GetMe:output_type -> harness.auth.v1.GetMeResponse
+	17, // 23: harness.auth.v1.DeviceAuthService.UpdateMe:output_type -> harness.auth.v1.UpdateMeResponse
+	19, // 24: harness.auth.v1.DeviceAuthService.ChangePassword:output_type -> harness.auth.v1.ChangePasswordResponse
+	21, // 25: harness.auth.v1.DeviceAuthService.Logout:output_type -> harness.auth.v1.LogoutResponse
+	4,  // 26: harness.auth.v1.DeviceAuthService.ListDevices:output_type -> harness.auth.v1.ListDevicesResponse
+	6,  // 27: harness.auth.v1.DeviceAuthService.RevokeDevice:output_type -> harness.auth.v1.RevokeDeviceResponse
+	19, // [19:28] is the sub-list for method output_type
+	10, // [10:19] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_harness_auth_v1_auth_proto_init() }

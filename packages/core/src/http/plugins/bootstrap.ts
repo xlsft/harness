@@ -2,6 +2,8 @@ import { definePlugin } from "nitro";
 import { bootstrap } from "../../bootstrap.ts";
 import { closeDb } from "../../db/index.ts";
 import { startH2cServer } from "../../rpc/h2c.ts";
+import { migrateAvatars } from "../../services/account.ts";
+import { startObjectSweep } from "../../services/objects.ts";
 
 export default definePlugin(async (nitroApp) => {
   // Graceful shutdown (SIGTERM/SIGINT): end the pg pool, or close PGlite so its data dir is left clean.
@@ -10,6 +12,8 @@ export default definePlugin(async (nitroApp) => {
     console.error("[harness] bootstrap failed", err);
     process.exit(1);
   });
+  // Moving avatars into the store and the sweep run in the background: a store that is still starting delays neither.
+  startObjectSweep(migrateAvatars);
   const grpcPort = process.env.HARNESS_GRPC_PORT;
   if (grpcPort) {
     await startH2cServer(Number(grpcPort));

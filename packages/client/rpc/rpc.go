@@ -228,6 +228,8 @@ func httpStatus(c connect.Code) int {
 		return 503
 	case connect.CodeFailedPrecondition:
 		return 412
+	case connect.CodeUnimplemented:
+		return 501
 	}
 	return 500
 }

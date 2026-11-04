@@ -1,6 +1,6 @@
 #!/command/with-contenv sh
 # One-shot, runs as root once per container start, before any long-running service:
-# lays out /data, fixes ownership, initializes the Postgres cluster and the SearXNG secret.
+# lays out /data, fixes ownership, initializes the Postgres cluster and the secrets of SearXNG and the object store.
 set -eu
 LOG_TAG=init
 . /etc/s6-overlay/scripts/lib.sh
@@ -46,4 +46,26 @@ if internal_searxng; then
   fi
 else
   log "HARNESS_SEARXNG_URL points at an external SearXNG; the internal one stays down"
+fi
+
+if internal_objects; then
+  ensure_dir /data/objects harness:harness 0750
+  # Generated once and never printed. Only Garage and core read them; nothing reaches 127.0.0.1:3900 from outside.
+  if [ ! -s /data/objects/rpc_secret ]; then
+    umask 077
+    od -An -tx1 -N32 /dev/urandom | tr -d ' \n' >/data/objects/rpc_secret
+    chown harness:harness /data/objects/rpc_secret
+  fi
+  if [ ! -s /data/objects/s3-credentials ]; then
+    log "generating the object store credentials"
+    umask 077
+    {
+      printf 'GK%s ' "$(od -An -tx1 -N16 /dev/urandom | tr -d ' \n')"
+      od -An -tx1 -N32 /dev/urandom | tr -d ' \n'
+      printf '\n'
+    } >/data/objects/s3-credentials
+    chown harness:harness /data/objects/s3-credentials
+  fi
+else
+  log "HARNESS_S3_ENDPOINT does not point at the internal object store; it stays down"
 fi
