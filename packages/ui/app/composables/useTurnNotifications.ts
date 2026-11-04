@@ -14,7 +14,7 @@ export function useTurnNotifications() {
     const prev = new Map(before ?? [])
     for (const [id, status] of now) {
       const was = prev.get(id)
-      if (!was || was === status || document.hasFocus()) continue
+      if (!store.deviceSettings.notifications || !was || was === status || document.hasFocus()) continue
       const s = store.sessions[id] as SessionState
       const body = status === 'needs_input'
         ? 'Needs your input'

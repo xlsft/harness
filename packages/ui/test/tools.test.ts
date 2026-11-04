@@ -1,9 +1,51 @@
 import { describe, expect, it } from 'vitest'
 import type { ToolItem } from '~/lib/session/types'
+import { keepAwakeAvailable } from '~/utils/keepAwake'
 import { toolIcon, toolMeta, toolTarget } from '~/utils/tools'
 
 const tool = (name: string, input: Record<string, unknown>, result: Record<string, unknown> | null = null, status: ToolItem['status'] = 'ok'): ToolItem => ({
   kind: 'tool', id: 't', name, input, summary: '', status, output: '', result, resultSummary: '', durationMs: 900, startedAt: 0, messageId: 'm', grouped: false
+})
+
+describe('who gets the keep-awake switch', () => {
+  const local = { remote: false, remoteControllable: false, relayEnabled: false }
+  const web = { desktop: false, controlling: false }
+  it('shows in the desktop app', () => {
+    expect(keepAwakeAvailable(local, { ...web, desktop: true })).toBe(true)
+  })
+  it('shows on the web only for a session on the relay', () => {
+    expect(keepAwakeAvailable(local, web)).toBe(false)
+    expect(keepAwakeAvailable({ ...local, relayEnabled: true }, web)).toBe(true)
+  })
+  it('shows for a session of another machine only while driving it through the relay', () => {
+    const remote = { remote: true, remoteControllable: true, relayEnabled: false }
+    for (const desktop of [false, true]) {
+      expect(keepAwakeAvailable(remote, { desktop, controlling: true })).toBe(true)
+      expect(keepAwakeAvailable(remote, { desktop, controlling: false })).toBe(false)
+      expect(keepAwakeAvailable({ ...remote, remoteControllable: false }, { desktop, controlling: true })).toBe(false)
+    }
+  })
+})
+
+describe('session and system tool rows', () => {
+  it('names what changes', () => {
+    expect(toolTarget(tool('SettingsSet', { key: 'theme', value: 'dark' }))).toBe('theme = dark')
+    expect(toolTarget(tool('SettingsGet', {}))).toBe('Settings')
+    expect(toolTarget(tool('OpenInEditor', { path: 'a.go', line: 3 }))).toBe('a.go:3')
+    expect(toolTarget(tool('RevealPath', { path: 'dir' }))).toBe('dir')
+    expect(toolTarget(tool('KeepAwake', { enabled: false }))).toBe('Allow sleep')
+    expect(toolTarget(tool('SessionSetModel', { model: 'm1' }))).toBe('Model: m1')
+    expect(toolTarget(tool('SessionSetEffort', { effort: 'high' }))).toBe('Effort: high')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'plan' }))).toBe('Mode: plan')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'acceptEdits' }))).toBe('Mode: accept edits')
+    expect(toolTarget(tool('SessionSetMode', { mode: 'dontAsk' }))).toBe('Mode: don\'t ask')
+    expect(toolTarget(tool('SessionSetTitle', { title: 'T' }))).toBe('Title: T')
+  })
+  it('has its own icons', () => {
+    expect(toolIcon(tool('SettingsSet', {}))).toBe('settings')
+    expect(toolIcon(tool('KeepAwake', {}))).toBe('sun')
+    expect(toolIcon(tool('SessionSetMode', {}))).toBe('sliders')
+  })
 })
 
 describe('Wait rows', () => {

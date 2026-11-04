@@ -369,6 +369,8 @@ describe("commands", () => {
     const s = await newSession(A1, h);
     const r = await A1.setEffort({ request: { sessionId: s.id }, options: { ttlSeconds: 1, waitForAck: true } });
     expect(r.result!.delivery).toBe(DeliveryState.EXPIRED);
+    const awake = await A1.setKeepAwake({ request: { sessionId: s.id, enabled: true }, options: { ttlSeconds: 1, waitForAck: true } });
+    expect(awake.result!.delivery).toBe(DeliveryState.EXPIRED);
     // never delivered once expired
     const st = hostStream(A1, h);
     expect((await st.next()).event.case).toBe("heartbeat");

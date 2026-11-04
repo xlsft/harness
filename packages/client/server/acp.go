@@ -165,7 +165,7 @@ func (l *acpLive) info() *agentv1.SessionInfo {
 		PermissionMode: acp.PermissionModeOf(st.CurrentMode), UpdatedAt: m.UpdatedAt.UTC().Format(time.RFC3339),
 		DiffStats: l.diff, NoFolder: m.NoFolder, Engine: m.Engine, UnsupportedFeatures: acp.UnsupportedFeatures(),
 		Acp: acp.StateToProto(l.sess.Config(), st), DeviceId: l.srv.DeviceID,
-		UsageLimit: st.UsageLimit,
+		UsageLimit: st.UsageLimit, KeepAwake: l.srv.keepAwake().Wanted(l.id),
 	}
 	l.mu.Unlock()
 	if st.CurrentModel != "" {
@@ -178,7 +178,9 @@ func (l *acpLive) info() *agentv1.SessionInfo {
 func (l *acpLive) publishInfo() {
 	l.infoMu.Lock()
 	defer l.infoMu.Unlock()
-	l.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: l.info()}})
+	info := l.info()
+	l.srv.keepAwake().SetBusy(l.id, statusBusy(info.GetStatus()))
+	l.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionUpdated{SessionUpdated: info}})
 }
 
 func (l *acpLive) close(reason string) {
@@ -190,6 +192,7 @@ func (l *acpLive) close(reason string) {
 	l.closed = true
 	meta := l.meta
 	l.mu.Unlock()
+	l.srv.keepAwake().Forget(l.id)
 	l.sess.Close()
 	_ = writeAcpMeta(meta)
 	l.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionEnded{SessionEnded: &agentv1.SessionEnded{Reason: reason}}})

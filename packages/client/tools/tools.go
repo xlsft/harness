@@ -80,6 +80,10 @@ type PermissionHints struct {
 	Cwd     string
 	// NoEffect says the call can only report an error: it needs no approval.
 	NoEffect bool
+	// ReadOnly makes the check treat this call as read-only, whatever the tool's own classification says (the tool
+	// knows from its input and the session's state that it is harmless). With Sensitive set, the user is asked even
+	// in plan mode rather than the call being refused there.
+	ReadOnly bool
 }
 
 // PermissionHinter is implemented by tools whose permission check depends on state outside the input (the
@@ -301,7 +305,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Monitor{}, &NotebookEdit{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Monitor{}, &NotebookEdit{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{})
 }
 
 // Register adds or replaces a tool.

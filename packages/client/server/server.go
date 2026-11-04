@@ -32,6 +32,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
+	"github.com/xlsft/harness/packages/client/keepawake"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/pbconv"
@@ -94,6 +95,12 @@ type Server struct {
 	// empty: "not signed in"). relayHost is the attached host (SetRelayHost, relay.go).
 	RelayOffReason string
 	relayHost      atomic.Pointer[RelayHost]
+	// Inhibitor overrides how sleep is held off (tests); awake is the keep-awake switch of the sessions, deviceMu
+	// guards the device settings file (controltools.go).
+	Inhibitor keepawake.Inhibitor
+	awakeOnce sync.Once
+	awake     *keepawake.Holder
+	deviceMu  sync.Mutex
 
 	// Environments stores the folder environments (environment.go); nil: HARNESS_HOME/environments.
 	Environments *environment.Store
@@ -667,6 +674,7 @@ func (s *Server) submitMessage(ls *liveSession, req *connect.Request[agentv1.Sen
 	if len(content) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("content is empty"))
 	}
+	ls.drivenByRelay.Store(isRelayOrigin(ctx))
 	if id := req.Msg.GetUuid(); id != "" {
 		ls.mu.Lock()
 		dup := ls.seen[id]
@@ -868,17 +876,26 @@ func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetM
 	if id == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("model is required"))
 	}
+	if _, err := s.switchModel(ctx, ls, id); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&agentv1.SetModelResponse{}), nil
+}
+
+// switchModel moves a session to a model the catalog knows and returns its display name.
+func (s *Server) switchModel(ctx context.Context, ls *liveSession, id string) (string, error) {
 	display, window, thinking := id, 0, false
 	if ls.sess.Catalog != nil {
 		m, ok := ls.sess.Catalog.Find(id)
 		if !ok {
 			// A local model detected after the session opened.
+			var err error
 			if m, ok, err = s.localCatalogModel(ctx, id); err != nil {
-				return nil, err
+				return "", err
 			}
 		}
 		if !ok {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown model %s", id))
+			return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown model %s", id))
 		}
 		display, window, thinking = m.DisplayName, m.ContextWindow, m.Capabilities.Thinking
 	}
@@ -891,7 +908,7 @@ func (s *Server) SetModel(ctx context.Context, req *connect.Request[agentv1.SetM
 	ls.mu.Unlock()
 	ls.publishInfo()
 	ls.usageOnModelChange(prev, id)
-	return connect.NewResponse(&agentv1.SetModelResponse{}), nil
+	return display, nil
 }
 
 func (s *Server) SetEffort(ctx context.Context, req *connect.Request[agentv1.SetEffortRequest]) (*connect.Response[agentv1.SetEffortResponse], error) {
@@ -900,6 +917,7 @@ func (s *Server) SetEffort(ctx context.Context, req *connect.Request[agentv1.Set
 		return nil, err
 	}
 	ls.sess.Agent.SetEffort(pbconv.FromEffort(req.Msg.GetEffort()))
+	ls.publishInfo()
 	return connect.NewResponse(&agentv1.SetEffortResponse{}), nil
 }
 
@@ -925,16 +943,23 @@ func (s *Server) SetOutputStyle(ctx context.Context, req *connect.Request[agentv
 	if err != nil {
 		return nil, err
 	}
-	deferred, err := ls.sess.SetOutputStyle(req.Msg.GetStyle())
-	if err != nil {
+	if err := ls.applyOutputStyle(req.Msg.GetStyle()); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&agentv1.SetOutputStyleResponse{}), nil
+}
+
+func (ls *liveSession) applyOutputStyle(style string) error {
+	deferred, err := ls.sess.SetOutputStyle(style)
+	if err != nil {
+		return err
 	}
 	if deferred {
 		ls.notice(agentv1.Notice_LEVEL_INFO, "output_style_deferred",
 			"The style applies now; its change to the coding instructions in the system prompt takes effect at the next compaction.")
 	}
 	ls.publishInfo()
-	return connect.NewResponse(&agentv1.SetOutputStyleResponse{}), nil
+	return nil
 }
 
 // ListOutputStyles returns the built-in, user and project styles and the active one.

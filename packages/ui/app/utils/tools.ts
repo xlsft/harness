@@ -1,6 +1,7 @@
 // How a tool call is labeled: icon, the white "target" and the right-hand meta (Tool.dc.html, Main.dc.html rows).
 import { structuredPatch } from 'diff'
-import type { ToolItem } from '~/lib/session/types'
+import type { PermissionModeName, ToolItem } from '~/lib/session/types'
+import { MODE_LABEL } from './composer'
 import { formatDuration, formatSeconds } from './format'
 import type { IconName } from './icons'
 import { showLabel, showPaneTitle, showTargetOf } from './show'
@@ -71,6 +72,15 @@ export function toolIcon(t: ToolItem): IconName {
     case 'PrUnbind':
     case 'PrMonitor':
     case 'PrAutoMerge': return 'pull-request'
+    case 'SettingsGet':
+    case 'SettingsSet': return 'settings'
+    case 'OpenInEditor': return 'file'
+    case 'RevealPath': return 'folder'
+    case 'KeepAwake': return 'sun'
+    case 'SessionSetModel':
+    case 'SessionSetEffort':
+    case 'SessionSetMode':
+    case 'SessionSetTitle': return 'sliders'
     default: return 'box'
   }
 }
@@ -91,6 +101,9 @@ export function bashLabel(t: ToolItem): { verb: string, text: string } {
 export function toolLabel(t: ToolItem): string {
   return String(t.input.description ?? '').trim() || toolTarget(t)
 }
+
+// The mode names of the SessionSetMode tool that differ from the UI's.
+const TOOL_MODE_NAMES: Record<string, PermissionModeName> = { acceptEdits: 'accept_edits', dontAsk: 'dont_ask' }
 
 export function toolTarget(t: ToolItem): string {
   const i = t.input
@@ -150,6 +163,15 @@ export function toolTarget(t: ToolItem): string {
     case 'ComputerActivate':
     case 'ComputerFind':
     case 'ComputerBatch': return String(i.app ?? t.summary)
+    case 'SettingsGet': return String(i.key ?? 'Settings')
+    case 'SettingsSet': return `${String(i.key ?? '')} = ${String(i.value ?? '')}`
+    case 'OpenInEditor': return i.line ? `${String(i.path ?? '')}:${String(i.line)}` : String(i.path ?? t.summary)
+    case 'RevealPath': return String(i.path ?? t.summary)
+    case 'KeepAwake': return i.enabled ? 'Keep computer awake' : 'Allow sleep'
+    case 'SessionSetModel': return `Model: ${String(i.model ?? '')}`
+    case 'SessionSetEffort': return `Effort: ${String(i.effort ?? '')}`
+    case 'SessionSetMode': return `Mode: ${MODE_LABEL[TOOL_MODE_NAMES[String(i.mode)] ?? i.mode as PermissionModeName] ?? String(i.mode ?? '')}`
+    case 'SessionSetTitle': return `Title: ${String(i.title ?? '')}`
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

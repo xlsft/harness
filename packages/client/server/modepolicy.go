@@ -47,21 +47,7 @@ func (ls *liveSession) applyModePolicy(disabled []permissions.Mode) {
 }
 
 // modeLabel is the mode's name as frontends show it.
-func modeLabel(m permissions.Mode) string {
-	switch m {
-	case permissions.ModeAcceptEdits:
-		return "Accept edits"
-	case permissions.ModePlan:
-		return "Plan"
-	case permissions.ModeAuto:
-		return "Auto"
-	case permissions.ModeDontAsk:
-		return "Don't ask"
-	case permissions.ModeBypassPermissions:
-		return "Bypass"
-	}
-	return "Ask"
-}
+func modeLabel(m permissions.Mode) string { return permissions.ModeLabel(m) }
 
 // modeError maps a refused mode switch to PERMISSION_DENIED and anything else to code.
 func modeError(err error, code connect.Code) error {

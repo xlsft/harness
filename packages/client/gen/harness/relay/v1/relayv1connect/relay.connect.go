@@ -129,6 +129,9 @@ const (
 	// RelayServiceAuthorizeTunnelProcedure is the fully-qualified name of the RelayService's
 	// AuthorizeTunnel RPC.
 	RelayServiceAuthorizeTunnelProcedure = "/harness.relay.v1.RelayService/AuthorizeTunnel"
+	// RelayServiceSetKeepAwakeProcedure is the fully-qualified name of the RelayService's SetKeepAwake
+	// RPC.
+	RelayServiceSetKeepAwakeProcedure = "/harness.relay.v1.RelayService/SetKeepAwake"
 )
 
 // RelayServiceClient is a client for the harness.relay.v1.RelayService service.
@@ -200,6 +203,8 @@ type RelayServiceClient interface {
 	// Issues a short-lived, single-use access URL for the browser (sets an owner-only cookie on the preview
 	// origin). Only the tunnel owner may call it.
 	AuthorizeTunnel(context.Context, *connect.Request[v1.AuthorizeTunnelRequest]) (*connect.Response[v1.AuthorizeTunnelResponse], error)
+	// "Keep computer awake" for the session, on the machine running it.
+	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 
 // NewRelayServiceClient constructs a client for the harness.relay.v1.RelayService service. By
@@ -423,6 +428,12 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("AuthorizeTunnel")),
 			connect.WithClientOptions(opts...),
 		),
+		setKeepAwake: connect.NewClient[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse](
+			httpClient,
+			baseURL+RelayServiceSetKeepAwakeProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("SetKeepAwake")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -463,6 +474,7 @@ type relayServiceClient struct {
 	requestTunnel       *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
 	listTunnels         *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
 	authorizeTunnel     *connect.Client[v1.AuthorizeTunnelRequest, v1.AuthorizeTunnelResponse]
+	setKeepAwake        *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
 }
 
 // RegisterHost calls harness.relay.v1.RelayService.RegisterHost.
@@ -640,6 +652,11 @@ func (c *relayServiceClient) AuthorizeTunnel(ctx context.Context, req *connect.R
 	return c.authorizeTunnel.CallUnary(ctx, req)
 }
 
+// SetKeepAwake calls harness.relay.v1.RelayService.SetKeepAwake.
+func (c *relayServiceClient) SetKeepAwake(ctx context.Context, req *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
+	return c.setKeepAwake.CallUnary(ctx, req)
+}
+
 // RelayServiceHandler is an implementation of the harness.relay.v1.RelayService service.
 type RelayServiceHandler interface {
 	// --- Host side --------------------------------------------------------------------------------------
@@ -709,6 +726,8 @@ type RelayServiceHandler interface {
 	// Issues a short-lived, single-use access URL for the browser (sets an owner-only cookie on the preview
 	// origin). Only the tunnel owner may call it.
 	AuthorizeTunnel(context.Context, *connect.Request[v1.AuthorizeTunnelRequest]) (*connect.Response[v1.AuthorizeTunnelResponse], error)
+	// "Keep computer awake" for the session, on the machine running it.
+	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 
 // NewRelayServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -928,6 +947,12 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("AuthorizeTunnel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceSetKeepAwakeHandler := connect.NewUnaryHandler(
+		RelayServiceSetKeepAwakeProcedure,
+		svc.SetKeepAwake,
+		connect.WithSchema(relayServiceMethods.ByName("SetKeepAwake")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.RelayService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RelayServiceRegisterHostProcedure:
@@ -1000,6 +1025,8 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceListTunnelsHandler.ServeHTTP(w, r)
 		case RelayServiceAuthorizeTunnelProcedure:
 			relayServiceAuthorizeTunnelHandler.ServeHTTP(w, r)
+		case RelayServiceSetKeepAwakeProcedure:
+			relayServiceSetKeepAwakeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1147,4 +1174,8 @@ func (UnimplementedRelayServiceHandler) ListTunnels(context.Context, *connect.Re
 
 func (UnimplementedRelayServiceHandler) AuthorizeTunnel(context.Context, *connect.Request[v1.AuthorizeTunnelRequest]) (*connect.Response[v1.AuthorizeTunnelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.AuthorizeTunnel is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SetKeepAwake is not implemented"))
 }

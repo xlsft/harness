@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "The file to open, absolute or relative to the working directory."
+    },
+    "line": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The line to open at, when the editor can take one."
+    }
+  },
+  "required": [
+    "path"
+  ],
+  "additionalProperties": false
+}

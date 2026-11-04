@@ -90,6 +90,9 @@ var (
 	// sessionTools start or reach other sessions. They change nothing here and those sessions keep their own permission
 	// checks, so they run without a prompt, except in plan mode. SessionArchive is not one of them: it always asks.
 	sessionTools = map[string]bool{"SessionStart": true, "SessionHandoff": true, "SessionSend": true}
+	// path) or show one to the user (OpenInEditor, RevealPath): that path gets
+	// the read-tool directory check, and Read deny rules cover them.
+	pathObservers = map[string]bool{"Wait": true, "OpenInEditor": true, "RevealPath": true}
 )
 
 // IsEditTool reports whether name modifies files.

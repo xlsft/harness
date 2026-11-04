@@ -96,6 +96,9 @@ type liveSession struct {
 	// links are the sessions linked to this one and the notes waiting for it (sessionlinks.go).
 	links linkState
 
+	// drivenByRelay: the user's last message came through the relay, from another machine (controltools.go).
+	drivenByRelay atomic.Bool
+
 	// ctx ends when the session closes; bg tracks its background work
 	// (title, diff stats), which close waits for.
 	ctx    context.Context
@@ -104,8 +107,10 @@ type liveSession struct {
 }
 
 var (
-	_ tools.Interactor = (*liveSession)(nil)
-	_ tools.Shower     = (*liveSession)(nil)
+	_ tools.Interactor     = (*liveSession)(nil)
+	_ tools.Shower         = (*liveSession)(nil)
+	_ tools.SessionControl = (*liveSession)(nil)
+	_ tools.DeviceOwner    = (*liveSession)(nil)
 )
 
 func newLiveSession(s *Server) *liveSession {
@@ -129,6 +134,7 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.CurrentWorktree()), DiffStats: ls.diff,
 		NoFolder:   isNoFolder(ls.sess.ID, ls.sess.Dir()),
 		UsageLimit: ls.usageLimit, AutoContinue: ls.autoContinue, PullRequest: ls.sess.PR.Info(),
+		Effort: ls.sess.Agent.Effort(), KeepAwake: ls.srv.keepAwake().Wanted(ls.sess.ID),
 	}
 	ls.relayStateLocked(info)
 	ls.srv.applyState(info)
@@ -165,6 +171,7 @@ func (ls *liveSession) settleIdle() {
 	ls.mu.Lock()
 	if ls.statusLocked() == agentv1.SessionStatus_SESSION_STATUS_IDLE {
 		ls.status = agentv1.SessionStatus_SESSION_STATUS_IDLE
+		ls.srv.keepAwake().SetBusy(ls.sess.ID, false)
 	}
 	ls.mu.Unlock()
 	ls.publishInfo()
@@ -186,6 +193,7 @@ func (ls *liveSession) setStatus(st agentv1.SessionStatus) {
 	changed := ls.status != st
 	ls.status = st
 	ls.mu.Unlock()
+	ls.srv.keepAwake().SetBusy(ls.sess.ID, statusBusy(st))
 	if changed {
 		ls.publishInfo()
 	}
@@ -219,6 +227,7 @@ func (ls *liveSession) close(reason string) {
 	}
 	ls.closed = true
 	ls.mu.Unlock()
+	ls.srv.keepAwake().Forget(ls.sess.ID)
 	ls.cancel()
 	ls.usage.stop()
 	ls.sess.Subagents.Shutdown()

@@ -14,7 +14,7 @@
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
 import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
-import type { ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { patchStats, type PatchHunk } from '~/utils/tools'
 import {
   ContextUsage_Category,
@@ -150,6 +150,7 @@ export class MockTransport implements SessionTransport {
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
   private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30 }
+  private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
   private now: () => number
 
@@ -1174,6 +1175,21 @@ export class MockTransport implements SessionTransport {
     if (n !== undefined && (!Number.isInteger(n) || n < 1 || n > 240)) throw new Error('[invalid_argument] wakes per hour must be between 1 and 240')
     this.preferences = { ...this.preferences, ...patch }
     return { ...this.preferences }
+  }
+
+  async getDeviceSettings() {
+    return { ...this.deviceSettings }
+  }
+
+  async updateDeviceSettings(patch: Partial<DeviceSettings>) {
+    this.deviceSettings = { ...this.deviceSettings, ...patch }
+    return { ...this.deviceSettings }
+  }
+
+  async setKeepAwake(sessionId: string, enabled: boolean) {
+    const s = this.get(sessionId)
+    s.info = { ...s.info, keepAwake: enabled }
+    this.emit(s, b => b.sessionUpdated(s.info))
   }
 
   async listTasks() {

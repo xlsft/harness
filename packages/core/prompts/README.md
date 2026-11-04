@@ -145,6 +145,15 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `PrBind`, `PrUnbind` | `pr`; `{}` | attach or detach the PR this session follows (device-local, `HARNESS_HOME/pr-watch`; SessionInfo.pull_request). No prompt: they change no code-host state |
 | `PrMonitor` | `enabled` | the client polls the bound PR and wakes the session (`pr_activity`) on a CI failure, a conflict or a new comment; stops at merge, close or session close, resumes after a client restart. Normal permission check; the UI's auto-fix switch is `SetPrMonitor` |
 | `PrAutoMerge` | `enabled`, `method?` (merge, squash, rebase) | sets auto-merge; always asks the user (AlwaysAsk: no rule, mode or auto-mode decision can approve it) |
+| `SettingsGet` | `key?` | the fixed list of preferences the agent can see, with their values |
+| `SettingsSet` | `key`, `value` | one preference of that list; every change asks the user, showing old and new; security settings are refused in the client |
+| `OpenInEditor` | `path`, `line?` | the user's editor on the session's machine; argv without a shell; outside the session's folders asks the user; refused when the user is on another machine |
+| `RevealPath` | `path` | the platform's file manager; same rules as OpenInEditor |
+| `KeepAwake` | `enabled` | the session's "Keep computer awake" switch, the Tools menu's; held while the session works, released when it closes |
+| `SessionSetModel` | `model` | from the next model request; within the providers, the policy's list and the usage limits |
+| `SessionSetEffort` | `effort` | from the next model request; a level the model offers |
+| `SessionSetMode` | `mode` | a stricter mode at once, a more permissive one asks the user, bypass is refused; leaves plan mode only when the user asked, else ExitPlanMode |
+| `SessionSetTitle` | `title` | a rename: the automatic title never replaces it |
 | `EnterPlanMode` | `{}` | |
 | `ExitPlanMode` | `plan` (Markdown) | the client writes it to the plan file and asks the user to approve |
 | `ToolSearch` | `query`, `max_results` | offered only while MCP tools are deferred; `select:a,b` or keywords; returns full definitions and makes those tools callable |

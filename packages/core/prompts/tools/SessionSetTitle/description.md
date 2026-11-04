@@ -1,0 +1,1 @@
+Renames this session in the user's session list. The automatic title never replaces a title set this way, so use it when the user asks for a name, or when they ask you to tidy up the title. Keep it short and concrete.

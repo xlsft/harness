@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "model": {
+      "type": "string",
+      "description": "The id of the model to move to."
+    }
+  },
+  "required": [
+    "model"
+  ],
+  "additionalProperties": false
+}

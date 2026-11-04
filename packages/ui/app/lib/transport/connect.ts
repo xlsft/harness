@@ -5,7 +5,7 @@
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM } from '~/lib/session/computer'
-import type { ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { create } from '@bufbuild/protobuf'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
@@ -263,6 +263,20 @@ export class ConnectTransport implements SessionTransport {
 
   async setPrMonitor(sessionId: string, enabled: boolean) {
     await this.client.setPrMonitor({ sessionId, enabled })
+  }
+
+  async setKeepAwake(sessionId: string, enabled: boolean) {
+    await this.client.setKeepAwake({ sessionId, enabled })
+  }
+
+  async getDeviceSettings(): Promise<DeviceSettings> {
+    const res = await this.client.getDeviceSettings({})
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
+  }
+
+  async updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings> {
+    const res = await this.client.updateDeviceSettings({ theme: patch.theme, notifications: patch.notifications })
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
   }
 
   async setSessionRelay(sessionId: string, enabled: boolean) {

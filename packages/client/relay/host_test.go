@@ -305,7 +305,15 @@ func (f *fakeFeed) RemoteControl() bool {
 	return f.info.GetTitle() != "no-remote" && !f.relayOff.Load()
 }
 
+func (b *fakeBackend) SetKeepAwake(_ context.Context, req *connect.Request[agentv1.SetKeepAwakeRequest]) (*connect.Response[agentv1.SetKeepAwakeResponse], error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.keepAwake = append(b.keepAwake, req.Msg)
+	return connect.NewResponse(&agentv1.SetKeepAwakeResponse{}), nil
+}
+
 type fakeBackend struct {
+	keepAwake []*agentv1.SetKeepAwakeRequest
 	agentv1connect.UnimplementedAgentServiceHandler
 	mu       sync.Mutex
 	feeds    map[string]*fakeFeed
@@ -540,6 +548,9 @@ func TestCommandsRunOnceAndAckWithOutcomes(t *testing.T) {
 		{&relayv1.Command{CommandId: "cmd_mode", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),
 			Payload: &relayv1.Command_SetPermissionMode{SetPermissionMode: &agentv1.SetPermissionModeRequest{Mode: agentv1.PermissionMode_PERMISSION_MODE_PLAN}}},
 			relayv1.CommandAck_OUTCOME_OK},
+		{&relayv1.Command{CommandId: "cmd_awake", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),
+			Payload: &relayv1.Command_SetKeepAwake{SetKeepAwake: &agentv1.SetKeepAwakeRequest{SessionId: "other", Enabled: true}}},
+			relayv1.CommandAck_OUTCOME_OK},
 		{&relayv1.Command{CommandId: "cmd_perm", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),
 			Payload: &relayv1.Command_RespondToPermission{RespondToPermission: &agentv1.RespondToPermissionRequest{RequestId: "perm_x"}}},
 			relayv1.CommandAck_OUTCOME_ALREADY_RESOLVED},
@@ -556,8 +567,11 @@ func TestCommandsRunOnceAndAckWithOutcomes(t *testing.T) {
 		}
 	}
 	r.backend.mu.Lock()
-	modes := r.backend.modes
+	modes, awake := r.backend.modes, r.backend.keepAwake
 	r.backend.mu.Unlock()
+	if len(awake) != 1 || awake[0].GetSessionId() != "s1" || !awake[0].GetEnabled() {
+		t.Errorf("SetKeepAwake reached the backend as %v", awake)
+	}
 	if len(modes) != 1 || modes[0] != agentv1.PermissionMode_PERMISSION_MODE_PLAN {
 		t.Fatalf("modes applied: %v (bypass must never reach the backend)", modes)
 	}

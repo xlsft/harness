@@ -265,6 +265,46 @@ type layer struct {
 	extra []*layer
 }
 
+// KeyInterruptReply is the settings key of Settings.InterruptReply.
+const KeyInterruptReply = "interruptReply"
+
+// KeyRemoteControl is the settings key of the remote control default (true when absent): false keeps new and
+// resumed sessions off the relay until the session switch turns it on; false in a policy document turns it off
+// for good (Settings.RemoteControlPolicyOff).
+const KeyRemoteControl = "remoteControl"
+
+// UserSettingsKey is the key of the user-scope SETTINGS sync document (the one `import claude` writes).
+const UserSettingsKey = "settings"
+
+var (
+	effortLevels = map[string]bool{"low": true, "medium": true, "high": true, "xhigh": true, "max": true}
+	modes        = map[string]bool{"default": true, "acceptEdits": true, "plan": true, "dontAsk": true, "bypassPermissions": true, "auto": true}
+	// wideningModes may not come from untrusted committed settings.
+	wideningModes = map[string]bool{"acceptEdits": true, "dontAsk": true, "bypassPermissions": true, "auto": true}
+)
+
+// layer is one parsed source.
+type layer struct {
+	src Source
+	raw map[string]json.RawMessage
+
+	model, effort, outputStyle, claudeMdMode, defaultMode *string
+	autoCompactWindow, cleanupPeriodDays, prWakes         *int
+	includeGit, interruptReply, compactIdle               *bool
+	attrCommit, attrPR                                    *string
+	env                                                   map[string]string
+	allow, ask, deny, addDirs                             []string
+	disableBypass, disableAuto                            bool
+	disabledModes                                         []string
+
+	availableModels  []string
+	managedRulesOnly bool
+	// remoteControlOff: a policy document says "remoteControl": false.
+	remoteControlOff bool
+	// extra are further layers of the same level (permission rule documents).
+	extra []*layer
+}
+
 // Load reads and merges all settings sources.
 func Load(ctx context.Context, o Options) (*Settings, error) {
 	_ = ctx

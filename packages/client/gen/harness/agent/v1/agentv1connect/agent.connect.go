@@ -324,6 +324,15 @@ const (
 	// AgentServiceStopComputerUseProcedure is the fully-qualified name of the AgentService's
 	// StopComputerUse RPC.
 	AgentServiceStopComputerUseProcedure = "/harness.agent.v1.AgentService/StopComputerUse"
+	// AgentServiceGetDeviceSettingsProcedure is the fully-qualified name of the AgentService's
+	// GetDeviceSettings RPC.
+	AgentServiceGetDeviceSettingsProcedure = "/harness.agent.v1.AgentService/GetDeviceSettings"
+	// AgentServiceUpdateDeviceSettingsProcedure is the fully-qualified name of the AgentService's
+	// UpdateDeviceSettings RPC.
+	AgentServiceUpdateDeviceSettingsProcedure = "/harness.agent.v1.AgentService/UpdateDeviceSettings"
+	// AgentServiceSetKeepAwakeProcedure is the fully-qualified name of the AgentService's SetKeepAwake
+	// RPC.
+	AgentServiceSetKeepAwakeProcedure = "/harness.agent.v1.AgentService/SetKeepAwake"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -579,6 +588,12 @@ type AgentServiceClient interface {
 	// The user's answer to ComputerAccessRequested.
 	RespondToComputerAccess(context.Context, *connect.Request[v1.RespondToComputerAccessRequest]) (*connect.Response[v1.RespondToComputerAccessResponse], error)
 	StopComputerUse(context.Context, *connect.Request[v1.StopComputerUseRequest]) (*connect.Response[v1.StopComputerUseResponse], error)
+	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
+	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
+	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
+	// SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
+	// for any other session of another machine.
+	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1198,6 +1213,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopComputerUse")),
 			connect.WithClientOptions(opts...),
 		),
+		getDeviceSettings: connect.NewClient[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse](
+			httpClient,
+			baseURL+AgentServiceGetDeviceSettingsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetDeviceSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		updateDeviceSettings: connect.NewClient[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateDeviceSettingsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateDeviceSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		setKeepAwake: connect.NewClient[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse](
+			httpClient,
+			baseURL+AgentServiceSetKeepAwakeProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetKeepAwake")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1304,6 +1337,9 @@ type agentServiceClient struct {
 	setComputerUseEnabled   *connect.Client[v1.SetComputerUseEnabledRequest, v1.SetComputerUseEnabledResponse]
 	respondToComputerAccess *connect.Client[v1.RespondToComputerAccessRequest, v1.RespondToComputerAccessResponse]
 	stopComputerUse         *connect.Client[v1.StopComputerUseRequest, v1.StopComputerUseResponse]
+	getDeviceSettings       *connect.Client[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse]
+	updateDeviceSettings    *connect.Client[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse]
+	setKeepAwake            *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1811,6 +1847,21 @@ func (c *agentServiceClient) StopComputerUse(ctx context.Context, req *connect.R
 	return c.stopComputerUse.CallUnary(ctx, req)
 }
 
+// GetDeviceSettings calls harness.agent.v1.AgentService.GetDeviceSettings.
+func (c *agentServiceClient) GetDeviceSettings(ctx context.Context, req *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {
+	return c.getDeviceSettings.CallUnary(ctx, req)
+}
+
+// UpdateDeviceSettings calls harness.agent.v1.AgentService.UpdateDeviceSettings.
+func (c *agentServiceClient) UpdateDeviceSettings(ctx context.Context, req *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error) {
+	return c.updateDeviceSettings.CallUnary(ctx, req)
+}
+
+// SetKeepAwake calls harness.agent.v1.AgentService.SetKeepAwake.
+func (c *agentServiceClient) SetKeepAwake(ctx context.Context, req *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
+	return c.setKeepAwake.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2064,6 +2115,12 @@ type AgentServiceHandler interface {
 	// The user's answer to ComputerAccessRequested.
 	RespondToComputerAccess(context.Context, *connect.Request[v1.RespondToComputerAccessRequest]) (*connect.Response[v1.RespondToComputerAccessResponse], error)
 	StopComputerUse(context.Context, *connect.Request[v1.StopComputerUseRequest]) (*connect.Response[v1.StopComputerUseResponse], error)
+	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
+	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
+	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
+	// SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
+	// for any other session of another machine.
+	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2679,6 +2736,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopComputerUse")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetDeviceSettingsHandler := connect.NewUnaryHandler(
+		AgentServiceGetDeviceSettingsProcedure,
+		svc.GetDeviceSettings,
+		connect.WithSchema(agentServiceMethods.ByName("GetDeviceSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateDeviceSettingsHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateDeviceSettingsProcedure,
+		svc.UpdateDeviceSettings,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateDeviceSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetKeepAwakeHandler := connect.NewUnaryHandler(
+		AgentServiceSetKeepAwakeProcedure,
+		svc.SetKeepAwake,
+		connect.WithSchema(agentServiceMethods.ByName("SetKeepAwake")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2883,6 +2958,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceRespondToComputerAccessHandler.ServeHTTP(w, r)
 		case AgentServiceStopComputerUseProcedure:
 			agentServiceStopComputerUseHandler.ServeHTTP(w, r)
+		case AgentServiceGetDeviceSettingsProcedure:
+			agentServiceGetDeviceSettingsHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateDeviceSettingsProcedure:
+			agentServiceUpdateDeviceSettingsHandler.ServeHTTP(w, r)
+		case AgentServiceSetKeepAwakeProcedure:
+			agentServiceSetKeepAwakeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3294,4 +3375,16 @@ func (UnimplementedAgentServiceHandler) RespondToComputerAccess(context.Context,
 
 func (UnimplementedAgentServiceHandler) StopComputerUse(context.Context, *connect.Request[v1.StopComputerUseRequest]) (*connect.Response[v1.StopComputerUseResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopComputerUse is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetDeviceSettings is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateDeviceSettings is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetKeepAwake is not implemented"))
 }

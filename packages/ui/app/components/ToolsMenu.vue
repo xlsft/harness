@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Tools menu (HeaderMenu.dc.html): opens or closes a right pane; the check marks the panes open now. Keep
-// computer awake (desktop) holds off sleep while this session works.
+// computer awake holds off sleep while this session works: the client does it, the switch shows what it reports, and
+// keepAwakeAvailable says who gets the switch.
 import type { IconName } from '~/utils/icons'
 import type { PaneName } from '~/composables/usePanes'
 import { isDesktop } from '~/lib/desktop'
@@ -8,14 +9,12 @@ import { isDesktop } from '~/lib/desktop'
 const emit = defineEmits<{ select: [] }>()
 const { isOpen, togglePane } = usePanes()
 const store = useSessionStore()
-const awakeSessions = useState<string[]>('keep-awake', () => [])
-const desktop = isDesktop()
+const current = computed(() => store.sessions[store.currentId])
+const showAwake = computed(() => !!current.value && keepAwakeAvailable(current.value.meta, { desktop: isDesktop(), controlling: !!store.remoteControl[store.currentId] }))
 const awake = computed({
-  get: () => !!store.currentId && awakeSessions.value.includes(store.currentId),
+  get: () => !!current.value?.meta.keepAwake,
   set: (on: boolean) => {
-    const id = store.currentId
-    if (!id) return
-    awakeSessions.value = on ? [...new Set([...awakeSessions.value, id])] : awakeSessions.value.filter(x => x !== id)
+    if (store.currentId) store.quietly(store.setKeepAwake(store.currentId, on))
   }
 })
 
@@ -62,7 +61,7 @@ function choose(p: PaneName) {
         class="text-accent"
       />
     </div>
-    <template v-if="desktop">
+    <template v-if="showAwake">
       <div class="h-px bg-line" />
       <div
         role="menuitemcheckbox"

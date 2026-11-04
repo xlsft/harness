@@ -748,6 +748,13 @@ func (r routed) SetOutputStyle(ctx context.Context, req *connect.Request[agentv1
 		}, nil)
 }
 
+func (r routed) SetKeepAwake(ctx context.Context, req *connect.Request[agentv1.SetKeepAwakeRequest]) (*connect.Response[agentv1.SetKeepAwakeResponse], error) {
+	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.SetKeepAwake, relayv1connect.RelayServiceClient.SetKeepAwake,
+		func(m *agentv1.SetKeepAwakeRequest) *relayv1.SetKeepAwakeRequest {
+			return &relayv1.SetKeepAwakeRequest{Request: m, Options: commandOptions("")}
+		}, nil)
+}
+
 func (r routed) SetAutoContinue(ctx context.Context, req *connect.Request[agentv1.SetAutoContinueRequest]) (*connect.Response[agentv1.SetAutoContinueResponse], error) {
 	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.SetAutoContinue, relayv1connect.RelayServiceClient.SetAutoContinue,
 		func(m *agentv1.SetAutoContinueRequest) *relayv1.SetAutoContinueRequest {

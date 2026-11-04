@@ -16,7 +16,7 @@ import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } f
 import { liveOutbox, type OutboxEntry } from '~/lib/session/delivery'
 import { descendants } from '~/lib/session/tree'
 import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
-import type { SessionPatch } from '~/lib/transport/types'
+import type { DeviceSettings, SessionPatch } from '~/lib/transport/types'
 import { allowedModes } from '~/utils/composer'
 
 const MODE_TO_PB: Record<PermissionModeName, PermissionMode> = {
@@ -137,6 +137,9 @@ export const useSessionStore = defineStore('sessions', {
     // the composer takes it and clears the entry.
     drafts: {} as Record<string, string>,
     effort: {} as Record<string, EffortName>,
+    // This device's preferences as the client has them (deviceSettingsLoaded: it answered once).
+    deviceSettings: { theme: '', notifications: true } as DeviceSettings,
+    deviceSettingsLoaded: false,
     // Remote sessions the user chose to drive from here ("Continue via remote control"): the composer replaces
     // the "Running on <device>" notice while the session stays remote-controllable.
     remoteControl: {} as Record<string, boolean>,
@@ -179,6 +182,7 @@ export const useSessionStore = defineStore('sessions', {
         this.models = await this.transport.listModels()
         await this.refreshList()
         this.ready = true
+        this.quietly(this.refreshDeviceSettings())
         if (import.meta.client) {
           setInterval(() => this.quietly(this.refreshList()), LIST_POLL_MS)
           setInterval(() => this.refreshModes(), MODES_POLL_MS)
@@ -397,6 +401,7 @@ export const useSessionStore = defineStore('sessions', {
           alive()
           const s = live()
           reduce(s, ev)
+          if (ev.event.case === 'deviceSettingsChanged') this.quietly(this.refreshDeviceSettings())
           this.pruneOutbox(id, ev)
           // A turn that finished while another session was open leaves this one unread.
           if (ev.event.case === 'turnFinished' && this.currentId !== id && !s.meta.unread && !s.meta.remote) this.quietly(this.updateSession(id, { unread: true }))
@@ -775,8 +780,26 @@ export const useSessionStore = defineStore('sessions', {
       await this.transport?.setAutoContinue(id, on)
     },
 
+    async refreshDeviceSettings() {
+      if (!this.transport) return
+      this.deviceSettings = await this.transport.getDeviceSettings()
+      this.deviceSettingsLoaded = true
+    },
+
+    async updateDeviceSettings(patch: Partial<DeviceSettings>) {
+      this.deviceSettings = { ...this.deviceSettings, ...patch }
+      if (this.transport) this.deviceSettings = await this.transport.updateDeviceSettings(patch)
+    },
+
+    // The client decides: the switch shows what SessionInfo.keep_awake says.
+    async setKeepAwake(id: string, enabled: boolean) {
+      await this.transport?.setKeepAwake(id, enabled)
+    },
+
     async setEffort(id: string, effort: EffortName) {
       this.effort[id] = effort
+      const s = this.sessions[id]
+      if (s) s.meta.effort = effort
       await this.transport?.setEffort(id, EFFORT_TO_PB[effort])
     },
 

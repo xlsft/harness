@@ -64,6 +64,15 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
+	doc, err := s.mergeUserSettings(ctx, set)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&agentv1.UpdateUserPreferencesResponse{Preferences: preferencesOf(doc)}), nil
+}
+
+// mergeUserSettings writes keys into the user's settings document, keeping the others, and returns the document.
+func (s *Server) mergeUserSettings(ctx context.Context, set map[string]any) (*syncv1.Document, error) {
 	doc, err := s.userSettings(ctx)
 	if err != nil {
 		return nil, syncError(err)
@@ -87,7 +96,7 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	if len(set) > 0 {
 		return nil, connect.NewError(connect.CodeAborted, errors.New("the user settings document kept changing; try again"))
 	}
-	return connect.NewResponse(&agentv1.UpdateUserPreferencesResponse{Preferences: preferencesOf(doc)}), nil
+	return doc, nil
 }
 
 // userSettings returns the user's settings document, nil when there is none.

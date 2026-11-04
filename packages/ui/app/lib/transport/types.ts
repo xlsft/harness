@@ -87,6 +87,13 @@ export interface UserPreferences {
   prMonitorWakesPerHour: number
 }
 
+// Preferences of this device, kept by the client on this machine and never synced.
+export interface DeviceSettings {
+  // 'system', 'light' or 'dark'; empty until something chose on this device.
+  theme: string
+  notifications: boolean
+}
+
 // Per-user session state kept on the harness server; unset fields stay as they are.
 export interface SessionPatch {
   pinned?: boolean
@@ -192,6 +199,12 @@ export interface SessionTransport {
   // Per-user preferences; an update changes only the fields it sets and returns them all.
   getUserPreferences(): Promise<UserPreferences>
   updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences>
+
+  // This device's preferences; an update changes only the fields it sets and returns them all.
+  getDeviceSettings(): Promise<DeviceSettings>
+  updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings>
+  // "Keep computer awake" for a session; SessionInfo.keep_awake reports it.
+  setKeepAwake(sessionId: string, enabled: boolean): Promise<void>
 
   // LLM providers and the auto-mode classifier for the settings screens (harness.llm.v1.ProviderService,
   // forwarded to the server by the client).

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Preferences of this device and the per-session keep-awake switch. Both belong to the machine the client runs on:
+// they are kept by the client (HARNESS_HOME) and never reach the harness server. The client decides; frontends render
+// them and send intent (the SettingsSet and KeepAwake tools change the same state).
+
+message DeviceSettings {
+  // "system", "light" or "dark"; empty until a frontend or the model chose on this device.
+  string theme = 1;
+  // Whether frontends send system notifications when a session needs the user.
+  bool notifications = 2;
+}
+
+message GetDeviceSettingsRequest {}
+
+message GetDeviceSettingsResponse {
+  DeviceSettings settings = 1;
+}
+
+// An update changes only the fields it sets.
+message UpdateDeviceSettingsRequest {
+  optional string theme = 1;
+  optional bool notifications = 2;
+}
+
+message UpdateDeviceSettingsResponse {
+  DeviceSettings settings = 1;
+}
+
+// SessionEvent.device_settings_changed: read the settings again with GetDeviceSettings. Not kept in the event log.
+message DeviceSettingsChanged {}
+
+message SetKeepAwakeRequest {
+  string session_id = 1;
+  bool enabled = 2;
+}
+
+message SetKeepAwakeResponse {}

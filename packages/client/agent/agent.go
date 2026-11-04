@@ -1235,6 +1235,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 				req.URL, req.Sensitive = h.URL, h.Sensitive
 				hinted = h
 				applyCheckAs(&req, h)
+				req.ReadOnly = req.ReadOnly || h.ReadOnly
 			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
