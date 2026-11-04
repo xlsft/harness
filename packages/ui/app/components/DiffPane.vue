@@ -10,8 +10,8 @@ import type { SessionState, ToolItem } from '~/lib/session/types'
 import type { DiffComment, ThreadEntry } from '~/components/transcript/DiffView.vue'
 import type { FileChange, PatchHunk } from '~/utils/tools'
 import { isDesktop, openWithDefaultApp, revealInFolder } from '~/lib/desktop'
-import { VList } from 'virtua/vue'
-import { SessionDiffLoader, type SessionDiff } from '~/lib/files/sessionDiff'
+import { Virtualizer, VList } from 'virtua/vue'
+import { SessionDiffLoader, type DiffBaseChoice, type DiffBases, type SessionDiff } from '~/lib/files/sessionDiff'
 
 const props = defineProps<{ session: SessionState }>()
 const { closePane } = usePanes()
@@ -70,11 +70,16 @@ const remote = computed(() => !!props.session.meta.remote)
 const measured = useState<Record<string, SessionDiff>>('diff-measured', () => ({}))
 const live = computed<SessionDiff | null>(() => remote.value ? null : measured.value[sid.value] ?? null)
 const refreshing = ref(false)
+// What the changes are compared with: all of them by default. Per session, kept while the app is open.
+const base = useState<DiffBaseChoice>(`diff-base-${props.session.meta.id}`, () => ({ kind: 'all' }))
 const loader = new SessionDiffLoader({
-  fetch: (ifNoneMatch) => {
+  base: base.value,
+  // The client sets the pace; a hidden page does not ask.
+  shouldPoll: () => document.visibilityState === 'visible',
+  fetch: (ifNoneMatch, b) => {
     const t = store.transport
     if (!t) return Promise.reject(new Error('no transport'))
-    return store.whenOpen(sid.value, () => t.sessionDiff(sid.value, { ifNoneMatch }))
+    return store.whenOpen(sid.value, () => t.sessionDiff(sid.value, { ifNoneMatch, base: b }))
   },
   onChange: (diff) => {
     measured.value = { ...measured.value, [sid.value]: diff }
@@ -113,17 +118,60 @@ watch(finishedTools, (now, before) => {
 watch(() => props.session.meta.status, (s, before) => {
   if (before === 'working' && s !== 'working') void refresh()
 })
-// A light poll while the page is visible: the user and background tasks change files as well.
-const POLL_MS = 5000
-let poll: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
-  poll = setInterval(() => {
-    if (document.visibilityState === 'visible') void refresh()
-  }, POLL_MS)
+  if (!remote.value) loader.start()
 })
 onBeforeUnmount(() => {
-  clearInterval(poll)
+  loader.stop()
   clearTimeout(toolTimer)
+})
+
+// The comparison menu: the choices come from the client when it opens.
+const baseMenu = ref(false)
+const baseSub = ref<'' | 'ref' | 'commits'>('')
+const bases = ref<DiffBases | null>(null)
+const branchFilter = ref('')
+watch(baseMenu, async (on) => {
+  baseSub.value = ''
+  branchFilter.value = ''
+  if (!on || remote.value || !store.transport) return
+  const t = store.transport
+  bases.value = await store.whenOpen(sid.value, () => t.listDiffBases(sid.value)).catch(() => bases.value)
+})
+const branches = computed(() => {
+  const q = branchFilter.value.trim().toLowerCase()
+  return (bases.value?.branches ?? []).filter(b => !q || b.name.toLowerCase().includes(q))
+})
+function pickBase(b: DiffBaseChoice) {
+  base.value = b
+  baseMenu.value = false
+  measured.value = Object.fromEntries(Object.entries(measured.value).filter(([k]) => k !== sid.value))
+  loadedHunks.value = {}
+  loader.setBase(b)
+  void refresh()
+}
+const baseTitle = computed(() => live.value?.baseLabel ? `${live.value.baseLabel} → ${live.value.headLabel || 'working tree'}` : '')
+
+// A large diff comes without hunks: a file's arrive when it is opened, once per version of the diff.
+const loadedHunks = ref<Record<string, { version: string, hunks: PatchHunk[] }>>({})
+const hunksOf = (g: DiffGroup) => live.value?.large ? loadedHunks.value[g.path]?.hunks ?? [] : g.hunks
+const fetching = new Set<string>()
+watch(() => live.value?.large ? groups.value.filter(g => !isCollapsed(g.path) && !g.binary && !g.tooLarge).map(g => g.path) : [], async (open) => {
+  const t = store.transport
+  const version = live.value?.version ?? ''
+  if (!t) return
+  for (const path of open) {
+    if (loadedHunks.value[path]?.version === version || fetching.has(path)) continue
+    fetching.add(path)
+    try {
+      const f = await t.sessionFileDiff(sid.value, path, base.value)
+      loadedHunks.value = { ...loadedHunks.value, [path]: { version, hunks: f.hunks } }
+    } catch {
+      loadedHunks.value = { ...loadedHunks.value, [path]: { version, hunks: [] } }
+    } finally {
+      fetching.delete(path)
+    }
+  }
 })
 
 // --- From the transcript ---
@@ -207,12 +255,12 @@ const isCollapsed = (path: string) => collapsed.value[path] ?? !!live.value?.lar
 // Long files open in parts: a diff of many thousand lines is more than a page should lay out at once.
 const LINES_STEP = 1000
 const shownLines = reactive<Record<string, number>>({})
-const lineCount = (g: DiffGroup) => g.hunks.reduce((n, h) => n + h.lines.length, 0)
+const lineCount = (g: DiffGroup) => hunksOf(g).reduce((n, h) => n + h.lines.length, 0)
 function visibleHunks(g: DiffGroup): PatchHunk[] {
   let left = shownLines[g.path] ?? LINES_STEP
-  if (lineCount(g) <= left) return g.hunks
+  if (lineCount(g) <= left) return hunksOf(g)
   const out: PatchHunk[] = []
-  for (const h of g.hunks) {
+  for (const h of hunksOf(g)) {
     if (left <= 0) break
     out.push(h.lines.length > left ? { ...h, lines: h.lines.slice(0, left) } : h)
     left -= h.lines.length
@@ -251,13 +299,14 @@ watch(showTarget, async (t) => {
 function noHunks(g: DiffGroup) {
   if (g.binary) return 'Binary file'
   if (g.tooLarge) return 'Too large to show'
-  if (g.kind === 'R') return 'Renamed, no line changes'
-  return g.hunks.length ? '' : 'No line changes'
+  if (live.value?.large && !loadedHunks.value[g.path]) return 'Loading…'
+  if (hunksOf(g).length) return ''
+  return g.kind === 'R' ? 'Renamed, no line changes' : 'No line changes'
 }
 
 function diffText(g: DiffGroup) {
   const out = [`--- a/${g.label}`, `+++ b/${g.label}`]
-  for (const h of g.hunks) out.push(`@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@${h.header ? ' ' + h.header : ''}`, ...h.lines)
+  for (const h of hunksOf(g)) out.push(`@@ -${h.oldStart},${h.oldLines} +${h.newStart},${h.newLines} @@${h.header ? ' ' + h.header : ''}`, ...h.lines)
   return out.join('\n')
 }
 
@@ -278,7 +327,133 @@ async function copy(text: string) {
     class="flex h-full flex-col bg-default"
   >
     <div class="flex h-11 shrink-0 items-center gap-0.5 border-b border-default pr-1.5 pl-3.5">
-      <span class="font-display text-[13px] text-strong">Changes</span>
+      <span
+        v-if="!baseTitle"
+        class="font-display text-[13px] text-strong"
+      >Changes</span>
+      <UPopover
+        v-else
+        v-model:open="baseMenu"
+        :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
+      >
+        <button
+          type="button"
+          aria-label="Compare with"
+          class="flex min-w-0 items-center gap-1.5 px-1.5 py-1 font-display text-[13px] text-strong hover:bg-hover"
+          :class="baseMenu && 'bg-hover'"
+        >
+          <span class="truncate">{{ baseTitle }}</span>
+          <HIcon
+            name="down"
+            :size="12"
+            class="shrink-0 text-muted"
+          />
+        </button>
+        <template #content>
+          <div
+            role="menu"
+            aria-label="Compare with"
+            class="w-[260px] border border-accented bg-hover py-1 text-[12.5px]"
+          >
+            <PaneMenuItem
+              role="menuitemradio"
+              :checked="base.kind === 'all'"
+              :value="bases?.defaultLabel ? `vs ${bases.defaultLabel}` : ''"
+              reserve
+              @click="pickBase({ kind: 'all' })"
+            >
+              All changes
+            </PaneMenuItem>
+            <PaneMenuItem
+              v-if="bases?.inGit"
+              role="menuitemradio"
+              :checked="base.kind === 'uncommitted'"
+              reserve
+              @click="pickBase({ kind: 'uncommitted' })"
+            >
+              Uncommitted changes
+            </PaneMenuItem>
+            <template v-if="bases?.inGit">
+              <div class="my-1 h-px bg-line" />
+              <UPopover
+                :open="baseSub === 'ref'"
+                :content="{ side: 'right', align: 'start', sideOffset: 4 }"
+                @update:open="baseSub = $event ? 'ref' : ''"
+              >
+                <PaneMenuItem
+                  sub
+                  :value="base.kind === 'ref' ? base.ref : bases.defaultLabel"
+                >
+                  Compare against
+                </PaneMenuItem>
+                <template #content>
+                  <div class="flex max-h-[320px] w-[260px] flex-col border border-accented bg-hover text-[12.5px]">
+                    <input
+                      v-model="branchFilter"
+                      aria-label="Filter branches"
+                      placeholder="Filter branches"
+                      class="border-b border-default bg-transparent px-[9px] py-1.5 outline-none"
+                    >
+                    <div class="min-h-0 flex-1 overflow-y-auto py-1">
+                      <Virtualizer
+                        v-slot="{ item: b }"
+                        :data="branches"
+                      >
+                        <PaneMenuItem
+                          :key="b.name"
+                          role="menuitemradio"
+                          :checked="base.kind === 'ref' && base.ref === b.name"
+                          reserve
+                          @click="pickBase({ kind: 'ref', ref: b.name })"
+                        >
+                          {{ b.name }}
+                        </PaneMenuItem>
+                      </Virtualizer>
+                    </div>
+                  </div>
+                </template>
+              </UPopover>
+              <UPopover
+                :open="baseSub === 'commits'"
+                :content="{ side: 'right', align: 'start', sideOffset: 4 }"
+                @update:open="baseSub = $event ? 'commits' : ''"
+              >
+                <PaneMenuItem
+                  sub
+                  :value="String(bases.commits.length)"
+                  :disabled="!bases.commits.length"
+                >
+                  Commits
+                </PaneMenuItem>
+                <template #content>
+                  <div class="h-[320px] max-h-[60vh] w-[340px] overflow-y-auto border border-accented bg-hover py-1 text-[12.5px]">
+                    <Virtualizer
+                      v-slot="{ item: c }"
+                      :data="bases.commits"
+                    >
+                      <PaneMenuItem
+                        :key="c.sha"
+                        role="menuitemradio"
+                        :checked="base.kind === 'commit' && base.sha === c.sha"
+                        :value="c.sha.slice(0, 7)"
+                        reserve
+                        @click="pickBase({ kind: 'commit', sha: c.sha })"
+                      >
+                        <span class="block max-w-[210px] truncate">{{ c.subject }}</span>
+                      </PaneMenuItem>
+                    </Virtualizer>
+                  </div>
+                </template>
+              </UPopover>
+            </template>
+          </div>
+        </template>
+      </UPopover>
+      <span
+        v-if="live?.large"
+        class="ml-1.5 shrink-0 border border-line px-1.5 py-px text-[11px] text-muted"
+        title="A large diff: files stay collapsed until you open them"
+      >Large diff</span>
       <span class="flex-1" />
       <HIconBtn
         v-if="!remote"
