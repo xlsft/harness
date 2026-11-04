@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
+import { create } from '@bufbuild/protobuf'
+import { ComputerAccessTier, ComputerUseProfileSchema } from '~/gen/harness/agent/v1/computer_use_pb'
+import { profileMessage, profileVM } from '~/lib/session/computer'
 import { computerGroupLabel } from '~/utils/tools'
 import { createSessionState, reduce, reduceAll, settleTurn } from '~/lib/session/reducer'
 import type { ComputerAccessItem, ToolItem } from '~/lib/session/types'
@@ -72,6 +74,17 @@ describe('computer use in the session state', () => {
     expect(t.output).toBe('Screenshot of Notes')
   })
 
+  it('maps profiles both ways, and an unclear tier is blocked', () => {
+    const p = profileVM(create(ComputerUseProfileSchema, { id: 'custom', name: 'Custom', browsers: ComputerAccessTier.CLICK, other: ComputerAccessTier.FULL, liftedBlocks: ['keychain'], allowSecureTyping: true, appTiers: [{ appId: 'a', tier: ComputerAccessTier.READ }] }))
+    expect(p.browsers).toBe('click')
+    expect(p.terminals).toBe('blocked')
+    expect(p.apps).toEqual([{ id: 'a', name: '', tier: 'read' }])
+    const m = profileMessage(p)
+    expect(m.terminals).toBe(ComputerAccessTier.BLOCKED)
+    expect(m.liftedBlocks).toEqual(['keychain'])
+    expect(m.allowSecureTyping).toBe(true)
+  })
+
   it('ignores an event emptied by the relay', () => {
     const { b, s } = setup()
     const ev = b.computerUseState(true, 'x', [])
@@ -82,6 +95,18 @@ describe('computer use in the session state', () => {
 })
 
 describe('computer use in the mock transport', () => {
+  it('starts on Strict, and the custom profile is kept', async () => {
+    const t = new MockTransport()
+    const st = await t.getComputerUseStatus()
+    expect(st.activeProfileId).toBe('strict')
+    expect(st.profiles.map(p => p.id)).toEqual(['strict', 'standard', 'full', 'custom'])
+    const custom = { ...st.profiles[3]!, browsers: 'click' as const, lifted: ['1password'] }
+    const next = await t.setComputerUseProfile('custom', custom)
+    expect(next.activeProfileId).toBe('custom')
+    expect(next.profiles[3]!.lifted).toEqual(['1password'])
+    expect(next.profiles[0]!.browsers).toBe('read')
+  })
+
   it('is off by default, and the switch is remembered', async () => {
     const t = new MockTransport()
     expect((await t.getComputerUseStatus()).enabled).toBe(false)

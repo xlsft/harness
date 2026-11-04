@@ -1,7 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
-import type { ComputerPermissionVM, EffortName, QuestionReply } from '~/lib/session/types'
+import type { ComputerPermissionVM, ComputerProfileVM, ComputerTierName, EffortName, QuestionReply } from '~/lib/session/types'
 import type {
   InitializeResponse,
   ListBranchesResponse,
@@ -41,6 +41,16 @@ export interface ComputerUseStatusVM {
   platform: string
   unavailableReason: string
   permissions: ComputerPermissionVM[]
+  activeProfileId: string
+  profiles: ComputerProfileVM[]
+  blockEntries: { id: string, label: string, warning: string }[]
+}
+
+// An app of this machine for the profile editor (ListComputerUseApps).
+export interface ComputerUseAppVM {
+  id: string
+  name: string
+  tier: ComputerTierName
 }
 
 export interface ModelInfo {
@@ -154,6 +164,9 @@ export interface SessionTransport {
   // Computer use (device-local). The status is only read, which never makes the system prompt.
   getComputerUseStatus(): Promise<ComputerUseStatusVM>
   setComputerUseEnabled(enabled: boolean): Promise<ComputerUseStatusVM>
+  // Picks the security profile; with `custom`, replaces the custom profile too.
+  setComputerUseProfile(activeProfileId: string, custom?: ComputerProfileVM): Promise<ComputerUseStatusVM>
+  listComputerUseApps(): Promise<ComputerUseAppVM[]>
   respondToComputerAccess(sessionId: string, requestId: string, approvedAppIds: string[]): Promise<void>
   stopComputerUse(sessionId: string): Promise<void>
   respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback?: string): Promise<void>
