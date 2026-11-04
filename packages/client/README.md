@@ -36,6 +36,7 @@ It ships in two forms:
 | `worktree` | Session worktrees (`<repo>/.harness/worktrees/<name>`) and local branch listing for the new-session pickers |
 | `server` | `harness.agent.v1.AgentService` over a unix socket (h2c) and, for browsers, a guarded loopback TCP listener (`tcp.go`: bearer token, Origin/CORS allowlist, Host check) |
 | `browser` | A headless Chromium per session over CDP (installed Chrome/Chromium/Edge/Brave, `HARNESS_BROWSER`, or a pinned Chrome for Testing downloaded into `HARNESS_HOME/browser`), the Browser pane's WebSocket at `/harness.agent.v1.Browser/socket` (one-time tickets, JPEG screencast, input forwarding) and the agent's `Browser*` tools (`HARNESS_NO_BROWSER=1` leaves them out); see `proto/harness/agent/v1/browser.proto` |
+| `preview` | The project's dev servers for the agent's `Preview*` tools and the Browser pane: `.harness/launch.json`, one process group per server, a log ring buffer, stopped on session delete and client exit; device-local; see `proto/harness/agent/v1/preview.proto` |
 | `terminal` | Shells in a PTY for the UI's terminal pane (creack/pty; ConPTY on Windows): ring buffer replay on reattach, per-client cap, and the WebSocket at `/harness.agent.v1.Terminal/socket`, authenticated by one-time tickets from the terminal RPCs |
 | `relay` | Host side of `harness.relay.v1.RelayService` (remote control): mirrors live sessions to the server and runs viewer commands |
 | `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |

@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -1218,6 +1219,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 				continue
 			}
 			req := permissions.Request{ToolName: u.Name, ToolUseID: u.ID, Input: u.Input, ReadOnly: t.ReadOnly(u.Input)}
+			var hinted tools.PermissionHints
 			req.FilePath = tools.FilePath(u.Input)
 			if aa, ok := t.(tools.AlwaysAsker); ok && aa.AlwaysAsk() {
 				req.AlwaysAsk = true
@@ -1225,6 +1227,8 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			if ph, ok := t.(tools.PermissionHinter); ok {
 				h := ph.PermissionHints(ctx, a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: u.Input})
 				req.URL, req.Sensitive = h.URL, h.Sensitive
+				hinted = h
+				applyCheckAs(&req, h)
 			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
@@ -1265,7 +1269,15 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			}
 			in := u.Input
 			if len(d.UpdatedInput) > 0 {
-				in = d.UpdatedInput
+				if hinted.CheckAs != "" {
+					// The approver saw (and may have edited) the input of the other tool, not of this call.
+					if !sameCheckedInput(req.Input, d.UpdatedInput) {
+						setResult(idx, tools.ErrorResult("The approval changed the input, which %s cannot apply. Change what it runs instead, then call it again.", u.Name), "")
+						continue
+					}
+				} else {
+					in = d.UpdatedInput
+				}
 			}
 			runnable = append(runnable, call{idx: idx, tool: t, input: in, comment: d.Comment})
 		}
@@ -1312,6 +1324,29 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 		}
 	}
 	return outcomes, ctx.Err() != nil
+}
+
+// applyCheckAs turns the permission request into that of what the call amounts to (tools.PermissionHints).
+func applyCheckAs(req *permissions.Request, h tools.PermissionHints) {
+	switch {
+	case h.NoEffect:
+		req.ReadOnly = true
+	case h.CheckAs == "Bash":
+		req.ToolName, req.Command, req.Cwd, req.ReadOnly, req.FilePath = h.CheckAs, h.Command, h.Cwd, false, ""
+		req.Input, _ = json.Marshal(map[string]string{"command": h.Command})
+	case h.CheckAs != "":
+		req.ToolName, req.ReadOnly, req.FilePath = h.CheckAs, false, ""
+		req.Input, _ = json.Marshal(map[string]string{"url": h.URL})
+	}
+}
+
+// sameCheckedInput reports whether two JSON inputs say the same.
+func sameCheckedInput(a, b json.RawMessage) bool {
+	var x, y any
+	if json.Unmarshal(a, &x) != nil || json.Unmarshal(b, &y) != nil {
+		return false
+	}
+	return reflect.DeepEqual(x, y)
 }
 
 func (a *Agent) runTool(ctx context.Context, t tools.Tool, id string, input json.RawMessage) (r tools.Result) {

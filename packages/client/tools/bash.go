@@ -275,6 +275,10 @@ func (s *Shell) BackgroundToolCall(toolUseID, reason string) bool {
 	return found
 }
 
+// Command builds a long-lived process for a command line (not started): it runs in cwd the way the Bash tool runs
+// it (same shell, PATH and environment), as the leader of a new process group. The caller owns the process.
+func (s *Shell) Command(command, cwd string) *exec.Cmd { return s.command(command, "", cwd) }
+
 // command builds the shell process for a command line (not started).
 func (s *Shell) command(command, cwdFile, cwd string) *exec.Cmd {
 	snap := s.snapshot()

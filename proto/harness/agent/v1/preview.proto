@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Preview servers: the project's dev servers, started by the agent (the PreviewStart tool, from the project's
+// .harness/launch.json) and shown in the session's Browser pane.
+//
+// The client that runs the session owns the processes: one process group per server, stopped when the session is
+// deleted, by PreviewStop or StopPreviewServer, or when the client exits. Closing and resuming a session leaves
+// them running. Device-local: none of this is synced; a session of another machine (SessionInfo.remote) or an ACP
+// session answers FAILED_PRECONDITION. A session that is merely closed still answers, with the servers it left
+// running. The Browser pane polls ListPreviewServers while it is open.
+
+message PreviewServer {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    // Started, and its port has not answered yet.
+    STATUS_STARTING = 1;
+    // Its port answered.
+    STATUS_RUNNING = 2;
+    // The process ended by itself (exit_code).
+    STATUS_EXITED = 3;
+    // Stopped by PreviewStop, StopPreviewServer, or because the session or the client ended.
+    STATUS_STOPPED = 4;
+  }
+  // Unique within the session while the client runs, for example "web-1".
+  string server_id = 1;
+  // The name in the launch file.
+  string name = 2;
+  // The command line as it was checked and run.
+  string command_line = 3;
+  int32 port = 4;
+  // Where the browser opens it.
+  string url = 5;
+  Status status = 6;
+  // STATUS_EXITED only; -1 when a signal ended it.
+  int32 exit_code = 7;
+  // Unix milliseconds.
+  int64 started_at_ms = 8;
+}
+
+message ListPreviewServersRequest {
+  string session_id = 1;
+}
+
+message ListPreviewServersResponse {
+  // Oldest first, including servers that ended (their logs stay readable until the name is started again).
+  repeated PreviewServer servers = 1;
+}
+
+message StopPreviewServerRequest {
+  string session_id = 1;
+  string server_id = 2;
+}
+
+message StopPreviewServerResponse {
+  PreviewServer server = 1;
+}
+
+message GetPreviewLogsRequest {
+  string session_id = 1;
+  string server_id = 2;
+  // The last lines to return, after filtering (0: 200, at most 2000).
+  int32 lines = 3;
+  // Only lines that look like errors.
+  bool errors_only = 4;
+  // Only lines containing this text, ignoring case.
+  string search = 5;
+}
+
+message GetPreviewLogsResponse {
+  repeated string lines = 1;
+  // Older output left the buffer, so the lines may not start at the beginning of the output.
+  bool truncated = 2;
+}

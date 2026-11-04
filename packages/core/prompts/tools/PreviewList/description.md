@@ -1,0 +1,1 @@
+Lists this session's dev servers from PreviewStart: id, name, status (starting, running, stopped, or exited with its code), port, URL and command. Ended servers stay listed so you can read their logs. Use it after a session is resumed, when you no longer have a `server_id`.

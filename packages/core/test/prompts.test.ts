@@ -39,7 +39,7 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "ProposeBranch", "PushNotification", "Read", "ReadNotifications", "ReportFindings", "RequestDirectory", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionStart", "Show", "SyncWithBase", "TaskOutput",
+      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read", "ReadNotifications", "ReportFindings", "RequestDirectory", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionStart", "Show", "SyncWithBase", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -137,6 +137,12 @@ describe("bundle builder", () => {
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all", "description"]);
     expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background"]);
     expect(props("TaskStop")).toEqual(["task_id", "description"]);
+    expect(props("PreviewStart")).toEqual(["name", "url", "description"]);
+    expect(b.tools.PreviewStart!.input_schema.required).toEqual(["description"]);
+    expect(b.tools.PreviewStart!.description).toMatch(/launch\.json/);
+    expect(props("PreviewStop")).toEqual(["server_id", "description"]);
+    expect(props("PreviewList")).toEqual(["description"]);
+    expect(props("PreviewLogs")).toEqual(["server_id", "lines", "level", "search", "description"]);
     expect(props("Show")).toEqual(["target", "path", "line", "end_line", "url", "description"]);
     expect(b.tools.Show!.input_schema.required).toEqual(["target", "description"]);
     expect((b.tools.Show!.input_schema.properties as any).target.enum).toEqual(["file", "diff", "url"]);

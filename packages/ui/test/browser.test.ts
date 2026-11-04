@@ -5,7 +5,8 @@ import { BrowserActionSchema, BrowserAction_Phase } from '~/gen/harness/agent/v1
 import { reduce, createSessionState } from '~/lib/session/reducer'
 import { MockBrowserApi } from '~/lib/browser/mock'
 import { BrowserConnection, browserSocketUrl, encodeFrame, parseFrame, type BrowserLink, type BrowserSocketHandlers } from '~/lib/browser/connection'
-import { actionLabel, modifierMask, type BrowserFrame, type BrowserStateVM } from '~/lib/browser/types'
+import { PreviewServerSchema, PreviewServer_Status } from '~/gen/harness/agent/v1/preview_pb'
+import { actionLabel, modifierMask, previewServerView, type BrowserFrame, type BrowserStateVM } from '~/lib/browser/types'
 
 function nextState(conn: BrowserConnection, pred: (s: BrowserStateVM) => boolean) {
   return new Promise<BrowserStateVM>((resolve) => {
@@ -217,5 +218,17 @@ describe('reducer', () => {
     reduce(s, create(SessionEventSchema, { seq: 8n, sessionId: 's', event: { case: 'turnStarted', value: { userMessageUuid: 'v', model: 'm' } } }))
     reduce(s, event(9, { toolUseId: 'c', phase: BrowserAction_Phase.STARTED, kind: 'snapshot' }))
     expect(s.browserAction?.step).toBe(1)
+  })
+})
+
+describe('preview servers', () => {
+  it('maps the client\'s servers for the bar', () => {
+    const s = create(PreviewServerSchema, { serverId: 'web-1', name: 'web', commandLine: 'pnpm dev', port: 5173, url: 'http://localhost:5173', status: PreviewServer_Status.EXITED, exitCode: 2 })
+    expect(previewServerView(s)).toEqual({ id: 'web-1', name: 'web', commandLine: 'pnpm dev', port: 5173, url: 'http://localhost:5173', status: 'exited', exitCode: 2 })
+    expect(previewServerView(create(PreviewServerSchema, { status: PreviewServer_Status.RUNNING })).status).toBe('running')
+  })
+
+  it('the mock has none', async () => {
+    expect(await new MockBrowserApi().previewServers('s')).toEqual([])
   })
 })

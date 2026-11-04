@@ -19,12 +19,16 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.status === 'running' && t.name !== 'Task' && t.name !== 'Agent') return 'loading'
   if (t.status === 'error' && t.name === 'Bash') return 'x'
   if (mcpParts(t.name)) return 'box'
-  if (t.name.startsWith('Browser')) return 'globe'
+  if (t.name.startsWith('Browser') || t.name === 'PreviewStart') return 'globe'
   switch (t.name) {
     case 'Bash':
     case 'TaskOutput': return 'term'
     case 'Wait':
     case 'Monitor': return 'clock'
+    case 'Wait': return 'clock'
+    case 'PreviewStop':
+    case 'PreviewList':
+    case 'PreviewLogs': return 'term'
     case 'Read': return 'file'
     case 'EnterWorktree':
     case 'ExitWorktree':
@@ -127,6 +131,9 @@ export function toolTarget(t: ToolItem): string {
     case 'PrBind': return String(i.pr ?? t.summary ?? '') || t.name
     case 'PrMonitor': return i.enabled ? 'Watch the pull request' : 'Stop watching the pull request'
     case 'PrAutoMerge': return i.enabled ? `Turn on auto-merge${i.method ? ` (${String(i.method)})` : ''}` : 'Turn off auto-merge'
+    case 'PreviewStart': return String(i.name ?? i.url ?? t.summary)
+    case 'PreviewStop':
+    case 'PreviewLogs': return String(i.server_id ?? t.summary)
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

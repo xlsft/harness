@@ -66,6 +66,14 @@ type PermissionHints struct {
 	URL string
 	// Sensitive, when set, says why only the user may approve the call (typing into a password field...).
 	Sensitive string
+	// CheckAs, when set, is the tool whose check applies, because that is what the call amounts to: "Bash" for
+	// running Command in Cwd (classification, rules, auto mode and the prompt all see that command line), or
+	// "BrowserNavigate" for opening URL. Rules naming the tool itself do not apply then.
+	CheckAs string
+	Command string
+	Cwd     string
+	// NoEffect says the call can only report an error: it needs no approval.
+	NoEffect bool
 }
 
 // PermissionHinter is implemented by tools whose permission check depends on state outside the input (the

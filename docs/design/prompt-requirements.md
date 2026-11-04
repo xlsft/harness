@@ -32,6 +32,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
 | Web: WebSearch, WebFetch | `tools/WebSearch/`, `tools/WebFetch/` | written |
 | Browser: BrowserNavigate, BrowserSnapshot, BrowserClick, BrowserType, BrowserKey, BrowserScroll, BrowserScreenshot, BrowserEval, BrowserTabs, BrowserConsole, BrowserNetwork, BrowserWait | `tools/Browser*/` | written |
+| Preview: PreviewStart, PreviewStop, PreviewList, PreviewLogs | `tools/Preview*/` | written |
 | 14 reminders (12 core ids plus `output_style` and `deferred_tools`) | `reminders/` | written |
 | WebFetch summarization prompt (small-slot model) | `reminders/webfetch_summary.md` | written |
 | Compaction | `compaction/instruction.md` | written |

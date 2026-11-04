@@ -82,6 +82,16 @@ func localHost(h string) bool {
 	return false
 }
 
+// IsLocalWebPage reports whether raw is an http or https page of this machine, which the browser tools may use
+// without approval.
+func IsLocalWebPage(raw string) bool {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || (!strings.EqualFold(u.Scheme, "http") && !strings.EqualFold(u.Scheme, "https")) {
+		return false
+	}
+	return localHost(strings.ToLower(u.Hostname()))
+}
+
 // evalBrowser decides a browser action after deny / ask rules and the bypass mode were applied. Caller holds
 // e.mu (read).
 func (e *Engine) evalBrowser(req Request, input map[string]any, mc matchContext) Decision {

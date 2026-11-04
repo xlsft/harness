@@ -576,6 +576,11 @@ func toolSummary(name string, input []byte, cwd string) string {
 		case w.TaskID != "":
 			return "Wait task " + w.TaskID
 		}
+	case "PreviewStart":
+		if n := jsonField(input, "name"); n != "" {
+			return "Preview " + n
+		}
+		return "Preview " + truncateRunes(jsonField(input, "url"), 80)
 	case "BrowserNavigate":
 		if u := jsonField(input, "url"); u != "" {
 			return "Browser " + truncateRunes(u, 80)

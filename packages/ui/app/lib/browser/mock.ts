@@ -422,6 +422,17 @@ export class MockBrowserApi implements BrowserApi {
 
   async clearData(_sessionId: string) {}
 
+  // No dev servers in the mock: the bar stays hidden.
+  async previewServers(_sessionId: string) {
+    return []
+  }
+
+  async stopPreview(_sessionId: string, _serverId: string) {}
+
+  async previewLogs(_sessionId: string, _serverId: string) {
+    return []
+  }
+
   /** Plays the agent: reports an action over the socket, as the real client does for its tool calls. */
   agentAct(sessionId: string, action: { toolUseId: string, kind: string, label?: string, ref?: string, x?: number, y?: number, finished?: boolean, error?: string }) {
     const b = this.browser(sessionId)

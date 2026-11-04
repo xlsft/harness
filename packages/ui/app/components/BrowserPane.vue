@@ -377,6 +377,12 @@ async function copyUrl() {
       />
     </div>
 
+    <BrowserPreviewBar
+      v-if="!remote && store.transport"
+      :session-id="session.meta.id"
+      :api="api()"
+    />
+
     <!-- What the agent is doing here -->
     <div
       v-if="acting || takenOver"
