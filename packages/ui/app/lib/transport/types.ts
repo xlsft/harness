@@ -73,6 +73,8 @@ export interface NewSessionOptions {
 export interface UserPreferences {
   // Compact sessions idle for 30 minutes whose context is above half the window, in the background.
   compactIdleSessions: boolean
+  // How many times per hour a watched pull request may wake a session (1 to 240; the client validates).
+  prMonitorWakesPerHour: number
 }
 
 // Per-user session state kept on the harness server; unset fields stay as they are.
@@ -146,6 +148,8 @@ export interface SessionTransport {
   setAutoContinue(sessionId: string, enabled: boolean): Promise<void>
   // The user's click on a proposal's card; a SessionProposal event follows.
   resolveSessionProposal(sessionId: string, proposalId: string, action: 'start' | 'dismiss'): Promise<void>
+  // The auto-fix switch: the client watches the session's pull request and wakes the session.
+  setPrMonitor(sessionId: string, enabled: boolean): Promise<void>
 
   suggestFiles(sessionId: string, query: string, limit: number): Promise<string[]>
   compact(sessionId: string, instructions?: string): Promise<void>

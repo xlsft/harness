@@ -300,6 +300,9 @@ const (
 	// AgentServiceReadSentFileProcedure is the fully-qualified name of the AgentService's ReadSentFile
 	// RPC.
 	AgentServiceReadSentFileProcedure = "/harness.agent.v1.AgentService/ReadSentFile"
+	// AgentServiceSetPrMonitorProcedure is the fully-qualified name of the AgentService's SetPrMonitor
+	// RPC.
+	AgentServiceSetPrMonitorProcedure = "/harness.agent.v1.AgentService/SetPrMonitor"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -541,6 +544,10 @@ type AgentServiceClient interface {
 	UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error)
 	// The bytes of a file in the session's scope, for SendUserFile cards.
 	ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error)
+	// Turns watching the session's bound pull request on or off (pr.proto). On, with no PR bound, binds the open PR
+	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
+	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
+	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1112,6 +1119,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("ReadSentFile")),
 			connect.WithClientOptions(opts...),
 		),
+		setPrMonitor: connect.NewClient[v1.SetPrMonitorRequest, v1.SetPrMonitorResponse](
+			httpClient,
+			baseURL+AgentServiceSetPrMonitorProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1210,6 +1223,7 @@ type agentServiceClient struct {
 	resolveSessionProposal *connect.Client[v1.ResolveSessionProposalRequest, v1.ResolveSessionProposalResponse]
 	updateViewerPresence   *connect.Client[v1.UpdateViewerPresenceRequest, v1.UpdateViewerPresenceResponse]
 	readSentFile           *connect.Client[v1.ReadSentFileRequest, v1.ReadSentFileResponse]
+	setPrMonitor           *connect.Client[v1.SetPrMonitorRequest, v1.SetPrMonitorResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1677,6 +1691,11 @@ func (c *agentServiceClient) ReadSentFile(ctx context.Context, req *connect.Requ
 	return c.readSentFile.CallUnary(ctx, req)
 }
 
+// SetPrMonitor calls harness.agent.v1.AgentService.SetPrMonitor.
+func (c *agentServiceClient) SetPrMonitor(ctx context.Context, req *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error) {
+	return c.setPrMonitor.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -1916,6 +1935,10 @@ type AgentServiceHandler interface {
 	UpdateViewerPresence(context.Context, *connect.Request[v1.UpdateViewerPresenceRequest]) (*connect.Response[v1.UpdateViewerPresenceResponse], error)
 	// The bytes of a file in the session's scope, for SendUserFile cards.
 	ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error)
+	// Turns watching the session's bound pull request on or off (pr.proto). On, with no PR bound, binds the open PR
+	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
+	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
+	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2483,6 +2506,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("ReadSentFile")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceSetPrMonitorHandler := connect.NewUnaryHandler(
+		AgentServiceSetPrMonitorProcedure,
+		svc.SetPrMonitor,
+		connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -2671,6 +2700,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceUpdateViewerPresenceHandler.ServeHTTP(w, r)
 		case AgentServiceReadSentFileProcedure:
 			agentServiceReadSentFileHandler.ServeHTTP(w, r)
+		case AgentServiceSetPrMonitorProcedure:
+			agentServiceSetPrMonitorHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3050,4 +3081,8 @@ func (UnimplementedAgentServiceHandler) UpdateViewerPresence(context.Context, *c
 
 func (UnimplementedAgentServiceHandler) ReadSentFile(context.Context, *connect.Request[v1.ReadSentFileRequest]) (*connect.Response[v1.ReadSentFileResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ReadSentFile is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetPrMonitor is not implemented"))
 }

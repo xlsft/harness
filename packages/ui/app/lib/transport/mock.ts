@@ -147,7 +147,7 @@ export class MockTransport implements SessionTransport {
   private sessions = new Map<string, MockSession>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { compactIdleSessions: true }
+  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30 }
   private tick: number
   private now: () => number
 
@@ -983,6 +983,18 @@ export class MockTransport implements SessionTransport {
     throw new Error(`no proposal ${proposalId}`)
   }
 
+  async setPrMonitor(sessionId: string, enabled: boolean) {
+    const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Watching a pull request')
+    const pr = s.info.pullRequest
+    if (!pr) {
+      if (enabled) throw new Error('[failed_precondition] this branch has no pull request')
+      return
+    }
+    s.info = create(SessionInfoSchema, { ...s.info, pullRequest: { ...pr, monitoring: enabled } })
+    this.emit(s, b => b.sessionUpdated(s.info))
+  }
+
   async setAutoContinue(sessionId: string, enabled: boolean) {
     const s = this.get(sessionId)
     this.refuseAcp(sessionId, 'Continuing when limits return')
@@ -1077,6 +1089,8 @@ export class MockTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>) {
+    const n = patch.prMonitorWakesPerHour
+    if (n !== undefined && (!Number.isInteger(n) || n < 1 || n > 240)) throw new Error('[invalid_argument] wakes per hour must be between 1 and 240')
     this.preferences = { ...this.preferences, ...patch }
     return { ...this.preferences }
   }

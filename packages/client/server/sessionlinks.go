@@ -182,8 +182,8 @@ func (s *Server) liveSession(id string) *liveSession {
 func (ls *liveSession) StartSession(ctx context.Context, r tools.SessionRequest) (tools.LinkedSession, error) {
 	s := ls.srv
 	m := &agentv1.CreateSessionRequest{Cwd: r.Cwd, Model: r.Model, PermissionMode: modeToProto(ls.sess.Permissions.Mode())}
-	if m.Cwd == "" && !isNoFolder(ls.sess.ID, ls.sess.Cwd) {
-		m.Cwd = ls.sess.Cwd
+	if m.Cwd == "" && !isNoFolder(ls.sess.ID, ls.sess.Dir()) {
+		m.Cwd = ls.sess.Dir()
 	}
 	if m.Model == "" {
 		m.Model = ls.sess.Agent.Model()

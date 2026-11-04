@@ -237,6 +237,31 @@ func TestPolicyEnforcement(t *testing.T) {
 	}
 }
 
+func TestPRMonitorWakesPerHour(t *testing.T) {
+	root := t.TempDir()
+	cwd, home := filepath.Join(root, "p"), filepath.Join(root, "h")
+	load := func(content string) *Settings {
+		t.Helper()
+		user := doc("doc_u", commonv1.Scope_SCOPE_USER, syncv1.DocumentKind_DOCUMENT_KIND_SETTINGS, UserSettingsKey, content)
+		s, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Docs: &fakeDocs{synced: true, docs: []*syncv1.Document{user}}, Trusted: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	if s := load(`{}`); s.PRMonitorWakesPerHour != 30 {
+		t.Fatalf("default: %d", s.PRMonitorWakesPerHour)
+	}
+	if s := load(`{"prMonitorWakesPerHour": 60}`); s.PRMonitorWakesPerHour != 60 {
+		t.Fatalf("set: %d", s.PRMonitorWakesPerHour)
+	}
+	for _, bad := range []string{`0`, `-1`, `241`, `1.5`, `"many"`} {
+		if s := load(`{"prMonitorWakesPerHour": ` + bad + `}`); s.PRMonitorWakesPerHour != 30 {
+			t.Fatalf("%s: %d", bad, s.PRMonitorWakesPerHour)
+		}
+	}
+}
+
 func TestCompactIdleSessions(t *testing.T) {
 	root := t.TempDir()
 	cwd, home := filepath.Join(root, "p"), filepath.Join(root, "h")

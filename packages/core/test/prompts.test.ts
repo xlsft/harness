@@ -16,6 +16,22 @@ function tree(files: Record<string, string>): string {
   return dir;
 }
 
+describe("pull request comment marker", () => {
+  it("is mandatory in the tool policy of every model family and comes from the client", () => {
+    for (const model of ["some-model", "gpt-x"]) {
+      const b = buildBundle(resolvePromptFiles(PROMPTS, [model]), model);
+      const policy = b.system.find((s) => s.id === "tool_policy") as { text: string };
+      expect(policy.text).toMatch(/mandatory/);
+      expect(policy.text).toMatch(/verbatim/);
+      expect(policy.text).toContain("kind=");
+      // the exact string is the client's: prompts carry only its placeholder
+      expect(b.reminders.pr_activity).toContain("{{marker}}");
+      expect(b.reminders.pr_detected).toContain("{{marker}}");
+      expect(b.tools.PrMonitor!.description).toMatch(/marker/);
+    }
+  });
+});
+
 describe("bundle builder", () => {
   it("builds the shipped bundle with all M0 + M1 sections and tools", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
@@ -23,7 +39,7 @@ describe("bundle builder", () => {
     expect(Object.keys(b.tools).sort()).toEqual([
       "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait",
-      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "ProposeBranch", "PushNotification", "Read", "ReadNotifications", "ReportFindings", "RequestDirectory", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionStart", "Show", "SyncWithBase", "TaskOutput",
+      "ChangeDirectory", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "ProposeBranch", "PushNotification", "Read", "ReadNotifications", "ReportFindings", "RequestDirectory", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionStart", "Show", "SyncWithBase", "TaskOutput",
       "TaskStop", "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -50,7 +66,7 @@ describe("bundle builder", () => {
       user_shell_command: ["cwd", "command", "exit_code", "output", "status"],
       usage_limit_wrap_up: ["provider", "detail", "resets"],
       usage_limit_returned: ["provider"],
-      "from_id", "from_name", "from_title", "message", "name", "report", "session_id", "status", "title",
+      "events", "external", "from_id", "from_name", "from_title", "marker", "message", "name", "number", "report", "session_id", "status", "title", "url",
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason

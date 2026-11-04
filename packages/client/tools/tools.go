@@ -110,7 +110,15 @@ type Env struct {
 	RipgrepPath string
 	// BeforeEdit is called before a file tool modifies path (checkpoints).
 	BeforeEdit func(path string)
-		,
+	// Agents is the session's set of subagents (nil disables the agent tools); AgentID is the subagent this Env
+	// belongs to (empty for the session's main agent).
+	Agents  Agents
+	AgentID string
+	// ReadDenied reports whether a permission rule denies reading path (nil: none does).
+	ReadDenied func(path string) bool
+
+	push     pushThrottle
+	findings findingsState
 
 	mu    sync.Mutex
 	host  Host

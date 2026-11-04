@@ -21,6 +21,7 @@ import (
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/syncclient"
+	"github.com/xlsft/harness/packages/client/vcs"
 )
 
 // Per-session user state: pinned, unread, archived and a rename.
@@ -327,6 +328,7 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 	if ls != nil {
 		s.closeLive(id, "deleted")
 	}
+	vcs.RemovePRState(bootstrap.PRStateDir(), id)
 	// Dropping the upload state before the server delete keeps other uploaders from re-uploading it; if the
 	// delete fails, a later open re-uploads idempotently from the start.
 	if err := syncclient.Forget("", id); err != nil {

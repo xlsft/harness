@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "True to watch the PR, false to stop."
+    }
+  },
+  "required": [
+    "enabled"
+  ],
+  "additionalProperties": false
+}

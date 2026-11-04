@@ -58,6 +58,11 @@ export function toolIcon(t: ToolItem): IconName {
     case 'SessionDismiss': return 'close'
     case 'SessionArchive': return 'archive'
     case 'MarkChapter': return 'flag'
+    case 'PrStatus':
+    case 'PrBind':
+    case 'PrUnbind':
+    case 'PrMonitor':
+    case 'PrAutoMerge': return 'pull-request'
     default: return 'box'
   }
 }
@@ -118,6 +123,10 @@ export function toolTarget(t: ToolItem): string {
     case 'SessionSend': return String(i.to ?? t.summary)
     case 'SessionArchive': return String(i.id ?? t.summary)
     case 'SessionDismiss': return String(i.task_id ?? t.summary)
+    case 'PrStatus':
+    case 'PrBind': return String(i.pr ?? t.summary ?? '') || t.name
+    case 'PrMonitor': return i.enabled ? 'Watch the pull request' : 'Stop watching the pull request'
+    case 'PrAutoMerge': return i.enabled ? `Turn on auto-merge${i.method ? ` (${String(i.method)})` : ''}` : 'Turn off auto-merge'
     case 'BrowserNavigate': return String(i.url ?? i.action ?? t.summary)
     case 'BrowserClick':
     case 'BrowserType':

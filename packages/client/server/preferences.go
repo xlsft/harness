@@ -55,6 +55,13 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	if req.Msg.CompactIdleSessions != nil {
 		set[settings.KeyCompactIdleSessions] = req.Msg.GetCompactIdleSessions()
 	}
+	if req.Msg.PrMonitorWakesPerHour != nil {
+		n := int(req.Msg.GetPrMonitorWakesPerHour())
+		if !settings.ValidPRMonitorWakesPerHour(n) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wakes per hour must be between 1 and %d", settings.MaxPRMonitorWakesPerHour))
+		}
+		set[settings.KeyPRMonitorWakesPerHour] = n
+	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
 	doc, err := s.userSettings(ctx)
@@ -97,7 +104,7 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 
 // preferencesOf reads the preferences from a settings document (nil or invalid content: the defaults).
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
-	p := &agentv1.UserPreferences{CompactIdleSessions: true}
+	p := &agentv1.UserPreferences{CompactIdleSessions: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
@@ -105,6 +112,10 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	var b bool
 	if v, ok := raw[settings.KeyCompactIdleSessions]; ok && json.Unmarshal(v, &b) == nil {
 		p.CompactIdleSessions = b
+	}
+	var n int32
+	if v, ok := raw[settings.KeyPRMonitorWakesPerHour]; ok && json.Unmarshal(v, &n) == nil && settings.ValidPRMonitorWakesPerHour(int(n)) {
+		p.PrMonitorWakesPerHour = n
 	}
 	return p
 }

@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "True to turn auto-merge on, false to turn it off."
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "merge",
+        "squash",
+        "rebase"
+      ],
+      "description": "How to merge. Only with enabled: true."
+    }
+  },
+  "required": [
+    "enabled"
+  ],
+  "additionalProperties": false
+}

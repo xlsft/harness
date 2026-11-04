@@ -238,6 +238,10 @@ export class ConnectTransport implements SessionTransport {
     await this.client.resolveSessionProposal({ sessionId, proposalId, action: action === 'start' ? ResolveSessionProposalRequest_Action.START : ResolveSessionProposalRequest_Action.DISMISS })
   }
 
+  async setPrMonitor(sessionId: string, enabled: boolean) {
+    await this.client.setPrMonitor({ sessionId, enabled })
+  }
+
   async setSessionRelay(sessionId: string, enabled: boolean) {
     const res = await this.client.setSessionRelay({ sessionId, enabled })
     if (!res.session) throw new Error('the client returned no session')
@@ -260,12 +264,12 @@ export class ConnectTransport implements SessionTransport {
 
   async getUserPreferences(): Promise<UserPreferences> {
     const res = await this.client.getUserPreferences({})
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true }
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30 }
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions })
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true }
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour })
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30 }
   }
 
   async listTasks(sessionId: string) {

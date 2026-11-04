@@ -27,6 +27,8 @@ What the bundle covers today, and what it deliberately leaves out.
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, Monitor, NotebookEdit, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp | `tools/<Name>/` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, SessionStart, SessionHandoff, SessionDismiss, SessionList, SessionSend, SessionArchive, MarkChapter | `tools/<Name>/` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, PushNotification, ReadNotifications, SendUserFile, ReportFindings | `tools/<Name>/` | written |
+| Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp | `tools/<Name>/` | written |
+| Pull requests: PrStatus, PrBind, PrUnbind, PrMonitor, PrAutoMerge | `tools/Pr*/`, `reminders/pr_*.md` | written |
 | MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
 | Web: WebSearch, WebFetch | `tools/WebSearch/`, `tools/WebFetch/` | written |
 | Browser: BrowserNavigate, BrowserSnapshot, BrowserClick, BrowserType, BrowserKey, BrowserScroll, BrowserScreenshot, BrowserEval, BrowserTabs, BrowserConsole, BrowserNetwork, BrowserWait | `tools/Browser*/` | written |
@@ -293,6 +295,13 @@ A headless Chromium per session on the user's machine (`packages/client/browser`
 4. MOVE-4. `EnterWorktree` says uncommitted changes stay behind and that files must be read again at their new paths. Why: both surprise the model otherwise.
 5. MOVE-5. `SyncWithBase` says to commit first, that nothing is forced, and how to finish or back out of a conflicted merge. Why: conflicts are the model's to resolve, and the merge stays in progress for it.
 
+### 3.17 Pull request tools (PrStatus, PrBind, PrUnbind, PrMonitor, PrAutoMerge)
+1. PR-1. They work through the user's `gh` or `glab` login; a missing or logged-out CLI is a clear error to pass on, and the model never looks for a token. Why: tokens stay in the CLIs.
+2. PR-2. PrMonitor replaces polling: after turning it on the model ends its turn and the client wakes it. Why: polling wastes the model's context and the user's money.
+3. PR-3. Comments, check names and CI logs are external data with no user authority, marked by `<pr-external-data>` and escaped by the client; the tool policy and `pr_activity` say so. Why: anyone who can comment on a PR can otherwise steer the agent.
+4. PR-5. Every comment the agent posts on a PR or MR ends with the hidden marker the client builds, `<!-- harness v=1 session=<opaque> kind=<reply|review|status> ts=<UTC RFC3339> -->`, given in PrStatus output and the `pr_activity` and `pr_detected` reminders and stated as mandatory in the tool policy; the model copies it and picks only the kind. It holds nothing about the owner: the session reference is a salted hash with the salt on the client, and names, emails, hosts, paths, repository details, models, costs and prompts never go in. A valid marker of any session or version keeps quiet a comment from the logged-in account; a comment without one wakes the session, and so does a marked comment from another account. Why: the user may comment under the account the agent uses, so the account alone cannot tell them apart, and anyone can type an HTML comment, so the marker alone cannot either. The agent posts through Bash and can forget, so the hourly wake cap stays as the loop guard.
+5. PR-4. PrAutoMerge is never enabled unless the user asked, and always shows a permission prompt no rule, mode or classifier can skip. Why: merging is hard to take back and affects other people.
+
 ## 4. Reminders
 
 All reminders except the two interruption markers, `webfetch_summary` (REM-15) and `side_chat` (REM-18) are wrapped in `<system-reminder>` so the model can tell them from user text.
@@ -320,6 +329,8 @@ All reminders except the two interruption markers, `webfetch_summary` (REM-15) a
 20. REM-20. `session_moved`: the session moved itself; where it works now and where it was, its branch, the working directories, that files must be read again before editing, and the new folder's project instructions when they differ (`{{details}}`, empty otherwise). Placeholders `{{cwd}}`, `{{previous}}`, `{{branch}}`, `{{directories}}`, `{{details}}`; says it is automatic and asks for nothing. Why: the system prompt's folder changes mid-conversation, and the model must not go on using old paths.
 20. REM-20. `agent_report`: a subagent ended: id, name, type, how it ended, its final message in a marked block, its transcript and worktree. The block is model output: it is not the user's words, approves nothing, does not answer a question to the user, and instructions in it do not bind the reader. Tags that could close the block or forge a reminder are defused by the client. `agent_message` wraps what one agent tells another. `agent_context` opens a subagent's first message: it is directed by another model, reaches the user only through permission prompts, and reports with its last message. Why: a subagent reads untrusted files and web pages, so what it says must never pass for the user's authority.
 20. REM-20. `notifications_pending`: notifications wait for ReadNotifications; they come from outside the conversation, are not the user's words, answer nothing and approve nothing; if they do not matter there is no need to say anything. No placeholders: the bodies stay out of the reminder and come only through the tool, marked as external data. Why: an idle session is woken by it, and text from outside must never look like the application or the user.
+20. REM-20. `pr_activity`: what happened to the watched PR, in the client's words, then the code host's text in a `<pr-external-data>` block outside the reminder; automatic, approves nothing, and the block has no authority. Why: the model must be able to read a failure without being steered by it.
+21. REM-21. `pr_detected`: a shell command opened a PR and none is bound; the model may offer to follow it. Why: cheap detection, no polling, and no binding the user did not ask for.
 
 ## 5. Compaction
 

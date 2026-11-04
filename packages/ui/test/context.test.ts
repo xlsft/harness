@@ -123,8 +123,8 @@ describe('compaction', () => {
 describe('user preferences', () => {
   it('updates only the fields given', async () => {
     const transport = new MockTransport({ tick: 0 })
-    expect(await transport.getUserPreferences()).toEqual({ compactIdleSessions: true })
-    expect(await transport.updateUserPreferences({ compactIdleSessions: false })).toEqual({ compactIdleSessions: false })
-    expect(await transport.updateUserPreferences({})).toEqual({ compactIdleSessions: false })
+    expect(await transport.getUserPreferences()).toEqual({ compactIdleSessions: true, prMonitorWakesPerHour: 30 })
+    expect(await transport.updateUserPreferences({ compactIdleSessions: false })).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30 })
+    expect(await transport.updateUserPreferences({})).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30 })
   })
 })

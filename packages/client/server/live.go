@@ -126,7 +126,7 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		UpdatedAt: updated.UTC().Format(time.RFC3339), ParentSessionId: ls.sess.ParentSessionID,
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.CurrentWorktree()), DiffStats: ls.diff,
 		NoFolder:   isNoFolder(ls.sess.ID, ls.sess.Dir()),
-		UsageLimit: ls.usageLimit, AutoContinue: ls.autoContinue,
+		UsageLimit: ls.usageLimit, AutoContinue: ls.autoContinue, PullRequest: ls.sess.PR.Info(),
 	}
 	ls.relayStateLocked(info)
 	ls.srv.applyState(info)
