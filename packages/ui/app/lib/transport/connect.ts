@@ -2,6 +2,7 @@
 // The base URL comes from runtime config (NUXT_PUBLIC_AGENT_URL): `harness-client serve --listen 127.0.0.1:<port>`
 // serves it. Every call carries `Authorization: Bearer <token>` when a token is given (see token.ts).
 
+import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
 import { create } from '@bufbuild/protobuf'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
@@ -231,6 +232,10 @@ export class ConnectTransport implements SessionTransport {
 
   async setAutoContinue(sessionId: string, enabled: boolean) {
     await this.client.setAutoContinue({ sessionId, enabled })
+  }
+
+  async resolveSessionProposal(sessionId: string, proposalId: string, action: 'start' | 'dismiss') {
+    await this.client.resolveSessionProposal({ sessionId, proposalId, action: action === 'start' ? ResolveSessionProposalRequest_Action.START : ResolveSessionProposalRequest_Action.DISMISS })
   }
 
   async setSessionRelay(sessionId: string, enabled: boolean) {

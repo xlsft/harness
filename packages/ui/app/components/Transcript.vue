@@ -3,6 +3,7 @@
 // 790px max, 15px between items. Parallel tool calls of one message collapse into a ToolGroup.
 import type { SessionState, ToolItem, TranscriptItem, UserItem } from '~/lib/session/types'
 import { hasActions, pendingMessages } from '~/lib/session/delivery'
+import { chaptersOf, linkedSessionIds, SESSION_CARD_TOOLS } from '~/lib/session/links'
 import type { ClusterEntry } from '~/components/transcript/ToolCluster.vue'
 
 const props = defineProps<{ session: SessionState }>()
@@ -30,7 +31,7 @@ const visuals = computed(() => {
 })
 
 // Tools that stay on their own: agents have their own card, entering plan mode is a notice.
-const UNCLUSTERED = new Set(['Task', 'Agent', 'EnterPlanMode'])
+const UNCLUSTERED = new Set(['Task', 'Agent', 'EnterPlanMode', ...SESSION_CARD_TOOLS])
 const clusterable = (b: Block) => b.kind === 'group' || (b.kind === 'item' && ((b.item.kind === 'tool' && !UNCLUSTERED.has(b.item.name)) || b.item.kind === 'assistant'))
 const isToolBlock = (b: Block) => b.kind === 'group' || (b.kind === 'item' && b.item.kind === 'tool')
 function clusterEntries(run: Block[]): ClusterEntry[] {
@@ -81,7 +82,7 @@ const blocks = computed<Block[]>(() => {
     }
     if (item.kind === 'tool') {
       if (HIDDEN_TOOLS.has(item.name)) continue
-      if (item.grouped) {
+      if (item.grouped && !SESSION_CARD_TOOLS.has(item.name)) {
         const last = out[out.length - 1]
         if (last?.kind === 'group' && last.tools[0]?.messageId === item.messageId) {
           last.tools.push(item)
@@ -176,6 +177,12 @@ function nextUserAfter(turnId: string) {
 const { openPane } = usePanes()
 watch(() => props.session.browserAction, (a) => {
   if (a?.phase === 'started' && a.kind === 'navigate') openPane('browser')
+})
+const chapters = computed(() => chaptersOf(props.session.items))
+// A session started from this one: the session list catches up.
+const linkedKey = computed(() => linkedSessionIds(props.session.items).filter(id => !store.sessions[id]).join())
+watch(linkedKey, (k) => {
+  if (k) void store.refreshList().catch(() => {})
 })
 // The box of the last turn (WrapUp), once the turn is over and until the user moves on.
 const dismissedBoxes = useState<Record<string, boolean>>('next-step-dismissed', () => ({}))
@@ -314,6 +321,25 @@ function toBottom() {
                 :size="14"
               />{{ b.item.status === 'error' ? 'Could not enter plan mode' : b.item.status === 'running' ? 'Entering plan mode' : 'Entered plan mode' }}
             </div>
+            <!-- A chapter: a divider, and an entry in the table of contents -->
+            <template v-else-if="b.item.kind === 'tool' && b.item.name === 'MarkChapter'">
+              <div
+                v-if="b.item.status !== 'error' && b.item.status !== 'interrupted'"
+                class="flex items-center gap-3 text-[11.5px] text-muted"
+                :data-chapter="b.item.id"
+                :title="String(b.item.input.summary ?? '')"
+              >
+                <span class="h-px flex-1 bg-line" />
+                {{ String(b.item.input.title ?? '') }}
+                <span class="h-px flex-1 bg-line" />
+              </div>
+            </template>
+            <SessionCard
+              v-else-if="b.item.kind === 'tool' && SESSION_CARD_TOOLS.has(b.item.name)"
+              :tool="b.item"
+              :session-id="session.meta.id"
+              :read-only="readOnly"
+            />
             <ToolCall
               v-else-if="b.item.kind === 'tool'"
               :tool="b.item"
@@ -423,6 +449,11 @@ function toBottom() {
         </div>
       </div>
     </div>
+    <ChapterToc
+      v-if="chapters.length"
+      :chapters="chapters"
+      :root="scroller"
+    />
     <!-- Scrolled up: back to the newest message; the mark animates while the session is working. -->
     <button
       v-if="scrolledUp"

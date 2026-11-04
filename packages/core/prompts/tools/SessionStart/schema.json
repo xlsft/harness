@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short name of the task, shown to the user. At most 120 characters."
+    },
+    "prompt": {
+      "type": "string",
+      "description": "What the new session should do. It reaches that session as its first message."
+    },
+    "initiation": {
+      "type": "string",
+      "enum": [
+        "offer",
+        "user_asked",
+        "own_initiative"
+      ],
+      "description": "offer: ask the user and wait. user_asked: start now. own_initiative: leave a card for later and do not wait."
+    },
+    "context": {
+      "type": "string",
+      "enum": [
+        "fresh",
+        "fork"
+      ],
+      "description": "fresh: only the prompt. fork: a copy of this conversation plus the prompt."
+    },
+    "worktree": {
+      "type": "boolean",
+      "description": "Run it in a new git worktree on a new branch, so its edits stay apart from this checkout."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model id. Defaults to this session's model."
+    },
+    "cwd": {
+      "type": "string",
+      "description": "Folder to run in. Defaults to this session's folder."
+    }
+  },
+  "required": [
+    "title",
+    "prompt",
+    "initiation",
+    "context",
+    "worktree"
+  ],
+  "additionalProperties": false
+}

@@ -468,6 +468,17 @@ export const useSessionStore = defineStore('sessions', {
       return info.id
     },
 
+    // Opens a session another one links to; one this frontend has not listed yet is read first.
+    async openLinked(id: string) {
+      if (!this.sessions[id]) await this.refreshList()
+      this.open(id)
+    },
+
+    async resolveProposal(id: string, proposalId: string, action: 'start' | 'dismiss') {
+      await this.transport?.resolveSessionProposal(id, proposalId, action)
+      if (action === 'start') await this.refreshList()
+    },
+
     // Makes a sub-session a top-level session (the client records it and syncs it).
     async detach(id: string) {
       const s = this.sessions[id]

@@ -309,6 +309,8 @@ type Agent struct {
 	roundsSinceTodo int
 	// prompts are the latest user prompts (newest last) for the auto-mode decider.
 	prompts []string
+	// notPrompts: see ExcludePrompt.
+	notPrompts map[string]bool
 	// output style (see OutputStyle)
 	style          *OutputStyle
 	omitCoding     bool
@@ -559,11 +561,26 @@ func (a *Agent) notePrompt(blocks []llm.ContentBlock) {
 		return
 	}
 	a.mu.Lock()
+	if a.notPrompts[strings.Join(parts, "\n")] {
+		a.mu.Unlock()
+		return
+	}
 	a.prompts = append(a.prompts, strings.Join(parts, "\n"))
 	if len(a.prompts) > maxPrompts {
 		a.prompts = append([]string(nil), a.prompts[len(a.prompts)-maxPrompts:]...)
 	}
 	a.mu.Unlock()
+}
+
+// ExcludePrompt keeps text out of the user prompts the auto-mode decider reads: the model wrote it for this session
+// (the brief of a session started from another one), so it says nothing about what the user wants.
+func (a *Agent) ExcludePrompt(text string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.notPrompts == nil {
+		a.notPrompts = map[string]bool{}
+	}
+	a.notPrompts[strings.TrimSpace(text)] = true
 }
 
 // recentPrompts returns the latest user prompts, newest last.

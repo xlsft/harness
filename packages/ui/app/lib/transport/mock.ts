@@ -978,6 +978,11 @@ export class MockTransport implements SessionTransport {
     if (s.limit && provider !== s.limit.providerName) this.limitReturned(s, false, provider ?? model)
   }
 
+  // The demo never proposes sessions.
+  async resolveSessionProposal(_sessionId: string, proposalId: string) {
+    throw new Error(`no proposal ${proposalId}`)
+  }
+
   async setAutoContinue(sessionId: string, enabled: boolean) {
     const s = this.get(sessionId)
     this.refuseAcp(sessionId, 'Continuing when limits return')

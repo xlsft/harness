@@ -160,7 +160,17 @@ func (m *Model) onEvent(ev *agentv1.SessionEvent) tea.Cmd {
 			lvl = 2
 		}
 		m.closeOpen()
-		m.push(&item{kind: itemNotice, level: lvl, text: n.GetText()})
+		text := n.GetText()
+		if k := n.GetKind(); k == "session_message" || k == "session_report" {
+			// JSON for the frontends that link to the session; its line is what reads here.
+			var note struct {
+				Line string `json:"line"`
+			}
+			if json.Unmarshal([]byte(text), &note) == nil && note.Line != "" {
+				text = note.Line
+			}
+		}
+		m.push(&item{kind: itemNotice, level: lvl, text: text})
 
 	case *agentv1.SessionEvent_TodosUpdated:
 		m.todos = nil

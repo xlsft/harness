@@ -765,6 +765,9 @@ func (e *Engine) Evaluate(req Request) Decision {
 	if e.mode == ModePlan {
 		return e.planDenial(req.ToolName)
 	}
+	if sessionTools[req.ToolName] {
+		return Decision{Behavior: Allow, ResolvedBy: "mode"}
+	}
 	if isBrowserTool(req.ToolName) {
 		return e.evalBrowser(req, input, mc)
 	}

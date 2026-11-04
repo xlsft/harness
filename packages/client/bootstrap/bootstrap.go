@@ -523,6 +523,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		s.ToolEnv.Tasks = s.Tasks
 	}
 	s.Tools = tools.Default()
+	tools.RegisterSessionTools(s.Tools)
 	s.registerWebTools(o)
 	useBrowser := o.Browser != nil && os.Getenv("HARNESS_NO_BROWSER") != "1"
 	if useBrowser {

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short name of the task being moved. At most 120 characters."
+    },
+    "remaining_plan": {
+      "type": "string",
+      "description": "What is left to do: the steps, the files involved and what done looks like."
+    }
+  },
+  "required": [
+    "title",
+    "remaining_plan"
+  ],
+  "additionalProperties": false
+}

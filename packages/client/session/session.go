@@ -54,6 +54,9 @@ const (
 	// SubtypeUserShell records a command the user ran in the composer's shell mode (userShell holds it); it is
 	// shown in replays. What the model saw is the user_shell_command reminder, a meta user entry.
 	SubtypeUserShell = "user_shell_command"
+	// SubtypeSessionNote records a message or report from another session (sessionNote holds it), replayed as a notice.
+	// The model got it as a reminder.
+	SubtypeSessionNote = "session_note"
 	// SubtypeUsageLimit records a usage-limit state of the session's provider (usageLimit holds it), replayed
 	// as SessionEvent.usage_limit.
 	SubtypeUsageLimit = "usage_limit"
@@ -179,6 +182,9 @@ type Entry struct {
 	// mode decided (or deferred to the user on) that tool call.
 	AutoDecision *AutoDecision `json:"autoDecision,omitempty"`
 
+	// SessionNote is set on SubtypeSessionNote system entries.
+	SessionNote *SessionNote `json:"sessionNote,omitempty"`
+
 	// UserShell is set on SubtypeUserShell system entries.
 	UserShell *UserShell `json:"userShell,omitempty"`
 
@@ -282,6 +288,18 @@ func ReadHeldMessages(entries []Entry) []HeldMessage {
 		}
 	}
 	return held
+}
+
+// SessionNote is a message or a turn report from another session.
+type SessionNote struct {
+	// Kind is "message" or "report".
+	Kind      string `json:"kind"`
+	FromID    string `json:"fromId"`
+	FromName  string `json:"fromName,omitempty"`
+	FromTitle string `json:"fromTitle,omitempty"`
+	// Status is how the turn ended (reports).
+	Status string `json:"status,omitempty"`
+	Text   string `json:"text"`
 }
 
 // Worktree describes a git worktree the client created for a session.

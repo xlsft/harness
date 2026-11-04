@@ -442,6 +442,8 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		ls.applyModePolicy(p.Disabled())
 	}
 	ls.publishInfo()
+	ls.links.origin = m
+	ls.publishProposals()
 	for _, w := range sess.Warnings {
 		ls.notice(agentv1.Notice_LEVEL_WARNING, "session_warning", w)
 	}
@@ -629,6 +631,12 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 	if err != nil {
 		return nil, err
 	}
+	ls.userSpoke()
+	return s.submitMessage(ls, req)
+}
+
+// submitMessage hands a message to the session: what the user sends, and the brief of a session another one starts.
+func (s *Server) submitMessage(ls *liveSession, req *connect.Request[agentv1.SendUserMessageRequest]) (*connect.Response[agentv1.SendUserMessageResponse], error) {
 	content := pbconv.FromBlocks(req.Msg.GetContent())
 	if len(content) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("content is empty"))

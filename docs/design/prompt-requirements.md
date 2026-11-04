@@ -25,6 +25,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, Agent, SendMessage, ListAgents | `tools/<Name>/` | written |
 | Reminders: agent_report, agent_message, agent_context, agent_type_general, agent_type_explore, agent_type_plan | `reminders/<id>.md` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, Monitor, NotebookEdit, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp | `tools/<Name>/` | written |
+| Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, SessionStart, SessionHandoff, SessionDismiss, SessionList, SessionSend, SessionArchive, MarkChapter | `tools/<Name>/` | written |
 | MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
 | Web: WebSearch, WebFetch | `tools/WebSearch/`, `tools/WebFetch/` | written |
 | Browser: BrowserNavigate, BrowserSnapshot, BrowserClick, BrowserType, BrowserKey, BrowserScroll, BrowserScreenshot, BrowserEval, BrowserTabs, BrowserConsole, BrowserNetwork, BrowserWait | `tools/Browser*/` | written |

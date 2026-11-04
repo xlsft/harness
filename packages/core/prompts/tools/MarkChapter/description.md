@@ -1,0 +1,1 @@
+Puts a divider in the transcript and an entry in its table of contents, where the work shifts to a clearly different phase: from exploring to implementing, from a fix to verifying it, or to another request of the user. Use it sparingly: a long session has a handful of chapters, and a short one needs none. Do not mark the start of a session.

@@ -8,6 +8,8 @@
 //   (kept aside until the item exists when it comes first);
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
+import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
+import { sessionNoteOf } from './links'
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
 import { SubagentState, SubagentStepStatus, type SubagentInfo } from '~/gen/harness/agent/v1/subagents_pb'
 import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
@@ -45,7 +47,8 @@ import type {
   Usage,
   UsageLimitStateName,
   UsageLimitVM,
-  UserShellItem
+  UserShellItem,
+  SessionProposalVM
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
 import { actionView } from '~/lib/browser/types'
@@ -108,6 +111,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     subagents: {},
     subagentOrder: [],
     todos: [],
+    proposals: {},
     queue: [],
     delivered: {},
     turnStartedAt: 0,
@@ -685,6 +689,11 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
           break
         }
       }
+      const note = sessionNoteOf(n.kind, n.text)
+      if (note) {
+        push(s, { kind: 'notice', id: 'n' + seq, level: 'info', noticeKind: n.kind, text: note.text, session: note.session })
+        break
+      }
       push(s, {
         kind: 'notice',
         id: 'n' + seq,
@@ -791,6 +800,13 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       // The mode plan mode was entered from: approving the plan returns to it (the client does the same).
       if (next === 'plan' && s.meta.permissionMode !== 'plan') s.prePlanMode = s.meta.permissionMode
       s.meta.permissionMode = next
+      break
+    }
+
+    case 'sessionProposal': {
+      const p = e.value
+      const state = ({ [SessionProposal_State.STARTED]: 'started', [SessionProposal_State.DISMISSED]: 'dismissed', [SessionProposal_State.EXPIRED]: 'expired' } as Record<number, SessionProposalVM['state']>)[p.state] ?? 'pending'
+      s.proposals[p.toolUseId] = { id: p.id, state, expiresAt: p.expiresAt, sessionId: p.sessionId, sessionName: p.sessionName }
       break
     }
 

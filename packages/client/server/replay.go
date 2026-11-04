@@ -202,6 +202,10 @@ func (r *replayer) entry(e session.Entry) {
 			}
 		case session.SubtypeUserShell:
 			r.userShell(e, at)
+		case session.SubtypeSessionNote:
+			if e.SessionNote != nil {
+				r.emit(at, sessionNoteEvent(*e.SessionNote))
+			}
 		case session.SubtypeUsageLimit:
 			if e.UsageLimit != nil {
 				if u := pbconv.UsageLimit(*e.UsageLimit); u != nil {
@@ -375,7 +379,7 @@ func (r *replayer) toolResult(b llm.ContentBlock, structured any, at time.Time) 
 	}
 	if !interrupted {
 		r.cards(b.ToolUseID, pt, structured, b.IsError, at)
-	} else if pt.name == "AskUserQuestion" {
+	} else if isQuestionTool(pt.name) {
 		for _, ev := range questionCard(b.ToolUseID, pt.input, nil, true) {
 			r.emit(at, ev)
 		}
@@ -393,7 +397,7 @@ func (r *replayer) toolResult(b llm.ContentBlock, structured any, at time.Time) 
 func (r *replayer) cards(toolUseID string, pt *pendingTool, structured any, isError bool, at time.Time) {
 	sm, _ := structured.(map[string]any)
 	switch pt.name {
-	case "AskUserQuestion":
+	case "AskUserQuestion", "SessionStart":
 		for _, ev := range questionCard(toolUseID, pt.input, structured, false) {
 			r.emit(at, ev)
 		}
@@ -432,7 +436,7 @@ func (r *replayer) endTurn() {
 		pt := r.pending[id]
 		delete(r.pending, id)
 		orphans = true
-		if pt.name == "AskUserQuestion" {
+		if isQuestionTool(pt.name) {
 			// The process stopped while the question was open: the asking
 			// turn is gone, so the card shows it cancelled.
 			for _, ev := range questionCard(id, pt.input, nil, true) {

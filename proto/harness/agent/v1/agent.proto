@@ -8,6 +8,7 @@ import "harness/agent/v1/files.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/session_diff.proto";
+import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/speech.proto";
@@ -279,6 +280,12 @@ service AgentService {
   rpc StopSubagent(StopSubagentRequest) returns (StopSubagentResponse);
   // What a subagent did, for reading.
   rpc GetSubagentTranscript(GetSubagentTranscriptRequest) returns (GetSubagentTranscriptResponse);
+  // --- Sessions started from a session (session_links.proto) ---
+
+  // Starts or dismisses a proposal of the session (SessionProposal). The started session is linked to this one and
+  // appears in ListSessions; a SessionProposal event follows either way. NOT_FOUND for an unknown proposal or a
+  // session that is not open, FAILED_PRECONDITION when it was already resolved or has expired.
+  rpc ResolveSessionProposal(ResolveSessionProposalRequest) returns (ResolveSessionProposalResponse);
 }
 
 enum PermissionMode {
@@ -369,8 +376,9 @@ message SessionInfo {
   // Per-user state, stored on the harness server: hidden from the default session list.
   bool archived = 14;
   bool pinned = 15;
-  // Set for forks and /branch: the session it was forked from. Frontends list such a sub-session under its
-  // parent. Cleared by UpdateSessionRequest.detach_from_parent.
+  // Set for forks and /branch (the session it was forked from) and for sessions started from another with the
+  // SessionStart tool. Frontends list such a sub-session under its parent. Cleared by
+  // UpdateSessionRequest.detach_from_parent.
   string parent_session_id = 16;
   // Active output style id or name ("default" when none).
   string output_style = 17;
@@ -657,6 +665,9 @@ message SessionEvent {
     BrowserAction browser_action = 60;
     // Subagents (subagents.proto); numbered apart like the shell events.
     SubagentUpdated subagent_updated = 70;
+    // A proposal of a session to start (session_links.proto): when it is made or changes, and again for each proposal
+    // on record when the session opens.
+    SessionProposal session_proposal = 75;
   }
 }
 

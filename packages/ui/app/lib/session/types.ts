@@ -243,6 +243,17 @@ export interface NoticeItem {
   level: 'info' | 'warning' | 'error'
   noticeKind: string
   text: string
+  // A note from another session: the session it came from.
+  session?: { id: string, name: string, title: string }
+}
+
+// A session the model proposed (SessionStart, own_initiative): the state of its card.
+export interface SessionProposalVM {
+  id: string
+  state: 'pending' | 'started' | 'dismissed' | 'expired'
+  expiresAt: string
+  sessionId: string
+  sessionName: string
 }
 
 export interface CompactItem {
@@ -419,6 +430,8 @@ export interface SessionState {
   subagents: Record<string, SubagentVM>
   subagentOrder: string[]
   todos: TodoVM[]
+  // The session's proposals, by the SessionStart call that made them.
+  proposals: Record<string, SessionProposalVM>
   // The client's queue (QueueChanged).
   queue: QueuedMessage[]
   // Read receipts: frontend message id → the user item that carries it (the agent took the message).

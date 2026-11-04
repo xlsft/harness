@@ -38,7 +38,7 @@ func results(h *harness) map[string]string {
 	return out
 }
 
-func requestText(r *llm.Request) string {
+func moveRequestText(r *llm.Request) string {
 	var sb strings.Builder
 	for _, s := range r.System {
 		sb.WriteString(s.Text + "\n")
@@ -106,7 +106,7 @@ func TestEnterAndExitWorktreeMidTurn(t *testing.T) {
 	}
 	// The model was told: the reminder rides on the next request, and the environment section follows.
 	reqs := h.gw.Requests()
-	if txt := requestText(reqs[2]); !strings.Contains(txt, "Moved to "+wtPath) || fg.Cwd(reqs[2]) != wtPath {
+	if txt := moveRequestText(reqs[2]); !strings.Contains(txt, "Moved to "+wtPath) || fg.Cwd(reqs[2]) != wtPath {
 		t.Fatalf("request after entering: cwd %q\n%s", fg.Cwd(reqs[2]), txt)
 	}
 	// The replay after a restart has the notices.

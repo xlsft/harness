@@ -83,6 +83,20 @@ const usageLine = computed(() => {
     </div>
   </div>
 
+  <!-- a message or report from another session: never the user's word -->
+  <div
+    v-else-if="notice?.session"
+    class="flex flex-col gap-1.5 text-[12px] text-muted"
+    data-session-note
+  >
+    <span class="whitespace-pre-wrap">{{ notice.text }}</span>
+    <SessionRow
+      :id="notice.session.id"
+      :name="notice.session.name"
+      :title="notice.session.title"
+    />
+  </div>
+
   <!-- info / warning notice -->
   <div
     v-else-if="notice"

@@ -25,7 +25,7 @@ const kind = computed(() => {
   if (t.value.name === 'WebSearch' || t.value.name === 'WebFetch') return 'web'
   if (mcp.value) return 'mcp'
   if (t.value.name === 'Show') return 'show'
-  if (['Read', 'Glob', 'LS', 'Wait', 'EnterWorktree', 'ExitWorktree', 'ChangeDirectory', 'RequestDirectory', 'ProposeBranch', 'SyncWithBase', 'Monitor'].includes(t.value.name)) return 'row'
+  if (['Read', 'Glob', 'LS', 'Wait', 'EnterWorktree', 'ExitWorktree', 'ChangeDirectory', 'RequestDirectory', 'ProposeBranch', 'SyncWithBase', 'Monitor', 'SessionSend', 'SessionDismiss', 'SessionArchive'].includes(t.value.name)) return 'row'
   return 'bash'
 })
 
