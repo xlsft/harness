@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -29,10 +31,12 @@ type Manager struct {
 	once sync.Once
 	d    Driver
 
-	mu       sync.Mutex
-	loaded   bool
-	enabled  bool
-	sessions map[string]*Controller
+	mu            sync.Mutex
+	loaded        bool
+	enabled       bool
+	activeProfile string
+	custom        Profile
+	sessions      map[string]*Controller
 	// active are the sessions controlling the machine, with what they are doing, for the indicator.
 	active       map[string]string
 	indicatorSet func(string)
@@ -42,8 +46,13 @@ type Manager struct {
 	input chan struct{}
 }
 
+// settingsFile is Dir/settings.json. It is read once, when first needed: an edit of the file does nothing to a running
+// client, and the file is a protected path for the model's tools (SettingsGuard).
 type settingsFile struct {
 	Enabled bool `json:"enabled"`
+	// Active is the id of the active profile; Custom the profile the user edits.
+	Active string   `json:"active_profile,omitempty"`
+	Custom *Profile `json:"custom_profile,omitempty"`
 }
 
 func (m *Manager) driver() Driver {
@@ -86,40 +95,151 @@ func (m *Manager) settingsPath() string {
 func (m *Manager) Enabled() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if !m.loaded {
-		m.loaded = true
-		if p := m.settingsPath(); p != "" {
-			if data, err := os.ReadFile(p); err == nil {
-				var f settingsFile
-				if err := json.Unmarshal(data, &f); err == nil {
-					m.enabled = f.Enabled
-				}
-			}
-		}
-	}
+	m.loadLocked()
 	return m.enabled
+}
+
+func (m *Manager) loadLocked() {
+	if m.loaded {
+		return
+	}
+	m.loaded = true
+	m.activeProfile, m.custom = ProfileStrict, defaultCustom()
+	p := m.settingsPath()
+	if p == "" {
+		return
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return
+	}
+	var f settingsFile
+	if json.Unmarshal(data, &f) != nil {
+		return
+	}
+	m.enabled = f.Enabled
+	if f.Custom != nil {
+		m.custom = f.Custom.normalized()
+	}
+	if profileKnown(f.Active) {
+		m.activeProfile = f.Active
+	}
+}
+
+func profileKnown(id string) bool {
+	switch id {
+	case ProfileStrict, ProfileStandard, ProfileFull, ProfileCustom:
+		return true
+	}
+	return false
+}
+
+// saveLocked writes the settings file.
+func (m *Manager) saveLocked(f settingsFile) error {
+	p := m.settingsPath()
+	if p == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(f, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp := p + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, p)
+}
+
+func (m *Manager) fileLocked(enabled bool, active string, custom Profile) settingsFile {
+	return settingsFile{Enabled: enabled, Active: active, Custom: &custom}
+}
+
+// Profile returns the active profile.
+func (m *Manager) Profile() Profile {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.loadLocked()
+	return m.activeLocked()
+}
+
+func (m *Manager) activeLocked() Profile {
+	switch m.activeProfile {
+	case ProfileStandard:
+		return StandardProfile()
+	case ProfileFull:
+		return FullProfile()
+	case ProfileCustom:
+		return m.custom
+	}
+	return StrictProfile()
+}
+
+// Profiles returns every profile the user can pick, and the id of the active one.
+func (m *Manager) Profiles() ([]Profile, string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.loadLocked()
+	return []Profile{StrictProfile(), StandardProfile(), FullProfile(), m.custom}, m.activeProfile
+}
+
+// SetProfile makes a profile active and, when custom is given, replaces the custom profile. Only the user reaches this,
+// through Settings: there is no tool for it. Sessions see the change from their next action.
+func (m *Manager) SetProfile(active string, custom *Profile) error {
+	if !profileKnown(active) {
+		return fmt.Errorf("unknown profile %q", active)
+	}
+	m.mu.Lock()
+	m.loadLocked()
+	c := m.custom
+	if custom != nil {
+		c = custom.normalized()
+	}
+	if err := m.saveLocked(m.fileLocked(m.enabled, active, c)); err != nil {
+		m.mu.Unlock()
+		return err
+	}
+	m.activeProfile, m.custom = active, c
+	all := make([]*Controller, 0, len(m.sessions))
+	for _, s := range m.sessions {
+		all = append(all, s)
+	}
+	m.mu.Unlock()
+	for _, s := range all {
+		s.notify()
+	}
+	return nil
+}
+
+// Apps lists the machine's apps for the profile editor, without Harness, which no profile reaches.
+func (m *Manager) Apps(ctx context.Context) ([]App, error) {
+	if !m.driver().Info().Supported {
+		return nil, nil
+	}
+	apps, err := m.driver().Apps(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(apps, isHarness), nil
+}
+
+// SettingsGuard says what the permission check protects: the directory of the settings, and whether the active profile
+// keeps writes to it behind the user-only prompt.
+func (m *Manager) SettingsGuard() (dir string, protected bool) {
+	return m.Dir, !m.Profile().AllowSettingsEdit
 }
 
 // SetEnabled changes the switch. Turning it off also stops every session.
 func (m *Manager) SetEnabled(on bool) error {
-	_ = m.Enabled()
-	if p := m.settingsPath(); p != "" {
-		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-			return err
-		}
-		data, err := json.MarshalIndent(settingsFile{Enabled: on}, "", "  ")
-		if err != nil {
-			return err
-		}
-		tmp := p + ".tmp"
-		if err := os.WriteFile(tmp, data, 0o600); err != nil {
-			return err
-		}
-		if err := os.Rename(tmp, p); err != nil {
-			return err
-		}
-	}
 	m.mu.Lock()
+	m.loadLocked()
+	if err := m.saveLocked(m.fileLocked(on, m.activeProfile, m.custom)); err != nil {
+		m.mu.Unlock()
+		return err
+	}
 	m.enabled = on
 	var all []*Controller
 	if !on {

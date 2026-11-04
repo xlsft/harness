@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/computer_use.proto.
  */
 export const file_harness_agent_v1_computer_use: GenFile = /*@__PURE__*/
-  fileDesc("CiNoYXJuZXNzL2FnZW50L3YxL2NvbXB1dGVyX3VzZS5wcm90bxIQaGFybmVzcy5hZ2VudC52MSJYChVDb21wdXRlclVzZVBlcm1pc3Npb24SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgdncmFudGVkGAMgASgIEhQKDGhvd190b19ncmFudBgEIAEoCSKjAQoRQ29tcHV0ZXJVc2VTdGF0dXMSDwoHZW5hYmxlZBgBIAEoCBIRCglzdXBwb3J0ZWQYAiABKAgSEAoIcGxhdGZvcm0YAyABKAkSGgoSdW5hdmFpbGFibGVfcmVhc29uGAQgASgJEjwKC3Blcm1pc3Npb25zGAUgAygLMicuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZVBlcm1pc3Npb24iHQobR2V0Q29tcHV0ZXJVc2VTdGF0dXNSZXF1ZXN0IlMKHEdldENvbXB1dGVyVXNlU3RhdHVzUmVzcG9uc2USMwoGc3RhdHVzGAEgASgLMiMuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZVN0YXR1cyIvChxTZXRDb21wdXRlclVzZUVuYWJsZWRSZXF1ZXN0Eg8KB2VuYWJsZWQYASABKAgiVAodU2V0Q29tcHV0ZXJVc2VFbmFibGVkUmVzcG9uc2USMwoGc3RhdHVzGAEgASgLMiMuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZVN0YXR1cyJ0ChFDb21wdXRlckFjY2Vzc0FwcBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEjIKBHRpZXIYAyABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllchIRCgl0aWVyX25vdGUYBCABKAkiywEKF0NvbXB1dGVyQWNjZXNzUmVxdWVzdGVkEhIKCnJlcXVlc3RfaWQYASABKAkSEwoLdG9vbF91c2VfaWQYAiABKAkSDgoGcmVhc29uGAMgASgJEjEKBGFwcHMYBCADKAsyIy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzQXBwEkQKE21pc3NpbmdfcGVybWlzc2lvbnMYBSADKAsyJy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlUGVybWlzc2lvbiJbChZDb21wdXRlckFjY2Vzc1Jlc29sdmVkEhIKCnJlcXVlc3RfaWQYASABKAkSGAoQYXBwcm92ZWRfYXBwX2lkcxgCIAMoCRITCgtyZXNvbHZlZF9ieRgDIAEoCSJoChBDb21wdXRlclVzZUdyYW50Eg4KBmFwcF9pZBgBIAEoCRIQCghhcHBfbmFtZRgCIAEoCRIyCgR0aWVyGAMgASgOMiQuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc1RpZXIiawoQQ29tcHV0ZXJVc2VTdGF0ZRITCgtjb250cm9sbGluZxgBIAEoCBIOCgZhY3Rpb24YAiABKAkSMgoGZ3JhbnRzGAMgAygLMiIuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZUdyYW50ImIKHlJlc3BvbmRUb0NvbXB1dGVyQWNjZXNzUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEhIKCnJlcXVlc3RfaWQYAiABKAkSGAoQYXBwcm92ZWRfYXBwX2lkcxgDIAMoCSIhCh9SZXNwb25kVG9Db21wdXRlckFjY2Vzc1Jlc3BvbnNlIiwKFlN0b3BDb21wdXRlclVzZVJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCSIZChdTdG9wQ29tcHV0ZXJVc2VSZXNwb25zZSqYAQoSQ29tcHV0ZXJBY2Nlc3NUaWVyEiQKIENPTVBVVEVSX0FDQ0VTU19USUVSX1VOU1BFQ0lGSUVEEAASHQoZQ09NUFVURVJfQUNDRVNTX1RJRVJfUkVBRBABEh4KGkNPTVBVVEVSX0FDQ0VTU19USUVSX0NMSUNLEAISHQoZQ09NUFVURVJfQUNDRVNTX1RJRVJfRlVMTBADQtEBChRjb20uaGFybmVzcy5hZ2VudC52MUIQQ29tcHV0ZXJVc2VQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw");
+  fileDesc("CiNoYXJuZXNzL2FnZW50L3YxL2NvbXB1dGVyX3VzZS5wcm90bxIQaGFybmVzcy5hZ2VudC52MSJYChVDb21wdXRlclVzZVBlcm1pc3Npb24SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgdncmFudGVkGAMgASgIEhQKDGhvd190b19ncmFudBgEIAEoCSK2AgoRQ29tcHV0ZXJVc2VTdGF0dXMSDwoHZW5hYmxlZBgBIAEoCBIRCglzdXBwb3J0ZWQYAiABKAgSEAoIcGxhdGZvcm0YAyABKAkSGgoSdW5hdmFpbGFibGVfcmVhc29uGAQgASgJEjwKC3Blcm1pc3Npb25zGAUgAygLMicuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZVBlcm1pc3Npb24SGQoRYWN0aXZlX3Byb2ZpbGVfaWQYBiABKAkSNgoIcHJvZmlsZXMYByADKAsyJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlUHJvZmlsZRI+Cg1ibG9ja19lbnRyaWVzGAggAygLMicuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZUJsb2NrRW50cnkimwMKEkNvbXB1dGVyVXNlUHJvZmlsZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEjYKCGJyb3dzZXJzGAMgASgOMiQuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc1RpZXISNwoJdGVybWluYWxzGAQgASgOMiQuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc1RpZXISMwoFb3RoZXIYBSABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllchI3CglhcHBfdGllcnMYBiADKAsyJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlQXBwVGllchIVCg1saWZ0ZWRfYmxvY2tzGAcgAygJEhsKE2FsbG93X3NlY3VyZV90eXBpbmcYCCABKAgSGwoTYWxsb3dfcmVtb3RlX29yaWdpbhgJIAEoCBIeChZhbGxvd19zeXN0ZW1fc2hvcnRjdXRzGAogASgIEhsKE2FsbG93X3NldHRpbmdzX2VkaXQYCyABKAgiagoSQ29tcHV0ZXJVc2VBcHBUaWVyEg4KBmFwcF9pZBgBIAEoCRIQCghhcHBfbmFtZRgCIAEoCRIyCgR0aWVyGAMgASgOMiQuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc1RpZXIiQwoVQ29tcHV0ZXJVc2VCbG9ja0VudHJ5EgoKAmlkGAEgASgJEg0KBWxhYmVsGAIgASgJEg8KB3dhcm5pbmcYAyABKAkibwocU2V0Q29tcHV0ZXJVc2VQcm9maWxlUmVxdWVzdBIZChFhY3RpdmVfcHJvZmlsZV9pZBgBIAEoCRI0CgZjdXN0b20YAiABKAsyJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlUHJvZmlsZSJUCh1TZXRDb21wdXRlclVzZVByb2ZpbGVSZXNwb25zZRIzCgZzdGF0dXMYASABKAsyIy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlU3RhdHVzIhwKGkxpc3RDb21wdXRlclVzZUFwcHNSZXF1ZXN0IlAKG0xpc3RDb21wdXRlclVzZUFwcHNSZXNwb25zZRIxCgRhcHBzGAEgAygLMiMuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc0FwcCIdChtHZXRDb21wdXRlclVzZVN0YXR1c1JlcXVlc3QiUwocR2V0Q29tcHV0ZXJVc2VTdGF0dXNSZXNwb25zZRIzCgZzdGF0dXMYASABKAsyIy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlU3RhdHVzIi8KHFNldENvbXB1dGVyVXNlRW5hYmxlZFJlcXVlc3QSDwoHZW5hYmxlZBgBIAEoCCJUCh1TZXRDb21wdXRlclVzZUVuYWJsZWRSZXNwb25zZRIzCgZzdGF0dXMYASABKAsyIy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlU3RhdHVzInQKEUNvbXB1dGVyQWNjZXNzQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSMgoEdGllchgDIAEoDjIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJBY2Nlc3NUaWVyEhEKCXRpZXJfbm90ZRgEIAEoCSLhAQoXQ29tcHV0ZXJBY2Nlc3NSZXF1ZXN0ZWQSEgoKcmVxdWVzdF9pZBgBIAEoCRITCgt0b29sX3VzZV9pZBgCIAEoCRIOCgZyZWFzb24YAyABKAkSMQoEYXBwcxgEIAMoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJBY2Nlc3NBcHASRAoTbWlzc2luZ19wZXJtaXNzaW9ucxgFIAMoCzInLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VQZXJtaXNzaW9uEhQKDHByb2ZpbGVfbmFtZRgGIAEoCSJbChZDb21wdXRlckFjY2Vzc1Jlc29sdmVkEhIKCnJlcXVlc3RfaWQYASABKAkSGAoQYXBwcm92ZWRfYXBwX2lkcxgCIAMoCRITCgtyZXNvbHZlZF9ieRgDIAEoCSJoChBDb21wdXRlclVzZUdyYW50Eg4KBmFwcF9pZBgBIAEoCRIQCghhcHBfbmFtZRgCIAEoCRIyCgR0aWVyGAMgASgOMiQuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc1RpZXIiawoQQ29tcHV0ZXJVc2VTdGF0ZRITCgtjb250cm9sbGluZxgBIAEoCBIOCgZhY3Rpb24YAiABKAkSMgoGZ3JhbnRzGAMgAygLMiIuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZUdyYW50ImIKHlJlc3BvbmRUb0NvbXB1dGVyQWNjZXNzUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEhIKCnJlcXVlc3RfaWQYAiABKAkSGAoQYXBwcm92ZWRfYXBwX2lkcxgDIAMoCSIhCh9SZXNwb25kVG9Db21wdXRlckFjY2Vzc1Jlc3BvbnNlIiwKFlN0b3BDb21wdXRlclVzZVJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCSIZChdTdG9wQ29tcHV0ZXJVc2VSZXNwb25zZSq6AQoSQ29tcHV0ZXJBY2Nlc3NUaWVyEiQKIENPTVBVVEVSX0FDQ0VTU19USUVSX1VOU1BFQ0lGSUVEEAASHQoZQ09NUFVURVJfQUNDRVNTX1RJRVJfUkVBRBABEh4KGkNPTVBVVEVSX0FDQ0VTU19USUVSX0NMSUNLEAISHQoZQ09NUFVURVJfQUNDRVNTX1RJRVJfRlVMTBADEiAKHENPTVBVVEVSX0FDQ0VTU19USUVSX0JMT0NLRUQQBELRAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCEENvbXB1dGVyVXNlUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM");
 
 /**
  * A permission of the operating system (TCC on macOS) the driver needs.
@@ -86,6 +86,25 @@ export type ComputerUseStatus = Message<"harness.agent.v1.ComputerUseStatus"> & 
    * @generated from field: repeated harness.agent.v1.ComputerUsePermission permissions = 5;
    */
   permissions: ComputerUsePermission[];
+
+  /**
+   * The active security profile and the ones to pick from: the built-in ones and the custom one the user edits.
+   *
+   * @generated from field: string active_profile_id = 6;
+   */
+  activeProfileId: string;
+
+  /**
+   * @generated from field: repeated harness.agent.v1.ComputerUseProfile profiles = 7;
+   */
+  profiles: ComputerUseProfile[];
+
+  /**
+   * The blocklist, each entry a switch of the custom profile.
+   *
+   * @generated from field: repeated harness.agent.v1.ComputerUseBlockEntry block_entries = 8;
+   */
+  blockEntries: ComputerUseBlockEntry[];
 };
 
 /**
@@ -94,6 +113,220 @@ export type ComputerUseStatus = Message<"harness.agent.v1.ComputerUseStatus"> & 
  */
 export const ComputerUseStatusSchema: GenMessage<ComputerUseStatus> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_computer_use, 1);
+
+/**
+ * A named set of decisions on what computer use may do. Everything is blocked by default; only the user loosens it.
+ *
+ * @generated from message harness.agent.v1.ComputerUseProfile
+ */
+export type ComputerUseProfile = Message<"harness.agent.v1.ComputerUseProfile"> & {
+  /**
+   * "strict" (the default), "standard", "full", "custom".
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * Tiers by kind of app.
+   *
+   * @generated from field: harness.agent.v1.ComputerAccessTier browsers = 3;
+   */
+  browsers: ComputerAccessTier;
+
+  /**
+   * @generated from field: harness.agent.v1.ComputerAccessTier terminals = 4;
+   */
+  terminals: ComputerAccessTier;
+
+  /**
+   * @generated from field: harness.agent.v1.ComputerAccessTier other = 5;
+   */
+  other: ComputerAccessTier;
+
+  /**
+   * Tiers of single apps. They do not reach an app on the blocklist or Harness itself.
+   *
+   * @generated from field: repeated harness.agent.v1.ComputerUseAppTier app_tiers = 6;
+   */
+  appTiers: ComputerUseAppTier[];
+
+  /**
+   * Ids of the blocklist entries lifted. Harness's own app is not on the list: nothing lifts it.
+   *
+   * @generated from field: repeated string lifted_blocks = 7;
+   */
+  liftedBlocks: string[];
+
+  /**
+   * Lifts the refusal to type into a secure field.
+   *
+   * @generated from field: bool allow_secure_typing = 8;
+   */
+  allowSecureTyping: boolean;
+
+  /**
+   * Lifts the rule that turns computer use off when the session's last message came from another device.
+   *
+   * @generated from field: bool allow_remote_origin = 9;
+   */
+  allowRemoteOrigin: boolean;
+
+  /**
+   * Lifts the refusal of key combinations that reach past the app, such as app switching, and of the system menu.
+   *
+   * @generated from field: bool allow_system_shortcuts = 10;
+   */
+  allowSystemShortcuts: boolean;
+
+  /**
+   * Lets the agent's file tools and shell write these settings without the user-only prompt.
+   *
+   * @generated from field: bool allow_settings_edit = 11;
+   */
+  allowSettingsEdit: boolean;
+};
+
+/**
+ * Describes the message harness.agent.v1.ComputerUseProfile.
+ * Use `create(ComputerUseProfileSchema)` to create a new message.
+ */
+export const ComputerUseProfileSchema: GenMessage<ComputerUseProfile> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 2);
+
+/**
+ * @generated from message harness.agent.v1.ComputerUseAppTier
+ */
+export type ComputerUseAppTier = Message<"harness.agent.v1.ComputerUseAppTier"> & {
+  /**
+   * @generated from field: string app_id = 1;
+   */
+  appId: string;
+
+  /**
+   * @generated from field: string app_name = 2;
+   */
+  appName: string;
+
+  /**
+   * @generated from field: harness.agent.v1.ComputerAccessTier tier = 3;
+   */
+  tier: ComputerAccessTier;
+};
+
+/**
+ * Describes the message harness.agent.v1.ComputerUseAppTier.
+ * Use `create(ComputerUseAppTierSchema)` to create a new message.
+ */
+export const ComputerUseAppTierSchema: GenMessage<ComputerUseAppTier> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 3);
+
+/**
+ * @generated from message harness.agent.v1.ComputerUseBlockEntry
+ */
+export type ComputerUseBlockEntry = Message<"harness.agent.v1.ComputerUseBlockEntry"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * What the user reads before lifting it.
+   *
+   * @generated from field: string warning = 3;
+   */
+  warning: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.ComputerUseBlockEntry.
+ * Use `create(ComputerUseBlockEntrySchema)` to create a new message.
+ */
+export const ComputerUseBlockEntrySchema: GenMessage<ComputerUseBlockEntry> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 4);
+
+/**
+ * Picks the active profile and, when custom is set, replaces the custom profile. No tool of the model reaches this.
+ *
+ * @generated from message harness.agent.v1.SetComputerUseProfileRequest
+ */
+export type SetComputerUseProfileRequest = Message<"harness.agent.v1.SetComputerUseProfileRequest"> & {
+  /**
+   * @generated from field: string active_profile_id = 1;
+   */
+  activeProfileId: string;
+
+  /**
+   * @generated from field: harness.agent.v1.ComputerUseProfile custom = 2;
+   */
+  custom?: ComputerUseProfile | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.SetComputerUseProfileRequest.
+ * Use `create(SetComputerUseProfileRequestSchema)` to create a new message.
+ */
+export const SetComputerUseProfileRequestSchema: GenMessage<SetComputerUseProfileRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 5);
+
+/**
+ * @generated from message harness.agent.v1.SetComputerUseProfileResponse
+ */
+export type SetComputerUseProfileResponse = Message<"harness.agent.v1.SetComputerUseProfileResponse"> & {
+  /**
+   * @generated from field: harness.agent.v1.ComputerUseStatus status = 1;
+   */
+  status?: ComputerUseStatus | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.SetComputerUseProfileResponse.
+ * Use `create(SetComputerUseProfileResponseSchema)` to create a new message.
+ */
+export const SetComputerUseProfileResponseSchema: GenMessage<SetComputerUseProfileResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 6);
+
+/**
+ * @generated from message harness.agent.v1.ListComputerUseAppsRequest
+ */
+export type ListComputerUseAppsRequest = Message<"harness.agent.v1.ListComputerUseAppsRequest"> & {
+};
+
+/**
+ * Describes the message harness.agent.v1.ListComputerUseAppsRequest.
+ * Use `create(ListComputerUseAppsRequestSchema)` to create a new message.
+ */
+export const ListComputerUseAppsRequestSchema: GenMessage<ListComputerUseAppsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 7);
+
+/**
+ * The apps of this machine with the tier the active profile gives them, for the profile editor.
+ *
+ * @generated from message harness.agent.v1.ListComputerUseAppsResponse
+ */
+export type ListComputerUseAppsResponse = Message<"harness.agent.v1.ListComputerUseAppsResponse"> & {
+  /**
+   * @generated from field: repeated harness.agent.v1.ComputerAccessApp apps = 1;
+   */
+  apps: ComputerAccessApp[];
+};
+
+/**
+ * Describes the message harness.agent.v1.ListComputerUseAppsResponse.
+ * Use `create(ListComputerUseAppsResponseSchema)` to create a new message.
+ */
+export const ListComputerUseAppsResponseSchema: GenMessage<ListComputerUseAppsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 8);
 
 /**
  * @generated from message harness.agent.v1.GetComputerUseStatusRequest
@@ -106,7 +339,7 @@ export type GetComputerUseStatusRequest = Message<"harness.agent.v1.GetComputerU
  * Use `create(GetComputerUseStatusRequestSchema)` to create a new message.
  */
 export const GetComputerUseStatusRequestSchema: GenMessage<GetComputerUseStatusRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 2);
+  messageDesc(file_harness_agent_v1_computer_use, 9);
 
 /**
  * @generated from message harness.agent.v1.GetComputerUseStatusResponse
@@ -123,7 +356,7 @@ export type GetComputerUseStatusResponse = Message<"harness.agent.v1.GetComputer
  * Use `create(GetComputerUseStatusResponseSchema)` to create a new message.
  */
 export const GetComputerUseStatusResponseSchema: GenMessage<GetComputerUseStatusResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 3);
+  messageDesc(file_harness_agent_v1_computer_use, 10);
 
 /**
  * @generated from message harness.agent.v1.SetComputerUseEnabledRequest
@@ -140,7 +373,7 @@ export type SetComputerUseEnabledRequest = Message<"harness.agent.v1.SetComputer
  * Use `create(SetComputerUseEnabledRequestSchema)` to create a new message.
  */
 export const SetComputerUseEnabledRequestSchema: GenMessage<SetComputerUseEnabledRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 4);
+  messageDesc(file_harness_agent_v1_computer_use, 11);
 
 /**
  * @generated from message harness.agent.v1.SetComputerUseEnabledResponse
@@ -157,7 +390,7 @@ export type SetComputerUseEnabledResponse = Message<"harness.agent.v1.SetCompute
  * Use `create(SetComputerUseEnabledResponseSchema)` to create a new message.
  */
 export const SetComputerUseEnabledResponseSchema: GenMessage<SetComputerUseEnabledResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 5);
+  messageDesc(file_harness_agent_v1_computer_use, 12);
 
 /**
  * One app the model asks to use.
@@ -195,7 +428,7 @@ export type ComputerAccessApp = Message<"harness.agent.v1.ComputerAccessApp"> & 
  * Use `create(ComputerAccessAppSchema)` to create a new message.
  */
 export const ComputerAccessAppSchema: GenMessage<ComputerAccessApp> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 6);
+  messageDesc(file_harness_agent_v1_computer_use, 13);
 
 /**
  * The model called ComputerAccess. The turn waits for RespondToComputerAccess; Stop cancels it.
@@ -231,6 +464,13 @@ export type ComputerAccessRequested = Message<"harness.agent.v1.ComputerAccessRe
    * @generated from field: repeated harness.agent.v1.ComputerUsePermission missing_permissions = 5;
    */
   missingPermissions: ComputerUsePermission[];
+
+  /**
+   * The security profile that gave the tiers.
+   *
+   * @generated from field: string profile_name = 6;
+   */
+  profileName: string;
 };
 
 /**
@@ -238,7 +478,7 @@ export type ComputerAccessRequested = Message<"harness.agent.v1.ComputerAccessRe
  * Use `create(ComputerAccessRequestedSchema)` to create a new message.
  */
 export const ComputerAccessRequestedSchema: GenMessage<ComputerAccessRequested> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 7);
+  messageDesc(file_harness_agent_v1_computer_use, 14);
 
 /**
  * @generated from message harness.agent.v1.ComputerAccessResolved
@@ -269,7 +509,7 @@ export type ComputerAccessResolved = Message<"harness.agent.v1.ComputerAccessRes
  * Use `create(ComputerAccessResolvedSchema)` to create a new message.
  */
 export const ComputerAccessResolvedSchema: GenMessage<ComputerAccessResolved> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 8);
+  messageDesc(file_harness_agent_v1_computer_use, 15);
 
 /**
  * An app the session may use, until the session ends or the user stops it.
@@ -298,7 +538,7 @@ export type ComputerUseGrant = Message<"harness.agent.v1.ComputerUseGrant"> & {
  * Use `create(ComputerUseGrantSchema)` to create a new message.
  */
 export const ComputerUseGrantSchema: GenMessage<ComputerUseGrant> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 9);
+  messageDesc(file_harness_agent_v1_computer_use, 16);
 
 /**
  * The current state of computer use in a session, in full: the indicator while the agent controls the machine.
@@ -331,7 +571,7 @@ export type ComputerUseState = Message<"harness.agent.v1.ComputerUseState"> & {
  * Use `create(ComputerUseStateSchema)` to create a new message.
  */
 export const ComputerUseStateSchema: GenMessage<ComputerUseState> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 10);
+  messageDesc(file_harness_agent_v1_computer_use, 17);
 
 /**
  * @generated from message harness.agent.v1.RespondToComputerAccessRequest
@@ -360,7 +600,7 @@ export type RespondToComputerAccessRequest = Message<"harness.agent.v1.RespondTo
  * Use `create(RespondToComputerAccessRequestSchema)` to create a new message.
  */
 export const RespondToComputerAccessRequestSchema: GenMessage<RespondToComputerAccessRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 11);
+  messageDesc(file_harness_agent_v1_computer_use, 18);
 
 /**
  * @generated from message harness.agent.v1.RespondToComputerAccessResponse
@@ -373,7 +613,7 @@ export type RespondToComputerAccessResponse = Message<"harness.agent.v1.RespondT
  * Use `create(RespondToComputerAccessResponseSchema)` to create a new message.
  */
 export const RespondToComputerAccessResponseSchema: GenMessage<RespondToComputerAccessResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 12);
+  messageDesc(file_harness_agent_v1_computer_use, 19);
 
 /**
  * Stops computer use in the session at once: cancels the action in flight, revokes the session's grants and interrupts
@@ -393,7 +633,7 @@ export type StopComputerUseRequest = Message<"harness.agent.v1.StopComputerUseRe
  * Use `create(StopComputerUseRequestSchema)` to create a new message.
  */
 export const StopComputerUseRequestSchema: GenMessage<StopComputerUseRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 13);
+  messageDesc(file_harness_agent_v1_computer_use, 20);
 
 /**
  * @generated from message harness.agent.v1.StopComputerUseResponse
@@ -406,10 +646,10 @@ export type StopComputerUseResponse = Message<"harness.agent.v1.StopComputerUseR
  * Use `create(StopComputerUseResponseSchema)` to create a new message.
  */
 export const StopComputerUseResponseSchema: GenMessage<StopComputerUseResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 14);
+  messageDesc(file_harness_agent_v1_computer_use, 21);
 
 /**
- * What the model may do in an app. Set by the client from what the app is, never by a frontend.
+ * What the model may do in an app. Set by the client from what the app is and the user's active profile, never by the model.
  *
  * @generated from enum harness.agent.v1.ComputerAccessTier
  */
@@ -437,6 +677,13 @@ export enum ComputerAccessTier {
    * @generated from enum value: COMPUTER_ACCESS_TIER_FULL = 3;
    */
   FULL = 3,
+
+  /**
+   * Not controllable, and not offered on a card.
+   *
+   * @generated from enum value: COMPUTER_ACCESS_TIER_BLOCKED = 4;
+   */
+  BLOCKED = 4,
 }
 
 /**

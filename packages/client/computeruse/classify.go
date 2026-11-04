@@ -4,17 +4,35 @@ import (
 	"strings"
 )
 
-// Tier is what the model may do in an app. It comes from what the app is, and only from there: neither the model nor a
-// frontend sets it, and the user's approval grants an app at its tier.
+// Tier is what the model may do in an app. It comes from what the app is and the user's active profile (profile.go): the
+// model never sets it, and the access card grants an app at the tier the profile gives it.
 type Tier int
 
-// Tiers, in increasing power. TierBlocked apps are never controllable and are not offered to the user.
+// Tiers, in increasing power. TierBlocked apps are not controllable and are not offered to the user.
 const (
 	TierBlocked Tier = iota
 	TierRead
 	TierClick
 	TierFull
 )
+
+// MarshalText writes a tier by name in the settings file.
+func (t Tier) MarshalText() ([]byte, error) { return []byte(t.String()), nil }
+
+// UnmarshalText reads a tier by name. An unknown one is blocked: what the file does not clearly allow stays off.
+func (t *Tier) UnmarshalText(b []byte) error {
+	switch string(b) {
+	case "read":
+		*t = TierRead
+	case "click":
+		*t = TierClick
+	case "full":
+		*t = TierFull
+	default:
+		*t = TierBlocked
+	}
+	return nil
+}
 
 func (t Tier) String() string {
 	switch t {
@@ -73,23 +91,58 @@ func (t Tier) Allows(a Action) bool {
 // of a known kind of app lands in the same tier. An id ending in "*" is a prefix. The ids listed are macOS ones; a
 // driver for another platform adds its own (executable names, desktop file ids) to the same tables.
 
-// blockedIDs are never controllable: password managers, and what guards the system's security. Harness's own app is
-// here too, so the model can never click its own access card or the Stop button.
-var blockedIDs = []string{
-	"com.apple.Passwords", "com.apple.keychainaccess", "com.apple.systempreferences", "com.apple.SecurityAgent",
-	"com.apple.LocalAuthentication.UIAgent", "com.apple.loginwindow", "com.apple.ScreenSaver.Engine",
-	"com.apple.TCCUI", "com.apple.UserAccountUpdater", "com.apple.CoreServicesUIAgent",
-	"com.1password.*", "com.agilebits.*", "2BUA8C4S2C.com.1password.*", "com.bitwarden.*", "com.8bit.bitwarden*",
-	"com.lastpass.*", "com.dashlane.*", "org.keepassxc.*", "com.keepassium.*", "com.callpod.keeper*", "com.keepersecurity.*",
-	"in.sinew.Enpass*", "com.nordpass.*", "com.roboform.*", "com.protonpass.*", "me.proton.pass*",
-	"dev.xlsft.harness",
+// BlockEntry is one line of the blocklist: apps that are not controllable unless the profile lifts this entry.
+type BlockEntry struct {
+	ID    string
+	Label string
+	// Warning is what the user reads before lifting it.
+	Warning string
+	ids     []string
+	names   []string
 }
 
-// blockedNames match the lowercased app name as substrings.
-var blockedNames = []string{
-	"1password", "bitwarden", "lastpass", "dashlane", "keepass", "keeper password", "enpass", "nordpass", "roboform",
-	"proton pass", "password manager", "passwords", "keychain access", "system settings", "system preferences",
-	"harness",
+func (e BlockEntry) matches(a App) bool {
+	return matchesID(a.ID, e.ids) || containsName(strings.ToLower(strings.TrimSpace(a.Name)), e.names)
+}
+
+const passwordWarning = "The agent could read and use every password in it, and text it sees in other apps could steer it there."
+
+// blockEntries is the blocklist: password managers, and what guards the system's security. Harness is not an entry:
+// nothing lifts it (isHarness).
+var blockEntries = []BlockEntry{
+	{ID: "1password", Label: "1Password", Warning: passwordWarning, ids: []string{"com.1password.*", "com.agilebits.*", "2BUA8C4S2C.com.1password.*"}, names: []string{"1password"}},
+	{ID: "bitwarden", Label: "Bitwarden", Warning: passwordWarning, ids: []string{"com.bitwarden.*", "com.8bit.bitwarden*"}, names: []string{"bitwarden"}},
+	{ID: "lastpass", Label: "LastPass", Warning: passwordWarning, ids: []string{"com.lastpass.*"}, names: []string{"lastpass"}},
+	{ID: "dashlane", Label: "Dashlane", Warning: passwordWarning, ids: []string{"com.dashlane.*"}, names: []string{"dashlane"}},
+	{ID: "keepass", Label: "KeePass apps", Warning: passwordWarning, ids: []string{"org.keepassxc.*", "com.keepassium.*"}, names: []string{"keepass"}},
+	{ID: "keeper", Label: "Keeper", Warning: passwordWarning, ids: []string{"com.callpod.keeper*", "com.keepersecurity.*"}, names: []string{"keeper password"}},
+	{ID: "enpass", Label: "Enpass", Warning: passwordWarning, ids: []string{"in.sinew.Enpass*"}, names: []string{"enpass"}},
+	{ID: "nordpass", Label: "NordPass", Warning: passwordWarning, ids: []string{"com.nordpass.*"}, names: []string{"nordpass"}},
+	{ID: "roboform", Label: "RoboForm", Warning: passwordWarning, ids: []string{"com.roboform.*"}, names: []string{"roboform"}},
+	{ID: "protonpass", Label: "Proton Pass", Warning: passwordWarning, ids: []string{"com.protonpass.*", "me.proton.pass*"}, names: []string{"proton pass"}},
+	{ID: "password_managers", Label: "Other password managers", Warning: passwordWarning, names: []string{"password manager"}},
+	{ID: "apple_passwords", Label: "Passwords (macOS)", Warning: passwordWarning, ids: []string{"com.apple.Passwords"}, names: []string{"passwords"}},
+	{ID: "keychain", Label: "Keychain Access", Warning: "The agent could read and use the secrets in your keychain.", ids: []string{"com.apple.keychainaccess"}, names: []string{"keychain access"}},
+	{ID: "system_settings", Label: "System Settings", Warning: "The agent could change security and privacy settings, and give itself more permissions.", ids: []string{"com.apple.systempreferences"}, names: []string{"system settings", "system preferences"}},
+	{ID: "security_dialogs", Label: "System security dialogs", Warning: "The agent could answer password prompts, permission dialogs and the login window in your place.", ids: []string{"com.apple.SecurityAgent", "com.apple.LocalAuthentication.UIAgent", "com.apple.loginwindow", "com.apple.ScreenSaver.Engine", "com.apple.TCCUI", "com.apple.UserAccountUpdater", "com.apple.CoreServicesUIAgent"}},
+}
+
+// BlockEntries returns the blocklist.
+func BlockEntries() []BlockEntry { return blockEntries }
+
+func blockEntry(id string) *BlockEntry {
+	for i := range blockEntries {
+		if blockEntries[i].ID == id {
+			return &blockEntries[i]
+		}
+	}
+	return nil
+}
+
+// isHarness: Harness's own app is never controllable, so the model can never click its own access card or the Stop
+// button. No profile lifts this.
+func isHarness(a App) bool {
+	return matchesID(a.ID, []string{"dev.xlsft.harness"}) || strings.Contains(strings.ToLower(a.Name), "harness")
 }
 
 var browserIDs = []string{
@@ -121,19 +174,16 @@ var clickNames = []string{
 	"automator", "shortcuts", "console", "bbedit", "textmate",
 }
 
-// Classify returns the tier of an app.
-func Classify(a App) Tier {
-	name := strings.ToLower(strings.TrimSpace(a.Name))
-	switch {
-	case matchesID(a.ID, blockedIDs) || containsName(name, blockedNames):
-		return TierBlocked
-	case matchesID(a.ID, browserIDs) || matchesName(name, browserNames):
-		return TierRead
-	case matchesID(a.ID, clickIDs) || matchesName(name, clickNames):
-		return TierClick
-	}
-	return TierFull
+func isBrowser(a App) bool {
+	return matchesID(a.ID, browserIDs) || matchesName(strings.ToLower(strings.TrimSpace(a.Name)), browserNames)
 }
+
+func isTerminal(a App) bool {
+	return matchesID(a.ID, clickIDs) || matchesName(strings.ToLower(strings.TrimSpace(a.Name)), clickNames)
+}
+
+// Classify returns the tier of an app in the Strict profile.
+func Classify(a App) Tier { return StrictProfile().TierFor(a) }
 
 func matchesID(id string, patterns []string) bool {
 	if id == "" {

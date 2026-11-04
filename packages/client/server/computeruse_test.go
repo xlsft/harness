@@ -309,3 +309,74 @@ func TestComputerUseRemoteMessageRefuses(t *testing.T) {
 		t.Fatalf("%q", results)
 	}
 }
+
+func TestComputerUseProfilesOverTheWire(t *testing.T) {
+	h, srv := startComputer(t, &grantingMachine{}, true, fg.Sequence())
+	res, err := h.client.GetComputerUseStatus(h.ctx, connect.NewRequest(&agentv1.GetComputerUseStatusRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := res.Msg.GetStatus()
+	if st.GetActiveProfileId() != computeruse.ProfileStrict || len(st.GetProfiles()) != 4 || len(st.GetBlockEntries()) == 0 {
+		t.Fatalf("%+v", st)
+	}
+	for _, e := range st.GetBlockEntries() {
+		if strings.Contains(strings.ToLower(e.GetLabel()), "harness") {
+			t.Fatalf("Harness can be lifted: %+v", e)
+		}
+	}
+	set, err := h.client.SetComputerUseProfile(h.ctx, connect.NewRequest(&agentv1.SetComputerUseProfileRequest{
+		ActiveProfileId: computeruse.ProfileCustom,
+		Custom: &agentv1.ComputerUseProfile{
+			Browsers: agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_CLICK, Terminals: agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_UNSPECIFIED,
+			Other: agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_FULL, LiftedBlocks: []string{"keychain"}, AllowSecureTyping: true,
+			AppTiers: []*agentv1.ComputerUseAppTier{{AppId: "com.apple.Notes", Tier: agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_READ}},
+		},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if set.Msg.GetStatus().GetActiveProfileId() != computeruse.ProfileCustom {
+		t.Fatalf("%+v", set.Msg.GetStatus())
+	}
+	p := srv.ComputerUse.Profile()
+	// A tier the request left unclear is blocked.
+	if p.Browsers != computeruse.TierClick || p.Terminals != computeruse.TierBlocked || p.Apps["com.apple.Notes"] != computeruse.TierRead || !p.AllowSecureTyping || p.AllowRemoteOrigin {
+		t.Fatalf("%+v", p)
+	}
+	if _, err := h.client.SetComputerUseProfile(h.ctx, connect.NewRequest(&agentv1.SetComputerUseProfileRequest{ActiveProfileId: "root"})); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("%v", err)
+	}
+	apps, err := h.client.ListComputerUseApps(h.ctx, connect.NewRequest(&agentv1.ListComputerUseAppsRequest{}))
+	if err != nil || len(apps.Msg.GetApps()) != 2 || apps.Msg.GetApps()[0].GetTier() != agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_READ {
+		t.Fatalf("%v %+v", err, apps)
+	}
+}
+
+func TestComputerUseCardShowsTheProfile(t *testing.T) {
+	h, srv := startComputer(t, &grantingMachine{}, true, func(n int, r *llm.Request) fg.Reply {
+		if n == 0 {
+			return fg.Reply{Events: fg.Message("m", fg.ToolUse("a", computeruse.ToolAccess, map[string]any{"apps": []string{"Notes"}}))}
+		}
+		return fg.Reply{Events: fg.Message("m2", fg.Text("done"))}
+	})
+	c := computeruse.Profile{Browsers: computeruse.TierRead, Terminals: computeruse.TierClick, Other: computeruse.TierClick}
+	if err := srv.ComputerUse.SetProfile(computeruse.ProfileCustom, &c); err != nil {
+		t.Fatal(err)
+	}
+	sid, ch := h.create(&agentv1.CreateSessionRequest{})
+	h.send(sid, "go")
+	var card *agentv1.ComputerAccessRequested
+	h.until(ch, func(ev *agentv1.SessionEvent) bool {
+		if r := ev.GetComputerAccessRequested(); r != nil {
+			card = r
+			if _, err := h.client.RespondToComputerAccess(h.ctx, connect.NewRequest(&agentv1.RespondToComputerAccessRequest{SessionId: sid, RequestId: r.GetRequestId()})); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return ev.GetTurnFinished() != nil
+	})
+	if card == nil || card.GetProfileName() != "Custom" || card.GetApps()[0].GetTier() != agentv1.ComputerAccessTier_COMPUTER_ACCESS_TIER_CLICK {
+		t.Fatalf("%+v", card)
+	}
+}

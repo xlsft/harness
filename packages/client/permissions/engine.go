@@ -228,6 +228,9 @@ type Config struct {
 	// LocalSettingsPath is where "allow always" rules are persisted;
 	// default <repo root>/.claude/settings.local.json.
 	LocalSettingsPath string
+	// ComputerSettings returns the directory of the computer use settings and whether writes to it need the user-only
+	// prompt (computer.go). Nil: nothing is guarded.
+	ComputerSettings func() (dir string, protected bool)
 	// ScratchDirs may be read and written without asking (session scratch).
 	ScratchDirs []string
 	// ReadableDirs may be read without asking (plans, task output).
@@ -243,20 +246,22 @@ type Engine struct {
 	mu   sync.RWMutex
 	mode Mode
 	// The mode plan mode was entered from, restored when a plan is approved.
-	prePlan       Mode
-	cwd           string
-	workDirs      []string
-	additional    []string
-	extraWork     []string
-	scratch       []string
-	readable      []string
-	home          string
-	trusted       bool
-	disableBypass bool
-	disableAuto   bool
-	policy        map[Mode]bool
-	decider       Decider
-	localPath     string
+	prePlan    Mode
+	cwd        string
+	workDirs   []string
+	additional []string
+	extraWork  []string
+	scratch    []string
+	// computerSettings is Config.ComputerSettings.
+	computerSettings func() (dir string, protected bool)
+	readable         []string
+	home             string
+	trusted          bool
+	disableBypass    bool
+	disableAuto      bool
+	policy           map[Mode]bool
+	decider          Decider
+	localPath        string
 	// localFixed: LocalSettingsPath was given, so the file stays when the session moves.
 	localFixed bool
 	localRoot  string
@@ -275,7 +280,7 @@ type Engine struct {
 func New(cfg Config) *Engine {
 	e := &Engine{
 		mode: cfg.DefaultMode, cwd: cfg.Cwd, home: cfg.Home, trusted: cfg.Trusted,
-		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, readable: cfg.ReadableDirs,
+		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, computerSettings: cfg.ComputerSettings, readable: cfg.ReadableDirs,
 		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider, netGuard: cfg.NetGuard,
 	}
 	e.policy = modeSet(cfg.DisabledModes)
@@ -763,6 +768,18 @@ func (e *Engine) Evaluate(req Request) Decision {
 		}
 		return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s requires the user's confirmation for every call.", req.ToolName)}
 	}
+	if editTools[req.ToolName] {
+		p := req.FilePath
+		if p != "" && !filepath.IsAbs(p) {
+			p = filepath.Join(e.cwd, p)
+		}
+		if e.computerSettingsGuarded(p) {
+			if e.mode == ModePlan {
+				return e.planDenial(req.ToolName)
+			}
+			return computerSettingsPrompt(p)
+		}
+	}
 	for _, r := range e.ask {
 		if r.matchesCall(req, input, mc, false) {
 			if e.mode == ModeBypassPermissions {
@@ -818,7 +835,7 @@ func (e *Engine) Evaluate(req Request) Decision {
 		return Decision{Behavior: Allow, ResolvedBy: "computer_access"}
 	}
 	if editTools[req.ToolName] {
-		if isProtected(path, e.workDirs, e.home) {
+		if isProtected(path, e.workDirs, e.home) && !e.computerSettingsUnguarded(path) {
 			return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s is a protected path; edits always need approval.", path)}
 		}
 		if inAny(path, e.scratch) {
@@ -906,22 +923,28 @@ func (e *Engine) evalBash(req Request, input map[string]any) Decision {
 			}
 		}
 	}
+	cwd := req.Cwd
+	if cwd == "" {
+		cwd = e.cwd
+	}
+	if p := e.bashTouchesComputerSettings(req.Command, cwd, top); p != "" {
+		if e.mode == ModePlan {
+			return e.planDenial("Bash (" + req.Command + ")")
+		}
+		return computerSettingsPrompt(p)
+	}
 	if e.mode == ModeBypassPermissions {
 		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
 	if len(top) == 0 {
 		return Decision{Behavior: Ask}
 	}
-	cwd := req.Cwd
-	if cwd == "" {
-		cwd = e.cwd
-	}
 	// ask is the fall-through Ask; in auto mode writes to protected paths
 	// (redirections, cp/mv/tee/sed -i targets) are reserved for the user.
 	ask := func() Decision {
 		if e.mode == ModeAuto {
 			for _, p := range CommandWritePaths(req.Command, cwd, e.home) {
-				if isProtected(p, e.workDirs, e.home) {
+				if isProtected(p, e.workDirs, e.home) && !e.computerSettingsUnguarded(p) {
 					return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s is a protected path; writes always need approval.", p)}
 				}
 			}

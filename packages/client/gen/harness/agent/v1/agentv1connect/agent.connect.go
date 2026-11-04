@@ -324,6 +324,12 @@ const (
 	// AgentServiceStopComputerUseProcedure is the fully-qualified name of the AgentService's
 	// StopComputerUse RPC.
 	AgentServiceStopComputerUseProcedure = "/harness.agent.v1.AgentService/StopComputerUse"
+	// AgentServiceSetComputerUseProfileProcedure is the fully-qualified name of the AgentService's
+	// SetComputerUseProfile RPC.
+	AgentServiceSetComputerUseProfileProcedure = "/harness.agent.v1.AgentService/SetComputerUseProfile"
+	// AgentServiceListComputerUseAppsProcedure is the fully-qualified name of the AgentService's
+	// ListComputerUseApps RPC.
+	AgentServiceListComputerUseAppsProcedure = "/harness.agent.v1.AgentService/ListComputerUseApps"
 	// AgentServiceGetDeviceSettingsProcedure is the fully-qualified name of the AgentService's
 	// GetDeviceSettings RPC.
 	AgentServiceGetDeviceSettingsProcedure = "/harness.agent.v1.AgentService/GetDeviceSettings"
@@ -588,6 +594,9 @@ type AgentServiceClient interface {
 	// The user's answer to ComputerAccessRequested.
 	RespondToComputerAccess(context.Context, *connect.Request[v1.RespondToComputerAccessRequest]) (*connect.Response[v1.RespondToComputerAccessResponse], error)
 	StopComputerUse(context.Context, *connect.Request[v1.StopComputerUseRequest]) (*connect.Response[v1.StopComputerUseResponse], error)
+	// Picks the security profile and edits the custom one. Device-local; only from this machine.
+	SetComputerUseProfile(context.Context, *connect.Request[v1.SetComputerUseProfileRequest]) (*connect.Response[v1.SetComputerUseProfileResponse], error)
+	ListComputerUseApps(context.Context, *connect.Request[v1.ListComputerUseAppsRequest]) (*connect.Response[v1.ListComputerUseAppsResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
 	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
@@ -1213,6 +1222,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("StopComputerUse")),
 			connect.WithClientOptions(opts...),
 		),
+		setComputerUseProfile: connect.NewClient[v1.SetComputerUseProfileRequest, v1.SetComputerUseProfileResponse](
+			httpClient,
+			baseURL+AgentServiceSetComputerUseProfileProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetComputerUseProfile")),
+			connect.WithClientOptions(opts...),
+		),
+		listComputerUseApps: connect.NewClient[v1.ListComputerUseAppsRequest, v1.ListComputerUseAppsResponse](
+			httpClient,
+			baseURL+AgentServiceListComputerUseAppsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListComputerUseApps")),
+			connect.WithClientOptions(opts...),
+		),
 		getDeviceSettings: connect.NewClient[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse](
 			httpClient,
 			baseURL+AgentServiceGetDeviceSettingsProcedure,
@@ -1337,6 +1358,8 @@ type agentServiceClient struct {
 	setComputerUseEnabled   *connect.Client[v1.SetComputerUseEnabledRequest, v1.SetComputerUseEnabledResponse]
 	respondToComputerAccess *connect.Client[v1.RespondToComputerAccessRequest, v1.RespondToComputerAccessResponse]
 	stopComputerUse         *connect.Client[v1.StopComputerUseRequest, v1.StopComputerUseResponse]
+	setComputerUseProfile   *connect.Client[v1.SetComputerUseProfileRequest, v1.SetComputerUseProfileResponse]
+	listComputerUseApps     *connect.Client[v1.ListComputerUseAppsRequest, v1.ListComputerUseAppsResponse]
 	getDeviceSettings       *connect.Client[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse]
 	updateDeviceSettings    *connect.Client[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse]
 	setKeepAwake            *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
@@ -1847,6 +1870,16 @@ func (c *agentServiceClient) StopComputerUse(ctx context.Context, req *connect.R
 	return c.stopComputerUse.CallUnary(ctx, req)
 }
 
+// SetComputerUseProfile calls harness.agent.v1.AgentService.SetComputerUseProfile.
+func (c *agentServiceClient) SetComputerUseProfile(ctx context.Context, req *connect.Request[v1.SetComputerUseProfileRequest]) (*connect.Response[v1.SetComputerUseProfileResponse], error) {
+	return c.setComputerUseProfile.CallUnary(ctx, req)
+}
+
+// ListComputerUseApps calls harness.agent.v1.AgentService.ListComputerUseApps.
+func (c *agentServiceClient) ListComputerUseApps(ctx context.Context, req *connect.Request[v1.ListComputerUseAppsRequest]) (*connect.Response[v1.ListComputerUseAppsResponse], error) {
+	return c.listComputerUseApps.CallUnary(ctx, req)
+}
+
 // GetDeviceSettings calls harness.agent.v1.AgentService.GetDeviceSettings.
 func (c *agentServiceClient) GetDeviceSettings(ctx context.Context, req *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {
 	return c.getDeviceSettings.CallUnary(ctx, req)
@@ -2115,6 +2148,9 @@ type AgentServiceHandler interface {
 	// The user's answer to ComputerAccessRequested.
 	RespondToComputerAccess(context.Context, *connect.Request[v1.RespondToComputerAccessRequest]) (*connect.Response[v1.RespondToComputerAccessResponse], error)
 	StopComputerUse(context.Context, *connect.Request[v1.StopComputerUseRequest]) (*connect.Response[v1.StopComputerUseResponse], error)
+	// Picks the security profile and edits the custom one. Device-local; only from this machine.
+	SetComputerUseProfile(context.Context, *connect.Request[v1.SetComputerUseProfileRequest]) (*connect.Response[v1.SetComputerUseProfileResponse], error)
+	ListComputerUseApps(context.Context, *connect.Request[v1.ListComputerUseAppsRequest]) (*connect.Response[v1.ListComputerUseAppsResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
 	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
@@ -2736,6 +2772,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("StopComputerUse")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceSetComputerUseProfileHandler := connect.NewUnaryHandler(
+		AgentServiceSetComputerUseProfileProcedure,
+		svc.SetComputerUseProfile,
+		connect.WithSchema(agentServiceMethods.ByName("SetComputerUseProfile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListComputerUseAppsHandler := connect.NewUnaryHandler(
+		AgentServiceListComputerUseAppsProcedure,
+		svc.ListComputerUseApps,
+		connect.WithSchema(agentServiceMethods.ByName("ListComputerUseApps")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceGetDeviceSettingsHandler := connect.NewUnaryHandler(
 		AgentServiceGetDeviceSettingsProcedure,
 		svc.GetDeviceSettings,
@@ -2958,6 +3006,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceRespondToComputerAccessHandler.ServeHTTP(w, r)
 		case AgentServiceStopComputerUseProcedure:
 			agentServiceStopComputerUseHandler.ServeHTTP(w, r)
+		case AgentServiceSetComputerUseProfileProcedure:
+			agentServiceSetComputerUseProfileHandler.ServeHTTP(w, r)
+		case AgentServiceListComputerUseAppsProcedure:
+			agentServiceListComputerUseAppsHandler.ServeHTTP(w, r)
 		case AgentServiceGetDeviceSettingsProcedure:
 			agentServiceGetDeviceSettingsHandler.ServeHTTP(w, r)
 		case AgentServiceUpdateDeviceSettingsProcedure:
@@ -3375,6 +3427,14 @@ func (UnimplementedAgentServiceHandler) RespondToComputerAccess(context.Context,
 
 func (UnimplementedAgentServiceHandler) StopComputerUse(context.Context, *connect.Request[v1.StopComputerUseRequest]) (*connect.Response[v1.StopComputerUseResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopComputerUse is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetComputerUseProfile(context.Context, *connect.Request[v1.SetComputerUseProfileRequest]) (*connect.Response[v1.SetComputerUseProfileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetComputerUseProfile is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListComputerUseApps(context.Context, *connect.Request[v1.ListComputerUseAppsRequest]) (*connect.Response[v1.ListComputerUseAppsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListComputerUseApps is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {

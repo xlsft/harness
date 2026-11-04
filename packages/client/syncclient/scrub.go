@@ -14,6 +14,7 @@ const screenshotKept = "[screenshot kept on the machine that took it]"
 // scrubComputerUse removes the screenshots of a computer use result from a transcript line before upload: what the
 // agent saw of the machine's desktop stays on that machine, in the local transcript. Other lines come back unchanged,
 // and so does one this cannot parse, which the uploader then skips as malformed.
+// Screenshots go to object storage when it exists; until then they are left out here. Typed text stays in the transcript.
 func scrubComputerUse(line string) string {
 	if !strings.Contains(line, computerUseMarker) {
 		return line
