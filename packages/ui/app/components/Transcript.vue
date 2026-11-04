@@ -81,6 +81,8 @@ const blocks = computed<Block[]>(() => {
     }
     if (item.kind === 'tool') {
       if (HIDDEN_TOOLS.has(item.name)) continue
+      // The access card replaces the call; after a client restart there is no card, and the row stays.
+      if (item.name === 'ComputerAccess' && props.session.items.some(i => i.kind === 'computerAccess' && i.toolUseId === item.id)) continue
       if (item.grouped) {
         const last = out[out.length - 1]
         if (last?.kind === 'group' && last.tools[0]?.messageId === item.messageId) {
@@ -326,6 +328,11 @@ function toBottom() {
             />
             <QuestionCard
               v-else-if="b.item.kind === 'question'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
+            <ComputerAccessCard
+              v-else-if="b.item.kind === 'computerAccess'"
               :item="b.item"
               :session-id="session.meta.id"
             />

@@ -1,5 +1,6 @@
 // Small builder for harness.agent.v1.SessionEvent sequences, used by the mock transport and the tests.
 
+import type { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import { create } from '@bufbuild/protobuf'
 import {
   Compacted_Trigger,
@@ -177,6 +178,24 @@ export class EventBuilder {
         background: o.background
       } as never
     })
+  }
+
+  computerAccessRequested(requestId: string, toolUseId: string, reason: string, apps: { id: string, name: string, tier: ComputerAccessTier, tierNote: string }[], missingPermissions: { id: string, name: string, granted: boolean, howToGrant: string }[] = []) {
+    return this.emit({ case: 'computerAccessRequested', value: { requestId, toolUseId, reason, apps, missingPermissions } as never })
+  }
+
+  computerAccessResolved(requestId: string, approvedAppIds: string[], resolvedBy = 'local') {
+    return this.emit({ case: 'computerAccessResolved', value: { requestId, approvedAppIds, resolvedBy } as never })
+  }
+
+  computerUseState(controlling: boolean, action: string, grants: { appId: string, appName: string, tier: ComputerAccessTier }[]) {
+    return this.emit({ case: 'computerUseState', value: { controlling, action, grants } as never })
+  }
+
+  toolFinishedWithImage(toolUseId: string, output: string, data: Uint8Array, mediaType: string) {
+    const ev = this.toolFinished(toolUseId, { output, summary: output })
+    if (ev.event.case === 'toolCallFinished') ev.event.value.content.push({ block: { case: 'image', value: { data, mediaType } } } as never)
+    return ev
   }
 
   permissionRequest(requestId: string, toolUseId: string, toolName: string, input: Record<string, unknown>, suggestedRules: string[], reason: string) {

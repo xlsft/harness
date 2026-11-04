@@ -694,7 +694,7 @@ export const useSessionStore = defineStore('sessions', {
           return
         }
         setTimeout(() => {
-          if (this.sessions[id] === s && this.isBusy(id) && !s.pendingPermission && !s.pendingQuestion && !s.pendingPlan) this.restartStream(id)
+          if (this.sessions[id] === s && this.isBusy(id) && !s.pendingPermission && !s.pendingQuestion && !s.pendingPlan && !s.pendingComputerAccess) this.restartStream(id)
         }, INTERRUPT_SETTLE_MS)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
@@ -713,6 +713,14 @@ export const useSessionStore = defineStore('sessions', {
         ? RespondToPermissionRequest_Decision.ALLOW
         : decision === 'always' ? RespondToPermissionRequest_Decision.ALLOW_ALWAYS : RespondToPermissionRequest_Decision.DENY
       await this.transport?.respondToPermission(id, requestId, d, rule, comment)
+    },
+
+    async respondToComputerAccess(id: string, requestId: string, approvedAppIds: string[]) {
+      await this.transport?.respondToComputerAccess(id, requestId, approvedAppIds)
+    },
+
+    async stopComputerUse(id: string) {
+      await this.transport?.stopComputerUse(id)
     },
 
     async answerQuestion(id: string, requestId: string, answers: QuestionAnswerVM[]) {

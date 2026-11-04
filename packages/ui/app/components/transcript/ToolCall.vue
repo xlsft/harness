@@ -109,7 +109,7 @@ const webText = computed(() => String(t.value.result?.result ?? t.value.output ?
 // Headless under a labelled row: what the call really did (Bash shows its command, diffs their path).
 const concrete = computed(() => props.headless && !isBash.value && kind.value !== 'diff' && String(t.value.input.description ?? '').trim() ? toolTarget(t.value) : '')
 
-const hasBody = computed(() => !!concrete.value || (open.value && (
+const hasBody = computed(() => !!concrete.value || !!t.value.images?.length || (open.value && (
   t.value.status === 'error' && !isBash.value
     ? !!errorText.value
     : kind.value === 'bash'
@@ -420,6 +420,20 @@ v-for="(tk, j) in highlightJson(tool.result ?? tool.output)"
 :style="{ color: tk.c }"
         >{{ tk.t }}</span></pre>
       </div>
+    </div>
+
+    <!-- computer use: what the agent saw -->
+    <div
+      v-if="tool.images?.length"
+      class="flex flex-col gap-1.5 border-t border-default bg-surface p-2"
+    >
+      <img
+        v-for="(img, i) in tool.images"
+        :key="i"
+        :src="img.url"
+        alt="Screenshot of an app"
+        class="max-h-[420px] max-w-full self-start border border-default object-contain"
+      >
     </div>
   </div>
 </template>

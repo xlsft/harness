@@ -3,7 +3,8 @@
 //
 // Live behavior:
 // - a message sent while idle starts a turn: thinking and text deltas, then a tool call;
-//   "plan" in the text proposes a plan, "ask"/"question" asks a question, otherwise a Bash call asks for permission;
+//   "plan" in the text proposes a plan, "ask"/"question" asks a question, "computer" asks for access to apps and then
+//   acts in them, otherwise a Bash call asks for permission;
 // - a message sent while a turn runs is queued (QueueChanged) and starts the next turn;
 // - a message containing "limit reached" drives REACHED with a reset 30 s away: later messages are held, and they go
 //   out at the reset or on a switch to a model of another provider; setAutoContinue continues a cut-off turn at the reset;
@@ -12,6 +13,8 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
+import type { ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { patchStats, type PatchHunk } from '~/utils/tools'
 import {
   ContextUsage_Category,
@@ -52,7 +55,6 @@ import { MockAcpApi } from '~/lib/acp/mock'
 import { SessionFeature } from '~/gen/harness/agent/v1/acp_pb'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
-import type { ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import type { BackgroundReasonName, QuestionReply } from '~/lib/session/types'
@@ -562,6 +564,7 @@ export class MockTransport implements SessionTransport {
       this.stream(s, msg, 1, 'text', intro, () => {
         if (lower.includes('limit')) return this.usageLimitFlow(s, msg, thinking, intro, startedAt)
         if (lower.includes('plan')) return this.planFlow(s, msg, thinking, intro, startedAt)
+        if (lower.includes('computer')) return this.computerFlow(s, msg, thinking, intro, startedAt)
         if (lower.includes('ask') || lower.includes('question')) return this.questionFlow(s, msg, thinking, intro, startedAt)
         if (lower.includes('long') || lower.includes('watch')) return this.longBashFlow(s, msg, thinking, intro, startedAt)
         this.permissionFlow(s, msg, thinking, intro, startedAt)
@@ -788,6 +791,55 @@ export class MockTransport implements SessionTransport {
     return this.backgroundBash(s, reason)
   }
 
+  // Computer use: the access card, then a screenshot (a 1×1 image) and a click in the app the user approved.
+  private computerFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
+    const tool = `${msg}-access`
+    const req = `${msg}-ca`
+    const shot = `${msg}-shot`
+    const click = `${msg}-click`
+    const finish = () => {
+      this.emit(s, (b) => {
+        b.assistant(`${msg}-done`, s.info.model, [{ text: 'Done in Notes.' }], { input: 31_000, output: 50 })
+        b.turnFinished('success', { durationMs: this.now() - startedAt, costUsd: 0.01, usage: { input: 31_000, output: 350 } })
+        this.finishTurn(s)
+      })
+    }
+    this.emit(s, (b) => {
+      b.assistant(msg, s.info.model, [{ thinking }, { text: intro }, { toolUse: { id: tool, name: 'ComputerAccess', input: { apps: ['Notes', 'Safari'] } } }], { input: 30_000, output: 300 })
+      b.toolStarted(tool, 'ComputerAccess', { apps: ['Notes', 'Safari'] }, 'Notes, Safari')
+      b.computerAccessRequested(req, tool, 'To write the summary into a note', [
+        { id: 'com.apple.Notes', name: 'Notes', tier: ComputerAccessTier.FULL, tierNote: 'Full: clicks, typing and keys.' },
+        { id: 'com.apple.Safari', name: 'Safari', tier: ComputerAccessTier.READ, tierNote: 'Read-only: screenshots and reading the interface.' }
+      ], [{ id: 'accessibility', name: 'Accessibility', granted: false, howToGrant: 'Turn it on for the Harness app in System Settings > Privacy & Security > Accessibility, then restart Harness.' }])
+    })
+    s.waiting = { requestId: req, resume: (b) => {
+      const approved = this.computerApproved
+      b.computerAccessResolved(req, approved)
+      b.toolFinished(tool, { output: approved.length ? 'Granted.' : 'The user denied access.', summary: `${approved.length} apps granted`, durationMs: 800 })
+      const grants = approved.includes('com.apple.Notes') ? [{ appId: 'com.apple.Notes', appName: 'Notes', tier: ComputerAccessTier.FULL }] : []
+      b.computerUseState(false, '', grants)
+      if (!grants.length) return 0
+      const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), c => c.charCodeAt(0))
+      b.assistant(`${msg}-s`, s.info.model, [{ toolUse: { id: shot, name: 'ComputerScreenshot', input: { app: 'Notes' } } }], { input: 30_500, output: 20 })
+      b.toolStarted(shot, 'ComputerScreenshot', { app: 'Notes' }, 'Notes')
+      b.toolFinishedWithImage(shot, 'Screenshot of Notes', png, 'image/png')
+      b.assistant(`${msg}-c`, s.info.model, [{ toolUse: { id: click, name: 'ComputerClick', input: { app: 'Notes', x: 10, y: 10 } } }], { input: 30_600, output: 20 })
+      b.toolStarted(click, 'ComputerClick', { app: 'Notes', x: 10, y: 10 }, 'Notes')
+      b.computerUseState(true, 'Clicking in Notes', grants)
+      return 1
+    } }
+    s.afterResume = (ok) => {
+      if (!ok) return finish()
+      this.later(s, 4000, () => {
+        this.emit(s, (b) => {
+          b.toolFinished(click, { output: 'Clicked in Notes at (10, 10).', summary: 'Clicked in Notes', durationMs: 120 })
+          b.computerUseState(false, '', [{ appId: 'com.apple.Notes', appName: 'Notes', tier: ComputerAccessTier.FULL }])
+        })
+        finish()
+      })
+    }
+  }
+
   private questionFlow(s: MockSession, msg: string, thinking: string, intro: string, startedAt: number) {
     const tool = `${msg}-ask`
     const req = `${msg}-q`
@@ -947,6 +999,35 @@ export class MockTransport implements SessionTransport {
     s.queue = []
     this.emit(s, b => b.queue([]))
     return { idle: false }
+  }
+
+  private computerEnabled = false
+  private computerApproved: string[] = []
+
+  async getComputerUseStatus(): Promise<ComputerUseStatusVM> {
+    return {
+      enabled: this.computerEnabled, supported: true, platform: 'macos', unavailableReason: '',
+      permissions: [
+        { id: 'screen_recording', name: 'Screen Recording', granted: true, howToGrant: '' },
+        { id: 'accessibility', name: 'Accessibility', granted: false, howToGrant: 'Turn it on for the Harness app in System Settings > Privacy & Security > Accessibility, then restart Harness.' }
+      ]
+    }
+  }
+
+  async setComputerUseEnabled(enabled: boolean) {
+    this.computerEnabled = enabled
+    return this.getComputerUseStatus()
+  }
+
+  async respondToComputerAccess(sessionId: string, requestId: string, approvedAppIds: string[]) {
+    this.computerApproved = approvedAppIds
+    this.resume(sessionId, requestId, 1)
+  }
+
+  async stopComputerUse(sessionId: string) {
+    const s = this.get(sessionId)
+    this.emit(s, b => b.computerUseState(false, '', []))
+    await this.interrupt(sessionId)
   }
 
   async respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision) {
