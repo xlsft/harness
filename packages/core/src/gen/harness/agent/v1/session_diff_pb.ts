@@ -10,7 +10,43 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/session_diff.proto.
  */
 export const file_harness_agent_v1_session_diff: GenFile = /*@__PURE__*/
-  fileDesc("CiNoYXJuZXNzL2FnZW50L3YxL3Nlc3Npb25fZGlmZi5wcm90bxIQaGFybmVzcy5hZ2VudC52MSJCChVHZXRTZXNzaW9uRGlmZlJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRIVCg1pZl9ub25lX21hdGNoGAIgASgJIroBChZHZXRTZXNzaW9uRGlmZlJlc3BvbnNlEikKBWZpbGVzGAEgAygLMhouaGFybmVzcy5hZ2VudC52MS5GaWxlRGlmZhIPCgd2ZXJzaW9uGAIgASgJEhQKDG5vdF9tb2RpZmllZBgDIAEoCBIRCgl0cnVuY2F0ZWQYBCABKAgSFQoNZmlsZXNfY2hhbmdlZBgFIAEoBRIRCglhZGRpdGlvbnMYBiABKAUSEQoJZGVsZXRpb25zGAcgASgFInkKDEZpbGVEaWZmSHVuaxIRCglvbGRfc3RhcnQYASABKAUSEQoJb2xkX2xpbmVzGAIgASgFEhEKCW5ld19zdGFydBgDIAEoBRIRCgluZXdfbGluZXMYBCABKAUSDQoFbGluZXMYBSADKAkSDgoGaGVhZGVyGAYgASgJIpwCCghGaWxlRGlmZhIMCgRwYXRoGAEgASgJEhQKDGRpc3BsYXlfcGF0aBgCIAEoCRIwCgZzdGF0dXMYAyABKA4yIC5oYXJuZXNzLmFnZW50LnYxLkZpbGVEaWZmU3RhdHVzEhAKCG9sZF9wYXRoGAQgASgJEhEKCWFkZGl0aW9ucxgFIAEoBRIRCglkZWxldGlvbnMYBiABKAUSLQoFaHVua3MYByADKAsyHi5oYXJuZXNzLmFnZW50LnYxLkZpbGVEaWZmSHVuaxIOCgZiaW5hcnkYCCABKAgSEQoJdG9vX2xhcmdlGAkgASgIEjAKBnNvdXJjZRgKIAEoDjIgLmhhcm5lc3MuYWdlbnQudjEuRmlsZURpZmZTb3VyY2UqqQEKDkZpbGVEaWZmU3RhdHVzEiAKHEZJTEVfRElGRl9TVEFUVVNfVU5TUEVDSUZJRUQQABIaChZGSUxFX0RJRkZfU1RBVFVTX0FEREVEEAESHQoZRklMRV9ESUZGX1NUQVRVU19NT0RJRklFRBACEhwKGEZJTEVfRElGRl9TVEFUVVNfREVMRVRFRBADEhwKGEZJTEVfRElGRl9TVEFUVVNfUkVOQU1FRBAEKokBCg5GaWxlRGlmZlNvdXJjZRIgChxGSUxFX0RJRkZfU09VUkNFX1VOU1BFQ0lGSUVEEAASGAoURklMRV9ESUZGX1NPVVJDRV9HSVQQARIcChhGSUxFX0RJRkZfU09VUkNFX0hJU1RPUlkQAhIdChlGSUxFX0RJRkZfU09VUkNFX05FV19GSUxFEANC0QEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQhBTZXNzaW9uRGlmZlByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z");
+  fileDesc("CiNoYXJuZXNzL2FnZW50L3YxL3Nlc3Npb25fZGlmZi5wcm90bxIQaGFybmVzcy5hZ2VudC52MSJSCghEaWZmQmFzZRIsCgRraW5kGAEgASgOMh4uaGFybmVzcy5hZ2VudC52MS5EaWZmQmFzZUtpbmQSCwoDcmVmGAIgASgJEgsKA3NoYRgDIAEoCSJsChVHZXRTZXNzaW9uRGlmZlJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRIVCg1pZl9ub25lX21hdGNoGAIgASgJEigKBGJhc2UYAyABKAsyGi5oYXJuZXNzLmFnZW50LnYxLkRpZmZCYXNlIr4CChZHZXRTZXNzaW9uRGlmZlJlc3BvbnNlEikKBWZpbGVzGAEgAygLMhouaGFybmVzcy5hZ2VudC52MS5GaWxlRGlmZhIPCgd2ZXJzaW9uGAIgASgJEhQKDG5vdF9tb2RpZmllZBgDIAEoCBIRCgl0cnVuY2F0ZWQYBCABKAgSFQoNZmlsZXNfY2hhbmdlZBgFIAEoBRIRCglhZGRpdGlvbnMYBiABKAUSEQoJZGVsZXRpb25zGAcgASgFEhIKCmJhc2VfbGFiZWwYCCABKAkSEgoKaGVhZF9sYWJlbBgJIAEoCRIxCgliYXNlX2tpbmQYCiABKA4yHi5oYXJuZXNzLmFnZW50LnYxLkRpZmZCYXNlS2luZBINCgVsYXJnZRgLIAEoCBIYChByZWZyZXNoX2FmdGVyX21zGAwgASgFImcKGUdldFNlc3Npb25GaWxlRGlmZlJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRIMCgRwYXRoGAIgASgJEigKBGJhc2UYAyABKAsyGi5oYXJuZXNzLmFnZW50LnYxLkRpZmZCYXNlIkYKGkdldFNlc3Npb25GaWxlRGlmZlJlc3BvbnNlEigKBGZpbGUYASABKAsyGi5oYXJuZXNzLmFnZW50LnYxLkZpbGVEaWZmIioKFExpc3REaWZmQmFzZXNSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkijQIKFUxpc3REaWZmQmFzZXNSZXNwb25zZRIOCgZpbl9naXQYASABKAgSLgoIYnJhbmNoZXMYAiADKAsyHC5oYXJuZXNzLmFnZW50LnYxLkRpZmZCcmFuY2gSGgoSYnJhbmNoZXNfdHJ1bmNhdGVkGAMgASgIEhgKEGRlZmF1bHRfYmFzZV9yZWYYBCABKAkSGgoSZGVmYXVsdF9iYXNlX2xhYmVsGAUgASgJEhgKEGRlZmF1bHRfYmFzZV9zaGEYBiABKAkSLQoHY29tbWl0cxgHIAMoCzIcLmhhcm5lc3MuYWdlbnQudjEuRGlmZkNvbW1pdBIZChFjb21taXRzX3RydW5jYXRlZBgIIAEoCCI7CgpEaWZmQnJhbmNoEgwKBG5hbWUYASABKAkSDwoHY3VycmVudBgCIAEoCBIOCgZyZW1vdGUYAyABKAgiQAoKRGlmZkNvbW1pdBILCgNzaGEYASABKAkSDwoHc3ViamVjdBgCIAEoCRIUCgxjb21taXR0ZWRfYXQYAyABKAkieQoMRmlsZURpZmZIdW5rEhEKCW9sZF9zdGFydBgBIAEoBRIRCglvbGRfbGluZXMYAiABKAUSEQoJbmV3X3N0YXJ0GAMgASgFEhEKCW5ld19saW5lcxgEIAEoBRINCgVsaW5lcxgFIAMoCRIOCgZoZWFkZXIYBiABKAkinAIKCEZpbGVEaWZmEgwKBHBhdGgYASABKAkSFAoMZGlzcGxheV9wYXRoGAIgASgJEjAKBnN0YXR1cxgDIAEoDjIgLmhhcm5lc3MuYWdlbnQudjEuRmlsZURpZmZTdGF0dXMSEAoIb2xkX3BhdGgYBCABKAkSEQoJYWRkaXRpb25zGAUgASgFEhEKCWRlbGV0aW9ucxgGIAEoBRItCgVodW5rcxgHIAMoCzIeLmhhcm5lc3MuYWdlbnQudjEuRmlsZURpZmZIdW5rEg4KBmJpbmFyeRgIIAEoCBIRCgl0b29fbGFyZ2UYCSABKAgSMAoGc291cmNlGAogASgOMiAuaGFybmVzcy5hZ2VudC52MS5GaWxlRGlmZlNvdXJjZSqZAQoMRGlmZkJhc2VLaW5kEh4KGkRJRkZfQkFTRV9LSU5EX1VOU1BFQ0lGSUVEEAASFgoSRElGRl9CQVNFX0tJTkRfQUxMEAESHgoaRElGRl9CQVNFX0tJTkRfVU5DT01NSVRURUQQAhIWChJESUZGX0JBU0VfS0lORF9SRUYQAxIZChVESUZGX0JBU0VfS0lORF9DT01NSVQQBCqpAQoORmlsZURpZmZTdGF0dXMSIAocRklMRV9ESUZGX1NUQVRVU19VTlNQRUNJRklFRBAAEhoKFkZJTEVfRElGRl9TVEFUVVNfQURERUQQARIdChlGSUxFX0RJRkZfU1RBVFVTX01PRElGSUVEEAISHAoYRklMRV9ESUZGX1NUQVRVU19ERUxFVEVEEAMSHAoYRklMRV9ESUZGX1NUQVRVU19SRU5BTUVEEAQqiQEKDkZpbGVEaWZmU291cmNlEiAKHEZJTEVfRElGRl9TT1VSQ0VfVU5TUEVDSUZJRUQQABIYChRGSUxFX0RJRkZfU09VUkNFX0dJVBABEhwKGEZJTEVfRElGRl9TT1VSQ0VfSElTVE9SWRACEh0KGUZJTEVfRElGRl9TT1VSQ0VfTkVXX0ZJTEUQA0LRAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCEFNlc3Npb25EaWZmUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM");
+
+/**
+ * What a view compares with. With several repositories, UNCOMMITTED applies to each; REF to those that have the ref
+ * (the others use ALL; NOT_FOUND when none does); COMMIT to the first that has the commit, and nothing else is listed.
+ * Files outside git keep the snapshot rules, except under COMMIT.
+ *
+ * @generated from message harness.agent.v1.DiffBase
+ */
+export type DiffBase = Message<"harness.agent.v1.DiffBase"> & {
+  /**
+   * @generated from field: harness.agent.v1.DiffBaseKind kind = 1;
+   */
+  kind: DiffBaseKind;
+
+  /**
+   * REF: a plain ref name such as main or origin/main; INVALID_ARGUMENT for one starting with "-" or with revision
+   * syntax (~ ^ : .. @{ and so on).
+   *
+   * @generated from field: string ref = 2;
+   */
+  ref: string;
+
+  /**
+   * COMMIT: the commit's hex name, at least 4 digits.
+   *
+   * @generated from field: string sha = 3;
+   */
+  sha: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.DiffBase.
+ * Use `create(DiffBaseSchema)` to create a new message.
+ */
+export const DiffBaseSchema: GenMessage<DiffBase> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_diff, 0);
 
 /**
  * @generated from message harness.agent.v1.GetSessionDiffRequest
@@ -27,6 +63,13 @@ export type GetSessionDiffRequest = Message<"harness.agent.v1.GetSessionDiffRequ
    * @generated from field: string if_none_match = 2;
    */
   ifNoneMatch: string;
+
+  /**
+   * Unset means ALL.
+   *
+   * @generated from field: harness.agent.v1.DiffBase base = 3;
+   */
+  base?: DiffBase | undefined;
 };
 
 /**
@@ -34,7 +77,7 @@ export type GetSessionDiffRequest = Message<"harness.agent.v1.GetSessionDiffRequ
  * Use `create(GetSessionDiffRequestSchema)` to create a new message.
  */
 export const GetSessionDiffRequestSchema: GenMessage<GetSessionDiffRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_session_diff, 0);
+  messageDesc(file_harness_agent_v1_session_diff, 1);
 
 /**
  * @generated from message harness.agent.v1.GetSessionDiffResponse
@@ -46,13 +89,15 @@ export type GetSessionDiffResponse = Message<"harness.agent.v1.GetSessionDiffRes
   files: FileDiff[];
 
   /**
-   * Hash of the files and truncated: equal versions mean nothing changed.
+   * Hash of what changed as git and stat report it, and of the base: equal versions mean nothing changed.
    *
    * @generated from field: string version = 2;
    */
   version: string;
 
   /**
+   * The request's if_none_match is current: no files; everything else in the response is still filled in.
+   *
    * @generated from field: bool not_modified = 3;
    */
   notModified: boolean;
@@ -78,6 +123,40 @@ export type GetSessionDiffResponse = Message<"harness.agent.v1.GetSessionDiffRes
    * @generated from field: int32 deletions = 7;
    */
   deletions: number;
+
+  /**
+   * What was compared, for showing: "main" and "working tree", say. With several repositories, those of the first that
+   * the base applies to.
+   *
+   * @generated from field: string base_label = 8;
+   */
+  baseLabel: string;
+
+  /**
+   * @generated from field: string head_label = 9;
+   */
+  headLabel: string;
+
+  /**
+   * The base in effect: ALL outside git, whatever the request asked for. Never UNSPECIFIED.
+   *
+   * @generated from field: harness.agent.v1.DiffBaseKind base_kind = 10;
+   */
+  baseKind: DiffBaseKind;
+
+  /**
+   * Past the client's thresholds: files have their path, status, counts and flags but no hunks.
+   *
+   * @generated from field: bool large = 11;
+   */
+  large: boolean;
+
+  /**
+   * When to ask again: the poll the client suggests for this state.
+   *
+   * @generated from field: int32 refresh_after_ms = 12;
+   */
+  refreshAfterMs: number;
 };
 
 /**
@@ -85,7 +164,202 @@ export type GetSessionDiffResponse = Message<"harness.agent.v1.GetSessionDiffRes
  * Use `create(GetSessionDiffResponseSchema)` to create a new message.
  */
 export const GetSessionDiffResponseSchema: GenMessage<GetSessionDiffResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_session_diff, 1);
+  messageDesc(file_harness_agent_v1_session_diff, 2);
+
+/**
+ * AgentService.GetSessionFileDiff: one listed file's hunks, for a large diff.
+ *
+ * @generated from message harness.agent.v1.GetSessionFileDiffRequest
+ */
+export type GetSessionFileDiffRequest = Message<"harness.agent.v1.GetSessionFileDiffRequest"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * FileDiff.path of a changed file; NOT_FOUND for any other, so this never reads a file that is not in the diff.
+   *
+   * @generated from field: string path = 2;
+   */
+  path: string;
+
+  /**
+   * The same base as the listing.
+   *
+   * @generated from field: harness.agent.v1.DiffBase base = 3;
+   */
+  base?: DiffBase | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.GetSessionFileDiffRequest.
+ * Use `create(GetSessionFileDiffRequestSchema)` to create a new message.
+ */
+export const GetSessionFileDiffRequestSchema: GenMessage<GetSessionFileDiffRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_diff, 3);
+
+/**
+ * @generated from message harness.agent.v1.GetSessionFileDiffResponse
+ */
+export type GetSessionFileDiffResponse = Message<"harness.agent.v1.GetSessionFileDiffResponse"> & {
+  /**
+   * The per-file rules hold: a binary or too large file comes flagged, without hunks.
+   *
+   * @generated from field: harness.agent.v1.FileDiff file = 1;
+   */
+  file?: FileDiff | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.GetSessionFileDiffResponse.
+ * Use `create(GetSessionFileDiffResponseSchema)` to create a new message.
+ */
+export const GetSessionFileDiffResponseSchema: GenMessage<GetSessionFileDiffResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_diff, 4);
+
+/**
+ * AgentService.ListDiffBases: what a view can compare with.
+ *
+ * @generated from message harness.agent.v1.ListDiffBasesRequest
+ */
+export type ListDiffBasesRequest = Message<"harness.agent.v1.ListDiffBasesRequest"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.ListDiffBasesRequest.
+ * Use `create(ListDiffBasesRequestSchema)` to create a new message.
+ */
+export const ListDiffBasesRequestSchema: GenMessage<ListDiffBasesRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_diff, 5);
+
+/**
+ * @generated from message harness.agent.v1.ListDiffBasesResponse
+ */
+export type ListDiffBasesResponse = Message<"harness.agent.v1.ListDiffBasesResponse"> & {
+  /**
+   * Whether the session's directories are in git at all. When false, only ALL applies and the rest is empty. Everything
+   * below describes the repository of the cwd, or of the first working directory that has one.
+   *
+   * @generated from field: bool in_git = 1;
+   */
+  inGit: boolean;
+
+  /**
+   * Local branches first, then remote-tracking ones, each most recently committed first; at most 500.
+   *
+   * @generated from field: repeated harness.agent.v1.DiffBranch branches = 2;
+   */
+  branches: DiffBranch[];
+
+  /**
+   * @generated from field: bool branches_truncated = 3;
+   */
+  branchesTruncated: boolean;
+
+  /**
+   * What ALL compares with: its ref ("main", "origin/main", "HEAD"; empty before the first commit), the label a response
+   * gives it, and its commit (empty before the first commit).
+   *
+   * @generated from field: string default_base_ref = 4;
+   */
+  defaultBaseRef: string;
+
+  /**
+   * @generated from field: string default_base_label = 5;
+   */
+  defaultBaseLabel: string;
+
+  /**
+   * @generated from field: string default_base_sha = 6;
+   */
+  defaultBaseSha: string;
+
+  /**
+   * The commits on this branch since that base, newest first; at most 200.
+   *
+   * @generated from field: repeated harness.agent.v1.DiffCommit commits = 7;
+   */
+  commits: DiffCommit[];
+
+  /**
+   * @generated from field: bool commits_truncated = 8;
+   */
+  commitsTruncated: boolean;
+};
+
+/**
+ * Describes the message harness.agent.v1.ListDiffBasesResponse.
+ * Use `create(ListDiffBasesResponseSchema)` to create a new message.
+ */
+export const ListDiffBasesResponseSchema: GenMessage<ListDiffBasesResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_diff, 6);
+
+/**
+ * @generated from message harness.agent.v1.DiffBranch
+ */
+export type DiffBranch = Message<"harness.agent.v1.DiffBranch"> & {
+  /**
+   * For DiffBase.ref.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * HEAD is on it.
+   *
+   * @generated from field: bool current = 2;
+   */
+  current: boolean;
+
+  /**
+   * A remote-tracking branch.
+   *
+   * @generated from field: bool remote = 3;
+   */
+  remote: boolean;
+};
+
+/**
+ * Describes the message harness.agent.v1.DiffBranch.
+ * Use `create(DiffBranchSchema)` to create a new message.
+ */
+export const DiffBranchSchema: GenMessage<DiffBranch> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_diff, 7);
+
+/**
+ * @generated from message harness.agent.v1.DiffCommit
+ */
+export type DiffCommit = Message<"harness.agent.v1.DiffCommit"> & {
+  /**
+   * @generated from field: string sha = 1;
+   */
+  sha: string;
+
+  /**
+   * @generated from field: string subject = 2;
+   */
+  subject: string;
+
+  /**
+   * RFC 3339, UTC: commit time.
+   *
+   * @generated from field: string committed_at = 3;
+   */
+  committedAt: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.DiffCommit.
+ * Use `create(DiffCommitSchema)` to create a new message.
+ */
+export const DiffCommitSchema: GenMessage<DiffCommit> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_session_diff, 8);
 
 /**
  * @generated from message harness.agent.v1.FileDiffHunk
@@ -131,7 +405,7 @@ export type FileDiffHunk = Message<"harness.agent.v1.FileDiffHunk"> & {
  * Use `create(FileDiffHunkSchema)` to create a new message.
  */
 export const FileDiffHunkSchema: GenMessage<FileDiffHunk> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_session_diff, 2);
+  messageDesc(file_harness_agent_v1_session_diff, 9);
 
 /**
  * @generated from message harness.agent.v1.FileDiff
@@ -201,7 +475,55 @@ export type FileDiff = Message<"harness.agent.v1.FileDiff"> & {
  * Use `create(FileDiffSchema)` to create a new message.
  */
 export const FileDiffSchema: GenMessage<FileDiff> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_session_diff, 3);
+  messageDesc(file_harness_agent_v1_session_diff, 10);
+
+/**
+ * @generated from enum harness.agent.v1.DiffBaseKind
+ */
+export enum DiffBaseKind {
+  /**
+   * Same as ALL.
+   *
+   * @generated from enum value: DIFF_BASE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * All changes against the base branch: the merge base of its base ref in a worktree the client created; otherwise
+   * the merge base with the default branch (origin/HEAD, then main, then master), or HEAD on that branch itself, or
+   * when there is none. Outside git the snapshot rules above, whatever was asked for.
+   *
+   * @generated from enum value: DIFF_BASE_KIND_ALL = 1;
+   */
+  ALL = 1,
+
+  /**
+   * The working tree against HEAD, staged and untracked files included.
+   *
+   * @generated from enum value: DIFF_BASE_KIND_UNCOMMITTED = 2;
+   */
+  UNCOMMITTED = 2,
+
+  /**
+   * The working tree against the merge base with DiffBase.ref.
+   *
+   * @generated from enum value: DIFF_BASE_KIND_REF = 3;
+   */
+  REF = 3,
+
+  /**
+   * What the commit DiffBase.sha changed against its first parent; the working tree is not involved.
+   *
+   * @generated from enum value: DIFF_BASE_KIND_COMMIT = 4;
+   */
+  COMMIT = 4,
+}
+
+/**
+ * Describes the enum harness.agent.v1.DiffBaseKind.
+ */
+export const DiffBaseKindSchema: GenEnum<DiffBaseKind> = /*@__PURE__*/
+  enumDesc(file_harness_agent_v1_session_diff, 0);
 
 /**
  * @generated from enum harness.agent.v1.FileDiffStatus
@@ -237,7 +559,7 @@ export enum FileDiffStatus {
  * Describes the enum harness.agent.v1.FileDiffStatus.
  */
 export const FileDiffStatusSchema: GenEnum<FileDiffStatus> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_session_diff, 0);
+  enumDesc(file_harness_agent_v1_session_diff, 1);
 
 /**
  * Where a file's baseline came from.
@@ -274,5 +596,5 @@ export enum FileDiffSource {
  * Describes the enum harness.agent.v1.FileDiffSource.
  */
 export const FileDiffSourceSchema: GenEnum<FileDiffSource> = /*@__PURE__*/
-  enumDesc(file_harness_agent_v1_session_diff, 1);
+  enumDesc(file_harness_agent_v1_session_diff, 2);
 

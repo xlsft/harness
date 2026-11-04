@@ -339,6 +339,12 @@ const (
 	// AgentServiceSetKeepAwakeProcedure is the fully-qualified name of the AgentService's SetKeepAwake
 	// RPC.
 	AgentServiceSetKeepAwakeProcedure = "/harness.agent.v1.AgentService/SetKeepAwake"
+	// AgentServiceListDiffBasesProcedure is the fully-qualified name of the AgentService's
+	// ListDiffBases RPC.
+	AgentServiceListDiffBasesProcedure = "/harness.agent.v1.AgentService/ListDiffBases"
+	// AgentServiceGetSessionFileDiffProcedure is the fully-qualified name of the AgentService's
+	// GetSessionFileDiff RPC.
+	AgentServiceGetSessionFileDiffProcedure = "/harness.agent.v1.AgentService/GetSessionFileDiff"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -605,6 +611,11 @@ type AgentServiceClient interface {
 	// SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
 	// for any other session of another machine.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
+	// What the Changes pane can compare a session with: branches, the default base, the commits since it.
+	// FAILED_PRECONDITION for a session of another machine.
+	ListDiffBases(context.Context, *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error)
+	// One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
+	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1254,6 +1265,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetKeepAwake")),
 			connect.WithClientOptions(opts...),
 		),
+		listDiffBases: connect.NewClient[v1.ListDiffBasesRequest, v1.ListDiffBasesResponse](
+			httpClient,
+			baseURL+AgentServiceListDiffBasesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListDiffBases")),
+			connect.WithClientOptions(opts...),
+		),
+		getSessionFileDiff: connect.NewClient[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse](
+			httpClient,
+			baseURL+AgentServiceGetSessionFileDiffProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetSessionFileDiff")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1365,6 +1388,8 @@ type agentServiceClient struct {
 	getDeviceSettings       *connect.Client[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse]
 	updateDeviceSettings    *connect.Client[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse]
 	setKeepAwake            *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
+	listDiffBases           *connect.Client[v1.ListDiffBasesRequest, v1.ListDiffBasesResponse]
+	getSessionFileDiff      *connect.Client[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -1897,6 +1922,16 @@ func (c *agentServiceClient) SetKeepAwake(ctx context.Context, req *connect.Requ
 	return c.setKeepAwake.CallUnary(ctx, req)
 }
 
+// ListDiffBases calls harness.agent.v1.AgentService.ListDiffBases.
+func (c *agentServiceClient) ListDiffBases(ctx context.Context, req *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error) {
+	return c.listDiffBases.CallUnary(ctx, req)
+}
+
+// GetSessionFileDiff calls harness.agent.v1.AgentService.GetSessionFileDiff.
+func (c *agentServiceClient) GetSessionFileDiff(ctx context.Context, req *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error) {
+	return c.getSessionFileDiff.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2161,6 +2196,11 @@ type AgentServiceHandler interface {
 	// SessionInfo.keep_awake reports it. A remote-controllable session is reached through the relay; FAILED_PRECONDITION
 	// for any other session of another machine.
 	SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error)
+	// What the Changes pane can compare a session with: branches, the default base, the commits since it.
+	// FAILED_PRECONDITION for a session of another machine.
+	ListDiffBases(context.Context, *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error)
+	// One file's hunks when GetSessionDiff answered large. FAILED_PRECONDITION for a session of another machine.
+	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2806,6 +2846,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetKeepAwake")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListDiffBasesHandler := connect.NewUnaryHandler(
+		AgentServiceListDiffBasesProcedure,
+		svc.ListDiffBases,
+		connect.WithSchema(agentServiceMethods.ByName("ListDiffBases")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetSessionFileDiffHandler := connect.NewUnaryHandler(
+		AgentServiceGetSessionFileDiffProcedure,
+		svc.GetSessionFileDiff,
+		connect.WithSchema(agentServiceMethods.ByName("GetSessionFileDiff")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3020,6 +3072,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceUpdateDeviceSettingsHandler.ServeHTTP(w, r)
 		case AgentServiceSetKeepAwakeProcedure:
 			agentServiceSetKeepAwakeHandler.ServeHTTP(w, r)
+		case AgentServiceListDiffBasesProcedure:
+			agentServiceListDiffBasesHandler.ServeHTTP(w, r)
+		case AgentServiceGetSessionFileDiffProcedure:
+			agentServiceGetSessionFileDiffHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3451,4 +3507,12 @@ func (UnimplementedAgentServiceHandler) UpdateDeviceSettings(context.Context, *c
 
 func (UnimplementedAgentServiceHandler) SetKeepAwake(context.Context, *connect.Request[v1.SetKeepAwakeRequest]) (*connect.Response[v1.SetKeepAwakeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetKeepAwake is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListDiffBases(context.Context, *connect.Request[v1.ListDiffBasesRequest]) (*connect.Response[v1.ListDiffBasesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListDiffBases is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionFileDiff is not implemented"))
 }

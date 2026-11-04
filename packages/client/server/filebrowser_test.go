@@ -12,6 +12,7 @@ import (
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	fg "github.com/xlsft/harness/packages/client/internal/fakegateway"
+	"github.com/xlsft/harness/packages/client/internal/gittest"
 )
 
 func TestSessionFiles(t *testing.T) {
@@ -200,5 +201,86 @@ func TestSessionDiffAgreesWithDiffStats(t *testing.T) {
 
 	if _, err := h.client.GetSessionDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionDiffRequest{SessionId: "nope"})); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Fatalf("unknown session: %v", err)
+	}
+}
+
+// The choice of base is the view's: it must not reach SessionInfo.diff_stats.
+func TestDiffBaseLeavesDiffStatsAlone(t *testing.T) {
+	h := startHarness(t, fg.Sequence(), nil)
+	repo := gittest.Init(t)
+	gittest.Run(t, repo, "checkout", "-q", "-b", "work")
+	gittest.Write(t, repo, "committed.txt", "c\n")
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "work")
+	gittest.Write(t, repo, "README.md", "hello\nedited\n")
+	gittest.Write(t, repo, "staged.txt", "s\n")
+	gittest.Run(t, repo, "add", "staged.txt")
+	gittest.Write(t, repo, "untracked.txt", "u\n")
+	cs, err := h.client.CreateSession(h.ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: repo}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := cs.Msg.Session.Id
+	if ds := cs.Msg.Session.DiffStats; ds.GetFilesChanged() != 4 {
+		t.Fatalf("on opening: %+v", ds)
+	}
+	narrow, err := h.client.GetSessionDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionDiffRequest{SessionId: sid, Base: &agentv1.DiffBase{Kind: agentv1.DiffBaseKind_DIFF_BASE_KIND_UNCOMMITTED}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if narrow.Msg.FilesChanged != 3 || narrow.Msg.BaseKind != agentv1.DiffBaseKind_DIFF_BASE_KIND_UNCOMMITTED {
+		t.Fatalf("narrow: %+v", narrow.Msg)
+	}
+	list, err := h.client.ListSessions(h.ctx, connect.NewRequest(&agentv1.ListSessionsRequest{Cwd: repo}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, s := range list.Msg.Sessions {
+		if s.Id == sid {
+			found = true
+			if ds := s.DiffStats; ds.GetFilesChanged() != 4 {
+				t.Fatalf("after a narrower view: %+v", ds)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("not listed: %+v", list.Msg.Sessions)
+	}
+
+	// The other calls through the service.
+	bases, err := h.client.ListDiffBases(h.ctx, connect.NewRequest(&agentv1.ListDiffBasesRequest{SessionId: sid}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bases.Msg.InGit || bases.Msg.DefaultBaseLabel != "main" || len(bases.Msg.Commits) != 1 {
+		t.Fatalf("bases: %+v", bases.Msg)
+	}
+	file, err := h.client.GetSessionFileDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionFileDiffRequest{SessionId: sid, Path: filepath.Join(repo, "README.md"), Base: &agentv1.DiffBase{Kind: agentv1.DiffBaseKind_DIFF_BASE_KIND_UNCOMMITTED}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if file.Msg.File.DisplayPath != "README.md" || len(file.Msg.File.Hunks) != 1 {
+		t.Fatalf("file: %+v", file.Msg.File)
+	}
+	if _, err := h.client.GetSessionDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionDiffRequest{SessionId: sid, Base: &agentv1.DiffBase{Kind: agentv1.DiffBaseKind_DIFF_BASE_KIND_REF, Ref: "--output=x"}})); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("bad ref: %v", err)
+	}
+	if _, err := h.client.GetSessionFileDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionFileDiffRequest{SessionId: sid, Path: "/etc/hosts"})); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Fatalf("unrelated file: %v", err)
+	}
+	for _, call := range []func() error{
+		func() error {
+			_, err := h.client.ListDiffBases(h.ctx, connect.NewRequest(&agentv1.ListDiffBasesRequest{SessionId: "nope"}))
+			return err
+		},
+		func() error {
+			_, err := h.client.GetSessionFileDiff(h.ctx, connect.NewRequest(&agentv1.GetSessionFileDiffRequest{SessionId: "nope", Path: "x"}))
+			return err
+		},
+	} {
+		if err := call(); connect.CodeOf(err) != connect.CodeNotFound {
+			t.Fatalf("unknown session: %v", err)
+		}
 	}
 }
