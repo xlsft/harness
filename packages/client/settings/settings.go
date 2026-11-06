@@ -424,7 +424,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
 		CompactIdleSessions: true, AutoMemoryEnabled: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents, GoalMaxTurns: DefaultGoalMaxTurns,
-		Sandbox: Sandbox{Enabled: true}}
+		Sandbox: Sandbox{Enabled: true, AllowLocalhost: true}}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {
 		if l != nil {

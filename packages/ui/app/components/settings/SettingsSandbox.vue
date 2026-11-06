@@ -5,7 +5,7 @@ import type { SandboxPreferences, SandboxStatus } from '~/lib/transport/types'
 
 const store = useSessionStore()
 
-const prefs = ref<SandboxPreferences>({ enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false })
+const prefs = ref<SandboxPreferences>({ enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false })
 const status = ref<SandboxStatus | null>(null)
 const loaded = ref(false)
 const error = ref('')

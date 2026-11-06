@@ -222,7 +222,7 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents,
-		Sandbox: &agentv1.SandboxPreferences{Enabled: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns}
+		Sandbox: &agentv1.SandboxPreferences{Enabled: true, AllowLocalhost: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
@@ -273,13 +273,13 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 			Enabled              *bool    `json:"enabled"`
 			AllowedWritePaths    []string `json:"allowedWritePaths"`
 			AllowedHosts         []string `json:"allowedHosts"`
-			AllowLocalhost       bool     `json:"allowLocalhost"`
+			AllowLocalhost       *bool    `json:"allowLocalhost"`
 			AutoAllowBash        bool     `json:"autoAllowBash"`
 			OutsideWithoutPrompt bool     `json:"outsideWithoutPrompt"`
 		}
 		if json.Unmarshal(v, &sb) == nil {
 			p.Sandbox = &agentv1.SandboxPreferences{Enabled: sb.Enabled == nil || *sb.Enabled, AllowedWritePaths: sb.AllowedWritePaths, AllowedHosts: sb.AllowedHosts,
-				AllowLocalhost: sb.AllowLocalhost, AutoAllowBash: sb.AutoAllowBash, OutsideWithoutPrompt: sb.OutsideWithoutPrompt}
+				AllowLocalhost: sb.AllowLocalhost == nil || *sb.AllowLocalhost, AutoAllowBash: sb.AutoAllowBash, OutsideWithoutPrompt: sb.OutsideWithoutPrompt}
 		}
 	}
 	return p
