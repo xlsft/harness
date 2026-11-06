@@ -15,6 +15,7 @@ import (
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	mcpv1 "github.com/xlsft/harness/packages/client/gen/harness/mcp/v1"
 	fg "github.com/xlsft/harness/packages/client/internal/fakegateway"
+	"github.com/xlsft/harness/packages/client/internal/fakelsp"
 	"github.com/xlsft/harness/packages/client/internal/fakemcp"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/mcp"
@@ -24,6 +25,7 @@ import (
 
 func TestMain(m *testing.M) {
 	fakemcp.MaybeServe()
+	fakelsp.MaybeServe()
 	os.Exit(m.Run())
 }
 

@@ -324,3 +324,75 @@ func TestValidationCollected(t *testing.T) {
 		t.Errorf("defaults: %d %v %v", s.CleanupPeriodDays, s.IncludeGitInstructions, s.InterruptReply)
 	}
 }
+
+func TestLSPSettings(t *testing.T) {
+	load := func(t *testing.T, trusted bool, project, local, user string) *Settings {
+		t.Helper()
+		root := t.TempDir()
+		cwd, home := filepath.Join(root, "p"), filepath.Join(root, "h")
+		for path, content := range map[string]string{
+			filepath.Join(cwd, ".harness", "settings.json"):       project,
+			filepath.Join(cwd, ".harness", "settings.local.json"): local,
+			filepath.Join(home, ".claude", "settings.json"):       user,
+		} {
+			if content != "" {
+				writeJSON(t, path, content)
+			}
+		}
+		s, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Trusted: trusted})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	server := `{"lspServers": {"go": {"command": "/evil/gopls"}}}`
+
+	s := load(t, true, "", "", "")
+	if !s.LSPEnabled || !s.LSPDiagnostics || s.LSPDiagnosticsStartServer || s.LSPServers != nil {
+		t.Fatalf("defaults: %+v", s)
+	}
+	s = load(t, false, "", "", `{"lspEnabled": false, "lspDiagnostics": false, "lspDiagnosticsStartServer": true, "lspServers": {"go": {"command": "/opt/gopls", "args": ["-v"]}, "zig": {"command": "zls", "extensions": [".zig"]}}}`)
+	if s.LSPEnabled || s.LSPDiagnostics || !s.LSPDiagnosticsStartServer {
+		t.Fatalf("user switches: %+v", s)
+	}
+	if s.LSPServers["go"].Command != "/opt/gopls" || s.LSPServers["go"].Args[0] != "-v" || s.LSPServers["zig"].Extensions[0] != ".zig" {
+		t.Fatalf("user servers: %+v", s.LSPServers)
+	}
+
+	// A repository chooses no binary until it is trusted, through either project file.
+	for name, files := range map[string][2]string{"project": {server, ""}, "local": {"", server}} {
+		s = load(t, false, files[0], files[1], "")
+		if s.LSPServers != nil || len(s.Ignored) == 0 {
+			t.Fatalf("%s, untrusted: %+v %v", name, s.LSPServers, s.Ignored)
+		}
+		s = load(t, true, files[0], files[1], "")
+		if s.LSPServers["go"].Command != "/evil/gopls" {
+			t.Fatalf("%s, trusted: %+v", name, s.LSPServers)
+		}
+	}
+	// Entries merge by language: a project's replaces the user's for that language only.
+	s = load(t, true, server, "", `{"lspServers": {"go": {"command": "/opt/gopls"}, "python": {"disabled": true}}}`)
+	if s.LSPServers["go"].Command != "/evil/gopls" || !s.LSPServers["python"].Disabled {
+		t.Fatalf("merge: %+v", s.LSPServers)
+	}
+	// The user's own, kept while the project's is ignored.
+	s = load(t, false, server, "", `{"lspServers": {"go": {"command": "/opt/gopls"}}}`)
+	if s.LSPServers["go"].Command != "/opt/gopls" {
+		t.Fatalf("untrusted merge: %+v", s.LSPServers)
+	}
+
+	// A project can turn the switches off, never on against the user.
+	s = load(t, false, `{"lspEnabled": false, "lspDiagnostics": false}`, "", "")
+	if s.LSPEnabled || s.LSPDiagnostics {
+		t.Fatalf("project off: %+v", s)
+	}
+	s = load(t, true, `{"lspEnabled": true, "lspDiagnosticsStartServer": true}`, `{"lspDiagnostics": true}`, `{"lspEnabled": false, "lspDiagnostics": false}`)
+	if s.LSPEnabled || s.LSPDiagnostics || s.LSPDiagnosticsStartServer || len(s.Ignored) != 3 {
+		t.Fatalf("project on: %+v %v", s, s.Ignored)
+	}
+
+	s = load(t, true, "", "", `{"lspEnabled": "no", "lspServers": ["gopls"]}`)
+	if !s.LSPEnabled || s.LSPServers != nil || len(s.Problems) != 2 {
+		t.Fatalf("invalid: %+v %v", s, s.Problems)
+	}
+}

@@ -21,7 +21,7 @@ import (
 // Moving a running session (tools.Mover): the tools call this in the middle of a turn, so nothing is closed and
 // reopened as SetSessionFolder does for an idle session. Everything that depends on the folder follows at once: the
 // tools' Cwd and the shell, permissions (working directories and the project's rules), the system prompt's environment
-// section, project instructions and the transcript with its upload. What stays until the session reopens: MCP servers
+// section, project instructions, the transcript with its upload, and language servers, which stop. What stays until the session reopens: MCP servers
 // already started and background tasks already running.
 
 // ReminderSessionMoved tells the model where the session works now.
@@ -175,6 +175,9 @@ func (s *Session) move(ctx context.Context, mv tools.Move) error {
 	}
 	s.ToolEnv.Relocate(cwd, dirs)
 	s.Permissions.Relocate(permissions.Relocation{Cwd: cwd, Additional: dirs, Sources: sources, Trusted: trusted})
+	if s.LSP != nil {
+		s.LSP.Reset() // the servers belong to the folder the session left; the first use in the new one starts its own
+	}
 
 	// What the model knows: the environment section from the next request on, and a reminder for this one.
 	s.Memory = projectMemory(ctx, cwd, dirs, st, memDocs, config.IsChatDir(cwd))

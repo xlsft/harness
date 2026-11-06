@@ -119,6 +119,22 @@ type Attribution struct {
 	PR     *string
 }
 
+// LSPServer is one entry of the lspServers setting. For a language the client knows, what is set replaces the built-in
+// value; another language needs Command and Extensions.
+type LSPServer struct {
+	// Command is a bare name looked up on PATH or an absolute path.
+	Command string   `json:"command"`
+	Args    []string `json:"args"`
+	// Extensions are the file extensions the server is for; LanguageID is the protocol's id for them.
+	Extensions []string `json:"extensions"`
+	LanguageID string   `json:"languageId"`
+	// RootMarkers name the files or directories that mark a language root, by priority.
+	RootMarkers           []string        `json:"rootMarkers"`
+	InitializationOptions json.RawMessage `json:"initializationOptions"`
+	// Disabled keeps the language's server from starting.
+	Disabled bool `json:"disabled"`
+}
+
 // Problem is a validation problem or an ignored value.
 type Problem struct {
 	Source  Source
@@ -158,9 +174,19 @@ type Settings struct {
 	// preference, see UserPreferences).
 	WorkflowMaxAgents int
 	ClaudeMdMode      memory.Mode
-	Attribution       Attribution
-	Env               map[string]string
-	Permissions       Permissions
+	// LSPEnabled offers the LSP tool and allows diagnostics after edits (lspEnabled, default true); LSPDiagnostics reports
+	// those errors (lspDiagnostics, default true); LSPDiagnosticsStartServer lets an edit start a server rather than only
+	// use one that runs (lspDiagnosticsStartServer, default false). Per-user preferences, see UserPreferences; a project
+	// file can only turn them off.
+	LSPEnabled                bool
+	LSPDiagnostics            bool
+	LSPDiagnosticsStartServer bool
+	// LSPServers are command overrides and added languages by language id (lspServers). A project file's entries apply
+	// only in a trusted workspace: a repository must not choose a binary that runs on open.
+	LSPServers  map[string]LSPServer
+	Attribution Attribution
+	Env         map[string]string
+	Permissions Permissions
 	// AvailableModels is the policy allowlist of models (empty: any).
 	AvailableModels []string
 	// RemoteControlPolicyOff: a policy document says "remoteControl": false, so sessions are never mirrored to the
@@ -265,6 +291,14 @@ const KeyPRMonitorWakesPerHour = "prMonitorWakesPerHour"
 // KeyInterruptReply is the settings key of Settings.InterruptReply.
 const KeyInterruptReply = "interruptReply"
 
+// The settings keys of the language server settings.
+const (
+	KeyLSPEnabled                = "lspEnabled"
+	KeyLSPDiagnostics            = "lspDiagnostics"
+	KeyLSPDiagnosticsStartServer = "lspDiagnosticsStartServer"
+	KeyLSPServers                = "lspServers"
+)
+
 // KeyRemoteControl is the settings key of the remote control default (true when absent): false keeps new and
 // resumed sessions off the relay until the session switch turns it on; false in a policy document turns it off
 // for good (Settings.RemoteControlPolicyOff).
@@ -289,6 +323,8 @@ type layer struct {
 	autoCompactWindow, cleanupPeriodDays, prWakes         *int
 	subagentDepth, subagentRunning, workflowAgents        *int
 	includeGit, interruptReply, compactIdle               *bool
+	lspEnabled, lspDiagnostics, lspStartServer            *bool
+	lspServers                                            map[string]LSPServer
 	attrCommit, attrPR                                    *string
 	env                                                   map[string]string
 	allow, ask, deny, addDirs                             []string
@@ -320,7 +356,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
-		CompactIdleSessions: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
+		CompactIdleSessions: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {

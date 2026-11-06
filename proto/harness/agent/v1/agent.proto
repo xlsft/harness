@@ -1449,6 +1449,13 @@ message UserPreferences {
   int32 subagent_max_running = 4;
   // How many agent() calls a run of the Workflow tool may make (settings key workflowMaxAgents), 1 to 200. Default 30.
   int32 workflow_max_agents = 5;
+  // Offer the LSP tool and allow diagnostics after edits (settings key lspEnabled). Default true.
+  bool lsp_enabled = 6;
+  // Tell the model about errors a language server finds after its edits (settings key lspDiagnostics). Default true.
+  bool lsp_diagnostics = 7;
+  // Let an edit start a language server for those errors, not only use one that runs (settings key
+  // lspDiagnosticsStartServer). Default false.
+  bool lsp_diagnostics_start_server = 8;
 }
 
 message GetUserPreferencesRequest {}
@@ -1468,6 +1475,9 @@ message UpdateUserPreferencesRequest {
   optional int32 subagent_max_running = 4;
   // INVALID_ARGUMENT outside 1 to 200.
   optional int32 workflow_max_agents = 5;
+  optional bool lsp_enabled = 6;
+  optional bool lsp_diagnostics = 7;
+  optional bool lsp_diagnostics_start_server = 8;
 }
 
 message UpdateUserPreferencesResponse {

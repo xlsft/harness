@@ -29,6 +29,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
+	"github.com/xlsft/harness/packages/client/lsp"
 	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/outputstyle"
@@ -194,6 +195,8 @@ type Session struct {
 	Subagents *subagent.Manager
 	// Workflows runs the scripts of the Workflow tool.
 	Workflows *workflow.Manager
+	// LSP runs the session's language servers (the LSP tool and the diagnostics after edits).
+	LSP *lsp.Manager
 	// MCP holds the session's MCP servers and tools (nil when MCP is off).
 	MCP *mcp.Manager
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
@@ -250,6 +253,7 @@ func (s *Session) Close() error {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
 	}
 	s.MCP.Close()
+	s.LSP.Close()
 	if s.computer != nil {
 		s.computer.CloseSession(s.ID)
 	}
@@ -574,6 +578,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.Tools = tools.Default()
 	tools.RegisterSessionTools(s.Tools)
 	s.registerWebTools(o)
+	s.LSP = lsp.New(lsp.Options{Config: s.lspConfig, Trusted: s.lspTrusted, ReadDenied: func(p string) bool { return s.ToolEnv.ReadDenied != nil && s.ToolEnv.ReadDenied(p) }, Logger: log})
+	s.Tools.Register(s.LSP.Tool())
+	s.ToolEnv.Edits = s.LSP
 	s.registerPRTools(o, log)
 	if o.Preview != nil {
 		for _, t := range o.Preview.Tools() {

@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "enum": ["definition", "references", "hover", "document_symbols", "workspace_symbols"],
+      "description": "What to ask the language server"
+    },
+    "file_path": {
+      "type": "string",
+      "description": "Absolute path of the file; for workspace_symbols, any file of the language"
+    },
+    "line": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Line, from 1 (definition, references, hover)"
+    },
+    "character": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Character in the line, from 1 (definition, references, hover)"
+    },
+    "query": {
+      "type": "string",
+      "description": "Name or part of a name to look for (workspace_symbols)"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": ["operation", "file_path", "description"],
+  "additionalProperties": false
+}

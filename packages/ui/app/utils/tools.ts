@@ -43,7 +43,8 @@ export function toolIcon(t: ToolItem): IconName {
     case 'RequestDirectory': return 'folder'
     case 'Glob':
     case 'LS': return 'folder'
-    case 'Grep': return 'search'
+    case 'Grep':
+    case 'LSP': return 'search'
     case 'Edit':
     case 'MultiEdit':
     case 'NotebookEdit':
@@ -116,6 +117,7 @@ export function toolTarget(t: ToolItem): string {
     case 'NotebookEdit': return String(i.notebook_path ?? t.summary)
     case 'Glob': return String(i.pattern ?? t.summary)
     case 'Grep': return `"${String(i.pattern ?? '')}"`
+    case 'LSP': return lspTarget(i) || t.summary
     case 'WebSearch': return `"${String(i.query ?? t.summary)}"`
     case 'WebFetch': return String(i.url ?? t.summary)
     case 'Task':
@@ -181,6 +183,19 @@ export function toolTarget(t: ToolItem): string {
     case 'BrowserKey': return String(i.keys ?? t.summary)
     case 'BrowserEval': return String(i.expression ?? t.summary).split('\n')[0]!
     default: return t.summary || mcpParts(t.name)?.tool || t.name
+  }
+}
+
+// What an LSP call asks about: "hover on read.go:12:5", "symbols matching Foo", "outline of read.go".
+function lspTarget(i: Record<string, unknown>): string {
+  const file = String(i.file_path ?? '').split('/').pop() ?? ''
+  switch (i.operation) {
+    case 'definition': return `definition at ${file}:${String(i.line)}:${String(i.character)}`
+    case 'references': return `references at ${file}:${String(i.line)}:${String(i.character)}`
+    case 'hover': return `hover on ${file}:${String(i.line)}:${String(i.character)}`
+    case 'document_symbols': return `outline of ${file}`
+    case 'workspace_symbols': return `symbols matching ${String(i.query ?? '')}`
+    default: return ''
   }
 }
 
@@ -332,6 +347,10 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
       if (t.status === 'error') return { text: t.resultSummary || 'error', cls: 'text-bad' }
       return { text: r.persistent ? 'watching' : 'until first match', cls: 'text-muted' }
     }
+    case 'LSP':
+      if (t.status === 'error') return { text: 'no answer', cls: 'text-muted' }
+      if (r.state === 'indexing' || r.state === 'timeout') return { text: String(r.state), cls: 'text-muted' }
+      return { text: t.resultSummary, cls: '' }
     case 'Read': {
       const f = r.file as { numLines?: number } | undefined
       return { text: f?.numLines ? `${f.numLines} lines` : t.resultSummary, cls: '' }

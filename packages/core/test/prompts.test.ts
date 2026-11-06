@@ -40,7 +40,7 @@ describe("bundle builder", () => {
       "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
-      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake",
+      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "LSP",
       "ListAgents", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
       "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
       "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
@@ -87,6 +87,7 @@ describe("bundle builder", () => {
       monitor_match: ["task_id", "description", "pattern", "count", "lines", "status"],
       monitor_stopped: ["task_id", "description", "pattern", "reason"],
       terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
+      lsp_diagnostics: ["diagnostics"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason
@@ -222,6 +223,8 @@ describe("bundle builder", () => {
     expect(b.tools.Bash!.description).toMatch(/run_in_background/);
     expect(b.tools.Bash!.description).toMatch(/TaskStop/);
     expect(props("Glob")).toEqual(["pattern", "path", "description"]);
+    expect(props("LSP")).toEqual(["operation", "file_path", "line", "character", "query", "description"]);
+    expect(b.tools.LSP!.input_schema.required).toEqual(["operation", "file_path", "description"]);
     expect(props("Grep")).toEqual(["pattern", "path", "glob", "type", "output_mode", "-i", "-n", "-A", "-B", "-C", "multiline", "head_limit", "description"]);
     expect(b.tools.Bash!.description).toMatch(/30000 characters/);
     expect(b.tools.Bash!.description).toMatch(/600000/);

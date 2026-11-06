@@ -32,7 +32,7 @@ type Type struct {
 
 // readOnlyTools are the tools of the read-only types. Bash stays: Check refuses every call the shell rules do not
 // know to be read-only.
-var readOnlyTools = []string{"Read", "Glob", "Grep", "Bash", "WebFetch", "WebSearch"}
+var readOnlyTools = []string{"Read", "Glob", "Grep", "LSP", "Bash", "WebFetch", "WebSearch"}
 
 // BuiltinTypes returns the built-in types.
 func BuiltinTypes() []Type {

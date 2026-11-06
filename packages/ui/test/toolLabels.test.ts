@@ -42,6 +42,17 @@ describe('NotebookEdit row', () => {
   })
 })
 
+describe('LSP row', () => {
+  it('says what it asks about, and how it ended', () => {
+    expect(toolTarget(tool({ name: 'LSP', input: { operation: 'hover', file_path: '/p/a/read.go', line: 12, character: 5 } }))).toBe('hover on read.go:12:5')
+    expect(toolTarget(tool({ name: 'LSP', input: { operation: 'workspace_symbols', file_path: '/p/a/read.go', query: 'Foo' } }))).toBe('symbols matching Foo')
+    expect(toolTarget(tool({ name: 'LSP', input: { operation: 'document_symbols', file_path: '/p/a/read.go' } }))).toBe('outline of read.go')
+    expect(toolIcon(tool({ name: 'LSP' }))).toBe('search')
+    expect(toolMeta(tool({ name: 'LSP', resultSummary: '3 references', result: {} }), 0).text).toBe('3 references')
+    expect(toolMeta(tool({ name: 'LSP', result: { state: 'indexing' } }), 0).text).toBe('indexing')
+  })
+})
+
 describe('Monitor row', () => {
   it('says what it watches', () => {
     expect(toolTarget(tool({ name: 'Monitor', input: { task_id: 'b1', pattern: 'ERROR' } }))).toBe('task b1 /ERROR/')

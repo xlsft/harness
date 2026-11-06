@@ -100,6 +100,15 @@ type Call struct {
 	Input json.RawMessage
 }
 
+// EditWatcher hears about the files the file tools write (language servers, package lsp).
+type EditWatcher interface {
+	// FileEdited runs after a tool wrote path, before the tool answers. It may wait, for a small bounded time, so that
+	// what it finds reaches the model's next request.
+	FileEdited(ctx context.Context, env *Env, path string)
+	// PendingDiagnostics returns the errors to tell the agent (Env.AgentID) about now, "" when there are none.
+	PendingDiagnostics(agentID string) string
+}
+
 // Env is the execution environment shared by tools within a session.
 type Env struct {
 	// Cwd is the primary working directory (project root).
@@ -124,6 +133,8 @@ type Env struct {
 	RipgrepPath string
 	// BeforeEdit is called before a file tool modifies path (checkpoints).
 	BeforeEdit func(path string)
+	// Edits hears about files after the file tools wrote them (nil: nobody does).
+	Edits EditWatcher
 	// Agents is the session's set of subagents (nil disables the agent tools); AgentID is the subagent this Env
 	// belongs to (empty for the session's main agent).
 	Agents  Agents
@@ -240,6 +251,12 @@ func (e *Env) reminder(key string) string {
 func (e *Env) beforeEdit(path string) {
 	if e.BeforeEdit != nil {
 		e.BeforeEdit(path)
+	}
+}
+
+func (e *Env) afterEdit(ctx context.Context, path string) {
+	if e.Edits != nil {
+		e.Edits.FileEdited(ctx, e, path)
 	}
 }
 

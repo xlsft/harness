@@ -558,6 +558,7 @@ func (*NotebookEdit) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%v", err)
 	}
 	env.Files.MarkReadContent(path, updated)
+	env.afterEdit(ctx, path)
 
 	name := fmt.Sprintf("cell %d", index)
 	if cellID != "" {

@@ -120,6 +120,8 @@
     { "name": "test run outside the workspace", "input": { "tool_name": "Bash", "input": { "command": "cd /opt/other && make test" } }, "expected": "ask", "categories": [], "rule": "ask.default" },
     { "name": "Read inside the workspace", "input": { "tool_name": "Read", "input": { "file_path": "/work/proj/src/index.ts" } }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
     { "name": "Read of an ssh private key", "input": { "tool_name": "Read", "input": { "file_path": "/Users/alice/.ssh/id_rsa" } }, "expected": "ask", "categories": [], "rule": "ask.secret_read" },
+    { "name": "LSP inside the workspace", "input": { "tool_name": "LSP", "input": { "operation": "hover", "file_path": "/work/proj/src/index.ts", "line": 1, "character": 1 } }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
+    { "name": "LSP on an ssh private key", "input": { "tool_name": "LSP", "input": { "operation": "document_symbols", "file_path": "/Users/alice/.ssh/id_rsa" } }, "expected": "ask", "categories": [], "rule": "ask.secret_read" },
     { "name": "Glob", "input": { "tool_name": "Glob", "input": { "pattern": "**/*.proto" } }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
     { "name": "Write inside the workspace", "input": { "tool_name": "Write", "input": { "file_path": "/work/proj/src/new.ts", "content": "export {};\n" } }, "expected": "allow", "categories": [], "rule": "allow.workspace_write" },
     { "name": "Edit with a relative path", "input": { "tool_name": "Edit", "input": { "file_path": "src/index.ts", "old_string": "a", "new_string": "b" } }, "expected": "allow", "categories": [], "rule": "allow.workspace_write" },
