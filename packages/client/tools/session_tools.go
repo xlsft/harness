@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/session"
 )
 
 // ---- EnterPlanMode / ExitPlanMode ----
@@ -164,6 +166,82 @@ type Todo struct {
 	Content    string `json:"content"`
 	ActiveForm string `json:"activeForm"`
 	Status     string `json:"status"`
+	// AgentIDs and TaskIDs are the subagents and background tasks working for the item. Only the client sets them
+	// (TodoLinker); they are not part of the tool's input.
+	AgentIDs []string `json:"agentIds,omitempty"`
+	TaskIDs  []string `json:"taskIds,omitempty"`
+}
+
+// TodoLinker links work to the todo in progress. The agent implements it; the session's main agent is the only one
+// that links. Linking is the client's business: the model is not told and has nothing to do for it.
+type TodoLinker interface {
+	LinkTodoAgent(id string)
+}
+
+// LinkTodoAgent links a subagent the calling agent just started to the todo in progress.
+func LinkTodoAgent(env *Env, id string) {
+	if l, ok := env.Host().(TodoLinker); ok {
+		l.LinkTodoAgent(id)
+	}
+}
+
+// FirstInProgress is the item new work links to: the index of the first item in progress, -1 when none is.
+func FirstInProgress(todos []Todo) int {
+	return slices.IndexFunc(todos, func(t Todo) bool { return t.Status == "in_progress" })
+}
+
+// todoFor is the item that holds the links of a content: the first in progress with it, else the first with it, -1 when
+// the list has none.
+func todoFor(todos []Todo, content string) int {
+	first := -1
+	for i, t := range todos {
+		if t.Content != content {
+			continue
+		}
+		if t.Status == "in_progress" {
+			return i
+		}
+		if first < 0 {
+			first = i
+		}
+	}
+	return first
+}
+
+// AttachTodoLinks returns todos with the links set on the items they name; a link to a content the list lacks is dropped.
+func AttachTodoLinks(todos []Todo, links []session.TodoLink) []Todo {
+	out := slices.Clone(todos)
+	for _, l := range links {
+		if i := todoFor(out, l.Content); i >= 0 {
+			out[i].AgentIDs = session.MergeIDs(out[i].AgentIDs, l.AgentIDs)
+			out[i].TaskIDs = session.MergeIDs(out[i].TaskIDs, l.TaskIDs)
+		}
+	}
+	return out
+}
+
+// CarryTodoLinks returns next, the list a TodoWrite gave, with the links of prev on the items of the same content. A
+// reworded item loses its links rather than getting someone else's.
+func CarryTodoLinks(prev, next []Todo) []Todo {
+	links := make([]session.TodoLink, 0, len(prev))
+	for _, t := range prev {
+		if len(t.AgentIDs) > 0 || len(t.TaskIDs) > 0 {
+			links = append(links, session.TodoLink{Content: t.Content, AgentIDs: t.AgentIDs, TaskIDs: t.TaskIDs})
+		}
+	}
+	return AttachTodoLinks(next, links)
+}
+
+// RestoreTodos rebuilds a todo list from a transcript: Conversation.Todos and Conversation.TodoLinks.
+func RestoreTodos(raw json.RawMessage, links []session.TodoLink) []Todo {
+	if len(raw) == 0 {
+		return nil
+	}
+	todos, err := ParseTodos([]byte(`{"todos":` + string(raw) + `}`))
+	if err != nil {
+		return nil
+	}
+	return AttachTodoLinks(todos, links)
 }
 
 // TodoWrite replaces the session todo list.
@@ -184,6 +262,8 @@ func ParseTodos(input json.RawMessage) ([]Todo, error) {
 		return nil, errors.New("InputValidationError: todos is required")
 	}
 	for i, t := range *in.Todos {
+		// Links are the client's: an input naming them changes nothing.
+		(*in.Todos)[i].AgentIDs, (*in.Todos)[i].TaskIDs = nil, nil
 		if strings.TrimSpace(t.Content) == "" {
 			return nil, fmt.Errorf("InputValidationError: todos[%d].content is required", i)
 		}
@@ -211,6 +291,9 @@ func (*TodoWrite) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	if old == nil {
 		old = []Todo{}
+	}
+	for i := range old {
+		old[i].AgentIDs, old[i].TaskIDs = nil, nil // the result shows the lists as the model wrote them
 	}
 	done := 0
 	for _, t := range todos {

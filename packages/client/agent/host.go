@@ -86,13 +86,54 @@ func (a *Agent) Todos() []tools.Todo {
 	return append([]tools.Todo(nil), a.todos...)
 }
 
-// SetTodos implements tools.Host.
+// SetTodos implements tools.Host: the new list, from a TodoWrite, keeps the links of the items it keeps.
 func (a *Agent) SetTodos(t []tools.Todo) {
 	a.mu.Lock()
-	a.todos = append([]tools.Todo(nil), t...)
+	a.todos = tools.CarryTodoLinks(a.todos, t)
 	a.roundsSinceTodo = 0
+	todos := append([]tools.Todo(nil), a.todos...)
 	a.mu.Unlock()
-	a.emit(Event{Kind: EventTodos, Todos: append([]tools.Todo(nil), t...)})
+	a.emit(Event{Kind: EventTodos, Todos: todos})
+}
+
+// restoreTodos puts back the list a rewind returned to, with the links on record for that point.
+func (a *Agent) restoreTodos(t []tools.Todo) {
+	a.mu.Lock()
+	a.todos = t
+	a.roundsSinceTodo = 0
+	todos := append([]tools.Todo(nil), t...)
+	a.mu.Unlock()
+	a.emit(Event{Kind: EventTodos, Todos: todos})
+}
+
+// LinkTodoAgent implements tools.TodoLinker.
+func (a *Agent) LinkTodoAgent(id string) { a.linkTodo(id, "") }
+
+// linkTodo links a subagent or background task of the main agent to the todo in progress at this moment: the first one
+// when several are, none when none is. A subagent's own list and work stay out of it. The link goes to the transcript,
+// for a resume, and out as a new list.
+func (a *Agent) linkTodo(agentID, taskID string) {
+	if a.cfg.AgentID != "" {
+		return
+	}
+	a.mu.Lock()
+	i := tools.FirstInProgress(a.todos)
+	if i < 0 {
+		a.mu.Unlock()
+		return
+	}
+	link := session.TodoLink{Content: a.todos[i].Content}
+	if agentID != "" {
+		link.AgentIDs = []string{agentID}
+	}
+	if taskID != "" {
+		link.TaskIDs = []string{taskID}
+	}
+	a.todos = tools.AttachTodoLinks(a.todos, []session.TodoLink{link})
+	todos := append([]tools.Todo(nil), a.todos...)
+	a.mu.Unlock()
+	a.record(session.Entry{Type: session.TypeSystem, Subtype: session.SubtypeTodoLink, TodoLink: &link})
+	a.emit(Event{Kind: EventTodos, Todos: todos})
 }
 
 // Interactor implements tools.Host.
@@ -148,6 +189,10 @@ func (a *Agent) OnTaskEvent(e tools.TaskEvent) {
 	}
 	ev := e
 	a.emit(Event{Kind: EventTask, Task: &ev})
+	// A monitor's own entry is a watcher, not work: the command it may have started links on its own.
+	if e.Kind == tools.TaskEventStarted && !e.Task.Monitor {
+		a.linkTodo("", e.Task.ID)
+	}
 	// A monitor's own entry ending is not a command finishing: it reports through its notices.
 	if e.Kind == tools.TaskEventFinished && e.Task.Reason != tools.TaskSessionClosed && !e.Task.Monitor {
 		tail := tools.TailLines(tools.ReadTail(e.Task.OutputPath, 4*taskDoneTailBytes), taskDoneTailLines, taskDoneTailBytes)
