@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Hooks: programs the user or an administrator configured in settings files, which the client runs at points of a
+// session (packages/client/hooks). The client decides and runs; frontends render these messages and send intent. Sessions
+// of an external ACP agent run none of them: that agent has its own loop, tools and hooks.
+
+// One handler of one hook event at work: published with status RUNNING when it starts and again with the same run_id when
+// it ends. Only the end is kept in the transcript, so a resumed session shows finished runs.
+message HookRun {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_RUNNING = 1;
+    // It ran and asked for nothing, or for something that does not stop the session.
+    STATUS_OK = 2;
+    // It stopped what the event was about: a tool call, a prompt, a compaction, the end of a turn.
+    STATUS_BLOCKED = 3;
+    // It failed in a way that does not stop anything (a bad exit code, invalid output, an unreachable URL).
+    STATUS_ERROR = 4;
+    STATUS_TIMED_OUT = 5;
+    // Its turn was interrupted, or the session closed.
+    STATUS_CANCELED = 6;
+  }
+  string run_id = 1;
+  // The event name in the settings format: "PreToolUse", "Stop"...
+  string event = 2;
+  // "command" or "http".
+  string handler_type = 3;
+  // The command line, or the URL.
+  string command = 4;
+  // The matcher of the group it was configured under ("" matches everything).
+  string matcher = 5;
+  // Where it was configured: "user", "project", "local", "cli", "org" or "policy".
+  string source = 6;
+  Status status = 7;
+  // The exit code of a command that exited; an http handler's status code.
+  optional int32 exit_code = 8;
+  // What the handler had to say, shortened: its reason, its message for the user or the end of its output.
+  string output = 9;
+  // What it decided, when it did: "allow", "deny", "ask", "block" or "stop".
+  string decision = 10;
+  int64 duration_ms = 11;
+  // The tool call it ran for (tool events).
+  string tool_name = 12;
+  string tool_use_id = 13;
+  // The subagent it ran for ("" for the session's main agent).
+  string agent_id = 14;
+  // It runs on its own: nothing waited for it and nothing it says changes the session.
+  bool async = 15;
+}
+
+message ListHooksRequest {
+  // The hooks of this open session, as it runs them. Takes precedence over cwd.
+  string session_id = 1;
+  // Otherwise, what a new session in this folder would run. Empty: only the levels that do not depend on a folder.
+  string cwd = 2;
+}
+
+// One handler as configured, and whether it runs.
+message ConfiguredHook {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_ACTIVE = 1;
+    // disableAllHooks, or the client's HARNESS_NO_HOOKS.
+    STATUS_DISABLED = 2;
+    // In a project file of a folder this machine does not trust.
+    STATUS_NEEDS_WORKSPACE_TRUST = 3;
+    // Delivered by the server, and this exact content was not trusted on this machine (SetHooksTrust with trust_hash).
+    STATUS_NEEDS_DEVICE_TRUST = 4;
+    // allowManagedHooksOnly in a policy document keeps it from running.
+    STATUS_BLOCKED_BY_POLICY = 5;
+    // An event or handler type this client does not run, or a definition it cannot read; reason says which.
+    STATUS_UNSUPPORTED = 6;
+  }
+  string event = 1;
+  string matcher = 2;
+  // As written: "command", "http", "prompt"...
+  string handler_type = 3;
+  // The command line or URL; empty for a definition without one.
+  string command = 4;
+  int32 timeout_seconds = 5;
+  bool async = 6;
+  // "user", "project", "local", "cli", "org" or "policy".
+  string source = 7;
+  // The settings file; empty for a document of the server.
+  string source_path = 8;
+  Status status = 9;
+  // Says why it does not run, for a person.
+  string reason = 10;
+  // The value SetHooksTrust takes (STATUS_NEEDS_DEVICE_TRUST, and an active hook the server delivered).
+  string trust_hash = 11;
+}
+
+message ListHooksResponse {
+  repeated ConfiguredHook hooks = 1;
+  // The folder the list is for ("" when none was given).
+  string cwd = 2;
+  // A session's snapshot rather than a look at the files: changes to the files apply to its next start.
+  bool snapshot = 3;
+}
+
+message SetHooksTrustRequest {
+  // ConfiguredHook.trust_hash.
+  string hash = 1;
+  bool trusted = 2;
+}
+
+message SetHooksTrustResponse {}

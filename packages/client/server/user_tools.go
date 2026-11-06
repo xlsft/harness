@@ -15,6 +15,7 @@ import (
 	"connectrpc.com/connect"
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/tools"
 )
 
@@ -65,6 +66,7 @@ func (ls *liveSession) UserLooking() bool { return ls.presence.looking(time.Now(
 // so viewers on other devices get it while they follow the session).
 func (ls *liveSession) PushToUser(id, title, body string) bool {
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserNotification{UserNotification: &agentv1.UserNotification{Id: id, Title: title, Body: body}}})
+	ls.sess.Hooks.Fire(hooks.Notification, "push", hooks.Input{NotificationType: "push", Title: title, Message: body})
 	return ls.hub.watched()
 }
 

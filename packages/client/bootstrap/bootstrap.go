@@ -27,6 +27,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gateway"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/lsp"
@@ -230,6 +231,10 @@ type Session struct {
 	computer     *computeruse.Manager
 	// Sandbox confines the commands the model runs (sandbox.go).
 	Sandbox *sandbox.Session
+	// Hooks runs the hooks of the settings (hooks.go; never nil once Open returns). endReason is what SessionEnd reports.
+	Hooks      *hooks.Engine
+	endReason  string
+	hooksEnded sync.Once
 }
 
 // computerSettingsGuard is the permission engine's view of the computer use settings. A session without computer use
@@ -251,6 +256,7 @@ func (s *Session) Close() error {
 	if s.Subagents != nil {
 		s.Subagents.Shutdown()
 	}
+	s.endHooks()
 	tools.SetNotificationListener(s.ID, nil)
 	if s.Tasks != nil {
 		s.Tasks.StopAll(tools.TaskSessionClosed)
@@ -707,6 +713,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		maxTokens = info.MaxOutputTokens
 	}
 	model := s.Model
+	s.log = log
+	s.Hooks = s.newHookEngine(st)
+	s.Permissions.SetPromptHook(s.permissionPromptHook)
 	s.Agent = agent.New(agent.Config{
 		Gateway: gw, Bundle: s.Bundle, Tools: s.Tools, ToolEnv: s.ToolEnv,
 		Permissions: s.Permissions, Modes: s.Permissions, Transcript: s.Transcript, FileHistory: s.FileHistory,
@@ -718,8 +727,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), History: conv, Todos: todos,
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
-		UsageMonitor:          o.UsageMonitor,
-		OnEvent:               onEvent, Logger: log,
+		UsageMonitor:          o.UsageMonitor, Hooks: s.Hooks,
+		OnEvent: onEvent, Logger: log,
 	})
 	tools.SetNotificationListener(s.ID, s.Agent.OnNotification)
 	s.ToolEnv.RestoreFindings(conv.Findings)
@@ -743,7 +752,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		},
 		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
 		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
-		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor,
+		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor, Hooks: s.Hooks,
 		CustomTypes: subagent.LoadDefinitions(subagent.DefinitionDirs(config.Home(), homeDir(), cwd, s.Trusted)), Logger: log,
 	})
 	s.Subagents.Attach(s.Agent)

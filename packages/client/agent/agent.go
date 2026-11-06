@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/xlsft/harness/packages/client/gateway"
+	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
@@ -86,6 +87,8 @@ const (
 	EventSubagent
 	// EventWorkflow carries a run of the Workflow tool as it is now (Workflow).
 	EventWorkflow
+	// EventHookRun carries a hook handler as it starts and as it ends (HookRun).
+	EventHookRun
 )
 
 // Notice is an informational event.
@@ -160,6 +163,7 @@ type Event struct {
 	UsageLimit *usagelimit.Status
 	Subagent   *tools.AgentInfo
 	Workflow   *tools.WorkflowInfo
+	HookRun    *hooks.Run
 }
 
 // ModelUsage aggregates usage per model.
@@ -276,6 +280,9 @@ type Config struct {
 	// UsageMonitor follows the provider's usage limits after each model response and asks the model to wrap
 	// up when they are nearly exhausted (may be nil).
 	UsageMonitor UsageMonitor
+	// Hooks runs the session's hooks (nil: none; hooks.go). AgentType is the type of the subagent this loop belongs to.
+	Hooks     *hooks.Engine
+	AgentType string
 
 	OnEvent func(Event)
 	Retry   *gateway.RetryPolicy
@@ -333,6 +340,14 @@ type Agent struct {
 	lostTurn []session.Entry
 	// usage is the usage-limit state of the running turn (usage.go).
 	usage usageTurn
+	// hook state (hooks.go): the gate the first turn waits at while SessionStart runs, whether SubagentStart has run, and
+	// what a handler's continue false said during the running turn.
+	startGate   <-chan struct{}
+	agentHooked bool
+	halted      bool
+	haltReason  string
+	// stopContinues counts the times Stop hooks sent the running turn back to work.
+	stopContinues int
 }
 
 // New creates an agent.
@@ -791,8 +806,17 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 	res := TurnResult{ModelUsage: map[string]*ModelUsage{}}
 	start := time.Now()
 	finish := func() TurnResult { a.finishUsageTurn(); res.Duration = time.Since(start); return res }
+	a.waitStartHooks(ctx)
 	a.recordLostTurn()
 	a.startUsageTurn()
+	a.resetHalt()
+
+	if len(input) > 0 && !a.submitHook(ctx, input, clientIDs, true) {
+		// A hook refused the prompt: it stays out of the conversation and the model never sees it.
+		res.Subtype = SubtypeSuccess
+		return finish()
+	}
+	a.subagentStartHook(ctx)
 
 	promptID := session.NewID()
 	var first []llm.ContentBlock
@@ -830,6 +854,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 	a.appendMessage(llm.RoleUser, append(first, input...))
 
 	toolTurns := 0
+	stopHookActive := false
 	for {
 		if ctx.Err() != nil {
 			a.markInterrupted(nil)
@@ -854,6 +879,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 			a.checkUsage(ctx, err, false)
 			res.Subtype, res.IsError = SubtypeErrorDuringExecution, true
 			res.Errors = append(res.Errors, err.Error())
+			a.stopFailureHook(err)
 			return finish()
 		}
 		a.accountUsage(&res, resp)
@@ -862,6 +888,9 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		content := sanitizeAssistant(resp.Message.Content)
 		if len(content) == 0 {
 			// Nothing usable: end the turn without polluting history.
+			if a.stopHookContinues(ctx, &stopHookActive, "", maxTurns, &toolTurns) {
+				continue
+			}
 			res.Subtype = SubtypeSuccess
 			return finish()
 		}
@@ -875,6 +904,9 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		uses := msg.ToolUses()
 		a.checkUsage(ctx, nil, len(uses) > 0)
 		if len(uses) == 0 {
+			if a.stopHookContinues(ctx, &stopHookActive, msg.Text(), maxTurns, &toolTurns) {
+				continue
+			}
 			res.Subtype = SubtypeSuccess
 			res.Result = msg.Text()
 			res.NumTurns = toolTurns + 1
@@ -882,6 +914,9 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		}
 
 		outcomes, interrupted := a.executeTools(ctx, uses, rationales(msg.Content), &res)
+		if !interrupted {
+			a.postToolBatchHook(ctx, uses, outcomes)
+		}
 		var blocks []llm.ContentBlock
 		var comments []llm.ContentBlock
 		for i, o := range outcomes {
@@ -899,7 +934,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		tail = append(tail, comments...)
 		if interrupted {
 			tail = append(tail, llm.TextBlock(a.interruptedText()))
-		} else if q, ids := a.DrainQueueIDs(); len(q) > 0 {
+		} else if q, ids := a.DrainQueueIDs(); len(q) > 0 && a.submitHook(ctx, q, ids, false) {
 			tail = append(tail, q...)
 			tailIDs = ids
 		}
@@ -913,6 +948,10 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		res.NumTurns = toolTurns
 		if interrupted {
 			res.Subtype, res.IsError, res.Interrupted = SubtypeErrorDuringExecution, true, true
+			return finish()
+		}
+		if a.takeHalt() {
+			res.Subtype = SubtypeSuccess
 			return finish()
 		}
 		if maxTurns > 0 && toolTurns >= maxTurns {
@@ -1247,33 +1286,81 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 				setResult(idx, tools.ErrorResult("No such tool available: %s", u.Name), "")
 				continue
 			}
-			req := permissions.Request{ToolName: u.Name, ToolUseID: u.ID, Input: u.Input, ReadOnly: t.ReadOnly(u.Input)}
-			var hinted tools.PermissionHints
-			req.FilePath = tools.FilePath(u.Input)
-			if aa, ok := t.(tools.AlwaysAsker); ok && aa.AlwaysAsk() {
-				req.AlwaysAsk = true
+			// PreToolUse goes first: a rewritten input is what everything below judges and what runs.
+			pre := a.preToolHook(ctx, u)
+			if ctx.Err() != nil {
+				synthetic(idx)
+				continue
 			}
-			if ph, ok := t.(tools.PermissionHinter); ok {
-				h := ph.PermissionHints(ctx, a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: u.Input})
-				req.URL, req.Sensitive, req.Label = h.URL, h.Sensitive, h.Label
-				hinted = h
-				req.OutsideSandbox = h.OutsideSandbox
-				applyCheckAs(&req, h)
-				req.ReadOnly = req.ReadOnly || h.ReadOnly
-				if h.CheckAs == "Bash" && a.cfg.DisabledTools["Bash"] {
-					setResult(idx, tools.ErrorResult("%s cannot run a command in this session: Bash is disabled.", u.Name), "")
+			if pre.Permission == hooks.Deny || pre.Halt {
+				reason := pre.PermissionReason
+				if pre.Halt && reason == "" {
+					reason = pre.HaltReason
+				}
+				if reason == "" {
+					reason = "A hook refused this tool call."
+				}
+				res.PermissionDenials = append(res.PermissionDenials, PermissionDenial{ToolName: u.Name, ToolUseID: u.ID, ToolInput: u.Input, Reason: reason, DecidedBy: "hook"})
+				setResult(idx, tools.Result{Content: []llm.ContentBlock{llm.TextBlock(reason)}, IsError: true, Structured: "Error: " + reason, Summary: "Denied"}, "")
+				continue
+			}
+			if len(pre.UpdatedInput) > 0 {
+				u.Input = pre.UpdatedInput
+				uses[idx].Input = pre.UpdatedInput
+			}
+			var hookBehavior permissions.Behavior
+			switch pre.Permission {
+			case hooks.Allow:
+				hookBehavior = permissions.Allow
+			case hooks.Ask:
+				hookBehavior = permissions.Ask
+			}
+			build := func(input json.RawMessage) (permissions.Request, tools.PermissionHints, string) {
+				req := permissions.Request{ToolName: u.Name, ToolUseID: u.ID, Input: input, ReadOnly: t.ReadOnly(input), HookBehavior: hookBehavior, HookReason: pre.PermissionReason}
+				var hinted tools.PermissionHints
+				req.FilePath = tools.FilePath(input)
+				if aa, ok := t.(tools.AlwaysAsker); ok && aa.AlwaysAsk() {
+					req.AlwaysAsk = true
+				}
+				if ph, ok := t.(tools.PermissionHinter); ok {
+					h := ph.PermissionHints(ctx, a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: input})
+					req.URL, req.Sensitive, req.Label = h.URL, h.Sensitive, h.Label
+					hinted = h
+					req.OutsideSandbox = h.OutsideSandbox
+					applyCheckAs(&req, h)
+					req.ReadOnly = req.ReadOnly || h.ReadOnly
+					if h.CheckAs == "Bash" && a.cfg.DisabledTools["Bash"] {
+						return req, hinted, fmt.Sprintf("%s cannot run a command in this session: Bash is disabled.", u.Name)
+					}
+				}
+				if u.Name == "Bash" {
+					req.Command = tools.BashCommand(input)
+					req.OutsideSandbox = tools.WantsOutsideSandbox(input)
+				}
+				if req.ToolName == "Bash" && req.Cwd == "" && a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
+					req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
+				}
+				req.SessionID, req.RecentUserMessages, req.Rationale = a.cfg.SessionID, a.recentPrompts(), rationale[u.ID]
+				return req, hinted, ""
+			}
+			req, hinted, refused := build(u.Input)
+			if refused != "" {
+				setResult(idx, tools.ErrorResult("%s", refused), "")
+				continue
+			}
+			d := a.cfg.Permissions.Check(ctx, req)
+			if d.ResolvedBy == "hook" && len(d.UpdatedInput) > 0 {
+				// A PermissionRequest hook rewrote the input: the rules judge what will really run, and a deny rule stands.
+				u.Input = d.UpdatedInput
+				uses[idx].Input = d.UpdatedInput
+				hookBehavior = permissions.Allow
+				if req, hinted, refused = build(u.Input); refused != "" {
+					setResult(idx, tools.ErrorResult("%s", refused), "")
 					continue
 				}
+				d = a.cfg.Permissions.Check(ctx, req)
+				d.UpdatedInput = nil
 			}
-			if u.Name == "Bash" {
-				req.Command = tools.BashCommand(u.Input)
-				req.OutsideSandbox = tools.WantsOutsideSandbox(u.Input)
-			}
-			if req.ToolName == "Bash" && req.Cwd == "" && a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
-				req.Cwd = a.cfg.ToolEnv.Shell.Cwd()
-			}
-			req.SessionID, req.RecentUserMessages, req.Rationale = a.cfg.SessionID, a.recentPrompts(), rationale[u.ID]
-			d := a.cfg.Permissions.Check(ctx, req)
 			if ctx.Err() != nil {
 				synthetic(idx)
 				continue
@@ -1285,6 +1372,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 				denial := PermissionDenial{ToolName: u.Name, ToolUseID: u.ID, ToolInput: u.Input}
 				if d.Auto != nil && d.ResolvedBy == "auto" {
 					denial.Reason, denial.DecidedBy = d.Auto.Reason, "auto:"+d.Auto.Provider
+					a.permissionDeniedHook(u, denial.Reason)
 				}
 				res.PermissionDenials = append(res.PermissionDenials, denial)
 				setResult(idx, tools.Result{Content: []llm.ContentBlock{llm.TextBlock(d.Message)}, IsError: true, Structured: "Error: " + d.Message, Summary: "Denied"}, "")
@@ -1307,7 +1395,12 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			}
 			runnable = append(runnable, call{idx: idx, tool: t, input: in, comment: d.Comment})
 		}
-		if len(runnable) == 1 || (len(runnable) > 0 && !readOnly(uses[runnable[0].idx])) {
+		// A hook may have rewritten a read-only call into one that is not, so each call is looked at again.
+		sequential := len(runnable) == 1
+		for _, c := range runnable {
+			sequential = sequential || !readOnly(uses[c.idx])
+		}
+		if sequential {
 			for _, c := range runnable {
 				if ctx.Err() != nil {
 					synthetic(c.idx)
@@ -1315,6 +1408,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 				}
 				start(c.idx, c.input)
 				r := a.runTool(ctx, c.tool, uses[c.idx].ID, c.input)
+				r = a.postToolHook(ctx, uses[c.idx], c.input, r)
 				if ctx.Err() != nil {
 					synthetic(c.idx)
 				} else {
@@ -1333,6 +1427,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			go func(c call) {
 				defer wg.Done()
 				r := a.runTool(ctx, c.tool, uses[c.idx].ID, c.input)
+				r = a.postToolHook(ctx, uses[c.idx], c.input, r)
 				mu.Lock()
 				defer mu.Unlock()
 				if ctx.Err() != nil {
