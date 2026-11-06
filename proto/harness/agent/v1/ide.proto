@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// IdeService is served by the local client next to AgentService: what an editor extension asks of a session, so that
+// the rules stay in the client (docs/design/ide.md). The opposite direction is harness.ide.v1.EditorBridgeService.
+service IdeService {
+  // The editor this session reaches, if any.
+  rpc GetEditorStatus(GetEditorStatusRequest) returns (GetEditorStatusResponse);
+  // What a changed file looks like in the baseline a review compares with: HEAD in a repository, the session's snapshot
+  // elsewhere. NOT_FOUND when the file has no changes.
+  rpc GetSessionFileBase(GetSessionFileBaseRequest) returns (GetSessionFileBaseResponse);
+  // Puts a changed file back as it is in that baseline: its content, or removes it when the session added it.
+  // NOT_FOUND when it has no changes; FAILED_PRECONDITION when its baseline cannot be restored (binary or too large).
+  rpc RevertSessionFile(RevertSessionFileRequest) returns (RevertSessionFileResponse);
+}
+
+message GetEditorStatusRequest {
+  string session_id = 1;
+}
+
+message GetEditorStatusResponse {
+  bool attached = 1;
+  // For showing, such as "Visual Studio Code".
+  string name = 2;
+}
+
+message GetSessionFileBaseRequest {
+  string session_id = 1;
+  // Absolute, as FileDiff.path gives it.
+  string path = 2;
+}
+
+message GetSessionFileBaseResponse {
+  // False when the session added the file.
+  bool exists = 1;
+  string content = 2;
+  // Binary or too large: content is empty and the file can't be compared as text.
+  bool binary = 3;
+}
+
+message RevertSessionFileRequest {
+  string session_id = 1;
+  // Absolute, as FileDiff.path gives it.
+  string path = 2;
+}
+
+message RevertSessionFileResponse {
+  // The file no longer exists: the session had added it.
+  bool removed = 1;
+}
+
+// A file tool's change is open in the user's editor (SessionEvent 240). The question itself stays a PermissionRequest
+// when one was asked; this only says where else it can be answered.
+message EditorReview {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_OPEN = 1;
+    STATE_ACCEPTED = 2;
+    STATE_REJECTED = 3;
+    // The diff was closed without an answer, or the question was answered elsewhere.
+    STATE_CLOSED = 4;
+  }
+  string tool_use_id = 1;
+  // Absolute.
+  string path = 2;
+  State state = 3;
+  // The editor's name, for showing.
+  string editor = 4;
+}
