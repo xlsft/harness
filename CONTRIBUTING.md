@@ -12,6 +12,7 @@ A monorepo **without monorepo tooling**: every package builds on its own. Packag
 | `packages/ui` | Desktop / mobile frontend | Node 24, pnpm, Nuxt 4 |
 | `proto/` | RPC contracts (buf module) | buf |
 | `evals/` | Model eval suite | Go |
+| `catalog/` | Skills catalog, a plugin marketplace; see [its README](catalog/README.md) | JSON, checked by `scripts/catalog` (Python, standard library) |
 | `scripts/` | e2e test and local dev stack | bash |
 | `docs/` | Plan, protocol conventions, design | — |
 

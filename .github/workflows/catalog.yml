@@ -1,0 +1,34 @@
+name: catalog
+
+# The skills catalog: what is listed, its pins, and that each license at its pinned commit is what the entry says.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['catalog/**', 'scripts/catalog/**', 'packages/client/plugins/**', '.github/workflows/catalog.yml']
+  pull_request:
+    paths: ['catalog/**', 'scripts/catalog/**', 'packages/client/plugins/**', '.github/workflows/catalog.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+      - name: Test the check and the install, offline
+        run: python3 -m unittest discover -s scripts/catalog -p 'test_*.py' -v
+      - name: Read each license at its pinned commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/catalog/check.py --verify-licenses

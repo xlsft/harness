@@ -1,0 +1,445 @@
+{
+  "name": "harness-catalog",
+  "owner": {
+    "name": "xlsft"
+  },
+  "metadata": {
+    "description": "The skills catalog of xlsft`s harness: a curated list in which every license has been read, and every external entry is pinned by commit.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "algorithmic-art",
+      "description": "Generative art in p5.js with seeded randomness and interactive parameters. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/algorithmic-art",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/algorithmic-art",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/algorithmic-art/LICENSE.txt",
+        "note": "The upstream viewer template is styled with its vendor's brand colors and fonts (no logo), and the skill tells the model to keep them."
+      }
+    },
+    {
+      "name": "canvas-design",
+      "description": "Posters and other static visual designs as PNG or PDF, with a set of bundled open fonts. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/canvas-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/canvas-design",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/canvas-design/LICENSE.txt",
+        "additionalLicenses": [
+          {
+            "license": "OFL-1.1",
+            "files": [
+              "skills/canvas-design/canvas-fonts/ArsenalSC-OFL.txt",
+              "skills/canvas-design/canvas-fonts/BigShoulders-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Boldonse-OFL.txt",
+              "skills/canvas-design/canvas-fonts/BricolageGrotesque-OFL.txt",
+              "skills/canvas-design/canvas-fonts/CrimsonPro-OFL.txt",
+              "skills/canvas-design/canvas-fonts/DMMono-OFL.txt",
+              "skills/canvas-design/canvas-fonts/EricaOne-OFL.txt",
+              "skills/canvas-design/canvas-fonts/GeistMono-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Gloock-OFL.txt",
+              "skills/canvas-design/canvas-fonts/IBMPlexMono-OFL.txt",
+              "skills/canvas-design/canvas-fonts/InstrumentSans-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Italiana-OFL.txt",
+              "skills/canvas-design/canvas-fonts/JetBrainsMono-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Jura-OFL.txt",
+              "skills/canvas-design/canvas-fonts/LibreBaskerville-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Lora-OFL.txt",
+              "skills/canvas-design/canvas-fonts/NationalPark-OFL.txt",
+              "skills/canvas-design/canvas-fonts/NothingYouCouldDo-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Outfit-OFL.txt",
+              "skills/canvas-design/canvas-fonts/PixelifySans-OFL.txt",
+              "skills/canvas-design/canvas-fonts/PoiretOne-OFL.txt",
+              "skills/canvas-design/canvas-fonts/RedHatMono-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Silkscreen-OFL.txt",
+              "skills/canvas-design/canvas-fonts/SmoochSans-OFL.txt",
+              "skills/canvas-design/canvas-fonts/Tektur-OFL.txt",
+              "skills/canvas-design/canvas-fonts/WorkSans-OFL.txt",
+              "skills/canvas-design/canvas-fonts/YoungSerif-OFL.txt"
+            ]
+          }
+        ],
+        "note": "Fonts carry SIL OFL files, listed here. At this commit IBMPlexSerif-* and InstrumentSerif-* have no license file of their own: IBMPlexMono-OFL.txt names the reserved font name Plex; nothing names Instrument Serif."
+      }
+    },
+    {
+      "name": "discernment-nudge",
+      "description": "Adds a few follow-up questions after a substantive answer, to help check its facts and reasoning. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/discernment-nudge",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/discernment-nudge",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/discernment-nudge/LICENSE.txt"
+      }
+    },
+    {
+      "name": "frontend-design",
+      "description": "Direction on aesthetics and typography when building or reshaping a user interface. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/frontend-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/frontend-design",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/frontend-design/LICENSE.txt"
+      }
+    },
+    {
+      "name": "internal-comms",
+      "description": "Writing internal communications: status reports, leadership updates, newsletters, incident reports. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/internal-comms",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/internal-comms",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/internal-comms/LICENSE.txt"
+      }
+    },
+    {
+      "name": "mcp-builder",
+      "description": "Building Model Context Protocol servers in Python or TypeScript. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/mcp-builder",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/mcp-builder",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/mcp-builder/LICENSE.txt"
+      }
+    },
+    {
+      "name": "skill-creator",
+      "description": "Writing, testing and improving skills, with evals and benchmarks. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/skill-creator",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/skill-creator",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/skill-creator/LICENSE.txt"
+      }
+    },
+    {
+      "name": "slack-gif-creator",
+      "description": "Animated GIFs that fit Slack's limits, with Python helpers. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/slack-gif-creator",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/slack-gif-creator",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/slack-gif-creator/LICENSE.txt"
+      }
+    },
+    {
+      "name": "theme-factory",
+      "description": "Ten preset color and font themes for slides, documents and pages, or a new one on the spot. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/theme-factory",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/theme-factory",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/theme-factory/LICENSE.txt",
+        "note": "The folder is named themes/ and is the skill's own data; the client's install report lists it under what it does not act on."
+      }
+    },
+    {
+      "name": "webapp-testing",
+      "description": "Testing local web applications with Playwright: screenshots, browser logs, UI checks. Origin: anthropics/skills (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/skills/tree/ca45fc496a3436251f191354091d557da31c15b5/skills/webapp-testing",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills/webapp-testing",
+        "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+      },
+      "catalog": {
+        "upstream": "anthropics/skills",
+        "licenseFile": "skills/webapp-testing/LICENSE.txt"
+      }
+    },
+    {
+      "name": "bio-research",
+      "description": "Preclinical research: literature search, genomics analysis, target prioritization. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/bio-research",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "bio-research",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "bio-research/LICENSE"
+      }
+    },
+    {
+      "name": "customer-support",
+      "description": "Ticket triage, drafted responses, escalations and a knowledge base. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/customer-support",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "customer-support",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "customer-support/LICENSE"
+      }
+    },
+    {
+      "name": "data",
+      "description": "SQL, dataset exploration, visualizations and dashboards. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/data",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "data",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "data/LICENSE"
+      }
+    },
+    {
+      "name": "design",
+      "description": "Design critique, design systems, UX writing, accessibility audits, research synthesis and handoff. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "design",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "LICENSE",
+        "licenseNotInstalled": true,
+        "licenseExtraTextSha256": "7bf7e9f1bc274a5e2cf85e7d6512d6434a7eb3be938e976c178fa2a9872de157",
+        "note": "The plugin has no license file of its own; the repository's LICENSE covers it. Its terms are Apache-2.0 word for word, followed by two unrelated stray lines that are no part of it."
+      }
+    },
+    {
+      "name": "engineering",
+      "description": "Standups, code review, architecture decisions, incident response and technical documentation. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/engineering",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "engineering",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "LICENSE",
+        "licenseNotInstalled": true,
+        "licenseExtraTextSha256": "7bf7e9f1bc274a5e2cf85e7d6512d6434a7eb3be938e976c178fa2a9872de157",
+        "note": "The plugin has no license file of its own; the repository's LICENSE covers it. Its terms are Apache-2.0 word for word, followed by two unrelated stray lines that are no part of it."
+      }
+    },
+    {
+      "name": "enterprise-search",
+      "description": "One search across a company's email, chat, documents and wikis. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/enterprise-search",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "enterprise-search",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "enterprise-search/LICENSE"
+      }
+    },
+    {
+      "name": "finance",
+      "description": "Journal entries, reconciliation, financial statements, variance analysis and audit preparation. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/finance",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "finance",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "finance/LICENSE"
+      }
+    },
+    {
+      "name": "human-resources",
+      "description": "Recruiting, onboarding, performance reviews, compensation analysis and policy guidance. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/human-resources",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "human-resources",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "LICENSE",
+        "licenseNotInstalled": true,
+        "licenseExtraTextSha256": "7bf7e9f1bc274a5e2cf85e7d6512d6434a7eb3be938e976c178fa2a9872de157",
+        "note": "The plugin has no license file of its own; the repository's LICENSE covers it. Its terms are Apache-2.0 word for word, followed by two unrelated stray lines that are no part of it."
+      }
+    },
+    {
+      "name": "legal",
+      "description": "Contract review, NDA triage and compliance workflows for in-house teams. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/legal",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "legal",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "legal/LICENSE"
+      }
+    },
+    {
+      "name": "marketing",
+      "description": "Content, campaign planning, brand voice and channel performance. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/marketing",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "marketing",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "marketing/LICENSE"
+      }
+    },
+    {
+      "name": "operations",
+      "description": "Vendor management, process documentation, change management and capacity planning. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/operations",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "operations",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "LICENSE",
+        "licenseNotInstalled": true,
+        "licenseExtraTextSha256": "7bf7e9f1bc274a5e2cf85e7d6512d6434a7eb3be938e976c178fa2a9872de157",
+        "note": "The plugin has no license file of its own; the repository's LICENSE covers it. Its terms are Apache-2.0 word for word, followed by two unrelated stray lines that are no part of it."
+      }
+    },
+    {
+      "name": "product-management",
+      "description": "Feature specs, roadmaps, research synthesis and stakeholder updates. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/product-management",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "product-management",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "product-management/LICENSE"
+      }
+    },
+    {
+      "name": "productivity",
+      "description": "Tasks, daily planning and a memory of work context. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/productivity",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "productivity",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "productivity/LICENSE"
+      }
+    },
+    {
+      "name": "sales",
+      "description": "Call preparation and follow-up, working with a CRM, email and calendar. Origin: anthropics/knowledge-work-plugins (Apache-2.0), unmodified, pinned by commit; no affiliation or endorsement.",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/anthropics/knowledge-work-plugins/tree/ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d/sales",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/knowledge-work-plugins.git",
+        "path": "sales",
+        "sha": "ab4cb1cd383b4eb87383be8cf4e70cb5b2a2348d"
+      },
+      "catalog": {
+        "upstream": "anthropics/knowledge-work-plugins",
+        "licenseFile": "sales/LICENSE"
+      }
+    }
+  ]
+}
