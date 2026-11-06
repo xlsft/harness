@@ -272,7 +272,7 @@ const PRICE_FIELDS = [
           <span class="flex items-center gap-2 text-strong">
             <span
               class="size-1.5 shrink-0"
-              :class="!p.enabled ? 'bg-graphite-400' : test ? (test.ok ? 'bg-ok' : 'bg-bad') : p.keySet || !preset?.fields.some(f => f.required && f.name === 'api_key') ? 'bg-ok' : 'bg-warn'"
+              :class="!p.enabled ? 'bg-graphite-400' : test ? (test.ok ? 'bg-ok' : 'bg-bad') : p.keySet || !preset?.fields.some(f => f.required && f.name === 'api_key' && (!f.modes?.length || f.modes.includes(p.options?.credential_mode ?? ''))) ? 'bg-ok' : 'bg-warn'"
             />
             <span class="truncate">{{ preset ? (p.scope === 'global' ? 'Everyone' : 'Only you') : p.name }}</span>
             <span

@@ -115,9 +115,9 @@ describe('user preferences', () => {
   it('updates only the fields given', async () => {
     const transport = new MockTransport({ tick: 0 })
     const sandbox = { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }
-    expect(await transport.getUserPreferences()).toEqual({ compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox, hooksEnabled: true })
-    expect(await transport.updateUserPreferences({ compactIdleSessions: false })).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox, hooksEnabled: true })
-    expect(await transport.updateUserPreferences({})).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox, hooksEnabled: true })
+    expect(await transport.getUserPreferences()).toEqual({ compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox, hooksEnabled: true, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } })
+    expect(await transport.updateUserPreferences({ compactIdleSessions: false })).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox, hooksEnabled: true, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } })
+    expect(await transport.updateUserPreferences({})).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox, hooksEnabled: true, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } })
     // The sandbox block is replaced whole.
     const off = { ...sandbox, enabled: false, allowedHosts: ['example.com'] }
     expect((await transport.updateUserPreferences({ sandbox: off })).sandbox).toEqual(off)

@@ -47,7 +47,7 @@ function fill(text: string, values?: readonly unknown[]): string {
 // Translates English text, filling {0}, {1}... from values.
 export function tt(text: string, values?: readonly unknown[]): string {
   ensureLoaded()
-  return fill(active?.[text] ?? text, values)
+  return fill(active && Object.hasOwn(active, text) ? active[text]! : text, values)
 }
 
 // The locale in use ("en" without a pack), for <html lang>.

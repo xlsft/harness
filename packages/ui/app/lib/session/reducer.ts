@@ -759,7 +759,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         // A question still open when the turn ends can no longer be answered.
         if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
         if (it.kind === 'computerAccess' && it.state === 'pending') it.state = 'cancelled'
-    if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
+        if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
         if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
       }
       s.turnStartedAt = 0

@@ -16,7 +16,11 @@
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { MagicString, babelParse, parse, walk } from 'vue/compiler-sfc'
+import { createRequire } from 'node:module'
+
+// Vue comes with Nuxt here rather than as a dependency of its own.
+const nuxt = createRequire(import.meta.url).resolve('nuxt/package.json')
+const { MagicString, babelParse, parse, walk } = createRequire(nuxt)('vue/compiler-sfc')
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'app')
 const CATALOG = join(root, 'i18n', 'catalog.json')
@@ -171,7 +175,8 @@ function wrapRun(run, source, edits, problems, file) {
     if (k.type === NODE.TEXT) message += k.content
     else {
       message += `{${values.length}}`
-      values.push(k.content.loc.source.trim())
+      const code = k.content.loc.source.trim()
+      values.push(wrapExpression(code) ?? code)
     }
   }
   message = message.replace(/\s+/g, ' ').trim()
