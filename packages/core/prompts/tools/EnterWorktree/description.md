@@ -6,5 +6,8 @@ A worktree starts from a commit, so uncommitted changes in the current checkout 
 
 - `name`: optional name of the worktree folder and the end of its branch `harness/<name>`. Short, lowercase, hyphens. Left out, the client picks one.
 - `base_ref`: optional branch or commit to start from. Left out, the branch or commit the checkout is on.
+- `pull_request`: optional number or URL of a pull or merge request to start from instead of `base_ref`. It is fetched from the repository's remote onto a new branch; pushing that branch does not update the pull request.
+
+Git-ignored files named by a `.worktreeinclude` at the repository root are copied in; the result says how many.
 
 Fails outside a git repository and when the session already runs in a worktree.

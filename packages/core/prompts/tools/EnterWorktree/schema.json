@@ -9,6 +9,10 @@
     "base_ref": {
       "type": "string",
       "description": "Branch or commit the new branch starts from. Left out, what the current checkout is on."
+    },
+    "pull_request": {
+      "type": "string",
+      "description": "Number or URL of a pull or merge request to start from, instead of base_ref"
     }
   },
   "additionalProperties": false

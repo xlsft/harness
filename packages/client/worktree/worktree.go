@@ -42,6 +42,9 @@ type Options struct {
 	// BaseRef the new branch starts from; default the current branch (or
 	// commit, when detached) of the work tree containing cwd.
 	BaseRef string
+	// PullRequest starts from the head of a pull or merge request: its number or URL. It is fetched from the repository's
+	// remote; the worktree defaults to the name pr-<number> and can't take a BaseRef.
+	PullRequest string
 }
 
 // Result describes a created worktree.
@@ -62,6 +65,10 @@ type Result struct {
 	// Cwd is the session directory inside the worktree: the same path
 	// relative to the work tree root as the requested cwd.
 	Cwd string
+	// Included is how many files IncludeFile brought along; IncludeProblem is why some didn't come ("": all did). The
+	// worktree is fine either way.
+	Included       int
+	IncludeProblem string
 }
 
 var nameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
@@ -92,6 +99,18 @@ func Create(ctx context.Context, cwd string, o Options) (*Result, error) {
 		rel = "."
 	}
 	name := strings.TrimSpace(o.Name)
+	var pr PullRequestRef
+	if strings.TrimSpace(o.PullRequest) != "" {
+		if pr, err = ParsePullRequest(o.PullRequest); err != nil {
+			return nil, err
+		}
+		if strings.TrimSpace(o.BaseRef) != "" {
+			return nil, fmt.Errorf("%w: a worktree starts from a pull request or from a base ref, not both", ErrInvalidRef)
+		}
+		if name == "" {
+			name = fmt.Sprintf("pr-%d", pr.Number)
+		}
+	}
 	explicit := name != ""
 	if explicit {
 		if err := ValidateName(name); err != nil {
@@ -112,6 +131,14 @@ func Create(ctx context.Context, cwd string, o Options) (*Result, error) {
 	res := &Result{RepositoryPath: repo.Main}
 	base := strings.TrimSpace(o.BaseRef)
 	existing := branch != "" && branchExists(ctx, repo.Toplevel, branch)
+	if pr.Number != 0 {
+		if existing {
+			return nil, fmt.Errorf("%w: branch %s exists; a worktree of a pull request starts on a new one", ErrInvalidRef, branch)
+		}
+		if base, err = fetchPullRequest(ctx, repo.Toplevel, pr); err != nil {
+			return nil, err
+		}
+	}
 	if existing {
 		if where, ok := checkedOut[branch]; ok {
 			return nil, fmt.Errorf("%w: %s is checked out at %s", ErrBranchCheckedOut, branch, where)
@@ -178,6 +205,11 @@ func Create(ctx context.Context, cwd string, o Options) (*Result, error) {
 			if err := os.MkdirAll(res.Cwd, 0o755); err != nil {
 				res.Cwd = path
 			}
+		}
+		n, err := CopyIncluded(ctx, repo.Toplevel, path)
+		res.Included = n
+		if err != nil {
+			res.IncludeProblem = err.Error()
 		}
 		return res, nil
 	}

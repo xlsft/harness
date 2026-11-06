@@ -678,6 +678,9 @@ message WorktreeOptions {
   string branch = 2;
   // Where the new branch starts; default the current HEAD of the repository.
   string base_ref = 3;
+  // Start from the head of this pull or merge request instead: its number or URL, fetched from the repository's remote.
+  // The default name is pr-<number>; can't be combined with base_ref.
+  string from_pr = 4;
 }
 
 message ListRecentFoldersRequest {

@@ -75,8 +75,9 @@ func (*EnterWorktree) ReadOnly(json.RawMessage) bool { return false }
 
 func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	var in struct {
-		Name    string `json:"name"`
-		BaseRef string `json:"base_ref"`
+		Name        string `json:"name"`
+		BaseRef     string `json:"base_ref"`
+		PullRequest string `json:"pull_request"`
 	}
 	if err := decode(call.Input, &in); err != nil {
 		return ErrorResult("%v", err)
@@ -89,7 +90,7 @@ func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("the session already runs in the worktree %s (branch %s). Leave it with ExitWorktree first.", w.Path, w.Branch)
 	}
 	cwd := env.CurrentDir()
-	created, err := worktree.Create(ctx, cwd, worktree.Options{Name: in.Name, BaseRef: in.BaseRef})
+	created, err := worktree.Create(ctx, cwd, worktree.Options{Name: in.Name, BaseRef: in.BaseRef, PullRequest: in.PullRequest})
 	if errors.Is(err, worktree.ErrNotRepository) {
 		return ErrorResult("%s is not inside a git repository, so there is nothing to make a worktree of.", cwd)
 	}
@@ -107,6 +108,12 @@ func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	text := fmt.Sprintf("The session now works in %s, on branch %s (from %s). Your shell is there. Use paths under the new folder, and read files again before editing them there.", created.Cwd, created.Branch, created.BaseRef)
 	if dirty, err := worktree.Dirty(ctx, cwd); err == nil && len(dirty) > 0 {
 		text += fmt.Sprintf(" %d uncommitted change(s) stayed behind in %s: a worktree starts from a commit.", len(dirty), cwd)
+	}
+	if created.Included > 0 {
+		text += fmt.Sprintf(" %d ignored file(s) named by %s came along.", created.Included, worktree.IncludeFile)
+	}
+	if created.IncludeProblem != "" {
+		text += fmt.Sprintf(" Some files named by %s did not come along: %s", worktree.IncludeFile, created.IncludeProblem)
 	}
 	return moveResult(text, "Entered "+created.Branch, map[string]any{"cwd": created.Cwd, "worktreePath": created.Path, "branch": created.Branch, "baseRef": created.BaseRef})
 }
