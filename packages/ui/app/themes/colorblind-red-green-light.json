@@ -1,6 +1,6 @@
 {
   "id": "colorblind-red-green-light",
-  "name": "Color-blind light (red-green)",
+  "name": "Protanopia and Deuteranopia Light",
   "kind": "light",
   "fonts": {
     "terminal": "'CaskaydiaCove Nerd Font', 'Cascadia Mono', 'JetBrains Mono', ui-monospace, monospace"
