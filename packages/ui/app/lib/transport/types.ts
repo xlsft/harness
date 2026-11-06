@@ -38,6 +38,7 @@ import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
 import type { PluginsApi } from '~/lib/plugins/types'
+import type { LibraryApi } from '~/lib/library/types'
 import type { BrowserApi } from '~/lib/browser/types'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 
@@ -124,6 +125,8 @@ export interface ManagedPolicyView {
 }
 
 export interface UserPreferences {
+  // The agent keeps memory files per project, and new sessions load their index (Settings > Memory).
+  autoMemoryEnabled: boolean
   // Set by the client from the policy documents; nothing here changes it.
   managedPolicy?: ManagedPolicyView
   // Compact sessions idle for 30 minutes whose context is above half the window, in the background.
@@ -384,6 +387,8 @@ export interface SessionTransport {
   // MCP servers: Settings > MCP, and a session's commands and mentions (~/lib/mcp).
   mcp(): McpApi
   plugins(): PluginsApi
+  // Artifacts, the knowledge base, the task tracker, auto memory, session export and transcript search (~/lib/library).
+  library(): LibraryApi
   // The session's real browser, shared with the agent's Browser* tools: availability and the Chrome for Testing
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.

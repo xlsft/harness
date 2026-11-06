@@ -23,6 +23,7 @@ const SECTIONS = [
   { key: 'sandbox', label: 'Sandbox', icon: 'lock', group: 'app' },
   { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
   { key: 'plugins', label: 'Plugins', icon: 'download', group: 'app' },
+  { key: 'memory', label: 'Memory', icon: 'history', group: 'app' },
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
@@ -65,6 +66,7 @@ const KEYWORDS: Record<Section, string> = {
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
   plugins: 'plugins marketplace install update approve bundle skills commands agents output styles hooks mcp claude-plugin',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
+  memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
@@ -210,6 +212,8 @@ const notifications = computed({
         <SettingsPullRequests />
         <SettingsAgents />
       </template>
+
+      <SettingsMemory v-else-if="section === 'memory'" />
 
       <SettingsImport v-else-if="section === 'import'" />
 

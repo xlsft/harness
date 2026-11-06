@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// LibraryService is served by the local client next to AgentService: what a frontend needs of a user's memory and
+// transcripts, which the client reads from its disk and the server. The screens for artifacts, the knowledge base and the
+// task tracker call the server's services through the client (coreproxy.go); only the read ticket of an artifact comes
+// from here.
+service LibraryService {
+  // The projects with auto memory, each with its index and files.
+  rpc ListAutoMemory(ListAutoMemoryRequest) returns (ListAutoMemoryResponse);
+  // Writes one file of a project and rebuilds its index.
+  rpc SaveAutoMemoryFile(SaveAutoMemoryFileRequest) returns (SaveAutoMemoryFileResponse);
+  rpc DeleteAutoMemoryFile(DeleteAutoMemoryFileRequest) returns (DeleteAutoMemoryFileResponse);
+  // One session's transcript as a file. Sessions of another machine are read from the server.
+  rpc ExportSession(ExportSessionRequest) returns (ExportSessionResponse);
+  // Full-text search over the transcripts on this machine and those uploaded to the server.
+  rpc SearchTranscripts(SearchTranscriptsRequest) returns (SearchTranscriptsResponse);
+  // A ticket that reads one artifact, and nothing else, through GET /artifacts/<id>?ticket=... A page in a sandboxed frame
+  // can see its own URL, so the ticket must be worth nothing beyond what the page already has.
+  rpc CreateArtifactTicket(CreateArtifactTicketRequest) returns (CreateArtifactTicketResponse);
+}
+
+message AutoMemoryFile {
+  // File name in the project's memory directory, such as "build_commands.md".
+  string name = 1;
+  // What the index says about it.
+  string description = 2;
+  // The whole file, frontmatter included.
+  string content = 3;
+}
+
+message AutoMemoryProject {
+  string project_key = 1;
+  // The project of the folder the request named.
+  bool current = 2;
+  // MEMORY.md as sessions load it.
+  string index = 3;
+  repeated AutoMemoryFile files = 4;
+}
+
+message ListAutoMemoryRequest {
+  // A folder of this machine: says which project is current, and lists it even with nothing stored.
+  string folder = 1;
+}
+
+message ListAutoMemoryResponse {
+  repeated AutoMemoryProject projects = 1;
+}
+
+message SaveAutoMemoryFileRequest {
+  string project_key = 1;
+  string name = 2;
+  string content = 3;
+}
+
+message SaveAutoMemoryFileResponse {
+  AutoMemoryProject project = 1;
+}
+
+message DeleteAutoMemoryFileRequest {
+  string project_key = 1;
+  string name = 2;
+}
+
+message DeleteAutoMemoryFileResponse {
+  AutoMemoryProject project = 1;
+}
+
+enum ExportFormat {
+  EXPORT_FORMAT_UNSPECIFIED = 0;
+  // A readable document: messages, tool calls and their results.
+  EXPORT_FORMAT_MARKDOWN = 1;
+  // The transcript's own lines, unchanged.
+  EXPORT_FORMAT_JSONL = 2;
+}
+
+message ExportSessionRequest {
+  string session_id = 1;
+  ExportFormat format = 2;
+}
+
+message ExportSessionResponse {
+  // A file name for the download.
+  string name = 1;
+  string media_type = 2;
+  bytes content = 3;
+}
+
+message SearchTranscriptsRequest {
+  string query = 1;
+  // Default 30, at most 100. At most one hit per session.
+  int32 limit = 2;
+}
+
+message TranscriptHit {
+  string session_id = 1;
+  string title = 2;
+  // The matching text, with the surrounding words.
+  string snippet = 3;
+  // RFC 3339.
+  string last_activity_at = 4;
+  // The session is not on this machine.
+  bool remote = 5;
+}
+
+message SearchTranscriptsResponse {
+  repeated TranscriptHit hits = 1;
+}
+
+message CreateArtifactTicketRequest {
+  string artifact_id = 1;
+}
+
+message CreateArtifactTicketResponse {
+  // False without a server.
+  bool available = 1;
+  string ticket = 2;
+  // RFC 3339.
+  string expires_at = 3;
+}

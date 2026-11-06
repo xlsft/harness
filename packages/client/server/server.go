@@ -37,6 +37,7 @@ import (
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/pbconv"
+	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/preview"
 	"github.com/xlsft/harness/packages/client/session"
@@ -100,6 +101,9 @@ type Server struct {
 	observer func(sessionID string)
 	// Core, when set, forwards the settings screens' server calls (CoreProxy).
 	Core *CoreProxy
+	// AutoMemory keeps auto memory on the server (nil: on this machine only); Transcripts searches the uploaded transcripts.
+	AutoMemory  memory.AutoDocs
+	Transcripts TranscriptSearcher
 	// Objects, when set, serves the object store's bytes to frontends (ObjectProxy).
 	Objects *ObjectProxy
 
@@ -247,11 +251,13 @@ func (s *Server) mux() *http.ServeMux {
 	mux.Handle(path, h)
 	pluginsPath, pluginsHandler := agentv1connect.NewPluginServiceHandler(s)
 	mux.Handle(pluginsPath, pluginsHandler)
+	s.registerLibrary(mux)
 	if s.Core != nil {
 		s.Core.register(mux)
 	}
 	if s.Objects != nil {
 		mux.Handle(ObjectProxyPath, s.Objects)
+		mux.Handle(ArtifactProxyPath, s.Objects.artifactHandler())
 	}
 	return mux
 }

@@ -181,6 +181,9 @@ type Settings struct {
 	// preference, see UserPreferences).
 	WorkflowMaxAgents int
 	ClaudeMdMode      memory.Mode
+	// AutoMemoryEnabled lets the agent keep memory files per project and loads their index into new sessions
+	// (autoMemoryEnabled, default true). A per-user preference; a project file can only turn it off.
+	AutoMemoryEnabled bool
 	// LSPEnabled offers the LSP tool and allows diagnostics after edits (lspEnabled, default true); LSPDiagnostics reports
 	// those errors (lspDiagnostics, default true); LSPDiagnosticsStartServer lets an edit start a server rather than only
 	// use one that runs (lspDiagnosticsStartServer, default false). Per-user preferences, see UserPreferences; a project
@@ -313,6 +316,9 @@ const KeyPRMonitorWakesPerHour = "prMonitorWakesPerHour"
 // KeyInterruptReply is the settings key of Settings.InterruptReply.
 const KeyInterruptReply = "interruptReply"
 
+// KeyAutoMemoryEnabled is the settings key of Settings.AutoMemoryEnabled.
+const KeyAutoMemoryEnabled = "autoMemoryEnabled"
+
 // The settings keys of the language server settings.
 const (
 	KeyLSPEnabled                = "lspEnabled"
@@ -346,6 +352,7 @@ type layer struct {
 	subagentDepth, subagentRunning, workflowAgents        *int
 	includeGit, interruptReply, compactIdle               *bool
 	lspEnabled, lspDiagnostics, lspStartServer            *bool
+	autoMemory                                            *bool
 	lspServers                                            map[string]LSPServer
 	attrCommit, attrPR                                    *string
 	env                                                   map[string]string
@@ -382,7 +389,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
-		CompactIdleSessions: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
+		CompactIdleSessions: true, AutoMemoryEnabled: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents,
 		Sandbox: Sandbox{Enabled: true}}
 	var layers []*layer // highest precedence first

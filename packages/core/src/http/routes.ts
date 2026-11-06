@@ -29,6 +29,10 @@ export const routes: RouteDef[] = [
   { route: "/harness.vcs.v1.VcsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.ProviderLimitsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.objects.v1.ObjectsService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.ArtifactService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.KnowledgeService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.TrackerService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.TranscriptSearchService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.AuditService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.BillingService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.DirectoryService/**", handler: "./src/http/routes/rpc.ts" },
@@ -38,6 +42,8 @@ export const routes: RouteDef[] = [
 
   // Object bytes (ObjectsService writes): ranges, safe content types
   { route: "/api/objects/:sha256", handler: "./src/http/routes/object.ts" },
+  // Artifact bytes, always under a sandbox policy (ArtifactService)
+  { route: "/api/artifacts/:id/content", handler: "./src/http/routes/artifact.ts" },
 
   // Better Auth (web sessions, admin plugin) and the device approval page stay plain HTTP
   { route: "/api/auth/**", handler: "./src/http/routes/better-auth.ts" },

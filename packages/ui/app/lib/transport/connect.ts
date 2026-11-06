@@ -42,6 +42,7 @@ import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
 import { ConnectMcpApi } from '~/lib/mcp/connect'
 import { ConnectPluginsApi } from '~/lib/plugins/connect'
+import { ConnectLibraryApi } from '~/lib/library/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -55,7 +56,7 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
   const m = p?.managedPolicy
-  return { managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
+  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
     hooksEnabled: p?.hooksEnabled ?? true }
 }
@@ -106,6 +107,7 @@ export class ConnectTransport implements SessionTransport {
     this.acpApi = new ConnectAcpApi(transport)
     this.mcpApi = new ConnectMcpApi(transport)
     this.pluginsApi = new ConnectPluginsApi(transport)
+    this.libraryApi = new ConnectLibraryApi(transport, baseUrl)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
   }
 
@@ -363,7 +365,7 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled })
+    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled })
     return preferencesVM(res.preferences)
   }
 
@@ -478,6 +480,11 @@ export class ConnectTransport implements SessionTransport {
   private pluginsApi!: ConnectPluginsApi
   plugins() {
     return this.pluginsApi
+  }
+
+  private libraryApi!: ConnectLibraryApi
+  library() {
+    return this.libraryApi
   }
 
   private mcpApi!: ConnectMcpApi

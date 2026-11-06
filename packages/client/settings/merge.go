@@ -46,6 +46,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	l.includeGit = s.boolean(src, raw, "includeGitInstructions")
 	l.interruptReply = s.boolean(src, raw, "interruptReply")
 	l.compactIdle = s.boolean(src, raw, KeyCompactIdleSessions)
+	l.autoMemory = s.boolean(src, raw, KeyAutoMemoryEnabled)
 	l.lspEnabled = s.boolean(src, raw, KeyLSPEnabled)
 	l.lspDiagnostics = s.boolean(src, raw, KeyLSPDiagnostics)
 	l.lspStartServer = s.boolean(src, raw, KeyLSPDiagnosticsStartServer)
@@ -319,6 +320,7 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 				*dst = *v
 			}
 		}
+		lspSwitch(&s.AutoMemoryEnabled, l.autoMemory, KeyAutoMemoryEnabled)
 		lspSwitch(&s.LSPEnabled, l.lspEnabled, KeyLSPEnabled)
 		lspSwitch(&s.LSPDiagnostics, l.lspDiagnostics, KeyLSPDiagnostics)
 		lspSwitch(&s.LSPDiagnosticsStartServer, l.lspStartServer, KeyLSPDiagnosticsStartServer)

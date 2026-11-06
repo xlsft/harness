@@ -603,6 +603,12 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	tools.RegisterSessionTools(s.Tools)
+	s.Tools.Register(&tools.Memory{Store: s.autoMemoryStore, Enabled: s.autoMemoryEnabled})
+	if s.Sync != nil {
+		s.ToolEnv.Library = s.Sync.Client()
+		tools.RegisterLibraryTools(s.Tools)
+	}
+	s.syncAutoMemory()
 	s.openSkills(o)
 	s.Warnings = append(s.Warnings, pluginWarnings(cwd, s.Trusted)...)
 	s.registerWebTools(o)

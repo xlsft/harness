@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "enum": ["list", "read", "write", "delete"],
+      "description": "What to do"
+    },
+    "name": {
+      "type": "string",
+      "description": "The note's name, for read, write and delete: lowercase letters, digits, _ and -"
+    },
+    "description": {
+      "type": "string",
+      "description": "With write: the one line the index shows, saying when this note matters"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["user", "feedback", "project", "reference"],
+      "description": "With write: the kind of note"
+    },
+    "content": {
+      "type": "string",
+      "description": "With write: the note, in Markdown"
+    },
+    "title": {
+      "type": "string",
+      "description": "With write: a readable title. Default: the name"
+    }
+  },
+  "required": ["command"],
+  "additionalProperties": false
+}
