@@ -10,6 +10,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/gen/harness/auth/v1/authv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/library/v1/libraryv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/mcp/v1/mcpv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/speech/v1/speechv1connect"
@@ -40,7 +41,8 @@ type CoreProxy struct {
 }
 
 // coreProxyServices are the server services frontends may reach through the client.
-var coreProxyServices = []string{llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName}
+var coreProxyServices = []string{llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName,
+	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.TrackerServiceName}
 
 // coreProxyProcedures are single methods of other server services frontends may
 // reach. Never the device flow, token refresh or Logout: those manage this

@@ -705,6 +705,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	env.Agents, env.AgentID = m, id
 	env.Edits = lead.Edits
 	env.Skills = lead.Skills
+	env.Library = lead.Library
 	if a.wt == nil {
 		// Checkpoints follow the session's folder; a worktree has git for that.
 		env.BeforeEdit = lead.BeforeEdit

@@ -69,8 +69,10 @@ func (*Read) Run(ctx context.Context, env *Env, call Call) Result {
 		return readBinaryBlock(env, path, st.Size(), llm.BlockImage, mt, ReadMaxImageBytes)
 	}
 	if ext == ".pdf" {
-		// TODO(M1): honor `pages` by rendering page ranges.
-		return readBinaryBlock(env, path, st.Size(), llm.BlockDocument, "application/pdf", ReadMaxPDFBytes)
+		return readPDF(env, path, st.Size(), in.Pages)
+	}
+	if strings.TrimSpace(in.Pages) != "" {
+		return ErrorResult("pages applies to PDF files only; %s is not one. Use offset and limit.", path)
 	}
 
 	data, err := os.ReadFile(path)
@@ -153,11 +155,7 @@ func readBinaryBlock(env *Env, path string, size int64, blockType, mediaType str
 	}
 	env.Files.MarkRead(path)
 	block := llm.ContentBlock{Type: blockType, Source: &llm.Source{Type: "base64", MediaType: mediaType, Data: base64.StdEncoding.EncodeToString(data)}}
-	kind := "image"
-	if blockType == llm.BlockDocument {
-		kind = "pdf"
-	}
-	return Result{Content: []llm.ContentBlock{block}, Structured: map[string]any{"type": kind, "file": map[string]any{"filePath": path, "originalSize": size}}}
+	return Result{Content: []llm.ContentBlock{block}, Structured: map[string]any{"type": "image", "file": map[string]any{"filePath": path, "originalSize": size}}}
 }
 
 func truncateUTF8(s string, n int) string {

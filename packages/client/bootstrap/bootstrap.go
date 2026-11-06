@@ -600,6 +600,12 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	tools.RegisterSessionTools(s.Tools)
+	s.Tools.Register(&tools.Memory{Store: s.autoMemoryStore, Enabled: s.autoMemoryEnabled})
+	if s.Sync != nil {
+		s.ToolEnv.Library = s.Sync.Client()
+		tools.RegisterLibraryTools(s.Tools)
+	}
+	s.syncAutoMemory()
 	s.openSkills(o)
 	s.registerWebTools(o)
 	s.LSP = lsp.New(lsp.Options{Config: s.lspConfig, Trusted: s.lspTrusted, ReadDenied: func(p string) bool { return s.ToolEnv.ReadDenied != nil && s.ToolEnv.ReadDenied(p) }, Logger: log})
