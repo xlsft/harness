@@ -57,9 +57,9 @@ describe("rate-limit headers", () => {
     });
     const w = parseRateLimitHeaders(h, NOW);
     expect(w).toEqual([
-      { label: "5h", used_percent: 63, resets_at: new Date(1793750400_000).toISOString() },
-      { label: "weekly", used_percent: 21, resets_at: new Date(1794182400_000).toISOString() },
-      { label: "weekly (Opus)", used_percent: 50, resets_at: "" },
+      { label: "5h", used_percent: 63, resets_at: new Date(1793750400_000).toISOString(), plan: true },
+      { label: "weekly", used_percent: 21, resets_at: new Date(1794182400_000).toISOString(), plan: true },
+      { label: "weekly (Opus)", used_percent: 50, resets_at: "", plan: true },
     ]);
   });
 

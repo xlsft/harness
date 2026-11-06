@@ -46,6 +46,9 @@ service ProviderService {
   // and the level recommended among them.
   // What is set here, also none, is kept: discovery only fills in what nobody set.
   rpc SetModelEfforts(SetModelEffortsRequest) returns (SetModelEffortsResponse);
+  // Sets by hand the price of a model of a provider the caller may change, also to none. Kept: lists and presets only
+  // fill in an empty price nobody set. Refused on a plan provider, whose requests carry no cost.
+  rpc SetModelPricing(SetModelPricingRequest) returns (SetModelPricingResponse);
 
   // The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
   // typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
@@ -132,6 +135,11 @@ message ProviderModel {
   repeated Effort efforts = 7;
   // The level recommended for a new session, one of `efforts`; UNSPECIFIED: none.
   Effort default_effort = 8;
+  // What a request costs on a metered provider. Absent: no price known, so its requests carry no cost. A zero cache
+  // price means "same as input".
+  optional Pricing pricing = 9;
+  // Someone set `pricing` by hand (also to none): model lists and presets leave it alone.
+  bool pricing_set_by_hand = 10;
 }
 
 message ListPresetsRequest {}
@@ -347,6 +355,16 @@ message SetModelEffortsRequest {
 }
 
 message SetModelEffortsResponse {
+  ProviderModel model = 1;
+}
+
+message SetModelPricingRequest {
+  string model_id = 1;
+  // USD per 1M tokens, by hand and kept from then on. Absent: no price, also kept.
+  optional Pricing pricing = 2;
+}
+
+message SetModelPricingResponse {
   ProviderModel model = 1;
 }
 

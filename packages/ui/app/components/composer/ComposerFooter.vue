@@ -40,8 +40,8 @@ function pickEffort(level: string) {
 const contextWindow = computed(() => onAgent.value ? Number(acp.value?.contextWindowTokens ?? 0) : model.value?.contextWindow || 200_000)
 const contextUsed = computed(() => Number(acp.value?.contextUsedTokens ?? 0) || props.session.contextTokens)
 const pct = computed(() => contextWindow.value ? Math.min(100, Math.round((contextUsed.value / contextWindow.value) * 100)) : 0)
-// The ring shows what runs out first: the fullest limit window of the plan, else how much of the balance is spent,
-// else the session's context.
+// The ring shows what runs out first: the fullest limit window of the plan, else how much of the balance is spent
+// (an estimate too: `total` is the amount entered), else the session's context.
 const providerLimits = ref<ProviderLimitsView | null>(null)
 async function loadLimits() {
   providerLimits.value = null

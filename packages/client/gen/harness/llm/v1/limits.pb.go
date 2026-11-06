@@ -77,7 +77,7 @@ func (LimitsAudience) EnumDescriptor() ([]byte, []int) {
 	return file_harness_llm_v1_limits_proto_rawDescGZIP(), []int{0}
 }
 
-// Credit read from the provider's API. Amounts are in `currency`.
+// Credit read from the provider's API, or estimated from our own records (`estimated`). Amounts are in `currency`.
 type ProviderBalance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ISO 4217 ("USD", "CNY").
@@ -95,9 +95,14 @@ type ProviderBalance struct {
 	// The endpoint it came from ("openrouter:/api/v1/key", "deepseek:/user/balance", ...).
 	Source string `protobuf:"bytes,7,opt,name=source,proto3" json:"source,omitempty"`
 	// Set when the last read failed (the other fields are then empty); never contains the key.
-	Error         string `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Error string `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
+	// Not read from the provider: `total` is the amount someone entered, `used` what requests through harness cost
+	// since, `balance` the difference (below zero when more was spent). Spending elsewhere is not seen.
+	Estimated bool `protobuf:"varint,9,opt,name=estimated,proto3" json:"estimated,omitempty"`
+	// RFC 3339, UTC: with `estimated`, since when spending counts.
+	EstimatedSince string `protobuf:"bytes,10,opt,name=estimated_since,json=estimatedSince,proto3" json:"estimated_since,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ProviderBalance) Reset() {
@@ -186,6 +191,20 @@ func (x *ProviderBalance) GetError() string {
 	return ""
 }
 
+func (x *ProviderBalance) GetEstimated() bool {
+	if x != nil {
+		return x.Estimated
+	}
+	return false
+}
+
+func (x *ProviderBalance) GetEstimatedSince() string {
+	if x != nil {
+		return x.EstimatedSince
+	}
+	return ""
+}
+
 // What our usage records cost on the provider this month.
 type ProviderSpend struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -267,10 +286,11 @@ func (x *ProviderSpend) GetPartial() bool {
 	return false
 }
 
-// One rate-limit window from the response headers.
+// One limit window from the response headers.
 type LimitWindow struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "5h", "weekly", "weekly (Opus)", "requests/min", "tokens/min", "input tokens/min", "output tokens/min".
+	// Plan windows: "5h", "weekly", "weekly (Opus)". Rate limits: "requests/min", "tokens/min", "input tokens/min",
+	// "output tokens/min", "requests".
 	Label string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
 	// 0..100.
 	UsedPercent float64  `protobuf:"fixed64,2,opt,name=used_percent,json=usedPercent,proto3" json:"used_percent,omitempty"`
@@ -354,16 +374,22 @@ type ProviderLimits struct {
 	Scope        ProviderScope          `protobuf:"varint,3,opt,name=scope,proto3,enum=harness.llm.v1.ProviderScope" json:"scope,omitempty"`
 	// "metered" or "plan" (Provider.billing).
 	Billing string `protobuf:"bytes,4,opt,name=billing,proto3" json:"billing,omitempty"`
-	// Absent: no balance API, or hidden from the caller.
+	// Absent: no balance API and no estimate, or hidden from the caller.
 	Balance *ProviderBalance `protobuf:"bytes,5,opt,name=balance,proto3" json:"balance,omitempty"`
 	// Absent: hidden from the caller.
 	Spend *ProviderSpend `protobuf:"bytes,6,opt,name=spend,proto3" json:"spend,omitempty"`
-	// Empty: nothing seen yet, or hidden from the caller.
+	// A plan's usage windows, the ones to show. Empty: not a plan, nothing seen yet, or hidden from the caller.
 	Windows []*LimitWindow `protobuf:"bytes,7,rep,name=windows,proto3" json:"windows,omitempty"`
 	// RFC 3339, UTC: when the windows were captured; empty without windows.
 	WindowsUpdatedAt string `protobuf:"bytes,8,opt,name=windows_updated_at,json=windowsUpdatedAt,proto3" json:"windows_updated_at,omitempty"`
 	// "response_headers" for the windows; see ProviderBalance.source for the balance.
 	WindowsSource string `protobuf:"bytes,9,opt,name=windows_source,json=windowsSource,proto3" json:"windows_source,omitempty"`
+	// The caller may enter a starting balance (SetProviderBalanceEstimate): a metered provider without a balance API
+	// that they may change.
+	BalanceEntry bool `protobuf:"varint,10,opt,name=balance_entry,json=balanceEntry,proto3" json:"balance_entry,omitempty"`
+	// Per-minute rate limits, under the same policy as `windows`: not for showing. They are what the client's usage-limit
+	// watch reads alongside `windows` to warn before a refusal and to explain one.
+	RateWindows   []*LimitWindow `protobuf:"bytes,11,rep,name=rate_windows,json=rateWindows,proto3" json:"rate_windows,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,6 +485,20 @@ func (x *ProviderLimits) GetWindowsSource() string {
 		return x.WindowsSource
 	}
 	return ""
+}
+
+func (x *ProviderLimits) GetBalanceEntry() bool {
+	if x != nil {
+		return x.BalanceEntry
+	}
+	return false
+}
+
+func (x *ProviderLimits) GetRateWindows() []*LimitWindow {
+	if x != nil {
+		return x.RateWindows
+	}
+	return nil
 }
 
 type GetProviderLimitsRequest struct {
@@ -666,6 +706,112 @@ func (x *SetProviderBudgetResponse) GetLimits() *ProviderLimits {
 	return nil
 }
 
+type SetProviderBalanceEstimateRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ProviderId string                 `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	// USD left at `as_of`, not negative. Replaces what was entered before (a top-up); unset clears the estimate.
+	Amount *float64 `protobuf:"fixed64,2,opt,name=amount,proto3,oneof" json:"amount,omitempty"`
+	// RFC 3339, not in the future: since when spending counts. Empty: now.
+	AsOf          string `protobuf:"bytes,3,opt,name=as_of,json=asOf,proto3" json:"as_of,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetProviderBalanceEstimateRequest) Reset() {
+	*x = SetProviderBalanceEstimateRequest{}
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetProviderBalanceEstimateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetProviderBalanceEstimateRequest) ProtoMessage() {}
+
+func (x *SetProviderBalanceEstimateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetProviderBalanceEstimateRequest.ProtoReflect.Descriptor instead.
+func (*SetProviderBalanceEstimateRequest) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_limits_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SetProviderBalanceEstimateRequest) GetProviderId() string {
+	if x != nil {
+		return x.ProviderId
+	}
+	return ""
+}
+
+func (x *SetProviderBalanceEstimateRequest) GetAmount() float64 {
+	if x != nil && x.Amount != nil {
+		return *x.Amount
+	}
+	return 0
+}
+
+func (x *SetProviderBalanceEstimateRequest) GetAsOf() string {
+	if x != nil {
+		return x.AsOf
+	}
+	return ""
+}
+
+type SetProviderBalanceEstimateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limits        *ProviderLimits        `protobuf:"bytes,1,opt,name=limits,proto3" json:"limits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetProviderBalanceEstimateResponse) Reset() {
+	*x = SetProviderBalanceEstimateResponse{}
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetProviderBalanceEstimateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetProviderBalanceEstimateResponse) ProtoMessage() {}
+
+func (x *SetProviderBalanceEstimateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetProviderBalanceEstimateResponse.ProtoReflect.Descriptor instead.
+func (*SetProviderBalanceEstimateResponse) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_limits_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SetProviderBalanceEstimateResponse) GetLimits() *ProviderLimits {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
 type LimitsVisibility struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Audience LimitsAudience         `protobuf:"varint,1,opt,name=audience,proto3,enum=harness.llm.v1.LimitsAudience" json:"audience,omitempty"`
@@ -677,7 +823,7 @@ type LimitsVisibility struct {
 
 func (x *LimitsVisibility) Reset() {
 	*x = LimitsVisibility{}
-	mi := &file_harness_llm_v1_limits_proto_msgTypes[8]
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -689,7 +835,7 @@ func (x *LimitsVisibility) String() string {
 func (*LimitsVisibility) ProtoMessage() {}
 
 func (x *LimitsVisibility) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_limits_proto_msgTypes[8]
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -702,7 +848,7 @@ func (x *LimitsVisibility) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LimitsVisibility.ProtoReflect.Descriptor instead.
 func (*LimitsVisibility) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_limits_proto_rawDescGZIP(), []int{8}
+	return file_harness_llm_v1_limits_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *LimitsVisibility) GetAudience() LimitsAudience {
@@ -733,7 +879,7 @@ type ProviderLimitsPolicy struct {
 
 func (x *ProviderLimitsPolicy) Reset() {
 	*x = ProviderLimitsPolicy{}
-	mi := &file_harness_llm_v1_limits_proto_msgTypes[9]
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -745,7 +891,7 @@ func (x *ProviderLimitsPolicy) String() string {
 func (*ProviderLimitsPolicy) ProtoMessage() {}
 
 func (x *ProviderLimitsPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_limits_proto_msgTypes[9]
+	mi := &file_harness_llm_v1_limits_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -758,7 +904,7 @@ func (x *ProviderLimitsPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderLimitsPolicy.ProtoReflect.Descriptor instead.
 func (*ProviderLimitsPolicy) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_limits_proto_rawDescGZIP(), []int{9}
+	return file_harness_llm_v1_limits_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ProviderLimitsPolicy) GetProviderId() string {
@@ -786,7 +932,7 @@ var File_harness_llm_v1_limits_proto protoreflect.FileDescriptor
 
 const file_harness_llm_v1_limits_proto_rawDesc = "" +
 	"\n" +
-	"\x1bharness/llm/v1/limits.proto\x12\x0eharness.llm.v1\x1a\x1eharness/llm/v1/providers.proto\"\x82\x02\n" +
+	"\x1bharness/llm/v1/limits.proto\x12\x0eharness.llm.v1\x1a\x1eharness/llm/v1/providers.proto\"\xc9\x02\n" +
 	"\x0fProviderBalance\x12\x1a\n" +
 	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12\x1d\n" +
 	"\abalance\x18\x02 \x01(\x01H\x00R\abalance\x88\x01\x01\x12\x17\n" +
@@ -796,7 +942,10 @@ const file_harness_llm_v1_limits_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\tR\tupdatedAt\x12\x16\n" +
 	"\x06source\x18\a \x01(\tR\x06source\x12\x14\n" +
-	"\x05error\x18\b \x01(\tR\x05errorB\n" +
+	"\x05error\x18\b \x01(\tR\x05error\x12\x1c\n" +
+	"\testimated\x18\t \x01(\bR\testimated\x12'\n" +
+	"\x0festimated_since\x18\n" +
+	" \x01(\tR\x0eestimatedSinceB\n" +
 	"\n" +
 	"\b_balanceB\a\n" +
 	"\x05_usedB\b\n" +
@@ -816,7 +965,7 @@ const file_harness_llm_v1_limits_proto_rawDesc = "" +
 	"\tresets_at\x18\x05 \x01(\tR\bresetsAtB\f\n" +
 	"\n" +
 	"_remainingB\b\n" +
-	"\x06_limit\"\xa1\x03\n" +
+	"\x06_limit\"\x86\x04\n" +
 	"\x0eProviderLimits\x12\x1f\n" +
 	"\vprovider_id\x18\x01 \x01(\tR\n" +
 	"providerId\x12#\n" +
@@ -827,7 +976,10 @@ const file_harness_llm_v1_limits_proto_rawDesc = "" +
 	"\x05spend\x18\x06 \x01(\v2\x1d.harness.llm.v1.ProviderSpendR\x05spend\x125\n" +
 	"\awindows\x18\a \x03(\v2\x1b.harness.llm.v1.LimitWindowR\awindows\x12,\n" +
 	"\x12windows_updated_at\x18\b \x01(\tR\x10windowsUpdatedAt\x12%\n" +
-	"\x0ewindows_source\x18\t \x01(\tR\rwindowsSource\"X\n" +
+	"\x0ewindows_source\x18\t \x01(\tR\rwindowsSource\x12#\n" +
+	"\rbalance_entry\x18\n" +
+	" \x01(\bR\fbalanceEntry\x12>\n" +
+	"\frate_windows\x18\v \x03(\v2\x1b.harness.llm.v1.LimitWindowR\vrateWindows\"X\n" +
 	"\x18GetProviderLimitsRequest\x12!\n" +
 	"\fprovider_ids\x18\x01 \x03(\tR\vproviderIds\x12\x19\n" +
 	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"\x8f\x01\n" +
@@ -841,6 +993,14 @@ const file_harness_llm_v1_limits_proto_rawDesc = "" +
 	"monthlyUsd\x88\x01\x01B\x0e\n" +
 	"\f_monthly_usd\"S\n" +
 	"\x19SetProviderBudgetResponse\x126\n" +
+	"\x06limits\x18\x01 \x01(\v2\x1e.harness.llm.v1.ProviderLimitsR\x06limits\"\x81\x01\n" +
+	"!SetProviderBalanceEstimateRequest\x12\x1f\n" +
+	"\vprovider_id\x18\x01 \x01(\tR\n" +
+	"providerId\x12\x1b\n" +
+	"\x06amount\x18\x02 \x01(\x01H\x00R\x06amount\x88\x01\x01\x12\x13\n" +
+	"\x05as_of\x18\x03 \x01(\tR\x04asOfB\t\n" +
+	"\a_amount\"\\\n" +
+	"\"SetProviderBalanceEstimateResponse\x126\n" +
 	"\x06limits\x18\x01 \x01(\v2\x1e.harness.llm.v1.ProviderLimitsR\x06limits\"i\n" +
 	"\x10LimitsVisibility\x12:\n" +
 	"\baudience\x18\x01 \x01(\x0e2\x1e.harness.llm.v1.LimitsAudienceR\baudience\x12\x19\n" +
@@ -854,10 +1014,11 @@ const file_harness_llm_v1_limits_proto_rawDesc = "" +
 	"\x1bLIMITS_AUDIENCE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18LIMITS_AUDIENCE_EVERYONE\x10\x01\x12\"\n" +
 	"\x1eLIMITS_AUDIENCE_SELECTED_USERS\x10\x02\x12\x1f\n" +
-	"\x1bLIMITS_AUDIENCE_ADMINS_ONLY\x10\x032\xeb\x01\n" +
+	"\x1bLIMITS_AUDIENCE_ADMINS_ONLY\x10\x032\xf1\x02\n" +
 	"\x15ProviderLimitsService\x12h\n" +
 	"\x11GetProviderLimits\x12(.harness.llm.v1.GetProviderLimitsRequest\x1a).harness.llm.v1.GetProviderLimitsResponse\x12h\n" +
-	"\x11SetProviderBudget\x12(.harness.llm.v1.SetProviderBudgetRequest\x1a).harness.llm.v1.SetProviderBudgetResponseB\xbe\x01\n" +
+	"\x11SetProviderBudget\x12(.harness.llm.v1.SetProviderBudgetRequest\x1a).harness.llm.v1.SetProviderBudgetResponse\x12\x83\x01\n" +
+	"\x1aSetProviderBalanceEstimate\x121.harness.llm.v1.SetProviderBalanceEstimateRequest\x1a2.harness.llm.v1.SetProviderBalanceEstimateResponseB\xbe\x01\n" +
 	"\x12com.harness.llm.v1B\vLimitsProtoP\x01ZAgithub.com/xlsft/harness/packages/client/gen/harness/llm/v1;llmv1\xa2\x02\x03HLX\xaa\x02\x0eHarness.Llm.V1\xca\x02\x0eHarness\\Llm\\V1\xe2\x02\x1aHarness\\Llm\\V1\\GPBMetadata\xea\x02\x10Harness::Llm::V1b\x06proto3"
 
 var (
@@ -873,41 +1034,47 @@ func file_harness_llm_v1_limits_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_llm_v1_limits_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_llm_v1_limits_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_harness_llm_v1_limits_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_harness_llm_v1_limits_proto_goTypes = []any{
-	(LimitsAudience)(0),               // 0: harness.llm.v1.LimitsAudience
-	(*ProviderBalance)(nil),           // 1: harness.llm.v1.ProviderBalance
-	(*ProviderSpend)(nil),             // 2: harness.llm.v1.ProviderSpend
-	(*LimitWindow)(nil),               // 3: harness.llm.v1.LimitWindow
-	(*ProviderLimits)(nil),            // 4: harness.llm.v1.ProviderLimits
-	(*GetProviderLimitsRequest)(nil),  // 5: harness.llm.v1.GetProviderLimitsRequest
-	(*GetProviderLimitsResponse)(nil), // 6: harness.llm.v1.GetProviderLimitsResponse
-	(*SetProviderBudgetRequest)(nil),  // 7: harness.llm.v1.SetProviderBudgetRequest
-	(*SetProviderBudgetResponse)(nil), // 8: harness.llm.v1.SetProviderBudgetResponse
-	(*LimitsVisibility)(nil),          // 9: harness.llm.v1.LimitsVisibility
-	(*ProviderLimitsPolicy)(nil),      // 10: harness.llm.v1.ProviderLimitsPolicy
-	(ProviderScope)(0),                // 11: harness.llm.v1.ProviderScope
+	(LimitsAudience)(0),                        // 0: harness.llm.v1.LimitsAudience
+	(*ProviderBalance)(nil),                    // 1: harness.llm.v1.ProviderBalance
+	(*ProviderSpend)(nil),                      // 2: harness.llm.v1.ProviderSpend
+	(*LimitWindow)(nil),                        // 3: harness.llm.v1.LimitWindow
+	(*ProviderLimits)(nil),                     // 4: harness.llm.v1.ProviderLimits
+	(*GetProviderLimitsRequest)(nil),           // 5: harness.llm.v1.GetProviderLimitsRequest
+	(*GetProviderLimitsResponse)(nil),          // 6: harness.llm.v1.GetProviderLimitsResponse
+	(*SetProviderBudgetRequest)(nil),           // 7: harness.llm.v1.SetProviderBudgetRequest
+	(*SetProviderBudgetResponse)(nil),          // 8: harness.llm.v1.SetProviderBudgetResponse
+	(*SetProviderBalanceEstimateRequest)(nil),  // 9: harness.llm.v1.SetProviderBalanceEstimateRequest
+	(*SetProviderBalanceEstimateResponse)(nil), // 10: harness.llm.v1.SetProviderBalanceEstimateResponse
+	(*LimitsVisibility)(nil),                   // 11: harness.llm.v1.LimitsVisibility
+	(*ProviderLimitsPolicy)(nil),               // 12: harness.llm.v1.ProviderLimitsPolicy
+	(ProviderScope)(0),                         // 13: harness.llm.v1.ProviderScope
 }
 var file_harness_llm_v1_limits_proto_depIdxs = []int32{
-	11, // 0: harness.llm.v1.ProviderLimits.scope:type_name -> harness.llm.v1.ProviderScope
+	13, // 0: harness.llm.v1.ProviderLimits.scope:type_name -> harness.llm.v1.ProviderScope
 	1,  // 1: harness.llm.v1.ProviderLimits.balance:type_name -> harness.llm.v1.ProviderBalance
 	2,  // 2: harness.llm.v1.ProviderLimits.spend:type_name -> harness.llm.v1.ProviderSpend
 	3,  // 3: harness.llm.v1.ProviderLimits.windows:type_name -> harness.llm.v1.LimitWindow
-	4,  // 4: harness.llm.v1.GetProviderLimitsResponse.providers:type_name -> harness.llm.v1.ProviderLimits
-	4,  // 5: harness.llm.v1.GetProviderLimitsResponse.model:type_name -> harness.llm.v1.ProviderLimits
-	4,  // 6: harness.llm.v1.SetProviderBudgetResponse.limits:type_name -> harness.llm.v1.ProviderLimits
-	0,  // 7: harness.llm.v1.LimitsVisibility.audience:type_name -> harness.llm.v1.LimitsAudience
-	9,  // 8: harness.llm.v1.ProviderLimitsPolicy.balance:type_name -> harness.llm.v1.LimitsVisibility
-	9,  // 9: harness.llm.v1.ProviderLimitsPolicy.limits:type_name -> harness.llm.v1.LimitsVisibility
-	5,  // 10: harness.llm.v1.ProviderLimitsService.GetProviderLimits:input_type -> harness.llm.v1.GetProviderLimitsRequest
-	7,  // 11: harness.llm.v1.ProviderLimitsService.SetProviderBudget:input_type -> harness.llm.v1.SetProviderBudgetRequest
-	6,  // 12: harness.llm.v1.ProviderLimitsService.GetProviderLimits:output_type -> harness.llm.v1.GetProviderLimitsResponse
-	8,  // 13: harness.llm.v1.ProviderLimitsService.SetProviderBudget:output_type -> harness.llm.v1.SetProviderBudgetResponse
-	12, // [12:14] is the sub-list for method output_type
-	10, // [10:12] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	3,  // 4: harness.llm.v1.ProviderLimits.rate_windows:type_name -> harness.llm.v1.LimitWindow
+	4,  // 5: harness.llm.v1.GetProviderLimitsResponse.providers:type_name -> harness.llm.v1.ProviderLimits
+	4,  // 6: harness.llm.v1.GetProviderLimitsResponse.model:type_name -> harness.llm.v1.ProviderLimits
+	4,  // 7: harness.llm.v1.SetProviderBudgetResponse.limits:type_name -> harness.llm.v1.ProviderLimits
+	4,  // 8: harness.llm.v1.SetProviderBalanceEstimateResponse.limits:type_name -> harness.llm.v1.ProviderLimits
+	0,  // 9: harness.llm.v1.LimitsVisibility.audience:type_name -> harness.llm.v1.LimitsAudience
+	11, // 10: harness.llm.v1.ProviderLimitsPolicy.balance:type_name -> harness.llm.v1.LimitsVisibility
+	11, // 11: harness.llm.v1.ProviderLimitsPolicy.limits:type_name -> harness.llm.v1.LimitsVisibility
+	5,  // 12: harness.llm.v1.ProviderLimitsService.GetProviderLimits:input_type -> harness.llm.v1.GetProviderLimitsRequest
+	7,  // 13: harness.llm.v1.ProviderLimitsService.SetProviderBudget:input_type -> harness.llm.v1.SetProviderBudgetRequest
+	9,  // 14: harness.llm.v1.ProviderLimitsService.SetProviderBalanceEstimate:input_type -> harness.llm.v1.SetProviderBalanceEstimateRequest
+	6,  // 15: harness.llm.v1.ProviderLimitsService.GetProviderLimits:output_type -> harness.llm.v1.GetProviderLimitsResponse
+	8,  // 16: harness.llm.v1.ProviderLimitsService.SetProviderBudget:output_type -> harness.llm.v1.SetProviderBudgetResponse
+	10, // 17: harness.llm.v1.ProviderLimitsService.SetProviderBalanceEstimate:output_type -> harness.llm.v1.SetProviderBalanceEstimateResponse
+	15, // [15:18] is the sub-list for method output_type
+	12, // [12:15] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_limits_proto_init() }
@@ -920,13 +1087,14 @@ func file_harness_llm_v1_limits_proto_init() {
 	file_harness_llm_v1_limits_proto_msgTypes[1].OneofWrappers = []any{}
 	file_harness_llm_v1_limits_proto_msgTypes[2].OneofWrappers = []any{}
 	file_harness_llm_v1_limits_proto_msgTypes[6].OneofWrappers = []any{}
+	file_harness_llm_v1_limits_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_llm_v1_limits_proto_rawDesc), len(file_harness_llm_v1_limits_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

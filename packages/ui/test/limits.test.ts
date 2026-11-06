@@ -24,6 +24,21 @@ describe('limitsView', () => {
     expect(v.windows).toEqual([{ label: 'requests', usedPercent: 10, limit: 20, remaining: 18, resetsAt: '' }])
   })
 
+  it('carries an estimate and where one may be entered, and never rate limits', () => {
+    const v = limitsView(create(ProviderLimitsSchema, {
+      providerId: 'u-1',
+      balanceEntry: true,
+      balance: { currency: 'USD', balance: 99.99, total: 100, used: 0.01, label: 'estimate', estimated: true, estimatedSince: '2026-11-01T00:00:00Z' },
+      windows: [{ label: '5h', usedPercent: 10 }],
+      rateWindows: [{ label: 'requests/min', usedPercent: 99 }]
+    }))
+    expect(v.balanceEntry).toBe(true)
+    expect(v.balance).toMatchObject({ balance: 99.99, total: 100, estimated: true, estimatedSince: '2026-11-01T00:00:00Z' })
+    expect(v.windows.map(w => w.label)).toEqual(['5h'])
+    expect(JSON.stringify(v)).not.toContain('requests/min')
+    expect(limitsView(create(ProviderLimitsSchema, { providerId: 'x', balance: { currency: 'USD', balance: 1 } })).balance!.estimated).toBeUndefined()
+  })
+
   it('leaves hidden blocks out', () => {
     const v = limitsView(create(ProviderLimitsSchema, { providerId: 'u-1', scope: ProviderScope.PERSONAL }))
     expect(v.scope).toBe('personal')
@@ -53,6 +68,17 @@ describe('MockLimitsApi', () => {
     expect(by.openai!.spend).toMatchObject({ spent: 3.1, budget: 25 })
     expect(res.model?.providerId).toBe('anthropic')
     expect((await api.getProviderLimits({ providerIds: ['openai'] })).providers.map(p => p.providerId)).toEqual(['openai'])
+  })
+
+  it('keeps an estimate only where the provider takes one', async () => {
+    const api = new MockLimitsApi()
+    const set = await api.setBalanceEstimate('openai', 100, '2026-11-01T00:00:00.000Z')
+    expect(set.balance).toMatchObject({ balance: 99.99, total: 100, estimated: true, estimatedSince: '2026-11-01T00:00:00.000Z' })
+    expect((await api.setBalanceEstimate('openai', 20)).balance).toMatchObject({ balance: 19.99, total: 20 })
+    expect((await api.setBalanceEstimate('openai', undefined)).balance).toBeUndefined()
+    await expect(api.setBalanceEstimate('openrouter', 1)).rejects.toThrow(/reports its own balance/)
+    await expect(api.setBalanceEstimate('anthropic', 1)).rejects.toThrow(/reports its own balance/)
+    await expect(api.setBalanceEstimate('openai', -1)).rejects.toThrow(/non-negative/)
   })
 
   it('keeps budgets and policies', async () => {

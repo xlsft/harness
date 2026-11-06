@@ -22,6 +22,8 @@ export interface LimitWindow {
   limit?: number;
   /** RFC 3339, UTC; empty when unknown. */
   resets_at: string;
+  /** A subscription plan's usage (the unified headers), which is shown; the rest are rate limits, which are not (limits/service.ts). */
+  plan?: boolean;
 }
 
 export interface WindowSnapshot {
@@ -112,7 +114,7 @@ export function parseRateLimitHeaders(h: HeaderSource, now = Date.now()): LimitW
   for (const name of names.sort()) {
     const u = num(h.get(`anthropic-ratelimit-unified-${name}-utilization`));
     if (u === undefined) continue;
-    out.push({ label: unifiedLabel(name), used_percent: clamp(u > 1 ? u : u * 100), resets_at: parseReset(h.get(`anthropic-ratelimit-unified-${name}-reset`), now) });
+    out.push({ label: unifiedLabel(name), used_percent: clamp(u > 1 ? u : u * 100), resets_at: parseReset(h.get(`anthropic-ratelimit-unified-${name}-reset`), now), plan: true });
   }
 
   // Anthropic API keys.

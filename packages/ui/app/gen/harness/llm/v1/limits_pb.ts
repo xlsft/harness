@@ -12,10 +12,10 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/llm/v1/limits.proto.
  */
 export const file_harness_llm_v1_limits: GenFile = /*@__PURE__*/
-  fileDesc("ChtoYXJuZXNzL2xsbS92MS9saW1pdHMucHJvdG8SDmhhcm5lc3MubGxtLnYxIsEBCg9Qcm92aWRlckJhbGFuY2USEAoIY3VycmVuY3kYASABKAkSFAoHYmFsYW5jZRgCIAEoAUgAiAEBEhEKBHVzZWQYAyABKAFIAYgBARISCgV0b3RhbBgEIAEoAUgCiAEBEg0KBWxhYmVsGAUgASgJEhIKCnVwZGF0ZWRfYXQYBiABKAkSDgoGc291cmNlGAcgASgJEg0KBWVycm9yGAggASgJQgoKCF9iYWxhbmNlQgcKBV91c2VkQggKBl90b3RhbCJ3Cg1Qcm92aWRlclNwZW5kEhAKCGN1cnJlbmN5GAEgASgJEg0KBXNwZW50GAIgASgBEhMKBmJ1ZGdldBgDIAEoAUgAiAEBEhQKDHBlcmlvZF9zdGFydBgEIAEoCRIPCgdwYXJ0aWFsGAUgASgIQgkKB19idWRnZXQiiQEKC0xpbWl0V2luZG93Eg0KBWxhYmVsGAEgASgJEhQKDHVzZWRfcGVyY2VudBgCIAEoARIWCglyZW1haW5pbmcYAyABKAFIAIgBARISCgVsaW1pdBgEIAEoAUgBiAEBEhEKCXJlc2V0c19hdBgFIAEoCUIMCgpfcmVtYWluaW5nQggKBl9saW1pdCK9AgoOUHJvdmlkZXJMaW1pdHMSEwoLcHJvdmlkZXJfaWQYASABKAkSFQoNcHJvdmlkZXJfbmFtZRgCIAEoCRIsCgVzY29wZRgDIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSDwoHYmlsbGluZxgEIAEoCRIwCgdiYWxhbmNlGAUgASgLMh8uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJCYWxhbmNlEiwKBXNwZW5kGAYgASgLMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJTcGVuZBIsCgd3aW5kb3dzGAcgAygLMhsuaGFybmVzcy5sbG0udjEuTGltaXRXaW5kb3cSGgoSd2luZG93c191cGRhdGVkX2F0GAggASgJEhYKDndpbmRvd3Nfc291cmNlGAkgASgJIkIKGEdldFByb3ZpZGVyTGltaXRzUmVxdWVzdBIUCgxwcm92aWRlcl9pZHMYASADKAkSEAoIbW9kZWxfaWQYAiABKAkifQoZR2V0UHJvdmlkZXJMaW1pdHNSZXNwb25zZRIxCglwcm92aWRlcnMYASADKAsyHi5oYXJuZXNzLmxsbS52MS5Qcm92aWRlckxpbWl0cxItCgVtb2RlbBgCIAEoCzIeLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyTGltaXRzIlkKGFNldFByb3ZpZGVyQnVkZ2V0UmVxdWVzdBITCgtwcm92aWRlcl9pZBgBIAEoCRIYCgttb250aGx5X3VzZBgCIAEoAUgAiAEBQg4KDF9tb250aGx5X3VzZCJLChlTZXRQcm92aWRlckJ1ZGdldFJlc3BvbnNlEi4KBmxpbWl0cxgBIAEoCzIeLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyTGltaXRzIlYKEExpbWl0c1Zpc2liaWxpdHkSMAoIYXVkaWVuY2UYASABKA4yHi5oYXJuZXNzLmxsbS52MS5MaW1pdHNBdWRpZW5jZRIQCgh1c2VyX2lkcxgCIAMoCSKQAQoUUHJvdmlkZXJMaW1pdHNQb2xpY3kSEwoLcHJvdmlkZXJfaWQYASABKAkSMQoHYmFsYW5jZRgCIAEoCzIgLmhhcm5lc3MubGxtLnYxLkxpbWl0c1Zpc2liaWxpdHkSMAoGbGltaXRzGAMgASgLMiAuaGFybmVzcy5sbG0udjEuTGltaXRzVmlzaWJpbGl0eSqUAQoOTGltaXRzQXVkaWVuY2USHwobTElNSVRTX0FVRElFTkNFX1VOU1BFQ0lGSUVEEAASHAoYTElNSVRTX0FVRElFTkNFX0VWRVJZT05FEAESIgoeTElNSVRTX0FVRElFTkNFX1NFTEVDVEVEX1VTRVJTEAISHwobTElNSVRTX0FVRElFTkNFX0FETUlOU19PTkxZEAMy6wEKFVByb3ZpZGVyTGltaXRzU2VydmljZRJoChFHZXRQcm92aWRlckxpbWl0cxIoLmhhcm5lc3MubGxtLnYxLkdldFByb3ZpZGVyTGltaXRzUmVxdWVzdBopLmhhcm5lc3MubGxtLnYxLkdldFByb3ZpZGVyTGltaXRzUmVzcG9uc2USaAoRU2V0UHJvdmlkZXJCdWRnZXQSKC5oYXJuZXNzLmxsbS52MS5TZXRQcm92aWRlckJ1ZGdldFJlcXVlc3QaKS5oYXJuZXNzLmxsbS52MS5TZXRQcm92aWRlckJ1ZGdldFJlc3BvbnNlQr4BChJjb20uaGFybmVzcy5sbG0udjFCC0xpbWl0c1Byb3RvUAFaQWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvbGxtL3YxO2xsbXYxogIDSExYqgIOSGFybmVzcy5MbG0uVjHKAg5IYXJuZXNzXExsbVxWMeICGkhhcm5lc3NcTGxtXFYxXEdQQk1ldGFkYXRh6gIQSGFybmVzczo6TGxtOjpWMWIGcHJvdG8z", [file_harness_llm_v1_providers]);
+  fileDesc("ChtoYXJuZXNzL2xsbS92MS9saW1pdHMucHJvdG8SDmhhcm5lc3MubGxtLnYxIu0BCg9Qcm92aWRlckJhbGFuY2USEAoIY3VycmVuY3kYASABKAkSFAoHYmFsYW5jZRgCIAEoAUgAiAEBEhEKBHVzZWQYAyABKAFIAYgBARISCgV0b3RhbBgEIAEoAUgCiAEBEg0KBWxhYmVsGAUgASgJEhIKCnVwZGF0ZWRfYXQYBiABKAkSDgoGc291cmNlGAcgASgJEg0KBWVycm9yGAggASgJEhEKCWVzdGltYXRlZBgJIAEoCBIXCg9lc3RpbWF0ZWRfc2luY2UYCiABKAlCCgoIX2JhbGFuY2VCBwoFX3VzZWRCCAoGX3RvdGFsIncKDVByb3ZpZGVyU3BlbmQSEAoIY3VycmVuY3kYASABKAkSDQoFc3BlbnQYAiABKAESEwoGYnVkZ2V0GAMgASgBSACIAQESFAoMcGVyaW9kX3N0YXJ0GAQgASgJEg8KB3BhcnRpYWwYBSABKAhCCQoHX2J1ZGdldCKJAQoLTGltaXRXaW5kb3cSDQoFbGFiZWwYASABKAkSFAoMdXNlZF9wZXJjZW50GAIgASgBEhYKCXJlbWFpbmluZxgDIAEoAUgAiAEBEhIKBWxpbWl0GAQgASgBSAGIAQESEQoJcmVzZXRzX2F0GAUgASgJQgwKCl9yZW1haW5pbmdCCAoGX2xpbWl0IocDCg5Qcm92aWRlckxpbWl0cxITCgtwcm92aWRlcl9pZBgBIAEoCRIVCg1wcm92aWRlcl9uYW1lGAIgASgJEiwKBXNjb3BlGAMgASgOMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJTY29wZRIPCgdiaWxsaW5nGAQgASgJEjAKB2JhbGFuY2UYBSABKAsyHy5oYXJuZXNzLmxsbS52MS5Qcm92aWRlckJhbGFuY2USLAoFc3BlbmQYBiABKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlclNwZW5kEiwKB3dpbmRvd3MYByADKAsyGy5oYXJuZXNzLmxsbS52MS5MaW1pdFdpbmRvdxIaChJ3aW5kb3dzX3VwZGF0ZWRfYXQYCCABKAkSFgoOd2luZG93c19zb3VyY2UYCSABKAkSFQoNYmFsYW5jZV9lbnRyeRgKIAEoCBIxCgxyYXRlX3dpbmRvd3MYCyADKAsyGy5oYXJuZXNzLmxsbS52MS5MaW1pdFdpbmRvdyJCChhHZXRQcm92aWRlckxpbWl0c1JlcXVlc3QSFAoMcHJvdmlkZXJfaWRzGAEgAygJEhAKCG1vZGVsX2lkGAIgASgJIn0KGUdldFByb3ZpZGVyTGltaXRzUmVzcG9uc2USMQoJcHJvdmlkZXJzGAEgAygLMh4uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJMaW1pdHMSLQoFbW9kZWwYAiABKAsyHi5oYXJuZXNzLmxsbS52MS5Qcm92aWRlckxpbWl0cyJZChhTZXRQcm92aWRlckJ1ZGdldFJlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSGAoLbW9udGhseV91c2QYAiABKAFIAIgBAUIOCgxfbW9udGhseV91c2QiSwoZU2V0UHJvdmlkZXJCdWRnZXRSZXNwb25zZRIuCgZsaW1pdHMYASABKAsyHi5oYXJuZXNzLmxsbS52MS5Qcm92aWRlckxpbWl0cyJnCiFTZXRQcm92aWRlckJhbGFuY2VFc3RpbWF0ZVJlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkSEwoGYW1vdW50GAIgASgBSACIAQESDQoFYXNfb2YYAyABKAlCCQoHX2Ftb3VudCJUCiJTZXRQcm92aWRlckJhbGFuY2VFc3RpbWF0ZVJlc3BvbnNlEi4KBmxpbWl0cxgBIAEoCzIeLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyTGltaXRzIlYKEExpbWl0c1Zpc2liaWxpdHkSMAoIYXVkaWVuY2UYASABKA4yHi5oYXJuZXNzLmxsbS52MS5MaW1pdHNBdWRpZW5jZRIQCgh1c2VyX2lkcxgCIAMoCSKQAQoUUHJvdmlkZXJMaW1pdHNQb2xpY3kSEwoLcHJvdmlkZXJfaWQYASABKAkSMQoHYmFsYW5jZRgCIAEoCzIgLmhhcm5lc3MubGxtLnYxLkxpbWl0c1Zpc2liaWxpdHkSMAoGbGltaXRzGAMgASgLMiAuaGFybmVzcy5sbG0udjEuTGltaXRzVmlzaWJpbGl0eSqUAQoOTGltaXRzQXVkaWVuY2USHwobTElNSVRTX0FVRElFTkNFX1VOU1BFQ0lGSUVEEAASHAoYTElNSVRTX0FVRElFTkNFX0VWRVJZT05FEAESIgoeTElNSVRTX0FVRElFTkNFX1NFTEVDVEVEX1VTRVJTEAISHwobTElNSVRTX0FVRElFTkNFX0FETUlOU19PTkxZEAMy8QIKFVByb3ZpZGVyTGltaXRzU2VydmljZRJoChFHZXRQcm92aWRlckxpbWl0cxIoLmhhcm5lc3MubGxtLnYxLkdldFByb3ZpZGVyTGltaXRzUmVxdWVzdBopLmhhcm5lc3MubGxtLnYxLkdldFByb3ZpZGVyTGltaXRzUmVzcG9uc2USaAoRU2V0UHJvdmlkZXJCdWRnZXQSKC5oYXJuZXNzLmxsbS52MS5TZXRQcm92aWRlckJ1ZGdldFJlcXVlc3QaKS5oYXJuZXNzLmxsbS52MS5TZXRQcm92aWRlckJ1ZGdldFJlc3BvbnNlEoMBChpTZXRQcm92aWRlckJhbGFuY2VFc3RpbWF0ZRIxLmhhcm5lc3MubGxtLnYxLlNldFByb3ZpZGVyQmFsYW5jZUVzdGltYXRlUmVxdWVzdBoyLmhhcm5lc3MubGxtLnYxLlNldFByb3ZpZGVyQmFsYW5jZUVzdGltYXRlUmVzcG9uc2VCvgEKEmNvbS5oYXJuZXNzLmxsbS52MUILTGltaXRzUHJvdG9QAVpBZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9sbG0vdjE7bGxtdjGiAgNITFiqAg5IYXJuZXNzLkxsbS5WMcoCDkhhcm5lc3NcTGxtXFYx4gIaSGFybmVzc1xMbG1cVjFcR1BCTWV0YWRhdGHqAhBIYXJuZXNzOjpMbG06OlYxYgZwcm90bzM", [file_harness_llm_v1_providers]);
 
 /**
- * Credit read from the provider's API. Amounts are in `currency`.
+ * Credit read from the provider's API, or estimated from our own records (`estimated`). Amounts are in `currency`.
  *
  * @generated from message harness.llm.v1.ProviderBalance
  */
@@ -75,6 +75,21 @@ export type ProviderBalance = Message<"harness.llm.v1.ProviderBalance"> & {
    * @generated from field: string error = 8;
    */
   error: string;
+
+  /**
+   * Not read from the provider: `total` is the amount someone entered, `used` what requests through harness cost
+   * since, `balance` the difference (below zero when more was spent). Spending elsewhere is not seen.
+   *
+   * @generated from field: bool estimated = 9;
+   */
+  estimated: boolean;
+
+  /**
+   * RFC 3339, UTC: with `estimated`, since when spending counts.
+   *
+   * @generated from field: string estimated_since = 10;
+   */
+  estimatedSince: string;
 };
 
 /**
@@ -132,13 +147,14 @@ export const ProviderSpendSchema: GenMessage<ProviderSpend> = /*@__PURE__*/
   messageDesc(file_harness_llm_v1_limits, 1);
 
 /**
- * One rate-limit window from the response headers.
+ * One limit window from the response headers.
  *
  * @generated from message harness.llm.v1.LimitWindow
  */
 export type LimitWindow = Message<"harness.llm.v1.LimitWindow"> & {
   /**
-   * "5h", "weekly", "weekly (Opus)", "requests/min", "tokens/min", "input tokens/min", "output tokens/min".
+   * Plan windows: "5h", "weekly", "weekly (Opus)". Rate limits: "requests/min", "tokens/min", "input tokens/min",
+   * "output tokens/min", "requests".
    *
    * @generated from field: string label = 1;
    */
@@ -203,7 +219,7 @@ export type ProviderLimits = Message<"harness.llm.v1.ProviderLimits"> & {
   billing: string;
 
   /**
-   * Absent: no balance API, or hidden from the caller.
+   * Absent: no balance API and no estimate, or hidden from the caller.
    *
    * @generated from field: harness.llm.v1.ProviderBalance balance = 5;
    */
@@ -217,7 +233,7 @@ export type ProviderLimits = Message<"harness.llm.v1.ProviderLimits"> & {
   spend?: ProviderSpend | undefined;
 
   /**
-   * Empty: nothing seen yet, or hidden from the caller.
+   * A plan's usage windows, the ones to show. Empty: not a plan, nothing seen yet, or hidden from the caller.
    *
    * @generated from field: repeated harness.llm.v1.LimitWindow windows = 7;
    */
@@ -236,6 +252,22 @@ export type ProviderLimits = Message<"harness.llm.v1.ProviderLimits"> & {
    * @generated from field: string windows_source = 9;
    */
   windowsSource: string;
+
+  /**
+   * The caller may enter a starting balance (SetProviderBalanceEstimate): a metered provider without a balance API
+   * that they may change.
+   *
+   * @generated from field: bool balance_entry = 10;
+   */
+  balanceEntry: boolean;
+
+  /**
+   * Per-minute rate limits, under the same policy as `windows`: not for showing. They are what the client's usage-limit
+   * watch reads alongside `windows` to warn before a refusal and to explain one.
+   *
+   * @generated from field: repeated harness.llm.v1.LimitWindow rate_windows = 11;
+   */
+  rateWindows: LimitWindow[];
 };
 
 /**
@@ -338,6 +370,54 @@ export const SetProviderBudgetResponseSchema: GenMessage<SetProviderBudgetRespon
   messageDesc(file_harness_llm_v1_limits, 7);
 
 /**
+ * @generated from message harness.llm.v1.SetProviderBalanceEstimateRequest
+ */
+export type SetProviderBalanceEstimateRequest = Message<"harness.llm.v1.SetProviderBalanceEstimateRequest"> & {
+  /**
+   * @generated from field: string provider_id = 1;
+   */
+  providerId: string;
+
+  /**
+   * USD left at `as_of`, not negative. Replaces what was entered before (a top-up); unset clears the estimate.
+   *
+   * @generated from field: optional double amount = 2;
+   */
+  amount?: number | undefined;
+
+  /**
+   * RFC 3339, not in the future: since when spending counts. Empty: now.
+   *
+   * @generated from field: string as_of = 3;
+   */
+  asOf: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.SetProviderBalanceEstimateRequest.
+ * Use `create(SetProviderBalanceEstimateRequestSchema)` to create a new message.
+ */
+export const SetProviderBalanceEstimateRequestSchema: GenMessage<SetProviderBalanceEstimateRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_limits, 8);
+
+/**
+ * @generated from message harness.llm.v1.SetProviderBalanceEstimateResponse
+ */
+export type SetProviderBalanceEstimateResponse = Message<"harness.llm.v1.SetProviderBalanceEstimateResponse"> & {
+  /**
+   * @generated from field: harness.llm.v1.ProviderLimits limits = 1;
+   */
+  limits?: ProviderLimits | undefined;
+};
+
+/**
+ * Describes the message harness.llm.v1.SetProviderBalanceEstimateResponse.
+ * Use `create(SetProviderBalanceEstimateResponseSchema)` to create a new message.
+ */
+export const SetProviderBalanceEstimateResponseSchema: GenMessage<SetProviderBalanceEstimateResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_limits, 9);
+
+/**
  * @generated from message harness.llm.v1.LimitsVisibility
  */
 export type LimitsVisibility = Message<"harness.llm.v1.LimitsVisibility"> & {
@@ -359,7 +439,7 @@ export type LimitsVisibility = Message<"harness.llm.v1.LimitsVisibility"> & {
  * Use `create(LimitsVisibilitySchema)` to create a new message.
  */
 export const LimitsVisibilitySchema: GenMessage<LimitsVisibility> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_limits, 8);
+  messageDesc(file_harness_llm_v1_limits, 10);
 
 /**
  * A global provider's two visibility policies (harness.auth.v1.AdminService). Personal providers have none.
@@ -392,7 +472,7 @@ export type ProviderLimitsPolicy = Message<"harness.llm.v1.ProviderLimitsPolicy"
  * Use `create(ProviderLimitsPolicySchema)` to create a new message.
  */
 export const ProviderLimitsPolicySchema: GenMessage<ProviderLimitsPolicy> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_limits, 9);
+  messageDesc(file_harness_llm_v1_limits, 11);
 
 /**
  * Who may see one block of a global provider's limits. Admins always may.
@@ -440,23 +520,26 @@ export const LimitsAudienceSchema: GenEnum<LimitsAudience> = /*@__PURE__*/
  * A provider may have any mix of three independent blocks:
  *   - balance: prepaid credit or a key limit read from the provider's own API (OpenRouter /api/v1/key and
  *     /api/v1/credits, DeepSeek /user/balance, Moonshot /v1/users/me/balance). Fetched on demand and cached
- *     for 60 s per provider (a failure too), never more often, with the provider's key on the server only;
+ *     for 60 s per provider (a failure too), never more often, with the provider's key on the server only.
+ *     On a metered provider without such an API, an estimate instead: a starting amount entered with
+ *     SetProviderBalanceEstimate minus the priced spend our usage records show since (ProviderBalance.estimated);
  *   - spend: what our own usage records cost on this provider in the current calendar month (UTC), plus an
  *     optional monthly budget set with SetProviderBudget. For providers without a balance API (OpenAI,
  *     Anthropic, ...), or alongside a balance;
- *   - windows: rate-limit windows from the response headers the gateway already receives (anthropic-ratelimit-*,
- *     the unified 5h / 7d plan headers, x-ratelimit-*): the latest snapshot per provider, no extra requests.
+ *   - windows: a subscription plan's usage windows from the response headers the gateway already receives (the
+ *     unified 5h / 7d plan headers): the latest snapshot per provider, no extra requests. Per-minute rate limits
+ *     (anthropic-ratelimit-*, x-ratelimit-*) are not shown to anyone; they come apart in rate_windows.
  *
  * Visibility, enforced here (hidden blocks are left out of the response, not flagged):
  *   - global providers: listed for everyone who can use them (admins: all of them). Each one has two policies an
- *     admin sets through harness.auth.v1.AdminService (ProviderLimitsPolicy): who sees its balance, and who sees
- *     its limits (spend and windows). Default: everyone who can use it. Admins always see both;
+ *     admin sets through harness.auth.v1.AdminService (ProviderLimitsPolicy): who sees its balance (an estimate
+ *     too), and who sees its limits (spend and windows). Default: everyone who can use it. Admins always see both;
  *   - personal providers (a user's own key): only their owner ever sees their limits, admins included; there is
  *     no policy and no override. Their header snapshots live in the server's memory and are served to the owner
  *     only.
  *
  * Frontends reach GetProviderLimits through the local client (AgentService.GetProviderLimits) and
- * SetProviderBudget through the client's core proxy (packages/client/server/coreproxy.go).
+ * SetProviderBudget and SetProviderBalanceEstimate through the client's core proxy (packages/client/server/coreproxy.go).
  * Requires `Authorization: Bearer <access token>`. Status: DRAFT (M2).
  *
  * @generated from service harness.llm.v1.ProviderLimitsService
@@ -481,6 +564,17 @@ export const ProviderLimitsService: GenService<{
     methodKind: "unary";
     input: typeof SetProviderBudgetRequestSchema;
     output: typeof SetProviderBudgetResponseSchema;
+  },
+  /**
+   * Sets or clears the starting amount of a provider's estimated balance. Admins for global providers; the owner for
+   * a personal one. Metered providers without a balance API only (ProviderLimits.balance_entry).
+   *
+   * @generated from rpc harness.llm.v1.ProviderLimitsService.SetProviderBalanceEstimate
+   */
+  setProviderBalanceEstimate: {
+    methodKind: "unary";
+    input: typeof SetProviderBalanceEstimateRequestSchema;
+    output: typeof SetProviderBalanceEstimateResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_llm_v1_limits, 0);

@@ -63,6 +63,9 @@ const (
 	// ProviderServiceSetModelEffortsProcedure is the fully-qualified name of the ProviderService's
 	// SetModelEfforts RPC.
 	ProviderServiceSetModelEffortsProcedure = "/harness.llm.v1.ProviderService/SetModelEfforts"
+	// ProviderServiceSetModelPricingProcedure is the fully-qualified name of the ProviderService's
+	// SetModelPricing RPC.
+	ProviderServiceSetModelPricingProcedure = "/harness.llm.v1.ProviderService/SetModelPricing"
 	// ProviderServiceGetClassifierProcedure is the fully-qualified name of the ProviderService's
 	// GetClassifier RPC.
 	ProviderServiceGetClassifierProcedure = "/harness.llm.v1.ProviderService/GetClassifier"
@@ -120,6 +123,9 @@ type ProviderServiceClient interface {
 	// and the level recommended among them.
 	// What is set here, also none, is kept: discovery only fills in what nobody set.
 	SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error)
+	// Sets by hand the price of a model of a provider the caller may change, also to none. Kept: lists and presets only
+	// fill in an empty price nobody set. Refused on a plan provider, whose requests carry no cost.
+	SetModelPricing(context.Context, *connect.Request[v1.SetModelPricingRequest]) (*connect.Response[v1.SetModelPricingResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
 	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
 	// server default for everyone. Admin only.
@@ -214,6 +220,12 @@ func NewProviderServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(providerServiceMethods.ByName("SetModelEfforts")),
 			connect.WithClientOptions(opts...),
 		),
+		setModelPricing: connect.NewClient[v1.SetModelPricingRequest, v1.SetModelPricingResponse](
+			httpClient,
+			baseURL+ProviderServiceSetModelPricingProcedure,
+			connect.WithSchema(providerServiceMethods.ByName("SetModelPricing")),
+			connect.WithClientOptions(opts...),
+		),
 		getClassifier: connect.NewClient[v1.GetClassifierRequest, v1.GetClassifierResponse](
 			httpClient,
 			baseURL+ProviderServiceGetClassifierProcedure,
@@ -283,6 +295,7 @@ type providerServiceClient struct {
 	testProvider     *connect.Client[v1.TestProviderRequest, v1.TestProviderResponse]
 	removeModel      *connect.Client[v1.RemoveModelRequest, v1.RemoveModelResponse]
 	setModelEfforts  *connect.Client[v1.SetModelEffortsRequest, v1.SetModelEffortsResponse]
+	setModelPricing  *connect.Client[v1.SetModelPricingRequest, v1.SetModelPricingResponse]
 	getClassifier    *connect.Client[v1.GetClassifierRequest, v1.GetClassifierResponse]
 	setClassifier    *connect.Client[v1.SetClassifierRequest, v1.SetClassifierResponse]
 	getMyClassifier  *connect.Client[v1.GetMyClassifierRequest, v1.GetMyClassifierResponse]
@@ -342,6 +355,11 @@ func (c *providerServiceClient) RemoveModel(ctx context.Context, req *connect.Re
 // SetModelEfforts calls harness.llm.v1.ProviderService.SetModelEfforts.
 func (c *providerServiceClient) SetModelEfforts(ctx context.Context, req *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error) {
 	return c.setModelEfforts.CallUnary(ctx, req)
+}
+
+// SetModelPricing calls harness.llm.v1.ProviderService.SetModelPricing.
+func (c *providerServiceClient) SetModelPricing(ctx context.Context, req *connect.Request[v1.SetModelPricingRequest]) (*connect.Response[v1.SetModelPricingResponse], error) {
+	return c.setModelPricing.CallUnary(ctx, req)
 }
 
 // GetClassifier calls harness.llm.v1.ProviderService.GetClassifier.
@@ -417,6 +435,9 @@ type ProviderServiceHandler interface {
 	// and the level recommended among them.
 	// What is set here, also none, is kept: discovery only fills in what nobody set.
 	SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error)
+	// Sets by hand the price of a model of a provider the caller may change, also to none. Kept: lists and presets only
+	// fill in an empty price nobody set. Refused on a plan provider, whose requests carry no cost.
+	SetModelPricing(context.Context, *connect.Request[v1.SetModelPricingRequest]) (*connect.Response[v1.SetModelPricingResponse], error)
 	// The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
 	// typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
 	// server default for everyone. Admin only.
@@ -507,6 +528,12 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 		connect.WithSchema(providerServiceMethods.ByName("SetModelEfforts")),
 		connect.WithHandlerOptions(opts...),
 	)
+	providerServiceSetModelPricingHandler := connect.NewUnaryHandler(
+		ProviderServiceSetModelPricingProcedure,
+		svc.SetModelPricing,
+		connect.WithSchema(providerServiceMethods.ByName("SetModelPricing")),
+		connect.WithHandlerOptions(opts...),
+	)
 	providerServiceGetClassifierHandler := connect.NewUnaryHandler(
 		ProviderServiceGetClassifierProcedure,
 		svc.GetClassifier,
@@ -583,6 +610,8 @@ func NewProviderServiceHandler(svc ProviderServiceHandler, opts ...connect.Handl
 			providerServiceRemoveModelHandler.ServeHTTP(w, r)
 		case ProviderServiceSetModelEffortsProcedure:
 			providerServiceSetModelEffortsHandler.ServeHTTP(w, r)
+		case ProviderServiceSetModelPricingProcedure:
+			providerServiceSetModelPricingHandler.ServeHTTP(w, r)
 		case ProviderServiceGetClassifierProcedure:
 			providerServiceGetClassifierHandler.ServeHTTP(w, r)
 		case ProviderServiceSetClassifierProcedure:
@@ -648,6 +677,10 @@ func (UnimplementedProviderServiceHandler) RemoveModel(context.Context, *connect
 
 func (UnimplementedProviderServiceHandler) SetModelEfforts(context.Context, *connect.Request[v1.SetModelEffortsRequest]) (*connect.Response[v1.SetModelEffortsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetModelEfforts is not implemented"))
+}
+
+func (UnimplementedProviderServiceHandler) SetModelPricing(context.Context, *connect.Request[v1.SetModelPricingRequest]) (*connect.Response[v1.SetModelPricingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderService.SetModelPricing is not implemented"))
 }
 
 func (UnimplementedProviderServiceHandler) GetClassifier(context.Context, *connect.Request[v1.GetClassifierRequest]) (*connect.Response[v1.GetClassifierResponse], error) {

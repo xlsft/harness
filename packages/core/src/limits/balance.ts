@@ -9,7 +9,8 @@
  *   - Moonshot / Kimi platform (api.moonshot.ai: USD, api.moonshot.cn: CNY): GET /v1/users/me/balance.
  *
  * OpenAI, Anthropic, Gemini, xAI (management keys only), Z.ai and the coding plans have no balance API usable
- * with an inference key: they get spend and windows only (limits/service.ts).
+ * with an inference key: they get spend and windows, and the metered ones an estimate from an amount someone entered
+ * (estimatedBalance; limits/service.ts).
  *
  * Results (a failure too) are cached per provider for BALANCE_TTL_MS and concurrent reads share one request,
  * so a provider is never asked more often. Keys go in the Authorization header only; error messages never
@@ -28,6 +29,10 @@ export interface Balance {
   updated_at: string;
   source: string;
   error?: string;
+  /** Calculated from our own records, not read from the provider (estimatedBalance). */
+  estimated?: boolean;
+  /** RFC 3339, UTC: with `estimated`, since when spending counts. */
+  estimated_since?: string;
 }
 
 export type FetchFn = (url: string, init: { headers: Record<string, string>; signal: AbortSignal; allowPrivateNetwork: boolean }) => Promise<{
@@ -163,6 +168,24 @@ const moonshot: BalanceAdapter = {
 };
 
 const ADAPTERS: BalanceAdapter[] = [openrouter, deepseek, moonshot];
+
+/**
+ * A balance by arithmetic, for a provider that cannot tell: what was entered minus what requests through harness cost
+ * since. Below zero when more was spent than entered: the entered amount is off, and saying 0 would hide that.
+ */
+export function estimatedBalance(entered: { amount: number; since: string }, spent: number, now: Date): Balance {
+  return {
+    currency: "USD",
+    balance: round(entered.amount - spent),
+    used: round(spent),
+    total: entered.amount,
+    label: "estimate",
+    updated_at: now.toISOString(),
+    source: "harness:usage_records",
+    estimated: true,
+    estimated_since: entered.since,
+  };
+}
 
 /** The adapter for a provider's base URL, if its service has a balance API. */
 export function balanceAdapterFor(baseUrl: string): string | undefined {

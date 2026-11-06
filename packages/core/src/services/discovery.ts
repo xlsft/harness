@@ -10,8 +10,8 @@ import { joinUrl } from "../gateway/adapters/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
-import { backfilledCapabilities, EFFORT_LEVELS, type Effort, type ListedCapabilities, type ModelPricing } from "./models.ts";
-import { presetOf } from "./presets.ts";
+import { backfilledCapabilities, EFFORT_LEVELS, fillPresetPrices, priceSetByHand, type Effort, type ListedCapabilities, type ModelPricing } from "./models.ts";
+import { presetOf, presetPriceOf } from "./presets.ts";
 import { loadProviderRuntime, providerForUser, redactSecrets, type ProviderRuntime } from "./providers.ts";
 
 export interface ModelCandidate {
@@ -21,7 +21,7 @@ export interface ModelCandidate {
   /** Present when the upstream reports it (OpenRouter `context_length`, vLLM `max_model_len`, ...). */
   context_window?: number;
   max_output_tokens?: number;
-  /** USD per 1M tokens, when the upstream's list says (OpenRouter `pricing`, per token there). */
+  /** USD per 1M tokens, when the upstream's list says (OpenRouter `pricing`, per token there) or else its preset does. */
   pricing?: ModelPricing;
   /** What the upstream's list says the model can do (see listedCapabilities). */
   capabilities?: ListedCapabilities;
@@ -186,6 +186,8 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
   if (row.kind === "search") throw new ApiError("invalid_request", "Search providers serve no models");
   const p = await loadProviderRuntime(providerId);
   const preset = presetOf(row);
+  // Before the service is asked: a list that fails or gives no prices must not keep the preset's from a model.
+  await fillPresetPrices(providerId);
 
   const raw: Record<string, any>[] = [];
   if (row.kind === "classifier" || (preset && !preset.discovers_models)) {
@@ -219,7 +221,8 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
     const c = toCandidate(m);
     if (!c || seen.has(c.upstream_model)) continue;
     seen.add(c.upstream_model);
-    models.push({ ...c, catalog_ids: catalog.filter((e) => e.upstreamModel === c.upstream_model).map((e) => e.id) });
+    const pricing = c.pricing ?? presetPriceOf(row, c.upstream_model);
+    models.push({ ...c, ...(pricing && { pricing }), catalog_ids: catalog.filter((e) => e.upstreamModel === c.upstream_model).map((e) => e.id) });
   }
   models.sort((a, b) => a.upstream_model.localeCompare(b.upstream_model));
   // What the list says about prices and capabilities: for a model added from it next, and for the ones already added
@@ -229,7 +232,7 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
   const caps = new Map(models.flatMap((m) => (m.capabilities ? [[m.upstream_model, m.capabilities] as const] : [])));
   listedCaps.set(providerId, caps);
   for (const e of catalog) {
-    const pricing = e.pricing ? undefined : prices.get(e.upstreamModel);
+    const pricing = e.pricing || priceSetByHand(e.capabilities) ? undefined : prices.get(e.upstreamModel);
     const capabilities = backfilledCapabilities(e.capabilities, caps.get(e.upstreamModel));
     if (pricing || capabilities) {
       await getDb()

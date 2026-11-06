@@ -11,6 +11,7 @@ import type {
   ModelCandidateView,
   ModelSlots,
   NewModel,
+  ModelPriceView,
   PresetList,
   PresetView,
   ProviderDraft,
@@ -270,6 +271,25 @@ export class MockProvidersApi implements ProvidersApi {
         allowPrivateNetwork: false,
         editable: admin,
         models: []
+      },
+      {
+        id: 'openai',
+        scope: 'personal',
+        group: 'llm',
+        presetId: 'openai',
+        type: 'openai-responses',
+        name: 'OpenAI',
+        baseUrl: 'https://api.openai.com/v1',
+        keySet: true,
+        keyHint: '…e5f6',
+        headerNames: [],
+        enabled: true,
+        allowPrivateNetwork: false,
+        editable: true,
+        billing: 'metered',
+        models: [
+          { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', upstream: 'gpt-6.1-sol', contextWindow: 400_000, efforts: ['low', 'medium', 'high'], defaultEffort: 'medium', pricing: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 } }
+        ]
       }
     ]
     this.classifier = {
@@ -424,6 +444,16 @@ export class MockProvidersApi implements ProvidersApi {
     m.efforts = efforts
     const recommended = defaultEffort === undefined ? m.defaultEffort : defaultEffort
     m.defaultEffort = recommended && efforts.includes(recommended) ? recommended : undefined
+  }
+
+  async setModelPricing(modelId: string, pricing: ModelPriceView | null) {
+    const p = this.providers.find(x => x.models.some(m => m.id === modelId))
+    if (!p) throw new Error(`Model ${modelId} not found`)
+    this.writable(p.id)
+    if (p.billing === 'plan') throw new Error('[invalid_argument] A subscription plan\'s requests carry no price')
+    const m = p.models.find(m => m.id === modelId)!
+    m.pricing = pricing ?? undefined
+    m.pricingSetByHand = true
   }
 
   async removeModel(modelId: string) {

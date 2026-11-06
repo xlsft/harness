@@ -31,14 +31,17 @@ export function limitsView(l: ProviderLimitsPb): ProviderLimitsView {
           label: l.balance.label,
           updatedAt: l.balance.updatedAt,
           source: l.balance.source,
-          error: l.balance.error || undefined
+          error: l.balance.error || undefined,
+          estimated: l.balance.estimated || undefined,
+          estimatedSince: l.balance.estimatedSince || undefined
         }
       : undefined,
     spend: l.spend
       ? { currency: l.spend.currency, spent: l.spend.spent, budget: l.spend.budget, periodStart: l.spend.periodStart, partial: l.spend.partial }
       : undefined,
     windows: l.windows.map(w => ({ label: w.label, usedPercent: w.usedPercent, remaining: w.remaining, limit: w.limit, resetsAt: w.resetsAt })),
-    windowsUpdatedAt: l.windowsUpdatedAt
+    windowsUpdatedAt: l.windowsUpdatedAt,
+    balanceEntry: l.balanceEntry
   }
 }
 
@@ -81,6 +84,12 @@ export class ConnectLimitsApi implements LimitsApi {
 
   async setProviderBudget(providerId: string, monthlyUsd: number | undefined): Promise<ProviderLimitsView> {
     const res = await this.limits.setProviderBudget({ providerId, monthlyUsd })
+    if (!res.limits) throw new Error('the server returned no limits')
+    return limitsView(res.limits)
+  }
+
+  async setBalanceEstimate(providerId: string, amount: number | undefined, asOf?: string): Promise<ProviderLimitsView> {
+    const res = await this.limits.setProviderBalanceEstimate({ providerId, amount, asOf: asOf ?? '' })
     if (!res.limits) throw new Error('the server returned no limits')
     return limitsView(res.limits)
   }

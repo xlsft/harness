@@ -39,6 +39,9 @@ const (
 	// ProviderLimitsServiceSetProviderBudgetProcedure is the fully-qualified name of the
 	// ProviderLimitsService's SetProviderBudget RPC.
 	ProviderLimitsServiceSetProviderBudgetProcedure = "/harness.llm.v1.ProviderLimitsService/SetProviderBudget"
+	// ProviderLimitsServiceSetProviderBalanceEstimateProcedure is the fully-qualified name of the
+	// ProviderLimitsService's SetProviderBalanceEstimate RPC.
+	ProviderLimitsServiceSetProviderBalanceEstimateProcedure = "/harness.llm.v1.ProviderLimitsService/SetProviderBalanceEstimate"
 )
 
 // ProviderLimitsServiceClient is a client for the harness.llm.v1.ProviderLimitsService service.
@@ -47,6 +50,9 @@ type ProviderLimitsServiceClient interface {
 	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
 	// Sets or clears a provider's monthly budget (USD). Admins for global providers; the owner for a personal one.
 	SetProviderBudget(context.Context, *connect.Request[v1.SetProviderBudgetRequest]) (*connect.Response[v1.SetProviderBudgetResponse], error)
+	// Sets or clears the starting amount of a provider's estimated balance. Admins for global providers; the owner for
+	// a personal one. Metered providers without a balance API only (ProviderLimits.balance_entry).
+	SetProviderBalanceEstimate(context.Context, *connect.Request[v1.SetProviderBalanceEstimateRequest]) (*connect.Response[v1.SetProviderBalanceEstimateResponse], error)
 }
 
 // NewProviderLimitsServiceClient constructs a client for the harness.llm.v1.ProviderLimitsService
@@ -72,13 +78,20 @@ func NewProviderLimitsServiceClient(httpClient connect.HTTPClient, baseURL strin
 			connect.WithSchema(providerLimitsServiceMethods.ByName("SetProviderBudget")),
 			connect.WithClientOptions(opts...),
 		),
+		setProviderBalanceEstimate: connect.NewClient[v1.SetProviderBalanceEstimateRequest, v1.SetProviderBalanceEstimateResponse](
+			httpClient,
+			baseURL+ProviderLimitsServiceSetProviderBalanceEstimateProcedure,
+			connect.WithSchema(providerLimitsServiceMethods.ByName("SetProviderBalanceEstimate")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // providerLimitsServiceClient implements ProviderLimitsServiceClient.
 type providerLimitsServiceClient struct {
-	getProviderLimits *connect.Client[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse]
-	setProviderBudget *connect.Client[v1.SetProviderBudgetRequest, v1.SetProviderBudgetResponse]
+	getProviderLimits          *connect.Client[v1.GetProviderLimitsRequest, v1.GetProviderLimitsResponse]
+	setProviderBudget          *connect.Client[v1.SetProviderBudgetRequest, v1.SetProviderBudgetResponse]
+	setProviderBalanceEstimate *connect.Client[v1.SetProviderBalanceEstimateRequest, v1.SetProviderBalanceEstimateResponse]
 }
 
 // GetProviderLimits calls harness.llm.v1.ProviderLimitsService.GetProviderLimits.
@@ -91,6 +104,11 @@ func (c *providerLimitsServiceClient) SetProviderBudget(ctx context.Context, req
 	return c.setProviderBudget.CallUnary(ctx, req)
 }
 
+// SetProviderBalanceEstimate calls harness.llm.v1.ProviderLimitsService.SetProviderBalanceEstimate.
+func (c *providerLimitsServiceClient) SetProviderBalanceEstimate(ctx context.Context, req *connect.Request[v1.SetProviderBalanceEstimateRequest]) (*connect.Response[v1.SetProviderBalanceEstimateResponse], error) {
+	return c.setProviderBalanceEstimate.CallUnary(ctx, req)
+}
+
 // ProviderLimitsServiceHandler is an implementation of the harness.llm.v1.ProviderLimitsService
 // service.
 type ProviderLimitsServiceHandler interface {
@@ -98,6 +116,9 @@ type ProviderLimitsServiceHandler interface {
 	GetProviderLimits(context.Context, *connect.Request[v1.GetProviderLimitsRequest]) (*connect.Response[v1.GetProviderLimitsResponse], error)
 	// Sets or clears a provider's monthly budget (USD). Admins for global providers; the owner for a personal one.
 	SetProviderBudget(context.Context, *connect.Request[v1.SetProviderBudgetRequest]) (*connect.Response[v1.SetProviderBudgetResponse], error)
+	// Sets or clears the starting amount of a provider's estimated balance. Admins for global providers; the owner for
+	// a personal one. Metered providers without a balance API only (ProviderLimits.balance_entry).
+	SetProviderBalanceEstimate(context.Context, *connect.Request[v1.SetProviderBalanceEstimateRequest]) (*connect.Response[v1.SetProviderBalanceEstimateResponse], error)
 }
 
 // NewProviderLimitsServiceHandler builds an HTTP handler from the service implementation. It
@@ -119,12 +140,20 @@ func NewProviderLimitsServiceHandler(svc ProviderLimitsServiceHandler, opts ...c
 		connect.WithSchema(providerLimitsServiceMethods.ByName("SetProviderBudget")),
 		connect.WithHandlerOptions(opts...),
 	)
+	providerLimitsServiceSetProviderBalanceEstimateHandler := connect.NewUnaryHandler(
+		ProviderLimitsServiceSetProviderBalanceEstimateProcedure,
+		svc.SetProviderBalanceEstimate,
+		connect.WithSchema(providerLimitsServiceMethods.ByName("SetProviderBalanceEstimate")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.llm.v1.ProviderLimitsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ProviderLimitsServiceGetProviderLimitsProcedure:
 			providerLimitsServiceGetProviderLimitsHandler.ServeHTTP(w, r)
 		case ProviderLimitsServiceSetProviderBudgetProcedure:
 			providerLimitsServiceSetProviderBudgetHandler.ServeHTTP(w, r)
+		case ProviderLimitsServiceSetProviderBalanceEstimateProcedure:
+			providerLimitsServiceSetProviderBalanceEstimateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -140,4 +169,8 @@ func (UnimplementedProviderLimitsServiceHandler) GetProviderLimits(context.Conte
 
 func (UnimplementedProviderLimitsServiceHandler) SetProviderBudget(context.Context, *connect.Request[v1.SetProviderBudgetRequest]) (*connect.Response[v1.SetProviderBudgetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderLimitsService.SetProviderBudget is not implemented"))
+}
+
+func (UnimplementedProviderLimitsServiceHandler) SetProviderBalanceEstimate(context.Context, *connect.Request[v1.SetProviderBalanceEstimateRequest]) (*connect.Response[v1.SetProviderBalanceEstimateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.ProviderLimitsService.SetProviderBalanceEstimate is not implemented"))
 }
