@@ -20,9 +20,9 @@ const SECTIONS = [
   { key: 'usage', label: 'Usage', icon: 'chart', group: 'you' },
   { key: 'appearance', label: 'Appearance', icon: 'palette', group: 'app' },
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
-  { key: 'sandbox', label: 'Sandbox', icon: 'lock', group: 'app' },
+  { key: 'sandbox', label: 'Sandbox', icon: 'box', group: 'app' },
   { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
-  { key: 'plugins', label: 'Plugins', icon: 'download', group: 'app' },
+  { key: 'plugins', label: 'Plugins', icon: 'grid', group: 'app' },
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
@@ -30,12 +30,12 @@ const SECTIONS = [
   { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
   { key: 'speech', label: 'Speech', icon: 'mic', group: 'ai' },
   { key: 'computer', label: 'Computer use', icon: 'monitor', group: 'ai' },
-  { key: 'users', label: 'Users', icon: 'shield', group: 'server' },
-  { key: 'ldap', label: 'LDAP', icon: 'link', group: 'server' },
-  { key: 'sso', label: 'SSO', icon: 'link', group: 'server' },
-  { key: 'provisioning', label: 'Provisioning', icon: 'download', group: 'server' },
-  { key: 'audit', label: 'Audit log', icon: 'chart', group: 'server' },
-  { key: 'policy', label: 'Managed policy', icon: 'shield', group: 'server' },
+  { key: 'users', label: 'Users', icon: 'list', group: 'server' },
+  { key: 'ldap', label: 'LDAP', icon: 'branch', group: 'server' },
+  { key: 'sso', label: 'SSO', icon: 'globe', group: 'server' },
+  { key: 'provisioning', label: 'Provisioning', icon: 'refresh', group: 'server' },
+  { key: 'audit', label: 'Audit log', icon: 'history', group: 'server' },
+  { key: 'policy', label: 'Managed policy', icon: 'flag', group: 'server' },
   { key: 'about', label: 'About', icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
@@ -117,7 +117,7 @@ const notifications = computed({
       aria-label="Settings sections"
       class="flex w-[200px] shrink-0 flex-col gap-[2px] overflow-y-auto border-r border-line p-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b"
     >
-      <label class="mb-2 flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
+      <label class="mb-2 flex h-9 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
         <HIcon
           name="search"
           :size="13"

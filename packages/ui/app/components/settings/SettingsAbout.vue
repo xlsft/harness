@@ -67,7 +67,11 @@ function open(url: string) {
 
 <template>
   <div class="flex flex-col gap-8">
-    <div class="flex flex-col items-start gap-5 border border-default bg-surface px-6 py-7">
+    <div class="relative flex flex-col items-start gap-5 overflow-hidden border border-default bg-surface px-6 py-7">
+      <CatMascot
+        aria-hidden="true"
+        class="absolute right-5 bottom-0 max-sm:hidden"
+      />
       <HWordmark class="h-[30px] w-auto self-start text-strong" />
       <div class="flex flex-col gap-2">
         <h2 class="m-0 text-[17px] font-semibold text-strong">
