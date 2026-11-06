@@ -14,6 +14,7 @@ import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
+import "harness/agent/v1/real_browser.proto";
 import "harness/agent/v1/sandbox.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
@@ -837,6 +838,9 @@ message SessionEvent {
     // Slash commands and skills (slash_commands.proto); numbered apart like the shell events.
     SlashCommandResult slash_command_result = 110;
     SkillInvoked skill_invoked = 111;
+    // The session's browser in the user's Chrome wants a site (real_browser.proto).
+    BrowserSiteRequested browser_site_requested = 180;
+    BrowserSiteResolved browser_site_resolved = 181;
   }
 }
 

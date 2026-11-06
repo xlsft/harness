@@ -597,6 +597,24 @@
           "question"
         ]
       }
+    },
+    "BrowserRecord": {
+      "description": "Records the browser as a GIF.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "stop"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
     }
   },
   "reminders": {

@@ -245,6 +245,7 @@ func (s *Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	path, h := s.Handler()
 	mux.Handle(path, h)
+	mux.Handle(agentv1connect.NewRealBrowserServiceHandler(&realBrowserService{s: s}))
 	if s.Core != nil {
 		s.Core.register(mux)
 	}

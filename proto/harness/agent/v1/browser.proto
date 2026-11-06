@@ -90,6 +90,11 @@ message BrowserState {
   repeated string allowed_sites = 6;
   // The user took the browser over ({"type":"takeover"}): the agent's action tools fail meanwhile.
   bool taken_over = 7;
+  // The tabs are in the user's own Chrome (real_browser.proto), not a profile of this session's.
+  bool real_chrome = 20;
+  // A recording runs (RealBrowserService.RecordBrowser, or the BrowserRecord tool), and where the last one went.
+  bool recording = 21;
+  string last_recording = 22;
 }
 
 // What the agent is doing in the browser: one STARTED and one FINISHED per browser tool call, for the pane's

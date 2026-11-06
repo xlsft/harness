@@ -30,6 +30,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp | `tools/<Name>/` | written |
 | Tools: LSP | `tools/LSP/` | written |
 | Tools: Advisor, advisor | `tools/Advisor/`, `reminders/advisor.md` | written |
+| Tools: BrowserRecord | `tools/BrowserRecord/` | written |
 | Pull requests: PrStatus, PrBind, PrUnbind, PrMonitor, PrAutoMerge | `tools/Pr*/`, `reminders/pr_*.md` | written |
 | Skills: Skill, skills_listing, skill_invoked, command_init, command_code_review | `tools/Skill/`, `reminders/` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, SettingsGet, SettingsSet, OpenInEditor, RevealPath, KeepAwake, SessionSetModel, SessionSetEffort, SessionSetMode, SessionSetTitle | `tools/<Name>/` | written |
