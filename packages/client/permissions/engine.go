@@ -255,6 +255,9 @@ type Config struct {
 	ScratchDirs []string
 	// ReadableDirs may be read without asking (plans, task output).
 	ReadableDirs []string
+	// RestrictReads refuses reads outside the working directories instead of asking (permissions.restrictReads), in every
+	// mode. An allow rule opens a path. For the shell it can only go by the paths a command names.
+	RestrictReads bool
 	// Home overrides the home directory (tests).
 	Home string
 	// NetGuard classifies WebFetch targets as private (default netguard.Default).
@@ -277,6 +280,7 @@ type Engine struct {
 	// sandbox is Config.Sandbox.
 	sandbox       func() SandboxState
 	readable      []string
+	restrictReads bool
 	home          string
 	trusted       bool
 	disableBypass bool
@@ -303,7 +307,7 @@ type Engine struct {
 
 // New builds an engine from cfg.
 func New(cfg Config) *Engine {
-	e := &Engine{
+	e := &Engine{restrictReads: cfg.RestrictReads, 
 		mode: cfg.DefaultMode, cwd: cfg.Cwd, home: cfg.Home, trusted: cfg.Trusted,
 		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, computerSettings: cfg.ComputerSettings, sandbox: cfg.Sandbox, readable: cfg.ReadableDirs,
 		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider, netGuard: cfg.NetGuard,
@@ -842,6 +846,9 @@ func (e *Engine) Evaluate(req Request) Decision {
 			return Decision{Behavior: Deny, Rule: r.String(), ResolvedBy: "rule", Message: fmt.Sprintf("Permission to use %s has been denied by rule %s.", req.ToolName, r)}
 		}
 	}
+	if d, refused := e.refuseRead(req, input, mc); refused {
+		return d
+	}
 	if req.Sensitive != "" {
 		if e.modeOf(req) == ModePlan && !req.ReadOnly {
 			return e.planDenial(req.ToolName)
@@ -1004,6 +1011,9 @@ func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) De
 		}
 	}
 	if d, decided := e.evalOutsideSandbox(req, sb); decided {
+		return d
+	}
+	if d, refused := e.refuseBashRead(req, input, top); refused {
 		return d
 	}
 	if e.modeOf(req) != ModeBypassPermissions {

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -309,4 +310,61 @@ func orEmpty(b json.RawMessage) json.RawMessage {
 		return json.RawMessage("{}")
 	}
 	return b
+}
+
+// SearchCacheTTL is how long the cached mode of WebSearch (webSearchMode) keeps an answer.
+const SearchCacheTTL = time.Hour
+
+// searchCacheEntries bounds what one client keeps.
+const searchCacheEntries = 256
+
+// CachingSearcher answers a query it has seen from memory for ttl: repeated searches cost nothing and read the same, at the
+// price of staleness. It keeps what succeeded only. It belongs to one client process and goes with it.
+type CachingSearcher struct {
+	inner Searcher
+	ttl   time.Duration
+	now   func() time.Time
+
+	mu      sync.Mutex
+	entries map[string]cachedSearch
+}
+
+type cachedSearch struct {
+	resp SearchResponse
+	at   time.Time
+}
+
+// NewCachingSearcher wraps inner.
+func NewCachingSearcher(inner Searcher, ttl time.Duration) *CachingSearcher {
+	return &CachingSearcher{inner: inner, ttl: ttl, now: time.Now, entries: map[string]cachedSearch{}}
+}
+
+// Search implements Searcher.
+func (c *CachingSearcher) Search(ctx context.Context, q SearchQuery) (SearchResponse, error) {
+	key := strings.ToLower(q.Query) + "\x00" + strings.Join(q.AllowedDomains, ",") + "\x00" + strings.Join(q.BlockedDomains, ",")
+	c.mu.Lock()
+	if e, ok := c.entries[key]; ok && c.now().Sub(e.at) < c.ttl {
+		c.mu.Unlock()
+		return e.resp, nil
+	}
+	c.mu.Unlock()
+	resp, err := c.inner.Search(ctx, q)
+	if err != nil {
+		return resp, err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.entries) >= searchCacheEntries {
+		now := c.now()
+		for k, e := range c.entries {
+			if now.Sub(e.at) >= c.ttl {
+				delete(c.entries, k)
+			}
+		}
+		if len(c.entries) >= searchCacheEntries {
+			c.entries = map[string]cachedSearch{}
+		}
+	}
+	c.entries[key] = cachedSearch{resp: resp, at: c.now()}
+	return resp, nil
 }

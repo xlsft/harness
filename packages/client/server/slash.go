@@ -22,6 +22,7 @@ import (
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/skills"
+	"github.com/xlsft/harness/packages/client/workflow"
 )
 
 // Slash commands: a message whose text starts with `/name` may run something instead of, or on top of, going to the model.
@@ -67,11 +68,21 @@ func builtinCommands() []builtinCommand {
 		{name: "effort", description: "Set how hard the model thinks", hint: "[low|medium|high|xhigh|max|auto]", acp: true, run: runEffort},
 		{name: bootstrap.CommandInit, description: "Write an instructions file for this repository", hint: "[what to emphasize]", prompt: true},
 		{name: bootstrap.CommandCodeReview, description: "Review the current diff for bugs and list the findings", hint: "[range, files or focus]", prompt: true},
+		{name: bootstrap.CommandDeepResearch, description: "Research a question across the code and the web, with sources", hint: "<question>", prompt: true},
+		{name: bootstrap.CommandOrchestrate, description: "Split a large task, run the pieces in parallel agents, check the result", hint: "<task>", prompt: true},
+		{name: bootstrap.CommandInterview, description: "Have the agent ask what it needs to know, then write it down", hint: "<what to work out>", prompt: true},
+		{name: bootstrap.CommandRecap, description: "Say where this session stands: done, in progress, next", hint: "[what to focus on]", needsSession: true, prompt: true},
 		{name: "plan", description: "Enter plan mode: read and propose, change nothing", hint: "[off]", needsSession: true, run: runPlan},
 		{name: "goal", description: "Keep working until a condition holds, with a cap on the turns", hint: "[--max N] <condition> | stop | resume", needsSession: true, run: runGoal},
 		{name: "loop", description: "Repeat a prompt or command here, on an interval or at the model's pace", hint: "[interval] <prompt or /command> | stop | list", needsSession: true, run: runLoop},
 		{name: "schedule", description: "Open Scheduled: tasks that run by themselves", run: runScheduleCommand},
 		{name: "context", description: "Show how much of the context window is in use", needsSession: true, run: runContext},
+		{name: "usage", description: "Show the tokens and cost of this session and its agents", needsSession: true, run: runUsageCommand},
+		{name: "insights", description: "Report how the agent was used on this machine", hint: "[days]", needsSession: true, run: runInsightsCommand},
+		{name: "fewer-prompts", description: "Suggest rules from what past sessions of this folder were asked", hint: "[apply]", needsSession: true, run: runFewerPrompts},
+		{name: "debug-config", description: "Show where this session's settings come from", needsSession: true, run: runDebugConfig},
+		{name: "features", description: "List the client's switches and how they stand", needsSession: true, run: runFeatures},
+		{name: "workflows", description: "List saved workflows, or save a run of this session as a command", hint: "[list] | save <run id> <name> [--project]", needsSession: true, run: runWorkflowsCommand},
 		{name: "rename", description: "Rename this session", hint: "<title>", needsSession: true, run: runRename},
 		{name: "skills", description: "Open Customize: skills and commands, with their switches", acp: true, run: runSkills},
 		{name: "plugin", description: "Install, approve and manage plugins and marketplaces", hint: "[list|info|install|approve|enable|disable|update|pin|remove|marketplace|new|validate]", acp: true, async: true, run: runPlugin},
@@ -160,6 +171,11 @@ func (s *Server) runSlash(ctx context.Context, ls *liveSession, req *connect.Req
 	if isBuiltin && plain {
 		if refusal := ls.sess.StartPromptCommand(ctx, name, args, id); refusal != "" {
 			return finish(slashOutcome{text: refusal, isError: !strings.HasPrefix(refusal, "Nothing to review")})
+		}
+	}
+	if !isBuiltin && plain && ls.sess.Workflows != nil && ls.sess.Workflows.HasSaved(name) {
+		if refusal := ls.sess.StartWorkflowCommand(ctx, name, args, id); refusal != "" {
+			return finish(slashOutcome{text: refusal, isError: true})
 		}
 	}
 	return false
@@ -393,6 +409,7 @@ func disabledFromDocument(doc *syncv1.Document) map[string]bool {
 func (s *Server) ListSlashCommands(ctx context.Context, req *connect.Request[agentv1.ListSlashCommandsRequest]) (*connect.Response[agentv1.ListSlashCommandsResponse], error) {
 	home := bootstrap.SkillHomeDir(s.Base)
 	var m *skills.Manager
+	var saved []workflow.SavedWorkflow
 	window := 0
 	if id := req.Msg.GetSessionId(); id != "" {
 		ls, err := s.get(id)
@@ -400,6 +417,9 @@ func (s *Server) ListSlashCommands(ctx context.Context, req *connect.Request[age
 			return nil, err
 		}
 		m = ls.sess.Skills
+		if ls.sess.Workflows != nil {
+			saved = ls.sess.Workflows.Saved()
+		}
 		if info, ok := ls.sess.Catalog.Find(ls.sess.Agent.Model()); ok {
 			window = info.ContextWindow
 		}
@@ -421,7 +441,7 @@ func (s *Server) ListSlashCommands(ctx context.Context, req *connect.Request[age
 		m = skills.NewManager(skills.ManagerOptions{Place: func() (string, bool) { return cwd, trusted }, Options: func() skills.Options { return opt }})
 	}
 	_, report := m.Listing(window, true)
-	return connect.NewResponse(slashCatalog(m, report)), nil
+	return connect.NewResponse(slashCatalog(m, report, saved)), nil
 }
 
 func skillKind(k skills.Kind) agentv1.SlashCommandKind {
@@ -431,7 +451,7 @@ func skillKind(k skills.Kind) agentv1.SlashCommandKind {
 	return agentv1.SlashCommandKind_SLASH_COMMAND_KIND_SKILL
 }
 
-func slashCatalog(m *skills.Manager, report skills.Report) *agentv1.ListSlashCommandsResponse {
+func slashCatalog(m *skills.Manager, report skills.Report, saved []workflow.SavedWorkflow) *agentv1.ListSlashCommandsResponse {
 	cat := m.Catalog(false)
 	out := &agentv1.ListSlashCommandsResponse{ProjectSkippedUntrusted: cat.UntrustedProject, ListingBudgetChars: int32(report.Budget), ListingUsedChars: int32(report.Used)}
 	replaced := func(b builtinCommand) bool {
@@ -442,6 +462,15 @@ func slashCatalog(m *skills.Manager, report skills.Report) *agentv1.ListSlashCom
 		if !replaced(b) {
 			out.Commands = append(out.Commands, builtinProto(b))
 		}
+	}
+	for _, w := range saved {
+		if _, taken := cat.Lookup(w.Name); taken {
+			continue
+		}
+		if _, taken := findBuiltin(w.Name); taken {
+			continue
+		}
+		out.Commands = append(out.Commands, &agentv1.SlashCommand{Name: w.Name, Description: w.Description, Kind: agentv1.SlashCommandKind_SLASH_COMMAND_KIND_COMMAND, Source: "workflow", ArgumentHint: "[arguments]", Path: w.Path, Enabled: true, UserInvocable: true, NeedsSession: true})
 	}
 	for _, sk := range cat.All {
 		c := &agentv1.SlashCommand{Name: sk.Name, Description: sk.Description, Kind: skillKind(sk.Kind), Source: sk.Source, ArgumentHint: sk.ArgumentHint, Path: sk.Path,

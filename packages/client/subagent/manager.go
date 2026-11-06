@@ -796,6 +796,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		env.AdditionalDirs = dirs[1:]
 	}
 	env.SetExtraEnv(lead.ExtraEnv())
+	env.SetShellLimits(lead.ShellLimits())
 	env.Sandbox = lead.Sandbox
 	env.SessionID, env.PlansDir, env.RipgrepPath = lead.SessionID, lead.PlansDir, lead.RipgrepPath
 	env.Agents, env.AgentID = m, id

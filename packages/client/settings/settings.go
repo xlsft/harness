@@ -212,6 +212,8 @@ type Settings struct {
 	HooksOff, HooksPolicyOff bool
 	// HooksManagedOnly: allowManagedHooksOnly in a policy document, which also keeps plugins' hooks from running.
 	HooksManagedOnly bool
+	// Extras are further settings (extras.go).
+	Extras Extras
 
 	// Raw holds every top-level key of the winning level (for keys this
 	// package does not model). Values are byte-exact JSON.
@@ -247,6 +249,8 @@ type CLI struct {
 	// SettingsPath labels its source.
 	Settings     []byte
 	SettingsPath string
+	// PermissionProfile is --permission-profile: the profile to use, over the permissionProfile setting.
+	PermissionProfile string
 }
 
 // Options configure Load.
@@ -433,6 +437,11 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 		}
 	}
 
+	// The machine's own policies come below what the server delivers, and above everything else.
+	for _, p := range DevicePolicies() {
+		add(s.parse(Source{Level: LevelPolicy, Path: p.Origin}, p.Content))
+	}
+
 	add(s.cliLayer(o.CLI, cwd))
 
 	for _, f := range []struct {
@@ -455,10 +464,12 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 
 	layers = flatten(layers)
+	layers = s.profileLayers(layers, o.CLI.PermissionProfile)
 	for _, l := range layers {
 		s.Sources = append(s.Sources, l.src)
 	}
 	s.merge(layers, cwd, home)
+	s.applyExtras(layers)
 	return s, nil
 }
 

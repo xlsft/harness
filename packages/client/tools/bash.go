@@ -310,6 +310,8 @@ func (s *Shell) command(command, cwdFile, cwd string, how confinement) (*exec.Cm
 	if s.kind == "bash" {
 		script.WriteString("shopt -s expand_aliases 2>/dev/null\n")
 	}
+	filter, memoryMB := s.env.ShellLimits()
+	script.WriteString(memoryLimitPrefix(runtime.GOOS, memoryMB))
 	script.WriteString(`__harness_cmd=$__HARNESS_CMD; __harness_cwd=$__HARNESS_CWD_FILE; unset __HARNESS_CMD __HARNESS_CWD_FILE` + "\n")
 	script.WriteString(`if [ -n "$__harness_cwd" ]; then trap 'pwd -P > "$__harness_cwd" 2>/dev/null' EXIT; fi` + "\n")
 	script.WriteString(`eval "$__harness_cmd"` + "\n")
@@ -333,6 +335,9 @@ func (s *Shell) command(command, cwdFile, cwd string, how confinement) (*exec.Cm
 	// The session environment's variables override the client's; the harness entries come last so they cannot
 	// be overridden (exec keeps the last value of a name).
 	cmd.Env = append(os.Environ(), s.env.ExtraEnv()...)
+	if filter != nil {
+		cmd.Env = filter(cmd.Env)
+	}
 	if wrapped != nil {
 		cmd.Env = append(cmd.Env, wrapped.Env...)
 	}
@@ -992,4 +997,13 @@ func exitOneIsOK(command string) bool {
 		}
 	}
 	return false
+}
+
+// memoryLimitPrefix is the line that caps the address space of a command and all it starts. Linux enforces it; macOS takes
+// the limit and ignores it, so nothing is claimed there.
+func memoryLimitPrefix(goos string, mb int) string {
+	if goos != "linux" || mb <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("ulimit -v %d 2>/dev/null\n", mb*1024)
 }

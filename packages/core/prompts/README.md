@@ -104,6 +104,11 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `skill_invoked` | `name`, `directory`, `arguments`, `content` | the full text of a skill, custom command or prompt built-in that started, by `/name` or the Skill tool; the latest ones come back after a compaction |
 | `command_init` | `cwd`, `target`, `existing`, `arguments` | the `/init` built-in: write the repository's instructions file |
 | `command_code_review` | `cwd`, `status`, `diff_stat`, `arguments` | the `/code-review` built-in: review the diff, report through ReportFindings |
+| `command_deep_research` | `cwd`, `arguments` | the `/deep-research` built-in: split a question, research the pieces in agents, cross-check, answer with sources |
+| `command_orchestrate` | `cwd`, `arguments` | the `/orchestrate` built-in: split a large task, run the independent pieces in agents or a workflow, integrate and verify |
+| `command_interview` | `cwd`, `arguments` | the `/interview` built-in: ask with AskUserQuestion what the code can't answer, then write down what was settled |
+| `command_recap` | `arguments` | the `/recap` built-in: where the session stands, from what it holds; no tools needed |
+| `command_workflow` | `name`, `arguments` | a saved workflow typed as a command: run it with the Workflow tool |
 | `deferred_tools` | `tools` | MCP tools are deferred behind ToolSearch: their names, one per line, at session start |
 | `mcp_instructions` | `servers` | what MCP servers offer the model (their `instructions`), one `<mcp-server name="...">` block each, cut to a size budget per server and in total and escaped so it cannot close its block. Sent as its own block with the first message and after a compaction, and as a reminder when a server starts later in the session. Marked as coming from the servers, with no user authority. The client has a fallback text |
 | `mcp_tools_changed` | `server`, `added`, `removed`, `deferred` | a server's tool list changed while the session runs (`list_changed`, or the catalog moved): names joined with commas, `(none)` when empty; `deferred` are the added tools that must be loaded with ToolSearch. Rides on the next model request |
@@ -137,6 +142,8 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 |---|---|---|
 | `Read`, `Write`, `Edit`, `Glob`, `Grep` | see `schema.json` | M0 file tools |
 | `Bash` | `command`, `timeout`, `description`, `run_in_background` | background: returns a task id + output file path at once; a foreground command that hits its timeout is moved to the background; completion arrives as `background_task_done` |
+| `MultiEdit` | `file_path`, `edits[]` (`old_string`, `new_string`, `replace_all`) | several replacements in one file, all or none; each sees the result of the ones before it; the rules of Edit apply |
+| `LS` | `path`, `ignore` | one directory, folders first, sizes in bytes, version control folders left out; at most 1000 entries; read-only, checked as a read of `path` |
 | `TaskStop` | `task_id` | stops a background task, or an agent by its id |
 | `Agent` | `description`, `prompt`, `subagent_type`, `model`, `isolation`, `team`, `fork` | starts a subagent in the background and returns its id; its final message arrives as `agent_report` and wakes an idle session. `fork` starts it with a copy of the conversation, on the caller's model, up to the last complete exchange |
 | `SendMessage` | `to`, `message`, `description` | gives a running agent a message after its current tool calls, or continues an ended one with its context |

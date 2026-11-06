@@ -129,6 +129,8 @@ type Message struct {
 	StopReason   *string         `json:"stop_reason,omitempty"`
 	StopSequence *string         `json:"stop_sequence,omitempty"`
 	Usage        *llm.Usage      `json:"usage,omitempty"`
+	// CostUSD is what the server charged for this response (0 on a flat rate). Its own, beside the provider's usage.
+	CostUSD float64 `json:"costUSD,omitempty"`
 }
 
 // Entry is one JSONL line.
@@ -1020,5 +1022,6 @@ func AssistantMessage(r llm.Response) *Message {
 	}
 	u := r.Usage
 	m.Usage = &u
+	m.CostUSD = r.Harness.CostUSD
 	return m
 }

@@ -95,6 +95,8 @@ type Options struct {
 	FallbackPermissionMode permissions.Mode
 	AllowedTools           []string
 	DisallowedTools        []string
+	// PermissionProfile is --permission-profile: the profile to use, over the permissionProfile setting.
+	PermissionProfile string
 	// Agents are subagent types for this run only (--agents); they win over definitions of the same name.
 	Agents                   []subagent.Type
 	AskTools                 []string
@@ -620,6 +622,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ToolEnv = tools.NewEnv(cwd, scratch)
 	s.ToolEnv.AdditionalDirs = o.AdditionalDirs
 	s.ToolEnv.SetExtraEnv(o.Env)
+	if st != nil {
+		s.ToolEnv.SetShellLimits(st.Extras.ShellEnvironment.FilterOrNil(), st.Extras.BashMemoryLimitMB)
+	}
 	s.ToolEnv.SessionID = s.ID
 	s.ToolEnv.PlansDir = plans
 	s.ToolEnv.SetMover(mover{s})
@@ -643,7 +648,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ToolEnv.TaskGraph = tools.NewTaskGraph(graphPath(path, o.NoPersistence))
 	s.openSkills(o)
 	s.Warnings = append(s.Warnings, pluginWarnings(cwd, s.Trusted)...)
-	s.registerWebTools(o)
+	s.registerWebTools(o, st)
 	s.LSP = lsp.New(lsp.Options{Config: s.lspConfig, Trusted: s.lspTrusted, ReadDenied: func(p string) bool { return s.ToolEnv.ReadDenied != nil && s.ToolEnv.ReadDenied(p) }, Logger: log})
 	s.Tools.Register(s.LSP.Tool())
 	s.ToolEnv.Edits = s.LSP
@@ -690,7 +695,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, DisableAutoMode: o.DisableAutoMode,
 		DisabledModes: disabledModes, Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
 		ComputerSettings: computerSettingsGuard(o.ComputerUse), Sandbox: s.sandboxState,
-		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
+		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans}, RestrictReads: st != nil && st.Extras.RestrictReads,
 	})
 	if useBrowser {
 		if b, err := o.Browser.Session(s.ID); err == nil {

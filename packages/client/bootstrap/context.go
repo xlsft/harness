@@ -59,7 +59,7 @@ func deviceID() string {
 func loadSettings(ctx context.Context, o Options, cwd string, trusted bool, docs settings.DocSource, log *slog.Logger) (*settings.Settings, []permissions.Source) {
 	st, err := settings.Load(ctx, settings.Options{
 		Cwd: cwd, Docs: docs, Trusted: trusted,
-		CLI: settings.CLI{Model: o.Model, EffortLevel: o.Effort, OutputStyle: o.OutputStyle, PermissionMode: string(o.PermissionMode), AdditionalDirectories: o.AdditionalDirs},
+		CLI: settings.CLI{Model: o.Model, EffortLevel: o.Effort, OutputStyle: o.OutputStyle, PermissionMode: string(o.PermissionMode), AdditionalDirectories: o.AdditionalDirs, PermissionProfile: o.PermissionProfile},
 	})
 	if err != nil {
 		log.Warn("settings could not be loaded", "err", err)
@@ -164,6 +164,10 @@ func projectMemory(ctx context.Context, cwd string, workingDirs []string, st *se
 		if !st.AutoMemoryEnabled {
 			dir = ""
 		}
+	}
+	if os.Getenv("HARNESS_NO_INSTRUCTIONS") == "1" {
+		// What an organization imposes stays, as with every other switch of this kind.
+		mode, dir, docs = memory.ModeManagedOnly, "", nil
 	}
 	return memory.New(memory.Options{
 		Cwd: cwd, ProjectRoot: workspace.GitRoot(ctx, cwd), WorkingDirs: workingDirs, Mode: mode, NoAncestors: noFolder, HarnessHome: config.Home(),
