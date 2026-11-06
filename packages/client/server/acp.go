@@ -337,8 +337,15 @@ func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest,
 	}
 	s.acp.live[meta.ID] = l
 	s.acp.mu.Unlock()
+	// A fetch that finished after st was read skipped this session, which wasn't live yet; it stored its report first.
+	if lim := reg.State(agentID).Limits; lim != nil {
+		l.sess.ApplyLimits(lim)
+	}
 	diffCtx, diffDone := context.WithTimeout(ctx, sessionOpenDiffTimeout)
-	l.diff = sessionDiffStats(diffCtx, acpDiffSources(meta.ID, meta.Cwd, l.dirs))
+	diff := sessionDiffStats(diffCtx, acpDiffSources(meta.ID, meta.Cwd, l.dirs))
+	l.mu.Lock()
+	l.diff = diff
+	l.mu.Unlock()
 	diffDone()
 	l.publishInfo()
 	go func() {

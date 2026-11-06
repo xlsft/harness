@@ -191,6 +191,12 @@ func (s *Server) scheduleAcpProbes(refresh bool) {
 
 // applyAcpModels fills in an agent's models, their status and whether it belongs in the model list.
 func (s *Server) applyAcpModels(out *agentv1.AcpAgent, id string, st registry.AgentState) {
+	// In this order: a probe records its outcome before it stops counting as active, so an idle agent's state is read
+	// again here. The caller's copy may predate a probe that has just finished, and would show the old list as settled.
+	probing := s.acp.probes.active(id)
+	if !probing {
+		st = s.AcpRegistry().State(id)
+	}
 	out.ModelsStatus = agentv1.AcpModelsStatus_ACP_MODELS_STATUS_NOT_PROBED
 	if st.Installed == nil {
 		return
@@ -218,7 +224,7 @@ func (s *Server) applyAcpModels(out *agentv1.AcpAgent, id string, st registry.Ag
 	if st.Auth == registry.AuthRequired {
 		out.ModelsStatus, out.ModelsError = agentv1.AcpModelsStatus_ACP_MODELS_STATUS_NEEDS_AUTH, ""
 	}
-	if s.acp.probes.active(id) {
+	if probing {
 		out.ModelsStatus = agentv1.AcpModelsStatus_ACP_MODELS_STATUS_PROBING
 	}
 }
