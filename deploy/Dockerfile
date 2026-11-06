@@ -35,13 +35,13 @@ RUN pnpm build
 # web UI: static files from `nuxt generate`, in the "web" transport (a client to connect to, or the console for what needs
 # none). No scripts at install: postinstall's `nuxt prepare` needs the sources, copied after the install for its cache.
 FROM node:${NODE_VERSION}-trixie-slim AS ui-build
-ARG PNPM_VERSION=11.8.0
-RUN npm install -g --no-fund --no-audit pnpm@${PNPM_VERSION}
+# packages/ui pins a newer pnpm than core, with a different lockfile format and fewer install flags.
+ARG PNPM_UI_VERSION=12.15.0
+RUN npm install -g --no-fund --no-audit pnpm@${PNPM_UI_VERSION}
 WORKDIR /src
 COPY packages/ui/package.json packages/ui/pnpm-lock.yaml packages/ui/pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only \
-      --network-concurrency 8 --fetch-retries 6
+    pnpm install --frozen-lockfile --ignore-scripts
 COPY packages/ui/ ./
 RUN NUXT_PUBLIC_TRANSPORT=web pnpm generate
 
