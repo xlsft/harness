@@ -205,6 +205,9 @@ type PromptBundle struct {
 	//	team_next_task        {{team}} {{tasks}}     a team member is told about free tasks
 	//	team_message          {{from}} {{message}}   a subagent told the main agent something
 	//	side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
+	//	pr_draft             {{head}} {{base}} {{log}} {{stat}} {{diff}}   not a reminder: the Create PR button's prompt
+	//	ci_review            see packages/core/prompts/README.md            not a reminder: `harness-client ci review`
+	//	ci_mention           see packages/core/prompts/README.md            not a reminder: `harness-client ci mention`
 	//	bash_background_user / bash_background_queued_message / bash_background_agent  {{task_id}} {{output_path}}
 	//	bash_background_timeout  {{timeout}} {{task_id}} {{output_path}}
 	//	                      not reminders: the Bash tool_result when the command runs as a background task

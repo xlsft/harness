@@ -180,6 +180,33 @@ func ValidateOutput(schema, output json.RawMessage) error {
 	return nil
 }
 
+// FinalOutput reads the JSON value of a final message and checks it against the schema (a code fence around it is fine).
+func FinalOutput(schema json.RawMessage, report string) (json.RawMessage, error) {
+	resolved, err := compileSchema(schema)
+	if err != nil {
+		return nil, err
+	}
+	out, problem := checkOutput(resolved, report)
+	if problem != nil {
+		return nil, problem
+	}
+	return out, nil
+}
+
+// CheckSchema says whether raw can be used as an output schema.
+func CheckSchema(raw json.RawMessage) error {
+	_, err := compileSchema(raw)
+	return err
+}
+
+// WithSchema adds to a prompt the instruction to finish with one JSON value matching the schema.
+func WithSchema(prompt string, schema json.RawMessage) string { return withSchema(prompt, schema) }
+
+// OutputRetryText is the message that sends the model back when its final message failed the schema.
+func OutputRetryText(bundle *prompts.Bundle, problem error, schema json.RawMessage) string {
+	return prompts.Render(bundle.Reminder("agent_output_invalid", agentOutputFallback), map[string]string{"error": defuse(problem.Error()), "schema": defuse(string(schema))}, nil)
+}
+
 // compileSchema prepares an output schema for validation.
 func compileSchema(raw json.RawMessage) (*jsonschema.Resolved, error) {
 	var s jsonschema.Schema

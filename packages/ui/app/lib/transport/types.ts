@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { VcsApi } from '~/lib/vcs/types'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
 import type { ObjectTicket } from '~/lib/session/objects'
 import type { ComputerPermissionVM, ComputerProfileVM, ComputerTierName, EffortName, QuestionReply } from '~/lib/session/types'
@@ -224,6 +225,38 @@ export interface SubscribeHandlers {
   onEnd?: () => void
 }
 
+export interface PullRequestDraft {
+  title: string
+  body: string
+  headBranch: string
+  baseBranch: string
+  repositoryKey: string
+  commits: number
+  diffStat: string
+  dirty: boolean
+  needsPush: boolean
+  drafted: boolean
+  note: string
+  // "server", "gh" or "glab"; empty when nothing can open it (note says what to do).
+  provider: string
+}
+
+export interface PullRequestInput {
+  title: string
+  body: string
+  baseBranch: string
+  draft: boolean
+  monitor: boolean
+}
+
+export interface CreatedPullRequest {
+  url: string
+  number: number
+  title: string
+  existed: boolean
+  pushed: boolean
+}
+
 export interface SessionTransport {
   readonly kind: 'mock' | 'connect'
 
@@ -280,6 +313,9 @@ export interface SessionTransport {
   resolveSessionProposal(sessionId: string, proposalId: string, action: 'start' | 'dismiss'): Promise<void>
   // The auto-fix switch: the client watches the session's pull request and wakes the session.
   setPrMonitor(sessionId: string, enabled: boolean): Promise<void>
+  // The Create PR button: the client reads the branch and has the agent draft the text, then pushes and opens the PR.
+  draftPullRequest(sessionId: string, baseBranch?: string): Promise<PullRequestDraft>
+  createPullRequest(sessionId: string, input: PullRequestInput): Promise<CreatedPullRequest>
 
   suggestFiles(sessionId: string, query: string, limit: number): Promise<string[]>
   compact(sessionId: string, instructions?: string): Promise<void>
@@ -333,6 +369,8 @@ export interface SessionTransport {
 
   // User administration and LDAP for admins (harness.auth.v1.AdminService, forwarded to the server by the client).
   users(): UsersApi
+  // Settings > Code hosts.
+  vcs(): VcsApi
   enterprise(): EnterpriseApi
 
   // The signed-in user's own profile, avatar, password and devices (harness.auth.v1.DeviceAuthService account

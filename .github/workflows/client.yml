@@ -5,9 +5,9 @@ on:
   workflow_call:
   push:
     branches: [main]
-    paths: ['packages/client/**', '.github/workflows/client.yml']
+    paths: ['packages/client/**', 'ci/**', '.github/workflows/client.yml']
   pull_request:
-    paths: ['packages/client/**', '.github/workflows/client.yml']
+    paths: ['packages/client/**', 'ci/**', '.github/workflows/client.yml']
 
 permissions:
   contents: read

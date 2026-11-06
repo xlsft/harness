@@ -19,6 +19,8 @@ All interaction between harness components goes over **gRPC-compatible RPC defin
 
 Shared types: [errors.proto](../../proto/harness/common/v1/errors.proto), [scope.proto](../../proto/harness/common/v1/scope.proto) (`Scope` and the `project_key` format).
 
+Headless runs of `harness-client` speak NDJSON instead of RPC: [headless.md](headless.md) is that contract, and [`packages/sdk-ts`](../../packages/sdk-ts) a small TypeScript SDK over it.
+
 Server-side behavior that is not visible in the schema, such as provider translation, retries and capability negotiation, is described in [gateway.md](gateway.md). Open points of the tunnel and PTY data plane are listed in [tunnels.md](tunnels.md).
 
 ## Transport

@@ -104,6 +104,8 @@ interface Entry {
   closed: boolean;
   /** Set by the fetch wrapper when the upstream answered 401 even after a refresh. */
   unauthorized: boolean;
+  /** A tool list change still being recorded. */
+  toolsChanging?: Promise<void>;
   calls: RunningCall[];
 }
 
@@ -292,8 +294,9 @@ async function connect(user: PublicUser, row: ServerRow): Promise<Entry> {
     for (const call of entry.calls) call.onListChanged(kind);
   };
   entry.client.setNotificationHandler(ToolListChangedNotificationSchema, async () => {
-    await invalidateToolCache(row.id, user.id);
-    changed("tools");
+    // A running call waits for this before it ends, or the news would miss it.
+    entry.toolsChanging = invalidateToolCache(row.id, user.id).then(() => changed("tools"));
+    await entry.toolsChanging;
   });
   entry.client.setNotificationHandler(PromptListChangedNotificationSchema, async () => changed("prompts"));
   entry.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => changed("resources"));
@@ -633,12 +636,14 @@ export async function callTool(
     const call: RunningCall = { onElicit: events.onElicit, onListChanged: events.onListChanged, pause: timer.pause, resume: timer.resume, waiting: new Set() };
     entry.calls.push(call);
     try {
-      return await c.request({ method: "tools/call", params: { name: toolName, arguments: args as Record<string, unknown> } }, CallToolResultSchema, {
+      const res = await c.request({ method: "tools/call", params: { name: toolName, arguments: args as Record<string, unknown> } }, CallToolResultSchema, {
         signal: AbortSignal.any([signal, expired.signal]),
         // The timer above is the limit; this only keeps a call from outliving every limit there can be.
         timeout: 2 * MAX_TOOL_TIMEOUT_MS,
         onprogress: (p) => events.onProgress({ progress: p.progress, total: p.total ?? 0, message: p.message ?? "" }),
       });
+      await entry.toolsChanging;
+      return res;
     } catch (err) {
       if (timedOut) throw new ApiError("upstream", `MCP server ${view.row.name} did not answer within ${Math.round(limit / 1000)} s`);
       throw err;

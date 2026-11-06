@@ -5,17 +5,21 @@
  * Auto-fix: on CHECK_FAILED / REVIEW_COMMENT / CONFLICT_DETECTED for a linked session whose flag is on
  * (SetAutoFix), an auto-fix job is recorded (failed checks with a log excerpt from GetCheckLog, comment ids,
  * the conflicting branches) and a follow-up VcsEvent of the same kind with detail.auto_fix is emitted to that
- * session, so a connected client can act on it.
+ * session. An @mention of the bot by someone with write access (webhooks.ts) makes a job regardless of the flags.
  *
- * TODO(relay): deliver jobs into the live session through the relay, or spawn a session on a daemon host
- * when none is live (VcsService.SetAutoFix contract). Until the relay exists, jobs stay "pending"; the relay
- * subscribes with onAutoFixJob() and marks them delivered with markAutoFixJob().
+ * Delivery: a job goes to the session's machine through the relay (Command.deliver_auto_fix_job). It waits there while
+ * the machine is offline, reaches a session that is closed on it (the client reopens it), and is marked delivered or
+ * failed by the host's ack. A session no machine has mirrored yet keeps its jobs pending until one registers it.
  */
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { create } from "@bufbuild/protobuf";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { AutoFixJob_Kind, AutoFixJobSchema, DeliverAutoFixJobRequestSchema, type AutoFixJob } from "../gen/harness/agent/v1/auto_fix_pb.ts";
+import { CommandAck_Outcome } from "../gen/harness/relay/v1/relay_pb.ts";
 import { ProviderType, VcsEvent_Kind } from "../gen/harness/vcs/v1/vcs_pb.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
+import { AUTOFIX_JOB_TTL_S, onCommandAcked, onSessionRegistered, queueServerCommand } from "../relay/service.ts";
 import type { Principal } from "../services/devices.ts";
 import { setSessionPullRequest } from "../services/sessions.ts";
 import { systemClient, userClient } from "./clients.ts";
@@ -52,18 +56,70 @@ export async function updateBadges(sessions: SessionRef[], pr: PrData): Promise<
 
 const AUTOFIX_KINDS = new Set<number>([VcsEvent_Kind.CHECK_FAILED, VcsEvent_Kind.REVIEW_COMMENT, VcsEvent_Kind.CONFLICT_DETECTED]);
 
-type JobHook = (job: AutoFixJobRow) => void | Promise<void>;
-const jobHooks = new Set<JobHook>();
-
-/** Internal hook for the relay (not built yet): called for every new or updated pending job. */
-export function onAutoFixJob(fn: JobHook): () => void {
-  jobHooks.add(fn);
-  return () => jobHooks.delete(fn);
-}
+/** Job kind of an @mention: outside the VcsEvent kinds, so it never merges with the auto-fix job of an ordinary comment. */
+export const MENTION_JOB_KIND = 100;
 
 export async function markAutoFixJob(id: string, status: "delivered" | "failed"): Promise<void> {
   await getDb().update(schema.vcsAutofixJob).set({ status, updatedAt: new Date() }).where(eq(schema.vcsAutofixJob.id, id));
 }
+
+function jobKindOf(kind: number): AutoFixJob_Kind {
+  switch (kind) {
+    case VcsEvent_Kind.CHECK_FAILED:
+      return AutoFixJob_Kind.CI_FAILURE;
+    case VcsEvent_Kind.REVIEW_COMMENT:
+      return AutoFixJob_Kind.REVIEW_COMMENT;
+    case VcsEvent_Kind.CONFLICT_DETECTED:
+      return AutoFixJob_Kind.CONFLICT;
+    case MENTION_JOB_KIND:
+      return AutoFixJob_Kind.MENTION;
+    default:
+      return AutoFixJob_Kind.UNSPECIFIED;
+  }
+}
+
+/** What the session gets of a job. */
+export function jobToProto(job: AutoFixJobRow): AutoFixJob {
+  const p = (job.payload ?? {}) as { pr_url?: string; head_branch?: string; base_branch?: string; failed_checks?: FailedCheck[]; log_excerpts?: Record<string, string>; comments?: { author?: string; body?: string; path?: string; line?: number; url?: string }[] };
+  return create(AutoFixJobSchema, {
+    id: job.id,
+    kind: jobKindOf(job.kind),
+    repositoryKey: job.repositoryKey,
+    prNumber: BigInt(job.prNumber),
+    prUrl: p.pr_url ?? "",
+    headBranch: p.head_branch ?? "",
+    baseBranch: p.base_branch ?? "",
+    headSha: job.headSha,
+    failedChecks: (p.failed_checks ?? []).map((c) => ({ id: c.id, name: c.name, url: c.url ?? "", summary: c.summary ?? "", logExcerpt: p.log_excerpts?.[c.id] ?? "" })),
+    comments: (p.comments ?? []).map((c) => ({ author: c.author ?? "", body: c.body ?? "", path: c.path ?? "", line: c.line ?? 0, url: c.url ?? "" })),
+  });
+}
+
+/** Sends a pending job towards the session; no machine yet means it stays pending for onSessionRegistered. */
+async function deliverJob(job: AutoFixJobRow): Promise<void> {
+  if (job.status !== "pending") return;
+  const payload = { case: "deliverAutoFixJob" as const, value: create(DeliverAutoFixJobRequestSchema, { sessionId: job.sessionId, job: jobToProto(job) }) };
+  await queueServerCommand(job.userId, job.sessionId, payload, `afx:${job.id}`, AUTOFIX_JOB_TTL_S);
+}
+
+/** A session came to a machine: its pending jobs go there, and those too old to matter are given up. */
+async function deliverPendingJobs(sessionId: string): Promise<void> {
+  await ensureDb();
+  const j = schema.vcsAutofixJob;
+  const jobs = await getDb().select().from(j).where(and(eq(j.sessionId, sessionId), eq(j.status, "pending"))).orderBy(asc(j.createdAt)).limit(50);
+  const oldest = Date.now() - AUTOFIX_JOB_TTL_S * 1000;
+  for (const job of jobs) {
+    if (job.updatedAt.getTime() < oldest) await markAutoFixJob(job.id, "failed");
+    else await deliverJob(job);
+  }
+}
+
+onSessionRegistered(deliverPendingJobs);
+onCommandAcked(async (command, ack) => {
+  if (command.payload.case !== "deliverAutoFixJob") return;
+  const id = command.payload.value.job?.id;
+  if (id) await markAutoFixJob(id, ack.outcome === CommandAck_Outcome.OK ? "delivered" : "failed");
+});
 
 function flagFor(kind: number, link: typeof schema.vcsSessionLink.$inferSelect): boolean {
   if (kind === VcsEvent_Kind.CHECK_FAILED) return link.autoFixCi;
@@ -110,10 +166,11 @@ async function autoFix(rows: EventRow[]): Promise<void> {
     const links = await db.select().from(schema.vcsSessionLink).where(inArray(schema.vcsSessionLink.sessionId, sessions.map((s) => s.sessionId)));
     for (const s of sessions) {
       const link = links.find((l) => l.sessionId === s.sessionId);
-      if (!link || !flagFor(row.kind, link)) continue;
+      // A mention needs no switch: someone asked for the session by name.
+      if (!detail.mention && (!link || !flagFor(row.kind, link))) continue;
       const pr = row.pullRequest as PrData | null;
       const headSha = pr?.headSha ?? String(detail.sha ?? "");
-      const payload: Record<string, unknown> = { repository_key: row.repositoryKey, pr_number: row.prNumber, head_branch: row.headBranch, pr_url: pr?.url ?? "" };
+      const payload: Record<string, unknown> = { repository_key: row.repositoryKey, pr_number: row.prNumber, head_branch: row.headBranch, base_branch: pr?.baseBranch ?? "", pr_url: pr?.url ?? "" };
       if (row.kind === VcsEvent_Kind.CHECK_FAILED) {
         const failed = (Array.isArray(detail.checks) ? detail.checks : []) as FailedCheck[];
         payload.failed_checks = failed;
@@ -121,11 +178,9 @@ async function autoFix(rows: EventRow[]): Promise<void> {
       } else if (row.kind === VcsEvent_Kind.REVIEW_COMMENT) {
         payload.comment_ids = Array.isArray(detail.comment_ids) ? detail.comment_ids : [];
         payload.comments = [{ author: detail.author ?? "", body: detail.body ?? "", path: detail.path ?? "", line: detail.line ?? 0, url: detail.url ?? "" }];
-      } else {
-        payload.base_branch = pr?.baseBranch ?? "";
       }
-      const job = await upsertJob(row, s, headSha, payload);
-      for (const h of jobHooks) await Promise.resolve(h(job)).catch((err) => console.error("[harness] auto-fix hook failed", err));
+      const job = await upsertJob(row, s, detail.mention ? MENTION_JOB_KIND : row.kind, headSha, payload);
+      await deliverJob(job).catch((err) => console.error("[harness] auto-fix delivery failed", err));
       await publishEvents([
         {
           kind: row.kind,
@@ -145,14 +200,14 @@ async function autoFix(rows: EventRow[]): Promise<void> {
 }
 
 /** A pending job for the same session, kind and head commit absorbs new failures / comments. */
-async function upsertJob(row: EventRow, s: SessionRef, headSha: string, payload: Record<string, unknown>): Promise<AutoFixJobRow> {
+async function upsertJob(row: EventRow, s: SessionRef, kind: number, headSha: string, payload: Record<string, unknown>): Promise<AutoFixJobRow> {
   const db = getDb();
   const j = schema.vcsAutofixJob;
   const now = new Date();
   const [cur] = await db
     .select()
     .from(j)
-    .where(and(eq(j.sessionId, s.sessionId), eq(j.kind, row.kind), eq(j.headSha, headSha), eq(j.status, "pending"), eq(j.prNumber, row.prNumber)))
+    .where(and(eq(j.sessionId, s.sessionId), eq(j.kind, kind), eq(j.headSha, headSha), eq(j.status, "pending"), eq(j.prNumber, row.prNumber)))
     .orderBy(desc(j.createdAt))
     .limit(1);
   if (cur && headSha) {
@@ -175,7 +230,7 @@ async function upsertJob(row: EventRow, s: SessionRef, headSha: string, payload:
       sessionId: s.sessionId,
       userId: s.userId,
       eventSeq: row.seq,
-      kind: row.kind,
+      kind,
       repositoryKey: row.repositoryKey,
       prNumber: row.prNumber,
       headSha,

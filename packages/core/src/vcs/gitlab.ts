@@ -109,6 +109,16 @@ export class GitLabClient implements VcsProviderClient {
     return str(data?.username);
   }
 
+  async canWrite(repo: RepoRef, userId: number): Promise<boolean> {
+    try {
+      const { data: m } = await this.json<any>(`${this.api}/projects/${project(repo)}/members/all/${userId}`, "Get the member");
+      return Number(m?.access_level ?? 0) >= 30;
+    } catch (err) {
+      if (err instanceof ApiError && (err.type === "not_found" || err.type === "permission")) return false;
+      throw err;
+    }
+  }
+
   async canAccess(repo: RepoRef): Promise<boolean> {
     try {
       await this.json<any>(`${this.api}/projects/${project(repo)}`, "Get the project");

@@ -112,6 +112,11 @@ describe("bundle builder", () => {
       bash_background_queued_message: ["task_id", "output_path"],
       bash_background_agent: ["task_id", "output_path"],
       bash_background_timeout: ["timeout", "task_id", "output_path"],
+      // the prompt of the Create PR button's draft, filled by the client for the small-slot model
+      pr_draft: ["head", "base", "log", "stat", "diff"],
+      // the first messages of `harness-client ci review` and `ci mention`
+      ci_review: ["number", "repo", "guidance", "title", "description", "truncated", "diff"],
+      ci_mention: ["repo", "kind", "number", "capabilities", "author", "where", "request", "title", "description"],
       // the side chat system prompt (no placeholders: the client sends the main session as a separate block)
       side_chat: [],
     };

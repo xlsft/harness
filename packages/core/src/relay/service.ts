@@ -27,6 +27,7 @@ import {
   type Command,
   type CommandAck,
   type CommandOptions,
+  CommandOptionsSchema,
   type CommandResultSchema,
   type HostSchema,
   type HostStateSchema,
@@ -57,6 +58,8 @@ const DEFAULT_TTL_S = 600;
 const MAX_TTL_S = 24 * 3600;
 /** A note from another session waits for its machine far longer than a command someone is watching. */
 const SESSION_NOTE_TTL_S = 30 * 24 * 3600;
+/** A job of the auto-fix pipeline: after a week the CI run or the comment it is about has moved on. */
+export const AUTOFIX_JOB_TTL_S = 7 * 24 * 3600;
 const REPLAY_PAGE = 500;
 /** Missed heartbeats after which a host without an open stream is offline. */
 const MISSED_HEARTBEATS = 3;
@@ -227,6 +230,11 @@ async function pendingCommandsForHost(hostId: string): Promise<CommandRow[]> {
     .select({ id: schema.relaySession.id })
     .from(schema.relaySession)
     .where(and(eq(schema.relaySession.hostId, hostId), eq(schema.relaySession.active, true)));
+  // An auto-fix job also reaches a session that is closed on its machine: the machine reopens it.
+  const closed = db
+    .select({ id: schema.relaySession.id })
+    .from(schema.relaySession)
+    .where(and(eq(schema.relaySession.hostId, hostId), eq(schema.relaySession.active, false)));
   return db
     .select()
     .from(schema.relayCommand)
@@ -237,6 +245,7 @@ async function pendingCommandsForHost(hostId: string): Promise<CommandRow[]> {
         or(
           and(eq(schema.relayCommand.hostId, hostId), eq(schema.relayCommand.sessionId, "")),
           inArray(schema.relayCommand.sessionId, owned),
+          and(eq(schema.relayCommand.kind, "deliverAutoFixJob"), inArray(schema.relayCommand.sessionId, closed)),
         ),
       ),
     )
@@ -375,6 +384,9 @@ export async function registerSession(p: Principal, hostId: string, info: Sessio
     }
     bus.publishSession(sessionId, { kind: "host" });
     return { epoch: BigInt(epoch), ackedSeq: BigInt(prev?.ackedSeq ?? 0) };
+  }).then(async (r) => {
+    await notifySessionRegistered(sessionId);
+    return r;
   });
 }
 
@@ -518,8 +530,62 @@ export async function ackCommands(p: Principal, hostId: string, acks: CommandAck
       .set({ state: "acked", ack: b64(toBinary(CommandAckSchema, ack)), ackedAt: new Date() })
       .where(and(eq(schema.relayCommand.id, row.id), eq(schema.relayCommand.state, "queued")))
       .returning({ id: schema.relayCommand.id });
-    if (updated.length) relayBus().publishAck(row.id, ack);
+    if (updated.length) {
+      relayBus().publishAck(row.id, ack);
+      for (const h of ackHooks) await Promise.resolve(h(decodeCommand(row.command), ack)).catch((err) => console.error("[harness] relay ack hook failed", err));
+    }
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Commands the server sends by itself (the auto-fix pipeline)
+// ---------------------------------------------------------------------------------------------------------
+
+type AckHook = (command: Command, ack: CommandAck) => void | Promise<void>;
+type RegisteredHook = (sessionId: string) => void | Promise<void>;
+const ackHooks = new Set<AckHook>();
+const registeredHooks = new Set<RegisteredHook>();
+
+/** Called for the first ack of every command. */
+export function onCommandAcked(fn: AckHook): () => void {
+  ackHooks.add(fn);
+  return () => ackHooks.delete(fn);
+}
+
+/** Called when a session registers with a host (opened or taken over). */
+export function onSessionRegistered(fn: RegisteredHook): () => void {
+  registeredHooks.add(fn);
+  return () => registeredHooks.delete(fn);
+}
+
+async function notifySessionRegistered(sessionId: string): Promise<void> {
+  for (const h of registeredHooks) await Promise.resolve(h(sessionId)).catch((err) => console.error("[harness] relay session hook failed", err));
+}
+
+/**
+ * Queues a command of the server itself for a session, whether or not its machine is online or the session open there.
+ * The same key replaces the text of a command still waiting. "no_host" means no machine ever mirrored this session: the
+ * caller keeps what it has and tries again when one registers it (onSessionRegistered).
+ */
+export async function queueServerCommand(userId: string, sessionId: string, payload: CommandPayload, key: string, ttlS: number): Promise<"queued" | "no_host"> {
+  const db = getDb();
+  const [session] = await db.select().from(schema.relaySession).where(eq(schema.relaySession.id, sessionId));
+  if (!session || session.userId !== userId) return "no_host";
+  const [waiting] = await db
+    .select()
+    .from(schema.relayCommand)
+    .where(and(eq(schema.relayCommand.userId, userId), eq(schema.relayCommand.idempotencyKey, key)));
+  if (waiting) {
+    if (waiting.state === "queued") {
+      const cmd = decodeCommand(waiting.command);
+      cmd.payload = payload;
+      await db.update(schema.relayCommand).set({ command: encodeCommand(cmd) }).where(and(eq(schema.relayCommand.id, waiting.id), eq(schema.relayCommand.state, "queued")));
+    }
+    return "queued";
+  }
+  const p = { user: { id: userId } } as Principal;
+  await enqueue(p, { session }, payload, create(CommandOptionsSchema, { idempotencyKey: key }), ttlS * 1000, "server");
+  return "queued";
 }
 
 export interface HostSessionStateInput {

@@ -1,0 +1,136 @@
+# A GitHub Action that runs xlsft`s harness on a pull request or a comment. Setup, secrets and security notes: docs/ci.md.
+name: xlsft`s harness
+description: Review pull requests, answer @mentions or run a prompt with harness-client, headless.
+branding:
+  icon: git-pull-request
+  color: orange
+
+inputs:
+  mode:
+    description: "review (post findings as review comments), mention (answer a comment that calls the bot) or run (one prompt, headless)"
+    required: true
+  server-url:
+    description: "The URL of your server of xlsft`s harness."
+    required: true
+  device-token:
+    description: "A device token from `harness-client ci login`, from a secret."
+    required: true
+  github-token:
+    description: The token gh posts with.
+    required: false
+    default: ${{ github.token }}
+  model:
+    description: Model id (default the server's main slot).
+    required: false
+  max-budget-usd:
+    description: Stop the agent once it has spent this much (0 = no limit).
+    required: false
+    default: "0"
+  max-turns:
+    description: Maximum tool-use round trips (0 = unlimited).
+    required: false
+    default: "0"
+  allowed-tools:
+    description: 'Tools allowed on top of the read-only ones, one per line, e.g. "Bash(go test *)".'
+    required: false
+  prompt:
+    description: "review: what the repository's owners want kept in mind. run: the prompt."
+    required: false
+  trigger:
+    description: "mention: the word that calls the bot."
+    required: false
+    default: "@harness"
+  fail-on:
+    description: "review: fail the job on a finding of this severity or worse (high, medium or low)."
+    required: false
+  json-schema:
+    description: "run: make the final message one JSON value valid against this JSON schema."
+    required: false
+  harness-client:
+    description: Path of a harness-client already on the runner. Empty builds it from this action's own source.
+    required: false
+
+outputs:
+  result:
+    description: "run: the result message as JSON. review: a short JSON report."
+    value: ${{ steps.harness.outputs.result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Go
+      if: inputs.harness-client == ''
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: ${{ github.action_path }}/../../packages/client/go.mod
+        cache: false
+
+    - name: Build harness-client
+      if: inputs.harness-client == ''
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../packages/client
+      run: |
+        mkdir -p "$RUNNER_TEMP/harness-bin"
+        go build -trimpath -o "$RUNNER_TEMP/harness-bin/harness-client" ./cmd/harness-client
+        echo "$RUNNER_TEMP/harness-bin" >> "$GITHUB_PATH"
+
+    - name: Run
+      id: harness
+      shell: bash
+      env:
+        # Inputs reach the script as variables, never as text inside it: a comment or a title cannot become shell code.
+        MODE: ${{ inputs.mode }}
+        HARNESS_SERVER_URL: ${{ inputs.server-url }}
+        HARNESS_DEVICE_TOKEN: ${{ inputs.device-token }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        INPUT_MODEL: ${{ inputs.model }}
+        INPUT_BUDGET: ${{ inputs.max-budget-usd }}
+        INPUT_TURNS: ${{ inputs.max-turns }}
+        INPUT_TOOLS: ${{ inputs.allowed-tools }}
+        INPUT_PROMPT: ${{ inputs.prompt }}
+        INPUT_TRIGGER: ${{ inputs.trigger }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_SCHEMA: ${{ inputs.json-schema }}
+        INPUT_BIN: ${{ inputs.harness-client }}
+        HARNESS_HOME: ${{ runner.temp }}/harness-home
+        HARNESS_KEYRING: "0"
+        HARNESS_NO_VCS: "1"
+      run: |
+        set -euo pipefail
+        bin="${INPUT_BIN:-harness-client}"
+        args=(--max-budget-usd "$INPUT_BUDGET" --max-turns "$INPUT_TURNS")
+        [ -n "$INPUT_MODEL" ] && args+=(--model "$INPUT_MODEL")
+        tools=()
+        while IFS= read -r line; do
+          [ -n "$line" ] && tools+=(--allowed-tools "$line")
+        done <<< "$INPUT_TOOLS"
+        out="$RUNNER_TEMP/harness-result.json"
+        status=0
+        case "$MODE" in
+          review)
+            [ -n "$INPUT_PROMPT" ] && args+=(--prompt "$INPUT_PROMPT")
+            [ -n "$INPUT_FAIL_ON" ] && args+=(--fail-on "$INPUT_FAIL_ON")
+            "$bin" ci review "${args[@]}" ${tools[@]+"${tools[@]}"} >"$out" || status=$?
+            ;;
+          mention)
+            "$bin" ci mention --trigger "$INPUT_TRIGGER" "${args[@]}" ${tools[@]+"${tools[@]}"} >"$out" || status=$?
+            ;;
+          run)
+            if [ -z "$INPUT_PROMPT" ]; then
+              echo "::error::mode run needs the prompt input"
+              exit 2
+            fi
+            [ -n "$INPUT_SCHEMA" ] && args+=(--json-schema "$INPUT_SCHEMA")
+            printf '%s' "$INPUT_PROMPT" | "$bin" -p --permission-mode dontAsk --output-format json "${args[@]}" ${tools[@]+"${tools[@]}"} >"$out" || status=$?
+            ;;
+          *)
+            echo "::error::mode must be review, mention or run"
+            exit 2
+            ;;
+        esac
+        {
+          echo 'result<<HARNESS_RESULT_EOF'
+          cat "$out"
+          echo 'HARNESS_RESULT_EOF'
+        } >> "$GITHUB_OUTPUT"
+        exit "$status"

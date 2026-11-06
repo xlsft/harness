@@ -34,6 +34,7 @@ import {
   listPullRequests,
   listRepositories,
   listReviewComments,
+  listUserConnections,
   mergePullRequest,
   postComment,
   setAutoFix,
@@ -225,6 +226,11 @@ export function registerVcsService(router: ConnectRouter): void {
     }),
 
     // --- per-user authorization ---
+    listUserConnections: guard(async (_req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      return { connections: await listUserConnections(p) };
+    }),
+
     startUserAuth: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
       return startUserAuth(p, req.connectionId);

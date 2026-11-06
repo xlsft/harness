@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.relay.v1;
 
 import "harness/agent/v1/agent.proto";
+import "harness/agent/v1/auto_fix.proto";
 import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/slash_commands.proto";
@@ -236,6 +237,9 @@ message Command {
     harness.agent.v1.ResolveSessionProposalRequest resolve_session_proposal = 76;
     harness.agent.v1.StopWorkflowRequest stop_workflow = 90;
     harness.agent.v1.ListSlashCommandsRequest list_slash_commands = 110;
+    // A job of the auto-fix pipeline. Sent by the server itself, never by a viewer. It waits for the machine like a session
+    // note and reaches a closed session on that machine too.
+    harness.agent.v1.DeliverAutoFixJobRequest deliver_auto_fix_job = 150;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;

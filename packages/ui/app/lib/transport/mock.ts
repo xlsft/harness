@@ -13,11 +13,12 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { MockVcsApi } from '~/lib/vcs/mock'
 import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import { mockSlashCatalog } from './mockSlash'
 import type { ComputerProfileVM, BackgroundReasonName, QuestionReply } from '~/lib/session/types'
-import type { ComputerUseAppVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { ComputerUseAppVM, CreatedPullRequest, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, PullRequestDraft, PullRequestInput, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import { patchStats, type PatchHunk } from '~/utils/tools'
 import {
@@ -37,7 +38,9 @@ import {
   type PermissionMode,
   PermissionMode as PermissionModePb,
   type SessionEvent,
-  type SessionInfo
+  type SessionInfo,
+  PullRequest_State,
+  PullRequestSchema
 } from '~/gen/harness/agent/v1/agent_pb'
 import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
@@ -1172,6 +1175,42 @@ export class MockTransport implements SessionTransport {
     this.emit(s, b => b.sessionUpdated(s.info))
   }
 
+  async draftPullRequest(sessionId: string, baseBranch = 'main'): Promise<PullRequestDraft> {
+    const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Opening a pull request')
+    return {
+      title: s.info.title || 'Update the project',
+      body: 'What changed and why, as the agent would draft it.',
+      headBranch: s.info.gitBranch && s.info.gitBranch !== baseBranch ? s.info.gitBranch : 'feature',
+      baseBranch,
+      repositoryKey: 'github.com/demo/project',
+      commits: 2,
+      diffStat: ' a.ts | 2 +-',
+      dirty: false,
+      needsPush: true,
+      drafted: true,
+      note: '',
+      provider: 'gh'
+    }
+  }
+
+  async createPullRequest(sessionId: string, input: PullRequestInput): Promise<CreatedPullRequest> {
+    const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Opening a pull request')
+    const title = input.title.trim()
+    if (!title) throw new Error('[failed_precondition] a pull request needs a title')
+    const pr = s.info.pullRequest
+    if (pr) return { url: pr.url, number: pr.number, title: pr.title, existed: true, pushed: false }
+    const number = 100 + (++this.prSeq)
+    const url = `https://github.com/demo/project/pull/${number}`
+    s.info = create(SessionInfoSchema, {
+      ...s.info,
+      pullRequest: create(PullRequestSchema, { number, url, title, state: input.draft ? PullRequest_State.DRAFT : PullRequest_State.OPEN, checksState: 'none', monitoring: input.monitor })
+    })
+    this.emit(s, b => b.sessionUpdated(s.info))
+    return { url, number, title, existed: false, pushed: true }
+  }
+
   async setAutoContinue(sessionId: string, enabled: boolean) {
     const s = this.get(sessionId)
     this.refuseAcp(sessionId, 'Continuing when limits return')
@@ -1533,6 +1572,12 @@ export class MockTransport implements SessionTransport {
   library() {
     return this.libraryApi
   }
+  private vcsApi = new MockVcsApi()
+  vcs() {
+    return this.vcsApi
+  }
+
+  private prSeq = 0
 
   private mcpApi = new MockMcpApi()
   mcp() {

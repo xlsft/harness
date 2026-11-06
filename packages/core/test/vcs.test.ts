@@ -5,16 +5,19 @@
  * device snapshots (diffing, server wins).
  */
 import { randomUUID } from "node:crypto";
-import { toJsonString } from "@bufbuild/protobuf";
+import { toJson, toJsonString } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { asc, eq, gt } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDb, schema } from "../src/db/index.ts";
 import { PullRequest_State } from "../src/gen/harness/agent/v1/agent_pb.ts";
+import { AutoFixJob_Kind } from "../src/gen/harness/agent/v1/auto_fix_pb.ts";
+import { CommandAck_Outcome, type Command } from "../src/gen/harness/relay/v1/relay_pb.ts";
 import { ErrorInfoSchema, ErrorType } from "../src/gen/harness/common/v1/errors_pb.ts";
 import {
   CheckState,
   GetUserAuthStatusResponse_State,
+  ListUserConnectionsResponseSchema,
   ProviderType,
   PutConnectionResponseSchema,
   VcsEvent_Kind,
@@ -22,7 +25,7 @@ import {
   type WatchEventsResponse,
 } from "../src/gen/harness/vcs/v1/vcs_pb.ts";
 import { vcsIdle } from "../src/vcs/events.ts";
-import { githubSignature } from "../src/vcs/webhooks.ts";
+import { githubSignature, mentionsBot } from "../src/vcs/webhooks.ts";
 import { startFakeGitHub, type FakeGitHub } from "./helpers/fake-hosts.ts";
 import { createUserAndLogin, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";
 
@@ -456,6 +459,181 @@ async function collectWatch(token: string, req: Record<string, unknown>, until: 
   }
   return out;
 }
+
+/** A host of `token`'s device, with its stream read into a list the tests poll. */
+async function openHost(token: string, instanceId = randomUUID()) {
+  const relay = ts.as(token).relay;
+  const { hostId } = await relay.registerHost({ instanceId, clientVersion: "test" });
+  const ctl = new AbortController();
+  const commands: Command[] = [];
+  void (async () => {
+    try {
+      for await (const m of relay.openHostStream({ hostId }, { signal: ctl.signal })) {
+        if (m.event.case === "command") commands.push(m.event.value);
+      }
+    } catch {
+      // aborted
+    }
+  })();
+  return { relay, hostId, commands, stop: () => ctl.abort() };
+}
+
+async function until<T>(what: string, get: () => T | undefined | Promise<T | undefined>): Promise<T> {
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    const v = await get();
+    if (v) return v;
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((r) => setTimeout(r, 10));
+  }
+}
+
+const jobOf = (c: Command) => (c.payload.case === "deliverAutoFixJob" ? c.payload.value.job : undefined);
+
+async function jobsOf(sessionId: string) {
+  return (await fetch(`${ts.url}/api/vcs/sessions/${sessionId}/autofix-jobs`, { headers: { authorization: `Bearer ${alice.accessToken}` } }).then((r) => r.json())).jobs as any[];
+}
+
+describe("auto-fix delivery", () => {
+  const prPayload = (number: number, ref: string) => ({
+    number,
+    title: "t",
+    html_url: `${gh.url}/acme/widgets/pull/${number}`,
+    state: "open",
+    head: { ref, sha: `sha-${ref}` },
+    base: { ref: "main" },
+    user: { login: "alice-gh" },
+    updated_at: new Date().toISOString(),
+  });
+  const reviewComment = (id: number, body: string, pr: unknown, extra: Record<string, unknown> = {}) =>
+    webhook("pull_request_review_comment", {
+      action: "created",
+      comment: { id, body, path: "src/x.ts", line: 4, user: { login: "rev" }, html_url: `h${id}`, ...extra },
+      pull_request: pr,
+      repository: repository(),
+    });
+
+  it("reaches the session's machine as a command, and the ack marks the job", async () => {
+    const sid = await session(alice.accessToken, REPO, "fix-a");
+    await A.setAutoFix({ sessionId: sid, ciFailures: true, reviewComments: true, conflicts: true });
+    const host = await openHost(alice.accessToken);
+    await host.relay.registerSession({ hostId: host.hostId, session: { id: sid, cwd: "/w", title: "s" } });
+
+    await reviewComment(5001, "rename this", prPayload(51, "fix-a"));
+    const cmd = await until("the command", () => host.commands.find((c) => jobOf(c)?.comments.some((x) => x.body === "rename this")));
+    const job = jobOf(cmd)!;
+    expect(cmd.sessionId).toBe(sid);
+    expect(job.kind).toBe(AutoFixJob_Kind.REVIEW_COMMENT);
+    expect(job.prNumber).toBe(51n);
+    expect(job.repositoryKey).toBe(REPO);
+    expect(job.comments[0]).toMatchObject({ author: "rev", path: "src/x.ts", line: 4 });
+    expect((await jobsOf(sid))[0].status).toBe("pending");
+
+    await host.relay.ackCommands({ hostId: host.hostId, acks: [{ commandId: cmd.commandId, outcome: CommandAck_Outcome.OK }] });
+    await until("delivered", async () => (await jobsOf(sid))[0].status === "delivered");
+
+    // A refused job is marked too, and a later comment starts a new job instead of joining a delivered one.
+    await reviewComment(5002, "and this", prPayload(51, "fix-a"));
+    const second = await until("the second command", () => host.commands.find((c) => jobOf(c)?.comments.some((x) => x.body === "and this")));
+    expect(jobOf(second)!.id).not.toBe(job.id);
+    await host.relay.ackCommands({ hostId: host.hostId, acks: [{ commandId: second.commandId, outcome: CommandAck_Outcome.FAILED, errorMessage: "gone" }] });
+    await until("failed", async () => (await jobsOf(sid)).find((j) => j.id === jobOf(second)!.id).status === "failed");
+    host.stop();
+  });
+
+  it("waits while no machine has the session, and goes there when one registers it", async () => {
+    const sid = await session(alice.accessToken, REPO, "fix-b");
+    await A.setAutoFix({ sessionId: sid, ciFailures: true, reviewComments: true, conflicts: true });
+    await reviewComment(5101, "first", prPayload(52, "fix-b"));
+    expect(await jobsOf(sid)).toHaveLength(1);
+
+    const host = await openHost(alice.accessToken);
+    expect(host.commands.some((c) => c.sessionId === sid)).toBe(false);
+    await host.relay.registerSession({ hostId: host.hostId, session: { id: sid, cwd: "/w" } });
+    const cmd = await until("the waiting job", () => host.commands.find((c) => c.sessionId === sid && jobOf(c)));
+    await host.relay.ackCommands({ hostId: host.hostId, acks: [{ commandId: cmd.commandId, outcome: CommandAck_Outcome.OK }] });
+    await until("delivered", async () => (await jobsOf(sid))[0].status === "delivered");
+    host.stop();
+  });
+
+  it("reaches a session closed on its machine, also after the machine was away", async () => {
+    const sid = await session(alice.accessToken, REPO, "fix-c");
+    await A.setAutoFix({ sessionId: sid, ciFailures: true, reviewComments: true, conflicts: true });
+    const instanceId = randomUUID();
+    const first = await openHost(alice.accessToken, instanceId);
+    const { epoch } = await first.relay.registerSession({ hostId: first.hostId, session: { id: sid, cwd: "/w" } });
+    await first.relay.unregisterSession({ hostId: first.hostId, sessionId: sid, epoch });
+    first.stop();
+
+    // While the machine is away a comment comes in, and a second one joins the job that waits.
+    await reviewComment(5201, "one", prPayload(53, "fix-c"));
+    await reviewComment(5202, "two", prPayload(53, "fix-c"));
+    expect((await jobsOf(sid)).map((j) => j.status)).toEqual(["pending"]);
+
+    const back = await openHost(alice.accessToken, instanceId);
+    const cmd = await until("the job", () => back.commands.find((c) => c.sessionId === sid && jobOf(c)));
+    expect(jobOf(cmd)!.comments.map((c) => c.body)).toEqual(["one", "two"]);
+    back.stop();
+  });
+
+  it("leaves the session alone when its switches are off", async () => {
+    const sid = await session(alice.accessToken, REPO, "fix-d");
+    await reviewComment(5301, "not for you", prPayload(54, "fix-d"));
+    expect(await jobsOf(sid)).toHaveLength(0);
+  });
+
+  it("delivers an @mention from someone with write access, whatever the switches say", async () => {
+    const sid = await session(alice.accessToken, REPO, "fix-e");
+    const host = await openHost(alice.accessToken);
+    await host.relay.registerSession({ hostId: host.hostId, session: { id: sid, cwd: "/w" } });
+
+    await reviewComment(5401, "@harness please look", prPayload(55, "fix-e"), { author_association: "CONTRIBUTOR" });
+    await reviewComment(5402, "see `@harness` docs", prPayload(55, "fix-e"), { author_association: "OWNER" });
+    await reviewComment(5403, "done @harness\n<!-- harness v=1 session=a kind=reply ts=2026-01-01T00:00:00Z -->", prPayload(55, "fix-e"), { author_association: "OWNER" });
+    expect(await jobsOf(sid)).toHaveLength(0);
+
+    await reviewComment(5404, "@harness please look at the retries", prPayload(55, "fix-e"), { author_association: "MEMBER" });
+    const cmd = await until("the mention", () => host.commands.find((c) => c.sessionId === sid && jobOf(c)));
+    expect(jobOf(cmd)!.kind).toBe(AutoFixJob_Kind.MENTION);
+    expect(jobOf(cmd)!.comments[0]!.body).toContain("retries");
+    host.stop();
+  });
+});
+
+describe("mentionsBot", () => {
+  const words = ["@harness", "@acme-bot"];
+  it.each([
+    ["@harness fix this", true],
+    ["hey @Harness, fix this", true],
+    ["(@acme-bot) please", true],
+    ["line\n@harness go", true],
+    ["@harnessing the wind", false],
+    ["user@harness.dev wrote", false],
+    ["/@harness", false],
+    ["`@harness`", false],
+    ["```\n@harness\n```", false],
+    ["> @harness said so", false],
+    ["no call here", false],
+    ["@harness again <!-- harness v=1 session=x kind=reply ts=t -->", false],
+  ])("%j -> %s", (body, want) => {
+    expect(mentionsBot(body, words)).toBe(want);
+  });
+});
+
+describe("user connections", () => {
+  it("shows every user the connections and where they stand, without secrets", async () => {
+    const list = await B.listUserConnections({});
+    const mine = list.connections.find((c) => c.connectionId === conn.id)!;
+    expect(mine.host).toBe("127.0.0.1");
+    expect(mine.state).toBe(GetUserAuthStatusResponse_State.NOT_CONNECTED);
+    expect(mine.canWrite).toBe(false);
+    const alices = (await A.listUserConnections({})).connections.find((c) => c.connectionId === conn.id)!;
+    expect(alices.state).toBe(GetUserAuthStatusResponse_State.CONNECTED);
+    expect(alices.login).toBe("alice-gh");
+    expect(alices.canWrite).toBe(true);
+    expect(JSON.stringify(toJson(ListUserConnectionsResponseSchema, list))).not.toMatch(/secret|PRIVATE KEY/i);
+  });
+});
 
 describe("WatchEvents", () => {
   it("catches up after after_id, then streams live events and heartbeats, filtered by visibility", async () => {
