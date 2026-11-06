@@ -80,7 +80,7 @@ func TestSandboxDeviceOverride(t *testing.T) {
 	if !s.Enabled || !slices.Contains(s.AllowedHosts, "a.test") || !slices.Contains(s.AllowedHosts, "b.test") {
 		t.Fatalf("on: %+v", s)
 	}
-	s = loadSandbox(t, map[string]string{".claude/settings.local.json": `{"sandbox":{"enabled":false}}`}, userDoc(`{"sandbox":{"enabled":true}}`)).Sandbox
+	s = loadSandbox(t, map[string]string{".harness/settings.local.json": `{"sandbox":{"enabled":false}}`}, userDoc(`{"sandbox":{"enabled":true}}`)).Sandbox
 	if s.Enabled {
 		t.Fatalf("off: %+v", s)
 	}

@@ -96,7 +96,7 @@ async function flip(c: SlashCommand, enabled: boolean) {
         v-if="nothing"
         class="m-0 text-[12.5px] text-muted"
       >
-        No skills or commands yet. Put a folder with a SKILL.md under .claude/skills or .harness/skills, or a Markdown file under .claude/commands or .harness/commands, here or in your home folder.
+        No skills or commands yet. Put a folder with a SKILL.md under .harness/skills, or a Markdown file under .harness/commands, here or in ~/.harness.
       </p>
 
       <div

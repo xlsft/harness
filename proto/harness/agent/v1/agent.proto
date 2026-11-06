@@ -15,6 +15,7 @@ import "harness/agent/v1/managed_policy.proto";
 import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
+import "harness/agent/v1/project_import.proto";
 import "harness/agent/v1/sandbox.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
@@ -367,6 +368,12 @@ service AgentService {
   // running it again skips what is done; a session already imported is not duplicated. One run at a time:
   // FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
   rpc RunClaudeImport(RunClaudeImportRequest) returns (stream RunClaudeImportResponse);
+  // What importing a folder's Claude Code files would bring, and whether to offer it. Never writes.
+  rpc ScanProjectImport(ScanProjectImportRequest) returns (ScanProjectImportResponse);
+  // Imports them into the folder's .harness and AGENTS.md; only the user's own choice calls this.
+  rpc RunProjectImport(RunProjectImportRequest) returns (RunProjectImportResponse);
+  // Remembers on this device that the offer for a folder was dismissed.
+  rpc DismissProjectImport(DismissProjectImportRequest) returns (DismissProjectImportResponse);
 
   // --- MCP servers (mcp.proto) -------------------------------------------------------------------------
   // Settings > MCP: every server this device can use, with who manages it (this device, the account, an admin,
@@ -1276,7 +1283,7 @@ message RespondToPermissionRequest {
   enum Decision {
     DECISION_UNSPECIFIED = 0;
     DECISION_ALLOW = 1;
-    // Allow and persist `rule` to .claude/settings.local.json.
+    // Allow and persist `rule` to .harness/settings.local.json.
     DECISION_ALLOW_ALWAYS = 2;
     // With a comment the model continues; without one the turn stops.
     DECISION_DENY = 3;

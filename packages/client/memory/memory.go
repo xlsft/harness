@@ -1,9 +1,9 @@
-// Package memory loads project instructions with Claude Code semantics:
-// managed CLAUDE.md files, user memory (synced from the server), project
-// CLAUDE.md / .claude/CLAUDE.md / CLAUDE.local.md from the filesystem root
-// down to the working directory, the AGENTS.md fallback, @path imports,
-// lazily loaded subdirectory files, path-scoped .claude/rules and the
-// per-project auto memory index.
+// Package memory loads a session's instructions: the managed file, user memory and rules from synced documents, AGENTS.md
+// and .harness/AGENTS.md from the filesystem root down to the working directory, the private .harness/AGENTS.local.md, @path
+// imports, lazily loaded subdirectory files, path-scoped .harness/rules and the per-project auto memory index.
+//
+// CLAUDE.md, CLAUDE.local.md and everything under .claude are import sources only (package importer): nothing here reads
+// them, not even through an @import.
 //
 // The result is an ordered list of instruction sources and a rendered string
 // for the prompt bundle's project_instructions reminder.
@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -27,12 +28,12 @@ import (
 type Origin string
 
 const (
-	OriginManaged    Origin = "managed"     // organization-managed CLAUDE.md
-	OriginUser       Origin = "user"        // user memory (synced, or ~/.claude/CLAUDE.md before the first sync)
-	OriginProject    Origin = "project"     // CLAUDE.md, .claude/CLAUDE.md
-	OriginLocal      Origin = "local"       // CLAUDE.local.md
-	OriginAgents     Origin = "agents"      // AGENTS.md, .claude/AGENTS.md
-	OriginRule       Origin = "rule"        // .claude/rules/**/*.md
+	OriginManaged    Origin = "managed"     // the organization-managed AGENTS.md
+	OriginUser       Origin = "user"        // user memory (synced documents)
+	OriginProject    Origin = "project"     // an imported file with no origin of its own
+	OriginLocal      Origin = "local"       // .harness/AGENTS.local.md
+	OriginAgents     Origin = "agents"      // AGENTS.md, .harness/AGENTS.md
+	OriginRule       Origin = "rule"        // .harness/rules/**/*.md, synced user rules
 	OriginAutoMemory Origin = "auto_memory" // per-project MEMORY.md index
 )
 
@@ -46,18 +47,13 @@ const (
 	TriggerInclude Trigger = "include"          // @path import
 )
 
-// Mode selects which instruction files are read (setting claudeMdMode).
+// Mode is the setting claudeMdMode. The key and its values stay what settings files in that format already hold, so none of
+// them reads as a problem; only managed-only still changes anything, as the other values chose between files no longer read.
 type Mode string
 
 const (
-	// ModeClaudeOrAgents reads CLAUDE.md files and falls back to AGENTS.md
-	// only when no CLAUDE.md, .claude/CLAUDE.md or CLAUDE.local.md exists in
-	// the working directory and its ancestors. Default.
-	ModeClaudeOrAgents Mode = "claude-md-or-agents-md"
-	// ModeClaudeAndAgents reads both.
-	ModeClaudeAndAgents Mode = "claude-md-and-agents-md"
-	// ModeClaudeOnly never reads AGENTS.md.
-	ModeClaudeOnly Mode = "claude-md"
+	// ModeDefault reads the project's instruction files.
+	ModeDefault Mode = "claude-md-or-agents-md"
 	// ModeManagedOnly reads only the managed files.
 	ModeManagedOnly Mode = "managed-only"
 )
@@ -65,7 +61,7 @@ const (
 // ValidMode reports whether m is a known mode ("" counts as the default).
 func ValidMode(m string) bool {
 	switch Mode(m) {
-	case "", ModeClaudeOrAgents, ModeClaudeAndAgents, ModeClaudeOnly, ModeManagedOnly:
+	case "", ModeDefault, ModeManagedOnly, "claude-md-and-agents-md", "claude-md":
 		return true
 	}
 	return false
@@ -106,9 +102,10 @@ type PendingImport struct {
 // DocSource is the synced document cache (implemented by syncclient.Cache).
 type DocSource interface {
 	// Synced reports whether at least one full sync with the server has
-	// completed; before that, local ~/.claude files are used as fallback.
+	// completed; before that, there is no user memory.
 	Synced() bool
 	Lookup(scope commonv1.Scope, kind syncv1.DocumentKind, key, projectKey string) (*syncv1.Document, bool)
+	List(kind syncv1.DocumentKind) []*syncv1.Document
 }
 
 // Approvals stores the user's decisions about external imports.
@@ -129,10 +126,13 @@ type Options struct {
 	Mode        Mode
 	// Home is the user's home directory; defaults to os.UserHomeDir.
 	Home string
+	// HarnessHome is the harness data directory; defaults to ~/.harness. Relative @imports of synced user memory resolve
+	// against it.
+	HarnessHome string
 	// ManagedFiles overrides DefaultManagedFiles (tests).
 	ManagedFiles []string
-	// Docs supplies synced user memory and auto memory. Nil, or a source
-	// that has not completed its first sync, falls back to local files.
+	// Docs supplies synced user memory, user rules and auto memory. Nil, or a source that has not completed its first sync:
+	// no user memory or rules, and auto memory from AutoMemoryDir.
 	Docs DocSource
 	// ProjectKey selects the project-scope auto memory document.
 	ProjectKey string
@@ -149,37 +149,33 @@ type Options struct {
 	NoAncestors bool
 }
 
-// DefaultManagedFiles returns the organization-managed CLAUDE.md locations
-// for the current OS.
+// DefaultManagedFiles returns where an organization puts instructions for this OS.
 func DefaultManagedFiles() []string {
 	switch runtime.GOOS {
 	case "darwin":
-		return []string{"/Library/Application Support/ClaudeCode/CLAUDE.md"}
+		return []string{"/Library/Application Support/harness/AGENTS.md"}
 	case "windows":
-		return []string{`C:\Program Files\ClaudeCode\CLAUDE.md`}
+		return []string{`C:\Program Files\harness\AGENTS.md`}
 	default:
-		return []string{"/etc/claude-code/CLAUDE.md"}
+		return []string{"/etc/harness/AGENTS.md"}
 	}
 }
 
-var (
-	claudeNames = []string{"CLAUDE.md", filepath.Join(".claude", "CLAUDE.md"), "CLAUDE.local.md"}
-	agentsNames = []string{"AGENTS.md", filepath.Join(".claude", "AGENTS.md")}
-)
+// LocalName is the private project file: not checked in, like .harness/settings.local.json.
+var LocalName = filepath.Join(".harness", "AGENTS.local.md")
+
+var instructionNames = []string{"AGENTS.md", filepath.Join(".harness", "AGENTS.md"), LocalName}
 
 func originOf(name string) Origin {
-	switch filepath.Base(name) {
-	case "CLAUDE.local.md":
+	if name == LocalName {
 		return OriginLocal
-	case "AGENTS.md":
-		return OriginAgents
 	}
-	return OriginProject
+	return OriginAgents
 }
 
 type rule struct {
 	path    string
-	root    string // directory that contains .claude/rules
+	root    string // directory rule globs are relative to
 	globs   []string
 	content string
 	origin  Origin
@@ -188,12 +184,11 @@ type rule struct {
 
 // Loader loads instructions for one session. It is safe for concurrent use.
 type Loader struct {
-	opts      Options
-	home      string
-	cwd       string
-	trusted   []string // dirs whose files may be imported without approval
-	readClaud bool
-	readAgent bool
+	opts        Options
+	home        string
+	harnessHome string
+	cwd         string
+	trusted     []string // dirs whose files may be imported without approval
 
 	mu      sync.Mutex
 	seen    map[string]bool // loaded files
@@ -214,26 +209,18 @@ func New(o Options) *Loader {
 	if l.home != "" {
 		l.home = clean(l.home)
 	}
+	switch {
+	case o.HarnessHome != "":
+		l.harnessHome = clean(o.HarnessHome)
+	case l.home != "":
+		l.harnessHome = filepath.Join(l.home, ".harness")
+	}
 	l.trusted = []string{l.cwd}
 	if o.ProjectRoot != "" {
 		l.trusted = append(l.trusted, clean(o.ProjectRoot))
 	}
 	for _, d := range o.WorkingDirs {
 		l.trusted = append(l.trusted, clean(d))
-	}
-	if o.Mode == "" {
-		o.Mode = ModeClaudeOrAgents
-		l.opts.Mode = o.Mode
-	}
-	switch o.Mode {
-	case ModeClaudeAndAgents:
-		l.readClaud, l.readAgent = true, true
-	case ModeClaudeOnly:
-		l.readClaud = true
-	case ModeManagedOnly:
-	default:
-		l.readClaud = true
-		l.readAgent = !l.anyClaudeFile()
 	}
 	l.mu.Lock()
 	l.initial = l.loadStartup()
@@ -254,9 +241,6 @@ func (l *Loader) Initial() []Instruction {
 	defer l.mu.Unlock()
 	return append([]Instruction(nil), l.initial...)
 }
-
-// AgentsFallback reports whether AGENTS.md files are being read.
-func (l *Loader) AgentsFallback() bool { return l.readAgent }
 
 // PendingImports returns external imports waiting for approval, sorted by path.
 func (l *Loader) PendingImports() []PendingImport {
@@ -328,14 +312,54 @@ func ancestors(dir string) []string {
 	return dirs
 }
 
-// isUserConfig reports whether p lives in ~/.claude, which holds user-level
-// configuration rather than project files of the home directory.
+// isUserConfig reports whether p lives in the harness data directory, which holds user-level configuration rather than
+// project files of the home directory.
 func (l *Loader) isUserConfig(p string) bool {
-	if l.home == "" {
+	return l.harnessHome != "" && within(p, l.harnessHome)
+}
+
+// isImportSource reports whether p is a file only the importer reads: named like Claude Code's instruction files, or below a
+// .claude folder. What counts is the part of the path inside a project (a repository may be checked out below some .claude),
+// and all of it for a path outside them.
+func (l *Loader) isImportSource(p string) bool {
+	if IsImportSourceName(filepath.Base(p)) {
+		return true
+	}
+	rel := p
+	best := ""
+	for _, d := range l.trusted {
+		if within(p, d) && len(d) > len(best) {
+			best = d
+		}
+	}
+	if best != "" {
+		rel, _ = filepath.Rel(best, p)
+	}
+	return slices.Contains(strings.Split(rel, string(filepath.Separator)), ".claude")
+}
+
+// linksToImportSource reports whether p is a link to a CLAUDE.md or into a .claude next to it: that would still be reading them.
+func linksToImportSource(p string) bool {
+	if st, err := os.Lstat(p); err != nil || st.Mode()&os.ModeSymlink == 0 {
 		return false
 	}
-	return within(p, filepath.Join(l.home, ".claude"))
+	real, err := filepath.EvalSymlinks(p)
+	if err != nil {
+		return false
+	}
+	if IsImportSourceName(filepath.Base(real)) {
+		return true
+	}
+	dir, err := filepath.EvalSymlinks(filepath.Dir(p))
+	if err != nil {
+		return false
+	}
+	rel, err := filepath.Rel(dir, real)
+	return err == nil && slices.Contains(strings.Split(rel, string(filepath.Separator)), ".claude")
 }
+
+// IsImportSourceName reports whether a file name is one of Claude Code's instruction files.
+func IsImportSourceName(name string) bool { return name == "CLAUDE.md" || name == "CLAUDE.local.md" }
 
 func within(p, dir string) bool {
 	rel, err := filepath.Rel(dir, p)
@@ -345,31 +369,6 @@ func within(p, dir string) bool {
 func isFile(p string) bool {
 	st, err := os.Stat(p)
 	return err == nil && st.Mode().IsRegular()
-}
-
-// anyClaudeFile reports whether a CLAUDE.md-family file exists in cwd or an
-// ancestor (the condition that disables the AGENTS.md fallback).
-func (l *Loader) anyClaudeFile() bool {
-	for _, d := range l.ancestors() {
-		for _, n := range claudeNames {
-			p := filepath.Join(d, n)
-			if !l.isUserConfig(p) && isFile(p) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (l *Loader) names() []string {
-	var n []string
-	if l.readClaud {
-		n = append(n, claudeNames...)
-	}
-	if l.readAgent {
-		n = append(n, agentsNames...)
-	}
-	return n
 }
 
 // readFile reads an instruction file; it returns ok=false for missing,
@@ -416,42 +415,44 @@ func (l *Loader) loadStartup() []Instruction {
 func (l *Loader) synced() bool { return l.opts.Docs != nil && l.opts.Docs.Synced() }
 
 func (l *Loader) addUserMemory(out *[]Instruction) {
-	userDir := ""
-	if l.home != "" {
-		userDir = filepath.Join(l.home, ".claude")
+	if !l.synced() {
+		return
 	}
-	if l.synced() {
-		doc, ok := l.opts.Docs.Lookup(commonv1.Scope_SCOPE_USER, syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "user", "")
-		if ok && doc.GetContent() != "" && len(doc.GetContent()) <= MaxFileBytes {
-			path := "sync:" + doc.GetId()
-			l.seen[path] = true
-			content := stripComments(doc.GetContent())
-			*out = append(*out, Instruction{Path: path, Origin: OriginUser, Trigger: TriggerStartup, Content: strings.TrimSpace(content)})
-			if userDir != "" {
-				l.addImports(out, content, filepath.Join(userDir, "CLAUDE.md"), path, OriginUser, 1, true)
-			}
+	doc, ok := l.opts.Docs.Lookup(commonv1.Scope_SCOPE_USER, syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "user", "")
+	if ok && doc.GetContent() != "" && len(doc.GetContent()) <= MaxFileBytes {
+		path := "sync:" + doc.GetId()
+		l.seen[path] = true
+		content := stripComments(doc.GetContent())
+		*out = append(*out, Instruction{Path: path, Origin: OriginUser, Trigger: TriggerStartup, Content: strings.TrimSpace(content)})
+		if l.harnessHome != "" {
+			l.addImports(out, content, filepath.Join(l.harnessHome, "AGENTS.md"), path, OriginUser, 1, true)
 		}
-		return
 	}
-	if userDir == "" {
-		return
+	docs := l.opts.Docs.List(syncv1.DocumentKind_DOCUMENT_KIND_RULE)
+	sort.SliceStable(docs, func(i, j int) bool { return docs[i].GetKey() < docs[j].GetKey() })
+	for _, d := range docs {
+		if d.GetScope() == commonv1.Scope_SCOPE_USER && len(d.GetContent()) <= MaxFileBytes {
+			l.addRule(out, "sync:"+d.GetId(), l.cwd, d.GetContent(), OriginUser, TriggerStartup)
+		}
 	}
-	l.addFile(out, filepath.Join(userDir, "CLAUDE.md"), OriginUser, TriggerStartup, "", 0, true)
-	l.addRulesDir(out, userDir, l.home, OriginUser, TriggerStartup)
 }
 
-// addDir loads the instruction files and rules of one directory.
+// addDir loads the instruction files and rules of one directory. The walk from the root passes through a .claude folder when
+// the project is checked out below one; nothing above the project there is read.
 func (l *Loader) addDir(out *[]Instruction, d string, trig Trigger) {
-	for _, n := range l.names() {
+	if l.isImportSource(d) {
+		return
+	}
+	for _, n := range instructionNames {
 		p := filepath.Join(d, n)
 		if l.isUserConfig(p) {
 			continue
 		}
 		l.addFile(out, p, originOf(n), trig, "", 0, false)
 	}
-	claudeDir := filepath.Join(d, ".claude")
-	if !l.isUserConfig(claudeDir) && l.readClaud {
-		l.addRulesDir(out, claudeDir, d, OriginRule, trig)
+	harnessDir := filepath.Join(d, ".harness")
+	if !l.isUserConfig(harnessDir) {
+		l.addRulesDir(out, harnessDir, d, OriginRule, trig)
 	}
 }
 
@@ -460,6 +461,9 @@ func (l *Loader) addDir(out *[]Instruction, d string, trig Trigger) {
 func (l *Loader) addFile(out *[]Instruction, p string, origin Origin, trig Trigger, from string, depth int, trusted bool) {
 	p = filepath.Clean(p)
 	if l.seen[p] {
+		return
+	}
+	if linksToImportSource(p) {
 		return
 	}
 	raw, ok := readFile(p)
@@ -481,8 +485,8 @@ func (l *Loader) addImports(out *[]Instruction, content, base, label string, ori
 		return
 	}
 	for _, raw := range findImports(content) {
-		p := l.resolveImport(raw, filepath.Dir(base))
-		if p == "" || l.seen[p] {
+		p := ResolveImport(raw, filepath.Dir(base), l.home)
+		if p == "" || l.seen[p] || l.isImportSource(p) {
 			continue
 		}
 		if !trusted && !l.inTrusted(p) {
@@ -504,9 +508,9 @@ func (l *Loader) addImports(out *[]Instruction, content, base, label string, ori
 	}
 }
 
-// resolveImport maps an import token to an existing file path, or "".
-// Trailing punctuation is tolerated ("see @README.md.").
-func (l *Loader) resolveImport(raw, dir string) string {
+// ResolveImport maps an import token, relative to dir, to an existing file path, or "". Trailing punctuation is tolerated
+// ("see @README.md.").
+func ResolveImport(raw, dir, home string) string {
 	for _, cand := range []string{raw, strings.TrimRight(raw, ".,;:!?)]}'\"")} {
 		if cand == "" {
 			continue
@@ -514,10 +518,10 @@ func (l *Loader) resolveImport(raw, dir string) string {
 		var p string
 		switch {
 		case cand == "~" || strings.HasPrefix(cand, "~/"):
-			if l.home == "" {
+			if home == "" {
 				continue
 			}
-			p = filepath.Join(l.home, strings.TrimPrefix(cand, "~"))
+			p = filepath.Join(home, strings.TrimPrefix(cand, "~"))
 		case filepath.IsAbs(cand):
 			p = cand
 		default:
@@ -540,10 +544,10 @@ func (l *Loader) inTrusted(p string) bool {
 	return false
 }
 
-// addRulesDir registers <claudeDir>/rules/**/*.md. Rules without paths:
+// addRulesDir registers <dir>/rules/**/*.md. Rules without paths:
 // frontmatter are loaded immediately; path-scoped ones wait for ForPath.
-func (l *Loader) addRulesDir(out *[]Instruction, claudeDir, root string, origin Origin, trig Trigger) {
-	rulesDir := filepath.Join(claudeDir, "rules")
+func (l *Loader) addRulesDir(out *[]Instruction, dir, root string, origin Origin, trig Trigger) {
+	rulesDir := filepath.Join(dir, "rules")
 	st, err := os.Stat(rulesDir)
 	if err != nil || !st.IsDir() {
 		return
@@ -567,19 +571,23 @@ func (l *Loader) addRulesDir(out *[]Instruction, claudeDir, root string, origin 
 		if !ok {
 			continue
 		}
-		l.seen[p] = true
-		body := raw
-		var globs []string
-		if fm, b, ok := frontmatter(raw); ok {
-			body = b
-			globs = frontmatterList(fm, "paths")
-		}
-		content := stripComments(body)
-		r := &rule{path: p, root: root, globs: globs, content: content, origin: origin}
-		l.rules = append(l.rules, r)
-		if len(globs) == 0 {
-			l.loadRule(out, r, trig)
-		}
+		l.addRule(out, p, root, raw, origin, trig)
+	}
+}
+
+// addRule registers one rule; path names it (a file, or "sync:<doc id>").
+func (l *Loader) addRule(out *[]Instruction, path, root, raw string, origin Origin, trig Trigger) {
+	l.seen[path] = true
+	body := raw
+	var globs []string
+	if fm, b, ok := frontmatter(raw); ok {
+		body = b
+		globs = frontmatterList(fm, "paths")
+	}
+	r := &rule{path: path, root: root, globs: globs, content: stripComments(body), origin: origin}
+	l.rules = append(l.rules, r)
+	if len(globs) == 0 {
+		l.loadRule(out, r, trig)
 	}
 }
 
@@ -657,7 +665,7 @@ func TruncateIndex(s string) string {
 }
 
 // ForPath returns the instructions that become applicable when the model
-// touches path (reads, edits or lists it): CLAUDE.md files of
+// touches path (reads, edits or lists it): AGENTS.md files of
 // subdirectories between the working directory and path, and path-scoped
 // rules whose globs match. Each source is returned at most once per Loader.
 func (l *Loader) ForPath(path string) []Instruction {

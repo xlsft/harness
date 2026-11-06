@@ -5,11 +5,10 @@
 // same name a later source wins:
 //
 //  1. built-ins from the prompt bundle (PromptBundle.output_styles);
-//  2. user styles: sync documents of kind OUTPUT_STYLE in scope USER, or,
-//     before the first full sync, ~/.claude/output-styles/*.md and
-//     ~/.harness/output-styles/*.md;
-//  3. project styles: <dir>/.claude/output-styles/*.md and
-//     <dir>/.harness/output-styles/*.md for the git root, then the cwd.
+//  2. user styles: ~/.harness/output-styles/*.md, then sync documents of kind
+//     OUTPUT_STYLE in scope USER;
+//  3. project styles: <dir>/.harness/output-styles/*.md for the git root, then
+//     the cwd.
 //
 // Custom style files are markdown with optional YAML frontmatter: name
 // (default: the file stem), description and keep-coding-instructions
@@ -97,16 +96,12 @@ type DocSource interface {
 type Options struct {
 	// Bundle supplies the built-ins (may be nil).
 	Bundle *prompts.Bundle
-	// Docs is the sync cache; when it has synced, user styles come from it
-	// instead of the user directories.
+	// Docs is the sync cache.
 	Docs DocSource
-	// Home is the user's home directory (~/.claude lives there); empty
-	// skips ~/.claude/output-styles.
-	Home string
 	// HarnessHome is ~/.harness (config.Home()); empty skips it.
 	HarnessHome string
-	// ProjectDirs are searched in order for .claude/output-styles and
-	// .harness/output-styles (typically the git root, then the cwd).
+	// ProjectDirs are searched in order for .harness/output-styles (typically
+	// the git root, then the cwd).
 	ProjectDirs []string
 	// Plugins lists the styles of the installed plugins allowed to run. They come last, and their ids hold the plugin's name,
 	// so they replace nothing.
@@ -164,6 +159,9 @@ func Discover(o Options) *Catalog {
 				KeepCodingInstructions: b.KeepCodingInstructions, Source: SourceBuiltin, Origin: "bundle"})
 		}
 	}
+	if o.HarnessHome != "" {
+		c.addDir(filepath.Join(o.HarnessHome, "output-styles"), SourceUser)
+	}
 	if o.Docs != nil && o.Docs.Synced() {
 		for _, d := range o.Docs.List(syncv1.DocumentKind_DOCUMENT_KIND_OUTPUT_STYLE) {
 			if d.GetScope() != commonv1.Scope_SCOPE_USER {
@@ -173,13 +171,6 @@ func Discover(o Options) *Catalog {
 			st.Source, st.Origin = SourceUser, "sync:"+d.GetId()
 			c.add(st)
 		}
-	} else {
-		if o.Home != "" {
-			c.addDir(filepath.Join(o.Home, ".claude", "output-styles"), SourceUser)
-		}
-		if o.HarnessHome != "" {
-			c.addDir(filepath.Join(o.HarnessHome, "output-styles"), SourceUser)
-		}
 	}
 	seen := map[string]bool{}
 	for _, d := range o.ProjectDirs {
@@ -187,7 +178,6 @@ func Discover(o Options) *Catalog {
 			continue
 		}
 		seen[d] = true
-		c.addDir(filepath.Join(d, ".claude", "output-styles"), SourceProject)
 		c.addDir(filepath.Join(d, ".harness", "output-styles"), SourceProject)
 	}
 	if o.Plugins != nil {

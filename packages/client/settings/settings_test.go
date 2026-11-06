@@ -58,18 +58,17 @@ type fixture struct {
 func newFixture(t *testing.T) fixture {
 	root := t.TempDir()
 	f := fixture{cwd: filepath.Join(root, "proj"), home: filepath.Join(root, "home")}
-	writeJSON(t, filepath.Join(f.cwd, ".claude", "settings.json"), `{
+	writeJSON(t, filepath.Join(f.cwd, ".harness", "settings.json"), `{
 		"model": "project-model", "effortLevel": "high", "outputStyle": "Explanatory",
 		"env": {"PROJECT_VAR": "p", "SHARED": "project"},
 		"permissions": {"allow": ["Bash(make *)"], "ask": ["Bash(git push *)"], "deny": ["Read(./.env)"],
 			"defaultMode": "acceptEdits", "additionalDirectories": ["../shared"]},
 		"attribution": {"commit": "project commit"}
 	}`)
-	writeJSON(t, filepath.Join(f.cwd, ".claude", "settings.local.json"), `{
-		"effortLevel": "low", "env": {"SHARED": "local"},
+	writeJSON(t, filepath.Join(f.cwd, ".harness", "settings.local.json"), `{
+		"effortLevel": "low", "env": {"SHARED": "local"}, "outputStyle": "harness-local",
 		"permissions": {"allow": ["Edit(/src/**)"]}
 	}`)
-	writeJSON(t, filepath.Join(f.cwd, ".harness", "settings.local.json"), `{"outputStyle": "harness-local"}`)
 	writeJSON(t, filepath.Join(f.home, ".claude", "settings.json"), `{
 		"model": "local-user-model", "cleanupPeriodDays": 7,
 		"permissions": {"allow": ["WebFetch"], "deny": ["Bash(rm -rf *)"]}
@@ -194,10 +193,11 @@ func TestBeforeFirstSync(t *testing.T) {
 	if s.Synced {
 		t.Error("synced")
 	}
-	if s.CleanupPeriodDays != 7 {
-		t.Errorf("local user settings expected: %d", s.CleanupPeriodDays)
+	// No user level yet: ~/.claude/settings.json does not stand in for it.
+	if s.CleanupPeriodDays != DefaultCleanupPeriodDays {
+		t.Errorf("cleanupPeriodDays %d", s.CleanupPeriodDays)
 	}
-	if got := ruleLevels(s.Permissions.Allow); got[len(got)-1] != "WebFetch@user" {
+	if got := ruleLevels(s.Permissions.Allow); strings.Contains(strings.Join(got, " "), "@user") {
 		t.Errorf("allow %q", got)
 	}
 	// Policy applies even before the first full sync.
@@ -206,7 +206,7 @@ func TestBeforeFirstSync(t *testing.T) {
 	}
 	// No docs at all.
 	s, _ = Load(context.Background(), Options{Cwd: f.cwd, Home: f.home, Trusted: true})
-	if s.Model != "project-model" || s.CleanupPeriodDays != 7 {
+	if s.Model != "project-model" || s.CleanupPeriodDays != DefaultCleanupPeriodDays {
 		t.Errorf("no docs: %q %d", s.Model, s.CleanupPeriodDays)
 	}
 }
@@ -214,7 +214,7 @@ func TestBeforeFirstSync(t *testing.T) {
 func TestPolicyEnforcement(t *testing.T) {
 	root := t.TempDir()
 	cwd := filepath.Join(root, "p")
-	writeJSON(t, filepath.Join(cwd, ".claude", "settings.local.json"), `{"permissions": {"defaultMode": "bypassPermissions", "allow": ["Bash"]}}`)
+	writeJSON(t, filepath.Join(cwd, ".harness", "settings.local.json"), `{"permissions": {"defaultMode": "bypassPermissions", "allow": ["Bash"]}}`)
 	docs := &fakeDocs{synced: true, docs: []*syncv1.Document{
 		doc("doc_a", commonv1.Scope_SCOPE_ORG, syncv1.DocumentKind_DOCUMENT_KIND_POLICY, "default",
 			`{"permissions": {"disableBypassPermissionsMode": "disable", "allow": ["Read"]}, "availableModels": ["m1", "m2"], "allowManagedPermissionRulesOnly": true}`),
@@ -282,10 +282,10 @@ func TestCompactIdleSessions(t *testing.T) {
 	if s := load(&fakeDocs{synced: true, docs: []*syncv1.Document{user}}); s.CompactIdleSessions {
 		t.Fatal("the user document should turn it off")
 	}
-	// Before the first sync the user file applies.
+	// ~/.claude/settings.json is not read, before a sync or after one.
 	writeJSON(t, filepath.Join(home, ".claude", "settings.json"), `{"compactIdleSessions": false}`)
-	if s := load(nil); s.CompactIdleSessions {
-		t.Fatal("the user file should turn it off")
+	if s := load(nil); !s.CompactIdleSessions {
+		t.Fatal("~/.claude/settings.json was read")
 	}
 	// A wrong type is a problem and keeps the default.
 	user.Content = `{"compactIdleSessions": "no"}`
@@ -297,8 +297,8 @@ func TestCompactIdleSessions(t *testing.T) {
 func TestValidationCollected(t *testing.T) {
 	root := t.TempDir()
 	cwd := filepath.Join(root, "p")
-	writeJSON(t, filepath.Join(cwd, ".claude", "settings.json"), `{not json`)
-	writeJSON(t, filepath.Join(cwd, ".claude", "settings.local.json"), `{
+	writeJSON(t, filepath.Join(cwd, ".harness", "settings.json"), `{not json`)
+	writeJSON(t, filepath.Join(cwd, ".harness", "settings.local.json"), `{
 		"model": 3, "effortLevel": "turbo", "cleanupPeriodDays": -1, "autoCompactWindow": 1.5,
 		"env": {"A": 1, "B": {"x": 1}}, "permissions": {"allow": ["Read", 5, ""], "defaultMode": "yolo"},
 		"claudeMdMode": "both", "includeGitInstructions": "yes", "outputStyle": "ok"
@@ -333,13 +333,16 @@ func TestLSPSettings(t *testing.T) {
 		for path, content := range map[string]string{
 			filepath.Join(cwd, ".harness", "settings.json"):       project,
 			filepath.Join(cwd, ".harness", "settings.local.json"): local,
-			filepath.Join(home, ".claude", "settings.json"):       user,
 		} {
 			if content != "" {
 				writeJSON(t, path, content)
 			}
 		}
-		s, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Trusted: trusted})
+		o := Options{Cwd: cwd, Home: home, Trusted: trusted}
+		if user != "" {
+			o.Docs = &fakeDocs{synced: true, docs: []*syncv1.Document{doc("doc_u", commonv1.Scope_SCOPE_USER, syncv1.DocumentKind_DOCUMENT_KIND_SETTINGS, UserSettingsKey, user)}}
+		}
+		s, err := Load(context.Background(), o)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -394,5 +397,24 @@ func TestLSPSettings(t *testing.T) {
 	s = load(t, true, "", "", `{"lspEnabled": "no", "lspServers": ["gopls"]}`)
 	if !s.LSPEnabled || s.LSPServers != nil || len(s.Problems) != 2 {
 		t.Fatalf("invalid: %+v %v", s, s.Problems)
+	}
+}
+
+// Project and user files under .claude are import sources: present or not, they change nothing.
+func TestClaudeSettingsAreNotRead(t *testing.T) {
+	root := t.TempDir()
+	cwd, home := filepath.Join(root, "p"), filepath.Join(root, "h")
+	hook := `{"model": "claude-file", "env": {"FROM_CLAUDE": "1"}, "permissions": {"allow": ["Bash"], "deny": ["Read"]}, "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "x"}]}]}}`
+	writeJSON(t, filepath.Join(cwd, ".claude", "settings.json"), hook)
+	writeJSON(t, filepath.Join(cwd, ".claude", "settings.local.json"), hook)
+	writeJSON(t, filepath.Join(home, ".claude", "settings.json"), hook)
+	for _, docs := range []DocSource{nil, &fakeDocs{synced: true}} {
+		s, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Docs: docs, Trusted: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s.Model != "" || len(s.Env) != 0 || len(s.Permissions.Allow)+len(s.Permissions.Deny) != 0 || len(s.Hooks) != 0 || len(s.Sources) != 0 {
+			t.Fatalf("%+v", s)
+		}
 	}
 }

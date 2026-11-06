@@ -50,7 +50,7 @@ Style instructions in Markdown...
 the client drops the `doing_tasks` and `tool_policy` sections while the style is active). Built-ins: `default`
 (no text, adds nothing), `proactive`, `concise`, `explanatory`, `learning`. The client sends the active style's
 text through the `output_style` reminder, so switching styles keeps the prompt cache. User and project styles
-(sync, `.claude/output-styles/*.md`) use the same frontmatter but are resolved by the client, not here. Styles
+(sync, `.harness/output-styles/*.md`) use the same frontmatter but are resolved by the client, not here. Styles
 follow the per-model override rules (an empty override file removes the style for that model).
 
 ## Placeholders
@@ -64,7 +64,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 
 | id | Placeholders | When the client sends it |
 |---|---|---|
-| `project_instructions` | `content` | CLAUDE.md / AGENTS.md / user memory, in the first user message |
+| `project_instructions` | `content` | AGENTS.md / user memory, in the first user message |
 | `file_changed` | `path`, `diff` | a file the model read changed on disk |
 | `empty_file` | `path` | Read of an empty file |
 | `interrupted` | — | user message after an interruption |

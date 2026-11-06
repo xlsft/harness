@@ -146,7 +146,7 @@ func (h *harness) result(ch <-chan *agentv1.SessionEvent) *agentv1.SlashCommandR
 func TestSkillFromTheComposer(t *testing.T) {
 	rec := &recording{}
 	h := startHarness(t, rec.respond, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/deploy/SKILL.md"), "---\ndescription: Ship it\nargument-hint: \"[env]\"\n---\nDeploy to $ARGUMENTS using the checklist in ${HARNESS_SKILL_DIR}/list.md.")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/deploy/SKILL.md"), "---\ndescription: Ship it\nargument-hint: \"[env]\"\n---\nDeploy to $ARGUMENTS using the checklist in ${HARNESS_SKILL_DIR}/list.md.")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 
 	h.send(sid, "hello")
@@ -163,7 +163,7 @@ func TestSkillFromTheComposer(t *testing.T) {
 	evs := h.until(ch, isTurnFinished)
 	r := rec.last(t)
 	text := allText(r)
-	want := "Deploy to prod using the checklist in " + filepath.Join(h.proj, ".claude/skills/deploy") + "/list.md."
+	want := "Deploy to prod using the checklist in " + filepath.Join(h.proj, ".harness/skills/deploy") + "/list.md."
 	if !strings.Contains(text, want) || !strings.Contains(text, `<skill name="deploy"`) {
 		t.Fatalf("the body with its arguments reaches the model: %s", text)
 	}
@@ -223,7 +223,7 @@ func TestPlainSlashWordsStayMessages(t *testing.T) {
 func TestSkillToolLoadsTheBodyAndItsFiles(t *testing.T) {
 	personal := t.TempDir()
 	rec := &recording{}
-	dir := filepath.Join(personal, ".claude/skills/guide")
+	dir := filepath.Join(personal, "skills/guide")
 	rec.next = func(n int, r *llm.Request) fg.Reply {
 		switch n {
 		case 0:
@@ -279,9 +279,9 @@ func TestSkillToolRefusesWhatItMayNotRun(t *testing.T) {
 		return fg.Reply{Events: fg.Message("m", fg.Text("done"))}
 	}
 	h := startHarness(t, rec.respond, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/useronly/SKILL.md"), "---\ndescription: mine\ndisable-model-invocation: true\n---\nUSER ONLY BODY")
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/denied/SKILL.md"), "---\ndescription: forbidden\n---\nDENIED BODY")
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/fine/SKILL.md"), "---\ndescription: all right\n---\nFINE BODY")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/useronly/SKILL.md"), "---\ndescription: mine\ndisable-model-invocation: true\n---\nUSER ONLY BODY")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/denied/SKILL.md"), "---\ndescription: forbidden\n---\nDENIED BODY")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/fine/SKILL.md"), "---\ndescription: all right\n---\nFINE BODY")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{DisallowedTools: []string{"Skill(denied)"}})
 	h.send(sid, "go")
 	h.until(ch, isTurnFinished)
@@ -323,7 +323,7 @@ func TestAllowedToolsLastForTheTurn(t *testing.T) {
 	}
 	h := startHarness(t, rec.respond, trusted())
 	marker = filepath.Join(h.proj, "marker")
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/toucher/SKILL.md"), "---\ndescription: touches\nallowed-tools: Bash(touch *)\n---\nTouch it.")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/toucher/SKILL.md"), "---\ndescription: touches\nallowed-tools: Bash(touch *)\n---\nTouch it.")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	// During the skill's turn the command runs without a prompt.
 	h.send(sid, "/toucher")
@@ -362,7 +362,7 @@ func TestSkillThatGrantsToolsAsksBeforeTheModelStartsIt(t *testing.T) {
 		return fg.Reply{Events: fg.Message("m", fg.Text("done"))}
 	}
 	h := startHarness(t, rec.respond, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/grants/SKILL.md"), "---\ndescription: g\nallowed-tools: Bash\n---\nGRANTS BODY")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/grants/SKILL.md"), "---\ndescription: g\nallowed-tools: Bash\n---\nGRANTS BODY")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "go")
 	var asked *agentv1.PermissionRequest
@@ -385,7 +385,7 @@ func TestSkillThatGrantsToolsAsksBeforeTheModelStartsIt(t *testing.T) {
 	// A rule says yes ahead of time.
 	rec2 := &recording{next: rec.next}
 	h2 := startHarness(t, rec2.respond, trusted())
-	writeFile(t, filepath.Join(h2.proj, ".claude/skills/grants/SKILL.md"), "---\ndescription: g\nallowed-tools: Bash\n---\nGRANTS BODY")
+	writeFile(t, filepath.Join(h2.proj, ".harness/skills/grants/SKILL.md"), "---\ndescription: g\nallowed-tools: Bash\n---\nGRANTS BODY")
 	sid2, ch2 := h2.create(&agentv1.CreateSessionRequest{AllowedTools: []string{"Skill(grants)"}})
 	h2.send(sid2, "go")
 	for _, ev := range h2.until(ch2, isTurnFinished) {
@@ -401,8 +401,8 @@ func TestSkillThatGrantsToolsAsksBeforeTheModelStartsIt(t *testing.T) {
 func TestSkillModelAndEffortLastForTheTurn(t *testing.T) {
 	rec := &recording{}
 	h := startHarnessGW(t, rec.respond, func(g *fg.Server) { g.Models = []string{"fake-model", "other-model"} }, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/heavy/SKILL.md"), "---\ndescription: h\nmodel: other\neffort: high\n---\nHeavy.")
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/odd/SKILL.md"), "---\ndescription: o\nmodel: nosuchmodel\n---\nOdd.")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/heavy/SKILL.md"), "---\ndescription: h\nmodel: other\neffort: high\n---\nHeavy.")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/odd/SKILL.md"), "---\ndescription: o\nmodel: nosuchmodel\n---\nOdd.")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{Model: "fake-model"})
 	h.send(sid, "/heavy")
 	evs := h.until(ch, isTurnFinished)
@@ -436,7 +436,7 @@ func TestSkillModelAndEffortLastForTheTurn(t *testing.T) {
 func TestSkillCommandsInTheBody(t *testing.T) {
 	rec := &recording{}
 	h := startHarness(t, rec.respond, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/cmds/SKILL.md"), "---\ndescription: c\nallowed-tools: Bash(echo *)\n---\nGot: !`echo from-the-shell`\nDenied: !`printf nope > "+filepath.Join(h.proj, "written")+"`\n")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/cmds/SKILL.md"), "---\ndescription: c\nallowed-tools: Bash(echo *)\n---\nGot: !`echo from-the-shell`\nDenied: !`printf nope > "+filepath.Join(h.proj, "written")+"`\n")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{DisallowedTools: []string{"Bash(printf *)"}})
 	h.send(sid, "/cmds")
 	h.until(ch, isTurnFinished)
@@ -455,7 +455,7 @@ func TestSkillCommandsInTheBody(t *testing.T) {
 func TestCustomCommandsWithNamespaces(t *testing.T) {
 	rec := &recording{}
 	h := startHarness(t, rec.respond, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/commands/fe/test.md"), "---\ndescription: Frontend tests\nargument-hint: <suite>\n---\nRun suite $1 now.")
+	writeFile(t, filepath.Join(h.proj, ".harness/commands/fe/test.md"), "---\ndescription: Frontend tests\nargument-hint: <suite>\n---\nRun suite $1 now.")
 	writeFile(t, filepath.Join(h.proj, ".harness/commands/notes.md"), "Write notes about $ARGUMENTS.")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	list := h.commands(&agentv1.ListSlashCommandsRequest{SessionId: sid})
@@ -486,7 +486,7 @@ func TestCustomCommandsWithNamespaces(t *testing.T) {
 
 func TestListWithoutASession(t *testing.T) {
 	personal := t.TempDir()
-	writeFile(t, filepath.Join(personal, ".claude/skills/mine/SKILL.md"), "---\ndescription: personal\n---\nb")
+	writeFile(t, filepath.Join(personal, "skills/mine/SKILL.md"), "---\ndescription: personal\n---\nb")
 	docs := skills.Documents{
 		{Id: "doc_1", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_SKILL, Key: "imported-one", Content: "---\ndescription: from import\nmystery: {}\n---\nIMPORTED BODY",
 			Files: []*syncv1.DocumentFile{{Path: "ref.md", Content: []byte("REF")}}},
@@ -494,7 +494,7 @@ func TestListWithoutASession(t *testing.T) {
 	}
 	rec := &recording{}
 	h := startHarness(t, rec.respond, func(o *bootstrap.Options) { o.SkillHome, o.SkillDocs = personal, docs })
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/local/SKILL.md"), "---\ndescription: project\n---\nb")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/local/SKILL.md"), "---\ndescription: project\n---\nb")
 
 	res, err := h.client.ListSlashCommands(h.ctx, connect.NewRequest(&agentv1.ListSlashCommandsRequest{Cwd: h.proj}))
 	if err != nil {
@@ -554,7 +554,7 @@ func TestCustomizeSwitch(t *testing.T) {
 	}
 	docs := &settingsDoc{}
 	h := startHarnessSrv(t, rec.respond, nil, trusted(), func(s *server.Server) { s.Preferences = docs })
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/toggled/SKILL.md"), "---\ndescription: can be off\n---\nTOGGLED BODY")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/toggled/SKILL.md"), "---\ndescription: can be off\n---\nTOGGLED BODY")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	if c := h.commands(&agentv1.ListSlashCommandsRequest{SessionId: sid})["toggled"]; !c.GetEnabled() || !c.GetSwitchable() || !c.GetListed() {
 		t.Fatalf("%+v", c)
@@ -711,7 +711,7 @@ func TestBuiltinCompact(t *testing.T) {
 		}
 		return rec.respond(n, r)
 	}, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/kept/SKILL.md"), "---\ndescription: survives\n---\nKEPT BODY")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/kept/SKILL.md"), "---\ndescription: survives\n---\nKEPT BODY")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "/kept")
 	h.until(ch, isTurnFinished)
@@ -739,7 +739,7 @@ func TestBuiltinInit(t *testing.T) {
 	h.send(sid, "/init testing rules")
 	evs := h.until(ch, isTurnFinished)
 	text := allText(rec.last(t))
-	if !strings.Contains(text, "CLAUDE.md in "+h.proj) || !strings.Contains(text, "existing none") || !strings.Contains(text, "focus testing rules") {
+	if !strings.Contains(text, "AGENTS.md in "+h.proj) || !strings.Contains(text, "existing none") || !strings.Contains(text, "focus testing rules") {
 		t.Fatalf("%s", text)
 	}
 	found := false
@@ -760,7 +760,7 @@ func TestBuiltinInit(t *testing.T) {
 	}
 
 	// A skill of the name replaces the prompt.
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/init/SKILL.md"), "My own init.")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/init/SKILL.md"), "My own init.")
 }
 
 func gitRepo(t *testing.T, dir string) {
@@ -831,7 +831,7 @@ func TestBuiltinCodeReview(t *testing.T) {
 func TestPromptBuiltinCanBeReplaced(t *testing.T) {
 	rec := &recording{}
 	h := startHarness(t, rec.respond, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/code-review/SKILL.md"), "---\ndescription: our review\n---\nOUR REVIEW RULES")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/code-review/SKILL.md"), "---\ndescription: our review\n---\nOUR REVIEW RULES")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	list := h.commands(&agentv1.ListSlashCommandsRequest{SessionId: sid})
 	if c := list["code-review"]; c.GetKind() != agentv1.SlashCommandKind_SLASH_COMMAND_KIND_SKILL || c.GetDescription() != "our review" {
@@ -843,7 +843,7 @@ func TestPromptBuiltinCanBeReplaced(t *testing.T) {
 		t.Fatal(allText(rec.last(t)))
 	}
 	// A control built-in isn't replaced, and the list says why.
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/clear/SKILL.md"), "---\ndescription: a clash\n---\nNOT RUN")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/clear/SKILL.md"), "---\ndescription: a clash\n---\nNOT RUN")
 	res, err := h.client.ListSlashCommands(h.ctx, connect.NewRequest(&agentv1.ListSlashCommandsRequest{SessionId: sid}))
 	if err != nil {
 		t.Fatal(err)
@@ -874,7 +874,7 @@ func TestForkedSkillRunsInASubagent(t *testing.T) {
 		}
 		return fg.Reply{Events: fg.Message("m", fg.Text("ok"))}
 	}, trusted())
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/forked/SKILL.md"), "---\ndescription: f\ncontext: fork\n---\nFORKED BODY with $ARGUMENTS")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/forked/SKILL.md"), "---\ndescription: f\ncontext: fork\n---\nFORKED BODY with $ARGUMENTS")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "/forked thing")
 	var invoked *agentv1.SkillInvoked
@@ -921,7 +921,7 @@ func TestQueuedSkillGoesWithItsMessage(t *testing.T) {
 			close(release)
 		}
 	})
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/queued/SKILL.md"), "---\ndescription: q\n---\nQUEUED BODY")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/queued/SKILL.md"), "---\ndescription: q\n---\nQUEUED BODY")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "first")
 	h.until(ch, func(ev *agentv1.SessionEvent) bool { return ev.GetTurnStarted() != nil })

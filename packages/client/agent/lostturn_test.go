@@ -21,7 +21,7 @@ import (
 // request is refused) and end the lost turn as interrupted.
 func TestResumeEndsTurnLostMidToolCall(t *testing.T) {
 	e := setup(t, fg.Sequence(func(r *llm.Request) fg.Reply {
-		return fg.Reply{Events: fg.Message("m1", fg.ToolUse("t_read", "Read", map[string]any{"file_path": filepath.Join(fg.Cwd(r), "CLAUDE.md")}))}
+		return fg.Reply{Events: fg.Message("m1", fg.ToolUse("t_read", "Read", map[string]any{"file_path": filepath.Join(fg.Cwd(r), "AGENTS.md")}))}
 	}))
 	ctx := context.Background()
 	s := e.open(t, nil)

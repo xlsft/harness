@@ -1202,7 +1202,7 @@ export enum DocumentKind {
    * carries only the scalar/list keys that are not rules: defaultMode, additionalDirectories,
    * disableBypassPermissionsMode; allow/ask/deny rules live in PERMISSION_RULES.
    * At org scope: org defaults, overridable by the user (enforced settings go into POLICY).
-   * Project-scope SETTINGS are not used (project settings come from the repository's .claude/).
+   * Project-scope SETTINGS are not used (project settings come from the repository's .harness/).
    *
    * @generated from enum value: DOCUMENT_KIND_SETTINGS = 1;
    */
@@ -1217,7 +1217,7 @@ export enum DocumentKind {
   PERMISSION_RULES = 2,
 
   /**
-   * key: "user". SCOPE_USER: analogue of ~/.claude/CLAUDE.md; SCOPE_PROJECT: auto memory for project_key.
+   * key: "user". SCOPE_USER: the user's memory for all projects; SCOPE_PROJECT: auto memory for project_key.
    * content: markdown (for auto memory: the MEMORY.md index); `files` carries imported files (user scope)
    * or auto-memory topic files (project scope), keyed by their relative path. Conflicts on memory are resolved last-write-wins by clients (PLAN §6);
    * the server keeps version history.
@@ -1293,7 +1293,7 @@ export enum DocumentKind {
 
   /**
    * key: rule file path relative to the rules root (e.g. "frontend/react.md"). content: rule markdown with
-   * optional `paths:` frontmatter. SCOPE_USER: analogue of ~/.claude/rules/**.
+   * optional `paths:` frontmatter. SCOPE_USER: rules for all projects.
    *
    * @generated from enum value: DOCUMENT_KIND_RULE = 12;
    */

@@ -66,18 +66,15 @@ type Config struct {
 	Logger *slog.Logger
 }
 
-// SearchDirs lists where saved workflows are, later entries winning: the user's directories, then (for a trusted
+// SearchDirs lists where saved workflows are, later entries winning: the user's directory, then (for a trusted
 // workspace) the project's.
-func SearchDirs(harnessHome, home, cwd string, trusted bool) []string {
+func SearchDirs(harnessHome, cwd string, trusted bool) []string {
 	var dirs []string
-	if home != "" {
-		dirs = append(dirs, filepath.Join(home, ".claude", "workflows"))
-	}
 	if harnessHome != "" {
 		dirs = append(dirs, filepath.Join(harnessHome, "workflows"))
 	}
 	if trusted {
-		dirs = append(dirs, filepath.Join(cwd, ".claude", "workflows"), filepath.Join(cwd, ".harness", "workflows"))
+		dirs = append(dirs, filepath.Join(cwd, ".harness", "workflows"))
 	}
 	return dirs
 }

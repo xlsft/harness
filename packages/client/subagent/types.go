@@ -52,18 +52,15 @@ func BuiltinTypes() []Type {
 // agent asks through its report instead.
 var leadOnlyTools = map[string]bool{"AskUserQuestion": true, "EnterPlanMode": true, "ExitPlanMode": true, "WrapUp": true, "Show": true, "Visual": true, "Workflow": true}
 
-// DefinitionDirs lists where custom types are looked for, later entries winning: the user's directories, then (for
-// a trusted workspace) the project's.
-func DefinitionDirs(harnessHome, home, cwd string, trusted bool) []string {
+// DefinitionDirs lists where custom types are looked for, later entries winning: the user's directory, then (for a
+// trusted workspace) the project's.
+func DefinitionDirs(harnessHome, cwd string, trusted bool) []string {
 	var dirs []string
-	if home != "" {
-		dirs = append(dirs, filepath.Join(home, ".claude", "agents"))
-	}
 	if harnessHome != "" {
 		dirs = append(dirs, filepath.Join(harnessHome, "agents"))
 	}
 	if trusted {
-		dirs = append(dirs, filepath.Join(cwd, ".claude", "agents"), filepath.Join(cwd, ".harness", "agents"))
+		dirs = append(dirs, filepath.Join(cwd, ".harness", "agents"))
 	}
 	return dirs
 }
@@ -71,8 +68,21 @@ func DefinitionDirs(harnessHome, home, cwd string, trusted bool) []string {
 // LoadDefinitions reads custom types from markdown files with frontmatter: name, description, tools (comma separated),
 // model, read_only. The body is the type's instructions. A later directory replaces a type of the same name; the
 // built-in names are kept.
-func LoadDefinitions(dirs []string) []Type {
+func LoadDefinitions(dirs []string) []Type { return LoadDefinitionsOver(nil, dirs) }
+
+// Document is a synced agent definition: its key and markdown.
+type Document struct{ Key, Content string }
+
+// LoadDefinitionsOver is LoadDefinitions with synced documents below the directories: a file on this device replaces the
+// document of the same name.
+func LoadDefinitionsOver(docs []Document, dirs []string) []Type {
 	byName := map[string]Type{}
+	for _, d := range docs {
+		t := parseDefinition(d.Content, d.Key)
+		if t.Name != TypeGeneral && t.Name != TypeExplore && t.Name != TypePlan {
+			byName[t.Name] = t
+		}
+	}
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {

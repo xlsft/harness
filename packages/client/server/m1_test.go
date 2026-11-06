@@ -73,7 +73,7 @@ func startHarnessSrv(t *testing.T, respond fg.Responder, gwmod func(*fg.Server),
 	t.Setenv("HARNESS_TMPDIR", settledTempDir(t))
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
 	t.Setenv("HARNESS_KEYRING", "0")  // environment keys go to a file under HARNESS_HOME, never the keychain
-	t.Setenv("HARNESS_NO_HOOKS", "1") // the hooks of the developer's own ~/.claude/settings.json have no place in a test
+	t.Setenv("HARNESS_NO_HOOKS", "1") // the hooks of the developer's own settings have no place in a test
 	gw := fg.New(respond)
 	if gwmod != nil {
 		gwmod(gw)
@@ -425,7 +425,7 @@ func TestAllowAlwaysAndPermissionComments(t *testing.T) {
 	if resolvedDecision != agentv1.RespondToPermissionRequest_DECISION_ALLOW_ALWAYS {
 		t.Fatalf("resolved %v", resolvedDecision)
 	}
-	data, _ := os.ReadFile(filepath.Join(h.proj, ".claude", "settings.local.json"))
+	data, _ := os.ReadFile(filepath.Join(h.proj, ".harness", "settings.local.json"))
 	if !strings.Contains(string(data), `"Bash(make build *)"`) {
 		t.Fatalf("settings.local.json: %s", data)
 	}

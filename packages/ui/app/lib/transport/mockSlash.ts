@@ -20,8 +20,8 @@ export function mockSlashCatalog(disabled: ReadonlySet<string>): SlashCatalog {
     builtin('init', 'Write an instructions file for this repository', '[what to emphasize]'),
     builtin('code-review', 'Review the current diff for bugs and list the findings', '[range, files or focus]'),
     builtin('skills', 'Open Customize: skills and commands, with their switches'),
-    own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.claude/skills/release-notes/SKILL.md'),
-    own('fe:test', 'Run the frontend tests', SlashCommandKind.COMMAND, '.claude/commands/fe/test.md')
+    own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.harness/skills/release-notes/SKILL.md'),
+    own('fe:test', 'Run the frontend tests', SlashCommandKind.COMMAND, '.harness/commands/fe/test.md')
   ]
   return { commands, projectSkippedUntrusted: false, listingBudgetChars: 8000, listingUsedChars: 120 }
 }

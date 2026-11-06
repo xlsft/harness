@@ -340,7 +340,7 @@ A headless Chromium per session on the user's machine (`packages/client/browser`
 
 All reminders except the two interruption markers, `webfetch_summary` (REM-15) and `side_chat` (REM-18) are wrapped in `<system-reminder>` so the model can tell them from user text.
 
-1. REM-1. `project_instructions`: project and user instructions (CLAUDE.md, AGENTS.md, memory). They override default behavior where they conflict, but only within what the user would want; they are less authoritative than the user's live messages. Why: project rules must be followed; stale files must not override the user.
+1. REM-1. `project_instructions`: project and user instructions (AGENTS.md, rules, memory). They override default behavior where they conflict, but only within what the user would want; they are less authoritative than the user's live messages. Why: project rules must be followed; stale files must not override the user.
 2. REM-2. `file_changed`: a file the agent read changed on disk; take the diff into account, do not revert it, and re-read before editing. Why: the user or a formatter changed it; edits on stale state fail.
 3. REM-3. `empty_file`: the file exists and is empty. Why: distinguishes from a missing file.
 4. REM-4. `interrupted`: exactly `[Request interrupted by user]`. Why: client and transcript compatibility.

@@ -27,7 +27,7 @@ func TestPolicyDisabledModes(t *testing.T) {
 	// Session settings: policy disabledModes apply, a disabled defaultMode falls back to default.
 	root := t.TempDir()
 	cwd, home := filepath.Join(root, "p"), filepath.Join(root, "h")
-	writeJSON(t, filepath.Join(home, ".claude", "settings.json"), `{"permissions": {"defaultMode": "acceptEdits", "disabledModes": ["plan"]}}`)
+	writeJSON(t, filepath.Join(cwd, ".harness", "settings.local.json"), `{"permissions": {"defaultMode": "acceptEdits", "disabledModes": ["plan"]}}`)
 	s, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Trusted: true,
 		Docs: &fakeDocs{docs: []*syncv1.Document{pol("default", `{"permissions": {"disabledModes": ["acceptEdits", "default"]}}`)}}})
 	if err != nil {

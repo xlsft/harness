@@ -49,10 +49,10 @@ func TestHooksFromEveryProjectFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(st.Hooks) != 5 {
+	if len(st.Hooks) != 2 {
 		t.Fatalf("layers: %+v", st.Hooks)
 	}
-	if st.Hooks[0].Source.Level != LevelUser || st.Hooks[len(st.Hooks)-1].Source.Level != LevelLocal {
+	if st.Hooks[0].Source.Level != LevelProject || st.Hooks[len(st.Hooks)-1].Source.Level != LevelLocal {
 		t.Fatalf("lowest level first: %+v", st.Hooks)
 	}
 	for _, l := range st.Hooks {
@@ -111,7 +111,7 @@ func TestHooksFromTheServerNeedThisDevice(t *testing.T) {
 
 func TestManagedHooksOnly(t *testing.T) {
 	cwd, home := t.TempDir(), t.TempDir()
-	writeSettings(t, cwd, ".claude/settings.json", stopHook)
+	writeSettings(t, cwd, ".harness/settings.json", stopHook)
 	policy := `{"allowManagedHooksOnly":true,"hooks":{"Stop":[{"hooks":[{"type":"command","command":"p"}]}]}}`
 	docs := hookDocs{{Id: "doc_policy", Scope: commonv1.Scope_SCOPE_ORG, Kind: syncv1.DocumentKind_DOCUMENT_KIND_POLICY, Key: "default", Content: policy}}
 	st, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Docs: docs, Trusted: true})
@@ -131,7 +131,7 @@ func TestManagedHooksOnly(t *testing.T) {
 		}
 	}
 	// Only a policy can say it: a repository cannot lock out the user's hooks.
-	writeSettings(t, cwd, ".claude/settings.local.json", `{"allowManagedHooksOnly":true}`)
+	writeSettings(t, cwd, ".harness/settings.local.json", `{"allowManagedHooksOnly":true}`)
 	st, err = Load(context.Background(), Options{Cwd: cwd, Home: home, Trusted: true})
 	if err != nil {
 		t.Fatal(err)
@@ -145,9 +145,9 @@ func TestManagedHooksOnly(t *testing.T) {
 
 func TestDisableAllHooksOnlyEverTurnsOff(t *testing.T) {
 	cwd, home := t.TempDir(), t.TempDir()
-	writeSettings(t, home, ".claude/settings.json", `{"disableAllHooks":true}`)
-	writeSettings(t, cwd, ".claude/settings.local.json", `{"disableAllHooks":false}`)
-	st, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Trusted: true})
+	user := hookDocs{{Id: "u", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_SETTINGS, Key: UserSettingsKey, Content: `{"disableAllHooks":true}`}}
+	writeSettings(t, cwd, ".harness/settings.local.json", `{"disableAllHooks":false}`)
+	st, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Docs: user, Trusted: true})
 	if err != nil {
 		t.Fatal(err)
 	}

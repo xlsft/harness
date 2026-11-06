@@ -2,9 +2,9 @@
 //
 //	policy (sync POLICY documents; always wins)
 //	→ CLI flags
-//	→ .harness/settings.local.json, .claude/settings.local.json
-//	→ .harness/settings.json, .claude/settings.json
-//	→ user (sync SETTINGS + PERMISSION_RULES at user scope; ~/.claude/settings.json before the first sync)
+//	→ .harness/settings.local.json
+//	→ .harness/settings.json
+//	→ user (sync SETTINGS + PERMISSION_RULES at user scope)
 //	→ org defaults (sync SETTINGS + PERMISSION_RULES at org scope)
 //
 // Scalars are taken from the highest level that sets them; permission rule
@@ -34,8 +34,8 @@ type Level int
 const (
 	LevelOrg Level = iota + 1
 	LevelUser
-	LevelProject // committed .claude/settings.json, .harness/settings.json
-	LevelLocal   // .claude/settings.local.json, .harness/settings.local.json
+	LevelProject // committed .harness/settings.json
+	LevelLocal   // .harness/settings.local.json
 	LevelCLI
 	LevelPolicy
 	// LevelPlugin is the hooks of an installed plugin (package plugins). It is no settings file and holds nothing else; it
@@ -71,7 +71,7 @@ type Source struct {
 	// DocID is the sync document id (doc_...), empty for files.
 	DocID string
 	// Dir is the base directory for relative path rules and directories:
-	// the directory that contains .claude/.harness for files, the home
+	// the directory that contains .harness for files, the home
 	// directory for user documents, the cwd for CLI flags, empty for org
 	// and policy documents.
 	Dir string
@@ -250,8 +250,8 @@ type Options struct {
 	// Home defaults to os.UserHomeDir.
 	Home string
 	CLI  CLI
-	// Docs supplies policy, user and org documents. Nil, or not yet synced,
-	// falls back to ~/.claude/settings.json for the user level.
+	// Docs supplies policy, user and org documents. Nil, or not yet synced:
+	// no user level.
 	Docs DocSource
 	// Trusted is the workspace trust decision for Cwd.
 	Trusted bool
@@ -419,9 +419,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 		level Level
 	}{
 		{".harness/settings.local.json", LevelLocal},
-		{".claude/settings.local.json", LevelLocal},
 		{".harness/settings.json", LevelProject},
-		{".claude/settings.json", LevelProject},
 	} {
 		p := filepath.Join(cwd, filepath.FromSlash(f.rel))
 		add(s.parseFile(Source{Level: f.level, Path: p, Dir: cwd}, p))
@@ -430,13 +428,9 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	if synced {
 		add(s.docLayer(o.Docs, commonv1.Scope_SCOPE_USER, LevelUser, home))
 		add(s.docLayer(o.Docs, commonv1.Scope_SCOPE_ORG, LevelOrg, ""))
-	} else {
-		p := filepath.Join(home, ".claude", "settings.json")
-		add(s.parseFile(Source{Level: LevelUser, Path: p, Dir: home}, p))
-		if o.Docs != nil {
-			// Org defaults may already be cached from an interrupted sync.
-			add(s.docLayer(o.Docs, commonv1.Scope_SCOPE_ORG, LevelOrg, ""))
-		}
+	} else if o.Docs != nil {
+		// Org defaults may already be cached from an interrupted sync.
+		add(s.docLayer(o.Docs, commonv1.Scope_SCOPE_ORG, LevelOrg, ""))
 	}
 
 	layers = flatten(layers)

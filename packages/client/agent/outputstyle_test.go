@@ -118,8 +118,8 @@ func TestOutputStyleReminderAtStartAndOnSwitch(t *testing.T) {
 func TestOutputStyleWithoutCodingInstructionsAtStart(t *testing.T) {
 	e := styleSetup(t)
 	withCodingSections(e.srv.Bundle)
-	os.MkdirAll(filepath.Join(e.proj, ".claude", "output-styles"), 0o755)
-	os.WriteFile(filepath.Join(e.proj, ".claude", "output-styles", "terse.md"), []byte("---\ndescription: Short answers\n---\nAnswer in one line."), 0o644)
+	os.MkdirAll(filepath.Join(e.proj, ".harness", "output-styles"), 0o755)
+	os.WriteFile(filepath.Join(e.proj, ".harness", "output-styles", "terse.md"), []byte("---\ndescription: Short answers\n---\nAnswer in one line."), 0o644)
 
 	s := e.open(t, func(o *bootstrap.Options) { o.OutputStyle = "terse" })
 	s.Agent.RunTurn(context.Background(), prompt("hello"))
@@ -220,8 +220,8 @@ func TestOutputStyleUnknownAtStartAndSettings(t *testing.T) {
 	}
 	s.Close()
 
-	os.MkdirAll(filepath.Join(e.proj, ".claude"), 0o755)
-	os.WriteFile(filepath.Join(e.proj, ".claude", "settings.json"), []byte(`{"outputStyle": "learning"}`), 0o644)
+	os.MkdirAll(filepath.Join(e.proj, ".harness"), 0o755)
+	os.WriteFile(filepath.Join(e.proj, ".harness", "settings.json"), []byte(`{"outputStyle": "learning"}`), 0o644)
 	trusted := true
 	s2 := e.open(t, func(o *bootstrap.Options) { o.Trusted = &trusted })
 	if s2.ActiveOutputStyle() != "learning" {
@@ -238,8 +238,8 @@ func TestOutputStyleEmptyBundle(t *testing.T) {
 	e := styleSetup(t)
 	e.srv.Bundle.OutputStyles = nil
 	delete(e.srv.Bundle.Reminders, "output_style")
-	os.MkdirAll(filepath.Join(e.proj, ".claude", "output-styles"), 0o755)
-	os.WriteFile(filepath.Join(e.proj, ".claude", "output-styles", "pirate.md"), []byte("---\nkeep-coding-instructions: true\n---\nTalk like a pirate."), 0o644)
+	os.MkdirAll(filepath.Join(e.proj, ".harness", "output-styles"), 0o755)
+	os.WriteFile(filepath.Join(e.proj, ".harness", "output-styles", "pirate.md"), []byte("---\nkeep-coding-instructions: true\n---\nTalk like a pirate."), 0o644)
 	s := e.open(t, func(o *bootstrap.Options) { o.OutputStyle = "pirate" })
 	if l := s.OutputStyles().List(); len(l) != 2 || l[0].ID != "default" || l[1].ID != "pirate" {
 		t.Fatalf("styles %+v", l)

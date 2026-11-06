@@ -67,6 +67,13 @@ wait_for "$CORE_URL/api/health" "core"
 
 export HARNESS_HOME="$WORK/home" HARNESS_KEYRING=0
 
+# The client must not pick anything up from a machine's ~/.claude. It gets a home of its own whose ~/.claude would show if it did.
+CLAUDE_MARK="$WORK/claude-settings-were-read"
+export HOME="$WORK/fake-home"
+mkdir -p "$HOME/.claude"
+jq -n --arg c "touch '$CLAUDE_MARK'" '{hooks:{SessionStart:[{hooks:[{type:"command",command:$c}]}],Stop:[{hooks:[{type:"command",command:$c}]}]},permissions:{deny:["Bash"]}}' \
+  >"$HOME/.claude/settings.json"
+
 log "device login"
 "$WORK/harness-client" login "$CORE_URL" >"$WORK/login.log" 2>&1 &
 LOGIN_PID=$!
@@ -155,4 +162,6 @@ echo "$MCP_RESULT" >"$WORK/mcp-result.json"
 grep -q 'tools=.*mcp__e2e__echo' "$WORK/upstream.log" || fail "upstream did not receive the MCP tool definition"
 [[ ! -e "$HARNESS_HOME/mcp-approvals.json" ]] || fail "an approval given through HARNESS_MCP_APPROVE must not be persisted"
 
-log "e2e passed: $(jq -c '{subtype,num_turns,total_cost_usd,result}' <<<"$RESULT")"
+[[ ! -e "$CLAUDE_MARK" ]] || fail "the client read ~/.claude/settings.json"
+
+log "e2e passed:$(jq -c '{subtype,num_turns,total_cost_usd,result}' <<<"$RESULT")"

@@ -4,7 +4,7 @@
 
 import type { ImportHandle, ImportHandlers, ImportItem, ImportStatus } from './types'
 
-export type ClaudeSection = 'memory' | 'settings' | 'skills' | 'agents' | 'commands' | 'output-styles' | 'mcp' | 'sessions'
+export type ClaudeSection = 'memory' | 'settings' | 'skills' | 'agents' | 'commands' | 'output-styles' | 'workflows' | 'mcp' | 'sessions'
 
 // The kinds with a checkbox, in order. MCP servers are only listed: they are set up by hand.
 export const CLAUDE_SECTIONS: { key: ClaudeSection, label: string }[] = [
@@ -13,7 +13,8 @@ export const CLAUDE_SECTIONS: { key: ClaudeSection, label: string }[] = [
   { key: 'skills', label: 'Skills' },
   { key: 'agents', label: 'Agents' },
   { key: 'commands', label: 'Commands' },
-  { key: 'output-styles', label: 'Output styles' }
+  { key: 'output-styles', label: 'Output styles' },
+  { key: 'workflows', label: 'Workflows' }
 ]
 
 export interface ClaudeImportSession {

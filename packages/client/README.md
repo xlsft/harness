@@ -16,16 +16,16 @@ It ships in two forms:
 | `auth` | `Service` interface, Connect adapter, device-flow `Login`, `Manager` (token refresh), keychain/file credential `Store` |
 | `prompts` | `Source` interface, Connect adapter, bundle cache (`~/.harness/cache/prompts`), placeholder rendering, system assembly with cache markers |
 | `workspace` | Env placeholders, git snapshot, project_key (normalized git remote) |
-| `memory` | Project instructions with Claude Code semantics: managed / user / project CLAUDE.md, AGENTS.md fallback, `@imports`, lazy subdirectory files, path-scoped rules, auto memory |
+| `memory` | Project instructions: managed / synced user / project AGENTS.md and `.harness/` files, `@imports`, lazy subdirectory files, path-scoped rules, auto memory |
 | `settings` | Settings hierarchy (policy → CLI → local → project → user → org) with per-rule sources and the workspace trust gate |
 | `syncclient` | `SyncService` client: document cache (`~/.harness/cache/sync`), catch-up + watch loop, CAS writes, session transcript uploader; `synctest` is an in-memory server for tests |
 | `vcs` | Device providers `gh` and `glab`: CLI detection (version, logged-in hosts), PR/MR and CI polling for the session branch, `ReportDeviceProviders` / `ReportDeviceSnapshot` uploads; `vcstest` is a fake `VcsService` |
-| `importer` | `import claude`: uploads `~/.claude` (memory, settings, skills, agents, commands, output styles) and copies sessions |
+| `importer` | The only reader of Claude Code's files. `import claude` uploads `~/.claude` (memory, rules, settings, skills, agents, commands, output styles), copies workflows, hook scripts and sessions; `import --project` brings a folder's `CLAUDE.md` and `.claude/` into `AGENTS.md` and `.harness/` |
 | `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait, Agent, SendMessage, ListAgents |
 | `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait, Monitor, NotebookEdit |
 | `web` | WebSearch (`harness.search.v1.SearchService` on the server) and WebFetch (local fetch, http → https except private hosts, same-host redirects only, 10 MB / 60 s limits, HTML → Markdown, binary refused, 15-minute in-memory cache per URL, answer from the small-slot model through the gateway with the bundle's `webfetch_summary` prompt) |
 | `netguard` | Private-network classification (loopback, RFC 1918, link-local, ULA, CGNAT, metadata names, names resolving there) shared by the permission engine and WebFetch's dial guard |
-| `outputstyle` | Output style discovery: bundle built-ins, user styles (sync or `~/.claude`/`~/.harness/output-styles`), project styles (`.claude`/`.harness/output-styles`), frontmatter parsing |
+| `outputstyle` | Output style discovery: bundle built-ins, user styles (`~/.harness/output-styles`, then sync), project styles (`.harness/output-styles`), frontmatter parsing |
 | `permissions` | Rule engine with Claude Code semantics (deny → ask → allow, compound Bash, wrappers, gitignore paths, read-only allowlist, protected paths, modes), workspace trust (`~/.harness/trust.json`), allow-always persistence; WebSearch / WebFetch need a rule (`WebSearch`, `WebFetch(domain:host)`), auto mode or the user, and a WebFetch of a private-network host is a user-only ask unless a rule names that exact host |
 | `sandbox` | OS sandbox of the commands the model runs (Bash, Monitor, TerminalRun; preview servers under a policy of their own), no VM: the policy, a Seatbelt profile for `sandbox-exec` on macOS (stubs elsewhere), a local proxy with a host allowlist, and reading what a failed command was refused. `sandbox.enabled` and friends in the settings; bypass mode leaves it as set |
 | `decision` | Deciders of the `auto` permission mode: local rules (Go port of the server's `rules` provider, `packages/core/src/decision/rules.ts`), `harness.decision.v1.DecisionService` client, chain with fallback, session cache |
@@ -66,6 +66,7 @@ harness-client -p --permission-mode auto "run the tests and fix what fails"
 harness-client serve --socket /tmp/harness.sock     # AgentService for frontends
 harness-client serve --listen 127.0.0.1:7801       # ... for browsers (see packages/ui/README.md)
 harness-client import claude --dry-run              # preview the ~/.claude import (add --sessions for transcripts)
+harness-client import --project [folder] --dry-run  # preview bringing a folder's CLAUDE.md and .claude into AGENTS.md and .harness
 harness-client sync --watch                         # catch up the sync cache, upload sessions, follow changes
 ```
 
@@ -104,8 +105,8 @@ Project and local settings files cannot turn auto on; `permissions.disableAutoMo
 An output style changes how the assistant communicates without changing the tools. Sources, later wins on the same name (id or display name, case-insensitive):
 
 1. built-ins from the prompt bundle (`output_styles`; an empty map leaves only `default`);
-2. user styles: sync documents of kind `OUTPUT_STYLE` in scope `USER`, or, before the first full sync, `~/.claude/output-styles/*.md` then `~/.harness/output-styles/*.md`;
-3. project styles: `.claude/output-styles/*.md` then `.harness/output-styles/*.md`, in the git root and then the cwd.
+2. user styles: `~/.harness/output-styles/*.md`, then sync documents of kind `OUTPUT_STYLE` in scope `USER`;
+3. project styles: `.harness/output-styles/*.md`, in the git root and then the cwd.
 
 A style file is markdown with optional frontmatter `name` (default: the file stem), `description` and `keep-coding-instructions` (default `false`, as in Claude Code); the body is the style text.
 

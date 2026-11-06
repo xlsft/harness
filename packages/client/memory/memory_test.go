@@ -49,6 +49,16 @@ func (f *fakeDocs) Lookup(scope commonv1.Scope, kind syncv1.DocumentKind, key, p
 	return d, ok
 }
 
+func (f *fakeDocs) List(kind syncv1.DocumentKind) []*syncv1.Document {
+	var out []*syncv1.Document
+	for _, d := range f.docs {
+		if d.GetKind() == kind {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
 func memDoc(scope commonv1.Scope, projectKey, id, content string) (string, *syncv1.Document) {
 	return fmt.Sprint(scope, syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "user", projectKey),
 		&syncv1.Document{Id: id, Scope: scope, Kind: syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, Key: "user", Content: content, ProjectKey: projectKey}
@@ -62,56 +72,38 @@ func TestStartupHierarchy(t *testing.T) {
 		want  []string
 	}{
 		{
-			name: "root to cwd, local after main, .claude/CLAUDE.md",
+			name: "root to cwd, local after main, .harness/AGENTS.md",
 			files: map[string]string{
-				"repo/CLAUDE.md":             "root",
-				"repo/CLAUDE.local.md":       "root local",
-				"repo/a/.claude/CLAUDE.md":   "a dotclaude",
-				"repo/a/b/CLAUDE.md":         "b",
-				"repo/a/b/AGENTS.md":         "ignored agents",
-				"repo/a/b/c/CLAUDE.md":       "below cwd (lazy)",
-				"repo/a/b/CLAUDE.local.md":   "b local",
-				"repo/a/b/.claude/AGENTS.md": "ignored",
+				"repo/AGENTS.md":                    "root",
+				"repo/.harness/AGENTS.local.md":     "root local",
+				"repo/a/.harness/AGENTS.md":         "a dotharness",
+				"repo/a/b/AGENTS.md":                "b",
+				"repo/a/b/c/AGENTS.md":              "below cwd (lazy)",
+				"repo/a/b/.harness/AGENTS.local.md": "b local",
 			},
-			want: []string{"repo/CLAUDE.md=root", "repo/CLAUDE.local.md=root local", "repo/a/.claude/CLAUDE.md=a dotclaude", "repo/a/b/CLAUDE.md=b", "repo/a/b/CLAUDE.local.md=b local"},
+			want: []string{"repo/AGENTS.md=root", "repo/.harness/AGENTS.local.md=root local", "repo/a/.harness/AGENTS.md=a dotharness", "repo/a/b/AGENTS.md=b", "repo/a/b/.harness/AGENTS.local.md=b local"},
 		},
 		{
-			name:  "AGENTS.md fallback when no CLAUDE file",
-			files: map[string]string{"repo/AGENTS.md": "agents root", "repo/a/b/.claude/AGENTS.md": "agents b"},
-			want:  []string{"repo/AGENTS.md=agents root", "repo/a/b/.claude/AGENTS.md=agents b"},
-		},
-		{
-			name:  "CLAUDE.local.md alone disables AGENTS.md",
-			files: map[string]string{"repo/AGENTS.md": "agents", "repo/a/CLAUDE.local.md": "local"},
-			want:  []string{"repo/a/CLAUDE.local.md=local"},
-		},
-		{
-			name:  "claude-md-and-agents-md reads both",
-			mode:  ModeClaudeAndAgents,
-			files: map[string]string{"repo/AGENTS.md": "agents", "repo/CLAUDE.md": "claude"},
-			want:  []string{"repo/CLAUDE.md=claude", "repo/AGENTS.md=agents"},
-		},
-		{
-			name:  "claude-md never reads AGENTS.md",
-			mode:  ModeClaudeOnly,
+			name:  "the values of the setting that chose between files read the same",
+			mode:  "claude-md",
 			files: map[string]string{"repo/AGENTS.md": "agents"},
-			want:  nil,
+			want:  []string{"repo/AGENTS.md=agents"},
 		},
 		{
 			name:  "managed-only",
 			mode:  ModeManagedOnly,
-			files: map[string]string{"repo/CLAUDE.md": "claude", "managed/CLAUDE.md": "managed"},
-			want:  []string{"managed/CLAUDE.md=managed"},
+			files: map[string]string{"repo/AGENTS.md": "claude", "managed/AGENTS.md": "managed"},
+			want:  []string{"managed/AGENTS.md=managed"},
 		},
 		{
 			name:  "html comments stripped outside code only",
-			files: map[string]string{"repo/CLAUDE.md": "keep <!-- drop -->this\n<!--\nmulti\n-->\n`<!-- span -->`\n```\n<!-- fenced -->\n```"},
-			want:  []string{"repo/CLAUDE.md=keep this\n\n`<!-- span -->`\n```\n<!-- fenced -->\n```"},
+			files: map[string]string{"repo/AGENTS.md": "keep <!-- drop -->this\n<!--\nmulti\n-->\n`<!-- span -->`\n```\n<!-- fenced -->\n```"},
+			want:  []string{"repo/AGENTS.md=keep this\n\n`<!-- span -->`\n```\n<!-- fenced -->\n```"},
 		},
 		{
 			name:  "oversized file skipped",
-			files: map[string]string{"repo/CLAUDE.md": strings.Repeat("x", MaxFileBytes+1), "repo/a/CLAUDE.md": "small"},
-			want:  []string{"repo/a/CLAUDE.md=small"},
+			files: map[string]string{"repo/AGENTS.md": strings.Repeat("x", MaxFileBytes+1), "repo/a/AGENTS.md": "small"},
+			want:  []string{"repo/a/AGENTS.md=small"},
 		},
 	}
 	for _, tc := range cases {
@@ -120,7 +112,7 @@ func TestStartupHierarchy(t *testing.T) {
 			write(t, root, tc.files)
 			cwd := filepath.Join(root, "repo", "a", "b")
 			os.MkdirAll(cwd, 0o755)
-			managed := []string{filepath.Join(root, "managed", "CLAUDE.md")}
+			managed := []string{filepath.Join(root, "managed", "AGENTS.md")}
 			l := New(Options{Cwd: cwd, Mode: tc.mode, Home: filepath.Join(root, "home"), ManagedFiles: managed})
 			got := contents(root, l.Initial())
 			if !reflect.DeepEqual(got, tc.want) {
@@ -134,23 +126,21 @@ func TestManagedUserAndAutoMemoryOrder(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
 	write(t, root, map[string]string{
-		"managed/CLAUDE.md":             "managed",
-		"home/.claude/CLAUDE.md":        "local user",
-		"home/.claude/rules/style.md":   "user rule",
-		"home/CLAUDE.md":                "home project file",
-		"home/repo/CLAUDE.md":           "project",
-		"harness/memory/k/MEMORY.md":    "local auto memory",
-		"home/repo/.claude/rules/x.md":  "always rule",
-		"home/repo/.claude/rules/y.md":  "---\npaths: [\"src/**/*.go\"]\n---\ngo rule",
-		"home/repo/.claude/settings.md": "not a rule",
+		"managed/AGENTS.md":              "managed",
+		"home/AGENTS.md":                 "home project file",
+		"home/repo/AGENTS.md":            "project",
+		"harness/memory/k/MEMORY.md":     "local auto memory",
+		"home/repo/.harness/rules/x.md":  "always rule",
+		"home/repo/.harness/rules/y.md":  "---\npaths: [\"src/**/*.go\"]\n---\ngo rule",
+		"home/repo/.harness/settings.md": "not a rule",
 	})
 	cwd := filepath.Join(home, "repo")
-	base := Options{Cwd: cwd, Home: home, ManagedFiles: []string{filepath.Join(root, "managed", "CLAUDE.md")}, AutoMemoryDir: filepath.Join(root, "harness", "memory", "k"), ProjectKey: "k"}
+	base := Options{Cwd: cwd, Home: home, ManagedFiles: []string{filepath.Join(root, "managed", "AGENTS.md")}, AutoMemoryDir: filepath.Join(root, "harness", "memory", "k"), ProjectKey: "k"}
 
-	// Before the first sync: local ~/.claude/CLAUDE.md and ~/.claude/rules.
+	// Before the first sync: no user memory.
 	got := contents(root, New(base).Initial())
-	want := []string{"managed/CLAUDE.md=managed", "home/.claude/CLAUDE.md=local user", "home/.claude/rules/style.md=user rule",
-		"home/CLAUDE.md=home project file", "home/repo/CLAUDE.md=project", "home/repo/.claude/rules/x.md=always rule",
+	want := []string{"managed/AGENTS.md=managed",
+		"home/AGENTS.md=home project file", "home/repo/AGENTS.md=project", "home/repo/.harness/rules/x.md=always rule",
 		"harness/memory/k/MEMORY.md=local auto memory"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unsynced:\n got  %q\n want %q", got, want)
@@ -170,11 +160,6 @@ func TestManagedUserAndAutoMemoryOrder(t *testing.T) {
 	got = contents(root, in)
 	if got[1] != "sync:doc_u=synced user" {
 		t.Fatalf("synced user memory: %q", got)
-	}
-	for _, g := range got {
-		if strings.Contains(g, "local user") || strings.Contains(g, "user rule") {
-			t.Fatalf("local user files must not load after sync: %q", got)
-		}
 	}
 	last := in[len(in)-1]
 	if last.Origin != OriginAutoMemory || strings.Count(last.Content, "\n")+1 != AutoMemoryMaxLines {
@@ -207,44 +192,44 @@ func TestImports(t *testing.T) {
 		{
 			name: "relative to importing file, nested, after importer",
 			files: map[string]string{
-				"repo/CLAUDE.md":      "see @docs/a.md for more",
+				"repo/AGENTS.md":      "see @docs/a.md for more",
 				"repo/docs/a.md":      "A imports @sub/b.md",
 				"repo/docs/sub/b.md":  "B",
 				"repo/docs/unused.md": "unused",
 			},
-			want: []string{"repo/CLAUDE.md=see @docs/a.md for more", "repo/docs/a.md=A imports @sub/b.md", "repo/docs/sub/b.md=B"},
+			want: []string{"repo/AGENTS.md=see @docs/a.md for more", "repo/docs/a.md=A imports @sub/b.md", "repo/docs/sub/b.md=B"},
 		},
 		{
 			name: "max depth 4",
 			files: map[string]string{
-				"repo/CLAUDE.md": "@1.md", "repo/1.md": "one @2.md", "repo/2.md": "two @3.md",
+				"repo/AGENTS.md": "@1.md", "repo/1.md": "one @2.md", "repo/2.md": "two @3.md",
 				"repo/3.md": "three @4.md", "repo/4.md": "four @5.md", "repo/5.md": "five",
 			},
-			want: []string{"repo/CLAUDE.md=@1.md", "repo/1.md=one @2.md", "repo/2.md=two @3.md", "repo/3.md=three @4.md", "repo/4.md=four @5.md"},
+			want: []string{"repo/AGENTS.md=@1.md", "repo/1.md=one @2.md", "repo/2.md=two @3.md", "repo/3.md=three @4.md", "repo/4.md=four @5.md"},
 		},
 		{
 			name: "code spans, fences, quotes, emails are not imports",
 			files: map[string]string{
-				"repo/CLAUDE.md": "`@a.md` and \"@b.md\" and @\"c.md\" and me@d.md\n```\n@e.md\n```\n~~~\n@f.md\n~~~\nreal @g.md.",
+				"repo/AGENTS.md": "`@a.md` and \"@b.md\" and @\"c.md\" and me@d.md\n```\n@e.md\n```\n~~~\n@f.md\n~~~\nreal @g.md.",
 				"repo/a.md":      "A", "repo/b.md": "B", "repo/c.md": "C", "repo/d.md": "D", "repo/e.md": "E", "repo/f.md": "F", "repo/g.md": "G",
 			},
-			want: []string{"repo/CLAUDE.md=`@a.md` and \"@b.md\" and @\"c.md\" and me@d.md\n```\n@e.md\n```\n~~~\n@f.md\n~~~\nreal @g.md.", "repo/g.md=G"},
+			want: []string{"repo/AGENTS.md=`@a.md` and \"@b.md\" and @\"c.md\" and me@d.md\n```\n@e.md\n```\n~~~\n@f.md\n~~~\nreal @g.md.", "repo/g.md=G"},
 		},
 		{
 			name:  "escaped spaces and cycles",
-			files: map[string]string{"repo/CLAUDE.md": `@my\ notes.md`, "repo/my notes.md": "notes @CLAUDE.md"},
-			want:  []string{`repo/CLAUDE.md=@my\ notes.md`, "repo/my notes.md=notes @CLAUDE.md"},
+			files: map[string]string{"repo/AGENTS.md": `@my\ notes.md`, "repo/my notes.md": "notes @AGENTS.md"},
+			want:  []string{`repo/AGENTS.md=@my\ notes.md`, "repo/my notes.md=notes @AGENTS.md"},
 		},
 		{
 			name:    "external import waits for approval",
-			files:   map[string]string{"repo/CLAUDE.md": "@../outside.md and @~/x.md", "outside.md": "outside", "home/x.md": "home x"},
-			want:    []string{"repo/CLAUDE.md=@../outside.md and @~/x.md"},
+			files:   map[string]string{"repo/AGENTS.md": "@../outside.md and @~/x.md", "outside.md": "outside", "home/x.md": "home x"},
+			want:    []string{"repo/AGENTS.md=@../outside.md and @~/x.md"},
 			pending: []string{"home/x.md", "outside.md"},
 		},
 		{
 			name:  "missing import ignored",
-			files: map[string]string{"repo/CLAUDE.md": "@nope.md @README"},
-			want:  []string{"repo/CLAUDE.md=@nope.md @README"},
+			files: map[string]string{"repo/AGENTS.md": "@nope.md @README"},
+			want:  []string{"repo/AGENTS.md=@nope.md @README"},
 		},
 	}
 	for _, tc := range cases {
@@ -270,7 +255,7 @@ func TestImports(t *testing.T) {
 
 func TestImportApproval(t *testing.T) {
 	root := t.TempDir()
-	write(t, root, map[string]string{"repo/CLAUDE.md": "@../shared.md @../denied.md", "shared.md": "shared", "denied.md": "denied"})
+	write(t, root, map[string]string{"repo/AGENTS.md": "@../shared.md @../denied.md", "shared.md": "shared", "denied.md": "denied"})
 	ap := &FileApprovals{Path: filepath.Join(root, "approvals.json"), Project: "p"}
 	l := New(Options{Cwd: filepath.Join(root, "repo"), Home: filepath.Join(root, "home"), ManagedFiles: []string{}, Approvals: ap})
 	if n := len(l.PendingImports()); n != 2 {
@@ -290,7 +275,7 @@ func TestImportApproval(t *testing.T) {
 		t.Fatalf("persisted: %q pending %v", c, l2.PendingImports())
 	}
 	// Imports inside the project root need no approval.
-	write(t, root, map[string]string{"repo/sub/CLAUDE.md": "@../docs.md", "repo/docs.md": "docs"})
+	write(t, root, map[string]string{"repo/sub/AGENTS.md": "@../docs.md", "repo/docs.md": "docs"})
 	l3 := New(Options{Cwd: filepath.Join(root, "repo", "sub"), ProjectRoot: filepath.Join(root, "repo"), Home: filepath.Join(root, "home"), ManagedFiles: []string{}, Approvals: ap})
 	if c := contents(root, l3.Initial()); c[len(c)-1] != "repo/docs.md=docs" {
 		t.Fatalf("project root import: %q", c)
@@ -300,22 +285,22 @@ func TestImportApproval(t *testing.T) {
 func TestLazySubdirsAndRules(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, map[string]string{
-		"repo/CLAUDE.md":                     "root",
-		"repo/pkg/CLAUDE.md":                 "pkg",
-		"repo/pkg/deep/CLAUDE.local.md":      "deep local",
-		"repo/pkg/deep/file.go":              "package deep",
-		"repo/pkg/deep/.claude/rules/r.md":   "deep rule",
-		"repo/other/AGENTS.md":               "not read (CLAUDE.md exists)",
-		"repo/.claude/rules/api.md":          "---\ndescription: x\npaths:\n  - \"src/api/**/*.ts\"\n  - '*.sql'\n---\napi rule",
-		"repo/.claude/rules/nested/tests.md": "---\npaths: \"**/*_test.go\"\n---\ntest rule",
+		"repo/AGENTS.md":                         "root",
+		"repo/pkg/AGENTS.md":                     "pkg",
+		"repo/pkg/deep/.harness/AGENTS.local.md": "deep local",
+		"repo/pkg/deep/file.go":                  "package deep",
+		"repo/pkg/deep/.harness/rules/r.md":      "deep rule",
+		"repo/other/CLAUDE.md":                   "never read",
+		"repo/.harness/rules/api.md":             "---\ndescription: x\npaths:\n  - \"src/api/**/*.ts\"\n  - '*.sql'\n---\napi rule",
+		"repo/.harness/rules/nested/tests.md":    "---\npaths: \"**/*_test.go\"\n---\ntest rule",
 	})
 	cwd := filepath.Join(root, "repo")
 	l := New(Options{Cwd: cwd, Home: filepath.Join(root, "home"), ManagedFiles: []string{}})
-	if got := contents(root, l.Initial()); !reflect.DeepEqual(got, []string{"repo/CLAUDE.md=root"}) {
+	if got := contents(root, l.Initial()); !reflect.DeepEqual(got, []string{"repo/AGENTS.md=root"}) {
 		t.Fatalf("initial %q", got)
 	}
 	got := contents(root, l.ForPath(filepath.Join(cwd, "pkg", "deep", "file.go")))
-	want := []string{"repo/pkg/CLAUDE.md=pkg", "repo/pkg/deep/CLAUDE.local.md=deep local", "repo/pkg/deep/.claude/rules/r.md=deep rule"}
+	want := []string{"repo/pkg/AGENTS.md=pkg", "repo/pkg/deep/.harness/AGENTS.local.md=deep local", "repo/pkg/deep/.harness/rules/r.md=deep rule"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("lazy: got %q want %q", got, want)
 	}
@@ -323,13 +308,13 @@ func TestLazySubdirsAndRules(t *testing.T) {
 		t.Fatalf("second ForPath must return nothing: %+v", again)
 	}
 	if got := l.ForPath(filepath.Join(cwd, "other", "x.txt")); len(got) != 0 {
-		t.Fatalf("AGENTS.md read despite CLAUDE.md: %+v", got)
+		t.Fatalf("CLAUDE.md read: %+v", got)
 	}
 	in := l.ForPath(filepath.Join(cwd, "src", "api", "v1", "users.ts"))
 	if len(in) != 1 || in[0].Content != "api rule" || in[0].Trigger != TriggerPath || !reflect.DeepEqual(in[0].Globs, []string{"src/api/**/*.ts", "*.sql"}) {
 		t.Fatalf("rule: %+v", in)
 	}
-	if got := contents(root, l.ForPath(filepath.Join(cwd, "pkg", "x_test.go"))); !reflect.DeepEqual(got, []string{"repo/.claude/rules/nested/tests.md=test rule"}) {
+	if got := contents(root, l.ForPath(filepath.Join(cwd, "pkg", "x_test.go"))); !reflect.DeepEqual(got, []string{"repo/.harness/rules/nested/tests.md=test rule"}) {
 		t.Fatalf("nested rule: %q", got)
 	}
 	if got := l.ForPath(filepath.Join(root, "elsewhere", "a.ts")); len(got) != 0 {
@@ -337,13 +322,10 @@ func TestLazySubdirsAndRules(t *testing.T) {
 	}
 }
 
-func TestLazyAgentsFallback(t *testing.T) {
+func TestLazyAgents(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, map[string]string{"repo/AGENTS.md": "root agents", "repo/sub/AGENTS.md": "sub agents"})
 	l := New(Options{Cwd: filepath.Join(root, "repo"), Home: filepath.Join(root, "home"), ManagedFiles: []string{}})
-	if !l.AgentsFallback() {
-		t.Fatal("fallback expected")
-	}
 	if got := contents(root, l.ForPath(filepath.Join(root, "repo", "sub", "f.txt"))); !reflect.DeepEqual(got, []string{"repo/sub/AGENTS.md=sub agents"}) {
 		t.Fatalf("got %q", got)
 	}
@@ -370,9 +352,9 @@ func TestFrontmatterList(t *testing.T) {
 func TestNoAncestors(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, map[string]string{
-		"CLAUDE.md":              "root instructions",
-		"chats/s1/CLAUDE.md":     "own instructions",
-		"chats/s1/sub/CLAUDE.md": "nested instructions",
+		"AGENTS.md":              "root instructions",
+		"chats/s1/AGENTS.md":     "own instructions",
+		"chats/s1/sub/AGENTS.md": "nested instructions",
 	})
 	cwd := filepath.Join(root, "chats", "s1")
 	l := New(Options{Cwd: cwd, Home: filepath.Join(root, "home"), ManagedFiles: []string{}, NoAncestors: true})
@@ -386,5 +368,106 @@ func TestNoAncestors(t *testing.T) {
 	nested := l.ForPath(filepath.Join(cwd, "sub", "x.go"))
 	if len(nested) != 1 || nested[0].Content != "nested instructions" {
 		t.Fatalf("nested %+v", nested)
+	}
+}
+
+// Nothing of Claude Code's is read: not its names, not its folder, not through an @import, not through a link.
+func TestClaudeFilesAreNotRead(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, map[string]string{
+		"home/.claude/CLAUDE.md":      "user claude",
+		"home/.claude/rules/style.md": "user rule",
+		"home/.claude/note.md":        "user note",
+		"repo/CLAUDE.md":              "project claude",
+		"repo/CLAUDE.local.md":        "local claude",
+		"repo/.claude/CLAUDE.md":      "dot claude",
+		"repo/.claude/AGENTS.md":      "dot agents",
+		"repo/.claude/rules/r.md":     "rule",
+		"repo/.claude/extra.md":       "extra",
+		"repo/sub/CLAUDE.md":          "nested claude",
+		"repo/sub/.claude/rules/r.md": "nested rule",
+		"repo/AGENTS.md":              "live @CLAUDE.md @CLAUDE.local.md @.claude/extra.md @~/.claude/note.md @docs.md",
+		"repo/docs.md":                "docs",
+	})
+	cwd, home := filepath.Join(root, "repo"), filepath.Join(root, "home")
+	l := New(Options{Cwd: cwd, Home: home, ManagedFiles: []string{}})
+	got := contents(root, l.Initial())
+	want := []string{"repo/AGENTS.md=live @CLAUDE.md @CLAUDE.local.md @.claude/extra.md @~/.claude/note.md @docs.md", "repo/docs.md=docs"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q", got)
+	}
+	if p := l.PendingImports(); len(p) != 0 {
+		t.Fatalf("offered for approval: %+v", p)
+	}
+	if got := l.ForPath(filepath.Join(cwd, "sub", "x.go")); len(got) != 0 {
+		t.Fatalf("nested: %+v", got)
+	}
+}
+
+func TestLinkToCLAUDEFileIsNotRead(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, map[string]string{"repo/CLAUDE.md": "claude"})
+	if err := os.Symlink("CLAUDE.md", filepath.Join(root, "repo", "AGENTS.md")); err != nil {
+		t.Skip(err)
+	}
+	if got := New(Options{Cwd: filepath.Join(root, "repo"), Home: filepath.Join(root, "home"), ManagedFiles: []string{}}).Initial(); len(got) != 0 {
+		t.Fatalf("%+v", got)
+	}
+}
+
+// A checkout may sit below some .claude (worktrees do): the project still loads, the folder's own files do not.
+func TestProjectBelowAClaudeFolder(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, map[string]string{
+		"main/AGENTS.md":                     "above",
+		"main/.claude/AGENTS.md":             "not this",
+		"main/.claude/worktrees/AGENTS.md":   "nor this",
+		"main/.claude/worktrees/w/AGENTS.md": "worktree @docs.md",
+		"main/.claude/worktrees/w/docs.md":   "docs",
+	})
+	cwd := filepath.Join(root, "main", ".claude", "worktrees", "w")
+	got := contents(root, New(Options{Cwd: cwd, ProjectRoot: cwd, Home: filepath.Join(root, "home"), ManagedFiles: []string{}}).Initial())
+	want := []string{"main/AGENTS.md=above", "main/.claude/worktrees/w/AGENTS.md=worktree @docs.md", "main/.claude/worktrees/w/docs.md=docs"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q", got)
+	}
+}
+
+// The data directory is the user's, even when the walk from the root passes through the home directory.
+func TestHarnessHomeIsNotAProject(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, map[string]string{
+		"home/.harness/AGENTS.md":  "not a project file",
+		"home/.harness/rules/r.md": "not a project rule",
+		"home/repo/AGENTS.md":      "project",
+	})
+	got := contents(root, New(Options{Cwd: filepath.Join(root, "home", "repo"), Home: filepath.Join(root, "home"), ManagedFiles: []string{}}).Initial())
+	if !reflect.DeepEqual(got, []string{"home/repo/AGENTS.md=project"}) {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestSyncedUserRules(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, map[string]string{"repo/x.go": "package x"})
+	docs := &fakeDocs{synced: true, docs: map[string]*syncv1.Document{
+		"a": {Id: "doc_a", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_RULE, Key: "a.md", Content: "always"},
+		"b": {Id: "doc_b", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_RULE, Key: "b.md", Content: "---\npaths: \"**/*.go\"\n---\ngo only"},
+		"o": {Id: "doc_o", Scope: commonv1.Scope_SCOPE_ORG, Kind: syncv1.DocumentKind_DOCUMENT_KIND_RULE, Key: "o.md", Content: "org"},
+	}}
+	cwd := filepath.Join(root, "repo")
+	l := New(Options{Cwd: cwd, Home: filepath.Join(root, "home"), ManagedFiles: []string{}, Docs: docs})
+	if got := contents(root, l.Initial()); !reflect.DeepEqual(got, []string{"sync:doc_a=always"}) {
+		t.Fatalf("got %q", got)
+	}
+	if got := contents(root, l.ForPath(filepath.Join(cwd, "x.go"))); !reflect.DeepEqual(got, []string{"sync:doc_b=go only"}) {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestRewriteImports(t *testing.T) {
+	got := RewriteImports("a @x.md `@y.md` me@z.md\n```\n@w.md\n```\n@v\\ w.md", func(raw string) string { return "<" + raw + ">" })
+	if want := "a <x.md> `@y.md` me@z.md\n```\n@w.md\n```\n<v w.md>"; got != want {
+		t.Fatalf("got %q want %q", got, want)
 	}
 }

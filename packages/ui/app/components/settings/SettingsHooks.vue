@@ -95,7 +95,7 @@ function statusClass(h: ConfiguredHookVM) {
       Hooks
     </h2>
     <p class="set-sub">
-      Programs your settings run at points of a session: they can refuse a tool call, rewrite its input, add context or keep the agent working. They are defined under <code>hooks</code> in <code>.claude/settings*.json</code>, <code>.harness/settings*.json</code> and your user settings, and run with your own rights, outside the sandbox. Sessions of an external ACP agent run none of these: that agent runs its own.
+      Programs your settings run at points of a session: they can refuse a tool call, rewrite its input, add context or keep the agent working. They are defined under <code>hooks</code> in <code>.harness/settings*.json</code> and your user settings, and run with your own rights, outside the sandbox. Sessions of an external ACP agent run none of these: that agent runs its own.
     </p>
     <p
       v-if="error"

@@ -5,7 +5,7 @@
 import type { IconName } from '~/utils/icons'
 
 export interface ImportSource {
-  id: 'claude-code'
+  id: 'claude-code' | 'claude-project'
   name: string
   description: string
   icon: IconName
@@ -15,8 +15,14 @@ export const IMPORT_SOURCES: ImportSource[] = [
   {
     id: 'claude-code',
     name: 'Claude Code',
-    description: 'Memory, settings, skills, agents, commands, output styles and sessions on this computer.',
+    description: 'Memory, rules, settings, skills, agents, commands, output styles, workflows and sessions on this computer.',
     icon: 'terminal'
+  },
+  {
+    id: 'claude-project',
+    name: 'A folder\'s Claude Code files',
+    description: 'CLAUDE.md and what is under .claude, into the folder\'s AGENTS.md and .harness.',
+    icon: 'folder'
   }
 ]
 

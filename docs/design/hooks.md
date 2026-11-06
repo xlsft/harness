@@ -18,8 +18,7 @@ Every level of the settings hierarchy that has a `hooks` block contributes; noth
 
 | Source | Runs when |
 |---|---|
-| `.claude/settings.json`, `.harness/settings.json`, and their `.local.json` | the folder is trusted on this machine (`~/.harness/trust.json`): a repository can commit all four |
-| `~/.claude/settings.json`, used until the first sync | always |
+| `.harness/settings.json` and `.harness/settings.local.json` | the folder is trusted on this machine (`~/.harness/trust.json`): a repository can commit both |
 | `--settings` | always |
 | What the server delivers: the user's `HOOK` document, `hooks` in a `SETTINGS` or `POLICY` document | this machine trusted that exact content (`~/.harness/hook-trust.json`, `SetHooksTrust`). The file is device-local and never syncs, so a compromised server or account cannot run anything here |
 

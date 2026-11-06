@@ -24,7 +24,7 @@ func TestHooksFollowTheSessionsFolder(t *testing.T) {
 		call("b", "Bash", map[string]any{"command": "echo hi", "description": "x"}),
 		say("done"),
 	), hookSettings(t, nil, hookCfg{event: "PreToolUse", command: "echo here >> '" + log + "'"}))
-	writeProjectFile(t, h.proj, "sub/.claude/settings.json", hookSettings(t, nil,
+	writeProjectFile(t, h.proj, "sub/.harness/settings.json", hookSettings(t, nil,
 		hookCfg{event: "PreToolUse", command: "echo there >> '" + log + "'"},
 		hookCfg{event: "CwdChanged", command: "cat > '" + moved + "'"}))
 	sid, ch := h.create(&agentv1.CreateSessionRequest{PermissionMode: agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS})

@@ -34,7 +34,7 @@ const (
 
 // ScanOptions configure Scan.
 type ScanOptions struct {
-	ClaudeHome, ClaudeJSON, ProjectsDir string
+	ClaudeHome, ClaudeJSON, ProjectsDir, HarnessHome string
 	// Exists says whether the server has a document; nil without a server: nothing is known to exist.
 	Exists func(ctx context.Context, ref *syncv1.DocumentRef) (bool, error)
 	// HoldSession and SessionDone are as in Options.
@@ -87,7 +87,7 @@ func Scan(ctx context.Context, o ScanOptions) (*ScanResult, error) {
 	if !res.Found {
 		return res, nil
 	}
-	rep, err := Run(ctx, Options{ClaudeHome: o.ClaudeHome, ClaudeJSON: o.ClaudeJSON, ProjectsDir: o.ProjectsDir, DryRun: true, SecretsHint: o.SecretsHint})
+	rep, err := Run(ctx, Options{ClaudeHome: o.ClaudeHome, ClaudeJSON: o.ClaudeJSON, ProjectsDir: o.ProjectsDir, HarnessHome: o.HarnessHome, DryRun: true, SecretsHint: o.SecretsHint})
 	if err != nil {
 		return nil, err
 	}

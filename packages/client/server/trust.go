@@ -29,11 +29,7 @@ func (s *Server) GetWorkspaceTrust(ctx context.Context, req *connect.Request[age
 	repo := permissions.RepoRoot(path)
 	resp := &agentv1.GetWorkspaceTrustResponse{Trusted: root != "", TrustedRoot: root}
 	resp.HasProjectMcpServers = fileExists(filepath.Join(repo, ".mcp.json"))
-	for _, dir := range []string{".claude", ".harness"} {
-		hooks, allow := committedSettings(filepath.Join(repo, dir, "settings.json"))
-		resp.HasProjectHooks = resp.HasProjectHooks || hooks
-		resp.HasCommittedAllowRules = resp.HasCommittedAllowRules || allow
-	}
+	resp.HasProjectHooks, resp.HasCommittedAllowRules = committedSettings(filepath.Join(repo, ".harness", "settings.json"))
 	return connect.NewResponse(resp), nil
 }
 

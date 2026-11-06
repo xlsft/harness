@@ -101,7 +101,7 @@ title (for example "Claude in Chrome extension detected"). Its footer hint is it
 ```
 ╭─── ⟨brand⟩Claude Code⟨/brand⟩ v2.1.220 ───────────────────────────────────────────────────────────────────╮
 │                                                    │ Tips for getting started                             │
-│                 Welcome back <user>!               │ Run /init to create a CLAUDE.md file with instruc…   │
+│                 Welcome back <user>!               │ Run /init to create an AGENTS.md file with instru…   │
 │                                                    │ ──────────────────────────────────────────────────── │
 │                      ⟨logo⟩                        │ What's new                                           │
 │                      ⟨logo⟩                        │ Bug fixes and reliability improvements               │
@@ -249,7 +249,7 @@ removes the `?` and restores the footer.
   `+` for a file or directory (directories end with `/`), `◇` for an MCP resource
   (`server:uri – description`).
 - Filtering by the typed suffix (`@te` → `test_calc.py`, …). The list can include absolute paths
-  outside the project (`/Users/<user>/.claude/`).
+  outside the project (`/Users/<user>/.harness/`).
 - After submit, mentions in the user's message and file references in assistant text
   (`calc.py:2`) render in the accent color.
 
@@ -632,7 +632,7 @@ When in plan mode, a header strip appears above modal UIs:
 
 ```
 ────────────────────────────────────────────────────────────────────────────────────────────────────────  (secondary)
-Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md                                (secondary)
+Planning: /Users/<user>/.harness/plans/plan-adding-a-sub-a-foamy-goblet.md                                (secondary)
 ────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
@@ -657,7 +657,7 @@ Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md       
      3. Tell Claude what to change
         shift+tab to approve with this feedback      (secondary, under option 3)
 
-   ctrl+g to edit in Vim · ~/.claude/plans/<slug>.md
+   ctrl+g to edit in Vim · ~/.harness/plans/<slug>.md
 ```
 
 - This is a **full-screen pane**. Its top edge is a row of `▔` in accent, and it covers the
@@ -667,7 +667,7 @@ Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md       
 - Option 1 depends on availability (`Yes, and use auto mode` vs. accept-edits wording). Option 3 is
   an inline text input.
 - After approval the transcript shows `⏺ User approved Claude's plan` /
-  `  ⎿  Plan saved to: ~/.claude/plans/<slug>.md · /plan to edit`, followed by the full plan text
+  `  ⎿  Plan saved to: ~/.harness/plans/<slug>.md · /plan to edit`, followed by the full plan text
   indented at column 5. The mode switches accordingly (to `manual` in our run with option 2).
 
 ---

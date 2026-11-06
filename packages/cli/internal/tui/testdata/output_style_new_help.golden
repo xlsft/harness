@@ -1,6 +1,6 @@
 [1m❯[m /output-style
-  [2m└[m  Create [1m.claude/output-styles/<name>.md[m in the project (or ~/.claude/output-
-     styles/ for all projects):
+  [2m└[m  Create [1m.harness/output-styles/<name>.md[m in the project (or
+     ~/.harness/output-styles/ for all projects):
      
        ---
        name: <name>

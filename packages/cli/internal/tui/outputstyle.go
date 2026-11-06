@@ -81,7 +81,7 @@ func outputStylePicker(styles []*agentv1.OutputStyleInfo, active string, set fun
 		p.options = append(p.options, render.Option{Label: label, Desc: desc})
 		ids = append(ids, st.GetId())
 	}
-	p.options = append(p.options, render.Option{Label: newStyleLabel, Desc: "Create a style file in .claude/output-styles"})
+	p.options = append(p.options, render.Option{Label: newStyleLabel, Desc: "Create a style file in .harness/output-styles"})
 	p.opts.n = len(p.options)
 	p.pick = func(i int) tea.Cmd {
 		if i == len(ids) {
@@ -111,7 +111,7 @@ func outputStyleLabel(id string) string {
 // newStyleHelp tells where to create a style file, with a frontmatter template.
 func newStyleHelp(s *render.Styles) string {
 	var b strings.Builder
-	b.WriteString("Create " + s.Bold.Render(".claude/output-styles/<name>.md") + " in the project (or ~/.claude/output-styles/ for all projects):\n\n")
+	b.WriteString("Create " + s.Bold.Render(".harness/output-styles/<name>.md") + " in the project (or ~/.harness/output-styles/ for all projects):\n\n")
 	for _, l := range []string{
 		"---",
 		"name: <name>",
