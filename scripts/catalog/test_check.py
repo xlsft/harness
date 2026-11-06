@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -18,11 +19,13 @@ SKILLS_URL = "https://github.com/anthropics/skills.git"
 
 
 def entry(name="kit", path="skills/kit", license_id="Apache-2.0", repo="example/kit", url=None, **catalog_fields):
-    meta = {"upstream": repo, "licenseFile": f"{path}/LICENSE.txt"}
+    meta = {"upstream": repo}
+    license_file = catalog_fields.pop("licenseFile", f"{path}/LICENSE.txt")
     meta.update(catalog_fields)
     return {
         "name": name,
         "license": license_id,
+        "licenseFile": license_file,
         "description": f"A kit. Origin: {repo}.",
         "source": {"source": "git-subdir", "url": url or f"https://github.com/{repo}.git", "path": path, "sha": SHA},
         "catalog": meta,
@@ -139,7 +142,7 @@ class Forbidden(CatalogCase):
     def test_a_folder_holding_them_is_refused(self):
         for path in ("skills", "."):
             self.assertRefused(self.run_check(entry(path=path, repo="anthropics/skills", url=SKILLS_URL)), "forbidden")
-        whole = {"name": "all", "license": "Apache-2.0", "description": "All. Origin: anthropics/skills.", "source": {"source": "github", "repo": "anthropics/skills", "sha": SHA}, "catalog": {"upstream": "anthropics/skills", "licenseFile": "skills/kit/LICENSE.txt"}}
+        whole = {"name": "all", "license": "Apache-2.0", "description": "All. Origin: anthropics/skills.", "licenseFile": "skills/kit/LICENSE.txt", "source": {"source": "github", "repo": "anthropics/skills", "sha": SHA}, "catalog": {"upstream": "anthropics/skills"}}
         self.assertRefused(self.run_check(whole, fetcher=self.fixtures), "forbidden")
         self.assertEqual(self.fixtures.asked, [])
 
@@ -149,7 +152,7 @@ class Forbidden(CatalogCase):
         self.assertEqual(self.fixtures.asked, [])
 
     def test_a_license_file_inside_them_is_not_fetched(self):
-        errors = self.run_check(entry(path="skills/kit", repo="anthropics/skills", url=SKILLS_URL, licenseFile="skills/docx/LICENSE.txt", licenseNotInstalled=True), fetcher=self.fixtures)
+        errors = self.run_check(entry(path="skills/kit", repo="anthropics/skills", url=SKILLS_URL, licenseFile="skills/docx/LICENSE.txt"), fetcher=self.fixtures)
         self.assertRefused(errors, "forbidden")
         self.assertEqual(self.fixtures.asked, [])
 
@@ -220,14 +223,27 @@ class Licenses(CatalogCase):
         self.upstream(APACHE)
         self.assertRefused(self.run_check(entry(licenseExtraTextSha256="0" * 64), fetcher=self.fixtures), "has no extra text")
 
-    def test_a_license_outside_the_folder_must_be_declared(self):
+    def test_a_license_at_the_repository_root(self):
         self.upstream(APACHE, path="LICENSE")
-        self.assertRefused(self.run_check(entry(licenseFile="LICENSE"), fetcher=self.fixtures), "licenseNotInstalled")
-        self.assertEqual(self.run_check(entry(licenseFile="LICENSE", licenseNotInstalled=True), fetcher=self.fixtures), [])
+        self.assertEqual(self.run_check(entry(licenseFile="LICENSE"), fetcher=self.fixtures), [])
 
-    def test_a_declaration_that_is_not_true_is_refused(self):
+    def test_a_license_file_the_client_would_not_install(self):
+        for name in ("skills/kit/SKILL.md", ".mcp.json", "README.md"):
+            self.assertRefused(self.run_check(entry(licenseFile=name)), "isn't named like a license")
+
+    def test_a_license_read_at_a_familys_own_source(self):
         self.upstream(APACHE)
-        self.assertRefused(self.run_check(entry(licenseNotInstalled=True), fetcher=self.fixtures), "is inside")
+        ofl = "SIL OPEN FONT LICENSE Version 1.1\nPERMISSION & CONDITIONS\n"
+        self.upstream(ofl, repo="foundry/family", path="OFL.txt")
+        origin = {"repo": "foundry/family", "sha": SHA, "file": "OFL.txt", "url": "https://example.invalid/OFL.txt"}
+        good = [{"license": "OFL-1.1", "covers": ["skills/kit/fonts/a.ttf"], "sources": [origin]}]
+        self.assertEqual(self.run_check(entry(additionalLicenses=good), fetcher=self.fixtures), [])
+        self.upstream(MIT, repo="foundry/family", path="OFL.txt")
+        self.assertRefused(self.run_check(entry(additionalLicenses=good), fetcher=self.fixtures), "should be OFL-1.1")
+        unpinned = [{"license": "OFL-1.1", "covers": ["a.ttf"], "sources": [{**origin, "sha": "main"}]}]
+        self.assertRefused(self.run_check(entry(additionalLicenses=unpinned)), "pinned sha")
+        uncovered = [{"license": "OFL-1.1", "sources": [origin]}]
+        self.assertRefused(self.run_check(entry(additionalLicenses=uncovered)), "which files it covers")
 
     def test_additional_licenses(self):
         self.upstream(APACHE)
@@ -259,6 +275,87 @@ class Local(CatalogCase):
         self.assertRefused(self.run_check({"name": "gone", "license": "MIT", "description": "x", "source": "./plugins/gone"}), "not a folder")
 
 
+class Forks(CatalogCase):
+    NOTICE = f"Modified from example/kit, skills/kit, commit {SHA}, under the Apache License 2.0.\n"
+
+    def fork(self, **fields):
+        folder = self.catalog / "plugins" / "kit"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "LICENSE.txt").write_text(APACHE, encoding="utf-8")
+        (folder / "SKILL.md").write_text(self.NOTICE + "Changed.\n", encoding="utf-8")
+        (folder / "same.md").write_text("Same.\n", encoding="utf-8")
+        self.upstream(APACHE)
+        self.upstream("Original.\n", path="skills/kit/SKILL.md")
+        self.upstream("Same.\n", path="skills/kit/same.md")
+        record = {"upstream": "example/kit", "sha": SHA, "path": "skills/kit", "modifiedFiles": ["SKILL.md"]}
+        record.update(fields)
+        return {"name": "kit", "license": "Apache-2.0", "licenseFile": "plugins/kit/LICENSE.txt", "description": "A kit. Forked from example/kit.", "source": "./plugins/kit", "catalog": {"upstream": "example/kit", "fork": record}}
+
+    def test_a_proper_fork_passes(self):
+        self.assertEqual(self.run_check(self.fork(), fetcher=self.fixtures), [])
+
+    def test_a_fork_needs_its_license(self):
+        e = self.fork()
+        (self.catalog / "plugins" / "kit" / "LICENSE.txt").unlink()
+        self.assertRefused(self.run_check(e), "no LICENSE file")
+
+    def test_a_fork_must_keep_the_license_as_it_was(self):
+        e = self.fork()
+        (self.catalog / "plugins" / "kit" / "LICENSE.txt").write_text(APACHE + "\n", encoding="utf-8")
+        self.assertRefused(self.run_check(e, fetcher=self.fixtures), "differs from")
+
+    def test_a_fork_needs_its_origin(self):
+        e = self.fork()
+        del e["catalog"]["fork"]
+        self.assertRefused(self.run_check(e), "needs catalog.fork")
+        self.assertRefused(self.run_check(self.fork(sha="main")), "unpinned")
+        self.assertRefused(self.run_check(self.fork(path=None)), "must name the folder")
+        self.assertRefused(self.run_check(self.fork(upstream="someone/else")), "must be the entry's upstream")
+
+    def test_a_changed_file_needs_a_notice(self):
+        e = self.fork()
+        (self.catalog / "plugins" / "kit" / "SKILL.md").write_text("Changed, silently.\n", encoding="utf-8")
+        self.assertRefused(self.run_check(e), "must say so")
+
+    def test_a_notice_must_name_the_pinned_commit(self):
+        e = self.fork()
+        (self.catalog / "plugins" / "kit" / "SKILL.md").write_text("Modified from example/kit.\n", encoding="utf-8")
+        self.assertRefused(self.run_check(e), "must say so")
+
+    def test_the_list_of_changes_must_be_true(self):
+        self.assertRefused(self.run_check(self.fork(modifiedFiles=[])), "must list what was changed")
+        self.assertRefused(self.run_check(self.fork(modifiedFiles=["SKILL.md", "gone.md"])), "isn't in the fork")
+        e = self.fork()
+        (self.catalog / "plugins" / "kit" / "same.md").write_text("Quietly changed.\n", encoding="utf-8")
+        self.assertRefused(self.run_check(e, fetcher=self.fixtures), "isn't in modifiedFiles")
+        e = self.fork(modifiedFiles=["SKILL.md", "same.md"])
+        (self.catalog / "plugins" / "kit" / "same.md").write_text(self.NOTICE, encoding="utf-8")
+        self.upstream(self.NOTICE, path="skills/kit/same.md")
+        self.assertRefused(self.run_check(e, fetcher=self.fixtures), "same as upstream")
+
+    def test_an_added_file_is_a_change(self):
+        e = self.fork()
+        (self.catalog / "plugins" / "kit" / "new.md").write_text("New.\n", encoding="utf-8")
+        self.assertRefused(self.run_check(e, fetcher=self.fixtures), "needs a notice")
+
+    def test_a_fork_carries_no_upstream_identity(self):
+        for text in ("Keep the Anthropic colors.", "Works in claude.ai."):
+            e = self.fork()
+            (self.catalog / "plugins" / "kit" / "same.md").write_text(text, encoding="utf-8")
+            self.assertRefused(self.run_check(e), "identity")
+
+    def test_a_fork_of_the_forbidden_is_refused_and_not_fetched(self):
+        for name in ("docx", "pdf", "pptx", "xlsx"):
+            e = self.fork(upstream="anthropics/skills", path=f"skills/{name}")
+            e["catalog"]["upstream"] = "anthropics/skills"
+            self.assertRefused(self.run_check(e, fetcher=self.fixtures), "forbidden")
+            self.assertEqual(self.fixtures.asked, [])
+
+    def test_a_fork_states_its_origin_as_a_fact(self):
+        self.assertRefused(self.run_check({**self.fork(), "description": "A kit."}), "must name its origin")
+        self.assertRefused(self.run_check({**self.fork(), "description": "The official kit, from example/kit."}), "as a fact")
+
+
 class TheCatalog(unittest.TestCase):
     """The real catalog, offline: what is listed obeys the rules. Reading its licenses is the job of --verify-licenses in CI."""
 
@@ -273,13 +370,29 @@ class TheCatalog(unittest.TestCase):
         for e in external:
             self.assertRegex(e["source"]["sha"], r"^[0-9a-f]{40}$", e["name"])
             self.assertIn(e["license"], check.ALLOWED_LICENSES)
-            self.assertTrue(e["catalog"]["licenseFile"])
+            self.assertTrue(e["licenseFile"])
+            self.assertNotIn("licenseNotInstalled", e["catalog"])
 
     def test_it_lists_none_of_the_forbidden(self):
         manifest = json.loads((check.DEFAULT_CATALOG / check.MARKETPLACE).read_text(encoding="utf-8"))
         for e in manifest["plugins"]:
             if isinstance(e["source"], dict):
                 self.assertNotIn(e["source"].get("path", "").rsplit("/", 1)[-1], check.FORBIDDEN_SKILLS | set(check.EXCLUDED_SKILLS))
+
+
+    def test_the_font_families_record_what_was_read(self):
+        manifest = json.loads((check.DEFAULT_CATALOG / check.MARKETPLACE).read_text(encoding="utf-8"))
+        canvas = next(e for e in manifest["plugins"] if e["name"] == "canvas-design")
+        groups = [g for g in canvas["catalog"]["additionalLicenses"] if g.get("sources")]
+        covered = sorted(c.rsplit("/", 1)[-1] for g in groups for c in g["covers"])
+        self.assertEqual(covered, sorted(f"IBMPlexSerif-{s}.ttf" for s in ("Bold", "BoldItalic", "Italic", "Regular")) + ["InstrumentSerif-Italic.ttf", "InstrumentSerif-Regular.ttf"])
+
+    def test_the_art_fork_has_lost_the_brand(self):
+        folder = check.DEFAULT_CATALOG / "plugins" / "algorithmic-art"
+        for name in ("SKILL.md", "templates/viewer.html", "templates/generator_template.js"):
+            text = (folder / name).read_text(encoding="utf-8").lower()
+            marks = r"poppins|\blora\b|fonts\.googleapis|#d97757|#6a9bcc|#788c5d|#c86641|#b0aea5|#e8e6dc|#faf9f5|#141413|#f5f3ee|250, 249, 245"
+            self.assertEqual(re.findall(marks, text), [], name)
 
 
 class CommandLine(CatalogCase):

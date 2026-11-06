@@ -45,6 +45,11 @@ OWNER_REPO_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._
 # A description states origin as a fact; it never claims the upstream made or stands behind this catalog.
 CLAIM_RE = re.compile(r"\bofficial\b|\bendorsed\b|\bapproved by\b|\bpartner(ed)? with\b|\b(by|from) anthropic\b|\banthropic['’]s\b|\bmade by\b", re.I)
 BRANDING_FIELDS = ("icon", "logo", "image")
+# The name a license file may have: the client copies it to a plugin's root, where another name could be a component instead.
+LICENSE_NAME_RE = re.compile(r"^(licen[cs]e|copying|notice)([._-][a-z0-9._-]*)?$", re.I)
+# A fork keeps its upstream's license as it is, and states its origin as a repository name. Nothing else names the vendor.
+FORK_BRANDING_RE = re.compile(r"anthropic(?!s/)|claude", re.I)
+FORK_NOTICE = "Modified from "
 
 # SHA-256 of the fixed text, whitespace collapsed: the terms of Apache-2.0, and the MIT text from its grant onwards.
 APACHE_TERMS_SHA256 = "b316b715c7f48af32f6265b3de80b9656fdbddc57f5854215c8a4c6e0ad42c05"
@@ -180,9 +185,13 @@ def check_local(entry, manifest, catalog, errors):
     if folder is None or not folder.is_dir():
         errors.append(f"{name}: the source {entry['source']!r} is not a folder of the catalog")
         return
-    upstream = (entry.get("catalog") or {}).get("upstream", "")
+    meta = entry.get("catalog") or {}
+    upstream = meta.get("upstream", "")
     if str(upstream).lower() == SKILLS_REPO and str(name).lower() in FORBIDDEN_SKILLS:
         errors.append(f"{name}: {SKILLS_REPO} skills/{name} is forbidden: its license forbids copying and derivative works")
+        return
+    if upstream and not meta.get("fork"):
+        errors.append(f"{name}: a bundled entry with an upstream is a fork, and needs catalog.fork")
     files = [p for p in sorted(folder.iterdir()) if p.is_file() and p.name.upper().startswith(("LICENSE", "LICENCE"))]
     if not files:
         errors.append(f"{name}: the plugin folder has no LICENSE file")
@@ -193,6 +202,7 @@ def check_local(entry, manifest, catalog, errors):
 
 
 def check_description(entry, upstream, errors):
+    """A description exists, makes no claim, and names the origin when there is one."""
     name, text = entry.get("name"), entry.get("description")
     if not isinstance(text, str) or not text.strip():
         errors.append(f"{name}: no description")
@@ -212,16 +222,13 @@ def external_paths(entry, source, repo, errors):
         return None
     if str(meta.get("upstream", "")).lower() != repo:
         errors.append(f"{name}: catalog.upstream must be {repo}, the repository of its source")
-    license_file = clean_path(meta.get("licenseFile")) if meta.get("licenseFile") else None
+    license_file = clean_path(entry.get("licenseFile")) if entry.get("licenseFile") else None
     if not license_file:
-        errors.append(f"{name}: catalog.licenseFile must name the license at the pinned commit")
+        errors.append(f"{name}: licenseFile must name the license at the pinned commit")
         return None
-    folder = clean_path(source.get("path")) or ""
-    inside = not folder or license_file.startswith(folder + "/")
-    if not inside and meta.get("licenseNotInstalled") is not True:
-        errors.append(f"{name}: {license_file} is outside the plugin's folder {folder}, so an install doesn't carry it; say so with catalog.licenseNotInstalled")
-    if inside and "licenseNotInstalled" in meta:
-        errors.append(f"{name}: catalog.licenseNotInstalled is set, but {license_file} is inside the plugin's folder")
+    if not LICENSE_NAME_RE.match(posixpath.basename(license_file)):
+        errors.append(f"{name}: licenseFile {license_file} isn't named like a license, so the client won't install it")
+        return None
     wanted = [license_file]
     additional = meta.get("additionalLicenses", [])
     if not isinstance(additional, list):
@@ -232,6 +239,11 @@ def external_paths(entry, source, repo, errors):
         if license_id not in ALLOWED_ADDITIONAL:
             errors.append(f"{name}: the additional license {license_id!r} is not on the list")
             continue
+        for source_of_family in extra.get("sources") or []:
+            if not (isinstance(source_of_family, dict) and SHA_RE.match(str(source_of_family.get("sha", ""))) and source_of_family.get("repo") and source_of_family.get("file") and source_of_family.get("url")):
+                errors.append(f"{name}: a license source needs repo, a pinned sha, file and url: {source_of_family!r}")
+        if extra.get("sources") and not extra.get("covers"):
+            errors.append(f"{name}: a license read at another source must say which files it covers")
         for rel in extra.get("files") or []:
             clean = clean_path(rel)
             if not clean:
@@ -308,6 +320,85 @@ def verify(entry, target, fetcher, errors):
                 continue
             if found != group["license"]:
                 errors.append(f"{name}: {rel} should be {group['license']}, but reads as {found or 'nothing we recognize'}")
+        for origin in group.get("sources") or []:
+            try:
+                found, _ = identify_license(fetcher.fetch(origin["repo"], origin["sha"], origin["file"]))
+            except (LookupError, KeyError) as e:
+                errors.append(f"{name}: {e}")
+                continue
+            if found != group["license"]:
+                errors.append(f"{name}: {origin['repo']}/{origin['file']} should be {group['license']}, but reads as {found or 'nothing we recognize'}")
+
+
+def fork_files(folder):
+    """The files of a fork, as paths from its folder."""
+    return sorted(p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file())
+
+
+def check_fork(entry, folder, errors):
+    """The offline rules for a fork. Returns the upstream folder to compare it with, or None when it must not be touched."""
+    name, fork = entry.get("name"), entry["catalog"].get("fork")
+    if not isinstance(fork, dict):
+        errors.append(f"{name}: catalog.fork must record where the fork comes from")
+        return None
+    repo, sha, path = str(fork.get("upstream", "")).lower(), fork.get("sha"), clean_path(fork.get("path"))
+    if not OWNER_REPO_RE.match(repo) or repo != str(entry["catalog"].get("upstream", "")).lower():
+        errors.append(f"{name}: catalog.fork.upstream must be the entry's upstream, owner/repo")
+        return None
+    if not (isinstance(sha, str) and SHA_RE.match(sha)):
+        errors.append(f"{name}: the fork's origin is unpinned: catalog.fork.sha needs a full commit id")
+        return None
+    if not path:
+        errors.append(f"{name}: catalog.fork.path must name the folder it was forked from")
+        return None
+    refused = refused_folder(repo, path)
+    if refused:
+        errors.append(f"{name}: {refused}")
+        return None
+    check_description(entry, repo, errors)
+    modified = fork.get("modifiedFiles")
+    if not isinstance(modified, list) or not modified:
+        errors.append(f"{name}: catalog.fork.modifiedFiles must list what was changed")
+        return None
+    files = fork_files(folder)
+    for rel in modified:
+        if rel not in files:
+            errors.append(f"{name}: catalog.fork.modifiedFiles names {rel}, which isn't in the fork")
+            continue
+        text = (folder / rel).read_text(encoding="utf-8")
+        if FORK_NOTICE not in text or repo not in text.lower() or sha not in text:
+            errors.append(f"{name}: {rel} was changed, so it must say so: \"{FORK_NOTICE}{repo}\" with the commit {sha}")
+    for rel in files:
+        if LICENSE_NAME_RE.match(posixpath.basename(rel)):
+            continue
+        hit = FORK_BRANDING_RE.search((folder / rel).read_text(encoding="utf-8", errors="replace"))
+        if hit:
+            errors.append(f"{name}: {rel} still carries the upstream's identity: {hit.group(0)!r}")
+    license_files = [rel for rel in files if LICENSE_NAME_RE.match(rel)]
+    if not license_files:
+        errors.append(f"{name}: the fork lost its license")
+        return None
+    return repo, sha, path, files, modified, license_files
+
+
+def verify_fork(entry, folder, target, fetcher, errors):
+    """Compares a fork with its origin at the pinned commit: the license kept, every change declared, nothing undeclared."""
+    name = entry.get("name")
+    repo, sha, path, files, modified, license_files = target
+    for rel in files:
+        ours = (folder / rel).read_bytes()
+        try:
+            theirs = fetcher.fetch(repo, sha, f"{path}/{rel}").encode("utf-8")
+        except LookupError:
+            if rel not in modified:
+                errors.append(f"{name}: {rel} isn't in {repo}/{path} at {sha}, so it needs a notice and a place in modifiedFiles")
+            continue
+        if rel in license_files and ours != theirs:
+            errors.append(f"{name}: the license {rel} differs from {repo}/{path}/{rel} at {sha}")
+        elif ours != theirs and rel not in modified:
+            errors.append(f"{name}: {rel} differs from {repo}/{path}/{rel} at {sha}, but isn't in modifiedFiles")
+        elif ours == theirs and rel in modified:
+            errors.append(f"{name}: {rel} is the same as upstream, but is listed in modifiedFiles")
 
 
 def check_catalog(catalog, fetcher=None):
@@ -340,8 +431,18 @@ def check_catalog(catalog, fetcher=None):
                 errors.append(f"{name}: an entry carries no {field}")
         source = entry.get("source")
         if isinstance(source, str):
-            check_description(entry, "", errors)
+            folder = local_folder(entry, manifest, catalog)
+            is_fork = isinstance(entry.get("catalog"), dict) and "fork" in entry["catalog"]
+            if not is_fork:
+                check_description(entry, "", errors)
             check_local(entry, manifest, catalog, errors)
+            if is_fork and folder is not None and folder.is_dir():
+                target = check_fork(entry, folder, errors)
+                if target and fetcher is not None:
+                    before = len(errors)
+                    verify_fork(entry, folder, target, fetcher, errors)
+                    if len(errors) == before:
+                        verified.append(f"{name}: fork of {target[0]}/{target[2]} at {target[1]}, changed: {', '.join(target[4])}")
         elif isinstance(source, dict):
             target = check_external(entry, errors)
             if target and license_id in ALLOWED_LICENSES and fetcher is not None:

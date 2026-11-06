@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -433,7 +434,7 @@ type fetched struct {
 }
 
 // fetchEntry brings a marketplace entry's folder to a temporary place.
-func (m *Manager) fetchEntry(ctx context.Context, rel string, s Source, marketRoot string) (*fetched, error) {
+func (m *Manager) fetchEntry(ctx context.Context, rel string, s Source, marketRoot, licenseFile string) (*fetched, error) {
 	tmpRoot := filepath.Join(m.Root, "cache")
 	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
 		return nil, err
@@ -468,6 +469,15 @@ func (m *Manager) fetchEntry(ctx context.Context, rel string, s Source, marketRo
 		if err := copyTree(real, dest); err != nil {
 			return fail(err)
 		}
+		if licenseFile != "" {
+			folder := strings.TrimPrefix(path.Clean(filepath.ToSlash(rel)), "./")
+			if folder == "." {
+				folder = ""
+			}
+			if err := addLicenseFile(marketRoot, folder, licenseFile, dest); err != nil {
+				return fail(err)
+			}
+		}
 	case s.Source == SourceDirectory:
 		if !isDir(s.Path) {
 			return fail(fmt.Errorf("source path does not exist: %s", s.Path))
@@ -480,16 +490,35 @@ func (m *Manager) fetchEntry(ctx context.Context, rel string, s Source, marketRo
 		}
 	default:
 		checkout := filepath.Join(tmp, "repo")
-		commit, err := clone(ctx, s, checkout)
+		var commit, folder string
+		var err error
+		if s.Source == SourceSubdir {
+			var besides []string
+			if folder, err = cleanRepoPath(s.Path); err != nil {
+				return fail(err)
+			}
+			if licenseFile != "" {
+				clean, err := cleanLicenseFile(licenseFile)
+				if err != nil {
+					return fail(err)
+				}
+				if !strings.HasPrefix(clean, folder+"/") {
+					besides = append(besides, clean)
+				}
+			}
+			commit, err = fetchSubdir(ctx, s, checkout, besides)
+		} else {
+			commit, err = clone(ctx, s, checkout)
+		}
 		if err != nil {
 			return fail(err)
 		}
 		out.commit = commit
 		src := checkout
-		if s.Source == SourceSubdir {
-			src = filepath.Join(checkout, filepath.FromSlash(s.Path))
+		if folder != "" {
+			src = filepath.Join(checkout, filepath.FromSlash(folder))
 			if !isDir(src) {
-				return fail(fmt.Errorf("%s is not a folder of the repository", s.Path))
+				return fail(fmt.Errorf("%s is not a folder of the repository", folder))
 			}
 		}
 		if err := os.MkdirAll(dest, 0o755); err != nil {
@@ -497,6 +526,11 @@ func (m *Manager) fetchEntry(ctx context.Context, rel string, s Source, marketRo
 		}
 		if err := copyTree(src, dest); err != nil {
 			return fail(err)
+		}
+		if licenseFile != "" {
+			if err := addLicenseFile(checkout, folder, licenseFile, dest); err != nil {
+				return fail(err)
+			}
 		}
 	}
 	out.dir = dest
@@ -615,7 +649,11 @@ func (m *Manager) installResolved(ctx context.Context, r *resolved, prev *Record
 	if r.name != "" && m.Policy().PluginBlocked(id) {
 		return nil, fmt.Errorf("your organization's policy blocks %s", id)
 	}
-	f, err := m.fetchEntry(ctx, r.rel, r.source, r.marketRoot)
+	licenseFile := ""
+	if r.entry != nil {
+		licenseFile = r.entry.LicenseFile
+	}
+	f, err := m.fetchEntry(ctx, r.rel, r.source, r.marketRoot, licenseFile)
 	if err != nil {
 		return nil, err
 	}

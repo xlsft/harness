@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -14,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -241,6 +243,274 @@ func clone(ctx context.Context, s Source, dest string) (string, error) {
 	return head, nil
 }
 
+// repoPathRe holds what a path in a repository may not, because it would mean more than itself as a sparse-checkout pattern.
+var repoPathRe = regexp.MustCompile(`[*?\[\]\\!#\x00-\x1f]`)
+
+// cleanRepoPath is a path inside a repository in its plain form, or an error when it isn't one: "" is the root, which no caller
+// wants, and a pattern would select more than the path it spells.
+func cleanRepoPath(raw string) (string, error) {
+	if raw == "" || strings.HasPrefix(raw, "/") || slicesContainDotDot(raw) || repoPathRe.MatchString(raw) {
+		return "", fmt.Errorf("%q is not a plain path inside the repository", raw)
+	}
+	clean := path.Clean(raw)
+	if clean == "." {
+		return "", fmt.Errorf("%q is the whole repository, not a path inside it", raw)
+	}
+	for _, part := range strings.Split(clean, "/") {
+		if part != strings.TrimSpace(part) || strings.EqualFold(part, ".git") {
+			return "", fmt.Errorf("%q is not a plain path inside the repository", raw)
+		}
+	}
+	return clean, nil
+}
+
+// serverFilters asks a server what it can do, without taking any object from it. A server that doesn't filter ignores the request
+// with a warning and sends everything, so this has to be known before fetching: afterwards it is too late to not have it.
+func serverFilters(ctx context.Context, dir, remote string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "git", "-c", "protocol.ext.allow=never", "-c", "protocol.fd.allow=never", "-c", "protocol.version=2", "ls-remote", "--", remote, "HEAD")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_ASKPASS=", "GCM_INTERACTIVE=never", "GIT_TRACE_PACKET=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("git ls-remote: can't reach %s: %w", remote, err)
+	}
+	return filterAdvertised.Match(out), nil
+}
+
+// filterAdvertised finds the capability in a packet trace: protocol v2 lists it under fetch, older ones after the first ref.
+var filterAdvertised = regexp.MustCompile(`(?m)(fetch=|\\0)[^\n]*\bfilter\b`)
+
+// localBlobs lists the blobs a repository holds here, without asking its server for any.
+func localBlobs(ctx context.Context, dir string) ([]string, error) {
+	out, err := git(ctx, dir, "cat-file", "--batch-all-objects", "--batch-check=%(objecttype) %(objectname)")
+	if err != nil {
+		return nil, err
+	}
+	var blobs []string
+	for _, line := range strings.Split(out, "\n") {
+		if oid, ok := strings.CutPrefix(line, "blob "); ok {
+			blobs = append(blobs, oid)
+		}
+	}
+	return blobs, nil
+}
+
+// treeEntries reads `git ls-tree -z`: mode, type and object of each path.
+func treeEntries(ctx context.Context, dir string, args ...string) ([][3]string, error) {
+	out, err := git(ctx, dir, append([]string{"ls-tree", "-z"}, args...)...)
+	if err != nil {
+		return nil, err
+	}
+	var entries [][3]string
+	for _, record := range strings.Split(out, "\x00") {
+		meta, _, ok := strings.Cut(record, "\t")
+		fields := strings.Fields(meta)
+		if ok && len(fields) == 3 {
+			entries = append(entries, [3]string{fields[0], fields[1], fields[2]})
+		}
+	}
+	return entries, nil
+}
+
+// fetchSubdir brings one folder of a repository to dest, and the files named besides it, at a commit, and returns the commit. What
+// else the repository holds stays on its server: of the rest only the commit and the listing of its folders are read, never a
+// file. A server that can't do this is refused rather than downloaded from in full.
+func fetchSubdir(ctx context.Context, s Source, dest string, files []string) (string, error) {
+	remote := s.cloneURL()
+	if err := checkRemote(remote); err != nil {
+		return "", err
+	}
+	if s.Sha != "" && !shaRe.MatchString(s.Sha) {
+		return "", fmt.Errorf("sha %q is not a full commit id", s.Sha)
+	}
+	if strings.HasPrefix(s.Ref, "-") {
+		return "", fmt.Errorf("%q can't be a ref", s.Ref)
+	}
+	folder, err := cleanRepoPath(s.Path)
+	if err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)
+	defer cancel()
+	parent := filepath.Dir(dest)
+	filters, err := serverFilters(ctx, parent, remote)
+	if err != nil {
+		return "", err
+	}
+	if !filters {
+		return "", fmt.Errorf("%s can't send part of a repository, and all of it won't be fetched to get %s", remote, folder)
+	}
+	if _, err := git(ctx, parent, "init", "--quiet", "--", dest); err != nil {
+		return "", err
+	}
+	if _, err := git(ctx, dest, "remote", "add", "origin", remote); err != nil {
+		return "", err
+	}
+	want := "HEAD"
+	if s.Sha != "" {
+		want = s.Sha
+	} else if s.Ref != "" {
+		want = s.Ref
+	}
+	if _, err := git(ctx, dest, "-c", "protocol.version=2", "fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "--depth=1", "--filter=blob:none", "origin", want); err != nil {
+		return "", err
+	}
+	commit, err := git(ctx, dest, "rev-parse", "--verify", "FETCH_HEAD^{commit}")
+	if err != nil {
+		return "", err
+	}
+	if s.Sha != "" && commit != s.Sha {
+		return "", fmt.Errorf("the repository is at %s, not at the pinned %s", commit, s.Sha)
+	}
+	// A server that said it filters and sent files anyway shows here, before anything is put in place.
+	if blobs, err := localBlobs(ctx, dest); err != nil {
+		return "", err
+	} else if len(blobs) > 0 {
+		return "", fmt.Errorf("%s sent files it wasn't asked for", remote)
+	}
+	// Listed in the commit rather than found on disk: a link named like a folder would point anywhere.
+	found, err := treeEntries(ctx, dest, commit, "--", folder)
+	if err != nil {
+		return "", err
+	}
+	if len(found) != 1 || found[0][1] != "tree" {
+		return "", fmt.Errorf("%s is not a folder of the repository", folder)
+	}
+	contents, err := treeEntries(ctx, dest, "-r", commit, "--", folder)
+	if err != nil {
+		return "", err
+	}
+	allowed := map[string]bool{}
+	for _, e := range contents {
+		if e[1] == "blob" {
+			allowed[e[2]] = true
+		}
+	}
+	patterns := "/" + folder + "/\n"
+	wanted := map[string]bool{}
+	for _, f := range files {
+		clean, err := cleanRepoPath(f)
+		if err != nil {
+			return "", err
+		}
+		found, err := treeEntries(ctx, dest, commit, "--", clean)
+		if err != nil {
+			return "", err
+		}
+		// Not a link: it would be copied as what it points at.
+		if len(found) != 1 || found[0][1] != "blob" || !strings.HasPrefix(found[0][0], "100") {
+			return "", fmt.Errorf("%s is not a file of the repository at %s", clean, commit)
+		}
+		allowed[found[0][2]] = true
+		wanted[clean] = true
+		patterns += "/" + clean + "\n"
+	}
+	gitDir := filepath.Join(dest, ".git")
+	if err := os.MkdirAll(filepath.Join(gitDir, "info"), 0o755); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(gitDir, "info", "sparse-checkout"), []byte(patterns), 0o644); err != nil {
+		return "", err
+	}
+	if _, err := git(ctx, dest, "-c", "core.sparseCheckout=true", "-c", "core.sparseCheckoutCone=false", "checkout", "--quiet", "--detach", commit); err != nil {
+		return "", err
+	}
+	blobs, err := localBlobs(ctx, dest)
+	if err != nil {
+		return "", err
+	}
+	for _, oid := range blobs {
+		if !allowed[oid] {
+			return "", fmt.Errorf("the fetch of %s brought %s, which is outside it", folder, oid)
+		}
+	}
+	err = filepath.WalkDir(dest, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if p == gitDir {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		rel, err := filepath.Rel(dest, p)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		if !strings.HasPrefix(rel, folder+"/") && !wanted[rel] {
+			return fmt.Errorf("the checkout of %s holds %s, which is outside it", folder, rel)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return commit, nil
+}
+
+// licenseNameRe is what a declared license file may be called. It lands in the plugin's root, where a name such as .mcp.json or
+// SKILL.md would be a component of the plugin instead.
+var licenseNameRe = regexp.MustCompile(`(?i)^(licen[cs]e|copying|notice)([._-][a-z0-9._-]*)?$`)
+
+// cleanLicenseFile checks the licenseFile of an entry, a path from the root of its repository or marketplace.
+func cleanLicenseFile(raw string) (string, error) {
+	clean, err := cleanRepoPath(raw)
+	if err != nil {
+		return "", fmt.Errorf("licenseFile: %w", err)
+	}
+	if !licenseNameRe.MatchString(path.Base(clean)) {
+		return "", fmt.Errorf("licenseFile: %q isn't named like a license", raw)
+	}
+	return clean, nil
+}
+
+// addLicenseFile makes sure the license an entry declares is in the plugin's folder. root is what the path starts from, folder the
+// plugin's place in it ("" for all of it), dest the plugin's copy. A license already inside comes with the folder; one outside is
+// copied to the plugin's root under its own name. Finding a different file there refuses the install.
+func addLicenseFile(root, folder, file, dest string) error {
+	clean, err := cleanLicenseFile(file)
+	if err != nil {
+		return err
+	}
+	if rel, inside := strings.CutPrefix(clean, folder+"/"); folder == "" || inside {
+		if folder == "" {
+			rel = clean
+		}
+		if st, err := os.Lstat(filepath.Join(dest, filepath.FromSlash(rel))); err != nil || !st.Mode().IsRegular() {
+			return fmt.Errorf("the license file %s is not in the plugin", clean)
+		}
+		return nil
+	}
+	src := filepath.Join(root, filepath.FromSlash(clean))
+	st, err := os.Lstat(src)
+	if err != nil || !st.Mode().IsRegular() {
+		return fmt.Errorf("the license file %s is not there", clean)
+	}
+	real, err := filepath.EvalSymlinks(src)
+	if err != nil {
+		return err
+	}
+	base, err := filepath.EvalSymlinks(root)
+	if err != nil || !inside(real, base) {
+		return fmt.Errorf("the license file %s is outside what it belongs to", clean)
+	}
+	if st.Size() > maxManifestBytes {
+		return fmt.Errorf("the license file %s is too large", clean)
+	}
+	target := filepath.Join(dest, path.Base(clean))
+	if _, err := os.Lstat(target); err == nil {
+		have, errHave := os.ReadFile(target)
+		want, errWant := os.ReadFile(src)
+		if errHave == nil && errWant == nil && bytes.Equal(have, want) {
+			return nil
+		}
+		return fmt.Errorf("the plugin already has a different %s; the license file %s can't replace it", path.Base(clean), clean)
+	}
+	return copyFile(src, target, 0o644)
+}
+
 // fetchFile reads a marketplace file from a URL.
 func fetchFile(ctx context.Context, hc *http.Client, s Source) ([]byte, error) {
 	if err := checkRemote(s.URL); err != nil {
@@ -445,6 +715,9 @@ type Entry struct {
 	Manifest
 	Source json.RawMessage `json:"source"`
 	Strict *bool           `json:"strict"`
+	// LicenseFile is the entry's license, as a path from the root of its repository or marketplace. It is apart from license, the
+	// manifest's name of the license, which is a string in the format every tool reads. An install carries the file in the plugin.
+	LicenseFile string `json:"licenseFile,omitempty"`
 }
 
 // UnmarshalJSON reads both the embedded manifest and the entry's own fields.
@@ -453,13 +726,14 @@ func (e *Entry) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	var own struct {
-		Source json.RawMessage `json:"source"`
-		Strict *bool           `json:"strict"`
+		Source      json.RawMessage `json:"source"`
+		Strict      *bool           `json:"strict"`
+		LicenseFile string          `json:"licenseFile"`
 	}
 	if err := json.Unmarshal(b, &own); err != nil {
 		return err
 	}
-	e.Source, e.Strict = own.Source, own.Strict
+	e.Source, e.Strict, e.LicenseFile = own.Source, own.Strict, own.LicenseFile
 	return nil
 }
 
@@ -513,6 +787,11 @@ func entrySource(e Entry, m *MarketplaceManifest) (rel string, s Source, err err
 	if len(e.Source) == 0 {
 		return "", s, fmt.Errorf("the entry %s has no source", e.Name)
 	}
+	if e.LicenseFile != "" {
+		if _, err := cleanLicenseFile(e.LicenseFile); err != nil {
+			return "", s, fmt.Errorf("the entry %s: %w", e.Name, err)
+		}
+	}
 	if e.Source[0] == '"' {
 		var str string
 		if err := json.Unmarshal(e.Source, &str); err != nil {
@@ -541,8 +820,10 @@ func entrySource(e Entry, m *MarketplaceManifest) (rel string, s Source, err err
 		if s.URL == "" {
 			return "", s, fmt.Errorf("the source of %s needs a url", e.Name)
 		}
-		if s.Source == SourceSubdir && (s.Path == "" || slicesContainDotDot(s.Path)) {
-			return "", s, fmt.Errorf("the source of %s needs a path inside the repository", e.Name)
+		if s.Source == SourceSubdir {
+			if _, err := cleanRepoPath(s.Path); err != nil {
+				return "", s, fmt.Errorf("the source of %s needs a path inside the repository: %w", e.Name, err)
+			}
 		}
 	default:
 		return "", s, fmt.Errorf("this client does not fetch plugins from a source of type %q", s.Source)

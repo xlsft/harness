@@ -471,6 +471,9 @@ func Validate(dir string) (string, error) {
 				continue
 			}
 			if rel != "" {
+				if e.LicenseFile != "" && !isFile(filepath.Join(dir, filepath.FromSlash(e.LicenseFile))) {
+					problems = append(problems, e.Name+": the license file "+e.LicenseFile+" is not there")
+				}
 				pl, err := Load(filepath.Join(dir, filepath.FromSlash(rel)), e.Name, man.Name, "", overlayOf(&e))
 				if err != nil {
 					problems = append(problems, e.Name+": "+err.Error())
