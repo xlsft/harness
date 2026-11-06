@@ -39,6 +39,19 @@ describe('the slash menu', () => {
     expect(matchSlash(rows, '/zz')).toEqual([])
   })
 
+  it('finds commands fuzzily: letters in order, then typos', () => {
+    const rows = slashMenuOptions([command('effort'), command('model'), command('code-review'), command('compact')], { hasSession: true })
+    const keys = (t: string) => matchSlash(rows, t).map(r => r.key)
+    expect(keys('/efort')).toEqual(['/effort'])
+    expect(keys('/cr')[0]).toBe('/code-review')
+    expect(keys('/mdoel')).toEqual(['/model'])
+    expect(keys('/moddel')).toEqual(['/model'])
+    // An exact start stays ahead of a looser match.
+    expect(keys('/co')[0]).toBe('/code-review')
+    expect(keys('/zz')).toEqual([])
+    expect(keys('/qqqqq')).toEqual([])
+  })
+
   it('has no demo rows in the mock client', async () => {
     const t = new MockTransport({ tick: 0 })
     const { commands } = await t.listSlashCommands({ cwd: '/w' })

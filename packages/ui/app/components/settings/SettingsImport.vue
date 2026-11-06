@@ -22,7 +22,7 @@ const source = ref<ImportSource['id'] | null>(null)
       v-for="s in IMPORT_SOURCES"
       :key="s.id"
       type="button"
-      class="set-row w-[calc(100%+2*var(--set-gutter,0px))] items-center text-left hover:bg-hover"
+      class="set-row w-[calc(100%+2*var(--set-gutter,0px))] items-center rounded-none text-left hover:bg-hover"
       @click="source = s.id"
     >
       <span class="flex min-w-0 items-center gap-3">
