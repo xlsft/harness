@@ -103,6 +103,7 @@ func Run(ctx context.Context, o Options) int {
 		return r.fatal(err)
 	}
 	defer sess.Close()
+	sess.StartHooks()
 	r.sess = sess
 	r.sid.Store(sess.ID)
 	if o.OutputFormat == FormatStreamJSON {

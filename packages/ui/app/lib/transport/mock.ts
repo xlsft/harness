@@ -161,7 +161,8 @@ export class MockTransport implements SessionTransport {
   private sessions = new Map<string, MockSession>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false } }
+  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true }
+  private hookTrusted = false
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
   private now: () => number
@@ -1251,6 +1252,20 @@ export class MockTransport implements SessionTransport {
 
   async getSandboxStatus() {
     return { platform: 'macos', supported: true, reason: '', requiredByPolicy: false, outsideRefusedByPolicy: false, builtinHosts: ['registry.npmjs.org', 'proxy.golang.org', 'github.com'] }
+  }
+
+  async listHooks() {
+    const active = this.preferences.hooksEnabled ? 'active' as const : 'disabled' as const
+    const reason = this.preferences.hooksEnabled ? '' : 'All hooks are turned off.'
+    return [
+      { event: 'PostToolUse', matcher: 'Edit|Write', handlerType: 'command', command: 'pnpm lint --fix', timeoutSeconds: 60, async: false, source: 'project', sourcePath: '/Users/me/project/.claude/settings.json', status: active, reason, trustHash: '' },
+      { event: 'Notification', matcher: '', handlerType: 'http', command: 'https://hooks.example.com/notify', timeoutSeconds: 0, async: true, source: 'user', sourcePath: '', status: this.hookTrusted ? active : 'needs_device_trust' as const, reason: this.hookTrusted ? reason : 'It came from the server and is not trusted on this machine yet.', trustHash: 'sha256:mock' },
+      { event: 'PreToolUse', matcher: 'Bash', handlerType: 'prompt', command: '', timeoutSeconds: 0, async: false, source: 'local', sourcePath: '/Users/me/project/.harness/settings.local.json', status: 'unsupported' as const, reason: 'This client does not run handlers of type prompt.', trustHash: '' }
+    ]
+  }
+
+  async setHooksTrust(_hash: string, trusted: boolean) {
+    this.hookTrusted = trusted
   }
 
   async getDeviceSettings() {

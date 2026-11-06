@@ -26,6 +26,30 @@ func blocksText(bs []*llmv1.ContentBlock) string {
 	return strings.Join(parts, "\n")
 }
 
+// hookRunLine is the transcript line of a finished hook and its notice level; nothing while it runs, which the status line
+// covers, and nothing for one that passed without a word.
+func hookRunLine(r *agentv1.HookRun) (string, int) {
+	level := 0
+	switch r.GetStatus() {
+	case agentv1.HookRun_STATUS_RUNNING, agentv1.HookRun_STATUS_CANCELED:
+		return "", 0
+	case agentv1.HookRun_STATUS_OK:
+		if r.GetOutput() == "" {
+			return "", 0
+		}
+	case agentv1.HookRun_STATUS_BLOCKED, agentv1.HookRun_STATUS_ERROR, agentv1.HookRun_STATUS_TIMED_OUT:
+		level = 1
+	}
+	line := "Hook " + r.GetEvent()
+	if t := r.GetToolName(); t != "" {
+		line += " (" + t + ")"
+	}
+	if o := r.GetOutput(); o != "" {
+		line += ": " + o
+	}
+	return line, level
+}
+
 // isInterruptMarker recognizes the synthetic "[Request interrupted by user]" user message.
 func isInterruptMarker(s string) bool {
 	l := strings.ToLower(s)
@@ -220,6 +244,12 @@ func (m *Model) onEvent(ev *agentv1.SessionEvent) tea.Cmd {
 
 	case *agentv1.SessionEvent_Rewound:
 		return m.onRewound(e.Rewound)
+
+	case *agentv1.SessionEvent_HookRun:
+		if line, level := hookRunLine(e.HookRun); line != "" {
+			m.closeOpen()
+			m.push(&item{kind: itemNotice, level: level, text: line})
+		}
 
 	case *agentv1.SessionEvent_SessionEnded:
 		if !m.quitting {

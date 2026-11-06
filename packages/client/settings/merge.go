@@ -149,6 +149,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		}
 	}
 	l.sandbox = s.parseSandbox(src, raw)
+	s.parseHooks(src, raw, l)
 	return l
 }
 
@@ -378,6 +379,7 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 	}
 
 	s.mergeSandbox(layers)
+	s.mergeHooks(layers)
 
 	// Policy enforcement after the merge.
 	if s.Permissions.DisableBypass && s.Permissions.DefaultMode == "bypassPermissions" {

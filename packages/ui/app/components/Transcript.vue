@@ -425,6 +425,10 @@ function toBottom() {
               :notice="b.item"
             />
             <EventCard
+              v-else-if="b.item.kind === 'hook'"
+              :hook="b.item"
+            />
+            <EventCard
               v-else-if="b.item.kind === 'compact'"
               :compact="b.item"
             />

@@ -206,6 +206,10 @@ func (r *replayer) entry(e session.Entry) {
 			if e.SessionNote != nil {
 				r.emit(at, sessionNoteEvent(*e.SessionNote))
 			}
+		case session.SubtypeHookRun:
+			if e.HookRun != nil {
+				r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_HookRun{HookRun: hookRunToProto(*e.HookRun)}})
+			}
 		case session.SubtypeUsageLimit:
 			if e.UsageLimit != nil {
 				if u := pbconv.UsageLimit(*e.UsageLimit); u != nil {

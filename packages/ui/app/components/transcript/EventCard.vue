@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // Chat events and notices (Event.dc.html): hook output, provider error with retry, context compaction,
 // interruption, turn usage footer, and plain info / warning notices.
-import type { CompactItem, NoticeItem, TurnItem } from '~/lib/session/types'
+import type { CompactItem, HookItem, NoticeItem, TurnItem } from '~/lib/session/types'
 
 const props = defineProps<{
   notice?: NoticeItem
+  hook?: HookItem
   compact?: CompactItem
   turn?: TurnItem
   // The turn footer's Read aloud is on (this turn's answer is being spoken).
@@ -17,14 +18,27 @@ const props = defineProps<{
 const summaryOpen = ref(false)
 const emit = defineEmits<{ retry: [], switchModel: [], copy: [], fork: [], readAloud: [] }>()
 
-const hook = computed(() => {
-  if (props.notice?.noticeKind !== 'hook') return null
-  try {
-    const j = JSON.parse(props.notice.text)
-    return { event: String(j.event ?? ''), command: String(j.command ?? ''), result: String(j.result ?? ''), ok: j.ok !== false, ms: Number(j.duration_ms ?? 0) }
-  } catch {
-    return { event: 'Hook', command: props.notice.text, result: '', ok: true, ms: 0 }
+// What the row says after the command: the hook's own words, else how it ended.
+const hookResult = computed(() => {
+  const h = props.hook
+  if (!h) return ''
+  if (h.output) return h.output
+  switch (h.state) {
+    case 'running': return h.async ? 'running on its own' : 'running'
+    case 'blocked': return 'blocked'
+    case 'error': return 'failed'
+    case 'timed_out': return 'timed out'
+    case 'canceled': return 'canceled'
   }
+  return h.decision
+})
+const hookTone = computed(() => {
+  switch (props.hook?.state) {
+    case 'ok': return 'text-ok'
+    case 'running': case 'canceled': return 'text-muted'
+    case 'blocked': return 'text-warn'
+  }
+  return 'text-bad'
 })
 
 // Provider errors: "title|detail" (the detail line is optional).
@@ -54,8 +68,18 @@ const usageLine = computed(() => {
       :size="14"
       class="text-warn"
     />
-    {{ hook.event }}<span class="text-toned">{{ hook.command }}</span><span :class="hook.ok ? 'text-ok' : 'text-bad'">{{ hook.result }}</span>
-    <span class="flex-1" />{{ hook.ms ? formatSeconds(hook.ms) : '' }}
+    {{ hook.event }}<template v-if="hook.toolName">
+      ({{ hook.toolName }})
+    </template>
+    <span
+      class="max-w-full truncate text-toned"
+      :title="`${hook.command} (${hook.source} settings)`"
+    >{{ hook.command }}</span>
+    <span
+      class="min-w-0 break-words whitespace-pre-wrap"
+      :class="hookTone"
+    >{{ hookResult }}</span>
+    <span class="flex-1" />{{ hook.durationMs ? formatSeconds(hook.durationMs) : '' }}
   </div>
 
   <!-- provider error with retry -->

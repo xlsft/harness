@@ -152,12 +152,24 @@ type Request struct {
 	AgentID   string
 	AgentName string
 
+	// HookBehavior is what a PreToolUse hook decided (empty: nothing). A hook widens only what a prompt would otherwise have
+	// asked: Allow passes an ordinary prompt, but never a deny rule, a mode's refusal or a prompt only the user may answer;
+	// Ask turns what would run into a prompt for the user. A hook's Deny never gets here. HookReason goes with Ask.
+	HookBehavior Behavior
+	HookReason   string
+
 	// Set by the engine before calling the Asker.
 	// Suggestions are rules the user may choose to always allow.
 	Suggestions []string
 	// Reason explains why the call needs approval.
 	Reason string
+	// UserOnly: only the user may answer (Decision.UserOnly). Set before the prompt hook too.
+	UserOnly bool
 }
+
+// PromptHook runs right before the user would be prompted (PermissionRequest hooks). It returns a decision, or false to let
+// the prompt go ahead; for a request marked UserOnly its answer is not used.
+type PromptHook func(ctx context.Context, req Request) (Decision, bool)
 
 // Decision is the result of a permission check.
 type Decision struct {
@@ -276,6 +288,7 @@ type Engine struct {
 	ask        []Rule
 	deny       []Rule
 	asker      Asker
+	promptHook PromptHook
 	onMode     func(Mode)
 	netGuard   *netguard.Guard
 	// sites are the hosts the user approved for the browser tools in this session (browser.go).
@@ -341,6 +354,13 @@ func (e *Engine) rebuild() {
 func (e *Engine) SetAsker(a Asker) {
 	e.mu.Lock()
 	e.asker = a
+	e.mu.Unlock()
+}
+
+// SetPromptHook installs what runs before a prompt reaches the user (nil removes it).
+func (e *Engine) SetPromptHook(h PromptHook) {
+	e.mu.Lock()
+	e.promptHook = h
 	e.mu.Unlock()
 }
 
@@ -614,11 +634,27 @@ func (e *Engine) IsDisabled(tool string) bool {
 // Check implements Checker.
 func (e *Engine) Check(ctx context.Context, req Request) Decision {
 	d := e.Evaluate(req)
+	switch req.HookBehavior {
+	case Allow:
+		if d.Behavior == Ask && !d.UserOnly {
+			return Decision{Behavior: Allow, ResolvedBy: "hook"}
+		}
+	case Ask:
+		if d.Behavior == Allow {
+			d = Decision{Behavior: Ask}
+		}
+		if d.Behavior == Ask {
+			d.UserOnly = true
+			if d.Message == "" {
+				d.Message = req.HookReason
+			}
+		}
+	}
 	if d.Behavior != Ask {
 		return d
 	}
 	e.mu.RLock()
-	asker, mode, decider := e.asker, e.mode, e.decider
+	asker, mode, decider, promptHook := e.asker, e.mode, e.decider, e.promptHook
 	e.mu.RUnlock()
 	if mode == ModeDontAsk {
 		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission to use %s was not granted (dontAsk mode denies anything not pre-approved).", req.ToolName), ResolvedBy: "mode"}
@@ -669,6 +705,13 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 	}
 	req.Suggestions = e.Suggest(req)
 	req.Reason = reason
+	req.UserOnly = d.UserOnly
+	if promptHook != nil {
+		if hd, ok := promptHook(ctx, req); ok && !d.UserOnly {
+			hd.Auto = auto
+			return hd
+		}
+	}
 	ad, err := asker.Ask(ctx, req)
 	if err != nil {
 		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission request for %s failed: %v", req.ToolName, err), Interrupt: ctx.Err() != nil}

@@ -25,6 +25,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/gateway"
+	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
@@ -82,6 +83,8 @@ type Config struct {
 	ProjectContext string
 	AutoCompactPct float64
 	UsageMonitor   agent.UsageMonitor
+	// Hooks is the session's hook engine (agent.Config.Hooks; may be nil).
+	Hooks *hooks.Engine
 	// CustomTypes are the types loaded from definitions (LoadDefinitions).
 	CustomTypes []Type
 	Logger      *slog.Logger
@@ -743,7 +746,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,
 		Vars: vars, ProjectContext: m.cfg.ProjectContext, History: conv,
 		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: m.agentMode,
-		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor,
+		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor, Hooks: m.cfg.Hooks, AgentType: a.info.Type,
 		OnEvent: func(e agent.Event) { m.onAgentEvent(a, e) }, Logger: m.cfg.Logger,
 	})
 	env.Reminders = func(k string) string { return ag.Bundle().Reminder(k, "") }

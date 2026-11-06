@@ -175,6 +175,7 @@ func (s *Session) move(ctx context.Context, mv tools.Move) error {
 	}
 	s.ToolEnv.Relocate(cwd, dirs)
 	s.Permissions.Relocate(permissions.Relocation{Cwd: cwd, Additional: dirs, Sources: sources, Trusted: trusted})
+	s.relocateHooks(st, prev, cwd)
 	if s.LSP != nil {
 		s.LSP.Reset() // the servers belong to the folder the session left; the first use in the new one starts its own
 	}
