@@ -173,7 +173,7 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20 }
+  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20 }
   private hookTrusted = false
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
