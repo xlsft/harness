@@ -22,15 +22,15 @@ onBeforeUnmount(() => clearInterval(poll))
       name="terminal"
       :size="13"
     />
-    <span class="min-w-0 flex-1 truncate">{{ store.sshLost ? `The connection to ${host.name} was lost.` : `Running on ${host.name} over SSH` }}</span>
+    <span class="min-w-0 flex-1 truncate">{{ store.sshLost ? tt('The connection to {0} was lost.', [host.name]) : tt('Running on {0} over SSH', [host.name]) }}</span>
     <HBtn
       v-if="store.sshLost"
       @click="store.reconnectSshHost()"
     >
-      Connect again
+      {{ tt('Connect again') }}
     </HBtn>
     <HBtn @click="store.leaveSshHost()">
-      Back to this computer
+      {{ tt('Back to this computer') }}
     </HBtn>
   </div>
 </template>

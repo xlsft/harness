@@ -51,14 +51,14 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
 
 <template>
   <section
-    aria-label="SSH hosts"
+    :aria-label="tt('SSH hosts')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      SSH hosts
+      {{ tt('SSH hosts') }}
     </h2>
     <p class="text-[12px] text-muted">
-      A window can run on another machine: its sessions, files and terminals are that machine's. Sign-in is your own ssh setup, with your agent and ~/.ssh/config. Nothing here is synced to your other devices.
+      {{ tt('A window can run on another machine: its sessions, files and terminals are that machine\'s. Sign-in is your own ssh setup, with your agent and ~/.ssh/config. Nothing here is synced to your other devices.') }}
     </p>
     <ul
       v-if="hosts.length"
@@ -75,24 +75,24 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           :disabled="store.sshHost?.hostId === h.id"
           @click="connecting = h"
         >
-          Connect
+          {{ tt('Connect') }}
         </HBtn>
         <HBtn
           tone="danger"
           @click="remove(h.id)"
         >
-          Remove
+          {{ tt('Remove') }}
         </HBtn>
       </li>
     </ul>
     <form
       v-if="adding"
       class="mt-3 grid gap-2 sm:grid-cols-2"
-      aria-label="Add an SSH host"
+      :aria-label="tt('Add an SSH host')"
       @submit.prevent="add"
     >
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        Host
+        {{ tt('Host') }}
         <input
           v-model="destination"
           required
@@ -103,14 +103,14 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         >
       </label>
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        Name (optional)
+        {{ tt('Name (optional)') }}
         <input
           v-model="name"
           :class="input"
         >
       </label>
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        Port (optional)
+        {{ tt('Port (optional)') }}
         <input
           v-model="port"
           inputmode="numeric"
@@ -118,7 +118,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         >
       </label>
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        Key file path (optional)
+        {{ tt('Key file path (optional)') }}
         <input
           v-model="identityFile"
           spellcheck="false"
@@ -132,10 +132,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           type="submit"
           :disabled="!destination.trim()"
         >
-          Save
+          {{ tt('Save') }}
         </HBtn>
         <HBtn @click="adding = false">
-          Cancel
+          {{ tt('Cancel') }}
         </HBtn>
       </div>
     </form>
@@ -144,7 +144,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       class="mt-3"
     >
       <HBtn @click="adding = true">
-        Add a host
+        {{ tt('Add a host') }}
       </HBtn>
     </div>
     <p

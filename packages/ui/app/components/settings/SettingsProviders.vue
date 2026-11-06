@@ -77,11 +77,11 @@ const pricesLine = computed(() => {
 
 const PAGES = {
   llm: {
-    title: 'Models',
+    title: tt('Models'),
     sub: 'Services whose models you chat with. Connect one with its API key, switch on the models you want, and set each model\'s default effort. Keys are stored encrypted and never shown again; admins can see that a key is set but cannot read or use yours.'
   },
   classifier: {
-    title: 'Classifiers',
+    title: tt('Classifiers'),
     sub: 'Services auto mode asks whether a tool call is safe to run. Admins connect them and choose the default for everyone; you can pick another one for yourself.'
   }
 } as const
@@ -119,7 +119,7 @@ const page = computed(() => ({
       <span class="flex-1">{{ error }}</span>
       <HIconBtn
         icon="x"
-        label="Dismiss"
+        :label="tt('Dismiss')"
         :size="26"
         :icon-size="12"
         @click="error = ''"
@@ -129,7 +129,7 @@ const page = computed(() => ({
       v-if="loading"
       class="m-0 py-4 text-[12.5px] text-muted"
     >
-      Loading…
+      {{ tt('Loading…') }}
     </p>
 
     <template v-else>
@@ -152,7 +152,7 @@ const page = computed(() => ({
           :disabled="pricesBusy"
           @click="refreshPrices"
         >
-          Refresh prices
+          {{ tt('Refresh prices') }}
         </HBtn>
       </div>
       <SettingsProviderGroup

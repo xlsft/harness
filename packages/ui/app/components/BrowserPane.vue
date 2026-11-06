@@ -165,9 +165,9 @@ function install() {
 
 // ── viewport ──
 const PRESETS: { key: ViewportPreset, label: string }[] = [
-  { key: 'custom', label: 'Fit' },
-  { key: 'tablet', label: 'Tablet' },
-  { key: 'mobile', label: 'Phone' }
+  { key: 'custom', label: tt('Fit') },
+  { key: 'tablet', label: tt('Tablet') },
+  { key: 'mobile', label: tt('Phone') }
 ]
 const preset = ref<ViewportPreset>('custom')
 const viewportBar = ref(false)
@@ -272,7 +272,7 @@ async function clearData() {
   menuOpen.value = false
   try {
     await api().clearData(props.session.meta.id)
-    toast.add({ title: 'Browsing data cleared', color: 'neutral' })
+    toast.add({ title: tt('Browsing data cleared'), color: 'neutral' })
   } catch (e) {
     error.value = message(e)
   }
@@ -295,13 +295,13 @@ async function copyUrl() {
 
 <template>
   <section
-    aria-label="Browser"
+    :aria-label="tt('Browser')"
     class="relative flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-stretch border-b border-line pr-1.5">
       <div
         role="tablist"
-        aria-label="Browser tabs"
+        :aria-label="tt('Browser tabs')"
         class="flex min-w-0 items-stretch overflow-hidden"
       >
         <PaneTab
@@ -324,7 +324,7 @@ async function copyUrl() {
             v-else
             class="flex size-3.5 shrink-0 items-center justify-center bg-raised text-[9px] text-strong not-italic"
           >{{ tabLetter(t) }}</span>
-          <span class="truncate">{{ t.title || t.url || 'New tab' }}</span>
+          <span class="truncate">{{ t.title || t.url || tt('New tab') }}</span>
           <span
             v-if="t.consoleErrors"
             class="shrink-0 text-[10.5px] text-bad"
@@ -334,8 +334,8 @@ async function copyUrl() {
         <button
           v-if="state"
           type="button"
-          aria-label="New browser tab"
-          title="New browser tab"
+          :aria-label="tt('New browser tab')"
+          :title="tt('New browser tab')"
           class="flex w-9 shrink-0 items-center justify-center rounded-none border-r border-line text-muted hover:text-strong"
           @click="conn?.newTab()"
         >
@@ -346,7 +346,7 @@ async function copyUrl() {
       <div class="flex items-center gap-[2px]">
         <PaneBtn
           icon="more"
-          label="Browser settings"
+          :label="tt('Browser settings')"
           white
           :pressed="menuOpen"
           data-menu-anchor
@@ -354,7 +354,7 @@ async function copyUrl() {
         />
         <PaneBtn
           icon="close"
-          label="Close browser"
+          :label="tt('Close browser')"
           @click="closePane('browser')"
         />
       </div>
@@ -363,19 +363,19 @@ async function copyUrl() {
     <div class="flex h-[44px] shrink-0 items-center gap-1 border-b border-line px-2">
       <PaneBtn
         icon="arrow-left"
-        label="Back"
+        :label="tt('Back')"
         :disabled="!tab?.canGoBack"
         @click="conn?.back()"
       />
       <PaneBtn
         icon="arrow-right"
-        label="Forward"
+        :label="tt('Forward')"
         :disabled="!tab?.canGoForward"
         @click="conn?.forward()"
       />
       <PaneBtn
         :icon="tab?.loading ? 'close' : 'reload'"
-        :label="tab?.loading ? 'Stop' : 'Reload'"
+        :label="tab?.loading ? tt('Stop') : tt('Reload')"
         :disabled="!state"
         @click="tab?.loading ? conn?.stop() : conn?.reload()"
       />
@@ -385,14 +385,14 @@ async function copyUrl() {
           :size="13"
           class="text-muted"
         />
-        <span class="sr-only">Address</span>
+        <span class="sr-only">{{ tt('Address') }}</span>
         <input
           v-model="address"
           type="text"
           spellcheck="false"
           autocapitalize="off"
           autocorrect="off"
-          placeholder="Type a URL"
+          :placeholder="tt('Type a URL')"
           class="min-w-0 flex-1 truncate bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
           :disabled="!state"
           @focus="editing = true"
@@ -402,14 +402,14 @@ async function copyUrl() {
       </label>
       <PaneBtn
         icon="play"
-        :label="recording ? 'Stop recording' : 'Record as GIF'"
+        :label="recording ? tt('Stop recording') : tt('Record as GIF')"
         :pressed="recording"
         :disabled="!state"
         @click="toggleRecording"
       />
       <PaneBtn
         icon="phone"
-        label="Viewport"
+        :label="tt('Viewport')"
         :pressed="viewportBar"
         :disabled="!state"
         @click="viewportBar = !viewportBar"
@@ -432,18 +432,18 @@ async function copyUrl() {
         :size="14"
         class="shrink-0 text-warn"
       />
-      <span class="min-w-0 flex-1 truncate">In your own Chrome, with your sign-ins. The agent reaches only sites you allow.</span>
+      <span class="min-w-0 flex-1 truncate">{{ tt('In your own Chrome, with your sign-ins. The agent reaches only sites you allow.') }}</span>
       <HBtn @click="switchChrome(false)">
-        Back to its own browser
+        {{ tt('Back to its own browser') }}
       </HBtn>
     </div>
     <div
       v-else-if="chromeAvailable && !remote"
       class="flex shrink-0 items-center gap-[9px] border-b border-line px-3 py-1 text-[12px] text-muted"
     >
-      <span class="min-w-0 flex-1 truncate">Chrome is running with remote debugging on.</span>
+      <span class="min-w-0 flex-1 truncate">{{ tt('Chrome is running with remote debugging on.') }}</span>
       <HBtn @click="switchChrome(true)">
-        Use my Chrome
+        {{ tt('Use my Chrome') }}
       </HBtn>
     </div>
     <p
@@ -451,7 +451,7 @@ async function copyUrl() {
       class="shrink-0 truncate border-b border-line px-3 py-1 text-[12px] text-muted"
       role="status"
     >
-      Recording saved: {{ state.lastRecording }}
+      {{ tt('Recording saved: {0}', [state.lastRecording]) }}
     </p>
 
     <!-- What the agent is doing here -->
@@ -464,21 +464,21 @@ async function copyUrl() {
         :size="14"
         class="shrink-0 text-accent"
       />
-      <span class="shrink-0 text-strong">{{ takenOver ? 'You have the browser' : 'The agent is using the browser' }}</span>
+      <span class="shrink-0 text-strong">{{ takenOver ? tt('You have the browser') : tt('The agent is using the browser') }}</span>
       <span
         v-if="!takenOver && action"
         class="min-w-0 truncate"
-      >· step {{ action.step }} · {{ action.label }}</span>
+      >{{ tt('· step {0} · {1}', [action.step, action.label]) }}</span>
       <span class="flex-1" />
       <HBtn @click="conn?.takeover(!takenOver)">
-        {{ takenOver ? 'Hand back' : 'Take over' }}
+        {{ takenOver ? tt('Hand back') : tt('Take over') }}
       </HBtn>
       <HBtn
         v-if="!takenOver"
         tone="danger"
         @click="store.interrupt(session.meta.id)"
       >
-        Stop
+        {{ tt('Stop') }}
       </HBtn>
     </div>
 
@@ -509,14 +509,14 @@ async function copyUrl() {
     >
       <span class="min-w-0 flex-1 truncate">{{ error }}</span>
       <HBtn @click="start">
-        Try again
+        {{ tt('Try again') }}
       </HBtn>
     </p>
     <p
       v-else-if="link === 'reconnecting'"
       class="m-0 shrink-0 border-b border-line px-3 py-1.5 text-[12px] text-warn"
     >
-      Reconnecting to the browser…
+      {{ tt('Reconnecting to the browser…') }}
     </p>
 
     <div
@@ -532,7 +532,7 @@ async function copyUrl() {
         <canvas
           ref="canvas"
           tabindex="0"
-          aria-label="Page"
+          :aria-label="tt('Page')"
           class="block size-full outline-none"
           @mousedown.prevent="mouse('down', $event)"
           @mouseup="mouse('up', $event)"
@@ -556,7 +556,7 @@ async function copyUrl() {
         v-if="remote"
         class="absolute inset-0 flex items-center justify-center p-6 text-center text-[12.5px] text-muted"
       >
-        This session runs on {{ session.meta.deviceName || 'another computer' }}; its browser opens there.
+        {{ tt('This session runs on {0}; its browser opens there.', [session.meta.deviceName || 'another computer']) }}
       </div>
       <div
         v-else-if="availability && !availability.available"
@@ -567,8 +567,8 @@ async function copyUrl() {
           :size="30"
           class="text-muted"
         />
-        <span class="font-display text-[15px] text-strong">No browser found on this computer</span>
-        <span class="max-w-[340px] text-[12.5px] leading-[1.55] text-muted">Install Chrome, Chromium, Edge or Brave, or download a private copy of Chrome for Testing for harness to use.</span>
+        <span class="font-display text-[15px] text-strong">{{ tt('No browser found on this computer') }}</span>
+        <span class="max-w-[340px] text-[12.5px] leading-[1.55] text-muted">{{ tt('Install Chrome, Chromium, Edge or Brave, or download a private copy of Chrome for Testing for harness to use.') }}</span>
         <span
           v-if="installing !== null"
           class="mt-1 flex w-[220px] items-center gap-2 text-[11.5px] text-muted tabular-nums"
@@ -584,7 +584,7 @@ async function copyUrl() {
           variant="primary"
           @click="install"
         >
-          Download Chrome for Testing {{ availability.downloadVersion }}
+          {{ tt('Download Chrome for Testing {0}', [availability.downloadVersion]) }}
         </HBtn>
       </div>
       <div
@@ -596,14 +596,14 @@ async function copyUrl() {
           :size="30"
           class="text-muted"
         />
-        <span class="font-display text-[15px] text-strong">Browse with the agent</span>
-        <span class="max-w-[340px] text-[12.5px] leading-[1.55] text-muted">Type a URL, or ask the agent to open, click and check pages. It sees this same browser, and asks before acting on a new site.</span>
+        <span class="font-display text-[15px] text-strong">{{ tt('Browse with the agent') }}</span>
+        <span class="max-w-[340px] text-[12.5px] leading-[1.55] text-muted">{{ tt('Type a URL, or ask the agent to open, click and check pages. It sees this same browser, and asks before acting on a new site.') }}</span>
       </div>
       <div
         v-else-if="!state && !error"
         class="absolute inset-0 flex items-center justify-center"
         role="status"
-        aria-label="Starting the browser"
+        :aria-label="tt('Starting the browser')"
       >
         <HMark :width="28" />
       </div>
@@ -612,24 +612,24 @@ async function copyUrl() {
     <PaneMenu v-model:open="menuOpen">
       <div
         role="menu"
-        aria-label="Browser settings"
+        :aria-label="tt('Browser settings')"
         class="absolute top-[46px] right-10 z-30 menu-panel w-[220px]"
       >
         <PaneMenuItem
           :disabled="!tab?.url"
           @click="copyUrl"
         >
-          Copy page address
+          {{ tt('Copy page address') }}
         </PaneMenuItem>
         <PaneMenuItem @click="clearData">
-          Clear browsing data
+          {{ tt('Clear browsing data') }}
         </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
           danger
           @click="stopBrowser"
         >
-          Stop browser
+          {{ tt('Stop browser') }}
         </PaneMenuItem>
       </div>
     </PaneMenu>

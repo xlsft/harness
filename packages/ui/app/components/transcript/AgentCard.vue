@@ -38,7 +38,7 @@ const footer = computed(() => {
         :name="running ? 'agent' : failed ? 'x' : 'check'"
         :class="running ? 'text-accent' : failed ? 'text-bad' : 'text-ok'"
       />
-      <span class="text-strong">Agent</span>
+      <span class="text-strong">{{ tt('Agent') }}</span>
       <span class="border border-default px-[5px] text-[11px] text-muted">{{ type }}</span>
       <span class="text-muted">{{ toolTarget(tool) }}</span>
       <span class="flex-1" />
@@ -89,12 +89,12 @@ const footer = computed(() => {
         href="#"
         class="link"
         @click.prevent="openPane('agents')"
-      >Open transcript</a>
+      >{{ tt('Open transcript') }}</a>
       <HBtn
         v-if="running && agent && canStop"
         @click="store.stopSubagent(sessionId, agent.id)"
       >
-        Stop
+        {{ tt('Stop') }}
       </HBtn>
     </div>
   </div>

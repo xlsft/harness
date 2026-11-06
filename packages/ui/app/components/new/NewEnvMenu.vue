@@ -24,7 +24,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
 <template>
   <div
     role="menu"
-    aria-label="Environment"
+    :aria-label="tt('Environment')"
     class="w-[280px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
   >
     <label class="flex items-center gap-2 border-b border-default px-2.5 py-1.5 text-muted">
@@ -34,12 +34,12 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       />
       <input
         v-model="query"
-        placeholder="Search environments"
+        :placeholder="tt('Search environments')"
         class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
       >
     </label>
     <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
-      Local
+      {{ tt('Local') }}
     </div>
     <div
       role="menuitemradio"
@@ -51,7 +51,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         name="monitor"
         :size="13"
       />
-      <span class="flex-1">This computer</span>
+      <span class="flex-1">{{ tt('This computer') }}</span>
       <HIcon
         v-if="!store.sshHost"
         name="check"
@@ -69,11 +69,11 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         name="relay"
         :size="13"
       />
-      <span class="flex-1">Remote control</span>
-      <span class="text-[11px]">soon</span>
+      <span class="flex-1">{{ tt('Remote control') }}</span>
+      <span class="text-[11px]">{{ tt('soon') }}</span>
     </div>
     <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
-      SSH
+      {{ tt('SSH') }}
     </div>
     <div
       v-for="h in shown"
@@ -102,7 +102,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         name="plus"
         :size="13"
       />
-      <span class="flex-1">Add an SSH host…</span>
+      <span class="flex-1">{{ tt('Add an SSH host…') }}</span>
     </div>
     <SshConnectModal
       v-if="connecting"

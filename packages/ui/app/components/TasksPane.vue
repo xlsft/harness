@@ -75,24 +75,24 @@ function clearFinished() {
 
 <template>
   <section
-    aria-label="Background tasks"
+    :aria-label="tt('Background tasks')"
     class="flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
-      <span class="font-display text-[13px] text-strong">Background tasks</span>
+      <span class="font-display text-[13px] text-strong">{{ tt('Background tasks') }}</span>
       <span class="flex-1" />
       <PaneBtn
         icon="trash"
-        label="Clear finished"
+        :label="tt('Clear finished')"
         @click="clearFinished"
       />
       <PaneBtn
         icon="full"
-        label="Maximize"
+        :label="tt('Maximize')"
       />
       <PaneBtn
         icon="close"
-        label="Close"
+        :label="tt('Close')"
         @click="closePane('tasks')"
       />
     </div>
@@ -106,8 +106,8 @@ function clearFinished() {
         :size="24"
         class="text-muted"
       />
-      <span class="text-strong">No background tasks</span>
-      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Dev servers, watchers, long test runs, monitors and workflows the agent starts in the background show up here.</span>
+      <span class="text-strong">{{ tt('No background tasks') }}</span>
+      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">{{ tt('Dev servers, watchers, long test runs, monitors and workflows the agent starts in the background show up here.') }}</span>
     </div>
 
     <div
@@ -116,7 +116,7 @@ function clearFinished() {
     >
       <template v-if="workflows.length">
         <div class="px-[2px] pt-[2px] pb-1 text-[12px] text-muted">
-          Workflows <span class="text-strong">{{ workflows.length }}</span>
+          {{ tt('Workflows') }} <span class="text-strong">{{ workflows.length }}</span>
         </div>
         <div
           v-for="w in workflows"
@@ -135,8 +135,8 @@ function clearFinished() {
             <button
               v-if="w.state === 'running'"
               type="button"
-              aria-label="Stop"
-              title="Stop"
+              :aria-label="tt('Stop')"
+              :title="tt('Stop')"
               class="flex size-6 shrink-0 items-center justify-center border border-line bg-raised hover:border-line-strong"
               @click="stopWorkflow(w)"
             >
@@ -174,7 +174,7 @@ function clearFinished() {
         </div>
       </template>
       <div class="px-[2px] pt-[2px] pb-1 text-[12px] text-muted">
-        Running <span class="text-strong">{{ running.length }}</span>
+        {{ tt('Running') }} <span class="text-strong">{{ running.length }}</span>
       </div>
       <div
         v-for="t in running"
@@ -200,8 +200,8 @@ function clearFinished() {
           <span class="text-[11.5px] whitespace-nowrap text-muted">{{ formatDuration(now - t.startedAt) }}</span>
           <button
             type="button"
-            aria-label="Stop"
-            title="Stop"
+            :aria-label="tt('Stop')"
+            :title="tt('Stop')"
             class="flex size-6 shrink-0 items-center justify-center border border-line bg-raised hover:border-line-strong"
             @click.stop="stop(t)"
           >
@@ -223,13 +223,13 @@ function clearFinished() {
               class="border border-line px-2 py-px text-[11px] text-strong hover:bg-hover"
               @click="openPane('terminal')"
             >
-              Open in terminal
+              {{ tt('Open in terminal') }}
             </button>
             <button
               type="button"
               class="border border-line px-2 py-px text-[11px] text-strong hover:bg-hover"
             >
-              Send output to chat
+              {{ tt('Send output to chat') }}
             </button>
           </div>
         </div>
@@ -245,7 +245,7 @@ function clearFinished() {
           <HIcon
             :name="finishedOpen ? 'down' : 'right'"
             :size="11"
-          />Finished <span class="text-strong">{{ finished.length }}</span>
+          />{{ tt('Finished') }} <span class="text-strong">{{ finished.length }}</span>
         </button>
         <template v-if="finishedOpen">
           <div
@@ -271,11 +271,11 @@ function clearFinished() {
               <span
                 v-if="t.state === 'failed'"
                 class="text-[11px] whitespace-nowrap text-bad"
-              >exit {{ t.exitCode }}</span>
+              >{{ tt('exit {0}', [t.exitCode]) }}</span>
               <span
                 v-else-if="t.state === 'stopped'"
                 class="text-[11px] whitespace-nowrap text-muted"
-              >stopped</span>
+              >{{ tt('stopped') }}</span>
               <span class="text-[11.5px] whitespace-nowrap text-muted">{{ took(t.durationMs) }}</span>
             </div>
             <div

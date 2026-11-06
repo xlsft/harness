@@ -78,10 +78,10 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      Provisioning
+      {{ tt('Provisioning') }}
     </h2>
     <p class="set-sub">
-      SCIM 2.0: your identity provider creates and updates users and groups here, and deactivating someone there signs them out here. Provisioned accounts have no password and sign in through SSO.
+      {{ tt('SCIM 2.0: your identity provider creates and updates users and groups here, and deactivating someone there signs them out here. Provisioned accounts have no password and sign in through SSO.') }}
     </p>
     <p
       v-if="error"
@@ -93,13 +93,13 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
 
     <template v-if="state">
       <div class="mb-4 flex items-center gap-2 text-[12px] text-muted">
-        <span>SCIM base URL</span>
+        <span>{{ tt('SCIM base URL') }}</span>
         <code class="min-w-0 flex-1 truncate border border-default bg-raised px-2 py-1 text-[12px] text-strong select-all">{{ state.baseUrl }}</code>
         <HBtn
           size="xs"
           @click="copy(state.baseUrl)"
         >
-          Copy
+          {{ tt('Copy') }}
         </HBtn>
       </div>
 
@@ -108,15 +108,15 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
         role="status"
         class="mb-3 flex flex-col gap-2 border border-accent px-3 py-2.5 text-[12px]"
       >
-        <span class="text-strong">Token {{ revealed.name }}</span>
-        <span class="text-muted">Shown only now. Paste it into your identity provider; it cannot be shown again.</span>
+        <span class="text-strong">{{ tt('Token {0}', [revealed.name]) }}</span>
+        <span class="text-muted">{{ tt('Shown only now. Paste it into your identity provider; it cannot be shown again.') }}</span>
         <div class="flex items-center gap-2">
           <code class="flex-1 truncate border border-default bg-raised px-2 py-1 font-mono text-[12.5px] text-strong select-all">{{ revealed.value }}</code>
           <HBtn
             size="sm"
             @click="copy(revealed.value)"
           >
-            Copy
+            {{ tt('Copy') }}
           </HBtn>
           <HBtn
             size="sm"
@@ -124,13 +124,13 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
             tone="muted"
             @click="revealed = null"
           >
-            Done
+            {{ tt('Done') }}
           </HBtn>
         </div>
       </div>
 
       <h3 class="m-0 mb-2 text-[12.5px] font-semibold text-strong">
-        Tokens
+        {{ tt('Tokens') }}
       </h3>
       <div
         v-if="state.tokens.length"
@@ -142,14 +142,14 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
           class="flex items-center gap-2 border-b border-default px-3 py-2 text-[12.5px] last:border-b-0"
         >
           <span class="min-w-0 flex-1 truncate text-strong">{{ t.name }}</span>
-          <span class="text-[11.5px] text-dimmed">last used {{ when(t.lastUsedAt) }}</span>
+          <span class="text-[11.5px] text-dimmed">{{ tt('last used {0}', [when(t.lastUsedAt)]) }}</span>
           <HBtn
             v-if="writable"
             size="xs"
             tone="danger"
             @click="revoke(t.id)"
           >
-            {{ confirming === t.id ? 'Confirm revoke' : 'Revoke' }}
+            {{ confirming === t.id ? tt('Confirm revoke') : tt('Revoke') }}
           </HBtn>
         </div>
       </div>
@@ -157,7 +157,7 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
         v-else
         class="m-0 mb-2 text-[12px] text-muted"
       >
-        No tokens yet.
+        {{ tt('No tokens yet.') }}
       </p>
       <form
         v-if="writable"
@@ -166,8 +166,8 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
       >
         <input
           v-model="name"
-          placeholder="Name, e.g. Okta"
-          aria-label="Token name"
+          :placeholder="tt('Name, e.g. Okta')"
+          :aria-label="tt('Token name')"
           class="h-8 max-w-[260px] flex-1 border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent"
         >
         <HBtn
@@ -175,20 +175,20 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
           type="submit"
           :disabled="!name.trim()"
         >
-          Create token
+          {{ tt('Create token') }}
         </HBtn>
       </form>
 
       <h3 class="m-0 mb-1 text-[12.5px] font-semibold text-strong">
-        Group to role rules
+        {{ tt('Group to role rules') }}
       </h3>
       <p class="set-sub">
-        Applied when a provisioned group's members change. First match wins; no match is a plain user. No rules: roles are managed in Users.
+        {{ tt('Applied when a provisioned group\'s members change. First match wins; no match is a plain user. No rules: roles are managed in Users.') }}
       </p>
       <SettingsRoleMappings
         v-model="mappings"
         :readonly="!writable"
-        placeholder="SCIM group display name"
+        :placeholder="tt('SCIM group display name')"
       />
       <div
         v-if="writable"
@@ -198,7 +198,7 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
           size="sm"
           @click="saveMappings"
         >
-          Save rules
+          {{ tt('Save rules') }}
         </HBtn>
       </div>
     </template>
@@ -206,7 +206,7 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
       v-else-if="!error"
       class="m-0 py-4 text-[12.5px] text-muted"
     >
-      Loading…
+      {{ tt('Loading…') }}
     </p>
   </div>
 </template>

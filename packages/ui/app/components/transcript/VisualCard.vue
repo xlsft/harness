@@ -59,9 +59,9 @@ async function copy() {
   menu.value = false
   try {
     await navigator.clipboard.writeText(html.value)
-    toast.add({ title: 'HTML copied', color: 'neutral' })
+    toast.add({ title: tt('HTML copied'), color: 'neutral' })
   } catch {
-    toast.add({ title: 'Could not copy', color: 'error' })
+    toast.add({ title: tt('Could not copy'), color: 'error' })
   }
 }
 
@@ -90,7 +90,7 @@ function download() {
       >
         <button
           type="button"
-          aria-label="Previous version"
+          :aria-label="tt('Previous version')"
           class="flex size-6 items-center justify-center hover:text-strong disabled:opacity-40"
           :disabled="index === 0"
           @click="index--"
@@ -100,10 +100,10 @@ function download() {
             :size="12"
           />
         </button>
-        <span class="tabular-nums">v{{ index + 1 }}/{{ versions.length }}</span>
+        <span class="tabular-nums">{{ tt('v{0}/{1}', [index + 1, versions.length]) }}</span>
         <button
           type="button"
-          aria-label="Next version"
+          :aria-label="tt('Next version')"
           class="flex size-6 items-center justify-center hover:text-strong disabled:opacity-40"
           :disabled="index === versions.length - 1"
           @click="index++"
@@ -116,14 +116,14 @@ function download() {
       </span>
       <HIconBtn
         icon="reload"
-        label="Replay"
+        :label="tt('Replay')"
         :size="26"
         :icon-size="13"
         @click="replay"
       />
       <HIconBtn
         icon="full"
-        label="Full screen"
+        :label="tt('Full screen')"
         :size="26"
         :icon-size="13"
         @click="full = true"
@@ -134,7 +134,7 @@ function download() {
       >
         <HIconBtn
           icon="more"
-          label="More"
+          :label="tt('More')"
           :size="26"
           :icon-size="13"
           :pressed="menu"
@@ -149,19 +149,19 @@ function download() {
               icon="code"
               @click="source = !source; menu = false"
             >
-              {{ source ? 'Hide source' : 'View source' }}
+              {{ source ? tt('Hide source') : tt('View source') }}
             </PaneMenuItem>
             <PaneMenuItem
               icon="copy"
               @click="copy"
             >
-              Copy HTML
+              {{ tt('Copy HTML') }}
             </PaneMenuItem>
             <PaneMenuItem
               icon="download"
               @click="download"
             >
-              Download .html
+              {{ tt('Download .html') }}
             </PaneMenuItem>
           </div>
         </template>
@@ -175,7 +175,7 @@ function download() {
         name="loading"
         :size="13"
         spin
-      />Drawing…
+      />{{ tt('Drawing…') }}
     </div>
     <iframe
       v-else
@@ -200,7 +200,7 @@ function download() {
           <span class="min-w-0 flex-1 truncate text-strong">{{ title }}</span>
           <HIconBtn
             icon="close"
-            label="Close"
+            :label="tt('Close')"
             kbd="esc"
             @click="full = false"
           />

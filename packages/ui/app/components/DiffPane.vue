@@ -323,14 +323,14 @@ async function copy(text: string) {
 
 <template>
   <section
-    aria-label="Changes"
+    :aria-label="tt('Changes')"
     class="flex h-full flex-col bg-default"
   >
     <div class="flex h-11 shrink-0 items-center gap-0.5 border-b border-default pr-1.5 pl-3.5">
       <span
         v-if="!baseTitle"
         class="font-display text-[13px] text-strong"
-      >Changes</span>
+      >{{ tt('Changes') }}</span>
       <UPopover
         v-else
         v-model:open="baseMenu"
@@ -338,7 +338,7 @@ async function copy(text: string) {
       >
         <button
           type="button"
-          aria-label="Compare with"
+          :aria-label="tt('Compare with')"
           class="flex min-w-0 items-center gap-1.5 px-1.5 py-1 font-display text-[13px] text-strong hover:bg-hover"
           :class="baseMenu && 'bg-hover'"
         >
@@ -352,7 +352,7 @@ async function copy(text: string) {
         <template #content>
           <div
             role="menu"
-            aria-label="Compare with"
+            :aria-label="tt('Compare with')"
             class="w-[260px] border border-accented bg-hover py-1 text-[12.5px]"
           >
             <PaneMenuItem
@@ -362,7 +362,7 @@ async function copy(text: string) {
               reserve
               @click="pickBase({ kind: 'all' })"
             >
-              All changes
+              {{ tt('All changes') }}
             </PaneMenuItem>
             <PaneMenuItem
               v-if="bases?.inGit"
@@ -371,7 +371,7 @@ async function copy(text: string) {
               reserve
               @click="pickBase({ kind: 'uncommitted' })"
             >
-              Uncommitted changes
+              {{ tt('Uncommitted changes') }}
             </PaneMenuItem>
             <template v-if="bases?.inGit">
               <div class="my-1 h-px bg-line" />
@@ -384,14 +384,14 @@ async function copy(text: string) {
                   sub
                   :value="base.kind === 'ref' ? base.ref : bases.defaultLabel"
                 >
-                  Compare against
+                  {{ tt('Compare against') }}
                 </PaneMenuItem>
                 <template #content>
                   <div class="flex max-h-[320px] w-[260px] flex-col border border-accented bg-hover text-[12.5px]">
                     <input
                       v-model="branchFilter"
-                      aria-label="Filter branches"
-                      placeholder="Filter branches"
+                      :aria-label="tt('Filter branches')"
+                      :placeholder="tt('Filter branches')"
                       class="border-b border-default bg-transparent px-[9px] py-1.5 outline-none"
                     >
                     <div class="min-h-0 flex-1 overflow-y-auto py-1">
@@ -423,7 +423,7 @@ async function copy(text: string) {
                   :value="String(bases.commits.length)"
                   :disabled="!bases.commits.length"
                 >
-                  Commits
+                  {{ tt('Commits') }}
                 </PaneMenuItem>
                 <template #content>
                   <div class="h-[320px] max-h-[60vh] w-[340px] overflow-y-auto border border-accented bg-hover py-1 text-[12.5px]">
@@ -452,13 +452,13 @@ async function copy(text: string) {
       <span
         v-if="live?.large"
         class="ml-1.5 shrink-0 border border-line px-1.5 py-px text-[11px] text-muted"
-        title="A large diff: files stay collapsed until you open them"
-      >Large diff</span>
+        :title="tt('A large diff: files stay collapsed until you open them')"
+      >{{ tt('Large diff') }}</span>
       <span class="flex-1" />
       <HIconBtn
         v-if="!remote"
         icon="refresh"
-        label="Refresh"
+        :label="tt('Refresh')"
         :size="30"
         :class="refreshing && 'text-muted'"
         @click="refresh"
@@ -469,14 +469,14 @@ async function copy(text: string) {
       >
         <HIconBtn
           icon="list"
-          label="Diff view"
+          :label="tt('Diff view')"
           :size="30"
           :pressed="viewMenu"
         />
         <template #content>
           <div
             role="menu"
-            aria-label="Diff view"
+            :aria-label="tt('Diff view')"
             class="w-[180px] border border-accented bg-hover py-1 text-[12.5px]"
           >
             <PaneMenuItem
@@ -487,19 +487,19 @@ async function copy(text: string) {
               reserve
               @click="setView(v)"
             >
-              {{ v === 'unified' ? 'Unified' : 'Split' }}
+              {{ v === 'unified' ? tt('Unified') : tt('Split') }}
             </PaneMenuItem>
           </div>
         </template>
       </UPopover>
       <HIconBtn
         icon="full"
-        label="Maximize"
+        :label="tt('Maximize')"
         :size="30"
       />
       <HIconBtn
         icon="close"
-        label="Close"
+        :label="tt('Close')"
         :size="30"
         @click="closePane('diff')"
       />
@@ -513,8 +513,8 @@ async function copy(text: string) {
         :size="24"
         class="text-muted"
       />
-      <span class="text-strong">No changes yet</span>
-      <span class="max-w-80 text-[12px] leading-[1.55] text-muted">{{ live ? 'Files changed in this session show up here for review.' : 'Edits the agent makes in this session show up here for review.' }}</span>
+      <span class="text-strong">{{ tt('No changes yet') }}</span>
+      <span class="max-w-80 text-[12px] leading-[1.55] text-muted">{{ live ? tt('Files changed in this session show up here for review.') : tt('Edits the agent makes in this session show up here for review.') }}</span>
     </div>
     <VList
       v-else
@@ -533,7 +533,7 @@ async function copy(text: string) {
         v-else-if="row.kind === 'truncated'"
         class="border-b border-default px-3 py-[5px] text-[12px] text-muted"
       >
-        Too many changed files: showing the first {{ groups.length }}.
+        {{ tt('Too many changed files: showing the first {0}.', [groups.length]) }}
       </div>
       <section
         v-else
@@ -566,7 +566,7 @@ async function copy(text: string) {
           >
             <HIconBtn
               icon="check"
-              :label="viewed[row.group.path] ? 'Mark as not viewed' : 'Mark as viewed'"
+              :label="viewed[row.group.path] ? tt('Mark as not viewed') : tt('Mark as viewed')"
               :size="26"
               :icon-size="13"
               :pressed="viewed[row.group.path]"
@@ -575,7 +575,7 @@ async function copy(text: string) {
             />
             <HIconBtn
               icon="arrow-up-right"
-              label="Open file"
+              :label="tt('Open file')"
               :size="26"
               :icon-size="13"
               @click="openFile(row.group.path)"
@@ -587,7 +587,7 @@ async function copy(text: string) {
             >
               <HIconBtn
                 icon="more"
-                label="File actions"
+                :label="tt('File actions')"
                 :size="26"
                 :icon-size="13"
                 :pressed="fileMenu === row.group.path"
@@ -595,61 +595,61 @@ async function copy(text: string) {
               <template #content>
                 <div
                   role="menu"
-                  aria-label="File actions"
+                  :aria-label="tt('File actions')"
                   class="w-[250px] border border-accented bg-hover py-1 text-[12.5px]"
                 >
                   <PaneMenuItem @click="attach = [...attach, relative(row.group.path)]; fileMenu = ''">
-                    Attach as context
+                    {{ tt('Attach as context') }}
                   </PaneMenuItem>
                   <UPopover
                     v-model:open="copyMenu"
                     :content="{ side: 'left', align: 'start', sideOffset: 4 }"
                   >
                     <PaneMenuItem sub>
-                      Copy
+                      {{ tt('Copy') }}
                     </PaneMenuItem>
                     <template #content>
                       <div
                         role="menu"
-                        aria-label="Copy"
+                        :aria-label="tt('Copy')"
                         class="w-[180px] border border-accented bg-hover py-1 text-[12.5px]"
                       >
                         <PaneMenuItem @click="copy(relative(row.group.path))">
-                          Relative path
+                          {{ tt('Relative path') }}
                         </PaneMenuItem>
                         <PaneMenuItem @click="copy(row.group.path)">
-                          Absolute path
+                          {{ tt('Absolute path') }}
                         </PaneMenuItem>
                         <PaneMenuItem @click="copy(diffText(row.group))">
-                          Diff
+                          {{ tt('Diff') }}
                         </PaneMenuItem>
                       </div>
                     </template>
                   </UPopover>
                   <div class="my-1 h-px bg-line" />
                   <PaneMenuItem @click="openFile(row.group.path)">
-                    Show whole file
+                    {{ tt('Show whole file') }}
                   </PaneMenuItem>
                   <PaneMenuItem @click="toggleViewed(row.group.path); fileMenu = ''">
-                    {{ viewed[row.group.path] ? 'Mark as not viewed' : 'Mark as viewed' }}
+                    {{ viewed[row.group.path] ? tt('Mark as not viewed') : tt('Mark as viewed') }}
                   </PaneMenuItem>
                   <div class="my-1 h-px bg-line" />
                   <PaneMenuItem @click="openFile(row.group.path)">
-                    Open file
+                    {{ tt('Open file') }}
                   </PaneMenuItem>
                   <PaneMenuItem
                     :disabled="!desktop"
                     :value="desktop ? '' : 'desktop'"
                     @click="desktop && (openWithDefaultApp(row.group.path), fileMenu = '')"
                   >
-                    Open in default app
+                    {{ tt('Open in default app') }}
                   </PaneMenuItem>
                   <PaneMenuItem
                     :disabled="!desktop"
                     :value="desktop ? '' : 'desktop'"
                     @click="desktop && (revealInFolder(row.group.path), fileMenu = '')"
                   >
-                    Show in Finder
+                    {{ tt('Show in Finder') }}
                   </PaneMenuItem>
                 </div>
               </template>
@@ -679,7 +679,7 @@ async function copy(text: string) {
             class="w-full border-t border-default px-3 py-1.5 text-left text-[12px] text-muted hover:bg-hover"
             @click="shownLines[row.group.path] = (shownLines[row.group.path] ?? LINES_STEP) + LINES_STEP"
           >
-            Show {{ Math.min(hiddenLines(row.group), LINES_STEP) }} more of {{ hiddenLines(row.group) }} lines
+            {{ tt('Show {0} more of {1} lines', [Math.min(hiddenLines(row.group), LINES_STEP), hiddenLines(row.group)]) }}
           </button>
         </template>
       </section>

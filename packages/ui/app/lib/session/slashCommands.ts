@@ -1,5 +1,6 @@
 // What the client reports for the slash menu and the Customize screen, as these show it. The client decides what exists,
 // what wins a name and what is on; here it only becomes rows.
+import { tt } from '~/utils/i18n'
 import { SlashCommandKind, SlashCommandResult_Action, type ListSlashCommandsResponse, type SlashCommand } from '~/gen/harness/agent/v1/slash_commands_pb'
 import type { MenuOption } from '~/utils/composer'
 
@@ -73,9 +74,9 @@ export interface CustomizeSection {
 export function customizeSections(list: readonly SlashCommand[]): CustomizeSection[] {
   const pick = (kind: SlashCommandKind) => list.filter(c => c.kind === kind)
   return [
-    { title: 'Skills', rows: pick(SlashCommandKind.SKILL) },
-    { title: 'Commands', rows: pick(SlashCommandKind.COMMAND) },
-    { title: 'Built-in commands', rows: pick(SlashCommandKind.BUILTIN) }
+    { title: tt('Skills'), rows: pick(SlashCommandKind.SKILL) },
+    { title: tt('Commands'), rows: pick(SlashCommandKind.COMMAND) },
+    { title: tt('Built-in commands'), rows: pick(SlashCommandKind.BUILTIN) }
   ].filter(s => s.rows.length)
 }
 
