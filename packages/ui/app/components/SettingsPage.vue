@@ -14,6 +14,7 @@ const SECTIONS = [
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
   { key: 'sandbox', label: 'Sandbox', icon: 'lock', group: 'app' },
   { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
+  { key: 'memory', label: 'Memory', icon: 'history', group: 'app' },
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
@@ -43,6 +44,7 @@ const KEYWORDS: Record<Section, string> = {
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
+  memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
@@ -165,6 +167,8 @@ const notifications = computed({
         <SettingsPullRequests />
         <SettingsAgents />
       </template>
+
+      <SettingsMemory v-else-if="section === 'memory'" />
 
       <SettingsImport v-else-if="section === 'import'" />
 

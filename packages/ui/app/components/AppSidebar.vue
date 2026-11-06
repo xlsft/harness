@@ -69,7 +69,7 @@ const searchOpen = useState('search-open', () => false)
 const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
 const onCustomize = computed(() => route.path.startsWith('/customize'))
-const onPage = computed(() => onArtifacts.value || onCustomize.value || !!route.query.new)
+const onPage = computed(() => onArtifacts.value || onCustomize.value || route.path.startsWith('/knowledge') || route.path.startsWith('/tracker') || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -123,14 +123,15 @@ const host = computed(() => {
 
 const NuxtLink = resolveComponent('NuxtLink')
 
-// `soon`: not built yet; the row shows a badge (Artifacts keeps its preview page, the others do nothing).
+// `soon`: not built yet; the row shows a badge and does nothing.
 const nav = [
-  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
+  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts' },
   { label: 'Scheduled', icon: 'clock' as const, soon: true },
   { label: 'Customize', icon: 'sliders' as const, to: '/customize' },
-  { label: 'Knowledge base', icon: 'page' as const, soon: true },
-  { label: 'Task tracker', icon: 'tasks' as const, soon: true }
+  { label: 'Knowledge base', icon: 'page' as const, to: '/knowledge' },
+  { label: 'Task tracker', icon: 'tasks' as const, to: '/tracker' }
 ]
+const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
 </script>
 
 <template>
@@ -200,8 +201,8 @@ const nav = [
         :href="item.to ? undefined : '#'"
         class="nav-row px-[9px] hover:bg-hover"
         :aria-disabled="item.soon && !item.to ? true : undefined"
-        :class="(item.to === '/artifacts' && onArtifacts) || (item.to === '/customize' && onCustomize) ? 'nav-row-current' : ''"
-        :aria-current="(item.to === '/artifacts' && onArtifacts) || (item.to === '/customize' && onCustomize) ? 'page' : undefined"
+        :class="isCurrent(item.to) ? 'nav-row-current' : ''"
+        :aria-current="isCurrent(item.to) ? 'page' : undefined"
         @click="item.soon && !item.to && $event.preventDefault()"
       >
         <HIcon :name="item.icon" />{{ item.label }}<span

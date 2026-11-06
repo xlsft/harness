@@ -1,7 +1,7 @@
 // Scripted OpenAI-compatible upstream for the end-to-end test.
 // Turn 1: the model replies with text and a Bash tool call that writes a marker file.
 // Turn 2 (once a tool result is present): the model replies with a final text answer.
-// When the prompt mentions "mcp", turn 1 calls the MCP tool mcp__e2e__echo instead and turn 2
+// When the prompt says "use mcp to" (a skill list from the home folder may mention MCP tools), turn 1 calls the MCP tool mcp__e2e__echo instead and turn 2
 // repeats its result.
 // When the prompt contains "websearch-e2e", turn 1 calls WebSearch, turn 2 calls WebFetch on this
 // server's /page and turn 3 repeats both results; the WebFetch summarization request (it has no
@@ -43,7 +43,7 @@ createServer(async (req, res) => {
   const toolMsg = (j.messages ?? []).find((m) => m.role === "tool");
   const hasToolResult = !!toolMsg;
   const text = (c) => (typeof c === "string" ? c : (c ?? []).map((p) => p.text ?? "").join(""));
-  const wantsMcp = (j.messages ?? []).some((m) => m.role === "user" && text(m.content).includes("mcp"));
+  const wantsMcp = (j.messages ?? []).some((m) => m.role === "user" && text(m.content).includes("use mcp to"));
   const wantsWeb = (j.messages ?? []).some((m) => m.role === "user" && text(m.content).includes("websearch-e2e"));
   const toolMsgs = (j.messages ?? []).filter((m) => m.role === "tool");
   const reply = (content) =>
@@ -69,6 +69,22 @@ createServer(async (req, res) => {
       const search = text(toolMsgs[0].content).includes("1. Harness e2e result") ? "search ok" : "search missing";
       reply(`Web said: ${search}; ${text(toolMsgs[1].content)}`);
     }
+    return;
+  }
+  const prompt = (j.messages ?? []).filter((m) => m.role === "user").map((m) => text(m.content)).join("\n");
+  if (prompt.includes("library-recall-e2e")) {
+    reply(prompt.includes("e2e_note.md") ? "recalled the note" : "the note was not loaded");
+    return;
+  }
+  if (prompt.includes("library-e2e")) {
+    const steps = [
+      ["ArtifactPublish", { title: "E2E report", name: "report.html", content: "<h1>e2e page</h1>", description: "e2e report" }],
+      ["Memory", { command: "write", name: "e2e_note", type: "project", description: "The e2e note", content: "Remember this." }],
+      ["TaskTracker", { action: "create", title: "E2E task", project: "e2e" }],
+      ["KnowledgeSearch", { query: "canary rollout", description: "e2e search" }],
+    ];
+    if (toolMsgs.length < steps.length) call(`call_l${toolMsgs.length}`, ...steps[toolMsgs.length]);
+    else reply(`Library said: ${toolMsgs.map((m) => text(m.content)).join(" | ")}`);
     return;
   }
   if (wantsMcp) {

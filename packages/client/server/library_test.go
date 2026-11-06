@@ -379,6 +379,36 @@ func TestCreateArtifactTicket(t *testing.T) {
 	}
 }
 
+// A frame cannot send the agent token, so the artifact route checks its own ticket; the rest of the library still needs it.
+func TestTCPGuardLetsOnlyTheArtifactRouteThrough(t *testing.T) {
+	h := TCPGuard(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusTeapot) }), TCPOptions{Token: "secret", Addr: "127.0.0.1:1"})
+	code := func(path string) int {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Host = "127.0.0.1:1"
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	if got := code("/artifacts/art_a"); got != http.StatusTeapot {
+		t.Fatalf("artifact route: %d", got)
+	}
+	if got := code("/harness.agent.v1.LibraryService/ListAutoMemory"); got != http.StatusUnauthorized {
+		t.Fatalf("library service: %d", got)
+	}
+}
+
+func TestCoreProxyForwardsTheLibraryScreens(t *testing.T) {
+	for _, want := range []string{"harness.library.v1.ArtifactService", "harness.library.v1.KnowledgeService", "harness.library.v1.TrackerService"} {
+		found := false
+		for _, s := range coreProxyServices {
+			found = found || s == want
+		}
+		if !found {
+			t.Errorf("%s is not forwarded", want)
+		}
+	}
+}
+
 func TestParseEntriesSkipsWhatItCannotRead(t *testing.T) {
 	got := parseEntries([]byte(userLine("u1", "", "x") + "\nnot json\n\n"))
 	if len(got) != 1 || got[0].Type != session.TypeUser {

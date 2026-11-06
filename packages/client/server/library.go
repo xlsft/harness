@@ -442,7 +442,7 @@ func (p *ObjectProxy) artifactHandler() http.Handler {
 		}
 		token, err := p.tokens.Token(ctx)
 		if err != nil {
-			http.Error(w, "not signed in to the harness server", http.StatusUnauthorized)
+			http.Error(w, "not signed in to the server", http.StatusUnauthorized)
 			return
 		}
 		res, err := send(token)

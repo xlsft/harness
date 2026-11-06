@@ -48,7 +48,7 @@ func RegisterLibraryTools(r *Registry) {
 func libraryError(err error, what string) Result {
 	var ce *connect.Error
 	if errors.As(err, &ce) && ce.Code() == connect.CodeUnimplemented {
-		return ErrorResult("This harness server has no %s yet.", what)
+		return ErrorResult("This server has no %s yet.", what)
 	}
 	return ErrorResult("%s: %v", what, err)
 }
@@ -170,7 +170,7 @@ func (*ArtifactPublish) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%v", err)
 	}
 	if env.Library == nil {
-		return ErrorResult("Artifacts live on the harness server, and this session has none.")
+		return ErrorResult("Artifacts live on the server, and this session has none.")
 	}
 	if (in.FilePath == "") == (in.Content == "") {
 		return ErrorResult("InputValidationError: pass either file_path or content")
@@ -250,7 +250,7 @@ func (*KnowledgeSearch) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%v", err)
 	}
 	if env.Library == nil {
-		return ErrorResult("The knowledge base lives on the harness server, and this session has none.")
+		return ErrorResult("The knowledge base lives on the server, and this session has none.")
 	}
 	if strings.TrimSpace(in.Query) == "" {
 		return ErrorResult("InputValidationError: query is required")
@@ -295,7 +295,7 @@ func (*KnowledgeRead) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%v", err)
 	}
 	if env.Library == nil {
-		return ErrorResult("The knowledge base lives on the harness server, and this session has none.")
+		return ErrorResult("The knowledge base lives on the server, and this session has none.")
 	}
 	ctx, cancel := context.WithTimeout(ctx, libraryTimeout)
 	defer cancel()
@@ -403,7 +403,7 @@ func (*TaskTracker) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%v", err)
 	}
 	if env.Library == nil {
-		return ErrorResult("The task tracker lives on the harness server, and this session has none.")
+		return ErrorResult("The task tracker lives on the server, and this session has none.")
 	}
 	var status libraryv1.TrackerStatus
 	if in.Status != "" {

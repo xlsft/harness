@@ -40,6 +40,7 @@ import { ConnectClaudeImportApi } from '~/lib/import/connect'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
 import { ConnectMcpApi } from '~/lib/mcp/connect'
+import { ConnectLibraryApi } from '~/lib/library/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -52,7 +53,7 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
-  return { compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
+  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
     hooksEnabled: p?.hooksEnabled ?? true }
 }
@@ -100,6 +101,7 @@ export class ConnectTransport implements SessionTransport {
     this.limitsApi = new ConnectLimitsApi(transport)
     this.acpApi = new ConnectAcpApi(transport)
     this.mcpApi = new ConnectMcpApi(transport)
+    this.libraryApi = new ConnectLibraryApi(transport, baseUrl)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
   }
 
@@ -353,7 +355,7 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled })
+    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled })
     return preferencesVM(res.preferences)
   }
 
@@ -463,6 +465,11 @@ export class ConnectTransport implements SessionTransport {
   private localModelsApi?: ConnectLocalModelsApi
   localModels() {
     return (this.localModelsApi ??= new ConnectLocalModelsApi(this.transport))
+  }
+
+  private libraryApi!: ConnectLibraryApi
+  library() {
+    return this.libraryApi
   }
 
   private mcpApi!: ConnectMcpApi

@@ -36,6 +36,7 @@ import type { ClaudeImportApi } from '~/lib/import/claudeCode'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
+import type { LibraryApi } from '~/lib/library/types'
 import type { BrowserApi } from '~/lib/browser/types'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 
@@ -104,6 +105,8 @@ export interface NewSessionOptions {
 
 // Per-user preferences the client honours for every session (stored in the user's synced settings).
 export interface UserPreferences {
+  // The agent keeps memory files per project, and new sessions load their index (Settings > Memory).
+  autoMemoryEnabled: boolean
   // Compact sessions idle for 30 minutes whose context is above half the window, in the background.
   compactIdleSessions: boolean
   // How many times per hour a watched pull request may wake a session (1 to 240; the client validates).
@@ -360,6 +363,8 @@ export interface SessionTransport {
 
   // MCP servers: Settings > MCP, and a session's commands and mentions (~/lib/mcp).
   mcp(): McpApi
+  // Artifacts, the knowledge base, the task tracker, auto memory, session export and transcript search (~/lib/library).
+  library(): LibraryApi
   // The session's real browser, shared with the agent's Browser* tools: availability and the Chrome for Testing
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.

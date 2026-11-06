@@ -160,7 +160,7 @@ describe("bundle builder", () => {
       expect(t.input_schema.additionalProperties).toBe(false);
       expect(t.input_schema.type).toBe("object");
     }
-    expect(props("Read")).toEqual(["file_path", "offset", "limit", "description"]);
+    expect(props("Read")).toEqual(["file_path", "offset", "limit", "pages", "description"]);
     expect(props("Write")).toEqual(["file_path", "content", "description"]);
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all", "description"]);
     expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background", "run_outside_sandbox"]);

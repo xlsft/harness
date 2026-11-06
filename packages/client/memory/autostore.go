@@ -436,7 +436,7 @@ func HasPendingAutoMemory(dir string) bool {
 	return s.readPending().dirty()
 }
 
-// LocalAutoMemoryProjects lists the project keys with a directory under the harness home.
+// LocalAutoMemoryProjects lists the project keys with a directory under the client's home.
 func LocalAutoMemoryProjects(harnessHome string) []string {
 	entries, err := os.ReadDir(filepath.Join(harnessHome, "memory"))
 	if err != nil {
