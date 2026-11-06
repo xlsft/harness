@@ -158,7 +158,8 @@ describe("issues", () => {
       const board = await newBoard(alice, p.id, BoardScope.SHARED);
       const card = (await alice.boards.createCard({ boardId: board.id, title: "Shared work" })).card!;
 
-      await alice.projects.setProjectShares({ id: p.id, shares: [{ subject: ProjectShareSubject.USER, subjectId: bobId, level: ProjectLevel.VIEW }] });
+      // By email, as the form names users.
+      await alice.projects.setProjectShares({ id: p.id, shares: [{ subject: ProjectShareSubject.USER, subjectId: "bob@issues.test", level: ProjectLevel.VIEW }] });
       expect((await bob.boards.getCard({ id: card.id })).card!.title).toBe("Shared work");
       await expectCode(bob.boards.updateCard({ id: card.id, title: "x" }), Code.PermissionDenied);
       await expectCode(bob.boards.moveCard({ id: card.id, stageId: board.stages[1]!.id }), Code.PermissionDenied);

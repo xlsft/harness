@@ -212,7 +212,9 @@ export class YouTrack implements TrackerProvider {
     }
   }
 
-  private cookieHeader(): Record<string, string> {
+  /** The Hub session is for Hub: a redirect on to an identity provider does not get it. */
+  private cookieHeader(url: string): Record<string, string> {
+    if (!this.hub || new URL(url).origin !== new URL(this.hub.url).origin) return {};
     return this.cookies.size ? { cookie: [...this.cookies].map(([k, v]) => `${k}=${v}`).join("; ") } : {};
   }
 
@@ -220,7 +222,7 @@ export class YouTrack implements TrackerProvider {
   private async followLogin(first: { url: string; method?: string; body?: string; headers?: Record<string, string> }, state: string, redirectUri: string): Promise<boolean> {
     let req: { url: string; method?: string; body?: string; headers?: Record<string, string> } = first;
     for (let hop = 0; hop < 10; hop++) {
-      const res = await this.fetch(req.url, { method: req.method, body: req.body, headers: { ...req.headers, ...this.cookieHeader() }, manual: true });
+      const res = await this.fetch(req.url, { method: req.method, body: req.body, headers: { ...req.headers, ...this.cookieHeader(req.url) }, manual: true });
       this.storeCookies(res);
       await res.body?.cancel();
       if (res.status < 300 || res.status >= 400) throw new TrackerError(res.status >= 500 ? "transient" : "other", `Hub login: unexpected ${res.status}`);

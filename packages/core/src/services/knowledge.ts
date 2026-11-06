@@ -1,5 +1,5 @@
 /**
- * The knowledge base: text documents on the server, searched by agents with the KnowledgeSearch tool and managed on its
+ * Knowledge: text documents on the server, searched by agents with the KnowledgeSearch tool and managed on its
  * screen. Scope "org" is written by admins and read by everyone. Scope "user" belongs to its owner, and no role reaches
  * it: an admin sees someone's personal documents exactly as much as anyone else, not at all.
  *

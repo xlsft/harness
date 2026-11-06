@@ -2,7 +2,7 @@
 // One issue: its text and fields, the linked external issue read live, comments, relations and history, and starting a session from it.
 import { openExternal } from '~/lib/desktop'
 import { errorText, timeAgo } from '~/lib/library/types'
-import { CardRelationKind, externalNote, outputNote, PRIORITIES, relationLabel, RELATIONS, TrackerConnectionScope, type CardDetail, type Board, type ProjectMember, type ProjectScope } from '~/lib/issues/types'
+import { CardOutputStatus, CardRelationKind, externalNote, outputNote, PRIORITIES, relationLabel, RELATIONS, TrackerConnectionScope, type CardDetail, type Board, type ProjectMember, type ProjectScope } from '~/lib/issues/types'
 
 const props = defineProps<{ id: string, projectScope: ProjectScope }>()
 const emit = defineEmits<{ close: [], changed: [] }>()
@@ -160,7 +160,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       >
         {{ outputNote(card).text }}
         <HBtn
-          v-if="card.output?.status === 4"
+          v-if="card.output?.status === CardOutputStatus.FAILED"
           size="sm"
           @click="act(() => api()!.retryOutput(card!.id))"
         >

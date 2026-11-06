@@ -1,5 +1,5 @@
 /**
- * Connect implementation of harness.library.v1: artifacts, the knowledge base and transcript search (boards: boards.ts),
+ * Connect implementation of harness.library.v1: artifacts, Knowledge and transcript search (boards: boards.ts),
  * proto <-> the services of the same name. Artifact bytes go through the HTTP route (src/http/routes/artifact.ts).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -64,7 +64,7 @@ function scopeFromProto(s: Scope): KnowledgeScope | undefined {
   if (s === Scope.UNSPECIFIED) return undefined;
   if (s === Scope.USER) return "user";
   if (s === Scope.ORG) return "org";
-  throw new ApiError("invalid_request", "The knowledge base has only the user and org scopes");
+  throw new ApiError("invalid_request", "Knowledge has only the user and org scopes");
 }
 
 function scopeToProto(s: string): Scope {

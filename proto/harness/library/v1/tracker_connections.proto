@@ -35,7 +35,7 @@ message TrackerCapabilities {
   string query_example = 5;
   bool custom_fields = 6;
   bool comments = 7;
-  // Has documents the knowledge base can read.
+  // Has documents Knowledge can read.
   bool knowledge = 8;
 }
 
@@ -79,7 +79,7 @@ message TrackerConnection {
   bool has_secret = 9;
   bool enabled = 10;
   bool allow_private_network = 11;
-  // Serves documents to the knowledge base: for everyone on an admin connection, for its user on a device one.
+  // Serves documents to Knowledge: for everyone on an admin connection, for its user on a device one.
   bool knowledge_enabled = 12;
   // Narrows the documents, in the provider's syntax.
   string knowledge_query = 13;

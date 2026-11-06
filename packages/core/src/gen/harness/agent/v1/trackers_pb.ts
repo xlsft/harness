@@ -778,7 +778,7 @@ export const ReadKnowledgeResponseSchema: GenMessage<ReadKnowledgeResponse> = /*
  * its requests go from this client, as instances are often behind a VPN the server can't see. Nothing here is ever synced: each
  * device has its own list, and the server knows only the opaque connection ids used in a personal board's stages.
  *
- * Also the merged view of the knowledge base: the server's sources plus this device's, which is what the tools and the screen use.
+ * Also the merged view of Knowledge: the server's sources plus this device's, which is what the tools and the screen use.
  *
  * @generated from service harness.agent.v1.LocalTrackerService
  */

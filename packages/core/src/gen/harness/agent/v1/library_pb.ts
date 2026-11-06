@@ -415,8 +415,8 @@ export const ExportFormatSchema: GenEnum<ExportFormat> = /*@__PURE__*/
 
 /**
  * LibraryService is served by the local client next to AgentService: what a frontend needs of a user's memory and
- * transcripts, which the client reads from its disk and the server. The screens for artifacts, the knowledge base and the
- * task tracker call the server's services through the client (coreproxy.go); only the read ticket of an artifact comes
+ * transcripts, which the client reads from its disk and the server. The screens for artifacts, Knowledge and
+ * Issues call the server's services through the client (coreproxy.go); only the read ticket of an artifact comes
  * from here.
  *
  * @generated from service harness.agent.v1.LibraryService

@@ -7,6 +7,7 @@
  * only what someone shared with them, as any user would.
  */
 import { and, asc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
+import { record } from "../audit/log.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
@@ -186,25 +187,33 @@ async function checkTickerFree(ticker: string, scope: string, ownerId: string | 
   if (rows.some((r) => r.id !== self && tickerOf(r) === ticker)) throw new ApiError("failed_precondition", `The ticker ${ticker} is already taken`);
 }
 
-async function checkShares(shares: { subject: ShareSubject; subjectId: string; level: Level }[]): Promise<void> {
+type ShareInput = { subject: ShareSubject; subjectId: string; level: Level };
+
+/** Checks who a project is shared with. The form names users by email and groups by name, and ids go in the table. */
+async function resolveShares(shares: ShareInput[]): Promise<ShareInput[]> {
   if (shares.length > MAX_SHARES) throw new ApiError("invalid_request", `At most ${MAX_SHARES} shares`);
   const db = getDb();
-  const users = shares.filter((x) => x.subject === "user").map((x) => x.subjectId);
-  if (users.length) {
-    const u = schema.user;
-    const found = new Set((await db.select({ id: u.id }).from(u).where(inArray(u.id, users))).map((r) => r.id));
-    for (const id of users) if (!found.has(id)) throw new ApiError("invalid_request", `No user ${id}`);
-  }
-  const groups = shares.filter((x) => x.subject === "group").map((x) => x.subjectId);
-  if (groups.length) {
-    const g = schema.directoryGroup;
-    const found = new Set((await db.select({ id: g.id }).from(g).where(inArray(g.id, groups))).map((r) => r.id));
-    for (const id of groups) if (!found.has(id)) throw new ApiError("invalid_request", `No group ${id}`);
-  }
+  const u = schema.user;
+  const g = schema.directoryGroup;
+  const out: ShareInput[] = [];
   for (const s of shares) {
-    if (s.subject === "role" && s.subjectId !== "admin" && s.subjectId !== "user") throw new ApiError("invalid_request", "A role is admin or user");
-    if (s.subject === "everyone" && s.subjectId) throw new ApiError("invalid_request", "A share with everyone names nobody");
+    if (s.subject === "user") {
+      const [row] = await db.select({ id: u.id }).from(u).where(or(eq(u.id, s.subjectId), eq(u.email, s.subjectId.toLowerCase()))).limit(1);
+      if (!row) throw new ApiError("invalid_request", `No user ${s.subjectId}`);
+      out.push({ ...s, subjectId: row.id });
+    } else if (s.subject === "group") {
+      const [row] = await db.select({ id: g.id }).from(g).where(or(eq(g.id, s.subjectId), eq(g.name, s.subjectId))).limit(1);
+      if (!row) throw new ApiError("invalid_request", `No group ${s.subjectId}`);
+      out.push({ ...s, subjectId: row.id });
+    } else if (s.subject === "role") {
+      if (s.subjectId !== "admin" && s.subjectId !== "user") throw new ApiError("invalid_request", "A role is admin or user");
+      out.push(s);
+    } else {
+      if (s.subjectId) throw new ApiError("invalid_request", "A share with everyone names nobody");
+      out.push(s);
+    }
   }
+  return [...new Map(out.map((s) => [`${s.subject}:${s.subjectId}`, s])).values()];
 }
 
 export async function createProject(
@@ -246,8 +255,7 @@ export async function createProject(
   if (!eff.name) throw new ApiError("invalid_request", "A project needs a name");
   if (!input.metadata.ticker && !input.connection) throw new ApiError("invalid_request", "A project needs a ticker");
   await checkTickerFree(eff.ticker, row.scope, row.ownerId);
-  const shares = input.shares ?? (input.scope === "global" ? [{ subject: "everyone" as const, subjectId: "", level: "edit" as const }] : []);
-  await checkShares(shares);
+  const shares = await resolveShares(input.shares ?? (input.scope === "global" ? [{ subject: "everyone" as const, subjectId: "", level: "edit" as const }] : []));
   await getDb().transaction(async (tx) => {
     await tx.insert(schema.project).values(row);
     if (shares.length) await tx.insert(schema.projectShare).values(shares.map((s) => ({ projectId: row.id, subject: s.subject, subjectId: s.subjectId, level: s.level })));
@@ -288,14 +296,13 @@ export async function deleteProject(p: Principal, id: string): Promise<void> {
 export async function setProjectShares(p: Principal, id: string, shares: { subject: ShareSubject; subjectId: string; level: Level }[]): Promise<ProjectView> {
   const { row, level } = await findProject(p, id);
   if (!atLeast(level, "manage")) throw new ApiError("permission", "You need manage on this project");
-  const unique = new Map(shares.map((s) => [`${s.subject}:${s.subjectId}`, s]));
-  const list = [...unique.values()];
-  await checkShares(list);
+  const list = await resolveShares(shares);
   const s = schema.projectShare;
   await getDb().transaction(async (tx) => {
     await tx.delete(s).where(eq(s.projectId, row.id));
     if (list.length) await tx.insert(s).values(list.map((x) => ({ projectId: row.id, subject: x.subject, subjectId: x.subjectId, level: x.level })));
   });
+  await record({ action: "project.share", actor: { id: p.user.id, label: p.user.email }, target: { type: "project", id: row.id, label: tickerOf(row) }, details: { shares: list.length } });
   return viewOf(row, level);
 }
 

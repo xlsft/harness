@@ -2,7 +2,7 @@
 // A project's metadata, with whom it is shared and at what level, and the folder of this device it is linked to. Without `project`,
 // a new one, internal or mapped onto a provider's project. The server enforces the levels and checks the values.
 import { errorText } from '~/lib/library/types'
-import { LEVELS, ProjectLevel, ProjectScope, ProjectShareSubject, TrackerConnectionScope, type Project, type ProviderProject, type ShareInit, type TrackerConnection } from '~/lib/issues/types'
+import { BoardScope, LEVELS, ProjectLevel, ProjectScope, ProjectShareSubject, TrackerConnectionScope, type Project, type ProviderProject, type ShareInit, type TrackerConnection } from '~/lib/issues/types'
 
 const props = defineProps<{ project?: Project }>()
 const emit = defineEmits<{ close: [], changed: [], created: [id: string] }>()
@@ -34,8 +34,8 @@ const shares = ref<ShareInit[]>((props.project?.shares ?? []).map(s => ({ subjec
 const shareName = (s: ShareInit) => props.project?.shares.find(x => x.subject === s.subject && x.subjectId === s.subjectId)?.subjectName ?? s.subjectId
 const newShare = reactive({ subject: String(ProjectShareSubject.USER), subjectId: '', level: String(ProjectLevel.VIEW) })
 const SUBJECTS = [
-  { value: String(ProjectShareSubject.USER), label: tt('User id') },
-  { value: String(ProjectShareSubject.GROUP), label: tt('Group id') },
+  { value: String(ProjectShareSubject.USER), label: tt('User') },
+  { value: String(ProjectShareSubject.GROUP), label: tt('Group') },
   { value: String(ProjectShareSubject.ROLE), label: tt('Role') },
   { value: String(ProjectShareSubject.EVERYONE), label: tt('Everyone') }
 ]
@@ -43,6 +43,7 @@ const levelOptions = LEVELS.map(l => ({ value: String(l.value), label: l.label }
 const subjectLabel = (s: ShareInit) => SUBJECTS.find(x => Number(x.value) === s.subject)?.label ?? ''
 
 const folder = ref('')
+const linkedFolder = ref('')
 const canManage = computed(() => !props.project || props.project.level === ProjectLevel.MANAGE)
 
 onMounted(async () => {
@@ -51,7 +52,10 @@ onMounted(async () => {
   try {
     isAdmin.value = await store.transport!.users().isAdmin().catch(() => false)
     connections.value = (await a.listConnections()).connections.filter(c => c.enabled)
-    if (props.project) folder.value = (await a.listFolderLinks()).find(l => l.projectId === props.project!.id)?.folder ?? ''
+    if (props.project) {
+      linkedFolder.value = (await a.listFolderLinks()).find(l => l.projectId === props.project!.id)?.folder ?? ''
+      folder.value = linkedFolder.value
+    }
   } catch (e) {
     error.value = errorText(e)
   }
@@ -84,15 +88,16 @@ async function save() {
     if (props.project) {
       await a.updateProject(props.project.id, metadata)
       await a.setShares(props.project.id, shares.value)
-      await a.setFolderLink(folder.value.trim() || (await a.listFolderLinks()).find(l => l.projectId === props.project!.id)?.folder || '.', folder.value.trim() ? props.project.id : '').catch((e) => {
-        if (folder.value.trim()) throw e
-      })
+      const next = folder.value.trim()
+      if (linkedFolder.value && linkedFolder.value !== next) await a.setFolderLink(linkedFolder.value, '')
+      if (next) await a.setFolderLink(next, props.project.id)
+      linkedFolder.value = next
       saved.value = tt('Saved')
       emit('changed')
     } else {
       const ref = refOf(form.connection)
       const p = await a.createProject({ scope: form.global ? ProjectScope.GLOBAL : ProjectScope.PERSONAL, metadata, connection: ref, externalKey: ref ? form.key : '', provider: ref ? picked.value?.metadata : undefined })
-      await a.createBoard({ projectId: p.id, scope: form.global ? 1 : 2, name: tt('Board') })
+      await a.createBoard({ projectId: p.id, scope: form.global ? BoardScope.SHARED : BoardScope.PERSONAL, name: tt('Board') })
       emit('created', p.id)
     }
   } catch (e) {
@@ -269,7 +274,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
           <input
             v-if="Number(newShare.subject) !== ProjectShareSubject.EVERYONE"
             v-model="newShare.subjectId"
-            :placeholder="Number(newShare.subject) === ProjectShareSubject.ROLE ? 'admin, user' : tt('Id')"
+            :placeholder="Number(newShare.subject) === ProjectShareSubject.ROLE ? 'admin, user' : Number(newShare.subject) === ProjectShareSubject.GROUP ? tt('Name of the group') : tt('Email')"
             :aria-label="tt('Who')"
             :class="[inputClass, 'w-[180px]']"
           >

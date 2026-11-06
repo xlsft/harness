@@ -6,6 +6,7 @@ import { errorText } from '~/lib/library/types'
 import {
   BoardScope,
   cardsByStage,
+  CardOutputStatus,
   CardPriority,
   externalNote,
   outputNote,
@@ -541,7 +542,7 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
             >
               {{ outputNote(c).text }}
               <button
-                v-if="c.output?.status === 4"
+                v-if="c.output?.status === CardOutputStatus.FAILED"
                 type="button"
                 class="text-accent hover:underline"
                 @click.stop="act(async () => { await api()?.retryOutput(c.id); await loadBoard() })"

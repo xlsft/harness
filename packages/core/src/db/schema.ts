@@ -1022,7 +1022,7 @@ export const objectUpload = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// Library: artifacts, knowledge base (proto/harness/library/v1)
+// Library: artifacts, Knowledge (proto/harness/library/v1)
 // ---------------------------------------------------------------------------
 
 /** Postgres full-text vector; always a generated column here. */
@@ -1064,7 +1064,7 @@ export const artifactVersion = pgTable(
   (t) => [primaryKey({ columns: [t.artifactId, t.number] }), index("artifact_version_sha_idx").on(t.sha256)],
 );
 
-/** A document of the knowledge base: scope "org" is written by admins and read by everyone, scope "user" by its owner alone. */
+/** A document of Knowledge: scope "org" is written by admins and read by everyone, scope "user" by its owner alone. */
 export const knowledgeDocument = pgTable(
   "knowledge_document",
   {

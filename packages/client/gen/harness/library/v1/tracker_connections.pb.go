@@ -139,7 +139,7 @@ type TrackerCapabilities struct {
 	QueryExample  string `protobuf:"bytes,5,opt,name=query_example,json=queryExample,proto3" json:"query_example,omitempty"`
 	CustomFields  bool   `protobuf:"varint,6,opt,name=custom_fields,json=customFields,proto3" json:"custom_fields,omitempty"`
 	Comments      bool   `protobuf:"varint,7,opt,name=comments,proto3" json:"comments,omitempty"`
-	// Has documents the knowledge base can read.
+	// Has documents Knowledge can read.
 	Knowledge     bool `protobuf:"varint,8,opt,name=knowledge,proto3" json:"knowledge,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -301,7 +301,7 @@ type TrackerConnection struct {
 	HasSecret           bool `protobuf:"varint,9,opt,name=has_secret,json=hasSecret,proto3" json:"has_secret,omitempty"`
 	Enabled             bool `protobuf:"varint,10,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	AllowPrivateNetwork bool `protobuf:"varint,11,opt,name=allow_private_network,json=allowPrivateNetwork,proto3" json:"allow_private_network,omitempty"`
-	// Serves documents to the knowledge base: for everyone on an admin connection, for its user on a device one.
+	// Serves documents to Knowledge: for everyone on an admin connection, for its user on a device one.
 	KnowledgeEnabled bool `protobuf:"varint,12,opt,name=knowledge_enabled,json=knowledgeEnabled,proto3" json:"knowledge_enabled,omitempty"`
 	// Narrows the documents, in the provider's syntax.
 	KnowledgeQuery string `protobuf:"bytes,13,opt,name=knowledge_query,json=knowledgeQuery,proto3" json:"knowledge_query,omitempty"`

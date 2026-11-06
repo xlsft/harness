@@ -106,7 +106,8 @@ export class MockIssuesApi implements IssuesApi {
 
   async updateProject(id: string, patch: MetadataInit) {
     const p = this.project(id)
-    p.local = create(ProjectMetadataSchema, { ...p.local, ...patch })
+    const { ticker, name, description, logo, color } = p.local ?? create(ProjectMetadataSchema)
+    p.local = create(ProjectMetadataSchema, { ticker, name, description, logo, color, ...patch })
     const merged: MetadataInit = { ...p.provider }
     for (const [k, v] of Object.entries(p.local)) if (v && !k.startsWith('$')) (merged as Record<string, unknown>)[k] = v
     p.metadata = create(ProjectMetadataSchema, merged)

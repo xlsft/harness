@@ -58,7 +58,7 @@ export type TrackerCapabilities = Message<"harness.library.v1.TrackerCapabilitie
   comments: boolean;
 
   /**
-   * Has documents the knowledge base can read.
+   * Has documents Knowledge can read.
    *
    * @generated from field: bool knowledge = 8;
    */
@@ -164,7 +164,7 @@ export type TrackerConnection = Message<"harness.library.v1.TrackerConnection"> 
   allowPrivateNetwork: boolean;
 
   /**
-   * Serves documents to the knowledge base: for everyone on an admin connection, for its user on a device one.
+   * Serves documents to Knowledge: for everyone on an admin connection, for its user on a device one.
    *
    * @generated from field: bool knowledge_enabled = 12;
    */
