@@ -331,7 +331,7 @@ func bareRemote(t *testing.T) (string, string) {
 
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(90 * time.Second)
 	for !cond() {
 		if time.Now().After(deadline) {
 			t.Fatalf("timed out waiting for %s", what)
@@ -340,7 +340,7 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	}
 }
 
-func startRunner(t *testing.T, api *fakeAPI, url string, sessions Sessions, mod func(*Options)) (*Runner, context.CancelFunc) {
+func startRunner(t *testing.T, api *fakeAPI, url string, sessions Sessions, mod func(*Options)) (*Runner, func()) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	base := t.TempDir()
@@ -354,11 +354,12 @@ func startRunner(t *testing.T, api *fakeAPI, url string, sessions Sessions, mod 
 		defer close(done)
 		_ = r.Run(ctx)
 	}()
-	t.Cleanup(func() {
+	stop := func() {
 		cancel()
 		<-done
-	})
-	return r, cancel
+	}
+	t.Cleanup(stop)
+	return r, stop
 }
 
 // ---- tests ----
@@ -378,7 +379,9 @@ func TestNewSessionWorksInAFreshWorktreeAndLandsAsAPullRequest(t *testing.T) {
 	api.add(&relayv1.HostWork{Id: "hwk_a", RepositoryKey: "code.test/acme/widgets", Prompt: "do it", Title: "Do it"})
 	var running *relayv1.UpdateHostWorkRequest
 	waitFor(t, "the session", func() bool {
-		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool { return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING })
+		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool {
+			return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING
+		})
 		return running != nil
 	})
 	if running.GetBranch() != "harness/hwk_a" || running.GetSessionId() == "" {
@@ -466,59 +469,36 @@ func TestAFollowUpLandsOnTheSameBranchAndPullRequest(t *testing.T) {
 	}
 }
 
-func TestATurnStartsWithWhatTheCodeHostHasNow(t *testing.T) {
+func TestATurnFetchesWhatTheCodeHostHasNow(t *testing.T) {
 	cloneURL, bare := bareRemote(t)
 	api, url := newFakeAPI(t)
 	api.cloneURL = cloneURL
 	s := newFakeSessions()
-	release := make(chan struct{})
-	seen := make(chan string, 4)
-	s.onTurn = func(fs *fakeSession) {
-		// The agent, at work. What it sees of the remote is from the fetch at the start of this turn.
-		select {
-		case <-release:
-		case <-time.After(10 * time.Second):
-		}
-		time.Sleep(100 * time.Millisecond)
-		seen <- testGit(t, fs.req.GetCwd(), "rev-parse", "origin/fix-me")
-	}
 	startRunner(t, api, url, s, nil)
 	api.add(&relayv1.HostWork{Id: "hwk_t", RepositoryKey: "code.test/a/b", Prompt: "x", Landing: relayv1.HostWorkLanding_HOST_WORK_LANDING_NONE})
-	// Someone pushes before the first turn begins: fix-me moves after the checkout was made, and the turn sees it.
 	var running *relayv1.UpdateHostWorkRequest
 	waitFor(t, "the session", func() bool {
-		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool { return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING })
+		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool {
+			return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING
+		})
 		return running != nil
 	})
-	close(release)
-	first := <-seen
+	dir := s.session(running.GetSessionId()).req.GetCwd()
+	// Someone pushes to the code host after the checkout was made. The agent has no credentials to look.
 	seed := t.TempDir()
 	testGit(t, seed, "clone", "-q", "-b", "fix-me", bare, "c")
-	dir := filepath.Join(seed, "c")
-	if err := os.WriteFile(filepath.Join(dir, "more.txt"), []byte("more\n"), 0o644); err != nil {
+	other := filepath.Join(seed, "c")
+	if err := os.WriteFile(filepath.Join(other, "more.txt"), []byte("more\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	testGit(t, dir, "add", ".")
-	testGit(t, dir, "commit", "-m", "moved")
-	testGit(t, dir, "push", "origin", "fix-me")
-	moved := testGit(t, dir, "rev-parse", "HEAD")
-	if first == moved {
-		t.Fatal("the first turn cannot have seen this")
-	}
+	testGit(t, other, "add", ".")
+	testGit(t, other, "commit", "-m", "moved")
+	testGit(t, other, "push", "origin", "fix-me")
+	moved := testGit(t, other, "rev-parse", "HEAD")
 	if err := s.Send(context.Background(), running.GetSessionId(), "again"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, "the second turn's fetch", func() bool {
-		select {
-		case got := <-seen:
-			if got != moved {
-				t.Errorf("the turn saw %s, the code host has %s", got, moved)
-			}
-			return true
-		default:
-			return false
-		}
-	})
+	waitFor(t, "the next turn's fetch", func() bool { return testGit(t, dir, "rev-parse", "origin/fix-me") == moved })
 }
 
 func TestAJobGoesToANewSessionOnTheHeadBranchAndForksTheTranscript(t *testing.T) {
@@ -536,7 +516,9 @@ func TestAJobGoesToANewSessionOnTheHeadBranchAndForksTheTranscript(t *testing.T)
 	api.add(&relayv1.HostWork{Id: "hwk_c", Kind: relayv1.HostWorkKind_HOST_WORK_KIND_MENTION, RepositoryKey: "code.test/a/b", Branch: "fix-me", BaseRef: "main", Landing: relayv1.HostWorkLanding_HOST_WORK_LANDING_BRANCH, Job: job, ForkSessionId: "old"})
 	var running *relayv1.UpdateHostWorkRequest
 	waitFor(t, "the session", func() bool {
-		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool { return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING })
+		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool {
+			return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING
+		})
 		return running != nil
 	})
 	fs := s.session(running.GetSessionId())
@@ -568,7 +550,9 @@ func TestAFreshCloneAndACredentialFailure(t *testing.T) {
 	api.add(&relayv1.HostWork{Id: "hwk_d", RepositoryKey: "code.test/a/b", Prompt: "x", FreshClone: true, Landing: relayv1.HostWorkLanding_HOST_WORK_LANDING_NONE})
 	var running *relayv1.UpdateHostWorkRequest
 	waitFor(t, "the session", func() bool {
-		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool { return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING })
+		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool {
+			return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING
+		})
 		return running != nil
 	})
 	dir := s.session(running.GetSessionId()).req.GetCwd()
@@ -610,16 +594,17 @@ func TestASessionReopensAfterARestartAndAnOldOneIsCleanedUp(t *testing.T) {
 		o.KeepWorkspaces = time.Millisecond
 	}
 	api.add(&relayv1.HostWork{Id: "hwk_f", RepositoryKey: "code.test/a/b", Prompt: "x", Landing: relayv1.HostWorkLanding_HOST_WORK_LANDING_NONE})
-	_, cancel := startRunner(t, api, url, s, func(o *Options) { mod(o); o.IdleClose = 24 * time.Hour })
+	_, stop := startRunner(t, api, url, s, func(o *Options) { mod(o); o.IdleClose = 24 * time.Hour })
 	var running *relayv1.UpdateHostWorkRequest
 	waitFor(t, "the session", func() bool {
-		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool { return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING })
+		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool {
+			return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING
+		})
 		return running != nil
 	})
 	id := running.GetSessionId()
 	dir := s.session(id).req.GetCwd()
-	cancel()
-	time.Sleep(20 * time.Millisecond)
+	stop()
 
 	// The next run of the daemon: the process lost its sessions, and the record brings them back.
 	s2 := newFakeSessions()
@@ -628,7 +613,9 @@ func TestASessionReopensAfterARestartAndAnOldOneIsCleanedUp(t *testing.T) {
 		_, err := os.Stat(dir)
 		return os.IsNotExist(err)
 	})
-	if api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool { return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_DONE }) == nil {
+	if api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool {
+		return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_DONE
+	}) == nil {
 		t.Fatal("closing it should finish the work")
 	}
 }

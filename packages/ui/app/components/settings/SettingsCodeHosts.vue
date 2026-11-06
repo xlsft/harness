@@ -131,14 +131,14 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
 
 <template>
   <section
-    aria-label="Code hosts"
+    :aria-label="tt('Code hosts')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      Code hosts
+      {{ tt('Code hosts') }}
     </h2>
     <p class="set-sub">
-      What opens pull requests, reads CI and follows reviews. A server connection goes first; the CLIs on this machine cover the rest.
+      {{ tt('What opens pull requests, reads CI and follows reviews. A server connection goes first; the CLIs on this machine cover the rest.') }}
     </p>
     <p
       v-if="error"
@@ -149,13 +149,13 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
     </p>
 
     <h3 class="mt-2 mb-1 text-[12.5px] text-strong">
-      Your accounts
+      {{ tt('Your accounts') }}
     </h3>
     <p
       v-if="loaded && !accounts.length"
       class="m-0 text-[12px] text-muted"
     >
-      The server has no code host connection yet.{{ isAdmin ? ' Add one below.' : ' An admin can add one.' }}
+      {{ tt('The server has no code host connection yet.{0}', [isAdmin ? tt(' Add one below.') : tt(' An admin can add one.')]) }}
     </p>
     <div
       v-for="a in accounts"
@@ -165,9 +165,9 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       <span class="set-label">
         <span>{{ a.name || a.host }}</span>
         <span class="set-desc">
-          <template v-if="a.state === 'connected'">Connected as {{ a.login }}</template>
-          <template v-else-if="a.canWrite">Acts through the connection's access token</template>
-          <template v-else>Not connected</template>
+          <template v-if="a.state === 'connected'">{{ tt('Connected as {0}', [a.login]) }}</template>
+          <template v-else-if="a.canWrite">{{ tt('Acts through the connection\'s access token') }}</template>
+          <template v-else>{{ tt('Not connected') }}</template>
           ({{ a.host }})
         </span>
       </span>
@@ -178,7 +178,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         :disabled="busy === a.id"
         @click="disconnect(a)"
       >
-        Disconnect
+        {{ tt('Disconnect') }}
       </HBtn>
       <HBtn
         v-else
@@ -186,12 +186,12 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         :disabled="busy === a.id"
         @click="connect(a)"
       >
-        {{ busy === a.id ? 'Waiting for the browser' : 'Connect' }}
+        {{ busy === a.id ? tt('Waiting for the browser') : tt('Connect') }}
       </HBtn>
     </div>
 
     <h3 class="mt-4 mb-1 text-[12.5px] text-strong">
-      On this machine
+      {{ tt('On this machine') }}
     </h3>
     <div
       v-for="c in clis"
@@ -202,8 +202,8 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         <span>{{ c.name }}</span>
         <span class="set-desc">
           <template v-if="c.problem">{{ c.problem }}</template>
-          <template v-else-if="!c.installed">Not installed</template>
-          <template v-else-if="!c.hosts.length">Installed, not signed in. Run <code>{{ c.loginCommand }}</code></template>
+          <template v-else-if="!c.installed">{{ tt('Not installed') }}</template>
+          <template v-else-if="!c.hosts.length">{{ tt('Installed, not signed in. Run') }} <code>{{ c.loginCommand }}</code></template>
           <template v-else>{{ c.hosts.map(h => `${h.login} on ${h.host}`).join(', ') }}</template>
         </span>
       </span>
@@ -211,10 +211,10 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
 
     <template v-if="isAdmin">
       <h3 class="mt-4 mb-1 text-[12.5px] text-strong">
-        Server connections
+        {{ tt('Server connections') }}
       </h3>
       <p class="m-0 mb-2 text-[12px] text-muted">
-        Everyone on this server can use these. Keys are stored on the server and never shown again.
+        {{ tt('Everyone on this server can use these. Keys are stored on the server and never shown again.') }}
       </p>
       <div
         v-for="c in connections"
@@ -224,7 +224,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         <span class="set-label">
           <span>{{ c.name || c.baseUrl }}</span>
           <span class="set-desc">
-            {{ c.baseUrl }}: {{ c.healthy ? 'healthy' : (c.lastError || 'not healthy') }}; webhooks {{ c.webhooksOk ? 'arriving' : 'not seen lately' }}
+            {{ tt('{0}: {1}; webhooks {2}', [c.baseUrl, c.healthy ? 'healthy' : (c.lastError || 'not healthy'), c.webhooksOk ? 'arriving' : 'not seen lately']) }}
           </span>
         </span>
         <HBtn
@@ -232,15 +232,15 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
           size="sm"
           @click="openExternal(c.installUrl)"
         >
-          Install
+          {{ tt('Install') }}
         </HBtn>
         <HBtn
           size="sm"
           tone="danger"
-          :aria-label="`Remove ${c.name || c.baseUrl}`"
+          :aria-label="tt('Remove {0}', [c.name || c.baseUrl])"
           @click="removeConnection(c)"
         >
-          Remove
+          {{ tt('Remove') }}
         </HBtn>
       </div>
       <div class="mt-2 flex gap-2">
@@ -248,26 +248,26 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
           size="sm"
           @click="github.open = !github.open"
         >
-          Add GitHub App
+          {{ tt('Add GitHub App') }}
         </HBtn>
         <HBtn
           size="sm"
           @click="gitlab.open = !gitlab.open"
         >
-          Add GitLab
+          {{ tt('Add GitLab') }}
         </HBtn>
         <HBtn
           size="sm"
           tone="muted"
           @click="refresh"
         >
-          Refresh
+          {{ tt('Refresh') }}
         </HBtn>
       </div>
 
       <form
         v-if="github.open"
-        aria-label="Register a GitHub App"
+        :aria-label="tt('Register a GitHub App')"
         class="mt-3 flex flex-col gap-2"
         @submit.prevent="registerGitHubApp"
       >
@@ -279,18 +279,18 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         >
         <input
           v-model="github.organization"
-          aria-label="Organization"
-          placeholder="Organization (empty: your own account)"
+          :aria-label="tt('Organization')"
+          :placeholder="tt('Organization (empty: your own account)')"
           :class="inputClass"
         >
         <input
           v-model="github.appName"
-          aria-label="App name"
-          placeholder="App name"
+          :aria-label="tt('App name')"
+          :placeholder="tt('App name')"
           :class="inputClass"
         >
         <p class="m-0 text-[12px] text-muted">
-          GitHub opens in a new tab to create the app; then install it, and Refresh here.
+          {{ tt('GitHub opens in a new tab to create the app; then install it, and Refresh here.') }}
         </p>
         <HBtn
           type="submit"
@@ -298,20 +298,20 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
           size="md"
           class="self-start"
         >
-          Register on GitHub
+          {{ tt('Register on GitHub') }}
         </HBtn>
       </form>
 
       <form
         v-if="gitlab.open"
-        aria-label="Connect GitLab"
+        :aria-label="tt('Connect GitLab')"
         class="mt-3 flex flex-col gap-2"
         @submit.prevent="saveGitLab"
       >
         <input
           v-model="gitlab.name"
-          aria-label="Name"
-          placeholder="Name"
+          :aria-label="tt('Name')"
+          :placeholder="tt('Name')"
           :class="inputClass"
         >
         <input
@@ -322,40 +322,40 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         >
         <input
           v-model="gitlab.clientId"
-          aria-label="OAuth application id"
-          placeholder="OAuth application id"
+          :aria-label="tt('OAuth application id')"
+          :placeholder="tt('OAuth application id')"
           autocomplete="off"
           :class="inputClass"
         >
         <input
           v-model="gitlab.clientSecret"
-          aria-label="OAuth application secret"
+          :aria-label="tt('OAuth application secret')"
           type="password"
-          placeholder="OAuth application secret"
+          :placeholder="tt('OAuth application secret')"
           autocomplete="off"
           :class="inputClass"
         >
         <input
           v-model="gitlab.accessToken"
-          aria-label="Group or project access token"
+          :aria-label="tt('Group or project access token')"
           type="password"
-          placeholder="Group or project access token (optional)"
+          :placeholder="tt('Group or project access token (optional)')"
           autocomplete="off"
           :class="inputClass"
         >
         <input
           v-model="gitlab.webhookSecret"
-          aria-label="Webhook secret"
+          :aria-label="tt('Webhook secret')"
           type="password"
-          placeholder="Webhook secret (optional)"
+          :placeholder="tt('Webhook secret (optional)')"
           autocomplete="off"
           :class="inputClass"
         >
         <div class="flex items-center gap-2 text-[12px] text-muted">
           <HToggle
             v-model="gitlab.allowPrivateNetwork"
-            label="On a private network"
-          /> On a private network
+            :label="tt('On a private network')"
+          /> {{ tt('On a private network') }}
         </div>
         <HBtn
           type="submit"
@@ -364,7 +364,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
           class="self-start"
           :disabled="!gitlab.baseUrl.trim()"
         >
-          Connect
+          {{ tt('Connect') }}
         </HBtn>
       </form>
     </template>

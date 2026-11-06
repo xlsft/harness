@@ -38,18 +38,18 @@ const input = 'h-8 min-w-0 flex-1 border border-accented bg-default px-2 text-[1
       <input
         :value="m.group"
         :disabled="readonly"
-        :aria-label="`Group of rule ${i + 1}`"
-        :placeholder="placeholder ?? 'Group'"
+        :aria-label="tt('Group of rule {0}', [i + 1])"
+        :placeholder="placeholder ?? tt('Group')"
         spellcheck="false"
         autocomplete="off"
         :class="input"
         @input="set(i, { group: ($event.target as HTMLInputElement).value })"
       >
-      <span class="text-[11.5px] text-muted">gets</span>
+      <span class="text-[11.5px] text-muted">{{ tt('gets') }}</span>
       <HSelect
         v-if="!readonly"
         :model-value="m.role"
-        :aria-label="`Role of rule ${i + 1}`"
+        :aria-label="tt('Role of rule {0}', [i + 1])"
         :options="ROLES"
         class="w-[110px]"
         @update:model-value="set(i, { role: $event as UserRole })"
@@ -63,7 +63,7 @@ const input = 'h-8 min-w-0 flex-1 border border-accented bg-default px-2 text-[1
           icon="up"
           :size="26"
           :icon-size="12"
-          label="Move up"
+          :label="tt('Move up')"
           :disabled="i === 0"
           @click="move(i, -1)"
         />
@@ -71,7 +71,7 @@ const input = 'h-8 min-w-0 flex-1 border border-accented bg-default px-2 text-[1
           icon="down"
           :size="26"
           :icon-size="12"
-          label="Move down"
+          :label="tt('Move down')"
           :disabled="i === modelValue.length - 1"
           @click="move(i, 1)"
         />
@@ -79,7 +79,7 @@ const input = 'h-8 min-w-0 flex-1 border border-accented bg-default px-2 text-[1
           icon="x"
           :size="26"
           :icon-size="12"
-          label="Remove rule"
+          :label="tt('Remove rule')"
           @click="remove(i)"
         />
       </template>
@@ -88,7 +88,7 @@ const input = 'h-8 min-w-0 flex-1 border border-accented bg-default px-2 text-[1
       v-if="readonly && !modelValue.length"
       class="m-0 text-[12px] text-muted"
     >
-      No rules: roles are managed in Users.
+      {{ tt('No rules: roles are managed in Users.') }}
     </p>
     <div v-if="!readonly">
       <HBtn
@@ -98,7 +98,7 @@ const input = 'h-8 min-w-0 flex-1 border border-accented bg-default px-2 text-[1
         <HIcon
           name="plus"
           :size="12"
-        />Add rule
+        />{{ tt('Add rule') }}
       </HBtn>
     </div>
   </div>

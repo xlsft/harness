@@ -36,13 +36,14 @@ import (
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/mcp"
-	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/memory"
+	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/preview"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/skills"
 	"github.com/xlsft/harness/packages/client/speech"
+	"github.com/xlsft/harness/packages/client/sshhost"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
@@ -152,6 +153,12 @@ type Server struct {
 	// terms are the client's terminals (terminals.go); termOnce creates the manager.
 	termOnce sync.Once
 	terms    *terminal.Manager
+	// SSHClient runs the user's ssh for SSH hosts (sshhosts.go); nil: the default, under HARNESS_HOME/ssh. SSHBinaries finds a
+	// harness-client to upload to a host (nil: this very binary, for a host of the same platform).
+	SSHClient   *sshhost.Client
+	SSHBinaries sshhost.Binaries
+	sshOnce     sync.Once
+	ssh         *sshHostService
 	// Browsers runs the sessions' browsers (browsers.go); nil: created on first use under HARNESS_HOME/browser.
 	Browsers    *browser.Manager
 	previewOnce sync.Once
@@ -265,6 +272,9 @@ func (s *Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	path, h := s.Handler()
 	mux.Handle(path, h)
+	mux.Handle(agentv1connect.NewRealBrowserServiceHandler(&realBrowserService{s: s}))
+	s.sshOnce.Do(func() { s.ssh = &sshHostService{s: s} })
+	mux.Handle(agentv1connect.NewSshHostServiceHandler(s.ssh))
 	pluginsPath, pluginsHandler := agentv1connect.NewPluginServiceHandler(s)
 	mux.Handle(pluginsPath, pluginsHandler)
 	s.registerLibrary(mux)
@@ -342,6 +352,8 @@ func modelInfo(m llm.Model) *agentv1.ModelInfo {
 		Thinking:      m.Capabilities.Thinking,
 		Images:        m.Capabilities.Images,
 		Local:         localmodels.IsLocal(m.ID),
+		SpeedTiers:    m.Capabilities.SpeedTiers,
+		CacheTtls:     m.Capabilities.CacheTTLs,
 	}
 	for _, e := range m.Capabilities.Effort {
 		if pe := pbconv.Effort(e); pe != llmv1.Effort_EFFORT_UNSPECIFIED {

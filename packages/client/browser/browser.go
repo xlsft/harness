@@ -59,6 +59,15 @@ type Browser struct {
 	sc        screencast
 	lastFrame []byte
 	stderr    *tailBuffer
+
+	// The user's real Chrome instead of a profile of this session's own (attach.go).
+	attached     bool
+	sessionSites map[string]bool
+	pendingSites map[string]*pendingSite
+	nextSiteReq  int
+	// A recording running, and the last one saved (recording.go).
+	rec           *recorder
+	lastRecording string
 }
 
 type screencast struct {
@@ -125,7 +134,7 @@ type NetworkEntry struct {
 
 func newBrowser(m *Manager, sessionID string) *Browser {
 	return &Browser{m: m, sessionID: sessionID, viewport: DesktopViewport, viewers: map[*viewer]struct{}{},
-		changed: make(chan struct{}), visited: map[string]bool{}, sc: screencast{quality: 70}}
+		changed: make(chan struct{}), visited: map[string]bool{}, sc: screencast{quality: 70}, sessionSites: map[string]bool{}}
 }
 
 // SetSites sets the source of the sites the agent may use without asking (the permission engine's grants).
@@ -266,6 +275,12 @@ func (b *Browser) launchArgs(profile string) []string {
 }
 
 func (b *Browser) launch(ctx context.Context) error {
+	b.mu.Lock()
+	attached := b.attached
+	b.mu.Unlock()
+	if attached {
+		return b.attach(ctx)
+	}
 	exe, err := b.m.executable()
 	if err != nil {
 		return err
@@ -495,16 +510,21 @@ func (b *Browser) stopWith(c *conn, reason string, graceful bool) {
 		b.mu.Unlock()
 		return
 	}
-	var restore []string
+	var restore, ownTargets []string
 	for _, id := range b.order {
-		if t := b.tabs[id]; t != nil && restorable(t.url) {
-			restore = append(restore, t.url)
+		if t := b.tabs[id]; t != nil {
+			ownTargets = append(ownTargets, t.target)
+			if restorable(t.url) {
+				restore = append(restore, t.url)
+			}
 		}
 	}
-	if !b.closed {
+	attached := b.attached
+	if !b.closed && !attached {
 		b.restore = restore
 	}
 	cmd, exited := b.cmd, b.exited
+	b.rec = nil
 	b.conn, b.cmd, b.running = nil, nil, false
 	b.tabs, b.order, b.bySession, b.byTarget, b.active = map[string]*tab{}, nil, map[string]*tab{}, map[string]*tab{}, ""
 	b.sc.tab, b.sc.session, b.lastFrame = "", "", nil
@@ -515,6 +535,14 @@ func (b *Browser) stopWith(c *conn, reason string, graceful bool) {
 	b.mu.Unlock()
 	for v := range viewers {
 		v.close(reason)
+	}
+	if attached {
+		// The user's Chrome stays up: only this client's tabs go, and only if the connection still is there.
+		if graceful {
+			b.closeAttachedTabs(c, ownTargets)
+		}
+		c.Close()
+		return
 	}
 	if graceful {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -593,6 +621,16 @@ func (b *Browser) onBrowserEvent(c *conn, ev event) {
 		}
 		b.notifyLocked(true)
 		go b.setupTab(c, t)
+	case "Target.targetCreated":
+		if !b.attached {
+			return
+		}
+		var p struct {
+			TargetInfo targetInfo `json:"targetInfo"`
+		}
+		if json.Unmarshal(ev.Params, &p) == nil {
+			b.onAttachedTargetCreated(c, p.TargetInfo)
+		}
 	case "Target.detachedFromTarget":
 		var p struct {
 			SessionID string `json:"sessionId"`
@@ -651,7 +689,15 @@ func (b *Browser) removeTabLocked(c *conn, t *tab) {
 	b.notifyLocked(true)
 	if len(b.order) == 0 && b.running && !b.closed {
 		// A browser always has a tab: closing the last one opens a blank one.
-		go c.Call(context.Background(), "", "Target.createTarget", map[string]any{"url": "about:blank"}, nil)
+		if b.attached {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				_, _ = b.openAttachedTab(ctx, c, "about:blank", true)
+			}()
+		} else {
+			go c.Call(context.Background(), "", "Target.createTarget", map[string]any{"url": "about:blank"}, nil)
+		}
 	}
 	go b.syncScreencast()
 }
@@ -661,8 +707,17 @@ func (b *Browser) setupTab(c *conn, t *tab) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	b.mu.Lock()
-	vp, ua := b.viewport, b.userAgent
+	vp, ua, attached := b.viewport, b.userAgent, b.attached
 	b.mu.Unlock()
+	if attached {
+		// Before anything else: a tab of the user's Chrome reaches no site without a grant.
+		patterns := []map[string]any{{"resourceType": "Document", "requestStage": "Request"}}
+		if err := c.Call(ctx, t.session, "Fetch.enable", map[string]any{"patterns": patterns}, nil); err != nil {
+			b.m.log().Warn("browser: could not guard a tab of Chrome; closing it", "err", err)
+			_ = c.Call(ctx, "", "Target.closeTarget", map[string]any{"targetId": t.target}, nil)
+			return
+		}
+	}
 	for _, step := range []struct {
 		method string
 		params any
@@ -677,8 +732,14 @@ func (b *Browser) setupTab(c *conn, t *tab) {
 			b.m.log().Debug("browser: tab setup", "method", step.method, "err", err)
 		}
 	}
-	_ = applyViewport(ctx, c, t.session, vp, ua)
+	if !attached {
+		_ = applyViewport(ctx, c, t.session, vp, ua)
+	}
 	_ = c.Call(ctx, t.session, "Runtime.runIfWaitingForDebugger", nil, nil)
+	if attached && !b.siteAllowed(b.TabURL(t.id)) {
+		// A popup can start loading before its guard is up.
+		_ = c.Call(ctx, t.session, "Page.navigate", map[string]any{"url": "about:blank"}, nil)
+	}
 	b.mu.Lock()
 	t.ready = true
 	b.notifyLocked(true)
@@ -768,6 +829,8 @@ func epochMillis(ms float64) time.Time {
 // onTabEvent handles a tab's events. Caller holds b.mu.
 func (b *Browser) onTabEvent(c *conn, t *tab, ev event) {
 	switch ev.Method {
+	case "Fetch.requestPaused":
+		go b.onDocumentPaused(c, t, ev.Params)
 	case "Page.frameNavigated":
 		var p struct {
 			Frame struct {
@@ -1057,7 +1120,8 @@ func (b *Browser) State() *agentv1.BrowserState {
 }
 
 func (b *Browser) stateLocked() *agentv1.BrowserState {
-	s := &agentv1.BrowserState{SessionId: b.sessionID, Running: b.running, ActiveTabId: b.active, Viewport: b.viewport.proto(), TakenOver: b.takenOver}
+	s := &agentv1.BrowserState{SessionId: b.sessionID, Running: b.running, ActiveTabId: b.active, Viewport: b.viewport.proto(), TakenOver: b.takenOver,
+		RealChrome: b.attached, Recording: b.rec != nil, LastRecording: b.lastRecording}
 	for _, id := range b.order {
 		t := b.tabs[id]
 		s.Tabs = append(s.Tabs, &agentv1.BrowserTab{TabId: t.id, Url: t.url, Title: t.title, Loading: t.loading, FaviconUrl: t.favicon,
@@ -1080,7 +1144,7 @@ func (b *Browser) syncScreencast() {
 	b.mu.Lock()
 	c := b.conn
 	want, wantSess := "", ""
-	if b.running && len(b.viewers) > 0 {
+	if b.running && (len(b.viewers) > 0 || b.rec != nil) {
 		if t := b.tabs[b.active]; t != nil && t.ready {
 			want, wantSess = t.id, t.session
 		}
@@ -1157,6 +1221,9 @@ func (b *Browser) onFrameLocked(c *conn, t *tab, params json.RawMessage) {
 	img, err := base64.StdEncoding.DecodeString(p.Data)
 	if err != nil {
 		return
+	}
+	if b.rec != nil {
+		b.rec.offer(img, time.Now())
 	}
 	scale := 1.0
 	if cfg, err := jpeg.DecodeConfig(bytes.NewReader(img)); err == nil && p.Metadata.DeviceWidth > 0 {

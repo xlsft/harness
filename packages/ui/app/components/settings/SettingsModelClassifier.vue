@@ -28,8 +28,8 @@ const myClassifier = computed(() => {
   return m.choice === 'none' ? NONE : m.providerId
 })
 const classifierOptions = computed(() => [
-  { value: '', label: `Follow server default (${classifierLabel(my.value?.defaultProviderId ?? '')})` },
-  { value: NONE, label: 'None: rules, then the model' },
+  { value: '', label: tt('Follow server default ({0})', [classifierLabel(my.value?.defaultProviderId ?? '')]) },
+  { value: NONE, label: tt('None: rules, then the model') },
   ...classifiers.value.map(p => ({ value: p.id, label: p.name }))
 ])
 function setMyClassifier(v: string) {
@@ -51,8 +51,8 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
         :size="15"
       /></span>
       <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span class="text-[12.5px] text-strong">Model as classifier</span>
-        <span class="truncate text-[11.5px] text-muted">Decides when the classifier is unsure.</span>
+        <span class="text-[12.5px] text-strong">{{ tt('Model as classifier') }}</span>
+        <span class="truncate text-[11.5px] text-muted">{{ tt('Decides when the classifier is unsure.') }}</span>
       </span>
       <HBtn
         size="sm"
@@ -60,7 +60,7 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
         :disabled="!my"
         @click="open = !open"
       >
-        Configure
+        {{ tt('Configure') }}
       </HBtn>
     </div>
 
@@ -68,20 +68,20 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
       v-if="open && my"
       class="flex flex-col gap-3 border-t border-default py-2.5 pr-3 pl-[52px] max-sm:pl-3"
       role="group"
-      aria-label="Classifier settings"
+      :aria-label="tt('Classifier settings')"
     >
       <!-- The model of the model classifier -->
       <div class="flex flex-col gap-1.5">
-        <span class="text-[12px] text-strong">Model</span>
+        <span class="text-[12px] text-strong">{{ tt('Model') }}</span>
         <div class="flex items-center gap-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-1">
-          <span :class="label">Server default</span>
+          <span :class="label">{{ tt('Server default') }}</span>
           <div
             v-if="canManageGlobal && state.settings.value"
             class="w-[260px] max-sm:w-full"
           >
             <HSelect
               :model-value="state.settings.value.llmModel"
-              aria-label="Server default classifier model"
+              :aria-label="tt('Server default classifier model')"
               :options="[{ value: '', label: SLOT_LABEL }, ...models]"
               @update:model-value="state.setDefaultModel"
             />
@@ -93,11 +93,11 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
           >{{ modelLabel(defaultModel) }}</span>
         </div>
         <div class="flex items-center gap-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-1">
-          <span :class="label">For me</span>
+          <span :class="label">{{ tt('For me') }}</span>
           <div class="w-[260px] max-sm:w-full">
             <HSelect
               :model-value="my.mine.llmModel"
-              aria-label="My classifier model"
+              :aria-label="tt('My classifier model')"
               :options="[{ value: '', label: `Follow server default (${modelLabel(defaultModel)})` }, ...models]"
               @update:model-value="state.setMine({ llmModel: $event })"
             />
@@ -107,13 +107,13 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
 
       <!-- The caller's classifier, including none (the switches on the classifiers above set the same) -->
       <div class="flex flex-col gap-1.5">
-        <span class="text-[12px] text-strong">Classifier</span>
+        <span class="text-[12px] text-strong">{{ tt('Classifier') }}</span>
         <div class="flex items-center gap-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-1">
-          <span :class="label">For me</span>
+          <span :class="label">{{ tt('For me') }}</span>
           <div class="w-[260px] max-sm:w-full">
             <HSelect
               :model-value="myClassifier"
-              aria-label="My classifier"
+              :aria-label="tt('My classifier')"
               :options="classifierOptions"
               @update:model-value="setMyClassifier"
             />

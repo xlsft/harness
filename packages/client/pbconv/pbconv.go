@@ -202,7 +202,7 @@ func toolDefs(in []llm.ToolDef) []*llmv1.Tool {
 func StreamRequest(r *llm.Request) *llmv1.StreamMessageRequest {
 	out := &llmv1.StreamMessageRequest{
 		Model: r.Model, MaxTokens: int32(r.MaxTokens), System: system(r.System),
-		Messages: Messages(r.Messages), Tools: toolDefs(r.Tools), Effort: Effort(r.Effort),
+		Messages: Messages(r.Messages), Tools: toolDefs(r.Tools), Effort: Effort(r.Effort), Speed: r.Speed, CacheTtl: r.CacheTTL,
 	}
 	if r.ToolChoice != nil {
 		modes := map[string]llmv1.ToolChoice_Mode{"auto": llmv1.ToolChoice_MODE_AUTO, "any": llmv1.ToolChoice_MODE_ANY, "tool": llmv1.ToolChoice_MODE_TOOL, "none": llmv1.ToolChoice_MODE_NONE}
@@ -229,7 +229,7 @@ func CountRequest(r *llm.Request) *llmv1.CountTokensRequest {
 
 // FromStreamRequest converts a protobuf request (used by fakes and tests).
 func FromStreamRequest(r *llmv1.StreamMessageRequest) *llm.Request {
-	out := &llm.Request{Model: r.GetModel(), MaxTokens: int(r.GetMaxTokens()), Messages: FromMessages(r.GetMessages()), Effort: FromEffort(r.GetEffort()), Stream: true}
+	out := &llm.Request{Model: r.GetModel(), MaxTokens: int(r.GetMaxTokens()), Messages: FromMessages(r.GetMessages()), Effort: FromEffort(r.GetEffort()), Speed: r.GetSpeed(), CacheTTL: r.GetCacheTtl(), Stream: true}
 	for _, s := range r.GetSystem() {
 		out.System = append(out.System, llm.SystemBlock{Type: "text", Text: s.GetText(), Cache: s.GetCache()})
 	}
@@ -255,6 +255,8 @@ func FromModel(m *llmv1.Model) llm.Model {
 			out.Capabilities.Effort = append(out.Capabilities.Effort, FromEffort(e))
 		}
 		out.Capabilities.DefaultEffort = FromEffort(c.GetDefaultEffort())
+		out.Capabilities.SpeedTiers = c.GetSpeedTiers()
+		out.Capabilities.CacheTTLs = c.GetCacheTtls()
 	}
 	if p := m.Pricing; p != nil {
 		out.Pricing = &struct {

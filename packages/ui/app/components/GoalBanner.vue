@@ -24,17 +24,17 @@ const hostWork = computed(() => props.session.hostWork)
     class="flex items-center gap-2 border border-default bg-surface px-3 py-1.5 text-[12px] text-muted"
   >
     <template v-if="hostWork.error">
-      <span class="text-bad">The host could not land this work: {{ hostWork.error }}</span>
+      <span class="text-bad">{{ tt('The host could not land this work: {0}', [hostWork.error]) }}</span>
     </template>
     <template v-else>
-      <span class="min-w-0 truncate">Pushed to {{ hostWork.branch }}</span>
+      <span class="min-w-0 truncate">{{ tt('Pushed to {0}', [hostWork.branch]) }}</span>
       <a
         v-if="hostWork.pullRequestUrl"
         :href="hostWork.pullRequestUrl"
         target="_blank"
         rel="noopener"
         class="text-accent"
-      >Pull request</a>
+      >{{ tt('Pull request') }}</a>
     </template>
   </div>
   <div
@@ -44,7 +44,7 @@ const hostWork = computed(() => props.session.hostWork)
     class="flex items-start gap-2.5 border border-default bg-surface px-3 py-2.5 text-[12.5px]"
   >
     <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-      <span class="text-strong">{{ goalStateText(goal) }} · turn {{ goal.turns }} of {{ goal.maxTurns }}</span>
+      <span class="text-strong">{{ tt('{0} · turn {1} of {2}', [goalStateText(goal), goal.turns, goal.maxTurns]) }}</span>
       <span class="truncate text-toned">{{ goal.condition }}</span>
       <span
         v-if="goal.reason"
@@ -55,20 +55,20 @@ const hostWork = computed(() => props.session.hostWork)
       v-if="resumable"
       @click="send('/goal resume')"
     >
-      Resume
+      {{ tt('Resume') }}
     </HBtn>
     <HBtn
       v-if="running || resumable"
       @click="send('/goal stop')"
     >
-      Stop
+      {{ tt('Stop') }}
     </HBtn>
     <HBtn
       v-if="!running && !resumable"
       variant="ghost"
       @click="dismissed = key"
     >
-      Dismiss
+      {{ tt('Dismiss') }}
     </HBtn>
   </div>
 </template>

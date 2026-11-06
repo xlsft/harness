@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -96,8 +97,10 @@ func startHarnessSrv(t *testing.T, respond fg.Responder, gwmod func(*fg.Server),
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	go srv.ServeUnix(ctx, socket)
-	for i := 0; i < 200; i++ {
-		if _, err := os.Stat(socket); err == nil {
+	// Connecting, not the file existing: a unix socket is bound a moment before it listens.
+	for i := 0; i < 500; i++ {
+		if c, err := net.Dial("unix", socket); err == nil {
+			c.Close()
 			break
 		}
 		time.Sleep(10 * time.Millisecond)

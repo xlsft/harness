@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	fg "github.com/xlsft/harness/packages/client/internal/fakegateway"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
+	fg "github.com/xlsft/harness/packages/client/internal/fakegateway"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/schedule"
 	"github.com/xlsft/harness/packages/client/server"

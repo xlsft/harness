@@ -82,7 +82,7 @@ const statusText = (s: PreviewServerVM) => (s.status === 'exited' ? `exited ${s.
 <template>
   <div
     v-if="shown.length"
-    aria-label="Dev servers"
+    :aria-label="tt('Dev servers')"
     class="shrink-0 border-b border-line bg-surface text-[12px] text-muted"
   >
     <div
@@ -107,14 +107,14 @@ const statusText = (s: PreviewServerVM) => (s.status === 'exited' ? `exited ${s.
         :aria-pressed="logsOf === s.id"
         @click="toggleLogs(s.id)"
       >
-        Logs
+        {{ tt('Logs') }}
       </HBtn>
       <HBtn
         v-if="s.status === 'running' || s.status === 'starting'"
         tone="danger"
         @click="stop(s)"
       >
-        Stop
+        {{ tt('Stop') }}
       </HBtn>
     </div>
     <div
@@ -126,7 +126,7 @@ const statusText = (s: PreviewServerVM) => (s.status === 'exited' ? `exited ${s.
           v-model="errorsOnly"
           type="checkbox"
         >
-        Errors only
+        {{ tt('Errors only') }}
       </label>
       <p
         v-if="failure"

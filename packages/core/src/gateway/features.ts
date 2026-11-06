@@ -1,5 +1,6 @@
 /** Request validation/normalization and per-attempt feature selection. */
 import { ApiError } from "../lib/errors.ts";
+import type { CacheTtl, SpeedTier } from "../services/model-tiers.ts";
 import { downgradeEffort, type Effort, type ModelEntry } from "../services/models.ts";
 import type { CanonicalRequest, ContentBlock, Message, TextBlock } from "./types.ts";
 
@@ -14,6 +15,8 @@ export const NEGOTIABLE_FEATURES = [
   "parallel_tool_calls",
   "reasoning",
   "include",
+  "speed",
+  "cache_ttl",
 ] as const;
 export type FeatureName = (typeof NEGOTIABLE_FEATURES)[number];
 
@@ -36,6 +39,10 @@ export interface Features {
   include: boolean;
   images: boolean;
   pdf: boolean;
+  /** The speed tier to ask for ("fast", "flex"); undefined: what the provider does by default. */
+  speed?: SpeedTier;
+  /** The prompt cache's lifetime to ask for; undefined: the provider's default. */
+  cacheTtl?: CacheTtl;
 }
 
 export function computeFeatures(req: CanonicalRequest, model: ModelEntry, disabled: Set<string>): Features {
@@ -52,6 +59,8 @@ export function computeFeatures(req: CanonicalRequest, model: ModelEntry, disabl
     include: !disabled.has("include"),
     images: caps.images,
     pdf: caps.pdf,
+    speed: req.speed && req.speed !== "standard" && !disabled.has("speed") && model.speedTiers?.includes(req.speed as SpeedTier) ? (req.speed as SpeedTier) : undefined,
+    cacheTtl: req.cache_ttl && caps.prompt_cache && !disabled.has("cache_ttl") && model.cacheTtls?.includes(req.cache_ttl as CacheTtl) ? (req.cache_ttl as CacheTtl) : undefined,
   };
 }
 

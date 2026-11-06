@@ -17,6 +17,7 @@ import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/pr_create.proto";
 import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/project_import.proto";
+import "harness/agent/v1/real_browser.proto";
 import "harness/agent/v1/sandbox.proto";
 import "harness/agent/v1/schedules.proto";
 import "harness/agent/v1/session_diff.proto";
@@ -502,6 +503,9 @@ message ModelInfo {
   string display_id = 12;
   // The level recommended for a new session, one of `efforts`; UNSPECIFIED: none.
   harness.llm.v1.Effort default_effort = 13;
+  // Speed tiers and prompt cache lifetimes the provider has for it (harness.llm.v1.Capabilities). Empty: no choice.
+  repeated string speed_tiers = 14;
+  repeated string cache_ttls = 15;
 }
 
 message SessionInfo {
@@ -865,6 +869,9 @@ message SessionEvent {
     // Slash commands and skills (slash_commands.proto); numbered apart like the shell events.
     SlashCommandResult slash_command_result = 110;
     SkillInvoked skill_invoked = 111;
+    // The session's browser in the user's Chrome wants a site (real_browser.proto).
+    BrowserSiteRequested browser_site_requested = 180;
+    BrowserSiteResolved browser_site_resolved = 181;
     // Goal mode and the task graph (teamwork.proto); numbered apart like the shell events.
     GoalUpdated goal_updated = 140;
     TaskGraphUpdated task_graph_updated = 141;
@@ -1573,6 +1580,20 @@ message UserPreferences {
   // What the organization's managed policy imposes on this user; read only (managed_policy.proto). Nothing in
   // UpdateUserPreferencesRequest can change it.
   ManagedPolicyView managed_policy = 16;
+  // How requests use the models (settings keys speedTier, cacheTtl, advisorModel).
+  ModelTuning model_tuning = 26;
+}
+
+// Choices about how a user's requests run. Sessions opened from then on follow them.
+message ModelTuning {
+  // Speed tier asked for: "standard", "fast" or "flex". Empty: the provider's default. A model without the tier
+  // (harness.llm.v1.Capabilities.speed_tiers) runs as usual. Changing it mid-conversation also starts the prompt cache anew.
+  string speed_tier = 1;
+  // Prompt cache lifetime asked for: "5m", "1h" or "24h". Empty: the provider's default. Dropped where the model has no such
+  // lifetime (Capabilities.cache_ttls). Longer lifetimes can cost more to write and pay off with pauses between turns.
+  string cache_ttl = 2;
+  // The model behind the Advisor tool. Empty: sessions have no Advisor tool.
+  string advisor_model = 3;
 }
 
 // One switch of the Customize screen.
@@ -1606,6 +1627,8 @@ message UpdateUserPreferencesRequest {
   optional bool hooks_enabled = 10;
   // Flips one name on UserPreferences.disabled_skills, keeping the others. INVALID_ARGUMENT for an empty name.
   optional SkillSwitch skill_switch = 12;
+  // Replaces all three choices. INVALID_ARGUMENT for an unknown tier or lifetime.
+  optional ModelTuning model_tuning = 26;
   optional bool auto_memory_enabled = 24;
   optional bool schedules_enabled = 18;
   optional int32 goal_max_turns = 19;

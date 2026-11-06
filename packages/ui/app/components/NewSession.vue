@@ -181,7 +181,7 @@ const commands = useSlashMenu(() => engine.value ? null : { cwd: cwd.value }, ()
 const suggest = computed(() => {
   const folder = cwd.value
   return async (q: string): Promise<MenuOption[]> => {
-    if (!folder) return [{ key: 'choose-folder', label: 'Choose folder…', detail: 'to mention what is in it', icon: 'folder', iconCls: 'text-muted', run: browse }]
+    if (!folder) return [{ key: 'choose-folder', label: tt('Choose folder…'), detail: 'to mention what is in it', icon: 'folder', iconCls: 'text-muted', run: browse }]
     const { dir, sub, match } = folderLookup(folder, q)
     try {
       const { entries } = await store.transport!.listDirectory(dir)
@@ -329,7 +329,7 @@ async function start() {
     // This screen is gone by now: the text goes back into the session's composer.
     await store.send(id, msg, attachments).catch((err) => {
       store.drafts[id] = msg
-      toast.add({ title: 'Could not send the first message', description: `${err instanceof Error ? err.message : String(err)}${attachments.length ? ' Attach the files again.' : ''}`, color: 'error' })
+      toast.add({ title: tt('Could not send the first message'), description: `${err instanceof Error ? err.message : String(err)}${attachments.length ? ' Attach the files again.' : ''}`, color: 'error' })
     })
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
@@ -352,7 +352,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
         data-tauri-drag-region
         class="m-0 flex-1 truncate text-[13.5px] font-semibold text-strong"
       >
-        {{ forkOf ? 'Continue here' : 'New session' }}
+        {{ forkOf ? tt('Continue here') : tt('New session') }}
       </h1>
     </header>
 
@@ -367,14 +367,14 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           class="shrink-0 text-muted"
         />
         <span class="min-w-0 flex-1 truncate text-strong">{{ forkOf.meta.title }}</span>
-        <span class="shrink-0 text-[11px] text-muted">from {{ forkOf.meta.deviceName || 'another machine' }}</span>
+        <span class="shrink-0 text-[11px] text-muted">{{ tt('from {0}', [forkOf.meta.deviceName || 'another machine']) }}</span>
       </div>
       <div
         v-if="host"
         class="flex w-full max-w-[440px] flex-col gap-2 border border-accented bg-surface p-3 text-[12.5px]"
       >
         <label class="flex flex-col gap-1 text-muted">
-          Repository on {{ hostName }}
+          {{ tt('Repository on {0}', [hostName]) }}
           <input
             v-model="repository"
             placeholder="github.com/owner/repository"
@@ -382,7 +382,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           >
         </label>
         <label class="flex flex-col gap-1 text-muted">
-          Starting from
+          {{ tt('Starting from') }}
           <input
             v-model="hostBase"
             placeholder="the default branch"
@@ -390,30 +390,30 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           >
         </label>
         <label class="flex flex-col gap-1 text-muted">
-          The work lands as
+          {{ tt('The work lands as') }}
           <HSelect
             v-model="landing"
             :options="[{ value: 'pull_request', label: 'A draft pull request' }, { value: 'branch', label: 'A branch' }, { value: 'none', label: 'Nothing: it stays on the host' }]"
-            aria-label="The work lands as"
+            :aria-label="tt('The work lands as')"
           />
         </label>
         <span class="flex items-center gap-2 text-muted">
           <HToggle
             v-model="freshClone"
-            label="A clone of its own rather than a worktree"
+            :label="tt('A clone of its own rather than a worktree')"
           />
-          A clone of its own rather than a worktree
+          {{ tt('A clone of its own rather than a worktree') }}
         </span>
         <div
           v-if="waiting"
           class="flex items-center gap-2 text-toned"
         >
-          <span class="flex-1">Waiting for {{ hostName }} to start it…</span>
+          <span class="flex-1">{{ tt('Waiting for {0} to start it…', [hostName]) }}</span>
           <HBtn
             size="sm"
             @click="cancelWaiting"
           >
-            Cancel
+            {{ tt('Cancel') }}
           </HBtn>
         </div>
         <button
@@ -421,7 +421,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           class="self-start text-toned hover:text-strong"
           @click="host = ''"
         >
-          Back to this computer
+          {{ tt('Back to this computer') }}
         </button>
       </div>
       <div
@@ -432,13 +432,13 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
         <CatMascot class="absolute right-5 bottom-full" />
         <div
           role="radiogroup"
-          aria-label="Folder"
+          :aria-label="tt('Folder')"
           class="overflow-hidden border border-accented bg-surface text-[12.5px]"
         >
           <div
             role="radio"
             :aria-checked="!cwd"
-            title="The session gets a private folder of its own"
+            :title="tt('The session gets a private folder of its own')"
             class="flex cursor-pointer items-center gap-2.5 border-l-2 px-3 py-2"
             :class="!cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong'"
             @click="choose('')"
@@ -448,8 +448,8 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
               :size="14"
               class="shrink-0 text-muted"
             />
-            <span class="min-w-0 flex-1 truncate">No folder</span>
-            <span class="shrink-0 text-[11px] text-muted">chat</span>
+            <span class="min-w-0 flex-1 truncate">{{ tt('No folder') }}</span>
+            <span class="shrink-0 text-[11px] text-muted">{{ tt('chat') }}</span>
           </div>
           <div
             v-for="f in folders.slice(0, 3)"
@@ -495,7 +495,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
               name="plus"
               :size="14"
               class="shrink-0 text-muted"
-            />Choose folder…
+            />{{ tt('Choose folder…') }}
           </button>
           <UPopover
             v-if="cwd"
@@ -507,14 +507,14 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
               type="button"
               class="flex w-full items-center gap-1.5 border-t border-default px-3 py-2 text-left text-toned hover:text-strong"
             >
-              Choose environment<HIcon
+              {{ tt('Choose environment') }}<HIcon
                 name="down"
                 :size="11"
               />
             </button>
             <template #content>
               <NewEnvMenu
-                :hosts="hosts"
+                :agent-hosts="hosts"
                 :current="host"
                 @pick="pickHost"
                 @close="menu = ''"
@@ -538,8 +538,8 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           :size="14"
           :class="worktree ? 'text-accent' : 'text-muted'"
         />
-        <span class="text-strong">{{ worktree ? 'Worktree on' : 'Turn on Worktree' }}</span>
-        <span class="min-w-0 truncate text-muted">{{ worktree ? `new branch from ${baseRef || current || 'HEAD'}` : 'Session running here' }}</span>
+        <span class="text-strong">{{ worktree ? tt('Worktree on') : tt('Turn on Worktree') }}</span>
+        <span class="min-w-0 truncate text-muted">{{ worktree ? `new branch from ${baseRef || current || 'HEAD'}` : tt('Session running here') }}</span>
       </button>
       <NewProjectImport
         v-if="!host"
@@ -556,7 +556,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           :commands="commands"
           :no-commands="engine ? 'Agent commands appear once the session starts' : undefined"
           :suggest="suggest"
-          placeholder="Message agent · / commands · @ files"
+          :placeholder="tt('Message agent · / commands · @ files')"
           :cwd="cwd"
           :sending="busy"
           :error="!!error"
@@ -586,7 +586,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                   <HIcon
                     :name="host ? 'box' : 'monitor'"
                     :size="12"
-                  />{{ host ? hostName : 'This computer' }}
+                  />{{ host ? hostName : tt('This computer') }}
                 </button>
                 <template #content>
                   <NewEnvMenu
@@ -606,13 +606,13 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
               >
                 <button
                   type="button"
-                  :title="cwd || 'No folder: the session gets a private folder of its own'"
+                  :title="cwd || tt('No folder: the session gets a private folder of its own')"
                   :class="[CHIP, menu === 'folder' && 'bg-hover']"
                 >
                   <HIcon
                     :name="cwd ? 'folder' : 'chat'"
                     :size="12"
-                  /><span class="max-w-[160px] truncate text-strong">{{ cwd ? name(cwd) : 'No folder' }}</span>
+                  /><span class="max-w-[160px] truncate text-strong">{{ cwd ? name(cwd) : tt('No folder') }}</span>
                 </button>
                 <template #content>
                   <NewFolderMenu
@@ -641,7 +641,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                   :name="worktree ? 'checkbox-checked' : 'checkbox'"
                   :size="12"
                   :class="worktree && 'text-accent'"
-                /><span :class="worktree && 'text-strong'">Worktree</span>
+                /><span :class="worktree && 'text-strong'">{{ tt('Worktree') }}</span>
               </button>
 
               <span class="flex-1" />

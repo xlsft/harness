@@ -1,6 +1,8 @@
 // Always-on hosts (docs/design/hosts.md), as the screens see them. What a host may do is the server's to say; here are
 // only the words for it.
 
+import { tt } from '~/utils/i18n'
+
 export interface HostWorkerView {
   userId: string
   userName: string
@@ -111,26 +113,26 @@ export function formatBytes(n: number): string {
 
 // The row in the environment menu.
 export function hostLoadText(h: HostView): string {
-  if (!h.online) return h.queuedWork ? `offline, ${h.queuedWork} waiting` : 'offline'
+  if (!h.online) return h.queuedWork ? tt('offline, {0} waiting', [h.queuedWork]) : tt('offline')
   const load = `${h.workingSessions}/${h.maxSessions}`
-  return h.queuedWork ? `${load}, ${h.queuedWork} waiting` : load
+  return h.queuedWork ? tt('{0}, {1} waiting', [load, h.queuedWork]) : load
 }
 
 export function isolationText(h: HostView): string {
-  if (h.scope === 'user') return 'One user'
-  if (h.isolation === 'uid') return 'A Unix user for each member'
-  return h.isolation === 'none' ? 'Cannot separate users: takes no work' : 'Not started yet'
+  if (h.scope === 'user') return tt('One user')
+  if (h.isolation === 'uid') return tt('A Unix user for each member')
+  return h.isolation === 'none' ? tt('Cannot separate users: takes no work') : tt('Not started yet')
 }
 
 export function workStateText(w: HostWorkView): string {
   switch (w.state) {
-    case 'queued': return 'Waiting for the host'
-    case 'preparing': return 'Making the checkout'
-    case 'running': return 'Running'
-    case 'done': return 'Done'
-    case 'cancelled': return 'Cancelled'
-    case 'expired': return 'Waited too long'
-    case 'failed': return w.error ? `Failed: ${w.error}` : 'Failed'
+    case 'queued': return tt('Waiting for the host')
+    case 'preparing': return tt('Making the checkout')
+    case 'running': return tt('Running')
+    case 'done': return tt('Done')
+    case 'cancelled': return tt('Cancelled')
+    case 'expired': return tt('Waited too long')
+    case 'failed': return w.error ? tt('Failed: {0}', [w.error]) : tt('Failed')
   }
 }
 
