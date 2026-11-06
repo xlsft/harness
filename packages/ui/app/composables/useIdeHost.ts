@@ -14,9 +14,12 @@ export function useIdeHost() {
 
   const stop = onHostMessage((m) => {
     switch (m.type) {
-      case 'add-context':
-        attach.value = [...attach.value, ideMention(m.path, m.lineStart, m.lineEnd, store.current?.meta.cwd ?? host.folder)]
+      case 'add-context': {
+        const mention = ideMention(m.path, m.lineStart, m.lineEnd, store.current?.meta.cwd ?? host.folder)
+        attach.value = [...attach.value, mention]
+        host.post({ type: 'context-added', mention })
         break
+      }
       case 'add-text':
         appended.value = m.text
         break
@@ -28,6 +31,9 @@ export function useIdeHost() {
         break
       case 'focus-composer':
         document.querySelector<HTMLElement>('textarea, [contenteditable="true"]')?.focus()
+        break
+      case 'probe':
+        host.post({ type: 'probe-result', text: document.body.innerText.slice(0, 2000), elements: document.body.querySelectorAll('*').length })
         break
       case 'theme':
         setMode(m.kind)

@@ -793,7 +793,9 @@ type EditAppliedRequest struct {
 	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	ToolUseId string                 `protobuf:"bytes,2,opt,name=tool_use_id,json=toolUseId,proto3" json:"tool_use_id,omitempty"`
 	// Absolute.
-	Path          string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	Path string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	// Someone already answered for this edit, in a diff or a prompt.
+	Reviewed      bool `protobuf:"varint,4,opt,name=reviewed,proto3" json:"reviewed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -847,6 +849,13 @@ func (x *EditAppliedRequest) GetPath() string {
 		return x.Path
 	}
 	return ""
+}
+
+func (x *EditAppliedRequest) GetReviewed() bool {
+	if x != nil {
+		return x.Reviewed
+	}
+	return false
 }
 
 type EditAppliedResponse struct {
@@ -934,12 +943,13 @@ const file_harness_ide_v1_bridge_proto_rawDesc = "" +
 	"\x12ReadBufferResponse\x12\x12\n" +
 	"\x04open\x18\x01 \x01(\bR\x04open\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x14\n" +
-	"\x05dirty\x18\x03 \x01(\bR\x05dirty\"g\n" +
+	"\x05dirty\x18\x03 \x01(\bR\x05dirty\"\x83\x01\n" +
 	"\x12EditAppliedRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1e\n" +
 	"\vtool_use_id\x18\x02 \x01(\tR\ttoolUseId\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04path\"\x15\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\x12\x1a\n" +
+	"\breviewed\x18\x04 \x01(\bR\breviewed\"\x15\n" +
 	"\x13EditAppliedResponse*}\n" +
 	"\vDiffOutcome\x12\x1c\n" +
 	"\x18DIFF_OUTCOME_UNSPECIFIED\x10\x00\x12\x19\n" +

@@ -38,6 +38,9 @@ type planAnswer struct {
 }
 
 type liveSession struct {
+	// answeredEdits are the files whose next edit a person answered for (ide.go).
+	answeredEdits map[string]bool
+
 	srv    *Server
 	sess   *bootstrap.Session
 	driver *agent.Driver
@@ -532,12 +535,18 @@ func (ls *liveSession) ask(ctx context.Context, req permissions.Request, withEdi
 		case a := <-p.ch:
 			ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
 				RequestId: id, Decision: a.decision, ResolvedBy: "local"}}})
+			if a.d.Behavior == permissions.Allow {
+				ls.noteAnswered(req)
+			}
 			return a.d, nil
 		case a := <-fromEditor:
 			fromEditor = nil // whatever it says, the editor has spoken
 			if d, decision, ok := answerFromEditor(a); ok {
 				ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
 					RequestId: id, Decision: decision, ResolvedBy: "editor"}}})
+				if d.Behavior == permissions.Allow {
+					ls.noteAnswered(req)
+				}
 				return d, nil
 			}
 		}

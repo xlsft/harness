@@ -66,7 +66,7 @@ type EditorBridgeServiceClient interface {
 	OpenFile(context.Context, *connect.Request[v1.OpenFileRequest]) (*connect.Response[v1.OpenFileResponse], error)
 	// The text of a file as the editor has it, unsaved changes included.
 	ReadBuffer(context.Context, *connect.Request[v1.ReadBufferRequest]) (*connect.Response[v1.ReadBufferResponse], error)
-	// A file tool changed a file without a review, so the editor can offer one later.
+	// A file tool changed a file. Without a review so far, the editor can show the change.
 	EditApplied(context.Context, *connect.Request[v1.EditAppliedRequest]) (*connect.Response[v1.EditAppliedResponse], error)
 }
 
@@ -174,7 +174,7 @@ type EditorBridgeServiceHandler interface {
 	OpenFile(context.Context, *connect.Request[v1.OpenFileRequest]) (*connect.Response[v1.OpenFileResponse], error)
 	// The text of a file as the editor has it, unsaved changes included.
 	ReadBuffer(context.Context, *connect.Request[v1.ReadBufferRequest]) (*connect.Response[v1.ReadBufferResponse], error)
-	// A file tool changed a file without a review, so the editor can offer one later.
+	// A file tool changed a file. Without a review so far, the editor can show the change.
 	EditApplied(context.Context, *connect.Request[v1.EditAppliedRequest]) (*connect.Response[v1.EditAppliedResponse], error)
 }
 

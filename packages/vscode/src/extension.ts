@@ -24,6 +24,10 @@ export interface ExtensionApi {
   whenSession(): Promise<string>
   openDiffs(): number
   changedFiles(): number
+  contextAdded(): string[]
+  blocked(): string[]
+  probePanel(): Promise<{ text: string, elements: number }>
+  review(sessionId: string, path: string): Promise<void>
 }
 
 const firstFolder = () => vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? ''
@@ -104,8 +108,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
       const doc = vscode.workspace.textDocuments.find(d => d.uri.scheme === 'file' && d.uri.fsPath === req.path)
       return doc ? { open: true, content: doc.getText(), dirty: doc.isDirty } : { open: false }
     },
-    editApplied: () => {
+    editApplied: (req) => {
       void refreshChanges()
+      // Most sessions approve edits by themselves: this is where the user gets to see them.
+      const show = vscode.workspace.getConfiguration('harness').get<boolean>('showAppliedEdits', true)
+      if (show && !req.reviewed && req.sessionId && req.path) void review.openDiff(req.sessionId, req.path, { background: true }).catch((err: unknown) => log(String(err)))
     }
   }
   const bridge: BridgeServer = await startBridge(handlers)
@@ -125,6 +132,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
 
   let currentSession = ''
   let changed = 0
+  const added: string[] = []
+  const blocked: string[] = []
+  const probes: ((r: { text: string, elements: number }) => void)[] = []
   let resolveReady: (r: { connected: boolean, error: string }) => void = () => {}
   const panelReady = new Promise<{ connected: boolean, error: string }>(r => (resolveReady = r))
   const sessionWaiters: ((id: string) => void)[] = []
@@ -163,6 +173,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         break
       case 'open-diff':
         void review.openDiff(m.sessionId, m.path)
+        break
+      case 'probe-result':
+        for (const resolve of probes.splice(0)) resolve({ text: m.text, elements: m.elements })
+        break
+      case 'blocked':
+        log(`the panel's content security policy blocked ${m.directive}: ${m.uri}`)
+        blocked.push(`${m.directive} ${m.uri}`)
+        break
+      case 'context-added':
+        added.push(m.mention)
         break
       case 'connection-lost':
         log('the panel lost the client; restarting it')
@@ -284,7 +304,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
     sessionId: () => currentSession,
     whenSession: () => currentSession ? Promise.resolve(currentSession) : new Promise(r => sessionWaiters.push(r)),
     openDiffs: () => diffs.count(),
-    changedFiles: () => changed
+    changedFiles: () => changed,
+    contextAdded: () => added,
+    blocked: () => blocked,
+    probePanel: () => new Promise((resolve) => {
+      probes.push(resolve)
+      panel.post({ type: 'probe' })
+    }),
+    review: (sessionId, path) => review.openDiff(sessionId, path)
   }
 }
 

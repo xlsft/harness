@@ -20,6 +20,8 @@ export type ToHost
     | { type: 'open-file', path: string, line: number, endLine: number }
     | { type: 'open-diff', sessionId: string, path: string }
     | { type: 'connection-lost' }
+    | { type: 'context-added', mention: string }
+    | { type: 'probe-result', text: string, elements: number }
 
 /** What the editor tells the page. */
 export type FromHost
@@ -29,6 +31,7 @@ export type FromHost
     | { type: 'interrupt' }
     | { type: 'focus-composer' }
     | { type: 'theme', kind: 'light' | 'dark' }
+    | { type: 'probe' }
 
 declare global {
   interface Window { __HARNESS_IDE__?: IdeHost }

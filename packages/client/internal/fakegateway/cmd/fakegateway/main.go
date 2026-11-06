@@ -17,7 +17,7 @@ import (
 
 func main() {
 	addr := flag.String("addr", "127.0.0.1:7777", "listen address")
-	scenario := flag.String("scenario", "fix-test", "fix-test | echo")
+	scenario := flag.String("scenario", "fix-test", "fix-test | echo | ide")
 	initProject := flag.String("init-project", "", "write the demo project into this directory and exit")
 	flag.Parse()
 	if *initProject != "" {
@@ -40,6 +40,8 @@ func main() {
 		r = fakegateway.FixTestDemo()
 	case "echo":
 		r = nil
+	case "ide":
+		r = fakegateway.IDEScript()
 	default:
 		fmt.Fprintln(os.Stderr, "unknown scenario", *scenario)
 		os.Exit(2)

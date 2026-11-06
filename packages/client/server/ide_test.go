@@ -338,8 +338,24 @@ func TestAppliedEditsAreAnnounced(t *testing.T) {
 	h.until(ch, isTurnFinished)
 	select {
 	case got := <-ed.Applied:
-		if got != path {
-			t.Errorf("announced %q", got)
+		if got.Path != path || got.SessionId != sid || got.Reviewed {
+			t.Errorf("announced %+v", got)
+		}
+	case <-time.After(15 * time.Second):
+		t.Fatal("the editor heard nothing")
+	}
+}
+
+func TestAnAnsweredEditIsAnnouncedAsReviewed(t *testing.T) {
+	h, ed, path := writeHarness(t, bootstrap.IDEConfig{Diffs: true})
+	ed.Answer = answerDiff(idev1.DiffOutcome_DIFF_OUTCOME_ACCEPTED, "")
+	sid, ch := h.create(&agentv1.CreateSessionRequest{PermissionMode: agentv1.PermissionMode_PERMISSION_MODE_DEFAULT})
+	h.send(sid, "go")
+	h.until(ch, isTurnFinished)
+	select {
+	case got := <-ed.Applied:
+		if got.Path != path || !got.Reviewed {
+			t.Errorf("announced %+v", got)
 		}
 	case <-time.After(15 * time.Second):
 		t.Fatal("the editor heard nothing")

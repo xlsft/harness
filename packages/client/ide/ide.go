@@ -282,8 +282,8 @@ func (e *Editor) ReadBuffer(ctx context.Context, path string) (content string, o
 }
 
 // EditApplied tells the editor a file tool changed a file. Nothing depends on it, so errors are dropped.
-func (e *Editor) EditApplied(ctx context.Context, sessionID, path string) {
+func (e *Editor) EditApplied(ctx context.Context, sessionID, path string, reviewed bool) {
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	_, _ = e.client.EditApplied(ctx, connect.NewRequest(&idev1.EditAppliedRequest{SessionId: sessionID, Path: path}))
+	_, _ = e.client.EditApplied(ctx, connect.NewRequest(&idev1.EditAppliedRequest{SessionId: sessionID, Path: path, Reviewed: reviewed}))
 }

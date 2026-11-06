@@ -68,9 +68,13 @@ export class ReviewController implements vscode.TextDocumentContentProvider, vsc
     if (choice) await this.openDiff(sessionId, choice.path)
   }
 
-  async openDiff(sessionId: string, path: string) {
+  /** background: the agent changed it just now; the user's keyboard stays where it is, and the next one takes this tab. */
+  async openDiff(sessionId: string, path: string, options: { background?: boolean } = {}) {
+    const left = baseUri({ sessionId, path })
+    this.changed.fire(left)
     const title = `${basename(path)} (session changes)`
-    await vscode.commands.executeCommand('vscode.diff', baseUri({ sessionId, path }), vscode.Uri.file(path), title, { preview: true } satisfies vscode.TextDocumentShowOptions)
+    const show: vscode.TextDocumentShowOptions = { preview: true, preserveFocus: options.background ?? false, viewColumn: vscode.ViewColumn.One }
+    await vscode.commands.executeCommand('vscode.diff', left, vscode.Uri.file(path), title, show)
     this.syncContext()
   }
 

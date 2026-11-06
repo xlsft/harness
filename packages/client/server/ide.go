@@ -127,6 +127,9 @@ func (ls *liveSession) Review(ctx context.Context, req permissions.Request, d pe
 			return d // the editor went away: as without one
 		}
 		if answer, _, ok := answerFromEditor(a); ok {
+			if answer.Behavior == permissions.Allow {
+				ls.noteAnswered(req)
+			}
 			return answer
 		}
 	}
@@ -135,6 +138,30 @@ func (ls *liveSession) Review(ctx context.Context, req permissions.Request, d pe
 		return permissions.Decision{Behavior: permissions.Deny, Message: "interrupted", ResolvedBy: "interrupt"}
 	}
 	return answer
+}
+
+// noteAnswered remembers that a person answered for an edit of a file, so the editor need not show it again once it runs.
+func (ls *liveSession) noteAnswered(req permissions.Request) {
+	if req.ToolName != "Edit" && req.ToolName != "Write" {
+		return
+	}
+	path := filepath.Clean(tools.FilePath(req.Input))
+	ls.mu.Lock()
+	if ls.answeredEdits == nil {
+		ls.answeredEdits = map[string]bool{}
+	}
+	ls.answeredEdits[path] = true
+	ls.mu.Unlock()
+}
+
+// takeAnswered says whether a person answered for this edit, once.
+func (ls *liveSession) takeAnswered(path string) bool {
+	path = filepath.Clean(path)
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+	answered := ls.answeredEdits[path]
+	delete(ls.answeredEdits, path)
+	return answered
 }
 
 // ideEdits tells the editor about files the file tools wrote, after whatever else listens.
@@ -146,12 +173,12 @@ type ideEdits struct {
 func (w ideEdits) FileEdited(ctx context.Context, env *tools.Env, path string) {
 	w.EditWatcher.FileEdited(ctx, env, path)
 	// Not on the tool's time: nothing depends on the answer.
-	id := w.ls.sess.ID
+	id, reviewed := w.ls.sess.ID, w.ls.takeAnswered(path)
 	go func() {
 		bg, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if ed := w.ls.editor(bg); ed != nil {
-			ed.EditApplied(bg, id, path)
+			ed.EditApplied(bg, id, path, reviewed)
 		}
 	}()
 }

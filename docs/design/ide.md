@@ -49,10 +49,13 @@ Three channels, each with one job:
 
 **Finding an editor: lock files.** The extension writes `$HARNESS_HOME/ide/<pid>-<port>.json` with its port, token and workspace folders. The client picks the lock in `HARNESS_IDE_LOCK` if set, else the live editor whose folder most closely contains the session's working directory. The extension sets that variable for the client it starts and for its integrated terminals, so `harness` in a terminal reaches the right window. Stale locks (dead pid) are removed by whichever client finds them.
 
-**Two kinds of review.**
+**Three kinds of review.** New sessions start in `auto` mode, which approves edits inside the folder without asking, so a review tied only to the permission prompt would almost never show. This was found by running it in a real editor.
 
-- *Before the edit.* When a file tool would ask for permission and an editor is attached, the client also opens the native diff. The first answer wins, from either the diff or the panel, and the other side closes. Closing the diff tab answers nothing: the prompt stays in the panel. With `ide_review_all_edits` (default off) edits the mode would allow also wait for the editor, so `acceptEdits` and `auto` users can still review each one. A rule or hook that denies is never overridden.
-- *After the edit.* Shell commands and allowed edits change files without asking. "Review session changes" lists what changed against HEAD (or the session's snapshot outside git) and opens each file in the native diff. Accept keeps the file. Reject asks the client to restore the baseline, and the client refuses when the file has no baseline it can restore.
+- *When the edit would ask.* When a file tool would ask for permission and an editor is attached, the client also opens the native diff. The first answer wins, from either the diff or the panel, and the other side closes. Closing the diff tab answers nothing: the prompt stays in the panel.
+- *When it would not ask.* The edit runs, and the client reports it with `EditApplied`, saying whether a person already answered for it. If not, the extension opens the file's change in the native diff without taking the keyboard, in a preview tab the next one replaces (setting `harness.showAppliedEdits`, default on). Accept keeps the file; Reject restores it. The agent is not held up, which is what `auto` mode was chosen for.
+- *Before every edit, if asked.* With `ide_review_all_edits` (default off) edits the mode would allow wait for the editor's diff first. Closing that diff brings up the panel's prompt: a turn never waits on nothing visible, and an edit is not applied because a tab was closed. A rule or hook that denies is never overridden.
+
+"Review session changes" lists everything changed against HEAD (or the session's snapshot outside git), shell commands included. Restoring a file asks first, because the baseline comparison can include the user's own edits, and the client refuses when the file has no baseline it can restore.
 
 **Rejecting from the diff stops the turn**, the same as denying in the panel without a comment. A rejection with a note lets the model continue with the note.
 

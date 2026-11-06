@@ -82,6 +82,11 @@
           "scope": "machine",
           "description": "Path to the harness-client binary. Empty looks on PATH, then in ~/.harness/bin."
         },
+        "harness.showAppliedEdits": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open an edit the agent made without asking in the native diff, without taking the keyboard. Accept keeps the file, and Reject restores it."
+        },
         "harness.agentUrl": {
           "type": "string",
           "default": "",

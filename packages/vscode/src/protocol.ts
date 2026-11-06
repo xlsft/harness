@@ -69,6 +69,7 @@ export interface EditAppliedRequest {
   sessionId?: string
   toolUseId?: string
   path?: string
+  reviewed?: boolean
 }
 
 /** What the extension does for each method. The signal aborts when the client hangs up. */

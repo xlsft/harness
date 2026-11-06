@@ -42,7 +42,7 @@ export function contentSecurityPolicy(cspSource: string, nonce: string, url: str
 
 export function renderPage(o: PageOptions): string {
   const csp = contentSecurityPolicy(o.cspSource, o.nonce, o.url)
-  const boot = `const vscode=acquireVsCodeApi();window.__HARNESS_IDE__=${jsonInScript({ url: o.url, token: o.token, folder: o.folder, kind: o.kind })};window.__HARNESS_IDE__.post=m=>vscode.postMessage(m);`
+  const boot = `const vscode=acquireVsCodeApi();window.__HARNESS_IDE__=${jsonInScript({ url: o.url, token: o.token, folder: o.folder, kind: o.kind })};window.__HARNESS_IDE__.post=m=>vscode.postMessage(m);document.addEventListener('securitypolicyviolation',e=>vscode.postMessage({type:'blocked',directive:e.effectiveDirective,uri:e.blockedURI}));`
   return o.html
     // The UI's paths are rooted at a server the webview does not have.
     .replaceAll('"/_nuxt/', `"${o.assets}/_nuxt/`)

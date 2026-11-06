@@ -28,6 +28,9 @@ describe('the panel page', () => {
     assert.ok(html.indexOf('__HARNESS_IDE__') < html.indexOf('importmap'))
     assert.ok(html.includes('"url":"http://127.0.0.1:7801"') && html.includes('"token":"tok"') && html.includes('"folder":"/repo"'))
   })
+  it('reports what the policy blocks', () => {
+    assert.ok(page().includes('securitypolicyviolation'))
+  })
   it('cannot be broken out of by a folder name', () => {
     const html = page({ folder: '/repo</script><script>alert(1)</script>' })
     assert.ok(!html.includes('</script><script>alert(1)'))

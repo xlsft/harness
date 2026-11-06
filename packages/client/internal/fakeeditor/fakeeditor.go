@@ -38,8 +38,8 @@ type Editor struct {
 	// Diffs receives every diff shown; Cancelled every diff whose call was cancelled.
 	Diffs     chan *idev1.ShowDiffRequest
 	Cancelled chan *idev1.ShowDiffRequest
-	// Applied receives the paths of EditApplied; Opened the requests of OpenFile.
-	Applied chan string
+	// Applied receives the requests of EditApplied; Opened those of OpenFile.
+	Applied chan *idev1.EditAppliedRequest
 	Opened  chan *idev1.OpenFileRequest
 
 	mu     sync.Mutex
@@ -52,7 +52,7 @@ func Start(t *testing.T, folders ...string) *Editor {
 	e := &Editor{
 		Buffers: map[string]string{}, folder: folders,
 		Diffs: make(chan *idev1.ShowDiffRequest, 16), Cancelled: make(chan *idev1.ShowDiffRequest, 16),
-		Applied: make(chan string, 64), Opened: make(chan *idev1.OpenFileRequest, 16),
+		Applied: make(chan *idev1.EditAppliedRequest, 64), Opened: make(chan *idev1.OpenFileRequest, 16),
 	}
 	mux := http.NewServeMux()
 	path, h := idev1connect.NewEditorBridgeServiceHandler(e)
@@ -132,6 +132,6 @@ func (e *Editor) ReadBuffer(_ context.Context, req *connect.Request[idev1.ReadBu
 }
 
 func (e *Editor) EditApplied(_ context.Context, req *connect.Request[idev1.EditAppliedRequest]) (*connect.Response[idev1.EditAppliedResponse], error) {
-	e.Applied <- req.Msg.GetPath()
+	e.Applied <- req.Msg
 	return connect.NewResponse(&idev1.EditAppliedResponse{}), nil
 }

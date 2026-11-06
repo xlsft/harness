@@ -1,0 +1,63 @@
+name: vscode
+
+# Build and tests only: nothing here publishes.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/vscode/**'
+      - 'packages/ui/**'
+      - 'packages/client/ide/**'
+      - 'packages/client/server/ide*.go'
+      - 'proto/harness/ide/**'
+      - 'proto/harness/agent/v1/ide.proto'
+      - '.github/workflows/vscode.yml'
+  pull_request:
+    paths:
+      - 'packages/vscode/**'
+      - 'packages/ui/**'
+      - 'packages/client/ide/**'
+      - 'packages/client/server/ide*.go'
+      - 'proto/harness/ide/**'
+      - 'proto/harness/agent/v1/ide.proto'
+      - '.github/workflows/vscode.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vscode-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12.15.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+      - name: Install
+        run: |
+          (cd packages/ui && pnpm install --frozen-lockfile)
+          (cd packages/vscode && pnpm install --ignore-workspace --frozen-lockfile)
+      - name: Typecheck and unit tests
+        working-directory: packages/vscode
+        run: |
+          pnpm typecheck
+          pnpm test
+      - name: Build the .vsix
+        working-directory: packages/vscode
+        run: node scripts/build.mjs --vsix
+      - name: Tests in a real editor
+        working-directory: packages/vscode
+        run: xvfb-run -a pnpm test:editor

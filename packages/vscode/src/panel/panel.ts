@@ -12,6 +12,7 @@ export type ToPage
     | { type: 'interrupt' }
     | { type: 'focus-composer' }
     | { type: 'theme', kind: 'light' | 'dark' }
+    | { type: 'probe' }
 
 export type FromPage
   = | { type: 'ready', connected: boolean, error: string }
@@ -19,6 +20,9 @@ export type FromPage
     | { type: 'open-file', path: string, line: number, endLine: number }
     | { type: 'open-diff', sessionId: string, path: string }
     | { type: 'connection-lost' }
+    | { type: 'context-added', mention: string }
+    | { type: 'probe-result', text: string, elements: number }
+    | { type: 'blocked', directive: string, uri: string }
 
 export interface PanelHost {
   extensionUri: vscode.Uri

@@ -17,7 +17,7 @@ service EditorBridgeService {
   rpc OpenFile(OpenFileRequest) returns (OpenFileResponse);
   // The text of a file as the editor has it, unsaved changes included.
   rpc ReadBuffer(ReadBufferRequest) returns (ReadBufferResponse);
-  // A file tool changed a file without a review, so the editor can offer one later.
+  // A file tool changed a file. Without a review so far, the editor can show the change.
   rpc EditApplied(EditAppliedRequest) returns (EditAppliedResponse);
 }
 
@@ -119,6 +119,8 @@ message EditAppliedRequest {
   string tool_use_id = 2;
   // Absolute.
   string path = 3;
+  // Someone already answered for this edit, in a diff or a prompt.
+  bool reviewed = 4;
 }
 
 message EditAppliedResponse {}
