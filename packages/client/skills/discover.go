@@ -72,6 +72,8 @@ type Options struct {
 	Disabled map[string]bool
 	// Plugins are the installed plugins allowed to run here (package plugins decides which).
 	Plugins []PluginSource
+	// Builtin adds the skills that ship with the client.
+	Builtin bool
 }
 
 // PluginSource is what one plugin brings. Everything it holds is named below its prefix.
@@ -119,7 +121,7 @@ func (c *Catalog) Lookup(name string) (Skill, bool) {
 // Enabled reports the user's switch.
 func (c *Catalog) Enabled(name string) bool { return c == nil || !c.disabled[name] }
 
-var sourceRank = map[string]int{SourceOrganization: 0, SourcePersonal: 1, SourceImported: 2, SourceProject: 3, SourcePlugin: 4}
+var sourceRank = map[string]int{SourceOrganization: 0, SourcePersonal: 1, SourceImported: 2, SourceProject: 3, SourcePlugin: 4, SourceBuiltin: 5}
 
 func (s Skill) rank() [3]int {
 	k := 0
@@ -173,6 +175,9 @@ func Discover(o Options) *Catalog {
 	}
 	for _, p := range o.Plugins {
 		sc.plugin(p)
+	}
+	if o.Builtin {
+		sc.builtin()
 	}
 	c.resolve(sc.found)
 	return c
@@ -268,7 +273,9 @@ func toAny(in []string) []any {
 }
 
 // FromServer reports whether the skill's text came from a document of the server.
-func (s Skill) FromServer() bool { return s.doc.id != "" && s.Plugin == "" }
+func (s Skill) FromServer() bool {
+	return s.doc.id != "" && s.Plugin == "" && s.Source != SourceBuiltin
+}
 
 // resolve keeps a winner per name and orders the entries for display.
 func (c *Catalog) resolve(found []Skill) {

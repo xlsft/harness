@@ -296,10 +296,10 @@ export function formatSize(bytes: number) {
   return `${v >= 10 ? Math.round(v) : v.toFixed(1)} ${units[i]}`
 }
 
-// Paths a finished tool call wrote (Write, Edit, MultiEdit, NotebookEdit): the pane refreshes after them.
+// Paths a finished tool call wrote (Write, Edit, MultiEdit, NotebookEdit, DocumentEdit): the pane refreshes after them.
 export function writtenPaths(tool: { name: string, input: Record<string, unknown> }): string[] {
   const name = tool.name.toLowerCase()
-  if (!['write', 'edit', 'multiedit', 'notebookedit', 'str_replace_based_edit_tool', 'apply_patch'].includes(name)) return []
+  if (!['write', 'edit', 'multiedit', 'notebookedit', 'documentedit', 'str_replace_based_edit_tool', 'apply_patch'].includes(name)) return []
   const p = tool.input.file_path ?? tool.input.path ?? tool.input.notebook_path
   return typeof p === 'string' && p ? [p] : ['']
 }

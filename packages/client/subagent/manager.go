@@ -746,6 +746,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	if a.wt == nil {
 		// Checkpoints follow the session's folder; a worktree has git for that.
 		env.BeforeEdit = lead.BeforeEdit
+	env.BeforeEditChecked = lead.BeforeEditChecked
 	}
 	if lead.Tasks != nil {
 		env.Tasks = tools.NewTaskManager(filepath.Join(scratch, "tasks"))

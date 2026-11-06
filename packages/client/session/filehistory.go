@@ -31,13 +31,15 @@ type FileHistory struct {
 	snapshots []*FileSnapshot
 	versions  map[string]int    // path -> latest version
 	first     map[string]string // path -> backup name of its first snapshot
-	max       int
+	// failed holds the files whose last checkpoint could not back them up: their tracked backup is stale.
+	failed map[string]bool
+	max    int
 }
 
 // NewFileHistory opens the history in dir, restoring snapshots read from the
 // transcript (resume). w may be nil (no records).
 func NewFileHistory(dir string, w *Writer, restored []FileSnapshot) *FileHistory {
-	h := &FileHistory{dir: dir, w: w, versions: map[string]int{}, first: map[string]string{}, max: MaxCheckpoints}
+	h := &FileHistory{dir: dir, w: w, versions: map[string]int{}, first: map[string]string{}, failed: map[string]bool{}, max: MaxCheckpoints}
 	for i := range restored {
 		s := restored[i]
 		h.snapshots = append(h.snapshots, &s)
@@ -91,7 +93,7 @@ func (h *FileHistory) backup(path string, latest *FileBackup) (FileBackup, error
 	if err := os.MkdirAll(h.dir, 0o700); err != nil {
 		return FileBackup{}, err
 	}
-	if err := os.WriteFile(filepath.Join(h.dir, name), data, 0o600); err != nil {
+	if err := writeAtomic(filepath.Join(h.dir, name), data, 0o600); err != nil {
 		return FileBackup{}, err
 	}
 	h.versions[path] = v
@@ -125,6 +127,9 @@ func (h *FileHistory) MakeCheckpoint(messageID string) FileSnapshot {
 			nb, err := h.backup(p, &prev)
 			if err != nil {
 				nb = b
+				h.failed[p] = true
+			} else {
+				delete(h.failed, p)
 			}
 			s.TrackedFileBackups[p] = nb
 		}
@@ -156,6 +161,61 @@ func (h *FileHistory) TrackEdit(path string) {
 	h.record(cur, true)
 }
 
+// TrackEditChecked is TrackEdit for tools that must not write without a snapshot: it returns why there is none. A session
+// with no checkpoint yet has nothing to rewind to and is not a failure.
+func (h *FileHistory) TrackEditChecked(path string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	n := len(h.snapshots)
+	if n == 0 {
+		return nil
+	}
+	cur := h.snapshots[n-1]
+	if b, ok := cur.TrackedFileBackups[path]; ok && !h.failed[path] {
+		if b.BackupFileName == nil {
+			return nil // it did not exist at the checkpoint
+		}
+		if _, err := os.Stat(filepath.Join(h.dir, *b.BackupFileName)); err != nil {
+			return fmt.Errorf("the snapshot of this turn is gone: %w", err)
+		}
+		return nil
+	}
+	b, err := h.backup(path, nil)
+	if err != nil {
+		return err
+	}
+	delete(h.failed, path)
+	cur.TrackedFileBackups[path] = b
+	h.record(cur, true)
+	return nil
+}
+
+// writeAtomic replaces path in one step: a crash leaves the old file or the new one, never part of it.
+func writeAtomic(path string, data []byte, mode os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".harness-history-*")
+	if err != nil {
+		return err
+	}
+	name := tmp.Name()
+	defer os.Remove(name) // harmless once renamed
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(name, mode); err != nil {
+		return err
+	}
+	return os.Rename(name, path)
+}
+
 func (h *FileHistory) prune() {
 	if len(h.snapshots) <= h.max {
 		return
@@ -174,7 +234,7 @@ func (h *FileHistory) prune() {
 	}
 	entries, _ := os.ReadDir(h.dir)
 	for _, e := range entries {
-		if !keep[e.Name()] {
+		if !keep[e.Name()] && !strings.HasPrefix(e.Name(), ".harness-history-") {
 			os.Remove(filepath.Join(h.dir, e.Name()))
 		}
 	}
@@ -347,7 +407,7 @@ func (h *FileHistory) Restore(messageID string) (RestoreResult, error) {
 			skip(p, err.Error())
 			continue
 		}
-		if err := os.WriteFile(p, want, mode); err != nil {
+		if err := writeAtomic(p, want, mode); err != nil {
 			skip(p, err.Error())
 			continue
 		}

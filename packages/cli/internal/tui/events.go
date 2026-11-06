@@ -293,11 +293,11 @@ func (m *Model) streamedSinceUser() bool {
 
 func runningStatus(name string) string {
 	switch name {
-	case "Read":
+	case "Read", "DocumentRead":
 		return "Reading"
 	case "Grep", "Glob", "WebSearch":
 		return "Searching"
-	case "Edit", "Write", "MultiEdit", "NotebookEdit":
+	case "Edit", "Write", "MultiEdit", "NotebookEdit", "DocumentEdit":
 		return "Editing"
 	}
 	return "Running " + name
@@ -379,7 +379,7 @@ func (m *Model) finishCall(f *agentv1.ToolCallFinished) {
 			switch {
 			case c.Name == "Write" && st.Type == "create":
 				c.Diff = render.WriteDiff(c.Path, st.Content)
-			case st.Patch != nil && (c.Name == "Edit" || c.Name == "Write" || c.Name == "MultiEdit" || c.Name == "NotebookEdit"):
+			case st.Patch != nil && (c.Name == "Edit" || c.Name == "Write" || c.Name == "MultiEdit" || c.Name == "NotebookEdit" || c.Name == "DocumentEdit"):
 				c.Diff = render.DiffFromPatch(c.Path, st.Patch)
 			}
 		}

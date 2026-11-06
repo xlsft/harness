@@ -42,7 +42,21 @@ output per call, and why `merge`/`split` sources must have been read first (read
 
 - **LibreOffice found on the machine** (`soffice` on PATH or in the usual install places) converts Office files to PDF and
   recalculates workbooks. It is a separate process we never link, so its MPL license does not reach us. It runs on a
-  temporary copy, with a private profile, under the session's command sandbox when one is active.
+  temporary copy, with its own profile directory, macros off and link updates off. Tests that start the real program are
+  behind `HARNESS_TEST_LIBREOFFICE=1`; by default they use a fake script, so a test run never launches it.
+- **LibreOffice does not run under the macOS sandbox.** Traced under the Seatbelt profile of `sandbox/seatbelt.go`
+  (LibreOffice from Homebrew's cask, November 2026): it aborts at start (SIGABRT, `abort() called`), denied the Mach
+  services `com.apple.windowserver.active`, `com.apple.coreservices.launchservicesd`, `com.apple.tccd.system`,
+  `com.apple.pasteboard.1`, `com.apple.distributed_notifications@Uv3`, then `com.apple.CARenderServer`, plus
+  `file-issue-extension`. Allowing the window server alone still aborts; allowing LaunchServices alone hung for over three
+  minutes and was stopped. We did not widen the profile: LaunchServices is exactly what lets a process start things
+  outside the sandbox. Each failed launch also leaves a crash report, and one was followed by a plain `soffice` under
+  launchd, so the engine must not even try.
+  **Decision:** with the sandbox active on macOS the engine reports "not available" without starting anything. A call may
+  pass `run_outside_sandbox`, which goes through the same user-only prompt as Bash's (`PermissionHints`, checked as a
+  `soffice` command, and a policy can refuse it); then it runs unconfined, on a temporary copy with its own profile. With
+  the sandbox off it runs as any local program would. Reads, edits and format checks do not need it. Where a future
+  platform has a sandbox driver, the engine runs under it through `Engine.Confine`, untested there.
 - **PDFium through WebAssembly** (`github.com/klippa-app/go-pdfium` MIT, PDFium Apache-2.0/BSD, `wazero` Apache-2.0)
   rasterises PDF pages without CGO. It is embedded, so PDF pages render even without LibreOffice. The first start
   compiles the module (about 20 s on an M-series Mac); the compiled code is cached under the user's cache directory, so

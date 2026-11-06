@@ -11,6 +11,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/xlsft/harness/packages/client/documents"
 	"github.com/xlsft/harness/packages/client/llm"
 )
 
@@ -71,6 +72,9 @@ func (*Read) Run(ctx context.Context, env *Env, call Call) Result {
 	if ext == ".pdf" {
 		return readPDF(env, path, st.Size(), in.Pages)
 	}
+	if f, ok := documents.ExtensionFormat(path); ok {
+		return ErrorResult("%s is a %s file, which cannot be read as text. Use DocumentRead: its structure operation lists the content with addresses, and read and search go from there.", path, f)
+	}
 	if strings.TrimSpace(in.Pages) != "" {
 		return ErrorResult("pages applies to PDF files only; %s is not one. Use offset and limit.", path)
 	}
@@ -87,7 +91,7 @@ func (*Read) Run(ctx context.Context, env *Env, call Call) Result {
 		head = head[:8192]
 	}
 	if bytes.IndexByte(head, 0) >= 0 {
-		return ErrorResult("%s appears to be a binary file and cannot be read as text.", path)
+		return ErrorResult("%s appears to be a binary file and cannot be read as text. For an Office file or a PDF under another name, DocumentRead reads the format; other binaries need their own tool.", path)
 	}
 	env.Files.MarkReadContent(path, data)
 	if ext == ".ipynb" {
