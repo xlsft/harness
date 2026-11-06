@@ -5,7 +5,7 @@
 
 import type { PermissionModeName } from '~/lib/session/types'
 
-export type UserRole = 'admin' | 'user'
+export type UserRole = 'admin' | 'user' | 'auditor' | 'billing'
 
 export interface UserView {
   id: string
@@ -13,7 +13,9 @@ export interface UserView {
   username: string
   email: string
   role: UserRole
-  source: 'local' | 'ldap'
+  source: 'local' | 'ldap' | 'sso' | 'scim'
+  mfaEnabled: boolean
+  groups: string[]
   disabled: boolean
   disabledReason: string
   // RFC 3339; '' when unknown or never.
@@ -79,6 +81,7 @@ export interface LdapSettings {
   nameAttribute: string
   allowedGroupDn: string
   adminGroupDn: string
+  roleMappings: { group: string, role: UserRole }[]
   autoCreateUsers: boolean
   localLogin: LdapLocalLoginName
   breakGlassLogins: string[]
@@ -100,6 +103,8 @@ export interface LdapUserLookup {
   groups: string[]
   allowed: boolean
   admin: boolean
+  // The role the admin group and the rules give them.
+  role: UserRole
   userId: string
 }
 
@@ -146,7 +151,7 @@ export function emptyLdapSettings(): LdapSettings {
     emailAttribute: 'mail',
     nameAttribute: 'cn',
     allowedGroupDn: '',
-    adminGroupDn: '',
+    adminGroupDn: '', roleMappings: [],
     autoCreateUsers: true,
     localLogin: 'fallback',
     breakGlassLogins: [],

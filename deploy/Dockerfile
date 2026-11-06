@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # harness server: one container, four processes under s6-overlay (docs/PLAN.md §1.7):
-#   core      Nitro server (packages/core), Node 24, public :3000
+#   core      Nitro server (packages/core), Node 24, public :3000; also serves the web UI (packages/ui)
 #   postgres  Postgres 17, unix socket /run/postgresql only, data in /data/postgres
 #   searxng   SearXNG under granian, 127.0.0.1:8888 only
 #   objects   Garage, the S3 object store, 127.0.0.1:3900 only, data in /data/objects
@@ -30,6 +30,20 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
       --network-concurrency 8 --fetch-retries 6
 COPY packages/core/ ./
 RUN pnpm build
+
+# ---------------------------------------------------------------------------------------------
+# web UI: static files from `nuxt generate`, in the "web" transport (a client to connect to, or the console for what needs
+# none). No scripts at install: postinstall's `nuxt prepare` needs the sources, copied after the install for its cache.
+FROM node:${NODE_VERSION}-trixie-slim AS ui-build
+ARG PNPM_VERSION=11.8.0
+RUN npm install -g --no-fund --no-audit pnpm@${PNPM_VERSION}
+WORKDIR /src
+COPY packages/ui/package.json packages/ui/pnpm-lock.yaml packages/ui/pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only \
+      --network-concurrency 8 --fetch-retries 6
+COPY packages/ui/ ./
+RUN NUXT_PUBLIC_TRANSPORT=web pnpm generate
 
 # ---------------------------------------------------------------------------------------------
 # searxng: pinned upstream commit (SearXNG publishes no release tags) in a venv under /opt/searxng.
@@ -126,6 +140,7 @@ COPY --from=searxng-build /opt/searxng /opt/searxng
 COPY --from=garage /garage/ /
 COPY --from=core-build /src/.output /app
 COPY --from=core-build /src/prompts /app/prompts
+COPY --from=ui-build /src/.output/public /app/web
 COPY deploy/rootfs/ /
 
 # The release workflow passes the tag's version; /api/health reports it. Set last so it costs no cached layer.
@@ -137,6 +152,7 @@ ENV PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:${PATH}" \
     PORT=3000 \
     HARNESS_DATA_DIR=/data/core \
     HARNESS_PROMPTS_DIR=/app/prompts \
+    HARNESS_WEB_DIR=/app/web \
     HARNESS_PUBLIC_URL=http://localhost:3000 \
     HARNESS_SEARXNG_URL=http://127.0.0.1:8888 \
     HARNESS_S3_ENDPOINT=http://127.0.0.1:3900 \

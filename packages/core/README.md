@@ -67,6 +67,9 @@ See [`.env.example`](.env.example). The important ones:
 | `HARNESS_S3_ENDPOINT`, `HARNESS_S3_ACCESS_KEY`, `HARNESS_S3_SECRET_KEY` (or `HARNESS_S3_CREDENTIALS_FILE`), `HARNESS_S3_BUCKET`, `HARNESS_S3_REGION` | unset: files in `$HARNESS_DATA_DIR/objects` | The object store (`src/services/blobstore.ts`); the image sets them for its Garage, see [`deploy/README.md`](../../deploy/README.md) |
 | `HARNESS_OBJECTS_MAX_FILE_BYTES`, `HARNESS_OBJECTS_QUOTA_BYTES`, `HARNESS_OBJECTS_SWEEP_MS` | 1 GiB, 10 GiB, 6 hours | Largest file, per-user quota (negative: unlimited; per user or role: `objects_bytes` in `/api/admin/quotas`), how often orphans are removed (`0`: never) |
 | `HARNESS_PROMPTS_DIR` | `./prompts` | Prompt files (see [`prompts/README.md`](prompts/README.md)) |
+| `HARNESS_WEB_DIR` | unset | The built web UI, served at `/` |
+| `HARNESS_AUDIT_WEBHOOK_URL`, `HARNESS_AUDIT_WEBHOOK_SECRET`, `HARNESS_AUDIT_SYSLOG_URL`, `HARNESS_AUDIT_RETENTION_DAYS` | unset | Forward the audit log to a SIEM, and how long to keep it; see [`deploy/README.md`](../../deploy/README.md#audit-log-and-telemetry) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` and the other `OTEL_*` | unset: off | Metrics and traces over OTLP/HTTP; same place |
 | `HARNESS_DEVICE_RATE_LIMIT_PER_MIN` | `30` | Per-IP token bucket (burst and refill per minute) for `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, each limited separately; `0` disables |
 | `HARNESS_TRUST_PROXY` | `false` | Take the client IP from the rightmost `X-Forwarded-For` entry (set when behind a reverse proxy) |
 | `HARNESS_SYNC_TOMBSTONE_DAYS` | `30` | Tombstone retention (minimum 30) |
@@ -88,6 +91,7 @@ See [`.env.example`](.env.example). The important ones:
 | Service | Methods |
 |---|---|
 | `harness.auth.v1.DeviceAuthService` | `StartDeviceAuth`, `PollDeviceAuth`, `RefreshAccessToken`, `GetMe`, `Logout`, `ListDevices`, `RevokeDevice` |
+| `harness.auth.v1.SsoService`, `MfaService`, `DirectoryService`, `BillingService`, `AuditService`, `PolicyService` | Running the server in an organization: identity providers, second factor, groups and SCIM tokens, quotas and usage CSV, audit log, managed policy. What each role may call is `src/auth/roles.ts` |
 | `harness.llm.v1.GatewayService` | `ListModels`, `StreamMessage` (server streaming), `CountTokens` |
 | `harness.prompts.v1.PromptService` | `GetBundle` |
 | `harness.sync.v1.SyncService` | `ListChanges`, `WatchChanges` (server streaming), `GetDocument`, `PutDocument`, `BatchPutDocuments`, `DeleteDocument`, `UpsertSession`, `AppendSessionEvents`, `GetSession`, `ListSessions`, `GetSessionTranscript` |
@@ -96,7 +100,7 @@ See [`.env.example`](.env.example). The important ones:
 | `harness.mcp.v1.McpService` | Registry (`List/Get/Create/Update/DeleteServer`), OAuth (`StartOAuth`, `GetOAuthFlow`, `GetAuthStatus`, `RevokeAuth`), devices (`ReportDeviceStatus`, `ListDeviceStatus`, `IssueStdioLaunch`), proxy (`ListTools`, `ListPrompts`, `ListResources`, `CallTool` (server streaming), `GetPrompt`, `ReadResource`), `GetToolCatalog` (see MCP) |
 | `harness.vcs.v1.VcsService` | Connections (admin: `ListConnections`, `GetGitHubAppManifest`, `CompleteGitHubAppManifest`, `PutConnection`, `DeleteConnection`), user auth (`StartUserAuth`, `GetUserAuthStatus`, `RevokeUserAuth`), PRs / CI (`ListRepositories`, `List/Get/Create/MergePullRequest`, `SetAutoMerge`, `ListReviewComments`, `PostComment`, `ListChecks`, `GetCheckLog`), sessions (`LinkSession`, `SetAutoFix`), `WatchEvents` (server streaming), device providers (`ReportDeviceProviders`, `ReportDeviceSnapshot`) (see Code hosts) |
 
-Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`.
+Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`. The web console also reaches the administration services with its session cookie, from its own origin only (`src/rpc/context.ts`). SCIM 2.0 is plain HTTP under `/scim/v2`, identity provider sign-in under `/api/sso/:id`.
 Errors carry a `harness.common.v1.ErrorInfo` detail.
 
 **Transport.** The main HTTP port (Nitro) serves the **Connect** and **gRPC-Web** protocols (HTTP/1.1, or HTTP/2

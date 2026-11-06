@@ -1,10 +1,18 @@
 <script setup lang="ts">
+import type { ManagedPolicyView } from '~/lib/transport/types'
+
 // Settings (the body of SettingsModal): sections on the left with a filter, the chosen one on the right
 // (?settings=<section>). General edits the defaults the new-session screen starts from (the same localStorage key
 // it remembers its last choices in).
 
+const props = defineProps<{
+  // The web console without a client: only what talks to the server itself.
+  serverOnly?: boolean
+}>()
+
 const store = useSessionStore()
 const modal = useSettingsModal()
+const access = useAccess()
 
 // Grouped like the nav shows them: you, this app, the AI services, the server (admins), the product.
 const SECTIONS = [
@@ -21,19 +29,31 @@ const SECTIONS = [
   { key: 'computer', label: 'Computer use', icon: 'monitor', group: 'ai' },
   { key: 'users', label: 'Users', icon: 'shield', group: 'server' },
   { key: 'ldap', label: 'LDAP', icon: 'link', group: 'server' },
+  { key: 'sso', label: 'SSO', icon: 'link', group: 'server' },
+  { key: 'provisioning', label: 'Provisioning', icon: 'download', group: 'server' },
+  { key: 'audit', label: 'Audit log', icon: 'chart', group: 'server' },
+  { key: 'policy', label: 'Managed policy', icon: 'shield', group: 'server' },
   { key: 'about', label: 'About', icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
 
-// Users and LDAP are for admins only (the server enforces it too). The web has no role from the shell: ask the server.
-const isAdmin = ref(store.account.role === 'admin')
+// Server sections follow what the user's role allows (the server enforces it too).
+const CAPABILITY: Partial<Record<Section, string>> = { users: 'users.read', ldap: 'sign_in.read', sso: 'sign_in.read', provisioning: 'sign_in.read', audit: 'audit.read', policy: 'policy.read' }
+// Without the right to read it, the managed policy still shows when it imposes something on this user.
+const policyApplies = ref(false)
+const managed = ref<ManagedPolicyView | null>(null)
 onMounted(async () => {
+  await access.load()
   try {
-    if (store.transport) isAdmin.value = await store.transport.users().isAdmin()
+    if (!props.serverOnly) {
+      managed.value = (await store.transport?.getUserPreferences())?.managedPolicy ?? null
+      policyApplies.value = managed.value?.active ?? false
+    }
   } catch {
-    // Keep what the shell said.
+    // Then it does not show here; the client enforces it all the same.
   }
 })
+const SERVER_ONLY: Section[] = ['account', 'usage', 'models', 'users', 'ldap', 'sso', 'provisioning', 'audit', 'policy']
 // What each section holds, so the filter finds "theme" under Appearance and "LDAP" under Users.
 const KEYWORDS: Record<Section, string> = {
   usage: 'tokens cost spend money statistics chart',
@@ -47,12 +67,22 @@ const KEYWORDS: Record<Section, string> = {
   speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
   computer: 'computer use desktop apps control screen recording accessibility permissions click type',
   account: 'sign out server user',
-  users: 'admin users roles passwords',
+  users: 'admin users roles passwords quotas limits spend budget groups auditor billing',
   ldap: 'ldap directory active directory sign in bind',
+  sso: 'sso single sign-on oidc saml identity provider okta entra two-factor mfa totp require',
+  provisioning: 'scim provisioning okta azure entra tokens groups',
+  audit: 'audit log compliance events sign-ins csv export',
+  policy: 'managed policy permission rules sandbox required allowed providers mcp servers administrator',
   about: 'version about'
 }
 const query = ref('')
-const allowed = computed(() => SECTIONS.filter(s => s.group !== 'server' || isAdmin.value))
+const allowed = computed(() => SECTIONS.filter((s) => {
+  if (props.serverOnly && !SERVER_ONLY.includes(s.key)) return false
+  if (s.group !== 'server') return true
+  if (s.key === 'policy' && policyApplies.value) return true
+  const cap = CAPABILITY[s.key]
+  return !cap || access.can(cap)
+}))
 const sections = computed(() => {
   const q = query.value.trim().toLowerCase()
   return q ? allowed.value.filter(s => `${s.label} ${KEYWORDS[s.key]}`.toLowerCase().includes(q)) : allowed.value
@@ -60,7 +90,7 @@ const sections = computed(() => {
 
 // Old links (?settings=general) open Appearance.
 const section = computed<Section>({
-  get: () => allowed.value.find(s => s.key === modal.section.value)?.key ?? 'appearance',
+  get: () => allowed.value.find(s => s.key === modal.section.value)?.key ?? (props.serverOnly ? 'account' : 'appearance'),
   set: v => modal.setSection(v)
 })
 
@@ -127,6 +157,18 @@ const notifications = computed({
       <SettingsSandbox v-else-if="section === 'sandbox'" />
 
       <template v-else-if="section === 'sessions'">
+        <template v-if="managed?.active">
+          <h2 class="set-h">
+            Set by your administrator
+          </h2>
+          <p class="set-sub">
+            This comes first. Nothing here or in a project's settings can change it.
+          </p>
+          <SettingsManagedNotice
+            :policy="managed"
+            class="mb-6"
+          />
+        </template>
         <SettingsModes />
         <h2 class="set-h">
           New sessions
@@ -163,11 +205,24 @@ const notifications = computed({
       <SettingsImport v-else-if="section === 'import'" />
 
       <template v-else-if="section === 'models' || section === 'classifiers'">
+        <p
+          v-if="section === 'models' && (managed?.restrictProviders || managed?.personalProvidersDisabled)"
+          role="status"
+          class="m-0 mb-4 border border-default px-3 py-2 text-[12px] text-toned"
+        >
+          Set by your administrator:
+          <template v-if="managed?.restrictProviders">
+            only {{ managed.allowedProviders.join(', ') || 'no providers' }} may be used.
+          </template>
+          <template v-if="managed?.personalProvidersDisabled">
+            Personal providers are not allowed.
+          </template>
+        </p>
         <SettingsProviders
           :key="section"
           :group="section === 'models' ? 'llm' : 'classifier'"
         />
-        <template v-if="section === 'models'">
+        <template v-if="section === 'models' && !serverOnly">
           <SettingsLocalModels />
           <SettingsAcpAgents />
         </template>
@@ -180,6 +235,14 @@ const notifications = computed({
       <SettingsUsers v-else-if="section === 'users'" />
 
       <SettingsLdap v-else-if="section === 'ldap'" />
+
+      <SettingsSso v-else-if="section === 'sso'" />
+
+      <SettingsProvisioning v-else-if="section === 'provisioning'" />
+
+      <SettingsAudit v-else-if="section === 'audit'" />
+
+      <SettingsManagedPolicy v-else-if="section === 'policy'" />
 
       <SettingsAccount v-else-if="section === 'account'" />
 

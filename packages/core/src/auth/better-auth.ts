@@ -88,6 +88,11 @@ function createAuth() {
             if (!sso.break_glass_logins.includes(login)) throw new APIError("FORBIDDEN", { message: "Sign in with your organization's identity provider." });
           }
         }
+        // Afterwards the session is gone, and with it who this was.
+        if (ctx.path === "/sign-out") {
+          const s = await getSessionFromCtx(ctx);
+          if (s) await record({ action: "auth.sign_out", actor: { id: s.user.id, label: s.user.email, ip: ctx.request?.headers.get(AUTH_PEER_IP_HEADER) ?? "" } });
+        }
         // A session that owes its second factor is good for nothing else.
         if (ctx.request?.headers.get("cookie") && !PENDING_ALLOWED.some((p) => ctx.path.startsWith(p))) {
           const s = (await getSessionFromCtx(ctx)) as { session?: { mfaPending?: boolean } } | null;
@@ -97,12 +102,8 @@ function createAuth() {
       // Sign-ins, failed or not, go to the audit log. Only the login is recorded, never what came with it.
       after: createAuthMiddleware(async (ctx) => {
         const method = SIGN_IN_METHOD[ctx.path];
-        if (!method && ctx.path !== "/sign-out") return;
+        if (!method) return;
         const ip = ctx.request?.headers.get(AUTH_PEER_IP_HEADER) ?? "";
-        if (ctx.path === "/sign-out") {
-          await record({ action: "auth.sign_out", actor: { ip } });
-          return;
-        }
         const fresh = ctx.context.newSession;
         if (fresh) {
           const pending = (fresh.session as { mfaPending?: boolean }).mfaPending === true;
