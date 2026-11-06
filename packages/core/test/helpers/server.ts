@@ -14,6 +14,7 @@ import { BillingService } from "../../src/gen/harness/auth/v1/billing_pb.ts";
 import { DirectoryService } from "../../src/gen/harness/auth/v1/directory_pb.ts";
 import { MfaService } from "../../src/gen/harness/auth/v1/mfa_pb.ts";
 import { PolicyService } from "../../src/gen/harness/auth/v1/managed_policy_pb.ts";
+import { SkillSearchService } from "../../src/gen/harness/skills/v1/search_pb.ts";
 import { SsoService } from "../../src/gen/harness/auth/v1/sso_pb.ts";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
@@ -58,6 +59,7 @@ export interface TestServer {
     prompts: Client<typeof PromptService>;
     sync: Client<typeof SyncService>;
     mcp: Client<typeof McpService>;
+    skills: Client<typeof SkillSearchService>;
     relay: Client<typeof RelayService>;
     vcs: Client<typeof VcsService>;
     audit: Client<typeof AuditService>;
@@ -127,6 +129,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       prompts: createClient(PromptService, transport),
       sync: createClient(SyncService, transport),
       mcp: createClient(McpService, transport),
+      skills: createClient(SkillSearchService, transport),
       relay: createClient(RelayService, transport),
       vcs: createClient(VcsService, transport),
       audit: createClient(AuditService, transport),

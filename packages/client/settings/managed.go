@@ -34,6 +34,9 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 			DisablePersonal  bool            `json:"disablePersonalProviders"`
 			AllowedMcp       *[]string       `json:"allowedMcpServers"`
 			DisableLocal     json.RawMessage `json:"disableLocalModels"`
+			AllowedSkills    *[]string       `json:"allowedSkills"`
+			BlockedSkills    []string        `json:"blockedSkills"`
+			NoSkillSearch    bool            `json:"disableExternalSkillSearch"`
 		}
 		if json.Unmarshal([]byte(d.GetContent()), &raw) != nil {
 			continue
@@ -54,6 +57,12 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 			m.RestrictMcpServers = true
 		}
 		m.LocalModelsDisabled = m.LocalModelsDisabled || disableFlag(raw.DisableLocal)
+		if raw.AllowedSkills != nil {
+			m.AllowedSkills = intersect(m.RestrictSkills, m.AllowedSkills, *raw.AllowedSkills)
+			m.RestrictSkills = true
+		}
+		m.BlockedSkills = appendNew(m.BlockedSkills, raw.BlockedSkills)
+		m.ExternalSkillSearchDisabled = m.ExternalSkillSearchDisabled || raw.NoSkillSearch
 	}
 	m.DisabledModes = PolicyDisabledModes(docs)
 	return m

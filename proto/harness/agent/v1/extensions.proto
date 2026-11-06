@@ -6,6 +6,7 @@ import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/plugins.proto";
 import "harness/agent/v1/slash_commands.proto";
 import "harness/mcp/v1/mcp.proto";
+import "harness/skills/v1/search.proto";
 
 // The Extensions screen: what this device has (Yours) and what it could add (Discover). The client joins skills, plugins and MCP
 // servers here so a frontend renders rows and sends intent. Changes to plugins and MCP servers still go through PluginService and
@@ -21,6 +22,13 @@ service ExtensionsService {
   rpc CreateSkill(CreateSkillRequest) returns (CreateSkillResponse);
   // Deletes a personal or project skill or command from disk. Refused from another machine.
   rpc RemoveSkill(RemoveSkillRequest) returns (RemoveSkillResponse);
+  // A skill found by external search: what the source holds now, with its audits. Nothing is stored.
+  rpc GetExternalSkill(GetExternalSkillRequest) returns (GetExternalSkillResponse);
+  // Stores a skill found by external search under the personal skills folder, pinned to its hash. It doesn't load until approved.
+  rpc InstallExternalSkill(InstallExternalSkillRequest) returns (InstallExternalSkillResponse);
+  // Lets exactly the content shown run on this device, or takes that back. Refused from another machine.
+  rpc SetExternalSkillApproval(SetExternalSkillApprovalRequest) returns (SetExternalSkillApprovalResponse);
+  rpc RemoveExternalSkill(RemoveExternalSkillRequest) returns (RemoveExternalSkillResponse);
 }
 
 enum ExtensionKind {
@@ -53,6 +61,35 @@ message ExtensionSkill {
   bool can_remove = 4;
   // The folder to reveal; empty for what isn't on disk.
   string folder = 5;
+  // The organization's policy keeps it from running: no switch of the user's changes that.
+  bool blocked_by_policy = 6;
+  // It was installed from external search.
+  InstalledExternalSkill external = 7;
+}
+
+// A skill stored from external search, and this device's decision on it.
+message InstalledExternalSkill {
+  // The source's id.
+  string id = 1;
+  string source = 2;
+  // The folder's name, and what approving and removing go by.
+  string name = 3;
+  string description = 4;
+  // The source's hash when it was stored.
+  string pinned_hash = 5;
+  // The files on disk, which is what is approved.
+  string content_hash = 6;
+  bool approved = 7;
+  // The files stopped matching what was stored.
+  bool changed_on_disk = 8;
+  // What the source said when it was stored.
+  repeated harness.skills.v1.SkillAudit audits = 9;
+  string license = 10;
+  int64 installs = 11;
+  // RFC 3339, UTC.
+  string installed_at = 12;
+  string folder = 13;
+  repeated string files = 14;
 }
 
 // Rows under one source. Keys: "project", "personal", "imported", "organization", "plugin:<id>", "builtin".
@@ -68,6 +105,10 @@ message ListExtensionSkillsResponse {
   string cwd = 2;
   bool folder_trusted = 3;
   bool project_skipped_untrusted = 4;
+  // What the organization says about skills, for a person; empty when nothing.
+  string policy_note = 5;
+  // Stored from external search and waiting for this device's approval, or changed since. They don't load.
+  repeated ExtensionSkill waiting = 6;
 }
 
 message ExtensionPlugin {
@@ -101,6 +142,8 @@ message ExtensionMarketplace {
   string problem = 8;
   int32 plugin_count = 9;
   int32 installed_count = 10;
+  // It ships with the client: it can't be removed.
+  bool builtin = 11;
 }
 
 message ListExtensionPluginsResponse {
@@ -205,14 +248,18 @@ message DiscoverItem {
   string refusal = 14;
   // What InstallPlugin takes; set for skills and plugins.
   string plugin_id = 15;
-  // Set when the item is a marketplace to add: what AddPluginMarketplace takes.
-  string marketplace_source = 16;
+  // The source's count of installs; 0 when it gives none. Only external search has one.
+  int64 installs = 16;
   // What it holds, when the files are at hand. A plugin in a repository of its own says this once installed.
   PluginContents contents = 17;
   // Set for connectors.
   repeated ConnectorOption options = 18;
   // What is in the way of reading the entry.
   string problem = 19;
+  // Set when it comes from external search: what GetExternalSkill and InstallExternalSkill take.
+  string external_id = 20;
+  // The source's audits, as it gives them. None: not known, which isn't a pass.
+  repeated harness.skills.v1.SkillAudit audits = 21;
 }
 
 message DiscoverSection {
@@ -263,6 +310,10 @@ message DiscoverExtensionsResponse {
   string registry_problem = 6;
   // The registry isn't asked: turned off, or the policy allows no server from it.
   bool registry_off = 7;
+  // External skill search couldn't answer; what else is shown still stands. For a person.
+  string external_problem = 8;
+  // The organization turned external skill search off.
+  bool external_blocked_by_policy = 9;
 }
 
 message GetSkillDetailRequest {
@@ -301,3 +352,48 @@ message RemoveSkillRequest {
 }
 
 message RemoveSkillResponse {}
+
+message GetExternalSkillRequest {
+  string id = 1;
+}
+
+message GetExternalSkillResponse {
+  // The source's hash of what these files are.
+  string hash = 1;
+  repeated harness.skills.v1.SkillFile files = 2;
+  repeated harness.skills.v1.SkillAudit audits = 3;
+  // From the skill's own frontmatter; empty when it doesn't say.
+  string license = 4;
+  string description = 5;
+  int64 installs = 6;
+  // Installing it would mean the folder of this name.
+  string name = 7;
+  string source = 8;
+  // It is installed already.
+  bool installed = 9;
+}
+
+message InstallExternalSkillRequest {
+  string id = 1;
+  // ExternalSkill hash that was shown: other content is refused.
+  string hash = 2;
+}
+
+message InstallExternalSkillResponse {
+  InstalledExternalSkill skill = 1;
+}
+
+message SetExternalSkillApprovalRequest {
+  string name = 1;
+  bool approved = 2;
+  // InstalledExternalSkill.content_hash of what was shown. Required to approve.
+  string content_hash = 3;
+}
+
+message SetExternalSkillApprovalResponse {}
+
+message RemoveExternalSkillRequest {
+  string name = 1;
+}
+
+message RemoveExternalSkillResponse {}

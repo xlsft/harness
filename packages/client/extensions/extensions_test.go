@@ -2,7 +2,9 @@ package extensions_test
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
+	"io/fs"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,6 +18,7 @@ import (
 	"github.com/xlsft/harness/packages/client/extensions"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	mcpv1 "github.com/xlsft/harness/packages/client/gen/harness/mcp/v1"
+	skillsv1 "github.com/xlsft/harness/packages/client/gen/harness/skills/v1"
 	"github.com/xlsft/harness/packages/client/plugins"
 )
 
@@ -158,13 +161,8 @@ func TestDefaultCatalogIsSound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Marketplaces) == 0 || len(c.Connectors) == 0 {
+	if len(c.Connectors) == 0 {
 		t.Fatal("the catalog is empty")
-	}
-	for _, m := range c.Marketplaces {
-		if _, err := plugins.ParseSource(m.Source); err != nil {
-			t.Errorf("%s: %v", m.ID, err)
-		}
 	}
 	for _, s := range c.Connectors {
 		if (s.URL == "") == (s.Command == "") {
@@ -351,32 +349,6 @@ func TestDiscoverReadsMarketplacesAndInventsNothing(t *testing.T) {
 	}
 }
 
-func TestDiscoverOffersCatalogMarketplacesUnlessAddedOrRefused(t *testing.T) {
-	c, _ := extensions.DefaultCatalog()
-	first := c.Marketplaces[0]
-	kind := agentv1.ExtensionKind_EXTENSION_KIND_PLUGIN
-	res := extensions.Discover(context.Background(), &agentv1.DiscoverExtensionsRequest{Kind: kind}, extensions.Inputs{Catalog: c})
-	if res.GetFeatured().GetMarketplaceSource() != first.Source {
-		t.Fatalf("featured %+v", res.GetFeatured())
-	}
-
-	src, _ := plugins.ParseSource(first.Source)
-	added := extensions.Inputs{Catalog: c, Markets: []plugins.MarketListings{{Marketplace: plugins.Marketplace{Name: "x", Source: src}}}}
-	res = extensions.Discover(context.Background(), &agentv1.DiscoverExtensionsRequest{Kind: kind}, added)
-	if findItem(res, "catalog-market:"+first.ID) != nil || res.GetFeatured() != nil {
-		t.Fatalf("an added marketplace is offered: %+v", res)
-	}
-
-	var rules plugins.Policy
-	if err := json.Unmarshal([]byte(`{"allowlists":[[]]}`), &rules); err != nil {
-		t.Fatal(err)
-	}
-	res = extensions.Discover(context.Background(), &agentv1.DiscoverExtensionsRequest{Kind: kind}, extensions.Inputs{Catalog: c, Policy: rules})
-	if findItem(res, "catalog-market:"+first.ID).GetRefusal() == "" || res.GetFeatured() != nil {
-		t.Fatalf("policy isn't told: %+v", res)
-	}
-}
-
 func TestFoldConnectors(t *testing.T) {
 	shared := "https://mcp.asana.example/sse"
 	entries := []*agentv1.McpServerEntry{
@@ -426,5 +398,138 @@ func TestFoldConnectors(t *testing.T) {
 	}
 	if b := by("blocked"); b.GetStatus() != agentv1.ConnectorStatus_CONNECTOR_STATUS_BLOCKED {
 		t.Fatalf("blocked %+v", b)
+	}
+}
+
+// fakeSearch is external skill search with canned answers.
+type fakeSearch struct {
+	available bool
+	reason    string
+	err       error
+	asked     []string
+}
+
+func (f *fakeSearch) Available(context.Context) (bool, string, error) {
+	return f.available, f.reason, nil
+}
+
+func (f *fakeSearch) Search(_ context.Context, q string, _ int) ([]*skillsv1.ExternalSkill, error) {
+	f.asked = append(f.asked, "search:"+q)
+	if f.err != nil {
+		return nil, f.err
+	}
+	return []*skillsv1.ExternalSkill{{Id: "acme/skills/pdf", Name: "PDF", Slug: "pdf", Source: "acme/skills", Installs: 42, Audits: []*skillsv1.SkillAudit{{Provider: "Socket", Status: "warn"}}}}, nil
+}
+
+func (f *fakeSearch) Curated(context.Context, int) ([]*skillsv1.ExternalSkill, error) {
+	f.asked = append(f.asked, "curated")
+	return []*skillsv1.ExternalSkill{{Id: "acme/skills/big", Name: "Big", Slug: "big", Source: "acme/skills"}}, nil
+}
+
+func (f *fakeSearch) Snapshot(context.Context, string) (*skillsv1.GetSkillSnapshotResponse, error) {
+	return nil, errors.New("not used here")
+}
+
+func TestDiscoverExternalSearch(t *testing.T) {
+	kind := agentv1.ExtensionKind_EXTENSION_KIND_SKILL
+	ctx := context.Background()
+	f := &fakeSearch{available: true}
+	in := extensions.Inputs{Search: f, ExternalInstalled: map[string]bool{"acme/skills/pdf": true}}
+
+	over := extensions.Discover(ctx, &agentv1.DiscoverExtensionsRequest{Kind: kind}, in)
+	if findItem(over, "external:acme/skills/big") == nil || !slices.Equal(f.asked, []string{"curated"}) {
+		t.Fatalf("overview %+v, asked %v", over.GetSections(), f.asked)
+	}
+	res := extensions.Discover(ctx, &agentv1.DiscoverExtensionsRequest{Kind: kind, Query: "pdf"}, in)
+	it := findItem(res, "external:acme/skills/pdf")
+	if it == nil || it.GetInstalls() != 42 || it.GetAudits()[0].GetStatus() != "warn" || it.GetPublisher() != "acme" || it.GetSourceLabel() != extensions.LabelExternal || !it.GetInstalled() {
+		t.Fatalf("item %+v", it)
+	}
+
+	// Hidden: no token on the server, or the policy.
+	for _, c := range []extensions.Inputs{{Search: &fakeSearch{reason: "not_configured"}}, {}} {
+		if r := extensions.Discover(ctx, &agentv1.DiscoverExtensionsRequest{Kind: kind}, c); len(r.GetSections()) != 0 || r.GetExternalProblem() != "" || r.GetExternalBlockedByPolicy() {
+			t.Fatalf("not hidden: %+v", r)
+		}
+	}
+	blocked := &fakeSearch{available: true}
+	if r := extensions.Discover(ctx, &agentv1.DiscoverExtensionsRequest{Kind: kind}, extensions.Inputs{Search: blocked, ExternalBlocked: true}); !r.GetExternalBlockedByPolicy() || len(blocked.asked) != 0 {
+		t.Fatalf("the policy didn't stop it: %+v, asked %v", r, blocked.asked)
+	}
+
+	// Down: the rest stands.
+	down := &fakeSearch{available: true, err: errors.New("no")}
+	if r := extensions.Discover(ctx, &agentv1.DiscoverExtensionsRequest{Kind: kind, Query: "pdf"}, extensions.Inputs{Search: down}); r.GetExternalProblem() == "" {
+		t.Fatalf("no problem told: %+v", r)
+	}
+}
+
+func TestBuiltinMarketplaceIsFeaturedAndStays(t *testing.T) {
+	ctx := context.Background()
+	m := &plugins.Manager{Root: filepath.Join(t.TempDir(), "plugins"), PolicyOf: func() plugins.Policy { return plugins.Policy{} }}
+	if err := extensions.EnsureBuiltin(ctx, m); err != nil {
+		t.Fatal(err)
+	}
+	markets, err := m.Browse()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(markets) != 1 || !markets[0].Builtin || len(markets[0].Listings) == 0 {
+		t.Fatalf("%+v", markets)
+	}
+	res := extensions.Discover(ctx, &agentv1.DiscoverExtensionsRequest{Kind: agentv1.ExtensionKind_EXTENSION_KIND_SKILL}, extensions.Inputs{Markets: markets})
+	if res.GetFeatured() == nil || res.GetFeatured().GetKind() != agentv1.ExtensionKind_EXTENSION_KIND_SKILL {
+		t.Fatalf("featured %+v", res.GetFeatured())
+	}
+	if err := m.RemoveMarketplace(markets[0].Name); err == nil {
+		t.Fatal("the built-in marketplace was removed")
+	}
+	if _, err := m.Install(ctx, res.GetFeatured().GetPluginId()); err != nil {
+		t.Fatalf("install: %v", err)
+	}
+	list, err := m.List(plugins.Place{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 1 || list[0].Status != plugins.StatusNeedsApproval {
+		t.Fatalf("installing skipped the approval: %+v", list)
+	}
+
+	// A policy that refuses local sources leaves it out without a fuss.
+	refusing := &plugins.Manager{Root: filepath.Join(t.TempDir(), "plugins"), PolicyOf: func() plugins.Policy { return plugins.Policy{Allowlists: [][]plugins.Rule{{}}} }}
+	if err := extensions.EnsureBuiltin(ctx, refusing); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := refusing.Browse(); len(got) != 0 {
+		t.Fatalf("registered against policy: %+v", got)
+	}
+}
+
+// The embedded copy must be the repository's catalog/, once there is one.
+func TestBuiltinMatchesTheCatalogFolder(t *testing.T) {
+	catalog := filepath.Join("..", "..", "..", "catalog")
+	if _, err := os.Stat(catalog); err != nil {
+		t.Skip("no catalog/ in this tree yet")
+	}
+	read := func(root string) map[string]string {
+		out := map[string]string{}
+		if err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return err
+			}
+			data, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			rel, _ := filepath.Rel(root, p)
+			out[rel] = string(data)
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	if !maps.Equal(read(catalog), read("builtin")) {
+		t.Fatal("extensions/builtin is stale: run scripts/sync-catalog.sh")
 	}
 }

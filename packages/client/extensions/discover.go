@@ -9,6 +9,7 @@ import (
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	mcpv1 "github.com/xlsft/harness/packages/client/gen/harness/mcp/v1"
+	skillsv1 "github.com/xlsft/harness/packages/client/gen/harness/skills/v1"
 	"github.com/xlsft/harness/packages/client/plugins"
 )
 
@@ -20,7 +21,7 @@ const (
 
 // Section keys.
 const (
-	sectionAdd      = "add-marketplace"
+	sectionExternal = "external"
 	sectionCatalog  = "catalog"
 	sectionRegistry = "registry"
 	sectionResults  = "results"
@@ -46,26 +47,12 @@ type Inputs struct {
 	ServerAllowed func(name string) bool
 	// RemoteDefault is where a remote server goes unless the user says otherwise.
 	RemoteDefault agentv1.McpServerSource
-}
-
-func marketplaceItems(c *Catalog, in Inputs, kind string) []*agentv1.DiscoverItem {
-	added := map[string]bool{}
-	for _, m := range in.Markets {
-		added[strings.ToLower(m.Source.String())] = true
-	}
-	var out []*agentv1.DiscoverItem
-	for _, m := range c.Marketplaces {
-		if !slices.Contains(m.Kinds, kind) || added[strings.ToLower(m.Source)] {
-			continue
-		}
-		it := &agentv1.DiscoverItem{Id: "catalog-market:" + m.ID, Kind: agentv1.ExtensionKind_EXTENSION_KIND_PLUGIN, Name: m.Name, Description: m.Description, Publisher: m.Publisher,
-			SourceLabel: LabelCatalog, Homepage: m.Homepage, MarketplaceSource: m.Source}
-		if s, err := plugins.ParseSource(m.Source); err == nil {
-			it.Refusal = in.Policy.SourceRefusal(s)
-		}
-		out = append(out, it)
-	}
-	return out
+	// Search is external skill search; nil: there is none.
+	Search SkillSearch
+	// ExternalBlocked says the organization turned it off.
+	ExternalBlocked bool
+	// ExternalInstalled holds the ids already stored.
+	ExternalInstalled map[string]bool
 }
 
 func listingContents(l plugins.Listing) *agentv1.PluginContents {
@@ -313,8 +300,8 @@ func optionKind(it *agentv1.DiscoverItem, want string) bool {
 }
 
 func keep(it *agentv1.DiscoverItem, req *agentv1.DiscoverExtensionsRequest) bool {
-	// What the registry itself matched for the query may match on what isn't shown; it stays.
-	if it.GetSourceLabel() != LabelRegistry && !matches(it, req.GetQuery()) {
+	// What the registry or the skill search matched for the query may match on what isn't shown; it stays.
+	if it.GetSourceLabel() != LabelRegistry && it.GetSourceLabel() != LabelExternal && !matches(it, req.GetQuery()) {
 		return false
 	}
 	if c := req.GetCategory(); c != "" && !strings.EqualFold(it.GetCategory(), c) {
@@ -361,7 +348,7 @@ func Discover(ctx context.Context, req *agentv1.DiscoverExtensionsRequest, in In
 	if req.GetKind() == agentv1.ExtensionKind_EXTENSION_KIND_CONNECTOR {
 		sections = connectorSections(ctx, req, in, res)
 	} else {
-		sections = pluginSections(req, in, res)
+		sections = pluginSections(ctx, req, in, res)
 	}
 	res.Sources = sourcesOf(sections)
 	searching := req.GetQuery() != "" || req.GetCategory() != "" || req.GetSource() != "" || req.GetConnectorType() != "" || req.GetHideInstalled()
@@ -426,7 +413,7 @@ func Discover(ctx context.Context, req *agentv1.DiscoverExtensionsRequest, in In
 	return res
 }
 
-func pluginSections(req *agentv1.DiscoverExtensionsRequest, in Inputs, res *agentv1.DiscoverExtensionsResponse) []*agentv1.DiscoverSection {
+func pluginSections(ctx context.Context, req *agentv1.DiscoverExtensionsRequest, in Inputs, res *agentv1.DiscoverExtensionsResponse) []*agentv1.DiscoverSection {
 	kind := "plugins"
 	if req.GetKind() == agentv1.ExtensionKind_EXTENSION_KIND_SKILL {
 		kind = "skills"
@@ -437,22 +424,35 @@ func pluginSections(req *agentv1.DiscoverExtensionsRequest, in Inputs, res *agen
 	markets := slices.Clone(in.Markets)
 	// What the organization distributes comes first.
 	slices.SortStableFunc(markets, func(a, b plugins.MarketListings) int {
-		switch {
-		case a.Managed == b.Managed:
-			return 0
-		case a.Managed:
-			return -1
+		rank := func(m plugins.MarketListings) int {
+			switch {
+			case m.Managed:
+				return 0
+			case m.Builtin:
+				return 1
+			}
+			return 2
 		}
-		return 1
+		return rank(a) - rank(b)
 	})
 	for _, mk := range markets {
 		s := &agentv1.DiscoverSection{Key: marketPrefix + mk.Name, Title: mk.Name}
+		if mk.Builtin {
+			s.Title = "The xlsft`s harness catalog"
+		}
 		for _, l := range mk.Listings {
 			items := []*agentv1.DiscoverItem{listingItem(l, mk)}
 			if kind == "skills" {
 				items = skillItems(l, mk)
 			}
 			s.Items = append(s.Items, items...)
+			if mk.Builtin && res.Featured == nil {
+				if i := slices.IndexFunc(items, func(it *agentv1.DiscoverItem) bool {
+					return !it.GetInstalled() && it.GetRefusal() == "" && it.GetProblem() == ""
+				}); i >= 0 {
+					res.Featured = items[i]
+				}
+			}
 			if c := l.Meta.Category; c != "" && len(items) > 0 {
 				key := strings.ToLower(c)
 				counts[key] += int32(len(items))
@@ -463,16 +463,9 @@ func pluginSections(req *agentv1.DiscoverExtensionsRequest, in Inputs, res *agen
 		}
 		sections = append(sections, s)
 	}
-	if in.Catalog != nil {
-		add := marketplaceItems(in.Catalog, in, kind)
-		if len(add) > 0 {
-			sections = append(sections, &agentv1.DiscoverSection{Key: sectionAdd, Title: "Marketplaces to add", Items: add})
-		}
-		i := slices.IndexFunc(add, func(it *agentv1.DiscoverItem) bool {
-			return it.GetRefusal() == "" && slices.ContainsFunc(in.Catalog.Marketplaces, func(m CatalogMarketplace) bool { return m.Featured && m.Source == it.GetMarketplaceSource() })
-		})
-		if i >= 0 {
-			res.Featured = add[i]
+	if kind == "skills" {
+		if ext := externalSection(ctx, req, in, res); ext != nil {
+			sections = append(sections, ext)
 		}
 	}
 	for k, n := range counts {
@@ -523,4 +516,42 @@ func connectorSections(ctx context.Context, req *agentv1.DiscoverExtensionsReque
 		}
 	}
 	return append(sections, s)
+}
+
+// externalSection is what external search has: for a query, what it finds; before one, its curated set. Hidden when it isn't available.
+// When it fails, the rest of Discover still stands and the answer says so.
+func externalSection(ctx context.Context, req *agentv1.DiscoverExtensionsRequest, in Inputs, res *agentv1.DiscoverExtensionsResponse) *agentv1.DiscoverSection {
+	if in.ExternalBlocked {
+		res.ExternalBlockedByPolicy = true
+		return nil
+	}
+	if in.Search == nil {
+		return nil
+	}
+	ok, reason, err := in.Search.Available(ctx)
+	if err != nil {
+		res.ExternalProblem = "Skill search can't be reached right now."
+		return nil
+	}
+	if !ok {
+		res.ExternalBlockedByPolicy = reason == "policy"
+		return nil
+	}
+	var found []*skillsv1.ExternalSkill
+	if q := strings.TrimSpace(req.GetQuery()); len(q) >= 2 {
+		found, err = in.Search.Search(ctx, q, 50)
+	} else if req.GetQuery() == "" {
+		found, err = in.Search.Curated(ctx, 50)
+	}
+	if err != nil {
+		res.ExternalProblem = "Skill search can't be reached right now."
+		return nil
+	}
+	s := &agentv1.DiscoverSection{Key: sectionExternal, Title: "From skills.sh"}
+	for _, f := range found {
+		owner, _, _ := strings.Cut(f.GetSource(), "/")
+		s.Items = append(s.Items, &agentv1.DiscoverItem{Id: "external:" + f.GetId(), Kind: agentv1.ExtensionKind_EXTENSION_KIND_SKILL, Name: f.GetName(), Publisher: owner, SourceLabel: LabelExternal,
+			Homepage: f.GetUrl(), Installs: f.GetInstalls(), Audits: f.GetAudits(), ExternalId: f.GetId(), Installed: in.ExternalInstalled[f.GetId()]})
+	}
+	return s
 }

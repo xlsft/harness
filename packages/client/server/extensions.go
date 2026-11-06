@@ -19,6 +19,8 @@ import (
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/extensions"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	skillsv1 "github.com/xlsft/harness/packages/client/gen/harness/skills/v1"
+	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/skills"
 )
 
@@ -76,6 +78,8 @@ func skillGroupRank(key string) int {
 		return 0
 	case key == "personal":
 		return 1
+	case key == "external":
+		return 2
 	case strings.HasPrefix(key, "plugin:"):
 		return 2
 	case key == "imported":
@@ -90,6 +94,12 @@ func skillGroupRank(key string) int {
 func (s *Server) ListExtensionSkills(ctx context.Context, req *connect.Request[agentv1.ListExtensionSkillsRequest]) (*connect.Response[agentv1.ListExtensionSkillsResponse], error) {
 	place := s.pluginPlace(req.Msg.GetCwd())
 	m := s.folderSkills(ctx, place.Cwd)
+	home := config.Home()
+	external, err := skills.ListExternal(home)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	shown := map[string]bool{}
 	_, report := m.Listing(0, true)
 	catalog := slashCatalog(m, report)
 	cat := m.Catalog(false)
@@ -122,12 +132,23 @@ func (s *Server) ListExtensionSkills(ctx context.Context, req *connect.Request[a
 		}
 		sk := byFile[where{c.GetName(), c.GetPath()}]
 		key, title := skillGroupOf(sk, pluginTitle)
+		rec := externalRecordOf(external, home, sk)
+		if rec != nil {
+			key, title = "external", extensions.LabelExternal
+			shown[rec.Name] = true
+		}
 		g := groups[key]
 		if g == nil {
 			g = &agentv1.ExtensionSkillGroup{Key: key, Title: title}
 			groups[key] = g
 		}
-		row := &agentv1.ExtensionSkill{Command: c, PluginId: sk.Plugin, CanRemove: removableSkill(sk)}
+		row := &agentv1.ExtensionSkill{Command: c, PluginId: sk.Plugin, CanRemove: removableSkill(sk) && rec == nil, BlockedByPolicy: cat.BlockedByPolicy(c.GetName())}
+		if row.GetBlockedByPolicy() {
+			c.Switchable = false
+		}
+		if rec != nil {
+			row.External = externalView(home, rec)
+		}
 		if onDisk(sk.Path) {
 			if st, err := os.Stat(sk.Path); err == nil {
 				row.UpdatedAt = st.ModTime().UTC().Format("2006-01-02T15:04:05Z")
@@ -139,6 +160,15 @@ func (s *Server) ListExtensionSkills(ctx context.Context, req *connect.Request[a
 		}
 		g.Skills = append(g.Skills, row)
 	}
+	for name, rec := range external {
+		if !shown[name] {
+			res.Waiting = append(res.Waiting, &agentv1.ExtensionSkill{External: externalView(home, rec)})
+		}
+	}
+	slices.SortFunc(res.Waiting, func(a, b *agentv1.ExtensionSkill) int {
+		return strings.Compare(a.GetExternal().GetName(), b.GetExternal().GetName())
+	})
+	res.PolicyNote = skillPolicyNote(s.Base.ModePolicy.Managed())
 	for _, g := range groups {
 		res.Groups = append(res.Groups, g)
 	}
@@ -161,8 +191,10 @@ func removableSkill(sk skills.Skill) bool {
 }
 
 // ListExtensionPlugins implements ExtensionsService.ListExtensionPlugins.
-func (s *Server) ListExtensionPlugins(_ context.Context, req *connect.Request[agentv1.ListExtensionPluginsRequest]) (*connect.Response[agentv1.ListExtensionPluginsResponse], error) {
+func (s *Server) ListExtensionPlugins(ctx context.Context, req *connect.Request[agentv1.ListExtensionPluginsRequest]) (*connect.Response[agentv1.ListExtensionPluginsResponse], error) {
 	store := bootstrap.PluginStore()
+	// A policy or a read-only home costs the built-in marketplace, not the screen.
+	_ = extensions.EnsureBuiltin(ctx, store)
 	place := s.pluginPlace(req.Msg.GetCwd())
 	list, err := store.List(place)
 	if err != nil {
@@ -218,7 +250,7 @@ func (s *Server) ListExtensionPlugins(_ context.Context, req *connect.Request[ag
 	})
 	for _, mk := range markets {
 		res.Marketplaces = append(res.Marketplaces, &agentv1.ExtensionMarketplace{Name: mk.Name, Description: mk.Description, Source: mk.Source.String(), Commit: mk.Commit, UpdatedAt: mk.UpdatedAt, Managed: mk.Managed,
-			Refusal: mk.Refusal, Problem: mk.Problem, PluginCount: int32(len(mk.Listings)), InstalledCount: counts[mk.Name]})
+			Refusal: mk.Refusal, Problem: mk.Problem, PluginCount: int32(len(mk.Listings)), InstalledCount: counts[mk.Name], Builtin: mk.Builtin})
 	}
 	if suggested := store.Suggestions(place); len(suggested) > 0 {
 		res.SuggestedMarketplaces = map[string]string{}
@@ -273,8 +305,17 @@ func (s *Server) DiscoverExtensions(ctx context.Context, req *connect.Request[ag
 			in.Registry = extensionsRegistry()
 		}
 	} else {
+		_ = extensions.EnsureBuiltin(ctx, store)
 		if in.Markets, err = store.Browse(); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		in.Search = s.SkillSearch
+		in.ExternalBlocked = s.Base.ModePolicy.Managed().ExternalSkillSearchDisabled
+		if stored, err := skills.ListExternal(config.Home()); err == nil {
+			in.ExternalInstalled = map[string]bool{}
+			for _, rec := range stored {
+				in.ExternalInstalled[rec.ID] = true
+			}
 		}
 	}
 	return connect.NewResponse(extensions.Discover(ctx, req.Msg, in)), nil
@@ -391,4 +432,179 @@ func (s *Server) RemoveSkill(ctx context.Context, req *connect.Request[agentv1.R
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&agentv1.RemoveSkillResponse{}), nil
+}
+
+func skillPolicyNote(m permissions.ManagedPolicy) string {
+	var parts []string
+	if m.RestrictSkills || len(m.BlockedSkills) > 0 {
+		parts = append(parts, "Your administrator limits which skills can run.")
+	}
+	if m.ExternalSkillSearchDisabled {
+		parts = append(parts, "Your administrator turned external skill search off.")
+	}
+	return strings.Join(parts, " ")
+}
+
+func externalRecordOf(st map[string]*skills.ExternalRecord, home string, sk skills.Skill) *skills.ExternalRecord {
+	if sk.Dir == "" || filepath.Dir(sk.Dir) != filepath.Join(home, "skills") {
+		return nil
+	}
+	return st[filepath.Base(sk.Dir)]
+}
+
+// externalView says how a stored skill stands now, reading its files.
+func externalView(home string, rec *skills.ExternalRecord) *agentv1.InstalledExternalSkill {
+	dir := filepath.Join(home, "skills", rec.Name)
+	out := &agentv1.InstalledExternalSkill{Id: rec.ID, Source: rec.Source, Name: rec.Name, PinnedHash: rec.PinnedHash, License: rec.License, Installs: rec.Installs, InstalledAt: rec.InstalledAt, Folder: dir}
+	for _, a := range rec.Audits {
+		out.Audits = append(out.Audits, &skillsv1.SkillAudit{Provider: a.Provider, Status: a.Status, Summary: a.Summary, AuditedAt: a.AuditedAt, RiskLevel: a.RiskLevel})
+	}
+	if hash, err := skills.HashSkillDir(dir); err == nil {
+		out.ContentHash = hash
+		out.ChangedOnDisk = hash != rec.ContentHash
+		out.Approved = rec.ApprovedHash != "" && hash == rec.ApprovedHash
+	} else {
+		out.ChangedOnDisk = true
+	}
+	if data, err := os.ReadFile(filepath.Join(dir, skills.SkillFile)); err == nil {
+		out.Description = skills.Parse(string(data), rec.Name, skills.KindSkill).Description
+	}
+	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && len(out.Files) < skillFilesLimit {
+			if rel, err := filepath.Rel(dir, p); err == nil {
+				out.Files = append(out.Files, filepath.ToSlash(rel))
+			}
+		}
+		return nil
+	})
+	return out
+}
+
+var licenseRe = regexp.MustCompile(`(?m)^license:[ \t]*["']?([^"'\n]+?)["']?[ \t]*$`)
+
+// skillLicense reads the license a SKILL.md's frontmatter names.
+func skillLicense(text string) string {
+	rest, ok := strings.CutPrefix(text, "---\n")
+	if !ok {
+		return ""
+	}
+	front, _, ok := strings.Cut(rest, "\n---")
+	if !ok {
+		return ""
+	}
+	if m := licenseRe.FindStringSubmatch(front); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+func (s *Server) externalSearch() (extensions.SkillSearch, error) {
+	if s.Base.ModePolicy.Managed().ExternalSkillSearchDisabled {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("your organization's policy turned external skill search off"))
+	}
+	if s.SkillSearch == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("this client is not connected to an xlsft`s harness server"))
+	}
+	return s.SkillSearch, nil
+}
+
+func snapshotSkillText(files []*skillsv1.SkillFile) string {
+	for _, f := range files {
+		if f.GetPath() == skills.SkillFile {
+			return f.GetContents()
+		}
+	}
+	return ""
+}
+
+// GetExternalSkill implements ExtensionsService.GetExternalSkill.
+func (s *Server) GetExternalSkill(ctx context.Context, req *connect.Request[agentv1.GetExternalSkillRequest]) (*connect.Response[agentv1.GetExternalSkillResponse], error) {
+	search, err := s.externalSearch()
+	if err != nil {
+		return nil, err
+	}
+	snap, err := search.Snapshot(ctx, req.Msg.GetId())
+	if err != nil {
+		return nil, err
+	}
+	sk := snap.GetSkill()
+	text := snapshotSkillText(snap.GetFiles())
+	name := skills.ExternalSkillName(sk.GetSlug())
+	res := &agentv1.GetExternalSkillResponse{Hash: snap.GetHash(), Files: snap.GetFiles(), Audits: sk.GetAudits(), License: skillLicense(text), Installs: sk.GetInstalls(), Name: name, Source: sk.GetSource()}
+	if text != "" {
+		res.Description = skills.Parse(text, name, skills.KindSkill).Description
+	}
+	if st, err := skills.ListExternal(config.Home()); err == nil {
+		rec := st[name]
+		res.Installed = rec != nil && rec.ID == sk.GetId()
+	}
+	return connect.NewResponse(res), nil
+}
+
+// InstallExternalSkill implements ExtensionsService.InstallExternalSkill.
+func (s *Server) InstallExternalSkill(ctx context.Context, req *connect.Request[agentv1.InstallExternalSkillRequest]) (*connect.Response[agentv1.InstallExternalSkillResponse], error) {
+	if err := changesAllowed(ctx, req.Peer().Addr); err != nil {
+		return nil, err
+	}
+	search, err := s.externalSearch()
+	if err != nil {
+		return nil, err
+	}
+	snap, err := search.Snapshot(ctx, req.Msg.GetId())
+	if err != nil {
+		return nil, err
+	}
+	if snap.GetHash() == "" || len(snap.GetFiles()) == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("the source holds no copy of this skill's files"))
+	}
+	if snap.GetHash() != req.Msg.GetHash() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("this skill changed since you looked at it; look again"))
+	}
+	sk := snap.GetSkill()
+	name := skills.ExternalSkillName(sk.GetSlug())
+	if !s.Base.ModePolicy.Managed().SkillAllowed(name) {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("your organization's policy doesn't allow this skill"))
+	}
+	rec := skills.ExternalRecord{ID: sk.GetId(), Source: sk.GetSource(), Name: name, PinnedHash: snap.GetHash(), License: skillLicense(snapshotSkillText(snap.GetFiles())), Installs: sk.GetInstalls()}
+	for _, a := range sk.GetAudits() {
+		rec.Audits = append(rec.Audits, skills.ExternalAudit{Provider: a.GetProvider(), Status: a.GetStatus(), Summary: a.GetSummary(), AuditedAt: a.GetAuditedAt(), RiskLevel: a.GetRiskLevel()})
+	}
+	files := make([]skills.ExternalFile, 0, len(snap.GetFiles()))
+	for _, f := range snap.GetFiles() {
+		files = append(files, skills.ExternalFile{Path: f.GetPath(), Contents: f.GetContents()})
+	}
+	home := config.Home()
+	stored, err := skills.InstallExternal(home, rec, files)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return connect.NewResponse(&agentv1.InstallExternalSkillResponse{Skill: externalView(home, stored)}), nil
+}
+
+// SetExternalSkillApproval implements ExtensionsService.SetExternalSkillApproval.
+func (s *Server) SetExternalSkillApproval(ctx context.Context, req *connect.Request[agentv1.SetExternalSkillApprovalRequest]) (*connect.Response[agentv1.SetExternalSkillApprovalResponse], error) {
+	if err := changesAllowed(ctx, req.Peer().Addr); err != nil {
+		return nil, err
+	}
+	var err error
+	if req.Msg.GetApproved() {
+		err = skills.ApproveExternal(config.Home(), req.Msg.GetName(), req.Msg.GetContentHash())
+	} else {
+		err = skills.RevokeExternal(config.Home(), req.Msg.GetName())
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return connect.NewResponse(&agentv1.SetExternalSkillApprovalResponse{}), nil
+}
+
+// RemoveExternalSkill implements ExtensionsService.RemoveExternalSkill.
+func (s *Server) RemoveExternalSkill(ctx context.Context, req *connect.Request[agentv1.RemoveExternalSkillRequest]) (*connect.Response[agentv1.RemoveExternalSkillResponse], error) {
+	if err := changesAllowed(ctx, req.Peer().Addr); err != nil {
+		return nil, err
+	}
+	if err := skills.RemoveExternal(config.Home(), req.Msg.GetName()); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return connect.NewResponse(&agentv1.RemoveExternalSkillResponse{}), nil
 }

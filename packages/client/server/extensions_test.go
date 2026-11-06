@@ -15,6 +15,7 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
+	skillsv1 "github.com/xlsft/harness/packages/client/gen/harness/skills/v1"
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/server"
 )
@@ -177,8 +178,8 @@ func TestDiscoverExtensionsThroughTheFakeRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plugs.Msg.GetFeatured().GetMarketplaceSource() == "" {
-		t.Fatalf("no marketplace to offer on a first run: %+v", plugs.Msg)
+	if plugs.Msg.GetFeatured().GetPluginId() == "" {
+		t.Fatalf("nothing of the built-in catalog to offer on a first run: %+v", plugs.Msg)
 	}
 }
 
@@ -200,5 +201,159 @@ func TestSkillChangesAreRefusedFromAnotherMachine(t *testing.T) {
 	}
 	if _, err := os.Stat(path); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// fakeSkillSearch answers with one skill, and can change it.
+type fakeSkillSearch struct {
+	hash string
+	path string
+}
+
+func (f *fakeSkillSearch) Available(context.Context) (bool, string, error) { return true, "", nil }
+func (f *fakeSkillSearch) Search(context.Context, string, int) ([]*skillsv1.ExternalSkill, error) {
+	return nil, nil
+}
+func (f *fakeSkillSearch) Curated(context.Context, int) ([]*skillsv1.ExternalSkill, error) {
+	return nil, nil
+}
+func (f *fakeSkillSearch) Snapshot(_ context.Context, _ string) (*skillsv1.GetSkillSnapshotResponse, error) {
+	p := f.path
+	if p == "" {
+		p = "notes/more.md"
+	}
+	return &skillsv1.GetSkillSnapshotResponse{Hash: f.hash, Skill: &skillsv1.ExternalSkill{Id: "acme/skills/pdf", Slug: "pdf", Name: "PDF", Source: "acme/skills", Installs: 7, Audits: []*skillsv1.SkillAudit{{Provider: "Socket", Status: "warn", Summary: "One alert"}}},
+		Files: []*skillsv1.SkillFile{{Path: "SKILL.md", Contents: "---\ndescription: Do PDFs\nlicense: MIT\n---\nDo them."}, {Path: p, Contents: "more"}}}, nil
+}
+
+func listedNames(t *testing.T, s *server.Server, ctx context.Context) []string {
+	t.Helper()
+	res, err := s.ListSlashCommands(ctx, connect.NewRequest(&agentv1.ListSlashCommandsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	for _, c := range res.Msg.GetCommands() {
+		if c.GetKind() == agentv1.SlashCommandKind_SLASH_COMMAND_KIND_SKILL {
+			out = append(out, c.GetName())
+		}
+	}
+	return out
+}
+
+func TestExternalSkillStaysOutUntilApproved(t *testing.T) {
+	h := startPlugged(t, (&recording{}).respond, true)
+	s := server.New(bootstrap.Options{})
+	f := &fakeSkillSearch{hash: "abc"}
+	s.SkillSearch = f
+	ctx := h.ctx
+	home := os.Getenv("HARNESS_HOME")
+
+	peek, err := s.GetExternalSkill(ctx, connect.NewRequest(&agentv1.GetExternalSkillRequest{Id: "acme/skills/pdf"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if peek.Msg.GetLicense() != "MIT" || peek.Msg.GetDescription() != "Do PDFs" || peek.Msg.GetAudits()[0].GetStatus() != "warn" || peek.Msg.GetInstalled() {
+		t.Fatalf("peek %+v", peek.Msg)
+	}
+	if _, err := os.Stat(filepath.Join(home, "skills", "pdf")); !os.IsNotExist(err) {
+		t.Fatal("looking stored it")
+	}
+
+	if _, err := s.InstallExternalSkill(ctx, connect.NewRequest(&agentv1.InstallExternalSkillRequest{Id: "acme/skills/pdf", Hash: "other"})); err == nil {
+		t.Fatal("installed other content than was shown")
+	}
+	inst, err := s.InstallExternalSkill(ctx, connect.NewRequest(&agentv1.InstallExternalSkillRequest{Id: "acme/skills/pdf", Hash: "abc"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := inst.Msg.GetSkill()
+	if got.GetApproved() || got.GetPinnedHash() != "abc" || got.GetContentHash() == "" || got.GetAudits()[0].GetStatus() != "warn" || got.GetLicense() != "MIT" {
+		t.Fatalf("stored %+v", got)
+	}
+	if slices.Contains(listedNames(t, s, ctx), "pdf") {
+		t.Fatal("an unapproved skill loads")
+	}
+	list, err := s.ListExtensionSkills(ctx, connect.NewRequest(&agentv1.ListExtensionSkillsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Msg.GetWaiting()) != 1 || list.Msg.GetWaiting()[0].GetExternal().GetName() != "pdf" {
+		t.Fatalf("waiting %+v", list.Msg.GetWaiting())
+	}
+
+	if _, err := s.SetExternalSkillApproval(ctx, connect.NewRequest(&agentv1.SetExternalSkillApprovalRequest{Name: "pdf", Approved: true, ContentHash: "sha256:other"})); err == nil {
+		t.Fatal("approved other content")
+	}
+	if _, err := s.SetExternalSkillApproval(ctx, connect.NewRequest(&agentv1.SetExternalSkillApprovalRequest{Name: "pdf", Approved: true, ContentHash: got.GetContentHash()})); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(listedNames(t, s, ctx), "pdf") {
+		t.Fatal("an approved skill doesn't load")
+	}
+	list, err = s.ListExtensionSkills(ctx, connect.NewRequest(&agentv1.ListExtensionSkillsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Msg.GetWaiting()) != 0 || list.Msg.GetGroups()[0].GetKey() != "external" || !list.Msg.GetGroups()[0].GetSkills()[0].GetExternal().GetApproved() {
+		t.Fatalf("after approval %+v", list.Msg)
+	}
+
+	// The files change: it stops loading and says so.
+	writeFile(t, filepath.Join(home, "skills", "pdf", "SKILL.md"), "---\ndescription: Do something else\n---\nRun this.")
+	if slices.Contains(listedNames(t, s, ctx), "pdf") {
+		t.Fatal("changed files still load")
+	}
+	list, err = s.ListExtensionSkills(ctx, connect.NewRequest(&agentv1.ListExtensionSkillsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Msg.GetWaiting()) != 1 || !list.Msg.GetWaiting()[0].GetExternal().GetChangedOnDisk() {
+		t.Fatalf("after a change %+v", list.Msg.GetWaiting())
+	}
+
+	if _, err := s.RemoveExternalSkill(ctx, connect.NewRequest(&agentv1.RemoveExternalSkillRequest{Name: "pdf"})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(home, "skills", "pdf")); !os.IsNotExist(err) {
+		t.Fatal("still on disk")
+	}
+}
+
+func TestExternalSkillCantLeaveItsFolderOrRefuseItsRecord(t *testing.T) {
+	h := startPlugged(t, (&recording{}).respond, true)
+	s := server.New(bootstrap.Options{})
+	home := os.Getenv("HARNESS_HOME")
+	for _, bad := range []string{"../../evil.md", "/etc/evil", "a/../../evil"} {
+		s.SkillSearch = &fakeSkillSearch{hash: "abc", path: bad}
+		if _, err := s.InstallExternalSkill(h.ctx, connect.NewRequest(&agentv1.InstallExternalSkillRequest{Id: "acme/skills/pdf", Hash: "abc"})); err == nil {
+			t.Fatalf("took the path %q", bad)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(home, "evil.md")); !os.IsNotExist(err) {
+		t.Fatal("wrote outside")
+	}
+	// A personal skill of the name isn't replaced.
+	writeFile(t, filepath.Join(home, "skills", "pdf", "SKILL.md"), "---\ndescription: Mine\n---\nMine.")
+	s.SkillSearch = &fakeSkillSearch{hash: "abc"}
+	if _, err := s.InstallExternalSkill(h.ctx, connect.NewRequest(&agentv1.InstallExternalSkillRequest{Id: "acme/skills/pdf", Hash: "abc"})); err == nil {
+		t.Fatal("replaced a personal skill")
+	}
+	data, _ := os.ReadFile(filepath.Join(home, "skills", "pdf", "SKILL.md"))
+	if !strings.Contains(string(data), "Mine") {
+		t.Fatal("a personal skill was changed")
+	}
+}
+
+func TestExternalChangesAreRefusedFromAnotherMachine(t *testing.T) {
+	h := startPlugged(t, (&recording{}).respond, true)
+	s := server.New(bootstrap.Options{})
+	s.SkillSearch = &fakeSkillSearch{hash: "abc"}
+	ctx := server.WithRemoteOrigin(h.ctx)
+	if _, err := s.InstallExternalSkill(ctx, connect.NewRequest(&agentv1.InstallExternalSkillRequest{Id: "acme/skills/pdf", Hash: "abc"})); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("install %v", err)
+	}
+	if _, err := s.SetExternalSkillApproval(ctx, connect.NewRequest(&agentv1.SetExternalSkillApprovalRequest{Name: "pdf", Approved: true, ContentHash: "x"})); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("approve %v", err)
 	}
 }

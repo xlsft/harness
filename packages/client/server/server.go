@@ -29,6 +29,7 @@ import (
 	"github.com/xlsft/harness/packages/client/computeruse"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/environment"
+	"github.com/xlsft/harness/packages/client/extensions"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
@@ -74,7 +75,9 @@ type Server struct {
 	Preferences PreferenceDocs
 	// MCPClient is the McpService client of the signed-in server (nil: only device-local MCP servers), used by Settings >
 	// MCP. MCPInventory overrides what it is built from (tests).
-	MCPClient    *mcp.Client
+	MCPClient *mcp.Client
+	// SkillSearch is external skill search through the xlsft`s harness server; nil: not connected to one.
+	SkillSearch  extensions.SkillSearch
 	MCPInventory *mcp.Inventory
 	// ImportTo is the user's server for imports (import.go); nil without sync.
 	ImportTo *syncclient.Client

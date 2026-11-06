@@ -103,6 +103,7 @@ func (s *Session) openSkills(o Options) {
 		Options: func() skills.Options {
 			opt := SkillOptions(home, s.Dir(), s.IsTrusted(), docs, DisabledSkills(s.loadSettings()))
 			opt.AdditionalDirs = s.ToolEnv.WorkingDirs()
+			opt.Allowed = o.ModePolicy.Managed().SkillAllowed
 			return opt
 		},
 		Hidden: func(name string) bool {

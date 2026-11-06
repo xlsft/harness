@@ -22,6 +22,7 @@ export const routes: RouteDef[] = [
   { route: "/harness.prompts.v1.PromptService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.sync.v1.SyncService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.search.v1.SearchService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.skills.v1.SkillSearchService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.speech.v1.SpeechService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.decision.v1.DecisionService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.mcp.v1.McpService/**", handler: "./src/http/routes/rpc.ts" },

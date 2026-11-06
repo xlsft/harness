@@ -1,0 +1,16 @@
+{
+  "name": "xlsft-catalog",
+  "description": "Skills that ship with xlsft`s harness.",
+  "owner": { "name": "xlsft" },
+  "plugins": [
+    {
+      "name": "starter",
+      "displayName": "Starter",
+      "description": "A first skill to read and copy: find your way around a repository.",
+      "version": "0.1.0",
+      "category": "Getting started",
+      "source": "./plugins/starter",
+      "author": { "name": "xlsft" }
+    }
+  ]
+}

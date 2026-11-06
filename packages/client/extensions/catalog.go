@@ -9,23 +9,11 @@ import (
 	"fmt"
 )
 
-// The default catalog is what a first run can offer with no marketplace added and no network: real public marketplaces and
-// connectors, in our own words. Nothing in it is added by itself.
+// The default catalog is the connectors a first run can offer with no network: real public MCP servers, in our own words. Nothing in
+// it is added by itself. Skills and plugins have the built-in marketplace instead (builtin.go).
 //
 //go:embed catalog.json
 var catalogFile []byte
-
-// CatalogMarketplace is a public marketplace that can be added.
-type CatalogMarketplace struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Source      string   `json:"source"`
-	Publisher   string   `json:"publisher"`
-	Description string   `json:"description"`
-	Homepage    string   `json:"homepage"`
-	Kinds       []string `json:"kinds"`
-	Featured    bool     `json:"featured"`
-}
 
 // CatalogConnector is a public MCP server that can be added: a URL, or a command.
 type CatalogConnector struct {
@@ -43,8 +31,7 @@ type CatalogConnector struct {
 
 // Catalog is the default catalog.
 type Catalog struct {
-	Marketplaces []CatalogMarketplace `json:"marketplaces"`
-	Connectors   []CatalogConnector   `json:"connectors"`
+	Connectors []CatalogConnector `json:"connectors"`
 }
 
 // DefaultCatalog reads the file that ships with the client.

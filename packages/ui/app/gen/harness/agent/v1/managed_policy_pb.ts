@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/managed_policy.proto.
  */
 export const file_harness_agent_v1_managed_policy: GenFile = /*@__PURE__*/
-  fileDesc("CiVoYXJuZXNzL2FnZW50L3YxL21hbmFnZWRfcG9saWN5LnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIoQDChFNYW5hZ2VkUG9saWN5VmlldxIOCgZhY3RpdmUYASABKAgSEwoLYWxsb3dfcnVsZXMYAiADKAkSEQoJYXNrX3J1bGVzGAMgAygJEhIKCmRlbnlfcnVsZXMYBCADKAkSGgoSbWFuYWdlZF9ydWxlc19vbmx5GAUgASgIEhgKEHNhbmRib3hfcmVxdWlyZWQYBiABKAgSHwoXc2FuZGJveF9vdXRzaWRlX3JlZnVzZWQYByABKAgSFgoOZGlzYWJsZWRfbW9kZXMYCCADKAkSGgoScmVzdHJpY3RfcHJvdmlkZXJzGAkgASgIEhkKEWFsbG93ZWRfcHJvdmlkZXJzGAogAygJEiMKG3BlcnNvbmFsX3Byb3ZpZGVyc19kaXNhYmxlZBgLIAEoCBIcChRyZXN0cmljdF9tY3Bfc2VydmVycxgMIAEoCBIbChNhbGxvd2VkX21jcF9zZXJ2ZXJzGA0gAygJEh0KFWxvY2FsX21vZGVsc19kaXNhYmxlZBgOIAEoCELTAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCEk1hbmFnZWRQb2xpY3lQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw");
+  fileDesc("CiVoYXJuZXNzL2FnZW50L3YxL21hbmFnZWRfcG9saWN5LnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIvUDChFNYW5hZ2VkUG9saWN5VmlldxIOCgZhY3RpdmUYASABKAgSEwoLYWxsb3dfcnVsZXMYAiADKAkSEQoJYXNrX3J1bGVzGAMgAygJEhIKCmRlbnlfcnVsZXMYBCADKAkSGgoSbWFuYWdlZF9ydWxlc19vbmx5GAUgASgIEhgKEHNhbmRib3hfcmVxdWlyZWQYBiABKAgSHwoXc2FuZGJveF9vdXRzaWRlX3JlZnVzZWQYByABKAgSFgoOZGlzYWJsZWRfbW9kZXMYCCADKAkSGgoScmVzdHJpY3RfcHJvdmlkZXJzGAkgASgIEhkKEWFsbG93ZWRfcHJvdmlkZXJzGAogAygJEiMKG3BlcnNvbmFsX3Byb3ZpZGVyc19kaXNhYmxlZBgLIAEoCBIcChRyZXN0cmljdF9tY3Bfc2VydmVycxgMIAEoCBIbChNhbGxvd2VkX21jcF9zZXJ2ZXJzGA0gAygJEh0KFWxvY2FsX21vZGVsc19kaXNhYmxlZBgOIAEoCBIXCg9yZXN0cmljdF9za2lsbHMYDyABKAgSFgoOYWxsb3dlZF9za2lsbHMYECADKAkSFgoOYmxvY2tlZF9za2lsbHMYESADKAkSJgoeZXh0ZXJuYWxfc2tpbGxfc2VhcmNoX2Rpc2FibGVkGBIgASgIQtMBChRjb20uaGFybmVzcy5hZ2VudC52MUISTWFuYWdlZFBvbGljeVByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z");
 
 /**
  * The organization's managed policy as this client merged it from its POLICY documents (harness.sync.v1), for frontends
@@ -98,6 +98,28 @@ export type ManagedPolicyView = Message<"harness.agent.v1.ManagedPolicyView"> & 
    * @generated from field: bool local_models_disabled = 14;
    */
   localModelsDisabled: boolean;
+
+  /**
+   * Only skills matching these may run. Meaningful when restrict_skills is set.
+   *
+   * @generated from field: bool restrict_skills = 15;
+   */
+  restrictSkills: boolean;
+
+  /**
+   * @generated from field: repeated string allowed_skills = 16;
+   */
+  allowedSkills: string[];
+
+  /**
+   * @generated from field: repeated string blocked_skills = 17;
+   */
+  blockedSkills: string[];
+
+  /**
+   * @generated from field: bool external_skill_search_disabled = 18;
+   */
+  externalSkillSearchDisabled: boolean;
 };
 
 /**

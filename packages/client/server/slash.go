@@ -395,6 +395,7 @@ func (s *Server) folderSkills(ctx context.Context, cwd string) *skills.Manager {
 		cancel()
 	}
 	opt := bootstrap.SkillOptions(bootstrap.SkillHomeDir(s.Base), cwd, trusted, s.serverSkillDocs(ctx), disabled)
+	opt.Allowed = s.Base.ModePolicy.Managed().SkillAllowed
 	return skills.NewManager(skills.ManagerOptions{Place: func() (string, bool) { return cwd, trusted }, Options: func() skills.Options { return opt }})
 }
 

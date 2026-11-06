@@ -7,7 +7,8 @@
 package agentv1
 
 import (
-	v1 "github.com/xlsft/harness/packages/client/gen/harness/mcp/v1"
+	v11 "github.com/xlsft/harness/packages/client/gen/harness/mcp/v1"
+	v1 "github.com/xlsft/harness/packages/client/gen/harness/skills/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -286,7 +287,11 @@ type ExtensionSkill struct {
 	// It is a file of this device that can be deleted (personal or project, not a plugin's or a server document).
 	CanRemove bool `protobuf:"varint,4,opt,name=can_remove,json=canRemove,proto3" json:"can_remove,omitempty"`
 	// The folder to reveal; empty for what isn't on disk.
-	Folder        string `protobuf:"bytes,5,opt,name=folder,proto3" json:"folder,omitempty"`
+	Folder string `protobuf:"bytes,5,opt,name=folder,proto3" json:"folder,omitempty"`
+	// The organization's policy keeps it from running: no switch of the user's changes that.
+	BlockedByPolicy bool `protobuf:"varint,6,opt,name=blocked_by_policy,json=blockedByPolicy,proto3" json:"blocked_by_policy,omitempty"`
+	// It was installed from external search.
+	External      *InstalledExternalSkill `protobuf:"bytes,7,opt,name=external,proto3" json:"external,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -356,6 +361,176 @@ func (x *ExtensionSkill) GetFolder() string {
 	return ""
 }
 
+func (x *ExtensionSkill) GetBlockedByPolicy() bool {
+	if x != nil {
+		return x.BlockedByPolicy
+	}
+	return false
+}
+
+func (x *ExtensionSkill) GetExternal() *InstalledExternalSkill {
+	if x != nil {
+		return x.External
+	}
+	return nil
+}
+
+// A skill stored from external search, and this device's decision on it.
+type InstalledExternalSkill struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The source's id.
+	Id     string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	// The folder's name, and what approving and removing go by.
+	Name        string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	// The source's hash when it was stored.
+	PinnedHash string `protobuf:"bytes,5,opt,name=pinned_hash,json=pinnedHash,proto3" json:"pinned_hash,omitempty"`
+	// The files on disk, which is what is approved.
+	ContentHash string `protobuf:"bytes,6,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
+	Approved    bool   `protobuf:"varint,7,opt,name=approved,proto3" json:"approved,omitempty"`
+	// The files stopped matching what was stored.
+	ChangedOnDisk bool `protobuf:"varint,8,opt,name=changed_on_disk,json=changedOnDisk,proto3" json:"changed_on_disk,omitempty"`
+	// What the source said when it was stored.
+	Audits   []*v1.SkillAudit `protobuf:"bytes,9,rep,name=audits,proto3" json:"audits,omitempty"`
+	License  string           `protobuf:"bytes,10,opt,name=license,proto3" json:"license,omitempty"`
+	Installs int64            `protobuf:"varint,11,opt,name=installs,proto3" json:"installs,omitempty"`
+	// RFC 3339, UTC.
+	InstalledAt   string   `protobuf:"bytes,12,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
+	Folder        string   `protobuf:"bytes,13,opt,name=folder,proto3" json:"folder,omitempty"`
+	Files         []string `protobuf:"bytes,14,rep,name=files,proto3" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstalledExternalSkill) Reset() {
+	*x = InstalledExternalSkill{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstalledExternalSkill) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstalledExternalSkill) ProtoMessage() {}
+
+func (x *InstalledExternalSkill) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstalledExternalSkill.ProtoReflect.Descriptor instead.
+func (*InstalledExternalSkill) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *InstalledExternalSkill) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetPinnedHash() string {
+	if x != nil {
+		return x.PinnedHash
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetContentHash() string {
+	if x != nil {
+		return x.ContentHash
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetApproved() bool {
+	if x != nil {
+		return x.Approved
+	}
+	return false
+}
+
+func (x *InstalledExternalSkill) GetChangedOnDisk() bool {
+	if x != nil {
+		return x.ChangedOnDisk
+	}
+	return false
+}
+
+func (x *InstalledExternalSkill) GetAudits() []*v1.SkillAudit {
+	if x != nil {
+		return x.Audits
+	}
+	return nil
+}
+
+func (x *InstalledExternalSkill) GetLicense() string {
+	if x != nil {
+		return x.License
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetInstalls() int64 {
+	if x != nil {
+		return x.Installs
+	}
+	return 0
+}
+
+func (x *InstalledExternalSkill) GetInstalledAt() string {
+	if x != nil {
+		return x.InstalledAt
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *InstalledExternalSkill) GetFiles() []string {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
 // Rows under one source. Keys: "project", "personal", "imported", "organization", "plugin:<id>", "builtin".
 type ExtensionSkillGroup struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -368,7 +543,7 @@ type ExtensionSkillGroup struct {
 
 func (x *ExtensionSkillGroup) Reset() {
 	*x = ExtensionSkillGroup{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -380,7 +555,7 @@ func (x *ExtensionSkillGroup) String() string {
 func (*ExtensionSkillGroup) ProtoMessage() {}
 
 func (x *ExtensionSkillGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -393,7 +568,7 @@ func (x *ExtensionSkillGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtensionSkillGroup.ProtoReflect.Descriptor instead.
 func (*ExtensionSkillGroup) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{4}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ExtensionSkillGroup) GetKey() string {
@@ -424,13 +599,17 @@ type ListExtensionSkillsResponse struct {
 	Cwd                     string `protobuf:"bytes,2,opt,name=cwd,proto3" json:"cwd,omitempty"`
 	FolderTrusted           bool   `protobuf:"varint,3,opt,name=folder_trusted,json=folderTrusted,proto3" json:"folder_trusted,omitempty"`
 	ProjectSkippedUntrusted bool   `protobuf:"varint,4,opt,name=project_skipped_untrusted,json=projectSkippedUntrusted,proto3" json:"project_skipped_untrusted,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// What the organization says about skills, for a person; empty when nothing.
+	PolicyNote string `protobuf:"bytes,5,opt,name=policy_note,json=policyNote,proto3" json:"policy_note,omitempty"`
+	// Stored from external search and waiting for this device's approval, or changed since. They don't load.
+	Waiting       []*ExtensionSkill `protobuf:"bytes,6,rep,name=waiting,proto3" json:"waiting,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListExtensionSkillsResponse) Reset() {
 	*x = ListExtensionSkillsResponse{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +621,7 @@ func (x *ListExtensionSkillsResponse) String() string {
 func (*ListExtensionSkillsResponse) ProtoMessage() {}
 
 func (x *ListExtensionSkillsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +634,7 @@ func (x *ListExtensionSkillsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListExtensionSkillsResponse.ProtoReflect.Descriptor instead.
 func (*ListExtensionSkillsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{5}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListExtensionSkillsResponse) GetGroups() []*ExtensionSkillGroup {
@@ -486,6 +665,20 @@ func (x *ListExtensionSkillsResponse) GetProjectSkippedUntrusted() bool {
 	return false
 }
 
+func (x *ListExtensionSkillsResponse) GetPolicyNote() string {
+	if x != nil {
+		return x.PolicyNote
+	}
+	return ""
+}
+
+func (x *ListExtensionSkillsResponse) GetWaiting() []*ExtensionSkill {
+	if x != nil {
+		return x.Waiting
+	}
+	return nil
+}
+
 type ExtensionPlugin struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Plugin *Plugin                `protobuf:"bytes,1,opt,name=plugin,proto3" json:"plugin,omitempty"`
@@ -503,7 +696,7 @@ type ExtensionPlugin struct {
 
 func (x *ExtensionPlugin) Reset() {
 	*x = ExtensionPlugin{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +708,7 @@ func (x *ExtensionPlugin) String() string {
 func (*ExtensionPlugin) ProtoMessage() {}
 
 func (x *ExtensionPlugin) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +721,7 @@ func (x *ExtensionPlugin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtensionPlugin.ProtoReflect.Descriptor instead.
 func (*ExtensionPlugin) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{6}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ExtensionPlugin) GetPlugin() *Plugin {
@@ -592,7 +785,7 @@ type ExtensionPluginGroup struct {
 
 func (x *ExtensionPluginGroup) Reset() {
 	*x = ExtensionPluginGroup{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -604,7 +797,7 @@ func (x *ExtensionPluginGroup) String() string {
 func (*ExtensionPluginGroup) ProtoMessage() {}
 
 func (x *ExtensionPluginGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -617,7 +810,7 @@ func (x *ExtensionPluginGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtensionPluginGroup.ProtoReflect.Descriptor instead.
 func (*ExtensionPluginGroup) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{7}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ExtensionPluginGroup) GetKey() string {
@@ -654,13 +847,15 @@ type ExtensionMarketplace struct {
 	Problem        string `protobuf:"bytes,8,opt,name=problem,proto3" json:"problem,omitempty"`
 	PluginCount    int32  `protobuf:"varint,9,opt,name=plugin_count,json=pluginCount,proto3" json:"plugin_count,omitempty"`
 	InstalledCount int32  `protobuf:"varint,10,opt,name=installed_count,json=installedCount,proto3" json:"installed_count,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// It ships with the client: it can't be removed.
+	Builtin       bool `protobuf:"varint,11,opt,name=builtin,proto3" json:"builtin,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ExtensionMarketplace) Reset() {
 	*x = ExtensionMarketplace{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -672,7 +867,7 @@ func (x *ExtensionMarketplace) String() string {
 func (*ExtensionMarketplace) ProtoMessage() {}
 
 func (x *ExtensionMarketplace) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -685,7 +880,7 @@ func (x *ExtensionMarketplace) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtensionMarketplace.ProtoReflect.Descriptor instead.
 func (*ExtensionMarketplace) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{8}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ExtensionMarketplace) GetName() string {
@@ -758,6 +953,13 @@ func (x *ExtensionMarketplace) GetInstalledCount() int32 {
 	return 0
 }
 
+func (x *ExtensionMarketplace) GetBuiltin() bool {
+	if x != nil {
+		return x.Builtin
+	}
+	return false
+}
+
 type ListExtensionPluginsResponse struct {
 	state             protoimpl.MessageState  `protogen:"open.v1"`
 	Groups            []*ExtensionPluginGroup `protobuf:"bytes,1,rep,name=groups,proto3" json:"groups,omitempty"`
@@ -773,7 +975,7 @@ type ListExtensionPluginsResponse struct {
 
 func (x *ListExtensionPluginsResponse) Reset() {
 	*x = ListExtensionPluginsResponse{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -785,7 +987,7 @@ func (x *ListExtensionPluginsResponse) String() string {
 func (*ListExtensionPluginsResponse) ProtoMessage() {}
 
 func (x *ListExtensionPluginsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -798,7 +1000,7 @@ func (x *ListExtensionPluginsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListExtensionPluginsResponse.ProtoReflect.Descriptor instead.
 func (*ListExtensionPluginsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{9}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListExtensionPluginsResponse) GetGroups() []*ExtensionPluginGroup {
@@ -857,7 +1059,7 @@ type ConnectorProvider struct {
 
 func (x *ConnectorProvider) Reset() {
 	*x = ConnectorProvider{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -869,7 +1071,7 @@ func (x *ConnectorProvider) String() string {
 func (*ConnectorProvider) ProtoMessage() {}
 
 func (x *ConnectorProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,7 +1084,7 @@ func (x *ConnectorProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectorProvider.ProtoReflect.Descriptor instead.
 func (*ConnectorProvider) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{10}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ConnectorProvider) GetPluginId() string {
@@ -936,7 +1138,7 @@ type ExtensionConnector struct {
 
 func (x *ExtensionConnector) Reset() {
 	*x = ExtensionConnector{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -948,7 +1150,7 @@ func (x *ExtensionConnector) String() string {
 func (*ExtensionConnector) ProtoMessage() {}
 
 func (x *ExtensionConnector) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -961,7 +1163,7 @@ func (x *ExtensionConnector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtensionConnector.ProtoReflect.Descriptor instead.
 func (*ExtensionConnector) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{11}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ExtensionConnector) GetId() string {
@@ -1051,7 +1253,7 @@ type ListExtensionConnectorsResponse struct {
 
 func (x *ListExtensionConnectorsResponse) Reset() {
 	*x = ListExtensionConnectorsResponse{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1063,7 +1265,7 @@ func (x *ListExtensionConnectorsResponse) String() string {
 func (*ListExtensionConnectorsResponse) ProtoMessage() {}
 
 func (x *ListExtensionConnectorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1076,7 +1278,7 @@ func (x *ListExtensionConnectorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListExtensionConnectorsResponse.ProtoReflect.Descriptor instead.
 func (*ListExtensionConnectorsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{12}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListExtensionConnectorsResponse) GetConnectors() []*ExtensionConnector {
@@ -1147,7 +1349,7 @@ type ConnectorRequiredValue struct {
 
 func (x *ConnectorRequiredValue) Reset() {
 	*x = ConnectorRequiredValue{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1159,7 +1361,7 @@ func (x *ConnectorRequiredValue) String() string {
 func (*ConnectorRequiredValue) ProtoMessage() {}
 
 func (x *ConnectorRequiredValue) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1172,7 +1374,7 @@ func (x *ConnectorRequiredValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectorRequiredValue.ProtoReflect.Descriptor instead.
 func (*ConnectorRequiredValue) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{13}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ConnectorRequiredValue) GetName() string {
@@ -1200,9 +1402,9 @@ func (x *ConnectorRequiredValue) GetSecret() bool {
 type ConnectorOption struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// For a person: "Remote", "npm package".
-	Label  string     `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
-	Remote bool       `protobuf:"varint,2,opt,name=remote,proto3" json:"remote,omitempty"`
-	Server *v1.Server `protobuf:"bytes,3,opt,name=server,proto3" json:"server,omitempty"`
+	Label  string      `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	Remote bool        `protobuf:"varint,2,opt,name=remote,proto3" json:"remote,omitempty"`
+	Server *v11.Server `protobuf:"bytes,3,opt,name=server,proto3" json:"server,omitempty"`
 	// Where it goes unless the user says otherwise.
 	SuggestedSource McpServerSource           `protobuf:"varint,4,opt,name=suggested_source,json=suggestedSource,proto3,enum=harness.agent.v1.McpServerSource" json:"suggested_source,omitempty"`
 	Required        []*ConnectorRequiredValue `protobuf:"bytes,5,rep,name=required,proto3" json:"required,omitempty"`
@@ -1212,7 +1414,7 @@ type ConnectorOption struct {
 
 func (x *ConnectorOption) Reset() {
 	*x = ConnectorOption{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1224,7 +1426,7 @@ func (x *ConnectorOption) String() string {
 func (*ConnectorOption) ProtoMessage() {}
 
 func (x *ConnectorOption) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1237,7 +1439,7 @@ func (x *ConnectorOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectorOption.ProtoReflect.Descriptor instead.
 func (*ConnectorOption) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{14}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ConnectorOption) GetLabel() string {
@@ -1254,7 +1456,7 @@ func (x *ConnectorOption) GetRemote() bool {
 	return false
 }
 
-func (x *ConnectorOption) GetServer() *v1.Server {
+func (x *ConnectorOption) GetServer() *v11.Server {
 	if x != nil {
 		return x.Server
 	}
@@ -1297,21 +1499,25 @@ type DiscoverItem struct {
 	Refusal string `protobuf:"bytes,14,opt,name=refusal,proto3" json:"refusal,omitempty"`
 	// What InstallPlugin takes; set for skills and plugins.
 	PluginId string `protobuf:"bytes,15,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
-	// Set when the item is a marketplace to add: what AddPluginMarketplace takes.
-	MarketplaceSource string `protobuf:"bytes,16,opt,name=marketplace_source,json=marketplaceSource,proto3" json:"marketplace_source,omitempty"`
+	// The source's count of installs; 0 when it gives none. Only external search has one.
+	Installs int64 `protobuf:"varint,16,opt,name=installs,proto3" json:"installs,omitempty"`
 	// What it holds, when the files are at hand. A plugin in a repository of its own says this once installed.
 	Contents *PluginContents `protobuf:"bytes,17,opt,name=contents,proto3" json:"contents,omitempty"`
 	// Set for connectors.
 	Options []*ConnectorOption `protobuf:"bytes,18,rep,name=options,proto3" json:"options,omitempty"`
 	// What is in the way of reading the entry.
-	Problem       string `protobuf:"bytes,19,opt,name=problem,proto3" json:"problem,omitempty"`
+	Problem string `protobuf:"bytes,19,opt,name=problem,proto3" json:"problem,omitempty"`
+	// Set when it comes from external search: what GetExternalSkill and InstallExternalSkill take.
+	ExternalId string `protobuf:"bytes,20,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
+	// The source's audits, as it gives them. None: not known, which isn't a pass.
+	Audits        []*v1.SkillAudit `protobuf:"bytes,21,rep,name=audits,proto3" json:"audits,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DiscoverItem) Reset() {
 	*x = DiscoverItem{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1323,7 +1529,7 @@ func (x *DiscoverItem) String() string {
 func (*DiscoverItem) ProtoMessage() {}
 
 func (x *DiscoverItem) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1336,7 +1542,7 @@ func (x *DiscoverItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverItem.ProtoReflect.Descriptor instead.
 func (*DiscoverItem) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{15}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DiscoverItem) GetId() string {
@@ -1444,11 +1650,11 @@ func (x *DiscoverItem) GetPluginId() string {
 	return ""
 }
 
-func (x *DiscoverItem) GetMarketplaceSource() string {
+func (x *DiscoverItem) GetInstalls() int64 {
 	if x != nil {
-		return x.MarketplaceSource
+		return x.Installs
 	}
-	return ""
+	return 0
 }
 
 func (x *DiscoverItem) GetContents() *PluginContents {
@@ -1472,6 +1678,20 @@ func (x *DiscoverItem) GetProblem() string {
 	return ""
 }
 
+func (x *DiscoverItem) GetExternalId() string {
+	if x != nil {
+		return x.ExternalId
+	}
+	return ""
+}
+
+func (x *DiscoverItem) GetAudits() []*v1.SkillAudit {
+	if x != nil {
+		return x.Audits
+	}
+	return nil
+}
+
 type DiscoverSection struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Key   string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -1487,7 +1707,7 @@ type DiscoverSection struct {
 
 func (x *DiscoverSection) Reset() {
 	*x = DiscoverSection{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1499,7 +1719,7 @@ func (x *DiscoverSection) String() string {
 func (*DiscoverSection) ProtoMessage() {}
 
 func (x *DiscoverSection) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1512,7 +1732,7 @@ func (x *DiscoverSection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverSection.ProtoReflect.Descriptor instead.
 func (*DiscoverSection) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{16}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DiscoverSection) GetKey() string {
@@ -1560,7 +1780,7 @@ type DiscoverCategory struct {
 
 func (x *DiscoverCategory) Reset() {
 	*x = DiscoverCategory{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1572,7 +1792,7 @@ func (x *DiscoverCategory) String() string {
 func (*DiscoverCategory) ProtoMessage() {}
 
 func (x *DiscoverCategory) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1585,7 +1805,7 @@ func (x *DiscoverCategory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverCategory.ProtoReflect.Descriptor instead.
 func (*DiscoverCategory) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{17}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *DiscoverCategory) GetName() string {
@@ -1627,7 +1847,7 @@ type DiscoverExtensionsRequest struct {
 
 func (x *DiscoverExtensionsRequest) Reset() {
 	*x = DiscoverExtensionsRequest{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1639,7 +1859,7 @@ func (x *DiscoverExtensionsRequest) String() string {
 func (*DiscoverExtensionsRequest) ProtoMessage() {}
 
 func (x *DiscoverExtensionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1652,7 +1872,7 @@ func (x *DiscoverExtensionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverExtensionsRequest.ProtoReflect.Descriptor instead.
 func (*DiscoverExtensionsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{18}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *DiscoverExtensionsRequest) GetKind() ExtensionKind {
@@ -1745,14 +1965,18 @@ type DiscoverExtensionsResponse struct {
 	// Couldn't reach the registry; what is shown is the saved list, or the default catalog alone. For a person.
 	RegistryProblem string `protobuf:"bytes,6,opt,name=registry_problem,json=registryProblem,proto3" json:"registry_problem,omitempty"`
 	// The registry isn't asked: turned off, or the policy allows no server from it.
-	RegistryOff   bool `protobuf:"varint,7,opt,name=registry_off,json=registryOff,proto3" json:"registry_off,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RegistryOff bool `protobuf:"varint,7,opt,name=registry_off,json=registryOff,proto3" json:"registry_off,omitempty"`
+	// External skill search couldn't answer; what else is shown still stands. For a person.
+	ExternalProblem string `protobuf:"bytes,8,opt,name=external_problem,json=externalProblem,proto3" json:"external_problem,omitempty"`
+	// The organization turned external skill search off.
+	ExternalBlockedByPolicy bool `protobuf:"varint,9,opt,name=external_blocked_by_policy,json=externalBlockedByPolicy,proto3" json:"external_blocked_by_policy,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *DiscoverExtensionsResponse) Reset() {
 	*x = DiscoverExtensionsResponse{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1764,7 +1988,7 @@ func (x *DiscoverExtensionsResponse) String() string {
 func (*DiscoverExtensionsResponse) ProtoMessage() {}
 
 func (x *DiscoverExtensionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1777,7 +2001,7 @@ func (x *DiscoverExtensionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverExtensionsResponse.ProtoReflect.Descriptor instead.
 func (*DiscoverExtensionsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{19}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DiscoverExtensionsResponse) GetFeatured() *DiscoverItem {
@@ -1829,6 +2053,20 @@ func (x *DiscoverExtensionsResponse) GetRegistryOff() bool {
 	return false
 }
 
+func (x *DiscoverExtensionsResponse) GetExternalProblem() string {
+	if x != nil {
+		return x.ExternalProblem
+	}
+	return ""
+}
+
+func (x *DiscoverExtensionsResponse) GetExternalBlockedByPolicy() bool {
+	if x != nil {
+		return x.ExternalBlockedByPolicy
+	}
+	return false
+}
+
 type GetSkillDetailRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1841,7 +2079,7 @@ type GetSkillDetailRequest struct {
 
 func (x *GetSkillDetailRequest) Reset() {
 	*x = GetSkillDetailRequest{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1853,7 +2091,7 @@ func (x *GetSkillDetailRequest) String() string {
 func (*GetSkillDetailRequest) ProtoMessage() {}
 
 func (x *GetSkillDetailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1866,7 +2104,7 @@ func (x *GetSkillDetailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSkillDetailRequest.ProtoReflect.Descriptor instead.
 func (*GetSkillDetailRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{20}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetSkillDetailRequest) GetName() string {
@@ -1903,7 +2141,7 @@ type GetSkillDetailResponse struct {
 
 func (x *GetSkillDetailResponse) Reset() {
 	*x = GetSkillDetailResponse{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1915,7 +2153,7 @@ func (x *GetSkillDetailResponse) String() string {
 func (*GetSkillDetailResponse) ProtoMessage() {}
 
 func (x *GetSkillDetailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1928,7 +2166,7 @@ func (x *GetSkillDetailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSkillDetailResponse.ProtoReflect.Descriptor instead.
 func (*GetSkillDetailResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{21}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetSkillDetailResponse) GetBody() string {
@@ -1967,7 +2205,7 @@ type CreateSkillRequest struct {
 
 func (x *CreateSkillRequest) Reset() {
 	*x = CreateSkillRequest{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1979,7 +2217,7 @@ func (x *CreateSkillRequest) String() string {
 func (*CreateSkillRequest) ProtoMessage() {}
 
 func (x *CreateSkillRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1992,7 +2230,7 @@ func (x *CreateSkillRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSkillRequest.ProtoReflect.Descriptor instead.
 func (*CreateSkillRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{22}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CreateSkillRequest) GetName() string {
@@ -2032,7 +2270,7 @@ type CreateSkillResponse struct {
 
 func (x *CreateSkillResponse) Reset() {
 	*x = CreateSkillResponse{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2044,7 +2282,7 @@ func (x *CreateSkillResponse) String() string {
 func (*CreateSkillResponse) ProtoMessage() {}
 
 func (x *CreateSkillResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2057,7 +2295,7 @@ func (x *CreateSkillResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSkillResponse.ProtoReflect.Descriptor instead.
 func (*CreateSkillResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{23}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateSkillResponse) GetPath() string {
@@ -2078,7 +2316,7 @@ type RemoveSkillRequest struct {
 
 func (x *RemoveSkillRequest) Reset() {
 	*x = RemoveSkillRequest{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2090,7 +2328,7 @@ func (x *RemoveSkillRequest) String() string {
 func (*RemoveSkillRequest) ProtoMessage() {}
 
 func (x *RemoveSkillRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2103,7 +2341,7 @@ func (x *RemoveSkillRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSkillRequest.ProtoReflect.Descriptor instead.
 func (*RemoveSkillRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{24}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *RemoveSkillRequest) GetName() string {
@@ -2135,7 +2373,7 @@ type RemoveSkillResponse struct {
 
 func (x *RemoveSkillResponse) Reset() {
 	*x = RemoveSkillResponse{}
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2147,7 +2385,7 @@ func (x *RemoveSkillResponse) String() string {
 func (*RemoveSkillResponse) ProtoMessage() {}
 
 func (x *RemoveSkillResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_extensions_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2160,20 +2398,450 @@ func (x *RemoveSkillResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSkillResponse.ProtoReflect.Descriptor instead.
 func (*RemoveSkillResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{25}
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{26}
+}
+
+type GetExternalSkillRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetExternalSkillRequest) Reset() {
+	*x = GetExternalSkillRequest{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetExternalSkillRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetExternalSkillRequest) ProtoMessage() {}
+
+func (x *GetExternalSkillRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetExternalSkillRequest.ProtoReflect.Descriptor instead.
+func (*GetExternalSkillRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *GetExternalSkillRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetExternalSkillResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The source's hash of what these files are.
+	Hash   string           `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Files  []*v1.SkillFile  `protobuf:"bytes,2,rep,name=files,proto3" json:"files,omitempty"`
+	Audits []*v1.SkillAudit `protobuf:"bytes,3,rep,name=audits,proto3" json:"audits,omitempty"`
+	// From the skill's own frontmatter; empty when it doesn't say.
+	License     string `protobuf:"bytes,4,opt,name=license,proto3" json:"license,omitempty"`
+	Description string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	Installs    int64  `protobuf:"varint,6,opt,name=installs,proto3" json:"installs,omitempty"`
+	// Installing it would mean the folder of this name.
+	Name   string `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
+	Source string `protobuf:"bytes,8,opt,name=source,proto3" json:"source,omitempty"`
+	// It is installed already.
+	Installed     bool `protobuf:"varint,9,opt,name=installed,proto3" json:"installed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetExternalSkillResponse) Reset() {
+	*x = GetExternalSkillResponse{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetExternalSkillResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetExternalSkillResponse) ProtoMessage() {}
+
+func (x *GetExternalSkillResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetExternalSkillResponse.ProtoReflect.Descriptor instead.
+func (*GetExternalSkillResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *GetExternalSkillResponse) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *GetExternalSkillResponse) GetFiles() []*v1.SkillFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *GetExternalSkillResponse) GetAudits() []*v1.SkillAudit {
+	if x != nil {
+		return x.Audits
+	}
+	return nil
+}
+
+func (x *GetExternalSkillResponse) GetLicense() string {
+	if x != nil {
+		return x.License
+	}
+	return ""
+}
+
+func (x *GetExternalSkillResponse) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *GetExternalSkillResponse) GetInstalls() int64 {
+	if x != nil {
+		return x.Installs
+	}
+	return 0
+}
+
+func (x *GetExternalSkillResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetExternalSkillResponse) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *GetExternalSkillResponse) GetInstalled() bool {
+	if x != nil {
+		return x.Installed
+	}
+	return false
+}
+
+type InstallExternalSkillRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// ExternalSkill hash that was shown: other content is refused.
+	Hash          string `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallExternalSkillRequest) Reset() {
+	*x = InstallExternalSkillRequest{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallExternalSkillRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallExternalSkillRequest) ProtoMessage() {}
+
+func (x *InstallExternalSkillRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallExternalSkillRequest.ProtoReflect.Descriptor instead.
+func (*InstallExternalSkillRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *InstallExternalSkillRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *InstallExternalSkillRequest) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+type InstallExternalSkillResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Skill         *InstalledExternalSkill `protobuf:"bytes,1,opt,name=skill,proto3" json:"skill,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallExternalSkillResponse) Reset() {
+	*x = InstallExternalSkillResponse{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallExternalSkillResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallExternalSkillResponse) ProtoMessage() {}
+
+func (x *InstallExternalSkillResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallExternalSkillResponse.ProtoReflect.Descriptor instead.
+func (*InstallExternalSkillResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *InstallExternalSkillResponse) GetSkill() *InstalledExternalSkill {
+	if x != nil {
+		return x.Skill
+	}
+	return nil
+}
+
+type SetExternalSkillApprovalRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Name     string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Approved bool                   `protobuf:"varint,2,opt,name=approved,proto3" json:"approved,omitempty"`
+	// InstalledExternalSkill.content_hash of what was shown. Required to approve.
+	ContentHash   string `protobuf:"bytes,3,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetExternalSkillApprovalRequest) Reset() {
+	*x = SetExternalSkillApprovalRequest{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetExternalSkillApprovalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetExternalSkillApprovalRequest) ProtoMessage() {}
+
+func (x *SetExternalSkillApprovalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetExternalSkillApprovalRequest.ProtoReflect.Descriptor instead.
+func (*SetExternalSkillApprovalRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *SetExternalSkillApprovalRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SetExternalSkillApprovalRequest) GetApproved() bool {
+	if x != nil {
+		return x.Approved
+	}
+	return false
+}
+
+func (x *SetExternalSkillApprovalRequest) GetContentHash() string {
+	if x != nil {
+		return x.ContentHash
+	}
+	return ""
+}
+
+type SetExternalSkillApprovalResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetExternalSkillApprovalResponse) Reset() {
+	*x = SetExternalSkillApprovalResponse{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetExternalSkillApprovalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetExternalSkillApprovalResponse) ProtoMessage() {}
+
+func (x *SetExternalSkillApprovalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetExternalSkillApprovalResponse.ProtoReflect.Descriptor instead.
+func (*SetExternalSkillApprovalResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{32}
+}
+
+type RemoveExternalSkillRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveExternalSkillRequest) Reset() {
+	*x = RemoveExternalSkillRequest{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveExternalSkillRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveExternalSkillRequest) ProtoMessage() {}
+
+func (x *RemoveExternalSkillRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveExternalSkillRequest.ProtoReflect.Descriptor instead.
+func (*RemoveExternalSkillRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *RemoveExternalSkillRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type RemoveExternalSkillResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveExternalSkillResponse) Reset() {
+	*x = RemoveExternalSkillResponse{}
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveExternalSkillResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveExternalSkillResponse) ProtoMessage() {}
+
+func (x *RemoveExternalSkillResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_extensions_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveExternalSkillResponse.ProtoReflect.Descriptor instead.
+func (*RemoveExternalSkillResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_extensions_proto_rawDescGZIP(), []int{34}
 }
 
 var File_harness_agent_v1_extensions_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\n" +
-	"!harness/agent/v1/extensions.proto\x12\x10harness.agent.v1\x1a\x1aharness/agent/v1/mcp.proto\x1a\x1eharness/agent/v1/plugins.proto\x1a%harness/agent/v1/slash_commands.proto\x1a\x18harness/mcp/v1/mcp.proto\".\n" +
+	"!harness/agent/v1/extensions.proto\x12\x10harness.agent.v1\x1a\x1aharness/agent/v1/mcp.proto\x1a\x1eharness/agent/v1/plugins.proto\x1a%harness/agent/v1/slash_commands.proto\x1a\x18harness/mcp/v1/mcp.proto\x1a\x1eharness/skills/v1/search.proto\".\n" +
 	"\x1aListExtensionSkillsRequest\x12\x10\n" +
 	"\x03cwd\x18\x01 \x01(\tR\x03cwd\"/\n" +
 	"\x1bListExtensionPluginsRequest\x12\x10\n" +
 	"\x03cwd\x18\x01 \x01(\tR\x03cwd\"2\n" +
 	"\x1eListExtensionConnectorsRequest\x12\x10\n" +
-	"\x03cwd\x18\x01 \x01(\tR\x03cwd\"\xbd\x01\n" +
+	"\x03cwd\x18\x01 \x01(\tR\x03cwd\"\xaf\x02\n" +
 	"\x0eExtensionSkill\x128\n" +
 	"\acommand\x18\x01 \x01(\v2\x1e.harness.agent.v1.SlashCommandR\acommand\x12\x1b\n" +
 	"\tplugin_id\x18\x02 \x01(\tR\bpluginId\x12\x1d\n" +
@@ -2181,16 +2849,38 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"updated_at\x18\x03 \x01(\tR\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"can_remove\x18\x04 \x01(\bR\tcanRemove\x12\x16\n" +
-	"\x06folder\x18\x05 \x01(\tR\x06folder\"w\n" +
+	"\x06folder\x18\x05 \x01(\tR\x06folder\x12*\n" +
+	"\x11blocked_by_policy\x18\x06 \x01(\bR\x0fblockedByPolicy\x12D\n" +
+	"\bexternal\x18\a \x01(\v2(.harness.agent.v1.InstalledExternalSkillR\bexternal\"\xbc\x03\n" +
+	"\x16InstalledExternalSkill\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1f\n" +
+	"\vpinned_hash\x18\x05 \x01(\tR\n" +
+	"pinnedHash\x12!\n" +
+	"\fcontent_hash\x18\x06 \x01(\tR\vcontentHash\x12\x1a\n" +
+	"\bapproved\x18\a \x01(\bR\bapproved\x12&\n" +
+	"\x0fchanged_on_disk\x18\b \x01(\bR\rchangedOnDisk\x125\n" +
+	"\x06audits\x18\t \x03(\v2\x1d.harness.skills.v1.SkillAuditR\x06audits\x12\x18\n" +
+	"\alicense\x18\n" +
+	" \x01(\tR\alicense\x12\x1a\n" +
+	"\binstalls\x18\v \x01(\x03R\binstalls\x12!\n" +
+	"\finstalled_at\x18\f \x01(\tR\vinstalledAt\x12\x16\n" +
+	"\x06folder\x18\r \x01(\tR\x06folder\x12\x14\n" +
+	"\x05files\x18\x0e \x03(\tR\x05files\"w\n" +
 	"\x13ExtensionSkillGroup\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x128\n" +
-	"\x06skills\x18\x03 \x03(\v2 .harness.agent.v1.ExtensionSkillR\x06skills\"\xd1\x01\n" +
+	"\x06skills\x18\x03 \x03(\v2 .harness.agent.v1.ExtensionSkillR\x06skills\"\xae\x02\n" +
 	"\x1bListExtensionSkillsResponse\x12=\n" +
 	"\x06groups\x18\x01 \x03(\v2%.harness.agent.v1.ExtensionSkillGroupR\x06groups\x12\x10\n" +
 	"\x03cwd\x18\x02 \x01(\tR\x03cwd\x12%\n" +
 	"\x0efolder_trusted\x18\x03 \x01(\bR\rfolderTrusted\x12:\n" +
-	"\x19project_skipped_untrusted\x18\x04 \x01(\bR\x17projectSkippedUntrusted\"\xdf\x01\n" +
+	"\x19project_skipped_untrusted\x18\x04 \x01(\bR\x17projectSkippedUntrusted\x12\x1f\n" +
+	"\vpolicy_note\x18\x05 \x01(\tR\n" +
+	"policyNote\x12:\n" +
+	"\awaiting\x18\x06 \x03(\v2 .harness.agent.v1.ExtensionSkillR\awaiting\"\xdf\x01\n" +
 	"\x0fExtensionPlugin\x120\n" +
 	"\x06plugin\x18\x01 \x01(\v2\x18.harness.agent.v1.PluginR\x06plugin\x12\x1a\n" +
 	"\bcategory\x18\x02 \x01(\tR\bcategory\x12\x12\n" +
@@ -2202,7 +2892,7 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\x14ExtensionPluginGroup\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12;\n" +
-	"\aplugins\x18\x03 \x03(\v2!.harness.agent.v1.ExtensionPluginR\aplugins\"\xb5\x02\n" +
+	"\aplugins\x18\x03 \x03(\v2!.harness.agent.v1.ExtensionPluginR\aplugins\"\xcf\x02\n" +
 	"\x14ExtensionMarketplace\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
@@ -2215,7 +2905,8 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\aproblem\x18\b \x01(\tR\aproblem\x12!\n" +
 	"\fplugin_count\x18\t \x01(\x05R\vpluginCount\x12'\n" +
 	"\x0finstalled_count\x18\n" +
-	" \x01(\x05R\x0einstalledCount\"\xdf\x03\n" +
+	" \x01(\x05R\x0einstalledCount\x12\x18\n" +
+	"\abuiltin\x18\v \x01(\bR\abuiltin\"\xdf\x03\n" +
 	"\x1cListExtensionPluginsResponse\x12>\n" +
 	"\x06groups\x18\x01 \x03(\v2&.harness.agent.v1.ExtensionPluginGroupR\x06groups\x12J\n" +
 	"\fmarketplaces\x18\x02 \x03(\v2&.harness.agent.v1.ExtensionMarketplaceR\fmarketplaces\x12\x10\n" +
@@ -2264,7 +2955,7 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\x06remote\x18\x02 \x01(\bR\x06remote\x12.\n" +
 	"\x06server\x18\x03 \x01(\v2\x16.harness.mcp.v1.ServerR\x06server\x12L\n" +
 	"\x10suggested_source\x18\x04 \x01(\x0e2!.harness.agent.v1.McpServerSourceR\x0fsuggestedSource\x12D\n" +
-	"\brequired\x18\x05 \x03(\v2(.harness.agent.v1.ConnectorRequiredValueR\brequired\"\x82\x05\n" +
+	"\brequired\x18\x05 \x03(\v2(.harness.agent.v1.ConnectorRequiredValueR\brequired\"\xc7\x05\n" +
 	"\fDiscoverItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x123\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x1f.harness.agent.v1.ExtensionKindR\x04kind\x12\x12\n" +
@@ -2282,11 +2973,14 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\tR\tupdatedAt\x12\x1c\n" +
 	"\tinstalled\x18\r \x01(\bR\tinstalled\x12\x18\n" +
 	"\arefusal\x18\x0e \x01(\tR\arefusal\x12\x1b\n" +
-	"\tplugin_id\x18\x0f \x01(\tR\bpluginId\x12-\n" +
-	"\x12marketplace_source\x18\x10 \x01(\tR\x11marketplaceSource\x12<\n" +
+	"\tplugin_id\x18\x0f \x01(\tR\bpluginId\x12\x1a\n" +
+	"\binstalls\x18\x10 \x01(\x03R\binstalls\x12<\n" +
 	"\bcontents\x18\x11 \x01(\v2 .harness.agent.v1.PluginContentsR\bcontents\x12;\n" +
 	"\aoptions\x18\x12 \x03(\v2!.harness.agent.v1.ConnectorOptionR\aoptions\x12\x18\n" +
-	"\aproblem\x18\x13 \x01(\tR\aproblem\"\xa6\x01\n" +
+	"\aproblem\x18\x13 \x01(\tR\aproblem\x12\x1f\n" +
+	"\vexternal_id\x18\x14 \x01(\tR\n" +
+	"externalId\x125\n" +
+	"\x06audits\x18\x15 \x03(\v2\x1d.harness.skills.v1.SkillAuditR\x06audits\"\xa6\x01\n" +
 	"\x0fDiscoverSection\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x14\n" +
@@ -2309,7 +3003,7 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\x06cursor\x18\t \x01(\tR\x06cursor\x12\x18\n" +
 	"\arefresh\x18\n" +
 	" \x01(\bR\arefresh\x12\x10\n" +
-	"\x03cwd\x18\v \x01(\tR\x03cwd\"\xf3\x02\n" +
+	"\x03cwd\x18\v \x01(\tR\x03cwd\"\xdb\x03\n" +
 	"\x1aDiscoverExtensionsResponse\x12:\n" +
 	"\bfeatured\x18\x01 \x01(\v2\x1e.harness.agent.v1.DiscoverItemR\bfeatured\x12=\n" +
 	"\bsections\x18\x02 \x03(\v2!.harness.agent.v1.DiscoverSectionR\bsections\x12B\n" +
@@ -2319,7 +3013,9 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\asources\x18\x04 \x03(\tR\asources\x12.\n" +
 	"\x13registry_fetched_at\x18\x05 \x01(\tR\x11registryFetchedAt\x12)\n" +
 	"\x10registry_problem\x18\x06 \x01(\tR\x0fregistryProblem\x12!\n" +
-	"\fregistry_off\x18\a \x01(\bR\vregistryOff\"Q\n" +
+	"\fregistry_off\x18\a \x01(\bR\vregistryOff\x12)\n" +
+	"\x10external_problem\x18\b \x01(\tR\x0fexternalProblem\x12;\n" +
+	"\x1aexternal_blocked_by_policy\x18\t \x01(\bR\x17externalBlockedByPolicy\"Q\n" +
 	"\x15GetSkillDetailRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x10\n" +
@@ -2339,7 +3035,32 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x10\n" +
 	"\x03cwd\x18\x03 \x01(\tR\x03cwd\"\x15\n" +
-	"\x13RemoveSkillResponse*\x82\x01\n" +
+	"\x13RemoveSkillResponse\")\n" +
+	"\x17GetExternalSkillRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xbb\x02\n" +
+	"\x18GetExternalSkillResponse\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\tR\x04hash\x122\n" +
+	"\x05files\x18\x02 \x03(\v2\x1c.harness.skills.v1.SkillFileR\x05files\x125\n" +
+	"\x06audits\x18\x03 \x03(\v2\x1d.harness.skills.v1.SkillAuditR\x06audits\x12\x18\n" +
+	"\alicense\x18\x04 \x01(\tR\alicense\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12\x1a\n" +
+	"\binstalls\x18\x06 \x01(\x03R\binstalls\x12\x12\n" +
+	"\x04name\x18\a \x01(\tR\x04name\x12\x16\n" +
+	"\x06source\x18\b \x01(\tR\x06source\x12\x1c\n" +
+	"\tinstalled\x18\t \x01(\bR\tinstalled\"A\n" +
+	"\x1bInstallExternalSkillRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04hash\x18\x02 \x01(\tR\x04hash\"^\n" +
+	"\x1cInstallExternalSkillResponse\x12>\n" +
+	"\x05skill\x18\x01 \x01(\v2(.harness.agent.v1.InstalledExternalSkillR\x05skill\"t\n" +
+	"\x1fSetExternalSkillApprovalRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
+	"\bapproved\x18\x02 \x01(\bR\bapproved\x12!\n" +
+	"\fcontent_hash\x18\x03 \x01(\tR\vcontentHash\"\"\n" +
+	" SetExternalSkillApprovalResponse\"0\n" +
+	"\x1aRemoveExternalSkillRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x1d\n" +
+	"\x1bRemoveExternalSkillResponse*\x82\x01\n" +
 	"\rExtensionKind\x12\x1e\n" +
 	"\x1aEXTENSION_KIND_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14EXTENSION_KIND_SKILL\x10\x01\x12\x1c\n" +
@@ -2354,7 +3075,7 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\x1cCONNECTOR_STATUS_NEEDS_TRUST\x10\x05\x12\x18\n" +
 	"\x14CONNECTOR_STATUS_OFF\x10\x06\x12\x1c\n" +
 	"\x18CONNECTOR_STATUS_BLOCKED\x10\a\x12\x1a\n" +
-	"\x16CONNECTOR_STATUS_ERROR\x10\b2\x8c\x06\n" +
+	"\x16CONNECTOR_STATUS_ERROR\x10\b2\xe6\t\n" +
 	"\x11ExtensionsService\x12r\n" +
 	"\x13ListExtensionSkills\x12,.harness.agent.v1.ListExtensionSkillsRequest\x1a-.harness.agent.v1.ListExtensionSkillsResponse\x12u\n" +
 	"\x14ListExtensionPlugins\x12-.harness.agent.v1.ListExtensionPluginsRequest\x1a..harness.agent.v1.ListExtensionPluginsResponse\x12~\n" +
@@ -2362,7 +3083,11 @@ const file_harness_agent_v1_extensions_proto_rawDesc = "" +
 	"\x12DiscoverExtensions\x12+.harness.agent.v1.DiscoverExtensionsRequest\x1a,.harness.agent.v1.DiscoverExtensionsResponse\x12c\n" +
 	"\x0eGetSkillDetail\x12'.harness.agent.v1.GetSkillDetailRequest\x1a(.harness.agent.v1.GetSkillDetailResponse\x12Z\n" +
 	"\vCreateSkill\x12$.harness.agent.v1.CreateSkillRequest\x1a%.harness.agent.v1.CreateSkillResponse\x12Z\n" +
-	"\vRemoveSkill\x12$.harness.agent.v1.RemoveSkillRequest\x1a%.harness.agent.v1.RemoveSkillResponseB\xd0\x01\n" +
+	"\vRemoveSkill\x12$.harness.agent.v1.RemoveSkillRequest\x1a%.harness.agent.v1.RemoveSkillResponse\x12i\n" +
+	"\x10GetExternalSkill\x12).harness.agent.v1.GetExternalSkillRequest\x1a*.harness.agent.v1.GetExternalSkillResponse\x12u\n" +
+	"\x14InstallExternalSkill\x12-.harness.agent.v1.InstallExternalSkillRequest\x1a..harness.agent.v1.InstallExternalSkillResponse\x12\x81\x01\n" +
+	"\x18SetExternalSkillApproval\x121.harness.agent.v1.SetExternalSkillApprovalRequest\x1a2.harness.agent.v1.SetExternalSkillApprovalResponse\x12r\n" +
+	"\x13RemoveExternalSkill\x12,.harness.agent.v1.RemoveExternalSkillRequest\x1a-.harness.agent.v1.RemoveExternalSkillResponseB\xd0\x01\n" +
 	"\x14com.harness.agent.v1B\x0fExtensionsProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (
@@ -2378,89 +3103,115 @@ func file_harness_agent_v1_extensions_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_extensions_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_harness_agent_v1_extensions_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_harness_agent_v1_extensions_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_harness_agent_v1_extensions_proto_goTypes = []any{
-	(ExtensionKind)(0),                      // 0: harness.agent.v1.ExtensionKind
-	(ConnectorStatus)(0),                    // 1: harness.agent.v1.ConnectorStatus
-	(*ListExtensionSkillsRequest)(nil),      // 2: harness.agent.v1.ListExtensionSkillsRequest
-	(*ListExtensionPluginsRequest)(nil),     // 3: harness.agent.v1.ListExtensionPluginsRequest
-	(*ListExtensionConnectorsRequest)(nil),  // 4: harness.agent.v1.ListExtensionConnectorsRequest
-	(*ExtensionSkill)(nil),                  // 5: harness.agent.v1.ExtensionSkill
-	(*ExtensionSkillGroup)(nil),             // 6: harness.agent.v1.ExtensionSkillGroup
-	(*ListExtensionSkillsResponse)(nil),     // 7: harness.agent.v1.ListExtensionSkillsResponse
-	(*ExtensionPlugin)(nil),                 // 8: harness.agent.v1.ExtensionPlugin
-	(*ExtensionPluginGroup)(nil),            // 9: harness.agent.v1.ExtensionPluginGroup
-	(*ExtensionMarketplace)(nil),            // 10: harness.agent.v1.ExtensionMarketplace
-	(*ListExtensionPluginsResponse)(nil),    // 11: harness.agent.v1.ListExtensionPluginsResponse
-	(*ConnectorProvider)(nil),               // 12: harness.agent.v1.ConnectorProvider
-	(*ExtensionConnector)(nil),              // 13: harness.agent.v1.ExtensionConnector
-	(*ListExtensionConnectorsResponse)(nil), // 14: harness.agent.v1.ListExtensionConnectorsResponse
-	(*ConnectorRequiredValue)(nil),          // 15: harness.agent.v1.ConnectorRequiredValue
-	(*ConnectorOption)(nil),                 // 16: harness.agent.v1.ConnectorOption
-	(*DiscoverItem)(nil),                    // 17: harness.agent.v1.DiscoverItem
-	(*DiscoverSection)(nil),                 // 18: harness.agent.v1.DiscoverSection
-	(*DiscoverCategory)(nil),                // 19: harness.agent.v1.DiscoverCategory
-	(*DiscoverExtensionsRequest)(nil),       // 20: harness.agent.v1.DiscoverExtensionsRequest
-	(*DiscoverExtensionsResponse)(nil),      // 21: harness.agent.v1.DiscoverExtensionsResponse
-	(*GetSkillDetailRequest)(nil),           // 22: harness.agent.v1.GetSkillDetailRequest
-	(*GetSkillDetailResponse)(nil),          // 23: harness.agent.v1.GetSkillDetailResponse
-	(*CreateSkillRequest)(nil),              // 24: harness.agent.v1.CreateSkillRequest
-	(*CreateSkillResponse)(nil),             // 25: harness.agent.v1.CreateSkillResponse
-	(*RemoveSkillRequest)(nil),              // 26: harness.agent.v1.RemoveSkillRequest
-	(*RemoveSkillResponse)(nil),             // 27: harness.agent.v1.RemoveSkillResponse
-	nil,                                     // 28: harness.agent.v1.ListExtensionPluginsResponse.SuggestedMarketplacesEntry
-	(*SlashCommand)(nil),                    // 29: harness.agent.v1.SlashCommand
-	(*Plugin)(nil),                          // 30: harness.agent.v1.Plugin
-	(PluginStatus)(0),                       // 31: harness.agent.v1.PluginStatus
-	(*McpServerEntry)(nil),                  // 32: harness.agent.v1.McpServerEntry
-	(*v1.Server)(nil),                       // 33: harness.mcp.v1.Server
-	(McpServerSource)(0),                    // 34: harness.agent.v1.McpServerSource
-	(*PluginContents)(nil),                  // 35: harness.agent.v1.PluginContents
+	(ExtensionKind)(0),                       // 0: harness.agent.v1.ExtensionKind
+	(ConnectorStatus)(0),                     // 1: harness.agent.v1.ConnectorStatus
+	(*ListExtensionSkillsRequest)(nil),       // 2: harness.agent.v1.ListExtensionSkillsRequest
+	(*ListExtensionPluginsRequest)(nil),      // 3: harness.agent.v1.ListExtensionPluginsRequest
+	(*ListExtensionConnectorsRequest)(nil),   // 4: harness.agent.v1.ListExtensionConnectorsRequest
+	(*ExtensionSkill)(nil),                   // 5: harness.agent.v1.ExtensionSkill
+	(*InstalledExternalSkill)(nil),           // 6: harness.agent.v1.InstalledExternalSkill
+	(*ExtensionSkillGroup)(nil),              // 7: harness.agent.v1.ExtensionSkillGroup
+	(*ListExtensionSkillsResponse)(nil),      // 8: harness.agent.v1.ListExtensionSkillsResponse
+	(*ExtensionPlugin)(nil),                  // 9: harness.agent.v1.ExtensionPlugin
+	(*ExtensionPluginGroup)(nil),             // 10: harness.agent.v1.ExtensionPluginGroup
+	(*ExtensionMarketplace)(nil),             // 11: harness.agent.v1.ExtensionMarketplace
+	(*ListExtensionPluginsResponse)(nil),     // 12: harness.agent.v1.ListExtensionPluginsResponse
+	(*ConnectorProvider)(nil),                // 13: harness.agent.v1.ConnectorProvider
+	(*ExtensionConnector)(nil),               // 14: harness.agent.v1.ExtensionConnector
+	(*ListExtensionConnectorsResponse)(nil),  // 15: harness.agent.v1.ListExtensionConnectorsResponse
+	(*ConnectorRequiredValue)(nil),           // 16: harness.agent.v1.ConnectorRequiredValue
+	(*ConnectorOption)(nil),                  // 17: harness.agent.v1.ConnectorOption
+	(*DiscoverItem)(nil),                     // 18: harness.agent.v1.DiscoverItem
+	(*DiscoverSection)(nil),                  // 19: harness.agent.v1.DiscoverSection
+	(*DiscoverCategory)(nil),                 // 20: harness.agent.v1.DiscoverCategory
+	(*DiscoverExtensionsRequest)(nil),        // 21: harness.agent.v1.DiscoverExtensionsRequest
+	(*DiscoverExtensionsResponse)(nil),       // 22: harness.agent.v1.DiscoverExtensionsResponse
+	(*GetSkillDetailRequest)(nil),            // 23: harness.agent.v1.GetSkillDetailRequest
+	(*GetSkillDetailResponse)(nil),           // 24: harness.agent.v1.GetSkillDetailResponse
+	(*CreateSkillRequest)(nil),               // 25: harness.agent.v1.CreateSkillRequest
+	(*CreateSkillResponse)(nil),              // 26: harness.agent.v1.CreateSkillResponse
+	(*RemoveSkillRequest)(nil),               // 27: harness.agent.v1.RemoveSkillRequest
+	(*RemoveSkillResponse)(nil),              // 28: harness.agent.v1.RemoveSkillResponse
+	(*GetExternalSkillRequest)(nil),          // 29: harness.agent.v1.GetExternalSkillRequest
+	(*GetExternalSkillResponse)(nil),         // 30: harness.agent.v1.GetExternalSkillResponse
+	(*InstallExternalSkillRequest)(nil),      // 31: harness.agent.v1.InstallExternalSkillRequest
+	(*InstallExternalSkillResponse)(nil),     // 32: harness.agent.v1.InstallExternalSkillResponse
+	(*SetExternalSkillApprovalRequest)(nil),  // 33: harness.agent.v1.SetExternalSkillApprovalRequest
+	(*SetExternalSkillApprovalResponse)(nil), // 34: harness.agent.v1.SetExternalSkillApprovalResponse
+	(*RemoveExternalSkillRequest)(nil),       // 35: harness.agent.v1.RemoveExternalSkillRequest
+	(*RemoveExternalSkillResponse)(nil),      // 36: harness.agent.v1.RemoveExternalSkillResponse
+	nil,                                      // 37: harness.agent.v1.ListExtensionPluginsResponse.SuggestedMarketplacesEntry
+	(*SlashCommand)(nil),                     // 38: harness.agent.v1.SlashCommand
+	(*v1.SkillAudit)(nil),                    // 39: harness.skills.v1.SkillAudit
+	(*Plugin)(nil),                           // 40: harness.agent.v1.Plugin
+	(PluginStatus)(0),                        // 41: harness.agent.v1.PluginStatus
+	(*McpServerEntry)(nil),                   // 42: harness.agent.v1.McpServerEntry
+	(*v11.Server)(nil),                       // 43: harness.mcp.v1.Server
+	(McpServerSource)(0),                     // 44: harness.agent.v1.McpServerSource
+	(*PluginContents)(nil),                   // 45: harness.agent.v1.PluginContents
+	(*v1.SkillFile)(nil),                     // 46: harness.skills.v1.SkillFile
 }
 var file_harness_agent_v1_extensions_proto_depIdxs = []int32{
-	29, // 0: harness.agent.v1.ExtensionSkill.command:type_name -> harness.agent.v1.SlashCommand
-	5,  // 1: harness.agent.v1.ExtensionSkillGroup.skills:type_name -> harness.agent.v1.ExtensionSkill
-	6,  // 2: harness.agent.v1.ListExtensionSkillsResponse.groups:type_name -> harness.agent.v1.ExtensionSkillGroup
-	30, // 3: harness.agent.v1.ExtensionPlugin.plugin:type_name -> harness.agent.v1.Plugin
-	8,  // 4: harness.agent.v1.ExtensionPluginGroup.plugins:type_name -> harness.agent.v1.ExtensionPlugin
-	9,  // 5: harness.agent.v1.ListExtensionPluginsResponse.groups:type_name -> harness.agent.v1.ExtensionPluginGroup
-	10, // 6: harness.agent.v1.ListExtensionPluginsResponse.marketplaces:type_name -> harness.agent.v1.ExtensionMarketplace
-	28, // 7: harness.agent.v1.ListExtensionPluginsResponse.suggested_marketplaces:type_name -> harness.agent.v1.ListExtensionPluginsResponse.SuggestedMarketplacesEntry
-	31, // 8: harness.agent.v1.ConnectorProvider.plugin_status:type_name -> harness.agent.v1.PluginStatus
-	1,  // 9: harness.agent.v1.ExtensionConnector.status:type_name -> harness.agent.v1.ConnectorStatus
-	32, // 10: harness.agent.v1.ExtensionConnector.entry:type_name -> harness.agent.v1.McpServerEntry
-	12, // 11: harness.agent.v1.ExtensionConnector.providers:type_name -> harness.agent.v1.ConnectorProvider
-	13, // 12: harness.agent.v1.ListExtensionConnectorsResponse.connectors:type_name -> harness.agent.v1.ExtensionConnector
-	33, // 13: harness.agent.v1.ConnectorOption.server:type_name -> harness.mcp.v1.Server
-	34, // 14: harness.agent.v1.ConnectorOption.suggested_source:type_name -> harness.agent.v1.McpServerSource
-	15, // 15: harness.agent.v1.ConnectorOption.required:type_name -> harness.agent.v1.ConnectorRequiredValue
-	0,  // 16: harness.agent.v1.DiscoverItem.kind:type_name -> harness.agent.v1.ExtensionKind
-	35, // 17: harness.agent.v1.DiscoverItem.contents:type_name -> harness.agent.v1.PluginContents
-	16, // 18: harness.agent.v1.DiscoverItem.options:type_name -> harness.agent.v1.ConnectorOption
-	17, // 19: harness.agent.v1.DiscoverSection.items:type_name -> harness.agent.v1.DiscoverItem
-	0,  // 20: harness.agent.v1.DiscoverExtensionsRequest.kind:type_name -> harness.agent.v1.ExtensionKind
-	17, // 21: harness.agent.v1.DiscoverExtensionsResponse.featured:type_name -> harness.agent.v1.DiscoverItem
-	18, // 22: harness.agent.v1.DiscoverExtensionsResponse.sections:type_name -> harness.agent.v1.DiscoverSection
-	19, // 23: harness.agent.v1.DiscoverExtensionsResponse.categories:type_name -> harness.agent.v1.DiscoverCategory
-	2,  // 24: harness.agent.v1.ExtensionsService.ListExtensionSkills:input_type -> harness.agent.v1.ListExtensionSkillsRequest
-	3,  // 25: harness.agent.v1.ExtensionsService.ListExtensionPlugins:input_type -> harness.agent.v1.ListExtensionPluginsRequest
-	4,  // 26: harness.agent.v1.ExtensionsService.ListExtensionConnectors:input_type -> harness.agent.v1.ListExtensionConnectorsRequest
-	20, // 27: harness.agent.v1.ExtensionsService.DiscoverExtensions:input_type -> harness.agent.v1.DiscoverExtensionsRequest
-	22, // 28: harness.agent.v1.ExtensionsService.GetSkillDetail:input_type -> harness.agent.v1.GetSkillDetailRequest
-	24, // 29: harness.agent.v1.ExtensionsService.CreateSkill:input_type -> harness.agent.v1.CreateSkillRequest
-	26, // 30: harness.agent.v1.ExtensionsService.RemoveSkill:input_type -> harness.agent.v1.RemoveSkillRequest
-	7,  // 31: harness.agent.v1.ExtensionsService.ListExtensionSkills:output_type -> harness.agent.v1.ListExtensionSkillsResponse
-	11, // 32: harness.agent.v1.ExtensionsService.ListExtensionPlugins:output_type -> harness.agent.v1.ListExtensionPluginsResponse
-	14, // 33: harness.agent.v1.ExtensionsService.ListExtensionConnectors:output_type -> harness.agent.v1.ListExtensionConnectorsResponse
-	21, // 34: harness.agent.v1.ExtensionsService.DiscoverExtensions:output_type -> harness.agent.v1.DiscoverExtensionsResponse
-	23, // 35: harness.agent.v1.ExtensionsService.GetSkillDetail:output_type -> harness.agent.v1.GetSkillDetailResponse
-	25, // 36: harness.agent.v1.ExtensionsService.CreateSkill:output_type -> harness.agent.v1.CreateSkillResponse
-	27, // 37: harness.agent.v1.ExtensionsService.RemoveSkill:output_type -> harness.agent.v1.RemoveSkillResponse
-	31, // [31:38] is the sub-list for method output_type
-	24, // [24:31] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	38, // 0: harness.agent.v1.ExtensionSkill.command:type_name -> harness.agent.v1.SlashCommand
+	6,  // 1: harness.agent.v1.ExtensionSkill.external:type_name -> harness.agent.v1.InstalledExternalSkill
+	39, // 2: harness.agent.v1.InstalledExternalSkill.audits:type_name -> harness.skills.v1.SkillAudit
+	5,  // 3: harness.agent.v1.ExtensionSkillGroup.skills:type_name -> harness.agent.v1.ExtensionSkill
+	7,  // 4: harness.agent.v1.ListExtensionSkillsResponse.groups:type_name -> harness.agent.v1.ExtensionSkillGroup
+	5,  // 5: harness.agent.v1.ListExtensionSkillsResponse.waiting:type_name -> harness.agent.v1.ExtensionSkill
+	40, // 6: harness.agent.v1.ExtensionPlugin.plugin:type_name -> harness.agent.v1.Plugin
+	9,  // 7: harness.agent.v1.ExtensionPluginGroup.plugins:type_name -> harness.agent.v1.ExtensionPlugin
+	10, // 8: harness.agent.v1.ListExtensionPluginsResponse.groups:type_name -> harness.agent.v1.ExtensionPluginGroup
+	11, // 9: harness.agent.v1.ListExtensionPluginsResponse.marketplaces:type_name -> harness.agent.v1.ExtensionMarketplace
+	37, // 10: harness.agent.v1.ListExtensionPluginsResponse.suggested_marketplaces:type_name -> harness.agent.v1.ListExtensionPluginsResponse.SuggestedMarketplacesEntry
+	41, // 11: harness.agent.v1.ConnectorProvider.plugin_status:type_name -> harness.agent.v1.PluginStatus
+	1,  // 12: harness.agent.v1.ExtensionConnector.status:type_name -> harness.agent.v1.ConnectorStatus
+	42, // 13: harness.agent.v1.ExtensionConnector.entry:type_name -> harness.agent.v1.McpServerEntry
+	13, // 14: harness.agent.v1.ExtensionConnector.providers:type_name -> harness.agent.v1.ConnectorProvider
+	14, // 15: harness.agent.v1.ListExtensionConnectorsResponse.connectors:type_name -> harness.agent.v1.ExtensionConnector
+	43, // 16: harness.agent.v1.ConnectorOption.server:type_name -> harness.mcp.v1.Server
+	44, // 17: harness.agent.v1.ConnectorOption.suggested_source:type_name -> harness.agent.v1.McpServerSource
+	16, // 18: harness.agent.v1.ConnectorOption.required:type_name -> harness.agent.v1.ConnectorRequiredValue
+	0,  // 19: harness.agent.v1.DiscoverItem.kind:type_name -> harness.agent.v1.ExtensionKind
+	45, // 20: harness.agent.v1.DiscoverItem.contents:type_name -> harness.agent.v1.PluginContents
+	17, // 21: harness.agent.v1.DiscoverItem.options:type_name -> harness.agent.v1.ConnectorOption
+	39, // 22: harness.agent.v1.DiscoverItem.audits:type_name -> harness.skills.v1.SkillAudit
+	18, // 23: harness.agent.v1.DiscoverSection.items:type_name -> harness.agent.v1.DiscoverItem
+	0,  // 24: harness.agent.v1.DiscoverExtensionsRequest.kind:type_name -> harness.agent.v1.ExtensionKind
+	18, // 25: harness.agent.v1.DiscoverExtensionsResponse.featured:type_name -> harness.agent.v1.DiscoverItem
+	19, // 26: harness.agent.v1.DiscoverExtensionsResponse.sections:type_name -> harness.agent.v1.DiscoverSection
+	20, // 27: harness.agent.v1.DiscoverExtensionsResponse.categories:type_name -> harness.agent.v1.DiscoverCategory
+	46, // 28: harness.agent.v1.GetExternalSkillResponse.files:type_name -> harness.skills.v1.SkillFile
+	39, // 29: harness.agent.v1.GetExternalSkillResponse.audits:type_name -> harness.skills.v1.SkillAudit
+	6,  // 30: harness.agent.v1.InstallExternalSkillResponse.skill:type_name -> harness.agent.v1.InstalledExternalSkill
+	2,  // 31: harness.agent.v1.ExtensionsService.ListExtensionSkills:input_type -> harness.agent.v1.ListExtensionSkillsRequest
+	3,  // 32: harness.agent.v1.ExtensionsService.ListExtensionPlugins:input_type -> harness.agent.v1.ListExtensionPluginsRequest
+	4,  // 33: harness.agent.v1.ExtensionsService.ListExtensionConnectors:input_type -> harness.agent.v1.ListExtensionConnectorsRequest
+	21, // 34: harness.agent.v1.ExtensionsService.DiscoverExtensions:input_type -> harness.agent.v1.DiscoverExtensionsRequest
+	23, // 35: harness.agent.v1.ExtensionsService.GetSkillDetail:input_type -> harness.agent.v1.GetSkillDetailRequest
+	25, // 36: harness.agent.v1.ExtensionsService.CreateSkill:input_type -> harness.agent.v1.CreateSkillRequest
+	27, // 37: harness.agent.v1.ExtensionsService.RemoveSkill:input_type -> harness.agent.v1.RemoveSkillRequest
+	29, // 38: harness.agent.v1.ExtensionsService.GetExternalSkill:input_type -> harness.agent.v1.GetExternalSkillRequest
+	31, // 39: harness.agent.v1.ExtensionsService.InstallExternalSkill:input_type -> harness.agent.v1.InstallExternalSkillRequest
+	33, // 40: harness.agent.v1.ExtensionsService.SetExternalSkillApproval:input_type -> harness.agent.v1.SetExternalSkillApprovalRequest
+	35, // 41: harness.agent.v1.ExtensionsService.RemoveExternalSkill:input_type -> harness.agent.v1.RemoveExternalSkillRequest
+	8,  // 42: harness.agent.v1.ExtensionsService.ListExtensionSkills:output_type -> harness.agent.v1.ListExtensionSkillsResponse
+	12, // 43: harness.agent.v1.ExtensionsService.ListExtensionPlugins:output_type -> harness.agent.v1.ListExtensionPluginsResponse
+	15, // 44: harness.agent.v1.ExtensionsService.ListExtensionConnectors:output_type -> harness.agent.v1.ListExtensionConnectorsResponse
+	22, // 45: harness.agent.v1.ExtensionsService.DiscoverExtensions:output_type -> harness.agent.v1.DiscoverExtensionsResponse
+	24, // 46: harness.agent.v1.ExtensionsService.GetSkillDetail:output_type -> harness.agent.v1.GetSkillDetailResponse
+	26, // 47: harness.agent.v1.ExtensionsService.CreateSkill:output_type -> harness.agent.v1.CreateSkillResponse
+	28, // 48: harness.agent.v1.ExtensionsService.RemoveSkill:output_type -> harness.agent.v1.RemoveSkillResponse
+	30, // 49: harness.agent.v1.ExtensionsService.GetExternalSkill:output_type -> harness.agent.v1.GetExternalSkillResponse
+	32, // 50: harness.agent.v1.ExtensionsService.InstallExternalSkill:output_type -> harness.agent.v1.InstallExternalSkillResponse
+	34, // 51: harness.agent.v1.ExtensionsService.SetExternalSkillApproval:output_type -> harness.agent.v1.SetExternalSkillApprovalResponse
+	36, // 52: harness.agent.v1.ExtensionsService.RemoveExternalSkill:output_type -> harness.agent.v1.RemoveExternalSkillResponse
+	42, // [42:53] is the sub-list for method output_type
+	31, // [31:42] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_extensions_proto_init() }
@@ -2477,7 +3228,7 @@ func file_harness_agent_v1_extensions_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_extensions_proto_rawDesc), len(file_harness_agent_v1_extensions_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   27,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

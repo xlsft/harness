@@ -12,13 +12,15 @@ import type { SlashCommand } from "./slash_commands_pb";
 import { file_harness_agent_v1_slash_commands } from "./slash_commands_pb";
 import type { Server } from "../../mcp/v1/mcp_pb";
 import { file_harness_mcp_v1_mcp } from "../../mcp/v1/mcp_pb";
+import type { SkillAudit, SkillFile } from "../../skills/v1/search_pb";
+import { file_harness_skills_v1_search } from "../../skills/v1/search_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file harness/agent/v1/extensions.proto.
  */
 export const file_harness_agent_v1_extensions: GenFile = /*@__PURE__*/
-  fileDesc("CiFoYXJuZXNzL2FnZW50L3YxL2V4dGVuc2lvbnMucHJvdG8SEGhhcm5lc3MuYWdlbnQudjEiKQoaTGlzdEV4dGVuc2lvblNraWxsc1JlcXVlc3QSCwoDY3dkGAEgASgJIioKG0xpc3RFeHRlbnNpb25QbHVnaW5zUmVxdWVzdBILCgNjd2QYASABKAkiLQoeTGlzdEV4dGVuc2lvbkNvbm5lY3RvcnNSZXF1ZXN0EgsKA2N3ZBgBIAEoCSKMAQoORXh0ZW5zaW9uU2tpbGwSLwoHY29tbWFuZBgBIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuU2xhc2hDb21tYW5kEhEKCXBsdWdpbl9pZBgCIAEoCRISCgp1cGRhdGVkX2F0GAMgASgJEhIKCmNhbl9yZW1vdmUYBCABKAgSDgoGZm9sZGVyGAUgASgJImMKE0V4dGVuc2lvblNraWxsR3JvdXASCwoDa2V5GAEgASgJEg0KBXRpdGxlGAIgASgJEjAKBnNraWxscxgDIAMoCzIgLmhhcm5lc3MuYWdlbnQudjEuRXh0ZW5zaW9uU2tpbGwinAEKG0xpc3RFeHRlbnNpb25Ta2lsbHNSZXNwb25zZRI1CgZncm91cHMYASADKAsyJS5oYXJuZXNzLmFnZW50LnYxLkV4dGVuc2lvblNraWxsR3JvdXASCwoDY3dkGAIgASgJEhYKDmZvbGRlcl90cnVzdGVkGAMgASgIEiEKGXByb2plY3Rfc2tpcHBlZF91bnRydXN0ZWQYBCABKAgioQEKD0V4dGVuc2lvblBsdWdpbhIoCgZwbHVnaW4YASABKAsyGC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbhIQCghjYXRlZ29yeRgCIAEoCRIMCgR0YWdzGAMgAygJEhEKCXB1Ymxpc2hlchgEIAEoCRIQCghob21lcGFnZRgFIAEoCRIPCgdsaWNlbnNlGAYgASgJEg4KBmZvbGRlchgHIAEoCSJmChRFeHRlbnNpb25QbHVnaW5Hcm91cBILCgNrZXkYASABKAkSDQoFdGl0bGUYAiABKAkSMgoHcGx1Z2lucxgDIAMoCzIhLmhhcm5lc3MuYWdlbnQudjEuRXh0ZW5zaW9uUGx1Z2luIs8BChRFeHRlbnNpb25NYXJrZXRwbGFjZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEg4KBnNvdXJjZRgDIAEoCRIOCgZjb21taXQYBCABKAkSEgoKdXBkYXRlZF9hdBgFIAEoCRIPCgdtYW5hZ2VkGAYgASgIEg8KB3JlZnVzYWwYByABKAkSDwoHcHJvYmxlbRgIIAEoCRIUCgxwbHVnaW5fY291bnQYCSABKAUSFwoPaW5zdGFsbGVkX2NvdW50GAogASgFIv4CChxMaXN0RXh0ZW5zaW9uUGx1Z2luc1Jlc3BvbnNlEjYKBmdyb3VwcxgBIAMoCzImLmhhcm5lc3MuYWdlbnQudjEuRXh0ZW5zaW9uUGx1Z2luR3JvdXASPAoMbWFya2V0cGxhY2VzGAIgAygLMiYuaGFybmVzcy5hZ2VudC52MS5FeHRlbnNpb25NYXJrZXRwbGFjZRILCgNjd2QYAyABKAkSFgoOZm9sZGVyX3RydXN0ZWQYBCABKAgSGgoSc291cmNlc19yZXN0cmljdGVkGAUgASgIEmkKFnN1Z2dlc3RlZF9tYXJrZXRwbGFjZXMYBiADKAsySS5oYXJuZXNzLmFnZW50LnYxLkxpc3RFeHRlbnNpb25QbHVnaW5zUmVzcG9uc2UuU3VnZ2VzdGVkTWFya2V0cGxhY2VzRW50cnkaPAoaU3VnZ2VzdGVkTWFya2V0cGxhY2VzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKCAQoRQ29ubmVjdG9yUHJvdmlkZXISEQoJcGx1Z2luX2lkGAEgASgJEhMKC3BsdWdpbl9uYW1lGAIgASgJEg4KBnNlcnZlchgDIAEoCRI1Cg1wbHVnaW5fc3RhdHVzGAQgASgOMh4uaGFybmVzcy5hZ2VudC52MS5QbHVnaW5TdGF0dXMipgIKEkV4dGVuc2lvbkNvbm5lY3RvchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg4KBnJlbW90ZRgDIAEoCBIRCgl0cmFuc3BvcnQYBCABKAkSEAoIZW5kcG9pbnQYBSABKAkSDgoGYmFkZ2VzGAYgAygJEjEKBnN0YXR1cxgHIAEoDjIhLmhhcm5lc3MuYWdlbnQudjEuQ29ubmVjdG9yU3RhdHVzEhUKDXN0YXR1c19kZXRhaWwYCCABKAkSLwoFZW50cnkYCSABKAsyIC5oYXJuZXNzLmFnZW50LnYxLk1jcFNlcnZlckVudHJ5EjYKCXByb3ZpZGVycxgKIAMoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29ubmVjdG9yUHJvdmlkZXIihgIKH0xpc3RFeHRlbnNpb25Db25uZWN0b3JzUmVzcG9uc2USOAoKY29ubmVjdG9ycxgBIAMoCzIkLmhhcm5lc3MuYWdlbnQudjEuRXh0ZW5zaW9uQ29ubmVjdG9yEhYKDnJlZ2lzdHJ5X2Vycm9yGAIgASgJEhYKDmNhbl9tYW5hZ2Vfb3JnGAMgASgIEhQKDHByb2plY3Rfcm9vdBgEIAEoCRIXCg9wcm9qZWN0X3RydXN0ZWQYBSABKAgSGAoQcHJvamVjdF9oYXNfZmlsZRgGIAEoCBIVCg1wcm9qZWN0X2Vycm9yGAcgASgJEhkKEWFjY291bnRfYXZhaWxhYmxlGAggASgIIksKFkNvbm5lY3RvclJlcXVpcmVkVmFsdWUSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIOCgZzZWNyZXQYAyABKAgi0QEKD0Nvbm5lY3Rvck9wdGlvbhINCgVsYWJlbBgBIAEoCRIOCgZyZW1vdGUYAiABKAgSJgoGc2VydmVyGAMgASgLMhYuaGFybmVzcy5tY3AudjEuU2VydmVyEjsKEHN1Z2dlc3RlZF9zb3VyY2UYBCABKA4yIS5oYXJuZXNzLmFnZW50LnYxLk1jcFNlcnZlclNvdXJjZRI6CghyZXF1aXJlZBgFIAMoCzIoLmhhcm5lc3MuYWdlbnQudjEuQ29ubmVjdG9yUmVxdWlyZWRWYWx1ZSLJAwoMRGlzY292ZXJJdGVtEgoKAmlkGAEgASgJEi0KBGtpbmQYAiABKA4yHy5oYXJuZXNzLmFnZW50LnYxLkV4dGVuc2lvbktpbmQSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIRCglwdWJsaXNoZXIYBSABKAkSFAoMc291cmNlX2xhYmVsGAYgASgJEg8KB3ZlcnNpb24YByABKAkSEAoIaG9tZXBhZ2UYCCABKAkSDwoHbGljZW5zZRgJIAEoCRIQCghjYXRlZ29yeRgKIAEoCRIMCgR0YWdzGAsgAygJEhIKCnVwZGF0ZWRfYXQYDCABKAkSEQoJaW5zdGFsbGVkGA0gASgIEg8KB3JlZnVzYWwYDiABKAkSEQoJcGx1Z2luX2lkGA8gASgJEhoKEm1hcmtldHBsYWNlX3NvdXJjZRgQIAEoCRIyCghjb250ZW50cxgRIAEoCzIgLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luQ29udGVudHMSMgoHb3B0aW9ucxgSIAMoCzIhLmhhcm5lc3MuYWdlbnQudjEuQ29ubmVjdG9yT3B0aW9uEg8KB3Byb2JsZW0YEyABKAkigAEKD0Rpc2NvdmVyU2VjdGlvbhILCgNrZXkYASABKAkSDQoFdGl0bGUYAiABKAkSDQoFdG90YWwYAyABKAUSLQoFaXRlbXMYBCADKAsyHi5oYXJuZXNzLmFnZW50LnYxLkRpc2NvdmVySXRlbRITCgtuZXh0X2N1cnNvchgFIAEoCSIvChBEaXNjb3ZlckNhdGVnb3J5EgwKBG5hbWUYASABKAkSDQoFY291bnQYAiABKAUi+AEKGURpc2NvdmVyRXh0ZW5zaW9uc1JlcXVlc3QSLQoEa2luZBgBIAEoDjIfLmhhcm5lc3MuYWdlbnQudjEuRXh0ZW5zaW9uS2luZBINCgVxdWVyeRgCIAEoCRIQCghjYXRlZ29yeRgDIAEoCRIPCgdzZWN0aW9uGAQgASgJEg4KBnNvdXJjZRgFIAEoCRIWCg5jb25uZWN0b3JfdHlwZRgGIAEoCRIWCg5oaWRlX2luc3RhbGxlZBgHIAEoCBIMCgRzb3J0GAggASgJEg4KBmN1cnNvchgJIAEoCRIPCgdyZWZyZXNoGAogASgIEgsKA2N3ZBgLIAEoCSKZAgoaRGlzY292ZXJFeHRlbnNpb25zUmVzcG9uc2USMAoIZmVhdHVyZWQYASABKAsyHi5oYXJuZXNzLmFnZW50LnYxLkRpc2NvdmVySXRlbRIzCghzZWN0aW9ucxgCIAMoCzIhLmhhcm5lc3MuYWdlbnQudjEuRGlzY292ZXJTZWN0aW9uEjYKCmNhdGVnb3JpZXMYAyADKAsyIi5oYXJuZXNzLmFnZW50LnYxLkRpc2NvdmVyQ2F0ZWdvcnkSDwoHc291cmNlcxgEIAMoCRIbChNyZWdpc3RyeV9mZXRjaGVkX2F0GAUgASgJEhgKEHJlZ2lzdHJ5X3Byb2JsZW0YBiABKAkSFAoMcmVnaXN0cnlfb2ZmGAcgASgIIkAKFUdldFNraWxsRGV0YWlsUmVxdWVzdBIMCgRuYW1lGAEgASgJEgwKBHBhdGgYAiABKAkSCwoDY3dkGAMgASgJIkgKFkdldFNraWxsRGV0YWlsUmVzcG9uc2USDAoEYm9keRgBIAEoCRIRCgl0cnVuY2F0ZWQYAiABKAgSDQoFZmlsZXMYAyADKAkiUgoSQ3JlYXRlU2tpbGxSZXF1ZXN0EgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSCwoDY3dkGAMgASgJEgwKBGJvZHkYBCABKAkiIwoTQ3JlYXRlU2tpbGxSZXNwb25zZRIMCgRwYXRoGAEgASgJIj0KElJlbW92ZVNraWxsUmVxdWVzdBIMCgRuYW1lGAEgASgJEgwKBHBhdGgYAiABKAkSCwoDY3dkGAMgASgJIhUKE1JlbW92ZVNraWxsUmVzcG9uc2UqggEKDUV4dGVuc2lvbktpbmQSHgoaRVhURU5TSU9OX0tJTkRfVU5TUEVDSUZJRUQQABIYChRFWFRFTlNJT05fS0lORF9TS0lMTBABEhwKGEVYVEVOU0lPTl9LSU5EX0NPTk5FQ1RPUhACEhkKFUVYVEVOU0lPTl9LSU5EX1BMVUdJThADKrQCCg9Db25uZWN0b3JTdGF0dXMSIAocQ09OTkVDVE9SX1NUQVRVU19VTlNQRUNJRklFRBAAEh4KGkNPTk5FQ1RPUl9TVEFUVVNfQ09OTkVDVEVEEAESIgoeQ09OTkVDVE9SX1NUQVRVU19ORUVEU19TSUdOX0lOEAISIAocQ09OTkVDVE9SX1NUQVRVU19JTl9TRVNTSU9OUxADEiMKH0NPTk5FQ1RPUl9TVEFUVVNfTkVFRFNfQVBQUk9WQUwQBBIgChxDT05ORUNUT1JfU1RBVFVTX05FRURTX1RSVVNUEAUSGAoUQ09OTkVDVE9SX1NUQVRVU19PRkYQBhIcChhDT05ORUNUT1JfU1RBVFVTX0JMT0NLRUQQBxIaChZDT05ORUNUT1JfU1RBVFVTX0VSUk9SEAgyjAYKEUV4dGVuc2lvbnNTZXJ2aWNlEnIKE0xpc3RFeHRlbnNpb25Ta2lsbHMSLC5oYXJuZXNzLmFnZW50LnYxLkxpc3RFeHRlbnNpb25Ta2lsbHNSZXF1ZXN0Gi0uaGFybmVzcy5hZ2VudC52MS5MaXN0RXh0ZW5zaW9uU2tpbGxzUmVzcG9uc2USdQoUTGlzdEV4dGVuc2lvblBsdWdpbnMSLS5oYXJuZXNzLmFnZW50LnYxLkxpc3RFeHRlbnNpb25QbHVnaW5zUmVxdWVzdBouLmhhcm5lc3MuYWdlbnQudjEuTGlzdEV4dGVuc2lvblBsdWdpbnNSZXNwb25zZRJ+ChdMaXN0RXh0ZW5zaW9uQ29ubmVjdG9ycxIwLmhhcm5lc3MuYWdlbnQudjEuTGlzdEV4dGVuc2lvbkNvbm5lY3RvcnNSZXF1ZXN0GjEuaGFybmVzcy5hZ2VudC52MS5MaXN0RXh0ZW5zaW9uQ29ubmVjdG9yc1Jlc3BvbnNlEm8KEkRpc2NvdmVyRXh0ZW5zaW9ucxIrLmhhcm5lc3MuYWdlbnQudjEuRGlzY292ZXJFeHRlbnNpb25zUmVxdWVzdBosLmhhcm5lc3MuYWdlbnQudjEuRGlzY292ZXJFeHRlbnNpb25zUmVzcG9uc2USYwoOR2V0U2tpbGxEZXRhaWwSJy5oYXJuZXNzLmFnZW50LnYxLkdldFNraWxsRGV0YWlsUmVxdWVzdBooLmhhcm5lc3MuYWdlbnQudjEuR2V0U2tpbGxEZXRhaWxSZXNwb25zZRJaCgtDcmVhdGVTa2lsbBIkLmhhcm5lc3MuYWdlbnQudjEuQ3JlYXRlU2tpbGxSZXF1ZXN0GiUuaGFybmVzcy5hZ2VudC52MS5DcmVhdGVTa2lsbFJlc3BvbnNlEloKC1JlbW92ZVNraWxsEiQuaGFybmVzcy5hZ2VudC52MS5SZW1vdmVTa2lsbFJlcXVlc3QaJS5oYXJuZXNzLmFnZW50LnYxLlJlbW92ZVNraWxsUmVzcG9uc2VC0AEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQg9FeHRlbnNpb25zUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM", [file_harness_agent_v1_mcp, file_harness_agent_v1_plugins, file_harness_agent_v1_slash_commands, file_harness_mcp_v1_mcp]);
+  fileDesc("CiFoYXJuZXNzL2FnZW50L3YxL2V4dGVuc2lvbnMucHJvdG8SEGhhcm5lc3MuYWdlbnQudjEiKQoaTGlzdEV4dGVuc2lvblNraWxsc1JlcXVlc3QSCwoDY3dkGAEgASgJIioKG0xpc3RFeHRlbnNpb25QbHVnaW5zUmVxdWVzdBILCgNjd2QYASABKAkiLQoeTGlzdEV4dGVuc2lvbkNvbm5lY3RvcnNSZXF1ZXN0EgsKA2N3ZBgBIAEoCSLjAQoORXh0ZW5zaW9uU2tpbGwSLwoHY29tbWFuZBgBIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuU2xhc2hDb21tYW5kEhEKCXBsdWdpbl9pZBgCIAEoCRISCgp1cGRhdGVkX2F0GAMgASgJEhIKCmNhbl9yZW1vdmUYBCABKAgSDgoGZm9sZGVyGAUgASgJEhkKEWJsb2NrZWRfYnlfcG9saWN5GAYgASgIEjoKCGV4dGVybmFsGAcgASgLMiguaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsZWRFeHRlcm5hbFNraWxsIrQCChZJbnN0YWxsZWRFeHRlcm5hbFNraWxsEgoKAmlkGAEgASgJEg4KBnNvdXJjZRgCIAEoCRIMCgRuYW1lGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhMKC3Bpbm5lZF9oYXNoGAUgASgJEhQKDGNvbnRlbnRfaGFzaBgGIAEoCRIQCghhcHByb3ZlZBgHIAEoCBIXCg9jaGFuZ2VkX29uX2Rpc2sYCCABKAgSLQoGYXVkaXRzGAkgAygLMh0uaGFybmVzcy5za2lsbHMudjEuU2tpbGxBdWRpdBIPCgdsaWNlbnNlGAogASgJEhAKCGluc3RhbGxzGAsgASgDEhQKDGluc3RhbGxlZF9hdBgMIAEoCRIOCgZmb2xkZXIYDSABKAkSDQoFZmlsZXMYDiADKAkiYwoTRXh0ZW5zaW9uU2tpbGxHcm91cBILCgNrZXkYASABKAkSDQoFdGl0bGUYAiABKAkSMAoGc2tpbGxzGAMgAygLMiAuaGFybmVzcy5hZ2VudC52MS5FeHRlbnNpb25Ta2lsbCLkAQobTGlzdEV4dGVuc2lvblNraWxsc1Jlc3BvbnNlEjUKBmdyb3VwcxgBIAMoCzIlLmhhcm5lc3MuYWdlbnQudjEuRXh0ZW5zaW9uU2tpbGxHcm91cBILCgNjd2QYAiABKAkSFgoOZm9sZGVyX3RydXN0ZWQYAyABKAgSIQoZcHJvamVjdF9za2lwcGVkX3VudHJ1c3RlZBgEIAEoCBITCgtwb2xpY3lfbm90ZRgFIAEoCRIxCgd3YWl0aW5nGAYgAygLMiAuaGFybmVzcy5hZ2VudC52MS5FeHRlbnNpb25Ta2lsbCKhAQoPRXh0ZW5zaW9uUGx1Z2luEigKBnBsdWdpbhgBIAEoCzIYLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luEhAKCGNhdGVnb3J5GAIgASgJEgwKBHRhZ3MYAyADKAkSEQoJcHVibGlzaGVyGAQgASgJEhAKCGhvbWVwYWdlGAUgASgJEg8KB2xpY2Vuc2UYBiABKAkSDgoGZm9sZGVyGAcgASgJImYKFEV4dGVuc2lvblBsdWdpbkdyb3VwEgsKA2tleRgBIAEoCRINCgV0aXRsZRgCIAEoCRIyCgdwbHVnaW5zGAMgAygLMiEuaGFybmVzcy5hZ2VudC52MS5FeHRlbnNpb25QbHVnaW4i4AEKFEV4dGVuc2lvbk1hcmtldHBsYWNlEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSDgoGc291cmNlGAMgASgJEg4KBmNvbW1pdBgEIAEoCRISCgp1cGRhdGVkX2F0GAUgASgJEg8KB21hbmFnZWQYBiABKAgSDwoHcmVmdXNhbBgHIAEoCRIPCgdwcm9ibGVtGAggASgJEhQKDHBsdWdpbl9jb3VudBgJIAEoBRIXCg9pbnN0YWxsZWRfY291bnQYCiABKAUSDwoHYnVpbHRpbhgLIAEoCCL+AgocTGlzdEV4dGVuc2lvblBsdWdpbnNSZXNwb25zZRI2CgZncm91cHMYASADKAsyJi5oYXJuZXNzLmFnZW50LnYxLkV4dGVuc2lvblBsdWdpbkdyb3VwEjwKDG1hcmtldHBsYWNlcxgCIAMoCzImLmhhcm5lc3MuYWdlbnQudjEuRXh0ZW5zaW9uTWFya2V0cGxhY2USCwoDY3dkGAMgASgJEhYKDmZvbGRlcl90cnVzdGVkGAQgASgIEhoKEnNvdXJjZXNfcmVzdHJpY3RlZBgFIAEoCBJpChZzdWdnZXN0ZWRfbWFya2V0cGxhY2VzGAYgAygLMkkuaGFybmVzcy5hZ2VudC52MS5MaXN0RXh0ZW5zaW9uUGx1Z2luc1Jlc3BvbnNlLlN1Z2dlc3RlZE1hcmtldHBsYWNlc0VudHJ5GjwKGlN1Z2dlc3RlZE1hcmtldHBsYWNlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiggEKEUNvbm5lY3RvclByb3ZpZGVyEhEKCXBsdWdpbl9pZBgBIAEoCRITCgtwbHVnaW5fbmFtZRgCIAEoCRIOCgZzZXJ2ZXIYAyABKAkSNQoNcGx1Z2luX3N0YXR1cxgEIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luU3RhdHVzIqYCChJFeHRlbnNpb25Db25uZWN0b3ISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIOCgZyZW1vdGUYAyABKAgSEQoJdHJhbnNwb3J0GAQgASgJEhAKCGVuZHBvaW50GAUgASgJEg4KBmJhZGdlcxgGIAMoCRIxCgZzdGF0dXMYByABKA4yIS5oYXJuZXNzLmFnZW50LnYxLkNvbm5lY3RvclN0YXR1cxIVCg1zdGF0dXNfZGV0YWlsGAggASgJEi8KBWVudHJ5GAkgASgLMiAuaGFybmVzcy5hZ2VudC52MS5NY3BTZXJ2ZXJFbnRyeRI2Cglwcm92aWRlcnMYCiADKAsyIy5oYXJuZXNzLmFnZW50LnYxLkNvbm5lY3RvclByb3ZpZGVyIoYCCh9MaXN0RXh0ZW5zaW9uQ29ubmVjdG9yc1Jlc3BvbnNlEjgKCmNvbm5lY3RvcnMYASADKAsyJC5oYXJuZXNzLmFnZW50LnYxLkV4dGVuc2lvbkNvbm5lY3RvchIWCg5yZWdpc3RyeV9lcnJvchgCIAEoCRIWCg5jYW5fbWFuYWdlX29yZxgDIAEoCBIUCgxwcm9qZWN0X3Jvb3QYBCABKAkSFwoPcHJvamVjdF90cnVzdGVkGAUgASgIEhgKEHByb2plY3RfaGFzX2ZpbGUYBiABKAgSFQoNcHJvamVjdF9lcnJvchgHIAEoCRIZChFhY2NvdW50X2F2YWlsYWJsZRgIIAEoCCJLChZDb25uZWN0b3JSZXF1aXJlZFZhbHVlEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSDgoGc2VjcmV0GAMgASgIItEBCg9Db25uZWN0b3JPcHRpb24SDQoFbGFiZWwYASABKAkSDgoGcmVtb3RlGAIgASgIEiYKBnNlcnZlchgDIAEoCzIWLmhhcm5lc3MubWNwLnYxLlNlcnZlchI7ChBzdWdnZXN0ZWRfc291cmNlGAQgASgOMiEuaGFybmVzcy5hZ2VudC52MS5NY3BTZXJ2ZXJTb3VyY2USOgoIcmVxdWlyZWQYBSADKAsyKC5oYXJuZXNzLmFnZW50LnYxLkNvbm5lY3RvclJlcXVpcmVkVmFsdWUigwQKDERpc2NvdmVySXRlbRIKCgJpZBgBIAEoCRItCgRraW5kGAIgASgOMh8uaGFybmVzcy5hZ2VudC52MS5FeHRlbnNpb25LaW5kEgwKBG5hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEQoJcHVibGlzaGVyGAUgASgJEhQKDHNvdXJjZV9sYWJlbBgGIAEoCRIPCgd2ZXJzaW9uGAcgASgJEhAKCGhvbWVwYWdlGAggASgJEg8KB2xpY2Vuc2UYCSABKAkSEAoIY2F0ZWdvcnkYCiABKAkSDAoEdGFncxgLIAMoCRISCgp1cGRhdGVkX2F0GAwgASgJEhEKCWluc3RhbGxlZBgNIAEoCBIPCgdyZWZ1c2FsGA4gASgJEhEKCXBsdWdpbl9pZBgPIAEoCRIQCghpbnN0YWxscxgQIAEoAxIyCghjb250ZW50cxgRIAEoCzIgLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luQ29udGVudHMSMgoHb3B0aW9ucxgSIAMoCzIhLmhhcm5lc3MuYWdlbnQudjEuQ29ubmVjdG9yT3B0aW9uEg8KB3Byb2JsZW0YEyABKAkSEwoLZXh0ZXJuYWxfaWQYFCABKAkSLQoGYXVkaXRzGBUgAygLMh0uaGFybmVzcy5za2lsbHMudjEuU2tpbGxBdWRpdCKAAQoPRGlzY292ZXJTZWN0aW9uEgsKA2tleRgBIAEoCRINCgV0aXRsZRgCIAEoCRINCgV0b3RhbBgDIAEoBRItCgVpdGVtcxgEIAMoCzIeLmhhcm5lc3MuYWdlbnQudjEuRGlzY292ZXJJdGVtEhMKC25leHRfY3Vyc29yGAUgASgJIi8KEERpc2NvdmVyQ2F0ZWdvcnkSDAoEbmFtZRgBIAEoCRINCgVjb3VudBgCIAEoBSL4AQoZRGlzY292ZXJFeHRlbnNpb25zUmVxdWVzdBItCgRraW5kGAEgASgOMh8uaGFybmVzcy5hZ2VudC52MS5FeHRlbnNpb25LaW5kEg0KBXF1ZXJ5GAIgASgJEhAKCGNhdGVnb3J5GAMgASgJEg8KB3NlY3Rpb24YBCABKAkSDgoGc291cmNlGAUgASgJEhYKDmNvbm5lY3Rvcl90eXBlGAYgASgJEhYKDmhpZGVfaW5zdGFsbGVkGAcgASgIEgwKBHNvcnQYCCABKAkSDgoGY3Vyc29yGAkgASgJEg8KB3JlZnJlc2gYCiABKAgSCwoDY3dkGAsgASgJItcCChpEaXNjb3ZlckV4dGVuc2lvbnNSZXNwb25zZRIwCghmZWF0dXJlZBgBIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuRGlzY292ZXJJdGVtEjMKCHNlY3Rpb25zGAIgAygLMiEuaGFybmVzcy5hZ2VudC52MS5EaXNjb3ZlclNlY3Rpb24SNgoKY2F0ZWdvcmllcxgDIAMoCzIiLmhhcm5lc3MuYWdlbnQudjEuRGlzY292ZXJDYXRlZ29yeRIPCgdzb3VyY2VzGAQgAygJEhsKE3JlZ2lzdHJ5X2ZldGNoZWRfYXQYBSABKAkSGAoQcmVnaXN0cnlfcHJvYmxlbRgGIAEoCRIUCgxyZWdpc3RyeV9vZmYYByABKAgSGAoQZXh0ZXJuYWxfcHJvYmxlbRgIIAEoCRIiChpleHRlcm5hbF9ibG9ja2VkX2J5X3BvbGljeRgJIAEoCCJAChVHZXRTa2lsbERldGFpbFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIMCgRwYXRoGAIgASgJEgsKA2N3ZBgDIAEoCSJIChZHZXRTa2lsbERldGFpbFJlc3BvbnNlEgwKBGJvZHkYASABKAkSEQoJdHJ1bmNhdGVkGAIgASgIEg0KBWZpbGVzGAMgAygJIlIKEkNyZWF0ZVNraWxsUmVxdWVzdBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgsKA2N3ZBgDIAEoCRIMCgRib2R5GAQgASgJIiMKE0NyZWF0ZVNraWxsUmVzcG9uc2USDAoEcGF0aBgBIAEoCSI9ChJSZW1vdmVTa2lsbFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIMCgRwYXRoGAIgASgJEgsKA2N3ZBgDIAEoCSIVChNSZW1vdmVTa2lsbFJlc3BvbnNlIiUKF0dldEV4dGVybmFsU2tpbGxSZXF1ZXN0EgoKAmlkGAEgASgJIu0BChhHZXRFeHRlcm5hbFNraWxsUmVzcG9uc2USDAoEaGFzaBgBIAEoCRIrCgVmaWxlcxgCIAMoCzIcLmhhcm5lc3Muc2tpbGxzLnYxLlNraWxsRmlsZRItCgZhdWRpdHMYAyADKAsyHS5oYXJuZXNzLnNraWxscy52MS5Ta2lsbEF1ZGl0Eg8KB2xpY2Vuc2UYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkSEAoIaW5zdGFsbHMYBiABKAMSDAoEbmFtZRgHIAEoCRIOCgZzb3VyY2UYCCABKAkSEQoJaW5zdGFsbGVkGAkgASgIIjcKG0luc3RhbGxFeHRlcm5hbFNraWxsUmVxdWVzdBIKCgJpZBgBIAEoCRIMCgRoYXNoGAIgASgJIlcKHEluc3RhbGxFeHRlcm5hbFNraWxsUmVzcG9uc2USNwoFc2tpbGwYASABKAsyKC5oYXJuZXNzLmFnZW50LnYxLkluc3RhbGxlZEV4dGVybmFsU2tpbGwiVwofU2V0RXh0ZXJuYWxTa2lsbEFwcHJvdmFsUmVxdWVzdBIMCgRuYW1lGAEgASgJEhAKCGFwcHJvdmVkGAIgASgIEhQKDGNvbnRlbnRfaGFzaBgDIAEoCSIiCiBTZXRFeHRlcm5hbFNraWxsQXBwcm92YWxSZXNwb25zZSIqChpSZW1vdmVFeHRlcm5hbFNraWxsUmVxdWVzdBIMCgRuYW1lGAEgASgJIh0KG1JlbW92ZUV4dGVybmFsU2tpbGxSZXNwb25zZSqCAQoNRXh0ZW5zaW9uS2luZBIeChpFWFRFTlNJT05fS0lORF9VTlNQRUNJRklFRBAAEhgKFEVYVEVOU0lPTl9LSU5EX1NLSUxMEAESHAoYRVhURU5TSU9OX0tJTkRfQ09OTkVDVE9SEAISGQoVRVhURU5TSU9OX0tJTkRfUExVR0lOEAMqtAIKD0Nvbm5lY3RvclN0YXR1cxIgChxDT05ORUNUT1JfU1RBVFVTX1VOU1BFQ0lGSUVEEAASHgoaQ09OTkVDVE9SX1NUQVRVU19DT05ORUNURUQQARIiCh5DT05ORUNUT1JfU1RBVFVTX05FRURTX1NJR05fSU4QAhIgChxDT05ORUNUT1JfU1RBVFVTX0lOX1NFU1NJT05TEAMSIwofQ09OTkVDVE9SX1NUQVRVU19ORUVEU19BUFBST1ZBTBAEEiAKHENPTk5FQ1RPUl9TVEFUVVNfTkVFRFNfVFJVU1QQBRIYChRDT05ORUNUT1JfU1RBVFVTX09GRhAGEhwKGENPTk5FQ1RPUl9TVEFUVVNfQkxPQ0tFRBAHEhoKFkNPTk5FQ1RPUl9TVEFUVVNfRVJST1IQCDLmCQoRRXh0ZW5zaW9uc1NlcnZpY2UScgoTTGlzdEV4dGVuc2lvblNraWxscxIsLmhhcm5lc3MuYWdlbnQudjEuTGlzdEV4dGVuc2lvblNraWxsc1JlcXVlc3QaLS5oYXJuZXNzLmFnZW50LnYxLkxpc3RFeHRlbnNpb25Ta2lsbHNSZXNwb25zZRJ1ChRMaXN0RXh0ZW5zaW9uUGx1Z2lucxItLmhhcm5lc3MuYWdlbnQudjEuTGlzdEV4dGVuc2lvblBsdWdpbnNSZXF1ZXN0Gi4uaGFybmVzcy5hZ2VudC52MS5MaXN0RXh0ZW5zaW9uUGx1Z2luc1Jlc3BvbnNlEn4KF0xpc3RFeHRlbnNpb25Db25uZWN0b3JzEjAuaGFybmVzcy5hZ2VudC52MS5MaXN0RXh0ZW5zaW9uQ29ubmVjdG9yc1JlcXVlc3QaMS5oYXJuZXNzLmFnZW50LnYxLkxpc3RFeHRlbnNpb25Db25uZWN0b3JzUmVzcG9uc2USbwoSRGlzY292ZXJFeHRlbnNpb25zEisuaGFybmVzcy5hZ2VudC52MS5EaXNjb3ZlckV4dGVuc2lvbnNSZXF1ZXN0GiwuaGFybmVzcy5hZ2VudC52MS5EaXNjb3ZlckV4dGVuc2lvbnNSZXNwb25zZRJjCg5HZXRTa2lsbERldGFpbBInLmhhcm5lc3MuYWdlbnQudjEuR2V0U2tpbGxEZXRhaWxSZXF1ZXN0GiguaGFybmVzcy5hZ2VudC52MS5HZXRTa2lsbERldGFpbFJlc3BvbnNlEloKC0NyZWF0ZVNraWxsEiQuaGFybmVzcy5hZ2VudC52MS5DcmVhdGVTa2lsbFJlcXVlc3QaJS5oYXJuZXNzLmFnZW50LnYxLkNyZWF0ZVNraWxsUmVzcG9uc2USWgoLUmVtb3ZlU2tpbGwSJC5oYXJuZXNzLmFnZW50LnYxLlJlbW92ZVNraWxsUmVxdWVzdBolLmhhcm5lc3MuYWdlbnQudjEuUmVtb3ZlU2tpbGxSZXNwb25zZRJpChBHZXRFeHRlcm5hbFNraWxsEikuaGFybmVzcy5hZ2VudC52MS5HZXRFeHRlcm5hbFNraWxsUmVxdWVzdBoqLmhhcm5lc3MuYWdlbnQudjEuR2V0RXh0ZXJuYWxTa2lsbFJlc3BvbnNlEnUKFEluc3RhbGxFeHRlcm5hbFNraWxsEi0uaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsRXh0ZXJuYWxTa2lsbFJlcXVlc3QaLi5oYXJuZXNzLmFnZW50LnYxLkluc3RhbGxFeHRlcm5hbFNraWxsUmVzcG9uc2USgQEKGFNldEV4dGVybmFsU2tpbGxBcHByb3ZhbBIxLmhhcm5lc3MuYWdlbnQudjEuU2V0RXh0ZXJuYWxTa2lsbEFwcHJvdmFsUmVxdWVzdBoyLmhhcm5lc3MuYWdlbnQudjEuU2V0RXh0ZXJuYWxTa2lsbEFwcHJvdmFsUmVzcG9uc2UScgoTUmVtb3ZlRXh0ZXJuYWxTa2lsbBIsLmhhcm5lc3MuYWdlbnQudjEuUmVtb3ZlRXh0ZXJuYWxTa2lsbFJlcXVlc3QaLS5oYXJuZXNzLmFnZW50LnYxLlJlbW92ZUV4dGVybmFsU2tpbGxSZXNwb25zZULQAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCD0V4dGVuc2lvbnNQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw", [file_harness_agent_v1_mcp, file_harness_agent_v1_plugins, file_harness_agent_v1_slash_commands, file_harness_mcp_v1_mcp, file_harness_skills_v1_search]);
 
 /**
  * The folder project items are told for, in each of the lists. Empty: none is open.
@@ -109,6 +111,20 @@ export type ExtensionSkill = Message<"harness.agent.v1.ExtensionSkill"> & {
    * @generated from field: string folder = 5;
    */
   folder: string;
+
+  /**
+   * The organization's policy keeps it from running: no switch of the user's changes that.
+   *
+   * @generated from field: bool blocked_by_policy = 6;
+   */
+  blockedByPolicy: boolean;
+
+  /**
+   * It was installed from external search.
+   *
+   * @generated from field: harness.agent.v1.InstalledExternalSkill external = 7;
+   */
+  external?: InstalledExternalSkill | undefined;
 };
 
 /**
@@ -117,6 +133,104 @@ export type ExtensionSkill = Message<"harness.agent.v1.ExtensionSkill"> & {
  */
 export const ExtensionSkillSchema: GenMessage<ExtensionSkill> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_extensions, 3);
+
+/**
+ * A skill stored from external search, and this device's decision on it.
+ *
+ * @generated from message harness.agent.v1.InstalledExternalSkill
+ */
+export type InstalledExternalSkill = Message<"harness.agent.v1.InstalledExternalSkill"> & {
+  /**
+   * The source's id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string source = 2;
+   */
+  source: string;
+
+  /**
+   * The folder's name, and what approving and removing go by.
+   *
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 4;
+   */
+  description: string;
+
+  /**
+   * The source's hash when it was stored.
+   *
+   * @generated from field: string pinned_hash = 5;
+   */
+  pinnedHash: string;
+
+  /**
+   * The files on disk, which is what is approved.
+   *
+   * @generated from field: string content_hash = 6;
+   */
+  contentHash: string;
+
+  /**
+   * @generated from field: bool approved = 7;
+   */
+  approved: boolean;
+
+  /**
+   * The files stopped matching what was stored.
+   *
+   * @generated from field: bool changed_on_disk = 8;
+   */
+  changedOnDisk: boolean;
+
+  /**
+   * What the source said when it was stored.
+   *
+   * @generated from field: repeated harness.skills.v1.SkillAudit audits = 9;
+   */
+  audits: SkillAudit[];
+
+  /**
+   * @generated from field: string license = 10;
+   */
+  license: string;
+
+  /**
+   * @generated from field: int64 installs = 11;
+   */
+  installs: bigint;
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string installed_at = 12;
+   */
+  installedAt: string;
+
+  /**
+   * @generated from field: string folder = 13;
+   */
+  folder: string;
+
+  /**
+   * @generated from field: repeated string files = 14;
+   */
+  files: string[];
+};
+
+/**
+ * Describes the message harness.agent.v1.InstalledExternalSkill.
+ * Use `create(InstalledExternalSkillSchema)` to create a new message.
+ */
+export const InstalledExternalSkillSchema: GenMessage<InstalledExternalSkill> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 4);
 
 /**
  * Rows under one source. Keys: "project", "personal", "imported", "organization", "plugin:<id>", "builtin".
@@ -145,7 +259,7 @@ export type ExtensionSkillGroup = Message<"harness.agent.v1.ExtensionSkillGroup"
  * Use `create(ExtensionSkillGroupSchema)` to create a new message.
  */
 export const ExtensionSkillGroupSchema: GenMessage<ExtensionSkillGroup> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 4);
+  messageDesc(file_harness_agent_v1_extensions, 5);
 
 /**
  * @generated from message harness.agent.v1.ListExtensionSkillsResponse
@@ -172,6 +286,20 @@ export type ListExtensionSkillsResponse = Message<"harness.agent.v1.ListExtensio
    * @generated from field: bool project_skipped_untrusted = 4;
    */
   projectSkippedUntrusted: boolean;
+
+  /**
+   * What the organization says about skills, for a person; empty when nothing.
+   *
+   * @generated from field: string policy_note = 5;
+   */
+  policyNote: string;
+
+  /**
+   * Stored from external search and waiting for this device's approval, or changed since. They don't load.
+   *
+   * @generated from field: repeated harness.agent.v1.ExtensionSkill waiting = 6;
+   */
+  waiting: ExtensionSkill[];
 };
 
 /**
@@ -179,7 +307,7 @@ export type ListExtensionSkillsResponse = Message<"harness.agent.v1.ListExtensio
  * Use `create(ListExtensionSkillsResponseSchema)` to create a new message.
  */
 export const ListExtensionSkillsResponseSchema: GenMessage<ListExtensionSkillsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 5);
+  messageDesc(file_harness_agent_v1_extensions, 6);
 
 /**
  * @generated from message harness.agent.v1.ExtensionPlugin
@@ -230,7 +358,7 @@ export type ExtensionPlugin = Message<"harness.agent.v1.ExtensionPlugin"> & {
  * Use `create(ExtensionPluginSchema)` to create a new message.
  */
 export const ExtensionPluginSchema: GenMessage<ExtensionPlugin> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 6);
+  messageDesc(file_harness_agent_v1_extensions, 7);
 
 /**
  * Keys: "project", "marketplace:<name>", "local", "organization".
@@ -259,7 +387,7 @@ export type ExtensionPluginGroup = Message<"harness.agent.v1.ExtensionPluginGrou
  * Use `create(ExtensionPluginGroupSchema)` to create a new message.
  */
 export const ExtensionPluginGroupSchema: GenMessage<ExtensionPluginGroup> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 7);
+  messageDesc(file_harness_agent_v1_extensions, 8);
 
 /**
  * @generated from message harness.agent.v1.ExtensionMarketplace
@@ -316,6 +444,13 @@ export type ExtensionMarketplace = Message<"harness.agent.v1.ExtensionMarketplac
    * @generated from field: int32 installed_count = 10;
    */
   installedCount: number;
+
+  /**
+   * It ships with the client: it can't be removed.
+   *
+   * @generated from field: bool builtin = 11;
+   */
+  builtin: boolean;
 };
 
 /**
@@ -323,7 +458,7 @@ export type ExtensionMarketplace = Message<"harness.agent.v1.ExtensionMarketplac
  * Use `create(ExtensionMarketplaceSchema)` to create a new message.
  */
 export const ExtensionMarketplaceSchema: GenMessage<ExtensionMarketplace> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 8);
+  messageDesc(file_harness_agent_v1_extensions, 9);
 
 /**
  * @generated from message harness.agent.v1.ListExtensionPluginsResponse
@@ -367,7 +502,7 @@ export type ListExtensionPluginsResponse = Message<"harness.agent.v1.ListExtensi
  * Use `create(ListExtensionPluginsResponseSchema)` to create a new message.
  */
 export const ListExtensionPluginsResponseSchema: GenMessage<ListExtensionPluginsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 9);
+  messageDesc(file_harness_agent_v1_extensions, 10);
 
 /**
  * A plugin that brings a connector.
@@ -403,7 +538,7 @@ export type ConnectorProvider = Message<"harness.agent.v1.ConnectorProvider"> & 
  * Use `create(ConnectorProviderSchema)` to create a new message.
  */
 export const ConnectorProviderSchema: GenMessage<ConnectorProvider> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 10);
+  messageDesc(file_harness_agent_v1_extensions, 11);
 
 /**
  * One row: a server, with every plugin that brings the same endpoint folded into it.
@@ -475,7 +610,7 @@ export type ExtensionConnector = Message<"harness.agent.v1.ExtensionConnector"> 
  * Use `create(ExtensionConnectorSchema)` to create a new message.
  */
 export const ExtensionConnectorSchema: GenMessage<ExtensionConnector> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 11);
+  messageDesc(file_harness_agent_v1_extensions, 12);
 
 /**
  * @generated from message harness.agent.v1.ListExtensionConnectorsResponse
@@ -529,7 +664,7 @@ export type ListExtensionConnectorsResponse = Message<"harness.agent.v1.ListExte
  * Use `create(ListExtensionConnectorsResponseSchema)` to create a new message.
  */
 export const ListExtensionConnectorsResponseSchema: GenMessage<ListExtensionConnectorsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 12);
+  messageDesc(file_harness_agent_v1_extensions, 13);
 
 /**
  * A value a connector needs before it can work.
@@ -558,7 +693,7 @@ export type ConnectorRequiredValue = Message<"harness.agent.v1.ConnectorRequired
  * Use `create(ConnectorRequiredValueSchema)` to create a new message.
  */
 export const ConnectorRequiredValueSchema: GenMessage<ConnectorRequiredValue> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 13);
+  messageDesc(file_harness_agent_v1_extensions, 14);
 
 /**
  * One way to add a connector. The frontend shows it in the form, and CreateMcpServer takes it from there.
@@ -601,7 +736,7 @@ export type ConnectorOption = Message<"harness.agent.v1.ConnectorOption"> & {
  * Use `create(ConnectorOptionSchema)` to create a new message.
  */
 export const ConnectorOptionSchema: GenMessage<ConnectorOption> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 14);
+  messageDesc(file_harness_agent_v1_extensions, 15);
 
 /**
  * A thing to add. Only what its source says fills these: no counts, marks or publishers of our own.
@@ -693,11 +828,11 @@ export type DiscoverItem = Message<"harness.agent.v1.DiscoverItem"> & {
   pluginId: string;
 
   /**
-   * Set when the item is a marketplace to add: what AddPluginMarketplace takes.
+   * The source's count of installs; 0 when it gives none. Only external search has one.
    *
-   * @generated from field: string marketplace_source = 16;
+   * @generated from field: int64 installs = 16;
    */
-  marketplaceSource: string;
+  installs: bigint;
 
   /**
    * What it holds, when the files are at hand. A plugin in a repository of its own says this once installed.
@@ -719,6 +854,20 @@ export type DiscoverItem = Message<"harness.agent.v1.DiscoverItem"> & {
    * @generated from field: string problem = 19;
    */
   problem: string;
+
+  /**
+   * Set when it comes from external search: what GetExternalSkill and InstallExternalSkill take.
+   *
+   * @generated from field: string external_id = 20;
+   */
+  externalId: string;
+
+  /**
+   * The source's audits, as it gives them. None: not known, which isn't a pass.
+   *
+   * @generated from field: repeated harness.skills.v1.SkillAudit audits = 21;
+   */
+  audits: SkillAudit[];
 };
 
 /**
@@ -726,7 +875,7 @@ export type DiscoverItem = Message<"harness.agent.v1.DiscoverItem"> & {
  * Use `create(DiscoverItemSchema)` to create a new message.
  */
 export const DiscoverItemSchema: GenMessage<DiscoverItem> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 15);
+  messageDesc(file_harness_agent_v1_extensions, 16);
 
 /**
  * @generated from message harness.agent.v1.DiscoverSection
@@ -767,7 +916,7 @@ export type DiscoverSection = Message<"harness.agent.v1.DiscoverSection"> & {
  * Use `create(DiscoverSectionSchema)` to create a new message.
  */
 export const DiscoverSectionSchema: GenMessage<DiscoverSection> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 16);
+  messageDesc(file_harness_agent_v1_extensions, 17);
 
 /**
  * @generated from message harness.agent.v1.DiscoverCategory
@@ -789,7 +938,7 @@ export type DiscoverCategory = Message<"harness.agent.v1.DiscoverCategory"> & {
  * Use `create(DiscoverCategorySchema)` to create a new message.
  */
 export const DiscoverCategorySchema: GenMessage<DiscoverCategory> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 17);
+  messageDesc(file_harness_agent_v1_extensions, 18);
 
 /**
  * @generated from message harness.agent.v1.DiscoverExtensionsRequest
@@ -868,7 +1017,7 @@ export type DiscoverExtensionsRequest = Message<"harness.agent.v1.DiscoverExtens
  * Use `create(DiscoverExtensionsRequestSchema)` to create a new message.
  */
 export const DiscoverExtensionsRequestSchema: GenMessage<DiscoverExtensionsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 18);
+  messageDesc(file_harness_agent_v1_extensions, 19);
 
 /**
  * @generated from message harness.agent.v1.DiscoverExtensionsResponse
@@ -918,6 +1067,20 @@ export type DiscoverExtensionsResponse = Message<"harness.agent.v1.DiscoverExten
    * @generated from field: bool registry_off = 7;
    */
   registryOff: boolean;
+
+  /**
+   * External skill search couldn't answer; what else is shown still stands. For a person.
+   *
+   * @generated from field: string external_problem = 8;
+   */
+  externalProblem: string;
+
+  /**
+   * The organization turned external skill search off.
+   *
+   * @generated from field: bool external_blocked_by_policy = 9;
+   */
+  externalBlockedByPolicy: boolean;
 };
 
 /**
@@ -925,7 +1088,7 @@ export type DiscoverExtensionsResponse = Message<"harness.agent.v1.DiscoverExten
  * Use `create(DiscoverExtensionsResponseSchema)` to create a new message.
  */
 export const DiscoverExtensionsResponseSchema: GenMessage<DiscoverExtensionsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 19);
+  messageDesc(file_harness_agent_v1_extensions, 20);
 
 /**
  * @generated from message harness.agent.v1.GetSkillDetailRequest
@@ -954,7 +1117,7 @@ export type GetSkillDetailRequest = Message<"harness.agent.v1.GetSkillDetailRequ
  * Use `create(GetSkillDetailRequestSchema)` to create a new message.
  */
 export const GetSkillDetailRequestSchema: GenMessage<GetSkillDetailRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 20);
+  messageDesc(file_harness_agent_v1_extensions, 21);
 
 /**
  * @generated from message harness.agent.v1.GetSkillDetailResponse
@@ -985,7 +1148,7 @@ export type GetSkillDetailResponse = Message<"harness.agent.v1.GetSkillDetailRes
  * Use `create(GetSkillDetailResponseSchema)` to create a new message.
  */
 export const GetSkillDetailResponseSchema: GenMessage<GetSkillDetailResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 21);
+  messageDesc(file_harness_agent_v1_extensions, 22);
 
 /**
  * @generated from message harness.agent.v1.CreateSkillRequest
@@ -1023,7 +1186,7 @@ export type CreateSkillRequest = Message<"harness.agent.v1.CreateSkillRequest"> 
  * Use `create(CreateSkillRequestSchema)` to create a new message.
  */
 export const CreateSkillRequestSchema: GenMessage<CreateSkillRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 22);
+  messageDesc(file_harness_agent_v1_extensions, 23);
 
 /**
  * @generated from message harness.agent.v1.CreateSkillResponse
@@ -1040,7 +1203,7 @@ export type CreateSkillResponse = Message<"harness.agent.v1.CreateSkillResponse"
  * Use `create(CreateSkillResponseSchema)` to create a new message.
  */
 export const CreateSkillResponseSchema: GenMessage<CreateSkillResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 23);
+  messageDesc(file_harness_agent_v1_extensions, 24);
 
 /**
  * @generated from message harness.agent.v1.RemoveSkillRequest
@@ -1067,7 +1230,7 @@ export type RemoveSkillRequest = Message<"harness.agent.v1.RemoveSkillRequest"> 
  * Use `create(RemoveSkillRequestSchema)` to create a new message.
  */
 export const RemoveSkillRequestSchema: GenMessage<RemoveSkillRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 24);
+  messageDesc(file_harness_agent_v1_extensions, 25);
 
 /**
  * @generated from message harness.agent.v1.RemoveSkillResponse
@@ -1080,7 +1243,202 @@ export type RemoveSkillResponse = Message<"harness.agent.v1.RemoveSkillResponse"
  * Use `create(RemoveSkillResponseSchema)` to create a new message.
  */
 export const RemoveSkillResponseSchema: GenMessage<RemoveSkillResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_extensions, 25);
+  messageDesc(file_harness_agent_v1_extensions, 26);
+
+/**
+ * @generated from message harness.agent.v1.GetExternalSkillRequest
+ */
+export type GetExternalSkillRequest = Message<"harness.agent.v1.GetExternalSkillRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.GetExternalSkillRequest.
+ * Use `create(GetExternalSkillRequestSchema)` to create a new message.
+ */
+export const GetExternalSkillRequestSchema: GenMessage<GetExternalSkillRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 27);
+
+/**
+ * @generated from message harness.agent.v1.GetExternalSkillResponse
+ */
+export type GetExternalSkillResponse = Message<"harness.agent.v1.GetExternalSkillResponse"> & {
+  /**
+   * The source's hash of what these files are.
+   *
+   * @generated from field: string hash = 1;
+   */
+  hash: string;
+
+  /**
+   * @generated from field: repeated harness.skills.v1.SkillFile files = 2;
+   */
+  files: SkillFile[];
+
+  /**
+   * @generated from field: repeated harness.skills.v1.SkillAudit audits = 3;
+   */
+  audits: SkillAudit[];
+
+  /**
+   * From the skill's own frontmatter; empty when it doesn't say.
+   *
+   * @generated from field: string license = 4;
+   */
+  license: string;
+
+  /**
+   * @generated from field: string description = 5;
+   */
+  description: string;
+
+  /**
+   * @generated from field: int64 installs = 6;
+   */
+  installs: bigint;
+
+  /**
+   * Installing it would mean the folder of this name.
+   *
+   * @generated from field: string name = 7;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string source = 8;
+   */
+  source: string;
+
+  /**
+   * It is installed already.
+   *
+   * @generated from field: bool installed = 9;
+   */
+  installed: boolean;
+};
+
+/**
+ * Describes the message harness.agent.v1.GetExternalSkillResponse.
+ * Use `create(GetExternalSkillResponseSchema)` to create a new message.
+ */
+export const GetExternalSkillResponseSchema: GenMessage<GetExternalSkillResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 28);
+
+/**
+ * @generated from message harness.agent.v1.InstallExternalSkillRequest
+ */
+export type InstallExternalSkillRequest = Message<"harness.agent.v1.InstallExternalSkillRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * ExternalSkill hash that was shown: other content is refused.
+   *
+   * @generated from field: string hash = 2;
+   */
+  hash: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.InstallExternalSkillRequest.
+ * Use `create(InstallExternalSkillRequestSchema)` to create a new message.
+ */
+export const InstallExternalSkillRequestSchema: GenMessage<InstallExternalSkillRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 29);
+
+/**
+ * @generated from message harness.agent.v1.InstallExternalSkillResponse
+ */
+export type InstallExternalSkillResponse = Message<"harness.agent.v1.InstallExternalSkillResponse"> & {
+  /**
+   * @generated from field: harness.agent.v1.InstalledExternalSkill skill = 1;
+   */
+  skill?: InstalledExternalSkill | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.InstallExternalSkillResponse.
+ * Use `create(InstallExternalSkillResponseSchema)` to create a new message.
+ */
+export const InstallExternalSkillResponseSchema: GenMessage<InstallExternalSkillResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 30);
+
+/**
+ * @generated from message harness.agent.v1.SetExternalSkillApprovalRequest
+ */
+export type SetExternalSkillApprovalRequest = Message<"harness.agent.v1.SetExternalSkillApprovalRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: bool approved = 2;
+   */
+  approved: boolean;
+
+  /**
+   * InstalledExternalSkill.content_hash of what was shown. Required to approve.
+   *
+   * @generated from field: string content_hash = 3;
+   */
+  contentHash: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.SetExternalSkillApprovalRequest.
+ * Use `create(SetExternalSkillApprovalRequestSchema)` to create a new message.
+ */
+export const SetExternalSkillApprovalRequestSchema: GenMessage<SetExternalSkillApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 31);
+
+/**
+ * @generated from message harness.agent.v1.SetExternalSkillApprovalResponse
+ */
+export type SetExternalSkillApprovalResponse = Message<"harness.agent.v1.SetExternalSkillApprovalResponse"> & {
+};
+
+/**
+ * Describes the message harness.agent.v1.SetExternalSkillApprovalResponse.
+ * Use `create(SetExternalSkillApprovalResponseSchema)` to create a new message.
+ */
+export const SetExternalSkillApprovalResponseSchema: GenMessage<SetExternalSkillApprovalResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 32);
+
+/**
+ * @generated from message harness.agent.v1.RemoveExternalSkillRequest
+ */
+export type RemoveExternalSkillRequest = Message<"harness.agent.v1.RemoveExternalSkillRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.RemoveExternalSkillRequest.
+ * Use `create(RemoveExternalSkillRequestSchema)` to create a new message.
+ */
+export const RemoveExternalSkillRequestSchema: GenMessage<RemoveExternalSkillRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 33);
+
+/**
+ * @generated from message harness.agent.v1.RemoveExternalSkillResponse
+ */
+export type RemoveExternalSkillResponse = Message<"harness.agent.v1.RemoveExternalSkillResponse"> & {
+};
+
+/**
+ * Describes the message harness.agent.v1.RemoveExternalSkillResponse.
+ * Use `create(RemoveExternalSkillResponseSchema)` to create a new message.
+ */
+export const RemoveExternalSkillResponseSchema: GenMessage<RemoveExternalSkillResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_extensions, 34);
 
 /**
  * @generated from enum harness.agent.v1.ExtensionKind
@@ -1242,6 +1600,44 @@ export const ExtensionsService: GenService<{
     methodKind: "unary";
     input: typeof RemoveSkillRequestSchema;
     output: typeof RemoveSkillResponseSchema;
+  },
+  /**
+   * A skill found by external search: what the source holds now, with its audits. Nothing is stored.
+   *
+   * @generated from rpc harness.agent.v1.ExtensionsService.GetExternalSkill
+   */
+  getExternalSkill: {
+    methodKind: "unary";
+    input: typeof GetExternalSkillRequestSchema;
+    output: typeof GetExternalSkillResponseSchema;
+  },
+  /**
+   * Stores a skill found by external search under the personal skills folder, pinned to its hash. It doesn't load until approved.
+   *
+   * @generated from rpc harness.agent.v1.ExtensionsService.InstallExternalSkill
+   */
+  installExternalSkill: {
+    methodKind: "unary";
+    input: typeof InstallExternalSkillRequestSchema;
+    output: typeof InstallExternalSkillResponseSchema;
+  },
+  /**
+   * Lets exactly the content shown run on this device, or takes that back. Refused from another machine.
+   *
+   * @generated from rpc harness.agent.v1.ExtensionsService.SetExternalSkillApproval
+   */
+  setExternalSkillApproval: {
+    methodKind: "unary";
+    input: typeof SetExternalSkillApprovalRequestSchema;
+    output: typeof SetExternalSkillApprovalResponseSchema;
+  },
+  /**
+   * @generated from rpc harness.agent.v1.ExtensionsService.RemoveExternalSkill
+   */
+  removeExternalSkill: {
+    methodKind: "unary";
+    input: typeof RemoveExternalSkillRequestSchema;
+    output: typeof RemoveExternalSkillResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_agent_v1_extensions, 0);

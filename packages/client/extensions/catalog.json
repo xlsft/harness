@@ -1,43 +1,4 @@
 {
-  "marketplaces": [
-    {
-      "id": "trailofbits",
-      "name": "trailofbits/skills",
-      "source": "trailofbits/skills",
-      "publisher": "Trail of Bits",
-      "description": "Security review and auditing skills from a security research firm.",
-      "homepage": "https://github.com/trailofbits/skills",
-      "kinds": ["skills", "plugins"],
-      "featured": true
-    },
-    {
-      "id": "superpowers",
-      "name": "obra/superpowers-marketplace",
-      "source": "obra/superpowers-marketplace",
-      "publisher": "Jesse Vincent",
-      "description": "Development workflow skills: planning, test-first work, debugging and review.",
-      "homepage": "https://github.com/obra/superpowers-marketplace",
-      "kinds": ["skills", "plugins"]
-    },
-    {
-      "id": "cloudflare",
-      "name": "cloudflare/skills",
-      "source": "cloudflare/skills",
-      "publisher": "Cloudflare",
-      "description": "Skills for building on Cloudflare's developer platform.",
-      "homepage": "https://github.com/cloudflare/skills",
-      "kinds": ["skills", "plugins"]
-    },
-    {
-      "id": "wshobson",
-      "name": "wshobson/agents",
-      "source": "wshobson/agents",
-      "publisher": "Seth Hobson",
-      "description": "A large collection of agents and workflows, sorted into categories.",
-      "homepage": "https://github.com/wshobson/agents",
-      "kinds": ["plugins"]
-    }
-  ],
   "connectors": [
     { "id": "linear", "name": "Linear", "publisher": "Linear", "description": "Find, create and update issues and projects.", "homepage": "https://linear.app", "url": "https://mcp.linear.app/mcp", "transport": "http", "featured": true },
     { "id": "github", "name": "GitHub", "publisher": "GitHub", "description": "Read repositories, issues and pull requests, and act on them.", "homepage": "https://github.com/github/github-mcp-server", "url": "https://api.githubcopilot.com/mcp/", "transport": "http" },

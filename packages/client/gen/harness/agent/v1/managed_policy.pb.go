@@ -44,8 +44,13 @@ type ManagedPolicyView struct {
 	RestrictMcpServers  bool     `protobuf:"varint,12,opt,name=restrict_mcp_servers,json=restrictMcpServers,proto3" json:"restrict_mcp_servers,omitempty"`
 	AllowedMcpServers   []string `protobuf:"bytes,13,rep,name=allowed_mcp_servers,json=allowedMcpServers,proto3" json:"allowed_mcp_servers,omitempty"`
 	LocalModelsDisabled bool     `protobuf:"varint,14,opt,name=local_models_disabled,json=localModelsDisabled,proto3" json:"local_models_disabled,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Only skills matching these may run. Meaningful when restrict_skills is set.
+	RestrictSkills              bool     `protobuf:"varint,15,opt,name=restrict_skills,json=restrictSkills,proto3" json:"restrict_skills,omitempty"`
+	AllowedSkills               []string `protobuf:"bytes,16,rep,name=allowed_skills,json=allowedSkills,proto3" json:"allowed_skills,omitempty"`
+	BlockedSkills               []string `protobuf:"bytes,17,rep,name=blocked_skills,json=blockedSkills,proto3" json:"blocked_skills,omitempty"`
+	ExternalSkillSearchDisabled bool     `protobuf:"varint,18,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *ManagedPolicyView) Reset() {
@@ -176,11 +181,39 @@ func (x *ManagedPolicyView) GetLocalModelsDisabled() bool {
 	return false
 }
 
+func (x *ManagedPolicyView) GetRestrictSkills() bool {
+	if x != nil {
+		return x.RestrictSkills
+	}
+	return false
+}
+
+func (x *ManagedPolicyView) GetAllowedSkills() []string {
+	if x != nil {
+		return x.AllowedSkills
+	}
+	return nil
+}
+
+func (x *ManagedPolicyView) GetBlockedSkills() []string {
+	if x != nil {
+		return x.BlockedSkills
+	}
+	return nil
+}
+
+func (x *ManagedPolicyView) GetExternalSkillSearchDisabled() bool {
+	if x != nil {
+		return x.ExternalSkillSearchDisabled
+	}
+	return false
+}
+
 var File_harness_agent_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\xf2\x04\n" +
+	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\xae\x06\n" +
 	"\x11ManagedPolicyView\x12\x16\n" +
 	"\x06active\x18\x01 \x01(\bR\x06active\x12\x1f\n" +
 	"\vallow_rules\x18\x02 \x03(\tR\n" +
@@ -198,7 +231,11 @@ const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\x1bpersonal_providers_disabled\x18\v \x01(\bR\x19personalProvidersDisabled\x120\n" +
 	"\x14restrict_mcp_servers\x18\f \x01(\bR\x12restrictMcpServers\x12.\n" +
 	"\x13allowed_mcp_servers\x18\r \x03(\tR\x11allowedMcpServers\x122\n" +
-	"\x15local_models_disabled\x18\x0e \x01(\bR\x13localModelsDisabledB\xd3\x01\n" +
+	"\x15local_models_disabled\x18\x0e \x01(\bR\x13localModelsDisabled\x12'\n" +
+	"\x0frestrict_skills\x18\x0f \x01(\bR\x0erestrictSkills\x12%\n" +
+	"\x0eallowed_skills\x18\x10 \x03(\tR\rallowedSkills\x12%\n" +
+	"\x0eblocked_skills\x18\x11 \x03(\tR\rblockedSkills\x12C\n" +
+	"\x1eexternal_skill_search_disabled\x18\x12 \x01(\bR\x1bexternalSkillSearchDisabledB\xd3\x01\n" +
 	"\x14com.harness.agent.v1B\x12ManagedPolicyProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (

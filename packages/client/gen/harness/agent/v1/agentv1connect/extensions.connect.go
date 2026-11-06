@@ -54,6 +54,18 @@ const (
 	// ExtensionsServiceRemoveSkillProcedure is the fully-qualified name of the ExtensionsService's
 	// RemoveSkill RPC.
 	ExtensionsServiceRemoveSkillProcedure = "/harness.agent.v1.ExtensionsService/RemoveSkill"
+	// ExtensionsServiceGetExternalSkillProcedure is the fully-qualified name of the ExtensionsService's
+	// GetExternalSkill RPC.
+	ExtensionsServiceGetExternalSkillProcedure = "/harness.agent.v1.ExtensionsService/GetExternalSkill"
+	// ExtensionsServiceInstallExternalSkillProcedure is the fully-qualified name of the
+	// ExtensionsService's InstallExternalSkill RPC.
+	ExtensionsServiceInstallExternalSkillProcedure = "/harness.agent.v1.ExtensionsService/InstallExternalSkill"
+	// ExtensionsServiceSetExternalSkillApprovalProcedure is the fully-qualified name of the
+	// ExtensionsService's SetExternalSkillApproval RPC.
+	ExtensionsServiceSetExternalSkillApprovalProcedure = "/harness.agent.v1.ExtensionsService/SetExternalSkillApproval"
+	// ExtensionsServiceRemoveExternalSkillProcedure is the fully-qualified name of the
+	// ExtensionsService's RemoveExternalSkill RPC.
+	ExtensionsServiceRemoveExternalSkillProcedure = "/harness.agent.v1.ExtensionsService/RemoveExternalSkill"
 )
 
 // ExtensionsServiceClient is a client for the harness.agent.v1.ExtensionsService service.
@@ -68,6 +80,13 @@ type ExtensionsServiceClient interface {
 	CreateSkill(context.Context, *connect.Request[v1.CreateSkillRequest]) (*connect.Response[v1.CreateSkillResponse], error)
 	// Deletes a personal or project skill or command from disk. Refused from another machine.
 	RemoveSkill(context.Context, *connect.Request[v1.RemoveSkillRequest]) (*connect.Response[v1.RemoveSkillResponse], error)
+	// A skill found by external search: what the source holds now, with its audits. Nothing is stored.
+	GetExternalSkill(context.Context, *connect.Request[v1.GetExternalSkillRequest]) (*connect.Response[v1.GetExternalSkillResponse], error)
+	// Stores a skill found by external search under the personal skills folder, pinned to its hash. It doesn't load until approved.
+	InstallExternalSkill(context.Context, *connect.Request[v1.InstallExternalSkillRequest]) (*connect.Response[v1.InstallExternalSkillResponse], error)
+	// Lets exactly the content shown run on this device, or takes that back. Refused from another machine.
+	SetExternalSkillApproval(context.Context, *connect.Request[v1.SetExternalSkillApprovalRequest]) (*connect.Response[v1.SetExternalSkillApprovalResponse], error)
+	RemoveExternalSkill(context.Context, *connect.Request[v1.RemoveExternalSkillRequest]) (*connect.Response[v1.RemoveExternalSkillResponse], error)
 }
 
 // NewExtensionsServiceClient constructs a client for the harness.agent.v1.ExtensionsService
@@ -123,18 +142,46 @@ func NewExtensionsServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(extensionsServiceMethods.ByName("RemoveSkill")),
 			connect.WithClientOptions(opts...),
 		),
+		getExternalSkill: connect.NewClient[v1.GetExternalSkillRequest, v1.GetExternalSkillResponse](
+			httpClient,
+			baseURL+ExtensionsServiceGetExternalSkillProcedure,
+			connect.WithSchema(extensionsServiceMethods.ByName("GetExternalSkill")),
+			connect.WithClientOptions(opts...),
+		),
+		installExternalSkill: connect.NewClient[v1.InstallExternalSkillRequest, v1.InstallExternalSkillResponse](
+			httpClient,
+			baseURL+ExtensionsServiceInstallExternalSkillProcedure,
+			connect.WithSchema(extensionsServiceMethods.ByName("InstallExternalSkill")),
+			connect.WithClientOptions(opts...),
+		),
+		setExternalSkillApproval: connect.NewClient[v1.SetExternalSkillApprovalRequest, v1.SetExternalSkillApprovalResponse](
+			httpClient,
+			baseURL+ExtensionsServiceSetExternalSkillApprovalProcedure,
+			connect.WithSchema(extensionsServiceMethods.ByName("SetExternalSkillApproval")),
+			connect.WithClientOptions(opts...),
+		),
+		removeExternalSkill: connect.NewClient[v1.RemoveExternalSkillRequest, v1.RemoveExternalSkillResponse](
+			httpClient,
+			baseURL+ExtensionsServiceRemoveExternalSkillProcedure,
+			connect.WithSchema(extensionsServiceMethods.ByName("RemoveExternalSkill")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // extensionsServiceClient implements ExtensionsServiceClient.
 type extensionsServiceClient struct {
-	listExtensionSkills     *connect.Client[v1.ListExtensionSkillsRequest, v1.ListExtensionSkillsResponse]
-	listExtensionPlugins    *connect.Client[v1.ListExtensionPluginsRequest, v1.ListExtensionPluginsResponse]
-	listExtensionConnectors *connect.Client[v1.ListExtensionConnectorsRequest, v1.ListExtensionConnectorsResponse]
-	discoverExtensions      *connect.Client[v1.DiscoverExtensionsRequest, v1.DiscoverExtensionsResponse]
-	getSkillDetail          *connect.Client[v1.GetSkillDetailRequest, v1.GetSkillDetailResponse]
-	createSkill             *connect.Client[v1.CreateSkillRequest, v1.CreateSkillResponse]
-	removeSkill             *connect.Client[v1.RemoveSkillRequest, v1.RemoveSkillResponse]
+	listExtensionSkills      *connect.Client[v1.ListExtensionSkillsRequest, v1.ListExtensionSkillsResponse]
+	listExtensionPlugins     *connect.Client[v1.ListExtensionPluginsRequest, v1.ListExtensionPluginsResponse]
+	listExtensionConnectors  *connect.Client[v1.ListExtensionConnectorsRequest, v1.ListExtensionConnectorsResponse]
+	discoverExtensions       *connect.Client[v1.DiscoverExtensionsRequest, v1.DiscoverExtensionsResponse]
+	getSkillDetail           *connect.Client[v1.GetSkillDetailRequest, v1.GetSkillDetailResponse]
+	createSkill              *connect.Client[v1.CreateSkillRequest, v1.CreateSkillResponse]
+	removeSkill              *connect.Client[v1.RemoveSkillRequest, v1.RemoveSkillResponse]
+	getExternalSkill         *connect.Client[v1.GetExternalSkillRequest, v1.GetExternalSkillResponse]
+	installExternalSkill     *connect.Client[v1.InstallExternalSkillRequest, v1.InstallExternalSkillResponse]
+	setExternalSkillApproval *connect.Client[v1.SetExternalSkillApprovalRequest, v1.SetExternalSkillApprovalResponse]
+	removeExternalSkill      *connect.Client[v1.RemoveExternalSkillRequest, v1.RemoveExternalSkillResponse]
 }
 
 // ListExtensionSkills calls harness.agent.v1.ExtensionsService.ListExtensionSkills.
@@ -172,6 +219,26 @@ func (c *extensionsServiceClient) RemoveSkill(ctx context.Context, req *connect.
 	return c.removeSkill.CallUnary(ctx, req)
 }
 
+// GetExternalSkill calls harness.agent.v1.ExtensionsService.GetExternalSkill.
+func (c *extensionsServiceClient) GetExternalSkill(ctx context.Context, req *connect.Request[v1.GetExternalSkillRequest]) (*connect.Response[v1.GetExternalSkillResponse], error) {
+	return c.getExternalSkill.CallUnary(ctx, req)
+}
+
+// InstallExternalSkill calls harness.agent.v1.ExtensionsService.InstallExternalSkill.
+func (c *extensionsServiceClient) InstallExternalSkill(ctx context.Context, req *connect.Request[v1.InstallExternalSkillRequest]) (*connect.Response[v1.InstallExternalSkillResponse], error) {
+	return c.installExternalSkill.CallUnary(ctx, req)
+}
+
+// SetExternalSkillApproval calls harness.agent.v1.ExtensionsService.SetExternalSkillApproval.
+func (c *extensionsServiceClient) SetExternalSkillApproval(ctx context.Context, req *connect.Request[v1.SetExternalSkillApprovalRequest]) (*connect.Response[v1.SetExternalSkillApprovalResponse], error) {
+	return c.setExternalSkillApproval.CallUnary(ctx, req)
+}
+
+// RemoveExternalSkill calls harness.agent.v1.ExtensionsService.RemoveExternalSkill.
+func (c *extensionsServiceClient) RemoveExternalSkill(ctx context.Context, req *connect.Request[v1.RemoveExternalSkillRequest]) (*connect.Response[v1.RemoveExternalSkillResponse], error) {
+	return c.removeExternalSkill.CallUnary(ctx, req)
+}
+
 // ExtensionsServiceHandler is an implementation of the harness.agent.v1.ExtensionsService service.
 type ExtensionsServiceHandler interface {
 	ListExtensionSkills(context.Context, *connect.Request[v1.ListExtensionSkillsRequest]) (*connect.Response[v1.ListExtensionSkillsResponse], error)
@@ -184,6 +251,13 @@ type ExtensionsServiceHandler interface {
 	CreateSkill(context.Context, *connect.Request[v1.CreateSkillRequest]) (*connect.Response[v1.CreateSkillResponse], error)
 	// Deletes a personal or project skill or command from disk. Refused from another machine.
 	RemoveSkill(context.Context, *connect.Request[v1.RemoveSkillRequest]) (*connect.Response[v1.RemoveSkillResponse], error)
+	// A skill found by external search: what the source holds now, with its audits. Nothing is stored.
+	GetExternalSkill(context.Context, *connect.Request[v1.GetExternalSkillRequest]) (*connect.Response[v1.GetExternalSkillResponse], error)
+	// Stores a skill found by external search under the personal skills folder, pinned to its hash. It doesn't load until approved.
+	InstallExternalSkill(context.Context, *connect.Request[v1.InstallExternalSkillRequest]) (*connect.Response[v1.InstallExternalSkillResponse], error)
+	// Lets exactly the content shown run on this device, or takes that back. Refused from another machine.
+	SetExternalSkillApproval(context.Context, *connect.Request[v1.SetExternalSkillApprovalRequest]) (*connect.Response[v1.SetExternalSkillApprovalResponse], error)
+	RemoveExternalSkill(context.Context, *connect.Request[v1.RemoveExternalSkillRequest]) (*connect.Response[v1.RemoveExternalSkillResponse], error)
 }
 
 // NewExtensionsServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -235,6 +309,30 @@ func NewExtensionsServiceHandler(svc ExtensionsServiceHandler, opts ...connect.H
 		connect.WithSchema(extensionsServiceMethods.ByName("RemoveSkill")),
 		connect.WithHandlerOptions(opts...),
 	)
+	extensionsServiceGetExternalSkillHandler := connect.NewUnaryHandler(
+		ExtensionsServiceGetExternalSkillProcedure,
+		svc.GetExternalSkill,
+		connect.WithSchema(extensionsServiceMethods.ByName("GetExternalSkill")),
+		connect.WithHandlerOptions(opts...),
+	)
+	extensionsServiceInstallExternalSkillHandler := connect.NewUnaryHandler(
+		ExtensionsServiceInstallExternalSkillProcedure,
+		svc.InstallExternalSkill,
+		connect.WithSchema(extensionsServiceMethods.ByName("InstallExternalSkill")),
+		connect.WithHandlerOptions(opts...),
+	)
+	extensionsServiceSetExternalSkillApprovalHandler := connect.NewUnaryHandler(
+		ExtensionsServiceSetExternalSkillApprovalProcedure,
+		svc.SetExternalSkillApproval,
+		connect.WithSchema(extensionsServiceMethods.ByName("SetExternalSkillApproval")),
+		connect.WithHandlerOptions(opts...),
+	)
+	extensionsServiceRemoveExternalSkillHandler := connect.NewUnaryHandler(
+		ExtensionsServiceRemoveExternalSkillProcedure,
+		svc.RemoveExternalSkill,
+		connect.WithSchema(extensionsServiceMethods.ByName("RemoveExternalSkill")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.ExtensionsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ExtensionsServiceListExtensionSkillsProcedure:
@@ -251,6 +349,14 @@ func NewExtensionsServiceHandler(svc ExtensionsServiceHandler, opts ...connect.H
 			extensionsServiceCreateSkillHandler.ServeHTTP(w, r)
 		case ExtensionsServiceRemoveSkillProcedure:
 			extensionsServiceRemoveSkillHandler.ServeHTTP(w, r)
+		case ExtensionsServiceGetExternalSkillProcedure:
+			extensionsServiceGetExternalSkillHandler.ServeHTTP(w, r)
+		case ExtensionsServiceInstallExternalSkillProcedure:
+			extensionsServiceInstallExternalSkillHandler.ServeHTTP(w, r)
+		case ExtensionsServiceSetExternalSkillApprovalProcedure:
+			extensionsServiceSetExternalSkillApprovalHandler.ServeHTTP(w, r)
+		case ExtensionsServiceRemoveExternalSkillProcedure:
+			extensionsServiceRemoveExternalSkillHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -286,4 +392,20 @@ func (UnimplementedExtensionsServiceHandler) CreateSkill(context.Context, *conne
 
 func (UnimplementedExtensionsServiceHandler) RemoveSkill(context.Context, *connect.Request[v1.RemoveSkillRequest]) (*connect.Response[v1.RemoveSkillResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.ExtensionsService.RemoveSkill is not implemented"))
+}
+
+func (UnimplementedExtensionsServiceHandler) GetExternalSkill(context.Context, *connect.Request[v1.GetExternalSkillRequest]) (*connect.Response[v1.GetExternalSkillResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.ExtensionsService.GetExternalSkill is not implemented"))
+}
+
+func (UnimplementedExtensionsServiceHandler) InstallExternalSkill(context.Context, *connect.Request[v1.InstallExternalSkillRequest]) (*connect.Response[v1.InstallExternalSkillResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.ExtensionsService.InstallExternalSkill is not implemented"))
+}
+
+func (UnimplementedExtensionsServiceHandler) SetExternalSkillApproval(context.Context, *connect.Request[v1.SetExternalSkillApprovalRequest]) (*connect.Response[v1.SetExternalSkillApprovalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.ExtensionsService.SetExternalSkillApproval is not implemented"))
+}
+
+func (UnimplementedExtensionsServiceHandler) RemoveExternalSkill(context.Context, *connect.Request[v1.RemoveExternalSkillRequest]) (*connect.Response[v1.RemoveExternalSkillResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.ExtensionsService.RemoveExternalSkill is not implemented"))
 }
