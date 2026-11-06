@@ -411,7 +411,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           :class="worktree ? 'text-accent' : 'text-muted'"
         />
         <span class="text-strong">{{ worktree ? tt('Worktree on') : tt('Turn on Worktree') }}</span>
-        <span class="min-w-0 truncate text-muted">{{ worktree ? (fromPr.trim() ? tt('new branch from pull request {0}', fromPr.trim()) : `new branch from ${baseRef || current || 'HEAD'}`) : tt('Session running here') }}</span>
+        <span class="min-w-0 truncate text-muted">{{ worktree ? (fromPr.trim() ? tt('new branch from pull request {0}', [fromPr.trim()]) : `new branch from ${baseRef || current || 'HEAD'}`) : tt('Session running here') }}</span>
       </button>
       <input
         v-if="cwd && !noWorktree && worktree"
