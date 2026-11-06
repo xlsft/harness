@@ -3,7 +3,8 @@
 // caller may take. LLM providers list the models they offer (asked from the service, or the preset's curated
 // list) with a switch each: on adds the model to the catalog, off removes it. Classifier providers show
 // their decision models. Global providers are read-only for non-admins.
-import type { ModelCandidateView, PresetView, ProtocolView, ProviderPatch, ProviderView, ProvidersApi, TestResult } from '~/lib/providers/types'
+import type { ProviderLimitsView } from '~/lib/limits/types'
+import type { ModelCandidateView, ModelPriceView, PresetView, ProtocolView, ProviderPatch, ProviderView, ProvidersApi, TestResult } from '~/lib/providers/types'
 import { contextLabel } from '~/lib/providers/types'
 import type { EffortName } from '~/lib/session/types'
 
@@ -127,6 +128,61 @@ async function setRecommended(m: { id: string, efforts: EffortName[] }, level: E
   if (await run(`levels:${m.id}`, () => props.api.setModelEfforts(m.id, [...m.efforts], level))) emit('changed')
 }
 
+// The price of a model, set by hand: kept from then on, also when emptied (no price).
+const editingPrice = ref('')
+const priceDraft = reactive({ input: '', output: '', cacheRead: '', cacheWrite: '' })
+function togglePrice(m: { id: string, pricing?: ModelPriceView }) {
+  editingPrice.value = editingPrice.value === m.id ? '' : m.id
+  const text = (n: number | undefined) => n === undefined ? '' : String(n)
+  Object.assign(priceDraft, { input: text(m.pricing?.input), output: text(m.pricing?.output), cacheRead: text(m.pricing?.cacheRead), cacheWrite: text(m.pricing?.cacheWrite) })
+}
+const priceEmpty = computed(() => Object.values(priceDraft).every(v => !v.trim()))
+// Input and output go together; the cache prices are optional (they follow input).
+const priceValid = computed(() => priceEmpty.value || (!!priceDraft.input.trim() && !!priceDraft.output.trim()))
+async function savePrice(m: { id: string }) {
+  const n = (v: string) => v.trim() ? Number(v) : undefined
+  const pricing = priceEmpty.value ? null : { input: Number(priceDraft.input), output: Number(priceDraft.output), cacheRead: n(priceDraft.cacheRead), cacheWrite: n(priceDraft.cacheWrite) }
+  if (await run(`price:${m.id}`, () => props.api.setModelPricing(m.id, pricing))) {
+    editingPrice.value = ''
+    emit('changed')
+  }
+}
+const priceLabel = (m: { pricing?: ModelPriceView }) => m.pricing ? `$${m.pricing.input} / $${m.pricing.output}` : 'price'
+
+// --- Balance ---------------------------------------------------------------------------------------
+
+// A provider that cannot report its balance takes an entered amount, which the server turns into an estimate. Whether it
+// may is the server's call (balanceEntry).
+const limits = ref<ProviderLimitsView | null>(null)
+async function loadLimits() {
+  if (p.value.group !== 'llm' || !p.value.editable || !sessions.transport) return
+  try {
+    limits.value = (await sessions.transport.limits().getProviderLimits({ providerIds: [p.value.id] })).providers[0] ?? null
+  } catch { /* no server: no entry */ }
+}
+onMounted(loadLimits)
+const estimate = computed(() => limits.value?.balance?.estimated ? limits.value.balance : undefined)
+const editingBalance = ref(false)
+const balanceAmount = ref('')
+const balanceDate = ref('')
+const today = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function toggleBalance() {
+  editingBalance.value = !editingBalance.value
+  balanceAmount.value = estimate.value?.balance !== undefined ? String(Math.max(0, estimate.value.balance)) : ''
+  balanceDate.value = ''
+}
+async function saveBalance(amount: number | undefined) {
+  // The start of the chosen day here; no date: right now.
+  const asOf = amount !== undefined && balanceDate.value ? new Date(`${balanceDate.value}T00:00:00`).toISOString() : undefined
+  const ok = await run('balance', async () => {
+    limits.value = await sessions.transport!.limits().setBalanceEstimate(p.value.id, amount, asOf)
+  })
+  if (ok) editingBalance.value = false
+}
+
 // Decision models of a classifier provider (the preset's list; a custom one is set in the classifier).
 const decisionModels = computed(() => props.preset?.defaultModels ?? [])
 
@@ -171,6 +227,12 @@ const meta = computed(() => {
 })
 
 const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] text-strong outline-none focus:border-accent'
+const PRICE_FIELDS = [
+  { key: 'input', label: 'Input', placeholder: '' },
+  { key: 'output', label: 'Output', placeholder: '' },
+  { key: 'cacheRead', label: 'Cache read', placeholder: 'as input' },
+  { key: 'cacheWrite', label: 'Cache write', placeholder: 'as input' }
+] as const
 </script>
 
 <template>
@@ -236,6 +298,14 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
             Models{{ p.models.length ? ` · ${p.models.length}` : '' }}
           </HBtn>
           <HBtn
+            v-if="limits?.balanceEntry"
+            size="sm"
+            :aria-expanded="editingBalance"
+            @click="toggleBalance"
+          >
+            {{ estimate ? `Balance ~$${estimate.balance!.toFixed(2)}` : 'Balance' }}
+          </HBtn>
+          <HBtn
             v-if="preset"
             size="sm"
             @click="replacingKey = !replacingKey"
@@ -290,6 +360,47 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
         >
           Save
         </HBtn>
+      </form>
+
+      <form
+        v-if="editingBalance"
+        class="flex flex-wrap items-center gap-2 pr-3 pb-2.5 pl-[52px] text-[11.5px] text-muted max-sm:pl-3"
+        @submit.prevent="saveBalance(Number(balanceAmount))"
+      >
+        <input
+          v-model="balanceAmount"
+          inputmode="decimal"
+          :aria-label="`Balance of ${p.name} in USD`"
+          placeholder="Balance, USD"
+          :class="input"
+          class="max-w-[120px]"
+        >
+        <input
+          v-model="balanceDate"
+          type="date"
+          :max="today()"
+          aria-label="Date of that balance; empty means now"
+          title="The balance at the start of this day; empty means right now"
+          :class="input"
+          class="max-w-[140px]"
+        >
+        <HBtn
+          size="sm"
+          type="submit"
+          variant="primary"
+          :disabled="!balanceAmount.trim() || busy === 'balance'"
+        >
+          Save
+        </HBtn>
+        <HBtn
+          v-if="estimate"
+          size="sm"
+          :disabled="busy === 'balance'"
+          @click="saveBalance(undefined)"
+        >
+          Clear
+        </HBtn>
+        <span class="min-w-[200px] flex-1">An estimate: this amount minus what requests through harness cost from then on. Spending elsewhere isn't seen; after a top-up, enter it again.</span>
       </form>
 
       <!-- Classifier: the default for everyone (admins; one at a time, none means rules, then the model)
@@ -427,6 +538,18 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
                 class="text-[11px] text-dimmed"
               >no effort levels</span>
               <button
+                v-if="p.editable && p.billing !== 'plan'"
+                type="button"
+                :aria-expanded="editingPrice === m.id"
+                :aria-label="`Price of ${m.name}`"
+                title="Per 1M tokens, input / output"
+                class="shrink-0 text-[11px] tabular-nums"
+                :class="editingPrice === m.id ? 'text-strong' : 'text-muted hover:text-strong'"
+                @click="togglePrice(m)"
+              >
+                {{ priceLabel(m) }}
+              </button>
+              <button
                 v-if="p.editable"
                 type="button"
                 :aria-expanded="editingLevels === m.id"
@@ -438,6 +561,37 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
                 levels
               </button>
             </div>
+            <form
+              v-if="editingPrice === m.id"
+              :aria-label="`Price of ${m.name}`"
+              class="flex flex-wrap items-center gap-2 border-b border-default px-2.5 py-1.5 text-[11px] text-muted last:border-b-0"
+              @submit.prevent="savePrice(m)"
+            >
+              <span>USD per 1M tokens</span>
+              <label
+                v-for="f in PRICE_FIELDS"
+                :key="f.key"
+                class="flex items-center gap-1 whitespace-nowrap"
+              >
+                {{ f.label }}
+                <input
+                  v-model="priceDraft[f.key]"
+                  inputmode="decimal"
+                  :placeholder="f.placeholder"
+                  :class="input"
+                  class="max-w-[76px]"
+                >
+              </label>
+              <HBtn
+                size="sm"
+                type="submit"
+                variant="primary"
+                :disabled="!priceValid || busy === `price:${m.id}`"
+              >
+                Save
+              </HBtn>
+              <span v-if="m.pricingSetByHand">set by hand</span>
+            </form>
             <div
               v-if="editingLevels === m.id"
               role="group"

@@ -22,6 +22,17 @@ export interface ProviderModelView {
   efforts: EffortName[]
   // The level recommended for a new session, one of `efforts`.
   defaultEffort?: EffortName
+  // USD per 1M tokens; absent: no price known.
+  pricing?: ModelPriceView
+  // Set by hand (also to none): model lists and presets leave it alone.
+  pricingSetByHand?: boolean
+}
+
+export interface ModelPriceView {
+  input: number
+  output: number
+  cacheRead?: number
+  cacheWrite?: number
 }
 
 export interface ProviderView {
@@ -245,6 +256,8 @@ export interface ProvidersApi {
   // Sets by hand the levels a model takes, for lists that do not say. `defaultEffort`: the level to recommend, '' for
   // none; omitted: unchanged, unless `efforts` drops that level.
   setModelEfforts(modelId: string, efforts: EffortName[], defaultEffort?: EffortName | ''): Promise<void>
+  // By hand and kept from then on; null: no price. Same access as setModelEfforts; refused on a plan provider.
+  setModelPricing(modelId: string, pricing: ModelPriceView | null): Promise<void>
   removeModel(modelId: string): Promise<void>
   getSlots(): Promise<SlotSettings>
   // Admin only: replaces main, small, plan and title.

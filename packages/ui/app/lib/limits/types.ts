@@ -1,8 +1,8 @@
 // Provider limits: how much money or quota each LLM provider has left (harness.llm.v1.ProviderLimitsService).
-// A provider may carry a balance (credit read from its API), this month's spend with an optional budget, and
-// rate-limit windows from response headers, side by side; the server leaves out what the user may not see.
-// GetProviderLimits goes through the client (AgentService.GetProviderLimits); budgets and the admin visibility
-// policies through the client's core proxy.
+// A provider may carry a balance (credit read from its API, or an estimate from an amount someone entered), this
+// month's spend with an optional budget, and a plan's usage windows from response headers, side by side; the server
+// leaves out what the user may not see, and rate limits are not shown at all. GetProviderLimits goes through the client
+// (AgentService.GetProviderLimits); budgets, estimates and the admin visibility policies through the client's core proxy.
 
 export interface ProviderBalanceView {
   // ISO 4217 ("USD", "CNY").
@@ -19,6 +19,10 @@ export interface ProviderBalanceView {
   source: string
   // The last read failed; the amounts are empty then.
   error?: string
+  // Not from the provider: `total` as entered, minus what requests through harness cost since `estimatedSince`.
+  // `balance` is below zero when more was spent than entered.
+  estimated?: boolean
+  estimatedSince?: string
 }
 
 export interface ProviderSpendView {
@@ -32,7 +36,7 @@ export interface ProviderSpendView {
 }
 
 export interface LimitWindowView {
-  // "5h", "weekly", "requests/min", "tokens/min", ...
+  // A plan's windows: "5h", "weekly", ...
   label: string
   // 0..100.
   usedPercent: number
@@ -51,6 +55,8 @@ export interface ProviderLimitsView {
   spend?: ProviderSpendView
   windows: LimitWindowView[]
   windowsUpdatedAt: string
+  // The user may enter a starting balance here (the server's call: metered, no balance API, theirs to change).
+  balanceEntry: boolean
 }
 
 export interface ProviderLimitsResult {
@@ -73,7 +79,7 @@ export interface ProviderLimitsPolicy {
   providerId: string
   // Who sees the balance.
   balance: LimitsVisibility
-  // Who sees the spend and the rate-limit windows.
+  // Who sees the spend and the plan's windows.
   limits: LimitsVisibility
 }
 
@@ -83,6 +89,9 @@ export interface LimitsApi {
   // Sets (or with undefined clears) a provider's monthly budget in USD: admins for server providers, the owner
   // for a personal one.
   setProviderBudget(providerId: string, monthlyUsd: number | undefined): Promise<ProviderLimitsView>
+  // Sets (or with undefined clears) the amount in USD a provider's estimated balance starts from, as of `asOf`
+  // (RFC 3339) or now. Same access as budgets; refused where the provider reports its own balance or is a plan.
+  setBalanceEstimate(providerId: string, amount: number | undefined, asOf?: string): Promise<ProviderLimitsView>
   // Admins: every server LLM provider's visibility policies.
   listPolicies(): Promise<ProviderLimitsPolicy[]>
   // Admins: replaces one server provider's policies.

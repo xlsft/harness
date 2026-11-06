@@ -10,32 +10,38 @@ import "harness/llm/v1/providers.proto";
 // A provider may have any mix of three independent blocks:
 //   - balance: prepaid credit or a key limit read from the provider's own API (OpenRouter /api/v1/key and
 //     /api/v1/credits, DeepSeek /user/balance, Moonshot /v1/users/me/balance). Fetched on demand and cached
-//     for 60 s per provider (a failure too), never more often, with the provider's key on the server only;
+//     for 60 s per provider (a failure too), never more often, with the provider's key on the server only.
+//     On a metered provider without such an API, an estimate instead: a starting amount entered with
+//     SetProviderBalanceEstimate minus the priced spend our usage records show since (ProviderBalance.estimated);
 //   - spend: what our own usage records cost on this provider in the current calendar month (UTC), plus an
 //     optional monthly budget set with SetProviderBudget. For providers without a balance API (OpenAI,
 //     Anthropic, ...), or alongside a balance;
-//   - windows: rate-limit windows from the response headers the gateway already receives (anthropic-ratelimit-*,
-//     the unified 5h / 7d plan headers, x-ratelimit-*): the latest snapshot per provider, no extra requests.
+//   - windows: a subscription plan's usage windows from the response headers the gateway already receives (the
+//     unified 5h / 7d plan headers): the latest snapshot per provider, no extra requests. Per-minute rate limits
+//     (anthropic-ratelimit-*, x-ratelimit-*) are not shown to anyone; they come apart in rate_windows.
 //
 // Visibility, enforced here (hidden blocks are left out of the response, not flagged):
 //   - global providers: listed for everyone who can use them (admins: all of them). Each one has two policies an
-//     admin sets through harness.auth.v1.AdminService (ProviderLimitsPolicy): who sees its balance, and who sees
-//     its limits (spend and windows). Default: everyone who can use it. Admins always see both;
+//     admin sets through harness.auth.v1.AdminService (ProviderLimitsPolicy): who sees its balance (an estimate
+//     too), and who sees its limits (spend and windows). Default: everyone who can use it. Admins always see both;
 //   - personal providers (a user's own key): only their owner ever sees their limits, admins included; there is
 //     no policy and no override. Their header snapshots live in the server's memory and are served to the owner
 //     only.
 //
 // Frontends reach GetProviderLimits through the local client (AgentService.GetProviderLimits) and
-// SetProviderBudget through the client's core proxy (packages/client/server/coreproxy.go).
+// SetProviderBudget and SetProviderBalanceEstimate through the client's core proxy (packages/client/server/coreproxy.go).
 // Requires `Authorization: Bearer <access token>`. Status: DRAFT (M2).
 service ProviderLimitsService {
   // The limits of the LLM providers the caller can use (see the visibility rules above).
   rpc GetProviderLimits(GetProviderLimitsRequest) returns (GetProviderLimitsResponse);
   // Sets or clears a provider's monthly budget (USD). Admins for global providers; the owner for a personal one.
   rpc SetProviderBudget(SetProviderBudgetRequest) returns (SetProviderBudgetResponse);
+  // Sets or clears the starting amount of a provider's estimated balance. Admins for global providers; the owner for
+  // a personal one. Metered providers without a balance API only (ProviderLimits.balance_entry).
+  rpc SetProviderBalanceEstimate(SetProviderBalanceEstimateRequest) returns (SetProviderBalanceEstimateResponse);
 }
 
-// Credit read from the provider's API. Amounts are in `currency`.
+// Credit read from the provider's API, or estimated from our own records (`estimated`). Amounts are in `currency`.
 message ProviderBalance {
   // ISO 4217 ("USD", "CNY").
   string currency = 1;
@@ -53,6 +59,11 @@ message ProviderBalance {
   string source = 7;
   // Set when the last read failed (the other fields are then empty); never contains the key.
   string error = 8;
+  // Not read from the provider: `total` is the amount someone entered, `used` what requests through harness cost
+  // since, `balance` the difference (below zero when more was spent). Spending elsewhere is not seen.
+  bool estimated = 9;
+  // RFC 3339, UTC: with `estimated`, since when spending counts.
+  string estimated_since = 10;
 }
 
 // What our usage records cost on the provider this month.
@@ -68,9 +79,10 @@ message ProviderSpend {
   bool partial = 5;
 }
 
-// One rate-limit window from the response headers.
+// One limit window from the response headers.
 message LimitWindow {
-  // "5h", "weekly", "weekly (Opus)", "requests/min", "tokens/min", "input tokens/min", "output tokens/min".
+  // Plan windows: "5h", "weekly", "weekly (Opus)". Rate limits: "requests/min", "tokens/min", "input tokens/min",
+  // "output tokens/min", "requests".
   string label = 1;
   // 0..100.
   double used_percent = 2;
@@ -86,16 +98,22 @@ message ProviderLimits {
   ProviderScope scope = 3;
   // "metered" or "plan" (Provider.billing).
   string billing = 4;
-  // Absent: no balance API, or hidden from the caller.
+  // Absent: no balance API and no estimate, or hidden from the caller.
   ProviderBalance balance = 5;
   // Absent: hidden from the caller.
   ProviderSpend spend = 6;
-  // Empty: nothing seen yet, or hidden from the caller.
+  // A plan's usage windows, the ones to show. Empty: not a plan, nothing seen yet, or hidden from the caller.
   repeated LimitWindow windows = 7;
   // RFC 3339, UTC: when the windows were captured; empty without windows.
   string windows_updated_at = 8;
   // "response_headers" for the windows; see ProviderBalance.source for the balance.
   string windows_source = 9;
+  // The caller may enter a starting balance (SetProviderBalanceEstimate): a metered provider without a balance API
+  // that they may change.
+  bool balance_entry = 10;
+  // Per-minute rate limits, under the same policy as `windows`: not for showing. They are what the client's usage-limit
+  // watch reads alongside `windows` to warn before a refusal and to explain one.
+  repeated LimitWindow rate_windows = 11;
 }
 
 message GetProviderLimitsRequest {
@@ -119,6 +137,18 @@ message SetProviderBudgetRequest {
 }
 
 message SetProviderBudgetResponse {
+  ProviderLimits limits = 1;
+}
+
+message SetProviderBalanceEstimateRequest {
+  string provider_id = 1;
+  // USD left at `as_of`, not negative. Replaces what was entered before (a top-up); unset clears the estimate.
+  optional double amount = 2;
+  // RFC 3339, not in the future: since when spending counts. Empty: now.
+  string as_of = 3;
+}
+
+message SetProviderBalanceEstimateResponse {
   ProviderLimits limits = 1;
 }
 

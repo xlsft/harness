@@ -35,6 +35,7 @@ import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
 import { clearBalanceCache } from "../limits/balance.ts";
 import { forgetRateLimits } from "../limits/headers.ts";
+import { setBalanceEstimate } from "../limits/policy.ts";
 import type { PublicUser } from "./devices.ts";
 import {
   BUILTIN_SEARCH_ID,
@@ -412,6 +413,7 @@ export async function deleteProvider(id: string, owner: ProviderOwner = null) {
   await db.delete(schema.provider).where(eq(schema.provider.id, id));
   forgetRateLimits(id);
   clearBalanceCache(id);
+  await setBalanceEstimate(id, undefined);
   return { deleted: true };
 }
 

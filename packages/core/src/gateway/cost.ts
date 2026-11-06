@@ -24,9 +24,14 @@ export function billedPricing(pricing: ModelPricing | null | undefined, billing:
   return billing === "plan" ? null : (pricing ?? null);
 }
 
-/** USD cost for normalized usage; pricing is USD per 1M tokens. Missing cache prices fall back to input price. */
-export function computeCost(u: Usage, p: ModelPricing | null | undefined): number {
-  if (!p) return 0;
+/**
+ * USD cost for normalized usage; pricing is USD per 1M tokens. Missing cache prices fall back to input price. A prompt
+ * past `long_context.above_tokens` (cached tokens count) pays those prices for the whole request.
+ */
+export function computeCost(u: Usage, pricing: ModelPricing | null | undefined): number {
+  if (!pricing) return 0;
+  const prompt = u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens;
+  const p = pricing.long_context && prompt > pricing.long_context.above_tokens ? pricing.long_context : pricing;
   const cost =
     (u.input_tokens * p.input +
       u.output_tokens * p.output +

@@ -1,11 +1,13 @@
-// LimitsApi for the mock transport: an OpenRouter key with $12.40 left of a $20 limit (plus a request window),
-// an Anthropic plan at 63% of its 5h window and 21% of its weekly window, and OpenAI with $3.10 spent this
-// month of a $25 budget. Model ids map to these providers by prefix; budgets and policies live in memory.
+// LimitsApi for the mock transport: an OpenRouter key with $12.40 left of a $20 limit, an Anthropic plan at 63% of its
+// 5h window and 21% of its weekly window, and OpenAI with $3.10 spent this month of a $25 budget, which takes an entered
+// balance. Model ids map to these providers by prefix; budgets, estimates and policies live in memory.
 
 import type { LimitsApi, ProviderLimitsPolicy, ProviderLimitsResult, ProviderLimitsView } from './types'
 import { EVERYONE } from './types'
 
 const HOUR = 3_600_000
+// What the mock's requests "cost" since any estimate was entered.
+const SPENT_SINCE_ENTERED = 0.01
 
 function monthStart(now: Date): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
@@ -22,8 +24,9 @@ export function mockProviderLimits(now = new Date()): ProviderLimitsView[] {
       billing: 'metered',
       balance: { currency: 'USD', balance: 12.4, used: 7.6, total: 20, label: 'key limit', updatedAt: at, source: 'openrouter:/api/v1/key+/api/v1/credits' },
       spend: { currency: 'USD', spent: 7.6, periodStart: period, partial: false },
-      windows: [{ label: 'requests', usedPercent: 10, remaining: 18, limit: 20, resetsAt: new Date(now.getTime() + 10_000).toISOString() }],
-      windowsUpdatedAt: at
+      windows: [],
+      windowsUpdatedAt: '',
+      balanceEntry: false
     },
     {
       providerId: 'anthropic',
@@ -35,7 +38,8 @@ export function mockProviderLimits(now = new Date()): ProviderLimitsView[] {
         { label: '5h', usedPercent: 63, resetsAt: new Date(now.getTime() + 2 * HOUR).toISOString() },
         { label: 'weekly', usedPercent: 21, resetsAt: new Date(now.getTime() + 4 * 24 * HOUR).toISOString() }
       ],
-      windowsUpdatedAt: at
+      windowsUpdatedAt: at,
+      balanceEntry: false
     },
     {
       providerId: 'openai',
@@ -44,7 +48,8 @@ export function mockProviderLimits(now = new Date()): ProviderLimitsView[] {
       billing: 'metered',
       spend: { currency: 'USD', spent: 3.1, budget: 25, periodStart: period, partial: false },
       windows: [],
-      windowsUpdatedAt: ''
+      windowsUpdatedAt: '',
+      balanceEntry: true
     }
   ]
 }
@@ -60,11 +65,20 @@ function providerOfModel(modelId: string): string | undefined {
 export class MockLimitsApi implements LimitsApi {
   private budgets = new Map<string, number | undefined>()
   private policies = new Map<string, ProviderLimitsPolicy>()
+  private estimates = new Map<string, { amount: number, since: string }>()
 
   private current(): ProviderLimitsView[] {
     return mockProviderLimits().map((l) => {
-      if (!l.spend || !this.budgets.has(l.providerId)) return l
-      return { ...l, spend: { ...l.spend, budget: this.budgets.get(l.providerId) } }
+      const out = { ...l }
+      if (l.spend && this.budgets.has(l.providerId)) out.spend = { ...l.spend, budget: this.budgets.get(l.providerId) }
+      const e = this.estimates.get(l.providerId)
+      if (e) {
+        out.balance = {
+          currency: 'USD', balance: Math.round((e.amount - SPENT_SINCE_ENTERED) * 1e6) / 1e6, used: SPENT_SINCE_ENTERED, total: e.amount, label: 'estimate',
+          updatedAt: new Date().toISOString(), source: 'harness:usage_records', estimated: true, estimatedSince: e.since
+        }
+      }
+      return out
     })
   }
 
@@ -80,6 +94,19 @@ export class MockLimitsApi implements LimitsApi {
     const found = this.current().find(l => l.providerId === providerId)
     if (!found) throw new Error(`Provider ${providerId} not found`)
     this.budgets.set(providerId, monthlyUsd)
+    return this.current().find(l => l.providerId === providerId)!
+  }
+
+  async setBalanceEstimate(providerId: string, amount: number | undefined, asOf?: string): Promise<ProviderLimitsView> {
+    const found = this.current().find(l => l.providerId === providerId)
+    if (!found) throw new Error(`Provider ${providerId} not found`)
+    if (amount === undefined) {
+      this.estimates.delete(providerId)
+    } else {
+      if (!found.balanceEntry) throw new Error('This provider reports its own balance, or is a subscription plan')
+      if (!Number.isFinite(amount) || amount < 0) throw new Error('amount must be a non-negative number')
+      this.estimates.set(providerId, { amount, since: asOf ?? new Date().toISOString() })
+    }
     return this.current().find(l => l.providerId === providerId)!
   }
 

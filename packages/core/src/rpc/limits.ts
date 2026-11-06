@@ -13,10 +13,15 @@ import {
 } from "../gen/harness/llm/v1/limits_pb.ts";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { ProviderLimitsSchema, ProviderLimitsPolicySchema } from "../gen/harness/llm/v1/limits_pb.ts";
-import { getProviderLimits, setProviderBudget, type ProviderLimits } from "../limits/service.ts";
+import type { LimitWindow } from "../limits/headers.ts";
+import { getProviderLimits, setProviderBalanceEstimate, setProviderBudget, type ProviderLimits } from "../limits/service.ts";
 import type { Audience, ProviderPolicy, Visibility } from "../limits/policy.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
+
+function windowToProto(w: LimitWindow) {
+  return { label: w.label, usedPercent: w.used_percent, remaining: w.remaining, limit: w.limit, resetsAt: w.resets_at };
+}
 
 export function limitsToProto(l: ProviderLimits): MessageInitShape<typeof ProviderLimitsSchema> {
   return {
@@ -34,14 +39,18 @@ export function limitsToProto(l: ProviderLimits): MessageInitShape<typeof Provid
           updatedAt: l.balance.updated_at,
           source: l.balance.source,
           error: l.balance.error ?? "",
+          estimated: l.balance.estimated ?? false,
+          estimatedSince: l.balance.estimated_since ?? "",
         }
       : undefined,
     spend: l.spend
       ? { currency: l.spend.currency, spent: l.spend.spent, budget: l.spend.budget, periodStart: l.spend.period_start, partial: l.spend.partial }
       : undefined,
-    windows: l.windows.map((w) => ({ label: w.label, usedPercent: w.used_percent, remaining: w.remaining, limit: w.limit, resetsAt: w.resets_at })),
+    windows: l.windows.map(windowToProto),
     windowsUpdatedAt: l.windows_updated_at,
     windowsSource: l.windows_source,
+    balanceEntry: l.balance_entry,
+    rateWindows: l.rate_windows.map(windowToProto),
   };
 }
 
@@ -80,6 +89,11 @@ export function registerProviderLimitsService(router: ConnectRouter): void {
     setProviderBudget: guard(async (req, ctx: HandlerContext) => {
       const { user } = await requirePrincipal(ctx);
       return { limits: limitsToProto(await setProviderBudget(user, req.providerId, req.monthlyUsd)) };
+    }),
+
+    setProviderBalanceEstimate: guard(async (req, ctx: HandlerContext) => {
+      const { user } = await requirePrincipal(ctx);
+      return { limits: limitsToProto(await setProviderBalanceEstimate(user, req.providerId, req.amount, req.asOf || undefined)) };
     }),
   });
 }

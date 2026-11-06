@@ -25,7 +25,9 @@ import {
   listModelsForUser,
   listProviderModels,
   removeProviderModel,
+  priceSetByHand,
   setProviderModelEfforts,
+  setProviderModelPricing,
   setSlots,
   type ModelEntry,
   type Slots,
@@ -56,6 +58,8 @@ function modelToProto(m: ModelEntry) {
     enabled: m.enabled,
     efforts: m.capabilities.effort.map(effortToProto),
     defaultEffort: effortToProto(m.capabilities.default_effort ?? ""),
+    pricing: m.pricing ? { input: m.pricing.input, output: m.pricing.output, cacheRead: m.pricing.cache_read ?? 0, cacheWrite: m.pricing.cache_write ?? 0 } : undefined,
+    pricingSetByHand: priceSetByHand({ set_by_hand: m.setByHand }),
   };
 }
 
@@ -301,6 +305,14 @@ export function registerProviderService(router: ConnectRouter): void {
       const user = await principal(ctx);
       const defaultEffort = req.defaultEffort === undefined ? undefined : effortName(req.defaultEffort);
       return { model: modelToProto(await setProviderModelEfforts(req.modelId, req.efforts.map(effortName), user, defaultEffort)) };
+    }),
+
+    setModelPricing: guard(async (req, ctx: HandlerContext) => {
+      const user = await principal(ctx);
+      const p = req.pricing;
+      // A zero cache price on the wire means "same as input", which is what leaving it out says here.
+      const pricing = p ? { input: p.input, output: p.output, ...(p.cacheRead && { cache_read: p.cacheRead }), ...(p.cacheWrite && { cache_write: p.cacheWrite }) } : null;
+      return { model: modelToProto(await setProviderModelPricing(req.modelId, pricing, user)) };
     }),
 
     removeModel: guard(async (req, ctx: HandlerContext) => {

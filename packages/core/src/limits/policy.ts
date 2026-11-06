@@ -4,7 +4,8 @@
  * always see both. Personal providers have no policy at all: only their owner sees their limits, and the admin
  * calls here refuse them as not found.
  *
- * Stored in the `setting` table under "provider_limits_policy"; monthly budgets under "provider_budgets".
+ * Stored in the `setting` table under "provider_limits_policy"; monthly budgets under "provider_budgets", the starting
+ * amounts of estimated balances (limits/service.ts) under "provider_balance_estimates", which the balance policy covers.
  */
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
@@ -27,6 +28,7 @@ export interface ProviderPolicy {
 
 const POLICY_KEY = "provider_limits_policy";
 const BUDGET_KEY = "provider_budgets";
+const ESTIMATE_KEY = "provider_balance_estimates";
 const MAX_SELECTED = 1000;
 
 type StoredPolicies = Record<string, { balance?: Visibility; limits?: Visibility }>;
@@ -104,4 +106,23 @@ export async function setBudget(providerId: string, monthlyUsd: number | undefin
   if (monthlyUsd === undefined) delete budgets[providerId];
   else budgets[providerId] = monthlyUsd;
   await writeSetting(BUDGET_KEY, budgets);
+}
+
+/** What someone entered as a provider's balance: `amount` USD left at `since` (RFC 3339, UTC). */
+export interface BalanceEstimate {
+  amount: number;
+  since: string;
+}
+
+export async function loadBalanceEstimates(): Promise<Record<string, BalanceEstimate>> {
+  return readSetting<Record<string, BalanceEstimate>>(ESTIMATE_KEY, {});
+}
+
+/** Replaces a provider's starting amount, so spending counts from `since` on; undefined clears it. */
+export async function setBalanceEstimate(providerId: string, estimate: BalanceEstimate | undefined): Promise<void> {
+  const estimates = await loadBalanceEstimates();
+  if (estimate === undefined && !(providerId in estimates)) return;
+  if (estimate === undefined) delete estimates[providerId];
+  else estimates[providerId] = estimate;
+  await writeSetting(ESTIMATE_KEY, estimates);
 }

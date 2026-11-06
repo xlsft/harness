@@ -23,6 +23,15 @@ describe('providerView', () => {
     expect(v.models).toEqual([{ id: 'u-abc/qwen/qwen3.7-flash', name: 'u-abc/qwen/qwen3.7-flash', upstream: 'qwen/qwen3.7-flash', contextWindow: 1_000_000, efforts: [] }])
   })
 
+  it('maps a model\'s price; an empty cache price follows input', () => {
+    const v = providerView(create(ProviderSchema, { id: 'p', models: [
+      { id: 'a', pricing: { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 0 }, pricingSetByHand: true },
+      { id: 'b' }
+    ] }))
+    expect(v.models[0]).toMatchObject({ pricing: { input: 4, output: 20, cacheRead: 0.2, cacheWrite: undefined }, pricingSetByHand: true })
+    expect(v.models[1]!.pricing).toBeUndefined()
+  })
+
   it('maps the group and preset, defaulting to an LLM custom provider', () => {
     const v = providerView(create(ProviderSchema, { id: 'typesafe', scope: ProviderScope.GLOBAL, group: 'classifier', presetId: 'typesafe', headerNames: ['X-A'] }))
     expect(v).toMatchObject({ group: 'classifier', presetId: 'typesafe', headerNames: ['X-A'] })

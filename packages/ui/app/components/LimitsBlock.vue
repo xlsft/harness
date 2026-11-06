@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// What the session's provider has left: its balance (credit read from the provider), this month's spend against a
-// budget, and its rate-limit windows (5h, weekly, per minute) — or, for a session an ACP agent runs, the
+// What the session's provider has left: its balance (credit read from the provider, or an estimate), this month's spend
+// against a budget, and its plan's usage windows (5h, weekly) — or, for a session an ACP agent runs, the
 // subscription limits the agent reports. The server leaves out what the user may not see; an ACP agent's limits
 // never leave this computer. Renders nothing when there is nothing to show.
 import type { LimitWindowView, ProviderLimitsView } from '~/lib/limits/types'
@@ -51,6 +51,19 @@ const tone = (pct: number) => pct >= 90 ? 'bg-bad' : pct >= 70 ? 'bg-warn' : 'bg
 const balance = computed(() => view.value?.balance)
 const spend = computed(() => view.value?.spend)
 const hasBalance = computed(() => !!balance.value && !balance.value.error && balance.value.balance !== undefined)
+// An estimate shows its cents: it moves by small amounts, and they are how you see it is alive.
+const balanceText = computed(() => {
+  const b = balance.value!
+  if (!b.estimated) return money(b.balance!, b.currency)
+  return `~${new Intl.NumberFormat(undefined, { style: 'currency', currency: b.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(b.balance!)}`
+})
+const balanceHint = computed(() => {
+  const b = balance.value!
+  if (!b.estimated) return undefined
+  const since = b.estimatedSince ? new Date(b.estimatedSince).toLocaleDateString() : ''
+  return `An estimate: ${money(b.total ?? 0, b.currency)} entered${since ? ` on ${since}` : ''}, minus what requests through harness cost since. Spending elsewhere isn't seen.`
+})
+const balanceLeft = computed(() => Math.max(0, Math.min(100, (balance.value!.balance! / balance.value!.total!) * 100)))
 const shown = computed(() => !!windows.value.length || (balance.value && !balance.value.error && balance.value.balance !== undefined) || !!spend.value)
 </script>
 
@@ -81,7 +94,10 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
           class="flex min-w-0 items-baseline gap-1.5"
         >
           <span class="truncate text-strong">Balance</span>
-          <span class="shrink-0 text-muted tabular-nums">{{ money(balance!.balance!, balance!.currency) }}<template v-if="balance!.total"> of {{ money(balance!.total, balance!.currency) }}</template></span>
+          <span
+            class="shrink-0 text-muted tabular-nums"
+            :title="balanceHint"
+          >{{ balanceText }}<template v-if="balance!.total && !balance!.estimated"> of {{ money(balance!.total, balance!.currency) }}</template></span>
         </span>
       </div>
       <span
@@ -95,8 +111,8 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
         v-if="hasBalance && balance!.total"
         :class="TRACK"
       ><span
-        :class="[BAR, tone(100 - (balance!.balance! / balance!.total) * 100)]"
-        :style="{ width: `${Math.min(100, (balance!.balance! / balance!.total) * 100)}%` }"
+        :class="[BAR, tone(100 - balanceLeft)]"
+        :style="{ width: `${balanceLeft}%` }"
       /></span>
     </div>
     <div

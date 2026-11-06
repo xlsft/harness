@@ -37,16 +37,20 @@ func FromUsageLimit(u *agentv1.UsageLimit) usagelimit.Status {
 }
 
 // LimitsSnapshot converts what the server returned about a provider's limits (nil stays nil). Blocks the server
-// hid from the user are absent, so they stay absent here.
+// hid from the user are absent, so they stay absent here. Rate limits count like a plan's windows, though no screen
+// shows them. An estimated balance does not count: it is someone's number minus our own records, so it can say nothing
+// about whether the provider will refuse.
 func LimitsSnapshot(p *llmv1.ProviderLimits) *usagelimit.Snapshot {
 	if p == nil {
 		return nil
 	}
 	s := &usagelimit.Snapshot{ProviderID: p.GetProviderId(), ProviderName: p.GetProviderName()}
-	for _, w := range p.GetWindows() {
-		s.Windows = append(s.Windows, usagelimit.Window{Label: w.GetLabel(), UsedPercent: w.GetUsedPercent(), ResetsAt: w.GetResetsAt()})
+	for _, windows := range [][]*llmv1.LimitWindow{p.GetWindows(), p.GetRateWindows()} {
+		for _, w := range windows {
+			s.Windows = append(s.Windows, usagelimit.Window{Label: w.GetLabel(), UsedPercent: w.GetUsedPercent(), ResetsAt: w.GetResetsAt()})
+		}
 	}
-	if b := p.GetBalance(); b != nil && b.GetError() == "" && b.Balance != nil {
+	if b := p.GetBalance(); b != nil && b.GetError() == "" && b.Balance != nil && !b.GetEstimated() {
 		bal := &usagelimit.Balance{Currency: b.GetCurrency(), Label: b.GetLabel()}
 		left := b.GetBalance()
 		bal.Left = &left

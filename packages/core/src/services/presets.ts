@@ -15,11 +15,20 @@
  * counts tokens only and never cost, even for a model with a catalog price; everything else is "metered"
  * (pay as you go), where a priced model's requests cost what the price says. Custom providers are metered.
  *
+ * `pricing` (LLM preset models): the vendor's published price in USD per 1M tokens, for services whose model list
+ * gives none. Numbers come from the pricing page cited beside them, read in November 2026 (not from memory); see
+ * services/models.ts for how they reach a model (they only ever fill an empty price). Left out where one number
+ * cannot be right: DeepSeek (peak and off-peak rates by UTC hour, api-docs.deepseek.com/quick_start/pricing),
+ * Gemini 3.8 Flash (doubles on 2027-01-01, and a filled price is not updated, aistudio.google.com/docs/pricing),
+ * Kimi K2.7 Code (no price on the page below) and Kimi Platform China (bills in CNY, not confirmed).
+ *
  * Search presets (group "search") name the adapter in src/search/adapters.ts as their type; their base URL is
  * the API's endpoint (SearXNG: the instance root). `options` are the settings a connected search provider
  * may change, only those the API documents. The built-in SearXNG (`builtin`) is not stored: it is the
  * instance the server ships with (HARNESS_SEARXNG_URL), always offered, and its provider id is its preset id.
  */
+
+import type { ModelPricing } from "./models.ts";
 
 export type ProviderGroup = "llm" | "classifier" | "search";
 /** How an LLM provider charges: "metered" (pay as you go) or "plan" (flat-rate subscription / coding plan). */
@@ -44,6 +53,8 @@ export interface PresetModel {
   display_name: string;
   context_window?: number;
   max_output_tokens?: number;
+  /** USD per 1M tokens, from the vendor's pricing page. */
+  pricing?: ModelPricing;
 }
 
 export type SearchOptionName = "max_results" | "safe_search" | "country" | "language";
@@ -122,6 +133,14 @@ const KIMI_PLATFORM_MODELS: PresetModel[] = [
   { upstream_model: "kimi-k2.7-code", display_name: "Kimi K2.7 Code", context_window: 256_000 },
 ];
 
+// https://platform.kimi.ai/ (the price cards; https://platform.kimi.ai/docs/guide/kimi-k3-1-pro-quickstart: no tiers by
+// context length). International platform only.
+const KIMI_PLATFORM_PRICES: Record<string, ModelPricing> = {
+  "kimi-k3.1-pro": { input: 2, output: 10, cache_read: 0.2, cache_write: 2 },
+  "kimi-k3.1-pro-highspeed": { input: 4, output: 20, cache_read: 0.2, cache_write: 4 },
+  "kimi-k3": { input: 3, output: 15, cache_read: 0.3, cache_write: 3 },
+};
+
 export const PRESETS: readonly ProviderPreset[] = [
   // --- LLM models -----------------------------------------------------------------------------
   {
@@ -148,10 +167,36 @@ export const PRESETS: readonly ProviderPreset[] = [
     fields: [KEY],
     docs_url: "https://platform.claude.com/docs/en/api/overview",
     key_url: "https://platform.claude.com/settings/keys",
+    // https://platform.claude.com/docs/en/about-claude/pricing (cache_write: the 5-minute write, the only one the
+    // gateway asks for). Only Haiku 5.5 is priced by prompt length.
     default_models: [
-      { upstream_model: "claude-opus-5-5", display_name: "Claude Opus 5.5", context_window: 1_000_000, max_output_tokens: 128_000 },
-      { upstream_model: "claude-sonnet-5-5", display_name: "Claude Sonnet 5.5", context_window: 1_000_000, max_output_tokens: 128_000 },
-      { upstream_model: "claude-haiku-5-5", display_name: "Claude Haiku 5.5", context_window: 1_000_000, max_output_tokens: 128_000 },
+      {
+        upstream_model: "claude-opus-5-5",
+        display_name: "Claude Opus 5.5",
+        context_window: 1_000_000,
+        max_output_tokens: 128_000,
+        pricing: { input: 4, output: 20, cache_read: 0.2, cache_write: 5 },
+      },
+      {
+        upstream_model: "claude-sonnet-5-5",
+        display_name: "Claude Sonnet 5.5",
+        context_window: 1_000_000,
+        max_output_tokens: 128_000,
+        pricing: { input: 2, output: 10, cache_read: 0.1, cache_write: 2.5 },
+      },
+      {
+        upstream_model: "claude-haiku-5-5",
+        display_name: "Claude Haiku 5.5",
+        context_window: 1_000_000,
+        max_output_tokens: 128_000,
+        pricing: {
+          input: 0.1,
+          output: 0.5,
+          cache_read: 0.01,
+          cache_write: 0.125,
+          long_context: { above_tokens: 100_000, input: 0.5, output: 2.5, cache_read: 0.05, cache_write: 0.625 },
+        },
+      },
     ],
     icon: "anthropic",
     discovers_models: true,
@@ -166,10 +211,24 @@ export const PRESETS: readonly ProviderPreset[] = [
     fields: [KEY],
     docs_url: "https://developers.openai.com/api/reference/overview",
     key_url: "https://platform.openai.com/settings/organization/api-keys",
+    // https://developers.openai.com/api/docs/pricing (Standard tier; cache_write: the 30-minute write; long context: over
+    // 272K input tokens).
     default_models: [
-      { upstream_model: "gpt-6-astra", display_name: "GPT-6 Astra" },
-      { upstream_model: "gpt-6.1-sol", display_name: "GPT-6.1 Sol" },
-      { upstream_model: "gpt-6-luna", display_name: "GPT-6 Luna" },
+      {
+        upstream_model: "gpt-6-astra",
+        display_name: "GPT-6 Astra",
+        pricing: { input: 10, output: 50, cache_read: 1, cache_write: 12.5, long_context: { above_tokens: 272_000, input: 20, output: 75, cache_read: 2, cache_write: 25 } },
+      },
+      {
+        upstream_model: "gpt-6.1-sol",
+        display_name: "GPT-6.1 Sol",
+        pricing: { input: 2, output: 10, cache_read: 0.1, cache_write: 2.5, long_context: { above_tokens: 272_000, input: 4, output: 15, cache_read: 0.2, cache_write: 5 } },
+      },
+      {
+        upstream_model: "gpt-6-luna",
+        display_name: "GPT-6 Luna",
+        pricing: { input: 0.1, output: 0.5, cache_read: 0.01, cache_write: 0.125, long_context: { above_tokens: 272_000, input: 0.2, output: 0.75, cache_read: 0.02, cache_write: 0.25 } },
+      },
     ],
     icon: "openai",
     discovers_models: true,
@@ -227,7 +286,7 @@ export const PRESETS: readonly ProviderPreset[] = [
     base_url: "https://api.moonshot.ai/v1",
     fields: [KEY],
     docs_url: "https://platform.kimi.ai/docs/guide/start-using-kimi-api",
-    default_models: KIMI_PLATFORM_MODELS,
+    default_models: KIMI_PLATFORM_MODELS.map((m) => ({ ...m, pricing: KIMI_PLATFORM_PRICES[m.upstream_model] })),
     icon: "moonshot",
     discovers_models: false,
   },
@@ -254,9 +313,10 @@ export const PRESETS: readonly ProviderPreset[] = [
     base_url: "https://api.z.ai/api/paas/v4",
     fields: [KEY],
     docs_url: "https://docs.z.ai/guides/overview/quick-start",
+    // https://docs.z.ai/guides/overview/pricing
     default_models: [
-      { upstream_model: "glm-5.3", display_name: "GLM-5.3", context_window: 1_000_000, max_output_tokens: 128_000 },
-      { upstream_model: "glm-5.3-flash", display_name: "GLM-5.3 Flash" },
+      { upstream_model: "glm-5.3", display_name: "GLM-5.3", context_window: 1_000_000, max_output_tokens: 128_000, pricing: { input: 1.4, output: 4.4, cache_read: 0.26 } },
+      { upstream_model: "glm-5.3-flash", display_name: "GLM-5.3 Flash", pricing: { input: 0.15, output: 0.5, cache_read: 0.03 } },
     ],
     icon: "zai",
     discovers_models: false,
@@ -318,10 +378,11 @@ export const PRESETS: readonly ProviderPreset[] = [
     fields: [KEY],
     docs_url: "https://docs.x.ai/docs/models",
     key_url: "https://console.x.ai/team/default/api-keys",
+    // https://docs.x.ai/docs/models (long context: a prompt of 200k tokens or more).
     default_models: [
-      { upstream_model: "grok-4.7", display_name: "Grok 4.7" },
-      { upstream_model: "grok-4.6", display_name: "Grok 4.6" },
-      { upstream_model: "grok-build-0.1", display_name: "Grok Build 0.1" },
+      { upstream_model: "grok-4.7", display_name: "Grok 4.7", pricing: { input: 2, output: 6, cache_read: 0.5, long_context: { above_tokens: 200_000, input: 4, output: 12, cache_read: 1 } } },
+      { upstream_model: "grok-4.6", display_name: "Grok 4.6", pricing: { input: 2, output: 6, cache_read: 0.5, long_context: { above_tokens: 200_000, input: 4, output: 12, cache_read: 1 } } },
+      { upstream_model: "grok-build-0.1", display_name: "Grok Build 0.1", pricing: { input: 1, output: 2, cache_read: 0.2, long_context: { above_tokens: 200_000, input: 2, output: 4, cache_read: 0.4 } } },
     ],
     icon: "xai",
     discovers_models: false,
@@ -513,6 +574,11 @@ export function presetOf(row: { presetId: string | null; kind: string; type: str
 /** How a stored provider charges: its preset's billing; custom providers (and non-LLM groups) are metered. */
 export function billingOf(row: { presetId: string | null; kind: string; type: string; baseUrl: string }): Billing {
   return presetOf(row)?.billing ?? "metered";
+}
+
+/** The published price of a model of a stored provider's preset, if its preset has one. */
+export function presetPriceOf(row: { presetId: string | null; kind: string; type: string; baseUrl: string }, upstreamModel: string): ModelPricing | undefined {
+  return presetOf(row)?.default_models.find((m) => m.upstream_model === upstreamModel)?.pricing;
 }
 
 /** The options a stored search provider may set: its preset's, or for a custom SearXNG-compatible one the SearXNG preset's. */

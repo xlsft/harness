@@ -13,7 +13,7 @@ import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "./devices.ts";
-import { presetOf } from "./presets.ts";
+import { billingOf, presetOf, presetPriceOf } from "./presets.ts";
 import { PERSONAL_PREFIX, providerForUser } from "./providers.ts";
 
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
@@ -34,7 +34,7 @@ export interface ModelCapabilities {
 const LISTED_CAPS = ["thinking", "effort", "images", "pdf", "default_effort"] as const;
 export type ListedCapabilities = Partial<Pick<ModelCapabilities, (typeof LISTED_CAPS)[number]>>;
 
-/** As stored: `set_by_hand` names the capabilities someone set, which a model list leaves alone even when empty. */
+/** As stored: `set_by_hand` names the capabilities someone set (and "pricing": the price), which a model list leaves alone even when empty. */
 type StoredCapabilities = Partial<ModelCapabilities> & { set_by_hand?: string[] };
 
 /** USD per 1M tokens. */
@@ -43,7 +43,11 @@ export interface ModelPricing {
   output: number;
   cache_read?: number;
   cache_write?: number;
+  /** The prices of a request whose prompt is longer than `above_tokens`, for vendors that charge by prompt length. */
+  long_context?: { above_tokens: number; input: number; output: number; cache_read?: number; cache_write?: number };
 }
+
+const PRICE_SET_BY_HAND = "pricing";
 
 export interface ModelEntry {
   id: string;
@@ -281,18 +285,38 @@ export function backfilledCapabilities(stored: unknown, listed: ListedCapabiliti
   return Object.keys(added).length ? { ...caps, ...added } : undefined;
 }
 
-function validatePricing(p: unknown): ModelPricing | null {
-  if (p === null || p === undefined) return null;
-  const o = p as Record<string, unknown>;
+function validatePrices(o: Record<string, unknown>, at: string) {
   for (const k of ["input", "output", "cache_read", "cache_write"]) {
-    if (o[k] !== undefined && (typeof o[k] !== "number" || (o[k] as number) < 0)) {
-      throw new ApiError("invalid_request", `pricing.${k} must be a non-negative number`);
+    if (o[k] !== undefined && (typeof o[k] !== "number" || !Number.isFinite(o[k]) || (o[k] as number) < 0)) {
+      throw new ApiError("invalid_request", `${at}.${k} must be a non-negative number`);
     }
   }
   if (typeof o.input !== "number" || typeof o.output !== "number") {
-    throw new ApiError("invalid_request", "pricing.input and pricing.output are required");
+    throw new ApiError("invalid_request", `${at}.input and ${at}.output are required`);
+  }
+}
+
+function validatePricing(p: unknown): ModelPricing | null {
+  if (p === null || p === undefined) return null;
+  const o = p as Record<string, unknown>;
+  validatePrices(o, "pricing");
+  if (o.long_context !== undefined) {
+    const l = o.long_context as Record<string, unknown>;
+    if (typeof l !== "object" || l === null || typeof l.above_tokens !== "number" || !(l.above_tokens > 0)) {
+      throw new ApiError("invalid_request", "pricing.long_context.above_tokens must be a positive number");
+    }
+    validatePrices(l, "pricing.long_context");
   }
   return o as unknown as ModelPricing;
+}
+
+/** Whether someone set a model's price by hand, also to none: nothing fills it in then. */
+export function priceSetByHand(storedCapabilities: unknown): boolean {
+  return !!(storedCapabilities as StoredCapabilities | null)?.set_by_hand?.includes(PRICE_SET_BY_HAND);
+}
+
+function withPriceSetByHand(caps: StoredCapabilities): StoredCapabilities {
+  return { ...caps, set_by_hand: [...new Set([...(caps.set_by_hand ?? []), PRICE_SET_BY_HAND])] };
 }
 
 function positiveInt(v: unknown, name: string): number {
@@ -356,7 +380,8 @@ async function insertModel(input: ModelInput & { id: string; provider_id: string
       contextWindow: positiveInt(input.context_window ?? 128_000, "context_window"),
       maxOutputTokens: positiveInt(input.max_output_tokens ?? 8192, "max_output_tokens"),
       capabilities: markSetByHand(settledDefaultEffort({ ...DEFAULT_CAPS, ...input.listed, ...validateCaps(input.capabilities) }, validateCaps(input.capabilities)), validateCaps(input.capabilities)),
-      pricing: validatePricing(input.pricing),
+      // A price given (by hand, or from the service's list) goes first, then what the preset publishes.
+      pricing: validatePricing(input.pricing) ?? (provider && presetPriceOf(provider, input.upstream_model)) ?? null,
       fallbacks: validateFallbacks(input.fallbacks, input.id),
       extraBody: input.extra_body ?? null,
       roles: input.roles ?? null,
@@ -390,7 +415,10 @@ export async function updateModel(id: string, input: ModelInput) {
     const given = validateCaps(input.capabilities);
     patch.capabilities = markSetByHand(settledDefaultEffort({ ...cur.capabilities, ...given }, given), given, cur.setByHand);
   }
-  if (input.pricing !== undefined) patch.pricing = validatePricing(input.pricing);
+  if (input.pricing !== undefined) {
+    patch.pricing = validatePricing(input.pricing);
+    patch.capabilities = withPriceSetByHand((patch.capabilities ?? { ...cur.capabilities, set_by_hand: cur.setByHand }) as StoredCapabilities);
+  }
   if (input.fallbacks !== undefined) patch.fallbacks = validateFallbacks(input.fallbacks, id);
   if (input.extra_body !== undefined) patch.extraBody = input.extra_body;
   if (input.roles !== undefined) patch.roles = input.roles;
@@ -498,6 +526,41 @@ export async function setProviderModelEfforts(modelId: string, efforts: string[]
   await getDb().update(schema.model).set({ capabilities, updatedAt: new Date() }).where(eq(schema.model.id, modelId));
   if (levelsGiven) await clearNegotiation(modelId, "effort");
   return (await findModel(modelId))!;
+}
+
+/**
+ * Sets a model's price by hand (null: no price). Kept from then on: lists and presets only fill an empty price
+ * nobody set. A plan provider's requests carry no cost (gateway/cost.ts billedPricing), so there it is refused.
+ */
+export async function setProviderModelPricing(modelId: string, pricing: ModelPricing | null, user: PublicUser): Promise<ModelEntry> {
+  const m = await writableModel(modelId, user);
+  const { row } = await providerForUser(m.providerId, user);
+  if (billingOf(row) === "plan") throw new ApiError("invalid_request", "A subscription plan's requests carry no price");
+  const capabilities = withPriceSetByHand({ ...m.capabilities, set_by_hand: m.setByHand });
+  await getDb()
+    .update(schema.model)
+    .set({ pricing: validatePricing(pricing), capabilities, updatedAt: new Date() })
+    .where(eq(schema.model.id, modelId));
+  return (await findModel(modelId))!;
+}
+
+/**
+ * Fills empty prices from what the provider's preset publishes (one provider, or all of them at startup), so a model
+ * added before its preset had prices gets one with nothing asked of anyone or of the service. Never over a price, and
+ * never over one set by hand to none.
+ */
+export async function fillPresetPrices(providerId?: string): Promise<void> {
+  await ensureDb();
+  const rows = await getDb()
+    .select()
+    .from(schema.model)
+    .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
+    .where(providerId ? eq(schema.model.providerId, providerId) : undefined);
+  for (const { model, provider } of rows) {
+    if (model.pricing || priceSetByHand(model.capabilities)) continue;
+    const pricing = presetPriceOf(provider, model.upstreamModel);
+    if (pricing) await getDb().update(schema.model).set({ pricing }).where(eq(schema.model.id, model.id));
+  }
 }
 
 /** Removes a model from a provider the user may change (a global one only as admin). */
