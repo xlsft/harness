@@ -24,8 +24,29 @@ export interface ProviderModelView {
   defaultEffort?: EffortName
   // USD per 1M tokens; absent: no price known.
   pricing?: ModelPriceView
-  // Set by hand (also to none): model lists and presets leave it alone.
+  // Set by hand (also to none): model lists, the catalog and presets leave it alone.
   pricingSetByHand?: boolean
+  // Where the price came from, and since when (RFC 3339); absent: not known.
+  pricingSource?: PriceSourceName
+  pricingUpdatedAt?: string
+  // A change too large to apply by itself: `pricing` stays until someone accepts it or sets one.
+  priceChangeHeld?: { proposed: ModelPriceView, source: PriceSourceName, heldAt: string }
+}
+
+export type PriceSourceName = 'hand' | 'list' | 'catalog' | 'preset'
+
+// The server's model price catalog; `updatedAt` is empty while it has no snapshot.
+export interface PriceCatalogView {
+  enabled: boolean
+  updatedAt: string
+}
+
+export interface PriceRefreshResult {
+  ok: boolean
+  message: string
+  updated: number
+  held: number
+  catalog: PriceCatalogView
 }
 
 export interface ModelPriceView {
@@ -63,6 +84,7 @@ export interface ProviderList {
   providers: ProviderView[]
   types: string[]
   canManageGlobal: boolean
+  priceCatalog?: PriceCatalogView
 }
 
 export interface PresetFieldView {
@@ -258,6 +280,10 @@ export interface ProvidersApi {
   setModelEfforts(modelId: string, efforts: EffortName[], defaultEffort?: EffortName | ''): Promise<void>
   // By hand and kept from then on; null: no price. Same access as setModelEfforts; refused on a plan provider.
   setModelPricing(modelId: string, pricing: ModelPriceView | null): Promise<void>
+  // Takes the change held back on a model; the model goes on following that source. Same access as setModelPricing.
+  acceptModelPriceChange(modelId: string): Promise<void>
+  // Admin only: fetches the price catalog now and applies it.
+  refreshModelPrices(): Promise<PriceRefreshResult>
   removeModel(modelId: string): Promise<void>
   getSlots(): Promise<SlotSettings>
   // Admin only: replaces main, small, plan and title.

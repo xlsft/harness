@@ -341,10 +341,17 @@ type ProviderModel struct {
 	// What a request costs on a metered provider. Absent: no price known, so its requests carry no cost. A zero cache
 	// price means "same as input".
 	Pricing *Pricing `protobuf:"bytes,9,opt,name=pricing,proto3,oneof" json:"pricing,omitempty"`
-	// Someone set `pricing` by hand (also to none): model lists and presets leave it alone.
+	// Someone set `pricing` by hand (also to none): model lists, the catalog and presets leave it alone.
 	PricingSetByHand bool `protobuf:"varint,10,opt,name=pricing_set_by_hand,json=pricingSetByHand,proto3" json:"pricing_set_by_hand,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Where `pricing` came from: "hand", "list" (the provider's own model list), "catalog" (the model price catalog) or
+	// "preset". Empty: not known, a price from before sources were recorded.
+	PricingSource string `protobuf:"bytes,11,opt,name=pricing_source,json=pricingSource,proto3" json:"pricing_source,omitempty"`
+	// RFC 3339, UTC: when `pricing` last changed or changed source. Empty: not known.
+	PricingUpdatedAt string `protobuf:"bytes,12,opt,name=pricing_updated_at,json=pricingUpdatedAt,proto3" json:"pricing_updated_at,omitempty"`
+	// A change too large to apply by itself. `pricing` stays until someone accepts it (AcceptModelPriceChange) or sets one.
+	PriceChangeHeld *PriceChangeHeld `protobuf:"bytes,13,opt,name=price_change_held,json=priceChangeHeld,proto3,oneof" json:"price_change_held,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ProviderModel) Reset() {
@@ -447,6 +454,89 @@ func (x *ProviderModel) GetPricingSetByHand() bool {
 	return false
 }
 
+func (x *ProviderModel) GetPricingSource() string {
+	if x != nil {
+		return x.PricingSource
+	}
+	return ""
+}
+
+func (x *ProviderModel) GetPricingUpdatedAt() string {
+	if x != nil {
+		return x.PricingUpdatedAt
+	}
+	return ""
+}
+
+func (x *ProviderModel) GetPriceChangeHeld() *PriceChangeHeld {
+	if x != nil {
+		return x.PriceChangeHeld
+	}
+	return nil
+}
+
+type PriceChangeHeld struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Proposed *Pricing               `protobuf:"bytes,1,opt,name=proposed,proto3" json:"proposed,omitempty"`
+	// "list" or "catalog".
+	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	// RFC 3339, UTC.
+	HeldAt        string `protobuf:"bytes,3,opt,name=held_at,json=heldAt,proto3" json:"held_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PriceChangeHeld) Reset() {
+	*x = PriceChangeHeld{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PriceChangeHeld) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PriceChangeHeld) ProtoMessage() {}
+
+func (x *PriceChangeHeld) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PriceChangeHeld.ProtoReflect.Descriptor instead.
+func (*PriceChangeHeld) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PriceChangeHeld) GetProposed() *Pricing {
+	if x != nil {
+		return x.Proposed
+	}
+	return nil
+}
+
+func (x *PriceChangeHeld) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *PriceChangeHeld) GetHeldAt() string {
+	if x != nil {
+		return x.HeldAt
+	}
+	return ""
+}
+
 type ListPresetsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -455,7 +545,7 @@ type ListPresetsRequest struct {
 
 func (x *ListPresetsRequest) Reset() {
 	*x = ListPresetsRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[2]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +557,7 @@ func (x *ListPresetsRequest) String() string {
 func (*ListPresetsRequest) ProtoMessage() {}
 
 func (x *ListPresetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[2]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +570,7 @@ func (x *ListPresetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPresetsRequest.ProtoReflect.Descriptor instead.
 func (*ListPresetsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{2}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{3}
 }
 
 type ListPresetsResponse struct {
@@ -495,7 +585,7 @@ type ListPresetsResponse struct {
 
 func (x *ListPresetsResponse) Reset() {
 	*x = ListPresetsResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[3]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +597,7 @@ func (x *ListPresetsResponse) String() string {
 func (*ListPresetsResponse) ProtoMessage() {}
 
 func (x *ListPresetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[3]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +610,7 @@ func (x *ListPresetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPresetsResponse.ProtoReflect.Descriptor instead.
 func (*ListPresetsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{3}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListPresetsResponse) GetPresets() []*ProviderPreset {
@@ -580,7 +670,7 @@ type ProviderPreset struct {
 
 func (x *ProviderPreset) Reset() {
 	*x = ProviderPreset{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[4]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -592,7 +682,7 @@ func (x *ProviderPreset) String() string {
 func (*ProviderPreset) ProtoMessage() {}
 
 func (x *ProviderPreset) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[4]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -605,7 +695,7 @@ func (x *ProviderPreset) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderPreset.ProtoReflect.Descriptor instead.
 func (*ProviderPreset) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{4}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ProviderPreset) GetId() string {
@@ -742,7 +832,7 @@ type PresetOption struct {
 
 func (x *PresetOption) Reset() {
 	*x = PresetOption{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[5]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -754,7 +844,7 @@ func (x *PresetOption) String() string {
 func (*PresetOption) ProtoMessage() {}
 
 func (x *PresetOption) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[5]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -767,7 +857,7 @@ func (x *PresetOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresetOption.ProtoReflect.Descriptor instead.
 func (*PresetOption) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{5}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PresetOption) GetName() string {
@@ -836,7 +926,7 @@ type OptionChoice struct {
 
 func (x *OptionChoice) Reset() {
 	*x = OptionChoice{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[6]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -848,7 +938,7 @@ func (x *OptionChoice) String() string {
 func (*OptionChoice) ProtoMessage() {}
 
 func (x *OptionChoice) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[6]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -861,7 +951,7 @@ func (x *OptionChoice) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OptionChoice.ProtoReflect.Descriptor instead.
 func (*OptionChoice) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{6}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *OptionChoice) GetValue() string {
@@ -891,7 +981,7 @@ type PresetField struct {
 
 func (x *PresetField) Reset() {
 	*x = PresetField{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[7]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -903,7 +993,7 @@ func (x *PresetField) String() string {
 func (*PresetField) ProtoMessage() {}
 
 func (x *PresetField) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[7]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -916,7 +1006,7 @@ func (x *PresetField) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresetField.ProtoReflect.Descriptor instead.
 func (*PresetField) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{7}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PresetField) GetName() string {
@@ -960,7 +1050,7 @@ type PresetModel struct {
 
 func (x *PresetModel) Reset() {
 	*x = PresetModel{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[8]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1062,7 @@ func (x *PresetModel) String() string {
 func (*PresetModel) ProtoMessage() {}
 
 func (x *PresetModel) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[8]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1075,7 @@ func (x *PresetModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresetModel.ProtoReflect.Descriptor instead.
 func (*PresetModel) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{8}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *PresetModel) GetUpstreamModel() string {
@@ -1031,7 +1121,7 @@ type ProviderProtocol struct {
 
 func (x *ProviderProtocol) Reset() {
 	*x = ProviderProtocol{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[9]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1043,7 +1133,7 @@ func (x *ProviderProtocol) String() string {
 func (*ProviderProtocol) ProtoMessage() {}
 
 func (x *ProviderProtocol) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[9]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1056,7 +1146,7 @@ func (x *ProviderProtocol) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderProtocol.ProtoReflect.Descriptor instead.
 func (*ProviderProtocol) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{9}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ProviderProtocol) GetId() string {
@@ -1095,7 +1185,7 @@ type ListProvidersRequest struct {
 
 func (x *ListProvidersRequest) Reset() {
 	*x = ListProvidersRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[10]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1107,7 +1197,7 @@ func (x *ListProvidersRequest) String() string {
 func (*ListProvidersRequest) ProtoMessage() {}
 
 func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[10]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1120,7 +1210,7 @@ func (x *ListProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{10}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{11}
 }
 
 type ListProvidersResponse struct {
@@ -1129,14 +1219,15 @@ type ListProvidersResponse struct {
 	// Provider types the server supports.
 	Types []string `protobuf:"bytes,2,rep,name=types,proto3" json:"types,omitempty"`
 	// The caller is an admin: may create and change global providers and the classifier.
-	CanManageGlobal bool `protobuf:"varint,3,opt,name=can_manage_global,json=canManageGlobal,proto3" json:"can_manage_global,omitempty"`
+	CanManageGlobal bool               `protobuf:"varint,3,opt,name=can_manage_global,json=canManageGlobal,proto3" json:"can_manage_global,omitempty"`
+	PriceCatalog    *ModelPriceCatalog `protobuf:"bytes,4,opt,name=price_catalog,json=priceCatalog,proto3" json:"price_catalog,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ListProvidersResponse) Reset() {
 	*x = ListProvidersResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[11]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1148,7 +1239,7 @@ func (x *ListProvidersResponse) String() string {
 func (*ListProvidersResponse) ProtoMessage() {}
 
 func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[11]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1161,7 +1252,7 @@ func (x *ListProvidersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProvidersResponse.ProtoReflect.Descriptor instead.
 func (*ListProvidersResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{11}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListProvidersResponse) GetProviders() []*Provider {
@@ -1183,6 +1274,68 @@ func (x *ListProvidersResponse) GetCanManageGlobal() bool {
 		return x.CanManageGlobal
 	}
 	return false
+}
+
+func (x *ListProvidersResponse) GetPriceCatalog() *ModelPriceCatalog {
+	if x != nil {
+		return x.PriceCatalog
+	}
+	return nil
+}
+
+// The server's model price catalog (global data, the same for personal providers).
+type ModelPriceCatalog struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Off for servers without internet access (HARNESS_MODEL_PRICES=off).
+	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// RFC 3339, UTC: when the stored snapshot was fetched. Empty: there is none, or the catalog is off.
+	UpdatedAt     string `protobuf:"bytes,2,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ModelPriceCatalog) Reset() {
+	*x = ModelPriceCatalog{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModelPriceCatalog) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModelPriceCatalog) ProtoMessage() {}
+
+func (x *ModelPriceCatalog) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModelPriceCatalog.ProtoReflect.Descriptor instead.
+func (*ModelPriceCatalog) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ModelPriceCatalog) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *ModelPriceCatalog) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
 }
 
 type CreateProviderRequest struct {
@@ -1213,7 +1366,7 @@ type CreateProviderRequest struct {
 
 func (x *CreateProviderRequest) Reset() {
 	*x = CreateProviderRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[12]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1225,7 +1378,7 @@ func (x *CreateProviderRequest) String() string {
 func (*CreateProviderRequest) ProtoMessage() {}
 
 func (x *CreateProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[12]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1238,7 +1391,7 @@ func (x *CreateProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProviderRequest.ProtoReflect.Descriptor instead.
 func (*CreateProviderRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{12}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CreateProviderRequest) GetScope() ProviderScope {
@@ -1327,7 +1480,7 @@ type CreateProviderResponse struct {
 
 func (x *CreateProviderResponse) Reset() {
 	*x = CreateProviderResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[13]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1339,7 +1492,7 @@ func (x *CreateProviderResponse) String() string {
 func (*CreateProviderResponse) ProtoMessage() {}
 
 func (x *CreateProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[13]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1352,7 +1505,7 @@ func (x *CreateProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProviderResponse.ProtoReflect.Descriptor instead.
 func (*CreateProviderResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{13}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CreateProviderResponse) GetProvider() *Provider {
@@ -1384,7 +1537,7 @@ type UpdateProviderRequest struct {
 
 func (x *UpdateProviderRequest) Reset() {
 	*x = UpdateProviderRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[14]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1396,7 +1549,7 @@ func (x *UpdateProviderRequest) String() string {
 func (*UpdateProviderRequest) ProtoMessage() {}
 
 func (x *UpdateProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[14]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1409,7 +1562,7 @@ func (x *UpdateProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProviderRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProviderRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{14}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateProviderRequest) GetId() string {
@@ -1484,7 +1637,7 @@ type ProviderOptions struct {
 
 func (x *ProviderOptions) Reset() {
 	*x = ProviderOptions{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[15]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1496,7 +1649,7 @@ func (x *ProviderOptions) String() string {
 func (*ProviderOptions) ProtoMessage() {}
 
 func (x *ProviderOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[15]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1509,7 +1662,7 @@ func (x *ProviderOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderOptions.ProtoReflect.Descriptor instead.
 func (*ProviderOptions) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{15}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ProviderOptions) GetValues() map[string]string {
@@ -1528,7 +1681,7 @@ type Headers struct {
 
 func (x *Headers) Reset() {
 	*x = Headers{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[16]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1540,7 +1693,7 @@ func (x *Headers) String() string {
 func (*Headers) ProtoMessage() {}
 
 func (x *Headers) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[16]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1553,7 +1706,7 @@ func (x *Headers) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Headers.ProtoReflect.Descriptor instead.
 func (*Headers) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{16}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Headers) GetValues() map[string]string {
@@ -1572,7 +1725,7 @@ type UpdateProviderResponse struct {
 
 func (x *UpdateProviderResponse) Reset() {
 	*x = UpdateProviderResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[17]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1584,7 +1737,7 @@ func (x *UpdateProviderResponse) String() string {
 func (*UpdateProviderResponse) ProtoMessage() {}
 
 func (x *UpdateProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[17]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1597,7 +1750,7 @@ func (x *UpdateProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProviderResponse.ProtoReflect.Descriptor instead.
 func (*UpdateProviderResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{17}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UpdateProviderResponse) GetProvider() *Provider {
@@ -1616,7 +1769,7 @@ type DeleteProviderRequest struct {
 
 func (x *DeleteProviderRequest) Reset() {
 	*x = DeleteProviderRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[18]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1628,7 +1781,7 @@ func (x *DeleteProviderRequest) String() string {
 func (*DeleteProviderRequest) ProtoMessage() {}
 
 func (x *DeleteProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[18]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1641,7 +1794,7 @@ func (x *DeleteProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProviderRequest.ProtoReflect.Descriptor instead.
 func (*DeleteProviderRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{18}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DeleteProviderRequest) GetId() string {
@@ -1659,7 +1812,7 @@ type DeleteProviderResponse struct {
 
 func (x *DeleteProviderResponse) Reset() {
 	*x = DeleteProviderResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[19]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1671,7 +1824,7 @@ func (x *DeleteProviderResponse) String() string {
 func (*DeleteProviderResponse) ProtoMessage() {}
 
 func (x *DeleteProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[19]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1684,7 +1837,7 @@ func (x *DeleteProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProviderResponse.ProtoReflect.Descriptor instead.
 func (*DeleteProviderResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{19}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{21}
 }
 
 type DiscoverModelsRequest struct {
@@ -1696,7 +1849,7 @@ type DiscoverModelsRequest struct {
 
 func (x *DiscoverModelsRequest) Reset() {
 	*x = DiscoverModelsRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[20]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1708,7 +1861,7 @@ func (x *DiscoverModelsRequest) String() string {
 func (*DiscoverModelsRequest) ProtoMessage() {}
 
 func (x *DiscoverModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[20]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1721,7 +1874,7 @@ func (x *DiscoverModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverModelsRequest.ProtoReflect.Descriptor instead.
 func (*DiscoverModelsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{20}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DiscoverModelsRequest) GetProviderId() string {
@@ -1740,7 +1893,7 @@ type DiscoverModelsResponse struct {
 
 func (x *DiscoverModelsResponse) Reset() {
 	*x = DiscoverModelsResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[21]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1752,7 +1905,7 @@ func (x *DiscoverModelsResponse) String() string {
 func (*DiscoverModelsResponse) ProtoMessage() {}
 
 func (x *DiscoverModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[21]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1765,7 +1918,7 @@ func (x *DiscoverModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverModelsResponse.ProtoReflect.Descriptor instead.
 func (*DiscoverModelsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{21}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *DiscoverModelsResponse) GetModels() []*ModelCandidate {
@@ -1790,7 +1943,7 @@ type ModelCandidate struct {
 
 func (x *ModelCandidate) Reset() {
 	*x = ModelCandidate{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[22]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1802,7 +1955,7 @@ func (x *ModelCandidate) String() string {
 func (*ModelCandidate) ProtoMessage() {}
 
 func (x *ModelCandidate) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[22]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1815,7 +1968,7 @@ func (x *ModelCandidate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelCandidate.ProtoReflect.Descriptor instead.
 func (*ModelCandidate) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{22}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ModelCandidate) GetUpstreamModel() string {
@@ -1872,7 +2025,7 @@ type AddModelRequest struct {
 
 func (x *AddModelRequest) Reset() {
 	*x = AddModelRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[23]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1884,7 +2037,7 @@ func (x *AddModelRequest) String() string {
 func (*AddModelRequest) ProtoMessage() {}
 
 func (x *AddModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[23]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1897,7 +2050,7 @@ func (x *AddModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddModelRequest.ProtoReflect.Descriptor instead.
 func (*AddModelRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{23}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *AddModelRequest) GetProviderId() string {
@@ -1965,7 +2118,7 @@ type AddModelResponse struct {
 
 func (x *AddModelResponse) Reset() {
 	*x = AddModelResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[24]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1977,7 +2130,7 @@ func (x *AddModelResponse) String() string {
 func (*AddModelResponse) ProtoMessage() {}
 
 func (x *AddModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[24]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1990,7 +2143,7 @@ func (x *AddModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddModelResponse.ProtoReflect.Descriptor instead.
 func (*AddModelResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{24}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AddModelResponse) GetModel() *ProviderModel {
@@ -2014,7 +2167,7 @@ type SetModelEffortsRequest struct {
 
 func (x *SetModelEffortsRequest) Reset() {
 	*x = SetModelEffortsRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[25]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2026,7 +2179,7 @@ func (x *SetModelEffortsRequest) String() string {
 func (*SetModelEffortsRequest) ProtoMessage() {}
 
 func (x *SetModelEffortsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[25]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2039,7 +2192,7 @@ func (x *SetModelEffortsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetModelEffortsRequest.ProtoReflect.Descriptor instead.
 func (*SetModelEffortsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{25}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *SetModelEffortsRequest) GetModelId() string {
@@ -2072,7 +2225,7 @@ type SetModelEffortsResponse struct {
 
 func (x *SetModelEffortsResponse) Reset() {
 	*x = SetModelEffortsResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[26]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2084,7 +2237,7 @@ func (x *SetModelEffortsResponse) String() string {
 func (*SetModelEffortsResponse) ProtoMessage() {}
 
 func (x *SetModelEffortsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[26]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2097,7 +2250,7 @@ func (x *SetModelEffortsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetModelEffortsResponse.ProtoReflect.Descriptor instead.
 func (*SetModelEffortsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{26}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SetModelEffortsResponse) GetModel() *ProviderModel {
@@ -2118,7 +2271,7 @@ type SetModelPricingRequest struct {
 
 func (x *SetModelPricingRequest) Reset() {
 	*x = SetModelPricingRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[27]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2130,7 +2283,7 @@ func (x *SetModelPricingRequest) String() string {
 func (*SetModelPricingRequest) ProtoMessage() {}
 
 func (x *SetModelPricingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[27]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2143,7 +2296,7 @@ func (x *SetModelPricingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetModelPricingRequest.ProtoReflect.Descriptor instead.
 func (*SetModelPricingRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{27}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SetModelPricingRequest) GetModelId() string {
@@ -2169,7 +2322,7 @@ type SetModelPricingResponse struct {
 
 func (x *SetModelPricingResponse) Reset() {
 	*x = SetModelPricingResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[28]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2181,7 +2334,7 @@ func (x *SetModelPricingResponse) String() string {
 func (*SetModelPricingResponse) ProtoMessage() {}
 
 func (x *SetModelPricingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[28]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2194,12 +2347,216 @@ func (x *SetModelPricingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetModelPricingResponse.ProtoReflect.Descriptor instead.
 func (*SetModelPricingResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{28}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *SetModelPricingResponse) GetModel() *ProviderModel {
 	if x != nil {
 		return x.Model
+	}
+	return nil
+}
+
+type AcceptModelPriceChangeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcceptModelPriceChangeRequest) Reset() {
+	*x = AcceptModelPriceChangeRequest{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcceptModelPriceChangeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcceptModelPriceChangeRequest) ProtoMessage() {}
+
+func (x *AcceptModelPriceChangeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcceptModelPriceChangeRequest.ProtoReflect.Descriptor instead.
+func (*AcceptModelPriceChangeRequest) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *AcceptModelPriceChangeRequest) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+type AcceptModelPriceChangeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *ProviderModel         `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcceptModelPriceChangeResponse) Reset() {
+	*x = AcceptModelPriceChangeResponse{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcceptModelPriceChangeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcceptModelPriceChangeResponse) ProtoMessage() {}
+
+func (x *AcceptModelPriceChangeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcceptModelPriceChangeResponse.ProtoReflect.Descriptor instead.
+func (*AcceptModelPriceChangeResponse) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *AcceptModelPriceChangeResponse) GetModel() *ProviderModel {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type RefreshModelPricesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshModelPricesRequest) Reset() {
+	*x = RefreshModelPricesRequest{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshModelPricesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshModelPricesRequest) ProtoMessage() {}
+
+func (x *RefreshModelPricesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshModelPricesRequest.ProtoReflect.Descriptor instead.
+func (*RefreshModelPricesRequest) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{33}
+}
+
+type RefreshModelPricesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The catalog was fetched and stored (false when it is off). A failure keeps the last good snapshot.
+	Ok bool `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	// What happened, for the user.
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// Models whose price or its source changed.
+	Updated int32 `protobuf:"varint,3,opt,name=updated,proto3" json:"updated,omitempty"`
+	// Models with a change newly held back.
+	Held          int32              `protobuf:"varint,4,opt,name=held,proto3" json:"held,omitempty"`
+	PriceCatalog  *ModelPriceCatalog `protobuf:"bytes,5,opt,name=price_catalog,json=priceCatalog,proto3" json:"price_catalog,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshModelPricesResponse) Reset() {
+	*x = RefreshModelPricesResponse{}
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshModelPricesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshModelPricesResponse) ProtoMessage() {}
+
+func (x *RefreshModelPricesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshModelPricesResponse.ProtoReflect.Descriptor instead.
+func (*RefreshModelPricesResponse) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *RefreshModelPricesResponse) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *RefreshModelPricesResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *RefreshModelPricesResponse) GetUpdated() int32 {
+	if x != nil {
+		return x.Updated
+	}
+	return 0
+}
+
+func (x *RefreshModelPricesResponse) GetHeld() int32 {
+	if x != nil {
+		return x.Held
+	}
+	return 0
+}
+
+func (x *RefreshModelPricesResponse) GetPriceCatalog() *ModelPriceCatalog {
+	if x != nil {
+		return x.PriceCatalog
 	}
 	return nil
 }
@@ -2213,7 +2570,7 @@ type TestProviderRequest struct {
 
 func (x *TestProviderRequest) Reset() {
 	*x = TestProviderRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[29]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2225,7 +2582,7 @@ func (x *TestProviderRequest) String() string {
 func (*TestProviderRequest) ProtoMessage() {}
 
 func (x *TestProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[29]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2238,7 +2595,7 @@ func (x *TestProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestProviderRequest.ProtoReflect.Descriptor instead.
 func (*TestProviderRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{29}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *TestProviderRequest) GetProviderId() string {
@@ -2262,7 +2619,7 @@ type TestProviderResponse struct {
 
 func (x *TestProviderResponse) Reset() {
 	*x = TestProviderResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[30]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2274,7 +2631,7 @@ func (x *TestProviderResponse) String() string {
 func (*TestProviderResponse) ProtoMessage() {}
 
 func (x *TestProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[30]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2287,7 +2644,7 @@ func (x *TestProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestProviderResponse.ProtoReflect.Descriptor instead.
 func (*TestProviderResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{30}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *TestProviderResponse) GetOk() bool {
@@ -2320,7 +2677,7 @@ type RemoveModelRequest struct {
 
 func (x *RemoveModelRequest) Reset() {
 	*x = RemoveModelRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[31]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2332,7 +2689,7 @@ func (x *RemoveModelRequest) String() string {
 func (*RemoveModelRequest) ProtoMessage() {}
 
 func (x *RemoveModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[31]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2345,7 +2702,7 @@ func (x *RemoveModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveModelRequest.ProtoReflect.Descriptor instead.
 func (*RemoveModelRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{31}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *RemoveModelRequest) GetModelId() string {
@@ -2363,7 +2720,7 @@ type RemoveModelResponse struct {
 
 func (x *RemoveModelResponse) Reset() {
 	*x = RemoveModelResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[32]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2375,7 +2732,7 @@ func (x *RemoveModelResponse) String() string {
 func (*RemoveModelResponse) ProtoMessage() {}
 
 func (x *RemoveModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[32]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2388,7 +2745,7 @@ func (x *RemoveModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveModelResponse.ProtoReflect.Descriptor instead.
 func (*RemoveModelResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{32}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{38}
 }
 
 type GetClassifierRequest struct {
@@ -2399,7 +2756,7 @@ type GetClassifierRequest struct {
 
 func (x *GetClassifierRequest) Reset() {
 	*x = GetClassifierRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[33]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2411,7 +2768,7 @@ func (x *GetClassifierRequest) String() string {
 func (*GetClassifierRequest) ProtoMessage() {}
 
 func (x *GetClassifierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[33]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2424,7 +2781,7 @@ func (x *GetClassifierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetClassifierRequest.ProtoReflect.Descriptor instead.
 func (*GetClassifierRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{33}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{39}
 }
 
 type GetClassifierResponse struct {
@@ -2436,7 +2793,7 @@ type GetClassifierResponse struct {
 
 func (x *GetClassifierResponse) Reset() {
 	*x = GetClassifierResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[34]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2448,7 +2805,7 @@ func (x *GetClassifierResponse) String() string {
 func (*GetClassifierResponse) ProtoMessage() {}
 
 func (x *GetClassifierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[34]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2461,7 +2818,7 @@ func (x *GetClassifierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetClassifierResponse.ProtoReflect.Descriptor instead.
 func (*GetClassifierResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{34}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetClassifierResponse) GetClassifier() *Classifier {
@@ -2480,7 +2837,7 @@ type SetClassifierRequest struct {
 
 func (x *SetClassifierRequest) Reset() {
 	*x = SetClassifierRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[35]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2492,7 +2849,7 @@ func (x *SetClassifierRequest) String() string {
 func (*SetClassifierRequest) ProtoMessage() {}
 
 func (x *SetClassifierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[35]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2505,7 +2862,7 @@ func (x *SetClassifierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetClassifierRequest.ProtoReflect.Descriptor instead.
 func (*SetClassifierRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{35}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *SetClassifierRequest) GetClassifier() *Classifier {
@@ -2524,7 +2881,7 @@ type SetClassifierResponse struct {
 
 func (x *SetClassifierResponse) Reset() {
 	*x = SetClassifierResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[36]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2536,7 +2893,7 @@ func (x *SetClassifierResponse) String() string {
 func (*SetClassifierResponse) ProtoMessage() {}
 
 func (x *SetClassifierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[36]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2549,7 +2906,7 @@ func (x *SetClassifierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetClassifierResponse.ProtoReflect.Descriptor instead.
 func (*SetClassifierResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{36}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *SetClassifierResponse) GetClassifier() *Classifier {
@@ -2587,7 +2944,7 @@ type Classifier struct {
 
 func (x *Classifier) Reset() {
 	*x = Classifier{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[37]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2599,7 +2956,7 @@ func (x *Classifier) String() string {
 func (*Classifier) ProtoMessage() {}
 
 func (x *Classifier) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[37]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2612,7 +2969,7 @@ func (x *Classifier) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Classifier.ProtoReflect.Descriptor instead.
 func (*Classifier) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{37}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *Classifier) GetEnabled() bool {
@@ -2694,7 +3051,7 @@ type ClassifierOverride struct {
 
 func (x *ClassifierOverride) Reset() {
 	*x = ClassifierOverride{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[38]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2706,7 +3063,7 @@ func (x *ClassifierOverride) String() string {
 func (*ClassifierOverride) ProtoMessage() {}
 
 func (x *ClassifierOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[38]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2719,7 +3076,7 @@ func (x *ClassifierOverride) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClassifierOverride.ProtoReflect.Descriptor instead.
 func (*ClassifierOverride) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{38}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ClassifierOverride) GetChoice() ClassifierChoice {
@@ -2751,7 +3108,7 @@ type GetMyClassifierRequest struct {
 
 func (x *GetMyClassifierRequest) Reset() {
 	*x = GetMyClassifierRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[39]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2763,7 +3120,7 @@ func (x *GetMyClassifierRequest) String() string {
 func (*GetMyClassifierRequest) ProtoMessage() {}
 
 func (x *GetMyClassifierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[39]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2776,7 +3133,7 @@ func (x *GetMyClassifierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMyClassifierRequest.ProtoReflect.Descriptor instead.
 func (*GetMyClassifierRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{39}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{45}
 }
 
 type GetMyClassifierResponse struct {
@@ -2792,7 +3149,7 @@ type GetMyClassifierResponse struct {
 
 func (x *GetMyClassifierResponse) Reset() {
 	*x = GetMyClassifierResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[40]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2804,7 +3161,7 @@ func (x *GetMyClassifierResponse) String() string {
 func (*GetMyClassifierResponse) ProtoMessage() {}
 
 func (x *GetMyClassifierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[40]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2817,7 +3174,7 @@ func (x *GetMyClassifierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMyClassifierResponse.ProtoReflect.Descriptor instead.
 func (*GetMyClassifierResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{40}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *GetMyClassifierResponse) GetMine() *ClassifierOverride {
@@ -2851,7 +3208,7 @@ type SetMyClassifierRequest struct {
 
 func (x *SetMyClassifierRequest) Reset() {
 	*x = SetMyClassifierRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[41]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2863,7 +3220,7 @@ func (x *SetMyClassifierRequest) String() string {
 func (*SetMyClassifierRequest) ProtoMessage() {}
 
 func (x *SetMyClassifierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[41]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2876,7 +3233,7 @@ func (x *SetMyClassifierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetMyClassifierRequest.ProtoReflect.Descriptor instead.
 func (*SetMyClassifierRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{41}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *SetMyClassifierRequest) GetMine() *ClassifierOverride {
@@ -2897,7 +3254,7 @@ type SetMyClassifierResponse struct {
 
 func (x *SetMyClassifierResponse) Reset() {
 	*x = SetMyClassifierResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[42]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2909,7 +3266,7 @@ func (x *SetMyClassifierResponse) String() string {
 func (*SetMyClassifierResponse) ProtoMessage() {}
 
 func (x *SetMyClassifierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[42]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2922,7 +3279,7 @@ func (x *SetMyClassifierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetMyClassifierResponse.ProtoReflect.Descriptor instead.
 func (*SetMyClassifierResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{42}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *SetMyClassifierResponse) GetMine() *ClassifierOverride {
@@ -2954,7 +3311,7 @@ type GetSlotsRequest struct {
 
 func (x *GetSlotsRequest) Reset() {
 	*x = GetSlotsRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[43]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2966,7 +3323,7 @@ func (x *GetSlotsRequest) String() string {
 func (*GetSlotsRequest) ProtoMessage() {}
 
 func (x *GetSlotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[43]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2979,7 +3336,7 @@ func (x *GetSlotsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSlotsRequest.ProtoReflect.Descriptor instead.
 func (*GetSlotsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{43}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{49}
 }
 
 type GetSlotsResponse struct {
@@ -2996,7 +3353,7 @@ type GetSlotsResponse struct {
 
 func (x *GetSlotsResponse) Reset() {
 	*x = GetSlotsResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[44]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3008,7 +3365,7 @@ func (x *GetSlotsResponse) String() string {
 func (*GetSlotsResponse) ProtoMessage() {}
 
 func (x *GetSlotsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[44]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3021,7 +3378,7 @@ func (x *GetSlotsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSlotsResponse.ProtoReflect.Descriptor instead.
 func (*GetSlotsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{44}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetSlotsResponse) GetSlots() *Slots {
@@ -3056,7 +3413,7 @@ type SetSlotsRequest struct {
 
 func (x *SetSlotsRequest) Reset() {
 	*x = SetSlotsRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[45]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3068,7 +3425,7 @@ func (x *SetSlotsRequest) String() string {
 func (*SetSlotsRequest) ProtoMessage() {}
 
 func (x *SetSlotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[45]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3081,7 +3438,7 @@ func (x *SetSlotsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSlotsRequest.ProtoReflect.Descriptor instead.
 func (*SetSlotsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{45}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *SetSlotsRequest) GetSlots() *Slots {
@@ -3100,7 +3457,7 @@ type SetSlotsResponse struct {
 
 func (x *SetSlotsResponse) Reset() {
 	*x = SetSlotsResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[46]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3112,7 +3469,7 @@ func (x *SetSlotsResponse) String() string {
 func (*SetSlotsResponse) ProtoMessage() {}
 
 func (x *SetSlotsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[46]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3125,7 +3482,7 @@ func (x *SetSlotsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSlotsResponse.ProtoReflect.Descriptor instead.
 func (*SetSlotsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{46}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *SetSlotsResponse) GetSlots() *Slots {
@@ -3143,7 +3500,7 @@ type GetSearchRequest struct {
 
 func (x *GetSearchRequest) Reset() {
 	*x = GetSearchRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[47]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3155,7 +3512,7 @@ func (x *GetSearchRequest) String() string {
 func (*GetSearchRequest) ProtoMessage() {}
 
 func (x *GetSearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[47]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3168,7 +3525,7 @@ func (x *GetSearchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSearchRequest.ProtoReflect.Descriptor instead.
 func (*GetSearchRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{47}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{53}
 }
 
 // Which search provider serves the caller's web searches.
@@ -3190,7 +3547,7 @@ type SearchSettings struct {
 
 func (x *SearchSettings) Reset() {
 	*x = SearchSettings{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[48]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3202,7 +3559,7 @@ func (x *SearchSettings) String() string {
 func (*SearchSettings) ProtoMessage() {}
 
 func (x *SearchSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[48]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3215,7 +3572,7 @@ func (x *SearchSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchSettings.ProtoReflect.Descriptor instead.
 func (*SearchSettings) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{48}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *SearchSettings) GetDefaultProviderId() string {
@@ -3255,7 +3612,7 @@ type GetSearchResponse struct {
 
 func (x *GetSearchResponse) Reset() {
 	*x = GetSearchResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[49]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3267,7 +3624,7 @@ func (x *GetSearchResponse) String() string {
 func (*GetSearchResponse) ProtoMessage() {}
 
 func (x *GetSearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[49]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3280,7 +3637,7 @@ func (x *GetSearchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSearchResponse.ProtoReflect.Descriptor instead.
 func (*GetSearchResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{49}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *GetSearchResponse) GetSettings() *SearchSettings {
@@ -3300,7 +3657,7 @@ type SetSearchDefaultRequest struct {
 
 func (x *SetSearchDefaultRequest) Reset() {
 	*x = SetSearchDefaultRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[50]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3312,7 +3669,7 @@ func (x *SetSearchDefaultRequest) String() string {
 func (*SetSearchDefaultRequest) ProtoMessage() {}
 
 func (x *SetSearchDefaultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[50]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3325,7 +3682,7 @@ func (x *SetSearchDefaultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSearchDefaultRequest.ProtoReflect.Descriptor instead.
 func (*SetSearchDefaultRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{50}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *SetSearchDefaultRequest) GetProviderId() string {
@@ -3344,7 +3701,7 @@ type SetSearchDefaultResponse struct {
 
 func (x *SetSearchDefaultResponse) Reset() {
 	*x = SetSearchDefaultResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[51]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3356,7 +3713,7 @@ func (x *SetSearchDefaultResponse) String() string {
 func (*SetSearchDefaultResponse) ProtoMessage() {}
 
 func (x *SetSearchDefaultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[51]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3369,7 +3726,7 @@ func (x *SetSearchDefaultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSearchDefaultResponse.ProtoReflect.Descriptor instead.
 func (*SetSearchDefaultResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{51}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *SetSearchDefaultResponse) GetSettings() *SearchSettings {
@@ -3390,7 +3747,7 @@ type SetMySearchRequest struct {
 
 func (x *SetMySearchRequest) Reset() {
 	*x = SetMySearchRequest{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[52]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3402,7 +3759,7 @@ func (x *SetMySearchRequest) String() string {
 func (*SetMySearchRequest) ProtoMessage() {}
 
 func (x *SetMySearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[52]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3415,7 +3772,7 @@ func (x *SetMySearchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetMySearchRequest.ProtoReflect.Descriptor instead.
 func (*SetMySearchRequest) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{52}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *SetMySearchRequest) GetProviderId() string {
@@ -3434,7 +3791,7 @@ type SetMySearchResponse struct {
 
 func (x *SetMySearchResponse) Reset() {
 	*x = SetMySearchResponse{}
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[53]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3446,7 +3803,7 @@ func (x *SetMySearchResponse) String() string {
 func (*SetMySearchResponse) ProtoMessage() {}
 
 func (x *SetMySearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_llm_v1_providers_proto_msgTypes[53]
+	mi := &file_harness_llm_v1_providers_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3459,7 +3816,7 @@ func (x *SetMySearchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetMySearchResponse.ProtoReflect.Descriptor instead.
 func (*SetMySearchResponse) Descriptor() ([]byte, []int) {
-	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{53}
+	return file_harness_llm_v1_providers_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *SetMySearchResponse) GetSettings() *SearchSettings {
@@ -3499,7 +3856,7 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\abilling\x18\x12 \x01(\tR\abilling\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xba\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf7\x04\n" +
 	"\rProviderModel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12%\n" +
@@ -3511,9 +3868,17 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x0edefault_effort\x18\b \x01(\x0e2\x16.harness.llm.v1.EffortR\rdefaultEffort\x126\n" +
 	"\apricing\x18\t \x01(\v2\x17.harness.llm.v1.PricingH\x00R\apricing\x88\x01\x01\x12-\n" +
 	"\x13pricing_set_by_hand\x18\n" +
-	" \x01(\bR\x10pricingSetByHandB\n" +
+	" \x01(\bR\x10pricingSetByHand\x12%\n" +
+	"\x0epricing_source\x18\v \x01(\tR\rpricingSource\x12,\n" +
+	"\x12pricing_updated_at\x18\f \x01(\tR\x10pricingUpdatedAt\x12P\n" +
+	"\x11price_change_held\x18\r \x01(\v2\x1f.harness.llm.v1.PriceChangeHeldH\x01R\x0fpriceChangeHeld\x88\x01\x01B\n" +
 	"\n" +
-	"\b_pricing\"\x14\n" +
+	"\b_pricingB\x14\n" +
+	"\x12_price_change_held\"w\n" +
+	"\x0fPriceChangeHeld\x123\n" +
+	"\bproposed\x18\x01 \x01(\v2\x17.harness.llm.v1.PricingR\bproposed\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x17\n" +
+	"\aheld_at\x18\x03 \x01(\tR\x06heldAt\"\x14\n" +
 	"\x12ListPresetsRequest\"\x8f\x01\n" +
 	"\x13ListPresetsResponse\x128\n" +
 	"\apresets\x18\x01 \x03(\v2\x1e.harness.llm.v1.ProviderPresetR\apresets\x12>\n" +
@@ -3563,11 +3928,16 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x05group\x18\x02 \x01(\tR\x05group\x12\x14\n" +
 	"\x05label\x18\x03 \x01(\tR\x05label\x12\"\n" +
 	"\rbase_url_hint\x18\x04 \x01(\tR\vbaseUrlHint\"\x16\n" +
-	"\x14ListProvidersRequest\"\x91\x01\n" +
+	"\x14ListProvidersRequest\"\xd9\x01\n" +
 	"\x15ListProvidersResponse\x126\n" +
 	"\tproviders\x18\x01 \x03(\v2\x18.harness.llm.v1.ProviderR\tproviders\x12\x14\n" +
 	"\x05types\x18\x02 \x03(\tR\x05types\x12*\n" +
-	"\x11can_manage_global\x18\x03 \x01(\bR\x0fcanManageGlobal\"\xc2\x04\n" +
+	"\x11can_manage_global\x18\x03 \x01(\bR\x0fcanManageGlobal\x12F\n" +
+	"\rprice_catalog\x18\x04 \x01(\v2!.harness.llm.v1.ModelPriceCatalogR\fpriceCatalog\"L\n" +
+	"\x11ModelPriceCatalog\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x02 \x01(\tR\tupdatedAt\"\xc2\x04\n" +
 	"\x15CreateProviderRequest\x123\n" +
 	"\x05scope\x18\x01 \x01(\x0e2\x1d.harness.llm.v1.ProviderScopeR\x05scope\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n" +
@@ -3662,7 +4032,18 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\n" +
 	"\b_pricing\"N\n" +
 	"\x17SetModelPricingResponse\x123\n" +
-	"\x05model\x18\x01 \x01(\v2\x1d.harness.llm.v1.ProviderModelR\x05model\"6\n" +
+	"\x05model\x18\x01 \x01(\v2\x1d.harness.llm.v1.ProviderModelR\x05model\":\n" +
+	"\x1dAcceptModelPriceChangeRequest\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\"U\n" +
+	"\x1eAcceptModelPriceChangeResponse\x123\n" +
+	"\x05model\x18\x01 \x01(\v2\x1d.harness.llm.v1.ProviderModelR\x05model\"\x1b\n" +
+	"\x19RefreshModelPricesRequest\"\xbc\x01\n" +
+	"\x1aRefreshModelPricesResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x18\n" +
+	"\aupdated\x18\x03 \x01(\x05R\aupdated\x12\x12\n" +
+	"\x04held\x18\x04 \x01(\x05R\x04held\x12F\n" +
+	"\rprice_catalog\x18\x05 \x01(\v2!.harness.llm.v1.ModelPriceCatalogR\fpriceCatalog\"6\n" +
 	"\x13TestProviderRequest\x12\x1f\n" +
 	"\vprovider_id\x18\x01 \x01(\tR\n" +
 	"providerId\"a\n" +
@@ -3751,7 +4132,7 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x10ClassifierChoice\x12!\n" +
 	"\x1dCLASSIFIER_CHOICE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CLASSIFIER_CHOICE_NONE\x10\x01\x12\x1e\n" +
-	"\x1aCLASSIFIER_CHOICE_PROVIDER\x10\x022\xc8\x0e\n" +
+	"\x1aCLASSIFIER_CHOICE_PROVIDER\x10\x022\xae\x10\n" +
 	"\x0fProviderService\x12V\n" +
 	"\vListPresets\x12\".harness.llm.v1.ListPresetsRequest\x1a#.harness.llm.v1.ListPresetsResponse\x12\\\n" +
 	"\rListProviders\x12$.harness.llm.v1.ListProvidersRequest\x1a%.harness.llm.v1.ListProvidersResponse\x12_\n" +
@@ -3763,7 +4144,9 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\fTestProvider\x12#.harness.llm.v1.TestProviderRequest\x1a$.harness.llm.v1.TestProviderResponse\x12V\n" +
 	"\vRemoveModel\x12\".harness.llm.v1.RemoveModelRequest\x1a#.harness.llm.v1.RemoveModelResponse\x12b\n" +
 	"\x0fSetModelEfforts\x12&.harness.llm.v1.SetModelEffortsRequest\x1a'.harness.llm.v1.SetModelEffortsResponse\x12b\n" +
-	"\x0fSetModelPricing\x12&.harness.llm.v1.SetModelPricingRequest\x1a'.harness.llm.v1.SetModelPricingResponse\x12\\\n" +
+	"\x0fSetModelPricing\x12&.harness.llm.v1.SetModelPricingRequest\x1a'.harness.llm.v1.SetModelPricingResponse\x12w\n" +
+	"\x16AcceptModelPriceChange\x12-.harness.llm.v1.AcceptModelPriceChangeRequest\x1a..harness.llm.v1.AcceptModelPriceChangeResponse\x12k\n" +
+	"\x12RefreshModelPrices\x12).harness.llm.v1.RefreshModelPricesRequest\x1a*.harness.llm.v1.RefreshModelPricesResponse\x12\\\n" +
 	"\rGetClassifier\x12$.harness.llm.v1.GetClassifierRequest\x1a%.harness.llm.v1.GetClassifierResponse\x12\\\n" +
 	"\rSetClassifier\x12$.harness.llm.v1.SetClassifierRequest\x1a%.harness.llm.v1.SetClassifierResponse\x12b\n" +
 	"\x0fGetMyClassifier\x12&.harness.llm.v1.GetMyClassifierRequest\x1a'.harness.llm.v1.GetMyClassifierResponse\x12b\n" +
@@ -3788,162 +4171,177 @@ func file_harness_llm_v1_providers_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_llm_v1_providers_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_harness_llm_v1_providers_proto_msgTypes = make([]protoimpl.MessageInfo, 59)
+var file_harness_llm_v1_providers_proto_msgTypes = make([]protoimpl.MessageInfo, 65)
 var file_harness_llm_v1_providers_proto_goTypes = []any{
-	(ProviderScope)(0),               // 0: harness.llm.v1.ProviderScope
-	(ClassifierChoice)(0),            // 1: harness.llm.v1.ClassifierChoice
-	(*Provider)(nil),                 // 2: harness.llm.v1.Provider
-	(*ProviderModel)(nil),            // 3: harness.llm.v1.ProviderModel
-	(*ListPresetsRequest)(nil),       // 4: harness.llm.v1.ListPresetsRequest
-	(*ListPresetsResponse)(nil),      // 5: harness.llm.v1.ListPresetsResponse
-	(*ProviderPreset)(nil),           // 6: harness.llm.v1.ProviderPreset
-	(*PresetOption)(nil),             // 7: harness.llm.v1.PresetOption
-	(*OptionChoice)(nil),             // 8: harness.llm.v1.OptionChoice
-	(*PresetField)(nil),              // 9: harness.llm.v1.PresetField
-	(*PresetModel)(nil),              // 10: harness.llm.v1.PresetModel
-	(*ProviderProtocol)(nil),         // 11: harness.llm.v1.ProviderProtocol
-	(*ListProvidersRequest)(nil),     // 12: harness.llm.v1.ListProvidersRequest
-	(*ListProvidersResponse)(nil),    // 13: harness.llm.v1.ListProvidersResponse
-	(*CreateProviderRequest)(nil),    // 14: harness.llm.v1.CreateProviderRequest
-	(*CreateProviderResponse)(nil),   // 15: harness.llm.v1.CreateProviderResponse
-	(*UpdateProviderRequest)(nil),    // 16: harness.llm.v1.UpdateProviderRequest
-	(*ProviderOptions)(nil),          // 17: harness.llm.v1.ProviderOptions
-	(*Headers)(nil),                  // 18: harness.llm.v1.Headers
-	(*UpdateProviderResponse)(nil),   // 19: harness.llm.v1.UpdateProviderResponse
-	(*DeleteProviderRequest)(nil),    // 20: harness.llm.v1.DeleteProviderRequest
-	(*DeleteProviderResponse)(nil),   // 21: harness.llm.v1.DeleteProviderResponse
-	(*DiscoverModelsRequest)(nil),    // 22: harness.llm.v1.DiscoverModelsRequest
-	(*DiscoverModelsResponse)(nil),   // 23: harness.llm.v1.DiscoverModelsResponse
-	(*ModelCandidate)(nil),           // 24: harness.llm.v1.ModelCandidate
-	(*AddModelRequest)(nil),          // 25: harness.llm.v1.AddModelRequest
-	(*AddModelResponse)(nil),         // 26: harness.llm.v1.AddModelResponse
-	(*SetModelEffortsRequest)(nil),   // 27: harness.llm.v1.SetModelEffortsRequest
-	(*SetModelEffortsResponse)(nil),  // 28: harness.llm.v1.SetModelEffortsResponse
-	(*SetModelPricingRequest)(nil),   // 29: harness.llm.v1.SetModelPricingRequest
-	(*SetModelPricingResponse)(nil),  // 30: harness.llm.v1.SetModelPricingResponse
-	(*TestProviderRequest)(nil),      // 31: harness.llm.v1.TestProviderRequest
-	(*TestProviderResponse)(nil),     // 32: harness.llm.v1.TestProviderResponse
-	(*RemoveModelRequest)(nil),       // 33: harness.llm.v1.RemoveModelRequest
-	(*RemoveModelResponse)(nil),      // 34: harness.llm.v1.RemoveModelResponse
-	(*GetClassifierRequest)(nil),     // 35: harness.llm.v1.GetClassifierRequest
-	(*GetClassifierResponse)(nil),    // 36: harness.llm.v1.GetClassifierResponse
-	(*SetClassifierRequest)(nil),     // 37: harness.llm.v1.SetClassifierRequest
-	(*SetClassifierResponse)(nil),    // 38: harness.llm.v1.SetClassifierResponse
-	(*Classifier)(nil),               // 39: harness.llm.v1.Classifier
-	(*ClassifierOverride)(nil),       // 40: harness.llm.v1.ClassifierOverride
-	(*GetMyClassifierRequest)(nil),   // 41: harness.llm.v1.GetMyClassifierRequest
-	(*GetMyClassifierResponse)(nil),  // 42: harness.llm.v1.GetMyClassifierResponse
-	(*SetMyClassifierRequest)(nil),   // 43: harness.llm.v1.SetMyClassifierRequest
-	(*SetMyClassifierResponse)(nil),  // 44: harness.llm.v1.SetMyClassifierResponse
-	(*GetSlotsRequest)(nil),          // 45: harness.llm.v1.GetSlotsRequest
-	(*GetSlotsResponse)(nil),         // 46: harness.llm.v1.GetSlotsResponse
-	(*SetSlotsRequest)(nil),          // 47: harness.llm.v1.SetSlotsRequest
-	(*SetSlotsResponse)(nil),         // 48: harness.llm.v1.SetSlotsResponse
-	(*GetSearchRequest)(nil),         // 49: harness.llm.v1.GetSearchRequest
-	(*SearchSettings)(nil),           // 50: harness.llm.v1.SearchSettings
-	(*GetSearchResponse)(nil),        // 51: harness.llm.v1.GetSearchResponse
-	(*SetSearchDefaultRequest)(nil),  // 52: harness.llm.v1.SetSearchDefaultRequest
-	(*SetSearchDefaultResponse)(nil), // 53: harness.llm.v1.SetSearchDefaultResponse
-	(*SetMySearchRequest)(nil),       // 54: harness.llm.v1.SetMySearchRequest
-	(*SetMySearchResponse)(nil),      // 55: harness.llm.v1.SetMySearchResponse
-	nil,                              // 56: harness.llm.v1.Provider.OptionsEntry
-	nil,                              // 57: harness.llm.v1.CreateProviderRequest.HeadersEntry
-	nil,                              // 58: harness.llm.v1.CreateProviderRequest.OptionsEntry
-	nil,                              // 59: harness.llm.v1.ProviderOptions.ValuesEntry
-	nil,                              // 60: harness.llm.v1.Headers.ValuesEntry
-	(Effort)(0),                      // 61: harness.llm.v1.Effort
-	(*Pricing)(nil),                  // 62: harness.llm.v1.Pricing
-	(*Slots)(nil),                    // 63: harness.llm.v1.Slots
+	(ProviderScope)(0),                     // 0: harness.llm.v1.ProviderScope
+	(ClassifierChoice)(0),                  // 1: harness.llm.v1.ClassifierChoice
+	(*Provider)(nil),                       // 2: harness.llm.v1.Provider
+	(*ProviderModel)(nil),                  // 3: harness.llm.v1.ProviderModel
+	(*PriceChangeHeld)(nil),                // 4: harness.llm.v1.PriceChangeHeld
+	(*ListPresetsRequest)(nil),             // 5: harness.llm.v1.ListPresetsRequest
+	(*ListPresetsResponse)(nil),            // 6: harness.llm.v1.ListPresetsResponse
+	(*ProviderPreset)(nil),                 // 7: harness.llm.v1.ProviderPreset
+	(*PresetOption)(nil),                   // 8: harness.llm.v1.PresetOption
+	(*OptionChoice)(nil),                   // 9: harness.llm.v1.OptionChoice
+	(*PresetField)(nil),                    // 10: harness.llm.v1.PresetField
+	(*PresetModel)(nil),                    // 11: harness.llm.v1.PresetModel
+	(*ProviderProtocol)(nil),               // 12: harness.llm.v1.ProviderProtocol
+	(*ListProvidersRequest)(nil),           // 13: harness.llm.v1.ListProvidersRequest
+	(*ListProvidersResponse)(nil),          // 14: harness.llm.v1.ListProvidersResponse
+	(*ModelPriceCatalog)(nil),              // 15: harness.llm.v1.ModelPriceCatalog
+	(*CreateProviderRequest)(nil),          // 16: harness.llm.v1.CreateProviderRequest
+	(*CreateProviderResponse)(nil),         // 17: harness.llm.v1.CreateProviderResponse
+	(*UpdateProviderRequest)(nil),          // 18: harness.llm.v1.UpdateProviderRequest
+	(*ProviderOptions)(nil),                // 19: harness.llm.v1.ProviderOptions
+	(*Headers)(nil),                        // 20: harness.llm.v1.Headers
+	(*UpdateProviderResponse)(nil),         // 21: harness.llm.v1.UpdateProviderResponse
+	(*DeleteProviderRequest)(nil),          // 22: harness.llm.v1.DeleteProviderRequest
+	(*DeleteProviderResponse)(nil),         // 23: harness.llm.v1.DeleteProviderResponse
+	(*DiscoverModelsRequest)(nil),          // 24: harness.llm.v1.DiscoverModelsRequest
+	(*DiscoverModelsResponse)(nil),         // 25: harness.llm.v1.DiscoverModelsResponse
+	(*ModelCandidate)(nil),                 // 26: harness.llm.v1.ModelCandidate
+	(*AddModelRequest)(nil),                // 27: harness.llm.v1.AddModelRequest
+	(*AddModelResponse)(nil),               // 28: harness.llm.v1.AddModelResponse
+	(*SetModelEffortsRequest)(nil),         // 29: harness.llm.v1.SetModelEffortsRequest
+	(*SetModelEffortsResponse)(nil),        // 30: harness.llm.v1.SetModelEffortsResponse
+	(*SetModelPricingRequest)(nil),         // 31: harness.llm.v1.SetModelPricingRequest
+	(*SetModelPricingResponse)(nil),        // 32: harness.llm.v1.SetModelPricingResponse
+	(*AcceptModelPriceChangeRequest)(nil),  // 33: harness.llm.v1.AcceptModelPriceChangeRequest
+	(*AcceptModelPriceChangeResponse)(nil), // 34: harness.llm.v1.AcceptModelPriceChangeResponse
+	(*RefreshModelPricesRequest)(nil),      // 35: harness.llm.v1.RefreshModelPricesRequest
+	(*RefreshModelPricesResponse)(nil),     // 36: harness.llm.v1.RefreshModelPricesResponse
+	(*TestProviderRequest)(nil),            // 37: harness.llm.v1.TestProviderRequest
+	(*TestProviderResponse)(nil),           // 38: harness.llm.v1.TestProviderResponse
+	(*RemoveModelRequest)(nil),             // 39: harness.llm.v1.RemoveModelRequest
+	(*RemoveModelResponse)(nil),            // 40: harness.llm.v1.RemoveModelResponse
+	(*GetClassifierRequest)(nil),           // 41: harness.llm.v1.GetClassifierRequest
+	(*GetClassifierResponse)(nil),          // 42: harness.llm.v1.GetClassifierResponse
+	(*SetClassifierRequest)(nil),           // 43: harness.llm.v1.SetClassifierRequest
+	(*SetClassifierResponse)(nil),          // 44: harness.llm.v1.SetClassifierResponse
+	(*Classifier)(nil),                     // 45: harness.llm.v1.Classifier
+	(*ClassifierOverride)(nil),             // 46: harness.llm.v1.ClassifierOverride
+	(*GetMyClassifierRequest)(nil),         // 47: harness.llm.v1.GetMyClassifierRequest
+	(*GetMyClassifierResponse)(nil),        // 48: harness.llm.v1.GetMyClassifierResponse
+	(*SetMyClassifierRequest)(nil),         // 49: harness.llm.v1.SetMyClassifierRequest
+	(*SetMyClassifierResponse)(nil),        // 50: harness.llm.v1.SetMyClassifierResponse
+	(*GetSlotsRequest)(nil),                // 51: harness.llm.v1.GetSlotsRequest
+	(*GetSlotsResponse)(nil),               // 52: harness.llm.v1.GetSlotsResponse
+	(*SetSlotsRequest)(nil),                // 53: harness.llm.v1.SetSlotsRequest
+	(*SetSlotsResponse)(nil),               // 54: harness.llm.v1.SetSlotsResponse
+	(*GetSearchRequest)(nil),               // 55: harness.llm.v1.GetSearchRequest
+	(*SearchSettings)(nil),                 // 56: harness.llm.v1.SearchSettings
+	(*GetSearchResponse)(nil),              // 57: harness.llm.v1.GetSearchResponse
+	(*SetSearchDefaultRequest)(nil),        // 58: harness.llm.v1.SetSearchDefaultRequest
+	(*SetSearchDefaultResponse)(nil),       // 59: harness.llm.v1.SetSearchDefaultResponse
+	(*SetMySearchRequest)(nil),             // 60: harness.llm.v1.SetMySearchRequest
+	(*SetMySearchResponse)(nil),            // 61: harness.llm.v1.SetMySearchResponse
+	nil,                                    // 62: harness.llm.v1.Provider.OptionsEntry
+	nil,                                    // 63: harness.llm.v1.CreateProviderRequest.HeadersEntry
+	nil,                                    // 64: harness.llm.v1.CreateProviderRequest.OptionsEntry
+	nil,                                    // 65: harness.llm.v1.ProviderOptions.ValuesEntry
+	nil,                                    // 66: harness.llm.v1.Headers.ValuesEntry
+	(Effort)(0),                            // 67: harness.llm.v1.Effort
+	(*Pricing)(nil),                        // 68: harness.llm.v1.Pricing
+	(*Slots)(nil),                          // 69: harness.llm.v1.Slots
 }
 var file_harness_llm_v1_providers_proto_depIdxs = []int32{
 	0,  // 0: harness.llm.v1.Provider.scope:type_name -> harness.llm.v1.ProviderScope
 	3,  // 1: harness.llm.v1.Provider.models:type_name -> harness.llm.v1.ProviderModel
-	56, // 2: harness.llm.v1.Provider.options:type_name -> harness.llm.v1.Provider.OptionsEntry
-	61, // 3: harness.llm.v1.ProviderModel.efforts:type_name -> harness.llm.v1.Effort
-	61, // 4: harness.llm.v1.ProviderModel.default_effort:type_name -> harness.llm.v1.Effort
-	62, // 5: harness.llm.v1.ProviderModel.pricing:type_name -> harness.llm.v1.Pricing
-	6,  // 6: harness.llm.v1.ListPresetsResponse.presets:type_name -> harness.llm.v1.ProviderPreset
-	11, // 7: harness.llm.v1.ListPresetsResponse.protocols:type_name -> harness.llm.v1.ProviderProtocol
-	9,  // 8: harness.llm.v1.ProviderPreset.fields:type_name -> harness.llm.v1.PresetField
-	10, // 9: harness.llm.v1.ProviderPreset.default_models:type_name -> harness.llm.v1.PresetModel
-	7,  // 10: harness.llm.v1.ProviderPreset.options:type_name -> harness.llm.v1.PresetOption
-	8,  // 11: harness.llm.v1.PresetOption.choices:type_name -> harness.llm.v1.OptionChoice
-	2,  // 12: harness.llm.v1.ListProvidersResponse.providers:type_name -> harness.llm.v1.Provider
-	0,  // 13: harness.llm.v1.CreateProviderRequest.scope:type_name -> harness.llm.v1.ProviderScope
-	57, // 14: harness.llm.v1.CreateProviderRequest.headers:type_name -> harness.llm.v1.CreateProviderRequest.HeadersEntry
-	58, // 15: harness.llm.v1.CreateProviderRequest.options:type_name -> harness.llm.v1.CreateProviderRequest.OptionsEntry
-	2,  // 16: harness.llm.v1.CreateProviderResponse.provider:type_name -> harness.llm.v1.Provider
-	18, // 17: harness.llm.v1.UpdateProviderRequest.headers:type_name -> harness.llm.v1.Headers
-	17, // 18: harness.llm.v1.UpdateProviderRequest.options:type_name -> harness.llm.v1.ProviderOptions
-	59, // 19: harness.llm.v1.ProviderOptions.values:type_name -> harness.llm.v1.ProviderOptions.ValuesEntry
-	60, // 20: harness.llm.v1.Headers.values:type_name -> harness.llm.v1.Headers.ValuesEntry
-	2,  // 21: harness.llm.v1.UpdateProviderResponse.provider:type_name -> harness.llm.v1.Provider
-	24, // 22: harness.llm.v1.DiscoverModelsResponse.models:type_name -> harness.llm.v1.ModelCandidate
-	3,  // 23: harness.llm.v1.AddModelResponse.model:type_name -> harness.llm.v1.ProviderModel
-	61, // 24: harness.llm.v1.SetModelEffortsRequest.efforts:type_name -> harness.llm.v1.Effort
-	61, // 25: harness.llm.v1.SetModelEffortsRequest.default_effort:type_name -> harness.llm.v1.Effort
-	3,  // 26: harness.llm.v1.SetModelEffortsResponse.model:type_name -> harness.llm.v1.ProviderModel
-	62, // 27: harness.llm.v1.SetModelPricingRequest.pricing:type_name -> harness.llm.v1.Pricing
-	3,  // 28: harness.llm.v1.SetModelPricingResponse.model:type_name -> harness.llm.v1.ProviderModel
-	39, // 29: harness.llm.v1.GetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
-	39, // 30: harness.llm.v1.SetClassifierRequest.classifier:type_name -> harness.llm.v1.Classifier
-	39, // 31: harness.llm.v1.SetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
-	1,  // 32: harness.llm.v1.ClassifierOverride.choice:type_name -> harness.llm.v1.ClassifierChoice
-	40, // 33: harness.llm.v1.GetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
-	40, // 34: harness.llm.v1.SetMyClassifierRequest.mine:type_name -> harness.llm.v1.ClassifierOverride
-	40, // 35: harness.llm.v1.SetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
-	63, // 36: harness.llm.v1.GetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
-	63, // 37: harness.llm.v1.GetSlotsResponse.defaults:type_name -> harness.llm.v1.Slots
-	63, // 38: harness.llm.v1.SetSlotsRequest.slots:type_name -> harness.llm.v1.Slots
-	63, // 39: harness.llm.v1.SetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
-	50, // 40: harness.llm.v1.GetSearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
-	50, // 41: harness.llm.v1.SetSearchDefaultResponse.settings:type_name -> harness.llm.v1.SearchSettings
-	50, // 42: harness.llm.v1.SetMySearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
-	4,  // 43: harness.llm.v1.ProviderService.ListPresets:input_type -> harness.llm.v1.ListPresetsRequest
-	12, // 44: harness.llm.v1.ProviderService.ListProviders:input_type -> harness.llm.v1.ListProvidersRequest
-	14, // 45: harness.llm.v1.ProviderService.CreateProvider:input_type -> harness.llm.v1.CreateProviderRequest
-	16, // 46: harness.llm.v1.ProviderService.UpdateProvider:input_type -> harness.llm.v1.UpdateProviderRequest
-	20, // 47: harness.llm.v1.ProviderService.DeleteProvider:input_type -> harness.llm.v1.DeleteProviderRequest
-	22, // 48: harness.llm.v1.ProviderService.DiscoverModels:input_type -> harness.llm.v1.DiscoverModelsRequest
-	25, // 49: harness.llm.v1.ProviderService.AddModel:input_type -> harness.llm.v1.AddModelRequest
-	31, // 50: harness.llm.v1.ProviderService.TestProvider:input_type -> harness.llm.v1.TestProviderRequest
-	33, // 51: harness.llm.v1.ProviderService.RemoveModel:input_type -> harness.llm.v1.RemoveModelRequest
-	27, // 52: harness.llm.v1.ProviderService.SetModelEfforts:input_type -> harness.llm.v1.SetModelEffortsRequest
-	29, // 53: harness.llm.v1.ProviderService.SetModelPricing:input_type -> harness.llm.v1.SetModelPricingRequest
-	35, // 54: harness.llm.v1.ProviderService.GetClassifier:input_type -> harness.llm.v1.GetClassifierRequest
-	37, // 55: harness.llm.v1.ProviderService.SetClassifier:input_type -> harness.llm.v1.SetClassifierRequest
-	41, // 56: harness.llm.v1.ProviderService.GetMyClassifier:input_type -> harness.llm.v1.GetMyClassifierRequest
-	43, // 57: harness.llm.v1.ProviderService.SetMyClassifier:input_type -> harness.llm.v1.SetMyClassifierRequest
-	45, // 58: harness.llm.v1.ProviderService.GetSlots:input_type -> harness.llm.v1.GetSlotsRequest
-	47, // 59: harness.llm.v1.ProviderService.SetSlots:input_type -> harness.llm.v1.SetSlotsRequest
-	49, // 60: harness.llm.v1.ProviderService.GetSearch:input_type -> harness.llm.v1.GetSearchRequest
-	52, // 61: harness.llm.v1.ProviderService.SetSearchDefault:input_type -> harness.llm.v1.SetSearchDefaultRequest
-	54, // 62: harness.llm.v1.ProviderService.SetMySearch:input_type -> harness.llm.v1.SetMySearchRequest
-	5,  // 63: harness.llm.v1.ProviderService.ListPresets:output_type -> harness.llm.v1.ListPresetsResponse
-	13, // 64: harness.llm.v1.ProviderService.ListProviders:output_type -> harness.llm.v1.ListProvidersResponse
-	15, // 65: harness.llm.v1.ProviderService.CreateProvider:output_type -> harness.llm.v1.CreateProviderResponse
-	19, // 66: harness.llm.v1.ProviderService.UpdateProvider:output_type -> harness.llm.v1.UpdateProviderResponse
-	21, // 67: harness.llm.v1.ProviderService.DeleteProvider:output_type -> harness.llm.v1.DeleteProviderResponse
-	23, // 68: harness.llm.v1.ProviderService.DiscoverModels:output_type -> harness.llm.v1.DiscoverModelsResponse
-	26, // 69: harness.llm.v1.ProviderService.AddModel:output_type -> harness.llm.v1.AddModelResponse
-	32, // 70: harness.llm.v1.ProviderService.TestProvider:output_type -> harness.llm.v1.TestProviderResponse
-	34, // 71: harness.llm.v1.ProviderService.RemoveModel:output_type -> harness.llm.v1.RemoveModelResponse
-	28, // 72: harness.llm.v1.ProviderService.SetModelEfforts:output_type -> harness.llm.v1.SetModelEffortsResponse
-	30, // 73: harness.llm.v1.ProviderService.SetModelPricing:output_type -> harness.llm.v1.SetModelPricingResponse
-	36, // 74: harness.llm.v1.ProviderService.GetClassifier:output_type -> harness.llm.v1.GetClassifierResponse
-	38, // 75: harness.llm.v1.ProviderService.SetClassifier:output_type -> harness.llm.v1.SetClassifierResponse
-	42, // 76: harness.llm.v1.ProviderService.GetMyClassifier:output_type -> harness.llm.v1.GetMyClassifierResponse
-	44, // 77: harness.llm.v1.ProviderService.SetMyClassifier:output_type -> harness.llm.v1.SetMyClassifierResponse
-	46, // 78: harness.llm.v1.ProviderService.GetSlots:output_type -> harness.llm.v1.GetSlotsResponse
-	48, // 79: harness.llm.v1.ProviderService.SetSlots:output_type -> harness.llm.v1.SetSlotsResponse
-	51, // 80: harness.llm.v1.ProviderService.GetSearch:output_type -> harness.llm.v1.GetSearchResponse
-	53, // 81: harness.llm.v1.ProviderService.SetSearchDefault:output_type -> harness.llm.v1.SetSearchDefaultResponse
-	55, // 82: harness.llm.v1.ProviderService.SetMySearch:output_type -> harness.llm.v1.SetMySearchResponse
-	63, // [63:83] is the sub-list for method output_type
-	43, // [43:63] is the sub-list for method input_type
-	43, // [43:43] is the sub-list for extension type_name
-	43, // [43:43] is the sub-list for extension extendee
-	0,  // [0:43] is the sub-list for field type_name
+	62, // 2: harness.llm.v1.Provider.options:type_name -> harness.llm.v1.Provider.OptionsEntry
+	67, // 3: harness.llm.v1.ProviderModel.efforts:type_name -> harness.llm.v1.Effort
+	67, // 4: harness.llm.v1.ProviderModel.default_effort:type_name -> harness.llm.v1.Effort
+	68, // 5: harness.llm.v1.ProviderModel.pricing:type_name -> harness.llm.v1.Pricing
+	4,  // 6: harness.llm.v1.ProviderModel.price_change_held:type_name -> harness.llm.v1.PriceChangeHeld
+	68, // 7: harness.llm.v1.PriceChangeHeld.proposed:type_name -> harness.llm.v1.Pricing
+	7,  // 8: harness.llm.v1.ListPresetsResponse.presets:type_name -> harness.llm.v1.ProviderPreset
+	12, // 9: harness.llm.v1.ListPresetsResponse.protocols:type_name -> harness.llm.v1.ProviderProtocol
+	10, // 10: harness.llm.v1.ProviderPreset.fields:type_name -> harness.llm.v1.PresetField
+	11, // 11: harness.llm.v1.ProviderPreset.default_models:type_name -> harness.llm.v1.PresetModel
+	8,  // 12: harness.llm.v1.ProviderPreset.options:type_name -> harness.llm.v1.PresetOption
+	9,  // 13: harness.llm.v1.PresetOption.choices:type_name -> harness.llm.v1.OptionChoice
+	2,  // 14: harness.llm.v1.ListProvidersResponse.providers:type_name -> harness.llm.v1.Provider
+	15, // 15: harness.llm.v1.ListProvidersResponse.price_catalog:type_name -> harness.llm.v1.ModelPriceCatalog
+	0,  // 16: harness.llm.v1.CreateProviderRequest.scope:type_name -> harness.llm.v1.ProviderScope
+	63, // 17: harness.llm.v1.CreateProviderRequest.headers:type_name -> harness.llm.v1.CreateProviderRequest.HeadersEntry
+	64, // 18: harness.llm.v1.CreateProviderRequest.options:type_name -> harness.llm.v1.CreateProviderRequest.OptionsEntry
+	2,  // 19: harness.llm.v1.CreateProviderResponse.provider:type_name -> harness.llm.v1.Provider
+	20, // 20: harness.llm.v1.UpdateProviderRequest.headers:type_name -> harness.llm.v1.Headers
+	19, // 21: harness.llm.v1.UpdateProviderRequest.options:type_name -> harness.llm.v1.ProviderOptions
+	65, // 22: harness.llm.v1.ProviderOptions.values:type_name -> harness.llm.v1.ProviderOptions.ValuesEntry
+	66, // 23: harness.llm.v1.Headers.values:type_name -> harness.llm.v1.Headers.ValuesEntry
+	2,  // 24: harness.llm.v1.UpdateProviderResponse.provider:type_name -> harness.llm.v1.Provider
+	26, // 25: harness.llm.v1.DiscoverModelsResponse.models:type_name -> harness.llm.v1.ModelCandidate
+	3,  // 26: harness.llm.v1.AddModelResponse.model:type_name -> harness.llm.v1.ProviderModel
+	67, // 27: harness.llm.v1.SetModelEffortsRequest.efforts:type_name -> harness.llm.v1.Effort
+	67, // 28: harness.llm.v1.SetModelEffortsRequest.default_effort:type_name -> harness.llm.v1.Effort
+	3,  // 29: harness.llm.v1.SetModelEffortsResponse.model:type_name -> harness.llm.v1.ProviderModel
+	68, // 30: harness.llm.v1.SetModelPricingRequest.pricing:type_name -> harness.llm.v1.Pricing
+	3,  // 31: harness.llm.v1.SetModelPricingResponse.model:type_name -> harness.llm.v1.ProviderModel
+	3,  // 32: harness.llm.v1.AcceptModelPriceChangeResponse.model:type_name -> harness.llm.v1.ProviderModel
+	15, // 33: harness.llm.v1.RefreshModelPricesResponse.price_catalog:type_name -> harness.llm.v1.ModelPriceCatalog
+	45, // 34: harness.llm.v1.GetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
+	45, // 35: harness.llm.v1.SetClassifierRequest.classifier:type_name -> harness.llm.v1.Classifier
+	45, // 36: harness.llm.v1.SetClassifierResponse.classifier:type_name -> harness.llm.v1.Classifier
+	1,  // 37: harness.llm.v1.ClassifierOverride.choice:type_name -> harness.llm.v1.ClassifierChoice
+	46, // 38: harness.llm.v1.GetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
+	46, // 39: harness.llm.v1.SetMyClassifierRequest.mine:type_name -> harness.llm.v1.ClassifierOverride
+	46, // 40: harness.llm.v1.SetMyClassifierResponse.mine:type_name -> harness.llm.v1.ClassifierOverride
+	69, // 41: harness.llm.v1.GetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
+	69, // 42: harness.llm.v1.GetSlotsResponse.defaults:type_name -> harness.llm.v1.Slots
+	69, // 43: harness.llm.v1.SetSlotsRequest.slots:type_name -> harness.llm.v1.Slots
+	69, // 44: harness.llm.v1.SetSlotsResponse.slots:type_name -> harness.llm.v1.Slots
+	56, // 45: harness.llm.v1.GetSearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
+	56, // 46: harness.llm.v1.SetSearchDefaultResponse.settings:type_name -> harness.llm.v1.SearchSettings
+	56, // 47: harness.llm.v1.SetMySearchResponse.settings:type_name -> harness.llm.v1.SearchSettings
+	5,  // 48: harness.llm.v1.ProviderService.ListPresets:input_type -> harness.llm.v1.ListPresetsRequest
+	13, // 49: harness.llm.v1.ProviderService.ListProviders:input_type -> harness.llm.v1.ListProvidersRequest
+	16, // 50: harness.llm.v1.ProviderService.CreateProvider:input_type -> harness.llm.v1.CreateProviderRequest
+	18, // 51: harness.llm.v1.ProviderService.UpdateProvider:input_type -> harness.llm.v1.UpdateProviderRequest
+	22, // 52: harness.llm.v1.ProviderService.DeleteProvider:input_type -> harness.llm.v1.DeleteProviderRequest
+	24, // 53: harness.llm.v1.ProviderService.DiscoverModels:input_type -> harness.llm.v1.DiscoverModelsRequest
+	27, // 54: harness.llm.v1.ProviderService.AddModel:input_type -> harness.llm.v1.AddModelRequest
+	37, // 55: harness.llm.v1.ProviderService.TestProvider:input_type -> harness.llm.v1.TestProviderRequest
+	39, // 56: harness.llm.v1.ProviderService.RemoveModel:input_type -> harness.llm.v1.RemoveModelRequest
+	29, // 57: harness.llm.v1.ProviderService.SetModelEfforts:input_type -> harness.llm.v1.SetModelEffortsRequest
+	31, // 58: harness.llm.v1.ProviderService.SetModelPricing:input_type -> harness.llm.v1.SetModelPricingRequest
+	33, // 59: harness.llm.v1.ProviderService.AcceptModelPriceChange:input_type -> harness.llm.v1.AcceptModelPriceChangeRequest
+	35, // 60: harness.llm.v1.ProviderService.RefreshModelPrices:input_type -> harness.llm.v1.RefreshModelPricesRequest
+	41, // 61: harness.llm.v1.ProviderService.GetClassifier:input_type -> harness.llm.v1.GetClassifierRequest
+	43, // 62: harness.llm.v1.ProviderService.SetClassifier:input_type -> harness.llm.v1.SetClassifierRequest
+	47, // 63: harness.llm.v1.ProviderService.GetMyClassifier:input_type -> harness.llm.v1.GetMyClassifierRequest
+	49, // 64: harness.llm.v1.ProviderService.SetMyClassifier:input_type -> harness.llm.v1.SetMyClassifierRequest
+	51, // 65: harness.llm.v1.ProviderService.GetSlots:input_type -> harness.llm.v1.GetSlotsRequest
+	53, // 66: harness.llm.v1.ProviderService.SetSlots:input_type -> harness.llm.v1.SetSlotsRequest
+	55, // 67: harness.llm.v1.ProviderService.GetSearch:input_type -> harness.llm.v1.GetSearchRequest
+	58, // 68: harness.llm.v1.ProviderService.SetSearchDefault:input_type -> harness.llm.v1.SetSearchDefaultRequest
+	60, // 69: harness.llm.v1.ProviderService.SetMySearch:input_type -> harness.llm.v1.SetMySearchRequest
+	6,  // 70: harness.llm.v1.ProviderService.ListPresets:output_type -> harness.llm.v1.ListPresetsResponse
+	14, // 71: harness.llm.v1.ProviderService.ListProviders:output_type -> harness.llm.v1.ListProvidersResponse
+	17, // 72: harness.llm.v1.ProviderService.CreateProvider:output_type -> harness.llm.v1.CreateProviderResponse
+	21, // 73: harness.llm.v1.ProviderService.UpdateProvider:output_type -> harness.llm.v1.UpdateProviderResponse
+	23, // 74: harness.llm.v1.ProviderService.DeleteProvider:output_type -> harness.llm.v1.DeleteProviderResponse
+	25, // 75: harness.llm.v1.ProviderService.DiscoverModels:output_type -> harness.llm.v1.DiscoverModelsResponse
+	28, // 76: harness.llm.v1.ProviderService.AddModel:output_type -> harness.llm.v1.AddModelResponse
+	38, // 77: harness.llm.v1.ProviderService.TestProvider:output_type -> harness.llm.v1.TestProviderResponse
+	40, // 78: harness.llm.v1.ProviderService.RemoveModel:output_type -> harness.llm.v1.RemoveModelResponse
+	30, // 79: harness.llm.v1.ProviderService.SetModelEfforts:output_type -> harness.llm.v1.SetModelEffortsResponse
+	32, // 80: harness.llm.v1.ProviderService.SetModelPricing:output_type -> harness.llm.v1.SetModelPricingResponse
+	34, // 81: harness.llm.v1.ProviderService.AcceptModelPriceChange:output_type -> harness.llm.v1.AcceptModelPriceChangeResponse
+	36, // 82: harness.llm.v1.ProviderService.RefreshModelPrices:output_type -> harness.llm.v1.RefreshModelPricesResponse
+	42, // 83: harness.llm.v1.ProviderService.GetClassifier:output_type -> harness.llm.v1.GetClassifierResponse
+	44, // 84: harness.llm.v1.ProviderService.SetClassifier:output_type -> harness.llm.v1.SetClassifierResponse
+	48, // 85: harness.llm.v1.ProviderService.GetMyClassifier:output_type -> harness.llm.v1.GetMyClassifierResponse
+	50, // 86: harness.llm.v1.ProviderService.SetMyClassifier:output_type -> harness.llm.v1.SetMyClassifierResponse
+	52, // 87: harness.llm.v1.ProviderService.GetSlots:output_type -> harness.llm.v1.GetSlotsResponse
+	54, // 88: harness.llm.v1.ProviderService.SetSlots:output_type -> harness.llm.v1.SetSlotsResponse
+	57, // 89: harness.llm.v1.ProviderService.GetSearch:output_type -> harness.llm.v1.GetSearchResponse
+	59, // 90: harness.llm.v1.ProviderService.SetSearchDefault:output_type -> harness.llm.v1.SetSearchDefaultResponse
+	61, // 91: harness.llm.v1.ProviderService.SetMySearch:output_type -> harness.llm.v1.SetMySearchResponse
+	70, // [70:92] is the sub-list for method output_type
+	48, // [48:70] is the sub-list for method input_type
+	48, // [48:48] is the sub-list for extension type_name
+	48, // [48:48] is the sub-list for extension extendee
+	0,  // [0:48] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_providers_proto_init() }
@@ -3954,16 +4352,16 @@ func file_harness_llm_v1_providers_proto_init() {
 	file_harness_llm_v1_content_proto_init()
 	file_harness_llm_v1_gateway_proto_init()
 	file_harness_llm_v1_providers_proto_msgTypes[1].OneofWrappers = []any{}
-	file_harness_llm_v1_providers_proto_msgTypes[14].OneofWrappers = []any{}
-	file_harness_llm_v1_providers_proto_msgTypes[25].OneofWrappers = []any{}
+	file_harness_llm_v1_providers_proto_msgTypes[16].OneofWrappers = []any{}
 	file_harness_llm_v1_providers_proto_msgTypes[27].OneofWrappers = []any{}
+	file_harness_llm_v1_providers_proto_msgTypes[29].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_llm_v1_providers_proto_rawDesc), len(file_harness_llm_v1_providers_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   59,
+			NumMessages:   65,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

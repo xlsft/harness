@@ -74,6 +74,12 @@ Passed through to core (see `packages/core`): `HARNESS_SECRET`, `HARNESS_ADMIN_E
 (publish that port too if you set it), `HARNESS_SESSION_BUDGET_USD`, and
 the other `HARNESS_*` tuning variables.
 
+Model prices follow a public catalog: core fetches `https://models.dev/api.json` (no key, about 6 MB) once a day, and
+keeps the prices it needs in its database, so a restart or a lost connection changes nothing and a failed fetch keeps the
+last good one. Without any, the prices shipped with core apply. On an air-gapped install set `HARNESS_MODEL_PRICES=off`
+(no fetch, also not by the Refresh button; catalog prices already on models stay), or set `HARNESS_MODEL_PRICES_URL` to a
+mirror of the same document, which may be on your private network. See [the gateway protocol](../docs/protocol/gateway.md).
+
 > Today's core still stores its data in SQLite (`HARNESS_DB_URL`, default
 > `file:/data/core/harness.db`) and ignores `DATABASE_URL`. The internal Postgres runs anyway, so
 > the same image and volume keep working when core moves to Postgres.

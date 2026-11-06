@@ -78,6 +78,13 @@
       "when": 1793761380942,
       "tag": "0010_objects",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793960911712,
+      "tag": "0011_model_price_source",
+      "breakpoints": true
     }
   ]
 }

@@ -51,6 +51,30 @@ async function changed() {
   }
 }
 
+// Admins: fetch the model price catalog now. Prices otherwise refresh by themselves, once a day.
+const pricesBusy = ref(false)
+const pricesResult = ref('')
+async function refreshPrices() {
+  pricesBusy.value = true
+  pricesResult.value = ''
+  try {
+    const r = await api().refreshModelPrices()
+    const held = r.held ? `, ${r.held} held for review` : ''
+    pricesResult.value = r.ok ? `${r.message}: ${r.updated} updated${held}` : r.message
+    await changed()
+  } catch (e) {
+    error.value = message(e)
+  } finally {
+    pricesBusy.value = false
+  }
+}
+const pricesLine = computed(() => {
+  const c = list.value.priceCatalog
+  if (!c?.enabled) return 'The price catalog is off on this server; prices come from provider lists and presets.'
+  if (!c.updatedAt) return 'Model prices follow the catalog at models.dev once a day; it has not been fetched yet.'
+  return `Model prices follow the catalog at models.dev once a day; last fetched ${new Date(c.updatedAt).toLocaleString()}.`
+})
+
 const PAGES = {
   llm: {
     title: 'Models',
@@ -114,6 +138,19 @@ const page = computed(() => ({
         :providers="list.providers"
         :api="api()"
       />
+      <div
+        v-if="group === 'llm' && list.canManageGlobal"
+        class="mb-3 flex flex-wrap items-center gap-2 text-[11.5px] text-muted"
+      >
+        <span class="flex-1">{{ pricesResult || pricesLine }}</span>
+        <HBtn
+          size="sm"
+          :disabled="pricesBusy"
+          @click="refreshPrices"
+        >
+          Refresh prices
+        </HBtn>
+      </div>
       <SettingsProviderGroup
         :group="group"
         title=""

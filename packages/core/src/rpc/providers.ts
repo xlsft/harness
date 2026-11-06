@@ -18,8 +18,11 @@ import {
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { discoverModelsForUser, listedCapabilitiesOf, listedPriceOf, testLlmProvider } from "../services/discovery.ts";
+import { refreshModelPrices } from "../services/model-prices.ts";
+import { catalogStatus } from "../services/price-catalog.ts";
 import {
   ROLE_SLOT_NAMES,
+  acceptHeldPrice,
   addProviderModel,
   getSlots,
   listModelsForUser,
@@ -30,6 +33,7 @@ import {
   setProviderModelPricing,
   setSlots,
   type ModelEntry,
+  type ModelPricing,
   type Slots,
 } from "../services/models.ts";
 import { BUILTIN_SEARCH_ID, PRESETS, PROTOCOLS } from "../services/presets.ts";
@@ -48,7 +52,17 @@ import { checkClientVersion, requirePrincipal } from "./context.ts";
 import { effortName, effortToProto } from "./convert.ts";
 import { guard } from "./errors.ts";
 
+function pricingToProto(p: ModelPricing) {
+  return { input: p.input, output: p.output, cacheRead: p.cache_read ?? 0, cacheWrite: p.cache_write ?? 0 };
+}
+
+async function priceCatalogToProto() {
+  const { enabled, updated_at } = await catalogStatus();
+  return { enabled, updatedAt: updated_at };
+}
+
 function modelToProto(m: ModelEntry) {
+  const held = m.priceChangeHeld;
   return {
     id: m.id,
     displayName: m.displayName,
@@ -58,8 +72,11 @@ function modelToProto(m: ModelEntry) {
     enabled: m.enabled,
     efforts: m.capabilities.effort.map(effortToProto),
     defaultEffort: effortToProto(m.capabilities.default_effort ?? ""),
-    pricing: m.pricing ? { input: m.pricing.input, output: m.pricing.output, cacheRead: m.pricing.cache_read ?? 0, cacheWrite: m.pricing.cache_write ?? 0 } : undefined,
+    pricing: m.pricing ? pricingToProto(m.pricing) : undefined,
     pricingSetByHand: priceSetByHand({ set_by_hand: m.setByHand }),
+    pricingSource: m.pricingSource ?? "",
+    pricingUpdatedAt: m.pricingUpdatedAt?.toISOString() ?? "",
+    priceChangeHeld: held ? { proposed: pricingToProto(held.proposed), source: held.source, heldAt: held.held_at } : undefined,
   };
 }
 
@@ -205,6 +222,7 @@ export function registerProviderService(router: ConnectRouter): void {
         providers: await Promise.all(providers.map((p) => providerToProto(p, user))),
         types: [...PROVIDER_TYPES],
         canManageGlobal: user.role === "admin",
+        priceCatalog: await priceCatalogToProto(),
       };
     }),
 
@@ -313,6 +331,17 @@ export function registerProviderService(router: ConnectRouter): void {
       // A zero cache price on the wire means "same as input", which is what leaving it out says here.
       const pricing = p ? { input: p.input, output: p.output, ...(p.cacheRead && { cache_read: p.cacheRead }), ...(p.cacheWrite && { cache_write: p.cacheWrite }) } : null;
       return { model: modelToProto(await setProviderModelPricing(req.modelId, pricing, user)) };
+    }),
+
+    acceptModelPriceChange: guard(async (req, ctx: HandlerContext) => {
+      const user = await principal(ctx);
+      return { model: modelToProto(await acceptHeldPrice(req.modelId, user)) };
+    }),
+
+    refreshModelPrices: guard(async (_req, ctx: HandlerContext) => {
+      requireAdmin(await principal(ctx));
+      const r = await refreshModelPrices();
+      return { ok: r.ok, message: r.message, updated: r.updated, held: r.held, priceCatalog: await priceCatalogToProto() };
     }),
 
     removeModel: guard(async (req, ctx: HandlerContext) => {

@@ -16,10 +16,10 @@
  * (pay as you go), where a priced model's requests cost what the price says. Custom providers are metered.
  *
  * `pricing` (LLM preset models): the vendor's published price in USD per 1M tokens, for services whose model list
- * gives none. Numbers come from the pricing page cited beside them, read in November 2026 (not from memory); see
- * services/models.ts for how they reach a model (they only ever fill an empty price). Left out where one number
+ * gives none. Numbers come from the pricing page cited beside them, read in November 2026 (not from memory); they
+ * apply until a fresher source says otherwise, see services/model-prices.ts. Left out where one number
  * cannot be right: DeepSeek (peak and off-peak rates by UTC hour, api-docs.deepseek.com/quick_start/pricing),
- * Gemini 3.8 Flash (doubles on 2027-01-01, and a filled price is not updated, aistudio.google.com/docs/pricing),
+ * Gemini 3.8 Flash (doubles on 2027-01-01, aistudio.google.com/docs/pricing; the catalog is what follows that),
  * Kimi K2.7 Code (no price on the page below) and Kimi Platform China (bills in CNY, not confirmed).
  *
  * Search presets (group "search") name the adapter in src/search/adapters.ts as their type; their base URL is
@@ -545,6 +545,28 @@ export const PROTOCOLS: readonly ProviderProtocol[] = [
   { id: "decision-http", group: "classifier", label: "HTTP policy webhook", base_url_hint: "https://policy.example.com/decide" },
   { id: "searxng", group: "search", label: "SearXNG-compatible", base_url_hint: "https://searx.example.com" },
 ];
+
+/**
+ * Which provider of the model price catalog (services/price-catalog.ts) speaks for a preset: the only way a provider gets
+ * prices from it, never by guessing from a name. An aggregator's prices are its own (OpenRouter's list has them), a plan's
+ * requests carry no cost, and a custom provider could be anything. Left out on purpose though the catalog has them:
+ *   - deepseek: one number, the off-peak rate, where peak hours cost twice that (see `pricing` above);
+ *   - moonshot-cn: bills in CNY; the catalog's `moonshotai-cn` holds USD conversions that move with the exchange rate.
+ */
+export const PRICE_CATALOG_PROVIDERS: Readonly<Record<string, string>> = {
+  anthropic: "anthropic",
+  openai: "openai",
+  moonshot: "moonshotai",
+  zai: "zai",
+  gemini: "google",
+  xai: "xai",
+};
+
+/** The catalog provider that speaks for a stored provider, if any. */
+export function catalogProviderOf(row: { presetId: string | null; kind: string; type: string; baseUrl: string }): string | undefined {
+  const id = presetOf(row)?.id;
+  return id && Object.hasOwn(PRICE_CATALOG_PROVIDERS, id) ? PRICE_CATALOG_PROVIDERS[id] : undefined;
+}
 
 export function findPreset(id: string): ProviderPreset | undefined {
   return PRESETS.find((p) => p.id === id);

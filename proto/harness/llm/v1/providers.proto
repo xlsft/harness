@@ -46,9 +46,15 @@ service ProviderService {
   // and the level recommended among them.
   // What is set here, also none, is kept: discovery only fills in what nobody set.
   rpc SetModelEfforts(SetModelEffortsRequest) returns (SetModelEffortsResponse);
-  // Sets by hand the price of a model of a provider the caller may change, also to none. Kept: lists and presets only
-  // fill in an empty price nobody set. Refused on a plan provider, whose requests carry no cost.
+  // Sets by hand the price of a model of a provider the caller may change, also to none. Kept: no list, catalog or preset
+  // goes over it. Refused on a plan provider, whose requests carry no cost.
   rpc SetModelPricing(SetModelPricingRequest) returns (SetModelPricingResponse);
+  // Takes the price change held back on a model (ProviderModel.price_change_held), with the access of SetModelPricing. The
+  // model keeps following its source from then on. INVALID_ARGUMENT when nothing is held.
+  rpc AcceptModelPriceChange(AcceptModelPriceChangeRequest) returns (AcceptModelPriceChangeResponse);
+  // Fetches the model price catalog now and applies it, and asks the global providers with priced model lists for theirs.
+  // Admin only. Prices reach clients through the normal lists.
+  rpc RefreshModelPrices(RefreshModelPricesRequest) returns (RefreshModelPricesResponse);
 
   // The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a
   // typed decision model or an HTTP policy webhook) and the model of the LLM classifier step. This is the
@@ -138,8 +144,23 @@ message ProviderModel {
   // What a request costs on a metered provider. Absent: no price known, so its requests carry no cost. A zero cache
   // price means "same as input".
   optional Pricing pricing = 9;
-  // Someone set `pricing` by hand (also to none): model lists and presets leave it alone.
+  // Someone set `pricing` by hand (also to none): model lists, the catalog and presets leave it alone.
   bool pricing_set_by_hand = 10;
+  // Where `pricing` came from: "hand", "list" (the provider's own model list), "catalog" (the model price catalog) or
+  // "preset". Empty: not known, a price from before sources were recorded.
+  string pricing_source = 11;
+  // RFC 3339, UTC: when `pricing` last changed or changed source. Empty: not known.
+  string pricing_updated_at = 12;
+  // A change too large to apply by itself. `pricing` stays until someone accepts it (AcceptModelPriceChange) or sets one.
+  optional PriceChangeHeld price_change_held = 13;
+}
+
+message PriceChangeHeld {
+  Pricing proposed = 1;
+  // "list" or "catalog".
+  string source = 2;
+  // RFC 3339, UTC.
+  string held_at = 3;
 }
 
 message ListPresetsRequest {}
@@ -245,6 +266,15 @@ message ListProvidersResponse {
   repeated string types = 2;
   // The caller is an admin: may create and change global providers and the classifier.
   bool can_manage_global = 3;
+  ModelPriceCatalog price_catalog = 4;
+}
+
+// The server's model price catalog (global data, the same for personal providers).
+message ModelPriceCatalog {
+  // Off for servers without internet access (HARNESS_MODEL_PRICES=off).
+  bool enabled = 1;
+  // RFC 3339, UTC: when the stored snapshot was fetched. Empty: there is none, or the catalog is off.
+  string updated_at = 2;
 }
 
 message CreateProviderRequest {
@@ -366,6 +396,28 @@ message SetModelPricingRequest {
 
 message SetModelPricingResponse {
   ProviderModel model = 1;
+}
+
+message AcceptModelPriceChangeRequest {
+  string model_id = 1;
+}
+
+message AcceptModelPriceChangeResponse {
+  ProviderModel model = 1;
+}
+
+message RefreshModelPricesRequest {}
+
+message RefreshModelPricesResponse {
+  // The catalog was fetched and stored (false when it is off). A failure keeps the last good snapshot.
+  bool ok = 1;
+  // What happened, for the user.
+  string message = 2;
+  // Models whose price or its source changed.
+  int32 updated = 3;
+  // Models with a change newly held back.
+  int32 held = 4;
+  ModelPriceCatalog price_catalog = 5;
 }
 
 message TestProviderRequest {

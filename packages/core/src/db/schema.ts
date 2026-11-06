@@ -179,6 +179,11 @@ export const model = pgTable("model", {
   capabilities: jsonb("capabilities").notNull(),
   /** JSON: ModelPricing | null */
   pricing: jsonb("pricing"),
+  /** Where `pricing` came from: hand, list, catalog or preset (services/model-prices.ts). Null: from before this column. */
+  pricingSource: text("pricing_source"),
+  pricingUpdatedAt: ts("pricing_updated_at"),
+  /** JSON: HeldPriceChange | null, a change too large to apply by itself. */
+  priceChangeHeld: jsonb("price_change_held"),
   /** JSON: string[] of model aliases tried on overloaded/unavailable. */
   fallbacks: jsonb("fallbacks").notNull().default([]),
   /** JSON object merged into the upstream request body (e.g. vLLM/Qwen switches). */

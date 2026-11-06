@@ -1,7 +1,8 @@
 /**
  * Model discovery: lists the models an upstream offers via its `/v1/models` endpoint, through the SSRF
  * guard, and returns them as candidates for the model catalog. A preset without a model list (and every
- * classifier provider) answers the preset's curated models instead. Also the LLM half of TestProvider.
+ * classifier provider) answers the preset's curated models instead. Also the LLM half of TestProvider. A list that
+ * gives prices is the provider's own word on them: services/model-prices.ts applies what it says.
  */
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
@@ -10,7 +11,9 @@ import { joinUrl } from "../gateway/adapters/types.ts";
 import { ApiError } from "../lib/errors.ts";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
-import { backfilledCapabilities, EFFORT_LEVELS, fillPresetPrices, priceSetByHand, type Effort, type ListedCapabilities, type ModelPricing } from "./models.ts";
+import { applyModelPrices, type PriceChangeCount } from "./model-prices.ts";
+import { backfilledCapabilities, EFFORT_LEVELS, type Effort, type ListedCapabilities, type ModelPricing } from "./models.ts";
+import { catalogPriceOf, loadCatalogSnapshot } from "./price-catalog.ts";
 import { presetOf, presetPriceOf } from "./presets.ts";
 import { loadProviderRuntime, providerForUser, redactSecrets, type ProviderRuntime } from "./providers.ts";
 
@@ -21,7 +24,7 @@ export interface ModelCandidate {
   /** Present when the upstream reports it (OpenRouter `context_length`, vLLM `max_model_len`, ...). */
   context_window?: number;
   max_output_tokens?: number;
-  /** USD per 1M tokens, when the upstream's list says (OpenRouter `pricing`, per token there) or else its preset does. */
+  /** USD per 1M tokens, when the upstream's list says (OpenRouter `pricing`, per token there) or else the catalog or its preset does. */
   pricing?: ModelPricing;
   /** What the upstream's list says the model can do (see listedCapabilities). */
   capabilities?: ListedCapabilities;
@@ -32,6 +35,13 @@ export interface ModelCandidate {
 }
 
 const MAX_PAGES = 20;
+
+/** The presets whose service gives prices in a list, so that the daily refresh is worth asking it (model-prices.ts). */
+const PRICED_LIST_PRESETS = ["openrouter", "xai"];
+
+export function listsItsPrices(presetId: string | undefined): boolean {
+  return !!presetId && PRICED_LIST_PRESETS.includes(presetId);
+}
 
 /** The prices of each provider's last model list, by upstream model. */
 const listedPrices = new Map<string, Map<string, ModelPricing>>();
@@ -111,6 +121,37 @@ function listedPricing(p: unknown): ModelPricing | undefined {
   return out;
 }
 
+/**
+ * Prices from xAI's GET /v1/language-models, by model id and alias. Its prices are USD cents per 100 million tokens
+ * (docs.x.ai/developers/rest-api-reference/inference/models), so 20000 is $2 per 1M. Long-context prices apply "at or above"
+ * a threshold (0: no tier), where `above_tokens` is exclusive; a 0 long-context price is the standard one.
+ */
+export function xaiListedPrices(j: Record<string, any>): Map<string, ModelPricing> {
+  const prices = new Map<string, ModelPricing>();
+  const perMillion = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.round(v * 100) / 1e6 : undefined);
+  for (const m of Array.isArray(j.models) ? j.models : []) {
+    if (!m || typeof m.id !== "string") continue;
+    const input = perMillion(m.prompt_text_token_price);
+    const output = perMillion(m.completion_text_token_price);
+    if (input === undefined || output === undefined) continue;
+    const pricing: ModelPricing = { input, output };
+    const cached = perMillion(m.cached_prompt_text_token_price);
+    if (cached !== undefined) pricing.cache_read = cached;
+    const threshold = typeof m.long_context_threshold === "number" && m.long_context_threshold > 0 ? m.long_context_threshold : 0;
+    if (threshold) {
+      const cachedLong = perMillion(m.cached_prompt_text_token_price_long_context) ?? cached;
+      pricing.long_context = {
+        above_tokens: threshold - 1,
+        input: perMillion(m.prompt_text_token_price_long_context) ?? input,
+        output: perMillion(m.completion_text_token_price_long_context) ?? output,
+        ...(cachedLong !== undefined && { cache_read: cachedLong }),
+      };
+    }
+    for (const id of [m.id, ...(Array.isArray(m.aliases) ? m.aliases : [])]) if (typeof id === "string") prices.set(id, pricing);
+  }
+  return prices;
+}
+
 /** The levels to offer when a list says a model reasons but not at which levels. */
 const BASIC_EFFORTS: Effort[] = ["low", "medium", "high"];
 
@@ -179,15 +220,15 @@ export async function discoverModelsForUser(providerId: string, user: PublicUser
 }
 
 /** Discovery for a global provider (admin API) or, through discoverModelsForUser, a checked one. */
-export async function discoverModels(providerId: string, globalOnly = false): Promise<{ provider_id: string; models: ModelCandidate[] }> {
+export async function discoverModels(providerId: string, globalOnly = false): Promise<{ provider_id: string; models: ModelCandidate[]; prices: PriceChangeCount }> {
   await ensureDb();
   const row = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, providerId) });
   if (!row || row.kind === "speech" || (globalOnly && row.ownerUserId)) throw new ApiError("not_found", `Provider ${providerId} not found`);
   if (row.kind === "search") throw new ApiError("invalid_request", "Search providers serve no models");
   const p = await loadProviderRuntime(providerId);
   const preset = presetOf(row);
-  // Before the service is asked: a list that fails or gives no prices must not keep the preset's from a model.
-  await fillPresetPrices(providerId);
+  // Before the service is asked: a list that fails or gives no prices must not keep what else is known from a model.
+  const known = await applyModelPrices({ providerId });
 
   const raw: Record<string, any>[] = [];
   if (row.kind === "classifier" || (preset && !preset.discovers_models)) {
@@ -213,7 +254,18 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
     else if (Array.isArray(j.models)) raw.push(...j.models);
   }
 
+  // xAI's model list is curated here, but it has a list of prices. Its failing costs prices, not the discovery.
+  const listed = new Map<string, ModelPricing>();
+  if (preset?.id === "xai" && p.apiKey) {
+    try {
+      for (const [id, pricing] of xaiListedPrices(await fetchJson(p, joinUrl(p.baseUrl, "/language-models")))) listed.set(id, pricing);
+    } catch (err) {
+      console.error(`[harness] could not read the prices of ${providerId}: ${(err as Error).message}`);
+    }
+  }
+
   const catalog = await getDb().query.model.findMany({ where: eq(schema.model.providerId, providerId) });
+  const snapshot = await loadCatalogSnapshot();
   const seen = new Set<string>();
   const models: ModelCandidate[] = [];
   for (const m of raw) {
@@ -221,27 +273,22 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
     const c = toCandidate(m);
     if (!c || seen.has(c.upstream_model)) continue;
     seen.add(c.upstream_model);
-    const pricing = c.pricing ?? presetPriceOf(row, c.upstream_model);
+    if (c.pricing) listed.set(c.upstream_model, c.pricing);
+    const pricing = listed.get(c.upstream_model) ?? catalogPriceOf(snapshot, row, c.upstream_model) ?? presetPriceOf(row, c.upstream_model);
     models.push({ ...c, ...(pricing && { pricing }), catalog_ids: catalog.filter((e) => e.upstreamModel === c.upstream_model).map((e) => e.id) });
   }
   models.sort((a, b) => a.upstream_model.localeCompare(b.upstream_model));
-  // What the list says about prices and capabilities: for a model added from it next, and for the ones already added
-  // without them. A list that says nothing changes nothing.
-  const prices = new Map(models.flatMap((m) => (m.pricing ? [[m.upstream_model, m.pricing] as const] : [])));
-  listedPrices.set(providerId, prices);
+  // What the list says about prices and capabilities: for a model added from it next, and for the ones already added.
+  // A list that says nothing changes nothing.
+  listedPrices.set(providerId, listed);
   const caps = new Map(models.flatMap((m) => (m.capabilities ? [[m.upstream_model, m.capabilities] as const] : [])));
   listedCaps.set(providerId, caps);
   for (const e of catalog) {
-    const pricing = e.pricing || priceSetByHand(e.capabilities) ? undefined : prices.get(e.upstreamModel);
     const capabilities = backfilledCapabilities(e.capabilities, caps.get(e.upstreamModel));
-    if (pricing || capabilities) {
-      await getDb()
-        .update(schema.model)
-        .set({ ...(pricing && { pricing }), ...(capabilities && { capabilities }) })
-        .where(eq(schema.model.id, e.id));
-    }
+    if (capabilities) await getDb().update(schema.model).set({ capabilities }).where(eq(schema.model.id, e.id));
   }
-  return { provider_id: providerId, models };
+  const applied = await applyModelPrices({ providerId, listed });
+  return { provider_id: providerId, models, prices: { updated: known.updated + applied.updated, held: known.held + applied.held } };
 }
 
 export interface TestResult {

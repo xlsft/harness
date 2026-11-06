@@ -15,12 +15,20 @@ import {
   type SearchSettings as SearchSettingsMsg
 } from '~/gen/harness/llm/v1/providers_pb'
 import type { Slots } from '~/gen/harness/llm/v1/gateway_pb'
-import type { BillingName, ClassifierOverride, ClassifierSettings, ModelPriceView, ModelSlots, MyClassifier, PresetView, ProviderGroupName, ProviderView, ProvidersApi, SearchSettings } from './types'
+import type { BillingName, ClassifierOverride, ClassifierSettings, ModelPriceView, ModelSlots, MyClassifier, PresetView, PriceCatalogView, PriceSourceName, ProviderGroupName, ProviderView, ProvidersApi, SearchSettings } from './types'
 
 const EFFORT_PB: Record<EffortName, Effort> = { low: Effort.LOW, medium: Effort.MEDIUM, high: Effort.HIGH, xhigh: Effort.XHIGH, max: Effort.MAX }
 const EFFORT_NAME = Object.fromEntries(Object.entries(EFFORT_PB).map(([k, v]) => [v, k as EffortName])) as Partial<Record<Effort, EffortName>>
 const group = (g: string): ProviderGroupName => g === 'classifier' || g === 'search' ? g : 'llm'
 const billing = (b: string): BillingName => b === 'metered' || b === 'plan' ? b : ''
+
+function priceView(p: { input: number, output: number, cacheRead: number, cacheWrite: number }): ModelPriceView {
+  return { input: p.input, output: p.output, cacheRead: p.cacheRead || undefined, cacheWrite: p.cacheWrite || undefined }
+}
+
+function priceCatalogView(c: { enabled: boolean, updatedAt: string } | undefined): PriceCatalogView {
+  return { enabled: c?.enabled ?? false, updatedAt: c?.updatedAt ?? '' }
+}
 
 export function providerView(p: Provider): ProviderView {
   return {
@@ -37,7 +45,7 @@ export function providerView(p: Provider): ProviderView {
     enabled: p.enabled,
     allowPrivateNetwork: p.allowPrivateNetwork,
     editable: p.editable,
-    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow), efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e), defaultEffort: EFFORT_NAME[m.defaultEffort], pricing: m.pricing ? { input: m.pricing.input, output: m.pricing.output, cacheRead: m.pricing.cacheRead || undefined, cacheWrite: m.pricing.cacheWrite || undefined } : undefined, pricingSetByHand: m.pricingSetByHand || undefined })),
+    models: p.models.map(m => ({ id: m.id, name: m.displayName || m.id, upstream: m.upstreamModel, contextWindow: Number(m.contextWindow), efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e), defaultEffort: EFFORT_NAME[m.defaultEffort], pricing: m.pricing ? priceView(m.pricing) : undefined, pricingSetByHand: m.pricingSetByHand || undefined, pricingSource: (m.pricingSource as PriceSourceName) || undefined, pricingUpdatedAt: m.pricingUpdatedAt || undefined, priceChangeHeld: m.priceChangeHeld?.proposed ? { proposed: priceView(m.priceChangeHeld.proposed), source: m.priceChangeHeld.source as PriceSourceName, heldAt: m.priceChangeHeld.heldAt } : undefined })),
     options: { ...p.options },
     billing: billing(p.billing)
   }
@@ -134,7 +142,7 @@ export class ConnectProvidersApi implements ProvidersApi {
 
   async list() {
     const r = await this.client.listProviders({})
-    return { providers: r.providers.map(providerView), types: r.types, canManageGlobal: r.canManageGlobal }
+    return { providers: r.providers.map(providerView), types: r.types, canManageGlobal: r.canManageGlobal, priceCatalog: priceCatalogView(r.priceCatalog) }
   }
 
   async create(d: Parameters<ProvidersApi['create']>[0]) {
@@ -202,6 +210,15 @@ export class ConnectProvidersApi implements ProvidersApi {
 
   async setModelPricing(modelId: string, pricing: ModelPriceView | null) {
     await this.client.setModelPricing({ modelId, pricing: pricing ? { input: pricing.input, output: pricing.output, cacheRead: pricing.cacheRead ?? 0, cacheWrite: pricing.cacheWrite ?? 0 } : undefined })
+  }
+
+  async acceptModelPriceChange(modelId: string) {
+    await this.client.acceptModelPriceChange({ modelId })
+  }
+
+  async refreshModelPrices() {
+    const r = await this.client.refreshModelPrices({})
+    return { ok: r.ok, message: r.message, updated: r.updated, held: r.held, catalog: priceCatalogView(r.priceCatalog) }
   }
 
   async removeModel(modelId: string) {

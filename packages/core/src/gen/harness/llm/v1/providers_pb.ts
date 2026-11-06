@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/llm/v1/providers.proto.
  */
 export const file_harness_llm_v1_providers: GenFile = /*@__PURE__*/
-  fileDesc("Ch5oYXJuZXNzL2xsbS92MS9wcm92aWRlcnMucHJvdG8SDmhhcm5lc3MubGxtLnYxIu8DCghQcm92aWRlchIKCgJpZBgBIAEoCRIsCgVzY29wZRgCIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSDAoEdHlwZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSEwoLYXBpX2tleV9zZXQYBiABKAgSFAoMYXBpX2tleV9oaW50GAcgASgJEhQKDGhlYWRlcl9uYW1lcxgIIAMoCRIPCgdlbmFibGVkGAkgASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgKIAEoCBIQCghlZGl0YWJsZRgLIAEoCBItCgZtb2RlbHMYDCADKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlck1vZGVsEhIKCmNyZWF0ZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRIRCglwcmVzZXRfaWQYDyABKAkSDQoFZ3JvdXAYECABKAkSNgoHb3B0aW9ucxgRIAMoCzIlLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyLk9wdGlvbnNFbnRyeRIPCgdiaWxsaW5nGBIgASgJGi4KDE9wdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIr4CCg1Qcm92aWRlck1vZGVsEgoKAmlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIWCg51cHN0cmVhbV9tb2RlbBgDIAEoCRIWCg5jb250ZXh0X3dpbmRvdxgEIAEoAxIZChFtYXhfb3V0cHV0X3Rva2VucxgFIAEoAxIPCgdlbmFibGVkGAYgASgIEicKB2VmZm9ydHMYByADKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSLgoOZGVmYXVsdF9lZmZvcnQYCCABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSLQoHcHJpY2luZxgJIAEoCzIXLmhhcm5lc3MubGxtLnYxLlByaWNpbmdIAIgBARIbChNwcmljaW5nX3NldF9ieV9oYW5kGAogASgIQgoKCF9wcmljaW5nIhQKEkxpc3RQcmVzZXRzUmVxdWVzdCJ7ChNMaXN0UHJlc2V0c1Jlc3BvbnNlEi8KB3ByZXNldHMYASADKAsyHi5oYXJuZXNzLmxsbS52MS5Qcm92aWRlclByZXNldBIzCglwcm90b2NvbHMYAiADKAsyIC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlclByb3RvY29sIoMDCg5Qcm92aWRlclByZXNldBIKCgJpZBgBIAEoCRINCgVncm91cBgCIAEoCRIUCgxkaXNwbGF5X25hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSDAoEdHlwZRgFIAEoCRIQCghiYXNlX3VybBgGIAEoCRIrCgZmaWVsZHMYByADKAsyGy5oYXJuZXNzLmxsbS52MS5QcmVzZXRGaWVsZBIQCghkb2NzX3VybBgIIAEoCRIPCgdrZXlfdXJsGAkgASgJEjMKDmRlZmF1bHRfbW9kZWxzGAogAygLMhsuaGFybmVzcy5sbG0udjEuUHJlc2V0TW9kZWwSDAoEaWNvbhgLIAEoCRIYChBkaXNjb3ZlcnNfbW9kZWxzGAwgASgIEg0KBWxvY2FsGA0gASgIEi0KB29wdGlvbnMYDiADKAsyHC5oYXJuZXNzLmxsbS52MS5QcmVzZXRPcHRpb24SDwoHYnVpbHRpbhgPIAEoCBIPCgdiaWxsaW5nGBAgASgJIq4BCgxQcmVzZXRPcHRpb24SDAoEbmFtZRgBIAEoCRINCgVsYWJlbBgCIAEoCRIMCgRraW5kGAMgASgJEi0KB2Nob2ljZXMYBCADKAsyHC5oYXJuZXNzLmxsbS52MS5PcHRpb25DaG9pY2USFQoNZGVmYXVsdF92YWx1ZRgFIAEoCRITCgtwbGFjZWhvbGRlchgGIAEoCRILCgNtaW4YByABKAUSCwoDbWF4GAggASgFIiwKDE9wdGlvbkNob2ljZRINCgV2YWx1ZRgBIAEoCRINCgVsYWJlbBgCIAEoCSJRCgtQcmVzZXRGaWVsZBIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEhAKCHJlcXVpcmVkGAMgASgIEhMKC3BsYWNlaG9sZGVyGAQgASgJIm4KC1ByZXNldE1vZGVsEhYKDnVwc3RyZWFtX21vZGVsGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIWCg5jb250ZXh0X3dpbmRvdxgDIAEoAxIZChFtYXhfb3V0cHV0X3Rva2VucxgEIAEoAyJTChBQcm92aWRlclByb3RvY29sEgoKAmlkGAEgASgJEg0KBWdyb3VwGAIgASgJEg0KBWxhYmVsGAMgASgJEhUKDWJhc2VfdXJsX2hpbnQYBCABKAkiFgoUTGlzdFByb3ZpZGVyc1JlcXVlc3QibgoVTGlzdFByb3ZpZGVyc1Jlc3BvbnNlEisKCXByb3ZpZGVycxgBIAMoCzIYLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyEg0KBXR5cGVzGAIgAygJEhkKEWNhbl9tYW5hZ2VfZ2xvYmFsGAMgASgIIsMDChVDcmVhdGVQcm92aWRlclJlcXVlc3QSLAoFc2NvcGUYASABKA4yHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlclNjb3BlEgoKAmlkGAIgASgJEgwKBHR5cGUYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhAKCGJhc2VfdXJsGAUgASgJEg8KB2FwaV9rZXkYBiABKAkSQwoHaGVhZGVycxgHIAMoCzIyLmhhcm5lc3MubGxtLnYxLkNyZWF0ZVByb3ZpZGVyUmVxdWVzdC5IZWFkZXJzRW50cnkSHQoVYWxsb3dfcHJpdmF0ZV9uZXR3b3JrGAggASgIEhEKCXByZXNldF9pZBgJIAEoCRINCgVncm91cBgKIAEoCRJDCgdvcHRpb25zGAsgAygLMjIuaGFybmVzcy5sbG0udjEuQ3JlYXRlUHJvdmlkZXJSZXF1ZXN0Lk9wdGlvbnNFbnRyeRouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARouCgxPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJEChZDcmVhdGVQcm92aWRlclJlc3BvbnNlEioKCHByb3ZpZGVyGAEgASgLMhguaGFybmVzcy5sbG0udjEuUHJvdmlkZXIijwMKFVVwZGF0ZVByb3ZpZGVyUmVxdWVzdBIKCgJpZBgBIAEoCRIRCgR0eXBlGAIgASgJSACIAQESGQoMZGlzcGxheV9uYW1lGAMgASgJSAGIAQESFQoIYmFzZV91cmwYBCABKAlIAogBARIUCgdhcGlfa2V5GAUgASgJSAOIAQESLQoHaGVhZGVycxgGIAEoCzIXLmhhcm5lc3MubGxtLnYxLkhlYWRlcnNIBIgBARIUCgdlbmFibGVkGAcgASgISAWIAQESIgoVYWxsb3dfcHJpdmF0ZV9uZXR3b3JrGAggASgISAaIAQESNQoHb3B0aW9ucxgJIAEoCzIfLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyT3B0aW9uc0gHiAEBQgcKBV90eXBlQg8KDV9kaXNwbGF5X25hbWVCCwoJX2Jhc2VfdXJsQgoKCF9hcGlfa2V5QgoKCF9oZWFkZXJzQgoKCF9lbmFibGVkQhgKFl9hbGxvd19wcml2YXRlX25ldHdvcmtCCgoIX29wdGlvbnMifQoPUHJvdmlkZXJPcHRpb25zEjsKBnZhbHVlcxgBIAMoCzIrLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyT3B0aW9ucy5WYWx1ZXNFbnRyeRotCgtWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIm0KB0hlYWRlcnMSMwoGdmFsdWVzGAEgAygLMiMuaGFybmVzcy5sbG0udjEuSGVhZGVycy5WYWx1ZXNFbnRyeRotCgtWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkQKFlVwZGF0ZVByb3ZpZGVyUmVzcG9uc2USKgoIcHJvdmlkZXIYASABKAsyGC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlciIjChVEZWxldGVQcm92aWRlclJlcXVlc3QSCgoCaWQYASABKAkiGAoWRGVsZXRlUHJvdmlkZXJSZXNwb25zZSIsChVEaXNjb3Zlck1vZGVsc1JlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkiSAoWRGlzY292ZXJNb2RlbHNSZXNwb25zZRIuCgZtb2RlbHMYASADKAsyHi5oYXJuZXNzLmxsbS52MS5Nb2RlbENhbmRpZGF0ZSKEAQoOTW9kZWxDYW5kaWRhdGUSFgoOdXBzdHJlYW1fbW9kZWwYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhYKDmNvbnRleHRfd2luZG93GAMgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAQgASgDEhEKCW1vZGVsX2lkcxgFIAMoCSK1AQoPQWRkTW9kZWxSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJEhYKDnVwc3RyZWFtX21vZGVsGAIgASgJEgoKAmlkGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIWCg5jb250ZXh0X3dpbmRvdxgFIAEoAxIZChFtYXhfb3V0cHV0X3Rva2VucxgGIAEoAxIQCgh0aGlua2luZxgHIAEoCBIOCgZpbWFnZXMYCCABKAgiQAoQQWRkTW9kZWxSZXNwb25zZRIsCgVtb2RlbBgBIAEoCzIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyTW9kZWwimwEKFlNldE1vZGVsRWZmb3J0c1JlcXVlc3QSEAoIbW9kZWxfaWQYASABKAkSJwoHZWZmb3J0cxgCIAMoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydBIzCg5kZWZhdWx0X2VmZm9ydBgDIAEoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydEgAiAEBQhEKD19kZWZhdWx0X2VmZm9ydCJHChdTZXRNb2RlbEVmZm9ydHNSZXNwb25zZRIsCgVtb2RlbBgBIAEoCzIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyTW9kZWwiZQoWU2V0TW9kZWxQcmljaW5nUmVxdWVzdBIQCghtb2RlbF9pZBgBIAEoCRItCgdwcmljaW5nGAIgASgLMhcuaGFybmVzcy5sbG0udjEuUHJpY2luZ0gAiAEBQgoKCF9wcmljaW5nIkcKF1NldE1vZGVsUHJpY2luZ1Jlc3BvbnNlEiwKBW1vZGVsGAEgASgLMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJNb2RlbCIqChNUZXN0UHJvdmlkZXJSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJIkgKFFRlc3RQcm92aWRlclJlc3BvbnNlEgoKAm9rGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSEwoLbW9kZWxfY291bnQYAyABKAUiJgoSUmVtb3ZlTW9kZWxSZXF1ZXN0EhAKCG1vZGVsX2lkGAEgASgJIhUKE1JlbW92ZU1vZGVsUmVzcG9uc2UiFgoUR2V0Q2xhc3NpZmllclJlcXVlc3QiRwoVR2V0Q2xhc3NpZmllclJlc3BvbnNlEi4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkYKFFNldENsYXNzaWZpZXJSZXF1ZXN0Ei4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkcKFVNldENsYXNzaWZpZXJSZXNwb25zZRIuCgpjbGFzc2lmaWVyGAEgASgLMhouaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllciK9AQoKQ2xhc3NpZmllchIPCgdlbmFibGVkGAEgASgIEhMKC3Byb3ZpZGVyX2lkGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBW1vZGVsGAQgASgJEhcKD21pbl9wcm9iYWJpbGl0eRgFIAEoARISCgptaW5fbWFyZ2luGAYgASgBEhQKDG9uX3VuY2VydGFpbhgHIAEoCRISCgp0aW1lb3V0X21zGAggASgFEhEKCWxsbV9tb2RlbBgJIAEoCSJuChJDbGFzc2lmaWVyT3ZlcnJpZGUSMAoGY2hvaWNlGAEgASgOMiAuaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllckNob2ljZRITCgtwcm92aWRlcl9pZBgCIAEoCRIRCglsbG1fbW9kZWwYAyABKAkiGAoWR2V0TXlDbGFzc2lmaWVyUmVxdWVzdCKDAQoXR2V0TXlDbGFzc2lmaWVyUmVzcG9uc2USMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZRIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAIgASgJEhkKEWRlZmF1bHRfbGxtX21vZGVsGAMgASgJIkoKFlNldE15Q2xhc3NpZmllclJlcXVlc3QSMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZSKDAQoXU2V0TXlDbGFzc2lmaWVyUmVzcG9uc2USMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZRIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAIgASgJEhkKEWRlZmF1bHRfbGxtX21vZGVsGAMgASgJIhEKD0dldFNsb3RzUmVxdWVzdCJzChBHZXRTbG90c1Jlc3BvbnNlEiQKBXNsb3RzGAEgASgLMhUuaGFybmVzcy5sbG0udjEuU2xvdHMSEAoIZWRpdGFibGUYAiABKAgSJwoIZGVmYXVsdHMYAyABKAsyFS5oYXJuZXNzLmxsbS52MS5TbG90cyI3Cg9TZXRTbG90c1JlcXVlc3QSJAoFc2xvdHMYASABKAsyFS5oYXJuZXNzLmxsbS52MS5TbG90cyI4ChBTZXRTbG90c1Jlc3BvbnNlEiQKBXNsb3RzGAEgASgLMhUuaGFybmVzcy5sbG0udjEuU2xvdHMiEgoQR2V0U2VhcmNoUmVxdWVzdCJ2Cg5TZWFyY2hTZXR0aW5ncxIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAEgASgJEhYKDm15X3Byb3ZpZGVyX2lkGAIgASgJEh0KFWVmZmVjdGl2ZV9wcm92aWRlcl9pZBgDIAEoCRIQCghlZGl0YWJsZRgEIAEoCCJFChFHZXRTZWFyY2hSZXNwb25zZRIwCghzZXR0aW5ncxgBIAEoCzIeLmhhcm5lc3MubGxtLnYxLlNlYXJjaFNldHRpbmdzIi4KF1NldFNlYXJjaERlZmF1bHRSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJIkwKGFNldFNlYXJjaERlZmF1bHRSZXNwb25zZRIwCghzZXR0aW5ncxgBIAEoCzIeLmhhcm5lc3MubGxtLnYxLlNlYXJjaFNldHRpbmdzIikKElNldE15U2VhcmNoUmVxdWVzdBITCgtwcm92aWRlcl9pZBgBIAEoCSJHChNTZXRNeVNlYXJjaFJlc3BvbnNlEjAKCHNldHRpbmdzGAEgASgLMh4uaGFybmVzcy5sbG0udjEuU2VhcmNoU2V0dGluZ3MqZwoNUHJvdmlkZXJTY29wZRIeChpQUk9WSURFUl9TQ09QRV9VTlNQRUNJRklFRBAAEhkKFVBST1ZJREVSX1NDT1BFX0dMT0JBTBABEhsKF1BST1ZJREVSX1NDT1BFX1BFUlNPTkFMEAIqcQoQQ2xhc3NpZmllckNob2ljZRIhCh1DTEFTU0lGSUVSX0NIT0lDRV9VTlNQRUNJRklFRBAAEhoKFkNMQVNTSUZJRVJfQ0hPSUNFX05PTkUQARIeChpDTEFTU0lGSUVSX0NIT0lDRV9QUk9WSURFUhACMsgOCg9Qcm92aWRlclNlcnZpY2USVgoLTGlzdFByZXNldHMSIi5oYXJuZXNzLmxsbS52MS5MaXN0UHJlc2V0c1JlcXVlc3QaIy5oYXJuZXNzLmxsbS52MS5MaXN0UHJlc2V0c1Jlc3BvbnNlElwKDUxpc3RQcm92aWRlcnMSJC5oYXJuZXNzLmxsbS52MS5MaXN0UHJvdmlkZXJzUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLkxpc3RQcm92aWRlcnNSZXNwb25zZRJfCg5DcmVhdGVQcm92aWRlchIlLmhhcm5lc3MubGxtLnYxLkNyZWF0ZVByb3ZpZGVyUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkNyZWF0ZVByb3ZpZGVyUmVzcG9uc2USXwoOVXBkYXRlUHJvdmlkZXISJS5oYXJuZXNzLmxsbS52MS5VcGRhdGVQcm92aWRlclJlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5VcGRhdGVQcm92aWRlclJlc3BvbnNlEl8KDkRlbGV0ZVByb3ZpZGVyEiUuaGFybmVzcy5sbG0udjEuRGVsZXRlUHJvdmlkZXJSZXF1ZXN0GiYuaGFybmVzcy5sbG0udjEuRGVsZXRlUHJvdmlkZXJSZXNwb25zZRJfCg5EaXNjb3Zlck1vZGVscxIlLmhhcm5lc3MubGxtLnYxLkRpc2NvdmVyTW9kZWxzUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkRpc2NvdmVyTW9kZWxzUmVzcG9uc2USTQoIQWRkTW9kZWwSHy5oYXJuZXNzLmxsbS52MS5BZGRNb2RlbFJlcXVlc3QaIC5oYXJuZXNzLmxsbS52MS5BZGRNb2RlbFJlc3BvbnNlElkKDFRlc3RQcm92aWRlchIjLmhhcm5lc3MubGxtLnYxLlRlc3RQcm92aWRlclJlcXVlc3QaJC5oYXJuZXNzLmxsbS52MS5UZXN0UHJvdmlkZXJSZXNwb25zZRJWCgtSZW1vdmVNb2RlbBIiLmhhcm5lc3MubGxtLnYxLlJlbW92ZU1vZGVsUmVxdWVzdBojLmhhcm5lc3MubGxtLnYxLlJlbW92ZU1vZGVsUmVzcG9uc2USYgoPU2V0TW9kZWxFZmZvcnRzEiYuaGFybmVzcy5sbG0udjEuU2V0TW9kZWxFZmZvcnRzUmVxdWVzdBonLmhhcm5lc3MubGxtLnYxLlNldE1vZGVsRWZmb3J0c1Jlc3BvbnNlEmIKD1NldE1vZGVsUHJpY2luZxImLmhhcm5lc3MubGxtLnYxLlNldE1vZGVsUHJpY2luZ1JlcXVlc3QaJy5oYXJuZXNzLmxsbS52MS5TZXRNb2RlbFByaWNpbmdSZXNwb25zZRJcCg1HZXRDbGFzc2lmaWVyEiQuaGFybmVzcy5sbG0udjEuR2V0Q2xhc3NpZmllclJlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5HZXRDbGFzc2lmaWVyUmVzcG9uc2USXAoNU2V0Q2xhc3NpZmllchIkLmhhcm5lc3MubGxtLnYxLlNldENsYXNzaWZpZXJSZXF1ZXN0GiUuaGFybmVzcy5sbG0udjEuU2V0Q2xhc3NpZmllclJlc3BvbnNlEmIKD0dldE15Q2xhc3NpZmllchImLmhhcm5lc3MubGxtLnYxLkdldE15Q2xhc3NpZmllclJlcXVlc3QaJy5oYXJuZXNzLmxsbS52MS5HZXRNeUNsYXNzaWZpZXJSZXNwb25zZRJiCg9TZXRNeUNsYXNzaWZpZXISJi5oYXJuZXNzLmxsbS52MS5TZXRNeUNsYXNzaWZpZXJSZXF1ZXN0GicuaGFybmVzcy5sbG0udjEuU2V0TXlDbGFzc2lmaWVyUmVzcG9uc2USTQoIR2V0U2xvdHMSHy5oYXJuZXNzLmxsbS52MS5HZXRTbG90c1JlcXVlc3QaIC5oYXJuZXNzLmxsbS52MS5HZXRTbG90c1Jlc3BvbnNlEk0KCFNldFNsb3RzEh8uaGFybmVzcy5sbG0udjEuU2V0U2xvdHNSZXF1ZXN0GiAuaGFybmVzcy5sbG0udjEuU2V0U2xvdHNSZXNwb25zZRJQCglHZXRTZWFyY2gSIC5oYXJuZXNzLmxsbS52MS5HZXRTZWFyY2hSZXF1ZXN0GiEuaGFybmVzcy5sbG0udjEuR2V0U2VhcmNoUmVzcG9uc2USZQoQU2V0U2VhcmNoRGVmYXVsdBInLmhhcm5lc3MubGxtLnYxLlNldFNlYXJjaERlZmF1bHRSZXF1ZXN0GiguaGFybmVzcy5sbG0udjEuU2V0U2VhcmNoRGVmYXVsdFJlc3BvbnNlElYKC1NldE15U2VhcmNoEiIuaGFybmVzcy5sbG0udjEuU2V0TXlTZWFyY2hSZXF1ZXN0GiMuaGFybmVzcy5sbG0udjEuU2V0TXlTZWFyY2hSZXNwb25zZULBAQoSY29tLmhhcm5lc3MubGxtLnYxQg5Qcm92aWRlcnNQcm90b1ABWkFnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2xsbS92MTtsbG12MaICA0hMWKoCDkhhcm5lc3MuTGxtLlYxygIOSGFybmVzc1xMbG1cVjHiAhpIYXJuZXNzXExsbVxWMVxHUEJNZXRhZGF0YeoCEEhhcm5lc3M6OkxsbTo6VjFiBnByb3RvMw", [file_harness_llm_v1_content, file_harness_llm_v1_gateway]);
+  fileDesc("Ch5oYXJuZXNzL2xsbS92MS9wcm92aWRlcnMucHJvdG8SDmhhcm5lc3MubGxtLnYxIu8DCghQcm92aWRlchIKCgJpZBgBIAEoCRIsCgVzY29wZRgCIAEoDjIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyU2NvcGUSDAoEdHlwZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSEwoLYXBpX2tleV9zZXQYBiABKAgSFAoMYXBpX2tleV9oaW50GAcgASgJEhQKDGhlYWRlcl9uYW1lcxgIIAMoCRIPCgdlbmFibGVkGAkgASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgKIAEoCBIQCghlZGl0YWJsZRgLIAEoCBItCgZtb2RlbHMYDCADKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlck1vZGVsEhIKCmNyZWF0ZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRIRCglwcmVzZXRfaWQYDyABKAkSDQoFZ3JvdXAYECABKAkSNgoHb3B0aW9ucxgRIAMoCzIlLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyLk9wdGlvbnNFbnRyeRIPCgdiaWxsaW5nGBIgASgJGi4KDE9wdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIskDCg1Qcm92aWRlck1vZGVsEgoKAmlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIWCg51cHN0cmVhbV9tb2RlbBgDIAEoCRIWCg5jb250ZXh0X3dpbmRvdxgEIAEoAxIZChFtYXhfb3V0cHV0X3Rva2VucxgFIAEoAxIPCgdlbmFibGVkGAYgASgIEicKB2VmZm9ydHMYByADKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSLgoOZGVmYXVsdF9lZmZvcnQYCCABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSLQoHcHJpY2luZxgJIAEoCzIXLmhhcm5lc3MubGxtLnYxLlByaWNpbmdIAIgBARIbChNwcmljaW5nX3NldF9ieV9oYW5kGAogASgIEhYKDnByaWNpbmdfc291cmNlGAsgASgJEhoKEnByaWNpbmdfdXBkYXRlZF9hdBgMIAEoCRI/ChFwcmljZV9jaGFuZ2VfaGVsZBgNIAEoCzIfLmhhcm5lc3MubGxtLnYxLlByaWNlQ2hhbmdlSGVsZEgBiAEBQgoKCF9wcmljaW5nQhQKEl9wcmljZV9jaGFuZ2VfaGVsZCJdCg9QcmljZUNoYW5nZUhlbGQSKQoIcHJvcG9zZWQYASABKAsyFy5oYXJuZXNzLmxsbS52MS5QcmljaW5nEg4KBnNvdXJjZRgCIAEoCRIPCgdoZWxkX2F0GAMgASgJIhQKEkxpc3RQcmVzZXRzUmVxdWVzdCJ7ChNMaXN0UHJlc2V0c1Jlc3BvbnNlEi8KB3ByZXNldHMYASADKAsyHi5oYXJuZXNzLmxsbS52MS5Qcm92aWRlclByZXNldBIzCglwcm90b2NvbHMYAiADKAsyIC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlclByb3RvY29sIoMDCg5Qcm92aWRlclByZXNldBIKCgJpZBgBIAEoCRINCgVncm91cBgCIAEoCRIUCgxkaXNwbGF5X25hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSDAoEdHlwZRgFIAEoCRIQCghiYXNlX3VybBgGIAEoCRIrCgZmaWVsZHMYByADKAsyGy5oYXJuZXNzLmxsbS52MS5QcmVzZXRGaWVsZBIQCghkb2NzX3VybBgIIAEoCRIPCgdrZXlfdXJsGAkgASgJEjMKDmRlZmF1bHRfbW9kZWxzGAogAygLMhsuaGFybmVzcy5sbG0udjEuUHJlc2V0TW9kZWwSDAoEaWNvbhgLIAEoCRIYChBkaXNjb3ZlcnNfbW9kZWxzGAwgASgIEg0KBWxvY2FsGA0gASgIEi0KB29wdGlvbnMYDiADKAsyHC5oYXJuZXNzLmxsbS52MS5QcmVzZXRPcHRpb24SDwoHYnVpbHRpbhgPIAEoCBIPCgdiaWxsaW5nGBAgASgJIq4BCgxQcmVzZXRPcHRpb24SDAoEbmFtZRgBIAEoCRINCgVsYWJlbBgCIAEoCRIMCgRraW5kGAMgASgJEi0KB2Nob2ljZXMYBCADKAsyHC5oYXJuZXNzLmxsbS52MS5PcHRpb25DaG9pY2USFQoNZGVmYXVsdF92YWx1ZRgFIAEoCRITCgtwbGFjZWhvbGRlchgGIAEoCRILCgNtaW4YByABKAUSCwoDbWF4GAggASgFIiwKDE9wdGlvbkNob2ljZRINCgV2YWx1ZRgBIAEoCRINCgVsYWJlbBgCIAEoCSJRCgtQcmVzZXRGaWVsZBIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEhAKCHJlcXVpcmVkGAMgASgIEhMKC3BsYWNlaG9sZGVyGAQgASgJIm4KC1ByZXNldE1vZGVsEhYKDnVwc3RyZWFtX21vZGVsGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIWCg5jb250ZXh0X3dpbmRvdxgDIAEoAxIZChFtYXhfb3V0cHV0X3Rva2VucxgEIAEoAyJTChBQcm92aWRlclByb3RvY29sEgoKAmlkGAEgASgJEg0KBWdyb3VwGAIgASgJEg0KBWxhYmVsGAMgASgJEhUKDWJhc2VfdXJsX2hpbnQYBCABKAkiFgoUTGlzdFByb3ZpZGVyc1JlcXVlc3QiqAEKFUxpc3RQcm92aWRlcnNSZXNwb25zZRIrCglwcm92aWRlcnMYASADKAsyGC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlchINCgV0eXBlcxgCIAMoCRIZChFjYW5fbWFuYWdlX2dsb2JhbBgDIAEoCBI4Cg1wcmljZV9jYXRhbG9nGAQgASgLMiEuaGFybmVzcy5sbG0udjEuTW9kZWxQcmljZUNhdGFsb2ciOAoRTW9kZWxQcmljZUNhdGFsb2cSDwoHZW5hYmxlZBgBIAEoCBISCgp1cGRhdGVkX2F0GAIgASgJIsMDChVDcmVhdGVQcm92aWRlclJlcXVlc3QSLAoFc2NvcGUYASABKA4yHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlclNjb3BlEgoKAmlkGAIgASgJEgwKBHR5cGUYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhAKCGJhc2VfdXJsGAUgASgJEg8KB2FwaV9rZXkYBiABKAkSQwoHaGVhZGVycxgHIAMoCzIyLmhhcm5lc3MubGxtLnYxLkNyZWF0ZVByb3ZpZGVyUmVxdWVzdC5IZWFkZXJzRW50cnkSHQoVYWxsb3dfcHJpdmF0ZV9uZXR3b3JrGAggASgIEhEKCXByZXNldF9pZBgJIAEoCRINCgVncm91cBgKIAEoCRJDCgdvcHRpb25zGAsgAygLMjIuaGFybmVzcy5sbG0udjEuQ3JlYXRlUHJvdmlkZXJSZXF1ZXN0Lk9wdGlvbnNFbnRyeRouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARouCgxPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJEChZDcmVhdGVQcm92aWRlclJlc3BvbnNlEioKCHByb3ZpZGVyGAEgASgLMhguaGFybmVzcy5sbG0udjEuUHJvdmlkZXIijwMKFVVwZGF0ZVByb3ZpZGVyUmVxdWVzdBIKCgJpZBgBIAEoCRIRCgR0eXBlGAIgASgJSACIAQESGQoMZGlzcGxheV9uYW1lGAMgASgJSAGIAQESFQoIYmFzZV91cmwYBCABKAlIAogBARIUCgdhcGlfa2V5GAUgASgJSAOIAQESLQoHaGVhZGVycxgGIAEoCzIXLmhhcm5lc3MubGxtLnYxLkhlYWRlcnNIBIgBARIUCgdlbmFibGVkGAcgASgISAWIAQESIgoVYWxsb3dfcHJpdmF0ZV9uZXR3b3JrGAggASgISAaIAQESNQoHb3B0aW9ucxgJIAEoCzIfLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyT3B0aW9uc0gHiAEBQgcKBV90eXBlQg8KDV9kaXNwbGF5X25hbWVCCwoJX2Jhc2VfdXJsQgoKCF9hcGlfa2V5QgoKCF9oZWFkZXJzQgoKCF9lbmFibGVkQhgKFl9hbGxvd19wcml2YXRlX25ldHdvcmtCCgoIX29wdGlvbnMifQoPUHJvdmlkZXJPcHRpb25zEjsKBnZhbHVlcxgBIAMoCzIrLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyT3B0aW9ucy5WYWx1ZXNFbnRyeRotCgtWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIm0KB0hlYWRlcnMSMwoGdmFsdWVzGAEgAygLMiMuaGFybmVzcy5sbG0udjEuSGVhZGVycy5WYWx1ZXNFbnRyeRotCgtWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkQKFlVwZGF0ZVByb3ZpZGVyUmVzcG9uc2USKgoIcHJvdmlkZXIYASABKAsyGC5oYXJuZXNzLmxsbS52MS5Qcm92aWRlciIjChVEZWxldGVQcm92aWRlclJlcXVlc3QSCgoCaWQYASABKAkiGAoWRGVsZXRlUHJvdmlkZXJSZXNwb25zZSIsChVEaXNjb3Zlck1vZGVsc1JlcXVlc3QSEwoLcHJvdmlkZXJfaWQYASABKAkiSAoWRGlzY292ZXJNb2RlbHNSZXNwb25zZRIuCgZtb2RlbHMYASADKAsyHi5oYXJuZXNzLmxsbS52MS5Nb2RlbENhbmRpZGF0ZSKEAQoOTW9kZWxDYW5kaWRhdGUSFgoOdXBzdHJlYW1fbW9kZWwYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhYKDmNvbnRleHRfd2luZG93GAMgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAQgASgDEhEKCW1vZGVsX2lkcxgFIAMoCSK1AQoPQWRkTW9kZWxSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJEhYKDnVwc3RyZWFtX21vZGVsGAIgASgJEgoKAmlkGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIWCg5jb250ZXh0X3dpbmRvdxgFIAEoAxIZChFtYXhfb3V0cHV0X3Rva2VucxgGIAEoAxIQCgh0aGlua2luZxgHIAEoCBIOCgZpbWFnZXMYCCABKAgiQAoQQWRkTW9kZWxSZXNwb25zZRIsCgVtb2RlbBgBIAEoCzIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyTW9kZWwimwEKFlNldE1vZGVsRWZmb3J0c1JlcXVlc3QSEAoIbW9kZWxfaWQYASABKAkSJwoHZWZmb3J0cxgCIAMoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydBIzCg5kZWZhdWx0X2VmZm9ydBgDIAEoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydEgAiAEBQhEKD19kZWZhdWx0X2VmZm9ydCJHChdTZXRNb2RlbEVmZm9ydHNSZXNwb25zZRIsCgVtb2RlbBgBIAEoCzIdLmhhcm5lc3MubGxtLnYxLlByb3ZpZGVyTW9kZWwiZQoWU2V0TW9kZWxQcmljaW5nUmVxdWVzdBIQCghtb2RlbF9pZBgBIAEoCRItCgdwcmljaW5nGAIgASgLMhcuaGFybmVzcy5sbG0udjEuUHJpY2luZ0gAiAEBQgoKCF9wcmljaW5nIkcKF1NldE1vZGVsUHJpY2luZ1Jlc3BvbnNlEiwKBW1vZGVsGAEgASgLMh0uaGFybmVzcy5sbG0udjEuUHJvdmlkZXJNb2RlbCIxCh1BY2NlcHRNb2RlbFByaWNlQ2hhbmdlUmVxdWVzdBIQCghtb2RlbF9pZBgBIAEoCSJOCh5BY2NlcHRNb2RlbFByaWNlQ2hhbmdlUmVzcG9uc2USLAoFbW9kZWwYASABKAsyHS5oYXJuZXNzLmxsbS52MS5Qcm92aWRlck1vZGVsIhsKGVJlZnJlc2hNb2RlbFByaWNlc1JlcXVlc3QikgEKGlJlZnJlc2hNb2RlbFByaWNlc1Jlc3BvbnNlEgoKAm9rGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSDwoHdXBkYXRlZBgDIAEoBRIMCgRoZWxkGAQgASgFEjgKDXByaWNlX2NhdGFsb2cYBSABKAsyIS5oYXJuZXNzLmxsbS52MS5Nb2RlbFByaWNlQ2F0YWxvZyIqChNUZXN0UHJvdmlkZXJSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJIkgKFFRlc3RQcm92aWRlclJlc3BvbnNlEgoKAm9rGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSEwoLbW9kZWxfY291bnQYAyABKAUiJgoSUmVtb3ZlTW9kZWxSZXF1ZXN0EhAKCG1vZGVsX2lkGAEgASgJIhUKE1JlbW92ZU1vZGVsUmVzcG9uc2UiFgoUR2V0Q2xhc3NpZmllclJlcXVlc3QiRwoVR2V0Q2xhc3NpZmllclJlc3BvbnNlEi4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkYKFFNldENsYXNzaWZpZXJSZXF1ZXN0Ei4KCmNsYXNzaWZpZXIYASABKAsyGi5oYXJuZXNzLmxsbS52MS5DbGFzc2lmaWVyIkcKFVNldENsYXNzaWZpZXJSZXNwb25zZRIuCgpjbGFzc2lmaWVyGAEgASgLMhouaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllciK9AQoKQ2xhc3NpZmllchIPCgdlbmFibGVkGAEgASgIEhMKC3Byb3ZpZGVyX2lkGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBW1vZGVsGAQgASgJEhcKD21pbl9wcm9iYWJpbGl0eRgFIAEoARISCgptaW5fbWFyZ2luGAYgASgBEhQKDG9uX3VuY2VydGFpbhgHIAEoCRISCgp0aW1lb3V0X21zGAggASgFEhEKCWxsbV9tb2RlbBgJIAEoCSJuChJDbGFzc2lmaWVyT3ZlcnJpZGUSMAoGY2hvaWNlGAEgASgOMiAuaGFybmVzcy5sbG0udjEuQ2xhc3NpZmllckNob2ljZRITCgtwcm92aWRlcl9pZBgCIAEoCRIRCglsbG1fbW9kZWwYAyABKAkiGAoWR2V0TXlDbGFzc2lmaWVyUmVxdWVzdCKDAQoXR2V0TXlDbGFzc2lmaWVyUmVzcG9uc2USMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZRIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAIgASgJEhkKEWRlZmF1bHRfbGxtX21vZGVsGAMgASgJIkoKFlNldE15Q2xhc3NpZmllclJlcXVlc3QSMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZSKDAQoXU2V0TXlDbGFzc2lmaWVyUmVzcG9uc2USMAoEbWluZRgBIAEoCzIiLmhhcm5lc3MubGxtLnYxLkNsYXNzaWZpZXJPdmVycmlkZRIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAIgASgJEhkKEWRlZmF1bHRfbGxtX21vZGVsGAMgASgJIhEKD0dldFNsb3RzUmVxdWVzdCJzChBHZXRTbG90c1Jlc3BvbnNlEiQKBXNsb3RzGAEgASgLMhUuaGFybmVzcy5sbG0udjEuU2xvdHMSEAoIZWRpdGFibGUYAiABKAgSJwoIZGVmYXVsdHMYAyABKAsyFS5oYXJuZXNzLmxsbS52MS5TbG90cyI3Cg9TZXRTbG90c1JlcXVlc3QSJAoFc2xvdHMYASABKAsyFS5oYXJuZXNzLmxsbS52MS5TbG90cyI4ChBTZXRTbG90c1Jlc3BvbnNlEiQKBXNsb3RzGAEgASgLMhUuaGFybmVzcy5sbG0udjEuU2xvdHMiEgoQR2V0U2VhcmNoUmVxdWVzdCJ2Cg5TZWFyY2hTZXR0aW5ncxIbChNkZWZhdWx0X3Byb3ZpZGVyX2lkGAEgASgJEhYKDm15X3Byb3ZpZGVyX2lkGAIgASgJEh0KFWVmZmVjdGl2ZV9wcm92aWRlcl9pZBgDIAEoCRIQCghlZGl0YWJsZRgEIAEoCCJFChFHZXRTZWFyY2hSZXNwb25zZRIwCghzZXR0aW5ncxgBIAEoCzIeLmhhcm5lc3MubGxtLnYxLlNlYXJjaFNldHRpbmdzIi4KF1NldFNlYXJjaERlZmF1bHRSZXF1ZXN0EhMKC3Byb3ZpZGVyX2lkGAEgASgJIkwKGFNldFNlYXJjaERlZmF1bHRSZXNwb25zZRIwCghzZXR0aW5ncxgBIAEoCzIeLmhhcm5lc3MubGxtLnYxLlNlYXJjaFNldHRpbmdzIikKElNldE15U2VhcmNoUmVxdWVzdBITCgtwcm92aWRlcl9pZBgBIAEoCSJHChNTZXRNeVNlYXJjaFJlc3BvbnNlEjAKCHNldHRpbmdzGAEgASgLMh4uaGFybmVzcy5sbG0udjEuU2VhcmNoU2V0dGluZ3MqZwoNUHJvdmlkZXJTY29wZRIeChpQUk9WSURFUl9TQ09QRV9VTlNQRUNJRklFRBAAEhkKFVBST1ZJREVSX1NDT1BFX0dMT0JBTBABEhsKF1BST1ZJREVSX1NDT1BFX1BFUlNPTkFMEAIqcQoQQ2xhc3NpZmllckNob2ljZRIhCh1DTEFTU0lGSUVSX0NIT0lDRV9VTlNQRUNJRklFRBAAEhoKFkNMQVNTSUZJRVJfQ0hPSUNFX05PTkUQARIeChpDTEFTU0lGSUVSX0NIT0lDRV9QUk9WSURFUhACMq4QCg9Qcm92aWRlclNlcnZpY2USVgoLTGlzdFByZXNldHMSIi5oYXJuZXNzLmxsbS52MS5MaXN0UHJlc2V0c1JlcXVlc3QaIy5oYXJuZXNzLmxsbS52MS5MaXN0UHJlc2V0c1Jlc3BvbnNlElwKDUxpc3RQcm92aWRlcnMSJC5oYXJuZXNzLmxsbS52MS5MaXN0UHJvdmlkZXJzUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLkxpc3RQcm92aWRlcnNSZXNwb25zZRJfCg5DcmVhdGVQcm92aWRlchIlLmhhcm5lc3MubGxtLnYxLkNyZWF0ZVByb3ZpZGVyUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkNyZWF0ZVByb3ZpZGVyUmVzcG9uc2USXwoOVXBkYXRlUHJvdmlkZXISJS5oYXJuZXNzLmxsbS52MS5VcGRhdGVQcm92aWRlclJlcXVlc3QaJi5oYXJuZXNzLmxsbS52MS5VcGRhdGVQcm92aWRlclJlc3BvbnNlEl8KDkRlbGV0ZVByb3ZpZGVyEiUuaGFybmVzcy5sbG0udjEuRGVsZXRlUHJvdmlkZXJSZXF1ZXN0GiYuaGFybmVzcy5sbG0udjEuRGVsZXRlUHJvdmlkZXJSZXNwb25zZRJfCg5EaXNjb3Zlck1vZGVscxIlLmhhcm5lc3MubGxtLnYxLkRpc2NvdmVyTW9kZWxzUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkRpc2NvdmVyTW9kZWxzUmVzcG9uc2USTQoIQWRkTW9kZWwSHy5oYXJuZXNzLmxsbS52MS5BZGRNb2RlbFJlcXVlc3QaIC5oYXJuZXNzLmxsbS52MS5BZGRNb2RlbFJlc3BvbnNlElkKDFRlc3RQcm92aWRlchIjLmhhcm5lc3MubGxtLnYxLlRlc3RQcm92aWRlclJlcXVlc3QaJC5oYXJuZXNzLmxsbS52MS5UZXN0UHJvdmlkZXJSZXNwb25zZRJWCgtSZW1vdmVNb2RlbBIiLmhhcm5lc3MubGxtLnYxLlJlbW92ZU1vZGVsUmVxdWVzdBojLmhhcm5lc3MubGxtLnYxLlJlbW92ZU1vZGVsUmVzcG9uc2USYgoPU2V0TW9kZWxFZmZvcnRzEiYuaGFybmVzcy5sbG0udjEuU2V0TW9kZWxFZmZvcnRzUmVxdWVzdBonLmhhcm5lc3MubGxtLnYxLlNldE1vZGVsRWZmb3J0c1Jlc3BvbnNlEmIKD1NldE1vZGVsUHJpY2luZxImLmhhcm5lc3MubGxtLnYxLlNldE1vZGVsUHJpY2luZ1JlcXVlc3QaJy5oYXJuZXNzLmxsbS52MS5TZXRNb2RlbFByaWNpbmdSZXNwb25zZRJ3ChZBY2NlcHRNb2RlbFByaWNlQ2hhbmdlEi0uaGFybmVzcy5sbG0udjEuQWNjZXB0TW9kZWxQcmljZUNoYW5nZVJlcXVlc3QaLi5oYXJuZXNzLmxsbS52MS5BY2NlcHRNb2RlbFByaWNlQ2hhbmdlUmVzcG9uc2USawoSUmVmcmVzaE1vZGVsUHJpY2VzEikuaGFybmVzcy5sbG0udjEuUmVmcmVzaE1vZGVsUHJpY2VzUmVxdWVzdBoqLmhhcm5lc3MubGxtLnYxLlJlZnJlc2hNb2RlbFByaWNlc1Jlc3BvbnNlElwKDUdldENsYXNzaWZpZXISJC5oYXJuZXNzLmxsbS52MS5HZXRDbGFzc2lmaWVyUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLkdldENsYXNzaWZpZXJSZXNwb25zZRJcCg1TZXRDbGFzc2lmaWVyEiQuaGFybmVzcy5sbG0udjEuU2V0Q2xhc3NpZmllclJlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5TZXRDbGFzc2lmaWVyUmVzcG9uc2USYgoPR2V0TXlDbGFzc2lmaWVyEiYuaGFybmVzcy5sbG0udjEuR2V0TXlDbGFzc2lmaWVyUmVxdWVzdBonLmhhcm5lc3MubGxtLnYxLkdldE15Q2xhc3NpZmllclJlc3BvbnNlEmIKD1NldE15Q2xhc3NpZmllchImLmhhcm5lc3MubGxtLnYxLlNldE15Q2xhc3NpZmllclJlcXVlc3QaJy5oYXJuZXNzLmxsbS52MS5TZXRNeUNsYXNzaWZpZXJSZXNwb25zZRJNCghHZXRTbG90cxIfLmhhcm5lc3MubGxtLnYxLkdldFNsb3RzUmVxdWVzdBogLmhhcm5lc3MubGxtLnYxLkdldFNsb3RzUmVzcG9uc2USTQoIU2V0U2xvdHMSHy5oYXJuZXNzLmxsbS52MS5TZXRTbG90c1JlcXVlc3QaIC5oYXJuZXNzLmxsbS52MS5TZXRTbG90c1Jlc3BvbnNlElAKCUdldFNlYXJjaBIgLmhhcm5lc3MubGxtLnYxLkdldFNlYXJjaFJlcXVlc3QaIS5oYXJuZXNzLmxsbS52MS5HZXRTZWFyY2hSZXNwb25zZRJlChBTZXRTZWFyY2hEZWZhdWx0EicuaGFybmVzcy5sbG0udjEuU2V0U2VhcmNoRGVmYXVsdFJlcXVlc3QaKC5oYXJuZXNzLmxsbS52MS5TZXRTZWFyY2hEZWZhdWx0UmVzcG9uc2USVgoLU2V0TXlTZWFyY2gSIi5oYXJuZXNzLmxsbS52MS5TZXRNeVNlYXJjaFJlcXVlc3QaIy5oYXJuZXNzLmxsbS52MS5TZXRNeVNlYXJjaFJlc3BvbnNlQsEBChJjb20uaGFybmVzcy5sbG0udjFCDlByb3ZpZGVyc1Byb3RvUAFaQWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvbGxtL3YxO2xsbXYxogIDSExYqgIOSGFybmVzcy5MbG0uVjHKAg5IYXJuZXNzXExsbVxWMeICGkhhcm5lc3NcTGxtXFYxXEdQQk1ldGFkYXRh6gIQSGFybmVzczo6TGxtOjpWMWIGcHJvdG8z", [file_harness_llm_v1_content, file_harness_llm_v1_gateway]);
 
 /**
  * Groups ("sources") of providers:
@@ -209,11 +209,33 @@ export type ProviderModel = Message<"harness.llm.v1.ProviderModel"> & {
   pricing?: Pricing | undefined;
 
   /**
-   * Someone set `pricing` by hand (also to none): model lists and presets leave it alone.
+   * Someone set `pricing` by hand (also to none): model lists, the catalog and presets leave it alone.
    *
    * @generated from field: bool pricing_set_by_hand = 10;
    */
   pricingSetByHand: boolean;
+
+  /**
+   * Where `pricing` came from: "hand", "list" (the provider's own model list), "catalog" (the model price catalog) or
+   * "preset". Empty: not known, a price from before sources were recorded.
+   *
+   * @generated from field: string pricing_source = 11;
+   */
+  pricingSource: string;
+
+  /**
+   * RFC 3339, UTC: when `pricing` last changed or changed source. Empty: not known.
+   *
+   * @generated from field: string pricing_updated_at = 12;
+   */
+  pricingUpdatedAt: string;
+
+  /**
+   * A change too large to apply by itself. `pricing` stays until someone accepts it (AcceptModelPriceChange) or sets one.
+   *
+   * @generated from field: optional harness.llm.v1.PriceChangeHeld price_change_held = 13;
+   */
+  priceChangeHeld?: PriceChangeHeld | undefined;
 };
 
 /**
@@ -222,6 +244,37 @@ export type ProviderModel = Message<"harness.llm.v1.ProviderModel"> & {
  */
 export const ProviderModelSchema: GenMessage<ProviderModel> = /*@__PURE__*/
   messageDesc(file_harness_llm_v1_providers, 1);
+
+/**
+ * @generated from message harness.llm.v1.PriceChangeHeld
+ */
+export type PriceChangeHeld = Message<"harness.llm.v1.PriceChangeHeld"> & {
+  /**
+   * @generated from field: harness.llm.v1.Pricing proposed = 1;
+   */
+  proposed?: Pricing | undefined;
+
+  /**
+   * "list" or "catalog".
+   *
+   * @generated from field: string source = 2;
+   */
+  source: string;
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string held_at = 3;
+   */
+  heldAt: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.PriceChangeHeld.
+ * Use `create(PriceChangeHeldSchema)` to create a new message.
+ */
+export const PriceChangeHeldSchema: GenMessage<PriceChangeHeld> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 2);
 
 /**
  * @generated from message harness.llm.v1.ListPresetsRequest
@@ -234,7 +287,7 @@ export type ListPresetsRequest = Message<"harness.llm.v1.ListPresetsRequest"> & 
  * Use `create(ListPresetsRequestSchema)` to create a new message.
  */
 export const ListPresetsRequestSchema: GenMessage<ListPresetsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 2);
+  messageDesc(file_harness_llm_v1_providers, 3);
 
 /**
  * @generated from message harness.llm.v1.ListPresetsResponse
@@ -260,7 +313,7 @@ export type ListPresetsResponse = Message<"harness.llm.v1.ListPresetsResponse"> 
  * Use `create(ListPresetsResponseSchema)` to create a new message.
  */
 export const ListPresetsResponseSchema: GenMessage<ListPresetsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 3);
+  messageDesc(file_harness_llm_v1_providers, 4);
 
 /**
  * A well-known service: the user enters only its `fields` (usually just the API key).
@@ -386,7 +439,7 @@ export type ProviderPreset = Message<"harness.llm.v1.ProviderPreset"> & {
  * Use `create(ProviderPresetSchema)` to create a new message.
  */
 export const ProviderPresetSchema: GenMessage<ProviderPreset> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 4);
+  messageDesc(file_harness_llm_v1_providers, 5);
 
 /**
  * A setting of a connected provider.
@@ -450,7 +503,7 @@ export type PresetOption = Message<"harness.llm.v1.PresetOption"> & {
  * Use `create(PresetOptionSchema)` to create a new message.
  */
 export const PresetOptionSchema: GenMessage<PresetOption> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 5);
+  messageDesc(file_harness_llm_v1_providers, 6);
 
 /**
  * @generated from message harness.llm.v1.OptionChoice
@@ -472,7 +525,7 @@ export type OptionChoice = Message<"harness.llm.v1.OptionChoice"> & {
  * Use `create(OptionChoiceSchema)` to create a new message.
  */
 export const OptionChoiceSchema: GenMessage<OptionChoice> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 6);
+  messageDesc(file_harness_llm_v1_providers, 7);
 
 /**
  * @generated from message harness.llm.v1.PresetField
@@ -506,7 +559,7 @@ export type PresetField = Message<"harness.llm.v1.PresetField"> & {
  * Use `create(PresetFieldSchema)` to create a new message.
  */
 export const PresetFieldSchema: GenMessage<PresetField> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 7);
+  messageDesc(file_harness_llm_v1_providers, 8);
 
 /**
  * @generated from message harness.llm.v1.PresetModel
@@ -540,7 +593,7 @@ export type PresetModel = Message<"harness.llm.v1.PresetModel"> & {
  * Use `create(PresetModelSchema)` to create a new message.
  */
 export const PresetModelSchema: GenMessage<PresetModel> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 8);
+  messageDesc(file_harness_llm_v1_providers, 9);
 
 /**
  * @generated from message harness.llm.v1.ProviderProtocol
@@ -578,7 +631,7 @@ export type ProviderProtocol = Message<"harness.llm.v1.ProviderProtocol"> & {
  * Use `create(ProviderProtocolSchema)` to create a new message.
  */
 export const ProviderProtocolSchema: GenMessage<ProviderProtocol> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 9);
+  messageDesc(file_harness_llm_v1_providers, 10);
 
 /**
  * @generated from message harness.llm.v1.ListProvidersRequest
@@ -591,7 +644,7 @@ export type ListProvidersRequest = Message<"harness.llm.v1.ListProvidersRequest"
  * Use `create(ListProvidersRequestSchema)` to create a new message.
  */
 export const ListProvidersRequestSchema: GenMessage<ListProvidersRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 10);
+  messageDesc(file_harness_llm_v1_providers, 11);
 
 /**
  * @generated from message harness.llm.v1.ListProvidersResponse
@@ -615,6 +668,11 @@ export type ListProvidersResponse = Message<"harness.llm.v1.ListProvidersRespons
    * @generated from field: bool can_manage_global = 3;
    */
   canManageGlobal: boolean;
+
+  /**
+   * @generated from field: harness.llm.v1.ModelPriceCatalog price_catalog = 4;
+   */
+  priceCatalog?: ModelPriceCatalog | undefined;
 };
 
 /**
@@ -622,7 +680,35 @@ export type ListProvidersResponse = Message<"harness.llm.v1.ListProvidersRespons
  * Use `create(ListProvidersResponseSchema)` to create a new message.
  */
 export const ListProvidersResponseSchema: GenMessage<ListProvidersResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 11);
+  messageDesc(file_harness_llm_v1_providers, 12);
+
+/**
+ * The server's model price catalog (global data, the same for personal providers).
+ *
+ * @generated from message harness.llm.v1.ModelPriceCatalog
+ */
+export type ModelPriceCatalog = Message<"harness.llm.v1.ModelPriceCatalog"> & {
+  /**
+   * Off for servers without internet access (HARNESS_MODEL_PRICES=off).
+   *
+   * @generated from field: bool enabled = 1;
+   */
+  enabled: boolean;
+
+  /**
+   * RFC 3339, UTC: when the stored snapshot was fetched. Empty: there is none, or the catalog is off.
+   *
+   * @generated from field: string updated_at = 2;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.ModelPriceCatalog.
+ * Use `create(ModelPriceCatalogSchema)` to create a new message.
+ */
+export const ModelPriceCatalogSchema: GenMessage<ModelPriceCatalog> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 13);
 
 /**
  * @generated from message harness.llm.v1.CreateProviderRequest
@@ -705,7 +791,7 @@ export type CreateProviderRequest = Message<"harness.llm.v1.CreateProviderReques
  * Use `create(CreateProviderRequestSchema)` to create a new message.
  */
 export const CreateProviderRequestSchema: GenMessage<CreateProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 12);
+  messageDesc(file_harness_llm_v1_providers, 14);
 
 /**
  * @generated from message harness.llm.v1.CreateProviderResponse
@@ -722,7 +808,7 @@ export type CreateProviderResponse = Message<"harness.llm.v1.CreateProviderRespo
  * Use `create(CreateProviderResponseSchema)` to create a new message.
  */
 export const CreateProviderResponseSchema: GenMessage<CreateProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 13);
+  messageDesc(file_harness_llm_v1_providers, 15);
 
 /**
  * Unset fields keep their value.
@@ -789,7 +875,7 @@ export type UpdateProviderRequest = Message<"harness.llm.v1.UpdateProviderReques
  * Use `create(UpdateProviderRequestSchema)` to create a new message.
  */
 export const UpdateProviderRequestSchema: GenMessage<UpdateProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 14);
+  messageDesc(file_harness_llm_v1_providers, 16);
 
 /**
  * @generated from message harness.llm.v1.ProviderOptions
@@ -806,7 +892,7 @@ export type ProviderOptions = Message<"harness.llm.v1.ProviderOptions"> & {
  * Use `create(ProviderOptionsSchema)` to create a new message.
  */
 export const ProviderOptionsSchema: GenMessage<ProviderOptions> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 15);
+  messageDesc(file_harness_llm_v1_providers, 17);
 
 /**
  * @generated from message harness.llm.v1.Headers
@@ -823,7 +909,7 @@ export type Headers = Message<"harness.llm.v1.Headers"> & {
  * Use `create(HeadersSchema)` to create a new message.
  */
 export const HeadersSchema: GenMessage<Headers> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 16);
+  messageDesc(file_harness_llm_v1_providers, 18);
 
 /**
  * @generated from message harness.llm.v1.UpdateProviderResponse
@@ -840,7 +926,7 @@ export type UpdateProviderResponse = Message<"harness.llm.v1.UpdateProviderRespo
  * Use `create(UpdateProviderResponseSchema)` to create a new message.
  */
 export const UpdateProviderResponseSchema: GenMessage<UpdateProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 17);
+  messageDesc(file_harness_llm_v1_providers, 19);
 
 /**
  * @generated from message harness.llm.v1.DeleteProviderRequest
@@ -857,7 +943,7 @@ export type DeleteProviderRequest = Message<"harness.llm.v1.DeleteProviderReques
  * Use `create(DeleteProviderRequestSchema)` to create a new message.
  */
 export const DeleteProviderRequestSchema: GenMessage<DeleteProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 18);
+  messageDesc(file_harness_llm_v1_providers, 20);
 
 /**
  * @generated from message harness.llm.v1.DeleteProviderResponse
@@ -870,7 +956,7 @@ export type DeleteProviderResponse = Message<"harness.llm.v1.DeleteProviderRespo
  * Use `create(DeleteProviderResponseSchema)` to create a new message.
  */
 export const DeleteProviderResponseSchema: GenMessage<DeleteProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 19);
+  messageDesc(file_harness_llm_v1_providers, 21);
 
 /**
  * @generated from message harness.llm.v1.DiscoverModelsRequest
@@ -887,7 +973,7 @@ export type DiscoverModelsRequest = Message<"harness.llm.v1.DiscoverModelsReques
  * Use `create(DiscoverModelsRequestSchema)` to create a new message.
  */
 export const DiscoverModelsRequestSchema: GenMessage<DiscoverModelsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 20);
+  messageDesc(file_harness_llm_v1_providers, 22);
 
 /**
  * @generated from message harness.llm.v1.DiscoverModelsResponse
@@ -904,7 +990,7 @@ export type DiscoverModelsResponse = Message<"harness.llm.v1.DiscoverModelsRespo
  * Use `create(DiscoverModelsResponseSchema)` to create a new message.
  */
 export const DiscoverModelsResponseSchema: GenMessage<DiscoverModelsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 21);
+  messageDesc(file_harness_llm_v1_providers, 23);
 
 /**
  * @generated from message harness.llm.v1.ModelCandidate
@@ -945,7 +1031,7 @@ export type ModelCandidate = Message<"harness.llm.v1.ModelCandidate"> & {
  * Use `create(ModelCandidateSchema)` to create a new message.
  */
 export const ModelCandidateSchema: GenMessage<ModelCandidate> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 22);
+  messageDesc(file_harness_llm_v1_providers, 24);
 
 /**
  * @generated from message harness.llm.v1.AddModelRequest
@@ -1003,7 +1089,7 @@ export type AddModelRequest = Message<"harness.llm.v1.AddModelRequest"> & {
  * Use `create(AddModelRequestSchema)` to create a new message.
  */
 export const AddModelRequestSchema: GenMessage<AddModelRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 23);
+  messageDesc(file_harness_llm_v1_providers, 25);
 
 /**
  * @generated from message harness.llm.v1.AddModelResponse
@@ -1020,7 +1106,7 @@ export type AddModelResponse = Message<"harness.llm.v1.AddModelResponse"> & {
  * Use `create(AddModelResponseSchema)` to create a new message.
  */
 export const AddModelResponseSchema: GenMessage<AddModelResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 24);
+  messageDesc(file_harness_llm_v1_providers, 26);
 
 /**
  * @generated from message harness.llm.v1.SetModelEffortsRequest
@@ -1052,7 +1138,7 @@ export type SetModelEffortsRequest = Message<"harness.llm.v1.SetModelEffortsRequ
  * Use `create(SetModelEffortsRequestSchema)` to create a new message.
  */
 export const SetModelEffortsRequestSchema: GenMessage<SetModelEffortsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 25);
+  messageDesc(file_harness_llm_v1_providers, 27);
 
 /**
  * @generated from message harness.llm.v1.SetModelEffortsResponse
@@ -1069,7 +1155,7 @@ export type SetModelEffortsResponse = Message<"harness.llm.v1.SetModelEffortsRes
  * Use `create(SetModelEffortsResponseSchema)` to create a new message.
  */
 export const SetModelEffortsResponseSchema: GenMessage<SetModelEffortsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 26);
+  messageDesc(file_harness_llm_v1_providers, 28);
 
 /**
  * @generated from message harness.llm.v1.SetModelPricingRequest
@@ -1093,7 +1179,7 @@ export type SetModelPricingRequest = Message<"harness.llm.v1.SetModelPricingRequ
  * Use `create(SetModelPricingRequestSchema)` to create a new message.
  */
 export const SetModelPricingRequestSchema: GenMessage<SetModelPricingRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 27);
+  messageDesc(file_harness_llm_v1_providers, 29);
 
 /**
  * @generated from message harness.llm.v1.SetModelPricingResponse
@@ -1110,7 +1196,99 @@ export type SetModelPricingResponse = Message<"harness.llm.v1.SetModelPricingRes
  * Use `create(SetModelPricingResponseSchema)` to create a new message.
  */
 export const SetModelPricingResponseSchema: GenMessage<SetModelPricingResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 28);
+  messageDesc(file_harness_llm_v1_providers, 30);
+
+/**
+ * @generated from message harness.llm.v1.AcceptModelPriceChangeRequest
+ */
+export type AcceptModelPriceChangeRequest = Message<"harness.llm.v1.AcceptModelPriceChangeRequest"> & {
+  /**
+   * @generated from field: string model_id = 1;
+   */
+  modelId: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.AcceptModelPriceChangeRequest.
+ * Use `create(AcceptModelPriceChangeRequestSchema)` to create a new message.
+ */
+export const AcceptModelPriceChangeRequestSchema: GenMessage<AcceptModelPriceChangeRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 31);
+
+/**
+ * @generated from message harness.llm.v1.AcceptModelPriceChangeResponse
+ */
+export type AcceptModelPriceChangeResponse = Message<"harness.llm.v1.AcceptModelPriceChangeResponse"> & {
+  /**
+   * @generated from field: harness.llm.v1.ProviderModel model = 1;
+   */
+  model?: ProviderModel | undefined;
+};
+
+/**
+ * Describes the message harness.llm.v1.AcceptModelPriceChangeResponse.
+ * Use `create(AcceptModelPriceChangeResponseSchema)` to create a new message.
+ */
+export const AcceptModelPriceChangeResponseSchema: GenMessage<AcceptModelPriceChangeResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 32);
+
+/**
+ * @generated from message harness.llm.v1.RefreshModelPricesRequest
+ */
+export type RefreshModelPricesRequest = Message<"harness.llm.v1.RefreshModelPricesRequest"> & {
+};
+
+/**
+ * Describes the message harness.llm.v1.RefreshModelPricesRequest.
+ * Use `create(RefreshModelPricesRequestSchema)` to create a new message.
+ */
+export const RefreshModelPricesRequestSchema: GenMessage<RefreshModelPricesRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 33);
+
+/**
+ * @generated from message harness.llm.v1.RefreshModelPricesResponse
+ */
+export type RefreshModelPricesResponse = Message<"harness.llm.v1.RefreshModelPricesResponse"> & {
+  /**
+   * The catalog was fetched and stored (false when it is off). A failure keeps the last good snapshot.
+   *
+   * @generated from field: bool ok = 1;
+   */
+  ok: boolean;
+
+  /**
+   * What happened, for the user.
+   *
+   * @generated from field: string message = 2;
+   */
+  message: string;
+
+  /**
+   * Models whose price or its source changed.
+   *
+   * @generated from field: int32 updated = 3;
+   */
+  updated: number;
+
+  /**
+   * Models with a change newly held back.
+   *
+   * @generated from field: int32 held = 4;
+   */
+  held: number;
+
+  /**
+   * @generated from field: harness.llm.v1.ModelPriceCatalog price_catalog = 5;
+   */
+  priceCatalog?: ModelPriceCatalog | undefined;
+};
+
+/**
+ * Describes the message harness.llm.v1.RefreshModelPricesResponse.
+ * Use `create(RefreshModelPricesResponseSchema)` to create a new message.
+ */
+export const RefreshModelPricesResponseSchema: GenMessage<RefreshModelPricesResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_providers, 34);
 
 /**
  * @generated from message harness.llm.v1.TestProviderRequest
@@ -1127,7 +1305,7 @@ export type TestProviderRequest = Message<"harness.llm.v1.TestProviderRequest"> 
  * Use `create(TestProviderRequestSchema)` to create a new message.
  */
 export const TestProviderRequestSchema: GenMessage<TestProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 29);
+  messageDesc(file_harness_llm_v1_providers, 35);
 
 /**
  * @generated from message harness.llm.v1.TestProviderResponse
@@ -1159,7 +1337,7 @@ export type TestProviderResponse = Message<"harness.llm.v1.TestProviderResponse"
  * Use `create(TestProviderResponseSchema)` to create a new message.
  */
 export const TestProviderResponseSchema: GenMessage<TestProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 30);
+  messageDesc(file_harness_llm_v1_providers, 36);
 
 /**
  * @generated from message harness.llm.v1.RemoveModelRequest
@@ -1176,7 +1354,7 @@ export type RemoveModelRequest = Message<"harness.llm.v1.RemoveModelRequest"> & 
  * Use `create(RemoveModelRequestSchema)` to create a new message.
  */
 export const RemoveModelRequestSchema: GenMessage<RemoveModelRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 31);
+  messageDesc(file_harness_llm_v1_providers, 37);
 
 /**
  * @generated from message harness.llm.v1.RemoveModelResponse
@@ -1189,7 +1367,7 @@ export type RemoveModelResponse = Message<"harness.llm.v1.RemoveModelResponse"> 
  * Use `create(RemoveModelResponseSchema)` to create a new message.
  */
 export const RemoveModelResponseSchema: GenMessage<RemoveModelResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 32);
+  messageDesc(file_harness_llm_v1_providers, 38);
 
 /**
  * @generated from message harness.llm.v1.GetClassifierRequest
@@ -1202,7 +1380,7 @@ export type GetClassifierRequest = Message<"harness.llm.v1.GetClassifierRequest"
  * Use `create(GetClassifierRequestSchema)` to create a new message.
  */
 export const GetClassifierRequestSchema: GenMessage<GetClassifierRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 33);
+  messageDesc(file_harness_llm_v1_providers, 39);
 
 /**
  * @generated from message harness.llm.v1.GetClassifierResponse
@@ -1219,7 +1397,7 @@ export type GetClassifierResponse = Message<"harness.llm.v1.GetClassifierRespons
  * Use `create(GetClassifierResponseSchema)` to create a new message.
  */
 export const GetClassifierResponseSchema: GenMessage<GetClassifierResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 34);
+  messageDesc(file_harness_llm_v1_providers, 40);
 
 /**
  * @generated from message harness.llm.v1.SetClassifierRequest
@@ -1236,7 +1414,7 @@ export type SetClassifierRequest = Message<"harness.llm.v1.SetClassifierRequest"
  * Use `create(SetClassifierRequestSchema)` to create a new message.
  */
 export const SetClassifierRequestSchema: GenMessage<SetClassifierRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 35);
+  messageDesc(file_harness_llm_v1_providers, 41);
 
 /**
  * @generated from message harness.llm.v1.SetClassifierResponse
@@ -1253,7 +1431,7 @@ export type SetClassifierResponse = Message<"harness.llm.v1.SetClassifierRespons
  * Use `create(SetClassifierResponseSchema)` to create a new message.
  */
 export const SetClassifierResponseSchema: GenMessage<SetClassifierResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 36);
+  messageDesc(file_harness_llm_v1_providers, 42);
 
 /**
  * Auto mode decides with the chain rules -> decision step (this) -> model classifier (llm).
@@ -1329,7 +1507,7 @@ export type Classifier = Message<"harness.llm.v1.Classifier"> & {
  * Use `create(ClassifierSchema)` to create a new message.
  */
 export const ClassifierSchema: GenMessage<Classifier> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 37);
+  messageDesc(file_harness_llm_v1_providers, 43);
 
 /**
  * A user's override of the server-default classifier. A choice that went stale (its provider or model was
@@ -1364,7 +1542,7 @@ export type ClassifierOverride = Message<"harness.llm.v1.ClassifierOverride"> & 
  * Use `create(ClassifierOverrideSchema)` to create a new message.
  */
 export const ClassifierOverrideSchema: GenMessage<ClassifierOverride> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 38);
+  messageDesc(file_harness_llm_v1_providers, 44);
 
 /**
  * @generated from message harness.llm.v1.GetMyClassifierRequest
@@ -1377,7 +1555,7 @@ export type GetMyClassifierRequest = Message<"harness.llm.v1.GetMyClassifierRequ
  * Use `create(GetMyClassifierRequestSchema)` to create a new message.
  */
 export const GetMyClassifierRequestSchema: GenMessage<GetMyClassifierRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 39);
+  messageDesc(file_harness_llm_v1_providers, 45);
 
 /**
  * @generated from message harness.llm.v1.GetMyClassifierResponse
@@ -1407,7 +1585,7 @@ export type GetMyClassifierResponse = Message<"harness.llm.v1.GetMyClassifierRes
  * Use `create(GetMyClassifierResponseSchema)` to create a new message.
  */
 export const GetMyClassifierResponseSchema: GenMessage<GetMyClassifierResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 40);
+  messageDesc(file_harness_llm_v1_providers, 46);
 
 /**
  * @generated from message harness.llm.v1.SetMyClassifierRequest
@@ -1426,7 +1604,7 @@ export type SetMyClassifierRequest = Message<"harness.llm.v1.SetMyClassifierRequ
  * Use `create(SetMyClassifierRequestSchema)` to create a new message.
  */
 export const SetMyClassifierRequestSchema: GenMessage<SetMyClassifierRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 41);
+  messageDesc(file_harness_llm_v1_providers, 47);
 
 /**
  * @generated from message harness.llm.v1.SetMyClassifierResponse
@@ -1453,7 +1631,7 @@ export type SetMyClassifierResponse = Message<"harness.llm.v1.SetMyClassifierRes
  * Use `create(SetMyClassifierResponseSchema)` to create a new message.
  */
 export const SetMyClassifierResponseSchema: GenMessage<SetMyClassifierResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 42);
+  messageDesc(file_harness_llm_v1_providers, 48);
 
 /**
  * @generated from message harness.llm.v1.GetSlotsRequest
@@ -1466,7 +1644,7 @@ export type GetSlotsRequest = Message<"harness.llm.v1.GetSlotsRequest"> & {
  * Use `create(GetSlotsRequestSchema)` to create a new message.
  */
 export const GetSlotsRequestSchema: GenMessage<GetSlotsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 43);
+  messageDesc(file_harness_llm_v1_providers, 49);
 
 /**
  * @generated from message harness.llm.v1.GetSlotsResponse
@@ -1499,7 +1677,7 @@ export type GetSlotsResponse = Message<"harness.llm.v1.GetSlotsResponse"> & {
  * Use `create(GetSlotsResponseSchema)` to create a new message.
  */
 export const GetSlotsResponseSchema: GenMessage<GetSlotsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 44);
+  messageDesc(file_harness_llm_v1_providers, 50);
 
 /**
  * @generated from message harness.llm.v1.SetSlotsRequest
@@ -1519,7 +1697,7 @@ export type SetSlotsRequest = Message<"harness.llm.v1.SetSlotsRequest"> & {
  * Use `create(SetSlotsRequestSchema)` to create a new message.
  */
 export const SetSlotsRequestSchema: GenMessage<SetSlotsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 45);
+  messageDesc(file_harness_llm_v1_providers, 51);
 
 /**
  * @generated from message harness.llm.v1.SetSlotsResponse
@@ -1536,7 +1714,7 @@ export type SetSlotsResponse = Message<"harness.llm.v1.SetSlotsResponse"> & {
  * Use `create(SetSlotsResponseSchema)` to create a new message.
  */
 export const SetSlotsResponseSchema: GenMessage<SetSlotsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 46);
+  messageDesc(file_harness_llm_v1_providers, 52);
 
 /**
  * @generated from message harness.llm.v1.GetSearchRequest
@@ -1549,7 +1727,7 @@ export type GetSearchRequest = Message<"harness.llm.v1.GetSearchRequest"> & {
  * Use `create(GetSearchRequestSchema)` to create a new message.
  */
 export const GetSearchRequestSchema: GenMessage<GetSearchRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 47);
+  messageDesc(file_harness_llm_v1_providers, 53);
 
 /**
  * Which search provider serves the caller's web searches.
@@ -1593,7 +1771,7 @@ export type SearchSettings = Message<"harness.llm.v1.SearchSettings"> & {
  * Use `create(SearchSettingsSchema)` to create a new message.
  */
 export const SearchSettingsSchema: GenMessage<SearchSettings> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 48);
+  messageDesc(file_harness_llm_v1_providers, 54);
 
 /**
  * @generated from message harness.llm.v1.GetSearchResponse
@@ -1610,7 +1788,7 @@ export type GetSearchResponse = Message<"harness.llm.v1.GetSearchResponse"> & {
  * Use `create(GetSearchResponseSchema)` to create a new message.
  */
 export const GetSearchResponseSchema: GenMessage<GetSearchResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 49);
+  messageDesc(file_harness_llm_v1_providers, 55);
 
 /**
  * @generated from message harness.llm.v1.SetSearchDefaultRequest
@@ -1629,7 +1807,7 @@ export type SetSearchDefaultRequest = Message<"harness.llm.v1.SetSearchDefaultRe
  * Use `create(SetSearchDefaultRequestSchema)` to create a new message.
  */
 export const SetSearchDefaultRequestSchema: GenMessage<SetSearchDefaultRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 50);
+  messageDesc(file_harness_llm_v1_providers, 56);
 
 /**
  * @generated from message harness.llm.v1.SetSearchDefaultResponse
@@ -1646,7 +1824,7 @@ export type SetSearchDefaultResponse = Message<"harness.llm.v1.SetSearchDefaultR
  * Use `create(SetSearchDefaultResponseSchema)` to create a new message.
  */
 export const SetSearchDefaultResponseSchema: GenMessage<SetSearchDefaultResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 51);
+  messageDesc(file_harness_llm_v1_providers, 57);
 
 /**
  * @generated from message harness.llm.v1.SetMySearchRequest
@@ -1666,7 +1844,7 @@ export type SetMySearchRequest = Message<"harness.llm.v1.SetMySearchRequest"> & 
  * Use `create(SetMySearchRequestSchema)` to create a new message.
  */
 export const SetMySearchRequestSchema: GenMessage<SetMySearchRequest> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 52);
+  messageDesc(file_harness_llm_v1_providers, 58);
 
 /**
  * @generated from message harness.llm.v1.SetMySearchResponse
@@ -1683,7 +1861,7 @@ export type SetMySearchResponse = Message<"harness.llm.v1.SetMySearchResponse"> 
  * Use `create(SetMySearchResponseSchema)` to create a new message.
  */
 export const SetMySearchResponseSchema: GenMessage<SetMySearchResponse> = /*@__PURE__*/
-  messageDesc(file_harness_llm_v1_providers, 53);
+  messageDesc(file_harness_llm_v1_providers, 59);
 
 /**
  * @generated from enum harness.llm.v1.ProviderScope
@@ -1869,8 +2047,8 @@ export const ProviderService: GenService<{
     output: typeof SetModelEffortsResponseSchema;
   },
   /**
-   * Sets by hand the price of a model of a provider the caller may change, also to none. Kept: lists and presets only
-   * fill in an empty price nobody set. Refused on a plan provider, whose requests carry no cost.
+   * Sets by hand the price of a model of a provider the caller may change, also to none. Kept: no list, catalog or preset
+   * goes over it. Refused on a plan provider, whose requests carry no cost.
    *
    * @generated from rpc harness.llm.v1.ProviderService.SetModelPricing
    */
@@ -1878,6 +2056,28 @@ export const ProviderService: GenService<{
     methodKind: "unary";
     input: typeof SetModelPricingRequestSchema;
     output: typeof SetModelPricingResponseSchema;
+  },
+  /**
+   * Takes the price change held back on a model (ProviderModel.price_change_held), with the access of SetModelPricing. The
+   * model keeps following its source from then on. INVALID_ARGUMENT when nothing is held.
+   *
+   * @generated from rpc harness.llm.v1.ProviderService.AcceptModelPriceChange
+   */
+  acceptModelPriceChange: {
+    methodKind: "unary";
+    input: typeof AcceptModelPriceChangeRequestSchema;
+    output: typeof AcceptModelPriceChangeResponseSchema;
+  },
+  /**
+   * Fetches the model price catalog now and applies it, and asks the global providers with priced model lists for theirs.
+   * Admin only. Prices reach clients through the normal lists.
+   *
+   * @generated from rpc harness.llm.v1.ProviderService.RefreshModelPrices
+   */
+  refreshModelPrices: {
+    methodKind: "unary";
+    input: typeof RefreshModelPricesRequestSchema;
+    output: typeof RefreshModelPricesResponseSchema;
   },
   /**
    * The auto-mode classifier: the decision step of DecisionService's chain (a global classifier provider: a

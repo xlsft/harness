@@ -186,5 +186,13 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"stored_object_owner_sha_idx\" ON \"stored_object\" USING btree (\"owner_id\",\"sha256\");",
       "CREATE INDEX \"stored_object_session_idx\" ON \"stored_object\" USING btree (\"owner_id\",\"session_id\");"
     ]
+  },
+  {
+    "id": "0011_model_price_source",
+    "statements": [
+      "ALTER TABLE \"model\" ADD COLUMN \"pricing_source\" text;",
+      "ALTER TABLE \"model\" ADD COLUMN \"pricing_updated_at\" timestamp with time zone;",
+      "ALTER TABLE \"model\" ADD COLUMN \"price_change_held\" jsonb;"
+    ]
   }
 ];

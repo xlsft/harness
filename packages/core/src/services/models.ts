@@ -13,6 +13,7 @@ import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "./devices.ts";
+import { catalogPriceOf, loadCatalogSnapshot } from "./price-catalog.ts";
 import { billingOf, presetOf, presetPriceOf } from "./presets.ts";
 import { PERSONAL_PREFIX, providerForUser } from "./providers.ts";
 
@@ -47,6 +48,16 @@ export interface ModelPricing {
   long_context?: { above_tokens: number; input: number; output: number; cache_read?: number; cache_write?: number };
 }
 
+/** Where a model's price came from, highest authority last: see services/model-prices.ts. */
+export type PriceSource = "preset" | "catalog" | "list" | "hand";
+
+/** A price change too large to apply by itself (services/model-prices.ts). */
+export interface HeldPriceChange {
+  proposed: ModelPricing;
+  source: "catalog" | "list";
+  held_at: string;
+}
+
 const PRICE_SET_BY_HAND = "pricing";
 
 export interface ModelEntry {
@@ -60,6 +71,10 @@ export interface ModelEntry {
   /** The capabilities someone set by hand. */
   setByHand?: string[];
   pricing: ModelPricing | null;
+  /** Null: not known, a price from before sources were recorded. */
+  pricingSource: PriceSource | null;
+  pricingUpdatedAt: Date | null;
+  priceChangeHeld: HeldPriceChange | null;
   /** For showing (shownAs): the provider's name and the model's id as a person reads it. */
   providerName?: string;
   displayId?: string;
@@ -112,6 +127,9 @@ function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
     capabilities: { ...DEFAULT_CAPS, ...capabilities },
     setByHand: set_by_hand,
     pricing: (r.pricing as ModelPricing | null) ?? null,
+    pricingSource: set_by_hand?.includes(PRICE_SET_BY_HAND) ? "hand" : (r.pricingSource as PriceSource | null),
+    pricingUpdatedAt: r.pricingUpdatedAt,
+    priceChangeHeld: (r.priceChangeHeld as HeldPriceChange | null) ?? null,
     fallbacks: (r.fallbacks as string[]) ?? [],
     extraBody: (r.extraBody as Record<string, unknown> | null) ?? null,
     roles: (r.roles as string[] | null) ?? null,
@@ -359,17 +377,26 @@ export async function createModel(input: ModelInput) {
   if (!input.provider_id) throw new ApiError("invalid_request", "provider_id is required");
   if (!input.upstream_model) throw new ApiError("invalid_request", "upstream_model is required");
   await assertGlobalProvider(input.provider_id);
-  await insertModel(input as ModelInput & { id: string; provider_id: string; upstream_model: string });
+  // A price the admin gives is theirs: nothing updates it, as with updateModel.
+  await insertModel({ ...(input as ModelInput & { id: string; provider_id: string; upstream_model: string }), price_source: "hand" });
   return getModelAdmin(input.id);
 }
 
-async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string; listed?: ListedCapabilities }) {
+async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string; listed?: ListedCapabilities; price_source: "list" | "hand" }) {
   if (await findModel(input.id)) throw new ApiError("invalid_request", `Model ${input.id} already exists`, { status: 409 });
   const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, input.provider_id) });
   if (provider?.kind === "classifier") throw new ApiError("invalid_request", "Classifier providers serve no chat models");
   if (provider?.kind === "search") throw new ApiError("invalid_request", "Search providers serve no chat models");
   if (provider?.kind === "speech") throw new ApiError("invalid_request", `Unknown provider ${input.provider_id}`);
   const now = new Date();
+  // A price given goes first, then the highest source that knows one (services/model-prices.ts).
+  const given = validatePricing(input.pricing);
+  const catalog = provider && catalogPriceOf(await loadCatalogSnapshot(), provider, input.upstream_model);
+  const preset = provider && presetPriceOf(provider, input.upstream_model);
+  const pricing = given ?? catalog ?? preset ?? null;
+  const pricingSource: PriceSource | null = given ? input.price_source : catalog ? "catalog" : preset ? "preset" : null;
+  const caps = validateCaps(input.capabilities);
+  const capabilities = markSetByHand(settledDefaultEffort({ ...DEFAULT_CAPS, ...input.listed, ...caps }, caps), caps);
   await getDb()
     .insert(schema.model)
     .values({
@@ -379,9 +406,10 @@ async function insertModel(input: ModelInput & { id: string; provider_id: string
       upstreamModel: input.upstream_model,
       contextWindow: positiveInt(input.context_window ?? 128_000, "context_window"),
       maxOutputTokens: positiveInt(input.max_output_tokens ?? 8192, "max_output_tokens"),
-      capabilities: markSetByHand(settledDefaultEffort({ ...DEFAULT_CAPS, ...input.listed, ...validateCaps(input.capabilities) }, validateCaps(input.capabilities)), validateCaps(input.capabilities)),
-      // A price given (by hand, or from the service's list) goes first, then what the preset publishes.
-      pricing: validatePricing(input.pricing) ?? (provider && presetPriceOf(provider, input.upstream_model)) ?? null,
+      capabilities: pricingSource === "hand" ? withPriceSetByHand(capabilities) : capabilities,
+      pricing,
+      pricingSource,
+      pricingUpdatedAt: pricing ? now : null,
       fallbacks: validateFallbacks(input.fallbacks, input.id),
       extraBody: input.extra_body ?? null,
       roles: input.roles ?? null,
@@ -409,6 +437,8 @@ export async function updateModel(id: string, input: ModelInput) {
     patch.providerId = input.provider_id;
   }
   if (input.upstream_model !== undefined) patch.upstreamModel = input.upstream_model;
+  // A change held for what the model was before says nothing about what it is now.
+  if (input.upstream_model !== undefined || input.provider_id !== undefined) patch.priceChangeHeld = null;
   if (input.context_window !== undefined) patch.contextWindow = positiveInt(input.context_window, "context_window");
   if (input.max_output_tokens !== undefined) patch.maxOutputTokens = positiveInt(input.max_output_tokens, "max_output_tokens");
   if (input.capabilities !== undefined) {
@@ -418,6 +448,7 @@ export async function updateModel(id: string, input: ModelInput) {
   if (input.pricing !== undefined) {
     patch.pricing = validatePricing(input.pricing);
     patch.capabilities = withPriceSetByHand((patch.capabilities ?? { ...cur.capabilities, set_by_hand: cur.setByHand }) as StoredCapabilities);
+    Object.assign(patch, { pricingSource: "hand", pricingUpdatedAt: new Date(), priceChangeHeld: null });
   }
   if (input.fallbacks !== undefined) patch.fallbacks = validateFallbacks(input.fallbacks, id);
   if (input.extra_body !== undefined) patch.extraBody = input.extra_body;
@@ -496,6 +527,7 @@ export async function addProviderModel(providerId: string, input: ProviderModelI
     capabilities: input.capabilities,
     listed: input.listed,
     pricing: input.pricing,
+    price_source: "list",
   });
   return (await findModel(id))!;
 }
@@ -529,38 +561,33 @@ export async function setProviderModelEfforts(modelId: string, efforts: string[]
 }
 
 /**
- * Sets a model's price by hand (null: no price). Kept from then on: lists and presets only fill an empty price
- * nobody set. A plan provider's requests carry no cost (gateway/cost.ts billedPricing), so there it is refused.
+ * Sets a model's price by hand (null: no price). Kept from then on, nothing goes over it (services/model-prices.ts), and
+ * a change held back is moot. A plan provider's requests carry no cost (gateway/cost.ts billedPricing), so there it is refused.
  */
 export async function setProviderModelPricing(modelId: string, pricing: ModelPricing | null, user: PublicUser): Promise<ModelEntry> {
   const m = await writableModel(modelId, user);
   const { row } = await providerForUser(m.providerId, user);
   if (billingOf(row) === "plan") throw new ApiError("invalid_request", "A subscription plan's requests carry no price");
   const capabilities = withPriceSetByHand({ ...m.capabilities, set_by_hand: m.setByHand });
+  const now = new Date();
   await getDb()
     .update(schema.model)
-    .set({ pricing: validatePricing(pricing), capabilities, updatedAt: new Date() })
+    .set({ pricing: validatePricing(pricing), pricingSource: "hand", pricingUpdatedAt: now, priceChangeHeld: null, capabilities, updatedAt: now })
     .where(eq(schema.model.id, modelId));
   return (await findModel(modelId))!;
 }
 
-/**
- * Fills empty prices from what the provider's preset publishes (one provider, or all of them at startup), so a model
- * added before its preset had prices gets one with nothing asked of anyone or of the service. Never over a price, and
- * never over one set by hand to none.
- */
-export async function fillPresetPrices(providerId?: string): Promise<void> {
-  await ensureDb();
-  const rows = await getDb()
-    .select()
-    .from(schema.model)
-    .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
-    .where(providerId ? eq(schema.model.providerId, providerId) : undefined);
-  for (const { model, provider } of rows) {
-    if (model.pricing || priceSetByHand(model.capabilities)) continue;
-    const pricing = presetPriceOf(provider, model.upstreamModel);
-    if (pricing) await getDb().update(schema.model).set({ pricing }).where(eq(schema.model.id, model.id));
-  }
+/** Takes the price change held back on a model. Not by hand: the model goes on following that source. */
+export async function acceptHeldPrice(modelId: string, user: PublicUser): Promise<ModelEntry> {
+  const m = await writableModel(modelId, user);
+  const held = m.priceChangeHeld;
+  if (!held) throw new ApiError("invalid_request", `No price change is held for ${modelId}`);
+  const now = new Date();
+  await getDb()
+    .update(schema.model)
+    .set({ pricing: held.proposed, pricingSource: held.source, pricingUpdatedAt: now, priceChangeHeld: null, updatedAt: now })
+    .where(eq(schema.model.id, modelId));
+  return (await findModel(modelId))!;
 }
 
 /** Removes a model from a provider the user may change (a global one only as admin). */
