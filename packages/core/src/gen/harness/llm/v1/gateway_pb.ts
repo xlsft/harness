@@ -97,7 +97,7 @@ export type Model = Message<"harness.llm.v1.Model"> & {
   pricing?: Pricing | undefined;
 
   /**
-   * For showing: the provider's name, and the model's id as a person reads it ("anthropic/claude-opus-5-5").
+   * For showing: the provider's name, and the model's id as a person reads it ("claude-opus-5-5").
    *
    * @generated from field: string provider_name = 8;
    */

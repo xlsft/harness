@@ -177,7 +177,7 @@ type Model struct {
 	Capabilities    *Capabilities `protobuf:"bytes,6,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
 	// Absent when the admin did not configure prices.
 	Pricing *Pricing `protobuf:"bytes,7,opt,name=pricing,proto3,oneof" json:"pricing,omitempty"`
-	// For showing: the provider's name, and the model's id as a person reads it ("anthropic/claude-opus-5-5").
+	// For showing: the provider's name, and the model's id as a person reads it ("claude-opus-5-5").
 	ProviderName  string `protobuf:"bytes,8,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
 	DisplayId     string `protobuf:"bytes,9,opt,name=display_id,json=displayId,proto3" json:"display_id,omitempty"`
 	unknownFields protoimpl.UnknownFields

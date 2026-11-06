@@ -91,8 +91,7 @@ type Row = typeof schema.model.$inferSelect;
 function shownAs(r: Row, provider: typeof schema.provider.$inferSelect) {
   const preset = presetOf(provider);
   const providerName = provider.displayName || preset?.display_name || provider.id;
-  const slug = preset?.id || providerName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  return { providerName, displayId: provider.ownerUserId ? `${slug}/${r.upstreamModel}` : r.id };
+  return { providerName, displayId: provider.ownerUserId ? r.upstreamModel : r.id };
 }
 
 function toEntry(r: Row, ownerUserId: string | null): ModelEntry {

@@ -38,7 +38,7 @@ message Model {
   Capabilities capabilities = 6;
   // Absent when the admin did not configure prices.
   optional Pricing pricing = 7;
-  // For showing: the provider's name, and the model's id as a person reads it ("anthropic/claude-opus-5-5").
+  // For showing: the provider's name, and the model's id as a person reads it ("claude-opus-5-5").
   string provider_name = 8;
   string display_id = 9;
 }
