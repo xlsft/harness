@@ -137,6 +137,10 @@ function elapsed(a: SubagentVM) {
               class="text-accent"
             />
             <span class="min-w-0 truncate text-strong">{{ a.name }}</span>
+            <span
+              v-if="a.team"
+              class="shrink-0 border border-default px-1 text-[10px] leading-[14px] text-muted"
+            >{{ a.team }}</span>
             <span class="shrink-0 text-[11px] text-muted">{{ a.type }}</span>
           </button>
           <span class="text-[11px] whitespace-nowrap text-muted">{{ a.state === 'queued' ? 'queued' : a.currentTool || a.model }}</span>

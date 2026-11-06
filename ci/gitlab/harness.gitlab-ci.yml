@@ -1,0 +1,51 @@
+# A GitLab CI template that runs xlsft`s harness on merge requests and notes. Setup, variables and security notes: docs/ci.md.
+#
+#   include:
+#     - remote: https://raw.githubusercontent.com/xlsft/harness/main/ci/gitlab/harness.gitlab-ci.yml
+#   # Pin that URL to a commit, as with anything that sees secrets.
+#
+# CI/CD variables: HARNESS_SERVER_URL, HARNESS_DEVICE_TOKEN (from `harness-client ci login`, masked) and GITLAB_TOKEN (a
+# project access token with the api scope, masked).
+#
+# Comments reach this file through a pipeline trigger: GitLab starts no pipeline for a note by itself. See docs/ci.md for the
+# project webhook that does it; the note then arrives in the file TRIGGER_PAYLOAD names.
+
+variables:
+  # Where harness-client comes from: a path already in the image, else built from this repository at HARNESS_REF.
+  HARNESS_CLIENT: ""
+  HARNESS_REPO: "https://github.com/xlsft/harness.git"
+  HARNESS_REF: "main"
+  HARNESS_MAX_BUDGET_USD: "2"
+  HARNESS_TRIGGER: "@harness"
+  HARNESS_REVIEW_FLAGS: ""
+
+.harness:
+  image: golang:1.26-alpine
+  variables:
+    GIT_DEPTH: "50"
+    HARNESS_KEYRING: "0"
+    HARNESS_HOME: "$CI_PROJECT_DIR/.harness-home"
+    HARNESS_NO_VCS: "1"
+  before_script:
+    - apk add --no-cache git glab
+    - |
+      if [ -z "$HARNESS_CLIENT" ]; then
+        git clone --quiet --depth 1 --branch "$HARNESS_REF" "$HARNESS_REPO" /tmp/harness
+        (cd /tmp/harness/packages/client && go build -trimpath -o /usr/local/bin/harness-client ./cmd/harness-client)
+        HARNESS_CLIENT=harness-client
+      fi
+
+harness-review:
+  extends: .harness
+  rules:
+    # Merge request pipelines of the project only: a fork's pipeline has no protected variables, and must not get them.
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID == $CI_PROJECT_ID'
+  script:
+    - '"$HARNESS_CLIENT" ci review --max-budget-usd "$HARNESS_MAX_BUDGET_USD" $HARNESS_REVIEW_FLAGS'
+
+harness-mention:
+  extends: .harness
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $TRIGGER_PAYLOAD'
+  script:
+    - '"$HARNESS_CLIENT" ci mention --trigger "$HARNESS_TRIGGER" --max-budget-usd "$HARNESS_MAX_BUDGET_USD"'

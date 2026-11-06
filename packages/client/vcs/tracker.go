@@ -54,6 +54,8 @@ type Tracker struct {
 	commentsFor string
 	failSince   time.Time
 	notesAt     []time.Time
+	// seenJobs are the auto-fix jobs of the server already taken (a redelivered command runs again).
+	seenJobs []string
 
 	// refOnce computes ref, the session's opaque reference in the marker.
 	refOnce sync.Once
@@ -934,13 +936,10 @@ func (t *Tracker) monitorLocked(st *prState, view *PRView, comments []Comment, f
 
 	hasNews := len(note.failed) > 0 || note.conflict || len(note.comments) > 0
 	if hasNews {
-		hour := now.Add(-time.Hour)
-		t.notesAt = slices.DeleteFunc(t.notesAt, func(at time.Time) bool { return at.Before(hour) })
-		if len(t.notesAt) >= limit {
+		if !t.takeWakeLocked(now, limit) {
 			t.log.Debug("waking notes over the hourly cap; holding this one", "pr", st.Number)
 			return nil
 		}
-		t.notesAt = append(t.notesAt, now)
 	}
 	st.SeenFailed, st.SeenConflict, st.SeenComments = seenFailed, view.PR.GetHasConflicts(), seenComments
 	if !hasNews {
@@ -1013,6 +1012,17 @@ func (t *Tracker) deliver(ctx context.Context, prov PRProvider, repo Repo, n *pe
 	if h != nil {
 		h(note)
 	}
+}
+
+// takeWakeLocked counts a waking note against the hourly cap; false when the cap is reached.
+func (t *Tracker) takeWakeLocked(now time.Time, limit int) bool {
+	hour := now.Add(-time.Hour)
+	t.notesAt = slices.DeleteFunc(t.notesAt, func(at time.Time) bool { return at.Before(hour) })
+	if len(t.notesAt) >= limit {
+		return false
+	}
+	t.notesAt = append(t.notesAt, now)
+	return true
 }
 
 func plural(n int, one, many string) string {

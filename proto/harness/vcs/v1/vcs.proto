@@ -40,6 +40,8 @@ service VcsService {
   rpc StartUserAuth(StartUserAuthRequest) returns (StartUserAuthResponse);
   rpc GetUserAuthStatus(GetUserAuthStatusRequest) returns (GetUserAuthStatusResponse);
   rpc RevokeUserAuth(RevokeUserAuthRequest) returns (RevokeUserAuthResponse);
+  // The connections any signed-in user can use, with where that user stands on each. No secrets, no health details.
+  rpc ListUserConnections(ListUserConnectionsRequest) returns (ListUserConnectionsResponse);
 
   // --- Repositories and pull/merge requests ---
   rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
@@ -237,6 +239,28 @@ message RevokeUserAuthRequest {
 }
 
 message RevokeUserAuthResponse {}
+
+message ListUserConnectionsRequest {}
+
+message ListUserConnectionsResponse {
+  repeated UserConnection connections = 1;
+}
+
+message UserConnection {
+  string connection_id = 1;
+  ProviderType type = 2;
+  string display_name = 3;
+  string base_url = 4;
+  // Host of base_url, lowercased: the host part of repository keys.
+  string host = 5;
+  // Where users install the app (GitHub).
+  string install_url = 6;
+  GetUserAuthStatusResponse.State state = 7;
+  // Login on the code host, when connected.
+  string login = 8;
+  // The server can open PRs for this user here: the user's own token, or a GitLab access token the connection holds.
+  bool can_write = 9;
+}
 
 message Repository {
   string connection_id = 1;

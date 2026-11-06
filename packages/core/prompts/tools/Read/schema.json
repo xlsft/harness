@@ -16,6 +16,10 @@
       "minimum": 1,
       "description": "Maximum number of lines to read. Use for large files"
     },
+    "pages": {
+      "type": "string",
+      "description": "PDF only: the pages to read, such as \"3\", \"1-5\" or \"1,3,7-9\". At most 20 per call"
+    },
     "description": {
       "type": "string",
       "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"

@@ -91,7 +91,8 @@ const (
 	SlashCommandResult_ACTION_OPEN_SESSION   SlashCommandResult_Action = 3
 	SlashCommandResult_ACTION_OPEN_CUSTOMIZE SlashCommandResult_Action = 4
 	// Open Settings > Plugins.
-	SlashCommandResult_ACTION_OPEN_PLUGINS SlashCommandResult_Action = 160
+	SlashCommandResult_ACTION_OPEN_PLUGINS   SlashCommandResult_Action = 160
+	SlashCommandResult_ACTION_OPEN_SCHEDULED SlashCommandResult_Action = 140
 )
 
 // Enum value maps for SlashCommandResult_Action.
@@ -103,6 +104,7 @@ var (
 		3:   "ACTION_OPEN_SESSION",
 		4:   "ACTION_OPEN_CUSTOMIZE",
 		160: "ACTION_OPEN_PLUGINS",
+		140: "ACTION_OPEN_SCHEDULED",
 	}
 	SlashCommandResult_Action_value = map[string]int32{
 		"ACTION_UNSPECIFIED":    0,
@@ -111,6 +113,7 @@ var (
 		"ACTION_OPEN_SESSION":   3,
 		"ACTION_OPEN_CUSTOMIZE": 4,
 		"ACTION_OPEN_PLUGINS":   160,
+		"ACTION_OPEN_SCHEDULED": 140,
 	}
 )
 
@@ -724,21 +727,22 @@ const file_harness_agent_v1_slash_commands_proto_rawDesc = "" +
 	"\bcommands\x18\x01 \x03(\v2\x1e.harness.agent.v1.SlashCommandR\bcommands\x12:\n" +
 	"\x19project_skipped_untrusted\x18\x02 \x01(\bR\x17projectSkippedUntrusted\x120\n" +
 	"\x14listing_budget_chars\x18\x03 \x01(\x05R\x12listingBudgetChars\x12,\n" +
-	"\x12listing_used_chars\x18\x04 \x01(\x05R\x10listingUsedChars\"\xf6\x02\n" +
+	"\x12listing_used_chars\x18\x04 \x01(\x05R\x10listingUsedChars\"\x92\x03\n" +
 	"\x12SlashCommandResult\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04text\x18\x03 \x01(\tR\x04text\x12\x19\n" +
 	"\bis_error\x18\x04 \x01(\bR\aisError\x12C\n" +
 	"\x06action\x18\x05 \x01(\x0e2+.harness.agent.v1.SlashCommandResult.ActionR\x06action\x12$\n" +
-	"\x0enew_session_id\x18\x06 \x01(\tR\fnewSessionId\"\x9d\x01\n" +
+	"\x0enew_session_id\x18\x06 \x01(\tR\fnewSessionId\"\xb9\x01\n" +
 	"\x06Action\x12\x16\n" +
 	"\x12ACTION_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ACTION_PICK_MODEL\x10\x01\x12\x16\n" +
 	"\x12ACTION_PICK_EFFORT\x10\x02\x12\x17\n" +
 	"\x13ACTION_OPEN_SESSION\x10\x03\x12\x19\n" +
 	"\x15ACTION_OPEN_CUSTOMIZE\x10\x04\x12\x18\n" +
-	"\x13ACTION_OPEN_PLUGINS\x10\xa0\x01\"\x9e\x02\n" +
+	"\x13ACTION_OPEN_PLUGINS\x10\xa0\x01\x12\x1a\n" +
+	"\x15ACTION_OPEN_SCHEDULED\x10\x8c\x01\"\x9e\x02\n" +
 	"\fSkillInvoked\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x126\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\".harness.agent.v1.SlashCommandKindR\x04kind\x12\x16\n" +

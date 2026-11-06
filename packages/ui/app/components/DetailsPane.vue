@@ -36,6 +36,7 @@ const autoFix = computed({
 })
 const showAutoFix = computed(() => !props.session.meta.noFolder && !props.session.meta.remote && props.session.meta.engine === 'harness')
 const pr = computed(() => props.session.meta.pullRequest)
+const creatingPr = ref(false)
 const relayLocked = computed(() => props.session.meta.remote ? `Switched on ${props.session.meta.deviceName || 'its own machine'}` : props.session.meta.relayAvailable ? '' : props.session.meta.relayReason || 'Remote control is not available')
 
 const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool'))
@@ -356,9 +357,10 @@ function taskMeta(command: string, tail: string) {
           PR {{ pr.number }} <span :class="prChip(pr).cls">{{ prChip(pr).text }}</span>
         </button>
         <button
-          v-else-if="!noFolder"
+          v-else-if="!noFolder && showAutoFix"
           type="button"
           class="shrink-0 border border-default px-2.5 py-1 text-[11.5px] text-strong hover:bg-hover"
+          @click="creatingPr = true"
         >
           Create PR
         </button>
@@ -419,6 +421,10 @@ function taskMeta(command: string, tail: string) {
     <EnvironmentModal
       v-model:open="editing"
       :session="session"
+    />
+    <PullRequestDialog
+      v-model:open="creatingPr"
+      :session-id="session.meta.id"
     />
     <UModal
       :open="!!browsing && !desktop"

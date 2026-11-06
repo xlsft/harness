@@ -10,6 +10,8 @@ A monorepo **without monorepo tooling**: every package builds on its own. Packag
 | `packages/client` | Agent client, Go library + `harness-client` binary | Go 1.26 |
 | `packages/cli` | Terminal frontend | Go 1.26, charm.land |
 | `packages/ui` | Desktop / mobile frontend | Node 24, pnpm, Nuxt 4 |
+| `packages/sdk-ts` | TypeScript SDK over headless `harness-client` | Node 24, no dependencies |
+| `ci/` | GitHub Action and GitLab CI template running `harness-client ci` | — |
 | `proto/` | RPC contracts (buf module) | buf |
 | `evals/` | Model eval suite | Go |
 | `catalog/` | Skills catalog, a plugin marketplace; see [its README](catalog/README.md) | JSON, checked by `scripts/catalog` (Python, standard library) |

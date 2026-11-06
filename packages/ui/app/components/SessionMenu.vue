@@ -7,6 +7,7 @@
 // delete. Archiving takes the sub-sessions along; deleting detaches them first (they stay as top-level sessions).
 import type { SessionState } from '~/lib/session/types'
 import { isDesktop, revealInFolder } from '~/lib/desktop'
+import { ExportFormat, saveBytes } from '~/lib/library/types'
 
 const props = withDefaults(defineProps<{
   session: SessionState
@@ -41,6 +42,14 @@ async function run(action: () => unknown) {
 }
 
 const copyPath = () => navigator.clipboard.writeText(props.session.meta.cwd)
+
+// The client renders the file; a session of another machine is read from the server.
+async function exportAs(format: ExportFormat) {
+  const file = await store.transport!.library().exportSession(id.value, format)
+  saveBytes(file.name, file.mediaType, file.content)
+}
+const exportMarkdown = () => exportAs(ExportFormat.MARKDOWN)
+const exportJsonl = () => exportAs(ExportFormat.JSONL)
 
 // "Open in" targets: this window, or a new browser tab (the UI opens ?session=<id>; not in the desktop app).
 const openTargets = computed(() => [
@@ -170,6 +179,19 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           </PaneMenuItem>
           <div class="my-1 h-px bg-line" />
         </template>
+        <PaneMenuItem
+          icon="download"
+          @click="run(exportMarkdown)"
+        >
+          Export as Markdown
+        </PaneMenuItem>
+        <PaneMenuItem
+          icon="download"
+          @click="run(exportJsonl)"
+        >
+          Export as JSONL
+        </PaneMenuItem>
+        <div class="my-1 h-px bg-line" />
         <PaneMenuItem
           icon="pin"
           value="P"

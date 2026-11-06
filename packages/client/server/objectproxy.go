@@ -32,7 +32,7 @@ var objectPathRe = regexp.MustCompile(`^/objects/[0-9a-f]{64}$`)
 // objectResponseHeaders are the only headers of core's answer that reach the frontend.
 var objectResponseHeaders = []string{
 	"Content-Type", "Content-Length", "Content-Range", "Content-Disposition", "Accept-Ranges", "Etag", "Cache-Control",
-	"X-Content-Type-Options", "Content-Security-Policy", "Referrer-Policy",
+	"X-Content-Type-Options", "Content-Security-Policy", "Referrer-Policy", "Cross-Origin-Resource-Policy",
 }
 
 // ObjectProxy serves the object store's bytes to frontends: core's read route, with this client's credentials. It is
@@ -61,6 +61,14 @@ func (p *ObjectProxy) sign(exp string) string {
 	m.Write([]byte("object-read:" + exp))
 	return hex.EncodeToString(m.Sum(nil))
 }
+
+func (p *ObjectProxy) signArtifact(id, exp string) string {
+	m := hmac.New(sha256.New, p.key[:])
+	m.Write([]byte("artifact-read:" + id + ":" + exp))
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+func hmacEqual(a, b string) bool { return hmac.Equal([]byte(a), []byte(b)) }
 
 // Ticket issues a read ticket.
 func (p *ObjectProxy) Ticket() (string, time.Time) {

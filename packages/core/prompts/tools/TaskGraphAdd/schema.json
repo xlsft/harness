@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "A name for this task within this call, for blocked_by of the others"
+          },
+          "title": {
+            "type": "string",
+            "description": "What is to be done, in a line"
+          },
+          "description": {
+            "type": "string",
+            "description": "The details whoever takes it needs"
+          },
+          "blocked_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tasks that must be done first: ids, or keys of this call"
+          },
+          "team": {
+            "type": "string",
+            "description": "Only this team's agents may take it"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "tasks"
+  ],
+  "additionalProperties": false
+}

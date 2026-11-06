@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/zalando/go-keyring"
 )
@@ -22,6 +23,35 @@ type Store interface {
 	Load() (*Credentials, error) // nil, nil when absent
 	Save(*Credentials) error
 	Delete() error
+}
+
+// MemoryStore keeps credentials for the life of the process (a device token from a CI secret).
+type MemoryStore struct {
+	mu sync.Mutex
+	c  *Credentials
+}
+
+// NewMemoryStore starts with c, which may be nil.
+func NewMemoryStore(c *Credentials) *MemoryStore { return &MemoryStore{c: c} }
+
+func (s *MemoryStore) Load() (*Credentials, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.c, nil
+}
+
+func (s *MemoryStore) Save(c *Credentials) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.c = c
+	return nil
+}
+
+func (s *MemoryStore) Delete() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.c = nil
+	return nil
 }
 
 // FileStore keeps credentials in a JSON file with 0600 permissions.

@@ -27,10 +27,11 @@ var (
 
 	dnsRe = regexp.MustCompile(`(?i)could not resolve|couldn't resolve|name or service not known|nodename nor servname|no such host|getaddrinfo|temporary failure in name resolution|ENOTFOUND|EAI_AGAIN|name resolution failed|lookup [^ ]+ on|lookup [^ ]+: no`)
 	// A socket call the kernel refused.
-	netRe    = regexp.MustCompile(`(?i)(connect|socket|dial|bind|listen|sendto|fetch)[^\n]*(operation not permitted|EPERM)|(operation not permitted|EPERM)[^\n]*(connect|socket|bind|listen)|EADDRNOTAVAIL|failed to connect to [^ ]+ port`)
-	sshRe    = regexp.MustCompile(`(?i)(ssh: |ssh_|could not read from remote repository|host key verification failed|permission denied \(publickey)`)
-	dockerRe = regexp.MustCompile(`(?i)docker daemon|docker\.sock|colima|podman\.sock`)
-	proxyRe  = regexp.MustCompile(`(?i)harness sandbox: ([^\s]+) is not on the allowed hosts`)
+	netRe        = regexp.MustCompile(`(?i)(connect|socket|dial|bind|listen|sendto|fetch)[^\n]*(operation not permitted|EPERM)|(operation not permitted|EPERM)[^\n]*(connect|socket|bind|listen)|EADDRNOTAVAIL|failed to connect to [^ ]+ port`)
+	socketCallRe = regexp.MustCompile(`\.(bind|listen|connect)\(`)
+	sshRe        = regexp.MustCompile(`(?i)(ssh: |ssh_|could not read from remote repository|host key verification failed|permission denied \(publickey)`)
+	dockerRe     = regexp.MustCompile(`(?i)docker daemon|docker\.sock|colima|podman\.sock`)
+	proxyRe      = regexp.MustCompile(`(?i)harness sandbox: ([^\s]+) is not on the allowed hosts`)
 	// git's keychain helper (-50 is its refused call to securityd), and what git says when no helper answered.
 	credsRe = regexp.MustCompile(`(?i)could not read (username|password) for|failed to get: -|secitem|seckeychain|keychain`)
 	// The xcrun shims complain about their cache on a miss (driver_darwin.go), and carry on.
@@ -81,9 +82,29 @@ func (w *Wrapped) Diagnose(output, cwd string, failed bool) *Denial {
 	return &d
 }
 
+// socketCallAbove returns the socket call named in the few lines above line i, if any.
+func socketCallAbove(lines []string, i int) string {
+	for j := i - 1; j >= 0 && j >= i-3; j-- {
+		l := lines[j]
+		if len(l) > 2000 {
+			l = l[:2000]
+		}
+		if m := socketCallRe.FindAllStringSubmatch(l, -1); m != nil {
+			for _, c := range m {
+				if c[1] == "bind" || c[1] == "listen" {
+					return c[1]
+				}
+			}
+			return m[0][1]
+		}
+	}
+	return ""
+}
+
 func (w *Wrapped) readLines(d *Denial, output, cwd string) {
 	refused := false
-	for _, line := range strings.Split(output, "\n") {
+	lines := strings.Split(output, "\n")
+	for i, line := range lines {
 		if len(line) > 2000 {
 			line = line[:2000]
 		}
@@ -101,6 +122,14 @@ func (w *Wrapped) readLines(d *Denial, output, cwd string) {
 			continue
 		case dnsRe.MatchString(line):
 			d.Network = true
+			continue
+		case refusedRe.MatchString(line) && socketCallAbove(lines, i) != "":
+			// A traceback names the call on the lines above the error, as Python's does.
+			if call := socketCallAbove(lines, i); call == "bind" || call == "listen" {
+				d.Local = true
+			} else {
+				d.Network = true
+			}
 			continue
 		case netRe.MatchString(line):
 			if strings.Contains(strings.ToLower(line), "bind") || strings.Contains(strings.ToLower(line), "listen") || strings.Contains(line, "127.0.0.1") || strings.Contains(line, "localhost") {

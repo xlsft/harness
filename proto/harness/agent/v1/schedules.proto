@@ -1,0 +1,237 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Scheduled tasks: a prompt that runs by itself, on a time or on an event. The client that is up on the schedule's
+// machine runs it; nothing runs on the server. A schedule on this machine lives in HARNESS_HOME/schedules. It is also a
+// synced document (DOCUMENT_KIND_SCHEDULE) unless it is device-local: tied to a session here, to an ACP agent or a local
+// model, or made without a server. Other machines of the user list a synced schedule, edit it and ask for a run; only
+// its own machine runs it, and only after that machine's user allowed what an edit from elsewhere changed.
+
+enum ScheduleTriggerKind {
+  SCHEDULE_TRIGGER_KIND_UNSPECIFIED = 0;
+  // Once, at `at`.
+  SCHEDULE_TRIGGER_KIND_ONCE = 1;
+  // Every `every_seconds` (at least 60).
+  SCHEDULE_TRIGGER_KIND_INTERVAL = 2;
+  // On a five-field cron expression, in `timezone`.
+  SCHEDULE_TRIGGER_KIND_CRON = 3;
+  // When a file matching `paths` in the schedule's folder changes.
+  SCHEDULE_TRIGGER_KIND_FILE_CHANGED = 4;
+  // When something posts to `webhook_url` on the server.
+  SCHEDULE_TRIGGER_KIND_WEBHOOK = 5;
+}
+
+message ScheduleTrigger {
+  ScheduleTriggerKind kind = 1;
+  // ONCE: RFC 3339.
+  string at = 2;
+  // INTERVAL: seconds.
+  int64 every_seconds = 3;
+  // CRON: minute hour day-of-month month day-of-week; lists, ranges, steps and names.
+  string cron = 4;
+  // CRON: an IANA zone; empty is this machine's zone.
+  string timezone = 5;
+  // FILE_CHANGED: doublestar globs relative to the folder.
+  repeated string paths = 6;
+  // FILE_CHANGED: the least time between two runs (default 60).
+  int64 cooldown_seconds = 7;
+  // WEBHOOK, output only: where to post. Holds the secret, so only the schedule's machine knows it, and empty until the
+  // schedule reached the server.
+  string webhook_url = 8;
+}
+
+// Who made a schedule.
+enum ScheduleOrigin {
+  SCHEDULE_ORIGIN_UNSPECIFIED = 0;
+  // The Scheduled screen.
+  SCHEDULE_ORIGIN_USER = 1;
+  // `/loop` in a session.
+  SCHEDULE_ORIGIN_LOOP = 2;
+  // The model, with the ScheduleWakeup tool.
+  SCHEDULE_ORIGIN_WAKEUP = 3;
+}
+
+enum ScheduleRunStatus {
+  SCHEDULE_RUN_STATUS_UNSPECIFIED = 0;
+  SCHEDULE_RUN_STATUS_RUNNING = 1;
+  // The turn ended normally.
+  SCHEDULE_RUN_STATUS_SUCCEEDED = 2;
+  SCHEDULE_RUN_STATUS_FAILED = 3;
+  // Stopped by the user, or the session closed or the client stopped under it.
+  SCHEDULE_RUN_STATUS_INTERRUPTED = 4;
+  // Its time came while the previous run still worked: this one did not start.
+  SCHEDULE_RUN_STATUS_SKIPPED = 5;
+  // Its time passed while the client was down and the schedule doesn't catch up.
+  SCHEDULE_RUN_STATUS_MISSED = 6;
+  // The run waits for the user (a permission or a question).
+  SCHEDULE_RUN_STATUS_NEEDS_INPUT = 7;
+  // Handed to an ACP agent, which doesn't say when it is done.
+  SCHEDULE_RUN_STATUS_STARTED = 8;
+}
+
+// What made a run start.
+enum ScheduleRunSource {
+  SCHEDULE_RUN_SOURCE_UNSPECIFIED = 0;
+  SCHEDULE_RUN_SOURCE_TIME = 1;
+  // Its time passed while the client was down.
+  SCHEDULE_RUN_SOURCE_CATCH_UP = 2;
+  // Run now.
+  SCHEDULE_RUN_SOURCE_MANUAL = 3;
+  SCHEDULE_RUN_SOURCE_FILE = 4;
+  SCHEDULE_RUN_SOURCE_WEBHOOK = 5;
+}
+
+message ScheduleRun {
+  string id = 1;
+  string schedule_id = 2;
+  ScheduleRunStatus status = 3;
+  ScheduleRunSource source = 4;
+  // RFC 3339, UTC.
+  string started_at = 5;
+  string finished_at = 6;
+  // The session it ran in; empty when it did not start.
+  string session_id = 7;
+  // The start of the final answer.
+  string summary = 8;
+  // Why it failed, or did not start.
+  string error = 9;
+  // The machine it ran on.
+  string device_name = 10;
+}
+
+message Schedule {
+  // sch_...
+  string id = 1;
+  string name = 2;
+  // What runs: a message, which may be a slash command.
+  string prompt = 3;
+  ScheduleTrigger trigger = 4;
+  // The folder a new session runs in; empty runs without a folder.
+  string cwd = 5;
+  // Empty: the defaults of a new session.
+  string model = 6;
+  string effort = 7;
+  // A settings mode name ("default", "acceptEdits", "plan", "auto", "dontAsk", "bypassPermissions"); empty: settings
+  // decide. Event triggers refuse "bypassPermissions": what fires them comes from outside.
+  string permission_mode = 8;
+  // An ACP agent id: the schedule is device-local.
+  string engine = 9;
+  // Each run works in a new git worktree of its own.
+  bool worktree = 10;
+  // Its time passed while the client was down: run once when it's back. Otherwise it records a missed run.
+  bool catch_up = 11;
+  bool paused = 12;
+  // Stop after this many runs (0: no limit).
+  int32 max_runs = 13;
+  // RFC 3339; after this it runs no more. Empty: never.
+  string expires_at = 14;
+  // Continue this session instead of starting a new one: device-local.
+  string session_id = 15;
+  // The machine it runs on, and what to call it.
+  string device_id = 16;
+  string device_name = 17;
+  // It stays on that machine: not synced, other machines don't see it.
+  bool device_local = 18;
+
+  // Output only.
+  ScheduleOrigin origin = 30;
+  // It runs on this machine.
+  bool this_device = 31;
+  // RFC 3339; empty when no time is known (an event trigger, paused, done).
+  string next_run_at = 32;
+  ScheduleRun last_run = 33;
+  int32 runs = 34;
+  // A one-off that ran, or a schedule past max_runs or expires_at.
+  bool done = 35;
+  // Edited on another machine and not allowed here yet (TrustSchedule); it doesn't run until then.
+  bool needs_trust = 36;
+  // What keeps it from running, for the user.
+  string problem = 37;
+  string created_at = 38;
+  string updated_at = 39;
+}
+
+message ListSchedulesRequest {}
+
+message ListSchedulesResponse {
+  repeated Schedule schedules = 1;
+  // This machine, for "runs on this machine".
+  string device_id = 2;
+  string device_name = 3;
+  // Schedules reach the user's other machines (a server is connected).
+  bool synced = 4;
+  // UserPreferences.schedules_enabled as this client last read it.
+  bool enabled = 5;
+}
+
+message CreateScheduleRequest {
+  // Without id, device and the output-only fields: this machine runs it.
+  Schedule schedule = 1;
+}
+
+message CreateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message UpdateScheduleRequest {
+  // The whole schedule, by id. device_id may name this machine, to move it here.
+  Schedule schedule = 1;
+}
+
+message UpdateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message DeleteScheduleRequest {
+  string id = 1;
+}
+
+message DeleteScheduleResponse {}
+
+message SetSchedulePausedRequest {
+  string id = 1;
+  bool paused = 2;
+}
+
+message SetSchedulePausedResponse {
+  Schedule schedule = 1;
+}
+
+message RunScheduleNowRequest {
+  string id = 1;
+}
+
+message RunScheduleNowResponse {
+  Schedule schedule = 1;
+  // Asked of the schedule's own machine: it runs when that machine has seen the request.
+  bool queued_on_other_device = 2;
+}
+
+message ListScheduleRunsRequest {
+  string id = 1;
+  // Newest first; 0 is all that are kept (50).
+  int32 limit = 2;
+}
+
+message ListScheduleRunsResponse {
+  repeated ScheduleRun runs = 1;
+}
+
+// The user of this machine allows the schedule as it is now.
+message TrustScheduleRequest {
+  string id = 1;
+}
+
+message TrustScheduleResponse {
+  Schedule schedule = 1;
+}
+
+// A new secret for a webhook schedule, on its own machine; the old URL stops working.
+message RotateScheduleWebhookRequest {
+  string id = 1;
+}
+
+message RotateScheduleWebhookResponse {
+  Schedule schedule = 1;
+}
