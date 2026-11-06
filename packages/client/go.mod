@@ -17,6 +17,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/crypto v0.44.0
+	golang.org/x/image v0.32.0
 	golang.org/x/net v0.47.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
@@ -32,7 +33,6 @@ require (
 	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/image v0.32.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
