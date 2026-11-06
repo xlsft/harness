@@ -89,6 +89,10 @@ type Hook struct {
 	Async   bool
 
 	Source settings.Source
+	// Env is added to the environment of a command (a plugin's root and data folder).
+	Env []string
+	// Once: a hook of a skill or agent's frontmatter that runs one time and is done.
+	Once bool
 	// TrustHash is set for what the server delivered: the value device trust is keyed on.
 	TrustHash string
 	Status    Status
@@ -110,7 +114,16 @@ type Set struct {
 // Build reads the hooks of merged settings. trusted says whether content the server delivered is trusted on this machine
 // (nil: nothing is).
 func Build(st *settings.Settings, trusted func(hash string) bool) *Set {
+	return BuildWith(st, trusted, nil)
+}
+
+// BuildWith is Build with the blocks of installed plugins, which come before every settings level: a settings file has the
+// last word on what one tool call becomes.
+func BuildWith(st *settings.Settings, trusted func(hash string) bool, plugins []settings.HookLayer) *Set {
 	set := &Set{}
+	for _, l := range plugins {
+		set.All = append(set.All, parseLayer(l, trusted)...)
+	}
 	if st == nil {
 		return set
 	}
@@ -121,10 +134,23 @@ func Build(st *settings.Settings, trusted func(hash string) bool) *Set {
 	return set
 }
 
+// ParseBlock reads one block on its own: what a skill or agent's frontmatter holds.
+func ParseBlock(l settings.HookLayer, trusted func(hash string) bool) []*Hook {
+	return parseLayer(l, trusted)
+}
+
+// SourceLabel is how a hook's origin reads in lists and the transcript: the settings level, or plugin:<id>.
+func (h *Hook) SourceLabel() string {
+	if h.Source.Plugin != "" {
+		return "plugin:" + h.Source.Plugin
+	}
+	return h.Source.Level.String()
+}
+
 // parseLayer turns a block into hooks. Nothing here is fatal: what cannot run stays in the list with the reason.
 func parseLayer(l settings.HookLayer, trusted func(string) bool) []*Hook {
 	gated := func(h *Hook) *Hook {
-		h.Source = l.Source
+		h.Source, h.Env = l.Source, l.Env
 		if l.Gate == settings.HookGateDevice {
 			h.TrustHash = l.Hash
 		}
@@ -195,12 +221,13 @@ func parseHandler(ev Event, raw json.RawMessage) *Hook {
 		AllowedEnvVars []string          `json:"allowedEnvVars"`
 		Timeout        float64           `json:"timeout"`
 		Async          bool              `json:"async"`
+		Once           bool              `json:"once"`
 	}
 	if err := json.Unmarshal(raw, &d); err != nil {
 		h.Status, h.Reason = StatusUnsupported, fmt.Sprintf("The handler cannot be read: %v", err)
 		return h
 	}
-	h.Type, h.Headers, h.AllowedEnvVars, h.Async = d.Type, d.Headers, d.AllowedEnvVars, d.Async
+	h.Type, h.Headers, h.AllowedEnvVars, h.Async, h.Once = d.Type, d.Headers, d.AllowedEnvVars, d.Async, d.Once
 	h.Timeout = time.Duration(d.Timeout * float64(time.Second))
 	switch d.Type {
 	case TypeCommand:
@@ -264,7 +291,8 @@ func (s *Set) Matching(ev Event, value string) []*Hook {
 		if h.Event != ev || h.Status != StatusActive || (!noMatcher[ev] && !h.match(value)) {
 			continue
 		}
-		key := h.Type + "\x00" + h.Command
+		// Two plugins may word a command alike: ${CLAUDE_PLUGIN_ROOT} is a different folder for each.
+		key := h.Type + "\x00" + h.Command + "\x00" + h.Source.Plugin
 		if i, ok := seen[key]; ok {
 			out[i] = h
 			continue

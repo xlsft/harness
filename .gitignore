@@ -29,3 +29,7 @@ logs
 # Local dev stack (scripts/dev/stack.sh)
 .dev/
 .data-dev/
+
+# Local client builds
+/packages/client/harness-client
+/packages/client/harness-client.exe

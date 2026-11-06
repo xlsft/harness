@@ -32,6 +32,19 @@ message ManagedPolicy {
   // allowedMcpServers: only MCP servers with these names may be used, at any scope.
   bool restrict_mcp_servers = 10;
   repeated string allowed_mcp_servers = 11;
+  // strictKnownMarketplaces: plugins come only from these sources, when restrict_plugin_sources is set (none listed: from nowhere).
+  // A source is one line: owner/repo, owner/*, a git or marketplace.json URL, an absolute path, host:<regexp> or path:<regexp>;
+  // "#ref" after a repository names its ref. Enforced by clients, before a download and when a plugin would load.
+  bool restrict_plugin_sources = 12;
+  repeated string allowed_plugin_sources = 13;
+  // blockedMarketplaces: the same forms, checked first.
+  repeated string blocked_plugin_sources = 14;
+  // extraKnownMarketplaces: "name=source", registered on every device.
+  repeated string distributed_marketplaces = 15;
+  // enabledPlugins true: name@marketplace, fetched on every device and kept on. Each device still approves what runs.
+  repeated string distributed_plugins = 16;
+  // enabledPlugins false: name@marketplace, blocked at every level.
+  repeated string blocked_plugins = 17;
 }
 
 message GetManagedPolicyRequest {}

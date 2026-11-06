@@ -86,6 +86,31 @@ func (s *Session) workflowMaxAgents() int {
 	return st.WorkflowMaxAgents
 }
 
+// PRAttribution is the attribution line of pull requests (settings key attribution.pr); "" when none is set.
+func (s *Session) PRAttribution() string {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Dir(), Docs: docs, Trusted: s.IsTrusted()})
+	if err != nil || st.Attribution.PR == nil {
+		return ""
+	}
+	return *st.Attribution.PR
+}
+
+// subagentSpend is what the session's subagents have spent, for the run's budget.
+func (s *Session) subagentSpend() float64 {
+	if s.Subagents == nil {
+		return 0
+	}
+	total := 0.0
+	for _, a := range s.Subagents.List() {
+		total += a.CostUSD
+	}
+	return total
+}
+
 // lspConfig reads the language server settings again, so that the user's switches apply to a session that runs.
 func (s *Session) lspConfig() lsp.Config {
 	var docs settings.DocSource
@@ -146,4 +171,17 @@ func (s *Session) watchPRCommands(next func(agent.Event)) func(agent.Event) {
 			s.PR.ObserveCommand(tools.BashCommand(e.Input))
 		}
 	}
+}
+
+// GoalMaxTurns reads how many turns `/goal` may take when it names no cap, like subagentLimits.
+func (s *Session) GoalMaxTurns() int {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Dir(), Docs: docs, Trusted: s.Trusted})
+	if err != nil {
+		return settings.DefaultGoalMaxTurns
+	}
+	return st.GoalMaxTurns
 }

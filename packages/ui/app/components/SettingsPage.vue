@@ -20,8 +20,11 @@ const SECTIONS = [
   { key: 'usage', label: 'Usage', icon: 'chart', group: 'you' },
   { key: 'appearance', label: 'Appearance', icon: 'palette', group: 'app' },
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
-  { key: 'sandbox', label: 'Sandbox', icon: 'lock', group: 'app' },
+  { key: 'sandbox', label: 'Sandbox', icon: 'box', group: 'app' },
   { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
+  { key: 'plugins', label: 'Plugins', icon: 'grid', group: 'app' },
+  { key: 'memory', label: 'Memory', icon: 'doc', group: 'app' },
+  { key: 'codehosts', label: 'Code hosts', icon: 'pull-request', group: 'app' },
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
@@ -30,12 +33,12 @@ const SECTIONS = [
   { key: 'speech', label: 'Speech', icon: 'mic', group: 'ai' },
   { key: 'computer', label: 'Computer use', icon: 'monitor', group: 'ai' },
   { key: 'ssh', label: 'SSH hosts', icon: 'terminal', group: 'ai' },
-  { key: 'users', label: 'Users', icon: 'shield', group: 'server' },
-  { key: 'ldap', label: 'LDAP', icon: 'link', group: 'server' },
-  { key: 'sso', label: 'SSO', icon: 'link', group: 'server' },
-  { key: 'provisioning', label: 'Provisioning', icon: 'download', group: 'server' },
-  { key: 'audit', label: 'Audit log', icon: 'chart', group: 'server' },
-  { key: 'policy', label: 'Managed policy', icon: 'shield', group: 'server' },
+  { key: 'users', label: 'Users', icon: 'list', group: 'server' },
+  { key: 'ldap', label: 'LDAP', icon: 'branch', group: 'server' },
+  { key: 'sso', label: 'SSO', icon: 'globe', group: 'server' },
+  { key: 'provisioning', label: 'Provisioning', icon: 'refresh', group: 'server' },
+  { key: 'audit', label: 'Audit log', icon: 'history', group: 'server' },
+  { key: 'policy', label: 'Managed policy', icon: 'flag', group: 'server' },
   { key: 'about', label: 'About', icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
@@ -63,7 +66,10 @@ const KEYWORDS: Record<Section, string> = {
   appearance: 'theme light dark mode system colours',
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
+  plugins: 'plugins marketplace install update approve bundle skills commands agents output styles hooks mcp claude-plugin',
+  codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
+  memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
@@ -78,7 +84,7 @@ const KEYWORDS: Record<Section, string> = {
   sso: 'sso single sign-on oidc saml identity provider okta entra two-factor mfa totp require',
   provisioning: 'scim provisioning okta azure entra tokens groups',
   audit: 'audit log compliance events sign-ins csv export',
-  policy: 'managed policy permission rules sandbox required allowed providers mcp servers administrator',
+  policy: 'managed policy permission rules sandbox required allowed providers mcp servers plugins marketplaces administrator',
   about: 'version about'
 }
 const query = ref('')
@@ -117,7 +123,7 @@ const notifications = computed({
       aria-label="Settings sections"
       class="flex w-[200px] shrink-0 flex-col gap-[2px] overflow-y-auto border-r border-line p-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b"
     >
-      <label class="mb-2 flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
+      <label class="mb-2 flex h-9 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
         <HIcon
           name="search"
           :size="13"
@@ -163,6 +169,9 @@ const notifications = computed({
       <SettingsSandbox v-else-if="section === 'sandbox'" />
 
       <SettingsHooks v-else-if="section === 'hooks'" />
+      <SettingsPlugins v-else-if="section === 'plugins'" />
+
+      <SettingsCodeHosts v-else-if="section === 'codehosts'" />
 
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">
@@ -209,6 +218,8 @@ const notifications = computed({
         <SettingsPullRequests />
         <SettingsAgents />
       </template>
+
+      <SettingsMemory v-else-if="section === 'memory'" />
 
       <SettingsImport v-else-if="section === 'import'" />
 

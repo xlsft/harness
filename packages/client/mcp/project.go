@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -39,35 +41,76 @@ func ReadProjectConfig(path, projectKey string) ([]*mcpv1.Server, error) {
 	}
 	var out []*mcpv1.Server
 	for _, name := range slices.Sorted(maps.Keys(f.MCPServers)) {
-		e := f.MCPServers[name]
 		s := &mcpv1.Server{Name: name, Scope: commonv1.Scope_SCOPE_PROJECT, ProjectKey: projectKey, Enabled: true}
-		switch strings.ToLower(e.Type) {
-		case "", "stdio":
-			if e.Command == "" {
-				if e.URL == "" {
-					continue
-				}
-				s.Transport = mcpv1.Transport_TRANSPORT_STREAMABLE_HTTP
-				s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
-				break
-			}
-			s.Transport = mcpv1.Transport_TRANSPORT_STDIO
-			s.Stdio = &mcpv1.StdioConfig{Command: e.Command, Args: e.Args, Env: e.Env}
-		case "http", "streamable-http", "streamable_http":
-			s.Transport = mcpv1.Transport_TRANSPORT_STREAMABLE_HTTP
-			s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
-		case "sse":
-			s.Transport = mcpv1.Transport_TRANSPORT_SSE
-			s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
-		case "ws", "websocket":
-			s.Transport = mcpv1.Transport_TRANSPORT_WS
-			s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
-		default:
-			continue
+		if f.MCPServers[name].configure(s) {
+			out = append(out, s)
 		}
-		out = append(out, s)
 	}
 	return out, nil
+}
+
+// configure sets the transport of s; false for an entry with none this client knows.
+func (e projectEntry) configure(s *mcpv1.Server) bool {
+	switch strings.ToLower(e.Type) {
+	case "", "stdio":
+		if e.Command == "" {
+			if e.URL == "" {
+				return false
+			}
+			s.Transport = mcpv1.Transport_TRANSPORT_STREAMABLE_HTTP
+			s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
+			return true
+		}
+		s.Transport = mcpv1.Transport_TRANSPORT_STDIO
+		s.Stdio = &mcpv1.StdioConfig{Command: e.Command, Args: e.Args, Env: e.Env}
+	case "http", "streamable-http", "streamable_http":
+		s.Transport = mcpv1.Transport_TRANSPORT_STREAMABLE_HTTP
+		s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
+	case "sse":
+		s.Transport = mcpv1.Transport_TRANSPORT_SSE
+		s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
+	case "ws", "websocket":
+		s.Transport = mcpv1.Transport_TRANSPORT_WS
+		s.Remote = &mcpv1.RemoteConfig{Url: e.URL, Headers: e.Headers}
+	default:
+		return false
+	}
+	return true
+}
+
+// PluginServer turns an entry of a plugin's MCP configuration into a server of this device. vars fill ${NAME} in its command,
+// arguments, environment, URL and headers; those of a command also reach it as environment.
+func PluginServer(pluginID, name string, raw json.RawMessage, vars map[string]string) (*mcpv1.Server, error) {
+	var e projectEntry
+	if err := json.Unmarshal(raw, &e); err != nil {
+		return nil, err
+	}
+	pairs := make([]string, 0, len(vars)*2)
+	for _, k := range slices.Sorted(maps.Keys(vars)) {
+		pairs = append(pairs, "${"+k+"}", vars[k])
+	}
+	r := strings.NewReplacer(pairs...)
+	e.Command, e.URL = r.Replace(e.Command), r.Replace(e.URL)
+	for i, a := range e.Args {
+		e.Args[i] = r.Replace(a)
+	}
+	env := map[string]string{}
+	for k, v := range vars {
+		env[k] = v
+	}
+	for k, v := range e.Env {
+		env[k] = r.Replace(v)
+	}
+	e.Env = env
+	for k, v := range e.Headers {
+		e.Headers[k] = r.Replace(v)
+	}
+	sum := sha256.Sum256(append([]byte(pluginID+"\x00"+name+"\x00"), raw...))
+	s := &mcpv1.Server{Id: "plg_" + hex.EncodeToString(sum[:8]), Name: name, Enabled: true, ConfigHash: hex.EncodeToString(sum[:])}
+	if !e.configure(s) {
+		return nil, fmt.Errorf("the MCP server %s has no transport this client knows", name)
+	}
+	return s, nil
 }
 
 // sameLaunchConfig compares the fields .mcp.json controls.

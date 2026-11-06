@@ -219,7 +219,7 @@ func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 				return
 			}
 		}
-		if r.URL.Path != terminal.SocketPath && r.URL.Path != browser.SocketPath && !strings.HasPrefix(r.URL.Path, ObjectProxyPath) && !tokenMatches(r.Header.Get("Authorization"), want) {
+		if r.URL.Path != terminal.SocketPath && r.URL.Path != browser.SocketPath && !strings.HasPrefix(r.URL.Path, ObjectProxyPath) && !strings.HasPrefix(r.URL.Path, ArtifactProxyPath) && !tokenMatches(r.Header.Get("Authorization"), want) {
 			w.Header().Set("WWW-Authenticate", `Bearer realm="harness-client"`)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)

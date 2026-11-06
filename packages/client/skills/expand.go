@@ -58,7 +58,7 @@ func SplitArguments(text string) []string {
 }
 
 // placeholderRe finds everything a body can ask for, in one pass, so text filled in is never read as a placeholder again.
-var placeholderRe = regexp.MustCompile(`\$\{(?:CLAUDE|HARNESS)_(SESSION_ID|SKILL_DIR)\}|\$ARGUMENTS\[(\d+)\]|\$ARGUMENTS\b|\$(\d)\b|\$([A-Za-z_][A-Za-z0-9_]*)`)
+var placeholderRe = regexp.MustCompile(`\$\{(?:CLAUDE|HARNESS)_(SESSION_ID|SKILL_DIR|PLUGIN_ROOT|PLUGIN_DATA)\}|\$ARGUMENTS\[(\d+)\]|\$ARGUMENTS\b|\$(\d)\b|\$([A-Za-z_][A-Za-z0-9_]*)`)
 
 // filler fills placeholders from one call's values.
 type filler struct {
@@ -67,11 +67,13 @@ type filler struct {
 	named     map[string]string
 	sessionID string
 	dir       string
-	used      bool
+	// pluginRoot and pluginData are empty outside a plugin: the text then stays as written.
+	pluginRoot, pluginData string
+	used                   bool
 }
 
 func newFiller(s Skill, o ExpandOptions) *filler {
-	f := &filler{raw: strings.TrimSpace(o.Arguments), args: SplitArguments(o.Arguments), named: map[string]string{}, sessionID: o.SessionID, dir: o.Dir}
+	f := &filler{raw: strings.TrimSpace(o.Arguments), args: SplitArguments(o.Arguments), named: map[string]string{}, sessionID: o.SessionID, dir: o.Dir, pluginRoot: s.PluginRoot, pluginData: s.PluginData}
 	for i, n := range s.Arguments {
 		v := ""
 		if i < len(f.args) {
@@ -98,6 +100,12 @@ func (f *filler) fill(text string, quote func(string) string) string {
 			return f.sessionID
 		case sub[1] == "SKILL_DIR":
 			return quote(f.dir)
+		case sub[1] == "PLUGIN_ROOT" && f.pluginRoot != "":
+			return quote(f.pluginRoot)
+		case sub[1] == "PLUGIN_DATA" && f.pluginData != "":
+			return quote(f.pluginData)
+		case sub[1] != "":
+			return m
 		case sub[2] != "":
 			n, _ := strconv.Atoi(sub[2])
 			f.used = true

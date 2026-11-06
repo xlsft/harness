@@ -20,7 +20,7 @@ import { descendants } from '~/lib/session/tree'
 import { setObjectTicketSource } from '~/lib/session/objects'
 import { browserAgentToken, ConnectTransport, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
 import { readActiveHost, writeActiveHost, type ActiveSshHost, type SshApi } from '~/lib/ssh'
-import type { DeviceSettings, SessionPatch } from '~/lib/transport/types'
+import type { DeviceSettings, PullRequestInput, SessionPatch } from '~/lib/transport/types'
 import { allowedModes, nextMode } from '~/utils/composer'
 
 const MODE_TO_PB: Record<PermissionModeName, PermissionMode> = {
@@ -936,6 +936,16 @@ export const useSessionStore = defineStore('sessions', {
 
     async setPrMonitor(id: string, on: boolean) {
       await this.transport?.setPrMonitor(id, on)
+    },
+
+    async draftPullRequest(id: string) {
+      if (!this.transport) throw new Error('not connected to a client')
+      return this.transport.draftPullRequest(id)
+    },
+
+    async createPullRequest(id: string, input: PullRequestInput) {
+      if (!this.transport) throw new Error('not connected to a client')
+      return this.transport.createPullRequest(id, input)
     },
 
     async setAutoContinue(id: string, on: boolean) {

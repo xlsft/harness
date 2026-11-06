@@ -1,5 +1,6 @@
 // View model of one session, built from harness.agent.v1 SessionEvents by the reducer (./reducer.ts).
 // It is plain data (no protobuf messages) so it can live in a Pinia store and be rendered directly.
+import type { GoalVM, TaskNodeVM } from './teamwork'
 import type { SlashActionVM } from './slashCommands'
 import type { ObjectRef } from './objects'
 import type { BrowserActionVM } from '~/lib/browser/types'
@@ -101,6 +102,7 @@ export interface SubagentVM {
   parentId: string
   toolUseId: string
   name: string
+  team: string
   type: string
   model: string
   state: SubagentStateName
@@ -587,6 +589,9 @@ export interface SessionState {
   // The session's subagents (SubagentUpdated), oldest first.
   subagents: Record<string, SubagentVM>
   subagentOrder: string[]
+  // The session's goal (GoalUpdated) and its task graph (TaskGraphUpdated).
+  goal: GoalVM | null
+  taskGraph: TaskNodeVM[]
   // The session's runs of the Workflow tool (WorkflowUpdated), oldest first.
   workflows: Record<string, WorkflowVM>
   workflowOrder: string[]

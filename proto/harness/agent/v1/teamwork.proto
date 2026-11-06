@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Goal mode and the task graph. Both belong to one session on the machine it runs on: kept next to its transcript and
+// never synced as documents.
+
+enum GoalState {
+  GOAL_STATE_UNSPECIFIED = 0;
+  // The session keeps working; after each turn a check asks whether the condition holds.
+  GOAL_STATE_ACTIVE = 1;
+  // The check found the condition holds.
+  GOAL_STATE_MET = 2;
+  // `max_turns` turns went by without that.
+  GOAL_STATE_CAP_REACHED = 3;
+  // The user interrupted, a turn failed, the check kept failing or the client restarted; `/goal resume` goes on.
+  GOAL_STATE_PAUSED = 4;
+  // `/goal stop`.
+  GOAL_STATE_STOPPED = 5;
+}
+
+message Goal {
+  string condition = 1;
+  GoalState state = 2;
+  // Turns taken since the goal was set, and the cap.
+  int32 turns = 3;
+  int32 max_turns = 4;
+  // What the last check said, or why it stopped.
+  string reason = 5;
+  // RFC 3339, UTC.
+  string started_at = 6;
+  string updated_at = 7;
+}
+
+// The session's goal changed. A resumed session publishes the one on record.
+message GoalUpdated {
+  Goal goal = 1;
+}
+
+enum TaskNodeStatus {
+  TASK_NODE_STATUS_UNSPECIFIED = 0;
+  TASK_NODE_STATUS_PENDING = 1;
+  TASK_NODE_STATUS_IN_PROGRESS = 2;
+  TASK_NODE_STATUS_DONE = 3;
+  TASK_NODE_STATUS_FAILED = 4;
+  TASK_NODE_STATUS_CANCELLED = 5;
+}
+
+// One node of the session's task graph.
+message TaskNode {
+  // t1, t2, ...
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  TaskNodeStatus status = 4;
+  // The agent working on it: a subagent's id, "lead" for the session's main agent; empty when free.
+  string owner = 5;
+  string owner_name = 6;
+  // Tasks that must be done first.
+  repeated string blocked_by = 7;
+  // Of blocked_by, those not done yet. A pending task without any is ready.
+  repeated string waiting_for = 8;
+  // Limits the task to a team's agents; empty: anyone's.
+  string team = 9;
+  // What became of it.
+  string note = 10;
+  string updated_at = 11;
+}
+
+// Full replacement of the session's task graph.
+message TaskGraphUpdated {
+  repeated TaskNode tasks = 1;
+}

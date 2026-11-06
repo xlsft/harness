@@ -98,6 +98,12 @@ const policyToProto = (p: ManagedPolicy) => ({
   personalProvidersDisabled: p.personal_providers_disabled,
   restrictMcpServers: p.restrict_mcp_servers,
   allowedMcpServers: p.allowed_mcp_servers,
+  restrictPluginSources: p.restrict_plugin_sources,
+  allowedPluginSources: p.allowed_plugin_sources,
+  blockedPluginSources: p.blocked_plugin_sources,
+  distributedMarketplaces: p.distributed_marketplaces,
+  distributedPlugins: p.distributed_plugins,
+  blockedPlugins: p.blocked_plugins,
 });
 
 function policyFromProto(p: ManagedPolicyPb | undefined): ManagedPolicy {
@@ -114,6 +120,12 @@ function policyFromProto(p: ManagedPolicyPb | undefined): ManagedPolicy {
     personal_providers_disabled: p.personalProvidersDisabled,
     restrict_mcp_servers: p.restrictMcpServers,
     allowed_mcp_servers: p.allowedMcpServers,
+    restrict_plugin_sources: p.restrictPluginSources,
+    allowed_plugin_sources: p.allowedPluginSources,
+    blocked_plugin_sources: p.blockedPluginSources,
+    distributed_marketplaces: p.distributedMarketplaces,
+    distributed_plugins: p.distributedPlugins,
+    blocked_plugins: p.blockedPlugins,
   };
 }
 

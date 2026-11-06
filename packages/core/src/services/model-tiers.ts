@@ -5,10 +5,15 @@
  * Tiers, as clients name them:
  *   - "standard": what a request gets with nothing asked for;
  *   - "fast": faster output at a higher price. Anthropic's fast mode (`speed: "fast"`, first-party API only, some Opus
- *     models), OpenAI's priority processing (`service_tier: "priority"`);
+ *     models), OpenAI's Fast mode, formerly Priority (`service_tier: "priority"`, which stays valid for it);
  *   - "flex": slower and cheaper. OpenAI's flex processing (`service_tier: "flex"`).
  *
- * `multiplier` is what the tier does to the model's standard price, per the vendor's price page.
+ * `speed_multipliers` is what the tier does to the model's standard price. These are the vendors' published prices, read on
+ * 2026-11-06: platform.claude.com/docs/en/about-claude/pricing (Opus 5.5 $4 to $8, Opus 5 and 4.8 $5 to $10, input; the same
+ * on output) and developers.openai.com/api/docs/pricing (short context, up to 272K input tokens; the page gives other rates
+ * above that for some models, and a prompt that long is billed here at the short-context ratio). OpenAI's ratio differs by
+ * model, and a model the page lists without a tier does not have it, so its table names models exactly. A model not in it gets
+ * no tier: a request cannot then be billed at a guess. OpenAI's Ultrafast tier is not offered here.
  *
  * Cache lifetimes: Anthropic's prompt cache lives 5 minutes unless a breakpoint asks for an hour, on every platform that
  * serves its models. OpenAI's Responses API keeps the cached prefix in memory for minutes unless asked to keep it for 24 hours.
@@ -28,7 +33,31 @@ export interface ModelTiers {
 const NONE: ModelTiers = { speed_tiers: [], cache_ttls: [], speed_multipliers: {} };
 
 const ANTHROPIC_FAST = /^claude-opus-(5-5|5|4-8)\b/;
-const OPENAI_TIERED = /^(gpt-5|o[34])/;
+
+/** OpenAI's models with a tier, and each tier's price over standard. */
+const OPENAI_TIERS: Readonly<Record<string, { fast?: number; flex?: number }>> = {
+  "gpt-6-astra": { fast: 2, flex: 0.5 },
+  "gpt-6.1-sol": { fast: 2, flex: 0.5 },
+  "gpt-6.1-terra": { fast: 2, flex: 0.5 },
+  "gpt-6-sol": { fast: 2, flex: 0.5 },
+  "gpt-6-luna": { fast: 2, flex: 0.5 },
+  "gpt-5.6-sol": { fast: 2, flex: 0.5 },
+  "gpt-5.6-terra": { fast: 2, flex: 0.5 },
+  "gpt-5.6-luna": { fast: 2, flex: 0.5 },
+  "gpt-5.5": { fast: 2.5, flex: 0.5 },
+  "gpt-5.5-pro": { flex: 0.5 },
+  "gpt-5.4": { fast: 2, flex: 0.5 },
+  "gpt-5.4-pro": { flex: 0.5 },
+  "gpt-5.4-mini": { fast: 2, flex: 0.5 },
+  "gpt-5.4-nano": { flex: 0.5 },
+  "gpt-5.3-codex": { fast: 2 },
+  "gpt-5.2": { fast: 2, flex: 0.5 },
+  "gpt-5.1": { fast: 2, flex: 0.5 },
+  "gpt-5": { fast: 2, flex: 0.5 },
+  "gpt-5-mini": { fast: 1.8, flex: 0.5 },
+  "gpt-5-nano": { flex: 0.5 },
+  o3: { fast: 1.75, flex: 0.5 },
+};
 
 export interface TierSource {
   presetId: string | null;
@@ -47,11 +76,13 @@ export function modelTiers(s: TierSource): ModelTiers {
       speed_multipliers: fast ? { fast: 2 } : {},
     };
   }
-  if (s.presetId === "openai" && OPENAI_TIERED.test(s.upstreamModel)) {
+  // A dated snapshot ("gpt-5.5-2026-04-23") costs what its model does.
+  const tiers = s.presetId === "openai" ? OPENAI_TIERS[s.upstreamModel.replace(/-\d{4}-\d{2}-\d{2}$/, "")] : undefined;
+  if (tiers) {
     return {
-      speed_tiers: ["standard", "fast", "flex"],
+      speed_tiers: ["standard", ...(tiers.fast ? (["fast"] as const) : []), ...(tiers.flex ? (["flex"] as const) : [])],
       cache_ttls: s.type === "openai-responses" ? ["5m", "24h"] : [],
-      speed_multipliers: { fast: 2, flex: 0.5 },
+      speed_multipliers: tiers,
     };
   }
   return NONE;

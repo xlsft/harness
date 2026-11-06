@@ -39,6 +39,10 @@ const (
 	SubtypeSuccess              = "success"
 	SubtypeErrorMaxTurns        = "error_max_turns"
 	SubtypeErrorDuringExecution = "error_during_execution"
+	// SubtypeErrorMaxBudget: the run spent its Config.MaxBudgetUSD.
+	SubtypeErrorMaxBudget = "error_max_budget_usd"
+	// SubtypeErrorStructuredOutput: headless --json-schema, the final message stayed invalid after its retries.
+	SubtypeErrorStructuredOutput = "error_max_structured_output_retries"
 )
 
 // ErrBusy is returned by operations that need an idle session.
@@ -87,6 +91,8 @@ const (
 	EventSubagent
 	// EventWorkflow carries a run of the Workflow tool as it is now (Workflow).
 	EventWorkflow
+	// EventTaskGraph carries the session's task graph as it is now (TaskGraph).
+	EventTaskGraph
 	// EventSkill reports that a skill or command started (Skill).
 	EventSkill
 	// EventHookRun carries a hook handler as it starts and as it ends (HookRun).
@@ -165,6 +171,7 @@ type Event struct {
 	UsageLimit *usagelimit.Status
 	Subagent   *tools.AgentInfo
 	Workflow   *tools.WorkflowInfo
+	TaskGraph  []tools.GraphTask
 	Skill      *session.SkillUse
 	HookRun    *hooks.Run
 }
@@ -231,7 +238,15 @@ type Config struct {
 	MaxTokens        int
 	// MaxTurns limits tool-use round trips per turn; 0 = unlimited.
 	MaxTurns int
-	Effort   string
+	// MaxBudgetUSD stops the run before the next model request once it has spent this much (headless --max-budget-usd);
+	// 0 = no limit. Models without a price cost nothing and never reach it. OtherSpendUSD adds what the run spent outside
+	// this loop (subagents); may be nil.
+	MaxBudgetUSD  float64
+	OtherSpendUSD func() float64
+	// SystemPrompt replaces the bundle's system prompt and AppendSystemPrompt goes after it (headless flags); "" = nothing.
+	SystemPrompt       string
+	AppendSystemPrompt string
+	Effort             string
 	// Speed and CacheTTL are what requests ask of the model when it has them ("": the provider's default).
 	Speed    string
 	CacheTTL string
@@ -315,8 +330,10 @@ type Agent struct {
 	queue           []queuedMessage
 	cancel          context.CancelFunc
 	warned          map[string]bool
-	todos           []tools.Todo
-	reminders       []pendingReminder
+	// spentUSD is what this agent has spent since it started (MaxBudgetUSD).
+	spentUSD  float64
+	todos     []tools.Todo
+	reminders []pendingReminder
 	// Starts a turn for a notification while idle (SetWake).
 	wake          func()
 	interactor    tools.Interactor
@@ -881,6 +898,11 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 			res.Subtype, res.IsError, res.Interrupted = SubtypeErrorDuringExecution, true, true
 			return finish()
 		}
+		if spent, over := a.overBudget(); over {
+			res.Subtype, res.IsError = SubtypeErrorMaxBudget, true
+			res.Errors = append(res.Errors, fmt.Sprintf("Reached the budget of $%.4f (spent $%.4f)", a.cfg.MaxBudgetUSD, spent))
+			return finish()
+		}
 		a.beforeRequest(ctx, promptID)
 		if ctx.Err() != nil {
 			continue
@@ -1044,9 +1066,26 @@ func (a *Agent) onStreamEvent(ev llm.StreamEvent) {
 	a.emit(Event{Kind: EventStream, Raw: ev.Raw})
 }
 
+// overBudget reports what this agent's run has spent and whether it reached MaxBudgetUSD.
+func (a *Agent) overBudget() (float64, bool) {
+	if a.cfg.MaxBudgetUSD <= 0 {
+		return 0, false
+	}
+	a.mu.Lock()
+	spent := a.spentUSD
+	a.mu.Unlock()
+	if a.cfg.OtherSpendUSD != nil {
+		spent += a.cfg.OtherSpendUSD()
+	}
+	return spent, spent >= a.cfg.MaxBudgetUSD
+}
+
 func (a *Agent) accountUsage(res *TurnResult, resp llm.Response) {
 	res.Usage.Add(resp.Usage)
 	res.CostUSD += resp.Harness.CostUSD
+	a.mu.Lock()
+	a.spentUSD += resp.Harness.CostUSD
+	a.mu.Unlock()
 	model := resp.Model
 	if model == "" {
 		model = a.Model()
@@ -1162,15 +1201,24 @@ func (a *Agent) systemBlocks(model, display string) []llm.SystemBlock {
 	}
 	bundle := a.bundle
 	a.mu.Unlock()
-	return bundle.BuildSystemWithout(vars, func(name string) {
-		a.mu.Lock()
-		seen := a.warned[name]
-		a.warned[name] = true
-		a.mu.Unlock()
-		if !seen {
-			a.log().Warn("unknown prompt placeholder", "name", name)
-		}
-	}, omit...)
+	var blocks []llm.SystemBlock
+	if a.cfg.SystemPrompt != "" {
+		blocks = []llm.SystemBlock{{Type: "text", Text: a.cfg.SystemPrompt, Cache: true}}
+	} else {
+		blocks = bundle.BuildSystemWithout(vars, func(name string) {
+			a.mu.Lock()
+			seen := a.warned[name]
+			a.warned[name] = true
+			a.mu.Unlock()
+			if !seen {
+				a.log().Warn("unknown prompt placeholder", "name", name)
+			}
+		}, omit...)
+	}
+	if a.cfg.AppendSystemPrompt != "" {
+		blocks = append(blocks, llm.SystemBlock{Type: "text", Text: a.cfg.AppendSystemPrompt})
+	}
+	return blocks
 }
 
 // buildRequest assembles the gateway request with cache markers: the last

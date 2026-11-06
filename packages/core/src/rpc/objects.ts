@@ -26,6 +26,7 @@ const KIND_NAME: Partial<Record<ObjectKind, ObjectKindName>> = {
   [ObjectKind.TOOL_RESULT]: "tool_result",
   [ObjectKind.IMAGE]: "image",
   [ObjectKind.SENT_FILE]: "sent_file",
+  [ObjectKind.ARTIFACT]: "artifact",
 };
 
 const KIND_PROTO: Record<ObjectKindName, ObjectKind> = {
@@ -35,6 +36,7 @@ const KIND_PROTO: Record<ObjectKindName, ObjectKind> = {
   tool_result: ObjectKind.TOOL_RESULT,
   image: ObjectKind.IMAGE,
   sent_file: ObjectKind.SENT_FILE,
+  artifact: ObjectKind.ARTIFACT,
 };
 
 /** Avatars go through UpdateMe, which checks that they are images of a sensible size. */

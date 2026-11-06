@@ -41,6 +41,7 @@ export function useSlashActions() {
   const store = useSessionStore()
   const done = useState<string[]>('slash-actions-done', () => [])
   const picker = usePickerRequest()
+  const settingsModal = useSettingsModal()
 
   watch(() => store.current?.slashAction?.id, async () => {
     const a = store.current?.slashAction
@@ -55,6 +56,12 @@ export function useSlashActions() {
         break
       case SlashCommandResult_Action.OPEN_CUSTOMIZE:
         await navigateTo('/customize')
+        break
+      case SlashCommandResult_Action.OPEN_PLUGINS:
+        settingsModal.open('plugins')
+        break
+      case SlashCommandResult_Action.OPEN_SCHEDULED:
+        await navigateTo('/scheduled')
         break
       case SlashCommandResult_Action.OPEN_SESSION:
         await store.refreshList()

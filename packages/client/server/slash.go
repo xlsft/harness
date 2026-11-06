@@ -41,7 +41,9 @@ type builtinCommand struct {
 	prompt bool
 	// acp: also on an ACP agent.
 	acp bool
-	run func(ctx context.Context, s *Server, ls *liveSession, args string) slashOutcome
+	// async: it takes a while. It runs apart from the message, and its result comes as an event when it's done.
+	async bool
+	run   func(ctx context.Context, s *Server, ls *liveSession, args string) slashOutcome
 }
 
 // slashOutcome is what a built-in did.
@@ -66,9 +68,13 @@ func builtinCommands() []builtinCommand {
 		{name: bootstrap.CommandInit, description: "Write an instructions file for this repository", hint: "[what to emphasize]", prompt: true},
 		{name: bootstrap.CommandCodeReview, description: "Review the current diff for bugs and list the findings", hint: "[range, files or focus]", prompt: true},
 		{name: "plan", description: "Enter plan mode: read and propose, change nothing", hint: "[off]", needsSession: true, run: runPlan},
+		{name: "goal", description: "Keep working until a condition holds, with a cap on the turns", hint: "[--max N] <condition> | stop | resume", needsSession: true, run: runGoal},
+		{name: "loop", description: "Repeat a prompt or command here, on an interval or at the model's pace", hint: "[interval] <prompt or /command> | stop | list", needsSession: true, run: runLoop},
+		{name: "schedule", description: "Open Scheduled: tasks that run by themselves", run: runScheduleCommand},
 		{name: "context", description: "Show how much of the context window is in use", needsSession: true, run: runContext},
 		{name: "rename", description: "Rename this session", hint: "<title>", needsSession: true, run: runRename},
 		{name: "skills", description: "Open Customize: skills and commands, with their switches", acp: true, run: runSkills},
+		{name: "plugin", description: "Install, approve and manage plugins and marketplaces", hint: "[list|info|install|approve|enable|disable|update|pin|remove|marketplace|new|validate]", acp: true, async: true, run: runPlugin},
 		{name: "help", description: "List the commands of this session", acp: true, run: runHelp},
 	}
 }
@@ -124,6 +130,19 @@ func (s *Server) runSlash(ctx context.Context, ls *liveSession, req *connect.Req
 	if isBuiltin && !b.prompt {
 		if !plain {
 			return false
+		}
+		if !localPeer(req.Peer().Addr) {
+			ctx = WithRemoteOrigin(ctx)
+		}
+		if b.async {
+			ctx := context.WithoutCancel(ctx)
+			if id != "" {
+				ls.mu.Lock()
+				ls.seen[id] = true
+				ls.mu.Unlock()
+			}
+			go func() { ls.publishSlashResult(id, name, b.run(ctx, s, ls, args)) }()
+			return true
 		}
 		return finish(b.run(ctx, s, ls, args))
 	}
@@ -255,6 +274,12 @@ func runContext(_ context.Context, _ *Server, ls *liveSession, _ string) slashOu
 		return slashOutcome{text: fmt.Sprintf("Context: %d of %d tokens in use (%d%%).", used, u.Window, used*100/u.Window)}
 	}
 	return slashOutcome{text: fmt.Sprintf("Context: %d tokens in use.", used)}
+}
+
+// sendText sends text to the session as a message of the user (a command's own words: what the user typed goes on as it).
+func (s *Server) sendText(ctx context.Context, ls *liveSession, text string) error {
+	_, err := s.SendUserMessage(ctx, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: ls.sess.ID, Uuid: uuid.NewString(), Content: pbconv.Blocks([]llm.ContentBlock{llm.TextBlock(text)})}))
+	return err
 }
 
 func runRename(ctx context.Context, s *Server, ls *liveSession, args string) slashOutcome {
@@ -524,6 +549,15 @@ func (r acpRouted) acpSlash(ctx context.Context, l *acpLive, req *connect.Reques
 		}, "Effort: "+args)
 	case "skills":
 		o = slashOutcome{action: agentv1.SlashCommandResult_ACTION_OPEN_CUSTOMIZE}
+	case "plugin":
+		if !localPeer(req.Peer().Addr) {
+			ctx = WithRemoteOrigin(ctx)
+		}
+		ctx := context.WithoutCancel(ctx)
+		go func() {
+			l.Publish(&agentv1.SessionEvent{Event: slashResultEvent(id, name, pluginCommand(ctx, r.Server, l.info().GetCwd(), args))})
+		}()
+		return true
 	case "help":
 		res, err := r.ListSlashCommands(ctx, connect.NewRequest(&agentv1.ListSlashCommandsRequest{SessionId: l.id}))
 		if err != nil {

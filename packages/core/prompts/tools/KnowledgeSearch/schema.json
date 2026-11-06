@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "The words to look for"
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 30,
+      "description": "How many passages. Default 8"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["all", "organization", "personal"],
+      "description": "Whose documents to search. Default all"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": ["query", "description"],
+  "additionalProperties": false
+}

@@ -37,15 +37,15 @@ describe("bundle builder", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
-      "Advisor", "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
+      "Advisor", "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
-      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "LSP",
-      "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
+      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LSP",
+      "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "NotebookEdit", "NotebookRun", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
       "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
-      "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
+      "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
-      "Show", "Skill", "SyncWithBase", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
+      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskOutput", "TaskStop", "TaskTracker", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -95,6 +95,16 @@ describe("bundle builder", () => {
       terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
       lsp_diagnostics: ["diagnostics"],
       hook_context: ["event", "content"],
+      scheduled_wakeup: ["id", "repeat", "note"],
+      schedule_trigger: ["source", "detail"],
+      loop_self_paced: ["prompt"],
+      goal_started: ["condition", "max_turns"],
+      goal_continue: ["condition", "reason", "turn", "max_turns"],
+      // the check after each turn of a goal, filled by the client for the small-slot model
+      goal_check: ["condition", "conversation"],
+      team_context: ["team"],
+      team_next_task: ["team", "tasks"],
+      team_message: ["from", "message"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason
@@ -102,6 +112,11 @@ describe("bundle builder", () => {
       bash_background_queued_message: ["task_id", "output_path"],
       bash_background_agent: ["task_id", "output_path"],
       bash_background_timeout: ["timeout", "task_id", "output_path"],
+      // the prompt of the Create PR button's draft, filled by the client for the small-slot model
+      pr_draft: ["head", "base", "log", "stat", "diff"],
+      // the first messages of `harness-client ci review` and `ci mention`
+      ci_review: ["number", "repo", "guidance", "title", "description", "truncated", "diff"],
+      ci_mention: ["repo", "kind", "number", "capabilities", "author", "where", "request", "title", "description"],
       // the side chat system prompt (no placeholders: the client sends the main session as a separate block)
       side_chat: [],
       // the system prompt of the model behind the Advisor tool (the same: the session is a separate block)
@@ -162,7 +177,7 @@ describe("bundle builder", () => {
       expect(t.input_schema.additionalProperties).toBe(false);
       expect(t.input_schema.type).toBe("object");
     }
-    expect(props("Read")).toEqual(["file_path", "offset", "limit", "description"]);
+    expect(props("Read")).toEqual(["file_path", "offset", "limit", "pages", "description"]);
     expect(props("Write")).toEqual(["file_path", "content", "description"]);
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all", "description"]);
     expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background", "run_outside_sandbox"]);

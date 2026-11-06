@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/auth/v1/managed_policy.proto.
  */
 export const file_harness_auth_v1_managed_policy: GenFile = /*@__PURE__*/
-  fileDesc("CiRoYXJuZXNzL2F1dGgvdjEvbWFuYWdlZF9wb2xpY3kucHJvdG8SD2hhcm5lc3MuYXV0aC52MSK5AgoNTWFuYWdlZFBvbGljeRITCgthbGxvd19ydWxlcxgBIAMoCRIRCglhc2tfcnVsZXMYAiADKAkSEgoKZGVueV9ydWxlcxgDIAMoCRIaChJtYW5hZ2VkX3J1bGVzX29ubHkYBCABKAgSGAoQc2FuZGJveF9yZXF1aXJlZBgFIAEoCBIfChdzYW5kYm94X291dHNpZGVfcmVmdXNlZBgGIAEoCBIaChJyZXN0cmljdF9wcm92aWRlcnMYByABKAgSGQoRYWxsb3dlZF9wcm92aWRlcnMYCCADKAkSIwobcGVyc29uYWxfcHJvdmlkZXJzX2Rpc2FibGVkGAkgASgIEhwKFHJlc3RyaWN0X21jcF9zZXJ2ZXJzGAogASgIEhsKE2FsbG93ZWRfbWNwX3NlcnZlcnMYCyADKAkiGQoXR2V0TWFuYWdlZFBvbGljeVJlcXVlc3QixAEKGEdldE1hbmFnZWRQb2xpY3lSZXNwb25zZRIuCgZwb2xpY3kYASABKAsyHi5oYXJuZXNzLmF1dGgudjEuTWFuYWdlZFBvbGljeRISCgp1cGRhdGVkX2F0GAIgASgJEjAKCXByb3ZpZGVycxgDIAMoCzIdLmhhcm5lc3MuYXV0aC52MS5Qb2xpY3lDaG9pY2USMgoLbWNwX3NlcnZlcnMYBCADKAsyHS5oYXJuZXNzLmF1dGgudjEuUG9saWN5Q2hvaWNlIikKDFBvbGljeUNob2ljZRIKCgJpZBgBIAEoCRINCgVsYWJlbBgCIAEoCSJJChdTZXRNYW5hZ2VkUG9saWN5UmVxdWVzdBIuCgZwb2xpY3kYASABKAsyHi5oYXJuZXNzLmF1dGgudjEuTWFuYWdlZFBvbGljeSJeChhTZXRNYW5hZ2VkUG9saWN5UmVzcG9uc2USLgoGcG9saWN5GAEgASgLMh4uaGFybmVzcy5hdXRoLnYxLk1hbmFnZWRQb2xpY3kSEgoKdXBkYXRlZF9hdBgCIAEoCTLhAQoNUG9saWN5U2VydmljZRJnChBHZXRNYW5hZ2VkUG9saWN5EiguaGFybmVzcy5hdXRoLnYxLkdldE1hbmFnZWRQb2xpY3lSZXF1ZXN0GikuaGFybmVzcy5hdXRoLnYxLkdldE1hbmFnZWRQb2xpY3lSZXNwb25zZRJnChBTZXRNYW5hZ2VkUG9saWN5EiguaGFybmVzcy5hdXRoLnYxLlNldE1hbmFnZWRQb2xpY3lSZXF1ZXN0GikuaGFybmVzcy5hdXRoLnYxLlNldE1hbmFnZWRQb2xpY3lSZXNwb25zZULMAQoTY29tLmhhcm5lc3MuYXV0aC52MUISTWFuYWdlZFBvbGljeVByb3RvUAFaQ2dpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYXV0aC92MTthdXRodjGiAgNIQViqAg9IYXJuZXNzLkF1dGguVjHKAg9IYXJuZXNzXEF1dGhcVjHiAhtIYXJuZXNzXEF1dGhcVjFcR1BCTWV0YWRhdGHqAhFIYXJuZXNzOjpBdXRoOjpWMWIGcHJvdG8z");
+  fileDesc("CiRoYXJuZXNzL2F1dGgvdjEvbWFuYWdlZF9wb2xpY3kucHJvdG8SD2hhcm5lc3MuYXV0aC52MSLyAwoNTWFuYWdlZFBvbGljeRITCgthbGxvd19ydWxlcxgBIAMoCRIRCglhc2tfcnVsZXMYAiADKAkSEgoKZGVueV9ydWxlcxgDIAMoCRIaChJtYW5hZ2VkX3J1bGVzX29ubHkYBCABKAgSGAoQc2FuZGJveF9yZXF1aXJlZBgFIAEoCBIfChdzYW5kYm94X291dHNpZGVfcmVmdXNlZBgGIAEoCBIaChJyZXN0cmljdF9wcm92aWRlcnMYByABKAgSGQoRYWxsb3dlZF9wcm92aWRlcnMYCCADKAkSIwobcGVyc29uYWxfcHJvdmlkZXJzX2Rpc2FibGVkGAkgASgIEhwKFHJlc3RyaWN0X21jcF9zZXJ2ZXJzGAogASgIEhsKE2FsbG93ZWRfbWNwX3NlcnZlcnMYCyADKAkSHwoXcmVzdHJpY3RfcGx1Z2luX3NvdXJjZXMYDCABKAgSHgoWYWxsb3dlZF9wbHVnaW5fc291cmNlcxgNIAMoCRIeChZibG9ja2VkX3BsdWdpbl9zb3VyY2VzGA4gAygJEiAKGGRpc3RyaWJ1dGVkX21hcmtldHBsYWNlcxgPIAMoCRIbChNkaXN0cmlidXRlZF9wbHVnaW5zGBAgAygJEhcKD2Jsb2NrZWRfcGx1Z2lucxgRIAMoCSIZChdHZXRNYW5hZ2VkUG9saWN5UmVxdWVzdCLEAQoYR2V0TWFuYWdlZFBvbGljeVJlc3BvbnNlEi4KBnBvbGljeRgBIAEoCzIeLmhhcm5lc3MuYXV0aC52MS5NYW5hZ2VkUG9saWN5EhIKCnVwZGF0ZWRfYXQYAiABKAkSMAoJcHJvdmlkZXJzGAMgAygLMh0uaGFybmVzcy5hdXRoLnYxLlBvbGljeUNob2ljZRIyCgttY3Bfc2VydmVycxgEIAMoCzIdLmhhcm5lc3MuYXV0aC52MS5Qb2xpY3lDaG9pY2UiKQoMUG9saWN5Q2hvaWNlEgoKAmlkGAEgASgJEg0KBWxhYmVsGAIgASgJIkkKF1NldE1hbmFnZWRQb2xpY3lSZXF1ZXN0Ei4KBnBvbGljeRgBIAEoCzIeLmhhcm5lc3MuYXV0aC52MS5NYW5hZ2VkUG9saWN5Il4KGFNldE1hbmFnZWRQb2xpY3lSZXNwb25zZRIuCgZwb2xpY3kYASABKAsyHi5oYXJuZXNzLmF1dGgudjEuTWFuYWdlZFBvbGljeRISCgp1cGRhdGVkX2F0GAIgASgJMuEBCg1Qb2xpY3lTZXJ2aWNlEmcKEEdldE1hbmFnZWRQb2xpY3kSKC5oYXJuZXNzLmF1dGgudjEuR2V0TWFuYWdlZFBvbGljeVJlcXVlc3QaKS5oYXJuZXNzLmF1dGgudjEuR2V0TWFuYWdlZFBvbGljeVJlc3BvbnNlEmcKEFNldE1hbmFnZWRQb2xpY3kSKC5oYXJuZXNzLmF1dGgudjEuU2V0TWFuYWdlZFBvbGljeVJlcXVlc3QaKS5oYXJuZXNzLmF1dGgudjEuU2V0TWFuYWdlZFBvbGljeVJlc3BvbnNlQswBChNjb20uaGFybmVzcy5hdXRoLnYxQhJNYW5hZ2VkUG9saWN5UHJvdG9QAVpDZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hdXRoL3YxO2F1dGh2MaICA0hBWKoCD0hhcm5lc3MuQXV0aC5WMcoCD0hhcm5lc3NcQXV0aFxWMeICG0hhcm5lc3NcQXV0aFxWMVxHUEJNZXRhZGF0YeoCEUhhcm5lc3M6OkF1dGg6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message harness.auth.v1.ManagedPolicy
@@ -84,6 +84,48 @@ export type ManagedPolicy = Message<"harness.auth.v1.ManagedPolicy"> & {
    * @generated from field: repeated string allowed_mcp_servers = 11;
    */
   allowedMcpServers: string[];
+
+  /**
+   * strictKnownMarketplaces: plugins come only from these sources, when restrict_plugin_sources is set (none listed: from nowhere).
+   * A source is one line: owner/repo, owner/*, a git or marketplace.json URL, an absolute path, host:<regexp> or path:<regexp>;
+   * "#ref" after a repository names its ref. Enforced by clients, before a download and when a plugin would load.
+   *
+   * @generated from field: bool restrict_plugin_sources = 12;
+   */
+  restrictPluginSources: boolean;
+
+  /**
+   * @generated from field: repeated string allowed_plugin_sources = 13;
+   */
+  allowedPluginSources: string[];
+
+  /**
+   * blockedMarketplaces: the same forms, checked first.
+   *
+   * @generated from field: repeated string blocked_plugin_sources = 14;
+   */
+  blockedPluginSources: string[];
+
+  /**
+   * extraKnownMarketplaces: "name=source", registered on every device.
+   *
+   * @generated from field: repeated string distributed_marketplaces = 15;
+   */
+  distributedMarketplaces: string[];
+
+  /**
+   * enabledPlugins true: name@marketplace, fetched on every device and kept on. Each device still approves what runs.
+   *
+   * @generated from field: repeated string distributed_plugins = 16;
+   */
+  distributedPlugins: string[];
+
+  /**
+   * enabledPlugins false: name@marketplace, blocked at every level.
+   *
+   * @generated from field: repeated string blocked_plugins = 17;
+   */
+  blockedPlugins: string[];
 };
 
 /**

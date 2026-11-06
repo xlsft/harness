@@ -1,7 +1,8 @@
 // Package sdk implements headless mode (`harness-client -p`): the final
-// result as text or json, or a one-way stream-json NDJSON event log for
-// debugging. Interactive frontends use harness.agent.v1.AgentService
-// (see the server package) instead.
+// result as text or json, or a stream-json NDJSON event log, with stream-json
+// input for messages arriving while the process runs. docs/protocol/headless.md
+// is the contract. Interactive frontends use harness.agent.v1.AgentService (see
+// the server package) instead.
 package sdk
 
 import (
@@ -22,6 +23,8 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/tools"
 )
 
@@ -34,13 +37,20 @@ const (
 
 // Options configure headless mode.
 type Options struct {
-	Bootstrap      bootstrap.Options
-	Prompt         string
+	Bootstrap bootstrap.Options
+	Prompt    string
+	// BuildPrompt makes the prompt from the session's prompt bundle, for callers whose prompt text lives there (the CI
+	// commands). It wins over Prompt.
+	BuildPrompt    func(*prompts.Bundle) string
 	OutputFormat   string
+	InputFormat    string
 	IncludePartial bool
-	Stdin          io.Reader
-	Stdout         io.Writer
-	Stderr         io.Writer
+	// JSONSchema makes the final message one JSON value valid against this schema: it comes back as structured_output,
+	// after one retry when it is not. The turn fails with agent.SubtypeErrorStructuredOutput otherwise.
+	JSONSchema json.RawMessage
+	Stdin      io.Reader
+	Stdout     io.Writer
+	Stderr     io.Writer
 }
 
 // writer serializes NDJSON lines.
@@ -65,6 +75,10 @@ type runner struct {
 	out  *writer
 	sess *bootstrap.Session
 	sid  atomic.Value
+
+	// cancelTurn stops the turn in progress (stream-json input, control interrupt).
+	turnMu     sync.Mutex
+	cancelTurn context.CancelFunc
 }
 
 func (r *runner) sessionID() string {
@@ -95,6 +109,14 @@ func Run(ctx context.Context, o Options) int {
 	if o.Bootstrap.Entrypoint == "" {
 		o.Bootstrap.Entrypoint = "sdk-cli"
 	}
+	if len(o.JSONSchema) > 0 {
+		if err := subagent.CheckSchema(o.JSONSchema); err != nil {
+			return r.fatal(fmt.Errorf("--json-schema: %w", err))
+		}
+	}
+	if o.InputFormat == FormatStreamJSON && o.OutputFormat != FormatStreamJSON {
+		return r.fatal(errors.New("--input-format stream-json requires --output-format stream-json"))
+	}
 	// Headless runs are unattended: background commands get a time limit
 	// and are stopped when the run ends.
 	o.Bootstrap.Unattended = true
@@ -111,6 +133,12 @@ func Run(ctx context.Context, o Options) int {
 	}
 
 	prompt := o.Prompt
+	if o.BuildPrompt != nil {
+		prompt = o.BuildPrompt(sess.Bundle)
+	}
+	if o.InputFormat == FormatStreamJSON {
+		return r.stream(ctx, prompt)
+	}
 	if prompt == "" {
 		data, _ := io.ReadAll(o.Stdin)
 		prompt = strings.TrimSpace(string(data))
@@ -118,13 +146,25 @@ func Run(ctx context.Context, o Options) int {
 	if prompt == "" {
 		return r.fatal(errors.New("no prompt given: pass it as an argument or on stdin"))
 	}
-	if focus, ok := agent.CompactCommand(prompt); ok {
-		return r.compact(ctx, focus)
+	return r.turn(ctx, prompt, nil, nil)
+}
+
+// turn runs one message to its result: text is the prompt when blocks is nil. It returns the exit code.
+func (r *runner) turn(ctx context.Context, text string, blocks []llm.ContentBlock, ids []string) int {
+	sess := r.sess
+	if blocks == nil {
+		if focus, ok := agent.CompactCommand(text); ok {
+			return r.compact(ctx, focus)
+		}
+		if refusal := sess.StartSlashPrompt(ctx, text); refusal != "" {
+			return r.fatal(errors.New(refusal))
+		}
+		blocks = []llm.ContentBlock{llm.TextBlock(text)}
 	}
-	if refusal := sess.StartSlashPrompt(ctx, prompt); refusal != "" {
-		return r.fatal(errors.New(refusal))
+	if len(r.o.JSONSchema) > 0 {
+		blocks = append(blocks[:len(blocks):len(blocks)], llm.TextBlock(subagent.WithSchema("", r.o.JSONSchema)))
 	}
-	res := sess.Agent.RunTurn(ctx, []llm.ContentBlock{llm.TextBlock(prompt)})
+	res := sess.Agent.RunTurnWithIDs(ctx, blocks, ids)
 	// The process ends with the run: agents still at work get to finish, and the model answers their reports.
 	for !res.Interrupted && (sess.Workflows.Active() > 0 || sess.Subagents.Active() > 0 || sess.Agent.HasReminders()) {
 		if err := sess.Workflows.WaitIdle(ctx); err != nil {
@@ -136,13 +176,64 @@ func Run(ctx context.Context, o Options) int {
 		if !sess.Agent.HasReminders() {
 			break
 		}
-		res = sess.Agent.RunTurn(ctx, nil)
+		mergeTurn(&res, sess.Agent.RunTurn(ctx, nil))
 	}
-	r.emitResult(res)
+	structured := r.structured(ctx, &res)
+	r.emitResult(res, structured)
 	if res.IsError {
 		return 1
 	}
 	return 0
+}
+
+// structured validates a successful turn's final message against JSONSchema, sending the model back once.
+func (r *runner) structured(ctx context.Context, res *agent.TurnResult) json.RawMessage {
+	if len(r.o.JSONSchema) == 0 || res.Subtype != agent.SubtypeSuccess || res.IsError {
+		return nil
+	}
+	out, err := subagent.FinalOutput(r.o.JSONSchema, res.Result)
+	if err == nil {
+		return out
+	}
+	retry := subagent.OutputRetryText(r.sess.Agent.Bundle(), err, r.o.JSONSchema)
+	mergeTurn(res, r.sess.Agent.RunTurn(ctx, []llm.ContentBlock{llm.TextBlock(retry)}))
+	if res.IsError {
+		return nil
+	}
+	if out, err = subagent.FinalOutput(r.o.JSONSchema, res.Result); err == nil {
+		return out
+	}
+	res.Subtype, res.IsError = agent.SubtypeErrorStructuredOutput, true
+	res.Errors = append(res.Errors, "the final message does not match --json-schema: "+err.Error())
+	return nil
+}
+
+// mergeTurn adds a later turn of one run to its result: the last turn says how it ended, the costs add up.
+func mergeTurn(into *agent.TurnResult, next agent.TurnResult) {
+	usage, cost, api, duration, turns := into.Usage, into.CostUSD, into.APIDuration, into.Duration, into.NumTurns
+	models, denials := into.ModelUsage, into.PermissionDenials
+	nextModels, nextDenials := next.ModelUsage, next.PermissionDenials
+	nextUsage, nextCost, nextAPI, nextDuration, nextTurns := next.Usage, next.CostUSD, next.APIDuration, next.Duration, next.NumTurns
+	*into = next
+	usage.Add(nextUsage)
+	into.Usage, into.CostUSD, into.APIDuration, into.Duration, into.NumTurns = usage, cost+nextCost, api+nextAPI, duration+nextDuration, turns+nextTurns
+	into.PermissionDenials = append(denials, nextDenials...)
+	if models == nil {
+		models = map[string]*agent.ModelUsage{}
+	}
+	for id, u := range nextModels {
+		cur := models[id]
+		if cur == nil {
+			models[id] = u
+			continue
+		}
+		cur.InputTokens += u.InputTokens
+		cur.OutputTokens += u.OutputTokens
+		cur.CacheReadInputTokens += u.CacheReadInputTokens
+		cur.CacheCreationInputTokens += u.CacheCreationInputTokens
+		cur.CostUSD += u.CostUSD
+	}
+	into.ModelUsage = models
 }
 
 func (r *runner) compact(ctx context.Context, focus string) int {
@@ -202,6 +293,9 @@ func (r *runner) onEvent(e agent.Event) {
 	case agent.EventUser:
 		base["type"] = "user"
 		base["message"] = map[string]any{"role": "user", "content": e.Message.Content}
+		if len(e.ClientUUIDs) > 0 {
+			base["client_uuids"] = e.ClientUUIDs
+		}
 		if len(e.Raw) > 0 {
 			base["tool_use_result"] = e.Raw
 		}
@@ -295,7 +389,7 @@ func nonNilS(s []string) []string {
 	return s
 }
 
-func (r *runner) emitResult(res agent.TurnResult) {
+func (r *runner) emitResult(res agent.TurnResult, structured json.RawMessage) {
 	switch r.o.OutputFormat {
 	case FormatText:
 		if res.IsError {
@@ -309,8 +403,16 @@ func (r *runner) emitResult(res agent.TurnResult) {
 			fmt.Fprintln(r.o.Stderr, "Error:", msg)
 			return
 		}
+		if structured != nil {
+			fmt.Fprintln(r.o.Stdout, string(structured))
+			return
+		}
 		fmt.Fprintln(r.o.Stdout, res.Result)
 	default:
-		r.out.send(ResultMessage(r.sessionID(), res))
+		m := ResultMessage(r.sessionID(), res)
+		if structured != nil {
+			m["structured_output"] = structured
+		}
+		r.out.send(m)
 	}
 }

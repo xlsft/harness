@@ -67,6 +67,8 @@ message SubagentInfo {
   // Set when it runs in a git worktree of its own.
   string worktree_path = 18;
   string worktree_branch = 19;
+  // The team it belongs to: peers that share the session's task graph and message each other. Empty: none.
+  string team = 140;
 }
 
 // A subagent was started or changed (state, tool calls). Carries the agent as it is now. A resumed session publishes

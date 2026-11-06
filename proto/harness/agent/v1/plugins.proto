@@ -1,0 +1,224 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Plugins: folders that bundle skills, commands, agents, output styles, hooks and MCP servers (packages/client/plugins,
+// docs/design/plugins.md). This service is served by the local client next to AgentService. Installed plugins and approvals
+// are this device's own and never go to the server; requests that change them are refused from another machine. The client
+// decides and enforces; frontends render these messages and send intent.
+service PluginService {
+  // What is installed and registered, and what each plugin can do in a folder.
+  rpc ListPlugins(ListPluginsRequest) returns (ListPluginsResponse);
+  // Fetches a plugin into the store. Nothing of it runs yet.
+  rpc InstallPlugin(InstallPluginRequest) returns (InstallPluginResponse);
+  // Moves a plugin to what its source offers now. New content needs approving again.
+  rpc UpdatePlugin(UpdatePluginRequest) returns (UpdatePluginResponse);
+  rpc RemovePlugin(RemovePluginRequest) returns (RemovePluginResponse);
+  rpc SetPluginEnabled(SetPluginEnabledRequest) returns (SetPluginEnabledResponse);
+  // Lets content that was shown to the user run on this device, or takes that back.
+  rpc SetPluginApproval(SetPluginApprovalRequest) returns (SetPluginApprovalResponse);
+  // Holds a plugin on its version.
+  rpc SetPluginPinned(SetPluginPinnedRequest) returns (SetPluginPinnedResponse);
+  rpc AddPluginMarketplace(AddPluginMarketplaceRequest) returns (AddPluginMarketplaceResponse);
+  rpc UpdatePluginMarketplace(UpdatePluginMarketplaceRequest) returns (UpdatePluginMarketplaceResponse);
+  rpc RemovePluginMarketplace(RemovePluginMarketplaceRequest) returns (RemovePluginMarketplaceResponse);
+}
+
+enum PluginStatus {
+  PLUGIN_STATUS_UNSPECIFIED = 0;
+  PLUGIN_STATUS_ACTIVE = 1;
+  // Nothing of this content was approved on this device.
+  PLUGIN_STATUS_NEEDS_APPROVAL = 2;
+  PLUGIN_STATUS_DISABLED = 3;
+  // Approved, and this folder is not trusted: nothing of it runs here.
+  PLUGIN_STATUS_UNTRUSTED_FOLDER = 4;
+  PLUGIN_STATUS_BLOCKED_BY_POLICY = 5;
+  // The files no longer hash to what was installed.
+  PLUGIN_STATUS_CHANGED_ON_DISK = 6;
+  PLUGIN_STATUS_BROKEN = 7;
+  // The organization distributes it or the project asks for it, and it is not here.
+  PLUGIN_STATUS_NOT_INSTALLED = 8;
+}
+
+// A handler a plugin would run.
+message PluginHook {
+  string event = 1;
+  string matcher = 2;
+  // "command", "http"...
+  string type = 3;
+  // The command line or URL.
+  string command = 4;
+  // The skill whose frontmatter holds it; empty for the plugin's own hooks.
+  string from_skill = 5;
+}
+
+// An MCP server a plugin would start or reach.
+message PluginMcpServer {
+  // As sessions name it: plugin:<plugin>:<server>.
+  string name = 1;
+  string transport = 2;
+  // The command line or URL.
+  string command = 3;
+}
+
+// What a plugin holds, by the names it would go by. This is what the user approves.
+message PluginContents {
+  repeated string skills = 1;
+  repeated string commands = 2;
+  repeated string agents = 3;
+  repeated string output_styles = 4;
+  repeated PluginHook hooks = 5;
+  repeated PluginMcpServer mcp_servers = 6;
+  // Permission rules its skills and commands grant while they run.
+  repeated string allowed_tools = 7;
+  // What it holds and this client does not act on.
+  repeated string skipped = 8;
+}
+
+message Plugin {
+  // name@marketplace.
+  string id = 1;
+  string name = 2;
+  string marketplace = 3;
+  string display_name = 4;
+  string description = 5;
+  // What it is pinned to: the version, the commit, and the hash of its files.
+  string version = 6;
+  string commit = 7;
+  string content_hash = 8;
+  PluginStatus status = 9;
+  // Says why it does not run, for a person.
+  string reason = 10;
+  bool enabled = 11;
+  bool approved = 12;
+  bool pinned = 13;
+  // The organization distributes it: it can't be turned off or removed here. It still needs this device's approval.
+  bool managed = 14;
+  // The project settings file that asks for it.
+  string suggested_by = 15;
+  // The folder or repository of a plugin without a marketplace.
+  string source = 16;
+  // RFC 3339, UTC.
+  string installed_at = 17;
+  PluginContents contents = 18;
+  // What could not be read; the rest of it still loads.
+  repeated string problems = 19;
+}
+
+// An entry of a marketplace's catalog.
+message PluginListing {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string version = 4;
+  bool installed = 5;
+}
+
+message PluginMarketplace {
+  string name = 1;
+  string description = 2;
+  // owner/repo, a URL or a path.
+  string source = 3;
+  // The catalog is the commit it was last fetched at.
+  string commit = 4;
+  // RFC 3339, UTC.
+  string updated_at = 5;
+  // The organization distributes it.
+  bool managed = 6;
+  // Why policy refuses it now.
+  string refusal = 7;
+  // Why it can't be read.
+  string problem = 8;
+  repeated PluginListing plugins = 9;
+}
+
+message ListPluginsRequest {
+  // The folder statuses are told for. Empty: only what doesn't depend on one.
+  string cwd = 1;
+}
+
+message ListPluginsResponse {
+  repeated Plugin plugins = 1;
+  repeated PluginMarketplace marketplaces = 2;
+  // An allowlist of sources is in force.
+  bool sources_restricted = 3;
+  // The cwd is a trusted folder.
+  bool folder_trusted = 4;
+  // Marketplaces a trusted project's settings ask for, by name, as sources AddPluginMarketplace takes.
+  map<string, string> suggested_marketplaces = 5;
+}
+
+message InstallPluginRequest {
+  // name@marketplace, a folder or a repository.
+  string spec = 1;
+  string cwd = 2;
+}
+
+message InstallPluginResponse {
+  Plugin plugin = 1;
+}
+
+message UpdatePluginRequest {
+  string id = 1;
+  string cwd = 2;
+}
+
+message UpdatePluginResponse {
+  Plugin plugin = 1;
+  // New content is in place.
+  bool changed = 2;
+  // For a person: up to date, or pinned.
+  string note = 3;
+}
+
+message RemovePluginRequest {
+  string id = 1;
+  // Keep its data folder.
+  bool keep_data = 2;
+}
+
+message RemovePluginResponse {}
+
+message SetPluginEnabledRequest {
+  string id = 1;
+  bool enabled = 2;
+}
+
+message SetPluginEnabledResponse {}
+
+message SetPluginApprovalRequest {
+  string id = 1;
+  bool approved = 2;
+  // Plugin.content_hash of what was shown. Required to approve: other content is refused.
+  string content_hash = 3;
+}
+
+message SetPluginApprovalResponse {}
+
+message SetPluginPinnedRequest {
+  string id = 1;
+  bool pinned = 2;
+}
+
+message SetPluginPinnedResponse {}
+
+message AddPluginMarketplaceRequest {
+  // owner/repo, a git URL, a URL of a marketplace.json, or a folder.
+  string source = 1;
+}
+
+message AddPluginMarketplaceResponse {
+  string name = 1;
+}
+
+message UpdatePluginMarketplaceRequest {
+  string name = 1;
+}
+
+message UpdatePluginMarketplaceResponse {}
+
+message RemovePluginMarketplaceRequest {
+  string name = 1;
+}
+
+message RemovePluginMarketplaceResponse {}

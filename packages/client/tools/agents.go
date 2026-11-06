@@ -48,6 +48,7 @@ type AgentInfo struct {
 	ParentID       string      `json:"parent_id,omitempty"`
 	ToolUseID      string      `json:"tool_use_id,omitempty"`
 	Name           string      `json:"name"`
+	Team           string      `json:"team,omitempty"`
 	Type           string      `json:"type"`
 	Model          string      `json:"model"`
 	State          AgentState  `json:"state"`
@@ -82,6 +83,8 @@ type AgentSpec struct {
 	Model       string
 	Isolation   string
 	ToolUseID   string
+	// Team makes it a member of that team: peers that message each other and share the session's task graph.
+	Team string
 }
 
 // Agents is the session's set of subagents (implemented by subagent.Manager). caller is the Env.AgentID of the
@@ -123,6 +126,7 @@ func (*Agent) Run(ctx context.Context, env *Env, call Call) Result {
 		SubagentType string `json:"subagent_type"`
 		Model        string `json:"model"`
 		Isolation    string `json:"isolation"`
+		Team         string `json:"team"`
 	}
 	if err := decode(call.Input, &in); err != nil {
 		return ErrorResult("%v", err)
@@ -136,7 +140,7 @@ func (*Agent) Run(ctx context.Context, env *Env, call Call) Result {
 	if env.Agents == nil {
 		return ErrorResult("subagents are not available in this session")
 	}
-	info, err := env.Agents.Spawn(ctx, env.AgentID, AgentSpec{Description: in.Description, Prompt: in.Prompt, Type: in.SubagentType, Model: in.Model, Isolation: in.Isolation, ToolUseID: call.ID})
+	info, err := env.Agents.Spawn(ctx, env.AgentID, AgentSpec{Description: in.Description, Prompt: in.Prompt, Type: in.SubagentType, Model: in.Model, Isolation: in.Isolation, ToolUseID: call.ID, Team: strings.TrimSpace(in.Team)})
 	if err != nil {
 		return ErrorResult("%v", err)
 	}
@@ -211,11 +215,14 @@ func (*ListAgents) Run(ctx context.Context, env *Env, call Call) Result {
 		if a.ParentID != "" {
 			fmt.Fprintf(&b, "  started_by=%s", a.ParentID)
 		}
+		if a.Team != "" {
+			fmt.Fprintf(&b, "  team=%s", a.Team)
+		}
 		if a.CurrentTool != "" {
 			fmt.Fprintf(&b, "  running=%s", a.CurrentTool)
 		}
 		b.WriteByte('\n')
-		rows = append(rows, map[string]any{"id": a.ID, "name": a.Name, "type": a.Type, "state": string(a.State), "model": a.Model, "parent_id": a.ParentID})
+		rows = append(rows, map[string]any{"id": a.ID, "name": a.Name, "type": a.Type, "state": string(a.State), "model": a.Model, "parent_id": a.ParentID, "team": a.Team})
 	}
 	b.WriteString("\nTypes you can start:\n")
 	for _, t := range env.Agents.Types() {

@@ -238,6 +238,51 @@ export async function appendSessionEvents(p: Principal, sessionId: string, entri
   });
 }
 
+/** The words of a query as prefixes that must all match, quoted so nothing in them is an operator. "" when nothing is left. */
+export function allWordsQuery(text: string): string {
+  return text
+    .split(/\s+/)
+    .map((w) => w.replace(/['\\:&|!()<>*]/g, ""))
+    .filter(Boolean)
+    .slice(0, 16)
+    .map((w) => `'${w}':*`)
+    .join(" & ");
+}
+
+/**
+ * Full-text search over the caller's transcripts: at most one hit per session, its most recent sessions first. Only
+ * the caller's sessions are ever looked at.
+ */
+export async function searchTranscripts(p: Principal, query: string, limit = 0): Promise<{ sessionId: string; title: string; snippet: string; lastActivityAt: string }[]> {
+  await ensureDb();
+  const tsq = allWordsQuery(query);
+  if (!tsq) throw new ApiError("invalid_request", "query is required");
+  const n = Math.min(Math.max(limit || 30, 1), 100);
+  const s = schema.syncSession;
+  const e = schema.syncSessionEntry;
+  const q = sql`to_tsquery('simple', ${tsq})`;
+  const rows = await getDb()
+    .selectDistinctOn([s.lastActivityAt, s.id], { sessionId: s.id, title: s.title, lastActivityAt: s.lastActivityAt, text: e.searchText })
+    .from(e)
+    .innerJoin(s, eq(s.id, e.sessionId))
+    .where(and(eq(s.userId, p.user.id), eq(s.archived, false), sql`to_tsvector('simple', ${e.searchText}) @@ ${q}`))
+    .orderBy(desc(s.lastActivityAt), desc(s.id), asc(e.seq))
+    .limit(n);
+  return rows.map((r) => ({ sessionId: r.sessionId, title: r.title, snippet: transcriptSnippet(r.text, query), lastActivityAt: r.lastActivityAt.toISOString() }));
+}
+
+const SNIPPET_CONTEXT = 90;
+
+/** The text around the query's first word, on one line. */
+export function transcriptSnippet(text: string, query: string): string {
+  const lower = text.toLowerCase();
+  const at = Math.max(lower.indexOf(query.trim().split(/\s+/)[0]!.toLowerCase()), 0);
+  const start = Math.max(at - SNIPPET_CONTEXT, 0);
+  const end = Math.min(at + SNIPPET_CONTEXT * 2, text.length);
+  const body = text.slice(start, end).replace(/\s+/g, " ").trim();
+  return `${start > 0 ? "…" : ""}${body}${end < text.length ? "…" : ""}`;
+}
+
 export async function getSession(p: Principal, sessionId: string): Promise<SessionView> {
   if (!sessionId) throw new ApiError("invalid_request", "session_id is required");
   await ensureDb();

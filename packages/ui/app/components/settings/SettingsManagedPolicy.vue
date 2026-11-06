@@ -16,6 +16,11 @@ const ask = ref('')
 const deny = ref('')
 const providers = ref('')
 const servers = ref('')
+const pluginAllowed = ref('')
+const pluginBlocked = ref('')
+const pluginMarkets = ref('')
+const pluginsOn = ref('')
+const pluginsOff = ref('')
 const view = ref<ManagedPolicyView | null>(null)
 const error = ref('')
 const saved = ref(false)
@@ -32,6 +37,11 @@ function show(s: ManagedPolicyState) {
   deny.value = s.policy.denyRules.join('\n')
   providers.value = s.policy.allowedProviders.join('\n')
   servers.value = s.policy.allowedMcpServers.join('\n')
+  pluginAllowed.value = s.policy.allowedPluginSources.join('\n')
+  pluginBlocked.value = s.policy.blockedPluginSources.join('\n')
+  pluginMarkets.value = s.policy.distributedMarketplaces.join('\n')
+  pluginsOn.value = s.policy.distributedPlugins.join('\n')
+  pluginsOff.value = s.policy.blockedPlugins.join('\n')
 }
 
 onMounted(async () => {
@@ -53,7 +63,12 @@ async function save() {
       askRules: lines(ask.value),
       denyRules: lines(deny.value),
       allowedProviders: lines(providers.value),
-      allowedMcpServers: lines(servers.value)
+      allowedMcpServers: lines(servers.value),
+      allowedPluginSources: lines(pluginAllowed.value),
+      blockedPluginSources: lines(pluginBlocked.value),
+      distributedMarketplaces: lines(pluginMarkets.value),
+      distributedPlugins: lines(pluginsOn.value),
+      blockedPlugins: lines(pluginsOff.value)
     }))
     error.value = ''
     saved.value = true
@@ -250,6 +265,69 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           </HBtn>
         </div>
       </template>
+      <div class="set-row">
+        <div class="set-label">
+          <span>Plugins only from allowed sources</span>
+          <span class="set-desc">One per line: <code>owner/repo</code>, <code>owner/*</code>, a git or <code>marketplace.json</code> URL, an absolute path, <code>host:regexp</code> or <code>path:regexp</code>. An empty list allows none. Clients check before a download and again when a plugin would load.</span>
+        </div>
+        <HToggle
+          v-model="policy.restrictPluginSources"
+          :disabled="!writable"
+          label="Plugins only from allowed sources"
+        />
+      </div>
+      <textarea
+        v-if="policy.restrictPluginSources"
+        v-model="pluginAllowed"
+        aria-label="Allowed plugin sources"
+        :disabled="!writable"
+        spellcheck="false"
+        :class="area"
+      />
+      <div class="set-label mt-2">
+        <span>Blocked plugin sources</span>
+        <span class="set-desc">The same forms, checked first.</span>
+      </div>
+      <textarea
+        v-model="pluginBlocked"
+        aria-label="Blocked plugin sources"
+        :disabled="!writable"
+        spellcheck="false"
+        :class="area"
+      />
+      <div class="set-label mt-2">
+        <span>Distributed marketplaces</span>
+        <span class="set-desc"><code>name=source</code>, one per line: registered on every device.</span>
+      </div>
+      <textarea
+        v-model="pluginMarkets"
+        aria-label="Distributed marketplaces"
+        :disabled="!writable"
+        spellcheck="false"
+        :class="area"
+      />
+      <div class="set-label mt-2">
+        <span>Distributed plugins</span>
+        <span class="set-desc"><code>name@marketplace</code>, one per line: fetched on every device and kept on. Each device still approves what runs on it.</span>
+      </div>
+      <textarea
+        v-model="pluginsOn"
+        aria-label="Distributed plugins"
+        :disabled="!writable"
+        spellcheck="false"
+        :class="area"
+      />
+      <div class="set-label mt-2">
+        <span>Blocked plugins</span>
+        <span class="set-desc"><code>name@marketplace</code>, one per line.</span>
+      </div>
+      <textarea
+        v-model="pluginsOff"
+        aria-label="Blocked plugins"
+        :disabled="!writable"
+        spellcheck="false"
+        :class="area"
+      />
 
       <div
         v-if="writable"

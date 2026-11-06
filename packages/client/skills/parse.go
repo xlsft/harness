@@ -11,6 +11,7 @@
 package skills
 
 import (
+	"encoding/json"
 	"regexp"
 	"slices"
 	"sort"
@@ -37,6 +38,7 @@ const (
 	SourcePersonal     = "personal"
 	SourceImported     = "imported"
 	SourceProject      = "project"
+	SourcePlugin       = "plugin"
 )
 
 // Skill is one skill or custom command as discovery sees it: everything but the body.
@@ -60,6 +62,11 @@ type Skill struct {
 	Agent string
 	// Paths hold it back from the listing until a file matching one of these globs was touched.
 	Paths []string
+	// Hooks is the frontmatter's hooks block as JSON, in the shape of the settings key: they run while the skill is at work.
+	Hooks json.RawMessage
+
+	// Plugin is the id of the plugin it came from; PluginRoot and PluginData are that plugin's folders.
+	Plugin, PluginRoot, PluginData string
 
 	Kind   Kind
 	Source string
@@ -137,10 +144,17 @@ func Parse(markdown, fallback string, kind Kind) Skill {
 	}
 	s.Agent = strings.TrimSpace(scalar(normal["agent"]))
 	s.Paths = commaList(normal["paths"])
+	if h, ok := normal["hooks"]; ok && h != nil {
+		if raw, err := json.Marshal(h); err == nil {
+			s.Hooks = raw
+		} else {
+			s.Problems = append(s.Problems, "The hooks field can't be read.")
+		}
+	}
 	for k := range normal {
 		switch k {
 		case "name", "description", "when-to-use", "argument-hint", "arguments", "allowed-tools", "model", "effort",
-			"disable-model-invocation", "user-invocable", "context", "agent", "paths":
+			"disable-model-invocation", "user-invocable", "context", "agent", "paths", "hooks":
 		case "shell":
 			// Commands in a body run in the session's shell, whatever this asks for, unless it asks for what that is.
 			if !slices.Contains([]string{"", "bash", "sh", "zsh"}, strings.ToLower(strings.TrimSpace(scalar(normal[k])))) {

@@ -372,6 +372,19 @@ describe("speed tiers and cache lifetimes", () => {
     expect(modelTiers({ presetId: null, type: "openai-chat", upstreamModel: "gpt-5.5", promptCache: true })).toMatchObject({ speed_tiers: [], cache_ttls: [] });
   });
 
+  it("has OpenAI's published price for each tier, per model", () => {
+    const of = (upstreamModel: string) => modelTiers({ presetId: "openai", type: "openai-responses", upstreamModel, promptCache: true });
+    expect(of("gpt-5.5").speed_multipliers).toEqual({ fast: 2.5, flex: 0.5 });
+    expect(of("gpt-5.5-2026-04-23").speed_multipliers).toEqual({ fast: 2.5, flex: 0.5 });
+    expect(of("gpt-5.4").speed_multipliers).toEqual({ fast: 2, flex: 0.5 });
+    expect(of("gpt-5-mini").speed_multipliers).toEqual({ fast: 1.8, flex: 0.5 });
+    expect(of("o3").speed_multipliers).toEqual({ fast: 1.75, flex: 0.5 });
+    // Only what the page lists for the model.
+    expect(of("gpt-5.3-codex").speed_tiers).toEqual(["standard", "fast"]);
+    expect(of("gpt-5-nano").speed_tiers).toEqual(["standard", "flex"]);
+    for (const none of ["gpt-5.5-cyber", "o3-pro", "o4-mini", "gpt-99"]) expect(of(none).speed_tiers).toEqual([]);
+  });
+
   it("prices a tier and an hour-long cache", () => {
     const p = { input: 4, output: 20, cache_read: 0.2, cache_write: 5 };
     expect(tieredPricing(p, undefined)).toBe(p);

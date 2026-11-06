@@ -1,6 +1,7 @@
 // What the client reports for the slash menu and the Customize screen, as these show it. The client decides what exists,
 // what wins a name and what is on; here it only becomes rows.
 import { SlashCommandKind, SlashCommandResult_Action, type ListSlashCommandsResponse, type SlashCommand } from '~/gen/harness/agent/v1/slash_commands_pb'
+import { fuzzyScore } from '~/lib/files/tree'
 import type { MenuOption } from '~/utils/composer'
 
 /** What to ask the client about: a session, or a folder before one exists. */
@@ -27,12 +28,49 @@ export function slashMenuOptions(list: readonly SlashCommand[], o: { hasSession:
     }))
 }
 
-/** The rows matching what's typed: names starting with it first, then a namespaced name's last part. */
+// Edits between two strings, a swap of neighbours counting as one.
+function typoDistance(a: string, b: string): number {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)])
+  for (let j = 1; j <= b.length; j++) d[0]![j] = j
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      let v = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost)
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, d[i - 2]![j - 2]! + 1)
+      d[i]![j] = v
+    }
+  }
+  return d[a.length]![b.length]!
+}
+
+/**
+ * The rows matching what's typed, best first: names starting with it, a namespaced name's last part, the letters in order
+ * anywhere in the name (/efort, /cr), then a near miss with a typo (/mdoel, /moddel).
+ */
 export function matchSlash(options: readonly MenuOption[], token: string): MenuOption[] {
   const q = (token || '/').toLowerCase()
+  const word = q.slice(1)
+  const name = (c: MenuOption) => c.label.toLowerCase().slice(1)
   const starts = options.filter(c => c.label.toLowerCase().startsWith(q))
-  const inner = options.filter(c => !starts.includes(c) && c.label.toLowerCase().includes(`:${q.slice(1)}`))
-  return [...starts, ...inner]
+  const inner = options.filter(c => !starts.includes(c) && name(c).includes(`:${word}`))
+  const taken = new Set([...starts, ...inner])
+  const scored = options
+    .filter(c => !taken.has(c))
+    .map(c => ({ c, s: fuzzyScore(word, c.label.slice(1)) }))
+    .filter((x): x is { c: MenuOption, s: number } => x.s !== null)
+    .sort((x, y) => y.s - x.s)
+    .map(x => x.c)
+  scored.forEach(c => taken.add(c))
+  const allowed = word.length >= 6 ? 2 : word.length >= 3 ? 1 : 0
+  const near = allowed === 0
+    ? []
+    : options
+        .filter(c => !taken.has(c))
+        .map(c => ({ c, d: typoDistance(word, name(c).slice(0, word.length + allowed)) }))
+        .filter(x => x.d <= allowed)
+        .sort((x, y) => x.d - y.d)
+        .map(x => x.c)
+  return [...starts, ...inner, ...scored, ...near]
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -41,7 +79,8 @@ const SOURCE_LABELS: Record<string, string> = {
   imported: 'Imported',
   organization: 'Organization',
   builtin: 'Built-in',
-  agent: 'Agent'
+  agent: 'Agent',
+  plugin: 'Plugin'
 }
 
 export function sourceLabel(source: string): string {

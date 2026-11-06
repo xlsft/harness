@@ -31,6 +31,7 @@ type harness struct {
 	client agentv1connect.AgentServiceClient
 	ctx    context.Context
 	proj   string
+	socket string
 }
 
 func startHarness(t *testing.T, respond fg.Responder, mod func(*bootstrap.Options)) *harness {
@@ -102,7 +103,7 @@ func startHarnessSrv(t *testing.T, respond fg.Responder, gwmod func(*fg.Server),
 		time.Sleep(10 * time.Millisecond)
 	}
 	proj, _ := filepath.EvalSymlinks(t.TempDir())
-	return &harness{t: t, gw: gw, client: agentv1connect.NewAgentServiceClient(rpc.UnixHTTPClient(socket), "http://agent", connect.WithGRPC()), ctx: ctx, proj: proj}
+	return &harness{t: t, gw: gw, client: agentv1connect.NewAgentServiceClient(rpc.UnixHTTPClient(socket), "http://agent", connect.WithGRPC()), ctx: ctx, proj: proj, socket: socket}
 }
 
 func (h *harness) create(req *agentv1.CreateSessionRequest) (string, <-chan *agentv1.SessionEvent) {

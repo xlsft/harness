@@ -45,8 +45,10 @@ func (s *Session) openMCP(ctx context.Context, o Options, contextWindow int, con
 	if s.Resumed {
 		catalog = conv.McpCatalogVersion
 	}
+	pluginServers, pluginProblems := pluginMCPServers(s.Cwd, s.Trusted)
+	s.Warnings = append(s.Warnings, pluginProblems...)
 	m, err := mcp.Open(ctx, mcp.Options{
-		Client: o.MCP, Cwd: s.Cwd, ProjectKey: projectKey, ProjectConfig: projectConfig, Local: &mcp.LocalStore{Path: MCPLocalFile()}, Registry: s.Tools,
+		Client: o.MCP, Cwd: s.Cwd, ProjectKey: projectKey, ProjectConfig: projectConfig, Local: &mcp.LocalStore{Path: MCPLocalFile()}, PluginServers: pluginServers, Registry: s.Tools,
 		Approvals: &mcp.Approvals{Path: MCPApprovalsFile()}, AutoApprove: autoApprove, CatalogVersion: catalog,
 		ContextWindow: contextWindow, ToolSearch: os.Getenv("HARNESS_TOOL_SEARCH"), Bundle: s.Bundle,
 		Disabled: s.Permissions.IsDisabled, PolicyAllows: o.ModePolicy.Managed().McpServerAllowed, SessionID: s.ID, Logger: log,

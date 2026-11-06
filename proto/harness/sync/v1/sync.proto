@@ -121,6 +121,16 @@ enum DocumentKind {
   // User scope only. key: session id. content: JSON {"notes": [{"id", "kind": "message"|"report", "fromId", "fromName",
   // "fromTitle", "status", "text"}]}, the notes waiting for a session that is not open anywhere; the device that opens it delivers them and deletes the document.
   DOCUMENT_KIND_SESSION_NOTES = 13;
+  // User scope only. key: schedule id (sch_...). content: JSON of a scheduled task (harness.agent.v1.Schedule's fields
+  // plus webhookSecretSha256), written by any machine of the user. Device-local schedules never come here.
+  DOCUMENT_KIND_SCHEDULE = 140;
+  // User scope only. key: schedule id. content: JSON {"runs": [...]}, the runs the schedule's machine records, newest
+  // first, at most 50.
+  DOCUMENT_KIND_SCHEDULE_HISTORY = 141;
+  // User scope only. key: request id. content: JSON {"scheduleId", "deviceId", "source": "manual"|"webhook",
+  // "receivedAt", "payload"}, a run asked of the schedule's machine; that machine runs it and deletes the document.
+  // Written by the webhook route of the server or by another machine's Run now.
+  DOCUMENT_KIND_SCHEDULE_TRIGGER = 142;
 }
 
 message Document {

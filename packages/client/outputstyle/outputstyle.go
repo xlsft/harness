@@ -33,6 +33,7 @@ const (
 	SourceBuiltin = "builtin"
 	SourceUser    = "user"
 	SourceProject = "project"
+	SourcePlugin  = "plugin"
 )
 
 // Default is the id of the style that adds nothing; "" means the same.
@@ -107,6 +108,14 @@ type Options struct {
 	// ProjectDirs are searched in order for .claude/output-styles and
 	// .harness/output-styles (typically the git root, then the cwd).
 	ProjectDirs []string
+	// Plugins lists the styles of the installed plugins allowed to run. They come last, and their ids hold the plugin's name,
+	// so they replace nothing.
+	Plugins func() []PluginStyle
+}
+
+// PluginStyle is a style file of a plugin, under the name it goes by.
+type PluginStyle struct {
+	ID, Path string
 }
 
 // Catalog is the set of styles available to a session.
@@ -180,6 +189,17 @@ func Discover(o Options) *Catalog {
 		seen[d] = true
 		c.addDir(filepath.Join(d, ".claude", "output-styles"), SourceProject)
 		c.addDir(filepath.Join(d, ".harness", "output-styles"), SourceProject)
+	}
+	if o.Plugins != nil {
+		for _, ps := range o.Plugins() {
+			data, err := os.ReadFile(ps.Path)
+			if err != nil {
+				continue
+			}
+			st := Parse(string(data), ps.ID)
+			st.ID, st.Name, st.Source, st.Origin = ps.ID, ps.ID, SourcePlugin, ps.Path
+			c.add(st)
+		}
 	}
 	return c
 }

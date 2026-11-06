@@ -1,10 +1,13 @@
 package subagent
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/tools"
@@ -26,6 +29,8 @@ type Type struct {
 	Model string
 	// Instructions go into the agent's first message (custom types: the definition's body).
 	Instructions string
+	// Hooks is the definition's hooks frontmatter as JSON: they run for this agent's events while it works.
+	Hooks json.RawMessage
 	// reminder names the bundle text with the instructions of a built-in type.
 	reminder string
 }
@@ -45,7 +50,7 @@ func BuiltinTypes() []Type {
 
 // leadOnlyTools talk to the user directly or change the session's own state, which belongs to its main agent. An
 // agent asks through its report instead.
-var leadOnlyTools = map[string]bool{"AskUserQuestion": true, "EnterPlanMode": true, "ExitPlanMode": true, "WrapUp": true, "Show": true, "Visual": true, "Workflow": true}
+var leadOnlyTools = map[string]bool{"AskUserQuestion": true, "EnterPlanMode": true, "ExitPlanMode": true, "WrapUp": true, "Show": true, "Visual": true, "Workflow": true, "ScheduleWakeup": true, "ScheduleList": true, "ScheduleCancel": true}
 
 // DefinitionDirs lists where custom types are looked for, later entries winning: the user's directories, then (for
 // a trusted workspace) the project's.
@@ -96,6 +101,30 @@ func LoadDefinitions(dirs []string) []Type {
 	return out
 }
 
+// PluginDefinition is an agent file of a plugin, under the name it goes by.
+type PluginDefinition struct {
+	Name, Path string
+	// Root and Data fill ${CLAUDE_PLUGIN_ROOT} and ${CLAUDE_PLUGIN_DATA} in the instructions.
+	Root, Data string
+}
+
+// LoadPluginDefinitions reads a plugin's agents. A plugin's agent gets no hooks of its own: what a plugin runs is listed where
+// the user approved it.
+func LoadPluginDefinitions(defs []PluginDefinition) []Type {
+	var out []Type
+	for _, d := range defs {
+		data, err := os.ReadFile(d.Path)
+		if err != nil {
+			continue
+		}
+		t := parseDefinition(string(data), d.Name)
+		t.Name, t.Hooks = d.Name, nil
+		t.Instructions = strings.NewReplacer("${CLAUDE_PLUGIN_ROOT}", d.Root, "${HARNESS_PLUGIN_ROOT}", d.Root, "${CLAUDE_PLUGIN_DATA}", d.Data, "${HARNESS_PLUGIN_DATA}", d.Data).Replace(t.Instructions)
+		out = append(out, t)
+	}
+	return out
+}
+
 func parseDefinition(markdown, fallback string) Type {
 	t := Type{AgentType: tools.AgentType{Name: fallback}}
 	_, body, ok := memory.SplitFrontmatter(markdown)
@@ -113,10 +142,30 @@ func parseDefinition(markdown, fallback string) Type {
 	case "true", "yes", "on", "1":
 		t.ReadOnly = true
 	}
+	t.Hooks = frontmatterHooks(markdown)
 	for _, n := range strings.Split(memory.FrontmatterString(markdown, "tools"), ",") {
 		if n = strings.TrimSpace(n); n != "" {
 			t.Tools = append(t.Tools, n)
 		}
 	}
 	return t
+}
+
+// frontmatterHooks reads a definition's hooks field as JSON (nil: none, or not readable).
+func frontmatterHooks(markdown string) json.RawMessage {
+	fm, _, ok := memory.SplitFrontmatter(markdown)
+	if !ok {
+		return nil
+	}
+	var fields struct {
+		Hooks map[string]any `yaml:"hooks"`
+	}
+	if yaml.Unmarshal([]byte(fm), &fields) != nil || len(fields.Hooks) == 0 {
+		return nil
+	}
+	raw, err := json.Marshal(fields.Hooks)
+	if err != nil {
+		return nil
+	}
+	return raw
 }

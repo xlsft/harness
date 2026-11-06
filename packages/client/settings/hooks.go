@@ -41,6 +41,8 @@ type HookLayer struct {
 	// Hash identifies the content (ContentHash).
 	Hash string
 	Gate HookGate
+	// Env is added to the environment of this block's commands (a plugin's root and data folder).
+	Env []string
 }
 
 // ContentHash is the value device trust is keyed on. It is computed here rather than taken from the document, so what is
@@ -91,6 +93,7 @@ func (s *Settings) mergeHooks(layers []*layer) {
 		}
 		s.HooksOff = s.HooksOff || l.hooksOff
 	}
+	s.HooksManagedOnly = managedOnly
 	for i := len(layers) - 1; i >= 0; i-- {
 		l := layers[i]
 		if len(l.hooks) == 0 {

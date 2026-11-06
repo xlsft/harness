@@ -1,0 +1,19 @@
+{
+  "name": "@xlsft/harness-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK over headless harness-client",
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src/index.ts"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts"
+  }
+}

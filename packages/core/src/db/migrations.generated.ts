@@ -224,5 +224,27 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"scim_identity_external_idx\" ON \"scim_identity\" USING btree (\"external_id\");",
       "CREATE INDEX \"sso_flow_expires_idx\" ON \"sso_flow\" USING btree (\"expires_at\");"
     ]
+  },
+  {
+    "id": "0014_cold_pyro",
+    "statements": [
+      "CREATE TABLE \"artifact\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"owner_id\" text NOT NULL,\n\t\"title\" text NOT NULL,\n\t\"visibility\" text DEFAULT 'private' NOT NULL,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"current_version\" integer DEFAULT 1 NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"artifact_version\" (\n\t\"artifact_id\" text NOT NULL,\n\t\"number\" integer NOT NULL,\n\t\"sha256\" text NOT NULL,\n\t\"name\" text DEFAULT '' NOT NULL,\n\t\"content_type\" text NOT NULL,\n\t\"size\" bigint NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"artifact_version_artifact_id_number_pk\" PRIMARY KEY(\"artifact_id\",\"number\")\n);",
+      "CREATE TABLE \"knowledge_chunk\" (\n\t\"document_id\" text NOT NULL,\n\t\"index\" integer NOT NULL,\n\t\"heading\" text NOT NULL,\n\t\"text\" text NOT NULL,\n\t\"search\" \"tsvector\" GENERATED ALWAYS AS (setweight(to_tsvector('english', heading), 'A') || setweight(to_tsvector('simple', heading), 'A') || to_tsvector('english', text) || to_tsvector('simple', text)) STORED NOT NULL,\n\tCONSTRAINT \"knowledge_chunk_document_id_index_pk\" PRIMARY KEY(\"document_id\",\"index\")\n);",
+      "CREATE TABLE \"knowledge_document\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"scope\" text NOT NULL,\n\t\"owner_id\" text NOT NULL,\n\t\"title\" text NOT NULL,\n\t\"source_name\" text DEFAULT '' NOT NULL,\n\t\"content\" text NOT NULL,\n\t\"size\" bigint NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"tracker_task\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"owner_id\" text NOT NULL,\n\t\"title\" text NOT NULL,\n\t\"description\" text DEFAULT '' NOT NULL,\n\t\"status\" text DEFAULT 'todo' NOT NULL,\n\t\"priority\" text DEFAULT 'normal' NOT NULL,\n\t\"project\" text DEFAULT '' NOT NULL,\n\t\"session_ids\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"blocked_by\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\t\"closed_at\" timestamp with time zone\n);",
+      "ALTER TABLE \"artifact\" ADD CONSTRAINT \"artifact_owner_id_user_id_fk\" FOREIGN KEY (\"owner_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"artifact_version\" ADD CONSTRAINT \"artifact_version_artifact_id_artifact_id_fk\" FOREIGN KEY (\"artifact_id\") REFERENCES \"public\".\"artifact\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"knowledge_chunk\" ADD CONSTRAINT \"knowledge_chunk_document_id_knowledge_document_id_fk\" FOREIGN KEY (\"document_id\") REFERENCES \"public\".\"knowledge_document\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"knowledge_document\" ADD CONSTRAINT \"knowledge_document_owner_id_user_id_fk\" FOREIGN KEY (\"owner_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"tracker_task\" ADD CONSTRAINT \"tracker_task_owner_id_user_id_fk\" FOREIGN KEY (\"owner_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"artifact_owner_idx\" ON \"artifact\" USING btree (\"owner_id\",\"updated_at\");",
+      "CREATE INDEX \"artifact_visibility_idx\" ON \"artifact\" USING btree (\"visibility\",\"updated_at\");",
+      "CREATE INDEX \"artifact_version_sha_idx\" ON \"artifact_version\" USING btree (\"sha256\");",
+      "CREATE INDEX \"knowledge_chunk_search_idx\" ON \"knowledge_chunk\" USING gin (\"search\");",
+      "CREATE INDEX \"knowledge_document_scope_idx\" ON \"knowledge_document\" USING btree (\"scope\",\"owner_id\");",
+      "CREATE INDEX \"tracker_task_owner_idx\" ON \"tracker_task\" USING btree (\"owner_id\",\"status\",\"updated_at\");",
+      "CREATE INDEX \"sync_session_entry_search_idx\" ON \"sync_session_entry\" USING gin (to_tsvector('simple', \"search_text\"));"
+    ]
   }
 ];

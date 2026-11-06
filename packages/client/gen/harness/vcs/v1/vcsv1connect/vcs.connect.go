@@ -57,6 +57,9 @@ const (
 	// VcsServiceRevokeUserAuthProcedure is the fully-qualified name of the VcsService's RevokeUserAuth
 	// RPC.
 	VcsServiceRevokeUserAuthProcedure = "/harness.vcs.v1.VcsService/RevokeUserAuth"
+	// VcsServiceListUserConnectionsProcedure is the fully-qualified name of the VcsService's
+	// ListUserConnections RPC.
+	VcsServiceListUserConnectionsProcedure = "/harness.vcs.v1.VcsService/ListUserConnections"
 	// VcsServiceListRepositoriesProcedure is the fully-qualified name of the VcsService's
 	// ListRepositories RPC.
 	VcsServiceListRepositoriesProcedure = "/harness.vcs.v1.VcsService/ListRepositories"
@@ -112,6 +115,8 @@ type VcsServiceClient interface {
 	StartUserAuth(context.Context, *connect.Request[v1.StartUserAuthRequest]) (*connect.Response[v1.StartUserAuthResponse], error)
 	GetUserAuthStatus(context.Context, *connect.Request[v1.GetUserAuthStatusRequest]) (*connect.Response[v1.GetUserAuthStatusResponse], error)
 	RevokeUserAuth(context.Context, *connect.Request[v1.RevokeUserAuthRequest]) (*connect.Response[v1.RevokeUserAuthResponse], error)
+	// The connections any signed-in user can use, with where that user stands on each. No secrets, no health details.
+	ListUserConnections(context.Context, *connect.Request[v1.ListUserConnectionsRequest]) (*connect.Response[v1.ListUserConnectionsResponse], error)
 	// --- Repositories and pull/merge requests ---
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
 	ListPullRequests(context.Context, *connect.Request[v1.ListPullRequestsRequest]) (*connect.Response[v1.ListPullRequestsResponse], error)
@@ -199,6 +204,12 @@ func NewVcsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+VcsServiceRevokeUserAuthProcedure,
 			connect.WithSchema(vcsServiceMethods.ByName("RevokeUserAuth")),
+			connect.WithClientOptions(opts...),
+		),
+		listUserConnections: connect.NewClient[v1.ListUserConnectionsRequest, v1.ListUserConnectionsResponse](
+			httpClient,
+			baseURL+VcsServiceListUserConnectionsProcedure,
+			connect.WithSchema(vcsServiceMethods.ByName("ListUserConnections")),
 			connect.WithClientOptions(opts...),
 		),
 		listRepositories: connect.NewClient[v1.ListRepositoriesRequest, v1.ListRepositoriesResponse](
@@ -304,6 +315,7 @@ type vcsServiceClient struct {
 	startUserAuth             *connect.Client[v1.StartUserAuthRequest, v1.StartUserAuthResponse]
 	getUserAuthStatus         *connect.Client[v1.GetUserAuthStatusRequest, v1.GetUserAuthStatusResponse]
 	revokeUserAuth            *connect.Client[v1.RevokeUserAuthRequest, v1.RevokeUserAuthResponse]
+	listUserConnections       *connect.Client[v1.ListUserConnectionsRequest, v1.ListUserConnectionsResponse]
 	listRepositories          *connect.Client[v1.ListRepositoriesRequest, v1.ListRepositoriesResponse]
 	listPullRequests          *connect.Client[v1.ListPullRequestsRequest, v1.ListPullRequestsResponse]
 	getPullRequest            *connect.Client[v1.GetPullRequestRequest, v1.GetPullRequestResponse]
@@ -359,6 +371,11 @@ func (c *vcsServiceClient) GetUserAuthStatus(ctx context.Context, req *connect.R
 // RevokeUserAuth calls harness.vcs.v1.VcsService.RevokeUserAuth.
 func (c *vcsServiceClient) RevokeUserAuth(ctx context.Context, req *connect.Request[v1.RevokeUserAuthRequest]) (*connect.Response[v1.RevokeUserAuthResponse], error) {
 	return c.revokeUserAuth.CallUnary(ctx, req)
+}
+
+// ListUserConnections calls harness.vcs.v1.VcsService.ListUserConnections.
+func (c *vcsServiceClient) ListUserConnections(ctx context.Context, req *connect.Request[v1.ListUserConnectionsRequest]) (*connect.Response[v1.ListUserConnectionsResponse], error) {
+	return c.listUserConnections.CallUnary(ctx, req)
 }
 
 // ListRepositories calls harness.vcs.v1.VcsService.ListRepositories.
@@ -451,6 +468,8 @@ type VcsServiceHandler interface {
 	StartUserAuth(context.Context, *connect.Request[v1.StartUserAuthRequest]) (*connect.Response[v1.StartUserAuthResponse], error)
 	GetUserAuthStatus(context.Context, *connect.Request[v1.GetUserAuthStatusRequest]) (*connect.Response[v1.GetUserAuthStatusResponse], error)
 	RevokeUserAuth(context.Context, *connect.Request[v1.RevokeUserAuthRequest]) (*connect.Response[v1.RevokeUserAuthResponse], error)
+	// The connections any signed-in user can use, with where that user stands on each. No secrets, no health details.
+	ListUserConnections(context.Context, *connect.Request[v1.ListUserConnectionsRequest]) (*connect.Response[v1.ListUserConnectionsResponse], error)
 	// --- Repositories and pull/merge requests ---
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
 	ListPullRequests(context.Context, *connect.Request[v1.ListPullRequestsRequest]) (*connect.Response[v1.ListPullRequestsResponse], error)
@@ -534,6 +553,12 @@ func NewVcsServiceHandler(svc VcsServiceHandler, opts ...connect.HandlerOption) 
 		VcsServiceRevokeUserAuthProcedure,
 		svc.RevokeUserAuth,
 		connect.WithSchema(vcsServiceMethods.ByName("RevokeUserAuth")),
+		connect.WithHandlerOptions(opts...),
+	)
+	vcsServiceListUserConnectionsHandler := connect.NewUnaryHandler(
+		VcsServiceListUserConnectionsProcedure,
+		svc.ListUserConnections,
+		connect.WithSchema(vcsServiceMethods.ByName("ListUserConnections")),
 		connect.WithHandlerOptions(opts...),
 	)
 	vcsServiceListRepositoriesHandler := connect.NewUnaryHandler(
@@ -644,6 +669,8 @@ func NewVcsServiceHandler(svc VcsServiceHandler, opts ...connect.HandlerOption) 
 			vcsServiceGetUserAuthStatusHandler.ServeHTTP(w, r)
 		case VcsServiceRevokeUserAuthProcedure:
 			vcsServiceRevokeUserAuthHandler.ServeHTTP(w, r)
+		case VcsServiceListUserConnectionsProcedure:
+			vcsServiceListUserConnectionsHandler.ServeHTTP(w, r)
 		case VcsServiceListRepositoriesProcedure:
 			vcsServiceListRepositoriesHandler.ServeHTTP(w, r)
 		case VcsServiceListPullRequestsProcedure:
@@ -713,6 +740,10 @@ func (UnimplementedVcsServiceHandler) GetUserAuthStatus(context.Context, *connec
 
 func (UnimplementedVcsServiceHandler) RevokeUserAuth(context.Context, *connect.Request[v1.RevokeUserAuthRequest]) (*connect.Response[v1.RevokeUserAuthResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.vcs.v1.VcsService.RevokeUserAuth is not implemented"))
+}
+
+func (UnimplementedVcsServiceHandler) ListUserConnections(context.Context, *connect.Request[v1.ListUserConnectionsRequest]) (*connect.Response[v1.ListUserConnectionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.vcs.v1.VcsService.ListUserConnections is not implemented"))
 }
 
 func (UnimplementedVcsServiceHandler) ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error) {

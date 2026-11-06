@@ -14,9 +14,11 @@ import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/managed_policy.proto";
 import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/pr.proto";
+import "harness/agent/v1/pr_create.proto";
 import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/real_browser.proto";
 import "harness/agent/v1/sandbox.proto";
+import "harness/agent/v1/schedules.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
@@ -24,6 +26,7 @@ import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/subagents.proto";
+import "harness/agent/v1/teamwork.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/agent/v1/user_tools.proto";
 import "harness/agent/v1/workflows.proto";
@@ -321,6 +324,14 @@ service AgentService {
   // of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
   // glab is missing or not logged in; NOT_FOUND for a session that is not open here.
   rpc SetPrMonitor(SetPrMonitorRequest) returns (SetPrMonitorResponse);
+  // Reads the session's branch and asks the small-slot model for a pull request's title and body (pr_create.proto); falls
+  // back to the commit messages. FAILED_PRECONDITION when the branch has nothing to propose or is the base branch.
+  rpc DraftPullRequest(DraftPullRequestRequest) returns (DraftPullRequestResponse);
+  // Pushes the session's branch, opens the PR through the server's connection or gh / glab and binds it to the session.
+  // An open PR of the branch is returned as it is. FAILED_PRECONDITION with what to do when no provider covers the host.
+  rpc CreatePullRequest(CreatePullRequestRequest) returns (CreatePullRequestResponse);
+  // The local CLIs this client can reach code hosts with (pr_create.proto).
+  rpc GetVcsStatus(GetVcsStatusRequest) returns (GetVcsStatusResponse);
   // Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
   rpc ListPreviewServers(ListPreviewServersRequest) returns (ListPreviewServersResponse);
   rpc StopPreviewServer(StopPreviewServerRequest) returns (StopPreviewServerResponse);
@@ -390,6 +401,18 @@ service AgentService {
   // Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
   // (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
   rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
+
+  // Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
+  // the user's, whichever machine runs them.
+  rpc ListSchedules(ListSchedulesRequest) returns (ListSchedulesResponse);
+  rpc CreateSchedule(CreateScheduleRequest) returns (CreateScheduleResponse);
+  rpc UpdateSchedule(UpdateScheduleRequest) returns (UpdateScheduleResponse);
+  rpc DeleteSchedule(DeleteScheduleRequest) returns (DeleteScheduleResponse);
+  rpc SetSchedulePaused(SetSchedulePausedRequest) returns (SetSchedulePausedResponse);
+  rpc RunScheduleNow(RunScheduleNowRequest) returns (RunScheduleNowResponse);
+  rpc ListScheduleRuns(ListScheduleRunsRequest) returns (ListScheduleRunsResponse);
+  rpc TrustSchedule(TrustScheduleRequest) returns (TrustScheduleResponse);
+  rpc RotateScheduleWebhook(RotateScheduleWebhookRequest) returns (RotateScheduleWebhookResponse);
 }
 
 message CreateObjectTicketRequest {}
@@ -842,6 +865,9 @@ message SessionEvent {
     // The session's browser in the user's Chrome wants a site (real_browser.proto).
     BrowserSiteRequested browser_site_requested = 180;
     BrowserSiteResolved browser_site_resolved = 181;
+    // Goal mode and the task graph (teamwork.proto); numbered apart like the shell events.
+    GoalUpdated goal_updated = 140;
+    TaskGraphUpdated task_graph_updated = 141;
   }
 }
 
@@ -1524,6 +1550,14 @@ message UserPreferences {
   // The skills and custom commands the user turned off, by name (settings key disabledSkills). A name the current folder
   // doesn't have stays on the list, so a skill keeps its switch from one project and machine to the next.
   repeated string disabled_skills = 12;
+  // Let the agent keep memory files per project and load their index into new sessions (settings key autoMemoryEnabled).
+  // Default true. Off, nothing is loaded or written; what is stored stays until the user deletes it (Settings > Memory).
+  bool auto_memory_enabled = 24;
+  // This client runs the schedules of its machine (settings key schedulesEnabled). Default true. Off keeps them, and
+  // they don't run; `Run now` still does.
+  bool schedules_enabled = 18;
+  // How many turns `/goal` may take when it names no cap (settings key goalMaxTurns), 1 to 200. Default 20.
+  int32 goal_max_turns = 19;
   // What the organization's managed policy imposes on this user; read only (managed_policy.proto). Nothing in
   // UpdateUserPreferencesRequest can change it.
   ManagedPolicyView managed_policy = 16;
@@ -1576,6 +1610,9 @@ message UpdateUserPreferencesRequest {
   optional SkillSwitch skill_switch = 12;
   // Replaces all three choices. INVALID_ARGUMENT for an unknown tier or lifetime.
   optional ModelTuning model_tuning = 26;
+  optional bool auto_memory_enabled = 24;
+  optional bool schedules_enabled = 18;
+  optional int32 goal_max_turns = 19;
 }
 
 message UpdateUserPreferencesResponse {

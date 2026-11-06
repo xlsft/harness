@@ -1,6 +1,6 @@
 /**
  * GET /api/vcs/sessions/:id/autofix-jobs — auto-fix jobs recorded for a session (owner only), newest first.
- * Not part of the RPC contract; the relay will consume jobs through the internal hook (src/vcs/pipeline.ts).
+ * Not part of the RPC contract; the jobs reach the session through the relay (src/vcs/pipeline.ts).
  */
 import { listAutoFixJobs } from "../../vcs/pipeline.ts";
 import { api, param, requirePrincipal } from "../util.ts";

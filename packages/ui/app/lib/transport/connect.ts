@@ -4,13 +4,14 @@
 
 import { ConnectSshApi } from '~/lib/ssh'
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
+import type { SchedulesApi } from '~/lib/schedule/types'
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
 import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import { ConfiguredHook_Status } from '~/gen/harness/agent/v1/hooks_pb'
-import type { ConfiguredHookVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { ConfiguredHookVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, PullRequestInput, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
@@ -42,6 +43,9 @@ import { ConnectClaudeImportApi } from '~/lib/import/connect'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
 import { ConnectMcpApi } from '~/lib/mcp/connect'
+import { ConnectPluginsApi } from '~/lib/plugins/connect'
+import { ConnectLibraryApi } from '~/lib/library/connect'
+import { ConnectVcsApi } from '~/lib/vcs/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -55,9 +59,9 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
   const m = p?.managedPolicy
-  return { managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
+  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
-    hooksEnabled: p?.hooksEnabled ?? true,
+    hooksEnabled: p?.hooksEnabled ?? true, schedulesEnabled: p?.schedulesEnabled ?? true, goalMaxTurns: p?.goalMaxTurns || 20,
     modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' } }
 }
 
@@ -106,6 +110,9 @@ export class ConnectTransport implements SessionTransport {
     this.limitsApi = new ConnectLimitsApi(transport)
     this.acpApi = new ConnectAcpApi(transport)
     this.mcpApi = new ConnectMcpApi(transport)
+    this.pluginsApi = new ConnectPluginsApi(transport)
+    this.libraryApi = new ConnectLibraryApi(transport, baseUrl)
+    this.vcsApi = new ConnectVcsApi(transport)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
     this.sshApi = new ConnectSshApi(transport)
   }
@@ -128,6 +135,26 @@ export class ConnectTransport implements SessionTransport {
   private environmentApi: ConnectEnvironmentApi
   environment() {
     return this.environmentApi
+  }
+
+  schedules(): SchedulesApi {
+    const c = this.client
+    return {
+      list: async () => c.listSchedules({}),
+      create: async s => (await c.createSchedule({ schedule: s })).schedule!,
+      update: async s => (await c.updateSchedule({ schedule: s })).schedule!,
+      remove: async (id) => {
+        await c.deleteSchedule({ id })
+      },
+      setPaused: async (id, paused) => (await c.setSchedulePaused({ id, paused })).schedule!,
+      runNow: async (id) => {
+        const res = await c.runScheduleNow({ id })
+        return { schedule: res.schedule, queued: res.queuedOnOtherDevice }
+      },
+      runs: async id => (await c.listScheduleRuns({ id })).runs,
+      trust: async id => (await c.trustSchedule({ id })).schedule!,
+      rotateWebhook: async id => (await c.rotateScheduleWebhook({ id })).schedule!
+    }
   }
 
   providers() {
@@ -314,6 +341,16 @@ export class ConnectTransport implements SessionTransport {
     await this.client.setPrMonitor({ sessionId, enabled })
   }
 
+  async draftPullRequest(sessionId: string, baseBranch = '') {
+    const d = await this.client.draftPullRequest({ sessionId, baseBranch })
+    return { title: d.title, body: d.body, headBranch: d.headBranch, baseBranch: d.baseBranch, repositoryKey: d.repositoryKey, commits: d.commits, diffStat: d.diffStat, dirty: d.dirty, needsPush: d.needsPush, drafted: d.drafted, note: d.note, provider: d.provider }
+  }
+
+  async createPullRequest(sessionId: string, input: PullRequestInput) {
+    const r = await this.client.createPullRequest({ sessionId, ...input })
+    return { url: r.url, number: r.number, title: r.title, existed: r.existed, pushed: r.pushed }
+  }
+
   async setKeepAwake(sessionId: string, enabled: boolean) {
     await this.client.setKeepAwake({ sessionId, enabled })
   }
@@ -369,7 +406,7 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, modelTuning: patch.modelTuning && { speedTier: patch.modelTuning.speedTier, cacheTtl: patch.modelTuning.cacheTtl, advisorModel: patch.modelTuning.advisorModel } })
+    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, schedulesEnabled: patch.schedulesEnabled, goalMaxTurns: patch.goalMaxTurns, modelTuning: patch.modelTuning && { speedTier: patch.modelTuning.speedTier, cacheTtl: patch.modelTuning.cacheTtl, advisorModel: patch.modelTuning.advisorModel } })
     return preferencesVM(res.preferences)
   }
 
@@ -481,6 +518,21 @@ export class ConnectTransport implements SessionTransport {
   private localModelsApi?: ConnectLocalModelsApi
   localModels() {
     return (this.localModelsApi ??= new ConnectLocalModelsApi(this.transport))
+  }
+
+  private pluginsApi!: ConnectPluginsApi
+  plugins() {
+    return this.pluginsApi
+  }
+
+  private libraryApi!: ConnectLibraryApi
+  library() {
+    return this.libraryApi
+  }
+
+  private vcsApi!: ConnectVcsApi
+  vcs() {
+    return this.vcsApi
   }
 
   private mcpApi!: ConnectMcpApi

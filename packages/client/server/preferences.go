@@ -68,6 +68,9 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	if req.Msg.CompactIdleSessions != nil {
 		set[settings.KeyCompactIdleSessions] = req.Msg.GetCompactIdleSessions()
 	}
+	if req.Msg.AutoMemoryEnabled != nil {
+		set[settings.KeyAutoMemoryEnabled] = req.Msg.GetAutoMemoryEnabled()
+	}
 	if req.Msg.LspEnabled != nil {
 		set[settings.KeyLSPEnabled] = req.Msg.GetLspEnabled()
 	}
@@ -76,6 +79,17 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	}
 	if req.Msg.LspDiagnosticsStartServer != nil {
 		set[settings.KeyLSPDiagnosticsStartServer] = req.Msg.GetLspDiagnosticsStartServer()
+	}
+	if req.Msg.SchedulesEnabled != nil {
+		set[settings.KeySchedulesEnabled] = req.Msg.GetSchedulesEnabled()
+		defer s.scheduler().forgetPreference()
+	}
+	if req.Msg.GoalMaxTurns != nil {
+		n := int(req.Msg.GetGoalMaxTurns())
+		if !settings.ValidGoalMaxTurns(n) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("the turns of a goal must be between 1 and %d", settings.MaxGoalMaxTurns))
+		}
+		set[settings.KeyGoalMaxTurns] = n
 	}
 	if req.Msg.PrMonitorWakesPerHour != nil {
 		n := int(req.Msg.GetPrMonitorWakesPerHour())
@@ -208,16 +222,23 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents,
-		Sandbox: &agentv1.SandboxPreferences{Enabled: true}, HooksEnabled: true}
+		Sandbox: &agentv1.SandboxPreferences{Enabled: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
 	}
 	var b bool
+	if v, ok := raw[settings.KeySchedulesEnabled]; ok && json.Unmarshal(v, &b) == nil {
+		p.SchedulesEnabled = b
+	}
+	var turns int
+	if v, ok := raw[settings.KeyGoalMaxTurns]; ok && json.Unmarshal(v, &turns) == nil && settings.ValidGoalMaxTurns(turns) {
+		p.GoalMaxTurns = int32(turns)
+	}
 	if v, ok := raw[settings.KeyCompactIdleSessions]; ok && json.Unmarshal(v, &b) == nil {
 		p.CompactIdleSessions = b
 	}
-	for key, dst := range map[string]*bool{settings.KeyLSPEnabled: &p.LspEnabled, settings.KeyLSPDiagnostics: &p.LspDiagnostics, settings.KeyLSPDiagnosticsStartServer: &p.LspDiagnosticsStartServer} {
+	for key, dst := range map[string]*bool{settings.KeyAutoMemoryEnabled: &p.AutoMemoryEnabled, settings.KeyLSPEnabled: &p.LspEnabled, settings.KeyLSPDiagnostics: &p.LspDiagnostics, settings.KeyLSPDiagnosticsStartServer: &p.LspDiagnosticsStartServer} {
 		if v, ok := raw[key]; ok && json.Unmarshal(v, &b) == nil {
 			*dst = b
 		}
