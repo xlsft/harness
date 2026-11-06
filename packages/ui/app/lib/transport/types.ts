@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { HostsApi } from '~/lib/hosts/types'
 import type { VcsApi } from '~/lib/vcs/types'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
 import type { ObjectTicket } from '~/lib/session/objects'
@@ -373,6 +374,7 @@ export interface SessionTransport {
   // Settings > Code hosts.
   vcs(): VcsApi
   enterprise(): EnterpriseApi
+  hosts(): HostsApi
 
   // The signed-in user's own profile, avatar, password and devices (harness.auth.v1.DeviceAuthService account
   // methods, forwarded to the server by the client).

@@ -593,7 +593,7 @@ func TestLoopRunsASlashCommandAndSkipsWhileBusy(t *testing.T) {
 // ---- sync between two machines ----
 
 // syncedMachine is a harness signed in as a device, following one fake server.
-func startSyncedMachine(t *testing.T, fake *synctest.Server, url, device string, respond fg.Responder) (*harness, *testClock, *server.Server) {
+func startSyncedMachine(t *testing.T, fake *synctest.Server, url, device string, respond fg.Responder, mods ...func(*server.Server)) (*harness, *testClock, *server.Server) {
 	t.Helper()
 	cache, err := syncclient.OpenCache("", "test")
 	if err != nil {
@@ -610,6 +610,9 @@ func startSyncedMachine(t *testing.T, fake *synctest.Server, url, device string,
 	var srv *server.Server
 	h, clock := startScheduling(t, respond, func(s *server.Server) {
 		s.DeviceID, s.ScheduleSync, s.CoreURL = device, sc, "https://core.test"
+		for _, mod := range mods {
+			mod(s)
+		}
 		srv = s
 	})
 	return h, clock, srv

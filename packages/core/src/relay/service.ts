@@ -304,6 +304,8 @@ export async function* openHostStream(p: Principal, hostId: string, signal: Abor
       sent.add(`${cmd.commandId}/${cmd.epoch}`);
       yield { event: { case: "command", value: cmd } };
     }
+    // Right away: a client counts as connected once the stream's headers arrive, and nothing else sends them while idle.
+    yield { event: { case: "heartbeat", value: { serverTime: new Date().toISOString() } } };
     const interval = heartbeatMs();
     let lastSent = Date.now();
     while (!signal.aborted) {

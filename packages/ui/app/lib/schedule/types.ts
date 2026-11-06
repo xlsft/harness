@@ -58,6 +58,9 @@ export interface ScheduleDraft {
   permissionMode: string
   worktree: boolean
   catchUp: boolean
+  // The always-on host that runs it while its machine is away, and what it checks out (the folder's remote if empty).
+  awayHostId: string
+  repositoryKey: string
   trigger: TriggerChoice
   // A local date and time as a datetime-local input gives it.
   at: string
@@ -69,7 +72,7 @@ export interface ScheduleDraft {
 }
 
 export function emptyScheduleDraft(cwd = ''): ScheduleDraft {
-  return { id: '', name: '', prompt: '', cwd, model: '', permissionMode: '', worktree: false, catchUp: true, trigger: 'cron', at: '', everyMinutes: '60', cron: '0 9 * * 1-5', paths: '' }
+  return { id: '', name: '', prompt: '', cwd, model: '', permissionMode: '', worktree: false, catchUp: true, awayHostId: '', repositoryKey: '', trigger: 'cron', at: '', everyMinutes: '60', cron: '0 9 * * 1-5', paths: '' }
 }
 
 function choiceOf(kind: ScheduleTriggerKind | undefined): TriggerChoice {
@@ -99,6 +102,8 @@ export function scheduleDraftOf(s: Schedule): ScheduleDraft {
     permissionMode: s.permissionMode,
     worktree: s.worktree,
     catchUp: s.catchUp,
+    awayHostId: s.awayHostId,
+    repositoryKey: s.repositoryKey,
     trigger: choiceOf(t?.kind),
     at: toLocalInput(t?.at ?? ''),
     everyMinutes: t?.everySeconds ? String(Number(t.everySeconds) / 60) : '60',
@@ -127,6 +132,8 @@ export function scheduleOfDraft(d: ScheduleDraft): Schedule {
     maxRuns: base?.maxRuns ?? 0,
     expiresAt: base?.expiresAt ?? '',
     deviceId: base?.deviceId ?? '',
+    awayHostId: d.awayHostId,
+    repositoryKey: d.repositoryKey.trim(),
     trigger: {
       kind: CHOICE_KIND[d.trigger],
       at: d.trigger === 'once' && at && !Number.isNaN(at.getTime()) ? at.toISOString() : '',

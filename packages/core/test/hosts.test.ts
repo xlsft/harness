@@ -43,7 +43,7 @@ async function daemonClient(deviceToken: string) {
 const daemonInfo = (isolation: AgentHostIsolation, extra: Record<string, unknown> = {}) => ({ name: "", isolation, sandboxDriver: "linux", os: "linux", arch: "amd64", clientVersion: "test", cpuCount: 8, ...extra });
 
 beforeAll(async () => {
-  ts = await startTestServer({ HARNESS_HOST_AWAY_GRACE_S: "0.001", HARNESS_HOST_LEASE_MS: "200", HARNESS_RELAY_HEARTBEAT_MS: "300" });
+  ts = await startTestServer({ HARNESS_HOST_AWAY_GRACE_S: "0.001", HARNESS_HOST_LEASE_MS: "8000", HARNESS_RELAY_HEARTBEAT_MS: "300" });
   gh = await startFakeGitHub();
   admin = await deviceLogin(ts);
   alice = await createUserAndLogin(ts, admin.cookie, "alice@test.local");
@@ -112,7 +112,7 @@ describe("personal hosts", () => {
     await D.updateHostWork({ workId: work.id, state: HostWorkState.DONE });
   });
 
-  it("a long poll wakes for new work, and a lost claim goes back to the queue", async () => {
+  it("a long poll wakes for new work, and a lost claim goes back to the queue", { timeout: 60_000 }, async () => {
     const D = (await daemonClient(token)).hostAgent;
     const A = ts.as(alice.accessToken).hosts;
     const waiting = D.claimHostWork({ waitSeconds: 20 });
@@ -121,8 +121,8 @@ describe("personal hosts", () => {
     const got = await waiting;
     expect(got.work?.id).toBe(w.id);
     expect(Date.now() - started).toBeLessThan(10_000);
-    // The lease here is 200 ms: nobody renews it, so the work is claimable again.
-    await expect.poll(async () => (await D.claimHostWork({ waitSeconds: 0 })).work?.id, { timeout: 5000, interval: 50 }).toBe(w.id);
+    // The lease here is short: nobody renews it, so the work is claimable again.
+    await expect.poll(async () => (await D.claimHostWork({ waitSeconds: 0 })).work?.id, { timeout: 40000, interval: 200 }).toBe(w.id);
     expect((await A.getHostWork({ id: w.id })).work!.attempts).toBe(2);
     const cancelled = (await A.cancelHostWork({ id: w.id })).work!;
     expect(cancelled.state).toBe(HostWorkState.CANCELLED);

@@ -21,6 +21,8 @@ import { readAttachments } from '~/lib/session/attachments'
 import type { ComposerFile, MenuOption } from '~/utils/composer'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 
+import { repositoryKeyOf, type HostView, type WorkLanding } from '~/lib/hosts/types'
+
 const store = useSessionStore()
 const collapsed = useState('sidebar-collapsed', () => false)
 const route = useRoute()
@@ -56,6 +58,28 @@ const box = ref<{ focusEnd: () => void } | null>(null)
 const toast = useToast()
 
 const name = (p: string) => p.replace(/\/+$/, '').split('/').pop() || p
+
+// An always-on host instead of this computer (docs/design/hosts.md): the session then runs in a checkout the host makes
+// of the repository, and its work lands as a pull request, a branch, or stays there.
+const hosts = ref<HostView[]>([])
+const host = ref('')
+const repository = ref('')
+const hostBase = ref('')
+const landing = ref<WorkLanding>('pull_request')
+const freshClone = ref(false)
+const waiting = ref('')
+const hostName = computed(() => hosts.value.find(h => h.id === host.value)?.name ?? '')
+async function loadHosts() {
+  try {
+    hosts.value = await store.transport!.hosts().list()
+  } catch {
+    hosts.value = [] // an older server, or none: this computer is what there is
+  }
+}
+function pickHost(id: string) {
+  host.value = id
+  error.value = ''
+}
 
 const forkOf = computed(() => typeof route.query.fork === 'string' ? store.sessions[route.query.fork] : undefined)
 
@@ -110,7 +134,7 @@ onMounted(async () => {
   generalEffort.value = prefs.effort ?? 'medium'
   fitStartEffort()
   mode.value = fitMode(prefs.mode ?? 'auto', store.disabledModes)
-  await loadFolders()
+  await Promise.all([loadFolders(), loadHosts()])
   const asked = newSessionFolder(route.query)
   cwd.value = asked
   if (asked && !folders.value.some(f => f.path === asked)) folders.value.unshift({ path: asked, name: name(asked), exists: true } as RecentFolder)
@@ -230,12 +254,55 @@ function fitStartEffort() {
 }
 watch([model, efforts, recommended], fitStartEffort)
 
+// Queues the session on the host and follows the work until the session exists, then opens it like any session of another
+// machine. It may wait for a while: the host may be offline or full, and this screen says so.
+async function startOnHost(msg: string) {
+  const api = store.transport!.hosts()
+  const key = repositoryKeyOf(repository.value)
+  if (!key) throw new Error('Name the repository, as host/owner/name.')
+  let work = await api.start({
+    hostId: host.value,
+    repositoryKey: key,
+    baseRef: hostBase.value.trim(),
+    prompt: msg,
+    model: model.value,
+    effort: efforts.value.length ? effort.value : undefined,
+    permissionMode: mode.value,
+    landing: landing.value,
+    freshClone: freshClone.value,
+    idempotencyKey: crypto.randomUUID()
+  })
+  text.value = ''
+  waiting.value = work.id
+  while (waiting.value === work.id && !work.sessionId && (work.state === 'queued' || work.state === 'preparing')) {
+    await new Promise(r => setTimeout(r, 1000))
+    work = await api.get(work.id)
+  }
+  if (waiting.value !== work.id) return // cancelled from here
+  waiting.value = ''
+  if (!work.sessionId) throw new Error(work.error || `The host did not start it (${work.state}).`)
+  await store.refreshList()
+  const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
+  await router.replace({ query: { ...rest, session: work.sessionId } })
+}
+
+async function cancelWaiting() {
+  const id = waiting.value
+  waiting.value = ''
+  busy.value = false
+  await store.transport!.hosts().cancel(id).catch(() => {})
+}
+
 async function start() {
   const msg = text.value.trim()
   if ((!msg && !files.value.length) || busy.value) return
   busy.value = true
   error.value = ''
   try {
+    if (host.value) {
+      await startOnHost(msg)
+      return
+    }
     // Before the session exists: a file that cannot be sent leaves no empty session behind.
     const attachments = await readAttachments(files.value)
     const id = await store.createSession({
@@ -302,7 +369,65 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
         <span class="min-w-0 flex-1 truncate text-strong">{{ forkOf.meta.title }}</span>
         <span class="shrink-0 text-[11px] text-muted">from {{ forkOf.meta.deviceName || 'another machine' }}</span>
       </div>
-      <div class="relative w-full max-w-[440px]">
+      <div
+        v-if="host"
+        class="flex w-full max-w-[440px] flex-col gap-2 border border-accented bg-surface p-3 text-[12.5px]"
+      >
+        <label class="flex flex-col gap-1 text-muted">
+          Repository on {{ hostName }}
+          <input
+            v-model="repository"
+            placeholder="github.com/owner/repository"
+            class="h-8 border border-line bg-transparent px-2 text-strong outline-none focus:border-accent"
+          >
+        </label>
+        <label class="flex flex-col gap-1 text-muted">
+          Starting from
+          <input
+            v-model="hostBase"
+            placeholder="the default branch"
+            class="h-8 border border-line bg-transparent px-2 text-strong outline-none focus:border-accent"
+          >
+        </label>
+        <label class="flex flex-col gap-1 text-muted">
+          The work lands as
+          <HSelect
+            v-model="landing"
+            :options="[{ value: 'pull_request', label: 'A draft pull request' }, { value: 'branch', label: 'A branch' }, { value: 'none', label: 'Nothing: it stays on the host' }]"
+            aria-label="The work lands as"
+          />
+        </label>
+        <span class="flex items-center gap-2 text-muted">
+          <HToggle
+            v-model="freshClone"
+            label="A clone of its own rather than a worktree"
+          />
+          A clone of its own rather than a worktree
+        </span>
+        <div
+          v-if="waiting"
+          class="flex items-center gap-2 text-toned"
+        >
+          <span class="flex-1">Waiting for {{ hostName }} to start it…</span>
+          <HBtn
+            size="sm"
+            @click="cancelWaiting"
+          >
+            Cancel
+          </HBtn>
+        </div>
+        <button
+          type="button"
+          class="self-start text-toned hover:text-strong"
+          @click="host = ''"
+        >
+          Back to this computer
+        </button>
+      </div>
+      <div
+        v-else
+        class="relative w-full max-w-[440px]"
+      >
         <!-- The cat sits on the card -->
         <CatMascot class="absolute right-5 bottom-full" />
         <div
@@ -388,14 +513,19 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
               />
             </button>
             <template #content>
-              <NewEnvMenu @close="menu = ''" />
+              <NewEnvMenu
+                :hosts="hosts"
+                :current="host"
+                @pick="pickHost"
+                @close="menu = ''"
+              />
             </template>
           </UPopover>
         </div>
       </div>
 
       <button
-        v-if="cwd && !noWorktree"
+        v-if="cwd && !noWorktree && !host"
         type="button"
         role="switch"
         :aria-checked="worktree"
@@ -411,7 +541,10 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
         <span class="text-strong">{{ worktree ? 'Worktree on' : 'Turn on Worktree' }}</span>
         <span class="min-w-0 truncate text-muted">{{ worktree ? `new branch from ${baseRef || current || 'HEAD'}` : 'Session running here' }}</span>
       </button>
-      <NewProjectImport :cwd="cwd" />
+      <NewProjectImport
+        v-if="!host"
+        :cwd="cwd"
+      />
     </div>
 
     <div class="shrink-0 px-5 pb-[11px]">
@@ -451,16 +584,22 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                   :class="[CHIP, menu === 'env' && 'bg-hover']"
                 >
                   <HIcon
-                    name="monitor"
+                    :name="host ? 'box' : 'monitor'"
                     :size="12"
-                  />This computer
+                  />{{ host ? hostName : 'This computer' }}
                 </button>
                 <template #content>
-                  <NewEnvMenu @close="menu = ''" />
+                  <NewEnvMenu
+                :hosts="hosts"
+                :current="host"
+                @pick="pickHost"
+                @close="menu = ''"
+              />
                 </template>
               </UPopover>
 
               <UPopover
+                v-if="!host"
                 :open="menu === 'folder'"
                 :content="{ side: 'top', align: 'start', sideOffset: 6 }"
                 @update:open="menu = $event ? 'folder' : ''"

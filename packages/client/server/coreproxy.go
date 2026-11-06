@@ -13,6 +13,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gen/harness/library/v1/libraryv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/mcp/v1/mcpv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/relay/v1/relayv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/speech/v1/speechv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/vcs/v1/vcsv1connect"
 	"github.com/xlsft/harness/packages/client/rpc"
@@ -49,6 +50,8 @@ var coreProxyServices = []string{
 	authv1connect.AuditServiceName, authv1connect.BillingServiceName, authv1connect.DirectoryServiceName, authv1connect.MfaServiceName,
 	authv1connect.PolicyServiceName, authv1connect.SsoServiceName,
 	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.TrackerServiceName,
+	// Always-on hosts, what people do with them. Never HostAgentService: that one hands out credentials.
+	relayv1connect.HostsServiceName,
 }
 
 // coreProxyProcedures are single methods of other server services frontends may

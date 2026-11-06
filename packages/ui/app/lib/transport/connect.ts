@@ -29,6 +29,7 @@ import { backgroundReasonPb } from '~/lib/session/reducer'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
 import { ConnectUsersApi } from '~/lib/users/connect'
 import { ConnectEnterpriseApi } from '~/lib/enterprise/connect'
+import { ConnectHostsApi } from '~/lib/hosts/connect'
 import { ConnectAccountApi } from '~/lib/account/connect'
 import { ConnectUsageApi } from '~/lib/usage/connect'
 import { ConnectTerminalsApi } from '~/lib/terminal/connect'
@@ -87,6 +88,7 @@ export class ConnectTransport implements SessionTransport {
   private providersApi: ConnectProvidersApi
   private usersApi: ConnectUsersApi
   private enterpriseApi: ConnectEnterpriseApi
+  private hostsApi: ConnectHostsApi
   private accountApi: ConnectAccountApi
   private usageApi: ConnectUsageApi
   private terminalsApi: ConnectTerminalsApi
@@ -99,6 +101,7 @@ export class ConnectTransport implements SessionTransport {
     this.providersApi = new ConnectProvidersApi(transport)
     this.usersApi = new ConnectUsersApi(transport)
     this.enterpriseApi = new ConnectEnterpriseApi(transport)
+    this.hostsApi = new ConnectHostsApi(transport)
     this.accountApi = new ConnectAccountApi(transport)
     this.usageApi = new ConnectUsageApi(transport)
     this.terminalsApi = new ConnectTerminalsApi(transport, baseUrl)
@@ -156,6 +159,10 @@ export class ConnectTransport implements SessionTransport {
 
   enterprise() {
     return this.enterpriseApi
+  }
+
+  hosts() {
+    return this.hostsApi
   }
 
   users() {

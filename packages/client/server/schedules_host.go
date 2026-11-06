@@ -27,6 +27,8 @@ type HostMode struct {
 	Claim func(ctx context.Context, scheduleID, dueAt string) (bool, error)
 	// Grace is how long a machine is away before its schedules are taken (default two minutes).
 	Grace time.Duration
+	// ListMachines overrides how the user's machines are looked at, device to online (tests). Default: the relay.
+	ListMachines func(ctx context.Context) (map[string]bool, error)
 }
 
 // ScheduleClaim is the server's answer to "who runs this time" for an ordinary machine (nil: no server to ask).
@@ -80,12 +82,29 @@ func (h *scheduleHost) machineAway(deviceID string) bool {
 
 // refreshMachines takes a new look at which machines are up.
 func (h *scheduleHost) refreshMachines(ctx context.Context) {
+	cctx, cancel := context.WithTimeout(ctx, scheduleClaimTimeout)
+	defer cancel()
+	if list := h.s.HostMode.ListMachines; list != nil {
+		machines, err := list(cctx)
+		if err != nil {
+			return
+		}
+		online := map[string]bool{}
+		seen := map[string]time.Time{}
+		for id, up := range machines {
+			online[id] = up
+			if up {
+				seen[id] = h.s.now()
+			}
+		}
+		h.machines.online.Store(&online)
+		h.machines.seen.Store(&seen)
+		return
+	}
 	viewer := h.s.Relay
 	if viewer == nil {
 		return
 	}
-	cctx, cancel := context.WithTimeout(ctx, scheduleClaimTimeout)
-	defer cancel()
 	res, err := relayCall(cctx, viewer, relayv1connect.RelayServiceClient.ListHosts, &relayv1.ListHostsRequest{})
 	if err != nil {
 		h.s.log().Debug("schedules: looking at the machines failed", "err", err)

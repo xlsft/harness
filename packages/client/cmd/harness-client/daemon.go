@@ -47,6 +47,7 @@ type daemonFlags struct {
 	uidCount       *int
 	idleClose      *time.Duration
 	keepWorkspaces *time.Duration
+	allowed        *[]string
 	verbose        *bool
 }
 
@@ -63,6 +64,7 @@ func newDaemonFlags(name string) *daemonFlags {
 		uidCount:       fs.Int("uid-count", 1000, "with --shared: how many Unix users"),
 		idleClose:      fs.Duration("idle-close", 24*time.Hour, "close a session idle for this long; its transcript stays, and a job or a schedule reopens it"),
 		keepWorkspaces: fs.Duration("keep-workspaces", 7*24*time.Hour, "remove a closed session's checkout after this long"),
+		allowed:        fs.StringArray("allowedTools", nil, `permission rules allowed without asking on this host, e.g. "Bash(go test *)"`),
 		verbose:        fs.Bool("verbose", false, "debug logging"),
 	}
 }
@@ -196,6 +198,9 @@ func runSupervisor(ctx context.Context, f *daemonFlags) int {
 		name, _ = os.Hostname()
 	}
 	workerArgs := []string{"--idle-close", f.idleClose.String(), "--keep-workspaces", f.keepWorkspaces.String()}
+	for _, rule := range *f.allowed {
+		workerArgs = append(workerArgs, "--allowedTools", rule)
+	}
 	if *f.verbose {
 		workerArgs = append(workerArgs, "--verbose")
 	}
@@ -218,7 +223,7 @@ func runHost(ctx context.Context, f *daemonFlags) int {
 	if err != nil {
 		return fail(err)
 	}
-	base.Logger = log
+	base.Logger, base.AllowedTools = log, *f.allowed
 	// Nobody may be at a keyboard: start in auto mode unless the work or the settings say otherwise.
 	base.FallbackPermissionMode = permissions.ModeAuto
 	srv := server.New(base)

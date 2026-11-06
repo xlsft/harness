@@ -438,3 +438,52 @@ func TestStoreSurvivesConcurrentChanges(t *testing.T) {
 		t.Fatalf("%d records", len(st.Records))
 	}
 }
+
+func TestAwayHostAdoptionAndClaims(t *testing.T) {
+	store := Open(t.TempDir())
+	now := mustTime(t, "2026-03-10T10:00:00Z")
+	task := Task{ID: "t1", Prompt: "p", DeviceID: "dev_laptop", AwayHostID: "ahs", RepositoryKey: "h/o/r", Trigger: Trigger{Kind: KindInterval, EverySeconds: 3600}, CreatedAt: now.Add(-2 * time.Hour).Format(time.RFC3339)}
+	if err := store.Update(func(st *State) error {
+		rec := &Record{Task: task}
+		rec.Trusted = task.TrustHash()
+		st.Records["t1"] = rec
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var fires []Fire
+	adopt, grant := false, false
+	var asked []time.Time
+	r := &Runner{Store: store, DeviceID: "dev_host", Start: func(f Fire) { fires = append(fires, f) }, Grace: 10 * time.Hour,
+		Adopt: func(Task) bool { return adopt },
+		Claim: func(_ Task, due time.Time) bool {
+			asked = append(asked, due)
+			return grant
+		}}
+	r.Tick(now)
+	if len(fires) != 0 || len(asked) != 0 {
+		t.Fatalf("not adopted, yet %d fires, %d claims", len(fires), len(asked))
+	}
+	adopt = true
+	r.Tick(now)
+	if len(fires) != 0 || len(asked) != 1 {
+		t.Fatalf("a refused claim: %d fires, %d claims", len(fires), len(asked))
+	}
+	st, _ := store.View()
+	if got := len(st.Records["t1"].History); got != 0 {
+		t.Fatalf("a refused claim is no run: %d in the history", got)
+	}
+	grant = true
+	r.Tick(now.Add(2 * time.Hour))
+	if len(fires) != 1 {
+		t.Fatalf("a granted claim: %d fires", len(fires))
+	}
+}
+
+func TestMergeHistoryAddsWhatTheAwayHostRan(t *testing.T) {
+	r := &Record{History: []Run{{ID: "a", StartedAt: "2026-03-10T10:00:00Z"}}}
+	r.MergeHistory([]Run{{ID: "a", StartedAt: "2026-03-10T10:00:00Z"}, {ID: "b", StartedAt: "2026-03-11T10:00:00Z"}})
+	if len(r.History) != 2 || r.History[0].ID != "b" {
+		t.Fatalf("history %+v", r.History)
+	}
+}
