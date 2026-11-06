@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The wake-up's id (sch_...)"
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "additionalProperties": false
+}

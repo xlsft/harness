@@ -37,18 +37,21 @@ const (
 	ObjectKind_OBJECT_KIND_IMAGE ObjectKind = 5
 	// A file of a SendUserFile call.
 	ObjectKind_OBJECT_KIND_SENT_FILE ObjectKind = 6
+	// A version of an artifact (harness.library.v1.ArtifactService). Belongs to no session: it outlives the one that made it.
+	ObjectKind_OBJECT_KIND_ARTIFACT ObjectKind = 17
 )
 
 // Enum value maps for ObjectKind.
 var (
 	ObjectKind_name = map[int32]string{
-		0: "OBJECT_KIND_UNSPECIFIED",
-		1: "OBJECT_KIND_ATTACHMENT",
-		2: "OBJECT_KIND_AVATAR",
-		3: "OBJECT_KIND_SCRATCH",
-		4: "OBJECT_KIND_TOOL_RESULT",
-		5: "OBJECT_KIND_IMAGE",
-		6: "OBJECT_KIND_SENT_FILE",
+		0:  "OBJECT_KIND_UNSPECIFIED",
+		1:  "OBJECT_KIND_ATTACHMENT",
+		2:  "OBJECT_KIND_AVATAR",
+		3:  "OBJECT_KIND_SCRATCH",
+		4:  "OBJECT_KIND_TOOL_RESULT",
+		5:  "OBJECT_KIND_IMAGE",
+		6:  "OBJECT_KIND_SENT_FILE",
+		17: "OBJECT_KIND_ARTIFACT",
 	}
 	ObjectKind_value = map[string]int32{
 		"OBJECT_KIND_UNSPECIFIED": 0,
@@ -58,6 +61,7 @@ var (
 		"OBJECT_KIND_TOOL_RESULT": 4,
 		"OBJECT_KIND_IMAGE":       5,
 		"OBJECT_KIND_SENT_FILE":   6,
+		"OBJECT_KIND_ARTIFACT":    17,
 	}
 )
 
@@ -1053,7 +1057,7 @@ const file_harness_objects_v1_objects_proto_rawDesc = "" +
 	"\n" +
 	"used_bytes\x18\x03 \x01(\x03R\tusedBytes\x12\x1d\n" +
 	"\n" +
-	"chunk_size\x18\x04 \x01(\x03R\tchunkSize*\xc5\x01\n" +
+	"chunk_size\x18\x04 \x01(\x03R\tchunkSize*\xdf\x01\n" +
 	"\n" +
 	"ObjectKind\x12\x1b\n" +
 	"\x17OBJECT_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
@@ -1062,7 +1066,8 @@ const file_harness_objects_v1_objects_proto_rawDesc = "" +
 	"\x13OBJECT_KIND_SCRATCH\x10\x03\x12\x1b\n" +
 	"\x17OBJECT_KIND_TOOL_RESULT\x10\x04\x12\x15\n" +
 	"\x11OBJECT_KIND_IMAGE\x10\x05\x12\x19\n" +
-	"\x15OBJECT_KIND_SENT_FILE\x10\x062\xd4\x05\n" +
+	"\x15OBJECT_KIND_SENT_FILE\x10\x06\x12\x18\n" +
+	"\x14OBJECT_KIND_ARTIFACT\x10\x112\xd4\x05\n" +
 	"\x0eObjectsService\x12^\n" +
 	"\vStartUpload\x12&.harness.objects.v1.StartUploadRequest\x1a'.harness.objects.v1.StartUploadResponse\x12^\n" +
 	"\vUploadChunk\x12&.harness.objects.v1.UploadChunkRequest\x1a'.harness.objects.v1.UploadChunkResponse\x12a\n" +

@@ -50,6 +50,25 @@ export function githubSignature(secret: string, body: string): string {
   return `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
 }
 
+/** The word that calls the bot in a comment; HARNESS_VCS_MENTION replaces @harness. A GitHub App also answers to its slug. */
+function mentionWords(conn: ConnectionRow): string[] {
+  const words = [(process.env.HARNESS_VCS_MENTION ?? "").trim() || "@harness"];
+  if (conn.appSlug) words.push(`@${conn.appSlug}`);
+  return words;
+}
+
+/** Whether a comment calls the bot: outside code and quotes, as a whole word, and not one of the bot's own comments. */
+export function mentionsBot(body: string, words: string[]): boolean {
+  if (/<!--\s*harness\s+v=/.test(body)) return false;
+  const text = body
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`\n]*`/g, " ")
+    .replace(/^\s*>.*$/gm, " ");
+  return words.some((w) => new RegExp(`(^|[^\\w@/.-])${w.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&")}(?![\\w-])`, "i").test(text));
+}
+
+const WRITE_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+
 function conflictRecheckMs(): number {
   const n = Number(process.env.HARNESS_VCS_CONFLICT_RECHECK_MS ?? "");
   return Number.isFinite(n) && n >= 0 ? n : 10_000;
@@ -70,6 +89,13 @@ async function runDelivery(conn: ConnectionRow, deliveryId: string, map: () => P
 }
 
 // --- shared --------------------------------------------------------------------------------------
+
+/** A note's payload does not say what its author may do; the connection's access token can ask. Without one: no. */
+async function gitlabCanWrite(conn: ConnectionRow, repoKey: string, userId: number): Promise<boolean> {
+  const client = systemClient(conn);
+  if (!client?.canWrite || !userId) return false;
+  return client.canWrite(parseRepoKey(repoKey), userId).catch(() => false);
+}
 
 /** The PR as we know it: stored state, else fetched with the system client, else the fallback. */
 async function knownPr(conn: ConnectionRow, repoKey: string, number: number, fallback?: () => PrData): Promise<{ pr?: PrData; row?: StoredPrRow }> {
@@ -274,6 +300,7 @@ export async function mapGitHub(conn: ConnectionRow, event: string, payload: any
           occurredAt: isoTime(c.created_at),
           detail: {
             comment_ids: [`r:${c.id}`],
+            mention: WRITE_ASSOCIATIONS.has(str(c.author_association)) && mentionsBot(str(c.body), mentionWords(conn)),
             in_reply_to: c.in_reply_to_id ? `r:${c.in_reply_to_id}` : "",
             author: str(c.user?.login),
             body: str(c.body).slice(0, 4000),
@@ -314,7 +341,13 @@ export async function mapGitHub(conn: ConnectionRow, event: string, payload: any
           pr,
           prNumber: num(issue.number),
           occurredAt: isoTime(c.created_at),
-          detail: { comment_ids: [`c:${c.id}`], author: str(c.user?.login), body: str(c.body).slice(0, 4000), url: str(c.html_url) },
+          detail: {
+            comment_ids: [`c:${c.id}`],
+            mention: WRITE_ASSOCIATIONS.has(str(c.author_association)) && mentionsBot(str(c.body), mentionWords(conn)),
+            author: str(c.user?.login),
+            body: str(c.body).slice(0, 4000),
+            url: str(c.html_url),
+          },
         },
       ];
     }
@@ -499,6 +532,7 @@ export async function mapGitLab(conn: ConnectionRow, payload: any, deliveryId: s
       if (attrs.system) return [];
       const { pr } = await knownPr(conn, repoKey, num(payload.merge_request.iid), () => gitlabMinimalMr(payload.merge_request, repoKey));
       const pos = attrs.position ?? {};
+      const mention = mentionsBot(str(attrs.note), mentionWords(conn)) && (await gitlabCanWrite(conn, repoKey, num(attrs.author_id ?? payload.user?.id)));
       return [
         {
           ...base,
@@ -510,6 +544,7 @@ export async function mapGitLab(conn: ConnectionRow, payload: any, deliveryId: s
           occurredAt: isoTime(attrs.created_at),
           detail: {
             comment_ids: [`${str(attrs.discussion_id)}/${attrs.id}`],
+            mention,
             author: str(payload.user?.username),
             body: str(attrs.note).slice(0, 4000),
             path: str(pos.new_path ?? pos.old_path),

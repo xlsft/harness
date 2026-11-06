@@ -293,8 +293,10 @@ type SubagentInfo struct {
 	// Set when it runs in a git worktree of its own.
 	WorktreePath   string `protobuf:"bytes,18,opt,name=worktree_path,json=worktreePath,proto3" json:"worktree_path,omitempty"`
 	WorktreeBranch string `protobuf:"bytes,19,opt,name=worktree_branch,json=worktreeBranch,proto3" json:"worktree_branch,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The team it belongs to: peers that share the session's task graph and message each other. Empty: none.
+	Team          string `protobuf:"bytes,140,opt,name=team,proto3" json:"team,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubagentInfo) Reset() {
@@ -456,6 +458,13 @@ func (x *SubagentInfo) GetWorktreePath() string {
 func (x *SubagentInfo) GetWorktreeBranch() string {
 	if x != nil {
 		return x.WorktreeBranch
+	}
+	return ""
+}
+
+func (x *SubagentInfo) GetTeam() string {
+	if x != nil {
+		return x.Team
 	}
 	return ""
 }
@@ -801,7 +810,7 @@ const file_harness_agent_v1_subagents_proto_rawDesc = "" +
 	"\vtool_use_id\x18\x01 \x01(\tR\ttoolUseId\x12\x12\n" +
 	"\x04tool\x18\x02 \x01(\tR\x04tool\x12\x16\n" +
 	"\x06target\x18\x03 \x01(\tR\x06target\x12<\n" +
-	"\x06status\x18\x04 \x01(\x0e2$.harness.agent.v1.SubagentStepStatusR\x06status\"\xe7\x04\n" +
+	"\x06status\x18\x04 \x01(\x0e2$.harness.agent.v1.SubagentStepStatusR\x06status\"\xfc\x04\n" +
 	"\fSubagentInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tparent_id\x18\x02 \x01(\tR\bparentId\x12\x1e\n" +
@@ -825,7 +834,8 @@ const file_harness_agent_v1_subagents_proto_rawDesc = "" +
 	"\x06report\x18\x10 \x01(\tR\x06report\x12\x14\n" +
 	"\x05error\x18\x11 \x01(\tR\x05error\x12#\n" +
 	"\rworktree_path\x18\x12 \x01(\tR\fworktreePath\x12'\n" +
-	"\x0fworktree_branch\x18\x13 \x01(\tR\x0eworktreeBranch\"G\n" +
+	"\x0fworktree_branch\x18\x13 \x01(\tR\x0eworktreeBranch\x12\x13\n" +
+	"\x04team\x18\x8c\x01 \x01(\tR\x04team\"G\n" +
 	"\x0fSubagentUpdated\x124\n" +
 	"\x05agent\x18\x01 \x01(\v2\x1e.harness.agent.v1.SubagentInfoR\x05agent\"O\n" +
 	"\x13StopSubagentRequest\x12\x1d\n" +

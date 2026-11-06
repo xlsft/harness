@@ -13,11 +13,12 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { MockVcsApi } from '~/lib/vcs/mock'
 import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import { mockSlashCatalog } from './mockSlash'
 import type { ComputerProfileVM, BackgroundReasonName, QuestionReply } from '~/lib/session/types'
-import type { ComputerUseAppVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { ComputerUseAppVM, CreatedPullRequest, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, PullRequestDraft, PullRequestInput, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import { patchStats, type PatchHunk } from '~/utils/tools'
 import {
@@ -37,7 +38,9 @@ import {
   type PermissionMode,
   PermissionMode as PermissionModePb,
   type SessionEvent,
-  type SessionInfo
+  type SessionInfo,
+  PullRequest_State,
+  PullRequestSchema
 } from '~/gen/harness/agent/v1/agent_pb'
 import { create } from '@bufbuild/protobuf'
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
@@ -60,6 +63,8 @@ import { MockSpeechApi } from '~/lib/speech/mock'
 import { ACP_SWITCH_REFUSAL, acpUnsupported, MockAcpApi } from '~/lib/acp/mock'
 import { MockMcpApi } from '~/lib/mcp/mock'
 import { MockPluginsApi } from '~/lib/plugins/mock'
+import { MockLibraryApi } from '~/lib/library/mock'
+import { MockSchedulesApi } from '~/lib/schedule/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
@@ -169,7 +174,7 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true }
+  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20 }
   private hookTrusted = false
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
@@ -364,6 +369,11 @@ export class MockTransport implements SessionTransport {
   }
 
   private providersApi = new MockProvidersApi()
+  private schedulesApi = new MockSchedulesApi()
+  schedules() {
+    return this.schedulesApi
+  }
+
   providers() {
     return this.providersApi
   }
@@ -1171,6 +1181,42 @@ export class MockTransport implements SessionTransport {
     this.emit(s, b => b.sessionUpdated(s.info))
   }
 
+  async draftPullRequest(sessionId: string, baseBranch = 'main'): Promise<PullRequestDraft> {
+    const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Opening a pull request')
+    return {
+      title: s.info.title || 'Update the project',
+      body: 'What changed and why, as the agent would draft it.',
+      headBranch: s.info.gitBranch && s.info.gitBranch !== baseBranch ? s.info.gitBranch : 'feature',
+      baseBranch,
+      repositoryKey: 'github.com/demo/project',
+      commits: 2,
+      diffStat: ' a.ts | 2 +-',
+      dirty: false,
+      needsPush: true,
+      drafted: true,
+      note: '',
+      provider: 'gh'
+    }
+  }
+
+  async createPullRequest(sessionId: string, input: PullRequestInput): Promise<CreatedPullRequest> {
+    const s = this.get(sessionId)
+    this.refuseAcp(sessionId, 'Opening a pull request')
+    const title = input.title.trim()
+    if (!title) throw new Error('[failed_precondition] a pull request needs a title')
+    const pr = s.info.pullRequest
+    if (pr) return { url: pr.url, number: pr.number, title: pr.title, existed: true, pushed: false }
+    const number = 100 + (++this.prSeq)
+    const url = `https://github.com/demo/project/pull/${number}`
+    s.info = create(SessionInfoSchema, {
+      ...s.info,
+      pullRequest: create(PullRequestSchema, { number, url, title, state: input.draft ? PullRequest_State.DRAFT : PullRequest_State.OPEN, checksState: 'none', monitoring: input.monitor })
+    })
+    this.emit(s, b => b.sessionUpdated(s.info))
+    return { url, number, title, existed: false, pushed: true }
+  }
+
   async setAutoContinue(sessionId: string, enabled: boolean) {
     const s = this.get(sessionId)
     this.refuseAcp(sessionId, 'Continuing when limits return')
@@ -1251,6 +1297,9 @@ export class MockTransport implements SessionTransport {
       case 'skills':
         result({ action: SlashCommandResult_Action.OPEN_CUSTOMIZE })
         return true
+      case 'schedule':
+        result({ action: SlashCommandResult_Action.OPEN_SCHEDULED })
+        return true
     }
     return false
   }
@@ -1305,6 +1354,7 @@ export class MockTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>) {
+    if (patch.schedulesEnabled !== undefined) this.schedulesApi.enabled = patch.schedulesEnabled
     const n = patch.prMonitorWakesPerHour
     if (n !== undefined && (!Number.isInteger(n) || n < 1 || n > 240)) throw new Error('[invalid_argument] wakes per hour must be between 1 and 240')
     const d = patch.subagentMaxDepth
@@ -1523,6 +1573,17 @@ export class MockTransport implements SessionTransport {
   plugins() {
     return this.pluginsApi
   }
+
+  private libraryApi = new MockLibraryApi()
+  library() {
+    return this.libraryApi
+  }
+  private vcsApi = new MockVcsApi()
+  vcs() {
+    return this.vcsApi
+  }
+
+  private prSeq = 0
 
   private mcpApi = new MockMcpApi()
   mcp() {

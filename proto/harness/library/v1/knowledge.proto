@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+import "harness/common/v1/scope.proto";
+
+// KnowledgeService is served by core: text documents kept on the server, which agents search with the KnowledgeSearch
+// tool. Two scopes: SCOPE_ORG documents are written by admins and readable by every user of the server; SCOPE_USER
+// documents belong to their owner alone, and nobody else can see them, admins included.
+service KnowledgeService {
+  rpc ListKnowledgeDocuments(ListKnowledgeDocumentsRequest) returns (ListKnowledgeDocumentsResponse);
+  rpc GetKnowledgeDocument(GetKnowledgeDocumentRequest) returns (GetKnowledgeDocumentResponse);
+  // PERMISSION_DENIED for SCOPE_ORG unless the caller is an admin. INVALID_ARGUMENT for other scopes.
+  rpc CreateKnowledgeDocument(CreateKnowledgeDocumentRequest) returns (CreateKnowledgeDocumentResponse);
+  rpc UpdateKnowledgeDocument(UpdateKnowledgeDocumentRequest) returns (UpdateKnowledgeDocumentResponse);
+  rpc DeleteKnowledgeDocument(DeleteKnowledgeDocumentRequest) returns (DeleteKnowledgeDocumentResponse);
+  // Passages of the documents the caller may read, best first.
+  rpc SearchKnowledge(SearchKnowledgeRequest) returns (SearchKnowledgeResponse);
+}
+
+message KnowledgeDocument {
+  string id = 1;
+  harness.common.v1.Scope scope = 2;
+  string title = 3;
+  // The file it came from, when it came from one.
+  string source_name = 4;
+  // Bytes of `content`.
+  int64 size = 5;
+  // The caller may change or delete it.
+  bool editable = 6;
+  // RFC 3339.
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message ListKnowledgeDocumentsRequest {
+  // UNSPECIFIED: every scope the caller may read.
+  harness.common.v1.Scope scope = 1;
+  // Substring of the title.
+  string query = 2;
+}
+
+message ListKnowledgeDocumentsResponse {
+  repeated KnowledgeDocument documents = 1;
+}
+
+message GetKnowledgeDocumentRequest {
+  string id = 1;
+}
+
+message GetKnowledgeDocumentResponse {
+  KnowledgeDocument document = 1;
+  string content = 2;
+}
+
+message CreateKnowledgeDocumentRequest {
+  harness.common.v1.Scope scope = 1;
+  string title = 2;
+  // UTF-8 text, at most 900 KiB.
+  string content = 3;
+  string source_name = 4;
+}
+
+message CreateKnowledgeDocumentResponse {
+  KnowledgeDocument document = 1;
+}
+
+message UpdateKnowledgeDocumentRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string content = 3;
+}
+
+message UpdateKnowledgeDocumentResponse {
+  KnowledgeDocument document = 1;
+}
+
+message DeleteKnowledgeDocumentRequest {
+  string id = 1;
+}
+
+message DeleteKnowledgeDocumentResponse {}
+
+message SearchKnowledgeRequest {
+  string query = 1;
+  // Default 8, at most 30.
+  int32 limit = 2;
+  // UNSPECIFIED: every scope the caller may read.
+  harness.common.v1.Scope scope = 3;
+}
+
+message KnowledgeHit {
+  string document_id = 1;
+  string title = 2;
+  harness.common.v1.Scope scope = 3;
+  // The matching passage, with the surrounding words.
+  string snippet = 4;
+  double score = 5;
+}
+
+message SearchKnowledgeResponse {
+  repeated KnowledgeHit hits = 1;
+}

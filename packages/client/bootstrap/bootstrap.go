@@ -75,6 +75,11 @@ type Options struct {
 	// the effortLevel setting says one. Without it such a session sends no effort.
 	StartingEffort bool
 	MaxTurns       int
+	// MaxBudgetUSD stops the run once it has spent this much, subagents included (agent.Config.MaxBudgetUSD).
+	MaxBudgetUSD float64
+	// SystemPrompt replaces the bundle's system prompt for the main agent; AppendSystemPrompt goes after it.
+	SystemPrompt       string
+	AppendSystemPrompt string
 	// OutputStyle selects the output style (--output-style): a built-in id or
 	// a user/project style name; "default" clears it. Empty keeps the style
 	// recorded in a resumed transcript, else the outputStyle setting.
@@ -150,7 +155,8 @@ type Options struct {
 	// Browser, when set, gives the session a browser (the Browser* tools; HARNESS_NO_BROWSER=1 leaves them out).
 	// The session's browser stops when the session closes.
 	Browser *browser.Manager
-	// VCSProviders and VCSSchedule override the pull request tracker's CLIs and poll intervals (tests).
+	// VCSProviders are the pull request tracker's providers: the server's connections and gh and glab when the adapters are
+	// created here (serve passes them with its shared adapters). VCSSchedule overrides the poll intervals (tests).
 	VCSProviders []vcs.Provider
 	VCSSchedule  vcs.Schedule
 	// ComputerUse, when set, gives the session the Computer* tools (HARNESS_NO_COMPUTER_USE=1 leaves them out). They are
@@ -339,6 +345,21 @@ func Tokens(serverOverride string) (auth.TokenSource, string, *auth.User, error)
 		}
 		return auth.StaticToken(t), url, nil, nil
 	}
+	// CI: a device token from a secret (`harness-client ci login`), kept in memory only.
+	if t := os.Getenv("HARNESS_DEVICE_TOKEN"); t != "" {
+		url := serverOverride
+		if url == "" {
+			url = os.Getenv("HARNESS_SERVER_URL")
+		}
+		if url == "" {
+			return nil, "", nil, errors.New("HARNESS_DEVICE_TOKEN requires HARNESS_SERVER_URL")
+		}
+		m, err := auth.NewManager(auth.NewConnectService(url, nil), auth.NewMemoryStore(&auth.Credentials{Server: url, DeviceToken: t}))
+		if err != nil {
+			return nil, "", nil, err
+		}
+		return m, url, nil, nil
+	}
 	store := auth.DefaultStore(config.CredentialsFile())
 	creds, err := store.Load()
 	if err != nil {
@@ -402,6 +423,10 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			hc = rpc.HTTPClient(url)
 		}
 		s.Sync, s.Uploader, s.stopSync = startSync(ctx, o, url, hc, tokens, user, log)
+		// A server connection goes before the local CLIs: the server holds the token, and the session needs no gh or glab.
+		if len(o.VCSProviders) == 0 {
+			o.VCSProviders = vcs.WithServerProvider(vcs.SharedServerProvider(url, hc, tokens))
+		}
 		// Started once Open succeeds, so a failed Open leaves no poller behind.
 		startVCSPoller = func() { s.VCS, s.stopVCS = startVCS(s, url, hc, tokens, log) }
 		if gw == nil {
@@ -605,6 +630,15 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	tools.RegisterSessionTools(s.Tools)
+	s.Tools.Register(&tools.Memory{Store: s.autoMemoryStore, Enabled: s.autoMemoryEnabled})
+	if s.Sync != nil {
+		s.ToolEnv.Library = s.Sync.Client()
+		tools.RegisterLibraryTools(s.Tools)
+	}
+	s.syncAutoMemory()
+	tools.RegisterWakeupTools(s.Tools)
+	tools.RegisterGraphTools(s.Tools)
+	s.ToolEnv.TaskGraph = tools.NewTaskGraph(graphPath(path, o.NoPersistence))
 	s.openSkills(o)
 	s.Warnings = append(s.Warnings, pluginWarnings(cwd, s.Trusted)...)
 	s.registerWebTools(o)
@@ -740,6 +774,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		AutoCompactPct:  o.AutoCompactPct,
 		RefreshBundle:   func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
 		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
+		MaxBudgetUSD: o.MaxBudgetUSD, OtherSpendUSD: s.subagentSpend,
+		SystemPrompt: o.SystemPrompt, AppendSystemPrompt: o.AppendSystemPrompt,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), History: conv, Todos: todos,
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
@@ -774,6 +810,10 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	})
 	s.Subagents.Attach(s.Agent)
 	s.ToolEnv.Agents = s.Subagents
+	s.ToolEnv.TaskGraph.SetOnChange(func(list []tools.GraphTask) {
+		s.Agent.Emit(agent.Event{Kind: agent.EventTaskGraph, TaskGraph: list})
+		s.Subagents.KickTeams()
+	})
 	s.Workflows = workflow.New(workflow.Config{
 		Dir: filepath.Join(strings.TrimSuffix(path, ".jsonl"), "workflows"), NoPersistence: o.NoPersistence,
 		LeadTranscript: s.Transcript, Agents: s.Subagents, Env: s.ToolEnv, MaxAgents: s.workflowMaxAgents,

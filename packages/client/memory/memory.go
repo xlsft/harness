@@ -623,15 +623,16 @@ func (l *Loader) addAutoMemory(out *[]Instruction) {
 	if l.opts.AutoMemoryDir == "" {
 		return
 	}
-	path := filepath.Join(l.opts.AutoMemoryDir, "MEMORY.md")
+	path := filepath.Join(l.opts.AutoMemoryDir, AutoMemoryIndex)
 	var content string
-	if l.synced() && l.opts.ProjectKey != "" {
-		doc, ok := l.opts.Docs.Lookup(commonv1.Scope_SCOPE_PROJECT, syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "user", l.opts.ProjectKey)
-		if !ok {
-			return
+	found := false
+	// What this machine wrote and has not sent yet is newer than any document.
+	if l.synced() && l.opts.ProjectKey != "" && !HasPendingAutoMemory(l.opts.AutoMemoryDir) {
+		if doc, ok := l.opts.Docs.Lookup(commonv1.Scope_SCOPE_PROJECT, syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "user", l.opts.ProjectKey); ok {
+			content, found = doc.GetContent(), true
 		}
-		content = doc.GetContent()
-	} else {
+	}
+	if !found {
 		raw, ok := readFile(path)
 		if !ok {
 			return

@@ -1,4 +1,5 @@
-import { bigint, bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { bigint, bigserial, boolean, customType, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 /** int8 read back as a JS number: safe up to 2^53, far beyond any version or seq we will reach. */
@@ -368,7 +369,12 @@ export const syncSessionEntry = pgTable(
     /** Text content extracted for search. */
     searchText: text("search_text").notNull().default(""),
   },
-  (t) => [primaryKey({ columns: [t.sessionId, t.seq] }), uniqueIndex("sync_session_entry_uuid_idx").on(t.sessionId, t.agentId, t.uuid)],
+  (t) => [
+    primaryKey({ columns: [t.sessionId, t.seq] }),
+    uniqueIndex("sync_session_entry_uuid_idx").on(t.sessionId, t.agentId, t.uuid),
+    // Full-text search over transcripts (searchTranscripts in src/services/sessions.ts).
+    index("sync_session_entry_search_idx").using("gin", sql`to_tsvector('simple', ${t.searchText})`),
+  ],
 );
 
 // ---------------------------------------------------------------------------
@@ -1013,6 +1019,114 @@ export const objectUpload = pgTable(
     updatedAt: ts("updated_at").notNull(),
   },
   (t) => [uniqueIndex("object_upload_owner_sha_idx").on(t.ownerId, t.sha256), index("object_upload_updated_idx").on(t.updatedAt)],
+);
+
+// ---------------------------------------------------------------------------
+// Library: artifacts, knowledge base, task tracker (proto/harness/library/v1)
+// ---------------------------------------------------------------------------
+
+/** Postgres full-text vector; always a generated column here. */
+const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
+
+/** A page or file published from a session. Its bytes are object store rows of kind "artifact", so they outlive the session. */
+export const artifact = pgTable(
+  "artifact",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** private | shared */
+    visibility: text("visibility").notNull().default("private"),
+    /** The session that first published it; no foreign key, because an artifact outlives its session. */
+    sessionId: text("session_id").notNull().default(""),
+    currentVersion: integer("current_version").notNull().default(1),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("artifact_owner_idx").on(t.ownerId, t.updatedAt), index("artifact_visibility_idx").on(t.visibility, t.updatedAt)],
+);
+
+export const artifactVersion = pgTable(
+  "artifact_version",
+  {
+    artifactId: text("artifact_id")
+      .notNull()
+      .references(() => artifact.id, { onDelete: "cascade" }),
+    number: integer("number").notNull(),
+    sha256: text("sha256").notNull(),
+    name: text("name").notNull().default(""),
+    contentType: text("content_type").notNull(),
+    size: int8("size").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.artifactId, t.number] }), index("artifact_version_sha_idx").on(t.sha256)],
+);
+
+/** A document of the knowledge base: scope "org" is written by admins and read by everyone, scope "user" by its owner alone. */
+export const knowledgeDocument = pgTable(
+  "knowledge_document",
+  {
+    id: text("id").primaryKey(),
+    /** user | org */
+    scope: text("scope").notNull(),
+    /** The owner for scope "user"; who added it for scope "org". */
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    sourceName: text("source_name").notNull().default(""),
+    content: text("content").notNull(),
+    size: int8("size").notNull(),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("knowledge_document_scope_idx").on(t.scope, t.ownerId)],
+);
+
+/** One searchable passage of a document, rebuilt whenever the document changes. */
+export const knowledgeChunk = pgTable(
+  "knowledge_chunk",
+  {
+    documentId: text("document_id")
+      .notNull()
+      .references(() => knowledgeDocument.id, { onDelete: "cascade" }),
+    index: integer("index").notNull(),
+    heading: text("heading").notNull(),
+    text: text("text").notNull(),
+    // Both configurations: 'english' stems, 'simple' keeps every word of every other language.
+    search: tsvector("search")
+      .notNull()
+      .generatedAlwaysAs(
+        sql`setweight(to_tsvector('english', heading), 'A') || setweight(to_tsvector('simple', heading), 'A') || to_tsvector('english', text) || to_tsvector('simple', text)`,
+      ),
+  },
+  (t) => [primaryKey({ columns: [t.documentId, t.index] }), index("knowledge_chunk_search_idx").using("gin", t.search)],
+);
+
+/** A task of the user's own tracker. Nobody else can see it. */
+export const trackerTask = pgTable(
+  "tracker_task",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    /** todo | in_progress | blocked | done | cancelled */
+    status: text("status").notNull().default("todo"),
+    /** low | normal | high */
+    priority: text("priority").notNull().default("normal"),
+    project: text("project").notNull().default(""),
+    sessionIds: jsonb("session_ids").notNull().default([]),
+    blockedBy: jsonb("blocked_by").notNull().default([]),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+    closedAt: ts("closed_at"),
+  },
+  (t) => [index("tracker_task_owner_idx").on(t.ownerId, t.status, t.updatedAt)],
 );
 
 // ---------------------------------------------------------------------------

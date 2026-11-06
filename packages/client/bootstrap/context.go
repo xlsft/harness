@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/config"
@@ -155,16 +156,69 @@ func applySettingsEnv(st *settings.Settings) {
 
 // projectMemory builds the instruction loader for cwd.
 func projectMemory(ctx context.Context, cwd string, workingDirs []string, st *settings.Settings, docs memory.DocSource, noFolder bool) *memory.Loader {
-	key := workspace.ProjectKey(ctx, cwd)
+	key := memoryProjectKey(ctx, cwd, noFolder)
 	var mode memory.Mode
+	dir := memory.AutoMemoryDir(config.Home(), key)
 	if st != nil {
 		mode = st.ClaudeMdMode
+		if !st.AutoMemoryEnabled {
+			dir = ""
+		}
 	}
 	return memory.New(memory.Options{
 		Cwd: cwd, ProjectRoot: workspace.GitRoot(ctx, cwd), WorkingDirs: workingDirs, Mode: mode, NoAncestors: noFolder, HarnessHome: config.Home(),
-		Docs: docs, ProjectKey: key, AutoMemoryDir: memory.AutoMemoryDir(config.Home(), key),
+		Docs: docs, ProjectKey: key, AutoMemoryDir: dir,
 		Approvals: &memory.FileApprovals{Path: filepath.Join(config.Home(), "import-approvals.json"), Project: key},
 	})
+}
+
+// noFolderMemoryKey is the project of the sessions without a folder: each has a private directory of its own, and what
+// they remember is about the user rather than a project, so they share it.
+const noFolderMemoryKey = "no-folder"
+
+func memoryProjectKey(ctx context.Context, cwd string, noFolder bool) string {
+	if noFolder {
+		return noFolderMemoryKey
+	}
+	return workspace.ProjectKey(ctx, cwd)
+}
+
+// autoMemoryStore is the auto memory of the folder the session is in now. It stays on this machine without a server.
+func (s *Session) autoMemoryStore() *memory.AutoStore {
+	cwd := s.Dir()
+	key := memoryProjectKey(context.Background(), cwd, config.IsChatDir(cwd))
+	store := &memory.AutoStore{Dir: memory.AutoMemoryDir(config.Home(), key), ProjectKey: key}
+	if s.Sync != nil {
+		store.Docs = syncclient.AutoMemoryDocs{API: s.Sync.Client()}
+	}
+	return store
+}
+
+// autoMemoryEnabled reads the user's switch again, so that it applies to a session that runs.
+func (s *Session) autoMemoryEnabled() bool {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Dir(), Docs: docs, Trusted: s.IsTrusted()})
+	return err != nil || st.AutoMemoryEnabled
+}
+
+// autoMemorySyncTimeout bounds what a session start does for memory in the background.
+const autoMemorySyncTimeout = 15 * time.Second
+
+// syncAutoMemory brings this machine's copy up to date without holding up the session: changes that could not be sent
+// earlier go now, and the copy follows other machines.
+func (s *Session) syncAutoMemory() {
+	if s.Sync == nil || !s.autoMemoryEnabled() {
+		return
+	}
+	store := s.autoMemoryStore()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), autoMemorySyncTimeout)
+		defer cancel()
+		_ = store.Sync(ctx)
+	}()
 }
 
 // trackUpload registers the session transcript with the uploader.

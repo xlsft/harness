@@ -311,6 +311,15 @@ const (
 	// AgentServiceSetPrMonitorProcedure is the fully-qualified name of the AgentService's SetPrMonitor
 	// RPC.
 	AgentServiceSetPrMonitorProcedure = "/harness.agent.v1.AgentService/SetPrMonitor"
+	// AgentServiceDraftPullRequestProcedure is the fully-qualified name of the AgentService's
+	// DraftPullRequest RPC.
+	AgentServiceDraftPullRequestProcedure = "/harness.agent.v1.AgentService/DraftPullRequest"
+	// AgentServiceCreatePullRequestProcedure is the fully-qualified name of the AgentService's
+	// CreatePullRequest RPC.
+	AgentServiceCreatePullRequestProcedure = "/harness.agent.v1.AgentService/CreatePullRequest"
+	// AgentServiceGetVcsStatusProcedure is the fully-qualified name of the AgentService's GetVcsStatus
+	// RPC.
+	AgentServiceGetVcsStatusProcedure = "/harness.agent.v1.AgentService/GetVcsStatus"
 	// AgentServiceListPreviewServersProcedure is the fully-qualified name of the AgentService's
 	// ListPreviewServers RPC.
 	AgentServiceListPreviewServersProcedure = "/harness.agent.v1.AgentService/ListPreviewServers"
@@ -404,6 +413,33 @@ const (
 	// AgentServiceListSlashCommandsProcedure is the fully-qualified name of the AgentService's
 	// ListSlashCommands RPC.
 	AgentServiceListSlashCommandsProcedure = "/harness.agent.v1.AgentService/ListSlashCommands"
+	// AgentServiceListSchedulesProcedure is the fully-qualified name of the AgentService's
+	// ListSchedules RPC.
+	AgentServiceListSchedulesProcedure = "/harness.agent.v1.AgentService/ListSchedules"
+	// AgentServiceCreateScheduleProcedure is the fully-qualified name of the AgentService's
+	// CreateSchedule RPC.
+	AgentServiceCreateScheduleProcedure = "/harness.agent.v1.AgentService/CreateSchedule"
+	// AgentServiceUpdateScheduleProcedure is the fully-qualified name of the AgentService's
+	// UpdateSchedule RPC.
+	AgentServiceUpdateScheduleProcedure = "/harness.agent.v1.AgentService/UpdateSchedule"
+	// AgentServiceDeleteScheduleProcedure is the fully-qualified name of the AgentService's
+	// DeleteSchedule RPC.
+	AgentServiceDeleteScheduleProcedure = "/harness.agent.v1.AgentService/DeleteSchedule"
+	// AgentServiceSetSchedulePausedProcedure is the fully-qualified name of the AgentService's
+	// SetSchedulePaused RPC.
+	AgentServiceSetSchedulePausedProcedure = "/harness.agent.v1.AgentService/SetSchedulePaused"
+	// AgentServiceRunScheduleNowProcedure is the fully-qualified name of the AgentService's
+	// RunScheduleNow RPC.
+	AgentServiceRunScheduleNowProcedure = "/harness.agent.v1.AgentService/RunScheduleNow"
+	// AgentServiceListScheduleRunsProcedure is the fully-qualified name of the AgentService's
+	// ListScheduleRuns RPC.
+	AgentServiceListScheduleRunsProcedure = "/harness.agent.v1.AgentService/ListScheduleRuns"
+	// AgentServiceTrustScheduleProcedure is the fully-qualified name of the AgentService's
+	// TrustSchedule RPC.
+	AgentServiceTrustScheduleProcedure = "/harness.agent.v1.AgentService/TrustSchedule"
+	// AgentServiceRotateScheduleWebhookProcedure is the fully-qualified name of the AgentService's
+	// RotateScheduleWebhook RPC.
+	AgentServiceRotateScheduleWebhookProcedure = "/harness.agent.v1.AgentService/RotateScheduleWebhook"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -659,6 +695,14 @@ type AgentServiceClient interface {
 	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
 	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
 	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
+	// Reads the session's branch and asks the small-slot model for a pull request's title and body (pr_create.proto); falls
+	// back to the commit messages. FAILED_PRECONDITION when the branch has nothing to propose or is the base branch.
+	DraftPullRequest(context.Context, *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error)
+	// Pushes the session's branch, opens the PR through the server's connection or gh / glab and binds it to the session.
+	// An open PR of the branch is returned as it is. FAILED_PRECONDITION with what to do when no provider covers the host.
+	CreatePullRequest(context.Context, *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error)
+	// The local CLIs this client can reach code hosts with (pr_create.proto).
+	GetVcsStatus(context.Context, *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error)
 	// Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
 	ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error)
 	StopPreviewServer(context.Context, *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error)
@@ -724,6 +768,17 @@ type AgentServiceClient interface {
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
 	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
+	// Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
+	// the user's, whichever machine runs them.
+	ListSchedules(context.Context, *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error)
+	CreateSchedule(context.Context, *connect.Request[v1.CreateScheduleRequest]) (*connect.Response[v1.CreateScheduleResponse], error)
+	UpdateSchedule(context.Context, *connect.Request[v1.UpdateScheduleRequest]) (*connect.Response[v1.UpdateScheduleResponse], error)
+	DeleteSchedule(context.Context, *connect.Request[v1.DeleteScheduleRequest]) (*connect.Response[v1.DeleteScheduleResponse], error)
+	SetSchedulePaused(context.Context, *connect.Request[v1.SetSchedulePausedRequest]) (*connect.Response[v1.SetSchedulePausedResponse], error)
+	RunScheduleNow(context.Context, *connect.Request[v1.RunScheduleNowRequest]) (*connect.Response[v1.RunScheduleNowResponse], error)
+	ListScheduleRuns(context.Context, *connect.Request[v1.ListScheduleRunsRequest]) (*connect.Response[v1.ListScheduleRunsResponse], error)
+	TrustSchedule(context.Context, *connect.Request[v1.TrustScheduleRequest]) (*connect.Response[v1.TrustScheduleResponse], error)
+	RotateScheduleWebhook(context.Context, *connect.Request[v1.RotateScheduleWebhookRequest]) (*connect.Response[v1.RotateScheduleWebhookResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1319,6 +1374,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
 			connect.WithClientOptions(opts...),
 		),
+		draftPullRequest: connect.NewClient[v1.DraftPullRequestRequest, v1.DraftPullRequestResponse](
+			httpClient,
+			baseURL+AgentServiceDraftPullRequestProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DraftPullRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		createPullRequest: connect.NewClient[v1.CreatePullRequestRequest, v1.CreatePullRequestResponse](
+			httpClient,
+			baseURL+AgentServiceCreatePullRequestProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreatePullRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		getVcsStatus: connect.NewClient[v1.GetVcsStatusRequest, v1.GetVcsStatusResponse](
+			httpClient,
+			baseURL+AgentServiceGetVcsStatusProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetVcsStatus")),
+			connect.WithClientOptions(opts...),
+		),
 		listPreviewServers: connect.NewClient[v1.ListPreviewServersRequest, v1.ListPreviewServersResponse](
 			httpClient,
 			baseURL+AgentServiceListPreviewServersProcedure,
@@ -1505,6 +1578,60 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
 			connect.WithClientOptions(opts...),
 		),
+		listSchedules: connect.NewClient[v1.ListSchedulesRequest, v1.ListSchedulesResponse](
+			httpClient,
+			baseURL+AgentServiceListSchedulesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListSchedules")),
+			connect.WithClientOptions(opts...),
+		),
+		createSchedule: connect.NewClient[v1.CreateScheduleRequest, v1.CreateScheduleResponse](
+			httpClient,
+			baseURL+AgentServiceCreateScheduleProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreateSchedule")),
+			connect.WithClientOptions(opts...),
+		),
+		updateSchedule: connect.NewClient[v1.UpdateScheduleRequest, v1.UpdateScheduleResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateScheduleProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateSchedule")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSchedule: connect.NewClient[v1.DeleteScheduleRequest, v1.DeleteScheduleResponse](
+			httpClient,
+			baseURL+AgentServiceDeleteScheduleProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteSchedule")),
+			connect.WithClientOptions(opts...),
+		),
+		setSchedulePaused: connect.NewClient[v1.SetSchedulePausedRequest, v1.SetSchedulePausedResponse](
+			httpClient,
+			baseURL+AgentServiceSetSchedulePausedProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetSchedulePaused")),
+			connect.WithClientOptions(opts...),
+		),
+		runScheduleNow: connect.NewClient[v1.RunScheduleNowRequest, v1.RunScheduleNowResponse](
+			httpClient,
+			baseURL+AgentServiceRunScheduleNowProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RunScheduleNow")),
+			connect.WithClientOptions(opts...),
+		),
+		listScheduleRuns: connect.NewClient[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse](
+			httpClient,
+			baseURL+AgentServiceListScheduleRunsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListScheduleRuns")),
+			connect.WithClientOptions(opts...),
+		),
+		trustSchedule: connect.NewClient[v1.TrustScheduleRequest, v1.TrustScheduleResponse](
+			httpClient,
+			baseURL+AgentServiceTrustScheduleProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("TrustSchedule")),
+			connect.WithClientOptions(opts...),
+		),
+		rotateScheduleWebhook: connect.NewClient[v1.RotateScheduleWebhookRequest, v1.RotateScheduleWebhookResponse](
+			httpClient,
+			baseURL+AgentServiceRotateScheduleWebhookProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RotateScheduleWebhook")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1607,6 +1734,9 @@ type agentServiceClient struct {
 	updateViewerPresence    *connect.Client[v1.UpdateViewerPresenceRequest, v1.UpdateViewerPresenceResponse]
 	readSentFile            *connect.Client[v1.ReadSentFileRequest, v1.ReadSentFileResponse]
 	setPrMonitor            *connect.Client[v1.SetPrMonitorRequest, v1.SetPrMonitorResponse]
+	draftPullRequest        *connect.Client[v1.DraftPullRequestRequest, v1.DraftPullRequestResponse]
+	createPullRequest       *connect.Client[v1.CreatePullRequestRequest, v1.CreatePullRequestResponse]
+	getVcsStatus            *connect.Client[v1.GetVcsStatusRequest, v1.GetVcsStatusResponse]
 	listPreviewServers      *connect.Client[v1.ListPreviewServersRequest, v1.ListPreviewServersResponse]
 	stopPreviewServer       *connect.Client[v1.StopPreviewServerRequest, v1.StopPreviewServerResponse]
 	getPreviewLogs          *connect.Client[v1.GetPreviewLogsRequest, v1.GetPreviewLogsResponse]
@@ -1638,6 +1768,15 @@ type agentServiceClient struct {
 	listMcpCommands         *connect.Client[v1.ListMcpCommandsRequest, v1.ListMcpCommandsResponse]
 	listMcpResources        *connect.Client[v1.ListMcpResourcesRequest, v1.ListMcpResourcesResponse]
 	listSlashCommands       *connect.Client[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse]
+	listSchedules           *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
+	createSchedule          *connect.Client[v1.CreateScheduleRequest, v1.CreateScheduleResponse]
+	updateSchedule          *connect.Client[v1.UpdateScheduleRequest, v1.UpdateScheduleResponse]
+	deleteSchedule          *connect.Client[v1.DeleteScheduleRequest, v1.DeleteScheduleResponse]
+	setSchedulePaused       *connect.Client[v1.SetSchedulePausedRequest, v1.SetSchedulePausedResponse]
+	runScheduleNow          *connect.Client[v1.RunScheduleNowRequest, v1.RunScheduleNowResponse]
+	listScheduleRuns        *connect.Client[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse]
+	trustSchedule           *connect.Client[v1.TrustScheduleRequest, v1.TrustScheduleResponse]
+	rotateScheduleWebhook   *connect.Client[v1.RotateScheduleWebhookRequest, v1.RotateScheduleWebhookResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -2125,6 +2264,21 @@ func (c *agentServiceClient) SetPrMonitor(ctx context.Context, req *connect.Requ
 	return c.setPrMonitor.CallUnary(ctx, req)
 }
 
+// DraftPullRequest calls harness.agent.v1.AgentService.DraftPullRequest.
+func (c *agentServiceClient) DraftPullRequest(ctx context.Context, req *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error) {
+	return c.draftPullRequest.CallUnary(ctx, req)
+}
+
+// CreatePullRequest calls harness.agent.v1.AgentService.CreatePullRequest.
+func (c *agentServiceClient) CreatePullRequest(ctx context.Context, req *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error) {
+	return c.createPullRequest.CallUnary(ctx, req)
+}
+
+// GetVcsStatus calls harness.agent.v1.AgentService.GetVcsStatus.
+func (c *agentServiceClient) GetVcsStatus(ctx context.Context, req *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error) {
+	return c.getVcsStatus.CallUnary(ctx, req)
+}
+
 // ListPreviewServers calls harness.agent.v1.AgentService.ListPreviewServers.
 func (c *agentServiceClient) ListPreviewServers(ctx context.Context, req *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error) {
 	return c.listPreviewServers.CallUnary(ctx, req)
@@ -2278,6 +2432,51 @@ func (c *agentServiceClient) ListMcpResources(ctx context.Context, req *connect.
 // ListSlashCommands calls harness.agent.v1.AgentService.ListSlashCommands.
 func (c *agentServiceClient) ListSlashCommands(ctx context.Context, req *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
 	return c.listSlashCommands.CallUnary(ctx, req)
+}
+
+// ListSchedules calls harness.agent.v1.AgentService.ListSchedules.
+func (c *agentServiceClient) ListSchedules(ctx context.Context, req *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error) {
+	return c.listSchedules.CallUnary(ctx, req)
+}
+
+// CreateSchedule calls harness.agent.v1.AgentService.CreateSchedule.
+func (c *agentServiceClient) CreateSchedule(ctx context.Context, req *connect.Request[v1.CreateScheduleRequest]) (*connect.Response[v1.CreateScheduleResponse], error) {
+	return c.createSchedule.CallUnary(ctx, req)
+}
+
+// UpdateSchedule calls harness.agent.v1.AgentService.UpdateSchedule.
+func (c *agentServiceClient) UpdateSchedule(ctx context.Context, req *connect.Request[v1.UpdateScheduleRequest]) (*connect.Response[v1.UpdateScheduleResponse], error) {
+	return c.updateSchedule.CallUnary(ctx, req)
+}
+
+// DeleteSchedule calls harness.agent.v1.AgentService.DeleteSchedule.
+func (c *agentServiceClient) DeleteSchedule(ctx context.Context, req *connect.Request[v1.DeleteScheduleRequest]) (*connect.Response[v1.DeleteScheduleResponse], error) {
+	return c.deleteSchedule.CallUnary(ctx, req)
+}
+
+// SetSchedulePaused calls harness.agent.v1.AgentService.SetSchedulePaused.
+func (c *agentServiceClient) SetSchedulePaused(ctx context.Context, req *connect.Request[v1.SetSchedulePausedRequest]) (*connect.Response[v1.SetSchedulePausedResponse], error) {
+	return c.setSchedulePaused.CallUnary(ctx, req)
+}
+
+// RunScheduleNow calls harness.agent.v1.AgentService.RunScheduleNow.
+func (c *agentServiceClient) RunScheduleNow(ctx context.Context, req *connect.Request[v1.RunScheduleNowRequest]) (*connect.Response[v1.RunScheduleNowResponse], error) {
+	return c.runScheduleNow.CallUnary(ctx, req)
+}
+
+// ListScheduleRuns calls harness.agent.v1.AgentService.ListScheduleRuns.
+func (c *agentServiceClient) ListScheduleRuns(ctx context.Context, req *connect.Request[v1.ListScheduleRunsRequest]) (*connect.Response[v1.ListScheduleRunsResponse], error) {
+	return c.listScheduleRuns.CallUnary(ctx, req)
+}
+
+// TrustSchedule calls harness.agent.v1.AgentService.TrustSchedule.
+func (c *agentServiceClient) TrustSchedule(ctx context.Context, req *connect.Request[v1.TrustScheduleRequest]) (*connect.Response[v1.TrustScheduleResponse], error) {
+	return c.trustSchedule.CallUnary(ctx, req)
+}
+
+// RotateScheduleWebhook calls harness.agent.v1.AgentService.RotateScheduleWebhook.
+func (c *agentServiceClient) RotateScheduleWebhook(ctx context.Context, req *connect.Request[v1.RotateScheduleWebhookRequest]) (*connect.Response[v1.RotateScheduleWebhookResponse], error) {
+	return c.rotateScheduleWebhook.CallUnary(ctx, req)
 }
 
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
@@ -2533,6 +2732,14 @@ type AgentServiceHandler interface {
 	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
 	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
 	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
+	// Reads the session's branch and asks the small-slot model for a pull request's title and body (pr_create.proto); falls
+	// back to the commit messages. FAILED_PRECONDITION when the branch has nothing to propose or is the base branch.
+	DraftPullRequest(context.Context, *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error)
+	// Pushes the session's branch, opens the PR through the server's connection or gh / glab and binds it to the session.
+	// An open PR of the branch is returned as it is. FAILED_PRECONDITION with what to do when no provider covers the host.
+	CreatePullRequest(context.Context, *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error)
+	// The local CLIs this client can reach code hosts with (pr_create.proto).
+	GetVcsStatus(context.Context, *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error)
 	// Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
 	ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error)
 	StopPreviewServer(context.Context, *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error)
@@ -2598,6 +2805,17 @@ type AgentServiceHandler interface {
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
 	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
+	// Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
+	// the user's, whichever machine runs them.
+	ListSchedules(context.Context, *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error)
+	CreateSchedule(context.Context, *connect.Request[v1.CreateScheduleRequest]) (*connect.Response[v1.CreateScheduleResponse], error)
+	UpdateSchedule(context.Context, *connect.Request[v1.UpdateScheduleRequest]) (*connect.Response[v1.UpdateScheduleResponse], error)
+	DeleteSchedule(context.Context, *connect.Request[v1.DeleteScheduleRequest]) (*connect.Response[v1.DeleteScheduleResponse], error)
+	SetSchedulePaused(context.Context, *connect.Request[v1.SetSchedulePausedRequest]) (*connect.Response[v1.SetSchedulePausedResponse], error)
+	RunScheduleNow(context.Context, *connect.Request[v1.RunScheduleNowRequest]) (*connect.Response[v1.RunScheduleNowResponse], error)
+	ListScheduleRuns(context.Context, *connect.Request[v1.ListScheduleRunsRequest]) (*connect.Response[v1.ListScheduleRunsResponse], error)
+	TrustSchedule(context.Context, *connect.Request[v1.TrustScheduleRequest]) (*connect.Response[v1.TrustScheduleResponse], error)
+	RotateScheduleWebhook(context.Context, *connect.Request[v1.RotateScheduleWebhookRequest]) (*connect.Response[v1.RotateScheduleWebhookResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -3189,6 +3407,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceDraftPullRequestHandler := connect.NewUnaryHandler(
+		AgentServiceDraftPullRequestProcedure,
+		svc.DraftPullRequest,
+		connect.WithSchema(agentServiceMethods.ByName("DraftPullRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCreatePullRequestHandler := connect.NewUnaryHandler(
+		AgentServiceCreatePullRequestProcedure,
+		svc.CreatePullRequest,
+		connect.WithSchema(agentServiceMethods.ByName("CreatePullRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetVcsStatusHandler := connect.NewUnaryHandler(
+		AgentServiceGetVcsStatusProcedure,
+		svc.GetVcsStatus,
+		connect.WithSchema(agentServiceMethods.ByName("GetVcsStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceListPreviewServersHandler := connect.NewUnaryHandler(
 		AgentServiceListPreviewServersProcedure,
 		svc.ListPreviewServers,
@@ -3373,6 +3609,60 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceListSlashCommandsProcedure,
 		svc.ListSlashCommands,
 		connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListSchedulesHandler := connect.NewUnaryHandler(
+		AgentServiceListSchedulesProcedure,
+		svc.ListSchedules,
+		connect.WithSchema(agentServiceMethods.ByName("ListSchedules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCreateScheduleHandler := connect.NewUnaryHandler(
+		AgentServiceCreateScheduleProcedure,
+		svc.CreateSchedule,
+		connect.WithSchema(agentServiceMethods.ByName("CreateSchedule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateScheduleHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateScheduleProcedure,
+		svc.UpdateSchedule,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateSchedule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteScheduleHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteScheduleProcedure,
+		svc.DeleteSchedule,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteSchedule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetSchedulePausedHandler := connect.NewUnaryHandler(
+		AgentServiceSetSchedulePausedProcedure,
+		svc.SetSchedulePaused,
+		connect.WithSchema(agentServiceMethods.ByName("SetSchedulePaused")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRunScheduleNowHandler := connect.NewUnaryHandler(
+		AgentServiceRunScheduleNowProcedure,
+		svc.RunScheduleNow,
+		connect.WithSchema(agentServiceMethods.ByName("RunScheduleNow")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListScheduleRunsHandler := connect.NewUnaryHandler(
+		AgentServiceListScheduleRunsProcedure,
+		svc.ListScheduleRuns,
+		connect.WithSchema(agentServiceMethods.ByName("ListScheduleRuns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceTrustScheduleHandler := connect.NewUnaryHandler(
+		AgentServiceTrustScheduleProcedure,
+		svc.TrustSchedule,
+		connect.WithSchema(agentServiceMethods.ByName("TrustSchedule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRotateScheduleWebhookHandler := connect.NewUnaryHandler(
+		AgentServiceRotateScheduleWebhookProcedure,
+		svc.RotateScheduleWebhook,
+		connect.WithSchema(agentServiceMethods.ByName("RotateScheduleWebhook")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -3571,6 +3861,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceReadSentFileHandler.ServeHTTP(w, r)
 		case AgentServiceSetPrMonitorProcedure:
 			agentServiceSetPrMonitorHandler.ServeHTTP(w, r)
+		case AgentServiceDraftPullRequestProcedure:
+			agentServiceDraftPullRequestHandler.ServeHTTP(w, r)
+		case AgentServiceCreatePullRequestProcedure:
+			agentServiceCreatePullRequestHandler.ServeHTTP(w, r)
+		case AgentServiceGetVcsStatusProcedure:
+			agentServiceGetVcsStatusHandler.ServeHTTP(w, r)
 		case AgentServiceListPreviewServersProcedure:
 			agentServiceListPreviewServersHandler.ServeHTTP(w, r)
 		case AgentServiceStopPreviewServerProcedure:
@@ -3633,6 +3929,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceListMcpResourcesHandler.ServeHTTP(w, r)
 		case AgentServiceListSlashCommandsProcedure:
 			agentServiceListSlashCommandsHandler.ServeHTTP(w, r)
+		case AgentServiceListSchedulesProcedure:
+			agentServiceListSchedulesHandler.ServeHTTP(w, r)
+		case AgentServiceCreateScheduleProcedure:
+			agentServiceCreateScheduleHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateScheduleProcedure:
+			agentServiceUpdateScheduleHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteScheduleProcedure:
+			agentServiceDeleteScheduleHandler.ServeHTTP(w, r)
+		case AgentServiceSetSchedulePausedProcedure:
+			agentServiceSetSchedulePausedHandler.ServeHTTP(w, r)
+		case AgentServiceRunScheduleNowProcedure:
+			agentServiceRunScheduleNowHandler.ServeHTTP(w, r)
+		case AgentServiceListScheduleRunsProcedure:
+			agentServiceListScheduleRunsHandler.ServeHTTP(w, r)
+		case AgentServiceTrustScheduleProcedure:
+			agentServiceTrustScheduleHandler.ServeHTTP(w, r)
+		case AgentServiceRotateScheduleWebhookProcedure:
+			agentServiceRotateScheduleWebhookHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -4030,6 +4344,18 @@ func (UnimplementedAgentServiceHandler) SetPrMonitor(context.Context, *connect.R
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetPrMonitor is not implemented"))
 }
 
+func (UnimplementedAgentServiceHandler) DraftPullRequest(context.Context, *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DraftPullRequest is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreatePullRequest(context.Context, *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreatePullRequest is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetVcsStatus(context.Context, *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetVcsStatus is not implemented"))
+}
+
 func (UnimplementedAgentServiceHandler) ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListPreviewServers is not implemented"))
 }
@@ -4152,4 +4478,40 @@ func (UnimplementedAgentServiceHandler) ListMcpResources(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSlashCommands is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListSchedules(context.Context, *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSchedules is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreateSchedule(context.Context, *connect.Request[v1.CreateScheduleRequest]) (*connect.Response[v1.CreateScheduleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreateSchedule is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateSchedule(context.Context, *connect.Request[v1.UpdateScheduleRequest]) (*connect.Response[v1.UpdateScheduleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateSchedule is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DeleteSchedule(context.Context, *connect.Request[v1.DeleteScheduleRequest]) (*connect.Response[v1.DeleteScheduleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteSchedule is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetSchedulePaused(context.Context, *connect.Request[v1.SetSchedulePausedRequest]) (*connect.Response[v1.SetSchedulePausedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetSchedulePaused is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RunScheduleNow(context.Context, *connect.Request[v1.RunScheduleNowRequest]) (*connect.Response[v1.RunScheduleNowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunScheduleNow is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListScheduleRuns(context.Context, *connect.Request[v1.ListScheduleRunsRequest]) (*connect.Response[v1.ListScheduleRunsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListScheduleRuns is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) TrustSchedule(context.Context, *connect.Request[v1.TrustScheduleRequest]) (*connect.Response[v1.TrustScheduleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.TrustSchedule is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RotateScheduleWebhook(context.Context, *connect.Request[v1.RotateScheduleWebhookRequest]) (*connect.Response[v1.RotateScheduleWebhookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RotateScheduleWebhook is not implemented"))
 }

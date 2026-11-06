@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// AgentService.DraftPullRequest and CreatePullRequest: the frontends' Create PR button. The client owns everything:
+// it reads the branch, asks the small-slot model for a title and a body, pushes the branch and opens the PR through the
+// server's connection or the local gh / glab CLI, then binds the PR to the session. A frontend only shows the draft and
+// sends back what the user kept.
+
+message DraftPullRequestRequest {
+  string session_id = 1;
+  // The branch to merge into; empty uses the repository's default branch.
+  string base_branch = 2;
+}
+
+message DraftPullRequestResponse {
+  string title = 1;
+  // Markdown, with the attribution line from settings.
+  string body = 2;
+  string head_branch = 3;
+  string base_branch = 4;
+  // host/owner/repo, lowercased.
+  string repository_key = 5;
+  // Commits the PR would carry.
+  int32 commits = 6;
+  // `git diff --stat` of the PR.
+  string diff_stat = 7;
+  // The working tree has uncommitted changes, which the PR will not carry.
+  bool dirty = 8;
+  // The local branch has commits that are not on the remote yet: creating pushes them.
+  bool needs_push = 9;
+  // False when the model could not write the draft and the text comes from the commit messages; `note` says why.
+  bool drafted = 10;
+  string note = 11;
+  // Who would open the PR: "server" (a connection on the server), "gh" or "glab". Empty when nothing can;
+  // `note` says what to do about it.
+  string provider = 12;
+}
+
+message CreatePullRequestRequest {
+  string session_id = 1;
+  string title = 2;
+  string body = 3;
+  // Empty uses the repository's default branch.
+  string base_branch = 4;
+  bool draft = 5;
+  // Watch the new PR (the auto-fix switch of SetPrMonitor).
+  bool monitor = 6;
+}
+
+message CreatePullRequestResponse {
+  // The new PR, or the one that was already open for the branch (`existed`). SessionInfo.pull_request has its state.
+  string url = 1;
+  int32 number = 2;
+  string title = 3;
+  bool existed = 4;
+  // The branch was pushed first.
+  bool pushed = 5;
+}
+
+// AgentService.GetVcsStatus: what this client can reach code hosts with, for Settings > Code hosts.
+message GetVcsStatusRequest {}
+
+message GetVcsStatusResponse {
+  repeated VcsDeviceCli clis = 1;
+}
+
+// A local CLI (gh, glab) on this device. Device-local: never synced.
+message VcsDeviceCli {
+  // "gh" or "glab".
+  string name = 1;
+  bool installed = 2;
+  string version = 3;
+  repeated VcsDeviceCliHost hosts = 4;
+  // The command that signs in, for the screen to show; never run by the client.
+  string login_command = 5;
+  // What detection reported when it failed for another reason than the CLI being missing.
+  string problem = 6;
+}
+
+message VcsDeviceCliHost {
+  string host = 1;
+  string login = 2;
+}

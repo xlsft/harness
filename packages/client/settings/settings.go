@@ -177,10 +177,15 @@ type Settings struct {
 	// (subagentMaxDepth, subagentMaxRunning; per-user preferences, see UserPreferences).
 	SubagentMaxDepth   int
 	SubagentMaxRunning int
+	// GoalMaxTurns is how many turns `/goal` may take when it names no cap (goalMaxTurns; a per-user preference).
+	GoalMaxTurns int
 	// WorkflowMaxAgents is the hard cap on agent() calls in one run of the Workflow tool (workflowMaxAgents; a per-user
 	// preference, see UserPreferences).
 	WorkflowMaxAgents int
 	ClaudeMdMode      memory.Mode
+	// AutoMemoryEnabled lets the agent keep memory files per project and loads their index into new sessions
+	// (autoMemoryEnabled, default true). A per-user preference; a project file can only turn it off.
+	AutoMemoryEnabled bool
 	// LSPEnabled offers the LSP tool and allows diagnostics after edits (lspEnabled, default true); LSPDiagnostics reports
 	// those errors (lspDiagnostics, default true); LSPDiagnosticsStartServer lets an edit start a server rather than only
 	// use one that runs (lspDiagnosticsStartServer, default false). Per-user preferences, see UserPreferences; a project
@@ -307,11 +312,26 @@ const (
 	KeyWorkflowMaxAgents  = "workflowMaxAgents"
 )
 
+// KeySchedulesEnabled and KeyGoalMaxTurns are the settings keys of the same preferences (UserPreferences).
+const (
+	KeySchedulesEnabled = "schedulesEnabled"
+	KeyGoalMaxTurns     = "goalMaxTurns"
+	// DefaultGoalMaxTurns and MaxGoalMaxTurns bound the turns `/goal` may take when it names no cap.
+	DefaultGoalMaxTurns = 20
+	MaxGoalMaxTurns     = 200
+)
+
+// ValidGoalMaxTurns reports whether n can be the cap of a goal.
+func ValidGoalMaxTurns(n int) bool { return n >= 1 && n <= MaxGoalMaxTurns }
+
 // KeyPRMonitorWakesPerHour is the settings key of Settings.PRMonitorWakesPerHour, written the same way.
 const KeyPRMonitorWakesPerHour = "prMonitorWakesPerHour"
 
 // KeyInterruptReply is the settings key of Settings.InterruptReply.
 const KeyInterruptReply = "interruptReply"
+
+// KeyAutoMemoryEnabled is the settings key of Settings.AutoMemoryEnabled.
+const KeyAutoMemoryEnabled = "autoMemoryEnabled"
 
 // The settings keys of the language server settings.
 const (
@@ -341,17 +361,18 @@ type layer struct {
 	src Source
 	raw map[string]json.RawMessage
 
-	model, effort, outputStyle, claudeMdMode, defaultMode *string
-	autoCompactWindow, cleanupPeriodDays, prWakes         *int
-	subagentDepth, subagentRunning, workflowAgents        *int
-	includeGit, interruptReply, compactIdle               *bool
-	lspEnabled, lspDiagnostics, lspStartServer            *bool
-	lspServers                                            map[string]LSPServer
-	attrCommit, attrPR                                    *string
-	env                                                   map[string]string
-	allow, ask, deny, addDirs                             []string
-	disableBypass, disableAuto                            bool
-	disabledModes                                         []string
+	model, effort, outputStyle, claudeMdMode, defaultMode     *string
+	autoCompactWindow, cleanupPeriodDays, prWakes             *int
+	subagentDepth, subagentRunning, workflowAgents, goalTurns *int
+	includeGit, interruptReply, compactIdle                   *bool
+	lspEnabled, lspDiagnostics, lspStartServer                *bool
+	autoMemory                                                *bool
+	lspServers                                                map[string]LSPServer
+	attrCommit, attrPR                                        *string
+	env                                                       map[string]string
+	allow, ask, deny, addDirs                                 []string
+	disableBypass, disableAuto                                bool
+	disabledModes                                             []string
 
 	availableModels  []string
 	managedRulesOnly bool
@@ -382,8 +403,8 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
-		CompactIdleSessions: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
-		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents,
+		CompactIdleSessions: true, AutoMemoryEnabled: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
+		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents, GoalMaxTurns: DefaultGoalMaxTurns,
 		Sandbox: Sandbox{Enabled: true}}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {

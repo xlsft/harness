@@ -581,7 +581,8 @@ func TestServerToolListsApplyToStdio(t *testing.T) {
 func TestToolTimeoutStdio(t *testing.T) {
 	h := newHarness(t)
 	s := extended(t, h, "mcp_x", "x")
-	s.ToolTimeoutMs = 50
+	// Long enough for the echo below on a loaded machine; the sleep runs far past it anyway.
+	s.ToolTimeoutMs = 1500
 	m := h.open(t, nil)
 	r := run(t, findTool(t, m, "mcp__x__sleep"), envWith(t, nil), `{"ms":60000}`)
 	if !r.IsError || !strings.Contains(text(r), "did not answer within") {

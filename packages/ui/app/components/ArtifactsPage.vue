@@ -1,23 +1,87 @@
 <script setup lang="ts">
-// Artifacts page (docs/design/ui/ArtifactsPage.dc.html), grid and list views, on demo fixtures.
-// The view toggle emits `update:view`; the filter tabs are local.
-import { ARTIFACT_FILTERS, ARTIFACT_KINDS, ARTIFACT_TYPES, ARTIFACTS, type ArtifactEntry } from '~/lib/fixtures/artifacts'
+// Artifacts: what sessions published, in a grid or a list (`view`), with one open in ArtifactViewer (?id=). The server says
+// what the user may see: their own, private until they share it, and what others shared on this server.
+import { ArtifactFilter, ArtifactVisibility, ARTIFACT_VIEW, errorText, formatSize, timeAgo, type Artifact } from '~/lib/library/types'
 
 const props = defineProps<{ view: 'grid' | 'list' }>()
 const emit = defineEmits<{ 'update:view': [view: 'grid' | 'list'] }>()
 
-const filter = ref<typeof ARTIFACT_FILTERS[number]>('All')
-const items = computed(() => ARTIFACTS.filter(a => filter.value === 'All' || (filter.value === 'Yours' ? !a.shared : a.shared)))
+const store = useSessionStore()
+const route = useRoute()
+const router = useRouter()
 
-const open = { path: '/', query: { pane: 'artifact' } }
+const FILTERS = [
+  { label: 'All', value: ArtifactFilter.ALL },
+  { label: 'Yours', value: ArtifactFilter.MINE },
+  { label: 'Shared', value: ArtifactFilter.SHARED }
+]
+const filter = ref(ArtifactFilter.ALL)
+const query = ref('')
+const items = ref<Artifact[]>([])
+const loaded = ref(false)
+const error = ref('')
 
-function type(a: ArtifactEntry) {
-  return ARTIFACT_TYPES[a.type]
+const openId = computed(() => (typeof route.query.id === 'string' ? route.query.id : ''))
+
+function open(id: string) {
+  router.push({ query: { ...route.query, id } })
+}
+function close() {
+  router.replace({ query: { ...route.query, id: undefined } })
+}
+
+let seq = 0
+async function load() {
+  const api = store.transport?.library()
+  if (!api) return
+  const n = ++seq
+  try {
+    const list = await api.listArtifacts({ filter: filter.value, query: query.value })
+    if (n !== seq) return
+    items.value = list
+    error.value = ''
+  } catch (e) {
+    if (n === seq) error.value = errorText(e)
+  } finally {
+    if (n === seq) loaded.value = true
+  }
+}
+onMounted(load)
+watch(() => store.transport, load)
+watch(filter, load)
+let timer: ReturnType<typeof setTimeout> | undefined
+watch(query, () => {
+  clearTimeout(timer)
+  timer = setTimeout(load, 200)
+})
+onBeforeUnmount(() => clearTimeout(timer))
+
+function look(a: Artifact) {
+  return ARTIFACT_VIEW[a.kind]
+}
+const isShared = (a: Artifact) => a.visibility === ArtifactVisibility.SHARED
+const subtitle = (a: Artifact) => {
+  const who = a.mine ? '' : `${a.ownerName || 'Someone else'} · `
+  return `${who}${timeAgo(a.updatedAt)}`
+}
+
+function onDeleted() {
+  close()
+  load()
 }
 </script>
 
 <template>
+  <ArtifactViewer
+    v-if="openId"
+    :id="openId"
+    class="pt-11"
+    @close="close"
+    @changed="load"
+    @deleted="onDeleted"
+  />
   <section
+    v-else
     aria-label="Artifacts"
     class="h-full overflow-y-auto bg-default"
   >
@@ -26,48 +90,38 @@ function type(a: ArtifactEntry) {
         Artifacts
       </h1>
 
-      <div class="flex flex-wrap items-center gap-1">
+      <div class="flex flex-wrap items-center gap-2">
         <div
           role="tablist"
           aria-label="Filter"
           class="flex gap-[2px]"
         >
           <button
-            v-for="f in ARTIFACT_FILTERS"
-            :key="f"
+            v-for="f in FILTERS"
+            :key="f.value"
             type="button"
             role="tab"
-            :aria-selected="filter === f"
+            :aria-selected="filter === f.value"
             class="border px-3 py-[5px] text-[12.5px]"
-            :class="filter === f ? 'border-line bg-raised text-strong' : 'border-transparent text-toned hover:text-strong'"
-            @click="filter = f"
+            :class="filter === f.value ? 'border-line bg-raised text-strong' : 'border-transparent text-toned hover:text-strong'"
+            @click="filter = f.value"
           >
-            {{ f }}
+            {{ f.label }}
           </button>
         </div>
         <span class="flex-1" />
-        <button
-          type="button"
-          aria-label="Search"
-          title="Search"
-          class="flex size-8 items-center justify-center text-toned hover:text-strong"
-        >
+        <label class="flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent">
           <HIcon
             name="search"
-            :size="16"
+            :size="13"
           />
-        </button>
-        <button
-          type="button"
-          aria-label="Filter and sort"
-          title="Filter and sort"
-          class="flex size-8 items-center justify-center text-toned hover:text-strong"
-        >
-          <HIcon
-            name="filter"
-            :size="16"
-          />
-        </button>
+          <input
+            v-model="query"
+            placeholder="Search titles"
+            aria-label="Search artifacts"
+            class="w-[180px] bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
+          >
+        </label>
         <button
           type="button"
           :aria-label="props.view === 'grid' ? 'Show as list' : 'Show as grid'"
@@ -82,138 +136,82 @@ function type(a: ArtifactEntry) {
         </button>
       </div>
 
-      <div class="flex flex-col gap-2.5">
-        <span class="text-[12px] text-muted">Make something new</span>
-        <div class="flex flex-wrap gap-3.5">
-          <a
-            v-for="k in ARTIFACT_KINDS"
-            :key="k.name"
-            href="#"
-            class="group flex w-[150px] flex-col gap-2 text-strong"
-            @click.prevent
-          >
-            <span
-              class="flex h-[92px] items-center justify-center border group-hover:brightness-125"
-              :style="{ background: ARTIFACT_TYPES[k.type].tint, borderColor: ARTIFACT_TYPES[k.type].color, color: ARTIFACT_TYPES[k.type].color }"
-            >
-              <HIcon
-                :name="ARTIFACT_TYPES[k.type].icon"
-                :size="34"
-              />
-            </span>
-            <span class="flex items-center gap-2 text-[12.5px]">{{ k.name }}<span
-              class="border px-[5px] text-[10px]"
-              :style="{ color: k.badgeColor, borderColor: k.badgeColor }"
-            >{{ k.badge }}</span></span>
-          </a>
-        </div>
-      </div>
+      <p
+        v-if="error"
+        role="alert"
+        class="m-0 border border-l-2 border-default border-l-bad px-2.5 py-1.5 text-[12.5px] text-toned"
+      >
+        {{ error }}
+      </p>
+      <p
+        v-else-if="loaded && !items.length"
+        class="m-0 text-[12.5px] text-muted"
+      >
+        {{ query || filter !== ArtifactFilter.ALL ? 'Nothing matches.' : 'Nothing published yet. Ask an agent to publish a report or a page as an artifact and it stays here after the session, private until you share it.' }}
+      </p>
 
       <div
         v-if="props.view === 'grid'"
-        class="grid grid-cols-3 gap-3.5 pt-2 max-md:grid-cols-2 max-sm:grid-cols-1"
+        class="grid grid-cols-3 gap-3.5 max-md:grid-cols-2 max-sm:grid-cols-1"
       >
-        <NuxtLink
+        <button
           v-for="a in items"
-          :key="a.title"
-          :to="open"
-          class="flex flex-col border border-line bg-surface text-toned hover:border-line-strong"
+          :key="a.id"
+          type="button"
+          class="flex flex-col border border-line bg-surface text-left text-toned hover:border-line-strong"
+          @click="open(a.id)"
         >
-          <div
-            class="flex h-[150px] items-end justify-center overflow-hidden border-b border-line px-7 pt-5"
-            :style="{ background: type(a).tint }"
+          <span
+            class="flex h-[110px] w-full items-center justify-center border-b border-line"
+            :style="{ background: look(a).tint, color: look(a).color }"
           >
-            <div
-              class="box-border flex h-[112px] w-full flex-col gap-[7px] border border-b-0 border-line p-3"
-              :class="a.type === 'doc' ? 'bg-default' : 'bg-surface'"
-            >
-              <div
-                v-if="a.type === 'design'"
-                class="grid flex-1 grid-cols-3 gap-1.5"
-              >
-                <span class="bg-raised" /><span class="bg-raised" /><span class="bg-raised" /><span class="bg-hover" /><span class="bg-hover" /><span class="bg-hover" />
-              </div>
-              <template v-else-if="a.type === 'page'">
-                <span
-                  class="h-2 w-2/5"
-                  :style="{ background: type(a).color }"
-                /><span class="h-3.5 w-[70%] bg-line" /><span class="h-[5px] w-[90%] bg-raised" /><span class="h-[5px] w-4/5 bg-raised" /><span class="h-[5px] w-[85%] bg-raised" />
-              </template>
-              <template v-else-if="a.type === 'doc' || a.type === 'slides'">
-                <span class="font-display text-[12px] leading-[1.3] text-strong">{{ a.title }}</span><span class="h-1 w-[92%] bg-raised" /><span class="h-1 w-[86%] bg-raised" /><span class="h-1 w-[90%] bg-raised" />
-              </template>
-              <div
-                v-else-if="a.type === 'dash'"
-                class="flex flex-1 items-end gap-1.5"
-              >
-                <span
-                  v-for="h in [40, 70, 55, 90, 65]"
-                  :key="h"
-                  class="flex-1"
-                  :style="{ height: `${h}%`, background: type(a).color }"
-                />
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 px-3.5 py-3">
-            <span
-              class="flex size-8 shrink-0 items-center justify-center"
-              :style="{ background: type(a).tint, color: type(a).color }"
-            >
-              <HIcon :name="type(a).icon" />
-            </span>
-            <span class="flex min-w-0 flex-1 flex-col gap-[2px]"><span class="truncate text-[13px] text-strong">{{ a.title }}</span><span class="text-[11.5px] text-muted">{{ a.when }}</span></span>
             <HIcon
-              name="globe-share"
-              :class="a.shared ? 'text-toned' : 'text-transparent'"
-              :aria-label="a.shared ? 'Shared by link' : undefined"
-              :aria-hidden="a.shared ? undefined : 'true'"
+              :name="look(a).icon"
+              :size="34"
             />
-          </div>
-        </NuxtLink>
+          </span>
+          <span class="flex w-full items-center gap-3 px-3.5 py-3">
+            <span class="flex min-w-0 flex-1 flex-col gap-[2px]">
+              <span class="truncate text-[13px] text-strong">{{ a.title }}</span>
+              <span class="truncate text-[11.5px] text-muted">{{ look(a).label }} · {{ subtitle(a) }}</span>
+            </span>
+            <HIcon
+              v-if="isShared(a)"
+              name="globe-share"
+              class="text-toned"
+              aria-label="Shared on this server"
+            />
+          </span>
+        </button>
       </div>
 
       <div
         v-else
-        role="list"
-        class="flex flex-col pt-2"
+        class="flex flex-col"
       >
-        <div
+        <button
           v-for="a in items"
-          :key="a.title"
-          role="listitem"
-          class="flex h-[46px] items-center gap-3 border-b border-muted"
+          :key="a.id"
+          type="button"
+          class="flex items-center gap-3 border-b border-line px-1 py-2.5 text-left text-toned hover:bg-hover"
+          @click="open(a.id)"
         >
           <span
-            class="flex size-7 shrink-0 items-center justify-center"
-            :style="{ background: type(a).tint, color: type(a).color }"
+            class="flex size-8 shrink-0 items-center justify-center"
+            :style="{ background: look(a).tint, color: look(a).color }"
           >
-            <HIcon
-              :name="type(a).icon"
-              :size="14"
-            />
+            <HIcon :name="look(a).icon" />
           </span>
-          <NuxtLink
-            :to="open"
-            class="min-w-0 flex-1 truncate text-[13px] text-strong hover:underline"
-          >
-            {{ a.title }}
-          </NuxtLink>
-          <span class="text-[12px] whitespace-nowrap text-muted">{{ a.when }}</span>
+          <span class="min-w-0 flex-1 truncate text-[13px] text-strong">{{ a.title }}</span>
+          <span class="w-[70px] shrink-0 text-[11.5px] text-muted max-sm:hidden">{{ formatSize(a.current?.ref?.size ?? 0n) }}</span>
+          <span class="w-[150px] shrink-0 truncate text-[11.5px] text-muted">{{ subtitle(a) }}</span>
           <HIcon
+            v-if="isShared(a)"
             name="globe-share"
-            :class="a.shared ? 'text-toned' : 'text-transparent'"
-            :aria-label="a.shared ? 'Shared by link' : undefined"
+            class="shrink-0 text-toned"
+            aria-label="Shared on this server"
           />
-          <button
-            type="button"
-            aria-label="More actions"
-            title="More actions"
-            class="ml-3 flex size-[30px] items-center justify-center text-muted hover:text-strong"
-          >
-            <HIcon name="more" />
-          </button>
-        </div>
+        </button>
       </div>
     </div>
   </section>

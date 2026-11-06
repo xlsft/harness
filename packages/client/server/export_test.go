@@ -10,3 +10,14 @@ func (s *Server) CheckIdleAt(now time.Time) { s.checkIdle(now) }
 
 // ResumePRWatches runs what a client start runs for sessions watching their PR (tests in package server_test).
 func (s *Server) ResumePRWatches() { s.resumePRWatches() }
+
+// SchedulerStarted reports whether the scheduler's loop runs (tests in package server_test).
+func (s *Server) SchedulerStarted() bool {
+	h := s.sched.Load()
+	if h == nil {
+		return false
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.stop != nil
+}

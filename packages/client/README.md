@@ -42,7 +42,8 @@ It ships in two forms:
 | `preview` | The project's dev servers for the agent's `Preview*` tools and the Browser pane: `.harness/launch.json`, one process group per server, a log ring buffer, stopped on session delete and client exit; device-local; see `proto/harness/agent/v1/preview.proto` |
 | `terminal` | Shells in a PTY for the UI's terminal pane (creack/pty; ConPTY on Windows): ring buffer replay on reattach, per-client cap, and the WebSocket at `/harness.agent.v1.Terminal/socket`, authenticated by one-time tickets from the terminal RPCs |
 | `relay` | Host side of `harness.relay.v1.RelayService` (remote control): mirrors live sessions to the server and runs viewer commands |
-| `sdk` | Headless `-p` output: text, json, or a one-way stream-json event log |
+| `sdk` | Headless `-p`: text, json or stream-json output, stream-json input, `--json-schema`, budget and system prompt flags ([docs/protocol/headless.md](../../docs/protocol/headless.md)) |
+| `cibot` | `harness-client ci`: the PR review bot and the @mention trigger for CI runners ([docs/ci.md](../../docs/ci.md)) |
 | `rpc`, `pbconv` | Connect plumbing (HTTP/2 clients, auth retry, error mapping) and llm ↔ protobuf conversion |
 | `gen` | Code generated from `/proto` (do not edit) |
 | `internal/fakegateway` | Scripted fake harness server for tests and local end-to-end runs |

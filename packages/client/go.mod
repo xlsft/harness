@@ -12,6 +12,7 @@ require (
 	github.com/dop251/goja v0.0.0-20261103214539-f5d1d0025744
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
+	github.com/pdfcpu/pdfcpu v0.11.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/spf13/pflag v1.0.10
 	github.com/zalando/go-keyring v0.2.8
@@ -22,9 +23,17 @@ require (
 )
 
 require (
+	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.11.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
+	github.com/hhrutter/lzw v1.0.0 // indirect
+	github.com/hhrutter/pkcs7 v0.2.0 // indirect
+	github.com/hhrutter/tiff v1.0.2 // indirect
+	github.com/mattn/go-runewidth v0.0.19 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	golang.org/x/image v0.32.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 require (

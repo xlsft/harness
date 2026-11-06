@@ -33,6 +33,7 @@ import (
 	"github.com/xlsft/harness/packages/client/server"
 	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/syncclient"
+	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/web"
 )
 
@@ -47,6 +48,7 @@ Usage:
                                         Serve AgentService to browsers (Connect over HTTP/1.1 and h2c,
                                         bearer token, CORS allowlist); combinable with --socket
   harness-client -p "<prompt>" [flags]  Run one headless turn
+  harness-client ci <review|mention>    The PR review bot and the @mention trigger, for CI runners (docs/ci.md)
   harness-client update [--check]       Replace this binary with the newest release (verified)
   harness-client plugin [help|...]      Install, approve and manage plugins and marketplaces
   harness-client version
@@ -87,6 +89,8 @@ func run(args []string) int {
 			return runUpdate(ctx, args[1:])
 		case "plugin":
 			return runPlugin(args[1:])
+		case "ci":
+			return runCI(ctx, args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0
@@ -206,6 +210,7 @@ func sharedAdapters(serverURL string) (bootstrap.Options, string, error) {
 		Prompts:         prompts.NewConnectSource(url, hc, tokens),
 		DecisionService: decision.NewClient(url, hc, tokens),
 		Search:          web.NewSearchClient(url, hc, tokens),
+		VCSProviders:    vcs.WithServerProvider(vcs.SharedServerProvider(url, hc, tokens)),
 	}, email, nil
 }
 
@@ -264,6 +269,9 @@ func cmdServe(ctx context.Context, args []string) int {
 		if os.Getenv("HARNESS_NO_SYNC") != "1" && url != "" && tokens != nil {
 			sc := syncclient.NewClient(url, rpc.HTTPClient(url), tokens)
 			srv.Sync, srv.Preferences, srv.ImportTo, srv.SkillDocs = sc, sc, sc, sc
+			srv.AutoMemory, srv.Transcripts = syncclient.AutoMemoryDocs{API: sc}, sc
+			srv.CoreURL = url
+			srv.ScheduleSync = bootstrap.WatchSchedules(ctx, url, rpc.HTTPClient(url), tokens, user, log)
 			// The session list also shows the sessions of the user's other machines; the relay viewer adds their
 			// presence and drives the ones open there (HARNESS_REMOTE_CONTROL=0 turns it off with the host side).
 			if creds, err := auth.DefaultStore(config.CredentialsFile()).Load(); err == nil && creds != nil {
@@ -285,6 +293,13 @@ func cmdPrint(ctx context.Context, args []string) int {
 	fs.SetInterspersed(true)
 	printMode := fs.BoolP("print", "p", false, "run one headless turn and print the result")
 	outputFormat := fs.String("output-format", "text", "text | json | stream-json")
+	inputFormat := fs.String("input-format", "text", "text | stream-json (user messages on stdin, one JSON object per line; needs --output-format stream-json)")
+	jsonSchema := fs.String("json-schema", "", "make the final message one JSON value valid against this JSON schema (inline JSON or a file path); it comes back as structured_output")
+	maxBudget := fs.Float64("max-budget-usd", 0, "stop before the next model request once the run has spent this much, subagents included (0 = no limit)")
+	systemPrompt := fs.String("system-prompt", "", "replace the system prompt for this run")
+	systemPromptFile := fs.String("system-prompt-file", "", "replace the system prompt with this file's text")
+	appendSystemPrompt := fs.String("append-system-prompt", "", "add this text after the system prompt")
+	appendSystemPromptFile := fs.String("append-system-prompt-file", "", "add this file's text after the system prompt")
 	partial := fs.Bool("include-partial-messages", false, "with stream-json: include raw stream events")
 	model := fs.String("model", "", "model id (default: the server's main slot)")
 	effort := fs.String("effort", "", "low | medium | high | xhigh | max")
@@ -353,12 +368,39 @@ func cmdPrint(ctx context.Context, args []string) int {
 	default:
 		return fail(fmt.Errorf("unknown --output-format %q", *outputFormat))
 	}
+	switch *inputFormat {
+	case sdk.FormatText:
+	case sdk.FormatStreamJSON:
+		if *outputFormat != sdk.FormatStreamJSON {
+			return fail(errors.New("--input-format stream-json requires --output-format stream-json"))
+		}
+	default:
+		return fail(fmt.Errorf("unknown --input-format %q", *inputFormat))
+	}
+	if *maxBudget < 0 {
+		return fail(errors.New("--max-budget-usd must not be negative"))
+	}
+	schema, err := sdk.ReadSchemaFlag(*jsonSchema)
+	if err != nil {
+		return fail(err)
+	}
+	sysPrompt, err := sdk.PromptFlag("--system-prompt", *systemPrompt, *systemPromptFile)
+	if err != nil {
+		return fail(err)
+	}
+	appendPrompt, err := sdk.PromptFlag("--append-system-prompt", *appendSystemPrompt, *appendSystemPromptFile)
+	if err != nil {
+		return fail(err)
+	}
 	return sdk.Run(ctx, sdk.Options{
 		Prompt:         strings.Join(fs.Args(), " "),
 		OutputFormat:   *outputFormat,
+		InputFormat:    *inputFormat,
 		IncludePartial: *partial,
+		JSONSchema:     schema,
 		Bootstrap: bootstrap.Options{
 			ServerURL: *serverURL, Model: *model, Effort: *effort, MaxTurns: *maxTurns, OutputStyle: *outputStyle,
+			MaxBudgetUSD: *maxBudget, SystemPrompt: sysPrompt, AppendSystemPrompt: appendPrompt,
 			PermissionMode: pm, AllowedTools: allowed, DisallowedTools: disallowed, AdditionalDirs: addDirs,
 			Continue: *cont, Resume: *resume, SessionID: *sessionID, NoPersistence: *noPersist, Fork: *forkSession,
 			Logger: newLogger(*verbose),

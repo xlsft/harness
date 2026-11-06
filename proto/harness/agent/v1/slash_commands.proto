@@ -91,6 +91,7 @@ message SlashCommandResult {
     ACTION_OPEN_CUSTOMIZE = 4;
     // Open Settings > Plugins.
     ACTION_OPEN_PLUGINS = 160;
+    ACTION_OPEN_SCHEDULED = 140;
   }
   // The client-generated id of the message (SendUserMessageRequest.uuid).
   string uuid = 1;

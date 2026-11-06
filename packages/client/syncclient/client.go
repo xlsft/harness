@@ -15,6 +15,7 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/gen/harness/library/v1/libraryv1connect"
 	objectsv1 "github.com/xlsft/harness/packages/client/gen/harness/objects/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/objects/v1/objectsv1connect"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
@@ -29,9 +30,13 @@ func DefaultDir() string { return filepath.Join(config.Home(), "cache", "sync") 
 // Client calls SyncService with bearer auth (one refresh-and-retry on
 // UNAUTHENTICATED). Errors of unary calls are *llm.APIError.
 type Client struct {
-	rpc     syncv1connect.SyncServiceClient
-	objects objectsv1connect.ObjectsServiceClient
-	tokens  rpc.Tokens
+	rpc         syncv1connect.SyncServiceClient
+	objects     objectsv1connect.ObjectsServiceClient
+	artifacts   libraryv1connect.ArtifactServiceClient
+	knowledge   libraryv1connect.KnowledgeServiceClient
+	tracker     libraryv1connect.TrackerServiceClient
+	transcripts libraryv1connect.TranscriptSearchServiceClient
+	tokens      rpc.Tokens
 }
 
 // NewClient creates a client. httpClient may be nil; tokens may be nil for
@@ -41,9 +46,13 @@ func NewClient(baseURL string, httpClient *http.Client, tokens rpc.Tokens) *Clie
 		httpClient = rpc.HTTPClient(baseURL)
 	}
 	return &Client{
-		rpc:     syncv1connect.NewSyncServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
-		objects: objectsv1connect.NewObjectsServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
-		tokens:  tokens,
+		rpc:         syncv1connect.NewSyncServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		objects:     objectsv1connect.NewObjectsServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		artifacts:   libraryv1connect.NewArtifactServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		knowledge:   libraryv1connect.NewKnowledgeServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		tracker:     libraryv1connect.NewTrackerServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		transcripts: libraryv1connect.NewTranscriptSearchServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		tokens:      tokens,
 	}
 }
 

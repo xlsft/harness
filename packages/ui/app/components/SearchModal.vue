@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // Search (⌘K): sessions, files of the open session, projects (folders) and actions in one list. Empty, it shows
-// what needs attention, recent sessions and actions; typing filters every group. ←/→ switch the type, ↑/↓ move,
-// Enter opens, Esc closes.
+// what needs attention, recent sessions and actions; typing filters every group, and looks through the transcripts of
+// every session (the client's search, on this machine and the server). ←/→ switch the type, ↑/↓ move, Enter opens, Esc closes.
 import type { IconName } from '~/utils/icons'
+import type { TranscriptHit } from '~/lib/library/types'
 
 const open = useState('search-open', () => false)
 const store = useSessionStore()
@@ -86,6 +87,29 @@ watch([query, kind, open], async () => {
   }
 })
 
+// What was said in sessions: searched by the client, a moment after typing stops.
+const transcripts = ref<TranscriptHit[]>([])
+let transcriptSeq = 0
+let transcriptTimer: ReturnType<typeof setTimeout> | undefined
+watch([query, kind, open], () => {
+  clearTimeout(transcriptTimer)
+  const q = query.value.trim()
+  const n = ++transcriptSeq
+  if (!open.value || q.length < 2 || (kind.value !== 'all' && kind.value !== 'sessions') || !store.transport) {
+    transcripts.value = []
+    return
+  }
+  transcriptTimer = setTimeout(async () => {
+    try {
+      const res = await store.transport!.library().searchTranscripts(q, kind.value === 'sessions' ? 50 : 8)
+      if (n === transcriptSeq) transcripts.value = res
+    } catch {
+      if (n === transcriptSeq) transcripts.value = []
+    }
+  }, 200)
+})
+onBeforeUnmount(() => clearTimeout(transcriptTimer))
+
 const actions = computed<Item[]>(() => [
   { key: 'a:new', icon: 'plus', label: 'New session', run: () => {
     close()
@@ -119,6 +143,15 @@ const groups = computed<Group[]>(() => {
   if (k === 'all' || k === 'sessions') {
     const ss = sessions.value.filter(s => matches(`${s.meta.title} ${base(s.meta.cwd)}`, q))
     if (ss.length) out.push({ title: 'Sessions', items: ss.slice(0, k === 'all' ? 6 : 50).map(sessionItem) })
+    if (transcripts.value.length) {
+      out.push({ title: 'In transcripts', items: transcripts.value.map(h => ({
+        key: `t:${h.sessionId}`,
+        icon: h.remote ? 'monitor' as IconName : 'chat' as IconName,
+        label: store.sessions[h.sessionId]?.meta.title || h.title || 'Untitled session',
+        hint: h.snippet,
+        run: () => openSession(h.sessionId)
+      })) })
+    }
   }
   if ((k === 'all' || k === 'code') && files.value.length) {
     out.push({ title: 'Code', items: files.value.map(path => ({
