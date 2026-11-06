@@ -10,6 +10,7 @@ import { createConnectTransport } from "@connectrpc/connect-node";
 import { H3, serve } from "h3";
 import { AdminService } from "../../src/gen/harness/auth/v1/admin_pb.ts";
 import { AuditService } from "../../src/gen/harness/auth/v1/audit_pb.ts";
+import { DecisionLogService } from "../../src/gen/harness/auth/v1/decision_log_pb.ts";
 import { BillingService } from "../../src/gen/harness/auth/v1/billing_pb.ts";
 import { DirectoryService } from "../../src/gen/harness/auth/v1/directory_pb.ts";
 import { MfaService } from "../../src/gen/harness/auth/v1/mfa_pb.ts";
@@ -53,6 +54,7 @@ export interface TestServer {
   transcripts: Client<typeof TranscriptSearchService>;
   objects: Client<typeof ObjectsService>;
   audit: Client<typeof AuditService>;
+  decisionLog: Client<typeof DecisionLogService>;
   billing: Client<typeof BillingService>;
   directory: Client<typeof DirectoryService>;
   mfa: Client<typeof MfaService>;
@@ -76,6 +78,7 @@ export interface TestServer {
     transcripts: Client<typeof TranscriptSearchService>;
     objects: Client<typeof ObjectsService>;
     audit: Client<typeof AuditService>;
+    decisionLog: Client<typeof DecisionLogService>;
     billing: Client<typeof BillingService>;
     directory: Client<typeof DirectoryService>;
     mfa: Client<typeof MfaService>;
@@ -150,6 +153,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       transcripts: createClient(TranscriptSearchService, transport),
       objects: createClient(ObjectsService, transport),
       audit: createClient(AuditService, transport),
+      decisionLog: createClient(DecisionLogService, transport),
       billing: createClient(BillingService, transport),
       directory: createClient(DirectoryService, transport),
       mfa: createClient(MfaService, transport),

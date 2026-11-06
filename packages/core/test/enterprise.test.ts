@@ -90,6 +90,7 @@ describe("roles", () => {
     await auditor.policy.getManagedPolicy({});
     await auditor.billing.getQuotas({});
     await auditor.audit.listAuditEvents({});
+    await auditor.decisionLog.listDecisions({});
     await auditor.usage.getUsage({});
     await auditor.mfa.getMfaPolicy({});
     await auditor.admin.listUserSessions({ userId: plainId });
@@ -135,7 +136,7 @@ describe("roles", () => {
   });
 
   it("a plain user gets none of it", async () => {
-    for (const denied of [plain.admin.listUsers({}), plain.audit.listAuditEvents({}), plain.billing.getQuotas({}), plain.usage.getUsage({}), plain.directory.listGroups({}), plain.policy.getManagedPolicy({})]) {
+    for (const denied of [plain.admin.listUsers({}), plain.audit.listAuditEvents({}), plain.decisionLog.listDecisions({}), plain.billing.getQuotas({}), plain.usage.getUsage({}), plain.directory.listGroups({}), plain.policy.getManagedPolicy({})]) {
       expect(await code(denied)).toBe(Code.PermissionDenied);
     }
   });

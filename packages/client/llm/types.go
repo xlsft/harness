@@ -255,7 +255,6 @@ type Metadata struct {
 	RequestClass        string `json:"request_class,omitempty"` // main | subagent | compaction | auxiliary
 	AgentID             string `json:"agent_id,omitempty"`
 	PromptBundleVersion string `json:"prompt_bundle_version,omitempty"`
-	CacheTTL            string `json:"cache_ttl,omitempty"`
 }
 
 // Request is the body of POST /api/llm/messages (and count_tokens).
@@ -268,8 +267,11 @@ type Request struct {
 	ToolChoice *ToolChoice   `json:"tool_choice,omitempty"`
 	Thinking   *Thinking     `json:"thinking,omitempty"`
 	Effort     string        `json:"effort,omitempty"`
-	Stream     bool          `json:"stream,omitempty"`
-	Metadata   *Metadata     `json:"metadata,omitempty"`
+	// Speed is a speed tier and CacheTTL a prompt cache lifetime to ask for ("": the provider's default).
+	Speed    string    `json:"speed,omitempty"`
+	CacheTTL string    `json:"cache_ttl,omitempty"`
+	Stream   bool      `json:"stream,omitempty"`
+	Metadata *Metadata `json:"metadata,omitempty"`
 }
 
 // HarnessMeta is attached by the gateway to message_stop.
@@ -307,6 +309,9 @@ type Model struct {
 		PromptCache       bool     `json:"prompt_cache"`
 		// DefaultEffort is the level recommended for a new session, one of Effort ("" when none).
 		DefaultEffort string `json:"default_effort,omitempty"`
+		// SpeedTiers and CacheTTLs are the choices the provider has for the model (empty: none).
+		SpeedTiers []string `json:"speed_tiers,omitempty"`
+		CacheTTLs  []string `json:"cache_ttls,omitempty"`
 	} `json:"capabilities"`
 	Pricing *struct {
 		Input      float64 `json:"input"`

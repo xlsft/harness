@@ -33,13 +33,12 @@ Everything here is tested against the fake gateway, fake MCP server and local gi
 | `shellEnvironmentPolicy` | highest level; project files only when trusted | `{inherit: all\|core\|none, exclude, include, excludeSecrets, set}` for the model's commands. Not hooks or MCP servers |
 | `bashMemoryLimitMB` | smallest of the levels | `ulimit -v` on Linux; macOS ignores such a limit, so nothing is claimed there |
 | `webSearchMode` | any level can disable; else highest | `live`, `cached` (an hour, in the client's memory), `disabled` |
-| `promptCacheTtl` | highest level | `5m` or `1h`; only the Anthropic adapter acts on it |
 
 ## Agent loop and context
 
 | Row | Status | What, or why not | Commit |
 |---|---|---|---|
-| Cache TTL controls | closed | `promptCacheTtl`, `RequestMetadata.cache_ttl`, `ttl` on `cache_control` | 3 |
+| Cache TTL controls | done before | Arrived on `main` while this ran (`cacheTtl`, `ModelTuning`). My own version of it was dropped in the merge, and agents take the session's tuning | |
 | Goal mode until condition | done before | `/goal`, `server/goal.go` | |
 | Recap on return | closed | `/recap` | 2 |
 | Session transcript export | done before | `LibraryService.ExportSession` | |
@@ -70,7 +69,7 @@ Everything here is tested against the fake gateway, fake MCP server and local gi
 | Domain filters on search | done before | `allowed_domains`, `blocked_domains` | |
 | Cached, live, disabled modes | closed | `webSearchMode` | 2 |
 | Drive the user's real signed-in browser, Browser extension | skipped | Real Chrome is on another branch | |
-| Recording of browser session | closed | `BrowserRecord`: start, stop, an animated GIF in the scratch directory. Capture and encoding are tested with stub screenshots, not against Chrome | 3 |
+| Recording of browser session | done before | `BrowserRecord` arrived on `main` while this ran. My own version of it was dropped in the merge | |
 | Comments on web pages | skipped | A Codex app surface; `BrowserPane` take-over and the composer cover pointing the agent at a page | |
 | Public tunnel to preview | skipped | Needs a hosted relay we don't run; a self-hoster's own tunnel works with `Preview*` | |
 | Code search index or panel | skipped | `Grep`, `LSP` and the Files pane cover it; an index is a project of its own with little gain over ripgrep | |
@@ -180,14 +179,12 @@ No `No` or `Partial` rows.
 | 1a | `6af26a17` | Worktrees |
 | 1b | `bea5ca48` | Subagents |
 | 2 | `6d1862bc` | Policy files, profiles, limits, tools, reports, commands |
-| 3 | the commit after `6d1862bc` that adds `DecisionLogService` | Stdin, recording, cache TTL, decision log, pull request field |
+| 3 | `63906771` | Stdin, decision log, pull request field |
 
 ## What only fakes have seen
 
 - All model behavior: the new prompts (`command_*`, `agent_fork`, tool descriptions) have never met a real model. Run the eval suite before relying on them.
-- `promptCacheTtl`: checked through the adapter's code path only, never against a provider.
 - Pull requests: local bare remotes with `refs/pull/N/head` and `refs/merge-requests/N/head`, not GitHub or GitLab.
 - MDM: the plist reader is only unit-tested on its JSON unwrapping, the registry reader on `reg query` text. Neither has seen a real profile.
-- `BrowserRecord`: stub screenshots, no Chrome.
 - `bashMemoryLimitMB`: the prefix is tested; it has never run on Linux.
 - Windows: nothing here ran on it.

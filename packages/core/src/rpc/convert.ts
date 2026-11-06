@@ -190,6 +190,8 @@ export function streamRequestToCanonical(r: StreamMessageRequest): Record<string
   const th = thinkingFromProto(r.thinking);
   if (th) body.thinking = th;
   if (r.effort !== Effort.UNSPECIFIED) body.effort = EFFORT_TO_STR[r.effort];
+  if (r.speed) body.speed = r.speed;
+  if (r.cacheTtl) body.cache_ttl = r.cacheTtl;
   if (r.stopSequences.length) body.stop_sequences = r.stopSequences;
   if (r.temperature !== undefined) body.temperature = r.temperature;
   if (r.metadata) {
@@ -198,7 +200,6 @@ export function streamRequestToCanonical(r: StreamMessageRequest): Record<string
       request_class: REQUEST_CLASS[r.metadata.requestClass],
       agent_id: r.metadata.agentId || undefined,
       prompt_bundle_version: r.metadata.promptBundleVersion || undefined,
-      cache_ttl: r.metadata.cacheTtl || undefined,
     };
   }
   return body;
@@ -335,6 +336,8 @@ export function modelsToProto(r: {
         parallelToolCalls: m.capabilities.parallel_tool_calls,
         promptCache: m.capabilities.prompt_cache,
         defaultEffort: effortToProto(m.capabilities.default_effort ?? ""),
+        speedTiers: m.capabilities.speed_tiers ?? [],
+        cacheTtls: m.capabilities.cache_ttls ?? [],
       },
       pricing: m.pricing
         ? {

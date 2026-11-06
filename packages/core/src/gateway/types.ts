@@ -84,6 +84,10 @@ export interface CanonicalRequest {
   tool_choice?: ToolChoice;
   thinking?: ThinkingConfig;
   effort?: string;
+  /** "standard", "fast" or "flex"; dropped when the model has no such tier (services/model-tiers.ts). */
+  speed?: string;
+  /** "5m", "1h" or "24h"; dropped when the model has no such lifetime. */
+  cache_ttl?: string;
   temperature?: number;
   top_p?: number;
   top_k?: number;
@@ -94,7 +98,6 @@ export interface CanonicalRequest {
     request_class?: string;
     agent_id?: string;
     prompt_bundle_version?: string;
-    cache_ttl?: string;
   };
 }
 

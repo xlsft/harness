@@ -6,8 +6,14 @@
 // titles; the defaults when left out). main.css derives Nuxt UI's `--ui-*` variables from the
 // colours. To add a theme, add a JSON file with every colour token and list it in THEMES below; the settings show
 // it with a preview drawn from its tokens.
+import colorblindBlueYellowDark from './colorblind-blue-yellow-dark.json'
+import colorblindBlueYellowLight from './colorblind-blue-yellow-light.json'
+import colorblindRedGreenDark from './colorblind-red-green-dark.json'
+import colorblindRedGreenLight from './colorblind-red-green-light.json'
 import cloudyMorningDark from './cloudy-morning-dark.json'
 import cloudyMorningLight from './cloudy-morning-light.json'
+import macosDark from './macos-dark.json'
+import macosLight from './macos-light.json'
 import xlsftDark from './xlsft-dark.json'
 import xlsftLight from './xlsft-light.json'
 
@@ -67,7 +73,9 @@ export interface Theme {
   fonts?: Partial<Record<FontToken, string>>
 }
 
-export const THEMES = [xlsftDark, xlsftLight, cloudyMorningDark, cloudyMorningLight] as Theme[]
+// The colour-blind themes keep status colours told apart under simulated colour vision (test/a11y.test.ts): one for red-green
+// vision (protanopia, deuteranopia: blue and orange instead of green and red), one for blue-yellow (tritanopia).
+export const THEMES = [xlsftDark, xlsftLight, macosDark, macosLight, cloudyMorningDark, cloudyMorningLight, colorblindRedGreenDark, colorblindRedGreenLight, colorblindBlueYellowDark, colorblindBlueYellowLight] as Theme[]
 
 export const DEFAULT_THEME: Record<ThemeKind, string> = { dark: 'xlsft-dark', light: 'xlsft-light' }
 

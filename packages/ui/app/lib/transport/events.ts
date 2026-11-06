@@ -1,5 +1,6 @@
 // Small builder for harness.agent.v1.SessionEvent sequences, used by the mock transport and the tests.
 
+import { tt } from '~/utils/i18n'
 import type { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import { create } from '@bufbuild/protobuf'
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
@@ -217,7 +218,7 @@ export class EventBuilder {
       header: i.header,
       type: i.type ? TYPE[i.type] : QuestionItem_Type.UNSPECIFIED,
       multiSelect: i.type ? i.type === 'multi' : !!i.multiSelect,
-      options: (i.type === 'yes_no' && !i.options ? [{ label: 'Yes' }, { label: 'No' }] : i.options ?? [])
+      options: (i.type === 'yes_no' && !i.options ? [{ label: tt('Yes') }, { label: tt('No') }] : i.options ?? [])
         .map(o => ({ label: o.label, description: o.description ?? '', recommended: !!o.recommended })),
       min: i.min ?? 0,
       max: i.max ?? 0,

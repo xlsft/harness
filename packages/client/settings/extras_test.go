@@ -180,8 +180,7 @@ func TestExtrasLevels(t *testing.T) {
 		"permissions": {"restrictReads": true},
 		"shellEnvironmentPolicy": {"set": {"FROM_REPO": "1"}},
 		"bashMemoryLimitMB": 4096,
-		"webSearchMode": "disabled",
-		"promptCacheTtl": "1h"
+		"webSearchMode": "disabled"
 	}`)
 	s, err := Load(context.Background(), Options{Cwd: cwd, Trusted: false})
 	if err != nil {
@@ -193,13 +192,13 @@ func TestExtrasLevels(t *testing.T) {
 	if s.Extras.ShellEnvironment != nil {
 		t.Fatalf("an untrusted repository sets the environment: %+v", s.Extras.ShellEnvironment)
 	}
-	writeJSONFile(t, filepath.Join(root, "settings.json"), `{"bashMemoryLimitMB": 1024, "webSearchMode": "cached", "promptCacheTtl": "5m"}`)
+	writeJSONFile(t, filepath.Join(root, "settings.json"), `{"bashMemoryLimitMB": 1024, "webSearchMode": "cached"}`)
 	ResetDevicePolicyCache()
 	s, err = Load(context.Background(), Options{Cwd: cwd, Trusted: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.Extras.BashMemoryLimitMB != 1024 || s.Extras.PromptCacheTTL != "5m" || s.Extras.ShellEnvironment == nil {
+	if s.Extras.BashMemoryLimitMB != 1024 || s.Extras.ShellEnvironment == nil {
 		t.Fatalf("%+v", s.Extras)
 	}
 	if s.Extras.WebSearchMode != WebSearchDisabled {

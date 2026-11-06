@@ -6,10 +6,10 @@ import type { DecisionRecordView } from '~/lib/enterprise/types'
 const store = useSessionStore()
 
 const OUTCOMES = [
-  { value: '', label: 'Every decision' },
-  { value: 'deny', label: 'Refused' },
-  { value: 'ask', label: 'Sent to the user' },
-  { value: 'allow', label: 'Allowed' }
+  { value: '', label: tt('Every decision') },
+  { value: 'deny', label: tt('Refused') },
+  { value: 'ask', label: tt('Sent to the user') },
+  { value: 'allow', label: tt('Allowed') }
 ]
 
 const decisions = ref<DecisionRecordView[]>([])
@@ -47,27 +47,27 @@ watch(open, (now) => {
       @click="open = !open"
     >
       <HIcon
-        :name="open ? 'chevron-down' : 'chevron-right'"
+        :name="open ? 'down' : 'right'"
         :size="12"
         class="text-muted"
       />
-      <span class="set-h !mb-0">Auto mode decisions</span>
+      <span class="set-h !mb-0">{{ tt('Auto mode decisions') }}</span>
     </button>
     <template v-if="open">
       <p class="set-sub mt-2">
-        What the classifier decided about tool calls, what decided it and why. Shows the latest 100.
+        {{ tt('What the classifier decided about tool calls, what decided it and why. Shows the latest 100.') }}
       </p>
       <div class="mb-3 flex gap-2 max-md:flex-col">
         <HSelect
           v-model="shown"
-          aria-label="Decision"
+          :aria-label="tt('Decision')"
           :options="OUTCOMES"
         />
         <input
           v-model="session"
           type="search"
-          aria-label="Session id"
-          placeholder="Session id"
+          :aria-label="tt('Session id')"
+          :placeholder="tt('Session id')"
           class="h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent"
           @keydown.enter="load"
         >
@@ -75,7 +75,7 @@ watch(open, (now) => {
           :disabled="loading"
           @click="load"
         >
-          Refresh
+          {{ tt('Refresh') }}
         </HBtn>
       </div>
       <p
@@ -88,7 +88,7 @@ watch(open, (now) => {
         v-else-if="!rows.length && !loading"
         class="text-[12.5px] text-muted"
       >
-        No decisions.
+        {{ tt('No decisions.') }}
       </p>
       <ul
         v-else

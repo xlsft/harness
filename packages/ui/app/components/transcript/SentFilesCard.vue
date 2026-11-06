@@ -21,7 +21,7 @@ async function save(f: SentFile) {
   try {
     await download(props.sessionId, f)
   } catch {
-    toast.add({ title: `Could not download ${f.name}`, color: 'error' })
+    toast.add({ title: tt('Could not download {0}', [f.name]), color: 'error' })
   }
 }
 </script>
@@ -36,7 +36,7 @@ async function save(f: SentFile) {
       <span
         v-if="proactive"
         class="shrink-0 text-[11.5px] text-muted"
-      >sent without asking</span>
+      >{{ tt('sent without asking') }}</span>
     </div>
     <div
       v-for="f in files"
@@ -60,13 +60,13 @@ async function save(f: SentFile) {
         :disabled="unavailable(f)"
         @click="view(sessionId, f)"
       >
-        Open
+        {{ tt('Open') }}
       </HBtn>
       <HBtn
         :disabled="unavailable(f)"
         @click="save(f)"
       >
-        Download
+        {{ tt('Download') }}
       </HBtn>
     </div>
   </div>

@@ -17,7 +17,6 @@ const (
 	KeyShellEnvironment   = "shellEnvironmentPolicy"
 	KeyBashMemoryLimit    = "bashMemoryLimitMB"
 	KeyWebSearchMode      = "webSearchMode"
-	KeyPromptCacheTTL     = "promptCacheTtl"
 )
 
 // Modes of WebSearch (webSearchMode).
@@ -112,8 +111,6 @@ type Extras struct {
 	BashMemoryLimitMB int
 	// WebSearchMode is live (default), cached or disabled. Any level can disable it; a policy's value stands.
 	WebSearchMode string
-	// PromptCacheTTL is "5m" or "1h" ("": the provider's default).
-	PromptCacheTTL string
 	// PermissionProfile is the profile in force ("": none), and PermissionProfileNames those that exist.
 	PermissionProfile      string
 	PermissionProfileNames []string
@@ -163,14 +160,6 @@ func (s *Settings) applyExtras(layers []*layer) {
 				s.Extras.WebSearchMode = m
 			case s.Extras.WebSearchMode == "":
 				s.Extras.WebSearchMode = m
-			}
-		}
-		if v, ok := l.raw[KeyPromptCacheTTL]; ok && s.Extras.PromptCacheTTL == "" {
-			var ttl string
-			if json.Unmarshal(v, &ttl) != nil || (ttl != "5m" && ttl != "1h") {
-				s.problem(l.src, KeyPromptCacheTTL, `must be "5m" or "1h"`)
-			} else {
-				s.Extras.PromptCacheTTL = ttl
 			}
 		}
 	}
@@ -350,7 +339,10 @@ func (s *Settings) DebugReport() string {
 	if s.Extras.BashMemoryLimitMB > 0 {
 		line("Command memory limit: %d MB.", s.Extras.BashMemoryLimitMB)
 	}
-	line("Web search: %s. Prompt cache: %s.", s.Extras.WebSearchMode, orDefault(s.Extras.PromptCacheTTL))
+	line("Web search: %s.", s.Extras.WebSearchMode)
+	if s.SpeedTier != "" || s.CacheTTL != "" {
+		line("Speed tier: %q. Prompt cache lifetime: %q.", s.SpeedTier, s.CacheTTL)
+	}
 	if len(s.Env) > 0 {
 		names := make([]string, 0, len(s.Env))
 		for k := range s.Env {
@@ -378,13 +370,6 @@ func (s *Settings) DebugReport() string {
 		}
 	}
 	return strings.TrimRight(b.String(), "\n")
-}
-
-func orDefault(s string) string {
-	if s == "" {
-		return "provider default"
-	}
-	return s
 }
 
 func hookGateName(g HookGate) string {

@@ -97,8 +97,6 @@ type Config struct {
 	// AgentMCP starts the servers a definition brings, once the user decided; what it returns says why others didn't start
 	// (nil: such servers don't run).
 	AgentMCP func(ctx context.Context, agentName string, servers map[string]json.RawMessage) (AgentServers, []string)
-	// CacheTTL is agent.Config.CacheTTL.
-	CacheTTL string
 	// SkillText reads the text of a skill by name for a definition's skills field (nil: none).
 	SkillText func(ctx context.Context, name string) (string, bool)
 	Logger    *slog.Logger
@@ -855,12 +853,13 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		}
 	}
 	extra := m.extraToolsFor(t, a.servers)
+	speed, cacheTTL := m.lead.Tuning()
 	ag := agent.New(agent.Config{
-		Gateway: m.cfg.Gateway, Bundle: bundle, Tools: reg, ToolEnv: env,
+		Gateway: m.cfg.Gateway, Bundle: bundle, Tools: reg, ToolEnv: env, Speed: speed, CacheTTL: cacheTTL,
 		Permissions: &checker{m: m, id: id, name: a.info.Name, readOnly: a.readOnly, mode: a.mode},
-		MaxTurns:    t.MaxTurns, CacheTTL: m.cfg.CacheTTL,
-		Transcript: writer,
-		Model:      model, ModelDisplayName: display, MaxTokens: maxTokens, ContextWindow: contextWindow, ThinkingCapable: thinking,
+		MaxTurns:    t.MaxTurns,
+		Transcript:  writer,
+		Model:       model, ModelDisplayName: display, MaxTokens: maxTokens, ContextWindow: contextWindow, ThinkingCapable: thinking,
 		AutoCompactPct: m.cfg.AutoCompactPct,
 		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return m.cfg.Bundle(ctx, model) },
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,

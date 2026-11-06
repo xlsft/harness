@@ -34,27 +34,27 @@ function toggleDefault() {
         v-if="s.editable && (enabled || isDefault)"
         :checked="isDefault"
         :disabled="builtin && isDefault"
-        :label="`Use ${name} by default for everyone`"
+        :label="tt('Use {0} by default for everyone', [name])"
         @toggle="toggleDefault"
       >
-        default for everyone
+        {{ tt('default for everyone') }}
       </SettingsCheckSwitch>
       <span
         v-else-if="isDefault"
         class="text-muted"
-      >default for everyone</span>
+      >{{ tt('default for everyone') }}</span>
     </template>
     <SettingsCheckSwitch
       v-if="enabled"
       :checked="mine"
-      :label="`Use ${name} for me`"
+      :label="tt('Use {0} for me', [name])"
       @toggle="state.setMine(mine ? '' : providerId)"
     >
-      use for me
+      {{ tt('use for me') }}
     </SettingsCheckSwitch>
     <span
       v-if="searching"
       class="text-ok"
-    >searching for you</span>
+    >{{ tt('searching for you') }}</span>
   </div>
 </template>

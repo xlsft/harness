@@ -202,7 +202,7 @@ func toolDefs(in []llm.ToolDef) []*llmv1.Tool {
 func StreamRequest(r *llm.Request) *llmv1.StreamMessageRequest {
 	out := &llmv1.StreamMessageRequest{
 		Model: r.Model, MaxTokens: int32(r.MaxTokens), System: system(r.System),
-		Messages: Messages(r.Messages), Tools: toolDefs(r.Tools), Effort: Effort(r.Effort),
+		Messages: Messages(r.Messages), Tools: toolDefs(r.Tools), Effort: Effort(r.Effort), Speed: r.Speed, CacheTtl: r.CacheTTL,
 	}
 	if r.ToolChoice != nil {
 		modes := map[string]llmv1.ToolChoice_Mode{"auto": llmv1.ToolChoice_MODE_AUTO, "any": llmv1.ToolChoice_MODE_ANY, "tool": llmv1.ToolChoice_MODE_TOOL, "none": llmv1.ToolChoice_MODE_NONE}
@@ -217,7 +217,7 @@ func StreamRequest(r *llm.Request) *llmv1.StreamMessageRequest {
 	}
 	if r.Metadata != nil {
 		classes := map[string]llmv1.RequestClass{"main": llmv1.RequestClass_REQUEST_CLASS_MAIN, "subagent": llmv1.RequestClass_REQUEST_CLASS_SUBAGENT, "compaction": llmv1.RequestClass_REQUEST_CLASS_COMPACTION, "auxiliary": llmv1.RequestClass_REQUEST_CLASS_AUXILIARY}
-		out.Metadata = &llmv1.RequestMetadata{SessionId: r.Metadata.SessionID, RequestClass: classes[r.Metadata.RequestClass], AgentId: r.Metadata.AgentID, PromptBundleVersion: r.Metadata.PromptBundleVersion, CacheTtl: r.Metadata.CacheTTL}
+		out.Metadata = &llmv1.RequestMetadata{SessionId: r.Metadata.SessionID, RequestClass: classes[r.Metadata.RequestClass], AgentId: r.Metadata.AgentID, PromptBundleVersion: r.Metadata.PromptBundleVersion}
 	}
 	return out
 }
@@ -229,7 +229,7 @@ func CountRequest(r *llm.Request) *llmv1.CountTokensRequest {
 
 // FromStreamRequest converts a protobuf request (used by fakes and tests).
 func FromStreamRequest(r *llmv1.StreamMessageRequest) *llm.Request {
-	out := &llm.Request{Model: r.GetModel(), MaxTokens: int(r.GetMaxTokens()), Messages: FromMessages(r.GetMessages()), Effort: FromEffort(r.GetEffort()), Stream: true}
+	out := &llm.Request{Model: r.GetModel(), MaxTokens: int(r.GetMaxTokens()), Messages: FromMessages(r.GetMessages()), Effort: FromEffort(r.GetEffort()), Speed: r.GetSpeed(), CacheTTL: r.GetCacheTtl(), Stream: true}
 	for _, s := range r.GetSystem() {
 		out.System = append(out.System, llm.SystemBlock{Type: "text", Text: s.GetText(), Cache: s.GetCache()})
 	}
@@ -237,7 +237,7 @@ func FromStreamRequest(r *llmv1.StreamMessageRequest) *llm.Request {
 		out.Tools = append(out.Tools, llm.ToolDef{Name: t.GetName(), Description: t.GetDescription(), InputSchema: json.RawMessage(t.GetInputSchemaJson())})
 	}
 	if m := r.GetMetadata(); m != nil {
-		out.Metadata = &llm.Metadata{SessionID: m.GetSessionId(), AgentID: m.GetAgentId(), PromptBundleVersion: m.GetPromptBundleVersion(), CacheTTL: m.GetCacheTtl()}
+		out.Metadata = &llm.Metadata{SessionID: m.GetSessionId(), AgentID: m.GetAgentId(), PromptBundleVersion: m.GetPromptBundleVersion()}
 	}
 	return out
 }
@@ -255,6 +255,8 @@ func FromModel(m *llmv1.Model) llm.Model {
 			out.Capabilities.Effort = append(out.Capabilities.Effort, FromEffort(e))
 		}
 		out.Capabilities.DefaultEffort = FromEffort(c.GetDefaultEffort())
+		out.Capabilities.SpeedTiers = c.GetSpeedTiers()
+		out.Capabilities.CacheTTLs = c.GetCacheTtls()
 	}
 	if p := m.Pricing; p != nil {
 		out.Pricing = &struct {

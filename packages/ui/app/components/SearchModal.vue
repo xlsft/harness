@@ -12,10 +12,10 @@ const { show } = useShow()
 
 type Kind = 'all' | 'sessions' | 'code' | 'projects'
 const KINDS: { key: Kind, label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'sessions', label: 'Sessions' },
-  { key: 'code', label: 'Code' },
-  { key: 'projects', label: 'Projects' }
+  { key: 'all', label: tt('All') },
+  { key: 'sessions', label: tt('Sessions') },
+  { key: 'code', label: tt('Code') },
+  { key: 'projects', label: tt('Projects') }
 ]
 const kind = ref<Kind>('all')
 const query = ref('')
@@ -59,7 +59,7 @@ const sessionItem = (s: (typeof sessions.value)[number]): Item => ({
   key: `s:${s.meta.id}`,
   icon: s.meta.remote ? 'monitor' : 'chat',
   label: s.meta.title || 'Untitled session',
-  hint: s.meta.noFolder ? 'No folder' : base(s.meta.cwd),
+  hint: s.meta.noFolder ? tt('No folder') : base(s.meta.cwd),
   run: () => openSession(s.meta.id)
 })
 const projects = computed(() => {
@@ -111,11 +111,11 @@ watch([query, kind, open], () => {
 onBeforeUnmount(() => clearTimeout(transcriptTimer))
 
 const actions = computed<Item[]>(() => [
-  { key: 'a:new', icon: 'plus', label: 'New session', run: () => {
+  { key: 'a:new', icon: 'plus', label: tt('New session'), run: () => {
     close()
     navigateTo({ path: '/', query: { new: '1' } })
   } },
-  { key: 'a:settings', icon: 'settings', label: 'Settings', run: () => {
+  { key: 'a:settings', icon: 'settings', label: tt('Settings'), run: () => {
     close()
     settings.open()
   } }
@@ -128,23 +128,23 @@ const groups = computed<Group[]>(() => {
   if (!q) {
     if (k === 'all' || k === 'sessions') {
       const attention = sessions.value.filter(s => s.meta.status === 'needs_input' || s.meta.status === 'error' || s.meta.unread).slice(0, 4)
-      if (attention.length) out.push({ title: 'Needs attention', items: attention.map(sessionItem) })
+      if (attention.length) out.push({ title: tt('Needs attention'), items: attention.map(sessionItem) })
       const seen = new Set(attention.map(s => s.meta.id))
-      out.push({ title: 'Recents', items: sessions.value.filter(s => !seen.has(s.meta.id)).slice(0, k === 'all' ? 6 : 30).map(sessionItem) })
+      out.push({ title: tt('Recents'), items: sessions.value.filter(s => !seen.has(s.meta.id)).slice(0, k === 'all' ? 6 : 30).map(sessionItem) })
     }
     if (k === 'projects' || k === 'all') {
       const ps = projects.value.slice(0, k === 'all' ? 0 : 50)
-      if (ps.length) out.push({ title: 'Projects', items: ps.map(projectItem) })
+      if (ps.length) out.push({ title: tt('Projects'), items: ps.map(projectItem) })
     }
-    if (k === 'code') out.push({ title: 'Files', items: [] })
-    if (k === 'all') out.push({ title: 'Actions', items: actions.value })
+    if (k === 'code') out.push({ title: tt('Files'), items: [] })
+    if (k === 'all') out.push({ title: tt('Actions'), items: actions.value })
     return out.filter(g => g.items.length || g.title === 'Files')
   }
   if (k === 'all' || k === 'sessions') {
     const ss = sessions.value.filter(s => matches(`${s.meta.title} ${base(s.meta.cwd)}`, q))
-    if (ss.length) out.push({ title: 'Sessions', items: ss.slice(0, k === 'all' ? 6 : 50).map(sessionItem) })
+    if (ss.length) out.push({ title: tt('Sessions'), items: ss.slice(0, k === 'all' ? 6 : 50).map(sessionItem) })
     if (transcripts.value.length) {
-      out.push({ title: 'In transcripts', items: transcripts.value.map(h => ({
+      out.push({ title: tt('In transcripts'), items: transcripts.value.map(h => ({
         key: `t:${h.sessionId}`,
         icon: h.remote ? 'monitor' as IconName : 'chat' as IconName,
         label: store.sessions[h.sessionId]?.meta.title || h.title || 'Untitled session',
@@ -154,7 +154,7 @@ const groups = computed<Group[]>(() => {
     }
   }
   if ((k === 'all' || k === 'code') && files.value.length) {
-    out.push({ title: 'Code', items: files.value.map(path => ({
+    out.push({ title: tt('Code'), items: files.value.map(path => ({
       key: `f:${path}`,
       icon: 'file' as IconName,
       label: base(path),
@@ -167,11 +167,11 @@ const groups = computed<Group[]>(() => {
   }
   if (k === 'all' || k === 'projects') {
     const ps = projects.value.filter(p => matches(base(p.cwd), q))
-    if (ps.length) out.push({ title: 'Projects', items: ps.slice(0, k === 'all' ? 4 : 50).map(projectItem) })
+    if (ps.length) out.push({ title: tt('Projects'), items: ps.slice(0, k === 'all' ? 4 : 50).map(projectItem) })
   }
   if (k === 'all') {
     const as = actions.value.filter(a => matches(a.label, q))
-    if (as.length) out.push({ title: 'Actions', items: as })
+    if (as.length) out.push({ title: tt('Actions'), items: as })
   }
   return out
 })
@@ -228,7 +228,7 @@ defineShortcuts({ meta_k: () => (open.value = !open.value) })
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Search"
+        :aria-label="tt('Search')"
         class="flex max-h-[70vh] w-[min(640px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
       >
         <div class="flex items-center gap-2 px-5 pt-4">
@@ -239,8 +239,8 @@ defineShortcuts({ meta_k: () => (open.value = !open.value) })
           <input
             ref="field"
             v-model="query"
-            placeholder="Search"
-            aria-label="Search"
+            :placeholder="tt('Search')"
+            :aria-label="tt('Search')"
             autocapitalize="off"
             autocorrect="off"
             spellcheck="false"
@@ -248,14 +248,14 @@ defineShortcuts({ meta_k: () => (open.value = !open.value) })
           >
           <HIconBtn
             icon="close"
-            label="Close"
+            :label="tt('Close')"
             kbd="esc"
             @click="close"
           />
         </div>
         <div
           role="tablist"
-          aria-label="Type"
+          :aria-label="tt('Type')"
           class="flex gap-1 border-b border-line px-4 pt-3 pb-3"
         >
           <button
@@ -283,7 +283,7 @@ defineShortcuts({ meta_k: () => (open.value = !open.value) })
               v-if="!g.items.length"
               class="m-0 px-3 py-2 text-[12.5px] text-dimmed"
             >
-              Type to find files in this session.
+              {{ tt('Type to find files in this session.') }}
             </p>
             <button
               v-for="it in g.items"
@@ -320,13 +320,13 @@ defineShortcuts({ meta_k: () => (open.value = !open.value) })
             v-if="!groups.length"
             class="m-0 px-3 py-6 text-center text-[12.5px] text-muted"
           >
-            Nothing matches.
+            {{ tt('Nothing matches.') }}
           </p>
         </div>
         <div class="flex items-center gap-4 border-t border-line px-5 py-2.5 text-[11.5px] text-muted">
-          <span class="flex items-center gap-1.5">Close <HKeys keys="escape" /></span>
-          <span class="flex items-center gap-1.5">Change type <HKeys keys="arrowleft" /><HKeys keys="arrowright" /></span>
-          <span class="flex items-center gap-1.5">Open <HKeys keys="enter" /></span>
+          <span class="flex items-center gap-1.5">{{ tt('Close') }} <HKeys keys="escape" /></span>
+          <span class="flex items-center gap-1.5">{{ tt('Change type') }} <HKeys keys="arrowleft" /><HKeys keys="arrowright" /></span>
+          <span class="flex items-center gap-1.5">{{ tt('Open') }} <HKeys keys="enter" /></span>
         </div>
       </div>
     </div>

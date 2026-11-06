@@ -92,6 +92,10 @@ export interface PresetFieldView {
   label: string
   required: boolean
   placeholder: string
+  // Cloud presets: only with these credential modes; absent or empty: always.
+  modes?: string[]
+  // Text of several lines (a service account file).
+  multiline?: boolean
 }
 
 export interface PresetModelView {
@@ -122,17 +126,23 @@ export interface PresetView {
   // Ships with the server (the bundled SearXNG): nothing to connect; its provider id is the preset id.
   builtin?: boolean
   billing?: BillingName
+  // A cloud platform with native credentials ("aws", "gcp", "azure"): `options` holds how to sign in.
+  cloud?: string
 }
 
 export interface PresetOptionView {
   name: string
   label: string
   kind: 'number' | 'select' | 'text'
-  choices: { value: string, label: string }[]
+  // `globalOnly`: not for a personal provider (the server's own cloud identity).
+  choices: { value: string, label: string, globalOnly?: boolean }[]
   defaultValue: string
   placeholder: string
   min: number
   max: number
+  // Cloud presets: only with these credential modes; absent or empty: always.
+  modes?: string[]
+  required?: boolean
 }
 
 export interface ProtocolView {
@@ -159,7 +169,7 @@ export interface ProviderDraft {
   apiKey?: string
   headers?: Record<string, string>
   allowPrivateNetwork?: boolean
-  // Search providers.
+  // Search and cloud providers.
   options?: Record<string, string>
 }
 

@@ -49,7 +49,7 @@ func (a *Agent) ReplyToInterrupt(ctx context.Context) bool {
 	last := &req.Messages[len(req.Messages)-1]
 	last.Content = append(append([]llm.ContentBlock(nil), last.Content...), llm.TextBlock(instruction))
 	req.MaxTokens = interruptReplyMaxTokens
-	req.Thinking, req.Effort = nil, ""
+	req.Thinking, req.Effort, req.Speed = nil, "", ""
 	req.ToolChoice = &llm.ToolChoice{Type: "none"}
 	req.Metadata.RequestClass = "auxiliary"
 

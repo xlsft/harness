@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// Sessions whose client runs on another machine over SSH (packages/client/sshhost).
+//
+// A saved host is an address, never a key: authentication is the user's own OpenSSH (ssh-agent, ~/.ssh/config, hardware keys),
+// and this client never reads or stores private keys or passwords. Saved hosts live in HARNESS_HOME and are never synced: each
+// device has its own list.
+//
+// Host keys are verified on every connection. A host seen for the first time stops at CheckSshHostKey and needs the user's
+// TrustSshHostKey on the fingerprint they were shown. A key that changed refuses the connection until the user removes the old
+// one on purpose (ForgetSshHostKey).
+//
+// ConnectSshHost finds a matching harness-client on the host or uploads one, signs it in to the same harness server if needed
+// (the device code flow, answered by the user), starts it on the host's loopback with a fresh token and tunnels a local port
+// to it. The frontend then talks to `url` with `token` as it would to a local client: every screen works unchanged, and
+// the sessions, files and terminals are the host's.
+service SshHostService {
+  rpc ListSshHosts(ListSshHostsRequest) returns (ListSshHostsResponse);
+  // Adds a host, or updates the one with this id. INVALID_ARGUMENT for a destination ssh would not take as one.
+  rpc SaveSshHost(SaveSshHostRequest) returns (SaveSshHostResponse);
+  rpc DeleteSshHost(DeleteSshHostRequest) returns (DeleteSshHostResponse);
+  // Asks the host for its key, offering it no credentials.
+  rpc CheckSshHostKey(CheckSshHostKeyRequest) returns (CheckSshHostKeyResponse);
+  // Remembers the host's key, if it still is the one with this fingerprint. FAILED_PRECONDITION when it no longer is.
+  rpc TrustSshHostKey(TrustSshHostKeyRequest) returns (TrustSshHostKeyResponse);
+  // Removes what this client remembers about the host's key. Keys in the user's ~/.ssh/known_hosts stay: that file is theirs.
+  rpc ForgetSshHostKey(ForgetSshHostKeyRequest) returns (ForgetSshHostKeyResponse);
+  // Connects, reporting each stage; the last message carries the connection. FAILED_PRECONDITION with the key unverified.
+  rpc ConnectSshHost(ConnectSshHostRequest) returns (stream ConnectSshHostResponse);
+  rpc DisconnectSshHost(DisconnectSshHostRequest) returns (DisconnectSshHostResponse);
+  // What is connected now, to bring a reloaded frontend back or notice a connection that dropped.
+  rpc ListSshConnections(ListSshConnectionsRequest) returns (ListSshConnectionsResponse);
+}
+
+message SshHost {
+  // Empty when adding: the client makes one.
+  string id = 1;
+  // What the user calls it; the destination when empty.
+  string name = 2;
+  // What goes to ssh: an alias of ~/.ssh/config, a host name or user@host.
+  string destination = 3;
+  // 0: what ssh would use.
+  int32 port = 4;
+  // Optional path of a private key file for ssh to use. Only the path is kept; the file is never read here.
+  string identity_file = 5;
+}
+
+message ListSshHostsRequest {}
+
+message ListSshHostsResponse {
+  repeated SshHost hosts = 1;
+}
+
+message SaveSshHostRequest {
+  SshHost host = 1;
+}
+
+message SaveSshHostResponse {
+  SshHost host = 1;
+}
+
+message DeleteSshHostRequest {
+  string id = 1;
+}
+
+message DeleteSshHostResponse {}
+
+enum SshHostKeyStatus {
+  SSH_HOST_KEY_STATUS_UNSPECIFIED = 0;
+  // The key matches one remembered here or in the user's known_hosts.
+  SSH_HOST_KEY_STATUS_VERIFIED = 1;
+  // Not seen before: show the fingerprint and ask.
+  SSH_HOST_KEY_STATUS_UNKNOWN = 2;
+  // Differs from the one remembered: the host was reinstalled, or someone is in between. Never accepted from here.
+  SSH_HOST_KEY_STATUS_CHANGED = 3;
+  // The host did not answer. `error` says why.
+  SSH_HOST_KEY_STATUS_UNREACHABLE = 4;
+}
+
+message CheckSshHostKeyRequest {
+  string id = 1;
+}
+
+message CheckSshHostKeyResponse {
+  SshHostKeyStatus status = 1;
+  // UNKNOWN: what to show, one line per key the host offered ("SHA256:... (ED25519)").
+  repeated string fingerprints = 2;
+  // UNKNOWN: the value to send to TrustSshHostKey.
+  string fingerprint = 3;
+  // UNREACHABLE: ssh's own words.
+  string error = 4;
+}
+
+message TrustSshHostKeyRequest {
+  string id = 1;
+  string fingerprint = 2;
+}
+
+message TrustSshHostKeyResponse {}
+
+message ForgetSshHostKeyRequest {
+  string id = 1;
+}
+
+message ForgetSshHostKeyResponse {}
+
+message ConnectSshHostRequest {
+  string id = 1;
+  // The frontend's origin, allowed by the client on the host (CORS). Empty for a non-browser frontend.
+  string origin = 2;
+}
+
+message SshConnection {
+  string host_id = 1;
+  // Where to reach the client on the host: a local port, tunneled.
+  string url = 2;
+  // Its bearer token, made for this connection.
+  string token = 3;
+  // "darwin/arm64"...
+  string platform = 4;
+  // The account it signed in as, when known.
+  string email = 5;
+}
+
+message ConnectSshHostResponse {
+  // "key", "detect", "deploy", "sign_in", "start", "tunnel", "ready".
+  string stage = 1;
+  // A sentence for people.
+  string message = 2;
+  // "sign_in": where to confirm the code, for the host's client to reach the server as this user.
+  string verification_uri = 3;
+  string user_code = 4;
+  // "ready" only.
+  SshConnection connection = 5;
+}
+
+message DisconnectSshHostRequest {
+  string id = 1;
+}
+
+message DisconnectSshHostResponse {}
+
+message ListSshConnectionsRequest {}
+
+message ListSshConnectionsResponse {
+  repeated SshConnection connections = 1;
+}

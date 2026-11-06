@@ -303,6 +303,8 @@ func (b *Browser) userCommand(ctx context.Context, v *viewer, cmd command) error
 		if err != nil {
 			return err
 		}
+		// Going there in the pane is the user's own act: it needs no question.
+		b.grantForUser(u)
 		_, err = b.Navigate(ctx, u, false)
 		return err
 	case "back":
@@ -329,6 +331,7 @@ func (b *Browser) userCommand(ctx context.Context, v *viewer, cmd command) error
 			if u, err = NormalizeURL(u); err != nil {
 				return err
 			}
+			b.grantForUser(u)
 		}
 		_, err := b.NewTab(ctx, u)
 		return err

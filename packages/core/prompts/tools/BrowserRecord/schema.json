@@ -4,20 +4,10 @@
   "properties": {
     "action": {
       "type": "string",
-      "enum": [
-        "start",
-        "stop"
-      ],
-      "description": "Start a recording, or stop it and write the file"
-    },
-    "description": {
-      "type": "string",
-      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+      "enum": ["start", "stop"],
+      "description": "Start a recording, or stop the one running and save it"
     }
   },
-  "required": [
-    "action",
-    "description"
-  ],
+  "required": ["action"],
   "additionalProperties": false
 }

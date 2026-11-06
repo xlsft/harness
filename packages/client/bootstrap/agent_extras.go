@@ -13,7 +13,6 @@ import (
 	mcpv1 "github.com/xlsft/harness/packages/client/gen/harness/mcp/v1"
 	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/permissions"
-	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/subagent"
 )
 
@@ -96,12 +95,4 @@ func (s *Session) agentSkillText(ctx context.Context, name string) (string, bool
 	}
 	text, _ := s.skillText(ctx, sk, "", s.ToolEnv)
 	return text, true
-}
-
-// promptCacheTTL is the promptCacheTtl setting ("": the provider's default).
-func promptCacheTTL(st *settings.Settings) string {
-	if st == nil {
-		return ""
-	}
-	return st.Extras.PromptCacheTTL
 }
