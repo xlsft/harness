@@ -77,7 +77,7 @@ watch(() => props.selected, p => p && reveal(p))
   <div
     ref="root"
     role="tree"
-    :aria-label="tt('Project files')"
+    aria-label="Project files"
     class="min-h-0 flex-1 overflow-y-auto p-1 text-[12.5px]"
   >
     <Virtualizer
@@ -129,8 +129,8 @@ watch(() => props.selected, p => p && reveal(p))
         <span class="flex-1" />
         <button
           type="button"
-          :aria-label="tt('File actions')"
-          :title="tt('Actions')"
+          aria-label="File actions"
+          title="Actions"
           class="flex size-5 shrink-0 items-center justify-center text-muted hover:text-strong"
           :class="r.path === menuFor ? 'visible' : 'invisible group-hover:visible group-focus-visible:visible'"
           @click.stop="moreMenu(r, $event)"
@@ -150,7 +150,7 @@ watch(() => props.selected, p => p && reveal(p))
         <span
           v-else-if="r.changed"
           class="flex w-3 shrink-0 justify-center"
-          :title="tt('Contains changes')"
+          title="Contains changes"
         ><span class="size-[5px] bg-warn" /></span>
         <span
           v-else

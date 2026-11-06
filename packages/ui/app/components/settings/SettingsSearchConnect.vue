@@ -9,8 +9,8 @@ const emit = defineEmits<{ submit: [draft: ProviderDraft], cancel: [] }>()
 
 const custom = computed(() => !props.preset)
 const fields = computed(() => props.preset?.fields ?? [
-  { name: 'name', label: tt('Name'), required: false, placeholder: tt('Team SearXNG') },
-  { name: 'base_url', label: tt('Instance URL'), required: true, placeholder: 'https://searx.example.com' }
+  { name: 'name', label: 'Name', required: false, placeholder: 'Team SearXNG' },
+  { name: 'base_url', label: 'Instance URL', required: true, placeholder: 'https://searx.example.com' }
 ])
 const values = reactive<Record<string, string>>(Object.fromEntries(fields.value.map(f => [f.name, ''])))
 const shared = ref(false)
@@ -35,7 +35,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
 <template>
   <form
     class="flex flex-col gap-3 border-t border-default px-3 py-3"
-    :aria-label="preset ? tt('Connect {0}', [preset.name]) : tt('Add a custom search provider')"
+    :aria-label="preset ? `Connect ${preset.name}` : 'Add a custom search provider'"
     @submit.prevent="submit"
   >
     <label
@@ -49,7 +49,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         <SettingsLink
           v-if="f.name === 'api_key' && preset?.keyUrl"
           :href="preset.keyUrl"
-        >{{ tt('Get a key') }}</SettingsLink>
+        >Get a key</SettingsLink>
       </span>
       <input
         v-model="values[f.name]"
@@ -57,7 +57,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         :autocomplete="f.name === 'api_key' ? 'off' : undefined"
         :autofocus="i === 0"
         :required="f.required"
-        :placeholder="f.placeholder || (f.name === 'api_key' ? tt('Stored encrypted, never shown again') : '')"
+        :placeholder="f.placeholder || (f.name === 'api_key' ? 'Stored encrypted, never shown again' : '')"
         :class="input"
       >
     </label>
@@ -68,8 +68,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
         <HToggle
           v-model="shared"
-          :label="tt('Share with everyone on this server')"
-        />{{ tt('Share with everyone on this server') }}
+          label="Share with everyone on this server"
+        />Share with everyone on this server
       </label>
       <label
         v-if="canManageGlobal && shared && custom"
@@ -77,13 +77,13 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
         <HToggle
           v-model="privateNetwork"
-          :label="tt('Allow private network addresses')"
-        />{{ tt('Private network') }}
+          label="Allow private network addresses"
+        />Private network
       </label>
       <span
         v-if="!shared || !canManageGlobal"
         class="text-[11.5px] text-muted"
-      >{{ tt('Only you will see and use it{0}.', [reachesNetwork ? '; it must be reachable from the internet' : '']) }}</span>
+      >Only you will see and use it{{ reachesNetwork ? '; it must be reachable from the internet' : '' }}.</span>
       <span class="flex-1" />
       <HBtn
         size="md"
@@ -91,7 +91,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         tone="muted"
         @click="emit('cancel')"
       >
-        {{ tt('Cancel') }}
+        Cancel
       </HBtn>
       <HBtn
         size="md"
@@ -99,7 +99,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         type="submit"
         :disabled="busy || !ready"
       >
-        {{ busy ? tt('Connecting…') : tt('Connect') }}
+        {{ busy ? 'Connecting…' : 'Connect' }}
       </HBtn>
     </div>
   </form>

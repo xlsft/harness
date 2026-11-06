@@ -68,16 +68,16 @@ const editing = computed(() => active.value === 'custom' && custom.value)
 const TIERS: ComputerTierName[] = ['blocked', 'read', 'click', 'full']
 const tierOptions: HSelectOption[] = TIERS.map(t => ({ value: t, label: TIER_LABELS[t] }))
 const KINDS = [
-  { key: 'browsers', label: tt('Browsers') },
-  { key: 'terminals', label: tt('Terminals and IDEs') },
-  { key: 'other', label: tt('Other apps') }
+  { key: 'browsers', label: 'Browsers' },
+  { key: 'terminals', label: 'Terminals and IDEs' },
+  { key: 'other', label: 'Other apps' }
 ] as const
 
 const SWITCHES = [
-  { key: 'allowSecureTyping', label: tt('Type into secure fields'), warning: 'The agent could type into password boxes. Text it reads on screen could steer what it types there.' },
-  { key: 'allowRemoteOrigin', label: tt('Work on messages from other devices'), warning: 'The agent could control this machine while nobody is here to see it or press Stop. Access cards can still only be answered here.' },
-  { key: 'allowSystemShortcuts', label: tt('Press system shortcuts'), warning: 'The agent could use app switching, system search, log out and the system menu, which act outside the apps you approved.' },
-  { key: 'allowSettingsEdit', label: tt('Let the agent edit these settings'), warning: 'The agent could give itself more access. While this is off, its file tools always ask you first. Its shell commands ask only when the path shows in the command: a shell can write any of your files, so this is not a hard stop.' }
+  { key: 'allowSecureTyping', label: 'Type into secure fields', warning: 'The agent could type into password boxes. Text it reads on screen could steer what it types there.' },
+  { key: 'allowRemoteOrigin', label: 'Work on messages from other devices', warning: 'The agent could control this machine while nobody is here to see it or press Stop. Access cards can still only be answered here.' },
+  { key: 'allowSystemShortcuts', label: 'Press system shortcuts', warning: 'The agent could use app switching, system search, log out and the system menu, which act outside the apps you approved.' },
+  { key: 'allowSettingsEdit', label: 'Let the agent edit these settings', warning: 'The agent could give itself more access. While this is off, its file tools always ask you first. Its shell commands ask only when the path shows in the command: a shell can write any of your files, so this is not a hard stop.' }
 ] as const
 
 function saveCustom(patch: Partial<ComputerProfileVM>) {
@@ -123,14 +123,14 @@ watch(addApp, (id) => {
 <template>
   <SettingsRealChrome class="mb-6" />
   <section
-    :aria-label="tt('Computer use')"
+    aria-label="Computer use"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('Computer use') }}
+      Computer use
     </h2>
     <p class="set-sub">
-      {{ tt('Lets the agent see and control apps on this machine. You approve each app in a session, and can stop it at any time. These settings apply to this device only, and the agent cannot change them with its tools.') }}
+      Lets the agent see and control apps on this machine. You approve each app in a session, and can stop it at any time. These settings apply to this device only, and the agent cannot change them with its tools.
     </p>
     <p
       v-if="error"
@@ -141,23 +141,23 @@ watch(addApp, (id) => {
     </p>
     <div class="set-row">
       <div class="set-label">
-        <span>{{ tt('Allow computer use on this device') }}</span>
+        <span>Allow computer use on this device</span>
       </div>
       <HToggle
         v-model="enabled"
-        :label="tt('Allow computer use on this device')"
+        label="Allow computer use on this device"
         :disabled="!status || !status.supported || saving"
       />
     </div>
     <div class="set-row">
       <div class="set-label">
-        <span>{{ tt('Security profile') }}</span>
+        <span>Security profile</span>
         <span class="set-desc">{{ PROFILE_NOTES[active] }}</span>
       </div>
       <div class="w-40 shrink-0">
         <HSelect
           v-model="profileChoice"
-          :aria-label="tt('Security profile')"
+          aria-label="Security profile"
           :options="profileOptions"
           :disabled="!status || saving"
         />
@@ -166,7 +166,7 @@ watch(addApp, (id) => {
 
     <template v-if="editing">
       <h3 class="set-h mt-5 text-[13px]">
-        {{ tt('What the agent may do in each kind of app') }}
+        What the agent may do in each kind of app
       </h3>
       <div
         v-for="k in KINDS"
@@ -188,7 +188,7 @@ watch(addApp, (id) => {
       </div>
 
       <h3 class="set-h mt-5 text-[13px]">
-        {{ tt('Single apps') }}
+        Single apps
       </h3>
       <div
         v-for="a in custom!.apps"
@@ -203,7 +203,7 @@ watch(addApp, (id) => {
           <div class="w-40">
             <HSelect
               :model-value="a.tier"
-              :aria-label="tt('Tier of {0}', [appName(a.id)])"
+              :aria-label="`Tier of ${appName(a.id)}`"
               :options="tierOptions"
               :disabled="saving"
               @update:model-value="setAppTier(a.id, $event as ComputerTierName)"
@@ -213,25 +213,25 @@ watch(addApp, (id) => {
             :disabled="saving"
             @click="setAppTier(a.id, null)"
           >
-            {{ tt('Remove') }}
+            Remove
           </HBtn>
         </div>
       </div>
       <div class="mt-2 w-64">
         <HSelect
           v-model="addApp"
-          :aria-label="tt('Add an app')"
-          :placeholder="tt('Add an app…')"
+          aria-label="Add an app"
+          placeholder="Add an app…"
           :options="appOptions"
           :disabled="saving"
         />
       </div>
 
       <h3 class="set-h mt-5 text-[13px]">
-        {{ tt('Blocked apps') }}
+        Blocked apps
       </h3>
       <p class="set-sub">
-        {{ tt('Not controllable unless you lift them here, one by one. You still approve each in a session. Harness itself stays blocked, so the agent can never reach its own access card or Stop.') }}
+        Not controllable unless you lift them here, one by one. You still approve each in a session. Harness itself stays blocked, so the agent can never reach its own access card or Stop.
       </p>
       <div
         v-for="e in status!.blockEntries"
@@ -244,17 +244,17 @@ watch(addApp, (id) => {
         </div>
         <HToggle
           :model-value="custom!.lifted.includes(e.id)"
-          :label="tt('Lift the block on {0}', [e.label])"
+          :label="`Lift the block on ${e.label}`"
           :disabled="saving"
           @update:model-value="toggleLifted(e.id, $event)"
         />
       </div>
 
       <h3 class="set-h mt-5 text-[13px]">
-        {{ tt('Rules') }}
+        Rules
       </h3>
       <p class="set-sub">
-        {{ tt('All off by default.') }}
+        All off by default.
       </p>
       <div
         v-for="s in SWITCHES"
@@ -295,14 +295,14 @@ watch(addApp, (id) => {
       <span
         class="shrink-0 text-[12px] whitespace-nowrap"
         :class="p.granted ? 'text-ok' : 'text-warn'"
-      >{{ p.granted ? tt('Allowed') : tt('Not allowed') }}</span>
+      >{{ p.granted ? 'Allowed' : 'Not allowed' }}</span>
     </div>
     <div
       v-if="status?.permissions?.length"
       class="mt-2"
     >
       <HBtn @click="load">
-        {{ tt('Check again') }}
+        Check again
       </HBtn>
     </div>
   </section>

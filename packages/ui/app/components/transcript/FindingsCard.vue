@@ -39,14 +39,14 @@ function openFile(f: Finding) {
       />
       <span class="min-w-0 flex-1 text-strong">
         <template v-if="findings.length">
-          {{ tt('{0} {1}, {2} open', [findings.length, findings.length === 1 ? 'finding' : 'findings', open]) }}
+          {{ findings.length }} {{ findings.length === 1 ? 'finding' : 'findings' }}, {{ open }} open
         </template>
-        <template v-else>{{ tt('No findings') }}</template>
+        <template v-else>No findings</template>
       </span>
       <span
         v-if="level"
         class="shrink-0 text-[11.5px] text-muted"
-      >{{ tt('{0} review', [level]) }}</span>
+      >{{ level }} review</span>
     </div>
     <div
       v-for="f in findings"

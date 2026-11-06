@@ -1,7 +1,6 @@
 // Context window breakdown of a session (AgentService.GetContextUsage) as plain data for the details pane.
 // The client computes it: provider token counts where known, ~4 characters per token elsewhere.
 
-import { tt } from '~/utils/i18n'
 import { ContextUsage_Category, type ContextUsage } from '~/gen/harness/agent/v1/agent_pb'
 
 export type ContextCategoryKey = 'messages' | 'mcp_tools' | 'system_tools' | 'system_prompt' | 'skills' | 'mcp_instructions' | 'buffer' | 'free'
@@ -39,14 +38,14 @@ export interface ContextUsageVM {
 }
 
 const CATEGORY: Partial<Record<ContextUsage_Category, { key: ContextCategoryKey, label: string }>> = {
-  [ContextUsage_Category.MESSAGES]: { key: 'messages', label: tt('Messages') },
-  [ContextUsage_Category.MCP_TOOLS]: { key: 'mcp_tools', label: tt('MCP tools') },
-  [ContextUsage_Category.SYSTEM_TOOLS]: { key: 'system_tools', label: tt('System tools') },
-  [ContextUsage_Category.SYSTEM_PROMPT]: { key: 'system_prompt', label: tt('System prompt') },
-  [ContextUsage_Category.SKILLS]: { key: 'skills', label: tt('Skills') },
-  [ContextUsage_Category.MCP_SERVER_INSTRUCTIONS]: { key: 'mcp_instructions', label: tt('MCP server instructions') },
-  [ContextUsage_Category.AUTOCOMPACT_BUFFER]: { key: 'buffer', label: tt('Autocompact buffer') },
-  [ContextUsage_Category.FREE_SPACE]: { key: 'free', label: tt('Free space') }
+  [ContextUsage_Category.MESSAGES]: { key: 'messages', label: 'Messages' },
+  [ContextUsage_Category.MCP_TOOLS]: { key: 'mcp_tools', label: 'MCP tools' },
+  [ContextUsage_Category.SYSTEM_TOOLS]: { key: 'system_tools', label: 'System tools' },
+  [ContextUsage_Category.SYSTEM_PROMPT]: { key: 'system_prompt', label: 'System prompt' },
+  [ContextUsage_Category.SKILLS]: { key: 'skills', label: 'Skills' },
+  [ContextUsage_Category.MCP_SERVER_INSTRUCTIONS]: { key: 'mcp_instructions', label: 'MCP server instructions' },
+  [ContextUsage_Category.AUTOCOMPACT_BUFFER]: { key: 'buffer', label: 'Autocompact buffer' },
+  [ContextUsage_Category.FREE_SPACE]: { key: 'free', label: 'Free space' }
 }
 
 const CHART = ['bg-chart-1', 'bg-chart-2', 'bg-chart-3', 'bg-chart-4', 'bg-chart-5']

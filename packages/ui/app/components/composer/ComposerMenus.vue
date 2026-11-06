@@ -9,7 +9,7 @@ defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
 <template>
   <div
     role="listbox"
-    :aria-label="kind === 'slash' ? tt('Commands') : tt('Mentions')"
+    :aria-label="kind === 'slash' ? 'Commands' : 'Mentions'"
     class="border border-accented bg-hover text-[12.5px]"
   >
     <div
@@ -41,15 +41,15 @@ defineEmits<{ pick: [option: MenuOption], hover: [index: number] }>()
       v-if="kind === 'slash'"
       class="flex gap-3.5 border-t border-default px-2.5 py-[5px] text-[11px] text-muted"
     >
-      <span class="inline-flex items-center gap-1"><HKeys keys="arrowup arrowdown" />{{ tt('navigate') }}</span>
-      <span class="inline-flex items-center gap-1"><HKeys keys="enter" />{{ tt('select') }}</span>
-      <span class="inline-flex items-center gap-1"><HKeys keys="escape" />{{ tt('close') }}</span>
+      <span class="inline-flex items-center gap-1"><HKeys keys="arrowup arrowdown" />navigate</span>
+      <span class="inline-flex items-center gap-1"><HKeys keys="enter" />select</span>
+      <span class="inline-flex items-center gap-1"><HKeys keys="escape" />close</span>
     </div>
     <div
       v-if="!options.length"
       class="px-2.5 py-1.5 text-muted"
     >
-      {{ empty || tt('No matches') }}
+      {{ empty || 'No matches' }}
     </div>
   </div>
 </template>

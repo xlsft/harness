@@ -28,6 +28,6 @@ function toComposer() {
     class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-raised focus:p-2 focus:text-strong"
     @click="toComposer"
   >
-    {{ tt('Skip to the message box') }}
+    Skip to the message box
   </button>
 </template>

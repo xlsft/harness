@@ -15,7 +15,7 @@ const loading = ref(false)
 const folderOptions = computed(() => {
   const paths = new Set(folders.value.map(f => f.path))
   if (cwd.value) paths.add(cwd.value)
-  return [{ value: '', label: tt('No folder') }, ...[...paths].map(p => ({ value: p, label: p }))]
+  return [{ value: '', label: 'No folder' }, ...[...paths].map(p => ({ value: p, label: p }))]
 })
 const sections = computed(() => customizeSections(catalog.value?.commands ?? []))
 const nothing = computed(() => !loading.value && !sections.value.some(s => s.title !== 'Built-in commands'))
@@ -61,21 +61,21 @@ async function flip(c: SlashCommand, enabled: boolean) {
 
 <template>
   <section
-    :aria-label="tt('Customize')"
+    aria-label="Customize"
     class="h-full overflow-y-auto bg-default"
   >
     <div class="mx-auto flex max-w-[860px] flex-col gap-[22px] px-10 pt-[52px] pb-10 max-sm:px-4">
       <h1 class="m-0 font-display text-[26px] font-bold text-strong">
-        {{ tt('Customize') }}
+        Customize
       </h1>
 
       <div class="flex flex-wrap items-center gap-3 text-[12.5px] text-muted">
-        <span>{{ tt('Folder') }}</span>
+        <span>Folder</span>
         <HSelect
           v-model="cwd"
           class="min-w-[280px] flex-1"
           :options="folderOptions"
-          :aria-label="tt('Folder')"
+          aria-label="Folder"
         />
       </div>
 
@@ -90,13 +90,13 @@ async function flip(c: SlashCommand, enabled: boolean) {
         v-if="catalog?.projectSkippedUntrusted"
         class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12.5px] text-toned"
       >
-        {{ tt('This folder has skills or commands of its own, which load once you trust the folder in a session.') }}
+        This folder has skills or commands of its own, which load once you trust the folder in a session.
       </p>
       <p
         v-if="nothing"
         class="m-0 text-[12.5px] text-muted"
       >
-        {{ tt('No skills or commands yet. Put a folder with a SKILL.md under .claude/skills or .harness/skills, or a Markdown file under .claude/commands or .harness/commands, here or in your home folder.') }}
+        No skills or commands yet. Put a folder with a SKILL.md under .claude/skills or .harness/skills, or a Markdown file under .claude/commands or .harness/commands, here or in your home folder.
       </p>
 
       <div
@@ -121,8 +121,8 @@ async function flip(c: SlashCommand, enabled: boolean) {
               <span
                 v-if="c.switchable && c.enabled && !c.shadowedBy && c.modelInvocable && !c.listed"
                 class="text-[11px] text-muted"
-                :title="tt('Files it applies to weren\'t touched yet, or the model\'s listing has no room for it. It still runs by name.')"
-              >{{ tt('not in the model\'s listing') }}</span>
+                title="Files it applies to weren't touched yet, or the model's listing has no room for it. It still runs by name."
+              >not in the model's listing</span>
             </div>
             <span class="text-toned">{{ c.description }}</span>
             <span
@@ -142,12 +142,12 @@ async function flip(c: SlashCommand, enabled: boolean) {
             <span
               v-if="c.skippedFields.length"
               class="text-[11.5px] text-muted"
-            >{{ tt('Not supported, ignored: {0}', [c.skippedFields.join(', ')]) }}</span>
+            >Not supported, ignored: {{ c.skippedFields.join(', ') }}</span>
           </div>
           <HToggle
             v-if="c.switchable"
             :model-value="c.enabled"
-            :label="tt('Turn /{0} on or off', [c.name])"
+            :label="`Turn /${c.name} on or off`"
             :disabled="!!c.shadowedBy"
             @update:model-value="flip(c, $event)"
           />
@@ -158,7 +158,7 @@ async function flip(c: SlashCommand, enabled: boolean) {
         v-if="catalog && catalog.listingUsedChars"
         class="m-0 text-[11.5px] text-muted"
       >
-        {{ tt('The model\'s listing holds names and descriptions only: {0} of {1} characters.', [catalog.listingUsedChars, catalog.listingBudgetChars]) }}
+        The model's listing holds names and descriptions only: {{ catalog.listingUsedChars }} of {{ catalog.listingBudgetChars }} characters.
       </p>
     </div>
   </section>

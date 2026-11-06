@@ -23,7 +23,7 @@ function openWork(work: TodoWork) {
 
 <template>
   <div class="flex flex-col gap-1.5 border border-l-[3px] border-default border-l-accent bg-surface px-[13px] py-2.5">
-    <span class="text-[12px] text-muted">{{ tt('Plan') }}</span>
+    <span class="text-[12px] text-muted">Plan</span>
     <div
       v-for="({ todo: t, work, line }, i) in rows"
       :key="i"

@@ -73,7 +73,7 @@ function act(fn: (t: string) => void) {
       v-if="at"
       ref="menu"
       role="menu"
-      :aria-label="tt('Selection')"
+      aria-label="Selection"
       class="fixed z-50 flex -translate-x-1/2 -translate-y-[calc(100%+8px)] items-center border border-accented bg-hover text-[12.5px] shadow-none"
       :style="{ left: `${at.x}px`, top: `${at.y}px` }"
     >
@@ -84,7 +84,7 @@ function act(fn: (t: string) => void) {
           class="h-8 rounded-none px-3 text-strong hover:bg-raised"
           @click="act(startSideChat)"
         >
-          {{ tt('Start a side chat') }}
+          Start a side chat
         </button>
         <span class="h-4 w-px bg-line" />
       </template>
@@ -94,7 +94,7 @@ function act(fn: (t: string) => void) {
         class="h-8 rounded-none px-3 text-strong hover:bg-raised"
         @click="act(replyWith)"
       >
-        {{ tt('Reply') }}
+        Reply
       </button>
     </div>
   </Teleport>

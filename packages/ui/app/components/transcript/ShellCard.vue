@@ -52,7 +52,7 @@ async function stop() {
         name="terminal"
         :class="running ? 'text-accent' : failed ? 'text-bad' : 'text-orange'"
       />
-      <span class="shrink-0">{{ tt('You ran') }}</span>
+      <span class="shrink-0">You ran</span>
       <span
         class="min-w-0 truncate font-mono text-strong"
         :title="item.cwd ? `${item.command}\nin ${item.cwd}` : item.command"
@@ -68,12 +68,12 @@ async function stop() {
         :disabled="stopping"
         @click="stop"
       >
-        {{ tt('Stop') }}
+        Stop
       </HBtn>
       <button
         v-else-if="hasBody"
         type="button"
-        :aria-label="open ? tt('Collapse output') : tt('Expand output')"
+        :aria-label="open ? 'Collapse output' : 'Expand output'"
         class="text-muted hover:text-highlighted"
         @click="open = !open"
       >

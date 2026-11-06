@@ -6,21 +6,21 @@ import { downloadCsv, type AuditEventView, type AuditFilter } from '~/lib/enterp
 const store = useSessionStore()
 
 const CATEGORIES = [
-  { value: '', label: tt('Everything') },
-  { value: 'auth', label: tt('Sign-ins') },
-  { value: 'user', label: tt('Users') },
-  { value: 'group', label: tt('Groups') },
-  { value: 'provider', label: tt('Providers and keys') },
-  { value: 'policy', label: tt('Policy') },
-  { value: 'sign_in', label: tt('Sign-in settings') },
-  { value: 'mfa', label: tt('Second factor') },
-  { value: 'quota', label: tt('Quotas') },
-  { value: 'scim', label: tt('Provisioning') },
-  { value: 'device', label: tt('Devices') },
-  { value: 'mcp', label: tt('MCP servers') },
-  { value: 'vcs', label: tt('Code hosts') }
+  { value: '', label: 'Everything' },
+  { value: 'auth', label: 'Sign-ins' },
+  { value: 'user', label: 'Users' },
+  { value: 'group', label: 'Groups' },
+  { value: 'provider', label: 'Providers and keys' },
+  { value: 'policy', label: 'Policy' },
+  { value: 'sign_in', label: 'Sign-in settings' },
+  { value: 'mfa', label: 'Second factor' },
+  { value: 'quota', label: 'Quotas' },
+  { value: 'scim', label: 'Provisioning' },
+  { value: 'device', label: 'Devices' },
+  { value: 'mcp', label: 'MCP servers' },
+  { value: 'vcs', label: 'Code hosts' }
 ]
-const OUTCOMES = [{ value: '', label: tt('Any result') }, { value: 'success', label: tt('Succeeded') }, { value: 'failure', label: tt('Failed') }]
+const OUTCOMES = [{ value: '', label: 'Any result' }, { value: 'success', label: 'Succeeded' }, { value: 'failure', label: 'Failed' }]
 
 const filter = ref<AuditFilter>({ action: '', actor: '', target: '', outcome: '', from: '', to: '' })
 const events = ref<AuditEventView[]>([])
@@ -89,51 +89,51 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      {{ tt('Audit log') }}
+      Audit log
     </h2>
     <p class="set-sub">
-      {{ tt('Sign-ins, changes to users, roles and policy, provider keys being set, provisioning. What changed, by whom, from where; never a password or key. Also forwarded to a SIEM when the server is set up for it.') }}
+      Sign-ins, changes to users, roles and policy, provider keys being set, provisioning. What changed, by whom, from where; never a password or key. Also forwarded to a SIEM when the server is set up for it.
     </p>
 
     <div class="mb-3 grid grid-cols-3 gap-2 max-md:grid-cols-2">
-      <label :class="label">{{ tt('What') }}
+      <label :class="label">What
         <HSelect
           v-model="filter.action"
-          :aria-label="tt('Category')"
+          aria-label="Category"
           :options="CATEGORIES"
         />
       </label>
-      <label :class="label">{{ tt('Result') }}
+      <label :class="label">Result
         <HSelect
           v-model="filter.outcome"
-          :aria-label="tt('Result')"
+          aria-label="Result"
           :options="OUTCOMES"
         />
       </label>
-      <label :class="label">{{ tt('Who') }}
+      <label :class="label">Who
         <input
           v-model="filter.actor"
           type="search"
-          :placeholder="tt('Name, email or id')"
+          placeholder="Name, email or id"
           :class="input"
         >
       </label>
-      <label :class="label">{{ tt('On what') }}
+      <label :class="label">On what
         <input
           v-model="filter.target"
           type="search"
-          :placeholder="tt('Email, id or name')"
+          placeholder="Email, id or name"
           :class="input"
         >
       </label>
-      <label :class="label">{{ tt('From') }}
+      <label :class="label">From
         <input
           v-model="filter.from"
           type="datetime-local"
           :class="input"
         >
       </label>
-      <label :class="label">{{ tt('To') }}
+      <label :class="label">To
         <input
           v-model="filter.to"
           type="datetime-local"
@@ -156,7 +156,7 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
         <HIcon
           name="download"
           :size="12"
-        />{{ exporting ? tt('Exporting…') : tt('Export CSV') }}
+        />{{ exporting ? 'Exporting…' : 'Export CSV' }}
       </HBtn>
     </div>
 
@@ -195,22 +195,22 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 border-t border-default px-3 py-2 text-[11.5px]"
         >
           <dt class="text-muted">
-            {{ tt('Result') }}
+            Result
           </dt><dd class="m-0 text-toned">
             {{ e.outcome }}
           </dd>
           <dt class="text-muted">
-            {{ tt('Who') }}
+            Who
           </dt><dd class="m-0 text-toned">
             {{ [e.actor, e.actorId, e.actorIp].filter(Boolean).join(' · ') || 'anonymous' }}
           </dd>
           <dt class="text-muted">
-            {{ tt('On what') }}
+            On what
           </dt><dd class="m-0 text-toned">
             {{ [e.targetType, e.target, e.targetId].filter(Boolean).join(' · ') || '—' }}
           </dd>
           <dt class="text-muted">
-            {{ tt('Details') }}
+            Details
           </dt><dd class="m-0">
             <pre class="m-0 font-mono text-[11.5px] break-all whitespace-pre-wrap text-toned">{{ details(e) }}</pre>
           </dd>
@@ -221,7 +221,7 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
       v-else-if="!loading"
       class="m-0 border border-default px-3 py-5 text-center text-[12.5px] text-muted"
     >
-      {{ tt('No events match.') }}
+      No events match.
     </p>
     <div
       v-if="next"
@@ -232,7 +232,7 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
         :disabled="loading"
         @click="load(true)"
       >
-        {{ tt('Older') }}
+        Older
       </HBtn>
     </div>
   </div>

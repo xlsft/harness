@@ -61,7 +61,7 @@ async function toBackground() {
   try {
     await store.transport?.backgroundToolCall(props.sessionId, t.value.id, 'user')
   } catch (e) {
-    toast.add({ title: tt('Could not move it to the background'), description: e instanceof Error ? e.message : String(e), color: 'error' })
+    toast.add({ title: 'Could not move it to the background', description: e instanceof Error ? e.message : String(e), color: 'error' })
   }
 }
 
@@ -168,7 +168,7 @@ const { open: openImage } = useImageViewer()
         :spin="tool.status === 'running'"
         :class="tool.status === 'running' ? 'text-accent' : tool.status === 'error' ? 'text-bad' : ''"
       />
-      <span class="shrink-0">{{ tt('Bash') }}</span>
+      <span class="shrink-0">Bash</span>
       <span class="min-w-0 truncate">
         <span
           v-if="label.verb"
@@ -185,8 +185,8 @@ const { open: openImage } = useImageViewer()
       <span
         v-if="outsideSandbox"
         class="shrink-0 text-[11px] text-warn"
-        :title="tt('This command ran outside the sandbox, with your approval')"
-      >{{ tt('outside sandbox') }}</span>
+        title="This command ran outside the sandbox, with your approval"
+      >outside sandbox</span>
       <span
         class="shrink-0 text-[11px]"
         :class="meta.cls === 'diff' ? '' : meta.cls"
@@ -194,13 +194,13 @@ const { open: openImage } = useImageViewer()
       <template v-if="tool.status === 'running'">
         <HBtn
           v-if="!remote"
-          :title="tt('Keep it running as a background task and let the agent go on')"
+          title="Keep it running as a background task and let the agent go on"
           @click.stop="toBackground"
         >
-          {{ tt('Run in background') }}
+          Run in background
         </HBtn>
         <HBtn @click.stop="store.interrupt(sessionId)">
-          {{ tt('Stop') }}
+          Stop
         </HBtn>
       </template>
     </button>
@@ -220,7 +220,7 @@ const { open: openImage } = useImageViewer()
       <template v-else>
         {{ tool.name }}<span class="min-w-0 truncate text-strong">{{ toolTarget(tool) }}</span>
         <template v-if="tool.name === 'Grep' && tool.input.path">
-          {{ tt('in {0}', [tool.input.path]) }}
+          in {{ tool.input.path }}
         </template>
       </template>
       <span class="flex-1" />
@@ -232,19 +232,19 @@ const { open: openImage } = useImageViewer()
         v-if="tool.status === 'running'"
         @click="store.interrupt(sessionId)"
       >
-        {{ tt('Stop') }}
+        Stop
       </HBtn>
       <HBtn
         v-else-if="showTarget"
-        :title="tt('Open in the {0} pane', [showIn])"
+        :title="`Open in the ${showIn} pane`"
         @click="show(showTarget)"
       >
-        {{ tt('Open') }}
+        Open
       </HBtn>
       <button
         v-else-if="kind === 'bash' && output"
         type="button"
-        :aria-label="open ? tt('Collapse output') : tt('Expand output')"
+        :aria-label="open ? 'Collapse output' : 'Expand output'"
         class="text-muted hover:text-highlighted"
         @click="open = !open"
       >
@@ -270,9 +270,9 @@ const { open: openImage } = useImageViewer()
       v-if="kind === 'show' && headless && showTarget"
       class="flex items-center gap-2 px-3 py-[7px] text-[12px] text-muted"
     >
-      <span class="min-w-0 flex-1 truncate">{{ tt('{0} pane', [showIn]) }}</span>
+      <span class="min-w-0 flex-1 truncate">{{ showIn }} pane</span>
       <HBtn @click="show(showTarget)">
-        {{ tt('Open') }}
+        Open
       </HBtn>
     </div>
 
@@ -365,7 +365,7 @@ v-for="(line, i) in outputLines"
           v-if="!grepPlain.length && tool.status !== 'running'"
           class="m-0 px-3 text-muted"
         >
-          {{ tt('Nothing found') }}
+          Nothing found
         </p>
       </template>
     </div>
@@ -416,7 +416,7 @@ v-for="(line, i) in outputLines"
     >
       <div class="min-w-0 border-r border-default px-3 py-2">
         <div class="pb-1 text-muted">
-          {{ tt('Input') }}
+          Input
         </div>
         <pre class="m-0 whitespace-pre-wrap text-toned"><span
 v-for="(tk, j) in highlightJson(tool.input)"
@@ -426,14 +426,14 @@ v-for="(tk, j) in highlightJson(tool.input)"
       </div>
       <div class="min-w-0 px-3 py-2">
         <div class="pb-1 text-muted">
-          {{ tt('Output') }}
+          Output
         </div>
         <div
           v-if="tool.progress"
           class="flex items-center gap-2 pb-1 text-muted"
           role="status"
         >
-          <span class="min-w-0 flex-1 truncate">{{ tool.progress.message || tt('Working…') }}</span>
+          <span class="min-w-0 flex-1 truncate">{{ tool.progress.message || 'Working…' }}</span>
           <span
             v-if="tool.progress.total > 0"
             class="tabular-nums"
@@ -456,13 +456,13 @@ v-for="(tk, j) in highlightJson(tool.result ?? tool.output)"
         v-for="(img, i) in tool.images"
         :key="i"
         type="button"
-        :aria-label="tt('Open image')"
+        aria-label="Open image"
         class="self-start"
         @click.stop="openImage(imageSrc(img))"
       >
         <img
           :src="imageSrc(img)"
-          :alt="tt('What the tool returned')"
+          alt="What the tool returned"
           class="max-h-[420px] max-w-full border border-default object-contain"
         >
       </button>

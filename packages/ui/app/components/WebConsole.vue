@@ -68,7 +68,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           size="sm"
           @click="signOut"
         >
-          {{ tt('Sign out') }}
+          Sign out
         </HBtn>
       </template>
     </header>
@@ -81,14 +81,14 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
     >
       <div class="mx-auto flex w-full max-w-[920px] flex-col gap-6 px-5 py-6">
         <section
-          :aria-label="tt('Connect a client')"
+          aria-label="Connect a client"
           class="flex flex-col gap-3 border border-default p-4"
         >
           <h1 class="m-0 text-[15px] font-semibold text-strong">
-            {{ tt('Connect a client to work with agents') }}
+            Connect a client to work with agents
           </h1>
           <p class="m-0 text-[12.5px] leading-[1.6] text-toned">
-            {{ tt('The server never runs code: sessions, tools and files live on a client on your machine, or one you can reach. Start it with this page\'s address allowed, then give this tab its address and token. The page talks to the client from your browser; the token stays in this tab.') }}
+            The server never runs code: sessions, tools and files live on a client on your machine, or one you can reach. Start it with this page's address allowed, then give this tab its address and token. The page talks to the client from your browser; the token stays in this tab.
           </p>
           <code class="border border-default bg-raised px-2 py-1.5 font-mono text-[12px] break-all text-strong select-all">{{ command }}</code>
           <p
@@ -96,13 +96,13 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             role="alert"
             class="m-0 border border-bad px-3 py-2 text-[12px] text-bad"
           >
-            {{ tt('Could not reach that client: {0}. Is it running, with this page\'s address allowed?', [props.error.replace(/^\[\w+\]\s*/, '')]) }}
+            Could not reach that client: {{ props.error.replace(/^\[\w+\]\s*/, '') }}. Is it running, with this page's address allowed?
           </p>
           <form
             class="grid grid-cols-[1fr_1fr_auto] items-end gap-2 max-sm:grid-cols-1"
             @submit.prevent="connect"
           >
-            <label class="flex flex-col gap-1 text-[11.5px] text-muted">{{ tt('Client address') }}
+            <label class="flex flex-col gap-1 text-[11.5px] text-muted">Client address
               <input
                 v-model="url"
                 required
@@ -111,7 +111,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 :class="input"
               >
             </label>
-            <label class="flex flex-col gap-1 text-[11.5px] text-muted">{{ tt('Token (it prints it at start)') }}
+            <label class="flex flex-col gap-1 text-[11.5px] text-muted">Token (it prints it at start)
               <input
                 v-model="token"
                 type="password"
@@ -125,18 +125,18 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
               variant="primary"
               type="submit"
             >
-              {{ tt('Connect') }}
+              Connect
             </HBtn>
           </form>
         </section>
 
         <template v-if="user">
           <section
-            :aria-label="tt('Without a client')"
+            aria-label="Without a client"
             class="flex min-h-[560px] flex-col overflow-hidden border border-default"
           >
             <h2 class="m-0 border-b border-line px-4 py-2.5 text-[13px] font-semibold text-strong">
-              {{ tt('Without a client: your account and this server\'s administration') }}
+              Without a client: your account and this server's administration
             </h2>
             <SettingsPage server-only />
           </section>
@@ -146,15 +146,15 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           class="flex flex-col items-start gap-3 border border-default p-4"
         >
           <h2 class="m-0 text-[15px] font-semibold text-strong">
-            {{ tt('Sign in for what needs no client') }}
+            Sign in for what needs no client
           </h2>
           <p class="m-0 text-[12.5px] leading-[1.6] text-toned">
-            {{ tt('Your account, two-factor sign-in, your usage and, depending on your role, users, single sign-on, the audit log, quotas and policy.') }}
+            Your account, two-factor sign-in, your usage and, depending on your role, users, single sign-on, the audit log, quotas and policy.
           </p>
           <a
             href="/device?return=/"
             class="flex h-8 items-center bg-accent px-3 text-[12.5px] text-on-accent no-underline"
-          >{{ tt('Sign in') }}</a>
+          >Sign in</a>
         </section>
       </div>
     </div>

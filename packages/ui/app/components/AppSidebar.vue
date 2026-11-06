@@ -125,11 +125,11 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 // `soon`: not built yet; the row shows a badge (Artifacts keeps its preview page, the others do nothing).
 const nav = [
-  { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts', soon: true },
-  { label: tt('Scheduled'), icon: 'clock' as const, soon: true },
-  { label: tt('Customize'), icon: 'sliders' as const, to: '/customize' },
-  { label: tt('Knowledge base'), icon: 'page' as const, soon: true },
-  { label: tt('Task tracker'), icon: 'tasks' as const, soon: true }
+  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
+  { label: 'Scheduled', icon: 'clock' as const, soon: true },
+  { label: 'Customize', icon: 'sliders' as const, to: '/customize' },
+  { label: 'Knowledge base', icon: 'page' as const, soon: true },
+  { label: 'Task tracker', icon: 'tasks' as const, soon: true }
 ]
 </script>
 
@@ -157,7 +157,7 @@ const nav = [
       // The border is the divider; the handle only widens the grab area and lights up while used.
       handle: 'relative z-10 -ml-px w-px bg-transparent transition-colors hover:bg-primary data-[dragging=true]:bg-primary'
     }"
-    :aria-label="tt('Sessions')"
+    aria-label="Sessions"
   >
     <!-- Top row: drags the window in the desktop app, and leaves room for the macOS window buttons there. -->
     <div
@@ -171,7 +171,7 @@ const nav = [
       />
       <HIconBtn
         icon="sidebar"
-        :label="tt('Toggle sidebar')"
+        label="Toggle sidebar"
         kbd="meta+b"
         @click="collapsed = !collapsed; open = false"
       />
@@ -183,14 +183,14 @@ const nav = [
         class="nav-row px-[9px] hover:bg-hover text-strong"
         @click.prevent="newSession()"
       >
-        <HIcon name="plus" />{{ tt('New session') }}<span class="flex-1" /><HKeys keys="meta+n" />
+        <HIcon name="plus" />New session<span class="flex-1" /><HKeys keys="meta+n" />
       </a>
       <a
         href="#"
         class="nav-row px-[9px] hover:bg-hover text-strong"
         @click.prevent="searchOpen = true; open = false"
       >
-        <HIcon name="search" />{{ tt('Search') }}<span class="flex-1" /><HKeys keys="meta+k" />
+        <HIcon name="search" />Search<span class="flex-1" /><HKeys keys="meta+k" />
       </a>
       <component
         :is="item.to ? NuxtLink : 'a'"
@@ -207,7 +207,7 @@ const nav = [
         <HIcon :name="item.icon" />{{ item.label }}<span
           v-if="item.soon"
           class="ml-auto border border-default px-1 text-[10px] leading-[14px] text-muted"
-        >{{ tt('soon') }}</span>
+        >soon</span>
       </component>
     </div>
 
@@ -235,8 +235,8 @@ const nav = [
           <button
             v-if="g.cwd || g.chats"
             type="button"
-            :aria-label="g.chats ? tt('New session without a folder') : tt('New session in {0}', [g.name])"
-            :title="g.chats ? tt('New session without a folder') : tt('New session in {0}', [g.cwd])"
+            :aria-label="g.chats ? 'New session without a folder' : `New session in ${g.name}`"
+            :title="g.chats ? 'New session without a folder' : `New session in ${g.cwd}`"
             class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-strong"
             @click="newSession(g.cwd || undefined)"
           >
@@ -254,7 +254,7 @@ const nav = [
             v-if="renaming === s.meta.id"
             v-model="draft"
             data-rename
-            :aria-label="tt('Session title')"
+            aria-label="Session title"
             class="mx-[2px] h-7 border border-accent bg-default px-[7px] text-[12.5px] text-strong outline-none"
             :style="depth ? { marginLeft: `${2 + depth * STEP}px` } : undefined"
             @keydown.enter.prevent="finishRename(true)"
@@ -282,7 +282,7 @@ const nav = [
             <button
               v-if="children"
               type="button"
-              :aria-label="isFolded ? tt('Show {0} sub-sessions', [children]) : tt('Hide {0} sub-sessions', [children])"
+              :aria-label="isFolded ? `Show ${children} sub-sessions` : `Hide ${children} sub-sessions`"
               :aria-expanded="!isFolded"
               class="-ml-[3px] flex size-4 shrink-0 items-center justify-center text-muted hover:text-strong"
               @click.stop.prevent="toggleFold(s.meta.id)"
@@ -335,7 +335,7 @@ const nav = [
           href="#"
           class="nav-row px-[9px] hover:bg-hover text-[11px] text-muted"
           @click.prevent="expanded[g.key] = true"
-        >{{ tt('Show more') }}</a>
+        >Show more</a>
       </section>
     </div>
     <button
@@ -345,7 +345,7 @@ const nav = [
       @click="settings.open('about'); open = false"
     >
       <span class="size-1.5 shrink-0 bg-accent" />
-      <span class="truncate">{{ tt('{0} · v{1}', [update.phase.value === 'installed' ? tt('Restart to update') : tt('Update available'), update.version.value]) }}</span>
+      <span class="truncate">{{ update.phase.value === 'installed' ? 'Restart to update' : 'Update available' }} · v{{ update.version.value }}</span>
     </button>
 
     <template #footer>
@@ -373,7 +373,7 @@ const nav = [
       <span class="flex-1" />
       <HIconBtn
         icon="settings"
-        :label="tt('Settings')"
+        label="Settings"
         kbd="meta+,"
         :pressed="onSettings"
         @click="settings.open(); open = false"

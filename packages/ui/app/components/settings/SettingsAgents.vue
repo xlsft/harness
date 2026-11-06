@@ -47,11 +47,11 @@ async function save() {
 
 <template>
   <section
-    :aria-label="tt('Agents')"
+    aria-label="Agents"
     class="mt-6 flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('Agents') }}
+      Agents
     </h2>
     <p
       v-if="error"
@@ -65,8 +65,8 @@ async function save() {
         class="set-label"
         for="subagent-max-depth"
       >
-        <span>{{ tt('Nesting depth') }}</span>
-        <span class="set-desc">{{ tt('How many levels of agents a session may start, from 1 to 5. At 2, its agents may start agents of their own, and those may not.') }}</span>
+        <span>Nesting depth</span>
+        <span class="set-desc">How many levels of agents a session may start, from 1 to 5. At 2, its agents may start agents of their own, and those may not.</span>
       </label>
       <input
         id="subagent-max-depth"
@@ -85,8 +85,8 @@ async function save() {
         class="set-label"
         for="subagent-max-running"
       >
-        <span>{{ tt('Agents running at once') }}</span>
-        <span class="set-desc">{{ tt('How many agents of a session work at the same time, from 1 to 32. The others wait for a free slot.') }}</span>
+        <span>Agents running at once</span>
+        <span class="set-desc">How many agents of a session work at the same time, from 1 to 32. The others wait for a free slot.</span>
       </label>
       <input
         id="subagent-max-running"
@@ -105,8 +105,8 @@ async function save() {
         class="set-label"
         for="workflow-max-agents"
       >
-        <span>{{ tt('Agents per workflow') }}</span>
-        <span class="set-desc">{{ tt('The most agents one run of a workflow may call, from 1 to 200. Past it, the script gets an error.') }}</span>
+        <span>Agents per workflow</span>
+        <span class="set-desc">The most agents one run of a workflow may call, from 1 to 200. Past it, the script gets an error.</span>
       </label>
       <input
         id="workflow-max-agents"

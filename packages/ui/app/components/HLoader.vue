@@ -6,7 +6,7 @@
   <div
     class="flex h-svh items-center justify-center bg-default"
     role="status"
-    :aria-label="tt('Loading harness')"
+    aria-label="Loading harness"
   >
     <HMark />
   </div>

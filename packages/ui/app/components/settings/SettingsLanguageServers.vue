@@ -42,22 +42,22 @@ async function save(key: Keys, v: boolean) {
 }
 
 const rows: { key: Keys, label: string, desc: string }[] = [
-  { key: 'lspEnabled', label: tt('Language server tool'), desc: tt('The agent can ask language servers installed on this machine for definitions, references and types. Off also stops the errors below.') },
-  { key: 'lspDiagnostics', label: tt('Errors after edits'), desc: tt('After an edit, a language server that is already running tells the agent about new errors.') },
-  { key: 'lspDiagnosticsStartServer', label: tt('Start a server for an edit'), desc: tt('Edits start the language server of the file if none runs yet, in trusted folders.') }
+  { key: 'lspEnabled', label: 'Language server tool', desc: 'The agent can ask language servers installed on this machine for definitions, references and types. Off also stops the errors below.' },
+  { key: 'lspDiagnostics', label: 'Errors after edits', desc: 'After an edit, a language server that is already running tells the agent about new errors.' },
+  { key: 'lspDiagnosticsStartServer', label: 'Start a server for an edit', desc: 'Edits start the language server of the file if none runs yet, in trusted folders.' }
 ]
 </script>
 
 <template>
   <section
-    :aria-label="tt('Language servers')"
+    aria-label="Language servers"
     class="mt-6 flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('Language servers') }}
+      Language servers
     </h2>
     <p class="set-sub">
-      {{ tt('Saved to your account on the server, so it applies on every machine.') }}
+      Saved to your account on the server, so it applies on every machine.
     </p>
     <p
       v-if="error"

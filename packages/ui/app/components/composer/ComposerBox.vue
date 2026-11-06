@@ -288,7 +288,7 @@ async function startRecording() {
     recording.value = true
     recordStart.value = dictation.startedAt.value
   } catch (e) {
-    toast.add({ title: tt('Dictation'), description: e instanceof Error ? e.message : String(e), color: 'error' })
+    toast.add({ title: 'Dictation', description: e instanceof Error ? e.message : String(e), color: 'error' })
   }
 }
 // keep: insert the text; send: and send it.
@@ -299,7 +299,7 @@ async function stopRecording(keep: boolean, thenSend = false) {
     if (said) text.value = (text.value ? text.value.replace(/\s*$/, ' ') : '') + said
     if (said && thenSend) send()
   } catch (e) {
-    toast.add({ title: tt('Could not transcribe'), description: e instanceof Error ? e.message : String(e), color: 'error' })
+    toast.add({ title: 'Could not transcribe', description: e instanceof Error ? e.message : String(e), color: 'error' })
   }
 }
 
@@ -343,7 +343,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         :size="20"
         class="text-accent"
       />
-      {{ tt('Drop {0} to attach', [dragging > 1 ? `${dragging} files` : 'files']) }}<span class="text-[11px] text-muted">{{ tt('images, PDFs and text files') }}</span>
+      Drop {{ dragging > 1 ? `${dragging} files` : 'files' }} to attach<span class="text-[11px] text-muted">images, PDFs and text files</span>
     </div>
 
     <!-- voice recording -->
@@ -362,7 +362,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       </div>
       <button
         type="button"
-        :aria-label="tt('Cancel recording')"
+        aria-label="Cancel recording"
         :class="ICON_BTN"
         class="border border-default text-muted"
         @click="stopRecording(false)"
@@ -374,8 +374,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       </button>
       <button
         type="button"
-        :aria-label="tt('Insert the text')"
-        :title="tt('Insert the text without sending')"
+        aria-label="Insert the text"
+        title="Insert the text without sending"
         :class="ICON_BTN"
         class="border border-default text-strong"
         @click="stopRecording(true)"
@@ -387,8 +387,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       </button>
       <button
         type="button"
-        :aria-label="tt('Send')"
-        :title="tt('Send what you said')"
+        aria-label="Send"
+        title="Send what you said"
         :class="ICON_BTN"
         class="bg-accent text-on-accent"
         @click="stopRecording(true, true)"
@@ -425,8 +425,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
       >
         <span
           v-if="mode === 'shell'"
-          :title="tt('Shell command')"
-          :aria-label="tt('Shell command')"
+          title="Shell command"
+          aria-label="Shell command"
           class="flex items-center border border-orange px-[3px] py-px text-[11px] text-orange"
         ><HIcon
           name="term"
@@ -438,11 +438,11 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         ><HIcon
           name="hash"
           :size="12"
-        />{{ tt('memory') }}</span>
+        />memory</span>
         <span
           v-else-if="planMode && !busy"
           class="border border-cyan px-[5px] text-[11px] text-cyan"
-        >{{ tt('plan') }}</span>
+        >plan</span>
         <UPopover
           v-else
           v-model:open="plusOpen"
@@ -450,7 +450,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
         >
           <button
             type="button"
-            :aria-label="tt('Add')"
+            aria-label="Add"
             :class="ICON_BTN"
             class="text-muted hover:text-highlighted"
           >
@@ -459,7 +459,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           <template #content>
             <div
               role="menu"
-              :aria-label="tt('Add')"
+              aria-label="Add"
               class="w-[230px] border border-accented bg-hover py-1 text-[12.5px]"
             >
               <PaneMenuItem
@@ -467,26 +467,26 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
                 kbd="meta+u"
                 @click="plus('files')"
               >
-                {{ tt('Add files or photos') }}
+                Add files or photos
               </PaneMenuItem>
               <PaneMenuItem
                 icon="folder"
                 @click="plus('folder')"
               >
-                {{ tt('Add folder') }}
+                Add folder
               </PaneMenuItem>
               <PaneMenuItem
                 icon="slash"
                 @click="plus('slash')"
               >
-                {{ tt('Slash commands') }}
+                Slash commands
               </PaneMenuItem>
               <PaneMenuItem
                 v-if="hasShell"
                 icon="term"
                 @click="plus('shell')"
               >
-                {{ tt('Execute shell') }}
+                Execute shell
               </PaneMenuItem>
             </div>
           </template>
@@ -520,7 +520,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             :value="text"
             rows="1"
             :placeholder="fieldPlaceholder"
-            :aria-label="tt('Message')"
+            aria-label="Message"
             class="col-start-1 row-start-1 min-w-0 resize-none bg-transparent py-[3px] leading-[1.6] outline-none placeholder:truncate placeholder:text-muted"
             :class="[hasQuotes ? 'text-transparent caret-(--color-strong)' : menu === 'slash' ? 'text-accent' : 'text-strong', !text && 'overflow-hidden']"
             @input="onInput"
@@ -540,14 +540,14 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             <HIcon
               name="retry"
               :size="13"
-            />{{ tt('Retry') }}
+            />Retry
           </button>
         </template>
         <template v-else>
           <button
             v-if="!multiline && !busy && mode === 'normal'"
             type="button"
-            :aria-label="tt('Voice')"
+            aria-label="Voice"
             :class="ICON_BTN"
             class="text-muted hover:text-highlighted"
             @click="startRecording"
@@ -557,7 +557,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           <button
             v-if="busy && hasContent"
             type="button"
-            :aria-label="tt('Queue')"
+            aria-label="Queue"
             :class="ICON_BTN"
             class="bg-accent text-on-accent"
             @click="send"
@@ -567,8 +567,8 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           <button
             v-if="busy"
             type="button"
-            :aria-label="tt('Stop')"
-            :title="tt('Stop this turn. Agents keep running: stop them in the Agents pane')"
+            aria-label="Stop"
+            title="Stop this turn. Agents keep running: stop them in the Agents pane"
             :class="ICON_BTN"
             class="bg-warn text-black"
             @click="emit('stop')"
@@ -581,7 +581,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
           <button
             v-else
             type="button"
-            :aria-label="mode === 'shell' ? tt('Run') : sendLabel"
+            :aria-label="mode === 'shell' ? 'Run' : sendLabel"
             :disabled="!hasContent || uploading > 0 || rejected || sending"
             :class="[ICON_BTN, !hasContent || uploading || rejected ? 'bg-raised text-disabled' : mode === 'shell' ? 'bg-orange text-black' : mode === 'memory' ? 'bg-pink text-on-accent' : 'bg-accent text-on-accent']"
             @click="send"

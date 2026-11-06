@@ -14,7 +14,7 @@ defineProps<{ items: SubagentTranscriptItem[], error: string }>()
     <span
       v-else-if="!items.length"
       class="text-muted"
-    >{{ tt('Nothing yet') }}</span>
+    >Nothing yet</span>
     <template
       v-for="(it, i) in items"
       :key="i"

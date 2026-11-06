@@ -100,13 +100,13 @@ const usageLine = computed(() => {
         size="sm"
         @click="emit('retry')"
       >
-        {{ tt('Retry now') }}
+        Retry now
       </HBtn>
       <HBtn
         size="sm"
         @click="emit('switchModel')"
       >
-        {{ tt('Switch model') }}
+        Switch model
       </HBtn>
     </div>
   </div>
@@ -144,7 +144,7 @@ const usageLine = computed(() => {
   >
     <div class="flex items-center gap-3 text-[11.5px] text-muted">
       <span class="h-px flex-1 bg-line" />
-      {{ tt('Context compacted{0} · {1} → {2} tokens', [compact.trigger === 'idle' ? ' while idle' : '', formatTokens(compact.tokensBefore), formatTokens(compact.tokensAfter)]) }}
+      Context compacted{{ compact.trigger === 'idle' ? ' while idle' : '' }} · {{ formatTokens(compact.tokensBefore) }} → {{ formatTokens(compact.tokensAfter) }} tokens
       <button
         v-if="compact.summary"
         type="button"
@@ -175,7 +175,7 @@ const usageLine = computed(() => {
   >
     <button
       type="button"
-      :aria-label="tt('Copy')"
+      aria-label="Copy"
       class="flex size-[26px] items-center justify-center hover:text-highlighted"
       @click="emit('copy')"
     >
@@ -186,7 +186,7 @@ const usageLine = computed(() => {
     </button>
     <button
       type="button"
-      :aria-label="tt('Retry')"
+      aria-label="Retry"
       class="flex size-[26px] items-center justify-center hover:text-highlighted"
       @click="emit('retry')"
     >
@@ -198,7 +198,7 @@ const usageLine = computed(() => {
     <button
       v-if="!noFork"
       type="button"
-      :aria-label="tt('Fork from here')"
+      aria-label="Fork from here"
       class="flex size-[26px] items-center justify-center hover:text-highlighted"
       @click="emit('fork')"
     >
@@ -209,8 +209,8 @@ const usageLine = computed(() => {
     </button>
     <button
       type="button"
-      :aria-label="speaking ? tt('Stop reading') : tt('Read aloud')"
-      :title="speaking ? tt('Stop reading') : tt('Read aloud')"
+      :aria-label="speaking ? 'Stop reading' : 'Read aloud'"
+      :title="speaking ? 'Stop reading' : 'Read aloud'"
       class="flex size-[26px] items-center justify-center hover:text-highlighted"
       :class="speaking && 'text-accent'"
       @click="emit('readAloud')"

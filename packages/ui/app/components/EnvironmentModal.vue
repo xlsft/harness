@@ -106,7 +106,7 @@ async function save() {
       env: env.value
     }, { sessionId: props.session.meta.id })
     const n = res.appliedSessionIds.length
-    toast.add({ title: tt('Environment saved'), description: n ? tt('Applied to {0} open {1} from their next step.', [n, n === 1 ? 'session' : 'sessions']) : tt('New sessions in this folder start with it.'), color: 'neutral' })
+    toast.add({ title: 'Environment saved', description: n ? `Applied to ${n} open ${n === 1 ? 'session' : 'sessions'} from their next step.` : 'New sessions in this folder start with it.', color: 'neutral' })
     open.value = false
   } catch (e) {
     if (e instanceof EnvironmentParseError) {
@@ -143,23 +143,23 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
       <div
         role="dialog"
         aria-modal="true"
-        :aria-label="screen === 'env' ? tt('Environment variables') : tt('Edit environment')"
+        :aria-label="screen === 'env' ? 'Environment variables' : 'Edit environment'"
         class="flex max-h-full w-[min(540px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
       >
         <div class="flex h-12 shrink-0 items-center gap-2 pr-2 pl-5">
           <HIconBtn
             v-if="screen === 'env'"
             icon="arrow-left"
-            :label="tt('Back')"
+            label="Back"
             class="-ml-2"
             @click="screen = 'main'"
           />
           <h2 class="m-0 flex-1 text-[14px] font-semibold text-strong">
-            {{ screen === 'env' ? tt('Environment variables') : tt('Edit environment') }}
+            {{ screen === 'env' ? 'Environment variables' : 'Edit environment' }}
           </h2>
           <HIconBtn
             icon="close"
-            :label="tt('Close')"
+            label="Close"
             kbd="esc"
             @click="open = false"
           />
@@ -170,18 +170,18 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
             v-if="loading"
             class="m-0 py-6 text-center text-[12.5px] text-muted"
           >
-            {{ tt('Loading…') }}
+            Loading…
           </p>
           <p
             v-else-if="view?.readOnly"
             class="m-0 py-6 text-center text-[12.5px] text-muted"
           >
-            {{ tt('This session runs on {0}; its environment is edited there.', [session.meta.deviceName || 'another computer']) }}
+            This session runs on {{ session.meta.deviceName || 'another computer' }}; its environment is edited there.
           </p>
 
           <template v-else-if="view && screen === 'main'">
             <label class="flex flex-col gap-1.5 text-[12.5px] text-strong">
-              {{ tt('Name') }}
+              Name
               <input
                 v-model="name"
                 :class="input"
@@ -193,7 +193,7 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
             </label>
 
             <div class="mt-4 mb-1.5 flex items-center text-[12.5px] text-strong">
-              <span class="flex-1">{{ tt('Folders') }}</span>
+              <span class="flex-1">Folders</span>
               <HBtn
                 size="md"
                 @click="browse"
@@ -201,7 +201,7 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
                 <HIcon
                   name="plus"
                   :size="12"
-                />{{ tt('Add') }}
+                />Add
               </HBtn>
             </div>
             <div class="overflow-hidden border border-line">
@@ -221,7 +221,7 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
                 >{{ base(f.path) }}<span
                   v-if="!f.exists"
                   class="ml-1.5 text-[11px]"
-                >{{ tt('missing') }}</span></span>
+                >missing</span></span>
                 <div
                   v-if="branches[f.path]?.length"
                   class="w-[150px] shrink-0"
@@ -229,19 +229,19 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
                   <HSelect
                     v-model="f.baseRef"
                     :options="branches[f.path]!"
-                    :aria-label="tt('Branch a worktree of {0} starts from', [base(f.path)])"
+                    :aria-label="`Branch a worktree of ${base(f.path)} starts from`"
                   />
                 </div>
                 <label class="flex shrink-0 items-center gap-1.5 text-[12px] text-muted">
                   <input
                     v-model="f.worktree"
                     type="checkbox"
-                  >{{ tt('Worktree') }}
+                  >Worktree
                 </label>
                 <HIconBtn
                   v-if="!f.primary"
                   icon="close"
-                  :label="tt('Remove {0}', [base(f.path)])"
+                  :label="`Remove ${base(f.path)}`"
                   :size="26"
                   :icon-size="12"
                   @click="removeFolder(f.path)"
@@ -255,11 +255,11 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
               @click="screen = 'env'"
             >
               <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span class="text-[13px] text-strong">{{ tt('Environment variables') }}</span>
+                <span class="text-[13px] text-strong">Environment variables</span>
                 <span
                   class="truncate text-[12px]"
                   :class="envErrors.length ? 'text-bad' : 'text-muted'"
-                >{{ envErrors.length ? `${envErrors.length} ${envErrors.length === 1 ? 'problem' : 'problems'} to fix` : varCount ? `${varCount} set for this environment` : tt('None for this environment') }}</span>
+                >{{ envErrors.length ? `${envErrors.length} ${envErrors.length === 1 ? 'problem' : 'problems'} to fix` : varCount ? `${varCount} set for this environment` : 'None for this environment' }}</span>
               </span>
               <HIcon
                 name="right"
@@ -270,12 +270,12 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
 
           <template v-else-if="view && screen === 'env'">
             <p class="m-0 mb-3 text-[12.5px] text-muted">
-              {{ tt('Set for sessions started in {0}, and for the open ones from their next step.', [name || base(view.folder)]) }}
+              Set for sessions started in {{ name || base(view.folder) }}, and for the open ones from their next step.
             </p>
             <textarea
               v-model="env"
               :placeholder="PLACEHOLDER"
-              :aria-label="tt('Environment variables')"
+              aria-label="Environment variables"
               autocapitalize="off"
               autocorrect="off"
               spellcheck="false"
@@ -290,11 +290,11 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
                 v-for="e in envErrors"
                 :key="e.line + e.message"
               >
-                {{ tt('Line {0}: {1}', [e.line, e.message]) }}
+                Line {{ e.line }}: {{ e.message }}
               </li>
             </ul>
             <p class="m-0 mt-2 text-[12px] text-muted">
-              {{ tt('In .env format. Stored encrypted on this computer and passed to sessions\' commands; never sent to the server.') }}
+              In .env format. Stored encrypted on this computer and passed to sessions' commands; never sent to the server.
             </p>
           </template>
 
@@ -315,7 +315,7 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
               size="lg"
               @click="open = false"
             >
-              {{ tt('Cancel') }}
+              Cancel
             </HBtn>
             <HBtn
               size="lg"
@@ -323,7 +323,7 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
               :disabled="saving"
               @click="save"
             >
-              {{ saving ? tt('Saving…') : tt('Save') }}
+              {{ saving ? 'Saving…' : 'Save' }}
             </HBtn>
           </template>
           <HBtn
@@ -332,7 +332,7 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
             variant="primary"
             @click="screen = 'main'"
           >
-            {{ tt('Done') }}
+            Done
           </HBtn>
         </div>
       </div>

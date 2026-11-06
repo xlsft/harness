@@ -73,13 +73,13 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
 </script>
 
 <template>
-  <section :aria-label="tt('Two-factor sign-in')">
+  <section aria-label="Two-factor sign-in">
     <h2 class="set-h mt-8">
-      {{ tt('Two-factor sign-in') }}
+      Two-factor sign-in
     </h2>
     <p class="set-sub">
-      {{ tt('A code from an authenticator app at sign-in, and when connecting a new device.') }} <template v-if="status?.required">
-        {{ tt('Your organization requires it.') }}
+      A code from an authenticator app at sign-in, and when connecting a new device. <template v-if="status?.required">
+        Your organization requires it.
       </template>
     </p>
     <p
@@ -95,8 +95,8 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
       role="status"
       class="mb-3 flex flex-col gap-2 border border-accent px-3 py-2.5 text-[12px]"
     >
-      <span class="text-strong">{{ tt('Recovery codes') }}</span>
-      <span class="text-muted">{{ tt('Keep them somewhere safe. Each works once if you lose your authenticator, and they are not shown again.') }}</span>
+      <span class="text-strong">Recovery codes</span>
+      <span class="text-muted">Keep them somewhere safe. Each works once if you lose your authenticator, and they are not shown again.</span>
       <ul class="m-0 grid list-none grid-cols-2 gap-x-4 gap-y-0.5 p-0 font-mono text-[12.5px] text-strong select-all">
         <li
           v-for="c in recovery"
@@ -110,7 +110,7 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
           size="sm"
           @click="copy"
         >
-          {{ tt('Copy') }}
+          Copy
         </HBtn>
         <HBtn
           size="sm"
@@ -118,7 +118,7 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
           tone="muted"
           @click="recovery = []"
         >
-          {{ tt('Done') }}
+          Done
         </HBtn>
       </div>
     </div>
@@ -126,10 +126,10 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
     <form
       v-if="enrollment"
       class="flex flex-col gap-3 border border-default p-3"
-      :aria-label="tt('Set up an authenticator')"
+      aria-label="Set up an authenticator"
       @submit.prevent="confirm"
     >
-      <span class="text-[12px] text-toned">{{ tt('Scan this with your authenticator app, or type the key into it. Then enter the code it shows.') }}</span>
+      <span class="text-[12px] text-toned">Scan this with your authenticator app, or type the key into it. Then enter the code it shows.</span>
       <div class="flex flex-wrap items-center gap-4">
         <!-- eslint-disable-next-line vue/no-v-html -- an SVG the server generated from the secret, no outside input -->
         <div
@@ -143,7 +143,7 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
           v-model="code"
           inputmode="numeric"
           autocomplete="one-time-code"
-          :aria-label="tt('Code from the authenticator')"
+          aria-label="Code from the authenticator"
           placeholder="123456"
           required
           :class="input"
@@ -153,7 +153,7 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
           variant="primary"
           type="submit"
         >
-          {{ tt('Turn on') }}
+          Turn on
         </HBtn>
         <HBtn
           size="sm"
@@ -161,7 +161,7 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
           tone="muted"
           @click="enrollment = null"
         >
-          {{ tt('Cancel') }}
+          Cancel
         </HBtn>
       </div>
     </form>
@@ -169,9 +169,9 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
     <template v-else-if="status">
       <div class="set-row">
         <div class="set-label">
-          <span>{{ status.enabled ? tt('On') : tt('Off') }}</span>
+          <span>{{ status.enabled ? 'On' : 'Off' }}</span>
           <span class="set-desc">
-            {{ status.enabled ? `${status.recoveryCodesLeft} recovery ${status.recoveryCodesLeft === 1 ? 'code' : 'codes'} left.` : tt('Only your password protects this account.') }}
+            {{ status.enabled ? `${status.recoveryCodesLeft} recovery ${status.recoveryCodesLeft === 1 ? 'code' : 'codes'} left.` : 'Only your password protects this account.' }}
           </span>
         </div>
         <div class="flex gap-2">
@@ -180,14 +180,14 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
             size="sm"
             @click="start"
           >
-            {{ tt('Turn on') }}
+            Turn on
           </HBtn>
           <template v-else>
             <HBtn
               size="sm"
               @click="manage = manage === 'regenerate' ? '' : 'regenerate'"
             >
-              {{ tt('New recovery codes') }}
+              New recovery codes
             </HBtn>
             <HBtn
               v-if="!status.required"
@@ -195,7 +195,7 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
               tone="danger"
               @click="manage = manage === 'disable' ? '' : 'disable'"
             >
-              {{ tt('Turn off') }}
+              Turn off
             </HBtn>
           </template>
         </div>
@@ -208,8 +208,8 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
         <input
           v-model="code"
           autocomplete="one-time-code"
-          :aria-label="manage === 'disable' ? tt('A current code or a recovery code') : tt('A current code')"
-          :placeholder="manage === 'disable' ? tt('Code or recovery code') : tt('Current code')"
+          :aria-label="manage === 'disable' ? 'A current code or a recovery code' : 'A current code'"
+          :placeholder="manage === 'disable' ? 'Code or recovery code' : 'Current code'"
           required
           :class="input"
         >
@@ -218,7 +218,7 @@ const input = 'h-8 w-[180px] border border-accented bg-default px-2 text-[12.5px
           :tone="manage === 'disable' ? 'danger' : 'default'"
           type="submit"
         >
-          {{ manage === 'disable' ? tt('Turn off') : tt('Replace codes') }}
+          {{ manage === 'disable' ? 'Turn off' : 'Replace codes' }}
         </HBtn>
       </form>
     </template>

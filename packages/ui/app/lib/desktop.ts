@@ -1,4 +1,3 @@
-import { tt } from '~/utils/i18n'
 // The desktop shell (packages/desktop, Tauri 2). Inside it the UI gets its agent endpoint and sign-in from
 // the shell, which owns the harness-client sidecar, and can use native dialogs and Finder. In a browser
 // none of this exists and isDesktop() is false. Tauri modules load lazily so the web build does not need them.
@@ -93,7 +92,7 @@ export async function guardQuit(check: () => string): Promise<() => void> {
     const warning = check()
     if (warning) {
       const { ask } = await import('@tauri-apps/plugin-dialog')
-      const quit = await ask(warning, { title: tt('Quit xlsft`s harness?'), kind: 'warning', okLabel: 'Quit', cancelLabel: tt('Cancel') })
+      const quit = await ask(warning, { title: 'Quit xlsft`s harness?', kind: 'warning', okLabel: 'Quit', cancelLabel: 'Cancel' })
       if (!quit) return
     }
     await invoke('confirm_quit')
@@ -103,7 +102,7 @@ export async function guardQuit(check: () => string): Promise<() => void> {
 /** A native yes/no warning. */
 export async function askConfirm(message: string, title: string, okLabel: string): Promise<boolean> {
   const { ask } = await import('@tauri-apps/plugin-dialog')
-  return ask(message, { title, kind: 'warning', okLabel, cancelLabel: tt('Not now') })
+  return ask(message, { title, kind: 'warning', okLabel, cancelLabel: 'Not now' })
 }
 
 /** What the shell's updater says about this build (src-tauri/src/update.rs). */

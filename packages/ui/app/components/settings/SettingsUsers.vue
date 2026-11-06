@@ -214,10 +214,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      {{ tt('Users') }}
+      Users
     </h2>
     <p class="set-sub">
-      {{ tt('Everyone with an account on this server. {0}', [writable ? '' : tt('Your role can read this; only admins change it.')]) }}
+      Everyone with an account on this server. {{ writable ? '' : 'Your role can read this; only admins change it.' }}
     </p>
 
     <p
@@ -233,15 +233,15 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       role="status"
       class="mb-3 flex flex-col gap-2 border border-accent px-3 py-2.5 text-[12px]"
     >
-      <span class="text-strong">{{ tt('New password for {0}', [revealed.email]) }}</span>
-      <span class="text-muted">{{ tt('Shown only now. Hand it over securely; it cannot be shown again.') }}</span>
+      <span class="text-strong">New password for {{ revealed.email }}</span>
+      <span class="text-muted">Shown only now. Hand it over securely; it cannot be shown again.</span>
       <div class="flex items-center gap-2">
         <code class="flex-1 truncate border border-default bg-raised px-2 py-1 font-mono text-[12.5px] text-strong select-all">{{ revealed.password }}</code>
         <HBtn
           size="sm"
           @click="copy(revealed.password)"
         >
-          {{ tt('Copy') }}
+          Copy
         </HBtn>
         <HBtn
           size="sm"
@@ -249,7 +249,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           tone="muted"
           @click="revealed = null"
         >
-          {{ tt('Done') }}
+          Done
         </HBtn>
       </div>
     </div>
@@ -258,8 +258,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       <input
         v-model="query"
         type="search"
-        :aria-label="tt('Search users')"
-        :placeholder="tt('Search by name, username or email')"
+        aria-label="Search users"
+        placeholder="Search by name, username or email"
         :class="input"
         class="max-w-[320px]"
       >
@@ -272,18 +272,18 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         <HIcon
           name="plus"
           :size="12"
-        />{{ tt('Add user') }}
+        />Add user
       </HBtn>
     </div>
 
     <form
       v-if="form"
       class="mb-2 flex flex-col gap-3 border border-default p-3"
-      :aria-label="tt('New user')"
+      aria-label="New user"
       @submit.prevent="create"
     >
       <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-        <label class="flex flex-col gap-1 text-[11.5px] text-muted">{{ tt('Name') }}
+        <label class="flex flex-col gap-1 text-[11.5px] text-muted">Name
           <input
             v-model="form.name"
             required
@@ -291,7 +291,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             :class="input"
           >
         </label>
-        <label class="flex flex-col gap-1 text-[11.5px] text-muted">{{ tt('Username{0}', [form.ldap ? ' (directory)' : ' (optional)']) }}
+        <label class="flex flex-col gap-1 text-[11.5px] text-muted">Username{{ form.ldap ? ' (directory)' : ' (optional)' }}
           <input
             v-model="form.username"
             :required="form.ldap"
@@ -303,7 +303,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             :class="input"
           >
         </label>
-        <label class="flex flex-col gap-1 text-[11.5px] text-muted">{{ tt('Email') }}
+        <label class="flex flex-col gap-1 text-[11.5px] text-muted">Email
           <input
             v-model="form.email"
             type="email"
@@ -312,10 +312,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             :class="input"
           >
         </label>
-        <label class="flex flex-col gap-1 text-[11.5px] text-muted">{{ tt('Role') }}
+        <label class="flex flex-col gap-1 text-[11.5px] text-muted">Role
           <HSelect
             v-model="form.role"
-            :aria-label="tt('Role')"
+            aria-label="Role"
             :options="roleOptions"
           />
         </label>
@@ -324,8 +324,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         <label class="flex items-center gap-2">
           <HToggle
             v-model="form.ldap"
-            :label="tt('Directory user')"
-          />{{ tt('Signs in through LDAP (no local password)') }}
+            label="Directory user"
+          />Signs in through LDAP (no local password)
         </label>
         <label
           v-if="!form.ldap"
@@ -333,14 +333,14 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         >
           <HToggle
             v-model="form.generatePassword"
-            :label="tt('Generate a password')"
-          />{{ tt('Generate a password and show it once') }}
+            label="Generate a password"
+          />Generate a password and show it once
         </label>
       </div>
       <label
         v-if="!form.ldap && !form.generatePassword"
         class="flex flex-col gap-1 text-[11.5px] text-muted"
-      >{{ tt('Password') }}
+      >Password
         <input
           v-model="form.password"
           type="password"
@@ -358,7 +358,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           tone="muted"
           @click="form = null"
         >
-          {{ tt('Cancel') }}
+          Cancel
         </HBtn>
         <HBtn
           size="md"
@@ -366,7 +366,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           type="submit"
           :disabled="saving"
         >
-          {{ tt('Add') }}
+          Add
         </HBtn>
       </div>
     </form>
@@ -375,7 +375,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       v-if="loading"
       class="m-0 py-4 text-[12.5px] text-muted"
     >
-      {{ tt('Loading…') }}
+      Loading…
     </p>
     <div
       v-else-if="users.length"
@@ -398,7 +398,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
               <span
                 v-if="u.isSelf"
                 class="text-[11px] text-muted"
-              >{{ tt('you') }}</span>
+              >you</span>
               <span
                 v-if="u.role !== 'user'"
                 class="border border-default px-1 text-[10.5px] text-muted"
@@ -410,17 +410,17 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
               <span
                 v-if="u.mfaEnabled"
                 class="border border-default px-1 text-[10.5px] text-muted"
-              >{{ tt('2FA') }}</span>
+              >2FA</span>
               <span
                 v-if="u.disabled"
                 class="border border-bad px-1 text-[10.5px] text-bad"
-              >{{ tt('disabled') }}</span>
+              >disabled</span>
             </span>
             <span class="truncate text-[11.5px] text-muted">
               {{ [u.username ? `@${u.username}` : '', u.email].filter(Boolean).join(' · ') }}
             </span>
           </span>
-          <span class="text-[11.5px] text-dimmed">{{ tt('signed in {0}', [ago(u.lastSignInAt)]) }}</span>
+          <span class="text-[11.5px] text-dimmed">signed in {{ ago(u.lastSignInAt) }}</span>
           <HIcon
             :name="open === u.id ? 'up' : 'down'"
             :size="12"
@@ -434,35 +434,35 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         >
           <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[11.5px]">
             <dt class="text-muted">
-              {{ tt('Created') }}
+              Created
             </dt><dd class="m-0 text-toned">
               {{ day(u.createdAt) }}
             </dd>
             <dt class="text-muted">
-              {{ tt('Last sign-in') }}
+              Last sign-in
             </dt><dd class="m-0 text-toned">
               {{ u.lastSignInAt ? day(u.lastSignInAt) : 'never' }}
             </dd>
             <dt class="text-muted">
-              {{ tt('Last seen') }}
+              Last seen
             </dt><dd class="m-0 text-toned">
               {{ u.lastSeenAt ? ago(u.lastSeenAt) : 'never' }}
             </dd>
             <dt class="text-muted">
-              {{ tt('Sign-in') }}
+              Sign-in
             </dt><dd class="m-0 text-toned">
               {{ SOURCE_LABEL[u.source] }}
             </dd>
             <template v-if="u.groups.length">
               <dt class="text-muted">
-                {{ tt('Groups') }}
+                Groups
               </dt><dd class="m-0 text-toned">
                 {{ u.groups.join(', ') }}
               </dd>
             </template>
             <template v-if="u.disabled">
               <dt class="text-muted">
-                {{ tt('Disabled') }}
+                Disabled
               </dt><dd class="m-0 text-bad">
                 {{ u.disabledReason || 'yes' }}
               </dd>
@@ -475,7 +475,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           >
             <div
               role="radiogroup"
-              :aria-label="tt('Role of {0}', [u.name])"
+              :aria-label="`Role of ${u.name}`"
               class="mr-2 flex gap-[2px]"
             >
               <button
@@ -498,7 +498,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
               :tone="u.disabled ? 'default' : 'danger'"
               @click="setDisabled(u)"
             >
-              {{ u.disabled ? tt('Enable') : confirming === `disable:${u.id}` ? tt('Confirm disable') : tt('Disable') }}
+              {{ u.disabled ? 'Enable' : confirming === `disable:${u.id}` ? 'Confirm disable' : 'Disable' }}
             </HBtn>
             <HBtn
               v-if="!u.isSelf"
@@ -506,14 +506,14 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
               tone="danger"
               @click="remove(u)"
             >
-              {{ confirming === `delete:${u.id}` ? tt('Confirm delete {0}', [u.email]) : tt('Delete') }}
+              {{ confirming === `delete:${u.id}` ? `Confirm delete ${u.email}` : 'Delete' }}
             </HBtn>
             <HBtn
               v-if="u.mfaEnabled"
               size="sm"
               @click="resetMfa(u)"
             >
-              {{ confirming === `mfa:${u.id}` ? tt('Confirm: remove their authenticator') : tt('Reset 2FA') }}
+              {{ confirming === `mfa:${u.id}` ? 'Confirm: remove their authenticator' : 'Reset 2FA' }}
             </HBtn>
           </div>
 
@@ -532,7 +532,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
               <HIcon
                 name="download"
                 :size="11"
-              />{{ tt('Usage as CSV') }}
+              />Usage as CSV
             </HBtn>
           </div>
 
@@ -540,7 +540,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             v-if="u.source === 'local' && writable"
             class="flex flex-col gap-1.5"
           >
-            <span class="text-[11.5px] text-muted">{{ tt('Password') }}</span>
+            <span class="text-[11.5px] text-muted">Password</span>
             <form
               class="flex flex-wrap items-center gap-2"
               @submit.prevent="resetPassword(u, false)"
@@ -550,8 +550,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 type="password"
                 minlength="8"
                 autocomplete="new-password"
-                :aria-label="tt('New password for {0}', [u.name])"
-                :placeholder="tt('New password')"
+                :aria-label="`New password for ${u.name}`"
+                placeholder="New password"
                 :class="input"
                 class="h-7 max-w-[220px]"
               >
@@ -560,13 +560,13 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 type="submit"
                 :disabled="newPassword.length < 8"
               >
-                {{ tt('Set') }}
+                Set
               </HBtn>
               <HBtn
                 size="sm"
                 @click="resetPassword(u, true)"
               >
-                {{ tt('Generate new') }}
+                Generate new
               </HBtn>
             </form>
           </div>
@@ -574,7 +574,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             v-else-if="u.source === 'ldap' || u.source === 'sso'"
             class="m-0 text-[11.5px] text-muted"
           >
-            {{ tt('The password is managed in {0}.', [u.source === 'ldap' ? 'the directory' : 'the identity provider']) }}
+            The password is managed in {{ u.source === 'ldap' ? 'the directory' : 'the identity provider' }}.
           </p>
 
           <div
@@ -582,7 +582,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             class="flex flex-col gap-1.5"
           >
             <div class="flex items-center gap-2 text-[11.5px] text-muted">
-              <span>{{ tt('Devices and sessions') }}</span>
+              <span>Devices and sessions</span>
               <span class="flex-1" />
               <HBtn
                 v-if="writable && sessions && (sessions.devices.length || sessions.webSessions)"
@@ -590,13 +590,13 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 tone="danger"
                 @click="revoke(u)"
               >
-                {{ confirming === `revoke:${u.id}` ? tt('Confirm sign out everywhere') : tt('Sign out everywhere') }}
+                {{ confirming === `revoke:${u.id}` ? 'Confirm sign out everywhere' : 'Sign out everywhere' }}
               </HBtn>
             </div>
             <span
               v-if="!sessions"
               class="text-[11.5px] text-dimmed"
-            >{{ tt('Loading…') }}</span>
+            >Loading…</span>
             <template v-else>
               <div
                 v-for="d in sessions.devices"
@@ -604,19 +604,19 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 class="flex items-center gap-2 text-[11.5px]"
               >
                 <span class="truncate text-toned">{{ d.name }}</span>
-                <span class="truncate text-dimmed">{{ tt('{0} · seen {1}', [[d.os, d.arch].filter(Boolean).join('/'), ago(d.lastSeenAt)]) }}</span>
+                <span class="truncate text-dimmed">{{ [d.os, d.arch].filter(Boolean).join('/') }} · seen {{ ago(d.lastSeenAt) }}</span>
                 <span class="flex-1" />
                 <HIconBtn
                   v-if="writable"
                   icon="x"
                   :size="26"
                   :icon-size="12"
-                  :label="tt('Revoke {0}', [d.name])"
+                  :label="`Revoke ${d.name}`"
                   @click="revoke(u, d.id)"
                 />
               </div>
               <span class="text-[11.5px] text-dimmed">
-                {{ tt('{0}{1} web {2}.', [sessions.devices.length ? '' : tt('No connected devices. '), sessions.webSessions, sessions.webSessions === 1 ? 'session' : 'sessions']) }}
+                {{ sessions.devices.length ? '' : 'No connected devices. ' }}{{ sessions.webSessions }} web {{ sessions.webSessions === 1 ? 'session' : 'sessions' }}.
               </span>
             </template>
           </div>
@@ -625,7 +625,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             v-if="canSeeSessions"
             class="flex flex-col gap-1.5"
           >
-            <span class="text-[11.5px] text-muted">{{ tt('Personal providers') }}</span>
+            <span class="text-[11.5px] text-muted">Personal providers</span>
             <div
               v-for="p in providers"
               :key="p.id"
@@ -642,13 +642,13 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 tone="danger"
                 @click="removeProvider(u, p)"
               >
-                {{ confirming === `provider:${p.id}` ? tt('Confirm remove') : tt('Remove') }}
+                {{ confirming === `provider:${p.id}` ? 'Confirm remove' : 'Remove' }}
               </HBtn>
             </div>
             <span
               v-if="sessions && !providers.length"
               class="text-[11.5px] text-dimmed"
-            >{{ tt('None.') }}</span>
+            >None.</span>
           </div>
         </div>
       </div>
@@ -657,7 +657,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       v-else
       class="m-0 border border-default px-3 py-5 text-center text-[12.5px] text-muted"
     >
-      {{ query ? tt('No users match.') : tt('No users.') }}
+      {{ query ? 'No users match.' : 'No users.' }}
     </p>
 
     <SettingsGroups

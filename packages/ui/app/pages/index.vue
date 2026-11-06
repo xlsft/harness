@@ -115,7 +115,7 @@ useSlashActions()
           v-else
           class="flex flex-1 items-center justify-center text-[12.5px] text-muted"
         >
-          {{ store.error || tt('Connecting to the harness client…') }}
+          {{ store.error || 'Connecting to the harness client…' }}
         </div>
       </SplitterPanel>
 

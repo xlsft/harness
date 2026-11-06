@@ -36,7 +36,7 @@ async function run(action: () => unknown) {
     await action()
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    toast.add({ title: tt('Could not update the session'), description: msg.replace(/^\[\w+\]\s*/, ''), color: 'error' })
+    toast.add({ title: 'Could not update the session', description: msg.replace(/^\[\w+\]\s*/, ''), color: 'error' })
   }
 }
 
@@ -44,8 +44,8 @@ const copyPath = () => navigator.clipboard.writeText(props.session.meta.cwd)
 
 // "Open in" targets: this window, or a new browser tab (the UI opens ?session=<id>; not in the desktop app).
 const openTargets = computed(() => [
-  { label: tt('This window'), run: openHere },
-  ...(desktop ? [] : [{ label: tt('New tab'), run: openInTab }])
+  { label: 'This window', run: openHere },
+  ...(desktop ? [] : [{ label: 'New tab', run: openInTab }])
 ])
 function openHere() {
   store.open(id.value)
@@ -110,7 +110,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   >
     <button
       type="button"
-      :aria-label="tt('More for {0}', [session.meta.title])"
+      :aria-label="`More for ${session.meta.title}`"
       class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-strong"
       :class="open ? 'flex bg-hover text-strong' : 'hidden group-hover/row:flex'"
       @click.stop.prevent
@@ -136,12 +136,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             icon="external"
             sub
           >
-            {{ tt('Open in') }}
+            Open in
           </PaneMenuItem>
           <template #content>
             <div
               role="menu"
-              :aria-label="tt('Open in')"
+              aria-label="Open in"
               class="min-w-[160px] border border-accented bg-hover py-1 text-[12.5px]"
             >
               <PaneMenuItem
@@ -159,14 +159,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           icon="folder"
           @click="run(() => revealInFolder(session.meta.cwd))"
         >
-          {{ tt('Show in Finder') }}
+          Show in Finder
         </PaneMenuItem>
         <template v-if="!remote && !sub">
           <PaneMenuItem
             icon="copy"
             @click="run(copyPath)"
           >
-            {{ tt('Copy path') }}
+            Copy path
           </PaneMenuItem>
           <div class="my-1 h-px bg-line" />
         </template>
@@ -175,21 +175,21 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           value="P"
           @click="run(actions.p!)"
         >
-          {{ pinned ? tt('Unpin') : tt('Pin') }}
+          {{ pinned ? 'Unpin' : 'Pin' }}
         </PaneMenuItem>
         <PaneMenuItem
           icon="dot"
           value="U"
           @click="run(actions.u!)"
         >
-          {{ unread ? tt('Mark as read') : tt('Mark as unread') }}
+          {{ unread ? 'Mark as read' : 'Mark as unread' }}
         </PaneMenuItem>
         <PaneMenuItem
           icon="edit"
           value="R"
           @click="run(actions.r!)"
         >
-          {{ tt('Rename') }}
+          Rename
         </PaneMenuItem>
         <PaneMenuItem
           v-if="canFork"
@@ -197,7 +197,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           value="F"
           @click="run(actions.f!)"
         >
-          {{ remote ? tt('Continue here…') : tt('Fork') }}
+          {{ remote ? 'Continue here…' : 'Fork' }}
         </PaneMenuItem>
         <template v-if="sub">
           <div class="my-1 h-px bg-line" />
@@ -205,26 +205,26 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             icon="arrow-up-right"
             @click="run(detach)"
           >
-            {{ tt('Detach to top level') }}
+            Detach to top level
           </PaneMenuItem>
         </template>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
           icon="archive"
           value="A"
-          :title="children ? tt('Its {0} sub-session{1} are archived too', [children, children === 1 ? '' : 's']) : undefined"
+          :title="children ? `Its ${children} sub-session${children === 1 ? '' : 's'} are archived too` : undefined"
           @click="run(actions.a!)"
         >
-          {{ tt('Archive') }}
+          Archive
         </PaneMenuItem>
         <PaneMenuItem
           icon="trash"
           value="D"
           danger
-          :title="children ? tt('Sub-sessions stay, moved to the top level') : undefined"
+          :title="children ? 'Sub-sessions stay, moved to the top level' : undefined"
           @click="remove"
         >
-          {{ confirmDelete ? (children ? tt('Delete? Sub-sessions stay') : tt('Delete for good?')) : tt('Delete') }}
+          {{ confirmDelete ? (children ? 'Delete? Sub-sessions stay' : 'Delete for good?') : 'Delete' }}
         </PaneMenuItem>
       </div>
     </template>

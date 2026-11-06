@@ -30,7 +30,7 @@ watch(() => props.session.meta.id, () => (usage.value = null))
       :disabled="!breakdown"
       @click="open = !open"
     >
-      <span class="text-[12px] text-muted">{{ tt('Context') }}</span>
+      <span class="text-[12px] text-muted">Context</span>
       <HIcon
         v-if="breakdown"
         name="right"

@@ -62,16 +62,16 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
 
 <template>
   <section
-    :aria-label="tt('Permission modes')"
+    aria-label="Permission modes"
     class="mb-6 flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('Permission modes') }}
+      Permission modes
     </h2>
     <p class="set-sub">
-      {{ tt('How much the agent may do without asking. New sessions start in the default one.') }}
+      How much the agent may do without asking. New sessions start in the default one.
       <template v-if="admin">
-        {{ tt('Allowed switches a mode on or off for everyone on this server.') }}
+        Allowed switches a mode on or off for everyone on this server.
       </template>
     </p>
     <p
@@ -109,13 +109,13 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
         <span
           v-if="isOff(m.key)"
           class="text-[11px] text-dimmed"
-        >{{ tt('Disabled by your admin') }}</span>
+        >Disabled by your admin</span>
         <button
           v-else
           type="button"
           role="radio"
           :aria-checked="defaultMode === m.key"
-          :aria-label="tt('Start new sessions in {0} mode', [m.label])"
+          :aria-label="`Start new sessions in ${m.label} mode`"
           class="flex shrink-0 items-center gap-1.5 text-[11px]"
           :class="defaultMode === m.key ? 'text-strong' : 'text-muted hover:text-strong'"
           @click="save('mode', m.key)"
@@ -129,18 +129,18 @@ async function setAllowed(k: PermissionModeName, on: boolean) {
             :size="10"
             class="text-strong"
           /></span>
-          {{ tt('default') }}
+          default
         </button>
         <span
           v-if="admin"
           class="flex shrink-0 items-center gap-1.5 text-[11px] text-muted"
-          :title="m.key === 'default' ? tt('Ask is always allowed') : undefined"
+          :title="m.key === 'default' ? 'Ask is always allowed' : undefined"
         >
-          {{ tt('allowed') }}
+          allowed
           <HToggle
             :model-value="!isOff(m.key)"
             :disabled="m.key === 'default' || saving"
-            :label="tt('Allow {0} mode for everyone', [m.label])"
+            :label="`Allow ${m.label} mode for everyone`"
             @update:model-value="setAllowed(m.key, $event)"
           />
         </span>

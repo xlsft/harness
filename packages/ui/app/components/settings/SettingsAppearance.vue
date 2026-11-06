@@ -9,7 +9,7 @@ const { appearance, kind, themes, isCustom, importTheme, removeTheme, setMode, s
 
 // Text sizes: the interface scales the whole app; code has its own size and font.
 const UI_SIZES = [12, 13, 14, 15, 16].map(n => ({ value: String(n), label: `${n} px`, hint: n === UI_SIZE_DEFAULT ? 'default' : undefined }))
-const CODE_SIZES = [{ value: '0', label: tt('Default · {0} px', [CODE_SIZE_DEFAULT]) }, ...[11, 12, 13, 14, 15, 16].map(n => ({ value: String(n), label: `${n} px` }))]
+const CODE_SIZES = [{ value: '0', label: `Default · ${CODE_SIZE_DEFAULT} px` }, ...[11, 12, 13, 14, 15, 16].map(n => ({ value: String(n), label: `${n} px` }))]
 const uiSize = computed({ get: () => String(appearance.value.uiSize), set: (v: string) => setSizes({ uiSize: Number(v) }) })
 const codeSize = computed({ get: () => String(appearance.value.codeSize), set: (v: string) => setSizes({ codeSize: Number(v) }) })
 const codeFont = ref(appearance.value.codeFont)
@@ -42,16 +42,16 @@ async function onPick(e: Event) {
   try {
     const t = themeFromVsCode(await file.text(), file.name)
     importTheme(t)
-    toast.add({ title: tt('Imported {0}', [t.name]), description: tt('Now your {0} theme.', [t.kind]), color: 'neutral' })
+    toast.add({ title: `Imported ${t.name}`, description: `Now your ${t.kind} theme.`, color: 'neutral' })
   } catch (err) {
-    toast.add({ title: tt('Could not import the theme'), description: err instanceof Error ? err.message : String(err), color: 'error' })
+    toast.add({ title: 'Could not import the theme', description: err instanceof Error ? err.message : String(err), color: 'error' })
   }
 }
 
 const MODES = [
-  { value: 'system', label: tt('System'), hint: 'follows the OS' },
-  { value: 'light', label: tt('Light') },
-  { value: 'dark', label: tt('Dark') }
+  { value: 'system', label: 'System', hint: 'follows the OS' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' }
 ]
 const mode = computed({
   get: () => appearance.value.mode,
@@ -59,15 +59,15 @@ const mode = computed({
 })
 
 const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
-  { kind: 'light', title: tt('Light theme'), desc: tt('Used in light mode, and in System mode while the OS is light.') },
-  { kind: 'dark', title: tt('Dark theme'), desc: tt('Used in dark mode, and in System mode while the OS is dark.') }
+  { kind: 'light', title: 'Light theme', desc: 'Used in light mode, and in System mode while the OS is light.' },
+  { kind: 'dark', title: 'Dark theme', desc: 'Used in dark mode, and in System mode while the OS is dark.' }
 ]
 </script>
 
 <template>
   <div class="flex items-start gap-3">
     <h2 class="set-h flex-1">
-      {{ tt('Appearance') }}
+      Appearance
     </h2>
     <HBtn
       size="md"
@@ -76,7 +76,7 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
       <HIcon
         name="upload"
         :size="12"
-      />{{ tt('Import VS Code theme…') }}
+      />Import VS Code theme…
     </HBtn>
     <input
       ref="picker"
@@ -87,18 +87,18 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
     >
   </div>
   <p class="set-sub">
-    {{ tt('How the app looks in this browser.') }}
+    How the app looks in this browser.
   </p>
   <div class="set-row">
     <div class="set-label">
-      <span>{{ tt('Mode') }}</span>
-      <span class="set-desc">{{ tt('Light, dark, or the same as the system.') }}</span>
+      <span>Mode</span>
+      <span class="set-desc">Light, dark, or the same as the system.</span>
     </div>
     <div class="w-[200px]">
       <HSelect
         v-model="mode"
         :options="MODES"
-        :aria-label="tt('Appearance mode')"
+        aria-label="Appearance mode"
       />
     </div>
   </div>
@@ -111,7 +111,7 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
       <span>{{ k.title }}<span
         v-if="kind === k.kind"
         class="ml-2 text-[11.5px] text-muted"
-      >{{ tt('in use') }}</span></span>
+      >in use</span></span>
       <span class="set-desc">{{ k.desc }}</span>
     </div>
     <div
@@ -135,8 +135,8 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
           <span
             v-if="isCustom(t)"
             role="button"
-            :aria-label="tt('Remove {0}', [t.name])"
-            :title="tt('Remove')"
+            :aria-label="`Remove ${t.name}`"
+            title="Remove"
             class="text-muted hover:text-bad"
             @click.stop="removeTheme(t)"
           ><HIcon
@@ -155,32 +155,32 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
   </div>
   <div class="set-row">
     <div class="set-label">
-      <span>{{ tt('Text size') }}</span>
-      <span class="set-desc">{{ tt('The interface\'s text; everything else scales with it.') }}</span>
+      <span>Text size</span>
+      <span class="set-desc">The interface's text; everything else scales with it.</span>
     </div>
     <div class="w-[200px]">
       <HSelect
         v-model="uiSize"
         :options="UI_SIZES"
-        :aria-label="tt('Text size')"
+        aria-label="Text size"
       />
     </div>
   </div>
 
   <h2 class="set-h mt-8">
-    {{ tt('Accessibility') }}
+    Accessibility
   </h2>
   <p class="set-sub">
-    {{ tt('The color-blind themes are in the theme lists above.') }}
+    The color-blind themes are in the theme lists above.
   </p>
   <div class="set-row">
     <div class="set-label">
-      <span>{{ tt('Screen reader mode') }}</span>
-      <span class="set-desc">{{ tt('Says when the agent starts, finishes or needs you, and reads its answers; takes away motion and decoration. For this browser.') }}</span>
+      <span>Screen reader mode</span>
+      <span class="set-desc">Says when the agent starts, finishes or needs you, and reads its answers; takes away motion and decoration. For this browser.</span>
     </div>
     <HToggle
       :model-value="screenReader.enabled.value"
-      :label="tt('Screen reader mode')"
+      label="Screen reader mode"
       @update:model-value="screenReader.set($event)"
     />
   </div>
@@ -189,21 +189,21 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
     class="set-row"
   >
     <div class="set-label">
-      <span>{{ tt('Language') }}</span>
+      <span>Language</span>
     </div>
     <HSelect
       :model-value="currentLocale()"
       :options="locales"
-      :aria-label="tt('Language')"
+      aria-label="Language"
       @update:model-value="pickLocale"
     />
   </div>
 
   <h2 class="set-h mt-8">
-    {{ tt('Code') }}
+    Code
   </h2>
   <p class="set-sub">
-    {{ tt('Code blocks, diffs, inline code and command output, in your light and dark theme.') }}
+    Code blocks, diffs, inline code and command output, in your light and dark theme.
   </p>
   <div class="set-row !items-stretch gap-3 max-md:flex-col">
     <div
@@ -221,13 +221,13 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
   </div>
   <div class="set-row">
     <div class="set-label">
-      <span>{{ tt('Code font') }}</span>
-      <span class="set-desc">{{ tt('A monospace font installed on this computer; empty: the theme\'s.') }}</span>
+      <span>Code font</span>
+      <span class="set-desc">A monospace font installed on this computer; empty: the theme's.</span>
     </div>
     <input
       v-model.lazy="codeFont"
       placeholder="e.g. JetBrains Mono"
-      :aria-label="tt('Code font')"
+      aria-label="Code font"
       autocapitalize="off"
       autocorrect="off"
       spellcheck="false"
@@ -237,13 +237,13 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
   </div>
   <div class="set-row">
     <div class="set-label">
-      <span>{{ tt('Terminal font') }}</span>
-      <span class="set-desc">{{ tt('Any installed font; empty: the theme\'s Nerd Font, with icons for prompts and tools.') }}</span>
+      <span>Terminal font</span>
+      <span class="set-desc">Any installed font; empty: the theme's Nerd Font, with icons for prompts and tools.</span>
     </div>
     <input
       v-model.lazy="terminalFont"
       :placeholder="themeTerminalFont"
-      :aria-label="tt('Terminal font')"
+      aria-label="Terminal font"
       autocapitalize="off"
       autocorrect="off"
       spellcheck="false"
@@ -253,14 +253,14 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
   </div>
   <div class="set-row">
     <div class="set-label">
-      <span>{{ tt('Code font size') }}</span>
-      <span class="set-desc">{{ tt('Code and the terminal; independent of the text size.') }}</span>
+      <span>Code font size</span>
+      <span class="set-desc">Code and the terminal; independent of the text size.</span>
     </div>
     <div class="w-[200px]">
       <HSelect
         v-model="codeSize"
         :options="CODE_SIZES"
-        :aria-label="tt('Code font size')"
+        aria-label="Code font size"
       />
     </div>
   </div>

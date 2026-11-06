@@ -10,7 +10,7 @@ const LAST_SERVER = 'harness-server-url'
 const LINKS = [
   { label: 'harness.xlsft.com', url: 'https://harness.xlsft.com' },
   { label: 'GitHub', url: 'https://github.com/xlsft/harness' },
-  { label: tt('Self-host the server'), url: 'https://github.com/xlsft/harness/tree/main/deploy' }
+  { label: 'Self-host the server', url: 'https://github.com/xlsft/harness/tree/main/deploy' }
 ]
 const server = ref('')
 const code = ref<{ uri: string, code: string } | null>(null)
@@ -72,10 +72,10 @@ async function cancel() {
           <HWordmark class="h-[22px] w-auto self-start text-strong" />
           <div class="flex flex-col gap-1.5">
             <h1 class="m-0 text-[17px] font-semibold text-strong">
-              {{ tt('Your workflow, unbounded.') }}
+              Your workflow, unbounded.
             </h1>
             <p class="m-0 text-[13px] leading-[1.6] text-toned">
-              {{ tt('The coding agent you already know, with any model and a server you own.') }}
+              The coding agent you already know, with any model and a server you own.
             </p>
           </div>
         </div>
@@ -86,13 +86,13 @@ async function cancel() {
           @submit.prevent="start"
         >
           <label class="flex flex-col gap-1.5 text-[12px] text-muted">
-            {{ tt('Server') }}
+            Server
             <input
               v-model="server"
               type="url"
               spellcheck="false"
               autocomplete="url"
-              :aria-label="tt('Server URL')"
+              aria-label="Server URL"
               placeholder="https://harness.example.com"
               class="h-9 border border-accented bg-surface px-2.5 text-[12.5px] text-strong outline-none placeholder:text-dimmed focus:border-accent"
             >
@@ -102,7 +102,7 @@ async function cancel() {
             :disabled="busy || !server.trim()"
             class="h-9 bg-accent text-[12.5px] text-on-accent disabled:opacity-50"
           >
-            {{ busy ? tt('Connecting…') : tt('Sign in') }}
+            {{ busy ? 'Connecting…' : 'Sign in' }}
           </button>
         </form>
 
@@ -110,7 +110,7 @@ async function cancel() {
           v-else
           class="flex flex-col gap-3 border border-accented bg-surface p-4"
         >
-          <span class="text-[12px] text-muted">{{ tt('Confirm this code in your browser') }}</span>
+          <span class="text-[12px] text-muted">Confirm this code in your browser</span>
           <span class="text-center text-[24px] tracking-[0.2em] text-strong">{{ code.code }}</span>
           <span class="inline-flex items-center gap-2 text-[12px] text-muted">
             <HIcon
@@ -118,7 +118,7 @@ async function cancel() {
               :size="13"
               spin
               class="text-accent"
-            />{{ tt('Waiting…') }}
+            />Waiting…
           </span>
           <div class="flex gap-2">
             <button
@@ -126,14 +126,14 @@ async function cancel() {
               class="h-8 flex-1 border border-default text-[12px] text-toned hover:text-strong"
               @click="openExternal(code.uri)"
             >
-              {{ tt('Open the page again') }}
+              Open the page again
             </button>
             <button
               type="button"
               class="h-8 flex-1 border border-default text-[12px] text-toned hover:text-strong"
               @click="cancel"
             >
-              {{ tt('Cancel') }}
+              Cancel
             </button>
           </div>
         </div>

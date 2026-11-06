@@ -16,7 +16,7 @@ async function resolve(action: 'start' | 'dismiss') {
   try {
     await store.resolveProposal(props.sessionId, c.proposal.id, action)
   } catch (err) {
-    toast.add({ title: action === 'start' ? tt('Could not start the session') : tt('Could not dismiss the proposal'), description: (err instanceof Error ? err.message : String(err)).replace(/^\[\w+\]\s*/, ''), color: 'error' })
+    toast.add({ title: action === 'start' ? 'Could not start the session' : 'Could not dismiss the proposal', description: (err instanceof Error ? err.message : String(err)).replace(/^\[\w+\]\s*/, ''), color: 'error' })
   } finally {
     busy.value = false
   }
@@ -46,7 +46,7 @@ const STATE_TEXT = { dismissed: 'Dismissed', expired: 'Expired' } as const
     <span
       v-if="!card.rows.length"
       class="text-[12px] text-muted"
-    >{{ tt('No sessions') }}</span>
+    >No sessions</span>
   </div>
   <div
     v-else-if="card.kind === 'proposal'"
@@ -73,7 +73,7 @@ const STATE_TEXT = { dismissed: 'Dismissed', expired: 'Expired' } as const
         :disabled="busy"
         @click="resolve('start')"
       >
-        {{ tt('Start session') }}
+        Start session
       </HBtn>
       <HBtn
         size="md"
@@ -81,13 +81,13 @@ const STATE_TEXT = { dismissed: 'Dismissed', expired: 'Expired' } as const
         :disabled="busy"
         @click="resolve('dismiss')"
       >
-        {{ tt('Dismiss') }}
+        Dismiss
       </HBtn>
     </div>
     <span
       v-else
       class="text-[12px] text-muted"
-    >{{ card.proposal?.state === 'dismissed' || card.proposal?.state === 'expired' ? STATE_TEXT[card.proposal.state] : tt('Not available here') }}</span>
+    >{{ card.proposal?.state === 'dismissed' || card.proposal?.state === 'expired' ? STATE_TEXT[card.proposal.state] : 'Not available here' }}</span>
   </div>
   <div
     v-else-if="card.kind === 'status'"

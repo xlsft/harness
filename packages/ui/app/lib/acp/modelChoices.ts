@@ -3,7 +3,6 @@
 // it in rows. An agent's model ids are its own and may equal a server model's or another agent's, so a row is
 // identified by its key: "<engine>/<id>" for an agent's model, the id for a server's.
 
-import { tt } from '~/utils/i18n'
 import { AcpModelsStatus, SessionFeature, type AcpAgent, type AcpSessionState } from '~/gen/harness/agent/v1/acp_pb'
 import type { EffortName } from '~/lib/session/types'
 import type { ModelInfo } from '~/lib/transport/types'
@@ -118,7 +117,7 @@ export function modelSections(input: ModelChoicesInput): ModelSection[] {
     const rest = rows.filter(r => !favorites.includes(r.key))
     if (rest.length || (!q && !g.rows.length && g.note)) out.push({ ...g, rows: rest })
   }
-  if (fav.length) out.unshift({ key: 'favorites', title: tt('Favorites'), rows: fav, note: '', failed: false })
+  if (fav.length) out.unshift({ key: 'favorites', title: 'Favorites', rows: fav, note: '', failed: false })
   return out
 }
 

@@ -101,10 +101,10 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
     class="flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('LDAP') }}
+      LDAP
     </h2>
     <p class="set-sub">
-      {{ tt('Sign in with directory accounts (OpenLDAP, Active Directory). The sign-in page checks the directory; a successful sign-in creates or updates the account here, without a local password.') }}
+      Sign in with directory accounts (OpenLDAP, Active Directory). The sign-in page checks the directory; a successful sign-in creates or updates the account here, without a local password.
     </p>
     <p
       v-if="error"
@@ -124,23 +124,23 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
       >
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('LDAP sign-in') }}</span>
-            <span class="set-desc">{{ tt('Off: only local accounts sign in.') }}</span>
+            <span>LDAP sign-in</span>
+            <span class="set-desc">Off: only local accounts sign in.</span>
           </div>
           <HToggle
             v-model="s.enabled"
-            :label="tt('Enable LDAP sign-in')"
+            label="Enable LDAP sign-in"
           />
         </div>
 
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Servers') }}</span>
-            <span class="set-desc">{{ tt('ldap:// or ldaps:// URLs, one per line, tried in order.') }}</span>
+            <span>Servers</span>
+            <span class="set-desc">ldap:// or ldaps:// URLs, one per line, tried in order.</span>
           </div>
           <textarea
             v-model="urls"
-            :aria-label="tt('LDAP server URLs')"
+            aria-label="LDAP server URLs"
             placeholder="ldaps://ldap.example.com"
             spellcheck="false"
             :class="area"
@@ -148,22 +148,22 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('StartTLS') }}</span>
-            <span class="set-desc">{{ tt('Upgrade ldap:// connections to TLS.') }}</span>
+            <span>StartTLS</span>
+            <span class="set-desc">Upgrade ldap:// connections to TLS.</span>
           </div>
           <HToggle
             v-model="s.startTls"
-            :label="tt('Use StartTLS')"
+            label="Use StartTLS"
           />
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('CA certificate') }}</span>
-            <span class="set-desc">{{ tt('PEM, for a private CA. Empty: the system roots.') }}</span>
+            <span>CA certificate</span>
+            <span class="set-desc">PEM, for a private CA. Empty: the system roots.</span>
           </div>
           <textarea
             v-model="s.caCert"
-            :aria-label="tt('CA certificate')"
+            aria-label="CA certificate"
             placeholder="-----BEGIN CERTIFICATE-----"
             spellcheck="false"
             :class="area"
@@ -171,12 +171,12 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Skip certificate check') }}</span>
-            <span class="set-desc">{{ tt('Accepts any server certificate.') }}</span>
+            <span>Skip certificate check</span>
+            <span class="set-desc">Accepts any server certificate.</span>
           </div>
           <HToggle
             v-model="s.skipVerify"
-            :label="tt('Skip certificate verification')"
+            label="Skip certificate verification"
           />
         </div>
         <p
@@ -184,18 +184,18 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
           role="alert"
           class="m-0 mb-2 border border-bad px-3 py-2 text-[12px] text-bad"
         >
-          {{ tt('Insecure: anyone between this server and the directory can read passwords. Use it only to test, then add the CA certificate instead.') }}
+          Insecure: anyone between this server and the directory can read passwords. Use it only to test, then add the CA certificate instead.
         </p>
 
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Search account') }}</span>
-            <span class="set-desc">{{ tt('Bind DN to search users with. Empty: anonymous search.') }}</span>
+            <span>Search account</span>
+            <span class="set-desc">Bind DN to search users with. Empty: anonymous search.</span>
           </div>
           <div class="flex flex-col gap-2">
             <input
               v-model="s.bindDn"
-              :aria-label="tt('Bind DN')"
+              aria-label="Bind DN"
               placeholder="cn=harness,ou=services,dc=example,dc=com"
               spellcheck="false"
               :class="input"
@@ -203,9 +203,9 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
             <input
               v-model="s.bindPassword"
               type="password"
-              :aria-label="tt('Bind password')"
+              aria-label="Bind password"
               autocomplete="new-password"
-              :placeholder="s.bindPasswordSet ? tt('Password set; type to replace') : tt('Bind password')"
+              :placeholder="s.bindPasswordSet ? 'Password set; type to replace' : 'Bind password'"
               :class="input"
             >
             <label
@@ -215,26 +215,26 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
               <input
                 v-model="s.clearBindPassword"
                 type="checkbox"
-              >{{ tt('Remove the stored password') }}
+              >Remove the stored password
             </label>
           </div>
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('User search') }}</span>
-            <span class="set-desc">{{ tt('Base DN and filter; {0} is the login, escaped.', ['{' + '{username}' + '}']) }}</span>
+            <span>User search</span>
+            <span class="set-desc">Base DN and filter; {{ '{' + '{username}' + '}' }} is the login, escaped.</span>
           </div>
           <div class="flex flex-col gap-2">
             <input
               v-model="s.userBaseDn"
-              :aria-label="tt('User search base DN')"
+              aria-label="User search base DN"
               placeholder="ou=people,dc=example,dc=com"
               spellcheck="false"
               :class="input"
             >
             <input
               v-model="s.userFilter"
-              :aria-label="tt('User filter')"
+              aria-label="User filter"
               :placeholder="DEFAULT_LDAP_FILTER"
               spellcheck="false"
               :class="input"
@@ -244,13 +244,13 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Attributes') }}</span>
-            <span class="set-desc">{{ tt('Username, email and display name (AD: sAMAccountName, mail, displayName).') }}</span>
+            <span>Attributes</span>
+            <span class="set-desc">Username, email and display name (AD: sAMAccountName, mail, displayName).</span>
           </div>
           <div class="flex w-[300px] gap-2 max-sm:w-full">
             <input
               v-model="s.usernameAttribute"
-              :aria-label="tt('Username attribute')"
+              aria-label="Username attribute"
               placeholder="uid"
               spellcheck="false"
               :class="input"
@@ -258,7 +258,7 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
             >
             <input
               v-model="s.emailAttribute"
-              :aria-label="tt('Email attribute')"
+              aria-label="Email attribute"
               placeholder="mail"
               spellcheck="false"
               :class="input"
@@ -266,7 +266,7 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
             >
             <input
               v-model="s.nameAttribute"
-              :aria-label="tt('Display name attribute')"
+              aria-label="Display name attribute"
               placeholder="cn"
               spellcheck="false"
               :class="input"
@@ -276,21 +276,21 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Groups') }}</span>
-            <span class="set-desc">{{ tt('Allowed: only its members sign in. Admins: its members become admins, everyone else users.') }}</span>
+            <span>Groups</span>
+            <span class="set-desc">Allowed: only its members sign in. Admins: its members become admins, everyone else users.</span>
           </div>
           <div class="flex flex-col gap-2">
             <input
               v-model="s.allowedGroupDn"
-              :aria-label="tt('Allowed group DN')"
-              :placeholder="tt('Allowed group DN (optional)')"
+              aria-label="Allowed group DN"
+              placeholder="Allowed group DN (optional)"
               spellcheck="false"
               :class="input"
             >
             <input
               v-model="s.adminGroupDn"
-              :aria-label="tt('Admin group DN')"
-              :placeholder="tt('Admin group DN (optional)')"
+              aria-label="Admin group DN"
+              placeholder="Admin group DN (optional)"
               spellcheck="false"
               :class="input"
             >
@@ -298,8 +298,8 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Group to role rules') }}</span>
-            <span class="set-desc">{{ tt('Group DN to role, re-checked at every sign-in; the admin group goes first. First match wins, no match is a plain user. Empty: roles are managed in Users.') }}</span>
+            <span>Group to role rules</span>
+            <span class="set-desc">Group DN to role, re-checked at every sign-in; the admin group goes first. First match wins, no match is a plain user. Empty: roles are managed in Users.</span>
           </div>
           <SettingsRoleMappings
             v-model="s.roleMappings"
@@ -309,30 +309,30 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Create accounts') }}</span>
-            <span class="set-desc">{{ tt('On first sign-in. Off: add directory users under Users first.') }}</span>
+            <span>Create accounts</span>
+            <span class="set-desc">On first sign-in. Off: add directory users under Users first.</span>
           </div>
           <HToggle
             v-model="s.autoCreateUsers"
-            :label="tt('Create accounts on first sign-in')"
+            label="Create accounts on first sign-in"
           />
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Local accounts') }}</span>
-            <span class="set-desc">{{ tt('Who may still sign in with a local password.') }}</span>
+            <span>Local accounts</span>
+            <span class="set-desc">Who may still sign in with a local password.</span>
           </div>
           <div class="flex flex-col gap-2">
             <HSelect
               v-model="s.localLogin"
-              :aria-label="tt('Local accounts')"
+              aria-label="Local accounts"
               :options="[{ value: 'fallback', label: 'Everyone, when the directory refuses' }, { value: 'break_glass', label: 'Only the break-glass admins below' }]"
             />
             <textarea
               v-if="s.localLogin === 'break_glass'"
               v-model="breakGlass"
-              :aria-label="tt('Break-glass logins')"
-              :placeholder="tt('Usernames or emails, one per line')"
+              aria-label="Break-glass logins"
+              placeholder="Usernames or emails, one per line"
               spellcheck="false"
               :class="area"
             />
@@ -341,8 +341,8 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
 
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Test') }}</span>
-            <span class="set-desc">{{ tt('Uses the form as it is, before saving.') }}</span>
+            <span>Test</span>
+            <span class="set-desc">Uses the form as it is, before saving.</span>
           </div>
           <div class="flex w-[300px] flex-col gap-2 max-sm:w-full">
             <HBtn
@@ -351,7 +351,7 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
               class="self-start"
               @click="testConnection"
             >
-              {{ tt('Test connection') }}
+              Test connection
             </HBtn>
             <p
               v-if="test"
@@ -364,8 +364,8 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
             <div class="flex gap-2">
               <input
                 v-model="login"
-                :aria-label="tt('Login to look up')"
-                :placeholder="tt('Username or email')"
+                aria-label="Login to look up"
+                placeholder="Username or email"
                 autocapitalize="none"
                 spellcheck="false"
                 :class="input"
@@ -377,7 +377,7 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
                 :disabled="testing || !login.trim()"
                 @click="testUser"
               >
-                {{ tt('Test user lookup') }}
+                Test user lookup
               </HBtn>
             </div>
             <div
@@ -404,14 +404,14 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
             v-if="saved"
             role="status"
             class="text-[12px] text-muted"
-          >{{ tt('Saved') }}</span>
+          >Saved</span>
           <HBtn
             size="md"
             variant="primary"
             type="submit"
             :disabled="saving"
           >
-            {{ tt('Save') }}
+            Save
           </HBtn>
         </div>
       </fieldset>

@@ -86,7 +86,7 @@ async function create(draft: ProviderDraft) {
               <span
                 v-if="connectionsOf(preset.id).length"
                 class="text-[11px] text-ok"
-              >{{ tt('connected') }}</span>
+              >connected</span>
             </span>
             <span class="truncate text-[11.5px] text-muted">{{ preset.description }}</span>
           </span>
@@ -95,19 +95,19 @@ async function create(draft: ProviderDraft) {
             :href="preset.docsUrl"
             class="max-sm:hidden"
           >
-            {{ tt('Docs') }}
+            Docs
           </SettingsLink>
           <HBtn
             v-if="canConnect(preset) && connecting !== preset.id"
             size="sm"
             @click="connecting = preset.id"
           >
-            {{ tt('Connect') }}
+            Connect
           </HBtn>
           <span
             v-else-if="!canAdd || (preset.local && !canManageGlobal)"
             class="text-[11px] text-dimmed"
-          >{{ tt('admins connect it') }}</span>
+          >admins connect it</span>
         </div>
         <SettingsConnectForm
           v-if="connecting === preset.id"
@@ -147,8 +147,8 @@ async function create(draft: ProviderDraft) {
             :dim="!custom.length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="text-[12.5px] text-strong">{{ tt('Custom') }}</span>
-            <span class="truncate text-[11.5px] text-muted">{{ group === 'llm' ? tt('Any compatible API: you set the protocol, URL, key and headers.') : tt('A decision model or policy webhook of your own.') }}</span>
+            <span class="text-[12.5px] text-strong">Custom</span>
+            <span class="truncate text-[11.5px] text-muted">{{ group === 'llm' ? 'Any compatible API: you set the protocol, URL, key and headers.' : 'A decision model or policy webhook of your own.' }}</span>
           </span>
           <HBtn
             v-if="canAdd && !addingCustom"
@@ -158,7 +158,7 @@ async function create(draft: ProviderDraft) {
             <HIcon
               name="plus"
               :size="12"
-            />{{ tt('Add custom') }}
+            />Add custom
           </HBtn>
         </div>
         <SettingsCustomForm

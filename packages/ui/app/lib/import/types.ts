@@ -2,7 +2,6 @@
 // for what it finds and what can be chosen (./claudeCode.ts); following a run is the same for all of them. The client
 // decides what exists and what happened: this only renders it.
 
-import { tt } from '~/utils/i18n'
 import type { IconName } from '~/utils/icons'
 
 export interface ImportSource {
@@ -16,7 +15,7 @@ export const IMPORT_SOURCES: ImportSource[] = [
   {
     id: 'claude-code',
     name: 'Claude Code',
-    description: tt('Memory, settings, skills, agents, commands, output styles and sessions on this computer.'),
+    description: 'Memory, settings, skills, agents, commands, output styles and sessions on this computer.',
     icon: 'terminal'
   }
 ]

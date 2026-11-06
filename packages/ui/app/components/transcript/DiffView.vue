@@ -210,7 +210,7 @@ const split = computed(() => {
         v-if="!createsFile"
         class="flex shrink-0 overflow-hidden border border-default text-[11px]"
         role="group"
-        :aria-label="tt('Diff view')"
+        aria-label="Diff view"
       >
         <button
           type="button"
@@ -218,7 +218,7 @@ const split = computed(() => {
           :class="view === 'unified' ? 'bg-raised text-strong' : 'text-muted'"
           @click="view = 'unified'"
         >
-          {{ tt('Unified') }}
+          Unified
         </button>
         <button
           type="button"
@@ -226,7 +226,7 @@ const split = computed(() => {
           :class="view === 'split' ? 'bg-raised text-strong' : 'text-muted'"
           @click="view = 'split'"
         >
-          {{ tt('Split') }}
+          Split
         </button>
       </div>
     </div>
@@ -240,12 +240,12 @@ const split = computed(() => {
         v-if="commentable && draft && !draftRow"
         class="sticky left-0 flex w-[100cqw] flex-col gap-1.5 border border-accent bg-raised px-3 py-2"
       >
-        <span class="text-[11px] text-muted">{{ tt('Line {0} changed:', [draft.anchor.line]) }} <span class="text-toned">{{ draft.anchor.code.trim() }}</span></span>
+        <span class="text-[11px] text-muted">Line {{ draft.anchor.line }} changed: <span class="text-toned">{{ draft.anchor.code.trim() }}</span></span>
         <textarea
           v-model="draft.text"
           rows="3"
-          :placeholder="tt('What should change here?')"
-          :aria-label="tt('Comment')"
+          placeholder="What should change here?"
+          aria-label="Comment"
           data-draft
           class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-strong outline-none placeholder:text-muted"
           @keydown="onDraftKey"
@@ -257,7 +257,7 @@ const split = computed(() => {
             class="border border-default px-2 py-0.5 text-toned hover:text-strong"
             @click="draft = null"
           >
-            {{ tt('Cancel') }}
+            Cancel
           </button>
           <button
             type="button"
@@ -265,7 +265,7 @@ const split = computed(() => {
             :disabled="!draft.text.trim() && !draft.id"
             @click="saveComment"
           >
-            {{ draft.id ? tt('Save') : tt('Comment') }}
+            {{ draft.id ? 'Save' : 'Comment' }}
           </button>
         </div>
       </div>
@@ -289,7 +289,7 @@ const split = computed(() => {
               <button
                 v-if="commentable"
                 type="button"
-                :aria-label="tt('Comment on line {0}', [r.b || r.a])"
+                :aria-label="`Comment on line ${r.b || r.a}`"
                 class="absolute top-1/2 left-0.5 hidden size-4 -translate-y-1/2 items-center justify-center bg-accent text-on-accent group-hover/line:flex"
                 @click="startComment(r)"
               >
@@ -319,11 +319,11 @@ const split = computed(() => {
                     :key="ei"
                   >
                     <div class="flex items-start gap-2">
-                      <span class="w-10 shrink-0 text-[11px] text-muted">{{ tt('you') }}</span>
+                      <span class="w-10 shrink-0 text-[11px] text-muted">you</span>
                       <span class="min-w-0 flex-1 text-strong">{{ e.text }}</span>
                     </div>
                     <div class="flex items-start gap-2">
-                      <span class="w-10 shrink-0 text-[11px] text-accent">{{ tt('agent') }}</span>
+                      <span class="w-10 shrink-0 text-[11px] text-accent">agent</span>
                       <span
                         v-if="e.reply?.text"
                         class="max-h-60 min-w-0 flex-1 overflow-y-auto"
@@ -341,8 +341,8 @@ const split = computed(() => {
                   <textarea
                     v-model="replyText[c.id]"
                     rows="1"
-                    :placeholder="tt('Reply…')"
-                    :aria-label="tt('Reply')"
+                    placeholder="Reply…"
+                    aria-label="Reply"
                     class="ml-12 resize-none border border-default bg-surface px-2 py-1 text-[12px] leading-[1.6] text-strong outline-none placeholder:text-muted focus:border-accent"
                     @keydown="onReplyKey($event, c)"
                   />
@@ -358,21 +358,21 @@ const split = computed(() => {
                   ><HIcon
                     name="check"
                     :size="11"
-                  />{{ tt('sent') }}</span>
+                  />sent</span>
                   <template v-else>
                     <button
                       type="button"
                       class="text-[11px] text-muted hover:text-strong"
                       @click="startComment(r, c)"
                     >
-                      {{ tt('Edit') }}
+                      Edit
                     </button>
                     <button
                       type="button"
                       class="text-[11px] text-muted hover:text-bad"
                       @click="comments = comments.filter(x => x.id !== c.id)"
                     >
-                      {{ tt('Delete') }}
+                      Delete
                     </button>
                   </template>
                 </div>
@@ -384,21 +384,21 @@ const split = computed(() => {
                 <textarea
                   v-model="draft.text"
                   rows="3"
-                  :placeholder="tt('What should change here?')"
-                  :aria-label="tt('Comment')"
+                  placeholder="What should change here?"
+                  aria-label="Comment"
                   data-draft
                   class="w-full resize-y bg-transparent text-[12px] leading-[1.6] whitespace-pre-wrap text-strong outline-none placeholder:text-muted"
                   @keydown="onDraftKey"
                 />
                 <div class="flex items-center gap-2 text-[11.5px]">
-                  <span class="inline-flex items-center gap-1 text-muted"><HKeys keys="meta+enter" />{{ tt('save') }}<HKeys keys="escape" />{{ tt('cancel') }}</span>
+                  <span class="inline-flex items-center gap-1 text-muted"><HKeys keys="meta+enter" />save<HKeys keys="escape" />cancel</span>
                   <span class="flex-1" />
                   <button
                     type="button"
                     class="border border-default px-2 py-0.5 text-toned hover:text-strong"
                     @click="draft = null"
                   >
-                    {{ tt('Cancel') }}
+                    Cancel
                   </button>
                   <button
                     type="button"
@@ -406,7 +406,7 @@ const split = computed(() => {
                     :disabled="!draft.text.trim() && !draft.id"
                     @click="saveComment"
                   >
-                    {{ draft.id ? tt('Save') : tt('Comment') }}
+                    {{ draft.id ? 'Save' : 'Comment' }}
                   </button>
                 </div>
               </div>
@@ -424,7 +424,7 @@ const split = computed(() => {
         v-if="commentable && comments.some(c => c.path === path)"
         class="border-b border-default px-3 py-1 text-[11.5px] text-muted"
       >
-        {{ tt('Comments on this file show in the Unified view.') }}
+        Comments on this file show in the Unified view.
       </div>
       <div
         v-for="(r, i) in split"

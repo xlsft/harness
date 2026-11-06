@@ -18,18 +18,18 @@ function type(a: ArtifactEntry) {
 
 <template>
   <section
-    :aria-label="tt('Artifacts')"
+    aria-label="Artifacts"
     class="h-full overflow-y-auto bg-default"
   >
     <div class="mx-auto flex max-w-[1080px] flex-col gap-[22px] px-10 pt-[52px] pb-10 max-sm:px-4">
       <h1 class="m-0 font-display text-[26px] font-bold text-strong">
-        {{ tt('Artifacts') }}
+        Artifacts
       </h1>
 
       <div class="flex flex-wrap items-center gap-1">
         <div
           role="tablist"
-          :aria-label="tt('Filter')"
+          aria-label="Filter"
           class="flex gap-[2px]"
         >
           <button
@@ -48,8 +48,8 @@ function type(a: ArtifactEntry) {
         <span class="flex-1" />
         <button
           type="button"
-          :aria-label="tt('Search')"
-          :title="tt('Search')"
+          aria-label="Search"
+          title="Search"
           class="flex size-8 items-center justify-center text-toned hover:text-strong"
         >
           <HIcon
@@ -59,8 +59,8 @@ function type(a: ArtifactEntry) {
         </button>
         <button
           type="button"
-          :aria-label="tt('Filter and sort')"
-          :title="tt('Filter and sort')"
+          aria-label="Filter and sort"
+          title="Filter and sort"
           class="flex size-8 items-center justify-center text-toned hover:text-strong"
         >
           <HIcon
@@ -70,8 +70,8 @@ function type(a: ArtifactEntry) {
         </button>
         <button
           type="button"
-          :aria-label="props.view === 'grid' ? tt('Show as list') : tt('Show as grid')"
-          :title="props.view === 'grid' ? tt('Show as list') : tt('Show as grid')"
+          :aria-label="props.view === 'grid' ? 'Show as list' : 'Show as grid'"
+          :title="props.view === 'grid' ? 'Show as list' : 'Show as grid'"
           class="flex size-8 items-center justify-center text-toned hover:text-strong"
           @click="emit('update:view', props.view === 'grid' ? 'list' : 'grid')"
         >
@@ -83,7 +83,7 @@ function type(a: ArtifactEntry) {
       </div>
 
       <div class="flex flex-col gap-2.5">
-        <span class="text-[12px] text-muted">{{ tt('Make something new') }}</span>
+        <span class="text-[12px] text-muted">Make something new</span>
         <div class="flex flex-wrap gap-3.5">
           <a
             v-for="k in ARTIFACT_KINDS"
@@ -166,7 +166,7 @@ function type(a: ArtifactEntry) {
             <HIcon
               name="globe-share"
               :class="a.shared ? 'text-toned' : 'text-transparent'"
-              :aria-label="a.shared ? tt('Shared by link') : undefined"
+              :aria-label="a.shared ? 'Shared by link' : undefined"
               :aria-hidden="a.shared ? undefined : 'true'"
             />
           </div>
@@ -203,12 +203,12 @@ function type(a: ArtifactEntry) {
           <HIcon
             name="globe-share"
             :class="a.shared ? 'text-toned' : 'text-transparent'"
-            :aria-label="a.shared ? tt('Shared by link') : undefined"
+            :aria-label="a.shared ? 'Shared by link' : undefined"
           />
           <button
             type="button"
-            :aria-label="tt('More actions')"
-            :title="tt('More actions')"
+            aria-label="More actions"
+            title="More actions"
             class="ml-3 flex size-[30px] items-center justify-center text-muted hover:text-strong"
           >
             <HIcon name="more" />

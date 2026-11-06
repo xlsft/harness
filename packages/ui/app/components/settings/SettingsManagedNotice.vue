@@ -8,75 +8,75 @@ defineProps<{ policy: ManagedPolicyView }>()
 <template>
   <dl
     v-if="policy.active"
-    :aria-label="tt('Set by your administrator')"
+    aria-label="Set by your administrator"
     class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border border-default px-3 py-3 text-[12px]"
   >
     <template v-if="policy.denyRules.length">
       <dt class="text-muted">
-        {{ tt('Denied') }}
+        Denied
       </dt><dd class="m-0 font-mono text-toned">
         {{ policy.denyRules.join(', ') }}
       </dd>
     </template>
     <template v-if="policy.askRules.length">
       <dt class="text-muted">
-        {{ tt('Always asks') }}
+        Always asks
       </dt><dd class="m-0 font-mono text-toned">
         {{ policy.askRules.join(', ') }}
       </dd>
     </template>
     <template v-if="policy.allowRules.length">
       <dt class="text-muted">
-        {{ tt('Allowed') }}
+        Allowed
       </dt><dd class="m-0 font-mono text-toned">
         {{ policy.allowRules.join(', ') }}
       </dd>
     </template>
     <template v-if="policy.managedRulesOnly">
       <dt class="text-muted">
-        {{ tt('Your rules') }}
+        Your rules
       </dt><dd class="m-0 text-toned">
-        {{ tt('Ignored: only these rules count.') }}
+        Ignored: only these rules count.
       </dd>
     </template>
     <template v-if="policy.disabledModes.length">
       <dt class="text-muted">
-        {{ tt('Modes off') }}
+        Modes off
       </dt><dd class="m-0 text-toned">
         {{ policy.disabledModes.join(', ') }}
       </dd>
     </template>
     <template v-if="policy.sandboxRequired || policy.sandboxOutsideRefused">
       <dt class="text-muted">
-        {{ tt('Sandbox') }}
+        Sandbox
       </dt><dd class="m-0 text-toned">
         {{ [policy.sandboxRequired ? 'required' : '', policy.sandboxOutsideRefused ? 'no running outside it' : ''].filter(Boolean).join(', ') }}
       </dd>
     </template>
     <template v-if="policy.restrictProviders">
       <dt class="text-muted">
-        {{ tt('Providers') }}
+        Providers
       </dt><dd class="m-0 text-toned">
         {{ policy.allowedProviders.join(', ') || 'none' }}
       </dd>
     </template>
     <template v-if="policy.personalProvidersDisabled">
       <dt class="text-muted">
-        {{ tt('Personal providers') }}
+        Personal providers
       </dt><dd class="m-0 text-toned">
-        {{ tt('Not allowed.') }}
+        Not allowed.
       </dd>
     </template>
     <template v-if="policy.localModelsDisabled">
       <dt class="text-muted">
-        {{ tt('Local models') }}
+        Local models
       </dt><dd class="m-0 text-toned">
-        {{ tt('Not allowed.') }}
+        Not allowed.
       </dd>
     </template>
     <template v-if="policy.restrictMcpServers">
       <dt class="text-muted">
-        {{ tt('MCP servers') }}
+        MCP servers
       </dt><dd class="m-0 text-toned">
         {{ policy.allowedMcpServers.join(', ') || 'none' }}
       </dd>
@@ -86,6 +86,6 @@ defineProps<{ policy: ManagedPolicyView }>()
     v-else
     class="m-0 text-[12px] text-muted"
   >
-    {{ tt('Your administrator has set nothing here.') }}
+    Your administrator has set nothing here.
   </p>
 </template>

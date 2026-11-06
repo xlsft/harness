@@ -67,20 +67,20 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
 <template>
   <form
     class="flex flex-col gap-3 border-t border-default px-3 py-3"
-    :aria-label="provider ? tt('Edit {0}', [provider.name]) : tt('New custom provider')"
+    :aria-label="provider ? `Edit ${provider.name}` : 'New custom provider'"
     @submit.prevent="submit"
   >
     <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        {{ tt('Protocol') }}
+        Protocol
         <HSelect
           v-model="form.type"
-          :aria-label="tt('Protocol')"
+          aria-label="Protocol"
           :options="protocols.map(t => ({ value: t.id, label: t.label }))"
         />
       </label>
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        {{ tt('Name') }}
+        Name
         <input
           v-model="form.name"
           required
@@ -89,7 +89,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         >
       </label>
       <label class="col-span-2 flex flex-col gap-1 text-[11.5px] text-muted max-sm:col-span-1">
-        {{ group === 'classifier' ? tt('Endpoint URL') : tt('Base URL') }}
+        {{ group === 'classifier' ? 'Endpoint URL' : 'Base URL' }}
         <input
           v-model="form.baseUrl"
           type="url"
@@ -99,22 +99,22 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         >
       </label>
       <label class="col-span-2 flex flex-col gap-1 text-[11.5px] text-muted max-sm:col-span-1">
-        {{ group === 'classifier' ? tt('API key or bearer token') : tt('API key') }}
+        {{ group === 'classifier' ? 'API key or bearer token' : 'API key' }}
         <input
           v-model="form.apiKey"
           type="password"
           autocomplete="off"
           :disabled="form.clearKey"
-          :placeholder="provider?.keySet ? tt('Set ({0}); leave empty to keep it', [provider.keyHint]) : tt('Optional; stored encrypted, never shown again')"
+          :placeholder="provider?.keySet ? `Set (${provider.keyHint}); leave empty to keep it` : 'Optional; stored encrypted, never shown again'"
           :class="input"
         >
       </label>
       <label class="col-span-2 flex flex-col gap-1 text-[11.5px] text-muted max-sm:col-span-1">
-        {{ tt('Extra headers') }}
+        Extra headers
         <textarea
           v-model="form.headers"
           rows="2"
-          :placeholder="provider?.headerNames.length ? tt('Set: {0}. Type new ones to replace them', [provider.headerNames.join(', ')]) : tt('One per line, e.g. X-Team: core')"
+          :placeholder="provider?.headerNames.length ? `Set: ${provider.headerNames.join(', ')}. Type new ones to replace them` : 'One per line, e.g. X-Team: core'"
           class="w-full resize-y border border-accented bg-default px-2 py-1.5 font-mono text-[12px] text-strong outline-none focus:border-accent"
         />
         <span
@@ -131,8 +131,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
         <HToggle
           v-model="form.clearKey"
-          :label="tt('Remove the key')"
-        />{{ tt('Remove the key') }}
+          label="Remove the key"
+        />Remove the key
       </label>
       <label
         v-if="!provider && canManageGlobal && group === 'llm'"
@@ -140,8 +140,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
         <HToggle
           v-model="form.shared"
-          :label="tt('Share with everyone on this server')"
-        />{{ tt('Share with everyone on this server') }}
+          label="Share with everyone on this server"
+        />Share with everyone on this server
       </label>
       <label
         v-if="canManageGlobal && (provider ? provider.scope === 'global' : global)"
@@ -149,8 +149,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
         <HToggle
           v-model="form.allowPrivateNetwork"
-          :label="tt('Allow private network')"
-        />{{ tt('Allow private network') }}
+          label="Allow private network"
+        />Allow private network
       </label>
       <span class="flex-1" />
       <HBtn
@@ -159,7 +159,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         tone="muted"
         @click="emit('cancel')"
       >
-        {{ tt('Cancel') }}
+        Cancel
       </HBtn>
       <HBtn
         size="md"
@@ -167,7 +167,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         type="submit"
         :disabled="busy || !form.baseUrl || !form.type"
       >
-        {{ provider ? tt('Save') : tt('Add') }}
+        {{ provider ? 'Save' : 'Add' }}
       </HBtn>
     </div>
   </form>

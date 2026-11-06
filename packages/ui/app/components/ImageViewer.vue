@@ -41,7 +41,7 @@ onBeforeUnmount(() => {
       v-if="current"
       role="dialog"
       aria-modal="true"
-      :aria-label="tt('Image')"
+      aria-label="Image"
       class="fixed inset-0 z-50 flex flex-col bg-black/85"
       @click.self="close"
     >
@@ -59,15 +59,15 @@ onBeforeUnmount(() => {
         <span class="min-w-0 flex-1 truncate">{{ current.caption }}</span>
         <HIconBtn
           icon="arrow-left"
-          :label="tt('Previous image')"
+          label="Previous image"
           :size="30"
           :disabled="at <= 0"
           @click="go(-1)"
         />
-        <span class="tabular-nums">{{ tt('{0} of {1}', [at + 1, images.length]) }}</span>
+        <span class="tabular-nums">{{ at + 1 }} of {{ images.length }}</span>
         <HIconBtn
           icon="arrow-right"
-          :label="tt('Next image')"
+          label="Next image"
           :size="30"
           :disabled="at >= images.length - 1"
           @click="go(1)"
@@ -75,7 +75,7 @@ onBeforeUnmount(() => {
       </div>
       <HIconBtn
         icon="close"
-        :label="tt('Close')"
+        label="Close"
         :size="30"
         class="absolute top-3 right-3"
         @click="close"

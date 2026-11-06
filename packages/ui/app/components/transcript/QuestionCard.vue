@@ -123,7 +123,7 @@ const resolved = computed(() => ({
           <span class="text-strong">{{ o.label }} <span
             v-if="o.recommended"
             class="text-accent"
-          >{{ tt('recommended') }}</span></span>
+          >recommended</span></span>
           <span
             v-if="o.description"
             class="text-[11.5px] text-muted"
@@ -142,14 +142,14 @@ const resolved = computed(() => ({
           class="mt-[3px] accent-accent"
           @change="set(toggleOther(q, d))"
         >
-        <span class="text-strong">{{ tt('Other…') }}</span>
+        <span class="text-strong">Other…</span>
       </label>
       <input
         v-if="q.type === 'text' || d.otherOpen"
         :key="step"
         :value="d.other"
         autofocus
-        :placeholder="q.type === 'text' ? tt('Type your answer') : tt('Type your own answer')"
+        :placeholder="q.type === 'text' ? 'Type your answer' : 'Type your own answer'"
         class="mx-2 my-1 border border-default bg-default px-2.5 py-1.5 text-strong outline-none placeholder:text-muted focus:border-accent"
         @input="set({ ...d, other: ($event.target as HTMLInputElement).value })"
         @keydown.enter.prevent="next"
@@ -160,7 +160,7 @@ const resolved = computed(() => ({
       v-if="chatCount"
       class="border-t border-default px-3 py-1.5 text-[11.5px] text-muted"
     >
-      {{ tt('{0} chat message{1} written meanwhile will follow your answer, or send them as the answer.', [chatCount, chatCount > 1 ? 's' : '']) }}
+      {{ chatCount }} chat message{{ chatCount > 1 ? 's' : '' }} written meanwhile will follow your answer, or send them as the answer.
     </div>
     <div class="flex flex-wrap items-center gap-2 border-t border-default px-3 py-2">
       <HBtn
@@ -169,7 +169,7 @@ const resolved = computed(() => ({
         :disabled="sending"
         @click="step -= 1"
       >
-        {{ tt('Back') }}
+        Back
       </HBtn>
       <HBtn
         variant="primary"
@@ -177,14 +177,14 @@ const resolved = computed(() => ({
         :disabled="sending || !valid || (empty && item.items.length === 1)"
         @click="next"
       >
-        {{ last ? (item.items.length > 1 ? tt('Submit') : tt('Answer')) : (empty ? tt('Skip question') : tt('Next')) }}
+        {{ last ? (item.items.length > 1 ? 'Submit' : 'Answer') : (empty ? 'Skip question' : 'Next') }}
       </HBtn>
       <HBtn
         size="md"
         :disabled="sending"
         @click="skip"
       >
-        {{ tt('Skip') }}
+        Skip
       </HBtn>
       <span class="flex-1" />
       <HBtn
@@ -193,7 +193,7 @@ const resolved = computed(() => ({
         :disabled="sending"
         @click="withMessage"
       >
-        {{ tt('Answer with message') }}
+        Answer with message
       </HBtn>
     </div>
     <div
@@ -222,7 +222,7 @@ const resolved = computed(() => ({
       <span
         v-if="item.resolvedBy && item.resolvedBy !== 'local' && item.resolvedBy !== 'history'"
         class="shrink-0"
-      >{{ tt('by {0}', [item.resolvedBy]) }}</span>
+      >by {{ item.resolvedBy }}</span>
     </div>
     <template v-if="item.state === 'answered'">
       <div

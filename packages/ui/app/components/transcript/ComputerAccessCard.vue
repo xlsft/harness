@@ -52,9 +52,9 @@ const summary = computed(() => {
         name="monitor"
         class="text-accent"
       />
-      <span class="text-strong">{{ tt('Let the agent use these apps on this machine?') }}</span>
+      <span class="text-strong">Let the agent use these apps on this machine?</span>
       <span class="flex-1" />
-      <span class="text-[11px] text-muted">{{ tt('waiting') }}</span>
+      <span class="text-[11px] text-muted">waiting</span>
     </div>
     <div class="flex flex-col gap-2.5 px-3 py-2.5 text-[12.5px]">
       <span
@@ -85,9 +85,9 @@ const summary = computed(() => {
         :key="p.id"
         class="border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12px] text-toned"
       >
-        <span class="text-strong">{{ tt('{0} is not allowed yet.', [p.name]) }}</span> {{ p.howToGrant }}
+        <span class="text-strong">{{ p.name }} is not allowed yet.</span> {{ p.howToGrant }}
       </div>
-      <span class="text-[11.5px] text-muted">{{ tt('Lasts for this session. You can stop it at any time. Tiers come from your {0} profile, in Settings > Computer use.', [item.profileName || 'security']) }}</span>
+      <span class="text-[11.5px] text-muted">Lasts for this session. You can stop it at any time. Tiers come from your {{ item.profileName || 'security' }} profile, in Settings &gt; Computer use.</span>
       <p
         v-if="error"
         role="alert"
@@ -98,7 +98,7 @@ const summary = computed(() => {
       <span
         v-if="remote"
         class="text-[12px] text-muted"
-      >{{ tt('Only someone at the machine running this session can answer.') }}</span>
+      >Only someone at the machine running this session can answer.</span>
       <div
         v-else
         class="flex flex-wrap gap-2"
@@ -109,14 +109,14 @@ const summary = computed(() => {
           :disabled="sending || chosen.size === 0"
           @click="answer([...chosen])"
         >
-          {{ tt('Allow {0}', [chosen.size === item.apps.length ? '' : 'selected']) }}
+          Allow {{ chosen.size === item.apps.length ? '' : 'selected' }}
         </HBtn>
         <HBtn
           size="lg"
           :disabled="sending"
           @click="answer([])"
         >
-          {{ tt('Deny') }}
+          Deny
         </HBtn>
       </div>
     </div>

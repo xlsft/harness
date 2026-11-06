@@ -12,7 +12,7 @@ const error = ref('')
 const loading = ref(false)
 const open = ref(false)
 
-const actions = computed(() => [{ value: 'all', label: tt('Everything') }, ...Object.entries(AUDIT_ACTIONS).map(([value, label]) => ({ value, label }))])
+const actions = computed(() => [{ value: 'all', label: 'Everything' }, ...Object.entries(AUDIT_ACTIONS).map(([value, label]) => ({ value, label }))])
 
 function message(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
@@ -42,30 +42,30 @@ const when = (at: string) => new Date(at).toLocaleString()
 
 <template>
   <section
-    :aria-label="tt('MCP audit log')"
+    aria-label="MCP audit log"
     class="flex flex-col"
   >
     <div class="mb-1 flex items-center gap-2">
       <h3 class="m-0 flex-1 text-[13px] font-semibold text-strong">
-        {{ tt('Audit log') }}
+        Audit log
       </h3>
       <HBtn
         size="sm"
         :aria-expanded="open"
         @click="open = !open"
       >
-        {{ open ? tt('Hide') : tt('Show') }}
+        {{ open ? 'Hide' : 'Show' }}
       </HBtn>
     </div>
     <p class="m-0 mb-2 text-[12px] text-muted">
-      {{ tt('Calls through the server, local server starts and sign-ins, for everyone. No secrets, no tool arguments. Servers added on a device are not in it: they never reach the server.') }}
+      Calls through the server, local server starts and sign-ins, for everyone. No secrets, no tool arguments. Servers added on a device are not in it: they never reach the server.
     </p>
     <template v-if="open">
       <div class="mb-2 flex items-center gap-2">
         <HSelect
           v-model="action"
           :options="actions"
-          :aria-label="tt('Filter by action')"
+          aria-label="Filter by action"
           class="w-[220px]"
         />
       </div>
@@ -80,7 +80,7 @@ const when = (at: string) => new Date(at).toLocaleString()
         v-if="!entries.length && !loading && !error"
         class="m-0 border border-default px-3 py-2.5 text-[12px] text-muted"
       >
-        {{ tt('Nothing yet.') }}
+        Nothing yet.
       </p>
       <table
         v-if="entries.length"
@@ -89,19 +89,19 @@ const when = (at: string) => new Date(at).toLocaleString()
         <thead class="text-muted">
           <tr>
             <th class="px-2 py-1 font-normal">
-              {{ tt('When') }}
+              When
             </th>
             <th class="px-2 py-1 font-normal">
-              {{ tt('Who') }}
+              Who
             </th>
             <th class="px-2 py-1 font-normal">
-              {{ tt('Server') }}
+              Server
             </th>
             <th class="px-2 py-1 font-normal">
-              {{ tt('What') }}
+              What
             </th>
             <th class="px-2 py-1 font-normal">
-              {{ tt('Result') }}
+              Result
             </th>
           </tr>
         </thead>
@@ -130,10 +130,10 @@ const when = (at: string) => new Date(at).toLocaleString()
               :class="e.isError ? 'text-bad' : 'text-muted'"
             >
               <template v-if="e.isError">
-                {{ e.errorMessage || tt('Failed') }}
+                {{ e.errorMessage || 'Failed' }}
               </template>
               <template v-else-if="e.durationMs">
-                {{ tt('{0} ms', [e.durationMs]) }}
+                {{ e.durationMs }} ms
               </template>
             </td>
           </tr>
@@ -146,7 +146,7 @@ const when = (at: string) => new Date(at).toLocaleString()
         :disabled="loading"
         @click="load(true)"
       >
-        {{ tt('More') }}
+        More
       </HBtn>
     </template>
   </section>

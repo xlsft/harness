@@ -50,7 +50,7 @@ const mono = '\'JetBrains Mono\', monospace'
 
 <template>
   <section
-    :aria-label="tt('Artifact')"
+    aria-label="Artifact"
     class="relative flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-1 border-b border-line pr-1.5 pl-2">
@@ -81,7 +81,7 @@ const mono = '\'JetBrains Mono\', monospace'
           name="ai"
           :size="13"
           class="text-accent"
-        />{{ tt('Chat') }}
+        />Chat
       </button>
       <button
         type="button"
@@ -90,12 +90,12 @@ const mono = '\'JetBrains Mono\', monospace'
         <HIcon
           name="link"
           :size="13"
-        />{{ tt('Share') }}
+        />Share
       </button>
       <button
         type="button"
-        :aria-label="tt('Comments')"
-        :title="tt('Comments')"
+        aria-label="Comments"
+        title="Comments"
         :aria-expanded="thread"
         class="flex h-[30px] items-center gap-1 px-[7px] text-[11px] text-strong"
         :class="thread ? 'bg-raised' : 'hover:bg-hover'"
@@ -113,11 +113,11 @@ const mono = '\'JetBrains Mono\', monospace'
       <span class="mx-[2px] h-[18px] w-px bg-line" />
       <PaneBtn
         icon="full"
-        :label="tt('Maximize')"
+        label="Maximize"
       />
       <PaneBtn
         icon="close"
-        :label="tt('Close artifact')"
+        label="Close artifact"
         @click="closePane('artifact')"
       />
     </div>
@@ -132,12 +132,12 @@ const mono = '\'JetBrains Mono\', monospace'
         spin
         class="text-accent"
       />
-      <span class="text-strong">{{ tt('The agent is publishing a new version') }}</span>{{ ARTIFACT.version.from }} → {{ ARTIFACT.version.to }}<span class="flex-1" />
+      <span class="text-strong">The agent is publishing a new version</span>{{ ARTIFACT.version.from }} → {{ ARTIFACT.version.to }}<span class="flex-1" />
       <a
         href="#"
         class="text-accent hover:text-accent-hover"
         @click.prevent
-      >{{ tt('View changes') }}</a>
+      >View changes</a>
     </div>
 
     <div
@@ -171,14 +171,14 @@ const mono = '\'JetBrains Mono\', monospace'
           >{{ ARTIFACT.status }}</span><span>{{ ARTIFACT.date }}</span><span>{{ ARTIFACT.repo }}</span>
         </div>
         <nav
-          :aria-label="tt('Contents')"
+          aria-label="Contents"
           class="rounded-[6px] border border-[#2C2A28] px-3.5 py-3 text-[13px]"
         >
           <div
             class="mb-2.5 tracking-[.12em] text-[#A39F99] uppercase"
             :style="{ font: `600 10.5px/1 ${mono}` }"
           >
-            {{ tt('Contents') }}
+            Contents
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-[5px]">
             <span
@@ -217,7 +217,7 @@ const mono = '\'JetBrains Mono\', monospace'
           <button
             v-if="thread"
             type="button"
-            :aria-label="tt('Comment thread')"
+            aria-label="Comment thread"
             class="absolute top-[18px] right-[-6px] size-6 bg-accent text-center text-on-accent"
             style="font: 600 11px/24px 'Cascadia Mono', 'Cascadia Code', monospace"
             @click="thread = false"
@@ -230,7 +230,7 @@ const mono = '\'JetBrains Mono\', monospace'
       <div
         v-if="thread"
         role="dialog"
-        :aria-label="tt('Comment thread')"
+        aria-label="Comment thread"
         class="absolute top-[330px] right-[30px] w-[300px] border border-line-strong bg-hover font-mono text-[12px] text-toned"
       >
         <div
@@ -257,7 +257,7 @@ const mono = '\'JetBrains Mono\', monospace'
           <input
             v-model="reply"
             type="text"
-            :placeholder="tt('Reply…')"
+            placeholder="Reply…"
             class="min-w-0 flex-1 border border-line bg-transparent px-2 py-1 text-strong outline-none placeholder:text-muted focus:border-accent"
           >
           <button
@@ -265,7 +265,7 @@ const mono = '\'JetBrains Mono\', monospace'
             class="border border-line px-[9px] py-[3px] text-[11.5px] text-strong hover:bg-raised"
             @click="thread = false"
           >
-            {{ tt('Resolve') }}
+            Resolve
           </button>
         </div>
       </div>
@@ -274,11 +274,11 @@ const mono = '\'JetBrains Mono\', monospace'
     <PaneMenu v-model:open="menuOpen">
       <div
         role="menu"
-        :aria-label="tt('Artifact')"
+        aria-label="Artifact"
         class="absolute top-[46px] left-2 z-30 menu-panel w-[250px]"
       >
         <div class="mb-1 border-b border-line px-[9px] pt-1.5 pb-2 text-[11.5px] leading-[1.5] text-muted">
-          {{ tt('Artifact by you') }}<br>{{ ARTIFACT.updated }}
+          Artifact by you<br>{{ ARTIFACT.updated }}
         </div>
         <template
           v-for="(m, i) in ARTIFACT_MENU"

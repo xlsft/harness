@@ -61,7 +61,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
 <template>
   <form
     class="flex flex-col gap-3 border border-default p-3 text-[12px]"
-    :aria-label="editing ? tt('Edit {0}', [entry?.server?.name]) : tt('Add an MCP server')"
+    :aria-label="editing ? `Edit ${entry?.server?.name}` : 'Add an MCP server'"
     @submit.prevent="save"
   >
     <p
@@ -72,7 +72,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
       {{ error }}
     </p>
     <label class="flex flex-col gap-1">
-      <span class="text-muted">{{ tt('Name') }}</span>
+      <span class="text-muted">Name</span>
       <input
         v-model="draft.name"
         :class="input"
@@ -82,33 +82,33 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
       >
     </label>
     <div class="flex flex-col gap-1">
-      <span class="text-muted">{{ tt('How to reach it') }}</span>
+      <span class="text-muted">How to reach it</span>
       <HSelect
         v-model="draft.transport"
         :options="transports"
         :disabled="editing"
-        :aria-label="tt('Transport')"
+        aria-label="Transport"
       />
     </div>
     <div
       v-if="!editing"
       class="flex flex-col gap-1"
     >
-      <span class="text-muted">{{ tt('Where it goes') }}</span>
+      <span class="text-muted">Where it goes</span>
       <HSelect
         v-model="sourceValue"
         :options="sourceOptions"
-        :aria-label="tt('Where the server goes')"
+        aria-label="Where the server goes"
       />
       <span
         v-if="local"
         class="text-[11.5px] text-muted"
-      >{{ tt('Stays on this computer; nothing about it goes to the xlsft`s harness server. It can reach localhost, and you approve it by adding it.') }}</span>
+      >Stays on this computer; nothing about it goes to the xlsft`s harness server. It can reach localhost, and you approve it by adding it.</span>
     </div>
 
     <template v-if="draft.transport === 'stdio'">
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('Command') }}</span>
+        <span class="text-muted">Command</span>
         <input
           v-model="draft.command"
           :class="input"
@@ -118,7 +118,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         >
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('Arguments, one per line') }}</span>
+        <span class="text-muted">Arguments, one per line</span>
         <textarea
           v-model="draft.args"
           :class="area"
@@ -126,7 +126,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         />
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('Environment, NAME=value per line. Refer to secrets as ${secret:NAME}') }}</span>
+        <span class="text-muted">Environment, NAME=value per line. Refer to secrets as ${secret:NAME}</span>
         <textarea
           v-model="draft.env"
           :class="area"
@@ -136,7 +136,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
     </template>
     <template v-else>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('URL') }}</span>
+        <span class="text-muted">URL</span>
         <input
           v-model="draft.url"
           :class="input"
@@ -146,7 +146,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         >
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('Headers, Name: value per line. Refer to secrets as ${secret:NAME}') }}</span>
+        <span class="text-muted">Headers, Name: value per line. Refer to secrets as ${secret:NAME}</span>
         <textarea
           v-model="draft.headers"
           :class="area"
@@ -157,7 +157,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         v-if="local"
         class="flex flex-col gap-1"
       >
-        <span class="text-muted">{{ tt('Headers helper: a command on this device that prints a JSON object of headers') }}</span>
+        <span class="text-muted">Headers helper: a command on this device that prints a JSON object of headers</span>
         <input
           v-model="draft.headersHelper"
           :class="input"
@@ -167,7 +167,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
     </template>
 
     <div class="flex flex-col gap-1">
-      <span class="text-muted">{{ tt('Secrets to set, NAME=value per line. They are stored encrypted and never shown again') }}</span>
+      <span class="text-muted">Secrets to set, NAME=value per line. They are stored encrypted and never shown again</span>
       <textarea
         v-model="draft.secrets"
         :class="area"
@@ -186,7 +186,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
           size="xs"
           @click="toggleRemoval(s.name)"
         >
-          {{ draft.removeSecrets.includes(s.name) ? tt('Keep') : tt('Remove') }}
+          {{ draft.removeSecrets.includes(s.name) ? 'Keep' : 'Remove' }}
         </HBtn>
       </span>
     </div>
@@ -197,28 +197,28 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
       :aria-expanded="more"
       @click="more = !more"
     >
-      {{ more ? tt('Fewer options') : tt('More options') }}
+      {{ more ? 'Fewer options' : 'More options' }}
     </button>
     <template v-if="more">
       <div class="flex items-center justify-between gap-3">
-        <span class="text-muted">{{ tt('Always load its tools instead of deferring them behind tool search') }}</span>
+        <span class="text-muted">Always load its tools instead of deferring them behind tool search</span>
         <HToggle
           v-model="draft.alwaysLoad"
-          :label="tt('Always load its tools')"
+          label="Always load its tools"
         />
       </div>
       <div
         v-if="draft.transport !== 'stdio'"
         class="flex items-center justify-between gap-3"
       >
-        <span class="text-muted">{{ tt('Ask the user before every call, whatever the permission mode') }}</span>
+        <span class="text-muted">Ask the user before every call, whatever the permission mode</span>
         <HToggle
           v-model="draft.requiresInteraction"
-          :label="tt('Ask before every call')"
+          label="Ask before every call"
         />
       </div>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('Time limit of one tool call, in seconds (default 600)') }}</span>
+        <span class="text-muted">Time limit of one tool call, in seconds (default 600)</span>
         <input
           v-model="draft.toolTimeout"
           :class="input"
@@ -226,7 +226,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         >
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('Largest result given to the model, in characters (default 100000)') }}</span>
+        <span class="text-muted">Largest result given to the model, in characters (default 100000)</span>
         <input
           v-model="draft.maxOutputChars"
           :class="input"
@@ -234,7 +234,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         >
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('Only these tools exist, names or patterns with * (empty: all)') }}</span>
+        <span class="text-muted">Only these tools exist, names or patterns with * (empty: all)</span>
         <input
           v-model="draft.allowedTools"
           :class="input"
@@ -242,7 +242,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         >
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-muted">{{ tt('These tools do not exist') }}</span>
+        <span class="text-muted">These tools do not exist</span>
         <input
           v-model="draft.deniedTools"
           :class="input"
@@ -251,7 +251,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
       </label>
       <template v-if="draft.transport !== 'stdio' && !local">
         <label class="flex flex-col gap-1">
-          <span class="text-muted">{{ tt('OAuth client id, when the provider has no dynamic registration') }}</span>
+          <span class="text-muted">OAuth client id, when the provider has no dynamic registration</span>
           <input
             v-model="draft.oauthClientId"
             :class="input"
@@ -259,7 +259,7 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
           >
         </label>
         <label class="flex flex-col gap-1">
-          <span class="text-muted">{{ tt('OAuth scopes') }}</span>
+          <span class="text-muted">OAuth scopes</span>
           <input
             v-model="draft.oauthScopes"
             :class="input"
@@ -276,14 +276,14 @@ const area = 'min-h-16 min-w-0 border border-accented bg-default px-2.5 py-1.5 f
         variant="primary"
         :disabled="saving"
       >
-        {{ editing ? tt('Save') : tt('Add server') }}
+        {{ editing ? 'Save' : 'Add server' }}
       </HBtn>
       <HBtn
         size="sm"
         :disabled="saving"
         @click="emit('cancel')"
       >
-        {{ tt('Cancel') }}
+        Cancel
       </HBtn>
     </div>
   </form>

@@ -42,17 +42,17 @@ function onKey(e: KeyboardEvent) {
 <template>
   <div class="flex w-[220px] flex-col gap-2 p-2.5">
     <div class="flex items-baseline justify-between text-[11.5px]">
-      <span class="text-muted">{{ tt('Effort') }}</span>
+      <span class="text-muted">Effort</span>
       <span :class="atMax ? 'text-accent' : 'text-strong'">{{ shown.label }}<span
         v-if="shown.recommended"
         class="text-muted"
-      > {{ tt('· Recommended') }}</span></span>
+      > · Recommended</span></span>
     </div>
     <div
       ref="track"
       role="slider"
       tabindex="0"
-      :aria-label="tt('Effort')"
+      aria-label="Effort"
       :aria-valuemin="0"
       :aria-valuemax="last"
       :aria-valuenow="index"

@@ -145,10 +145,10 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      {{ tt('Single sign-on') }}
+      Single sign-on
     </h2>
     <p class="set-sub">
-      {{ tt('Sign-in through your identity provider, over OIDC or SAML. Enabled providers show on the sign-in page, which the desktop app and the CLI open to connect, so no client needs setting up. Accounts are created at first sign-in, or provisioned first through Provisioning.') }}
+      Sign-in through your identity provider, over OIDC or SAML. Enabled providers show on the sign-in page, which the desktop app and the CLI open to connect, so no client needs setting up. Accounts are created at first sign-in, or provisioned first through Provisioning.
     </p>
     <p
       v-if="error"
@@ -162,7 +162,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
       v-if="loading"
       class="m-0 py-4 text-[12.5px] text-muted"
     >
-      {{ tt('Loading…') }}
+      Loading…
     </p>
     <template v-else>
       <div
@@ -195,7 +195,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
           <HIcon
             name="plus"
             :size="12"
-          />{{ tt('Add OIDC provider') }}
+          />Add OIDC provider
         </HBtn>
         <HBtn
           size="sm"
@@ -204,7 +204,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
           <HIcon
             name="plus"
             :size="12"
-          />{{ tt('Add SAML provider') }}
+          />Add SAML provider
         </HBtn>
       </div>
 
@@ -215,12 +215,12 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
         @submit.prevent="save"
       >
         <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-          <label :class="label">{{ tt('Name on the sign-in button') }}
+          <label :class="label">Name on the sign-in button
             <input
               v-model="form.name"
               required
               :disabled="!writable"
-              :placeholder="tt('Corp SSO')"
+              placeholder="Corp SSO"
               :class="input"
             >
           </label>
@@ -228,13 +228,13 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
             <HToggle
               v-model="form.enabled"
               :disabled="!writable"
-              :label="tt('Enabled')"
-            />{{ tt('Enabled') }}
+              label="Enabled"
+            />Enabled
           </label>
         </div>
 
         <template v-if="form.protocol === 'oidc'">
-          <label :class="label">{{ tt('Issuer URL') }}
+          <label :class="label">Issuer URL
             <input
               v-model="form.issuer"
               :disabled="!writable"
@@ -244,7 +244,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
             >
           </label>
           <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-            <label :class="label">{{ tt('Client ID') }}
+            <label :class="label">Client ID
               <input
                 v-model="form.clientId"
                 :disabled="!writable"
@@ -253,18 +253,18 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
                 :class="input"
               >
             </label>
-            <label :class="label">{{ tt('Client secret{0}', [form.clientSecretSet ? ' (set; empty keeps it)' : '']) }}
+            <label :class="label">Client secret{{ form.clientSecretSet ? ' (set; empty keeps it)' : '' }}
               <input
                 v-model="form.clientSecret"
                 type="password"
                 :disabled="!writable"
                 autocomplete="new-password"
-                :placeholder="form.clientSecretSet ? '••••••••' : tt('Empty for a public client')"
+                :placeholder="form.clientSecretSet ? '••••••••' : 'Empty for a public client'"
                 :class="input"
               >
             </label>
           </div>
-          <label :class="label">{{ tt('Extra scopes, besides openid, email and profile') }}
+          <label :class="label">Extra scopes, besides openid, email and profile
             <input
               v-model="scopes"
               :disabled="!writable"
@@ -277,19 +277,19 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
             v-if="form.redirectUri"
             class="flex items-center gap-2 text-[11.5px] text-muted"
           >
-            <span>{{ tt('Redirect URI to register') }}</span>
+            <span>Redirect URI to register</span>
             <code class="min-w-0 flex-1 truncate border border-default bg-raised px-2 py-1 text-[11.5px] text-strong select-all">{{ form.redirectUri }}</code>
             <HBtn
               size="xs"
               @click="copy(form.redirectUri)"
             >
-              {{ tt('Copy') }}
+              Copy
             </HBtn>
           </div>
         </template>
 
         <template v-else>
-          <label :class="label">{{ tt('Identity provider\'s sign-in URL') }}
+          <label :class="label">Identity provider's sign-in URL
             <input
               v-model="form.idpSsoUrl"
               :disabled="!writable"
@@ -298,7 +298,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
               :class="input"
             >
           </label>
-          <label :class="label">{{ tt('Identity provider\'s entity ID') }}
+          <label :class="label">Identity provider's entity ID
             <input
               v-model="form.idpEntityId"
               :disabled="!writable"
@@ -307,7 +307,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
               :class="input"
             >
           </label>
-          <label :class="label">{{ tt('Identity provider\'s signing certificate (PEM)') }}
+          <label :class="label">Identity provider's signing certificate (PEM)
             <textarea
               v-model="form.idpCertificate"
               :disabled="!writable"
@@ -321,17 +321,17 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
             class="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11.5px]"
           >
             <dt class="text-muted">
-              {{ tt('ACS URL') }}
+              ACS URL
             </dt><dd class="m-0 truncate text-toned select-all">
               {{ form.samlAcsUrl }}
             </dd>
             <dt class="text-muted">
-              {{ tt('Entity ID') }}
+              Entity ID
             </dt><dd class="m-0 truncate text-toned select-all">
               {{ form.samlEntityId }}
             </dd>
             <dt class="text-muted">
-              {{ tt('Metadata') }}
+              Metadata
             </dt><dd class="m-0 truncate text-toned select-all">
               {{ form.samlMetadataUrl }}
             </dd>
@@ -340,11 +340,11 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
 
         <details class="text-[12px] text-toned">
           <summary class="cursor-pointer text-[12px] text-muted">
-            {{ tt('Attribute names, who may sign in') }}
+            Attribute names, who may sign in
           </summary>
           <div class="mt-3 flex flex-col gap-3">
             <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-              <label :class="label">{{ tt('Email attribute') }}
+              <label :class="label">Email attribute
                 <input
                   v-model="form.emailAttribute"
                   :disabled="!writable"
@@ -353,7 +353,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
                   :class="input"
                 >
               </label>
-              <label :class="label">{{ tt('Name attribute') }}
+              <label :class="label">Name attribute
                 <input
                   v-model="form.nameAttribute"
                   :disabled="!writable"
@@ -362,7 +362,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
                   :class="input"
                 >
               </label>
-              <label :class="label">{{ tt('Username attribute') }}
+              <label :class="label">Username attribute
                 <input
                   v-model="form.usernameAttribute"
                   :disabled="!writable"
@@ -371,7 +371,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
                   :class="input"
                 >
               </label>
-              <label :class="label">{{ tt('Groups attribute') }}
+              <label :class="label">Groups attribute
                 <input
                   v-model="form.groupsAttribute"
                   :disabled="!writable"
@@ -382,7 +382,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
               </label>
             </div>
             <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-              <label :class="label">{{ tt('Allowed email domains, one per line') }}
+              <label :class="label">Allowed email domains, one per line
                 <textarea
                   v-model="domains"
                   :disabled="!writable"
@@ -391,7 +391,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
                   :class="area"
                 />
               </label>
-              <label :class="label">{{ tt('Allowed groups, one per line') }}
+              <label :class="label">Allowed groups, one per line
                 <textarea
                   v-model="allowedGroups"
                   :disabled="!writable"
@@ -404,18 +404,18 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
               <HToggle
                 v-model="form.autoCreateUsers"
                 :disabled="!writable"
-                :label="tt('Create accounts at first sign-in')"
-              />{{ tt('Create accounts at first sign-in') }}
+                label="Create accounts at first sign-in"
+              />Create accounts at first sign-in
             </label>
           </div>
         </details>
 
         <div class="flex flex-col gap-1.5">
-          <span class="text-[11.5px] text-muted">{{ tt('Group to role rules, re-checked at every sign-in. First match wins; no match is a plain user. No rules: roles are managed in Users.') }}</span>
+          <span class="text-[11.5px] text-muted">Group to role rules, re-checked at every sign-in. First match wins; no match is a plain user. No rules: roles are managed in Users.</span>
           <SettingsRoleMappings
             v-model="form.roleMappings"
             :readonly="!writable"
-            :placeholder="tt('Group name from the provider')"
+            placeholder="Group name from the provider"
           />
         </div>
 
@@ -436,11 +436,11 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
             target="_blank"
             rel="noopener"
             class="mt-1 text-accent underline"
-          >{{ tt('Try a real sign-in (creates nothing, one use)') }}</a>
+          >Try a real sign-in (creates nothing, one use)</a>
           <span
             v-else-if="result.ok"
             class="text-muted"
-          >{{ tt('Save the provider to try a real sign-in.') }}</span>
+          >Save the provider to try a real sign-in.</span>
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-2">
@@ -450,7 +450,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
             tone="danger"
             @click="remove(form)"
           >
-            {{ confirming === form.id ? tt('Confirm delete') : tt('Delete') }}
+            {{ confirming === form.id ? 'Confirm delete' : 'Delete' }}
           </HBtn>
           <span class="flex-1" />
           <HBtn
@@ -459,7 +459,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
             tone="muted"
             @click="form = null"
           >
-            {{ tt('Close') }}
+            Close
           </HBtn>
           <template v-if="writable">
             <HBtn
@@ -467,7 +467,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
               :disabled="testing"
               @click="test"
             >
-              {{ testing ? tt('Testing…') : tt('Test') }}
+              {{ testing ? 'Testing…' : 'Test' }}
             </HBtn>
             <HBtn
               size="md"
@@ -475,34 +475,34 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
               type="submit"
               :disabled="saving"
             >
-              {{ tt('Save') }}
+              Save
             </HBtn>
           </template>
         </div>
       </form>
 
       <h3 class="mt-4 mb-1 text-[12.5px] font-semibold text-strong">
-        {{ tt('Require SSO') }}
+        Require SSO
       </h3>
       <div class="set-row">
         <div class="set-label">
-          <span>{{ tt('Only through an identity provider') }}</span>
-          <span class="set-desc">{{ tt('Local passwords and LDAP are refused, except for the logins below, which keep working when the provider is down.') }}</span>
+          <span>Only through an identity provider</span>
+          <span class="set-desc">Local passwords and LDAP are refused, except for the logins below, which keep working when the provider is down.</span>
         </div>
         <HToggle
           v-model="settings.requireSso"
           :disabled="!writable"
-          :label="tt('Require SSO')"
+          label="Require SSO"
         />
       </div>
       <div class="set-row">
         <div class="set-label">
-          <span>{{ tt('Break-glass logins') }}</span>
-          <span class="set-desc">{{ tt('Usernames or emails, one per line.') }}</span>
+          <span>Break-glass logins</span>
+          <span class="set-desc">Usernames or emails, one per line.</span>
         </div>
         <textarea
           v-model="breakGlass"
-          :aria-label="tt('Break-glass logins')"
+          aria-label="Break-glass logins"
           :disabled="!writable"
           spellcheck="false"
           :class="area"
@@ -517,31 +517,31 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
           size="sm"
           @click="saveSettings"
         >
-          {{ tt('Save') }}
+          Save
         </HBtn>
       </div>
 
       <h3 class="mt-4 mb-1 text-[12.5px] font-semibold text-strong">
-        {{ tt('Two-factor sign-in') }}
+        Two-factor sign-in
       </h3>
       <p class="set-sub">
-        {{ tt('People set up an authenticator in Settings, Account. Requiring it asks everyone covered to enroll at their next sign-in, and their connected devices stop working until they did. Turn it on for your own account first.') }}
+        People set up an authenticator in Settings, Account. Requiring it asks everyone covered to enroll at their next sign-in, and their connected devices stop working until they did. Turn it on for your own account first.
       </p>
       <div class="set-row">
         <div class="set-label">
-          <span>{{ tt('Require a second factor') }}</span>
+          <span>Require a second factor</span>
         </div>
         <HToggle
           :model-value="mfaPolicy.required"
           :disabled="!writable"
-          :label="tt('Require a second factor')"
+          label="Require a second factor"
           @update:model-value="saveMfa({ required: $event })"
         />
       </div>
       <div class="set-row">
         <div class="set-label">
-          <span>{{ tt('For these roles') }}</span>
-          <span class="set-desc">{{ tt('None ticked: everyone.') }}</span>
+          <span>For these roles</span>
+          <span class="set-desc">None ticked: everyone.</span>
         </div>
         <div class="flex gap-3 text-[12px] text-toned">
           <label
@@ -560,13 +560,13 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
       </div>
       <div class="set-row">
         <div class="set-label">
-          <span>{{ tt('Trust the identity provider') }}</span>
-          <span class="set-desc">{{ tt('People signing in through SSO are not asked again.') }}</span>
+          <span>Trust the identity provider</span>
+          <span class="set-desc">People signing in through SSO are not asked again.</span>
         </div>
         <HToggle
           :model-value="mfaPolicy.exemptSso"
           :disabled="!writable"
-          :label="tt('Do not ask people signing in through SSO')"
+          label="Do not ask people signing in through SSO"
           @update:model-value="saveMfa({ exemptSso: $event })"
         />
       </div>

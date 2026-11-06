@@ -44,7 +44,7 @@ const frame = computed(() => [
       <button
         v-if="shown"
         type="button"
-        :aria-label="tt('Open {0}', [file.name])"
+        :aria-label="`Open ${file.name}`"
         class="block"
         :class="frame"
         @click="$emit('open')"
@@ -80,7 +80,7 @@ const frame = computed(() => [
     /></span>
     <button
       type="button"
-      :aria-label="tt('Remove {0}', [file.name])"
+      :aria-label="`Remove ${file.name}`"
       class="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-chip bg-black/70 text-white hover:bg-black"
       @click="$emit('remove')"
     >

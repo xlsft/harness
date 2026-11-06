@@ -93,21 +93,21 @@ onBeforeUnmount(() => abort?.abort())
       <div
         role="dialog"
         aria-modal="true"
-        :aria-label="tt('Connect to {0}', [title])"
+        :aria-label="`Connect to ${title}`"
         class="flex max-h-full w-[min(520px,100%)] flex-col gap-3 overflow-auto rounded-panel border border-line-strong bg-raised p-5 text-[12.5px]"
       >
         <h2 class="m-0 text-[14px] font-semibold text-strong">
-          {{ tt('Connect to {0}', [title]) }}
+          Connect to {{ title }}
         </h2>
 
         <div
           v-if="check?.status === 'unknown'"
           class="flex flex-col gap-2"
           role="group"
-          :aria-label="tt('New host key')"
+          aria-label="New host key"
         >
           <p class="m-0 text-toned">
-            {{ tt('This host has not been seen before. Compare its key with what the host\'s owner gives you before going on: a wrong key means someone may be in between.') }}
+            This host has not been seen before. Compare its key with what the host's owner gives you before going on: a wrong key means someone may be in between.
           </p>
           <code
             v-for="f in check.fingerprints"
@@ -120,13 +120,13 @@ onBeforeUnmount(() => abort?.abort())
               :disabled="busy"
               @click="trust"
             >
-              {{ tt('The key is right, connect') }}
+              The key is right, connect
             </HBtn>
             <HBtn
               :disabled="busy"
               @click="cancel"
             >
-              {{ tt('Cancel') }}
+              Cancel
             </HBtn>
           </div>
         </div>
@@ -137,10 +137,10 @@ onBeforeUnmount(() => abort?.abort())
           role="alert"
         >
           <p class="m-0 font-medium text-bad">
-            {{ tt('This host\'s key has changed.') }}
+            This host's key has changed.
           </p>
           <p class="m-0 text-toned">
-            {{ tt('Either the machine was reinstalled, or someone is intercepting the connection. Nothing was sent to it. Only go on if you know the reason. A key kept in your own ~/.ssh/known_hosts has to be removed there.') }}
+            Either the machine was reinstalled, or someone is intercepting the connection. Nothing was sent to it. Only go on if you know the reason. A key kept in your own ~/.ssh/known_hosts has to be removed there.
           </p>
           <div class="flex gap-2">
             <HBtn
@@ -148,7 +148,7 @@ onBeforeUnmount(() => abort?.abort())
               :disabled="busy"
               @click="confirmForget = true"
             >
-              {{ tt('Forget the old key…') }}
+              Forget the old key…
             </HBtn>
             <HBtn
               v-else
@@ -156,10 +156,10 @@ onBeforeUnmount(() => abort?.abort())
               :disabled="busy"
               @click="forgetAndCheck"
             >
-              {{ tt('Yes, forget it and check again') }}
+              Yes, forget it and check again
             </HBtn>
             <HBtn @click="cancel">
-              {{ tt('Cancel') }}
+              Cancel
             </HBtn>
           </div>
         </div>
@@ -169,7 +169,7 @@ onBeforeUnmount(() => abort?.abort())
           class="m-0 text-bad"
           role="alert"
         >
-          {{ check.error || tt('The host did not answer.') }}
+          {{ check.error || 'The host did not answer.' }}
         </p>
 
         <ol
@@ -190,10 +190,10 @@ onBeforeUnmount(() => abort?.abort())
           class="flex flex-col gap-1 border border-accent p-3"
           role="status"
         >
-          <span class="text-toned">{{ tt('Confirm this code to sign the client on that machine in:') }}</span>
+          <span class="text-toned">Confirm this code to sign the client on that machine in:</span>
           <code class="font-mono text-[14px] text-strong">{{ code.userCode }}</code>
           <SettingsLink :href="code.verificationUri">
-            {{ tt('Open the sign-in page') }}
+            Open the sign-in page
           </SettingsLink>
         </div>
 
@@ -207,7 +207,7 @@ onBeforeUnmount(() => abort?.abort())
 
         <div class="flex justify-end">
           <HBtn @click="cancel">
-            {{ stages.length ? tt('Stop') : tt('Close') }}
+            {{ stages.length ? 'Stop' : 'Close' }}
           </HBtn>
         </div>
       </div>

@@ -40,7 +40,7 @@ function continueHere() {
       :size="14"
       class="shrink-0 text-muted"
     />
-    <span class="min-w-0 truncate text-strong">{{ tt('Running on {0}', [device]) }}</span>
+    <span class="min-w-0 truncate text-strong">Running on {{ device }}</span>
     <span
       v-if="presence"
       class="text-[11.5px]"
@@ -54,7 +54,7 @@ function continueHere() {
       <HIcon
         name="branch"
         :size="12"
-      />{{ tt('Continue here') }}
+      />Continue here
     </HBtn>
     <span :title="blocked || undefined">
       <HBtn
@@ -66,7 +66,7 @@ function continueHere() {
         <HIcon
           name="relay"
           :size="12"
-        />{{ tt('Continue via remote control') }}
+        />Continue via remote control
       </HBtn>
     </span>
   </div>

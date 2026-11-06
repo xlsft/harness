@@ -101,10 +101,10 @@ async function testBuiltin() {
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      {{ tt('Search') }}
+      Search
     </h2>
     <p class="set-sub">
-      {{ tt('Where web search results come from. The built-in SearXNG works without a key; connect a search API for better results. Admins choose the default for everyone; you can pick another one for yourself. Keys are stored encrypted and never shown again.') }}
+      Where web search results come from. The built-in SearXNG works without a key; connect a search API for better results. Admins choose the default for everyone; you can pick another one for yourself. Keys are stored encrypted and never shown again.
     </p>
 
     <p
@@ -115,7 +115,7 @@ async function testBuiltin() {
       <span class="flex-1">{{ error }}</span>
       <HIconBtn
         icon="x"
-        :label="tt('Dismiss')"
+        label="Dismiss"
         :size="26"
         :icon-size="12"
         @click="error = ''"
@@ -125,12 +125,12 @@ async function testBuiltin() {
       v-if="loading"
       class="m-0 py-4 text-[12.5px] text-muted"
     >
-      {{ tt('Loading…') }}
+      Loading…
     </p>
 
     <section
       v-else
-      :aria-label="tt('Search providers')"
+      aria-label="Search providers"
       class="mb-8 overflow-hidden border border-default"
     >
       <!-- Built in -->
@@ -143,7 +143,7 @@ async function testBuiltin() {
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
             <span class="flex items-center gap-2 text-[12.5px] text-strong">
               {{ builtin.name }}
-              <span class="text-[11px] text-ok">{{ tt('ready') }}</span>
+              <span class="text-[11px] text-ok">ready</span>
             </span>
             <span class="truncate text-[11.5px] text-muted">{{ builtin.description }}</span>
             <span
@@ -158,14 +158,14 @@ async function testBuiltin() {
             :href="builtin.docsUrl"
             class="max-sm:hidden"
           >
-            {{ tt('Docs') }}
+            Docs
           </SettingsLink>
           <HBtn
             size="sm"
             :disabled="testingBuiltin"
             @click="testBuiltin"
           >
-            {{ testingBuiltin ? tt('Testing…') : tt('Test') }}
+            {{ testingBuiltin ? 'Testing…' : 'Test' }}
           </HBtn>
         </div>
         <SettingsSearchChoice
@@ -194,7 +194,7 @@ async function testBuiltin() {
               <span
                 v-if="connectionsOf(preset.id).length"
                 class="text-[11px] text-ok"
-              >{{ tt('connected') }}</span>
+              >connected</span>
             </span>
             <span class="truncate text-[11.5px] text-muted">{{ preset.description }}</span>
           </span>
@@ -203,14 +203,14 @@ async function testBuiltin() {
             :href="preset.docsUrl"
             class="max-sm:hidden"
           >
-            {{ tt('Docs') }}
+            Docs
           </SettingsLink>
           <HBtn
             v-if="canConnect(preset) && connecting !== preset.id"
             size="sm"
             @click="connecting = preset.id"
           >
-            {{ tt('Connect') }}
+            Connect
           </HBtn>
         </div>
         <SettingsSearchConnect
@@ -242,8 +242,8 @@ async function testBuiltin() {
             :dim="!custom.length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="text-[12.5px] text-strong">{{ tt('Custom') }}</span>
-            <span class="truncate text-[11.5px] text-muted">{{ tt('Any SearXNG-compatible instance: you set the name and URL.') }}</span>
+            <span class="text-[12.5px] text-strong">Custom</span>
+            <span class="truncate text-[11.5px] text-muted">Any SearXNG-compatible instance: you set the name and URL.</span>
           </span>
           <HBtn
             v-if="!addingCustom"
@@ -253,7 +253,7 @@ async function testBuiltin() {
             <HIcon
               name="plus"
               :size="12"
-            />{{ tt('Add custom') }}
+            />Add custom
           </HBtn>
         </div>
         <SettingsSearchConnect

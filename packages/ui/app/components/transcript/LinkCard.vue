@@ -25,16 +25,16 @@ const first = computed(() => props.links[0]!)
   >
     <div
       role="img"
-      :aria-label="tt('OG image of {0}', [first.title])"
+      :aria-label="`OG image of ${first.title}`"
       class="flex aspect-[1.91] flex-col gap-2.5 border-b border-default bg-default px-7 py-[26px]"
     >
       <slot name="image">
-        <span class="text-[12px] text-muted">{{ tt('xlsft /') }}</span>
-        <span class="font-display text-[30px] leading-[1.1] font-bold text-strong">{{ tt('proxy.xlsft.ru') }}</span>
-        <span class="text-[12px] leading-normal text-muted">{{ tt('Nuxt 4 · Nuxt UI · Nitro · Drizzle') }}</span>
+        <span class="text-[12px] text-muted">xlsft /</span>
+        <span class="font-display text-[30px] leading-[1.1] font-bold text-strong">proxy.xlsft.ru</span>
+        <span class="text-[12px] leading-normal text-muted">Nuxt 4 · Nuxt UI · Nitro · Drizzle</span>
         <span class="flex-1" />
         <div class="flex h-1.5"><span class="w-[74%] bg-accent" /><span class="w-[20%] bg-ok" /><span class="w-[6%] bg-line-strong" /></div>
-        <div class="flex gap-4 text-[11px] text-muted"><span>{{ tt('TypeScript 74%') }}</span><span>{{ tt('Vue 20%') }}</span><span>{{ tt('Other 6%') }}</span></div>
+        <div class="flex gap-4 text-[11px] text-muted"><span>TypeScript 74%</span><span>Vue 20%</span><span>Other 6%</span></div>
       </slot>
     </div>
     <div class="flex flex-col gap-[3px] px-3 py-2.5">

@@ -46,17 +46,17 @@ const host = computed(() => {
 })
 
 const facts = computed(() => [
-  { label: tt('App'), value: `${desktop ? 'Desktop' : 'Web'} ${update.current.value || String(config.public.version)}` },
-  { label: tt('Client'), value: store.clientVersion || '—' },
-  { label: tt('Server'), value: [host.value || (desktop ? '' : 'this page\'s server'), store.serverVersion].filter(Boolean).join(' · ') || '—' },
-  { label: tt('Models'), value: store.models.length ? `${store.models.length} available` : '—' }
+  { label: 'App', value: `${desktop ? 'Desktop' : 'Web'} ${update.current.value || String(config.public.version)}` },
+  { label: 'Client', value: store.clientVersion || '—' },
+  { label: 'Server', value: [host.value || (desktop ? '' : 'this page\'s server'), store.serverVersion].filter(Boolean).join(' · ') || '—' },
+  { label: 'Models', value: store.models.length ? `${store.models.length} available` : '—' }
 ])
 
 const LINKS = [
-  { label: tt('Website'), detail: 'harness.xlsft.com', url: 'https://harness.xlsft.com', icon: 'globe' },
-  { label: tt('Source code'), detail: 'github.com/xlsft/harness', url: 'https://github.com/xlsft/harness', icon: 'code' },
-  { label: tt('Self-host the server'), detail: 'deploy guide', url: 'https://github.com/xlsft/harness/tree/main/deploy', icon: 'box' },
-  { label: tt('Report an issue'), detail: 'GitHub issues', url: 'https://github.com/xlsft/harness/issues', icon: 'flag' }
+  { label: 'Website', detail: 'harness.xlsft.com', url: 'https://harness.xlsft.com', icon: 'globe' },
+  { label: 'Source code', detail: 'github.com/xlsft/harness', url: 'https://github.com/xlsft/harness', icon: 'code' },
+  { label: 'Self-host the server', detail: 'deploy guide', url: 'https://github.com/xlsft/harness/tree/main/deploy', icon: 'box' },
+  { label: 'Report an issue', detail: 'GitHub issues', url: 'https://github.com/xlsft/harness/issues', icon: 'flag' }
 ] as const
 
 function open(url: string) {
@@ -71,10 +71,10 @@ function open(url: string) {
       <HWordmark class="h-[30px] w-auto self-start text-strong" />
       <div class="flex flex-col gap-2">
         <h2 class="m-0 text-[17px] font-semibold text-strong">
-          {{ tt('Your workflow, unbounded.') }}
+          Your workflow, unbounded.
         </h2>
         <p class="m-0 max-w-[460px] text-[12.5px] leading-[1.6] text-toned">
-          {{ tt('The coding agent you already know, with any model and a server you own.') }}
+          The coding agent you already know, with any model and a server you own.
         </p>
       </div>
     </div>
@@ -103,25 +103,25 @@ function open(url: string) {
         v-if="update.phase.value === 'idle'"
         class="m-0 text-[11.5px] text-muted"
       >
-        {{ tt('This app can\'t update itself: {0}.', [update.unavailable.value]) }}
+        This app can't update itself: {{ update.unavailable.value }}.
       </p>
       <template v-else>
         <div class="flex items-center gap-3">
           <span class="min-w-0 flex-1 truncate text-[12.5px] text-strong">
-            {{ tt('{0} · v{1}', [update.phase.value === 'installed' ? tt('Restart to finish updating') : tt('Update available'), update.version.value]) }}
+            {{ update.phase.value === 'installed' ? 'Restart to finish updating' : 'Update available' }} · v{{ update.version.value }}
           </span>
           <HBtn
             v-if="update.phase.value === 'installed'"
             @click="update.restart()"
           >
-            {{ tt('Restart') }}
+            Restart
           </HBtn>
           <HBtn
             v-else
             :disabled="update.phase.value === 'installing'"
             @click="update.install()"
           >
-            {{ update.phase.value === 'installing' ? tt('Downloading…') : tt('Update') }}
+            {{ update.phase.value === 'installing' ? 'Downloading…' : 'Update' }}
           </HBtn>
         </div>
         <p
@@ -143,24 +143,24 @@ function open(url: string) {
     >
       <div class="flex items-center gap-3">
         <span class="min-w-0 flex-1 truncate text-[12.5px] text-strong">
-          {{ tt('Server {0} · {1} is available', [store.serverVersion, latestTag]) }}
+          Server {{ store.serverVersion }} · {{ latestTag }} is available
         </span>
         <button
           type="button"
           class="text-[11.5px] text-muted hover:text-strong"
           @click="open(`${RELEASES_URL}/tag/${latestTag}`)"
         >
-          {{ tt('What\'s new') }}
+          What's new
         </button>
       </div>
       <template v-if="isAdmin">
         <p class="m-0 text-[11.5px] text-muted">
-          {{ tt('The server doesn\'t update itself. On its host:') }}
+          The server doesn't update itself. On its host:
         </p>
         <pre class="m-0 overflow-x-auto bg-surface p-3 text-[11.5px] leading-[1.6] text-strong">{{ upgradeCommands }}</pre>
         <div>
           <HBtn @click="copyCommands">
-            {{ copied ? tt('Copied') : tt('Copy commands') }}
+            {{ copied ? 'Copied' : 'Copy commands' }}
           </HBtn>
         </div>
       </template>
@@ -168,13 +168,13 @@ function open(url: string) {
         v-else
         class="m-0 text-[11.5px] text-muted"
       >
-        {{ tt('Your server\'s admin updates it.') }}
+        Your server's admin updates it.
       </p>
     </div>
 
     <div class="flex flex-col">
       <h3 class="m-0 mb-2 text-[11px] font-normal text-muted">
-        {{ tt('Links') }}
+        Links
       </h3>
       <div class="flex flex-col overflow-hidden border border-default">
         <button
@@ -200,16 +200,16 @@ function open(url: string) {
     </div>
 
     <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted">
-      <span>{{ tt('Made by') }}</span>
+      <span>Made by</span>
       <button
         type="button"
         class="text-strong hover:text-accent"
         @click="open('https://github.com/xlsft')"
       >
-        {{ tt('xlsft') }}
+        xlsft
       </button>
       <span>·</span>
-      <span>{{ tt('MIT License') }}</span>
+      <span>MIT License</span>
       <span>·</span>
       <span>© 2026</span>
     </p>

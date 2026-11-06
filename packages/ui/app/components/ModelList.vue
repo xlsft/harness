@@ -64,8 +64,8 @@ function pickFirst() {
       <input
         ref="input"
         v-model="query"
-        :placeholder="tt('Search models')"
-        :aria-label="tt('Search models')"
+        placeholder="Search models"
+        aria-label="Search models"
         class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
         @keydown.enter.prevent="pickFirst"
       >
@@ -90,7 +90,7 @@ function pickFirst() {
             class="shrink-0 text-toned hover:text-strong"
             @click="store.quietly(store.refreshAcpAgents({ refresh: true }))"
           >
-            {{ tt('Try again') }}
+            Try again
           </button>
         </div>
         <div
@@ -117,14 +117,14 @@ function pickFirst() {
           <span
             v-if="m.offline"
             class="text-[11px] text-orange"
-          >{{ tt('offline') }}</span>
+          >offline</span>
           <span
             v-else-if="m.contextWindow"
             class="shrink-0 text-[11px] text-muted tabular-nums"
           >{{ contextLabel(m.contextWindow) }}{{ m.price ? ` · ${m.price}` : '' }}</span>
           <button
             type="button"
-            :aria-label="favorites.includes(m.key) ? tt('Remove {0} from favorites', [m.name]) : tt('Add {0} to favorites', [m.name])"
+            :aria-label="favorites.includes(m.key) ? `Remove ${m.name} from favorites` : `Add ${m.name} to favorites`"
             :aria-pressed="favorites.includes(m.key)"
             class="flex h-6 shrink-0 items-center justify-center overflow-hidden transition-[width,margin] duration-150"
             :class="favorites.includes(m.key) ? 'w-6 text-warn' : '-ml-3 w-0 text-muted group-hover/model:ml-0 group-hover/model:w-6 hover:text-strong focus-visible:ml-0 focus-visible:w-6'"
@@ -141,7 +141,7 @@ function pickFirst() {
         v-if="!sections.length"
         class="m-0 px-3 py-5 text-center text-muted"
       >
-        {{ tt('No models match.') }}
+        No models match.
       </p>
     </div>
   </div>

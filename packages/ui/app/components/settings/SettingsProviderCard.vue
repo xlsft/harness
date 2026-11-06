@@ -242,10 +242,10 @@ const meta = computed(() => {
 
 const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] text-strong outline-none focus:border-accent'
 const PRICE_FIELDS = [
-  { key: 'input', label: tt('Input'), placeholder: '' },
-  { key: 'output', label: tt('Output'), placeholder: '' },
-  { key: 'cacheRead', label: tt('Cache read'), placeholder: 'as input' },
-  { key: 'cacheWrite', label: tt('Cache write'), placeholder: 'as input' }
+  { key: 'input', label: 'Input', placeholder: '' },
+  { key: 'output', label: 'Output', placeholder: '' },
+  { key: 'cacheRead', label: 'Cache read', placeholder: 'as input' },
+  { key: 'cacheWrite', label: 'Cache write', placeholder: 'as input' }
 ] as const
 </script>
 
@@ -274,15 +274,15 @@ const PRICE_FIELDS = [
               class="size-1.5 shrink-0"
               :class="!p.enabled ? 'bg-graphite-400' : test ? (test.ok ? 'bg-ok' : 'bg-bad') : p.keySet || !preset?.fields.some(f => f.required && f.name === 'api_key' && (!f.modes?.length || f.modes.includes(p.options?.credential_mode ?? ''))) ? 'bg-ok' : 'bg-warn'"
             />
-            <span class="truncate">{{ preset ? (p.scope === 'global' ? tt('Everyone') : tt('Only you')) : p.name }}</span>
+            <span class="truncate">{{ preset ? (p.scope === 'global' ? 'Everyone' : 'Only you') : p.name }}</span>
             <span
               v-if="!preset"
               class="border border-default px-1 text-[10.5px] text-muted"
-            >{{ p.scope === 'global' ? tt('Everyone') : tt('Only you') }}</span>
+            >{{ p.scope === 'global' ? 'Everyone' : 'Only you' }}</span>
             <span
               v-if="!p.enabled"
               class="border border-default px-1 text-[10.5px] text-dimmed"
-            >{{ tt('off') }}</span>
+            >off</span>
           </span>
           <span class="truncate text-[11.5px] text-muted">{{ meta }}</span>
           <span
@@ -301,7 +301,7 @@ const PRICE_FIELDS = [
             :disabled="busy === 'test'"
             @click="runTest"
           >
-            {{ busy === 'test' ? tt('Testing…') : tt('Test') }}
+            {{ busy === 'test' ? 'Testing…' : 'Test' }}
           </HBtn>
           <HBtn
             v-if="!classifier"
@@ -309,7 +309,7 @@ const PRICE_FIELDS = [
             :aria-expanded="open"
             @click="openModels"
           >
-            {{ tt('Models{0}', [p.models.length ? ` · ${p.models.length}` : '']) }}
+            Models{{ p.models.length ? ` · ${p.models.length}` : '' }}
           </HBtn>
           <HBtn
             v-if="limits?.balanceEntry"
@@ -317,40 +317,40 @@ const PRICE_FIELDS = [
             :aria-expanded="editingBalance"
             @click="toggleBalance"
           >
-            {{ estimate ? tt('Balance ~${0}', [estimate.balance!.toFixed(2)]) : tt('Balance') }}
+            {{ estimate ? `Balance ~$${estimate.balance!.toFixed(2)}` : 'Balance' }}
           </HBtn>
           <HBtn
             v-if="preset"
             size="sm"
             @click="replacingKey = !replacingKey"
           >
-            {{ p.keySet ? tt('Replace key') : tt('Set key') }}
+            {{ p.keySet ? 'Replace key' : 'Set key' }}
           </HBtn>
           <HBtn
             v-else
             size="sm"
             @click="editing = true"
           >
-            {{ tt('Edit') }}
+            Edit
           </HBtn>
           <HBtn
             size="sm"
             @click="toggleEnabled"
           >
-            {{ p.enabled ? tt('Disable') : tt('Enable') }}
+            {{ p.enabled ? 'Disable' : 'Enable' }}
           </HBtn>
           <HBtn
             size="sm"
             tone="danger"
             @click="disconnect"
           >
-            {{ confirming ? tt('Confirm') : tt('Disconnect') }}
+            {{ confirming ? 'Confirm' : 'Disconnect' }}
           </HBtn>
         </div>
         <span
           v-else
           class="text-[11.5px] text-dimmed"
-        >{{ tt('managed by admins') }}</span>
+        >managed by admins</span>
       </div>
 
       <form
@@ -362,8 +362,8 @@ const PRICE_FIELDS = [
           v-model="newKey"
           type="password"
           autocomplete="off"
-          :aria-label="tt('New API key for {0}', [p.name])"
-          :placeholder="tt('New API key')"
+          :aria-label="`New API key for ${p.name}`"
+          placeholder="New API key"
           :class="input"
         >
         <HBtn
@@ -372,7 +372,7 @@ const PRICE_FIELDS = [
           variant="primary"
           :disabled="!newKey.trim() || busy === 'save'"
         >
-          {{ tt('Save') }}
+          Save
         </HBtn>
       </form>
 
@@ -384,8 +384,8 @@ const PRICE_FIELDS = [
         <input
           v-model="balanceAmount"
           inputmode="decimal"
-          :aria-label="tt('Balance of {0} in USD', [p.name])"
-          :placeholder="tt('Balance, USD')"
+          :aria-label="`Balance of ${p.name} in USD`"
+          placeholder="Balance, USD"
           :class="input"
           class="max-w-[120px]"
         >
@@ -393,8 +393,8 @@ const PRICE_FIELDS = [
           v-model="balanceDate"
           type="date"
           :max="today()"
-          :aria-label="tt('Date of that balance; empty means now')"
-          :title="tt('The balance at the start of this day; empty means right now')"
+          aria-label="Date of that balance; empty means now"
+          title="The balance at the start of this day; empty means right now"
           :class="input"
           class="max-w-[140px]"
         >
@@ -404,7 +404,7 @@ const PRICE_FIELDS = [
           variant="primary"
           :disabled="!balanceAmount.trim() || busy === 'balance'"
         >
-          {{ tt('Save') }}
+          Save
         </HBtn>
         <HBtn
           v-if="estimate"
@@ -412,9 +412,9 @@ const PRICE_FIELDS = [
           :disabled="busy === 'balance'"
           @click="saveBalance(undefined)"
         >
-          {{ tt('Clear') }}
+          Clear
         </HBtn>
-        <span class="min-w-[200px] flex-1">{{ tt('An estimate: this amount minus what requests through harness cost from then on. Spending elsewhere isn\'t seen; after a top-up, enter it again.') }}</span>
+        <span class="min-w-[200px] flex-1">An estimate: this amount minus what requests through harness cost from then on. Spending elsewhere isn't seen; after a top-up, enter it again.</span>
       </form>
 
       <!-- Classifier: the default for everyone (admins; one at a time, none means rules, then the model)
@@ -428,7 +428,7 @@ const PRICE_FIELDS = [
           type="button"
           role="switch"
           :aria-checked="defaultForAll"
-          :aria-label="tt('Use {0} by default for everyone', [p.name])"
+          :aria-label="`Use ${p.name} by default for everyone`"
           class="flex items-center gap-1.5"
           :class="defaultForAll ? 'text-strong' : 'text-muted hover:text-strong'"
           @click="classifierState.setDefault(defaultForAll ? '' : p.id)"
@@ -442,18 +442,18 @@ const PRICE_FIELDS = [
             :size="10"
             class="text-strong"
           /></span>
-          {{ tt('default for everyone') }}
+          default for everyone
         </button>
         <span
           v-else-if="defaultForAll"
           class="text-muted"
-        >{{ tt('default for everyone') }}</span>
+        >default for everyone</span>
         <button
           v-if="p.enabled"
           type="button"
           role="switch"
           :aria-checked="mine"
-          :aria-label="tt('Use {0} for me', [p.name])"
+          :aria-label="`Use ${p.name} for me`"
           class="flex items-center gap-1.5"
           :class="mine ? 'text-strong' : 'text-muted hover:text-strong'"
           @click="toggleMine"
@@ -467,12 +467,12 @@ const PRICE_FIELDS = [
             :size="10"
             class="text-strong"
           /></span>
-          {{ tt('use for me') }}
+          use for me
         </button>
         <span
           v-if="decidesForMe"
           class="text-ok"
-        >{{ tt('deciding for you') }}</span>
+        >deciding for you</span>
       </div>
 
       <!-- Classifier: its decision models -->
@@ -480,7 +480,7 @@ const PRICE_FIELDS = [
         v-if="classifier && decisionModels.length"
         class="flex flex-wrap items-center gap-1.5 pr-3 pb-2.5 pl-[52px] text-[11.5px] text-muted max-sm:pl-3"
       >
-        {{ tt('Decision model{0}:', [decisionModels.length > 1 ? 's' : '']) }}
+        Decision model{{ decisionModels.length > 1 ? 's' : '' }}:
         <span
           v-for="m in decisionModels"
           :key="m.upstream"
@@ -512,7 +512,7 @@ const PRICE_FIELDS = [
                 type="button"
                 role="switch"
                 :aria-checked="isDefault(m.id)"
-                :aria-label="tt('Use {0} by default', [m.name])"
+                :aria-label="`Use ${m.name} by default`"
                 class="flex shrink-0 items-center gap-1.5 text-[11px]"
                 :class="isDefault(m.id) ? 'text-strong' : 'text-muted hover:text-strong'"
                 @click="toggleDefault(m.id)"
@@ -526,12 +526,12 @@ const PRICE_FIELDS = [
                   :size="10"
                   class="text-strong"
                 /></span>
-                {{ tt('default') }}
+                default
               </button>
               <div
                 v-if="levelsOf(m.id).length"
                 role="radiogroup"
-                :aria-label="tt('Default effort for {0}', [m.name])"
+                :aria-label="`Default effort for ${m.name}`"
                 class="flex gap-[2px]"
               >
                 <button
@@ -550,12 +550,12 @@ const PRICE_FIELDS = [
               <span
                 v-else
                 class="text-[11px] text-dimmed"
-              >{{ tt('no effort levels') }}</span>
+              >no effort levels</span>
               <button
                 v-if="p.editable && p.billing !== 'plan'"
                 type="button"
                 :aria-expanded="editingPrice === m.id"
-                :aria-label="tt('Price of {0}', [m.name])"
+                :aria-label="`Price of ${m.name}`"
                 :title="['Per 1M tokens, input / output', priceOrigin(m)].filter(Boolean).join('; ')"
                 class="shrink-0 text-[11px] tabular-nums"
                 :class="editingPrice === m.id ? 'text-strong' : 'text-muted hover:text-strong'"
@@ -567,21 +567,21 @@ const PRICE_FIELDS = [
                 v-if="p.editable"
                 type="button"
                 :aria-expanded="editingLevels === m.id"
-                :aria-label="tt('Effort levels {0} takes', [m.name])"
+                :aria-label="`Effort levels ${m.name} takes`"
                 class="shrink-0 text-[11px]"
                 :class="editingLevels === m.id ? 'text-strong' : 'text-muted hover:text-strong'"
                 @click="editingLevels = editingLevels === m.id ? '' : m.id"
               >
-                {{ tt('levels') }}
+                levels
               </button>
             </div>
             <form
               v-if="editingPrice === m.id"
-              :aria-label="tt('Price of {0}', [m.name])"
+              :aria-label="`Price of ${m.name}`"
               class="flex flex-wrap items-center gap-2 border-b border-default px-2.5 py-1.5 text-[11px] text-muted last:border-b-0"
               @submit.prevent="savePrice(m)"
             >
-              <span>{{ tt('USD per 1M tokens') }}</span>
+              <span>USD per 1M tokens</span>
               <label
                 v-for="f in PRICE_FIELDS"
                 :key="f.key"
@@ -602,34 +602,34 @@ const PRICE_FIELDS = [
                 variant="primary"
                 :disabled="!priceValid || busy === `price:${m.id}`"
               >
-                {{ tt('Save') }}
+                Save
               </HBtn>
               <span v-if="priceOrigin(m)">{{ priceOrigin(m) }}</span>
             </form>
             <div
               v-if="p.editable && m.priceChangeHeld"
               role="group"
-              :aria-label="tt('Price change held for {0}', [m.name])"
+              :aria-label="`Price change held for ${m.name}`"
               class="flex flex-wrap items-center gap-2 border-b border-default px-2.5 py-1.5 text-[11px] text-muted last:border-b-0"
             >
               <span class="flex-1">
-                {{ tt('Price change held, too large to apply by itself: {0} {1}, {2}. Still billed at {3}.', [PRICE_SOURCE[m.priceChangeHeld.source], priceLabel({ pricing: m.priceChangeHeld.proposed }), day(m.priceChangeHeld.heldAt), priceLabel(m)]) }}
+                Price change held, too large to apply by itself: {{ PRICE_SOURCE[m.priceChangeHeld.source] }} {{ priceLabel({ pricing: m.priceChangeHeld.proposed }) }}, {{ day(m.priceChangeHeld.heldAt) }}. Still billed at {{ priceLabel(m) }}.
               </span>
               <HBtn
                 size="sm"
                 :disabled="busy === `price:${m.id}`"
                 @click="acceptPrice(m)"
               >
-                {{ tt('Accept') }}
+                Accept
               </HBtn>
             </div>
             <div
               v-if="editingLevels === m.id"
               role="group"
-              :aria-label="tt('Effort levels {0} takes', [m.name])"
+              :aria-label="`Effort levels ${m.name} takes`"
               class="flex flex-wrap items-center gap-[2px] border-b border-default px-2.5 py-1 text-[11px] last:border-b-0"
             >
-              <span class="mr-1.5 text-muted">{{ tt('Takes') }}</span>
+              <span class="mr-1.5 text-muted">Takes</span>
               <button
                 v-for="e in ALL_EFFORTS"
                 :key="e"
@@ -647,10 +647,10 @@ const PRICE_FIELDS = [
             <div
               v-if="editingLevels === m.id && m.efforts.length"
               role="radiogroup"
-              :aria-label="tt('Effort recommended for {0}', [m.name])"
+              :aria-label="`Effort recommended for ${m.name}`"
               class="flex flex-wrap items-center gap-[2px] border-b border-default px-2.5 py-1 text-[11px] last:border-b-0"
             >
-              <span class="mr-1.5 text-muted">{{ tt('Recommended') }}</span>
+              <span class="mr-1.5 text-muted">Recommended</span>
               <button
                 v-for="e in m.efforts"
                 :key="e"
@@ -673,7 +673,7 @@ const PRICE_FIELDS = [
                 :class="!m.defaultEffort ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
                 @click="setRecommended(m, '')"
               >
-                {{ tt('none') }}
+                none
               </button>
             </div>
           </template>
@@ -684,14 +684,14 @@ const PRICE_FIELDS = [
           class="flex flex-col gap-1.5 border border-default p-2"
         >
           <div class="flex items-center gap-2 text-[11.5px] text-muted">
-            <span v-if="busy === 'models'">{{ tt('Asking the service for its models…') }}</span>
-            <span v-else-if="candidates">{{ tt('{0} {1} · {2} on', [candidates.length, preset && !preset.discoversModels ? 'models in the preset' : 'models offered', p.models.length]) }}</span>
+            <span v-if="busy === 'models'">Asking the service for its models…</span>
+            <span v-else-if="candidates">{{ candidates.length }} {{ preset && !preset.discoversModels ? 'models in the preset' : 'models offered' }} · {{ p.models.length }} on</span>
             <span class="flex-1" />
             <input
               v-if="(candidates?.length ?? 0) > 10"
               v-model="filter"
-              :aria-label="tt('Filter models')"
-              :placeholder="tt('Filter')"
+              aria-label="Filter models"
+              placeholder="Filter"
               :class="input"
               class="max-w-[200px]"
             >
@@ -704,7 +704,7 @@ const PRICE_FIELDS = [
             >
               <HToggle
                 :model-value="!!enabledId(c.upstream)"
-                :label="tt('Use {0}', [c.upstream])"
+                :label="`Use ${c.upstream}`"
                 @update:model-value="setModel(c, $event)"
               />
               <span class="truncate text-toned">{{ c.name && c.name !== c.upstream ? c.name : c.upstream }}</span>
@@ -723,7 +723,7 @@ const PRICE_FIELDS = [
             >
               <HToggle
                 :model-value="true"
-                :label="tt('Use {0}', [m.upstream])"
+                :label="`Use ${m.upstream}`"
                 @update:model-value="setModel(m, $event)"
               />
               <span class="truncate text-toned">{{ m.name }}</span>
@@ -736,8 +736,8 @@ const PRICE_FIELDS = [
           >
             <input
               v-model="manual"
-              :aria-label="tt('Model id for {0}', [p.name])"
-              :placeholder="tt('Another model by its id')"
+              :aria-label="`Model id for ${p.name}`"
+              placeholder="Another model by its id"
               :class="input"
             >
             <HBtn
@@ -745,7 +745,7 @@ const PRICE_FIELDS = [
               type="submit"
               :disabled="!manual.trim()"
             >
-              {{ tt('Add') }}
+              Add
             </HBtn>
           </form>
         </div>

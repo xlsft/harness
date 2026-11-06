@@ -27,7 +27,7 @@ function commit(name: string, raw: string | number | undefined) {
 const DEFAULT = '__default__'
 function selectOptions(o: PresetOptionView) {
   const def = o.choices.find(c => c.value === o.defaultValue)?.label
-  return [{ value: DEFAULT, label: def ? tt('Service default ({0})', [def]) : tt('Service default') }, ...o.choices]
+  return [{ value: DEFAULT, label: def ? `Service default (${def})` : 'Service default' }, ...o.choices]
 }
 
 const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent disabled:opacity-60'
@@ -59,7 +59,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         :type="o.kind === 'number' ? 'number' : 'text'"
         :min="o.kind === 'number' ? o.min : undefined"
         :max="o.kind === 'number' ? o.max : undefined"
-        :placeholder="o.placeholder || (o.defaultValue ? tt('Default {0}', [o.defaultValue]) : tt('Service default'))"
+        :placeholder="o.placeholder || (o.defaultValue ? `Default ${o.defaultValue}` : 'Service default')"
         :aria-label="`${name}: ${o.label}`"
         :disabled="disabled"
         :class="input"

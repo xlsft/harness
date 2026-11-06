@@ -100,14 +100,14 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
 
 <template>
   <section
-    :aria-label="tt('Groups and quotas')"
+    aria-label="Groups and quotas"
     class="mt-8 flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('Groups and quotas') }}
+      Groups and quotas
     </h2>
     <p class="set-sub">
-      {{ tt('Spend limits the organization sets, in USD per UTC day and calendar month. For a user, their own limit applies, else the strictest of their groups\', else their role\'s. Spend on someone\'s personal providers counts towards none of these, and their own provider limits stay visible only to them.') }}
+      Spend limits the organization sets, in USD per UTC day and calendar month. For a user, their own limit applies, else the strictest of their groups', else their role's. Spend on someone's personal providers counts towards none of these, and their own provider limits stay visible only to them.
     </p>
     <p
       v-if="error"
@@ -118,7 +118,7 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
     </p>
 
     <h3 class="m-0 mb-2 text-[12.5px] font-semibold text-strong">
-      {{ tt('Per role') }}
+      Per role
     </h3>
     <div class="mb-4 flex flex-col gap-2 border border-default px-3 py-3">
       <div
@@ -138,13 +138,13 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
         class="flex flex-wrap items-center gap-3 border-t border-default pt-2 text-[11.5px] text-muted"
         @submit.prevent="saveBudget"
       >
-        <span class="w-[70px] text-[12px] text-toned">{{ tt('Session') }}</span>
-        <label class="flex items-center gap-1.5">{{ tt('One session $') }}
+        <span class="w-[70px] text-[12px] text-toned">Session</span>
+        <label class="flex items-center gap-1.5">One session $
           <input
             v-model="sessionBudget"
             inputmode="decimal"
             placeholder="no limit"
-            :aria-label="tt('Budget of one session in USD')"
+            aria-label="Budget of one session in USD"
             :disabled="!canQuotas"
             class="h-7 w-[92px] border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent disabled:opacity-60"
           >
@@ -154,13 +154,13 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
           size="sm"
           type="submit"
         >
-          {{ tt('Save') }}
+          Save
         </HBtn>
       </form>
     </div>
 
     <h3 class="m-0 mb-2 text-[12.5px] font-semibold text-strong">
-      {{ tt('Groups') }}
+      Groups
     </h3>
     <form
       v-if="canGroups"
@@ -169,8 +169,8 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
     >
       <input
         v-model="newName"
-        :placeholder="tt('New group')"
-        :aria-label="tt('New group name')"
+        placeholder="New group"
+        aria-label="New group name"
         class="h-8 max-w-[260px] flex-1 border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent"
       >
       <HBtn
@@ -178,7 +178,7 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
         type="submit"
         :disabled="!newName.trim()"
       >
-        {{ tt('Add group') }}
+        Add group
       </HBtn>
     </form>
 
@@ -223,7 +223,7 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
             v-if="g.source === 'local' && canGroups"
             class="flex flex-col gap-1"
           >
-            <span class="text-[11.5px] text-muted">{{ tt('Members') }}</span>
+            <span class="text-[11.5px] text-muted">Members</span>
             <label
               v-for="u in users"
               :key="u.id"
@@ -240,8 +240,8 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
             v-else
             class="m-0 text-[11.5px] text-muted"
           >
-            {{ memberNames(g).join(', ') || tt('No members.') }}<template v-if="g.source !== 'local'">
-              {{ tt('Membership comes from {0}.', [SOURCE[g.source] ?? g.source]) }}
+            {{ memberNames(g).join(', ') || 'No members.' }}<template v-if="g.source !== 'local'">
+              Membership comes from {{ SOURCE[g.source] ?? g.source }}.
             </template>
           </p>
           <div v-if="g.source === 'local' && canGroups">
@@ -250,7 +250,7 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
               tone="danger"
               @click="remove(g)"
             >
-              {{ confirming === g.id ? tt('Confirm delete {0}', [g.name]) : tt('Delete group') }}
+              {{ confirming === g.id ? `Confirm delete ${g.name}` : 'Delete group' }}
             </HBtn>
           </div>
         </div>
@@ -260,7 +260,7 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
       v-else
       class="m-0 border border-default px-3 py-4 text-center text-[12.5px] text-muted"
     >
-      {{ tt('No groups yet.') }}
+      No groups yet.
     </p>
   </section>
 </template>

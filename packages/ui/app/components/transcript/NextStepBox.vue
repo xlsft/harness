@@ -23,7 +23,7 @@ function answer(label: string) {
       </p>
       <HIconBtn
         icon="close"
-        :label="tt('Hide')"
+        label="Hide"
         :size="26"
         :icon-size="12"
         class="-mt-1 -mr-1.5"

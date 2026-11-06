@@ -54,10 +54,10 @@ onMounted(loadLimits)
 watch(() => [props.session.meta.id, props.session.meta.model, props.session.meta.status], loadLimits)
 const usage = computed(() => {
   const windows = acp.value?.limits?.windows ?? providerLimits.value?.windows ?? []
-  if (windows.length) return { label: tt('Limit'), pct: Math.round(Math.min(100, Math.max(...windows.map(w => w.usedPercent)))) }
+  if (windows.length) return { label: 'Limit', pct: Math.round(Math.min(100, Math.max(...windows.map(w => w.usedPercent)))) }
   const b = providerLimits.value?.balance
-  if (b && !b.error && b.balance !== undefined && b.total) return { label: tt('Balance'), pct: Math.round(Math.min(100, Math.max(0, 100 - (b.balance / b.total) * 100))) }
-  return { label: tt('Context'), pct: pct.value }
+  if (b && !b.error && b.balance !== undefined && b.total) return { label: 'Balance', pct: Math.round(Math.min(100, Math.max(0, 100 - (b.balance / b.total) * 100))) }
+  return { label: 'Context', pct: pct.value }
 })
 const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whitespace-nowrap text-muted hover:bg-hover hover:text-toned'
 </script>
@@ -131,11 +131,11 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
       <template #content>
         <div
           role="dialog"
-          :aria-label="tt('Context')"
+          aria-label="Context"
           class="w-[340px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover px-[13px] py-3 text-[12.5px]"
         >
           <div class="mb-2.5 text-[12px] text-muted">
-            {{ tt('Context') }}
+            Context
           </div>
           <ContextBreakdown
             v-if="!session.meta.unsupported.includes('context_breakdown')"
@@ -145,7 +145,7 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
             v-else
             class="m-0 text-muted"
           >
-            {{ tt('{0}{1} tokens', [contextUsed.toLocaleString(), contextWindow ? ` of ${contextWindow.toLocaleString()}` : '']) }}
+            {{ contextUsed.toLocaleString() }}{{ contextWindow ? ` of ${contextWindow.toLocaleString()}` : '' }} tokens
           </p>
           <LimitsBlock :session="session" />
         </div>

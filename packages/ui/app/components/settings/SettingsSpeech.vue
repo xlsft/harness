@@ -56,7 +56,7 @@ async function update(patch: SpeechSettingsPatch) {
       <span class="flex-1">{{ error }}</span>
       <HIconBtn
         icon="x"
-        :label="tt('Dismiss')"
+        label="Dismiss"
         :size="26"
         :icon-size="12"
         @click="error = ''"
@@ -66,13 +66,13 @@ async function update(patch: SpeechSettingsPatch) {
       v-if="loading"
       class="m-0 py-4 text-[12.5px] text-muted"
     >
-      {{ tt('Loading…') }}
+      Loading…
     </p>
     <p
       v-else-if="list.serverError"
       class="m-0 mb-3 text-[12px] text-muted"
     >
-      {{ tt('The server\'s providers are unavailable: {0}', [list.serverError]) }}
+      The server's providers are unavailable: {{ list.serverError }}
     </p>
 
     <template v-if="!loading && settings">

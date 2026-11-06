@@ -45,22 +45,22 @@ function patch(part: 'device' | 'synced', choice: Partial<SttChoice & TtsChoice>
 const pick = (part: 'device' | 'synced', providerId: string) => patch(part, { providerId, model: '', voice: '' })
 
 const deviceOptions = computed<HSelectOption[]>(() => [
-  { value: '', label: tt('Same as all devices') },
-  ...(browserOk.value ? [{ value: BROWSER_SPEECH_PROVIDER, label: stt.value ? tt('Browser dictation') : tt('Browser voice'), hint: 'built in' }] : []),
+  { value: '', label: 'Same as all devices' },
+  ...(browserOk.value ? [{ value: BROWSER_SPEECH_PROVIDER, label: stt.value ? 'Browser dictation' : 'Browser voice', hint: 'built in' }] : []),
   ...local.value.filter(p => p.available || p.id === device.value.providerId).map(p => ({ value: p.id, label: p.name, hint: 'on this computer' }))
 ])
 const syncedOptions = computed<HSelectOption[]>(() => [
-  { value: '', label: tt('None') },
+  { value: '', label: 'None' },
   ...global.value.filter(p => p.available || p.id === synced.value.providerId).map(p => ({ value: p.id, label: p.name }))
 ])
 const modelOptions = computed<HSelectOption[]>(() => [
-  { value: '', label: tt('Default'), hint: provider.value?.defaultModel },
+  { value: '', label: 'Default', hint: provider.value?.defaultModel },
   // Only what is usable: a local model once downloaded.
   ...(provider.value?.models ?? []).filter(m => provider.value?.location !== 'local' || m.installed || m.id === effective.value.model).map(m => ({ value: m.id, label: m.name }))
 ])
 
 const LANGUAGES: HSelectOption[] = [
-  { value: '', label: tt('Detect') },
+  { value: '', label: 'Detect' },
   ...[['en', 'English'], ['ru', 'Russian'], ['uk', 'Ukrainian'], ['de', 'German'], ['fr', 'French'], ['es', 'Spanish'], ['it', 'Italian'], ['pt', 'Portuguese'], ['pl', 'Polish'], ['tr', 'Turkish'], ['zh', 'Chinese'], ['ja', 'Japanese'], ['ko', 'Korean']]
     .map(([value, label]) => ({ value: value!, label: label! }))
 ]
@@ -75,10 +75,10 @@ watch(() => [provider.value?.id, effective.value.model], async () => {
     ({ value: v.id, label: v.name, hint: v.language })
   // Local voices once downloaded.
   const usable = (v: { id: string, installed: boolean }) => p.location !== 'local' || v.installed || v.id === effective.value.voice
-  voices.value = [{ value: '', label: tt('Default'), hint: p.defaultVoice }, ...p.voices.filter(usable).map(toOption)]
+  voices.value = [{ value: '', label: 'Default', hint: p.defaultVoice }, ...p.voices.filter(usable).map(toOption)]
   if (!p.listsVoices) return
   try {
-    voices.value = [{ value: '', label: tt('Default'), hint: p.defaultVoice }, ...(await props.api.listVoices(p.id, effective.value.model || undefined)).filter(usable).map(toOption)]
+    voices.value = [{ value: '', label: 'Default', hint: p.defaultVoice }, ...(await props.api.listVoices(p.id, effective.value.model || undefined)).filter(usable).map(toOption)]
   } catch { /* the built-in list stays */ }
 }, { immediate: true })
 
@@ -163,40 +163,40 @@ async function clearKey(p: SpeechProviderView) {
 <template>
   <section
     class="mb-8 flex flex-col"
-    :aria-label="stt ? tt('Speech to text') : tt('Text to speech')"
+    :aria-label="stt ? 'Speech to text' : 'Text to speech'"
   >
     <h2 class="set-h">
-      {{ stt ? tt('Speech to text') : tt('Text to speech') }}
+      {{ stt ? 'Speech to text' : 'Text to speech' }}
     </h2>
     <p class="set-sub">
-      {{ stt ? tt('Turns what you say into a message in the composer.') : tt('Reads answers aloud from the speaker button under them.') }}
+      {{ stt ? 'Turns what you say into a message in the composer.' : 'Reads answers aloud from the speaker button under them.' }}
     </p>
 
     <div class="set-row">
       <div class="set-label">
-        <span>{{ tt('All devices') }}</span>
-        <span class="set-desc">{{ settings.syncedAvailable ? tt('One of the server\'s providers, the same on every device.') : tt('Needs a connection to the server.') }}</span>
+        <span>All devices</span>
+        <span class="set-desc">{{ settings.syncedAvailable ? 'One of the server\'s providers, the same on every device.' : 'Needs a connection to the server.' }}</span>
       </div>
       <div class="w-[240px] shrink-0 max-sm:w-full">
         <HSelect
           :model-value="synced.providerId"
           :options="syncedOptions"
           :disabled="!settings.syncedAvailable"
-          :aria-label="tt('Provider for all devices')"
+          aria-label="Provider for all devices"
           @update:model-value="pick('synced', $event)"
         />
       </div>
     </div>
     <div class="set-row">
       <div class="set-label">
-        <span>{{ tt('This device') }}</span>
-        <span class="set-desc">{{ tt('Runs on this computer and wins over the choice for all devices here. Never synced.') }}</span>
+        <span>This device</span>
+        <span class="set-desc">Runs on this computer and wins over the choice for all devices here. Never synced.</span>
       </div>
       <div class="w-[240px] shrink-0 max-sm:w-full">
         <HSelect
           :model-value="device.providerId"
           :options="deviceOptions"
-          :aria-label="tt('Provider on this device')"
+          aria-label="Provider on this device"
           @update:model-value="pick('device', $event)"
         />
       </div>
@@ -208,14 +208,14 @@ async function clearKey(p: SpeechProviderView) {
         class="set-row"
       >
         <div class="set-label">
-          <span>{{ tt('Model') }}</span>
-          <span class="set-desc">{{ tt('Of {0}.', [provider.name]) }}</span>
+          <span>Model</span>
+          <span class="set-desc">Of {{ provider.name }}.</span>
         </div>
         <div class="w-[240px] shrink-0 max-sm:w-full">
           <HSelect
             :model-value="effective.model"
             :options="modelOptions"
-            :aria-label="tt('Model')"
+            aria-label="Model"
             @update:model-value="patch(owner, { model: $event })"
           />
         </div>
@@ -225,14 +225,14 @@ async function clearKey(p: SpeechProviderView) {
         class="set-row"
       >
         <div class="set-label">
-          <span>{{ tt('Language') }}</span>
-          <span class="set-desc">{{ tt('A hint for recognition; Detect works it out from the audio.') }}</span>
+          <span>Language</span>
+          <span class="set-desc">A hint for recognition; Detect works it out from the audio.</span>
         </div>
         <div class="w-[240px] shrink-0 max-sm:w-full">
           <HSelect
             :model-value="effective.language"
             :options="LANGUAGES"
-            :aria-label="tt('Language')"
+            aria-label="Language"
             @update:model-value="patch(owner, { language: $event })"
           />
         </div>
@@ -243,20 +243,20 @@ async function clearKey(p: SpeechProviderView) {
           class="set-row"
         >
           <div class="set-label">
-            <span>{{ tt('Voice') }}</span>
+            <span>Voice</span>
           </div>
           <div class="w-[240px] shrink-0 max-sm:w-full">
             <HSelect
               :model-value="effective.voice"
               :options="voices"
-              :aria-label="tt('Voice')"
+              aria-label="Voice"
               @update:model-value="patch(owner, { voice: $event })"
             />
           </div>
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Speed') }}</span>
+            <span>Speed</span>
           </div>
           <div class="flex w-[240px] shrink-0 items-center gap-2 max-sm:w-full">
             <div class="min-w-0 flex-1">
@@ -264,7 +264,7 @@ async function clearKey(p: SpeechProviderView) {
                 :model-value="String(effective.speed || 1)"
                 :options="SPEEDS"
                 :disabled="!provider.supportsSpeed"
-                :aria-label="tt('Speed')"
+                aria-label="Speed"
                 @update:model-value="patch(owner, { speed: Number($event) })"
               />
             </div>
@@ -276,7 +276,7 @@ async function clearKey(p: SpeechProviderView) {
               <HIcon
                 :name="previewing ? 'stop' : 'speaker'"
                 :size="13"
-              />{{ previewing ? tt('Stop') : tt('Preview') }}
+              />{{ previewing ? 'Stop' : 'Preview' }}
             </HBtn>
           </div>
         </div>
@@ -288,12 +288,12 @@ async function clearKey(p: SpeechProviderView) {
       class="set-row"
     >
       <div class="set-label">
-        <span>{{ tt('Read answers automatically') }}</span>
-        <span class="set-desc">{{ tt('Each new answer is read aloud when it finishes. This device only.') }}</span>
+        <span>Read answers automatically</span>
+        <span class="set-desc">Each new answer is read aloud when it finishes. This device only.</span>
       </div>
       <HToggle
         v-model="autoRead"
-        :label="tt('Read answers automatically')"
+        label="Read answers automatically"
       />
     </div>
 
@@ -329,7 +329,7 @@ async function clearKey(p: SpeechProviderView) {
             :href="p.docsUrl"
             class="max-sm:hidden"
           >
-            {{ tt('Docs') }}
+            Docs
           </SettingsLink>
           <template v-if="p.location === 'global' && canManageGlobal">
             <HBtn
@@ -338,14 +338,14 @@ async function clearKey(p: SpeechProviderView) {
               tone="danger"
               @click="clearKey(p)"
             >
-              {{ tt('Remove key') }}
+              Remove key
             </HBtn>
             <HBtn
               v-else-if="keying !== p.id"
               size="sm"
               @click="keying = p.id; keyValue = ''"
             >
-              {{ tt('Set key') }}
+              Set key
             </HBtn>
           </template>
         </div>
@@ -367,7 +367,7 @@ async function clearKey(p: SpeechProviderView) {
             size="md"
             @click="keying = ''"
           >
-            {{ tt('Cancel') }}
+            Cancel
           </HBtn>
           <HBtn
             size="md"
@@ -375,14 +375,14 @@ async function clearKey(p: SpeechProviderView) {
             type="submit"
             :disabled="saving || !keyValue.trim()"
           >
-            {{ tt('Save') }}
+            Save
           </HBtn>
         </form>
         <p
           v-if="p.location === 'global' && p.keySet && p.keyHint"
           class="m-0 px-3 pb-2.5 pl-[52px] text-[11.5px] text-muted"
         >
-          {{ tt('Key {0}', [p.keyHint]) }}
+          Key {{ p.keyHint }}
         </p>
 
         <ul
@@ -400,7 +400,7 @@ async function clearKey(p: SpeechProviderView) {
                 <span
                   v-if="m.recommended"
                   class="text-[11px] text-accent"
-                >{{ tt('recommended') }}</span>
+                >recommended</span>
               </span>
               <span class="truncate text-[11.5px] text-muted">{{ [mb(m.sizeBytes), m.languages.slice(0, 4).join(', '), m.description].filter(Boolean).join(' · ') }}</span>
             </span>
@@ -421,16 +421,16 @@ async function clearKey(p: SpeechProviderView) {
               tone="danger"
               @click="remove(m)"
             >
-              {{ tt('Delete') }}
+              Delete
             </HBtn>
             <HBtn
               v-else
               size="sm"
               :disabled="m.unsupported"
-              :title="m.unsupported ? tt('Not available for this computer') : undefined"
+              :title="m.unsupported ? 'Not available for this computer' : undefined"
               @click="download(m)"
             >
-              {{ tt('Download') }}
+              Download
             </HBtn>
           </li>
         </ul>
@@ -439,7 +439,7 @@ async function clearKey(p: SpeechProviderView) {
         v-if="!local.length && !global.length"
         class="m-0 px-3 py-3 text-[12px] text-muted"
       >
-        {{ tt('No providers.') }}
+        No providers.
       </p>
     </div>
   </section>

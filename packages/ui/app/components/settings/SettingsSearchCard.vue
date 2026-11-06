@@ -134,7 +134,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
           <span
             v-if="!p.enabled"
             class="border border-default px-1 text-[10.5px] text-dimmed"
-          >{{ tt('off') }}</span>
+          >off</span>
         </span>
         <span
           v-if="meta"
@@ -156,7 +156,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
           :disabled="busy === 'test'"
           @click="runTest"
         >
-          {{ busy === 'test' ? tt('Testing…') : tt('Test') }}
+          {{ busy === 'test' ? 'Testing…' : 'Test' }}
         </HBtn>
         <HBtn
           v-if="specs.length"
@@ -164,33 +164,33 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
           :aria-expanded="showOptions"
           @click="showOptions = !showOptions"
         >
-          {{ tt('Options') }}
+          Options
         </HBtn>
         <HBtn
           size="sm"
           :aria-expanded="editing"
           @click="startEdit"
         >
-          {{ hasKey && !hasUrl ? (p.keySet ? tt('Replace key') : tt('Set key')) : tt('Edit') }}
+          {{ hasKey && !hasUrl ? (p.keySet ? 'Replace key' : 'Set key') : 'Edit' }}
         </HBtn>
         <HBtn
           size="sm"
           @click="toggleEnabled"
         >
-          {{ p.enabled ? tt('Disable') : tt('Enable') }}
+          {{ p.enabled ? 'Disable' : 'Enable' }}
         </HBtn>
         <HBtn
           size="sm"
           tone="danger"
           @click="disconnect"
         >
-          {{ confirming ? tt('Confirm') : tt('Disconnect') }}
+          {{ confirming ? 'Confirm' : 'Disconnect' }}
         </HBtn>
       </div>
       <span
         v-else
         class="text-[11.5px] text-dimmed"
-      >{{ tt('managed by admins') }}</span>
+      >managed by admins</span>
     </div>
 
     <form
@@ -202,15 +202,15 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
         v-if="!preset"
         v-model="newName"
         type="text"
-        :aria-label="tt('Name of {0}', [p.name])"
-        :placeholder="tt('Name')"
+        :aria-label="`Name of ${p.name}`"
+        placeholder="Name"
         :class="[input, 'max-w-[180px]']"
       >
       <input
         v-if="hasUrl"
         v-model="newUrl"
         type="url"
-        :aria-label="tt('Instance URL of {0}', [p.name])"
+        :aria-label="`Instance URL of ${p.name}`"
         placeholder="https://searx.example.com"
         :class="[input, 'min-w-[220px] flex-1']"
       >
@@ -219,8 +219,8 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
         v-model="newKey"
         type="password"
         autocomplete="off"
-        :aria-label="tt('New API key for {0}', [p.name])"
-        :placeholder="tt('New API key')"
+        :aria-label="`New API key for ${p.name}`"
+        placeholder="New API key"
         :class="[input, 'min-w-[220px] flex-1']"
       >
       <HBtn
@@ -229,7 +229,7 @@ const input = 'h-7 w-full border border-accented bg-default px-2 text-[12px] tex
         variant="primary"
         :disabled="busy === 'save'"
       >
-        {{ tt('Save') }}
+        Save
       </HBtn>
     </form>
 

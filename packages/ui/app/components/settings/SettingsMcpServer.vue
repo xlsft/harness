@@ -84,10 +84,10 @@ async function signOut() {
 }
 
 const RULES: { value: string, label: string }[] = [
-  { value: 'none', label: tt('Default') },
-  { value: 'allow', label: tt('Allow') },
-  { value: 'ask', label: tt('Ask') },
-  { value: 'deny', label: tt('Deny') }
+  { value: 'none', label: 'Default' },
+  { value: 'allow', label: 'Allow' },
+  { value: 'ask', label: 'Ask' },
+  { value: 'deny', label: 'Deny' }
 ]
 async function setRule(tool: string, value: string) {
   await run(() => props.api.setToolRule(server.value.name, tool, (value === 'none' ? '' : value) as McpRule, local.value))
@@ -112,15 +112,15 @@ async function setRule(tool: string, value: string) {
           <span
             v-if="inspecting"
             class="text-[11px] text-muted"
-          >{{ tt('connecting…') }}</span>
+          >connecting…</span>
           <span
             v-else-if="inspection?.connected"
             class="text-[11px] text-muted"
-          >{{ tt('{0} tool{1}', [toolCount, toolCount === 1 ? '' : 's']) }}</span>
+          >{{ toolCount }} tool{{ toolCount === 1 ? '' : 's' }}</span>
           <span
             v-else-if="failed"
             class="text-[11px] text-bad"
-          >{{ tt('cannot connect') }}</span>
+          >cannot connect</span>
         </span>
         <span class="truncate text-[11.5px] text-muted">{{ entry.managedBy }} · {{ TRANSPORT_LABELS[transportName(server.transport)] }} · {{ entry.launchSummary }}</span>
         <span
@@ -136,7 +136,7 @@ async function setRule(tool: string, value: string) {
           :disabled="busy"
           @click="approve(true)"
         >
-          {{ tt('Allow') }}
+          Allow
         </HBtn>
         <HBtn
           v-if="entry.state !== McpServerState.DENIED"
@@ -144,7 +144,7 @@ async function setRule(tool: string, value: string) {
           :disabled="busy"
           @click="approve(false)"
         >
-          {{ tt('Deny') }}
+          Deny
         </HBtn>
       </template>
       <HBtn
@@ -154,12 +154,12 @@ async function setRule(tool: string, value: string) {
         :disabled="signingIn"
         @click="signIn"
       >
-        {{ signingIn ? tt('Waiting for sign-in…') : tt('Sign in') }}
+        {{ signingIn ? 'Waiting for sign-in…' : 'Sign in' }}
       </HBtn>
       <HToggle
         v-if="entry.canEdit"
         :model-value="server.enabled"
-        :label="tt('Use {0}', [server.name])"
+        :label="`Use ${server.name}`"
         :disabled="busy"
         @update:model-value="toggle"
       />
@@ -180,22 +180,22 @@ async function setRule(tool: string, value: string) {
         v-if="inspection?.serverName"
         class="m-0 text-muted"
       >
-        {{ tt('Reports itself as {0} {1}.', [inspection.serverName, inspection.serverVersion]) }}
+        Reports itself as {{ inspection.serverName }} {{ inspection.serverVersion }}.
         <template v-if="inspection.instructionsChars > 0n">
-          {{ tt('Gives the agent {0} characters of instructions, within a size limit.', [inspection.instructionsChars]) }}
+          Gives the agent {{ inspection.instructionsChars }} characters of instructions, within a size limit.
         </template>
       </p>
       <p
         v-if="server.auth?.account"
         class="m-0 text-muted"
       >
-        {{ tt('Signed in as {0}.', [server.auth.account]) }}
+        Signed in as {{ server.auth.account }}.
       </p>
       <p
         v-if="server.secrets.length"
         class="m-0 text-muted"
       >
-        {{ tt('Secrets: {0}.', [server.secrets.map(s => s.hasValue ? s.name : `${s.name} (not set)`).join(', ')]) }}
+        Secrets: {{ server.secrets.map(s => s.hasValue ? s.name : `${s.name} (not set)`).join(', ') }}.
       </p>
 
       <div
@@ -203,12 +203,12 @@ async function setRule(tool: string, value: string) {
         class="flex flex-col"
       >
         <div class="mb-1 flex items-center gap-2 text-strong">
-          <span class="flex-1">{{ tt('Tools') }}</span>
-          <span class="text-[11px] text-muted">{{ tt('Whole server') }}</span>
+          <span class="flex-1">Tools</span>
+          <span class="text-[11px] text-muted">Whole server</span>
           <HSelect
             :model-value="'none'"
             :options="RULES"
-            :aria-label="tt('Rule for every tool of {0}', [server.name])"
+            :aria-label="`Rule for every tool of ${server.name}`"
             class="w-[100px]"
             @update:model-value="(v: string) => setRule('', v)"
           />
@@ -225,7 +225,7 @@ async function setRule(tool: string, value: string) {
           <HSelect
             :model-value="t.rule || 'none'"
             :options="RULES"
-            :aria-label="tt('Rule for {0}', [t.name])"
+            :aria-label="`Rule for ${t.name}`"
             class="w-[100px]"
             @update:model-value="(v: string) => setRule(t.name, v)"
           />
@@ -236,18 +236,18 @@ async function setRule(tool: string, value: string) {
         v-if="inspection?.prompts.length"
         class="flex flex-col gap-0.5"
       >
-        <span class="text-strong">{{ tt('Prompts') }}</span>
+        <span class="text-strong">Prompts</span>
         <span
           v-for="p in inspection.prompts"
           :key="p.name"
           class="text-muted"
-        >{{ tt('/mcp__{0}__{1}', [server.name, p.name]) }}<template v-if="p.description"> · {{ p.description }}</template></span>
+        >/mcp__{{ server.name }}__{{ p.name }}<template v-if="p.description"> · {{ p.description }}</template></span>
       </div>
       <div
         v-if="inspection?.resources.length"
         class="flex flex-col gap-0.5"
       >
-        <span class="text-strong">{{ tt('Resources') }}</span>
+        <span class="text-strong">Resources</span>
         <span
           v-for="r in inspection.resources"
           :key="r.uri || r.uriTemplate"
@@ -259,10 +259,10 @@ async function setRule(tool: string, value: string) {
         class="m-0 text-muted"
       >
         <template v-if="server.allowedTools.length">
-          {{ tt('Only these tools exist: {0}.', [server.allowedTools.join(', ')]) }}
+          Only these tools exist: {{ server.allowedTools.join(', ') }}.
         </template>
         <template v-if="server.deniedTools.length">
-          {{ tt('Hidden by whoever manages it: {0}.', [server.deniedTools.join(', ')]) }}
+          Hidden by whoever manages it: {{ server.deniedTools.join(', ') }}.
         </template>
       </p>
 
@@ -272,7 +272,7 @@ async function setRule(tool: string, value: string) {
           size="sm"
           @click="emit('edit')"
         >
-          {{ tt('Edit') }}
+          Edit
         </HBtn>
         <HBtn
           v-if="signInAvailable && connected"
@@ -280,7 +280,7 @@ async function setRule(tool: string, value: string) {
           :disabled="signingIn"
           @click="signIn"
         >
-          {{ signingIn ? tt('Waiting for sign-in…') : tt('Reconnect') }}
+          {{ signingIn ? 'Waiting for sign-in…' : 'Reconnect' }}
         </HBtn>
         <HBtn
           v-if="signInAvailable && connected"
@@ -288,7 +288,7 @@ async function setRule(tool: string, value: string) {
           :disabled="busy"
           @click="signOut"
         >
-          {{ tt('Sign out') }}
+          Sign out
         </HBtn>
         <HBtn
           v-if="entry.approval === ApprovalState.APPROVED && entry.source === McpServerSource.PROJECT"
@@ -296,7 +296,7 @@ async function setRule(tool: string, value: string) {
           :disabled="busy"
           @click="approve(false)"
         >
-          {{ tt('Stop allowing') }}
+          Stop allowing
         </HBtn>
         <HBtn
           v-if="entry.canRemove"
@@ -305,7 +305,7 @@ async function setRule(tool: string, value: string) {
           :disabled="busy"
           @click="remove"
         >
-          {{ tt('Remove') }}
+          Remove
         </HBtn>
       </div>
     </div>

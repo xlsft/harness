@@ -48,27 +48,27 @@ async function save() {
   try {
     await download(props.session.meta.id, file.value)
   } catch {
-    toast.add({ title: tt('Could not download the file'), color: 'error' })
+    toast.add({ title: 'Could not download the file', color: 'error' })
   }
 }
 </script>
 
 <template>
   <section
-    :aria-label="tt('File')"
+    aria-label="File"
     class="flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
-      <span class="min-w-0 flex-1 truncate font-display text-[13px] text-strong">{{ file?.name ?? tt('File') }}</span>
+      <span class="min-w-0 flex-1 truncate font-display text-[13px] text-strong">{{ file?.name ?? 'File' }}</span>
       <PaneBtn
         v-if="file"
         icon="download"
-        :label="tt('Download')"
+        label="Download"
         @click="save"
       />
       <PaneBtn
         icon="close"
-        :label="tt('Close')"
+        label="Close"
         @click="closePane('sentfile')"
       />
     </div>
@@ -76,20 +76,20 @@ async function save() {
       v-if="content?.changed"
       class="m-0 border-b border-line px-3.5 py-1.5 text-[12px] text-muted"
     >
-      {{ tt('The file changed after it was sent; this is how it is now.') }}
+      The file changed after it was sent; this is how it is now.
     </p>
 
     <div
       v-if="!file || failed"
       class="flex flex-1 items-center justify-center p-6 text-center text-[12.5px] text-muted"
     >
-      {{ failed || tt('No file open') }}
+      {{ failed || 'No file open' }}
     </div>
     <div
       v-else-if="!content"
       class="flex flex-1 items-center justify-center text-[12.5px] text-muted"
     >
-      {{ tt('Loading') }}
+      Loading
     </div>
     <div
       v-else-if="file.kind === 'image' || file.kind === 'svg'"
@@ -125,9 +125,9 @@ async function save() {
       v-else
       class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-[12.5px] text-muted"
     >
-      {{ tt('This type of file cannot be shown here.') }}
+      This type of file cannot be shown here.
       <HBtn @click="save">
-        {{ tt('Download') }}
+        Download
       </HBtn>
     </div>
   </section>

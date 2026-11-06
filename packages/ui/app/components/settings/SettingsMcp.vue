@@ -87,23 +87,23 @@ function saved() {
 
 <template>
   <section
-    :aria-label="tt('MCP servers')"
+    aria-label="MCP servers"
     class="flex flex-col"
   >
     <div class="mb-1 flex items-center gap-2">
       <h2 class="set-h m-0! flex-1">
-        {{ tt('MCP servers') }}
+        MCP servers
       </h2>
       <HBtn
         size="sm"
         variant="primary"
         @click="adding = true; editing = null"
       >
-        {{ tt('Add server') }}
+        Add server
       </HBtn>
     </div>
     <p class="set-sub">
-      {{ tt('Servers give the agent tools, prompts and data. Changes apply to new sessions; rules on tools too.') }}
+      Servers give the agent tools, prompts and data. Changes apply to new sessions; rules on tools too.
     </p>
     <p
       v-if="error"
@@ -116,7 +116,7 @@ function saved() {
       v-if="list?.registryError"
       class="m-0 mb-3 border border-default px-3 py-2 text-[12px] text-muted"
     >
-      {{ tt('Servers from your account and your admin cannot be loaded: {0}', [list.registryError]) }}
+      Servers from your account and your admin cannot be loaded: {{ list.registryError }}
     </p>
 
     <SettingsMcpForm
@@ -133,7 +133,7 @@ function saved() {
       v-if="loading"
       class="m-0 py-2 text-[12.5px] text-muted"
     >
-      {{ tt('Loading…') }}
+      Loading…
     </p>
 
     <template v-else>
@@ -153,12 +153,12 @@ function saved() {
           v-if="g.source === projectGroup"
           class="mb-2 flex items-center gap-2"
         >
-          <span class="text-[12px] text-muted">{{ tt('Folder') }}</span>
+          <span class="text-[12px] text-muted">Folder</span>
           <HSelect
             v-model="folder"
             :options="folders"
-            :aria-label="tt('Folder for project servers')"
-            :placeholder="tt('No recent folders')"
+            aria-label="Folder for project servers"
+            placeholder="No recent folders"
             class="min-w-0 flex-1"
           />
           <HBtn
@@ -166,7 +166,7 @@ function saved() {
             size="sm"
             @click="trust"
           >
-            {{ tt('Trust this folder') }}
+            Trust this folder
           </HBtn>
         </div>
         <p
@@ -180,7 +180,7 @@ function saved() {
           v-if="!g.entries.length"
           class="m-0 border border-default px-3 py-2.5 text-[12px] text-muted"
         >
-          {{ g.source === projectGroup && !folder ? tt('Open a folder first.') : tt('None.') }}
+          {{ g.source === projectGroup && !folder ? 'Open a folder first.' : 'None.' }}
         </p>
         <div
           v-else

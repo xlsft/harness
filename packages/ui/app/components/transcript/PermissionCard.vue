@@ -42,13 +42,13 @@ const resolved = computed(() => ({
         name="shield"
         class="text-accent"
       />
-      <span class="text-strong">{{ tt('Allow {0}?', [item.toolName]) }}</span>
+      <span class="text-strong">Allow {{ item.toolName }}?</span>
       <span
         v-if="item.agentName"
         class="truncate border border-default px-[5px] text-[11px] text-muted"
-      >{{ tt('agent: {0}', [item.agentName]) }}</span>
+      >agent: {{ item.agentName }}</span>
       <span class="flex-1" />
-      <span class="text-[11px] text-muted">{{ tt('waiting') }}</span>
+      <span class="text-[11px] text-muted">waiting</span>
     </div>
     <div class="flex flex-col gap-2.5 px-3 py-2.5 text-[12.5px]">
       <code class="block border border-default bg-default px-2.5 py-[7px] break-all text-strong">{{ command }}</code>
@@ -62,19 +62,19 @@ const resolved = computed(() => ({
           size="lg"
           @click="answer('allow')"
         >
-          {{ tt('Allow') }} <span class="opacity-70">1</span>
+          Allow <span class="opacity-70">1</span>
         </HBtn>
         <HBtn
           size="lg"
           @click="answer('always')"
         >
-          {{ tt('Always for {0}', [ruleLabel]) }} <span class="text-muted">2</span>
+          Always for {{ ruleLabel }} <span class="text-muted">2</span>
         </HBtn>
         <HBtn
           size="lg"
           @click="answer('deny')"
         >
-          {{ tt('Deny') }} <span class="text-muted">{{ tt('esc') }}</span>
+          Deny <span class="text-muted">esc</span>
         </HBtn>
       </div>
     </div>
@@ -94,6 +94,6 @@ const resolved = computed(() => ({
     <span
       v-if="item.resolvedBy"
       class="shrink-0"
-    >{{ tt('by {0}', [item.resolvedBy]) }}</span>
+    >by {{ item.resolvedBy }}</span>
   </div>
 </template>

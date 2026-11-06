@@ -42,7 +42,7 @@ function from(source: string) {
 
 <template>
   <div class="flex flex-col gap-1.5">
-    <span class="text-[11.5px] text-muted">{{ tt('Spend limits') }}</span>
+    <span class="text-[11.5px] text-muted">Spend limits</span>
     <template v-if="status">
       <SettingsQuotaForm
         :limits="status.own"
@@ -51,12 +51,14 @@ function from(source: string) {
         @save="save"
       />
       <span class="text-[11.5px] text-dimmed">
-        {{ tt('Today {0} of {1}', [usd(status.dailySpentUsd), usd(status.effective.dailyUsd)]) }}<template v-if="from(status.dailySource)"> ({{ from(status.dailySource) }})</template>{{ tt('. This month {0} of {1}', [usd(status.monthlySpentUsd), usd(status.effective.monthlyUsd)]) }}<template v-if="from(status.monthlySource)"> ({{ from(status.monthlySource) }})</template>{{ tt('. Personal providers do not count.') }}
+        Today {{ usd(status.dailySpentUsd) }} of {{ usd(status.effective.dailyUsd) }}<template v-if="from(status.dailySource)"> ({{ from(status.dailySource) }})</template>.
+        This month {{ usd(status.monthlySpentUsd) }} of {{ usd(status.effective.monthlyUsd) }}<template v-if="from(status.monthlySource)"> ({{ from(status.monthlySource) }})</template>.
+        Personal providers do not count.
       </span>
     </template>
     <span
       v-else
       class="text-[11.5px] text-dimmed"
-    >{{ tt('Loading…') }}</span>
+    >Loading…</span>
   </div>
 </template>

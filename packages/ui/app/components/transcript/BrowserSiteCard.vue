@@ -34,40 +34,40 @@ const summary = computed(() => {
     v-if="item.state === 'pending'"
     class="border border-accent bg-surface"
     role="group"
-    :aria-label="tt('Allow {0} in your Chrome?', [item.site])"
+    :aria-label="`Allow ${item.site} in your Chrome?`"
   >
     <div class="flex items-center gap-[9px] border-b border-default px-3 py-2 text-[12.5px]">
       <HIcon
         name="globe"
         class="text-accent"
       />
-      <span class="text-strong">{{ tt('Let the agent use {0} in your Chrome?', [item.site]) }}</span>
+      <span class="text-strong">Let the agent use {{ item.site }} in your Chrome?</span>
       <span class="flex-1" />
-      <span class="text-[11px] text-muted">{{ tt('waiting') }}</span>
+      <span class="text-[11px] text-muted">waiting</span>
     </div>
     <div class="flex flex-col gap-2.5 px-3 py-2.5 text-[12.5px]">
       <span class="break-all text-muted">{{ item.url }}</span>
-      <span class="text-toned">{{ tt('It would act there with your sign-ins, as you. Other sites still ask.') }}</span>
+      <span class="text-toned">It would act there with your sign-ins, as you. Other sites still ask.</span>
       <div class="flex flex-wrap gap-2">
         <HBtn
           variant="primary"
           :disabled="sending"
           @click="answer('session')"
         >
-          {{ tt('Allow for this session') }}
+          Allow for this session
         </HBtn>
         <HBtn
           :disabled="sending"
           @click="answer('always')"
         >
-          {{ tt('Always on this device') }}
+          Always on this device
         </HBtn>
         <HBtn
           tone="danger"
           :disabled="sending"
           @click="answer('deny')"
         >
-          {{ tt('Refuse') }}
+          Refuse
         </HBtn>
       </div>
       <span

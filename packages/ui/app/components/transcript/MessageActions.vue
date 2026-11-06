@@ -34,11 +34,11 @@ const ago = computed(() => props.at ? formatAgo(now.value - props.at) : '')
 const title = computed(() => props.at ? new Date(props.at).toLocaleString() : undefined)
 
 const buttons = computed(() => [
-  { key: 'sendNow', icon: 'arrow-right' as const, label: tt('Send now'), state: actions.value.sendNow, hint: tt('Stop the turn and send this now') },
-  { key: 'cancel', icon: 'close' as const, label: tt('Cancel'), state: actions.value.cancel, hint: tt('Remove from the queue') },
-  { key: 'copy', icon: 'copy' as const, label: tt('Copy'), state: actions.value.copy, hint: tt('Copy the message') },
-  { key: 'rewind', icon: 'history' as const, label: tt('Rewind'), state: actions.value.rewind, hint: actions.value.rewindHint || 'Rewind code and conversation to before this message' },
-  { key: 'fork', icon: 'branch' as const, label: tt('Fork'), state: actions.value.fork, hint: tt('Fork into a sub-session from here') }
+  { key: 'sendNow', icon: 'arrow-right' as const, label: 'Send now', state: actions.value.sendNow, hint: 'Stop the turn and send this now' },
+  { key: 'cancel', icon: 'close' as const, label: 'Cancel', state: actions.value.cancel, hint: 'Remove from the queue' },
+  { key: 'copy', icon: 'copy' as const, label: 'Copy', state: actions.value.copy, hint: 'Copy the message' },
+  { key: 'rewind', icon: 'history' as const, label: 'Rewind', state: actions.value.rewind, hint: actions.value.rewindHint || 'Rewind code and conversation to before this message' },
+  { key: 'fork', icon: 'branch' as const, label: 'Fork', state: actions.value.fork, hint: 'Fork into a sub-session from here' }
 ].filter(b => b.state !== 'hidden'))
 
 function run(key: string) {

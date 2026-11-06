@@ -49,7 +49,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
 <template>
   <form
     class="flex flex-col gap-3 border-t border-default px-3 py-3"
-    :aria-label="tt('Connect {0}', [preset.name])"
+    :aria-label="`Connect ${preset.name}`"
     @submit.prevent="submit"
   >
     <label
@@ -91,7 +91,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         <SettingsLink
           v-if="f.name === 'api_key' && preset.keyUrl"
           :href="preset.keyUrl"
-        >{{ tt('Get a key') }}</SettingsLink>
+        >Get a key</SettingsLink>
       </span>
       <textarea
         v-if="f.multiline"
@@ -110,7 +110,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         :autocomplete="f.name === 'api_key' ? 'off' : undefined"
         :autofocus="i === 0"
         :required="f.required"
-        :placeholder="f.placeholder || (f.name === 'api_key' ? tt('Stored encrypted, never shown again') : '')"
+        :placeholder="f.placeholder || (f.name === 'api_key' ? 'Stored encrypted, never shown again' : '')"
         :class="input"
       >
     </label>
@@ -121,17 +121,17 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
         <HToggle
           v-model="shared"
-          :label="tt('Share with everyone on this server')"
-        />{{ tt('Share with everyone on this server') }}
+          label="Share with everyone on this server"
+        />Share with everyone on this server
       </label>
       <span
         v-else-if="forcedGlobal"
         class="text-[11.5px] text-muted"
-      >{{ preset.group === 'classifier' ? tt('Server-wide: auto mode uses it for every user.') : tt('Shared with everyone: it runs on the server\'s network.') }}</span>
+      >{{ preset.group === 'classifier' ? 'Server-wide: auto mode uses it for every user.' : 'Shared with everyone: it runs on the server\'s network.' }}</span>
       <span
         v-else
         class="text-[11.5px] text-muted"
-      >{{ tt('Only you will see and use it.') }}</span>
+      >Only you will see and use it.</span>
       <span class="flex-1" />
       <HBtn
         size="md"
@@ -139,7 +139,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         tone="muted"
         @click="emit('cancel')"
       >
-        {{ tt('Cancel') }}
+        Cancel
       </HBtn>
       <HBtn
         size="md"
@@ -147,7 +147,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
         type="submit"
         :disabled="busy || !ready"
       >
-        {{ busy ? tt('Connecting…') : tt('Connect') }}
+        {{ busy ? 'Connecting…' : 'Connect' }}
       </HBtn>
     </div>
   </form>

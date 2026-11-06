@@ -41,7 +41,7 @@ const failed = computed(() => !started.value && !['running', 'done', 'stopped'].
       </button>
       <span class="shrink-0 text-[11px] tabular-nums">
         <template v-if="task.state === 'running'">{{ formatClock(elapsed) }}</template>
-        <template v-else-if="!started">{{ tt('exit {0} · {1}', [task.exitCode, formatDuration(task.durationMs)]) }}</template>
+        <template v-else-if="!started">exit {{ task.exitCode }} · {{ formatDuration(task.durationMs) }}</template>
       </span>
       <button
         v-if="task.state === 'running'"
@@ -49,7 +49,7 @@ const failed = computed(() => !started.value && !['running', 'done', 'stopped'].
         class="shrink-0 text-[11.5px] hover:text-bad"
         @click="store.stopTask(sessionId, task.id)"
       >
-        {{ tt('Stop') }}
+        Stop
       </button>
     </div>
     <span
