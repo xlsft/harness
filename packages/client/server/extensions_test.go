@@ -25,8 +25,8 @@ func (h *harness) extensions() agentv1connect.ExtensionsServiceClient {
 }
 
 func TestExtensionSkillsCreateListRemove(t *testing.T) {
-	h := startPlugged(t, (&recording{}).respond, true)
-	home := os.Getenv("HARNESS_HOME")
+	home := t.TempDir()
+	h := startPlugged(t, (&recording{}).respond, true, func(o *bootstrap.Options) { o.SkillHome = home })
 	ctx := context.Background()
 	api := h.extensions()
 	project := t.TempDir()

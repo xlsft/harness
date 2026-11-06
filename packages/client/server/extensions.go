@@ -94,7 +94,7 @@ func skillGroupRank(key string) int {
 func (s *Server) ListExtensionSkills(ctx context.Context, req *connect.Request[agentv1.ListExtensionSkillsRequest]) (*connect.Response[agentv1.ListExtensionSkillsResponse], error) {
 	place := s.pluginPlace(req.Msg.GetCwd())
 	m := s.folderSkills(ctx, place.Cwd)
-	home := config.Home()
+	home := bootstrap.SkillHomeDir(s.Base)
 	external, err := skills.ListExternal(home)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -311,7 +311,7 @@ func (s *Server) DiscoverExtensions(ctx context.Context, req *connect.Request[ag
 		}
 		in.Search = s.SkillSearch
 		in.ExternalBlocked = s.Base.ModePolicy.Managed().ExternalSkillSearchDisabled
-		if stored, err := skills.ListExternal(config.Home()); err == nil {
+		if stored, err := skills.ListExternal(bootstrap.SkillHomeDir(s.Base)); err == nil {
 			in.ExternalInstalled = map[string]bool{}
 			for _, rec := range stored {
 				in.ExternalInstalled[rec.ID] = true
@@ -373,7 +373,7 @@ func (s *Server) CreateSkill(ctx context.Context, req *connect.Request[agentv1.C
 	if !skillNameRe.MatchString(name) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a skill's name uses letters, digits, \"-\" and \"_\", and starts with a letter or digit"))
 	}
-	root := filepath.Join(config.Home(), "skills")
+	root := filepath.Join(bootstrap.SkillHomeDir(s.Base), "skills")
 	if cwd := req.Msg.GetCwd(); cwd != "" {
 		place := s.pluginPlace(cwd)
 		if place.Cwd == "" {
@@ -534,7 +534,7 @@ func (s *Server) GetExternalSkill(ctx context.Context, req *connect.Request[agen
 	if text != "" {
 		res.Description = skills.Parse(text, name, skills.KindSkill).Description
 	}
-	if st, err := skills.ListExternal(config.Home()); err == nil {
+	if st, err := skills.ListExternal(bootstrap.SkillHomeDir(s.Base)); err == nil {
 		rec := st[name]
 		res.Installed = rec != nil && rec.ID == sk.GetId()
 	}
@@ -573,7 +573,7 @@ func (s *Server) InstallExternalSkill(ctx context.Context, req *connect.Request[
 	for _, f := range snap.GetFiles() {
 		files = append(files, skills.ExternalFile{Path: f.GetPath(), Contents: f.GetContents()})
 	}
-	home := config.Home()
+	home := bootstrap.SkillHomeDir(s.Base)
 	stored, err := skills.InstallExternal(home, rec, files)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -588,9 +588,9 @@ func (s *Server) SetExternalSkillApproval(ctx context.Context, req *connect.Requ
 	}
 	var err error
 	if req.Msg.GetApproved() {
-		err = skills.ApproveExternal(config.Home(), req.Msg.GetName(), req.Msg.GetContentHash())
+		err = skills.ApproveExternal(bootstrap.SkillHomeDir(s.Base), req.Msg.GetName(), req.Msg.GetContentHash())
 	} else {
-		err = skills.RevokeExternal(config.Home(), req.Msg.GetName())
+		err = skills.RevokeExternal(bootstrap.SkillHomeDir(s.Base), req.Msg.GetName())
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -603,7 +603,7 @@ func (s *Server) RemoveExternalSkill(ctx context.Context, req *connect.Request[a
 	if err := changesAllowed(ctx, req.Peer().Addr); err != nil {
 		return nil, err
 	}
-	if err := skills.RemoveExternal(config.Home(), req.Msg.GetName()); err != nil {
+	if err := skills.RemoveExternal(bootstrap.SkillHomeDir(s.Base), req.Msg.GetName()); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	return connect.NewResponse(&agentv1.RemoveExternalSkillResponse{}), nil
