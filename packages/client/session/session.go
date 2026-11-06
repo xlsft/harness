@@ -829,6 +829,33 @@ func OpenWriter(path string, o WriterOptions) (*Writer, error) {
 	return w, nil
 }
 
+// Seed makes entries the start of a new transcript: they are written as they are, and what is appended next chains to the
+// last of them. For a transcript that starts from another's.
+func (w *Writer) Seed(entries []Entry) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for _, e := range entries {
+		if w.agentID != "" {
+			e.AgentID = w.agentID
+		}
+		w.entries = append(w.entries, e)
+		if e.UUID != "" {
+			w.last = e.UUID
+		}
+		if w.f == nil {
+			continue
+		}
+		line, err := json.Marshal(e)
+		if err != nil {
+			return err
+		}
+		if _, err := w.f.Write(append(line, '\n')); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Path returns the transcript path.
 func (w *Writer) Path() string { return w.path }
 

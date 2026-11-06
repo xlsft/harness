@@ -6,6 +6,41 @@ import (
 	"sync"
 )
 
+// modeOf is the mode a request is judged under.
+func (e *Engine) modeOf(req Request) Mode {
+	if req.Mode != "" {
+		return req.Mode
+	}
+	return e.mode
+}
+
+// modeStrictness orders the modes, stricter first.
+var modeStrictness = map[Mode]int{ModePlan: 0, ModeDontAsk: 1, ModeDefault: 2, ModeAcceptEdits: 3, ModeAuto: 4, ModeBypassPermissions: 5}
+
+// AgentMode says which mode an agent works under when its definition asks for wanted and the session is in session; ""
+// means the session's. A definition can always make its agent stricter. It can make it freer in two steps only, from
+// default to acceptEdits or auto and from acceptEdits to auto, so an agent never gets what the user would have to switch
+// on with a warning, and plan mode stays what the user asked for. A mode policy turned off isn't available either.
+func AgentMode(session, wanted Mode, allowed func(Mode) bool) Mode {
+	if wanted == "" || wanted == session || session == ModePlan {
+		return ""
+	}
+	want, known := modeStrictness[wanted]
+	have, knownSession := modeStrictness[session]
+	if !known || !knownSession || (allowed != nil && !allowed(wanted)) {
+		return ""
+	}
+	switch {
+	case want < have:
+		return wanted
+	case session == ModeDefault && (wanted == ModeAcceptEdits || wanted == ModeAuto):
+		return wanted
+	case session == ModeAcceptEdits && wanted == ModeAuto:
+		return wanted
+	}
+	return ""
+}
+
 // AllModes lists every mode: the Shift+Tab cycle, then the modes outside it.
 func AllModes() []Mode {
 	return append(ModeCycle(), ModeDontAsk, ModeBypassPermissions)

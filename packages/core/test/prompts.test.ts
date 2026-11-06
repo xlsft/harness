@@ -102,6 +102,7 @@ describe("bundle builder", () => {
       goal_continue: ["condition", "reason", "turn", "max_turns"],
       // the check after each turn of a goal, filled by the client for the small-slot model
       goal_check: ["condition", "conversation"],
+      agent_fork: [],
       team_context: ["team"],
       team_next_task: ["team", "tasks"],
       team_message: ["from", "message"],

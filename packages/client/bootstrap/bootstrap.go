@@ -92,9 +92,11 @@ type Options struct {
 	// FallbackPermissionMode applies when neither PermissionMode nor settings
 	// (permissions.defaultMode) choose a mode. Interactive frontends set auto;
 	// empty keeps default (headless runs and the SDK, as in Claude Code).
-	FallbackPermissionMode   permissions.Mode
-	AllowedTools             []string
-	DisallowedTools          []string
+	FallbackPermissionMode permissions.Mode
+	AllowedTools           []string
+	DisallowedTools        []string
+	// Agents are subagent types for this run only (--agents); they win over definitions of the same name.
+	Agents                   []subagent.Type
 	AskTools                 []string
 	PermissionSources        []permissions.Source
 	DisableBypassPermissions bool
@@ -805,8 +807,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
 		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor, Skills: s.skillSource(), Hooks: s.Hooks,
-		CustomTypes: append(subagent.LoadDefinitionsOver(s.syncedAgents(), subagent.DefinitionDirs(config.Home(), cwd, s.Trusted)), pluginAgents(cwd, s.Trusted)...),
+		CustomTypes: append(append(append([]subagent.Type(nil), o.Agents...), subagent.LoadDefinitionsOver(s.syncedAgents(), subagent.DefinitionDirs(config.Home(), cwd, s.Trusted))...), pluginAgents(cwd, s.Trusted)...),
 		AgentHooks:  s.agentHooks, Logger: log,
+		ModeAllowed: s.Permissions.ModeAllowed, AgentMCP: s.agentMCP(o, log), SkillText: s.agentSkillText,
 	})
 	s.Subagents.Attach(s.Agent)
 	s.ToolEnv.Agents = s.Subagents

@@ -79,6 +79,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `workflow_report` | `run_id`, `name`, `status`, `result`, `details` | a run of the Workflow tool ended: what its script returned, marked as model output, and how its agents ended. Rides on the next model request and starts a turn when idle, unless the run was stopped on request. |
 | `agent_message` | `from`, `message` | the wrapper of what one agent tells another (the task of a new agent, SendMessage); not wrapped in `<system-reminder>` |
 | `agent_context` | `agent_id`, `agent_type`, `instructions` | starts the first message of a subagent: what it is, who speaks to it, how to report |
+| `agent_fork` | — | starts the first message of a subagent started with `fork`, after `agent_context`: the conversation above is a copy of its parent's, and only the task below is its own. The client has a fallback text |
 | `agent_output_invalid` | `error`, `schema` | sends an agent back once when its final message does not validate against the output schema its caller asked for |
 | `agent_type_general`, `agent_type_explore`, `agent_type_plan` | none | the `instructions` of the built-in agent types |
 | `background_task_done` | `task_id`, `command`, `status`, `tail`, `output_path` | a background Bash command finished: `status` is "exited with code N" or how it was killed, `tail` its last lines ("(no output)" when empty). Rides on the next model request (the next turn when idle; it never starts a turn); skipped when a TaskOutput or Wait result already reported the finish |
@@ -137,7 +138,7 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `Read`, `Write`, `Edit`, `Glob`, `Grep` | see `schema.json` | M0 file tools |
 | `Bash` | `command`, `timeout`, `description`, `run_in_background` | background: returns a task id + output file path at once; a foreground command that hits its timeout is moved to the background; completion arrives as `background_task_done` |
 | `TaskStop` | `task_id` | stops a background task, or an agent by its id |
-| `Agent` | `description`, `prompt`, `subagent_type`, `model`, `isolation`, `team` | starts a subagent in the background and returns its id; its final message arrives as `agent_report` and wakes an idle session |
+| `Agent` | `description`, `prompt`, `subagent_type`, `model`, `isolation`, `team`, `fork` | starts a subagent in the background and returns its id; its final message arrives as `agent_report` and wakes an idle session. `fork` starts it with a copy of the conversation, on the caller's model, up to the last complete exchange |
 | `SendMessage` | `to`, `message`, `description` | gives a running agent a message after its current tool calls, or continues an ended one with its context |
 | `Workflow` | `script`, `script_path`, `name`, `args`, `resume_from` | runs a script that drives many agents, in the background, once the user approved it (name, description and phases in the prompt; not in bypass mode; plan mode refuses). Returns a run id; the result arrives as `workflow_report` and wakes an idle session. TaskStop stops a run. |
 | `ListAgents` | `description` | the session's agents and the types that can be started |

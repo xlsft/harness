@@ -147,6 +147,10 @@ type Request struct {
 	RecentUserMessages []string
 	Rationale          string
 
+	// Mode, when set, is the mode this call is judged under instead of the session's: an agent whose definition names one
+	// (AgentMode decides what it may be).
+	Mode Mode
+
 	// AgentID / AgentName identify the subagent making the call (empty for the session's main agent); the prompt
 	// to the user carries them.
 	AgentID   string
@@ -681,7 +685,7 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 		return d
 	}
 	e.mu.RLock()
-	asker, mode, decider, promptHook := e.asker, e.mode, e.decider, e.promptHook
+	asker, mode, decider, promptHook := e.asker, e.modeOf(req), e.decider, e.promptHook
 	e.mu.RUnlock()
 	if mode == ModeDontAsk {
 		return Decision{Behavior: Deny, Message: fmt.Sprintf("Permission to use %s was not granted (dontAsk mode denies anything not pre-approved).", req.ToolName), ResolvedBy: "mode"}
@@ -839,13 +843,13 @@ func (e *Engine) Evaluate(req Request) Decision {
 		}
 	}
 	if req.Sensitive != "" {
-		if e.mode == ModePlan && !req.ReadOnly {
+		if e.modeOf(req) == ModePlan && !req.ReadOnly {
 			return e.planDenial(req.ToolName)
 		}
 		return Decision{Behavior: Ask, UserOnly: true, Message: req.Sensitive}
 	}
 	if req.AlwaysAsk {
-		if e.mode == ModePlan && !req.ReadOnly {
+		if e.modeOf(req) == ModePlan && !req.ReadOnly {
 			return e.planDenial(req.ToolName)
 		}
 		return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s requires the user's confirmation for every call.", req.ToolName)}
@@ -856,13 +860,13 @@ func (e *Engine) Evaluate(req Request) Decision {
 			p = filepath.Join(e.cwd, p)
 		}
 		if e.computerSettingsGuarded(p) {
-			if e.mode == ModePlan {
+			if e.modeOf(req) == ModePlan {
 				return e.planDenial(req.ToolName)
 			}
 			return computerSettingsPrompt(p)
 		}
 		if sb.Active && agentSettingsFile.MatchString(p) {
-			if e.mode == ModePlan {
+			if e.modeOf(req) == ModePlan {
 				return e.planDenial(req.ToolName)
 			}
 			return sandboxSettingsPrompt(p)
@@ -870,13 +874,13 @@ func (e *Engine) Evaluate(req Request) Decision {
 	}
 	for _, r := range e.ask {
 		if r.matchesCall(req, input, mc, false) {
-			if e.mode == ModeBypassPermissions {
+			if e.modeOf(req) == ModeBypassPermissions {
 				break
 			}
 			return Decision{Behavior: Ask, Rule: r.String(), UserOnly: true, Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
 		}
 	}
-	if e.mode == ModeBypassPermissions {
+	if e.modeOf(req) == ModeBypassPermissions {
 		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
 	path := req.FilePath
@@ -910,7 +914,7 @@ func (e *Engine) Evaluate(req Request) Decision {
 	case req.ReadOnly:
 		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
-	if e.mode == ModePlan {
+	if e.modeOf(req) == ModePlan {
 		return e.planDenial(req.ToolName)
 	}
 	if sessionTools[req.ToolName] {
@@ -932,7 +936,7 @@ func (e *Engine) Evaluate(req Request) Decision {
 		if r, ok := allowRule(false); ok {
 			return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
 		}
-		if e.mode == ModeAcceptEdits && inAny(path, e.workDirs) {
+		if e.modeOf(req) == ModeAcceptEdits && inAny(path, e.workDirs) {
 			return Decision{Behavior: Allow, ResolvedBy: "mode"}
 		}
 		return Decision{Behavior: Ask}
@@ -940,7 +944,7 @@ func (e *Engine) Evaluate(req Request) Decision {
 	if r, ok := allowRule(false); ok {
 		return Decision{Behavior: Allow, Rule: r.String(), ResolvedBy: "rule"}
 	}
-	if e.mode == ModeAcceptEdits && worktreeTools[req.ToolName] {
+	if e.modeOf(req) == ModeAcceptEdits && worktreeTools[req.ToolName] {
 		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
 	return Decision{Behavior: Ask}
@@ -1002,7 +1006,7 @@ func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) De
 	if d, decided := e.evalOutsideSandbox(req, sb); decided {
 		return d
 	}
-	if e.mode != ModeBypassPermissions {
+	if e.modeOf(req) != ModeBypassPermissions {
 		for _, r := range e.ask {
 			if wholeBashRule(r, input) {
 				return Decision{Behavior: Ask, Rule: r.String(), UserOnly: true, Message: fmt.Sprintf("Rule %s requires confirmation.", r)}
@@ -1019,12 +1023,12 @@ func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) De
 		cwd = e.cwd
 	}
 	if p := e.bashTouchesComputerSettings(req.Command, cwd, top); p != "" {
-		if e.mode == ModePlan {
+		if e.modeOf(req) == ModePlan {
 			return e.planDenial("Bash (" + req.Command + ")")
 		}
 		return computerSettingsPrompt(p)
 	}
-	if e.mode == ModeBypassPermissions {
+	if e.modeOf(req) == ModeBypassPermissions {
 		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
 	if len(top) == 0 {
@@ -1036,7 +1040,7 @@ func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) De
 		if sb.Active && sb.AutoAllow && !req.OutsideSandbox {
 			return Decision{Behavior: Allow, ResolvedBy: "sandbox"}
 		}
-		if e.mode == ModeAuto {
+		if e.modeOf(req) == ModeAuto {
 			for _, p := range CommandWritePaths(req.Command, cwd, e.home) {
 				if isProtected(p, e.workDirs, e.home) && !e.computerSettingsUnguarded(p) {
 					return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s is a protected path; writes always need approval.", p)}
@@ -1055,7 +1059,7 @@ func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) De
 	if readOnly {
 		return Decision{Behavior: Allow, ResolvedBy: "mode"}
 	}
-	if e.mode == ModePlan {
+	if e.modeOf(req) == ModePlan {
 		return e.planDenial("Bash (" + req.Command + ")")
 	}
 	for _, r := range e.allow {
@@ -1065,7 +1069,7 @@ func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) De
 	}
 	var rule string
 	for _, c := range top {
-		if e.subcommandAllowed(c, cwd, &rule) {
+		if e.subcommandAllowed(e.modeOf(req), c, cwd, &rule) {
 			continue
 		}
 		return ask()
@@ -1074,7 +1078,7 @@ func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) De
 	return Decision{Behavior: Allow, Rule: rule, ResolvedBy: "rule"}
 }
 
-func (e *Engine) subcommandAllowed(c SimpleCommand, cwd string, rule *string) bool {
+func (e *Engine) subcommandAllowed(mode Mode, c SimpleCommand, cwd string, rule *string) bool {
 	if isReadOnlyCommand(c) {
 		return true
 	}
@@ -1087,7 +1091,7 @@ func (e *Engine) subcommandAllowed(c SimpleCommand, cwd string, rule *string) bo
 			return true
 		}
 	}
-	return e.mode == ModeAcceptEdits && e.acceptEditsCommand(c, cwd, e.workDirs)
+	return mode == ModeAcceptEdits && e.acceptEditsCommand(c, cwd, e.workDirs)
 }
 
 // Suggest returns the rules offered for "always allow" (up to 5 for
@@ -1109,7 +1113,7 @@ func (e *Engine) Suggest(req Request) []string {
 		seen := map[string]bool{}
 		for _, c := range top {
 			var r string
-			if c.Unsafe || e.subcommandAllowed(c, cwd, &r) {
+			if c.Unsafe || e.subcommandAllowed(e.mode, c, cwd, &r) {
 				continue
 			}
 			s := "Bash(" + commandPrefix(c) + ")"

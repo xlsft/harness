@@ -92,7 +92,21 @@ type Config struct {
 	CustomTypes []Type
 	// AgentHooks starts the hooks of a definition for one agent (may be nil).
 	AgentHooks func(t Type, agentID string)
-	Logger     *slog.Logger
+	// ModeAllowed says whether a permission mode may be used at all (nil: all).
+	ModeAllowed func(permissions.Mode) bool
+	// AgentMCP starts the servers a definition brings, once the user decided; what it returns says why others didn't start
+	// (nil: such servers don't run).
+	AgentMCP func(ctx context.Context, agentName string, servers map[string]json.RawMessage) (AgentServers, []string)
+	// SkillText reads the text of a skill by name for a definition's skills field (nil: none).
+	SkillText func(ctx context.Context, name string) (string, bool)
+	Logger    *slog.Logger
+}
+
+// AgentServers are the MCP servers of one agent.
+type AgentServers interface {
+	Tools() []tools.Tool
+	ToolDefs() []llm.ToolDef
+	Close()
 }
 
 // Options start one agent (SpawnSubagent).
@@ -260,7 +274,14 @@ type sub struct {
 	cwd      string
 	wt       *worktree.Result
 	silent   bool
-	schema   json.RawMessage
+	// mode is what the definition asks for, kept with the agent so that it holds when the definition is gone.
+	mode permissions.Mode
+	// seed is the conversation of a fork, until it is written; servers its own MCP servers; notes what its first message
+	// says about them.
+	seed    []session.Entry
+	servers AgentServers
+	notes   []string
+	schema  json.RawMessage
 	// resolved is schema, ready to validate with; retried: this run had its second try. output and outputErr are the
 	// run's result.
 	resolved  *jsonschema.Resolved
@@ -303,6 +324,7 @@ type record struct {
 	Depth    int              `json:"depth"`
 	Cwd      string           `json:"cwd"`
 	ReadOnly bool             `json:"read_only,omitempty"`
+	Mode     string           `json:"mode,omitempty"`
 	Worktree *worktree.Result `json:"worktree,omitempty"`
 	// Silent: it reports to the code that started it, which goes with the client.
 	Silent bool `json:"silent,omitempty"`
@@ -386,7 +408,7 @@ func (m *Manager) save(a *sub) {
 	if m.cfg.NoPersistence || m.cfg.Dir == "" {
 		return
 	}
-	data, err := json.Marshal(record{Info: a.snapshot(), Depth: a.depth, Cwd: a.cwd, ReadOnly: a.readOnly, Worktree: a.wt, Silent: a.silent, Unreported: a.unreported})
+	data, err := json.Marshal(record{Info: a.snapshot(), Depth: a.depth, Cwd: a.cwd, ReadOnly: a.readOnly, Mode: string(a.mode), Worktree: a.wt, Silent: a.silent, Unreported: a.unreported})
 	if err != nil {
 		return
 	}
@@ -420,7 +442,7 @@ func (m *Manager) load() {
 		if json.Unmarshal(data, &r) != nil || r.Info.ID == "" {
 			continue
 		}
-		a := &sub{info: r.Info, depth: r.Depth, cwd: r.Cwd, readOnly: r.ReadOnly, wt: r.Worktree, typeName: r.Info.Type, silent: r.Silent, settled: closedChan(), isSettled: true}
+		a := &sub{info: r.Info, depth: r.Depth, cwd: r.Cwd, readOnly: r.ReadOnly, mode: permissions.Mode(r.Mode), wt: r.Worktree, typeName: r.Info.Type, silent: r.Silent, settled: closedChan(), isSettled: true}
 		if a.info.State.Active() || r.Unreported {
 			m.settleLocked(a, tools.AgentInterrupted)
 			if !a.silent {
@@ -547,14 +569,33 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 	if want == "" {
 		want = t.Model
 	}
+	var seed []session.Entry
+	if o.Fork {
+		// The copied messages hold the thinking and the cache of this model, so a fork stays on it.
+		w, parentModel := m.cfg.LeadTranscript, m.lead.Model()
+		if o.ParentID != "" {
+			m.mu.Lock()
+			if p := m.subs[o.ParentID]; p != nil {
+				w, parentModel = p.writer, p.info.Model
+			}
+			m.mu.Unlock()
+		}
+		if o.Model != "" && o.Model != parentModel {
+			return nil, errors.New("a fork stays on your model: leave model out, or start an agent without fork")
+		}
+		if w == nil {
+			return nil, errors.New("this conversation can't be forked: it has no transcript")
+		}
+		want, seed = parentModel, ForkEntries(w.Entries())
+	}
 	model, err := m.resolveModel(want)
 	if err != nil {
 		return nil, err
 	}
 	id := newID()
-	a := &sub{depth: depth, typeName: t.Name, readOnly: t.ReadOnly, cwd: m.cfg.Cwd, silent: o.Silent, schema: o.OutputSchema, resolved: resolved, isSettled: true, settled: closedChan(),
+	a := &sub{depth: depth, typeName: t.Name, readOnly: t.ReadOnly, mode: permissions.Mode(t.Mode), seed: seed, cwd: m.cfg.Cwd, silent: o.Silent, schema: o.OutputSchema, resolved: resolved, isSettled: true, settled: closedChan(),
 		info: tools.AgentInfo{ID: id, ParentID: o.ParentID, ToolUseID: o.ToolUseID, Name: o.Description, Team: o.Team, Type: t.Name, Model: model, State: tools.AgentQueued, StartedAt: rfc3339(time.Now())}}
-	if o.Isolation == tools.IsolationWorktree {
+	if o.Isolation == tools.IsolationWorktree || t.Isolation == tools.IsolationWorktree {
 		r, err := worktree.Create(ctx, m.cfg.Cwd, worktree.Options{Name: "agent-" + id})
 		if err != nil {
 			return nil, fmt.Errorf("cannot create a worktree for the agent: %w", err)
@@ -575,8 +616,17 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 		return nil, err
 	}
 	input := []llm.ContentBlock{llm.TextBlock(m.contextText(a, t))}
+	if o.Fork {
+		input = append(input, llm.TextBlock(m.bundleOf(a).Reminder("agent_fork", agentForkFallback)))
+	}
 	if o.Team != "" {
 		input = append(input, llm.TextBlock(m.teamContext(a)))
+	}
+	if text := m.preloadedSkills(ctx, t); text != "" {
+		input = append(input, llm.TextBlock(text))
+	}
+	if len(a.notes) > 0 {
+		input = append(input, llm.TextBlock("<system-reminder>\n"+strings.Join(a.notes, "\n")+"\n</system-reminder>"))
 	}
 	input = append(input, llm.TextBlock(m.wrapMessage(a, o.ParentID, withSchema(o.Prompt, o.OutputSchema))))
 
@@ -667,16 +717,12 @@ func defuse(s string) string {
 
 // registryFor picks the tools of an agent.
 func (m *Manager) registryFor(t Type, depth int) *tools.Registry {
-	allowed := map[string]bool{}
-	for _, n := range t.Tools {
-		allowed[n] = true
-	}
 	m.mu.Lock()
 	maxDepth := m.maxDepth
 	m.mu.Unlock()
 	reg := tools.NewRegistry()
 	for _, n := range m.cfg.Tools.Names() {
-		if leadOnlyTools[n] || (t.Tools != nil && !allowed[n]) {
+		if leadOnlyTools[n] || !t.allows(n) {
 			continue
 		}
 		if n == "Agent" && depth >= maxDepth {
@@ -699,6 +745,8 @@ type checker struct {
 	m        *Manager
 	id, name string
 	readOnly bool
+	// mode is what the definition asks for.
+	mode permissions.Mode
 }
 
 func (c *checker) Check(ctx context.Context, req permissions.Request) permissions.Decision {
@@ -706,6 +754,7 @@ func (c *checker) Check(ctx context.Context, req permissions.Request) permission
 		return permissions.Decision{Behavior: permissions.Deny, ResolvedBy: "agent", Message: fmt.Sprintf("This agent type is read-only: this %s call is not allowed. Report what should be done instead.", req.ToolName)}
 	}
 	req.AgentID, req.AgentName = c.id, c.name
+	req.Mode = c.m.effectiveMode(c.mode)
 	req.RecentUserMessages = c.m.lead.RecentPrompts()
 	return c.m.cfg.Permissions.Check(ctx, req)
 }
@@ -717,13 +766,24 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	if err != nil {
 		return fmt.Errorf("no prompts for model %s: %w", model, err)
 	}
+	seeded := a.seed
+	a.seed = nil
 	conv := session.Rebuild(entries)
+	if len(seeded) > 0 {
+		conv = session.Rebuild(seeded)
+	}
 	writer, err := session.OpenWriter(m.transcriptPath(id), session.WriterOptions{
 		SessionID: m.cfg.SessionID, Cwd: a.cwd, GitBranch: m.cfg.GitBranch, Version: m.cfg.Version, Entrypoint: m.cfg.Entrypoint,
 		LastUUID: conv.LastUUID, Initial: entries, AgentID: id, Disabled: m.cfg.NoPersistence || m.cfg.Dir == "",
 	})
 	if err != nil {
 		return err
+	}
+	if len(seeded) > 0 {
+		if err := writer.Seed(seeded); err != nil {
+			_ = writer.Close()
+			return fmt.Errorf("copy the conversation for the fork: %w", err)
+		}
 	}
 	if len(entries) == 0 {
 		_, _ = writer.Append(session.Entry{Type: session.TypeMeta, PromptBundleVersion: bundle.Version, Model: model})
@@ -758,6 +818,9 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		thinking      bool
 	)
 	effort := m.lead.Effort()
+	if t.Effort != "" {
+		effort = t.Effort
+	}
 	if info, ok := m.cfg.Catalog.Find(model); ok {
 		display, contextWindow, thinking = info.DisplayName, info.ContextWindow, info.Capabilities.Thinking
 		if info.MaxOutputTokens > 0 && info.MaxOutputTokens < maxTokens {
@@ -774,20 +837,32 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	vars["cwd"], vars["scratchpad_dir"] = a.cwd, scratch
 
 	reg := m.registryFor(t, a.depth)
-	extra := m.cfg.ExtraTools
-	if t.ReadOnly || t.Tools != nil {
-		extra = nil
+	if len(t.MCPInline) > 0 && a.servers == nil {
+		if m.cfg.AgentMCP == nil {
+			a.notes = append(a.notes, "Your definition names MCP servers of its own, which do not run in this session.")
+		} else {
+			a.servers, a.notes = m.cfg.AgentMCP(ctx, a.info.Name, t.MCPInline)
+		}
 	}
+	if a.servers != nil {
+		for _, tool := range a.servers.Tools() {
+			if !matchTool(t.DisallowedTools, tool.Name()) {
+				reg.Register(tool)
+			}
+		}
+	}
+	extra := m.extraToolsFor(t, a.servers)
 	ag := agent.New(agent.Config{
 		Gateway: m.cfg.Gateway, Bundle: bundle, Tools: reg, ToolEnv: env,
-		Permissions: &checker{m: m, id: id, name: a.info.Name, readOnly: a.readOnly},
+		Permissions: &checker{m: m, id: id, name: a.info.Name, readOnly: a.readOnly, mode: a.mode},
+		MaxTurns:    t.MaxTurns,
 		Transcript:  writer,
 		Model:       model, ModelDisplayName: display, MaxTokens: maxTokens, ContextWindow: contextWindow, ThinkingCapable: thinking,
 		AutoCompactPct: m.cfg.AutoCompactPct,
 		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return m.cfg.Bundle(ctx, model) },
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,
 		Vars: vars, ProjectContext: m.cfg.ProjectContext, MCPInstructions: m.cfg.MCPInstructions, History: conv,
-		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: m.agentMode,
+		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: func() string { return m.agentModeOf(a.mode) },
 		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor, Skills: m.cfg.Skills, Hooks: m.cfg.Hooks, AgentType: a.info.Type,
 		OnEvent: func(e agent.Event) { m.onAgentEvent(a, e) }, Logger: m.cfg.Logger,
 	})
@@ -816,6 +891,72 @@ func hasEffort(levels []string, effort string) bool {
 		}
 	}
 	return false
+}
+
+// effectiveMode is the mode the engine judges an agent's calls under: "" for the session's.
+func (m *Manager) effectiveMode(wanted permissions.Mode) permissions.Mode {
+	if wanted == "" || m.cfg.Mode == nil {
+		return ""
+	}
+	return permissions.AgentMode(permissions.Mode(m.cfg.Mode()), wanted, m.cfg.ModeAllowed)
+}
+
+// agentModeOf is agentMode for an agent whose definition may ask for a mode of its own.
+func (m *Manager) agentModeOf(wanted permissions.Mode) string {
+	if got := m.effectiveMode(wanted); got != "" {
+		if got == permissions.ModePlan {
+			return string(permissions.ModeDefault)
+		}
+		return string(got)
+	}
+	return m.agentMode()
+}
+
+// extraToolsFor are the definitions beyond the bundle's that an agent of type t is offered: the session's that the type
+// allows, and its own servers'. A read-only type gets none of the session's: it could not call them anyway.
+func (m *Manager) extraToolsFor(t Type, own AgentServers) func() []llm.ToolDef {
+	shared := m.cfg.ExtraTools
+	if t.ReadOnly {
+		shared = nil
+	}
+	if shared == nil && own == nil {
+		return nil
+	}
+	return func() []llm.ToolDef {
+		var out []llm.ToolDef
+		if shared != nil {
+			for _, d := range shared() {
+				if t.allows(d.Name) {
+					out = append(out, d)
+				}
+			}
+		}
+		if own != nil {
+			for _, d := range own.ToolDefs() {
+				if !matchTool(t.DisallowedTools, d.Name) {
+					out = append(out, d)
+				}
+			}
+		}
+		return out
+	}
+}
+
+// preloadedSkills is the text of the skills a definition names, for the agent's first message.
+func (m *Manager) preloadedSkills(ctx context.Context, t Type) string {
+	if m.cfg.SkillText == nil || len(t.Preload) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, name := range t.Preload {
+		text, ok := m.cfg.SkillText(ctx, name)
+		if !ok {
+			fmt.Fprintf(&b, "<system-reminder>The skill %s your definition names is not available.</system-reminder>\n", name)
+			continue
+		}
+		fmt.Fprintf(&b, "<system-reminder>\nThe skill %s, which your definition gives you:\n%s\n</system-reminder>\n", name, defuse(text))
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 // agentMode is the mode an agent's loop works under. Plan mode reads as default here: the plan and its approval
@@ -1006,6 +1147,9 @@ func (m *Manager) reportVars(a *sub) map[string]string {
 	if info.Transcript != "" {
 		details = append(details, "Its transcript is "+info.Transcript+".")
 	}
+	if note := scanReport(report); note != "" {
+		details = append(details, note)
+	}
 	if info.WorktreePath != "" {
 		details = append(details, fmt.Sprintf("It worked in the git worktree %s on branch %s; its changes stay there until you bring them over.", info.WorktreePath, info.WorktreeBranch))
 	}
@@ -1177,6 +1321,9 @@ func (m *Manager) revive(ctx context.Context, a *sub) error {
 		if a.readOnly {
 			t.Tools = readOnlyTools
 		}
+	}
+	if a.mode != "" {
+		t.Mode = string(a.mode)
 	}
 	return m.build(ctx, a, t, entries)
 }
@@ -1417,7 +1564,7 @@ func (m *Manager) Shutdown() {
 	var wg sync.WaitGroup
 	for _, a := range all {
 		m.mu.Lock()
-		drv, tasks, writer, wt := a.drv, a.tasks, a.writer, a.wt
+		drv, tasks, writer, wt, servers := a.drv, a.tasks, a.writer, a.wt, a.servers
 		m.mu.Unlock()
 		wg.Add(1)
 		go func() {
@@ -1425,6 +1572,9 @@ func (m *Manager) Shutdown() {
 			if drv != nil {
 				drv.Stop()
 				drv.Wait()
+			}
+			if servers != nil {
+				servers.Close()
 			}
 			if tasks != nil {
 				tasks.StopAll(tools.TaskSessionClosed)

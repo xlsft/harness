@@ -85,6 +85,8 @@ type AgentSpec struct {
 	ToolUseID   string
 	// Team makes it a member of that team: peers that message each other and share the session's task graph.
 	Team string
+	// Fork starts it with a copy of the caller's conversation, on the caller's model.
+	Fork bool
 }
 
 // Agents is the session's set of subagents (implemented by subagent.Manager). caller is the Env.AgentID of the
@@ -127,6 +129,7 @@ func (*Agent) Run(ctx context.Context, env *Env, call Call) Result {
 		Model        string `json:"model"`
 		Isolation    string `json:"isolation"`
 		Team         string `json:"team"`
+		Fork         bool   `json:"fork"`
 	}
 	if err := decode(call.Input, &in); err != nil {
 		return ErrorResult("%v", err)
@@ -140,7 +143,7 @@ func (*Agent) Run(ctx context.Context, env *Env, call Call) Result {
 	if env.Agents == nil {
 		return ErrorResult("subagents are not available in this session")
 	}
-	info, err := env.Agents.Spawn(ctx, env.AgentID, AgentSpec{Description: in.Description, Prompt: in.Prompt, Type: in.SubagentType, Model: in.Model, Isolation: in.Isolation, ToolUseID: call.ID, Team: strings.TrimSpace(in.Team)})
+	info, err := env.Agents.Spawn(ctx, env.AgentID, AgentSpec{Description: in.Description, Prompt: in.Prompt, Type: in.SubagentType, Model: in.Model, Isolation: in.Isolation, ToolUseID: call.ID, Team: strings.TrimSpace(in.Team), Fork: in.Fork})
 	if err != nil {
 		return ErrorResult("%v", err)
 	}
