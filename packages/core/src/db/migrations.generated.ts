@@ -194,5 +194,29 @@ export const migrations: { id: string; statements: string[] }[] = [
       "ALTER TABLE \"model\" ADD COLUMN \"pricing_updated_at\" timestamp with time zone;",
       "ALTER TABLE \"model\" ADD COLUMN \"price_change_held\" jsonb;"
     ]
+  },
+  {
+    "id": "0012_giant_magneto",
+    "statements": [
+      "CREATE TABLE \"audit_event\" (\n\t\"id\" bigserial PRIMARY KEY NOT NULL,\n\t\"at\" timestamp with time zone NOT NULL,\n\t\"action\" text NOT NULL,\n\t\"category\" text NOT NULL,\n\t\"outcome\" text NOT NULL,\n\t\"actor_id\" text DEFAULT '' NOT NULL,\n\t\"actor_label\" text DEFAULT '' NOT NULL,\n\t\"actor_ip\" text DEFAULT '' NOT NULL,\n\t\"target_type\" text DEFAULT '' NOT NULL,\n\t\"target_id\" text DEFAULT '' NOT NULL,\n\t\"target_label\" text DEFAULT '' NOT NULL,\n\t\"details\" jsonb DEFAULT '{}'::jsonb NOT NULL\n);",
+      "CREATE TABLE \"directory_group\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"source\" text NOT NULL,\n\t\"external_id\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"directory_group_member\" (\n\t\"group_id\" text NOT NULL,\n\t\"user_id\" text NOT NULL,\n\tCONSTRAINT \"directory_group_member_group_id_user_id_pk\" PRIMARY KEY(\"group_id\",\"user_id\")\n);",
+      "CREATE TABLE \"scim_identity\" (\n\t\"user_id\" text PRIMARY KEY NOT NULL,\n\t\"user_name\" text NOT NULL,\n\t\"external_id\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"scim_identity_user_name_unique\" UNIQUE(\"user_name\")\n);",
+      "CREATE TABLE \"scim_token\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"token_hash\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"last_used_at\" timestamp with time zone,\n\tCONSTRAINT \"scim_token_token_hash_unique\" UNIQUE(\"token_hash\")\n);",
+      "CREATE TABLE \"sso_flow\" (\n\t\"id_hash\" text PRIMARY KEY NOT NULL,\n\t\"provider_id\" text NOT NULL,\n\t\"browser_hash\" text NOT NULL,\n\t\"secrets_enc\" text,\n\t\"return_to\" text DEFAULT '' NOT NULL,\n\t\"test\" boolean DEFAULT false NOT NULL,\n\t\"user_id\" text,\n\t\"expires_at\" timestamp with time zone NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"sso_provider\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"protocol\" text NOT NULL,\n\t\"enabled\" boolean DEFAULT false NOT NULL,\n\t\"config\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"client_secret_enc\" text,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"user_mfa\" (\n\t\"user_id\" text PRIMARY KEY NOT NULL,\n\t\"secret_enc\" text NOT NULL,\n\t\"enabled_at\" timestamp with time zone,\n\t\"last_step\" bigint DEFAULT 0 NOT NULL,\n\t\"recovery_hashes\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"session\" ADD COLUMN \"mfa_pending\" boolean DEFAULT false NOT NULL;",
+      "ALTER TABLE \"directory_group_member\" ADD CONSTRAINT \"directory_group_member_group_id_directory_group_id_fk\" FOREIGN KEY (\"group_id\") REFERENCES \"public\".\"directory_group\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"directory_group_member\" ADD CONSTRAINT \"directory_group_member_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"scim_identity\" ADD CONSTRAINT \"scim_identity_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"user_mfa\" ADD CONSTRAINT \"user_mfa_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"audit_event_at_idx\" ON \"audit_event\" USING btree (\"at\");",
+      "CREATE INDEX \"audit_event_action_idx\" ON \"audit_event\" USING btree (\"category\",\"action\");",
+      "CREATE UNIQUE INDEX \"directory_group_source_name_idx\" ON \"directory_group\" USING btree (\"source\",\"name\");",
+      "CREATE INDEX \"directory_group_member_user_idx\" ON \"directory_group_member\" USING btree (\"user_id\");",
+      "CREATE INDEX \"scim_identity_external_idx\" ON \"scim_identity\" USING btree (\"external_id\");",
+      "CREATE INDEX \"sso_flow_expires_idx\" ON \"sso_flow\" USING btree (\"expires_at\");"
+    ]
   }
 ];

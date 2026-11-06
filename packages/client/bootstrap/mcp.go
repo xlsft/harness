@@ -43,7 +43,7 @@ func (s *Session) openMCP(ctx context.Context, o Options, contextWindow int, con
 		Client: o.MCP, Cwd: s.Cwd, ProjectKey: workspace.ProjectKey(ctx, s.Cwd), ProjectConfig: projectConfig,
 		Approvals: &mcp.Approvals{Path: MCPApprovalsFile()}, AutoApprove: autoApprove, CatalogVersion: catalog,
 		ContextWindow: contextWindow, ToolSearch: os.Getenv("HARNESS_TOOL_SEARCH"), Bundle: s.Bundle,
-		Disabled: s.Permissions.IsDisabled, SessionID: s.ID, Logger: log,
+		Disabled: s.Permissions.IsDisabled, PolicyAllows: o.ModePolicy.Managed().McpServerAllowed, SessionID: s.ID, Logger: log,
 	})
 	if err != nil {
 		log.Warn("MCP disabled", "err", err)

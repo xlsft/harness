@@ -9,6 +9,12 @@ import { createClient, type Client } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-node";
 import { H3, serve } from "h3";
 import { AdminService } from "../../src/gen/harness/auth/v1/admin_pb.ts";
+import { AuditService } from "../../src/gen/harness/auth/v1/audit_pb.ts";
+import { BillingService } from "../../src/gen/harness/auth/v1/billing_pb.ts";
+import { DirectoryService } from "../../src/gen/harness/auth/v1/directory_pb.ts";
+import { MfaService } from "../../src/gen/harness/auth/v1/mfa_pb.ts";
+import { PolicyService } from "../../src/gen/harness/auth/v1/managed_policy_pb.ts";
+import { SsoService } from "../../src/gen/harness/auth/v1/sso_pb.ts";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
 import { ProviderService } from "../../src/gen/harness/llm/v1/providers_pb.ts";
@@ -36,6 +42,12 @@ export interface TestServer {
   mcp: Client<typeof McpService>;
   relay: Client<typeof RelayService>;
   vcs: Client<typeof VcsService>;
+  audit: Client<typeof AuditService>;
+  billing: Client<typeof BillingService>;
+  directory: Client<typeof DirectoryService>;
+  mfa: Client<typeof MfaService>;
+  policy: Client<typeof PolicyService>;
+  sso: Client<typeof SsoService>;
   /** Connect clients authenticated with the given access token. */
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
@@ -48,6 +60,12 @@ export interface TestServer {
     mcp: Client<typeof McpService>;
     relay: Client<typeof RelayService>;
     vcs: Client<typeof VcsService>;
+    audit: Client<typeof AuditService>;
+    billing: Client<typeof BillingService>;
+    directory: Client<typeof DirectoryService>;
+    mfa: Client<typeof MfaService>;
+    policy: Client<typeof PolicyService>;
+    sso: Client<typeof SsoService>;
   };
   close(): Promise<void>;
 }
@@ -111,6 +129,12 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       mcp: createClient(McpService, transport),
       relay: createClient(RelayService, transport),
       vcs: createClient(VcsService, transport),
+      audit: createClient(AuditService, transport),
+      billing: createClient(BillingService, transport),
+      directory: createClient(DirectoryService, transport),
+      mfa: createClient(MfaService, transport),
+      policy: createClient(PolicyService, transport),
+      sso: createClient(SsoService, transport),
     };
   };
 

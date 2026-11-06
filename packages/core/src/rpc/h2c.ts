@@ -6,6 +6,7 @@
 import { createServer, type Http2Server } from "node:http2";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { clientIp, contextValuesWithIp } from "./context.ts";
+import { rpcInterceptors } from "./interceptors.ts";
 import { registerServices } from "./services.ts";
 
 export function startH2cServer(port: number, host = "0.0.0.0"): Promise<Http2Server> {
@@ -15,6 +16,7 @@ export function startH2cServer(port: number, host = "0.0.0.0"): Promise<Http2Ser
       grpc: true,
       grpcWeb: true,
       connect: true,
+      interceptors: rpcInterceptors,
       contextValues: (req) => {
         const xff = req.headers["x-forwarded-for"];
         return contextValuesWithIp(clientIp(req.socket.remoteAddress, Array.isArray(xff) ? xff.join(",") : xff));

@@ -10,6 +10,7 @@ import "harness/agent/v1/files.proto";
 import "harness/agent/v1/import.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
+import "harness/agent/v1/managed_policy.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/sandbox.proto";
@@ -1464,6 +1465,9 @@ message UserPreferences {
   bool lsp_diagnostics_start_server = 8;
   // The command sandbox (settings key sandbox). Applies from the next command.
   SandboxPreferences sandbox = 9;
+  // What the organization's managed policy imposes on this user; read only (managed_policy.proto). Nothing in
+  // UpdateUserPreferencesRequest can change it.
+  ManagedPolicyView managed_policy = 16;
 }
 
 message GetUserPreferencesRequest {}

@@ -7,6 +7,8 @@ import { ensureDb, getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId, newToken, newUserCode, normalizeUserCode, sha256 } from "../lib/ids.ts";
+import { deviceBlockedByPolicy } from "../auth/mfa.ts";
+import { can, normalizeRole, type Role } from "../auth/roles.ts";
 
 export const DEVICE_CODE_TTL_SEC = 600;
 export const POLL_INTERVAL_SEC = 5;
@@ -16,7 +18,7 @@ export interface PublicUser {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "user";
+  role: Role;
 }
 
 export interface Principal {
@@ -27,7 +29,7 @@ export interface Principal {
 }
 
 export function toPublicUser(u: { id: string; email: string; name: string; role: string | null }): PublicUser {
-  return { id: u.id, email: u.email, name: u.name, role: u.role === "admin" ? "admin" : "user" };
+  return { id: u.id, email: u.email, name: u.name, role: normalizeRole(u.role) };
 }
 
 export type PollStatus = "pending" | "slow_down" | "approved" | "denied" | "expired";
@@ -195,6 +197,7 @@ export async function refreshAccessToken(deviceToken: string | undefined) {
   if (!dev || dev.revokedAt) throw new ApiError("authentication", "Device is revoked or unknown");
   const u = await db.query.user.findFirst({ where: eq(schema.user.id, dev.userId) });
   if (!u || u.banned) throw new ApiError("authentication", "User is disabled");
+  if (await deviceBlockedByPolicy(u)) throw new ApiError("authentication", "Your organization requires two-factor sign-in. Sign in again to set it up.");
   await db.update(schema.device).set({ lastSeenAt: new Date() }).where(eq(schema.device.id, dev.id));
   return issueAccessToken(dev.id, dev.userId);
 }
@@ -272,8 +275,8 @@ export async function describePrincipal(p: Principal) {
  */
 export async function listDevices(p: Principal, userId?: string): Promise<DeviceInfo[]> {
   const target = userId || p.user.id;
-  if (target !== p.user.id && p.user.role !== "admin") {
-    throw new ApiError("permission", "Only admins can list other users' devices");
+  if (target !== p.user.id && !can(p.user, "users.read")) {
+    throw new ApiError("permission", "Your role cannot list other users' devices");
   }
   await ensureDb();
   const rows = await getDb().query.device.findMany({

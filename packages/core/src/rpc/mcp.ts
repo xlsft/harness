@@ -17,7 +17,7 @@ import { getToolCatalog } from "../mcp/catalog.ts";
 import { issueStdioLaunch, listDeviceStatus, reportDeviceStatus, type DeviceStatusRow } from "../mcp/devices.ts";
 import { authStatuses, getOAuthFlow, revokeAuth, startOAuth, type AuthStatusView } from "../mcp/oauth.ts";
 import { callTool, getPrompt, listPrompts, listResources, listTools, readResource, type ProgressEvent, type ToolData } from "../mcp/proxy.ts";
-import { createServer, deleteServer, getServer, listServers, updateServer, type ServerView } from "../mcp/registry.ts";
+import { createServer, deleteServer, assertMcpAllowed, getServer, listServers, updateServer, type ServerView } from "../mcp/registry.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard, toConnectError } from "./errors.ts";
@@ -112,6 +112,13 @@ function statusToProto(s: DeviceStatusRow): Init<typeof DeviceServerStatusSchema
     tools: (Array.isArray(s.tools) ? (s.tools as ToolData[]) : []).map(toolToProto),
     reportedAt: s.reportedAt.toISOString(),
   };
+}
+
+/** A server about to be used, not administered: the managed policy has a say. */
+async function usableServer(p: Parameters<typeof getServer>[0], id: string): Promise<ServerView> {
+  const view = await getServer(p, id);
+  await assertMcpAllowed(p.user, view.row.name);
+  return view;
 }
 
 export function registerMcpService(router: ConnectRouter): void {
@@ -217,13 +224,13 @@ export function registerMcpService(router: ConnectRouter): void {
     // --- proxy ---
     listTools: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const r = await listTools(p.user, await getServer(p, req.serverId), req.cursor, ctx.signal);
+      const r = await listTools(p.user, await usableServer(p, req.serverId), req.cursor, ctx.signal);
       return { tools: r.tools.map(toolToProto), nextCursor: r.nextCursor };
     }),
 
     listPrompts: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const r = await listPrompts(p.user, await getServer(p, req.serverId), req.cursor, ctx.signal);
+      const r = await listPrompts(p.user, await usableServer(p, req.serverId), req.cursor, ctx.signal);
       return {
         prompts: r.prompts.map((x) => ({ name: x.name, title: x.title ?? "", description: x.description ?? "", argumentsJson: json(x.arguments) })),
         nextCursor: r.nextCursor,
@@ -232,7 +239,7 @@ export function registerMcpService(router: ConnectRouter): void {
 
     listResources: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const r = await listResources(p.user, await getServer(p, req.serverId), req.cursor, ctx.signal);
+      const r = await listResources(p.user, await usableServer(p, req.serverId), req.cursor, ctx.signal);
       return {
         resources: r.resources.map((x) => ({
           uri: x.uri,
@@ -258,7 +265,7 @@ export function registerMcpService(router: ConnectRouter): void {
       let audited: Promise<unknown> = Promise.resolve();
       try {
         const p = await requirePrincipal(ctx);
-        const view = await getServer(p, req.serverId);
+        const view = await usableServer(p, req.serverId);
         const started = Date.now();
         callTool(p.user, view, req.toolName, req.argumentsJson, Number(req.timeoutMs), ctx.signal, (progress) => queue.push({ progress })).then(
           (result) => {
@@ -306,13 +313,13 @@ export function registerMcpService(router: ConnectRouter): void {
 
     getPrompt: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const r = await getPrompt(p.user, await getServer(p, req.serverId), req.name, req.arguments, ctx.signal);
+      const r = await getPrompt(p.user, await usableServer(p, req.serverId), req.name, req.arguments, ctx.signal);
       return { resultJson: JSON.stringify(r) };
     }),
 
     readResource: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const r = await readResource(p.user, await getServer(p, req.serverId), req.uri, ctx.signal);
+      const r = await readResource(p.user, await usableServer(p, req.serverId), req.uri, ctx.signal);
       return { resultJson: JSON.stringify(r) };
     }),
 

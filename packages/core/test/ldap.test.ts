@@ -261,6 +261,38 @@ describe("sign-in", () => {
     expect((await ldapSignIn("alice", "alice-ldap-password")).ok).toBe(true);
   });
 
+  it("maps groups to roles, with or without memberOf, and feeds the user's groups", async () => {
+    const staff = `cn=staff,${GROUPS}`;
+    const admins = `cn=admins,${GROUPS}`;
+    await admin.admin.setLdapConfig({ config: config({ allowedGroupDn: "", adminGroupDn: "", roleMappings: [{ group: admins, role: User_Role.AUDITOR }, { group: staff, role: User_Role.BILLING }] as never }) });
+    // memberOf on the entry, case and spacing of the DN aside.
+    expect((await ldapSignIn("bob", "bob-ldap-password")).ok).toBe(true);
+    const bob = (await userByEmail("bob@example.org"))!;
+    expect(bob.role).toBe(User_Role.BILLING);
+    expect(bob.groups).toContain(staff);
+    // Only in the group entries; the first matching rule wins.
+    expect((await ldapSignIn("carol", "carol-ldap-password")).ok).toBe(true);
+    const carol = (await userByEmail("carol@example.org"))!;
+    expect(carol.role).toBe(User_Role.AUDITOR);
+    expect(carol.groups).toEqual(expect.arrayContaining([staff, admins]));
+    expect((await admin.directory.listGroups({})).groups.find((g) => g.name === staff)?.source).toBe("ldap");
+
+    // Test user lookup says what would happen.
+    const t = await admin.admin.testLdapUser({ config: config({ allowedGroupDn: "", adminGroupDn: "", roleMappings: [{ group: staff, role: User_Role.BILLING }] as never }), login: "carol" });
+    expect(t.role).toBe(User_Role.BILLING);
+
+    // admin_group_dn goes first; out of every mapped group means back to a plain user, re-checked at sign-in.
+    await admin.admin.setLdapConfig({ config: config({ allowedGroupDn: "", adminGroupDn: admins, roleMappings: [{ group: staff, role: User_Role.BILLING }] as never }) });
+    expect((await ldapSignIn("carol", "carol-ldap-password")).ok).toBe(true);
+    expect((await userByEmail("carol@example.org"))!.role).toBe(User_Role.ADMIN);
+    await admin.admin.setLdapConfig({ config: config({ allowedGroupDn: "", adminGroupDn: "", roleMappings: [{ group: `cn=nobody,${GROUPS}`, role: User_Role.BILLING }] as never }) });
+    expect((await ldapSignIn("carol", "carol-ldap-password")).ok).toBe(true);
+    expect((await userByEmail("carol@example.org"))!.role).toBe(User_Role.USER);
+    // An unknown role in a rule is refused.
+    await expect(admin.admin.setLdapConfig({ config: config({ roleMappings: [{ group: "x", role: 99 }] as never }) })).rejects.toThrow(/role/i);
+    await admin.admin.setLdapConfig({ config: config({ allowedGroupDn: "", adminGroupDn: "", roleMappings: [] }) });
+  });
+
   it("refuses disabled LDAP users", async () => {
     const bob = (await userByEmail("bob@example.org"))!;
     await admin.admin.setDisabled({ userId: bob.id, disabled: true });

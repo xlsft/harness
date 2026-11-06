@@ -105,6 +105,10 @@ func (m *Manager) syncProject(ctx context.Context, existing []*mcpv1.Server) boo
 	sort.Slice(want, func(i, j int) bool { return want[i].GetName() < want[j].GetName() })
 	changed := false
 	for _, w := range want {
+		if m.o.PolicyAllows != nil && !m.o.PolicyAllows(w.GetName()) {
+			m.warn("project MCP server %s is not allowed by your organization's policy", w.GetName())
+			continue
+		}
 		cur := have[w.GetName()]
 		switch {
 		case cur == nil:

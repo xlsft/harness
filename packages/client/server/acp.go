@@ -236,6 +236,9 @@ func (s *Server) storedAcpInfo(m acpMeta) *agentv1.SessionInfo {
 // openAcp starts (or resumes, with meta) an ACP session. The agent starts in the background; the session is
 // returned at once with acp.starting set.
 func (s *Server) openAcp(ctx context.Context, req *agentv1.CreateSessionRequest, agentID string, resume *acpMeta) (*agentv1.SessionInfo, error) {
+	if !s.Base.ModePolicy.Managed().ProviderAllowed("acp", enginePrefix+agentID) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("your organization's policy does not allow the ACP agent %s", agentID))
+	}
 	reg := s.AcpRegistry()
 	st := reg.State(agentID)
 	if st.Installed == nil {
