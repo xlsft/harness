@@ -254,3 +254,12 @@ func (a *Agent) afterReloadSkills(active []session.ActiveSkill) {
 	a.skills.active = active
 	a.skills.listing = ""
 }
+
+// dropSkillsOfMessages takes back what refused messages asked for.
+func (a *Agent) dropSkillsOfMessages(ids []string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, id := range ids {
+		a.dropSkillsOfLocked(id)
+	}
+}

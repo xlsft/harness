@@ -141,6 +141,7 @@ type Manager struct {
 	runs    map[string]*run
 	order   []*run
 	plans   map[string]*plan
+	closed  bool // Shutdown is over: nothing more is written
 	closing bool
 	pubMu   sync.Mutex
 	limits  Limits
@@ -190,6 +191,9 @@ func (m *Manager) persistent() bool { return !m.cfg.NoPersistence && m.cfg.Dir !
 
 // save writes the run's record (m.mu held), and into the session's transcript when its state changed.
 func (m *Manager) save(r *run) {
+	if m.closed {
+		return
+	}
 	if w := m.cfg.LeadTranscript; w != nil && r.recorded != r.rec.Info.State {
 		r.recorded = r.rec.Info.State
 		if data, err := json.Marshal(snapshot(r)); err == nil {
@@ -815,6 +819,12 @@ func (m *Manager) Shutdown() {
 		}
 	}
 	m.mu.Unlock()
+	// An agent that ends later must not write over a record the next client may already be using.
+	defer func() {
+		m.mu.Lock()
+		m.closed = true
+		m.mu.Unlock()
+	}()
 	deadline := time.After(stopWait)
 	for _, d := range waits {
 		select {

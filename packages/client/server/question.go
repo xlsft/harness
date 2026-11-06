@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/tools"
@@ -113,6 +114,7 @@ func (ls *liveSession) AskQuestions(ctx context.Context, toolUseID string, qs []
 	ls.beginWait()
 	defer ls.endWait()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_Question{Question: questionToProto(id, toolUseID, qs)}})
+	ls.sess.Hooks.Fire(hooks.Notification, "question", hooks.Input{NotificationType: "question", Title: "Question", Message: "The agent asks you something."})
 	select {
 	case <-ctx.Done():
 		ls.publish(questionResolved(id, "interrupt", tools.QuestionResponse{}))

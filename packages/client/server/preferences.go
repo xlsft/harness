@@ -93,6 +93,9 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		}
 		set[settings.KeyWorkflowMaxAgents] = n
 	}
+	if req.Msg.HooksEnabled != nil {
+		set[settings.KeyDisableAllHooks] = !req.Msg.GetHooksEnabled()
+	}
 	if b := req.Msg.Sandbox; b != nil {
 		for _, p := range b.GetAllowedWritePaths() {
 			if !settings.ValidSandboxPath(p) {
@@ -184,7 +187,7 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents,
-		Sandbox: &agentv1.SandboxPreferences{Enabled: true}}
+		Sandbox: &agentv1.SandboxPreferences{Enabled: true}, HooksEnabled: true}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
@@ -200,6 +203,9 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	}
 	if v, ok := raw[settings.KeyDisabledSkills]; ok {
 		_ = json.Unmarshal(v, &p.DisabledSkills)
+	}
+	if v, ok := raw[settings.KeyDisableAllHooks]; ok && json.Unmarshal(v, &b) == nil {
+		p.HooksEnabled = !b
 	}
 	var n int32
 	if v, ok := raw[settings.KeyPRMonitorWakesPerHour]; ok && json.Unmarshal(v, &n) == nil && settings.ValidPRMonitorWakesPerHour(int(n)) {

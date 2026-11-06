@@ -110,6 +110,11 @@ const (
 	// AgentServiceGetSandboxStatusProcedure is the fully-qualified name of the AgentService's
 	// GetSandboxStatus RPC.
 	AgentServiceGetSandboxStatusProcedure = "/harness.agent.v1.AgentService/GetSandboxStatus"
+	// AgentServiceListHooksProcedure is the fully-qualified name of the AgentService's ListHooks RPC.
+	AgentServiceListHooksProcedure = "/harness.agent.v1.AgentService/ListHooks"
+	// AgentServiceSetHooksTrustProcedure is the fully-qualified name of the AgentService's
+	// SetHooksTrust RPC.
+	AgentServiceSetHooksTrustProcedure = "/harness.agent.v1.AgentService/SetHooksTrust"
 	// AgentServiceListTasksProcedure is the fully-qualified name of the AgentService's ListTasks RPC.
 	AgentServiceListTasksProcedure = "/harness.agent.v1.AgentService/ListTasks"
 	// AgentServiceStopTaskProcedure is the fully-qualified name of the AgentService's StopTask RPC.
@@ -434,6 +439,12 @@ type AgentServiceClient interface {
 	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
 	// What this machine can do about the command sandbox (sandbox.proto).
 	GetSandboxStatus(context.Context, *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error)
+	// The hooks configured for a session or a folder, and whether each runs (hooks.proto). Read-only: they are edited in
+	// settings files.
+	ListHooks(context.Context, *connect.Request[v1.ListHooksRequest]) (*connect.Response[v1.ListHooksResponse], error)
+	// Trusts on this machine, or stops trusting, hooks the server delivered: exactly this content. It applies from the next
+	// session that opens. Device-local, never synced.
+	SetHooksTrust(context.Context, *connect.Request[v1.SetHooksTrustRequest]) (*connect.Response[v1.SetHooksTrustResponse], error)
 	// Background tasks: shell commands started with run_in_background or moved to the background.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
@@ -832,6 +843,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+AgentServiceGetSandboxStatusProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("GetSandboxStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		listHooks: connect.NewClient[v1.ListHooksRequest, v1.ListHooksResponse](
+			httpClient,
+			baseURL+AgentServiceListHooksProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListHooks")),
+			connect.WithClientOptions(opts...),
+		),
+		setHooksTrust: connect.NewClient[v1.SetHooksTrustRequest, v1.SetHooksTrustResponse](
+			httpClient,
+			baseURL+AgentServiceSetHooksTrustProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetHooksTrust")),
 			connect.WithClientOptions(opts...),
 		),
 		listTasks: connect.NewClient[v1.ListTasksRequest, v1.ListTasksResponse](
@@ -1383,6 +1406,8 @@ type agentServiceClient struct {
 	getUserPreferences      *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
 	updateUserPreferences   *connect.Client[v1.UpdateUserPreferencesRequest, v1.UpdateUserPreferencesResponse]
 	getSandboxStatus        *connect.Client[v1.GetSandboxStatusRequest, v1.GetSandboxStatusResponse]
+	listHooks               *connect.Client[v1.ListHooksRequest, v1.ListHooksResponse]
+	setHooksTrust           *connect.Client[v1.SetHooksTrustRequest, v1.SetHooksTrustResponse]
 	listTasks               *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
 	stopTask                *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
 	closeSession            *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
@@ -1609,6 +1634,16 @@ func (c *agentServiceClient) UpdateUserPreferences(ctx context.Context, req *con
 // GetSandboxStatus calls harness.agent.v1.AgentService.GetSandboxStatus.
 func (c *agentServiceClient) GetSandboxStatus(ctx context.Context, req *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error) {
 	return c.getSandboxStatus.CallUnary(ctx, req)
+}
+
+// ListHooks calls harness.agent.v1.AgentService.ListHooks.
+func (c *agentServiceClient) ListHooks(ctx context.Context, req *connect.Request[v1.ListHooksRequest]) (*connect.Response[v1.ListHooksResponse], error) {
+	return c.listHooks.CallUnary(ctx, req)
+}
+
+// SetHooksTrust calls harness.agent.v1.AgentService.SetHooksTrust.
+func (c *agentServiceClient) SetHooksTrust(ctx context.Context, req *connect.Request[v1.SetHooksTrustRequest]) (*connect.Response[v1.SetHooksTrustResponse], error) {
+	return c.setHooksTrust.CallUnary(ctx, req)
 }
 
 // ListTasks calls harness.agent.v1.AgentService.ListTasks.
@@ -2110,6 +2145,12 @@ type AgentServiceHandler interface {
 	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
 	// What this machine can do about the command sandbox (sandbox.proto).
 	GetSandboxStatus(context.Context, *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error)
+	// The hooks configured for a session or a folder, and whether each runs (hooks.proto). Read-only: they are edited in
+	// settings files.
+	ListHooks(context.Context, *connect.Request[v1.ListHooksRequest]) (*connect.Response[v1.ListHooksResponse], error)
+	// Trusts on this machine, or stops trusting, hooks the server delivered: exactly this content. It applies from the next
+	// session that opens. Device-local, never synced.
+	SetHooksTrust(context.Context, *connect.Request[v1.SetHooksTrustRequest]) (*connect.Response[v1.SetHooksTrustResponse], error)
 	// Background tasks: shell commands started with run_in_background or moved to the background.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
@@ -2504,6 +2545,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceGetSandboxStatusProcedure,
 		svc.GetSandboxStatus,
 		connect.WithSchema(agentServiceMethods.ByName("GetSandboxStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListHooksHandler := connect.NewUnaryHandler(
+		AgentServiceListHooksProcedure,
+		svc.ListHooks,
+		connect.WithSchema(agentServiceMethods.ByName("ListHooks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetHooksTrustHandler := connect.NewUnaryHandler(
+		AgentServiceSetHooksTrustProcedure,
+		svc.SetHooksTrust,
+		connect.WithSchema(agentServiceMethods.ByName("SetHooksTrust")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceListTasksHandler := connect.NewUnaryHandler(
@@ -3080,6 +3133,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceUpdateUserPreferencesHandler.ServeHTTP(w, r)
 		case AgentServiceGetSandboxStatusProcedure:
 			agentServiceGetSandboxStatusHandler.ServeHTTP(w, r)
+		case AgentServiceListHooksProcedure:
+			agentServiceListHooksHandler.ServeHTTP(w, r)
+		case AgentServiceSetHooksTrustProcedure:
+			agentServiceSetHooksTrustHandler.ServeHTTP(w, r)
 		case AgentServiceListTasksProcedure:
 			agentServiceListTasksHandler.ServeHTTP(w, r)
 		case AgentServiceStopTaskProcedure:
@@ -3371,6 +3428,14 @@ func (UnimplementedAgentServiceHandler) UpdateUserPreferences(context.Context, *
 
 func (UnimplementedAgentServiceHandler) GetSandboxStatus(context.Context, *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSandboxStatus is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListHooks(context.Context, *connect.Request[v1.ListHooksRequest]) (*connect.Response[v1.ListHooksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListHooks is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetHooksTrust(context.Context, *connect.Request[v1.SetHooksTrustRequest]) (*connect.Response[v1.SetHooksTrustResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetHooksTrust is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {

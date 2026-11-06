@@ -13,6 +13,7 @@ import (
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
@@ -237,6 +238,7 @@ func (ls *liveSession) close(reason string) {
 	ls.bg.Wait()
 	ls.usage.stop()
 	ls.sess.Agent.SetInteractor(nil)
+	ls.sess.SetEndReason(reason)
 	ls.sess.Close()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionEnded{SessionEnded: &agentv1.SessionEnded{Reason: reason}}})
 	ls.hub.close()
@@ -334,6 +336,8 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SkillInvoked{SkillInvoked: skillInvokedProto(e.Skill)}})
 	case agent.EventWorkflow:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_WorkflowUpdated{WorkflowUpdated: &agentv1.WorkflowUpdated{Workflow: workflowToProto(*e.Workflow)}}})
+	case agent.EventHookRun:
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_HookRun{HookRun: hookRunToProto(*e.HookRun)}})
 	case agent.EventNotice:
 		lv := map[string]agentv1.Notice_Level{"info": agentv1.Notice_LEVEL_INFO, "warning": agentv1.Notice_LEVEL_WARNING, "error": agentv1.Notice_LEVEL_ERROR}
 		ls.notice(lv[e.Notice.Level], e.Notice.Kind, NoticeText(e.Notice))
@@ -515,6 +519,7 @@ func (ls *liveSession) ProposePlan(ctx context.Context, toolUseID, plan, path st
 	ls.beginWait()
 	defer ls.endWait()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PlanProposed{PlanProposed: &agentv1.PlanProposed{RequestId: id, ToolUseId: toolUseID, Plan: plan, PlanFilePath: path}}})
+	ls.sess.Hooks.Fire(hooks.Notification, "plan_approval", hooks.Input{NotificationType: "plan_approval", Title: "Plan ready", Message: "A plan waits for your approval."})
 	select {
 	case <-ctx.Done():
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PlanResolved{PlanResolved: &agentv1.PlanResolved{RequestId: id, ResolvedBy: "interrupt"}}})

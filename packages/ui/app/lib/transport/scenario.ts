@@ -3,6 +3,7 @@
 
 import { PermissionMode, PullRequest_State, SessionStatus, type SessionEvent, type SessionInfo } from '~/gen/harness/agent/v1/agent_pb'
 import { SubagentState, SubagentStepStatus } from '~/gen/harness/agent/v1/subagents_pb'
+import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
 import { EventBuilder, sessionInfo } from './events'
 import type { ModelInfo } from './types'
 
@@ -266,7 +267,7 @@ export function mainHistory(now: number): SessionEvent[] {
   b.wait(2500).assistant('m3d', 'glm-4.6', [{ toolUse: { id: 't-edit-translate', name: 'Edit', input: { file_path: 'packages/core/server/gateway/translate.ts' } } }], { output: 1400 })
   b.toolStarted('t-edit-translate', 'Edit', { file_path: 'packages/core/server/gateway/translate.ts' }, 'packages/core/server/gateway/translate.ts')
   b.wait(100).toolFinished('t-edit-translate', { result: { filePath: 'packages/core/server/gateway/translate.ts', structuredPatch: TRANSLATE_PATCH }, summary: '+7 −2', durationMs: 100 })
-  b.notice('info', 'hook', { event: 'PostToolUse', command: 'pnpm lint --fix', result: '✔ 2 files fixed', ok: true, duration_ms: 1200 })
+  b.hookRun('hook-lint', 'PostToolUse', 'pnpm lint --fix', HookRun_Status.OK, { output: '✔ 2 files fixed', durationMs: 1200, toolName: 'Edit', toolUseId: 't-edit-translate' })
 
   b.wait(2000).assistant('m3e', 'glm-4.6', [{ toolUse: { id: 't-vitest', name: 'Bash', input: { command: 'pnpm vitest run gateway' } } }], { output: 200 })
   b.toolStarted('t-vitest', 'Bash', { command: 'pnpm vitest run gateway' }, 'pnpm vitest run gateway')

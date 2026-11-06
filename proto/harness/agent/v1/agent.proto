@@ -7,6 +7,7 @@ import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/computer_use.proto";
 import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/files.proto";
+import "harness/agent/v1/hooks.proto";
 import "harness/agent/v1/import.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
@@ -107,6 +108,12 @@ service AgentService {
   rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
   // What this machine can do about the command sandbox (sandbox.proto).
   rpc GetSandboxStatus(GetSandboxStatusRequest) returns (GetSandboxStatusResponse);
+  // The hooks configured for a session or a folder, and whether each runs (hooks.proto). Read-only: they are edited in
+  // settings files.
+  rpc ListHooks(ListHooksRequest) returns (ListHooksResponse);
+  // Trusts on this machine, or stops trusting, hooks the server delivered: exactly this content. It applies from the next
+  // session that opens. Device-local, never synced.
+  rpc SetHooksTrust(SetHooksTrustRequest) returns (SetHooksTrustResponse);
 
   // Background tasks: shell commands started with run_in_background or moved to the background.
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
@@ -800,6 +807,8 @@ message SessionEvent {
     DeviceSettingsChanged device_settings_changed = 77;
     // Runs of the Workflow tool (workflows.proto); numbered apart like the shell events.
     WorkflowUpdated workflow_updated = 90;
+    // A hook at work (hooks.proto); numbered apart like the shell events.
+    HookRun hook_run = 100;
     // Slash commands and skills (slash_commands.proto); numbered apart like the shell events.
     SlashCommandResult slash_command_result = 110;
     SkillInvoked skill_invoked = 111;
@@ -1472,6 +1481,9 @@ message UserPreferences {
   bool lsp_diagnostics_start_server = 8;
   // The command sandbox (settings key sandbox). Applies from the next command.
   SandboxPreferences sandbox = 9;
+  // Run the hooks in settings files (settings key disableAllHooks, inverted). Default true. Applies from the next hook of a
+  // running session too. Hooks in a policy document keep running; a policy turns those off itself.
+  bool hooks_enabled = 10;
   // The skills and custom commands the user turned off, by name (settings key disabledSkills). A name the current folder
   // doesn't have stays on the list, so a skill keeps its switch from one project and machine to the next.
   repeated string disabled_skills = 12;
@@ -1505,6 +1517,7 @@ message UpdateUserPreferencesRequest {
   optional bool lsp_diagnostics_start_server = 8;
   // Replaces the whole sandbox block. INVALID_ARGUMENT for a write path that is not absolute or ~/, or a host that cannot be one.
   optional SandboxPreferences sandbox = 9;
+  optional bool hooks_enabled = 10;
   // Flips one name on UserPreferences.disabled_skills, keeping the others. INVALID_ARGUMENT for an empty name.
   optional SkillSwitch skill_switch = 12;
 }

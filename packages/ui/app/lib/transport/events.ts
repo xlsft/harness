@@ -4,6 +4,7 @@ import type { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
 import { create } from '@bufbuild/protobuf'
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SubagentState, SubagentStepStatus } from '~/gen/harness/agent/v1/subagents_pb'
+import type { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
 import {
   Compacted_Trigger,
   Notice_Level,
@@ -287,6 +288,11 @@ export class EventBuilder {
   notice(level: 'info' | 'warning' | 'error', kind: string, body: string | Record<string, unknown>) {
     const l = { info: Notice_Level.INFO, warning: Notice_Level.WARNING, error: Notice_Level.ERROR }[level]
     return this.emit({ case: 'notice', value: { level: l, kind, text: typeof body === 'string' ? body : JSON.stringify(body) } as never })
+  }
+
+  hookRun(runId: string, event: string, command: string, status: HookRun_Status, o: { output?: string, decision?: string, durationMs?: number, toolName?: string, toolUseId?: string, source?: string, exitCode?: number } = {}) {
+    return this.emit({ case: 'hookRun', value: { runId, event, handlerType: 'command', command, matcher: '', source: o.source ?? 'project', status, exitCode: o.exitCode, output: o.output ?? '', decision: o.decision ?? '',
+      durationMs: BigInt(o.durationMs ?? 0), toolName: o.toolName ?? '', toolUseId: o.toolUseId ?? '', agentId: '', async: false } as never })
   }
 
   subagent(id: string, toolUseId: string, name: string, type: string, model: string, state: SubagentState, o: { toolCalls?: number, steps?: { tool: string, target: string, status: SubagentStepStatus }[] } = {}) {

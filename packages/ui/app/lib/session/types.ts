@@ -339,6 +339,22 @@ export interface NoticeItem {
   session?: { id: string, name: string, title: string }
 }
 
+// A hook handler at work (HookRun): one row, from its start to its end.
+export interface HookItem {
+  kind: 'hook'
+  id: string
+  event: string
+  // The command line or URL.
+  command: string
+  source: string
+  state: 'running' | 'ok' | 'blocked' | 'error' | 'timed_out' | 'canceled'
+  output: string
+  decision: string
+  durationMs: number
+  toolName: string
+  async: boolean
+}
+
 // A session the model proposed (SessionStart, own_initiative): the state of its card.
 export interface SessionProposalVM {
   id: string
@@ -430,6 +446,7 @@ export type TranscriptItem
     | PlanItem
     | TodosItem
     | NoticeItem
+    | HookItem
     | CompactItem
     | TurnItem
     | TaskItem

@@ -118,6 +118,23 @@ export interface UserPreferences {
   lspDiagnosticsStartServer: boolean
   // The OS sandbox of the model's commands (settings key sandbox); applies from the next command. An update replaces it whole.
   sandbox: SandboxPreferences
+  // Run the hooks of settings files (settings key disableAllHooks, inverted); reaches running sessions from their next hook.
+  hooksEnabled: boolean
+}
+
+// A hook as configured (ListHooks): read-only, edited in settings files.
+export interface ConfiguredHookVM {
+  event: string
+  matcher: string
+  handlerType: string
+  command: string
+  timeoutSeconds: number
+  async: boolean
+  source: string
+  sourcePath: string
+  status: 'active' | 'disabled' | 'needs_workspace_trust' | 'needs_device_trust' | 'blocked_by_policy' | 'unsupported'
+  reason: string
+  trustHash: string
 }
 
 export interface SandboxPreferences {
@@ -265,6 +282,10 @@ export interface SessionTransport {
   // One switch of the Customize screen (a preference, synced).
   setSkillEnabled(name: string, enabled: boolean): Promise<void>
   getSandboxStatus(): Promise<SandboxStatus>
+  // The hooks of an open session as it runs them, or of a folder, or (neither) those that do not depend on a folder.
+  listHooks(o: { sessionId?: string, cwd?: string }): Promise<ConfiguredHookVM[]>
+  // Trusts on this machine hooks the server delivered (device-local, never synced); applies from the next session.
+  setHooksTrust(hash: string, trusted: boolean): Promise<void>
 
   // This device's preferences; an update changes only the fields it sets and returns them all.
   getDeviceSettings(): Promise<DeviceSettings>

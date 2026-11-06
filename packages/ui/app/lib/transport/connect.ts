@@ -8,7 +8,8 @@ import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session
 import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
-import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import { ConfiguredHook_Status } from '~/gen/harness/agent/v1/hooks_pb'
+import type { ConfiguredHookVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
@@ -51,7 +52,17 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
   return { compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
-    sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false } }
+    sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
+    hooksEnabled: p?.hooksEnabled ?? true }
+}
+
+const CONFIGURED_HOOK_STATUS: Partial<Record<ConfiguredHook_Status, ConfiguredHookVM['status']>> = {
+  [ConfiguredHook_Status.ACTIVE]: 'active',
+  [ConfiguredHook_Status.DISABLED]: 'disabled',
+  [ConfiguredHook_Status.NEEDS_WORKSPACE_TRUST]: 'needs_workspace_trust',
+  [ConfiguredHook_Status.NEEDS_DEVICE_TRUST]: 'needs_device_trust',
+  [ConfiguredHook_Status.BLOCKED_BY_POLICY]: 'blocked_by_policy',
+  [ConfiguredHook_Status.UNSUPPORTED]: 'unsupported'
 }
 
 function computerStatusVM(s: ComputerUseStatus | undefined): ComputerUseStatusVM {
@@ -329,8 +340,18 @@ export class ConnectTransport implements SessionTransport {
     return { platform: res.platform, supported: res.supported, reason: res.reason, requiredByPolicy: res.requiredByPolicy, outsideRefusedByPolicy: res.outsideRefusedByPolicy, builtinHosts: res.builtinHosts }
   }
 
+  async listHooks(o: { sessionId?: string, cwd?: string }): Promise<ConfiguredHookVM[]> {
+    const res = await this.client.listHooks({ sessionId: o.sessionId ?? '', cwd: o.cwd ?? '' })
+    return res.hooks.map(h => ({ event: h.event, matcher: h.matcher, handlerType: h.handlerType, command: h.command, timeoutSeconds: h.timeoutSeconds, async: h.async,
+      source: h.source, sourcePath: h.sourcePath, status: CONFIGURED_HOOK_STATUS[h.status] ?? 'unsupported', reason: h.reason, trustHash: h.trustHash }))
+  }
+
+  async setHooksTrust(hash: string, trusted: boolean) {
+    await this.client.setHooksTrust({ hash, trusted })
+  }
+
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox })
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled })
     return preferencesVM(res.preferences)
   }
 

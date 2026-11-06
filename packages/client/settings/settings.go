@@ -194,6 +194,10 @@ type Settings struct {
 	RemoteControlPolicyOff bool
 	// Sandbox is the OS sandbox of the model's commands (sandbox.go).
 	Sandbox Sandbox
+	// Hooks are the hook blocks of every source, lowest precedence first (hooks.go). HooksOff: disableAllHooks at any level;
+	// HooksPolicyOff: in a policy document, which also stops the policy's own hooks.
+	Hooks                    []HookLayer
+	HooksOff, HooksPolicyOff bool
 
 	// Raw holds every top-level key of the winning level (for keys this
 	// package does not model). Values are byte-exact JSON.
@@ -345,6 +349,9 @@ type layer struct {
 	// remoteControlOff: a policy document says "remoteControl": false.
 	remoteControlOff bool
 	sandbox          *sandboxLayer
+	// hooks is the source's hooks block; hooksOff its disableAllHooks; managedHooksOnly a policy's allowManagedHooksOnly.
+	hooks                      json.RawMessage
+	hooksOff, managedHooksOnly bool
 	// extra are further layers of the same level (permission rule documents).
 	extra []*layer
 }
@@ -485,6 +492,13 @@ func (s *Settings) docLayer(docs DocSource, scope commonv1.Scope, level Level, d
 			out = pl
 		} else {
 			out.extra = append(out.extra, pl)
+		}
+	}
+	for _, hl := range hookDocLayers(docs, scope, level, dir) {
+		if out == nil {
+			out = hl
+		} else {
+			out.extra = append(out.extra, hl)
 		}
 	}
 	return out

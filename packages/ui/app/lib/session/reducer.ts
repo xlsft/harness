@@ -9,6 +9,7 @@
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
+import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
 import { sessionNoteOf } from './links'
 import { blockAttachments, isFileBlock } from './attachments'
 import { accessItem, computerUseVM, toolImages } from './computer'
@@ -33,6 +34,7 @@ import {
   UsageLimit_State
 } from '~/gen/harness/agent/v1/agent_pb'
 import type {
+  HookItem,
   SubagentStateName,
   SubagentStep,
   SubagentVM,
@@ -338,6 +340,17 @@ function userItem(id: string, msg: UserMessage, at: number): TranscriptItem {
 function push(s: SessionState, item: TranscriptItem) {
   s.index[item.kind + ':' + item.id] = s.items.length
   s.items.push(item)
+}
+
+function hookState(st: HookRun_Status): HookItem['state'] {
+  switch (st) {
+    case HookRun_Status.OK: return 'ok'
+    case HookRun_Status.BLOCKED: return 'blocked'
+    case HookRun_Status.ERROR: return 'error'
+    case HookRun_Status.TIMED_OUT: return 'timed_out'
+    case HookRun_Status.CANCELED: return 'canceled'
+  }
+  return 'running'
 }
 
 function find<K extends TranscriptItem['kind']>(s: SessionState, kind: K, id: string) {
@@ -768,6 +781,16 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         text: n.text
       })
       if (n.kind === 'connection_lost') setStatus(s, 'waiting_for_connection')
+      break
+    }
+
+    case 'hookRun': {
+      const r = e.value
+      const vm: HookItem = { kind: 'hook', id: r.runId, event: r.event, command: r.command, source: r.source, state: hookState(r.status), output: r.output,
+        decision: r.decision, durationMs: Number(r.durationMs), toolName: r.toolName, async: r.async }
+      const known = find(s, 'hook', r.runId)
+      if (known) Object.assign(known, vm)
+      else push(s, vm)
       break
     }
 

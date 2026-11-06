@@ -522,6 +522,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	ls.startUsageWatch()
 	ls.startPR()
+	sess.StartHooks()
 	s.sessionOpened(sess.ID)
 	return connect.NewResponse(&agentv1.CreateSessionResponse{Session: ls.info()}), nil
 }
