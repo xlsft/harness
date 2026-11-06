@@ -23,9 +23,9 @@ export class MockUsersApi implements UsersApi {
     const day = 86_400_000
     const at = (d: number) => new Date(Date.now() - d * day).toISOString()
     this.users = [
-      { id: 'usr_me', name: 'You', username: 'you', email: 'you@example.com', role: 'admin', source: 'local', disabled: false, disabledReason: '', createdAt: at(90), lastSignInAt: at(0), lastSeenAt: at(0), isSelf: true },
-      { id: 'usr_ada', name: 'Ada Lovelace', username: 'ada', email: 'ada@example.com', role: 'user', source: 'ldap', disabled: false, disabledReason: '', createdAt: at(30), lastSignInAt: at(2), lastSeenAt: at(1), isSelf: false },
-      { id: 'usr_bob', name: 'Bob', username: '', email: 'bob@example.com', role: 'user', source: 'local', disabled: true, disabledReason: 'Left the team', createdAt: at(60), lastSignInAt: '', lastSeenAt: '', isSelf: false }
+      { id: 'usr_me', name: 'You', username: 'you', email: 'you@example.com', role: 'admin', source: 'local', mfaEnabled: false, groups: [], disabled: false, disabledReason: '', createdAt: at(90), lastSignInAt: at(0), lastSeenAt: at(0), isSelf: true },
+      { id: 'usr_ada', name: 'Ada Lovelace', username: 'ada', email: 'ada@example.com', role: 'user', source: 'ldap', mfaEnabled: false, groups: ['Engineering'], disabled: false, disabledReason: '', createdAt: at(30), lastSignInAt: at(2), lastSeenAt: at(1), isSelf: false },
+      { id: 'usr_bob', name: 'Bob', username: '', email: 'bob@example.com', role: 'user', source: 'local', mfaEnabled: false, groups: [], disabled: true, disabledReason: 'Left the team', createdAt: at(60), lastSignInAt: '', lastSeenAt: '', isSelf: false }
     ]
     this.devices.usr_ada = { devices: [{ id: 'dev_1', name: 'ada-laptop', os: 'darwin', arch: 'arm64', createdAt: at(10), lastSeenAt: at(1) }], webSessions: 1 }
     this.userProviders.usr_ada = [{ id: 'u-ada1', type: 'openai-chat', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', keySet: true, enabled: true, modelCount: 2 }]
@@ -70,6 +70,8 @@ export class MockUsersApi implements UsersApi {
       email,
       role: n.role,
       source: n.ldap ? 'ldap' : 'local',
+      mfaEnabled: false,
+      groups: [],
       disabled: false,
       disabledReason: '',
       createdAt: now(),
@@ -157,8 +159,8 @@ export class MockUsersApi implements UsersApi {
   async testLdapUser(_s: LdapSettings, login: string) {
     this.check()
     const u = this.users.find(x => x.source === 'ldap' && (x.username === login || x.email === login))
-    if (!u) return { found: false, message: 'No single directory entry matches this login', dn: '', username: '', email: '', name: '', groups: [], allowed: false, admin: false, userId: '' }
-    return { found: true, message: 'Found', dn: `uid=${u.username},ou=people,dc=example,dc=com`, username: u.username, email: u.email, name: u.name, groups: ['cn=staff,ou=groups,dc=example,dc=com'], allowed: true, admin: false, userId: u.id }
+    if (!u) return { found: false, message: 'No single directory entry matches this login', dn: '', username: '', email: '', name: '', groups: [], allowed: false, admin: false, role: 'user' as const, userId: '' }
+    return { found: true, message: 'Found', dn: `uid=${u.username},ou=people,dc=example,dc=com`, username: u.username, email: u.email, name: u.name, groups: ['cn=staff,ou=groups,dc=example,dc=com'], allowed: true, admin: false, role: u.role, userId: u.id }
   }
 
   async getModePolicy() {

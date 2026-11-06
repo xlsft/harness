@@ -4,6 +4,7 @@
 // sessions, and their personal providers (key set or not; keys are never shown). The server enforces the
 // rules (admin only, the last admin stays, nobody disables or deletes themselves); errors show inline.
 import type { NewUser, UserProviderView, UserRole, UserSessions, UsersApi, UserView } from '~/lib/users/types'
+import { ROLE_HINT, ROLE_LABEL, downloadCsv } from '~/lib/enterprise/types'
 
 // Upstream protocol of a user's provider, as shown in the list.
 const PROTOCOL_LABEL: Record<string, string> = {
@@ -14,7 +15,17 @@ const PROTOCOL_LABEL: Record<string, string> = {
   'http': 'HTTP'
 }
 
+const ROLES: UserRole[] = ['user', 'admin', 'auditor', 'billing']
+const roleOptions = ROLES.map(r => ({ value: r, label: ROLE_LABEL[r] }))
+const SOURCE_LABEL: Record<UserView['source'], string> = { local: 'Local password', ldap: 'LDAP directory', sso: 'Identity provider', scim: 'Provisioned, signs in through SSO' }
+
 const store = useSessionStore()
+const access = useAccess()
+// Auditors and billing see this list too; what they may not change, the screen does not offer.
+const writable = computed(() => access.can('users.write'))
+const canSeeSessions = computed(() => access.can('users.write') || access.can('sign_in.read'))
+const canReadQuotas = computed(() => access.can('quotas.read'))
+const canWriteQuotas = computed(() => access.can('quotas.write'))
 
 const users = ref<UserView[]>([])
 const query = ref('')
@@ -49,7 +60,10 @@ async function load() {
   })
   loading.value = false
 }
-onMounted(load)
+onMounted(async () => {
+  await access.load()
+  await load()
+})
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 watch(query, () => {
@@ -108,6 +122,7 @@ async function toggle(u: UserView) {
   open.value = u.id
   sessions.value = null
   providers.value = []
+  if (!canSeeSessions.value) return
   await run(async () => {
     const [s, p] = await Promise.all([api().sessions(u.id), api().providers(u.id)])
     if (open.value !== u.id) return
@@ -170,6 +185,21 @@ async function removeProvider(u: UserView, p: UserProviderView) {
   })
 }
 
+async function resetMfa(u: UserView) {
+  if (!armed(`mfa:${u.id}`)) return
+  await run(async () => {
+    await store.transport!.enterprise().resetUserMfa(u.id)
+    await load()
+  })
+}
+
+async function exportUsage(u: UserView) {
+  await run(async () => {
+    const r = await store.transport!.enterprise().exportUsage({ userId: u.id })
+    downloadCsv(`harness-usage-${u.username || u.id}.csv`, r.csv)
+  })
+}
+
 async function copy(text: string) {
   try {
     await navigator.clipboard.writeText(text)
@@ -187,7 +217,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       Users
     </h2>
     <p class="set-sub">
-      Everyone with an account on this server. Only admins see this section.
+      Everyone with an account on this server. {{ writable ? '' : 'Your role can read this; only admins change it.' }}
     </p>
 
     <p
@@ -235,7 +265,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
       >
       <span class="flex-1" />
       <HBtn
-        v-if="!form"
+        v-if="!form && writable"
         size="sm"
         @click="form = emptyForm()"
       >
@@ -286,7 +316,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           <HSelect
             v-model="form.role"
             aria-label="Role"
-            :options="[{ value: 'user', label: 'User' }, { value: 'admin', label: 'Admin' }]"
+            :options="roleOptions"
           />
         </label>
       </div>
@@ -370,13 +400,17 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 class="text-[11px] text-muted"
               >you</span>
               <span
-                v-if="u.role === 'admin'"
+                v-if="u.role !== 'user'"
                 class="border border-default px-1 text-[10.5px] text-muted"
-              >admin</span>
+              >{{ u.role }}</span>
               <span
-                v-if="u.source === 'ldap'"
+                v-if="u.source !== 'local'"
                 class="border border-default px-1 text-[10.5px] text-muted"
-              >LDAP</span>
+              >{{ u.source === 'ldap' ? 'LDAP' : u.source === 'sso' ? 'SSO' : 'SCIM' }}</span>
+              <span
+                v-if="u.mfaEnabled"
+                class="border border-default px-1 text-[10.5px] text-muted"
+              >2FA</span>
               <span
                 v-if="u.disabled"
                 class="border border-bad px-1 text-[10.5px] text-bad"
@@ -417,8 +451,15 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             <dt class="text-muted">
               Sign-in
             </dt><dd class="m-0 text-toned">
-              {{ u.source === 'ldap' ? 'LDAP directory' : 'Local password' }}
+              {{ SOURCE_LABEL[u.source] }}
             </dd>
+            <template v-if="u.groups.length">
+              <dt class="text-muted">
+                Groups
+              </dt><dd class="m-0 text-toned">
+                {{ u.groups.join(', ') }}
+              </dd>
+            </template>
             <template v-if="u.disabled">
               <dt class="text-muted">
                 Disabled
@@ -428,18 +469,22 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             </template>
           </dl>
 
-          <div class="flex flex-wrap items-center gap-1.5">
+          <div
+            v-if="writable"
+            class="flex flex-wrap items-center gap-1.5"
+          >
             <div
               role="radiogroup"
               :aria-label="`Role of ${u.name}`"
               class="mr-2 flex gap-[2px]"
             >
               <button
-                v-for="r in (['user', 'admin'] as const)"
+                v-for="r in ROLES"
                 :key="r"
                 type="button"
                 role="radio"
                 :aria-checked="u.role === r"
+                :title="ROLE_HINT[r]"
                 class="border px-2 py-[3px] text-[11.5px] capitalize"
                 :class="u.role === r ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
                 @click="u.role !== r && setRole(u, r)"
@@ -463,10 +508,36 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             >
               {{ confirming === `delete:${u.id}` ? `Confirm delete ${u.email}` : 'Delete' }}
             </HBtn>
+            <HBtn
+              v-if="u.mfaEnabled"
+              size="sm"
+              @click="resetMfa(u)"
+            >
+              {{ confirming === `mfa:${u.id}` ? 'Confirm: remove their authenticator' : 'Reset 2FA' }}
+            </HBtn>
+          </div>
+
+          <SettingsUserQuota
+            v-if="canReadQuotas"
+            :user-id="u.id"
+            :name="u.name"
+            :readonly="!canWriteQuotas"
+            @error="error = $event"
+          />
+          <div v-if="access.can('usage.read')">
+            <HBtn
+              size="xs"
+              @click="exportUsage(u)"
+            >
+              <HIcon
+                name="download"
+                :size="11"
+              />Usage as CSV
+            </HBtn>
           </div>
 
           <div
-            v-if="u.source === 'local'"
+            v-if="u.source === 'local' && writable"
             class="flex flex-col gap-1.5"
           >
             <span class="text-[11.5px] text-muted">Password</span>
@@ -500,18 +571,21 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             </form>
           </div>
           <p
-            v-else
+            v-else-if="u.source === 'ldap' || u.source === 'sso'"
             class="m-0 text-[11.5px] text-muted"
           >
-            The password is managed in the directory.
+            The password is managed in {{ u.source === 'ldap' ? 'the directory' : 'the identity provider' }}.
           </p>
 
-          <div class="flex flex-col gap-1.5">
+          <div
+            v-if="canSeeSessions"
+            class="flex flex-col gap-1.5"
+          >
             <div class="flex items-center gap-2 text-[11.5px] text-muted">
               <span>Devices and sessions</span>
               <span class="flex-1" />
               <HBtn
-                v-if="sessions && (sessions.devices.length || sessions.webSessions)"
+                v-if="writable && sessions && (sessions.devices.length || sessions.webSessions)"
                 size="xs"
                 tone="danger"
                 @click="revoke(u)"
@@ -533,6 +607,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
                 <span class="truncate text-dimmed">{{ [d.os, d.arch].filter(Boolean).join('/') }} · seen {{ ago(d.lastSeenAt) }}</span>
                 <span class="flex-1" />
                 <HIconBtn
+                  v-if="writable"
                   icon="x"
                   :size="26"
                   :icon-size="12"
@@ -546,7 +621,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             </template>
           </div>
 
-          <div class="flex flex-col gap-1.5">
+          <div
+            v-if="canSeeSessions"
+            class="flex flex-col gap-1.5"
+          >
             <span class="text-[11.5px] text-muted">Personal providers</span>
             <div
               v-for="p in providers"
@@ -559,6 +637,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
               </span>
               <span class="flex-1" />
               <HBtn
+                v-if="writable"
                 size="xs"
                 tone="danger"
                 @click="removeProvider(u, p)"
@@ -580,5 +659,11 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
     >
       {{ query ? 'No users match.' : 'No users.' }}
     </p>
+
+    <SettingsGroups
+      v-if="canReadQuotas || access.can('directory.read')"
+      :users="users"
+      @changed="load"
+    />
   </div>
 </template>

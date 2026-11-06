@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+import "harness/auth/v1/auth.proto";
+
+// MfaService is second-factor sign-in with an authenticator app (TOTP, RFC 6238) and one-time recovery codes. The account
+// methods act on the caller; a second factor is asked for on the sign-in page, so it protects devices too (they are
+// approved from there). The policy and reset methods are for admins (the policy also readable by auditors).
+service MfaService {
+  rpc GetMfaStatus(GetMfaStatusRequest) returns (GetMfaStatusResponse);
+  // Starts (or restarts) enrollment. The secret stays unconfirmed until ConfirmMfaEnrollment.
+  rpc StartMfaEnrollment(StartMfaEnrollmentRequest) returns (StartMfaEnrollmentResponse);
+  // Checks a code from the authenticator and turns the factor on. The recovery codes are shown once.
+  rpc ConfirmMfaEnrollment(ConfirmMfaEnrollmentRequest) returns (ConfirmMfaEnrollmentResponse);
+  // Needs a current code or a recovery code. FAILED_PRECONDITION while the policy requires a factor for this user.
+  rpc DisableMfa(DisableMfaRequest) returns (DisableMfaResponse);
+  // Replaces the recovery codes; needs a current code. Shown once.
+  rpc RegenerateRecoveryCodes(RegenerateRecoveryCodesRequest) returns (RegenerateRecoveryCodesResponse);
+
+  rpc GetMfaPolicy(GetMfaPolicyRequest) returns (GetMfaPolicyResponse);
+  // Admins. FAILED_PRECONDITION when the requirement would cover the caller and they have no factor yet.
+  rpc SetMfaPolicy(SetMfaPolicyRequest) returns (SetMfaPolicyResponse);
+  // Admins: removes a user's factor (a lost phone). They enroll again at their next sign-in if required.
+  rpc ResetUserMfa(ResetUserMfaRequest) returns (ResetUserMfaResponse);
+}
+
+message GetMfaStatusRequest {}
+
+message GetMfaStatusResponse {
+  bool enabled = 1;
+  // RFC 3339, UTC. Empty when off.
+  string enabled_at = 2;
+  int32 recovery_codes_left = 3;
+  // The policy requires a factor for this user: it cannot be turned off.
+  bool required = 4;
+}
+
+message StartMfaEnrollmentRequest {}
+
+message StartMfaEnrollmentResponse {
+  // Base32, for typing into an authenticator.
+  string secret = 1;
+  // otpauth:// URI.
+  string uri = 2;
+  // The URI as a self-contained SVG QR code.
+  string qr_svg = 3;
+}
+
+message ConfirmMfaEnrollmentRequest {
+  string code = 1;
+}
+
+message ConfirmMfaEnrollmentResponse {
+  repeated string recovery_codes = 1;
+}
+
+message DisableMfaRequest {
+  string code = 1;
+}
+
+message DisableMfaResponse {}
+
+message RegenerateRecoveryCodesRequest {
+  string code = 1;
+}
+
+message RegenerateRecoveryCodesResponse {
+  repeated string recovery_codes = 1;
+}
+
+message MfaPolicy {
+  // Everybody must have a factor. Those without one enroll at their next sign-in, and their connected devices stop
+  // refreshing tokens until they did.
+  bool required = 1;
+  // Only these roles (empty: every role).
+  repeated User.Role roles = 2;
+  // People signing in through SSO are not asked again: their identity provider is responsible for the second factor.
+  bool exempt_sso = 3;
+}
+
+message GetMfaPolicyRequest {}
+
+message GetMfaPolicyResponse {
+  MfaPolicy policy = 1;
+}
+
+message SetMfaPolicyRequest {
+  MfaPolicy policy = 1;
+}
+
+message SetMfaPolicyResponse {
+  MfaPolicy policy = 1;
+}
+
+message ResetUserMfaRequest {
+  string user_id = 1;
+}
+
+message ResetUserMfaResponse {}

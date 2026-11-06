@@ -514,6 +514,22 @@ func TestProjectConfigRegistration(t *testing.T) {
 	}
 }
 
+func TestProjectConfigObeysManagedPolicy(t *testing.T) {
+	h := newHarness(t)
+	cfg := filepath.Join(h.cwd, ".mcp.json")
+	os.WriteFile(cfg, []byte(`{"mcpServers":{
+		"allowed":{"type":"http","url":"https://a.example/mcp"},
+		"other":{"type":"http","url":"https://b.example/mcp"}
+	}}`), 0o644)
+	h.open(t, func(o *mcp.Options) {
+		o.ProjectKey, o.ProjectConfig = "github.com/a/b", cfg
+		o.PolicyAllows = func(name string) bool { return name == "allowed" }
+	})
+	if len(h.svc.Created) != 1 || h.svc.Created[0].GetName() != "allowed" {
+		t.Fatalf("created = %v", h.svc.Created)
+	}
+}
+
 func TestResultFromJSON(t *testing.T) {
 	r := mcp.ResultFromJSON([]byte(`{"content":[{"type":"text","text":"a"},{"type":"image","data":"aGk=","mimeType":"image/png"},{"type":"resource","resource":{"uri":"file:///x","text":"body"}},{"type":"audio","data":"x","mimeType":"audio/wav"}]}`))
 	if r.IsError || len(r.Content) != 4 || r.Content[1].Type != llm.BlockImage || r.Content[1].Source.MediaType != "image/png" || r.Content[2].Text != "body" || !strings.Contains(r.Content[3].Text, "audio omitted") {

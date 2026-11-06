@@ -3,6 +3,7 @@
 // with the shell, then asks it for the sidecar's endpoint (lib/desktop.ts).
 import { agentEndpoint, authStatus, guardQuit, isDesktop } from '~/lib/desktop'
 import { ConnectTransport } from '~/lib/transport'
+import { browserClientEndpoint, forgetClientEndpoint } from '~/lib/web/endpoint'
 
 useSeoMeta({
   title: 'xlsft`s harness',
@@ -16,7 +17,11 @@ useUserNotifications()
 useDeviceSettings()
 useScreenReader().start()
 useHead({ htmlAttrs: { lang: currentLocale() } })
-const phase = ref<'checking' | 'signin' | 'ready'>(desktop ? 'checking' : 'ready')
+const config = useRuntimeConfig()
+// Served by the server itself: a client to connect to, or the console for what needs none (components/WebConsole.vue).
+const web = !desktop && String(config.public.transport) === 'web'
+const phase = ref<'checking' | 'signin' | 'ready' | 'web'>(desktop ? 'checking' : 'ready')
+const webError = ref('')
 
 // Quitting the desktop app warns while work is still running here: sessions in a turn, background tasks, agents.
 const { runningWork } = useRunningWork()
@@ -67,6 +72,21 @@ if (desktop) {
     onBeforeUnmount(() => clearInterval(timer))
   })
   watch(() => store.connectionLost, lost => lost && reconnect())
+} else if (web) {
+  if (import.meta.client) {
+    const endpoint = browserClientEndpoint()
+    if (!endpoint) {
+      phase.value = 'web'
+    } else {
+      await store.init(new ConnectTransport(endpoint.url, endpoint.token))
+      if (!store.ready) {
+        // Forgotten, so a reload is not stuck on it; the form offers it again.
+        webError.value = store.error || 'no answer'
+        forgetClientEndpoint()
+        phase.value = 'web'
+      }
+    }
+  }
 } else {
   await store.init()
 }
@@ -80,6 +100,10 @@ if (desktop) {
       @signed-in="connectDesktop"
     />
     <HLoader v-else-if="phase === 'checking'" />
+    <WebConsole
+      v-else-if="phase === 'web'"
+      :error="webError"
+    />
     <template v-else>
       <NuxtPage />
       <ScreenReaderRegions />

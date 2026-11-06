@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins/admin";
 import { username } from "better-auth/plugins/username";
@@ -9,13 +9,30 @@ import { config } from "../env.ts";
 import { deriveKey } from "../lib/crypto.ts";
 import { newId } from "../lib/ids.ts";
 import { getLdapRuntimeConfig } from "./ldap-config.ts";
-import { isBreakGlass, ldapSignIn } from "./ldap-sign-in.ts";
+import { AUTH_PEER_IP_HEADER, isBreakGlass, ldapSignIn } from "./ldap-sign-in.ts";
+import { record } from "../audit/log.ts";
+import { countMetric } from "../telemetry/metrics.ts";
+import { mfaEndpoints } from "./mfa-endpoints.ts";
+import { sessionOwesFactor } from "./mfa.ts";
+import { getSsoSettings } from "./sso-config.ts";
+import { ssoComplete } from "./sso-sign-in.ts";
 
 const ID_PREFIX: Record<string, string> = {
   user: "usr",
   session: "sess",
   account: "acc",
   verification: "ver",
+};
+
+/** What a session that still owes its second factor may reach. */
+const PENDING_ALLOWED = ["/mfa/", "/sign-out", "/get-session", "/sign-in/", "/sign-up/", "/sso/complete", "/ok", "/error"];
+
+const SIGN_IN_METHOD: Record<string, string> = {
+  "/sign-in/email": "password",
+  "/sign-in/username": "password",
+  "/sign-in/ldap": "ldap",
+  "/sso/complete": "sso",
+  "/sign-up/email": "sign_up",
 };
 
 function createAuth() {
@@ -42,6 +59,11 @@ function createAuth() {
       disableSignUp: false,
       minPasswordLength: 8,
     },
+    session: {
+      additionalFields: {
+        mfaPending: { type: "boolean", required: false, defaultValue: false, input: false },
+      },
+    },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         // Covers every sign-up method (today only /sign-up/email, which also takes a username).
@@ -57,6 +79,54 @@ function createAuth() {
             throw new APIError("FORBIDDEN", { message: "Sign in with your directory account." });
           }
         }
+        // With SSO required, only the break-glass logins keep passwords (local or LDAP).
+        if (ctx.path === "/sign-in/email" || ctx.path === "/sign-in/username" || ctx.path === "/sign-in/ldap") {
+          const sso = await getSsoSettings();
+          if (sso.require_sso) {
+            const body = (ctx.body ?? {}) as { email?: unknown; username?: unknown; login?: unknown };
+            const login = String(body.email ?? body.username ?? body.login ?? "").trim().toLowerCase();
+            if (!sso.break_glass_logins.includes(login)) throw new APIError("FORBIDDEN", { message: "Sign in with your organization's identity provider." });
+          }
+        }
+        // Afterwards the session is gone, and with it who this was.
+        if (ctx.path === "/sign-out") {
+          const s = await getSessionFromCtx(ctx);
+          if (s) await record({ action: "auth.sign_out", actor: { id: s.user.id, label: s.user.email, ip: ctx.request?.headers.get(AUTH_PEER_IP_HEADER) ?? "" } });
+        }
+        // A session that owes its second factor is good for nothing else.
+        if (ctx.request?.headers.get("cookie") && !PENDING_ALLOWED.some((p) => ctx.path.startsWith(p))) {
+          const s = (await getSessionFromCtx(ctx)) as { session?: { mfaPending?: boolean } } | null;
+          if (s?.session?.mfaPending) throw new APIError("FORBIDDEN", { message: "Finish two-factor sign-in first." });
+        }
+      }),
+      // Sign-ins, failed or not, go to the audit log. Only the login is recorded, never what came with it.
+      after: createAuthMiddleware(async (ctx) => {
+        const method = SIGN_IN_METHOD[ctx.path];
+        if (!method) return;
+        const ip = ctx.request?.headers.get(AUTH_PEER_IP_HEADER) ?? "";
+        const fresh = ctx.context.newSession;
+        if (fresh) {
+          const pending = (fresh.session as { mfaPending?: boolean }).mfaPending === true;
+          countMetric("harness.auth.sign_ins", 1, { method, outcome: "success" });
+          await record({
+            action: method === "sign_up" ? "auth.sign_up" : "auth.sign_in",
+            actor: { id: fresh.user.id, label: fresh.user.email, ip },
+            target: { type: "user", id: fresh.user.id, label: fresh.user.email },
+            details: { method, mfa_pending: pending },
+          });
+          return;
+        }
+        const returned = ctx.context.returned;
+        if (!(returned instanceof APIError) || ctx.path === "/sso/complete") return;
+        const body = (ctx.body ?? {}) as { email?: unknown; username?: unknown; login?: unknown };
+        const login = String(body.email ?? body.username ?? body.login ?? "").slice(0, 200);
+        countMetric("harness.auth.sign_ins", 1, { method, outcome: "failure" });
+        await record({
+          action: "auth.sign_in_failed",
+          outcome: "failure",
+          actor: { label: login, ip },
+          details: { method, reason: returned.message, status: returned.statusCode },
+        });
       }),
     },
     databaseHooks: {
@@ -66,11 +136,20 @@ function createAuth() {
           before: async (user) => ((await hasUsers()) ? undefined : { data: { ...user, role: "admin" } }),
         },
       },
+      session: {
+        create: {
+          // Every way of signing in ends here (auth/mfa.ts).
+          before: async (session, ctx) => {
+            if (!(await sessionOwesFactor(session.userId, ctx?.path === "/sso/complete"))) return undefined;
+            return { data: { ...session, mfaPending: true } };
+          },
+        },
+      },
     },
     // ldapSignIn: POST /sign-in/ldap against the directory configured in AdminService (ldap-sign-in.ts).
     // username: optional unique handle (3-30 chars of [a-zA-Z0-9_.], stored lowercased) usable at
     // /sign-in/username instead of the email; set at sign-up or by an admin (create-user `data.username`).
-    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), username(), ldapSignIn()],
+    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), username(), ldapSignIn(), mfaEndpoints(), ssoComplete()],
     advanced: {
       database: {
         generateId: ({ model }) => newId(ID_PREFIX[model] ?? model.slice(0, 4)),

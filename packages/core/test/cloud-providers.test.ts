@@ -412,6 +412,10 @@ describe("through the gateway", () => {
   it("signs a Mantle request with the stored keys, and never returns the secret", async () => {
     const { provider } = await connect("bedrock", { region: "us-east-1", access_key_id: "AKIAFAKEFAKEFAKEFAKE" });
     expect(JSON.stringify(provider)).not.toContain("fake-secret-key");
+    // Who can change it sees its account; everyone else only that it is there.
+    expect(provider!.options.access_key_id).toBe("AKIAFAKEFAKEFAKEFAKE");
+    const seen = (await alice.providers.listProviders({})).providers.find((p) => p.id === provider!.id);
+    expect(seen?.options).toEqual({});
     await admin.providers.addModel({ providerId: provider!.id, upstreamModel: "anthropic.claude-opus-5-5", id: "bedrock-opus" });
     up.enqueue({ sse: anthropicThinkingText });
     const out = await events(admin, "bedrock-opus");

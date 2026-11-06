@@ -10,6 +10,7 @@
  * without any global model gets their first own model as the default).
  */
 import { and, asc, eq, isNull, or } from "drizzle-orm";
+import { serverPolicyFor, providerAllowed } from "./managed-policy.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "./devices.ts";
@@ -193,7 +194,11 @@ export async function listModelsForUser(user: PublicUser) {
     .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
     .where(and(eq(schema.provider.enabled, true), or(isNull(schema.provider.ownerUserId), eq(schema.provider.ownerUserId, user.id))))
     .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
-  const entries = rows.map((r) => ({ ...withTiers(toEntry(r.model, r.provider.ownerUserId), r.provider), ...shownAs(r.model, r.provider) })).filter((m) => canSee(m, user));
+  const policy = await serverPolicyFor(user);
+  const entries = rows
+    .filter((r) => providerAllowed(policy, r.provider))
+    .map((r) => ({ ...withTiers(toEntry(r.model, r.provider.ownerUserId), r.provider), ...shownAs(r.model, r.provider) }))
+    .filter((m) => canSee(m, user));
   const visible = [...entries.filter((m) => !m.ownerUserId), ...entries.filter((m) => m.ownerUserId)];
   const ids = new Set(visible.map((m) => m.id));
   const slots = await getSlots();
@@ -211,6 +216,11 @@ export async function listModelsForUser(user: PublicUser) {
 export async function resolveModelForUser(id: string, user: PublicUser): Promise<ModelEntry> {
   const m = await findModel(id);
   if (!m || !canSee(m, user)) throw new ApiError("not_found", `Model ${id} is not available`);
+  const policy = await serverPolicyFor(user);
+  if (policy.allowedProviders || policy.personalProvidersDisabled) {
+    const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, m.providerId) });
+    if (!provider || !providerAllowed(policy, provider)) throw new ApiError("permission", `Your organization does not allow model ${id}`);
+  }
   return m;
 }
 

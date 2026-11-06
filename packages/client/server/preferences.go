@@ -37,7 +37,7 @@ var userSettingsRef = &syncv1.DocumentRef{Scope: commonv1.Scope_SCOPE_USER, Kind
 
 func (s *Server) GetUserPreferences(ctx context.Context, _ *connect.Request[agentv1.GetUserPreferencesRequest]) (*connect.Response[agentv1.GetUserPreferencesResponse], error) {
 	if s.Preferences == nil {
-		return connect.NewResponse(&agentv1.GetUserPreferencesResponse{Preferences: preferencesOf(nil)}), nil
+		return connect.NewResponse(&agentv1.GetUserPreferencesResponse{Preferences: s.withManagedPolicy(preferencesOf(nil))}), nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
@@ -45,7 +45,19 @@ func (s *Server) GetUserPreferences(ctx context.Context, _ *connect.Request[agen
 	if err != nil {
 		return nil, syncError(err)
 	}
-	return connect.NewResponse(&agentv1.GetUserPreferencesResponse{Preferences: preferencesOf(doc)}), nil
+	return connect.NewResponse(&agentv1.GetUserPreferencesResponse{Preferences: s.withManagedPolicy(preferencesOf(doc))}), nil
+}
+
+// withManagedPolicy adds what the organization imposes, which no preference can change.
+func (s *Server) withManagedPolicy(p *agentv1.UserPreferences) *agentv1.UserPreferences {
+	m := s.Base.ModePolicy.Managed()
+	p.ManagedPolicy = &agentv1.ManagedPolicyView{
+		Active: m.Active(), AllowRules: m.AllowRules, AskRules: m.AskRules, DenyRules: m.DenyRules, ManagedRulesOnly: m.ManagedRulesOnly,
+		SandboxRequired: m.SandboxRequired, SandboxOutsideRefused: m.SandboxOutsideRefused, DisabledModes: m.DisabledModes,
+		RestrictProviders: m.RestrictProviders, AllowedProviders: m.AllowedProviders, PersonalProvidersDisabled: m.PersonalProvidersDisabled,
+		RestrictMcpServers: m.RestrictMcpServers, AllowedMcpServers: m.AllowedMcpServers, LocalModelsDisabled: m.LocalModelsDisabled,
+	}
+	return p
 }
 
 func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request[agentv1.UpdateUserPreferencesRequest]) (*connect.Response[agentv1.UpdateUserPreferencesResponse], error) {
@@ -134,7 +146,7 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	if sw := req.Msg.SkillSwitch; sw != nil {
 		s.applySkillSwitch(sw.GetName(), sw.GetEnabled())
 	}
-	return connect.NewResponse(&agentv1.UpdateUserPreferencesResponse{Preferences: preferencesOf(doc)}), nil
+	return connect.NewResponse(&agentv1.UpdateUserPreferencesResponse{Preferences: s.withManagedPolicy(preferencesOf(doc))}), nil
 }
 
 func nonNil(list []string) []string {
