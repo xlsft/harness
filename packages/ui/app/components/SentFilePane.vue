@@ -66,6 +66,7 @@ async function save() {
         :label="tt('Download')"
         @click="save"
       />
+      <PaneFullBtn />
       <PaneBtn
         icon="close"
         :label="tt('Close')"
