@@ -19,6 +19,8 @@ export interface UpstreamOptions {
   oauth?: boolean;
   /** expires_in of issued access tokens (seconds). */
   accessTtlSec?: number;
+  /** Also serve the tools ask (elicitation) and announce (list_changed notifications). */
+  extras?: boolean;
 }
 
 export interface Upstream {
@@ -63,7 +65,26 @@ export async function startMcpUpstream(opts: UpstreamOptions = {}): Promise<Upst
   let base = "";
 
   function buildServer(): McpServer {
-    const server = new McpServer({ name: "fixture", version: "1.0.0" }, { capabilities: { logging: {} } });
+    const server = new McpServer({ name: "fixture", version: "1.0.0" }, { capabilities: { logging: {} }, instructions: "Use echo for echoing." });
+    if (opts.extras) server.registerTool(
+      "ask",
+      { description: "Asks the user through an elicitation", inputSchema: { delayMs: z.number().optional() } },
+      async ({ delayMs }) => {
+        if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
+        const r = await server.server.elicitInput({
+          mode: "form",
+          message: "Which colour?",
+          requestedSchema: { type: "object", properties: { colour: { type: "string", enum: ["red", "blue"] } }, required: ["colour"] },
+        });
+        return { content: [{ type: "text", text: `${r.action}:${JSON.stringify(r.content ?? {})}` }] };
+      },
+    );
+    if (opts.extras) server.registerTool("announce", { description: "Announces changed lists", inputSchema: {} }, async () => {
+      server.sendToolListChanged();
+      server.sendPromptListChanged();
+      server.sendResourceListChanged();
+      return { content: [{ type: "text", text: "announced" }] };
+    });
     server.registerTool("echo", { description: "Echo text back", inputSchema: { text: z.string() } }, async ({ text }) => ({
       content: [{ type: "text", text: `echo: ${text}` }],
     }));

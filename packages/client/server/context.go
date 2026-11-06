@@ -24,8 +24,8 @@ func (s *Server) GetContextUsage(ctx context.Context, req *connect.Request[agent
 }
 
 // contextUsageToProto builds the breakdown: categories in display order (summing to the window when it is
-// known), the deferred definitions and the MCP tool list. The harness has no skills or MCP server instructions
-// yet: skills are left out, server instructions are listed with 0, and no built-in tool is deferred.
+// known), the deferred definitions and the MCP tool list. The harness has no skills yet: they are left out, and no
+// built-in tool is deferred.
 func contextUsageToProto(u agent.ContextUsage, catalog []mcp.ToolInfo) *agentv1.ContextUsage {
 	out := &agentv1.ContextUsage{
 		Model: u.Model, ContextWindow: int64(u.Window), UsedTokens: int64(u.Used()),
@@ -38,7 +38,7 @@ func contextUsageToProto(u agent.ContextUsage, catalog []mcp.ToolInfo) *agentv1.
 	add(agentv1.ContextUsage_CATEGORY_MCP_TOOLS, u.MCPTools)
 	add(agentv1.ContextUsage_CATEGORY_SYSTEM_TOOLS, u.SystemTools)
 	add(agentv1.ContextUsage_CATEGORY_SYSTEM_PROMPT, u.SystemPrompt)
-	add(agentv1.ContextUsage_CATEGORY_MCP_SERVER_INSTRUCTIONS, 0)
+	add(agentv1.ContextUsage_CATEGORY_MCP_SERVER_INSTRUCTIONS, u.MCPInstructions)
 	add(agentv1.ContextUsage_CATEGORY_AUTOCOMPACT_BUFFER, u.Buffer())
 	add(agentv1.ContextUsage_CATEGORY_FREE_SPACE, u.Free())
 	for _, t := range catalog {

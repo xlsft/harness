@@ -87,3 +87,22 @@ func (a *Approvals) Set(serverID, name, hash string, approved bool) error {
 	}
 	return os.Rename(tmp, a.Path)
 }
+
+// Forget drops the decision about a deleted server.
+func (a *Approvals) Forget(serverID string) error {
+	if a == nil || a.Path == "" {
+		return nil
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	f := a.load()
+	if _, ok := f.Servers[serverID]; !ok {
+		return nil
+	}
+	delete(f.Servers, serverID)
+	data, err := json.MarshalIndent(f, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(a.Path, data, 0o600)
+}

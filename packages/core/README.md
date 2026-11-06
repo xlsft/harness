@@ -93,7 +93,7 @@ See [`.env.example`](.env.example). The important ones:
 | `harness.sync.v1.SyncService` | `ListChanges`, `WatchChanges` (server streaming), `GetDocument`, `PutDocument`, `BatchPutDocuments`, `DeleteDocument`, `UpsertSession`, `AppendSessionEvents`, `GetSession`, `ListSessions`, `GetSessionTranscript` |
 | `harness.search.v1.SearchService` | `Search`, `ListProviders` |
 | `harness.decision.v1.DecisionService` | `Decide`, `ListProviders` (see Decisions) |
-| `harness.mcp.v1.McpService` | Registry (`List/Get/Create/Update/DeleteServer`), OAuth (`StartOAuth`, `GetOAuthFlow`, `GetAuthStatus`, `RevokeAuth`), devices (`ReportDeviceStatus`, `ListDeviceStatus`, `IssueStdioLaunch`), proxy (`ListTools`, `ListPrompts`, `ListResources`, `CallTool` (server streaming), `GetPrompt`, `ReadResource`), `GetToolCatalog` (see MCP) |
+| `harness.mcp.v1.McpService` | Registry (`List/Get/Create/Update/DeleteServer`), OAuth (`StartOAuth`, `GetOAuthFlow`, `GetAuthStatus`, `RevokeAuth`), devices (`ReportDeviceStatus`, `ListDeviceStatus`, `IssueStdioLaunch`), proxy (`ListTools`, `ListPrompts`, `ListResources`, `CallTool` (server streaming), `GetPrompt`, `ReadResource`), `GetToolCatalog` (see MCP), `RespondToElicitation`, `GetServerInfo`, `ListAudit` (admins) |
 | `harness.vcs.v1.VcsService` | Connections (admin: `ListConnections`, `GetGitHubAppManifest`, `CompleteGitHubAppManifest`, `PutConnection`, `DeleteConnection`), user auth (`StartUserAuth`, `GetUserAuthStatus`, `RevokeUserAuth`), PRs / CI (`ListRepositories`, `List/Get/Create/MergePullRequest`, `SetAutoMerge`, `ListReviewComments`, `PostComment`, `ListChecks`, `GetCheckLog`), sessions (`LinkSession`, `SetAutoFix`), `WatchEvents` (server streaming), device providers (`ReportDeviceProviders`, `ReportDeviceSnapshot`) (see Code hosts) |
 
 Mounted at `/<package>.<Service>/<Method>`. Authenticated calls use `Authorization: Bearer hat_…`.
@@ -235,6 +235,17 @@ server. Code in `src/mcp/`.
   user with `HARNESS_MCP_TOOLS_TTL_MS`; stdio: latest device report). The version is content-addressed
   (`cat_` + SHA-256 of user, project key and tool lists), each version is stored once and served unchanged, and
   snapshots are kept `HARNESS_MCP_CATALOG_RETENTION_DAYS` (>= 7) after their last use.
+- Server-initiated: an upstream's `elicitation/create` during a `tools/call` goes to the newest running call of the
+  pooled session as an event on its stream, and the caller answers with `RespondToElicitation` (the protocol does not
+  say which call a request belongs to, and pooled sessions are shared). The call's time limit stands still while it
+  waits. `list_changed` notifications are passed on to running calls; tool list changes also drop the cached list.
+  Pending elicitations live in memory, like the pool, so the answer must reach the same core instance.
+- A server's `allowed_tools` and `denied_tools` are enforced here for remote servers (listing, catalog and calls) and by
+  the client for the ones it runs. `tool_timeout_ms`, `max_output_chars` are stored with the config and are not part of
+  `config_hash`. The catalog carries what each upstream says about itself (`instructions`, whether it has prompts and
+  resources), kept with its tool list.
+- `ListAudit` reads `mcp_audit` for admins, newest first, paged; only named fields of an entry's detail leave the table,
+  and an upstream's error text is stored without the server's secret values.
 
 ## Code hosts
 

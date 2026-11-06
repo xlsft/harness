@@ -428,6 +428,17 @@ v-for="(tk, j) in highlightJson(tool.input)"
         <div class="pb-1 text-muted">
           Output
         </div>
+        <div
+          v-if="tool.progress"
+          class="flex items-center gap-2 pb-1 text-muted"
+          role="status"
+        >
+          <span class="min-w-0 flex-1 truncate">{{ tool.progress.message || 'Working…' }}</span>
+          <span
+            v-if="tool.progress.total > 0"
+            class="tabular-nums"
+          >{{ Math.round((tool.progress.progress / tool.progress.total) * 100) }}%</span>
+        </div>
         <pre class="m-0 whitespace-pre-wrap text-toned"><span
 v-for="(tk, j) in highlightJson(tool.result ?? tool.output)"
                                                               :key="j"

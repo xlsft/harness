@@ -622,9 +622,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		log.Warn("auto permission mode is disabled by settings (disableAutoMode); using default")
 	}
 	s.Decider = newDecider(ctx, o, s.User, log)
+	// Rules about this device's own MCP servers stay on this device, so they are not in the synced settings.
+	mcpAllow, mcpAsk, mcpDeny := (&mcp.LocalStore{Path: MCPLocalFile()}).Rules()
 	s.Permissions = permissions.New(permissions.Config{
 		Cwd: cwd, AdditionalDirectories: o.AdditionalDirs, DefaultMode: o.PermissionMode,
-		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,
+		Allow: append(slices.Clip(o.AllowedTools), mcpAllow...), Ask: append(slices.Clip(o.AskTools), mcpAsk...), Deny: append(slices.Clip(o.DisallowedTools), mcpDeny...), Sources: o.PermissionSources,
 		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, DisableAutoMode: o.DisableAutoMode,
 		DisabledModes: disabledModes, Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
 		ComputerSettings: computerSettingsGuard(o.ComputerUse), Sandbox: s.sandboxState,
@@ -713,7 +715,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		AutoCompactPct:  o.AutoCompactPct,
 		RefreshBundle:   func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
 		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
-		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
+		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), History: conv, Todos: todos,
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
 		UsageMonitor:          o.UsageMonitor,
@@ -741,7 +743,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		},
 		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
 		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
-		Vars: env.Vars(), ProjectContext: projectContext, AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor,
+		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor,
 		CustomTypes: subagent.LoadDefinitions(subagent.DefinitionDirs(config.Home(), homeDir(), cwd, s.Trusted)), Logger: log,
 	})
 	s.Subagents.Attach(s.Agent)

@@ -41,6 +41,13 @@ export interface StoredConfig {
   stdio?: StdioCfg;
   remote?: RemoteCfg;
   overrides: OverrideCfg[];
+  /** Limit of one tools/call; absent: the default. */
+  toolTimeoutMs?: number;
+  /** Glob patterns over the server's own tool names; see Server.allowed_tools / denied_tools. */
+  allowedTools?: string[];
+  deniedTools?: string[];
+  /** Largest text of one tool result given to the model; the client applies it. */
+  maxOutputChars?: number;
 }
 
 /** Writable fields of a server (structurally compatible with harness.mcp.v1.Server). */
@@ -51,12 +58,16 @@ export interface ServerInput {
   enabled: boolean;
   alwaysLoad: boolean;
   stdio?: Partial<StdioCfg>;
-  remote?: Partial<Omit<RemoteCfg, "oauth">> & { oauth?: Partial<OAuthCfg> };
+  remote?: Partial<Omit<RemoteCfg, "oauth">> & { oauth?: Partial<OAuthCfg>; headersHelper?: string };
   overrides: Partial<OverrideCfg>[];
   targetRoles: string[];
   projectKey: string;
   /** Admin-only: let the proxy reach private / loopback addresses (remote servers). */
   allowPrivateNetwork?: boolean;
+  toolTimeoutMs?: bigint | number;
+  allowedTools?: string[];
+  deniedTools?: string[];
+  maxOutputChars?: number;
 }
 
 export interface SecretChangesInput {
@@ -74,6 +85,7 @@ const ENV_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const MAX_SECRET_BYTES = 64 << 10;
 const MAX_SECRETS = 64;
 const MAX_STR = 8192;
+export const MAX_TOOL_TIMEOUT_MS = 3_600_000;
 
 function str(v: unknown, field: string, max = MAX_STR): string {
   const s = typeof v === "string" ? v : "";
@@ -149,6 +161,10 @@ export function validateServer(input: ServerInput | undefined, isAdmin: boolean)
   } else if (REMOTE_TRANSPORTS.has(input.transport)) {
     if (input.stdio) throw new ApiError("invalid_request", "stdio must not be set for remote servers");
     if (input.overrides?.length) throw new ApiError("invalid_request", "overrides are only allowed for stdio servers");
+    if (input.remote?.headersHelper) {
+      // The helper is a command, and the only machine it could run on here is the server.
+      throw new ApiError("invalid_request", "A headers helper only works for a server added on your device");
+    }
     const url = str(input.remote?.url, "remote.url");
     validateRemoteUrl(url, input.transport);
     const oauth = input.remote?.oauth;
@@ -177,6 +193,16 @@ export function validateServer(input: ServerInput | undefined, isAdmin: boolean)
   } else {
     throw new ApiError("invalid_request", "transport is required");
   }
+  const timeout = Number(input.toolTimeoutMs ?? 0);
+  if (!Number.isSafeInteger(timeout) || timeout < 0 || timeout > MAX_TOOL_TIMEOUT_MS) throw new ApiError("invalid_request", "tool_timeout_ms is out of range");
+  if (timeout) config.toolTimeoutMs = timeout;
+  const maxOutput = Number(input.maxOutputChars ?? 0);
+  if (!Number.isSafeInteger(maxOutput) || maxOutput < 0) throw new ApiError("invalid_request", "max_output_chars is out of range");
+  if (maxOutput) config.maxOutputChars = maxOutput;
+  const allowed = strList(input.allowedTools, "allowed_tools").filter(Boolean);
+  if (allowed.length) config.allowedTools = allowed;
+  const denied = strList(input.deniedTools, "denied_tools").filter(Boolean);
+  if (denied.length) config.deniedTools = denied;
   for (const name of secretRefs(config)) {
     if (!SECRET_NAME_RE.test(name)) throw new ApiError("invalid_request", `Invalid secret reference \${secret:${name}}`);
   }
@@ -289,4 +315,15 @@ export function urlOrigin(url: string | undefined): string {
   } catch {
     return "";
   }
+}
+
+function globMatch(pattern: string, s: string): boolean {
+  const parts = pattern.split("*").map((p) => p.replace(/[.+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(`^${parts.join(".*")}$`, "s").test(s);
+}
+
+/** Server.allowed_tools and denied_tools: whether a tool exists for the agent. */
+export function toolVisible(c: Pick<StoredConfig, "allowedTools" | "deniedTools">, tool: string): boolean {
+  if (c.deniedTools?.some((p) => globMatch(p, tool))) return false;
+  return !c.allowedTools?.length || c.allowedTools.some((p) => globMatch(p, tool));
 }

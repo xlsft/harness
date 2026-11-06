@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"maps"
 	"os"
 	"slices"
@@ -86,30 +87,40 @@ func sameLaunchConfig(a, b *mcpv1.Server) bool {
 // project_key), creating missing ones and updating changed launch configs. Server-side fields
 // (enabled, always_load, secrets, overrides) are kept. It reports whether anything changed.
 func (m *Manager) syncProject(ctx context.Context, existing []*mcpv1.Server) bool {
-	if m.o.ProjectKey == "" {
-		return false
+	changed, problems := syncProjectFile(ctx, m.o.Client, m.o.ProjectConfig, m.o.ProjectKey, existing)
+	for _, p := range problems {
+		m.warn("%s", p)
 	}
-	want, err := ReadProjectConfig(m.o.ProjectConfig, m.o.ProjectKey)
+	return changed
+}
+
+// syncProjectFile registers a trusted repository's .mcp.json servers (only call it for a trusted folder).
+func syncProjectFile(ctx context.Context, client *Client, path, projectKey string, existing []*mcpv1.Server) (bool, []string) {
+	if projectKey == "" {
+		return false, nil
+	}
+	want, err := ReadProjectConfig(path, projectKey)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			m.warn("%s could not be read: %v", m.o.ProjectConfig, err)
+			return false, []string{fmt.Sprintf("%s could not be read: %v", path, err)}
 		}
-		return false
+		return false, nil
 	}
 	have := map[string]*mcpv1.Server{}
 	for _, s := range existing {
-		if s.GetScope() == commonv1.Scope_SCOPE_PROJECT && s.GetProjectKey() == m.o.ProjectKey {
+		if s.GetScope() == commonv1.Scope_SCOPE_PROJECT && s.GetProjectKey() == projectKey {
 			have[s.GetName()] = s
 		}
 	}
 	sort.Slice(want, func(i, j int) bool { return want[i].GetName() < want[j].GetName() })
 	changed := false
+	var problems []string
 	for _, w := range want {
 		cur := have[w.GetName()]
 		switch {
 		case cur == nil:
-			if _, err := m.o.Client.CreateServer(ctx, w); err != nil {
-				m.warn("project MCP server %s could not be registered: %s", w.GetName(), errorMessage(err))
+			if _, err := client.CreateServer(ctx, w); err != nil {
+				problems = append(problems, fmt.Sprintf("project MCP server %s could not be registered: %s", w.GetName(), errorMessage(err)))
 				continue
 			}
 			changed = true
@@ -125,14 +136,14 @@ func (m *Manager) syncProject(ctx context.Context, existing []*mcpv1.Server) boo
 			} else {
 				upd.Remote = nil
 			}
-			if _, err := m.o.Client.UpdateServer(ctx, upd, cur.GetVersion()); err != nil {
-				m.warn("project MCP server %s could not be updated: %s", w.GetName(), errorMessage(err))
+			if _, err := client.UpdateServer(ctx, upd, cur.GetVersion()); err != nil {
+				problems = append(problems, fmt.Sprintf("project MCP server %s could not be updated: %s", w.GetName(), errorMessage(err)))
 				continue
 			}
 			changed = true
 		}
 	}
-	return changed
+	return changed, problems
 }
 
 func cloneServer(s *mcpv1.Server) *mcpv1.Server {
@@ -140,5 +151,6 @@ func cloneServer(s *mcpv1.Server) *mcpv1.Server {
 		Id: s.GetId(), Name: s.GetName(), Scope: s.GetScope(), Transport: s.GetTransport(), Enabled: s.GetEnabled(),
 		AlwaysLoad: s.GetAlwaysLoad(), Stdio: s.GetStdio(), Remote: s.GetRemote(), Overrides: s.GetOverrides(),
 		TargetRoles: s.GetTargetRoles(), ProjectKey: s.GetProjectKey(), AllowPrivateNetwork: s.GetAllowPrivateNetwork(),
+		ToolTimeoutMs: s.GetToolTimeoutMs(), AllowedTools: s.GetAllowedTools(), DeniedTools: s.GetDeniedTools(), MaxOutputChars: s.GetMaxOutputChars(),
 	}
 }

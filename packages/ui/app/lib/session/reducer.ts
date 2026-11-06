@@ -138,7 +138,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     endedReason: '',
     thinkingStartedAt: {},
     toolOwners: {},
-    toolTitles: {}
+    toolTitles: {},
+    mcpListVersion: 0
   }
 }
 
@@ -540,10 +541,22 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    case 'mcpToolProgress': {
+      const p = e.value
+      const item = find(s, 'tool', p.toolUseId)
+      if (item && item.status === 'running') item.progress = { progress: p.progress, total: p.total, message: p.message }
+      break
+    }
+
+    case 'mcpListChanged':
+      s.mcpListVersion++
+      break
+
     case 'toolCallFinished': {
       const t = e.value
       const item = find(s, 'tool', t.toolUseId)
       if (!item) break
+      item.progress = undefined
       item.status = t.interrupted ? 'interrupted' : t.isError ? 'error' : 'ok'
       item.output = textOf(t.content)
       item.result = parseJson(t.structuredResultJson)

@@ -80,6 +80,8 @@ type Config struct {
 
 	Vars           map[string]string
 	ProjectContext string
+	// MCPInstructions returns what MCP servers offer the model (nil: nothing).
+	MCPInstructions func() string
 	AutoCompactPct float64
 	UsageMonitor   agent.UsageMonitor
 	// CustomTypes are the types loaded from definitions (LoadDefinitions).
@@ -741,7 +743,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		AutoCompactPct: m.cfg.AutoCompactPct,
 		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return m.cfg.Bundle(ctx, model) },
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,
-		Vars: vars, ProjectContext: m.cfg.ProjectContext, History: conv,
+		Vars: vars, ProjectContext: m.cfg.ProjectContext, MCPInstructions: m.cfg.MCPInstructions, History: conv,
 		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: m.agentMode,
 		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor,
 		OnEvent: func(e agent.Event) { m.onAgentEvent(a, e) }, Logger: m.cfg.Logger,

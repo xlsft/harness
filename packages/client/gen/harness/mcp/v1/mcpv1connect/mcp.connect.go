@@ -74,9 +74,17 @@ const (
 	McpServiceGetPromptProcedure = "/harness.mcp.v1.McpService/GetPrompt"
 	// McpServiceReadResourceProcedure is the fully-qualified name of the McpService's ReadResource RPC.
 	McpServiceReadResourceProcedure = "/harness.mcp.v1.McpService/ReadResource"
+	// McpServiceRespondToElicitationProcedure is the fully-qualified name of the McpService's
+	// RespondToElicitation RPC.
+	McpServiceRespondToElicitationProcedure = "/harness.mcp.v1.McpService/RespondToElicitation"
+	// McpServiceGetServerInfoProcedure is the fully-qualified name of the McpService's GetServerInfo
+	// RPC.
+	McpServiceGetServerInfoProcedure = "/harness.mcp.v1.McpService/GetServerInfo"
 	// McpServiceGetToolCatalogProcedure is the fully-qualified name of the McpService's GetToolCatalog
 	// RPC.
 	McpServiceGetToolCatalogProcedure = "/harness.mcp.v1.McpService/GetToolCatalog"
+	// McpServiceListAuditProcedure is the fully-qualified name of the McpService's ListAudit RPC.
+	McpServiceListAuditProcedure = "/harness.mcp.v1.McpService/ListAudit"
 )
 
 // McpServiceClient is a client for the harness.mcp.v1.McpService service.
@@ -133,11 +141,19 @@ type McpServiceClient interface {
 	CallTool(context.Context, *connect.Request[v1.CallToolRequest]) (*connect.ServerStreamForClient[v1.CallToolResponse], error)
 	GetPrompt(context.Context, *connect.Request[v1.GetPromptRequest]) (*connect.Response[v1.GetPromptResponse], error)
 	ReadResource(context.Context, *connect.Request[v1.ReadResourceRequest]) (*connect.Response[v1.ReadResourceResponse], error)
+	// Answers an elicitation received on the caller's own CallTool stream. An unknown or finished id is NOT_FOUND.
+	RespondToElicitation(context.Context, *connect.Request[v1.RespondToElicitationRequest]) (*connect.Response[v1.RespondToElicitationResponse], error)
+	// What the upstream says about itself: name, version, capabilities, instructions. Connects if needed; a server
+	// that cannot be reached fails like the other proxy RPCs.
+	GetServerInfo(context.Context, *connect.Request[v1.GetServerInfoRequest]) (*connect.Response[v1.GetServerInfoResponse], error)
 	// --- Tool schema cache (ToolSearch) -----------------------------------------------------------------
 	// Tool names, descriptions and schemas of all servers visible to the caller, as a versioned snapshot.
 	// A session records catalog.version at start and keeps using that snapshot (freeze per session, for the
 	// prompt cache); it can refetch the same snapshot with `version` (kept for at least 7 days).
 	GetToolCatalog(context.Context, *connect.Request[v1.GetToolCatalogRequest]) (*connect.Response[v1.GetToolCatalogResponse], error)
+	// --- Audit ------------------------------------------------------------------------------------------
+	// The audit log of MCP operations, newest first. Admins only. Entries carry no secret values or tool arguments.
+	ListAudit(context.Context, *connect.Request[v1.ListAuditRequest]) (*connect.Response[v1.ListAuditResponse], error)
 }
 
 // NewMcpServiceClient constructs a client for the harness.mcp.v1.McpService service. By default, it
@@ -259,10 +275,28 @@ func NewMcpServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(mcpServiceMethods.ByName("ReadResource")),
 			connect.WithClientOptions(opts...),
 		),
+		respondToElicitation: connect.NewClient[v1.RespondToElicitationRequest, v1.RespondToElicitationResponse](
+			httpClient,
+			baseURL+McpServiceRespondToElicitationProcedure,
+			connect.WithSchema(mcpServiceMethods.ByName("RespondToElicitation")),
+			connect.WithClientOptions(opts...),
+		),
+		getServerInfo: connect.NewClient[v1.GetServerInfoRequest, v1.GetServerInfoResponse](
+			httpClient,
+			baseURL+McpServiceGetServerInfoProcedure,
+			connect.WithSchema(mcpServiceMethods.ByName("GetServerInfo")),
+			connect.WithClientOptions(opts...),
+		),
 		getToolCatalog: connect.NewClient[v1.GetToolCatalogRequest, v1.GetToolCatalogResponse](
 			httpClient,
 			baseURL+McpServiceGetToolCatalogProcedure,
 			connect.WithSchema(mcpServiceMethods.ByName("GetToolCatalog")),
+			connect.WithClientOptions(opts...),
+		),
+		listAudit: connect.NewClient[v1.ListAuditRequest, v1.ListAuditResponse](
+			httpClient,
+			baseURL+McpServiceListAuditProcedure,
+			connect.WithSchema(mcpServiceMethods.ByName("ListAudit")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -270,25 +304,28 @@ func NewMcpServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // mcpServiceClient implements McpServiceClient.
 type mcpServiceClient struct {
-	listServers        *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
-	getServer          *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
-	createServer       *connect.Client[v1.CreateServerRequest, v1.CreateServerResponse]
-	updateServer       *connect.Client[v1.UpdateServerRequest, v1.UpdateServerResponse]
-	deleteServer       *connect.Client[v1.DeleteServerRequest, v1.DeleteServerResponse]
-	startOAuth         *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
-	getOAuthFlow       *connect.Client[v1.GetOAuthFlowRequest, v1.GetOAuthFlowResponse]
-	getAuthStatus      *connect.Client[v1.GetAuthStatusRequest, v1.GetAuthStatusResponse]
-	revokeAuth         *connect.Client[v1.RevokeAuthRequest, v1.RevokeAuthResponse]
-	reportDeviceStatus *connect.Client[v1.ReportDeviceStatusRequest, v1.ReportDeviceStatusResponse]
-	listDeviceStatus   *connect.Client[v1.ListDeviceStatusRequest, v1.ListDeviceStatusResponse]
-	issueStdioLaunch   *connect.Client[v1.IssueStdioLaunchRequest, v1.IssueStdioLaunchResponse]
-	listTools          *connect.Client[v1.ListToolsRequest, v1.ListToolsResponse]
-	listPrompts        *connect.Client[v1.ListPromptsRequest, v1.ListPromptsResponse]
-	listResources      *connect.Client[v1.ListResourcesRequest, v1.ListResourcesResponse]
-	callTool           *connect.Client[v1.CallToolRequest, v1.CallToolResponse]
-	getPrompt          *connect.Client[v1.GetPromptRequest, v1.GetPromptResponse]
-	readResource       *connect.Client[v1.ReadResourceRequest, v1.ReadResourceResponse]
-	getToolCatalog     *connect.Client[v1.GetToolCatalogRequest, v1.GetToolCatalogResponse]
+	listServers          *connect.Client[v1.ListServersRequest, v1.ListServersResponse]
+	getServer            *connect.Client[v1.GetServerRequest, v1.GetServerResponse]
+	createServer         *connect.Client[v1.CreateServerRequest, v1.CreateServerResponse]
+	updateServer         *connect.Client[v1.UpdateServerRequest, v1.UpdateServerResponse]
+	deleteServer         *connect.Client[v1.DeleteServerRequest, v1.DeleteServerResponse]
+	startOAuth           *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
+	getOAuthFlow         *connect.Client[v1.GetOAuthFlowRequest, v1.GetOAuthFlowResponse]
+	getAuthStatus        *connect.Client[v1.GetAuthStatusRequest, v1.GetAuthStatusResponse]
+	revokeAuth           *connect.Client[v1.RevokeAuthRequest, v1.RevokeAuthResponse]
+	reportDeviceStatus   *connect.Client[v1.ReportDeviceStatusRequest, v1.ReportDeviceStatusResponse]
+	listDeviceStatus     *connect.Client[v1.ListDeviceStatusRequest, v1.ListDeviceStatusResponse]
+	issueStdioLaunch     *connect.Client[v1.IssueStdioLaunchRequest, v1.IssueStdioLaunchResponse]
+	listTools            *connect.Client[v1.ListToolsRequest, v1.ListToolsResponse]
+	listPrompts          *connect.Client[v1.ListPromptsRequest, v1.ListPromptsResponse]
+	listResources        *connect.Client[v1.ListResourcesRequest, v1.ListResourcesResponse]
+	callTool             *connect.Client[v1.CallToolRequest, v1.CallToolResponse]
+	getPrompt            *connect.Client[v1.GetPromptRequest, v1.GetPromptResponse]
+	readResource         *connect.Client[v1.ReadResourceRequest, v1.ReadResourceResponse]
+	respondToElicitation *connect.Client[v1.RespondToElicitationRequest, v1.RespondToElicitationResponse]
+	getServerInfo        *connect.Client[v1.GetServerInfoRequest, v1.GetServerInfoResponse]
+	getToolCatalog       *connect.Client[v1.GetToolCatalogRequest, v1.GetToolCatalogResponse]
+	listAudit            *connect.Client[v1.ListAuditRequest, v1.ListAuditResponse]
 }
 
 // ListServers calls harness.mcp.v1.McpService.ListServers.
@@ -381,9 +418,24 @@ func (c *mcpServiceClient) ReadResource(ctx context.Context, req *connect.Reques
 	return c.readResource.CallUnary(ctx, req)
 }
 
+// RespondToElicitation calls harness.mcp.v1.McpService.RespondToElicitation.
+func (c *mcpServiceClient) RespondToElicitation(ctx context.Context, req *connect.Request[v1.RespondToElicitationRequest]) (*connect.Response[v1.RespondToElicitationResponse], error) {
+	return c.respondToElicitation.CallUnary(ctx, req)
+}
+
+// GetServerInfo calls harness.mcp.v1.McpService.GetServerInfo.
+func (c *mcpServiceClient) GetServerInfo(ctx context.Context, req *connect.Request[v1.GetServerInfoRequest]) (*connect.Response[v1.GetServerInfoResponse], error) {
+	return c.getServerInfo.CallUnary(ctx, req)
+}
+
 // GetToolCatalog calls harness.mcp.v1.McpService.GetToolCatalog.
 func (c *mcpServiceClient) GetToolCatalog(ctx context.Context, req *connect.Request[v1.GetToolCatalogRequest]) (*connect.Response[v1.GetToolCatalogResponse], error) {
 	return c.getToolCatalog.CallUnary(ctx, req)
+}
+
+// ListAudit calls harness.mcp.v1.McpService.ListAudit.
+func (c *mcpServiceClient) ListAudit(ctx context.Context, req *connect.Request[v1.ListAuditRequest]) (*connect.Response[v1.ListAuditResponse], error) {
+	return c.listAudit.CallUnary(ctx, req)
 }
 
 // McpServiceHandler is an implementation of the harness.mcp.v1.McpService service.
@@ -440,11 +492,19 @@ type McpServiceHandler interface {
 	CallTool(context.Context, *connect.Request[v1.CallToolRequest], *connect.ServerStream[v1.CallToolResponse]) error
 	GetPrompt(context.Context, *connect.Request[v1.GetPromptRequest]) (*connect.Response[v1.GetPromptResponse], error)
 	ReadResource(context.Context, *connect.Request[v1.ReadResourceRequest]) (*connect.Response[v1.ReadResourceResponse], error)
+	// Answers an elicitation received on the caller's own CallTool stream. An unknown or finished id is NOT_FOUND.
+	RespondToElicitation(context.Context, *connect.Request[v1.RespondToElicitationRequest]) (*connect.Response[v1.RespondToElicitationResponse], error)
+	// What the upstream says about itself: name, version, capabilities, instructions. Connects if needed; a server
+	// that cannot be reached fails like the other proxy RPCs.
+	GetServerInfo(context.Context, *connect.Request[v1.GetServerInfoRequest]) (*connect.Response[v1.GetServerInfoResponse], error)
 	// --- Tool schema cache (ToolSearch) -----------------------------------------------------------------
 	// Tool names, descriptions and schemas of all servers visible to the caller, as a versioned snapshot.
 	// A session records catalog.version at start and keeps using that snapshot (freeze per session, for the
 	// prompt cache); it can refetch the same snapshot with `version` (kept for at least 7 days).
 	GetToolCatalog(context.Context, *connect.Request[v1.GetToolCatalogRequest]) (*connect.Response[v1.GetToolCatalogResponse], error)
+	// --- Audit ------------------------------------------------------------------------------------------
+	// The audit log of MCP operations, newest first. Admins only. Entries carry no secret values or tool arguments.
+	ListAudit(context.Context, *connect.Request[v1.ListAuditRequest]) (*connect.Response[v1.ListAuditResponse], error)
 }
 
 // NewMcpServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -562,10 +622,28 @@ func NewMcpServiceHandler(svc McpServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(mcpServiceMethods.ByName("ReadResource")),
 		connect.WithHandlerOptions(opts...),
 	)
+	mcpServiceRespondToElicitationHandler := connect.NewUnaryHandler(
+		McpServiceRespondToElicitationProcedure,
+		svc.RespondToElicitation,
+		connect.WithSchema(mcpServiceMethods.ByName("RespondToElicitation")),
+		connect.WithHandlerOptions(opts...),
+	)
+	mcpServiceGetServerInfoHandler := connect.NewUnaryHandler(
+		McpServiceGetServerInfoProcedure,
+		svc.GetServerInfo,
+		connect.WithSchema(mcpServiceMethods.ByName("GetServerInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	mcpServiceGetToolCatalogHandler := connect.NewUnaryHandler(
 		McpServiceGetToolCatalogProcedure,
 		svc.GetToolCatalog,
 		connect.WithSchema(mcpServiceMethods.ByName("GetToolCatalog")),
+		connect.WithHandlerOptions(opts...),
+	)
+	mcpServiceListAuditHandler := connect.NewUnaryHandler(
+		McpServiceListAuditProcedure,
+		svc.ListAudit,
+		connect.WithSchema(mcpServiceMethods.ByName("ListAudit")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/harness.mcp.v1.McpService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -606,8 +684,14 @@ func NewMcpServiceHandler(svc McpServiceHandler, opts ...connect.HandlerOption) 
 			mcpServiceGetPromptHandler.ServeHTTP(w, r)
 		case McpServiceReadResourceProcedure:
 			mcpServiceReadResourceHandler.ServeHTTP(w, r)
+		case McpServiceRespondToElicitationProcedure:
+			mcpServiceRespondToElicitationHandler.ServeHTTP(w, r)
+		case McpServiceGetServerInfoProcedure:
+			mcpServiceGetServerInfoHandler.ServeHTTP(w, r)
 		case McpServiceGetToolCatalogProcedure:
 			mcpServiceGetToolCatalogHandler.ServeHTTP(w, r)
+		case McpServiceListAuditProcedure:
+			mcpServiceListAuditHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -689,6 +773,18 @@ func (UnimplementedMcpServiceHandler) ReadResource(context.Context, *connect.Req
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.mcp.v1.McpService.ReadResource is not implemented"))
 }
 
+func (UnimplementedMcpServiceHandler) RespondToElicitation(context.Context, *connect.Request[v1.RespondToElicitationRequest]) (*connect.Response[v1.RespondToElicitationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.mcp.v1.McpService.RespondToElicitation is not implemented"))
+}
+
+func (UnimplementedMcpServiceHandler) GetServerInfo(context.Context, *connect.Request[v1.GetServerInfoRequest]) (*connect.Response[v1.GetServerInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.mcp.v1.McpService.GetServerInfo is not implemented"))
+}
+
 func (UnimplementedMcpServiceHandler) GetToolCatalog(context.Context, *connect.Request[v1.GetToolCatalogRequest]) (*connect.Response[v1.GetToolCatalogResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.mcp.v1.McpService.GetToolCatalog is not implemented"))
+}
+
+func (UnimplementedMcpServiceHandler) ListAudit(context.Context, *connect.Request[v1.ListAuditRequest]) (*connect.Response[v1.ListAuditResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.mcp.v1.McpService.ListAudit is not implemented"))
 }

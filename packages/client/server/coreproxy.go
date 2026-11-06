@@ -11,6 +11,7 @@ import (
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/gen/harness/auth/v1/authv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/mcp/v1/mcpv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/speech/v1/speechv1connect"
 	"github.com/xlsft/harness/packages/client/rpc"
 )
@@ -53,6 +54,12 @@ var coreProxyProcedures = []string{
 	// Speech: admins set and clear the global speech providers' keys (everything else goes through AgentService).
 	speechv1connect.SpeechServiceSetProviderKeyProcedure,
 	speechv1connect.SpeechServiceClearProviderKeyProcedure,
+	// Settings > MCP: OAuth through the server's flow and the audit log. Not the rest of McpService: IssueStdioLaunch returns
+	// secrets for a process this client starts, and a frontend has no use for them.
+	mcpv1connect.McpServiceStartOAuthProcedure,
+	mcpv1connect.McpServiceGetOAuthFlowProcedure,
+	mcpv1connect.McpServiceRevokeAuthProcedure,
+	mcpv1connect.McpServiceListAuditProcedure,
 }
 
 const coreProxyMaxBody = 1 << 20

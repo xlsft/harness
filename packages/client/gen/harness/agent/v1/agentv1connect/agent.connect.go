@@ -360,6 +360,33 @@ const (
 	// AgentServiceRunClaudeImportProcedure is the fully-qualified name of the AgentService's
 	// RunClaudeImport RPC.
 	AgentServiceRunClaudeImportProcedure = "/harness.agent.v1.AgentService/RunClaudeImport"
+	// AgentServiceListMcpServersProcedure is the fully-qualified name of the AgentService's
+	// ListMcpServers RPC.
+	AgentServiceListMcpServersProcedure = "/harness.agent.v1.AgentService/ListMcpServers"
+	// AgentServiceInspectMcpServerProcedure is the fully-qualified name of the AgentService's
+	// InspectMcpServer RPC.
+	AgentServiceInspectMcpServerProcedure = "/harness.agent.v1.AgentService/InspectMcpServer"
+	// AgentServiceCreateMcpServerProcedure is the fully-qualified name of the AgentService's
+	// CreateMcpServer RPC.
+	AgentServiceCreateMcpServerProcedure = "/harness.agent.v1.AgentService/CreateMcpServer"
+	// AgentServiceUpdateMcpServerProcedure is the fully-qualified name of the AgentService's
+	// UpdateMcpServer RPC.
+	AgentServiceUpdateMcpServerProcedure = "/harness.agent.v1.AgentService/UpdateMcpServer"
+	// AgentServiceDeleteMcpServerProcedure is the fully-qualified name of the AgentService's
+	// DeleteMcpServer RPC.
+	AgentServiceDeleteMcpServerProcedure = "/harness.agent.v1.AgentService/DeleteMcpServer"
+	// AgentServiceSetMcpServerApprovalProcedure is the fully-qualified name of the AgentService's
+	// SetMcpServerApproval RPC.
+	AgentServiceSetMcpServerApprovalProcedure = "/harness.agent.v1.AgentService/SetMcpServerApproval"
+	// AgentServiceSetMcpToolRuleProcedure is the fully-qualified name of the AgentService's
+	// SetMcpToolRule RPC.
+	AgentServiceSetMcpToolRuleProcedure = "/harness.agent.v1.AgentService/SetMcpToolRule"
+	// AgentServiceListMcpCommandsProcedure is the fully-qualified name of the AgentService's
+	// ListMcpCommands RPC.
+	AgentServiceListMcpCommandsProcedure = "/harness.agent.v1.AgentService/ListMcpCommands"
+	// AgentServiceListMcpResourcesProcedure is the fully-qualified name of the AgentService's
+	// ListMcpResources RPC.
+	AgentServiceListMcpResourcesProcedure = "/harness.agent.v1.AgentService/ListMcpResources"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -647,6 +674,24 @@ type AgentServiceClient interface {
 	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
 	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
 	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest]) (*connect.ServerStreamForClient[v1.RunClaudeImportResponse], error)
+	// --- MCP servers (mcp.proto) -------------------------------------------------------------------------
+	// Settings > MCP: every server this device can use, with who manages it (this device, the account, an admin,
+	// the repository's .mcp.json).
+	ListMcpServers(context.Context, *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error)
+	// Connects to one server (a stdio server only when approved on this device) and reports its tools, prompts,
+	// resources and the error, if any.
+	InspectMcpServer(context.Context, *connect.Request[v1.InspectMcpServerRequest]) (*connect.Response[v1.InspectMcpServerResponse], error)
+	CreateMcpServer(context.Context, *connect.Request[v1.CreateMcpServerRequest]) (*connect.Response[v1.CreateMcpServerResponse], error)
+	UpdateMcpServer(context.Context, *connect.Request[v1.UpdateMcpServerRequest]) (*connect.Response[v1.UpdateMcpServerResponse], error)
+	DeleteMcpServer(context.Context, *connect.Request[v1.DeleteMcpServerRequest]) (*connect.Response[v1.DeleteMcpServerResponse], error)
+	// This device's decision about a stdio or project server, for its current config.
+	SetMcpServerApproval(context.Context, *connect.Request[v1.SetMcpServerApprovalRequest]) (*connect.Response[v1.SetMcpServerApprovalResponse], error)
+	// Writes a permission rule for a tool of a server (or the whole server).
+	SetMcpToolRule(context.Context, *connect.Request[v1.SetMcpToolRuleRequest]) (*connect.Response[v1.SetMcpToolRuleResponse], error)
+	// The session's MCP prompts as slash commands. A frontend's command menu merges this list into its own.
+	ListMcpCommands(context.Context, *connect.Request[v1.ListMcpCommandsRequest]) (*connect.Response[v1.ListMcpCommandsResponse], error)
+	// The session's MCP resources, for @-mentions in the composer.
+	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1338,6 +1383,60 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
 			connect.WithClientOptions(opts...),
 		),
+		listMcpServers: connect.NewClient[v1.ListMcpServersRequest, v1.ListMcpServersResponse](
+			httpClient,
+			baseURL+AgentServiceListMcpServersProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListMcpServers")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectMcpServer: connect.NewClient[v1.InspectMcpServerRequest, v1.InspectMcpServerResponse](
+			httpClient,
+			baseURL+AgentServiceInspectMcpServerProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("InspectMcpServer")),
+			connect.WithClientOptions(opts...),
+		),
+		createMcpServer: connect.NewClient[v1.CreateMcpServerRequest, v1.CreateMcpServerResponse](
+			httpClient,
+			baseURL+AgentServiceCreateMcpServerProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreateMcpServer")),
+			connect.WithClientOptions(opts...),
+		),
+		updateMcpServer: connect.NewClient[v1.UpdateMcpServerRequest, v1.UpdateMcpServerResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateMcpServerProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateMcpServer")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteMcpServer: connect.NewClient[v1.DeleteMcpServerRequest, v1.DeleteMcpServerResponse](
+			httpClient,
+			baseURL+AgentServiceDeleteMcpServerProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteMcpServer")),
+			connect.WithClientOptions(opts...),
+		),
+		setMcpServerApproval: connect.NewClient[v1.SetMcpServerApprovalRequest, v1.SetMcpServerApprovalResponse](
+			httpClient,
+			baseURL+AgentServiceSetMcpServerApprovalProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetMcpServerApproval")),
+			connect.WithClientOptions(opts...),
+		),
+		setMcpToolRule: connect.NewClient[v1.SetMcpToolRuleRequest, v1.SetMcpToolRuleResponse](
+			httpClient,
+			baseURL+AgentServiceSetMcpToolRuleProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("SetMcpToolRule")),
+			connect.WithClientOptions(opts...),
+		),
+		listMcpCommands: connect.NewClient[v1.ListMcpCommandsRequest, v1.ListMcpCommandsResponse](
+			httpClient,
+			baseURL+AgentServiceListMcpCommandsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListMcpCommands")),
+			connect.WithClientOptions(opts...),
+		),
+		listMcpResources: connect.NewClient[v1.ListMcpResourcesRequest, v1.ListMcpResourcesResponse](
+			httpClient,
+			baseURL+AgentServiceListMcpResourcesProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListMcpResources")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1456,6 +1555,15 @@ type agentServiceClient struct {
 	stopWorkflow            *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
 	scanClaudeImport        *connect.Client[v1.ScanClaudeImportRequest, v1.ScanClaudeImportResponse]
 	runClaudeImport         *connect.Client[v1.RunClaudeImportRequest, v1.RunClaudeImportResponse]
+	listMcpServers          *connect.Client[v1.ListMcpServersRequest, v1.ListMcpServersResponse]
+	inspectMcpServer        *connect.Client[v1.InspectMcpServerRequest, v1.InspectMcpServerResponse]
+	createMcpServer         *connect.Client[v1.CreateMcpServerRequest, v1.CreateMcpServerResponse]
+	updateMcpServer         *connect.Client[v1.UpdateMcpServerRequest, v1.UpdateMcpServerResponse]
+	deleteMcpServer         *connect.Client[v1.DeleteMcpServerRequest, v1.DeleteMcpServerResponse]
+	setMcpServerApproval    *connect.Client[v1.SetMcpServerApprovalRequest, v1.SetMcpServerApprovalResponse]
+	setMcpToolRule          *connect.Client[v1.SetMcpToolRuleRequest, v1.SetMcpToolRuleResponse]
+	listMcpCommands         *connect.Client[v1.ListMcpCommandsRequest, v1.ListMcpCommandsResponse]
+	listMcpResources        *connect.Client[v1.ListMcpResourcesRequest, v1.ListMcpResourcesResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -2023,6 +2131,51 @@ func (c *agentServiceClient) RunClaudeImport(ctx context.Context, req *connect.R
 	return c.runClaudeImport.CallServerStream(ctx, req)
 }
 
+// ListMcpServers calls harness.agent.v1.AgentService.ListMcpServers.
+func (c *agentServiceClient) ListMcpServers(ctx context.Context, req *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error) {
+	return c.listMcpServers.CallUnary(ctx, req)
+}
+
+// InspectMcpServer calls harness.agent.v1.AgentService.InspectMcpServer.
+func (c *agentServiceClient) InspectMcpServer(ctx context.Context, req *connect.Request[v1.InspectMcpServerRequest]) (*connect.Response[v1.InspectMcpServerResponse], error) {
+	return c.inspectMcpServer.CallUnary(ctx, req)
+}
+
+// CreateMcpServer calls harness.agent.v1.AgentService.CreateMcpServer.
+func (c *agentServiceClient) CreateMcpServer(ctx context.Context, req *connect.Request[v1.CreateMcpServerRequest]) (*connect.Response[v1.CreateMcpServerResponse], error) {
+	return c.createMcpServer.CallUnary(ctx, req)
+}
+
+// UpdateMcpServer calls harness.agent.v1.AgentService.UpdateMcpServer.
+func (c *agentServiceClient) UpdateMcpServer(ctx context.Context, req *connect.Request[v1.UpdateMcpServerRequest]) (*connect.Response[v1.UpdateMcpServerResponse], error) {
+	return c.updateMcpServer.CallUnary(ctx, req)
+}
+
+// DeleteMcpServer calls harness.agent.v1.AgentService.DeleteMcpServer.
+func (c *agentServiceClient) DeleteMcpServer(ctx context.Context, req *connect.Request[v1.DeleteMcpServerRequest]) (*connect.Response[v1.DeleteMcpServerResponse], error) {
+	return c.deleteMcpServer.CallUnary(ctx, req)
+}
+
+// SetMcpServerApproval calls harness.agent.v1.AgentService.SetMcpServerApproval.
+func (c *agentServiceClient) SetMcpServerApproval(ctx context.Context, req *connect.Request[v1.SetMcpServerApprovalRequest]) (*connect.Response[v1.SetMcpServerApprovalResponse], error) {
+	return c.setMcpServerApproval.CallUnary(ctx, req)
+}
+
+// SetMcpToolRule calls harness.agent.v1.AgentService.SetMcpToolRule.
+func (c *agentServiceClient) SetMcpToolRule(ctx context.Context, req *connect.Request[v1.SetMcpToolRuleRequest]) (*connect.Response[v1.SetMcpToolRuleResponse], error) {
+	return c.setMcpToolRule.CallUnary(ctx, req)
+}
+
+// ListMcpCommands calls harness.agent.v1.AgentService.ListMcpCommands.
+func (c *agentServiceClient) ListMcpCommands(ctx context.Context, req *connect.Request[v1.ListMcpCommandsRequest]) (*connect.Response[v1.ListMcpCommandsResponse], error) {
+	return c.listMcpCommands.CallUnary(ctx, req)
+}
+
+// ListMcpResources calls harness.agent.v1.AgentService.ListMcpResources.
+func (c *agentServiceClient) ListMcpResources(ctx context.Context, req *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error) {
+	return c.listMcpResources.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2308,6 +2461,24 @@ type AgentServiceHandler interface {
 	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
 	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
 	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error
+	// --- MCP servers (mcp.proto) -------------------------------------------------------------------------
+	// Settings > MCP: every server this device can use, with who manages it (this device, the account, an admin,
+	// the repository's .mcp.json).
+	ListMcpServers(context.Context, *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error)
+	// Connects to one server (a stdio server only when approved on this device) and reports its tools, prompts,
+	// resources and the error, if any.
+	InspectMcpServer(context.Context, *connect.Request[v1.InspectMcpServerRequest]) (*connect.Response[v1.InspectMcpServerResponse], error)
+	CreateMcpServer(context.Context, *connect.Request[v1.CreateMcpServerRequest]) (*connect.Response[v1.CreateMcpServerResponse], error)
+	UpdateMcpServer(context.Context, *connect.Request[v1.UpdateMcpServerRequest]) (*connect.Response[v1.UpdateMcpServerResponse], error)
+	DeleteMcpServer(context.Context, *connect.Request[v1.DeleteMcpServerRequest]) (*connect.Response[v1.DeleteMcpServerResponse], error)
+	// This device's decision about a stdio or project server, for its current config.
+	SetMcpServerApproval(context.Context, *connect.Request[v1.SetMcpServerApprovalRequest]) (*connect.Response[v1.SetMcpServerApprovalResponse], error)
+	// Writes a permission rule for a tool of a server (or the whole server).
+	SetMcpToolRule(context.Context, *connect.Request[v1.SetMcpToolRuleRequest]) (*connect.Response[v1.SetMcpToolRuleResponse], error)
+	// The session's MCP prompts as slash commands. A frontend's command menu merges this list into its own.
+	ListMcpCommands(context.Context, *connect.Request[v1.ListMcpCommandsRequest]) (*connect.Response[v1.ListMcpCommandsResponse], error)
+	// The session's MCP resources, for @-mentions in the composer.
+	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2995,6 +3166,60 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListMcpServersHandler := connect.NewUnaryHandler(
+		AgentServiceListMcpServersProcedure,
+		svc.ListMcpServers,
+		connect.WithSchema(agentServiceMethods.ByName("ListMcpServers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceInspectMcpServerHandler := connect.NewUnaryHandler(
+		AgentServiceInspectMcpServerProcedure,
+		svc.InspectMcpServer,
+		connect.WithSchema(agentServiceMethods.ByName("InspectMcpServer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCreateMcpServerHandler := connect.NewUnaryHandler(
+		AgentServiceCreateMcpServerProcedure,
+		svc.CreateMcpServer,
+		connect.WithSchema(agentServiceMethods.ByName("CreateMcpServer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceUpdateMcpServerHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateMcpServerProcedure,
+		svc.UpdateMcpServer,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateMcpServer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteMcpServerHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteMcpServerProcedure,
+		svc.DeleteMcpServer,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteMcpServer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetMcpServerApprovalHandler := connect.NewUnaryHandler(
+		AgentServiceSetMcpServerApprovalProcedure,
+		svc.SetMcpServerApproval,
+		connect.WithSchema(agentServiceMethods.ByName("SetMcpServerApproval")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceSetMcpToolRuleHandler := connect.NewUnaryHandler(
+		AgentServiceSetMcpToolRuleProcedure,
+		svc.SetMcpToolRule,
+		connect.WithSchema(agentServiceMethods.ByName("SetMcpToolRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListMcpCommandsHandler := connect.NewUnaryHandler(
+		AgentServiceListMcpCommandsProcedure,
+		svc.ListMcpCommands,
+		connect.WithSchema(agentServiceMethods.ByName("ListMcpCommands")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListMcpResourcesHandler := connect.NewUnaryHandler(
+		AgentServiceListMcpResourcesProcedure,
+		svc.ListMcpResources,
+		connect.WithSchema(agentServiceMethods.ByName("ListMcpResources")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3223,6 +3448,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceScanClaudeImportHandler.ServeHTTP(w, r)
 		case AgentServiceRunClaudeImportProcedure:
 			agentServiceRunClaudeImportHandler.ServeHTTP(w, r)
+		case AgentServiceListMcpServersProcedure:
+			agentServiceListMcpServersHandler.ServeHTTP(w, r)
+		case AgentServiceInspectMcpServerProcedure:
+			agentServiceInspectMcpServerHandler.ServeHTTP(w, r)
+		case AgentServiceCreateMcpServerProcedure:
+			agentServiceCreateMcpServerHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateMcpServerProcedure:
+			agentServiceUpdateMcpServerHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteMcpServerProcedure:
+			agentServiceDeleteMcpServerHandler.ServeHTTP(w, r)
+		case AgentServiceSetMcpServerApprovalProcedure:
+			agentServiceSetMcpServerApprovalHandler.ServeHTTP(w, r)
+		case AgentServiceSetMcpToolRuleProcedure:
+			agentServiceSetMcpToolRuleHandler.ServeHTTP(w, r)
+		case AgentServiceListMcpCommandsProcedure:
+			agentServiceListMcpCommandsHandler.ServeHTTP(w, r)
+		case AgentServiceListMcpResourcesProcedure:
+			agentServiceListMcpResourcesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3682,4 +3925,40 @@ func (UnimplementedAgentServiceHandler) ScanClaudeImport(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunClaudeImport is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListMcpServers(context.Context, *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListMcpServers is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) InspectMcpServer(context.Context, *connect.Request[v1.InspectMcpServerRequest]) (*connect.Response[v1.InspectMcpServerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.InspectMcpServer is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreateMcpServer(context.Context, *connect.Request[v1.CreateMcpServerRequest]) (*connect.Response[v1.CreateMcpServerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreateMcpServer is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateMcpServer(context.Context, *connect.Request[v1.UpdateMcpServerRequest]) (*connect.Response[v1.UpdateMcpServerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateMcpServer is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DeleteMcpServer(context.Context, *connect.Request[v1.DeleteMcpServerRequest]) (*connect.Response[v1.DeleteMcpServerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteMcpServer is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetMcpServerApproval(context.Context, *connect.Request[v1.SetMcpServerApprovalRequest]) (*connect.Response[v1.SetMcpServerApprovalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetMcpServerApproval is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetMcpToolRule(context.Context, *connect.Request[v1.SetMcpToolRuleRequest]) (*connect.Response[v1.SetMcpToolRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetMcpToolRule is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListMcpCommands(context.Context, *connect.Request[v1.ListMcpCommandsRequest]) (*connect.Response[v1.ListMcpCommandsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListMcpCommands is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListMcpResources is not implemented"))
 }

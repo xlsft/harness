@@ -1,0 +1,1 @@
+ALTER TABLE "mcp_tool_cache" ADD COLUMN "meta" jsonb DEFAULT '{}'::jsonb NOT NULL;

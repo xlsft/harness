@@ -13,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	mcpv1 "github.com/xlsft/harness/packages/client/gen/harness/mcp/v1"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/prompts"
@@ -28,6 +29,10 @@ const (
 	AuthToolBundleKey = "McpAuthenticate"
 	// ReminderDeferredTools lists deferred tool names ({{tools}}, one per line).
 	ReminderDeferredTools = "deferred_tools"
+	// ReminderToolsChanged tells the model a server's tools changed ({{server}}, {{added}}, {{removed}}, {{deferred}}).
+	ReminderToolsChanged = "mcp_tools_changed"
+	// ReminderInstructions carries the instructions of servers that started after the session did ({{servers}}).
+	ReminderInstructions = "mcp_instructions"
 )
 
 // Tool search modes (HARNESS_TOOL_SEARCH).
@@ -72,12 +77,39 @@ type Options struct {
 	Disabled func(name string) bool
 	// LaunchTimeout bounds starting one stdio server (default 30 s).
 	LaunchTimeout time.Duration
-	SessionID     string
-	Logger        *slog.Logger
+	// Local is this device's own server list (nil: none). Its servers never reach the xlsft`s harness server.
+	Local *LocalStore
+	// Registry receives tools that appear or disappear while the session runs (nil: the tool set stays as it is).
+	Registry *tools.Registry
+	// ToolTimeout is the default limit of one tool call (0: HARNESS_MCP_TOOL_TIMEOUT_MS, else 10 minutes). A server's
+	// tool_timeout_ms wins.
+	ToolTimeout time.Duration
+	// MaxOutputChars is the default limit of one tool result (0: HARNESS_MCP_MAX_OUTPUT_CHARS, else MaxOutputChars).
+	MaxOutputChars int
+	// RefreshEvery is how often ToolDefs starts a background check of the remote tool lists
+	// (0: HARNESS_MCP_REFRESH_SECONDS, else 2 minutes; negative: never).
+	RefreshEvery time.Duration
+	SessionID    string
+	Logger       *slog.Logger
 }
 
-// Manager holds the session's MCP servers and tools. The tool set is fixed at Open (the catalog is
-// frozen per session); ToolSearch only changes which deferred tools are offered to the model.
+// Listeners hear about changes while the session runs. Called from background goroutines.
+type Listeners struct {
+	// Progress reports a server's progress on a running tool call.
+	Progress func(toolUseID string, progress, total float64, message string)
+	// ListChanged reports that a server's tools, prompts or resources changed ("tools", "prompts", "resources").
+	ListChanged func(server, kind string)
+	// ToolsChanged reports tools that appeared and disappeared. deferred are the added ones the model must load.
+	ToolsChanged func(server string, added, removed, deferred []string)
+	// CatalogChanged reports a new catalog snapshot.
+	CatalogChanged func(version string)
+	// InstructionsAdded reports the instructions of a server that started after the session did.
+	InstructionsAdded func(text string)
+}
+
+// Manager holds the session's MCP servers and tools. The catalog is frozen per session, for the prompt cache, until
+// a server says its list changed or a background check finds the catalog moved; ToolSearch changes which deferred
+// tools are offered to the model.
 type Manager struct {
 	o       Options
 	log     *slog.Logger
@@ -92,20 +124,40 @@ type Manager struct {
 	order    []string // deferred tools in load order
 	warnings []string
 	reported map[string]*mcpv1.DeviceServerStatus
+	// tools, byName, search and catalog change only under mu once Open returned.
+	listeners     Listeners
+	inflight      map[string][]*inflightCall // by server id: running calls, newest last
+	lastCheck     time.Time
+	checking      bool
+	remoteInfo    map[string]*mcpv1.CatalogServer // by server id, from the last catalog
+	promptCache   map[string]cachedList[*mcpv1.Prompt]
+	resourceCache map[string]cachedList[*mcpv1.Resource]
+	resourceTools bool
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // server is one configured server.
 type server struct {
-	cfg       *mcpv1.Server
-	remote    bool
+	cfg *mcpv1.Server
+	// remote: reached through the xlsft`s harness server's proxy. Everything else has a direct connection.
+	remote bool
+	// local: from this device's own list; nothing about it goes to the xlsft`s harness server.
+	local     bool
 	alwaysAsk bool
+	// needsApproval: this device decides before the first use (stdio servers and everything from a .mcp.json).
+	needsApproval bool
 
 	mu          sync.Mutex
 	approval    mcpv1.ApprovalState
 	unavailable string
-	conn        *stdioConn
+	conn        *directConn
 	lastErr     string
 	tools       []*mcpv1.Tool
+	// refreshing / dirty coalesce list_changed notifications (under the manager's mu).
+	refreshing, dirty bool
 }
 
 func (s *server) name() string { return s.cfg.GetName() }
@@ -117,12 +169,31 @@ func Open(ctx context.Context, o Options) (*Manager, error) {
 	if o.Client == nil {
 		return nil, fmt.Errorf("mcp: no McpService client")
 	}
-	m := &Manager{o: o, log: o.Logger, byName: map[string]*Tool{}, loaded: map[string]bool{}, reported: map[string]*mcpv1.DeviceServerStatus{}}
+	m := &Manager{o: o, log: o.Logger, byName: map[string]*Tool{}, loaded: map[string]bool{}, reported: map[string]*mcpv1.DeviceServerStatus{},
+		inflight: map[string][]*inflightCall{}, remoteInfo: map[string]*mcpv1.CatalogServer{},
+		promptCache: map[string]cachedList[*mcpv1.Prompt]{}, resourceCache: map[string]cachedList[*mcpv1.Resource]{}}
 	if m.log == nil {
 		m.log = slog.Default()
 	}
 	if m.o.LaunchTimeout <= 0 {
 		m.o.LaunchTimeout = 30 * time.Second
+	}
+	if m.o.ToolTimeout <= 0 {
+		m.o.ToolTimeout = envDuration("HARNESS_MCP_TOOL_TIMEOUT_MS", time.Millisecond, defaultToolTimeout)
+	}
+	if m.o.MaxOutputChars <= 0 {
+		m.o.MaxOutputChars = envInt("HARNESS_MCP_MAX_OUTPUT_CHARS", MaxOutputChars)
+	}
+	if m.o.RefreshEvery == 0 {
+		m.o.RefreshEvery = envDuration("HARNESS_MCP_REFRESH_SECONDS", time.Second, defaultRefreshEvery)
+	}
+	m.ctx, m.cancel = context.WithCancel(context.WithoutCancel(ctx))
+	m.lastCheck = time.Now()
+	for _, cfg := range o.Local.List() {
+		if !cfg.GetEnabled() {
+			continue
+		}
+		m.servers = append(m.servers, &server{cfg: cfg, local: true, needsApproval: true, alwaysAsk: cfg.GetRemote().GetRequiresUserInteraction()})
 	}
 	all, err := o.Client.ListServers(ctx, o.ProjectKey)
 	if err != nil {
@@ -130,12 +201,19 @@ func Open(ctx context.Context, o Options) (*Manager, error) {
 		if connect.CodeOf(err) != connect.CodeUnimplemented {
 			m.warn("MCP servers could not be loaded: %s", errorMessage(err))
 		}
-		return m, nil
+		all = nil
 	}
-	if o.ProjectConfig != "" {
+	inFile := map[string]bool{}
+	if o.ProjectConfig != "" && err == nil {
 		if changed := m.syncProject(ctx, all); changed {
 			if again, err := o.Client.ListServers(ctx, o.ProjectKey); err == nil {
 				all = again
+			}
+		}
+		// A server taken out of the file is no longer the repository's: its row may stay, for other branches.
+		if want, err := ReadProjectConfig(o.ProjectConfig, o.ProjectKey); err == nil {
+			for _, w := range want {
+				inFile[w.GetName()] = true
 			}
 		}
 	}
@@ -143,13 +221,34 @@ func Open(ctx context.Context, o Options) (*Manager, error) {
 		if !cfg.GetEnabled() {
 			continue
 		}
-		s := &server{cfg: cfg, remote: cfg.GetTransport() != mcpv1.Transport_TRANSPORT_STDIO}
+		project := cfg.GetScope() == commonv1.Scope_SCOPE_PROJECT
+		if project && o.ProjectConfig != "" && !inFile[cfg.GetName()] {
+			continue
+		}
+		stdio := cfg.GetTransport() == mcpv1.Transport_TRANSPORT_STDIO
+		s := &server{cfg: cfg, remote: !stdio, needsApproval: stdio || project}
 		s.alwaysAsk = cfg.GetRemote().GetRequiresUserInteraction()
 		m.servers = append(m.servers, s)
 	}
-	m.startStdio(ctx)
+	m.startDirect(ctx)
 	m.buildTools(ctx)
 	return m, nil
+}
+
+// UpdateListeners changes some of the listeners.
+func (m *Manager) UpdateListeners(f func(*Listeners)) {
+	if m == nil {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	f(&m.listeners)
+}
+
+func (m *Manager) listenersNow() Listeners {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.listeners
 }
 
 func (m *Manager) warn(format string, args ...any) {
@@ -186,20 +285,23 @@ func (m *Manager) autoApproved(name string) bool {
 	return false
 }
 
-// startStdio evaluates availability and approval of every stdio server, reports them and starts
-// the approved ones concurrently.
-func (m *Manager) startStdio(ctx context.Context) {
+// startDirect evaluates availability and approval of every server that needs them, reports them and starts
+// the approved direct ones concurrently.
+func (m *Manager) startDirect(ctx context.Context) {
 	var launch []*server
 	for _, s := range m.servers {
-		if s.remote {
+		if !s.needsApproval {
 			continue
 		}
 		hash := s.cfg.GetConfigHash()
-		s.unavailable = checkAvailable(s.cfg)
 		s.approval = m.o.Approvals.State(s.cfg.GetId(), hash)
 		if s.approval == mcpv1.ApprovalState_APPROVAL_STATE_PENDING && m.autoApproved(s.name()) {
 			s.approval = mcpv1.ApprovalState_APPROVAL_STATE_APPROVED
 		}
+		if s.remote {
+			continue
+		}
+		s.unavailable = checkAvailable(s.cfg)
 		if s.unavailable == "" && s.approval == mcpv1.ApprovalState_APPROVAL_STATE_APPROVED {
 			launch = append(launch, s)
 		}
@@ -221,33 +323,26 @@ func (m *Manager) startStdio(ctx context.Context) {
 	}
 }
 
+// stdioServers returns the registry's stdio servers: the ones reported to the xlsft`s harness server.
 func (m *Manager) stdioServers() []*server {
 	var out []*server
 	for _, s := range m.servers {
-		if !s.remote {
+		if !s.remote && !s.local {
 			out = append(out, s)
 		}
 	}
 	return out
 }
 
-// launchLocked starts s (s.mu held): IssueStdioLaunch, spawn, initialize, list tools.
+// launchLocked starts s (s.mu held): launch data (IssueStdioLaunch, or this device's list), spawn or connect,
+// initialize, list tools.
 func (m *Manager) launchLocked(ctx context.Context, s *server) error {
 	ctx, cancel := context.WithTimeout(ctx, m.o.LaunchTimeout)
 	defer cancel()
-	launch, err := m.o.Client.IssueStdioLaunch(ctx, s.cfg.GetId(), s.cfg.GetConfigHash())
-	if err != nil {
-		s.lastErr = "launch data not issued: " + errorMessage(err)
-		m.log.Warn("MCP stdio launch refused", "server", s.name(), "err", err)
-		m.warn("MCP server %s could not start: %s", s.name(), s.lastErr)
-		return fmt.Errorf("%s", s.lastErr)
-	}
-	conn, err := startStdio(ctx, launch, m.o.Cwd)
-	launch = nil // drop the secrets
-	_ = launch
+	conn, err := connectDirect(ctx, s.cfg, s.local, m.o.Client, m.o.Local, m.o.Cwd, m.hooksFor(s))
 	if err != nil {
 		s.lastErr = err.Error()
-		m.log.Warn("MCP stdio server failed to start", "server", s.name(), "err", err)
+		m.log.Warn("MCP server failed to start", "server", s.name(), "err", err)
 		m.warn("MCP server %s could not start: %s", s.name(), s.lastErr)
 		return err
 	}
@@ -262,11 +357,14 @@ func (m *Manager) launchLocked(ctx context.Context, s *server) error {
 	return nil
 }
 
-// report sends the device status of the given stdio servers.
+// report sends the device status of the given servers. Servers from this device's own list are not reported: the
+// harness server does not know them.
 func (m *Manager) report(ctx context.Context, servers ...*server) {
 	var sts []*mcpv1.DeviceServerStatus
 	for _, s := range servers {
-		sts = append(sts, s.status())
+		if !s.local && !s.remote {
+			sts = append(sts, s.status())
+		}
 	}
 	if len(sts) == 0 {
 		return
@@ -315,6 +413,7 @@ func (m *Manager) buildTools(ctx context.Context) {
 		m.catalog = cat.GetVersion()
 		for _, cs := range cat.GetServers() {
 			catalogTools[cs.GetServerId()] = cs.GetTools()
+			m.remoteInfo[cs.GetServerId()] = cs
 			if cs.GetRequiresUserInteraction() {
 				for _, s := range m.servers {
 					if s.cfg.GetId() == cs.GetServerId() {
@@ -343,9 +442,11 @@ func (m *Manager) buildTools(ctx context.Context) {
 			case s.approval == mcpv1.ApprovalState_APPROVAL_STATE_APPROVED:
 				continue // failed to start (warned already)
 			}
+		} else if s.approval == mcpv1.ApprovalState_APPROVAL_STATE_DENIED {
+			continue
 		}
 		if s.remote && s.cfg.GetAuth().GetState() == mcpv1.AuthState_AUTH_STATE_NEEDS_AUTH {
-			m.warn("MCP server %s needs authorization: open the MCP settings in the harness web or desktop app to connect it", s.name())
+			m.warn("MCP server %s needs authorization: open Settings > MCP in the xlsft`s harness web or desktop app to connect it", s.name())
 			if len(list) == 0 {
 				m.addAuthTool(s)
 				continue
@@ -356,13 +457,13 @@ func (m *Manager) buildTools(ctx context.Context) {
 		}
 	}
 	m.decideDeferral()
+	m.syncResourceTools()
 }
 
-func (m *Manager) addTool(s *server, t *mcpv1.Tool) {
-	name := ToolName(s.name(), t.GetName())
-	if _, dup := m.byName[name]; dup {
-		m.log.Warn("duplicate MCP tool name; skipped", "tool", name)
-		return
+// newTool builds the session's form of a server's tool (nil when the server's lists hide it).
+func (m *Manager) newTool(s *server, t *mcpv1.Tool) *Tool {
+	if !toolVisible(s.cfg, t.GetName()) {
+		return nil
 	}
 	desc := t.GetDescription()
 	if desc == "" {
@@ -371,10 +472,22 @@ func (m *Manager) addTool(s *server, t *mcpv1.Tool) {
 	if len(desc) > maxDescription {
 		desc = truncate(desc, maxDescription) + "…"
 	}
-	tool := &Tool{m: m, srv: s, name: name, upstream: t.GetName(), alwaysAsk: s.alwaysAsk || annotationRequiresInteraction(t.GetAnnotationsJson()),
+	name := ToolName(s.name(), t.GetName())
+	return &Tool{m: m, srv: s, name: name, upstream: t.GetName(), alwaysAsk: s.alwaysAsk || annotationRequiresInteraction(t.GetAnnotationsJson()),
 		def: llm.ToolDef{Name: name, Description: desc, InputSchema: objectSchema(t.GetInputSchemaJson())}}
+}
+
+func (m *Manager) addTool(s *server, t *mcpv1.Tool) {
+	tool := m.newTool(s, t)
+	if tool == nil {
+		return
+	}
+	if _, dup := m.byName[tool.name]; dup {
+		m.log.Warn("duplicate MCP tool name; skipped", "tool", tool.name)
+		return
+	}
 	m.tools = append(m.tools, tool)
-	m.byName[name] = tool
+	m.byName[tool.name] = tool
 }
 
 func (m *Manager) addAuthTool(s *server) {
@@ -474,14 +587,32 @@ func (m *Manager) Tools() []tools.Tool {
 	if m == nil {
 		return nil
 	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	var out []tools.Tool
 	if m.search != nil {
 		out = append(out, m.search)
+	}
+	if m.resourceTools {
+		out = append(out, &listResourcesTool{m: m}, &readResourceTool{m: m})
 	}
 	for _, t := range m.tools {
 		out = append(out, t)
 	}
 	return out
+}
+
+// toolList returns the session's tools now.
+func (m *Manager) toolList() []*Tool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]*Tool(nil), m.tools...)
+}
+
+func (m *Manager) lookup(name string) *Tool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.byName[name]
 }
 
 // Deferred returns the names of deferred tools (sorted).
@@ -490,7 +621,7 @@ func (m *Manager) Deferred() []string {
 		return nil
 	}
 	var out []string
-	for _, t := range m.tools {
+	for _, t := range m.toolList() {
 		if t.deferred && !m.disabled(t.name) {
 			out = append(out, t.name)
 		}
@@ -516,7 +647,7 @@ func (m *Manager) ToolDefs() []llm.ToolDef {
 		return nil
 	}
 	var out []llm.ToolDef
-	for _, t := range m.tools {
+	for _, t := range m.toolList() {
 		if !t.deferred && !m.disabled(t.name) {
 			out = append(out, t.def)
 		}
@@ -525,7 +656,7 @@ func (m *Manager) ToolDefs() []llm.ToolDef {
 	order := append([]string(nil), m.order...)
 	m.mu.Unlock()
 	for _, n := range order {
-		if t := m.byName[n]; t != nil && !m.disabled(n) {
+		if t := m.lookup(n); t != nil && !m.disabled(n) {
 			out = append(out, t.def)
 		}
 	}
@@ -547,10 +678,8 @@ func (m *Manager) Catalog() []ToolInfo {
 	if m == nil {
 		return nil
 	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
 	var out []ToolInfo
-	for _, t := range m.tools {
+	for _, t := range m.toolList() {
 		if m.disabled(t.name) {
 			continue
 		}
@@ -558,7 +687,7 @@ func (m *Manager) Catalog() []ToolInfo {
 		if t.auth {
 			upstream = "authenticate"
 		}
-		out = append(out, ToolInfo{Server: t.srv.name(), Tool: upstream, Def: t.def, Offered: !t.deferred || m.loaded[t.name]})
+		out = append(out, ToolInfo{Server: t.srv.name(), Tool: upstream, Def: t.def, Offered: !t.deferred || m.isLoaded(t.name)})
 	}
 	return out
 }
@@ -615,7 +744,7 @@ func (m *Manager) RestoreLoaded(history []llm.Message) {
 				if json.Unmarshal(b.Input, &in) == nil {
 					m.load(m.search.find(in)...)
 				}
-			case m.byName[b.Name] != nil:
+			case m.lookup(b.Name) != nil:
 				m.load(b.Name)
 			}
 		}
@@ -627,6 +756,10 @@ func (m *Manager) Close() {
 	if m == nil {
 		return
 	}
+	if m.cancel != nil {
+		m.cancel()
+	}
+	m.wg.Wait()
 	var wg sync.WaitGroup
 	for _, s := range m.servers {
 		s.mu.Lock()

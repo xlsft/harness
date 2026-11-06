@@ -18,10 +18,10 @@ import { Scope } from "../gen/harness/common/v1/scope_pb.ts";
 import { AuthState, Transport } from "../gen/harness/mcp/v1/mcp_pb.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { Principal } from "../services/devices.ts";
-import { canonicalJson, REMOTE_TRANSPORTS } from "./config.ts";
+import { canonicalJson, REMOTE_TRANSPORTS, toolVisible } from "./config.ts";
 import { reportedTools } from "./devices.ts";
 import { authStatuses } from "./oauth.ts";
-import { fetchAllTools, type ToolData } from "./proxy.ts";
+import { fetchAllTools, type ToolData, type UpstreamMeta } from "./proxy.ts";
 import { listServers, rowConfig, type ServerView } from "./registry.ts";
 
 export interface CatalogServerData {
@@ -33,6 +33,9 @@ export interface CatalogServerData {
   toolsUpdatedAt: string;
   /** remote.requires_user_interaction: every call needs an explicit approval. */
   requiresUserInteraction: boolean;
+  instructions: string;
+  hasPrompts: boolean;
+  hasResources: boolean;
 }
 
 export interface CatalogData {
@@ -70,8 +73,10 @@ function maybePurge(): void {
   purgeCatalogSnapshots(now).catch((err) => console.error("[harness] catalog purge failed", err));
 }
 
-async function remoteTools(p: Principal, views: ServerView[]): Promise<Map<string, { tools: ToolData[]; at: Date | undefined }>> {
-  const out = new Map<string, { tools: ToolData[]; at: Date | undefined }>();
+type RemoteTools = { tools: ToolData[]; at: Date | undefined; meta: UpstreamMeta };
+
+async function remoteTools(p: Principal, views: ServerView[]): Promise<Map<string, RemoteTools>> {
+  const out = new Map<string, RemoteTools>();
   if (!views.length) return out;
   const cached = await getDb()
     .select()
@@ -82,19 +87,19 @@ async function remoteTools(p: Principal, views: ServerView[]): Promise<Map<strin
     views.map(async (v) => {
       const c = cached.find((x) => x.serverId === v.row.id);
       const fresh = c && c.configHash === v.row.configHash && Date.now() - c.fetchedAt.getTime() < toolsTtlMs();
-      const usable = (x: typeof c) => (x ? { tools: x.tools as ToolData[], at: x.fetchedAt } : { tools: [], at: undefined });
+      const usable = (x: typeof c): RemoteTools => (x ? { tools: x.tools as ToolData[], at: x.fetchedAt, meta: (x.meta ?? {}) as UpstreamMeta } : { tools: [], at: undefined, meta: {} });
       if (fresh) {
         out.set(v.row.id, usable(c));
         return;
       }
       const st = statuses.get(v.row.id)?.state;
       if (st !== AuthState.CONNECTED && st !== AuthState.NOT_REQUIRED) {
-        out.set(v.row.id, c && c.configHash === v.row.configHash ? usable(c) : { tools: [], at: undefined });
+        out.set(v.row.id, c && c.configHash === v.row.configHash ? usable(c) : usable(undefined));
         return;
       }
       try {
-        const tools = await fetchAllTools(p.user, v, AbortSignal.timeout(fetchTimeoutMs()));
-        out.set(v.row.id, { tools, at: new Date() });
+        const { tools, meta } = await fetchAllTools(p.user, v, AbortSignal.timeout(fetchTimeoutMs()));
+        out.set(v.row.id, { tools, meta, at: new Date() });
       } catch {
         // Unreachable right now: serve the last list we have.
         out.set(v.row.id, usable(c));
@@ -113,10 +118,12 @@ async function buildCurrent(p: Principal, projectKey: string): Promise<{ version
   const servers: CatalogServerData[] = views.map((v) => {
     let tools: ToolData[] = [];
     let at: Date | undefined;
+    let meta: UpstreamMeta = {};
     if (REMOTE_TRANSPORTS.has(v.row.transport)) {
       const r = remote.get(v.row.id);
       tools = r?.tools ?? [];
       at = r?.at;
+      meta = r?.meta ?? {};
     } else {
       const reports = (reported.get(v.row.id) ?? []).sort((a, b) => b.at.getTime() - a.at.getTime());
       const best = reports.find((r) => r.configHash === v.row.configHash) ?? reports[0];
@@ -128,9 +135,13 @@ async function buildCurrent(p: Principal, projectKey: string): Promise<{ version
       name: v.row.name,
       transport: v.row.transport,
       alwaysLoad: v.row.alwaysLoad,
-      tools,
+      // allowed_tools and denied_tools: a hidden tool is not in the catalog.
+      tools: tools.filter((t) => toolVisible(rowConfig(v.row), t.name)),
       toolsUpdatedAt: at?.toISOString() ?? "",
       requiresUserInteraction: !!rowConfig(v.row).remote?.requiresUserInteraction,
+      instructions: meta.instructions ?? "",
+      hasPrompts: !!meta.hasPrompts,
+      hasResources: !!meta.hasResources,
     };
   });
   servers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.serverId < b.serverId ? -1 : 1));
@@ -141,9 +152,15 @@ async function buildCurrent(p: Principal, projectKey: string): Promise<{ version
   return { version: `cat_${digest.slice(0, 40)}`, servers };
 }
 
-/** Stored snapshot servers (older snapshots predate requiresUserInteraction). */
+/** Stored snapshot servers (older snapshots predate requiresUserInteraction and the upstream's own description). */
 function snapshotServers(v: unknown): CatalogServerData[] {
-  return (Array.isArray(v) ? (v as CatalogServerData[]) : []).map((s) => ({ ...s, requiresUserInteraction: !!s.requiresUserInteraction }));
+  return (Array.isArray(v) ? (v as CatalogServerData[]) : []).map((s) => ({
+    ...s,
+    requiresUserInteraction: !!s.requiresUserInteraction,
+    instructions: s.instructions ?? "",
+    hasPrompts: !!s.hasPrompts,
+    hasResources: !!s.hasResources,
+  }));
 }
 
 export async function getToolCatalog(

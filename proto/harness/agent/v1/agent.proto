@@ -10,6 +10,7 @@ import "harness/agent/v1/files.proto";
 import "harness/agent/v1/import.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
+import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/sandbox.proto";
@@ -357,6 +358,25 @@ service AgentService {
   // running it again skips what is done; a session already imported is not duplicated. One run at a time:
   // FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
   rpc RunClaudeImport(RunClaudeImportRequest) returns (stream RunClaudeImportResponse);
+
+  // --- MCP servers (mcp.proto) -------------------------------------------------------------------------
+  // Settings > MCP: every server this device can use, with who manages it (this device, the account, an admin,
+  // the repository's .mcp.json).
+  rpc ListMcpServers(ListMcpServersRequest) returns (ListMcpServersResponse);
+  // Connects to one server (a stdio server only when approved on this device) and reports its tools, prompts,
+  // resources and the error, if any.
+  rpc InspectMcpServer(InspectMcpServerRequest) returns (InspectMcpServerResponse);
+  rpc CreateMcpServer(CreateMcpServerRequest) returns (CreateMcpServerResponse);
+  rpc UpdateMcpServer(UpdateMcpServerRequest) returns (UpdateMcpServerResponse);
+  rpc DeleteMcpServer(DeleteMcpServerRequest) returns (DeleteMcpServerResponse);
+  // This device's decision about a stdio or project server, for its current config.
+  rpc SetMcpServerApproval(SetMcpServerApprovalRequest) returns (SetMcpServerApprovalResponse);
+  // Writes a permission rule for a tool of a server (or the whole server).
+  rpc SetMcpToolRule(SetMcpToolRuleRequest) returns (SetMcpToolRuleResponse);
+  // The session's MCP prompts as slash commands. A frontend's command menu merges this list into its own.
+  rpc ListMcpCommands(ListMcpCommandsRequest) returns (ListMcpCommandsResponse);
+  // The session's MCP resources, for @-mentions in the composer.
+  rpc ListMcpResources(ListMcpResourcesRequest) returns (ListMcpResourcesResponse);
 }
 
 message CreateObjectTicketRequest {}
@@ -795,6 +815,9 @@ message SessionEvent {
     DeviceSettingsChanged device_settings_changed = 77;
     // Runs of the Workflow tool (workflows.proto); numbered apart like the shell events.
     WorkflowUpdated workflow_updated = 90;
+    // MCP (mcp.proto); numbered apart like the shell events. Neither is stored or replayed.
+    McpToolProgress mcp_tool_progress = 120;
+    McpListChanged mcp_list_changed = 121;
   }
 }
 

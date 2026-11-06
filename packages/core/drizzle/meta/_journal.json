@@ -85,6 +85,13 @@
       "when": 1793960911712,
       "tag": "0011_model_price_source",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793970842902,
+      "tag": "0012_tense_jack_power",
+      "breakpoints": true
     }
   ]
 }

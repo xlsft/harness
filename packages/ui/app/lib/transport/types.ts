@@ -35,6 +35,7 @@ import type { LocalModelsApi } from './localModels'
 import type { ClaudeImportApi } from '~/lib/import/claudeCode'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
+import type { McpApi } from '~/lib/mcp/types'
 import type { BrowserApi } from '~/lib/browser/types'
 
 // Computer use on this device (GetComputerUseStatus).
@@ -330,6 +331,9 @@ export interface SessionTransport {
   claudeImport(): ClaudeImportApi
   // ACP agents as session engines: the registry, installs, sign-in and agent modes (~/lib/acp). Device-local.
   acp(): AcpApi
+
+  // MCP servers: Settings > MCP, and a session's commands and mentions (~/lib/mcp).
+  mcp(): McpApi
   // The session's real browser, shared with the agent's Browser* tools: availability and the Chrome for Testing
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.

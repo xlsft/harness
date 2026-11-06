@@ -1,0 +1,248 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/mcp/v1/mcp.proto";
+
+// MCP servers as this client sees them (Settings > MCP, the composer's commands and mentions).
+//
+// There are four kinds of server, and each has one manager:
+// - DEVICE: added on this device, kept in HARNESS_HOME and never sent to the xlsft`s harness server. Any transport the
+//   client speaks directly (stdio, Streamable HTTP, SSE), so it can reach localhost; no OAuth.
+// - ACCOUNT: the user's own server in the registry; follows the user to every device.
+// - ORG: managed by admins in the registry; read-only for others.
+// - PROJECT: read from the repository's .mcp.json. Only loaded in a trusted folder, and only after this device
+//   approved it for its exact config.
+//
+// OAuth (StartOAuth, GetOAuthFlow, RevokeAuth) and the audit log (ListAudit) are harness.mcp.v1.McpService calls the
+// client forwards to the server, like other settings screens' calls.
+
+enum McpServerSource {
+  MCP_SERVER_SOURCE_UNSPECIFIED = 0;
+  MCP_SERVER_SOURCE_DEVICE = 1;
+  MCP_SERVER_SOURCE_ACCOUNT = 2;
+  MCP_SERVER_SOURCE_ORG = 3;
+  MCP_SERVER_SOURCE_PROJECT = 4;
+}
+
+// What a server needs before the agent can use it, without connecting to it.
+enum McpServerState {
+  MCP_SERVER_STATE_UNSPECIFIED = 0;
+  MCP_SERVER_STATE_READY = 1;
+  MCP_SERVER_STATE_DISABLED = 2;
+  // The folder of the .mcp.json is not trusted: the file was read for display and nothing else.
+  MCP_SERVER_STATE_NEEDS_TRUST = 3;
+  MCP_SERVER_STATE_NEEDS_APPROVAL = 4;
+  MCP_SERVER_STATE_DENIED = 5;
+  MCP_SERVER_STATE_NEEDS_AUTH = 6;
+  MCP_SERVER_STATE_UNAVAILABLE = 7;
+}
+
+message McpServerEntry {
+  // Device servers: id mcl_...; secrets carry names only, as everywhere.
+  harness.mcp.v1.Server server = 1;
+  McpServerSource source = 2;
+  // Who manages the server, for display: "This device", "You", "Admin", "Repository file".
+  string managed_by = 3;
+  // May change the config / enabled flag; may delete it. Project servers change in their file.
+  bool can_edit = 4;
+  bool can_remove = 5;
+  McpServerState state = 6;
+  // Why, when the state is not READY.
+  string state_detail = 7;
+  // Project and stdio servers: this device's decision.
+  harness.mcp.v1.ApprovalState approval = 8;
+  // What would run or be contacted, a line such as "npx -y server" or a URL.
+  string launch_summary = 9;
+}
+
+message ListMcpServersRequest {
+  // A folder whose .mcp.json to include; empty lists no project servers.
+  string folder = 1;
+}
+
+message ListMcpServersResponse {
+  repeated McpServerEntry servers = 1;
+  // The xlsft`s harness server could not be reached; device and project-file servers are still listed.
+  string registry_error = 2;
+  bool can_manage_org = 3;
+  // The folder asked for: its repository root, whether it is trusted and whether it has a .mcp.json.
+  string project_root = 4;
+  bool project_trusted = 5;
+  bool project_has_file = 6;
+  // Problems with the .mcp.json (it does not parse, a server could not be registered).
+  string project_error = 7;
+}
+
+message McpToolInfo {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // The whole name the model and permission rules use: mcp__<server>__<tool>.
+  string full_name = 4;
+  // The user's rule that applies to this tool: "allow", "ask", "deny" or "" for none.
+  string rule = 5;
+}
+
+message McpPromptArgument {
+  string name = 1;
+  string description = 2;
+  bool required = 3;
+}
+
+message McpPromptInfo {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  repeated McpPromptArgument arguments = 4;
+}
+
+message McpResourceInfo {
+  string uri = 1;
+  string name = 2;
+  string title = 3;
+  string description = 4;
+  string mime_type = 5;
+  // Set for a resource template: `uri` is empty and this is the template.
+  string uri_template = 6;
+}
+
+message InspectMcpServerRequest {
+  string server_id = 1;
+  // The folder the project server was listed for.
+  string folder = 2;
+}
+
+message InspectMcpServerResponse {
+  // Connected and answered. False: `error` says why (empty when the server was not contacted because of its state).
+  bool connected = 1;
+  string error = 2;
+  // The server's own name and version.
+  string server_name = 3;
+  string server_version = 4;
+  // Size of the instructions it offers the model (not the text).
+  int64 instructions_chars = 5;
+  repeated McpToolInfo tools = 6;
+  repeated McpPromptInfo prompts = 7;
+  repeated McpResourceInfo resources = 8;
+}
+
+message CreateMcpServerRequest {
+  // Where the server goes: DEVICE, ACCOUNT or ORG (admins).
+  McpServerSource source = 1;
+  harness.mcp.v1.Server server = 2;
+  harness.mcp.v1.SecretChanges secrets = 3;
+}
+
+message CreateMcpServerResponse {
+  McpServerEntry entry = 1;
+}
+
+message UpdateMcpServerRequest {
+  // Full replacement of the config fields; server.id identifies it.
+  harness.mcp.v1.Server server = 1;
+  harness.mcp.v1.SecretChanges secrets = 2;
+  // Registry servers: the version read; a mismatch answers with `conflict`.
+  int64 base_version = 3;
+}
+
+message UpdateMcpServerResponse {
+  McpServerEntry entry = 1;
+  // Set instead of `entry`: someone else changed the server. This is the current one.
+  McpServerEntry conflict = 2;
+}
+
+message DeleteMcpServerRequest {
+  string server_id = 1;
+}
+
+message DeleteMcpServerResponse {}
+
+message SetMcpServerApprovalRequest {
+  string server_id = 1;
+  // The folder the project server was listed for.
+  string folder = 2;
+  bool approved = 3;
+}
+
+message SetMcpServerApprovalResponse {
+  McpServerEntry entry = 1;
+}
+
+message SetMcpToolRuleRequest {
+  // The server's name.
+  string server = 1;
+  // The tool's name on the server; empty applies to the whole server.
+  string tool = 2;
+  // "allow", "ask", "deny"; "" removes the rule.
+  string rule = 3;
+  // The server is device-local: the rule stays on this device instead of going into the synced settings.
+  bool device_local = 4;
+}
+
+message SetMcpToolRuleResponse {}
+
+// One prompt of an MCP server, offered as a slash command. Sending `command`, optionally followed by arguments, as
+// a message makes the client fetch the prompt and send its text in the message's place. Arguments are given in the
+// listed order, separated by spaces (the last one takes the rest of the line), or as name=value.
+message McpCommand {
+  // "/mcp__<server>__<prompt>"
+  string command = 1;
+  string server = 2;
+  string prompt = 3;
+  string title = 4;
+  string description = 5;
+  repeated McpPromptArgument arguments = 6;
+}
+
+message ListMcpCommandsRequest {
+  string session_id = 1;
+}
+
+message ListMcpCommandsResponse {
+  repeated McpCommand commands = 1;
+}
+
+// One resource of an MCP server. Writing `mention` in a message attaches the resource's content to it.
+message McpResourceMention {
+  // "@<server>:<uri>"
+  string mention = 1;
+  string server = 2;
+  string uri = 3;
+  string name = 4;
+  string description = 5;
+  string mime_type = 6;
+}
+
+message ListMcpResourcesRequest {
+  string session_id = 1;
+  // Filter over the mention and name; empty lists all, up to `limit`.
+  string query = 2;
+  // 0 -> 50.
+  int32 limit = 3;
+}
+
+message ListMcpResourcesResponse {
+  repeated McpResourceMention resources = 1;
+}
+
+// Progress a server reports for a running tool call. Not stored; frontends show the latest until the call ends.
+message McpToolProgress {
+  string tool_use_id = 1;
+  double progress = 2;
+  // 0 when unknown.
+  double total = 3;
+  string message = 4;
+}
+
+// A server's list changed while the session runs. Frontends reread what they show (commands, mentions).
+message McpListChanged {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_TOOLS = 1;
+    KIND_PROMPTS = 2;
+    KIND_RESOURCES = 3;
+  }
+  string server = 1;
+  Kind kind = 2;
+}

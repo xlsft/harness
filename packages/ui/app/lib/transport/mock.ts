@@ -54,6 +54,7 @@ import { MockFilesApi } from '~/lib/files/mock'
 import { diffVersion, type DiffBaseChoice, type DiffBases, type SessionDiff, type SessionFileDiff } from '~/lib/files/sessionDiff'
 import { MockSpeechApi } from '~/lib/speech/mock'
 import { ACP_SWITCH_REFUSAL, acpUnsupported, MockAcpApi } from '~/lib/acp/mock'
+import { MockMcpApi } from '~/lib/mcp/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
@@ -1436,6 +1437,11 @@ export class MockTransport implements SessionTransport {
   }
 
   // ---- ACP sessions (~/lib/acp) ----
+
+  private mcpApi = new MockMcpApi()
+  mcp() {
+    return this.mcpApi
+  }
 
   private acpApi?: MockAcpApi
   acp() {

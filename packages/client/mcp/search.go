@@ -60,7 +60,7 @@ func (s *ToolSearch) Run(_ context.Context, _ *tools.Env, call tools.Call) tools
 	var b strings.Builder
 	fmt.Fprintf(&b, "Loaded %d tool(s); they can be called from now on:\n<functions>\n", len(names))
 	for _, n := range names {
-		d := s.m.byName[n].def
+		d := s.m.lookup(n).def
 		line, _ := json.Marshal(map[string]any{"name": d.Name, "description": d.Description, "parameters": json.RawMessage(d.InputSchema)})
 		b.WriteString("<function>")
 		b.Write(line)
@@ -105,11 +105,11 @@ func (s *ToolSearch) resolve(name string) string {
 	if name == "" {
 		return ""
 	}
-	if t := s.m.byName[name]; t != nil && t.deferred {
+	if t := s.m.lookup(name); t != nil && t.deferred {
 		return name
 	}
 	var ci, suffix []string
-	for _, t := range s.m.tools {
+	for _, t := range s.m.toolList() {
 		if !t.deferred || s.m.disabled(t.name) {
 			continue
 		}
@@ -155,7 +155,7 @@ func (s *ToolSearch) keyword(q string, limit int) []string {
 		score int
 	}
 	var hits []hit
-	for _, t := range s.m.tools {
+	for _, t := range s.m.toolList() {
 		if !t.deferred || s.m.disabled(t.name) {
 			continue
 		}

@@ -291,6 +291,58 @@ func (GetOAuthFlowResponse_State) EnumDescriptor() ([]byte, []int) {
 	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{22, 0}
 }
 
+type ListChanged_Kind int32
+
+const (
+	ListChanged_KIND_UNSPECIFIED ListChanged_Kind = 0
+	ListChanged_KIND_TOOLS       ListChanged_Kind = 1
+	ListChanged_KIND_PROMPTS     ListChanged_Kind = 2
+	ListChanged_KIND_RESOURCES   ListChanged_Kind = 3
+)
+
+// Enum value maps for ListChanged_Kind.
+var (
+	ListChanged_Kind_name = map[int32]string{
+		0: "KIND_UNSPECIFIED",
+		1: "KIND_TOOLS",
+		2: "KIND_PROMPTS",
+		3: "KIND_RESOURCES",
+	}
+	ListChanged_Kind_value = map[string]int32{
+		"KIND_UNSPECIFIED": 0,
+		"KIND_TOOLS":       1,
+		"KIND_PROMPTS":     2,
+		"KIND_RESOURCES":   3,
+	}
+)
+
+func (x ListChanged_Kind) Enum() *ListChanged_Kind {
+	p := new(ListChanged_Kind)
+	*p = x
+	return p
+}
+
+func (x ListChanged_Kind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ListChanged_Kind) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_mcp_v1_mcp_proto_enumTypes[5].Descriptor()
+}
+
+func (ListChanged_Kind) Type() protoreflect.EnumType {
+	return &file_harness_mcp_v1_mcp_proto_enumTypes[5]
+}
+
+func (x ListChanged_Kind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ListChanged_Kind.Descriptor instead.
+func (ListChanged_Kind) EnumDescriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{50, 0}
+}
+
 // Secret values are referenced from env values, args, header values and URLs as `${secret:NAME}`.
 // The server substitutes them when proxying (remote) or in IssueStdioLaunch (stdio).
 // Plain `${VAR}` references (no "secret:" prefix) are expanded by the client from its local environment.
@@ -329,8 +381,21 @@ type Server struct {
 	UpdatedAt string `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Remote servers on private networks (admin-only to set; reset when the URL moves to another origin).
 	AllowPrivateNetwork bool `protobuf:"varint,18,opt,name=allow_private_network,json=allowPrivateNetwork,proto3" json:"allow_private_network,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Time limit of one tools/call; 0 -> the default (10 minutes). Time spent waiting for the user's answer to an
+	// elicitation does not count.
+	ToolTimeoutMs int64 `protobuf:"varint,19,opt,name=tool_timeout_ms,json=toolTimeoutMs,proto3" json:"tool_timeout_ms,omitempty"`
+	// Glob patterns ('*') over the server's own tool names. Non-empty: only matching tools exist for the agent.
+	AllowedTools []string `protobuf:"bytes,20,rep,name=allowed_tools,json=allowedTools,proto3" json:"allowed_tools,omitempty"`
+	// Glob patterns over the server's own tool names; wins over allowed_tools. Enforced by whoever talks to the
+	// upstream: the proxy for remote servers, the client for stdio servers. Unlike the user's permission rules it
+	// belongs to whoever manages the server, so an admin's list on an org server cannot be undone by a user.
+	DeniedTools []string `protobuf:"bytes,21,rep,name=denied_tools,json=deniedTools,proto3" json:"denied_tools,omitempty"`
+	// Largest text of one tool result given to the model, in characters; 0 -> the client's default.
+	MaxOutputChars int32 `protobuf:"varint,22,opt,name=max_output_chars,json=maxOutputChars,proto3" json:"max_output_chars,omitempty"`
+	// Read-only: whether the caller may change or delete this server.
+	CanEdit       bool `protobuf:"varint,23,opt,name=can_edit,json=canEdit,proto3" json:"can_edit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Server) Reset() {
@@ -489,6 +554,41 @@ func (x *Server) GetAllowPrivateNetwork() bool {
 	return false
 }
 
+func (x *Server) GetToolTimeoutMs() int64 {
+	if x != nil {
+		return x.ToolTimeoutMs
+	}
+	return 0
+}
+
+func (x *Server) GetAllowedTools() []string {
+	if x != nil {
+		return x.AllowedTools
+	}
+	return nil
+}
+
+func (x *Server) GetDeniedTools() []string {
+	if x != nil {
+		return x.DeniedTools
+	}
+	return nil
+}
+
+func (x *Server) GetMaxOutputChars() int32 {
+	if x != nil {
+		return x.MaxOutputChars
+	}
+	return 0
+}
+
+func (x *Server) GetCanEdit() bool {
+	if x != nil {
+		return x.CanEdit
+	}
+	return false
+}
+
 type StdioConfig struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Command string                 `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
@@ -568,8 +668,11 @@ type RemoteConfig struct {
 	Oauth *OAuthConfig `protobuf:"bytes,3,opt,name=oauth,proto3" json:"oauth,omitempty"`
 	// Tools of this server always require a user confirmation, regardless of permission rules.
 	RequiresUserInteraction bool `protobuf:"varint,4,opt,name=requires_user_interaction,json=requiresUserInteraction,proto3" json:"requires_user_interaction,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// Device-local servers only (harness.agent.v1 McpServerSource.DEVICE; the registry refuses it): a command run on
+	// the device whose stdout is a JSON object of headers, merged over `headers` for each new connection.
+	HeadersHelper string `protobuf:"bytes,5,opt,name=headers_helper,json=headersHelper,proto3" json:"headers_helper,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RemoteConfig) Reset() {
@@ -628,6 +731,13 @@ func (x *RemoteConfig) GetRequiresUserInteraction() bool {
 		return x.RequiresUserInteraction
 	}
 	return false
+}
+
+func (x *RemoteConfig) GetHeadersHelper() string {
+	if x != nil {
+		return x.HeadersHelper
+	}
+	return ""
 }
 
 type OAuthConfig struct {
@@ -948,8 +1058,10 @@ func (x *ListServersRequest) GetProjectKey() string {
 }
 
 type ListServersResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Servers       []*Server              `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Servers []*Server              `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
+	// The caller is an admin: may create org servers and read the audit log.
+	CanManageOrg  bool `protobuf:"varint,2,opt,name=can_manage_org,json=canManageOrg,proto3" json:"can_manage_org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -989,6 +1101,13 @@ func (x *ListServersResponse) GetServers() []*Server {
 		return x.Servers
 	}
 	return nil
+}
+
+func (x *ListServersResponse) GetCanManageOrg() bool {
+	if x != nil {
+		return x.CanManageOrg
+	}
+	return false
 }
 
 type GetServerRequest struct {
@@ -3135,6 +3254,8 @@ type CallToolResponse struct {
 	//
 	//	*CallToolResponse_Progress
 	//	*CallToolResponse_Result
+	//	*CallToolResponse_Elicitation
+	//	*CallToolResponse_ListChanged
 	Event         isCallToolResponse_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3195,6 +3316,24 @@ func (x *CallToolResponse) GetResult() *CallToolResult {
 	return nil
 }
 
+func (x *CallToolResponse) GetElicitation() *ElicitationRequest {
+	if x != nil {
+		if x, ok := x.Event.(*CallToolResponse_Elicitation); ok {
+			return x.Elicitation
+		}
+	}
+	return nil
+}
+
+func (x *CallToolResponse) GetListChanged() *ListChanged {
+	if x != nil {
+		if x, ok := x.Event.(*CallToolResponse_ListChanged); ok {
+			return x.ListChanged
+		}
+	}
+	return nil
+}
+
 type isCallToolResponse_Event interface {
 	isCallToolResponse_Event()
 }
@@ -3207,9 +3346,376 @@ type CallToolResponse_Result struct {
 	Result *CallToolResult `protobuf:"bytes,2,opt,name=result,proto3,oneof"`
 }
 
+type CallToolResponse_Elicitation struct {
+	// The upstream asks the user something; the call waits for RespondToElicitation.
+	Elicitation *ElicitationRequest `protobuf:"bytes,3,opt,name=elicitation,proto3,oneof"`
+}
+
+type CallToolResponse_ListChanged struct {
+	// The upstream announced a changed list while this call ran: the caller refreshes what it keeps.
+	ListChanged *ListChanged `protobuf:"bytes,4,opt,name=list_changed,json=listChanged,proto3,oneof"`
+}
+
 func (*CallToolResponse_Progress) isCallToolResponse_Event() {}
 
 func (*CallToolResponse_Result) isCallToolResponse_Event() {}
+
+func (*CallToolResponse_Elicitation) isCallToolResponse_Event() {}
+
+func (*CallToolResponse_ListChanged) isCallToolResponse_Event() {}
+
+// An MCP elicitation/create as sent by the upstream.
+type ElicitationRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mel_...
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// "form" or "url".
+	Mode    string `protobuf:"bytes,2,opt,name=mode,proto3" json:"mode,omitempty"`
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	// Form: JSON Schema of the answer (flat object of primitives), exact upstream JSON.
+	RequestedSchemaJson string `protobuf:"bytes,4,opt,name=requested_schema_json,json=requestedSchemaJson,proto3" json:"requested_schema_json,omitempty"`
+	// URL: the page the user is sent to.
+	Url           string `protobuf:"bytes,5,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ElicitationRequest) Reset() {
+	*x = ElicitationRequest{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ElicitationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ElicitationRequest) ProtoMessage() {}
+
+func (x *ElicitationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ElicitationRequest.ProtoReflect.Descriptor instead.
+func (*ElicitationRequest) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *ElicitationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ElicitationRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *ElicitationRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ElicitationRequest) GetRequestedSchemaJson() string {
+	if x != nil {
+		return x.RequestedSchemaJson
+	}
+	return ""
+}
+
+func (x *ElicitationRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type RespondToElicitationRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// "accept", "decline" or "cancel".
+	Action string `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	// Accept of a form: the answers, a JSON object.
+	ContentJson   string `protobuf:"bytes,3,opt,name=content_json,json=contentJson,proto3" json:"content_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RespondToElicitationRequest) Reset() {
+	*x = RespondToElicitationRequest{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RespondToElicitationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RespondToElicitationRequest) ProtoMessage() {}
+
+func (x *RespondToElicitationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RespondToElicitationRequest.ProtoReflect.Descriptor instead.
+func (*RespondToElicitationRequest) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *RespondToElicitationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RespondToElicitationRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *RespondToElicitationRequest) GetContentJson() string {
+	if x != nil {
+		return x.ContentJson
+	}
+	return ""
+}
+
+type RespondToElicitationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RespondToElicitationResponse) Reset() {
+	*x = RespondToElicitationResponse{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RespondToElicitationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RespondToElicitationResponse) ProtoMessage() {}
+
+func (x *RespondToElicitationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RespondToElicitationResponse.ProtoReflect.Descriptor instead.
+func (*RespondToElicitationResponse) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{49}
+}
+
+type ListChanged struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Kind          ListChanged_Kind       `protobuf:"varint,1,opt,name=kind,proto3,enum=harness.mcp.v1.ListChanged_Kind" json:"kind,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChanged) Reset() {
+	*x = ListChanged{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChanged) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChanged) ProtoMessage() {}
+
+func (x *ListChanged) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChanged.ProtoReflect.Descriptor instead.
+func (*ListChanged) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ListChanged) GetKind() ListChanged_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return ListChanged_KIND_UNSPECIFIED
+}
+
+type GetServerInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServerId      string                 `protobuf:"bytes,1,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServerInfoRequest) Reset() {
+	*x = GetServerInfoRequest{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServerInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServerInfoRequest) ProtoMessage() {}
+
+func (x *GetServerInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServerInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetServerInfoRequest) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *GetServerInfoRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+type GetServerInfoResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The upstream's own name and version.
+	Name    string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	// Text the upstream offers for the model.
+	Instructions  string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
+	HasTools      bool   `protobuf:"varint,4,opt,name=has_tools,json=hasTools,proto3" json:"has_tools,omitempty"`
+	HasPrompts    bool   `protobuf:"varint,5,opt,name=has_prompts,json=hasPrompts,proto3" json:"has_prompts,omitempty"`
+	HasResources  bool   `protobuf:"varint,6,opt,name=has_resources,json=hasResources,proto3" json:"has_resources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServerInfoResponse) Reset() {
+	*x = GetServerInfoResponse{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServerInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServerInfoResponse) ProtoMessage() {}
+
+func (x *GetServerInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServerInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetServerInfoResponse) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *GetServerInfoResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetServerInfoResponse) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *GetServerInfoResponse) GetInstructions() string {
+	if x != nil {
+		return x.Instructions
+	}
+	return ""
+}
+
+func (x *GetServerInfoResponse) GetHasTools() bool {
+	if x != nil {
+		return x.HasTools
+	}
+	return false
+}
+
+func (x *GetServerInfoResponse) GetHasPrompts() bool {
+	if x != nil {
+		return x.HasPrompts
+	}
+	return false
+}
+
+func (x *GetServerInfoResponse) GetHasResources() bool {
+	if x != nil {
+		return x.HasResources
+	}
+	return false
+}
 
 type Progress struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
@@ -3223,7 +3729,7 @@ type Progress struct {
 
 func (x *Progress) Reset() {
 	*x = Progress{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[47]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3235,7 +3741,7 @@ func (x *Progress) String() string {
 func (*Progress) ProtoMessage() {}
 
 func (x *Progress) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[47]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3248,7 +3754,7 @@ func (x *Progress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Progress.ProtoReflect.Descriptor instead.
 func (*Progress) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{47}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *Progress) GetProgress() float64 {
@@ -3285,7 +3791,7 @@ type CallToolResult struct {
 
 func (x *CallToolResult) Reset() {
 	*x = CallToolResult{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[48]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3297,7 +3803,7 @@ func (x *CallToolResult) String() string {
 func (*CallToolResult) ProtoMessage() {}
 
 func (x *CallToolResult) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[48]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3310,7 +3816,7 @@ func (x *CallToolResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallToolResult.ProtoReflect.Descriptor instead.
 func (*CallToolResult) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{48}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *CallToolResult) GetIsError() bool {
@@ -3338,7 +3844,7 @@ type GetPromptRequest struct {
 
 func (x *GetPromptRequest) Reset() {
 	*x = GetPromptRequest{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[49]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3350,7 +3856,7 @@ func (x *GetPromptRequest) String() string {
 func (*GetPromptRequest) ProtoMessage() {}
 
 func (x *GetPromptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[49]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3363,7 +3869,7 @@ func (x *GetPromptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPromptRequest.ProtoReflect.Descriptor instead.
 func (*GetPromptRequest) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{49}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *GetPromptRequest) GetServerId() string {
@@ -3397,7 +3903,7 @@ type GetPromptResponse struct {
 
 func (x *GetPromptResponse) Reset() {
 	*x = GetPromptResponse{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[50]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3409,7 +3915,7 @@ func (x *GetPromptResponse) String() string {
 func (*GetPromptResponse) ProtoMessage() {}
 
 func (x *GetPromptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[50]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3422,7 +3928,7 @@ func (x *GetPromptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPromptResponse.ProtoReflect.Descriptor instead.
 func (*GetPromptResponse) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{50}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *GetPromptResponse) GetResultJson() string {
@@ -3442,7 +3948,7 @@ type ReadResourceRequest struct {
 
 func (x *ReadResourceRequest) Reset() {
 	*x = ReadResourceRequest{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[51]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3454,7 +3960,7 @@ func (x *ReadResourceRequest) String() string {
 func (*ReadResourceRequest) ProtoMessage() {}
 
 func (x *ReadResourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[51]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3467,7 +3973,7 @@ func (x *ReadResourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadResourceRequest.ProtoReflect.Descriptor instead.
 func (*ReadResourceRequest) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{51}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ReadResourceRequest) GetServerId() string {
@@ -3494,7 +4000,7 @@ type ReadResourceResponse struct {
 
 func (x *ReadResourceResponse) Reset() {
 	*x = ReadResourceResponse{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[52]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3506,7 +4012,7 @@ func (x *ReadResourceResponse) String() string {
 func (*ReadResourceResponse) ProtoMessage() {}
 
 func (x *ReadResourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[52]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3519,7 +4025,7 @@ func (x *ReadResourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadResourceResponse.ProtoReflect.Descriptor instead.
 func (*ReadResourceResponse) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{52}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ReadResourceResponse) GetResultJson() string {
@@ -3543,7 +4049,7 @@ type GetToolCatalogRequest struct {
 
 func (x *GetToolCatalogRequest) Reset() {
 	*x = GetToolCatalogRequest{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[53]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3555,7 +4061,7 @@ func (x *GetToolCatalogRequest) String() string {
 func (*GetToolCatalogRequest) ProtoMessage() {}
 
 func (x *GetToolCatalogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[53]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3568,7 +4074,7 @@ func (x *GetToolCatalogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetToolCatalogRequest.ProtoReflect.Descriptor instead.
 func (*GetToolCatalogRequest) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{53}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *GetToolCatalogRequest) GetVersion() string {
@@ -3603,7 +4109,7 @@ type GetToolCatalogResponse struct {
 
 func (x *GetToolCatalogResponse) Reset() {
 	*x = GetToolCatalogResponse{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[54]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3615,7 +4121,7 @@ func (x *GetToolCatalogResponse) String() string {
 func (*GetToolCatalogResponse) ProtoMessage() {}
 
 func (x *GetToolCatalogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[54]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3628,7 +4134,7 @@ func (x *GetToolCatalogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetToolCatalogResponse.ProtoReflect.Descriptor instead.
 func (*GetToolCatalogResponse) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{54}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetToolCatalogResponse) GetNotModified() bool {
@@ -3658,7 +4164,7 @@ type ToolCatalog struct {
 
 func (x *ToolCatalog) Reset() {
 	*x = ToolCatalog{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[55]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3670,7 +4176,7 @@ func (x *ToolCatalog) String() string {
 func (*ToolCatalog) ProtoMessage() {}
 
 func (x *ToolCatalog) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[55]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3683,7 +4189,7 @@ func (x *ToolCatalog) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCatalog.ProtoReflect.Descriptor instead.
 func (*ToolCatalog) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{55}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *ToolCatalog) GetVersion() string {
@@ -3720,13 +4226,18 @@ type CatalogServer struct {
 	ToolsUpdatedAt string `protobuf:"bytes,6,opt,name=tools_updated_at,json=toolsUpdatedAt,proto3" json:"tools_updated_at,omitempty"`
 	// Every call to this server needs an explicit user approval, whatever the permission mode.
 	RequiresUserInteraction bool `protobuf:"varint,7,opt,name=requires_user_interaction,json=requiresUserInteraction,proto3" json:"requires_user_interaction,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// Remote servers: what the upstream said when its tools were last fetched. Text for the model, as sent by the
+	// upstream; the client applies its own size budget.
+	Instructions  string `protobuf:"bytes,8,opt,name=instructions,proto3" json:"instructions,omitempty"`
+	HasPrompts    bool   `protobuf:"varint,9,opt,name=has_prompts,json=hasPrompts,proto3" json:"has_prompts,omitempty"`
+	HasResources  bool   `protobuf:"varint,10,opt,name=has_resources,json=hasResources,proto3" json:"has_resources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CatalogServer) Reset() {
 	*x = CatalogServer{}
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[56]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3738,7 +4249,7 @@ func (x *CatalogServer) String() string {
 func (*CatalogServer) ProtoMessage() {}
 
 func (x *CatalogServer) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[56]
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3751,7 +4262,7 @@ func (x *CatalogServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogServer.ProtoReflect.Descriptor instead.
 func (*CatalogServer) Descriptor() ([]byte, []int) {
-	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{56}
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *CatalogServer) GetServerId() string {
@@ -3803,11 +4314,316 @@ func (x *CatalogServer) GetRequiresUserInteraction() bool {
 	return false
 }
 
+func (x *CatalogServer) GetInstructions() string {
+	if x != nil {
+		return x.Instructions
+	}
+	return ""
+}
+
+func (x *CatalogServer) GetHasPrompts() bool {
+	if x != nil {
+		return x.HasPrompts
+	}
+	return false
+}
+
+func (x *CatalogServer) GetHasResources() bool {
+	if x != nil {
+		return x.HasResources
+	}
+	return false
+}
+
+type ListAuditRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional filters.
+	ServerId string `protobuf:"bytes,1,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	UserId   string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// stdio_launch, call_tool, oauth_completed, oauth_revoked.
+	Action string `protobuf:"bytes,3,opt,name=action,proto3" json:"action,omitempty"`
+	// 0 -> 50; at most 200.
+	Limit int32 `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	// next_cursor of the previous page.
+	Cursor        string `protobuf:"bytes,5,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditRequest) Reset() {
+	*x = ListAuditRequest{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditRequest) ProtoMessage() {}
+
+func (x *ListAuditRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditRequest.ProtoReflect.Descriptor instead.
+func (*ListAuditRequest) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *ListAuditRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+func (x *ListAuditRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ListAuditRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *ListAuditRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListAuditRequest) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+type ListAuditResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*AuditEntry          `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditResponse) Reset() {
+	*x = ListAuditResponse{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditResponse) ProtoMessage() {}
+
+func (x *ListAuditResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditResponse.ProtoReflect.Descriptor instead.
+func (*ListAuditResponse) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *ListAuditResponse) GetEntries() []*AuditEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ListAuditResponse) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
+}
+
+type AuditEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// RFC 3339, UTC.
+	CreatedAt string `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UserId    string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Empty once the user is gone.
+	UserName string `protobuf:"bytes,4,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
+	DeviceId string `protobuf:"bytes,5,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	ServerId string `protobuf:"bytes,6,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	// Empty once the server is gone.
+	ServerName string `protobuf:"bytes,7,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
+	Action     string `protobuf:"bytes,8,opt,name=action,proto3" json:"action,omitempty"`
+	ConfigHash string `protobuf:"bytes,9,opt,name=config_hash,json=configHash,proto3" json:"config_hash,omitempty"`
+	// call_tool: the tool's name, how long it took and how it ended.
+	Tool          string `protobuf:"bytes,10,opt,name=tool,proto3" json:"tool,omitempty"`
+	IsError       bool   `protobuf:"varint,11,opt,name=is_error,json=isError,proto3" json:"is_error,omitempty"`
+	DurationMs    int64  `protobuf:"varint,12,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	ErrorMessage  string `protobuf:"bytes,13,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	SessionId     string `protobuf:"bytes,14,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditEntry) Reset() {
+	*x = AuditEntry{}
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditEntry) ProtoMessage() {}
+
+func (x *AuditEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_mcp_v1_mcp_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
+func (*AuditEntry) Descriptor() ([]byte, []int) {
+	return file_harness_mcp_v1_mcp_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *AuditEntry) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetUserName() string {
+	if x != nil {
+		return x.UserName
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetServerName() string {
+	if x != nil {
+		return x.ServerName
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetConfigHash() string {
+	if x != nil {
+		return x.ConfigHash
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetTool() string {
+	if x != nil {
+		return x.Tool
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetIsError() bool {
+	if x != nil {
+		return x.IsError
+	}
+	return false
+}
+
+func (x *AuditEntry) GetDurationMs() int64 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *AuditEntry) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 var File_harness_mcp_v1_mcp_proto protoreflect.FileDescriptor
 
 const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\n" +
-	"\x18harness/mcp/v1/mcp.proto\x12\x0eharness.mcp.v1\x1a\x1dharness/common/v1/scope.proto\"\xcd\x05\n" +
+	"\x18harness/mcp/v1/mcp.proto\x12\x0eharness.mcp.v1\x1a\x1dharness/common/v1/scope.proto\"\x82\a\n" +
 	"\x06Server\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12.\n" +
@@ -3832,7 +4648,12 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"created_at\x18\x10 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x11 \x01(\tR\tupdatedAt\x122\n" +
-	"\x15allow_private_network\x18\x12 \x01(\bR\x13allowPrivateNetwork\"\xbd\x01\n" +
+	"\x15allow_private_network\x18\x12 \x01(\bR\x13allowPrivateNetwork\x12&\n" +
+	"\x0ftool_timeout_ms\x18\x13 \x01(\x03R\rtoolTimeoutMs\x12#\n" +
+	"\rallowed_tools\x18\x14 \x03(\tR\fallowedTools\x12!\n" +
+	"\fdenied_tools\x18\x15 \x03(\tR\vdeniedTools\x12(\n" +
+	"\x10max_output_chars\x18\x16 \x01(\x05R\x0emaxOutputChars\x12\x19\n" +
+	"\bcan_edit\x18\x17 \x01(\bR\acanEdit\"\xbd\x01\n" +
 	"\vStdioConfig\x12\x18\n" +
 	"\acommand\x18\x01 \x01(\tR\acommand\x12\x12\n" +
 	"\x04args\x18\x02 \x03(\tR\x04args\x126\n" +
@@ -3840,12 +4661,13 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\x03cwd\x18\x04 \x01(\tR\x03cwd\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x90\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb7\x02\n" +
 	"\fRemoteConfig\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12C\n" +
 	"\aheaders\x18\x02 \x03(\v2).harness.mcp.v1.RemoteConfig.HeadersEntryR\aheaders\x121\n" +
 	"\x05oauth\x18\x03 \x01(\v2\x1b.harness.mcp.v1.OAuthConfigR\x05oauth\x12:\n" +
-	"\x19requires_user_interaction\x18\x04 \x01(\bR\x17requiresUserInteraction\x1a:\n" +
+	"\x19requires_user_interaction\x18\x04 \x01(\bR\x17requiresUserInteraction\x12%\n" +
+	"\x0eheaders_helper\x18\x05 \x01(\tR\rheadersHelper\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"u\n" +
@@ -3878,9 +4700,10 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\x06scopes\x18\x01 \x03(\x0e2\x18.harness.common.v1.ScopeR\x06scopes\x12)\n" +
 	"\x10include_disabled\x18\x02 \x01(\bR\x0fincludeDisabled\x12\x1f\n" +
 	"\vproject_key\x18\x03 \x01(\tR\n" +
-	"projectKey\"G\n" +
+	"projectKey\"m\n" +
 	"\x13ListServersResponse\x120\n" +
-	"\aservers\x18\x01 \x03(\v2\x16.harness.mcp.v1.ServerR\aservers\"/\n" +
+	"\aservers\x18\x01 \x03(\v2\x16.harness.mcp.v1.ServerR\aservers\x12$\n" +
+	"\x0ecan_manage_org\x18\x02 \x01(\bR\fcanManageOrg\"/\n" +
 	"\x10GetServerRequest\x12\x1b\n" +
 	"\tserver_id\x18\x01 \x01(\tR\bserverId\"C\n" +
 	"\x11GetServerResponse\x12.\n" +
@@ -4040,11 +4863,42 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"session_id\x18\x04 \x01(\tR\tsessionId\x12\x1e\n" +
 	"\vtool_use_id\x18\x05 \x01(\tR\ttoolUseId\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\x06 \x01(\x03R\ttimeoutMs\"\x8d\x01\n" +
+	"timeout_ms\x18\x06 \x01(\x03R\ttimeoutMs\"\x97\x02\n" +
 	"\x10CallToolResponse\x126\n" +
 	"\bprogress\x18\x01 \x01(\v2\x18.harness.mcp.v1.ProgressH\x00R\bprogress\x128\n" +
-	"\x06result\x18\x02 \x01(\v2\x1e.harness.mcp.v1.CallToolResultH\x00R\x06resultB\a\n" +
-	"\x05event\"V\n" +
+	"\x06result\x18\x02 \x01(\v2\x1e.harness.mcp.v1.CallToolResultH\x00R\x06result\x12F\n" +
+	"\velicitation\x18\x03 \x01(\v2\".harness.mcp.v1.ElicitationRequestH\x00R\velicitation\x12@\n" +
+	"\flist_changed\x18\x04 \x01(\v2\x1b.harness.mcp.v1.ListChangedH\x00R\vlistChangedB\a\n" +
+	"\x05event\"\x98\x01\n" +
+	"\x12ElicitationRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04mode\x18\x02 \x01(\tR\x04mode\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x122\n" +
+	"\x15requested_schema_json\x18\x04 \x01(\tR\x13requestedSchemaJson\x12\x10\n" +
+	"\x03url\x18\x05 \x01(\tR\x03url\"h\n" +
+	"\x1bRespondToElicitationRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12!\n" +
+	"\fcontent_json\x18\x03 \x01(\tR\vcontentJson\"\x1e\n" +
+	"\x1cRespondToElicitationResponse\"\x97\x01\n" +
+	"\vListChanged\x124\n" +
+	"\x04kind\x18\x01 \x01(\x0e2 .harness.mcp.v1.ListChanged.KindR\x04kind\"R\n" +
+	"\x04Kind\x12\x14\n" +
+	"\x10KIND_UNSPECIFIED\x10\x00\x12\x0e\n" +
+	"\n" +
+	"KIND_TOOLS\x10\x01\x12\x10\n" +
+	"\fKIND_PROMPTS\x10\x02\x12\x12\n" +
+	"\x0eKIND_RESOURCES\x10\x03\"3\n" +
+	"\x14GetServerInfoRequest\x12\x1b\n" +
+	"\tserver_id\x18\x01 \x01(\tR\bserverId\"\xcc\x01\n" +
+	"\x15GetServerInfoResponse\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12\"\n" +
+	"\finstructions\x18\x03 \x01(\tR\finstructions\x12\x1b\n" +
+	"\thas_tools\x18\x04 \x01(\bR\bhasTools\x12\x1f\n" +
+	"\vhas_prompts\x18\x05 \x01(\bR\n" +
+	"hasPrompts\x12#\n" +
+	"\rhas_resources\x18\x06 \x01(\bR\fhasResources\"V\n" +
 	"\bProgress\x12\x1a\n" +
 	"\bprogress\x18\x01 \x01(\x01R\bprogress\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x01R\x05total\x12\x18\n" +
@@ -4081,7 +4935,7 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x127\n" +
 	"\aservers\x18\x02 \x03(\v2\x1d.harness.mcp.v1.CatalogServerR\aservers\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\tR\tcreatedAt\"\xac\x02\n" +
+	"created_at\x18\x03 \x01(\tR\tcreatedAt\"\x96\x03\n" +
 	"\rCatalogServer\x12\x1b\n" +
 	"\tserver_id\x18\x01 \x01(\tR\bserverId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x127\n" +
@@ -4090,7 +4944,44 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"alwaysLoad\x12*\n" +
 	"\x05tools\x18\x05 \x03(\v2\x14.harness.mcp.v1.ToolR\x05tools\x12(\n" +
 	"\x10tools_updated_at\x18\x06 \x01(\tR\x0etoolsUpdatedAt\x12:\n" +
-	"\x19requires_user_interaction\x18\a \x01(\bR\x17requiresUserInteraction*\x7f\n" +
+	"\x19requires_user_interaction\x18\a \x01(\bR\x17requiresUserInteraction\x12\"\n" +
+	"\finstructions\x18\b \x01(\tR\finstructions\x12\x1f\n" +
+	"\vhas_prompts\x18\t \x01(\bR\n" +
+	"hasPrompts\x12#\n" +
+	"\rhas_resources\x18\n" +
+	" \x01(\bR\fhasResources\"\x8e\x01\n" +
+	"\x10ListAuditRequest\x12\x1b\n" +
+	"\tserver_id\x18\x01 \x01(\tR\bserverId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06action\x18\x03 \x01(\tR\x06action\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06cursor\x18\x05 \x01(\tR\x06cursor\"j\n" +
+	"\x11ListAuditResponse\x124\n" +
+	"\aentries\x18\x01 \x03(\v2\x1a.harness.mcp.v1.AuditEntryR\aentries\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"\x99\x03\n" +
+	"\n" +
+	"AuditEntry\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x02 \x01(\tR\tcreatedAt\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tuser_name\x18\x04 \x01(\tR\buserName\x12\x1b\n" +
+	"\tdevice_id\x18\x05 \x01(\tR\bdeviceId\x12\x1b\n" +
+	"\tserver_id\x18\x06 \x01(\tR\bserverId\x12\x1f\n" +
+	"\vserver_name\x18\a \x01(\tR\n" +
+	"serverName\x12\x16\n" +
+	"\x06action\x18\b \x01(\tR\x06action\x12\x1f\n" +
+	"\vconfig_hash\x18\t \x01(\tR\n" +
+	"configHash\x12\x12\n" +
+	"\x04tool\x18\n" +
+	" \x01(\tR\x04tool\x12\x19\n" +
+	"\bis_error\x18\v \x01(\bR\aisError\x12\x1f\n" +
+	"\vduration_ms\x18\f \x01(\x03R\n" +
+	"durationMs\x12#\n" +
+	"\rerror_message\x18\r \x01(\tR\ferrorMessage\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x0e \x01(\tR\tsessionId*\x7f\n" +
 	"\tTransport\x12\x19\n" +
 	"\x15TRANSPORT_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fTRANSPORT_STDIO\x10\x01\x12\x1d\n" +
@@ -4111,7 +5002,7 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\x1aAPPROVAL_STATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16APPROVAL_STATE_PENDING\x10\x01\x12\x1b\n" +
 	"\x17APPROVAL_STATE_APPROVED\x10\x02\x12\x19\n" +
-	"\x15APPROVAL_STATE_DENIED\x10\x032\xcc\r\n" +
+	"\x15APPROVAL_STATE_DENIED\x10\x032\xef\x0f\n" +
 	"\n" +
 	"McpService\x12V\n" +
 	"\vListServers\x12\".harness.mcp.v1.ListServersRequest\x1a#.harness.mcp.v1.ListServersResponse\x12P\n" +
@@ -4133,8 +5024,11 @@ const file_harness_mcp_v1_mcp_proto_rawDesc = "" +
 	"\rListResources\x12$.harness.mcp.v1.ListResourcesRequest\x1a%.harness.mcp.v1.ListResourcesResponse\x12O\n" +
 	"\bCallTool\x12\x1f.harness.mcp.v1.CallToolRequest\x1a .harness.mcp.v1.CallToolResponse0\x01\x12P\n" +
 	"\tGetPrompt\x12 .harness.mcp.v1.GetPromptRequest\x1a!.harness.mcp.v1.GetPromptResponse\x12Y\n" +
-	"\fReadResource\x12#.harness.mcp.v1.ReadResourceRequest\x1a$.harness.mcp.v1.ReadResourceResponse\x12_\n" +
-	"\x0eGetToolCatalog\x12%.harness.mcp.v1.GetToolCatalogRequest\x1a&.harness.mcp.v1.GetToolCatalogResponseB\xbb\x01\n" +
+	"\fReadResource\x12#.harness.mcp.v1.ReadResourceRequest\x1a$.harness.mcp.v1.ReadResourceResponse\x12q\n" +
+	"\x14RespondToElicitation\x12+.harness.mcp.v1.RespondToElicitationRequest\x1a,.harness.mcp.v1.RespondToElicitationResponse\x12\\\n" +
+	"\rGetServerInfo\x12$.harness.mcp.v1.GetServerInfoRequest\x1a%.harness.mcp.v1.GetServerInfoResponse\x12_\n" +
+	"\x0eGetToolCatalog\x12%.harness.mcp.v1.GetToolCatalogRequest\x1a&.harness.mcp.v1.GetToolCatalogResponse\x12P\n" +
+	"\tListAudit\x12 .harness.mcp.v1.ListAuditRequest\x1a!.harness.mcp.v1.ListAuditResponseB\xbb\x01\n" +
 	"\x12com.harness.mcp.v1B\bMcpProtoP\x01ZAgithub.com/xlsft/harness/packages/client/gen/harness/mcp/v1;mcpv1\xa2\x02\x03HMX\xaa\x02\x0eHarness.Mcp.V1\xca\x02\x0eHarness\\Mcp\\V1\xe2\x02\x1aHarness\\Mcp\\V1\\GPBMetadata\xea\x02\x10Harness::Mcp::V1b\x06proto3"
 
 var (
@@ -4149,171 +5043,191 @@ func file_harness_mcp_v1_mcp_proto_rawDescGZIP() []byte {
 	return file_harness_mcp_v1_mcp_proto_rawDescData
 }
 
-var file_harness_mcp_v1_mcp_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_harness_mcp_v1_mcp_proto_msgTypes = make([]protoimpl.MessageInfo, 64)
+var file_harness_mcp_v1_mcp_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_harness_mcp_v1_mcp_proto_msgTypes = make([]protoimpl.MessageInfo, 73)
 var file_harness_mcp_v1_mcp_proto_goTypes = []any{
-	(Transport)(0),                     // 0: harness.mcp.v1.Transport
-	(AuthState)(0),                     // 1: harness.mcp.v1.AuthState
-	(Availability)(0),                  // 2: harness.mcp.v1.Availability
-	(ApprovalState)(0),                 // 3: harness.mcp.v1.ApprovalState
-	(GetOAuthFlowResponse_State)(0),    // 4: harness.mcp.v1.GetOAuthFlowResponse.State
-	(*Server)(nil),                     // 5: harness.mcp.v1.Server
-	(*StdioConfig)(nil),                // 6: harness.mcp.v1.StdioConfig
-	(*RemoteConfig)(nil),               // 7: harness.mcp.v1.RemoteConfig
-	(*OAuthConfig)(nil),                // 8: harness.mcp.v1.OAuthConfig
-	(*StdioOverride)(nil),              // 9: harness.mcp.v1.StdioOverride
-	(*SecretInfo)(nil),                 // 10: harness.mcp.v1.SecretInfo
-	(*SecretChanges)(nil),              // 11: harness.mcp.v1.SecretChanges
-	(*ListServersRequest)(nil),         // 12: harness.mcp.v1.ListServersRequest
-	(*ListServersResponse)(nil),        // 13: harness.mcp.v1.ListServersResponse
-	(*GetServerRequest)(nil),           // 14: harness.mcp.v1.GetServerRequest
-	(*GetServerResponse)(nil),          // 15: harness.mcp.v1.GetServerResponse
-	(*CreateServerRequest)(nil),        // 16: harness.mcp.v1.CreateServerRequest
-	(*CreateServerResponse)(nil),       // 17: harness.mcp.v1.CreateServerResponse
-	(*UpdateServerRequest)(nil),        // 18: harness.mcp.v1.UpdateServerRequest
-	(*UpdateServerResponse)(nil),       // 19: harness.mcp.v1.UpdateServerResponse
-	(*Conflict)(nil),                   // 20: harness.mcp.v1.Conflict
-	(*DeleteServerRequest)(nil),        // 21: harness.mcp.v1.DeleteServerRequest
-	(*DeleteServerResponse)(nil),       // 22: harness.mcp.v1.DeleteServerResponse
-	(*AuthStatus)(nil),                 // 23: harness.mcp.v1.AuthStatus
-	(*StartOAuthRequest)(nil),          // 24: harness.mcp.v1.StartOAuthRequest
-	(*StartOAuthResponse)(nil),         // 25: harness.mcp.v1.StartOAuthResponse
-	(*GetOAuthFlowRequest)(nil),        // 26: harness.mcp.v1.GetOAuthFlowRequest
-	(*GetOAuthFlowResponse)(nil),       // 27: harness.mcp.v1.GetOAuthFlowResponse
-	(*GetAuthStatusRequest)(nil),       // 28: harness.mcp.v1.GetAuthStatusRequest
-	(*GetAuthStatusResponse)(nil),      // 29: harness.mcp.v1.GetAuthStatusResponse
-	(*RevokeAuthRequest)(nil),          // 30: harness.mcp.v1.RevokeAuthRequest
-	(*RevokeAuthResponse)(nil),         // 31: harness.mcp.v1.RevokeAuthResponse
-	(*DeviceServerStatus)(nil),         // 32: harness.mcp.v1.DeviceServerStatus
-	(*ReportDeviceStatusRequest)(nil),  // 33: harness.mcp.v1.ReportDeviceStatusRequest
-	(*ReportDeviceStatusResponse)(nil), // 34: harness.mcp.v1.ReportDeviceStatusResponse
-	(*ListDeviceStatusRequest)(nil),    // 35: harness.mcp.v1.ListDeviceStatusRequest
-	(*ListDeviceStatusResponse)(nil),   // 36: harness.mcp.v1.ListDeviceStatusResponse
-	(*DeviceStatusEntry)(nil),          // 37: harness.mcp.v1.DeviceStatusEntry
-	(*IssueStdioLaunchRequest)(nil),    // 38: harness.mcp.v1.IssueStdioLaunchRequest
-	(*IssueStdioLaunchResponse)(nil),   // 39: harness.mcp.v1.IssueStdioLaunchResponse
-	(*Tool)(nil),                       // 40: harness.mcp.v1.Tool
-	(*Prompt)(nil),                     // 41: harness.mcp.v1.Prompt
-	(*Resource)(nil),                   // 42: harness.mcp.v1.Resource
-	(*ResourceTemplate)(nil),           // 43: harness.mcp.v1.ResourceTemplate
-	(*ListToolsRequest)(nil),           // 44: harness.mcp.v1.ListToolsRequest
-	(*ListToolsResponse)(nil),          // 45: harness.mcp.v1.ListToolsResponse
-	(*ListPromptsRequest)(nil),         // 46: harness.mcp.v1.ListPromptsRequest
-	(*ListPromptsResponse)(nil),        // 47: harness.mcp.v1.ListPromptsResponse
-	(*ListResourcesRequest)(nil),       // 48: harness.mcp.v1.ListResourcesRequest
-	(*ListResourcesResponse)(nil),      // 49: harness.mcp.v1.ListResourcesResponse
-	(*CallToolRequest)(nil),            // 50: harness.mcp.v1.CallToolRequest
-	(*CallToolResponse)(nil),           // 51: harness.mcp.v1.CallToolResponse
-	(*Progress)(nil),                   // 52: harness.mcp.v1.Progress
-	(*CallToolResult)(nil),             // 53: harness.mcp.v1.CallToolResult
-	(*GetPromptRequest)(nil),           // 54: harness.mcp.v1.GetPromptRequest
-	(*GetPromptResponse)(nil),          // 55: harness.mcp.v1.GetPromptResponse
-	(*ReadResourceRequest)(nil),        // 56: harness.mcp.v1.ReadResourceRequest
-	(*ReadResourceResponse)(nil),       // 57: harness.mcp.v1.ReadResourceResponse
-	(*GetToolCatalogRequest)(nil),      // 58: harness.mcp.v1.GetToolCatalogRequest
-	(*GetToolCatalogResponse)(nil),     // 59: harness.mcp.v1.GetToolCatalogResponse
-	(*ToolCatalog)(nil),                // 60: harness.mcp.v1.ToolCatalog
-	(*CatalogServer)(nil),              // 61: harness.mcp.v1.CatalogServer
-	nil,                                // 62: harness.mcp.v1.StdioConfig.EnvEntry
-	nil,                                // 63: harness.mcp.v1.RemoteConfig.HeadersEntry
-	nil,                                // 64: harness.mcp.v1.StdioOverride.EnvEntry
-	nil,                                // 65: harness.mcp.v1.SecretChanges.SetEntry
-	nil,                                // 66: harness.mcp.v1.GetAuthStatusResponse.StatusesEntry
-	nil,                                // 67: harness.mcp.v1.IssueStdioLaunchResponse.EnvEntry
-	nil,                                // 68: harness.mcp.v1.GetPromptRequest.ArgumentsEntry
-	(v1.Scope)(0),                      // 69: harness.common.v1.Scope
+	(Transport)(0),                       // 0: harness.mcp.v1.Transport
+	(AuthState)(0),                       // 1: harness.mcp.v1.AuthState
+	(Availability)(0),                    // 2: harness.mcp.v1.Availability
+	(ApprovalState)(0),                   // 3: harness.mcp.v1.ApprovalState
+	(GetOAuthFlowResponse_State)(0),      // 4: harness.mcp.v1.GetOAuthFlowResponse.State
+	(ListChanged_Kind)(0),                // 5: harness.mcp.v1.ListChanged.Kind
+	(*Server)(nil),                       // 6: harness.mcp.v1.Server
+	(*StdioConfig)(nil),                  // 7: harness.mcp.v1.StdioConfig
+	(*RemoteConfig)(nil),                 // 8: harness.mcp.v1.RemoteConfig
+	(*OAuthConfig)(nil),                  // 9: harness.mcp.v1.OAuthConfig
+	(*StdioOverride)(nil),                // 10: harness.mcp.v1.StdioOverride
+	(*SecretInfo)(nil),                   // 11: harness.mcp.v1.SecretInfo
+	(*SecretChanges)(nil),                // 12: harness.mcp.v1.SecretChanges
+	(*ListServersRequest)(nil),           // 13: harness.mcp.v1.ListServersRequest
+	(*ListServersResponse)(nil),          // 14: harness.mcp.v1.ListServersResponse
+	(*GetServerRequest)(nil),             // 15: harness.mcp.v1.GetServerRequest
+	(*GetServerResponse)(nil),            // 16: harness.mcp.v1.GetServerResponse
+	(*CreateServerRequest)(nil),          // 17: harness.mcp.v1.CreateServerRequest
+	(*CreateServerResponse)(nil),         // 18: harness.mcp.v1.CreateServerResponse
+	(*UpdateServerRequest)(nil),          // 19: harness.mcp.v1.UpdateServerRequest
+	(*UpdateServerResponse)(nil),         // 20: harness.mcp.v1.UpdateServerResponse
+	(*Conflict)(nil),                     // 21: harness.mcp.v1.Conflict
+	(*DeleteServerRequest)(nil),          // 22: harness.mcp.v1.DeleteServerRequest
+	(*DeleteServerResponse)(nil),         // 23: harness.mcp.v1.DeleteServerResponse
+	(*AuthStatus)(nil),                   // 24: harness.mcp.v1.AuthStatus
+	(*StartOAuthRequest)(nil),            // 25: harness.mcp.v1.StartOAuthRequest
+	(*StartOAuthResponse)(nil),           // 26: harness.mcp.v1.StartOAuthResponse
+	(*GetOAuthFlowRequest)(nil),          // 27: harness.mcp.v1.GetOAuthFlowRequest
+	(*GetOAuthFlowResponse)(nil),         // 28: harness.mcp.v1.GetOAuthFlowResponse
+	(*GetAuthStatusRequest)(nil),         // 29: harness.mcp.v1.GetAuthStatusRequest
+	(*GetAuthStatusResponse)(nil),        // 30: harness.mcp.v1.GetAuthStatusResponse
+	(*RevokeAuthRequest)(nil),            // 31: harness.mcp.v1.RevokeAuthRequest
+	(*RevokeAuthResponse)(nil),           // 32: harness.mcp.v1.RevokeAuthResponse
+	(*DeviceServerStatus)(nil),           // 33: harness.mcp.v1.DeviceServerStatus
+	(*ReportDeviceStatusRequest)(nil),    // 34: harness.mcp.v1.ReportDeviceStatusRequest
+	(*ReportDeviceStatusResponse)(nil),   // 35: harness.mcp.v1.ReportDeviceStatusResponse
+	(*ListDeviceStatusRequest)(nil),      // 36: harness.mcp.v1.ListDeviceStatusRequest
+	(*ListDeviceStatusResponse)(nil),     // 37: harness.mcp.v1.ListDeviceStatusResponse
+	(*DeviceStatusEntry)(nil),            // 38: harness.mcp.v1.DeviceStatusEntry
+	(*IssueStdioLaunchRequest)(nil),      // 39: harness.mcp.v1.IssueStdioLaunchRequest
+	(*IssueStdioLaunchResponse)(nil),     // 40: harness.mcp.v1.IssueStdioLaunchResponse
+	(*Tool)(nil),                         // 41: harness.mcp.v1.Tool
+	(*Prompt)(nil),                       // 42: harness.mcp.v1.Prompt
+	(*Resource)(nil),                     // 43: harness.mcp.v1.Resource
+	(*ResourceTemplate)(nil),             // 44: harness.mcp.v1.ResourceTemplate
+	(*ListToolsRequest)(nil),             // 45: harness.mcp.v1.ListToolsRequest
+	(*ListToolsResponse)(nil),            // 46: harness.mcp.v1.ListToolsResponse
+	(*ListPromptsRequest)(nil),           // 47: harness.mcp.v1.ListPromptsRequest
+	(*ListPromptsResponse)(nil),          // 48: harness.mcp.v1.ListPromptsResponse
+	(*ListResourcesRequest)(nil),         // 49: harness.mcp.v1.ListResourcesRequest
+	(*ListResourcesResponse)(nil),        // 50: harness.mcp.v1.ListResourcesResponse
+	(*CallToolRequest)(nil),              // 51: harness.mcp.v1.CallToolRequest
+	(*CallToolResponse)(nil),             // 52: harness.mcp.v1.CallToolResponse
+	(*ElicitationRequest)(nil),           // 53: harness.mcp.v1.ElicitationRequest
+	(*RespondToElicitationRequest)(nil),  // 54: harness.mcp.v1.RespondToElicitationRequest
+	(*RespondToElicitationResponse)(nil), // 55: harness.mcp.v1.RespondToElicitationResponse
+	(*ListChanged)(nil),                  // 56: harness.mcp.v1.ListChanged
+	(*GetServerInfoRequest)(nil),         // 57: harness.mcp.v1.GetServerInfoRequest
+	(*GetServerInfoResponse)(nil),        // 58: harness.mcp.v1.GetServerInfoResponse
+	(*Progress)(nil),                     // 59: harness.mcp.v1.Progress
+	(*CallToolResult)(nil),               // 60: harness.mcp.v1.CallToolResult
+	(*GetPromptRequest)(nil),             // 61: harness.mcp.v1.GetPromptRequest
+	(*GetPromptResponse)(nil),            // 62: harness.mcp.v1.GetPromptResponse
+	(*ReadResourceRequest)(nil),          // 63: harness.mcp.v1.ReadResourceRequest
+	(*ReadResourceResponse)(nil),         // 64: harness.mcp.v1.ReadResourceResponse
+	(*GetToolCatalogRequest)(nil),        // 65: harness.mcp.v1.GetToolCatalogRequest
+	(*GetToolCatalogResponse)(nil),       // 66: harness.mcp.v1.GetToolCatalogResponse
+	(*ToolCatalog)(nil),                  // 67: harness.mcp.v1.ToolCatalog
+	(*CatalogServer)(nil),                // 68: harness.mcp.v1.CatalogServer
+	(*ListAuditRequest)(nil),             // 69: harness.mcp.v1.ListAuditRequest
+	(*ListAuditResponse)(nil),            // 70: harness.mcp.v1.ListAuditResponse
+	(*AuditEntry)(nil),                   // 71: harness.mcp.v1.AuditEntry
+	nil,                                  // 72: harness.mcp.v1.StdioConfig.EnvEntry
+	nil,                                  // 73: harness.mcp.v1.RemoteConfig.HeadersEntry
+	nil,                                  // 74: harness.mcp.v1.StdioOverride.EnvEntry
+	nil,                                  // 75: harness.mcp.v1.SecretChanges.SetEntry
+	nil,                                  // 76: harness.mcp.v1.GetAuthStatusResponse.StatusesEntry
+	nil,                                  // 77: harness.mcp.v1.IssueStdioLaunchResponse.EnvEntry
+	nil,                                  // 78: harness.mcp.v1.GetPromptRequest.ArgumentsEntry
+	(v1.Scope)(0),                        // 79: harness.common.v1.Scope
 }
 var file_harness_mcp_v1_mcp_proto_depIdxs = []int32{
-	69, // 0: harness.mcp.v1.Server.scope:type_name -> harness.common.v1.Scope
+	79, // 0: harness.mcp.v1.Server.scope:type_name -> harness.common.v1.Scope
 	0,  // 1: harness.mcp.v1.Server.transport:type_name -> harness.mcp.v1.Transport
-	6,  // 2: harness.mcp.v1.Server.stdio:type_name -> harness.mcp.v1.StdioConfig
-	7,  // 3: harness.mcp.v1.Server.remote:type_name -> harness.mcp.v1.RemoteConfig
-	10, // 4: harness.mcp.v1.Server.secrets:type_name -> harness.mcp.v1.SecretInfo
-	9,  // 5: harness.mcp.v1.Server.overrides:type_name -> harness.mcp.v1.StdioOverride
-	23, // 6: harness.mcp.v1.Server.auth:type_name -> harness.mcp.v1.AuthStatus
-	62, // 7: harness.mcp.v1.StdioConfig.env:type_name -> harness.mcp.v1.StdioConfig.EnvEntry
-	63, // 8: harness.mcp.v1.RemoteConfig.headers:type_name -> harness.mcp.v1.RemoteConfig.HeadersEntry
-	8,  // 9: harness.mcp.v1.RemoteConfig.oauth:type_name -> harness.mcp.v1.OAuthConfig
-	64, // 10: harness.mcp.v1.StdioOverride.env:type_name -> harness.mcp.v1.StdioOverride.EnvEntry
-	65, // 11: harness.mcp.v1.SecretChanges.set:type_name -> harness.mcp.v1.SecretChanges.SetEntry
-	69, // 12: harness.mcp.v1.ListServersRequest.scopes:type_name -> harness.common.v1.Scope
-	5,  // 13: harness.mcp.v1.ListServersResponse.servers:type_name -> harness.mcp.v1.Server
-	5,  // 14: harness.mcp.v1.GetServerResponse.server:type_name -> harness.mcp.v1.Server
-	5,  // 15: harness.mcp.v1.CreateServerRequest.server:type_name -> harness.mcp.v1.Server
-	11, // 16: harness.mcp.v1.CreateServerRequest.secrets:type_name -> harness.mcp.v1.SecretChanges
-	5,  // 17: harness.mcp.v1.CreateServerResponse.server:type_name -> harness.mcp.v1.Server
-	5,  // 18: harness.mcp.v1.UpdateServerRequest.server:type_name -> harness.mcp.v1.Server
-	11, // 19: harness.mcp.v1.UpdateServerRequest.secrets:type_name -> harness.mcp.v1.SecretChanges
-	5,  // 20: harness.mcp.v1.UpdateServerResponse.server:type_name -> harness.mcp.v1.Server
-	20, // 21: harness.mcp.v1.UpdateServerResponse.conflict:type_name -> harness.mcp.v1.Conflict
-	5,  // 22: harness.mcp.v1.Conflict.current:type_name -> harness.mcp.v1.Server
-	20, // 23: harness.mcp.v1.DeleteServerResponse.conflict:type_name -> harness.mcp.v1.Conflict
+	7,  // 2: harness.mcp.v1.Server.stdio:type_name -> harness.mcp.v1.StdioConfig
+	8,  // 3: harness.mcp.v1.Server.remote:type_name -> harness.mcp.v1.RemoteConfig
+	11, // 4: harness.mcp.v1.Server.secrets:type_name -> harness.mcp.v1.SecretInfo
+	10, // 5: harness.mcp.v1.Server.overrides:type_name -> harness.mcp.v1.StdioOverride
+	24, // 6: harness.mcp.v1.Server.auth:type_name -> harness.mcp.v1.AuthStatus
+	72, // 7: harness.mcp.v1.StdioConfig.env:type_name -> harness.mcp.v1.StdioConfig.EnvEntry
+	73, // 8: harness.mcp.v1.RemoteConfig.headers:type_name -> harness.mcp.v1.RemoteConfig.HeadersEntry
+	9,  // 9: harness.mcp.v1.RemoteConfig.oauth:type_name -> harness.mcp.v1.OAuthConfig
+	74, // 10: harness.mcp.v1.StdioOverride.env:type_name -> harness.mcp.v1.StdioOverride.EnvEntry
+	75, // 11: harness.mcp.v1.SecretChanges.set:type_name -> harness.mcp.v1.SecretChanges.SetEntry
+	79, // 12: harness.mcp.v1.ListServersRequest.scopes:type_name -> harness.common.v1.Scope
+	6,  // 13: harness.mcp.v1.ListServersResponse.servers:type_name -> harness.mcp.v1.Server
+	6,  // 14: harness.mcp.v1.GetServerResponse.server:type_name -> harness.mcp.v1.Server
+	6,  // 15: harness.mcp.v1.CreateServerRequest.server:type_name -> harness.mcp.v1.Server
+	12, // 16: harness.mcp.v1.CreateServerRequest.secrets:type_name -> harness.mcp.v1.SecretChanges
+	6,  // 17: harness.mcp.v1.CreateServerResponse.server:type_name -> harness.mcp.v1.Server
+	6,  // 18: harness.mcp.v1.UpdateServerRequest.server:type_name -> harness.mcp.v1.Server
+	12, // 19: harness.mcp.v1.UpdateServerRequest.secrets:type_name -> harness.mcp.v1.SecretChanges
+	6,  // 20: harness.mcp.v1.UpdateServerResponse.server:type_name -> harness.mcp.v1.Server
+	21, // 21: harness.mcp.v1.UpdateServerResponse.conflict:type_name -> harness.mcp.v1.Conflict
+	6,  // 22: harness.mcp.v1.Conflict.current:type_name -> harness.mcp.v1.Server
+	21, // 23: harness.mcp.v1.DeleteServerResponse.conflict:type_name -> harness.mcp.v1.Conflict
 	1,  // 24: harness.mcp.v1.AuthStatus.state:type_name -> harness.mcp.v1.AuthState
 	4,  // 25: harness.mcp.v1.GetOAuthFlowResponse.state:type_name -> harness.mcp.v1.GetOAuthFlowResponse.State
-	23, // 26: harness.mcp.v1.GetOAuthFlowResponse.auth:type_name -> harness.mcp.v1.AuthStatus
-	66, // 27: harness.mcp.v1.GetAuthStatusResponse.statuses:type_name -> harness.mcp.v1.GetAuthStatusResponse.StatusesEntry
+	24, // 26: harness.mcp.v1.GetOAuthFlowResponse.auth:type_name -> harness.mcp.v1.AuthStatus
+	76, // 27: harness.mcp.v1.GetAuthStatusResponse.statuses:type_name -> harness.mcp.v1.GetAuthStatusResponse.StatusesEntry
 	2,  // 28: harness.mcp.v1.DeviceServerStatus.availability:type_name -> harness.mcp.v1.Availability
 	3,  // 29: harness.mcp.v1.DeviceServerStatus.approval:type_name -> harness.mcp.v1.ApprovalState
-	40, // 30: harness.mcp.v1.DeviceServerStatus.tools:type_name -> harness.mcp.v1.Tool
-	32, // 31: harness.mcp.v1.ReportDeviceStatusRequest.statuses:type_name -> harness.mcp.v1.DeviceServerStatus
-	37, // 32: harness.mcp.v1.ListDeviceStatusResponse.entries:type_name -> harness.mcp.v1.DeviceStatusEntry
-	32, // 33: harness.mcp.v1.DeviceStatusEntry.status:type_name -> harness.mcp.v1.DeviceServerStatus
-	67, // 34: harness.mcp.v1.IssueStdioLaunchResponse.env:type_name -> harness.mcp.v1.IssueStdioLaunchResponse.EnvEntry
-	40, // 35: harness.mcp.v1.ListToolsResponse.tools:type_name -> harness.mcp.v1.Tool
-	41, // 36: harness.mcp.v1.ListPromptsResponse.prompts:type_name -> harness.mcp.v1.Prompt
-	42, // 37: harness.mcp.v1.ListResourcesResponse.resources:type_name -> harness.mcp.v1.Resource
-	43, // 38: harness.mcp.v1.ListResourcesResponse.templates:type_name -> harness.mcp.v1.ResourceTemplate
-	52, // 39: harness.mcp.v1.CallToolResponse.progress:type_name -> harness.mcp.v1.Progress
-	53, // 40: harness.mcp.v1.CallToolResponse.result:type_name -> harness.mcp.v1.CallToolResult
-	68, // 41: harness.mcp.v1.GetPromptRequest.arguments:type_name -> harness.mcp.v1.GetPromptRequest.ArgumentsEntry
-	60, // 42: harness.mcp.v1.GetToolCatalogResponse.catalog:type_name -> harness.mcp.v1.ToolCatalog
-	61, // 43: harness.mcp.v1.ToolCatalog.servers:type_name -> harness.mcp.v1.CatalogServer
-	0,  // 44: harness.mcp.v1.CatalogServer.transport:type_name -> harness.mcp.v1.Transport
-	40, // 45: harness.mcp.v1.CatalogServer.tools:type_name -> harness.mcp.v1.Tool
-	23, // 46: harness.mcp.v1.GetAuthStatusResponse.StatusesEntry.value:type_name -> harness.mcp.v1.AuthStatus
-	12, // 47: harness.mcp.v1.McpService.ListServers:input_type -> harness.mcp.v1.ListServersRequest
-	14, // 48: harness.mcp.v1.McpService.GetServer:input_type -> harness.mcp.v1.GetServerRequest
-	16, // 49: harness.mcp.v1.McpService.CreateServer:input_type -> harness.mcp.v1.CreateServerRequest
-	18, // 50: harness.mcp.v1.McpService.UpdateServer:input_type -> harness.mcp.v1.UpdateServerRequest
-	21, // 51: harness.mcp.v1.McpService.DeleteServer:input_type -> harness.mcp.v1.DeleteServerRequest
-	24, // 52: harness.mcp.v1.McpService.StartOAuth:input_type -> harness.mcp.v1.StartOAuthRequest
-	26, // 53: harness.mcp.v1.McpService.GetOAuthFlow:input_type -> harness.mcp.v1.GetOAuthFlowRequest
-	28, // 54: harness.mcp.v1.McpService.GetAuthStatus:input_type -> harness.mcp.v1.GetAuthStatusRequest
-	30, // 55: harness.mcp.v1.McpService.RevokeAuth:input_type -> harness.mcp.v1.RevokeAuthRequest
-	33, // 56: harness.mcp.v1.McpService.ReportDeviceStatus:input_type -> harness.mcp.v1.ReportDeviceStatusRequest
-	35, // 57: harness.mcp.v1.McpService.ListDeviceStatus:input_type -> harness.mcp.v1.ListDeviceStatusRequest
-	38, // 58: harness.mcp.v1.McpService.IssueStdioLaunch:input_type -> harness.mcp.v1.IssueStdioLaunchRequest
-	44, // 59: harness.mcp.v1.McpService.ListTools:input_type -> harness.mcp.v1.ListToolsRequest
-	46, // 60: harness.mcp.v1.McpService.ListPrompts:input_type -> harness.mcp.v1.ListPromptsRequest
-	48, // 61: harness.mcp.v1.McpService.ListResources:input_type -> harness.mcp.v1.ListResourcesRequest
-	50, // 62: harness.mcp.v1.McpService.CallTool:input_type -> harness.mcp.v1.CallToolRequest
-	54, // 63: harness.mcp.v1.McpService.GetPrompt:input_type -> harness.mcp.v1.GetPromptRequest
-	56, // 64: harness.mcp.v1.McpService.ReadResource:input_type -> harness.mcp.v1.ReadResourceRequest
-	58, // 65: harness.mcp.v1.McpService.GetToolCatalog:input_type -> harness.mcp.v1.GetToolCatalogRequest
-	13, // 66: harness.mcp.v1.McpService.ListServers:output_type -> harness.mcp.v1.ListServersResponse
-	15, // 67: harness.mcp.v1.McpService.GetServer:output_type -> harness.mcp.v1.GetServerResponse
-	17, // 68: harness.mcp.v1.McpService.CreateServer:output_type -> harness.mcp.v1.CreateServerResponse
-	19, // 69: harness.mcp.v1.McpService.UpdateServer:output_type -> harness.mcp.v1.UpdateServerResponse
-	22, // 70: harness.mcp.v1.McpService.DeleteServer:output_type -> harness.mcp.v1.DeleteServerResponse
-	25, // 71: harness.mcp.v1.McpService.StartOAuth:output_type -> harness.mcp.v1.StartOAuthResponse
-	27, // 72: harness.mcp.v1.McpService.GetOAuthFlow:output_type -> harness.mcp.v1.GetOAuthFlowResponse
-	29, // 73: harness.mcp.v1.McpService.GetAuthStatus:output_type -> harness.mcp.v1.GetAuthStatusResponse
-	31, // 74: harness.mcp.v1.McpService.RevokeAuth:output_type -> harness.mcp.v1.RevokeAuthResponse
-	34, // 75: harness.mcp.v1.McpService.ReportDeviceStatus:output_type -> harness.mcp.v1.ReportDeviceStatusResponse
-	36, // 76: harness.mcp.v1.McpService.ListDeviceStatus:output_type -> harness.mcp.v1.ListDeviceStatusResponse
-	39, // 77: harness.mcp.v1.McpService.IssueStdioLaunch:output_type -> harness.mcp.v1.IssueStdioLaunchResponse
-	45, // 78: harness.mcp.v1.McpService.ListTools:output_type -> harness.mcp.v1.ListToolsResponse
-	47, // 79: harness.mcp.v1.McpService.ListPrompts:output_type -> harness.mcp.v1.ListPromptsResponse
-	49, // 80: harness.mcp.v1.McpService.ListResources:output_type -> harness.mcp.v1.ListResourcesResponse
-	51, // 81: harness.mcp.v1.McpService.CallTool:output_type -> harness.mcp.v1.CallToolResponse
-	55, // 82: harness.mcp.v1.McpService.GetPrompt:output_type -> harness.mcp.v1.GetPromptResponse
-	57, // 83: harness.mcp.v1.McpService.ReadResource:output_type -> harness.mcp.v1.ReadResourceResponse
-	59, // 84: harness.mcp.v1.McpService.GetToolCatalog:output_type -> harness.mcp.v1.GetToolCatalogResponse
-	66, // [66:85] is the sub-list for method output_type
-	47, // [47:66] is the sub-list for method input_type
-	47, // [47:47] is the sub-list for extension type_name
-	47, // [47:47] is the sub-list for extension extendee
-	0,  // [0:47] is the sub-list for field type_name
+	41, // 30: harness.mcp.v1.DeviceServerStatus.tools:type_name -> harness.mcp.v1.Tool
+	33, // 31: harness.mcp.v1.ReportDeviceStatusRequest.statuses:type_name -> harness.mcp.v1.DeviceServerStatus
+	38, // 32: harness.mcp.v1.ListDeviceStatusResponse.entries:type_name -> harness.mcp.v1.DeviceStatusEntry
+	33, // 33: harness.mcp.v1.DeviceStatusEntry.status:type_name -> harness.mcp.v1.DeviceServerStatus
+	77, // 34: harness.mcp.v1.IssueStdioLaunchResponse.env:type_name -> harness.mcp.v1.IssueStdioLaunchResponse.EnvEntry
+	41, // 35: harness.mcp.v1.ListToolsResponse.tools:type_name -> harness.mcp.v1.Tool
+	42, // 36: harness.mcp.v1.ListPromptsResponse.prompts:type_name -> harness.mcp.v1.Prompt
+	43, // 37: harness.mcp.v1.ListResourcesResponse.resources:type_name -> harness.mcp.v1.Resource
+	44, // 38: harness.mcp.v1.ListResourcesResponse.templates:type_name -> harness.mcp.v1.ResourceTemplate
+	59, // 39: harness.mcp.v1.CallToolResponse.progress:type_name -> harness.mcp.v1.Progress
+	60, // 40: harness.mcp.v1.CallToolResponse.result:type_name -> harness.mcp.v1.CallToolResult
+	53, // 41: harness.mcp.v1.CallToolResponse.elicitation:type_name -> harness.mcp.v1.ElicitationRequest
+	56, // 42: harness.mcp.v1.CallToolResponse.list_changed:type_name -> harness.mcp.v1.ListChanged
+	5,  // 43: harness.mcp.v1.ListChanged.kind:type_name -> harness.mcp.v1.ListChanged.Kind
+	78, // 44: harness.mcp.v1.GetPromptRequest.arguments:type_name -> harness.mcp.v1.GetPromptRequest.ArgumentsEntry
+	67, // 45: harness.mcp.v1.GetToolCatalogResponse.catalog:type_name -> harness.mcp.v1.ToolCatalog
+	68, // 46: harness.mcp.v1.ToolCatalog.servers:type_name -> harness.mcp.v1.CatalogServer
+	0,  // 47: harness.mcp.v1.CatalogServer.transport:type_name -> harness.mcp.v1.Transport
+	41, // 48: harness.mcp.v1.CatalogServer.tools:type_name -> harness.mcp.v1.Tool
+	71, // 49: harness.mcp.v1.ListAuditResponse.entries:type_name -> harness.mcp.v1.AuditEntry
+	24, // 50: harness.mcp.v1.GetAuthStatusResponse.StatusesEntry.value:type_name -> harness.mcp.v1.AuthStatus
+	13, // 51: harness.mcp.v1.McpService.ListServers:input_type -> harness.mcp.v1.ListServersRequest
+	15, // 52: harness.mcp.v1.McpService.GetServer:input_type -> harness.mcp.v1.GetServerRequest
+	17, // 53: harness.mcp.v1.McpService.CreateServer:input_type -> harness.mcp.v1.CreateServerRequest
+	19, // 54: harness.mcp.v1.McpService.UpdateServer:input_type -> harness.mcp.v1.UpdateServerRequest
+	22, // 55: harness.mcp.v1.McpService.DeleteServer:input_type -> harness.mcp.v1.DeleteServerRequest
+	25, // 56: harness.mcp.v1.McpService.StartOAuth:input_type -> harness.mcp.v1.StartOAuthRequest
+	27, // 57: harness.mcp.v1.McpService.GetOAuthFlow:input_type -> harness.mcp.v1.GetOAuthFlowRequest
+	29, // 58: harness.mcp.v1.McpService.GetAuthStatus:input_type -> harness.mcp.v1.GetAuthStatusRequest
+	31, // 59: harness.mcp.v1.McpService.RevokeAuth:input_type -> harness.mcp.v1.RevokeAuthRequest
+	34, // 60: harness.mcp.v1.McpService.ReportDeviceStatus:input_type -> harness.mcp.v1.ReportDeviceStatusRequest
+	36, // 61: harness.mcp.v1.McpService.ListDeviceStatus:input_type -> harness.mcp.v1.ListDeviceStatusRequest
+	39, // 62: harness.mcp.v1.McpService.IssueStdioLaunch:input_type -> harness.mcp.v1.IssueStdioLaunchRequest
+	45, // 63: harness.mcp.v1.McpService.ListTools:input_type -> harness.mcp.v1.ListToolsRequest
+	47, // 64: harness.mcp.v1.McpService.ListPrompts:input_type -> harness.mcp.v1.ListPromptsRequest
+	49, // 65: harness.mcp.v1.McpService.ListResources:input_type -> harness.mcp.v1.ListResourcesRequest
+	51, // 66: harness.mcp.v1.McpService.CallTool:input_type -> harness.mcp.v1.CallToolRequest
+	61, // 67: harness.mcp.v1.McpService.GetPrompt:input_type -> harness.mcp.v1.GetPromptRequest
+	63, // 68: harness.mcp.v1.McpService.ReadResource:input_type -> harness.mcp.v1.ReadResourceRequest
+	54, // 69: harness.mcp.v1.McpService.RespondToElicitation:input_type -> harness.mcp.v1.RespondToElicitationRequest
+	57, // 70: harness.mcp.v1.McpService.GetServerInfo:input_type -> harness.mcp.v1.GetServerInfoRequest
+	65, // 71: harness.mcp.v1.McpService.GetToolCatalog:input_type -> harness.mcp.v1.GetToolCatalogRequest
+	69, // 72: harness.mcp.v1.McpService.ListAudit:input_type -> harness.mcp.v1.ListAuditRequest
+	14, // 73: harness.mcp.v1.McpService.ListServers:output_type -> harness.mcp.v1.ListServersResponse
+	16, // 74: harness.mcp.v1.McpService.GetServer:output_type -> harness.mcp.v1.GetServerResponse
+	18, // 75: harness.mcp.v1.McpService.CreateServer:output_type -> harness.mcp.v1.CreateServerResponse
+	20, // 76: harness.mcp.v1.McpService.UpdateServer:output_type -> harness.mcp.v1.UpdateServerResponse
+	23, // 77: harness.mcp.v1.McpService.DeleteServer:output_type -> harness.mcp.v1.DeleteServerResponse
+	26, // 78: harness.mcp.v1.McpService.StartOAuth:output_type -> harness.mcp.v1.StartOAuthResponse
+	28, // 79: harness.mcp.v1.McpService.GetOAuthFlow:output_type -> harness.mcp.v1.GetOAuthFlowResponse
+	30, // 80: harness.mcp.v1.McpService.GetAuthStatus:output_type -> harness.mcp.v1.GetAuthStatusResponse
+	32, // 81: harness.mcp.v1.McpService.RevokeAuth:output_type -> harness.mcp.v1.RevokeAuthResponse
+	35, // 82: harness.mcp.v1.McpService.ReportDeviceStatus:output_type -> harness.mcp.v1.ReportDeviceStatusResponse
+	37, // 83: harness.mcp.v1.McpService.ListDeviceStatus:output_type -> harness.mcp.v1.ListDeviceStatusResponse
+	40, // 84: harness.mcp.v1.McpService.IssueStdioLaunch:output_type -> harness.mcp.v1.IssueStdioLaunchResponse
+	46, // 85: harness.mcp.v1.McpService.ListTools:output_type -> harness.mcp.v1.ListToolsResponse
+	48, // 86: harness.mcp.v1.McpService.ListPrompts:output_type -> harness.mcp.v1.ListPromptsResponse
+	50, // 87: harness.mcp.v1.McpService.ListResources:output_type -> harness.mcp.v1.ListResourcesResponse
+	52, // 88: harness.mcp.v1.McpService.CallTool:output_type -> harness.mcp.v1.CallToolResponse
+	62, // 89: harness.mcp.v1.McpService.GetPrompt:output_type -> harness.mcp.v1.GetPromptResponse
+	64, // 90: harness.mcp.v1.McpService.ReadResource:output_type -> harness.mcp.v1.ReadResourceResponse
+	55, // 91: harness.mcp.v1.McpService.RespondToElicitation:output_type -> harness.mcp.v1.RespondToElicitationResponse
+	58, // 92: harness.mcp.v1.McpService.GetServerInfo:output_type -> harness.mcp.v1.GetServerInfoResponse
+	66, // 93: harness.mcp.v1.McpService.GetToolCatalog:output_type -> harness.mcp.v1.GetToolCatalogResponse
+	70, // 94: harness.mcp.v1.McpService.ListAudit:output_type -> harness.mcp.v1.ListAuditResponse
+	73, // [73:95] is the sub-list for method output_type
+	51, // [51:73] is the sub-list for method input_type
+	51, // [51:51] is the sub-list for extension type_name
+	51, // [51:51] is the sub-list for extension extendee
+	0,  // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_harness_mcp_v1_mcp_proto_init() }
@@ -4329,14 +5243,16 @@ func file_harness_mcp_v1_mcp_proto_init() {
 	file_harness_mcp_v1_mcp_proto_msgTypes[46].OneofWrappers = []any{
 		(*CallToolResponse_Progress)(nil),
 		(*CallToolResponse_Result)(nil),
+		(*CallToolResponse_Elicitation)(nil),
+		(*CallToolResponse_ListChanged)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_mcp_v1_mcp_proto_rawDesc), len(file_harness_mcp_v1_mcp_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   64,
+			NumEnums:      6,
+			NumMessages:   73,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

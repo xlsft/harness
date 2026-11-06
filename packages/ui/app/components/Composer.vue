@@ -112,9 +112,20 @@ const contextPct = computed(() => {
 // A session on an ACP agent lists the commands the agent advertises; they go to it as the prompt's text.
 const acp = computed(() => props.session.meta.acp)
 const onAgent = computed(() => props.session.meta.engine !== 'harness')
+// MCP prompts come from the client (ListMcpCommands) and are read again when a server says its list changed.
+const mcpCommands = ref<MenuOption[]>([])
+watch([id, () => props.session.mcpListVersion, onAgent], async () => {
+  if (onAgent.value) {
+    mcpCommands.value = []
+    return
+  }
+  const sid = id.value
+  const list = await store.mcpCommands(sid)
+  if (sid === id.value) mcpCommands.value = list.map(c => ({ key: c.command, label: c.command, detail: c.description || c.title, tag: 'mcp' }))
+}, { immediate: true })
 const commands = computed<MenuOption[]>(() => onAgent.value
   ? (acp.value?.commands ?? []).map(c => ({ key: `/${c.name}`, label: `/${c.name}`, detail: c.description, tag: 'agent' }))
-  : SLASH_COMMANDS)
+  : [...SLASH_COMMANDS, ...mcpCommands.value])
 const hasShell = computed(() => !props.session.meta.unsupported.includes('shell_commands'))
 const hasCompaction = computed(() => !props.session.meta.unsupported.includes('compaction'))
 
@@ -122,6 +133,7 @@ const suggest = computed(() => {
   const sid = id.value
   return async (q: string): Promise<MenuOption[]> => [
     ...fileMentionOptions((await store.suggestFiles(sid, q || 'trans')).slice(0, 2)),
+    ...(await store.mcpResources(sid, q)).map(r => ({ key: r.mention, label: r.mention, detail: r.description || r.name, tag: 'mcp' })),
     ...MENTION_EXTRAS.filter(e => !q || e.label.includes(q))
   ]
 })

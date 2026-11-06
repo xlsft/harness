@@ -251,8 +251,7 @@ func (a *Agent) summarizeAround(ctx context.Context, entries []session.Entry, ch
 		}
 		_, _ = w.AppendBranch(session.Entry{Type: session.TypeSystem, Subtype: session.SubtypeCompactBoundary, Level: "info", Content: "Summarized conversation up to checkpoint " + checkpointID,
 			LogicalParentUUID: w.LastUUID(), CompactMetadata: &session.CompactMetadata{Trigger: "rewind", PreTokens: before}}, nil)
-		if a.ProjectContext() != "" {
-			block := a.projectContextBlock()
+		for _, block := range a.contextBlocks() {
 			_, _ = w.Append(session.Entry{Type: session.TypeUser, Message: session.UserBlocks([]llm.ContentBlock{block}), IsMeta: true})
 		}
 		_, _ = w.Append(session.Entry{Type: session.TypeUser, Message: session.UserBlocks(a.summaryBlocks(summary)), IsCompactSummary: true, IsVisibleInTranscriptOnly: true})
