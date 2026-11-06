@@ -4,10 +4,6 @@
 
 **xlsft\`s harness** is an open-source coding agent with the full feature set of the frontier labs' native harnesses. It works with any model, on a server you own, for one developer or a whole company. It has two parts: a **server** in one Docker container, and an **app** for macOS that runs the agent on your machine.
 
-<p align="center">
-  <img src="docs/assets/screens.png" alt="A session with its plan, a subagent and the changes pane, next to the model picker and usage" width="100%">
-</p>
-
 [Every feature compared with the native harnesses](docs/comparison.md)
 
 ## Get started
