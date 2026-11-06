@@ -90,7 +90,11 @@ type AdminUser struct {
 	// The latest activity of a session or device.
 	LastSeenAt string `protobuf:"bytes,11,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
 	// The calling admin.
-	IsSelf        bool `protobuf:"varint,12,opt,name=is_self,json=isSelf,proto3" json:"is_self,omitempty"`
+	IsSelf bool `protobuf:"varint,12,opt,name=is_self,json=isSelf,proto3" json:"is_self,omitempty"`
+	// Whether the user has a confirmed authenticator (mfa.proto).
+	MfaEnabled bool `protobuf:"varint,13,opt,name=mfa_enabled,json=mfaEnabled,proto3" json:"mfa_enabled,omitempty"`
+	// Names of the groups the user belongs to (directory.proto).
+	Groups        []string `protobuf:"bytes,14,rep,name=groups,proto3" json:"groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -209,6 +213,75 @@ func (x *AdminUser) GetIsSelf() bool {
 	return false
 }
 
+func (x *AdminUser) GetMfaEnabled() bool {
+	if x != nil {
+		return x.MfaEnabled
+	}
+	return false
+}
+
+func (x *AdminUser) GetGroups() []string {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+// One rule of a group to role mapping: members of `group` get `role`. Rules are checked in order and the first match
+// wins; somebody who matches none gets ROLE_USER. Used by LDAP (group DNs), SSO (group names from the identity
+// provider's token or assertion) and SCIM (group display names).
+type GroupRoleMapping struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	Role          User_Role              `protobuf:"varint,2,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GroupRoleMapping) Reset() {
+	*x = GroupRoleMapping{}
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GroupRoleMapping) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GroupRoleMapping) ProtoMessage() {}
+
+func (x *GroupRoleMapping) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GroupRoleMapping.ProtoReflect.Descriptor instead.
+func (*GroupRoleMapping) Descriptor() ([]byte, []int) {
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GroupRoleMapping) GetGroup() string {
+	if x != nil {
+		return x.Group
+	}
+	return ""
+}
+
+func (x *GroupRoleMapping) GetRole() User_Role {
+	if x != nil {
+		return x.Role
+	}
+	return User_ROLE_UNSPECIFIED
+}
+
 type ListUsersRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Query string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
@@ -220,7 +293,7 @@ type ListUsersRequest struct {
 
 func (x *ListUsersRequest) Reset() {
 	*x = ListUsersRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[1]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -232,7 +305,7 @@ func (x *ListUsersRequest) String() string {
 func (*ListUsersRequest) ProtoMessage() {}
 
 func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[1]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -245,7 +318,7 @@ func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListUsersRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{1}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ListUsersRequest) GetQuery() string {
@@ -271,7 +344,7 @@ type ListUsersResponse struct {
 
 func (x *ListUsersResponse) Reset() {
 	*x = ListUsersResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[2]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -283,7 +356,7 @@ func (x *ListUsersResponse) String() string {
 func (*ListUsersResponse) ProtoMessage() {}
 
 func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[2]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -296,7 +369,7 @@ func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersResponse.ProtoReflect.Descriptor instead.
 func (*ListUsersResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{2}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListUsersResponse) GetUsers() []*AdminUser {
@@ -324,7 +397,7 @@ type CreateUserRequest struct {
 
 func (x *CreateUserRequest) Reset() {
 	*x = CreateUserRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[3]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -336,7 +409,7 @@ func (x *CreateUserRequest) String() string {
 func (*CreateUserRequest) ProtoMessage() {}
 
 func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[3]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -349,7 +422,7 @@ func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
 func (*CreateUserRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{3}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CreateUserRequest) GetName() string {
@@ -412,7 +485,7 @@ type CreateUserResponse struct {
 
 func (x *CreateUserResponse) Reset() {
 	*x = CreateUserResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[4]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -424,7 +497,7 @@ func (x *CreateUserResponse) String() string {
 func (*CreateUserResponse) ProtoMessage() {}
 
 func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[4]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -437,7 +510,7 @@ func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserResponse.ProtoReflect.Descriptor instead.
 func (*CreateUserResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{4}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CreateUserResponse) GetUser() *AdminUser {
@@ -468,7 +541,7 @@ type ResetPasswordRequest struct {
 
 func (x *ResetPasswordRequest) Reset() {
 	*x = ResetPasswordRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[5]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -480,7 +553,7 @@ func (x *ResetPasswordRequest) String() string {
 func (*ResetPasswordRequest) ProtoMessage() {}
 
 func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[5]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -493,7 +566,7 @@ func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetPasswordRequest.ProtoReflect.Descriptor instead.
 func (*ResetPasswordRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{5}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ResetPasswordRequest) GetUserId() string {
@@ -533,7 +606,7 @@ type ResetPasswordResponse struct {
 
 func (x *ResetPasswordResponse) Reset() {
 	*x = ResetPasswordResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[6]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -545,7 +618,7 @@ func (x *ResetPasswordResponse) String() string {
 func (*ResetPasswordResponse) ProtoMessage() {}
 
 func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[6]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -558,7 +631,7 @@ func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetPasswordResponse.ProtoReflect.Descriptor instead.
 func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{6}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ResetPasswordResponse) GetGeneratedPassword() string {
@@ -578,7 +651,7 @@ type SetRoleRequest struct {
 
 func (x *SetRoleRequest) Reset() {
 	*x = SetRoleRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[7]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -590,7 +663,7 @@ func (x *SetRoleRequest) String() string {
 func (*SetRoleRequest) ProtoMessage() {}
 
 func (x *SetRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[7]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -603,7 +676,7 @@ func (x *SetRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRoleRequest.ProtoReflect.Descriptor instead.
 func (*SetRoleRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{7}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SetRoleRequest) GetUserId() string {
@@ -629,7 +702,7 @@ type SetRoleResponse struct {
 
 func (x *SetRoleResponse) Reset() {
 	*x = SetRoleResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[8]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -641,7 +714,7 @@ func (x *SetRoleResponse) String() string {
 func (*SetRoleResponse) ProtoMessage() {}
 
 func (x *SetRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[8]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -654,7 +727,7 @@ func (x *SetRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRoleResponse.ProtoReflect.Descriptor instead.
 func (*SetRoleResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{8}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SetRoleResponse) GetUser() *AdminUser {
@@ -675,7 +748,7 @@ type SetDisabledRequest struct {
 
 func (x *SetDisabledRequest) Reset() {
 	*x = SetDisabledRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[9]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -687,7 +760,7 @@ func (x *SetDisabledRequest) String() string {
 func (*SetDisabledRequest) ProtoMessage() {}
 
 func (x *SetDisabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[9]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -700,7 +773,7 @@ func (x *SetDisabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDisabledRequest.ProtoReflect.Descriptor instead.
 func (*SetDisabledRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{9}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SetDisabledRequest) GetUserId() string {
@@ -733,7 +806,7 @@ type SetDisabledResponse struct {
 
 func (x *SetDisabledResponse) Reset() {
 	*x = SetDisabledResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[10]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -745,7 +818,7 @@ func (x *SetDisabledResponse) String() string {
 func (*SetDisabledResponse) ProtoMessage() {}
 
 func (x *SetDisabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[10]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -758,7 +831,7 @@ func (x *SetDisabledResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDisabledResponse.ProtoReflect.Descriptor instead.
 func (*SetDisabledResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{10}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SetDisabledResponse) GetUser() *AdminUser {
@@ -777,7 +850,7 @@ type DeleteUserRequest struct {
 
 func (x *DeleteUserRequest) Reset() {
 	*x = DeleteUserRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[11]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -789,7 +862,7 @@ func (x *DeleteUserRequest) String() string {
 func (*DeleteUserRequest) ProtoMessage() {}
 
 func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[11]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -802,7 +875,7 @@ func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{11}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteUserRequest) GetUserId() string {
@@ -820,7 +893,7 @@ type DeleteUserResponse struct {
 
 func (x *DeleteUserResponse) Reset() {
 	*x = DeleteUserResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[12]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -832,7 +905,7 @@ func (x *DeleteUserResponse) String() string {
 func (*DeleteUserResponse) ProtoMessage() {}
 
 func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[12]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -845,7 +918,7 @@ func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{12}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{13}
 }
 
 type ListUserSessionsRequest struct {
@@ -857,7 +930,7 @@ type ListUserSessionsRequest struct {
 
 func (x *ListUserSessionsRequest) Reset() {
 	*x = ListUserSessionsRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[13]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -869,7 +942,7 @@ func (x *ListUserSessionsRequest) String() string {
 func (*ListUserSessionsRequest) ProtoMessage() {}
 
 func (x *ListUserSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[13]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,7 +955,7 @@ func (x *ListUserSessionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserSessionsRequest.ProtoReflect.Descriptor instead.
 func (*ListUserSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{13}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListUserSessionsRequest) GetUserId() string {
@@ -902,7 +975,7 @@ type ListUserSessionsResponse struct {
 
 func (x *ListUserSessionsResponse) Reset() {
 	*x = ListUserSessionsResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[14]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -914,7 +987,7 @@ func (x *ListUserSessionsResponse) String() string {
 func (*ListUserSessionsResponse) ProtoMessage() {}
 
 func (x *ListUserSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[14]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -927,7 +1000,7 @@ func (x *ListUserSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserSessionsResponse.ProtoReflect.Descriptor instead.
 func (*ListUserSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{14}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListUserSessionsResponse) GetDevices() []*Device {
@@ -955,7 +1028,7 @@ type RevokeUserSessionsRequest struct {
 
 func (x *RevokeUserSessionsRequest) Reset() {
 	*x = RevokeUserSessionsRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[15]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +1040,7 @@ func (x *RevokeUserSessionsRequest) String() string {
 func (*RevokeUserSessionsRequest) ProtoMessage() {}
 
 func (x *RevokeUserSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[15]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,7 +1053,7 @@ func (x *RevokeUserSessionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeUserSessionsRequest.ProtoReflect.Descriptor instead.
 func (*RevokeUserSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{15}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RevokeUserSessionsRequest) GetUserId() string {
@@ -1007,7 +1080,7 @@ type RevokeUserSessionsResponse struct {
 
 func (x *RevokeUserSessionsResponse) Reset() {
 	*x = RevokeUserSessionsResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[16]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1019,7 +1092,7 @@ func (x *RevokeUserSessionsResponse) String() string {
 func (*RevokeUserSessionsResponse) ProtoMessage() {}
 
 func (x *RevokeUserSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[16]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1032,7 +1105,7 @@ func (x *RevokeUserSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeUserSessionsResponse.ProtoReflect.Descriptor instead.
 func (*RevokeUserSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{16}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RevokeUserSessionsResponse) GetRevokedDevices() int32 {
@@ -1064,7 +1137,7 @@ type UserProvider struct {
 
 func (x *UserProvider) Reset() {
 	*x = UserProvider{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[17]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1076,7 +1149,7 @@ func (x *UserProvider) String() string {
 func (*UserProvider) ProtoMessage() {}
 
 func (x *UserProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[17]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1089,7 +1162,7 @@ func (x *UserProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserProvider.ProtoReflect.Descriptor instead.
 func (*UserProvider) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{17}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *UserProvider) GetId() string {
@@ -1150,7 +1223,7 @@ type ListUserProvidersRequest struct {
 
 func (x *ListUserProvidersRequest) Reset() {
 	*x = ListUserProvidersRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[18]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1162,7 +1235,7 @@ func (x *ListUserProvidersRequest) String() string {
 func (*ListUserProvidersRequest) ProtoMessage() {}
 
 func (x *ListUserProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[18]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1175,7 +1248,7 @@ func (x *ListUserProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListUserProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{18}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListUserProvidersRequest) GetUserId() string {
@@ -1194,7 +1267,7 @@ type ListUserProvidersResponse struct {
 
 func (x *ListUserProvidersResponse) Reset() {
 	*x = ListUserProvidersResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[19]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1206,7 +1279,7 @@ func (x *ListUserProvidersResponse) String() string {
 func (*ListUserProvidersResponse) ProtoMessage() {}
 
 func (x *ListUserProvidersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[19]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1219,7 +1292,7 @@ func (x *ListUserProvidersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserProvidersResponse.ProtoReflect.Descriptor instead.
 func (*ListUserProvidersResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{19}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListUserProvidersResponse) GetProviders() []*UserProvider {
@@ -1239,7 +1312,7 @@ type DeleteUserProviderRequest struct {
 
 func (x *DeleteUserProviderRequest) Reset() {
 	*x = DeleteUserProviderRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[20]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1251,7 +1324,7 @@ func (x *DeleteUserProviderRequest) String() string {
 func (*DeleteUserProviderRequest) ProtoMessage() {}
 
 func (x *DeleteUserProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[20]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1264,7 +1337,7 @@ func (x *DeleteUserProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserProviderRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserProviderRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{20}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DeleteUserProviderRequest) GetUserId() string {
@@ -1289,7 +1362,7 @@ type DeleteUserProviderResponse struct {
 
 func (x *DeleteUserProviderResponse) Reset() {
 	*x = DeleteUserProviderResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[21]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1301,7 +1374,7 @@ func (x *DeleteUserProviderResponse) String() string {
 func (*DeleteUserProviderResponse) ProtoMessage() {}
 
 func (x *DeleteUserProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[21]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1314,7 +1387,7 @@ func (x *DeleteUserProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserProviderResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserProviderResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{21}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{22}
 }
 
 type LdapConfig struct {
@@ -1351,14 +1424,17 @@ type LdapConfig struct {
 	// LDAP_LOCAL_LOGIN_BREAK_GLASS: usernames or emails that keep local sign-in.
 	BreakGlassLogins []string `protobuf:"bytes,19,rep,name=break_glass_logins,json=breakGlassLogins,proto3" json:"break_glass_logins,omitempty"`
 	// Per operation; 0: default (5000).
-	TimeoutMs     int32 `protobuf:"varint,20,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	TimeoutMs int32 `protobuf:"varint,20,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	// Group DN to role rules, re-checked at every sign-in. admin_group_dn, when set, is checked first. With neither set,
+	// roles are managed in Users. The last active admin is never demoted.
+	RoleMappings  []*GroupRoleMapping `protobuf:"bytes,21,rep,name=role_mappings,json=roleMappings,proto3" json:"role_mappings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LdapConfig) Reset() {
 	*x = LdapConfig{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[22]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1370,7 +1446,7 @@ func (x *LdapConfig) String() string {
 func (*LdapConfig) ProtoMessage() {}
 
 func (x *LdapConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[22]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1383,7 +1459,7 @@ func (x *LdapConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LdapConfig.ProtoReflect.Descriptor instead.
 func (*LdapConfig) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{22}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *LdapConfig) GetEnabled() bool {
@@ -1526,6 +1602,13 @@ func (x *LdapConfig) GetTimeoutMs() int32 {
 	return 0
 }
 
+func (x *LdapConfig) GetRoleMappings() []*GroupRoleMapping {
+	if x != nil {
+		return x.RoleMappings
+	}
+	return nil
+}
+
 type GetLdapConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1534,7 +1617,7 @@ type GetLdapConfigRequest struct {
 
 func (x *GetLdapConfigRequest) Reset() {
 	*x = GetLdapConfigRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[23]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1546,7 +1629,7 @@ func (x *GetLdapConfigRequest) String() string {
 func (*GetLdapConfigRequest) ProtoMessage() {}
 
 func (x *GetLdapConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[23]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1559,7 +1642,7 @@ func (x *GetLdapConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLdapConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetLdapConfigRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{23}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{24}
 }
 
 type GetLdapConfigResponse struct {
@@ -1571,7 +1654,7 @@ type GetLdapConfigResponse struct {
 
 func (x *GetLdapConfigResponse) Reset() {
 	*x = GetLdapConfigResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[24]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1583,7 +1666,7 @@ func (x *GetLdapConfigResponse) String() string {
 func (*GetLdapConfigResponse) ProtoMessage() {}
 
 func (x *GetLdapConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[24]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1596,7 +1679,7 @@ func (x *GetLdapConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLdapConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetLdapConfigResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{24}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetLdapConfigResponse) GetConfig() *LdapConfig {
@@ -1615,7 +1698,7 @@ type SetLdapConfigRequest struct {
 
 func (x *SetLdapConfigRequest) Reset() {
 	*x = SetLdapConfigRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[25]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1627,7 +1710,7 @@ func (x *SetLdapConfigRequest) String() string {
 func (*SetLdapConfigRequest) ProtoMessage() {}
 
 func (x *SetLdapConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[25]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1640,7 +1723,7 @@ func (x *SetLdapConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetLdapConfigRequest.ProtoReflect.Descriptor instead.
 func (*SetLdapConfigRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{25}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SetLdapConfigRequest) GetConfig() *LdapConfig {
@@ -1659,7 +1742,7 @@ type SetLdapConfigResponse struct {
 
 func (x *SetLdapConfigResponse) Reset() {
 	*x = SetLdapConfigResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[26]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1671,7 +1754,7 @@ func (x *SetLdapConfigResponse) String() string {
 func (*SetLdapConfigResponse) ProtoMessage() {}
 
 func (x *SetLdapConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[26]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1684,7 +1767,7 @@ func (x *SetLdapConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetLdapConfigResponse.ProtoReflect.Descriptor instead.
 func (*SetLdapConfigResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{26}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *SetLdapConfigResponse) GetConfig() *LdapConfig {
@@ -1703,7 +1786,7 @@ type TestLdapConnectionRequest struct {
 
 func (x *TestLdapConnectionRequest) Reset() {
 	*x = TestLdapConnectionRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[27]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1715,7 +1798,7 @@ func (x *TestLdapConnectionRequest) String() string {
 func (*TestLdapConnectionRequest) ProtoMessage() {}
 
 func (x *TestLdapConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[27]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1728,7 +1811,7 @@ func (x *TestLdapConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestLdapConnectionRequest.ProtoReflect.Descriptor instead.
 func (*TestLdapConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{27}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *TestLdapConnectionRequest) GetConfig() *LdapConfig {
@@ -1751,7 +1834,7 @@ type TestLdapConnectionResponse struct {
 
 func (x *TestLdapConnectionResponse) Reset() {
 	*x = TestLdapConnectionResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[28]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1763,7 +1846,7 @@ func (x *TestLdapConnectionResponse) String() string {
 func (*TestLdapConnectionResponse) ProtoMessage() {}
 
 func (x *TestLdapConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[28]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1776,7 +1859,7 @@ func (x *TestLdapConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestLdapConnectionResponse.ProtoReflect.Descriptor instead.
 func (*TestLdapConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{28}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *TestLdapConnectionResponse) GetOk() bool {
@@ -1810,7 +1893,7 @@ type TestLdapUserRequest struct {
 
 func (x *TestLdapUserRequest) Reset() {
 	*x = TestLdapUserRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[29]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1822,7 +1905,7 @@ func (x *TestLdapUserRequest) String() string {
 func (*TestLdapUserRequest) ProtoMessage() {}
 
 func (x *TestLdapUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[29]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1835,7 +1918,7 @@ func (x *TestLdapUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestLdapUserRequest.ProtoReflect.Descriptor instead.
 func (*TestLdapUserRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{29}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *TestLdapUserRequest) GetConfig() *LdapConfig {
@@ -1865,14 +1948,16 @@ type TestLdapUserResponse struct {
 	Allowed bool `protobuf:"varint,8,opt,name=allowed,proto3" json:"allowed,omitempty"`
 	Admin   bool `protobuf:"varint,9,opt,name=admin,proto3" json:"admin,omitempty"`
 	// The local account the user maps to, if one exists.
-	UserId        string `protobuf:"bytes,10,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserId string `protobuf:"bytes,10,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// The role admin_group_dn and role_mappings give them.
+	Role          User_Role `protobuf:"varint,11,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TestLdapUserResponse) Reset() {
 	*x = TestLdapUserResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[30]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1884,7 +1969,7 @@ func (x *TestLdapUserResponse) String() string {
 func (*TestLdapUserResponse) ProtoMessage() {}
 
 func (x *TestLdapUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[30]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1897,7 +1982,7 @@ func (x *TestLdapUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestLdapUserResponse.ProtoReflect.Descriptor instead.
 func (*TestLdapUserResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{30}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TestLdapUserResponse) GetFound() bool {
@@ -1970,6 +2055,13 @@ func (x *TestLdapUserResponse) GetUserId() string {
 	return ""
 }
 
+func (x *TestLdapUserResponse) GetRole() User_Role {
+	if x != nil {
+		return x.Role
+	}
+	return User_ROLE_UNSPECIFIED
+}
+
 type PermissionModePolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Sorted, without duplicates. Never contains PERMISSION_MODE_DEFAULT.
@@ -1980,7 +2072,7 @@ type PermissionModePolicy struct {
 
 func (x *PermissionModePolicy) Reset() {
 	*x = PermissionModePolicy{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[31]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1992,7 +2084,7 @@ func (x *PermissionModePolicy) String() string {
 func (*PermissionModePolicy) ProtoMessage() {}
 
 func (x *PermissionModePolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[31]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2005,7 +2097,7 @@ func (x *PermissionModePolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PermissionModePolicy.ProtoReflect.Descriptor instead.
 func (*PermissionModePolicy) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{31}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *PermissionModePolicy) GetDisabledModes() []v1.PermissionMode {
@@ -2023,7 +2115,7 @@ type GetPermissionModePolicyRequest struct {
 
 func (x *GetPermissionModePolicyRequest) Reset() {
 	*x = GetPermissionModePolicyRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[32]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2035,7 +2127,7 @@ func (x *GetPermissionModePolicyRequest) String() string {
 func (*GetPermissionModePolicyRequest) ProtoMessage() {}
 
 func (x *GetPermissionModePolicyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[32]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2048,7 +2140,7 @@ func (x *GetPermissionModePolicyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPermissionModePolicyRequest.ProtoReflect.Descriptor instead.
 func (*GetPermissionModePolicyRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{32}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{33}
 }
 
 type GetPermissionModePolicyResponse struct {
@@ -2060,7 +2152,7 @@ type GetPermissionModePolicyResponse struct {
 
 func (x *GetPermissionModePolicyResponse) Reset() {
 	*x = GetPermissionModePolicyResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[33]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2072,7 +2164,7 @@ func (x *GetPermissionModePolicyResponse) String() string {
 func (*GetPermissionModePolicyResponse) ProtoMessage() {}
 
 func (x *GetPermissionModePolicyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[33]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2085,7 +2177,7 @@ func (x *GetPermissionModePolicyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPermissionModePolicyResponse.ProtoReflect.Descriptor instead.
 func (*GetPermissionModePolicyResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{33}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *GetPermissionModePolicyResponse) GetPolicy() *PermissionModePolicy {
@@ -2104,7 +2196,7 @@ type SetPermissionModePolicyRequest struct {
 
 func (x *SetPermissionModePolicyRequest) Reset() {
 	*x = SetPermissionModePolicyRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[34]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2116,7 +2208,7 @@ func (x *SetPermissionModePolicyRequest) String() string {
 func (*SetPermissionModePolicyRequest) ProtoMessage() {}
 
 func (x *SetPermissionModePolicyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[34]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2129,7 +2221,7 @@ func (x *SetPermissionModePolicyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPermissionModePolicyRequest.ProtoReflect.Descriptor instead.
 func (*SetPermissionModePolicyRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{34}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *SetPermissionModePolicyRequest) GetPolicy() *PermissionModePolicy {
@@ -2148,7 +2240,7 @@ type SetPermissionModePolicyResponse struct {
 
 func (x *SetPermissionModePolicyResponse) Reset() {
 	*x = SetPermissionModePolicyResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[35]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2160,7 +2252,7 @@ func (x *SetPermissionModePolicyResponse) String() string {
 func (*SetPermissionModePolicyResponse) ProtoMessage() {}
 
 func (x *SetPermissionModePolicyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[35]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2173,7 +2265,7 @@ func (x *SetPermissionModePolicyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPermissionModePolicyResponse.ProtoReflect.Descriptor instead.
 func (*SetPermissionModePolicyResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{35}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *SetPermissionModePolicyResponse) GetPolicy() *PermissionModePolicy {
@@ -2193,7 +2285,7 @@ type LocalModelPolicy struct {
 
 func (x *LocalModelPolicy) Reset() {
 	*x = LocalModelPolicy{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[36]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2205,7 +2297,7 @@ func (x *LocalModelPolicy) String() string {
 func (*LocalModelPolicy) ProtoMessage() {}
 
 func (x *LocalModelPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[36]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2218,7 +2310,7 @@ func (x *LocalModelPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalModelPolicy.ProtoReflect.Descriptor instead.
 func (*LocalModelPolicy) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{36}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *LocalModelPolicy) GetAllowed() bool {
@@ -2236,7 +2328,7 @@ type GetLocalModelPolicyRequest struct {
 
 func (x *GetLocalModelPolicyRequest) Reset() {
 	*x = GetLocalModelPolicyRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[37]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2248,7 +2340,7 @@ func (x *GetLocalModelPolicyRequest) String() string {
 func (*GetLocalModelPolicyRequest) ProtoMessage() {}
 
 func (x *GetLocalModelPolicyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[37]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2261,7 +2353,7 @@ func (x *GetLocalModelPolicyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocalModelPolicyRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalModelPolicyRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{37}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{38}
 }
 
 type GetLocalModelPolicyResponse struct {
@@ -2273,7 +2365,7 @@ type GetLocalModelPolicyResponse struct {
 
 func (x *GetLocalModelPolicyResponse) Reset() {
 	*x = GetLocalModelPolicyResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[38]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2285,7 +2377,7 @@ func (x *GetLocalModelPolicyResponse) String() string {
 func (*GetLocalModelPolicyResponse) ProtoMessage() {}
 
 func (x *GetLocalModelPolicyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[38]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2298,7 +2390,7 @@ func (x *GetLocalModelPolicyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocalModelPolicyResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalModelPolicyResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{38}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GetLocalModelPolicyResponse) GetPolicy() *LocalModelPolicy {
@@ -2317,7 +2409,7 @@ type SetLocalModelPolicyRequest struct {
 
 func (x *SetLocalModelPolicyRequest) Reset() {
 	*x = SetLocalModelPolicyRequest{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[39]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2329,7 +2421,7 @@ func (x *SetLocalModelPolicyRequest) String() string {
 func (*SetLocalModelPolicyRequest) ProtoMessage() {}
 
 func (x *SetLocalModelPolicyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[39]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2342,7 +2434,7 @@ func (x *SetLocalModelPolicyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetLocalModelPolicyRequest.ProtoReflect.Descriptor instead.
 func (*SetLocalModelPolicyRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{39}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SetLocalModelPolicyRequest) GetPolicy() *LocalModelPolicy {
@@ -2361,7 +2453,7 @@ type SetLocalModelPolicyResponse struct {
 
 func (x *SetLocalModelPolicyResponse) Reset() {
 	*x = SetLocalModelPolicyResponse{}
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[40]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2373,7 +2465,7 @@ func (x *SetLocalModelPolicyResponse) String() string {
 func (*SetLocalModelPolicyResponse) ProtoMessage() {}
 
 func (x *SetLocalModelPolicyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_admin_proto_msgTypes[40]
+	mi := &file_harness_auth_v1_admin_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2386,7 +2478,7 @@ func (x *SetLocalModelPolicyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetLocalModelPolicyResponse.ProtoReflect.Descriptor instead.
 func (*SetLocalModelPolicyResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{40}
+	return file_harness_auth_v1_admin_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *SetLocalModelPolicyResponse) GetPolicy() *LocalModelPolicy {
@@ -2400,7 +2492,7 @@ var File_harness_auth_v1_admin_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"\x1bharness/auth/v1/admin.proto\x12\x0fharness.auth.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1aharness/auth/v1/auth.proto\x1a#harness/auth/v1/limits_policy.proto\"\x8c\x03\n" +
+	"\x1bharness/auth/v1/admin.proto\x12\x0fharness.auth.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1aharness/auth/v1/auth.proto\x1a#harness/auth/v1/limits_policy.proto\"\xc5\x03\n" +
 	"\tAdminUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
@@ -2416,7 +2508,13 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	" \x01(\tR\flastSignInAt\x12 \n" +
 	"\flast_seen_at\x18\v \x01(\tR\n" +
 	"lastSeenAt\x12\x17\n" +
-	"\ais_self\x18\f \x01(\bR\x06isSelf\">\n" +
+	"\ais_self\x18\f \x01(\bR\x06isSelf\x12\x1f\n" +
+	"\vmfa_enabled\x18\r \x01(\bR\n" +
+	"mfaEnabled\x12\x16\n" +
+	"\x06groups\x18\x0e \x03(\tR\x06groups\"X\n" +
+	"\x10GroupRoleMapping\x12\x14\n" +
+	"\x05group\x18\x01 \x01(\tR\x05group\x12.\n" +
+	"\x04role\x18\x02 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\">\n" +
 	"\x10ListUsersRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"E\n" +
@@ -2482,7 +2580,7 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
 	"\vprovider_id\x18\x02 \x01(\tR\n" +
 	"providerId\"\x1c\n" +
-	"\x1aDeleteUserProviderResponse\"\xf8\x05\n" +
+	"\x1aDeleteUserProviderResponse\"\xc0\x06\n" +
 	"\n" +
 	"LdapConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x12\n" +
@@ -2510,7 +2608,8 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"localLogin\x12,\n" +
 	"\x12break_glass_logins\x18\x13 \x03(\tR\x10breakGlassLogins\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\x14 \x01(\x05R\ttimeoutMs\"\x16\n" +
+	"timeout_ms\x18\x14 \x01(\x05R\ttimeoutMs\x12F\n" +
+	"\rrole_mappings\x18\x15 \x03(\v2!.harness.auth.v1.GroupRoleMappingR\froleMappings\"\x16\n" +
 	"\x14GetLdapConfigRequest\"L\n" +
 	"\x15GetLdapConfigResponse\x123\n" +
 	"\x06config\x18\x01 \x01(\v2\x1b.harness.auth.v1.LdapConfigR\x06config\"K\n" +
@@ -2526,7 +2625,7 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\x03url\x18\x03 \x01(\tR\x03url\"`\n" +
 	"\x13TestLdapUserRequest\x123\n" +
 	"\x06config\x18\x01 \x01(\v2\x1b.harness.auth.v1.LdapConfigR\x06config\x12\x14\n" +
-	"\x05login\x18\x02 \x01(\tR\x05login\"\xfd\x01\n" +
+	"\x05login\x18\x02 \x01(\tR\x05login\"\xad\x02\n" +
 	"\x14TestLdapUserResponse\x12\x14\n" +
 	"\x05found\x18\x01 \x01(\bR\x05found\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x0e\n" +
@@ -2538,7 +2637,8 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\aallowed\x18\b \x01(\bR\aallowed\x12\x14\n" +
 	"\x05admin\x18\t \x01(\bR\x05admin\x12\x17\n" +
 	"\auser_id\x18\n" +
-	" \x01(\tR\x06userId\"_\n" +
+	" \x01(\tR\x06userId\x12.\n" +
+	"\x04role\x18\v \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\"_\n" +
 	"\x14PermissionModePolicy\x12G\n" +
 	"\x0edisabled_modes\x18\x01 \x03(\x0e2 .harness.agent.v1.PermissionModeR\rdisabledModes\" \n" +
 	"\x1eGetPermissionModePolicyRequest\"`\n" +
@@ -2600,128 +2700,132 @@ func file_harness_auth_v1_admin_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_auth_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_auth_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_harness_auth_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
 var file_harness_auth_v1_admin_proto_goTypes = []any{
 	(LdapLocalLogin)(0),                        // 0: harness.auth.v1.LdapLocalLogin
 	(*AdminUser)(nil),                          // 1: harness.auth.v1.AdminUser
-	(*ListUsersRequest)(nil),                   // 2: harness.auth.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),                  // 3: harness.auth.v1.ListUsersResponse
-	(*CreateUserRequest)(nil),                  // 4: harness.auth.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),                 // 5: harness.auth.v1.CreateUserResponse
-	(*ResetPasswordRequest)(nil),               // 6: harness.auth.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),              // 7: harness.auth.v1.ResetPasswordResponse
-	(*SetRoleRequest)(nil),                     // 8: harness.auth.v1.SetRoleRequest
-	(*SetRoleResponse)(nil),                    // 9: harness.auth.v1.SetRoleResponse
-	(*SetDisabledRequest)(nil),                 // 10: harness.auth.v1.SetDisabledRequest
-	(*SetDisabledResponse)(nil),                // 11: harness.auth.v1.SetDisabledResponse
-	(*DeleteUserRequest)(nil),                  // 12: harness.auth.v1.DeleteUserRequest
-	(*DeleteUserResponse)(nil),                 // 13: harness.auth.v1.DeleteUserResponse
-	(*ListUserSessionsRequest)(nil),            // 14: harness.auth.v1.ListUserSessionsRequest
-	(*ListUserSessionsResponse)(nil),           // 15: harness.auth.v1.ListUserSessionsResponse
-	(*RevokeUserSessionsRequest)(nil),          // 16: harness.auth.v1.RevokeUserSessionsRequest
-	(*RevokeUserSessionsResponse)(nil),         // 17: harness.auth.v1.RevokeUserSessionsResponse
-	(*UserProvider)(nil),                       // 18: harness.auth.v1.UserProvider
-	(*ListUserProvidersRequest)(nil),           // 19: harness.auth.v1.ListUserProvidersRequest
-	(*ListUserProvidersResponse)(nil),          // 20: harness.auth.v1.ListUserProvidersResponse
-	(*DeleteUserProviderRequest)(nil),          // 21: harness.auth.v1.DeleteUserProviderRequest
-	(*DeleteUserProviderResponse)(nil),         // 22: harness.auth.v1.DeleteUserProviderResponse
-	(*LdapConfig)(nil),                         // 23: harness.auth.v1.LdapConfig
-	(*GetLdapConfigRequest)(nil),               // 24: harness.auth.v1.GetLdapConfigRequest
-	(*GetLdapConfigResponse)(nil),              // 25: harness.auth.v1.GetLdapConfigResponse
-	(*SetLdapConfigRequest)(nil),               // 26: harness.auth.v1.SetLdapConfigRequest
-	(*SetLdapConfigResponse)(nil),              // 27: harness.auth.v1.SetLdapConfigResponse
-	(*TestLdapConnectionRequest)(nil),          // 28: harness.auth.v1.TestLdapConnectionRequest
-	(*TestLdapConnectionResponse)(nil),         // 29: harness.auth.v1.TestLdapConnectionResponse
-	(*TestLdapUserRequest)(nil),                // 30: harness.auth.v1.TestLdapUserRequest
-	(*TestLdapUserResponse)(nil),               // 31: harness.auth.v1.TestLdapUserResponse
-	(*PermissionModePolicy)(nil),               // 32: harness.auth.v1.PermissionModePolicy
-	(*GetPermissionModePolicyRequest)(nil),     // 33: harness.auth.v1.GetPermissionModePolicyRequest
-	(*GetPermissionModePolicyResponse)(nil),    // 34: harness.auth.v1.GetPermissionModePolicyResponse
-	(*SetPermissionModePolicyRequest)(nil),     // 35: harness.auth.v1.SetPermissionModePolicyRequest
-	(*SetPermissionModePolicyResponse)(nil),    // 36: harness.auth.v1.SetPermissionModePolicyResponse
-	(*LocalModelPolicy)(nil),                   // 37: harness.auth.v1.LocalModelPolicy
-	(*GetLocalModelPolicyRequest)(nil),         // 38: harness.auth.v1.GetLocalModelPolicyRequest
-	(*GetLocalModelPolicyResponse)(nil),        // 39: harness.auth.v1.GetLocalModelPolicyResponse
-	(*SetLocalModelPolicyRequest)(nil),         // 40: harness.auth.v1.SetLocalModelPolicyRequest
-	(*SetLocalModelPolicyResponse)(nil),        // 41: harness.auth.v1.SetLocalModelPolicyResponse
-	(User_Role)(0),                             // 42: harness.auth.v1.User.Role
-	(UserSource)(0),                            // 43: harness.auth.v1.UserSource
-	(*Device)(nil),                             // 44: harness.auth.v1.Device
-	(v1.PermissionMode)(0),                     // 45: harness.agent.v1.PermissionMode
-	(*ListProviderLimitsPoliciesRequest)(nil),  // 46: harness.auth.v1.ListProviderLimitsPoliciesRequest
-	(*SetProviderLimitsPolicyRequest)(nil),     // 47: harness.auth.v1.SetProviderLimitsPolicyRequest
-	(*ListProviderLimitsPoliciesResponse)(nil), // 48: harness.auth.v1.ListProviderLimitsPoliciesResponse
-	(*SetProviderLimitsPolicyResponse)(nil),    // 49: harness.auth.v1.SetProviderLimitsPolicyResponse
+	(*GroupRoleMapping)(nil),                   // 2: harness.auth.v1.GroupRoleMapping
+	(*ListUsersRequest)(nil),                   // 3: harness.auth.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),                  // 4: harness.auth.v1.ListUsersResponse
+	(*CreateUserRequest)(nil),                  // 5: harness.auth.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),                 // 6: harness.auth.v1.CreateUserResponse
+	(*ResetPasswordRequest)(nil),               // 7: harness.auth.v1.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),              // 8: harness.auth.v1.ResetPasswordResponse
+	(*SetRoleRequest)(nil),                     // 9: harness.auth.v1.SetRoleRequest
+	(*SetRoleResponse)(nil),                    // 10: harness.auth.v1.SetRoleResponse
+	(*SetDisabledRequest)(nil),                 // 11: harness.auth.v1.SetDisabledRequest
+	(*SetDisabledResponse)(nil),                // 12: harness.auth.v1.SetDisabledResponse
+	(*DeleteUserRequest)(nil),                  // 13: harness.auth.v1.DeleteUserRequest
+	(*DeleteUserResponse)(nil),                 // 14: harness.auth.v1.DeleteUserResponse
+	(*ListUserSessionsRequest)(nil),            // 15: harness.auth.v1.ListUserSessionsRequest
+	(*ListUserSessionsResponse)(nil),           // 16: harness.auth.v1.ListUserSessionsResponse
+	(*RevokeUserSessionsRequest)(nil),          // 17: harness.auth.v1.RevokeUserSessionsRequest
+	(*RevokeUserSessionsResponse)(nil),         // 18: harness.auth.v1.RevokeUserSessionsResponse
+	(*UserProvider)(nil),                       // 19: harness.auth.v1.UserProvider
+	(*ListUserProvidersRequest)(nil),           // 20: harness.auth.v1.ListUserProvidersRequest
+	(*ListUserProvidersResponse)(nil),          // 21: harness.auth.v1.ListUserProvidersResponse
+	(*DeleteUserProviderRequest)(nil),          // 22: harness.auth.v1.DeleteUserProviderRequest
+	(*DeleteUserProviderResponse)(nil),         // 23: harness.auth.v1.DeleteUserProviderResponse
+	(*LdapConfig)(nil),                         // 24: harness.auth.v1.LdapConfig
+	(*GetLdapConfigRequest)(nil),               // 25: harness.auth.v1.GetLdapConfigRequest
+	(*GetLdapConfigResponse)(nil),              // 26: harness.auth.v1.GetLdapConfigResponse
+	(*SetLdapConfigRequest)(nil),               // 27: harness.auth.v1.SetLdapConfigRequest
+	(*SetLdapConfigResponse)(nil),              // 28: harness.auth.v1.SetLdapConfigResponse
+	(*TestLdapConnectionRequest)(nil),          // 29: harness.auth.v1.TestLdapConnectionRequest
+	(*TestLdapConnectionResponse)(nil),         // 30: harness.auth.v1.TestLdapConnectionResponse
+	(*TestLdapUserRequest)(nil),                // 31: harness.auth.v1.TestLdapUserRequest
+	(*TestLdapUserResponse)(nil),               // 32: harness.auth.v1.TestLdapUserResponse
+	(*PermissionModePolicy)(nil),               // 33: harness.auth.v1.PermissionModePolicy
+	(*GetPermissionModePolicyRequest)(nil),     // 34: harness.auth.v1.GetPermissionModePolicyRequest
+	(*GetPermissionModePolicyResponse)(nil),    // 35: harness.auth.v1.GetPermissionModePolicyResponse
+	(*SetPermissionModePolicyRequest)(nil),     // 36: harness.auth.v1.SetPermissionModePolicyRequest
+	(*SetPermissionModePolicyResponse)(nil),    // 37: harness.auth.v1.SetPermissionModePolicyResponse
+	(*LocalModelPolicy)(nil),                   // 38: harness.auth.v1.LocalModelPolicy
+	(*GetLocalModelPolicyRequest)(nil),         // 39: harness.auth.v1.GetLocalModelPolicyRequest
+	(*GetLocalModelPolicyResponse)(nil),        // 40: harness.auth.v1.GetLocalModelPolicyResponse
+	(*SetLocalModelPolicyRequest)(nil),         // 41: harness.auth.v1.SetLocalModelPolicyRequest
+	(*SetLocalModelPolicyResponse)(nil),        // 42: harness.auth.v1.SetLocalModelPolicyResponse
+	(User_Role)(0),                             // 43: harness.auth.v1.User.Role
+	(UserSource)(0),                            // 44: harness.auth.v1.UserSource
+	(*Device)(nil),                             // 45: harness.auth.v1.Device
+	(v1.PermissionMode)(0),                     // 46: harness.agent.v1.PermissionMode
+	(*ListProviderLimitsPoliciesRequest)(nil),  // 47: harness.auth.v1.ListProviderLimitsPoliciesRequest
+	(*SetProviderLimitsPolicyRequest)(nil),     // 48: harness.auth.v1.SetProviderLimitsPolicyRequest
+	(*ListProviderLimitsPoliciesResponse)(nil), // 49: harness.auth.v1.ListProviderLimitsPoliciesResponse
+	(*SetProviderLimitsPolicyResponse)(nil),    // 50: harness.auth.v1.SetProviderLimitsPolicyResponse
 }
 var file_harness_auth_v1_admin_proto_depIdxs = []int32{
-	42, // 0: harness.auth.v1.AdminUser.role:type_name -> harness.auth.v1.User.Role
-	43, // 1: harness.auth.v1.AdminUser.source:type_name -> harness.auth.v1.UserSource
-	1,  // 2: harness.auth.v1.ListUsersResponse.users:type_name -> harness.auth.v1.AdminUser
-	42, // 3: harness.auth.v1.CreateUserRequest.role:type_name -> harness.auth.v1.User.Role
-	1,  // 4: harness.auth.v1.CreateUserResponse.user:type_name -> harness.auth.v1.AdminUser
-	42, // 5: harness.auth.v1.SetRoleRequest.role:type_name -> harness.auth.v1.User.Role
-	1,  // 6: harness.auth.v1.SetRoleResponse.user:type_name -> harness.auth.v1.AdminUser
-	1,  // 7: harness.auth.v1.SetDisabledResponse.user:type_name -> harness.auth.v1.AdminUser
-	44, // 8: harness.auth.v1.ListUserSessionsResponse.devices:type_name -> harness.auth.v1.Device
-	18, // 9: harness.auth.v1.ListUserProvidersResponse.providers:type_name -> harness.auth.v1.UserProvider
-	0,  // 10: harness.auth.v1.LdapConfig.local_login:type_name -> harness.auth.v1.LdapLocalLogin
-	23, // 11: harness.auth.v1.GetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
-	23, // 12: harness.auth.v1.SetLdapConfigRequest.config:type_name -> harness.auth.v1.LdapConfig
-	23, // 13: harness.auth.v1.SetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
-	23, // 14: harness.auth.v1.TestLdapConnectionRequest.config:type_name -> harness.auth.v1.LdapConfig
-	23, // 15: harness.auth.v1.TestLdapUserRequest.config:type_name -> harness.auth.v1.LdapConfig
-	45, // 16: harness.auth.v1.PermissionModePolicy.disabled_modes:type_name -> harness.agent.v1.PermissionMode
-	32, // 17: harness.auth.v1.GetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
-	32, // 18: harness.auth.v1.SetPermissionModePolicyRequest.policy:type_name -> harness.auth.v1.PermissionModePolicy
-	32, // 19: harness.auth.v1.SetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
-	37, // 20: harness.auth.v1.GetLocalModelPolicyResponse.policy:type_name -> harness.auth.v1.LocalModelPolicy
-	37, // 21: harness.auth.v1.SetLocalModelPolicyRequest.policy:type_name -> harness.auth.v1.LocalModelPolicy
-	37, // 22: harness.auth.v1.SetLocalModelPolicyResponse.policy:type_name -> harness.auth.v1.LocalModelPolicy
-	2,  // 23: harness.auth.v1.AdminService.ListUsers:input_type -> harness.auth.v1.ListUsersRequest
-	4,  // 24: harness.auth.v1.AdminService.CreateUser:input_type -> harness.auth.v1.CreateUserRequest
-	6,  // 25: harness.auth.v1.AdminService.ResetPassword:input_type -> harness.auth.v1.ResetPasswordRequest
-	8,  // 26: harness.auth.v1.AdminService.SetRole:input_type -> harness.auth.v1.SetRoleRequest
-	10, // 27: harness.auth.v1.AdminService.SetDisabled:input_type -> harness.auth.v1.SetDisabledRequest
-	12, // 28: harness.auth.v1.AdminService.DeleteUser:input_type -> harness.auth.v1.DeleteUserRequest
-	14, // 29: harness.auth.v1.AdminService.ListUserSessions:input_type -> harness.auth.v1.ListUserSessionsRequest
-	16, // 30: harness.auth.v1.AdminService.RevokeUserSessions:input_type -> harness.auth.v1.RevokeUserSessionsRequest
-	19, // 31: harness.auth.v1.AdminService.ListUserProviders:input_type -> harness.auth.v1.ListUserProvidersRequest
-	21, // 32: harness.auth.v1.AdminService.DeleteUserProvider:input_type -> harness.auth.v1.DeleteUserProviderRequest
-	24, // 33: harness.auth.v1.AdminService.GetLdapConfig:input_type -> harness.auth.v1.GetLdapConfigRequest
-	26, // 34: harness.auth.v1.AdminService.SetLdapConfig:input_type -> harness.auth.v1.SetLdapConfigRequest
-	28, // 35: harness.auth.v1.AdminService.TestLdapConnection:input_type -> harness.auth.v1.TestLdapConnectionRequest
-	30, // 36: harness.auth.v1.AdminService.TestLdapUser:input_type -> harness.auth.v1.TestLdapUserRequest
-	33, // 37: harness.auth.v1.AdminService.GetPermissionModePolicy:input_type -> harness.auth.v1.GetPermissionModePolicyRequest
-	35, // 38: harness.auth.v1.AdminService.SetPermissionModePolicy:input_type -> harness.auth.v1.SetPermissionModePolicyRequest
-	38, // 39: harness.auth.v1.AdminService.GetLocalModelPolicy:input_type -> harness.auth.v1.GetLocalModelPolicyRequest
-	40, // 40: harness.auth.v1.AdminService.SetLocalModelPolicy:input_type -> harness.auth.v1.SetLocalModelPolicyRequest
-	46, // 41: harness.auth.v1.AdminService.ListProviderLimitsPolicies:input_type -> harness.auth.v1.ListProviderLimitsPoliciesRequest
-	47, // 42: harness.auth.v1.AdminService.SetProviderLimitsPolicy:input_type -> harness.auth.v1.SetProviderLimitsPolicyRequest
-	3,  // 43: harness.auth.v1.AdminService.ListUsers:output_type -> harness.auth.v1.ListUsersResponse
-	5,  // 44: harness.auth.v1.AdminService.CreateUser:output_type -> harness.auth.v1.CreateUserResponse
-	7,  // 45: harness.auth.v1.AdminService.ResetPassword:output_type -> harness.auth.v1.ResetPasswordResponse
-	9,  // 46: harness.auth.v1.AdminService.SetRole:output_type -> harness.auth.v1.SetRoleResponse
-	11, // 47: harness.auth.v1.AdminService.SetDisabled:output_type -> harness.auth.v1.SetDisabledResponse
-	13, // 48: harness.auth.v1.AdminService.DeleteUser:output_type -> harness.auth.v1.DeleteUserResponse
-	15, // 49: harness.auth.v1.AdminService.ListUserSessions:output_type -> harness.auth.v1.ListUserSessionsResponse
-	17, // 50: harness.auth.v1.AdminService.RevokeUserSessions:output_type -> harness.auth.v1.RevokeUserSessionsResponse
-	20, // 51: harness.auth.v1.AdminService.ListUserProviders:output_type -> harness.auth.v1.ListUserProvidersResponse
-	22, // 52: harness.auth.v1.AdminService.DeleteUserProvider:output_type -> harness.auth.v1.DeleteUserProviderResponse
-	25, // 53: harness.auth.v1.AdminService.GetLdapConfig:output_type -> harness.auth.v1.GetLdapConfigResponse
-	27, // 54: harness.auth.v1.AdminService.SetLdapConfig:output_type -> harness.auth.v1.SetLdapConfigResponse
-	29, // 55: harness.auth.v1.AdminService.TestLdapConnection:output_type -> harness.auth.v1.TestLdapConnectionResponse
-	31, // 56: harness.auth.v1.AdminService.TestLdapUser:output_type -> harness.auth.v1.TestLdapUserResponse
-	34, // 57: harness.auth.v1.AdminService.GetPermissionModePolicy:output_type -> harness.auth.v1.GetPermissionModePolicyResponse
-	36, // 58: harness.auth.v1.AdminService.SetPermissionModePolicy:output_type -> harness.auth.v1.SetPermissionModePolicyResponse
-	39, // 59: harness.auth.v1.AdminService.GetLocalModelPolicy:output_type -> harness.auth.v1.GetLocalModelPolicyResponse
-	41, // 60: harness.auth.v1.AdminService.SetLocalModelPolicy:output_type -> harness.auth.v1.SetLocalModelPolicyResponse
-	48, // 61: harness.auth.v1.AdminService.ListProviderLimitsPolicies:output_type -> harness.auth.v1.ListProviderLimitsPoliciesResponse
-	49, // 62: harness.auth.v1.AdminService.SetProviderLimitsPolicy:output_type -> harness.auth.v1.SetProviderLimitsPolicyResponse
-	43, // [43:63] is the sub-list for method output_type
-	23, // [23:43] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	43, // 0: harness.auth.v1.AdminUser.role:type_name -> harness.auth.v1.User.Role
+	44, // 1: harness.auth.v1.AdminUser.source:type_name -> harness.auth.v1.UserSource
+	43, // 2: harness.auth.v1.GroupRoleMapping.role:type_name -> harness.auth.v1.User.Role
+	1,  // 3: harness.auth.v1.ListUsersResponse.users:type_name -> harness.auth.v1.AdminUser
+	43, // 4: harness.auth.v1.CreateUserRequest.role:type_name -> harness.auth.v1.User.Role
+	1,  // 5: harness.auth.v1.CreateUserResponse.user:type_name -> harness.auth.v1.AdminUser
+	43, // 6: harness.auth.v1.SetRoleRequest.role:type_name -> harness.auth.v1.User.Role
+	1,  // 7: harness.auth.v1.SetRoleResponse.user:type_name -> harness.auth.v1.AdminUser
+	1,  // 8: harness.auth.v1.SetDisabledResponse.user:type_name -> harness.auth.v1.AdminUser
+	45, // 9: harness.auth.v1.ListUserSessionsResponse.devices:type_name -> harness.auth.v1.Device
+	19, // 10: harness.auth.v1.ListUserProvidersResponse.providers:type_name -> harness.auth.v1.UserProvider
+	0,  // 11: harness.auth.v1.LdapConfig.local_login:type_name -> harness.auth.v1.LdapLocalLogin
+	2,  // 12: harness.auth.v1.LdapConfig.role_mappings:type_name -> harness.auth.v1.GroupRoleMapping
+	24, // 13: harness.auth.v1.GetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
+	24, // 14: harness.auth.v1.SetLdapConfigRequest.config:type_name -> harness.auth.v1.LdapConfig
+	24, // 15: harness.auth.v1.SetLdapConfigResponse.config:type_name -> harness.auth.v1.LdapConfig
+	24, // 16: harness.auth.v1.TestLdapConnectionRequest.config:type_name -> harness.auth.v1.LdapConfig
+	24, // 17: harness.auth.v1.TestLdapUserRequest.config:type_name -> harness.auth.v1.LdapConfig
+	43, // 18: harness.auth.v1.TestLdapUserResponse.role:type_name -> harness.auth.v1.User.Role
+	46, // 19: harness.auth.v1.PermissionModePolicy.disabled_modes:type_name -> harness.agent.v1.PermissionMode
+	33, // 20: harness.auth.v1.GetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
+	33, // 21: harness.auth.v1.SetPermissionModePolicyRequest.policy:type_name -> harness.auth.v1.PermissionModePolicy
+	33, // 22: harness.auth.v1.SetPermissionModePolicyResponse.policy:type_name -> harness.auth.v1.PermissionModePolicy
+	38, // 23: harness.auth.v1.GetLocalModelPolicyResponse.policy:type_name -> harness.auth.v1.LocalModelPolicy
+	38, // 24: harness.auth.v1.SetLocalModelPolicyRequest.policy:type_name -> harness.auth.v1.LocalModelPolicy
+	38, // 25: harness.auth.v1.SetLocalModelPolicyResponse.policy:type_name -> harness.auth.v1.LocalModelPolicy
+	3,  // 26: harness.auth.v1.AdminService.ListUsers:input_type -> harness.auth.v1.ListUsersRequest
+	5,  // 27: harness.auth.v1.AdminService.CreateUser:input_type -> harness.auth.v1.CreateUserRequest
+	7,  // 28: harness.auth.v1.AdminService.ResetPassword:input_type -> harness.auth.v1.ResetPasswordRequest
+	9,  // 29: harness.auth.v1.AdminService.SetRole:input_type -> harness.auth.v1.SetRoleRequest
+	11, // 30: harness.auth.v1.AdminService.SetDisabled:input_type -> harness.auth.v1.SetDisabledRequest
+	13, // 31: harness.auth.v1.AdminService.DeleteUser:input_type -> harness.auth.v1.DeleteUserRequest
+	15, // 32: harness.auth.v1.AdminService.ListUserSessions:input_type -> harness.auth.v1.ListUserSessionsRequest
+	17, // 33: harness.auth.v1.AdminService.RevokeUserSessions:input_type -> harness.auth.v1.RevokeUserSessionsRequest
+	20, // 34: harness.auth.v1.AdminService.ListUserProviders:input_type -> harness.auth.v1.ListUserProvidersRequest
+	22, // 35: harness.auth.v1.AdminService.DeleteUserProvider:input_type -> harness.auth.v1.DeleteUserProviderRequest
+	25, // 36: harness.auth.v1.AdminService.GetLdapConfig:input_type -> harness.auth.v1.GetLdapConfigRequest
+	27, // 37: harness.auth.v1.AdminService.SetLdapConfig:input_type -> harness.auth.v1.SetLdapConfigRequest
+	29, // 38: harness.auth.v1.AdminService.TestLdapConnection:input_type -> harness.auth.v1.TestLdapConnectionRequest
+	31, // 39: harness.auth.v1.AdminService.TestLdapUser:input_type -> harness.auth.v1.TestLdapUserRequest
+	34, // 40: harness.auth.v1.AdminService.GetPermissionModePolicy:input_type -> harness.auth.v1.GetPermissionModePolicyRequest
+	36, // 41: harness.auth.v1.AdminService.SetPermissionModePolicy:input_type -> harness.auth.v1.SetPermissionModePolicyRequest
+	39, // 42: harness.auth.v1.AdminService.GetLocalModelPolicy:input_type -> harness.auth.v1.GetLocalModelPolicyRequest
+	41, // 43: harness.auth.v1.AdminService.SetLocalModelPolicy:input_type -> harness.auth.v1.SetLocalModelPolicyRequest
+	47, // 44: harness.auth.v1.AdminService.ListProviderLimitsPolicies:input_type -> harness.auth.v1.ListProviderLimitsPoliciesRequest
+	48, // 45: harness.auth.v1.AdminService.SetProviderLimitsPolicy:input_type -> harness.auth.v1.SetProviderLimitsPolicyRequest
+	4,  // 46: harness.auth.v1.AdminService.ListUsers:output_type -> harness.auth.v1.ListUsersResponse
+	6,  // 47: harness.auth.v1.AdminService.CreateUser:output_type -> harness.auth.v1.CreateUserResponse
+	8,  // 48: harness.auth.v1.AdminService.ResetPassword:output_type -> harness.auth.v1.ResetPasswordResponse
+	10, // 49: harness.auth.v1.AdminService.SetRole:output_type -> harness.auth.v1.SetRoleResponse
+	12, // 50: harness.auth.v1.AdminService.SetDisabled:output_type -> harness.auth.v1.SetDisabledResponse
+	14, // 51: harness.auth.v1.AdminService.DeleteUser:output_type -> harness.auth.v1.DeleteUserResponse
+	16, // 52: harness.auth.v1.AdminService.ListUserSessions:output_type -> harness.auth.v1.ListUserSessionsResponse
+	18, // 53: harness.auth.v1.AdminService.RevokeUserSessions:output_type -> harness.auth.v1.RevokeUserSessionsResponse
+	21, // 54: harness.auth.v1.AdminService.ListUserProviders:output_type -> harness.auth.v1.ListUserProvidersResponse
+	23, // 55: harness.auth.v1.AdminService.DeleteUserProvider:output_type -> harness.auth.v1.DeleteUserProviderResponse
+	26, // 56: harness.auth.v1.AdminService.GetLdapConfig:output_type -> harness.auth.v1.GetLdapConfigResponse
+	28, // 57: harness.auth.v1.AdminService.SetLdapConfig:output_type -> harness.auth.v1.SetLdapConfigResponse
+	30, // 58: harness.auth.v1.AdminService.TestLdapConnection:output_type -> harness.auth.v1.TestLdapConnectionResponse
+	32, // 59: harness.auth.v1.AdminService.TestLdapUser:output_type -> harness.auth.v1.TestLdapUserResponse
+	35, // 60: harness.auth.v1.AdminService.GetPermissionModePolicy:output_type -> harness.auth.v1.GetPermissionModePolicyResponse
+	37, // 61: harness.auth.v1.AdminService.SetPermissionModePolicy:output_type -> harness.auth.v1.SetPermissionModePolicyResponse
+	40, // 62: harness.auth.v1.AdminService.GetLocalModelPolicy:output_type -> harness.auth.v1.GetLocalModelPolicyResponse
+	42, // 63: harness.auth.v1.AdminService.SetLocalModelPolicy:output_type -> harness.auth.v1.SetLocalModelPolicyResponse
+	49, // 64: harness.auth.v1.AdminService.ListProviderLimitsPolicies:output_type -> harness.auth.v1.ListProviderLimitsPoliciesResponse
+	50, // 65: harness.auth.v1.AdminService.SetProviderLimitsPolicy:output_type -> harness.auth.v1.SetProviderLimitsPolicyResponse
+	46, // [46:66] is the sub-list for method output_type
+	26, // [26:46] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_harness_auth_v1_admin_proto_init() }
@@ -2737,7 +2841,7 @@ func file_harness_auth_v1_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_auth_v1_admin_proto_rawDesc), len(file_harness_auth_v1_admin_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   41,
+			NumMessages:   42,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

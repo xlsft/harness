@@ -87,7 +87,7 @@ func sameLaunchConfig(a, b *mcpv1.Server) bool {
 // project_key), creating missing ones and updating changed launch configs. Server-side fields
 // (enabled, always_load, secrets, overrides) are kept. It reports whether anything changed.
 func (m *Manager) syncProject(ctx context.Context, existing []*mcpv1.Server) bool {
-	changed, problems := syncProjectFile(ctx, m.o.Client, m.o.ProjectConfig, m.o.ProjectKey, existing)
+	changed, problems := syncProjectFile(ctx, m.o.Client, m.o.ProjectConfig, m.o.ProjectKey, existing, m.o.PolicyAllows)
 	for _, p := range problems {
 		m.warn("%s", p)
 	}
@@ -95,7 +95,7 @@ func (m *Manager) syncProject(ctx context.Context, existing []*mcpv1.Server) boo
 }
 
 // syncProjectFile registers a trusted repository's .mcp.json servers (only call it for a trusted folder).
-func syncProjectFile(ctx context.Context, client *Client, path, projectKey string, existing []*mcpv1.Server) (bool, []string) {
+func syncProjectFile(ctx context.Context, client *Client, path, projectKey string, existing []*mcpv1.Server, allowed func(string) bool) (bool, []string) {
 	if projectKey == "" {
 		return false, nil
 	}
@@ -116,6 +116,10 @@ func syncProjectFile(ctx context.Context, client *Client, path, projectKey strin
 	changed := false
 	var problems []string
 	for _, w := range want {
+		if allowed != nil && !allowed(w.GetName()) {
+			problems = append(problems, fmt.Sprintf("project MCP server %s is not allowed by your organization's policy", w.GetName()))
+			continue
+		}
 		cur := have[w.GetName()]
 		switch {
 		case cur == nil:

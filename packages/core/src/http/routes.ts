@@ -29,6 +29,12 @@ export const routes: RouteDef[] = [
   { route: "/harness.vcs.v1.VcsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.ProviderLimitsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.objects.v1.ObjectsService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.auth.v1.AuditService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.auth.v1.BillingService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.auth.v1.DirectoryService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.auth.v1.MfaService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.auth.v1.PolicyService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.auth.v1.SsoService/**", handler: "./src/http/routes/rpc.ts" },
 
   // Object bytes (ObjectsService writes): ranges, safe content types
   { route: "/api/objects/:sha256", handler: "./src/http/routes/object.ts" },
@@ -36,6 +42,10 @@ export const routes: RouteDef[] = [
   // Better Auth (web sessions, admin plugin) and the device approval page stay plain HTTP
   { route: "/api/auth/**", handler: "./src/http/routes/better-auth.ts" },
   { route: "/device", handler: "./src/http/routes/device-page.ts" },
+  // Identity provider sign-in (auth/sso-sign-in.ts): start, OIDC callback, SAML ACS and metadata
+  { route: "/api/sso/:id/**", handler: "./src/http/routes/sso.ts" },
+  // SCIM 2.0 provisioning (src/scim), with its own bearer tokens
+  { route: "/scim/v2/**", handler: "./src/http/routes/scim.ts" },
   // OAuth redirect target for remote MCP servers (McpService.StartOAuth)
   { route: "/api/mcp/oauth/callback", method: "get", handler: "./src/http/routes/mcp-oauth-callback.ts" },
   // Code hosts (VcsService): webhooks, per-user OAuth redirect, GitHub App manifest / setup redirects
@@ -56,8 +66,13 @@ export const routes: RouteDef[] = [
   { route: "/api/admin/models/:id", handler: "./src/http/routes/admin-model.ts" },
   { route: "/api/admin/slots", handler: "./src/http/routes/admin-slots.ts" },
   { route: "/api/admin/usage", method: "get", handler: "./src/http/routes/admin-usage.ts" },
+  { route: "/api/admin/usage.csv", method: "get", handler: "./src/http/routes/admin-csv.ts" },
+  { route: "/api/admin/audit.csv", method: "get", handler: "./src/http/routes/admin-csv.ts" },
   { route: "/api/admin/quotas", handler: "./src/http/routes/admin-quotas.ts" },
   { route: "/api/admin/decision", handler: "./src/http/routes/admin-decision.ts" },
   { route: "/api/admin/decision/log", method: "get", handler: "./src/http/routes/admin-decision-log.ts" },
   { route: "/api/admin/mcp/servers/:id", handler: "./src/http/routes/admin-mcp-server.ts" },
+
+  // The web UI, when the image ships it (HARNESS_WEB_DIR). Last: everything above takes precedence.
+  { route: "/**", method: "get", handler: "./src/http/routes/web.ts" },
 ];

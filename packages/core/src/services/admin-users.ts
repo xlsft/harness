@@ -12,11 +12,13 @@ import { and, asc, count, eq, ilike, inArray, isNull, max, or } from "drizzle-or
 import { getAuth } from "../auth/better-auth.ts";
 import { activeAdminCount } from "../auth/admins.ts";
 import { LDAP_PROVIDER_ID } from "../auth/ldap-sign-in.ts";
+import { normalizeRole, parseRole, type Role } from "../auth/roles.ts";
+import { groupNamesOf } from "./groups.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import { revokeDevice } from "./devices.ts";
 
-export type Role = "admin" | "user";
+export type { Role };
 
 export interface AdminUserView {
   id: string;
@@ -24,7 +26,9 @@ export interface AdminUserView {
   username: string;
   email: string;
   role: Role;
-  source: "local" | "ldap";
+  source: "local" | "ldap" | "sso" | "scim";
+  mfa_enabled: boolean;
+  groups: string[];
   disabled: boolean;
   disabled_reason: string;
   created_at: string;
@@ -70,19 +74,27 @@ async function isLdapUser(userId: string): Promise<boolean> {
   return !!row;
 }
 
+async function isSsoUser(userId: string): Promise<boolean> {
+  const rows = await getDb().select({ providerId: schema.account.providerId }).from(schema.account).where(eq(schema.account.userId, userId));
+  return rows.some((r) => r.providerId.startsWith("sso:"));
+}
+
 /** Account rows for display, with sign-in source and activity. */
 async function views(users: UserRow[]): Promise<AdminUserView[]> {
   if (!users.length) return [];
   const db = getDb();
   const ids = users.map((u) => u.id);
-  const ldap = new Set(
-    (
-      await db
-        .select({ userId: schema.account.userId })
-        .from(schema.account)
-        .where(and(inArray(schema.account.userId, ids), eq(schema.account.providerId, LDAP_PROVIDER_ID)))
-    ).map((r) => r.userId),
-  );
+  const accounts = await db.select({ userId: schema.account.userId, providerId: schema.account.providerId, password: schema.account.password }).from(schema.account).where(inArray(schema.account.userId, ids));
+  const sourceOf = (id: string): AdminUserView["source"] => {
+    const mine = accounts.filter((a) => a.userId === id);
+    if (mine.some((a) => a.providerId === LDAP_PROVIDER_ID)) return "ldap";
+    if (mine.some((a) => a.providerId.startsWith("sso:"))) return "sso";
+    if (scim.has(id) && !mine.some((a) => a.password)) return "scim";
+    return "local";
+  };
+  const scim = new Set((await db.select({ userId: schema.scimIdentity.userId }).from(schema.scimIdentity).where(inArray(schema.scimIdentity.userId, ids))).map((r) => r.userId));
+  const mfa = new Set((await db.select({ userId: schema.userMfa.userId, enabledAt: schema.userMfa.enabledAt }).from(schema.userMfa).where(inArray(schema.userMfa.userId, ids))).filter((r) => r.enabledAt).map((r) => r.userId));
+  const groups = await groupNamesOf(ids);
   const sessions = new Map(
     (
       await db
@@ -108,8 +120,10 @@ async function views(users: UserRow[]): Promise<AdminUserView[]> {
       name: u.name,
       username: u.username ?? "",
       email: u.email,
-      role: u.role === "admin" ? "admin" : "user",
-      source: ldap.has(u.id) ? "ldap" : "local",
+      role: normalizeRole(u.role),
+      source: sourceOf(u.id),
+      mfa_enabled: mfa.has(u.id),
+      groups: groups.get(u.id) ?? [],
       disabled: !!u.banned,
       disabled_reason: u.banned ? (u.banReason ?? "") : "",
       created_at: iso(u.createdAt),
@@ -168,7 +182,7 @@ export async function createUser(input: CreateUserInput): Promise<{ user: AdminU
   const created = await ctx.internalAdapter.createUser({
     email,
     name,
-    role: input.role === "admin" ? "admin" : "user",
+    role: normalizeRole(input.role),
     ...(username ? { username, displayUsername: input.username!.trim() } : {}),
   }, { method: "admin" });
   if (input.ldap) await ctx.internalAdapter.createAccount({ userId: created.id, providerId: LDAP_PROVIDER_ID, accountId: username });
@@ -179,6 +193,7 @@ export async function createUser(input: CreateUserInput): Promise<{ user: AdminU
 export async function resetPassword(userId: string, opts: { password?: string; generate?: boolean; revoke_sessions?: boolean }): Promise<{ generated_password: string }> {
   const u = await findUser(userId);
   if (await isLdapUser(u.id)) throw new ApiError("failed_precondition", "This user signs in through LDAP; their password is managed in the directory");
+  if (await isSsoUser(u.id)) throw new ApiError("failed_precondition", "This user signs in through SSO; their password is managed at the identity provider");
   const generated = opts.generate ? generatePassword() : "";
   const password = generated || opts.password || "";
   checkPassword(password);
@@ -192,7 +207,7 @@ export async function resetPassword(userId: string, opts: { password?: string; g
 
 export async function setRole(userId: string, role: Role): Promise<AdminUserView> {
   const u = await findUser(userId);
-  if (role !== "admin" && role !== "user") throw new ApiError("invalid_request", "Role must be admin or user");
+  parseRole(role);
   if (u.role === "admin" && role !== "admin" && !u.banned && (await activeAdminCount(u.id)) === 0) {
     throw new ApiError("failed_precondition", "This is the last admin; make someone else an admin first");
   }

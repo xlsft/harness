@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+// AuditService reads the general audit log: sign-ins, admin changes, provider key changes, policy changes, provisioning.
+// Admins and auditors only. Events never carry secrets: a change says that something changed, not its value.
+service AuditService {
+  // Newest first.
+  rpc ListAuditEvents(ListAuditEventsRequest) returns (ListAuditEventsResponse);
+  // The events matching the filter as CSV, newest first, up to a limit (truncated says the limit was hit).
+  rpc ExportAuditCsv(ExportAuditCsvRequest) returns (ExportAuditCsvResponse);
+}
+
+message AuditFilter {
+  // What was done: an exact action ("user.create") or a category ("user", "auth", "policy", ...).
+  string action = 1;
+  // Substring of the actor's id or label.
+  string actor = 2;
+  // Substring of the target's id or label.
+  string target = 3;
+  // "success" or "failure". Empty: both.
+  string outcome = 4;
+  // RFC 3339. Empty: unbounded.
+  string from = 5;
+  string to = 6;
+}
+
+message AuditEvent {
+  string id = 1;
+  // RFC 3339, UTC.
+  string at = 2;
+  // "user.create", "auth.sign_in", "policy.managed.update", ...
+  string action = 3;
+  string outcome = 4;
+  // Who did it: a user id and label, "scim:<token name>" for provisioning, empty for an anonymous attempt.
+  string actor_id = 5;
+  string actor = 6;
+  string actor_ip = 7;
+  string target_type = 8;
+  string target_id = 9;
+  string target = 10;
+  // JSON object with non-secret details.
+  string details_json = 11;
+}
+
+message ListAuditEventsRequest {
+  AuditFilter filter = 1;
+  // 0: 100; at most 500.
+  int32 limit = 2;
+  // next_page_token of the previous page.
+  string page_token = 3;
+}
+
+message ListAuditEventsResponse {
+  repeated AuditEvent events = 1;
+  // Empty on the last page.
+  string next_page_token = 2;
+}
+
+message ExportAuditCsvRequest {
+  AuditFilter filter = 1;
+}
+
+message ExportAuditCsvResponse {
+  bytes csv = 1;
+  int32 rows = 2;
+  bool truncated = 3;
+}

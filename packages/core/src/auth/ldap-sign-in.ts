@@ -18,7 +18,9 @@ import { setSessionCookie } from "better-auth/cookies";
 import { and, eq } from "drizzle-orm";
 import * as z from "zod";
 import { getDb, schema } from "../db/index.ts";
+import { syncSourceGroups } from "../services/groups.ts";
 import { activeAdminCount } from "./admins.ts";
+import type { Role } from "./roles.ts";
 import { getLdapRuntimeConfig, type LdapRuntimeConfig } from "./ldap-config.ts";
 import { authenticate, LdapUnavailableError, type DirectoryUser } from "./ldap.ts";
 
@@ -63,9 +65,10 @@ class FailureLimiter {
 }
 
 const limiter = new FailureLimiter();
+export const loginLimiter = limiter;
 
 /** HARNESS_LOGIN_FAILURES_PER_15MIN (default 10) failed sign-ins per login; five times that per address. */
-function loginLimit(): number {
+export function loginLimit(): number {
   const n = Number.parseInt(process.env.HARNESS_LOGIN_FAILURES_PER_15MIN ?? "", 10);
   return Number.isFinite(n) && n >= 0 ? n : 10;
 }
@@ -102,6 +105,13 @@ export async function findLdapUser(username: string): Promise<UserRow | undefine
   return row?.user;
 }
 
+/** The role the directory gives this user; undefined when roles are managed in Users. */
+function directoryRole(du: DirectoryUser, cfg: LdapRuntimeConfig): Role | undefined {
+  if (cfg.admin_group_dn && du.admin) return "admin";
+  if (cfg.role_mappings.length) return du.mapped_role;
+  return cfg.admin_group_dn ? "user" : undefined;
+}
+
 /**
  * Creates or updates the local account of a directory user who just authenticated. Refuses when auto-creation
  * is off and no account is linked, or when an unlinked local account already has the email or username (it is
@@ -121,11 +131,10 @@ export async function provisionLdapUser(du: DirectoryUser, cfg: LdapRuntimeConfi
       const taken = await db.query.user.findFirst({ where: eq(schema.user.email, email) });
       if (!taken) set.email = email;
     }
-    if (cfg.admin_group_dn) {
-      const role = du.admin ? "admin" : "user";
-      // The directory never demotes the last admin.
-      if (role !== existing.role && (role === "admin" || (await activeAdminCount(existing.id)) > 0)) set.role = role;
-    }
+    const role = directoryRole(du, cfg);
+    // The directory never demotes the last admin.
+    if (role && role !== existing.role && (role === "admin" || existing.role !== "admin" || (await activeAdminCount(existing.id)) > 0)) set.role = role;
+    await syncSourceGroups(existing.id, "ldap", du.groups);
     if (!Object.keys(set).length) return existing;
     const [row] = await db.update(schema.user).set({ ...set, updatedAt: new Date() }).where(eq(schema.user.id, existing.id)).returning();
     return row!;
@@ -141,10 +150,11 @@ export async function provisionLdapUser(du: DirectoryUser, cfg: LdapRuntimeConfi
     email,
     name,
     emailVerified: !!du.email,
-    role: cfg.admin_group_dn && du.admin ? "admin" : undefined,
+    role: directoryRole(du, cfg),
     ...(usable ? { username: handle, displayUsername: du.username } : {}),
   }, { method: "ldap" });
   await accounts.createAccount({ userId: created.id, providerId: LDAP_PROVIDER_ID, accountId: handle });
+  await syncSourceGroups(created.id, "ldap", du.groups);
   return (await db.query.user.findFirst({ where: eq(schema.user.id, created.id) }))!;
 }
 
@@ -177,7 +187,7 @@ async function verifyLocal(ctx: PasswordCtx, login: string, password: string): P
   return (await ctx.context.password.verify({ hash: account.password, password })) ? user! : undefined;
 }
 
-function tooMany(ms: number): APIError {
+export function tooManyAttempts(ms: number): APIError {
   return new APIError("TOO_MANY_REQUESTS", { message: "Too many failed sign-in attempts; try again later." }, { "retry-after": String(Math.ceil(ms / 1000)) });
 }
 
@@ -193,7 +203,7 @@ export function ldapSignIn(): BetterAuthPlugin {
         const ipKey = `ip:${ctx.request?.headers.get(AUTH_PEER_IP_HEADER) || "unknown"}`;
         const loginKey = `login:${login.toLowerCase()}`;
         const wait = Math.max(limiter.retryAfter(loginKey, loginLimit()), limiter.retryAfter(ipKey, loginLimit() * 5));
-        if (wait > 0) throw tooMany(wait);
+        if (wait > 0) throw tooManyAttempts(wait);
         const failed = (message = "Invalid login or password", status: "UNAUTHORIZED" | "FORBIDDEN" = "UNAUTHORIZED") => {
           limiter.fail(loginKey);
           limiter.fail(ipKey);

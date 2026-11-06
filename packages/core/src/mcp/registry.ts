@@ -8,6 +8,7 @@
  *   WatchChanges subscribers learn about it and refetch through ListServers / GetServer.
  * - Secrets are write-only: values are encrypted per server and name, reads return names and has_value.
  */
+import { mcpAllowed, serverPolicyFor } from "../services/managed-policy.ts";
 import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { Scope } from "../gen/harness/common/v1/scope_pb.ts";
@@ -153,7 +154,22 @@ export async function visibleRows(user: PublicUser, f: Partial<ListFilter> = {})
     .from(s)
     .where(and(or(...conds), f.includeDisabled ? undefined : eq(s.enabled, true)))
     .orderBy(asc(s.scope), asc(s.name));
-  return rows.filter((r) => canSee(r, user));
+  // The management views ask for disabled servers too and see everything they may administer; everything that leads
+  // to using a server asks for enabled ones, and those obey the managed policy.
+  const policy = f.includeDisabled ? undefined : await serverPolicyFor(user);
+  return rows.filter((r) => canSee(r, user) && (!policy || mcpAllowed(policy, r.name)));
+}
+
+/** Every server name known to the server (the managed policy's form offers them). */
+export async function listAllMcpNames(): Promise<string[]> {
+  await ensureDb();
+  const rows = await getDb().selectDistinct({ name: schema.mcpServer.name }).from(schema.mcpServer).orderBy(asc(schema.mcpServer.name));
+  return rows.map((r) => r.name);
+}
+
+/** Refuses a server the managed policy does not allow. */
+export async function assertMcpAllowed(user: PublicUser, name: string): Promise<void> {
+  if (!mcpAllowed(await serverPolicyFor(user), name)) throw new ApiError("permission", `Your organization does not allow the MCP server ${name}`);
 }
 
 export async function listServers(p: Principal, f: Partial<ListFilter>): Promise<ServerView[]> {
@@ -226,6 +242,7 @@ function assertMaySetPrivate(user: PublicUser): void {
 
 export async function createServer(p: Principal, input: ServerInput | undefined, secretChanges?: SecretChangesInput): Promise<ServerView> {
   const v = validateServer(input, p.user.role === "admin");
+  if (v.scope !== Scope.ORG) await assertMcpAllowed(p.user, v.name);
   const allowPrivateNetwork = !!input?.allowPrivateNetwork;
   if (allowPrivateNetwork) assertMaySetPrivate(p.user);
   const ch = validateSecretChanges(secretChanges);

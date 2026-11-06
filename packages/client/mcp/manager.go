@@ -60,6 +60,9 @@ type Options struct {
 	// ProjectConfig is the path of the repository's .mcp.json. Its servers are registered on the
 	// server as SCOPE_PROJECT (only set it for trusted workspaces).
 	ProjectConfig string
+	// PolicyAllows says whether the organization's managed policy allows a server by name (nil: all). A repository's
+	// .mcp.json cannot add a server it does not; the server enforces the same list for everything it knows of.
+	PolicyAllows func(name string) bool
 	// Approvals is the local stdio approval store (nil: nothing is remembered).
 	Approvals *Approvals
 	// AutoApprove names stdio servers approved without asking ("*" approves all), e.g. from

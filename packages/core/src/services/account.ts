@@ -24,7 +24,7 @@ export interface Profile extends PublicUser {
   image: string;
   /** The avatar in the object store; undefined when none is set, or it has not moved there yet. */
   image_object?: { sha256: string; size: number; media_type: string };
-  source: "local" | "ldap";
+  source: "local" | "ldap" | "sso" | "scim";
   created_at: string;
   /** Latest web sign-in; "" when never. */
   last_sign_in_at: string;
@@ -45,6 +45,14 @@ async function findSelf(p: Principal): Promise<UserRow> {
   return u;
 }
 
+async function sourceOf(userId: string): Promise<Profile["source"]> {
+  const rows = await getDb().select({ providerId: schema.account.providerId, password: schema.account.password }).from(schema.account).where(eq(schema.account.userId, userId));
+  if (rows.some((r) => r.providerId === LDAP_PROVIDER_ID)) return "ldap";
+  if (rows.some((r) => r.providerId.startsWith("sso:"))) return "sso";
+  if (!rows.some((r) => r.password) && (await getDb().query.scimIdentity.findFirst({ where: eq(schema.scimIdentity.userId, userId) }))) return "scim";
+  return "local";
+}
+
 async function isLdapUser(userId: string): Promise<boolean> {
   const row = await getDb().query.account.findFirst({
     where: and(eq(schema.account.userId, userId), eq(schema.account.providerId, LDAP_PROVIDER_ID)),
@@ -61,7 +69,7 @@ async function profileOf(u: UserRow): Promise<Profile> {
     ...toPublicUser(u),
     username: u.username ?? "",
     ...(await avatarOf(u)),
-    source: (await isLdapUser(u.id)) ? "ldap" : "local",
+    source: await sourceOf(u.id),
     created_at: u.createdAt.toISOString(),
     last_sign_in_at: s?.signIn ? s.signIn.toISOString() : "",
   };
@@ -86,7 +94,8 @@ export async function updateProfile(p: Principal, patch: ProfilePatch): Promise<
     if (!name) throw new ApiError("invalid_request", "Name is required");
     if (name.length > NAME_MAX) throw new ApiError("invalid_request", `Names have at most ${NAME_MAX} characters`);
     if (name !== u.name) {
-      if (await isLdapUser(u.id)) throw new ApiError("failed_precondition", "Your name comes from the directory (LDAP) and is updated at every sign-in");
+      if ((await sourceOf(u.id)) === "ldap") throw new ApiError("failed_precondition", "Your name comes from the directory (LDAP) and is updated at every sign-in");
+      if ((await sourceOf(u.id)) === "sso") throw new ApiError("failed_precondition", "Your name comes from your identity provider and is updated at every sign-in");
       set.name = name;
     }
   }

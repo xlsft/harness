@@ -29,6 +29,7 @@ import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEnt
 import { billingOf } from "./presets.ts";
 import { loadProviderRuntime, redactSecrets, type ProviderType } from "./providers.ts";
 import { enforceQuotas } from "./quotas.ts";
+import { countMetric, recordMetric } from "../telemetry/metrics.ts";
 
 const ADAPTERS: Record<ProviderType, Adapter> = {
   anthropic: anthropicAdapter,
@@ -378,6 +379,15 @@ async function recordUsage(r: {
       durationMs: r.durationMs,
       createdAt: new Date(),
     });
+  // Personal providers are their owner's business: counted, not named.
+  const attrs = { model: provider?.ownerUserId ? "personal" : r.model.id, provider: provider?.ownerUserId ? "personal" : r.model.providerId, status: r.status };
+  countMetric("harness.llm.requests", 1, attrs);
+  countMetric("harness.llm.tokens", r.usage.input_tokens, { ...attrs, kind: "input" });
+  countMetric("harness.llm.tokens", r.usage.output_tokens, { ...attrs, kind: "output" });
+  countMetric("harness.llm.tokens", r.usage.cache_read_input_tokens, { ...attrs, kind: "cache_read" });
+  countMetric("harness.llm.tokens", r.usage.cache_creation_input_tokens, { ...attrs, kind: "cache_write" });
+  if (!provider?.ownerUserId) countMetric("harness.llm.cost", computeCost(r.usage, pricing), attrs, "USD");
+  recordMetric("harness.llm.duration", r.durationMs, attrs, "ms");
 }
 
 // --- count_tokens --------------------------------------------------------------------

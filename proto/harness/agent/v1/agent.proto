@@ -11,6 +11,7 @@ import "harness/agent/v1/hooks.proto";
 import "harness/agent/v1/import.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
+import "harness/agent/v1/managed_policy.proto";
 import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
@@ -1509,6 +1510,9 @@ message UserPreferences {
   // The skills and custom commands the user turned off, by name (settings key disabledSkills). A name the current folder
   // doesn't have stays on the list, so a skill keeps its switch from one project and machine to the next.
   repeated string disabled_skills = 12;
+  // What the organization's managed policy imposes on this user; read only (managed_policy.proto). Nothing in
+  // UpdateUserPreferencesRequest can change it.
+  ManagedPolicyView managed_policy = 16;
 }
 
 // One switch of the Customize screen.
