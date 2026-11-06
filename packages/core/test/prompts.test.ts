@@ -88,6 +88,7 @@ describe("bundle builder", () => {
       monitor_stopped: ["task_id", "description", "pattern", "reason"],
       terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
       lsp_diagnostics: ["diagnostics"],
+      hook_context: ["event", "content"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason

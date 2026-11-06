@@ -63,7 +63,31 @@ const (
 	// SubtypeSessionMoved records that the running session moved to another folder or branch (content says where);
 	// replays show it as a notice.
 	SubtypeSessionMoved = "session_moved"
+	// SubtypeHookRun records a finished hook handler (hookRun holds it), replayed as SessionEvent.hook_run.
+	SubtypeHookRun = "hook_run"
 )
+
+// HookRun is one handler of one hook event at work.
+type HookRun struct {
+	ID string `json:"id"`
+	// Event is the event name; Type "command" or "http"; Command the command line or URL; Source the settings level.
+	Event   string `json:"event"`
+	Type    string `json:"type"`
+	Command string `json:"command"`
+	Matcher string `json:"matcher,omitempty"`
+	Source  string `json:"source,omitempty"`
+	// Status: "running" while it runs, then "ok", "blocked", "error", "timed_out" or "canceled".
+	Status   string `json:"status"`
+	ExitCode *int   `json:"exitCode,omitempty"`
+	Output   string `json:"output,omitempty"`
+	Decision string `json:"decision,omitempty"`
+	// Duration is in milliseconds.
+	Duration  int64  `json:"durationMs,omitempty"`
+	ToolName  string `json:"toolName,omitempty"`
+	ToolUseID string `json:"toolUseId,omitempty"`
+	AgentID   string `json:"agentId,omitempty"`
+	Async     bool   `json:"async,omitempty"`
+}
 
 // unchained entry types carry no uuid/parentUuid.
 func unchained(t string) bool {
@@ -195,6 +219,9 @@ type Entry struct {
 
 	// UsageLimit is set on SubtypeUsageLimit system entries.
 	UsageLimit *usagelimit.Status `json:"usageLimit,omitempty"`
+
+	// HookRun is set on SubtypeHookRun system entries.
+	HookRun *HookRun `json:"hookRun,omitempty"`
 
 	// ai-title / custom-title fields
 	AITitle     string `json:"aiTitle,omitempty"`

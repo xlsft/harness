@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { RespondToPermissionRequest_Decision, RespondToPlanRequest_Decision } from '~/gen/harness/agent/v1/agent_pb'
+import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
 import { createSessionState, reduce, reduceAll, sessionMeta } from '~/lib/session/reducer'
 import type { AssistantItem, PermissionItem, PlanItem, ToolItem } from '~/lib/session/types'
 import { EventBuilder, sessionInfo } from '~/lib/transport/events'
@@ -21,6 +22,32 @@ describe('changes the model makes to the session', () => {
     reduceAll(s, b.events)
     expect(s.meta).toMatchObject({ title: 'Renamed', model: 'other-model', effort: 'high', keepAwake: true })
     expect(s.items.at(-1)).toMatchObject({ kind: 'notice', noticeKind: 'session_model_changed', text: 'Model changed to Other by the agent.' })
+  })
+})
+
+describe('hook runs', () => {
+  it('are one row from start to end, in the order they happened', () => {
+    const { b, s } = setup()
+    b.user('u1', 'hi')
+    b.hookRun('r1', 'PreToolUse', 'check.sh', HookRun_Status.RUNNING, { toolName: 'Bash' })
+    reduceAll(s, b.events)
+    expect(s.items.at(-1)).toMatchObject({ kind: 'hook', id: 'r1', state: 'running', event: 'PreToolUse', command: 'check.sh', toolName: 'Bash' })
+    const seen = b.events.length
+    b.hookRun('r1', 'PreToolUse', 'check.sh', HookRun_Status.BLOCKED, { output: 'no writes today', decision: 'deny', durationMs: 40, toolName: 'Bash' })
+    b.hookRun('r2', 'Stop', 'lint.sh', HookRun_Status.OK)
+    reduceAll(s, b.events.slice(seen))
+    const hooks = s.items.filter(i => i.kind === 'hook')
+    expect(hooks).toHaveLength(2)
+    expect(hooks[0]).toMatchObject({ id: 'r1', state: 'blocked', output: 'no writes today', decision: 'deny', durationMs: 40 })
+    expect(hooks[1]).toMatchObject({ id: 'r2', state: 'ok' })
+  })
+
+  it('come from the real event in the demo scenario, not a notice', () => {
+    const { b, s } = setup()
+    b.hookRun('r1', 'PostToolUse', 'pnpm lint --fix', HookRun_Status.TIMED_OUT)
+    reduceAll(s, b.events)
+    expect(s.items.some(i => i.kind === 'notice')).toBe(false)
+    expect(s.items.at(-1)).toMatchObject({ kind: 'hook', state: 'timed_out' })
   })
 })
 
