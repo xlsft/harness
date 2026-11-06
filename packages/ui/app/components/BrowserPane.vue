@@ -32,6 +32,37 @@ const tabs = computed(() => state.value?.tabs ?? [])
 const tab = computed(() => tabs.value.find(t => t.id === state.value?.activeTabId) ?? tabs.value[0])
 const blank = computed(() => !tab.value?.url || tab.value.url === 'about:blank')
 const takenOver = computed(() => !!state.value?.takenOver)
+const realChrome = computed(() => !!state.value?.realChrome)
+const recording = computed(() => !!state.value?.recording)
+const chromeAvailable = ref(false)
+
+async function refreshChrome() {
+  try {
+    chromeAvailable.value = (await api().realChrome(props.session.meta.id)).available
+  } catch { chromeAvailable.value = false }
+}
+
+// Moves the session's browser to the user's Chrome or back; the view reconnects to what runs now.
+async function switchChrome(on: boolean) {
+  error.value = ''
+  try {
+    await api().useRealChrome(props.session.meta.id, on)
+    disconnect()
+    connect()
+    void refreshChrome()
+  } catch (e) {
+    error.value = message(e)
+  }
+}
+
+async function toggleRecording() {
+  error.value = ''
+  try {
+    await api().record(props.session.meta.id, !recording.value)
+  } catch (e) {
+    error.value = message(e)
+  }
+}
 
 function message(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
@@ -114,6 +145,7 @@ async function start() {
   try {
     availability.value = await api().availability()
     connect()
+    void refreshChrome()
   } catch (e) {
     error.value = message(e)
   }
@@ -369,6 +401,13 @@ async function copyUrl() {
         >
       </label>
       <PaneBtn
+        icon="play"
+        :label="recording ? 'Stop recording' : 'Record as GIF'"
+        :pressed="recording"
+        :disabled="!state"
+        @click="toggleRecording"
+      />
+      <PaneBtn
         icon="phone"
         label="Viewport"
         :pressed="viewportBar"
@@ -382,6 +421,38 @@ async function copyUrl() {
       :session-id="session.meta.id"
       :api="api()"
     />
+
+    <div
+      v-if="realChrome"
+      class="flex shrink-0 items-center gap-[9px] border-b border-line bg-surface px-3 py-1.5 text-[12px] text-muted"
+      role="status"
+    >
+      <HIcon
+        name="globe"
+        :size="14"
+        class="shrink-0 text-warn"
+      />
+      <span class="min-w-0 flex-1 truncate">In your own Chrome, with your sign-ins. The agent reaches only sites you allow.</span>
+      <HBtn @click="switchChrome(false)">
+        Back to its own browser
+      </HBtn>
+    </div>
+    <div
+      v-else-if="chromeAvailable && !remote"
+      class="flex shrink-0 items-center gap-[9px] border-b border-line px-3 py-1 text-[12px] text-muted"
+    >
+      <span class="min-w-0 flex-1 truncate">Chrome is running with remote debugging on.</span>
+      <HBtn @click="switchChrome(true)">
+        Use my Chrome
+      </HBtn>
+    </div>
+    <p
+      v-if="state?.lastRecording && !recording"
+      class="shrink-0 truncate border-b border-line px-3 py-1 text-[12px] text-muted"
+      role="status"
+    >
+      Recording saved: {{ state.lastRecording }}
+    </p>
 
     <!-- What the agent is doing here -->
     <div

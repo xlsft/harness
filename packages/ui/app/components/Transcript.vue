@@ -395,6 +395,11 @@ function toBottom() {
               :item="b.item"
               :session-id="session.meta.id"
             />
+            <BrowserSiteCard
+              v-else-if="b.item.kind === 'browserSite'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
             <ComputerAccessCard
               v-else-if="b.item.kind === 'computerAccess'"
               :item="b.item"

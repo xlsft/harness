@@ -121,6 +121,7 @@ watch(addApp, (id) => {
 </script>
 
 <template>
+  <SettingsRealChrome class="mb-6" />
   <section
     aria-label="Computer use"
     class="flex flex-col"

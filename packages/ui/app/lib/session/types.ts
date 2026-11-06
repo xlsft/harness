@@ -235,6 +235,16 @@ export interface ComputerAccessItem {
   approved: string[]
 }
 
+// The agent wants a site in the user's own Chrome (BrowserSiteRequested).
+export interface BrowserSiteItem {
+  kind: 'browserSite'
+  id: string
+  site: string
+  url: string
+  state: 'pending' | 'resolved' | 'cancelled'
+  answer: 'deny' | 'session' | 'always' | ''
+}
+
 // The session's computer use (ComputerUseState): the indicator and the apps with access.
 export interface ComputerUseVM {
   controlling: boolean
@@ -445,6 +455,7 @@ export type TranscriptItem
     | PermissionItem
     | QuestionItem
     | ComputerAccessItem
+    | BrowserSiteItem
     | PlanItem
     | TodosItem
     | NoticeItem
