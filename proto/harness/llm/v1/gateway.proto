@@ -91,6 +91,9 @@ message RequestMetadata {
   // Optional per-session spend cap in USD requested by the client; the server applies the lower of
   // this and its configured session budget.
   double session_budget_usd = 5;
+  // How long the provider should keep the prompt cache: "5m" or "1h". Empty: the provider's default. Providers without such a
+  // choice ignore it.
+  string cache_ttl = 6;
 }
 
 message StreamMessageRequest {

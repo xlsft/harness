@@ -235,5 +235,6 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
         Older
       </HBtn>
     </div>
+    <SettingsDecisionLog />
   </div>
 </template>

@@ -255,6 +255,7 @@ type Metadata struct {
 	RequestClass        string `json:"request_class,omitempty"` // main | subagent | compaction | auxiliary
 	AgentID             string `json:"agent_id,omitempty"`
 	PromptBundleVersion string `json:"prompt_bundle_version,omitempty"`
+	CacheTTL            string `json:"cache_ttl,omitempty"`
 }
 
 // Request is the body of POST /api/llm/messages (and count_tokens).

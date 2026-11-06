@@ -352,7 +352,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &NotebookRun{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &Skill{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{}, &MultiEdit{}, &LS{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &NotebookRun{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &Skill{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{}, &MultiEdit{}, &LS{}, &TaskInput{})
 }
 
 // Register adds or replaces a tool.

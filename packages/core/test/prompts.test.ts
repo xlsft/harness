@@ -37,7 +37,7 @@ describe("bundle builder", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
-      "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
+      "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
       "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LS", "LSP",
@@ -45,7 +45,7 @@ describe("bundle builder", () => {
       "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
       "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
-      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskOutput", "TaskStop", "TaskTracker", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
+      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TaskTracker", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -184,7 +184,7 @@ describe("bundle builder", () => {
     expect(props("Read")).toEqual(["file_path", "offset", "limit", "pages", "description"]);
     expect(props("Write")).toEqual(["file_path", "content", "description"]);
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all", "description"]);
-    expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background", "run_outside_sandbox"]);
+    expect(props("Bash")).toEqual(["command", "timeout", "description", "stdin", "run_in_background", "run_outside_sandbox"]);
     expect(b.tools.Bash!.description).toMatch(/run_outside_sandbox/);
     expect(props("TaskStop")).toEqual(["task_id", "description"]);
     expect(props("PreviewStart")).toEqual(["name", "url", "description"]);

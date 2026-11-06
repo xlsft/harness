@@ -198,6 +198,7 @@ export function streamRequestToCanonical(r: StreamMessageRequest): Record<string
       request_class: REQUEST_CLASS[r.metadata.requestClass],
       agent_id: r.metadata.agentId || undefined,
       prompt_bundle_version: r.metadata.promptBundleVersion || undefined,
+      cache_ttl: r.metadata.cacheTtl || undefined,
     };
   }
   return body;

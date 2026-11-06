@@ -522,8 +522,11 @@ type RequestMetadata struct {
 	// Optional per-session spend cap in USD requested by the client; the server applies the lower of
 	// this and its configured session budget.
 	SessionBudgetUsd float64 `protobuf:"fixed64,5,opt,name=session_budget_usd,json=sessionBudgetUsd,proto3" json:"session_budget_usd,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// How long the provider should keep the prompt cache: "5m" or "1h". Empty: the provider's default. Providers without such a
+	// choice ignore it.
+	CacheTtl      string `protobuf:"bytes,6,opt,name=cache_ttl,json=cacheTtl,proto3" json:"cache_ttl,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RequestMetadata) Reset() {
@@ -589,6 +592,13 @@ func (x *RequestMetadata) GetSessionBudgetUsd() float64 {
 		return x.SessionBudgetUsd
 	}
 	return 0
+}
+
+func (x *RequestMetadata) GetCacheTtl() string {
+	if x != nil {
+		return x.CacheTtl
+	}
+	return ""
 }
 
 type StreamMessageRequest struct {
@@ -1573,14 +1583,15 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\x04main\x18\x01 \x01(\tR\x04main\x12\x14\n" +
 	"\x05small\x18\x02 \x01(\tR\x05small\x12\x12\n" +
 	"\x04plan\x18\x03 \x01(\tR\x04plan\x12\x14\n" +
-	"\x05title\x18\x04 \x01(\tR\x05title\"\xf0\x01\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\"\x8d\x02\n" +
 	"\x0fRequestMetadata\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12A\n" +
 	"\rrequest_class\x18\x02 \x01(\x0e2\x1c.harness.llm.v1.RequestClassR\frequestClass\x12\x19\n" +
 	"\bagent_id\x18\x03 \x01(\tR\aagentId\x122\n" +
 	"\x15prompt_bundle_version\x18\x04 \x01(\tR\x13promptBundleVersion\x12,\n" +
-	"\x12session_budget_usd\x18\x05 \x01(\x01R\x10sessionBudgetUsd\"\x9d\x04\n" +
+	"\x12session_budget_usd\x18\x05 \x01(\x01R\x10sessionBudgetUsd\x12\x1b\n" +
+	"\tcache_ttl\x18\x06 \x01(\tR\bcacheTtl\"\x9d\x04\n" +
 	"\x14StreamMessageRequest\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12\x1d\n" +
 	"\n" +

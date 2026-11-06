@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+// DecisionLogService reads what the auto mode classifier decided, for admins and auditors. It holds a preview of each call's
+// input as the classifier saw it, cut short, and its hash.
+service DecisionLogService {
+  // Newest first.
+  rpc ListDecisions(ListDecisionsRequest) returns (ListDecisionsResponse);
+}
+
+message ListDecisionsRequest {
+  // Default 100, at most 1000.
+  int32 limit = 1;
+  // Only this session, or this user. Empty: all.
+  string session_id = 2;
+  string user_id = 3;
+}
+
+message DecisionRecord {
+  string id = 1;
+  string user_id = 2;
+  string session_id = 3;
+  string tool_name = 4;
+  string input_preview = 5;
+  // allow, ask or deny.
+  string decision = 6;
+  // What decided: rules, llm, http:<id>...
+  string provider = 7;
+  repeated string categories = 8;
+  string reason = 9;
+  double confidence = 10;
+  int64 latency_ms = 11;
+  double cost_usd = 12;
+  bool cached = 13;
+  string error = 14;
+  // RFC 3339, UTC.
+  string created_at = 15;
+}
+
+message ListDecisionsResponse {
+  repeated DecisionRecord decisions = 1;
+}

@@ -590,6 +590,7 @@ type bashInput struct {
 	Timeout           *float64 `json:"timeout"`
 	RunInBackground   bool     `json:"run_in_background"`
 	RunOutsideSandbox bool     `json:"run_outside_sandbox"`
+	Stdin             bool     `json:"stdin"`
 }
 
 func (*Bash) Name() string { return "Bash" }
@@ -672,6 +673,9 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	if timeout > maxT {
 		timeout = maxT
 	}
+	if in.Stdin && !in.RunInBackground {
+		return ErrorResult("InputValidationError: stdin needs run_in_background: TaskInput writes to a background command")
+	}
 	if in.RunInBackground {
 		if env.Tasks == nil {
 			return ErrorResult("Background commands are not available in this session. Run the command in the foreground.")
@@ -679,6 +683,11 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		start := env.Tasks.Start
 		if in.RunOutsideSandbox {
 			start = env.Tasks.StartOutside
+		}
+		if in.Stdin {
+			start = func(sh *Shell, command, description, toolUseID string, timeout time.Duration) (TaskInfo, error) {
+				return env.Tasks.StartWithStdin(sh, command, description, toolUseID, timeout, in.RunOutsideSandbox)
+			}
 		}
 		info, err := start(env.Shell, in.Command, in.Description, call.ID, requested)
 		if err != nil {

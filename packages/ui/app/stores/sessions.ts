@@ -214,7 +214,7 @@ export const useSessionStore = defineStore('sessions', {
 
     // Starts a session on the client and opens it; it goes to the top of the list. `forkOf` continues a copy of
     // that session's transcript (a remote session's is downloaded from the harness server: "Continue here").
-    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string }, forkOf?: string, engine?: string, acpModeId?: string, acpEffortId?: string }) {
+    async createSession(opts: { cwd: string, model?: string, effort?: EffortName, mode?: PermissionModeName, worktree?: { name?: string, branch?: string, baseRef?: string, fromPr?: string }, forkOf?: string, engine?: string, acpModeId?: string, acpEffortId?: string }) {
       if (!this.transport) throw new Error('not connected')
       const info = await this.transport.createSession({
         cwd: opts.cwd,

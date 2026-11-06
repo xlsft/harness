@@ -238,6 +238,8 @@ type Config struct {
 	MaxTokens        int
 	// MaxTurns limits tool-use round trips per turn; 0 = unlimited.
 	MaxTurns int
+	// CacheTTL asks the provider to keep the prompt cache this long ("5m", "1h"; "": its default).
+	CacheTTL string
 	// MaxBudgetUSD stops the run before the next model request once it has spent this much (headless --max-budget-usd);
 	// 0 = no limit. Models without a price cost nothing and never reach it. OtherSpendUSD adds what the run spent outside
 	// this loop (subagents); may be nil.
@@ -1269,6 +1271,7 @@ func (a *Agent) buildRequest() *llm.Request {
 			RequestClass:        requestClass,
 			AgentID:             a.cfg.AgentID,
 			PromptBundleVersion: bundle.Version,
+			CacheTTL:            a.cfg.CacheTTL,
 		},
 	}
 }

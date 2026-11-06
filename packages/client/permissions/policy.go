@@ -1,10 +1,10 @@
 package permissions
 
 import (
-	"path/filepath"
-	"strings"
 	"fmt"
+	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 )
 

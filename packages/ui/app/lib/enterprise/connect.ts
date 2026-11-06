@@ -3,6 +3,7 @@
 
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { AuditService, type AuditEvent } from '~/gen/harness/auth/v1/audit_pb'
+import { DecisionLogService } from '~/gen/harness/auth/v1/decision_log_pb'
 import type { User_Role } from '~/gen/harness/auth/v1/auth_pb'
 import { BillingService, type QuotaLimits as QuotaLimitsPb, type UserQuotaStatus as UserQuotaStatusPb } from '~/gen/harness/auth/v1/billing_pb'
 import { DirectoryService, type Group, type ScimToken } from '~/gen/harness/auth/v1/directory_pb'
@@ -99,6 +100,7 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
 
 export class ConnectEnterpriseApi implements EnterpriseApi {
   private audit: Client<typeof AuditService>
+  private decisionLog: Client<typeof DecisionLogService>
   private billing: Client<typeof BillingService>
   private directory: Client<typeof DirectoryService>
   private mfa: Client<typeof MfaService>
@@ -107,6 +109,7 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
 
   constructor(transport: Transport) {
     this.audit = createClient(AuditService, transport)
+    this.decisionLog = createClient(DecisionLogService, transport)
     this.billing = createClient(BillingService, transport)
     this.directory = createClient(DirectoryService, transport)
     this.mfa = createClient(MfaService, transport)
@@ -260,6 +263,11 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
   async listAudit(f: AuditFilter, pageToken = '') {
     const r = await this.audit.listAuditEvents({ filter: auditFilterPb(f), pageToken, limit: 100 })
     return { events: r.events.map(auditEventView), nextPageToken: r.nextPageToken }
+  }
+
+  async listDecisions(o: { sessionId?: string, userId?: string } = {}) {
+    const r = await this.decisionLog.listDecisions({ limit: 100, sessionId: o.sessionId ?? '', userId: o.userId ?? '' })
+    return { decisions: r.decisions.map(d => ({ id: d.id, toolName: d.toolName, decision: d.decision, provider: d.provider, reason: d.reason, error: d.error, inputPreview: d.inputPreview, cached: d.cached, createdAt: d.createdAt })) }
   }
 
   async exportAudit(f: AuditFilter) {

@@ -196,7 +196,7 @@ export class ConnectTransport implements SessionTransport {
       resumeSessionId: opts.resumeSessionId ?? '',
       fork: opts.fork ?? false,
       forkAtCheckpointId: opts.forkAtMessageId ?? '',
-      worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '' } : undefined,
+      worktree: opts.worktree ? { name: opts.worktree.name ?? '', branch: opts.worktree.branch ?? '', baseRef: opts.worktree.baseRef ?? '', fromPr: opts.worktree.fromPr ?? '' } : undefined,
       engine: opts.engine ?? '',
       acpModeId: opts.acpModeId ?? '',
       acpEffortId: opts.acpEffortId ?? ''

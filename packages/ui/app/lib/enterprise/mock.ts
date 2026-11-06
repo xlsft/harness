@@ -249,6 +249,13 @@ export class MockEnterpriseApi implements EnterpriseApi {
     return { events: this.events.filter(e => this.matches(e, f)), nextPageToken: '' }
   }
 
+  async listDecisions() {
+    return { decisions: [
+      { id: 'dec_1', toolName: 'Bash', decision: 'deny', provider: 'rules', reason: 'Deletes files outside the working directory.', error: '', inputPreview: 'rm -rf ../shared', cached: false, createdAt: new Date().toISOString() },
+      { id: 'dec_2', toolName: 'WebFetch', decision: 'allow', provider: 'llm', reason: 'Reads public documentation.', error: '', inputPreview: 'https://example.com/docs', cached: true, createdAt: new Date().toISOString() }
+    ] }
+  }
+
   async exportAudit(f: AuditFilter) {
     const rows = this.events.filter(e => this.matches(e, f))
     const csv = ['time,action,outcome,actor', ...rows.map(e => `${e.at},${e.action},${e.outcome},${e.actor}`)].join('\r\n')

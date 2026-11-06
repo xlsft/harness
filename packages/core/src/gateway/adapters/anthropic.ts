@@ -32,7 +32,8 @@ export function toAnthropicBody(req: CanonicalRequest, target: AdapterTarget): R
   const cacheMark = (cache: unknown): Record<string, unknown> => {
     if (cache === true && f.cache && breakpoints < MAX_CACHE_BREAKPOINTS) {
       breakpoints++;
-      return { cache_control: { type: "ephemeral" } };
+      // The longer lifetime is a request's choice; the default needs no field.
+      return { cache_control: req.metadata?.cache_ttl === "1h" ? { type: "ephemeral", ttl: "1h" } : { type: "ephemeral" } };
     }
     return {};
   };

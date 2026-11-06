@@ -217,7 +217,7 @@ func StreamRequest(r *llm.Request) *llmv1.StreamMessageRequest {
 	}
 	if r.Metadata != nil {
 		classes := map[string]llmv1.RequestClass{"main": llmv1.RequestClass_REQUEST_CLASS_MAIN, "subagent": llmv1.RequestClass_REQUEST_CLASS_SUBAGENT, "compaction": llmv1.RequestClass_REQUEST_CLASS_COMPACTION, "auxiliary": llmv1.RequestClass_REQUEST_CLASS_AUXILIARY}
-		out.Metadata = &llmv1.RequestMetadata{SessionId: r.Metadata.SessionID, RequestClass: classes[r.Metadata.RequestClass], AgentId: r.Metadata.AgentID, PromptBundleVersion: r.Metadata.PromptBundleVersion}
+		out.Metadata = &llmv1.RequestMetadata{SessionId: r.Metadata.SessionID, RequestClass: classes[r.Metadata.RequestClass], AgentId: r.Metadata.AgentID, PromptBundleVersion: r.Metadata.PromptBundleVersion, CacheTtl: r.Metadata.CacheTTL}
 	}
 	return out
 }
@@ -237,7 +237,7 @@ func FromStreamRequest(r *llmv1.StreamMessageRequest) *llm.Request {
 		out.Tools = append(out.Tools, llm.ToolDef{Name: t.GetName(), Description: t.GetDescription(), InputSchema: json.RawMessage(t.GetInputSchemaJson())})
 	}
 	if m := r.GetMetadata(); m != nil {
-		out.Metadata = &llm.Metadata{SessionID: m.GetSessionId(), AgentID: m.GetAgentId(), PromptBundleVersion: m.GetPromptBundleVersion()}
+		out.Metadata = &llm.Metadata{SessionID: m.GetSessionId(), AgentID: m.GetAgentId(), PromptBundleVersion: m.GetPromptBundleVersion(), CacheTTL: m.GetCacheTtl()}
 	}
 	return out
 }

@@ -42,7 +42,7 @@ func (m *Manager) Tools() []tools.Tool {
 	base := toolBase{m: m}
 	return []tools.Tool{
 		&navigateTool{base}, &snapshotTool{base}, &clickTool{base}, &typeTool{base}, &keyTool{base}, &scrollTool{base},
-		&screenshotTool{base}, &evalTool{base}, &tabsTool{base}, &consoleTool{base}, &networkTool{base}, &waitTool{base},
+		&screenshotTool{base}, &evalTool{base}, &tabsTool{base}, &consoleTool{base}, &networkTool{base}, &waitTool{base}, &recordTool{base},
 	}
 }
 

@@ -307,7 +307,7 @@ type Engine struct {
 
 // New builds an engine from cfg.
 func New(cfg Config) *Engine {
-	e := &Engine{restrictReads: cfg.RestrictReads, 
+	e := &Engine{restrictReads: cfg.RestrictReads,
 		mode: cfg.DefaultMode, cwd: cfg.Cwd, home: cfg.Home, trusted: cfg.Trusted,
 		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, computerSettings: cfg.ComputerSettings, sandbox: cfg.Sandbox, readable: cfg.ReadableDirs,
 		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider, netGuard: cfg.NetGuard,

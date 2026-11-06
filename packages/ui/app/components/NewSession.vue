@@ -33,6 +33,8 @@ const folders = ref<RecentFolder[]>([])
 const cwd = ref('')
 const worktree = ref(false)
 const baseRef = ref('')
+// A pull request to start the worktree from, by number or URL (the client fetches it); it takes the place of the branch.
+const fromPr = ref('')
 const branches = ref<Branch[]>([])
 const current = ref('')
 const model = ref('')
@@ -249,7 +251,7 @@ async function start() {
         acpEffort: acpEffort.value,
         effort: efforts.value.length ? effort.value : undefined,
         mode: mode.value,
-        worktree: cwd.value && worktree.value ? { baseRef: baseRef.value } : undefined
+        worktree: cwd.value && worktree.value ? (fromPr.value.trim() ? { baseRef: '', fromPr: fromPr.value.trim() } : { baseRef: baseRef.value }) : undefined
       })
     })
     const { cwd: _old, ...prefs } = readJSON<Record<string, unknown>>(PREFS, {})
@@ -409,8 +411,16 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           :class="worktree ? 'text-accent' : 'text-muted'"
         />
         <span class="text-strong">{{ worktree ? 'Worktree on' : 'Turn on Worktree' }}</span>
-        <span class="min-w-0 truncate text-muted">{{ worktree ? `new branch from ${baseRef || current || 'HEAD'}` : 'Session running here' }}</span>
+        <span class="min-w-0 truncate text-muted">{{ worktree ? (fromPr.trim() ? `new branch from pull request ${fromPr.trim()}` : `new branch from ${baseRef || current || 'HEAD'}`) : 'Session running here' }}</span>
       </button>
+      <input
+        v-if="cwd && !noWorktree && worktree"
+        v-model="fromPr"
+        type="text"
+        aria-label="Pull request to start from"
+        placeholder="Pull request to start from: number or URL (optional)"
+        class="w-full max-w-[440px] border border-accented bg-surface px-3 py-2 text-[12.5px] text-strong placeholder:text-muted focus:border-accent focus:outline-none"
+      >
       <NewProjectImport :cwd="cwd" />
     </div>
 

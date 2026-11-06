@@ -780,7 +780,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		ThinkingCapable: info.Capabilities.Thinking,
 		AutoCompactPct:  o.AutoCompactPct,
 		RefreshBundle:   func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
-		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
+		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID, CacheTTL: promptCacheTTL(st),
 		MaxBudgetUSD: o.MaxBudgetUSD, OtherSpendUSD: s.subagentSpend,
 		SystemPrompt: o.SystemPrompt, AppendSystemPrompt: o.AppendSystemPrompt,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), History: conv, Todos: todos,
@@ -814,7 +814,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor, Skills: s.skillSource(), Hooks: s.Hooks,
 		CustomTypes: append(append(append([]subagent.Type(nil), o.Agents...), subagent.LoadDefinitionsOver(s.syncedAgents(), subagent.DefinitionDirs(config.Home(), cwd, s.Trusted))...), pluginAgents(cwd, s.Trusted)...),
 		AgentHooks:  s.agentHooks, Logger: log,
-		ModeAllowed: s.Permissions.ModeAllowed, AgentMCP: s.agentMCP(o, log), SkillText: s.agentSkillText,
+		ModeAllowed: s.Permissions.ModeAllowed, AgentMCP: s.agentMCP(o, log), SkillText: s.agentSkillText, CacheTTL: promptCacheTTL(st),
 	})
 	s.Subagents.Attach(s.Agent)
 	s.ToolEnv.Agents = s.Subagents

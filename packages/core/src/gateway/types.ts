@@ -94,6 +94,7 @@ export interface CanonicalRequest {
     request_class?: string;
     agent_id?: string;
     prompt_bundle_version?: string;
+    cache_ttl?: string;
   };
 }
 
