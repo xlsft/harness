@@ -18,8 +18,6 @@ lightness. Pick our own palette.
   with text and SGR attributes captured. Models: Haiku 4.5 and Sonnet 5.
 - Terminal sizes: 120x40 (main) and 80x24. Default theme is dark. Light theme, `TERM=xterm`
   (16 colors) and `NO_COLOR=1` were also checked.
-- Raw text captures (sanitized: logo, spinner verbs, email and session id removed) are in
-  `docs/design/captures/*.txt`. File prefixes match the section numbers below.
 
 Legend for mocks: `⟨spin⟩` animated spinner cell, `⟨verb⟩` animated status word,
 `⟨done⟩`/`⟨past-verb⟩` the glyph and word on the turn-complete line, `⟨logo⟩` mascot art,
@@ -98,7 +96,7 @@ Key structural facts:
 A second one-time dialog uses the same component, with an accent-colored rule and a bold accent
 title (for example "Claude in Chrome extension detected"). Its footer hint is italic secondary.
 
-### 1b. Welcome screen (120 cols), `captures/02_welcome.txt`
+### 1b. Welcome screen (120 cols)
 
 ```
 ╭─── ⟨brand⟩Claude Code⟨/brand⟩ v2.1.220 ───────────────────────────────────────────────────────────────────╮
@@ -164,7 +162,7 @@ Layout facts:
 
 ## 2. Typing and input affordances
 
-### 2a. Multiline input, `captures/02_multiline.txt`
+### 2a. Multiline input
 
 ```
                                                                                   ctrl+g to edit in Vim
@@ -185,7 +183,7 @@ Layout facts:
 - Once the input is multiline, a right-aligned secondary hint `ctrl+g to edit in <$EDITOR name>`
   appears in the row directly above the top rule.
 
-### 2b. `?` shortcut help (typed into empty input), `captures/02_shortcuts.txt`
+### 2b. `?` shortcut help (typed into empty input)
 
 The footer row turns into a 3-column help grid (secondary color). The input stays visible.
 
@@ -205,7 +203,7 @@ The footer row turns into a 3-column help grid (secondary color). The input stay
 Columns start at x=2, x=26 and x=61 (at 120 cols). The text wraps inside its column. Backspace
 removes the `?` and restores the footer.
 
-### 2c. `/` command menu, `captures/02_slash*.txt`
+### 2c. `/` command menu
 
 ```
   /artifact-design                            Design guidance and fundamentals for Artifacts.      ← selected (accent)
@@ -235,7 +233,7 @@ removes the `?` and restores the footer.
 - Under NO_COLOR the selected row can't be told apart from the others. Our TUI should keep a
   non-color selection cue (see 10).
 
-### 2d. `@` file mention menu, `captures/02_at*.txt`
+### 2d. `@` file mention menu
 
 ```
   + README.md                                     ← selected (accent)
@@ -255,7 +253,7 @@ removes the `?` and restores the footer.
 - After submit, mentions in the user's message and file references in assistant text
   (`calc.py:2`) render in the accent color.
 
-### 2e. `!` shell mode, `captures/02_bang*.txt`
+### 2e. `!` shell mode
 
 Typing `!` as the first character switches the input into shell mode:
 
@@ -296,7 +294,7 @@ Typing `!` as the first character switches the input into shell mode:
 
 ## 3. Streaming assistant output and the working indicator
 
-### 3a. Working line, `captures/03_*`, `07_*`
+### 3a. Working line
 
 ```
 ❯ look at @te!ls                                     ← user message (see 3c)
@@ -351,7 +349,7 @@ in the transcript as the turn footer.
 - Slash-command invocations look the same (`❯ /context`), with the command output hanging below
   via `⎿`.
 
-### 3d. Markdown rendering, `captures/03_markdown.txt`
+### 3d. Markdown rendering
 
 ```
 ⏺ Markdown Sample                                ← H1: bold + italic + underline
@@ -405,7 +403,7 @@ In ctrl+o transcript mode, each assistant message is preceded by a right-aligned
 
 ## 4. Tool calls
 
-### 4a. Collapsed tool groups (default view), `captures/04_*`
+### 4a. Collapsed tool groups (default view)
 
 Version 2.1.220 **groups consecutive read-only/search/shell tools into one summary line** instead of
 showing one block per tool.
@@ -433,7 +431,7 @@ When done:
 - Rejected or failed calls inside a group are not called out in the collapsed view. They are only
   visible in transcript mode (red bullet).
 
-### 4b. Edit / Write blocks (never collapsed), `captures/04_edit_done.txt`, `04_write_bash.txt`
+### 4b. Edit / Write blocks (never collapsed)
 
 ```
 ⏺ Update(calc.py)                           ← bullet = success color; tool name bold; "(path)" normal
@@ -485,7 +483,7 @@ When done:
 
 Diff colors **ignore NO_COLOR and 16-color mode**. They always use 256-color values (see 10).
 
-### 4d. Transcript / verbose mode (ctrl+o), `captures/04_verbose.txt`, `04_tools_verbose.txt`
+### 4d. Transcript / verbose mode (ctrl+o)
 
 ```
 ⏺ Update(/abs/path/…/proj/calc.py)
@@ -524,7 +522,7 @@ Diff colors **ignore NO_COLOR and 16-color mode**. They always use 256-color val
 All permission prompts share one component that **replaces the input and footer**. The transcript
 above shows the pending tool header (`⏺ Update(calc.py)` or the running group with `⎿  $ cmd`).
 
-### 5a. Edit file, `captures/05_edit_perm.txt`
+### 5a. Edit file
 
 ```
 ⏺ Update(calc.py)
@@ -557,7 +555,7 @@ above shows the pending tool header (`⏺ Update(calc.py)` or the running group 
   and a line-numbered preview (no markers, no bg) between the dashed rules.
 - The question names the file in bold.
 
-### 5b. Bash command, `captures/05_bash3.txt`, `05_explain.txt`
+### 5b. Bash command
 
 ```
 ⏺ Running 1 shell command…
@@ -588,7 +586,7 @@ above shows the pending tool header (`⏺ Update(calc.py)` or the running group 
   blank line, then a risk line (`Low risk:` in the success color + text). The hint changes to
   `ctrl+e to hide`.
 
-### 5c. Tab to amend, `captures/05_edit_amend*.txt`
+### 5c. Tab to amend
 
 - Tab turns option 1 into an inline text field: `❯ 1. Yes, ` + a dim placeholder
   `and tell Claude what to do next`. Typing replaces the placeholder (`❯ 1. Yes, also add a
@@ -606,7 +604,7 @@ above shows the pending tool header (`⏺ Update(calc.py)` or the running group 
 - "Allow all edits during this session" (or shift+tab while the prompt is open) switches the
   session to **accept edits** mode. The footer turns into `⏵⏵ accept edits on`.
 
-### 5e. Multiple pending prompts, `captures/05_multi*.txt`
+### 5e. Multiple pending prompts
 
 Parallel tool calls that each need approval are shown **one at a time, sequentially**, with **no
 counter** ("1 of 2"). The running group header shows `Running 2 shell commands…`. After the first
@@ -622,7 +620,7 @@ toggles the explanation.
 
 ## 6. Permission modes and plan mode
 
-### 6a. Mode cycling (shift+tab), `captures/06_mode*.txt`
+### 6a. Mode cycling (shift+tab)
 
 Cycle order: `manual → accept edits → plan → auto → manual`. `auto` is skipped when the model
 doesn't support it (Haiku: `manual → accept edits → plan → manual`). The footer changes instantly
@@ -638,7 +636,7 @@ Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
-### 6c. Plan approval prompt, `captures/06_plan_approval.txt`
+### 6c. Plan approval prompt
 
 ```
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔  (accent, upper-eighth block: full-screen pane top edge)
@@ -676,7 +674,7 @@ Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md       
 
 ## 7. Queue, interrupt, rewind
 
-### 7a. Message queue (typing while busy), `captures/07_queued.txt`
+### 7a. Message queue (typing while busy)
 
 ```
 ⏺ The Terminal: A Window Into Computing
@@ -697,7 +695,7 @@ Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md       
 - When the turn ends, the queue is sent as the next user turn. When Esc interrupts, the queued
   text is put back into the input box.
 
-### 7b. Interrupt (Esc while working), `captures/07_interrupted.txt`
+### 7b. Interrupt (Esc while working)
 
 ```
 ⏺ The Lighthouse Keeper's Secret
@@ -709,7 +707,7 @@ Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md       
 - If the interruption happens before any output (for example during API retries), the user message
   is **removed** from the transcript and its text is restored into the input (`❯ hi`).
 
-### 7c. Rewind menu (Esc Esc on empty input), `captures/07_rewind*.txt`
+### 7c. Rewind menu (Esc Esc on empty input)
 
 ```
 ────────────────────────────────────────────────────────────────────────────────────────────────────────  (accent)
@@ -761,7 +759,7 @@ Planning: /Users/<user>/.claude/plans/plan-adding-a-sub-a-foamy-goblet.md       
 
 ## 8. Tasks, questions, agents
 
-### 8a. Task list, `captures/08_todo*.txt`
+### 8a. Task list
 
 While the model is working, the task list hangs under the working line:
 
@@ -787,7 +785,7 @@ When idle, it is **pinned above the input** (below the last turn):
 - `ctrl+t` toggles the pinned list. It stays visible below modal prompts.
 - The TodoWrite tool call itself is not shown as a separate tool block in the normal view.
 
-### 8b. AskUserQuestion, `captures/08_ask*.txt`
+### 8b. AskUserQuestion
 
 ```
  ☐ Test framework                                                    ← tab/chip: reverse (black on accent bg), full width
@@ -811,7 +809,7 @@ Enter to select · ↑/↓ to navigate · Esc to cancel
   `⏺ User answered Claude's questions:` /
   `  ⎿  · Should the test … use unittest or pytest? → unittest`.
 
-### 8c. Subagents / background agents, `captures/08_background_agent.txt`
+### 8c. Subagents / background agents
 
 ```
 ⏺ Explore(Find calc.py and existing test patterns)
@@ -844,17 +842,17 @@ that support effort levels.
 
 ### 9a. Errors
 
-- **Invalid model** (`captures/09_error.txt`): rendered as a normal assistant message with a
+- **Invalid model**: rendered as a normal assistant message with a
   primary-colored bullet: `⏺ There's an issue with the selected model (bogus-model-xyz). It may not
   exist or you may not have access to it. Run /model to pick a different model.` Then a
   turn-complete line (`for 0s`).
-- **Retries** (`captures/09_retry*.txt`): the working line is **replaced in place** by
+- **Retries**: the working line is **replaced in place** by
   `⟨spin⟩ Unable to connect to API (ConnectionRefused) · Retrying in 5s · attempt 4/10`. The error
   part (glyph + message) is in the error color, and `· Retrying in Ns · attempt N/10` is secondary.
   The countdown ticks every second. Esc during retries removes the turn and restores the prompt
   text into the input.
 
-### 9b. `/context`, `captures/09_context.txt`
+### 9b. `/context`
 
 Output is attached to the command's user message via `⎿`:
 
@@ -917,7 +915,7 @@ x+22, with the same glyph and color as its grid cells.
 - **/help**: same pane, `Help` label + tabs `General · Commands · Custom commands`. The General tab
   repeats the 3-column shortcut grid (2b) and ends with a docs URL.
 
-### 9d. `/model` picker, `captures/09_model.txt`
+### 9d. `/model` picker
 
 ```
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
@@ -945,7 +943,7 @@ cursor `❯` is accent. Choosing a model prints `⎿  Kept model as Haiku` (or s
 
 ## 10. Width, theme, and color-depth behavior
 
-### 10a. 80x24, `captures/10_80x24*.txt`, `01_welcome_80.txt`
+### 10a. 80x24
 
 - All text re-wraps to the width minus the indent. The assistant message wraps at col 78 with a
   2-col indent. Rules are always full width.
