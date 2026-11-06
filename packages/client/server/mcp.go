@@ -21,7 +21,7 @@ import (
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
-// Settings > MCP and the composer's MCP commands and mentions. The logic is in mcp.Inventory and mcp.Manager; this file
+// Extensions > Connectors and the composer's MCP commands and mentions. The logic is in mcp.Inventory and mcp.Manager; this file
 // connects them to AgentService. OAuth and the audit log are forwarded to the server (coreproxy.go).
 
 var (

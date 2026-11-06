@@ -247,6 +247,8 @@ func (s *Server) mux() *http.ServeMux {
 	mux.Handle(path, h)
 	pluginsPath, pluginsHandler := agentv1connect.NewPluginServiceHandler(s)
 	mux.Handle(pluginsPath, pluginsHandler)
+	extensionsPath, extensionsHandler := agentv1connect.NewExtensionsServiceHandler(s)
+	mux.Handle(extensionsPath, extensionsHandler)
 	if s.Core != nil {
 		s.Core.register(mux)
 	}

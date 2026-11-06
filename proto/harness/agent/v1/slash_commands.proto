@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package harness.agent.v1;
 
-// The slash menu and the Customize screen: everything a user can run from the composer, as the client resolves it.
+// The slash menu and the Extensions screen: everything a user can run from the composer, as the client resolves it.
 // The client decides what exists, what wins on a name clash and what is on; frontends only render the answer and send
 // `/name args` as the text of a message (SendUserMessage), where the client runs it.
 
@@ -64,7 +64,7 @@ message SlashCommand {
 message ListSlashCommandsRequest {
   // A session: its folder, its live state and, on an ACP agent, the agent's commands.
   string session_id = 1;
-  // Without a session: the folder to look in (the new-session screen, Customize). Empty: only what isn't tied to one.
+  // Without a session: the folder to look in (the new-session screen, Extensions). Empty: only what isn't tied to one.
   string cwd = 2;
 }
 
@@ -88,8 +88,9 @@ message SlashCommandResult {
     ACTION_PICK_EFFORT = 2;
     // Open the session in new_session_id.
     ACTION_OPEN_SESSION = 3;
+    // Open Extensions.
     ACTION_OPEN_CUSTOMIZE = 4;
-    // Open Settings > Plugins.
+    // Open the Plugins tab of Extensions.
     ACTION_OPEN_PLUGINS = 160;
   }
   // The client-generated id of the message (SendUserMessageRequest.uuid).

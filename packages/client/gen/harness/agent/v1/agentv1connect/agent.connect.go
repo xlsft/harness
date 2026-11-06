@@ -707,7 +707,7 @@ type AgentServiceClient interface {
 	// The session's MCP resources, for @-mentions in the composer.
 	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
-	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	// (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 }
 
@@ -2539,7 +2539,7 @@ type AgentServiceHandler interface {
 	// The session's MCP resources, for @-mentions in the composer.
 	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
-	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	// (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 }
 

@@ -4332,7 +4332,7 @@ export const UserPreferencesSchema: GenMessage<UserPreferences> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_agent, 92);
 
 /**
- * One switch of the Customize screen.
+ * One switch of the Extensions screen.
  *
  * @generated from message harness.agent.v1.SkillSwitch
  */
@@ -6908,7 +6908,7 @@ export const AgentService: GenService<{
   },
   /**
    * Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
-   * (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+   * (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
    *
    * @generated from rpc harness.agent.v1.AgentService.ListSlashCommands
    */

@@ -109,7 +109,7 @@ func (t *Tool) callRemote(ctx context.Context, env *tools.Env, call tools.Call) 
 
 // needsAuth is the tool error for a server whose authorization is missing or expired.
 func (t *Tool) needsAuth() tools.Result {
-	hint := "open Settings > MCP in the xlsft`s harness web or desktop app and connect it"
+	hint := "open Extensions > Connectors in the xlsft`s harness web or desktop app and connect it"
 	if a := t.m.lookup(ToolName(t.srv.name(), "authenticate")); a != nil && a.auth {
 		hint = "call " + a.name + " to get an authorization link, or " + hint
 	}
@@ -302,7 +302,7 @@ func (m *Manager) ensureApprovedLocked(ctx context.Context, env *tools.Env, s *s
 	case mcpv1.ApprovalState_APPROVAL_STATE_PENDING, mcpv1.ApprovalState_APPROVAL_STATE_UNSPECIFIED:
 		ok, err := m.askApproval(ctx, env, s, toolUseID)
 		if err != nil {
-			return tools.ErrorResult("MCP server %s needs the user's approval before it can start on this device, and nobody can be asked now (%v). The user can approve it in Settings > MCP, by running harness interactively or with HARNESS_MCP_APPROVE=%s.", s.name(), err, s.name()), false
+			return tools.ErrorResult("MCP server %s needs the user's approval before it can start on this device, and nobody can be asked now (%v). The user can approve it in Extensions > Connectors, by running harness interactively or with HARNESS_MCP_APPROVE=%s.", s.name(), err, s.name()), false
 		}
 		if ok {
 			s.approval = mcpv1.ApprovalState_APPROVAL_STATE_APPROVED

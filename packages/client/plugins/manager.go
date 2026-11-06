@@ -86,6 +86,8 @@ type Manager struct {
 
 	mu   sync.Mutex
 	memo map[string]memoEntry
+	// browsed keeps what a marketplace's folders hold, while its copy stays the same.
+	browsed map[string]browseMemo
 	// syncMu lets one distribution run at a time.
 	syncMu sync.Mutex
 }
@@ -899,6 +901,8 @@ type Info struct {
 	Problems    []string
 	// Plugin is the folder read, when it could be.
 	Plugin *Plugin
+	// Meta is what the manifest and the marketplace entry say about it.
+	Meta Meta
 }
 
 func (m *Manager) read(rec *Record) (*Plugin, string, error) {
@@ -933,7 +937,9 @@ func (m *Manager) info(rec *Record, pol Policy, proj projectConfig, place Place,
 	p, hash, err := m.read(rec)
 	if err == nil && p != nil {
 		in.Plugin, in.Contents, in.Problems, in.DisplayName, in.Description = p, p.Contents, p.Problems, p.Manifest.DisplayName, p.Manifest.Description
+		in.Meta = metaOf(p.Manifest)
 		if rec.Overlay != nil {
+			in.Meta = in.Meta.over(metaOf(rec.Overlay.Manifest))
 			if rec.Overlay.DisplayName != "" {
 				in.DisplayName = rec.Overlay.DisplayName
 			}

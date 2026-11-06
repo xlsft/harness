@@ -35,7 +35,7 @@ type ProjectInfo struct {
 	Trusted   bool
 }
 
-// Inventory is what Settings > MCP works on: every server of this device, whoever manages it. It holds no session.
+// Inventory is what Extensions > Connectors works on: every server of this device, whoever manages it. It holds no session.
 type Inventory struct {
 	// Client is the McpService client; nil without an xlsft`s harness server (device servers still work).
 	Client *Client

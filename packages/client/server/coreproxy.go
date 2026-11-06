@@ -60,7 +60,7 @@ var coreProxyProcedures = []string{
 	// Speech: admins set and clear the global speech providers' keys (everything else goes through AgentService).
 	speechv1connect.SpeechServiceSetProviderKeyProcedure,
 	speechv1connect.SpeechServiceClearProviderKeyProcedure,
-	// Settings > MCP: OAuth through the server's flow and the audit log. Not the rest of McpService: IssueStdioLaunch returns
+	// Extensions > Connectors: OAuth through the server's flow and the audit log. Not the rest of McpService: IssueStdioLaunch returns
 	// secrets for a process this client starts, and a frontend has no use for them.
 	mcpv1connect.McpServiceStartOAuthProcedure,
 	mcpv1connect.McpServiceGetOAuthFlowProcedure,

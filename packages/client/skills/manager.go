@@ -194,7 +194,7 @@ func (m *Manager) ModelInvocable(c *Catalog, s Skill) bool {
 	return s.ShadowedBy == "" && c.Enabled(s.Name) && !s.DisableModelInvocation && (m.o.Hidden == nil || !m.o.Hidden(s.Name))
 }
 
-// Report says how the listing came out, for Customize.
+// Report says how the listing came out, for Extensions.
 type Report struct {
 	Budget, Used int
 	// Listed holds the names in it.

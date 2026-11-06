@@ -1,4 +1,4 @@
-/** What Settings > MCP and the agent need beyond the plain proxy: elicitation, list changes, server info, tool lists, audit. */
+/** What Extensions > Connectors and the agent need beyond the plain proxy: elicitation, list changes, server info, tool lists, audit. */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Scope } from "../src/gen/harness/common/v1/scope_pb.ts";

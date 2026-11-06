@@ -387,7 +387,7 @@ service AgentService {
   // The session's MCP resources, for @-mentions in the composer.
   rpc ListMcpResources(ListMcpResourcesRequest) returns (ListMcpResourcesResponse);
   // Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
-  // (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+  // (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
   rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
 }
 
@@ -1522,7 +1522,7 @@ message UserPreferences {
   ManagedPolicyView managed_policy = 16;
 }
 
-// One switch of the Customize screen.
+// One switch of the Extensions screen.
 message SkillSwitch {
   string name = 1;
   bool enabled = 2;

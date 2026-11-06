@@ -173,7 +173,7 @@ export type ListSlashCommandsRequest = Message<"harness.agent.v1.ListSlashComman
   sessionId: string;
 
   /**
-   * Without a session: the folder to look in (the new-session screen, Customize). Empty: only what isn't tied to one.
+   * Without a session: the folder to look in (the new-session screen, Extensions). Empty: only what isn't tied to one.
    *
    * @generated from field: string cwd = 2;
    */
@@ -307,12 +307,14 @@ export enum SlashCommandResult_Action {
   OPEN_SESSION = 3,
 
   /**
+   * Open Extensions.
+   *
    * @generated from enum value: ACTION_OPEN_CUSTOMIZE = 4;
    */
   OPEN_CUSTOMIZE = 4,
 
   /**
-   * Open Settings > Plugins.
+   * Open the Plugins tab of Extensions.
    *
    * @generated from enum value: ACTION_OPEN_PLUGINS = 160;
    */

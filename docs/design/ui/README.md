@@ -59,7 +59,7 @@ Selection: white text on accent. The accent is themable (the artboards offer blu
 
 ### Layout
 
-- **Sidebar:** window controls row; logo + "xlsft`s harness"; primary nav (New session ⌘N, Artifacts, Scheduled, Customize, More); sessions grouped by project with status marks (accent dot = needs attention, `+N` diff, `PR N`, `fail` in rose); footer with avatar, user, "self-hosted", settings, search.
+- **Sidebar:** window controls row; logo + "xlsft`s harness"; primary nav (New session ⌘N, Artifacts, Scheduled, Extensions, More); sessions grouped by project with status marks (accent dot = needs attention, `+N` diff, `PR N`, `fail` in rose); footer with avatar, user, "self-hosted", settings, search.
 - **Main:** session header (title, repo/branch, tools menu), transcript, composer at the bottom.
 - **Right pane:** one of Terminal, Browser, Files, Artifact, Side chat, Background tasks, Agents, toggled from the header's tools menu.
 - **Artifacts page:** grid and list views.

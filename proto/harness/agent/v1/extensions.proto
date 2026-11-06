@@ -1,0 +1,303 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/agent/v1/mcp.proto";
+import "harness/agent/v1/plugins.proto";
+import "harness/agent/v1/slash_commands.proto";
+import "harness/mcp/v1/mcp.proto";
+
+// The Extensions screen: what this device has (Yours) and what it could add (Discover). The client joins skills, plugins and MCP
+// servers here so a frontend renders rows and sends intent. Changes to plugins and MCP servers still go through PluginService and
+// AgentService, with their approvals; adding from Discover only prepares what those take.
+service ExtensionsService {
+  rpc ListExtensionSkills(ListExtensionSkillsRequest) returns (ListExtensionSkillsResponse);
+  rpc ListExtensionPlugins(ListExtensionPluginsRequest) returns (ListExtensionPluginsResponse);
+  rpc ListExtensionConnectors(ListExtensionConnectorsRequest) returns (ListExtensionConnectorsResponse);
+  // Marketplaces as last fetched, the public MCP registry through a cache, and the default catalog. Works offline.
+  rpc DiscoverExtensions(DiscoverExtensionsRequest) returns (DiscoverExtensionsResponse);
+  rpc GetSkillDetail(GetSkillDetailRequest) returns (GetSkillDetailResponse);
+  // Writes a SKILL.md into the personal or the project's skills folder. Refused from another machine.
+  rpc CreateSkill(CreateSkillRequest) returns (CreateSkillResponse);
+  // Deletes a personal or project skill or command from disk. Refused from another machine.
+  rpc RemoveSkill(RemoveSkillRequest) returns (RemoveSkillResponse);
+}
+
+enum ExtensionKind {
+  EXTENSION_KIND_UNSPECIFIED = 0;
+  EXTENSION_KIND_SKILL = 1;
+  EXTENSION_KIND_CONNECTOR = 2;
+  EXTENSION_KIND_PLUGIN = 3;
+}
+
+// The folder project items are told for, in each of the lists. Empty: none is open.
+message ListExtensionSkillsRequest {
+  string cwd = 1;
+}
+
+message ListExtensionPluginsRequest {
+  string cwd = 1;
+}
+
+message ListExtensionConnectorsRequest {
+  string cwd = 1;
+}
+
+message ExtensionSkill {
+  SlashCommand command = 1;
+  // The plugin it comes from, name@marketplace; empty otherwise.
+  string plugin_id = 2;
+  // When the file last changed. RFC 3339, UTC; empty for what isn't a file.
+  string updated_at = 3;
+  // It is a file of this device that can be deleted (personal or project, not a plugin's or a server document).
+  bool can_remove = 4;
+  // The folder to reveal; empty for what isn't on disk.
+  string folder = 5;
+}
+
+// Rows under one source. Keys: "project", "personal", "imported", "organization", "plugin:<id>", "builtin".
+message ExtensionSkillGroup {
+  string key = 1;
+  string title = 2;
+  repeated ExtensionSkill skills = 3;
+}
+
+message ListExtensionSkillsResponse {
+  repeated ExtensionSkillGroup groups = 1;
+  // The folder asked for, absolute; whether it is trusted; project skills it holds that wait for that trust.
+  string cwd = 2;
+  bool folder_trusted = 3;
+  bool project_skipped_untrusted = 4;
+}
+
+message ExtensionPlugin {
+  Plugin plugin = 1;
+  // What the manifest or the marketplace entry says, nothing else.
+  string category = 2;
+  repeated string tags = 3;
+  string publisher = 4;
+  string homepage = 5;
+  string license = 6;
+  // The folder to reveal.
+  string folder = 7;
+}
+
+// Keys: "project", "marketplace:<name>", "local", "organization".
+message ExtensionPluginGroup {
+  string key = 1;
+  string title = 2;
+  repeated ExtensionPlugin plugins = 3;
+}
+
+message ExtensionMarketplace {
+  string name = 1;
+  string description = 2;
+  string source = 3;
+  string commit = 4;
+  // RFC 3339, UTC.
+  string updated_at = 5;
+  bool managed = 6;
+  string refusal = 7;
+  string problem = 8;
+  int32 plugin_count = 9;
+  int32 installed_count = 10;
+}
+
+message ListExtensionPluginsResponse {
+  repeated ExtensionPluginGroup groups = 1;
+  repeated ExtensionMarketplace marketplaces = 2;
+  string cwd = 3;
+  bool folder_trusted = 4;
+  bool sources_restricted = 5;
+  // Marketplaces a trusted project's settings ask for, by name, as sources AddPluginMarketplace takes.
+  map<string, string> suggested_marketplaces = 6;
+}
+
+enum ConnectorStatus {
+  CONNECTOR_STATUS_UNSPECIFIED = 0;
+  // Signed in and usable now.
+  CONNECTOR_STATUS_CONNECTED = 1;
+  CONNECTOR_STATUS_NEEDS_SIGN_IN = 2;
+  // Nothing stands in its way; a session connects to it.
+  CONNECTOR_STATUS_IN_SESSIONS = 3;
+  CONNECTOR_STATUS_NEEDS_APPROVAL = 4;
+  CONNECTOR_STATUS_NEEDS_TRUST = 5;
+  CONNECTOR_STATUS_OFF = 6;
+  CONNECTOR_STATUS_BLOCKED = 7;
+  CONNECTOR_STATUS_ERROR = 8;
+}
+
+// A plugin that brings a connector.
+message ConnectorProvider {
+  string plugin_id = 1;
+  string plugin_name = 2;
+  // As sessions name it: plugin:<plugin>:<server>.
+  string server = 3;
+  PluginStatus plugin_status = 4;
+}
+
+// One row: a server, with every plugin that brings the same endpoint folded into it.
+message ExtensionConnector {
+  string id = 1;
+  string name = 2;
+  // Reached over the network; otherwise a local command.
+  bool remote = 3;
+  string transport = 4;
+  // The command line or URL.
+  string endpoint = 5;
+  // Who manages it and what brings it: "Device", "Account", "Admin", "Repository", "Plugin".
+  repeated string badges = 6;
+  ConnectorStatus status = 7;
+  string status_detail = 8;
+  // The server the user or an admin manages; unset when only plugins bring it.
+  McpServerEntry entry = 9;
+  repeated ConnectorProvider providers = 10;
+}
+
+message ListExtensionConnectorsResponse {
+  repeated ExtensionConnector connectors = 1;
+  string registry_error = 2;
+  bool can_manage_org = 3;
+  string project_root = 4;
+  bool project_trusted = 5;
+  bool project_has_file = 6;
+  string project_error = 7;
+  // The xlsft`s harness server keeps account servers, so a remote server can go there.
+  bool account_available = 8;
+}
+
+// A value a connector needs before it can work.
+message ConnectorRequiredValue {
+  string name = 1;
+  string description = 2;
+  bool secret = 3;
+}
+
+// One way to add a connector. The frontend shows it in the form, and CreateMcpServer takes it from there.
+message ConnectorOption {
+  // For a person: "Remote", "npm package".
+  string label = 1;
+  bool remote = 2;
+  harness.mcp.v1.Server server = 3;
+  // Where it goes unless the user says otherwise.
+  McpServerSource suggested_source = 4;
+  repeated ConnectorRequiredValue required = 5;
+}
+
+// A thing to add. Only what its source says fills these: no counts, marks or publishers of our own.
+message DiscoverItem {
+  string id = 1;
+  ExtensionKind kind = 2;
+  string name = 3;
+  string description = 4;
+  string publisher = 5;
+  // A marketplace's name, "MCP registry" or "Default catalog".
+  string source_label = 6;
+  string version = 7;
+  string homepage = 8;
+  string license = 9;
+  string category = 10;
+  repeated string tags = 11;
+  // RFC 3339, UTC.
+  string updated_at = 12;
+  bool installed = 13;
+  // Why policy refuses it.
+  string refusal = 14;
+  // What InstallPlugin takes; set for skills and plugins.
+  string plugin_id = 15;
+  // Set when the item is a marketplace to add: what AddPluginMarketplace takes.
+  string marketplace_source = 16;
+  // What it holds, when the files are at hand. A plugin in a repository of its own says this once installed.
+  PluginContents contents = 17;
+  // Set for connectors.
+  repeated ConnectorOption options = 18;
+  // What is in the way of reading the entry.
+  string problem = 19;
+}
+
+message DiscoverSection {
+  string key = 1;
+  string title = 2;
+  // All that match, of which `items` holds a part unless the section was asked for.
+  int32 total = 3;
+  repeated DiscoverItem items = 4;
+  // There is more in the source; asking again with this gets it. Then total is what was seen so far.
+  string next_cursor = 5;
+}
+
+message DiscoverCategory {
+  string name = 1;
+  int32 count = 2;
+}
+
+message DiscoverExtensionsRequest {
+  ExtensionKind kind = 1;
+  string query = 2;
+  string category = 3;
+  // One section whole, by its key, instead of the overview.
+  string section = 4;
+  // A source_label to keep to.
+  string source = 5;
+  // "local" or "remote", for connectors.
+  string connector_type = 6;
+  bool hide_installed = 7;
+  // "" keeps the sources' order; "name"; "updated".
+  string sort = 8;
+  // DiscoverSection.next_cursor.
+  string cursor = 9;
+  // Don't trust the cache: try the registry now.
+  bool refresh = 10;
+  string cwd = 11;
+}
+
+message DiscoverExtensionsResponse {
+  // Unset when nothing real can be put there, and while searching or filtering.
+  DiscoverItem featured = 1;
+  repeated DiscoverSection sections = 2;
+  repeated DiscoverCategory categories = 3;
+  // The source labels items have, for a filter.
+  repeated string sources = 4;
+  // RFC 3339, UTC: when the registry's list was fetched. Empty for kinds that don't use it.
+  string registry_fetched_at = 5;
+  // Couldn't reach the registry; what is shown is the saved list, or the default catalog alone. For a person.
+  string registry_problem = 6;
+  // The registry isn't asked: turned off, or the policy allows no server from it.
+  bool registry_off = 7;
+}
+
+message GetSkillDetailRequest {
+  string name = 1;
+  // SlashCommand.path: which of several of a name.
+  string path = 2;
+  string cwd = 3;
+}
+
+message GetSkillDetailResponse {
+  // The text after the frontmatter, cut at a limit.
+  string body = 1;
+  bool truncated = 2;
+  // The files of its folder, relative, up to a limit.
+  repeated string files = 3;
+}
+
+message CreateSkillRequest {
+  // Letters, digits, "-" and "_".
+  string name = 1;
+  string description = 2;
+  // Personal when no folder is given; otherwise the project's, which needs the folder trusted.
+  string cwd = 3;
+  // The instructions; empty leaves a stub.
+  string body = 4;
+}
+
+message CreateSkillResponse {
+  string path = 1;
+}
+
+message RemoveSkillRequest {
+  string name = 1;
+  string path = 2;
+  string cwd = 3;
+}
+
+message RemoveSkillResponse {}

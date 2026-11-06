@@ -70,7 +70,7 @@ func builtinCommands() []builtinCommand {
 		{name: "plan", description: "Enter plan mode: read and propose, change nothing", hint: "[off]", needsSession: true, run: runPlan},
 		{name: "context", description: "Show how much of the context window is in use", needsSession: true, run: runContext},
 		{name: "rename", description: "Rename this session", hint: "<title>", needsSession: true, run: runRename},
-		{name: "skills", description: "Open Customize: skills and commands, with their switches", acp: true, run: runSkills},
+		{name: "skills", description: "Open Extensions: skills and commands, with their switches", acp: true, run: runSkills},
 		{name: "plugin", description: "Install, approve and manage plugins and marketplaces", hint: "[list|info|install|approve|enable|disable|update|pin|remove|marketplace|new|validate]", acp: true, async: true, run: runPlugin},
 		{name: "help", description: "List the commands of this session", acp: true, run: runHelp},
 	}
@@ -149,7 +149,7 @@ func (s *Server) runSlash(ctx context.Context, ls *liveSession, req *connect.Req
 	}
 	if sk, found := ls.sess.UserSkill(name); found {
 		if !ls.sess.SkillEnabled(sk.Name) {
-			return finish(slashError("/%s is turned off in Customize.", sk.Name))
+			return finish(slashError("/%s is turned off in Extensions.", sk.Name))
 		}
 		ls.sess.StartUserSkill(sk, args, id)
 		return false
@@ -380,9 +380,26 @@ func disabledFromDocument(doc *syncv1.Document) map[string]bool {
 	return out
 }
 
+// folderSkills reads the skills of a folder without a session. Empty: only what isn't tied to one.
+func (s *Server) folderSkills(ctx context.Context, cwd string) *skills.Manager {
+	trusted := cwd != "" && permissions.IsTrusted(cwd)
+	if s.Base.Trusted != nil {
+		trusted = cwd != "" && *s.Base.Trusted
+	}
+	disabled := map[string]bool{}
+	if s.Preferences != nil {
+		pctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
+		if doc, err := s.userSettings(pctx); err == nil {
+			disabled = disabledFromDocument(doc)
+		}
+		cancel()
+	}
+	opt := bootstrap.SkillOptions(bootstrap.SkillHomeDir(s.Base), cwd, trusted, s.serverSkillDocs(ctx), disabled)
+	return skills.NewManager(skills.ManagerOptions{Place: func() (string, bool) { return cwd, trusted }, Options: func() skills.Options { return opt }})
+}
+
 // ListSlashCommands implements AgentService.ListSlashCommands.
 func (s *Server) ListSlashCommands(ctx context.Context, req *connect.Request[agentv1.ListSlashCommandsRequest]) (*connect.Response[agentv1.ListSlashCommandsResponse], error) {
-	home := bootstrap.SkillHomeDir(s.Base)
 	var m *skills.Manager
 	window := 0
 	if id := req.Msg.GetSessionId(); id != "" {
@@ -395,21 +412,7 @@ func (s *Server) ListSlashCommands(ctx context.Context, req *connect.Request[age
 			window = info.ContextWindow
 		}
 	} else {
-		cwd := req.Msg.GetCwd()
-		trusted := cwd != "" && permissions.IsTrusted(cwd)
-		if s.Base.Trusted != nil {
-			trusted = cwd != "" && *s.Base.Trusted
-		}
-		disabled := map[string]bool{}
-		if s.Preferences != nil {
-			pctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
-			if doc, err := s.userSettings(pctx); err == nil {
-				disabled = disabledFromDocument(doc)
-			}
-			cancel()
-		}
-		opt := bootstrap.SkillOptions(home, cwd, trusted, s.serverSkillDocs(ctx), disabled)
-		m = skills.NewManager(skills.ManagerOptions{Place: func() (string, bool) { return cwd, trusted }, Options: func() skills.Options { return opt }})
+		m = s.folderSkills(ctx, req.Msg.GetCwd())
 	}
 	_, report := m.Listing(window, true)
 	return connect.NewResponse(slashCatalog(m, report)), nil
