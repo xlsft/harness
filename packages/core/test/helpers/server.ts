@@ -69,6 +69,8 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
   process.env.HARNESS_PROMPTS_DIR = join(ROOT, "prompts");
   // device-flow endpoints are rate limited per IP; every test client is 127.0.0.1
   process.env.HARNESS_DEVICE_RATE_LIMIT_PER_MIN = "10000";
+  // Never the network: a test of the price catalog turns it on, with the URL of a local mock.
+  process.env.HARNESS_MODEL_PRICES = "off";
   Object.assign(process.env, env);
 
   const { routes } = await import("../../src/http/routes.ts");

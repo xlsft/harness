@@ -3,6 +3,7 @@ import { bootstrap } from "../../bootstrap.ts";
 import { closeDb } from "../../db/index.ts";
 import { startH2cServer } from "../../rpc/h2c.ts";
 import { migrateAvatars } from "../../services/account.ts";
+import { startModelPriceRefresh } from "../../services/model-prices.ts";
 import { startObjectSweep } from "../../services/objects.ts";
 
 export default definePlugin(async (nitroApp) => {
@@ -14,6 +15,7 @@ export default definePlugin(async (nitroApp) => {
   });
   // Moving avatars into the store and the sweep run in the background: a store that is still starting delays neither.
   startObjectSweep(migrateAvatars);
+  startModelPriceRefresh();
   const grpcPort = process.env.HARNESS_GRPC_PORT;
   if (grpcPort) {
     await startH2cServer(Number(grpcPort));

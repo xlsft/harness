@@ -12,6 +12,7 @@ import type {
   ModelSlots,
   NewModel,
   ModelPriceView,
+  PriceCatalogView,
   PresetList,
   PresetView,
   ProviderDraft,
@@ -231,6 +232,7 @@ function slug(s: string) {
 
 export class MockProvidersApi implements ProvidersApi {
   private providers: ProviderView[]
+  private priceCatalog: PriceCatalogView = { enabled: true, updatedAt: '2026-11-06T09:00:00.000Z' }
   private classifier: ClassifierSettings
   private slots: ModelSlots = emptySlots()
   private mine: ClassifierOverride = { choice: 'default', providerId: '', llmModel: '' }
@@ -288,7 +290,7 @@ export class MockProvidersApi implements ProvidersApi {
         editable: true,
         billing: 'metered',
         models: [
-          { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', upstream: 'gpt-6.1-sol', contextWindow: 400_000, efforts: ['low', 'medium', 'high'], defaultEffort: 'medium', pricing: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 } }
+          { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', upstream: 'gpt-6.1-sol', contextWindow: 400_000, efforts: ['low', 'medium', 'high'], defaultEffort: 'medium', pricing: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 }, pricingSource: 'catalog', pricingUpdatedAt: '2026-11-05T09:00:00.000Z', priceChangeHeld: { proposed: { input: 20, output: 100, cacheRead: 1, cacheWrite: 25 }, source: 'catalog', heldAt: '2026-11-06T09:00:00.000Z' } }
         ]
       }
     ]
@@ -322,7 +324,7 @@ export class MockProvidersApi implements ProvidersApi {
   }
 
   async list(): Promise<ProviderList> {
-    return { providers: structuredClone(this.providers), types: [...TYPES], canManageGlobal: this.admin }
+    return { providers: structuredClone(this.providers), types: [...TYPES], canManageGlobal: this.admin, priceCatalog: { ...this.priceCatalog } }
   }
 
   async create(d: ProviderDraft) {
@@ -454,6 +456,27 @@ export class MockProvidersApi implements ProvidersApi {
     const m = p.models.find(m => m.id === modelId)!
     m.pricing = pricing ?? undefined
     m.pricingSetByHand = true
+    m.pricingSource = 'hand'
+    m.pricingUpdatedAt = new Date().toISOString()
+    m.priceChangeHeld = undefined
+  }
+
+  async acceptModelPriceChange(modelId: string) {
+    const p = this.providers.find(x => x.models.some(m => m.id === modelId))
+    if (!p) throw new Error(`Model ${modelId} not found`)
+    this.writable(p.id)
+    const m = p.models.find(m => m.id === modelId)!
+    if (!m.priceChangeHeld) throw new Error(`[invalid_argument] No price change is held for ${modelId}`)
+    m.pricing = m.priceChangeHeld.proposed
+    m.pricingSource = m.priceChangeHeld.source
+    m.pricingUpdatedAt = new Date().toISOString()
+    m.priceChangeHeld = undefined
+  }
+
+  async refreshModelPrices() {
+    if (!this.admin) throw new Error('Admin role required')
+    this.priceCatalog = { enabled: true, updatedAt: new Date().toISOString() }
+    return { ok: true, message: 'Prices refreshed', updated: 0, held: 0, catalog: { ...this.priceCatalog } }
   }
 
   async removeModel(modelId: string) {

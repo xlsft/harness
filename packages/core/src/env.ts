@@ -21,7 +21,13 @@ export interface Config {
   pingIntervalMs: number;
   /** An upstream that sends nothing (no headers, no bytes) for this long is dropped and the attempt retried. */
   upstreamIdleTimeoutMs: number;
+  /** The model price catalog (services/price-catalog.ts); HARNESS_MODEL_PRICES=off for air-gapped installs. */
+  modelPricesEnabled: boolean;
+  /** Where it is fetched from. An operator's own URL (a mirror) may be on the private network. */
+  modelPricesUrl: string;
 }
+
+export const DEFAULT_MODEL_PRICES_URL = "https://models.dev/api.json";
 
 /**
  * Where the database lives. `postgres`: a real server (DATABASE_URL, a normal URL or a unix socket such as
@@ -51,6 +57,8 @@ export function config(): Config {
     upstreamRetryBaseMs: intEnv(env.HARNESS_UPSTREAM_RETRY_BASE_MS, 500),
     pingIntervalMs: intEnv(env.HARNESS_PING_INTERVAL_MS, 10_000),
     upstreamIdleTimeoutMs: intEnv(env.HARNESS_UPSTREAM_IDLE_TIMEOUT_MS, 180_000),
+    modelPricesEnabled: !["off", "false", "0"].includes((env.HARNESS_MODEL_PRICES ?? "").trim().toLowerCase()),
+    modelPricesUrl: env.HARNESS_MODEL_PRICES_URL?.trim() || DEFAULT_MODEL_PRICES_URL,
   };
   return cached;
 }

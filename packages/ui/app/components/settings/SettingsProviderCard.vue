@@ -4,7 +4,7 @@
 // list) with a switch each: on adds the model to the catalog, off removes it. Classifier providers show
 // their decision models. Global providers are read-only for non-admins.
 import type { ProviderLimitsView } from '~/lib/limits/types'
-import type { ModelCandidateView, ModelPriceView, PresetView, ProtocolView, ProviderPatch, ProviderView, ProvidersApi, TestResult } from '~/lib/providers/types'
+import type { ModelCandidateView, ModelPriceView, PresetView, PriceSourceName, ProtocolView, ProviderPatch, ProviderView, ProvidersApi, TestResult } from '~/lib/providers/types'
 import { contextLabel } from '~/lib/providers/types'
 import type { EffortName } from '~/lib/session/types'
 
@@ -148,6 +148,20 @@ async function savePrice(m: { id: string }) {
   }
 }
 const priceLabel = (m: { pricing?: ModelPriceView }) => m.pricing ? `$${m.pricing.input} / $${m.pricing.output}` : 'price'
+const PRICE_SOURCE: Record<PriceSourceName, string> = { hand: 'set by hand', list: 'from the provider\'s list', catalog: 'from the catalog', preset: 'from the preset' }
+const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+// Where a price came from and since when; empty for one from before sources were recorded.
+function priceOrigin(m: { pricing?: ModelPriceView, pricingSource?: PriceSourceName, pricingUpdatedAt?: string }) {
+  if (!m.pricingSource) return ''
+  return m.pricingUpdatedAt ? `${PRICE_SOURCE[m.pricingSource]}, ${day(m.pricingUpdatedAt)}` : PRICE_SOURCE[m.pricingSource]
+}
+async function acceptPrice(m: { id: string }) {
+  if (await run(`price:${m.id}`, () => props.api.acceptModelPriceChange(m.id))) {
+    // An open form holds the old numbers.
+    if (editingPrice.value === m.id) editingPrice.value = ''
+    emit('changed')
+  }
+}
 
 // --- Balance ---------------------------------------------------------------------------------------
 
@@ -542,7 +556,7 @@ const PRICE_FIELDS = [
                 type="button"
                 :aria-expanded="editingPrice === m.id"
                 :aria-label="`Price of ${m.name}`"
-                title="Per 1M tokens, input / output"
+                :title="['Per 1M tokens, input / output', priceOrigin(m)].filter(Boolean).join('; ')"
                 class="shrink-0 text-[11px] tabular-nums"
                 :class="editingPrice === m.id ? 'text-strong' : 'text-muted hover:text-strong'"
                 @click="togglePrice(m)"
@@ -590,8 +604,25 @@ const PRICE_FIELDS = [
               >
                 Save
               </HBtn>
-              <span v-if="m.pricingSetByHand">set by hand</span>
+              <span v-if="priceOrigin(m)">{{ priceOrigin(m) }}</span>
             </form>
+            <div
+              v-if="p.editable && m.priceChangeHeld"
+              role="group"
+              :aria-label="`Price change held for ${m.name}`"
+              class="flex flex-wrap items-center gap-2 border-b border-default px-2.5 py-1.5 text-[11px] text-muted last:border-b-0"
+            >
+              <span class="flex-1">
+                Price change held, too large to apply by itself: {{ PRICE_SOURCE[m.priceChangeHeld.source] }} {{ priceLabel({ pricing: m.priceChangeHeld.proposed }) }}, {{ day(m.priceChangeHeld.heldAt) }}. Still billed at {{ priceLabel(m) }}.
+              </span>
+              <HBtn
+                size="sm"
+                :disabled="busy === `price:${m.id}`"
+                @click="acceptPrice(m)"
+              >
+                Accept
+              </HBtn>
+            </div>
             <div
               v-if="editingLevels === m.id"
               role="group"

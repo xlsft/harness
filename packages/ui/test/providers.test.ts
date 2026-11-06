@@ -32,6 +32,16 @@ describe('providerView', () => {
     expect(v.models[1]!.pricing).toBeUndefined()
   })
 
+  it('maps where a price came from and a change held back', () => {
+    const v = providerView(create(ProviderSchema, { id: 'p', models: [
+      { id: 'a', pricing: { input: 4, output: 20 }, pricingSource: 'catalog', pricingUpdatedAt: '2026-11-06T00:00:00.000Z', priceChangeHeld: { proposed: { input: 40, output: 200, cacheRead: 0, cacheWrite: 0 }, source: 'catalog', heldAt: '2026-11-06T01:00:00.000Z' } },
+      { id: 'b' }
+    ] }))
+    expect(v.models[0]).toMatchObject({ pricingSource: 'catalog', pricingUpdatedAt: '2026-11-06T00:00:00.000Z', priceChangeHeld: { proposed: { input: 40, output: 200 }, source: 'catalog', heldAt: '2026-11-06T01:00:00.000Z' } })
+    expect(v.models[1]!.pricingSource).toBeUndefined()
+    expect(v.models[1]!.priceChangeHeld).toBeUndefined()
+  })
+
   it('maps the group and preset, defaulting to an LLM custom provider', () => {
     const v = providerView(create(ProviderSchema, { id: 'typesafe', scope: ProviderScope.GLOBAL, group: 'classifier', presetId: 'typesafe', headerNames: ['X-A'] }))
     expect(v).toMatchObject({ group: 'classifier', presetId: 'typesafe', headerNames: ['X-A'] })

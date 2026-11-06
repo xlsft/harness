@@ -12,7 +12,7 @@ import { Role } from "../src/gen/harness/llm/v1/content_pb.ts";
 import { LimitsAudience, ProviderLimitsService } from "../src/gen/harness/llm/v1/limits_pb.ts";
 import { estimatedBalance } from "../src/limits/balance.ts";
 import { forgetRateLimits } from "../src/limits/headers.ts";
-import { fillPresetPrices } from "../src/services/models.ts";
+import { applyModelPrices } from "../src/services/model-prices.ts";
 import { PRESETS, presetPriceOf } from "../src/services/presets.ts";
 import { anthropicThinkingText } from "./fixtures/upstream.ts";
 import { MockUpstream } from "./helpers/mock-upstream.ts";
@@ -156,7 +156,7 @@ describe("preset prices", () => {
     await model("u-mine000002/claude-opus-5-5", "u-mine000002", "claude-opus-5-5");
     await model("u-mine000002/claude-other", "u-mine000002", "claude-other");
     const calls = up.requests.length;
-    await fillPresetPrices();
+    await applyModelPrices();
     expect(await priceOf("u-mine000002/claude-opus-5-5")).toEqual(OPUS);
     expect(await priceOf("u-mine000002/claude-other")).toBeNull();
     expect(up.requests.length).toBe(calls);
@@ -181,7 +181,7 @@ describe("preset prices", () => {
   it("never go over a price that is set", async () => {
     await model("keep", "anth", "claude-opus-5-5");
     await getDb().update(schema.model).set({ pricing: { input: 1, output: 1 } }).where(eq(schema.model.id, "keep"));
-    await fillPresetPrices("anth");
+    await applyModelPrices({ providerId: "anth" });
     expect(await priceOf("keep")).toEqual({ input: 1, output: 1 });
   });
 });
@@ -207,12 +207,12 @@ describe("prices by hand", () => {
     expect(await priceOf("from-list")).toEqual({ input: 1, output: 2 });
 
     // The preset does not bring back a price someone took away.
-    await fillPresetPrices();
+    await applyModelPrices();
     expect(await priceOf("hand-preset")).toBeNull();
 
     // Setting effort levels keeps the mark.
     await a.setModelEfforts({ modelId: "hand-preset", efforts: [] });
-    await fillPresetPrices();
+    await applyModelPrices();
     expect(await priceOf("hand-preset")).toBeNull();
   });
 
@@ -255,7 +255,7 @@ describe("spend.partial", () => {
     let l = await of(admin.accessToken, "part");
     expect(l.spend).toMatchObject({ spent: 0, partial: true });
 
-    await fillPresetPrices("part");
+    await applyModelPrices({ providerId: "part" });
     await stream(admin.accessToken, "part-opus");
     l = await of(admin.accessToken, "part");
     // The new request counts; the old one still has no cost, so the sum stays a lower bound and says so.
