@@ -320,10 +320,10 @@ type AgentHost struct {
 	MaxSessions       int32  `protobuf:"varint,11,opt,name=max_sessions,json=maxSessions,proto3" json:"max_sessions,omitempty"`
 	// 0: no limit per user.
 	MaxSessionsPerUser int32              `protobuf:"varint,12,opt,name=max_sessions_per_user,json=maxSessionsPerUser,proto3" json:"max_sessions_per_user,omitempty"`
-	OpenSessions       int32              `protobuf:"varint,13,opt,name=open_sessions,json=openSessions,proto3" json:"open_sessions,omitempty"`
+	WorkingSessions    int32              `protobuf:"varint,13,opt,name=working_sessions,json=workingSessions,proto3" json:"working_sessions,omitempty"`
 	QueuedWork         int32              `protobuf:"varint,14,opt,name=queued_work,json=queuedWork,proto3" json:"queued_work,omitempty"`
 	Isolation          AgentHostIsolation `protobuf:"varint,15,opt,name=isolation,proto3,enum=harness.relay.v1.AgentHostIsolation" json:"isolation,omitempty"`
-	// The OS sandbox on this host: "seatbelt", "bubblewrap" and so on, "" for none.
+	// The platform of the OS sandbox on this host, "macos" or "linux", "" when it has no driver.
 	SandboxDriver string  `protobuf:"bytes,16,opt,name=sandbox_driver,json=sandboxDriver,proto3" json:"sandbox_driver,omitempty"`
 	Os            string  `protobuf:"bytes,17,opt,name=os,proto3" json:"os,omitempty"`
 	Arch          string  `protobuf:"bytes,18,opt,name=arch,proto3" json:"arch,omitempty"`
@@ -459,9 +459,9 @@ func (x *AgentHost) GetMaxSessionsPerUser() int32 {
 	return 0
 }
 
-func (x *AgentHost) GetOpenSessions() int32 {
+func (x *AgentHost) GetWorkingSessions() int32 {
 	if x != nil {
-		return x.OpenSessions
+		return x.WorkingSessions
 	}
 	return 0
 }
@@ -565,14 +565,14 @@ func (x *AgentHost) GetWorkers() []*AgentHostWorker {
 }
 
 type AgentHostWorker struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	UserName      string                 `protobuf:"bytes,2,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
-	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	Online        bool                   `protobuf:"varint,4,opt,name=online,proto3" json:"online,omitempty"`
-	OpenSessions  int32                  `protobuf:"varint,5,opt,name=open_sessions,json=openSessions,proto3" json:"open_sessions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	UserId          string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserName        string                 `protobuf:"bytes,2,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
+	DeviceId        string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	Online          bool                   `protobuf:"varint,4,opt,name=online,proto3" json:"online,omitempty"`
+	WorkingSessions int32                  `protobuf:"varint,5,opt,name=working_sessions,json=workingSessions,proto3" json:"working_sessions,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AgentHostWorker) Reset() {
@@ -633,9 +633,9 @@ func (x *AgentHostWorker) GetOnline() bool {
 	return false
 }
 
-func (x *AgentHostWorker) GetOpenSessions() int32 {
+func (x *AgentHostWorker) GetWorkingSessions() int32 {
 	if x != nil {
-		return x.OpenSessions
+		return x.WorkingSessions
 	}
 	return 0
 }
@@ -2102,12 +2102,12 @@ func (x *RegisterAgentHostResponse) GetSupervisor() bool {
 }
 
 type ReportAgentHostRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OpenSessions  int32                  `protobuf:"varint,1,opt,name=open_sessions,json=openSessions,proto3" json:"open_sessions,omitempty"`
-	LoadAverage   float64                `protobuf:"fixed64,2,opt,name=load_average,json=loadAverage,proto3" json:"load_average,omitempty"`
-	DiskFreeBytes int64                  `protobuf:"varint,3,opt,name=disk_free_bytes,json=diskFreeBytes,proto3" json:"disk_free_bytes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	WorkingSessions int32                  `protobuf:"varint,1,opt,name=working_sessions,json=workingSessions,proto3" json:"working_sessions,omitempty"`
+	LoadAverage     float64                `protobuf:"fixed64,2,opt,name=load_average,json=loadAverage,proto3" json:"load_average,omitempty"`
+	DiskFreeBytes   int64                  `protobuf:"varint,3,opt,name=disk_free_bytes,json=diskFreeBytes,proto3" json:"disk_free_bytes,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ReportAgentHostRequest) Reset() {
@@ -2140,9 +2140,9 @@ func (*ReportAgentHostRequest) Descriptor() ([]byte, []int) {
 	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{25}
 }
 
-func (x *ReportAgentHostRequest) GetOpenSessions() int32 {
+func (x *ReportAgentHostRequest) GetWorkingSessions() int32 {
 	if x != nil {
-		return x.OpenSessions
+		return x.WorkingSessions
 	}
 	return 0
 }
@@ -2969,7 +2969,7 @@ var File_harness_relay_v1_hosts_proto protoreflect.FileDescriptor
 
 const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/relay/v1/hosts.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a\x1charness/llm/v1/content.proto\"\xcf\a\n" +
+	"\x1charness/relay/v1/hosts.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a\x1charness/llm/v1/content.proto\"\xd5\a\n" +
 	"\tAgentHost\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x126\n" +
@@ -2985,8 +2985,8 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x12unavailable_reason\x18\n" +
 	" \x01(\tR\x11unavailableReason\x12!\n" +
 	"\fmax_sessions\x18\v \x01(\x05R\vmaxSessions\x121\n" +
-	"\x15max_sessions_per_user\x18\f \x01(\x05R\x12maxSessionsPerUser\x12#\n" +
-	"\ropen_sessions\x18\r \x01(\x05R\fopenSessions\x12\x1f\n" +
+	"\x15max_sessions_per_user\x18\f \x01(\x05R\x12maxSessionsPerUser\x12)\n" +
+	"\x10working_sessions\x18\r \x01(\x05R\x0fworkingSessions\x12\x1f\n" +
 	"\vqueued_work\x18\x0e \x01(\x05R\n" +
 	"queuedWork\x12B\n" +
 	"\tisolation\x18\x0f \x01(\x0e2$.harness.relay.v1.AgentHostIsolationR\tisolation\x12%\n" +
@@ -3003,13 +3003,13 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"lastSeenAt\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x1a \x01(\tR\tcreatedAt\x12;\n" +
-	"\aworkers\x18\x1b \x03(\v2!.harness.relay.v1.AgentHostWorkerR\aworkers\"\xa1\x01\n" +
+	"\aworkers\x18\x1b \x03(\v2!.harness.relay.v1.AgentHostWorkerR\aworkers\"\xa7\x01\n" +
 	"\x0fAgentHostWorker\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tuser_name\x18\x02 \x01(\tR\buserName\x12\x1b\n" +
 	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x12\x16\n" +
-	"\x06online\x18\x04 \x01(\bR\x06online\x12#\n" +
-	"\ropen_sessions\x18\x05 \x01(\x05R\fopenSessions\")\n" +
+	"\x06online\x18\x04 \x01(\bR\x06online\x12)\n" +
+	"\x10working_sessions\x18\x05 \x01(\x05R\x0fworkingSessions\")\n" +
 	"\x15ListAgentHostsRequest\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\"K\n" +
 	"\x16ListAgentHostsResponse\x121\n" +
@@ -3124,9 +3124,9 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x04host\x18\x01 \x01(\v2\x1b.harness.relay.v1.AgentHostR\x04host\x12\x1e\n" +
 	"\n" +
 	"supervisor\x18\x02 \x01(\bR\n" +
-	"supervisor\"\x88\x01\n" +
-	"\x16ReportAgentHostRequest\x12#\n" +
-	"\ropen_sessions\x18\x01 \x01(\x05R\fopenSessions\x12!\n" +
+	"supervisor\"\x8e\x01\n" +
+	"\x16ReportAgentHostRequest\x12)\n" +
+	"\x10working_sessions\x18\x01 \x01(\x05R\x0fworkingSessions\x12!\n" +
 	"\fload_average\x18\x02 \x01(\x01R\vloadAverage\x12&\n" +
 	"\x0fdisk_free_bytes\x18\x03 \x01(\x03R\rdiskFreeBytes\"X\n" +
 	"\x17ReportAgentHostResponse\x12\x1a\n" +

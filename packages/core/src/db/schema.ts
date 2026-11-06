@@ -110,6 +110,8 @@ export const device = pgTable(
     arch: text("arch"),
     userAgent: text("user_agent"),
     tokenHash: text("token_hash").notNull().unique(),
+    /** "" a person's machine; host | host_worker | host_supervisor: always-on hosts, with narrower rights (docs/design/hosts.md, decision 8). */
+    kind: text("kind").notNull().default(""),
     createdAt: ts("created_at").notNull(),
     lastSeenAt: ts("last_seen_at"),
     revokedAt: ts("revoked_at"),
@@ -969,6 +971,138 @@ export const relayCommand = pgTable(
     index("relay_command_session_idx").on(t.sessionId, t.state),
     index("relay_command_host_idx").on(t.hostId, t.state),
   ],
+);
+
+// ---------------------------------------------------------------------------
+// Always-on hosts (proto/harness/relay/v1/hosts.proto, docs/design/hosts.md)
+// ---------------------------------------------------------------------------
+
+/** A host: what a user or an admin registered, and what its daemon last said about itself. */
+export const agentHost = pgTable(
+  "agent_host",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    /** user | team */
+    scope: text("scope").notNull(),
+    /** The user it is registered to; for a team host, the admin who registered it. */
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Team hosts: whose members may use it. */
+    groupId: text("group_id").notNull().default(""),
+    draining: boolean("draining").notNull().default(false),
+    maxSessions: integer("max_sessions").notNull().default(4),
+    /** 0: no limit per user. */
+    maxSessionsPerUser: integer("max_sessions_per_user").notNull().default(0),
+    /** Repository patterns the connection's own identity may be used on from this host. */
+    allowedRepositories: jsonb("allowed_repositories").notNull().default([]),
+    /** none | uid; "" until a daemon said. */
+    isolation: text("isolation").notNull().default(""),
+    sandboxDriver: text("sandbox_driver").notNull().default(""),
+    os: text("os").notNull().default(""),
+    arch: text("arch").notNull().default(""),
+    clientVersion: text("client_version").notNull().default(""),
+    cpuCount: integer("cpu_count").notNull().default(0),
+    loadAverage: doublePrecision("load_average").notNull().default(0),
+    diskFreeBytes: int8("disk_free_bytes").notNull().default(0),
+    lastSeenAt: ts("last_seen_at"),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [index("agent_host_owner_idx").on(t.ownerUserId), index("agent_host_group_idx").on(t.groupId)],
+);
+
+/** The devices of a host: the daemon of a personal host, or a team host's supervisor and one worker per member. */
+export const agentHostDevice = pgTable(
+  "agent_host_device",
+  {
+    deviceId: text("device_id")
+      .primaryKey()
+      .references(() => device.id, { onDelete: "cascade" }),
+    hostId: text("host_id")
+      .notNull()
+      .references(() => agentHost.id, { onDelete: "cascade" }),
+    /** Whose work it runs. */
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** personal | supervisor | worker */
+    role: text("role").notNull(),
+    workingSessions: integer("working_sessions").notNull().default(0),
+    reportedAt: ts("reported_at"),
+  },
+  (t) => [index("agent_host_device_host_idx").on(t.hostId), uniqueIndex("agent_host_device_role_idx").on(t.hostId, t.userId, t.role)],
+);
+
+/** Work for a host. See HostWorkState: the row is the queue, and ClaimHostWork is the only way out of it. */
+export const hostWork = pgTable(
+  "host_work",
+  {
+    id: text("id").primaryKey(),
+    hostId: text("host_id")
+      .notNull()
+      .references(() => agentHost.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** The HostWorkKind and HostWorkState numbers. */
+    kind: integer("kind").notNull(),
+    state: integer("state").notNull(),
+    repositoryKey: text("repository_key").notNull().default(""),
+    baseRef: text("base_ref").notNull().default(""),
+    branch: text("branch").notNull().default(""),
+    landing: integer("landing").notNull().default(0),
+    freshClone: boolean("fresh_clone").notNull().default(false),
+    prompt: text("prompt").notNull().default(""),
+    title: text("title").notNull().default(""),
+    model: text("model").notNull().default(""),
+    effort: integer("effort").notNull().default(0),
+    permissionMode: integer("permission_mode").notNull().default(0),
+    /** The AutoFixJob, base64 binary protobuf. */
+    job: text("job").notNull().default(""),
+    forkSessionId: text("fork_session_id").notNull().default(""),
+    sessionId: text("session_id").notNull().default(""),
+    pullRequestUrl: text("pull_request_url").notNull().default(""),
+    error: text("error").notNull().default(""),
+    attempts: integer("attempts").notNull().default(0),
+    /** The device that holds it. */
+    deviceId: text("device_id").notNull().default(""),
+    leaseUntil: ts("lease_until"),
+    /** Null when not given (nulls never collide). */
+    idempotencyKey: text("idempotency_key"),
+    expiresAt: ts("expires_at").notNull(),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [
+    index("host_work_host_idx").on(t.hostId, t.state),
+    index("host_work_user_idx").on(t.userId, t.createdAt),
+    uniqueIndex("host_work_idem_idx").on(t.userId, t.idempotencyKey),
+  ],
+);
+
+/** A user's choice of the host that takes their work while their machines are away; host_id "" means none. No row: their personal host. */
+export const agentHostAway = pgTable("agent_host_away", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  hostId: text("host_id").notNull().default(""),
+  updatedAt: ts("updated_at").notNull(),
+});
+
+/** Who ran a schedule's due time, so that a machine's catch-up and its away host can't both. */
+export const scheduleRunClaim = pgTable(
+  "schedule_run_claim",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    scheduleId: text("schedule_id").notNull(),
+    dueAt: text("due_at").notNull(),
+    deviceId: text("device_id").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.scheduleId, t.dueAt] })],
 );
 
 // ---------------------------------------------------------------------------

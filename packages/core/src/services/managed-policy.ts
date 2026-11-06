@@ -8,6 +8,7 @@
  *   sandbox.enabled true, sandbox.allowOutside false                   enforced by clients
  *   allowedProviders, disablePersonalProviders                         enforced here too: the gateway serves only allowed models
  *   allowedMcpServers                                                  enforced here too: the catalog, proxy and stdio launches
+ *   disablePersonalHosts, sandbox.enabled true                         enforced here too for always-on hosts (relay/hosts.ts)
  *   strictKnownMarketplaces, blockedMarketplaces, extraKnownMarketplaces, enabledPlugins
  *                                                                      enforced by clients (packages/client/plugins): plugins are a device's
  * The server cannot be talked out of what it enforces itself, whatever a modified client does; permission rules and the
@@ -43,6 +44,7 @@ export interface ManagedPolicy {
   distributed_marketplaces: string[];
   distributed_plugins: string[];
   blocked_plugins: string[];
+  personal_hosts_disabled: boolean;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
@@ -133,6 +135,7 @@ export function managedOf(content: Json): ManagedPolicy {
     personal_providers_disabled: content.disablePersonalProviders === true,
     restrict_mcp_servers: Array.isArray(content.allowedMcpServers),
     allowed_mcp_servers: strings(content.allowedMcpServers),
+    personal_hosts_disabled: content.disablePersonalHosts === true,
     ...pluginFields(content),
   };
 }
@@ -158,6 +161,7 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "allowedProviders", p.allowed_providers, p.restrict_providers);
   setOrDelete(next, "disablePersonalProviders", true, p.personal_providers_disabled);
   setOrDelete(next, "allowedMcpServers", p.allowed_mcp_servers, p.restrict_mcp_servers);
+  setOrDelete(next, "disablePersonalHosts", true, p.personal_hosts_disabled);
   setOrDelete(next, "strictKnownMarketplaces", p.allowed_plugin_sources.map(lineToSource), p.restrict_plugin_sources);
   setOrDelete(next, "blockedMarketplaces", p.blocked_plugin_sources.map(lineToSource), p.blocked_plugin_sources.length > 0);
   const extra = Object.fromEntries(
@@ -258,6 +262,8 @@ export interface ServerPolicy {
   allowedProviders?: string[];
   personalProvidersDisabled: boolean;
   allowedMcpServers?: string[];
+  personalHostsDisabled: boolean;
+  sandboxRequired: boolean;
 }
 
 function intersect(a: string[] | undefined, b: string[]): string[] {
@@ -272,7 +278,7 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     .select({ content: d.content, targetRoles: d.targetRoles })
     .from(d)
     .where(and(eq(d.scope, Scope.ORG), eq(d.kind, DocumentKind.POLICY), isNull(d.deletedAt)));
-  const out: ServerPolicy = { personalProvidersDisabled: false };
+  const out: ServerPolicy = { personalProvidersDisabled: false, personalHostsDisabled: false, sandboxRequired: false };
   for (const r of rows) {
     const roles = Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [];
     if (roles.length && !roles.includes(user.role)) continue;
@@ -280,6 +286,8 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     if (m.restrict_providers) out.allowedProviders = intersect(out.allowedProviders, m.allowed_providers);
     if (m.restrict_mcp_servers) out.allowedMcpServers = intersect(out.allowedMcpServers, m.allowed_mcp_servers);
     out.personalProvidersDisabled ||= m.personal_providers_disabled;
+    out.personalHostsDisabled ||= m.personal_hosts_disabled;
+    out.sandboxRequired ||= m.sandbox_required;
   }
   return out;
 }

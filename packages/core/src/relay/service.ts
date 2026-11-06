@@ -1014,6 +1014,23 @@ export async function spawnSession(p: Principal, hostId: string, spawn: SpawnSes
   return r.ack.result.value.session;
 }
 
+/** Whether a session's machine is up: false for a session no machine mirrors, or one whose machine went away. */
+export async function sessionMachineOnline(sessionId: string): Promise<boolean> {
+  const db = getDb();
+  const [s] = await db.select({ hostId: schema.relaySession.hostId }).from(schema.relaySession).where(eq(schema.relaySession.id, sessionId));
+  if (!s) return false;
+  const [h] = await db.select().from(schema.relayHost).where(eq(schema.relayHost.id, s.hostId));
+  return !!h && isOnline(h);
+}
+
+/** Takes back a server command still waiting for its machine, so it can't run as well as what replaces it. */
+export async function withdrawServerCommand(userId: string, key: string): Promise<void> {
+  await getDb()
+    .update(schema.relayCommand)
+    .set({ state: "withdrawn" })
+    .where(and(eq(schema.relayCommand.userId, userId), eq(schema.relayCommand.idempotencyKey, key), eq(schema.relayCommand.state, "queued")));
+}
+
 /** Test hook: drops in-process relay state between test files sharing a module instance. */
 export function resetRelayState(): void {
   sessionLocks.clear();

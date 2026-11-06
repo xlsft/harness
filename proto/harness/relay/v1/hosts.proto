@@ -120,10 +120,10 @@ message AgentHost {
   int32 max_sessions = 11;
   // 0: no limit per user.
   int32 max_sessions_per_user = 12;
-  int32 open_sessions = 13;
+  int32 working_sessions = 13;
   int32 queued_work = 14;
   AgentHostIsolation isolation = 15;
-  // The OS sandbox on this host: "seatbelt", "bubblewrap" and so on, "" for none.
+  // The platform of the OS sandbox on this host, "macos" or "linux", "" when it has no driver.
   string sandbox_driver = 16;
   string os = 17;
   string arch = 18;
@@ -148,7 +148,7 @@ message AgentHostWorker {
   string user_name = 2;
   string device_id = 3;
   bool online = 4;
-  int32 open_sessions = 5;
+  int32 working_sessions = 5;
 }
 
 message ListAgentHostsRequest {
@@ -313,7 +313,7 @@ message RegisterAgentHostResponse {
 }
 
 message ReportAgentHostRequest {
-  int32 open_sessions = 1;
+  int32 working_sessions = 1;
   double load_average = 2;
   int64 disk_free_bytes = 3;
 }

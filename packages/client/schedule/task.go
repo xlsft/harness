@@ -82,6 +82,9 @@ type Task struct {
 	Origin     Origin  `json:"origin,omitempty"`
 	DeviceID   string  `json:"deviceId,omitempty"`
 	DeviceName string  `json:"deviceName,omitempty"`
+	// AwayHostID is the always-on host that runs this while its machine is away; RepositoryKey is what the host checks out.
+	AwayHostID    string `json:"awayHostId,omitempty"`
+	RepositoryKey string `json:"repositoryKey,omitempty"`
 	// DeviceLocal never leaves this machine.
 	DeviceLocal bool `json:"deviceLocal,omitempty"`
 	// WebhookSecretSHA256 is what the server's webhook route checks a posted secret against; the secret itself stays on

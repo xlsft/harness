@@ -246,5 +246,31 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"tracker_task_owner_idx\" ON \"tracker_task\" USING btree (\"owner_id\",\"status\",\"updated_at\");",
       "CREATE INDEX \"sync_session_entry_search_idx\" ON \"sync_session_entry\" USING gin (to_tsvector('simple', \"search_text\"));"
     ]
+  },
+  {
+    "id": "0015_agent_hosts",
+    "statements": [
+      "CREATE TABLE \"agent_host\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"scope\" text NOT NULL,\n\t\"owner_user_id\" text NOT NULL,\n\t\"group_id\" text DEFAULT '' NOT NULL,\n\t\"draining\" boolean DEFAULT false NOT NULL,\n\t\"max_sessions\" integer DEFAULT 4 NOT NULL,\n\t\"max_sessions_per_user\" integer DEFAULT 0 NOT NULL,\n\t\"allowed_repositories\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"isolation\" text DEFAULT '' NOT NULL,\n\t\"sandbox_driver\" text DEFAULT '' NOT NULL,\n\t\"os\" text DEFAULT '' NOT NULL,\n\t\"arch\" text DEFAULT '' NOT NULL,\n\t\"client_version\" text DEFAULT '' NOT NULL,\n\t\"cpu_count\" integer DEFAULT 0 NOT NULL,\n\t\"load_average\" double precision DEFAULT 0 NOT NULL,\n\t\"disk_free_bytes\" bigint DEFAULT 0 NOT NULL,\n\t\"last_seen_at\" timestamp with time zone,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"agent_host_away\" (\n\t\"user_id\" text PRIMARY KEY NOT NULL,\n\t\"host_id\" text DEFAULT '' NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"agent_host_device\" (\n\t\"device_id\" text PRIMARY KEY NOT NULL,\n\t\"host_id\" text NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"role\" text NOT NULL,\n\t\"working_sessions\" integer DEFAULT 0 NOT NULL,\n\t\"reported_at\" timestamp with time zone\n);",
+      "CREATE TABLE \"host_work\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"host_id\" text NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"kind\" integer NOT NULL,\n\t\"state\" integer NOT NULL,\n\t\"repository_key\" text DEFAULT '' NOT NULL,\n\t\"base_ref\" text DEFAULT '' NOT NULL,\n\t\"branch\" text DEFAULT '' NOT NULL,\n\t\"landing\" integer DEFAULT 0 NOT NULL,\n\t\"fresh_clone\" boolean DEFAULT false NOT NULL,\n\t\"prompt\" text DEFAULT '' NOT NULL,\n\t\"title\" text DEFAULT '' NOT NULL,\n\t\"model\" text DEFAULT '' NOT NULL,\n\t\"effort\" integer DEFAULT 0 NOT NULL,\n\t\"permission_mode\" integer DEFAULT 0 NOT NULL,\n\t\"job\" text DEFAULT '' NOT NULL,\n\t\"fork_session_id\" text DEFAULT '' NOT NULL,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"pull_request_url\" text DEFAULT '' NOT NULL,\n\t\"error\" text DEFAULT '' NOT NULL,\n\t\"attempts\" integer DEFAULT 0 NOT NULL,\n\t\"device_id\" text DEFAULT '' NOT NULL,\n\t\"lease_until\" timestamp with time zone,\n\t\"idempotency_key\" text,\n\t\"expires_at\" timestamp with time zone NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"schedule_run_claim\" (\n\t\"user_id\" text NOT NULL,\n\t\"schedule_id\" text NOT NULL,\n\t\"due_at\" text NOT NULL,\n\t\"device_id\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"schedule_run_claim_user_id_schedule_id_due_at_pk\" PRIMARY KEY(\"user_id\",\"schedule_id\",\"due_at\")\n);",
+      "ALTER TABLE \"device\" ADD COLUMN \"kind\" text DEFAULT '' NOT NULL;",
+      "ALTER TABLE \"agent_host\" ADD CONSTRAINT \"agent_host_owner_user_id_user_id_fk\" FOREIGN KEY (\"owner_user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"agent_host_away\" ADD CONSTRAINT \"agent_host_away_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"agent_host_device\" ADD CONSTRAINT \"agent_host_device_device_id_device_id_fk\" FOREIGN KEY (\"device_id\") REFERENCES \"public\".\"device\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"agent_host_device\" ADD CONSTRAINT \"agent_host_device_host_id_agent_host_id_fk\" FOREIGN KEY (\"host_id\") REFERENCES \"public\".\"agent_host\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"agent_host_device\" ADD CONSTRAINT \"agent_host_device_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"host_work\" ADD CONSTRAINT \"host_work_host_id_agent_host_id_fk\" FOREIGN KEY (\"host_id\") REFERENCES \"public\".\"agent_host\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"host_work\" ADD CONSTRAINT \"host_work_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"schedule_run_claim\" ADD CONSTRAINT \"schedule_run_claim_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"agent_host_owner_idx\" ON \"agent_host\" USING btree (\"owner_user_id\");",
+      "CREATE INDEX \"agent_host_group_idx\" ON \"agent_host\" USING btree (\"group_id\");",
+      "CREATE INDEX \"agent_host_device_host_idx\" ON \"agent_host_device\" USING btree (\"host_id\");",
+      "CREATE UNIQUE INDEX \"agent_host_device_role_idx\" ON \"agent_host_device\" USING btree (\"host_id\",\"user_id\",\"role\");",
+      "CREATE INDEX \"host_work_host_idx\" ON \"host_work\" USING btree (\"host_id\",\"state\");",
+      "CREATE INDEX \"host_work_user_idx\" ON \"host_work\" USING btree (\"user_id\",\"created_at\");",
+      "CREATE UNIQUE INDEX \"host_work_idem_idx\" ON \"host_work\" USING btree (\"user_id\",\"idempotency_key\");"
+    ]
   }
 ];

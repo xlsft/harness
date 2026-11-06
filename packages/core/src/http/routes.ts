@@ -26,6 +26,8 @@ export const routes: RouteDef[] = [
   { route: "/harness.decision.v1.DecisionService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.mcp.v1.McpService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.relay.v1.RelayService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.relay.v1.HostsService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.relay.v1.HostAgentService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.vcs.v1.VcsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.ProviderLimitsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.objects.v1.ObjectsService/**", handler: "./src/http/routes/rpc.ts" },
