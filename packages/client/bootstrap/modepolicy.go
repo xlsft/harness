@@ -56,8 +56,10 @@ func WatchModePolicy(ctx context.Context, url string, hc *http.Client, tokens au
 			log.Info("permission mode policy changed", "disabled", modes)
 		}
 		p.SetSandbox(settings.PolicySandbox(cache.List(kind)))
-		// The same POLICY document may disallow local models (disableLocalModels).
-		localmodels.Default().SetPolicyDisabled(localmodels.PolicyDisabledIn(cache.List(kind)))
+		managed := settings.PolicyManaged(cache.List(kind))
+		p.SetManaged(managed)
+		// The same POLICY document may disallow local models (disableLocalModels), or leave them off its provider list.
+		localmodels.Default().SetPolicyDisabled(localmodels.PolicyDisabledIn(cache.List(kind)) || !managed.ProviderAllowed("local"))
 	}
 	apply()
 	cache.Subscribe(func(syncclient.Event) { apply() })

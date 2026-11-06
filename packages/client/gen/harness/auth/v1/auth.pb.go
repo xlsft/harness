@@ -30,6 +30,10 @@ const (
 	UserSource_USER_SOURCE_LOCAL UserSource = 1
 	// Signs in through LDAP; no local password.
 	UserSource_USER_SOURCE_LDAP UserSource = 2
+	// Signs in through an OIDC or SAML identity provider; no local password.
+	UserSource_USER_SOURCE_SSO UserSource = 3
+	// Created by a SCIM provisioning client; no local password until they sign in through SSO or get one.
+	UserSource_USER_SOURCE_SCIM UserSource = 4
 )
 
 // Enum value maps for UserSource.
@@ -38,11 +42,15 @@ var (
 		0: "USER_SOURCE_UNSPECIFIED",
 		1: "USER_SOURCE_LOCAL",
 		2: "USER_SOURCE_LDAP",
+		3: "USER_SOURCE_SSO",
+		4: "USER_SOURCE_SCIM",
 	}
 	UserSource_value = map[string]int32{
 		"USER_SOURCE_UNSPECIFIED": 0,
 		"USER_SOURCE_LOCAL":       1,
 		"USER_SOURCE_LDAP":        2,
+		"USER_SOURCE_SSO":         3,
+		"USER_SOURCE_SCIM":        4,
 	}
 )
 
@@ -138,6 +146,10 @@ const (
 	User_ROLE_UNSPECIFIED User_Role = 0
 	User_ROLE_USER        User_Role = 1
 	User_ROLE_ADMIN       User_Role = 2
+	// Reads everything an admin can read (users, audit log, usage, quotas, policy, sign-in settings) and changes nothing.
+	User_ROLE_AUDITOR User_Role = 3
+	// Reads usage and sets spend quotas; no other administration.
+	User_ROLE_BILLING User_Role = 4
 )
 
 // Enum value maps for User_Role.
@@ -146,11 +158,15 @@ var (
 		0: "ROLE_UNSPECIFIED",
 		1: "ROLE_USER",
 		2: "ROLE_ADMIN",
+		3: "ROLE_AUDITOR",
+		4: "ROLE_BILLING",
 	}
 	User_Role_value = map[string]int32{
 		"ROLE_UNSPECIFIED": 0,
 		"ROLE_USER":        1,
 		"ROLE_ADMIN":       2,
+		"ROLE_AUDITOR":     3,
+		"ROLE_BILLING":     4,
 	}
 )
 
@@ -1431,7 +1447,7 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\x15revoke_other_sessions\x18\x03 \x01(\bR\x13revokeOtherSessions\"\x18\n" +
 	"\x16ChangePasswordResponse\"\x0f\n" +
 	"\rLogoutRequest\"\x10\n" +
-	"\x0eLogoutResponse\"\x9b\x03\n" +
+	"\x0eLogoutResponse\"\xbf\x03\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -1444,12 +1460,14 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"created_at\x18\b \x01(\tR\tcreatedAt\x12%\n" +
 	"\x0flast_sign_in_at\x18\t \x01(\tR\flastSignInAt\x12?\n" +
 	"\fimage_object\x18\n" +
-	" \x01(\v2\x1c.harness.common.v1.ObjectRefR\vimageObject\";\n" +
+	" \x01(\v2\x1c.harness.common.v1.ObjectRefR\vimageObject\"_\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tROLE_USER\x10\x01\x12\x0e\n" +
 	"\n" +
-	"ROLE_ADMIN\x10\x02\"\xcc\x01\n" +
+	"ROLE_ADMIN\x10\x02\x12\x10\n" +
+	"\fROLE_AUDITOR\x10\x03\x12\x10\n" +
+	"\fROLE_BILLING\x10\x04\"\xcc\x01\n" +
 	"\x06Device\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x0e\n" +
@@ -1461,12 +1479,14 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"lastSeenAt\x12\x18\n" +
 	"\acurrent\x18\a \x01(\bR\acurrent\x12\x1f\n" +
 	"\vclient_name\x18\b \x01(\tR\n" +
-	"clientName*V\n" +
+	"clientName*\x81\x01\n" +
 	"\n" +
 	"UserSource\x12\x1b\n" +
 	"\x17USER_SOURCE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11USER_SOURCE_LOCAL\x10\x01\x12\x14\n" +
-	"\x10USER_SOURCE_LDAP\x10\x022\xc9\x06\n" +
+	"\x10USER_SOURCE_LDAP\x10\x02\x12\x13\n" +
+	"\x0fUSER_SOURCE_SSO\x10\x03\x12\x14\n" +
+	"\x10USER_SOURCE_SCIM\x10\x042\xc9\x06\n" +
 	"\x11DeviceAuthService\x12d\n" +
 	"\x0fStartDeviceAuth\x12'.harness.auth.v1.StartDeviceAuthRequest\x1a(.harness.auth.v1.StartDeviceAuthResponse\x12a\n" +
 	"\x0ePollDeviceAuth\x12&.harness.auth.v1.PollDeviceAuthRequest\x1a'.harness.auth.v1.PollDeviceAuthResponse\x12m\n" +

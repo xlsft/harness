@@ -13,14 +13,25 @@ import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
 import type { PermissionModeName } from '~/lib/session/types'
 import type { LdapSettings, NewUser, UserRole, UsersApi, UserView } from './types'
 
+export function roleName(r: User_Role): UserRole {
+  if (r === User_Role.ADMIN) return 'admin'
+  if (r === User_Role.AUDITOR) return 'auditor'
+  if (r === User_Role.BILLING) return 'billing'
+  return 'user'
+}
+
+const SOURCE: Partial<Record<UserSource, UserView['source']>> = { [UserSource.LOCAL]: 'local', [UserSource.LDAP]: 'ldap', [UserSource.SSO]: 'sso', [UserSource.SCIM]: 'scim' }
+
 export function userView(u: AdminUser): UserView {
   return {
     id: u.id,
     name: u.name,
     username: u.username,
     email: u.email,
-    role: u.role === User_Role.ADMIN ? 'admin' : 'user',
-    source: u.source === UserSource.LDAP ? 'ldap' : 'local',
+    role: roleName(u.role),
+    source: SOURCE[u.source] ?? 'local',
+    mfaEnabled: u.mfaEnabled,
+    groups: u.groups,
     disabled: u.disabled,
     disabledReason: u.disabledReason,
     createdAt: u.createdAt,
@@ -30,7 +41,8 @@ export function userView(u: AdminUser): UserView {
   }
 }
 
-const role = (r: UserRole) => r === 'admin' ? User_Role.ADMIN : User_Role.USER
+export const rolePb = (r: UserRole) => ({ admin: User_Role.ADMIN, auditor: User_Role.AUDITOR, billing: User_Role.BILLING, user: User_Role.USER })[r]
+const role = rolePb
 
 export function ldapView(c: LdapConfig | undefined): LdapSettings {
   return {
@@ -50,6 +62,7 @@ export function ldapView(c: LdapConfig | undefined): LdapSettings {
     nameAttribute: c?.nameAttribute ?? '',
     allowedGroupDn: c?.allowedGroupDn ?? '',
     adminGroupDn: c?.adminGroupDn ?? '',
+    roleMappings: (c?.roleMappings ?? []).map(m => ({ group: m.group, role: roleName(m.role) })),
     autoCreateUsers: c?.autoCreateUsers ?? true,
     localLogin: c?.localLogin === LdapLocalLogin.BREAK_GLASS ? 'break_glass' : 'fallback',
     breakGlassLogins: c?.breakGlassLogins ?? [],
@@ -74,6 +87,7 @@ export function ldapConfig(s: LdapSettings) {
     nameAttribute: s.nameAttribute,
     allowedGroupDn: s.allowedGroupDn,
     adminGroupDn: s.adminGroupDn,
+    roleMappings: s.roleMappings.filter(m => m.group.trim()).map(m => ({ group: m.group.trim(), role: rolePb(m.role) })),
     autoCreateUsers: s.autoCreateUsers,
     localLogin: s.localLogin === 'break_glass' ? LdapLocalLogin.BREAK_GLASS : LdapLocalLogin.FALLBACK,
     breakGlassLogins: s.breakGlassLogins.map(l => l.trim()).filter(Boolean),
@@ -167,7 +181,7 @@ export class ConnectUsersApi implements UsersApi {
 
   async testLdapUser(s: LdapSettings, login: string) {
     const r = await this.client.testLdapUser({ config: ldapConfig(s), login })
-    return { found: r.found, message: r.message, dn: r.dn, username: r.username, email: r.email, name: r.name, groups: r.groups, allowed: r.allowed, admin: r.admin, userId: r.userId }
+    return { found: r.found, message: r.message, dn: r.dn, username: r.username, email: r.email, name: r.name, groups: r.groups, allowed: r.allowed, admin: r.admin, role: roleName(r.role), userId: r.userId }
   }
 
   async getModePolicy() {

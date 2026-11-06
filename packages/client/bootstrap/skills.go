@@ -297,6 +297,9 @@ func (s *Session) forkSkill(ctx context.Context, sk skills.Skill, text, dir, too
 		return "This skill runs in a subagent, which could not start: " + err.Error(), dir, ""
 	}
 	s.skillForks.add(info.ID, release)
+	if toolUseID != "" { // the Skill tool's call: the model started it; a command the user typed is not plan work
+		tools.LinkTodoAgent(env, info.ID)
+	}
 	if got, ok := env.Agents.Get(info.ID); ok && !got.State.Active() {
 		s.skillForks.done(info.ID)
 	}

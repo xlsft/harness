@@ -22,7 +22,9 @@ import (
 // classifier; harness.llm.v1.UsageService: the Usage tab's reports;
 // harness.auth.v1.AdminService: user administration and LDAP, admins only;
 // harness.llm.v1.ProviderLimitsService: provider budgets, GetProviderLimits also
-// as AgentService.GetProviderLimits in limits.go),
+// as AgentService.GetProviderLimits in limits.go; the organization's administration:
+// audit log, quotas and usage export, groups and SCIM tokens, second factor, managed
+// policy, identity providers),
 // plus the account methods of harness.auth.v1.DeviceAuthService
 // (coreProxyProcedures: the settings screen's profile, password and devices),
 // to the server with this client's access token. Frontends talk
@@ -41,8 +43,12 @@ type CoreProxy struct {
 }
 
 // coreProxyServices are the server services frontends may reach through the client.
-var coreProxyServices = []string{llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName,
-	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.TrackerServiceName}
+var coreProxyServices = []string{
+	llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName,
+	authv1connect.AuditServiceName, authv1connect.BillingServiceName, authv1connect.DirectoryServiceName, authv1connect.MfaServiceName,
+	authv1connect.PolicyServiceName, authv1connect.SsoServiceName,
+	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.TrackerServiceName,
+}
 
 // coreProxyProcedures are single methods of other server services frontends may
 // reach. Never the device flow, token refresh or Logout: those manage this

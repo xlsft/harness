@@ -45,11 +45,31 @@ func startHarnessGW(t *testing.T, respond fg.Responder, gwmod func(*fg.Server), 
 	return startHarnessSrv(t, respond, gwmod, mod, nil)
 }
 
+// settledTempDir is t.TempDir for a client's own folders: a closing session's last writes can land while the test ends, which
+// t.TempDir reports as a failure.
+func settledTempDir(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "harness-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		for i := 0; i < 100; i++ {
+			if os.RemoveAll(dir) == nil {
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+		t.Errorf("could not remove %s", dir)
+	})
+	return dir
+}
+
 // startHarnessSrv is startHarnessGW with a hook to configure the server before it serves.
 func startHarnessSrv(t *testing.T, respond fg.Responder, gwmod func(*fg.Server), mod func(*bootstrap.Options), srvmod func(*server.Server)) *harness {
 	t.Helper()
-	t.Setenv("HARNESS_HOME", t.TempDir())
-	t.Setenv("HARNESS_TMPDIR", t.TempDir())
+	t.Setenv("HARNESS_HOME", settledTempDir(t))
+	t.Setenv("HARNESS_TMPDIR", settledTempDir(t))
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
 	t.Setenv("HARNESS_KEYRING", "0")  // environment keys go to a file under HARNESS_HOME, never the keychain
 	t.Setenv("HARNESS_NO_HOOKS", "1") // the hooks of the developer's own ~/.claude/settings.json have no place in a test

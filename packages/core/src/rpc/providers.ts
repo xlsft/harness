@@ -4,6 +4,7 @@
  * admin role; personal providers and the caller's own classifier override belong to the caller
  * (services/providers.ts has the scope rules).
  */
+import { serverPolicyFor } from "../services/managed-policy.ts";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { ClassifierChoice, ProviderScope, ProviderService, type Classifier, type ClassifierOverride as ClassifierOverrideMsg } from "../gen/harness/llm/v1/providers_pb.ts";
 import {
@@ -244,6 +245,7 @@ export function registerProviderService(router: ConnectRouter): void {
       };
       if (global) input.id = req.id;
       else if (req.id) throw new ApiError("invalid_request", "Personal providers get a generated id");
+      if (!global && (await serverPolicyFor(user)).personalProvidersDisabled) throw new ApiError("permission", "Your organization does not allow personal providers");
       const p = await createProvider(input, global ? null : { userId: user.id });
       return { provider: await providerToProto(p, user) };
     }),

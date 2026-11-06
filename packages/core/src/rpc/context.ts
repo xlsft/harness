@@ -1,7 +1,9 @@
 import { createContextKey, createContextValues, type ContextValues, type HandlerContext } from "@connectrpc/connect";
+import { getAuth } from "../auth/better-auth.ts";
+import { config } from "../env.ts";
 import { ApiError } from "../lib/errors.ts";
 import { enforceIpRateLimit } from "../lib/rate-limit.ts";
-import { authenticateAccessToken, type Principal } from "../services/devices.ts";
+import { authenticateAccessToken, toPublicUser, type Principal } from "../services/devices.ts";
 
 /**
  * Internal header carrying the peer address from the HTTP layer into the Connect handlers on the
@@ -12,8 +14,11 @@ export const PEER_IP_HEADER = "x-harness-peer-ip";
 /** Client IP address of the current call ("" when unknown). */
 export const peerIpKey = createContextKey<string>("", { description: "peer ip" });
 
+/** Filled by requirePrincipal, read by the audit interceptor (rpc/interceptors.ts). */
+export const principalHolderKey = createContextKey<{ principal?: Principal }>({}, { description: "principal holder" });
+
 export function contextValuesWithIp(ip: string | undefined): ContextValues {
-  return createContextValues().set(peerIpKey, ip ?? "");
+  return createContextValues().set(peerIpKey, ip ?? "").set(principalHolderKey, {});
 }
 
 /**
@@ -58,12 +63,42 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-/** Authenticates `Authorization: Bearer hat_…`. */
+/**
+ * Services the web console (the UI the server serves itself, deploy/README.md) may reach with the browser's session cookie,
+ * for what needs no client on the user's machine. Everything else, the gateway above all, takes access tokens only.
+ */
+const COOKIE_SERVICES = new Set([
+  "harness.auth.v1.AdminService",
+  "harness.auth.v1.AuditService",
+  "harness.auth.v1.BillingService",
+  "harness.auth.v1.DirectoryService",
+  "harness.auth.v1.MfaService",
+  "harness.auth.v1.PolicyService",
+  "harness.auth.v1.SsoService",
+  "harness.auth.v1.DeviceAuthService",
+  "harness.llm.v1.ProviderService",
+  "harness.llm.v1.ProviderLimitsService",
+  "harness.llm.v1.UsageService",
+]);
+
+/** The signed-in browser, for a same-origin call to one of COOKIE_SERVICES. */
+async function principalFromCookie(ctx: HandlerContext): Promise<Principal | undefined> {
+  if (!ctx.requestHeader.get("cookie") || !COOKIE_SERVICES.has(ctx.service.typeName)) return undefined;
+  // A cookie is sent by the browser whatever page asked: only our own pages count. The Origin header cannot be forged by one.
+  const origin = ctx.requestHeader.get("origin");
+  if (!origin || origin !== new URL(config().publicUrl).origin) return undefined;
+  const s = await getAuth().api.getSession({ headers: ctx.requestHeader });
+  if (!s?.user || (s.user as { banned?: boolean }).banned || (s.session as { mfaPending?: boolean }).mfaPending) return undefined;
+  return { user: toPublicUser(s.user as { id: string; email: string; name: string; role: string | null }), via: "session" };
+}
+
+/** Authenticates `Authorization: Bearer hat_…`, or the session cookie of the web console. */
 export async function requirePrincipal(ctx: HandlerContext): Promise<Principal> {
   checkClientVersion(ctx);
   const authz = ctx.requestHeader.get("authorization");
   const m = authz ? /^Bearer\s+(\S+)$/i.exec(authz.trim()) : null;
-  const p = m ? await authenticateAccessToken(m[1]!) : undefined;
+  const p = m ? await authenticateAccessToken(m[1]!) : authz ? undefined : await principalFromCookie(ctx);
   if (!p) throw new ApiError("authentication", "Missing or invalid access token");
+  ctx.values.get(principalHolderKey).principal = p;
   return p;
 }

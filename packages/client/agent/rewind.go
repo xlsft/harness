@@ -143,11 +143,7 @@ func (a *Agent) Rewind(ctx context.Context, checkpointID string, mode RewindMode
 		_, _ = w.AppendBranch(session.Entry{Type: session.TypeSystem, Subtype: session.SubtypeRewind, Level: "info",
 			Content: "Conversation rewound to checkpoint " + checkpointID}, parent)
 		conv := a.reload()
-		var todos []tools.Todo
-		if len(conv.Todos) > 0 {
-			todos, _ = tools.ParseTodos([]byte(`{"todos":` + string(conv.Todos) + `}`))
-		}
-		a.SetTodos(todos)
+		a.restoreTodos(tools.RestoreTodos(conv.Todos, conv.TodoLinks))
 	}
 
 	switch mode {

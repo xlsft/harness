@@ -83,6 +83,8 @@ mkdir -p "$repo/scripts/release" "$repo/packages/desktop/src-tauri" "$repo/deplo
 cp "$root/scripts/release.sh" "$repo/scripts/"
 cp "$parse" "$green" "$root/scripts/release/notes.sh" "$repo/scripts/release/"
 echo '{"plugins":{"updater":{"pubkey":"KEY"}}}' >"$repo/packages/desktop/src-tauri/tauri.conf.json"
+# release.sh tags as whoever runs it; a CI runner has no git identity.
+export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
 git init -q --bare "$work/origin.git"
 g() { git -C "$repo" -c user.name=t -c user.email=t@t -c commit.gpgsign=false -c tag.gpgsign=false "$@"; }
 git init -q -b main "$repo"

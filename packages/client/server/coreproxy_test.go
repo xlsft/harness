@@ -132,6 +132,12 @@ func TestCoreProxyForwardsAdminAndUsageServices(t *testing.T) {
 		"/harness.auth.v1.AdminService/ListUsers",
 		"/harness.llm.v1.UsageService/GetMyUsage",
 		"/harness.llm.v1.UsageService/GetUsage",
+		"/harness.auth.v1.AuditService/ListAuditEvents",
+		"/harness.auth.v1.BillingService/GetQuotas",
+		"/harness.auth.v1.DirectoryService/GetMyAccess",
+		"/harness.auth.v1.MfaService/GetMfaStatus",
+		"/harness.auth.v1.PolicyService/GetManagedPolicy",
+		"/harness.auth.v1.SsoService/ListSsoProviders",
 	} {
 		path, auth = "", ""
 		req := httptest.NewRequest(http.MethodPost, p, strings.NewReader(`{}`))

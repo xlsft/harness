@@ -323,6 +323,9 @@ export interface TodoVM {
   content: string
   activeForm: string
   status: 'pending' | 'in_progress' | 'completed'
+  // The subagents and background tasks working for the item (empty in ACP sessions, whose agents report plans alone).
+  agentIds: string[]
+  taskIds: string[]
 }
 
 export interface TodosItem {

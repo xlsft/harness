@@ -39,6 +39,8 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     impersonatedBy: text("impersonated_by"),
+    /** Signed in, but the second factor is still owed (auth/mfa.ts): the session is good for nothing else yet. */
+    mfaPending: boolean("mfa_pending").notNull().default(false),
   },
   (t) => [index("session_user_idx").on(t.userId)],
 );
@@ -1125,4 +1127,139 @@ export const trackerTask = pgTable(
     closedAt: ts("closed_at"),
   },
   (t) => [index("tracker_task_owner_idx").on(t.ownerId, t.status, t.updatedAt)],
+);
+
+// ---------------------------------------------------------------------------
+// Enterprise: audit log, second factor, single sign-on, groups, SCIM
+// ---------------------------------------------------------------------------
+
+/** The general audit log (src/audit). No foreign keys: an event outlives the user or provider it names. */
+export const auditEvent = pgTable(
+  "audit_event",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    at: ts("at").notNull(),
+    /** "user.create", "auth.sign_in", ... The part before the first dot is its category. */
+    action: text("action").notNull(),
+    category: text("category").notNull(),
+    /** "success" | "failure" */
+    outcome: text("outcome").notNull(),
+    actorId: text("actor_id").notNull().default(""),
+    actorLabel: text("actor_label").notNull().default(""),
+    actorIp: text("actor_ip").notNull().default(""),
+    targetType: text("target_type").notNull().default(""),
+    targetId: text("target_id").notNull().default(""),
+    targetLabel: text("target_label").notNull().default(""),
+    /** Non-secret details; passed through audit/log.ts scrub() on the way in. */
+    details: jsonb("details").notNull().default({}),
+  },
+  (t) => [index("audit_event_at_idx").on(t.at), index("audit_event_action_idx").on(t.category, t.action)],
+);
+
+/** A user's authenticator. secretEnc is encrypted; recoveryHashes are hashes of one-time codes. */
+export const userMfa = pgTable("user_mfa", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  secretEnc: text("secret_enc").notNull(),
+  /** Null while enrollment is unconfirmed. */
+  enabledAt: ts("enabled_at"),
+  /** The last accepted TOTP time step, so a code cannot be used twice. */
+  lastStep: int8("last_step").notNull().default(0),
+  recoveryHashes: jsonb("recovery_hashes").notNull().default([]),
+  createdAt: ts("created_at").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+});
+
+/** Identity provider configuration (auth/sso-config.ts). clientSecretEnc is encrypted, never returned. */
+export const ssoProvider = pgTable("sso_provider", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  /** "oidc" | "saml" */
+  protocol: text("protocol").notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  /** Non-secret settings; the shape is auth/sso-config.ts SsoStored. */
+  config: jsonb("config").notNull().default({}),
+  clientSecretEnc: text("client_secret_enc"),
+  createdAt: ts("created_at").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+});
+
+/**
+ * A sign-in in progress with an identity provider, or a finished one waiting for its browser. Stored hashed where the
+ * value is a credential, single use, short-lived.
+ */
+export const ssoFlow = pgTable(
+  "sso_flow",
+  {
+    /** sha256 of the OIDC state or SAML request id. */
+    idHash: text("id_hash").primaryKey(),
+    providerId: text("provider_id").notNull(),
+    /** sha256 of the value in the browser-binding cookie. */
+    browserHash: text("browser_hash").notNull(),
+    /** OIDC nonce and PKCE verifier (encrypted). */
+    secretsEnc: text("secrets_enc"),
+    /** Local path to return to after sign-in. */
+    returnTo: text("return_to").notNull().default(""),
+    /** A try-out from Settings: show what came back, create no session. */
+    test: boolean("test").notNull().default(false),
+    /** A finished sign-in waiting for its browser: the user it is for. */
+    userId: text("user_id"),
+    expiresAt: ts("expires_at").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [index("sso_flow_expires_idx").on(t.expiresAt)],
+);
+
+/** Groups of users. Local ones are edited in Settings; others follow their source (SCIM, SSO, LDAP). */
+export const directoryGroup = pgTable(
+  "directory_group",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    /** "local" | "scim" | "sso" | "ldap" */
+    source: text("source").notNull(),
+    /** The source's id for it: SCIM externalId, the group name in a token, an LDAP DN. */
+    externalId: text("external_id").notNull().default(""),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [uniqueIndex("directory_group_source_name_idx").on(t.source, t.name)],
+);
+
+export const directoryGroupMember = pgTable(
+  "directory_group_member",
+  {
+    groupId: text("group_id")
+      .notNull()
+      .references(() => directoryGroup.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.userId] }), index("directory_group_member_user_idx").on(t.userId)],
+);
+
+/** Bearer tokens of SCIM provisioning clients; only the hash is kept. */
+export const scimToken = pgTable("scim_token", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdAt: ts("created_at").notNull(),
+  lastUsedAt: ts("last_used_at"),
+});
+
+/** What a SCIM client calls a user. The account itself is a normal user row. */
+export const scimIdentity = pgTable(
+  "scim_identity",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userName: text("user_name").notNull().unique(),
+    externalId: text("external_id").notNull().default(""),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("scim_identity_external_idx").on(t.externalId)],
 );

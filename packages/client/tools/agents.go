@@ -149,6 +149,7 @@ func (*Agent) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	r := TextResult(text, map[string]any{"agent_id": info.ID, "name": info.Name, "type": info.Type, "model": info.Model, "state": string(info.State), "worktree_path": info.WorktreePath, "worktree_branch": info.WorktreeBranch})
 	r.Summary = "Started " + info.ID
+	LinkTodoAgent(env, info.ID)
 	return r
 }
 

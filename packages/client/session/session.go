@@ -65,6 +65,9 @@ const (
 	SubtypeSessionMoved = "session_moved"
 	// SubtypeHookRun records a finished hook handler (hookRun holds it), replayed as SessionEvent.hook_run.
 	SubtypeHookRun = "hook_run"
+	// SubtypeTodoLink records that a subagent or background task was linked to a todo (todoLink holds it). TodoWrite
+	// inputs carry no links, so a resume folds these entries over them (TodoLinkFold).
+	SubtypeTodoLink = "todo_link"
 )
 
 // HookRun is one handler of one hook event at work.
@@ -224,6 +227,9 @@ type Entry struct {
 
 	// HookRun is set on SubtypeHookRun system entries.
 	HookRun *HookRun `json:"hookRun,omitempty"`
+
+	// TodoLink is set on SubtypeTodoLink system entries.
+	TodoLink *TodoLink `json:"todoLink,omitempty"`
 
 	// ai-title / custom-title fields
 	AITitle     string `json:"aiTitle,omitempty"`
@@ -504,6 +510,8 @@ type Conversation struct {
 	// Todos is the input of the last TodoWrite call on the active branch
 	// (followed across compactions); nil when there is none.
 	Todos json.RawMessage
+	// TodoLinks are the links on record for the items of Todos.
+	TodoLinks []TodoLink
 	// ActiveSkills are the skills started on the active branch, oldest first, with the text the model read: a compaction
 	// sends the latest ones again.
 	ActiveSkills []ActiveSkill
@@ -646,8 +654,12 @@ func Rebuild(entries []Entry) Conversation {
 	}
 	extended := ActiveChain(entries, true)
 	findingCalls := map[string]bool{}
+	var todoLinks TodoLinkFold
 	for _, e := range extended {
 		c.Chain = append(c.Chain, e.UUID)
+		if e.Type == TypeSystem && e.Subtype == SubtypeTodoLink && e.TodoLink != nil {
+			todoLinks.Add(*e.TodoLink)
+		}
 		if e.Skill != nil {
 			text := ""
 			for _, b := range e.Blocks() {
@@ -675,11 +687,13 @@ func Rebuild(entries []Entry) Conversation {
 					}
 					if json.Unmarshal(b.Input, &in) == nil && len(in.Todos) > 0 {
 						c.Todos = in.Todos
+						todoLinks.Replace(in.Todos)
 					}
 				}
 			}
 		}
 	}
+	c.TodoLinks = todoLinks.Links()
 	if n := len(extended); n > 0 {
 		c.LastUUID = extended[n-1].UUID
 	}

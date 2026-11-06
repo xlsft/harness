@@ -49,6 +49,8 @@ type Inventory struct {
 	Rules func(ctx context.Context) (allow, ask, deny []string)
 	// Cwd is where a server starts when it has no directory of its own.
 	Cwd string
+	// PolicyAllows says whether the organization's managed policy allows a repository's server by name (nil: all).
+	PolicyAllows func(name string) bool
 }
 
 // List returns the servers. The registry being unreachable is reported, not an error: device servers keep working.
@@ -81,7 +83,7 @@ func (inv *Inventory) List(ctx context.Context, folder string) *agentv1.ListMcpS
 		}
 		all, canManage, err := inv.Client.ListServersInfo(ctx, key)
 		if err == nil && info.Trusted && len(file) > 0 {
-			if changed, problems := syncProjectFile(ctx, inv.Client, filepath.Join(info.Root, ".mcp.json"), info.Key, all); changed || len(problems) > 0 {
+			if changed, problems := syncProjectFile(ctx, inv.Client, filepath.Join(info.Root, ".mcp.json"), info.Key, all, inv.PolicyAllows); changed || len(problems) > 0 {
 				if len(problems) > 0 {
 					out.ProjectError = strings.Join(problems, "; ")
 				}

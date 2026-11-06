@@ -9,6 +9,7 @@ import { createConnectRouter } from "@connectrpc/connect";
 import { createFetchHandler } from "@connectrpc/connect/protocol";
 import { ensureDb } from "../db/index.ts";
 import { contextValuesWithIp, PEER_IP_HEADER } from "./context.ts";
+import { rpcInterceptors } from "./interceptors.ts";
 import { registerServices } from "./services.ts";
 
 type FetchHandler = (req: Request) => Promise<Response>;
@@ -17,7 +18,7 @@ let table: Map<string, FetchHandler> | undefined;
 
 function handlers(): Map<string, FetchHandler> {
   if (!table) {
-    const router = registerServices(createConnectRouter({ grpc: false, grpcWeb: true, connect: true }));
+    const router = registerServices(createConnectRouter({ grpc: false, grpcWeb: true, connect: true, interceptors: rpcInterceptors }));
     table = new Map(
       router.handlers.map((h) => [
         h.requestPath,

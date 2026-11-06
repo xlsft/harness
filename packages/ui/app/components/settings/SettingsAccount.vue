@@ -4,6 +4,8 @@
 import { AVATAR_MAX_BYTES, AVATAR_MAX_SIDE, AVATAR_TYPES, avatarUrl, type AccountDevice } from '~/lib/account/types'
 import { isDesktop, logout as desktopLogout } from '~/lib/desktop'
 
+const ROLE_NAME: Record<string, string> = { admin: 'Admin', auditor: 'Auditor', billing: 'Billing' }
+
 const store = useSessionStore()
 const toast = useToast()
 const desktop = isDesktop()
@@ -39,6 +41,9 @@ const host = computed(() => {
 })
 const initial = computed(() => (profile.value?.name || profile.value?.username || store.userEmail || '?').charAt(0).toUpperCase())
 const ldap = computed(() => profile.value?.source === 'ldap')
+// Who manages the name and password when it is not this server.
+const signInLabel = computed(() => ({ ldap: 'LDAP', sso: 'SSO', scim: 'SSO' } as Record<string, string>)[profile.value?.source ?? ''] ?? 'Password')
+const managedBy = computed(() => ({ ldap: 'The directory (LDAP)', sso: 'Your identity provider' } as Record<string, string>)[profile.value?.source ?? ''] ?? '')
 
 function date(iso: string) {
   return iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'
@@ -254,7 +259,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
           v-if="profile"
           class="border px-1.5"
           :class="profile.role === 'admin' ? 'border-accent text-accent' : 'border-line text-muted'"
-        >{{ profile.role === 'admin' ? 'Admin' : 'Member' }}</span>
+        >{{ ROLE_NAME[profile.role] ?? 'Member' }}</span>
         <span
           v-if="ldap"
           class="border border-line px-1.5 text-muted"
@@ -274,9 +279,9 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
   <div class="set-row">
     <div class="set-label">
       <span>Signs in with</span>
-      <span class="set-desc">{{ ldap ? 'The directory (LDAP) manages your name and password.' : 'A password stored on this server.' }}</span>
+      <span class="set-desc">{{ managedBy ? `${managedBy} manages your name and password.` : profile?.source === 'scim' ? 'Provisioned by your organization. You sign in through SSO.' : 'A password stored on this server.' }}</span>
     </div>
-    <span class="text-[12.5px] text-strong">{{ ldap ? 'LDAP' : 'Password' }}</span>
+    <span class="text-[12.5px] text-strong">{{ signInLabel }}</span>
   </div>
   <div class="set-row">
     <div class="set-label">
@@ -291,7 +296,9 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
     <span class="text-[12.5px] text-strong">{{ ago(profile?.lastSignInAt ?? '') }}</span>
   </div>
 
-  <template v-if="profile && !ldap">
+  <SettingsMfa v-if="profile" />
+
+  <template v-if="profile && !ldap && profile.source !== 'sso' && profile.source !== 'scim'">
     <h2 class="set-h mt-8">
       Password
     </h2>

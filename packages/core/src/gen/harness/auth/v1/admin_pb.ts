@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/auth/v1/admin.proto.
  */
 export const file_harness_auth_v1_admin: GenFile = /*@__PURE__*/
-  fileDesc("ChtoYXJuZXNzL2F1dGgvdjEvYWRtaW4ucHJvdG8SD2hhcm5lc3MuYXV0aC52MSKcAgoJQWRtaW5Vc2VyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSDQoFZW1haWwYBCABKAkSKAoEcm9sZRgFIAEoDjIaLmhhcm5lc3MuYXV0aC52MS5Vc2VyLlJvbGUSKwoGc291cmNlGAYgASgOMhsuaGFybmVzcy5hdXRoLnYxLlVzZXJTb3VyY2USEAoIZGlzYWJsZWQYByABKAgSFwoPZGlzYWJsZWRfcmVhc29uGAggASgJEhIKCmNyZWF0ZWRfYXQYCSABKAkSFwoPbGFzdF9zaWduX2luX2F0GAogASgJEhQKDGxhc3Rfc2Vlbl9hdBgLIAEoCRIPCgdpc19zZWxmGAwgASgIIjAKEExpc3RVc2Vyc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFbGltaXQYAiABKAUiPgoRTGlzdFVzZXJzUmVzcG9uc2USKQoFdXNlcnMYASADKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyIqcBChFDcmVhdGVVc2VyUmVxdWVzdBIMCgRuYW1lGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEg0KBWVtYWlsGAMgASgJEhAKCHBhc3N3b3JkGAQgASgJEhkKEWdlbmVyYXRlX3Bhc3N3b3JkGAUgASgIEigKBHJvbGUYBiABKA4yGi5oYXJuZXNzLmF1dGgudjEuVXNlci5Sb2xlEgwKBGxkYXAYByABKAgiWgoSQ3JlYXRlVXNlclJlc3BvbnNlEigKBHVzZXIYASABKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyEhoKEmdlbmVyYXRlZF9wYXNzd29yZBgCIAEoCSJkChRSZXNldFBhc3N3b3JkUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJEhAKCGdlbmVyYXRlGAMgASgIEhcKD3Jldm9rZV9zZXNzaW9ucxgEIAEoCCIzChVSZXNldFBhc3N3b3JkUmVzcG9uc2USGgoSZ2VuZXJhdGVkX3Bhc3N3b3JkGAEgASgJIksKDlNldFJvbGVSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSKAoEcm9sZRgCIAEoDjIaLmhhcm5lc3MuYXV0aC52MS5Vc2VyLlJvbGUiOwoPU2V0Um9sZVJlc3BvbnNlEigKBHVzZXIYASABKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyIkcKElNldERpc2FibGVkUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhAKCGRpc2FibGVkGAIgASgIEg4KBnJlYXNvbhgDIAEoCSI/ChNTZXREaXNhYmxlZFJlc3BvbnNlEigKBHVzZXIYASABKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyIiQKEURlbGV0ZVVzZXJSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiFAoSRGVsZXRlVXNlclJlc3BvbnNlIioKF0xpc3RVc2VyU2Vzc2lvbnNSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiWgoYTGlzdFVzZXJTZXNzaW9uc1Jlc3BvbnNlEigKB2RldmljZXMYASADKAsyFy5oYXJuZXNzLmF1dGgudjEuRGV2aWNlEhQKDHdlYl9zZXNzaW9ucxgCIAEoBSI/ChlSZXZva2VVc2VyU2Vzc2lvbnNSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSEQoJZGV2aWNlX2lkGAIgASgJIlMKGlJldm9rZVVzZXJTZXNzaW9uc1Jlc3BvbnNlEhcKD3Jldm9rZWRfZGV2aWNlcxgBIAEoBRIcChRyZXZva2VkX3dlYl9zZXNzaW9ucxgCIAEoBSKLAQoMVXNlclByb3ZpZGVyEgoKAmlkGAEgASgJEgwKBHR5cGUYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJEhAKCGJhc2VfdXJsGAQgASgJEhMKC2FwaV9rZXlfc2V0GAUgASgIEg8KB2VuYWJsZWQYBiABKAgSEwoLbW9kZWxfY291bnQYByABKAUiKwoYTGlzdFVzZXJQcm92aWRlcnNSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiTQoZTGlzdFVzZXJQcm92aWRlcnNSZXNwb25zZRIwCglwcm92aWRlcnMYASADKAsyHS5oYXJuZXNzLmF1dGgudjEuVXNlclByb3ZpZGVyIkEKGURlbGV0ZVVzZXJQcm92aWRlclJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCSIcChpEZWxldGVVc2VyUHJvdmlkZXJSZXNwb25zZSLvAwoKTGRhcENvbmZpZxIPCgdlbmFibGVkGAEgASgIEgwKBHVybHMYAiADKAkSEQoJc3RhcnRfdGxzGAMgASgIEg8KB2NhX2NlcnQYBCABKAkSEwoLc2tpcF92ZXJpZnkYBSABKAgSDwoHYmluZF9kbhgGIAEoCRIVCg1iaW5kX3Bhc3N3b3JkGAcgASgJEhkKEWJpbmRfcGFzc3dvcmRfc2V0GAggASgIEhsKE2NsZWFyX2JpbmRfcGFzc3dvcmQYCSABKAgSFAoMdXNlcl9iYXNlX2RuGAogASgJEhMKC3VzZXJfZmlsdGVyGAsgASgJEhoKEnVzZXJuYW1lX2F0dHJpYnV0ZRgMIAEoCRIXCg9lbWFpbF9hdHRyaWJ1dGUYDSABKAkSFgoObmFtZV9hdHRyaWJ1dGUYDiABKAkSGAoQYWxsb3dlZF9ncm91cF9kbhgPIAEoCRIWCg5hZG1pbl9ncm91cF9kbhgQIAEoCRIZChFhdXRvX2NyZWF0ZV91c2VycxgRIAEoCBI0Cgtsb2NhbF9sb2dpbhgSIAEoDjIfLmhhcm5lc3MuYXV0aC52MS5MZGFwTG9jYWxMb2dpbhIaChJicmVha19nbGFzc19sb2dpbnMYEyADKAkSEgoKdGltZW91dF9tcxgUIAEoBSIWChRHZXRMZGFwQ29uZmlnUmVxdWVzdCJEChVHZXRMZGFwQ29uZmlnUmVzcG9uc2USKwoGY29uZmlnGAEgASgLMhsuaGFybmVzcy5hdXRoLnYxLkxkYXBDb25maWciQwoUU2V0TGRhcENvbmZpZ1JlcXVlc3QSKwoGY29uZmlnGAEgASgLMhsuaGFybmVzcy5hdXRoLnYxLkxkYXBDb25maWciRAoVU2V0TGRhcENvbmZpZ1Jlc3BvbnNlEisKBmNvbmZpZxgBIAEoCzIbLmhhcm5lc3MuYXV0aC52MS5MZGFwQ29uZmlnIkgKGVRlc3RMZGFwQ29ubmVjdGlvblJlcXVlc3QSKwoGY29uZmlnGAEgASgLMhsuaGFybmVzcy5hdXRoLnYxLkxkYXBDb25maWciRgoaVGVzdExkYXBDb25uZWN0aW9uUmVzcG9uc2USCgoCb2sYASABKAgSDwoHbWVzc2FnZRgCIAEoCRILCgN1cmwYAyABKAkiUQoTVGVzdExkYXBVc2VyUmVxdWVzdBIrCgZjb25maWcYASABKAsyGy5oYXJuZXNzLmF1dGgudjEuTGRhcENvbmZpZxINCgVsb2dpbhgCIAEoCSKyAQoUVGVzdExkYXBVc2VyUmVzcG9uc2USDQoFZm91bmQYASABKAgSDwoHbWVzc2FnZRgCIAEoCRIKCgJkbhgDIAEoCRIQCgh1c2VybmFtZRgEIAEoCRINCgVlbWFpbBgFIAEoCRIMCgRuYW1lGAYgASgJEg4KBmdyb3VwcxgHIAMoCRIPCgdhbGxvd2VkGAggASgIEg0KBWFkbWluGAkgASgIEg8KB3VzZXJfaWQYCiABKAkiUAoUUGVybWlzc2lvbk1vZGVQb2xpY3kSOAoOZGlzYWJsZWRfbW9kZXMYASADKA4yIC5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25Nb2RlIiAKHkdldFBlcm1pc3Npb25Nb2RlUG9saWN5UmVxdWVzdCJYCh9HZXRQZXJtaXNzaW9uTW9kZVBvbGljeVJlc3BvbnNlEjUKBnBvbGljeRgBIAEoCzIlLmhhcm5lc3MuYXV0aC52MS5QZXJtaXNzaW9uTW9kZVBvbGljeSJXCh5TZXRQZXJtaXNzaW9uTW9kZVBvbGljeVJlcXVlc3QSNQoGcG9saWN5GAEgASgLMiUuaGFybmVzcy5hdXRoLnYxLlBlcm1pc3Npb25Nb2RlUG9saWN5IlgKH1NldFBlcm1pc3Npb25Nb2RlUG9saWN5UmVzcG9uc2USNQoGcG9saWN5GAEgASgLMiUuaGFybmVzcy5hdXRoLnYxLlBlcm1pc3Npb25Nb2RlUG9saWN5IiMKEExvY2FsTW9kZWxQb2xpY3kSDwoHYWxsb3dlZBgBIAEoCCIcChpHZXRMb2NhbE1vZGVsUG9saWN5UmVxdWVzdCJQChtHZXRMb2NhbE1vZGVsUG9saWN5UmVzcG9uc2USMQoGcG9saWN5GAEgASgLMiEuaGFybmVzcy5hdXRoLnYxLkxvY2FsTW9kZWxQb2xpY3kiTwoaU2V0TG9jYWxNb2RlbFBvbGljeVJlcXVlc3QSMQoGcG9saWN5GAEgASgLMiEuaGFybmVzcy5hdXRoLnYxLkxvY2FsTW9kZWxQb2xpY3kiUAobU2V0TG9jYWxNb2RlbFBvbGljeVJlc3BvbnNlEjEKBnBvbGljeRgBIAEoCzIhLmhhcm5lc3MuYXV0aC52MS5Mb2NhbE1vZGVsUG9saWN5KnMKDkxkYXBMb2NhbExvZ2luEiAKHExEQVBfTE9DQUxfTE9HSU5fVU5TUEVDSUZJRUQQABIdChlMREFQX0xPQ0FMX0xPR0lOX0ZBTExCQUNLEAESIAocTERBUF9MT0NBTF9MT0dJTl9CUkVBS19HTEFTUxACMr0QCgxBZG1pblNlcnZpY2USUgoJTGlzdFVzZXJzEiEuaGFybmVzcy5hdXRoLnYxLkxpc3RVc2Vyc1JlcXVlc3QaIi5oYXJuZXNzLmF1dGgudjEuTGlzdFVzZXJzUmVzcG9uc2USVQoKQ3JlYXRlVXNlchIiLmhhcm5lc3MuYXV0aC52MS5DcmVhdGVVc2VyUmVxdWVzdBojLmhhcm5lc3MuYXV0aC52MS5DcmVhdGVVc2VyUmVzcG9uc2USXgoNUmVzZXRQYXNzd29yZBIlLmhhcm5lc3MuYXV0aC52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBomLmhhcm5lc3MuYXV0aC52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USTAoHU2V0Um9sZRIfLmhhcm5lc3MuYXV0aC52MS5TZXRSb2xlUmVxdWVzdBogLmhhcm5lc3MuYXV0aC52MS5TZXRSb2xlUmVzcG9uc2USWAoLU2V0RGlzYWJsZWQSIy5oYXJuZXNzLmF1dGgudjEuU2V0RGlzYWJsZWRSZXF1ZXN0GiQuaGFybmVzcy5hdXRoLnYxLlNldERpc2FibGVkUmVzcG9uc2USVQoKRGVsZXRlVXNlchIiLmhhcm5lc3MuYXV0aC52MS5EZWxldGVVc2VyUmVxdWVzdBojLmhhcm5lc3MuYXV0aC52MS5EZWxldGVVc2VyUmVzcG9uc2USZwoQTGlzdFVzZXJTZXNzaW9ucxIoLmhhcm5lc3MuYXV0aC52MS5MaXN0VXNlclNlc3Npb25zUmVxdWVzdBopLmhhcm5lc3MuYXV0aC52MS5MaXN0VXNlclNlc3Npb25zUmVzcG9uc2USbQoSUmV2b2tlVXNlclNlc3Npb25zEiouaGFybmVzcy5hdXRoLnYxLlJldm9rZVVzZXJTZXNzaW9uc1JlcXVlc3QaKy5oYXJuZXNzLmF1dGgudjEuUmV2b2tlVXNlclNlc3Npb25zUmVzcG9uc2USagoRTGlzdFVzZXJQcm92aWRlcnMSKS5oYXJuZXNzLmF1dGgudjEuTGlzdFVzZXJQcm92aWRlcnNSZXF1ZXN0GiouaGFybmVzcy5hdXRoLnYxLkxpc3RVc2VyUHJvdmlkZXJzUmVzcG9uc2USbQoSRGVsZXRlVXNlclByb3ZpZGVyEiouaGFybmVzcy5hdXRoLnYxLkRlbGV0ZVVzZXJQcm92aWRlclJlcXVlc3QaKy5oYXJuZXNzLmF1dGgudjEuRGVsZXRlVXNlclByb3ZpZGVyUmVzcG9uc2USXgoNR2V0TGRhcENvbmZpZxIlLmhhcm5lc3MuYXV0aC52MS5HZXRMZGFwQ29uZmlnUmVxdWVzdBomLmhhcm5lc3MuYXV0aC52MS5HZXRMZGFwQ29uZmlnUmVzcG9uc2USXgoNU2V0TGRhcENvbmZpZxIlLmhhcm5lc3MuYXV0aC52MS5TZXRMZGFwQ29uZmlnUmVxdWVzdBomLmhhcm5lc3MuYXV0aC52MS5TZXRMZGFwQ29uZmlnUmVzcG9uc2USbQoSVGVzdExkYXBDb25uZWN0aW9uEiouaGFybmVzcy5hdXRoLnYxLlRlc3RMZGFwQ29ubmVjdGlvblJlcXVlc3QaKy5oYXJuZXNzLmF1dGgudjEuVGVzdExkYXBDb25uZWN0aW9uUmVzcG9uc2USWwoMVGVzdExkYXBVc2VyEiQuaGFybmVzcy5hdXRoLnYxLlRlc3RMZGFwVXNlclJlcXVlc3QaJS5oYXJuZXNzLmF1dGgudjEuVGVzdExkYXBVc2VyUmVzcG9uc2USfAoXR2V0UGVybWlzc2lvbk1vZGVQb2xpY3kSLy5oYXJuZXNzLmF1dGgudjEuR2V0UGVybWlzc2lvbk1vZGVQb2xpY3lSZXF1ZXN0GjAuaGFybmVzcy5hdXRoLnYxLkdldFBlcm1pc3Npb25Nb2RlUG9saWN5UmVzcG9uc2USfAoXU2V0UGVybWlzc2lvbk1vZGVQb2xpY3kSLy5oYXJuZXNzLmF1dGgudjEuU2V0UGVybWlzc2lvbk1vZGVQb2xpY3lSZXF1ZXN0GjAuaGFybmVzcy5hdXRoLnYxLlNldFBlcm1pc3Npb25Nb2RlUG9saWN5UmVzcG9uc2UScAoTR2V0TG9jYWxNb2RlbFBvbGljeRIrLmhhcm5lc3MuYXV0aC52MS5HZXRMb2NhbE1vZGVsUG9saWN5UmVxdWVzdBosLmhhcm5lc3MuYXV0aC52MS5HZXRMb2NhbE1vZGVsUG9saWN5UmVzcG9uc2UScAoTU2V0TG9jYWxNb2RlbFBvbGljeRIrLmhhcm5lc3MuYXV0aC52MS5TZXRMb2NhbE1vZGVsUG9saWN5UmVxdWVzdBosLmhhcm5lc3MuYXV0aC52MS5TZXRMb2NhbE1vZGVsUG9saWN5UmVzcG9uc2UShQEKGkxpc3RQcm92aWRlckxpbWl0c1BvbGljaWVzEjIuaGFybmVzcy5hdXRoLnYxLkxpc3RQcm92aWRlckxpbWl0c1BvbGljaWVzUmVxdWVzdBozLmhhcm5lc3MuYXV0aC52MS5MaXN0UHJvdmlkZXJMaW1pdHNQb2xpY2llc1Jlc3BvbnNlEnwKF1NldFByb3ZpZGVyTGltaXRzUG9saWN5Ei8uaGFybmVzcy5hdXRoLnYxLlNldFByb3ZpZGVyTGltaXRzUG9saWN5UmVxdWVzdBowLmhhcm5lc3MuYXV0aC52MS5TZXRQcm92aWRlckxpbWl0c1BvbGljeVJlc3BvbnNlQsQBChNjb20uaGFybmVzcy5hdXRoLnYxQgpBZG1pblByb3RvUAFaQ2dpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYXV0aC92MTthdXRodjGiAgNIQViqAg9IYXJuZXNzLkF1dGguVjHKAg9IYXJuZXNzXEF1dGhcVjHiAhtIYXJuZXNzXEF1dGhcVjFcR1BCTWV0YWRhdGHqAhFIYXJuZXNzOjpBdXRoOjpWMWIGcHJvdG8z", [file_harness_agent_v1_agent, file_harness_auth_v1_auth, file_harness_auth_v1_limits_policy]);
+  fileDesc("ChtoYXJuZXNzL2F1dGgvdjEvYWRtaW4ucHJvdG8SD2hhcm5lc3MuYXV0aC52MSLBAgoJQWRtaW5Vc2VyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSDQoFZW1haWwYBCABKAkSKAoEcm9sZRgFIAEoDjIaLmhhcm5lc3MuYXV0aC52MS5Vc2VyLlJvbGUSKwoGc291cmNlGAYgASgOMhsuaGFybmVzcy5hdXRoLnYxLlVzZXJTb3VyY2USEAoIZGlzYWJsZWQYByABKAgSFwoPZGlzYWJsZWRfcmVhc29uGAggASgJEhIKCmNyZWF0ZWRfYXQYCSABKAkSFwoPbGFzdF9zaWduX2luX2F0GAogASgJEhQKDGxhc3Rfc2Vlbl9hdBgLIAEoCRIPCgdpc19zZWxmGAwgASgIEhMKC21mYV9lbmFibGVkGA0gASgIEg4KBmdyb3VwcxgOIAMoCSJLChBHcm91cFJvbGVNYXBwaW5nEg0KBWdyb3VwGAEgASgJEigKBHJvbGUYAiABKA4yGi5oYXJuZXNzLmF1dGgudjEuVXNlci5Sb2xlIjAKEExpc3RVc2Vyc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFbGltaXQYAiABKAUiPgoRTGlzdFVzZXJzUmVzcG9uc2USKQoFdXNlcnMYASADKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyIqcBChFDcmVhdGVVc2VyUmVxdWVzdBIMCgRuYW1lGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEg0KBWVtYWlsGAMgASgJEhAKCHBhc3N3b3JkGAQgASgJEhkKEWdlbmVyYXRlX3Bhc3N3b3JkGAUgASgIEigKBHJvbGUYBiABKA4yGi5oYXJuZXNzLmF1dGgudjEuVXNlci5Sb2xlEgwKBGxkYXAYByABKAgiWgoSQ3JlYXRlVXNlclJlc3BvbnNlEigKBHVzZXIYASABKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyEhoKEmdlbmVyYXRlZF9wYXNzd29yZBgCIAEoCSJkChRSZXNldFBhc3N3b3JkUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJEhAKCGdlbmVyYXRlGAMgASgIEhcKD3Jldm9rZV9zZXNzaW9ucxgEIAEoCCIzChVSZXNldFBhc3N3b3JkUmVzcG9uc2USGgoSZ2VuZXJhdGVkX3Bhc3N3b3JkGAEgASgJIksKDlNldFJvbGVSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSKAoEcm9sZRgCIAEoDjIaLmhhcm5lc3MuYXV0aC52MS5Vc2VyLlJvbGUiOwoPU2V0Um9sZVJlc3BvbnNlEigKBHVzZXIYASABKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyIkcKElNldERpc2FibGVkUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhAKCGRpc2FibGVkGAIgASgIEg4KBnJlYXNvbhgDIAEoCSI/ChNTZXREaXNhYmxlZFJlc3BvbnNlEigKBHVzZXIYASABKAsyGi5oYXJuZXNzLmF1dGgudjEuQWRtaW5Vc2VyIiQKEURlbGV0ZVVzZXJSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiFAoSRGVsZXRlVXNlclJlc3BvbnNlIioKF0xpc3RVc2VyU2Vzc2lvbnNSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiWgoYTGlzdFVzZXJTZXNzaW9uc1Jlc3BvbnNlEigKB2RldmljZXMYASADKAsyFy5oYXJuZXNzLmF1dGgudjEuRGV2aWNlEhQKDHdlYl9zZXNzaW9ucxgCIAEoBSI/ChlSZXZva2VVc2VyU2Vzc2lvbnNSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSEQoJZGV2aWNlX2lkGAIgASgJIlMKGlJldm9rZVVzZXJTZXNzaW9uc1Jlc3BvbnNlEhcKD3Jldm9rZWRfZGV2aWNlcxgBIAEoBRIcChRyZXZva2VkX3dlYl9zZXNzaW9ucxgCIAEoBSKLAQoMVXNlclByb3ZpZGVyEgoKAmlkGAEgASgJEgwKBHR5cGUYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJEhAKCGJhc2VfdXJsGAQgASgJEhMKC2FwaV9rZXlfc2V0GAUgASgIEg8KB2VuYWJsZWQYBiABKAgSEwoLbW9kZWxfY291bnQYByABKAUiKwoYTGlzdFVzZXJQcm92aWRlcnNSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiTQoZTGlzdFVzZXJQcm92aWRlcnNSZXNwb25zZRIwCglwcm92aWRlcnMYASADKAsyHS5oYXJuZXNzLmF1dGgudjEuVXNlclByb3ZpZGVyIkEKGURlbGV0ZVVzZXJQcm92aWRlclJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCSIcChpEZWxldGVVc2VyUHJvdmlkZXJSZXNwb25zZSKpBAoKTGRhcENvbmZpZxIPCgdlbmFibGVkGAEgASgIEgwKBHVybHMYAiADKAkSEQoJc3RhcnRfdGxzGAMgASgIEg8KB2NhX2NlcnQYBCABKAkSEwoLc2tpcF92ZXJpZnkYBSABKAgSDwoHYmluZF9kbhgGIAEoCRIVCg1iaW5kX3Bhc3N3b3JkGAcgASgJEhkKEWJpbmRfcGFzc3dvcmRfc2V0GAggASgIEhsKE2NsZWFyX2JpbmRfcGFzc3dvcmQYCSABKAgSFAoMdXNlcl9iYXNlX2RuGAogASgJEhMKC3VzZXJfZmlsdGVyGAsgASgJEhoKEnVzZXJuYW1lX2F0dHJpYnV0ZRgMIAEoCRIXCg9lbWFpbF9hdHRyaWJ1dGUYDSABKAkSFgoObmFtZV9hdHRyaWJ1dGUYDiABKAkSGAoQYWxsb3dlZF9ncm91cF9kbhgPIAEoCRIWCg5hZG1pbl9ncm91cF9kbhgQIAEoCRIZChFhdXRvX2NyZWF0ZV91c2VycxgRIAEoCBI0Cgtsb2NhbF9sb2dpbhgSIAEoDjIfLmhhcm5lc3MuYXV0aC52MS5MZGFwTG9jYWxMb2dpbhIaChJicmVha19nbGFzc19sb2dpbnMYEyADKAkSEgoKdGltZW91dF9tcxgUIAEoBRI4Cg1yb2xlX21hcHBpbmdzGBUgAygLMiEuaGFybmVzcy5hdXRoLnYxLkdyb3VwUm9sZU1hcHBpbmciFgoUR2V0TGRhcENvbmZpZ1JlcXVlc3QiRAoVR2V0TGRhcENvbmZpZ1Jlc3BvbnNlEisKBmNvbmZpZxgBIAEoCzIbLmhhcm5lc3MuYXV0aC52MS5MZGFwQ29uZmlnIkMKFFNldExkYXBDb25maWdSZXF1ZXN0EisKBmNvbmZpZxgBIAEoCzIbLmhhcm5lc3MuYXV0aC52MS5MZGFwQ29uZmlnIkQKFVNldExkYXBDb25maWdSZXNwb25zZRIrCgZjb25maWcYASABKAsyGy5oYXJuZXNzLmF1dGgudjEuTGRhcENvbmZpZyJIChlUZXN0TGRhcENvbm5lY3Rpb25SZXF1ZXN0EisKBmNvbmZpZxgBIAEoCzIbLmhhcm5lc3MuYXV0aC52MS5MZGFwQ29uZmlnIkYKGlRlc3RMZGFwQ29ubmVjdGlvblJlc3BvbnNlEgoKAm9rGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSCwoDdXJsGAMgASgJIlEKE1Rlc3RMZGFwVXNlclJlcXVlc3QSKwoGY29uZmlnGAEgASgLMhsuaGFybmVzcy5hdXRoLnYxLkxkYXBDb25maWcSDQoFbG9naW4YAiABKAki3AEKFFRlc3RMZGFwVXNlclJlc3BvbnNlEg0KBWZvdW5kGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSCgoCZG4YAyABKAkSEAoIdXNlcm5hbWUYBCABKAkSDQoFZW1haWwYBSABKAkSDAoEbmFtZRgGIAEoCRIOCgZncm91cHMYByADKAkSDwoHYWxsb3dlZBgIIAEoCBINCgVhZG1pbhgJIAEoCBIPCgd1c2VyX2lkGAogASgJEigKBHJvbGUYCyABKA4yGi5oYXJuZXNzLmF1dGgudjEuVXNlci5Sb2xlIlAKFFBlcm1pc3Npb25Nb2RlUG9saWN5EjgKDmRpc2FibGVkX21vZGVzGAEgAygOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZSIgCh5HZXRQZXJtaXNzaW9uTW9kZVBvbGljeVJlcXVlc3QiWAofR2V0UGVybWlzc2lvbk1vZGVQb2xpY3lSZXNwb25zZRI1CgZwb2xpY3kYASABKAsyJS5oYXJuZXNzLmF1dGgudjEuUGVybWlzc2lvbk1vZGVQb2xpY3kiVwoeU2V0UGVybWlzc2lvbk1vZGVQb2xpY3lSZXF1ZXN0EjUKBnBvbGljeRgBIAEoCzIlLmhhcm5lc3MuYXV0aC52MS5QZXJtaXNzaW9uTW9kZVBvbGljeSJYCh9TZXRQZXJtaXNzaW9uTW9kZVBvbGljeVJlc3BvbnNlEjUKBnBvbGljeRgBIAEoCzIlLmhhcm5lc3MuYXV0aC52MS5QZXJtaXNzaW9uTW9kZVBvbGljeSIjChBMb2NhbE1vZGVsUG9saWN5Eg8KB2FsbG93ZWQYASABKAgiHAoaR2V0TG9jYWxNb2RlbFBvbGljeVJlcXVlc3QiUAobR2V0TG9jYWxNb2RlbFBvbGljeVJlc3BvbnNlEjEKBnBvbGljeRgBIAEoCzIhLmhhcm5lc3MuYXV0aC52MS5Mb2NhbE1vZGVsUG9saWN5Ik8KGlNldExvY2FsTW9kZWxQb2xpY3lSZXF1ZXN0EjEKBnBvbGljeRgBIAEoCzIhLmhhcm5lc3MuYXV0aC52MS5Mb2NhbE1vZGVsUG9saWN5IlAKG1NldExvY2FsTW9kZWxQb2xpY3lSZXNwb25zZRIxCgZwb2xpY3kYASABKAsyIS5oYXJuZXNzLmF1dGgudjEuTG9jYWxNb2RlbFBvbGljeSpzCg5MZGFwTG9jYWxMb2dpbhIgChxMREFQX0xPQ0FMX0xPR0lOX1VOU1BFQ0lGSUVEEAASHQoZTERBUF9MT0NBTF9MT0dJTl9GQUxMQkFDSxABEiAKHExEQVBfTE9DQUxfTE9HSU5fQlJFQUtfR0xBU1MQAjK9EAoMQWRtaW5TZXJ2aWNlElIKCUxpc3RVc2VycxIhLmhhcm5lc3MuYXV0aC52MS5MaXN0VXNlcnNSZXF1ZXN0GiIuaGFybmVzcy5hdXRoLnYxLkxpc3RVc2Vyc1Jlc3BvbnNlElUKCkNyZWF0ZVVzZXISIi5oYXJuZXNzLmF1dGgudjEuQ3JlYXRlVXNlclJlcXVlc3QaIy5oYXJuZXNzLmF1dGgudjEuQ3JlYXRlVXNlclJlc3BvbnNlEl4KDVJlc2V0UGFzc3dvcmQSJS5oYXJuZXNzLmF1dGgudjEuUmVzZXRQYXNzd29yZFJlcXVlc3QaJi5oYXJuZXNzLmF1dGgudjEuUmVzZXRQYXNzd29yZFJlc3BvbnNlEkwKB1NldFJvbGUSHy5oYXJuZXNzLmF1dGgudjEuU2V0Um9sZVJlcXVlc3QaIC5oYXJuZXNzLmF1dGgudjEuU2V0Um9sZVJlc3BvbnNlElgKC1NldERpc2FibGVkEiMuaGFybmVzcy5hdXRoLnYxLlNldERpc2FibGVkUmVxdWVzdBokLmhhcm5lc3MuYXV0aC52MS5TZXREaXNhYmxlZFJlc3BvbnNlElUKCkRlbGV0ZVVzZXISIi5oYXJuZXNzLmF1dGgudjEuRGVsZXRlVXNlclJlcXVlc3QaIy5oYXJuZXNzLmF1dGgudjEuRGVsZXRlVXNlclJlc3BvbnNlEmcKEExpc3RVc2VyU2Vzc2lvbnMSKC5oYXJuZXNzLmF1dGgudjEuTGlzdFVzZXJTZXNzaW9uc1JlcXVlc3QaKS5oYXJuZXNzLmF1dGgudjEuTGlzdFVzZXJTZXNzaW9uc1Jlc3BvbnNlEm0KElJldm9rZVVzZXJTZXNzaW9ucxIqLmhhcm5lc3MuYXV0aC52MS5SZXZva2VVc2VyU2Vzc2lvbnNSZXF1ZXN0GisuaGFybmVzcy5hdXRoLnYxLlJldm9rZVVzZXJTZXNzaW9uc1Jlc3BvbnNlEmoKEUxpc3RVc2VyUHJvdmlkZXJzEikuaGFybmVzcy5hdXRoLnYxLkxpc3RVc2VyUHJvdmlkZXJzUmVxdWVzdBoqLmhhcm5lc3MuYXV0aC52MS5MaXN0VXNlclByb3ZpZGVyc1Jlc3BvbnNlEm0KEkRlbGV0ZVVzZXJQcm92aWRlchIqLmhhcm5lc3MuYXV0aC52MS5EZWxldGVVc2VyUHJvdmlkZXJSZXF1ZXN0GisuaGFybmVzcy5hdXRoLnYxLkRlbGV0ZVVzZXJQcm92aWRlclJlc3BvbnNlEl4KDUdldExkYXBDb25maWcSJS5oYXJuZXNzLmF1dGgudjEuR2V0TGRhcENvbmZpZ1JlcXVlc3QaJi5oYXJuZXNzLmF1dGgudjEuR2V0TGRhcENvbmZpZ1Jlc3BvbnNlEl4KDVNldExkYXBDb25maWcSJS5oYXJuZXNzLmF1dGgudjEuU2V0TGRhcENvbmZpZ1JlcXVlc3QaJi5oYXJuZXNzLmF1dGgudjEuU2V0TGRhcENvbmZpZ1Jlc3BvbnNlEm0KElRlc3RMZGFwQ29ubmVjdGlvbhIqLmhhcm5lc3MuYXV0aC52MS5UZXN0TGRhcENvbm5lY3Rpb25SZXF1ZXN0GisuaGFybmVzcy5hdXRoLnYxLlRlc3RMZGFwQ29ubmVjdGlvblJlc3BvbnNlElsKDFRlc3RMZGFwVXNlchIkLmhhcm5lc3MuYXV0aC52MS5UZXN0TGRhcFVzZXJSZXF1ZXN0GiUuaGFybmVzcy5hdXRoLnYxLlRlc3RMZGFwVXNlclJlc3BvbnNlEnwKF0dldFBlcm1pc3Npb25Nb2RlUG9saWN5Ei8uaGFybmVzcy5hdXRoLnYxLkdldFBlcm1pc3Npb25Nb2RlUG9saWN5UmVxdWVzdBowLmhhcm5lc3MuYXV0aC52MS5HZXRQZXJtaXNzaW9uTW9kZVBvbGljeVJlc3BvbnNlEnwKF1NldFBlcm1pc3Npb25Nb2RlUG9saWN5Ei8uaGFybmVzcy5hdXRoLnYxLlNldFBlcm1pc3Npb25Nb2RlUG9saWN5UmVxdWVzdBowLmhhcm5lc3MuYXV0aC52MS5TZXRQZXJtaXNzaW9uTW9kZVBvbGljeVJlc3BvbnNlEnAKE0dldExvY2FsTW9kZWxQb2xpY3kSKy5oYXJuZXNzLmF1dGgudjEuR2V0TG9jYWxNb2RlbFBvbGljeVJlcXVlc3QaLC5oYXJuZXNzLmF1dGgudjEuR2V0TG9jYWxNb2RlbFBvbGljeVJlc3BvbnNlEnAKE1NldExvY2FsTW9kZWxQb2xpY3kSKy5oYXJuZXNzLmF1dGgudjEuU2V0TG9jYWxNb2RlbFBvbGljeVJlcXVlc3QaLC5oYXJuZXNzLmF1dGgudjEuU2V0TG9jYWxNb2RlbFBvbGljeVJlc3BvbnNlEoUBChpMaXN0UHJvdmlkZXJMaW1pdHNQb2xpY2llcxIyLmhhcm5lc3MuYXV0aC52MS5MaXN0UHJvdmlkZXJMaW1pdHNQb2xpY2llc1JlcXVlc3QaMy5oYXJuZXNzLmF1dGgudjEuTGlzdFByb3ZpZGVyTGltaXRzUG9saWNpZXNSZXNwb25zZRJ8ChdTZXRQcm92aWRlckxpbWl0c1BvbGljeRIvLmhhcm5lc3MuYXV0aC52MS5TZXRQcm92aWRlckxpbWl0c1BvbGljeVJlcXVlc3QaMC5oYXJuZXNzLmF1dGgudjEuU2V0UHJvdmlkZXJMaW1pdHNQb2xpY3lSZXNwb25zZULEAQoTY29tLmhhcm5lc3MuYXV0aC52MUIKQWRtaW5Qcm90b1ABWkNnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2F1dGgvdjE7YXV0aHYxogIDSEFYqgIPSGFybmVzcy5BdXRoLlYxygIPSGFybmVzc1xBdXRoXFYx4gIbSGFybmVzc1xBdXRoXFYxXEdQQk1ldGFkYXRh6gIRSGFybmVzczo6QXV0aDo6VjFiBnByb3RvMw", [file_harness_agent_v1_agent, file_harness_auth_v1_auth, file_harness_auth_v1_limits_policy]);
 
 /**
  * @generated from message harness.auth.v1.AdminUser
@@ -87,6 +87,20 @@ export type AdminUser = Message<"harness.auth.v1.AdminUser"> & {
    * @generated from field: bool is_self = 12;
    */
   isSelf: boolean;
+
+  /**
+   * Whether the user has a confirmed authenticator (mfa.proto).
+   *
+   * @generated from field: bool mfa_enabled = 13;
+   */
+  mfaEnabled: boolean;
+
+  /**
+   * Names of the groups the user belongs to (directory.proto).
+   *
+   * @generated from field: repeated string groups = 14;
+   */
+  groups: string[];
 };
 
 /**
@@ -95,6 +109,32 @@ export type AdminUser = Message<"harness.auth.v1.AdminUser"> & {
  */
 export const AdminUserSchema: GenMessage<AdminUser> = /*@__PURE__*/
   messageDesc(file_harness_auth_v1_admin, 0);
+
+/**
+ * One rule of a group to role mapping: members of `group` get `role`. Rules are checked in order and the first match
+ * wins; somebody who matches none gets ROLE_USER. Used by LDAP (group DNs), SSO (group names from the identity
+ * provider's token or assertion) and SCIM (group display names).
+ *
+ * @generated from message harness.auth.v1.GroupRoleMapping
+ */
+export type GroupRoleMapping = Message<"harness.auth.v1.GroupRoleMapping"> & {
+  /**
+   * @generated from field: string group = 1;
+   */
+  group: string;
+
+  /**
+   * @generated from field: harness.auth.v1.User.Role role = 2;
+   */
+  role: User_Role;
+};
+
+/**
+ * Describes the message harness.auth.v1.GroupRoleMapping.
+ * Use `create(GroupRoleMappingSchema)` to create a new message.
+ */
+export const GroupRoleMappingSchema: GenMessage<GroupRoleMapping> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_admin, 1);
 
 /**
  * @generated from message harness.auth.v1.ListUsersRequest
@@ -118,7 +158,7 @@ export type ListUsersRequest = Message<"harness.auth.v1.ListUsersRequest"> & {
  * Use `create(ListUsersRequestSchema)` to create a new message.
  */
 export const ListUsersRequestSchema: GenMessage<ListUsersRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 1);
+  messageDesc(file_harness_auth_v1_admin, 2);
 
 /**
  * @generated from message harness.auth.v1.ListUsersResponse
@@ -135,7 +175,7 @@ export type ListUsersResponse = Message<"harness.auth.v1.ListUsersResponse"> & {
  * Use `create(ListUsersResponseSchema)` to create a new message.
  */
 export const ListUsersResponseSchema: GenMessage<ListUsersResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 2);
+  messageDesc(file_harness_auth_v1_admin, 3);
 
 /**
  * @generated from message harness.auth.v1.CreateUserRequest
@@ -188,7 +228,7 @@ export type CreateUserRequest = Message<"harness.auth.v1.CreateUserRequest"> & {
  * Use `create(CreateUserRequestSchema)` to create a new message.
  */
 export const CreateUserRequestSchema: GenMessage<CreateUserRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 3);
+  messageDesc(file_harness_auth_v1_admin, 4);
 
 /**
  * @generated from message harness.auth.v1.CreateUserResponse
@@ -212,7 +252,7 @@ export type CreateUserResponse = Message<"harness.auth.v1.CreateUserResponse"> &
  * Use `create(CreateUserResponseSchema)` to create a new message.
  */
 export const CreateUserResponseSchema: GenMessage<CreateUserResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 4);
+  messageDesc(file_harness_auth_v1_admin, 5);
 
 /**
  * @generated from message harness.auth.v1.ResetPasswordRequest
@@ -248,7 +288,7 @@ export type ResetPasswordRequest = Message<"harness.auth.v1.ResetPasswordRequest
  * Use `create(ResetPasswordRequestSchema)` to create a new message.
  */
 export const ResetPasswordRequestSchema: GenMessage<ResetPasswordRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 5);
+  messageDesc(file_harness_auth_v1_admin, 6);
 
 /**
  * @generated from message harness.auth.v1.ResetPasswordResponse
@@ -265,7 +305,7 @@ export type ResetPasswordResponse = Message<"harness.auth.v1.ResetPasswordRespon
  * Use `create(ResetPasswordResponseSchema)` to create a new message.
  */
 export const ResetPasswordResponseSchema: GenMessage<ResetPasswordResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 6);
+  messageDesc(file_harness_auth_v1_admin, 7);
 
 /**
  * @generated from message harness.auth.v1.SetRoleRequest
@@ -287,7 +327,7 @@ export type SetRoleRequest = Message<"harness.auth.v1.SetRoleRequest"> & {
  * Use `create(SetRoleRequestSchema)` to create a new message.
  */
 export const SetRoleRequestSchema: GenMessage<SetRoleRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 7);
+  messageDesc(file_harness_auth_v1_admin, 8);
 
 /**
  * @generated from message harness.auth.v1.SetRoleResponse
@@ -304,7 +344,7 @@ export type SetRoleResponse = Message<"harness.auth.v1.SetRoleResponse"> & {
  * Use `create(SetRoleResponseSchema)` to create a new message.
  */
 export const SetRoleResponseSchema: GenMessage<SetRoleResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 8);
+  messageDesc(file_harness_auth_v1_admin, 9);
 
 /**
  * @generated from message harness.auth.v1.SetDisabledRequest
@@ -331,7 +371,7 @@ export type SetDisabledRequest = Message<"harness.auth.v1.SetDisabledRequest"> &
  * Use `create(SetDisabledRequestSchema)` to create a new message.
  */
 export const SetDisabledRequestSchema: GenMessage<SetDisabledRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 9);
+  messageDesc(file_harness_auth_v1_admin, 10);
 
 /**
  * @generated from message harness.auth.v1.SetDisabledResponse
@@ -348,7 +388,7 @@ export type SetDisabledResponse = Message<"harness.auth.v1.SetDisabledResponse">
  * Use `create(SetDisabledResponseSchema)` to create a new message.
  */
 export const SetDisabledResponseSchema: GenMessage<SetDisabledResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 10);
+  messageDesc(file_harness_auth_v1_admin, 11);
 
 /**
  * @generated from message harness.auth.v1.DeleteUserRequest
@@ -365,7 +405,7 @@ export type DeleteUserRequest = Message<"harness.auth.v1.DeleteUserRequest"> & {
  * Use `create(DeleteUserRequestSchema)` to create a new message.
  */
 export const DeleteUserRequestSchema: GenMessage<DeleteUserRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 11);
+  messageDesc(file_harness_auth_v1_admin, 12);
 
 /**
  * @generated from message harness.auth.v1.DeleteUserResponse
@@ -378,7 +418,7 @@ export type DeleteUserResponse = Message<"harness.auth.v1.DeleteUserResponse"> &
  * Use `create(DeleteUserResponseSchema)` to create a new message.
  */
 export const DeleteUserResponseSchema: GenMessage<DeleteUserResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 12);
+  messageDesc(file_harness_auth_v1_admin, 13);
 
 /**
  * @generated from message harness.auth.v1.ListUserSessionsRequest
@@ -395,7 +435,7 @@ export type ListUserSessionsRequest = Message<"harness.auth.v1.ListUserSessionsR
  * Use `create(ListUserSessionsRequestSchema)` to create a new message.
  */
 export const ListUserSessionsRequestSchema: GenMessage<ListUserSessionsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 13);
+  messageDesc(file_harness_auth_v1_admin, 14);
 
 /**
  * @generated from message harness.auth.v1.ListUserSessionsResponse
@@ -417,7 +457,7 @@ export type ListUserSessionsResponse = Message<"harness.auth.v1.ListUserSessions
  * Use `create(ListUserSessionsResponseSchema)` to create a new message.
  */
 export const ListUserSessionsResponseSchema: GenMessage<ListUserSessionsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 14);
+  messageDesc(file_harness_auth_v1_admin, 15);
 
 /**
  * @generated from message harness.auth.v1.RevokeUserSessionsRequest
@@ -441,7 +481,7 @@ export type RevokeUserSessionsRequest = Message<"harness.auth.v1.RevokeUserSessi
  * Use `create(RevokeUserSessionsRequestSchema)` to create a new message.
  */
 export const RevokeUserSessionsRequestSchema: GenMessage<RevokeUserSessionsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 15);
+  messageDesc(file_harness_auth_v1_admin, 16);
 
 /**
  * @generated from message harness.auth.v1.RevokeUserSessionsResponse
@@ -463,7 +503,7 @@ export type RevokeUserSessionsResponse = Message<"harness.auth.v1.RevokeUserSess
  * Use `create(RevokeUserSessionsResponseSchema)` to create a new message.
  */
 export const RevokeUserSessionsResponseSchema: GenMessage<RevokeUserSessionsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 16);
+  messageDesc(file_harness_auth_v1_admin, 17);
 
 /**
  * @generated from message harness.auth.v1.UserProvider
@@ -510,7 +550,7 @@ export type UserProvider = Message<"harness.auth.v1.UserProvider"> & {
  * Use `create(UserProviderSchema)` to create a new message.
  */
 export const UserProviderSchema: GenMessage<UserProvider> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 17);
+  messageDesc(file_harness_auth_v1_admin, 18);
 
 /**
  * @generated from message harness.auth.v1.ListUserProvidersRequest
@@ -527,7 +567,7 @@ export type ListUserProvidersRequest = Message<"harness.auth.v1.ListUserProvider
  * Use `create(ListUserProvidersRequestSchema)` to create a new message.
  */
 export const ListUserProvidersRequestSchema: GenMessage<ListUserProvidersRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 18);
+  messageDesc(file_harness_auth_v1_admin, 19);
 
 /**
  * @generated from message harness.auth.v1.ListUserProvidersResponse
@@ -544,7 +584,7 @@ export type ListUserProvidersResponse = Message<"harness.auth.v1.ListUserProvide
  * Use `create(ListUserProvidersResponseSchema)` to create a new message.
  */
 export const ListUserProvidersResponseSchema: GenMessage<ListUserProvidersResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 19);
+  messageDesc(file_harness_auth_v1_admin, 20);
 
 /**
  * @generated from message harness.auth.v1.DeleteUserProviderRequest
@@ -566,7 +606,7 @@ export type DeleteUserProviderRequest = Message<"harness.auth.v1.DeleteUserProvi
  * Use `create(DeleteUserProviderRequestSchema)` to create a new message.
  */
 export const DeleteUserProviderRequestSchema: GenMessage<DeleteUserProviderRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 20);
+  messageDesc(file_harness_auth_v1_admin, 21);
 
 /**
  * @generated from message harness.auth.v1.DeleteUserProviderResponse
@@ -579,7 +619,7 @@ export type DeleteUserProviderResponse = Message<"harness.auth.v1.DeleteUserProv
  * Use `create(DeleteUserProviderResponseSchema)` to create a new message.
  */
 export const DeleteUserProviderResponseSchema: GenMessage<DeleteUserProviderResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 21);
+  messageDesc(file_harness_auth_v1_admin, 22);
 
 /**
  * @generated from message harness.auth.v1.LdapConfig
@@ -710,6 +750,14 @@ export type LdapConfig = Message<"harness.auth.v1.LdapConfig"> & {
    * @generated from field: int32 timeout_ms = 20;
    */
   timeoutMs: number;
+
+  /**
+   * Group DN to role rules, re-checked at every sign-in. admin_group_dn, when set, is checked first. With neither set,
+   * roles are managed in Users. The last active admin is never demoted.
+   *
+   * @generated from field: repeated harness.auth.v1.GroupRoleMapping role_mappings = 21;
+   */
+  roleMappings: GroupRoleMapping[];
 };
 
 /**
@@ -717,7 +765,7 @@ export type LdapConfig = Message<"harness.auth.v1.LdapConfig"> & {
  * Use `create(LdapConfigSchema)` to create a new message.
  */
 export const LdapConfigSchema: GenMessage<LdapConfig> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 22);
+  messageDesc(file_harness_auth_v1_admin, 23);
 
 /**
  * @generated from message harness.auth.v1.GetLdapConfigRequest
@@ -730,7 +778,7 @@ export type GetLdapConfigRequest = Message<"harness.auth.v1.GetLdapConfigRequest
  * Use `create(GetLdapConfigRequestSchema)` to create a new message.
  */
 export const GetLdapConfigRequestSchema: GenMessage<GetLdapConfigRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 23);
+  messageDesc(file_harness_auth_v1_admin, 24);
 
 /**
  * @generated from message harness.auth.v1.GetLdapConfigResponse
@@ -747,7 +795,7 @@ export type GetLdapConfigResponse = Message<"harness.auth.v1.GetLdapConfigRespon
  * Use `create(GetLdapConfigResponseSchema)` to create a new message.
  */
 export const GetLdapConfigResponseSchema: GenMessage<GetLdapConfigResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 24);
+  messageDesc(file_harness_auth_v1_admin, 25);
 
 /**
  * @generated from message harness.auth.v1.SetLdapConfigRequest
@@ -764,7 +812,7 @@ export type SetLdapConfigRequest = Message<"harness.auth.v1.SetLdapConfigRequest
  * Use `create(SetLdapConfigRequestSchema)` to create a new message.
  */
 export const SetLdapConfigRequestSchema: GenMessage<SetLdapConfigRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 25);
+  messageDesc(file_harness_auth_v1_admin, 26);
 
 /**
  * @generated from message harness.auth.v1.SetLdapConfigResponse
@@ -781,7 +829,7 @@ export type SetLdapConfigResponse = Message<"harness.auth.v1.SetLdapConfigRespon
  * Use `create(SetLdapConfigResponseSchema)` to create a new message.
  */
 export const SetLdapConfigResponseSchema: GenMessage<SetLdapConfigResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 26);
+  messageDesc(file_harness_auth_v1_admin, 27);
 
 /**
  * @generated from message harness.auth.v1.TestLdapConnectionRequest
@@ -798,7 +846,7 @@ export type TestLdapConnectionRequest = Message<"harness.auth.v1.TestLdapConnect
  * Use `create(TestLdapConnectionRequestSchema)` to create a new message.
  */
 export const TestLdapConnectionRequestSchema: GenMessage<TestLdapConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 27);
+  messageDesc(file_harness_auth_v1_admin, 28);
 
 /**
  * @generated from message harness.auth.v1.TestLdapConnectionResponse
@@ -829,7 +877,7 @@ export type TestLdapConnectionResponse = Message<"harness.auth.v1.TestLdapConnec
  * Use `create(TestLdapConnectionResponseSchema)` to create a new message.
  */
 export const TestLdapConnectionResponseSchema: GenMessage<TestLdapConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 28);
+  messageDesc(file_harness_auth_v1_admin, 29);
 
 /**
  * @generated from message harness.auth.v1.TestLdapUserRequest
@@ -851,7 +899,7 @@ export type TestLdapUserRequest = Message<"harness.auth.v1.TestLdapUserRequest">
  * Use `create(TestLdapUserRequestSchema)` to create a new message.
  */
 export const TestLdapUserRequestSchema: GenMessage<TestLdapUserRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 29);
+  messageDesc(file_harness_auth_v1_admin, 30);
 
 /**
  * @generated from message harness.auth.v1.TestLdapUserResponse
@@ -910,6 +958,13 @@ export type TestLdapUserResponse = Message<"harness.auth.v1.TestLdapUserResponse
    * @generated from field: string user_id = 10;
    */
   userId: string;
+
+  /**
+   * The role admin_group_dn and role_mappings give them.
+   *
+   * @generated from field: harness.auth.v1.User.Role role = 11;
+   */
+  role: User_Role;
 };
 
 /**
@@ -917,7 +972,7 @@ export type TestLdapUserResponse = Message<"harness.auth.v1.TestLdapUserResponse
  * Use `create(TestLdapUserResponseSchema)` to create a new message.
  */
 export const TestLdapUserResponseSchema: GenMessage<TestLdapUserResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 30);
+  messageDesc(file_harness_auth_v1_admin, 31);
 
 /**
  * @generated from message harness.auth.v1.PermissionModePolicy
@@ -936,7 +991,7 @@ export type PermissionModePolicy = Message<"harness.auth.v1.PermissionModePolicy
  * Use `create(PermissionModePolicySchema)` to create a new message.
  */
 export const PermissionModePolicySchema: GenMessage<PermissionModePolicy> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 31);
+  messageDesc(file_harness_auth_v1_admin, 32);
 
 /**
  * @generated from message harness.auth.v1.GetPermissionModePolicyRequest
@@ -949,7 +1004,7 @@ export type GetPermissionModePolicyRequest = Message<"harness.auth.v1.GetPermiss
  * Use `create(GetPermissionModePolicyRequestSchema)` to create a new message.
  */
 export const GetPermissionModePolicyRequestSchema: GenMessage<GetPermissionModePolicyRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 32);
+  messageDesc(file_harness_auth_v1_admin, 33);
 
 /**
  * @generated from message harness.auth.v1.GetPermissionModePolicyResponse
@@ -966,7 +1021,7 @@ export type GetPermissionModePolicyResponse = Message<"harness.auth.v1.GetPermis
  * Use `create(GetPermissionModePolicyResponseSchema)` to create a new message.
  */
 export const GetPermissionModePolicyResponseSchema: GenMessage<GetPermissionModePolicyResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 33);
+  messageDesc(file_harness_auth_v1_admin, 34);
 
 /**
  * @generated from message harness.auth.v1.SetPermissionModePolicyRequest
@@ -983,7 +1038,7 @@ export type SetPermissionModePolicyRequest = Message<"harness.auth.v1.SetPermiss
  * Use `create(SetPermissionModePolicyRequestSchema)` to create a new message.
  */
 export const SetPermissionModePolicyRequestSchema: GenMessage<SetPermissionModePolicyRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 34);
+  messageDesc(file_harness_auth_v1_admin, 35);
 
 /**
  * @generated from message harness.auth.v1.SetPermissionModePolicyResponse
@@ -1000,7 +1055,7 @@ export type SetPermissionModePolicyResponse = Message<"harness.auth.v1.SetPermis
  * Use `create(SetPermissionModePolicyResponseSchema)` to create a new message.
  */
 export const SetPermissionModePolicyResponseSchema: GenMessage<SetPermissionModePolicyResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 35);
+  messageDesc(file_harness_auth_v1_admin, 36);
 
 /**
  * @generated from message harness.auth.v1.LocalModelPolicy
@@ -1019,7 +1074,7 @@ export type LocalModelPolicy = Message<"harness.auth.v1.LocalModelPolicy"> & {
  * Use `create(LocalModelPolicySchema)` to create a new message.
  */
 export const LocalModelPolicySchema: GenMessage<LocalModelPolicy> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 36);
+  messageDesc(file_harness_auth_v1_admin, 37);
 
 /**
  * @generated from message harness.auth.v1.GetLocalModelPolicyRequest
@@ -1032,7 +1087,7 @@ export type GetLocalModelPolicyRequest = Message<"harness.auth.v1.GetLocalModelP
  * Use `create(GetLocalModelPolicyRequestSchema)` to create a new message.
  */
 export const GetLocalModelPolicyRequestSchema: GenMessage<GetLocalModelPolicyRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 37);
+  messageDesc(file_harness_auth_v1_admin, 38);
 
 /**
  * @generated from message harness.auth.v1.GetLocalModelPolicyResponse
@@ -1049,7 +1104,7 @@ export type GetLocalModelPolicyResponse = Message<"harness.auth.v1.GetLocalModel
  * Use `create(GetLocalModelPolicyResponseSchema)` to create a new message.
  */
 export const GetLocalModelPolicyResponseSchema: GenMessage<GetLocalModelPolicyResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 38);
+  messageDesc(file_harness_auth_v1_admin, 39);
 
 /**
  * @generated from message harness.auth.v1.SetLocalModelPolicyRequest
@@ -1066,7 +1121,7 @@ export type SetLocalModelPolicyRequest = Message<"harness.auth.v1.SetLocalModelP
  * Use `create(SetLocalModelPolicyRequestSchema)` to create a new message.
  */
 export const SetLocalModelPolicyRequestSchema: GenMessage<SetLocalModelPolicyRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 39);
+  messageDesc(file_harness_auth_v1_admin, 40);
 
 /**
  * @generated from message harness.auth.v1.SetLocalModelPolicyResponse
@@ -1083,7 +1138,7 @@ export type SetLocalModelPolicyResponse = Message<"harness.auth.v1.SetLocalModel
  * Use `create(SetLocalModelPolicyResponseSchema)` to create a new message.
  */
 export const SetLocalModelPolicyResponseSchema: GenMessage<SetLocalModelPolicyResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_admin, 40);
+  messageDesc(file_harness_auth_v1_admin, 41);
 
 /**
  * Who may still sign in with a local password while LDAP is enabled.
