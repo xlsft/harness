@@ -253,12 +253,15 @@ export function mainHistory(now: number): SessionEvent[] {
   b.wait(2000).assistant('m3b', 'glm-4.6', [
     { text: 'Streaming works on `glm-4.6` and `qwen3-coder`. Usage is left: the provider sends it as a separate chunk, and until it arrives **message_stop** must not be sent.' }
   ], { output: 900 })
-  b.todos([
+  // As the client links them: the two agents started during this item, and below it the test run; a completed item keeps
+  // its finished agent but shows no line.
+  const plan = (taskIds: string[]) => b.todos([
     { content: 'Generate TS from proto', activeForm: 'Generating TS from proto', status: 'completed' },
-    { content: 'Stream handler in Nitro', activeForm: 'Writing the stream handler', status: 'completed' },
-    { content: 'Usage and message_stop in the right order', activeForm: 'Running tests', status: 'in_progress' },
+    { content: 'Stream handler in Nitro', activeForm: 'Writing the stream handler', status: 'completed', agentIds: ['af5'] },
+    { content: 'Usage and message_stop in the right order', activeForm: 'Running tests', status: 'in_progress', agentIds: ['ag-evals', 'ag-scratch'], taskIds },
     { content: 'Provider retry tests', activeForm: 'Writing provider retry tests', status: 'pending' }
   ])
+  plan([])
 
   b.wait(1500).assistant('m3c', 'glm-4.6', [{ toolUse: { id: 't-grep', name: 'Grep', input: { pattern: 'holdStopUntilUsage', path: 'packages/' } } }], { output: 300 })
   b.toolStarted('t-grep', 'Grep', { pattern: 'holdStopUntilUsage', path: 'packages/' }, '"holdStopUntilUsage" in packages/')
@@ -295,6 +298,7 @@ export function mainHistory(now: number): SessionEvent[] {
   // Started 48s ago by the client's file watcher; announced after the subagent in the transcript.
   const vitest = b.taskStarted('vitest-stream', 't-vitest-bg', 'vitest gateway.stream', 'vitest — gateway.stream')
   vitest.timestamp = new Date(now - 48_000).toISOString()
+  plan(['vitest-stream'])
   return b.events
 }
 

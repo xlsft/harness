@@ -279,3 +279,50 @@ func TestTitleModel(t *testing.T) {
 		}
 	}
 }
+
+func TestReplayTodoLinks(t *testing.T) {
+	b := newTB()
+	todos := func(items ...string) map[string]any {
+		list := []any{}
+		for _, c := range items {
+			list = append(list, map[string]any{"content": c, "activeForm": "Doing " + c, "status": "in_progress"})
+		}
+		return map[string]any{"todos": list}
+	}
+	link := func(content, agent string) {
+		b.add(session.Entry{Type: session.TypeSystem, Subtype: session.SubtypeTodoLink, TodoLink: &session.TodoLink{Content: content, AgentIDs: []string{agent}}})
+	}
+	b.prompt("go", "p1", "default")
+	// A TodoWrite and an Agent call of one message: the link is recorded before either result.
+	b.assistant("m1", llm.Usage{}, toolUse("t1", "TodoWrite", todos("Kept", "Reworded")), toolUse("a1", "Agent", map[string]any{"description": "d", "prompt": "p"}))
+	link("Kept", "ag1")
+	b.result("p1", "t1", "ok", false, nil)
+	b.result("p1", "a1", "started", false, nil)
+	b.assistant("m2", llm.Usage{}, toolUse("a2", "Agent", map[string]any{"description": "d", "prompt": "p"}))
+	link("Reworded", "ag2")
+	b.result("p1", "a2", "started", false, nil)
+	b.assistant("m3", llm.Usage{}, toolUse("t2", "TodoWrite", todos("Kept", "New words")))
+	b.result("p1", "t2", "ok", false, nil)
+
+	var lists [][]*agentv1.Todo
+	for _, ev := range replayHistory(b.entries, replayOptions{}) {
+		if td := ev.GetTodosUpdated(); td != nil {
+			lists = append(lists, td.Todos)
+		}
+	}
+	if len(lists) != 3 {
+		t.Fatalf("lists %v", lists)
+	}
+	if got := lists[0][0].AgentIds; len(got) != 1 || got[0] != "ag1" {
+		t.Fatalf("first list %v", lists[0])
+	}
+	if got := lists[1][1].AgentIds; len(got) != 1 || got[0] != "ag2" {
+		t.Fatalf("second list %v", lists[1])
+	}
+	if got := lists[2][0].AgentIds; len(got) != 1 || got[0] != "ag1" {
+		t.Fatalf("carried over: %v", lists[2])
+	}
+	if got := lists[2][1].AgentIds; len(got) != 0 {
+		t.Fatalf("reworded item keeps links: %v", lists[2])
+	}
+}

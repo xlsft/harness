@@ -1254,7 +1254,7 @@ func todosToProto(ts []tools.Todo) []*agentv1.Todo {
 		case "completed":
 			st = agentv1.Todo_STATUS_COMPLETED
 		}
-		out = append(out, &agentv1.Todo{Content: t.Content, ActiveForm: t.ActiveForm, Status: st})
+		out = append(out, &agentv1.Todo{Content: t.Content, ActiveForm: t.ActiveForm, Status: st, AgentIds: t.AgentIDs, TaskIds: t.TaskIDs})
 	}
 	return out
 }

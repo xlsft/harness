@@ -408,6 +408,8 @@ function toBottom() {
             <TodoCard
               v-else-if="b.item.kind === 'todos'"
               :todos="b.item.todos"
+              :subagents="session.subagents"
+              :tasks="session.tasks"
             />
             <TaskCard
               v-else-if="b.item.kind === 'task' && session.tasks[b.item.taskId ?? b.item.id]"

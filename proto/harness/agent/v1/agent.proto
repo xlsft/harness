@@ -877,6 +877,13 @@ message Todo {
   // Present-tense form shown while in progress, e.g. "Running tests".
   string active_form = 2;
   Status status = 3;
+  // The subagents (SubagentInfo.id) and background tasks (BackgroundTask.task_id) working for this item: what the main
+  // agent started while the item was the first one in progress. The client makes the link; the model has no part in it.
+  // The ids stay when the work ends or the item is completed. A frontend counts what still runs from its live lists, so
+  // work that ends needs no new TodosUpdated. A TodoWrite keeps the ids of an item whose content it does not change.
+  // Empty for subagents' own lists and in ACP sessions.
+  repeated string agent_ids = 4;
+  repeated string task_ids = 5;
 }
 
 // Emitted when the model calls ExitPlanMode. The turn waits for RespondToPlan.
