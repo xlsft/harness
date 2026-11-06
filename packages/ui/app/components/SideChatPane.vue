@@ -16,7 +16,7 @@ const store = useSessionStore()
 // utils/icons.ts carries only the outer contour of this glyph; the tab uses the full outline.
 const CHAT_ICON = 'M10.094 19.841c-.775.613-1.605 1.051-2.609 1.136c-.521.044-1.056.033-1.35-.476c-.262-.451-.052-1.468-.166-2.031l-.069-.228l-.022-.02l-.513-.359l-.583-.476c-1.124-.985-2.028-2.289-2.456-3.728a7.5 7.5 0 0 1-.036-4.2c1.008-3.589 4.55-5.841 8.082-6.347a11.54 11.54 0 0 1 5.496.546c3.872 1.397 6.776 4.926 6.004 9.203c-.249 1.376-.925 2.645-1.832 3.698c-2.417 2.806-6.376 3.842-9.946 3.282m-2.08-1.026c.579-.265 1.075-.873 1.693-.984c.354-.063.726.05 1.069.093l.605.056c1.483.093 2.992-.145 4.358-.736c3.032-1.309 5.196-4.426 3.872-7.744c-.395-.991-1.071-1.854-1.888-2.535c-3.527-2.94-9.753-2.604-12.572 1.182c-.834 1.12-1.265 2.505-1.121 3.902c.153 1.49.95 2.832 2.055 3.82c.343.307.728.53 1.081.822c.645.533.795 1.332.848 2.124'
 const EMPTY = {
-  title: 'No messages yet',
+  title: tt('No messages yet'),
   body: 'A side chat sees this session but never changes it: no files, no tools, nothing added to the main thread.'
 }
 
@@ -154,13 +154,13 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
 
 <template>
   <section
-    aria-label="Side chat"
+    :aria-label="tt('Side chat')"
     class="relative flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-stretch border-b border-line pr-1.5">
       <div
         role="tablist"
-        aria-label="Side chats"
+        :aria-label="tt('Side chats')"
         class="flex min-w-0 items-stretch overflow-x-auto"
       >
         <PaneTab
@@ -181,8 +181,8 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
         <button
           v-if="!remote"
           type="button"
-          aria-label="New side chat"
-          title="New side chat"
+          :aria-label="tt('New side chat')"
+          :title="tt('New side chat')"
           class="flex w-9 shrink-0 items-center justify-center border-r border-line text-muted hover:text-strong"
           @click="ctl?.newChat()"
         >
@@ -191,9 +191,10 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
       </div>
       <span class="flex-1" />
       <div class="flex items-center gap-[2px]">
+        <PaneFullBtn />
         <PaneBtn
           icon="close"
-          label="Close side chat"
+          :label="tt('Close side chat')"
           @click="closePane('sidechat')"
         />
       </div>
@@ -204,15 +205,15 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
         v-if="remote"
         class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
       >
-        <span class="text-[13.5px] text-strong">Side chats run on the session's machine</span>
-        <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">This session belongs to another machine. Open a side chat from that machine's app.</span>
+        <span class="text-[13.5px] text-strong">{{ tt('Side chats run on the session\'s machine') }}</span>
+        <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">{{ tt('This session belongs to another machine. Open a side chat from that machine\'s app.') }}</span>
       </div>
 
       <div
         v-else-if="ctl?.loading && !ctl.chats.length"
         class="flex flex-1 items-center justify-center"
       >
-        <span class="text-[12px] text-muted">Loading side chats…</span>
+        <span class="text-[12px] text-muted">{{ tt('Loading side chats…') }}</span>
       </div>
 
       <div
@@ -254,11 +255,11 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
             <span
               v-if="m.error"
               class="text-[12px] text-bad"
-            >The answer failed: {{ m.error }}</span>
+            >{{ tt('The answer failed: {0}', [m.error]) }}</span>
             <span
               v-else-if="m.stopped"
               class="text-[11px] text-muted"
-            >Stopped</span>
+            >{{ tt('Stopped') }}</span>
             <div
               v-if="m.id !== chat.streamingId && m.text"
               class="flex items-center gap-1 text-[11px] text-muted"
@@ -268,7 +269,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
                 class="px-1.5 py-[2px] text-[11px] text-muted hover:text-strong"
                 @click="copy(m)"
               >
-                Copy
+                {{ tt('Copy') }}
               </button>
               <span class="flex-1" />{{ meta(m) }}
             </div>
@@ -302,7 +303,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
           <span class="flex-1 leading-[1.5]">{{ chat.quote }}</span>
           <button
             type="button"
-            aria-label="Remove quote"
+            :aria-label="tt('Remove quote')"
             class="mt-[3px] text-muted hover:text-strong"
             @click="chat.quote = ''"
           >
@@ -318,16 +319,16 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
             v-model="inputText"
             type="text"
             :disabled="streaming"
-            :placeholder="streaming ? 'Answering…' : 'Ask a quick question'"
-            aria-label="Ask a quick question"
+            :placeholder="streaming ? tt('Answering…') : tt('Ask a quick question')"
+            :aria-label="tt('Ask a quick question')"
             class="min-w-0 flex-1 bg-transparent text-[13px] text-strong outline-none placeholder:text-muted"
             @keydown.enter.prevent="send"
           >
           <button
             v-if="streaming"
             type="button"
-            aria-label="Stop"
-            title="Stop"
+            :aria-label="tt('Stop')"
+            :title="tt('Stop')"
             class="flex size-[26px] items-center justify-center bg-strong"
             @click="ctl?.stop()"
           >
@@ -336,8 +337,8 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
           <button
             v-else
             type="button"
-            aria-label="Send"
-            title="Send"
+            :aria-label="tt('Send')"
+            :title="tt('Send')"
             class="flex size-[26px] items-center justify-center"
             :class="inputText.trim() ? 'bg-accent text-on-accent' : 'bg-raised text-disabled'"
             @click="send"
@@ -350,7 +351,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
         </div>
       </div>
       <div class="flex min-w-0 items-center gap-0.5 text-[11px] whitespace-nowrap text-muted">
-        <span class="min-w-0 flex-1 truncate">read-only · sees the main session</span>
+        <span class="min-w-0 flex-1 truncate">{{ tt('read-only · sees the main session') }}</span>
 
         <UPopover
           v-model:open="modelOpen"
@@ -358,7 +359,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
         >
           <button
             type="button"
-            aria-label="Side chat model"
+            :aria-label="tt('Side chat model')"
             :class="[BTN, modelOpen ? 'border-accent' : 'border-transparent']"
           >
             <span class="text-strong">{{ modelId }}</span><span
@@ -373,7 +374,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
           <template #content>
             <div
               role="listbox"
-              aria-label="Side chat model"
+              :aria-label="tt('Side chat model')"
               class="w-[380px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
             >
               <ModelList
@@ -392,7 +393,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
         >
           <button
             type="button"
-            aria-label="Side chat effort"
+            :aria-label="tt('Side chat effort')"
             :class="[BTN, effortOpen ? 'border-accent' : 'border-transparent', 'max-sm:hidden']"
           >
             {{ EFFORT_LABEL[effort] }}<HIcon

@@ -88,14 +88,14 @@ function statusClass(h: ConfiguredHookVM) {
 
 <template>
   <section
-    aria-label="Hooks"
+    :aria-label="tt('Hooks')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      Hooks
+      {{ tt('Hooks') }}
     </h2>
     <p class="set-sub">
-      Programs your settings run at points of a session: they can refuse a tool call, rewrite its input, add context or keep the agent working. They are defined under <code>hooks</code> in <code>.claude/settings*.json</code>, <code>.harness/settings*.json</code> and your user settings, and run with your own rights, outside the sandbox. Sessions of an external ACP agent run none of these: that agent runs its own.
+      {{ tt('Programs your settings run at points of a session: they can refuse a tool call, rewrite its input, add context or keep the agent working. They are defined under') }} <code>hooks</code> {{ tt('in') }} <code>.harness/settings*.json</code> {{ tt('and your user settings, and run with your own rights, outside the sandbox. Sessions of an external ACP agent run none of these: that agent runs its own.') }}
     </p>
     <p
       v-if="error"
@@ -106,17 +106,17 @@ function statusClass(h: ConfiguredHookVM) {
     </p>
     <div class="set-row">
       <div class="set-label">
-        <span>Run hooks</span>
-        <span class="set-desc">Saved to your account, so it applies on every machine, and to running sessions from their next hook. Hooks in an organization policy keep running.</span>
+        <span>{{ tt('Run hooks') }}</span>
+        <span class="set-desc">{{ tt('Saved to your account, so it applies on every machine, and to running sessions from their next hook. Hooks in an organization policy keep running.') }}</span>
       </div>
       <HToggle
         v-model="value"
-        label="Run hooks"
+        :label="tt('Run hooks')"
         :disabled="!loaded"
       />
     </div>
     <h3 class="mt-5 mb-1 text-[12.5px] text-strong">
-      Configured
+      {{ tt('Configured') }}
     </h3>
     <p class="set-sub">
       {{ scope }}
@@ -125,7 +125,7 @@ function statusClass(h: ConfiguredHookVM) {
       v-if="loaded && !hooks.length"
       class="m-0 text-[12px] text-muted"
     >
-      No hooks are configured.
+      {{ tt('No hooks are configured.') }}
     </p>
     <ul
       v-else
@@ -143,12 +143,12 @@ function statusClass(h: ConfiguredHookVM) {
           </template></span>
           <span class="set-desc break-all"><code>{{ h.command || h.handlerType }}</code></span>
           <span class="set-desc">
-            {{ h.handlerType }} · {{ h.source }} settings<template v-if="h.sourcePath">
+            {{ tt('{0} · {1} settings', [h.handlerType, h.source]) }}<template v-if="h.sourcePath">
               ({{ h.sourcePath }})
             </template><template v-if="h.timeoutSeconds">
-              · {{ h.timeoutSeconds }} s
+              {{ tt('· {0} s', [h.timeoutSeconds]) }}
             </template><template v-if="h.async">
-              · on its own
+              {{ tt('· on its own') }}
             </template>
           </span>
           <span
@@ -164,7 +164,7 @@ function statusClass(h: ConfiguredHookVM) {
             :disabled="trusting === h.trustHash"
             @click="trust(h)"
           >
-            Trust on this machine
+            {{ tt('Trust on this machine') }}
           </HBtn>
         </div>
       </li>

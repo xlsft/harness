@@ -30,6 +30,15 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		s.problem(src, "effortLevel", "unknown effort level %q", *l.effort)
 		l.effort = nil
 	}
+	if l.speedTier = s.str(src, raw, KeySpeedTier); l.speedTier != nil && !ValidSpeedTier(*l.speedTier) {
+		s.problem(src, KeySpeedTier, "unknown speed tier %q", *l.speedTier)
+		l.speedTier = nil
+	}
+	if l.cacheTTL = s.str(src, raw, KeyCacheTTL); l.cacheTTL != nil && !ValidCacheTTL(*l.cacheTTL) {
+		s.problem(src, KeyCacheTTL, "unknown cache lifetime %q", *l.cacheTTL)
+		l.cacheTTL = nil
+	}
+	l.advisorModel = s.str(src, raw, KeyAdvisorModel)
 	l.outputStyle = s.str(src, raw, "outputStyle")
 	if l.claudeMdMode = s.str(src, raw, "claudeMdMode"); l.claudeMdMode != nil && !memory.ValidMode(*l.claudeMdMode) {
 		s.problem(src, "claudeMdMode", "unknown mode %q", *l.claudeMdMode)
@@ -296,6 +305,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		set(&s.Model, l.model)
 		set(&s.EffortLevel, l.effort)
+		set(&s.SpeedTier, l.speedTier)
+		set(&s.CacheTTL, l.cacheTTL)
+		set(&s.AdvisorModel, l.advisorModel)
 		set(&s.OutputStyle, l.outputStyle)
 		if l.claudeMdMode != nil {
 			s.ClaudeMdMode = memory.Mode(*l.claudeMdMode)

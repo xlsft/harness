@@ -90,14 +90,14 @@ async function remove() {
 
 <template>
   <section
-    aria-label="Memory"
+    :aria-label="tt('Memory')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      Memory
+      {{ tt('Memory') }}
     </h2>
     <p class="set-sub">
-      The agent keeps notes per project for later sessions, and a new session starts with their index. They are stored on this machine and on your account on the server, and nobody else can see them.
+      {{ tt('The agent keeps notes per project for later sessions, and a new session starts with their index. They are stored on this machine and on your account on the server, and nobody else can see them.') }}
     </p>
     <p
       v-if="error"
@@ -109,12 +109,12 @@ async function remove() {
     <label class="mb-4 flex items-center gap-3 text-[13px] text-strong">
       <HToggle
         :model-value="enabled"
-        label="Auto memory"
+        :label="tt('Auto memory')"
         @update:model-value="setEnabled"
       />
       <span class="flex flex-col">
-        Auto memory
-        <span class="text-[12px] text-muted">Off, the agent neither writes notes nor sees them. What is stored stays here until you delete it.</span>
+        {{ tt('Auto memory') }}
+        <span class="text-[12px] text-muted">{{ tt('Off, the agent neither writes notes nor sees them. What is stored stays here until you delete it.') }}</span>
       </span>
     </label>
 
@@ -122,16 +122,16 @@ async function remove() {
       v-if="loaded && !projects.length"
       class="m-0 text-[12.5px] text-muted"
     >
-      No notes yet.
+      {{ tt('No notes yet.') }}
     </p>
     <template v-if="projects.length">
       <div class="mb-3 flex items-center gap-3 text-[12.5px] text-muted">
-        <span>Project</span>
+        <span>{{ tt('Project') }}</span>
         <HSelect
           v-model="projectKey"
           class="min-w-[260px] flex-1"
           :options="projectOptions"
-          aria-label="Project"
+          :aria-label="tt('Project')"
           @update:model-value="editing = null"
         />
         <HBtn
@@ -139,7 +139,7 @@ async function remove() {
           :disabled="!project"
           @click="editing = { name: '', isNew: true, content: NEW_NOTE }; confirming = false"
         >
-          New note
+          {{ tt('New note') }}
         </HBtn>
       </div>
 
@@ -147,7 +147,7 @@ async function remove() {
         v-if="project && !project.files.length"
         class="m-0 text-[12.5px] text-muted"
       >
-        No notes for this project yet.
+        {{ tt('No notes for this project yet.') }}
       </p>
       <div class="flex flex-col">
         <button
@@ -171,7 +171,7 @@ async function remove() {
           v-if="editing.isNew"
           v-model="editing.name"
           placeholder="name (letters, digits, _ and -)"
-          aria-label="Note name"
+          :aria-label="tt('Note name')"
           class="border border-line bg-transparent px-2 py-1 font-mono text-[12px] text-strong outline-none focus:border-accent"
         >
         <span
@@ -180,7 +180,7 @@ async function remove() {
         >{{ editing.name }}</span>
         <textarea
           v-model="editing.content"
-          aria-label="Note"
+          :aria-label="tt('Note')"
           rows="12"
           class="resize-y border border-line bg-transparent p-2 font-mono text-[12px] text-strong outline-none focus:border-accent"
         />
@@ -190,14 +190,14 @@ async function remove() {
             variant="primary"
             type="submit"
           >
-            Save
+            {{ tt('Save') }}
           </HBtn>
           <HBtn
             size="md"
             variant="ghost"
             @click="editing = null"
           >
-            Cancel
+            {{ tt('Cancel') }}
           </HBtn>
           <span class="flex-1" />
           <HBtn
@@ -206,7 +206,7 @@ async function remove() {
             tone="danger"
             @click="remove"
           >
-            {{ confirming ? 'Delete for good' : 'Delete' }}
+            {{ confirming ? tt('Delete for good') : tt('Delete') }}
           </HBtn>
         </div>
       </form>
@@ -216,7 +216,7 @@ async function remove() {
         class="mt-4 text-[12px] text-muted"
       >
         <summary class="cursor-pointer">
-          The index a new session loads
+          {{ tt('The index a new session loads') }}
         </summary>
         <pre class="m-0 mt-2 overflow-auto border border-line p-2 font-mono text-[12px] text-toned">{{ project.index }}</pre>
       </details>

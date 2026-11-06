@@ -228,7 +228,7 @@ func TestPRWakeCapSettingAppliesWithoutReopening(t *testing.T) {
 	h := startHarness(t, prResponder, func(o *bootstrap.Options) {
 		o.VCSProviders, o.VCSSchedule = []vcs.Provider{host}, fastPolls
 	})
-	settingsFile := filepath.Join(h.proj, ".claude", "settings.local.json")
+	settingsFile := filepath.Join(h.proj, ".harness", "settings.local.json")
 	if err := os.MkdirAll(filepath.Dir(settingsFile), 0o755); err != nil {
 		t.Fatal(err)
 	}

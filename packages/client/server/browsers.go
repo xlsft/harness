@@ -29,6 +29,9 @@ func (s *Server) browsers() *browser.Manager {
 		if s.Browsers.OnAction == nil {
 			s.Browsers.OnAction = s.onBrowserAction
 		}
+		if s.Browsers.OnSiteRequest == nil {
+			s.Browsers.OnSiteRequest = s.onBrowserSite
+		}
 	})
 	return s.Browsers
 }

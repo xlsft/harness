@@ -37,7 +37,7 @@ describe("bundle builder", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
-      "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
+      "Advisor", "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
       "ComputerType", "DocumentEdit", "DocumentRead", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LSP",
@@ -119,6 +119,8 @@ describe("bundle builder", () => {
       ci_mention: ["repo", "kind", "number", "capabilities", "author", "where", "request", "title", "description"],
       // the side chat system prompt (no placeholders: the client sends the main session as a separate block)
       side_chat: [],
+      // the system prompt of the model behind the Advisor tool (the same: the session is a separate block)
+      advisor: [],
     };
     expect(Object.keys(b.reminders).sort()).toEqual(Object.keys(reminders).sort());
     for (const [id, phs] of Object.entries(reminders)) {
@@ -199,7 +201,7 @@ describe("bundle builder", () => {
     expect(props("BrowserWait")).toEqual(["text", "text_gone", "selector", "url", "navigation", "timeout", "description"]);
     for (const n of Object.keys(b.tools).filter((n) => n.startsWith("Browser"))) {
       // Page content is untrusted; every browser tool that returns it says so.
-      if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
+      if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait", "BrowserRecord"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
     expect(props("TerminalRead")).toEqual(["tab_id", "lines", "wait_for_output_ms", "description"]);

@@ -51,16 +51,18 @@ func TestParseFrontmatter(t *testing.T) {
 
 func TestDiscoverPrecedence(t *testing.T) {
 	home, hh, root := t.TempDir(), t.TempDir(), t.TempDir()
+	t.Setenv("HOME", home)
 	cwd := filepath.Join(root, "sub")
-	write(t, filepath.Join(home, ".claude", "output-styles", "explanatory.md"), "---\ndescription: user explanatory\n---\nUSER EXPLAIN")
-	write(t, filepath.Join(home, ".claude", "output-styles", "pirate.md"), "Talk like a pirate.")
+	write(t, filepath.Join(hh, "output-styles", "explanatory.md"), "---\ndescription: user explanatory\n---\nUSER EXPLAIN")
+	write(t, filepath.Join(home, ".claude", "output-styles", "gone.md"), "Not read.")
+	write(t, filepath.Join(cwd, ".claude", "output-styles", "gone2.md"), "Not read.")
 	write(t, filepath.Join(hh, "output-styles", "pirate.md"), "---\ndescription: harness pirate\n---\nArr.")
-	write(t, filepath.Join(home, ".claude", "output-styles", "notes.txt"), "ignored")
-	write(t, filepath.Join(root, ".claude", "output-styles", "team.md"), "---\nname: Team\n---\nROOT TEAM")
+	write(t, filepath.Join(hh, "output-styles", "notes.txt"), "ignored")
+	write(t, filepath.Join(root, ".harness", "output-styles", "team.md"), "---\nname: Team\n---\nROOT TEAM")
 	write(t, filepath.Join(cwd, ".harness", "output-styles", "team.md"), "---\nname: team\nkeep-coding-instructions: true\n---\nCWD TEAM")
-	write(t, filepath.Join(cwd, ".claude", "output-styles", "Learning.md"), "PROJECT LEARNING")
+	write(t, filepath.Join(cwd, ".harness", "output-styles", "Learning.md"), "PROJECT LEARNING")
 
-	c := outputstyle.Discover(outputstyle.Options{Bundle: bundle(), Home: home, HarnessHome: hh, ProjectDirs: []string{root, cwd}})
+	c := outputstyle.Discover(outputstyle.Options{Bundle: bundle(), HarnessHome: hh, ProjectDirs: []string{root, cwd}})
 	got := map[string]outputstyle.Style{}
 	var order []string
 	for _, st := range c.List() {
@@ -74,7 +76,7 @@ func TestDiscoverPrecedence(t *testing.T) {
 		t.Fatalf("user style must replace the built-in: %+v", st)
 	}
 	if st, _ := c.Lookup("pirate"); st.Text != "Arr." || st.Source != outputstyle.SourceUser {
-		t.Fatalf("~/.harness wins over ~/.claude: %+v", st)
+		t.Fatalf("~/.harness: %+v", st)
 	}
 	if st, _ := c.Lookup("TEAM"); st.Text != "CWD TEAM" || st.Source != outputstyle.SourceProject || !st.KeepCodingInstructions {
 		t.Fatalf("cwd project style wins over the git root: %+v", st)
@@ -87,6 +89,12 @@ func TestDiscoverPrecedence(t *testing.T) {
 	}
 	if _, ok := c.Lookup("nope"); ok {
 		t.Fatal("unknown style found")
+	}
+	if _, ok := got["gone"]; ok {
+		t.Fatal("~/.claude/output-styles was read")
+	}
+	if _, ok := got["gone2"]; ok {
+		t.Fatal(".claude/output-styles was read")
 	}
 	if _, ok := got["notes"]; ok {
 		t.Fatal("non-markdown file loaded")
@@ -134,29 +142,30 @@ func (d docs) List(kind syncv1.DocumentKind) []*syncv1.Document {
 }
 
 func TestDiscoverSyncDocuments(t *testing.T) {
-	home := t.TempDir()
-	write(t, filepath.Join(home, ".claude", "output-styles", "local.md"), "LOCAL")
+	hh := t.TempDir()
+	write(t, filepath.Join(hh, "output-styles", "local.md"), "LOCAL")
+	write(t, filepath.Join(hh, "output-styles", "Terse.md"), "LOCAL TERSE")
 	d := docs{synced: true, list: []*syncv1.Document{
 		{Id: "doc_1", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_OUTPUT_STYLE, Key: "Terse", Content: "---\ndescription: synced\n---\nTERSE"},
 		{Id: "doc_2", Scope: commonv1.Scope_SCOPE_ORG, Kind: syncv1.DocumentKind_DOCUMENT_KIND_OUTPUT_STYLE, Key: "Org", Content: "ORG"},
 		{Id: "doc_3", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_SKILL, Key: "skill", Content: "SKILL"},
 	}}
-	c := outputstyle.Discover(outputstyle.Options{Docs: d, Home: home})
+	c := outputstyle.Discover(outputstyle.Options{Docs: d, HarnessHome: hh})
 	if st, ok := c.Lookup("terse"); !ok || st.Text != "TERSE" || st.Source != outputstyle.SourceUser || st.Origin != "sync:doc_1" {
-		t.Fatalf("synced style %+v %v", st, ok)
+		t.Fatalf("synced style wins over the device's: %+v %v", st, ok)
 	}
-	for _, n := range []string{"local", "Org", "skill"} {
+	if _, ok := c.Lookup("local"); !ok {
+		t.Fatal("~/.harness/output-styles counts after a sync too")
+	}
+	for _, n := range []string{"Org", "skill"} {
 		if _, ok := c.Lookup(n); ok {
-			t.Fatalf("%s must not be loaded after a sync", n)
+			t.Fatalf("%s must not be loaded", n)
 		}
 	}
-	// Before the first sync the user directories are the fallback.
+	// An unsynced cache says nothing yet.
 	d.synced = false
-	c = outputstyle.Discover(outputstyle.Options{Docs: d, Home: home})
-	if _, ok := c.Lookup("local"); !ok {
-		t.Fatal("fallback to ~/.claude/output-styles before the first sync")
-	}
-	if _, ok := c.Lookup("terse"); ok {
-		t.Fatal("unsynced cache must not be used")
+	c = outputstyle.Discover(outputstyle.Options{Docs: d, HarnessHome: hh})
+	if st, _ := c.Lookup("terse"); st.Text != "LOCAL TERSE" {
+		t.Fatalf("unsynced cache must not be used: %+v", st)
 	}
 }

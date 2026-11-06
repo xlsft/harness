@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Visual tool card: the model's HTML in a sandboxed frame that fits its content (up to 80% of the window),
-// a bar with the title, versions (calls with the same id), replay, full screen and a menu (source, copy,
+// a bar with the title, versions (calls with the same id), replay, opening in the side pane and a menu (source, copy,
 // download). harness.send() inside the visual posts a "[from visual <id>]" message to the session.
 import type { ToolItem } from '~/lib/session/types'
 import { visualDocument, type VisualMessage } from '~/lib/visual'
@@ -25,8 +25,9 @@ const nonce = ref(newUuid())
 const { theme } = useAppearance()
 const srcdoc = computed(() => html.value && theme.value ? visualDocument(html.value, nonce.value) : '')
 const frame = ref<HTMLIFrameElement | null>(null)
-const full = ref(false)
-const fullFrame = ref<HTMLIFrameElement | null>(null)
+const { show, update } = useVisualPane()
+const opened = computed(() => ({ id: id.value || t.value.id, title: title.value, html: html.value }))
+watch(opened, v => update(props.sessionId, v))
 const height = ref(160)
 const menu = ref(false)
 const source = ref(false)
@@ -38,30 +39,20 @@ function replay() {
 function onMessage(e: MessageEvent) {
   const d = e.data as VisualMessage & { harnessVisual?: string }
   if (!d || d.harnessVisual !== nonce.value) return
-  const fromCard = e.source === frame.value?.contentWindow
-  if (!fromCard && e.source !== fullFrame.value?.contentWindow) return
-  if (typeof d.height === 'number' && fromCard) height.value = Math.max(40, d.height)
+  if (e.source !== frame.value?.contentWindow) return
+  if (typeof d.height === 'number') height.value = Math.max(40, d.height)
   if (typeof d.send === 'string' && d.send.trim()) store.send(props.sessionId, `[from visual ${id.value}] ${d.send.trim()}`)
 }
 onMounted(() => window.addEventListener('message', onMessage))
 onBeforeUnmount(() => window.removeEventListener('message', onMessage))
 
-function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') full.value = false
-}
-watch(full, (v) => {
-  if (v) document.addEventListener('keydown', onKey)
-  else document.removeEventListener('keydown', onKey)
-})
-onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
-
 async function copy() {
   menu.value = false
   try {
     await navigator.clipboard.writeText(html.value)
-    toast.add({ title: 'HTML copied', color: 'neutral' })
+    toast.add({ title: tt('HTML copied'), color: 'neutral' })
   } catch {
-    toast.add({ title: 'Could not copy', color: 'error' })
+    toast.add({ title: tt('Could not copy'), color: 'error' })
   }
 }
 
@@ -90,7 +81,7 @@ function download() {
       >
         <button
           type="button"
-          aria-label="Previous version"
+          :aria-label="tt('Previous version')"
           class="flex size-6 items-center justify-center hover:text-strong disabled:opacity-40"
           :disabled="index === 0"
           @click="index--"
@@ -100,10 +91,10 @@ function download() {
             :size="12"
           />
         </button>
-        <span class="tabular-nums">v{{ index + 1 }}/{{ versions.length }}</span>
+        <span class="tabular-nums">{{ tt('v{0}/{1}', [index + 1, versions.length]) }}</span>
         <button
           type="button"
-          aria-label="Next version"
+          :aria-label="tt('Next version')"
           class="flex size-6 items-center justify-center hover:text-strong disabled:opacity-40"
           :disabled="index === versions.length - 1"
           @click="index++"
@@ -116,17 +107,17 @@ function download() {
       </span>
       <HIconBtn
         icon="reload"
-        label="Replay"
+        :label="tt('Replay')"
         :size="26"
         :icon-size="13"
         @click="replay"
       />
       <HIconBtn
         icon="full"
-        label="Full screen"
+        :label="tt('Open in side pane')"
         :size="26"
         :icon-size="13"
-        @click="full = true"
+        @click="show(sessionId, opened)"
       />
       <UPopover
         v-model:open="menu"
@@ -134,7 +125,7 @@ function download() {
       >
         <HIconBtn
           icon="more"
-          label="More"
+          :label="tt('More')"
           :size="26"
           :icon-size="13"
           :pressed="menu"
@@ -149,19 +140,19 @@ function download() {
               icon="code"
               @click="source = !source; menu = false"
             >
-              {{ source ? 'Hide source' : 'View source' }}
+              {{ source ? tt('Hide source') : tt('View source') }}
             </PaneMenuItem>
             <PaneMenuItem
               icon="copy"
               @click="copy"
             >
-              Copy HTML
+              {{ tt('Copy HTML') }}
             </PaneMenuItem>
             <PaneMenuItem
               icon="download"
               @click="download"
             >
-              Download .html
+              {{ tt('Download .html') }}
             </PaneMenuItem>
           </div>
         </template>
@@ -175,7 +166,7 @@ function download() {
         name="loading"
         :size="13"
         spin
-      />Drawing…
+      />{{ tt('Drawing…') }}
     </div>
     <iframe
       v-else
@@ -191,29 +182,5 @@ function download() {
       v-if="source"
       class="m-0 max-h-[260px] overflow-auto border-t border-default px-3 py-2.5 text-[11.5px] leading-[1.55] text-toned"
     >{{ html }}</pre>
-    <Teleport to="body">
-      <div
-        v-if="full"
-        class="fixed inset-0 z-50 flex flex-col bg-ground"
-      >
-        <div class="flex h-11 shrink-0 items-center gap-2 border-b border-default pr-2 pl-4 text-[12.5px]">
-          <span class="min-w-0 flex-1 truncate text-strong">{{ title }}</span>
-          <HIconBtn
-            icon="close"
-            label="Close"
-            kbd="esc"
-            @click="full = false"
-          />
-        </div>
-        <iframe
-          ref="fullFrame"
-          :key="'full' + nonce + index"
-          :srcdoc="srcdoc"
-          sandbox="allow-scripts"
-          :title="title"
-          class="block w-full flex-1 border-0"
-        />
-      </div>
-    </Teleport>
   </div>
 </template>

@@ -13,6 +13,7 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { MockSshApi } from '~/lib/ssh'
 import { MockVcsApi } from '~/lib/vcs/mock'
 import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
@@ -68,6 +69,7 @@ import { MockSchedulesApi } from '~/lib/schedule/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
+import { MockProjectImportApi } from '~/lib/import/project'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb, permissionModeName, permissionModePb, usageLimitVM } from '~/lib/session/reducer'
@@ -173,7 +175,7 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20 }
+  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } }
   private hookTrusted = false
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
@@ -397,6 +399,11 @@ export class MockTransport implements SessionTransport {
     return (this.claudeImportApi ??= new MockClaudeImportApi({ tick: this.tick * 3, onSession: s => this.addImportedSession(s) }))
   }
 
+  private projectImportApi?: MockProjectImportApi
+  projectImport() {
+    return (this.projectImportApi ??= new MockProjectImportApi())
+  }
+
   // An imported session joins the session list, as its transcript does on a real client.
   private addImportedSession(s: MockImportedSession) {
     const info = create(SessionInfoSchema, { id: s.id, title: s.title, cwd: s.cwd, updatedAt: s.updatedAt, model: 'claude-sonnet', status: SessionStatus.IDLE })
@@ -418,6 +425,11 @@ export class MockTransport implements SessionTransport {
   private terminalsApi = new MockTerminalsApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
   terminals() {
     return this.terminalsApi
+  }
+
+  private sshApi = new MockSshApi()
+  ssh() {
+    return this.sshApi
   }
 
   private browserApi = new MockBrowserApi()
@@ -1369,7 +1381,7 @@ export class MockTransport implements SessionTransport {
     const active = this.preferences.hooksEnabled ? 'active' as const : 'disabled' as const
     const reason = this.preferences.hooksEnabled ? '' : 'All hooks are turned off.'
     return [
-      { event: 'PostToolUse', matcher: 'Edit|Write', handlerType: 'command', command: 'pnpm lint --fix', timeoutSeconds: 60, async: false, source: 'project', sourcePath: '/Users/me/project/.claude/settings.json', status: active, reason, trustHash: '' },
+      { event: 'PostToolUse', matcher: 'Edit|Write', handlerType: 'command', command: 'pnpm lint --fix', timeoutSeconds: 60, async: false, source: 'project', sourcePath: '/Users/me/project/.harness/settings.json', status: active, reason, trustHash: '' },
       { event: 'Notification', matcher: '', handlerType: 'http', command: 'https://hooks.example.com/notify', timeoutSeconds: 0, async: true, source: 'user', sourcePath: '', status: this.hookTrusted ? active : 'needs_device_trust' as const, reason: this.hookTrusted ? reason : 'It came from the server and is not trusted on this machine yet.', trustHash: 'sha256:mock' },
       { event: 'PreToolUse', matcher: 'Bash', handlerType: 'prompt', command: '', timeoutSeconds: 0, async: false, source: 'local', sourcePath: '/Users/me/project/.harness/settings.local.json', status: 'unsupported' as const, reason: 'This client does not run handlers of type prompt.', trustHash: '' }
     ]

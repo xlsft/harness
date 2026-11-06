@@ -27,6 +27,8 @@ import (
 	"github.com/xlsft/harness/packages/client/gateway"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
+	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
@@ -164,7 +166,7 @@ type Options struct {
 	Terminals *terminal.Manager
 	// SkillDocs replaces the sync cache as the source of the skills and commands stored on the server (tests).
 	SkillDocs skills.DocSource
-	// SkillHome replaces the home folder whose .claude holds personal skills and commands (tests).
+	// SkillHome replaces the data directory that holds personal skills and commands (tests).
 	SkillHome string
 
 	// UsageMonitor follows the usage limits of the session provider (agent.Config.UsageMonitor; may be nil).
@@ -707,6 +709,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		}
 	}
 
+	s.registerAdvisor(gw, st, disabled)
+
 	// Transcript.
 	branch := ""
 	if env.IsGit {
@@ -772,7 +776,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		ThinkingCapable: info.Capabilities.Thinking,
 		AutoCompactPct:  o.AutoCompactPct,
 		RefreshBundle:   func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
-		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
+		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID, Speed: settingOf(st, func(st *settings.Settings) string { return st.SpeedTier }), CacheTTL: settingOf(st, func(st *settings.Settings) string { return st.CacheTTL }),
 		MaxBudgetUSD: o.MaxBudgetUSD, OtherSpendUSD: s.subagentSpend,
 		SystemPrompt: o.SystemPrompt, AppendSystemPrompt: o.AppendSystemPrompt,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), History: conv, Todos: todos,
@@ -804,7 +808,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
 		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor, Skills: s.skillSource(), Hooks: s.Hooks,
-		CustomTypes: append(subagent.LoadDefinitions(subagent.DefinitionDirs(config.Home(), homeDir(), cwd, s.Trusted)), pluginAgents(cwd, s.Trusted)...),
+		CustomTypes: append(subagent.LoadDefinitionsOver(s.syncedAgents(), subagent.DefinitionDirs(config.Home(), cwd, s.Trusted)), pluginAgents(cwd, s.Trusted)...),
 		AgentHooks:  s.agentHooks, Logger: log,
 	})
 	s.Subagents.Attach(s.Agent)
@@ -816,7 +820,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.Workflows = workflow.New(workflow.Config{
 		Dir: filepath.Join(strings.TrimSuffix(path, ".jsonl"), "workflows"), NoPersistence: o.NoPersistence,
 		LeadTranscript: s.Transcript, Agents: s.Subagents, Env: s.ToolEnv, MaxAgents: s.workflowMaxAgents,
-		SearchDirs: func() []string { return workflow.SearchDirs(config.Home(), homeDir(), s.Dir(), s.Trusted) },
+		SearchDirs: func() []string { return workflow.SearchDirs(config.Home(), s.Dir(), s.Trusted) },
 		Logger:     log,
 	})
 	s.Workflows.Attach(s.Agent)
@@ -866,6 +870,20 @@ func (s *Session) resolveOutputStyle(o Options, st *settings.Settings, conv sess
 		return nil, outputstyle.Default
 	}
 	return agentStyle(found), found.ID
+}
+
+// syncedAgents are the agent definitions of the user's synced documents.
+func (s *Session) syncedAgents() []subagent.Document {
+	if s.Sync == nil {
+		return nil
+	}
+	var out []subagent.Document
+	for _, d := range s.Sync.Cache().List(syncv1.DocumentKind_DOCUMENT_KIND_AGENT) {
+		if d.GetScope() == commonv1.Scope_SCOPE_USER {
+			out = append(out, subagent.Document{Key: d.GetKey(), Content: d.GetContent()})
+		}
+	}
+	return out
 }
 
 func homeDir() string {

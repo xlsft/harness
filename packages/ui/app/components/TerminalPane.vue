@@ -72,7 +72,7 @@ async function reveal(id: string) {
     }
   }
   if (tabs.value.some(t => t.info.id === id)) selected.value = id
-  else toast.add({ title: 'That terminal tab has ended', color: 'neutral' })
+  else toast.add({ title: tt('That terminal tab has ended'), color: 'neutral' })
 }
 watch(showTarget, (t) => {
   if (t?.kind !== 'terminal') return
@@ -138,22 +138,22 @@ function title(t: Tab) {
 }
 async function copy(text: string) {
   await navigator.clipboard.writeText(text)
-  toast.add({ title: 'Path copied', color: 'neutral' })
+  toast.add({ title: tt('Path copied'), color: 'neutral' })
 }
 </script>
 
 <template>
   <section
-    aria-label="Terminal"
+    :aria-label="tt('Terminal')"
     class="relative flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-stretch border-b border-line pr-1.5">
       <div class="flex items-center px-3 font-display text-[13px] text-strong">
-        Terminal
+        {{ tt('Terminal') }}
       </div>
       <div
         role="tablist"
-        aria-label="Terminal tabs"
+        :aria-label="tt('Terminal tabs')"
         class="flex min-w-0 items-stretch overflow-hidden"
       >
         <PaneTab
@@ -181,8 +181,8 @@ async function copy(text: string) {
         <button
           v-if="!remote"
           type="button"
-          aria-label="New terminal tab"
-          title="New terminal tab"
+          :aria-label="tt('New terminal tab')"
+          :title="tt('New terminal tab')"
           class="flex w-9 items-center justify-center rounded-none border-x border-line text-muted hover:text-strong"
           @click="create()"
         >
@@ -193,15 +193,16 @@ async function copy(text: string) {
       <div class="flex items-center gap-[2px]">
         <PaneBtn
           icon="more"
-          label="Terminal settings"
+          :label="tt('Terminal settings')"
           white
           :pressed="menuOpen"
           data-menu-anchor
           @click="menuOpen = !menuOpen"
         />
+        <PaneFullBtn />
         <PaneBtn
           icon="close"
-          label="Close terminal pane"
+          :label="tt('Close terminal pane')"
           @click="closePane('terminal')"
         />
       </div>
@@ -211,7 +212,7 @@ async function copy(text: string) {
       v-if="remote"
       class="m-0 flex flex-1 items-center justify-center px-6 text-center text-[12.5px] text-muted"
     >
-      This session runs on {{ session.meta.deviceName || 'another computer' }}; terminals open on the computer a session runs on.
+      {{ tt('This session runs on {0}; terminals open on the computer a session runs on.', [session.meta.deviceName || 'another computer']) }}
     </p>
     <p
       v-else-if="error && !tabs.length"
@@ -222,7 +223,7 @@ async function copy(text: string) {
         size="md"
         @click="create()"
       >
-        Try again
+        {{ tt('Try again') }}
       </HBtn>
     </p>
     <div
@@ -250,13 +251,13 @@ async function copy(text: string) {
       class="flex items-center gap-[9px] border-t border-l-2 border-t-line px-3 py-2 text-[12px] text-muted"
       :class="tab.exitCode ? 'border-l-bad' : 'border-l-line'"
     >
-      Process exited with code <span :class="tab.exitCode ? 'text-bad' : 'text-strong'">{{ tab.exitCode }}</span><span class="flex-1" />
+      {{ tt('Process exited with code') }} <span :class="tab.exitCode ? 'text-bad' : 'text-strong'">{{ tab.exitCode }}</span><span class="flex-1" />
       <button
         type="button"
         class="border border-line px-[9px] py-[2px] text-[11px] text-strong hover:bg-hover"
         @click="restart"
       >
-        Restart
+        {{ tt('Restart') }}
       </button>
     </div>
 
@@ -264,7 +265,7 @@ async function copy(text: string) {
       <div
         v-if="cursorMenu"
         role="menu"
-        aria-label="Cursor style"
+        :aria-label="tt('Cursor style')"
         class="absolute top-[46px] right-[262px] z-30 menu-panel w-[170px]"
       >
         <PaneMenuItem
@@ -281,7 +282,7 @@ async function copy(text: string) {
       </div>
       <div
         role="menu"
-        aria-label="Terminal settings"
+        :aria-label="tt('Terminal settings')"
         class="absolute top-[46px] right-10 z-30 menu-panel w-[220px]"
       >
         <PaneMenuItem
@@ -291,7 +292,7 @@ async function copy(text: string) {
           @click="cursorMenu = !cursorMenu"
           @mouseenter="cursorMenu = true"
         >
-          Cursor style
+          {{ tt('Cursor style') }}
         </PaneMenuItem>
         <PaneMenuItem
           role="menuitemcheckbox"
@@ -299,7 +300,7 @@ async function copy(text: string) {
           @click="blink = !blink"
           @mouseenter="cursorMenu = false"
         >
-          Blink cursor
+          {{ tt('Blink cursor') }}
         </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
@@ -307,14 +308,14 @@ async function copy(text: string) {
           @click="clearCurrent"
           @mouseenter="cursorMenu = false"
         >
-          Clear
+          {{ tt('Clear') }}
         </PaneMenuItem>
         <PaneMenuItem
           :disabled="!tab"
           @click="tab && copy(tab.info.cwd); menuOpen = false"
           @mouseenter="cursorMenu = false"
         >
-          Copy working directory
+          {{ tt('Copy working directory') }}
         </PaneMenuItem>
         <PaneMenuItem
           danger
@@ -322,7 +323,7 @@ async function copy(text: string) {
           @click="killCurrent"
           @mouseenter="cursorMenu = false"
         >
-          Kill process
+          {{ tt('Kill process') }}
         </PaneMenuItem>
       </div>
     </PaneMenu>

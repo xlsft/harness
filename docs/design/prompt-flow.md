@@ -67,7 +67,7 @@ The flow below is what Claude Code does on one machine for one session. Each ste
      `art-*`.
    - Newer models get "compact" or "lean rewrite" descriptions (`variant`).
 5. **First user message reminders** (`reminder`, main):
-   - `memory-files`: CLAUDE.md, AGENTS.md and the user memory, each framed by path.
+   - `memory-files`: AGENTS.md, the rules and the user memory, each framed by path.
    - `session-reminders`: session/question context, and provider context when not on Anthropic's API.
    - `output-styles`: the "style active" reminder.
    - `mcp-deferred`: the deferred-tool announcement and MCP servers that are still connecting or failed to
@@ -198,7 +198,7 @@ The flow below is what Claude Code does on one machine for one session. Each ste
 
 | Group | Files | Channel | Trigger | Model | Status | Notes |
 |---|---|---|---|---|---|---|
-| **CLAUDE.md / AGENTS.md / nested instruction framing** `memory-files` | 5 | reminder 5 | first user message; when a nested instruction file is discovered; on memory refresh | main | have 1, M2 4 | Frames each instruction file by path inside the combined memory block; nested files arrive when the model touches a subdirectory. Harness has project_instructions; nested/refresh variants missing. |
+| **AGENTS.md / nested instruction framing** `memory-files` | 5 | reminder 5 | first user message; when a nested instruction file is discovered; on memory refresh | main | have 1, M2 4 | Frames each instruction file by path inside the combined memory block; nested files arrive when the model touches a subdirectory. Harness has project_instructions; nested/refresh variants missing. |
 | **Auto memory (persistent file memory) instructions** `auto-memory` | 24 | system-conditional 19, tool-desc 3, reminder 2 | session start when auto memory is enabled | main | M4 23, variant 1 | Memory types (user, feedback, project, reference), index file, save/skip rules, team memory variants. Largest conditional block in the main prompt. |
 | **Memory extraction, selection and consolidation jobs** `memory-jobs` | 8 | subagent 4, reminder 4 | background job after turns / idle ('dream') / per query | small/main | M4 8 | Side agents that extract memories from recent turns, pick up to five relevant memory files per query, and periodically consolidate ('dream'). |
 
@@ -228,7 +228,7 @@ The flow below is what Claude Code does on one machine for one session. Each ste
 | **Hooks: feedback, prompt/agent hooks, evaluators** `hooks` | 15 | reminder 8, system-conditional 3, utility 2, subagent 1, data 1 | hook events (PreToolUse, Stop, UserPromptSubmit, ...) | main/small/subagent | M2 12, M4 2, variant 1 | Hook output arrives as reminders (success, blocking error, additional context, stop); prompt/agent hooks run a separate evaluator model. |
 | **Subagent delegation guidance and Agent tool** `delegation` | 20 | system-conditional 9, tool-desc 7, reminder 3, subagent 1 | every request (system section + Agent tool description); agent launch result | main/subagent | M2 15, M4 1, variant 4 | When to delegate, fork vs fresh agent, briefing examples, async launch notices, @agent mentions. |
 | **Built-in subagent system prompts** `builtin-agents` | 12 | subagent 11, tool-desc 1 | Agent tool call | subagent | M2 9, variant 3 | Explore, Plan, general-purpose, read-only search, fork directive, subagent reporting notes, handback tool, carried consent history. |
-| **Repo setup: /init (CLAUDE.md, skills, hooks)** `repo-setup` | 2 | skill 2 | /init | main | M2 2 | Analyze the codebase and write or improve CLAUDE.md; the newer flow also proposes skills and hooks. |
+| **Repo setup: /init (AGENTS.md, skills, hooks)** `repo-setup` | 2 | skill 2 | /init | main | M2 2 | Analyze the codebase and write or improve AGENTS.md; the newer flow also proposes skills and hooks. |
 
 ### Permissions and auto mode (25 files)
 
@@ -386,14 +386,14 @@ server-side utility prompt such as `title/` or `compaction/`). Every text must b
 | 4 | `skills` | M2 | Skill tool description that embeds the available-skill list; "previously invoked skills" reminder after compaction (context only, do not re-run). | `tools/Skill/`, `reminders/skills_restored` |
 | 5 | `hooks` | M2 | Reminders for hook success / blocking error / additional context / stop continuation, a system note that hook feedback counts as user feedback, and a prompt-hook evaluator (`small` slot) that returns pass/fail. | `reminders/hook_*`, `hooks/evaluator.md` |
 | 6 | `web` | M2 | WebFetch and WebSearch descriptions (pick one wording, not full + concise), the untrusted-content reporting reminder, and a web-reading agent or summarizer prompt for fetched pages (gateway `auxiliary` class). | `tools/WebFetch/`, `tools/WebSearch/`, `webfetch/summarize.md` |
-| 7 | `memory-files` (nested, refresh) | M2 | Frame nested CLAUDE.md/AGENTS.md by path when the model enters a subdirectory; a memory-refresh reminder that tells the model earlier memory reads are stale; a managed-folder "unverified" header. | `reminders/nested_instructions`, `reminders/memory_updated` |
+| 7 | `memory-files` (nested, refresh) | M2 | Frame nested AGENTS.md by path when the model enters a subdirectory; a memory-refresh reminder that tells the model earlier memory reads are stale; a managed-folder "unverified" header. | `reminders/nested_instructions`, `reminders/memory_updated` |
 | 8 | `session-reminders` | M2 | Output-token-limit continuation (resume mid-sentence); token/USD budget; **provider context** (harness is model-agnostic, so tell the model which features differ for this provider); external-source trust boundary; queued notification batches; dangerous-removal block. | `reminders/*` |
 | 9 | `file-read-notices` | M2 | Read-result notices: offset past EOF, truncated (with retry guidance), already in context and unchanged, large file (suggest a subagent), disclose partial reads before summarizing. | `reminders/*` or tool_result text |
 | 10 | `compaction` extras | M2 | Partial compaction (selected range), recent-only summary, rules for omitted or cleared tool results, post-compact file references and plan-file reference. | `compaction/partial.md`, `reminders/compact_file_ref` |
 | 11 | `plan-mode` extras | M2 | Re-entry reminder, user-controlled exit, approval-tool enforcement (every plan turn ends in AskUserQuestion or ExitPlanMode), the 5-phase variant that uses Explore/Plan agents once #2 lands, and the subagent variant. | `reminders/plan_*` |
 | 12 | `auto-mode-main` + `auto-mode-setup` | M2 | DecisionService already exists, but the main agent is not told about auto mode. Add the auto-mode system section, consent-flow and clarification-bias reminders, no-verdict/denied notices, and the `/auto-mode-setup` proposal generator. | `system/dynamic/auto_mode`, `reminders/auto_*`, `decision/setup.md` |
 | 13 | `background-tasks` | M2 | Quiet check-in for silent background commands, marking background events that arrive alongside real user input as non-user, "tool still running" while the user typed. | `reminders/*` |
-| 14 | `repo-setup` | M2 | `/init`: analyze the repo and write or improve CLAUDE.md/AGENTS.md, optionally proposing skills and hooks. | `commands/init.md` |
+| 14 | `repo-setup` | M2 | `/init`: analyze the repo and write or improve AGENTS.md, optionally proposing skills and hooks. | `commands/init.md` |
 | 15 | `recaps-suggestions` + `titles-labels` + `statusline-setup` | M3 | For the TUI and web UI: away recap on return, next-prompt suggestions, `/btw` tool-less side question, subagent progress labels, kebab-case `/rename`, statusline setup agent. All on the `small` slot. | `utility/*.md` |
 
 After those, in M4 order of usefulness:

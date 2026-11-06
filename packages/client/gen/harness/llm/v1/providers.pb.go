@@ -160,7 +160,7 @@ type Provider struct {
 	PresetId string `protobuf:"bytes,15,opt,name=preset_id,json=presetId,proto3" json:"preset_id,omitempty"`
 	// "llm", "classifier" or "search".
 	Group string `protobuf:"bytes,16,opt,name=group,proto3" json:"group,omitempty"`
-	// Search providers: their options (see ProviderPreset.options), by name; values are plain text.
+	// Search and cloud providers: their options (see ProviderPreset.options), by name; values are plain text.
 	Options map[string]string `protobuf:"bytes,17,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// LLM providers: "metered" (pay as you go) or "plan" (a subscription / coding plan), from its preset; a
 	// custom provider is "metered" (its models cost what their catalog price says, nothing without one).
@@ -663,7 +663,10 @@ type ProviderPreset struct {
 	Builtin bool `protobuf:"varint,15,opt,name=builtin,proto3" json:"builtin,omitempty"`
 	// LLM presets: "metered" (pay as you go: requests to priced models count their cost) or "plan" (a flat-rate
 	// subscription / coding plan: usage counts tokens only, never cost; see harness.llm.v1.UsageService).
-	Billing       string `protobuf:"bytes,16,opt,name=billing,proto3" json:"billing,omitempty"`
+	Billing string `protobuf:"bytes,16,opt,name=billing,proto3" json:"billing,omitempty"`
+	// A cloud platform whose requests carry native credentials: "aws", "gcp" or "azure"; empty otherwise. `base_url` is
+	// then a template the server fills from `options`, whose "credential_mode" says which `fields` and options apply.
+	Cloud         string `protobuf:"bytes,30,opt,name=cloud,proto3" json:"cloud,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -810,6 +813,13 @@ func (x *ProviderPreset) GetBilling() string {
 	return ""
 }
 
+func (x *ProviderPreset) GetCloud() string {
+	if x != nil {
+		return x.Cloud
+	}
+	return ""
+}
+
 // A setting of a connected provider.
 type PresetOption struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -824,8 +834,12 @@ type PresetOption struct {
 	DefaultValue string `protobuf:"bytes,5,opt,name=default_value,json=defaultValue,proto3" json:"default_value,omitempty"`
 	Placeholder  string `protobuf:"bytes,6,opt,name=placeholder,proto3" json:"placeholder,omitempty"`
 	// "number": the allowed range.
-	Min           int32 `protobuf:"varint,7,opt,name=min,proto3" json:"min,omitempty"`
-	Max           int32 `protobuf:"varint,8,opt,name=max,proto3" json:"max,omitempty"`
+	Min int32 `protobuf:"varint,7,opt,name=min,proto3" json:"min,omitempty"`
+	Max int32 `protobuf:"varint,8,opt,name=max,proto3" json:"max,omitempty"`
+	// Cloud presets: shown only with these values of the "credential_mode" option. Empty: always.
+	Modes []string `protobuf:"bytes,9,rep,name=modes,proto3" json:"modes,omitempty"`
+	// A connection needs a value (a cloud preset's region, project...).
+	Required      bool `protobuf:"varint,10,opt,name=required,proto3" json:"required,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -916,10 +930,26 @@ func (x *PresetOption) GetMax() int32 {
 	return 0
 }
 
+func (x *PresetOption) GetModes() []string {
+	if x != nil {
+		return x.Modes
+	}
+	return nil
+}
+
+func (x *PresetOption) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
 type OptionChoice struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Value string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Label string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Not offered for a personal provider: the server's own cloud identity.
+	GlobalOnly    bool `protobuf:"varint,3,opt,name=global_only,json=globalOnly,proto3" json:"global_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -968,13 +998,24 @@ func (x *OptionChoice) GetLabel() string {
 	return ""
 }
 
+func (x *OptionChoice) GetGlobalOnly() bool {
+	if x != nil {
+		return x.GlobalOnly
+	}
+	return false
+}
+
 type PresetField struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "api_key" or "base_url".
-	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Label         string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	Required      bool   `protobuf:"varint,3,opt,name=required,proto3" json:"required,omitempty"`
-	Placeholder   string `protobuf:"bytes,4,opt,name=placeholder,proto3" json:"placeholder,omitempty"`
+	// "api_key" or "base_url". A cloud preset may list "api_key" more than once, labeled per credential mode.
+	Name        string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Label       string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Required    bool   `protobuf:"varint,3,opt,name=required,proto3" json:"required,omitempty"`
+	Placeholder string `protobuf:"bytes,4,opt,name=placeholder,proto3" json:"placeholder,omitempty"`
+	// Cloud presets: only with these values of the "credential_mode" option. Empty: always.
+	Modes []string `protobuf:"bytes,5,rep,name=modes,proto3" json:"modes,omitempty"`
+	// Text of several lines (a service account file).
+	Multiline     bool `protobuf:"varint,6,opt,name=multiline,proto3" json:"multiline,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1035,6 +1076,20 @@ func (x *PresetField) GetPlaceholder() string {
 		return x.Placeholder
 	}
 	return ""
+}
+
+func (x *PresetField) GetModes() []string {
+	if x != nil {
+		return x.Modes
+	}
+	return nil
+}
+
+func (x *PresetField) GetMultiline() bool {
+	if x != nil {
+		return x.Multiline
+	}
+	return false
 }
 
 type PresetModel struct {
@@ -1358,7 +1413,7 @@ type CreateProviderRequest struct {
 	PresetId string `protobuf:"bytes,9,opt,name=preset_id,json=presetId,proto3" json:"preset_id,omitempty"`
 	// Custom providers: "llm" (default), "classifier" (GLOBAL only) or "search".
 	Group string `protobuf:"bytes,10,opt,name=group,proto3" json:"group,omitempty"`
-	// Search providers: initial options.
+	// Search and cloud providers: initial options.
 	Options       map[string]string `protobuf:"bytes,11,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1529,7 +1584,7 @@ type UpdateProviderRequest struct {
 	Enabled *bool    `protobuf:"varint,7,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	// GLOBAL only.
 	AllowPrivateNetwork *bool `protobuf:"varint,8,opt,name=allow_private_network,json=allowPrivateNetwork,proto3,oneof" json:"allow_private_network,omitempty"`
-	// Search providers: replaces all options when set (an empty value is dropped: the default applies).
+	// Search and cloud providers: replaces all options when set (an empty value is dropped: the default applies).
 	Options       *ProviderOptions `protobuf:"bytes,9,opt,name=options,proto3,oneof" json:"options,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3882,7 +3937,7 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x12ListPresetsRequest\"\x8f\x01\n" +
 	"\x13ListPresetsResponse\x128\n" +
 	"\apresets\x18\x01 \x03(\v2\x1e.harness.llm.v1.ProviderPresetR\apresets\x12>\n" +
-	"\tprotocols\x18\x02 \x03(\v2 .harness.llm.v1.ProviderProtocolR\tprotocols\"\x98\x04\n" +
+	"\tprotocols\x18\x02 \x03(\v2 .harness.llm.v1.ProviderProtocolR\tprotocols\"\xae\x04\n" +
 	"\x0eProviderPreset\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05group\x18\x02 \x01(\tR\x05group\x12!\n" +
@@ -3900,7 +3955,8 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\x05local\x18\r \x01(\bR\x05local\x126\n" +
 	"\aoptions\x18\x0e \x03(\v2\x1c.harness.llm.v1.PresetOptionR\aoptions\x12\x18\n" +
 	"\abuiltin\x18\x0f \x01(\bR\abuiltin\x12\x18\n" +
-	"\abilling\x18\x10 \x01(\tR\abilling\"\xef\x01\n" +
+	"\abilling\x18\x10 \x01(\tR\abilling\x12\x14\n" +
+	"\x05cloud\x18\x1e \x01(\tR\x05cloud\"\xa1\x02\n" +
 	"\fPresetOption\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
@@ -3909,15 +3965,22 @@ const file_harness_llm_v1_providers_proto_rawDesc = "" +
 	"\rdefault_value\x18\x05 \x01(\tR\fdefaultValue\x12 \n" +
 	"\vplaceholder\x18\x06 \x01(\tR\vplaceholder\x12\x10\n" +
 	"\x03min\x18\a \x01(\x05R\x03min\x12\x10\n" +
-	"\x03max\x18\b \x01(\x05R\x03max\":\n" +
+	"\x03max\x18\b \x01(\x05R\x03max\x12\x14\n" +
+	"\x05modes\x18\t \x03(\tR\x05modes\x12\x1a\n" +
+	"\brequired\x18\n" +
+	" \x01(\bR\brequired\"[\n" +
 	"\fOptionChoice\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x14\n" +
-	"\x05label\x18\x02 \x01(\tR\x05label\"u\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1f\n" +
+	"\vglobal_only\x18\x03 \x01(\bR\n" +
+	"globalOnly\"\xa9\x01\n" +
 	"\vPresetField\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1a\n" +
 	"\brequired\x18\x03 \x01(\bR\brequired\x12 \n" +
-	"\vplaceholder\x18\x04 \x01(\tR\vplaceholder\"\xaa\x01\n" +
+	"\vplaceholder\x18\x04 \x01(\tR\vplaceholder\x12\x14\n" +
+	"\x05modes\x18\x05 \x03(\tR\x05modes\x12\x1c\n" +
+	"\tmultiline\x18\x06 \x01(\bR\tmultiline\"\xaa\x01\n" +
 	"\vPresetModel\x12%\n" +
 	"\x0eupstream_model\x18\x01 \x01(\tR\rupstreamModel\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12%\n" +

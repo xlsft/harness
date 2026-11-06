@@ -840,7 +840,8 @@
     "skills_listing": "<system-reminder>\nTest skills:\n{{listing}}\n</system-reminder>",
     "skill_invoked": "<skill name=\"{{name}}\" directory=\"{{directory}}\" arguments=\"{{arguments}}\">\n{{content}}\n</skill>",
     "command_init": "Write an instructions file: {{target}} in {{cwd}}; existing {{existing}}; focus {{arguments}}.",
-    "command_code_review": "Review in {{cwd}}: {{arguments}}\n{{status}}\n{{diff_stat}}\nReport with ReportFindings."
+    "command_code_review": "Review in {{cwd}}: {{arguments}}\n{{status}}\n{{diff_stat}}\nReport with ReportFindings.",
+    "advisor": "You advise an agent. The session is in <main_session>."
   },
   "compaction": {
     "instruction": "Summarize the conversation."

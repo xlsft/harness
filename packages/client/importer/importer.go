@@ -1,11 +1,13 @@
-// Package importer implements `harness-client import claude`: a one-time
-// import of the user-level Claude Code configuration (~/.claude) into the
-// harness server, and optionally of Claude Code session transcripts into
-// ~/.harness/projects with upload to the server.
+// Package importer is the only reader of Claude Code's files; the rest of the client never looks at them.
 //
-// Imported:
+// `harness-client import claude` is a one-time import of the user-level Claude Code configuration (~/.claude) into the
+// harness server, and optionally of Claude Code session transcripts into ~/.harness/projects with upload to the server.
+// `harness-client import --project` brings a folder's files into .harness and AGENTS.md (project.go).
 //
-//	~/.claude/CLAUDE.md              → MEMORY (user, key "user")
+// Imported at user level:
+//
+//	~/.claude/CLAUDE.md              → MEMORY (user, key "user"), its @imports below ~/.claude taken in
+//	~/.claude/rules/**/*.md          → RULE (key: relative path)
 //	~/.claude/settings.json          → SETTINGS (user, key "user"), minus permission rules and hooks
 //	  permissions.allow/ask/deny     → PERMISSION_RULES (user, key "user")
 //	  hooks                          → HOOK (user, key "user")
@@ -13,6 +15,8 @@
 //	~/.claude/agents/*.md            → AGENT (key: frontmatter name or file name)
 //	~/.claude/commands/**/*.md       → COMMAND (key: relative path, "/" → ":")
 //	~/.claude/output-styles/*.md     → OUTPUT_STYLE (key: frontmatter name or file name)
+//	~/.claude/workflows/*            → copied to ~/.harness/workflows (this device)
+//	~/.claude/hooks/**               → copied to ~/.harness/hooks (this device); the hooks' commands are rewritten to match
 //	~/.claude.json mcpServers        → reported only (McpService arrives in M2)
 //	~/.claude/projects/**/*.jsonl    → copied to ~/.harness/projects and queued for upload (--sessions)
 //
@@ -71,6 +75,8 @@ type Options struct {
 	ClaudeJSON string
 	// ProjectsDir is the harness transcript root (~/.harness/projects).
 	ProjectsDir string
+	// HarnessHome is ~/.harness, for what has no document and stays on this device; empty: those are not imported.
+	HarnessHome string
 
 	DryRun         bool
 	Sessions       bool
@@ -113,15 +119,18 @@ const (
 	SectionCommands     Section = "commands"
 	SectionOutputStyles Section = "output-styles"
 	SectionMCP          Section = "mcp"
+	SectionWorkflows    Section = "workflows"
 )
 
 // SectionOf returns the section of an item kind ("" for a session).
 func SectionOf(kind string) Section {
 	switch kind {
-	case "memory":
+	case "memory", "rule":
 		return SectionMemory
-	case "settings", "permissions", "hooks":
+	case "settings", "permissions", "hooks", "hook-script":
 		return SectionSettings
+	case "workflow":
+		return SectionWorkflows
 	case "skill":
 		return SectionSkills
 	case "agent":
@@ -260,9 +269,14 @@ func Run(ctx context.Context, o Options) (*Report, error) {
 	r := &run{o: o, rep: &Report{}}
 	if r.wants(SectionMemory) {
 		r.memory()
+		r.rules()
 	}
 	if r.wants(SectionSettings) {
 		r.settings()
+		r.deviceFiles("hook-script", "hooks")
+	}
+	if r.wants(SectionWorkflows) {
+		r.deviceFiles("workflow", "workflows")
 	}
 	if r.wants(SectionSkills) {
 		r.skills()
@@ -310,11 +324,96 @@ func (r *run) memory() {
 		r.add(Item{Kind: "memory", Key: "user", Status: StatusSkipped, Note: "CLAUDE.md is empty"})
 		return
 	}
-	note := ""
-	if strings.Contains(string(data), "@") {
-		note = "@imports are not resolved; imported files stay local"
+	var notes []string
+	content := r.expandImports(string(data), p, map[string]bool{p: true}, 1, &notes)
+	r.doc(syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "memory", "user", content, nil, strings.Join(notes, "; "))
+}
+
+// expandImports takes in the @imports below ~/.claude, which nothing reads any more. Others stay references: they may be
+// private to this machine, and each device resolves them for itself.
+func (r *run) expandImports(content, file string, seen map[string]bool, depth int, notes *[]string) string {
+	home := filepath.Dir(r.o.ClaudeHome)
+	return memory.RewriteImports(content, func(raw string) string {
+		keep := "@" + strings.ReplaceAll(raw, " ", `\ `)
+		target := memory.ResolveImport(raw, filepath.Dir(file), home)
+		if target == "" {
+			return keep
+		}
+		if !withinDir(target, r.o.ClaudeHome) && !memory.IsImportSourceName(filepath.Base(target)) {
+			*notes = append(*notes, keep+" stays a reference; the file stays on this device")
+			return keep
+		}
+		if seen[target] || depth > memory.MaxImportDepth {
+			return ""
+		}
+		seen[target] = true
+		data, err := os.ReadFile(target)
+		if err != nil {
+			*notes = append(*notes, keep+" could not be read")
+			return ""
+		}
+		return strings.TrimSpace(r.expandImports(string(data), target, seen, depth+1, notes))
+	})
+}
+
+// rules imports ~/.claude/rules/**/*.md, keyed by relative path.
+func (r *run) rules() {
+	root := filepath.Join(r.o.ClaudeHome, "rules")
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.EqualFold(filepath.Ext(p), ".md") {
+			return nil
+		}
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return nil
+		}
+		rel, _ := filepath.Rel(root, p)
+		key := filepath.ToSlash(rel)
+		if strings.TrimSpace(string(data)) == "" {
+			r.add(Item{Kind: "rule", Key: key, Status: StatusSkipped, Note: "empty file"})
+			return nil
+		}
+		r.doc(syncv1.DocumentKind_DOCUMENT_KIND_RULE, "rule", key, string(data), nil, "")
+		return nil
+	})
+}
+
+// deviceFiles copies ~/.claude/<sub> to ~/.harness/<sub>: there is no document for these, and a run never touches what is there.
+func (r *run) deviceFiles(kind, sub string) {
+	if r.o.HarnessHome == "" {
+		return
 	}
-	r.doc(syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "memory", "user", string(data), nil, note)
+	root := filepath.Join(r.o.ClaudeHome, sub)
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || d.Type()&fs.ModeSymlink != 0 || strings.HasPrefix(d.Name(), ".") {
+			return nil
+		}
+		rel, _ := filepath.Rel(root, p)
+		key, dst := filepath.ToSlash(rel), filepath.Join(r.o.HarnessHome, sub, rel)
+		if _, err := os.Lstat(dst); err == nil && !r.o.Force {
+			r.add(Item{Kind: kind, Key: key, Status: StatusExists, Note: "already in " + sub})
+			return nil
+		}
+		if r.o.DryRun {
+			r.add(Item{Kind: kind, Key: key, Status: StatusPlanned, Note: "copied to this device"})
+			return nil
+		}
+		info, err := d.Info()
+		if err == nil {
+			var data []byte
+			if data, err = os.ReadFile(p); err == nil {
+				if err = os.MkdirAll(filepath.Dir(dst), 0o700); err == nil {
+					err = os.WriteFile(dst, data, info.Mode().Perm())
+				}
+			}
+		}
+		if err != nil {
+			r.add(Item{Kind: kind, Key: key, Status: StatusError, Note: err.Error()})
+			return nil
+		}
+		r.add(Item{Kind: kind, Key: key, Status: StatusCopied, Note: "copied to this device"})
+		return nil
+	})
 }
 
 var (
@@ -366,7 +465,9 @@ func (r *run) settings() {
 	}
 	if raw, ok := m["hooks"]; ok {
 		delete(m, "hooks")
-		r.doc(syncv1.DocumentKind_DOCUMENT_KIND_HOOK, "hooks", "user", prettyJSON(raw), nil, "runs only after it is trusted on each device")
+		note := "runs only after it is trusted on each device"
+		rewritten, left := rewriteHooksJSON(raw)
+		r.doc(syncv1.DocumentKind_DOCUMENT_KIND_HOOK, "hooks", "user", prettyJSON(rewritten), nil, joinNote(note, left))
 	}
 	if _, ok := m["apiKeyHelper"]; ok {
 		delete(m, "apiKeyHelper")
@@ -403,6 +504,24 @@ func (r *run) settings() {
 	}
 	b, _ := json.MarshalIndent(m, "", "  ")
 	r.doc(syncv1.DocumentKind_DOCUMENT_KIND_SETTINGS, "settings", "user", string(b), nil, strings.Join(notes, "; "))
+}
+
+// rewriteHooksJSON points hook commands at the copies in ~/.harness; left notes what still names .claude.
+func rewriteHooksJSON(raw json.RawMessage) (json.RawMessage, string) {
+	wrapped := map[string]any{}
+	var hooks any
+	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	dec.UseNumber()
+	if dec.Decode(&hooks) != nil {
+		return raw, ""
+	}
+	wrapped["hooks"] = hooks
+	notes := rewriteCommands(wrapped)
+	out, err := json.Marshal(wrapped["hooks"])
+	if err != nil {
+		return raw, ""
+	}
+	return out, strings.Join(notes, "; ")
 }
 
 func countRules(rules map[string]json.RawMessage) string {

@@ -54,6 +54,11 @@ message Capabilities {
   // The level recommended for a new session, one of `effort`: from the upstream's model list or set by hand.
   // UNSPECIFIED: none.
   Effort default_effort = 7;
+  // Speed tiers the provider has for the model: "standard", "fast" (faster at a higher price), "flex" (slower and cheaper).
+  // Empty: it has no such choice.
+  repeated string speed_tiers = 8;
+  // Lifetimes the prompt cache can be asked for: "5m", "1h", "24h". Empty: no choice.
+  repeated string cache_ttls = 9;
 }
 
 // USD per 1M tokens. A zero cache price means "same as input".
@@ -107,6 +112,10 @@ message StreamMessageRequest {
   repeated string stop_sequences = 9;
   optional double temperature = 10;
   RequestMetadata metadata = 11;
+  // A tier of Capabilities.speed_tiers; empty: the provider's default. A tier the model does not have is dropped.
+  string speed = 12;
+  // A lifetime of Capabilities.cache_ttls; empty: the provider's default. One the model does not have is dropped.
+  string cache_ttl = 13;
 }
 
 message StreamMessageResponse {

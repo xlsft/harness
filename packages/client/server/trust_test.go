@@ -17,8 +17,8 @@ func TestWorkspaceTrustRPCs(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repo, ".git"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.MkdirAll(filepath.Join(repo, ".claude"), 0o755)
-	_ = os.WriteFile(filepath.Join(repo, ".claude", "settings.json"), []byte(`{"hooks":{"Stop":[]},"permissions":{"allow":["Bash(make *)"]}}`), 0o644)
+	_ = os.MkdirAll(filepath.Join(repo, ".harness"), 0o755)
+	_ = os.WriteFile(filepath.Join(repo, ".harness", "settings.json"), []byte(`{"hooks":{"Stop":[]},"permissions":{"allow":["Bash(make *)"]}}`), 0o644)
 	_ = os.WriteFile(filepath.Join(repo, ".mcp.json"), []byte(`{}`), 0o644)
 	sub := filepath.Join(repo, "pkg")
 	_ = os.MkdirAll(sub, 0o755)

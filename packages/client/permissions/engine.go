@@ -3,7 +3,7 @@
 // (first match wins), compound Bash commands checked per subcommand with
 // wrappers stripped, gitignore-style path rules, a built-in read-only Bash
 // allowlist, protected paths, permission modes, workspace trust and "allow
-// always" persistence to .claude/settings.local.json.
+// always" persistence to .harness/settings.local.json.
 //
 // The engine takes its rule lists and default mode as plain inputs (Config);
 // loading the settings hierarchy is the caller's job.
@@ -210,7 +210,7 @@ type Source struct {
 	// Name identifies the source ("cliArg", "localSettings", ...).
 	Name string
 	// Root is the base directory for "/path" specifiers. For
-	// .claude/settings*.json this is the directory that contains .claude/;
+	// .harness/settings*.json this is the directory that contains .harness/;
 	// for user settings the home directory; for CLI flags the cwd.
 	Root             string
 	Allow, Ask, Deny []string
@@ -240,7 +240,7 @@ type Config struct {
 	// auto then behaves like default).
 	Decider Decider
 	// LocalSettingsPath is where "allow always" rules are persisted;
-	// default <repo root>/.claude/settings.local.json.
+	// default <repo root>/.harness/settings.local.json.
 	LocalSettingsPath string
 	// ComputerSettings returns the directory of the computer use settings and whether writes to it need the user-only
 	// prompt (computer.go). Nil: nothing is guarded.
@@ -319,7 +319,7 @@ func New(cfg Config) *Engine {
 	e.localPath = cfg.LocalSettingsPath
 	e.localFixed = e.localPath != ""
 	if e.localPath == "" {
-		e.localPath = filepath.Join(RepoRoot(e.cwd), ".claude", "settings.local.json")
+		e.localPath = filepath.Join(RepoRoot(e.cwd), ".harness", "settings.local.json")
 	}
 	e.localRoot = filepath.Dir(filepath.Dir(e.localPath))
 	if len(cfg.Allow)+len(cfg.Ask)+len(cfg.Deny) > 0 {
@@ -549,7 +549,7 @@ func (e *Engine) Relocate(r Relocation) {
 	e.cwd, e.trusted = r.Cwd, r.Trusted
 	e.workDirs = append([]string{r.Cwd}, r.Additional...)
 	if !e.localFixed {
-		e.localPath = filepath.Join(RepoRoot(r.Cwd), ".claude", "settings.local.json")
+		e.localPath = filepath.Join(RepoRoot(r.Cwd), ".harness", "settings.local.json")
 		e.localRoot = filepath.Dir(filepath.Dir(e.localPath))
 	}
 	e.rebuild()

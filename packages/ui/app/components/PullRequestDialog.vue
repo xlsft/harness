@@ -60,7 +60,7 @@ async function create() {
   try {
     const pr = await store.createPullRequest(props.sessionId, { title: title.value, body: body.value, baseBranch: base.value, draft: asDraft.value, monitor: watch_.value })
     open.value = false
-    toast.add({ title: pr.existed ? `PR ${pr.number} was already open` : `Opened PR ${pr.number}`, description: pr.title, actions: [{ label: 'Open', onClick: () => void openExternal(pr.url) }] })
+    toast.add({ title: pr.existed ? tt('PR {0} was already open', [pr.number]) : tt('Opened PR {0}', [pr.number]), description: pr.title, actions: [{ label: tt('Open'), onClick: () => void openExternal(pr.url) }] })
   } catch (e) {
     error.value = message(e)
   } finally {
@@ -72,8 +72,8 @@ async function create() {
 <template>
   <UModal
     v-model:open="open"
-    title="Create pull request"
-    :description="draft ? `${draft.headBranch} into ${draft.baseBranch} in ${draft.repositoryKey}` : 'Reading the branch'"
+    :title="tt('Create pull request')"
+    :description="draft ? `${draft.headBranch} into ${draft.baseBranch} in ${draft.repositoryKey}` : tt('Reading the branch')"
   >
     <template #body>
       <div class="flex flex-col gap-3">
@@ -88,7 +88,7 @@ async function create() {
           v-if="loading"
           class="m-0 flex items-center gap-2 text-[12px] text-muted"
         >
-          <HLoader /> The agent is drafting the title and description
+          <HLoader /> {{ tt('The agent is drafting the title and description') }}
         </p>
         <template v-if="draft">
           <p
@@ -98,41 +98,41 @@ async function create() {
             {{ draft.note }}
           </p>
           <label class="flex flex-col gap-1 text-[12px] text-muted">
-            Title
+            {{ tt('Title') }}
             <input
               v-model="title"
-              aria-label="Title"
+              :aria-label="tt('Title')"
               class="border border-line bg-transparent px-2 py-1 text-[12.5px] text-strong outline-none focus:border-accent"
             >
           </label>
           <label class="flex flex-col gap-1 text-[12px] text-muted">
-            Description
+            {{ tt('Description') }}
             <textarea
               v-model="body"
-              aria-label="Description"
+              :aria-label="tt('Description')"
               rows="10"
               class="resize-y border border-line bg-transparent px-2 py-1 font-mono text-[12px] text-strong outline-none focus:border-accent"
             />
           </label>
           <label class="flex flex-col gap-1 text-[12px] text-muted">
-            Base branch
+            {{ tt('Base branch') }}
             <input
               v-model="base"
-              aria-label="Base branch"
+              :aria-label="tt('Base branch')"
               class="border border-line bg-transparent px-2 py-1 text-[12.5px] text-strong outline-none focus:border-accent"
             >
           </label>
           <div class="flex items-center gap-2 text-[12px] text-muted">
             <HToggle
               v-model="asDraft"
-              label="Open as a draft"
-            /> Open as a draft
+              :label="tt('Open as a draft')"
+            /> {{ tt('Open as a draft') }}
           </div>
           <div class="flex items-center gap-2 text-[12px] text-muted">
             <HToggle
               v-model="watch_"
-              label="Watch it for auto-fix"
-            /> Watch it for auto-fix
+              :label="tt('Watch it for auto-fix')"
+            /> {{ tt('Watch it for auto-fix') }}
           </div>
           <p class="m-0 text-[11.5px] text-muted">
             {{ facts }}
@@ -147,7 +147,7 @@ async function create() {
           tone="muted"
           @click="open = false"
         >
-          Cancel
+          {{ tt('Cancel') }}
         </HBtn>
         <HBtn
           variant="primary"
@@ -155,7 +155,7 @@ async function create() {
           :disabled="!canCreate"
           @click="create"
         >
-          {{ creating ? 'Creating' : 'Create' }}
+          {{ creating ? tt('Creating') : tt('Create') }}
         </HBtn>
       </div>
     </template>

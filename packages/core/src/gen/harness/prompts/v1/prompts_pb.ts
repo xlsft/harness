@@ -99,7 +99,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
 
   /**
    * Keyed by reminder id. Known ids (clients skip a reminder whose id is missing):
-   *   project_instructions  {{content}}            CLAUDE.md / AGENTS.md / user memory, first user message
+   *   project_instructions  {{content}}            AGENTS.md / user memory, first user message
    *   file_changed          {{path}} {{diff}}      a file the model read changed on disk
    *   empty_file            {{path}}               Read of an empty file
    *   interrupted                                  user message after an interruption
@@ -158,6 +158,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   team_next_task        {{team}} {{tasks}}     a team member is told about free tasks
    *   team_message          {{from}} {{message}}   a subagent told the main agent something
    *   side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
+   *   advisor              (none)                 not a reminder: the system prompt of the model behind the Advisor tool
    *   pr_draft             {{head}} {{base}} {{log}} {{stat}} {{diff}}   not a reminder: the Create PR button's prompt
    *   ci_review            see packages/core/prompts/README.md            not a reminder: `harness-client ci review`
    *   ci_mention           see packages/core/prompts/README.md            not a reminder: `harness-client ci mention`
@@ -182,7 +183,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
 
   /**
    * Built-in output styles keyed by id (default, proactive, concise, explanatory, learning). User and
-   * project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .claude/output-styles/*.md with the
+   * project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .harness/output-styles/*.md with the
    * same fields in their frontmatter. "default" adds nothing.
    *
    * @generated from field: map<string, harness.prompts.v1.OutputStyle> output_styles = 8;

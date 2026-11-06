@@ -22,7 +22,8 @@ const SECTION_NAME: Record<ClaudeImportSection, ClaudeSection | ''> = {
   [ClaudeImportSection.COMMANDS]: 'commands',
   [ClaudeImportSection.OUTPUT_STYLES]: 'output-styles',
   [ClaudeImportSection.MCP_SERVERS]: 'mcp',
-  [ClaudeImportSection.SESSIONS]: 'sessions'
+  [ClaudeImportSection.SESSIONS]: 'sessions',
+  [ClaudeImportSection.WORKFLOWS]: 'workflows'
 }
 
 const SECTION_PB: Partial<Record<ClaudeSection, ClaudeImportSection>> = {
@@ -31,7 +32,8 @@ const SECTION_PB: Partial<Record<ClaudeSection, ClaudeImportSection>> = {
   'skills': ClaudeImportSection.SKILLS,
   'agents': ClaudeImportSection.AGENTS,
   'commands': ClaudeImportSection.COMMANDS,
-  'output-styles': ClaudeImportSection.OUTPUT_STYLES
+  'output-styles': ClaudeImportSection.OUTPUT_STYLES,
+  'workflows': ClaudeImportSection.WORKFLOWS
 }
 
 const STATUS_NAME: Record<ClaudeImportStatus, ImportStatus> = {

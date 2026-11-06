@@ -227,6 +227,9 @@ func cmdMain(ctx context.Context, args []string) int {
 		return fail(err)
 	}
 	defer conn.Close()
+	if offer := conn.ProjectImportOffer(ctx); offer != "" {
+		fmt.Fprintln(os.Stderr, offer)
+	}
 	if err := tui.Run(ctx, tui.Options{Conn: conn, Env: env, Cwd: cwd}); err != nil {
 		return fail(err)
 	}

@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { SshApi } from '~/lib/ssh'
 import type { VcsApi } from '~/lib/vcs/types'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
 import type { ObjectTicket } from '~/lib/session/objects'
@@ -35,6 +36,7 @@ import type { DiffBaseChoice, DiffBases, SessionDiff, SessionFileDiff } from '~/
 import type { SpeechApi } from '~/lib/speech/types'
 import type { LocalModelsApi } from './localModels'
 import type { ClaudeImportApi } from '~/lib/import/claudeCode'
+import type { ProjectImportApi } from '~/lib/import/project'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
@@ -79,6 +81,9 @@ export interface ModelInfo {
   efforts?: EffortName[]
   // The level recommended for a new session, one of `efforts`.
   defaultEffort?: EffortName
+  // Speed tiers and prompt cache lifetimes the provider has for it.
+  speedTiers?: string[]
+  cacheTtls?: string[]
   thinking?: boolean
   // A model of a local provider on the client's machine (id "local:<provider>/<name>"): free, per device.
   local?: boolean
@@ -152,6 +157,17 @@ export interface UserPreferences {
   schedulesEnabled: boolean
   // How many turns /goal may take when it names no cap (1 to 200).
   goalMaxTurns: number
+  // How requests use the models; sessions opened from then on follow it. An update replaces it whole.
+  modelTuning: ModelTuningPreferences
+}
+
+export interface ModelTuningPreferences {
+  // '', 'standard', 'fast' or 'flex'; a model without the tier runs as usual.
+  speedTier: string
+  // '', '5m', '1h' or '24h'; a model without the lifetime uses its own.
+  cacheTtl: string
+  // The model behind the Advisor tool; '': sessions have no such tool.
+  advisorModel: string
 }
 
 // A hook as configured (ListHooks): read-only, edited in settings files.
@@ -427,6 +443,8 @@ export interface SessionTransport {
   limits(): LimitsApi
   // Bringing Claude Code's config and sessions from this machine to the user's server (~/lib/import).
   claudeImport(): ClaudeImportApi
+  // Bringing a folder's Claude Code files into its .harness and AGENTS.md (~/lib/import/project).
+  projectImport(): ProjectImportApi
   // ACP agents as session engines: the registry, installs, sign-in and agent modes (~/lib/acp). Device-local.
   acp(): AcpApi
 
@@ -439,4 +457,6 @@ export interface SessionTransport {
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.
   browser(): BrowserApi
+  // Saved SSH hosts and connections (device-local; the local client's, whichever client this window talks to).
+  ssh(): SshApi
 }

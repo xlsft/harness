@@ -50,7 +50,7 @@ function scan(over: Partial<ClaudeImportScan> = {}): ClaudeImportScan {
 
 describe('import sources', () => {
   it('lists Claude Code, the one source for now', () => {
-    expect(IMPORT_SOURCES.map(s => s.id)).toEqual(['claude-code'])
+    expect(IMPORT_SOURCES.map(s => s.id)).toEqual(['claude-code', 'claude-project'])
   })
 })
 
@@ -65,7 +65,7 @@ describe('Claude Code selection', () => {
 
   it('groups items by kind, with MCP servers only listed', () => {
     const rows = sectionRows(scan())
-    expect(rows.map(r => r.key)).toEqual(['memory', 'settings', 'skills', 'agents', 'commands', 'output-styles'])
+    expect(rows.map(r => r.key)).toEqual(['memory', 'settings', 'skills', 'agents', 'commands', 'output-styles', 'workflows'])
     const skills = rows.find(r => r.key === 'skills')!
     expect([skills.fresh, skills.exists, skills.selectable]).toEqual([1, 1, true])
     // Nothing found, or nothing but skipped items, has nothing to choose.

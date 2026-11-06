@@ -35,7 +35,7 @@ func setup(t *testing.T, respond fg.Responder) *env {
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
 	srv, url := fg.Start(t, respond)
 	proj, _ := filepath.EvalSymlinks(t.TempDir())
-	os.WriteFile(filepath.Join(proj, "CLAUDE.md"), []byte("Always be brief."), 0o644)
+	os.WriteFile(filepath.Join(proj, "AGENTS.md"), []byte("Always be brief."), 0o644)
 	return &env{srv: srv, url: url, proj: proj}
 }
 

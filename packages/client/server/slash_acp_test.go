@@ -67,7 +67,7 @@ func TestAcpSlashCommands(t *testing.T) {
 		t.Fatal(inst.Err())
 	}
 	proj, _ := filepath.EvalSymlinks(t.TempDir())
-	writeFile(t, filepath.Join(proj, ".claude/skills/local/SKILL.md"), "A skill of the client's own loop")
+	writeFile(t, filepath.Join(proj, ".harness/skills/local/SKILL.md"), "A skill of the client's own loop")
 	cs, err := client.CreateSession(ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: proj, Engine: "acp:fake"}))
 	if err != nil {
 		t.Fatal(err)

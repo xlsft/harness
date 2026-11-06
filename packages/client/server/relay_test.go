@@ -211,10 +211,10 @@ func TestSessionRelaySwitch(t *testing.T) {
 // "remoteControl": false in the settings is the default of sessions without a choice; the switch overrides it.
 func TestSessionRelaySettingsDefault(t *testing.T) {
 	h, stub := startRelayHarness(t)
-	if err := os.MkdirAll(filepath.Join(h.proj, ".claude"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(h.proj, ".harness"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(h.proj, ".claude", "settings.json"), []byte(`{"remoteControl": false}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(h.proj, ".harness", "settings.json"), []byte(`{"remoteControl": false}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	sid, _ := h.create(&agentv1.CreateSessionRequest{})

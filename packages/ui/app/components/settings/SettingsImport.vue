@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Settings > Import: bringing work from another tool. The sources are listed; a row opens that source's own setup.
-// Claude Code is the only one for now.
+// Claude Code is the only tool for now: what is on this computer, and a folder's own files.
 import { IMPORT_SOURCES, type ImportSource } from '~/lib/import/types'
 
 const source = ref<ImportSource['id'] | null>(null)
@@ -11,12 +11,16 @@ const source = ref<ImportSource['id'] | null>(null)
     v-if="source === 'claude-code'"
     @back="source = null"
   />
+  <SettingsImportProject
+    v-else-if="source === 'claude-project'"
+    @back="source = null"
+  />
   <template v-else>
     <h2 class="set-h">
-      Import
+      {{ tt('Import') }}
     </h2>
     <p class="set-sub">
-      Bring your work from another tool. Nothing moves until you choose what to bring.
+      {{ tt('Bring your work from another tool. Nothing moves until you choose what to bring.') }}
     </p>
     <button
       v-for="s in IMPORT_SOURCES"

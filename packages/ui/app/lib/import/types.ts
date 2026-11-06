@@ -2,10 +2,11 @@
 // for what it finds and what can be chosen (./claudeCode.ts); following a run is the same for all of them. The client
 // decides what exists and what happened: this only renders it.
 
+import { tt } from '~/utils/i18n'
 import type { IconName } from '~/utils/icons'
 
 export interface ImportSource {
-  id: 'claude-code'
+  id: 'claude-code' | 'claude-project'
   name: string
   description: string
   icon: IconName
@@ -15,8 +16,14 @@ export const IMPORT_SOURCES: ImportSource[] = [
   {
     id: 'claude-code',
     name: 'Claude Code',
-    description: 'Memory, settings, skills, agents, commands, output styles and sessions on this computer.',
+    description: tt('Memory, rules, settings, skills, agents, commands, output styles, workflows and sessions on this computer.'),
     icon: 'terminal'
+  },
+  {
+    id: 'claude-project',
+    name: 'A folder\'s Claude Code files',
+    description: tt('CLAUDE.md and what is under .claude, into the folder\'s AGENTS.md and .harness.'),
+    icon: 'folder'
   }
 ]
 

@@ -5,17 +5,42 @@ import { create } from '@bufbuild/protobuf'
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { AgentService } from '~/gen/harness/agent/v1/agent_pb'
 import { BrowserViewportSchema } from '~/gen/harness/agent/v1/browser_pb'
+import { BrowserSiteDecision, RealBrowserService } from '~/gen/harness/agent/v1/real_browser_pb'
 import { BrowserConnection, webSocketOpener, type BrowserLink } from './connection'
-import { availabilityView, presetPb, previewServerView, stateView, type BrowserApi, type BrowserAvailabilityVM, type BrowserInstallHandle, type OpenBrowserOptions } from './types'
+import { availabilityView, presetPb, previewServerView, stateView, type BrowserApi, type BrowserAvailabilityVM, type BrowserSiteAnswer, type BrowserInstallHandle, type OpenBrowserOptions } from './types'
 
 export class ConnectBrowserApi implements BrowserApi {
   private client: Client<typeof AgentService>
+  private real: Client<typeof RealBrowserService>
   private openSocket: BrowserLink['socket']
 
   // agentUrl is the client's base URL (the socket is served next to AgentService); WS is for tests.
   constructor(transport: Transport, agentUrl: string, WS?: typeof WebSocket) {
     this.client = createClient(AgentService, transport)
+    this.real = createClient(RealBrowserService, transport)
     this.openSocket = webSocketOpener(agentUrl, WS)
+  }
+
+  async realChrome(sessionId = '') {
+    const r = await this.real.getRealChrome({ sessionId })
+    return { available: r.available, inUse: r.inUse, allowedSites: r.allowedSites }
+  }
+
+  async useRealChrome(sessionId: string, on: boolean) {
+    await this.real.useRealChrome({ sessionId, on })
+  }
+
+  async respondToSite(sessionId: string, requestId: string, answer: BrowserSiteAnswer) {
+    const decision = { deny: BrowserSiteDecision.DENY, session: BrowserSiteDecision.ALLOW_SESSION, always: BrowserSiteDecision.ALLOW_ALWAYS }[answer]
+    await this.real.respondToBrowserSite({ sessionId, requestId, decision })
+  }
+
+  async revokeSite(site: string) {
+    return (await this.real.revokeBrowserSite({ site })).allowedSites
+  }
+
+  async record(sessionId: string, on: boolean) {
+    return { path: (await this.real.recordBrowser({ sessionId, on })).path }
   }
 
   async availability() {
