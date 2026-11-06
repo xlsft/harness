@@ -30,6 +30,7 @@ export interface PanelHost {
   folder(): string
   log(line: string): void
   onMessage(m: FromPage): void
+  onNoClient(err: unknown): void
 }
 
 const themeKind = (): 'light' | 'dark' => {
@@ -104,6 +105,7 @@ export class SessionPanel implements vscode.Disposable {
       ep = await this.host.endpoint()
     } catch (err) {
       panel.webview.html = this.message(escapeHtml(err instanceof Error ? err.message : String(err)))
+      this.host.onNoClient(err)
       return
     }
     // The client may be on the other side of a port forward (remote development).

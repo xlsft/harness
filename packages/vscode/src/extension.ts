@@ -119,6 +119,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
   const writeOurLock = () => writeLock(home, { port: bridge.port, token: bridge.token, pid: process.pid, name: vscode.env.appName, folders: folders() })
   lockFile = writeOurLock()
   // A terminal of this window reaches this window, whatever folder its session is in. The token stays in the file.
+  context.environmentVariableCollection.persistent = false
   context.environmentVariableCollection.replace('HARNESS_IDE_LOCK', lockFile)
   context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(() => writeOurLock()), {
     dispose: () => {
@@ -191,7 +192,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
     }
   }
 
-  const panel = new SessionPanel({ extensionUri: context.extensionUri, endpoint, folder: firstFolder, log, onMessage: onPageMessage })
+  // A client that can't start shows up when the panel asks for it; say why, with a way out.
+  const explain = async (err: unknown) => {
+    log(String(err))
+    const signIn = err instanceof ClientStartError && err.signIn
+    const action = await vscode.window.showErrorMessage(err instanceof Error ? err.message : String(err), signIn ? 'Sign In' : 'Show Log')
+    if (action === 'Sign In') await vscode.commands.executeCommand('harness.signIn')
+    if (action === 'Show Log') output.show()
+  }
+
+  const panel = new SessionPanel({ extensionUri: context.extensionUri, endpoint, folder: firstFolder, log, onMessage: onPageMessage, onNoClient: err => void explain(err) })
   const review = new ReviewController({ endpoint, sessionId: () => currentSession, log })
   context.subscriptions.push(panel, review)
 
@@ -284,18 +294,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
   register('harness.diff.rejectWithNote', () => diffs.rejectWithNote())
   register('harness.review.accept', () => review.accept())
   register('harness.review.reject', (options?: { confirmed?: boolean }) => review.reject(options))
-
-  // A client that can't start shows up when the user asks for the panel; say why, with a way out.
-  const explain = async (err: unknown) => {
-    const signIn = err instanceof ClientStartError && err.signIn
-    const action = await vscode.window.showErrorMessage(err instanceof Error ? err.message : String(err), signIn ? 'Sign In' : 'Show Log')
-    if (action === 'Sign In') await vscode.commands.executeCommand('harness.signIn')
-    if (action === 'Show Log') output.show()
-  }
-  endpoint().catch((err: unknown) => {
-    log(String(err))
-    if (err instanceof ClientStartError) void explain(err)
-  })
 
   return {
     lockFile,

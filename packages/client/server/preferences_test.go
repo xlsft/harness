@@ -90,6 +90,17 @@ func TestUserPreferences(t *testing.T) {
 	if err != nil || !got.Msg.Preferences.CompactIdleSessions {
 		t.Fatalf("read back %v %+v", err, got)
 	}
+	// The editor's switches: on and off by default, each kept.
+	if got.Msg.Preferences.IdeDiffs != true || got.Msg.Preferences.IdeReviewAllEdits {
+		t.Fatalf("editor defaults: %+v", got.Msg.Preferences)
+	}
+	up, err = s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{IdeDiffs: proto.Bool(false), IdeReviewAllEdits: proto.Bool(true)}))
+	if err != nil || up.Msg.Preferences.IdeDiffs || !up.Msg.Preferences.IdeReviewAllEdits {
+		t.Fatalf("editor update: %v %+v", err, up)
+	}
+	if _, err = s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{IdeDiffs: proto.Bool(true), IdeReviewAllEdits: proto.Bool(false)})); err != nil {
+		t.Fatal(err)
+	}
 	// An empty update writes nothing.
 	puts := docs.puts
 	if _, err := s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{})); err != nil || docs.puts != puts {

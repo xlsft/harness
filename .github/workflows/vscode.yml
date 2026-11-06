@@ -57,7 +57,9 @@ jobs:
           pnpm test
       - name: Build the .vsix
         working-directory: packages/vscode
-        run: node scripts/build.mjs --vsix
+        run: pnpm package
       - name: Tests in a real editor
         working-directory: packages/vscode
         run: xvfb-run -a pnpm test:editor
+        env:
+          HARNESS_TEST_VSIX: dist/harness-0.0.0-dev.vsix

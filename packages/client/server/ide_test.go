@@ -380,15 +380,15 @@ func TestRevertInARepository(t *testing.T) {
 	h, _ := ideHarness(t, nil, bootstrap.IDEConfig{})
 	repo := gittest.Init(t)
 	repo, _ = filepath.EvalSymlinks(repo)
-	gittest.Write(t, repo, "tracked.txt", "committed\n")
+	gittest.Write(t, repo, "sub/dir/tracked.txt", "committed\n")
 	gittest.Write(t, repo, "script.sh", "#!/bin/sh\n")
 	if err := os.Chmod(filepath.Join(repo, "script.sh"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	gittest.Run(t, repo, "add", ".")
 	gittest.Run(t, repo, "commit", "-m", "base")
-	tracked, script, added := filepath.Join(repo, "tracked.txt"), filepath.Join(repo, "script.sh"), filepath.Join(repo, "added.txt")
-	gittest.Write(t, repo, "tracked.txt", "changed\n")
+	tracked, script, added := filepath.Join(repo, "sub", "dir", "tracked.txt"), filepath.Join(repo, "script.sh"), filepath.Join(repo, "added.txt")
+	gittest.Write(t, repo, "sub/dir/tracked.txt", "changed\n")
 	gittest.Write(t, repo, "added.txt", "new\n")
 	if err := os.Remove(script); err != nil {
 		t.Fatal(err)

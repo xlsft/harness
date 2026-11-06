@@ -5,6 +5,11 @@
   "version": "0.0.0-dev",
   "publisher": "xlsft",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xlsft/harness.git",
+    "directory": "packages/vscode"
+  },
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "main": "./dist/extension.cjs",

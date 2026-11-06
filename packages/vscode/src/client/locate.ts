@@ -65,7 +65,7 @@ export function listeningUrl(line: string): string | undefined {
   return m ? loopbackUrl(m[1]!) : undefined
 }
 
-/** Whether a client that would not start says it needs a sign-in. */
+/** Whether a client that would not start says it needs a sign-in: the words of bootstrap.Tokens. */
 export function needsSignIn(output: string): boolean {
-  return /not signed in|harness-client login|no stored credentials|log ?in first/i.test(output)
+  return /not logged in/i.test(output)
 }

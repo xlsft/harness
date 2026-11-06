@@ -68,7 +68,7 @@ describe('addresses', () => {
     assert.ok(harnessHome({}).endsWith('.harness'))
   })
   it('recognises a sign-in problem', () => {
-    assert.equal(needsSignIn('error: not signed in; run harness-client login <url>'), true)
+    assert.equal(needsSignIn('Error: not logged in; run `harness login <url>`'), true)
     assert.equal(needsSignIn('listen tcp: address already in use'), false)
   })
 })
@@ -101,7 +101,7 @@ describe('starting a client', { skip: process.platform === 'win32' }, () => {
 
   it('says when one would not start, and whether a sign-in helps', async () => {
     const dir = temp()
-    const signIn = fake(dir, `echo 'not signed in: run harness-client login <server-url>' >&2; exit 1`)
+    const signIn = fake(dir, `echo 'Error: not logged in; run \`harness login <url>\`' >&2; exit 1`)
     await assert.rejects(startClient({ binary: signIn }), (err: unknown) => err instanceof ClientStartError && err.signIn)
     const other = fake(dir, `echo 'something else' >&2; exit 3`)
     await assert.rejects(startClient({ binary: other }), (err: unknown) => err instanceof ClientStartError && !err.signIn && err.message.includes('something else'))

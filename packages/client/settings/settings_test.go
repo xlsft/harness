@@ -354,6 +354,12 @@ func TestLSPSettings(t *testing.T) {
 	if !s.LSPEnabled || !s.LSPDiagnostics || s.LSPDiagnosticsStartServer || s.LSPServers != nil {
 		t.Fatalf("defaults: %+v", s)
 	}
+	if !s.IDEDiffs || s.IDEReviewAllEdits {
+		t.Fatalf("editor defaults: %+v", s)
+	}
+	if s = load(t, false, "", "", `{"ideDiffs": false, "ideReviewAllEdits": true}`); s.IDEDiffs || !s.IDEReviewAllEdits {
+		t.Fatalf("editor switches: %+v", s)
+	}
 	s = load(t, false, "", "", `{"lspEnabled": false, "lspDiagnostics": false, "lspDiagnosticsStartServer": true, "lspServers": {"go": {"command": "/opt/gopls", "args": ["-v"]}, "zig": {"command": "zls", "extensions": [".zig"]}}}`)
 	if s.LSPEnabled || s.LSPDiagnostics || !s.LSPDiagnosticsStartServer {
 		t.Fatalf("user switches: %+v", s)

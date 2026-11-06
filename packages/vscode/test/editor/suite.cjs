@@ -1,7 +1,7 @@
 // Runs inside the editor (run.mjs starts it). Every wait is on a condition. What it exercises is real: the editor, the
 // panel's page, the client and the bridge. Only the model and its server are fakes.
 const assert = require('node:assert/strict')
-const { existsSync, readFileSync, statSync, writeFileSync } = require('node:fs')
+const { existsSync, readFileSync, rmSync, statSync, writeFileSync } = require('node:fs')
 const { join } = require('node:path')
 const vscode = require('vscode')
 
@@ -193,6 +193,27 @@ const tests = {
     assert.equal(reviewOf('answered.txt'), undefined)
     s.close()
     later.close()
+  },
+
+  async 'a deleted file can be reviewed and brought back'(api) {
+    const ep = await api.endpoint()
+    const file = join(workspace, 'deleted.txt')
+    writeFileSync(file, 'keep me\n')
+    const s = await openSession(ep)
+    await rpc(ep, AGENT, 'GetSessionDiff', { sessionId: s.id })
+    rmSync(file)
+    await until('the change to show', async () => {
+      const diff = await rpc(ep, AGENT, 'GetSessionDiff', { sessionId: s.id, base: { kind: 'DIFF_BASE_KIND_UNCOMMITTED' } })
+      return (diff.files ?? []).some(f => f.path === file)
+    })
+    await api.review(s.id, file)
+    await until('the diff', () => {
+      const t = vscode.window.tabGroups.activeTabGroup.activeTab
+      return t?.input instanceof vscode.TabInputTextDiff && t.input.original.scheme === 'harness-base' && t.input.original.fsPath === file
+    })
+    await vscode.commands.executeCommand('harness.review.reject', { confirmed: true })
+    await until('the file to be back', () => existsSync(file) && readFileSync(file, 'utf8') === 'keep me\n')
+    s.close()
   },
 
   async 'the problems panel reaches the agent'(api) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds the extension. Plain: bundles src/ into dist/extension.cjs. --ui: also builds the panel from packages/ui into
-// media/ui (needs `pnpm install` in packages/ui). --vsix: also packs dist/harness-<version>.vsix. Nothing here publishes.
+// media/ui (needs `pnpm install` in packages/ui). --vsix: also packs dist/harness-<version>.vsix from what media/ui holds. Nothing here publishes.
 import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -29,7 +29,7 @@ await build({
   logLevel: 'warning'
 })
 
-if (args.has('--ui') || args.has('--vsix')) {
+if (args.has('--ui')) {
   run('pnpm', ['exec', 'nuxt', 'generate'], { cwd: ui, env: { ...process.env, HARNESS_UI_TARGET: 'ide' } })
   const media = join(root, 'media', 'ui')
   rmSync(media, { recursive: true, force: true })
@@ -43,12 +43,12 @@ if (args.has('--ui') || args.has('--vsix')) {
 }
 
 if (args.has('--vsix')) {
-  if (!existsSync(join(root, 'media', 'ui', 'index.html'))) throw new Error('media/ui is missing')
+  if (!existsSync(join(root, 'media', 'ui', 'index.html'))) throw new Error('media/ui is missing: add --ui')
   const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
   mkdirSync(join(root, 'dist'), { recursive: true })
   cpSync(join(repo, 'LICENSE'), join(root, 'LICENSE'))
   try {
-    run('pnpm', ['exec', 'vsce', 'package', '--no-dependencies', '--allow-missing-repository', '--skip-license', '--out', join('dist', `harness-${version}.vsix`)], { cwd: root })
+    run('pnpm', ['exec', 'vsce', 'package', '--no-dependencies', '--skip-license', '--out', join('dist', `harness-${version}.vsix`)], { cwd: root })
   } finally {
     rmSync(join(root, 'LICENSE'), { force: true })
   }

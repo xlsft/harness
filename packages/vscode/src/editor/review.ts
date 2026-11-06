@@ -1,5 +1,6 @@
 // Review of what a session already changed: each file in the native diff, against the baseline the client keeps. The
 // rules (what the baseline is, what can be restored) are the client's; this only shows them.
+import { existsSync } from 'node:fs'
 import { basename } from 'node:path'
 import * as vscode from 'vscode'
 import type { Endpoint } from '../client/locate.ts'
@@ -18,13 +19,17 @@ export interface ReviewHost {
   log(line: string): void
 }
 
+// Through Uri.file and fsPath, so that a Windows path survives the trip.
 function baseUri(t: Target): vscode.Uri {
-  return vscode.Uri.from({ scheme: BASE_SCHEME, path: t.path, query: encodeURIComponent(t.sessionId) })
+  return vscode.Uri.file(t.path).with({ scheme: BASE_SCHEME, query: encodeURIComponent(t.sessionId) })
 }
 
 function targetOf(uri: vscode.Uri): Target {
-  return { sessionId: decodeURIComponent(uri.query), path: uri.path }
+  return { sessionId: decodeURIComponent(uri.query), path: uri.fsPath }
 }
+
+// The right side of a diff of a file that is gone: empty, since the diff editor can't open what does not exist.
+const GONE_QUERY = 'gone'
 
 export class ReviewController implements vscode.TextDocumentContentProvider, vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = []
@@ -43,6 +48,7 @@ export class ReviewController implements vscode.TextDocumentContentProvider, vsc
   }
 
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+    if (uri.query === GONE_QUERY) return ''
     const t = targetOf(uri)
     const base = await sessionFileBase(await this.host.endpoint(), t.sessionId, t.path)
     return base.binary ? '[binary or too large to show]' : base.content ?? ''
@@ -74,7 +80,8 @@ export class ReviewController implements vscode.TextDocumentContentProvider, vsc
     this.changed.fire(left)
     const title = `${basename(path)} (session changes)`
     const show: vscode.TextDocumentShowOptions = { preview: true, preserveFocus: options.background ?? false, viewColumn: vscode.ViewColumn.One }
-    await vscode.commands.executeCommand('vscode.diff', left, vscode.Uri.file(path), title, show)
+    const right = existsSync(path) ? vscode.Uri.file(path) : vscode.Uri.file(path).with({ scheme: BASE_SCHEME, query: GONE_QUERY })
+    await vscode.commands.executeCommand('vscode.diff', left, right, title, show)
     this.syncContext()
   }
 

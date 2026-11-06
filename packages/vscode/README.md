@@ -30,10 +30,10 @@ pnpm typecheck
 pnpm test                       # plain Node: the bridge, finding a client, the page
 node scripts/build.mjs          # dist/extension.cjs
 node scripts/build.mjs --ui     # also the panel, into media/ui
-node scripts/build.mjs --vsix   # also dist/harness-<version>.vsix
+pnpm package                    # the panel and dist/harness-<version>.vsix
 pnpm test:editor                # a real VS Code, a real client, the fake gateway; after --ui
 ```
 
-`pnpm test:editor` downloads VS Code into `.vscode-test`, git-ignored, about 500 MB unpacked. On Linux without a display, run it under `xvfb-run -a`. Build outputs and `.vsix` files are never committed, and nothing here publishes to a marketplace.
+`pnpm test:editor` downloads VS Code into `.vscode-test`, git-ignored, about 500 MB unpacked. On Linux without a display, run it under `xvfb-run -a`. `HARNESS_TEST_VSIX=dist/harness-0.0.0-dev.vsix` runs it on what was packed. Build outputs and `.vsix` files are never committed, and nothing here publishes to a marketplace.
 
 To try it, install the `.vsix` with `code --install-extension dist/harness-0.0.0-dev.vsix`.

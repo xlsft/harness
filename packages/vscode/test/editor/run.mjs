@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Runs test/editor/suite.cjs in a real VS Code, against a real harness-client and the fake gateway: no account, no key, no
 // model. It needs `node scripts/build.mjs --ui` first, and go. The editor is downloaded into .vscode-test here, which is
-// git-ignored; remove it when disk is short. Set HARNESS_VSCODE_VERSION to try another version.
+// git-ignored; remove it when disk is short. Set HARNESS_VSCODE_VERSION to try another version, and HARNESS_TEST_VSIX to a
+// .vsix to run what was packed rather than this folder.
 import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -11,7 +12,8 @@ import { runTests } from '@vscode/test-electron'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const clientDir = join(root, '..', 'client')
-if (!existsSync(join(root, 'media', 'ui', 'index.html'))) throw new Error('media/ui is missing: run node scripts/build.mjs --ui')
+const vsix = process.env.HARNESS_TEST_VSIX
+if (!vsix && !existsSync(join(root, 'media', 'ui', 'index.html'))) throw new Error('media/ui is missing: run node scripts/build.mjs --ui')
 
 const work = realpathSync(mkdtempSync(join(tmpdir(), 'harness-vscode-e2e-')))
 const bin = join(work, 'bin')
@@ -34,12 +36,18 @@ const gatewayUrl = await new Promise((resolve, reject) => {
   gateway.on('exit', code => reject(new Error(`the fake gateway exited: ${code}`)))
 })
 
+let extensionDevelopmentPath = root
+if (vsix) {
+  execFileSync('unzip', ['-q', vsix, '-d', join(work, 'vsix')])
+  extensionDevelopmentPath = join(work, 'vsix', 'extension')
+}
+
 let failed = 0
 try {
   failed = await runTests({
     version: process.env.HARNESS_VSCODE_VERSION || '1.100.0',
     cachePath: join(root, '.vscode-test'),
-    extensionDevelopmentPath: root,
+    extensionDevelopmentPath,
     extensionTestsPath: join(root, 'test', 'editor', 'suite.cjs'),
     launchArgs: [workspace, '--disable-extensions', '--disable-workspace-trust', '--disable-gpu', '--skip-welcome', '--skip-release-notes', `--user-data-dir=${join(work, 'user-data')}`],
     extensionTestsEnv: {
