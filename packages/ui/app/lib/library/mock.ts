@@ -3,23 +3,18 @@
 import { create } from '@bufbuild/protobuf'
 import { TranscriptHitSchema, AutoMemoryProjectSchema, AutoMemoryFileSchema } from '~/gen/harness/agent/v1/library_pb'
 import { ArtifactSchema, GetArtifactResponseSchema } from '~/gen/harness/library/v1/artifacts_pb'
-import { GetKnowledgeDocumentResponseSchema, KnowledgeDocumentSchema, KnowledgeHitSchema } from '~/gen/harness/library/v1/knowledge_pb'
-import { TrackerTaskSchema } from '~/gen/harness/library/v1/tracker_pb'
+import { GetKnowledgeDocumentResponseSchema, KnowledgeDocumentSchema, KnowledgeHitSchema, KnowledgeSourceSchema } from '~/gen/harness/library/v1/knowledge_pb'
 import {
   ArtifactFilter,
   ArtifactKind,
   ArtifactVisibility,
   ExportFormat,
   Scope,
-  TrackerPriority,
-  TrackerStatus,
+  KnowledgeSourceKind,
   type Artifact,
   type AutoMemoryProject,
   type KnowledgeDocument,
   type LibraryApi,
-  type TaskDraft,
-  type TaskPatch,
-  type TrackerTask
 } from './types'
 
 const iso = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString()
@@ -47,11 +42,6 @@ export class MockLibraryApi implements LibraryApi {
     { d: create(KnowledgeDocumentSchema, { id: 'kb_notes', scope: Scope.USER, title: 'My notes on billing', size: 34n, editable: true, createdAt: iso(90), updatedAt: iso(90) }), content: 'Invoices close on the last Friday.' }
   ]
 
-  private tasks: TrackerTask[] = [
-    create(TrackerTaskSchema, { id: 'task_1', title: 'Rotate the signing keys', description: 'Before the next release.', status: TrackerStatus.TODO, priority: TrackerPriority.HIGH, project: 'core', createdAt: iso(600), updatedAt: iso(600) }),
-    create(TrackerTaskSchema, { id: 'task_2', title: 'Finish the upload retry', status: TrackerStatus.IN_PROGRESS, priority: TrackerPriority.NORMAL, project: 'client', sessionIds: ['s1'], createdAt: iso(120), updatedAt: iso(30) }),
-    create(TrackerTaskSchema, { id: 'task_3', title: 'Write the migration guide', status: TrackerStatus.DONE, priority: TrackerPriority.LOW, createdAt: iso(9000), updatedAt: iso(800), closedAt: iso(800) })
-  ]
 
   private memory = new Map<string, Map<string, string>>([
     ['github.com/xlsft/harness', new Map([['release_process.md', '---\nname: Release process\ndescription: Staging first, since the January outage\ntype: project\n---\n\nEvery release goes through staging.\n']])]
@@ -140,39 +130,41 @@ export class MockLibraryApi implements LibraryApi {
     this.documents = this.documents.filter(d => d.d.id !== id)
   }
 
+  private ref(d: KnowledgeDocument) {
+    return d.scope === Scope.ORG
+      ? { id: 'internal:org', kind: KnowledgeSourceKind.INTERNAL, scope: Scope.ORG, name: 'Internal, for everyone' }
+      : { id: 'internal:user', kind: KnowledgeSourceKind.INTERNAL, scope: Scope.USER, name: 'Internal, only you' }
+  }
+
+  async listSources() {
+    return [
+      create(KnowledgeSourceSchema, { ref: { id: 'internal:org', kind: KnowledgeSourceKind.INTERNAL, scope: Scope.ORG, name: 'Internal, for everyone' }, documentCount: this.documents.filter(x => x.d.scope === Scope.ORG).length }),
+      create(KnowledgeSourceSchema, { ref: { id: 'internal:user', kind: KnowledgeSourceKind.INTERNAL, scope: Scope.USER, name: 'Internal, only you' }, documentCount: this.documents.filter(x => x.d.scope === Scope.USER).length, writable: true }),
+      create(KnowledgeSourceSchema, { ref: { id: 'tc_company', kind: KnowledgeSourceKind.PROVIDER, scope: Scope.ORG, name: 'Company YouTrack', provider: 'youtrack' } })
+    ]
+  }
+
+  async browseSource(sourceId: string, parentId = '') {
+    if (sourceId === 'tc_company') {
+      const top = create(KnowledgeDocumentSchema, { id: 'conn:tc_company:HELP-A-1', title: 'Handbook', scope: Scope.ORG, hasChildren: true, url: 'https://yt.example.test/articles/HELP-A-1' })
+      const kid = create(KnowledgeDocumentSchema, { id: 'conn:tc_company:HELP-A-2', title: 'On call', scope: Scope.ORG, url: 'https://yt.example.test/articles/HELP-A-2' })
+      return { documents: parentId ? [kid] : [top], hasMore: false }
+    }
+    const scope = sourceId === 'internal:org' ? Scope.ORG : Scope.USER
+    return { documents: this.documents.filter(x => x.d.scope === scope).map(x => x.d), hasMore: false }
+  }
+
+  async readDocument(id: string) {
+    if (id.startsWith('conn:')) return create(GetKnowledgeDocumentResponseSchema, { document: create(KnowledgeDocumentSchema, { id, title: 'Handbook', scope: Scope.ORG }), content: 'Read live from the provider.' })
+    return this.getDocument(id)
+  }
+
   async searchKnowledge(query: string) {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-    return this.documents
+    const hits = this.documents
       .filter(x => words.some(w => `${x.d.title} ${x.content}`.toLowerCase().includes(w)))
-      .map(x => create(KnowledgeHitSchema, { documentId: x.d.id, title: x.d.title, scope: x.d.scope, snippet: x.content, score: 1 }))
-  }
-
-  async listTasks(q: { query?: string } = {}) {
-    const text = q.query?.trim().toLowerCase()
-    return text ? this.tasks.filter(t => `${t.title} ${t.description}`.toLowerCase().includes(text)) : [...this.tasks]
-  }
-
-  async createTask(d: TaskDraft) {
-    if (!d.title.trim()) throw new Error('[invalid_argument] title is required')
-    const t = create(TrackerTaskSchema, { id: `task_${++this.seq}`, title: d.title.trim(), description: d.description ?? '', status: d.status || TrackerStatus.TODO, priority: d.priority || TrackerPriority.NORMAL, project: d.project ?? '', blockedBy: d.blockedBy ?? [], createdAt: iso(0), updatedAt: iso(0) })
-    this.tasks.unshift(t)
-    return t
-  }
-
-  async updateTask(id: string, patch: TaskPatch) {
-    const i = this.tasks.findIndex(t => t.id === id)
-    if (i < 0) throw new Error('[not_found] no such task')
-    const cur = this.tasks[i]!
-    const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
-    const status = patch.status ?? cur.status
-    const closed = status === TrackerStatus.DONE || status === TrackerStatus.CANCELLED
-    const next = { ...cur, ...defined, updatedAt: iso(0), closedAt: closed ? cur.closedAt || iso(0) : '' }
-    this.tasks[i] = next
-    return next
-  }
-
-  async deleteTask(id: string) {
-    this.tasks = this.tasks.filter(t => t.id !== id)
+      .map(x => create(KnowledgeHitSchema, { documentId: x.d.id, title: x.d.title, scope: x.d.scope, snippet: x.content, score: 1, source: this.ref(x.d) }))
+    return { hits, warnings: [] }
   }
 
   private projectOf(key: string, current = false): AutoMemoryProject {

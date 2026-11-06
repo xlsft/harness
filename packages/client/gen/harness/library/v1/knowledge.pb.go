@@ -22,6 +22,57 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type KnowledgeSourceKind int32
+
+const (
+	KnowledgeSourceKind_KNOWLEDGE_SOURCE_KIND_UNSPECIFIED KnowledgeSourceKind = 0
+	// Documents kept on the server.
+	KnowledgeSourceKind_KNOWLEDGE_SOURCE_KIND_INTERNAL KnowledgeSourceKind = 1
+	// Documents of a tracker, read live through a connection.
+	KnowledgeSourceKind_KNOWLEDGE_SOURCE_KIND_PROVIDER KnowledgeSourceKind = 2
+)
+
+// Enum value maps for KnowledgeSourceKind.
+var (
+	KnowledgeSourceKind_name = map[int32]string{
+		0: "KNOWLEDGE_SOURCE_KIND_UNSPECIFIED",
+		1: "KNOWLEDGE_SOURCE_KIND_INTERNAL",
+		2: "KNOWLEDGE_SOURCE_KIND_PROVIDER",
+	}
+	KnowledgeSourceKind_value = map[string]int32{
+		"KNOWLEDGE_SOURCE_KIND_UNSPECIFIED": 0,
+		"KNOWLEDGE_SOURCE_KIND_INTERNAL":    1,
+		"KNOWLEDGE_SOURCE_KIND_PROVIDER":    2,
+	}
+)
+
+func (x KnowledgeSourceKind) Enum() *KnowledgeSourceKind {
+	p := new(KnowledgeSourceKind)
+	*p = x
+	return p
+}
+
+func (x KnowledgeSourceKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (KnowledgeSourceKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_library_v1_knowledge_proto_enumTypes[0].Descriptor()
+}
+
+func (KnowledgeSourceKind) Type() protoreflect.EnumType {
+	return &file_harness_library_v1_knowledge_proto_enumTypes[0]
+}
+
+func (x KnowledgeSourceKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use KnowledgeSourceKind.Descriptor instead.
+func (KnowledgeSourceKind) EnumDescriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{0}
+}
+
 type KnowledgeDocument struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -34,8 +85,13 @@ type KnowledgeDocument struct {
 	// The caller may change or delete it.
 	Editable bool `protobuf:"varint,6,opt,name=editable,proto3" json:"editable,omitempty"`
 	// RFC 3339.
-	CreatedAt     string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt string `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Where it comes from. Internal documents leave `url` empty.
+	Source *KnowledgeSourceRef `protobuf:"bytes,9,opt,name=source,proto3" json:"source,omitempty"`
+	Url    string              `protobuf:"bytes,10,opt,name=url,proto3" json:"url,omitempty"`
+	// Has sub-documents, on providers that keep a tree.
+	HasChildren   bool `protobuf:"varint,11,opt,name=has_children,json=hasChildren,proto3" json:"has_children,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -126,6 +182,372 @@ func (x *KnowledgeDocument) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *KnowledgeDocument) GetSource() *KnowledgeSourceRef {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *KnowledgeDocument) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *KnowledgeDocument) GetHasChildren() bool {
+	if x != nil {
+		return x.HasChildren
+	}
+	return false
+}
+
+// Names a source wherever a document or a passage says where it comes from.
+type KnowledgeSourceRef struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "internal:org", "internal:user", or a connection id.
+	Id   string              `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Kind KnowledgeSourceKind `protobuf:"varint,2,opt,name=kind,proto3,enum=harness.library.v1.KnowledgeSourceKind" json:"kind,omitempty"`
+	// SCOPE_ORG: global. SCOPE_USER: this user's.
+	Scope v1.Scope `protobuf:"varint,3,opt,name=scope,proto3,enum=harness.common.v1.Scope" json:"scope,omitempty"`
+	// What people call it.
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	// "youtrack"; empty for internal sources.
+	Provider      string `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeSourceRef) Reset() {
+	*x = KnowledgeSourceRef{}
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeSourceRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeSourceRef) ProtoMessage() {}
+
+func (x *KnowledgeSourceRef) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeSourceRef.ProtoReflect.Descriptor instead.
+func (*KnowledgeSourceRef) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *KnowledgeSourceRef) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *KnowledgeSourceRef) GetKind() KnowledgeSourceKind {
+	if x != nil {
+		return x.Kind
+	}
+	return KnowledgeSourceKind_KNOWLEDGE_SOURCE_KIND_UNSPECIFIED
+}
+
+func (x *KnowledgeSourceRef) GetScope() v1.Scope {
+	if x != nil {
+		return x.Scope
+	}
+	return v1.Scope(0)
+}
+
+func (x *KnowledgeSourceRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *KnowledgeSourceRef) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+type KnowledgeSource struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Ref   *KnowledgeSourceRef    `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Internal: how many documents.
+	DocumentCount int32 `protobuf:"varint,2,opt,name=document_count,json=documentCount,proto3" json:"document_count,omitempty"`
+	// The caller may add documents here.
+	Writable      bool `protobuf:"varint,3,opt,name=writable,proto3" json:"writable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeSource) Reset() {
+	*x = KnowledgeSource{}
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeSource) ProtoMessage() {}
+
+func (x *KnowledgeSource) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeSource.ProtoReflect.Descriptor instead.
+func (*KnowledgeSource) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *KnowledgeSource) GetRef() *KnowledgeSourceRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *KnowledgeSource) GetDocumentCount() int32 {
+	if x != nil {
+		return x.DocumentCount
+	}
+	return 0
+}
+
+func (x *KnowledgeSource) GetWritable() bool {
+	if x != nil {
+		return x.Writable
+	}
+	return false
+}
+
+type ListKnowledgeSourcesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKnowledgeSourcesRequest) Reset() {
+	*x = ListKnowledgeSourcesRequest{}
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKnowledgeSourcesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKnowledgeSourcesRequest) ProtoMessage() {}
+
+func (x *ListKnowledgeSourcesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKnowledgeSourcesRequest.ProtoReflect.Descriptor instead.
+func (*ListKnowledgeSourcesRequest) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{3}
+}
+
+type ListKnowledgeSourcesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sources       []*KnowledgeSource     `protobuf:"bytes,1,rep,name=sources,proto3" json:"sources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKnowledgeSourcesResponse) Reset() {
+	*x = ListKnowledgeSourcesResponse{}
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKnowledgeSourcesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKnowledgeSourcesResponse) ProtoMessage() {}
+
+func (x *ListKnowledgeSourcesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKnowledgeSourcesResponse.ProtoReflect.Descriptor instead.
+func (*ListKnowledgeSourcesResponse) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListKnowledgeSourcesResponse) GetSources() []*KnowledgeSource {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
+type BrowseKnowledgeSourceRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	SourceId string                 `protobuf:"bytes,1,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
+	// An article id of this source; empty: top level.
+	ParentId string `protobuf:"bytes,2,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	// Default 100, at most 200.
+	Limit         int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32 `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BrowseKnowledgeSourceRequest) Reset() {
+	*x = BrowseKnowledgeSourceRequest{}
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BrowseKnowledgeSourceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BrowseKnowledgeSourceRequest) ProtoMessage() {}
+
+func (x *BrowseKnowledgeSourceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BrowseKnowledgeSourceRequest.ProtoReflect.Descriptor instead.
+func (*BrowseKnowledgeSourceRequest) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *BrowseKnowledgeSourceRequest) GetSourceId() string {
+	if x != nil {
+		return x.SourceId
+	}
+	return ""
+}
+
+func (x *BrowseKnowledgeSourceRequest) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
+}
+
+func (x *BrowseKnowledgeSourceRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *BrowseKnowledgeSourceRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type BrowseKnowledgeSourceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Documents     []*KnowledgeDocument   `protobuf:"bytes,1,rep,name=documents,proto3" json:"documents,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BrowseKnowledgeSourceResponse) Reset() {
+	*x = BrowseKnowledgeSourceResponse{}
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BrowseKnowledgeSourceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BrowseKnowledgeSourceResponse) ProtoMessage() {}
+
+func (x *BrowseKnowledgeSourceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BrowseKnowledgeSourceResponse.ProtoReflect.Descriptor instead.
+func (*BrowseKnowledgeSourceResponse) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *BrowseKnowledgeSourceResponse) GetDocuments() []*KnowledgeDocument {
+	if x != nil {
+		return x.Documents
+	}
+	return nil
+}
+
+func (x *BrowseKnowledgeSourceResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
 type ListKnowledgeDocumentsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// UNSPECIFIED: every scope the caller may read.
@@ -138,7 +560,7 @@ type ListKnowledgeDocumentsRequest struct {
 
 func (x *ListKnowledgeDocumentsRequest) Reset() {
 	*x = ListKnowledgeDocumentsRequest{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[1]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -150,7 +572,7 @@ func (x *ListKnowledgeDocumentsRequest) String() string {
 func (*ListKnowledgeDocumentsRequest) ProtoMessage() {}
 
 func (x *ListKnowledgeDocumentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[1]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -163,7 +585,7 @@ func (x *ListKnowledgeDocumentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKnowledgeDocumentsRequest.ProtoReflect.Descriptor instead.
 func (*ListKnowledgeDocumentsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{1}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListKnowledgeDocumentsRequest) GetScope() v1.Scope {
@@ -189,7 +611,7 @@ type ListKnowledgeDocumentsResponse struct {
 
 func (x *ListKnowledgeDocumentsResponse) Reset() {
 	*x = ListKnowledgeDocumentsResponse{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[2]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -201,7 +623,7 @@ func (x *ListKnowledgeDocumentsResponse) String() string {
 func (*ListKnowledgeDocumentsResponse) ProtoMessage() {}
 
 func (x *ListKnowledgeDocumentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[2]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -214,7 +636,7 @@ func (x *ListKnowledgeDocumentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKnowledgeDocumentsResponse.ProtoReflect.Descriptor instead.
 func (*ListKnowledgeDocumentsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{2}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListKnowledgeDocumentsResponse) GetDocuments() []*KnowledgeDocument {
@@ -233,7 +655,7 @@ type GetKnowledgeDocumentRequest struct {
 
 func (x *GetKnowledgeDocumentRequest) Reset() {
 	*x = GetKnowledgeDocumentRequest{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[3]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -245,7 +667,7 @@ func (x *GetKnowledgeDocumentRequest) String() string {
 func (*GetKnowledgeDocumentRequest) ProtoMessage() {}
 
 func (x *GetKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[3]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -258,7 +680,7 @@ func (x *GetKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetKnowledgeDocumentRequest.ProtoReflect.Descriptor instead.
 func (*GetKnowledgeDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{3}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetKnowledgeDocumentRequest) GetId() string {
@@ -278,7 +700,7 @@ type GetKnowledgeDocumentResponse struct {
 
 func (x *GetKnowledgeDocumentResponse) Reset() {
 	*x = GetKnowledgeDocumentResponse{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[4]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -290,7 +712,7 @@ func (x *GetKnowledgeDocumentResponse) String() string {
 func (*GetKnowledgeDocumentResponse) ProtoMessage() {}
 
 func (x *GetKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[4]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -303,7 +725,7 @@ func (x *GetKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetKnowledgeDocumentResponse.ProtoReflect.Descriptor instead.
 func (*GetKnowledgeDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{4}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetKnowledgeDocumentResponse) GetDocument() *KnowledgeDocument {
@@ -333,7 +755,7 @@ type CreateKnowledgeDocumentRequest struct {
 
 func (x *CreateKnowledgeDocumentRequest) Reset() {
 	*x = CreateKnowledgeDocumentRequest{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[5]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +767,7 @@ func (x *CreateKnowledgeDocumentRequest) String() string {
 func (*CreateKnowledgeDocumentRequest) ProtoMessage() {}
 
 func (x *CreateKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[5]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +780,7 @@ func (x *CreateKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateKnowledgeDocumentRequest.ProtoReflect.Descriptor instead.
 func (*CreateKnowledgeDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{5}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CreateKnowledgeDocumentRequest) GetScope() v1.Scope {
@@ -398,7 +820,7 @@ type CreateKnowledgeDocumentResponse struct {
 
 func (x *CreateKnowledgeDocumentResponse) Reset() {
 	*x = CreateKnowledgeDocumentResponse{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[6]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -410,7 +832,7 @@ func (x *CreateKnowledgeDocumentResponse) String() string {
 func (*CreateKnowledgeDocumentResponse) ProtoMessage() {}
 
 func (x *CreateKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[6]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -423,7 +845,7 @@ func (x *CreateKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateKnowledgeDocumentResponse.ProtoReflect.Descriptor instead.
 func (*CreateKnowledgeDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{6}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateKnowledgeDocumentResponse) GetDocument() *KnowledgeDocument {
@@ -444,7 +866,7 @@ type UpdateKnowledgeDocumentRequest struct {
 
 func (x *UpdateKnowledgeDocumentRequest) Reset() {
 	*x = UpdateKnowledgeDocumentRequest{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[7]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -456,7 +878,7 @@ func (x *UpdateKnowledgeDocumentRequest) String() string {
 func (*UpdateKnowledgeDocumentRequest) ProtoMessage() {}
 
 func (x *UpdateKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[7]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +891,7 @@ func (x *UpdateKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateKnowledgeDocumentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateKnowledgeDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{7}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpdateKnowledgeDocumentRequest) GetId() string {
@@ -502,7 +924,7 @@ type UpdateKnowledgeDocumentResponse struct {
 
 func (x *UpdateKnowledgeDocumentResponse) Reset() {
 	*x = UpdateKnowledgeDocumentResponse{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[8]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -514,7 +936,7 @@ func (x *UpdateKnowledgeDocumentResponse) String() string {
 func (*UpdateKnowledgeDocumentResponse) ProtoMessage() {}
 
 func (x *UpdateKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[8]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -527,7 +949,7 @@ func (x *UpdateKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateKnowledgeDocumentResponse.ProtoReflect.Descriptor instead.
 func (*UpdateKnowledgeDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{8}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateKnowledgeDocumentResponse) GetDocument() *KnowledgeDocument {
@@ -546,7 +968,7 @@ type DeleteKnowledgeDocumentRequest struct {
 
 func (x *DeleteKnowledgeDocumentRequest) Reset() {
 	*x = DeleteKnowledgeDocumentRequest{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[9]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -558,7 +980,7 @@ func (x *DeleteKnowledgeDocumentRequest) String() string {
 func (*DeleteKnowledgeDocumentRequest) ProtoMessage() {}
 
 func (x *DeleteKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[9]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -571,7 +993,7 @@ func (x *DeleteKnowledgeDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteKnowledgeDocumentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteKnowledgeDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{9}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteKnowledgeDocumentRequest) GetId() string {
@@ -589,7 +1011,7 @@ type DeleteKnowledgeDocumentResponse struct {
 
 func (x *DeleteKnowledgeDocumentResponse) Reset() {
 	*x = DeleteKnowledgeDocumentResponse{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[10]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -601,7 +1023,7 @@ func (x *DeleteKnowledgeDocumentResponse) String() string {
 func (*DeleteKnowledgeDocumentResponse) ProtoMessage() {}
 
 func (x *DeleteKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[10]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -614,7 +1036,7 @@ func (x *DeleteKnowledgeDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteKnowledgeDocumentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteKnowledgeDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{10}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{16}
 }
 
 type SearchKnowledgeRequest struct {
@@ -630,7 +1052,7 @@ type SearchKnowledgeRequest struct {
 
 func (x *SearchKnowledgeRequest) Reset() {
 	*x = SearchKnowledgeRequest{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[11]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -642,7 +1064,7 @@ func (x *SearchKnowledgeRequest) String() string {
 func (*SearchKnowledgeRequest) ProtoMessage() {}
 
 func (x *SearchKnowledgeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[11]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -655,7 +1077,7 @@ func (x *SearchKnowledgeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchKnowledgeRequest.ProtoReflect.Descriptor instead.
 func (*SearchKnowledgeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{11}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SearchKnowledgeRequest) GetQuery() string {
@@ -685,15 +1107,17 @@ type KnowledgeHit struct {
 	Title      string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Scope      v1.Scope               `protobuf:"varint,3,opt,name=scope,proto3,enum=harness.common.v1.Scope" json:"scope,omitempty"`
 	// The matching passage, with the surrounding words.
-	Snippet       string  `protobuf:"bytes,4,opt,name=snippet,proto3" json:"snippet,omitempty"`
-	Score         float64 `protobuf:"fixed64,5,opt,name=score,proto3" json:"score,omitempty"`
+	Snippet       string              `protobuf:"bytes,4,opt,name=snippet,proto3" json:"snippet,omitempty"`
+	Score         float64             `protobuf:"fixed64,5,opt,name=score,proto3" json:"score,omitempty"`
+	Source        *KnowledgeSourceRef `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
+	Url           string              `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *KnowledgeHit) Reset() {
 	*x = KnowledgeHit{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[12]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -705,7 +1129,7 @@ func (x *KnowledgeHit) String() string {
 func (*KnowledgeHit) ProtoMessage() {}
 
 func (x *KnowledgeHit) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[12]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -718,7 +1142,7 @@ func (x *KnowledgeHit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KnowledgeHit.ProtoReflect.Descriptor instead.
 func (*KnowledgeHit) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{12}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *KnowledgeHit) GetDocumentId() string {
@@ -756,16 +1180,84 @@ func (x *KnowledgeHit) GetScore() float64 {
 	return 0
 }
 
-type SearchKnowledgeResponse struct {
+func (x *KnowledgeHit) GetSource() *KnowledgeSourceRef {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *KnowledgeHit) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type KnowledgeWarning struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Hits          []*KnowledgeHit        `protobuf:"bytes,1,rep,name=hits,proto3" json:"hits,omitempty"`
+	Source        *KnowledgeSourceRef    `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeWarning) Reset() {
+	*x = KnowledgeWarning{}
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeWarning) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeWarning) ProtoMessage() {}
+
+func (x *KnowledgeWarning) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeWarning.ProtoReflect.Descriptor instead.
+func (*KnowledgeWarning) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *KnowledgeWarning) GetSource() *KnowledgeSourceRef {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *KnowledgeWarning) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type SearchKnowledgeResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Hits  []*KnowledgeHit        `protobuf:"bytes,1,rep,name=hits,proto3" json:"hits,omitempty"`
+	// Sources that could not answer. The hits of the others are still here.
+	Warnings      []*KnowledgeWarning `protobuf:"bytes,2,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SearchKnowledgeResponse) Reset() {
 	*x = SearchKnowledgeResponse{}
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[13]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -777,7 +1269,7 @@ func (x *SearchKnowledgeResponse) String() string {
 func (*SearchKnowledgeResponse) ProtoMessage() {}
 
 func (x *SearchKnowledgeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_knowledge_proto_msgTypes[13]
+	mi := &file_harness_library_v1_knowledge_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -790,7 +1282,7 @@ func (x *SearchKnowledgeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchKnowledgeResponse.ProtoReflect.Descriptor instead.
 func (*SearchKnowledgeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{13}
+	return file_harness_library_v1_knowledge_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SearchKnowledgeResponse) GetHits() []*KnowledgeHit {
@@ -800,11 +1292,18 @@ func (x *SearchKnowledgeResponse) GetHits() []*KnowledgeHit {
 	return nil
 }
 
+func (x *SearchKnowledgeResponse) GetWarnings() []*KnowledgeWarning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
 var File_harness_library_v1_knowledge_proto protoreflect.FileDescriptor
 
 const file_harness_library_v1_knowledge_proto_rawDesc = "" +
 	"\n" +
-	"\"harness/library/v1/knowledge.proto\x12\x12harness.library.v1\x1a\x1dharness/common/v1/scope.proto\"\xf8\x01\n" +
+	"\"harness/library/v1/knowledge.proto\x12\x12harness.library.v1\x1a\x1dharness/common/v1/scope.proto\"\xed\x02\n" +
 	"\x11KnowledgeDocument\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x05scope\x18\x02 \x01(\x0e2\x18.harness.common.v1.ScopeR\x05scope\x12\x14\n" +
@@ -816,7 +1315,32 @@ const file_harness_library_v1_knowledge_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\tR\tupdatedAt\"e\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt\x12>\n" +
+	"\x06source\x18\t \x01(\v2&.harness.library.v1.KnowledgeSourceRefR\x06source\x12\x10\n" +
+	"\x03url\x18\n" +
+	" \x01(\tR\x03url\x12!\n" +
+	"\fhas_children\x18\v \x01(\bR\vhasChildren\"\xc1\x01\n" +
+	"\x12KnowledgeSourceRef\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12;\n" +
+	"\x04kind\x18\x02 \x01(\x0e2'.harness.library.v1.KnowledgeSourceKindR\x04kind\x12.\n" +
+	"\x05scope\x18\x03 \x01(\x0e2\x18.harness.common.v1.ScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x1a\n" +
+	"\bprovider\x18\x05 \x01(\tR\bprovider\"\x8e\x01\n" +
+	"\x0fKnowledgeSource\x128\n" +
+	"\x03ref\x18\x01 \x01(\v2&.harness.library.v1.KnowledgeSourceRefR\x03ref\x12%\n" +
+	"\x0edocument_count\x18\x02 \x01(\x05R\rdocumentCount\x12\x1a\n" +
+	"\bwritable\x18\x03 \x01(\bR\bwritable\"\x1d\n" +
+	"\x1bListKnowledgeSourcesRequest\"]\n" +
+	"\x1cListKnowledgeSourcesResponse\x12=\n" +
+	"\asources\x18\x01 \x03(\v2#.harness.library.v1.KnowledgeSourceR\asources\"\x86\x01\n" +
+	"\x1cBrowseKnowledgeSourceRequest\x12\x1b\n" +
+	"\tsource_id\x18\x01 \x01(\tR\bsourceId\x12\x1b\n" +
+	"\tparent_id\x18\x02 \x01(\tR\bparentId\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\"\x7f\n" +
+	"\x1dBrowseKnowledgeSourceResponse\x12C\n" +
+	"\tdocuments\x18\x01 \x03(\v2%.harness.library.v1.KnowledgeDocumentR\tdocuments\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"e\n" +
 	"\x1dListKnowledgeDocumentsRequest\x12.\n" +
 	"\x05scope\x18\x01 \x01(\x0e2\x18.harness.common.v1.ScopeR\x05scope\x12\x14\n" +
 	"\x05query\x18\x02 \x01(\tR\x05query\"e\n" +
@@ -850,23 +1374,35 @@ const file_harness_library_v1_knowledge_proto_rawDesc = "" +
 	"\x16SearchKnowledgeRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12.\n" +
-	"\x05scope\x18\x03 \x01(\x0e2\x18.harness.common.v1.ScopeR\x05scope\"\xa5\x01\n" +
+	"\x05scope\x18\x03 \x01(\x0e2\x18.harness.common.v1.ScopeR\x05scope\"\xf7\x01\n" +
 	"\fKnowledgeHit\x12\x1f\n" +
 	"\vdocument_id\x18\x01 \x01(\tR\n" +
 	"documentId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12.\n" +
 	"\x05scope\x18\x03 \x01(\x0e2\x18.harness.common.v1.ScopeR\x05scope\x12\x18\n" +
 	"\asnippet\x18\x04 \x01(\tR\asnippet\x12\x14\n" +
-	"\x05score\x18\x05 \x01(\x01R\x05score\"O\n" +
+	"\x05score\x18\x05 \x01(\x01R\x05score\x12>\n" +
+	"\x06source\x18\x06 \x01(\v2&.harness.library.v1.KnowledgeSourceRefR\x06source\x12\x10\n" +
+	"\x03url\x18\a \x01(\tR\x03url\"l\n" +
+	"\x10KnowledgeWarning\x12>\n" +
+	"\x06source\x18\x01 \x01(\v2&.harness.library.v1.KnowledgeSourceRefR\x06source\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x91\x01\n" +
 	"\x17SearchKnowledgeResponse\x124\n" +
-	"\x04hits\x18\x01 \x03(\v2 .harness.library.v1.KnowledgeHitR\x04hits2\x89\x06\n" +
+	"\x04hits\x18\x01 \x03(\v2 .harness.library.v1.KnowledgeHitR\x04hits\x12@\n" +
+	"\bwarnings\x18\x02 \x03(\v2$.harness.library.v1.KnowledgeWarningR\bwarnings*\x84\x01\n" +
+	"\x13KnowledgeSourceKind\x12%\n" +
+	"!KNOWLEDGE_SOURCE_KIND_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eKNOWLEDGE_SOURCE_KIND_INTERNAL\x10\x01\x12\"\n" +
+	"\x1eKNOWLEDGE_SOURCE_KIND_PROVIDER\x10\x022\x82\b\n" +
 	"\x10KnowledgeService\x12\x7f\n" +
 	"\x16ListKnowledgeDocuments\x121.harness.library.v1.ListKnowledgeDocumentsRequest\x1a2.harness.library.v1.ListKnowledgeDocumentsResponse\x12y\n" +
 	"\x14GetKnowledgeDocument\x12/.harness.library.v1.GetKnowledgeDocumentRequest\x1a0.harness.library.v1.GetKnowledgeDocumentResponse\x12\x82\x01\n" +
 	"\x17CreateKnowledgeDocument\x122.harness.library.v1.CreateKnowledgeDocumentRequest\x1a3.harness.library.v1.CreateKnowledgeDocumentResponse\x12\x82\x01\n" +
 	"\x17UpdateKnowledgeDocument\x122.harness.library.v1.UpdateKnowledgeDocumentRequest\x1a3.harness.library.v1.UpdateKnowledgeDocumentResponse\x12\x82\x01\n" +
 	"\x17DeleteKnowledgeDocument\x122.harness.library.v1.DeleteKnowledgeDocumentRequest\x1a3.harness.library.v1.DeleteKnowledgeDocumentResponse\x12j\n" +
-	"\x0fSearchKnowledge\x12*.harness.library.v1.SearchKnowledgeRequest\x1a+.harness.library.v1.SearchKnowledgeResponseB\xdd\x01\n" +
+	"\x0fSearchKnowledge\x12*.harness.library.v1.SearchKnowledgeRequest\x1a+.harness.library.v1.SearchKnowledgeResponse\x12y\n" +
+	"\x14ListKnowledgeSources\x12/.harness.library.v1.ListKnowledgeSourcesRequest\x1a0.harness.library.v1.ListKnowledgeSourcesResponse\x12|\n" +
+	"\x15BrowseKnowledgeSource\x120.harness.library.v1.BrowseKnowledgeSourceRequest\x1a1.harness.library.v1.BrowseKnowledgeSourceResponseB\xdd\x01\n" +
 	"\x16com.harness.library.v1B\x0eKnowledgeProtoP\x01ZIgithub.com/xlsft/harness/packages/client/gen/harness/library/v1;libraryv1\xa2\x02\x03HLX\xaa\x02\x12Harness.Library.V1\xca\x02\x12Harness\\Library\\V1\xe2\x02\x1eHarness\\Library\\V1\\GPBMetadata\xea\x02\x14Harness::Library::V1b\x06proto3"
 
 var (
@@ -881,52 +1417,74 @@ func file_harness_library_v1_knowledge_proto_rawDescGZIP() []byte {
 	return file_harness_library_v1_knowledge_proto_rawDescData
 }
 
-var file_harness_library_v1_knowledge_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_harness_library_v1_knowledge_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_harness_library_v1_knowledge_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_harness_library_v1_knowledge_proto_goTypes = []any{
-	(*KnowledgeDocument)(nil),               // 0: harness.library.v1.KnowledgeDocument
-	(*ListKnowledgeDocumentsRequest)(nil),   // 1: harness.library.v1.ListKnowledgeDocumentsRequest
-	(*ListKnowledgeDocumentsResponse)(nil),  // 2: harness.library.v1.ListKnowledgeDocumentsResponse
-	(*GetKnowledgeDocumentRequest)(nil),     // 3: harness.library.v1.GetKnowledgeDocumentRequest
-	(*GetKnowledgeDocumentResponse)(nil),    // 4: harness.library.v1.GetKnowledgeDocumentResponse
-	(*CreateKnowledgeDocumentRequest)(nil),  // 5: harness.library.v1.CreateKnowledgeDocumentRequest
-	(*CreateKnowledgeDocumentResponse)(nil), // 6: harness.library.v1.CreateKnowledgeDocumentResponse
-	(*UpdateKnowledgeDocumentRequest)(nil),  // 7: harness.library.v1.UpdateKnowledgeDocumentRequest
-	(*UpdateKnowledgeDocumentResponse)(nil), // 8: harness.library.v1.UpdateKnowledgeDocumentResponse
-	(*DeleteKnowledgeDocumentRequest)(nil),  // 9: harness.library.v1.DeleteKnowledgeDocumentRequest
-	(*DeleteKnowledgeDocumentResponse)(nil), // 10: harness.library.v1.DeleteKnowledgeDocumentResponse
-	(*SearchKnowledgeRequest)(nil),          // 11: harness.library.v1.SearchKnowledgeRequest
-	(*KnowledgeHit)(nil),                    // 12: harness.library.v1.KnowledgeHit
-	(*SearchKnowledgeResponse)(nil),         // 13: harness.library.v1.SearchKnowledgeResponse
-	(v1.Scope)(0),                           // 14: harness.common.v1.Scope
+	(KnowledgeSourceKind)(0),                // 0: harness.library.v1.KnowledgeSourceKind
+	(*KnowledgeDocument)(nil),               // 1: harness.library.v1.KnowledgeDocument
+	(*KnowledgeSourceRef)(nil),              // 2: harness.library.v1.KnowledgeSourceRef
+	(*KnowledgeSource)(nil),                 // 3: harness.library.v1.KnowledgeSource
+	(*ListKnowledgeSourcesRequest)(nil),     // 4: harness.library.v1.ListKnowledgeSourcesRequest
+	(*ListKnowledgeSourcesResponse)(nil),    // 5: harness.library.v1.ListKnowledgeSourcesResponse
+	(*BrowseKnowledgeSourceRequest)(nil),    // 6: harness.library.v1.BrowseKnowledgeSourceRequest
+	(*BrowseKnowledgeSourceResponse)(nil),   // 7: harness.library.v1.BrowseKnowledgeSourceResponse
+	(*ListKnowledgeDocumentsRequest)(nil),   // 8: harness.library.v1.ListKnowledgeDocumentsRequest
+	(*ListKnowledgeDocumentsResponse)(nil),  // 9: harness.library.v1.ListKnowledgeDocumentsResponse
+	(*GetKnowledgeDocumentRequest)(nil),     // 10: harness.library.v1.GetKnowledgeDocumentRequest
+	(*GetKnowledgeDocumentResponse)(nil),    // 11: harness.library.v1.GetKnowledgeDocumentResponse
+	(*CreateKnowledgeDocumentRequest)(nil),  // 12: harness.library.v1.CreateKnowledgeDocumentRequest
+	(*CreateKnowledgeDocumentResponse)(nil), // 13: harness.library.v1.CreateKnowledgeDocumentResponse
+	(*UpdateKnowledgeDocumentRequest)(nil),  // 14: harness.library.v1.UpdateKnowledgeDocumentRequest
+	(*UpdateKnowledgeDocumentResponse)(nil), // 15: harness.library.v1.UpdateKnowledgeDocumentResponse
+	(*DeleteKnowledgeDocumentRequest)(nil),  // 16: harness.library.v1.DeleteKnowledgeDocumentRequest
+	(*DeleteKnowledgeDocumentResponse)(nil), // 17: harness.library.v1.DeleteKnowledgeDocumentResponse
+	(*SearchKnowledgeRequest)(nil),          // 18: harness.library.v1.SearchKnowledgeRequest
+	(*KnowledgeHit)(nil),                    // 19: harness.library.v1.KnowledgeHit
+	(*KnowledgeWarning)(nil),                // 20: harness.library.v1.KnowledgeWarning
+	(*SearchKnowledgeResponse)(nil),         // 21: harness.library.v1.SearchKnowledgeResponse
+	(v1.Scope)(0),                           // 22: harness.common.v1.Scope
 }
 var file_harness_library_v1_knowledge_proto_depIdxs = []int32{
-	14, // 0: harness.library.v1.KnowledgeDocument.scope:type_name -> harness.common.v1.Scope
-	14, // 1: harness.library.v1.ListKnowledgeDocumentsRequest.scope:type_name -> harness.common.v1.Scope
-	0,  // 2: harness.library.v1.ListKnowledgeDocumentsResponse.documents:type_name -> harness.library.v1.KnowledgeDocument
-	0,  // 3: harness.library.v1.GetKnowledgeDocumentResponse.document:type_name -> harness.library.v1.KnowledgeDocument
-	14, // 4: harness.library.v1.CreateKnowledgeDocumentRequest.scope:type_name -> harness.common.v1.Scope
-	0,  // 5: harness.library.v1.CreateKnowledgeDocumentResponse.document:type_name -> harness.library.v1.KnowledgeDocument
-	0,  // 6: harness.library.v1.UpdateKnowledgeDocumentResponse.document:type_name -> harness.library.v1.KnowledgeDocument
-	14, // 7: harness.library.v1.SearchKnowledgeRequest.scope:type_name -> harness.common.v1.Scope
-	14, // 8: harness.library.v1.KnowledgeHit.scope:type_name -> harness.common.v1.Scope
-	12, // 9: harness.library.v1.SearchKnowledgeResponse.hits:type_name -> harness.library.v1.KnowledgeHit
-	1,  // 10: harness.library.v1.KnowledgeService.ListKnowledgeDocuments:input_type -> harness.library.v1.ListKnowledgeDocumentsRequest
-	3,  // 11: harness.library.v1.KnowledgeService.GetKnowledgeDocument:input_type -> harness.library.v1.GetKnowledgeDocumentRequest
-	5,  // 12: harness.library.v1.KnowledgeService.CreateKnowledgeDocument:input_type -> harness.library.v1.CreateKnowledgeDocumentRequest
-	7,  // 13: harness.library.v1.KnowledgeService.UpdateKnowledgeDocument:input_type -> harness.library.v1.UpdateKnowledgeDocumentRequest
-	9,  // 14: harness.library.v1.KnowledgeService.DeleteKnowledgeDocument:input_type -> harness.library.v1.DeleteKnowledgeDocumentRequest
-	11, // 15: harness.library.v1.KnowledgeService.SearchKnowledge:input_type -> harness.library.v1.SearchKnowledgeRequest
-	2,  // 16: harness.library.v1.KnowledgeService.ListKnowledgeDocuments:output_type -> harness.library.v1.ListKnowledgeDocumentsResponse
-	4,  // 17: harness.library.v1.KnowledgeService.GetKnowledgeDocument:output_type -> harness.library.v1.GetKnowledgeDocumentResponse
-	6,  // 18: harness.library.v1.KnowledgeService.CreateKnowledgeDocument:output_type -> harness.library.v1.CreateKnowledgeDocumentResponse
-	8,  // 19: harness.library.v1.KnowledgeService.UpdateKnowledgeDocument:output_type -> harness.library.v1.UpdateKnowledgeDocumentResponse
-	10, // 20: harness.library.v1.KnowledgeService.DeleteKnowledgeDocument:output_type -> harness.library.v1.DeleteKnowledgeDocumentResponse
-	13, // 21: harness.library.v1.KnowledgeService.SearchKnowledge:output_type -> harness.library.v1.SearchKnowledgeResponse
-	16, // [16:22] is the sub-list for method output_type
-	10, // [10:16] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	22, // 0: harness.library.v1.KnowledgeDocument.scope:type_name -> harness.common.v1.Scope
+	2,  // 1: harness.library.v1.KnowledgeDocument.source:type_name -> harness.library.v1.KnowledgeSourceRef
+	0,  // 2: harness.library.v1.KnowledgeSourceRef.kind:type_name -> harness.library.v1.KnowledgeSourceKind
+	22, // 3: harness.library.v1.KnowledgeSourceRef.scope:type_name -> harness.common.v1.Scope
+	2,  // 4: harness.library.v1.KnowledgeSource.ref:type_name -> harness.library.v1.KnowledgeSourceRef
+	3,  // 5: harness.library.v1.ListKnowledgeSourcesResponse.sources:type_name -> harness.library.v1.KnowledgeSource
+	1,  // 6: harness.library.v1.BrowseKnowledgeSourceResponse.documents:type_name -> harness.library.v1.KnowledgeDocument
+	22, // 7: harness.library.v1.ListKnowledgeDocumentsRequest.scope:type_name -> harness.common.v1.Scope
+	1,  // 8: harness.library.v1.ListKnowledgeDocumentsResponse.documents:type_name -> harness.library.v1.KnowledgeDocument
+	1,  // 9: harness.library.v1.GetKnowledgeDocumentResponse.document:type_name -> harness.library.v1.KnowledgeDocument
+	22, // 10: harness.library.v1.CreateKnowledgeDocumentRequest.scope:type_name -> harness.common.v1.Scope
+	1,  // 11: harness.library.v1.CreateKnowledgeDocumentResponse.document:type_name -> harness.library.v1.KnowledgeDocument
+	1,  // 12: harness.library.v1.UpdateKnowledgeDocumentResponse.document:type_name -> harness.library.v1.KnowledgeDocument
+	22, // 13: harness.library.v1.SearchKnowledgeRequest.scope:type_name -> harness.common.v1.Scope
+	22, // 14: harness.library.v1.KnowledgeHit.scope:type_name -> harness.common.v1.Scope
+	2,  // 15: harness.library.v1.KnowledgeHit.source:type_name -> harness.library.v1.KnowledgeSourceRef
+	2,  // 16: harness.library.v1.KnowledgeWarning.source:type_name -> harness.library.v1.KnowledgeSourceRef
+	19, // 17: harness.library.v1.SearchKnowledgeResponse.hits:type_name -> harness.library.v1.KnowledgeHit
+	20, // 18: harness.library.v1.SearchKnowledgeResponse.warnings:type_name -> harness.library.v1.KnowledgeWarning
+	8,  // 19: harness.library.v1.KnowledgeService.ListKnowledgeDocuments:input_type -> harness.library.v1.ListKnowledgeDocumentsRequest
+	10, // 20: harness.library.v1.KnowledgeService.GetKnowledgeDocument:input_type -> harness.library.v1.GetKnowledgeDocumentRequest
+	12, // 21: harness.library.v1.KnowledgeService.CreateKnowledgeDocument:input_type -> harness.library.v1.CreateKnowledgeDocumentRequest
+	14, // 22: harness.library.v1.KnowledgeService.UpdateKnowledgeDocument:input_type -> harness.library.v1.UpdateKnowledgeDocumentRequest
+	16, // 23: harness.library.v1.KnowledgeService.DeleteKnowledgeDocument:input_type -> harness.library.v1.DeleteKnowledgeDocumentRequest
+	18, // 24: harness.library.v1.KnowledgeService.SearchKnowledge:input_type -> harness.library.v1.SearchKnowledgeRequest
+	4,  // 25: harness.library.v1.KnowledgeService.ListKnowledgeSources:input_type -> harness.library.v1.ListKnowledgeSourcesRequest
+	6,  // 26: harness.library.v1.KnowledgeService.BrowseKnowledgeSource:input_type -> harness.library.v1.BrowseKnowledgeSourceRequest
+	9,  // 27: harness.library.v1.KnowledgeService.ListKnowledgeDocuments:output_type -> harness.library.v1.ListKnowledgeDocumentsResponse
+	11, // 28: harness.library.v1.KnowledgeService.GetKnowledgeDocument:output_type -> harness.library.v1.GetKnowledgeDocumentResponse
+	13, // 29: harness.library.v1.KnowledgeService.CreateKnowledgeDocument:output_type -> harness.library.v1.CreateKnowledgeDocumentResponse
+	15, // 30: harness.library.v1.KnowledgeService.UpdateKnowledgeDocument:output_type -> harness.library.v1.UpdateKnowledgeDocumentResponse
+	17, // 31: harness.library.v1.KnowledgeService.DeleteKnowledgeDocument:output_type -> harness.library.v1.DeleteKnowledgeDocumentResponse
+	21, // 32: harness.library.v1.KnowledgeService.SearchKnowledge:output_type -> harness.library.v1.SearchKnowledgeResponse
+	5,  // 33: harness.library.v1.KnowledgeService.ListKnowledgeSources:output_type -> harness.library.v1.ListKnowledgeSourcesResponse
+	7,  // 34: harness.library.v1.KnowledgeService.BrowseKnowledgeSource:output_type -> harness.library.v1.BrowseKnowledgeSourceResponse
+	27, // [27:35] is the sub-list for method output_type
+	19, // [19:27] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_harness_library_v1_knowledge_proto_init() }
@@ -934,19 +1492,20 @@ func file_harness_library_v1_knowledge_proto_init() {
 	if File_harness_library_v1_knowledge_proto != nil {
 		return
 	}
-	file_harness_library_v1_knowledge_proto_msgTypes[7].OneofWrappers = []any{}
+	file_harness_library_v1_knowledge_proto_msgTypes[13].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_library_v1_knowledge_proto_rawDesc), len(file_harness_library_v1_knowledge_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   14,
+			NumEnums:      1,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_harness_library_v1_knowledge_proto_goTypes,
 		DependencyIndexes: file_harness_library_v1_knowledge_proto_depIdxs,
+		EnumInfos:         file_harness_library_v1_knowledge_proto_enumTypes,
 		MessageInfos:      file_harness_library_v1_knowledge_proto_msgTypes,
 	}.Build()
 	File_harness_library_v1_knowledge_proto = out.File

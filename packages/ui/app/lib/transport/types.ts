@@ -42,6 +42,7 @@ import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
 import type { PluginsApi } from '~/lib/plugins/types'
 import type { LibraryApi } from '~/lib/library/types'
+import type { IssuesApi } from '~/lib/issues/types'
 import type { BrowserApi } from '~/lib/browser/types'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import type { SchedulesApi } from '~/lib/schedule/types'
@@ -451,8 +452,10 @@ export interface SessionTransport {
   // MCP servers: Settings > MCP, and a session's commands and mentions (~/lib/mcp).
   mcp(): McpApi
   plugins(): PluginsApi
-  // Artifacts, the knowledge base, the task tracker, auto memory, session export and transcript search (~/lib/library).
+  // Artifacts, Knowledge, auto memory, session export and transcript search (~/lib/library).
   library(): LibraryApi
+  // Projects, boards, issues, tracker connections and folder links (~/lib/issues).
+  issues(): IssuesApi
   // The session's real browser, shared with the agent's Browser* tools: availability and the Chrome for Testing
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.

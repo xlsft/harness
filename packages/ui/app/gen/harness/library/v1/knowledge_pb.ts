@@ -2,8 +2,8 @@
 // @generated from file harness/library/v1/knowledge.proto (package harness.library.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Scope } from "../../common/v1/scope_pb";
 import { file_harness_common_v1_scope } from "../../common/v1/scope_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/library/v1/knowledge.proto.
  */
 export const file_harness_library_v1_knowledge: GenFile = /*@__PURE__*/
-  fileDesc("CiJoYXJuZXNzL2xpYnJhcnkvdjEva25vd2xlZGdlLnByb3RvEhJoYXJuZXNzLmxpYnJhcnkudjEitAEKEUtub3dsZWRnZURvY3VtZW50EgoKAmlkGAEgASgJEicKBXNjb3BlGAIgASgOMhguaGFybmVzcy5jb21tb24udjEuU2NvcGUSDQoFdGl0bGUYAyABKAkSEwoLc291cmNlX25hbWUYBCABKAkSDAoEc2l6ZRgFIAEoAxIQCghlZGl0YWJsZRgGIAEoCBISCgpjcmVhdGVkX2F0GAcgASgJEhIKCnVwZGF0ZWRfYXQYCCABKAkiVwodTGlzdEtub3dsZWRnZURvY3VtZW50c1JlcXVlc3QSJwoFc2NvcGUYASABKA4yGC5oYXJuZXNzLmNvbW1vbi52MS5TY29wZRINCgVxdWVyeRgCIAEoCSJaCh5MaXN0S25vd2xlZGdlRG9jdW1lbnRzUmVzcG9uc2USOAoJZG9jdW1lbnRzGAEgAygLMiUuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZURvY3VtZW50IikKG0dldEtub3dsZWRnZURvY3VtZW50UmVxdWVzdBIKCgJpZBgBIAEoCSJoChxHZXRLbm93bGVkZ2VEb2N1bWVudFJlc3BvbnNlEjcKCGRvY3VtZW50GAEgASgLMiUuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZURvY3VtZW50Eg8KB2NvbnRlbnQYAiABKAkifgoeQ3JlYXRlS25vd2xlZGdlRG9jdW1lbnRSZXF1ZXN0EicKBXNjb3BlGAEgASgOMhguaGFybmVzcy5jb21tb24udjEuU2NvcGUSDQoFdGl0bGUYAiABKAkSDwoHY29udGVudBgDIAEoCRITCgtzb3VyY2VfbmFtZRgEIAEoCSJaCh9DcmVhdGVLbm93bGVkZ2VEb2N1bWVudFJlc3BvbnNlEjcKCGRvY3VtZW50GAEgASgLMiUuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZURvY3VtZW50ImwKHlVwZGF0ZUtub3dsZWRnZURvY3VtZW50UmVxdWVzdBIKCgJpZBgBIAEoCRISCgV0aXRsZRgCIAEoCUgAiAEBEhQKB2NvbnRlbnQYAyABKAlIAYgBAUIICgZfdGl0bGVCCgoIX2NvbnRlbnQiWgofVXBkYXRlS25vd2xlZGdlRG9jdW1lbnRSZXNwb25zZRI3Cghkb2N1bWVudBgBIAEoCzIlLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VEb2N1bWVudCIsCh5EZWxldGVLbm93bGVkZ2VEb2N1bWVudFJlcXVlc3QSCgoCaWQYASABKAkiIQofRGVsZXRlS25vd2xlZGdlRG9jdW1lbnRSZXNwb25zZSJfChZTZWFyY2hLbm93bGVkZ2VSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEg0KBWxpbWl0GAIgASgFEicKBXNjb3BlGAMgASgOMhguaGFybmVzcy5jb21tb24udjEuU2NvcGUiewoMS25vd2xlZGdlSGl0EhMKC2RvY3VtZW50X2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEicKBXNjb3BlGAMgASgOMhguaGFybmVzcy5jb21tb24udjEuU2NvcGUSDwoHc25pcHBldBgEIAEoCRINCgVzY29yZRgFIAEoASJJChdTZWFyY2hLbm93bGVkZ2VSZXNwb25zZRIuCgRoaXRzGAEgAygLMiAuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZUhpdDKJBgoQS25vd2xlZGdlU2VydmljZRJ/ChZMaXN0S25vd2xlZGdlRG9jdW1lbnRzEjEuaGFybmVzcy5saWJyYXJ5LnYxLkxpc3RLbm93bGVkZ2VEb2N1bWVudHNSZXF1ZXN0GjIuaGFybmVzcy5saWJyYXJ5LnYxLkxpc3RLbm93bGVkZ2VEb2N1bWVudHNSZXNwb25zZRJ5ChRHZXRLbm93bGVkZ2VEb2N1bWVudBIvLmhhcm5lc3MubGlicmFyeS52MS5HZXRLbm93bGVkZ2VEb2N1bWVudFJlcXVlc3QaMC5oYXJuZXNzLmxpYnJhcnkudjEuR2V0S25vd2xlZGdlRG9jdW1lbnRSZXNwb25zZRKCAQoXQ3JlYXRlS25vd2xlZGdlRG9jdW1lbnQSMi5oYXJuZXNzLmxpYnJhcnkudjEuQ3JlYXRlS25vd2xlZGdlRG9jdW1lbnRSZXF1ZXN0GjMuaGFybmVzcy5saWJyYXJ5LnYxLkNyZWF0ZUtub3dsZWRnZURvY3VtZW50UmVzcG9uc2USggEKF1VwZGF0ZUtub3dsZWRnZURvY3VtZW50EjIuaGFybmVzcy5saWJyYXJ5LnYxLlVwZGF0ZUtub3dsZWRnZURvY3VtZW50UmVxdWVzdBozLmhhcm5lc3MubGlicmFyeS52MS5VcGRhdGVLbm93bGVkZ2VEb2N1bWVudFJlc3BvbnNlEoIBChdEZWxldGVLbm93bGVkZ2VEb2N1bWVudBIyLmhhcm5lc3MubGlicmFyeS52MS5EZWxldGVLbm93bGVkZ2VEb2N1bWVudFJlcXVlc3QaMy5oYXJuZXNzLmxpYnJhcnkudjEuRGVsZXRlS25vd2xlZGdlRG9jdW1lbnRSZXNwb25zZRJqCg9TZWFyY2hLbm93bGVkZ2USKi5oYXJuZXNzLmxpYnJhcnkudjEuU2VhcmNoS25vd2xlZGdlUmVxdWVzdBorLmhhcm5lc3MubGlicmFyeS52MS5TZWFyY2hLbm93bGVkZ2VSZXNwb25zZULdAQoWY29tLmhhcm5lc3MubGlicmFyeS52MUIOS25vd2xlZGdlUHJvdG9QAVpJZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9saWJyYXJ5L3YxO2xpYnJhcnl2MaICA0hMWKoCEkhhcm5lc3MuTGlicmFyeS5WMcoCEkhhcm5lc3NcTGlicmFyeVxWMeICHkhhcm5lc3NcTGlicmFyeVxWMVxHUEJNZXRhZGF0YeoCFEhhcm5lc3M6OkxpYnJhcnk6OlYxYgZwcm90bzM", [file_harness_common_v1_scope]);
+  fileDesc("CiJoYXJuZXNzL2xpYnJhcnkvdjEva25vd2xlZGdlLnByb3RvEhJoYXJuZXNzLmxpYnJhcnkudjEijwIKEUtub3dsZWRnZURvY3VtZW50EgoKAmlkGAEgASgJEicKBXNjb3BlGAIgASgOMhguaGFybmVzcy5jb21tb24udjEuU2NvcGUSDQoFdGl0bGUYAyABKAkSEwoLc291cmNlX25hbWUYBCABKAkSDAoEc2l6ZRgFIAEoAxIQCghlZGl0YWJsZRgGIAEoCBISCgpjcmVhdGVkX2F0GAcgASgJEhIKCnVwZGF0ZWRfYXQYCCABKAkSNgoGc291cmNlGAkgASgLMiYuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZVNvdXJjZVJlZhILCgN1cmwYCiABKAkSFAoMaGFzX2NoaWxkcmVuGAsgASgIIqABChJLbm93bGVkZ2VTb3VyY2VSZWYSCgoCaWQYASABKAkSNQoEa2luZBgCIAEoDjInLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VTb3VyY2VLaW5kEicKBXNjb3BlGAMgASgOMhguaGFybmVzcy5jb21tb24udjEuU2NvcGUSDAoEbmFtZRgEIAEoCRIQCghwcm92aWRlchgFIAEoCSJwCg9Lbm93bGVkZ2VTb3VyY2USMwoDcmVmGAEgASgLMiYuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZVNvdXJjZVJlZhIWCg5kb2N1bWVudF9jb3VudBgCIAEoBRIQCgh3cml0YWJsZRgDIAEoCCIdChtMaXN0S25vd2xlZGdlU291cmNlc1JlcXVlc3QiVAocTGlzdEtub3dsZWRnZVNvdXJjZXNSZXNwb25zZRI0Cgdzb3VyY2VzGAEgAygLMiMuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZVNvdXJjZSJjChxCcm93c2VLbm93bGVkZ2VTb3VyY2VSZXF1ZXN0EhEKCXNvdXJjZV9pZBgBIAEoCRIRCglwYXJlbnRfaWQYAiABKAkSDQoFbGltaXQYAyABKAUSDgoGb2Zmc2V0GAQgASgFImsKHUJyb3dzZUtub3dsZWRnZVNvdXJjZVJlc3BvbnNlEjgKCWRvY3VtZW50cxgBIAMoCzIlLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VEb2N1bWVudBIQCghoYXNfbW9yZRgCIAEoCCJXCh1MaXN0S25vd2xlZGdlRG9jdW1lbnRzUmVxdWVzdBInCgVzY29wZRgBIAEoDjIYLmhhcm5lc3MuY29tbW9uLnYxLlNjb3BlEg0KBXF1ZXJ5GAIgASgJIloKHkxpc3RLbm93bGVkZ2VEb2N1bWVudHNSZXNwb25zZRI4Cglkb2N1bWVudHMYASADKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlRG9jdW1lbnQiKQobR2V0S25vd2xlZGdlRG9jdW1lbnRSZXF1ZXN0EgoKAmlkGAEgASgJImgKHEdldEtub3dsZWRnZURvY3VtZW50UmVzcG9uc2USNwoIZG9jdW1lbnQYASABKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlRG9jdW1lbnQSDwoHY29udGVudBgCIAEoCSJ+Ch5DcmVhdGVLbm93bGVkZ2VEb2N1bWVudFJlcXVlc3QSJwoFc2NvcGUYASABKA4yGC5oYXJuZXNzLmNvbW1vbi52MS5TY29wZRINCgV0aXRsZRgCIAEoCRIPCgdjb250ZW50GAMgASgJEhMKC3NvdXJjZV9uYW1lGAQgASgJIloKH0NyZWF0ZUtub3dsZWRnZURvY3VtZW50UmVzcG9uc2USNwoIZG9jdW1lbnQYASABKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlRG9jdW1lbnQibAoeVXBkYXRlS25vd2xlZGdlRG9jdW1lbnRSZXF1ZXN0EgoKAmlkGAEgASgJEhIKBXRpdGxlGAIgASgJSACIAQESFAoHY29udGVudBgDIAEoCUgBiAEBQggKBl90aXRsZUIKCghfY29udGVudCJaCh9VcGRhdGVLbm93bGVkZ2VEb2N1bWVudFJlc3BvbnNlEjcKCGRvY3VtZW50GAEgASgLMiUuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZURvY3VtZW50IiwKHkRlbGV0ZUtub3dsZWRnZURvY3VtZW50UmVxdWVzdBIKCgJpZBgBIAEoCSIhCh9EZWxldGVLbm93bGVkZ2VEb2N1bWVudFJlc3BvbnNlIl8KFlNlYXJjaEtub3dsZWRnZVJlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFbGltaXQYAiABKAUSJwoFc2NvcGUYAyABKA4yGC5oYXJuZXNzLmNvbW1vbi52MS5TY29wZSLAAQoMS25vd2xlZGdlSGl0EhMKC2RvY3VtZW50X2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEicKBXNjb3BlGAMgASgOMhguaGFybmVzcy5jb21tb24udjEuU2NvcGUSDwoHc25pcHBldBgEIAEoCRINCgVzY29yZRgFIAEoARI2CgZzb3VyY2UYBiABKAsyJi5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlU291cmNlUmVmEgsKA3VybBgHIAEoCSJbChBLbm93bGVkZ2VXYXJuaW5nEjYKBnNvdXJjZRgBIAEoCzImLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VTb3VyY2VSZWYSDwoHbWVzc2FnZRgCIAEoCSKBAQoXU2VhcmNoS25vd2xlZGdlUmVzcG9uc2USLgoEaGl0cxgBIAMoCzIgLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VIaXQSNgoId2FybmluZ3MYAiADKAsyJC5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlV2FybmluZyqEAQoTS25vd2xlZGdlU291cmNlS2luZBIlCiFLTk9XTEVER0VfU09VUkNFX0tJTkRfVU5TUEVDSUZJRUQQABIiCh5LTk9XTEVER0VfU09VUkNFX0tJTkRfSU5URVJOQUwQARIiCh5LTk9XTEVER0VfU09VUkNFX0tJTkRfUFJPVklERVIQAjKCCAoQS25vd2xlZGdlU2VydmljZRJ/ChZMaXN0S25vd2xlZGdlRG9jdW1lbnRzEjEuaGFybmVzcy5saWJyYXJ5LnYxLkxpc3RLbm93bGVkZ2VEb2N1bWVudHNSZXF1ZXN0GjIuaGFybmVzcy5saWJyYXJ5LnYxLkxpc3RLbm93bGVkZ2VEb2N1bWVudHNSZXNwb25zZRJ5ChRHZXRLbm93bGVkZ2VEb2N1bWVudBIvLmhhcm5lc3MubGlicmFyeS52MS5HZXRLbm93bGVkZ2VEb2N1bWVudFJlcXVlc3QaMC5oYXJuZXNzLmxpYnJhcnkudjEuR2V0S25vd2xlZGdlRG9jdW1lbnRSZXNwb25zZRKCAQoXQ3JlYXRlS25vd2xlZGdlRG9jdW1lbnQSMi5oYXJuZXNzLmxpYnJhcnkudjEuQ3JlYXRlS25vd2xlZGdlRG9jdW1lbnRSZXF1ZXN0GjMuaGFybmVzcy5saWJyYXJ5LnYxLkNyZWF0ZUtub3dsZWRnZURvY3VtZW50UmVzcG9uc2USggEKF1VwZGF0ZUtub3dsZWRnZURvY3VtZW50EjIuaGFybmVzcy5saWJyYXJ5LnYxLlVwZGF0ZUtub3dsZWRnZURvY3VtZW50UmVxdWVzdBozLmhhcm5lc3MubGlicmFyeS52MS5VcGRhdGVLbm93bGVkZ2VEb2N1bWVudFJlc3BvbnNlEoIBChdEZWxldGVLbm93bGVkZ2VEb2N1bWVudBIyLmhhcm5lc3MubGlicmFyeS52MS5EZWxldGVLbm93bGVkZ2VEb2N1bWVudFJlcXVlc3QaMy5oYXJuZXNzLmxpYnJhcnkudjEuRGVsZXRlS25vd2xlZGdlRG9jdW1lbnRSZXNwb25zZRJqCg9TZWFyY2hLbm93bGVkZ2USKi5oYXJuZXNzLmxpYnJhcnkudjEuU2VhcmNoS25vd2xlZGdlUmVxdWVzdBorLmhhcm5lc3MubGlicmFyeS52MS5TZWFyY2hLbm93bGVkZ2VSZXNwb25zZRJ5ChRMaXN0S25vd2xlZGdlU291cmNlcxIvLmhhcm5lc3MubGlicmFyeS52MS5MaXN0S25vd2xlZGdlU291cmNlc1JlcXVlc3QaMC5oYXJuZXNzLmxpYnJhcnkudjEuTGlzdEtub3dsZWRnZVNvdXJjZXNSZXNwb25zZRJ8ChVCcm93c2VLbm93bGVkZ2VTb3VyY2USMC5oYXJuZXNzLmxpYnJhcnkudjEuQnJvd3NlS25vd2xlZGdlU291cmNlUmVxdWVzdBoxLmhhcm5lc3MubGlicmFyeS52MS5Ccm93c2VLbm93bGVkZ2VTb3VyY2VSZXNwb25zZULdAQoWY29tLmhhcm5lc3MubGlicmFyeS52MUIOS25vd2xlZGdlUHJvdG9QAVpJZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9saWJyYXJ5L3YxO2xpYnJhcnl2MaICA0hMWKoCEkhhcm5lc3MuTGlicmFyeS5WMcoCEkhhcm5lc3NcTGlicmFyeVxWMeICHkhhcm5lc3NcTGlicmFyeVxWMVxHUEJNZXRhZGF0YeoCFEhhcm5lc3M6OkxpYnJhcnk6OlYxYgZwcm90bzM", [file_harness_common_v1_scope]);
 
 /**
  * @generated from message harness.library.v1.KnowledgeDocument
@@ -65,6 +65,25 @@ export type KnowledgeDocument = Message<"harness.library.v1.KnowledgeDocument"> 
    * @generated from field: string updated_at = 8;
    */
   updatedAt: string;
+
+  /**
+   * Where it comes from. Internal documents leave `url` empty.
+   *
+   * @generated from field: harness.library.v1.KnowledgeSourceRef source = 9;
+   */
+  source?: KnowledgeSourceRef | undefined;
+
+  /**
+   * @generated from field: string url = 10;
+   */
+  url: string;
+
+  /**
+   * Has sub-documents, on providers that keep a tree.
+   *
+   * @generated from field: bool has_children = 11;
+   */
+  hasChildren: boolean;
 };
 
 /**
@@ -73,6 +92,172 @@ export type KnowledgeDocument = Message<"harness.library.v1.KnowledgeDocument"> 
  */
 export const KnowledgeDocumentSchema: GenMessage<KnowledgeDocument> = /*@__PURE__*/
   messageDesc(file_harness_library_v1_knowledge, 0);
+
+/**
+ * Names a source wherever a document or a passage says where it comes from.
+ *
+ * @generated from message harness.library.v1.KnowledgeSourceRef
+ */
+export type KnowledgeSourceRef = Message<"harness.library.v1.KnowledgeSourceRef"> & {
+  /**
+   * "internal:org", "internal:user", or a connection id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: harness.library.v1.KnowledgeSourceKind kind = 2;
+   */
+  kind: KnowledgeSourceKind;
+
+  /**
+   * SCOPE_ORG: global. SCOPE_USER: this user's.
+   *
+   * @generated from field: harness.common.v1.Scope scope = 3;
+   */
+  scope: Scope;
+
+  /**
+   * What people call it.
+   *
+   * @generated from field: string name = 4;
+   */
+  name: string;
+
+  /**
+   * "youtrack"; empty for internal sources.
+   *
+   * @generated from field: string provider = 5;
+   */
+  provider: string;
+};
+
+/**
+ * Describes the message harness.library.v1.KnowledgeSourceRef.
+ * Use `create(KnowledgeSourceRefSchema)` to create a new message.
+ */
+export const KnowledgeSourceRefSchema: GenMessage<KnowledgeSourceRef> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_knowledge, 1);
+
+/**
+ * @generated from message harness.library.v1.KnowledgeSource
+ */
+export type KnowledgeSource = Message<"harness.library.v1.KnowledgeSource"> & {
+  /**
+   * @generated from field: harness.library.v1.KnowledgeSourceRef ref = 1;
+   */
+  ref?: KnowledgeSourceRef | undefined;
+
+  /**
+   * Internal: how many documents.
+   *
+   * @generated from field: int32 document_count = 2;
+   */
+  documentCount: number;
+
+  /**
+   * The caller may add documents here.
+   *
+   * @generated from field: bool writable = 3;
+   */
+  writable: boolean;
+};
+
+/**
+ * Describes the message harness.library.v1.KnowledgeSource.
+ * Use `create(KnowledgeSourceSchema)` to create a new message.
+ */
+export const KnowledgeSourceSchema: GenMessage<KnowledgeSource> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_knowledge, 2);
+
+/**
+ * @generated from message harness.library.v1.ListKnowledgeSourcesRequest
+ */
+export type ListKnowledgeSourcesRequest = Message<"harness.library.v1.ListKnowledgeSourcesRequest"> & {
+};
+
+/**
+ * Describes the message harness.library.v1.ListKnowledgeSourcesRequest.
+ * Use `create(ListKnowledgeSourcesRequestSchema)` to create a new message.
+ */
+export const ListKnowledgeSourcesRequestSchema: GenMessage<ListKnowledgeSourcesRequest> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_knowledge, 3);
+
+/**
+ * @generated from message harness.library.v1.ListKnowledgeSourcesResponse
+ */
+export type ListKnowledgeSourcesResponse = Message<"harness.library.v1.ListKnowledgeSourcesResponse"> & {
+  /**
+   * @generated from field: repeated harness.library.v1.KnowledgeSource sources = 1;
+   */
+  sources: KnowledgeSource[];
+};
+
+/**
+ * Describes the message harness.library.v1.ListKnowledgeSourcesResponse.
+ * Use `create(ListKnowledgeSourcesResponseSchema)` to create a new message.
+ */
+export const ListKnowledgeSourcesResponseSchema: GenMessage<ListKnowledgeSourcesResponse> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_knowledge, 4);
+
+/**
+ * @generated from message harness.library.v1.BrowseKnowledgeSourceRequest
+ */
+export type BrowseKnowledgeSourceRequest = Message<"harness.library.v1.BrowseKnowledgeSourceRequest"> & {
+  /**
+   * @generated from field: string source_id = 1;
+   */
+  sourceId: string;
+
+  /**
+   * An article id of this source; empty: top level.
+   *
+   * @generated from field: string parent_id = 2;
+   */
+  parentId: string;
+
+  /**
+   * Default 100, at most 200.
+   *
+   * @generated from field: int32 limit = 3;
+   */
+  limit: number;
+
+  /**
+   * @generated from field: int32 offset = 4;
+   */
+  offset: number;
+};
+
+/**
+ * Describes the message harness.library.v1.BrowseKnowledgeSourceRequest.
+ * Use `create(BrowseKnowledgeSourceRequestSchema)` to create a new message.
+ */
+export const BrowseKnowledgeSourceRequestSchema: GenMessage<BrowseKnowledgeSourceRequest> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_knowledge, 5);
+
+/**
+ * @generated from message harness.library.v1.BrowseKnowledgeSourceResponse
+ */
+export type BrowseKnowledgeSourceResponse = Message<"harness.library.v1.BrowseKnowledgeSourceResponse"> & {
+  /**
+   * @generated from field: repeated harness.library.v1.KnowledgeDocument documents = 1;
+   */
+  documents: KnowledgeDocument[];
+
+  /**
+   * @generated from field: bool has_more = 2;
+   */
+  hasMore: boolean;
+};
+
+/**
+ * Describes the message harness.library.v1.BrowseKnowledgeSourceResponse.
+ * Use `create(BrowseKnowledgeSourceResponseSchema)` to create a new message.
+ */
+export const BrowseKnowledgeSourceResponseSchema: GenMessage<BrowseKnowledgeSourceResponse> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_knowledge, 6);
 
 /**
  * @generated from message harness.library.v1.ListKnowledgeDocumentsRequest
@@ -98,7 +283,7 @@ export type ListKnowledgeDocumentsRequest = Message<"harness.library.v1.ListKnow
  * Use `create(ListKnowledgeDocumentsRequestSchema)` to create a new message.
  */
 export const ListKnowledgeDocumentsRequestSchema: GenMessage<ListKnowledgeDocumentsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 1);
+  messageDesc(file_harness_library_v1_knowledge, 7);
 
 /**
  * @generated from message harness.library.v1.ListKnowledgeDocumentsResponse
@@ -115,7 +300,7 @@ export type ListKnowledgeDocumentsResponse = Message<"harness.library.v1.ListKno
  * Use `create(ListKnowledgeDocumentsResponseSchema)` to create a new message.
  */
 export const ListKnowledgeDocumentsResponseSchema: GenMessage<ListKnowledgeDocumentsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 2);
+  messageDesc(file_harness_library_v1_knowledge, 8);
 
 /**
  * @generated from message harness.library.v1.GetKnowledgeDocumentRequest
@@ -132,7 +317,7 @@ export type GetKnowledgeDocumentRequest = Message<"harness.library.v1.GetKnowled
  * Use `create(GetKnowledgeDocumentRequestSchema)` to create a new message.
  */
 export const GetKnowledgeDocumentRequestSchema: GenMessage<GetKnowledgeDocumentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 3);
+  messageDesc(file_harness_library_v1_knowledge, 9);
 
 /**
  * @generated from message harness.library.v1.GetKnowledgeDocumentResponse
@@ -154,7 +339,7 @@ export type GetKnowledgeDocumentResponse = Message<"harness.library.v1.GetKnowle
  * Use `create(GetKnowledgeDocumentResponseSchema)` to create a new message.
  */
 export const GetKnowledgeDocumentResponseSchema: GenMessage<GetKnowledgeDocumentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 4);
+  messageDesc(file_harness_library_v1_knowledge, 10);
 
 /**
  * @generated from message harness.library.v1.CreateKnowledgeDocumentRequest
@@ -188,7 +373,7 @@ export type CreateKnowledgeDocumentRequest = Message<"harness.library.v1.CreateK
  * Use `create(CreateKnowledgeDocumentRequestSchema)` to create a new message.
  */
 export const CreateKnowledgeDocumentRequestSchema: GenMessage<CreateKnowledgeDocumentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 5);
+  messageDesc(file_harness_library_v1_knowledge, 11);
 
 /**
  * @generated from message harness.library.v1.CreateKnowledgeDocumentResponse
@@ -205,7 +390,7 @@ export type CreateKnowledgeDocumentResponse = Message<"harness.library.v1.Create
  * Use `create(CreateKnowledgeDocumentResponseSchema)` to create a new message.
  */
 export const CreateKnowledgeDocumentResponseSchema: GenMessage<CreateKnowledgeDocumentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 6);
+  messageDesc(file_harness_library_v1_knowledge, 12);
 
 /**
  * @generated from message harness.library.v1.UpdateKnowledgeDocumentRequest
@@ -232,7 +417,7 @@ export type UpdateKnowledgeDocumentRequest = Message<"harness.library.v1.UpdateK
  * Use `create(UpdateKnowledgeDocumentRequestSchema)` to create a new message.
  */
 export const UpdateKnowledgeDocumentRequestSchema: GenMessage<UpdateKnowledgeDocumentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 7);
+  messageDesc(file_harness_library_v1_knowledge, 13);
 
 /**
  * @generated from message harness.library.v1.UpdateKnowledgeDocumentResponse
@@ -249,7 +434,7 @@ export type UpdateKnowledgeDocumentResponse = Message<"harness.library.v1.Update
  * Use `create(UpdateKnowledgeDocumentResponseSchema)` to create a new message.
  */
 export const UpdateKnowledgeDocumentResponseSchema: GenMessage<UpdateKnowledgeDocumentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 8);
+  messageDesc(file_harness_library_v1_knowledge, 14);
 
 /**
  * @generated from message harness.library.v1.DeleteKnowledgeDocumentRequest
@@ -266,7 +451,7 @@ export type DeleteKnowledgeDocumentRequest = Message<"harness.library.v1.DeleteK
  * Use `create(DeleteKnowledgeDocumentRequestSchema)` to create a new message.
  */
 export const DeleteKnowledgeDocumentRequestSchema: GenMessage<DeleteKnowledgeDocumentRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 9);
+  messageDesc(file_harness_library_v1_knowledge, 15);
 
 /**
  * @generated from message harness.library.v1.DeleteKnowledgeDocumentResponse
@@ -279,7 +464,7 @@ export type DeleteKnowledgeDocumentResponse = Message<"harness.library.v1.Delete
  * Use `create(DeleteKnowledgeDocumentResponseSchema)` to create a new message.
  */
 export const DeleteKnowledgeDocumentResponseSchema: GenMessage<DeleteKnowledgeDocumentResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 10);
+  messageDesc(file_harness_library_v1_knowledge, 16);
 
 /**
  * @generated from message harness.library.v1.SearchKnowledgeRequest
@@ -310,7 +495,7 @@ export type SearchKnowledgeRequest = Message<"harness.library.v1.SearchKnowledge
  * Use `create(SearchKnowledgeRequestSchema)` to create a new message.
  */
 export const SearchKnowledgeRequestSchema: GenMessage<SearchKnowledgeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 11);
+  messageDesc(file_harness_library_v1_knowledge, 17);
 
 /**
  * @generated from message harness.library.v1.KnowledgeHit
@@ -342,6 +527,16 @@ export type KnowledgeHit = Message<"harness.library.v1.KnowledgeHit"> & {
    * @generated from field: double score = 5;
    */
   score: number;
+
+  /**
+   * @generated from field: harness.library.v1.KnowledgeSourceRef source = 6;
+   */
+  source?: KnowledgeSourceRef | undefined;
+
+  /**
+   * @generated from field: string url = 7;
+   */
+  url: string;
 };
 
 /**
@@ -349,7 +544,29 @@ export type KnowledgeHit = Message<"harness.library.v1.KnowledgeHit"> & {
  * Use `create(KnowledgeHitSchema)` to create a new message.
  */
 export const KnowledgeHitSchema: GenMessage<KnowledgeHit> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 12);
+  messageDesc(file_harness_library_v1_knowledge, 18);
+
+/**
+ * @generated from message harness.library.v1.KnowledgeWarning
+ */
+export type KnowledgeWarning = Message<"harness.library.v1.KnowledgeWarning"> & {
+  /**
+   * @generated from field: harness.library.v1.KnowledgeSourceRef source = 1;
+   */
+  source?: KnowledgeSourceRef | undefined;
+
+  /**
+   * @generated from field: string message = 2;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message harness.library.v1.KnowledgeWarning.
+ * Use `create(KnowledgeWarningSchema)` to create a new message.
+ */
+export const KnowledgeWarningSchema: GenMessage<KnowledgeWarning> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_knowledge, 19);
 
 /**
  * @generated from message harness.library.v1.SearchKnowledgeResponse
@@ -359,6 +576,13 @@ export type SearchKnowledgeResponse = Message<"harness.library.v1.SearchKnowledg
    * @generated from field: repeated harness.library.v1.KnowledgeHit hits = 1;
    */
   hits: KnowledgeHit[];
+
+  /**
+   * Sources that could not answer. The hits of the others are still here.
+   *
+   * @generated from field: repeated harness.library.v1.KnowledgeWarning warnings = 2;
+   */
+  warnings: KnowledgeWarning[];
 };
 
 /**
@@ -366,12 +590,46 @@ export type SearchKnowledgeResponse = Message<"harness.library.v1.SearchKnowledg
  * Use `create(SearchKnowledgeResponseSchema)` to create a new message.
  */
 export const SearchKnowledgeResponseSchema: GenMessage<SearchKnowledgeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_knowledge, 13);
+  messageDesc(file_harness_library_v1_knowledge, 20);
+
+/**
+ * @generated from enum harness.library.v1.KnowledgeSourceKind
+ */
+export enum KnowledgeSourceKind {
+  /**
+   * @generated from enum value: KNOWLEDGE_SOURCE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Documents kept on the server.
+   *
+   * @generated from enum value: KNOWLEDGE_SOURCE_KIND_INTERNAL = 1;
+   */
+  INTERNAL = 1,
+
+  /**
+   * Documents of a tracker, read live through a connection.
+   *
+   * @generated from enum value: KNOWLEDGE_SOURCE_KIND_PROVIDER = 2;
+   */
+  PROVIDER = 2,
+}
+
+/**
+ * Describes the enum harness.library.v1.KnowledgeSourceKind.
+ */
+export const KnowledgeSourceKindSchema: GenEnum<KnowledgeSourceKind> = /*@__PURE__*/
+  enumDesc(file_harness_library_v1_knowledge, 0);
 
 /**
  * KnowledgeService is served by core: text documents kept on the server, which agents search with the KnowledgeSearch
  * tool. Two scopes: SCOPE_ORG documents are written by admins and readable by every user of the server; SCOPE_USER
  * documents belong to their owner alone, and nobody else can see them, admins included.
+ *
+ * It also reads provider sources of admin connections, live: nothing of them is stored. Their documents have ids of the form
+ * conn:<connection id>:<article id>. Sources on the user's device are the client's (harness.agent.v1.LocalTrackerService), which
+ * merges both. docs/design/tracker.md.
  *
  * @generated from service harness.library.v1.KnowledgeService
  */
@@ -419,7 +677,7 @@ export const KnowledgeService: GenService<{
     output: typeof DeleteKnowledgeDocumentResponseSchema;
   },
   /**
-   * Passages of the documents the caller may read, best first.
+   * Passages of the documents the caller may read, best first. A provider source that fails is a warning, not an error.
    *
    * @generated from rpc harness.library.v1.KnowledgeService.SearchKnowledge
    */
@@ -427,6 +685,26 @@ export const KnowledgeService: GenService<{
     methodKind: "unary";
     input: typeof SearchKnowledgeRequestSchema;
     output: typeof SearchKnowledgeResponseSchema;
+  },
+  /**
+   * The internal sources and the global provider sources the caller can read.
+   *
+   * @generated from rpc harness.library.v1.KnowledgeService.ListKnowledgeSources
+   */
+  listKnowledgeSources: {
+    methodKind: "unary";
+    input: typeof ListKnowledgeSourcesRequestSchema;
+    output: typeof ListKnowledgeSourcesResponseSchema;
+  },
+  /**
+   * Documents of one source, provider ones read live: top-level ones, or the children of `parent_id`.
+   *
+   * @generated from rpc harness.library.v1.KnowledgeService.BrowseKnowledgeSource
+   */
+  browseKnowledgeSource: {
+    methodKind: "unary";
+    input: typeof BrowseKnowledgeSourceRequestSchema;
+    output: typeof BrowseKnowledgeSourceResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_library_v1_knowledge, 0);

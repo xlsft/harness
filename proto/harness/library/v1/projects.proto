@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+import "harness/library/v1/tracker_connections.proto";
+
+// ProjectService is served by core: what issues belong to. A project is internal or maps onto a provider project, is personal or
+// global, and is shared with users, groups, roles or everyone at a level. docs/design/tracker.md.
+//
+// A project the caller has no level on does not exist for them: NOT_FOUND. An admin holds manage on global projects, and nothing on
+// another user's personal project unless it is shared with them.
+service ProjectService {
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
+  // Global projects: admins only. A provider project on a device connection can only be personal.
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+  // Needs manage.
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse);
+  // Needs manage. Takes its boards and issues with it.
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+  // Replaces who it is shared with. Needs manage.
+  rpc SetProjectShares(SetProjectSharesRequest) returns (SetProjectSharesResponse);
+  // The caller's first personal project with a board, made when they have no project of their own.
+  rpc EnsureDefaultProject(EnsureDefaultProjectRequest) returns (EnsureDefaultProjectResponse);
+  // The projects of an admin connection, to map one. Any signed-in user.
+  rpc ListProviderProjects(ListProviderProjectsRequest) returns (ListProviderProjectsResponse);
+  // Who can be assigned: the users holding a level on the project. Needs view.
+  rpc ListProjectMembers(ListProjectMembersRequest) returns (ListProjectMembersResponse);
+}
+
+enum ProjectScope {
+  PROJECT_SCOPE_UNSPECIFIED = 0;
+  PROJECT_SCOPE_PERSONAL = 1;
+  PROJECT_SCOPE_GLOBAL = 2;
+}
+
+enum ProjectLevel {
+  PROJECT_LEVEL_UNSPECIFIED = 0;
+  // Reads the project, its shared boards and their issues.
+  PROJECT_LEVEL_VIEW = 1;
+  // Also creates, edits, moves and comments on issues.
+  PROJECT_LEVEL_EDIT = 2;
+  // Also changes the project, its shares and its shared boards.
+  PROJECT_LEVEL_MANAGE = 3;
+}
+
+enum ProjectShareSubject {
+  PROJECT_SHARE_SUBJECT_UNSPECIFIED = 0;
+  PROJECT_SHARE_SUBJECT_USER = 1;
+  PROJECT_SHARE_SUBJECT_GROUP = 2;
+  // subject_id is a role: "admin" or "user".
+  PROJECT_SHARE_SUBJECT_ROLE = 3;
+  // Everyone on the server; subject_id is empty.
+  PROJECT_SHARE_SUBJECT_EVERYONE = 4;
+}
+
+message ProjectShare {
+  ProjectShareSubject subject = 1;
+  string subject_id = 2;
+  ProjectLevel level = 3;
+  // What people call the subject; set by the server.
+  string subject_name = 4;
+}
+
+message ProjectMetadata {
+  // Upper case letters and digits, starting with a letter, 2 to 10 long: ABC gives issue ids such as ABC-12.
+  string ticker = 1;
+  string name = 2;
+  string description = 3;
+  // An image URL, or an emoji.
+  string logo = 4;
+  // #rrggbb.
+  string color = 5;
+}
+
+message Project {
+  string id = 1;
+  ProjectScope scope = 2;
+  // What applies: the local value, else the provider's.
+  ProjectMetadata metadata = 3;
+  // Only what was set here, for the form.
+  ProjectMetadata local = 4;
+  // What the provider says; empty for an internal project.
+  ProjectMetadata provider = 5;
+  // Not set for an internal project.
+  TrackerConnectionRef connection = 6;
+  // The provider's key: DEMO.
+  string external_key = 7;
+  string owner_id = 8;
+  // The caller's level.
+  ProjectLevel level = 9;
+  // Only for those with manage.
+  repeated ProjectShare shares = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message ListProjectsRequest {}
+
+message ListProjectsResponse {
+  repeated Project projects = 1;
+}
+
+message GetProjectRequest {
+  // An id or a ticker.
+  string id = 1;
+}
+
+message GetProjectResponse {
+  Project project = 1;
+}
+
+message CreateProjectRequest {
+  ProjectScope scope = 1;
+  ProjectMetadata metadata = 2;
+  // A provider project; what `metadata` leaves empty comes from `provider`.
+  TrackerConnectionRef connection = 3;
+  string external_key = 4;
+  ProjectMetadata provider = 5;
+  // Global default: everyone at edit.
+  repeated ProjectShare shares = 6;
+}
+
+message CreateProjectResponse {
+  Project project = 1;
+}
+
+message UpdateProjectRequest {
+  string id = 1;
+  // An empty string clears the local value: back to the provider's, on a provider project.
+  optional string ticker = 2;
+  optional string name = 3;
+  optional string description = 4;
+  optional string logo = 5;
+  optional string color = 6;
+  // New values from the provider, from whoever can read it.
+  ProjectMetadata provider = 7;
+}
+
+message UpdateProjectResponse {
+  Project project = 1;
+}
+
+message DeleteProjectRequest {
+  string id = 1;
+}
+
+message DeleteProjectResponse {}
+
+message SetProjectSharesRequest {
+  string id = 1;
+  repeated ProjectShare shares = 2;
+}
+
+message SetProjectSharesResponse {
+  Project project = 1;
+}
+
+message EnsureDefaultProjectRequest {}
+
+message EnsureDefaultProjectResponse {
+  Project project = 1;
+}
+
+message ProviderProject {
+  string key = 1;
+  ProjectMetadata metadata = 2;
+}
+
+message ListProviderProjectsRequest {
+  string connection_id = 1;
+}
+
+message ListProviderProjectsResponse {
+  repeated ProviderProject projects = 1;
+}
+
+message ListProjectMembersRequest {
+  string id = 1;
+}
+
+message ProjectMember {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  ProjectLevel level = 4;
+}
+
+message ListProjectMembersResponse {
+  repeated ProjectMember members = 1;
+}

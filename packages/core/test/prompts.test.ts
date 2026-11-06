@@ -40,12 +40,12 @@ describe("bundle builder", () => {
       "Advisor", "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
-      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LSP",
+      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "Issues", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LSP",
       "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "NotebookEdit", "NotebookRun", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
       "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
       "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
-      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskOutput", "TaskStop", "TaskTracker", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
+      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders

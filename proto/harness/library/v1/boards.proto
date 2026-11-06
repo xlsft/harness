@@ -1,0 +1,574 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+import "harness/library/v1/tracker_connections.proto";
+
+// BoardService is served by core: the Issues screen and tool. A board belongs to a project and is an ordered list of stages with
+// optional inputs and outputs per connection. An issue is called a card here, so as not to be taken for a provider's issue: it
+// belongs to a project and a board, and may link to one external issue. docs/design/tracker.md has the rules.
+//
+// A personal board exists for its owner alone. A shared board is seen by those with a level on its project, worked with edit and
+// configured with manage. What the caller may not see answers NOT_FOUND, whatever their role.
+service BoardService {
+  rpc ListBoards(ListBoardsRequest) returns (ListBoardsResponse);
+  // A board with its stages and cards.
+  rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
+  rpc CreateBoard(CreateBoardRequest) returns (CreateBoardResponse);
+  // Replaces the name and the stages. A stage or input that keeps its id keeps its cards and its state. A stage left out takes
+  // its cards to the first stage.
+  rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
+  rpc DeleteBoard(DeleteBoardRequest) returns (DeleteBoardResponse);
+
+  // Cards across everything the caller can see, filtered.
+  rpc ListCards(ListCardsRequest) returns (ListCardsResponse);
+  // A card by id or key, with comments and activity, and its linked issue read live when the server holds the connection.
+  rpc GetCard(GetCardRequest) returns (GetCardResponse);
+  rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
+  rpc UpdateCard(UpdateCardRequest) returns (UpdateCardResponse);
+  // FAILED_PRECONDITION when expected_version is set and stale: the card stays where the other mover put it.
+  rpc MoveCard(MoveCardRequest) returns (MoveCardResponse);
+  rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
+  // Tries a failed output again.
+  rpc RetryCardOutput(RetryCardOutputRequest) returns (RetryCardOutputResponse);
+  // Attaches an issue, a session, a branch or a pull request to a card. Linking an issue by hand ignores the once-only ledger.
+  rpc LinkCard(LinkCardRequest) returns (LinkCardResponse);
+  // Adds or removes a relation to another card the caller can see.
+  rpc RelateCard(RelateCardRequest) returns (RelateCardResponse);
+  // A comment on the card. With `on_external`, on the linked issue instead, when the server holds the connection;
+  // FAILED_PRECONDITION on a device connection, where the client does it.
+  rpc CommentCard(CommentCardRequest) returns (CommentCardResponse);
+  // Removes a comment: its author or those with manage.
+  rpc DeleteCardComment(DeleteCardCommentRequest) returns (DeleteCardCommentResponse);
+  // What a session started from this card should use.
+  rpc PrepareCardSession(PrepareCardSessionRequest) returns (PrepareCardSessionResponse);
+  // Records the PR on every card linked to the session. Nothing happens when there are none.
+  rpc LinkSessionPullRequest(LinkSessionPullRequestRequest) returns (LinkSessionPullRequestResponse);
+  // Runs the board's inputs on admin connections now, and makes those on device connections due.
+  rpc SyncBoard(SyncBoardRequest) returns (SyncBoardResponse);
+
+  // The caller's saved filters.
+  rpc ListSavedViews(ListSavedViewsRequest) returns (ListSavedViewsResponse);
+  rpc SaveView(SaveViewRequest) returns (SaveViewResponse);
+  rpc DeleteSavedView(DeleteSavedViewRequest) returns (DeleteSavedViewResponse);
+
+  // The worker on the client: due inputs and pending outputs of the caller's personal boards on these connections, leased.
+  rpc ClaimDeviceWork(ClaimDeviceWorkRequest) returns (ClaimDeviceWorkResponse);
+  rpc ReportDeviceWork(ReportDeviceWorkRequest) returns (ReportDeviceWorkResponse);
+  // A device connection is gone: same effect as deleting an admin connection, on the caller's own boards.
+  rpc ForgetDeviceConnection(ForgetDeviceConnectionRequest) returns (ForgetDeviceConnectionResponse);
+}
+
+enum BoardScope {
+  BOARD_SCOPE_UNSPECIFIED = 0;
+  // Seen by those with a level on the project.
+  BOARD_SCOPE_SHARED = 1;
+  // Yours alone.
+  BOARD_SCOPE_PERSONAL = 2;
+}
+
+// Pulls issues matching `query` into the stage as cards, once per board.
+message StageInput {
+  // Empty when adding.
+  string id = 1;
+  TrackerConnectionRef connection = 2;
+  // In the provider's own syntax.
+  string query = 3;
+  // Default 300, at least 60, at most 86400.
+  int32 interval_seconds = 4;
+  // RFC 3339; set by the sync, ignored on write.
+  string last_polled_at = 5;
+  string last_ok_at = 6;
+  string last_error = 7;
+}
+
+message StageOutputField {
+  string name = 1;
+  string value = 2;
+}
+
+// Applied to the linked issue when a card enters the stage.
+message StageOutput {
+  string id = 1;
+  TrackerConnectionRef connection = 2;
+  repeated StageOutputField fields = 3;
+  // Posted on the issue as well, when not empty.
+  string comment = 4;
+}
+
+message BoardStage {
+  // Empty when adding.
+  string id = 1;
+  string name = 2;
+  repeated StageInput inputs = 3;
+  repeated StageOutput outputs = 4;
+}
+
+message Board {
+  string id = 1;
+  BoardScope scope = 2;
+  string name = 3;
+  repeated BoardStage stages = 4;
+  string project_id = 5;
+  // The caller may change the name and the stages.
+  bool can_configure = 6;
+  string updated_at = 7;
+  // The caller may create, edit and move cards.
+  bool can_edit = 8;
+}
+
+enum ExternalState {
+  EXTERNAL_STATE_UNSPECIFIED = 0;
+  EXTERNAL_STATE_LINKED = 1;
+  // The provider says the issue does not exist or this account can't see it any more.
+  EXTERNAL_STATE_MISSING = 2;
+  // The connection was removed.
+  EXTERNAL_STATE_DISCONNECTED = 3;
+}
+
+message ExternalLink {
+  TrackerConnectionRef connection = 1;
+  string external_id = 2;
+  string url = 3;
+  ExternalState state = 4;
+  string checked_at = 5;
+}
+
+enum CardOutputStatus {
+  CARD_OUTPUT_STATUS_UNSPECIFIED = 0;
+  // Waiting, also between automatic retries, with `error` from the last attempt.
+  CARD_OUTPUT_STATUS_PENDING = 1;
+  CARD_OUTPUT_STATUS_RUNNING = 2;
+  CARD_OUTPUT_STATUS_DONE = 3;
+  // Needs the user: RetryCardOutput.
+  CARD_OUTPUT_STATUS_FAILED = 4;
+}
+
+message CardOutput {
+  string id = 1;
+  string stage_id = 2;
+  TrackerConnectionRef connection = 3;
+  CardOutputStatus status = 4;
+  string error = 5;
+  int32 attempts = 6;
+  string updated_at = 7;
+  repeated StageOutputField fields = 8;
+}
+
+enum CardPriority {
+  CARD_PRIORITY_UNSPECIFIED = 0;
+  CARD_PRIORITY_LOW = 1;
+  CARD_PRIORITY_NORMAL = 2;
+  CARD_PRIORITY_HIGH = 3;
+  CARD_PRIORITY_URGENT = 4;
+}
+
+enum CardRelationKind {
+  CARD_RELATION_KIND_UNSPECIFIED = 0;
+  // This card blocks the other.
+  CARD_RELATION_KIND_BLOCKS = 1;
+  // The other blocks this one. Stored as BLOCKS the other way round.
+  CARD_RELATION_KIND_BLOCKED_BY = 2;
+  CARD_RELATION_KIND_RELATES = 3;
+  // This card duplicates the other.
+  CARD_RELATION_KIND_DUPLICATES = 4;
+}
+
+message CardRelation {
+  CardRelationKind kind = 1;
+  string card_id = 2;
+  string key = 3;
+  string title = 4;
+}
+
+message Card {
+  string id = 1;
+  string board_id = 2;
+  string stage_id = 3;
+  string title = 4;
+  string description = 5;
+  // Goes up with every change; MoveCard compares it.
+  int32 version = 6;
+  // Not set for a card without an issue.
+  ExternalLink external = 7;
+  // The latest application of an output, so a failure shows.
+  CardOutput output = 8;
+  repeated string session_ids = 9;
+  repeated string pr_urls = 10;
+  string branch = 11;
+  string created_by = 12;
+  string created_at = 13;
+  string updated_at = 14;
+  string project_id = 15;
+  // What people read: ABC-12 from the project's ticker, or the linked issue's own id.
+  string key = 16;
+  CardPriority priority = 17;
+  repeated string labels = 18;
+  repeated string assignee_ids = 19;
+  // RFC 3339; empty when none.
+  string due_at = 20;
+  repeated CardRelation relations = 21;
+  int32 comment_count = 22;
+}
+
+message CardComment {
+  string id = 1;
+  string author_id = 2;
+  string author_name = 3;
+  string text = 4;
+  string created_at = 5;
+}
+
+message CardActivity {
+  string id = 1;
+  string actor_id = 2;
+  // Empty when the sync did it.
+  string actor_name = 3;
+  // "created", "edited", "moved", "assigned", "labeled", "priority", "due", "commented", "linked", "related", "output".
+  string kind = 4;
+  // What changed, as text for people.
+  string summary = 5;
+  string created_at = 6;
+}
+
+// Which cards. Empty fields do not narrow.
+message CardFilter {
+  string project_id = 1;
+  string board_id = 2;
+  string stage_id = 3;
+  // Words of the title, description or key.
+  string query = 4;
+  // User ids; "me" is the caller.
+  repeated string assignee_ids = 5;
+  // Nobody assigned.
+  bool unassigned = 6;
+  // Has all of these.
+  repeated string labels = 7;
+  repeated CardPriority priorities = 8;
+  // RFC 3339: due by then.
+  string due_before = 9;
+  // Only the cards this session worked on.
+  string session_id = 10;
+  // Only cards something else blocks.
+  bool blocked = 11;
+  // "updated" (default), "created", "priority", "due".
+  string sort = 12;
+}
+
+message SavedView {
+  string id = 1;
+  string name = 2;
+  CardFilter filter = 3;
+  string updated_at = 4;
+}
+
+message ListBoardsRequest {
+  // Empty: every project.
+  string project_id = 1;
+}
+
+message ListBoardsResponse {
+  repeated Board boards = 1;
+}
+
+message GetBoardRequest {
+  string id = 1;
+}
+
+message GetBoardResponse {
+  Board board = 1;
+  // In order within each stage.
+  repeated Card cards = 2;
+}
+
+message CreateBoardRequest {
+  BoardScope scope = 1;
+  string name = 2;
+  // Empty: To do, In progress, Done.
+  repeated BoardStage stages = 3;
+  string project_id = 4;
+}
+
+message CreateBoardResponse {
+  Board board = 1;
+}
+
+message UpdateBoardRequest {
+  string id = 1;
+  string name = 2;
+  repeated BoardStage stages = 3;
+}
+
+message UpdateBoardResponse {
+  Board board = 1;
+}
+
+message DeleteBoardRequest {
+  string id = 1;
+}
+
+message DeleteBoardResponse {}
+
+message ListCardsRequest {
+  CardFilter filter = 1;
+  // Default 200, at most 500.
+  int32 limit = 2;
+}
+
+message ListCardsResponse {
+  repeated Card cards = 1;
+}
+
+message GetCardRequest {
+  // An id or a key such as ABC-12.
+  string id = 1;
+}
+
+message GetCardResponse {
+  Card card = 1;
+  // The linked issue read live; not set for a card without one, on a device connection, or when reading failed.
+  TrackerIssue issue = 2;
+  string issue_error = 3;
+  repeated CardComment comments = 4;
+  repeated CardActivity activity = 5;
+}
+
+message CreateCardRequest {
+  string board_id = 1;
+  // Empty: the first stage.
+  string stage_id = 2;
+  string title = 3;
+  string description = 4;
+  string session_id = 5;
+  CardPriority priority = 6;
+  repeated string labels = 7;
+  repeated string assignee_ids = 8;
+  string due_at = 9;
+}
+
+message CreateCardResponse {
+  Card card = 1;
+}
+
+message UpdateCardRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  string session_id = 4;
+  optional CardPriority priority = 5;
+  // Replaces the list when set_labels.
+  bool set_labels = 6;
+  repeated string labels = 7;
+  // Replaces the list when set_assignees.
+  bool set_assignees = 8;
+  repeated string assignee_ids = 9;
+  // An empty string clears it.
+  optional string due_at = 10;
+}
+
+message UpdateCardResponse {
+  Card card = 1;
+}
+
+message MoveCardRequest {
+  string id = 1;
+  string stage_id = 2;
+  // Before this card; empty: to the end of the stage.
+  string before_card_id = 3;
+  // 0: whatever it is now.
+  int32 expected_version = 4;
+  string session_id = 5;
+}
+
+message MoveCardResponse {
+  Card card = 1;
+}
+
+message DeleteCardRequest {
+  string id = 1;
+}
+
+message DeleteCardResponse {}
+
+message RetryCardOutputRequest {
+  string card_id = 1;
+}
+
+message RetryCardOutputResponse {
+  Card card = 1;
+}
+
+message LinkCardRequest {
+  string id = 1;
+  // Links this issue. On a device connection `external_url` and `external_title` come from the client that read it.
+  TrackerConnectionRef connection = 2;
+  string external_id = 3;
+  string external_url = 4;
+  string external_title = 5;
+  // Removes the issue link instead.
+  bool unlink_external = 6;
+  string session_id = 7;
+  string branch = 8;
+  string pr_url = 9;
+}
+
+message LinkCardResponse {
+  Card card = 1;
+}
+
+message RelateCardRequest {
+  string id = 1;
+  CardRelationKind kind = 2;
+  // An id or a key.
+  string other = 3;
+  bool remove = 4;
+}
+
+message RelateCardResponse {
+  Card card = 1;
+}
+
+message CommentCardRequest {
+  string id = 1;
+  string text = 2;
+  string session_id = 3;
+  // On the linked issue rather than on the card.
+  bool on_external = 4;
+}
+
+message CommentCardResponse {
+  // Not set for a comment on the linked issue.
+  CardComment comment = 1;
+}
+
+message DeleteCardCommentRequest {
+  string id = 1;
+}
+
+message DeleteCardCommentResponse {}
+
+message PrepareCardSessionRequest {
+  string id = 1;
+}
+
+message PrepareCardSessionResponse {
+  // card/<slug>-<short id>.
+  string branch = 1;
+  // The first message of the session.
+  string prompt = 2;
+  string project_id = 3;
+}
+
+message LinkSessionPullRequestRequest {
+  string session_id = 1;
+  string pr_url = 2;
+}
+
+message LinkSessionPullRequestResponse {
+  // The cards it was recorded on.
+  repeated string card_ids = 1;
+}
+
+message SyncBoardRequest {
+  string id = 1;
+}
+
+message SyncBoardResponse {
+  // Cards made by inputs on admin connections.
+  int32 new_cards = 1;
+}
+
+message ListSavedViewsRequest {}
+
+message ListSavedViewsResponse {
+  repeated SavedView views = 1;
+}
+
+message SaveViewRequest {
+  // Empty when adding.
+  string id = 1;
+  string name = 2;
+  CardFilter filter = 3;
+}
+
+message SaveViewResponse {
+  SavedView view = 1;
+}
+
+message DeleteSavedViewRequest {
+  string id = 1;
+}
+
+message DeleteSavedViewResponse {}
+
+message ClaimDeviceWorkRequest {
+  // This client's enabled connections.
+  repeated string connection_ids = 1;
+}
+
+message DeviceInput {
+  string input_id = 1;
+  string connection_id = 2;
+  string query = 3;
+}
+
+message DeviceOutput {
+  string output_id = 1;
+  string connection_id = 2;
+  string external_id = 3;
+  repeated StageOutputField fields = 4;
+  string comment = 5;
+}
+
+// A linked issue to look at again.
+message DeviceCheck {
+  string card_id = 1;
+  string connection_id = 2;
+  string external_id = 3;
+}
+
+message ClaimDeviceWorkResponse {
+  repeated DeviceInput inputs = 1;
+  repeated DeviceOutput outputs = 2;
+  repeated DeviceCheck checks = 3;
+}
+
+message DeviceInputResult {
+  string input_id = 1;
+  // Empty on success.
+  string error = 2;
+  // At most 200.
+  repeated TrackerIssue issues = 3;
+}
+
+message DeviceOutputResult {
+  string output_id = 1;
+  // Empty on success.
+  string error = 2;
+  // Network, 429, 5xx: tried again automatically.
+  bool transient = 3;
+}
+
+message DeviceCheckResult {
+  string card_id = 1;
+  // The issue does not exist any more. An auth or network failure is not this: leave the result out.
+  bool missing = 2;
+  string title = 3;
+  string url = 4;
+}
+
+message ReportDeviceWorkRequest {
+  repeated DeviceInputResult inputs = 1;
+  repeated DeviceOutputResult outputs = 2;
+  repeated DeviceCheckResult checks = 3;
+}
+
+message ReportDeviceWorkResponse {
+  int32 new_cards = 1;
+}
+
+message ForgetDeviceConnectionRequest {
+  string connection_id = 1;
+}
+
+message ForgetDeviceConnectionResponse {}

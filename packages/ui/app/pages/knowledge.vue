@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Knowledge base: documents on the server that agents search.
+// Knowledge: documents on the server that agents search.
 useShortcuts()
 </script>
 

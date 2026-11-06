@@ -31,7 +31,9 @@ export const routes: RouteDef[] = [
   { route: "/harness.objects.v1.ObjectsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.library.v1.ArtifactService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.library.v1.KnowledgeService/**", handler: "./src/http/routes/rpc.ts" },
-  { route: "/harness.library.v1.TrackerService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.BoardService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.TrackerConnectionService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.ProjectService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.library.v1.TranscriptSearchService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.AuditService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.BillingService/**", handler: "./src/http/routes/rpc.ts" },
@@ -61,6 +63,9 @@ export const routes: RouteDef[] = [
   { route: "/api/vcs/github/manifest/callback", method: "get", handler: "./src/http/routes/vcs-github-manifest-callback.ts" },
   { route: "/api/vcs/github/setup", method: "get", handler: "./src/http/routes/vcs-github-setup.ts" },
   { route: "/api/vcs/sessions/:id/autofix-jobs", method: "get", handler: "./src/http/routes/vcs-session-autofix.ts" },
+
+  // OAuth redirect target of an admin tracker connection (TrackerConnectionService.StartTrackerOAuth)
+  { route: "/api/tracker/oauth/callback", method: "get", handler: "./src/http/routes/tracker-oauth-callback.ts" },
 
   // A scheduled task's webhook (services/schedule-webhook.ts): the secret in the URL is the authentication
   { route: "/api/schedules/webhook/:token", method: "post", handler: "./src/http/routes/schedule-webhook.ts" },

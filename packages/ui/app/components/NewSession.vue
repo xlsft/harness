@@ -59,6 +59,24 @@ const name = (p: string) => p.replace(/\/+$/, '').split('/').pop() || p
 
 const forkOf = computed(() => typeof route.query.fork === 'string' ? store.sessions[route.query.fork] : undefined)
 
+// Started from an issue: the client says which folder, branch and first message, and the issue is linked once the session exists.
+const issueSession = ref<{ id: string, branch: string } | null>(null)
+async function prepareIssueSession(id: string) {
+  try {
+    const p = await store.transport?.issues().prepareSession(id)
+    if (!p) return
+    issueSession.value = { id, branch: p.branch }
+    if (p.folder) choose(p.folder)
+    worktree.value = !!p.folder
+    text.value = p.prompt
+  } catch (e) {
+    error.value = e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
+  }
+}
+watch(() => [route.query.issue, store.transport] as const, ([id]) => {
+  if (typeof id === 'string' && issueSession.value?.id !== id) void prepareIssueSession(id)
+}, { immediate: true })
+
 function readJSON<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
@@ -249,15 +267,16 @@ async function start() {
         acpEffort: acpEffort.value,
         effort: efforts.value.length ? effort.value : undefined,
         mode: mode.value,
-        worktree: cwd.value && worktree.value ? { baseRef: baseRef.value } : undefined
+        worktree: cwd.value && worktree.value ? { baseRef: baseRef.value, branch: issueSession.value?.branch } : undefined
       })
     })
     const { cwd: _old, ...prefs } = readJSON<Record<string, unknown>>(PREFS, {})
     writeJSON(PREFS, { ...prefs, model: model.value, engine: engine.value, acpMode: acpMode.value, acpEffort: acpEffort.value, effort: generalEffort.value, mode: mode.value, ...(cwd.value && !noWorktree.value && { worktree: worktree.value }) })
     if (cwd.value) writeJSON(RECENT, [cwd.value, ...readJSON<string[]>(RECENT, []).filter(p => p !== cwd.value)].slice(0, 20))
+    if (issueSession.value) void store.transport?.issues().linkSession(issueSession.value.id, id, cwd.value && worktree.value ? issueSession.value.branch : '').catch(() => {})
     text.value = ''
     files.value = []
-    const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
+    const { new: _new, cwd: _cwd, fork: _fork, issue: _issue, ...rest } = route.query
     await router.replace({ query: { ...rest, session: id } })
     // This screen is gone by now: the text goes back into the session's composer.
     await store.send(id, msg, attachments).catch((err) => {

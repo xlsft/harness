@@ -48,6 +48,8 @@ import (
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/tracker"
+	_ "github.com/xlsft/harness/packages/client/tracker/youtrack" // registers the provider
 	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/web"
 	"github.com/xlsft/harness/packages/client/workflow"
@@ -633,6 +635,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.Tools.Register(&tools.Memory{Store: s.autoMemoryStore, Enabled: s.autoMemoryEnabled})
 	if s.Sync != nil {
 		s.ToolEnv.Library = s.Sync.Client()
+		trackers := tracker.New(config.Home(), s.Sync.Client())
+		s.ToolEnv.Trackers = trackers
+		s.ToolEnv.ProjectOfFolder = trackers.Folder.ProjectOf
 		tools.RegisterLibraryTools(s.Tools)
 	}
 	s.syncAutoMemory()

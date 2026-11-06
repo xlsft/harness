@@ -25,6 +25,7 @@ const SECTIONS = [
   { key: 'plugins', label: tt('Plugins'), icon: 'grid', group: 'app' },
   { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
   { key: 'codehosts', label: tt('Code hosts'), icon: 'pull-request', group: 'app' },
+  { key: 'trackers', label: tt('Trackers'), icon: 'tasks', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: tt('Classifiers'), icon: 'filter', group: 'ai' },
@@ -172,6 +173,8 @@ const notifications = computed({
       <SettingsPlugins v-else-if="section === 'plugins'" />
 
       <SettingsCodeHosts v-else-if="section === 'codehosts'" />
+
+      <SettingsTrackers v-else-if="section === 'trackers'" />
 
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">

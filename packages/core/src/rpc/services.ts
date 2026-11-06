@@ -39,6 +39,7 @@ import { registerRelayService } from "./relay.ts";
 import { registerSearchService } from "./search.ts";
 import { registerSpeechService } from "./speech.ts";
 import { registerSyncService } from "./sync.ts";
+import { registerBoardServices } from "./boards.ts";
 import { registerLibraryServices } from "./library.ts";
 import { registerObjectsService } from "./objects.ts";
 import { registerUsageService } from "./usage.ts";
@@ -243,6 +244,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerProviderService(router);
   registerObjectsService(router);
   registerLibraryServices(router);
+  registerBoardServices(router);
   registerUsageService(router);
   registerAdminService(router);
   registerEnterpriseServices(router);
