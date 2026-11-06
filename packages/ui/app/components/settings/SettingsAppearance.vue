@@ -60,7 +60,7 @@ const mode = computed({
 
 // The chosen theme may be further along its row.
 onMounted(() => nextTick(() => {
-  for (const el of document.querySelectorAll('.theme-row [aria-checked="true"]')) el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  for (const el of document.querySelectorAll('[data-theme-row] [aria-checked="true"]')) el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 }))
 
 const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
@@ -122,7 +122,8 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
     <div
       role="radiogroup"
       :aria-label="k.title"
-      class="theme-row flex snap-x gap-2.5 overflow-x-auto pb-2"
+      data-theme-row
+      class="-mx-(--set-gutter) flex snap-x scroll-px-(--set-gutter) gap-2.5 overflow-x-auto px-(--set-gutter) pb-2"
     >
       <button
         v-for="t in themes.filter(x => x.kind === k.kind)"
@@ -136,7 +137,10 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
       >
         <ThemePreview :theme="t" />
         <span class="flex h-8 items-center gap-2 border-t border-line px-2.5 text-[12.5px]">
-          <span class="min-w-0 flex-1 truncate text-strong">{{ t.name }}</span>
+          <span
+            class="min-w-0 flex-1 truncate text-strong"
+            :title="t.name"
+          >{{ t.name }}</span>
           <span
             v-if="isCustom(t)"
             role="button"
