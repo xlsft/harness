@@ -194,7 +194,7 @@ export class MockExtensionsApi implements ExtensionsApi {
     }
     return {
       groups: [...groups.values()],
-      marketplaces: st.marketplaces.map(m => ({ $typeName: 'harness.agent.v1.ExtensionMarketplace' as const, name: m.name, description: m.description, source: m.source, commit: m.commit, updatedAt: m.updatedAt, managed: m.managed, refusal: m.refusal, problem: m.problem, pluginCount: m.plugins.length, installedCount: m.plugins.filter(l => l.installed).length, builtin: m.name === 'xlsft-catalog' })),
+      marketplaces: st.marketplaces.map(m => ({ $typeName: 'harness.agent.v1.ExtensionMarketplace' as const, name: m.name, description: m.description, source: m.source, commit: m.commit, updatedAt: m.updatedAt, managed: m.managed, refusal: m.refusal, problem: m.problem, pluginCount: m.plugins.length, installedCount: m.plugins.filter(l => l.installed).length, builtin: m.name === 'harness-catalog' })),
       cwd, folderTrusted: !!cwd, sourcesRestricted: this.scenario === 'restricted',
       suggestedMarketplaces: (cwd && this.scenario === 'default' ? { 'project-tools': 'example/project-tools' } : {}) as Record<string, string>
     }
@@ -256,16 +256,16 @@ export class MockExtensionsApi implements ExtensionsApi {
       const st = await this.pluginsApi.list()
       for (const m of st.marketplaces) {
         const items = m.plugins.flatMap((l): DiscoverItem[] => {
-          const base = { sourceLabel: m.name, version: l.version, publisher: m.name === 'xlsft-catalog' ? 'xlsft' : 'Acme', updatedAt: m.updatedAt, category: l.name.includes('format') ? 'Code quality' : l.name.includes('release') ? 'Releases' : 'Getting started', installed: l.installed, pluginId: l.id,
+          const base = { sourceLabel: m.name, version: l.version, publisher: m.name === 'harness-catalog' ? 'xlsft' : 'Acme', updatedAt: m.updatedAt, category: l.name.includes('format') ? 'Code quality' : l.name.includes('release') ? 'Releases' : 'Getting started', installed: l.installed, pluginId: l.id,
             contents: { $typeName: 'harness.agent.v1.PluginContents' as const, skills: [`${l.name}:main`], commands: [], agents: [], outputStyles: [], hooks: [], mcpServers: [], allowedTools: [], skipped: [] } }
           return skills
             ? [item({ ...base, id: `skill:${l.name}:main@${m.name}`, kind: ExtensionKind.SKILL, name: `${l.name}:main`, description: l.description })]
             : [item({ ...base, id: l.id, kind: ExtensionKind.PLUGIN, name: l.name, description: l.description })]
         })
-        if (items.length) sections.push(section(`market:${m.name}`, m.name === 'xlsft-catalog' ? 'The xlsft`s harness catalog' : m.name, items))
+        if (items.length) sections.push(section(`market:${m.name}`, m.name === 'harness-catalog' ? 'The xlsft`s harness catalog' : m.name, items))
       }
-      sections.sort((a, b) => Number(b.key === 'market:xlsft-catalog') - Number(a.key === 'market:xlsft-catalog'))
-      const builtin = sections.find(s => s.key === 'market:xlsft-catalog')
+      sections.sort((a, b) => Number(b.key === 'market:harness-catalog') - Number(a.key === 'market:harness-catalog'))
+      const builtin = sections.find(s => s.key === 'market:harness-catalog')
       res.featured = builtin?.items.find(i => !i.installed)
       const counts = new Map<string, number>()
       for (const s of sections) for (const i of s.items) if (i.category) counts.set(i.category, (counts.get(i.category) ?? 0) + 1)

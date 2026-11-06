@@ -28,8 +28,8 @@ export class MockPluginsApi implements PluginsApi {
       plugin({ id: 'org-standards@corp', name: 'org-standards', marketplace: 'corp', displayName: 'Org standards', description: 'What the organization requires of a change', status: 'needs_approval', managed: true, version: '3.1.0',
         contents: { skills: ['org-standards:check'], commands: [], agents: [], outputStyles: [], hooks: [], mcpServers: [], allowedTools: [], skipped: [] } })
     ],
-    marketplaces: [{ name: 'xlsft-catalog', description: 'Skills that ship with xlsft`s harness.', source: '~/.harness/plugins/builtin-catalog', commit: '', updatedAt: '2026-11-06T10:00:00Z', managed: false, refusal: '', problem: '',
-      plugins: [{ id: 'starter@xlsft-catalog', name: 'starter', description: 'A first skill to read and copy: find your way around a repository.', version: '0.1.0', installed: false }] }, { name: 'acme', description: 'Plugins of the Acme team', source: 'acme/plugins', commit: 'a1b2c3d', updatedAt: '2026-11-01T10:00:00Z', managed: false, refusal: '', problem: '',
+    marketplaces: [{ name: 'harness-catalog', description: 'Skills that ship with xlsft`s harness.', source: '~/.harness/plugins/builtin-catalog', commit: '', updatedAt: '2026-11-06T10:00:00Z', managed: false, refusal: '', problem: '',
+      plugins: [{ id: 'starter@harness-catalog', name: 'starter', description: 'A first skill to read and copy: find your way around a repository.', version: '0.1.0', installed: false }] }, { name: 'acme', description: 'Plugins of the Acme team', source: 'acme/plugins', commit: 'a1b2c3d', updatedAt: '2026-11-01T10:00:00Z', managed: false, refusal: '', problem: '',
       plugins: [
         { id: 'format-tools@acme', name: 'format-tools', description: 'Formats what the agent writes', version: '1.2.0', installed: true },
         { id: 'docs-kit@acme', name: 'docs-kit', description: 'Keeps documentation next to the code it describes', version: '2.0.1', installed: true },
@@ -67,7 +67,7 @@ export class MockPluginsApi implements PluginsApi {
   // The demo's first run: the built-in catalog and nothing else.
   clearForDemo() {
     this.state.plugins = []
-    this.state.marketplaces = this.state.marketplaces.filter(m => m.name === 'xlsft-catalog')
+    this.state.marketplaces = this.state.marketplaces.filter(m => m.name === 'harness-catalog')
   }
 
   async list() {
@@ -123,7 +123,7 @@ export class MockPluginsApi implements PluginsApi {
   async updateMarketplace() {}
 
   async removeMarketplace(name: string) {
-    if (name === 'xlsft-catalog') throw new Error(`the marketplace ${name} ships with this client`)
+    if (name === 'harness-catalog') throw new Error(`the marketplace ${name} ships with this client`)
     this.state.marketplaces = this.state.marketplaces.filter(m => m.name !== name)
     this.state.plugins = this.state.plugins.filter(p => p.marketplace !== name)
   }

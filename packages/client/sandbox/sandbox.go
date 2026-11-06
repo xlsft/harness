@@ -73,8 +73,8 @@ type Settings struct {
 	// AllowedHosts are added to DefaultHosts, AllowedWritePaths to the writable roots. Protected paths win over them.
 	AllowedHosts      []string
 	AllowedWritePaths []string
-	// AllowLocalhost lets commands listen on and reach the loopback interface. Off by default: it also reaches every
-	// other service on this machine.
+	// AllowLocalhost lets commands listen on and reach the loopback interface, which tests and dev servers need. It also
+	// reaches every other service on this machine, so a user can turn it off. On by default in settings.
 	AllowLocalhost bool
 	// AutoAllowBash lets a sandboxed command run without a permission prompt where it would otherwise ask (deny and ask
 	// rules still apply). Off by default.

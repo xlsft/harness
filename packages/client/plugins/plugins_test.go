@@ -464,6 +464,7 @@ func TestPluginSourcesFromGit(t *testing.T) {
 	first := commit(t, repo, "first")
 	gittest.Write(t, repo, "tools/sub/commands/b.md", "B\n")
 	commit(t, repo, "second")
+	gittest.Run(t, repo, "config", "uploadpack.allowFilter", "true")
 
 	market := t.TempDir()
 	write(t, market, map[string]string{".claude-plugin/marketplace.json": `{"name":"mk","owner":{"name":"x"},"plugins":[

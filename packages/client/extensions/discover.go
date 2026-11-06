@@ -85,7 +85,12 @@ func skillItems(l plugins.Listing, mk plugins.MarketListings) []*agentv1.Discove
 	out := make([]*agentv1.DiscoverItem, 0, len(l.Skills))
 	base := listingItem(l, mk)
 	for _, s := range l.Skills {
-		out = append(out, &agentv1.DiscoverItem{Id: "skill:" + s.Name + "@" + mk.Name, Kind: agentv1.ExtensionKind_EXTENSION_KIND_SKILL, Name: s.Name, Description: s.Description, Publisher: base.GetPublisher(),
+		// A plugin that is one skill of its name reads as that name.
+		name := s.Name
+		if name == l.Name+":"+l.Name {
+			name = l.Name
+		}
+		out = append(out, &agentv1.DiscoverItem{Id: "skill:" + s.Name + "@" + mk.Name, Kind: agentv1.ExtensionKind_EXTENSION_KIND_SKILL, Name: name, Description: s.Description, Publisher: base.GetPublisher(),
 			SourceLabel: mk.Name, Version: base.GetVersion(), Homepage: base.GetHomepage(), License: base.GetLicense(), Category: base.GetCategory(), Tags: base.GetTags(), UpdatedAt: base.GetUpdatedAt(),
 			Installed: base.GetInstalled(), Refusal: base.GetRefusal(), PluginId: base.GetPluginId(), Contents: base.GetContents()})
 	}

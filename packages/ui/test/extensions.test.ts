@@ -112,7 +112,7 @@ describe('the demo store', () => {
 
   it('the built-in marketplace can\'t be removed', async () => {
     const { plugins } = api()
-    await expect(plugins.removeMarketplace('xlsft-catalog')).rejects.toThrow('ships with this client')
+    await expect(plugins.removeMarketplace('harness-catalog')).rejects.toThrow('ships with this client')
   })
 
   it('refuses a hash other than the one shown', async () => {
@@ -129,7 +129,7 @@ describe('the demo store', () => {
   it('search isn\'t a section of its own on a server without it', async () => {
     const { ext } = api('first-run')
     const res = await ext.discover({ kind: ExtensionKind.SKILL })
-    expect(res.sections.map(s => s.key)).toEqual(['market:xlsft-catalog'])
+    expect(res.sections.map(s => s.key)).toEqual(['market:harness-catalog'])
     expect(res.externalBlockedByPolicy).toBe(false)
   })
 })

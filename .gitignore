@@ -23,6 +23,9 @@ logs
 .env.*
 !.env.example
 
+# Python bytecode (scripts/catalog)
+__pycache__/
+
 # Agent worktrees
 .claude/worktrees/
 

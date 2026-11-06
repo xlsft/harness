@@ -32,6 +32,10 @@ A marketplace is a repository or folder with `.harness-plugin/marketplace.json` 
 | `url` | `url` of a git repository, `ref`, `sha` |
 | `git-subdir` | `url`, `path`, `ref`, `sha` |
 
+A `git-subdir` install takes only that folder from the server. It asks for the commit without file contents, then for the files of the folder, and checks that nothing else arrived. A server that can't send part of a repository is refused before anything is fetched, so nothing else in the repository reaches this device, even for a moment. The listing of the repository's folders does arrive, as part of the commit.
+
+`licenseFile` names the entry's license, as a path from the root of its repository or marketplace, beside `license`, which stays the name of the license. A file outside the plugin's folder is copied to the plugin's root at the same commit, and is part of what is approved. It must be named like a license and be a plain file. A different file already there under that name, or none at the path, refuses the install.
+
 A marketplace added by the URL of its file has no folders, so its entries need one of the repository sources. Without a `plugin.json`, the entry is the manifest. With one, the entry's components are added to it, unless `strict` is false, which makes that a conflict. Fetching is over https, ssh, git and file; plain http only to this machine. `npm`, `archive` and `command` sources are refused.
 
 ## Where things are, and what stays here

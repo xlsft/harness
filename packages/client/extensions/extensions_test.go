@@ -484,6 +484,17 @@ func TestBuiltinMarketplaceIsFeaturedAndStays(t *testing.T) {
 	if err := m.RemoveMarketplace(markets[0].Name); err == nil {
 		t.Fatal("the built-in marketplace was removed")
 	}
+	// The catalog holds skills beside plugins that bundle many; only what is one skill is listed under Skills.
+	if findItem(res, "skill:canvas-design@harness-catalog") == nil {
+		t.Fatalf("a pinned skill of the catalog is missing: %+v", res.GetSections())
+	}
+	if findItem(res, "skill:engineering@harness-catalog") != nil {
+		t.Fatal("a plugin bundle is listed as one skill")
+	}
+	all := extensions.Discover(ctx, &agentv1.DiscoverExtensionsRequest{Kind: agentv1.ExtensionKind_EXTENSION_KIND_PLUGIN, Section: "market:harness-catalog"}, extensions.Inputs{Markets: markets})
+	if engineering := findItem(all, "engineering@harness-catalog"); engineering == nil || engineering.GetLicense() != "Apache-2.0" || engineering.GetContents() != nil {
+		t.Fatalf("under plugins: %+v", engineering)
+	}
 	if _, err := m.Install(ctx, res.GetFeatured().GetPluginId()); err != nil {
 		t.Fatalf("install: %v", err)
 	}

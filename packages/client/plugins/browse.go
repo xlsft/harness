@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"encoding/json"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -197,9 +198,12 @@ func readListing(e *Entry, man *MarketplaceManifest, root, market, owner string)
 		l.Problem = "The name of this entry can't be used."
 		return l
 	}
-	rel, _, err := entrySource(*e, man)
+	rel, src, err := entrySource(*e, man)
 	if err != nil {
 		l.Problem = err.Error()
+	} else if rel == "" && isSkillFolder(src) {
+		// Its files aren't here, and its folder says what it is. Its own text stands in until it's installed.
+		l.Skills = []ListingSkill{{Name: e.Name, Description: e.Description}}
 	} else if rel != "" && root != "" {
 		// The data folder is never made: nothing is run or written for a listing.
 		p, err := Load(filepath.Join(root, rel), e.Name, market, "", overlayOf(e))
@@ -229,4 +233,13 @@ func readListing(e *Entry, man *MarketplaceManifest, root, market, owner string)
 		l.Meta.Publisher = owner
 	}
 	return l
+}
+
+// isSkillFolder reads a source that names one folder under a skills/ folder of a repository, the way a skill is kept.
+func isSkillFolder(s Source) bool {
+	if s.Source != SourceSubdir {
+		return false
+	}
+	dir, name := path.Split(strings.Trim(s.Path, "/"))
+	return name != "" && (dir == "skills/" || strings.HasSuffix(dir, "/skills/"))
 }
