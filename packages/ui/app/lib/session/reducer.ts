@@ -702,7 +702,9 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       s.todos = e.value.todos.map(t => ({
         content: t.content,
         activeForm: t.activeForm,
-        status: t.status === Todo_Status.COMPLETED ? 'completed' as const : t.status === Todo_Status.IN_PROGRESS ? 'in_progress' as const : 'pending' as const
+        status: t.status === Todo_Status.COMPLETED ? 'completed' as const : t.status === Todo_Status.IN_PROGRESS ? 'in_progress' as const : 'pending' as const,
+        agentIds: t.agentIds,
+        taskIds: t.taskIds
       }))
       const existing = find(s, 'todos', 'todos')
       if (existing) existing.todos = s.todos

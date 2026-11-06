@@ -4264,8 +4264,15 @@ type Todo struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Content string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
 	// Present-tense form shown while in progress, e.g. "Running tests".
-	ActiveForm    string      `protobuf:"bytes,2,opt,name=active_form,json=activeForm,proto3" json:"active_form,omitempty"`
-	Status        Todo_Status `protobuf:"varint,3,opt,name=status,proto3,enum=harness.agent.v1.Todo_Status" json:"status,omitempty"`
+	ActiveForm string      `protobuf:"bytes,2,opt,name=active_form,json=activeForm,proto3" json:"active_form,omitempty"`
+	Status     Todo_Status `protobuf:"varint,3,opt,name=status,proto3,enum=harness.agent.v1.Todo_Status" json:"status,omitempty"`
+	// The subagents (SubagentInfo.id) and background tasks (BackgroundTask.task_id) working for this item: what the main
+	// agent started while the item was the first one in progress. The client makes the link; the model has no part in it.
+	// The ids stay when the work ends or the item is completed. A frontend counts what still runs from its live lists, so
+	// work that ends needs no new TodosUpdated. A TodoWrite keeps the ids of an item whose content it does not change.
+	// Empty for subagents' own lists and in ACP sessions.
+	AgentIds      []string `protobuf:"bytes,4,rep,name=agent_ids,json=agentIds,proto3" json:"agent_ids,omitempty"`
+	TaskIds       []string `protobuf:"bytes,5,rep,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4319,6 +4326,20 @@ func (x *Todo) GetStatus() Todo_Status {
 		return x.Status
 	}
 	return Todo_STATUS_UNSPECIFIED
+}
+
+func (x *Todo) GetAgentIds() []string {
+	if x != nil {
+		return x.AgentIds
+	}
+	return nil
+}
+
+func (x *Todo) GetTaskIds() []string {
+	if x != nil {
+		return x.TaskIds
+	}
+	return nil
 }
 
 // Emitted when the model calls ExitPlanMode. The turn waits for RespondToPlan.
@@ -11000,12 +11021,14 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x11user_message_uuid\x18\x01 \x01(\tR\x0fuserMessageUuid\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\"<\n" +
 	"\fTodosUpdated\x12,\n" +
-	"\x05todos\x18\x01 \x03(\v2\x16.harness.agent.v1.TodoR\x05todos\"\xdc\x01\n" +
+	"\x05todos\x18\x01 \x03(\v2\x16.harness.agent.v1.TodoR\x05todos\"\x94\x02\n" +
 	"\x04Todo\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12\x1f\n" +
 	"\vactive_form\x18\x02 \x01(\tR\n" +
 	"activeForm\x125\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x1d.harness.agent.v1.Todo.StatusR\x06status\"b\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1d.harness.agent.v1.Todo.StatusR\x06status\x12\x1b\n" +
+	"\tagent_ids\x18\x04 \x03(\tR\bagentIds\x12\x19\n" +
+	"\btask_ids\x18\x05 \x03(\tR\ataskIds\"b\n" +
 	"\x06Status\x12\x16\n" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSTATUS_PENDING\x10\x01\x12\x16\n" +
