@@ -40,6 +40,7 @@ import (
 	"github.com/xlsft/harness/packages/client/sandbox"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/settings"
+	"github.com/xlsft/harness/packages/client/skills"
 	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
@@ -154,6 +155,10 @@ type Options struct {
 	ComputerUse *computeruse.Manager
 	// Terminals, when set, gives the agent the tabs of the Terminal pane (the Terminal* tools).
 	Terminals *terminal.Manager
+	// SkillDocs replaces the sync cache as the source of the skills and commands stored on the server (tests).
+	SkillDocs skills.DocSource
+	// SkillHome replaces the home folder whose .claude holds personal skills and commands (tests).
+	SkillHome string
 
 	// UsageMonitor follows the usage limits of the session provider (agent.Config.UsageMonitor; may be nil).
 	UsageMonitor agent.UsageMonitor
@@ -230,6 +235,11 @@ type Session struct {
 	computer     *computeruse.Manager
 	// Sandbox confines the commands the model runs (sandbox.go).
 	Sandbox *sandbox.Session
+	// Skills is the session's skills and custom commands (skills.go).
+	Skills *skills.Manager
+	// skillForks holds the grants of skills running in subagents; promptLoader finds prompts a frozen bundle lacks.
+	skillForks   skillForkGrants
+	promptLoader *prompts.Loader
 }
 
 // computerSettingsGuard is the permission engine's view of the computer use settings. A session without computer use
@@ -537,6 +547,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 
 	// Prompt bundle, frozen per session.
 	loader := &prompts.Loader{Source: src, Dir: config.PromptCacheDir(), Logger: log}
+	s.promptLoader = loader
 	if s.Resumed && conv.PromptBundleVersion != "" {
 		s.Bundle, err = loader.Frozen(ctx, s.Model, conv.PromptBundleVersion)
 	} else {
@@ -583,6 +594,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	tools.RegisterSessionTools(s.Tools)
+	s.openSkills(o)
 	s.registerWebTools(o)
 	s.LSP = lsp.New(lsp.Options{Config: s.lspConfig, Trusted: s.lspTrusted, ReadDenied: func(p string) bool { return s.ToolEnv.ReadDenied != nil && s.ToolEnv.ReadDenied(p) }, Logger: log})
 	s.Tools.Register(s.LSP.Tool())
@@ -692,6 +704,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		}
 	}
 	onEvent = s.watchPRCommands(onEvent)
+	onEvent = s.watchSkillForks(onEvent)
 	s.FileHistory = session.NewFileHistory(FileHistoryDir(s.ID), s.Transcript, conv.Snapshots)
 	s.ToolEnv.BeforeEdit = s.FileHistory.TrackEdit
 
@@ -716,7 +729,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Vars: env.Vars(), ProjectContext: projectContext, History: conv, Todos: todos,
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
-		UsageMonitor:          o.UsageMonitor,
+		UsageMonitor:          o.UsageMonitor, Skills: s.skillSource(),
 		OnEvent:               onEvent, Logger: log,
 	})
 	tools.SetNotificationListener(s.ID, s.Agent.OnNotification)
@@ -741,7 +754,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		},
 		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
 		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
-		Vars: env.Vars(), ProjectContext: projectContext, AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor,
+		Vars: env.Vars(), ProjectContext: projectContext, AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor, Skills: s.skillSource(),
 		CustomTypes: subagent.LoadDefinitions(subagent.DefinitionDirs(config.Home(), homeDir(), cwd, s.Trusted)), Logger: log,
 	})
 	s.Subagents.Attach(s.Agent)

@@ -221,6 +221,9 @@ func (r *replayer) user(e session.Entry, at time.Time) {
 		return
 	}
 	blocks := e.Blocks()
+	if e.Skill != nil && !e.Skill.Restored {
+		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_SkillInvoked{SkillInvoked: skillInvokedProto(e.Skill)}})
+	}
 	if e.IsMeta || e.IsCompactSummary {
 		if r.compact != nil {
 			for _, b := range blocks {

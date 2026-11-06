@@ -885,6 +885,24 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    // A command that doesn't start a turn: its message never joins the transcript, so this settles its delivery.
+    case 'slashCommandResult': {
+      const r = e.value
+      if (r.uuid) s.delivered[r.uuid] = r.uuid
+      if (r.text) push(s, { kind: 'notice', id: 'n' + seq, level: r.isError ? 'warning' : 'info', noticeKind: 'slash_command', text: r.text })
+      if (r.action) s.slashAction = { id: r.uuid || `slash${seq}`, action: r.action, newSessionId: r.newSessionId, at }
+      break
+    }
+
+    // The Skill tool's row shows what the model starts; this shows what the user started, under their message.
+    case 'skillInvoked': {
+      const k = e.value
+      if (k.toolUseId) break
+      const parts = [k.source && k.source !== 'builtin' ? k.source : '', k.model && `on ${k.model}`, k.agentId && 'in a subagent'].filter(Boolean)
+      push(s, { kind: 'notice', id: 'n' + seq, level: 'info', noticeKind: 'skill', text: `Started /${k.name}${parts.length ? ` (${parts.join(', ')})` : ''}` })
+      break
+    }
+
     case 'showRequested': {
       const target = showTarget(e.value)
       if (target) s.showRequest = { id: e.value.toolUseId || 'show' + seq, target }

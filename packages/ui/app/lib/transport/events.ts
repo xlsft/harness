@@ -276,6 +276,14 @@ export class EventBuilder {
     })
   }
 
+  slashResult(uuid: string, name: string, o: { text?: string, action?: number, newSessionId?: string, isError?: boolean } = {}) {
+    return this.emit({ case: 'slashCommandResult', value: { uuid, name, text: o.text ?? '', isError: !!o.isError, action: o.action ?? 0, newSessionId: o.newSessionId ?? '' } as never })
+  }
+
+  skillInvoked(name: string, o: { toolUseId?: string, source?: string, model?: string, agentId?: string } = {}) {
+    return this.emit({ case: 'skillInvoked', value: { name, kind: 2, source: o.source ?? 'project', arguments: '', toolUseId: o.toolUseId ?? '', allowedTools: [], model: o.model ?? '', effort: '', agentId: o.agentId ?? '' } as never })
+  }
+
   notice(level: 'info' | 'warning' | 'error', kind: string, body: string | Record<string, unknown>) {
     const l = { info: Notice_Level.INFO, warning: Notice_Level.WARNING, error: Notice_Level.ERROR }[level]
     return this.emit({ case: 'notice', value: { level: l, kind, text: typeof body === 'string' ? body : JSON.stringify(body) } as never })

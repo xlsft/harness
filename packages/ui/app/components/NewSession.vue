@@ -152,7 +152,8 @@ function choose(path: string) {
   if (path && !folders.value.some(f => f.path === path)) folders.value.unshift({ path, name: name(path), exists: true } as RecentFolder)
 }
 
-const commands = computed(() => engine.value ? [] : NEW_SESSION_COMMANDS)
+// What the client finds for the chosen folder. An agent's own commands are known once its session runs.
+const commands = useSlashMenu(() => engine.value ? null : { cwd: cwd.value }, () => text.value)
 const suggest = computed(() => {
   const folder = cwd.value
   return async (q: string): Promise<MenuOption[]> => {

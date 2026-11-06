@@ -60,6 +60,7 @@ export function toolIcon(t: ToolItem): IconName {
     case 'ReadNotifications': return 'alert'
     case 'SendUserFile': return 'file'
     case 'ReportFindings': return 'search'
+    case 'Skill': return 'page'
     case 'Show': return t.input.target === 'url' ? 'globe' : t.input.target === 'diff' ? 'diff' : 'file'
     case 'SessionStart':
     case 'SessionHandoff': return 'branch'
@@ -123,6 +124,7 @@ export function toolTarget(t: ToolItem): string {
     case 'Task':
     case 'Agent': return String(i.description ?? t.summary)
     case 'SendMessage': return String(i.to ?? t.summary)
+    case 'Skill': return `/${String(i.skill ?? t.summary)}${i.args ? ` ${String(i.args)}` : ''}`
     case 'ListAgents': return 'agents'
     case 'Workflow': return String(i.name ?? i.resume_from ?? i.script_path ?? t.summary)
     case 'Show': {

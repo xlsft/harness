@@ -7,6 +7,7 @@ import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
 import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
+import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
@@ -331,6 +332,14 @@ export class ConnectTransport implements SessionTransport {
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
     const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox })
     return preferencesVM(res.preferences)
+  }
+
+  async listSlashCommands(target: SlashTarget): Promise<SlashCatalog> {
+    return this.client.listSlashCommands(target)
+  }
+
+  async setSkillEnabled(name: string, enabled: boolean) {
+    await this.client.updateUserPreferences({ skillSwitch: { name, enabled } })
   }
 
   async listTasks(sessionId: string) {

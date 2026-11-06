@@ -162,6 +162,8 @@ func (s *Server) RunClaudeImport(ctx context.Context, req *connect.Request[agent
 	if s.ImportTo == nil {
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("importing needs a harness server; this client is not connected to one"))
 	}
+	s.forgetSkillDocs()
+	defer s.forgetSkillDocs()
 	m := req.Msg
 	sections := map[importer.Section]bool{}
 	for _, pb := range m.GetSections() {

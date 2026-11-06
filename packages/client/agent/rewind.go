@@ -92,6 +92,7 @@ func (a *Agent) reload() session.Conversation {
 	a.contextInjected = conv.ContextInjected
 	a.lastUsage = 0
 	a.afterReloadStyle()
+	a.afterReloadSkills(conv.ActiveSkills)
 	a.mu.Unlock()
 	a.endLostTurn()
 	return conv

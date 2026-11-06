@@ -5,6 +5,7 @@ package harness.relay.v1;
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/session_links.proto";
+import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/subagents.proto";
 import "harness/agent/v1/workflows.proto";
 import "harness/common/v1/errors.proto";
@@ -123,6 +124,7 @@ service RelayService {
   rpc ListCheckpoints(ListCheckpointsRequest) returns (ListCheckpointsResponse);
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc ListOutputStyles(ListOutputStylesRequest) returns (ListOutputStylesResponse);
+  rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
   // "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
   // the server and again by the host). Held until the host acks with the created session (max ~30 s).
   rpc SpawnSession(SpawnSessionRequest) returns (SpawnSessionResponse);
@@ -233,6 +235,7 @@ message Command {
     harness.agent.v1.DeliverSessionNoteRequest deliver_session_note = 75;
     harness.agent.v1.ResolveSessionProposalRequest resolve_session_proposal = 76;
     harness.agent.v1.StopWorkflowRequest stop_workflow = 90;
+    harness.agent.v1.ListSlashCommandsRequest list_slash_commands = 110;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -341,6 +344,7 @@ message CommandAck {
     harness.agent.v1.StopSubagentResponse stop_subagent = 30;
     harness.agent.v1.GetSubagentTranscriptResponse get_subagent_transcript = 31;
     harness.agent.v1.StopWorkflowResponse stop_workflow = 40;
+    harness.agent.v1.ListSlashCommandsResponse list_slash_commands = 110;
   }
 }
 
@@ -747,6 +751,14 @@ message ListOutputStylesRequest {
 
 message ListOutputStylesResponse {
   harness.agent.v1.ListOutputStylesResponse response = 1;
+}
+
+message ListSlashCommandsRequest {
+  harness.agent.v1.ListSlashCommandsRequest request = 1;
+}
+
+message ListSlashCommandsResponse {
+  harness.agent.v1.ListSlashCommandsResponse response = 1;
 }
 
 message SpawnSessionRequest {

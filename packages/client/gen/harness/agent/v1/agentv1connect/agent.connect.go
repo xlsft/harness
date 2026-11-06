@@ -360,6 +360,9 @@ const (
 	// AgentServiceRunClaudeImportProcedure is the fully-qualified name of the AgentService's
 	// RunClaudeImport RPC.
 	AgentServiceRunClaudeImportProcedure = "/harness.agent.v1.AgentService/RunClaudeImport"
+	// AgentServiceListSlashCommandsProcedure is the fully-qualified name of the AgentService's
+	// ListSlashCommands RPC.
+	AgentServiceListSlashCommandsProcedure = "/harness.agent.v1.AgentService/ListSlashCommands"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -647,6 +650,9 @@ type AgentServiceClient interface {
 	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
 	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
 	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest]) (*connect.ServerStreamForClient[v1.RunClaudeImportResponse], error)
+	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
+	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1338,6 +1344,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
 			connect.WithClientOptions(opts...),
 		),
+		listSlashCommands: connect.NewClient[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse](
+			httpClient,
+			baseURL+AgentServiceListSlashCommandsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1456,6 +1468,7 @@ type agentServiceClient struct {
 	stopWorkflow            *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
 	scanClaudeImport        *connect.Client[v1.ScanClaudeImportRequest, v1.ScanClaudeImportResponse]
 	runClaudeImport         *connect.Client[v1.RunClaudeImportRequest, v1.RunClaudeImportResponse]
+	listSlashCommands       *connect.Client[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -2023,6 +2036,11 @@ func (c *agentServiceClient) RunClaudeImport(ctx context.Context, req *connect.R
 	return c.runClaudeImport.CallServerStream(ctx, req)
 }
 
+// ListSlashCommands calls harness.agent.v1.AgentService.ListSlashCommands.
+func (c *agentServiceClient) ListSlashCommands(ctx context.Context, req *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
+	return c.listSlashCommands.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2308,6 +2326,9 @@ type AgentServiceHandler interface {
 	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
 	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
 	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error
+	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
+	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -2995,6 +3016,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListSlashCommandsHandler := connect.NewUnaryHandler(
+		AgentServiceListSlashCommandsProcedure,
+		svc.ListSlashCommands,
+		connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3223,6 +3250,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceScanClaudeImportHandler.ServeHTTP(w, r)
 		case AgentServiceRunClaudeImportProcedure:
 			agentServiceRunClaudeImportHandler.ServeHTTP(w, r)
+		case AgentServiceListSlashCommandsProcedure:
+			agentServiceListSlashCommandsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3682,4 +3711,8 @@ func (UnimplementedAgentServiceHandler) ScanClaudeImport(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunClaudeImport is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSlashCommands is not implemented"))
 }

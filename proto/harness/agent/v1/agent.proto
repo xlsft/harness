@@ -17,6 +17,7 @@ import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
+import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/subagents.proto";
 import "harness/agent/v1/terminal.proto";
@@ -357,6 +358,10 @@ service AgentService {
   // running it again skips what is done; a session already imported is not duplicated. One run at a time:
   // FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
   rpc RunClaudeImport(RunClaudeImportRequest) returns (stream RunClaudeImportResponse);
+
+  // Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
+  // (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+  rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
 }
 
 message CreateObjectTicketRequest {}
@@ -795,6 +800,9 @@ message SessionEvent {
     DeviceSettingsChanged device_settings_changed = 77;
     // Runs of the Workflow tool (workflows.proto); numbered apart like the shell events.
     WorkflowUpdated workflow_updated = 90;
+    // Slash commands and skills (slash_commands.proto); numbered apart like the shell events.
+    SlashCommandResult slash_command_result = 110;
+    SkillInvoked skill_invoked = 111;
   }
 }
 
@@ -1464,6 +1472,15 @@ message UserPreferences {
   bool lsp_diagnostics_start_server = 8;
   // The command sandbox (settings key sandbox). Applies from the next command.
   SandboxPreferences sandbox = 9;
+  // The skills and custom commands the user turned off, by name (settings key disabledSkills). A name the current folder
+  // doesn't have stays on the list, so a skill keeps its switch from one project and machine to the next.
+  repeated string disabled_skills = 12;
+}
+
+// One switch of the Customize screen.
+message SkillSwitch {
+  string name = 1;
+  bool enabled = 2;
 }
 
 message GetUserPreferencesRequest {}
@@ -1488,6 +1505,8 @@ message UpdateUserPreferencesRequest {
   optional bool lsp_diagnostics_start_server = 8;
   // Replaces the whole sandbox block. INVALID_ARGUMENT for a write path that is not absolute or ~/, or a host that cannot be one.
   optional SandboxPreferences sandbox = 9;
+  // Flips one name on UserPreferences.disabled_skills, keeping the others. INVALID_ARGUMENT for an empty name.
+  optional SkillSwitch skill_switch = 12;
 }
 
 message UpdateUserPreferencesResponse {

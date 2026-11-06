@@ -34,6 +34,13 @@ const menu = ref<'' | 'model' | 'effort' | 'mode'>('')
 watch(menu, (m) => {
   if (m === 'model') void store.refreshModels().catch(() => {})
 })
+// "/model" and "/effort" without a value open the picker.
+const picker = usePickerRequest()
+watch(picker, (p) => {
+  if (!p) return
+  menu.value = p
+  picker.value = ''
+})
 const open = (m: 'model' | 'effort' | 'mode') => ({
   'open': menu.value === m,
   'onUpdate:open': (v: boolean) => (menu.value = v ? m : '')

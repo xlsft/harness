@@ -238,6 +238,9 @@ func (r Rule) matchesCall(req Request, input map[string]any, mc matchContext, al
 	if r.Spec == "" {
 		return true
 	}
+	if req.ToolName == "Skill" {
+		return matchSkillSpec(r.Spec, valueString(input["skill"]), valueString(input["args"]))
+	}
 	if k, v, ok := paramSpec(req.ToolName, r.Spec, input); ok {
 		if isBrowserTool(req.ToolName) && k == "domain" {
 			host, _ := browserSite(req.URL)
@@ -268,6 +271,16 @@ func (r Rule) matchesCall(req Request, input map[string]any, mc matchContext, al
 	}
 	// Other tools: match the specifier against the first string parameter.
 	return globMatch(r.Spec, firstString(input))
+}
+
+// matchSkillSpec matches Skill(name) against the skill alone, and Skill(name *) against the skill and its arguments, as
+// Bash rules read a command line.
+func matchSkillSpec(spec, name, args string) bool {
+	name = strings.TrimPrefix(strings.TrimSpace(name), "/")
+	if !strings.Contains(spec, "*") {
+		return spec == name
+	}
+	return matchBashSpec(spec, strings.TrimSpace(name+" "+args))
 }
 
 func firstString(input map[string]any) string {

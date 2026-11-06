@@ -352,6 +352,10 @@ func (b *fakeBackend) RespondToPermission(_ context.Context, req *connect.Reques
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no pending permission request %s", req.Msg.GetRequestId()))
 }
 
+func (b *fakeBackend) ListSlashCommands(_ context.Context, req *connect.Request[agentv1.ListSlashCommandsRequest]) (*connect.Response[agentv1.ListSlashCommandsResponse], error) {
+	return connect.NewResponse(&agentv1.ListSlashCommandsResponse{Commands: []*agentv1.SlashCommand{{Name: req.Msg.GetSessionId()}}}), nil
+}
+
 func (b *fakeBackend) SuggestFiles(_ context.Context, req *connect.Request[agentv1.SuggestFilesRequest]) (*connect.Response[agentv1.SuggestFilesResponse], error) {
 	return connect.NewResponse(&agentv1.SuggestFilesResponse{Paths: []string{"main.go", req.Msg.GetQuery()}}), nil
 }
@@ -588,6 +592,13 @@ func TestCommandsRunOnceAndAckWithOutcomes(t *testing.T) {
 	r.fake.waitFor(t, "query ack", func() bool { return r.fake.ackFor("cmd_q") != nil })
 	if p := r.fake.ackFor("cmd_q").GetSuggestFiles().GetPaths(); len(p) != 2 || p[1] != "ma" {
 		t.Fatalf("query result %v", p)
+	}
+
+	r.send(&relayv1.Command{CommandId: "cmd_s", SessionId: "s1", Epoch: epoch, ExpiresAt: future(),
+		Payload: &relayv1.Command_ListSlashCommands{ListSlashCommands: &agentv1.ListSlashCommandsRequest{}}})
+	r.fake.waitFor(t, "slash ack", func() bool { return r.fake.ackFor("cmd_s") != nil })
+	if c := r.fake.ackFor("cmd_s").GetListSlashCommands().GetCommands(); len(c) != 1 || c[0].GetName() != "s1" {
+		t.Fatalf("slash commands %v", c)
 	}
 
 	// commands for a session this host does not mirror are left alone

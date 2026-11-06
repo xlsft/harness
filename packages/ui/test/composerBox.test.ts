@@ -3,18 +3,9 @@ import { SendUserMessageRequest_Delivery, type SessionEvent } from '~/gen/harnes
 import { attachmentError, attachmentFiles, attachmentKind, blockAttachments, clipboardFiles, messageContent, readAttachments, sniffImageType } from '~/lib/session/attachments'
 import { textOf } from '~/lib/session/reducer'
 import { MockTransport } from '~/lib/transport/mock'
-import { fileMentionOptions, folderLookup, folderMention, NEW_SESSION_COMMANDS, SLASH_COMMANDS } from '~/utils/composer'
+import { fileMentionOptions, folderLookup, folderMention } from '~/utils/composer'
 
 describe('the composer box before a session exists', () => {
-  it('offers only the commands that make sense without a conversation', () => {
-    const keys = NEW_SESSION_COMMANDS.map(c => c.key)
-    expect(keys).not.toContain('/compact')
-    expect(keys).not.toContain('/clear')
-    expect(keys).not.toContain('/rewind')
-    expect(keys.every(k => SLASH_COMMANDS.some(c => c.key === k))).toBe(true)
-    expect(keys.length).toBeGreaterThan(0)
-  })
-
   it('mentions a picked folder relative to the session folder, absolute without one', () => {
     expect(folderMention('/w/app/src', '/w/app')).toBe('@src/ ')
     expect(folderMention('/w/app', '/w/app/')).toBe('@./ ')

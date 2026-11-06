@@ -123,6 +123,12 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   compacted                                    first message after a compaction summary
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)
+   *   skills_listing        {{listing}}            the skills the model may run with the Skill tool: names and descriptions
+   *                         only (session start, when the list changes, after a compaction)
+   *   skill_invoked         {{name}} {{directory}} {{arguments}} {{content}}  the full text of a skill or custom command
+   *                         that just started, by the user or the Skill tool
+   *   command_init          {{cwd}} {{target}} {{existing}} {{arguments}}  the /init built-in
+   *   command_code_review   {{cwd}} {{status}} {{diff_stat}} {{arguments}}  the /code-review built-in
    *   environment_changed   {{directories}} {{variables}}  the user edited the running session's environment
    *   session_moved         {{cwd}} {{previous}} {{branch}} {{directories}} {{details}}  the session moved itself
    *                         to another folder or worktree while running

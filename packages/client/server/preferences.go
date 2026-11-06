@@ -107,11 +107,20 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		set[settings.KeySandbox] = map[string]any{"enabled": b.GetEnabled(), "allowedWritePaths": nonNil(b.GetAllowedWritePaths()), "allowedHosts": nonNil(b.GetAllowedHosts()),
 			"allowLocalhost": b.GetAllowLocalhost(), "autoAllowBash": b.GetAutoAllowBash(), "outsideWithoutPrompt": b.GetOutsideWithoutPrompt()}
 	}
+	if sw := req.Msg.SkillSwitch; sw != nil {
+		if strings.TrimSpace(sw.GetName()) == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("the skill's name is empty"))
+		}
+		set[settings.KeyDisabledSkills] = flipDisabled(sw.GetName(), sw.GetEnabled())
+	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
 	doc, err := s.mergeUserSettings(ctx, set)
 	if err != nil {
 		return nil, err
+	}
+	if sw := req.Msg.SkillSwitch; sw != nil {
+		s.applySkillSwitch(sw.GetName(), sw.GetEnabled())
 	}
 	return connect.NewResponse(&agentv1.UpdateUserPreferencesResponse{Preferences: preferencesOf(doc)}), nil
 }
@@ -189,6 +198,9 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 			*dst = b
 		}
 	}
+	if v, ok := raw[settings.KeyDisabledSkills]; ok {
+		_ = json.Unmarshal(v, &p.DisabledSkills)
+	}
 	var n int32
 	if v, ok := raw[settings.KeyPRMonitorWakesPerHour]; ok && json.Unmarshal(v, &n) == nil && settings.ValidPRMonitorWakesPerHour(int(n)) {
 		p.PrMonitorWakesPerHour = n
@@ -232,6 +244,9 @@ func mergeSettingsJSON(content string, set map[string]any) (string, error) {
 		}
 	}
 	for k, v := range set {
+		if f, ok := v.(func(json.RawMessage) any); ok {
+			v = f(raw[k])
+		}
 		b, err := json.Marshal(v)
 		if err != nil {
 			return "", err

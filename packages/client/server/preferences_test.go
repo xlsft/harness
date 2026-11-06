@@ -192,3 +192,19 @@ func TestLSPPreferences(t *testing.T) {
 		t.Fatalf("second update: %v %+v", err, up)
 	}
 }
+
+// A switch flipped on another machine while this one writes is kept: the merge reads the list again on a conflict.
+func TestSkillSwitchKeepsAConcurrentFlip(t *testing.T) {
+	ctx := context.Background()
+	docs := &fakeDocs{}
+	s := &Server{Preferences: docs}
+	docs.write(`{"disabledSkills":["old"]}`)
+	docs.raceWith = `{"disabledSkills":["old","theirs"]}`
+	res, err := s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{SkillSwitch: &agentv1.SkillSwitch{Name: "mine", Enabled: false}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := res.Msg.GetPreferences().GetDisabledSkills(); len(got) != 3 || got[0] != "mine" || got[1] != "old" || got[2] != "theirs" {
+		t.Fatalf("%q", got)
+	}
+}

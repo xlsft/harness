@@ -36,6 +36,7 @@ import type { ClaudeImportApi } from '~/lib/import/claudeCode'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { BrowserApi } from '~/lib/browser/types'
+import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 
 // Computer use on this device (GetComputerUseStatus).
 export interface ComputerUseStatusVM {
@@ -259,6 +260,10 @@ export interface SessionTransport {
   // Per-user preferences; an update changes only the fields it sets and returns them all.
   getUserPreferences(): Promise<UserPreferences>
   updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences>
+  // Everything runnable from the composer, with its details, as the client resolves it (ListSlashCommands).
+  listSlashCommands(target: SlashTarget): Promise<SlashCatalog>
+  // One switch of the Customize screen (a preference, synced).
+  setSkillEnabled(name: string, enabled: boolean): Promise<void>
   getSandboxStatus(): Promise<SandboxStatus>
 
   // This device's preferences; an update changes only the fields it sets and returns them all.

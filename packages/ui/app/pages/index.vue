@@ -64,6 +64,7 @@ const session = computed(() => composing.value ? undefined : store.current)
 const readOnly = computed(() => !!session.value?.meta.remote && !(store.remoteControl[session.value.meta.id] && session.value.meta.remoteControllable))
 useShortcuts()
 useShowRequests()
+useSlashActions()
 </script>
 
 <template>

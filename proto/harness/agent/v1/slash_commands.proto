@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// The slash menu and the Customize screen: everything a user can run from the composer, as the client resolves it.
+// The client decides what exists, what wins on a name clash and what is on; frontends only render the answer and send
+// `/name args` as the text of a message (SendUserMessage), where the client runs it.
+
+enum SlashCommandKind {
+  SLASH_COMMAND_KIND_UNSPECIFIED = 0;
+  // Implemented by the client.
+  SLASH_COMMAND_KIND_BUILTIN = 1;
+  // A SKILL.md folder.
+  SLASH_COMMAND_KIND_SKILL = 2;
+  // A Markdown file under a commands folder.
+  SLASH_COMMAND_KIND_COMMAND = 3;
+  // Advertised by the session's ACP agent, and run by it. Device-local: never stored or synced.
+  SLASH_COMMAND_KIND_AGENT = 4;
+}
+
+message SlashCommand {
+  // Without the slash; folders of a commands directory are namespaces ("frontend:test").
+  string name = 1;
+  string description = 2;
+  SlashCommandKind kind = 3;
+  // Where it comes from: "builtin", "agent", "personal" (the home folders), "project" (the folder and its parents),
+  // "imported" (stored on the server by Settings > Import) or "organization" (stored on the server for everyone).
+  string source = 4;
+  // What to type after the name, for the menu ("[environment]").
+  string argument_hint = 5;
+  // The file it was read from; for a document on the server "sync:<document id>"; empty otherwise.
+  string path = 6;
+  // The user's switch (UserPreferences.disabled_skills) is on. A turned off skill or command can't be run by anyone.
+  bool enabled = 7;
+  // Listed in the menu and runnable as `/name`.
+  bool user_invocable = 8;
+  // The model may run it with the Skill tool (when on).
+  bool model_invocable = 9;
+  // Needs a conversation: not offered before a session exists.
+  bool needs_session = 10;
+  // Tools it may use without a prompt while it is active.
+  repeated string allowed_tools = 11;
+  // Model and effort it runs on, for the turn.
+  string model = 12;
+  string effort = 13;
+  // It runs in a subagent of its own instead of the conversation.
+  bool fork = 14;
+  // Only offered to the model once a file matching these globs was touched.
+  repeated string paths = 15;
+  // Frontmatter fields the client read but does not act on.
+  repeated string skipped_fields = 16;
+  // What is wrong with it, for the user.
+  repeated string problems = 17;
+  // The name and description are in the model's listing now. False for a skill the listing's budget left out, one that
+  // waits for its paths, or one the model may not run.
+  bool listed = 18;
+  // Another skill or command of this name wins; this one can't be run. Empty for the one that runs. The value is the
+  // winner's source.
+  string shadowed_by = 19;
+  // The switch applies (false for built-ins and an agent's commands).
+  bool switchable = 20;
+}
+
+message ListSlashCommandsRequest {
+  // A session: its folder, its live state and, on an ACP agent, the agent's commands.
+  string session_id = 1;
+  // Without a session: the folder to look in (the new-session screen, Customize). Empty: only what isn't tied to one.
+  string cwd = 2;
+}
+
+message ListSlashCommandsResponse {
+  // Built-ins first, then by source and name. Includes what's turned off and what's shadowed.
+  repeated SlashCommand commands = 1;
+  // Project skills and commands of an untrusted folder are not loaded; the screen says so.
+  bool project_skipped_untrusted = 2;
+  // The listing the model reads: what it may hold and what it holds, in characters.
+  int32 listing_budget_chars = 3;
+  int32 listing_used_chars = 4;
+}
+
+// What a slash command that doesn't start a turn did (/model, /clear, ...). `uuid` is the message that ran it: it never
+// joins the transcript, so this also settles its delivery. Not in a resumed session's history.
+message SlashCommandResult {
+  // What a frontend does next, besides showing `text`.
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_PICK_MODEL = 1;
+    ACTION_PICK_EFFORT = 2;
+    // Open the session in new_session_id.
+    ACTION_OPEN_SESSION = 3;
+    ACTION_OPEN_CUSTOMIZE = 4;
+  }
+  // The client-generated id of the message (SendUserMessageRequest.uuid).
+  string uuid = 1;
+  // Without the slash.
+  string name = 2;
+  // What happened, for the user; empty when the action says it all.
+  string text = 3;
+  // The command failed; `text` says why.
+  bool is_error = 4;
+  Action action = 5;
+  string new_session_id = 6;
+}
+
+// A skill or command began to run in the conversation. The Skill tool's call shows the model's own uses; this also
+// shows the user's. Part of a resumed session's history.
+message SkillInvoked {
+  string name = 1;
+  SlashCommandKind kind = 2;
+  // As in SlashCommand.source.
+  string source = 3;
+  string arguments = 4;
+  // Set when the model ran it with the Skill tool: the id of that call. Empty: the user typed it.
+  string tool_use_id = 5;
+  // What it asked for, as applied.
+  repeated string allowed_tools = 6;
+  string model = 7;
+  string effort = 8;
+  // The subagent it runs in, when it forks.
+  string agent_id = 9;
+}

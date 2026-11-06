@@ -82,6 +82,7 @@ type Config struct {
 	ProjectContext string
 	AutoCompactPct float64
 	UsageMonitor   agent.UsageMonitor
+	Skills         agent.SkillSource
 	// CustomTypes are the types loaded from definitions (LoadDefinitions).
 	CustomTypes []Type
 	Logger      *slog.Logger
@@ -698,6 +699,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	env.SessionID, env.PlansDir, env.RipgrepPath = lead.SessionID, lead.PlansDir, lead.RipgrepPath
 	env.Agents, env.AgentID = m, id
 	env.Edits = lead.Edits
+	env.Skills = lead.Skills
 	if a.wt == nil {
 		// Checkpoints follow the session's folder; a worktree has git for that.
 		env.BeforeEdit = lead.BeforeEdit
@@ -743,7 +745,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,
 		Vars: vars, ProjectContext: m.cfg.ProjectContext, History: conv,
 		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: m.agentMode,
-		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor,
+		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor, Skills: m.cfg.Skills,
 		OnEvent: func(e agent.Event) { m.onAgentEvent(a, e) }, Logger: m.cfg.Logger,
 	})
 	env.Reminders = func(k string) string { return ag.Bundle().Reminder(k, "") }

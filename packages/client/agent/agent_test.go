@@ -42,7 +42,7 @@ func setup(t *testing.T, respond fg.Responder) *env {
 func (e *env) open(t *testing.T, mod func(*bootstrap.Options)) *bootstrap.Session {
 	t.Helper()
 	tok := auth.StaticToken("hat_test")
-	o := bootstrap.Options{Cwd: e.proj, Gateway: connectgw.New(e.url, nil, tok), Prompts: prompts.NewConnectSource(e.url, nil, tok)}
+	o := bootstrap.Options{Cwd: e.proj, Gateway: connectgw.New(e.url, nil, tok), Prompts: prompts.NewConnectSource(e.url, nil, tok), SkillHome: t.TempDir()}
 	if mod != nil {
 		mod(&o)
 	}

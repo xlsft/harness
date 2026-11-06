@@ -260,6 +260,13 @@ func ValidPRMonitorWakesPerHour(n int) bool { return n >= 1 && n <= MaxPRMonitor
 // writes it into the user's synced settings document (UserSettingsKey).
 const KeyCompactIdleSessions = "compactIdleSessions"
 
+// KeyDisabledSkills is the settings key of the skills and custom commands the user turned off, by name. It is synced,
+// like every preference: a skill keeps its switch from one machine to the next.
+const KeyDisabledSkills = "disabledSkills"
+
+// KeyDisableSkillShell turns off running the `!`command`` of skill and command bodies.
+const KeyDisableSkillShell = "disableSkillShellExecution"
+
 // Bounds of Settings.SubagentMaxDepth and Settings.SubagentMaxRunning. The maximums keep a model from fanning out past
 // what a machine and a usage limit can carry.
 const (

@@ -13,6 +13,9 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
+import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
+import { mockSlashCatalog } from './mockSlash'
 import type { ComputerProfileVM, BackgroundReasonName, QuestionReply } from '~/lib/session/types'
 import type { ComputerUseAppVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
@@ -159,6 +162,7 @@ const MOCK_BRANCHES = [
 export class MockTransport implements SessionTransport {
   readonly kind = 'mock' as const
   private sessions = new Map<string, MockSession>()
+  private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
   private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false } }
@@ -508,8 +512,19 @@ export class MockTransport implements SessionTransport {
     })
   }
 
+  async listSlashCommands(target: SlashTarget): Promise<SlashCatalog> {
+    if ('sessionId' in target) this.get(target.sessionId)
+    return mockSlashCatalog(this.disabledSkills)
+  }
+
+  async setSkillEnabled(name: string, enabled: boolean) {
+    if (enabled) this.disabledSkills.delete(name)
+    else this.disabledSkills.add(name)
+  }
+
   async sendUserMessage(sessionId: string, uuid: string, text: string, delivery: SendUserMessageRequest_Delivery, attachments?: OutgoingAttachment[]) {
     const s = this.get(sessionId)
+    if (await this.mockSlash(sessionId, uuid, text)) return
     if (attachments?.length) this.sentFiles.set(uuid, attachments)
     if (s.info.acp?.needsAuth) throw new Error(`[failed_precondition] ${s.info.acp.agentName} needs you to sign in first`)
     if (s.limit) {
@@ -1185,6 +1200,44 @@ export class MockTransport implements SessionTransport {
     ]
     const q = query.toLowerCase()
     return files.filter(f => f.toLowerCase().includes(q)).slice(0, limit)
+  }
+
+  // The built-ins that don't start a turn, as the client answers them.
+  private async mockSlash(sessionId: string, uuid: string, text: string): Promise<boolean> {
+    const m = /^\/([a-z-]+)(?:\s+(.*))?$/s.exec(text.trim())
+    const s = this.get(sessionId)
+    if (!m || s.info.acp) return false
+    const result = (o: { text?: string, action?: SlashCommandResult_Action, newSessionId?: string, isError?: boolean }) =>
+      this.emit(s, b => b.slashResult(uuid, m[1]!, o))
+    const arg = m[2]?.trim() ?? ''
+    switch (m[1]) {
+      case 'compact':
+        if (s.working) result({ text: '/compact runs when the session is idle; wait for the current turn to finish', isError: true })
+        else {
+          result({})
+          await this.compact(sessionId)
+        }
+        return true
+      case 'clear': {
+        const next = await this.createSession({ cwd: s.info.cwd, model: s.info.model })
+        result({ text: 'Started a new session; this one stays in the list.', action: SlashCommandResult_Action.OPEN_SESSION, newSessionId: next.id })
+        return true
+      }
+      case 'model':
+        if (!arg) result({ action: SlashCommandResult_Action.PICK_MODEL })
+        else {
+          await this.setModel(sessionId, arg)
+          result({ text: `Model: ${arg}` })
+        }
+        return true
+      case 'effort':
+        result(arg ? { text: `Effort: ${arg}` } : { action: SlashCommandResult_Action.PICK_EFFORT })
+        return true
+      case 'skills':
+        result({ action: SlashCommandResult_Action.OPEN_CUSTOMIZE })
+        return true
+    }
+    return false
   }
 
   async compact(sessionId: string) {

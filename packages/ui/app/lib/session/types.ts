@@ -1,5 +1,6 @@
 // View model of one session, built from harness.agent.v1 SessionEvents by the reducer (./reducer.ts).
 // It is plain data (no protobuf messages) so it can live in a Pinia store and be rendered directly.
+import type { SlashActionVM } from './slashCommands'
 import type { ObjectRef } from './objects'
 import type { BrowserActionVM } from '~/lib/browser/types'
 import type { AcpSessionState } from '~/gen/harness/agent/v1/acp_pb'
@@ -581,6 +582,8 @@ export interface SessionState {
   computerUse?: ComputerUseVM
   // The latest Show request not yet followed by a user message; the UI opens it once the session is open.
   showRequest: ShowRequest | null
+  // What the latest slash command left to do (useSlashActions).
+  slashAction?: SlashActionVM
   // The latest PushNotification that went out (useUserNotifications shows it).
   userNotification?: UserNotificationVM
   // The latest usage-limit state of the session's provider; undefined until one was reported.
