@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/lsp"
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/vcs"
@@ -82,6 +84,40 @@ func (s *Session) workflowMaxAgents() int {
 		return settings.DefaultWorkflowMaxAgents
 	}
 	return st.WorkflowMaxAgents
+}
+
+// lspConfig reads the language server settings again, so that the user's switches apply to a session that runs.
+func (s *Session) lspConfig() lsp.Config {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Dir(), Docs: docs, Trusted: s.IsTrusted()})
+	if err != nil {
+		return lsp.Config{Enabled: true, Diagnostics: true}
+	}
+	return lsp.Config{Enabled: st.LSPEnabled, Diagnostics: st.LSPDiagnostics, StartForDiagnostics: st.LSPDiagnosticsStartServer, Servers: st.LSPServers}
+}
+
+// lspTrusted reports whether a language server may start for a working directory: one inside the session's trusted
+// folder, or one trusted by itself (a directory the session gained does not inherit the folder's trust).
+func (s *Session) lspTrusted(dir string) bool {
+	if s.IsTrusted() {
+		cwd := s.Dir()
+		for _, c := range []string{cwd, realDir(cwd)} {
+			if rel, err := filepath.Rel(c, dir); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return true
+			}
+		}
+	}
+	return folderTrust(s.open, dir)
+}
+
+func realDir(p string) string {
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		return r
+	}
+	return p
 }
 
 // ConnectPR sends what the tracker sees to the session: notes as reminders, a state change to onChange.

@@ -77,6 +77,7 @@ func (*Write) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%v", err)
 	}
 	env.Files.MarkReadContent(path, []byte(*in.Content))
+	env.afterEdit(ctx, path)
 	kind := "create"
 	msg := fmt.Sprintf("File created successfully at: %s", path)
 	oldText := ""
@@ -138,6 +139,7 @@ func (*Edit) Run(ctx context.Context, env *Env, call Call) Result {
 				return ErrorResult("%v", err)
 			}
 			env.Files.MarkReadContent(path, []byte(newS))
+			env.afterEdit(ctx, path)
 			r := TextResult(fmt.Sprintf("File created successfully at: %s", path), map[string]any{"filePath": path, "oldString": "", "newString": newS,
 				"originalFile": nil, "structuredPatch": nonNilHunks(DiffLines("", newS, 3)), "userModified": false, "replaceAll": false})
 			r.Summary = "Created file"
@@ -191,6 +193,7 @@ func (*Edit) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("%v", err)
 	}
 	env.Files.MarkReadContent(path, []byte(updated))
+	env.afterEdit(ctx, path)
 	msg := fmt.Sprintf("The file %s has been updated successfully.", path)
 	if in.ReplaceAll {
 		msg = fmt.Sprintf("The file %s has been updated. All occurrences were successfully replaced.", path)

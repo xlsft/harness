@@ -170,3 +170,25 @@ func TestPRMonitorWakesPreference(t *testing.T) {
 		t.Fatalf("bad document: %v %+v", err, got)
 	}
 }
+
+func TestLSPPreferences(t *testing.T) {
+	ctx := context.Background()
+	docs := &fakeDocs{}
+	s := &Server{Preferences: docs}
+	got, err := s.GetUserPreferences(ctx, connect.NewRequest(&agentv1.GetUserPreferencesRequest{}))
+	if p := got.Msg.GetPreferences(); err != nil || !p.LspEnabled || !p.LspDiagnostics || p.LspDiagnosticsStartServer {
+		t.Fatalf("defaults: %v %+v", err, got)
+	}
+	up, err := s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{LspEnabled: proto.Bool(false), LspDiagnosticsStartServer: proto.Bool(true)}))
+	if p := up.Msg.GetPreferences(); err != nil || p.LspEnabled || !p.LspDiagnostics || !p.LspDiagnosticsStartServer {
+		t.Fatalf("update: %v %+v", err, up)
+	}
+	var stored map[string]any
+	if err := json.Unmarshal([]byte(docs.doc.GetContent()), &stored); err != nil || stored["lspEnabled"] != false || stored["lspDiagnosticsStartServer"] != true {
+		t.Fatalf("stored: %v %s", err, docs.doc.GetContent())
+	}
+	up, err = s.UpdateUserPreferences(ctx, connect.NewRequest(&agentv1.UpdateUserPreferencesRequest{LspDiagnostics: proto.Bool(false), LspEnabled: proto.Bool(true)}))
+	if p := up.Msg.GetPreferences(); err != nil || !p.LspEnabled || p.LspDiagnostics {
+		t.Fatalf("second update: %v %+v", err, up)
+	}
+}

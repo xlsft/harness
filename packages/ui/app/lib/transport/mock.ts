@@ -161,7 +161,7 @@ export class MockTransport implements SessionTransport {
   private sessions = new Map<string, MockSession>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30 }
+  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false }
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
   private now: () => number

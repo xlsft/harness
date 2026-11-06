@@ -696,6 +696,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	env.SetExtraEnv(lead.ExtraEnv())
 	env.SessionID, env.PlansDir, env.RipgrepPath = lead.SessionID, lead.PlansDir, lead.RipgrepPath
 	env.Agents, env.AgentID = m, id
+	env.Edits = lead.Edits
 	if a.wt == nil {
 		// Checkpoints follow the session's folder; a worktree has git for that.
 		env.BeforeEdit = lead.BeforeEdit

@@ -46,6 +46,15 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	l.includeGit = s.boolean(src, raw, "includeGitInstructions")
 	l.interruptReply = s.boolean(src, raw, "interruptReply")
 	l.compactIdle = s.boolean(src, raw, KeyCompactIdleSessions)
+	l.lspEnabled = s.boolean(src, raw, KeyLSPEnabled)
+	l.lspDiagnostics = s.boolean(src, raw, KeyLSPDiagnostics)
+	l.lspStartServer = s.boolean(src, raw, KeyLSPDiagnosticsStartServer)
+	if v, ok := raw[KeyLSPServers]; ok && string(v) != "null" {
+		if err := json.Unmarshal(v, &l.lspServers); err != nil {
+			s.problem(src, KeyLSPServers, "must be an object of server settings by language id: %v", err)
+			l.lspServers = nil
+		}
+	}
 	if l.prWakes = s.integer(src, raw, KeyPRMonitorWakesPerHour); l.prWakes != nil && !ValidPRMonitorWakesPerHour(*l.prWakes) {
 		s.problem(src, KeyPRMonitorWakesPerHour, "must be between 1 and %d", MaxPRMonitorWakesPerHour)
 		l.prWakes = nil
@@ -225,6 +234,8 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 	}
 	gated := func(l *layer) bool { return l.src.Level == LevelProject && !s.Trusted }
+	// Language server settings gate the local project files too: a repository can commit those as well.
+	projectFile := func(l *layer) bool { return l.src.Level == LevelProject || l.src.Level == LevelLocal }
 
 	// Lists: highest precedence first.
 	for _, l := range layers {
@@ -296,6 +307,30 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.compactIdle != nil {
 			s.CompactIdleSessions = *l.compactIdle
+		}
+		lspSwitch := func(dst *bool, v *bool, key string) {
+			switch {
+			case v == nil:
+			case *v && projectFile(l):
+				s.ignored(l.src, key, "only the user's own settings can turn this on")
+			default:
+				*dst = *v
+			}
+		}
+		lspSwitch(&s.LSPEnabled, l.lspEnabled, KeyLSPEnabled)
+		lspSwitch(&s.LSPDiagnostics, l.lspDiagnostics, KeyLSPDiagnostics)
+		lspSwitch(&s.LSPDiagnosticsStartServer, l.lspStartServer, KeyLSPDiagnosticsStartServer)
+		if len(l.lspServers) > 0 {
+			if projectFile(l) && !s.Trusted {
+				s.ignored(l.src, KeyLSPServers, "ignored until the workspace is trusted")
+			} else {
+				if s.LSPServers == nil {
+					s.LSPServers = map[string]LSPServer{}
+				}
+				for id, srv := range l.lspServers {
+					s.LSPServers[id] = srv
+				}
+			}
 		}
 		if l.prWakes != nil {
 			s.PRMonitorWakesPerHour = *l.prWakes

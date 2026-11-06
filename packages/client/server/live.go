@@ -573,6 +573,12 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "SendMessage " + jsonField(input, "to")
 	case "NotebookEdit":
 		return name + " " + rel(tools.FilePath(input))
+	case "LSP":
+		what := "LSP " + jsonField(input, "operation") + " "
+		if q := jsonField(input, "query"); q != "" {
+			return what + truncateRunes(q, 80)
+		}
+		return what + rel(tools.FilePath(input))
 	case "TaskStop", "TaskOutput":
 		return name + " " + jsonField(input, "task_id")
 	case "Wait":

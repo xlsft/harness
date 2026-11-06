@@ -55,6 +55,15 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	if req.Msg.CompactIdleSessions != nil {
 		set[settings.KeyCompactIdleSessions] = req.Msg.GetCompactIdleSessions()
 	}
+	if req.Msg.LspEnabled != nil {
+		set[settings.KeyLSPEnabled] = req.Msg.GetLspEnabled()
+	}
+	if req.Msg.LspDiagnostics != nil {
+		set[settings.KeyLSPDiagnostics] = req.Msg.GetLspDiagnostics()
+	}
+	if req.Msg.LspDiagnosticsStartServer != nil {
+		set[settings.KeyLSPDiagnosticsStartServer] = req.Msg.GetLspDiagnosticsStartServer()
+	}
 	if req.Msg.PrMonitorWakesPerHour != nil {
 		n := int(req.Msg.GetPrMonitorWakesPerHour())
 		if !settings.ValidPRMonitorWakesPerHour(n) {
@@ -134,7 +143,7 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 
 // preferencesOf reads the preferences from a settings document (nil or invalid content: the defaults).
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
-	p := &agentv1.UserPreferences{CompactIdleSessions: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
+	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
@@ -143,6 +152,11 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	var b bool
 	if v, ok := raw[settings.KeyCompactIdleSessions]; ok && json.Unmarshal(v, &b) == nil {
 		p.CompactIdleSessions = b
+	}
+	for key, dst := range map[string]*bool{settings.KeyLSPEnabled: &p.LspEnabled, settings.KeyLSPDiagnostics: &p.LspDiagnostics, settings.KeyLSPDiagnosticsStartServer: &p.LspDiagnosticsStartServer} {
+		if v, ok := raw[key]; ok && json.Unmarshal(v, &b) == nil {
+			*dst = b
+		}
 	}
 	var n int32
 	if v, ok := raw[settings.KeyPRMonitorWakesPerHour]; ok && json.Unmarshal(v, &n) == nil && settings.ValidPRMonitorWakesPerHour(int(n)) {

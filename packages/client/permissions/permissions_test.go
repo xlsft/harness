@@ -552,3 +552,35 @@ func TestNotebookEditPathScoping(t *testing.T) {
 		t.Errorf("outside: %v", b)
 	}
 }
+
+// LSP is checked as a read of its file: free in the working directories, a question outside them, covered by Read rules.
+func TestLSPIsAReadOfItsFile(t *testing.T) {
+	dir := t.TempDir()
+	proj := filepath.Join(dir, "proj")
+	if err := os.MkdirAll(proj, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	e := New(Config{Cwd: proj, Home: filepath.Join(dir, "home"), Deny: []string{"Read(./secret/**)"}})
+	call := func(path string) Decision {
+		r := req("LSP", map[string]any{"operation": "hover", "file_path": path, "line": 1, "character": 1})
+		r.FilePath, r.ReadOnly = path, true
+		return e.Evaluate(r)
+	}
+	if d := call(filepath.Join(proj, "a.go")); d.Behavior != Allow {
+		t.Fatalf("inside: %+v", d)
+	}
+	if d := call(filepath.Join(dir, "other", "a.go")); d.Behavior != Ask {
+		t.Fatalf("outside: %+v", d)
+	}
+	if d := call(filepath.Join(proj, "secret", "a.go")); d.Behavior != Deny {
+		t.Fatalf("denied by a Read rule: %+v", d)
+	}
+	for _, mode := range []Mode{ModePlan} {
+		if err := e.SetMode(mode); err != nil {
+			t.Fatal(err)
+		}
+		if d := call(filepath.Join(proj, "a.go")); d.Behavior != Allow {
+			t.Fatalf("in %s mode: %+v", mode, d)
+		}
+	}
+}

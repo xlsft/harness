@@ -111,6 +111,10 @@ export interface UserPreferences {
   subagentMaxRunning: number
   // The hard cap on agent() calls in one run of the Workflow tool (1 to 200); read when a run starts.
   workflowMaxAgents: number
+  // Language servers (Settings > Sessions): the LSP tool and the errors reported after edits.
+  lspEnabled: boolean
+  lspDiagnostics: boolean
+  lspDiagnosticsStartServer: boolean
 }
 
 // Preferences of this device, kept by the client on this machine and never synced.

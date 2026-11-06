@@ -151,6 +151,7 @@ const notifications = computed({
           />
         </div>
         <SettingsCompaction />
+        <SettingsLanguageServers />
         <SettingsPullRequests />
         <SettingsAgents />
       </template>

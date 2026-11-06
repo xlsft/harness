@@ -313,12 +313,12 @@ export class ConnectTransport implements SessionTransport {
 
   async getUserPreferences(): Promise<UserPreferences> {
     const res = await this.client.getUserPreferences({})
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30 }
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30, lspEnabled: res.preferences?.lspEnabled ?? true, lspDiagnostics: res.preferences?.lspDiagnostics ?? true, lspDiagnosticsStartServer: res.preferences?.lspDiagnosticsStartServer ?? false }
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents })
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30 }
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer })
+    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30, lspEnabled: res.preferences?.lspEnabled ?? true, lspDiagnostics: res.preferences?.lspDiagnostics ?? true, lspDiagnosticsStartServer: res.preferences?.lspDiagnosticsStartServer ?? false }
   }
 
   async listTasks(sessionId: string) {

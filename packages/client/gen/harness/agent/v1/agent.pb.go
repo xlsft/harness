@@ -8023,8 +8023,15 @@ type UserPreferences struct {
 	SubagentMaxRunning int32 `protobuf:"varint,4,opt,name=subagent_max_running,json=subagentMaxRunning,proto3" json:"subagent_max_running,omitempty"`
 	// How many agent() calls a run of the Workflow tool may make (settings key workflowMaxAgents), 1 to 200. Default 30.
 	WorkflowMaxAgents int32 `protobuf:"varint,5,opt,name=workflow_max_agents,json=workflowMaxAgents,proto3" json:"workflow_max_agents,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Offer the LSP tool and allow diagnostics after edits (settings key lspEnabled). Default true.
+	LspEnabled bool `protobuf:"varint,6,opt,name=lsp_enabled,json=lspEnabled,proto3" json:"lsp_enabled,omitempty"`
+	// Tell the model about errors a language server finds after its edits (settings key lspDiagnostics). Default true.
+	LspDiagnostics bool `protobuf:"varint,7,opt,name=lsp_diagnostics,json=lspDiagnostics,proto3" json:"lsp_diagnostics,omitempty"`
+	// Let an edit start a language server for those errors, not only use one that runs (settings key
+	// lspDiagnosticsStartServer). Default false.
+	LspDiagnosticsStartServer bool `protobuf:"varint,8,opt,name=lsp_diagnostics_start_server,json=lspDiagnosticsStartServer,proto3" json:"lsp_diagnostics_start_server,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *UserPreferences) Reset() {
@@ -8090,6 +8097,27 @@ func (x *UserPreferences) GetWorkflowMaxAgents() int32 {
 		return x.WorkflowMaxAgents
 	}
 	return 0
+}
+
+func (x *UserPreferences) GetLspEnabled() bool {
+	if x != nil {
+		return x.LspEnabled
+	}
+	return false
+}
+
+func (x *UserPreferences) GetLspDiagnostics() bool {
+	if x != nil {
+		return x.LspDiagnostics
+	}
+	return false
+}
+
+func (x *UserPreferences) GetLspDiagnosticsStartServer() bool {
+	if x != nil {
+		return x.LspDiagnosticsStartServer
+	}
+	return false
 }
 
 type GetUserPreferencesRequest struct {
@@ -8183,9 +8211,12 @@ type UpdateUserPreferencesRequest struct {
 	// INVALID_ARGUMENT outside 1 to 32.
 	SubagentMaxRunning *int32 `protobuf:"varint,4,opt,name=subagent_max_running,json=subagentMaxRunning,proto3,oneof" json:"subagent_max_running,omitempty"`
 	// INVALID_ARGUMENT outside 1 to 200.
-	WorkflowMaxAgents *int32 `protobuf:"varint,5,opt,name=workflow_max_agents,json=workflowMaxAgents,proto3,oneof" json:"workflow_max_agents,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	WorkflowMaxAgents         *int32 `protobuf:"varint,5,opt,name=workflow_max_agents,json=workflowMaxAgents,proto3,oneof" json:"workflow_max_agents,omitempty"`
+	LspEnabled                *bool  `protobuf:"varint,6,opt,name=lsp_enabled,json=lspEnabled,proto3,oneof" json:"lsp_enabled,omitempty"`
+	LspDiagnostics            *bool  `protobuf:"varint,7,opt,name=lsp_diagnostics,json=lspDiagnostics,proto3,oneof" json:"lsp_diagnostics,omitempty"`
+	LspDiagnosticsStartServer *bool  `protobuf:"varint,8,opt,name=lsp_diagnostics_start_server,json=lspDiagnosticsStartServer,proto3,oneof" json:"lsp_diagnostics_start_server,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *UpdateUserPreferencesRequest) Reset() {
@@ -8251,6 +8282,27 @@ func (x *UpdateUserPreferencesRequest) GetWorkflowMaxAgents() int32 {
 		return *x.WorkflowMaxAgents
 	}
 	return 0
+}
+
+func (x *UpdateUserPreferencesRequest) GetLspEnabled() bool {
+	if x != nil && x.LspEnabled != nil {
+		return *x.LspEnabled
+	}
+	return false
+}
+
+func (x *UpdateUserPreferencesRequest) GetLspDiagnostics() bool {
+	if x != nil && x.LspDiagnostics != nil {
+		return *x.LspDiagnostics
+	}
+	return false
+}
+
+func (x *UpdateUserPreferencesRequest) GetLspDiagnosticsStartServer() bool {
+	if x != nil && x.LspDiagnosticsStartServer != nil {
+		return *x.LspDiagnosticsStartServer
+	}
+	return false
 }
 
 type UpdateUserPreferencesResponse struct {
@@ -11132,27 +11184,38 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fCATEGORY_SKILLS\x10\x05\x12$\n" +
 	" CATEGORY_MCP_SERVER_INSTRUCTIONS\x10\x06\x12\x1f\n" +
 	"\x1bCATEGORY_AUTOCOMPACT_BUFFER\x10\a\x12\x17\n" +
-	"\x13CATEGORY_FREE_SPACE\x10\b\"\x8f\x02\n" +
+	"\x13CATEGORY_FREE_SPACE\x10\b\"\x9a\x03\n" +
 	"\x0fUserPreferences\x122\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\x128\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\x12,\n" +
 	"\x12subagent_max_depth\x18\x03 \x01(\x05R\x10subagentMaxDepth\x120\n" +
 	"\x14subagent_max_running\x18\x04 \x01(\x05R\x12subagentMaxRunning\x12.\n" +
-	"\x13workflow_max_agents\x18\x05 \x01(\x05R\x11workflowMaxAgents\"\x1b\n" +
+	"\x13workflow_max_agents\x18\x05 \x01(\x05R\x11workflowMaxAgents\x12\x1f\n" +
+	"\vlsp_enabled\x18\x06 \x01(\bR\n" +
+	"lspEnabled\x12'\n" +
+	"\x0flsp_diagnostics\x18\a \x01(\bR\x0elspDiagnostics\x12?\n" +
+	"\x1clsp_diagnostics_start_server\x18\b \x01(\bR\x19lspDiagnosticsStartServer\"\x1b\n" +
 	"\x19GetUserPreferencesRequest\"a\n" +
 	"\x1aGetUserPreferencesResponse\x12C\n" +
-	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xb5\x03\n" +
+	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\x94\x05\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01\x121\n" +
 	"\x12subagent_max_depth\x18\x03 \x01(\x05H\x02R\x10subagentMaxDepth\x88\x01\x01\x125\n" +
 	"\x14subagent_max_running\x18\x04 \x01(\x05H\x03R\x12subagentMaxRunning\x88\x01\x01\x123\n" +
-	"\x13workflow_max_agents\x18\x05 \x01(\x05H\x04R\x11workflowMaxAgents\x88\x01\x01B\x18\n" +
+	"\x13workflow_max_agents\x18\x05 \x01(\x05H\x04R\x11workflowMaxAgents\x88\x01\x01\x12$\n" +
+	"\vlsp_enabled\x18\x06 \x01(\bH\x05R\n" +
+	"lspEnabled\x88\x01\x01\x12,\n" +
+	"\x0flsp_diagnostics\x18\a \x01(\bH\x06R\x0elspDiagnostics\x88\x01\x01\x12D\n" +
+	"\x1clsp_diagnostics_start_server\x18\b \x01(\bH\aR\x19lspDiagnosticsStartServer\x88\x01\x01B\x18\n" +
 	"\x16_compact_idle_sessionsB\x1c\n" +
 	"\x1a_pr_monitor_wakes_per_hourB\x15\n" +
 	"\x13_subagent_max_depthB\x17\n" +
 	"\x15_subagent_max_runningB\x16\n" +
-	"\x14_workflow_max_agents\"d\n" +
+	"\x14_workflow_max_agentsB\x0e\n" +
+	"\f_lsp_enabledB\x12\n" +
+	"\x10_lsp_diagnosticsB\x1f\n" +
+	"\x1d_lsp_diagnostics_start_server\"d\n" +
 	"\x1dUpdateUserPreferencesResponse\x12C\n" +
 	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc9\x02\n" +
 	"\x0eBackgroundTask\x12\x17\n" +
