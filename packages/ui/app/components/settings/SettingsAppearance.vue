@@ -58,6 +58,11 @@ const mode = computed({
   set: (v: string) => setMode(v as AppearanceMode)
 })
 
+// The chosen theme may be further along its row.
+onMounted(() => nextTick(() => {
+  for (const el of document.querySelectorAll('.theme-row [aria-checked="true"]')) el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+}))
+
 const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
   { kind: 'light', title: tt('Light theme'), desc: tt('Used in light mode, and in System mode while the OS is light.') },
   { kind: 'dark', title: tt('Dark theme'), desc: tt('Used in dark mode, and in System mode while the OS is dark.') }
@@ -117,7 +122,7 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
     <div
       role="radiogroup"
       :aria-label="k.title"
-      class="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2.5"
+      class="theme-row flex snap-x gap-2.5 overflow-x-auto pb-2"
     >
       <button
         v-for="t in themes.filter(x => x.kind === k.kind)"
@@ -125,7 +130,7 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
         type="button"
         role="radio"
         :aria-checked="appearance[k.kind] === t.id"
-        class="flex flex-col overflow-hidden border text-left outline-none focus-visible:border-accent"
+        class="flex w-[200px] shrink-0 snap-start flex-col overflow-hidden border text-left outline-none focus-visible:border-accent"
         :class="appearance[k.kind] === t.id ? 'border-accent' : 'border-line hover:border-line-strong'"
         @click="setTheme(k.kind, t.id)"
       >
