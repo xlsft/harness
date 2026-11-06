@@ -29,16 +29,14 @@ async function revoke(site: string) {
 
 <template>
   <section
-    aria-label="Your Chrome"
+    :aria-label="tt('Your Chrome')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      Your Chrome
+      {{ tt('Your Chrome') }}
     </h2>
     <p class="text-[12px] text-muted">
-      A session's browser can use your own Chrome, with your sign-ins, from the Browser pane's menu.
-      {{ available ? 'Chrome is ready to connect.' : 'Turn on remote debugging at chrome://inspect/#remote-debugging first.' }}
-      Every site asks once; these never ask again on this device.
+      {{ tt('A session\'s browser can use your own Chrome, with your sign-ins, from the Browser pane\'s menu. {0} Every site asks once; these never ask again on this device.', [available ? tt('Chrome is ready to connect.') : 'Turn on remote debugging at chrome://inspect/#remote-debugging first.']) }}
     </p>
     <ul
       v-if="sites.length"
@@ -54,7 +52,7 @@ async function revoke(site: string) {
           tone="danger"
           @click="revoke(s)"
         >
-          Revoke
+          {{ tt('Revoke') }}
         </HBtn>
       </li>
     </ul>
@@ -62,7 +60,7 @@ async function revoke(site: string) {
       v-else
       class="mt-2 text-[12px] text-muted"
     >
-      No site is always allowed.
+      {{ tt('No site is always allowed.') }}
     </p>
     <p
       v-if="error"

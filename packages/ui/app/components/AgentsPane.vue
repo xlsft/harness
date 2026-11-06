@@ -71,24 +71,24 @@ function elapsed(a: SubagentVM) {
 
 <template>
   <section
-    aria-label="Agents"
+    :aria-label="tt('Agents')"
     class="flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
-      <span class="font-display text-[13px] text-strong">Agents</span>
+      <span class="font-display text-[13px] text-strong">{{ tt('Agents') }}</span>
       <span class="flex-1" />
       <PaneBtn
         icon="trash"
-        label="Clear finished"
+        :label="tt('Clear finished')"
         @click="clearFinished"
       />
       <PaneBtn
         icon="full"
-        label="Maximize"
+        :label="tt('Maximize')"
       />
       <PaneBtn
         icon="close"
-        label="Close"
+        :label="tt('Close')"
         @click="closePane('agents')"
       />
     </div>
@@ -102,8 +102,8 @@ function elapsed(a: SubagentVM) {
         :size="24"
         class="text-muted"
       />
-      <span class="text-strong">No agents running</span>
-      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">Subagents started from this session show up here with their own tasks.</span>
+      <span class="text-strong">{{ tt('No agents running') }}</span>
+      <span class="max-w-[320px] text-[12px] leading-[1.55] text-muted">{{ tt('Subagents started from this session show up here with their own tasks.') }}</span>
     </div>
 
     <div
@@ -111,7 +111,7 @@ function elapsed(a: SubagentVM) {
       class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3"
     >
       <div class="px-[2px] pt-[2px] pb-1 text-[12px] text-muted">
-        Running <span class="text-strong">{{ running.length }}</span>
+        {{ tt('Running') }} <span class="text-strong">{{ running.length }}</span>
       </div>
       <div
         v-for="a in running"
@@ -122,7 +122,7 @@ function elapsed(a: SubagentVM) {
           <button
             type="button"
             :aria-expanded="openId === a.id"
-            aria-label="Transcript"
+            :aria-label="tt('Transcript')"
             class="flex min-w-0 flex-1 items-center gap-2 text-left"
             @click="toggleTranscript(a)"
           >
@@ -148,8 +148,8 @@ function elapsed(a: SubagentVM) {
           <button
             v-if="canStop"
             type="button"
-            aria-label="Stop agent"
-            title="Stop agent"
+            :aria-label="tt('Stop agent')"
+            :title="tt('Stop agent')"
             class="flex size-6 shrink-0 items-center justify-center border border-line bg-raised hover:border-line-strong"
             @click="stop(a)"
           >
@@ -161,7 +161,7 @@ function elapsed(a: SubagentVM) {
           class="flex flex-col border-t border-muted py-1.5 pr-2.5 pl-[29px]"
         >
           <div class="flex h-[22px] items-center text-[12px] text-muted">
-            {{ a.toolCalls }} tool calls
+            {{ tt('{0} tool calls', [a.toolCalls]) }}
           </div>
           <div
             v-for="s in a.steps"
@@ -197,7 +197,7 @@ function elapsed(a: SubagentVM) {
           <HIcon
             :name="finishedOpen ? 'down' : 'right'"
             :size="11"
-          />Finished <span class="text-strong">{{ finished.length }}</span>
+          />{{ tt('Finished') }} <span class="text-strong">{{ finished.length }}</span>
         </button>
         <template v-if="finishedOpen">
           <div
@@ -226,7 +226,7 @@ function elapsed(a: SubagentVM) {
                 v-if="a.state !== 'finished'"
                 class="text-[11px] text-muted"
               >{{ a.state }}</span>
-              <span class="text-[11px] whitespace-nowrap text-muted">{{ a.toolCalls }} tool calls</span>
+              <span class="text-[11px] whitespace-nowrap text-muted">{{ tt('{0} tool calls', [a.toolCalls]) }}</span>
               <span class="text-[11.5px] whitespace-nowrap text-muted">{{ elapsed(a) }}</span>
             </button>
             <AgentTranscript

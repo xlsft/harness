@@ -2,6 +2,7 @@
 // approvals, the trust rule); the xlsft`s harness server keeps the registry, OAuth and the audit log. Two implementations:
 // connect.ts (AgentService, plus the McpService calls the client forwards) and mock.ts (in memory).
 
+import { tt } from '~/utils/i18n'
 import { create, type MessageInitShape } from '@bufbuild/protobuf'
 import type {
   InspectMcpServerResponse,
@@ -183,10 +184,10 @@ export function secretChangesOf(d: McpDraft): McpSecretChanges {
 
 // The groups of the list, in order, with what they mean for syncing.
 export const SOURCE_GROUPS: { source: McpServerSource, title: string, note: string }[] = [
-  { source: McpServerSource.DEVICE, title: 'On this device', note: 'Kept on this computer and never sent to the xlsft`s harness server. Other devices do not see them.' },
-  { source: McpServerSource.ACCOUNT, title: 'Your account', note: 'Registered on the xlsft`s harness server: they follow you to every device, and only you see them.' },
-  { source: McpServerSource.ORG, title: 'From your admin', note: 'Managed by an admin for everyone or for some roles. Sign-ins are still your own.' },
-  { source: McpServerSource.PROJECT, title: 'From this repository', note: 'Listed in the repository\'s .mcp.json. They only load in a trusted folder and after you approve each one here.' }
+  { source: McpServerSource.DEVICE, title: tt('On this device'), note: 'Kept on this computer and never sent to the xlsft`s harness server. Other devices do not see them.' },
+  { source: McpServerSource.ACCOUNT, title: tt('Your account'), note: 'Registered on the xlsft`s harness server: they follow you to every device, and only you see them.' },
+  { source: McpServerSource.ORG, title: tt('From your admin'), note: 'Managed by an admin for everyone or for some roles. Sign-ins are still your own.' },
+  { source: McpServerSource.PROJECT, title: tt('From this repository'), note: 'Listed in the repository\'s .mcp.json. They only load in a trusted folder and after you approve each one here.' }
 ]
 
 export interface StateView {
@@ -197,14 +198,14 @@ export interface StateView {
 
 export function stateView(e: McpServerEntry): StateView {
   switch (e.state) {
-    case McpServerState.READY: return { label: 'Ready', tone: 'ok' }
-    case McpServerState.DISABLED: return { label: 'Off', tone: 'muted' }
-    case McpServerState.NEEDS_TRUST: return { label: 'Folder not trusted', tone: 'muted' }
-    case McpServerState.NEEDS_APPROVAL: return { label: 'Needs your approval', tone: 'bad' }
-    case McpServerState.DENIED: return { label: 'Not allowed here', tone: 'muted' }
-    case McpServerState.NEEDS_AUTH: return { label: 'Needs sign-in', tone: 'bad' }
-    case McpServerState.UNAVAILABLE: return { label: 'Unavailable', tone: 'bad' }
-    default: return { label: 'Unknown', tone: 'muted' }
+    case McpServerState.READY: return { label: tt('Ready'), tone: 'ok' }
+    case McpServerState.DISABLED: return { label: tt('Off'), tone: 'muted' }
+    case McpServerState.NEEDS_TRUST: return { label: tt('Folder not trusted'), tone: 'muted' }
+    case McpServerState.NEEDS_APPROVAL: return { label: tt('Needs your approval'), tone: 'bad' }
+    case McpServerState.DENIED: return { label: tt('Not allowed here'), tone: 'muted' }
+    case McpServerState.NEEDS_AUTH: return { label: tt('Needs sign-in'), tone: 'bad' }
+    case McpServerState.UNAVAILABLE: return { label: tt('Unavailable'), tone: 'bad' }
+    default: return { label: tt('Unknown'), tone: 'muted' }
   }
 }
 
@@ -222,10 +223,10 @@ export function needsDecision(e: McpServerEntry): boolean {
 // (the server keeps its sign-in), unless it is only reachable from here.
 export function sourcesFor(transport: McpDraft['transport'], canManageOrg: boolean): { value: McpServerSource, label: string }[] {
   const out: { value: McpServerSource, label: string }[] = []
-  if (transport !== 'stdio' && transport !== 'ws') out.push({ value: McpServerSource.ACCOUNT, label: 'My account (every device)' })
-  if (transport === 'ws') out.push({ value: McpServerSource.ACCOUNT, label: 'My account (every device)' })
-  if (transport !== 'ws') out.push({ value: McpServerSource.DEVICE, label: 'This device only' })
-  if (canManageOrg) out.push({ value: McpServerSource.ORG, label: 'Everyone (organization)' })
+  if (transport !== 'stdio' && transport !== 'ws') out.push({ value: McpServerSource.ACCOUNT, label: tt('My account (every device)') })
+  if (transport === 'ws') out.push({ value: McpServerSource.ACCOUNT, label: tt('My account (every device)') })
+  if (transport !== 'ws') out.push({ value: McpServerSource.DEVICE, label: tt('This device only') })
+  if (canManageOrg) out.push({ value: McpServerSource.ORG, label: tt('Everyone (organization)') })
   return out
 }
 

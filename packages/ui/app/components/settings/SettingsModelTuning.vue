@@ -14,16 +14,16 @@ const loaded = ref(false)
 const error = ref('')
 
 const SPEEDS = [
-  { value: '', label: 'Provider default' },
-  { value: 'fast', label: 'Fast', hint: 'Faster output at a higher price' },
-  { value: 'flex', label: 'Flex', hint: 'Slower and cheaper' }
+  { value: '', label: tt('Provider default') },
+  { value: 'fast', label: tt('Fast'), hint: tt('Faster output at a higher price') },
+  { value: 'flex', label: tt('Flex'), hint: tt('Slower and cheaper') }
 ]
 const TTLS = [
-  { value: '', label: 'Provider default' },
-  { value: '1h', label: '1 hour', hint: 'Costs more to write; worth it with long pauses' },
+  { value: '', label: tt('Provider default') },
+  { value: '1h', label: '1 hour', hint: tt('Costs more to write; worth it with long pauses') },
   { value: '24h', label: '24 hours' }
 ]
-const advisors = computed(() => [{ value: '', label: 'None' }, ...slotModelOptions(props.providers)])
+const advisors = computed(() => [{ value: '', label: tt('None') }, ...slotModelOptions(props.providers)])
 
 // What the models here take, so a choice nothing has is not offered (unless it is already set).
 const speedOptions = computed(() => SPEEDS.filter(o => !o.value || o.value === tuning.value.speedTier || store.models.some(m => m.speedTiers?.includes(o.value))))
@@ -57,42 +57,42 @@ async function save(patch: Partial<ModelTuningPreferences>) {
   <section
     v-if="loaded"
     class="flex flex-col gap-3"
-    aria-label="How requests run"
+    :aria-label="tt('How requests run')"
   >
     <h3 class="text-[12.5px] font-medium text-strong">
-      How requests run
+      {{ tt('How requests run') }}
     </h3>
     <div class="grid gap-3 sm:grid-cols-3">
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        Speed
+        {{ tt('Speed') }}
         <HSelect
           :model-value="tuning.speedTier"
           :options="speedOptions"
-          aria-label="Speed tier"
+          :aria-label="tt('Speed tier')"
           @update:model-value="save({ speedTier: String($event ?? '') })"
         />
       </label>
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        Prompt cache lifetime
+        {{ tt('Prompt cache lifetime') }}
         <HSelect
           :model-value="tuning.cacheTtl"
           :options="ttlOptions"
-          aria-label="Prompt cache lifetime"
+          :aria-label="tt('Prompt cache lifetime')"
           @update:model-value="save({ cacheTtl: String($event ?? '') })"
         />
       </label>
       <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        Advisor
+        {{ tt('Advisor') }}
         <HSelect
           :model-value="tuning.advisorModel"
           :options="advisors"
-          aria-label="Advisor model"
+          :aria-label="tt('Advisor model')"
           @update:model-value="save({ advisorModel: String($event ?? '') })"
         />
       </label>
     </div>
     <p class="text-[11.5px] text-muted">
-      New sessions use these. Speed and cache apply only where the model has them. The advisor is a second model the agent can consult: it reads the conversation and costs what that model costs.
+      {{ tt('New sessions use these. Speed and cache apply only where the model has them. The advisor is a second model the agent can consult: it reads the conversation and costs what that model costs.') }}
     </p>
     <p
       v-if="error"

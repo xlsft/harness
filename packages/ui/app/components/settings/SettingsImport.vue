@@ -13,10 +13,10 @@ const source = ref<ImportSource['id'] | null>(null)
   />
   <template v-else>
     <h2 class="set-h">
-      Import
+      {{ tt('Import') }}
     </h2>
     <p class="set-sub">
-      Bring your work from another tool. Nothing moves until you choose what to bring.
+      {{ tt('Bring your work from another tool. Nothing moves until you choose what to bring.') }}
     </p>
     <button
       v-for="s in IMPORT_SOURCES"

@@ -43,14 +43,14 @@ watch(() => props.session.meta.id, () => {
   />
   <section
     v-else
-    aria-label="Artifacts of this session"
+    :aria-label="tt('Artifacts of this session')"
     class="flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
-      <span class="min-w-0 flex-1 truncate font-display text-[13px] text-strong">Artifacts</span>
+      <span class="min-w-0 flex-1 truncate font-display text-[13px] text-strong">{{ tt('Artifacts') }}</span>
       <PaneBtn
         icon="close"
-        label="Close"
+        :label="tt('Close')"
         @click="closePane('artifact')"
       />
     </div>
@@ -65,7 +65,7 @@ watch(() => props.session.meta.id, () => {
       v-else-if="loaded && !items.length"
       class="m-0 px-3.5 py-3 text-[12.5px] text-muted"
     >
-      This session has published nothing yet.
+      {{ tt('This session has published nothing yet.') }}
     </p>
     <div class="min-h-0 flex-1 overflow-y-auto">
       <button

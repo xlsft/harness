@@ -18,13 +18,13 @@ const desktop = isDesktop()
     <HIconBtn
       v-if="collapsed"
       icon="sidebar"
-      label="Show sidebar"
+      :label="tt('Show sidebar')"
       class="-ml-2"
       @click="collapsed = false"
     />
     <HIconBtn
       icon="sidebar"
-      label="Sessions"
+      :label="tt('Sessions')"
       class="-ml-2 lg:hidden"
       @click="sidebarOpen = true"
     />

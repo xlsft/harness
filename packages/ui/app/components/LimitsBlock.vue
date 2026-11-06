@@ -72,7 +72,7 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
     v-if="shown"
     class="-mx-[13px] mt-3 flex flex-col gap-3 border-t border-default px-[13px] pt-3 text-[12px]"
   >
-    <span class="truncate text-muted">{{ title || 'Limits' }}</span>
+    <span class="truncate text-muted">{{ title || tt('Limits') }}</span>
     <!-- Money on one line: what this month cost, and what is left. -->
     <div
       v-if="spend || hasBalance"
@@ -83,21 +83,21 @@ const shown = computed(() => !!windows.value.length || (balance.value && !balanc
           v-if="spend"
           class="flex min-w-0 items-baseline gap-1.5"
         >
-          <span class="truncate text-strong">This month</span>
+          <span class="truncate text-strong">{{ tt('This month') }}</span>
           <span
             class="shrink-0 text-muted tabular-nums"
-            :title="spend.partial ? 'Some requests had no price; this is a lower bound' : undefined"
-          >{{ spend.partial ? '≥' : '' }}{{ money(spend.spent, spend.currency) }}<template v-if="spend.budget"> of {{ money(spend.budget, spend.currency) }}</template></span>
+            :title="spend.partial ? tt('Some requests had no price; this is a lower bound') : undefined"
+          >{{ spend.partial ? '≥' : '' }}{{ money(spend.spent, spend.currency) }}<template v-if="spend.budget"> {{ tt('of {0}', [money(spend.budget, spend.currency)]) }}</template></span>
         </span>
         <span
           v-if="hasBalance"
           class="flex min-w-0 items-baseline gap-1.5"
         >
-          <span class="truncate text-strong">Balance</span>
+          <span class="truncate text-strong">{{ tt('Balance') }}</span>
           <span
             class="shrink-0 text-muted tabular-nums"
             :title="balanceHint"
-          >{{ balanceText }}<template v-if="balance!.total && !balance!.estimated"> of {{ money(balance!.total, balance!.currency) }}</template></span>
+          >{{ balanceText }}<template v-if="balance!.total && !balance!.estimated"> {{ tt('of {0}', [money(balance!.total, balance!.currency)]) }}</template></span>
         </span>
       </div>
       <span

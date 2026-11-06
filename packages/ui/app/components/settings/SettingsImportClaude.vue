@@ -132,7 +132,7 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
   <div class="mb-1 flex items-center gap-2">
     <button
       type="button"
-      aria-label="Back to import sources"
+      :aria-label="tt('Back to import sources')"
       class="flex size-6 items-center justify-center text-muted hover:text-strong disabled:opacity-50"
       :disabled="run.phase === 'running'"
       @click="$emit('back')"
@@ -143,7 +143,7 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
       />
     </button>
     <h2 class="set-h">
-      Import from Claude Code
+      {{ tt('Import from Claude Code') }}
     </h2>
   </div>
 
@@ -151,7 +151,7 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
     v-if="scanning"
     class="set-sub"
   >
-    Looking through Claude Code's folder…
+    {{ tt('Looking through Claude Code\'s folder…') }}
   </p>
   <p
     v-else-if="error"
@@ -163,14 +163,14 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
     v-else-if="scan && !scan.found"
     class="set-sub"
   >
-    No Claude Code folder at {{ scan.claudeDir }} on this computer.
+    {{ tt('No Claude Code folder at {0} on this computer.', [scan.claudeDir]) }}
   </p>
 
   <!-- Running, and what it came to. -->
   <template v-else-if="run.phase !== 'idle'">
     <template v-if="run.phase === 'running'">
       <p class="set-sub">
-        {{ run.done }} of {{ run.total || '…' }} · {{ run.current || 'Starting…' }}
+        {{ tt('{0} of {1} · {2}', [run.done, run.total || '…', run.current || tt('Starting…')]) }}
       </p>
       <div
         role="progressbar"
@@ -188,25 +188,25 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
         size="sm"
         @click="handle?.cancel()"
       >
-        Cancel
+        {{ tt('Cancel') }}
       </HBtn>
     </template>
     <template v-else>
       <p class="set-sub">
         <template v-if="run.phase === 'cancelled'">
-          Cancelled after {{ run.done }} of {{ run.total }}. Importing again goes on from here.
+          {{ tt('Cancelled after {0} of {1}. Importing again goes on from here.', [run.done, run.total]) }}
         </template>
         <template v-else-if="run.phase === 'failed'">
-          Stopped: {{ run.error }}
+          {{ tt('Stopped: {0}', [run.error]) }}
         </template>
         <template v-else>
-          Done.
+          {{ tt('Done.') }}
         </template>
         {{ summary }}
       </p>
       <ul
         v-if="errors.length"
-        aria-label="Import errors"
+        :aria-label="tt('Import errors')"
         class="m-0 mb-3 flex list-none flex-col gap-1 p-0 text-[12px]"
       >
         <li
@@ -221,7 +221,7 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
         size="sm"
         @click="again"
       >
-        Back to the list
+        {{ tt('Back to the list') }}
       </HBtn>
     </template>
   </template>
@@ -229,23 +229,23 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
   <!-- The choice. -->
   <template v-else-if="scan">
     <p class="set-sub">
-      Copies what you choose from {{ scan.claudeDir }} to your server. Claude Code's own files stay as they are.
+      {{ tt('Copies what you choose from {0} to your server. Claude Code\'s own files stay as they are.', [scan.claudeDir]) }}
     </p>
     <p
       v-if="!scan.connected"
       class="m-0 mb-3 text-[12px] text-error"
     >
-      This client is not connected to a harness server, so there is nowhere to import to.
+      {{ tt('This client is not connected to a harness server, so there is nowhere to import to.') }}
     </p>
     <p
       v-else-if="!scan.serverChecked"
       class="m-0 mb-3 text-[12px] text-muted"
     >
-      The server did not answer, so some items marked new may already be there.
+      {{ tt('The server did not answer, so some items marked new may already be there.') }}
     </p>
 
     <h3 class="m-0 mb-1 text-[13px] font-semibold text-strong">
-      Config
+      {{ tt('Config') }}
     </h3>
     <div
       v-for="r in rows"
@@ -266,27 +266,27 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
       v-if="manual.length"
       class="flex items-start justify-between gap-4 py-1.5 text-[12.5px]"
     >
-      <span class="text-muted">MCP servers</span>
-      <span class="text-right text-[11.5px] text-muted">{{ manual.map(i => i.name).join(', ') }}: not imported, set them up by hand</span>
+      <span class="text-muted">{{ tt('MCP servers') }}</span>
+      <span class="text-right text-[11.5px] text-muted">{{ tt('{0}: not imported, set them up by hand', [manual.map(i => i.name).join(', ')]) }}</span>
     </div>
 
     <div class="mt-4 mb-2 flex items-center gap-2">
       <h3 class="m-0 flex-1 text-[13px] font-semibold text-strong">
-        Sessions
+        {{ tt('Sessions') }}
       </h3>
       <HBtn
         size="xs"
         :disabled="!visible.length"
         @click="selectAll"
       >
-        {{ allState === 'all' ? 'Clear' : 'Select all' }}
+        {{ allState === 'all' ? tt('Clear') : tt('Select all') }}
       </HBtn>
     </div>
     <template v-if="scan.projects.length">
       <input
         v-model="query"
-        placeholder="Search projects"
-        aria-label="Search projects"
+        :placeholder="tt('Search projects')"
+        :aria-label="tt('Search projects')"
         class="mb-2 h-8 w-full border border-accented bg-default px-2.5 text-[12.5px] text-strong outline-none focus:border-accent"
       >
       <VList
@@ -319,37 +319,37 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
         v-else
         class="m-0 py-2 text-[12px] text-muted"
       >
-        Nothing matches.
+        {{ tt('Nothing matches.') }}
       </p>
     </template>
     <p
       v-else
       class="m-0 py-2 text-[12px] text-muted"
     >
-      No sessions found.
+      {{ tt('No sessions found.') }}
     </p>
 
     <div class="set-row mt-4">
       <div class="set-label">
-        <span>Overwrite existing</span>
-        <span class="set-desc">Replace config already on your server. Sessions are never duplicated either way.</span>
+        <span>{{ tt('Overwrite existing') }}</span>
+        <span class="set-desc">{{ tt('Replace config already on your server. Sessions are never duplicated either way.') }}</span>
       </div>
       <HToggle
         v-model="force"
-        label="Overwrite existing"
+        :label="tt('Overwrite existing')"
       />
     </div>
     <div class="set-row">
       <div class="set-label">
-        <span>Include secrets</span>
+        <span>{{ tt('Include secrets') }}</span>
         <span
           class="set-desc"
           :class="secrets ? 'text-error' : ''"
-        >Uploads env values in settings that look like API keys or tokens to your server. Off keeps them out.</span>
+        >{{ tt('Uploads env values in settings that look like API keys or tokens to your server. Off keeps them out.') }}</span>
       </div>
       <HToggle
         v-model="secrets"
-        label="Include secrets"
+        :label="tt('Include secrets')"
         :disabled="!settingsChosen"
       />
     </div>
@@ -361,7 +361,7 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
         :disabled="!ready"
         @click="start"
       >
-        Import
+        {{ tt('Import') }}
       </HBtn>
     </div>
   </template>

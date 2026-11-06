@@ -95,7 +95,7 @@ async function folderChosen(path: string | null) {
     vs.value.expanded = []
     await loadRoots()
   } catch (e) {
-    toast.add({ title: 'Could not change the folder', description: message(e), color: 'error' })
+    toast.add({ title: tt('Could not change the folder'), description: message(e), color: 'error' })
   }
 }
 
@@ -286,7 +286,7 @@ function closeTab(path: string) {
 
 function onTreeOpen(r: TreeRow, pin: boolean) {
   if (r.deleted) {
-    toast.add({ title: `${r.name} was deleted`, description: 'Open it in the diff to see what it had.', color: 'neutral' })
+    toast.add({ title: `${r.name} was deleted`, description: tt('Open it in the diff to see what it had.'), color: 'neutral' })
     return
   }
   openFile(r.path, pin)
@@ -420,9 +420,9 @@ function onTabMenu(path: string, e: MouseEvent) {
 async function copy(text: string, what: string) {
   try {
     await navigator.clipboard.writeText(text)
-    toast.add({ title: `Copied ${what}`, color: 'neutral' })
+    toast.add({ title: tt('Copied {0}', [what]), color: 'neutral' })
   } catch {
-    toast.add({ title: 'Could not copy', description: 'The clipboard is not available here.', color: 'error' })
+    toast.add({ title: tt('Could not copy'), description: tt('The clipboard is not available here.'), color: 'error' })
   }
 }
 
@@ -440,18 +440,18 @@ const actions = computed<Action[]>(() => {
   const t = menuRow.value
   if (!t) return []
   const out: Action[] = []
-  if (!t.dir) out.push({ label: 'Open', run: () => openFile(t.path, true) })
-  if (!t.dir && t.git) out.push({ label: 'Open in diff', run: () => show({ kind: 'diff', path: t.path }) })
+  if (!t.dir) out.push({ label: tt('Open'), run: () => openFile(t.path, true) })
+  if (!t.dir && t.git) out.push({ label: tt('Open in diff'), run: () => show({ kind: 'diff', path: t.path }) })
   out.push(
-    { label: 'Attach as context', run: () => (attach.value = [...attach.value, mention(t.path)]), sep: true },
-    { label: 'Copy path', run: () => copy(t.path, 'path'), sep: true },
-    { label: 'Copy relative path', run: () => copy(relativePath(t.path, roots.value), 'relative path') }
+    { label: tt('Attach as context'), run: () => (attach.value = [...attach.value, mention(t.path)]), sep: true },
+    { label: tt('Copy path'), run: () => copy(t.path, 'path'), sep: true },
+    { label: tt('Copy relative path'), run: () => copy(relativePath(t.path, roots.value), 'relative path') }
   )
   if (desktop) {
-    out.push({ label: 'Reveal in Finder', run: () => revealInFolder(t.path), sep: true })
-    if (!t.dir) out.push({ label: 'Open in default app', run: () => openWithDefaultApp(t.path) })
+    out.push({ label: tt('Reveal in Finder'), run: () => revealInFolder(t.path), sep: true })
+    if (!t.dir) out.push({ label: tt('Open in default app'), run: () => openWithDefaultApp(t.path) })
   }
-  out.push({ label: 'Open in terminal', run: () => openTerminal(t.dir ? t.path : dirName(t.path)), sep: !desktop })
+  out.push({ label: tt('Open in terminal'), run: () => openTerminal(t.dir ? t.path : dirName(t.path)), sep: !desktop })
   return out
 })
 
@@ -460,7 +460,7 @@ async function runAction(a: Action) {
   try {
     await a.run()
   } catch (e) {
-    toast.add({ title: `Could not ${a.label.toLowerCase()}`, description: message(e), color: 'error' })
+    toast.add({ title: tt('Could not {0}', [a.label.toLowerCase()]), description: message(e), color: 'error' })
   }
 }
 
@@ -477,16 +477,16 @@ const remoteText = computed(() => {
 <template>
   <section
     ref="section"
-    aria-label="Files"
+    :aria-label="tt('Files')"
     class="relative flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-stretch border-b border-line pr-1.5">
       <div class="flex items-center px-3 font-display text-[13px] text-strong">
-        Files
+        {{ tt('Files') }}
       </div>
       <div
         role="tablist"
-        aria-label="Open files"
+        :aria-label="tt('Open files')"
         class="flex min-w-0 items-stretch overflow-x-auto [scrollbar-width:none]"
       >
         <PaneTab
@@ -508,20 +508,20 @@ const remoteText = computed(() => {
       <div class="flex items-center gap-[2px]">
         <PaneBtn
           icon="refresh"
-          label="Refresh"
+          :label="tt('Refresh')"
           :disabled="remote"
           @click="refresh()"
         />
         <PaneBtn
           icon="list"
-          label="Toggle file tree"
+          :label="tt('Toggle file tree')"
           :pressed="settings.tree"
           :aria-pressed="settings.tree"
           @click="settings.tree = !settings.tree"
         />
         <PaneBtn
           icon="more"
-          label="Files settings"
+          :label="tt('Files settings')"
           white
           :pressed="settingsOpen"
           data-menu-anchor
@@ -529,11 +529,11 @@ const remoteText = computed(() => {
         />
         <PaneBtn
           icon="full"
-          label="Maximize"
+          :label="tt('Maximize')"
         />
         <PaneBtn
           icon="close"
-          label="Close files"
+          :label="tt('Close files')"
           @click="closePane('files')"
         />
       </div>
@@ -548,7 +548,7 @@ const remoteText = computed(() => {
         :size="26"
         class="text-muted"
       />
-      <span class="text-[13px] text-strong">Files are on another machine</span>
+      <span class="text-[13px] text-strong">{{ tt('Files are on another machine') }}</span>
       <span class="max-w-[360px] text-[12px] text-muted">{{ remoteText }}</span>
     </div>
 
@@ -576,8 +576,8 @@ const remoteText = computed(() => {
           <button
             v-if="canToggleSource"
             type="button"
-            :aria-label="source ? 'Show preview' : 'Show source'"
-            :title="source ? 'Show preview' : 'Show source'"
+            :aria-label="source ? tt('Show preview') : tt('Show source')"
+            :title="source ? tt('Show preview') : tt('Show source')"
             :aria-pressed="source"
             class="flex size-[26px] items-center justify-center border border-line text-strong"
             :class="source ? 'bg-raised' : 'hover:bg-hover'"
@@ -591,8 +591,8 @@ const remoteText = computed(() => {
           <button
             v-if="vs.selected"
             type="button"
-            aria-label="File actions"
-            title="Actions"
+            :aria-label="tt('File actions')"
+            :title="tt('Actions')"
             data-menu-anchor
             class="flex size-[26px] items-center justify-center text-muted hover:text-strong"
             @click="onTabMenu(vs.selected, $event)"
@@ -632,20 +632,20 @@ const remoteText = computed(() => {
               :size="13"
               class="text-muted"
             />
-            <span class="sr-only">Filter files</span>
+            <span class="sr-only">{{ tt('Filter files') }}</span>
             <input
               v-model="query"
               type="text"
               spellcheck="false"
-              placeholder="Go to file"
+              :placeholder="tt('Go to file')"
               class="min-w-0 flex-1 truncate bg-transparent text-strong outline-none placeholder:text-muted"
               @keydown.esc="query = ''"
               @keydown.enter="hits[0] && openHit(hits[0])"
             >
             <button
               type="button"
-              :aria-label="settings.showIgnored ? 'Hide ignored files' : 'Show ignored files'"
-              :title="settings.showIgnored ? 'Hide ignored files' : 'Show ignored files'"
+              :aria-label="settings.showIgnored ? tt('Hide ignored files') : tt('Show ignored files')"
+              :title="settings.showIgnored ? tt('Hide ignored files') : tt('Show ignored files')"
               :aria-pressed="settings.showIgnored"
               class="flex size-5 shrink-0 items-center justify-center"
               :class="settings.showIgnored ? 'text-accent' : 'text-muted hover:text-strong'"
@@ -663,13 +663,13 @@ const remoteText = computed(() => {
           v-if="folderGone"
           class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-[12.5px]"
         >
-          <span class="text-strong">This folder doesn't seem to exist anymore</span>
+          <span class="text-strong">{{ tt('This folder doesn\'t seem to exist anymore') }}</span>
           <span class="break-all text-muted">{{ session.meta.cwd }}</span>
           <HBtn
             size="md"
             @click="chooseFolder"
           >
-            Switch to another folder
+            {{ tt('Switch to another folder') }}
           </HBtn>
           <UModal
             :open="browsing"
@@ -697,7 +697,7 @@ const remoteText = computed(() => {
         <div
           v-else-if="query.trim()"
           role="listbox"
-          aria-label="Matching files"
+          :aria-label="tt('Matching files')"
           class="min-h-0 flex-1 overflow-y-auto p-1 text-[12.5px]"
         >
           <Virtualizer
@@ -727,7 +727,7 @@ const remoteText = computed(() => {
             v-if="!hits.length && !searching"
             class="px-2 py-1.5 text-[12px] text-muted"
           >
-            No matching files
+            {{ tt('No matching files') }}
           </div>
         </div>
 
@@ -748,7 +748,7 @@ const remoteText = computed(() => {
       <div
         v-if="menuAt"
         role="menu"
-        :aria-label="`Actions for ${menuRow?.name}`"
+        :aria-label="tt('Actions for {0}', [menuRow?.name])"
         class="absolute z-30 menu-panel w-[220px]"
         :style="{ left: `${menuAt.x}px`, top: `${menuAt.y}px` }"
       >
@@ -770,7 +770,7 @@ const remoteText = computed(() => {
     <PaneMenu v-model:open="settingsOpen">
       <div
         role="menu"
-        aria-label="Files settings"
+        :aria-label="tt('Files settings')"
         class="absolute top-[46px] right-[74px] z-30 menu-panel w-[230px]"
       >
         <PaneMenuItem
@@ -779,7 +779,7 @@ const remoteText = computed(() => {
           reserve
           @click="settings.tree = !settings.tree"
         >
-          Show file tree
+          {{ tt('Show file tree') }}
         </PaneMenuItem>
         <PaneMenuItem
           role="menuitemcheckbox"
@@ -787,7 +787,7 @@ const remoteText = computed(() => {
           reserve
           @click="settings.showIgnored = !settings.showIgnored"
         >
-          Show ignored files
+          {{ tt('Show ignored files') }}
         </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
@@ -796,11 +796,11 @@ const remoteText = computed(() => {
           reserve
           @click="settings.wrap = !settings.wrap"
         >
-          Word wrap
+          {{ tt('Word wrap') }}
         </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <div class="px-[11px] pt-1 pb-0.5 text-[11px] text-muted">
-          Tab size
+          {{ tt('Tab size') }}
         </div>
         <PaneMenuItem
           v-for="n in TAB_SIZES"

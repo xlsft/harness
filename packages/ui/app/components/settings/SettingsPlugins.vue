@@ -94,14 +94,14 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
 
 <template>
   <section
-    aria-label="Plugins"
+    :aria-label="tt('Plugins')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      Plugins
+      {{ tt('Plugins') }}
     </h2>
     <p class="set-sub">
-      Plugins bundle skills, commands, agents, output styles, hooks and MCP servers, in the format of <code>.claude-plugin/plugin.json</code> or <code>.harness-plugin/plugin.json</code>. They stay on this device, each pinned to the content it was installed with. Nothing of one runs until you approve exactly that content here, and only in folders you trust. Hooks and MCP servers run with your rights, outside the sandbox.
+      {{ tt('Plugins bundle skills, commands, agents, output styles, hooks and MCP servers, in the format of') }} <code>.claude-plugin/plugin.json</code> {{ tt('or') }} <code>.harness-plugin/plugin.json</code>{{ tt('. They stay on this device, each pinned to the content it was installed with. Nothing of one runs until you approve exactly that content here, and only in folders you trust. Hooks and MCP servers run with your rights, outside the sandbox.') }}
     </p>
     <p
       v-if="error"
@@ -121,17 +121,17 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
       v-if="state?.sourcesRestricted"
       class="m-0 mb-3 text-[12px] text-muted"
     >
-      Your organization allows plugins only from the sources it lists.
+      {{ tt('Your organization allows plugins only from the sources it lists.') }}
     </p>
 
     <h3 class="mt-2 mb-1 text-[12.5px] text-strong">
-      Installed
+      {{ tt('Installed') }}
     </h3>
     <p
       v-if="state && !state.plugins.length"
       class="m-0 text-[12px] text-muted"
     >
-      No plugins are installed.
+      {{ tt('No plugins are installed.') }}
     </p>
     <ul class="m-0 flex list-none flex-col p-0">
       <li
@@ -154,11 +154,11 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
             <span
               v-if="p.managed"
               class="set-desc"
-            >From your organization.</span>
+            >{{ tt('From your organization.') }}</span>
             <span
               v-if="p.suggestedBy"
               class="set-desc break-all"
-            >Asked for by {{ p.suggestedBy }}.</span>
+            >{{ tt('Asked for by {0}.', [p.suggestedBy]) }}</span>
           </div>
           <div class="flex shrink-0 flex-wrap items-center justify-end gap-2 text-[12px]">
             <span :class="statusClass(p)">{{ statusLabel(p.status) }}</span>
@@ -167,7 +167,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
               :aria-expanded="open === p.id"
               @click="open = open === p.id ? '' : p.id"
             >
-              {{ open === p.id ? 'Hide' : 'Details' }}
+              {{ open === p.id ? tt('Hide') : tt('Details') }}
             </HBtn>
             <HBtn
               v-if="p.status === 'not_installed'"
@@ -175,12 +175,12 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
               :disabled="!!busy"
               @click="install(p.id)"
             >
-              Install
+              {{ tt('Install') }}
             </HBtn>
             <HToggle
               v-if="p.status !== 'not_installed'"
               :model-value="p.enabled"
-              :label="`Enable ${p.id}`"
+              :label="tt('Enable {0}', [p.id])"
               :disabled="!!busy || p.managed"
               @update:model-value="(v: boolean) => act(`enable:${p.id}`, () => api().setEnabled(p.id, v))"
             />
@@ -192,29 +192,29 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
           data-plugin-details
         >
           <template v-if="p.status !== 'not_installed'">
-            <span class="break-all text-muted">Pinned to {{ p.commit ? `commit ${p.commit}, ` : '' }}{{ p.contentHash }}</span>
-            <span v-if="p.contents.skills.length">Skills: {{ p.contents.skills.join(', ') }}</span>
-            <span v-if="p.contents.commands.length">Commands: {{ p.contents.commands.join(', ') }}</span>
-            <span v-if="p.contents.agents.length">Agents: {{ p.contents.agents.join(', ') }}</span>
-            <span v-if="p.contents.outputStyles.length">Output styles: {{ p.contents.outputStyles.join(', ') }}</span>
+            <span class="break-all text-muted">{{ tt('Pinned to {0}{1}', [p.commit ? `commit ${p.commit}, ` : '', p.contentHash]) }}</span>
+            <span v-if="p.contents.skills.length">{{ tt('Skills: {0}', [p.contents.skills.join(', ')]) }}</span>
+            <span v-if="p.contents.commands.length">{{ tt('Commands: {0}', [p.contents.commands.join(', ')]) }}</span>
+            <span v-if="p.contents.agents.length">{{ tt('Agents: {0}', [p.contents.agents.join(', ')]) }}</span>
+            <span v-if="p.contents.outputStyles.length">{{ tt('Output styles: {0}', [p.contents.outputStyles.join(', ')]) }}</span>
             <span
               v-if="p.contents.allowedTools.length"
               class="text-warn"
-            >Tools its skills may use without asking: {{ p.contents.allowedTools.join(', ') }}</span>
+            >{{ tt('Tools its skills may use without asking: {0}', [p.contents.allowedTools.join(', ')]) }}</span>
             <span
               v-for="(h, i) in p.contents.hooks"
               :key="`h${i}`"
               class="break-all text-warn"
-            >Runs on {{ h.event }}<template v-if="h.matcher"> ({{ h.matcher }})</template><template v-if="h.fromSkill">, while {{ h.fromSkill }} runs</template>: <code>{{ h.command }}</code></span>
+            >{{ tt('Runs on {0}', [h.event]) }}<template v-if="h.matcher"> ({{ h.matcher }})</template><template v-if="h.fromSkill">{{ tt(', while {0} runs', [h.fromSkill]) }}</template>: <code>{{ h.command }}</code></span>
             <span
               v-for="m in p.contents.mcpServers"
               :key="m.name"
               class="break-all text-warn"
-            >MCP server {{ m.name }} ({{ m.transport }}): <code>{{ m.command }}</code></span>
+            >{{ tt('MCP server {0} ({1}):', [m.name, m.transport]) }} <code>{{ m.command }}</code></span>
             <span
               v-if="p.contents.skipped.length"
               class="text-muted"
-            >Not acted on by this client: {{ p.contents.skipped.join(', ') }}</span>
+            >{{ tt('Not acted on by this client: {0}', [p.contents.skipped.join(', ')]) }}</span>
             <span
               v-for="(x, i) in p.problems"
               :key="`p${i}`"
@@ -227,7 +227,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
                 :disabled="!!busy"
                 @click="act(`approve:${p.id}`, () => api().setApproval(p.id, true, p.contentHash))"
               >
-                {{ runsPrograms(p.contents) ? 'Approve: let these run with my rights' : 'Approve on this device' }}
+                {{ runsPrograms(p.contents) ? tt('Approve: let these run with my rights') : tt('Approve on this device') }}
               </HBtn>
               <HBtn
                 v-else
@@ -235,21 +235,21 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
                 :disabled="!!busy"
                 @click="act(`revoke:${p.id}`, () => api().setApproval(p.id, false, ''))"
               >
-                Take back approval
+                {{ tt('Take back approval') }}
               </HBtn>
               <HBtn
                 size="sm"
                 :disabled="!!busy"
                 @click="update(p)"
               >
-                Update
+                {{ tt('Update') }}
               </HBtn>
               <HBtn
                 size="sm"
                 :disabled="!!busy"
                 @click="act(`pin:${p.id}`, () => api().setPinned(p.id, !p.pinned))"
               >
-                {{ p.pinned ? 'Unpin' : 'Pin this version' }}
+                {{ p.pinned ? tt('Unpin') : tt('Pin this version') }}
               </HBtn>
               <HBtn
                 v-if="!p.managed"
@@ -257,7 +257,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
                 :disabled="!!busy"
                 @click="remove(p)"
               >
-                Remove
+                {{ tt('Remove') }}
               </HBtn>
             </div>
           </template>
@@ -266,7 +266,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
     </ul>
 
     <h3 class="mt-5 mb-1 text-[12.5px] text-strong">
-      Install
+      {{ tt('Install') }}
     </h3>
     <form
       class="flex gap-2"
@@ -275,7 +275,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
       <input
         v-model="spec"
         :class="field"
-        aria-label="Plugin to install"
+        :aria-label="tt('Plugin to install')"
         spellcheck="false"
         placeholder="name@marketplace, a folder or a repository"
       >
@@ -284,7 +284,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
         type="submit"
         :disabled="!spec.trim() || !!busy"
       >
-        Install
+        {{ tt('Install') }}
       </HBtn>
     </form>
     <ul
@@ -308,13 +308,13 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
           :disabled="!!busy"
           @click="install(l.id)"
         >
-          Install
+          {{ tt('Install') }}
         </HBtn>
       </li>
     </ul>
 
     <h3 class="mt-5 mb-1 text-[12.5px] text-strong">
-      Marketplaces
+      {{ tt('Marketplaces') }}
     </h3>
     <form
       class="flex gap-2"
@@ -323,7 +323,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
       <input
         v-model="source"
         :class="field"
-        aria-label="Marketplace to add"
+        :aria-label="tt('Marketplace to add')"
         spellcheck="false"
         placeholder="owner/repo, a git URL, a URL of a marketplace.json, or a folder"
       >
@@ -332,7 +332,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
         type="submit"
         :disabled="!source.trim() || !!busy"
       >
-        Add
+        {{ tt('Add') }}
       </HBtn>
     </form>
     <ul class="m-0 mt-2 flex list-none flex-col p-0">
@@ -343,14 +343,14 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
       >
         <div class="set-label min-w-0">
           <span>{{ name }}</span>
-          <span class="set-desc break-all">This project asks for it: {{ src }}</span>
+          <span class="set-desc break-all">{{ tt('This project asks for it: {0}', [src]) }}</span>
         </div>
         <HBtn
           size="sm"
           :disabled="!!busy"
           @click="act(`market:${name}`, async () => { await api().addMarketplace(src) })"
         >
-          Add
+          {{ tt('Add') }}
         </HBtn>
       </li>
       <li
@@ -359,7 +359,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
         class="set-row"
       >
         <div class="set-label min-w-0">
-          <span>{{ m.name }}<template v-if="m.managed"> <span class="text-muted">from your organization</span></template></span>
+          <span>{{ m.name }}<template v-if="m.managed"> <span class="text-muted">{{ tt('from your organization') }}</span></template></span>
           <span class="set-desc break-all">{{ m.source }}<template v-if="m.commit"> · {{ m.commit.slice(0, 12) }}</template></span>
           <span
             v-if="m.refusal || m.problem"
@@ -372,7 +372,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
             :disabled="!!busy"
             @click="act(`market:${m.name}`, () => api().updateMarketplace(m.name))"
           >
-            Update
+            {{ tt('Update') }}
           </HBtn>
           <HBtn
             v-if="!m.managed"
@@ -380,7 +380,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
             :disabled="!!busy"
             @click="removeMarketplace(m.name)"
           >
-            Remove
+            {{ tt('Remove') }}
           </HBtn>
         </div>
       </li>
