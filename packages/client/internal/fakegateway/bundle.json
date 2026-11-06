@@ -583,38 +583,6 @@
           "findings"
         ]
       }
-    },
-    "Advisor": {
-      "description": "Asks the advisor model for a second opinion.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "question": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "question"
-        ]
-      }
-    },
-    "BrowserRecord": {
-      "description": "Records the browser as a GIF.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string",
-            "enum": [
-              "start",
-              "stop"
-            ]
-          }
-        },
-        "required": [
-          "action"
-        ]
-      }
     }
   },
   "reminders": {

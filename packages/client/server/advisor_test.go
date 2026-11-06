@@ -10,6 +10,7 @@ import (
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	fg "github.com/xlsft/harness/packages/client/internal/fakegateway"
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/prompts"
 )
 
 func offered(req *llm.Request) []string {
@@ -33,6 +34,7 @@ func TestAdvisorConsultsTheChosenModelWithTheConversation(t *testing.T) {
 		return fg.Reply{Events: fg.Message("msg_1", fg.ToolUse("t1", "Advisor", map[string]any{"question": "Which way?"}))}
 	})
 	h := startHooked(t, respond, []byte(`{"advisorModel":"wise","speedTier":"fast","cacheTtl":"1h"}`))
+	h.gw.Bundle.Tools["Advisor"] = prompts.ToolPrompt{Description: "Asks the advisor.", InputSchema: json.RawMessage(`{"type":"object","properties":{"question":{"type":"string"}}}`)}
 	h.gw.Models = []string{"main", "wise"}
 	h.gw.Capabilities = map[string]*llmv1.Capabilities{"wise": {Effort: []llmv1.Effort{llmv1.Effort_EFFORT_LOW, llmv1.Effort_EFFORT_HIGH}}}
 	sid, ch := h.create(&agentv1.CreateSessionRequest{Model: "main"})
@@ -78,6 +80,7 @@ func TestAdvisorConsultsTheChosenModelWithTheConversation(t *testing.T) {
 
 func TestNoAdvisorModelMeansNoAdvisorTool(t *testing.T) {
 	h := startHooked(t, fg.Sequence(func(*llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("ok"))} }), []byte(`{}`))
+	h.gw.Bundle.Tools["Advisor"] = prompts.ToolPrompt{Description: "Asks the advisor.", InputSchema: json.RawMessage(`{"type":"object"}`)}
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "hi")
 	h.until(ch, func(e *agentv1.SessionEvent) bool { return e.GetTurnFinished() != nil })
@@ -92,6 +95,7 @@ func TestNoAdvisorModelMeansNoAdvisorTool(t *testing.T) {
 
 func TestUnknownAdvisorModelLeavesTheToolOutWithAWarning(t *testing.T) {
 	h := startHooked(t, fg.Sequence(func(*llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("ok"))} }), []byte(`{"advisorModel":"gone"}`))
+	h.gw.Bundle.Tools["Advisor"] = prompts.ToolPrompt{Description: "Asks the advisor.", InputSchema: json.RawMessage(`{"type":"object"}`)}
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "hi")
 	h.until(ch, func(e *agentv1.SessionEvent) bool { return e.GetTurnFinished() != nil })

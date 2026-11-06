@@ -186,7 +186,7 @@ describe("bundle builder", () => {
     expect(props("BrowserWait")).toEqual(["text", "text_gone", "selector", "url", "navigation", "timeout", "description"]);
     for (const n of Object.keys(b.tools).filter((n) => n.startsWith("Browser"))) {
       // Page content is untrusted; every browser tool that returns it says so.
-      if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
+      if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait", "BrowserRecord"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
     expect(props("TerminalRead")).toEqual(["tab_id", "lines", "wait_for_output_ms", "description"]);
