@@ -109,8 +109,7 @@ const contextPct = computed(() => {
   return Math.round(((Number(agent?.contextUsedTokens ?? 0) || props.session.contextTokens) / (Number(agent?.contextWindowTokens ?? 0) || model.value?.contextWindow || 200_000)) * 100)
 })
 
-// A session on an ACP agent lists the commands the agent advertises; they go to it as the prompt's text.
-const acp = computed(() => props.session.meta.acp)
+// A session on an ACP agent runs its own commands, and has no MCP prompts of ours.
 const onAgent = computed(() => props.session.meta.engine !== 'harness')
 // MCP prompts come from the client (ListMcpCommands) and are read again when a server says its list changed.
 const mcpCommands = ref<MenuOption[]>([])
@@ -123,9 +122,9 @@ watch([id, () => props.session.mcpListVersion, onAgent], async () => {
   const list = await store.mcpCommands(sid)
   if (sid === id.value) mcpCommands.value = list.map(c => ({ key: c.command, label: c.command, detail: c.description || c.title, tag: 'mcp' }))
 }, { immediate: true })
-const commands = computed<MenuOption[]>(() => onAgent.value
-  ? (acp.value?.commands ?? []).map(c => ({ key: `/${c.name}`, label: `/${c.name}`, detail: c.description, tag: 'agent' }))
-  : [...SLASH_COMMANDS, ...mcpCommands.value])
+// What the client reports for this session: built-ins, skills, custom commands, an ACP agent's own commands.
+const slashMenu = useSlashMenu(() => ({ sessionId: id.value }), () => text.value)
+const commands = computed<MenuOption[]>(() => [...slashMenu.value, ...mcpCommands.value])
 const hasShell = computed(() => !props.session.meta.unsupported.includes('shell_commands'))
 const hasCompaction = computed(() => !props.session.meta.unsupported.includes('compaction'))
 
@@ -167,22 +166,6 @@ async function submit() {
     mode.value = 'normal'
     if (route?.kind === 'shell') await safeRun(route.command)
     else if (route) await safeSend(route.text)
-    return
-  }
-  // Without compaction here, "/compact" is the text of a prompt: an agent may have such a command of its own.
-  const compactFocus = hasCompaction.value ? compactCommand(body) : null
-  if (compactFocus !== null) {
-    if (busy.value) {
-      error.value = 'Wait for the turn to finish, then /compact.'
-      return
-    }
-    text.value = ''
-    try {
-      await store.compact(id.value, compactFocus)
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err)
-      text.value = body
-    }
     return
   }
   text.value = ''

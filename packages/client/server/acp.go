@@ -559,6 +559,9 @@ func (r acpRouted) SendUserMessage(ctx context.Context, req *connect.Request[age
 			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
 		}
 	}
+	if r.acpSlash(ctx, l, req) {
+		return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
+	}
 	if _, err := l.sess.Submit(m.GetUuid(), m.GetContent(), m.GetDelivery() == agentv1.SendUserMessageRequest_DELIVERY_NOW); err != nil {
 		if m.GetUuid() != "" {
 			l.mu.Lock()

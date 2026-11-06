@@ -134,7 +134,7 @@ func newWorld(t *testing.T, respond func(string, *llm.Request) fg.Reply, mod fun
 func (w *world) open(mode permissions.Mode, mod func(*bootstrap.Options)) {
 	w.t.Helper()
 	trusted := true
-	o := bootstrap.Options{Cwd: w.cwd, Gateway: connectgw.New(w.url, nil, w.token), Prompts: prompts.NewConnectSource(w.url, nil, w.token),
+	o := bootstrap.Options{Cwd: w.cwd, Gateway: connectgw.New(w.url, nil, w.token), Prompts: prompts.NewConnectSource(w.url, nil, w.token), SkillHome: w.cwd,
 		NoSync: true, NoMCP: true, Trusted: &trusted, PermissionMode: mode}
 	if mod != nil {
 		mod(&o)

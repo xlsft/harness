@@ -7,7 +7,6 @@ import { createSessionState, reduce } from '~/lib/session/reducer'
 import type { CompactItem } from '~/lib/session/types'
 import { MockTransport } from '~/lib/transport/mock'
 import { useSessionStore } from '~/stores/sessions'
-import { compactCommand } from '~/utils/composer'
 
 vi.mock('vue', () => ({ markRaw: <T>(v: T) => v, toRaw: <T>(v: T) => v }))
 
@@ -75,14 +74,6 @@ describe('compaction', () => {
     const cards = s.items.filter((i): i is CompactItem => i.kind === 'compact')
     expect(cards.map(c => [c.trigger, c.tokensBefore, c.tokensAfter])).toEqual([['idle', 120_000, 9_000], ['auto', 9_000, 8_000]])
     expect(s.contextTokens).toBe(8_000)
-  })
-
-  it('recognizes /compact with and without focus instructions', () => {
-    expect(compactCommand('/compact')).toBe('')
-    expect(compactCommand('  /compact keep the API notes ')).toBe('keep the API notes')
-    expect(compactCommand('/compact\nfocus')).toBe('focus')
-    expect(compactCommand('/compactor')).toBeNull()
-    expect(compactCommand('please /compact')).toBeNull()
   })
 
   it('marks the session compacting until the call returns, and drops a second request meanwhile', async () => {

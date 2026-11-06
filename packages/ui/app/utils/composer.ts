@@ -30,26 +30,6 @@ export function composerFile(f: File): ComposerFile {
   return { name: f.name, size: f.size, image: attachmentKind(f) === 'image', error: attachmentError(f), file: f }
 }
 
-// Built-in commands; skills and project commands come from the client in M2.
-export const SLASH_COMMANDS: MenuOption[] = [
-  { key: '/code-review', label: '/code-review', detail: 'Review the current diff for bugs', tag: 'skill' },
-  { key: '/compact', label: '/compact', detail: 'Summarize and shrink the context', tag: 'built-in' },
-  { key: '/model', label: '/model', detail: 'Switch model or provider', tag: 'built-in' },
-  { key: '/deploy-core', label: '/deploy-core', detail: '.claude/commands/deploy-core.md', tag: 'project' },
-  { key: '/clear', label: '/clear', detail: 'Start a new session with an empty context', tag: 'built-in' },
-  { key: '/rewind', label: '/rewind', detail: 'Restore code or conversation to a checkpoint', tag: 'built-in' }
-]
-
-// Before a session exists: what needs a conversation is left out.
-export const NEW_SESSION_COMMANDS = SLASH_COMMANDS.filter(c => !['/compact', '/clear', '/rewind'].includes(c.key))
-
-// "/compact [focus instructions]": the instructions ('' for none), or null when the text is not the command.
-export function compactCommand(text: string): string | null {
-  const t = text.trim()
-  if (t === '/compact') return ''
-  return /^\/compact\s/.test(t) ? t.slice('/compact'.length).trim() : null
-}
-
 export type ComposerMode = 'normal' | 'shell' | 'memory'
 
 // Where a submitted draft goes: shell mode runs the command in the session's shell (RunShellCommand, never a

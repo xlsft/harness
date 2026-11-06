@@ -68,7 +68,8 @@ const settings = useSettingsModal()
 const searchOpen = useState('search-open', () => false)
 const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
-const onPage = computed(() => onArtifacts.value || !!route.query.new)
+const onCustomize = computed(() => route.path.startsWith('/customize'))
+const onPage = computed(() => onArtifacts.value || onCustomize.value || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -120,11 +121,13 @@ const host = computed(() => {
   }
 })
 
+const NuxtLink = resolveComponent('NuxtLink')
+
 // `soon`: not built yet; the row shows a badge (Artifacts keeps its preview page, the others do nothing).
 const nav = [
   { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
   { label: 'Scheduled', icon: 'clock' as const, soon: true },
-  { label: 'Customize', icon: 'sliders' as const, soon: true },
+  { label: 'Customize', icon: 'sliders' as const, to: '/customize' },
   { label: 'Knowledge base', icon: 'page' as const, soon: true },
   { label: 'Task tracker', icon: 'tasks' as const, soon: true }
 ]
@@ -190,15 +193,15 @@ const nav = [
         <HIcon name="search" />Search<span class="flex-1" /><HKeys keys="meta+k" />
       </a>
       <component
-        :is="item.to ? 'NuxtLink' : 'a'"
+        :is="item.to ? NuxtLink : 'a'"
         v-for="item in nav"
         :key="item.label"
         :to="item.to"
         :href="item.to ? undefined : '#'"
         class="nav-row px-[9px] hover:bg-hover"
         :aria-disabled="item.soon && !item.to ? true : undefined"
-        :class="item.to === '/artifacts' && onArtifacts ? 'nav-row-current' : ''"
-        :aria-current="item.to === '/artifacts' && onArtifacts ? 'page' : undefined"
+        :class="(item.to === '/artifacts' && onArtifacts) || (item.to === '/customize' && onCustomize) ? 'nav-row-current' : ''"
+        :aria-current="(item.to === '/artifacts' && onArtifacts) || (item.to === '/customize' && onCustomize) ? 'page' : undefined"
         @click="item.soon && !item.to && $event.preventDefault()"
       >
         <HIcon :name="item.icon" />{{ item.label }}<span

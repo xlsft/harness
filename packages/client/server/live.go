@@ -332,6 +332,8 @@ func (ls *liveSession) onEvent(e agent.Event) {
 	case agent.EventSubagent:
 		ls.refreshDiffStats() // an agent's tools change files too
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SubagentUpdated{SubagentUpdated: &agentv1.SubagentUpdated{Agent: subagentToProto(*e.Subagent)}}})
+	case agent.EventSkill:
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SkillInvoked{SkillInvoked: skillInvokedProto(e.Skill)}})
 	case agent.EventWorkflow:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_WorkflowUpdated{WorkflowUpdated: &agentv1.WorkflowUpdated{Workflow: workflowToProto(*e.Workflow)}}})
 	case agent.EventHookRun:
@@ -576,6 +578,8 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "Agent " + truncateRunes(jsonField(input, "description"), 80)
 	case "SendMessage":
 		return "SendMessage " + jsonField(input, "to")
+	case "Skill":
+		return "Skill " + jsonField(input, "skill")
 	case "NotebookEdit":
 		return name + " " + rel(tools.FilePath(input))
 	case "LSP":

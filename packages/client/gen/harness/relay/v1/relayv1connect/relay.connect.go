@@ -117,6 +117,9 @@ const (
 	// RelayServiceListOutputStylesProcedure is the fully-qualified name of the RelayService's
 	// ListOutputStyles RPC.
 	RelayServiceListOutputStylesProcedure = "/harness.relay.v1.RelayService/ListOutputStyles"
+	// RelayServiceListSlashCommandsProcedure is the fully-qualified name of the RelayService's
+	// ListSlashCommands RPC.
+	RelayServiceListSlashCommandsProcedure = "/harness.relay.v1.RelayService/ListSlashCommands"
 	// RelayServiceSpawnSessionProcedure is the fully-qualified name of the RelayService's SpawnSession
 	// RPC.
 	RelayServiceSpawnSessionProcedure = "/harness.relay.v1.RelayService/SpawnSession"
@@ -208,6 +211,7 @@ type RelayServiceClient interface {
 	ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error)
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
+	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 	// "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
 	// the server and again by the host). Held until the host acks with the created session (max ~30 s).
 	SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error)
@@ -433,6 +437,12 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("ListOutputStyles")),
 			connect.WithClientOptions(opts...),
 		),
+		listSlashCommands: connect.NewClient[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse](
+			httpClient,
+			baseURL+RelayServiceListSlashCommandsProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("ListSlashCommands")),
+			connect.WithClientOptions(opts...),
+		),
 		spawnSession: connect.NewClient[v1.SpawnSessionRequest, v1.SpawnSessionResponse](
 			httpClient,
 			baseURL+RelayServiceSpawnSessionProcedure,
@@ -529,6 +539,7 @@ type relayServiceClient struct {
 	listCheckpoints        *connect.Client[v1.ListCheckpointsRequest, v1.ListCheckpointsResponse]
 	listTasks              *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
 	listOutputStyles       *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
+	listSlashCommands      *connect.Client[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse]
 	spawnSession           *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
 	requestTunnel          *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
 	listTunnels            *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
@@ -696,6 +707,11 @@ func (c *relayServiceClient) ListOutputStyles(ctx context.Context, req *connect.
 	return c.listOutputStyles.CallUnary(ctx, req)
 }
 
+// ListSlashCommands calls harness.relay.v1.RelayService.ListSlashCommands.
+func (c *relayServiceClient) ListSlashCommands(ctx context.Context, req *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
+	return c.listSlashCommands.CallUnary(ctx, req)
+}
+
 // SpawnSession calls harness.relay.v1.RelayService.SpawnSession.
 func (c *relayServiceClient) SpawnSession(ctx context.Context, req *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error) {
 	return c.spawnSession.CallUnary(ctx, req)
@@ -805,6 +821,7 @@ type RelayServiceHandler interface {
 	ListCheckpoints(context.Context, *connect.Request[v1.ListCheckpointsRequest]) (*connect.Response[v1.ListCheckpointsResponse], error)
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
+	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 	// "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
 	// the server and again by the host). Held until the host acks with the created session (max ~30 s).
 	SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error)
@@ -1026,6 +1043,12 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("ListOutputStyles")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceListSlashCommandsHandler := connect.NewUnaryHandler(
+		RelayServiceListSlashCommandsProcedure,
+		svc.ListSlashCommands,
+		connect.WithSchema(relayServiceMethods.ByName("ListSlashCommands")),
+		connect.WithHandlerOptions(opts...),
+	)
 	relayServiceSpawnSessionHandler := connect.NewUnaryHandler(
 		RelayServiceSpawnSessionProcedure,
 		svc.SpawnSession,
@@ -1150,6 +1173,8 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceListTasksHandler.ServeHTTP(w, r)
 		case RelayServiceListOutputStylesProcedure:
 			relayServiceListOutputStylesHandler.ServeHTTP(w, r)
+		case RelayServiceListSlashCommandsProcedure:
+			relayServiceListSlashCommandsHandler.ServeHTTP(w, r)
 		case RelayServiceSpawnSessionProcedure:
 			relayServiceSpawnSessionHandler.ServeHTTP(w, r)
 		case RelayServiceRequestTunnelProcedure:
@@ -1301,6 +1326,10 @@ func (UnimplementedRelayServiceHandler) ListTasks(context.Context, *connect.Requ
 
 func (UnimplementedRelayServiceHandler) ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ListOutputStyles is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ListSlashCommands is not implemented"))
 }
 
 func (UnimplementedRelayServiceHandler) SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error) {

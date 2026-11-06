@@ -38,7 +38,7 @@ func open(t *testing.T, respond fg.Responder, mod func(*bootstrap.Options)) *boo
 	t.Cleanup(stop)
 	tok := auth.StaticToken("hat_test")
 	trusted := true
-	o := bootstrap.Options{Cwd: t.TempDir(), Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok),
+	o := bootstrap.Options{Cwd: t.TempDir(), Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok), SkillHome: t.TempDir(),
 		NoSync: true, NoMCP: true, Trusted: &trusted, PermissionMode: permissions.ModeBypassPermissions}
 	if mod != nil {
 		mod(&o)

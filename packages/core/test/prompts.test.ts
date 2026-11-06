@@ -45,7 +45,7 @@ describe("bundle builder", () => {
       "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
       "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
-      "Show", "SyncWithBase", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
+      "Show", "Skill", "SyncWithBase", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -65,6 +65,10 @@ describe("bundle builder", () => {
       compacted: [],
       attribution: ["commit", "pr"],
       output_style: ["name", "content"],
+      skills_listing: ["listing"],
+      skill_invoked: ["name", "directory", "arguments", "content"],
+      command_init: ["cwd", "target", "existing", "arguments"],
+      command_code_review: ["cwd", "status", "diff_stat", "arguments"],
       deferred_tools: ["tools"],
       mcp_instructions: ["servers"],
       mcp_tools_changed: ["server", "added", "removed", "deferred"],

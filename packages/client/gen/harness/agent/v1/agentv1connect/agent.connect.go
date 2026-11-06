@@ -392,6 +392,9 @@ const (
 	// AgentServiceListMcpResourcesProcedure is the fully-qualified name of the AgentService's
 	// ListMcpResources RPC.
 	AgentServiceListMcpResourcesProcedure = "/harness.agent.v1.AgentService/ListMcpResources"
+	// AgentServiceListSlashCommandsProcedure is the fully-qualified name of the AgentService's
+	// ListSlashCommands RPC.
+	AgentServiceListSlashCommandsProcedure = "/harness.agent.v1.AgentService/ListSlashCommands"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -703,6 +706,9 @@ type AgentServiceClient interface {
 	ListMcpCommands(context.Context, *connect.Request[v1.ListMcpCommandsRequest]) (*connect.Response[v1.ListMcpCommandsResponse], error)
 	// The session's MCP resources, for @-mentions in the composer.
 	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
+	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
+	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1460,6 +1466,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("ListMcpResources")),
 			connect.WithClientOptions(opts...),
 		),
+		listSlashCommands: connect.NewClient[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse](
+			httpClient,
+			baseURL+AgentServiceListSlashCommandsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1589,6 +1601,7 @@ type agentServiceClient struct {
 	setMcpToolRule          *connect.Client[v1.SetMcpToolRuleRequest, v1.SetMcpToolRuleResponse]
 	listMcpCommands         *connect.Client[v1.ListMcpCommandsRequest, v1.ListMcpCommandsResponse]
 	listMcpResources        *connect.Client[v1.ListMcpResourcesRequest, v1.ListMcpResourcesResponse]
+	listSlashCommands       *connect.Client[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -2211,6 +2224,11 @@ func (c *agentServiceClient) ListMcpResources(ctx context.Context, req *connect.
 	return c.listMcpResources.CallUnary(ctx, req)
 }
 
+// ListSlashCommands calls harness.agent.v1.AgentService.ListSlashCommands.
+func (c *agentServiceClient) ListSlashCommands(ctx context.Context, req *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
+	return c.listSlashCommands.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2520,6 +2538,9 @@ type AgentServiceHandler interface {
 	ListMcpCommands(context.Context, *connect.Request[v1.ListMcpCommandsRequest]) (*connect.Response[v1.ListMcpCommandsResponse], error)
 	// The session's MCP resources, for @-mentions in the composer.
 	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
+	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
+	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -3273,6 +3294,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("ListMcpResources")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListSlashCommandsHandler := connect.NewUnaryHandler(
+		AgentServiceListSlashCommandsProcedure,
+		svc.ListSlashCommands,
+		connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3523,6 +3550,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceListMcpCommandsHandler.ServeHTTP(w, r)
 		case AgentServiceListMcpResourcesProcedure:
 			agentServiceListMcpResourcesHandler.ServeHTTP(w, r)
+		case AgentServiceListSlashCommandsProcedure:
+			agentServiceListSlashCommandsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -4026,4 +4055,8 @@ func (UnimplementedAgentServiceHandler) ListMcpCommands(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListMcpResources is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSlashCommands is not implemented"))
 }

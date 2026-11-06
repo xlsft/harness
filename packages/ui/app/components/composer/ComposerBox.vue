@@ -3,6 +3,7 @@
 // attachments, drop target, voice, `/` and `@` menus and the send button. What the text means is the parent's: it owns
 // the draft (text, mode, files), gets `submit` and says what the screen has. `busy` is a running turn (queue and stop),
 // `sending` a send under way; the #top, #instead (in place of the field) and #bottom slots sit in the same column.
+import { matchSlash } from '~/lib/session/slashCommands'
 import type { ComposerFile, ComposerMode, ComposerPreset, MenuOption } from '~/utils/composer'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 import { clipboardFiles } from '~/lib/session/attachments'
@@ -97,7 +98,7 @@ const menu = computed<'slash' | 'mention' | ''>(() => {
   if (token.value.startsWith('@')) return 'mention'
   return ''
 })
-const slashOptions = computed(() => props.commands.filter(c => c.label.startsWith(token.value || '/')).slice(0, 4))
+const slashOptions = computed(() => matchSlash(props.commands, token.value).slice(0, 8))
 const options = computed(() => menu.value === 'slash' ? slashOptions.value : mentionOptions.value)
 
 let asked = 0

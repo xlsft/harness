@@ -121,6 +121,9 @@ func Run(ctx context.Context, o Options) int {
 	if focus, ok := agent.CompactCommand(prompt); ok {
 		return r.compact(ctx, focus)
 	}
+	if refusal := sess.StartSlashPrompt(ctx, prompt); refusal != "" {
+		return r.fatal(errors.New(refusal))
+	}
 	res := sess.Agent.RunTurn(ctx, []llm.ContentBlock{llm.TextBlock(prompt)})
 	// The process ends with the run: agents still at work get to finish, and the model answers their reports.
 	for !res.Interrupted && (sess.Workflows.Active() > 0 || sess.Subagents.Active() > 0 || sess.Agent.HasReminders()) {

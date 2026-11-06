@@ -183,6 +183,13 @@ func (m *Model) onEvent(ev *agentv1.SessionEvent) tea.Cmd {
 			}
 		}
 
+	case *agentv1.SessionEvent_SlashCommandResult:
+		// A built-in the client ran for a message; its pickers and pages are the app's.
+		if text := e.SlashCommandResult.GetText(); text != "" {
+			m.closeOpen()
+			m.push(&item{kind: itemNotice, text: text})
+		}
+
 	case *agentv1.SessionEvent_Notice:
 		n := e.Notice
 		if n.GetKind() == "retry" {

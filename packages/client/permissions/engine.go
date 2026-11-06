@@ -284,6 +284,8 @@ type Engine struct {
 	localFixed bool
 	localRoot  string
 	sources    []Source
+	// scopes counts AddScopedAllow calls.
+	scopes     int
 	allow      []Rule
 	ask        []Rule
 	deny       []Rule
@@ -570,6 +572,31 @@ func (e *Engine) AddReadableDir(dir string) {
 	e.mu.Lock()
 	e.readable = append(e.readable, dir)
 	e.mu.Unlock()
+}
+
+// AddScopedAllow lets rules apply until the returned function runs: what an active skill may use without a prompt. Deny
+// and ask rules still come first, as for any allow rule.
+func (e *Engine) AddScopedAllow(rules []string) (release func()) {
+	if len(rules) == 0 {
+		return func() {}
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.scopes++
+	name := fmt.Sprintf("skill#%d", e.scopes)
+	e.sources = append(e.sources, Source{Name: name, Root: e.cwd, Allow: append([]string(nil), rules...)})
+	e.rebuild()
+	return func() {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		for i := range e.sources {
+			if e.sources[i].Name == name {
+				e.sources = append(e.sources[:i], e.sources[i+1:]...)
+				e.rebuild()
+				return
+			}
+		}
+	}
 }
 
 // AddAllow appends session-only allow rules.
@@ -1122,6 +1149,10 @@ func (e *Engine) Suggest(req Request) []string {
 		return nil
 	case isBrowserTool(req.ToolName):
 		return suggestBrowser(req)
+	case req.ToolName == "Skill":
+		if name, ok := decodeInput(req.Input)["skill"].(string); ok && name != "" {
+			return []string{"Skill(" + strings.TrimPrefix(name, "/") + ")"}
+		}
 	}
 	return []string{req.ToolName}
 }

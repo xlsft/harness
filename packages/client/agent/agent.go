@@ -87,6 +87,8 @@ const (
 	EventSubagent
 	// EventWorkflow carries a run of the Workflow tool as it is now (Workflow).
 	EventWorkflow
+	// EventSkill reports that a skill or command started (Skill).
+	EventSkill
 	// EventHookRun carries a hook handler as it starts and as it ends (HookRun).
 	EventHookRun
 )
@@ -163,6 +165,7 @@ type Event struct {
 	UsageLimit *usagelimit.Status
 	Subagent   *tools.AgentInfo
 	Workflow   *tools.WorkflowInfo
+	Skill      *session.SkillUse
 	HookRun    *hooks.Run
 }
 
@@ -280,6 +283,8 @@ type Config struct {
 	// UsageMonitor follows the provider's usage limits after each model response and asks the model to wrap
 	// up when they are nearly exhausted (may be nil).
 	UsageMonitor UsageMonitor
+	// Skills gives the model its listing of skills and hears about the files tools touch (may be nil).
+	Skills SkillSource
 	// Hooks runs the session's hooks (nil: none; hooks.go). AgentType is the type of the subagent this loop belongs to.
 	Hooks     *hooks.Engine
 	AgentType string
@@ -340,6 +345,8 @@ type Agent struct {
 	lostTurn []session.Entry
 	// usage is the usage-limit state of the running turn (usage.go).
 	usage usageTurn
+	// skills is the state of the session's skills (skill.go).
+	skills skillState
 	// hook state (hooks.go): the gate the first turn waits at while SessionStart runs, whether SubagentStart has run, and
 	// what a handler's continue false said during the running turn.
 	startGate   <-chan struct{}
@@ -372,6 +379,7 @@ func New(cfg Config) *Agent {
 		cfg.ToolEnv.SetHost(a)
 	}
 	a.initOutputStyle(cfg.OutputStyle, cfg.History.OutputStyle)
+	a.skills.active = append(a.skills.active, cfg.History.ActiveSkills...)
 	return a
 }
 
@@ -465,14 +473,12 @@ func (a *Agent) SetModelThinking(capable bool) {
 	a.mu.Unlock()
 }
 
-// thinking is the thinking request for a main-loop call.
-func (a *Agent) thinking() *llm.Thinking {
+// thinkingFor is the thinking request for a main-loop call on a model that can (or can't) think.
+func (a *Agent) thinkingFor(capable bool) *llm.Thinking {
 	if a.cfg.Thinking != nil {
 		return a.cfg.Thinking
 	}
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if a.thinkingCapable {
+	if capable {
 		return &llm.Thinking{Type: "adaptive"}
 	}
 	return nil
@@ -517,6 +523,7 @@ func (a *Agent) RemoveQueued(id string) bool {
 	for i, q := range a.queue {
 		if q.id == id {
 			a.queue = append(a.queue[:i], a.queue[i+1:]...)
+			a.dropSkillsOfLocked(id)
 			return true
 		}
 	}
@@ -805,7 +812,13 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 
 	res := TurnResult{ModelUsage: map[string]*ModelUsage{}}
 	start := time.Now()
-	finish := func() TurnResult { a.finishUsageTurn(); res.Duration = time.Since(start); return res }
+	finish := func() TurnResult {
+		a.finishUsageTurn()
+		a.finishSkillTurn(res.Interrupted)
+		res.Duration = time.Since(start)
+		return res
+	}
+	a.startSkillTurn()
 	a.waitStartHooks(ctx)
 	a.recordLostTurn()
 	a.startUsageTurn()
@@ -813,6 +826,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 
 	if len(input) > 0 && !a.submitHook(ctx, input, clientIDs, true) {
 		// A hook refused the prompt: it stays out of the conversation and the model never sees it.
+		a.dropSkillsOfMessages(clientIDs)
 		res.Subtype = SubtypeSuccess
 		return finish()
 	}
@@ -1164,6 +1178,13 @@ func (a *Agent) buildRequest() *llm.Request {
 	injected := a.contextInjected
 	effort := a.cfg.Effort
 	bundle := a.bundle
+	thinking := a.thinkingCapable
+	if m := a.skills.turnModel; m != nil {
+		model, display, thinking = m.ID, m.Display, m.Thinking
+	}
+	if a.skills.turnEffort != "" {
+		effort = a.skills.turnEffort
+	}
 	a.mu.Unlock()
 
 	system := a.systemBlocks(model, display)
@@ -1192,7 +1213,7 @@ func (a *Agent) buildRequest() *llm.Request {
 		System:    system,
 		Messages:  msgs,
 		Tools:     a.toolDefs(bundle),
-		Thinking:  a.thinking(),
+		Thinking:  a.thinkingFor(thinking),
 		Effort:    effort,
 		Stream:    true,
 		Metadata: &llm.Metadata{
@@ -1347,6 +1368,9 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			if refused != "" {
 				setResult(idx, tools.ErrorResult("%s", refused), "")
 				continue
+			}
+			if a.cfg.Skills != nil {
+				a.cfg.Skills.NoteFile(req.FilePath)
 			}
 			d := a.cfg.Permissions.Check(ctx, req)
 			if d.ResolvedBy == "hook" && len(d.UpdatedInput) > 0 {

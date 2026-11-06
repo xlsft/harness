@@ -85,6 +85,7 @@ type Config struct {
 	MCPInstructions func() string
 	AutoCompactPct float64
 	UsageMonitor   agent.UsageMonitor
+	Skills         agent.SkillSource
 	// Hooks is the session's hook engine (agent.Config.Hooks; may be nil).
 	Hooks *hooks.Engine
 	// CustomTypes are the types loaded from definitions (LoadDefinitions).
@@ -703,6 +704,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	env.SessionID, env.PlansDir, env.RipgrepPath = lead.SessionID, lead.PlansDir, lead.RipgrepPath
 	env.Agents, env.AgentID = m, id
 	env.Edits = lead.Edits
+	env.Skills = lead.Skills
 	if a.wt == nil {
 		// Checkpoints follow the session's folder; a worktree has git for that.
 		env.BeforeEdit = lead.BeforeEdit
@@ -748,7 +750,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,
 		Vars: vars, ProjectContext: m.cfg.ProjectContext, MCPInstructions: m.cfg.MCPInstructions, History: conv,
 		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: m.agentMode,
-		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor, Hooks: m.cfg.Hooks, AgentType: a.info.Type,
+		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor, Skills: m.cfg.Skills, Hooks: m.cfg.Hooks, AgentType: a.info.Type,
 		OnEvent: func(e agent.Event) { m.onAgentEvent(a, e) }, Logger: m.cfg.Logger,
 	})
 	env.Reminders = func(k string) string { return ag.Bundle().Reminder(k, "") }

@@ -137,27 +137,29 @@ type Entry struct {
 	// machine lists the session's agents from.
 	Subagent json.RawMessage `json:"subagent,omitempty"`
 	// Workflow is the same for a run of the Workflow tool (tools.WorkflowInfo as JSON).
-	Workflow                json.RawMessage `json:"workflow,omitempty"`
-	UserType                string          `json:"userType,omitempty"`
-	Cwd                     string          `json:"cwd,omitempty"`
-	SessionID               string          `json:"sessionId"`
-	Version                 string          `json:"version,omitempty"`
-	GitBranch               string          `json:"gitBranch,omitempty"`
-	Entrypoint              string          `json:"entrypoint,omitempty"`
-	Type                    string          `json:"type"`
-	Subtype                 string          `json:"subtype,omitempty"`
-	Message                 *Message        `json:"message,omitempty"`
-	Content                 string          `json:"content,omitempty"`
-	Level                   string          `json:"level,omitempty"`
-	IsMeta                  bool            `json:"isMeta,omitempty"`
-	PromptID                string          `json:"promptId,omitempty"`
-	PermissionMode          string          `json:"permissionMode,omitempty"`
-	RequestID               string          `json:"requestId,omitempty"`
-	ToolUseResult           any             `json:"toolUseResult,omitempty"`
-	SourceToolAssistantUUID string          `json:"sourceToolAssistantUUID,omitempty"`
-	IsAPIErrorMessage       bool            `json:"isApiErrorMessage,omitempty"`
-	UUID                    string          `json:"uuid,omitempty"`
-	Timestamp               string          `json:"timestamp"`
+	Workflow   json.RawMessage `json:"workflow,omitempty"`
+	UserType   string          `json:"userType,omitempty"`
+	Cwd        string          `json:"cwd,omitempty"`
+	SessionID  string          `json:"sessionId"`
+	Version    string          `json:"version,omitempty"`
+	GitBranch  string          `json:"gitBranch,omitempty"`
+	Entrypoint string          `json:"entrypoint,omitempty"`
+	Type       string          `json:"type"`
+	Subtype    string          `json:"subtype,omitempty"`
+	Message    *Message        `json:"message,omitempty"`
+	Content    string          `json:"content,omitempty"`
+	Level      string          `json:"level,omitempty"`
+	IsMeta     bool            `json:"isMeta,omitempty"`
+	// Skill marks the meta entry holding the text of a skill that started, or came back after a compaction.
+	Skill                   *SkillUse `json:"skillUse,omitempty"`
+	PromptID                string    `json:"promptId,omitempty"`
+	PermissionMode          string    `json:"permissionMode,omitempty"`
+	RequestID               string    `json:"requestId,omitempty"`
+	ToolUseResult           any       `json:"toolUseResult,omitempty"`
+	SourceToolAssistantUUID string    `json:"sourceToolAssistantUUID,omitempty"`
+	IsAPIErrorMessage       bool      `json:"isApiErrorMessage,omitempty"`
+	UUID                    string    `json:"uuid,omitempty"`
+	Timestamp               string    `json:"timestamp"`
 
 	// ClientUUIDs are the frontend ids (SendUserMessageRequest.uuid) of the
 	// messages a user entry carries: one for a prompt, one per message for
@@ -502,6 +504,9 @@ type Conversation struct {
 	// Todos is the input of the last TodoWrite call on the active branch
 	// (followed across compactions); nil when there is none.
 	Todos json.RawMessage
+	// ActiveSkills are the skills started on the active branch, oldest first, with the text the model read: a compaction
+	// sends the latest ones again.
+	ActiveSkills []ActiveSkill
 	// Findings is the structured result of the last ReportFindings call on the active branch.
 	Findings json.RawMessage
 	// Snapshots are the file-history snapshots (last record per message id),
@@ -560,6 +565,39 @@ func ActiveChain(entries []Entry, logical bool) []Entry {
 // Rebuild converts entries into API messages along the active branch.
 // Consecutive entries of the same role are merged (Claude Code writes one
 // tool_result or block per line).
+// SkillUse says which skill or command a meta entry holds.
+type SkillUse struct {
+	Name   string `json:"name"`
+	Kind   string `json:"kind,omitempty"`
+	Source string `json:"source,omitempty"`
+	Args   string `json:"args,omitempty"`
+	// ToolUseID is the Skill tool's call; empty when the user typed it.
+	ToolUseID    string   `json:"toolUseId,omitempty"`
+	AllowedTools []string `json:"allowedTools,omitempty"`
+	Model        string   `json:"model,omitempty"`
+	Effort       string   `json:"effort,omitempty"`
+	AgentID      string   `json:"agentId,omitempty"`
+	// Restored: its text came back after a compaction; the skill did not start again.
+	Restored bool `json:"restored,omitempty"`
+}
+
+// ActiveSkill is a skill's text as the model read it.
+type ActiveSkill struct {
+	Name string
+	Text string
+}
+
+// NoteActiveSkill adds s to the list as its newest; the name's earlier text goes.
+func NoteActiveSkill(list []ActiveSkill, s ActiveSkill) []ActiveSkill {
+	out := make([]ActiveSkill, 0, len(list)+1)
+	for _, o := range list {
+		if o.Name != s.Name {
+			out = append(out, o)
+		}
+	}
+	return append(out, s)
+}
+
 func Rebuild(entries []Entry) Conversation {
 	var c Conversation
 	snaps := map[string]int{}
@@ -610,6 +648,13 @@ func Rebuild(entries []Entry) Conversation {
 	findingCalls := map[string]bool{}
 	for _, e := range extended {
 		c.Chain = append(c.Chain, e.UUID)
+		if e.Skill != nil {
+			text := ""
+			for _, b := range e.Blocks() {
+				text += b.Text
+			}
+			c.ActiveSkills = NoteActiveSkill(c.ActiveSkills, ActiveSkill{Name: e.Skill.Name, Text: text})
+		}
 		if e.Type == TypeUser && e.ToolUseResult != nil && len(findingCalls) > 0 {
 			for _, b := range e.Blocks() {
 				if b.Type == llm.BlockToolResult && findingCalls[b.ToolUseID] {

@@ -19,6 +19,7 @@ import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
+import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/subagents.proto";
 import "harness/agent/v1/terminal.proto";
@@ -384,6 +385,9 @@ service AgentService {
   rpc ListMcpCommands(ListMcpCommandsRequest) returns (ListMcpCommandsResponse);
   // The session's MCP resources, for @-mentions in the composer.
   rpc ListMcpResources(ListMcpResourcesRequest) returns (ListMcpResourcesResponse);
+  // Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
+  // (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+  rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
 }
 
 message CreateObjectTicketRequest {}
@@ -827,6 +831,9 @@ message SessionEvent {
     // MCP (mcp.proto); numbered apart like the shell events. Neither is stored or replayed.
     McpToolProgress mcp_tool_progress = 120;
     McpListChanged mcp_list_changed = 121;
+    // Slash commands and skills (slash_commands.proto); numbered apart like the shell events.
+    SlashCommandResult slash_command_result = 110;
+    SkillInvoked skill_invoked = 111;
   }
 }
 
@@ -1499,6 +1506,15 @@ message UserPreferences {
   // Run the hooks in settings files (settings key disableAllHooks, inverted). Default true. Applies from the next hook of a
   // running session too. Hooks in a policy document keep running; a policy turns those off itself.
   bool hooks_enabled = 10;
+  // The skills and custom commands the user turned off, by name (settings key disabledSkills). A name the current folder
+  // doesn't have stays on the list, so a skill keeps its switch from one project and machine to the next.
+  repeated string disabled_skills = 12;
+}
+
+// One switch of the Customize screen.
+message SkillSwitch {
+  string name = 1;
+  bool enabled = 2;
 }
 
 message GetUserPreferencesRequest {}
@@ -1524,6 +1540,8 @@ message UpdateUserPreferencesRequest {
   // Replaces the whole sandbox block. INVALID_ARGUMENT for a write path that is not absolute or ~/, or a host that cannot be one.
   optional SandboxPreferences sandbox = 9;
   optional bool hooks_enabled = 10;
+  // Flips one name on UserPreferences.disabled_skills, keeping the others. INVALID_ARGUMENT for an empty name.
+  optional SkillSwitch skill_switch = 12;
 }
 
 message UpdateUserPreferencesResponse {

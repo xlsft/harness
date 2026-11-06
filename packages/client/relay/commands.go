@@ -323,6 +323,13 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 			a.Result = &relayv1.CommandAck_GetSubagentTranscript{GetSubagentTranscript: res.Msg}
 		}
 		return a
+	case *relayv1.Command_ListSlashCommands:
+		res, err := b.ListSlashCommands(ctx, connect.NewRequest(&agentv1.ListSlashCommandsRequest{SessionId: sid}))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_ListSlashCommands{ListSlashCommands: res.Msg}
+		}
+		return a
 	case *relayv1.Command_ListOutputStyles:
 		res, err := b.ListOutputStyles(ctx, connect.NewRequest(&agentv1.ListOutputStylesRequest{SessionId: sid}))
 		a := errAck(id, err, false)

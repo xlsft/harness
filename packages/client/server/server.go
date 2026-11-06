@@ -40,6 +40,7 @@ import (
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/preview"
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/skills"
 	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
@@ -77,6 +78,13 @@ type Server struct {
 	MCPInventory *mcp.Inventory
 	// ImportTo is the user's server for imports (import.go); nil without sync.
 	ImportTo *syncclient.Client
+	// SkillDocs reads the skills and commands stored on the server, for a listing without a session (slash.go); nil
+	// without sync.
+	SkillDocs SkillDocsSource
+	// The last read of SkillDocs.
+	skillDocsMu    sync.Mutex
+	skillDocsCache skills.Documents
+	skillDocsAt    time.Time
 	// NoPanes says the frontends cannot open panes (the terminal UI): the
 	// Show and Visual tools then report that nothing was shown.
 	NoPanes bool
@@ -741,6 +749,9 @@ func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agent
 	ls.userSpoke()
 	s.noteMessageOrigin(ctx, ls.sess.ID, req.Peer().Addr)
 	ls.drivenByRelay.Store(isRelayOrigin(ctx))
+	if s.runSlash(ctx, ls, req) {
+		return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
+	}
 	return s.submitMessage(ls, req)
 }
 
