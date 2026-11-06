@@ -474,6 +474,12 @@
   color: var(--ui-text-muted);
 }
 
+/* A section with no description: its heading still keeps off the first row's rule. */
+.set-h + .set-row,
+.set-h + [role='alert'] {
+  margin-top: 12px;
+}
+
 @utility set-row {
   display: flex;
   align-items: flex-start;
