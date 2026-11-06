@@ -352,6 +352,7 @@ async function copyUrl() {
           data-menu-anchor
           @click="menuOpen = !menuOpen"
         />
+        <PaneFullBtn />
         <PaneBtn
           icon="close"
           :label="tt('Close browser')"

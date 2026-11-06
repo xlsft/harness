@@ -191,6 +191,7 @@ watch(() => chat.value?.messages.map(m => m.text.length).join(), () => {
       </div>
       <span class="flex-1" />
       <div class="flex items-center gap-[2px]">
+        <PaneFullBtn />
         <PaneBtn
           icon="close"
           :label="tt('Close side chat')"

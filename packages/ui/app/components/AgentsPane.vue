@@ -82,10 +82,7 @@ function elapsed(a: SubagentVM) {
         :label="tt('Clear finished')"
         @click="clearFinished"
       />
-      <PaneBtn
-        icon="full"
-        :label="tt('Maximize')"
-      />
+      <PaneFullBtn />
       <PaneBtn
         icon="close"
         :label="tt('Close')"

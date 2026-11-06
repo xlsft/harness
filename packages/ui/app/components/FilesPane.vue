@@ -527,10 +527,7 @@ const remoteText = computed(() => {
           data-menu-anchor
           @click="settingsOpen = !settingsOpen"
         />
-        <PaneBtn
-          icon="full"
-          :label="tt('Maximize')"
-        />
+        <PaneFullBtn />
         <PaneBtn
           icon="close"
           :label="tt('Close files')"
