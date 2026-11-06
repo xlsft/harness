@@ -137,6 +137,8 @@ type Request struct {
 	// or payment field): deny rules apply, allow rules, permissive modes and the auto-mode Decider do not, and
 	// no "always allow" rule is offered.
 	Sensitive string
+	// OutsideSandbox: the model asks to run this command outside the OS sandbox (sandbox.go).
+	OutsideSandbox bool
 
 	// Intent context for the auto-mode Decider (filled by the agent loop):
 	// the session id, the latest user prompts (newest last) and the
@@ -231,6 +233,8 @@ type Config struct {
 	// ComputerSettings returns the directory of the computer use settings and whether writes to it need the user-only
 	// prompt (computer.go). Nil: nothing is guarded.
 	ComputerSettings func() (dir string, protected bool)
+	// Sandbox returns the state of the OS sandbox of the model's commands (sandbox.go). Nil: there is none.
+	Sandbox func() SandboxState
 	// ScratchDirs may be read and written without asking (session scratch).
 	ScratchDirs []string
 	// ReadableDirs may be read without asking (plans, task output).
@@ -254,14 +258,16 @@ type Engine struct {
 	scratch    []string
 	// computerSettings is Config.ComputerSettings.
 	computerSettings func() (dir string, protected bool)
-	readable         []string
-	home             string
-	trusted          bool
-	disableBypass    bool
-	disableAuto      bool
-	policy           map[Mode]bool
-	decider          Decider
-	localPath        string
+	// sandbox is Config.Sandbox.
+	sandbox       func() SandboxState
+	readable      []string
+	home          string
+	trusted       bool
+	disableBypass bool
+	disableAuto   bool
+	policy        map[Mode]bool
+	decider       Decider
+	localPath     string
 	// localFixed: LocalSettingsPath was given, so the file stays when the session moves.
 	localFixed bool
 	localRoot  string
@@ -280,7 +286,7 @@ type Engine struct {
 func New(cfg Config) *Engine {
 	e := &Engine{
 		mode: cfg.DefaultMode, cwd: cfg.Cwd, home: cfg.Home, trusted: cfg.Trusted,
-		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, computerSettings: cfg.ComputerSettings, readable: cfg.ReadableDirs,
+		disableBypass: cfg.DisableBypassPermissions, scratch: cfg.ScratchDirs, computerSettings: cfg.ComputerSettings, sandbox: cfg.Sandbox, readable: cfg.ReadableDirs,
 		disableAuto: cfg.DisableAutoMode, decider: cfg.Decider, netGuard: cfg.NetGuard,
 	}
 	e.policy = modeSet(cfg.DisabledModes)
@@ -744,11 +750,17 @@ func (r Request) PromptName() string {
 
 // Evaluate returns the static decision without consulting the asker.
 func (e *Engine) Evaluate(req Request) Decision {
+	// Read before the lock: the state comes from the session's settings, and a session that moves holds its own lock
+	// while it updates this engine.
+	var sb SandboxState
+	if e.sandbox != nil && (req.ToolName == "Bash" || (editTools[req.ToolName] && agentSettingsFile.MatchString(req.FilePath))) {
+		sb = e.sandbox()
+	}
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	input := decodeInput(req.Input)
 	if req.ToolName == "Bash" {
-		return e.evalBash(req, input)
+		return e.evalBash(req, input, sb)
 	}
 	mc := matchContext{cwd: e.cwd, home: e.home}
 	for _, r := range e.deny {
@@ -778,6 +790,12 @@ func (e *Engine) Evaluate(req Request) Decision {
 				return e.planDenial(req.ToolName)
 			}
 			return computerSettingsPrompt(p)
+		}
+		if sb.Active && agentSettingsFile.MatchString(p) {
+			if e.mode == ModePlan {
+				return e.planDenial(req.ToolName)
+			}
+			return sandboxSettingsPrompt(p)
 		}
 	}
 	for _, r := range e.ask {
@@ -899,7 +917,7 @@ func wholeBashRule(r Rule, input map[string]any) bool {
 	return false
 }
 
-func (e *Engine) evalBash(req Request, input map[string]any) Decision {
+func (e *Engine) evalBash(req Request, input map[string]any, sb SandboxState) Decision {
 	top, all := bashCommands(req.Command, 0)
 	for _, r := range e.deny {
 		if wholeBashRule(r, input) {
@@ -910,6 +928,9 @@ func (e *Engine) evalBash(req Request, input map[string]any) Decision {
 				return Decision{Behavior: Deny, Rule: r.String(), ResolvedBy: "rule", Message: fmt.Sprintf("Permission to use Bash with command %s has been denied by rule %s.", c.Text(), r)}
 			}
 		}
+	}
+	if d, decided := e.evalOutsideSandbox(req, sb); decided {
+		return d
 	}
 	if e.mode != ModeBypassPermissions {
 		for _, r := range e.ask {
@@ -942,6 +963,9 @@ func (e *Engine) evalBash(req Request, input map[string]any) Decision {
 	// ask is the fall-through Ask; in auto mode writes to protected paths
 	// (redirections, cp/mv/tee/sed -i targets) are reserved for the user.
 	ask := func() Decision {
+		if sb.Active && sb.AutoAllow && !req.OutsideSandbox {
+			return Decision{Behavior: Allow, ResolvedBy: "sandbox"}
+		}
 		if e.mode == ModeAuto {
 			for _, p := range CommandWritePaths(req.Command, cwd, e.home) {
 				if isProtected(p, e.workDirs, e.home) && !e.computerSettingsUnguarded(p) {
@@ -1002,6 +1026,9 @@ func (e *Engine) Suggest(req Request) []string {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	switch {
+	case req.OutsideSandbox:
+		// A rule could only allow the command, not the way out of the sandbox: nothing to offer.
+		return nil
 	case req.ToolName == "Bash":
 		top, _ := bashCommands(req.Command, 0)
 		cwd := req.Cwd

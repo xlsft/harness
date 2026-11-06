@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/xlsft/harness/packages/client/llm"
+	"github.com/xlsft/harness/packages/client/sandbox"
 )
 
 // Result is the outcome of a tool call.
@@ -86,6 +87,8 @@ type PermissionHints struct {
 	ReadOnly bool
 	// Label, when set, is what the permission prompt calls the call instead of its tool name (rules never see it).
 	Label string
+	// OutsideSandbox: the call asks to run Command outside the OS sandbox (OutsideSandboxParam).
+	OutsideSandbox bool
 }
 
 // PermissionHinter is implemented by tools whose permission check depends on state outside the input (the
@@ -145,6 +148,8 @@ type Env struct {
 	ReadDenied func(path string) bool
 	// Objects is the object store (nil without a server).
 	Objects ObjectStore
+	// Sandbox confines the commands the model runs (nil: nothing does).
+	Sandbox *sandbox.Session
 
 	push     pushThrottle
 	findings findingsState

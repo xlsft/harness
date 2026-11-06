@@ -115,6 +115,30 @@ export interface UserPreferences {
   lspEnabled: boolean
   lspDiagnostics: boolean
   lspDiagnosticsStartServer: boolean
+  // The OS sandbox of the model's commands (settings key sandbox); applies from the next command. An update replaces it whole.
+  sandbox: SandboxPreferences
+}
+
+export interface SandboxPreferences {
+  enabled: boolean
+  // Absolute, or starting with ~/; added to the working directories and toolchain caches. Protected paths win over them.
+  allowedWritePaths: string[]
+  // example.com, *.example.com, either with :port; added to the built-in hosts.
+  allowedHosts: string[]
+  allowLocalhost: boolean
+  autoAllowBash: boolean
+  outsideWithoutPrompt: boolean
+}
+
+// What this machine can do about the sandbox, which is not the user's choice.
+export interface SandboxStatus {
+  platform: string
+  // False on a platform without a driver yet: unavailable, not off.
+  supported: boolean
+  reason: string
+  requiredByPolicy: boolean
+  outsideRefusedByPolicy: boolean
+  builtinHosts: string[]
 }
 
 // Preferences of this device, kept by the client on this machine and never synced.
@@ -235,6 +259,7 @@ export interface SessionTransport {
   // Per-user preferences; an update changes only the fields it sets and returns them all.
   getUserPreferences(): Promise<UserPreferences>
   updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences>
+  getSandboxStatus(): Promise<SandboxStatus>
 
   // This device's preferences; an update changes only the fields it sets and returns them all.
   getDeviceSettings(): Promise<DeviceSettings>

@@ -13,6 +13,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
+	"github.com/xlsft/harness/packages/client/sandbox"
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/syncclient"
 )
@@ -92,6 +93,20 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		}
 		set[settings.KeyWorkflowMaxAgents] = n
 	}
+	if b := req.Msg.Sandbox; b != nil {
+		for _, p := range b.GetAllowedWritePaths() {
+			if !settings.ValidSandboxPath(p) {
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("write path %q must be absolute or start with ~/", p))
+			}
+		}
+		for _, h := range b.GetAllowedHosts() {
+			if !sandbox.ValidHost(h) {
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%q is not a host name, *.domain or either with a :port", h))
+			}
+		}
+		set[settings.KeySandbox] = map[string]any{"enabled": b.GetEnabled(), "allowedWritePaths": nonNil(b.GetAllowedWritePaths()), "allowedHosts": nonNil(b.GetAllowedHosts()),
+			"allowLocalhost": b.GetAllowLocalhost(), "autoAllowBash": b.GetAutoAllowBash(), "outsideWithoutPrompt": b.GetOutsideWithoutPrompt()}
+	}
 	ctx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	defer cancel()
 	doc, err := s.mergeUserSettings(ctx, set)
@@ -99,6 +114,21 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		return nil, err
 	}
 	return connect.NewResponse(&agentv1.UpdateUserPreferencesResponse{Preferences: preferencesOf(doc)}), nil
+}
+
+func nonNil(list []string) []string {
+	if list == nil {
+		return []string{}
+	}
+	return list
+}
+
+// GetSandboxStatus says what this machine can do; the user's choice is in the preferences.
+func (s *Server) GetSandboxStatus(context.Context, *connect.Request[agentv1.GetSandboxStatusRequest]) (*connect.Response[agentv1.GetSandboxStatusResponse], error) {
+	info := sandbox.NewDriver().Info()
+	required, refused := s.Base.ModePolicy.Sandbox()
+	return connect.NewResponse(&agentv1.GetSandboxStatusResponse{Platform: info.Platform, Supported: info.Supported, Reason: info.Reason,
+		RequiredByPolicy: required, OutsideRefusedByPolicy: refused, BuiltinHosts: sandbox.DefaultHosts}), nil
 }
 
 // mergeUserSettings writes keys into the user's settings document, keeping the others, and returns the document.
@@ -144,7 +174,8 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 // preferencesOf reads the preferences from a settings document (nil or invalid content: the defaults).
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
-		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents}
+		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents,
+		Sandbox: &agentv1.SandboxPreferences{Enabled: true}}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
@@ -170,6 +201,20 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	}
 	if v, ok := raw[settings.KeyWorkflowMaxAgents]; ok && json.Unmarshal(v, &n) == nil && settings.ValidWorkflowMaxAgents(int(n)) {
 		p.WorkflowMaxAgents = n
+	}
+	if v, ok := raw[settings.KeySandbox]; ok {
+		var sb struct {
+			Enabled              *bool    `json:"enabled"`
+			AllowedWritePaths    []string `json:"allowedWritePaths"`
+			AllowedHosts         []string `json:"allowedHosts"`
+			AllowLocalhost       bool     `json:"allowLocalhost"`
+			AutoAllowBash        bool     `json:"autoAllowBash"`
+			OutsideWithoutPrompt bool     `json:"outsideWithoutPrompt"`
+		}
+		if json.Unmarshal(v, &sb) == nil {
+			p.Sandbox = &agentv1.SandboxPreferences{Enabled: sb.Enabled == nil || *sb.Enabled, AllowedWritePaths: sb.AllowedWritePaths, AllowedHosts: sb.AllowedHosts,
+				AllowLocalhost: sb.AllowLocalhost, AutoAllowBash: sb.AutoAllowBash, OutsideWithoutPrompt: sb.OutsideWithoutPrompt}
+		}
 	}
 	return p
 }

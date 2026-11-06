@@ -37,6 +37,7 @@ import (
 	"github.com/xlsft/harness/packages/client/preview"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/rpc"
+	"github.com/xlsft/harness/packages/client/sandbox"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/subagent"
@@ -227,6 +228,8 @@ type Session struct {
 	hooks        PlaceHooks
 	instructions string
 	computer     *computeruse.Manager
+	// Sandbox confines the commands the model runs (sandbox.go).
+	Sandbox *sandbox.Session
 }
 
 // computerSettingsGuard is the permission engine's view of the computer use settings. A session without computer use
@@ -275,6 +278,7 @@ func (s *Session) Close() error {
 	if s.stopSync != nil {
 		s.stopSync()
 	}
+	s.Sandbox.Close()
 	if s.stopVCS != nil {
 		s.stopVCS()
 	}
@@ -570,6 +574,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ToolEnv.SessionID = s.ID
 	s.ToolEnv.PlansDir = plans
 	s.ToolEnv.SetMover(mover{s})
+	s.Sandbox = &sandbox.Session{Home: homeDir(), HarnessHome: config.Home(), Settings: s.sandboxSettings}
+	s.ToolEnv.Sandbox = s.Sandbox
 	if os.Getenv("HARNESS_DISABLE_BACKGROUND_TASKS") != "1" {
 		s.Tasks = tools.NewTaskManager(filepath.Join(scratch, "tasks"))
 		s.Tasks.Unattended = o.Unattended
@@ -621,8 +627,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		Allow: o.AllowedTools, Ask: o.AskTools, Deny: o.DisallowedTools, Sources: o.PermissionSources,
 		Trusted: trusted, DisableBypassPermissions: o.DisableBypassPermissions, DisableAutoMode: o.DisableAutoMode,
 		DisabledModes: disabledModes, Decider: s.Decider, LocalSettingsPath: o.LocalSettingsPath,
-		ComputerSettings: computerSettingsGuard(o.ComputerUse),
-		ScratchDirs:      []string{scratch}, ReadableDirs: []string{plans},
+		ComputerSettings: computerSettingsGuard(o.ComputerUse), Sandbox: s.sandboxState,
+		ScratchDirs: []string{scratch}, ReadableDirs: []string{plans},
 	})
 	if useBrowser {
 		if b, err := o.Browser.Session(s.ID); err == nil {

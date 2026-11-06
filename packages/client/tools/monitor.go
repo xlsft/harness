@@ -330,6 +330,8 @@ type monitorInput struct {
 	Description string   `json:"description"`
 	Timeout     *float64 `json:"timeout"`
 	Persistent  bool     `json:"persistent"`
+	// RunOutsideSandbox: see Bash's.
+	RunOutsideSandbox bool `json:"run_outside_sandbox"`
 }
 
 func (*Monitor) Name() string { return "Monitor" }
@@ -340,7 +342,7 @@ func (m *Monitor) ReadOnly(input json.RawMessage) bool { return m.ShellCommand(i
 // PermissionHints implements PermissionHinter: a monitor that starts a command is checked as that command.
 func (m *Monitor) PermissionHints(_ context.Context, _ *Env, call Call) PermissionHints {
 	if cmd := m.ShellCommand(call.Input); cmd != "" {
-		return PermissionHints{CheckAs: "Bash", Command: cmd}
+		return PermissionHints{CheckAs: "Bash", Command: cmd, OutsideSandbox: WantsOutsideSandbox(call.Input)}
 	}
 	return PermissionHints{}
 }
@@ -380,7 +382,11 @@ func (*Monitor) Run(ctx context.Context, env *Env, call Call) Result {
 	w := &monitor{pattern: in.Pattern, description: in.Description, persistent: in.Persistent, timeout: timeout, owned: in.Command != ""}
 	target := in.TaskID
 	if w.owned {
-		info, err := env.Tasks.Start(env.Shell, in.Command, in.Description, call.ID, timeout)
+		start := env.Tasks.Start
+		if in.RunOutsideSandbox {
+			start = env.Tasks.StartOutside
+		}
+		info, err := start(env.Shell, in.Command, in.Description, call.ID, timeout)
 		if err != nil {
 			return ErrorResult("failed to start command: %v", err)
 		}

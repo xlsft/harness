@@ -107,6 +107,9 @@ const (
 	// AgentServiceUpdateUserPreferencesProcedure is the fully-qualified name of the AgentService's
 	// UpdateUserPreferences RPC.
 	AgentServiceUpdateUserPreferencesProcedure = "/harness.agent.v1.AgentService/UpdateUserPreferences"
+	// AgentServiceGetSandboxStatusProcedure is the fully-qualified name of the AgentService's
+	// GetSandboxStatus RPC.
+	AgentServiceGetSandboxStatusProcedure = "/harness.agent.v1.AgentService/GetSandboxStatus"
 	// AgentServiceListTasksProcedure is the fully-qualified name of the AgentService's ListTasks RPC.
 	AgentServiceListTasksProcedure = "/harness.agent.v1.AgentService/ListTasks"
 	// AgentServiceStopTaskProcedure is the fully-qualified name of the AgentService's StopTask RPC.
@@ -426,6 +429,8 @@ type AgentServiceClient interface {
 	// document). Without a server connection Get returns the defaults and Update fails with FAILED_PRECONDITION.
 	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
 	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
+	// What this machine can do about the command sandbox (sandbox.proto).
+	GetSandboxStatus(context.Context, *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error)
 	// Background tasks: shell commands started with run_in_background or moved to the background.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
@@ -815,6 +820,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+AgentServiceUpdateUserPreferencesProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("UpdateUserPreferences")),
+			connect.WithClientOptions(opts...),
+		),
+		getSandboxStatus: connect.NewClient[v1.GetSandboxStatusRequest, v1.GetSandboxStatusResponse](
+			httpClient,
+			baseURL+AgentServiceGetSandboxStatusProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetSandboxStatus")),
 			connect.WithClientOptions(opts...),
 		),
 		listTasks: connect.NewClient[v1.ListTasksRequest, v1.ListTasksResponse](
@@ -1359,6 +1370,7 @@ type agentServiceClient struct {
 	getContextUsage         *connect.Client[v1.GetContextUsageRequest, v1.GetContextUsageResponse]
 	getUserPreferences      *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
 	updateUserPreferences   *connect.Client[v1.UpdateUserPreferencesRequest, v1.UpdateUserPreferencesResponse]
+	getSandboxStatus        *connect.Client[v1.GetSandboxStatusRequest, v1.GetSandboxStatusResponse]
 	listTasks               *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
 	stopTask                *connect.Client[v1.StopTaskRequest, v1.StopTaskResponse]
 	closeSession            *connect.Client[v1.CloseSessionRequest, v1.CloseSessionResponse]
@@ -1579,6 +1591,11 @@ func (c *agentServiceClient) GetUserPreferences(ctx context.Context, req *connec
 // UpdateUserPreferences calls harness.agent.v1.AgentService.UpdateUserPreferences.
 func (c *agentServiceClient) UpdateUserPreferences(ctx context.Context, req *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error) {
 	return c.updateUserPreferences.CallUnary(ctx, req)
+}
+
+// GetSandboxStatus calls harness.agent.v1.AgentService.GetSandboxStatus.
+func (c *agentServiceClient) GetSandboxStatus(ctx context.Context, req *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error) {
+	return c.getSandboxStatus.CallUnary(ctx, req)
 }
 
 // ListTasks calls harness.agent.v1.AgentService.ListTasks.
@@ -2073,6 +2090,8 @@ type AgentServiceHandler interface {
 	// document). Without a server connection Get returns the defaults and Update fails with FAILED_PRECONDITION.
 	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
 	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
+	// What this machine can do about the command sandbox (sandbox.proto).
+	GetSandboxStatus(context.Context, *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error)
 	// Background tasks: shell commands started with run_in_background or moved to the background.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	StopTask(context.Context, *connect.Request[v1.StopTaskRequest]) (*connect.Response[v1.StopTaskResponse], error)
@@ -2458,6 +2477,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceUpdateUserPreferencesProcedure,
 		svc.UpdateUserPreferences,
 		connect.WithSchema(agentServiceMethods.ByName("UpdateUserPreferences")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetSandboxStatusHandler := connect.NewUnaryHandler(
+		AgentServiceGetSandboxStatusProcedure,
+		svc.GetSandboxStatus,
+		connect.WithSchema(agentServiceMethods.ByName("GetSandboxStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceListTasksHandler := connect.NewUnaryHandler(
@@ -3026,6 +3051,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceGetUserPreferencesHandler.ServeHTTP(w, r)
 		case AgentServiceUpdateUserPreferencesProcedure:
 			agentServiceUpdateUserPreferencesHandler.ServeHTTP(w, r)
+		case AgentServiceGetSandboxStatusProcedure:
+			agentServiceGetSandboxStatusHandler.ServeHTTP(w, r)
 		case AgentServiceListTasksProcedure:
 			agentServiceListTasksHandler.ServeHTTP(w, r)
 		case AgentServiceStopTaskProcedure:
@@ -3311,6 +3338,10 @@ func (UnimplementedAgentServiceHandler) GetUserPreferences(context.Context, *con
 
 func (UnimplementedAgentServiceHandler) UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.UpdateUserPreferences is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetSandboxStatus(context.Context, *connect.Request[v1.GetSandboxStatusRequest]) (*connect.Response[v1.GetSandboxStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSandboxStatus is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {

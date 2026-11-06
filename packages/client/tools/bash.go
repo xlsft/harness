@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
+	"github.com/xlsft/harness/packages/client/sandbox"
 )
 
 // Bash limits (overridable with BASH_DEFAULT_TIMEOUT_MS / BASH_MAX_TIMEOUT_MS).
@@ -147,6 +149,8 @@ type ExecResult struct {
 	EndCwd string
 	// CwdGone is set when the shell's directory had disappeared before the command (EndCwd names it).
 	CwdGone bool
+	// Denial says what the OS sandbox refused the command, when it ran in it and that can be told.
+	Denial *sandbox.Denial
 	// Background is set when the command was moved to the background.
 	Background *TaskInfo
 	// BackgroundReason is BackgroundAuto (timeout), BackgroundUser or
@@ -167,6 +171,8 @@ type ExecOptions struct {
 	// captured, until the command moves to the background. It is called with the capture lock held: it must
 	// not block.
 	OnOutput func(stream int, p []byte)
+	// Confine runs the command in the session's OS sandbox: what the model chose. What the user typed does not.
+	Confine bool
 }
 
 // switchWriter captures stdout/stderr in memory until the command is moved
@@ -275,12 +281,27 @@ func (s *Shell) BackgroundToolCall(toolUseID, reason string) bool {
 	return found
 }
 
-// Command builds a long-lived process for a command line (not started): it runs in cwd the way the Bash tool runs
-// it (same shell, PATH and environment), as the leader of a new process group. The caller owns the process.
-func (s *Shell) Command(command, cwd string) *exec.Cmd { return s.command(command, "", cwd) }
+// Command builds a dev server's process for a command line (not started): it runs in cwd the way the Bash tool runs
+// it (same shell, PATH and environment), as the leader of a new process group, under the sandbox's policy for servers. The
+// caller owns the process.
+func (s *Shell) Command(command, cwd string) *exec.Cmd {
+	cmd, _ := s.command(command, "", cwd, confineServer)
+	return cmd
+}
 
-// command builds the shell process for a command line (not started).
-func (s *Shell) command(command, cwdFile, cwd string) *exec.Cmd {
+// confinement says how a command relates to the session's OS sandbox.
+type confinement int
+
+const (
+	unconfined confinement = iota
+	confineCommand
+	confineServer
+)
+
+// command builds the shell process for a command line (not started). With a sandbox that applies, it also returns what
+// explains the command's failures. A sandbox that should apply and cannot means the process does nothing but say so: the
+// command must not run without it, and every caller already shows what a failed command printed.
+func (s *Shell) command(command, cwdFile, cwd string, how confinement) (*exec.Cmd, *sandbox.Wrapped) {
 	snap := s.snapshot()
 	var script strings.Builder
 	if snap != "" {
@@ -292,11 +313,30 @@ func (s *Shell) command(command, cwdFile, cwd string) *exec.Cmd {
 	script.WriteString(`__harness_cmd=$__HARNESS_CMD; __harness_cwd=$__HARNESS_CWD_FILE; unset __HARNESS_CMD __HARNESS_CWD_FILE` + "\n")
 	script.WriteString(`if [ -n "$__harness_cwd" ]; then trap 'pwd -P > "$__harness_cwd" 2>/dev/null' EXIT; fi` + "\n")
 	script.WriteString(`eval "$__harness_cmd"` + "\n")
-	cmd := exec.Command(s.path, "-c", script.String())
+	argv := []string{s.path, "-c", script.String()}
+	var wrapped *sandbox.Wrapped
+	if how != unconfined {
+		kind := sandbox.KindCommand
+		if how == confineServer {
+			kind = sandbox.KindServer
+		}
+		w, err := s.env.Sandbox.Wrap(sandbox.Request{Kind: kind, WorkDirs: s.env.WorkingDirs(), ScratchDir: s.env.ScratchDir}, argv)
+		switch {
+		case err != nil:
+			argv = []string{s.path, "-c", `printf 'harness: %s\n' "$1" >&2; exit 126`, "sh", err.Error()}
+		case w != nil:
+			argv, wrapped = w.Argv, w
+		}
+	}
+	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = cwd
 	// The session environment's variables override the client's; the harness entries come last so they cannot
 	// be overridden (exec keeps the last value of a name).
-	cmd.Env = append(append(os.Environ(), s.env.ExtraEnv()...),
+	cmd.Env = append(os.Environ(), s.env.ExtraEnv()...)
+	if wrapped != nil {
+		cmd.Env = append(cmd.Env, wrapped.Env...)
+	}
+	cmd.Env = append(cmd.Env,
 		"__HARNESS_CMD="+command,
 		"__HARNESS_CWD_FILE="+cwdFile,
 		"HARNESS=1",
@@ -304,7 +344,7 @@ func (s *Shell) command(command, cwdFile, cwd string) *exec.Cmd {
 	)
 	setProcessGroup(cmd)
 	cmd.WaitDelay = 2 * time.Second
-	return cmd
+	return cmd, wrapped
 }
 
 // Exec runs command in the persistent cwd and kills it on timeout.
@@ -341,7 +381,11 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 		}
 	}()
 
-	cmd := s.command(command, cwdFile, cwd)
+	how := unconfined
+	if o.Confine {
+		how = confineCommand
+	}
+	cmd, wrapped := s.command(command, cwdFile, cwd, how)
 	sw := &switchWriter{onOutput: o.OnOutput}
 	cmd.Stdout, cmd.Stderr = swStream{sw, 0}, swStream{sw, 1}
 	if err := cmd.Start(); err != nil {
@@ -395,6 +439,7 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 			if cwdFile != "" {
 				os.Remove(cwdFile)
 			}
+			noteDenialInOutput(wrapped, path, cwd)
 		}
 		info := o.Tasks.adopt(id, path, f, cmd, done, command, o.Description, o.ToolUseID, 0, cleanup)
 		res.Background = &info
@@ -434,6 +479,9 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 		res.ExitCode = exitErr.ExitCode()
 	case err != nil && !errors.Is(err, exec.ErrWaitDelay):
 		return res, err
+	}
+	if !res.Interrupted && !res.TimedOut {
+		res.Denial = wrapped.Diagnose(res.Stdout+"\n"+res.Stderr, cwd, res.ExitCode != 0)
 	}
 
 	// A stopped command leaves the directory as it was: the shell's EXIT trap may not have run. A failed one
@@ -501,14 +549,42 @@ func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'"'"'`) + "'"
 }
 
+// noteDenialInOutput adds the sandbox's explanation to the output file of a background command that ended: nobody reads
+// its result, only that file.
+func noteDenialInOutput(w *sandbox.Wrapped, path, cwd string) {
+	if w == nil {
+		return
+	}
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND, 0)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	var tail string
+	if st, err := f.Stat(); err == nil {
+		buf := make([]byte, min(st.Size(), BashMaxErrorChars))
+		if n, err := f.ReadAt(buf, st.Size()-int64(len(buf))); err == nil || errors.Is(err, io.EOF) {
+			tail = string(buf[:n])
+		}
+	}
+	if d := w.Diagnose(tail, cwd, true); d != nil {
+		_, _ = f.WriteString("\n" + d.Note(OutsideSandboxParam) + "\n")
+	}
+}
+
 // Bash runs shell commands.
 type Bash struct{}
 
+// OutsideSandboxParam is the input field with which the model asks to run a command outside the OS sandbox. The permission
+// check turns it into a user-only prompt (permissions/sandbox.go).
+const OutsideSandboxParam = "run_outside_sandbox"
+
 type bashInput struct {
-	Command         string   `json:"command"`
-	Description     string   `json:"description"`
-	Timeout         *float64 `json:"timeout"`
-	RunInBackground bool     `json:"run_in_background"`
+	Command           string   `json:"command"`
+	Description       string   `json:"description"`
+	Timeout           *float64 `json:"timeout"`
+	RunInBackground   bool     `json:"run_in_background"`
+	RunOutsideSandbox bool     `json:"run_outside_sandbox"`
 }
 
 func (*Bash) Name() string { return "Bash" }
@@ -517,7 +593,7 @@ func (*Bash) Name() string { return "Bash" }
 // change directory, so they may run in parallel.
 func (*Bash) ReadOnly(input json.RawMessage) bool {
 	var in bashInput
-	if json.Unmarshal(input, &in) != nil || in.RunInBackground || !permissions.IsReadOnlyCommandLine(in.Command) {
+	if json.Unmarshal(input, &in) != nil || in.RunInBackground || in.RunOutsideSandbox || !permissions.IsReadOnlyCommandLine(in.Command) {
 		return false
 	}
 	for _, c := range permissions.SplitCommand(in.Command) {
@@ -533,6 +609,15 @@ func BashCommand(input json.RawMessage) string {
 	var in bashInput
 	_ = json.Unmarshal(input, &in)
 	return in.Command
+}
+
+// WantsOutsideSandbox reports whether a call's input asks to run outside the OS sandbox (used by permissions).
+func WantsOutsideSandbox(input json.RawMessage) bool {
+	var in struct {
+		RunOutsideSandbox bool `json:"run_outside_sandbox"`
+	}
+	_ = json.Unmarshal(input, &in)
+	return in.RunOutsideSandbox
 }
 
 func envDuration(name string, def time.Duration) time.Duration {
@@ -586,7 +671,11 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		if env.Tasks == nil {
 			return ErrorResult("Background commands are not available in this session. Run the command in the foreground.")
 		}
-		info, err := env.Tasks.Start(env.Shell, in.Command, in.Description, call.ID, requested)
+		start := env.Tasks.Start
+		if in.RunOutsideSandbox {
+			start = env.Tasks.StartOutside
+		}
+		info, err := start(env.Shell, in.Command, in.Description, call.ID, requested)
 		if err != nil {
 			return ErrorResult("failed to start background command: %v", err)
 		}
@@ -594,12 +683,13 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		if changesDir(in.Command) {
 			msg += "\n" + backgroundCwdNote(env.Shell.Cwd())
 		}
-		r := TextResult(msg,
-			map[string]any{"stdout": "", "stderr": "", "interrupted": false, "backgroundTaskId": info.ID, "outputFile": info.OutputPath, "backgroundReason": BackgroundAgent})
+		structured := map[string]any{"stdout": "", "stderr": "", "interrupted": false, "backgroundTaskId": info.ID, "outputFile": info.OutputPath, "backgroundReason": BackgroundAgent}
+		markOutsideSandbox(env, in.RunOutsideSandbox, structured)
+		r := TextResult(msg, structured)
 		r.Summary = "Started background task " + info.ID
 		return r
 	}
-	res, err := env.Shell.Run(ctx, in.Command, ExecOptions{Timeout: timeout, Tasks: env.Tasks, AutoBackground: true, Description: in.Description, ToolUseID: call.ID})
+	res, err := env.Shell.Run(ctx, in.Command, ExecOptions{Timeout: timeout, Tasks: env.Tasks, AutoBackground: true, Description: in.Description, ToolUseID: call.ID, Confine: !in.RunOutsideSandbox})
 	if err != nil {
 		return ErrorResult("failed to run command: %v", err)
 	}
@@ -608,7 +698,9 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		if changesDir(in.Command) {
 			msg += "\n" + backgroundCwdNote(res.StartCwd)
 		}
-		r := TextResult(msg, map[string]any{"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": false, "backgroundTaskId": bg.ID, "outputFile": bg.OutputPath, "backgroundReason": res.BackgroundReason})
+		structured := map[string]any{"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": false, "backgroundTaskId": bg.ID, "outputFile": bg.OutputPath, "backgroundReason": res.BackgroundReason}
+		markOutsideSandbox(env, in.RunOutsideSandbox, structured)
+		r := TextResult(msg, structured)
 		r.Summary = "Moved to background task " + bg.ID
 		return r
 	}
@@ -616,6 +708,7 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": res.Interrupted,
 		"exitCode": res.ExitCode,
 	}
+	markOutsideSandbox(env, in.RunOutsideSandbox, structured)
 
 	out := strings.TrimRight(res.Stdout, "\n")
 	if e := strings.TrimRight(res.Stderr, "\n"); e != "" {
@@ -649,6 +742,13 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		notes = append(notes, note)
 		structured["cwdNote"] = note
 	}
+	// Last, so that a frontend can take it off the end of the text and show its short form instead.
+	if res.Denial != nil {
+		note := res.Denial.Note(OutsideSandboxParam)
+		notes = append(notes, note)
+		structured["sandboxNote"] = note
+		structured["sandboxDenied"] = res.Denial.Summary()
+	}
 
 	if isErr {
 		out = headTail(out, BashMaxErrorChars)
@@ -681,6 +781,14 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		r.Summary = fmt.Sprintf("Exit code %d", res.ExitCode)
 	}
 	return r
+}
+
+// markOutsideSandbox records that a command the sandbox would have confined ran outside it, for the mark on its row. A
+// session with the sandbox off has nothing to mark: every row would carry it.
+func markOutsideSandbox(env *Env, outside bool, structured map[string]any) {
+	if st := env.Sandbox.State(); outside && (st.Active || st.Refusing) {
+		structured["sandbox"] = "outside"
+	}
 }
 
 // Reminder ids of the Bash tool_result notes about a background command

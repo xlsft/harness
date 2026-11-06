@@ -156,7 +156,8 @@ describe("bundle builder", () => {
     expect(props("Read")).toEqual(["file_path", "offset", "limit", "description"]);
     expect(props("Write")).toEqual(["file_path", "content", "description"]);
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all", "description"]);
-    expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background"]);
+    expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background", "run_outside_sandbox"]);
+    expect(b.tools.Bash!.description).toMatch(/run_outside_sandbox/);
     expect(props("TaskStop")).toEqual(["task_id", "description"]);
     expect(props("PreviewStart")).toEqual(["name", "url", "description"]);
     expect(b.tools.PreviewStart!.input_schema.required).toEqual(["description"]);
@@ -180,7 +181,7 @@ describe("bundle builder", () => {
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
     expect(props("TerminalRead")).toEqual(["tab_id", "lines", "wait_for_output_ms", "description"]);
-    expect(props("TerminalRun")).toEqual(["command", "title", "description"]);
+    expect(props("TerminalRun")).toEqual(["command", "title", "run_outside_sandbox", "description"]);
     expect(b.tools.TerminalRun!.input_schema.required).toEqual(["command", "description"]);
     expect(b.tools.TerminalStop!.input_schema.required).toEqual(["tab_id", "description"]);
     for (const n of ["TerminalRead", "TerminalRun"]) expect(b.tools[n]!.description).toMatch(/untrusted/i);

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/sandbox"
 	"github.com/xlsft/harness/packages/client/tools"
 )
 
@@ -102,8 +103,10 @@ func startDir(env *tools.Env) string {
 	return env.Cwd
 }
 
-// open starts a tab for the agent, in dir or else in startDir.
-func (b toolBase) open(env *tools.Env, sessionID, dir, title string) (*Terminal, error) {
+// open starts a tab for the agent, in dir or else in startDir. A tab that runs the model's command starts its whole shell in
+// the OS sandbox (wrap), since nothing can confine a shell after the fact: what the user types into that tab is confined too.
+// TerminalOpen's tab is for the user to type in, and the model cannot type there: it starts as a tab of the user's.
+func (b toolBase) open(env *tools.Env, sessionID, dir, title string, wrap func(argv []string) ([]string, []string, error)) (*Terminal, error) {
 	if dir == "" {
 		dir = startDir(env)
 	}
@@ -113,7 +116,18 @@ func (b toolBase) open(env *tools.Env, sessionID, dir, title string) (*Terminal,
 			extra[k] = v
 		}
 	}
-	return b.m.Create(Options{SessionID: sessionID, Cwd: dir, Title: title, Env: extra, Agent: true})
+	return b.m.Create(Options{SessionID: sessionID, Cwd: dir, Title: title, Env: extra, Agent: true, Wrap: wrap})
+}
+
+// sandboxWrap returns Options.Wrap for a command of the model.
+func sandboxWrap(env *tools.Env) func(argv []string) ([]string, []string, error) {
+	return func(argv []string) ([]string, []string, error) {
+		w, err := env.Sandbox.Wrap(sandbox.Request{Kind: sandbox.KindCommand, WorkDirs: env.WorkingDirs(), ScratchDir: env.ScratchDir}, argv)
+		if err != nil || w == nil {
+			return nil, nil, err
+		}
+		return w.Argv, w.Env, nil
+	}
 }
 
 // show brings the tab up in the Terminal pane; it returns a sentence for the result and whether a pane will show it.
@@ -346,6 +360,8 @@ type runTool struct{ toolBase }
 type runInput struct {
 	Command string `json:"command"`
 	Title   string `json:"title"`
+	// RunOutsideSandbox: see Bash's.
+	RunOutsideSandbox bool `json:"run_outside_sandbox"`
 }
 
 func (*runTool) Name() string                  { return ToolRun }
@@ -359,7 +375,7 @@ const PromptLabel = "run in terminal"
 func (t *runTool) PermissionHints(_ context.Context, env *tools.Env, call tools.Call) tools.PermissionHints {
 	var in runInput
 	_ = decodeInput(call.Input, &in)
-	h := tools.PermissionHints{CheckAs: "Bash", Command: in.Command, Label: PromptLabel}
+	h := tools.PermissionHints{CheckAs: "Bash", Command: in.Command, Label: PromptLabel, OutsideSandbox: in.RunOutsideSandbox}
 	if env != nil {
 		h.Cwd = startDir(env)
 	}
@@ -378,7 +394,11 @@ func (t *runTool) Run(ctx context.Context, env *tools.Env, call tools.Call) tool
 	if err := ValidateCommand(in.Command); err != nil {
 		return tools.ErrorResult("InputValidationError: %v", err)
 	}
-	term, err := t.open(env, sid, "", in.Title)
+	wrap := sandboxWrap(env)
+	if in.RunOutsideSandbox {
+		wrap = nil
+	}
+	term, err := t.open(env, sid, "", in.Title, wrap)
 	if err != nil {
 		return tools.ErrorResult("could not open a terminal tab: %v", err)
 	}
@@ -441,7 +461,7 @@ func (t *openTool) Run(ctx context.Context, env *tools.Env, call tools.Call) too
 			return tools.ErrorResult("%s is outside the working directories", in.Cwd)
 		}
 	}
-	term, err := t.open(env, sid, in.Cwd, in.Title)
+	term, err := t.open(env, sid, in.Cwd, in.Title, nil)
 	if err != nil {
 		return tools.ErrorResult("could not open a terminal tab: %v", err)
 	}

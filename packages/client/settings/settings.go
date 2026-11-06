@@ -192,6 +192,8 @@ type Settings struct {
 	// RemoteControlPolicyOff: a policy document says "remoteControl": false, so sessions are never mirrored to the
 	// server and the per-session switch cannot turn it on.
 	RemoteControlPolicyOff bool
+	// Sandbox is the OS sandbox of the model's commands (sandbox.go).
+	Sandbox Sandbox
 
 	// Raw holds every top-level key of the winning level (for keys this
 	// package does not model). Values are byte-exact JSON.
@@ -335,6 +337,7 @@ type layer struct {
 	managedRulesOnly bool
 	// remoteControlOff: a policy document says "remoteControl": false.
 	remoteControlOff bool
+	sandbox          *sandboxLayer
 	// extra are further layers of the same level (permission rule documents).
 	extra []*layer
 }
@@ -357,7 +360,8 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
 		CompactIdleSessions: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
-		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents}
+		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents,
+		Sandbox: Sandbox{Enabled: true}}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {
 		if l != nil {

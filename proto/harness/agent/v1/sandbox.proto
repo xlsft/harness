@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// The OS sandbox of the commands the model runs (packages/client/sandbox). The client decides; frontends render this and
+// send intent.
+
+// The user's sandbox settings (settings key "sandbox"), in their synced settings document. A folder's
+// .harness/settings.local.json or --settings overrides them on one device.
+message SandboxPreferences {
+  // sandbox.enabled. Default true.
+  bool enabled = 1;
+  // sandbox.allowedWritePaths: absolute, or starting with ~/. Added to the writable roots; protected paths win over them.
+  repeated string allowed_write_paths = 2;
+  // sandbox.allowedHosts: "example.com", "*.example.com", either with ":port". Added to the built-in hosts.
+  repeated string allowed_hosts = 3;
+  // sandbox.allowLocalhost: commands may listen on and reach the loopback interface. Default false.
+  bool allow_localhost = 4;
+  // sandbox.autoAllowBash: a sandboxed command runs without a permission prompt where it would otherwise ask; deny and ask
+  // rules still apply. Default false.
+  bool auto_allow_bash = 5;
+  // sandbox.outsideWithoutPrompt: running outside the sandbox takes the normal permission check instead of a user-only
+  // prompt. Default false.
+  bool outside_without_prompt = 6;
+}
+
+message GetSandboxStatusRequest {}
+
+// What this machine can do, for the settings screen. It is not the user's choice (SandboxPreferences).
+message GetSandboxStatusResponse {
+  // "macos", "linux", "windows"...
+  string platform = 1;
+  // False on a platform without a driver yet: the sandbox is unavailable there, not off.
+  bool supported = 2;
+  // Why it is not supported.
+  string reason = 3;
+  // A policy document requires the sandbox: the switch has no say.
+  bool required_by_policy = 4;
+  // A policy document refuses running outside the sandbox.
+  bool outside_refused_by_policy = 5;
+  // Hosts that are always allowed.
+  repeated string builtin_hosts = 6;
+}

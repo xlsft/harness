@@ -12,6 +12,7 @@ import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
+import "harness/agent/v1/sandbox.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
@@ -103,6 +104,8 @@ service AgentService {
   // document). Without a server connection Get returns the defaults and Update fails with FAILED_PRECONDITION.
   rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
   rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
+  // What this machine can do about the command sandbox (sandbox.proto).
+  rpc GetSandboxStatus(GetSandboxStatusRequest) returns (GetSandboxStatusResponse);
 
   // Background tasks: shell commands started with run_in_background or moved to the background.
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
@@ -1459,6 +1462,8 @@ message UserPreferences {
   // Let an edit start a language server for those errors, not only use one that runs (settings key
   // lspDiagnosticsStartServer). Default false.
   bool lsp_diagnostics_start_server = 8;
+  // The command sandbox (settings key sandbox). Applies from the next command.
+  SandboxPreferences sandbox = 9;
 }
 
 message GetUserPreferencesRequest {}
@@ -1481,6 +1486,8 @@ message UpdateUserPreferencesRequest {
   optional bool lsp_enabled = 6;
   optional bool lsp_diagnostics = 7;
   optional bool lsp_diagnostics_start_server = 8;
+  // Replaces the whole sandbox block. INVALID_ARGUMENT for a write path that is not absolute or ~/, or a host that cannot be one.
+  optional SandboxPreferences sandbox = 9;
 }
 
 message UpdateUserPreferencesResponse {

@@ -66,6 +66,9 @@ type Options struct {
 	Args  []string
 	// Agent says the agent opened it, not the user (TerminalOpen, TerminalRun).
 	Agent bool
+	// Wrap, when set, gets the shell's command line and returns the one to start and variables to add (TerminalRun, in the
+	// OS sandbox). A nil command line leaves it as it is; an error means no tab.
+	Wrap func(argv []string) (full, env []string, err error)
 }
 
 // Info is a snapshot of a terminal.
@@ -372,7 +375,18 @@ func (m *Manager) Create(o Options) (*Terminal, error) {
 	if cols == 0 || rows == 0 {
 		cols, rows = DefaultCols, DefaultRows
 	}
-	p, err := startProc(startSpec{Shell: shell, Args: args, Dir: o.Cwd, Env: buildEnv(o.Env), Cols: cols, Rows: rows})
+	spec := startSpec{Shell: shell, Args: args, Dir: o.Cwd, Env: buildEnv(o.Env), Cols: cols, Rows: rows}
+	if o.Wrap != nil {
+		full, env, err := o.Wrap(append([]string{shell}, args...))
+		if err != nil {
+			return nil, err
+		}
+		if len(full) > 0 {
+			spec.Shell, spec.Args = full[0], full[1:]
+			spec.Env = append(spec.Env, env...)
+		}
+	}
+	p, err := startProc(spec)
 	if err != nil {
 		if errors.Is(err, ErrUnsupported) {
 			return nil, err

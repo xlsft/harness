@@ -1237,6 +1237,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 				h := ph.PermissionHints(ctx, a.cfg.ToolEnv, tools.Call{ID: u.ID, Input: u.Input})
 				req.URL, req.Sensitive, req.Label = h.URL, h.Sensitive, h.Label
 				hinted = h
+				req.OutsideSandbox = h.OutsideSandbox
 				applyCheckAs(&req, h)
 				req.ReadOnly = req.ReadOnly || h.ReadOnly
 				if h.CheckAs == "Bash" && a.cfg.DisabledTools["Bash"] {
@@ -1246,6 +1247,7 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			}
 			if u.Name == "Bash" {
 				req.Command = tools.BashCommand(u.Input)
+				req.OutsideSandbox = tools.WantsOutsideSandbox(u.Input)
 			}
 			if req.ToolName == "Bash" && req.Cwd == "" && a.cfg.ToolEnv != nil && a.cfg.ToolEnv.Shell != nil {
 				req.Cwd = a.cfg.ToolEnv.Shell.Cwd()

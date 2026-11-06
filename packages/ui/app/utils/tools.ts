@@ -239,6 +239,19 @@ export function bashCwdNote(t: ToolItem): string {
   return typeof n === 'string' ? n : ''
 }
 
+// A command the sandbox would have confined ran outside it, with the user's approval: the mark on its row.
+export function ranOutsideSandbox(t: ToolItem): boolean {
+  return t.result?.sandbox === 'outside'
+}
+
+// What the sandbox refused a Bash command, in short. The model's longer note with its advice closes the result's text:
+// withoutCwdNote takes it off there.
+export function bashSandboxDenied(t: ToolItem): { summary: string, note: string } {
+  const summary = t.result?.sandboxDenied
+  const note = t.result?.sandboxNote
+  return { summary: typeof summary === 'string' ? summary : '', note: typeof note === 'string' ? note : '' }
+}
+
 export function withoutCwdNote(text: string, note: string): string {
   const s = text.trimEnd()
   return note && s.endsWith(note) ? s.slice(0, -note.length).trimEnd() : text
