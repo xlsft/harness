@@ -48,6 +48,7 @@ Usage:
                                         Serve AgentService to browsers (Connect over HTTP/1.1 and h2c,
                                         bearer token, CORS allowlist); combinable with --socket
   harness-client -p "<prompt>" [flags]  Run one headless turn
+  harness-client ci <review|mention>    The PR review bot and the @mention trigger, for CI runners (docs/ci.md)
   harness-client update [--check]       Replace this binary with the newest release (verified)
   harness-client version
 
@@ -85,6 +86,8 @@ func run(args []string) int {
 			return runSync(args[1:])
 		case "update":
 			return runUpdate(ctx, args[1:])
+		case "ci":
+			return runCI(ctx, args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0

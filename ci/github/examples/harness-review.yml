@@ -1,0 +1,28 @@
+# Copy to .github/workflows/harness-review.yml. Reviews every pull request from this repository.
+#
+# Keep the trigger pull_request. pull_request_target would run with secrets on code a fork controls.
+name: harness review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    # Forks get no secrets, so a run for one could only fail.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Pin this to a commit of the repository, as with any action that sees secrets.
+      - uses: xlsft/harness/ci/github@main
+        with:
+          mode: review
+          server-url: ${{ vars.HARNESS_SERVER_URL }}
+          device-token: ${{ secrets.HARNESS_DEVICE_TOKEN }}
+          max-budget-usd: "2"

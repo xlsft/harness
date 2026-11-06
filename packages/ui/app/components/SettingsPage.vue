@@ -14,6 +14,7 @@ const SECTIONS = [
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
   { key: 'sandbox', label: 'Sandbox', icon: 'lock', group: 'app' },
   { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
+  { key: 'codehosts', label: 'Code hosts', icon: 'pull-request', group: 'app' },
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
@@ -42,6 +43,7 @@ const KEYWORDS: Record<Section, string> = {
   appearance: 'theme light dark mode system colours',
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
+  codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
@@ -131,6 +133,8 @@ const notifications = computed({
       <SettingsSandbox v-else-if="section === 'sandbox'" />
 
       <SettingsHooks v-else-if="section === 'hooks'" />
+
+      <SettingsCodeHosts v-else-if="section === 'codehosts'" />
 
       <template v-else-if="section === 'sessions'">
         <SettingsModes />

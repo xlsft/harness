@@ -524,4 +524,3 @@ func TestDeliverJobNeedsAConnectedSessionAndAnOpenTracker(t *testing.T) {
 		t.Fatal("a job went nowhere without an error")
 	}
 }
-

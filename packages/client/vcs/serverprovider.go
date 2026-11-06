@@ -51,7 +51,9 @@ func WithServerProvider(p *ServerProvider) []Provider {
 }
 
 // Type is the one a device provider never has; the name in messages comes from providerLabel.
-func (p *ServerProvider) Type() vcsv1.ProviderType { return vcsv1.ProviderType_PROVIDER_TYPE_UNSPECIFIED }
+func (p *ServerProvider) Type() vcsv1.ProviderType {
+	return vcsv1.ProviderType_PROVIDER_TYPE_UNSPECIFIED
+}
 
 // Detect lists the hosts where the server can act for this user. A server without the RPC, or a user who is signed
 // out, simply covers nothing, so the CLIs take over.

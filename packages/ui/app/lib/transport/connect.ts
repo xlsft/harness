@@ -9,7 +9,7 @@ import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import { ConfiguredHook_Status } from '~/gen/harness/agent/v1/hooks_pb'
-import type { ConfiguredHookVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { ConfiguredHookVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, PullRequestInput, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
@@ -40,6 +40,7 @@ import { ConnectClaudeImportApi } from '~/lib/import/connect'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
 import { ConnectMcpApi } from '~/lib/mcp/connect'
+import { ConnectVcsApi } from '~/lib/vcs/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -100,6 +101,7 @@ export class ConnectTransport implements SessionTransport {
     this.limitsApi = new ConnectLimitsApi(transport)
     this.acpApi = new ConnectAcpApi(transport)
     this.mcpApi = new ConnectMcpApi(transport)
+    this.vcsApi = new ConnectVcsApi(transport)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
   }
 
@@ -298,6 +300,16 @@ export class ConnectTransport implements SessionTransport {
     await this.client.setPrMonitor({ sessionId, enabled })
   }
 
+  async draftPullRequest(sessionId: string, baseBranch = '') {
+    const d = await this.client.draftPullRequest({ sessionId, baseBranch })
+    return { title: d.title, body: d.body, headBranch: d.headBranch, baseBranch: d.baseBranch, repositoryKey: d.repositoryKey, commits: d.commits, diffStat: d.diffStat, dirty: d.dirty, needsPush: d.needsPush, drafted: d.drafted, note: d.note, provider: d.provider }
+  }
+
+  async createPullRequest(sessionId: string, input: PullRequestInput) {
+    const r = await this.client.createPullRequest({ sessionId, ...input })
+    return { url: r.url, number: r.number, title: r.title, existed: r.existed, pushed: r.pushed }
+  }
+
   async setKeepAwake(sessionId: string, enabled: boolean) {
     await this.client.setKeepAwake({ sessionId, enabled })
   }
@@ -463,6 +475,11 @@ export class ConnectTransport implements SessionTransport {
   private localModelsApi?: ConnectLocalModelsApi
   localModels() {
     return (this.localModelsApi ??= new ConnectLocalModelsApi(this.transport))
+  }
+
+  private vcsApi!: ConnectVcsApi
+  vcs() {
+    return this.vcsApi
   }
 
   private mcpApi!: ConnectMcpApi
