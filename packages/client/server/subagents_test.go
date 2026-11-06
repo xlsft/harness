@@ -575,6 +575,7 @@ func TestInterruptLeavesAgentsRunning(t *testing.T) {
 
 // An isolated agent works in a worktree of its own; one that changed nothing leaves none behind.
 func TestSubagentWorktree(t *testing.T) {
+	gittest.Isolate(t)
 	var cwd atomic.Value
 	h := startHarness(t, func(n int, r *llm.Request) fg.Reply {
 		if isAgentRequest(r) {

@@ -2,7 +2,6 @@
 // The web UI connects as configured (mock or a client URL). In the desktop shell it first checks the sign-in
 // with the shell, then asks it for the sidecar's endpoint (lib/desktop.ts).
 import { agentEndpoint, authStatus, guardQuit, isDesktop } from '~/lib/desktop'
-import { isSubagent } from '~/lib/session/reducer'
 import { ConnectTransport } from '~/lib/transport'
 
 useSeoMeta({

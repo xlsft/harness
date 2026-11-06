@@ -10515,7 +10515,7 @@ var File_harness_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/agent/v1/agent.proto\x12\x10harness.agent.v1\x1a\x1aharness/agent/v1/acp.proto\x1a\x1eharness/agent/v1/browser.proto\x1a#harness/agent/v1/computer_use.proto\x1a\x1charness/agent/v1/files.proto\x1a\x1dharness/agent/v1/import.proto\x1a\x1dharness/agent/v1/limits.proto\x1a\"harness/agent/v1/localmodels.proto\x1a\x19harness/agent/v1/pr.proto\x1a\x1eharness/agent/v1/preview.proto\x1a&harness/agent/v1/device_settings.proto\x1a#harness/agent/v1/session_diff.proto\x1a$harness/agent/v1/session_links.proto\x1a\x1charness/agent/v1/shell.proto\x1a\x1fharness/agent/v1/sidechat.proto\x1a\x1dharness/agent/v1/speech.proto\x1a harness/agent/v1/subagents.proto\x1a harness/agent/v1/workflows.proto\x1a\x1fharness/agent/v1/terminal.proto\x1a!harness/agent/v1/user_tools.proto\x1a\x1charness/llm/v1/content.proto\"\x1b\n" +
+	"\x1charness/agent/v1/agent.proto\x12\x10harness.agent.v1\x1a\x1aharness/agent/v1/acp.proto\x1a\x1eharness/agent/v1/browser.proto\x1a#harness/agent/v1/computer_use.proto\x1a&harness/agent/v1/device_settings.proto\x1a\x1charness/agent/v1/files.proto\x1a\x1dharness/agent/v1/import.proto\x1a\x1dharness/agent/v1/limits.proto\x1a\"harness/agent/v1/localmodels.proto\x1a\x19harness/agent/v1/pr.proto\x1a\x1eharness/agent/v1/preview.proto\x1a#harness/agent/v1/session_diff.proto\x1a$harness/agent/v1/session_links.proto\x1a\x1charness/agent/v1/shell.proto\x1a\x1fharness/agent/v1/sidechat.proto\x1a\x1dharness/agent/v1/speech.proto\x1a harness/agent/v1/subagents.proto\x1a\x1fharness/agent/v1/terminal.proto\x1a!harness/agent/v1/user_tools.proto\x1a harness/agent/v1/workflows.proto\x1a\x1charness/llm/v1/content.proto\"\x1b\n" +
 	"\x19CreateObjectTicketRequest\"q\n" +
 	"\x1aCreateObjectTicketResponse\x12\x1c\n" +
 	"\tavailable\x18\x01 \x01(\bR\tavailable\x12\x16\n" +
@@ -12191,22 +12191,22 @@ func file_harness_agent_v1_agent_proto_init() {
 	file_harness_agent_v1_acp_proto_init()
 	file_harness_agent_v1_browser_proto_init()
 	file_harness_agent_v1_computer_use_proto_init()
+	file_harness_agent_v1_device_settings_proto_init()
 	file_harness_agent_v1_files_proto_init()
 	file_harness_agent_v1_import_proto_init()
 	file_harness_agent_v1_limits_proto_init()
 	file_harness_agent_v1_localmodels_proto_init()
 	file_harness_agent_v1_pr_proto_init()
 	file_harness_agent_v1_preview_proto_init()
-	file_harness_agent_v1_device_settings_proto_init()
 	file_harness_agent_v1_session_diff_proto_init()
 	file_harness_agent_v1_session_links_proto_init()
 	file_harness_agent_v1_shell_proto_init()
 	file_harness_agent_v1_sidechat_proto_init()
 	file_harness_agent_v1_speech_proto_init()
 	file_harness_agent_v1_subagents_proto_init()
-	file_harness_agent_v1_workflows_proto_init()
 	file_harness_agent_v1_terminal_proto_init()
 	file_harness_agent_v1_user_tools_proto_init()
+	file_harness_agent_v1_workflows_proto_init()
 	file_harness_agent_v1_agent_proto_msgTypes[4].OneofWrappers = []any{}
 	file_harness_agent_v1_agent_proto_msgTypes[5].OneofWrappers = []any{}
 	file_harness_agent_v1_agent_proto_msgTypes[9].OneofWrappers = []any{}

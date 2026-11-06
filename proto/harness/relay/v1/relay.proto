@@ -4,11 +4,11 @@ package harness.relay.v1;
 
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/subagents.proto";
 import "harness/agent/v1/workflows.proto";
-import "harness/relay/v1/workflows.proto";
-import "harness/agent/v1/session_links.proto";
 import "harness/common/v1/errors.proto";
+import "harness/relay/v1/workflows.proto";
 
 // RelayService is served by core and implements remote control without bidirectional streaming
 // (docs/PLAN.md §1.6, decision A6). Two kinds of callers:

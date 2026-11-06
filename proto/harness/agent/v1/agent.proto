@@ -5,22 +5,22 @@ package harness.agent.v1;
 import "harness/agent/v1/acp.proto";
 import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/computer_use.proto";
+import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/import.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
-import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
 import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/subagents.proto";
-import "harness/agent/v1/workflows.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/agent/v1/user_tools.proto";
+import "harness/agent/v1/workflows.proto";
 import "harness/llm/v1/content.proto";
 
 // AgentService is served by the local client (packages/client) to frontends:

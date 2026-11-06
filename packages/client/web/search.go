@@ -92,7 +92,8 @@ func (c *SearchClient) Search(ctx context.Context, q SearchQuery) (SearchRespons
 		return res, err
 	})
 	if err != nil {
-		if ctx.Err() == nil && (code == connect.CodeUnimplemented || code == connect.CodeNotFound ||
+		// Canceled with our context still live means the server went away mid-call.
+		if ctx.Err() == nil && (code == connect.CodeUnimplemented || code == connect.CodeNotFound || code == connect.CodeCanceled ||
 			(code == connect.CodeUnavailable && !hasInfo)) {
 			return SearchResponse{}, fmt.Errorf("%w: %v", ErrSearchUnavailable, err)
 		}

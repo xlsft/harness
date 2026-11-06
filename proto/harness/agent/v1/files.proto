@@ -13,12 +13,12 @@ package harness.agent.v1;
 
 enum GitFileStatus {
   GIT_FILE_STATUS_UNSPECIFIED = 0; // unchanged, or not in a repository
-  GIT_FILE_STATUS_ADDED = 1;       // new in the index, or the new side of a rename or copy
+  GIT_FILE_STATUS_ADDED = 1; // new in the index, or the new side of a rename or copy
   GIT_FILE_STATUS_MODIFIED = 2;
   GIT_FILE_STATUS_DELETED = 3;
   GIT_FILE_STATUS_UNTRACKED = 4;
   GIT_FILE_STATUS_RENAMED = 5;
-  GIT_FILE_STATUS_CONFLICTED = 6;  // unmerged
+  GIT_FILE_STATUS_CONFLICTED = 6; // unmerged
 }
 
 enum FileKind {

@@ -6080,7 +6080,7 @@ var File_harness_relay_v1_relay_proto protoreflect.FileDescriptor
 
 const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/relay/v1/relay.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a&harness/agent/v1/device_settings.proto\x1a harness/agent/v1/subagents.proto\x1a harness/agent/v1/workflows.proto\x1a harness/relay/v1/workflows.proto\x1a$harness/agent/v1/session_links.proto\x1a\x1eharness/common/v1/errors.proto\"\xc6\x01\n" +
+	"\x1charness/relay/v1/relay.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a&harness/agent/v1/device_settings.proto\x1a$harness/agent/v1/session_links.proto\x1a harness/agent/v1/subagents.proto\x1a harness/agent/v1/workflows.proto\x1a\x1eharness/common/v1/errors.proto\x1a harness/relay/v1/workflows.proto\"\xc6\x01\n" +
 	"\x13RegisterHostRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12%\n" +

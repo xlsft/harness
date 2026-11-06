@@ -224,7 +224,9 @@ func TestWaitFile(t *testing.T) {
 		t.Fatalf("pattern: %q %+v", text(r), s)
 	}
 
+	written := make(chan struct{})
 	go func() {
+		defer close(written)
 		time.Sleep(200 * time.Millisecond)
 		os.WriteFile(p, []byte("rewritten, longer content\n"), 0o644)
 	}()
@@ -232,6 +234,8 @@ func TestWaitFile(t *testing.T) {
 	if s := st(r); s["met"] != true || !strings.Contains(text(r), "changed") {
 		t.Fatalf("changed: %q %+v", text(r), s)
 	}
+	// WriteFile truncates, then writes: the wait can end between the two, so let it finish before the next baseline.
+	<-written
 	r = call(t, env, &Wait{}, map[string]any{"path": p, "changed": true, "timeout": 200})
 	if s := st(r); s["met"] != false || !strings.Contains(text(r), "did not change") {
 		t.Fatalf("unchanged: %q %+v", text(r), s)

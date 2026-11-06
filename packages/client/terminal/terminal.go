@@ -194,11 +194,12 @@ func (t *Terminal) run() {
 	case <-readDone:
 	case <-time.After(drainGrace):
 	}
-	_ = t.p.Close()
+	// Mark it exited before closing: Resize uses the PTY under the lock, only while running.
 	t.mu.Lock()
 	t.running, t.exitCode = false, code
 	t.notifyLocked()
 	t.mu.Unlock()
+	_ = t.p.Close()
 	close(t.done)
 }
 
