@@ -30,6 +30,7 @@ import (
 	"github.com/xlsft/harness/packages/client/relay"
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/sdk"
+	"github.com/xlsft/harness/packages/client/ide"
 	"github.com/xlsft/harness/packages/client/server"
 	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/syncclient"
@@ -240,6 +241,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	base.OutputStyle = *outputStyle
 	// Interactive frontends start sessions in auto mode unless the request or settings say otherwise.
 	base.FallbackPermissionMode = permissions.ModeAuto
+	base.IDE = &ide.Manager{}
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.Logger = log

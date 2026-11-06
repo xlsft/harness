@@ -50,6 +50,8 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	l.lspEnabled = s.boolean(src, raw, KeyLSPEnabled)
 	l.lspDiagnostics = s.boolean(src, raw, KeyLSPDiagnostics)
 	l.lspStartServer = s.boolean(src, raw, KeyLSPDiagnosticsStartServer)
+	l.ideDiffs = s.boolean(src, raw, KeyIDEDiffs)
+	l.ideReviewAll = s.boolean(src, raw, KeyIDEReviewAllEdits)
 	if v, ok := raw[KeyLSPServers]; ok && string(v) != "null" {
 		if err := json.Unmarshal(v, &l.lspServers); err != nil {
 			s.problem(src, KeyLSPServers, "must be an object of server settings by language id: %v", err)
@@ -328,6 +330,8 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		lspSwitch(&s.LSPEnabled, l.lspEnabled, KeyLSPEnabled)
 		lspSwitch(&s.LSPDiagnostics, l.lspDiagnostics, KeyLSPDiagnostics)
 		lspSwitch(&s.LSPDiagnosticsStartServer, l.lspStartServer, KeyLSPDiagnosticsStartServer)
+		lspSwitch(&s.IDEDiffs, l.ideDiffs, KeyIDEDiffs)
+		lspSwitch(&s.IDEReviewAllEdits, l.ideReviewAll, KeyIDEReviewAllEdits)
 		if len(l.lspServers) > 0 {
 			if projectFile(l) && !s.Trusted {
 				s.ignored(l.src, KeyLSPServers, "ignored until the workspace is trusted")

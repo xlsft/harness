@@ -497,6 +497,11 @@ func (ls *liveSession) syncDiffStats(ds *agentv1.DiffStats) {
 // Ask implements permissions.Asker: it publishes a PermissionRequest and
 // waits for RespondToPermission.
 func (ls *liveSession) Ask(ctx context.Context, req permissions.Request) (permissions.Decision, error) {
+	return ls.ask(ctx, req, ls.sess.IDE != nil && ls.sess.IDEConfig().Diffs)
+}
+
+// ask publishes the prompt; withEditor also opens the change in the editor's diff, and the first answer wins.
+func (ls *liveSession) ask(ctx context.Context, req permissions.Request, withEditor bool) (permissions.Decision, error) {
 	id := newUUID("perm_")
 	p := &pendingPermission{ch: make(chan permissionAnswer, 1), suggestions: req.Suggestions}
 	ls.mu.Lock()
@@ -512,15 +517,30 @@ func (ls *liveSession) Ask(ctx context.Context, req permissions.Request) (permis
 	ls.beginWait()
 	defer ls.endWait()
 	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionRequest{PermissionRequest: pr}})
-	select {
-	case <-ctx.Done():
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
-			RequestId: id, Decision: agentv1.RespondToPermissionRequest_DECISION_DENY, ResolvedBy: "interrupt"}}})
-		return permissions.Decision{}, ctx.Err()
-	case a := <-p.ch:
-		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
-			RequestId: id, Decision: a.decision, ResolvedBy: "local"}}})
-		return a.d, nil
+	var fromEditor <-chan editorAnswer
+	if withEditor {
+		ch, closeDiff := ls.openEditorDiff(ctx, req)
+		defer closeDiff()
+		fromEditor = ch
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
+				RequestId: id, Decision: agentv1.RespondToPermissionRequest_DECISION_DENY, ResolvedBy: "interrupt"}}})
+			return permissions.Decision{}, ctx.Err()
+		case a := <-p.ch:
+			ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
+				RequestId: id, Decision: a.decision, ResolvedBy: "local"}}})
+			return a.d, nil
+		case a := <-fromEditor:
+			fromEditor = nil // whatever it says, the editor has spoken
+			if d, decision, ok := answerFromEditor(a); ok {
+				ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_PermissionResolved{PermissionResolved: &agentv1.PermissionResolved{
+					RequestId: id, Decision: decision, ResolvedBy: "editor"}}})
+				return d, nil
+			}
+		}
 	}
 }
 

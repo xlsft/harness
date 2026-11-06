@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/xlsft/harness/packages/client/origins"
 	"net/http"
 	"strings"
 	"sync"
@@ -107,18 +108,13 @@ func (b *Browser) broadcastActionLocked(a *agentv1.BrowserAction) {
 // SocketHandler serves the browser WebSocket. A request with an Origin header must come from allowedOrigins;
 // the one-time ticket (IssueTicket) authenticates it instead of the bearer token.
 func (m *Manager) SocketHandler(allowedOrigins []string) http.Handler {
-	origins := map[string]bool{}
-	for _, o := range allowedOrigins {
-		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
-			origins[strings.ToLower(o)] = true
-		}
-	}
+	allowed := origins.New(allowedOrigins)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if o := r.Header.Get("Origin"); o != "" && !origins[strings.ToLower(o)] {
+		if o := r.Header.Get("Origin"); o != "" && !allowed.Allowed(o) {
 			http.Error(w, "forbidden: Origin is not allowed", http.StatusForbidden)
 			return
 		}

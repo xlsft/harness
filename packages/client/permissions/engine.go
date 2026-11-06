@@ -204,6 +204,12 @@ type Asker interface {
 	Ask(ctx context.Context, req Request) (Decision, error)
 }
 
+// Reviewer may look again at a call that was allowed without asking anyone (an editor's diff of an edit). It can't widen
+// anything: what is denied or asked never reaches it.
+type Reviewer interface {
+	Review(ctx context.Context, req Request, d Decision) Decision
+}
+
 // Source is one origin of permission rules, in priority order:
 // policySettings, cliArg, session, localSettings, projectSettings, userSettings.
 type Source struct {
@@ -290,6 +296,7 @@ type Engine struct {
 	ask        []Rule
 	deny       []Rule
 	asker      Asker
+	reviewer   Reviewer
 	promptHook PromptHook
 	onMode     func(Mode)
 	netGuard   *netguard.Guard
@@ -356,6 +363,13 @@ func (e *Engine) rebuild() {
 func (e *Engine) SetAsker(a Asker) {
 	e.mu.Lock()
 	e.asker = a
+	e.mu.Unlock()
+}
+
+// SetReviewer installs what looks again at calls allowed without asking (nil removes it).
+func (e *Engine) SetReviewer(r Reviewer) {
+	e.mu.Lock()
+	e.reviewer = r
 	e.mu.Unlock()
 }
 
@@ -660,6 +674,20 @@ func (e *Engine) IsDisabled(tool string) bool {
 
 // Check implements Checker.
 func (e *Engine) Check(ctx context.Context, req Request) Decision {
+	d := e.check(ctx, req)
+	if d.Behavior != Allow || d.ResolvedBy == "user" {
+		return d
+	}
+	e.mu.RLock()
+	r := e.reviewer
+	e.mu.RUnlock()
+	if r != nil {
+		return r.Review(ctx, req, d)
+	}
+	return d
+}
+
+func (e *Engine) check(ctx context.Context, req Request) Decision {
 	d := e.Evaluate(req)
 	switch req.HookBehavior {
 	case Allow:

@@ -15,12 +15,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/xlsft/harness/packages/client/origins"
 	"github.com/xlsft/harness/packages/client/terminal"
 )
 
 // DefaultCORSOrigins are the browser origins allowed by default on the TCP
-// listener: the UI dev server (packages/ui, `pnpm dev --port 3210`).
-var DefaultCORSOrigins = []string{"http://localhost:3210", "http://127.0.0.1:3210"}
+// listener: the UI dev server (packages/ui, `pnpm dev --port 3210`), and an editor's webview (packages/vscode), whose
+// host is random per panel and whose scheme no web page can have (package origins).
+var DefaultCORSOrigins = []string{"http://localhost:3210", "http://127.0.0.1:3210", "vscode-webview://*"}
 
 // MinTokenLength is the shortest bearer token accepted for the TCP listener.
 const MinTokenLength = 16
@@ -33,8 +35,8 @@ type TCPOptions struct {
 	// Token is the bearer token every request must carry
 	// (Authorization: Bearer <token>). Required.
 	Token string
-	// AllowedOrigins are the exact browser origins (scheme://host[:port])
-	// that may call the service. Requests with any other Origin header are
+	// AllowedOrigins are the browser origins (scheme://host[:port], or a whole
+	// non-web scheme as scheme://*; package origins) that may call the service. Requests with any other Origin header are
 	// rejected. Requests without an Origin header (non-browser clients) are
 	// allowed and still need the token.
 	AllowedOrigins []string
@@ -161,12 +163,7 @@ var (
 //     (ObjectProxyPath), for the same reason of an <img> or a <video>: it
 //     checks a read ticket.
 func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
-	origins := map[string]bool{}
-	for _, o := range opts.AllowedOrigins {
-		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
-			origins[strings.ToLower(o)] = true
-		}
-	}
+	allowed := origins.New(opts.AllowedOrigins)
 	bindHost, _, _ := net.SplitHostPort(opts.Addr)
 	bindHost = strings.ToLower(strings.Trim(bindHost, "[]"))
 	wildcard := bindHost == "" || bindHost == "0.0.0.0" || bindHost == "::"
@@ -201,7 +198,7 @@ func TCPGuard(next http.Handler, opts TCPOptions) http.Handler {
 		}
 		origin := r.Header.Get("Origin")
 		if origin != "" {
-			if !origins[strings.ToLower(origin)] {
+			if !allowed.Allowed(origin) {
 				http.Error(w, "forbidden: Origin is not allowed", http.StatusForbidden)
 				return
 			}

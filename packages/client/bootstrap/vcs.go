@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"github.com/xlsft/harness/packages/client/ide"
 	"log/slog"
 	"net/http"
 	"os"
@@ -109,6 +110,39 @@ func (s *Session) subagentSpend() float64 {
 		total += a.CostUSD
 	}
 	return total
+}
+
+// IDEConfig is the editor integration's switches.
+type IDEConfig struct{ Diffs, ReviewAllEdits bool }
+
+// ideOpener opens files in the session's editor, for the tools.
+type ideOpener struct {
+	m   *ide.Manager
+	dir func() string
+}
+
+func (o ideOpener) OpenInEditor(ctx context.Context, path string, line int) (string, bool, error) {
+	ed := o.m.For(ctx, o.dir())
+	if ed == nil {
+		return "", false, nil
+	}
+	return ed.Name(), true, ed.OpenFile(ctx, path, line, 0)
+}
+
+// IDEConfig reads the switches again, so that the user's change applies to a session that runs.
+func (s *Session) IDEConfig() IDEConfig {
+	if s.ideConfig != nil {
+		return s.ideConfig()
+	}
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Dir(), Docs: docs, Trusted: s.IsTrusted()})
+	if err != nil {
+		return IDEConfig{Diffs: true}
+	}
+	return IDEConfig{Diffs: st.IDEDiffs, ReviewAllEdits: st.IDEReviewAllEdits}
 }
 
 // lspConfig reads the language server settings again, so that the user's switches apply to a session that runs.

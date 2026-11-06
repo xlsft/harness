@@ -1,0 +1,10 @@
+{
+  "diffId": "diff_1",
+  "sessionId": "s1",
+  "toolUseId": "t1",
+  "path": "/repo/a.txt",
+  "exists": true,
+  "before": "one\n",
+  "after": "two\n",
+  "toolName": "Edit"
+}

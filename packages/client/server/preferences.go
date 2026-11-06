@@ -80,6 +80,12 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	if req.Msg.LspDiagnosticsStartServer != nil {
 		set[settings.KeyLSPDiagnosticsStartServer] = req.Msg.GetLspDiagnosticsStartServer()
 	}
+	if req.Msg.IdeDiffs != nil {
+		set[settings.KeyIDEDiffs] = req.Msg.GetIdeDiffs()
+	}
+	if req.Msg.IdeReviewAllEdits != nil {
+		set[settings.KeyIDEReviewAllEdits] = req.Msg.GetIdeReviewAllEdits()
+	}
 	if req.Msg.SchedulesEnabled != nil {
 		set[settings.KeySchedulesEnabled] = req.Msg.GetSchedulesEnabled()
 		defer s.scheduler().forgetPreference()
@@ -211,7 +217,7 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 
 // preferencesOf reads the preferences from a settings document (nil or invalid content: the defaults).
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
-	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
+	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, IdeDiffs: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents,
 		Sandbox: &agentv1.SandboxPreferences{Enabled: true, AllowLocalhost: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns}
 	var raw map[string]json.RawMessage
@@ -229,7 +235,7 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	if v, ok := raw[settings.KeyCompactIdleSessions]; ok && json.Unmarshal(v, &b) == nil {
 		p.CompactIdleSessions = b
 	}
-	for key, dst := range map[string]*bool{settings.KeyAutoMemoryEnabled: &p.AutoMemoryEnabled, settings.KeyLSPEnabled: &p.LspEnabled, settings.KeyLSPDiagnostics: &p.LspDiagnostics, settings.KeyLSPDiagnosticsStartServer: &p.LspDiagnosticsStartServer} {
+	for key, dst := range map[string]*bool{settings.KeyAutoMemoryEnabled: &p.AutoMemoryEnabled, settings.KeyLSPEnabled: &p.LspEnabled, settings.KeyLSPDiagnostics: &p.LspDiagnostics, settings.KeyLSPDiagnosticsStartServer: &p.LspDiagnosticsStartServer, settings.KeyIDEDiffs: &p.IdeDiffs, settings.KeyIDEReviewAllEdits: &p.IdeReviewAllEdits} {
 		if v, ok := raw[key]; ok && json.Unmarshal(v, &b) == nil {
 			*dst = b
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/xlsft/harness/packages/client/origins"
 	"io"
 	"net/http"
 	"strings"
@@ -44,18 +45,13 @@ type control struct {
 // IssueTicket) authenticates it instead of the bearer token. Binary frames from the UI are input; binary frames
 // to the UI are output, starting with the buffered output; text frames are control messages.
 func (m *Manager) SocketHandler(allowedOrigins []string) http.Handler {
-	origins := map[string]bool{}
-	for _, o := range allowedOrigins {
-		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
-			origins[strings.ToLower(o)] = true
-		}
-	}
+	allowed := origins.New(allowedOrigins)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if o := r.Header.Get("Origin"); o != "" && !origins[strings.ToLower(o)] {
+		if o := r.Header.Get("Origin"); o != "" && !allowed.Allowed(o) {
 			http.Error(w, "forbidden: Origin is not allowed", http.StatusForbidden)
 			return
 		}
