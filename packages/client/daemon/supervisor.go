@@ -43,7 +43,7 @@ type WorkerSpec struct {
 	Home     string
 }
 
-// Launcher starts workers. uidLauncher is the real one.
+// Launcher starts workers. UIDLauncher is the real one.
 type Launcher interface {
 	Start(ctx context.Context, spec WorkerSpec) (Worker, error)
 }
@@ -126,7 +126,11 @@ func NewSupervisor(o SupervisorOptions) *Supervisor {
 
 // Run registers and manages workers until ctx ends. It stops them on the way out.
 func (s *Supervisor) Run(ctx context.Context) error {
-	if err := os.MkdirAll(s.o.BaseDir, 0o700); err != nil {
+	// Workers go through here to their homes, and read nothing in it: 0711, and the records are 0600.
+	if err := os.MkdirAll(s.o.BaseDir, 0o711); err != nil {
+		return err
+	}
+	if err := os.Chmod(s.o.BaseDir, 0o711); err != nil {
 		return err
 	}
 	for attempt := 0; ; attempt++ {
@@ -312,7 +316,7 @@ func (s *Supervisor) uidOf(userID string) (int, error) {
 	return 0, fmt.Errorf("all %d Unix users of this host are assigned", s.o.UIDCount)
 }
 
-// uidLauncher starts `harness-client daemon worker` as the member's Unix user. Its environment is built from nothing:
+// UIDLauncher starts `harness-client daemon worker` as the member's Unix user. Its environment is built from nothing:
 // what the supervisor holds stays with the supervisor.
 type UIDLauncher struct {
 	// Executable is this binary.
@@ -327,6 +331,9 @@ type UIDLauncher struct {
 func workerEnv(serverURL, home string) []string {
 	env := []string{
 		"HOME=" + home,
+		// These Unix users are numbers with no passwd entry; programs that ask who they are read this.
+		"USER=harness-worker",
+		"LOGNAME=harness-worker",
 		"HARNESS_HOME=" + filepath.Join(home, ".harness"),
 		"HARNESS_SERVER_URL=" + serverURL,
 		"HARNESS_KEYRING=0",
@@ -395,6 +402,6 @@ func (w *procWorker) Wait() error { return w.cmd.Wait() }
 
 func (w *procWorker) Stop() {
 	terminate(w.cmd.Process)
-	done := time.AfterFunc(20*time.Second, func() { _ = w.cmd.Process.Kill() })
-	_ = done
+	// Wait, which the supervisor is in, returns as soon as the process is gone; a kill after that finds nothing.
+	time.AfterFunc(20*time.Second, func() { _ = w.cmd.Process.Kill() })
 }

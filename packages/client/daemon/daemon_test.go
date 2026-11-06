@@ -201,17 +201,21 @@ func (f *fakeSessions) runTurn(id string) {
 	s := f.sessions[id]
 	hook := f.onTurn
 	f.mu.Unlock()
+	emit := func(ev *agentv1.SessionEvent) {
+		f.mu.Lock()
+		s.seq++
+		ev.Seq = s.seq
+		subs := append([]chan *agentv1.SessionEvent(nil), s.subs...)
+		f.mu.Unlock()
+		for _, c := range subs {
+			c <- ev
+		}
+	}
+	emit(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnStarted{TurnStarted: &agentv1.TurnStarted{}}})
 	if hook != nil {
 		hook(s)
 	}
-	f.mu.Lock()
-	s.seq++
-	ev := &agentv1.SessionEvent{Seq: s.seq, Event: &agentv1.SessionEvent_TurnFinished{TurnFinished: &agentv1.TurnFinished{}}}
-	subs := append([]chan *agentv1.SessionEvent(nil), s.subs...)
-	f.mu.Unlock()
-	for _, c := range subs {
-		c <- ev
-	}
+	emit(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TurnFinished{TurnFinished: &agentv1.TurnFinished{}}})
 }
 
 func (f *fakeSessions) Send(_ context.Context, id, text string) error {
@@ -460,6 +464,61 @@ func TestAFollowUpLandsOnTheSameBranchAndPullRequest(t *testing.T) {
 	if len(api.prs) != 1 {
 		t.Fatalf("%d pull requests", len(api.prs))
 	}
+}
+
+func TestATurnStartsWithWhatTheCodeHostHasNow(t *testing.T) {
+	cloneURL, bare := bareRemote(t)
+	api, url := newFakeAPI(t)
+	api.cloneURL = cloneURL
+	s := newFakeSessions()
+	release := make(chan struct{})
+	seen := make(chan string, 4)
+	s.onTurn = func(fs *fakeSession) {
+		// The agent, at work. What it sees of the remote is from the fetch at the start of this turn.
+		select {
+		case <-release:
+		case <-time.After(10 * time.Second):
+		}
+		time.Sleep(100 * time.Millisecond)
+		seen <- testGit(t, fs.req.GetCwd(), "rev-parse", "origin/fix-me")
+	}
+	startRunner(t, api, url, s, nil)
+	api.add(&relayv1.HostWork{Id: "hwk_t", RepositoryKey: "code.test/a/b", Prompt: "x", Landing: relayv1.HostWorkLanding_HOST_WORK_LANDING_NONE})
+	// Someone pushes before the first turn begins: fix-me moves after the checkout was made, and the turn sees it.
+	var running *relayv1.UpdateHostWorkRequest
+	waitFor(t, "the session", func() bool {
+		running = api.updateWith(func(u *relayv1.UpdateHostWorkRequest) bool { return u.GetState() == relayv1.HostWorkState_HOST_WORK_STATE_RUNNING })
+		return running != nil
+	})
+	close(release)
+	first := <-seen
+	seed := t.TempDir()
+	testGit(t, seed, "clone", "-q", "-b", "fix-me", bare, "c")
+	dir := filepath.Join(seed, "c")
+	if err := os.WriteFile(filepath.Join(dir, "more.txt"), []byte("more\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	testGit(t, dir, "add", ".")
+	testGit(t, dir, "commit", "-m", "moved")
+	testGit(t, dir, "push", "origin", "fix-me")
+	moved := testGit(t, dir, "rev-parse", "HEAD")
+	if first == moved {
+		t.Fatal("the first turn cannot have seen this")
+	}
+	if err := s.Send(context.Background(), running.GetSessionId(), "again"); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "the second turn's fetch", func() bool {
+		select {
+		case got := <-seen:
+			if got != moved {
+				t.Errorf("the turn saw %s, the code host has %s", got, moved)
+			}
+			return true
+		default:
+			return false
+		}
+	})
 }
 
 func TestAJobGoesToANewSessionOnTheHeadBranchAndForksTheTranscript(t *testing.T) {

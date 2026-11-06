@@ -253,6 +253,9 @@ describe("team hosts", () => {
     const app = await CW.hostAgent.issueGitCredentials({ repositoryKey: REPO });
     expect(app.asUser).toBe(false);
     expect(app.password).toMatch(/^ghs_inst_/);
+    // One repository's worth of token, not the whole installation's.
+    const asked = gh.seen.filter((s) => s.path.endsWith("/access_tokens")).at(-1)!;
+    expect(JSON.parse(asked.body).repositories).toEqual(["widgets"]);
     // Outside the pattern she must connect her own.
     await expectError(CW.hostAgent.issueGitCredentials({ repositoryKey: "127.0.0.1/other/thing" }), Code.FailedPrecondition);
     await expectError(CW.hostAgent.issueGitCredentials({ repositoryKey: "nohost.example/a/b" }), Code.FailedPrecondition);

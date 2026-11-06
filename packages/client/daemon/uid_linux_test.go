@@ -19,17 +19,23 @@ func TestUIDLauncherSeparatesWorkers(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("needs root")
 	}
-	script := filepath.Join(t.TempDir(), "fake-worker")
+	shared := func() string {
+		// t.TempDir's parent is 0700, which a worker could not walk through.
+		d, err := os.MkdirTemp("", "harness-uid-")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.RemoveAll(d) })
+		if err := os.Chmod(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return d
+	}
+	script := filepath.Join(shared(), "fake-worker")
 	if err := os.WriteFile(script, []byte("#!/bin/sh\nid -u > \"$HOME/uid\"\ncat <&3 > \"$HOME/token\"\ncat /proc/self/environ | tr '\\0' '\\n' > \"$HOME/env\"\ncat \"$OTHER_FILE\" > \"$HOME/stolen\" 2>/dev/null\nexit 0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Chmod(filepath.Dir(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	base := t.TempDir()
-	if err := os.Chmod(base, 0o755); err != nil {
-		t.Fatal(err)
-	}
+	base := shared()
 	l := UIDLauncher{Executable: script, ServerURL: "https://h.test", Name: "n"}
 	run := func(uid int) string {
 		home := filepath.Join(base, "u"+strings.Repeat("x", uid-29999))

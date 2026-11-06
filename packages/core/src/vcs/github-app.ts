@@ -123,3 +123,15 @@ export async function installationToken(row: ConnectionRow, installationId: numb
 export async function installationTokenForRepo(row: ConnectionRow, owner: string, repo: string): Promise<string> {
   return installationToken(row, await installationFor(row, owner, repo));
 }
+
+/** An installation token good for one repository and nothing else, for git on an always-on host. Never cached: it goes out. */
+export async function scopedInstallationToken(row: ConnectionRow, owner: string, repo: string): Promise<string> {
+  const id = await installationFor(row, owner, repo);
+  const { data } = await httpJson<{ token: string }>(row, `${githubApiBase(row.baseUrl)}/app/installations/${id}/access_tokens`, "Create a GitHub installation token for one repository", {
+    method: "POST",
+    headers: GH_HEADERS,
+    authorization: `Bearer ${appJwt(row)}`,
+    body: { repositories: [repo], permissions: { contents: "write" } },
+  });
+  return data.token;
+}

@@ -154,7 +154,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
       <div class="flex flex-wrap items-center gap-2">
         <span class="font-semibold text-strong">{{ h.name }}</span>
         <span class="border border-default px-1 text-[10px] leading-[14px] text-muted">{{ h.scope === 'team' ? `Team: ${h.groupName || 'no group'}` : 'Personal' }}</span>
-        <span :class="h.online ? 'text-good' : 'text-muted'">{{ hostLoadText(h) }}</span>
+        <span :class="h.online ? 'text-toned' : 'text-muted'">{{ hostLoadText(h) }}</span>
         <span
           v-if="h.draining"
           class="text-warn"

@@ -598,7 +598,10 @@ func (r *Runner) startWatching(ctx context.Context, id string) {
 				if ev.GetSeq() > after {
 					after = ev.GetSeq()
 				}
-				if _, finished := ev.GetEvent().(*agentv1.SessionEvent_TurnFinished); finished {
+				switch ev.GetEvent().(type) {
+				case *agentv1.SessionEvent_TurnStarted:
+					r.fetch(ctx, id)
+				case *agentv1.SessionEvent_TurnFinished:
 					r.land(ctx, id)
 				}
 			}
@@ -614,6 +617,24 @@ func (r *Runner) startWatching(ctx context.Context, id string) {
 func (r *Runner) statusOf(id string) (agentv1.SessionStatus, bool) {
 	s, _, ok := r.o.Sessions.Status(id)
 	return s, ok
+}
+
+// fetch gives a turn what the code host has now: a job's conflict or a follow-up may be about what moved since the last turn.
+func (r *Runner) fetch(ctx context.Context, id string) {
+	t := r.trackedSession(id)
+	if t == nil {
+		return
+	}
+	r.mu.Lock()
+	repo, dir := t.RepositoryKey, t.Dir
+	r.mu.Unlock()
+	cred, err := r.credentials(ctx, repo)
+	if err == nil {
+		err = r.o.Git.Fetch(ctx, dir, cred)
+	}
+	if err != nil {
+		r.log.Debug("fetching at the start of a turn failed", "session", id, "err", err)
+	}
 }
 
 // land commits, pushes and opens the pull request, and tells the session and the work row (decision 12).

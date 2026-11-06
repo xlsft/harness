@@ -46,6 +46,8 @@ const MAX_MAX_SESSIONS = 1000;
 /** How long work waits for its host. */
 const WORK_TTL_MS = 24 * 3_600_000;
 const MAX_QUEUED_PER_USER = 100;
+/** How long finished work stays listed, and its prompt stored. */
+const WORK_RETENTION_MS = 30 * 86_400_000;
 const MAX_ATTEMPTS = 3;
 const MAX_POLL_S = 25;
 /** How long a claim lasts without an update. */
@@ -408,13 +410,19 @@ export async function startHostWork(p: Principal, req: StartHostWorkRequest): Pr
 type WorkInsert = Omit<typeof schema.hostWork.$inferInsert, "id" | "state" | "createdAt" | "updatedAt" | "expiresAt">;
 
 async function insertWork(v: WorkInsert): Promise<WorkRow> {
+  const db = getDb();
+  const w = schema.hostWork;
   const now = new Date();
-  const [row] = await getDb()
-    .insert(schema.hostWork)
+  const [row] = await db
+    .insert(w)
     .values({ ...v, id: newId("hwk"), state: HostWorkState.QUEUED, createdAt: now, updatedAt: now, expiresAt: new Date(now.getTime() + WORK_TTL_MS) })
+    .onConflictDoNothing()
     .returning();
   wake(v.hostId);
-  return row!;
+  if (row) return row;
+  // The same key again: a redelivered webhook, or a hand-over that was cut short.
+  const [same] = await db.select().from(w).where(and(eq(w.userId, v.userId), eq(w.idempotencyKey, v.idempotencyKey!)));
+  return same!;
 }
 
 /** The caller's work, or work on a host they administer (without what was asked). */
@@ -555,6 +563,8 @@ async function sweepWork(hostId: string): Promise<void> {
   const w = schema.hostWork;
   const now = new Date();
   await db.update(w).set({ state: HostWorkState.EXPIRED, updatedAt: now }).where(and(eq(w.hostId, hostId), eq(w.state, HostWorkState.QUEUED), lt(w.expiresAt, now)));
+  // What was asked stays no longer than the screens show it.
+  await db.delete(w).where(and(eq(w.hostId, hostId), inArray(w.state, [...TERMINAL]), lt(w.updatedAt, new Date(now.getTime() - WORK_RETENTION_MS))));
   const lost = await db.select().from(w).where(and(eq(w.hostId, hostId), eq(w.state, HostWorkState.CLAIMED), lt(w.leaseUntil, now)));
   for (const r of lost) {
     const failed = r.attempts >= MAX_ATTEMPTS;
@@ -851,9 +861,6 @@ async function takeMention(row: EventRow): Promise<void> {
     title: `Mentioned on pull request #${row.prNumber}`,
     job: encodeJob(job),
     idempotencyKey: `mention:${ids[0] ?? job.id}`,
-  }).catch((err: unknown) => {
-    // The same comment again (a redelivered webhook) hits the unique key.
-    if (!String(err).includes("host_work_idem_idx")) throw err;
   });
 }
 

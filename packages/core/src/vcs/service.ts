@@ -32,7 +32,7 @@ import {
   type ConnectionRow,
 } from "./connections.ts";
 import { getStoredPr, linkedSessions, mergePr, prOf, savePr, sessionsOf, storedPrs, type EventRow } from "./events.ts";
-import { appJwt, GH_HEADERS, githubApiBase, hasAppCredentials, installationTokenForRepo } from "./github-app.ts";
+import { appJwt, GH_HEADERS, githubApiBase, hasAppCredentials, scopedInstallationToken } from "./github-app.ts";
 import { updateBadges } from "./pipeline.ts";
 import type { CreatePrInput, PrData, RepoRef, VcsProviderClient } from "./types.ts";
 import { hostOfBaseUrl, httpJson, httpRequest, isOpen, parseRepoKey } from "./util.ts";
@@ -197,7 +197,7 @@ export async function hostIdentity(userId: string, repositoryKey: string, connec
   if (own) return { repo, conn, client: userClientWithToken(conn, own), token: own, asUser: true };
   const client = systemClient(conn);
   if (!connectionIdentityAllowed || !client) throw new ApiError("needs_auth", `Connect your ${providerName(conn.type)} account under Settings > Code hosts to work on ${repo.key} from a host`);
-  const token = conn.type === ProviderType.GITHUB ? await installationTokenForRepo(conn, repo.owner, repo.name) : connSecrets(conn).accessToken!;
+  const token = conn.type === ProviderType.GITHUB ? await scopedInstallationToken(conn, repo.owner, repo.name) : connSecrets(conn).accessToken!;
   return { repo, conn, client, token, asUser: false };
 }
 

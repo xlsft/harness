@@ -76,7 +76,7 @@ func TestAHostRunsASchedulesTimeWhileItsMachineIsAway(t *testing.T) {
 
 	task := schedule.Task{
 		ID: "sch_1", Name: "Nightly", Prompt: "check things", Cwd: "/Users/me/on-the-laptop", DeviceID: "dev_laptop", DeviceName: "laptop",
-		AwayHostID: "ahs_1", RepositoryKey: "github.com/acme/widgets", Trigger: schedule.Trigger{Kind: schedule.KindInterval, EverySeconds: 3600},
+		AwayHostID: "ahs_1", RepositoryKey: "github.com/acme/widgets", CatchUp: true, Trigger: schedule.Trigger{Kind: schedule.KindInterval, EverySeconds: 3600},
 		CreatedAt: clock.now().UTC().Format(time.RFC3339), UpdatedAt: clock.now().UTC().Format(time.RFC3339),
 	}
 	content, err := json.Marshal(task)
@@ -133,7 +133,7 @@ func TestAHostRefusesABypassSchedule(t *testing.T) {
 	mode := &fakeHostMode{dir: t.TempDir()}
 	h, clock, _ := startSyncedMachine(t, fake, httpSrv.URL, "dev_host", func(int, *llm.Request) fg.Reply { return answer("no") }, func(s *server.Server) { s.HostMode = mode.mode() })
 	task := schedule.Task{
-		ID: "sch_2", Name: "Careless", Prompt: "x", DeviceID: "dev_laptop", AwayHostID: "ahs_1", RepositoryKey: "github.com/acme/widgets", Mode: "bypassPermissions",
+		ID: "sch_2", Name: "Careless", Prompt: "x", DeviceID: "dev_laptop", AwayHostID: "ahs_1", RepositoryKey: "github.com/acme/widgets", Mode: "bypassPermissions", CatchUp: true,
 		Trigger:   schedule.Trigger{Kind: schedule.KindInterval, EverySeconds: 3600},
 		CreatedAt: clock.now().UTC().Format(time.RFC3339), UpdatedAt: clock.now().UTC().Format(time.RFC3339),
 	}

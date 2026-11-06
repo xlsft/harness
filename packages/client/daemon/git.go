@@ -330,6 +330,13 @@ func (g Git) Land(ctx context.Context, dir, branch, base, message string, cred C
 	return res, nil
 }
 
+// Fetch brings the remote's branches into a working tree's refs without touching the tree, so that the agent, which holds no
+// credentials, sees what the code host has.
+func (g Git) Fetch(ctx context.Context, dir string, cred Credentials) error {
+	_, err := g.run(ctx, dir, gitNetTimeout, &cred, nil, "fetch", "--prune", "--no-recurse-submodules", cred.CloneURL, "+refs/heads/*:refs/remotes/origin/*")
+	return err
+}
+
 // Remove takes a session's working tree away, and its worktree registration.
 func (g Git) Remove(ctx context.Context, root, repositoryKey, dir string) error {
 	cache := cacheDir(root, repositoryKey)
