@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "What you want to know: the decision or problem, what you tried, and what you are unsure about"
+    }
+  },
+  "required": ["question"],
+  "additionalProperties": false
+}

@@ -21,13 +21,13 @@ const awake = computed({
 // Panes of features the session's engine has not got are not offered.
 const FEATURE_OF: Partial<Record<PaneName, string>> = { sidechat: 'side_chat', tasks: 'background_tasks', agents: 'sub_sessions' }
 const allItems: { pane: PaneName, label: string, icon: IconName, kbd?: string }[] = [
-  { pane: 'terminal', label: 'Terminal', icon: 'term', kbd: 'meta+j' },
-  { pane: 'browser', label: 'Browser', icon: 'globe-stand', kbd: 'meta+shift+b' },
-  { pane: 'files', label: 'Files', icon: 'folder', kbd: 'meta+shift+e' },
-  { pane: 'diff', label: 'Changes', icon: 'diff' },
-  { pane: 'sidechat', label: 'Side chat', icon: 'chat', kbd: 'meta+;' },
-  { pane: 'tasks', label: 'Background tasks', icon: 'diamond' },
-  { pane: 'agents', label: 'Agents', icon: 'ai' }
+  { pane: 'terminal', label: tt('Terminal'), icon: 'term', kbd: 'meta+j' },
+  { pane: 'browser', label: tt('Browser'), icon: 'globe-stand', kbd: 'meta+shift+b' },
+  { pane: 'files', label: tt('Files'), icon: 'folder', kbd: 'meta+shift+e' },
+  { pane: 'diff', label: tt('Changes'), icon: 'diff' },
+  { pane: 'sidechat', label: tt('Side chat'), icon: 'chat', kbd: 'meta+;' },
+  { pane: 'tasks', label: tt('Background tasks'), icon: 'diamond' },
+  { pane: 'agents', label: tt('Agents'), icon: 'ai' }
 ]
 const items = computed(() => allItems.filter(i => !current.value?.meta.unsupported.includes(FEATURE_OF[i.pane] ?? '')))
 
@@ -40,7 +40,7 @@ function choose(p: PaneName) {
 <template>
   <div
     role="menu"
-    aria-label="Tools"
+    :aria-label="tt('Tools')"
     class="menu-panel w-[290px] overflow-hidden p-0"
   >
     <div
@@ -76,10 +76,10 @@ function choose(p: PaneName) {
           name="sun"
           class="text-muted"
         />
-        <span class="flex flex-1 flex-col gap-px"><span class="text-strong">Keep computer awake</span><span class="text-[11px] text-muted">While this session works</span></span>
+        <span class="flex flex-1 flex-col gap-px"><span class="text-strong">{{ tt('Keep computer awake') }}</span><span class="text-[11px] text-muted">{{ tt('While this session works') }}</span></span>
         <HToggle
           v-model="awake"
-          label="Keep computer awake"
+          :label="tt('Keep computer awake')"
           @click.stop
         />
       </div>

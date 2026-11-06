@@ -122,7 +122,7 @@ message Provider {
   string preset_id = 15;
   // "llm", "classifier" or "search".
   string group = 16;
-  // Search providers: their options (see ProviderPreset.options), by name; values are plain text.
+  // Search and cloud providers: their options (see ProviderPreset.options), by name; values are plain text.
   map<string, string> options = 17;
   // LLM providers: "metered" (pay as you go) or "plan" (a subscription / coding plan), from its preset; a
   // custom provider is "metered" (its models cost what their catalog price says, nothing without one).
@@ -208,6 +208,9 @@ message ProviderPreset {
   // LLM presets: "metered" (pay as you go: requests to priced models count their cost) or "plan" (a flat-rate
   // subscription / coding plan: usage counts tokens only, never cost; see harness.llm.v1.UsageService).
   string billing = 16;
+  // A cloud platform whose requests carry native credentials: "aws", "gcp" or "azure"; empty otherwise. `base_url` is
+  // then a template the server fills from `options`, whose "credential_mode" says which `fields` and options apply.
+  string cloud = 30;
 }
 
 // A setting of a connected provider.
@@ -225,19 +228,29 @@ message PresetOption {
   // "number": the allowed range.
   int32 min = 7;
   int32 max = 8;
+  // Cloud presets: shown only with these values of the "credential_mode" option. Empty: always.
+  repeated string modes = 9;
+  // A connection needs a value (a cloud preset's region, project...).
+  bool required = 10;
 }
 
 message OptionChoice {
   string value = 1;
   string label = 2;
+  // Not offered for a personal provider: the server's own cloud identity.
+  bool global_only = 3;
 }
 
 message PresetField {
-  // "api_key" or "base_url".
+  // "api_key" or "base_url". A cloud preset may list "api_key" more than once, labeled per credential mode.
   string name = 1;
   string label = 2;
   bool required = 3;
   string placeholder = 4;
+  // Cloud presets: only with these values of the "credential_mode" option. Empty: always.
+  repeated string modes = 5;
+  // Text of several lines (a service account file).
+  bool multiline = 6;
 }
 
 message PresetModel {
@@ -296,7 +309,7 @@ message CreateProviderRequest {
   string preset_id = 9;
   // Custom providers: "llm" (default), "classifier" (GLOBAL only) or "search".
   string group = 10;
-  // Search providers: initial options.
+  // Search and cloud providers: initial options.
   map<string, string> options = 11;
 }
 
@@ -317,7 +330,7 @@ message UpdateProviderRequest {
   optional bool enabled = 7;
   // GLOBAL only.
   optional bool allow_private_network = 8;
-  // Search providers: replaces all options when set (an empty value is dropped: the default applies).
+  // Search and cloud providers: replaces all options when set (an empty value is dropped: the default applies).
   optional ProviderOptions options = 9;
 }
 

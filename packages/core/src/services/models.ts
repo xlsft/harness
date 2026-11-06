@@ -14,6 +14,7 @@ import { serverPolicyFor, providerAllowed } from "./managed-policy.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "./devices.ts";
+import { modelTiers, type CacheTtl, type SpeedTier } from "./model-tiers.ts";
 import { catalogPriceOf, loadCatalogSnapshot } from "./price-catalog.ts";
 import { billingOf, presetOf, presetPriceOf } from "./presets.ts";
 import { PERSONAL_PREFIX, providerForUser } from "./providers.ts";
@@ -85,6 +86,9 @@ export interface ModelEntry {
   enabled: boolean;
   /** Owner of the model's provider; null for a global model. */
   ownerUserId: string | null;
+  /** From the provider and model (services/model-tiers.ts), where the entry is listed or used. */
+  speedTiers?: SpeedTier[];
+  cacheTtls?: CacheTtl[];
 }
 
 /**
@@ -112,6 +116,12 @@ function shownAs(r: Row, provider: typeof schema.provider.$inferSelect) {
   const preset = presetOf(provider);
   const providerName = provider.displayName || preset?.display_name || provider.id;
   return { providerName, displayId: provider.ownerUserId ? r.upstreamModel : r.id };
+}
+
+/** The speed tiers and cache lifetimes the entry's provider has for it. */
+function withTiers(m: ModelEntry, provider: typeof schema.provider.$inferSelect): ModelEntry {
+  const tiers = modelTiers({ presetId: presetOf(provider)?.id ?? null, type: provider.type, upstreamModel: m.upstreamModel, promptCache: m.capabilities.prompt_cache });
+  return { ...m, speedTiers: tiers.speed_tiers, cacheTtls: tiers.cache_ttls };
 }
 
 function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
@@ -148,7 +158,7 @@ export function catalogEntry(m: ModelEntry) {
     display_id: m.displayId || m.id,
     context_window: m.contextWindow,
     max_output_tokens: m.maxOutputTokens,
-    capabilities: m.capabilities,
+    capabilities: { ...m.capabilities, speed_tiers: m.speedTiers ?? [], cache_ttls: m.cacheTtls ?? [] },
   };
   if (m.pricing) out.pricing = m.pricing;
   return out;
@@ -187,7 +197,7 @@ export async function listModelsForUser(user: PublicUser) {
   const policy = await serverPolicyFor(user);
   const entries = rows
     .filter((r) => providerAllowed(policy, r.provider))
-    .map((r) => ({ ...toEntry(r.model, r.provider.ownerUserId), ...shownAs(r.model, r.provider) }))
+    .map((r) => ({ ...withTiers(toEntry(r.model, r.provider.ownerUserId), r.provider), ...shownAs(r.model, r.provider) }))
     .filter((m) => canSee(m, user));
   const visible = [...entries.filter((m) => !m.ownerUserId), ...entries.filter((m) => m.ownerUserId)];
   const ids = new Set(visible.map((m) => m.id));
@@ -223,7 +233,7 @@ export async function findModel(id: string): Promise<ModelEntry | undefined> {
     .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
     .where(eq(schema.model.id, id))
     .limit(1);
-  return r ? toEntry(r.model, r.provider.ownerUserId) : undefined;
+  return r ? withTiers(toEntry(r.model, r.provider.ownerUserId), r.provider) : undefined;
 }
 
 /** A global model; personal models are invisible to server-wide settings (slots, classifier). */

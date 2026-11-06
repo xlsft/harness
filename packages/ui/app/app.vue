@@ -15,6 +15,8 @@ const desktop = isDesktop()
 useTurnNotifications()
 useUserNotifications()
 useDeviceSettings()
+useScreenReader().start()
+useHead({ htmlAttrs: { lang: currentLocale() } })
 const config = useRuntimeConfig()
 // Served by the server itself: a client to connect to, or the console for what needs none (components/WebConsole.vue).
 const web = !desktop && String(config.public.transport) === 'web'
@@ -104,6 +106,8 @@ if (desktop) {
     />
     <template v-else>
       <NuxtPage />
+      <ScreenReaderRegions />
+      <SshHostBar />
       <SettingsModal />
       <SearchModal />
     </template>

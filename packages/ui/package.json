@@ -11,7 +11,8 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "i18n": "node scripts/i18n-extract.mjs"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.16.0",
