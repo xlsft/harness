@@ -1,6 +1,7 @@
 ---
 name: documents
 description: Judgement for making or reworking a Word document, spreadsheet, slide deck or PDF that people will read. Load it for design, structure and quality decisions; plain edits only need DocumentRead and DocumentEdit.
+paths: "**/*.docx, **/*.docm, **/*.dotx, **/*.dotm, **/*.xlsx, **/*.xlsm, **/*.xltx, **/*.xltm, **/*.pptx, **/*.pptm, **/*.potx, **/*.potm, **/*.ppsx, **/*.ppsm, **/*.pdf"
 ---
 # Working on documents
 

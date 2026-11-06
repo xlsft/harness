@@ -122,7 +122,9 @@ See the operation list in the tool description (`packages/core/prompts/tools/Doc
 
 Built in rather than a `catalog/` plugin: the tool descriptions point to it and it must be there without an install. It is
 embedded, ranks below every other source, so a user's own `documents` skill replaces it, and costs only its name and
-description until loaded. A `.claude` path is not involved.
+description, and only once a session touches a document (`paths` in its frontmatter): the listing goes into the first
+message, so an unconditional entry would cost every session and change every first request. It stays loadable by name, for
+a new file before anything is touched.
 
 ## Changes pane
 
